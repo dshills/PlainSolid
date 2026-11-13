@@ -2,6 +2,7 @@ package occtcheck
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -52,5 +53,66 @@ func TestOCCTFiniteRawCylinderSets(t *testing.T) {
 			moment = moment.Add(mass.Centroid.Scale(mass.Volume))
 		}
 		compare(t, refs[prefix+"cut"], area, volume, moment.Scale(1/volume))
+	}
+}
+
+// Native rectangular-patch topology has no public shell count. Count connected
+// face components through shared edge identity, independently of mesh sampling.
+func finiteOracleShellCount(s parametric.Solid) int {
+	faces := s.Faces()
+	parent := make([]int, len(faces))
+	for i := range parent {
+		parent[i] = i
+	}
+	var root func(int) int
+	root = func(i int) int {
+		if parent[i] != i {
+			parent[i] = root(parent[i])
+		}
+		return parent[i]
+	}
+	owners := map[int]int{}
+	for i, f := range faces {
+		for _, use := range f.Boundary {
+			if j, ok := owners[use.Edge]; ok {
+				parent[root(i)] = root(j)
+			} else {
+				owners[use.Edge] = i
+			}
+		}
+	}
+	count := 0
+	for i := range faces {
+		if root(i) == i {
+			count++
+		}
+	}
+	return count
+}
+func TestOCCTSeparatedFiniteCylinderUnion(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -1, Max: 1}
+	for _, tc := range []struct {
+		name   string
+		origin geom.Vec3
+	}{{"finite-separated-radial", geom.Vec3{X: 4}}, {"finite-separated-axial", geom.Vec3{Z: 8}}} {
+		b := geom.RawCylinder{Origin: tc.origin, Axis: geom.Vec3{Z: -3}, Radius: 1, Min: -1, Max: 1}
+		u, e := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+		if e != nil || finiteOracleShellCount(u.Solid) != 2 {
+			t.Fatal("two independent native solids", e)
+		}
+		p, e := u.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if e != nil {
+			t.Fatal(e)
+		}
+		compare(t, refs[tc.name], p.Area, p.Volume, p.Centroid)
+	}
+	// This is the native manifold policy, deliberately not an OCCT equivalence
+	// assertion: a radial tangency has no strictly separated closed components.
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 3}, Axis: geom.Vec3{Z: -3}, Radius: 1, Min: -1, Max: 1}
+	bad, e := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrDomain) || len(bad.Solid.Faces()) != 0 {
+		t.Fatal("tangent policy", e)
 	}
 }
