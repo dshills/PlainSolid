@@ -36,20 +36,17 @@ func (c *entryClipper) section(phase float64) ([]entrySectionUse, error) {
 		adjacency[e.End] = append(adjacency[e.End], i)
 		selected = append(selected, i)
 	}
-	wall := 0
-	if c.r.BoreRadius > 0 {
-		wall = 1
+	_, seamPoint, _, err := c.entryWall()
+	if err != nil {
+		return nil, err
 	}
-	frequency := map[int]int{}
 	seam := -1
-	for _, u := range c.source.faces[wall].Outer {
-		frequency[u.Edge]++
-		if frequency[u.Edge] == 2 {
-			cut, ok := c.cuts[u.Edge]
-			if !ok {
+	for id, adj := range adjacency {
+		if len(adj) == 2 && c.vertices[id].Sub(seamPoint).Length() <= c.source.tolerance {
+			if seam >= 0 {
 				return nil, geom.ErrDomain
 			}
-			seam = cut.id
+			seam = id
 		}
 	}
 	if seam < 0 || len(adjacency[seam]) != 2 || len(selected) < 3 {
@@ -134,17 +131,46 @@ func (c *entryClipper) section(phase float64) ([]entrySectionUse, error) {
 	}
 	return out, nil
 }
-func (c *entryClipper) appendEntryRelief(radius float64) (int, int, error) {
-	wall := 0
+func (c *entryClipper) entryWall() (geom.TwistedCylinderSurface, geom.Vec3, float64, error) {
+	stockRadius := c.r.OuterRadius
 	if c.r.BoreRadius > 0 {
-		wall = 1
+		stockRadius = c.r.BoreRadius
 	}
-	twisted, ok := c.source.faces[wall].Surface.(geom.TwistedCylinderSurface)
-	if !ok {
-		return 0, 0, geom.ErrDomain
+	for _, f := range c.source.faces {
+		wall, ok := f.Surface.(geom.TwistedCylinderSurface)
+		if !ok {
+			continue
+		}
+		frame, radius, _, _ := wall.Parameters()
+		if radius != stockRadius {
+			continue
+		}
+		sign := frame.ZAxis().Dot(c.r.Frame.ZAxis())
+		if sign != 1 && sign != -1 {
+			return wall, geom.Vec3{}, 0, geom.ErrDomain
+		}
+		offset := c.r.Frame.ToLocal(frame.Origin()).Z
+		v := (c.depth - offset) / sign
+		p, e := wall.Eval(0, v)
+		if e != nil {
+			return wall, geom.Vec3{}, 0, e
+		}
+		local := c.r.Frame.ToLocal(p)
+		phase := math.Atan2(local.Y, local.X) / (2 * math.Pi)
+		return wall, p, phase, nil
 	}
-	frame, stockRadius, twist, phase := twisted.Parameters()
-	phaseDepth := twist*c.depth + phase
+	return geom.TwistedCylinderSurface{}, geom.Vec3{}, 0, geom.ErrDomain
+}
+func (c *entryClipper) appendEntryRelief(radius float64) (int, int, error) {
+	_, _, phaseDepth, e := c.entryWall()
+	if e != nil {
+		return 0, 0, e
+	}
+	frame := c.r.Frame
+	stockRadius := c.r.OuterRadius
+	if c.r.BoreRadius > 0 {
+		stockRadius = c.r.BoreRadius
+	}
 	section, e := c.section(phaseDepth)
 	if e != nil {
 		return 0, 0, e
@@ -213,17 +239,62 @@ func (c *entryClipper) appendEntryRelief(radius float64) (int, int, error) {
 		seamEdge := add(center, lo, disk, geom.Vec2{X: 2 * math.Pi}, geom.Vec2{X: 2 * math.Pi, Y: radius})
 		c.faces = append(c.faces, Face{Surface: disk, Outer: []Use{{Edge: pole, UVEnd: geom.Vec2{X: 2 * math.Pi}}, {Edge: seamEdge, UVStart: geom.Vec2{X: 2 * math.Pi}, UVEnd: geom.Vec2{X: 2 * math.Pi, Y: radius}}, {Edge: bottom, Reversed: true, UVStart: geom.Vec2{X: 2 * math.Pi, Y: radius}, UVEnd: geom.Vec2{Y: radius}}, {Edge: seamEdge, Reversed: true, UVStart: geom.Vec2{Y: radius}}}})
 	} else {
-		cap, e := geom.NewTwistedAnnularSurface(frame, radius, c.r.OuterRadius, 0, math.Remainder(phaseDepth, 1))
+		counts := make([]int, len(c.edges))
+		for _, f := range c.faces {
+			for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
+				for _, u := range loop {
+					counts[u.Edge]++
+				}
+			}
+		}
+		outerBottom := -1
+		outerVertex := -1
+		for id, edge := range c.edges {
+			if counts[id] != 1 || edge.Start != edge.End || edge.Curve == nil {
+				continue
+			}
+			p := c.r.Frame.ToLocal(c.vertices[edge.Start])
+			if math.Abs(p.Z) <= c.source.tolerance && math.Abs(math.Hypot(p.X, p.Y)-c.r.OuterRadius) <= c.source.tolerance {
+				if outerBottom >= 0 {
+					return 0, 0, geom.ErrDomain
+				}
+				outerBottom, outerVertex = id, edge.Start
+			}
+		}
+		if outerBottom < 0 {
+			return 0, 0, geom.ErrDomain
+		}
+		outerFrame, e := geom.NewFrame(frame.Origin(), c.vertices[outerVertex].Sub(frame.Origin()), frame.ZAxis())
 		if e != nil {
 			return 0, 0, e
 		}
-		outerBottom, ok := c.edgeIDs[0]
-		if !ok {
-			return 0, 0, geom.ErrDomain
+		innerPhase := math.Atan2(oriented.XAxis().Dot(outerFrame.YAxis()), oriented.XAxis().Dot(outerFrame.XAxis())) / (2 * math.Pi)
+		cap, e := geom.NewTwistedAnnularSurface(outerFrame, radius, c.r.OuterRadius, 0, innerPhase)
+		if e != nil {
+			return 0, 0, e
 		}
-		outerVertex := c.edges[outerBottom].Start
+		originalEdge := c.edges[outerBottom]
+		sample, e := originalEdge.Curve.Eval(originalEdge.Range.Min + .25*(originalEdge.Range.Max-originalEdge.Range.Min))
+		if e != nil {
+			return 0, 0, e
+		}
+		forward, e := cap.Eval(.25, c.r.OuterRadius)
+		if e != nil {
+			return 0, 0, e
+		}
+		backward, e := cap.Eval(.75, c.r.OuterRadius)
+		if e != nil {
+			return 0, 0, e
+		}
+		outerReverse := true
+		if sample.Sub(forward).Length() > c.source.tolerance {
+			if sample.Sub(backward).Length() > c.source.tolerance {
+				return 0, 0, geom.ErrDomain
+			}
+			outerReverse = false
+		}
 		seamEdge := add(lo, outerVertex, cap, geom.Vec2{X: 1, Y: radius}, geom.Vec2{X: 1, Y: c.r.OuterRadius})
-		c.faces = append(c.faces, Face{Surface: cap, Outer: []Use{{Edge: bottom, UVStart: geom.Vec2{Y: radius}, UVEnd: geom.Vec2{X: 1, Y: radius}}, {Edge: seamEdge, UVStart: geom.Vec2{X: 1, Y: radius}, UVEnd: geom.Vec2{X: 1, Y: c.r.OuterRadius}}, {Edge: outerBottom, Reversed: true, UVStart: geom.Vec2{X: 1, Y: c.r.OuterRadius}, UVEnd: geom.Vec2{Y: c.r.OuterRadius}}, {Edge: seamEdge, Reversed: true, UVStart: geom.Vec2{Y: c.r.OuterRadius}, UVEnd: geom.Vec2{Y: radius}}}})
+		c.faces = append(c.faces, Face{Surface: cap, Outer: []Use{{Edge: bottom, UVStart: geom.Vec2{Y: radius}, UVEnd: geom.Vec2{X: 1, Y: radius}}, {Edge: seamEdge, UVStart: geom.Vec2{X: 1, Y: radius}, UVEnd: geom.Vec2{X: 1, Y: c.r.OuterRadius}}, {Edge: outerBottom, Reversed: outerReverse, UVStart: geom.Vec2{X: 1, Y: c.r.OuterRadius}, UVEnd: geom.Vec2{Y: c.r.OuterRadius}}, {Edge: seamEdge, Reversed: true, UVStart: geom.Vec2{Y: c.r.OuterRadius}, UVEnd: geom.Vec2{Y: radius}}}})
 	}
 	return reliefID, shoulderID, nil
 }
