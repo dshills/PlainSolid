@@ -49,13 +49,18 @@ func TestCylinderPairCavityRecipe(t *testing.T) {
 	if err != nil || !contacts.Complete || len(contacts.Contacts) != 0 {
 		t.Fatal("embedded cavity display", err)
 	}
-	for _, touch := range []geom.RawCylinder{
-		{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 2, Min: 0, Max: 3},
-		{Origin: geom.Vec3{X: 4, Y: 2, Z: 2}, Axis: cutter.Axis, Radius: 2, Min: 0, Max: 2},
-	} {
-		bad, err := parametric.FiniteCylinderPairDifference(ctx, stock, touch, 1e-9)
-		if !errors.Is(err, geom.ErrDomain) || len(bad.Solids[0].Faces()) != 0 {
-			t.Fatal("contact published an unproved cavity", err)
-		}
+	// Exactly reaching a stock cap is now qualified as an open blind bore,
+	// whereas radial tangency still cannot publish a pinched cavity.
+	open := cutter
+	open.Max = 3
+	other, err := parametric.FiniteCylinderPairDifference(ctx, stock, open, 1e-9)
+	if err != nil || len(other.Solids[0].Faces()) != 20 || len(other.CutterCapFaces[0]) != 4 {
+		t.Fatal("cap contact must open the bore", err)
+	}
+	tangent := cutter
+	tangent.Origin = geom.Vec3{X: 4, Y: 2, Z: 2}
+	bad, err := parametric.FiniteCylinderPairDifference(ctx, stock, tangent, 1e-9)
+	if !errors.Is(err, geom.ErrDomain) || len(bad.Solids[0].Faces()) != 0 {
+		t.Fatal("radial contact published an unproved cavity", err)
 	}
 }
