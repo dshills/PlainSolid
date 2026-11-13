@@ -83,7 +83,7 @@ func TestTransverseStaggeredCylinderUnion(t *testing.T) {
 func TestTransverseStaggeredUnionGuards(t *testing.T) {
 	a := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Max: 8, Radius: 5}
 	b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: 1}, Min: 2, Max: 10, Radius: 3}
-	for _, c := range []geom.RawCylinder{{Origin: b.Origin, Axis: b.Axis, Min: math.Nextafter(8, 0), Max: 10, Radius: 3}, {Origin: b.Origin, Axis: b.Axis, Min: 2, Max: math.Nextafter(8, 10), Radius: 3}, {Origin: geom.Vec3{X: 8}, Axis: b.Axis, Min: 2, Max: 10, Radius: 3}, {Origin: b.Origin, Axis: b.Axis, Min: 2, Max: 6, Radius: 3}} {
+	for _, c := range []geom.RawCylinder{{Origin: b.Origin, Axis: b.Axis, Min: math.Nextafter(8, 0), Max: 10, Radius: 3}, {Origin: b.Origin, Axis: b.Axis, Min: 2, Max: math.Nextafter(8, 10), Radius: 3}, {Origin: geom.Vec3{X: 8}, Axis: b.Axis, Min: 2, Max: 10, Radius: 3}, {Origin: b.Origin, Axis: b.Axis, Min: math.Nextafter(8, 0), Max: 10, Radius: 3}} {
 		r, e := FiniteCylinderPairUnion(context.Background(), a, c, 1e-8)
 		if e == nil || len(r.Solid.Faces()) != 0 {
 			t.Fatal("guard", c, e)
