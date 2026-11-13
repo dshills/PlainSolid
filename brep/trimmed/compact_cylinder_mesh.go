@@ -133,6 +133,9 @@ func compactStraightEdge(curve geom.Curve) bool {
 			return false
 		}
 		surface, _ := parametric.SurfaceMapping(c.surface)
+		if _, _, _, ok := parametric.RevolutionSideParameters(surface); ok {
+			return c.a.X == c.b.X
+		}
 		switch surface.(type) {
 		case geom.PlaneSurface:
 			return true
