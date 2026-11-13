@@ -39,7 +39,10 @@ multi-turn openings inside one analytic wall chart. Arbitrary curved
 meridian profiles, lead-in and runout, and complete lead screw and nut
 qualification remain open.
 The same bounded construction also cuts grooves on the inside of a tube
-while retaining annular caps and an unchanged outer wall.
+while retaining annular caps and an unchanged outer wall. A paired shaft and
+nut constructor now checks exact clearance at both nominal flanks over the
+shared radial band. Clearance at the finite ends and overlapping reliefs
+remain open.
 Selected signed off-axis circular meridians produce analytic torus elbows.
 The STEP polygon revolve writer qualifies signed partial sweeps and axis
 contact; the closed display proof is opt-in. Convex polygon extrusion with

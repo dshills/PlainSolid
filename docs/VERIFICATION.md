@@ -888,3 +888,10 @@ rebuild the long cap chain after radius and depth edits. Missing references,
 uncovered targets, excessive angles, and feature intrusion leave the prior
 document revision intact. Tests also cover owned recipe snapshots, undo,
 redo, and reload.
+
+Paired two-start shaft and nut fixtures match independent exact removed volume
+coefficients 21/4 and 4 (times π), and native retained volumes for both hands.
+The shared radial band [7/4,2] has exact nominal lower and upper flank gaps
+of 1/8. Tests distinguish shaft valleys, retained ridge and clearance probes,
+reject zero clearance on either flank, and preserve both native parts on
+reload. These tests do not qualify clearance at finite runouts.
