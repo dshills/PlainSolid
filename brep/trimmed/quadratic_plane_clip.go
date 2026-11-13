@@ -15,7 +15,9 @@ import (
 // contain stock. The complete cap is a certified simple quadratic loop, with
 // exact shared model edges and original support/edge ancestry. No vertex events,
 // sampled classifications, knot-crossing branches or weighted patches are accepted.
-// Work limits apply to each bounded surface/edge proof and trim loop validation.
+// Each nonaffine face tries free U then free V, at most two bounded reproofs.
+// Work limits apply per surface/edge proof and trim loop validation; the single-
+// span gate remains unchanged, including at exact internal source knots.
 func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
@@ -167,6 +169,9 @@ func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, act
 			}
 		} else {
 			cert, e := CertifyQuadraticPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
+			if errors.Is(e, geom.ErrConvergence) {
+				cert, e = CertifyQuadraticPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+			}
 			if e != nil {
 				return zero, e
 			}
@@ -175,7 +180,13 @@ func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, act
 			d := f.patch.Domain()
 			lo := [2]*big.Rat{ratInset(d.UMin), ratInset(d.VMin)}
 			hi := [2]*big.Rat{ratInset(d.UMax), ratInset(d.VMax)}
-			if keep*cert.sign > 0 {
+			if cert.freeAxis == 1 {
+				if keep*cert.sign > 0 {
+					uv = [][2]*big.Rat{lo, ends[0], ends[1], {lo[0], hi[1]}}
+				} else {
+					uv = [][2]*big.Rat{ends[0], {hi[0], lo[1]}, hi, ends[1]}
+				}
+			} else if keep*cert.sign > 0 {
 				uv = [][2]*big.Rat{lo, {hi[0], lo[1]}, ends[1], ends[0]}
 			} else {
 				uv = [][2]*big.Rat{ends[0], ends[1], hi, {lo[0], hi[1]}}
