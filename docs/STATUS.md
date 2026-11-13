@@ -32,7 +32,10 @@ real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The full current development and unit runs are in progress. Cross-browser
+The full current development run is in progress. The original unit run
+with real WASM initialized passes 1,646 of 1,689 cases. The remaining
+failures include uninitialized fallback expectations, OCCT-private test
+bindings and seven portable assertions under focused review. Cross-browser
 qualification passes the keyboard face-card and dimension dialog case on
 all three engines. Four other cases per engine stop at current application
 controls. The same four failures reproduce on the pristine Chromium OCCT

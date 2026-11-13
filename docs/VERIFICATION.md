@@ -1,5 +1,16 @@
 # Verification record
 
+## PlainCAD current real-WASM unit baseline — 2026-11-13
+
+The [classified unit report](evidence/plaincad-current-unit-baseline-2026-11-13.json)
+records 1,646 passes and 43 failures across 219 original test files on
+PlainCAD `e65f07b`. The isolated runner initializes real Go WASM before each
+file. Twenty-six failed assertions depend on uninitialized fallback behavior
+and ten inspect or mock private OCCT APIs or handle layouts. Seven portable
+assertions remain for focused verification: two treatments after pockets,
+one tangent hole, two outward-Hole diagnostics, one display budget diagnostic,
+and one tangent-contour selection rule.
+
 ## PlainCAD cross-browser acceptance and OCCT control — 2026-11-13
 
 The [cross-browser report](evidence/plaincad-current-cross-browser-2026-11-13.json)
