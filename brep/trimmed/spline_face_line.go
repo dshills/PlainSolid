@@ -9,6 +9,20 @@ import (
 	"plainsolid/geom"
 )
 
+// Exact native Bézier uses have a separate trim proof path. Ordinary spline
+// evaluation alone is not a substitute for the original homogeneous controls.
+func hasNativeExactSplineTrim(f Face) bool {
+	for _, ring := range append([][]Use{f.Outer}, f.Holes...) {
+		for _, u := range ring {
+			switch u.Curve.(type) {
+			case ExactQuadraticUV, ExactBezierUV:
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // SplineFaceLineReport retains all proved interior contacts, excluded
 // outside-trim contacts, and unresolved contacts. Complete is true only
 // when the support solver and every trim membership proof are exhaustive.
@@ -25,7 +39,7 @@ type SplineFaceLineOptions struct {
 	Support geom.LineSplineSurfaceOptions
 	Patch   geom.SurfacePatchOptions
 	Trim    trimvalidate.Options
-	// MaxTrimBoxes bounds rational quadratic control-hull subdivision
+	// MaxTrimBoxes bounds rational Bézier control-hull subdivision
 	// for each candidate root box. Zero selects 256.
 	MaxTrimBoxes int
 }
@@ -88,6 +102,10 @@ func classifySplineFaceRootBox(ctx context.Context, face Face, box geom.UVBox, o
 	if e != nil || proof.Status != trimvalidate.Certified {
 		return trimvalidate.Unknown, false, e
 	}
+	return classifyCertifiedSplineFaceBox(ctx, face, box, o, trimBoxes)
+}
+
+func classifyCertifiedSplineFaceBox(ctx context.Context, face Face, box geom.UVBox, o trimvalidate.Options, trimBoxes int) (trimvalidate.Location, bool, error) {
 	// Exact point boxes can be classified directly, including trim hits.
 	if box.Min == box.Max {
 		loc, proof, e := LocateInFaceTrim(ctx, face, box.Min, o)
@@ -109,19 +127,23 @@ func classifySplineFaceRootBox(ctx context.Context, face Face, box geom.UVBox, o
 				return trimvalidate.Unknown, false, nil
 			}
 			if b.X >= box.Min.X && a.X <= box.Max.X && b.Y >= box.Min.Y && a.Y <= box.Max.Y {
-				var h [3][3]*big.Rat
+				var h [][3]*big.Rat
 				switch c := u.Curve.(type) {
 				case SplineUV:
-					h, e = quadraticTrimSourceControls(c)
+					var quadratic [3][3]*big.Rat
+					quadratic, e = quadraticTrimSourceControls(c)
 					if e != nil {
 						return trimvalidate.Unknown, false, nil
 					}
+					h = quadratic[:]
 				case ExactQuadraticUV:
-					h = c.HomogeneousControls()
+					h = c.control[:]
+				case ExactBezierUV:
+					h = c.control
 				default:
 					return trimvalidate.Unknown, false, nil
 				}
-				disjoint, e := quadraticTrimExcludesUVBox(ctx, h, box, &trimBoxes)
+				disjoint, e := bezierTrimExcludesUVBox(ctx, h, box, &trimBoxes)
 				if e != nil || !disjoint {
 					return trimvalidate.Unknown, false, e
 				}
@@ -161,23 +183,17 @@ func lineCrossesUVBox(a, b geom.Vec2, r geom.UVBox) bool {
 	return true
 }
 
-func quadraticTrimExcludesUVBox(ctx context.Context, h [3][3]*big.Rat, box geom.UVBox, left *int) (bool, error) {
-	if h[0][0] == nil {
+func bezierTrimExcludesUVBox(ctx context.Context, h [][3]*big.Rat, box geom.UVBox, left *int) (bool, error) {
+	if len(h) < 3 || len(h) > 5 || h[0][0] == nil {
 		return false, nil
 	}
 	type item struct {
-		net   [3][3]*big.Rat
+		net   [][3]*big.Rat
 		depth int
 	}
 	q := []item{{net: h}}
 	limits := [2][2]*big.Rat{{ratInset(box.Min.X), ratInset(box.Max.X)}, {ratInset(box.Min.Y), ratInset(box.Max.Y)}}
 	half := big.NewRat(1, 2)
-	mid := func(a, b [3]*big.Rat) (v [3]*big.Rat) {
-		for i := range v {
-			v[i] = new(big.Rat).Mul(new(big.Rat).Add(a[i], b[i]), half)
-		}
-		return v
-	}
 	for len(q) > 0 {
 		if e := ctx.Err(); e != nil {
 			return false, e
@@ -203,9 +219,8 @@ func quadraticTrimExcludesUVBox(ctx context.Context, h [3][3]*big.Rat, box geom.
 		if x.depth == 40 {
 			return false, nil
 		}
-		a, b := mid(x.net[0], x.net[1]), mid(x.net[1], x.net[2])
-		c := mid(a, b)
-		q = append(q, item{[3][3]*big.Rat{c, b, x.net[2]}, x.depth + 1}, item{[3][3]*big.Rat{x.net[0], a, c}, x.depth + 1})
+		lower, upper := splitHomogeneousUV(x.net, half)
+		q = append(q, item{upper, x.depth + 1}, item{lower, x.depth + 1})
 	}
 	return true, nil
 }

@@ -3,8 +3,10 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"math/big"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 	"plainsolid/intersect"
 )
@@ -32,11 +34,12 @@ type splineWindingUse struct {
 // accepted only when its enclosure is disjoint from the current query.
 type splineWindingCache struct {
 	faces [][][]splineWindingUse
+	exact map[int]*trimvalidate.CertifiedLoops // nil value means unresolved
 	left  int
 }
 
 func newSplineWindingCache(faces int) *splineWindingCache {
-	return &splineWindingCache{faces: make([][][]splineWindingUse, faces), left: 16384}
+	return &splineWindingCache{faces: make([][][]splineWindingUse, faces), exact: make(map[int]*trimvalidate.CertifiedLoops), left: 16384}
 }
 
 func (c *splineWindingCache) init(face int, f Face) {
@@ -62,6 +65,33 @@ func (c *splineWindingCache) init(face int, f Face) {
 }
 
 func (c *splineWindingCache) classify(ctx context.Context, face int, f Face, q geom.UVBox) (parametric.Location, bool, error) {
+	if hasNativeExactSplineTrim(f) {
+		proof, tried := c.exact[face]
+		if !tried {
+			_, e := proveFaceTrimLoops(ctx, f, trimvalidate.Options{}, &proof, nil, nil)
+			if e != nil {
+				return parametric.Outside, false, e
+			}
+			c.exact[face] = proof
+		}
+		if proof == nil {
+			return parametric.Outside, false, nil
+		}
+		lo := [2]*big.Rat{ratInset(q.Min.X), ratInset(q.Min.Y)}
+		hi := [2]*big.Rat{ratInset(q.Max.X), ratInset(q.Max.Y)}
+		var loc trimvalidate.Location
+		var report trimvalidate.Report
+		var e error
+		if q.Min == q.Max {
+			loc, report, e = proof.Locate(ctx, lo)
+		} else {
+			loc, report, e = proof.LocateBox(ctx, lo, hi)
+		}
+		if loc == trimvalidate.Inside {
+			return parametric.Inside, report.Status == trimvalidate.Certified, e
+		}
+		return parametric.Outside, report.Status == trimvalidate.Certified && loc == trimvalidate.Outside, e
+	}
 	if c.faces[face] == nil {
 		c.init(face, f)
 	}

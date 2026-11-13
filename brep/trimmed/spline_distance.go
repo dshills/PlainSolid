@@ -75,7 +75,7 @@ func (h *splineDistanceQueue) Pop() any {
 // on clamped rational spline faces, including affine placements. It excludes
 // a cell only after a certified trim classification and derives a lower
 // bound from its exact outward model hull. It supports straight trims and
-// the certified spline and tube trims used by the section Boolean paths.
+// the certified spline, tube, and native exact Bézier trims used by section Booleans.
 // The caller must supply embedded UV loops on each support. Unresolved
 // trim cells are kept; no tessellation distance is substituted.
 func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
@@ -174,7 +174,8 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 				_, _, tube := trimTube(use.Curve)
 				_, _, section := trimCertifiedSpline(use.Curve)
 				_, spline := use.Curve.(SplineUV)
-				if !tube && !section && !spline {
+				_, exact := exactRationalDistanceTrim(use.Curve)
+				if !tube && !section && !spline && !exact {
 					return r, geom.ErrInvalid
 				}
 				if tube {
@@ -393,6 +394,21 @@ func splineDistanceStraightWitness(ctx context.Context, p *geom.SurfacePatch, f 
 	return geom.UVBox{Min: q, Max: q}, j.PointBounds, nil
 }
 
+type rationalDistanceTrim interface {
+	EvaluateRational(*big.Rat) ([2]*big.Rat, [2]*big.Rat, error)
+}
+
+func exactRationalDistanceTrim(c PCurve) (rationalDistanceTrim, bool) {
+	switch q := c.(type) {
+	case ExactQuadraticUV:
+		return q, true
+	case ExactBezierUV:
+		return q, true
+	default:
+		return nil, false
+	}
+}
+
 func splineDistanceTrimWitness(ctx context.Context, p *geom.SurfacePatch, u Use, t float64) (geom.UVBox, geom.Box, bool, error) {
 	var uv geom.UVBox
 	var ok bool
@@ -407,7 +423,7 @@ func splineDistanceTrimWitness(ctx context.Context, p *geom.SurfacePatch, u Use,
 		j, e := p.EvaluateJet(q.X, q.Y)
 		return geom.UVBox{Min: q, Max: q}, j.PointBounds, e == nil, e
 	}
-	if q, yes := u.Curve.(ExactQuadraticUV); yes {
+	if q, yes := exactRationalDistanceTrim(u.Curve); yes {
 		xy, _, e := q.EvaluateRational(ratInset(t))
 		if e != nil {
 			return uv, geom.Box{}, false, e

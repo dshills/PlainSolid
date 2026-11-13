@@ -32,6 +32,12 @@ func readAnalyticSupportRecords(r io.Reader, l Limits, lens, cylinders, planes b
 	return readElementarySupportRecords(r, l, lens, cylinders, planes, false)
 }
 func readElementarySupportRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres bool) (topologySource, error) {
+	return readRingSupportRecords(r, l, lens, cylinders, planes, spheres, false)
+}
+func readRingSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori bool) (topologySource, error) {
+	return readConeSupportRecords(r, l, lens, cylinders, planes, spheres, tori, false)
+}
+func readConeSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones bool) (topologySource, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return topologySource{}, e
@@ -137,8 +143,8 @@ func readElementarySupportRecords(r io.Reader, l Limits, lens, cylinders, planes
 		}
 		kind := first[0]
 		supported := kind == 126 || kind == 128 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514 || (lens && kind == 186)
-		if cylinders || planes || spheres {
-			supported = kind == 116 || kind == 123 || (cylinders && kind == 192) || (planes && kind == 190) || (spheres && kind == 196)
+		if cylinders || planes || spheres || tori || cones {
+			supported = kind == 116 || kind == 123 || (cylinders && kind == 192) || (planes && kind == 190) || (spheres && kind == 196) || (tori && kind == 198) || (cones && kind == 194)
 		}
 		if !supported {
 			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
@@ -152,7 +158,7 @@ func readElementarySupportRecords(r io.Reader, l Limits, lens, cylinders, planes
 				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
 			}
 		}
-		if first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !((cylinders || planes || spheres) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
+		if first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !((cylinders || planes || spheres || tori || cones) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
 			return topologySource{}, errors.New("iges: unsupported directory status")
 		}
 		if first[8] == 10000 || first[8] == 10500 {
@@ -177,7 +183,7 @@ func readElementarySupportRecords(r io.Reader, l Limits, lens, cylinders, planes
 		if e != nil {
 			return topologySource{}, e
 		}
-		if first[6] != 0 || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196) && second[4] == 1)) || ((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196) && second[4] != 1) {
+		if first[6] != 0 || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] == 1)) || ((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] != 1) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}
 		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})

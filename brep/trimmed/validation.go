@@ -130,6 +130,10 @@ func LocateRationalBoxInFaceTrim(ctx context.Context, f Face, lo, hi [2]*big.Rat
 }
 
 func validateFaceTrimLoops(ctx context.Context, f Face, options trimvalidate.Options, query *[2]*big.Rat, location *trimvalidate.Location, boxes ...[2][2]*big.Rat) (trimvalidate.Report, error) {
+	return proveFaceTrimLoops(ctx, f, options, nil, query, location, boxes...)
+}
+
+func proveFaceTrimLoops(ctx context.Context, f Face, options trimvalidate.Options, retain **trimvalidate.CertifiedLoops, query *[2]*big.Rat, location *trimvalidate.Location, boxes ...[2][2]*big.Rat) (trimvalidate.Report, error) {
 	r := trimvalidate.Report{LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}
 	o, e := options.WithDefaults()
 	if ctx == nil || e != nil {
@@ -193,10 +197,16 @@ func validateFaceTrimLoops(ctx context.Context, f Face, options trimvalidate.Opt
 		r.Reason = "trim conversion budget exhausted"
 		return r, nil
 	}
+	if len(loops[0]) == 0 {
+		r.Status, r.Reason = trimvalidate.Invalid, "empty outer trim loop"
+		return r, nil
+	}
 	o.MaxWork -= r.Work
 	var proof trimvalidate.Report
 	if len(boxes) == 1 {
 		*location, proof, e = trimvalidate.LocateRationalBoxInLoops(ctx, loops[0], loops[1:], boxes[0][0], boxes[0][1], o)
+	} else if retain != nil {
+		*retain, proof, e = trimvalidate.CertifyLoops(ctx, loops[0], loops[1:], o)
 	} else if query == nil {
 		proof, e = trimvalidate.ValidateLoops(ctx, loops[0], loops[1:], o)
 	} else {

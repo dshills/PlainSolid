@@ -64,6 +64,51 @@ func copyHomogeneousUV(h [][3]*big.Rat) [][3]*big.Rat {
 // HomogeneousControls returns caller-owned copies.
 func (q ExactBezierUV) HomogeneousControls() [][3]*big.Rat { return copyHomogeneousUV(q.control) }
 
+// Split subdivides the homogeneous control net exactly at t. The returned
+// curves each have a normalized [0,1] range. A nonbinary split point in UV
+// cannot be represented by this native trim and is rejected.
+func (q ExactBezierUV) Split(t *big.Rat) (ExactBezierUV, ExactBezierUV, error) {
+	var zero ExactBezierUV
+	if len(q.control) == 0 || t == nil {
+		return zero, zero, geom.ErrInvalid
+	}
+	if t.Sign() <= 0 || t.Cmp(big.NewRat(1, 1)) >= 0 {
+		return zero, zero, geom.ErrDomain
+	}
+	if t.Num().BitLen() > 4096 || t.Denom().BitLen() > 4096 {
+		return zero, zero, geom.ErrConvergence
+	}
+	a, b := splitHomogeneousUV(q.control, t)
+	first, e := NewExactBezierUV(a)
+	if e != nil {
+		return zero, zero, e
+	}
+	second, e := NewExactBezierUV(b)
+	if e != nil {
+		return zero, zero, e
+	}
+	return first, second, nil
+}
+
+// The caller validates the number and size of controls and t. Apart from
+// shared read-only endpoints, all intermediate coordinates are new values.
+func splitHomogeneousUV(h [][3]*big.Rat, t *big.Rat) ([][3]*big.Rat, [][3]*big.Rat) {
+	n := len(h)
+	var work, lower, upper [5][3]*big.Rat
+	copy(work[:n], h)
+	u := new(big.Rat).Sub(big.NewRat(1, 1), t)
+	lower[0], upper[n-1] = work[0], work[n-1]
+	for level := 1; level < n; level++ {
+		for i := 0; i < n-level; i++ {
+			for j := range work[i] {
+				work[i][j] = new(big.Rat).Add(new(big.Rat).Mul(work[i][j], u), new(big.Rat).Mul(work[i+1][j], t))
+			}
+		}
+		lower[level], upper[n-level-1] = work[0], work[n-level-1]
+	}
+	return lower[:n], upper[:n]
+}
+
 func (q ExactBezierUV) reversed() ExactBezierUV {
 	h := make([][3]*big.Rat, len(q.control))
 	for i, p := range q.control {

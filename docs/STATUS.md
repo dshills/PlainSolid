@@ -325,7 +325,8 @@ free coordinate. The stock and cutter keep their original supports, including
 selected cuts across an original free-axis knot. The
 native version 6 codec verifies continuous edge agreement and UV topology
 again on reload. This still requires a certified graph, exact endpoints and
-one active cutter plane.
+one active cutter plane. Bounded spline face and ray queries classify whole
+enclosures against the resulting cubic and quartic trims.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and
@@ -338,7 +339,8 @@ every touching set a manifold solid.
 Independent standalone exchange codecs support exact signed-coordinate
 cylindrical supports in IGES 192 form 1 and STEP, with explicit units and no
 inferred trims or material. Standalone exact planes use STEP and IGES 190
-form 1. Both conversion packages require lossless frame, unit and metadata transfer.
+form 1, and spherical supports use STEP and IGES 196 form 1 without adding
+seam or pole topology. Converters require lossless frame, unit and metadata transfer.
 The separate IGES/STEP extrusion converter
 retains exact fraction-to-distance parameter scaling and rejects metadata or
 normalization that cannot be preserved.
@@ -855,11 +857,11 @@ surfaces must keep their geometry through the operation. Continue with:
    Both polynomial clips also retain oblique cuts when the exact cutter
    projection admits the same regular graph proof. All retained faces keep
    their original charts, including the oblique cutter cap.
-   A separate clip handles a single-span polynomial support with affine
-   projection and a linearly varying, nonzero dependent coefficient.
-   Its exact rational quadratic section remains on both original supports.
-   Its piecewise variant retains the exact rational branches on both sides
-   of a free-axis crease and records their original junctions.
+   The rational graph clip handles affine projections with a normalized
+   homogeneous plane residual linear in the dependent coordinate. Its
+   bounded nonzero coefficient may vary quadratically. Exact quadratic,
+   cubic and quartic sections remain on both original supports. The
+   piecewise variant retains the branches and original knot junctions.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock

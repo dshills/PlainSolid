@@ -186,6 +186,11 @@ represented UV endpoints. Version 5 reconstructs exact rational UV and model
 endpoint identity from the homogeneous controls and the owning support,
 verifies the rounded display point, and revalidates loop and shared-edge
 identity. Rational seam splits and conic Boolean junctions qualify that path.
+Version 6 retains exact cubic and quartic rational Bézier trims on the
+original stock and cutter charts. This path covers one active plane with
+an exact graph proof per original knot cell; it also supports bounded ray
+and distance queries on the resulting trims. General intersection curves
+still require branch discovery and an exact trim arrangement.
 Continuous edge agreement handles distinct algebraic knot events using ordered
 root identities and polynomial composition. A dedicated native algebraic
 subdivision format persists an irrational split as a bounded root recipe and
