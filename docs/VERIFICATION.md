@@ -23,7 +23,13 @@ Playwright screenshot of the ORBIT gesture case. The gesture run completes
 the native geometry, full-resolution PNG, buffer reuse, and resolution
 restoration assertions. Its final screenshot exceeds the original deadline.
 The unchanged viewport idle test reproduces on the same PlainSolid WASM
-and with pristine OCCT at the same pan step.
+and with pristine OCCT at the same pan step. The
+[isolated viewer controls](evidence/plaincad-viewer-idle-controls-2026-11-13.json)
+record both reproductions and the original gesture case passing an
+unchanged rerun in 88.653 seconds. The staged viewer now advances missed
+camera damping updates without issuing extra WebGL draws. The original
+pan-idle, source-marker and gesture cases all pass with that change.
+Their measured times are 38.779, 20.592 and 54.799 seconds.
 
 ## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
 

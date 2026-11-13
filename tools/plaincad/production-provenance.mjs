@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {installDisplayRuntime} from './display-runtime.mjs';
 
-export const displayFiles=['src/cad/worker/displayMeshClient.ts','src/state/useCadStore.ts','src/cad/worker/geometryWorker.ts'];
+export const displayFiles=['src/cad/worker/displayMeshClient.ts','src/state/useCadStore.ts','src/cad/worker/geometryWorker.ts','src/viewer/CadViewer.tsx'];
 const sourceRoots=['src','e2e','production-e2e','cross-browser-e2e'];
 // A single batch retains exact bytes and does not execute app source.
 export function originalSources(r,hash){
@@ -60,8 +60,9 @@ export async function replayDisplay(r,originals,hash){
    await mkdir(dirname(join(directory,file)),{recursive:true});await writeFile(join(directory,file),before);
   }
   const generated=await installDisplayRuntime(directory,hash),out=new Map();
+  if(generated.length!==selected.length)throw Error('Incomplete display runtime replay');
   for(const actual of generated){const claimed=selected.find(a=>a.file===actual.file);
-   if(claimed.beforeSha256!==actual.beforeSha256||claimed.afterSha256!==actual.afterSha256)throw Error('Invalid display runtime replay');
+   if(!claimed||claimed.beforeSha256!==actual.beforeSha256||claimed.afterSha256!==actual.afterSha256)throw Error('Invalid display runtime replay');
    out.set(actual.file,await readFile(join(directory,actual.file),'utf8'));
   }
   return out;
