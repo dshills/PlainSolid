@@ -87,6 +87,14 @@ The [unit and browser harness checks](evidence/plaincad-unit-harness-2026-11-13.
 pass the original native cylinder rim unit test and Parts Browser
 acceptance, including the independent browser backend probe.
 
+The [full one-worker unit run](evidence/plaincad-unit-one-worker-full-2026-11-13.json)
+passes 1,647 of 1,689 originals on PlainCAD `50432ed`, with zero pending
+tests. Thirty-seven failures recur from the prior full run, 22 recover,
+and five newly fail. The recorded harness source predates its final
+formatting change, and the report includes the actual setup and WASM hashes.
+The five new failures and the previously intermittent cold Unified thread
+case all pass unchanged on the same staged WASM in a six-case retest.
+
 ## PlainCAD coaxial side and corner Hole extension — 2026-11-13
 
 Connected depth spans at the same side or corner notch center and radius

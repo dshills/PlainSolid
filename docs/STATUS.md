@@ -79,7 +79,11 @@ and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock, including independently authored rounded
 stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The full real-WASM unit run on PlainCAD `50432ed` passes 1,630 of 1,689
+The full one-worker real-WASM run on PlainCAD `50432ed` passes 1,647 of
+1,689 originals. Twenty-two earlier failures pass, 37 repeat and five
+newly fail. All five new failures and the recurring cold Unified thread
+case pass unchanged on the same WASM in a focused retest.
+The earlier full real-WASM unit run on the same app passes 1,630 of 1,689
 originals with loopback and concurrent verification. Thirty-eight failures
 repeat the preceding full run. All 21 newly failed tests pass unchanged
 on the same WASM in the one-worker retest. Eight earlier failures pass. The preceding unit run passes 1,643 of 1,689, including all 39
