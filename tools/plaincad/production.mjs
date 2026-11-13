@@ -4,7 +4,7 @@ import {readFile,writeFile,readdir,open} from 'node:fs/promises';
 import {resolve,join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
-import {originalSources,replayDisplay,displayFiles} from './production-provenance.mjs';
+import {originalSources,replayDisplay,displayFiles,verifyProviderLabels} from './production-provenance.mjs';
 
 const usage='Usage: node tools/plaincad/production.mjs --work /staged/workspace [--port 5280] [--test production-e2e/file.spec.ts] [--grep expression] [--check | --run]\nDefault --check verifies inputs without building or running tests. --run builds and runs the selected originals (all production tests by default).';
 const args=process.argv.slice(2), options={};
@@ -22,8 +22,8 @@ const hash=b=>createHash('sha256').update(b).digest('hex');
 const readinessPath=join(work,'readiness.json'),readinessBytes=await readFile(readinessPath),r=JSON.parse(readinessBytes);
 if(r.backend!=='plainsolid-go-wasm'||r.typecheck!=='passed'||!r.backendVerified||!r.tests?.some(t=>t.title?.startsWith('PlainSolid backend:')&&t.status==='expected'&&t.results?.length&&t.results.every(x=>x.status==='passed')))throw Error('Require passing staged typecheck and real backend probe');
 if(resolve(r.workspace)!==work)throw Error('Readiness belongs to a different workspace');
-const adaptations=new Map((r.providerLabelAdaptations??[]).map(x=>[x.file,x]));
 const {originals,missing}=originalSources(r,hash);
+const adaptations=verifyProviderLabels(r,originals,hash);
 const displayReplay=await replayDisplay(r,originals,hash);
 const runtime=new Map();
 for(const a of r.runtimeAdaptations??[]){
