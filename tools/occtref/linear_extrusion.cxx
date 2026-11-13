@@ -26,12 +26,14 @@
 int main(int argc,char**argv){
  if(argc!=3)return 2;
  try{
-  if(std::string(argv[1])=="write"){
+  if(std::string(argv[1])=="write"||std::string(argv[1])=="write-oblique"){
+   bool oblique=std::string(argv[1])=="write-oblique";
    NCollection_Array1<gp_Pnt> p(1,3);p(1)=gp_Pnt(0,0,0);p(2)=gp_Pnt(1,2,0);p(3)=gp_Pnt(2,0,0);
+   if(oblique){p(2)=gp_Pnt(-4,3,1);p(3)=gp_Pnt(0,0,2);}
    NCollection_Array1<double> k(1,2);k(1)=0;k(2)=1;NCollection_Array1<int> m(1,2);m(1)=3;m(2)=3;
    occ::handle<Geom_BSplineCurve> curve=new Geom_BSplineCurve(p,k,m,2);
-   occ::handle<Geom_SurfaceOfLinearExtrusion> support=new Geom_SurfaceOfLinearExtrusion(curve,gp_Dir(0,0,1));
-   occ::handle<Geom_RectangularTrimmedSurface> patch=new Geom_RectangularTrimmedSurface(support,0.,1.,-1.,2.);
+   occ::handle<Geom_SurfaceOfLinearExtrusion> support=new Geom_SurfaceOfLinearExtrusion(curve,oblique?gp_Dir(3,4,0):gp_Dir(0,0,1));
+   occ::handle<Geom_RectangularTrimmedSurface> patch=new Geom_RectangularTrimmedSurface(support,0.,1.,oblique?0.:-1.,oblique?5.:2.);
    GeomToStep_MakeSurface convert(patch);
    STEPControl_Writer writer;
    if(writer.Transfer(BRepBuilderAPI_MakeFace(patch,1e-9).Face(),STEPControl_AsIs)!=IFSelect_RetDone)return 7;
