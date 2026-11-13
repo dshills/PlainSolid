@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export async function installDisplayRuntime(work, hash) {
+export async function installDisplayRuntime(work, hash, { projectOpen = true } = {}) {
   const detailClient = "src/cad/worker/displayMeshClient.ts";
   const client = await readFile(join(work, detailClient), "utf8").catch(error => {
     if (error.code === "ENOENT") return undefined;
@@ -26,6 +26,7 @@ export async function installDisplayRuntime(work, hash) {
     });
   }
 
+  if (projectOpen) {
   await install("src/ui/commands/commandRegistry.ts",
     `export const commands: CadCommand[] = [`,
     `let pendingProjectOpen: { previous: CadStore["rebuild"]; state: CadStore["rebuild"] } | undefined;
@@ -75,6 +76,7 @@ export const commands: CadCommand[] = [`,
   {
     id: "file.saveProject",`,
     "Restore the preceding readiness status when opening is canceled or rejected.");
+  }
 
   await install("src/viewer/CadViewer.tsx",
     `    const frames = new DemandRenderer(() => {

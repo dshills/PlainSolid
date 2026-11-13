@@ -29,7 +29,8 @@ const adaptations=verifyProviderLabels(r,originals,hash);
 const displayReplay=await replayDisplay(r,originals,hash);
 const runtime=new Map();
 for(const a of r.runtimeAdaptations??[]){
- if((a.file!=='src/cad/features/rebuildGraph.ts'&&!displayFiles.includes(a.file))||runtime.has(a.file))throw Error('Unsupported runtime adaptation');
+ if(displayFiles.includes(a.file)&&displayReplay.has(a.file)){runtime.set(a.file,a);continue;}
+ if(a.file!=='src/cad/features/rebuildGraph.ts'||runtime.has(a.file))throw Error('Unsupported runtime adaptation');
  runtime.set(a.file,a);
 }
 let checked=0,production=0;

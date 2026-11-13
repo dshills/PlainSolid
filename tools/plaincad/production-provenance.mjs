@@ -4,7 +4,8 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {installDisplayRuntime} from './display-runtime.mjs';
 
-export const displayFiles=['src/cad/worker/displayMeshClient.ts','src/state/useCadStore.ts','src/cad/worker/geometryWorker.ts','src/viewer/CadViewer.tsx'];
+const projectOpenFile='src/ui/commands/commandRegistry.ts';
+export const displayFiles=['src/cad/worker/displayMeshClient.ts','src/state/useCadStore.ts','src/cad/worker/geometryWorker.ts','src/viewer/CadViewer.tsx',projectOpenFile];
 const sourceRoots=['src','e2e','production-e2e','cross-browser-e2e'];
 // A single batch retains exact bytes and does not execute app source.
 export function originalSources(r,hash){
@@ -47,10 +48,15 @@ export function verifyProviderLabels(r,originals,hash){
 export async function replayDisplay(r,originals,hash){
  const selected=(r.runtimeAdaptations??[]).filter(a=>displayFiles.includes(a.file));
  if(!selected.length)return new Map();
- if(selected.length!==displayFiles.length||new Set(selected.map(a=>a.file)).size!==displayFiles.length)throw Error('Incomplete display runtime adaptation');
+ const projectOpen=selected.some(a=>a.file===projectOpenFile);
+ const files=projectOpen?displayFiles:displayFiles.filter(file=>file!==projectOpenFile);
+ for(const file of files){
+  const expected=file===projectOpenFile?3:1;
+  if(selected.filter(a=>a.file===file).length!==expected)throw Error('Incomplete display runtime adaptation');
+ }
  const directory=await mkdtemp(join(tmpdir(),'plainsolid-display-replay-'));
  try{
-  for(const file of displayFiles){
+  for(const file of files){
    let before=originals.get(file);if(before===undefined)throw Error(`Missing pinned display source: ${file}`);
    const labels=(r.providerLabelAdaptations??[]).filter(a=>a.file===file);
    if(labels.length>1)throw Error('Duplicate provider adaptation');
@@ -59,12 +65,13 @@ export async function replayDisplay(r,originals,hash){
    }
    await mkdir(dirname(join(directory,file)),{recursive:true});await writeFile(join(directory,file),before);
   }
-  const generated=await installDisplayRuntime(directory,hash),out=new Map();
+  const generated=await installDisplayRuntime(directory,hash,{projectOpen}),out=new Map();
   if(generated.length!==selected.length)throw Error('Incomplete display runtime replay');
-  for(const actual of generated){const claimed=selected.find(a=>a.file===actual.file);
-   if(!claimed||claimed.beforeSha256!==actual.beforeSha256||claimed.afterSha256!==actual.afterSha256)throw Error('Invalid display runtime replay');
-   out.set(actual.file,await readFile(join(directory,actual.file),'utf8'));
+  for(let i=0;i<generated.length;i++){
+   const actual=generated[i],claimed=selected[i];
+   if(claimed.file!==actual.file||claimed.beforeSha256!==actual.beforeSha256||claimed.afterSha256!==actual.afterSha256)throw Error('Invalid display runtime replay');
   }
+  for(const file of files)out.set(file,await readFile(join(directory,file),'utf8'));
   return out;
  }finally{await rm(directory,{recursive:true,force:true});}
 }
