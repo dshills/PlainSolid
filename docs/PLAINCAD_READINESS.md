@@ -13,6 +13,21 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Finite To Face extrusion checkpoint — 2026-11-13
+
+The existing polygon and circle To Face workflows pass with bounded target
+coverage and native owner edits. Both face-derived pocket cases and the
+component placement case pass. Both TypeScript checks and the separate
+WASM probe pass. The [five-case report](evidence/plaincad-to-face-2026-11-13.json)
+records zero skips or flaky results.
+
+The [pinned 31-case run](evidence/plaincad-to-face-consolidated-2026-11-13.json)
+passes 30 originals, including all five To Face checkpoint cases. Its one
+failure is the long chain with the rear edge selected. A radius edit aligns
+a pocket edge exactly with the fillet tangent, a topology the earlier
+strictly interior constructor rejects. A deterministic regression for this
+boundary is in progress.
+
 ## Grouped edge treatment checkpoint — 2026-11-13
 
 The existing PlainCAD multi-edge edit case passes with two authored fillet

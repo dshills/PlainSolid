@@ -6,6 +6,14 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+Finite polygon and circular To Face extrusion pass the five selected original
+PlainCAD cases, including face pockets and component placement. The bridge
+uses the actual bounded planar support, tracks it through owner edits, and
+rejects lost, uncovered or zero-depth targets. The pinned 31-case run passes
+30 and exposes an exact tangent pocket in the earlier edge-treatment chain.
+That boundary must be sewn before the consolidated gate can pass. Mixed line
+and arc profiles, revolutions, modeled threads and STEP remain in progress.
+
 Grouped longitudinal fillet and chamfer geometry is committed as `4f51147`.
 The final browser run passes PlainCAD's existing multi-edge edit and repeated
 XZ edge-draft cases and the prior 24 regressions. All 26 existing cases, both

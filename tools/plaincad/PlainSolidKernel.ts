@@ -261,7 +261,37 @@ export class OpenCascadeKernel implements KernelAdapter {
   nativeDrawingGeometry?: KernelAdapter["nativeDrawingGeometry"];
   getWasmHeapCapacityBytes() { return undefined; }
   revolveProfile = unsupported;
-  extrudeToFace = unsupported;
+  extrudeToFace(profile: SketchProfile, transform: SketchPlaneTransform, target: KernelShape, face: SketchPlaneTransform): KernelShape {
+    const boundary = (loop: ProfileLoop) => {
+      if (loop.type !== "polygon" || !loop.segments?.length || loop.segments.some(segment => segment.type !== "line"))
+        throw new Error("To-face extrusion requires exact straight polygon loops or a single full circle.");
+      return loop.segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y)));
+    };
+    const args = { b: handle(target).proof.handle, origin: xyz(face.origin), normal: xyz(face.normal), direction: xyz(transform.normal) };
+    let proof: Proof;
+    if (profile.outerLoop.type === "circle") {
+      if (profile.innerLoops.length || profile.holes.length)
+        throw new Error("Circular to-face extrusion does not support inner loops.");
+      const { minX, maxX, minY, maxY } = profile.bounds;
+      const diameter = maxX - minX, otherDiameter = maxY - minY;
+      if (![minX, maxX, minY, maxY, diameter, otherDiameter].every(Number.isFinite) || diameter <= 0 || otherDiameter <= 0 ||
+          Math.abs(diameter - otherDiameter) > 1e-8 * Math.max(1, diameter, otherDiameter))
+        throw new Error("Circular to-face extrusion requires a finite circle.");
+      const center = transformPoint(transform, minX + diameter / 2, minY + otherDiameter / 2);
+      proof = request({ ...args, op: "circleToFace", center: xyz(center), radius: diameter / 2 });
+    } else {
+      proof = request({ ...args, op: "prismToFace", outer: boundary(profile.outerLoop), holes: profile.innerLoops.map(boundary) });
+    }
+    const result = owned(proof, "toFace");
+    const dot = (a: typeof face.normal, b: typeof face.normal) => a.x * b.x + a.y * b.y + a.z * b.z;
+    const denominator = dot(transform.normal, face.normal);
+    // Only a parallel cap has a constant authored extrusion distance.
+    if (Math.abs(dot(transform.u, face.normal)) <= 1e-12 && Math.abs(dot(transform.v, face.normal)) <= 1e-12 && Math.abs(denominator) > 1e-12) {
+      const delta = { x: face.origin.x - transform.origin.x, y: face.origin.y - transform.origin.y, z: face.origin.z - transform.origin.z };
+      handle(result).extrusion = { profile: structuredClone(profile), distance: dot(delta, face.normal) / denominator, transform: structuredClone(transform) };
+    }
+    return result;
+  }
   private treatEdge(shape: KernelShape, refs: TopologyRef[], size: number, operation: "fillet" | "chamfer"): KernelShape {
     try {
       if (!refs.length || !Number.isFinite(size) || size <= 0)

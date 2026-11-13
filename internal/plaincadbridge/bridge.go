@@ -83,6 +83,8 @@ type request struct {
 	Matrix            [][]number      `json:"matrix,omitempty"`
 	OpenFace          *int            `json:"openFace,omitempty"`
 	Wall              number          `json:"wall,omitempty"`
+	Center            *vector         `json:"center,omitempty"`
+	Direction         *vector         `json:"direction,omitempty"`
 	Origin            *vector         `json:"origin,omitempty"`
 	Normal            *vector         `json:"normal,omitempty"`
 	Edges             []edgeReference `json:"edges,omitempty"`
@@ -205,7 +207,9 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "prismToFace", "circleToFace":
+		return b.toFace(q)
 	case "edgeAvailable", "fillet", "chamfer":
 		s, err := b.get(q.Handle)
 		if err != nil {

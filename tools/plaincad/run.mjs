@@ -272,12 +272,42 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     };
     const edgeBatchInputProof = kernel.tessellate(batchChamfers[0], { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions;
     const untouchedEndSurvives = kernel.availableExtrudeCapEdges(batchChamfers[0]).some((edge: any) => edge.role === "endCapPerimeter" && edge.sourceEntityId === "authored-0");
+    const xyPlane = { origin: { x: 0, y: 0, z: 0 }, u: { x: 1, y: 0, z: 0 }, v: { x: 0, y: 1, z: 0 }, normal: { x: 0, y: 0, z: 1 } };
+    const targetCap = { ...xyPlane, origin: { x: 0, y: 0, z: 10 } };
+    const finiteCircle = kernel.extrudeToFace(circleProfile, xyPlane, edgeStock, targetCap);
+    const finitePolygon = kernel.extrudeToFace(profile, xyPlane, edgeStock, targetCap);
+    const toFaceProofs = [finiteCircle, finitePolygon].map((shape: any) => {
+      const mesh = kernel.tessellate(shape, { linearDeflection: .05, angularDeflection: .1 });
+      return { assertions: mesh.geometryAssertions, operation: mesh.kernelOperation, volume: signedVolume(mesh), stlVolume: stlVolume(kernel.exportStl(shape)) };
+    });
+    const referenceCircle = kernel.extrudeProfile(circleProfile, 10);
+    const toFaceDefaultStlMatchesCircle = stlVolume(kernel.exportStl(referenceCircle)) === stlVolume(kernel.exportStl(finiteCircle));
+    kernel.disposeShape(referenceCircle);
+    const toFaceRejected = {
+      zero: rejects(() => kernel.extrudeToFace(circleProfile, xyPlane, edgeStock, xyPlane)),
+      behind: rejects(() => kernel.extrudeToFace(circleProfile, { ...xyPlane, origin: { x: 0, y: 0, z: 11 } }, edgeStock, targetCap)),
+      uncovered: rejects(() => kernel.extrudeToFace(circleProfile, { ...xyPlane, origin: { x: 20, y: 0, z: 0 } }, edgeStock, targetCap)),
+      missing: rejects(() => kernel.extrudeToFace(circleProfile, xyPlane, edgeStock, { ...targetCap, origin: { x: 0, y: 0, z: 9 } })),
+    };
+    const toFaceTargetVolume = kernel.tessellate(edgeStock, { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions.volume;
+    kernel.disposeShape(finiteCircle); kernel.disposeShape(finitePolygon);
     for (const item of [edgeStock, filleted, chamfered, ...batchChamfers]) kernel.disposeShape(item);
     for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shiftedCircle, containedCircle, ...overlapShapes, shallow, farBoreBase, farCylinder, shiftedShallow, ...unequalDepthOutputs, ...reversedDepthOutputs, tangentStock, tangentCylinder, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
-    return { batchChamferProofs, edgeBatchRejected, edgeBatchInputProof, untouchedEndSurvives, edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    return { toFaceDefaultStlMatchesCircle, toFaceProofs, toFaceRejected, toFaceTargetVolume, batchChamferProofs, edgeBatchRejected, edgeBatchInputProof, untouchedEndSurvives, edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
+  expect(proof.toFaceDefaultStlMatchesCircle).toBe(true);
+  expect(proof.toFaceProofs).toHaveLength(2);
+  proof.toFaceProofs.forEach((item: any, index: number) => {
+    const expected = index === 0 ? 40 * Math.PI : 10 * 2.000002 * 2.000002;
+    expect(item).toMatchObject({ operation: "toFace", assertions: { valid: true, solidCount: 1 } });
+    expect(item.assertions.volume).toBeCloseTo(expected, 8);
+    expect(Math.abs(item.volume - expected) / expected).toBeLessThan(.01);
+    expect(Math.abs(item.stlVolume - expected) / expected).toBeLessThan(.03);
+  });
+  expect(proof.toFaceRejected).toEqual({ zero: true, behind: true, uncovered: true, missing: true });
+  expect(proof.toFaceTargetVolume).toBe(2000);
   expect(proof.edgeBefore).toEqual(expect.arrayContaining([{ role: "endCapPerimeter", sourceEntityId: "authored-0" }, { role: "startCapPerimeter", sourceEntityId: "authored-0" }]));
   expect(proof.edgeAfterFillet).not.toContainEqual({ role: "endCapPerimeter", sourceEntityId: "authored-0" });
   expect(proof.edgeAfterFillet).toContainEqual({ role: "startCapPerimeter", sourceEntityId: "authored-0" });

@@ -1,5 +1,30 @@
 # Verification record
 
+## PlainCAD finite To Face integration — 2026-11-13
+
+The native bridge qualifies a unique planar target against its finite boundary,
+including trim holes and signed direction. Polygon sweeps support qualified
+oblique targets. Circular sweeps use an exact perpendicular-target proof and
+retain an analytic cylinder. Bridge tests cover coverage misses, zero depth,
+oblique polygon volume, signed cardinal frames and shape ownership. The brep,
+parametric and bridge suites and vet pass.
+
+The focused acceptance passes five original browser cases in 48.624 seconds,
+including the rectangle and circle To Face workflows, both face-pocket cases,
+and component placement. Both TypeScript checks and the separate WASM probe
+pass. The five bridge, adapter and harness source hashes match both reports.
+The [focused report](evidence/plaincad-to-face-2026-11-13.json) records the
+exact source snapshot and WASM hash.
+
+A broader run on pinned PlainCAD revision
+`5942ff960612ecf298ca4bf73bf6bd161622dc95` passes 30 of 31 original
+cases in 306.543 seconds, with zero skips or flakes. Both TypeScript checks
+and the separate WASM probe pass. The long-chain test selects the rear edge
+on this run. Its radius edit makes the through pocket touch the fillet tangent
+at a shared straight segment, and the existing strictly interior pocket proof
+rejects it. The [consolidated report](evidence/plaincad-to-face-consolidated-2026-11-13.json)
+preserves the failing run. Exact boundary splitting and sewing is in progress.
+
 ## PlainCAD grouped edge edit integration — 2026-11-13
 
 The adapter sends individual authored edge references as one native operation.

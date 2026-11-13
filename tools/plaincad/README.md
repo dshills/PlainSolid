@@ -57,6 +57,16 @@ line/arc profiles, curved inner loops, general curved Boolean combinations,
 revolutions, general fillets/chamfers, STEP, threads, lead parts, and unproved topology
 references fail explicitly.
 
+Finite to-face extrusion resolves one actual retained planar face and proves that
+it covers the projected profile, including the target's boundaries and holes.
+Straight polygon profiles support planar termination; a full circle requires a
+parallel target plane and stays an exact cylinder. Zero-depth, behind-direction,
+missing, ambiguous, or uncovered faces reject without publishing a result.
+Only parallel caps retain constant-distance extrusion metadata. Existing circular
+and polygonal to-face cases measure upstream edits and reference recovery;
+face-pocket and component-placement cases measure inward cuts, previews,
+Undo/save/open, and oriented STL using the same native adapter.
+
 A bounded rectangular-stock history supports atomic fillet and equal-setback
 chamfer batches on compatible parallel cap edges along the same stock length.
 Every explicit reference is validated against the original input before one
