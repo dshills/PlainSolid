@@ -9,6 +9,14 @@ and [divider](evidence/plaincad-reconciled-divider-regressions-2026-11-13.json)
 retests. These retests do not change the baseline count. A fresh full run
 was started on the verified combined `6d76880` WASM build.
 
+On clean reconciliation `9b12a41`, all three original viewer cases passed
+with the staged camera settling repair: pan/idle (53.8 s), source markers
+(31.1 s), and ORBIT gesture/export (about 72 s). The separate Go/WASM
+backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime-2026-11-13.json)
+binds the build, original 841-file source inventory and exact display
+runtime edits. This is an app adaptation result, separate from the earlier
+unchanged viewer result.
+
 ## PlainCAD eccentric bores in circular stock — 2026-11-13
 
 Finite, strictly contained cylindrical tools now cut native circular
