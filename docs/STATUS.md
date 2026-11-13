@@ -315,9 +315,11 @@ Its mesh passes exact contact checks with a larger subdivision budget;
 browser acceptance of this chain remains separate.
 
 Bounded spline plane cuts retain exact cubic and quartic rational UV trims
-when the cutter residual is linear in the dependent coordinate with a
-nonvanishing coefficient of degree at most two. The stock and cutter keep their original
-supports, including selected cuts across an original free-axis knot. The
+when the homogeneous cutter residual is linear in the dependent coordinate
+with a nonvanishing coefficient of degree at most two. Selected rational
+supports have exactly affine projection and weights depending only on the
+free coordinate. The stock and cutter keep their original supports, including
+selected cuts across an original free-axis knot. The
 native version 6 codec verifies continuous edge agreement and UV topology
 again on reload. This still requires a certified graph, exact endpoints and
 one active cutter plane.
@@ -332,8 +334,8 @@ every touching set a manifold solid.
 
 Independent standalone exchange codecs support exact signed-coordinate
 cylindrical supports in IGES 192 form 1 and STEP, with explicit units and no
-inferred trims or material. The cylinder converter requires lossless frame,
-unit and metadata transfer, and IGES 190 form 1 has a standalone plane codec.
+inferred trims or material. Standalone exact planes use STEP and IGES 190
+form 1. Both conversion packages require lossless frame, unit and metadata transfer.
 The separate IGES/STEP extrusion converter
 retains exact fraction-to-distance parameter scaling and rejects metadata or
 normalization that cannot be preserved.

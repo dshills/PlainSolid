@@ -96,6 +96,8 @@ In particular:
   quadratic trim coefficients and independently revalidate affected loop
   topology and model-edge agreement. Version 5 also reconstructs nonbinary
   rational endpoint identity independently of the stored display vertices.
+  Version 6 adds positive-weight cubic and quartic Bézier trims with exactly
+  representable endpoints and verifies continuous edge agreement again on load.
   STEP and IGES report unsupported graph/entity combinations; the
   [pinned reference harness](../tools/occtref/README.md) exercises selected
   cross-kernel exchange cases.

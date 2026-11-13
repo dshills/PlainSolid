@@ -194,4 +194,17 @@ static void rationalBezierGraphPlaneBooleans(std::ostream& out){
  if(!BRepCheck_Analyzer(stock).IsValid())throw std::runtime_error("invalid independent quadratic denominator stock");
  splineShellRecord(out,"rational-bezier-denominator-common",BRepAlgoAPI_Common(stock,tool).Shape());
  splineShellRecord(out,"rational-bezier-denominator-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ NCollection_Array2<double> weights(1,3,1,2);
+ const double x[]={0,2,3},w[]={1,.75,.5};
+ for(int i=1;i<=3;++i)for(int j=1;j<=2;++j){
+  const double y=j-1;
+  poles.SetValue(i,j,gp_Pnt(x[i-1],y,y/4.+(i==3?1./16:0.)));
+  weights.SetValue(i,j,w[i-1]);
+ }
+ occ::handle<Geom_BSplineSurface> weighted=new Geom_BSplineSurface(poles,weights,knots,knots,qm,ym,2,1);
+ const auto stockWeighted=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(weighted,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ const auto toolWeighted=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(7,3,3./16)).Shape();
+ if(!BRepCheck_Analyzer(stockWeighted).IsValid())throw std::runtime_error("invalid independently swept rational stock");
+ splineShellRecord(out,"rational-bezier-weighted-common",BRepAlgoAPI_Common(stockWeighted,toolWeighted).Shape());
+ splineShellRecord(out,"rational-bezier-weighted-cut",BRepAlgoAPI_Cut(stockWeighted,toolWeighted).Shape());
 }

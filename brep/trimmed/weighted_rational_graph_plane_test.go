@@ -1,0 +1,118 @@
+package trimmed
+
+import (
+	"context"
+	"errors"
+	"math"
+	"math/big"
+	"testing"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
+	ctx := context.Background()
+	var supports []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reverse []bool
+	k := []float64{0, 0, 0, 1, 1, 1}
+	for a := range 3 {
+		u, v := (a+1)%3, (a+2)%3
+		for b := range 2 {
+			var poles []geom.Vec3
+			var weights []float64
+			for i := range 3 {
+				for j := range 3 {
+					idx := [3]int{}
+					idx[a], idx[u], idx[v] = 2*b, i, j
+					x := [...]float64{0, 2, 3}[idx[0]]
+					w := [...]float64{1, .75, .5}[idx[0]]
+					y, z := float64(idx[1])/2, float64(idx[2])/2
+					z += y / 4
+					if idx[0] == 2 {
+						z += 1. / 16
+					}
+					poles = append(poles, geom.Vec3{X: x, Y: y, Z: z})
+					weights = append(weights, w)
+				}
+			}
+			s, e := geom.NewBSplineSurface(2, 2, 3, 3, poles, k, k, weights)
+			if e != nil {
+				t.Fatal(e)
+			}
+			supports = append(supports, s)
+			domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+			reverse = append(reverse, b == 0)
+		}
+	}
+	stock, _, e := SewSplineRectangles(ctx, supports, domains, reverse, SewOptions{Tolerance: 1e-10})
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{7, 3, 3. / 16}, 0)
+	r, e := CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, SplineRectangleEmbeddingOptions{})
+	if e != nil || len(r.SectionEdges) != 4 || len(r.Solid.Topology().Shells) != 1 {
+		t.Fatal("weighted stock graph clip", e)
+	}
+	bottom := r.Solid.faces[r.StockFaces[4][0]]
+	if bottom.Surface != supports[4] {
+		t.Fatal("replaced original rational support")
+	}
+	found := false
+	for _, use := range bottom.Outer {
+		if q, ok := use.Curve.(ExactQuadraticUV); ok {
+			uv, _, e := q.EvaluateRational(big.NewRat(3, 7))
+			if e != nil {
+				t.Fatal(e)
+			}
+			s, y := uv[0], uv[1]
+			a := new(big.Rat).Sub(big.NewRat(1, 1), new(big.Rat).Quo(s, big.NewRat(2, 1)))
+			f := new(big.Rat).Mul(new(big.Rat).Sub(big.NewRat(6, 1), new(big.Rat).Mul(y, big.NewRat(8, 1))), a)
+			if f.Cmp(new(big.Rat).Mul(s, s)) != 0 {
+				t.Fatal("exact weighted UV residual", uv)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("missing weighted section on stock support")
+	}
+	// Independent vertical wedge: X=3*s, lower height is s²/(32*(1-s/2))+Y/4.
+	// Integrate Y first and then the smooth one-dimensional section by Simpson.
+	const n = 1024
+	var volume float64
+	for i := 0; i <= n; i++ {
+		s := float64(i) / n
+		h := 3./16 - s*s/(32*(1-s/2))
+		w := 2 + 2*(i%2)
+		if i == 0 || i == n {
+			w = 1
+		}
+		volume += 6 * h * h * float64(w) / (3 * n)
+	}
+	props, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if e != nil || math.Abs(props.Volume-volume) > 1e-8 {
+		t.Fatal("independent weighted wedge volume", props.Volume, volume, e)
+	}
+	for _, variant := range []string{"dependent weight", "nonaffine projection"} {
+		d := supports[4].Data()
+		if variant == "dependent weight" {
+			d.Weights[4] *= .5
+		} else {
+			d.Poles[4].X += 1. / 32
+		}
+		s, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
+		if e != nil {
+			t.Fatal(e)
+		}
+		p, e := geom.NewSurfacePatch(s, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		q, _, e := rationalGraphPlaneTrim(p, horizontalPolynomialPlane(big.NewRat(3, 16)), 0)
+		if q != nil || !errors.Is(e, geom.ErrConvergence) {
+			t.Fatalf("accepted %s: %v", variant, e)
+		}
+	}
+}
