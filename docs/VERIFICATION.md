@@ -822,6 +822,10 @@ Go build/fuzz cache and are not claimed as a committed fixture corpus.
 On clean `5a73d31`, two 20-second campaigns with two workers passed:
 `FuzzExactRationalCircleContainment` executed 6,795 cases;
 `FuzzOrient3DAntisymmetry` executed 51,408. No failures or skips were reported.
+The combined bridge's bounded JSON request fuzz campaign executed 926 cases
+with two workers in 21.3 seconds, with no failures. It checks that rejected
+requests preserve handle state and that clones and transforms own independent
+handles. Mutated requests are limited to bounded registry operations.
 
 ## Benchmark smoke results
 

@@ -55,3 +55,4 @@ jobs:
       - run: go test ./brep/trimmed -run=^$ -fuzz=FuzzAlgebraicTubeRecipe -fuzztime=10s -parallel=2
       - run: go test ./brep/trimvalidate -run=^$ -fuzz=^FuzzExactRationalCircleContainment$ -fuzztime=10s -parallel=2
       - run: go test ./geom -run=^$ -fuzz=^FuzzOrient3DAntisymmetry$ -fuzztime=10s -parallel=2
+      - run: go test ./internal/plaincadbridge -run=^$ -fuzz=^FuzzBoundedRequests$ -fuzztime=10s -parallel=2
