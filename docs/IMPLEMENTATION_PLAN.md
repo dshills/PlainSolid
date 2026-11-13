@@ -47,9 +47,13 @@ machined-reference workflow passes nested blind pockets, bore rim
 measurement and lost floor diagnostics. Focused retests cover seven
 additional original development workflows and four original production
 regressions, including the UNC gallery. The original 40-body rotary
-fixture passes all three rebuilds. Close the remaining development
-failures and current ORBIT detail gates, rerun production performance
-under isolated load, and execute the current full release checks. See
+fixture passes all three rebuilds. ORBIT passes the current detail and
+gesture export originals. The classified 340-case baseline and focused
+retests identify the next work: arc-region previews, the remaining exact
+browser retests, and isolated production performance. Then run the
+current 344 development, 66 production and 15 cross-browser cases on one
+frozen integration revision. Keep provider-private OCCT fixture checks
+visible alongside the portable unit results. See
 [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.
