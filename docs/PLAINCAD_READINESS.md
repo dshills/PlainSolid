@@ -13,7 +13,46 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
-## Scoped Hole checkpoint — 2026-11-13
+## Overlapping Hole cutter checkpoint — 2026-11-13
+
+**22 existing PlainCAD acceptance scenarios pass unchanged**, with zero skipped,
+unexpected or flaky results. The regression stage took 133.393 seconds. Both
+original TypeScript checks pass. A separate real-WASM supplemental probe passes
+in 8.042 seconds. The [source-hashed report](evidence/plaincad-overlapping-holes-2026-11-13.json)
+records `/tmp/plainsolid-overlap-acceptance-03`, every case, all selected local Go
+runtime sources, the adapter/harness, and the tested WASM artifact.
+
+There is **no existing overlap-specific browser fixture**. The existing 22 cases
+are regressions; new overlap evidence is explicitly supplemental. It verifies
+analytic two-circle lens volume and area, reversed tool order, duplicates and
+contained cutters, mesh/STL volume and normals, late-failure rollback, input
+ownership, handle cleanup, and an actual overlapping-Hole PlainCAD document
+rebuilt after save/open. Guided-hole placement still intentionally rejects
+overlapping circles; that application behavior is unchanged.
+
+Scoped cutters are applied collectively, after every center is checked against
+the original scope. A duplicate/contained cutter may add no extra removal within
+a valid batch; standalone cuts still must remove meaningful material. Each target
+must lose volume, and no outputs escape if any target fails. Analytic circular
+arcs, cylinder walls and planar caps/floors are retained, not replaced by polygonal
+solid geometry. The constructor is committed as `845cf3d`.
+
+The qualified domain is convex planar stock, strictly interior parallel circular
+cutters, and common effective entry/stop planes, with at most 32 retained tools.
+Proper multi-circle overlaps, exact duplicates, containment and separated
+components are supported for through or common-depth blind cuts. Unequal-depth
+or opposed blind overlaps, tangent/ambiguous contacts, material-island footprints,
+side-crossing cuts and arbitrary curved targets remain unsupported. Once a recipe
+requires union construction, its whole recipe must share the effective depth;
+independent separated mixed-depth recipes retain their prior support. Scope
+intersection queries against already-bored targets still require separation from
+existing cutter bounds. Generic native BRep serialization of the new anchored
+trim type is not qualified; PlainCAD feature-recipe persistence is verified.
+
+Native tests, race, vet, WASM build and independent review pass. Unselected
+application tests and full production/release qualification remain open.
+
+## Earlier scoped Hole checkpoint — 2026-11-13
 
 **22 existing PlainCAD acceptance scenarios pass**, with zero skipped, unexpected
 or flaky results. The consolidated acceptance stage took 151.620 seconds. Both
@@ -243,7 +282,7 @@ selected PlainSolid build and record unsupported cases rather than removing them
 Scoped Hole now implements atomic output publication and indexed center/target
 errors, with analytic blind/through cuts in its qualified convex-stock domain.
 Retain the consolidated regression selection recorded above. Remaining work
-includes overlapping cutters and mixed profiles, broader curved target bodies,
+includes unequal-depth overlaps and mixed profiles, broader curved target bodies,
 and Hole editing that depends on downstream chamfers/PC2 edge treatments. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.

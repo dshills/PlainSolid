@@ -11,20 +11,23 @@ acceptance tests before expanding unrelated OCCT domains. The full specification
 remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
 and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
 
-The Go WebAssembly adapter now implements scoped Hole operations with indexed
-center/target errors and atomic publication. It retains analytic cylinder walls
-and planar floors for blind and through cuts from either cap of qualified convex
-planar stock. Every center must hit the original selected scope and every target
-must lose material; proven separated pairs may miss. Repeated separated bores
-retain source recipes. Overlapping tools, internal cavities, side-crossing and
-unsupported oblique-cap cuts remain explicitly unsupported.
-All 22 selected existing acceptance cases pass: guided Hole, multi-body, dialog
-and target capture alongside the previous eleven scenarios. Both TypeScript
-checks and a separate real-WASM probe pass, with no skips or flaky results. The diameter-edit test
-exposed a predicate projection bug, fixed in commit `0037fb1`; selected-body STL
-exposed missing boundary-normal checks, fixed in `14e5760`. Compact cylinder
-meshing preserves accuracy while restoring the original modeling-test runtime.
-Final source-hashed run evidence is recorded in PlainCAD readiness. Next PC1 work includes overlapping tools and mixed profiles;
+The Go WebAssembly adapter implements scoped Hole operations with indexed
+center/target errors and atomic publication. Analytic cylinder walls and planar
+floors support blind and through cuts from qualified convex stock. Cutter sets
+now combine proper overlaps, duplicates and contained circles when their entry
+and effective stop planes match. Original-target validation is retained, while
+standalone cuts must still remove meaningful material. Each batch and retained
+cylindrical recipe is bounded to 32 tools.
+
+The analytic union constructor is committed as `845cf3d`; independent native
+oracles and review pass. Final application qualification passes all 22 existing regressions, both
+TypeScript checks, and a separate real-WASM overlap/document-roundtrip probe,
+with zero skips or flaky results.
+PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
+intentionally rejects overlapping placement. Original acceptance assertions are
+unchanged. Unequal-depth overlap, tangent/unresolved contacts, material islands,
+closed cavities, side-crossing cuts and arbitrary curved targets remain open.
+Next PC1 work includes mixed profiles and broader modified-stock operations;
 Hole edits involving downstream chamfers also require PC2 edge treatments.
 See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.

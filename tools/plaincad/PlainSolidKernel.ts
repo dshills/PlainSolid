@@ -155,7 +155,7 @@ export class OpenCascadeKernel implements KernelAdapter {
   cutScope(targets: KernelShape[], tools: KernelShape[]): KernelShape[] {
     if (!targets.length || !tools.length)
       throw new Error("Hole scope requires target bodies and center tools.");
-    const owned = new Set<KernelShape>();
+    const pending = new Set<KernelShape>();
     const hits = targets.map(() => tools.map(() => false));
     const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
     try {
@@ -167,9 +167,9 @@ export class OpenCascadeKernel implements KernelAdapter {
           for (const [targetIndex, target] of targets.entries()) {
             if (!this.hasCommonVolume(target, tool)) continue;
             const probe = this.cut(target, tool);
-            owned.add(probe);
+            pending.add(probe);
             this.disposeShape(probe);
-            owned.delete(probe);
+            pending.delete(probe);
             hits[targetIndex][toolIndex] = true;
             hit = true;
           }
@@ -180,22 +180,25 @@ export class OpenCascadeKernel implements KernelAdapter {
         try {
           if (!hits[targetIndex].some(Boolean))
             throw new Error("Boolean cut removed no volume. Move a tool into the target body.");
-          let current = target;
-          for (const [toolIndex, tool] of tools.entries()) {
-            if (!hits[targetIndex][toolIndex]) continue;
-            // The bridge accepts separated analytic bores and rejects unproved
-            // overlapping cutters explicitly; never silently drop a cutter.
-            const next = this.cut(current, tool);
-            owned.add(next);
-            if (owned.has(current)) { this.disposeShape(current); owned.delete(current); }
-            current = next;
-          }
-          return current;
+          // Original-scope probes establish each center's authored intent.
+          // Union the hit tools atomically so overlapping or redundant tools
+          // need not remove additional material in an arbitrary sequential order.
+          const before = request<Proof>({ op: "inspect", handle: handle(target).proof.handle });
+          const result = request<Proof>({ op: "cutMany", a: before.handle, tools: tools.filter((_, index) => hits[targetIndex][index]).map(tool => handle(tool).proof.handle) });
+          const output = owned(result, "cut", target.id);
+          pending.add(output);
+          const after = result.geometryAssertions;
+          const tolerance = Math.max(1e-9, Math.abs(before.geometryAssertions.volume) * 1e-10);
+          if (!after.valid || !Number.isFinite(after.volume) || after.volume <= 1e-12 || after.solidCount < 1)
+            throw new Error("Boolean operation produced no solid volume.");
+          if (before.geometryAssertions.volume - after.volume <= tolerance)
+            throw new Error("Boolean cut removed no volume. Move the tools into the target body.");
+          return output;
         } catch (error) { throw new HoleScopeError("target", targetIndex, reason(error)); }
       });
-      for (const output of outputs) owned.delete(output);
+      for (const output of outputs) pending.delete(output);
       return outputs;
-    } finally { for (const shape of owned) this.disposeShape(shape); }
+    } finally { for (const shape of pending) this.disposeShape(shape); }
   }
   joinAll: NonNullable<KernelAdapter["joinAll"]> = unsupported;
   nativeDrawingGeometry?: KernelAdapter["nativeDrawingGeometry"];

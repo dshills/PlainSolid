@@ -1,5 +1,39 @@
 # Verification record
 
+## Overlapping scoped Hole integration — 2026-11-13
+
+The bridge adds bounded `cutMany` batches: validate all inputs first, construct
+one retained result, require collective material removal, then publish one owned
+handle. Planar batches also support redundant members. The adapter keeps every
+center's original-target probe, requires each target to lose material, and holds
+all outputs until the full scope succeeds. Standalone and batch cuts share the
+application's material-removal tolerance, preventing rounding from making an
+idempotent cutter appear to remove volume. Unsupported batches publish nothing.
+
+Circular batches use the analytic union constructor when separated-bore handling
+cannot prove the combined shape. They require common effective entry/stop planes;
+through-tool reversal must preserve represented geometry. Union mass, cap area,
+blind floor normals, clone/transform ownership and signed XYZ behavior pass.
+Opposed-axis through tools, duplicates/containment, three-circle overlap, partial
+batch failure and shifted no-op rounding regressions pass. Native bridge tests
+pass (1.397 seconds), race passes (10.842 seconds), and vet/WASM build pass.
+Independent geometry, bridge, adapter and probe reviews approved this domain.
+
+There is no existing PlainCAD browser fixture specifically for overlapping Hole
+cutters. Existing guided-hole staging intentionally rejects overlapping placement,
+which remains unchanged. The supplemental real-WASM probe separately checks
+closed-form lens volume/area, order independence, duplicates/contained tools,
+actual mesh/STL volume and normals, original input preservation, late rollback,
+handle capacity, and an actual overlapping-Hole document rebuilt after save/open.
+The unchanged existing 22 scenarios remain the application regression selection.
+The final consolidated run passes 22/22 existing cases in 133.393 seconds and
+one separate supplemental probe in 8.042 seconds, with zero skipped, unexpected
+or flaky results. Both original TypeScript checks pass. Evidence:
+`docs/evidence/plaincad-overlapping-holes-2026-11-13.json`. All recorded local
+runtime source hashes match the final tree, including the analytic union files.
+Geometry/workflow assertions and original timeouts remain unchanged. The source
+PlainCAD checkout and the other agent's main checkout were not modified.
+
 ## Analytic cylindrical-union construction — 2026-11-13
 
 `trimmed.BoreCylinderUnion` retains the exposed circular arcs of up to 32 disks

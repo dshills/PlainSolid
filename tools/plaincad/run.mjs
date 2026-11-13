@@ -162,8 +162,57 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
       return volume;
     };
     const boreMeshVolume = signedVolume(kernel.tessellate(bored, { linearDeflection: .5, angularDeflection: .2 }));
-    const overlappingScope = scopeError([boreBase], [cylinder, cylinder]);
+    const shiftedCircle = kernel.placeShape(cylinder, { translation: [1, 0, 0], rotation: [0, 0, 0] });
+    const containedCircle = kernel.extrudeProfile({ ...circleProfile, bounds: { minX: 3, maxX: 5, minY: 3, maxY: 5 } }, 3);
+    const overlapShapes = [
+      ...kernel.cutScope([boreBase], [cylinder, cylinder]),
+      ...kernel.cutScope([boreBase], [cylinder, shiftedCircle, containedCircle]),
+      ...kernel.cutScope([boreBase], [containedCircle, shiftedCircle, cylinder]),
+    ];
+    const overlapProofs = overlapShapes.map((shape: any) => kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions);
+    const overlapMeshVolumes = overlapShapes.map((shape: any) => signedVolume(kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 })));
+    let overlapStlNormalsValid = true;
+    const overlapStlVolumes = overlapShapes.map((shape: any) => {
+      const bytes = kernel.exportStl(shape), view = new DataView(bytes);
+      let volume = 0;
+      for (let i = 0; i < view.getUint32(80, true); i++) {
+        const p = Array.from({length: 9}, (_, j) => view.getFloat32(96 + i * 50 + j * 4, true));
+        const normal = Array.from({length: 3}, (_, j) => view.getFloat32(84 + i * 50 + j * 4, true));
+        const ab = [p[3]-p[0], p[4]-p[1], p[5]-p[2]], ac = [p[6]-p[0], p[7]-p[1], p[8]-p[2]];
+        const cross = [ab[1]*ac[2]-ab[2]*ac[1], ab[2]*ac[0]-ab[0]*ac[2], ab[0]*ac[1]-ab[1]*ac[0]];
+        overlapStlNormalsValid &&= [...p, ...normal].every(Number.isFinite) && normal.reduce((sum, value, axis) => sum + value * cross[axis], 0) > 0;
+        volume += (p[0]*(p[4]*p[8]-p[5]*p[7])-p[1]*(p[3]*p[8]-p[5]*p[6])+p[2]*(p[3]*p[7]-p[4]*p[6]))/6;
+      }
+      return volume;
+    });
+    const strictNoOpRejected = rejects(() => kernel.cut(overlapShapes[0], cylinder));
+    const docsPath = "/src/cad/document/CadDocument.ts", sketchPath = "/src/cad/sketch/SketchModel.ts";
+    const profilePath = "/src/cad/sketch/profileDetection.ts", solvePath = "/src/cad/sketch/SketchSolver.ts";
+    const rebuildPath = "/src/cad/features/rebuildGraph.ts";
+    const docs = await import(docsPath), sketches = await import(sketchPath);
+    const { detectProfiles } = await import(profilePath), { solveSketch } = await import(solvePath);
+    const { rebuildDocument } = await import(rebuildPath);
+    const section = sketches.addCornerRectangle(sketches.createXySketch("Overlap stock"), "8mm", "8mm");
+    const extrusion = docs.createExtrudeFeature({ name: "Stock", sketchId: section.id, profileId: detectProfiles(solveSketch(section, {})).profiles[0].id, operation: "newBody", direction: "positive", distance: { expression: "3mm", unit: "mm" } });
+    let overlapDocument = docs.upsertFeature(docs.upsertSketch(docs.createEmptyDocument("Scoped overlap"), section), extrusion);
+    const firstCenter = sketches.addPoint(sketches.createXySketch("Centers"), "4mm", "4mm");
+    const secondCenter = sketches.addPoint(firstCenter.sketch, "5mm", "4mm");
+    overlapDocument = docs.upsertFeature(docs.upsertSketch(overlapDocument, secondCenter.sketch), { id: "overlap-hole", name: "Overlapping scoped hole", type: "hole", sketchId: secondCenter.sketch.id, centerPointIds: [firstCenter.pointId, secondCenter.pointId], targetBodyIds: ["body:" + extrusion.id], diameter: { expression: "4mm", unit: "mm" }, depth: "throughAll" });
+    const rebuiltOverlap = rebuildDocument(overlapDocument);
+    const rebuiltOverlapProof = { success: rebuiltOverlap.success, errors: rebuiltOverlap.errors, source: rebuiltOverlap.meshes[0]?.geometrySource, assertions: rebuiltOverlap.meshes[0]?.geometryAssertions, disposalFailures: rebuiltOverlap.metrics?.disposalFailures };
+    const serializePath = "/src/persistence/exportProject.ts", reopenPath = "/src/persistence/importProject.ts";
+    const { serializeProject } = await import(serializePath), { importProjectText } = await import(reopenPath);
+    const reopenedOverlap = rebuildDocument(importProjectText(serializeProject(overlapDocument)));
+    const reopenedOverlapProof = { success: reopenedOverlap.success, errors: reopenedOverlap.errors, source: reopenedOverlap.meshes[0]?.geometrySource, assertions: reopenedOverlap.meshes[0]?.geometryAssertions, disposalFailures: reopenedOverlap.metrics?.disposalFailures };
     const shallow = kernel.extrudeProfile(circleProfile, 2);
+    const farBoreBase = kernel.placeShape(boreBase, { translation: [20, 0, 0], rotation: [0, 0, 0] });
+    const farCylinder = kernel.placeShape(cylinder, { translation: [20, 0, 0], rotation: [0, 0, 0] });
+    const shiftedShallow = kernel.placeShape(shallow, { translation: [1, 0, 0], rotation: [0, 0, 0] });
+    const unequalDepthFailure = scopeError([farBoreBase, boreBase], [farCylinder, cylinder, shiftedShallow]);
+    const tangentStock = kernel.createBox(12, 8, 3);
+    const tangentCylinder = kernel.placeShape(cylinder, { translation: [4, 0, 0], rotation: [0, 0, 0] });
+    const tangentFailure = scopeError([tangentStock], [cylinder, tangentCylinder]);
+    const overlapRetainedVolumes = [farBoreBase, boreBase, tangentStock].map((shape: any) => kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions.volume);
     const blind = kernel.cut(boreBase, shallow);
     const blindProof = kernel.tessellate(blind, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
     const blindMeshVolume = signedVolume(kernel.tessellate(blind, { linearDeflection: .5, angularDeflection: .2 }));
@@ -173,8 +222,8 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const internalTool = kernel.placeShape(shallow, { translation: [0, 0, .5], rotation: [0, 0, 0] });
     const internalCutRejected = rejects(() => kernel.cut(boreBase, internalTool));
     const holedCircleRejected = rejects(() => kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3));
-    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shallow, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
-    return { boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, overlappingScope, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shiftedCircle, containedCircle, ...overlapShapes, shallow, farBoreBase, farCylinder, shiftedShallow, tangentStock, tangentCylinder, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
+    return { unequalDepthFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
@@ -202,7 +251,27 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     }
   }
   expect(proof.boreProof).toMatchObject({ valid: true, solidCount: 1 });
-  expect(proof.overlappingScope).toMatchObject({ scope: "target", index: 0 });
+  const lens = 8 * Math.acos(.25) - .5 * Math.sqrt(15);
+  const unionArea = 8 * Math.PI - lens;
+  const unionPerimeter = 8 * (Math.PI - Math.acos(.25));
+  expect(proof.rebuiltOverlapProof).toMatchObject({ success: true, errors: [], source: "plainsolid", disposalFailures: 0 });
+  expect(proof.rebuiltOverlapProof.assertions.volume).toBeCloseTo(192 - 3 * unionArea, 8);
+  expect(proof.reopenedOverlapProof).toMatchObject({ success: true, errors: [], source: "plainsolid", disposalFailures: 0 });
+  expect(proof.reopenedOverlapProof.assertions.volume).toBeCloseTo(192 - 3 * unionArea, 8);
+  const removedAreas = [4 * Math.PI, unionArea, unionArea];
+  proof.overlapProofs.forEach((item: any, index: number) => {
+    expect(item).toMatchObject({ valid: true, solidCount: 1 });
+    expect(item.volume).toBeCloseTo(192 - 3 * removedAreas[index], 8);
+    expect(item.surfaceArea).toBeCloseTo(index === 0 ? 224 + 4 * Math.PI : 224 - 2 * unionArea + 3 * unionPerimeter, 8);
+    expect(Math.abs(proof.overlapMeshVolumes[index] - item.volume)).toBeLessThan(3 * removedAreas[index] * .02);
+    expect(Math.abs(proof.overlapStlVolumes[index] - item.volume)).toBeLessThan(3 * removedAreas[index] * .02);
+    expect(proof.overlapStlVolumes[index]).toBeGreaterThan(0);
+  });
+  expect(proof.strictNoOpRejected).toBe(true);
+  expect(proof.overlapStlNormalsValid).toBe(true);
+  expect(proof.unequalDepthFailure).toMatchObject({ scope: "target", index: 1 });
+  expect(proof.tangentFailure).toMatchObject({ scope: "target", index: 0 });
+  expect(proof.overlapRetainedVolumes).toEqual([192, 192, 288]);
   expect(proof.boreProof.volume).toBeCloseTo(192 - 12 * Math.PI, 8);
   expect(proof.boreProof.surfaceArea).toBeCloseTo(224 + 4 * Math.PI, 8);
   expect(Math.abs(proof.boreMeshVolume - proof.boreProof.volume)).toBeLessThan(12 * Math.PI * .02);

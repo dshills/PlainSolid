@@ -70,10 +70,20 @@ Scoped Hole cuts validate every center against the original selected bodies and
 require every selected body to lose volume. Individual center/body misses are
 allowed only when the native intersection proves no common volume. Results are
 published together; a failed center or target disposes all intermediate outputs
-and preserves the inputs. Separated cylindrical cutters are supported within the
-bounded bore domain; overlapping cutters reject explicitly. The backend probe
+and preserves the inputs. The native batch applies the union of tools to each
+target; duplicate and contained tools need not remove additional material after
+another tool. Direct single cuts still reject no-ops. Circular overlap uses
+analytic exposed arcs for parallel tools with matching entry and effective depth
+within the bounded bore domain, with at most 32 tools per target batch. Tangent
+unions and intersecting tools with unequal depths remain unsupported; subsequent
+cuts on arbitrary previously modified stocks are not implied. The backend probe
 checks indexed scope errors and fills the remaining native handle capacity after
-repeated late-target failures to verify cleanup. Other scoped operations remain unsupported.
+repeated late-target failures to verify cleanup. It also measures circular-lens
+union volume and area, tool-order independence, duplicates, contained tools, and
+the actual mesh and STL volume. Existing guided-hole UI overlap restrictions are
+preserved; no existing browser fixture specifically measures overlapping scoped
+holes, so that new coverage is reported separately from the existing regression
+selection. Other scoped operations remain unsupported.
 This harness is an acceptance integration, not a published production backend.
 
 ## Evidence

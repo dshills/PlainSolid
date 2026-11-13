@@ -22,6 +22,7 @@ type boreBody struct {
 	spans     []float64
 	blind     []bool
 	floors    []int
+	union     *trimmed.CylinderUnionHistory
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -112,6 +113,9 @@ func boreSpan(base brep.Solid, c *cylinderBody, through bool) (trimmed.CylinderC
 	return trimmed.CylinderCut{Entry: entry, Exit: exit, AxisPoint: origin, Direction: axis, Radius: c.radius}, start, end, nil
 }
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
+	if len(cylinders) > 32 {
+		return nil, &failureError{"LIMIT", "at most 32 cylindrical tools may be retained"}
+	}
 	cylinders = append([]*cylinderBody(nil), cylinders...)
 	cuts := make([]trimmed.CylinderCut, len(cylinders))
 	spans := make([]float64, len(cylinders))
@@ -179,7 +183,7 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
-		return nil, &failureError{"UNSUPPORTED", "finite cylindrical cut is outside the strictly contained convex-stock domain: " + err.Error()}
+		return newUnionBore(base, cylinders, cuts, blind)
 	}
 	for i := range cylinders {
 		if blind[i] {
@@ -189,18 +193,25 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 			}
 		}
 	}
-	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors}, nil
+	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil}, nil
 }
-func (b *Bridge) putBore(body *boreBody) (Shape, error) {
+func (body *boreBody) measures() (float64, float64, error) {
 	p, err := body.base.MassProperties()
 	if err != nil {
-		return Shape{}, err
-	}
-	bounds, err := body.base.Bounds()
-	if err != nil {
-		return Shape{}, err
+		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
+	if u := body.union; u != nil {
+		volume -= u.Area * u.Depth
+		area += u.Perimeter * u.Depth
+		if !u.Blind {
+			area -= 2 * u.Area
+		}
+		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
+			return 0, 0, errors.New("invalid cylindrical union measures")
+		}
+		return volume, area, nil
+	}
 	for i, c := range body.cylinders {
 		volume -= math.Pi * c.radius * c.radius * body.spans[i]
 		area += 2 * math.Pi * c.radius * (body.spans[i] - c.radius)
@@ -209,7 +220,18 @@ func (b *Bridge) putBore(body *boreBody) (Shape, error) {
 		}
 	}
 	if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
-		return Shape{}, errors.New("invalid cylindrical-cut material measures")
+		return 0, 0, errors.New("invalid cylindrical-cut material measures")
+	}
+	return volume, area, nil
+}
+func (b *Bridge) putBore(body *boreBody) (Shape, error) {
+	volume, area, err := body.measures()
+	if err != nil {
+		return Shape{}, err
+	}
+	bounds, err := body.base.Bounds()
+	if err != nil {
+		return Shape{}, err
 	}
 	return b.publish(stored{bore: body, result: Shape{GeometryAssertions: Assertions{true, volume, area, 1}, Bounds: Bounds{coordinates(bounds.Min), coordinates(bounds.Max)}}})
 }
@@ -231,6 +253,9 @@ func (body *boreBody) transformed(m geom.Affine) (*boreBody, error) {
 	return newBore(base, cylinders)
 }
 func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	if body.union != nil {
+		return body.unionPlanarFace(origin, normal)
+	}
 	n, err := normal.Unit()
 	if err != nil || !origin.IsFinite() {
 		return PlanarFace{}, errors.New("invalid planar reference")
@@ -294,6 +319,13 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		body, err := newBore(base, append(append([]*cylinderBody(nil), cylinders...), c.cylinder))
 		if err != nil {
 			return nil, err
+		}
+		volume, _, err := body.measures()
+		if err != nil {
+			return nil, err
+		}
+		if !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
+			return nil, &failureError{"UNSUPPORTED", "cylindrical cut removed no material"}
 		}
 		return b.putBore(body)
 	}
