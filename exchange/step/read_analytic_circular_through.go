@@ -17,6 +17,9 @@ import (
 // assembly placement and detached geometry are unsupported. The recovered frame
 // and positive height describe geometry, not original signed feature history.
 func ReadAnalyticCircularThroughExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionModel, error) {
+	return readAnalyticCircularExtrusions(r, l, false)
+}
+func readAnalyticCircularExtrusions(r io.Reader, l Limits, allowBlind bool) (CircularHoleExtrusionModel, error) {
 	fail := func() (CircularHoleExtrusionModel, error) {
 		return CircularHoleExtrusionModel{}, circularSourceFailure()
 	}
@@ -85,7 +88,7 @@ func ReadAnalyticCircularThroughExtrusions(r io.Reader, l Limits) (CircularHoleE
 			return fail()
 		}
 	}
-	b, e := recoverAnalyticCircularThrough(f, bodyID, l)
+	b, e := recoverAnalyticCircularExtrusion(f, bodyID, l, allowBlind)
 	if e != nil {
 		return CircularHoleExtrusionModel{}, e
 	}
@@ -127,7 +130,7 @@ func ReadAnalyticCircularThroughExtrusions(r io.Reader, l Limits) (CircularHoleE
 	}
 	return CircularHoleExtrusionModel{LengthUnit: unit, Bodies: []CircularHoleExtrusionBody{b}}, nil
 }
-func recoverAnalyticCircularThrough(f *File, id int64, l Limits) (CircularHoleExtrusionBody, error) {
+func recoverAnalyticCircularExtrusion(f *File, id int64, l Limits, allowBlind bool) (CircularHoleExtrusionBody, error) {
 	fail := func() (CircularHoleExtrusionBody, error) { return CircularHoleExtrusionBody{}, circularSourceFailure() }
 	g, e := readCircularSourceGraph(f, id)
 	if e != nil {
@@ -162,6 +165,7 @@ func recoverAnalyticCircularThrough(f *File, id int64, l Limits) (CircularHoleEx
 	}
 	caps := [2]int{-1, -1}
 	outerLoops := map[int]int{}
+	floors := map[int]bool{}
 	stockFaces := []Value{}
 	for i, face := range g.faces {
 		if face.kind != "PLANE" {
@@ -184,7 +188,11 @@ func recoverAnalyticCircularThrough(f *File, id int64, l Limits) (CircularHoleEx
 			}
 		}
 		if polygon < 0 {
-			return fail()
+			if !allowBlind || len(face.loops) != 1 || len(face.loops[0]) != 1 {
+				return fail()
+			}
+			floors[i] = true
+			continue
 		}
 		outerLoops[i] = polygon
 		normal := face.frame.ZAxis()
@@ -310,7 +318,7 @@ func recoverAnalyticCircularThrough(f *File, id int64, l Limits) (CircularHoleEx
 				return fail()
 			}
 			for _, q := range []geom.Vec3{qa, qb} {
-				if math.Min(math.Abs(q.Z), math.Abs(q.Z-height)) > tol {
+				if edge.wrapper != "SEAM_CURVE" && math.Min(math.Abs(q.Z), math.Abs(q.Z-height)) > tol {
 					return fail()
 				}
 			}
@@ -337,84 +345,20 @@ func recoverAnalyticCircularThrough(f *File, id int64, l Limits) (CircularHoleEx
 			return fail()
 		}
 	}
-	for _, ci := range cylinders {
-		face := g.faces[ci]
-		rims := [2]int64{}
-		seam := int64(0)
-		seenSeam := 0
-		for _, u := range face.loops[0] {
-			edge := g.edges[u.id]
-			if edge.kind == "LINE" {
-				if seam != 0 && seam != edge.id {
-					return fail()
-				}
-				seam = edge.id
-				seenSeam++
-				continue
-			}
-			center := frame.ToLocal(edge.frame.Origin())
-			j := 0
-			if math.Abs(center.Z-height) <= tol {
-				j = 1
-			} else if math.Abs(center.Z) > tol {
-				return fail()
-			}
-			if rims[j] != 0 || math.Abs(edge.radius-face.radius) > tol {
-				return fail()
-			}
-			rims[j] = edge.id
-			owners := g.owners[edge.id]
-			other := owners[0]
-			if other == ci {
-				other = owners[1]
-			}
-			if other != caps[j] {
-				return fail()
-			}
-			cap := g.faces[other]
-			found := false
-			for k, loop := range cap.loops {
-				if k == outerLoops[other] || len(loop) != 1 || loop[0].id != edge.id {
-					continue
-				}
-				n := edge.frame.ZAxis()
-				if !loop[0].sense {
-					n = n.Scale(-1)
-				}
-				want := axis
-				if j == 1 {
-					want = axis.Scale(-1)
-				}
-				if n.Sub(want).Length() > 1e-9 {
-					return fail()
-				}
-				found = true
-			}
-			if !found {
-				return fail()
-			}
-		}
-		if rims[0] == 0 || rims[1] == 0 || seenSeam != 2 || g.edges[seam].wrapper != "SEAM_CURVE" {
-			return fail()
-		}
-		a, b := g.edges[rims[0]], g.edges[rims[1]]
-		ca, cb := frame.ToLocal(a.frame.Origin()), frame.ToLocal(b.frame.Origin())
-		if math.Hypot(ca.X-cb.X, ca.Y-cb.Y) > tol || a.radius <= 64*tol {
-			return fail()
-		}
-		out.Holes = append(out.Holes, trimmed.ExtrusionCircle{Center: geom.Vec2{X: ca.X, Y: ca.Y}, Radius: a.radius})
-	}
-	if len(g.faces[caps[0]].loops) != len(cylinders)+1 || len(g.faces[caps[1]].loops) != len(cylinders)+1 {
+	if e = collectCircularSourcePockets(g, cylinders, caps, outerLoops, floors, frame, height, tol, &out); e != nil {
 		return fail()
 	}
-	// A margin separates all imported footprints from each other and the stock;
-	// uncertain near-tangent cases fail rather than gaining topology by tolerance.
 	inflated := append([]trimmed.ExtrusionCircle(nil), out.Holes...)
 	for i := range inflated {
 		inflated[i].Radius += 32 * tol
 	}
-	if _, e = trimmed.ExtrudePolygonWithCircularHoles(context.Background(), frame, out.Outer, inflated, height); e != nil {
+	blind := append([]trimmed.ExtrusionBlindHole(nil), out.Blind...)
+	for i := range blind {
+		blind[i].Radius += 32 * tol
+	}
+	if _, e = trimmed.ExtrudePolygonWithHoles(context.Background(), out.Frame, out.Outer, inflated, blind, out.Height); e != nil {
 		return fail()
 	}
+
 	return out, nil
 }

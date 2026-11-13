@@ -297,7 +297,7 @@ func verifyCircularPCurve(f *File, pcid int64, face circularSourceFace, edge cir
 		cosine = face.frame.XAxis().Scale(r * d.X).Add(face.frame.YAxis().Scale(r * d.Y))
 		sine = face.frame.XAxis().Scale(-r * d.Y).Add(face.frame.YAxis().Scale(r * d.X))
 	} else {
-		p, d, e := lineGeometry(f, g, 2)
+		p, d, e := circularUnitLineGeometry(f, g, 2)
 		if e != nil || math.Abs(d.Y) > 1e-10 || math.Abs(d.X) != 1 {
 			return fail()
 		}
@@ -419,4 +419,26 @@ func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
 		}
 	}
 	return out, nil
+}
+
+// A cylindrical circle pcurve must preserve the angular parameter scale.
+// Non-unit VECTOR magnitudes need explicit reparameterization and are rejected.
+func circularUnitLineGeometry(f *File, id int64, dimension int) (geom.Vec3, geom.Vec3, error) {
+	r, e := simple(f, id, "LINE", 3)
+	if e != nil {
+		return geom.Vec3{}, geom.Vec3{}, e
+	}
+	vid, e := ref(r.Args[2])
+	if e != nil {
+		return geom.Vec3{}, geom.Vec3{}, e
+	}
+	v, e := simple(f, vid, "VECTOR", 3)
+	if e != nil {
+		return geom.Vec3{}, geom.Vec3{}, e
+	}
+	n, e := numeric(v.Args[2])
+	if e != nil || n != 1 {
+		return geom.Vec3{}, geom.Vec3{}, circularSourceFailure()
+	}
+	return lineGeometry(f, id, dimension)
 }

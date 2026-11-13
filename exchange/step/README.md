@@ -1909,3 +1909,15 @@ nonidentity representation placement and detached geometry remain unsupported.
 The retained `circular-through-occt.step` fixture was independently built by
 OCCT prism/cylinder Boolean subtraction; live qualification also imports that
 source, rewrites it and compares OCCT validity, area, volume and centroid.
+
+`ReadAnalyticCircularPocketExtrusions` adds mixed through holes and blind pockets
+to that analytic subset. Each blind cylinder must end on exactly one uniquely
+owned planar disk with the correct material normal and boundary winding. Floors
+must lie strictly between the stock caps with at least 64 geometric tolerances
+of separation. All blind openings must share one exterior cap; the recovered
+signed height retains that entry side. Exact native footprint containment and
+disjointness are rechecked with the same clearance margin. The retained
+602-entity `circular-pocket-occt.step` independently exercises an OCCT through
+hole and a stopped cylindrical cut; live import/rewrite checks validity, area,
+volume and centroid. The through-only and canonical exact readers are unchanged
+in accepted scope.
