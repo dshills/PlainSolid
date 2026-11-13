@@ -106,8 +106,19 @@ func cutThroughProfiles(a stored, tools []stored) (*analyticBody, float64, bool,
 			return nil, 0, true, err
 		}
 		height := p.high - p.low
+		areaDelta := perimeter*height - 2*area
+		if result.rounded != nil && result.rounded.stack != nil && result.rounded.stack.bores != nil {
+			recipe, stack := *result.rounded, *result.rounded.stack
+			before, err := trimmed.SewPlanarThroughPrism(ctx, stack.bores.base.solid, clipped, p.lowerCap, upperCap, 0, 1)
+			if err != nil {
+				return nil, 0, true, err
+			}
+			stack.bores = stack.bores.withBase(before, -area*height, areaDelta)
+			recipe.stack = &stack
+			result.rounded = &recipe
+		}
 		removed += area * height
-		result.area += perimeter*height - 2*area
+		result.area += areaDelta
 	}
 	result.volume -= removed
 	if result.rounded != nil {

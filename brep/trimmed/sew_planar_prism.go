@@ -19,6 +19,10 @@ import (
 // Conservative bounds deliberately reject unproved near/tangent or curved-side
 // intersections. Neither input is mutated; original stock face IDs are retained.
 func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, stockHigh, toolLow, toolHigh int) (Solid, error) {
+	return sewPlanarThroughPrism(ctx, stock, tool, stockLow, stockHigh, toolLow, toolHigh, true)
+}
+
+func sewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, stockHigh, toolLow, toolHigh int, build bool) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -178,6 +182,9 @@ func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, sto
 		}
 	}
 
+	if !build {
+		return Solid{}, nil
+	}
 	for k, id := range []int{stockLow, stockHigh} {
 		lo := geom.Vec2{X: math.Nextafter(toolMin.X-offsets[k].X, math.Inf(-1)), Y: math.Nextafter(toolMin.Y-offsets[k].Y, math.Inf(-1))}
 		hi := geom.Vec2{X: math.Nextafter(toolMax.X-offsets[k].X, math.Inf(1)), Y: math.Nextafter(toolMax.Y-offsets[k].Y, math.Inf(1))}
@@ -260,6 +267,8 @@ func prismCircleCurve(c PCurve) (EllipseUV, bool) {
 		return v, true
 	case anchoredCircularUV:
 		return v.EllipseUV, true
+	case unionArcUV:
+		return v.EllipseUV, true
 	case reverseTrim:
 		c, ok := prismCircleCurve(v.differentiableTrim)
 		c.From, c.To = c.To, c.From
@@ -331,6 +340,12 @@ func prismCapContains(f Face, lo, hi geom.Vec2, disk *prismCircle, pad float64) 
 		}
 	} else {
 		for _, u := range f.Outer {
+			if disk != nil {
+				if !disk.leftOf(u.UVStart, u.UVEnd, pad) {
+					return geom.ErrDomain
+				}
+				continue
+			}
 			for _, p := range corners {
 				sign, e := geom.Orient2D(u.UVStart, u.UVEnd, p)
 				if e != nil || sign <= 0 {
@@ -340,11 +355,8 @@ func prismCapContains(f Face, lo, hi geom.Vec2, disk *prismCircle, pad float64) 
 		}
 	}
 	for _, hole := range f.Holes {
-		if disk != nil {
-			circle, ok := prismWholeCircle(hole)
-			if ok && disk.outside(circle.Center, ratInset(circle.Cos.X), pad) {
-				continue
-			}
+		if disk != nil && prismDiskMissesWire(*disk, hole, pad) {
+			continue
 		}
 		a, b, e := prismWireBounds(hole)
 		if e != nil {
@@ -422,17 +434,7 @@ func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, disk *prismDis
 		if positive || negative {
 			return true
 		}
-		if profile := disk.inFrame(p.Frame()); profile != nil {
-			for _, hole := range f.Holes {
-				c, ok := prismWholeCircle(hole)
-				if ok && profile.inside(c.Center, ratInset(c.Cos.X), pad) {
-					return true
-				}
-			}
-			c, ok := prismWholeCircle(f.Outer)
-			return ok && profile.outside(c.Center, ratInset(c.Cos.X), pad)
-		}
-		return false
+		return prismMissesPlanarWires(f, p.Frame(), world, disk, pad)
 	}
 	var frame geom.Frame
 	var minimum, maximum *big.Rat
@@ -442,9 +444,13 @@ func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, disk *prismDis
 		frame = f
 		minimum, maximum = ratInset(r), ratInset(r)
 	case geom.TorusSurface:
-		f, major, minor := s.Parameters()
-		frame = f
+		torusFrame, major, minor := s.Parameters()
+		frame = torusFrame
 		minimum = new(big.Rat).Sub(ratInset(major), ratInset(minor))
+		if d.VMin >= 0 && d.VMax <= math.Pi/2 {
+			// Cosine is nonnegative on this entire trimmed interval.
+			minimum = ratInset(major)
+		}
 		maximum = new(big.Rat).Add(ratInset(major), ratInset(minor))
 	case geom.ConeSurface:
 		f, slope := s.Parameters()
@@ -471,28 +477,51 @@ func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, disk *prismDis
 		(profile.inside(geom.Vec2{}, minimum, pad) || profile.outside(geom.Vec2{}, maximum, pad)) {
 		return true
 	}
-	lo, hi := geom.Vec2{X: math.Inf(1), Y: math.Inf(1)}, geom.Vec2{X: math.Inf(-1), Y: math.Inf(-1)}
-	for _, p := range world {
-		v, e := prismExactLocal(frame, p)
-		if e != nil {
-			return false
+	// Restrict the tool AABB to the face bounds before the radial test.
+	// For a quarter cylinder this excludes the unused support quadrants.
+	if e == nil {
+		if clipped, ok := toolBox.Intersect(box); ok {
+			toolBox = clipped
+		} else {
+			return true
 		}
-		lo.X = min(lo.X, v.X)
-		lo.Y = min(lo.Y, v.Y)
-		hi.X = max(hi.X, v.X)
-		hi.Y = max(hi.Y, v.Y)
 	}
-	nearest := func(a, b float64) float64 {
-		if a <= 0 && b >= 0 {
-			return 0
+	interval := func(axis geom.Vec3) (lo, hi *big.Rat) {
+		o := frame.Origin()
+		for _, c := range [][4]float64{
+			{axis.X, o.X, toolBox.Min.X, toolBox.Max.X},
+			{axis.Y, o.Y, toolBox.Min.Y, toolBox.Max.Y},
+			{axis.Z, o.Z, toolBox.Min.Z, toolBox.Max.Z},
+		} {
+			if c[0] == 0 {
+				continue
+			}
+			lo = new(big.Rat).Sub(ratInset(c[2]), ratInset(c[1]))
+			hi = new(big.Rat).Sub(ratInset(c[3]), ratInset(c[1]))
+			if c[0] < 0 {
+				lo, hi = hi.Neg(hi), lo.Neg(lo)
+			}
+			break
 		}
-		return min(math.Abs(a), math.Abs(b))
+		return lo, hi
 	}
-	squared := func(x, y float64) *big.Rat {
-		return new(big.Rat).Add(new(big.Rat).Mul(ratInset(x), ratInset(x)), new(big.Rat).Mul(ratInset(y), ratInset(y)))
+	distances := func(lo, hi *big.Rat) (near, far *big.Rat) {
+		a, b := new(big.Rat).Abs(lo), new(big.Rat).Abs(hi)
+		near, far = a, b
+		if a.Cmp(b) > 0 {
+			near, far = b, a
+		}
+		if lo.Sign() <= 0 && hi.Sign() >= 0 {
+			near = new(big.Rat)
+		}
+		return near, far
 	}
-	low2 := squared(nearest(lo.X, hi.X), nearest(lo.Y, hi.Y))
-	high2 := squared(max(math.Abs(lo.X), math.Abs(hi.X)), max(math.Abs(lo.Y), math.Abs(hi.Y)))
+	xNear, xFar := distances(interval(frame.XAxis()))
+	yNear, yFar := distances(interval(frame.YAxis()))
+	squared := func(x, y *big.Rat) *big.Rat {
+		return new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
+	}
+	low2, high2 := squared(xNear, yNear), squared(xFar, yFar)
 	minimum.Sub(minimum, ratInset(pad))
 	maximum.Add(maximum, ratInset(pad))
 	if minimum.Sign() > 0 && high2.Cmp(new(big.Rat).Mul(minimum, minimum)) < 0 {

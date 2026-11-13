@@ -73,6 +73,8 @@ type request struct {
 	Handle            string               `json:"handle,omitempty"`
 	A                 string               `json:"a,omitempty"`
 	B                 string               `json:"b,omitempty"`
+	MaxEdgeUses       int                  `json:"maxEdgeUses,omitempty"`
+	MaxEdgeSegments   int                  `json:"maxEdgeSegments,omitempty"`
 	Tools             []string             `json:"tools,omitempty"`
 	Min               *vector              `json:"min,omitempty"`
 	Max               *vector              `json:"max,omitempty"`
@@ -102,6 +104,7 @@ type request struct {
 	Height            number               `json:"height,omitempty"`
 	LinearDeflection  optionalNumber       `json:"linearDeflection,omitempty"`
 	AngularDeflection optionalNumber       `json:"angularDeflection,omitempty"`
+	AnalyticNormals   bool                 `json:"analyticNormals,omitempty"`
 }
 
 type Assertions struct {
@@ -220,7 +223,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "displayEdges", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "leadPart", "assertLeadPair":
 		if q.Lead == nil {
 			return nil, errors.New("lead screw operation requires dimensions")
@@ -288,6 +291,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		if q.Op == "capChamfer" || q.Op == "capFillet" {
 			if q.Op == "capFillet" && s.analytic != nil && s.analytic.rounded != nil {
 				return b.filletRoundedStock(s, q)
+			}
+			if q.Op == "capChamfer" && s.analytic != nil && s.analytic.rounded != nil && len(q.Edges) == 0 {
+				return b.chamferRoundedStock(s, q)
 			}
 			if q.Op == "capChamfer" && len(q.Edges) == 0 {
 				return b.chamferAnnularStock(s, q)
@@ -357,6 +363,15 @@ func (b *Bridge) execute(q request) (any, error) {
 			if result, handled, err := b.rectangularIslandPocket(a, c); handled {
 				return result, err
 			}
+			if result, handled, err := b.cutRoundedStack(a, c); handled {
+				return result, err
+			}
+			if result, _, handled, err := cutRoundedBores(a, []stored{c}); handled {
+				if err != nil {
+					return nil, err
+				}
+				return b.putAnalyticBody(result)
+			}
 			if result, _, handled, err := cutThroughProfiles(a, []stored{c}); handled {
 				if err != nil {
 					return nil, err
@@ -400,6 +415,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 		}
 		if q.Op == "fuse" {
+			if result, handled, err := b.fuseRoundedStack(a, c); handled {
+				return result, err
+			}
 			if result, handled, err := b.fuseAnnularPedestal(a, c); handled {
 				return result, err
 			}
@@ -451,7 +469,7 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		return b.put(s)
-	case "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell", "planarFace":
+	case "clone", "inspect", "mesh", "displayEdges", "stl", "dispose", "transform", "shell", "planarFace":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
@@ -494,6 +512,8 @@ func (b *Bridge) execute(q request) (any, error) {
 			return b.put(hollow.Solid)
 		case "inspect":
 			return s.result, nil
+		case "displayEdges":
+			return s.displayEdges(q.MaxEdgeUses, q.MaxEdgeSegments)
 		case "clone":
 			return b.publish(s)
 		case "dispose":
@@ -670,6 +690,15 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 }
 
 func renderMesh(s stored, q request) (Mesh, error) {
+	if q.AnalyticNormals {
+		m, normals, ok, err := s.analyticDisplayMesh(q)
+		if err != nil {
+			return Mesh{}, err
+		}
+		if ok {
+			return renderTrianglesWithNormals(s, m, normals)
+		}
+	}
 	m, err := s.tessellate(q)
 	if err != nil {
 		return Mesh{}, err
@@ -677,16 +706,42 @@ func renderMesh(s stored, q request) (Mesh, error) {
 	return renderTriangles(s, m)
 }
 func renderTriangles(s stored, m mesh.Mesh) (Mesh, error) {
+	return renderTrianglesWithNormals(s, m, nil)
+}
+
+func renderTrianglesWithNormals(s stored, m mesh.Mesh, normals [][3]geom.Vec3) (Mesh, error) {
 	r := Mesh{Positions: make([]float64, 0, len(m.Triangles)*9), Normals: make([]float64, 0, len(m.Triangles)*9), Indices: make([]int, 0, len(m.Triangles)*3), Bounds: s.result.Bounds, GeometryAssertions: s.result.GeometryAssertions}
-	// Duplicate per triangle so sharp planar edges retain flat face normals.
-	for _, t := range m.Triangles {
-		n, err := m.Vertices[t[1]].Sub(m.Vertices[t[0]]).Cross(m.Vertices[t[2]].Sub(m.Vertices[t[0]])).Unit()
+	// Keep sharp edges split. Fine display can share model vertices when
+	// their oriented surface normals also agree.
+	type renderVertex struct {
+		vertex int
+		normal geom.Vec3
+	}
+	var shared map[renderVertex]int
+	if len(normals) == len(m.Triangles) {
+		shared = make(map[renderVertex]int, len(m.Vertices))
+	}
+	for i, t := range m.Triangles {
+		facet, err := m.Vertices[t[1]].Sub(m.Vertices[t[0]]).Cross(m.Vertices[t[2]].Sub(m.Vertices[t[0]])).Unit()
 		if err != nil {
 			return Mesh{}, err
 		}
-		for _, id := range t {
+		for j, id := range t {
+			n := facet
+			if shared != nil && normals[i][j] != (geom.Vec3{}) {
+				n = normals[i][j]
+			}
+			index := len(r.Positions) / 3
+			if shared != nil {
+				key := renderVertex{id, n}
+				if existing, ok := shared[key]; ok {
+					r.Indices = append(r.Indices, existing)
+					continue
+				}
+				shared[key] = index
+			}
 			v := m.Vertices[id]
-			r.Indices = append(r.Indices, len(r.Indices))
+			r.Indices = append(r.Indices, index)
 			r.Positions = append(r.Positions, v.X, v.Y, v.Z)
 			r.Normals = append(r.Normals, n.X, n.Y, n.Z)
 		}

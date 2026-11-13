@@ -30,6 +30,12 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if a.cylinder != nil && c.analytic != nil {
 		a, c = c, a
 	}
+	if volume, handled, err := overlapRoundedBore(a, c); handled {
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	if _, volume, handled, err := cutThroughProfiles(a, []stored{c}); handled {
 		if err != nil {
 			return nil, err

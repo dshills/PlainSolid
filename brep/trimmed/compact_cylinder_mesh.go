@@ -19,6 +19,29 @@ var errCompactBoundaryLimit = fmt.Errorf("trimmed: compact boundary sampling lim
 // direction and leaves straight edges intact. All faces share model-edge
 // samples and use the ordinary sampled deflection and normal checks.
 func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, bool, error) {
+	return s.compactCylinderMeshWithNormals(ctx, o, nil)
+}
+
+// TessellateCompactNormals returns surface normals in triangle-corner order
+// for the supported compact charts. A false result leaves shading to the
+// caller's ordinary tessellation path.
+func (s Solid) TessellateCompactNormals(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, [][3]geom.Vec3, bool, error) {
+	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi ||
+		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
+		return mesh.Mesh{}, nil, true, geom.ErrInvalid
+	}
+	if o.MaxSubdivisions == 0 {
+		o.MaxSubdivisions = 128
+	}
+	if o.MaxTriangles == 0 {
+		o.MaxTriangles = 1000000
+	}
+	var normals [][3]geom.Vec3
+	m, ok, err := s.compactCylinderMeshWithNormals(ctx, o, &normals)
+	return m, normals, ok, err
+}
+
+func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.TessellationOptions, normals *[][3]geom.Vec3) (mesh.Mesh, bool, error) {
 	if o.AnalyticBound {
 		return mesh.Mesh{}, false, nil
 	}
@@ -72,7 +95,10 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 			return mesh.Mesh{}, true, err
 		}
 		counts := s.compactEdgeCounts(levels, curved)
-		m, err := s.compactCandidateCounts(ctx, counts, o)
+		m, err := s.compactCandidateNormals(ctx, counts, o, nil, true)
+		if err == nil {
+			m, err = s.compactCandidateNormals(ctx, counts, o, normals, false)
+		}
 		if err == errCompactBoundaryLimit {
 			return mesh.Mesh{}, false, nil
 		}
@@ -160,6 +186,10 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 }
 
 func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	return s.compactCandidateNormals(ctx, counts, o, nil, false)
+}
+
+func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o parametric.TessellationOptions, normals *[][3]geom.Vec3, curvedOnly bool) (mesh.Mesh, error) {
 	failures := &compactRefinement{edges: map[int]bool{}}
 
 	// Bound all face triangulations before allocating edge samples. A polygon
@@ -170,6 +200,7 @@ func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o param
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, err
 		}
+
 		vertices := 0
 		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
 			for _, u := range loop {
@@ -196,6 +227,9 @@ func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o param
 			return mesh.Mesh{}, parametric.ErrBudget
 		}
 		total += count
+	}
+	if normals != nil {
+		*normals = (*normals)[:0]
 	}
 	m := mesh.Mesh{Vertices: s.Vertices()}
 	edgeIDs := make([][]int, len(s.edges))
@@ -226,6 +260,11 @@ func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o param
 	for fi, f := range s.faces {
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, err
+		}
+		if curvedOnly {
+			if base, _ := parametric.SurfaceMapping(f.Surface); isCompactPlane(base) {
+				continue
+			}
 		}
 		loops := append([][]Use{f.Outer}, f.Holes...)
 		rings := make([][]geom.Vec3, len(loops))
@@ -354,13 +393,37 @@ func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o param
 				ids[1], ids[2] = ids[2], ids[1]
 			}
 			m.Triangles = append(m.Triangles, ids)
+			if normals != nil {
+				var smooth [3]geom.Vec3
+				for j, uv := range tri {
+					du, dv, err := f.Surface.Partials(uv.X, uv.Y)
+					if err == nil {
+						smooth[j], _ = normal(du, dv)
+					}
+					if f.Reversed {
+						smooth[j] = smooth[j].Scale(-1)
+					}
+				}
+				if f.Reversed {
+					smooth[1], smooth[2] = smooth[2], smooth[1]
+				}
+				*normals = append(*normals, smooth)
+			}
 		}
 	}
 	if len(failures.edges) > 0 {
 		return mesh.Mesh{}, failures
 	}
+	if curvedOnly {
+		return mesh.Mesh{}, nil
+	}
 	if err := m.ValidateSolid(); err != nil {
 		return mesh.Mesh{}, err
 	}
 	return m, nil
+}
+
+func isCompactPlane(surface geom.Surface) bool {
+	_, ok := surface.(geom.PlaneSurface)
+	return ok
 }
