@@ -35,6 +35,16 @@ The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
 
+## Native helical groove dependencies — 2026-11-13
+
+The integration branch imports the qualified single- and multi-start
+helical constructors, finite relief families, material queries, and their
+analytic bounds, display seeds and native codecs from main snapshot
+`9be557f`. The live helical selection passes in geom and trimmed
+(0.147 and 26.698 seconds). PlainCAD's actual thread dimensions require
+bounded representation of certain axial chart endpoints and an entry
+relief intersecting the groove. Both remain separate from this import.
+
 ## PlainCAD finite To Face integration — 2026-11-13
 
 The native bridge qualifies a unique planar target against its finite boundary,

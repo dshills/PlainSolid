@@ -27,20 +27,29 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	Transform *geom.Affine `json:",omitempty"`
-	Base      *surfaceData `json:",omitempty"`
-	Kind      string
-	Frame     *frameData               `json:",omitempty"`
-	A, B      float64                  `json:",omitempty"`
-	Meridian  *[2]geom.Vec2            `json:",omitempty"`
-	Spline    *geom.BSplineSurfaceData `json:",omitempty"`
-	Center    *geom.Vec3               `json:",omitempty"`
-	Other     *surfaceData             `json:",omitempty"`
-	U0, U1    *Interval                `json:",omitempty"`
-	Rim       *rimData                 `json:",omitempty"`
-	CutTop    bool                     `json:",omitempty"`
-	Band      *[2][4]float64           `json:",omitempty"`
-	Wrap      *wrappedSurfaceData      `json:",omitempty"`
+	Transform       *geom.Affine `json:",omitempty"`
+	Base            *surfaceData `json:",omitempty"`
+	Kind            string
+	Frame           *frameData               `json:",omitempty"`
+	A, B            float64                  `json:",omitempty"`
+	Meridian        *[2]geom.Vec2            `json:",omitempty"`
+	Spline          *geom.BSplineSurfaceData `json:",omitempty"`
+	Center          *geom.Vec3               `json:",omitempty"`
+	Other           *surfaceData             `json:",omitempty"`
+	U0, U1          *Interval                `json:",omitempty"`
+	Rim             *rimData                 `json:",omitempty"`
+	CutTop          bool                     `json:",omitempty"`
+	Band            *[2][4]float64           `json:",omitempty"`
+	Wrap            *wrappedSurfaceData      `json:",omitempty"`
+	Helical         *helicalSurfaceData      `json:",omitempty"`
+	Twisted         *[2]float64              `json:",omitempty"`
+	AngularReversed bool                     `json:",omitempty"`
+}
+
+type helicalSurfaceData struct {
+	Lead       float64
+	Handedness geom.HelixHandedness
+	Turns      Interval
 }
 
 type wrappedSurfaceData struct {
@@ -82,6 +91,12 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case geom.CylinderSurface:
 		f, r := x.Parameters()
 		return surfaceData{Kind: "cylinder", Frame: frameToData(f), A: r}, nil
+	case geom.TwistedCylinderSurface:
+		f, r, twist, phase := x.Parameters()
+		return surfaceData{Kind: "twisted-cylinder", Frame: frameToData(f), A: r, Twisted: &[2]float64{twist, phase}, AngularReversed: x.AngularReversed()}, nil
+	case geom.TwistedAnnularSurface:
+		f, inner, outer, z, phase := x.Parameters()
+		return surfaceData{Kind: "twisted-annulus", Frame: frameToData(f), A: inner, B: outer, Twisted: &[2]float64{z, phase}}, nil
 	case geom.ConeSurface:
 		f, a := x.Parameters()
 		return surfaceData{Kind: "cone", Frame: frameToData(f), A: a}, nil
@@ -125,6 +140,11 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "elliptic-band", Frame: frameToData(x.frame), A: x.z, B: x.h, Band: &[2][4]float64{x.x, x.y}}, nil
 	case revolvedSide:
 		return surfaceData{Kind: "revolved", Frame: frameToData(x.frame), Meridian: &[2]geom.Vec2{x.a, x.b}}, nil
+	case geom.HelicalProfileSurface:
+		f, a, b, lead, hand := x.Parameters()
+		d := x.Domain()
+		return surfaceData{Kind: "helical-profile", Frame: frameToData(f), Meridian: &[2]geom.Vec2{a, b},
+			Helical: &helicalSurfaceData{lead, hand, Interval{Min: d.UMin, Max: d.UMax}}}, nil
 	case *geom.BSplineSurface:
 		d := x.Data()
 		return surfaceData{Kind: "bspline", Spline: &d}, nil
@@ -150,6 +170,15 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind != "helical-profile" && d.Helical != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind != "twisted-cylinder" && d.Kind != "twisted-annulus" && d.Twisted != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind != "twisted-cylinder" && d.AngularReversed {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind == "mapped" {
@@ -246,7 +275,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		})
 		return w, e
 	}
-	if d.Spline != nil || d.Kind != "revolved" && d.Kind != "elliptic" && d.Meridian != nil {
+	if d.Spline != nil || d.Kind != "revolved" && d.Kind != "elliptic" && d.Kind != "helical-profile" && d.Meridian != nil {
 		return nil, fmt.Errorf("parametric: unexpected surface data")
 	}
 	f, e := d.Frame.decode()
@@ -258,6 +287,20 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return geom.NewPlaneSurface(f)
 	case "cylinder":
 		return geom.NewCylinderSurface(f, d.A)
+	case "twisted-cylinder":
+		if d.Twisted == nil {
+			return nil, geom.ErrInvalid
+		}
+		s, e := geom.NewTwistedCylinderSurface(f, d.A, d.Twisted[0], d.Twisted[1])
+		if d.AngularReversed {
+			s = s.ReversedAngular()
+		}
+		return s, e
+	case "twisted-annulus":
+		if d.Twisted == nil {
+			return nil, geom.ErrInvalid
+		}
+		return geom.NewTwistedAnnularSurface(f, d.A, d.B, d.Twisted[0], d.Twisted[1])
 	case "cone":
 		return geom.NewConeSurfaceSlope(f, d.A)
 	case "sphere":
@@ -304,6 +347,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, geom.ErrInvalid
 		}
 		return revolvedSide{f, a, b}, nil
+	case "helical-profile":
+		if d.Meridian == nil || d.Helical == nil {
+			return nil, geom.ErrInvalid
+		}
+		x := d.Helical
+		return geom.NewHelicalProfileSurface(f, d.Meridian[0], d.Meridian[1], x.Lead, x.Handedness, x.Turns.Min, x.Turns.Max)
 	default:
 		return nil, fmt.Errorf("parametric: unsupported surface kind %q", d.Kind)
 	}
