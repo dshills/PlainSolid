@@ -26,6 +26,56 @@ export async function installDisplayRuntime(work, hash) {
     });
   }
 
+  await install("src/ui/commands/commandRegistry.ts",
+    `export const commands: CadCommand[] = [`,
+    `let pendingProjectOpen: { previous: CadStore["rebuild"]; state: CadStore["rebuild"] } | undefined;
+
+export const commands: CadCommand[] = [`,
+    "Keep the readiness state owned by the newest pending project open.");
+
+  await install("src/ui/commands/commandRegistry.ts",
+    `      const controller = beginFileJob("Opening project…");
+      const previous = useCadStore.getState().history.present;
+      try {`,
+    `      const controller = beginFileJob("Opening project…");
+      const store = useCadStore.getState();
+      const previous = store.history.present;
+      const pending = pendingProjectOpen;
+      const previousRebuild = pending?.state === store.rebuild ? pending.previous : store.rebuild;
+      // A successful result for the old document is not a ready result for
+      // the project currently being opened. Preserve the result for drawing.
+      const openingRebuild = previousRebuild.status === "succeeded"
+        ? { ...previousRebuild, status: "queued" as const, message: "Opening project…" }
+        : undefined;
+      const opening = openingRebuild && { previous: previousRebuild, state: openingRebuild };
+      pendingProjectOpen = opening;
+      if (opening) useCadStore.setState({ rebuild: opening.state });
+      try {`,
+    "Track the pending project-open state without discarding the previous drawable model.");
+
+  await install("src/ui/commands/commandRegistry.ts",
+    `      } finally {
+        finishFileJob(controller);
+      }
+    },
+  },
+  {
+    id: "file.saveProject",`,
+    `      } finally {
+        if (opening && pendingProjectOpen === opening) {
+          pendingProjectOpen = undefined;
+          const current = useCadStore.getState();
+          if (current.history.present === previous && current.rebuild === opening.state)
+            useCadStore.setState({ rebuild: opening.previous });
+        }
+        finishFileJob(controller);
+      }
+    },
+  },
+  {
+    id: "file.saveProject",`,
+    "Restore the preceding readiness status when opening is canceled or rejected.");
+
   await install("src/viewer/CadViewer.tsx",
     `    const frames = new DemandRenderer(() => {
       if (!host.clientWidth || !host.clientHeight || renderer.getContext().isContextLost()) {

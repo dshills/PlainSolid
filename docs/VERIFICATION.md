@@ -43,6 +43,42 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD scoped through-all side notch — 2026-11-13
+
+Single-tool scoped Hole now uses the same qualified rectangular side and
+corner cylindrical notch constructors as direct Cut. Native tests compare
+through-notch measures and bounds through both bridge operations. All
+[five original browser regressions](evidence/plaincad-scoped-side-through-2026-11-13.json)
+pass. The [same-WASM app probe](evidence/plaincad-scoped-side-through-native-2026-11-13.json)
+rebuilds a through-all side-opening Hole, checks analytic area and volume,
+saves and reloads it, and validates STL. Race checks and Go vet pass.
+
+## PlainCAD unit run on `50432ed` — 2026-11-13
+
+The [full unit report](evidence/plaincad-current-unit-50432ed-2026-11-13.json)
+records 1,630 passes and 59 failures of 1,689 originals with real WASM
+and loopback available, while browser and native suites also run. Of the
+failures, 38 repeat the prior full run and 21 are new in this run. Eight
+of the prior failures pass, including the inline sketch workspace test.
+All 21 newly failed tests pass unchanged in the one-worker retest on the
+same staged app and WASM, including all three helical cases. The 17-file
+selection passes 213 of 217 originals. The four repeated failures in that
+selection all exercise fallback behavior.
+
+## PlainCAD asynchronous project-open readiness — 2026-11-13
+
+The staged runtime keeps the previous drawable model while an asynchronous
+project open is pending. Readiness belongs to the newest open. A rejected
+or canceled open restores the previous readiness if no newer model state
+has replaced it. Original fixture assertions and timeouts are unchanged.
+
+All [seven original cases](evidence/plaincad-project-open-readiness-2026-11-13.json)
+pass on `50432ed`, including Parts Browser, file-drop handling, recovery
+and both stale-worker tests. The [supplemental browser control](evidence/plaincad-project-open-ownership-2026-11-13.json)
+intercepts the actual import worker and verifies that a superseding invalid
+open restores the old two-body model and that the obsolete open cannot
+replace it.
+
 ## PlainCAD opposite-cap interior bores on notched stock — 2026-11-13
 
 A disjoint contained blind hole can enter either cap of a side-notched

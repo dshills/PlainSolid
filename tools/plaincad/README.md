@@ -48,8 +48,9 @@ original Chromium, Firefox and WebKit configuration on port 5281.
 - Vite receives an isolated cache and explicit serving permission for the shared
   dependency directory. An optional port changes the copied test configuration.
 - The staged viewer advances missed camera damping updates without drawing
-  extra WebGL frames. The display worker and viewer changes are recorded and
-  replayed from the pinned source by the original acceptance runners.
+  extra WebGL frames. The project-open command retains the drawable model
+  and marks readiness pending during its asynchronous open. The harness
+  records and verifies the exact runtime adaptations from the pinned source.
 - A separate generated backend test proves real WASM execution and rejects OCCT
   asset requests. It checks nonempty material, no-op cut, connected-join behavior,
   and export union semantics. This probe is not counted as an existing fixture.

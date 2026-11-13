@@ -1,0 +1,577 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "9d338407816e7bdc22a1e77a5f475ba98cb5f1bed2948b2e583d0d8e8bec9f4a",
+  "report": "/tmp/plainsolid-current-unit-50432ed.json",
+  "reportSha256": "49b8229268c0305775686eb9a617e7fe99a4329bd9e90aad52e94f0c971554c4",
+  "summary": {
+    "numTotalTests": 1689,
+    "numPassedTests": 1630,
+    "numFailedTests": 59,
+    "numPendingTests": 0
+  },
+  "failures": [
+    {
+      "file": "App.test.tsx",
+      "test": "loads and edits a parameter",
+      "durationMs": 5749.78025,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "aiFeatureFollowUp.test.tsx",
+      "test": "does not reuse an old native failure after a new provider request times out",
+      "durationMs": 1313.471584,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "AssertionError: expected \"vi.fn()\" to be called 2 times, but got 1 times"
+    },
+    {
+      "file": "aiFeatureFollowUp.test.tsx",
+      "test": "repairs the original request with its latest failure without automatically applying",
+      "durationMs": 1208.2457499999996,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Unable to find role=\"button\" and name \"Apply AI feature plan\""
+    },
+    {
+      "file": "aiHistory.test.ts",
+      "test": "records a dimension/refinement batch once and restores observable solved dimensions through shared history",
+      "durationMs": 143.66516699999966,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Repair sketch constraints before refining geometry."
+    },
+    {
+      "file": "aiPlan.test.ts",
+      "test": "creates an editable isolated component, namespaces parameters, preserves the base and round-trips durable intent",
+      "durationMs": 795.2490830000002,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "file": "assemblyJoints.test.ts",
+      "test": "rejects unsafe imports, cycles, duplicate parents, invalid limits and lost faces",
+      "durationMs": 347.34024999999974,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected { documentId: 'fixture-v18', \u2026(20) } to match object { success: false, \u2026(1) }"
+    },
+    {
+      "file": "canvasDeformation.test.tsx",
+      "test": "propagates corner coordinates through orthogonal constraints while keeping the fixed anchor and profile IDs",
+      "durationMs": 183.88483300000007,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Repair sketch diagnostics before deforming geometry."
+    },
+    {
+      "file": "commandInstrumentation.test.ts",
+      "test": "covers every current JSX interaction and input listener without syntax errors",
+      "durationMs": 5018.850875,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "componentAlignment.test.ts",
+      "test": "never offers fallback meshes or unproven authored sketch entities as native alignment targets",
+      "durationMs": 48.595500000000015,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ { \u2026(7) }, { \u2026(6) }, { \u2026(6) }, \u2026(27) ] to deeply equal []"
+    },
+    {
+      "file": "componentPlacementCommand.test.ts",
+      "test": "cancels without history and requires an active native solid",
+      "durationMs": 164.58500000000004,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "componentPlacementCommand.test.ts",
+      "test": "previews immutably and saves one undo step only for the exact proven placement",
+      "durationMs": 188.2442920000003,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Activate a component containing a current native solid and finish other tasks before Move / Rotate."
+    },
+    {
+      "file": "componentPlacementCommand.test.ts",
+      "test": "rejects native body/volume changes and fallback geometry",
+      "durationMs": 370.9899169999999,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: expected [Function] to throw error including 'native solid' but got 'Placement changed body identity, soli\u2026'"
+    },
+    {
+      "file": "componentPlacementPanel.test.tsx",
+      "test": "changing alignment type and clearing choices preserves a current native free-movement proof",
+      "durationMs": 478.71629199999916,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "components.test.tsx",
+      "test": "guides a blank project through a named component, plane choice and Finish Sketch",
+      "durationMs": 5446.380083,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "edgeDraftControls.test.tsx",
+      "test": "keeps source controls unavailable when the owner only has fallback geometry",
+      "durationMs": 25.919374999999945,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "exportHub.test.tsx",
+      "test": "shows five plain output goals and distinguishes unavailable native STEP",
+      "durationMs": 423.91391699999986,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "extrudeDialog.test.tsx",
+      "test": "rejects fallback meshes and exposes feature diagnostics",
+      "durationMs": 29.16595899999993,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "file": "featureGraph.test.ts",
+      "test": "rejects edge treatments without native geometry and blocks dependent treatments",
+      "durationMs": 71.70679199999995,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ { \u2026(4) } ] to deeply equal ArrayContaining{\u2026}"
+    },
+    {
+      "file": "featureGraph.test.ts",
+      "test": "requires OpenCascade handles for join booleans in the fallback kernel path",
+      "durationMs": 25.108708999999635,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "featureGraph.test.ts",
+      "test": "skips suppressed extrude features",
+      "durationMs": 180.53920800000014,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "featurePattern.test.ts",
+      "test": "preserves well-typed lost sources for repair, but rejects malformed pattern imports and downstream sources",
+      "durationMs": 1587.6484170000003,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "featureStage.test.ts",
+      "test": "requires a current native feature selection and rejects a stale replacement draft with the same project ID",
+      "durationMs": 162.18612500000017,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected { name: 'Box Extrude', \u2026(10) } to be undefined"
+    },
+    {
+      "file": "fittedPart.test.ts",
+      "test": "diagnoses missing, later and same-component sources without pretending fallback geometry works",
+      "durationMs": 611.1890000000001,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "guidedExport.test.tsx",
+      "test": "explains editable saving separately, saves the captured current project, and leaves geometry/history unchanged",
+      "durationMs": 105.63225000000011,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'id')"
+    },
+    {
+      "file": "guidedHoleCommand.test.ts",
+      "test": "places centers on current native face triangles, rejects invalid references and bounds, and stages immutable inward geometry",
+      "durationMs": 142.3220839999999,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'id')"
+    },
+    {
+      "file": "holeCommand.test.ts",
+      "test": "requires current native analysis, explicit center/target choices and preserves history on stale or invalid submissions",
+      "durationMs": 77.85158300000012,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected { document: { \u2026(14) }, \u2026(4) } to be undefined"
+    },
+    {
+      "file": "holeEditCommand.test.ts",
+      "test": "edits only a current active Hole, preserves authored units and IDs, and requires separate native operation/downstream proof",
+      "durationMs": 179.84233300000005,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "manufacturingCoach.test.ts",
+      "test": "does not certify curved or modified laser stock based only on bounding dimensions",
+      "durationMs": 37.08558300000004,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ { \u2026(4) } ] to have a length of 3 but got 1"
+    },
+    {
+      "file": "measurements.test.ts",
+      "test": "measures XY world points on offset planes and analytic line lengths",
+      "durationMs": 85.84375,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "modelMeasurementPanel.test.tsx",
+      "test": "has a click-first flow, exact accessible target alternative, units and explicit mixed-pair diagnostics",
+      "durationMs": 1610.1661250000006,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'id')"
+    },
+    {
+      "file": "modelingEdit.test.ts",
+      "test": "opens the original revolve as a replacement and rejects missing native verification, cancellation and same-ID project replacement",
+      "durationMs": 204.88479199999983,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected { id: 'revolve_edit', \u2026(10) } to be undefined"
+    },
+    {
+      "file": "modelingGeometry.test.ts",
+      "test": "builds a maximum-length Unified inch thread in a cold rebuild and rejects an oversize request",
+      "durationMs": 45189.517708,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "modelingGeometry.test.ts",
+      "test": "cuts 1 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+      "durationMs": 48254.914959000016,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "modelingGeometry.test.ts",
+      "test": "cuts 4 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+      "durationMs": 61188.969625,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    },
+    {
+      "file": "modelingReadiness.test.tsx",
+      "test": "distinguishes selected feature editing, native solids and fallback geometry",
+      "durationMs": 681.7500830000008,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected { state: 'ready-solid', \u2026(4) } to match object { state: 'ready-solid', \u2026(2) }"
+    },
+    {
+      "file": "multiBodyHoles.test.ts",
+      "test": "owns intermediate unions and partial cuts through center paths",
+      "durationMs": 2.8630419999999503,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "multiBodyHoles.test.ts",
+      "test": "owns intermediate unions and partial cuts through success paths",
+      "durationMs": 0.1454999999998563,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "multiBodyHoles.test.ts",
+      "test": "owns intermediate unions and partial cuts through target paths",
+      "durationMs": 0.24591699999996308,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "nativeEdgeProofCache.test.ts",
+      "test": "excludes native handles and unsupported operation inputs from exact signatures",
+      "durationMs": 2.4108750000000327,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string"
+    },
+    {
+      "file": "nativeFeatureSignature.test.ts",
+      "test": "ignores labels, solver counters, unused parameters, and display metadata",
+      "durationMs": 182.9013329999998,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected undefined to be type of 'string'"
+    },
+    {
+      "file": "nativeSketchPlanes.test.ts",
+      "test": "publishes only native-validated surviving faces, excluding failed or absorbed bodies",
+      "durationMs": 123.76683300000013,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ Array(2) ] to deep equally contain ObjectContaining{\u2026}"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "bounds native writes before allocating oversized files and rejects native reimport volume changes",
+      "durationMs": 0.22224999999980355,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'BRepPrimAPI_MakeBox_1')"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "imports one placed native STEP solid and converts model units to millimetres",
+      "durationMs": 104.83783399999993,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "reimports curved subtractive solids and separately transferred overlapping placed bodies with exact volumes and world bounds",
+      "durationMs": 676.3727909999998,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "rejects missing native writes and malformed content, restoring FS hooks and disposing export handles on every failure",
+      "durationMs": 0.443000000000211,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'BRepPrimAPI_MakeBox_1')"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "rejects native STEP parse/transfer failure with source-linked diagnostics and releases filesystem resources",
+      "durationMs": 35.20300000000043,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "nativeStep.test.ts",
+      "test": "reports installed STEP reader support for an empty native rebuild and diagnoses missing file bindings",
+      "durationMs": 8.277665999999954,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "partLibraryCommand.test.ts",
+      "test": "rejects fallback or invalid native preview geometry and never applies it",
+      "durationMs": 59.36854200000016,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "file": "placedSketchProjection.test.ts",
+      "test": "projects translated XY analytic circles into target design coordinates",
+      "durationMs": 225.604875,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'id')"
+    },
+    {
+      "file": "placedSketchProjection.test.ts",
+      "test": "projects translated XZ analytic circles into target design coordinates",
+      "durationMs": 992.1036670000003,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "AssertionError: expected [ { \u2026(4) } ] to deeply equal []"
+    },
+    {
+      "file": "planePicking.test.ts",
+      "test": "does not offer the original faces after a modifying cut",
+      "durationMs": 232.14212499999985,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ { id: 'XY', \u2026(3) }, \u2026(8) ] to have a length of 3 but got 9"
+    },
+    {
+      "file": "planePicking.test.ts",
+      "test": "offers origin planes without claiming fallback bodies have native faces",
+      "durationMs": 86.63095800000019,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected [ 'XY', 'XZ', 'YZ', \u2026(6) ] to deeply equal [ 'XY', 'XZ', 'YZ' ]"
+    },
+    {
+      "file": "productFamilyCommand.test.ts",
+      "test": "discards a late result after same-ID session replacement and rejects fallback variants",
+      "durationMs": 37.296542000000045,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "file": "selectionInspector.test.tsx",
+      "test": "links rebuild errors back to source objects and shows file errors",
+      "durationMs": 403.2024170000004,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "AssertionError: expected { kind: 'parameter', \u2026(2) } to match object { kind: 'feature', \u2026(1) }"
+    },
+    {
+      "file": "sizedCanvasGeometry.test.ts",
+      "test": "preserves a multi-point fixed user relation and both points when deleting a center rectangle",
+      "durationMs": 103.96983399999954,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Size could not be applied: Sketch rank analysis exceeded the solve time budget. Simplify constraints or reset the solve."
+    },
+    {
+      "file": "sketchProjection.test.ts",
+      "test": "checks surviving native boundaries at the sketch timeline and blocks lost references",
+      "durationMs": 42.16429199999948,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "sketchRefinement.test.ts",
+      "test": "rejects a successful preview with missing sketch solve or fallback downstream meshes",
+      "durationMs": 222.30716600000005,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "AssertionError: expected 'plainsolid' to be 'fallback' // Object.is equality"
+    },
+    {
+      "file": "sketchReplication.test.ts",
+      "test": "mirrors a dimension-driven circle about a construction line, preserves source IDs, and remaps the bound dimension",
+      "durationMs": 85.05833399999983,
+      "repeatedInPreviousFullRun": false,
+      "firstError": "Error: Repair sketch intent before copying: sketch_a56c3604: Sketch did not converge within the iteration/time budget. Simplify constraints or reset the solve."
+    },
+    {
+      "file": "workbench.test.tsx",
+      "test": "defaults to stable docks and keeps layout, tab switches and resizing out of document history",
+      "durationMs": 6457.823209,
+      "repeatedInPreviousFullRun": true,
+      "firstError": "Error: STACK_TRACE_ERROR"
+    }
+  ],
+  "recovered": [
+    {
+      "file": "aiFeatureFollowUp.test.tsx",
+      "test": "forgets an old cut failure after a successful clarification response"
+    },
+    {
+      "file": "bodyDisplayNames.test.ts",
+      "test": "uses a single body's component name without changing native identities or authored history"
+    },
+    {
+      "file": "bodySelection.test.ts",
+      "test": "rejects unavailable union bodies rather than silently unioning everything"
+    },
+    {
+      "file": "commandPlans.test.ts",
+      "test": "preserves the applied change and explains how to undo if provenance reporting fails"
+    },
+    {
+      "file": "featurePattern.test.ts",
+      "test": "locks shared commands, requires issued current previews, and retains history on stale submissions"
+    },
+    {
+      "file": "holeDirection.test.ts",
+      "test": "drills inward native solids from the outward 'XY' end cap (throughAll=false)"
+    },
+    {
+      "file": "releaseHardening.test.ts",
+      "test": "passes the parametric box edit and rebuild workflow"
+    },
+    {
+      "file": "sketchWorkspace.test.tsx",
+      "test": "edits inline, blocks competing creation commands, and returns to the same model viewer"
+    }
+  ],
+  "oneWorkerRetest": {
+    "report": "/tmp/plainsolid-current-unit-focused-50432ed.json",
+    "reportSha256": "3f15e408d6fafaff6c838a5ce1dc4a09fb1143eb5b9adee32426daaa3b107c97",
+    "summary": {
+      "numTotalTests": 217,
+      "numPassedTests": 213,
+      "numFailedTests": 4
+    },
+    "newFailuresRecovered": [
+      {
+        "file": "App.test.tsx",
+        "test": "loads and edits a parameter",
+        "durationMs": 1481.5457920000003
+      },
+      {
+        "file": "aiFeatureFollowUp.test.tsx",
+        "test": "does not reuse an old native failure after a new provider request times out",
+        "durationMs": 74.39645900000005
+      },
+      {
+        "file": "aiFeatureFollowUp.test.tsx",
+        "test": "repairs the original request with its latest failure without automatically applying",
+        "durationMs": 57.987707999999884
+      },
+      {
+        "file": "aiHistory.test.ts",
+        "test": "records a dimension/refinement batch once and restores observable solved dimensions through shared history",
+        "durationMs": 37.02229199999999
+      },
+      {
+        "file": "canvasDeformation.test.tsx",
+        "test": "propagates corner coordinates through orthogonal constraints while keeping the fixed anchor and profile IDs",
+        "durationMs": 20.57100000000014
+      },
+      {
+        "file": "commandInstrumentation.test.ts",
+        "test": "covers every current JSX interaction and input listener without syntax errors",
+        "durationMs": 1837.659458
+      },
+      {
+        "file": "componentPlacementCommand.test.ts",
+        "test": "previews immutably and saves one undo step only for the exact proven placement",
+        "durationMs": 196.6963330000001
+      },
+      {
+        "file": "components.test.tsx",
+        "test": "guides a blank project through a named component, plane choice and Finish Sketch",
+        "durationMs": 798.4066660000001
+      },
+      {
+        "file": "featureGraph.test.ts",
+        "test": "skips suppressed extrude features",
+        "durationMs": 24.474416999999903
+      },
+      {
+        "file": "guidedExport.test.tsx",
+        "test": "explains editable saving separately, saves the captured current project, and leaves geometry/history unchanged",
+        "durationMs": 191.47608300000002
+      },
+      {
+        "file": "guidedHoleCommand.test.ts",
+        "test": "places centers on current native face triangles, rejects invalid references and bounds, and stages immutable inward geometry",
+        "durationMs": 330.74412499999994
+      },
+      {
+        "file": "measurements.test.ts",
+        "test": "measures XY world points on offset planes and analytic line lengths",
+        "durationMs": 18.42816700000003
+      },
+      {
+        "file": "modelMeasurementPanel.test.tsx",
+        "test": "has a click-first flow, exact accessible target alternative, units and explicit mixed-pair diagnostics",
+        "durationMs": 175.39862500000004
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "builds a maximum-length Unified inch thread in a cold rebuild and rejects an oversize request",
+        "durationMs": 9159.433250000002
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "cuts 1 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+        "durationMs": 13952.997334
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "cuts 4 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+        "durationMs": 13193.370582999996
+      },
+      {
+        "file": "placedSketchProjection.test.ts",
+        "test": "projects translated XY analytic circles into target design coordinates",
+        "durationMs": 151.85445800000002
+      },
+      {
+        "file": "placedSketchProjection.test.ts",
+        "test": "projects translated XZ analytic circles into target design coordinates",
+        "durationMs": 6.237583000000086
+      },
+      {
+        "file": "selectionInspector.test.tsx",
+        "test": "links rebuild errors back to source objects and shows file errors",
+        "durationMs": 148.42783299999974
+      },
+      {
+        "file": "sizedCanvasGeometry.test.ts",
+        "test": "preserves a multi-point fixed user relation and both points when deleting a center rectangle",
+        "durationMs": 2.2857919999999012
+      },
+      {
+        "file": "sketchReplication.test.ts",
+        "test": "mirrors a dimension-driven circle about a construction line, preserves source IDs, and remaps the bound dimension",
+        "durationMs": 19.243375000000015
+      }
+    ]
+  }
+}

@@ -13,7 +13,9 @@ Canonical STEP now round-trips the placed boundary and matches OCCT's
 independent volume, area and centroid. Mixed batches with disjoint
 blind bores from either cap and through bores now pass original
 regressions, authored persistence, placed STEP and STL fabrication. Additional side-crossing
-tools and intersecting side-notch footprints remain open.
+tools and intersecting side-notch footprints remain open. Single-tool
+scoped through-all Hole now accepts the same qualified rectangular side
+and corner notches as direct Cut.
 
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The
@@ -62,9 +64,11 @@ and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock, including independently authored rounded
 stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The latest full unit run with real WASM and loopback passes 1,643 of 1,689
-originals, including all 39 modeling geometry and 15 local middleware
-cases. The baseline passed 1,646. Thirty-six failures repeat fallback
+The full real-WASM unit run on PlainCAD `50432ed` passes 1,630 of 1,689
+originals with loopback and concurrent verification. Thirty-eight failures
+repeat the preceding full run. All 21 newly failed tests pass unchanged
+on the same WASM in the one-worker retest. Eight earlier failures pass. The preceding unit run passes 1,643 of 1,689, including all 39
+modeling geometry and 15 local middleware cases. The baseline passed 1,646. Thirty-six failures repeat fallback
 expectations and OCCT-private fixture bindings. Nine of ten new failures
 pass unchanged in focused reruns. The remaining inline sketch workspace
 case also fails with pristine OCCT. All ten private tests pass on pristine OCCT. The 26 fallback
@@ -75,8 +79,10 @@ modeling and display as a regularized difference. Fabrication and STEP
 validation reject its four-face contact. The current PlainCAD revision `50432ed` passes all 15 original cross-browser
 cases across Chromium, Firefox and WebKit. It passes six of seven focused
 originals. The Parts Browser asynchronous-open timing failure reproduces
-and a staged readiness fix is under verification. The native bridge, STEP
-and mesh packages pass a combined short run.
+and the staged readiness fix passes the original Parts Browser case,
+file-drop, recovery and both stale-worker cases. A separate browser probe
+verifies superseded and rejected opens. The native bridge, STEP and mesh
+packages pass a combined short run.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
