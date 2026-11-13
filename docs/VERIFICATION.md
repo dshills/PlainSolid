@@ -57,8 +57,12 @@ passes the original keyboard face-card and dimension dialog case in Chromium,
 Firefox, and WebKit. Four other cases on each engine stop on the original
 locators for the sketch row, AI drawer, part name, or Start a part region.
 The [pristine Chromium OCCT control](evidence/plaincad-cross-browser-occt-control-2026-11-13.json)
-reproduces the same four failures on PlainCAD `e65f07b`. The current
-application opens the part-name controls through the closed-by-default
+reproduces the same four failures on PlainCAD `e65f07b`. The
+[Firefox and WebKit OCCT controls](evidence/plaincad-cross-browser-current-controls-2026-11-13.json)
+reproduce the same failures on both engines. The same report records all
+12 passes when the existing current production controls for the compact
+Workbench, AI drawer, and native sketch are run across all three engines.
+The current application opens the part-name controls through the closed-by-default
 New part menu and exposes AI through the bottom dock. The original tests
 and production application checkout were preserved.
 
