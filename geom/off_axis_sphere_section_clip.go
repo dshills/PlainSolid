@@ -21,8 +21,25 @@ type SphereCylinderSectionClip struct {
 // its section is not the sphere disk minus the closed cutter disk. Tangent
 // section points are preserved. No polygonal approximation or shell is built.
 func (s OffAxisSphereFiniteCylinderDifference) ClipSectionLine(ctx context.Context, height float64, origin, direction Vec2, minT, maxT float64, o ToroidLineOptions) (SphereCylinderSectionClip, error) {
-	r, e := s.model.intersectMaterial(ctx, Vec3{X: origin.X, Y: origin.Y, Z: height}, Vec3{X: direction.X, Y: direction.Y}, minT, maxT, o, func(v []int) (BorePointLocation, BoreBoundaryMask) {
-		location, mask := s.location(v)
+	return s.model.clipSectionMaterial(ctx, height, origin, direction, minT, maxT, o, s.location)
+}
+
+// ClipSectionLine returns the filled horizontal section of the finite common
+// material, including partial cap disks and isolated tangent section points.
+func (s OffAxisSphereFiniteCylinderCommon) ClipSectionLine(ctx context.Context, height float64, origin, direction Vec2, minT, maxT float64, o ToroidLineOptions) (SphereCylinderSectionClip, error) {
+	return s.clipSectionMaterial(ctx, height, origin, direction, minT, maxT, o, finiteCommonLocation)
+}
+
+// ClipSectionLine returns the filled horizontal section of the regular closed
+// union. Covered cap/wall events have no boundary ancestry; exposed or tangent
+// support events remain interval endpoints even when material is continuous.
+func (s OffAxisSphereFiniteCylinderUnion) ClipSectionLine(ctx context.Context, height float64, origin, direction Vec2, minT, maxT float64, o ToroidLineOptions) (SphereCylinderSectionClip, error) {
+	return s.model.clipSectionMaterial(ctx, height, origin, direction, minT, maxT, o, s.location)
+}
+
+func (s OffAxisSphereFiniteCylinderCommon) clipSectionMaterial(ctx context.Context, height float64, origin, direction Vec2, minT, maxT float64, o ToroidLineOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (SphereCylinderSectionClip, error) {
+	r, e := s.intersectMaterial(ctx, Vec3{X: origin.X, Y: origin.Y, Z: height}, Vec3{X: direction.X, Y: direction.Y}, minT, maxT, o, func(v []int) (BorePointLocation, BoreBoundaryMask) {
+		location, mask := classify(v)
 		if location == BoreInside {
 			location = BoreBoundary
 		}
