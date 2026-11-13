@@ -2,7 +2,6 @@
 // The class name preserves the application's import boundary; all geometry is Go.
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
-import type { DisplayEdgeBudget } from "./nativeDisplayEdges";
 import type { LeadScrewDimensions } from "../hardware/leadScrewSettings";
 import type { ThreadDimensions } from "../hardware/threadSettings";
 import type { ComponentPlacement, TopologyRef, RevolveAxisReference, ThreadFeature } from "../document/schema";
@@ -15,6 +14,7 @@ import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
 type Proof = { handle: string; geometryAssertions: GeometryAssertions; bounds: BoundingBox };
+type DisplayEdgeBudget = { edgeUses: number };
 type Handle = {
   proof: Proof;
   operation: RenderMesh["kernelOperation"];
