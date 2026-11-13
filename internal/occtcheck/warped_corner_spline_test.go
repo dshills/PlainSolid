@@ -169,3 +169,20 @@ func TestOCCTWarpedSeparatedPlanes(t *testing.T) {
 	}
 	compare(t, refs["warped-separated-planes"], mass.Area, mass.Volume, mass.Centroid)
 }
+
+func TestOCCTWarpedCrossingPlanes(t *testing.T) {
+	refs := runOracle(t, "warped-spline-separated-planes")
+	ctx := context.Background()
+	stock, _ := oracleWarpedOpenBox(t, [3]float64{}, [3]float64{1, 1, 1})
+	lower, _ := oracleSplineBox(t, [3]float64{-1, -1, 0}, [3]float64{2, 2, 2}, func(x, y float64) float64 { return (x+y)/4 + .375 })
+	upper, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 0}, func(x, y float64) float64 { return .75 })
+	r, err := trimmed.CombineSplineCrossingPlaneCuts(ctx, stock, [2]trimmed.Solid{lower, upper}, [2]int{4, 5}, trimmed.SplineRectangleEmbeddingOptions{})
+	if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.CapIntersectionEdges) != 1 {
+		t.Fatal("cap intersection topology", err)
+	}
+	mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["warped-crossing-planes"], mass.Area, mass.Volume, mass.Centroid)
+}

@@ -39,7 +39,7 @@ static void warpedSplineSlab(std::ostream& out){
  if(!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent slab cutter");
  splineShellRecord(out,"warped-parallel-slab",BRepAlgoAPI_Common(stock,tool).Shape());
 }
-static void warpedSplineSeparatedPlanes(std::ostream& out){
+static void warpedSplineTwoPlanes(std::ostream& out,bool crossing){
  auto stock=warpedOpenPrism(0,0,0);
  auto halfspace=[&](double slope,double offset,double height){
   BRepBuilderAPI_MakePolygon rim;
@@ -50,7 +50,8 @@ static void warpedSplineSeparatedPlanes(std::ostream& out){
   if(!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent two-plane cutter");
   return tool;
  };
- auto lower=halfspace(1./8,1./8,2),upper=halfspace(1./4,1./2,-2);
+ auto lower=crossing?halfspace(1./4,3./8,2):halfspace(1./8,1./8,2);
+ auto upper=crossing?halfspace(0,3./4,-2):halfspace(1./4,1./2,-2);
  auto first=BRepAlgoAPI_Common(stock,lower).Shape();
- splineShellRecord(out,"warped-separated-planes",BRepAlgoAPI_Common(first,upper).Shape());
+ splineShellRecord(out,crossing?"warped-crossing-planes":"warped-separated-planes",BRepAlgoAPI_Common(first,upper).Shape());
 }
