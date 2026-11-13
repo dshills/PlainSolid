@@ -2,6 +2,7 @@ package trimvalidate
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"plainsolid/geom"
@@ -23,13 +24,22 @@ func TestClassifyRingForest(t *testing.T) {
 	// Input order gives no hint about enclosure or orientation.
 	rings := []Loop{box(3, 3, 2, false), box(12, 0, 1, true), box(2, 2, 6, true), box(0, 0, 10, false)}
 	want := []RingPlacement{{2, 2, 1}, {-1, 0, -1}, {3, 1, -1}, {-1, 0, 1}}
-	got, proof, e := ClassifyRingForest(ctx, rings, Options{})
+	certificate, got, proof, e := CertifyRingForest(ctx, rings, Options{})
 	if e != nil || proof.Status != Certified || len(got) != len(want) {
 		t.Fatal(got, proof, e)
 	}
 	for i := range got {
 		if got[i] != want[i] {
 			t.Fatalf("ring %d: %+v, want %+v", i, got[i], want[i])
+		}
+	}
+	for _, c := range []struct {
+		x, y int64
+		want Location
+	}{{1, 1, Inside}, {2, 3, Boundary}, {3, 6, Outside}, {4, 4, Inside}, {13, 2, Outside}, {12, 0, Boundary}} {
+		loc, proof, e := certificate.Locate(ctx, [2]*big.Rat{big.NewRat(c.x, 1), big.NewRat(c.y, 1)})
+		if e != nil || proof.Status != Certified || loc != c.want {
+			t.Fatal("nonzero signed winding", c, loc, proof, e)
 		}
 	}
 	if bad, proof, e := ClassifyRingForest(ctx, rings, Options{MaxWork: 1}); e != nil || proof.Status != Unresolved || bad != nil {

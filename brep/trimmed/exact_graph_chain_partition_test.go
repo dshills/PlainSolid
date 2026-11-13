@@ -105,6 +105,18 @@ func TestExactGraphPartitionActualScaledChartMismatch(t *testing.T) {
 		}
 	}
 
+	refined, err := TessellatePairedBezierGraphChainsRefinedCertified(context.Background(), pa, []ExactBezierUV{a}, new(big.Rat), pb, []ExactBezierUV{b}, new(big.Rat), o, 2)
+	if err != nil {
+		t.Fatal("refined pair", err)
+	}
+	if len(refined.SharedVertices) < plan.Parameters {
+		t.Fatal("common samples lost")
+	}
+	for _, v := range refined.SharedVertices {
+		if refined.FaceA.Mesh.Vertices[v[0]] != refined.FaceB.Mesh.Vertices[v[1]] {
+			t.Fatal("not bit equal")
+		}
+	}
 	// Planner does not silently widen the existing strict acceptance boundary.
 	if _, e = TessellatePairedBezierGraphChainsCertified(context.Background(), pa, []ExactBezierUV{a}, new(big.Rat), pb, []ExactBezierUV{b}, new(big.Rat), o); e == nil {
 		t.Fatal("strict pair unexpectedly accepts unmatched partitions")

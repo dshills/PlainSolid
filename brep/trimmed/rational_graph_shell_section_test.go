@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
 
@@ -117,5 +118,17 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	m := r.Regions.Material[0]
 	if len(m.Holes) != 1 || len(r.Wires[m.Outer]) != 12 || len(r.Wires[m.Holes[0]]) != 4 || r.Regions.Rings[m.Holes[0]].Parent != m.Outer {
 		t.Fatal("square-tube void was not retained as a hole", r.Regions)
+	}
+	for _, tt := range []struct {
+		x, y float64
+		want trimvalidate.Location
+	}{{.5, 1.5, trimvalidate.Inside}, {1.5, 1.5, trimvalidate.Outside}, {-1, 0, trimvalidate.Outside}, {1, 1.5, trimvalidate.Boundary}} {
+		loc, proof, e := r.Regions.LocateRational(ctx, [3]*big.Rat{ratInset(tt.x), ratInset(tt.y), big.NewRat(1, 2)})
+		if e != nil || proof.Status != trimvalidate.Certified || loc != tt.want {
+			t.Fatal("square-tube section material query", tt, loc, proof, e)
+		}
+	}
+	if loc, _, e := r.Regions.LocateRational(ctx, [3]*big.Rat{big.NewRat(1, 2), big.NewRat(3, 2), big.NewRat(1, 3)}); !errors.Is(e, geom.ErrDomain) || loc != trimvalidate.Unknown {
+		t.Fatal("section query accepted an off-plane point", loc, e)
 	}
 }

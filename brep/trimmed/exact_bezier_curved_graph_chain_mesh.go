@@ -35,6 +35,10 @@ type CertifiedCurvedBezierGraphChain struct {
 // may prevent convergence; that case rejects atomically, never silently inserts
 // off-source seam samples or relaxes the requested error.
 func TessellateCurvedBezierGraphChainCertified(ctx context.Context, p *geom.SurfacePatch, pieces []ExactBezierUV, baseline *big.Rat, o CurvedBezierGraphChainOptions) (CertifiedCurvedBezierGraphChain, error) {
+	return tessellateCurvedBezierGraphChainCuts(ctx, p, pieces, baseline, nil, o)
+}
+
+func tessellateCurvedBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePatch, pieces []ExactBezierUV, baseline *big.Rat, cuts [][]*big.Rat, o CurvedBezierGraphChainOptions) (CertifiedCurvedBezierGraphChain, error) {
 	var empty CertifiedCurvedBezierGraphChain
 	if ctx == nil || p == nil || !finite(o.Interior.Deflection) || o.Interior.Deflection <= 0 {
 		return empty, geom.ErrInvalid
@@ -83,7 +87,12 @@ func TessellateCurvedBezierGraphChainCertified(ctx context.Context, p *geom.Surf
 	if o.Boundary.MaxTriangles == 0 || o.Boundary.MaxTriangles > m.MaxTriangles {
 		o.Boundary.MaxTriangles = m.MaxTriangles
 	}
-	chain, e := TessellateExactBezierGraphChainCertified(ctx, identity, pieces, baseline, o.Boundary)
+	var chain CertifiedExactBezierGraphChain
+	if cuts == nil {
+		chain, e = TessellateExactBezierGraphChainCertified(ctx, identity, pieces, baseline, o.Boundary)
+	} else {
+		chain, e = TessellateExactBezierGraphChainWithCutsCertified(ctx, identity, pieces, baseline, cuts, o.Boundary)
+	}
 	if e != nil {
 		return empty, e
 	}

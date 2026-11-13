@@ -16,23 +16,33 @@ type RingPlacement struct {
 // Default Limits apply globally across rings, and failed proofs return no
 // placements. An empty input is a certified empty forest.
 func ClassifyRingForest(ctx context.Context, rings []Loop, o Options) ([]RingPlacement, Report, error) {
+	_, out, r, e := CertifyRingForest(ctx, rings, o)
+	return out, r, e
+}
+
+// CertifyRingForest also retains immutable loops for repeated point or box
+// location. Those queries classify the region using nonzero total signed
+// winding and always report an exact ring hit as Boundary.
+func CertifyRingForest(ctx context.Context, rings []Loop, o Options) (*CertifiedLoops, []RingPlacement, Report, error) {
 	if len(rings) == 0 {
 		r := emptyLoopReport()
-		if _, e := o.WithDefaults(); e != nil || ctx == nil {
-			return nil, r, ErrOptions
+		opts, e := o.WithDefaults()
+		if e != nil || ctx == nil {
+			return nil, nil, r, ErrOptions
 		}
 		if e := ctx.Err(); e != nil {
-			return nil, r, e
+			return nil, nil, r, e
 		}
 		r.Status = Certified
-		return nil, r, nil
+		return &CertifiedLoops{options: opts, forest: true}, nil, r, nil
 	}
 	var out []RingPlacement
-	r, _, e := validateLoops(ctx, rings[0], rings[1:], nil, o, nil, &out)
+	var certificate *CertifiedLoops
+	r, _, e := validateLoops(ctx, rings[0], rings[1:], nil, o, &certificate, &out)
 	if e != nil || r.Status != Certified {
-		return nil, r, e
+		return nil, nil, r, e
 	}
-	return out, r, nil
+	return certificate, out, r, nil
 }
 
 func classifyRingForest(loops [][]curve, signs []int, r *Report, b *budget) ([]RingPlacement, Status, string) {
