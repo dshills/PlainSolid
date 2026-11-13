@@ -1958,3 +1958,17 @@ recovered frame follows source analytic supports; signed height preserves the
 entry cap, not unrecorded feature history. Independent OCCT cut output in
 `rounded-pocket-occt.step` exercises changed analytic frame choices, an eccentric
 through hole and a blind floor; live rewrite checks validity and mass.
+
+`WriteCircleRevolves` adapts one native meridian-disk revolution, including a
+signed partial angle, axial center offset and rigid frame, to existing verified
+torus-elbow graphs. Complete positive/negative turns use the full-torus codec.
+`ReadCircleRevolves` checks the original graph and returns a positive sweep,
+zero axial offset and the source torus frame. Material geometry does not uniquely
+encode signed construction history. `ReadCircleRevolvesWithResolution` accepts
+an explicit construction frame and direction, solves the axial center and
+verifies radial origin, chart axis and partial-sweep starting cap; inconsistent
+hints and unrepresentable axial cancellation fail. Full turns have no distinct
+starting cap. This bounded adapter supports one body and preserves its name and
+units. Negative quarter, reflex and full turns have live OCCT mass qualification;
+an independently generated OCCT elbow also verifies restoration of a negative
+construction description without inferring history from the source.
