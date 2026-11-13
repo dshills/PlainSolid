@@ -5,32 +5,42 @@ import (
 	"math"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/geom"
 )
 
-func (b *Bridge) filletCylinderRims(s stored, q request) (Shape, error) {
-	if s.cylinder == nil || len(q.RimCenters) == 0 || len(q.RimCenters) > 2 || q.Normal == nil || q.Radius <= 0 {
-		return Shape{}, unsupportedEdge("circular rim fillet requires one or two original cylinder caps")
+func (b *Bridge) treatCylinderRims(s stored, q request) (Shape, error) {
+	size := float64(q.Radius)
+	chamfer := q.Op == "chamferCylinderRims"
+	if chamfer {
+		size = float64(q.Distance)
+	}
+	if s.cylinder == nil || len(q.RimCenters) == 0 || len(q.RimCenters) > 2 || q.Normal == nil || size <= 0 {
+		return Shape{}, unsupportedEdge("circular rim treatment requires one or two original cylinder caps")
 	}
 	c := s.cylinder
 	n, err := q.Normal.vec().Unit()
 	if err != nil || math.Abs(math.Abs(n.Dot(c.frame.ZAxis()))-1) > 1e-9 {
 		return Shape{}, errors.New("circular rim axis no longer matches its original cylinder")
 	}
-	radius := float64(q.Radius)
 	var lower, upper float64
 	start := c.frame.Origin()
 	end := start.Add(c.frame.ZAxis().Scale(c.height))
 	for _, center := range q.RimCenters {
 		switch {
 		case nearPoint(center.vec(), start):
-			lower = radius
+			lower = size
 		case nearPoint(center.vec(), end):
-			upper = radius
+			upper = size
 		default:
 			return Shape{}, unsupportedEdge("circular rim was lost or is ambiguous")
 		}
 	}
-	p, err := parametric.RoundedCylinder(c.frame, c.radius, c.height, lower, upper)
+	var p parametric.Solid
+	if chamfer {
+		p, err = chamferedCylinder(c, lower, upper)
+	} else {
+		p, err = parametric.RoundedCylinder(c.frame, c.radius, c.height, lower, upper)
+	}
 	if err != nil {
 		return Shape{}, err
 	}
@@ -38,5 +48,21 @@ func (b *Bridge) filletCylinderRims(s stored, q request) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	body.rimPatches = true
 	return b.putAnalyticBody(body)
+}
+
+func chamferedCylinder(c *cylinderBody, lower, upper float64) (parametric.Solid, error) {
+	if lower+upper >= c.height || max(lower, upper) >= c.radius {
+		return parametric.Solid{}, geom.ErrDomain
+	}
+	profile := []geom.Vec2{{}, {X: c.radius - lower}}
+	if lower > 0 {
+		profile = append(profile, geom.Vec2{X: c.radius, Y: lower})
+	}
+	profile = append(profile, geom.Vec2{X: c.radius, Y: c.height - upper})
+	if upper > 0 {
+		profile = append(profile, geom.Vec2{X: c.radius - upper, Y: c.height})
+	}
+	return parametric.Revolve(c.frame, append(profile, geom.Vec2{Y: c.height}))
 }

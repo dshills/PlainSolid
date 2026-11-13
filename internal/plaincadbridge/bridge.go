@@ -223,7 +223,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "displayEdges", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamferCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "displayEdges", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "leadPart", "assertLeadPair":
 		if q.Lead == nil {
 			return nil, errors.New("lead screw operation requires dimensions")
@@ -283,7 +283,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.mixedExtrude(*q.Profile)
 	case "revolvePolygon", "revolveCircle":
 		return b.revolve(q)
-	case "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet":
+	case "edgeAvailable", "fillet", "filletCylinderRims", "chamferCylinderRims", "chamfer", "capChamfer", "capFillet":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
@@ -300,8 +300,8 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 			return b.treatCapPerimeter(s, q)
 		}
-		if q.Op == "filletCylinderRims" {
-			return b.filletCylinderRims(s, q)
+		if q.Op == "filletCylinderRims" || q.Op == "chamferCylinderRims" {
+			return b.treatCylinderRims(s, q)
 		}
 		if q.Op == "edgeAvailable" {
 			if q.EdgeStart == nil || q.EdgeEnd == nil {

@@ -34,11 +34,20 @@ func (b *Bridge) toFace(q request) (Shape, error) {
 		if len(q.Holes) != 0 {
 			return Shape{}, &failureError{"UNSUPPORTED", "circular to-face extrusion does not support inner loops"}
 		}
-		_, proof, err := trimmed.CylinderToFace(context.Background(), q.Center.vec(), q.Direction.vec(), float64(q.Radius), target.solid, face.Face, geom.DiskPolygonOptions{})
+		ctx := context.Background()
+		center, direction, radius := q.Center.vec(), q.Direction.vec(), float64(q.Radius)
+		if direction.Cross(face.Normal.vec()).Length() > 1e-12*direction.Length() {
+			solid, err := obliqueCylinderToFace(ctx, center, direction, radius, target.solid, face.Face)
+			if err != nil {
+				return Shape{}, fmt.Errorf("extrude to face failed: %w", err)
+			}
+			return b.putAnalyticBody(solid)
+		}
+		_, proof, err := trimmed.CylinderToFace(ctx, center, direction, radius, target.solid, face.Face, geom.DiskPolygonOptions{})
 		if err != nil {
 			return Shape{}, fmt.Errorf("extrude to face failed: %w", err)
 		}
-		return b.circle(q.Center.vec(), q.Direction.vec(), float64(q.Radius), proof.Height)
+		return b.circle(center, direction, radius, proof.Height)
 	}
 	n := len(q.Outer)
 	for _, h := range q.Holes {

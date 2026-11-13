@@ -16,6 +16,7 @@ import (
 type analyticBody struct {
 	solid        trimmed.Solid
 	patches      *parametric.Solid
+	rimPatches   bool
 	sector       *radialSector
 	shaft        *trimmed.SteppedShaft
 	segment      *circularSegmentSweep
@@ -87,6 +88,9 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		o.Angle /= 4
 		if o.Angle == 0 {
 			return mesh.Mesh{}, parametric.ErrBudget
+		}
+		if a.rimPatches {
+			return a.patches.TessellateRevolutionRims(context.Background(), o)
 		}
 		return a.patches.Tessellate(context.Background(), o)
 	}
