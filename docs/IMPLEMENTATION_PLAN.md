@@ -46,9 +46,10 @@ internal thread and the editable four-start lead pair. The original
 machined-reference workflow passes nested blind pockets, bore rim
 measurement and lost floor diagnostics. Focused retests cover seven
 additional original development workflows and four original production
-regressions, including the UNC gallery. Complete the rotary fixture, fix
-failures exposed by the full development run, rerun the production
-performance case, and execute the current full release checks. See
+regressions, including the UNC gallery. The original 40-body rotary
+fixture passes all three rebuilds. Close the remaining development
+failures and current ORBIT detail gates, rerun production performance
+under isolated load, and execute the current full release checks. See
 [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.

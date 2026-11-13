@@ -68,10 +68,10 @@ topology references fail explicitly.
 Modeled-thread and lead screw/nut methods forward their resolved dimensions and
 handedness to bounded native helical constructors. Both original focused fixtures
 pass: modeled Thread covers external editing, reopening and STL plus an internal
-threaded nut; the lead pair covers linked edits and cold reopening. Broader gallery
-qualification still finds unsupported Acme/UNC representations and rectangular
-tapped-block stock. These focused passes do not qualify arbitrary helical stocks
-or dimensions; unsupported combinations reject explicitly.
+threaded nut; the lead pair covers linked edits and cold reopening. The
+original production galleries also pass the left-hand Acme pair and posed
+quarter-inch UNC screw and rectangular tapped block. Helical support is
+bounded to qualified stock, dimensions and chart ranges.
 
 Native STEP import/export runs in isolated workers and retains analytic BRep
 geometry. Export returns independent before/after native read-back proofs and
