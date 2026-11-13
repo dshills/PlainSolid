@@ -122,7 +122,7 @@ func revolutionSourcePoint(f *File, id int64, kind string) ([3]*big.Rat, error) 
 	}
 	return out, nil
 }
-func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int) error {
+func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int, normalized []float64) error {
 	en := f.Entities[cid]
 	r, ok := component(en, "B_SPLINE_CURVE")
 	var refs Value
@@ -143,18 +143,28 @@ func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int) e
 		if len(w.Args) != 1 || w.Args[0].Kind != Aggregate || len(w.Args[0].Items) != len(ids) {
 			return geom.ErrDomain
 		}
-		var first *big.Rat
-		for _, v := range w.Args[0].Items {
+		maximum := new(big.Rat)
+		raw := make([]*big.Rat, len(ids))
+		for i, v := range w.Args[0].Items {
 			q, e := liftSourceRat(v)
 			if e != nil || q.Sign() <= 0 {
 				return geom.ErrDomain
 			}
-			if first == nil {
-				first = q
-			} else if q.Cmp(first) != 0 {
+			raw[i] = q
+			if q.Cmp(maximum) > 0 {
+				maximum.Set(q)
+			}
+		}
+		if len(normalized) != len(raw) {
+			return geom.ErrDomain
+		}
+		for i, q := range raw {
+			ratio := new(big.Rat).Quo(q, maximum)
+			if ratio.Cmp(new(big.Rat).SetFloat64(normalized[i])) != 0 {
 				return geom.ErrDomain
 			}
 		}
+
 	}
 	heightSign := 0
 	var previous, first0, first1 *big.Rat
@@ -278,7 +288,7 @@ func decodeRevolutionSurface(f *File, id int64, maxPoints int) (RevolutionSurfac
 	if ax < 0 {
 		return fail()
 	}
-	if e = revolutionExactMeridian(f, cid, origin, ax); e != nil {
+	if e = revolutionExactMeridian(f, cid, origin, ax, profile.Geometry.Weights()); e != nil {
 		return fail()
 	}
 	var bounds [4]float64

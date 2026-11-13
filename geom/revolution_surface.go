@@ -6,7 +6,7 @@ import (
 )
 
 // RevolutionSurface is an immutable bounded analytic sweep. U is radians and
-// V is the original polynomial B-spline parameter; no tensor reparameterization
+// V is the original B-spline parameter; no tensor reparameterization
 // or periodic closure is introduced. The supported meridian occupies one
 // fixed meridian half-plane about a signed-coordinate axis, with positive radii
 // and strictly monotone axial control heights. These conditions keep its
@@ -17,11 +17,13 @@ type RevolutionSurface struct {
 	start, end   float64
 }
 
-// NewRevolutionSurface accepts a continuous clamped polynomial meridian of at
+// NewRevolutionSurface accepts a continuous clamped positive-weight meridian of at
 // most 4096 poles, an exact signed-coordinate unit axis, and an increasing
 // angular interval within [-3,3] radians of width at most 3. These conservative
 // bounds exclude complete turns and periodic ambiguity. It retains the source
-// profile and axis without snapping or normalizing them.
+// profile and axis without snapping or normalizing them. Nonconstant weights
+// additionally require degree <=16, <=256 poles, <=64 knot spans and an exact
+// strict Bernstein sign proof of the axial rational derivative on every span.
 func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float64) (RevolutionSurface, error) {
 	fail := func() (RevolutionSurface, error) { return RevolutionSurface{}, ErrDomain }
 	if profile == nil || !origin.IsFinite() || !axis.IsFinite() || !finite(start) || !finite(end) || start < -3 || end > 3 || start >= end || new(big.Rat).Sub(new(big.Rat).SetFloat64(end), new(big.Rat).SetFloat64(start)).Cmp(big.NewRat(3, 1)) > 0 || len(profile.poles) > 4096 {
@@ -44,9 +46,10 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 	if ax < 0 {
 		return fail()
 	}
+	rational := false
 	for _, w := range profile.weights {
 		if w != 1 {
-			return fail()
+			rational = true
 		}
 	}
 	for i := 0; i <= profile.degree; i++ {
@@ -98,6 +101,11 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 			}
 		}
 		previous = pp[ax]
+	}
+	if rational {
+		if e := certifyRevolutionRationalHeight(profile, ax, heightSign); e != nil {
+			return RevolutionSurface{}, e
+		}
 	}
 	owned, e := NewBSpline(profile.degree, profile.poles, profile.knots, profile.weights)
 	if e != nil {

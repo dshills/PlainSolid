@@ -140,3 +140,33 @@ func FuzzRevolutionSurfacesNative(f *testing.F) {
 		_, _ = ReadRevolutionSurfacesJSON(bytes.NewReader(b), RevolutionSurfaceJSONLimits{MaxBytes: 65536, MaxSurfaces: 4, MaxPoles: 64})
 	})
 }
+
+func TestRevolutionSurfacesNativeV1RemainsPolynomial(t *testing.T) {
+	m := revolutionNativeFixture(t)
+	c := m.Surfaces[0].Profile.Geometry
+	c, e := geom.NewBSpline(c.Degree(), c.Poles(), c.Knots(), []float64{1, .5, 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	m.Surfaces[0].Profile.Geometry = c
+	if _, e = m.Surfaces[0].Surface(); e != nil {
+		t.Fatal(e)
+	}
+	var b bytes.Buffer
+	if e = WriteRevolutionSurfacesJSON(&b, m); e == nil || b.Len() != 0 {
+		t.Fatal("v1 silently broadened")
+	}
+	m = revolutionNativeFixture(t)
+	if e = WriteRevolutionSurfacesJSON(&b, m); e != nil {
+		t.Fatal(e)
+	}
+	var d revolutionSurfacesJSON
+	if e = json.Unmarshal(b.Bytes(), &d); e != nil {
+		t.Fatal(e)
+	}
+	d.Surfaces[0].Profile.Weights = []float64{1, .5, 1}
+	raw, _ := json.Marshal(d)
+	if got, e := ReadRevolutionSurfacesJSON(bytes.NewReader(raw), RevolutionSurfaceJSONLimits{}); e == nil || len(got.Surfaces) != 0 {
+		t.Fatal("forged v1 weighted accepted")
+	}
+}

@@ -78,6 +78,11 @@ func revolutionSurfacePayload(m step.RevolutionSurfaceModel, l RevolutionSurface
 		if poles > l.MaxPoles {
 			return d, geom.ErrDomain
 		}
+		for _, w := range c.Weights() {
+			if w != 1 {
+				return d, geom.ErrDomain
+			}
+		} // Version1 remains polynomial-only.
 		if _, e := s.Surface(); e != nil {
 			return d, e
 		}
