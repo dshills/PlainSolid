@@ -95,6 +95,36 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 			t.Fatal("nonbinary split displays do not close", i, e)
 		}
 	}
+	r2 := q
+	for i := range r2 {
+		r2[i].Z += .125
+	}
+	support2, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{X: -1, Z: .125}, {X: -1, Y: 1, Z: .125}, {X: 2, Z: 1.125}, {X: 2, Y: 1, Z: 1.125},
+	}, knots, knots, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	band, e := s.ClipParallelRationalGraphSplineShell(ctx, [2][3]geom.Vec3{q, r2},
+		[2]geom.Surface{support, support2}, [2]geom.ParameterRectangle{capDomain, capDomain},
+		RationalGraphParallelBandOptions{Caps: RationalGraphSectionCapOptions{RationalEndpoints: true}})
+	if e != nil || len(band.CapEdges[0]) != 4 || len(band.CapEdges[1]) != 4 {
+		t.Fatal("oblique rational band", e)
+	}
+	v, e := band.Solid.RationalVertices(ctx)
+	if e != nil || len(v) != 8 {
+		t.Fatal("rational band vertices", len(v), e)
+	}
+	for _, p := range v {
+		h := new(big.Rat).Sub(p.Point[2], new(big.Rat).Quo(new(big.Rat).Add(p.Point[0], big.NewRat(1, 1)), big.NewRat(3, 1)))
+		if h.Sign() != 0 && h.Cmp(big.NewRat(1, 8)) != 0 {
+			t.Fatal("rounded rational band vertex", p.Point)
+		}
+	}
+	mass, e := band.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+	if e != nil || math.Abs(mass.Volume-.125) > 1e-8 {
+		t.Fatal("parallel rational band volume", mass.Volume, e)
+	}
 	limited := RationalGraphShellSectionOptions{VerifyModelEdges: true, EdgeContacts: geom.ComposedPlaneContactsOptions{EventOptions: geom.ExactCurvePlaneEventOptions{MaxOperations: 1}}}
 	if bad, e := s.SectionRationalGraphSplineShell(ctx, q, limited); e == nil || bad.Complete || len(bad.Branches) != 0 {
 		t.Fatal("exhausted independent model-edge verification returned a wire", bad, e)

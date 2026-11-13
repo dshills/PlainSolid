@@ -27,11 +27,12 @@ type RationalGraphParallelBand struct {
 // face must either be affine or contain two certified graph branches in the
 // same original chart direction and matching knot intervals. Faces crossed by
 // only one plane use that certified halfspace. The caps must be authored
-// affine charts in their respective planes. Vertices must be exactly binary;
-// a section outside the shell or an unresolved configuration rejects atomically.
+// affine charts in their respective planes. Vertices must be exactly binary
+// unless the quadratic RationalEndpoints path is selected. A section outside
+// the shell or an unresolved configuration rejects atomically.
 func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points [2][3]geom.Vec3, caps [2]geom.Surface, domains [2]geom.ParameterRectangle, o RationalGraphParallelBandOptions) (RationalGraphParallelBand, error) {
 	var zero RationalGraphParallelBand
-	if o.Caps.RationalEndpoints || caps[0] == nil || caps[1] == nil || !domains[0].Valid() || !domains[1].Valid() {
+	if caps[0] == nil || caps[1] == nil || !domains[0].Valid() || !domains[1].Valid() {
 		return zero, geom.ErrInvalid
 	}
 	so := o.Sections
@@ -60,7 +61,7 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 			return zero, e
 		}
 	}
-	out := RationalGraphParallelBand{Sections: sections, SourceFaces: make([][]int, len(faces)), SourceEdges: make([][]int, len(s.edges))}
+	out := RationalGraphParallelBand{Sections: sections, SourceFaces: make([][]int, len(faces))}
 	var parts []SewFace
 	var owners [][]int
 	for id, f := range faces {
@@ -77,12 +78,16 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 		switch {
 		case !c0 && !c1:
 			p, old = s.splineSewFaceMapped(s.faces[id], nil)
+			if o.Caps.RationalEndpoints {
+				p, e = rationalQuadraticSewFace(ctx, s.faces[id], f.patch, slabFaceUV(s.faces[id]), so.Spans.Faces.Patches)
+				old = nil
+			}
 		case c0 && !c1:
-			p, e = splitRationalGraphFaceFragment(ctx, s.faces[id], f.patch, b0, planes[0], keep[0], so.Spans.Faces, false)
+			p, e = splitRationalGraphFaceFragment(ctx, s.faces[id], f.patch, b0, planes[0], keep[0], so.Spans.Faces, o.Caps.RationalEndpoints)
 		case !c0 && c1:
-			p, e = splitRationalGraphFaceFragment(ctx, s.faces[id], f.patch, b1, planes[1], keep[1], so.Spans.Faces, false)
+			p, e = splitRationalGraphFaceFragment(ctx, s.faces[id], f.patch, b1, planes[1], keep[1], so.Spans.Faces, o.Caps.RationalEndpoints)
 		default:
-			p, e = rationalGraphBandFace(ctx, s.faces[id], f.patch, [2]RationalGraphShellBranch{b0, b1}, planes, keep, so.Spans.Faces)
+			p, e = rationalGraphBandFace(ctx, s.faces[id], f.patch, [2]RationalGraphShellBranch{b0, b1}, planes, keep, so.Spans.Faces, o.Caps.RationalEndpoints)
 		}
 		if e != nil {
 			return zero, fmt.Errorf("trimmed: plane band face %d: %w", id, e)
@@ -107,6 +112,11 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 			parts = append(parts, p)
 		}
 	}
+	if o.Caps.RationalEndpoints {
+		if e = proveRationalSplitVertexIdentity(ctx, parts); e != nil {
+			return zero, e
+		}
+	}
 	solid, h, e := Sew(ctx, parts, SewOptions{Tolerance: s.tolerance, MaxFaces: len(parts), Proof: so.Spans.Faces.EdgeAgreement})
 	if e != nil {
 		return zero, e
@@ -124,7 +134,7 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 	return out, nil
 }
 
-func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch, planes [2]polynomialPlaneEquation, keep [2]int, o SplineRectangleEmbeddingOptions) (SewFace, error) {
+func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch, planes [2]polynomialPlaneEquation, keep [2]int, o SplineRectangleEmbeddingOptions, rationalEndpoints bool) (SewFace, error) {
 	var uv [][2]*big.Rat
 	if branches[0].freeAxis < 0 && branches[1].freeAxis < 0 {
 		uv = slabFaceUV(face)
@@ -164,7 +174,7 @@ func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePa
 		for i, b := range branches {
 			chain[i] = make([][2]*big.Rat, len(b.Pieces)+1)
 			for j, q := range b.Pieces {
-				p, _, e := polynomialPlaneEndpoints(q)
+				p, _, e := graphSectionCapEndpoints(q, rationalEndpoints)
 				if e != nil {
 					return SewFace{}, e
 				}
@@ -198,11 +208,17 @@ func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePa
 		reverseGraphUVChain(b)
 		uv = append(a, b...)
 	}
-	part, e := slabSewFace(ctx, face, patch, uv, o)
+	var part SewFace
+	var e error
+	if rationalEndpoints {
+		part, e = rationalQuadraticSewFace(ctx, face, patch, uv, o.Patches)
+	} else {
+		part, e = slabSewFace(ctx, face, patch, uv, o)
+	}
 	if e != nil {
 		return SewFace{}, e
 	}
-	if e = installRationalGraphFragmentTrims(ctx, &part, append(append([]PCurve(nil), branches[0].Pieces...), branches[1].Pieces...), false); e != nil {
+	if e = installRationalGraphFragmentTrims(ctx, &part, append(append([]PCurve(nil), branches[0].Pieces...), branches[1].Pieces...), rationalEndpoints); e != nil {
 		return SewFace{}, e
 	}
 	return part, nil

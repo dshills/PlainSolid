@@ -64,6 +64,10 @@ Two parallel cuts of the weighted curved stock match the independent volume
 integral with both caps attached. A square-tube band preserves two holed caps,
 has volume 2, and assigns every output edge to exactly one original edge or
 cut plane. Focused race checks passed.
+A second oblique band uses two genuinely nonbinary section boundaries.
+All eight exact model vertices satisfy one of the authored plane equations
+and the volume is 1/8. The same quadratic rational endpoint proofs used by
+single-plane splitting certify the shared topology before sewing.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.
