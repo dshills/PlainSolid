@@ -6,8 +6,15 @@ ran all 344 original cases on clean `c1ba0f3` with pinned PlainCAD
 predates the arc and divider fixes. Eighteen of its failed originals passed
 in separately pinned [arc](evidence/plaincad-reconciled-arc-regressions-2026-11-13.json)
 and [divider](evidence/plaincad-reconciled-divider-regressions-2026-11-13.json)
-retests. These retests do not change the baseline count. A fresh full run
-was started on the verified combined `6d76880` WASM build.
+retests. These retests do not change the baseline count. The [combined
+development run](evidence/plaincad-reconciled-development-6d76880-2026-11-13.json)
+completed on clean `6d76880`: 342 of 344 originals passed in 60 minutes,
+with no skips or retries. Thread and CNC coach were the two failures. The
+CNC coach passed its [separate unchanged retest](evidence/plaincad-reconciled-cnc-coach-2026-11-13.json).
+The original Thread then passed twice, in 76.9 and 76.4 seconds, using
+allocation and dense manifold validation changes. The [Thread comparison](evidence/plaincad-thread-performance-2026-11-13.json)
+retains the prior timeouts, exact external mesh hash, and distinct clean
+build IDs. A fresh full development run started on `e060654`.
 
 On clean reconciliation `9b12a41`, all three original viewer cases passed
 with the staged camera settling repair: pan/idle (53.8 s), source markers
