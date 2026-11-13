@@ -1862,6 +1862,10 @@ independent OCCT mass properties, canonical reload, and closed genus-one mesh
 with no detected contacts verify the retained result.
 The eccentric case independently verifies the centroid shift, original bore
 radius and axis, canonical reload, and rejection of tangent or clipped disks.
+The enclosed cavity uses one stock and two oriented closed shells. It
+preserves both cutter floors in raw parameter order and compares area,
+volume, and centroid against OCCT. Its canonical recipe and certified mesh
+pass; axial and radial contact are rejected by this interior-only path.
 
 Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume

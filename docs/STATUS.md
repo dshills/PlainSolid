@@ -688,6 +688,8 @@ A smaller coaxial cutter covering both stock caps also retains a native
 annular body for signed coordinate axes, including equal cap locations.
 The same construction accepts a parallel eccentric through-bore when the
 exact transverse disk gap and axial coverage prove a fully enclosed opening.
+An axially and radially enclosed parallel cutter instead retains a separate
+inward cavity shell, with cutter wall and both original floor IDs.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -715,8 +717,10 @@ surfaces must keep their geometry through the operation. Continue with:
    omitted contacts. Overlap-guided closed contours now seal single and
    multiple native graph regions after rechecking coverage on the original
    supports. Extend complete transverse arrangements beyond rectangular input
-   supports and
-   handle curved edge-edge crossings, tangencies and coincident intervals.
+   supports and handle curved edge-edge crossings, tangencies and coincident
+   intervals. Exact Bernstein signs now certify isolated corner contacts
+   of supported affine graph pairs; use that evidence for source vertex
+   ownership before accepting transverse vertex fans in assembly.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
