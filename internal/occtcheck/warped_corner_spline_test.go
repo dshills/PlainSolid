@@ -2,6 +2,7 @@ package occtcheck
 
 import (
 	"context"
+	"math"
 	"math/big"
 	"testing"
 
@@ -391,7 +392,20 @@ func TestOCCTObliquePolynomialSplinePlaneClip(t *testing.T) {
 }
 
 func TestOCCTRationalGraphSplinePlaneClip(t *testing.T) {
-	refs := runOracle(t, "rational-graph-plane")
+	testOCCTRationalGraphSplinePlaneClip(t, false)
+}
+
+func TestOCCTPiecewiseRationalGraphSplinePlaneClip(t *testing.T) {
+	testOCCTRationalGraphSplinePlaneClip(t, true)
+}
+
+func testOCCTRationalGraphSplinePlaneClip(t *testing.T, crease bool) {
+	t.Helper()
+	prefix, height, countEdges := "rational-graph-plane", 3./16, 4
+	if crease {
+		prefix, height, countEdges = "piecewise-rational-graph-plane", 23./128, 6
+	}
+	refs := runOracle(t, prefix)
 	ctx := context.Background()
 	var surfaces []*geom.BSplineSurface
 	var domains []geom.ParameterRectangle
@@ -406,28 +420,43 @@ func TestOCCTRationalGraphSplinePlaneClip(t *testing.T) {
 			if v == 0 {
 				count[1] = 3
 			}
+			if crease {
+				for i, a := range []int{u, v} {
+					if a == 0 {
+						count[i] = 5
+					}
+				}
+			}
 			var poles []geom.Vec3
 			for i := range count[0] {
 				for j := range count[1] {
 					p := [3]float64{}
 					p[axis], p[u], p[v] = float64(side), float64(i)/float64(count[0]-1), float64(j)/float64(count[1]-1)
 					a := p[0]/16 + p[0]*p[0]/32
+					x := []float64{0, 1. / 32, 3. / 32}
+					if crease {
+						x = []float64{1. / 128, 5. / 256, 5. / 128, 19. / 256, 13. / 128}
+						a += 1. / 128
+					}
 					if u == 0 {
-						a = [3]float64{0, 1. / 32, 3. / 32}[i]
+						a = x[i]
 					} else if v == 0 {
-						a = [3]float64{0, 1. / 32, 3. / 32}[j]
+						a = x[j]
 					}
 					poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2] + a + (1+p[0])*p[1]/4})
 				}
 			}
 			knots := func(n int) []float64 {
+				if n == 5 {
+					return []float64{0, 0, 0, .5, .5, 1, 1, 1}
+				}
 				k := make([]float64, n*2)
 				for i := n; i < len(k); i++ {
 					k[i] = 1
 				}
 				return k
 			}
-			s, err := geom.NewBSplineSurface(count[0]-1, count[1]-1, count[0], count[1], poles, knots(count[0]), knots(count[1]), nil)
+			s, err := geom.NewBSplineSurface(min(count[0]-1, 2), min(count[1]-1, 2), count[0], count[1], poles, knots(count[0]), knots(count[1]), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -440,17 +469,40 @@ func TestOCCTRationalGraphSplinePlaneClip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(float64, float64) float64 { return 0 })
-	for i, name := range []string{"rational-graph-plane-common", "rational-graph-plane-cut"} {
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, height}, func(float64, float64) float64 { return 0 })
+	for i, name := range []string{prefix + "-common", prefix + "-cut"} {
 		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
-		r, err := trimmed.CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
-		if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 4 {
+		var r trimmed.SplineCornerPlaneClip
+		var err error
+		if crease {
+			p, e := trimmed.CombinePiecewiseRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.PolynomialPlaneSpanOptions{})
+			r, err = p.SplineCornerPlaneClip, e
+			if err == nil && (len(p.Knots) != 2 || refs[name].Shells != 1) {
+				t.Fatal(name, "original knot or reference shell missing")
+			}
+		} else {
+			r, err = trimmed.CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
+		}
+		if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != countEdges {
 			t.Fatal(name, "rational section topology", err)
 		}
 		m, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 		if err != nil {
 			t.Fatal(name, err)
 		}
-		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+		if !crease {
+			compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+			continue
+		}
+		// The independent Boolean splits at the crease before integration.
+		// Its two returned volumes still differ from exact strip integrals by
+		// about 10^-8 model units cubed; report that observed residual separately.
+		ref := refs[name]
+		center := geom.Vec3{X: ref.Centroid[0], Y: ref.Centroid[1], Z: ref.Centroid[2]}
+		if math.Abs(m.Area-ref.Area) > 3e-7*ref.Area || math.Abs(m.Volume-ref.Volume) > 1e-7 ||
+			m.Centroid.Sub(center).Length() > 3e-7 {
+			t.Fatalf("%s: Go area %.15g volume %.15g centroid %v; OCCT area %.15g volume %.15g centroid %v",
+				name, m.Area, m.Volume, m.Centroid, ref.Area, ref.Volume, center)
+		}
 	}
 }

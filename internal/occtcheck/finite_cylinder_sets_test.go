@@ -498,6 +498,7 @@ func TestOCCTFiniteTransverseShoulderCylinderUnions(t *testing.T) {
 		{"finite-transverse-common-upper-union", -4, -1.5, 12},
 		{"finite-transverse-staggered-union", -5, -1, 14},
 		{"finite-transverse-nested-union", -2.5, -.5, 14},
+		{"finite-transverse-abutting-union", -6, -4, 12},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Min: tc.min, Max: tc.max, Radius: 3}

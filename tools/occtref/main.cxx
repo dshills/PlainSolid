@@ -223,6 +223,7 @@ int main(int argc, char** argv) {
     if(argc==3 && mode=="piecewise-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);piecewisePolynomialGraphPlaneBooleans(out);return 0;}
     if(argc==3 && mode=="oblique-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);polynomialGraphPlaneBooleans(out,true);piecewisePolynomialGraphPlaneBooleans(out,true);return 0;}
     if(argc==3 && mode=="rational-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);rationalGraphPlaneBooleans(out);return 0;}
+    if(argc==3 && mode=="piecewise-rational-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);rationalGraphPlaneBooleans(out,true);return 0;}
     if(argc==3 && mode=="finite-cylinder-axial-cut"){
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-2,5),gp_Dir(0,0,-1)),2,9).Shape();
@@ -369,6 +370,11 @@ int main(int argc, char** argv) {
         const char* name=fixture.second==4?"finite-transverse-nested-union":fixture.first==5?"finite-transverse-common-lower-union":fixture.first==8?"finite-transverse-common-upper-union":"finite-transverse-staggered-union";
         record(out,name,fused,1e-11);
       }
+      const auto abuttingTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(4,0,12),gp_Dir(0,0,-1)),3,4).Shape();
+      const auto abutting=BRepAlgoAPI_Fuse(notchStock,abuttingTool).Shape();
+      int abuttingShells=0;for(TopExp_Explorer it(abutting,TopAbs_SHELL);it.More();it.Next())++abuttingShells;
+      if(abuttingShells!=1)throw std::runtime_error("transverse cap contact did not form one shell");
+      record(out,"finite-transverse-abutting-union",abutting,1e-11);
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);

@@ -117,21 +117,50 @@ static void piecewisePolynomialGraphPlaneBooleans(std::ostream& out,bool oblique
  creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-common":"piecewise-polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
  creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-cut":"piecewise-polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
 }
-static void rationalGraphPlaneBooleans(std::ostream& out){
+static void rationalGraphPlaneBooleans(std::ostream& out,bool crease=false){
  // Polynomial support Z=X/16+X²/32+(1+X)Y/4. The plane section is
  // rational because solving for Y introduces the nonconstant 1+X.
- NCollection_Array2<gp_Pnt> poles(1,3,1,2);
+ NCollection_Array2<gp_Pnt> poles(1,crease?5:3,1,2);
  const double z[]={0,1./32,3./32};
- for(int i=1;i<=3;++i)for(int j=1;j<=2;++j){
-  const double x=(i-1)/2.,y=j-1;
-  poles.SetValue(i,j,gp_Pnt(x,y,z[i-1]+(1+x)*y/4.));
+ const double cz[]={1./128,5./256,5./128,19./256,13./128};
+ for(int i=1;i<=(crease?5:3);++i)for(int j=1;j<=2;++j){
+  const double x=(i-1)/(crease?4.:2.),y=j-1;
+  poles.SetValue(i,j,gp_Pnt(x,y,(crease?cz[i-1]:z[i-1])+(1+x)*y/4.));
  }
  NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);
  NCollection_Array1<int> xm(1,2),ym(1,2);xm.Init(3);ym.Init(2);
- occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xm,ym,2,1);
+ NCollection_Array1<double> ck(1,3);ck.SetValue(1,0);ck.SetValue(2,.5);ck.SetValue(3,1);
+ NCollection_Array1<int> cm(1,3);cm.Init(3);cm.SetValue(2,2);
+ occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,crease?ck:knots,knots,crease?cm:xm,ym,2,1);
  auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
- auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
+ auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,crease?23./128:3./16)).Shape();
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent rational graph stock or cutter");
- splineShellRecord(out,"rational-graph-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
- splineShellRecord(out,"rational-graph-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ auto common=BRepAlgoAPI_Common(stock,tool).Shape(), cut=BRepAlgoAPI_Cut(stock,tool).Shape();
+ if(crease){
+  // The unsplit reference still verifies valid topology and external area.
+  // OCCT's integration on this specific rational section crossing a crease
+  // depends on its integration mode. Integrate separate OCCT half-solids and
+  // sum their first moments; artificial station faces are not counted in area.
+  auto piecewiseRecord=[&](const char* name,const TopoDS_Shape& result){
+   if(!BRepCheck_Analyzer(result).IsValid())throw std::runtime_error("invalid creased rational Boolean");
+   const auto a=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(.5,2,3)).Shape();
+   const auto b=BRepPrimAPI_MakeBox(gp_Pnt(.5,-1,-2),gp_Pnt(2,2,3)).Shape();
+   GProp_GProps mass,area;
+   for(const auto& half:{a,b}){
+    const auto part=BRepAlgoAPI_Common(result,half).Shape();
+    if(!BRepCheck_Analyzer(part).IsValid())throw std::runtime_error("invalid rational Boolean integration slab");
+    GProp_GProps props;BRepGProp::VolumeProperties(part,props,1e-11,true);
+    mass.Add(props);
+   }
+   BRepGProp::SurfaceProperties(result,area,1e-10);
+   const auto p=mass.CentreOfMass();
+   int shells=0;for(TopExp_Explorer it(result,TopAbs_SHELL);it.More();it.Next())++shells;
+   out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"Volume\":"<<mass.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<p.X()<<','<<p.Y()<<','<<p.Z()<<"],\"Shells\":"<<shells<<"}\n";
+  };
+  piecewiseRecord("piecewise-rational-graph-plane-common",common);
+  piecewiseRecord("piecewise-rational-graph-plane-cut",cut);
+ }else{
+  splineShellRecord(out,"rational-graph-plane-common",common);
+  splineShellRecord(out,"rational-graph-plane-cut",cut);
+ }
 }
