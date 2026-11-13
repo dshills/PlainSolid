@@ -642,6 +642,8 @@ surfaces must keep their geometry through the operation. Continue with:
    retains nonaffine section curves on original stock and cap supports.
    In either original UV direction it can now traverse bounded free-axis
    knots, provided exact C0 agreement holds over the complete knot seam.
+   A separate single-span polynomial path retains representable cubic and
+   quartic graph trims with exact whole-curve source/cap agreement.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock

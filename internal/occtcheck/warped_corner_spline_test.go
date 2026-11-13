@@ -187,7 +187,7 @@ func TestOCCTWarpedCrossingPlanes(t *testing.T) {
 	compare(t, refs["warped-crossing-planes"], mass.Area, mass.Volume, mass.Centroid)
 }
 
-func oracleQuadraticClipStock(t *testing.T, crease bool) trimmed.Solid {
+func oracleGraphClipStock(t *testing.T, crease, cubic bool) trimmed.Solid {
 	t.Helper()
 	ctx := context.Background()
 	var patches []*geom.BSplineSurface
@@ -203,9 +203,15 @@ func oracleQuadraticClipStock(t *testing.T, crease bool) trimmed.Solid {
 			for i, k := range [2]int{u, v} {
 				if k == 0 {
 					degree[i] = 2
+					if cubic {
+						degree[i] = 4
+					}
 				}
 			}
 			knots := func(d int) []float64 {
+				if d == 4 {
+					return []float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}
+				}
 				if d == 2 {
 					return []float64{0, 0, 0, 1, 1, 1}
 				}
@@ -225,7 +231,14 @@ func oracleQuadraticClipStock(t *testing.T, crease bool) trimmed.Solid {
 					p := [3]float64{}
 					p[axis], p[u], p[v] = float64(side), float64(i)/float64(counts[0]-1), float64(j)/float64(counts[1]-1)
 					xz := p[0] / 8
-					if crease {
+					if cubic {
+						z := [5]float64{0, 0, 0, 1. / 32, 1. / 8}
+						if u == 0 {
+							xz = z[i]
+						} else if v == 0 {
+							xz = z[j]
+						}
+					} else if crease {
 						xz += 1. / 64
 						z := [5]float64{1. / 64, 1. / 128, 1. / 32, 9. / 128, 9. / 64}
 						if u == 0 {
@@ -258,7 +271,7 @@ func oracleQuadraticClipStock(t *testing.T, crease bool) trimmed.Solid {
 func TestOCCTQuadraticSplinePlaneClip(t *testing.T) {
 	refs := runOracle(t, "quadratic-graph-plane")
 	ctx := context.Background()
-	stock := oracleQuadraticClipStock(t, false)
+	stock := oracleGraphClipStock(t, false, false)
 	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(x, y float64) float64 { return 0 })
 	for i, name := range []string{"quadratic-plane-common", "quadratic-plane-cut"} {
 		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
@@ -277,13 +290,32 @@ func TestOCCTQuadraticSplinePlaneClip(t *testing.T) {
 func TestOCCTPiecewiseQuadraticSplinePlaneClip(t *testing.T) {
 	refs := runOracle(t, "piecewise-quadratic-graph-plane")
 	ctx := context.Background()
-	stock := oracleQuadraticClipStock(t, true)
+	stock := oracleGraphClipStock(t, true, false)
 	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(x, y float64) float64 { return 0 })
 	for i, name := range []string{"piecewise-quadratic-plane-common", "piecewise-quadratic-plane-cut"} {
 		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
 		r, err := trimmed.CombinePiecewiseQuadraticSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.QuadraticPlaneSpanOptions{})
 		if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 6 || len(r.Knots) != 2 {
 			t.Fatal(name, "piecewise topology", err)
+		}
+		mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], mass.Area, mass.Volume, mass.Centroid)
+	}
+}
+
+func TestOCCTPolynomialSplinePlaneClip(t *testing.T) {
+	refs := runOracle(t, "polynomial-graph-plane")
+	ctx := context.Background()
+	stock := oracleGraphClipStock(t, false, true)
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{3, 3, 3. / 16}, func(x, y float64) float64 { return 0 })
+	for i, name := range []string{"polynomial-plane-common", "polynomial-plane-cut"} {
+		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
+		r, err := trimmed.CombinePolynomialSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
+		if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 4 {
+			t.Fatal(name, "polynomial topology", err)
 		}
 		mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 		if err != nil {
