@@ -31,20 +31,12 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 		switch surface.(type) {
 		case geom.PlaneSurface:
 		case geom.CylinderSurface:
-			if len(f.Holes) != 0 || len(f.Outer) != 4 {
+			start, ok := compactCylinderStart(f)
+			if !ok {
 				return mesh.Mesh{}, false, nil
 			}
-			for _, u := range f.Outer {
-				if u.Curve != nil {
-					return mesh.Mesh{}, false, nil
-				}
-			}
-			a, b, c, d := f.Outer[0].UVStart, f.Outer[1].UVStart, f.Outer[2].UVStart, f.Outer[3].UVStart
-			if a.Y != b.Y || b.X != c.X || c.Y != d.Y || d.X != a.X || a.X == b.X || a.Y == d.Y || math.Abs(b.X-a.X) > math.Pi/2 {
-				return mesh.Mesh{}, false, nil
-			}
-			curved[f.Outer[0].Edge] = true
-			curved[f.Outer[2].Edge] = true
+			curved[f.Outer[start].Edge] = true
+			curved[f.Outer[(start+2)%4].Edge] = true
 			found = true
 		default:
 			return mesh.Mesh{}, false, nil
@@ -55,8 +47,7 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 	}
 	for i, e := range s.edges {
 		if !curved[i] {
-			curve, _ := parametric.CurveMapping(e.Curve)
-			if _, ok := curve.(geom.Line); !ok {
+			if !compactStraightEdge(e.Curve) {
 				return mesh.Mesh{}, false, nil
 			}
 		}
@@ -75,6 +66,47 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 		return m, true, err
 	}
 	return mesh.Mesh{}, true, parametric.ErrBudget
+}
+
+// A rectangular cylindrical chart may start at either a rim or an axial seam.
+// Start the strip triangulation on a rim while keeping the oriented loop.
+func compactCylinderStart(f Face) (int, bool) {
+	if len(f.Holes) != 0 || len(f.Outer) != 4 {
+		return 0, false
+	}
+	for _, u := range f.Outer {
+		if u.Curve != nil {
+			return 0, false
+		}
+	}
+	start := 0
+	if f.Outer[0].UVStart.Y != f.Outer[0].UVEnd.Y {
+		start = 1
+	}
+	a, b := f.Outer[start].UVStart, f.Outer[(start+1)%4].UVStart
+	c, d := f.Outer[(start+2)%4].UVStart, f.Outer[(start+3)%4].UVStart
+	return start, a.Y == b.Y && b.X == c.X && c.Y == d.Y && d.X == a.X &&
+		a.X != b.X && a.Y != d.Y && math.Abs(b.X-a.X) <= math.Pi/2
+}
+
+func compactStraightEdge(curve geom.Curve) bool {
+	base, _ := parametric.CurveMapping(curve)
+	switch c := base.(type) {
+	case geom.Line:
+		return true
+	case surfaceTrimCurve:
+		if c.curve != nil {
+			return false
+		}
+		surface, _ := parametric.SurfaceMapping(c.surface)
+		switch surface.(type) {
+		case geom.PlaneSurface:
+			return true
+		case geom.CylinderSurface:
+			return c.a.X == c.b.X
+		}
+	}
+	return false
 }
 
 func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []bool, o parametric.TessellationOptions) (mesh.Mesh, error) {
@@ -147,8 +179,18 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 		indices := map[geom.Vec2]int{}
 		sides := map[[2]geom.Vec2]boundarySide{}
 		outer := make([][]geom.Vec2, len(f.Outer))
+		surface, _ := parametric.SurfaceMapping(f.Surface)
+		_, cylinder := surface.(geom.CylinderSurface)
+		start := 0
+		if cylinder {
+			start, _ = compactCylinderStart(f)
+		}
 		for ri, loop := range loops {
-			for ui, u := range loop {
+			for ui := range loop {
+				u := loop[ui]
+				if ri == 0 && start != 0 {
+					u = loop[(ui+start)%len(loop)]
+				}
 				count := len(edgeIDs[u.Edge]) - 1
 				if len(indices)+count > brep.MaxHoledFaceVertices {
 					return mesh.Mesh{}, errCompactBoundaryLimit
@@ -188,8 +230,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			}
 		}
 		var triangles [][3]geom.Vec2
-		surface, _ := parametric.SurfaceMapping(f.Surface)
-		if _, ok := surface.(geom.CylinderSurface); ok {
+		if cylinder {
 			if len(outer[0]) != n+1 || len(outer[2]) != n+1 || len(outer[1]) != 2 || len(outer[3]) != 2 {
 				return mesh.Mesh{}, fmt.Errorf("trimmed: incompatible compact cylinder edges")
 			}

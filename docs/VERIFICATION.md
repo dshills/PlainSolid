@@ -1,5 +1,22 @@
 # Verification record
 
+## Incremental analytic edge chain — 2026-11-13
+
+The integration checkout imports the long-edge treatment and feature-chain
+constructors from `main` (`35e9118`, `9537848`), together with the native
+extrusion builders they use and the anchored circular trim codec from snapshot
+`9be557f`. The original top/back chamfer constructor and its tests are retained.
+The incremental constructor also supports the bottom/front chamfer selected by
+PlainCAD's actual authored references, with optional through bore, rectangular
+through pocket and upper boss. Native tests cover geometry at each intermediate
+stage, including a suppressed pocket, the chamfer's actual plane, exact analytic
+measures, native BRep reload, and closed meshes.
+
+The compact mesher now recognizes straight surface trims and cylindrical loops
+that start at an axial seam. Its related bore, union and persistence regressions
+pass in 2.498 seconds. The native long-edge suite passes in 1.602 seconds. The
+PlainCAD bridge and browser acceptance are a separate checkpoint.
+
 ## Mapped cylinder display for the long edge chain — 2026-11-13
 
 The compact trimmed mesher recognizes mapped plane, cylinder and line supports
