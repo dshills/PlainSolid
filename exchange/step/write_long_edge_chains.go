@@ -95,7 +95,7 @@ func longEdgeSurfaceOf(surface geom.Surface) (longEdgeSurface, error) {
 				count++
 			}
 		}
-		if count != 1 || m[i][3] != 0 {
+		if count != 1 || math.IsNaN(m[i][3]) || math.IsInf(m[i][3], 0) {
 			return longEdgeSurface{}, geom.ErrDomain
 		}
 	}

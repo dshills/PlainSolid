@@ -1,0 +1,85 @@
+package plaincadbridge
+
+import (
+	"context"
+	"math"
+
+	"plainsolid/brep"
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+)
+
+// cornerCylinderRecipe proves the axis starts at a stock corner and enters a
+// cardinal rectangular solid. A bounds match alone cannot establish stock.
+func cornerCylinderRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame, geom.Vec3, bool) {
+	vertices := stock.Vertices()
+	if len(vertices) != 8 || len(stock.Edges()) != 12 || len(stock.Faces()) != 6 || tool == nil || !cardinalFrame(tool.frame) {
+		return geom.Frame{}, geom.Vec3{}, false
+	}
+	for _, x := range []geom.Vec3{tool.frame.XAxis(), tool.frame.YAxis(), tool.frame.XAxis().Scale(-1), tool.frame.YAxis().Scale(-1)} {
+		f, err := geom.NewFrame(tool.frame.Origin(), x, tool.frame.ZAxis())
+		if err != nil {
+			continue
+		}
+		local := make([]geom.Vec3, len(vertices))
+		valid := true
+		for i, p := range vertices {
+			local[i] = f.ToLocal(p)
+			if f.ToWorld(local[i]) != p {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			continue
+		}
+		bounds, err := geom.Bounds(local)
+		if err != nil || bounds.Min != (geom.Vec3{}) {
+			continue
+		}
+		d := bounds.Max
+		if d.X <= tool.radius || d.Y <= tool.radius || d.Z <= tool.height {
+			continue
+		}
+		for _, p := range local {
+			if p.X != 0 && p.X != d.X || p.Y != 0 && p.Y != d.Y || p.Z != 0 && p.Z != d.Z {
+				valid = false
+				break
+			}
+		}
+		if valid && rectangularFaces(stock, f, geom.Vec3{}, d) {
+			return f, d, true
+		}
+	}
+	return geom.Frame{}, geom.Vec3{}, false
+}
+
+func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, error) {
+	if op == "fuse" && a.cylinder != nil && c.planar() {
+		a, c = c, a
+	}
+	if !a.planar() || c.cylinder == nil || op != "cut" && op != "fuse" {
+		return Shape{}, false, nil
+	}
+	f, d, ok := cornerCylinderRecipe(a.solid, c.cylinder)
+	if !ok {
+		return Shape{}, false, nil
+	}
+	r, h := c.cylinder.radius, c.cylinder.height
+	fuse := op == "fuse"
+	s, err := trimmed.BoxCornerCylinder(context.Background(), f, d.X, d.Y, d.Z, r, h, fuse, 1e-9)
+	if err != nil {
+		return Shape{}, true, err
+	}
+	volume := a.result.GeometryAssertions.Volume
+	area := a.result.GeometryAssertions.SurfaceArea
+	if fuse {
+		volume += .75 * math.Pi * r * r * h
+		area += 1.5*math.Pi*r*r + (1.5*math.Pi-2)*r*h
+	} else {
+		volume -= .25 * math.Pi * r * r * h
+		area += (math.Pi/2 - 2) * r * h
+	}
+	result, err := b.putAnalytic(s, volume, area)
+	return result, true, err
+}

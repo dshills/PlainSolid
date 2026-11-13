@@ -44,6 +44,12 @@ func (s Solid) refine(ctx context.Context, level int, deflection, angle float64)
 
 func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection, angle float64) (mesh.Mesh, error) {
 	m := mesh.Mesh{Vertices: s.Vertices()}
+	pole := map[int]bool{}
+	for _, edge := range s.edges {
+		if edge.Curve == nil {
+			pole[edge.Start] = true
+		}
+	}
 	boundary := map[sharedSample]int{}
 	interior := map[interiorSample]int{}
 	needsRefine := false
@@ -187,7 +193,7 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 				if collapsed {
 					a = 0
 				}
-				if err := check(f.Surface, t, p, deflection, a); err != nil {
+				if err := check(f.Surface, t, p, deflection, a, [3]bool{pole[t.ids[0]], pole[t.ids[1]], pole[t.ids[2]]}); err != nil {
 					if err != errRefine {
 						return mesh.Mesh{}, err
 					}
@@ -324,7 +330,13 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 				}
 			}
 		}
-		triangles, e := triangulateUV(rings)
+		triangles, structured, e := sampledCylinderGrid(ctx, f, n, rings, indices, m)
+		if e != nil {
+			return nil, e
+		}
+		if !structured {
+			triangles, e = triangulateUV(rings)
+		}
 		if e != nil {
 			return nil, fmt.Errorf("trimmed: face %d sampled domain: %w", fi, e)
 		}
@@ -342,8 +354,17 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 	return out, nil
 }
 
-func check(s geom.Surface, tri samples, p [3]geom.Vec3, deflection, angle float64) error {
+func check(s geom.Surface, tri samples, p [3]geom.Vec3, deflection, angle float64, poles ...[3]bool) error {
 	uv := tri.uv
+	type normalSample struct {
+		uv       geom.Vec2
+		boundary bool
+	}
+	var normalSamples [7]normalSample
+	for i := range 3 {
+		knownPole := len(poles) > 0 && poles[0][i]
+		normalSamples[i] = normalSample{uv[i], knownPole || tri.edge[i].edge >= 0 || tri.edge[(i+2)%3].edge >= 0}
+	}
 	for i := range 3 {
 		j := (i + 1) % 3
 		xy := mix(uv[i], uv[j], .5)
@@ -354,6 +375,7 @@ func check(s geom.Surface, tri samples, p [3]geom.Vec3, deflection, angle float6
 				return err
 			}
 		}
+		normalSamples[i+3] = normalSample{xy, tri.edge[i].edge >= 0}
 		q, e := s.Eval(xy.X, xy.Y)
 		if e != nil || !q.IsFinite() {
 			return fmt.Errorf("trimmed: invalid surface sample")
@@ -371,20 +393,33 @@ func check(s geom.Surface, tri samples, p [3]geom.Vec3, deflection, angle float6
 		return errRefine
 	}
 	if angle > 0 {
-		du, dv, e := s.Partials(a.X, a.Y)
-		if e != nil {
-			return e
-		}
-		n, e := normal(du, dv)
-		if e != nil {
-			return fmt.Errorf("trimmed: singular interior normal")
-		}
 		m, e := normal(p[1].Sub(p[0]), p[2].Sub(p[0]))
 		if e != nil {
 			return errRefine
 		}
-		if math.Atan2(n.Cross(m).Length(), n.Dot(m)) > angle {
-			return errRefine
+		normalSamples[6] = normalSample{a, false}
+		// Centroid-only normals can accept a coarse curved facet whose ends
+		// exceed the requested angle. Check the same boundary/interior samples
+		// used for geometry, plus the vertices. At a singular boundary pole no
+		// unique normal exists; regular samples still constrain the facet.
+		for _, sample := range normalSamples {
+			du, dv, e := s.Partials(sample.uv.X, sample.uv.Y)
+			if e != nil {
+				return e
+			}
+			if !du.IsFinite() || !dv.IsFinite() {
+				return fmt.Errorf("trimmed: invalid surface partials")
+			}
+			n, e := normal(du, dv)
+			if e != nil {
+				if sample.boundary {
+					continue
+				}
+				return fmt.Errorf("trimmed: singular interior normal")
+			}
+			if math.Atan2(n.Cross(m).Length(), n.Dot(m)) > angle {
+				return errRefine
+			}
 		}
 	}
 	return nil
@@ -399,4 +434,68 @@ func normal(a, b geom.Vec3) (geom.Vec3, error) {
 		return geom.Vec3{}, e
 	}
 	return u.Cross(v).Unit()
+}
+
+// A rectangular cylinder wall has a regular UV parameterization. Retriangulating
+// its collinear sampled perimeter as a polygon creates thin fans whose physical
+// normals can remain poor under interior-only refinement. Use a uniform grid,
+// preserving the shared perimeter samples and edge parameters assembled above.
+func sampledCylinderGrid(ctx context.Context, f Face, n int, rings [][]geom.Vec3, indices map[geom.Vec2]int, m *mesh.Mesh) ([][3]geom.Vec2, bool, error) {
+	if _, ok := f.Surface.(geom.CylinderSurface); !ok || len(f.Holes) != 0 || len(f.Outer) != 4 {
+		return nil, false, nil
+	}
+	for _, use := range f.Outer {
+		if use.Curve != nil {
+			return nil, false, nil
+		}
+	}
+	a, b, c, d := f.Outer[0].UVStart, f.Outer[1].UVStart, f.Outer[2].UVStart, f.Outer[3].UVStart
+	if a.Y != b.Y || b.X != c.X || c.Y != d.Y || d.X != a.X || len(rings) != 1 || len(rings[0]) != 4*n {
+		return nil, false, nil
+	}
+	points := make([]geom.Vec2, (n+1)*(n+1))
+	for j := 0; j <= n; j++ {
+		if err := ctx.Err(); err != nil {
+			return nil, true, err
+		}
+		for i := 0; i <= n; i++ {
+			boundary := -1
+			switch {
+			case j == 0:
+				boundary = i
+			case i == n:
+				boundary = n + j
+			case j == n:
+				boundary = 3*n - i
+			case i == 0:
+				boundary = (4*n - j) % (4 * n)
+			}
+			var uv geom.Vec2
+			if boundary >= 0 {
+				p := rings[0][boundary%(4*n)]
+				uv = geom.Vec2{X: p.X, Y: p.Y}
+			} else {
+				u, v := float64(i)/float64(n), float64(j)/float64(n)
+				uv = mix(mix(a, b, u), mix(d, c, u), v)
+				p, err := f.Surface.Eval(uv.X, uv.Y)
+				if err != nil || !p.IsFinite() {
+					return nil, true, fmt.Errorf("trimmed: invalid cylinder grid sample")
+				}
+				if _, exists := indices[uv]; exists {
+					return nil, true, fmt.Errorf("trimmed: unresolved cylinder grid")
+				}
+				indices[uv] = len(m.Vertices)
+				m.Vertices = append(m.Vertices, p)
+			}
+			points[j*(n+1)+i] = uv
+		}
+	}
+	var triangles [][3]geom.Vec2
+	for j := 0; j < n; j++ {
+		for i := 0; i < n; i++ {
+			a, b, c, d := points[j*(n+1)+i], points[j*(n+1)+i+1], points[(j+1)*(n+1)+i+1], points[(j+1)*(n+1)+i]
+			triangles = append(triangles, [3]geom.Vec2{a, b, c}, [3]geom.Vec2{a, c, d})
+		}
+	}
+	return triangles, true, nil
 }

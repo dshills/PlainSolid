@@ -6,13 +6,65 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-Development now prioritizes the operations exercised by PlainCAD's existing
-acceptance tests before expanding unrelated OCCT domains. The full specification
-remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
-and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
+Focused browser runs now pass the original mixed profile, revolve, socket-head
+blank, shop drawing and STEP workflows, including the three repaired regressions
+for the solved circular segment, placed bore axis and imported STEP STL.
+The first consolidated run passes 47 of 53 originals. A finer bore mesh
+exhausts the triangulation budget in six guided multi-hole previews. Single
+bores retain the finer setting and multiple rims use their earlier setting.
+A corrected focused run is in progress. Native helical dependencies,
+bounded M3 chart coordinates and finite phased starts are verified separately.
+Modeled external and internal thread lead-ins, four-start end reliefs and
+browser-ready helical tessellation are still in progress. The thread and lead
+browser baseline failed before reaching helical geometry.
 
-The first gate is a real Go WebAssembly kernel adapter exercised through
-PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
+Finite polygon and circular To Face extrusion pass the five selected original
+PlainCAD cases, including face pockets and component placement. The bridge
+uses the actual bounded planar support, tracks it through owner edits, and
+rejects lost, uncovered or zero-depth targets. The pinned 31-case run passes
+30 and exposes an exact tangent pocket in the earlier edge-treatment chain.
+That boundary is now split and sewn. The deterministic native cases and the
+first two combined browser runs pass the long chain.
+
+Grouped longitudinal fillet and chamfer geometry is committed as `4f51147`.
+The final browser run passes PlainCAD's existing multi-edge edit and repeated
+XZ edge-draft cases and the prior 24 regressions. All 26 existing cases, both
+TypeScript checks and the supplemental grouped chamfer probe pass with zero
+skips or flaky results. Groups resolve up to four parallel original edges on
+qualified rectangular stock, with a single publication after validation.
+Complete perimeters, nonparallel edges and intersecting treatments remain open.
+
+The imported analytic edge chain is committed as `4916667`. Its browser
+checkpoint passed PlainCAD's existing fillet, chamfer, Hole, pocket and boss workflow,
+including edits, downstream failure recovery, save/reopen and STL. The adjacent
+edge-treatment recovery case and the previous 22 cases pass as well. All 24
+existing cases, both TypeScript checks, and the supplemental WASM probe pass with
+zero skips or flaky results. The bridge supports individual cap edges and a
+single disjoint through bore, rectangular through pocket and upper boss on the
+qualified rectangular stock. Broader edge treatments and cuts on modified stock
+remain open. See [PlainCAD readiness](PLAINCAD_READINESS.md) for the evidence.
+
+The Go WebAssembly adapter implements scoped Hole operations with indexed
+center/target errors and atomic publication. Analytic cylinder walls and planar
+floors support blind and through cuts from qualified convex stock. Cutter sets
+combine proper overlaps, duplicates and contained circles; unequal depths now
+use exact axial layers with crescent and annular floors. Retained recipes are
+bounded to 32 tools. A volume-only overlap query supports successive Hole
+features on already-bored stock without fabricating intersection geometry.
+
+The unequal-depth analytic constructor is committed as `302184f`. Independent
+volume, area and centroid oracles, related bore/mesh regressions, bridge race
+checks and geometry review pass. All 22 selected existing browser acceptance
+cases pass unchanged, with zero skips or flaky results. Both TypeScript checks
+and the separate real-WASM unequal-depth/document-roundtrip supplement pass.
+
+PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
+intentionally rejects overlapping placement. New overlap checks are supplemental.
+Opposed-entry blind overlaps, tools starting wholly inside original stock,
+tangent/unresolved contacts or depth levels, material islands, closed cavities,
+side-crossing cuts and arbitrary curved targets remain open. Next PC1 work also
+includes mixed profiles and broader modified-stock operations. The full
+replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can

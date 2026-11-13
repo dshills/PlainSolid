@@ -1,0 +1,2266 @@
+{
+  "schema": 1,
+  "backend": "plainsolid-go-wasm",
+  "source": "/Users/dshills/Development/projects/PlainCAD",
+  "workspace": "/tmp/plainsolid-circle-acceptance-06",
+  "startedAt": "2026-11-13T13:13:43.802Z",
+  "selected": {
+    "testFile": "e2e/(extrusion-hole|shell|stale-results|extrude-dialog|modeling).spec.ts",
+    "grep": "native negative/symmetric|native Shell|real-worker|profile choice and negative XZ|: non-template modeling|negative and symmetric through-all tools cut the real target"
+  },
+  "sourceHashes": {
+    "src/ai/buildPlan.ts": "b9eb44d65b05842827a994d933babb14f7c9d0e251d6be2776aea2b5c9825c69",
+    "src/ai/clarificationTargets.ts": "aa6086983f9df5093c71289f8e26074ff41fe73c192b5bad1fde41d7e104605c",
+    "src/ai/client.ts": "287ee5113437f3e70388bf478eaff9f7117af42d9cf1f92e72172cee9213f1e2",
+    "src/ai/commandAgentClient.ts": "095f1441da4c6bab609a79c4d415d08e63da833f6967168b27df91a22c0e9d43",
+    "src/ai/commandAgentPlan.ts": "3200948734632d3eea25e3a3c48b83a47824068df6a98ed41a50d9b6dd83b30f",
+    "src/ai/contextualIntent.ts": "ec8351c6c27ccee2da38aa1455e600c2b8871ac32681996667dac181fdb1e74d",
+    "src/ai/conversation.ts": "75883d5698c23abd89b966de4c0891d5c0ea7eac250a0ad5a7ff00a192aff4c4",
+    "src/ai/editPlan.ts": "c5fdd27851d6de1b3675d6ff3b62873b825977dc947ae5a4a7e09b296b2577bf",
+    "src/ai/faceReference.ts": "1b6b61379170ce70abb411c468fb42bf9b758f5fafdb4fc0cee09b4505819d80",
+    "src/ai/featureAddAiClient.ts": "f255aa9ffa3025857bce375de5b8dfb687180d89dc50fa9c292f7651d44fbebf",
+    "src/ai/featureAddPlan.ts": "d89aaf06a73ecf6d41784c675520ad44cb4061433d71d0956fbe059dbb2fa98a",
+    "src/ai/featureEditPlan.ts": "14f06732c2aa8f52ec4adcac426fa721988317a4e0467d6379cf821d0d675b07",
+    "src/ai/followUp.ts": "24262f6fb49d206e9342143024a6a57f2bc1578f70114aa514062c3e1a7f63ff",
+    "src/ai/plan.ts": "b15198f14f98487fa98db816606a6194ccb22eeb9744bc743aa93cd7dd00494c",
+    "src/ai/relativeDimension.ts": "119ead1927e1b95a5719d0436415612babdf1574a715fd892f5cf5143b8e58b3",
+    "src/ai/revisePlan.ts": "449bd5a08d4686052cbe4320b45c14cc4971b24e78fb99c6dcc7649424a0351b",
+    "src/ai/selectionTarget.ts": "e50a6e0feba902ac3508019912efb5fdb63c03978d5e18d375fac83755ab36c0",
+    "src/ai/sketchAiClient.ts": "3bea3955a5a372a0be6b3a6ef08ff78ccf9babc1e96ed3eb7029eb955fe22f53",
+    "src/ai/sketchEditPlan.ts": "1e2467606b7a1f6a28b2f0c525c2a53cc442712e5f9317716fb5f71c5ca1c280",
+    "src/ai/sketchIntent.ts": "e00d3dfeec119e416033dba57b21cab48ff17878880b18563bcf00865e3c70f8",
+    "src/ai/sketchProfile.ts": "f2a20ad119225f0f2371f9d695ef778039372e2f07949365694c6a495d1fff90",
+    "src/ai/sketchRefinement.ts": "bd55cdd028b3f7fe8ffe1d90a0697035d13cc29e6d627f124f44902abada557f",
+    "src/app/App.tsx": "4d979a69a46b0acf13d94f88d88108d7551c6192785053b5beadb0f4b789d3cb",
+    "src/cad/document/CadDocument.ts": "7c8ff046fb5d2096962dfa08bce2cb851652c49ab22160e8b6e4fef035386b91",
+    "src/cad/document/assemblyJoints.ts": "6c24229469b27dfee987fa6ecb41321329e96ea4bf6a99510a4acab477d985e8",
+    "src/cad/document/bodyDisplayNames.ts": "7686f640fb96ac06fabe93137c64218b5a1c3399ba5bbd9159e4709cbadf9c0f",
+    "src/cad/document/bodyScopes.ts": "60ef6f3c11f3083f719050044950dc65c564a07bd6b442c2d59691ec85bc0a08",
+    "src/cad/document/componentPlacement.ts": "c9dd03f5d725747b6a5d303ab76a659b945a0d5f2b9f41fb0839a8e860cd6b99",
+    "src/cad/document/components.ts": "2116e2e5d560e62dbfa74a4836398866f3c575157236ed372679b366c37aea06",
+    "src/cad/document/configurationValidation.ts": "52d7bbf1f550de2a3fe578aef96e9eaf5ed51dafb5efbcde355cf2ce2ccedfa2",
+    "src/cad/document/dependencyGraph.ts": "0b7b6400f3b24561ad7bc60d9b2ef2e1c39cc40cdf1d88b7b2095900aa8c59e6",
+    "src/cad/document/faceReferences.ts": "5927a83da0b4f2d9028dd97107d2f8155bb1c5716c762ac021e655584dd9ee48",
+    "src/cad/document/featureStage.ts": "4ece03058225ce63fcc1be5e0d610045b059e3b52ca5a651b9c10f714b51d818",
+    "src/cad/document/ids.ts": "1bc6adad63d0e11ec73c1ca711b47276639c425d8c4b5d657830d06a41a82ea5",
+    "src/cad/document/migrations.ts": "158d38187820afc8aa2de302aabb3e1f28154a9f689e1124f0d2eacd20684ab5",
+    "src/cad/document/partCreation.ts": "b2e85babb0e97270d11f2755e0d34940f2bb3cc497d97a38e92b5bd7b777ddfe",
+    "src/cad/document/productConfigurations.ts": "9ef68b0ff9d7620ca6aece2318a66c16592998f73d3ab482f1bf203e4738f4b2",
+    "src/cad/document/schema.ts": "edaaf79d0fe0ab270853e9e2754516f30c9359ebd8730818813f035887337b8e",
+    "src/cad/document/stepImportSource.ts": "96be2f7a25a097f10d010c9d7bd7803486590566ae54a6e409f0ca77615e5568",
+    "src/cad/document/timelineEditing.ts": "799564bb189f8b0ba41e1d914faf3209cfedfad93a45aa94541f4116c1c167db",
+    "src/cad/document/timelineOrdering.ts": "c8d5245f7f9745acd7f1a5c9418d0f34e83392cba27fc31e00fad6900667c9ca",
+    "src/cad/document/timelineStory.ts": "6b4c9441b908a3b78f3d7cc2b347ebda5112f8b2985376792189f43797a56ab1",
+    "src/cad/document/validate.ts": "9b3711cca4721b784fbe376fd78a47cb5b2e842dbf244d8c7c30ddd66a8494a0",
+    "src/cad/features/assemblyCollisions.ts": "dd289590bcf200bb6cc1f96c44ac3d4a0f1c7d1e2e4e8e0584fa1381b43750e1",
+    "src/cad/features/componentPlacement.ts": "3d10cd5cbf0ee3f3e06f75bf117c7ab14c0eb15823234fdc85b6243ae3636e0e",
+    "src/cad/features/extrusionSweep.ts": "2860e196f405c9cf280fbc7f6814181659d96fa1e20ca9747ca5e44348505305",
+    "src/cad/features/facePocket.ts": "0d25fb6972922a8ae6ffc5b8ae51abd62f17befc50b006413b4e69b246b7025d",
+    "src/cad/features/featureGraph.ts": "fa31b23bd36fe1262764af059c6ea6403980038caf687b0e9364c9f7bacde843",
+    "src/cad/features/featureMetadata.ts": "c05d6d9a3bc0ec711add28729e08ebf263577d798af99358f82e8cac2bc54813",
+    "src/cad/features/featurePattern.ts": "d0922cf87ba4d5f911495fea176608b7e3883535a217767a0ad2e0147b909e03",
+    "src/cad/features/fittedPart.ts": "e8ead88fd99fced4ba953c05b9a1bec8db046b8795f063d164c419dec8b39132",
+    "src/cad/features/nativeEdgeProofCache.ts": "5731abb67737b7304cd791e3524a418acb6ec9748f7636d3b88838256b5242b4",
+    "src/cad/features/nativeEdgeTargets.ts": "ba24559a0200af9e6d39451069296c5163d3b4017b6db203d5baeeeb44cc92a2",
+    "src/cad/features/nativeFeatureCache.ts": "c700af5c99c4ad96cb3f0910344bcc0848579d0e202f4c5a70c43127e1dca5dd",
+    "src/cad/features/nativeFeatureSignature.ts": "a0dd04604baec823ef18b19089e99f151a8137342ae60a1d34a6853be102181a",
+    "src/cad/features/nativeHoleRims.ts": "2561f9200fa9e5fe3b075a1cac726a1fc75035f836814b0ac98a24902c0dcd4c",
+    "src/cad/features/nativeProjectionValidator.ts": "ed374304e5fcfe45550daa9f9230952098422c1286c480e1ca9b8bda68283601",
+    "src/cad/features/nativeSketchPlanes.ts": "66daaa0437ed5cd4a8d232c21962a8214d4827f0f5a5abda5bd2a09f1790a26f",
+    "src/cad/features/operationTargetGeometry.ts": "62fbbb3e93bcd028349ca51e4dd44926536c28168c0fc725dc5de817d8e875f5",
+    "src/cad/features/patternManipulation.ts": "60da3cbffc1e5f65e2299d0db66cd9173a3194fde086f95216a2cf6b951756b8",
+    "src/cad/features/placedProjectionDependencies.ts": "d3515544150899ec07cba54b3265d98d1fefa11c54056f6a27931e4dfcb161eb",
+    "src/cad/features/rebuildGraph.ts": "add996cf159bdc8f589ea1d71a0ddf2678e9fc06d2a26b45e893c73a93878fd4",
+    "src/cad/features/revolveAxis.ts": "43e4d79f5a6f67e76925da50f1b8abec62219d957d1827b18d45a9b7a2b8d390",
+    "src/cad/features/shellFeature.ts": "926c4681de64bedfc93a1633e168c6ff093c6acd3bf9c911d095d680255c9262",
+    "src/cad/features/targetScopeCapture.ts": "ce9c02b4e5a2f8c7d58fa9f2fecf988d91ec9af8f8db20c336764f465eeb4abe",
+    "src/cad/features/topologyRefs.ts": "f79f9690261bc9010f32b7ef559b4a9080280d83ac4621b5ef09289d30c3caba",
+    "src/cad/hardware/fastenerBlank.ts": "456cfcff5763d99cf022b0e378fa7523feb02e6c575e2b047d6bd8f097b7fb47",
+    "src/cad/hardware/fastenerCatalog.ts": "0ca2062af9e6e06d4fefd974c5dbf01e455d5387559c80360972a6f66db89c9a",
+    "src/cad/hardware/leadScrewSettings.ts": "36dabea29c5455817bcf1f25bb28e0fa765417532b7443bf2d5ecfcfab46ab49",
+    "src/cad/hardware/threadSettings.ts": "26992dd166ce9c02ad785f53769344e05a7bbf0d4aa25fb584f264ef348fa046",
+    "src/cad/inspection/cameraViews.ts": "60914b6ecedc91de9715f772ac0498c048acfd2030b3c3e7a1dcd2377bbd554b",
+    "src/cad/inspection/componentAlignment.ts": "f897133f16d4b990dc37af8cf7b9218f0dfcfb59d1352e68571b1b3c68e557e2",
+    "src/cad/inspection/drawingGeometry.ts": "a30664bf6f9dacb79a65a6a1bf81b009388fd30e80ac09b3e9db198b62464ad1",
+    "src/cad/inspection/manufacturingCoach.ts": "e8603700be0b0ff0f49cee78eca4efc824d8ab1389a087f1b3d862483bad25c7",
+    "src/cad/inspection/measurements.ts": "9c22f8722f3208388addac0090d86227969b88aa6317c4a080d44447c8c7c437",
+    "src/cad/inspection/modelMeasurements.ts": "70294fd08646e902af92bc0b1d619f08c604294a7923ad66c9b718b2b8e13349",
+    "src/cad/inspection/shopDrawing.ts": "576f59cc0788dd7d88a406bdad17b4571dab386b8b2ace343f07dbfa7cae87c8",
+    "src/cad/inspection/solidDimensionEdit.ts": "3c47fe575d8197f57b744a777131ef56e61fa626f240d0638ac28dacc5c7902b",
+    "src/cad/inspection/solidDimensions.ts": "2c5bcaf352505d7a3d4fe247a6ee9da2b692b8eb1f97a70a20ffc3c81a7071ab",
+    "src/cad/kernel/KernelAdapter.ts": "0d101b9402eb7a9db1342cd1855c84c0864344ac157f6e37e12935b0e4293fa9",
+    "src/cad/kernel/OpenCascadeKernel.ts": "793fe4126b4a6fb6316d995e9180497be8a616d8711fec93aec2d21f64305b86",
+    "src/cad/kernel/disposableScope.ts": "be1a3598511f4ecd58ab82e3a49f9dd813daed2b3f8967833af13ffc9a47c34f",
+    "src/cad/kernel/meshConversion.ts": "5e646f0ad3448443c070be91b64ef4a63fda60cf04e72a6feaaf11fef6276309",
+    "src/cad/kernel/nativeDrawing.ts": "5f534467196bc9d0993933f153f99fd642ff8ac85eb9f45e35448804959b65c3",
+    "src/cad/kernel/nativeLeadScrew.ts": "0769670d80b43c80661978df9a449c9f44be9d14f34f8a290eea44d804c3c33f",
+    "src/cad/kernel/nativeShell.ts": "5e5c05ccbcd601f0475c4ae00a3cc77ccc46f940134dc4a99a63a029d79e3bc0",
+    "src/cad/kernel/nativeStep.ts": "a121faabb4a812b92621334e63834aeb0cda11216b50dce55fd3a02a1377ac63",
+    "src/cad/kernel/nativeThreads.ts": "ce2c53c7ab313ed6921f53a6b08f9eff86bb3413b340bb916eece6fa961b6af7",
+    "src/cad/kernel/occtGeometry.ts": "471b60c7694bc9764e307d8705c052c1c822c5122c5e5ec1a8cc99026724a4b4",
+    "src/cad/kernel/occtMachinedReferences.ts": "c1acc78eb0c9883191e60a3d303bedfc655a8751288e431b2919556ba7064b33",
+    "src/cad/kernel/profileMesh.ts": "2d6ee0d58cdf8b0ddecb57d134c34e7690283b15bbaecac090802a534afa0a24",
+    "src/cad/kernel/stlExport.ts": "3195696d2d659d240863b9c3e8c46be36e1bdfb9379a6cabe25c8ad0fb661d95",
+    "src/cad/kernel/tessellationCache.ts": "3f32c7936eb42bdef66433bf26e5e87775f8025d5fd5f4a1c859b5f24d1ae120",
+    "src/cad/parameters/expressionBindings.ts": "3fc0528c2b6338f993ec789108c4939e1ef39557ca26fbbf27c28580943d68ba",
+    "src/cad/parameters/expressionEvaluator.ts": "88ebcc7043623bf729b766355796542cb3b74655896933fe293bc8c0bbf9ed27",
+    "src/cad/parameters/parameterUnits.ts": "77487d172231ea93029f19aab3790da692caadf948f8af4175e6a445145a7405",
+    "src/cad/parameters/units.ts": "c97350460c25fd2e27d199024caf073bcea255cd2386cccb22b6e2431be1f8f0",
+    "src/cad/resourceLimits.ts": "9b4c8865258aa2988b521347bfab29cfeb330fc588f325512ed755b393459f40",
+    "src/cad/sketch/SketchModel.ts": "e6c39cda24b916ce9e77297de54c8109be2ef8b5e4c546c7e4d72517e47e9042",
+    "src/cad/sketch/SketchSolver.ts": "3e500e2013d0fb05eb7503bcb9db3c6a7b7bb91b47af14cb70a74f30714f5d34",
+    "src/cad/sketch/canvasConstraints.ts": "cabdcb4ac8c4bc680ce5550c3bb1940607b9310cd7a3a94f74ebd897223f3d04",
+    "src/cad/sketch/canvasCurveSnapping.ts": "cf945cddd2acc002d1465a67ce8bcdc266915839372603dc3be2747f62366192",
+    "src/cad/sketch/canvasDeformation.ts": "ad133c0bf2a053d2d380036463f2a17c4e1f7bb8dbff02ddd8d427d8b238271f",
+    "src/cad/sketch/canvasDimensions.ts": "d323a1414fff192143e14b082057d275339c2119145037e4284fac737412d7ce",
+    "src/cad/sketch/canvasGeometry.ts": "64980c0adfd3014cc4e5beb6fcc73b932f290d478e42aa4b7e1cf8abb33eaa5c",
+    "src/cad/sketch/canvasLabelLayout.ts": "6440d215adbf3497ce00a75cb246f6ba0d5442d5f020c22cd1d5a1e258fea0fa",
+    "src/cad/sketch/canvasPointMove.ts": "488e63422de7f178ce773c4b615aa5043b2c47a42c81afd99fef96f8a6e0952a",
+    "src/cad/sketch/canvasSelection.ts": "ea0dfe9283607f2071d03821536734cf7a8fce1ec2783d761262bc61261199f7",
+    "src/cad/sketch/canvasSnapping.ts": "c790d670ba77b90dde6f0d01660ce4d05f0a518b9b254e509c05a68bf88a4b17",
+    "src/cad/sketch/canvasTranslation.ts": "d5901f454ec9f14b532621951b0fd4423570dc59b0ef1d4b06d5fca1a3970269",
+    "src/cad/sketch/contextualConstraints.ts": "80ef7721fe6b022e5e07a25d554a3ba1df65da3b041ca648ede1fabf800a5921",
+    "src/cad/sketch/curvedFragmentation.ts": "26988b1ad229869d57cb7fd990cd1edb464efb490605248f6e95a453213854da",
+    "src/cad/sketch/entityDeletion.ts": "2a70827caf36b003639a25db15a8519c9deab1eb280281adb7bb72c1d6539ca0",
+    "src/cad/sketch/entityReferences.ts": "754c95fa64eac295e5b739ca4fe3208766c833b4ffd5b4a703e5a47cc5c8d154",
+    "src/cad/sketch/guidedHoleGeometry.ts": "2c236e33afb44646c0143150d0e0dbeed2ebd72c137cd3ef071c6f6676e80a9b",
+    "src/cad/sketch/legacySketchSolver.ts": "b6f713cae5101001edd7c0a66f7dfd39b82aad45810cc7fec45c7acbd513946e",
+    "src/cad/sketch/lineFragmentation.ts": "87eedf3fbead8deb9bcca6ba0e883fb6184d71a58242cc10a86850446d0049f0",
+    "src/cad/sketch/offsetContour.ts": "607a0ed41e1da9d7d52e2a792ca0c04be3fd42e324519aa977aad27e3f4744a8",
+    "src/cad/sketch/planePicking.ts": "c4aae4c1c2bb515ccc26a1d2dd9f7b6f7df2861acb01e67c1adff64faea40ff5",
+    "src/cad/sketch/planes.ts": "5d6a33ca9f5fb053ea4be3e35062a36a0d51e56d426f0fb03a30257d4031b093",
+    "src/cad/sketch/profileDetection.ts": "30dfb0aad95e916fb9d6c80b9cc79dab21b2952a67a61e42f4885b18782813f4",
+    "src/cad/sketch/profileExtents.ts": "8de4398fc5a42af296420054495bb1665ff43303bb85257905e38edd6c1817ac",
+    "src/cad/sketch/projectedGeometry.ts": "63bda1236ae20a56b16261294e61cf35d71b46185fb99538ef5a4faca939b4d8",
+    "src/cad/sketch/repairSuggestions.ts": "e30c1bae2ac0286e3529ff3161025a3a683f10e93577b6fec7ab2b8e34c7bb22",
+    "src/cad/sketch/sizedCanvasGeometry.ts": "996d6d60cd1b05ff257242b7e5d39a1d65182359d0130406489d75d2a9783ec6",
+    "src/cad/sketch/sketchOffset.ts": "ce310523a74622650e787df8e0b788fa19846a7aa88a7e283be688fe3535ff1e",
+    "src/cad/sketch/sketchProjection.ts": "c5adc0e8684893659e1f505cf1f56dffbb94c4121cd6e95456f7b2aaf01647d4",
+    "src/cad/sketch/sketchReplication.ts": "875b21f88b4b188b2e16a5f18c0599711caea31ace099bc2403a70b4d17f6f11",
+    "src/cad/sketch/tolerances.ts": "41190663048304fae455892da80c9f1855946826fc82b7e6bca55404988090eb",
+    "src/cad/sketch/trimExtend.ts": "35c166506527c9cddc316ba383088b3509137df4f9d71e3018eeaef70eabdc7c",
+    "src/cad/sketch/trimExtendIntersections.ts": "e9640eb3017ece8e0dfe1ccddcb69c2907f6e0795f668404d9b884d311f44e96",
+    "src/cad/worker/extrudePreviewClient.ts": "49b9c218ec04cb350c5d9276cd07abf6e81b3f8afb8cd5c94dfac009ec7159c4",
+    "src/cad/worker/extrudePreviewWorker.ts": "32db6548b0626d40a7973ad9d4f240601afc7af9d26cfbd5ee453b8c81c2da73",
+    "src/cad/worker/geometryWorker.ts": "c75d5f0ca217cfbc138af36746d4330eece56ede9cf6662dabb214e98c726647",
+    "src/cad/worker/scopeCaptureClient.ts": "5afb9df32a03a8ca9bcaa5e7e3bb10e81547c700a20851326dc6d780469efce2",
+    "src/cad/worker/scopeCaptureWorker.ts": "4e24971dc0ed645b9e801e712a31414c19e0c0ad4cff4cf3dcd7444de19fa79f",
+    "src/cad/worker/workerLifecycle.ts": "1348e35af0113d026ca22d9a691e1262f5962e2f9897698079b5282233dcdad4",
+    "src/cad/worker/workerProtocol.ts": "2553440c7128f70abfe5fb359b6269de9bffaca3e3209e36ce21e60d41bff5b0",
+    "src/commands/CommandHost.tsx": "7871542a33b184541c617c62c68eeb044c9717790549cdbf96367d595cf3c759",
+    "src/commands/applicationCommands.ts": "4a6ce45e986389b8758de7e3905354693f7e839303efc02351551b241a6ba931",
+    "src/commands/artifacts.ts": "03a9353ea5723f8466820583d0d69f91e4f3d3127d0c3e43d28d111fc76529f9",
+    "src/commands/cadCommandOperations.ts": "9f6fcf113c44cdac8ae9911d5d74b88ba23c7843e451389e1e5b9110086aa48e",
+    "src/commands/cadCommandTypes.ts": "3cd06532e021c40862c9cfaae9cec2d141f8a789520c68ba4a60c610ba1136fc",
+    "src/commands/cadCommands.ts": "d1f1ff1b181c38d1bb2edb4192393ea523140cdf287d93699197e982c83b52ad",
+    "src/commands/commandPlans.ts": "ab8d7f2f72270a792c504466c9450717b5feefe1b0d4c4629753f91eed488c53",
+    "src/commands/commandSchemas.ts": "9f981d9d16679b4eb94073fc8bdc51e9a72982372ae4b09f957da3b095a1c532",
+    "src/commands/inputDriver.ts": "cc9f78f956d298d426ffd8b57f4145e28ec8447404eaeb1d1e5360f0d1ca0ab4",
+    "src/commands/interactionEvents.ts": "99a4201d63373fa3e1d70c26624b0115df17ed8dcdf5c795c8b6964f4d6acb0d",
+    "src/commands/liveSession.ts": "42d6bad7214f1af18776d9b7a2f557a3d356479d73ff257393f176da0f9d1f82",
+    "src/commands/macroStore.ts": "15ce0ace64603766549d6e7efd3daf793fa29651f6da9f3a10e5202701d2c1d3",
+    "src/commands/macros.ts": "4450a2466b63fcebbbd00ee2a00b8136994426d53163dbb4d1fb7159159c1b27",
+    "src/commands/nativeCommandFaces.ts": "2116b8cdc81c924cc40fbae5f4142a8b02a6f05f3dce4fd1a1c3b892ff680af3",
+    "src/commands/nativeEvents.ts": "6efcf96bccb393fc1f476066565e27326a8962c9f64b1b2480e0566a4fc14691",
+    "src/commands/protocol.ts": "f9814319617745df30c33d06c2853556c7622282c505aaae28520e44b52bba19",
+    "src/commands/registerCadCommands.ts": "423925b6873708d0a65b68e3ae3cdd51f8bd158b61a4a33e4b0b8e5025b47afd",
+    "src/commands/registry.ts": "507de4c48ec8b78787320a2d6ffe3cf7ad1f5a7c1910399d5df26bcaff5df3c1",
+    "src/fabrication/bodySelection.ts": "dc1b73a30b94871b8346e27ddbddc1ff74faffcd01c7e31e00a29e5468624729",
+    "src/fabrication/configurationPackage.ts": "37be68a6fc38a00863a3a5c6da7d02c93f65f4e754fc701052ea6b7a0a2771f2",
+    "src/fabrication/configurationPackageClient.ts": "babeffb95ed075e73466caa366b16620118d0012c206fbe16a2ba769e48943e6",
+    "src/fabrication/configurationPackageWorker.ts": "99cddebe57eb00219b47e1c5cc6ba183f0a96a59c135bbb7f921c7524731c9c6",
+    "src/fabrication/drawingClient.ts": "bb895b6759a8a48e7e2230fddb5e42031c66883f741c151ba569b0fcb898cc97",
+    "src/fabrication/drawingWorker.ts": "f4b1781236220c26db81e7a9ba5433884b64c2f58c39319b0a11ffd3033b1c39",
+    "src/fabrication/exportClient.ts": "ee217e98ff12ab200bd2a63be25226437ebdb66e4a87ab3c4c05387f0cf904ff",
+    "src/fabrication/exportDiagnostic.ts": "1806bf28f8a7947cc9ec5a3784907c818e2f44f7cf3b37ef18e9b7366f7986ba",
+    "src/fabrication/exportPlan.ts": "e744666d5c68bec4e22234ec806f3f9db9fa0b8144ec2f62afccac9b701827ab",
+    "src/fabrication/exportWorker.ts": "0d9065738f2701daba934183176511227131a59fb91a6aa2302559bf905ccfe3",
+    "src/fabrication/meshValidation.ts": "18a25e2505e782c37cebfb8ed9b2f16c16d03ac7959e6cf9d22b0077fb9a4318",
+    "src/fabrication/stepExport.ts": "f6b172d47f3912704d98fc698e7ce65d62f279ec6e0447f5021c5b1d7f0c145e",
+    "src/fabrication/stepExportClient.ts": "238dcd6b0bb6b3be88782e2ae53fa444c5f86099b1574fdf00e2a4c7e870c19b",
+    "src/fabrication/stepExportWorker.ts": "98d44118e94b74add404d25b5cbbd95a79c6cd822df460f6f2051aab2e008e8f",
+    "src/fabrication/zip.ts": "ae07282376060afb4c1c9d6872ae1b1c7ff6a1ac10b6a90c08f9767f88d5f1a0",
+    "src/main.tsx": "d499abf64e73253dbe9fcefbdc3cc208f229a34d522d817de1644a72ae1d6524",
+    "src/persistence/appendProject.ts": "9820cf6901d878a0f66b17b7a218524d6c36b3b1a28e85082211062a75a124f2",
+    "src/persistence/autosave.ts": "6e6deadd470159d2e8c9c1c6558e2c0fece53b8baaea795fcd4ad4fc8275448f",
+    "src/persistence/backgroundJob.ts": "c28180d1e7210815d037a7258f3bae0cda704df3b6b2545fc6aa4b975727ae1f",
+    "src/persistence/exportPng.ts": "dff613e9c4968a776da70f5e355a2ec47a32d4b3c696c57c6ea7772fb72c90f7",
+    "src/persistence/exportProject.ts": "2f765ac39e6a6cbd010132354e6f6e720e0b11bf3a631f906f7fb4deab8917ac",
+    "src/persistence/fileJobs.ts": "30eded12a398ee3ae4a958fbe59740c764366c90092bff83a895dc0a7bef3dd6",
+    "src/persistence/filenames.ts": "483e461f2e9170653395432535bfe7fe8667ae1169c8f11b9836bbb0d8665743",
+    "src/persistence/importProject.ts": "cd9f357f79dfcd096b7956ed3c5e648d8ea8397eddf1bbfa1051f085f4fbb74e",
+    "src/persistence/importSafety.ts": "b64b2e50d1527a14e7340795267aef49e128a544b0759d2e3acc146efcd2b0cd",
+    "src/persistence/importWorker.ts": "3ac4d1831bb1d167bef843fca3a8d756a83f9ce2f71d345747ab9e5bd1f025e1",
+    "src/persistence/libraryPackFile.ts": "428819b1eee2fbce0cd05ea5a35e296eaa5ce11b32b489747b8974b69e7e078b",
+    "src/persistence/libraryPackWorker.ts": "58a09cdfb683ff177e6fdd5e8eb535a46a3ba9690d1bc457ca947eb876587495",
+    "src/persistence/partLibrary.ts": "80a0a42f570c0d1c4109ef8d5b7e451c3da280d8b8efa565d5134bc26209a940",
+    "src/persistence/partLibraryPack.ts": "cd4877a2ac2bb6a40df0c3f827135b925aee1e863829df1c602a694af6fb4875",
+    "src/persistence/partLibraryThumbnail.ts": "038e4129140499d5faf84dcf6e05990ae145fdb70a4316f3a30276cc5fa4e822",
+    "src/persistence/pngCapture.ts": "281cf0acfcc8c776b769a449e327d6b3a5d508ffb62349dc6dd061ec2f50b981",
+    "src/persistence/projectCodec.ts": "08389fc49aa0673963b22e7ce850df8be24f212db50d7e37fc8dfce896f4db1a",
+    "src/persistence/projectGallery.ts": "1dc2ca79f0e63442071e7f10fc5424a16b17fa475017713ac2b43b1e88feca4d",
+    "src/persistence/projectRepository.ts": "4fdcfe1e3142372557c916a843116e1b51e4d75d581f30d0426a2aec19c6f48a",
+    "src/persistence/recoveryConstants.ts": "50401352d77909b6367c237ea4b51c38302ea1111a9ccc82c6fc5d8a1db9e54c",
+    "src/state/aiCanvasPreview.ts": "e71a31f5d98e9c1bbefa366c73075372f0d894c8480abba3c9451fa33b31a192",
+    "src/state/aiFacePicking.ts": "a891c0098ec6ca791d371aa0a47561611151d59e1ebadf6970a682bd70c31c1c",
+    "src/state/commandPlanState.ts": "570198bf858bf80cfcb2745be6741c2af0792404eeda7d9f267e84cbc8471c7d",
+    "src/state/hardwarePresetState.ts": "5155f8abb7bc5b70d103e45f3593494b1f598a3b494628cd016368e229b1a2e0",
+    "src/state/inspectionState.ts": "fe18d52957841a4531709ed99764ef96426e849f0ec970dcbfea1ad036595bc3",
+    "src/state/sectionState.ts": "4347b064206906d95ce62d1f84cb4f741bfb6e4cc833423e9e143c162b08ff7c",
+    "src/state/selectors.ts": "df940064d196a18e5dd88c2d253d5013f0e66f10a565be435d64214d5f9c3f96",
+    "src/state/shellDraftState.ts": "3316329e67f5cd9312e239146ec7c047c6f749adde4d06d5fdb3f6cbe8b583ce",
+    "src/state/useCadStore.ts": "8d6ef433dff777daaad7683d76ef1c3944f093a00565a6a8dc3d1fe708865448",
+    "src/state/useGeometryHighlight.ts": "98f0982a22509cdebab32f0343eed0db79d60121479dc087daca404999e74270",
+    "src/state/useThemeState.ts": "42128a58c7e0c3a383a42f246e61b6a48e7696431fc6fbbfa7d5ca15eada55d8",
+    "src/state/useWorkbenchState.ts": "f547d6b625099d590b9052353118ba84e23debfea3e5de3c1c32372107baeea4",
+    "src/state/useWorkspaceState.ts": "f46d1eba10fd3dd685ab452c4b05bf12927882df127273e0c3bc39a4473de971",
+    "src/state/viewerState.ts": "221fabd38572b85b7e047104082940e547b61c83b5d260e5a58fc41dbb5a4458",
+    "src/state/workbenchViewport.ts": "06abeaf800489dcd8d376c837b71127d8dbf35e68bd1d1554d60c81577080bc7",
+    "src/templates/mountingPlateAnalysis.ts": "0804108883c8b91daa0ee513746c4c5c5689143a3a1ea00731eeb31a7d93239e",
+    "src/templates/mountingPlateConstants.ts": "6e9227f9a57dc1f652ddc3903b7d6fd6d410499667334de8ad87e5c7d33611e6",
+    "src/templates/templates.ts": "de92096e3b731472a600fe358759fd6cdb43afc9cfd78cc57fbf9ab6c8235ca4",
+    "src/tests/App.test.tsx": "ca07f957f3e8c76a063461fd64a9d73a3bb77d2ed14c7b0ec2575812e76d5fdc",
+    "src/tests/CommitInput.test.tsx": "1eb2b3651bab93f2257c571dc1fa5e5203a7fde52a603a639c01cb56c7d08eea",
+    "src/tests/aiAcceptanceCorpus.test.ts": "ec65056298a70b8a73e0be55749ee55ca6254a16bc8f86c933103587c12150ca",
+    "src/tests/aiCanvasAssistant.test.tsx": "986590eac3c96452ca77296f29fe24e555be03bc461a8abc3fd6e071c21745eb",
+    "src/tests/aiCanvasHistoryControls.test.tsx": "f9e65b7b5976153671cd23f38fb669d30bc72ca4fe6951836d9a0055d56468ad",
+    "src/tests/aiCanvasPreview.test.ts": "f0edd577e8fac4b11f5e6c3728c816e535e87011bda190f99bb0d57b3127dfc9",
+    "src/tests/aiCompound.test.ts": "e9c3480136ec8aa3f653184cc6e2eb6429b286ea1d741a4a0d1a7a84a0431be6",
+    "src/tests/aiConversation.test.ts": "ba2ba1deee02c52062d9e8a90115236e72f677ee4b431a0723cc9a85209be376",
+    "src/tests/aiDrawer.test.tsx": "793db17cd607b5b3536ea869bf4156e40afa1248770bf707ebd2afbda1d0e7f7",
+    "src/tests/aiFaceReference.test.ts": "0374276a8c8fcd49de8ad5bb626071585ccd2553d1dc7fb1c5b57e2d2dedf745",
+    "src/tests/aiFeatureEdit.test.ts": "46c8ba5cac636e130c69e127860a28f490b367a4ad36301a7549dd18233130ad",
+    "src/tests/aiFeatureFollowUp.test.tsx": "d80034ecb79e1b22ffc870f4f5dcca46598b3309a82615732a0935d7a2cf7b38",
+    "src/tests/aiFollowUp.test.ts": "065413fd54b99231938d8d23bd9f0e6ac863c9bbdb7c0e35b0f8c8725d5abb13",
+    "src/tests/aiHistory.test.ts": "b58ba7fb410c7af1281999ea3aec93a5782d119e845e12bcd1ba76eaf838bbbf",
+    "src/tests/aiHistoryEnablement.test.tsx": "f7b4ce888255563d684d11cacf76e42dc43ce13ad476a0e8ee0a1f056dbb33e8",
+    "src/tests/aiMiddleware.test.ts": "1528c0c8f1d906508cba6377bd6951cb76ee020edba266ddddad31de7dcda697",
+    "src/tests/aiPlan.test.ts": "39992249c9140977503dca2e87629728fc92a00b9c40f9b1fc3bb78ecf6c99ba",
+    "src/tests/aiProvider.test.ts": "70f88f02fdce8071ee501dcaab6201beb0d7de00853d7020882c50108bc0a51f",
+    "src/tests/aiSelectionTarget.test.ts": "f66cb04aae651be8e19951b6aecb84261e3ad613550150c0da13e47074792d26",
+    "src/tests/aiSketchCanvasPreview.test.tsx": "cb8b0335e0a89bb1546c4e8902ca2f871bbeaf1d354670cb907ff59a4151779e",
+    "src/tests/aiSketchIntent.test.ts": "d3b9878d74cbf5d60a63fd6a07d177c0bcda73385d7ca638c3cd14d7650a3e9a",
+    "src/tests/appendProject.test.ts": "73e549d6b45b7720cd2c40faac1d5faa021d1c39f8af4ae73c8cfeaf39e12b22",
+    "src/tests/assemblyJoints.test.ts": "2ebbec67e7823f921b3d54985d2dfba7bbcaec1095cf180e073a1bff1487a880",
+    "src/tests/assemblyMotionCommand.test.ts": "2be7bc61bd1a6c5df97a4413524e861e8efda62f41521d4ec4011f1035d0077d",
+    "src/tests/backgroundJob.test.ts": "d4dbaface945636f8e3f27e51c3153209d1eba02f7625ffd0da3b188f186ab73",
+    "src/tests/bodyDisplayNames.test.ts": "0b8216d59018a5eb37b77043a5f72f10374e55935d5c401cfc7b7305808fe4a0",
+    "src/tests/bodySelection.test.ts": "14969c0044395262b5f8dfe9897633e87c49e21814f48988738203e9374ac1ca",
+    "src/tests/bundleBudget.test.ts": "ea155cab1ad7e53975fd3bc67d53b5477aac8864056a27c8bcfdd5fb2652da45",
+    "src/tests/cameraFit.test.ts": "5f2d36825609baa3216c1bb192fe19dcb6039159d35cb13050ebc2040bf6bf8e",
+    "src/tests/cameraViews.test.ts": "f5fb09223f6baf9a6e985556d33653bce5676ef0624020ea6f58dc1430016ee2",
+    "src/tests/canvasConstraints.test.ts": "633328c7b56353645b1e63a1c0888784e512fb09b6480244e359daed514e1fbb",
+    "src/tests/canvasCurveSnapping.test.ts": "2550d9e5c684850ec7e08968c44098f1612b453f83c9e9be00c65e307bdb70b2",
+    "src/tests/canvasDeformation.test.tsx": "bcda726a72fbca1dd2c7b31c746cd49d1405f64903780241c8835d5e32cf51aa",
+    "src/tests/canvasDimensions.test.ts": "5184e4bb2903e1d76753f3e03747ba3526187e749427198741a24c7df72d2e97",
+    "src/tests/canvasLabelDrag.test.tsx": "68dd06300a56877ea5447eef8c3a5c056f4addbeb07e02fb59dd043df5f54f94",
+    "src/tests/canvasLabelLayout.test.ts": "d86019c38861be54644c8d482738356436e8230715eb2fd10cf87bad9e09a81f",
+    "src/tests/canvasPointMove.test.ts": "06f8dc4f4896777fbd312a2f3deded7b1306a5ef9812214c81c1b798f8d5285e",
+    "src/tests/canvasSelectionActions.test.tsx": "66f0befd370c0dc89fa7f92dc274ab8269ab5b15bff6a147bd829fea3e680b8c",
+    "src/tests/canvasSnapping.test.ts": "dd806dff6e8f368b741e7d78453493b3e3981de1219195903be358ac4316ee1b",
+    "src/tests/canvasTranslation.test.ts": "cf45fb5665c1dee31caf84aa953f4567b5889ebd0b1a2b222e004ab9fd692e7b",
+    "src/tests/clarificationTargets.test.ts": "45fde1b4c8f4c2499f940495f883fe7f302b1ed42f2d898fb9319bf1dfaeb464",
+    "src/tests/commandAgentMiddleware.test.ts": "1966d4883a22dc94293e7dae2224b863a3f43966ea4e68239ee7dddda9a414ca",
+    "src/tests/commandAgentPanel.test.tsx": "5c3c178c45cda31ca562044d03dfa1304ed1cb61942694a7e92bf88aec9033b3",
+    "src/tests/commandAgentProvider.test.ts": "adf873159f8ac09f4291725f48f21501d45eb2699071ca80e0488da3b288178e",
+    "src/tests/commandHost.test.tsx": "d713bb344fc25208ceccf6e5072d391fb7fbc56be235596bb621598d6aa4daac",
+    "src/tests/commandInstrumentation.test.ts": "1783c1756206fc587048e2304ea1525fe61c7f1f599d16f63ce44d5c60b50824",
+    "src/tests/commandPlanPanel.test.tsx": "6e98ae7558999be95154da78d9f750c758bab179602a8f9f09e43922fcd73cb8",
+    "src/tests/commandPlans.test.ts": "89ee1b1700f6bfd99e4e954751d284152f969094cffcef9323bc129f330b36a3",
+    "src/tests/commandRegistry.test.ts": "f28cec2d96064a2728ffcf0d5539ea6c34b714f29fa7a2474c3d3a21c7f6cd52",
+    "src/tests/compactWorkbench.test.tsx": "823b1bbd7c28859e92be15b943dc6c8dada12da6b5e66eac8d41a760c3520d2d",
+    "src/tests/componentAlignment.test.ts": "811f7f6e62cacb8084303df68cd0af993b51acdfb52d2da3ab5fe2f6b45e2b56",
+    "src/tests/componentNavigation.test.tsx": "b8b2e031348f6edf2c3fc07f33ecec48a477ebcaaa4be0c2546ed2d3463c6bf4",
+    "src/tests/componentPlacement.test.ts": "9d8b8ce7c2b0e9aae839aa906841938bd241e289290a0c9515a1789cf1e83f8f",
+    "src/tests/componentPlacementCommand.test.ts": "0091b12bf09d8ddcd9ba6b83440dda3f99b465e43e5823ca941141bfa22b7f07",
+    "src/tests/componentPlacementHandles.test.ts": "79897cdff30fccd551b3b8c9683c335b5854e580ea292997b501c93434b426fd",
+    "src/tests/componentPlacementPanel.test.tsx": "73fdc230d30b26e2ca13407244bd16cfe3a729d4897a9d9b2a73bc294dd70e11",
+    "src/tests/components.test.tsx": "d0d7a3cf6cd137b8da829e2123499d531799719f2e5b2815af39f2db0b244dc0",
+    "src/tests/configurationPackage.test.ts": "05ca8c424234afb3dfb19d0ef56cfb87f20808785094de119c8c66e4d1e92733",
+    "src/tests/contextualConstraints.test.ts": "8b567399b2a3e4c31744cdd03e252175f83207ac7d0f987d57ede682ce3f171d",
+    "src/tests/contextualConstraintsPanel.test.tsx": "e3c1aaad1f710fa9702457f5b2e910cfe8a5a53d316cd44ca7c725bb924583c4",
+    "src/tests/contextualIntent.test.ts": "e2c032bcd4ab0c64e6d61edf65e1801cc4333fd99f6cf95534b4979d64230d26",
+    "src/tests/curvedFragmentation.test.ts": "3764cade78690d7761a9fface784c1295be65e010decb9587792f0d800d1c657",
+    "src/tests/demandRenderer.test.ts": "127164cf385ac3ce42b47d6bd6feff94d61d268070d0832b546b2b11ac71232f",
+    "src/tests/dependencyGraph.test.ts": "616897e7814dc56b8eefc5407794464c227d7faed7533da07a1d71637373f4e6",
+    "src/tests/directSketch.test.tsx": "0ac9664733fea06f03b59f5cb537950b395393f652a35dd08a127d260eedeae1",
+    "src/tests/document.test.ts": "c19063aad04ba28aef3b30d26c4f6d87f76a075008ad8529b22c0a41d6aa9c5e",
+    "src/tests/drawingClient.test.ts": "52bf7b6a9a5fb285b9f65f1f14984de0a809469ff7f459c160ca330111ced416",
+    "src/tests/durability.test.ts": "b13a00d0dcec469977d648bfe714470d18b93d91a423d0cbe6c91375b329101d",
+    "src/tests/edgeDraftControls.test.tsx": "41a04bff1e47d2c5cef708a23ed8931b92577679615e3b5fe876326c2e4f9f09",
+    "src/tests/exportHub.test.tsx": "56cd876903bca0972e2d0e659f6311c7e0ea8b8b13ad69e79c86f20648e7b156",
+    "src/tests/exportPng.test.ts": "4541fb9bfcfb216744b75203dd3a890e318cc10c95219b958e5329e19e89fe39",
+    "src/tests/expressionEvaluator.test.ts": "fe059d63ed1dcc44924ea8c68d565c9abb044dd1f5c39867f1e69f3e7d29819b",
+    "src/tests/extrudeDialog.test.tsx": "70584d2b83ba54fef37411d71dde47eab100a9f80edbea1a22c141dac923ffe9",
+    "src/tests/extrudeDistanceHandle.test.ts": "3679f5fc10948fba3bd4f4f30bef487deec4aa02aaf1afc4d74e0fa27e8f489a",
+    "src/tests/extrudePreviewHandle.test.tsx": "9f83b5f90f17bef06a8d829db954df0a6df25c9963add8c752020f245facea1c",
+    "src/tests/extrusionDirections.test.ts": "7537c73acace07177e30246a629c433d94d9da8ce841e292a8068b3949c50d48",
+    "src/tests/fabrication.test.ts": "73d3bcfb966618a286756732eee6dc5cbb3ee8d43ba465274464457fd000ebee",
+    "src/tests/facePocket.test.tsx": "9d0aaf0cd84c4ea07328ba96d8145d683c8dd1ab471421d0c3c8c8165db0a880",
+    "src/tests/fastenerPresets.test.ts": "ae26f7cc0927da827885f9288912a30aa136a262f1cb8759b295cf82a38c5735",
+    "src/tests/featureAddAiProvider.test.ts": "6b1df3d4e3845a2f4e63275006e84fcc1a1267d2a28e322b4dd7f652c7a1c505",
+    "src/tests/featureAddition.test.ts": "f8f40ee594ef715e686f7f7030cbffa517fced8b1c6f56759364dbd57c39719a",
+    "src/tests/featureGraph.test.ts": "b31c216f8b471533afa34a7d877e5216f38ac7975fbb5b673076057dd3f87e8e",
+    "src/tests/featurePattern.test.ts": "70977801e37bab6b02abf932e0fa07486bf6337ee05881abc48f956a4e4245e0",
+    "src/tests/featurePatternPanel.test.tsx": "6114242f64c4de45a8f49c14e57a8e53ef186f128d777111bf011eece39537f4",
+    "src/tests/featureStage.test.ts": "e0d6737ac0cbdf2099897f8101c1a437830d3ca66b1101b7d4e13fed00fb28ba",
+    "src/tests/firstPart.test.tsx": "6e4fe3f0a236c669bd9f74dbb586ec3e876d5eb2d6d3ff2a7ca3f89f4aca5b56",
+    "src/tests/fittedPart.test.ts": "9429870ebd5855d487f2a2505bfdd46eddb6ad43097163a1d66bd3f5715111a8",
+    "src/tests/fittedPartCommand.test.ts": "54fb96f3bcb972a780df2dd60b00168f642eefb3bbcbb06806c544b5efad0328",
+    "src/tests/fixtures/aiAcceptanceCorpus.ts": "3209e7e24dd548b9ec787f9dfa252d64f7df6698d5b0e88225844a4c1bffab85",
+    "src/tests/fixtures/aiCompoundPlans.ts": "96e7aff622cbc952d6895f7f993c2fb55c6c0fc7140ed13d63e24fcafe1e7479",
+    "src/tests/fixtures/aiExpandedPlans.ts": "fc50cdb90dde8b2beddead5f6f160de05ab440cc320ad0094129cbc2612a0a0e",
+    "src/tests/fixtures/aiFacePlans.ts": "ac090b7345a39dfafb45aa9d61612e23996b879eaef94cda2a8b8bed754017b0",
+    "src/tests/fixtures/aiPlan.ts": "ad9330adff85cd4c8d20edd619478871bba7e8c0dd408c676d890e9600287351",
+    "src/tests/fixtures/aiTargetsPlan.ts": "b6c25f5f3439adbc46394dc46b366f7d14d1bcbc8dfcdc3e30010a8be8e7abab",
+    "src/tests/fixtures/machinedReferences.ts": "c2b3db3b1c129950bfd824ace6bc9bf2430eb46155f9e88cff79fc576405a024",
+    "src/tests/geometryHighlight.test.ts": "2ad3bc03c72e977e868a0655ccf9ef355a572f03ef49bef95e66952e10bd9b08",
+    "src/tests/guidedExport.test.tsx": "2ea96e4ace21f94b53d17e5956ca82d63b42c667861008d69c7d16f68fb19dcc",
+    "src/tests/guidedHoleCommand.test.ts": "6e554a03e67857cbc6b7400fb31527f3cbaa1c98020918b3de561449b9eea1c0",
+    "src/tests/guidedRepair.test.ts": "2ffce7f71d6389e8ea254e6284e6e8d665c33ca966c488f6963271c89d8b9b20",
+    "src/tests/holeCommand.test.ts": "773ad38e8518df9acfb957e4c1124b018dd7f1e9945a2d347fdae1682fb4c38a",
+    "src/tests/holeDirection.test.ts": "42dbb244e5bccbb3478e60cd982ba8377b9e8ebc46a24b0e2131572225654eb9",
+    "src/tests/holeDirectionControls.test.tsx": "a62987ad9cfe1e9d3ec85a73e2c0309cfa3d9837afc2d749b92607d311cbbe23",
+    "src/tests/holeEditCommand.test.ts": "afe33e86a9b31a1006cecf48ae1f3bb57e0bb8cf5659f7d279cd13f00acbabd8",
+    "src/tests/importSafety.test.ts": "bcdd8d4c74c4392a91541e8441e202f755bbaac1fc4cf948228ac11b140db85b",
+    "src/tests/interactionDraftGuards.test.ts": "70ac219987ea20f3fa933568473894e68b626eefd103af98b70fb3710c87359c",
+    "src/tests/kernelLifecycle.test.ts": "23a400a8a0022ac2f8400748ad88aa058466cb8bfb1b4ac095397469b398ed31",
+    "src/tests/lineFragmentation.test.ts": "f7617a78ef428dbc149b67542bc0360d5f4e7cb846a83873ea59e0e7bc47df7d",
+    "src/tests/linkedSketchCommand.test.tsx": "18b432399df8d6f62377f4e5a7e7107e1e85e3c33e7f4019579df92a20b1cd4f",
+    "src/tests/liveSessionClient.test.ts": "14e9a1b7041acee54648f8d95e7c2f27351d163bab40b8df40ebac4f6dd994a0",
+    "src/tests/liveSessionMiddleware.test.ts": "14f6617dd3adea172997f5b84f16929f2c305c57edb4b71bd23eef0379a8896d",
+    "src/tests/liveSessionPanel.test.tsx": "4301874753978e41c2c8699f2dda35811d64778e7ffa5b802236eddb28add037",
+    "src/tests/localTaskPreview.test.tsx": "7f99e5e79b161bd1a568acc2bc5ba7b63799be5872df68587e50be0fc47406b3",
+    "src/tests/macrosPanel.test.tsx": "aeaa6663d410518682abd2b56fc834adfc1c550b01497fe75adc1fc613163472",
+    "src/tests/manufacturingCoach.test.ts": "a58de045d6700b0e32ef45d27a1170b770f786b0f3b82f0fa647f20fb6b37118",
+    "src/tests/manufacturingCoachCommand.test.ts": "349b41293e06327186e6d77f6648ce7d3bea17d29737ecb0fa9b8573fd6490c9",
+    "src/tests/measurementPicking.test.ts": "95115a129c95965a8dfdcc4e95188b17221d9ce826b19375f16e92ee028eb509",
+    "src/tests/measurements.test.ts": "9988cdc2324134bb2814e32ad7dbb75b6f80ee0336f135b01bdbb2ac2e0bc64e",
+    "src/tests/modelMeasurementPanel.test.tsx": "6228430892cb53182a8540d6b0efe6ac718685a28405d847546d6c0d08789ba7",
+    "src/tests/modelMeasurements.test.ts": "bb371ede4d968e0b84f09aa83cfd53472a3b4dc4b33ccee54b081926beb4d286",
+    "src/tests/modelMeshes.test.ts": "b59088ba024086918f1d84ea188fa6eecaf2c25d42b6611db1e7d583dfea4c3d",
+    "src/tests/modelUpdateFeedback.test.tsx": "ab3c84f2e61302f111c7bb24b0f5aa883af4aeb34532ded5b2486417013703cd",
+    "src/tests/modelingDraft.test.tsx": "8b450984b352113723b6ff294e459b7bc1b4962390e9b1f0f0c3df485144ade4",
+    "src/tests/modelingEdit.test.ts": "6f0744f13f08cd6d6cfa9e5bcc2581604cbdcab927097537192d2504c816a89b",
+    "src/tests/modelingGeometry.test.ts": "bd5ff86de3c23085824ce305997c863fdc285e43e7642c7d8d05f967fca35d26",
+    "src/tests/modelingMacros.test.ts": "84e92c28ebe1d8c24794515aa2f185b657e736efc580cb2f7f182fbbf8ac8bd1",
+    "src/tests/modelingReadiness.test.tsx": "dd27a2a5d3add9e53efc31e1e6639458a9edcf1ce8dd3ec16adbc814f98d9696",
+    "src/tests/modelingTask.test.tsx": "7be06a4ac7c6165a86ec3d731e7f1af670f39d1abf9c5c1cb48c8ae02f796243",
+    "src/tests/multiBodyCuts.test.ts": "b2f8411636c124c0328132a3bb9b1a53b1f6d146edb56678df41f02544b72f26",
+    "src/tests/multiBodyHoles.test.ts": "6896162b839cf45ae1511382cc18aeb0e5fd848ea156ab0664ee3aa8cf20b46a",
+    "src/tests/multiBodyJoins.test.ts": "0f9f10f2112e070bf4f302d9da331576ba766056eb714cd403267b798c83483e",
+    "src/tests/nativeDrawing.test.ts": "4588b09f174ac536587296e1c07be693cd316485fb5fb839e6818d8cad14c61b",
+    "src/tests/nativeEdgeProofCache.test.ts": "c013d959d79f594e5c4f12c3e08487f67cec25d43e149bef4b15244335ccb937",
+    "src/tests/nativeFeatureCache.test.ts": "49d5db0acda7eec52fd27c3024fef82765687d9dc067d408956a0fdb3f865202",
+    "src/tests/nativeFeatureSignature.test.ts": "088d31310c4e317a3f379d4fd3815c9dbc5524c14833cb96bae2eb4609a27bd9",
+    "src/tests/nativeSketchPlanes.test.ts": "7324efb759000bc3cd4d9eb5f6ae42fefd632755d5c926e35a5eb9a9a63d2d64",
+    "src/tests/nativeStep.test.ts": "65e6f5c865cba224f66011589e95ca7067ed50293e2e1e5ff3eb2b5bcc77f95d",
+    "src/tests/offsetContour.test.ts": "dc7c3536766b42d665a1a8bffbb7c0836ecc2425ed7377b4d97125b21873adf1",
+    "src/tests/operationDrop.test.tsx": "b3a272eebf3d9f88ec367041aaf9492175a9f6d65bbc787744603af9b235ff86",
+    "src/tests/parameterBindings.test.ts": "2b6d3fe77f44f38f02f856a8648a11096b50d20c1b38467b13683692031e9754",
+    "src/tests/parameterCommandPanel.test.tsx": "7465301506d4e554ee6b42634265984f44e58bdfce4fa2c6c922ffdb26c69851",
+    "src/tests/parameterUnits.test.ts": "4534f9d2b3831c95bef571874de35fdc7567c01483af5abc66937078100db689",
+    "src/tests/partLibrary.test.ts": "f01b5a04013e34d9befff447f06de164513fecedb596dda3d2e4902849e06f04",
+    "src/tests/partLibraryCommand.test.ts": "fe48a9d7dab89c6f387ec0cced818d3aa5668689b22066bfd70a635be13072bf",
+    "src/tests/partLibraryPack.test.ts": "ecbd0cdb87a88cf2864ffc2096661224ee5bcd80a1272f2b603442d725099b32",
+    "src/tests/partLibraryPanel.test.tsx": "bcbe4ee03c99d82a6a41d30fed3d15e122fee0cde6c5e76012acee3e1742853d",
+    "src/tests/partLibraryThumbnail.test.ts": "b47c6f622158fb0cffa91f99539a7fb27a07c50e50c90c087ecec28661cbb7a2",
+    "src/tests/partLibraryTransferCommand.test.ts": "7ac6d3786a3b2c33798a7bee90ec1f5c5a084c050f85ac485247f9cffa041e25",
+    "src/tests/patternControls.test.tsx": "031ce36aa1cdc78ee3567435ee7f2c7a896690937e29830e290644259493e975",
+    "src/tests/patternManipulation.test.ts": "ee5d7b81410c7aac027d931ec55f09e89c896987a4c1f1b48bfd865a24ddec6d",
+    "src/tests/placedSketchProjection.test.ts": "f59dda8a3d95028ca783c42d4e1a6113974e5b617f3308289028e7b131a32f50",
+    "src/tests/placementSchemaFixture.test.ts": "caeeaaf80b3b3c1863d867626302a87f6428d3b89f26a45135e652527dca0fc0",
+    "src/tests/planePicking.test.ts": "54e889b373a655796d60cee62a2ef781c3f8339bdf9103bf01c96a7d2e1fa9ee",
+    "src/tests/productConfigurations.test.ts": "fb5dac7c63a1d056bcf7302a617659f4ea15136b6e0237690a33b2408ff049fe",
+    "src/tests/productFamilyCommand.test.ts": "31aa36f68355332b175a69bc2cd8794b1004092e4b9d71535ab30adcc154b929",
+    "src/tests/projectFileDrop.test.tsx": "dd431e94349f1f3246fc20fea26408820c55e3ceae613f2746bb1a9cf1669fa0",
+    "src/tests/projectGallery.test.tsx": "a705c3a5da56926a1dc45e59ee493a0c58e0b0ab25cdb8f0941d0f6ba18136c8",
+    "src/tests/projectGalleryPersistence.test.ts": "6a05e4f7330c331fd667ef73ca5a3bc2f23411e534a012f633f3810ace49208f",
+    "src/tests/projectedCanvasSelection.test.tsx": "c46b3367ebecbf96d13f98538e4bc63d690e67097a011e9d8e69a02ec887add3",
+    "src/tests/projectionBoundaryPicking.test.ts": "db994f4dc32ba82c092e200d825f338a181ff08fe4fc87ad28f8a285266a5239",
+    "src/tests/projectionSchemaFixture.test.ts": "f64af3ee929b51d66a84621308dd1b503bee3c85e581db405c25867d54023aeb",
+    "src/tests/projectionSourcePicker.test.tsx": "edc550694d7bef89f11c9ee05db9f433c0cce2caca5b3b3a4606c2bde9db0949",
+    "src/tests/providerSketchRefinementPanel.test.tsx": "023eb568e9a12f600b6a35efaf8115b2d67490688c6357d5820411cba315945b",
+    "src/tests/rebuildPersistence.test.ts": "0a284db1ca55bd0a342dc347a95453e25d256d5308ece28dd794e2782bf13b66",
+    "src/tests/recoveryPanel.test.tsx": "beea8bfbff93cdce7cc0040ce9afadf0eadbc77b9cf3739a75c218ab9592a64a",
+    "src/tests/relativeDimension.test.ts": "38b7a982edcf46da996ed61072d3b4249804049a0680cb73f6ef5517ae816785",
+    "src/tests/releaseHardening.test.ts": "b533fe692f4e60b63ffaf37d580e81b1e194417e2ab58a66d5d394e6b7a1539d",
+    "src/tests/renderView.test.tsx": "084a6b3ac01699581dc53a417b3dc9e95956d4b9d010e4840f0930c46ecd20ea",
+    "src/tests/reusablePartPanel.test.tsx": "a12d6720750f27030c5115561dba38da5b0818b9a1db135d3fcf39c9c72413b2",
+    "src/tests/schemaFixtures.test.ts": "c568d18194710dd2b5949a5edb0dc4c64923a4b4c49e1375a0079161bfc0a831",
+    "src/tests/selectionInspector.test.tsx": "d8dab5dc23cb21addc294c9aa07b491521349c263ab8801395e3ab05d87de902",
+    "src/tests/semanticCadCommands.test.ts": "a558dbf137a0c1ce7065e932964b6a2a075ceefe191904281d9d832d567ad2b8",
+    "src/tests/semanticParameterDiagnostics.test.ts": "425e8c31c914f1ba7d997f8c3f1ab076132480d5e75b72a36fb7202fca16fd13",
+    "src/tests/setup.ts": "efcd3b707146cdcef297325821736f2b564c48294c19da84fab920c0471cb544",
+    "src/tests/sharedCommandRegistry.test.ts": "604f2d4468062eaf478052868525093acfcdd232fc03374b8b08d675fcb6155d",
+    "src/tests/shellCommand.test.ts": "4d2343f5b668794f7bee482f7b4bbb15ea7a4282677ea03fab8767a537de6894",
+    "src/tests/shopDrawing.test.ts": "613fd17df6980d108ae751267d1cee3d0e3c4b48af29a99f4a1c3ba04139c43f",
+    "src/tests/shopDrawingCommand.test.ts": "bccab44ca106de58a6d385cbcb65bf6bb14aadb38d27ac6db4b027198c4910fc",
+    "src/tests/sizedCanvasGeometry.test.ts": "2d34bc5b7dc4efbd108ee748ecdfbbf26c825551521422a7558dbb0c2a2582b3",
+    "src/tests/sketchAiProvider.test.ts": "919601f735cd8e6a751d0702b8d2d11b50205d7d0b6c05d027b6568f4f1f76b2",
+    "src/tests/sketchCanvas.test.ts": "f91ce26887c40b0066b89268db8800960857bf1dea12a90325e35a401ec2d55b",
+    "src/tests/sketchCommands.test.ts": "93dacce2aac65dbbca6b1d7a19892b9080220a3c3d68ce503bb8034c344045be",
+    "src/tests/sketchDeletion.test.ts": "325cbab1872d2bacbfbfdcfc38223c6a7defa16cf6879c0f059ab7c75dbcf7f8",
+    "src/tests/sketchEditPlan.test.ts": "5655a4beaaced007246ead0d4d2360aa918cc6d364bbfaf2885680b25672d2d0",
+    "src/tests/sketchEntityReferences.test.tsx": "1c0d2b4590a470c50db59f16b9eb6b684ee135e998fbd12351cb7a5628cf8eae",
+    "src/tests/sketchFoundations.test.ts": "6ef64cb48ecc35f3027f25c615bc78834ffc628792e37af71b0c3007bcfe35d8",
+    "src/tests/sketchMarkers.test.ts": "d60cfbbe1322f399a9c02f2b982826c5de5d462b788c14ad2fe65755e4e82d11",
+    "src/tests/sketchMouse.test.tsx": "95dea764ab9888aa839e08a84601ad0ec385bf8f0d743c111c275f8f94985ab6",
+    "src/tests/sketchOffset.test.ts": "80dc4681b2aa84bc896519ce5b5fde129f6f327f1e59e0e767acd548bad05fbf",
+    "src/tests/sketchOffsetPanel.test.tsx": "49e81394bc88d5aa47515d7e1bc7a4164de1723ed461f01ead018967026d4ee5",
+    "src/tests/sketchPlanes.test.ts": "05f5ad4ce0deeda5de848cb81322137340e1b3f38833fa5755357c52842f6b9a",
+    "src/tests/sketchProfile.test.ts": "ffb723eca98a89cbafe1f4396c69a701985e31d2169be951f4fb456397307c7b",
+    "src/tests/sketchProjection.test.ts": "dc0a4fb22aa7ba2beb3553546ee4a262bd86ed96e54dcfa382357cd33e2d8d89",
+    "src/tests/sketchProjectionCommand.test.ts": "b4c24907379b6b73f261954931e4765f5848306245e1c0f1497e5fd48a7e45aa",
+    "src/tests/sketchRefinement.test.ts": "fa4f073e300a3e75c7f825a67ef3f926386febfc31b8cefb5ed7404eb0d5fe38",
+    "src/tests/sketchRefinementPanel.test.tsx": "a6d18490fe2e80e32596bcba75aa2a23d6465cdfad89cc1610c040118e19164f",
+    "src/tests/sketchReplication.test.ts": "9d6962bd8f2ac9c0e312adf7851a138154473915827b1b56013221ba93ba0744",
+    "src/tests/sketchReplicationPanel.test.tsx": "f717e81eec7c3a867fc217ec38ecbf8ce6785292b4dac418724f3922287b6c77",
+    "src/tests/sketchSelection.test.ts": "6928c184e9cca776e987fc57922a21c0b169fc964b4f3c1e98b10e515c06f38c",
+    "src/tests/sketchSolidHandoff.test.tsx": "6a3955f963336fb44c9aa61e38d0f664959a55ffaa0e35d1de6ee107da726305",
+    "src/tests/sketchTrimExtend.test.ts": "1bdb6f5a34fca842520b1ecef4e2707be6578cccadd61c709f6d6f5ae5edd517",
+    "src/tests/sketchTrimExtendCurves.test.ts": "c80cb70212453ae6be90ea366351768af7ec102a9caf77dd2d5c9da3d5383bef",
+    "src/tests/sketchTrimExtendPanel.test.tsx": "668c87c1ad808551a41756ce82a27f7cca43417a529a327ac190e184ea5135e8",
+    "src/tests/sketchWorkspace.test.tsx": "8db651b9ba439df039bbbc409ad11c70eb894f4350283da7b82b84c3505b6711",
+    "src/tests/solidDimensionEdit.test.ts": "dab54acc0df5b121761906ac0f0b236b7b1cb275932aa8cf5b95fbd1249a2332",
+    "src/tests/solidDimensionEditor.test.tsx": "fbca39a0a014c27ad672328601e0ab3fc016540d51089d234b635cd73a520175",
+    "src/tests/solidDimensions.test.ts": "5dbc0a5b36f44f22c0e465aede84a48b2fbb6eebc595eb357b176fcab014c4e4",
+    "src/tests/startMenu.test.tsx": "ce9ae9135997ec85896044b6a567e7dc7bf27830f5278cbfcc0372aba21fe650",
+    "src/tests/statusFeedback.test.tsx": "7ad83cbc2842ace3647550adee074d6b2c9b2c337c072d7a2a712f1c5602d508",
+    "src/tests/stepExportCommand.test.tsx": "213dd5de054ea82b4353c64081d73943cfe88da0d20de3759b6adc69ec809c24",
+    "src/tests/stepExportProtocol.test.ts": "c0e497bd48b976eb2cedae40b1e8e1d5fe600c7741019f83d1eb9965a8f7c423",
+    "src/tests/stepImportCommand.test.ts": "b05900b943efecab17672aff55d4c5c3582333be84bf19358e8dc5733a1d30b9",
+    "src/tests/stepImportStorage.test.ts": "4500775b6e80b9167a664201864584e5204ca787330e8d587493a4f53a131022",
+    "src/tests/studio.test.tsx": "b883111676fef13a2676942713a5d9589444592700c83c72b80d4bb88d1342f3",
+    "src/tests/studioCommandFailure.test.ts": "7ff4d6a10df62f6e4c71c75c24b169c168e2479cb81c24dfbb4938fad64a0dd6",
+    "src/tests/targetScopeCapture.test.ts": "c397831ae01f173676bebcb55a3943f90708d0fcad943d70b0206bd3ba967f3a",
+    "src/tests/themes.test.tsx": "cdad1e30166146cb4e94f3c5c0944f6d662be0afd4f94aa4e18fb78164a25d1a",
+    "src/tests/timelineEditing.test.ts": "2603741e17e2534fda73122544834ac96a34ec9f329028d506932541a9d6afb9",
+    "src/tests/timelineOrdering.test.ts": "4366516ef436d748bf76553076338363f38a5798695bf9dbbdd633610984523e",
+    "src/tests/timelineStory.test.ts": "c65694adf520e82a1908795e0feaed94cd015b03b96e8a86c83b54c322c6d493",
+    "src/tests/timelineStoryPreview.test.tsx": "48fab349cbf124a9ede36857d83f7e4840d134178302493b4633d9e9e907edbe",
+    "src/tests/timelineStoryThumbnail.test.ts": "9870d5cf8b1122354defea480d530daad59166e8b1b7f1689a5f9b4b72bb0a71",
+    "src/tests/topologyRefs.test.ts": "d4e200dfa3e48217f4cf11056d53a3befbe15d1ff59b65c875d9284232751f6f",
+    "src/tests/workbench.test.tsx": "5e124b6aa1833cefd262309b75abc075275ddd13e5d787ed0f950326b90314f1",
+    "src/tests/workspace.test.tsx": "72a5187d2a88eb3e28a52319c827ae2e545698d7dfeed517d318e0ac1ef23980",
+    "src/tests/workspaceTestHelpers.ts": "d9eef7ea163f0efc462883023573cb4ef374bac492fcfdaf1bd2c28865e8a2bf",
+    "src/types/opencascade-js.d.ts": "1a3dbdced350733026436b7168f78532bc92b3da1fb7d1c6d02ce055e1167b09",
+    "src/ui/ModalDialog.tsx": "a19fc2dd7e424c9f8e5fb26daee3c829d6bcd14619d45f2d88c0ea88d780192a",
+    "src/ui/commands/CommandPalette.tsx": "0dceff50d8af3d165ad8f920f79226d6a9a79580ac231f3d5dbf3d43cece16e1",
+    "src/ui/commands/aiCommand.ts": "43ed5e01ca59abb7b12402768f990550684872a177b8a5de3228b0f6e3edc506",
+    "src/ui/commands/aiFeatureAdditionCommand.ts": "7787995af3ff329bc16f49dab44a4d5547c47b681029ccb46f4fc23b848a11bd",
+    "src/ui/commands/aiFeatureAdditionState.ts": "564b4ccdbbc06b3cf448e20d409ef82e43fcd872a36aa072e7040e64f9936947",
+    "src/ui/commands/aiHistoryPrompt.ts": "fd459f47af4c91dede9228dcc02e91575b33cdc704de4ab976c379b20be23c28",
+    "src/ui/commands/aiHistoryState.ts": "2e1fd9da64ad5bfd2630da08f7a89c64fcebfb1543951032f95659d36aa77405",
+    "src/ui/commands/aiSketchCanvasPreview.ts": "d846a76e08c04b665bf245cd12190dc22763f8cc09e581174c12a00a84fb9d25",
+    "src/ui/commands/canvasActionCommand.ts": "abeec25cefb32573f4de884555bbdb8e120a175f0fc6a51c7927b6ab35bb7e32",
+    "src/ui/commands/canvasActionTarget.ts": "9e92393e622b8d25e5b44017423e18d436085a80c34c62258bc64d58e204c244",
+    "src/ui/commands/canvasContextState.ts": "04dd38a957173ccba5ec350628cb8bc086d1b218b6451edf77880f8aa545d61b",
+    "src/ui/commands/commandRegistry.ts": "4ce0dbfa89a534703a4328e17692b9745a94c50f15969b1356b4e42bbd7d8c96",
+    "src/ui/commands/componentPlacementCommand.ts": "7e82348602484815328cab39f4e473a8a820f329e7b903c15cad9048b0432810",
+    "src/ui/commands/componentPlacementState.ts": "e90b3b140c017e7ce9c01e6dcc1a0180b6ccd7057d8cb6567755a96b2d6dcf3f",
+    "src/ui/commands/configurationPackageCommand.ts": "40d55883f6f47ea4ac391809b832fba125fb97c9b8f776c4d42a56dee6270d6c",
+    "src/ui/commands/contextualConstraintCommand.ts": "db533f3e3e98683d8e723c838f9ff101aa13068116403d7dd1c18d1d3e6db18e",
+    "src/ui/commands/exportHubCommand.ts": "e4fb12bb672a34ac6c2540320b2211ef07019327123cf8486fbd37d6facf723f",
+    "src/ui/commands/extrudeCommand.ts": "2803608f48de5f6a8350fcff9aa0cef0ad047d523bb6e2223d2604172cdf9dbc",
+    "src/ui/commands/facePocketCommand.ts": "fc762fb235e90d660ba6ae034a7ab409487e4bebfe6a5f2d8915f3448a75c8ae",
+    "src/ui/commands/facePocketIntentState.ts": "aff5128052d2a743de7e6a31d3df15e38b46fa7fde5ff8f4cd56e2f351952d7a",
+    "src/ui/commands/featurePatternCommand.ts": "677c922836d459d17a732224e6bd76db39d69f978163afa6062ecb53ff7d7120",
+    "src/ui/commands/fittedPartCommand.ts": "6b41b5f9c621f8f4c2f8d5f96cb784ca9ca63823ba266bf5c98c37d45daaec69",
+    "src/ui/commands/fittedPartState.ts": "cd1e015baaf12be4bb054c269d1422c09c988ae3f46dfa605811235231488379",
+    "src/ui/commands/guidedExportCommand.ts": "4aac62b81a13ccdf94c7f5371ffbb248daeae91ea6019d56438739f3c55dfd92",
+    "src/ui/commands/guidedHoleCommand.ts": "460ff0fb762548bc369ba9739fbf3cc4b0633f7075472de2208a711bc7cfbb27",
+    "src/ui/commands/holeCommand.ts": "42b7895589e5738fbd645623dfe72844ded99c4fc4bb33b2f3f94388333883f9",
+    "src/ui/commands/interactionDraftState.ts": "9fc4ee712b37ace0ce5719bfeed60dfa7bbfe782f40e368230f3eabe0a341217",
+    "src/ui/commands/linkedSketchCommand.ts": "baecaf1a68dc6277bfb162e3ecc7c5caebbed631167d6aa7ec5c0853e182e4e5",
+    "src/ui/commands/manufacturingCoachCommand.ts": "a146f71510d0f26c36b585b24585495732ae66eee535f8462264f006dc834fa8",
+    "src/ui/commands/manufacturingCoachState.ts": "01bc5fc61bbf29845d725409ddb41ebf9db363dcd6189b454a4d987cfc594aed",
+    "src/ui/commands/modelingDraftCommand.ts": "f80d1f0ed8ec7362c0c5da206fc189f7529b2d19306dfab31dc2537126ee9d37",
+    "src/ui/commands/nativeTaskAvailability.ts": "28fd86f0d2e443e384ddb8c3487b3475b3a6a49889c171e00542ea1664505bba",
+    "src/ui/commands/operationDropCommand.ts": "3402d13983bea7086f094ce81a4d292c164708b47be242240b48f1e078e467b7",
+    "src/ui/commands/partLibraryCommand.ts": "ade4ae7f14f4df2d836cc1afeb601db1439f433755aa37e01a7e3c54696029a0",
+    "src/ui/commands/partLibraryState.ts": "0d6890eceae6155cfc0eb822d71285c46e689e61158f7a051580d19cfd171741",
+    "src/ui/commands/productFamilyCommand.ts": "77cfb54eb5721751f6456b9b1269dde67fc4c52884335775d710d96d3525185c",
+    "src/ui/commands/productFamilyState.ts": "fe3c8191d034f06a2b2ada7b239fc6e90b0e0aec3efff643eaa355e636a9f1e7",
+    "src/ui/commands/projectDropCommand.ts": "e1c5ff849fea7102ec4d0ee4e53bdcd492893198cf8d80c09bbb0d06aefab92c",
+    "src/ui/commands/projectWorkflowCommand.ts": "fb6b05412431bef7b36660701e6f846f46ea05bb9db65fc9a35b7d2d57183a4e",
+    "src/ui/commands/repairCommand.ts": "3761bb591f2a58b3ebf29097989a0664ddd50f585f9f223325a3d615ab479c5e",
+    "src/ui/commands/reusablePartCommand.ts": "e2aa3aae23aa29634695e43de4abdfaf1555182356accb01c8d1c58ddece1c29",
+    "src/ui/commands/reusablePartState.ts": "ae1e170e568182a547046f42b58dc37797a574f663ff1da2880b041c52f6bd29",
+    "src/ui/commands/shellAvailability.ts": "463295ccf67cb8a974e31d7ade84841ef0ddfe6cacbf78ca6906e607cc0a9a23",
+    "src/ui/commands/shellCommand.ts": "6c2c8995e1c433c0ab8154394f0e2e8f64621a7f883c535da7c4b354096a1baf",
+    "src/ui/commands/shopDrawingCommand.ts": "2138885b7b8c0c9ee61d2f6fa040f29ed20d1e16b6cd8d98883408da687a65f1",
+    "src/ui/commands/shopDrawingState.ts": "dc091c9ee6adf7be5499a941c02a255261ffb07a3d6d86418cf4f310eabc4615",
+    "src/ui/commands/sketchCanvasCommand.ts": "9c1b440a4e93a22c33fb65923dd9bf3f90b6c8a6e6199aeb08f39f9b393778d0",
+    "src/ui/commands/sketchCanvasEvents.ts": "a0b885808a2d656ddb408a7bf6490dfaee6a5a05353c80a67a8085d7de8f3e38",
+    "src/ui/commands/sketchOffsetCommand.ts": "1e1afff1b2d1576a778482fcfd61bfbd60fed4c63decfc25516cdcabc9e3ab88",
+    "src/ui/commands/sketchOffsetState.ts": "2266dd0641eef82748a0619c8b00447536715931806c9799231de640a90365fc",
+    "src/ui/commands/sketchPlanePicker.ts": "310b4ac75e1a70fcf4a24764c0703fea7af2d958eaf502e93515c298bc0a3bc8",
+    "src/ui/commands/sketchProjectionCommand.ts": "83b7854f4b0fdf505e7bc9a05b63843c95458d5562141ed0137d9b65a2e4fbaa",
+    "src/ui/commands/sketchProjectionState.ts": "c2782846bd47778de63a1cb9435ac399a0d0c486b25724bb3c2f9e7e10ba3ddb",
+    "src/ui/commands/sketchRefinementCommand.ts": "6457ac9cfb04616cfc5d650db645dd1fc76b1944250de445999c5b432a90e339",
+    "src/ui/commands/sketchReplicationCommand.ts": "edb49082af2146b4249570aba781165d9af83b8ee579f07b1cc4579547000852",
+    "src/ui/commands/sketchReplicationState.ts": "46e62070ac77a4f5227b84b0ca8e10354eb8e371fe16f8d3a37f97d2393af831",
+    "src/ui/commands/sketchSolidHandoffCommand.ts": "da975decc7bd838983b4ee6e5a0649bff18eca77a232d5da64401f1e4eb3d17e",
+    "src/ui/commands/sketchTrimExtendCommand.ts": "02b44e212d57b74f03dcd0597090e4b9c99e0ba16c8e74f0c21bb6e2a1ae4e57",
+    "src/ui/commands/solidDimensionCommand.ts": "85b5f8e52e1a69e44902c52927290dc9710baa33889650a7f0e7943b784cc03d",
+    "src/ui/commands/stepExportCommand.ts": "933fb583425a79443d7b840af3a8afd092f0dd16778fce4bf60f5596821fa2c4",
+    "src/ui/commands/stepExportJob.ts": "9c23d975ab159fc40bf8086d36eee531f49404852d5571604c6183d79cda55ce",
+    "src/ui/commands/stepExportState.ts": "1056ee69967169abe286a9ec5b33f54123352517e17069119c009dca45acab41",
+    "src/ui/commands/stepImportAvailability.ts": "b4ef7dda69d5305ce379e934fff26032be05d265844dc9a37cac497c96595daa",
+    "src/ui/commands/stepImportCommand.ts": "b4c8a8aa42d800ab3a9a8e1366d632a4eb2d0002e894b209cb51f4aad01a8d12",
+    "src/ui/commands/stepImportState.ts": "f73ad3f97ccc52434b623b36c4c9795ec98be2ea209ff4c1255e9b5bd971e3e0",
+    "src/ui/commands/studioCommand.ts": "bc164e8f7fa65dd525003508c94f2175a512373425494cbc82d88fc04d0a85f4",
+    "src/ui/commands/targetScopeCaptureCommand.ts": "fe6bb1a1567206f5b23a9c7b8a61119103ebb5bda3f942a1940f287e5ccbfb3c",
+    "src/ui/commands/useCommandEnablement.ts": "87086bb38c95b64e3e07f8b4371189b043c8bd78d0888fb492b4ee11bd1b3390",
+    "src/ui/design-system/CommandButton.tsx": "d61ec04eaa1d3ecec59ec00a30d6d399724fef5f45f779bc38071e91b88d3c28",
+    "src/ui/design-system/Icons.tsx": "47ffc37d6727767d67e284e4d4e8d42f2a46e794c21818bd3a55089946c1bf79",
+    "src/ui/design-system/LazyPanelBoundary.tsx": "60b687deab910ea192640ac8db249f4401af1e937b252207f52757e373926114",
+    "src/ui/panels/AiCanvasHistoryControls.tsx": "8bd0255d31dbcb12b1e14f1e46ff51ecce43d557548c0db3bef8af014f17766a",
+    "src/ui/panels/AiCanvasPreviewControls.tsx": "ea62a1c9213708613c61a53dc059f3b291f9a32c1f3b8690ed46f35b5a74d6af",
+    "src/ui/panels/AiDrawer.tsx": "1da80a51c2058d36ace74a07d7ded7e11d577fa71b06b11132ce19abf9ac9bc2",
+    "src/ui/panels/AiFeatureAdditionPanel.tsx": "4dd42f0e38b83176bcaad512150f752ceb4d4ef36f5762a3ab07449f1685531a",
+    "src/ui/panels/AssemblyMotionPanel.tsx": "96cb0077b3c07596df87614f3dd4c272836bfa7aa1922612d182ebbc7743f825",
+    "src/ui/panels/AuthoredUnitsNote.tsx": "41e789acc70887b6dae5c3f242501a9cff1aa0b8a98e80d9f7f8410bb58e3776",
+    "src/ui/panels/BodyPanel.tsx": "0ae85efc26c01da5c8ab875de100ad3c78ba7a5ba95822624431817675f89c35",
+    "src/ui/panels/CanvasSelectionActions.tsx": "e60ba0a678f4360a73989c29681bc6eb44ada79fde0beb5213cb826dbd416c5c",
+    "src/ui/panels/CommandAgentBoundary.tsx": "2e7d5d7e9a74aa5aa44ce1d70b5dc26d26be0cdd1cd3c5779c336f2e9f635b1b",
+    "src/ui/panels/CommandAgentPanel.tsx": "f37d7402bfeb25272010d3069d0e0d15d58677e3604abaac61acfad53de8602f",
+    "src/ui/panels/CommandPlanPanel.tsx": "7fd712f730b4845d125a44f05fc2d9e7af1af1eceafc054cf2f6fc4d72e5255f",
+    "src/ui/panels/CommitInput.tsx": "75d8161f750675e02e6bab662aea37851e83cc02a8afaf9b2e1d71fab56f3c6c",
+    "src/ui/panels/ComponentPlacementPanel.tsx": "21e16c7b6e4c531e5fa7bb421673248b32a6afb7d7ef875f0a96b0f0577ab972",
+    "src/ui/panels/ContextualSketchConstraints.tsx": "cbf7fc919821e27ef4533c5a9acfce3f8e01dcfbe4da8f853eeb701c9127e812",
+    "src/ui/panels/DependencyPanel.tsx": "7cfa046355ec237298d795491cc3ad798e065edc08340030086cff916a846dc5",
+    "src/ui/panels/EdgeDraftControls.tsx": "47b8c3dd22051785445b5c8a4bb00f5e41162c7f1d9560c07986663798e393e4",
+    "src/ui/panels/ExtrudeCreationPanel.tsx": "6a571991ae6986fbbe82a233c49ade3dbdfe33d5fc25fccf17b63ca2765a1308",
+    "src/ui/panels/FabricationPanel.tsx": "f79bcf23a3fcbbcad9bb92d66ae7dd874797ed09d4c1fb258605c5be78678ac3",
+    "src/ui/panels/FacePocketPanel.tsx": "6ca45b3f74763f1405c9a99bacc66c9ac3b13b7ecee5bf90d362c5104dc9d1ec",
+    "src/ui/panels/FeaturePatternPanel.tsx": "f8784facf910633cd23446e1526813f9fb2791bf9680084f7aeb1e1b59c6707c",
+    "src/ui/panels/FeatureReferenceControls.tsx": "451fae7a31a8d96e3cb22efc55e7ed177a541ab04d1a5ae72b65175ba2a087ba",
+    "src/ui/panels/FeatureTimeline.tsx": "3b95dcf668e28901679b6ac22ede82eb8a294354ed8fc1a3c03ddbe01896d5fc",
+    "src/ui/panels/FittedPartPanel.tsx": "8f385e20cb79f0796460d428b5e5626ebed715b6f5c22379c1f6d3dd735f0342",
+    "src/ui/panels/GuidedHolePanel.tsx": "232bac1ae35952fa7b349a6a7107144939b2ecf7981677504416832dc76cee56",
+    "src/ui/panels/HardwarePresetPanel.tsx": "1e48bd9477959543690d2d1efdbd3d83c44ff82decdd369f614cdfa566c33b11",
+    "src/ui/panels/HoleCreationPanel.tsx": "2e08e172c598e0628481e0169efb51241d704e4d48022c84fcabfc4f5a100aa0",
+    "src/ui/panels/HoleFeatureControls.tsx": "e563fbde2574b23add2b5301b8fa46689fb1014e92af31b9da9909e31b7a0dfe",
+    "src/ui/panels/HolePresetControls.tsx": "608283ecd80e58666e0b22d1f5815c6c0408ba3099ba18a213fa4bc4073ed062",
+    "src/ui/panels/InspectorPanel.tsx": "39d187788f969a4b7a3ba8eb2f29b0ccdb150ec8d86c823fed9dca26062b0eaf",
+    "src/ui/panels/LeadScrewDialog.tsx": "b4aa420bb7cef406d625cfc7f0e77cffec78cb5a0a68c1a6fc5ece6d3080fbc5",
+    "src/ui/panels/LiveSessionPanel.tsx": "46bba8d2e2d1755ed86dc9f96315f417b5fd5e09a10293000d7b10d8beeb7144",
+    "src/ui/panels/MacrosPanel.tsx": "5dfd5679a02ced46bb7cdee1c18e340f1a1d1e4dc89b6a54705fe94885b37940",
+    "src/ui/panels/ManufacturingCoachPanel.tsx": "5c33b37c968780f30866055f309d73691682fd1346af58524638d4cfb14f2c25",
+    "src/ui/panels/MeasurementPanel.tsx": "2644db5b79aa5654f0e2ca213ba240e7b2f2723c6da34b0b4840ea14beb5b8ad",
+    "src/ui/panels/ModelingCreationPanel.tsx": "dec8d70172e12e215ac954f495efcfe2a5d0f53299ae4dece5e07d5e1737c501",
+    "src/ui/panels/ModelingFeatureControls.tsx": "d38c5d1af5e47a37af25e9e7c9dcc25e4afcc9a7af6d4e408e69c4f2aec1eaa3",
+    "src/ui/panels/ModelingTask.tsx": "d30d8ba26d2c0669d72b8168e7b51707d22381045873bf764002e9c19256fe1e",
+    "src/ui/panels/OperationDropPanel.tsx": "c8b024127cb0f9a9142c91f9dcb1f1ac1f93fa4ab8616b90439785f4de08cd49",
+    "src/ui/panels/ParameterPanel.tsx": "c93905e30fba9c1c09c89f96830249b70ee4cd0df4d8fd9675639e48662e3820",
+    "src/ui/panels/PartLibraryPanel.tsx": "523b8b59a45c311a587c17254fab1bac7b0079ae0ceec2e3e7b71ebf35b95e5d",
+    "src/ui/panels/ProductFamilyPanel.tsx": "881ae9f2e0cbb9fb63b9111596be40c86ef3a4cbea9e5ba1dae378ee7a06ebdc",
+    "src/ui/panels/ProjectWorkflowPanel.tsx": "db2a71acd9a771fef19ddaeb5c933135e8d3526c4e9fae38b3e01c2e92532dda",
+    "src/ui/panels/ProviderSketchRefinementPanel.tsx": "ccbd21a527c5e9883565c605af80d8b52f73cf0ac33cc846adc877780376ed0a",
+    "src/ui/panels/RebuildErrorsPanel.tsx": "ed75d5275964d8c5f5d7b62fc1ccd446cd039d39bc154da95b16a9d3817c460f",
+    "src/ui/panels/RecoveryPanel.tsx": "3abfb4904ea425dac0f31ae491cb7428cb1c79a6d78bf2a1085083c5aac8b987",
+    "src/ui/panels/RepairSketchOverlay.tsx": "a6fd54cf040ea7585c521433ca4fad5d70e685778c9f7bd2139af89b4aad3456",
+    "src/ui/panels/ReusablePartPanel.tsx": "4153fdf6cb4290f8231a74a3344241607197793d02438a91dd7241a21d371837",
+    "src/ui/panels/ShellPanel.tsx": "e424a872a082be6404dd02d4380b7b05bcc5ddd9f328f8a20fb7f36aab11c17f",
+    "src/ui/panels/ShopDrawingPanel.tsx": "6b51e9b0221fdafdbe1cfadef64649b4227062dbf1ec086f84ce9567da0918a5",
+    "src/ui/panels/SketchCanvasPanel.tsx": "9fb27a30f7b6747c27509708956756fd387b54ee940ce67e29ec397c8ec04a3a",
+    "src/ui/panels/SketchEntityReferences.tsx": "9faa45e19671b282c50a358bc3907a63d193b549f3deec1146eaec91d85a89fa",
+    "src/ui/panels/SketchOffsetPanel.tsx": "e92d63993dd21bc2330fd24513a9c0fd47cf8847a8da40185492f136eebd84a5",
+    "src/ui/panels/SketchPanel.tsx": "e92cd78f4d7814acddabb3e83c8b519cf6b160aab63323c4ca0f60fac9844313",
+    "src/ui/panels/SketchPlanePickerPanel.tsx": "ebcdf755ad2752860765d26421a21bdcb590fddcd53ea8b39a12a83246f745f0",
+    "src/ui/panels/SketchProjectionLinks.tsx": "0110dda015bf5b4eb9bd2999a8028f68a0576499d28f156415f599d4868785e1",
+    "src/ui/panels/SketchProjectionPanel.tsx": "3880e928b838e130c82168766e5ca866e4162d81c9b7246136f3c0cfa3727cfc",
+    "src/ui/panels/SketchRefinementPanel.tsx": "c15d32f491f71b3a2409dd35c9429079d327c786c23786003dc17460e7399850",
+    "src/ui/panels/SketchRefinementPreview.tsx": "a40387e20d33cd25fd2fbe33960a87cdfc4c58a2dbb1727d36bd9115ac66468b",
+    "src/ui/panels/SketchReplicationPanel.tsx": "69c126a68ec17d7738b4be19a21378e5d78733c200f094d8f703f8261cb590e6",
+    "src/ui/panels/SketchSolidHandoffPanel.tsx": "335c96596fdd824eb08df75f2699549ff73fe5f0c2a42057b01a4e0cfca9aed6",
+    "src/ui/panels/SketchTools.tsx": "cfcd7edfee9127f3abda388c47718e7635b7beca954d9ab0b8328aa394da71bf",
+    "src/ui/panels/SketchTrimExtendPanel.tsx": "398d004610199599337fc537e785f1e61dd7e096fbc43885aeaf136c66ff97c7",
+    "src/ui/panels/SolidDimensionEditor.tsx": "84c0c73e95eab6905666b839ed075445179367240d45dc1d5c2cb02a3bad7026",
+    "src/ui/panels/StepExportPanel.tsx": "d5d4b836b50c74122d6575cbbd2ae8db2531f637e9baa2d52d36248791fba28e",
+    "src/ui/panels/StepImportPanel.tsx": "8c5426aeb8016867c3e69e3335515af9d61b213545d75afa2951d164c92a4a33",
+    "src/ui/panels/ThreadDialog.tsx": "8f32f68cb53098135dcdab82bc5c814c7299f59f739f7069e75bbf5cc8db53bf",
+    "src/ui/panels/UnitDefaultsPanel.tsx": "2ddf92279756f570e567877330012e1f7fbaf9d814009ffb45ae57f7f369df07",
+    "src/ui/panels/ViewPanel.tsx": "ff08b17f62681b45f7db7bd4851e22e22a4a55106aa1ca7541c1a4abfc7dd402",
+    "src/ui/panels/ViewPanelContent.tsx": "769ec2f5f707f1fee46670201ab24d5f3c3b34b1703da533bd57c1293099395b",
+    "src/ui/panels/useCanvasConstraints.tsx": "e28676790d37c0e190662e42ae2f1a22116f3786ab9b2526632c3dfb4d8151f3",
+    "src/ui/panels/useCanvasDimensions.tsx": "09401147d1a0957bfde8347c4df1a97b932de9aab561e0cf74db835db00c469e",
+    "src/ui/panels/useCanvasLabelDrag.ts": "3a4bb70f00bc452bdb606f63d0a22a4754d89659e63d077d80947662a6c6c32e",
+    "src/ui/panels/useCanvasPointDrag.tsx": "6f8d65c2044feae765617cef3de579b9ca818e3704541a82144975c5db92ad2c",
+    "src/ui/panels/useFeatureDraftContext.ts": "808141a9a6af5dfc89a9f2f49638a62de85715bbb336614974f7b8ed0ec27638",
+    "src/ui/panels/useLocalTaskPreview.ts": "553521228d4cacd35d448e83c8183247bec41994c804375c737f86d4c7e44945",
+    "src/ui/themes/ThemeSelector.tsx": "d300080fdb69c7428c632cedbacdfa73d58b1cec4e66b75514aaf39b29641c2e",
+    "src/ui/themes/themes.ts": "e0d52c7b882a7b757470d5bb68a41e292848f4d00fb01381e56d1b8ee713a85b",
+    "src/ui/timeline/TimelineStoryPreview.tsx": "a4402da95e4a4a0e3baf73222de87ca555947564c6ac906dd5c104e9a9e7ed3b",
+    "src/ui/timeline/timelineStoryClient.ts": "6f513a5bbf36adbef72409049a03f93e5ad28ada163c86bee6e1e4ec1eca6398",
+    "src/ui/timeline/timelineStoryProof.ts": "bf97fd1b0ebdb701b071f5c4a024705ee71c251e33a4c8cd9be4f299258c820e",
+    "src/ui/timeline/timelineStoryThumbnail.ts": "88189c81fc2750a0be7003bf1f63ad2e4fb63f70e38deb677e6cf9c79dde40de",
+    "src/ui/timeline/timelineStoryWorker.ts": "2de391fa56c4d5765c0b72e86be748f759599c88a73884a3cea1eb7e12a1a63a",
+    "src/ui/workspace/AiDockContent.tsx": "10812ba5296219bbc0a0ef69215ac1e6258f6f5319961aa0c9f4d4b30887db23",
+    "src/ui/workspace/AutomationDockContent.tsx": "45d05c9feebc0a250cd540440f3c870e512e23e3abc0a1a868ebdeda3fc6caf8",
+    "src/ui/workspace/DockResize.tsx": "d24c4c8273a7d1b876257110a3daea782d6200a3e13b58aa2832c5c4ddc7b091",
+    "src/ui/workspace/ModelUpdateFeedback.tsx": "2ddc5826e89c804af76a25cd9e0e7e76b5426a7e5c59e6c1bca68337464772f7",
+    "src/ui/workspace/ProjectFileDrop.tsx": "8cba358e93d540ff2b4c4b508a6ddcd70efac2e77f069c13c8fd916e078a1adc",
+    "src/ui/workspace/ProjectGalleryPanel.tsx": "1ea5ad89151f5773d9465447499b5fd2f39e254677bcea6f39f6c7a4bb5fb548",
+    "src/ui/workspace/ProjectStart.tsx": "9079d59778cd34ecfdc20b92c07eb2554896b2277d30926075eb47c017ec91a4",
+    "src/ui/workspace/RetainedPanel.tsx": "83d75b1f8723b418e694491fb75b808a82ab8afc8f299063508232007ab565c8",
+    "src/ui/workspace/WorkbenchBottomDock.tsx": "ffc11f5844aee0a90c7674b1f817ef58b1d7b5a5525f552eff79649e62056e5d",
+    "src/ui/workspace/WorkbenchBreadcrumb.tsx": "3554dd79b427c302f69b49bd3fadc9d367dbbbd170f29892ce44ef58fd84156c",
+    "src/ui/workspace/WorkbenchDetailsDock.tsx": "ab3298b92b2f79c371fd7252e86109429718ee7e9d5a07e9fe544bd5a6452d36",
+    "src/ui/workspace/WorkbenchHeader.tsx": "d44fc80e19992b2dc659492358cbe74824bc27f1b10d96d6656723e936138af1",
+    "src/ui/workspace/WorkbenchProjectDock.tsx": "cda7277127b7a961f4e2eedeecb529c585b7f78f202b4ff186a64a44b7bc745b",
+    "src/ui/workspace/WorkspaceControls.tsx": "e0abf5c309b91bc2b4d7f95ed07c95d8bb0881e27ae27582359f723a042b0e2b",
+    "src/ui/workspace/WorkspacePanels.tsx": "4347e7e13c1e5d4a2fbeed88f0813731cb6e61f205b9b6c71188a0adc6b0b4a0",
+    "src/ui/workspace/diagnosticPresentation.ts": "bd41441e756c01d4f29a4cd5b0f6067903cee31ef403449ed20205d6ff9880d0",
+    "src/ui/workspace/modelingReadiness.ts": "5cdc838369906b4400be6235619f50ed5735d44d7b17f65784bcfd9ed56df945",
+    "src/ui/workspace/projectGalleryCatalog.ts": "ec9e55568a14f93ff6f698371c7858927486dbe43266040e60e7fa613d63cffa",
+    "src/ui/workspace/projectGalleryState.ts": "336c79a135599af48d4106481a21de0828c1d35da035f8b06f51dc4831ae707b",
+    "src/ui/workspace/useCompactWorkbench.ts": "73d35af9d06add2dfc55a7fe1923c57082263986f5ab5271d3d5e3f56c15002f",
+    "src/ui/workspace/useWorkspacePresentation.ts": "94ecd1124f670a2c2a38cde5af29f13eb8b92482c1d1ccc31a75c7b5a92822b3",
+    "src/viewer/CadViewer.tsx": "a0fbde5ec3156f14e1734cb026d22e9ce0d2066ae00a2713b3113f8296600459",
+    "src/viewer/ComponentPlacementControls.tsx": "77403df81d10519900db591985ed74990e6ca6017d5c87d4c895890fd28d2271",
+    "src/viewer/ExtrudePreview.tsx": "2aac66bfee81d8659f467dd6483a8dc54a4fcb3fbebb74d18f96f10775a4552b",
+    "src/viewer/ModelMeasurementReadout.tsx": "8c2581f0239a1f86cedf20ca4c50bf2c6cef285e0c2e3eba0ffea286df3c77ff",
+    "src/viewer/PatternControls.tsx": "8d181ff86b773821b013c86174a2553a0f49ab162a8967de8610765042afe47e",
+    "src/viewer/ProjectionSourcePicker.tsx": "5e2c83b4f175c2a3b967ae6f61c8d9432b25211a9db802ae3cb318dcf8f8a266",
+    "src/viewer/SolidDimensionOverlay.tsx": "ab09dada6853ff8239cb823a8adc7c13c6e0aa9a36f60c9583a2f6e77bd67518",
+    "src/viewer/StudioPanel.tsx": "29c5d53ea3c0f4c9d4c38c4300ed3bb5ba7854e838389976123855925a974de1",
+    "src/viewer/ViewerToolbar.tsx": "26e3284933a94a661d1db6d8f86a60feb257ad235e249d7a58f90f77ed610b53",
+    "src/viewer/aiFacePicking.ts": "392354ff4291d9a28023f9bc6a395b43ff51a1609833870fafa662fa76b6985a",
+    "src/viewer/aiProposalMeshes.ts": "f87e3b53a4ce11431551e77731f4e24bd7a1db8807dcdfd7facbf7e8a1b1b506",
+    "src/viewer/cameraController.ts": "9da0ae0a9f55f40b3606d37912332c5edfc9a332760a8e4346fffb1d5f101899",
+    "src/viewer/cameraFit.ts": "e34b191279c739eb3653a62d1dd094f96a65f3a6fddc7e95c27aa675c9417480",
+    "src/viewer/componentPlacementHandles.ts": "e80ff1e0f7e180718d5fbe6b7cfa3657319773d9877851bcd283910da4124915",
+    "src/viewer/demandRenderer.ts": "7b727be43ae0d938d8fc620e0d03b6468cbb8774b458423598a9e63c217529f7",
+    "src/viewer/extrudeDistanceHandle.ts": "dd3dcbbbdcf9862f2bab0f3e0ca5e3e12d21f2d3671ae5d4be2e50c9829633cc",
+    "src/viewer/galleryPreview.ts": "bb311a265f5ed40afd84b24357b2efc7f1a6403c33e76fd272fe4df8470ef068",
+    "src/viewer/measurementPicking.ts": "2fb35494ff5e2e2bfc5ff45e1165cff157eb4baf55ee83b17719434d403333ce",
+    "src/viewer/modelMeshes.ts": "3dbf10c309c68a58f574c0cf033f63ca649ccc87d0df4be7d0015aa82c5f8ade",
+    "src/viewer/operationDropPicking.ts": "04a8ece3da1c681c00591e079f2dac9ca58ddca4f1cb9d05e5e0a0dd353385e7",
+    "src/viewer/presentationLights.ts": "45ff2ac0ecc188567827a0c7fba521afc56e55e0fa61ef10827addc277649719",
+    "src/viewer/projectionBoundaryPicking.ts": "511a151dea41661414b8e94d63a1716179593a3c8ea3046e27667112f8e38018",
+    "src/viewer/sketchMarkers.ts": "2ccde84cfa791ad81d4e97f49fd3341d0db719628395e8c60affa1c0241f714c",
+    "src/viewer/sketchPlanePicking.ts": "2601e739aae05f66a9f54ff2844a8faa16fb5063743a4859efc562187716597a",
+    "src/viewer/studioAppearance.ts": "c6765fe4b17f4b6150d348557ad83dbd63e18d44209fb219ae83c6fe6d699368",
+    "src/viewer/viewerDiagnostics.ts": "f609bdb8345c70f00ae4a411e42309a7da40ef582fda2b89fa0a1e1ad715d7c9",
+    "src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "e2e/ai-canvas-conversation.spec.ts": "8bec4517abd96629d2f586aaae4a31d5685a766e72e9d0335a0897316514cfbc",
+    "e2e/ai-canvas-history.spec.ts": "9826e6620851dcc173ac9867b117bc564f142b8a1eedf026ad522860ad528113",
+    "e2e/ai-canvas-preview.spec.ts": "234b6306e2edda174ed35bb781d64bef69ecd25976ab868f9d6cb9cd06b201b5",
+    "e2e/ai-canvas-shell.spec.ts": "5db1adcabc3c59f01617a204976e0dfc5a73514541aa79bb83cb32ffc1ae91a9",
+    "e2e/ai-corpus.spec.ts": "155d2f934dc7aaad08ddfe0ca3122982f8403125e1ef9751825cf3a28e4dd839",
+    "e2e/ai-drawer.spec.ts": "d698758225df72e34d4707649bc71d90d40e0f4df955938e50a8cbb39c3ffe1a",
+    "e2e/ai-feature-addition.spec.ts": "a8c0c134f489578000e744c0eb7372c94b7af6a7a9c3da5f95f3e8e371947dc1",
+    "e2e/ai-feature-follow-up.spec.ts": "2e67193f6324fc91a8e60a4fe6a48def04b716c1963b128e4681839ce6d86a9b",
+    "e2e/ai-selection-target.spec.ts": "1eb44c4692cf24079e77c9c63064d98391589b1c19b070ac05fb009cb1ac6097",
+    "e2e/ai-sketch-canvas.spec.ts": "874ad83e4da73c6db814ab43f345c91d5ff1499aff16a4e77e5c28af8f04ed22",
+    "e2e/ai-sketch-follow-up.spec.ts": "b73fbe50039bcd058a163889159aeb3137a98968cc280781e965ac99a706a3d3",
+    "e2e/ai-sketch-history.spec.ts": "16c8e43342ee30a82ecfcd11f7e8d8c7fcdb2128f33cb6be3b877fb3563e7193",
+    "e2e/ai-target-highlights.spec.ts": "7587e2784bcd6628d0fe2ed659dd5414877c350026b1fe3b4824ccf0e2b5ccb4",
+    "e2e/aiAcceptanceHelpers.ts": "957109313e37d612082a502f459fabbab1177ac7e7ccde0de267fc89b70422e2",
+    "e2e/assembly-joints.spec.ts": "8f92d4fc51dea661a70f68045dd0ca878ba5d0bb2c948134a13c4f585bbffd80",
+    "e2e/body-visibility.spec.ts": "9703ace6e4bfae14749673ca89dc4600fbeb3ad4d60747a549580712f06d16a6",
+    "e2e/canvas-actions.spec.ts": "99b73ad7f46bd56dd59d5e64dcb026d8930555b96a0703076488e41058b05314",
+    "e2e/click-measure.spec.ts": "397adad11c22863858fc9be38b1578d9ea4df9f6fd74c082f9461df107f3c830",
+    "e2e/command-agent.spec.ts": "e5550ea5c6dabfea8c68dd6658652e9f44293c57620f4678655e9b9d9d1dee5d",
+    "e2e/command-plans.spec.ts": "c8e9ac52101287bea553dd0d932baea998065778e2d66577c12365eef8ef888a",
+    "e2e/commandAgentAcceptance.ts": "6a8511896e45ec220a6f911c1aaefea73d410aa7ffb6cb32390a737afbdc9c3d",
+    "e2e/commandPlansAcceptance.ts": "168215e00b95d32ca375c248ca9fcb8fa7bf21de9d9ffc10b8114c31b7ed6c9d",
+    "e2e/commands.spec.ts": "7935e4ae5dcc38d00f68b590ce79e848154f19c9a389ec8b0e4659cfe6a424cc",
+    "e2e/component-alignment.spec.ts": "8cf8472d815d8cf55fc1bfa8f35d3a0ed45ee523c809b65aa6c165a6e0405ec9",
+    "e2e/component-navigation.spec.ts": "82b8db205ab8f228b30c9766fe34b9e425e78a0fcde48f447ba37064f674fdd8",
+    "e2e/component-placement.spec.ts": "7b551f879dec7d4fc4e4fba2f5e3193f28ea0193a86de12cd3fe2adbc399be36",
+    "e2e/configuration-package.spec.ts": "0327f15f812071a659684b1bdbb905cc7d7704ead66aa39135e29b6023fa94d7",
+    "e2e/configurationPackageAcceptance.ts": "e0450de6e024deaad2f5bdaf06acb65e2def994e0188e57fd8297015e2de706f",
+    "e2e/contextual-ai.spec.ts": "ae1e932ea0dc33527de9d635476a1bfbc7a53fa88eae19cc5b4ef56b5f9629d8",
+    "e2e/contextual-constraints.spec.ts": "bcd404f0c8dac61c70d27284e823822c8cd8315e39b758ba9ddcf34a157cebca",
+    "e2e/dependencies.spec.ts": "55a3fa5afabfa66005b4b27a03aff9f4488b00b575eebaed243cd56b34effc5e",
+    "e2e/durability-fabrication.spec.ts": "7ae15a96ce282f6317fbd8efd05f9e5a55361e6543b639509767616161269f58",
+    "e2e/edge-dialog.spec.ts": "fe6779e0d5c8970fa69914d3c91418b30209d5aefa648eea4001a0876fa8cb6d",
+    "e2e/edge-edit.spec.ts": "59564b4bbe71a1cbb35a21c58f0da82a06e88b7badc0bb858e7ff566b8a75e10",
+    "e2e/edge-proof-performance.spec.ts": "0230424cfcccd3266d20babbd3d339042d0c6733b055d2d57a7d451e44db1732",
+    "e2e/export-hub.spec.ts": "f1b7d8e8668e1827204869689283c28a5b138cc8494da793a13e0eb672ed6318",
+    "e2e/extrude-dialog.spec.ts": "a8e6d50d8f9de3b70192ac4f7fcdc795a36ec223fb3b0b0f9cfac9bd5c477fc2",
+    "e2e/extrude-edit.spec.ts": "b9bdae2f90a16e6a01f006db395c49828aea28170126d2e5d82681619df0f674",
+    "e2e/extrude-handles.spec.ts": "724ff74b28a356ee3ba187ff5f52fc3b45f1b7c6a390b7da97a15665c0ed610a",
+    "e2e/extrude-termination.spec.ts": "ad24980b9bcbe41f4b9c5c4e6a91cc9abdab81f0cafe3d02b7bf08ae39610667",
+    "e2e/extrudeWorkflow.ts": "154ad60596a9a54bc8a0f2aab36766dd2f854250367a1417b7cc909b6c18f355",
+    "e2e/extrusion-hole.spec.ts": "44988204d13cb46605e28076e87daeada3e28750dd4032efbc08a6a098753f5a",
+    "e2e/face-pocket-commands.spec.ts": "7644230c8a3658105b970af547d38c62d52c26f8fce343b2381416d29be08be8",
+    "e2e/face-pocket.spec.ts": "4eb8078e4c1014a2cbd8cb0a5553b320abfeb14a9e00cfcc84528f1358c642d2",
+    "e2e/facePocketCommandsAcceptance.ts": "bd5facb846e374ee61b3b1b5675b1d507a266a69ba0d4047adff423bd699fb70",
+    "e2e/fastener-presets.spec.ts": "59ed626759854428ba070c126d3355fcc2a43f3a690f8ca5011e5b40bcc08040",
+    "e2e/feature-patterns.spec.ts": "e80d05e0ada0b77513dd5ae0c18bbf01fc6674f7248ff04db614ad6542e0143b",
+    "e2e/feature-repair.spec.ts": "bc25dfbb9723fb318ecc2913893b24b0caf4d1247328bcac6225e6d940a83e56",
+    "e2e/first-part.spec.ts": "138853b8c23988059d993cdc8f3392b29af1ebb975eaf2a2804bbb8257bcbbbc",
+    "e2e/fitted-part.spec.ts": "636ec2c54d22b6fbdbe37ca1ab9d8339ebcb4276e89a041d63da5723205214dd",
+    "e2e/focused-workspace.spec.ts": "634e5d6cd57a8cfd926fc0c1c0e92a92cd6f5c655275511c82e5925b75c87753",
+    "e2e/guided-constraint-repair.spec.ts": "b2d9bae51d13884f8cab8e9ca64efdb77413368a726d62de8a2856d2d3bffac9",
+    "e2e/guided-export.spec.ts": "5be5f503ee0e597c97fe6438386ee29871de6dd5ba409ae19116dda7f637f8ee",
+    "e2e/guided-hole.spec.ts": "640c0cddc9dcf233ece8161aa95d13cec8bc8a2cfc3faeebe6e463e8c979e81a",
+    "e2e/guided-repair.spec.ts": "9865c73377eb11aa262be9308e85e5bf4ab3c1434e7476d77c69132b3e699bee",
+    "e2e/hole-edit.spec.ts": "39963c7aade1cf8c709c028ec9eae501172f9c0bfe346c2a0eff68e0f0cf7a74",
+    "e2e/incremental-native.spec.ts": "32be7ff1aeb45f2f23693750469dcfd74aae980e7d602d4b59558140c68a94fd",
+    "e2e/keyboard.spec.ts": "abd9216908c621e15b7f7d38c94a9cf69b13905c4e98923ea09e01dff30cc8c1",
+    "e2e/linked-sketch-usability.spec.ts": "259f3ebf10e6372f8868a909544254a31f0ae8a01bd07d63ce8803484d8e9864",
+    "e2e/live-session.spec.ts": "bee7ca27fe8ddd11befb718cfddc3f709cde83bb433dd5dd2cb3ed9394308b4b",
+    "e2e/liveSessionAcceptance.ts": "5293b52618d71b9656c8d29c0448b2461d1ad4619c9ea3c60d7fd47f803c622b",
+    "e2e/local-task-previews.spec.ts": "2f37df7c0825443cf088a0b4e95a2eaa3989a0bbb97951c010ff9d9dce566a86",
+    "e2e/machined-references.spec.ts": "7d6599ec774023ed40d47ab6dfb0da3f5b6c8d3832ef72007605d37f1820c416",
+    "e2e/machinedReferencesAcceptance.ts": "778c7b3399aa48a1ff1726cfa7d8dcad18192da2467282c11304118ba0beceb1",
+    "e2e/macros.spec.ts": "9065dcf7023681bcb0f4e91dfab93807772798871e88d107e9df09c610f31ab1",
+    "e2e/macrosAcceptance.ts": "7f7ddcca96f3a62823b75a140432ac29b3f808e78c7b385082f2df2907836eb2",
+    "e2e/manufacturing-coach.spec.ts": "5b10f5600cd151cb994c697b23065f2e20d686b7832ede52201fa8c34d396fd7",
+    "e2e/measurements.spec.ts": "460f01a5ed7c167beb36c3044de4fd6a1d82c396c33a2ca4fea16f8dfa366ff3",
+    "e2e/modeling-operations.spec.ts": "7e8553a56fd0391dc8a502f71372108f04c161cfeba13fb0b6af8c0b9d70971d",
+    "e2e/modeling.spec.ts": "1192ffc1b6d5cc2b0061a4cc796bc5addba8ebcb6f68444a05812286128cf3e3",
+    "e2e/modelingWorkflow.ts": "7584691746b9de62798668dbcc0b085574a2271a2ab1c8afa0cf320a57065c74",
+    "e2e/multi-body-cuts.spec.ts": "d8d6b964ee75923a1dbcdf648bc746f69007b259ac708de9135d0ae1bf1b484d",
+    "e2e/multi-body-holes.spec.ts": "996ba4239405025e5f439d44eecd9888a274765e297329b3c33fc4a45878feb9",
+    "e2e/multi-body-joins.spec.ts": "5e50d6b5e56559b79481b6736684e413d8514ca8049f59b26bf20ff881f9bd7d",
+    "e2e/nativeBenchmarkFixture.ts": "415ef7ddeb650dd81ece0a763a26cdcc8394d5b0671189d76c81f557930e8cac",
+    "e2e/newPartWorkflow.ts": "b5cd6e48333a8369b683b95ef1076a59908d7bbb1935b01976b4a0ccfd0dec83",
+    "e2e/offset-creation.spec.ts": "693dd5cca2a637566fe3a11dc3dbd242de7ecffa5a06575eb5021924695a6083",
+    "e2e/operation-drops.spec.ts": "6662a0225cd6430b8cdb4e76e35cafe338171eeb005fe48b88c6ae2d5c2363a3",
+    "e2e/parameter-renames.spec.ts": "06e05ed44ba7066201606c0e26b46c47a908168e2f59534f5b427c1cfd45603d",
+    "e2e/parameter-units.spec.ts": "47ec41d576e679f6e77f149836ffc07b7a4820a2fc6f8b53a3407f7cd234a014",
+    "e2e/part-library-transfer.spec.ts": "f6a1fd97ce7654d882b80b443ec8c1ab9c30758bead2fe854438354fa97be920",
+    "e2e/part-library.spec.ts": "3c972eb1d5fd51e00a5922393297aac4abc0adb409a7927e4a92cac6cfe7f687",
+    "e2e/parts-browser.spec.ts": "24b21e7c39e932a1fcba02df41eb3ba0eece9fa6d6371848b36c365f8f8340cb",
+    "e2e/pattern-controls.spec.ts": "7d78f6184d240da355855e496815eef4a5526bc11227dbef93fe3147322866b9",
+    "e2e/performance.spec.ts": "7878e4a230df65f1ddef0009fb642dcc65cbc026b6c78e021285220c32461048",
+    "e2e/placed-projection.spec.ts": "0c547e7ed4b86f6e210464edd35c72f022d04156826aba3f56d01488fada6d43",
+    "e2e/plane-picking.spec.ts": "d08ffaa52bbf51bfa07814cde11c16533d699bdc9ff7e01c21dd3c523d3d8ecd",
+    "e2e/png-export.spec.ts": "1deef51eb2dc0159b3330fd5c0ee07063ded079adec7cfbb20617410b2118b0e",
+    "e2e/pngDownload.ts": "ef7d5eb7dae9b06df13efc30bc197e7d7e9657b09dc022f4cba679652065bf62",
+    "e2e/product-family.spec.ts": "bd3af7da3ee2077b38c283aa0d52aa7e3054181ffea44e2be466b21f0fe29b09",
+    "e2e/project-components.spec.ts": "5ae3a14c7f5cfb8266682dd3b049f2e09cdf4523ec840f6b37bf74f4e55a4ab3",
+    "e2e/project-file-drop.spec.ts": "f491032273cda1f47388abd8f69cefe2aa0ee8ca2c0ec0dd76324df3bef07d33",
+    "e2e/project-gallery.spec.ts": "3309472fa21cedc2ab8e4f98b26f953e60c247a30685159fbed45ff1224c201e",
+    "e2e/provider-sketch-refinement.spec.ts": "a5067afbc9958d441701c40b0224918c542c7eb94309ec747100001f64b5ad3f",
+    "e2e/render-view.spec.ts": "ea7608ea70e632191c91ade46dbfaa9fe813ecb89bfbb11f2f6c230fb72a38c8",
+    "e2e/retained-edge-picking.spec.ts": "2cc96f72d9b422ffdc7e9f12238a3f2fb8b0527f6a95cc03fd66f5f12b9aaf47",
+    "e2e/retained-references.spec.ts": "03f256cf8460f49d1d4a876e77ec5fab3f3a74057c5cb8eb9a2120c2f2743e33",
+    "e2e/reusable-parts.spec.ts": "ac6d839bcc431ad943e5329dca133e589db152b34ebe39dc94b0be2376e9e3a6",
+    "e2e/revolve-dialog.spec.ts": "8deb17e024a0c242232ed0753f5b77a10e67eabfbf39eca744632c070055f873",
+    "e2e/revolve-edit.spec.ts": "f275156d117bac0124fc3627e94b9e27eb9612f4fa408329544078ebce1a7870",
+    "e2e/saturnIdentity.spec.ts": "d2da78e96f6b27d5f53e6f89d64af6def0e69056dfd6d53ac850759134045d78",
+    "e2e/semantic-cad-commands.spec.ts": "d672da2b87fe21f3d1bb2ae924878158dd982c5d5ce3eb7a56a933ca57237bb7",
+    "e2e/semanticCadCommandsAcceptance.ts": "bf5eca1d9f7bd093d1aeeb0911f975fb07ace0d4fcb250c7e9e8bed931bfd032",
+    "e2e/sharedCommandAcceptance.ts": "2cbe8e329901a64eed932a438f4bdbe5eb7b0052da88d335592e916405310c80",
+    "e2e/shell.spec.ts": "927b85547599da099a3b295c77e79c5c37ba068d28efb8eb6bdf450a28bb52ee",
+    "e2e/shellAcceptance.ts": "c9bf1be3ff631b8b340f4aa2fcbf0e46f520029e01abd048c04b1eacd3dce26d",
+    "e2e/shop-drawing.spec.ts": "47825e641ff3e3051600203cb6c56e5e721419541f7f956486c6d89e80b77010",
+    "e2e/signed-extrusion.spec.ts": "abcbde39762bff6a2a3cc23979d563879845506ad1aa362e3613d9b7af206874",
+    "e2e/sketch-canvas.spec.ts": "82d3458a01c956b18e9483e12f6edbb623461a8aa44626863ee2838d100aac86",
+    "e2e/sketch-deformation.spec.ts": "6b90285785ac5ca3ec91a941d303ed78e6e58be5f610c49a664916275ceaf6b1",
+    "e2e/sketch-foundations.spec.ts": "9c3989d971bd7340251a9c365eb826f99388ae3d9756a9eb42effd1e6ba99e7f",
+    "e2e/sketch-layout.spec.ts": "26106679309b6006f1d6eb5cc394887940a4f39ca548d160c93630fbdb6d81e0",
+    "e2e/sketch-mouse.spec.ts": "5bc677426fe3aef6fb35da655596122f24ec4c6b2b704537cd578b4d534ac8cf",
+    "e2e/sketch-outline-offset.spec.ts": "eb3eb83da900e88430e16278d4a6b7f6da29e9357abbfae37f08c7f2fa85b194",
+    "e2e/sketch-projection.spec.ts": "287bc4de7fc4eb3c302545c64c64b64286e824e31c1956847b3d94472da50d8b",
+    "e2e/sketch-refinement.spec.ts": "5ff77984ea12042cf1787c4567cb4ef8c0d672e56adcb8ab38718e46a179fda8",
+    "e2e/sketch-replication.spec.ts": "5070c9e157d7860646108386a0b3419b11d591b66cfa78e889ce31242c93ed87",
+    "e2e/sketch-selection.spec.ts": "af10b472c2f9c8bdd4437f3c8ea59e32e1b6f175f4d3543b2538c84561329494",
+    "e2e/sketch-snapping.spec.ts": "0426dce7903c2af5ec4659d30ee273d486f032c54d725c7190a10cbd10d049db",
+    "e2e/sketch-solid-handoff.spec.ts": "d85e305960432092e58e38a637c2a180c8060a6e21036fa8ea61df8e6411fb47",
+    "e2e/sketch-tool-simplification.spec.ts": "dd4d1d1862b24bba1cc5ba9df6329d14d864d2c6eaee8689b165a05584c107cd",
+    "e2e/sketch-trim-extend-curves.spec.ts": "17478c5727fec8cae0a2cc2bb01f5de285577478c577154ef59c7b272d865987",
+    "e2e/sketch-trim-extend.spec.ts": "edd933aa0fb26452a7ebd3b44790fb79b83ea7fed99313f0e3ea832263fd3104",
+    "e2e/sketch-visibility.spec.ts": "db2fe656322dea309b49a0ef33ed8ab3b5933498a37dab6f66314e1a4c182915",
+    "e2e/sketch-workspace.spec.ts": "82c8ac6846982da56337408d1bfb812f9f951d9372a579b73cfe19eeb48263b1",
+    "e2e/solid-dimension-inline.spec.ts": "41c07aaa9b2411531b6aea87b4b6f3b154194471f7d5dc6ce572f9ccf548ebbd",
+    "e2e/solid-dimensions.spec.ts": "fcb2db9f1618215f69becabd21d0377dc94e22c93fbb15ad7abfc34a474880cc",
+    "e2e/stale-results.spec.ts": "78e39f90f4957c67be2be40564c05d1153b8d5ba74e84f34b9b39f7f9238016f",
+    "e2e/status-feedback.spec.ts": "9bd8971b4dc48163cc4156ce7b414c8263bca911a6e8bc2a107d08879afd3eca",
+    "e2e/step-export.spec.ts": "81144a18399d0cb3711ea8e78c012221257cf6580e0709bae701b53c3c8833dc",
+    "e2e/step-import.spec.ts": "a0b22f418d1b24590e51792a28b1b156a5cc226565a55b64e7411d328d48b5a9",
+    "e2e/stepExportHelpers.ts": "8c01e58bbfbe9ed2ea962d4f9ce87ffe78fdadbac4fca6452002bcf89fb03286",
+    "e2e/stepImportAcceptance.ts": "ae8f21eda8f29e9dff076fc389e517175257255212ebe05a2702cba9e2f04210",
+    "e2e/studio.spec.ts": "c12815d610894ccfd6f49a65db52a32d661d1e214efeceac4afd3d13304f989b",
+    "e2e/target-scope-capture.spec.ts": "e9dcc3803f5a0d88c9028a67c90a1fde2fe018837585c4b6951e065d3928d7ba",
+    "e2e/themes.spec.ts": "d6c4fdd6cb50d193cf914c9e31ea9786e52d847af34c76202d8efb4b14e1242a",
+    "e2e/timeline-story.spec.ts": "ec14660928b70a3bc977ca98ac6a688c69abc9de5c90d144242a200b55525c40",
+    "e2e/viewer-demand.spec.ts": "31e1d671abb61c686824c86911106fed84b42f1cae255c05bd23af2459c76fba",
+    "e2e/viewer-performance.spec.ts": "be1dce4595e9f8ab5eeb54ecfd95eb037921379a6fabd813b0e5ad75647e00be",
+    "e2e/viewport-fit.spec.ts": "b44df81f5b6fb3d59c32b1971270361097bce2041f1249cb83feda44053998f7",
+    "e2e/views.spec.ts": "5b8187a65f0969973204c1e667e59ad06eb8a1b3cba729b21c7d0777961631fd",
+    "e2e/workbench-motion.spec.ts": "ae2b6e131d7790c52df02fa82d250401f2b5e014597f38f86005d3758140e410",
+    "e2e/workbench-readiness.spec.ts": "e531ad70723a495d00a565d40ca82c89b44ae150199b05a8854862f385634ee4",
+    "e2e/workbench.spec.ts": "f0fd50f6808735226b7c45b5efe8ca4d51e457408c27395b1d72ab052009b310",
+    "e2e/workbenchTaskFixtures.ts": "d2e538926b538c453031199fa7ffb1c40c3396449b1a85ba760591f09b97ce82",
+    "e2e/workspaceStorage.ts": "bd4d62e87bf6b5bfab928f3c4c01952892c4eb1a6025a2a70a1bdf4510fe46be",
+    "production-e2e/ai-canvas-shell.spec.ts": "8b513239ea125850736fd797174457720ec8bc89d93acca21e1d829d793cc499",
+    "production-e2e/ai-drawer.spec.ts": "9334fb00ab2f0962b2ad6d9257eb0a20ea34a24d0fc2c14252082f504bafc630",
+    "production-e2e/assembly-joints.spec.ts": "9e3123f96fd9df47e77e1ba6af11b164b7c1df8f89198eedea51e68324ca2810",
+    "production-e2e/command-agent.spec.ts": "6120cb4bebb796d761968cb4d4d490ee3ed5e3d162a33d3acccd991d946292ed",
+    "production-e2e/command-plans.spec.ts": "4b0774f188aa1516b8d7a06a1fe2ebfb89981df74b6b99023bfd09385a6c2e45",
+    "production-e2e/commands.spec.ts": "cebad4afdbf0ba8cb9f464fe30916579bca96f80513ac95d0046ede0debbe1b9",
+    "production-e2e/configuration-package.spec.ts": "8bfa1335d60d4dc38d38c411063802c2756ec9ea6c2f636a7a4a20817a345141",
+    "production-e2e/csp.spec.ts": "1201982b9cb55f0a4dd3b376fe9dea02d15bdfbf9fb2e7a3ddb54e28dc3c3f21",
+    "production-e2e/export-hub.spec.ts": "5be81d873b8061f60a76a8afb37d6213608067110f7744f31e780293d65ab11d",
+    "production-e2e/face-pocket-commands.spec.ts": "3fec4266480df68a91c849f02f3167431ffb4ec25c2a47c38979b6e1dc77a040",
+    "production-e2e/feature-pattern-schema.spec.ts": "c52641749a7a4836f4b405d1f4c944fc6155232900f5e7c7dc360c6e4fcb42fa",
+    "production-e2e/fitted-part.spec.ts": "f58359444f5d9d6b3cc2f0dfd9760911163c02c90135bb92cdaeb5cb20ec929b",
+    "production-e2e/focused-workspace.spec.ts": "4ed245d14a882c9f8fcdb4b075a7f42453813330abcb33b90c26543318a9fae5",
+    "production-e2e/live-session.spec.ts": "5aa8eb9d0fb96fe73a390601c8df58543d7e09342f815998a0acde93a2b40740",
+    "production-e2e/machined-references.spec.ts": "c25cd9f5986e4a63c041aaa20080896c900e7731ee3787bd90215d015e621271",
+    "production-e2e/macros.spec.ts": "f2bf76afaceda6615d7acbf87405e905d1ba50407c5011ba2dbacca486400b37",
+    "production-e2e/manufacturing-coach.spec.ts": "6e239f76b521a647d2c27c332d40be0019f7c1352d6324dca2676f22ad93216f",
+    "production-e2e/performance.spec.ts": "63d41980ac969a4e1d46f9ffa97a5e496abdcb86a515bebc7345c9fb9435820f",
+    "production-e2e/placed-projection-schema.spec.ts": "4a5383237a4e53476ae5d24e97ebe7a56a41af865272793bce1286c891622ba8",
+    "production-e2e/png-export.spec.ts": "ed06ef763db9f144e46d9b728d20fa000a117d5292b339001f1899beae3801df",
+    "production-e2e/product-family.spec.ts": "f44a14957944239fb9bbec702419fb9b4eacbdd55be53c69b3d6df5e5ee02c4f",
+    "production-e2e/project-gallery.spec.ts": "1b0734697afbb90d75aaa5269c15e94467316aac77f12d0bc763eb96b0201548",
+    "production-e2e/project-schema.spec.ts": "51d6315c1a6cc7e10e593d1a1323d71f6d4c99c4b6fa960260aa71e77fcee141",
+    "production-e2e/render-view.spec.ts": "d949983e133c32fdf04be4d78d57110221903530f9d5137dedb158109519b737",
+    "production-e2e/schema-fixtures.spec.ts": "740b92986b796a789c53b1e1a4cb4104aee9cf50d354aefb2ddce7edb4710ff2",
+    "production-e2e/semantic-cad-commands.spec.ts": "cb91db472c6bc356afd2b56f209ffec0162c058ba85fa67ff58e3d6a0e15612d",
+    "production-e2e/shell.spec.ts": "dd4104447086112f4c53318e2c316b37885709b136e1decc502492bc64c07043",
+    "production-e2e/shop-drawing.spec.ts": "79e9837d4192ebec60c59e6a81bb13071d0598bb57657640e76963f2469c7aee",
+    "production-e2e/sketch-projection-schema.spec.ts": "c88232f100e60e5889591e067ac68efc01af68e15333dbd77a18fafeb1e68d00",
+    "production-e2e/step-export.spec.ts": "225f287543238c9d9e25656ea3fbc669db975f7d3680f742b3de80e20e70389c",
+    "production-e2e/step-import.spec.ts": "1a741952159a4dc9834094b63a12a532e4fa74dd80e26bc40a1a33e6ad4d9d4b",
+    "production-e2e/studio.spec.ts": "d96051582425374a06b712ec6832b941f30b0c838e927822f09ababd48c159ad",
+    "production-e2e/timeline-story.spec.ts": "5a499fd160a95aa3844bb4379e49eaa58eceaee2b090cc78f71164eb883127c0",
+    "production-e2e/workbench.spec.ts": "93aa5281da58f5dd3180f86024f041caf9d9d5b549a795fc087da626d3713981"
+  },
+  "sourceIdentity": {
+    "head": "fd9f7fadea2214b45946b9dcff748642acb5ae9d",
+    "status": "M specs/working-cad/VALIDATION_LOG.md",
+    "branch": "main"
+  },
+  "plainSolidIdentity": {
+    "head": "c4df130418122256c817ca4eb408274945c2d14c",
+    "status": "M internal/plaincadbridge/bridge.go\n M internal/plaincadbridge/circle.go\n M tools/plaincad/README.md\n M tools/plaincad/run.mjs\n?? internal/plaincadbridge/bore.go\n?? internal/plaincadbridge/bore_test.go",
+    "branch": "codex/plaincad-integration"
+  },
+  "plainSolidSourceHashes": {
+    "internal/plaincadbridge/bore.go": "7d1478d31ac99e0b3f30e9f692d4b867ba8cdde5a367b837343dffff4ead0629",
+    "internal/plaincadbridge/bore_test.go": "36fc22a139e3e9eccfcaa1eb4e84248257e63c32adbbbf3e9f1632853a4ce25d",
+    "internal/plaincadbridge/bridge.go": "2d01fe808498f5b81cf1255c7e321d9e70a26d4281ad6b748c3000f7d264c281",
+    "internal/plaincadbridge/bridge_test.go": "61c61b8cc55c83b7fcb8be4ec9e2e3423a8562afd8fa2080d6fc38e4a9003d7e",
+    "internal/plaincadbridge/circle.go": "968ed4db66e3f68c69717882cb9f3234b6a6658596ac6f596216d4cf4681a2d3",
+    "internal/plaincadbridge/circle_test.go": "e9f5d7336907859e4551382e25f7ac44f1ebfbbbf44ec5b2f3e5f8909ab7945a",
+    "cmd/plaincadwasm/main_js.go": "9fd6d3a7a970d9967c2b5d6f20dcd1f35c97e63668e4562e6043971cbc4665db",
+    "cmd/plaincadwasm/main_other.go": "26f1ece8830695dd7f7e90ef9e7a8641f493edd0f9cbde4cae325b83029dc736",
+    "tools/plaincad/PlainSolidKernel.ts": "d0079e5c9555a88b24435927e57602b8b4d89615eaee17c1fa8d9fd97a4f4d3e",
+    "tools/plaincad/README.md": "f30a2c7a524721d8e7aea6d4570fa027401ee973cc884f862e223750734f43ee",
+    "tools/plaincad/run.mjs": "cd7e0b25892f22abd12fcb57c978f86178583994bd22445f40fb6e568f1d2f9c"
+  },
+  "providerLabelAdaptations": [
+    {
+      "file": "src/ai/selectionTarget.ts",
+      "count": 1,
+      "beforeSha256": "e50a6e0feba902ac3508019912efb5fdb63c03978d5e18d375fac83755ab36c0",
+      "afterSha256": "ccf0e9547c3f3f4fd02ae82e4cd796d29f57a5a83f020de9155fcd2b89aff799"
+    },
+    {
+      "file": "src/cad/features/assemblyCollisions.ts",
+      "count": 2,
+      "beforeSha256": "dd289590bcf200bb6cc1f96c44ac3d4a0f1c7d1e2e4e8e0584fa1381b43750e1",
+      "afterSha256": "f90220d5f77e1e6dd0f978e23d9fbdfb2ea777a34f4a3dba4b9fae067cd4d1f0"
+    },
+    {
+      "file": "src/cad/features/componentPlacement.ts",
+      "count": 1,
+      "beforeSha256": "3d10cd5cbf0ee3f3e06f75bf117c7ab14c0eb15823234fdc85b6243ae3636e0e",
+      "afterSha256": "d530a34950bce1907c981928f297d74ab4528018bc9769d214a6f8e645493d2d"
+    },
+    {
+      "file": "src/cad/features/facePocket.ts",
+      "count": 1,
+      "beforeSha256": "0d25fb6972922a8ae6ffc5b8ae51abd62f17befc50b006413b4e69b246b7025d",
+      "afterSha256": "6550bab903166a3286b29de7eec80eb3d7f01ab513ebab8c3ef751bb84c472fe"
+    },
+    {
+      "file": "src/cad/features/fittedPart.ts",
+      "count": 1,
+      "beforeSha256": "e8ead88fd99fced4ba953c05b9a1bec8db046b8795f063d164c419dec8b39132",
+      "afterSha256": "4a64483b81a056010348aaa7232575e2fffb503199bf4d57047328fddde1ce4c"
+    },
+    {
+      "file": "src/cad/features/nativeEdgeTargets.ts",
+      "count": 1,
+      "beforeSha256": "ba24559a0200af9e6d39451069296c5163d3b4017b6db203d5baeeeb44cc92a2",
+      "afterSha256": "78cf86ad9d32253c55274784f7d0ef92267522e5e73ec19163a3bbc6b74066ce"
+    },
+    {
+      "file": "src/cad/features/nativeFeatureCache.ts",
+      "count": 1,
+      "beforeSha256": "c700af5c99c4ad96cb3f0910344bcc0848579d0e202f4c5a70c43127e1dca5dd",
+      "afterSha256": "a235fd442245528adcee5e6d5cc0ebc23a61b76b9004ef601870bf9132826e2b"
+    },
+    {
+      "file": "src/cad/features/rebuildGraph.ts",
+      "count": 2,
+      "beforeSha256": "add996cf159bdc8f589ea1d71a0ddf2678e9fc06d2a26b45e893c73a93878fd4",
+      "afterSha256": "6ee620070ef38307c9ac81b102469659f567e1157a538448e596cdb36d2d8c35"
+    },
+    {
+      "file": "src/cad/inspection/componentAlignment.ts",
+      "count": 1,
+      "beforeSha256": "f897133f16d4b990dc37af8cf7b9218f0dfcfb59d1352e68571b1b3c68e557e2",
+      "afterSha256": "7025b2aed6fe0c17ef51c299f66d0c62ea0936d27d9d19e5e5bbdd89a0f35123"
+    },
+    {
+      "file": "src/cad/inspection/manufacturingCoach.ts",
+      "count": 1,
+      "beforeSha256": "e8603700be0b0ff0f49cee78eca4efc824d8ab1389a087f1b3d862483bad25c7",
+      "afterSha256": "dcc13ca7bc2335b94e43fe9b16ccab74d66ccee79a741d252b01639e100cda3f"
+    },
+    {
+      "file": "src/cad/inspection/modelMeasurements.ts",
+      "count": 1,
+      "beforeSha256": "70294fd08646e902af92bc0b1d619f08c604294a7923ad66c9b718b2b8e13349",
+      "afterSha256": "2ce3785bbe044c020469e6c4cd78464f84c527938533c30bb1e6744e7895c81b"
+    },
+    {
+      "file": "src/cad/inspection/shopDrawing.ts",
+      "count": 1,
+      "beforeSha256": "576f59cc0788dd7d88a406bdad17b4571dab386b8b2ace343f07dbfa7cae87c8",
+      "afterSha256": "e24cd0be15a91bd73977f9beb87f4e38ae036e3bd2921f52b4ecc97a1c3a829e"
+    },
+    {
+      "file": "src/cad/inspection/solidDimensions.ts",
+      "count": 1,
+      "beforeSha256": "2c5bcaf352505d7a3d4fe247a6ee9da2b692b8eb1f97a70a20ffc3c81a7071ab",
+      "afterSha256": "6a634afc2d7a4cf7dc4b9cc5da826d857fb7b44238bc844d2ca7dabe5795da85"
+    },
+    {
+      "file": "src/cad/kernel/KernelAdapter.ts",
+      "count": 1,
+      "beforeSha256": "0d101b9402eb7a9db1342cd1855c84c0864344ac157f6e37e12935b0e4293fa9",
+      "afterSha256": "3cda72147d2559738ea1059fdfc4d8f3f612bc50adfcfdbcb6cb7a03daab1d33"
+    },
+    {
+      "file": "src/cad/kernel/OpenCascadeKernel.ts",
+      "count": 1,
+      "beforeSha256": "793fe4126b4a6fb6316d995e9180497be8a616d8711fec93aec2d21f64305b86",
+      "afterSha256": "c60bc5282125492595901c67131ed65e36ecc21915ec2d4e5096909164a2a057"
+    },
+    {
+      "file": "src/cad/sketch/planePicking.ts",
+      "count": 1,
+      "beforeSha256": "c4aae4c1c2bb515ccc26a1d2dd9f7b6f7df2861acb01e67c1adff64faea40ff5",
+      "afterSha256": "8f9ca8c4ed1d1c7abcf9d53e22f30d94f65d80b3756d2804380dbaa8d8518c28"
+    },
+    {
+      "file": "src/commands/applicationCommands.ts",
+      "count": 2,
+      "beforeSha256": "4a6ce45e986389b8758de7e3905354693f7e839303efc02351551b241a6ba931",
+      "afterSha256": "d6e83ca199d5d53e5700ceda8b742011e578851851238fa6631c4b8f29d84238"
+    },
+    {
+      "file": "src/commands/commandPlans.ts",
+      "count": 2,
+      "beforeSha256": "ab8d7f2f72270a792c504466c9450717b5feefe1b0d4c4629753f91eed488c53",
+      "afterSha256": "eb235efd72039be8a8a299493601cbd0b1d349fa3a1709175793da9482e7e270"
+    },
+    {
+      "file": "src/commands/nativeCommandFaces.ts",
+      "count": 1,
+      "beforeSha256": "2116b8cdc81c924cc40fbae5f4142a8b02a6f05f3dce4fd1a1c3b892ff680af3",
+      "afterSha256": "ac24228c028f38a5cd7907a31dba07189af170c8537ecc814df54d04bd293380"
+    },
+    {
+      "file": "src/fabrication/configurationPackage.ts",
+      "count": 1,
+      "beforeSha256": "37be68a6fc38a00863a3a5c6da7d02c93f65f4e754fc701052ea6b7a0a2771f2",
+      "afterSha256": "f9c5e7d177472ae1db4fc8b6c612cfc9c1d9f9d4316be177a317876f363491f8"
+    },
+    {
+      "file": "src/fabrication/exportPlan.ts",
+      "count": 1,
+      "beforeSha256": "e744666d5c68bec4e22234ec806f3f9db9fa0b8144ec2f62afccac9b701827ab",
+      "afterSha256": "40e5c3f016746f3a1d106028f3a94d85dfbd5965a95ed3439c9f8dde4248fc17"
+    },
+    {
+      "file": "src/persistence/partLibraryThumbnail.ts",
+      "count": 1,
+      "beforeSha256": "038e4129140499d5faf84dcf6e05990ae145fdb70a4316f3a30276cc5fa4e822",
+      "afterSha256": "a32039b7d55dc8ef02617a236b1b5dedb3d5f7a1df3c0432520aab7a8c33f3fa"
+    },
+    {
+      "file": "src/state/aiCanvasPreview.ts",
+      "count": 2,
+      "beforeSha256": "e71a31f5d98e9c1bbefa366c73075372f0d894c8480abba3c9451fa33b31a192",
+      "afterSha256": "73e38a91e7a0afb10afe284f5d647d2ca2bdcbe6ff2f50e9e496db42da271564"
+    },
+    {
+      "file": "src/state/aiFacePicking.ts",
+      "count": 1,
+      "beforeSha256": "a891c0098ec6ca791d371aa0a47561611151d59e1ebadf6970a682bd70c31c1c",
+      "afterSha256": "82ed7350a55984b80ddb314d9eb8d8077ccdb5672219d131a4a6be59622eba7d"
+    },
+    {
+      "file": "src/state/shellDraftState.ts",
+      "count": 1,
+      "beforeSha256": "3316329e67f5cd9312e239146ec7c047c6f749adde4d06d5fdb3f6cbe8b583ce",
+      "afterSha256": "44582469825ed7b3d57fdfe63359115035d61fb073ec667ee5ff07c504a23a8a"
+    },
+    {
+      "file": "src/tests/aiCanvasPreview.test.ts",
+      "count": 1,
+      "beforeSha256": "f0edd577e8fac4b11f5e6c3728c816e535e87011bda190f99bb0d57b3127dfc9",
+      "afterSha256": "4b4cc0f833fd260594c6cdbd4555457e5988c2210e7c433892ecb31e00f49db9"
+    },
+    {
+      "file": "src/tests/aiSelectionTarget.test.ts",
+      "count": 1,
+      "beforeSha256": "f66cb04aae651be8e19951b6aecb84261e3ad613550150c0da13e47074792d26",
+      "afterSha256": "9cef4ac820d112217f75c5b7657c120a572849d7f4bf26c9b008d75bdd920823"
+    },
+    {
+      "file": "src/tests/assemblyJoints.test.ts",
+      "count": 2,
+      "beforeSha256": "2ebbec67e7823f921b3d54985d2dfba7bbcaec1095cf180e073a1bff1487a880",
+      "afterSha256": "3ff888041d5937e6b08b301b84fa67fe849f8120b738599611c75984144d9acb"
+    },
+    {
+      "file": "src/tests/assemblyMotionCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "2be7bc61bd1a6c5df97a4413524e861e8efda62f41521d4ec4011f1035d0077d",
+      "afterSha256": "52ccaac105df9184a5875e4158732f7fbcb07d9e6e06b8d32c0df5835c0e306a"
+    },
+    {
+      "file": "src/tests/canvasSelectionActions.test.tsx",
+      "count": 1,
+      "beforeSha256": "66f0befd370c0dc89fa7f92dc274ab8269ab5b15bff6a147bd829fea3e680b8c",
+      "afterSha256": "916b4d2169bf8c367eec2e8ab5b2aefcc2a355956abb298c38503f9916bf73a6"
+    },
+    {
+      "file": "src/tests/commandPlans.test.ts",
+      "count": 1,
+      "beforeSha256": "89ee1b1700f6bfd99e4e954751d284152f969094cffcef9323bc129f330b36a3",
+      "afterSha256": "755675a2a8396b178f8e9a7211eff8ae1088e885c298884cc19374150f2bf952"
+    },
+    {
+      "file": "src/tests/componentAlignment.test.ts",
+      "count": 1,
+      "beforeSha256": "811f7f6e62cacb8084303df68cd0af993b51acdfb52d2da3ab5fe2f6b45e2b56",
+      "afterSha256": "f9ee24dddb63993c7c38fe55977f8611ff034348088e04f2229ce332033a2ef2"
+    },
+    {
+      "file": "src/tests/componentPlacement.test.ts",
+      "count": 2,
+      "beforeSha256": "9d8b8ce7c2b0e9aae839aa906841938bd241e289290a0c9515a1789cf1e83f8f",
+      "afterSha256": "2265771af1b0a523e72f4b4e685aec8a984cdabb85e1dd78383dc23a1dfc481f"
+    },
+    {
+      "file": "src/tests/componentPlacementCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "0091b12bf09d8ddcd9ba6b83440dda3f99b465e43e5823ca941141bfa22b7f07",
+      "afterSha256": "de8893a761bc0e5d4d4235be48e4a885b3bda5d06c5a7221ef00c2f0febc729a"
+    },
+    {
+      "file": "src/tests/componentPlacementPanel.test.tsx",
+      "count": 1,
+      "beforeSha256": "73fdc230d30b26e2ca13407244bd16cfe3a729d4897a9d9b2a73bc294dd70e11",
+      "afterSha256": "55ba52f45212e3978402e9a15272087a841230294e85167f5d5b164c0ad10fbd"
+    },
+    {
+      "file": "src/tests/configurationPackage.test.ts",
+      "count": 1,
+      "beforeSha256": "05ca8c424234afb3dfb19d0ef56cfb87f20808785094de119c8c66e4d1e92733",
+      "afterSha256": "822ff24c6f2c2df72ccf6953e53d7ec15a1ff328ace861f2a75f914759465da7"
+    },
+    {
+      "file": "src/tests/edgeDraftControls.test.tsx",
+      "count": 1,
+      "beforeSha256": "41a04bff1e47d2c5cef708a23ed8931b92577679615e3b5fe876326c2e4f9f09",
+      "afterSha256": "46eecefdf4c8dc744706111afb8e10476830b9e2d78729060ec4c960e7520f9b"
+    },
+    {
+      "file": "src/tests/exportHub.test.tsx",
+      "count": 1,
+      "beforeSha256": "56cd876903bca0972e2d0e659f6311c7e0ea8b8b13ad69e79c86f20648e7b156",
+      "afterSha256": "ac793113e60db6f759cce73975914e9d7a012de3f1368be076f00df87dc555c5"
+    },
+    {
+      "file": "src/tests/extrudeDialog.test.tsx",
+      "count": 1,
+      "beforeSha256": "70584d2b83ba54fef37411d71dde47eab100a9f80edbea1a22c141dac923ffe9",
+      "afterSha256": "cca75a68154714be74e596cd745c0ea789fe8b96a410abd61b7606ccc4a2eb32"
+    },
+    {
+      "file": "src/tests/facePocket.test.tsx",
+      "count": 1,
+      "beforeSha256": "9d0aaf0cd84c4ea07328ba96d8145d683c8dd1ab471421d0c3c8c8165db0a880",
+      "afterSha256": "74dddf90ada1ad319db5f64f57c9892fe3f4a5b527928ca061ebd9c46267075c"
+    },
+    {
+      "file": "src/tests/featurePattern.test.ts",
+      "count": 1,
+      "beforeSha256": "70977801e37bab6b02abf932e0fa07486bf6337ee05881abc48f956a4e4245e0",
+      "afterSha256": "9c24cd8ec0a668f6f9d8fa78b3c07401c06896dd53fd5ef9239b0fd18529ca59"
+    },
+    {
+      "file": "src/tests/featurePatternPanel.test.tsx",
+      "count": 1,
+      "beforeSha256": "6114242f64c4de45a8f49c14e57a8e53ef186f128d777111bf011eece39537f4",
+      "afterSha256": "ea6feab6b533b82e9832ec3b4cf09c099bdcaaf7899e9cc20049cc8b89da44ae"
+    },
+    {
+      "file": "src/tests/featureStage.test.ts",
+      "count": 1,
+      "beforeSha256": "e0d6737ac0cbdf2099897f8101c1a437830d3ca66b1101b7d4e13fed00fb28ba",
+      "afterSha256": "fb1aabe09ac939e92dbcbeb065d7ecebf63c961bf381bf1d5c022b9abeb19083"
+    },
+    {
+      "file": "src/tests/fittedPartCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "54fb96f3bcb972a780df2dd60b00168f642eefb3bbcbb06806c544b5efad0328",
+      "afterSha256": "6680fe1e99c7563dffc168c764fa8c9f5fe3e8b2eb723b106b0bb6e05e74f0b3"
+    },
+    {
+      "file": "src/tests/guidedHoleCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "6e554a03e67857cbc6b7400fb31527f3cbaa1c98020918b3de561449b9eea1c0",
+      "afterSha256": "55ff51b45e48f093fd2fb94d4e662c8ee86865aa39a79b86ff798817b52f3c54"
+    },
+    {
+      "file": "src/tests/holeCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "773ad38e8518df9acfb957e4c1124b018dd7f1e9945a2d347fdae1682fb4c38a",
+      "afterSha256": "247799b269ae0ef3ee4d6bada721a88fb488a0bbe2373b546408787add365af1"
+    },
+    {
+      "file": "src/tests/holeDirection.test.ts",
+      "count": 3,
+      "beforeSha256": "42dbb244e5bccbb3478e60cd982ba8377b9e8ebc46a24b0e2131572225654eb9",
+      "afterSha256": "d52c0f293d939883e3eed23c98f30d3580d8f61df9d31a20ccf0d7e0af9c2270"
+    },
+    {
+      "file": "src/tests/holeEditCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "afe33e86a9b31a1006cecf48ae1f3bb57e0bb8cf5659f7d279cd13f00acbabd8",
+      "afterSha256": "a69d476e122ea8a7d027e1f23440ea0ab06967abe9f4e49110b4019743900585"
+    },
+    {
+      "file": "src/tests/interactionDraftGuards.test.ts",
+      "count": 1,
+      "beforeSha256": "70ac219987ea20f3fa933568473894e68b626eefd103af98b70fb3710c87359c",
+      "afterSha256": "d73bf6adfc5e0ba674c02401367c782c3c543199fcfd2ffd62a23127b9f26844"
+    },
+    {
+      "file": "src/tests/linkedSketchCommand.test.tsx",
+      "count": 1,
+      "beforeSha256": "18b432399df8d6f62377f4e5a7e7107e1e85e3c33e7f4019579df92a20b1cd4f",
+      "afterSha256": "c3b2602a355bafddf1879cd8f0dc841801c3c7ca715c80f4dc8bba68c7f96155"
+    },
+    {
+      "file": "src/tests/manufacturingCoach.test.ts",
+      "count": 1,
+      "beforeSha256": "a58de045d6700b0e32ef45d27a1170b770f786b0f3b82f0fa647f20fb6b37118",
+      "afterSha256": "d259cdea15191653cd9769b68889c74a8295cb404e982e7fc085fcbd31c80d93"
+    },
+    {
+      "file": "src/tests/manufacturingCoachCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "349b41293e06327186e6d77f6648ce7d3bea17d29737ecb0fa9b8573fd6490c9",
+      "afterSha256": "0d635adf42dd8ce927e9e0d459f2500d2f95a5efc531b710e9de7294c9085027"
+    },
+    {
+      "file": "src/tests/modelMeasurements.test.ts",
+      "count": 1,
+      "beforeSha256": "bb371ede4d968e0b84f09aa83cfd53472a3b4dc4b33ccee54b081926beb4d286",
+      "afterSha256": "884d21ec15ecdbdd123879c5e4531cc476fc41d60ac844b91457abdf04c8a5b4"
+    },
+    {
+      "file": "src/tests/modelUpdateFeedback.test.tsx",
+      "count": 1,
+      "beforeSha256": "ab3c84f2e61302f111c7bb24b0f5aa883af4aeb34532ded5b2486417013703cd",
+      "afterSha256": "de07129dca3d65532cb95cd976e8a95f92f3e02d6882b02f5f8d6ea8c2240daf"
+    },
+    {
+      "file": "src/tests/modelingDraft.test.tsx",
+      "count": 1,
+      "beforeSha256": "8b450984b352113723b6ff294e459b7bc1b4962390e9b1f0f0c3df485144ade4",
+      "afterSha256": "3c6bb2024bc8a7c55bc1d5c7dd8026b9adafa85e3872b3c09d45665e2bff5bc8"
+    },
+    {
+      "file": "src/tests/modelingEdit.test.ts",
+      "count": 1,
+      "beforeSha256": "6f0744f13f08cd6d6cfa9e5bcc2581604cbdcab927097537192d2504c816a89b",
+      "afterSha256": "271626acd72ac8c66d14dc29847e4cfdc16c8b1401f8cf522a32c5db4bfa296a"
+    },
+    {
+      "file": "src/tests/modelingGeometry.test.ts",
+      "count": 5,
+      "beforeSha256": "bd5ff86de3c23085824ce305997c863fdc285e43e7642c7d8d05f967fca35d26",
+      "afterSha256": "3be9d1484bcfcb7f4959818fd91bf33eef50a510ad98aff92aaabd7ef03b9214"
+    },
+    {
+      "file": "src/tests/modelingReadiness.test.tsx",
+      "count": 1,
+      "beforeSha256": "dd27a2a5d3add9e53efc31e1e6639458a9edcf1ce8dd3ec16adbc814f98d9696",
+      "afterSha256": "135ee3d10cc245c0acf0863bd38b15edc72190db2c1afc5a8a7a5c9545fd49a6"
+    },
+    {
+      "file": "src/tests/modelingTask.test.tsx",
+      "count": 1,
+      "beforeSha256": "7be06a4ac7c6165a86ec3d731e7f1af670f39d1abf9c5c1cb48c8ae02f796243",
+      "afterSha256": "534c85327ff1601dda44c10300cfab260a6a98df7f4dbf602f84fc3ee06d2811"
+    },
+    {
+      "file": "src/tests/nativeFeatureCache.test.ts",
+      "count": 1,
+      "beforeSha256": "49d5db0acda7eec52fd27c3024fef82765687d9dc067d408956a0fdb3f865202",
+      "afterSha256": "975d39e17f26eb161d789355234cff4f834f0e8554306a9c27b629807340c843"
+    },
+    {
+      "file": "src/tests/operationDrop.test.tsx",
+      "count": 1,
+      "beforeSha256": "b3a272eebf3d9f88ec367041aaf9492175a9f6d65bbc787744603af9b235ff86",
+      "afterSha256": "4641148b5ab860ffe3ed20c3a3a685a1e95f274d733f47ae1bf7944f644e373c"
+    },
+    {
+      "file": "src/tests/partLibraryCommand.test.ts",
+      "count": 2,
+      "beforeSha256": "fe48a9d7dab89c6f387ec0cced818d3aa5668689b22066bfd70a635be13072bf",
+      "afterSha256": "a186ea5ecb6c4d275e7966f7387dee4a8c624cfc5a998284dc3b735b1d5f7721"
+    },
+    {
+      "file": "src/tests/partLibraryThumbnail.test.ts",
+      "count": 2,
+      "beforeSha256": "b47c6f622158fb0cffa91f99539a7fb27a07c50e50c90c087ecec28661cbb7a2",
+      "afterSha256": "c74e564d93448dd695461403ada0fa4da794f08f756b365a4695d9a7530819e0"
+    },
+    {
+      "file": "src/tests/planePicking.test.ts",
+      "count": 3,
+      "beforeSha256": "54e889b373a655796d60cee62a2ef781c3f8339bdf9103bf01c96a7d2e1fa9ee",
+      "afterSha256": "ccadfac8974352b6c467402ea4ed2c4a5c595ef3fedcffa10e77f8aa48f792e7"
+    },
+    {
+      "file": "src/tests/productFamilyCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "31aa36f68355332b175a69bc2cd8794b1004092e4b9d71535ab30adcc154b929",
+      "afterSha256": "f70ebd43c9307687bf3f138da2c532eae339c90bb24a724eacba0611a5de3253"
+    },
+    {
+      "file": "src/tests/projectGallery.test.tsx",
+      "count": 3,
+      "beforeSha256": "a705c3a5da56926a1dc45e59ee493a0c58e0b0ab25cdb8f0941d0f6ba18136c8",
+      "afterSha256": "d0799246b521c781b73d874b3e6dc6699ad61a210f14a425de10cc312b39366a"
+    },
+    {
+      "file": "src/tests/shellCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "4d2343f5b668794f7bee482f7b4bbb15ea7a4282677ea03fab8767a537de6894",
+      "afterSha256": "8d978d8a4c283af7c5b91b7fb8b9192fb36f2498ef3948350ae9f65f2dbd5e8c"
+    },
+    {
+      "file": "src/tests/shopDrawing.test.ts",
+      "count": 1,
+      "beforeSha256": "613fd17df6980d108ae751267d1cee3d0e3c4b48af29a99f4a1c3ba04139c43f",
+      "afterSha256": "6e614648b915793449dcce821a93c5252797fdee90aa875351c01f4249a009f1"
+    },
+    {
+      "file": "src/tests/shopDrawingCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "bccab44ca106de58a6d385cbcb65bf6bb14aadb38d27ac6db4b027198c4910fc",
+      "afterSha256": "1a39742534adee73c9a12eec39447f5853dccedfca38ef6a3205aa481e2f4b17"
+    },
+    {
+      "file": "src/tests/sketchProjectionCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "b4c24907379b6b73f261954931e4765f5848306245e1c0f1497e5fd48a7e45aa",
+      "afterSha256": "50313c371acd2eb9ccc9521b816f57bbf3a1c8379e2d23ee81d38505083d9a29"
+    },
+    {
+      "file": "src/tests/solidDimensionEdit.test.ts",
+      "count": 1,
+      "beforeSha256": "dab54acc0df5b121761906ac0f0b236b7b1cb275932aa8cf5b95fbd1249a2332",
+      "afterSha256": "9c470856ecedea4fb95953dfd578c6a7f0930d1f5a91461b33705535e630e56a"
+    },
+    {
+      "file": "src/tests/solidDimensionEditor.test.tsx",
+      "count": 1,
+      "beforeSha256": "fbca39a0a014c27ad672328601e0ab3fc016540d51089d234b635cd73a520175",
+      "afterSha256": "fdf05d212aa4f90b524688a8768368ab87cc41de395cd273c4adde8a1b99b134"
+    },
+    {
+      "file": "src/tests/solidDimensions.test.ts",
+      "count": 1,
+      "beforeSha256": "5dbc0a5b36f44f22c0e465aede84a48b2fbb6eebc595eb357b176fcab014c4e4",
+      "afterSha256": "5bd96f477174f087726727cb21ec4dd354ae27e276a06c8dc6e681a98649ae06"
+    },
+    {
+      "file": "src/tests/stepExportCommand.test.tsx",
+      "count": 1,
+      "beforeSha256": "213dd5de054ea82b4353c64081d73943cfe88da0d20de3759b6adc69ec809c24",
+      "afterSha256": "eecdea1f82b612cad50b5adc4ea07d872f5fb849d5660f09a4574fca94f6851b"
+    },
+    {
+      "file": "src/tests/stepImportCommand.test.ts",
+      "count": 1,
+      "beforeSha256": "b05900b943efecab17672aff55d4c5c3582333be84bf19358e8dc5733a1d30b9",
+      "afterSha256": "d8fb9a712717826840bff766599c6bf12e54fedea97681d76f0dc3d6189d5501"
+    },
+    {
+      "file": "src/tests/timelineStory.test.ts",
+      "count": 1,
+      "beforeSha256": "c65694adf520e82a1908795e0feaed94cd015b03b96e8a86c83b54c322c6d493",
+      "afterSha256": "24acdcd336e0c4f99a39e47b625dd563c1102e4e7449fefdbea305d8405788b5"
+    },
+    {
+      "file": "src/ui/commands/canvasActionTarget.ts",
+      "count": 1,
+      "beforeSha256": "9e92393e622b8d25e5b44017423e18d436085a80c34c62258bc64d58e204c244",
+      "afterSha256": "685921683affab8929926a00406c190b5c22c8047b7eae0a2f75288918aff2d1"
+    },
+    {
+      "file": "src/ui/commands/commandRegistry.ts",
+      "count": 2,
+      "beforeSha256": "4ce0dbfa89a534703a4328e17692b9745a94c50f15969b1356b4e42bbd7d8c96",
+      "afterSha256": "601dbf8585c54915169fafffe5852da967cd60ccccd6511b791b8c4501c1d5f1"
+    },
+    {
+      "file": "src/ui/commands/componentPlacementCommand.ts",
+      "count": 2,
+      "beforeSha256": "7e82348602484815328cab39f4e473a8a820f329e7b903c15cad9048b0432810",
+      "afterSha256": "0d05d280fd86b0d9d66c97eb8c5b5cd93c3d559fc2ac583e44db7ec61c668a8e"
+    },
+    {
+      "file": "src/ui/commands/exportHubCommand.ts",
+      "count": 1,
+      "beforeSha256": "e4fb12bb672a34ac6c2540320b2211ef07019327123cf8486fbd37d6facf723f",
+      "afterSha256": "e3880d896def832d0492bb8f6be4386b932938ef55bdf38a37ac258d4e9fab71"
+    },
+    {
+      "file": "src/ui/commands/extrudeCommand.ts",
+      "count": 3,
+      "beforeSha256": "2803608f48de5f6a8350fcff9aa0cef0ad047d523bb6e2223d2604172cdf9dbc",
+      "afterSha256": "02b2ed4c38a327c9ed245b556358a4ebd6ccd33d73ae0f9077db99c751ae2f26"
+    },
+    {
+      "file": "src/ui/commands/facePocketCommand.ts",
+      "count": 1,
+      "beforeSha256": "fc762fb235e90d660ba6ae034a7ab409487e4bebfe6a5f2d8915f3448a75c8ae",
+      "afterSha256": "540c2026bebaf7b0b3cb6902a995096761626e7737dc99268c5c5a53c44ad7b9"
+    },
+    {
+      "file": "src/ui/commands/featurePatternCommand.ts",
+      "count": 1,
+      "beforeSha256": "677c922836d459d17a732224e6bd76db39d69f978163afa6062ecb53ff7d7120",
+      "afterSha256": "97e83f3b659d894d40d834a231eccfcb1b6afeb15c9fa6d029c6a6ede580f100"
+    },
+    {
+      "file": "src/ui/commands/fittedPartCommand.ts",
+      "count": 1,
+      "beforeSha256": "6b41b5f9c621f8f4c2f8d5f96cb784ca9ca63823ba266bf5c98c37d45daaec69",
+      "afterSha256": "1d501b7cce20ced64d431e25c2497fa33755ac7795bae9a97813b301fc858f48"
+    },
+    {
+      "file": "src/ui/commands/holeCommand.ts",
+      "count": 4,
+      "beforeSha256": "42b7895589e5738fbd645623dfe72844ded99c4fc4bb33b2f3f94388333883f9",
+      "afterSha256": "fc506456fb3c20a288a18ce0051a5ce6b04bdfefbd7509fda279a4380899d222"
+    },
+    {
+      "file": "src/ui/commands/linkedSketchCommand.ts",
+      "count": 1,
+      "beforeSha256": "baecaf1a68dc6277bfb162e3ecc7c5caebbed631167d6aa7ec5c0853e182e4e5",
+      "afterSha256": "14a645fcb7f55b0a9b6193e62845b9737b4780a985efdf4ac6be32e32442fcac"
+    },
+    {
+      "file": "src/ui/commands/manufacturingCoachCommand.ts",
+      "count": 3,
+      "beforeSha256": "a146f71510d0f26c36b585b24585495732ae66eee535f8462264f006dc834fa8",
+      "afterSha256": "dfdae8ebf38bea42f1e51abe7dba12f1ed788148328735d23489658813a58d29"
+    },
+    {
+      "file": "src/ui/commands/modelingDraftCommand.ts",
+      "count": 2,
+      "beforeSha256": "f80d1f0ed8ec7362c0c5da206fc189f7529b2d19306dfab31dc2537126ee9d37",
+      "afterSha256": "cf8d7a04e9d166c2c6bc6ccb4a9fd9453290c7a17522c9170698a435b5e11c72"
+    },
+    {
+      "file": "src/ui/commands/nativeTaskAvailability.ts",
+      "count": 1,
+      "beforeSha256": "28fd86f0d2e443e384ddb8c3487b3475b3a6a49889c171e00542ea1664505bba",
+      "afterSha256": "e2f12b39e3f6c07f1331fadc3fddbfb065711f71c8220f2927da16cbdf96c4bb"
+    },
+    {
+      "file": "src/ui/commands/operationDropCommand.ts",
+      "count": 2,
+      "beforeSha256": "3402d13983bea7086f094ce81a4d292c164708b47be242240b48f1e078e467b7",
+      "afterSha256": "5862ed515fa8bf496d91a537496a9b56373071c7dcd714fc4504bd8d1d9199ee"
+    },
+    {
+      "file": "src/ui/commands/partLibraryCommand.ts",
+      "count": 1,
+      "beforeSha256": "ade4ae7f14f4df2d836cc1afeb601db1439f433755aa37e01a7e3c54696029a0",
+      "afterSha256": "aa4ce008e74b811c3440f2fad4cdcd5ed4f2f7aaba78cb2ead89d162cae6ef59"
+    },
+    {
+      "file": "src/ui/commands/sketchSolidHandoffCommand.ts",
+      "count": 1,
+      "beforeSha256": "da975decc7bd838983b4ee6e5a0649bff18eca77a232d5da64401f1e4eb3d17e",
+      "afterSha256": "03a4f2d31a499a1e2db3ba49ea2c00069ef106f5e6824e1a4be5e30b4ee5065e"
+    },
+    {
+      "file": "src/ui/commands/stepExportCommand.ts",
+      "count": 1,
+      "beforeSha256": "933fb583425a79443d7b840af3a8afd092f0dd16778fce4bf60f5596821fa2c4",
+      "afterSha256": "508ab9105bcfb7f1c63b9ec67b82194d01f29ab2b1bd4bda62590d18f588af20"
+    },
+    {
+      "file": "src/ui/commands/stepImportState.ts",
+      "count": 1,
+      "beforeSha256": "f73ad3f97ccc52434b623b36c4c9795ec98be2ea209ff4c1255e9b5bd971e3e0",
+      "afterSha256": "b2c3c5de5869feab9b4e0db916cffb560545e61d0a7db27c3932c1db51b21bfb"
+    },
+    {
+      "file": "src/ui/panels/EdgeDraftControls.tsx",
+      "count": 1,
+      "beforeSha256": "47b8c3dd22051785445b5c8a4bb00f5e41162c7f1d9560c07986663798e393e4",
+      "afterSha256": "cbeb7cb08673d17daddfaea2898f05aaffdf201fbf8cc4eca24c8b04e19d89bb"
+    },
+    {
+      "file": "src/ui/panels/useFeatureDraftContext.ts",
+      "count": 1,
+      "beforeSha256": "808141a9a6af5dfc89a9f2f49638a62de85715bbb336614974f7b8ed0ec27638",
+      "afterSha256": "9c049707353ec4bec4d885ae18f0f60215b2bddb2a99e7852376fe6cbc2f3a4d"
+    },
+    {
+      "file": "src/ui/timeline/timelineStoryProof.ts",
+      "count": 1,
+      "beforeSha256": "bf97fd1b0ebdb701b071f5c4a024705ee71c251e33a4c8cd9be4f299258c820e",
+      "afterSha256": "4d865873b52929a5d9c70cb53d7b282e987f6ec8e7e9361fc32a2b88a7838d5f"
+    },
+    {
+      "file": "src/ui/workspace/ModelUpdateFeedback.tsx",
+      "count": 1,
+      "beforeSha256": "2ddc5826e89c804af76a25cd9e0e7e76b5426a7e5c59e6c1bca68337464772f7",
+      "afterSha256": "f751c93d6113c5cb6de7c744ea9858c63a3f954fbdedf2458c79a9536b93a3ba"
+    },
+    {
+      "file": "src/ui/workspace/modelingReadiness.ts",
+      "count": 1,
+      "beforeSha256": "5cdc838369906b4400be6235619f50ed5735d44d7b17f65784bcfd9ed56df945",
+      "afterSha256": "32dadf73e2cb004f91bc72d8961c2a2cb30ed5eb7a294053603219cf97e55547"
+    },
+    {
+      "file": "src/viewer/aiFacePicking.ts",
+      "count": 1,
+      "beforeSha256": "392354ff4291d9a28023f9bc6a395b43ff51a1609833870fafa662fa76b6985a",
+      "afterSha256": "2a66d232b755a56166d9ea5edf187e14ce7e419aa194334c4ef43788918786df"
+    },
+    {
+      "file": "src/viewer/galleryPreview.ts",
+      "count": 1,
+      "beforeSha256": "bb311a265f5ed40afd84b24357b2efc7f1a6403c33e76fd272fe4df8470ef068",
+      "afterSha256": "32b547869c0e978861b4a15881d6cb3f2875283987e0e7f2149de6166dc7806f"
+    },
+    {
+      "file": "e2e/ai-canvas-conversation.spec.ts",
+      "count": 2,
+      "beforeSha256": "8bec4517abd96629d2f586aaae4a31d5685a766e72e9d0335a0897316514cfbc",
+      "afterSha256": "b0c6bc256323d7dd33f86f4689420c7251f011ffc3411fa104bbffc345471420"
+    },
+    {
+      "file": "e2e/ai-canvas-history.spec.ts",
+      "count": 1,
+      "beforeSha256": "9826e6620851dcc173ac9867b117bc564f142b8a1eedf026ad522860ad528113",
+      "afterSha256": "524c0f3a8c7b68b218bdf142f2787685d5cec6fe840b035923da7cf41bc620f9"
+    },
+    {
+      "file": "e2e/ai-canvas-preview.spec.ts",
+      "count": 1,
+      "beforeSha256": "234b6306e2edda174ed35bb781d64bef69ecd25976ab868f9d6cb9cd06b201b5",
+      "afterSha256": "3cbbedfde9f834f4168cb31772b56e50ab8c0809221d9e24f0dc0528f8cab022"
+    },
+    {
+      "file": "e2e/ai-canvas-shell.spec.ts",
+      "count": 2,
+      "beforeSha256": "5db1adcabc3c59f01617a204976e0dfc5a73514541aa79bb83cb32ffc1ae91a9",
+      "afterSha256": "63660fe1018dde0d859b5f80b345f18f7a395ae06923bcea54c4c2e21fdef84a"
+    },
+    {
+      "file": "e2e/ai-drawer.spec.ts",
+      "count": 4,
+      "beforeSha256": "d698758225df72e34d4707649bc71d90d40e0f4df955938e50a8cbb39c3ffe1a",
+      "afterSha256": "eec7ee815ded44935f41226eb8bd1d8108055010a45216707a36dce804c5dd48"
+    },
+    {
+      "file": "e2e/ai-feature-addition.spec.ts",
+      "count": 1,
+      "beforeSha256": "a8c0c134f489578000e744c0eb7372c94b7af6a7a9c3da5f95f3e8e371947dc1",
+      "afterSha256": "08929f0c101bcd21c8bd4454791d373699470284d526a6f307903bb2cf4ca569"
+    },
+    {
+      "file": "e2e/ai-selection-target.spec.ts",
+      "count": 1,
+      "beforeSha256": "1eb44c4692cf24079e77c9c63064d98391589b1c19b070ac05fb009cb1ac6097",
+      "afterSha256": "f25176e6021fab94cb02e1a985fe4f5507a831e1e080b117be5502103068206d"
+    },
+    {
+      "file": "e2e/ai-sketch-canvas.spec.ts",
+      "count": 1,
+      "beforeSha256": "874ad83e4da73c6db814ab43f345c91d5ff1499aff16a4e77e5c28af8f04ed22",
+      "afterSha256": "79d312f42a4735e01d3a381d7e46b212bd935f6eac4ae190da944071a88c016c"
+    },
+    {
+      "file": "e2e/ai-target-highlights.spec.ts",
+      "count": 1,
+      "beforeSha256": "7587e2784bcd6628d0fe2ed659dd5414877c350026b1fe3b4824ccf0e2b5ccb4",
+      "afterSha256": "d417a2e3851efdd8350e10a6585d55e7015721b5e3860bfc3f08e582de813134"
+    },
+    {
+      "file": "e2e/aiAcceptanceHelpers.ts",
+      "count": 1,
+      "beforeSha256": "957109313e37d612082a502f459fabbab1177ac7e7ccde0de267fc89b70422e2",
+      "afterSha256": "7c3798dac5c46a4c78e189dab15d90b66598f9fce37fe55e56e3d3ececa602b4"
+    },
+    {
+      "file": "e2e/assembly-joints.spec.ts",
+      "count": 1,
+      "beforeSha256": "8f92d4fc51dea661a70f68045dd0ca878ba5d0bb2c948134a13c4f585bbffd80",
+      "afterSha256": "2cb2418aea50fc849c857e80bc41beb48fb107b58192b5ee4aade297e10ce289"
+    },
+    {
+      "file": "e2e/body-visibility.spec.ts",
+      "count": 1,
+      "beforeSha256": "9703ace6e4bfae14749673ca89dc4600fbeb3ad4d60747a549580712f06d16a6",
+      "afterSha256": "2ade687b8c5aa5aa78320f730e01808ebd0c35383fdd954c6f89e99f45c7d362"
+    },
+    {
+      "file": "e2e/canvas-actions.spec.ts",
+      "count": 1,
+      "beforeSha256": "99b73ad7f46bd56dd59d5e64dcb026d8930555b96a0703076488e41058b05314",
+      "afterSha256": "8f78f3ec807c230f8636d63a3d726cf52f392c30a227f90c93332d5314195e15"
+    },
+    {
+      "file": "e2e/click-measure.spec.ts",
+      "count": 1,
+      "beforeSha256": "397adad11c22863858fc9be38b1578d9ea4df9f6fd74c082f9461df107f3c830",
+      "afterSha256": "8b86e590d740d35ac276fbfad89e84f9fdb58399f87cf75f75558e0eb59b629d"
+    },
+    {
+      "file": "e2e/component-alignment.spec.ts",
+      "count": 1,
+      "beforeSha256": "8cf8472d815d8cf55fc1bfa8f35d3a0ed45ee523c809b65aa6c165a6e0405ec9",
+      "afterSha256": "5d7cf1d3deb7491d237b6498234ef95f81e9612338c41feadd7bd4a30430d4af"
+    },
+    {
+      "file": "e2e/component-navigation.spec.ts",
+      "count": 1,
+      "beforeSha256": "82b8db205ab8f228b30c9766fe34b9e425e78a0fcde48f447ba37064f674fdd8",
+      "afterSha256": "689f91837f6b8ec2d0c158f1d8e34938b9c8890c7c7d54a7b899d3e5261731ee"
+    },
+    {
+      "file": "e2e/component-placement.spec.ts",
+      "count": 1,
+      "beforeSha256": "7b551f879dec7d4fc4e4fba2f5e3193f28ea0193a86de12cd3fe2adbc399be36",
+      "afterSha256": "6168a2013eb75025fd081347079dc4c30f30442e0a5c9ed257cf8b1911f431ad"
+    },
+    {
+      "file": "e2e/contextual-ai.spec.ts",
+      "count": 1,
+      "beforeSha256": "ae1e932ea0dc33527de9d635476a1bfbc7a53fa88eae19cc5b4ef56b5f9629d8",
+      "afterSha256": "68214332a4ad261ae8e104ba0030b30ddf18bab3d4781f09ac17019891dcd504"
+    },
+    {
+      "file": "e2e/contextual-constraints.spec.ts",
+      "count": 1,
+      "beforeSha256": "bcd404f0c8dac61c70d27284e823822c8cd8315e39b758ba9ddcf34a157cebca",
+      "afterSha256": "e171d684a0cb88c81b1ba0d926e00096dbbef82f63e2e9476f745cabcb6388ac"
+    },
+    {
+      "file": "e2e/durability-fabrication.spec.ts",
+      "count": 1,
+      "beforeSha256": "7ae15a96ce282f6317fbd8efd05f9e5a55361e6543b639509767616161269f58",
+      "afterSha256": "75c5ba111a6f8fe2fee7e7ff304f05eeec22caf95595154a6c12c612d60aa098"
+    },
+    {
+      "file": "e2e/edge-edit.spec.ts",
+      "count": 1,
+      "beforeSha256": "59564b4bbe71a1cbb35a21c58f0da82a06e88b7badc0bb858e7ff566b8a75e10",
+      "afterSha256": "82c82d1a018a2d5d5b2e3a146f246fd66e0291972482bd94382e9931753481f1"
+    },
+    {
+      "file": "e2e/edge-proof-performance.spec.ts",
+      "count": 1,
+      "beforeSha256": "0230424cfcccd3266d20babbd3d339042d0c6733b055d2d57a7d451e44db1732",
+      "afterSha256": "1c6f82ef2335cc903780b9d97d3f9d72807608a9999e303de946272e9ae6c7bb"
+    },
+    {
+      "file": "e2e/export-hub.spec.ts",
+      "count": 1,
+      "beforeSha256": "f1b7d8e8668e1827204869689283c28a5b138cc8494da793a13e0eb672ed6318",
+      "afterSha256": "e2559990b8840c8a8dbbcd4ac73ce1694d87b56f18255e71d467d8f479a9df2e"
+    },
+    {
+      "file": "e2e/extrude-dialog.spec.ts",
+      "count": 1,
+      "beforeSha256": "a8e6d50d8f9de3b70192ac4f7fcdc795a36ec223fb3b0b0f9cfac9bd5c477fc2",
+      "afterSha256": "d6e44a469f7bcb31bdf4eddc73a72e1231346169d6b0adbf0881213afaaa3233"
+    },
+    {
+      "file": "e2e/extrude-edit.spec.ts",
+      "count": 1,
+      "beforeSha256": "b9bdae2f90a16e6a01f006db395c49828aea28170126d2e5d82681619df0f674",
+      "afterSha256": "f63d826367766ea3f034ab8096150095f1236681fb1f4d0e34f431038a8f7e24"
+    },
+    {
+      "file": "e2e/extrude-handles.spec.ts",
+      "count": 1,
+      "beforeSha256": "724ff74b28a356ee3ba187ff5f52fc3b45f1b7c6a390b7da97a15665c0ed610a",
+      "afterSha256": "2fc833e89d80c29bfaeb7a0b8e3e827c42dc006ea13f6334718a70b50a85a903"
+    },
+    {
+      "file": "e2e/extrusion-hole.spec.ts",
+      "count": 1,
+      "beforeSha256": "44988204d13cb46605e28076e87daeada3e28750dd4032efbc08a6a098753f5a",
+      "afterSha256": "ada2fb4b154ea115508f76fbc2751e149f9b10964193bba0462bd302963b816f"
+    },
+    {
+      "file": "e2e/face-pocket.spec.ts",
+      "count": 1,
+      "beforeSha256": "4eb8078e4c1014a2cbd8cb0a5553b320abfeb14a9e00cfcc84528f1358c642d2",
+      "afterSha256": "063eb8fee3310d2a5fc7a115081608e241e2ed09412c38c38fbdc0c60ab1c7be"
+    },
+    {
+      "file": "e2e/feature-patterns.spec.ts",
+      "count": 1,
+      "beforeSha256": "e80d05e0ada0b77513dd5ae0c18bbf01fc6674f7248ff04db614ad6542e0143b",
+      "afterSha256": "7e4a43f1e49a61fc2cf1603aa2283022fee5e6263acdc4db702f683c8fabd201"
+    },
+    {
+      "file": "e2e/feature-repair.spec.ts",
+      "count": 1,
+      "beforeSha256": "bc25dfbb9723fb318ecc2913893b24b0caf4d1247328bcac6225e6d940a83e56",
+      "afterSha256": "f240aff23704d2678e0a7638d81f81a2ad18d99e37749b384d49bceab5f2b724"
+    },
+    {
+      "file": "e2e/first-part.spec.ts",
+      "count": 1,
+      "beforeSha256": "138853b8c23988059d993cdc8f3392b29af1ebb975eaf2a2804bbb8257bcbbbc",
+      "afterSha256": "9d36daf593ed425ded8c30075e88c52fc7ff771b24a7069900d4d26593788a02"
+    },
+    {
+      "file": "e2e/fitted-part.spec.ts",
+      "count": 1,
+      "beforeSha256": "636ec2c54d22b6fbdbe37ca1ab9d8339ebcb4276e89a041d63da5723205214dd",
+      "afterSha256": "1bd26080c6498da7bec276417a383bc830ff0edd1341f669128e0885d72a33ff"
+    },
+    {
+      "file": "e2e/focused-workspace.spec.ts",
+      "count": 1,
+      "beforeSha256": "634e5d6cd57a8cfd926fc0c1c0e92a92cd6f5c655275511c82e5925b75c87753",
+      "afterSha256": "dddf4ce0826e5428cc9acbe0ac6bf6c2b5adf9e04ae54277bf736c5d04a5a803"
+    },
+    {
+      "file": "e2e/guided-constraint-repair.spec.ts",
+      "count": 1,
+      "beforeSha256": "b2d9bae51d13884f8cab8e9ca64efdb77413368a726d62de8a2856d2d3bffac9",
+      "afterSha256": "1027dfc20a160a3690f43f94a8b21ac8e422044fb836cc5bf210e49df79aea00"
+    },
+    {
+      "file": "e2e/guided-export.spec.ts",
+      "count": 1,
+      "beforeSha256": "5be5f503ee0e597c97fe6438386ee29871de6dd5ba409ae19116dda7f637f8ee",
+      "afterSha256": "3afc9522de8598e5b4541451eb2c9f059275fe115ef1ccdd6cbef6e72b470921"
+    },
+    {
+      "file": "e2e/guided-hole.spec.ts",
+      "count": 1,
+      "beforeSha256": "640c0cddc9dcf233ece8161aa95d13cec8bc8a2cfc3faeebe6e463e8c979e81a",
+      "afterSha256": "c0cb47b7366141dba1392aeb933bb4d787d265a6844471734b8cc70981c5d8c5"
+    },
+    {
+      "file": "e2e/guided-repair.spec.ts",
+      "count": 1,
+      "beforeSha256": "9865c73377eb11aa262be9308e85e5bf4ab3c1434e7476d77c69132b3e699bee",
+      "afterSha256": "0e5f757d669dcb346e21a65a20f14094d2dc781eff5f72db95c4be3fd09f189e"
+    },
+    {
+      "file": "e2e/hole-edit.spec.ts",
+      "count": 1,
+      "beforeSha256": "39963c7aade1cf8c709c028ec9eae501172f9c0bfe346c2a0eff68e0f0cf7a74",
+      "afterSha256": "b291993cb4bf48472c8f7b75652ee2d5fbb4e39bb918c5dec997a47b887cc803"
+    },
+    {
+      "file": "e2e/incremental-native.spec.ts",
+      "count": 1,
+      "beforeSha256": "32be7ff1aeb45f2f23693750469dcfd74aae980e7d602d4b59558140c68a94fd",
+      "afterSha256": "fc9ad578db2fd7478503818ca5b7b53bd707e13f9fa45afdb2cd868b64c5d34d"
+    },
+    {
+      "file": "e2e/linked-sketch-usability.spec.ts",
+      "count": 1,
+      "beforeSha256": "259f3ebf10e6372f8868a909544254a31f0ae8a01bd07d63ce8803484d8e9864",
+      "afterSha256": "31a0db913b21c28197a8c756959dd3200a05408fc74ad3af63dff8e22f5cf6fa"
+    },
+    {
+      "file": "e2e/local-task-previews.spec.ts",
+      "count": 1,
+      "beforeSha256": "2f37df7c0825443cf088a0b4e95a2eaa3989a0bbb97951c010ff9d9dce566a86",
+      "afterSha256": "9553ffd7a26ca1ddc40300779dde8f0283bb115b97976e22be41960af53b8ee7"
+    },
+    {
+      "file": "e2e/manufacturing-coach.spec.ts",
+      "count": 1,
+      "beforeSha256": "5b10f5600cd151cb994c697b23065f2e20d686b7832ede52201fa8c34d396fd7",
+      "afterSha256": "c02b90d99d43f804ce58b822fef11be1acf0ab1db11f9326b116971f245e1e49"
+    },
+    {
+      "file": "e2e/measurements.spec.ts",
+      "count": 1,
+      "beforeSha256": "460f01a5ed7c167beb36c3044de4fd6a1d82c396c33a2ca4fea16f8dfa366ff3",
+      "afterSha256": "a88a310e8ca1217a46de10bbb2ae9dce00e9ef1f014af4d1f44eff0f2e308dc6"
+    },
+    {
+      "file": "e2e/modeling-operations.spec.ts",
+      "count": 1,
+      "beforeSha256": "7e8553a56fd0391dc8a502f71372108f04c161cfeba13fb0b6af8c0b9d70971d",
+      "afterSha256": "9470621c39a874b6f67323b159fd5ac54319b362b2c9d819b77cb9e3df20d058"
+    },
+    {
+      "file": "e2e/modeling.spec.ts",
+      "count": 1,
+      "beforeSha256": "1192ffc1b6d5cc2b0061a4cc796bc5addba8ebcb6f68444a05812286128cf3e3",
+      "afterSha256": "0619e134151d8d3c472c5511bd84a38683f1855bd74ca36f2268ffb792b0c36a"
+    },
+    {
+      "file": "e2e/multi-body-cuts.spec.ts",
+      "count": 1,
+      "beforeSha256": "d8d6b964ee75923a1dbcdf648bc746f69007b259ac708de9135d0ae1bf1b484d",
+      "afterSha256": "d8892ff79a8bd7348e49d7b0bc8da0b1fd939d1f2cd7cf4651511b6880a37a48"
+    },
+    {
+      "file": "e2e/multi-body-holes.spec.ts",
+      "count": 1,
+      "beforeSha256": "996ba4239405025e5f439d44eecd9888a274765e297329b3c33fc4a45878feb9",
+      "afterSha256": "fbcb0b7162aa16d5a853e313ad767c1beecbdb4787cadd96f08ad7ceecb15864"
+    },
+    {
+      "file": "e2e/multi-body-joins.spec.ts",
+      "count": 2,
+      "beforeSha256": "5e50d6b5e56559b79481b6736684e413d8514ca8049f59b26bf20ff881f9bd7d",
+      "afterSha256": "0029f30b21e2c81a9640f7dea3a2feb3c47ce779510a4ab88696f34050e7d3d4"
+    },
+    {
+      "file": "e2e/offset-creation.spec.ts",
+      "count": 2,
+      "beforeSha256": "693dd5cca2a637566fe3a11dc3dbd242de7ecffa5a06575eb5021924695a6083",
+      "afterSha256": "150bd04c17a99157977e3e7a3db4756cbc15a22c81347af0f6b13bb2c2fde800"
+    },
+    {
+      "file": "e2e/operation-drops.spec.ts",
+      "count": 1,
+      "beforeSha256": "6662a0225cd6430b8cdb4e76e35cafe338171eeb005fe48b88c6ae2d5c2363a3",
+      "afterSha256": "3cad7e04c31c8fee5cfa6f0216b8356b04ab0d6c7a590521bb6fd1f13bda4655"
+    },
+    {
+      "file": "e2e/parameter-renames.spec.ts",
+      "count": 1,
+      "beforeSha256": "06e05ed44ba7066201606c0e26b46c47a908168e2f59534f5b427c1cfd45603d",
+      "afterSha256": "0ac101ee8c4f73872221ea98a9f48c03f5f8e7640fce1fa35c8e2a50c021ec74"
+    },
+    {
+      "file": "e2e/parameter-units.spec.ts",
+      "count": 1,
+      "beforeSha256": "47ec41d576e679f6e77f149836ffc07b7a4820a2fc6f8b53a3407f7cd234a014",
+      "afterSha256": "81decfbfae8f1df81f27c441e1c209c4203019890052ab6982c246a52555a639"
+    },
+    {
+      "file": "e2e/part-library-transfer.spec.ts",
+      "count": 1,
+      "beforeSha256": "f6a1fd97ce7654d882b80b443ec8c1ab9c30758bead2fe854438354fa97be920",
+      "afterSha256": "7d8392ed980a23530e91699b8adccbd5f5a62ea65f6cfd67f7bf5c47c30e8740"
+    },
+    {
+      "file": "e2e/part-library.spec.ts",
+      "count": 3,
+      "beforeSha256": "3c972eb1d5fd51e00a5922393297aac4abc0adb409a7927e4a92cac6cfe7f687",
+      "afterSha256": "a4eedc5ba81d13b43467c9bfd8ae911174cf9827fea0d8e49cb96543b766fab2"
+    },
+    {
+      "file": "e2e/parts-browser.spec.ts",
+      "count": 1,
+      "beforeSha256": "24b21e7c39e932a1fcba02df41eb3ba0eece9fa6d6371848b36c365f8f8340cb",
+      "afterSha256": "a2a202a294de7f6afd0c06ca9ce9946f4507e56fb4e20f0d465c9a35eebe8e76"
+    },
+    {
+      "file": "e2e/pattern-controls.spec.ts",
+      "count": 1,
+      "beforeSha256": "7d78f6184d240da355855e496815eef4a5526bc11227dbef93fe3147322866b9",
+      "afterSha256": "94b3ec2a9fd8aea3bdf5cbf8bb98df8ec58177572ce50b11abe8e1f2cfd53ae1"
+    },
+    {
+      "file": "e2e/performance.spec.ts",
+      "count": 1,
+      "beforeSha256": "7878e4a230df65f1ddef0009fb642dcc65cbc026b6c78e021285220c32461048",
+      "afterSha256": "2935d315f0e85c78568a59497c726850a5df7e5d5e6fb4f30b902e65b6051c18"
+    },
+    {
+      "file": "e2e/placed-projection.spec.ts",
+      "count": 1,
+      "beforeSha256": "0c547e7ed4b86f6e210464edd35c72f022d04156826aba3f56d01488fada6d43",
+      "afterSha256": "c4860f6c8e64318bd6d8e428ce85dd069b49f0d4605ed0167f7dcfbda32afb90"
+    },
+    {
+      "file": "e2e/plane-picking.spec.ts",
+      "count": 1,
+      "beforeSha256": "d08ffaa52bbf51bfa07814cde11c16533d699bdc9ff7e01c21dd3c523d3d8ecd",
+      "afterSha256": "6ea8ad98fd4b3e644bd3d425070f53501acb2e8030fe7af55e9a59bd600be8b9"
+    },
+    {
+      "file": "e2e/png-export.spec.ts",
+      "count": 2,
+      "beforeSha256": "1deef51eb2dc0159b3330fd5c0ee07063ded079adec7cfbb20617410b2118b0e",
+      "afterSha256": "b072685142e6a8066cc20f70e9ecdb4020897570de4e8f7278b1b3a1754fcdac"
+    },
+    {
+      "file": "e2e/product-family.spec.ts",
+      "count": 1,
+      "beforeSha256": "bd3af7da3ee2077b38c283aa0d52aa7e3054181ffea44e2be466b21f0fe29b09",
+      "afterSha256": "40a2e352625de814c5a09e2275891c154a4b7b76da5342cfdda7b8f5378b2314"
+    },
+    {
+      "file": "e2e/project-components.spec.ts",
+      "count": 1,
+      "beforeSha256": "5ae3a14c7f5cfb8266682dd3b049f2e09cdf4523ec840f6b37bf74f4e55a4ab3",
+      "afterSha256": "b094bc73ba8f3a16358e9a4f62ca90e3f6e0f423a378595bb07d9a9b0fe2fcfc"
+    },
+    {
+      "file": "e2e/project-file-drop.spec.ts",
+      "count": 1,
+      "beforeSha256": "f491032273cda1f47388abd8f69cefe2aa0ee8ca2c0ec0dd76324df3bef07d33",
+      "afterSha256": "f087de4288625d9f8b4954c67bf6667c5a03eb851ffbc201fdaf0327b3fd4a9d"
+    },
+    {
+      "file": "e2e/provider-sketch-refinement.spec.ts",
+      "count": 2,
+      "beforeSha256": "a5067afbc9958d441701c40b0224918c542c7eb94309ec747100001f64b5ad3f",
+      "afterSha256": "a8659f33f9e7ed987e29db72ad2f0d5bc7ad8c8cb247db6a7dd9dd226b8a87bd"
+    },
+    {
+      "file": "e2e/render-view.spec.ts",
+      "count": 2,
+      "beforeSha256": "ea7608ea70e632191c91ade46dbfaa9fe813ecb89bfbb11f2f6c230fb72a38c8",
+      "afterSha256": "1b69ad328e6897ae9c99448615feedc6b14452b7650b789f09a910d32cb36a83"
+    },
+    {
+      "file": "e2e/retained-edge-picking.spec.ts",
+      "count": 1,
+      "beforeSha256": "2cc96f72d9b422ffdc7e9f12238a3f2fb8b0527f6a95cc03fd66f5f12b9aaf47",
+      "afterSha256": "4b3da8d11d34213eefe88ea06a98be079ab2d5edcf5b2e5b5c56fc9bf0794e7c"
+    },
+    {
+      "file": "e2e/retained-references.spec.ts",
+      "count": 1,
+      "beforeSha256": "03f256cf8460f49d1d4a876e77ec5fab3f3a74057c5cb8eb9a2120c2f2743e33",
+      "afterSha256": "d893f7024408fc2b4f57b172477edb4bf3438b1aacb55b613adf575c9dcf92c1"
+    },
+    {
+      "file": "e2e/reusable-parts.spec.ts",
+      "count": 2,
+      "beforeSha256": "ac6d839bcc431ad943e5329dca133e589db152b34ebe39dc94b0be2376e9e3a6",
+      "afterSha256": "1a0c4b6d76f3235b7be00e6e4b06207763893568693196d4d9839b489158b2b2"
+    },
+    {
+      "file": "e2e/revolve-dialog.spec.ts",
+      "count": 1,
+      "beforeSha256": "8deb17e024a0c242232ed0753f5b77a10e67eabfbf39eca744632c070055f873",
+      "afterSha256": "d598e8cf076193320f64a828529346f675bdbab70db081b5932dc43ba3051dd3"
+    },
+    {
+      "file": "e2e/revolve-edit.spec.ts",
+      "count": 1,
+      "beforeSha256": "f275156d117bac0124fc3627e94b9e27eb9612f4fa408329544078ebce1a7870",
+      "afterSha256": "0ea5a11d75a9d11e8a71f6a3705e3fef454e7cb0bf08418c2a3c93fa47b8d819"
+    },
+    {
+      "file": "e2e/saturnIdentity.spec.ts",
+      "count": 1,
+      "beforeSha256": "d2da78e96f6b27d5f53e6f89d64af6def0e69056dfd6d53ac850759134045d78",
+      "afterSha256": "b530e2956b4a02b1c9f9ba6939553220a8c072f95f4277a1a48172568dea3e84"
+    },
+    {
+      "file": "e2e/signed-extrusion.spec.ts",
+      "count": 1,
+      "beforeSha256": "abcbde39762bff6a2a3cc23979d563879845506ad1aa362e3613d9b7af206874",
+      "afterSha256": "7d918667c434fe8839f4c1eb933540c82fc154d579430a9a033d1c17fe89ee82"
+    },
+    {
+      "file": "e2e/sketch-canvas.spec.ts",
+      "count": 1,
+      "beforeSha256": "82d3458a01c956b18e9483e12f6edbb623461a8aa44626863ee2838d100aac86",
+      "afterSha256": "444f390348367ea5ba1710dd5db80d12354a95cb2fcef4fce9c7f9c917802c79"
+    },
+    {
+      "file": "e2e/sketch-deformation.spec.ts",
+      "count": 1,
+      "beforeSha256": "6b90285785ac5ca3ec91a941d303ed78e6e58be5f610c49a664916275ceaf6b1",
+      "afterSha256": "6d54f52784947c8edeec139c9d195db95445ade64ae54009496f55d3732ee00e"
+    },
+    {
+      "file": "e2e/sketch-foundations.spec.ts",
+      "count": 2,
+      "beforeSha256": "9c3989d971bd7340251a9c365eb826f99388ae3d9756a9eb42effd1e6ba99e7f",
+      "afterSha256": "c0e723cb8ffce6b4b6d7d92ff5b86b20d31b00dd8e4d4286e4a40c8b0d84f29d"
+    },
+    {
+      "file": "e2e/sketch-mouse.spec.ts",
+      "count": 1,
+      "beforeSha256": "5bc677426fe3aef6fb35da655596122f24ec4c6b2b704537cd578b4d534ac8cf",
+      "afterSha256": "52f367f42cd96278d2d1fd331f035e7ce606f6a75cdb5373a2078b61c7d444c9"
+    },
+    {
+      "file": "e2e/sketch-outline-offset.spec.ts",
+      "count": 1,
+      "beforeSha256": "eb3eb83da900e88430e16278d4a6b7f6da29e9357abbfae37f08c7f2fa85b194",
+      "afterSha256": "0effd8775a1161a2c1cbe1be5e1f8929fdd834c06433bd41eaeb940ece6cc370"
+    },
+    {
+      "file": "e2e/sketch-projection.spec.ts",
+      "count": 1,
+      "beforeSha256": "287bc4de7fc4eb3c302545c64c64b64286e824e31c1956847b3d94472da50d8b",
+      "afterSha256": "9a789dd023823cd93ce067d99e7801db4a9d39c976d1c5929dc82478aba63671"
+    },
+    {
+      "file": "e2e/sketch-refinement.spec.ts",
+      "count": 2,
+      "beforeSha256": "5ff77984ea12042cf1787c4567cb4ef8c0d672e56adcb8ab38718e46a179fda8",
+      "afterSha256": "75059363448fd40befcf0af69451293e3a0c87d149c35612f3b9a85df6120e35"
+    },
+    {
+      "file": "e2e/sketch-replication.spec.ts",
+      "count": 1,
+      "beforeSha256": "5070c9e157d7860646108386a0b3419b11d591b66cfa78e889ce31242c93ed87",
+      "afterSha256": "a13aba221123589d396b2569d04bbab774df494f9a4c50641febb88948470dad"
+    },
+    {
+      "file": "e2e/sketch-selection.spec.ts",
+      "count": 1,
+      "beforeSha256": "af10b472c2f9c8bdd4437f3c8ea59e32e1b6f175f4d3543b2538c84561329494",
+      "afterSha256": "a0d0b863fe8c6be902a23c791cd2653fb9db800685da95d490997b5b95305ca1"
+    },
+    {
+      "file": "e2e/sketch-snapping.spec.ts",
+      "count": 1,
+      "beforeSha256": "0426dce7903c2af5ec4659d30ee273d486f032c54d725c7190a10cbd10d049db",
+      "afterSha256": "251935e01e0530d758f048079e5a0f65437d92cd4a8a0eb4ec726162a00bef98"
+    },
+    {
+      "file": "e2e/sketch-solid-handoff.spec.ts",
+      "count": 1,
+      "beforeSha256": "d85e305960432092e58e38a637c2a180c8060a6e21036fa8ea61df8e6411fb47",
+      "afterSha256": "a976351e4dfefc4fef171a31bd192eef6c261e56384649d726cae7bfa58192c1"
+    },
+    {
+      "file": "e2e/sketch-tool-simplification.spec.ts",
+      "count": 1,
+      "beforeSha256": "dd4d1d1862b24bba1cc5ba9df6329d14d864d2c6eaee8689b165a05584c107cd",
+      "afterSha256": "73f1f91ed7ee8644d007dfd88ed10c2fa2b0234b96f60b4fa3af71e64376378d"
+    },
+    {
+      "file": "e2e/sketch-trim-extend-curves.spec.ts",
+      "count": 2,
+      "beforeSha256": "17478c5727fec8cae0a2cc2bb01f5de285577478c577154ef59c7b272d865987",
+      "afterSha256": "f26a07179af6db5f9bd779c2d41ebc5a4a512ea4b43692a84f7ca8f9055ec565"
+    },
+    {
+      "file": "e2e/sketch-trim-extend.spec.ts",
+      "count": 1,
+      "beforeSha256": "edd933aa0fb26452a7ebd3b44790fb79b83ea7fed99313f0e3ea832263fd3104",
+      "afterSha256": "cc2a5ffa9e909b31095c1e9e7f7b2b24901782b829dd3221b0d321fa80197748"
+    },
+    {
+      "file": "e2e/sketch-visibility.spec.ts",
+      "count": 1,
+      "beforeSha256": "db2fe656322dea309b49a0ef33ed8ab3b5933498a37dab6f66314e1a4c182915",
+      "afterSha256": "a7f9df2fb21cb94b7a02cbce756978fa65e018c406e503d3501d4240b2ba6a08"
+    },
+    {
+      "file": "e2e/solid-dimension-inline.spec.ts",
+      "count": 1,
+      "beforeSha256": "41c07aaa9b2411531b6aea87b4b6f3b154194471f7d5dc6ce572f9ccf548ebbd",
+      "afterSha256": "6c5ca634c3f107f73268b9e2235bfee9e546a26203cc058f3f6f62969070a6c0"
+    },
+    {
+      "file": "e2e/solid-dimensions.spec.ts",
+      "count": 1,
+      "beforeSha256": "fcb2db9f1618215f69becabd21d0377dc94e22c93fbb15ad7abfc34a474880cc",
+      "afterSha256": "f0f74475da0e07b55f2b9d89a997519c6276052d31ef67782ababf1c6024beae"
+    },
+    {
+      "file": "e2e/stale-results.spec.ts",
+      "count": 1,
+      "beforeSha256": "78e39f90f4957c67be2be40564c05d1153b8d5ba74e84f34b9b39f7f9238016f",
+      "afterSha256": "fbfcf07f099c8379a90b789d899c92c64d012eb885a4bdb13e16226bac66a605"
+    },
+    {
+      "file": "e2e/status-feedback.spec.ts",
+      "count": 1,
+      "beforeSha256": "9bd8971b4dc48163cc4156ce7b414c8263bca911a6e8bc2a107d08879afd3eca",
+      "afterSha256": "53f6e66b30d0d40acd8f741f2927f56955cc2fb54ab144f5eb50e4b7bb557e03"
+    },
+    {
+      "file": "e2e/step-export.spec.ts",
+      "count": 1,
+      "beforeSha256": "81144a18399d0cb3711ea8e78c012221257cf6580e0709bae701b53c3c8833dc",
+      "afterSha256": "4c9345514aaf09acbf0ad4434bf57015d296d2e1781efc03d8050da85d4dd612"
+    },
+    {
+      "file": "e2e/studio.spec.ts",
+      "count": 1,
+      "beforeSha256": "c12815d610894ccfd6f49a65db52a32d661d1e214efeceac4afd3d13304f989b",
+      "afterSha256": "3ed9eac892655e4c2f23a5a45c1dce9827cf7ad930ec7821169a47173078e806"
+    },
+    {
+      "file": "e2e/target-scope-capture.spec.ts",
+      "count": 1,
+      "beforeSha256": "e9dcc3803f5a0d88c9028a67c90a1fde2fe018837585c4b6951e065d3928d7ba",
+      "afterSha256": "755322d34e2457110356e263611c04a2c57c9a3847946074e667842b50ce78ca"
+    },
+    {
+      "file": "e2e/themes.spec.ts",
+      "count": 1,
+      "beforeSha256": "d6c4fdd6cb50d193cf914c9e31ea9786e52d847af34c76202d8efb4b14e1242a",
+      "afterSha256": "80a60de0b645e78cd560bd1d926fb3904f410382d6a632be7784e75607f5295f"
+    },
+    {
+      "file": "e2e/timeline-story.spec.ts",
+      "count": 1,
+      "beforeSha256": "ec14660928b70a3bc977ca98ac6a688c69abc9de5c90d144242a200b55525c40",
+      "afterSha256": "6e96f4bcc422e22fbc4668593cb0f810baca4611dadf21ca97867dee01a65b26"
+    },
+    {
+      "file": "e2e/viewer-demand.spec.ts",
+      "count": 1,
+      "beforeSha256": "31e1d671abb61c686824c86911106fed84b42f1cae255c05bd23af2459c76fba",
+      "afterSha256": "7d4284e7df2fdd1ecd5e056160dc9b23e7d7106c3694d47655ab96ece8084b3a"
+    },
+    {
+      "file": "e2e/viewer-performance.spec.ts",
+      "count": 1,
+      "beforeSha256": "be1dce4595e9f8ab5eeb54ecfd95eb037921379a6fabd813b0e5ad75647e00be",
+      "afterSha256": "8a2c9514b310d65ef7f60909ea137561060887b2c935c797a181c416ff36a25c"
+    },
+    {
+      "file": "e2e/viewport-fit.spec.ts",
+      "count": 1,
+      "beforeSha256": "b44df81f5b6fb3d59c32b1971270361097bce2041f1249cb83feda44053998f7",
+      "afterSha256": "c0290245930f4d9959d17aa8cc1b2ab67c9517d392d93bbe8a8c0ab0249a2435"
+    },
+    {
+      "file": "e2e/views.spec.ts",
+      "count": 1,
+      "beforeSha256": "5b8187a65f0969973204c1e667e59ad06eb8a1b3cba729b21c7d0777961631fd",
+      "afterSha256": "3ffd7e50b31b4a7ec63b6eba639684a858b5008817adc19d2e0a2649ffc4e13c"
+    },
+    {
+      "file": "e2e/workbench-motion.spec.ts",
+      "count": 1,
+      "beforeSha256": "ae2b6e131d7790c52df02fa82d250401f2b5e014597f38f86005d3758140e410",
+      "afterSha256": "9340fadf4d84f04d74ea2a05184082bf15c37d32ecfe81f7e304790880a33bcf"
+    },
+    {
+      "file": "e2e/workbench-readiness.spec.ts",
+      "count": 1,
+      "beforeSha256": "e531ad70723a495d00a565d40ca82c89b44ae150199b05a8854862f385634ee4",
+      "afterSha256": "2164ba99b74fd14d5d07e62fc1df8f279d27644e70b116a2a7c408009b71d600"
+    },
+    {
+      "file": "e2e/workbench.spec.ts",
+      "count": 1,
+      "beforeSha256": "f0fd50f6808735226b7c45b5efe8ca4d51e457408c27395b1d72ab052009b310",
+      "afterSha256": "96f7aa0b04f915c15487523376bf78e960c13a986988dfb2138c814a79fc6016"
+    }
+  ],
+  "tests": [
+    {
+      "file": "plainsolid-backend.spec.ts",
+      "line": 2,
+      "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2660,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "extrude-dialog.spec.ts",
+      "line": 41,
+      "title": "profile choice and negative XZ native preview cancel cleanly and apply only current settings",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6412,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "extrusion-hole.spec.ts",
+      "line": 121,
+      "title": "XY: native negative/symmetric coordinate extents, parameter edits, save/open and STL winding",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4328,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "extrusion-hole.spec.ts",
+      "line": 121,
+      "title": "XZ: native negative/symmetric coordinate extents, parameter edits, save/open and STL winding",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4465,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "extrusion-hole.spec.ts",
+      "line": 121,
+      "title": "YZ: native negative/symmetric coordinate extents, parameter edits, save/open and STL winding",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5829,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "extrusion-hole.spec.ts",
+      "line": 192,
+      "title": "negative and symmetric through-all tools cut the real target and reject a direction with no target extent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3221,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "modeling.spec.ts",
+      "line": 132,
+      "title": "XY: non-template modeling, edit, save/open, and real-kernel STL",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10712,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "modeling.spec.ts",
+      "line": 132,
+      "title": "XZ: non-template modeling, edit, save/open, and real-kernel STL",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11003,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "modeling.spec.ts",
+      "line": 132,
+      "title": "YZ: non-template modeling, edit, save/open, and real-kernel STL",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12873,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "shellAcceptance.ts",
+      "line": 42,
+      "title": "native Shell preserves its body, opens either cap, cancels collapsed walls and saves editable thickness",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9512,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "stale-results.spec.ts",
+      "line": 26,
+      "title": "real-worker result cannot overwrite a newer edit during debounce or after its rebuild",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4549,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "stale-results.spec.ts",
+      "line": 26,
+      "title": "real-worker worker failure cannot overwrite a newer edit during debounce or after its rebuild",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4104,
+          "errors": []
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "notes": [
+    "Only selected fixtures are measured; all unselected acceptance tests remain untested.",
+    "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."
+  ],
+  "wasmSha256": "09103cb55d3fba777da659f0c326e7e62a47119d031e34c8f1af8379a432f98a",
+  "typecheck": "passed",
+  "summaries": [
+    {
+      "path": "/tmp/plainsolid-circle-acceptance-06/backend-results.json",
+      "startTime": "2026-11-13T13:13:57.778Z",
+      "duration": 4327.319,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "path": "/tmp/plainsolid-circle-acceptance-06/playwright-results.json",
+      "startTime": "2026-11-13T13:14:02.519Z",
+      "duration": 78999.08700000001,
+      "expected": 11,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  ],
+  "backendVerified": true,
+  "finishedAt": "2026-11-13T13:15:21.534Z"
+}

@@ -180,9 +180,16 @@ func Prism(ctx context.Context, polygon []geom.Vec2, zMin, zMax, radius float64,
 // radius. Unselected corners remain sharp. The same conservative disk and
 // tangent-clearance checks as Prism apply to all selected corners.
 func PrismCorners(ctx context.Context, polygon []geom.Vec2, zMin, zMax float64, selection []CornerRadius, o Options) (SelectiveResult, error) {
+	if len(selection) == 0 {
+		return SelectiveResult{}, ErrInvalid
+	}
+	return prismCorners(ctx, polygon, zMin, zMax, selection, o)
+}
+
+func prismCorners(ctx context.Context, polygon []geom.Vec2, zMin, zMax float64, selection []CornerRadius, o Options) (SelectiveResult, error) {
 	empty := SelectiveResult{}
 	if ctx == nil || o.MaxCorners < 0 || o.MaxCorners > 128 || o.MaxWork < 0 || !finite(o.Tolerance) || o.Tolerance < 0 ||
-		!finite(zMin) || !finite(zMax) || !finite(zMax-zMin) || len(selection) == 0 {
+		!finite(zMin) || !finite(zMax) || !finite(zMax-zMin) {
 		return empty, ErrInvalid
 	}
 	if o.MaxCorners == 0 {
