@@ -23,7 +23,7 @@ type FiniteCylinderPairUnionResult struct {
 // a strictly radially contained eccentric boss extending through one end,
 // exactly placed oblique parallel cylinders with transverse overlap and equal
 // physical caps, coordinate-parallel transverse overlaps with exactly one common
-// physical cap or strictly staggered or nested overlapping spans, and selected unequal-radius perpendicular pairs with clear finite caps
+// physical cap or strictly staggered or nested overlapping spans, or exactly abutting caps sharing a positive-area lens, and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.
@@ -67,6 +67,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 			return u, err
 		}
 		if u, ok, err := finiteParallelTransverseNestedUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteParallelTransverseAbuttingUnion(ctx, a, b, tolerance); ok || err != nil {
 			return u, err
 		}
 		if u, ok, err := finiteParallelOverlapUnion(ctx, a, b, tolerance); ok || err != nil {
