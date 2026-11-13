@@ -108,6 +108,8 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // axial slab, retaining one or two original wall intervals.
 // Coordinate-parallel transverse cutters may cover or exceed the complete
 // stock axial interval; their exterior caps do not become result faces.
+// A transverse cutter entering one end may stop at an interior original cap;
+// the retained lens floor has two patches in CutterCapFaces.
 // Exactly placed oblique parallel pairs support transverse cuts with equal caps.
 // It keeps stock unchanged when coordinate-parallel cylinder interiors are
 // disjoint, including exact radial or cap-only contact (regularized Difference).
@@ -144,6 +146,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			}
 			if cavity, ok, err := finiteParallelCylinderCavity(ctx, stock, cutter, tolerance); ok || err != nil {
 				return cavity, err
+			}
+			if blind, ok, err := finiteParallelTransverseBlind(ctx, stock, cutter, tolerance); ok || err != nil {
+				return blind, err
 			}
 			if blind, ok, err := finiteParallelCylinderBlind(ctx, stock, cutter, tolerance); ok || err != nil {
 				return blind, err

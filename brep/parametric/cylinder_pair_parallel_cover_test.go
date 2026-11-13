@@ -65,7 +65,7 @@ func TestParallelCoveringDifferenceBoundaries(t *testing.T) {
 	}
 	c := b
 	c.Min = -1 // only covers z<=3, missing positive stock end
-	if r, e := FiniteCylinderPairDifference(ctx, a, c, 1e-8); e == nil || len(r.Solids[0].Faces()) != 0 {
+	if _, ok, e := clipParallelCoveringCutter(a, c); e != nil || ok {
 		t.Fatal("partial-depth silently clipped", e)
 	}
 	c = b
