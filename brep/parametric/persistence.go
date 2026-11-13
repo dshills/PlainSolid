@@ -29,37 +29,45 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	SteinmetzUnion  *steinmetzUnionData `json:",omitempty"`
-	ObliqueUnion    *obliqueUnionData   `json:",omitempty"`
-	SteinmetzSlab   *steinmetzSlabData  `json:",omitempty"`
-	Steinmetz       *[2]int             `json:",omitempty"`
-	Transform       *geom.Affine        `json:",omitempty"`
-	Base            *surfaceData        `json:",omitempty"`
-	Kind            string
-	Frame           *frameData               `json:",omitempty"`
-	A, B            float64                  `json:",omitempty"`
-	Meridian        *[2]geom.Vec2            `json:",omitempty"`
-	Spline          *geom.BSplineSurfaceData `json:",omitempty"`
-	Center          *geom.Vec3               `json:",omitempty"`
-	Other           *surfaceData             `json:",omitempty"`
-	U0, U1          *Interval                `json:",omitempty"`
-	Rim             *rimData                 `json:",omitempty"`
-	CutTop          bool                     `json:",omitempty"`
-	Band            *[2][4]float64           `json:",omitempty"`
-	Wrap            *wrappedSurfaceData      `json:",omitempty"`
-	Helical         *helicalSurfaceData      `json:",omitempty"`
-	Twisted         *[2]float64              `json:",omitempty"`
-	AngularReversed bool                     `json:",omitempty"`
-	OffsetBore      *offsetBoreData          `json:",omitempty"`
-	OffsetCommon    *offsetCommonData        `json:",omitempty"`
-	PartialCommon   *offsetPartialData       `json:",omitempty"`
-	DoubleCommon    *offsetDoubleData        `json:",omitempty"`
-	SameSideCommon  *offsetDoubleData        `json:",omitempty"`
-	UnequalCylinder *unequalCylinderData     `json:",omitempty"`
-	SkewCylinder    *skewCylinderData        `json:",omitempty"`
-	SkewOverlap     *skewOverlapData         `json:",omitempty"`
-	ObliqueCylinder *obliqueCylinderData     `json:",omitempty"`
-	GeneralCylinder *generalCylinderData     `json:",omitempty"`
+	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
+	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
+	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
+	SteinmetzSlab    *steinmetzSlabData    `json:",omitempty"`
+	Steinmetz        *[2]int               `json:",omitempty"`
+	Transform        *geom.Affine          `json:",omitempty"`
+	Base             *surfaceData          `json:",omitempty"`
+	Kind             string
+	Frame            *frameData               `json:",omitempty"`
+	A, B             float64                  `json:",omitempty"`
+	Meridian         *[2]geom.Vec2            `json:",omitempty"`
+	Spline           *geom.BSplineSurfaceData `json:",omitempty"`
+	Center           *geom.Vec3               `json:",omitempty"`
+	Other            *surfaceData             `json:",omitempty"`
+	U0, U1           *Interval                `json:",omitempty"`
+	Rim              *rimData                 `json:",omitempty"`
+	CutTop           bool                     `json:",omitempty"`
+	Band             *[2][4]float64           `json:",omitempty"`
+	Wrap             *wrappedSurfaceData      `json:",omitempty"`
+	Helical          *helicalSurfaceData      `json:",omitempty"`
+	Twisted          *[2]float64              `json:",omitempty"`
+	AngularReversed  bool                     `json:",omitempty"`
+	OffsetBore       *offsetBoreData          `json:",omitempty"`
+	OffsetCommon     *offsetCommonData        `json:",omitempty"`
+	PartialCommon    *offsetPartialData       `json:",omitempty"`
+	DoubleCommon     *offsetDoubleData        `json:",omitempty"`
+	SameSideCommon   *offsetDoubleData        `json:",omitempty"`
+	UnequalCylinder  *unequalCylinderData     `json:",omitempty"`
+	SkewCylinder     *skewCylinderData        `json:",omitempty"`
+	SkewOverlap      *skewOverlapData         `json:",omitempty"`
+	ObliqueCylinder  *obliqueCylinderData     `json:",omitempty"`
+	GeneralCylinder  *generalCylinderData     `json:",omitempty"`
+}
+
+type splitCylinderCutData struct {
+	Center             geom.Vec3
+	Stock, Cutter, End float64
+	Side, Half         int
+	Cap                bool
 }
 
 type obliqueUnionData struct {
@@ -198,6 +206,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "steinmetz-union", SteinmetzUnion: &steinmetzUnionData{x.center, x.radius, x.halfLength, x.axis, x.side, x.half, x.cap}}, nil
 	case obliqueCylinderUnionChart:
 		return surfaceData{Kind: "oblique-cylinder-union", ObliqueUnion: &obliqueUnionData{x.center, x.u, x.v, x.radius, x.caps, x.owner, x.side, x.half, x.cap}}, nil
+	case splitCylinderCutChart:
+		return surfaceData{Kind: "split-cylinder-cut", SplitCylinderCut: &splitCylinderCutData{x.center, x.stock, x.cutter, x.end, x.side, x.half, x.cap}}, nil
 	case steinmetzDisk:
 		return surfaceData{Kind: "steinmetz-disk", Center: &x.center, A: x.radius}, nil
 	case steinmetzChart:
@@ -288,6 +298,15 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "split-cylinder-cut") != (d.SplitCylinderCut != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.SplitCylinderCut; x != nil {
+		if !x.Center.IsFinite() || !finite(x.Stock) || !finite(x.Cutter) || !finite(x.End) || x.Stock <= 0 || x.Cutter <= x.Stock || x.End <= x.Cutter || x.Side != 1 && x.Side != -1 || x.Half != 1 && x.Half != -1 {
+			return nil, geom.ErrInvalid
+		}
+		return splitCylinderCutChart{x.Center, x.Stock, x.Cutter, x.End, x.Side, x.Half, x.Cap}, nil
+	}
 	if (d.Kind == "oblique-cylinder-union") != (d.ObliqueUnion != nil) {
 		return nil, geom.ErrInvalid
 	}

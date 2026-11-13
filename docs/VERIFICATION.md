@@ -1053,3 +1053,7 @@ Oblique subtraction verifies the two component volumes, opposing centroids,
 both original support types, exact pole-contact provenance, and a closed
 display for each body after reload. OCCT independently returns and qualifies
 the corresponding two solids.
+
+The wider perpendicular cutter yields two strictly separated bodies. Tests
+check the analytic gap, inclusion-exclusion volume, native reload, certified
+display, and each component against an independent OCCT cut.
