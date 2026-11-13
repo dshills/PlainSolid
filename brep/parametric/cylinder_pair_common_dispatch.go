@@ -71,6 +71,12 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 			return empty, nil
 		}
 	}
+	if a.Radius != b.Radius {
+		result, contained, err := finitePerpendicularContainedCylinder(ctx, a, b, m.ClosestFeet, exactWindows, m.SeparationSquared)
+		if err != nil || contained {
+			return result, err
+		}
+	}
 	if m.SeparationSign != 0 {
 		r, e := ObliqueSkewCylinderCommon(ctx, a, b, tolerance)
 		if e != nil {
@@ -95,10 +101,6 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		return empty, e
 	}
 	if a.Radius != b.Radius {
-		result, contained, err := finitePerpendicularContainedCylinder(ctx, a, b, center, exactWindows)
-		if err != nil || contained {
-			return result, err
-		}
 		return empty, e
 	}
 	return finitePerpendicularCapCommon(ctx, a, b, center, exactWindows, tolerance)
@@ -284,9 +286,9 @@ func coordinateCylinderAxis(axis geom.Vec3) (unit geom.Vec3, scale float64) {
 }
 
 // The extreme squared transverse distance to the larger perpendicular axis
-// is max(|lower|,|upper|)^2 + radius^2 over the entire smaller cylinder.
-// The other cylinder's axial coordinate spans exactly [-radius,+radius].
-func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCylinder, center geom.Vec3, windows [2][2]*big.Rat) (FiniteCylinderPairCommonResult, bool, error) {
+// is max(|lower|,|upper|)^2 + (radius + axis gap)^2 over the smaller
+// cylinder. The other cylinder's axial coordinate spans [-radius,+radius].
+func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCylinder, feet [2][3]*big.Rat, windows [2][2]*big.Rat, gapSquared *big.Rat) (FiniteCylinderPairCommonResult, bool, error) {
 	var empty FiniteCylinderPairCommonResult
 	unitA, scaleA := coordinateCylinderAxis(a.Axis)
 	unitB, scaleB := coordinateCylinderAxis(b.Axis)
@@ -311,21 +313,27 @@ func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCyli
 	}
 	square := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
 	allowed := new(big.Rat).Sub(square(q(larger)), square(q(radius)))
-	if square(lo).Cmp(allowed) > 0 || square(hi).Cmp(allowed) > 0 {
-		return empty, false, nil
+	allowed.Sub(allowed, gapSquared)
+	crossSquared := new(big.Rat).Mul(square(q(radius)), gapSquared)
+	crossSquared.Mul(crossSquared, big.NewRat(4, 1))
+	for _, cap := range []*big.Rat{lo, hi} {
+		margin := new(big.Rat).Sub(allowed, square(cap))
+		if margin.Sign() < 0 || square(margin).Cmp(crossSquared) < 0 {
+			return empty, false, nil
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return empty, true, err
 	}
 	var start geom.Vec3
 	for i, dst := range [3]*float64{&start.X, &start.Y, &start.Z} {
-		p := [3]float64{center.X, center.Y, center.Z}[i]
+		p := feet[owner][i]
 		d := [3]float64{axis.X, axis.Y, axis.Z}[i]
-		value, err := geom.RepresentedExactScalar(new(big.Rat).Add(q(p), new(big.Rat).Mul(q(d), lo)))
+		value, err := geom.RepresentedExactScalar(new(big.Rat).Add(p, new(big.Rat).Mul(q(d), lo)))
 		if err != nil {
 			return empty, true, err
 		}
-		if _, err = geom.RepresentedExactScalar(new(big.Rat).Add(q(p), new(big.Rat).Mul(q(d), hi))); err != nil {
+		if _, err = geom.RepresentedExactScalar(new(big.Rat).Add(p, new(big.Rat).Mul(q(d), hi))); err != nil {
 			return empty, true, err
 		}
 		*dst = value

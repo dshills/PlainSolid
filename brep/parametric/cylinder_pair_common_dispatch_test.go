@@ -313,3 +313,24 @@ func TestFinitePerpendicularCylinderPairContainment(t *testing.T) {
 		t.Fatal("noncontained sliver was silently removed", out, e)
 	}
 }
+
+func TestFiniteSkewPerpendicularCylinderPairContainment(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: 2}, Radius: 2, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 4, Z: 4}, Axis: geom.Vec3{Z: -4}, Radius: 5, Min: -.5, Max: .5}
+	for owner, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, pair[0], pair[1], 1e-9)
+		if e != nil || out.Construction != CylinderCommonContainedCylinder || len(out.SideFaces[owner]) != 1 || len(out.SideFaces[1-owner]) != 0 {
+			t.Fatal(out.Construction, out.SideFaces, e)
+		}
+		p, e := out.Solid.MassProperties(ctx, IntegrationOptions{})
+		if e != nil || math.Abs(p.Volume-32*math.Pi) > 1e-8 || p.Centroid.Sub(a.Origin).Length() > 1e-9 {
+			t.Fatal(p, e)
+		}
+	}
+	b.Origin.Y = math.Nextafter(4, math.Inf(1))
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("radial sliver incorrectly ignored", out, e)
+	}
+}
