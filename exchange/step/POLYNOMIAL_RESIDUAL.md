@@ -122,3 +122,28 @@ residuals and plane distances; the nominal pole also has positive axis distance.
 Those represented discrepancies remain nonzero. Nonconcentric circles and
 nonorthogonal directions are rejected; radius mismatches are reported exactly.
 No tolerance-based repair, face coverage or material reconstruction is implied.
+
+### Linear seam and floor owner representations
+
+`InspectOffAxisLinearPCurves` exposes both cylindrical seam LINE pcurves
+(constant U, linear V), the floor's cylindrical LINE pcurve (linear U, constant
+V), and its planar CIRCLE pcurve with source center/reference/radius. The
+supported lines have signed coordinate-axis directions and positive magnitude.
+Original pcurve IDs and source order are retained; no seam branch is assigned
+to a coedge. The floor cylinder height residual compares constant V with the
+model circle center's exact cylinder-axis coordinate; the planar circle radius
+residual compares source radii, without asserting the remaining planar lift.
+
+The report includes the floor vertex's model-circle frame coordinates and
+squared displacement from the model circle's zero-angle point. In the fixture
+this displacement is strictly positive, not snapped. The two seam constant
+angles differ by `6.28318530718`; exact rational bounds show its positive defect
+from 2π. The radian context is verified. This is a source angle difference,
+not an inferred parameter interval or vertex angle.
+
+STEP LINE and CIRCLE representations here author no finite trim parameters.
+`AuthoredTrimIntervalsKnown` therefore remains false; topological endpoints
+are not silently converted into curve parameters. Arbitrary source offsets
+are preserved and discrepancies reported. Full floor pcurve lift agreement,
+seam endpoint parameter matching, circle arc selection and face coverage remain
+outside this inspection API; it performs no repair or shape import.
