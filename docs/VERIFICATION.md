@@ -549,6 +549,12 @@ Go's default ten-minute package timeout on the large trimmed suite; the CI
 race limit is now explicit at 35 minutes. Recent focused race runs pass for
 the exact contact, offset, exchange and meshing work.
 
+A later full checkpoint passed with a 25-minute package budget (the trimmed
+suite took 1,223 seconds). A concurrent run exceeded that budget while still
+in the trimmed suite; the other packages finished. CI now allocates 45 minutes
+per ordinary package and 60 per race package to preserve the full fixture
+set. Those new CI budgets have not yet been verified remotely.
+
 The rational graph-line fixture proves that two independent top equations
 share an irrational root, then merges their original face ownership.
 Rounded-cylinder section tests preserve an irrational radius as a rational
