@@ -7,7 +7,8 @@ import (
 )
 
 // finiteParallelTransverseBlind restores the disk lens below (or above) an
-// exact original cutter cap. The footprint is a proved transverse two-circle
+// exact original cutter cap, or on both sides of an interior cutter interval.
+// The footprint is a proved transverse two-circle
 // arrangement; analytic arc evaluation/sewing retains the usual tolerance.
 func finiteParallelTransverseBlind(ctx context.Context, a, b geom.RawCylinder, tol float64) (FiniteCylinderPairDifferenceResult, bool, error) {
 	var zero FiniteCylinderPairDifferenceResult
@@ -29,7 +30,8 @@ func finiteParallelTransverseBlind(ctx context.Context, a, b geom.RawCylinder, t
 	as, cs := span(a), span(b)
 	lower := cs[0].Cmp(as[0]) <= 0 && cs[1].Cmp(as[0]) > 0 && cs[1].Cmp(as[1]) < 0
 	upper := cs[1].Cmp(as[1]) >= 0 && cs[0].Cmp(as[0]) > 0 && cs[0].Cmp(as[1]) < 0
-	if !lower && !upper {
+	interior := cs[0].Cmp(as[0]) > 0 && cs[1].Cmp(as[1]) < 0
+	if !lower && !upper && !interior {
 		return zero, false, nil
 	}
 	// Only strict transverse disk overlap belongs to this constructor.
@@ -51,6 +53,9 @@ func finiteParallelTransverseBlind(ctx context.Context, a, b geom.RawCylinder, t
 	}
 	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tol))
 	if new(big.Rat).Sub(floor, as[0]).Cmp(pad) <= 0 || new(big.Rat).Sub(as[1], floor).Cmp(pad) <= 0 {
+		return zero, true, geom.ErrDomain
+	}
+	if interior && (new(big.Rat).Sub(cs[1], cs[0]).Cmp(pad) <= 0 || new(big.Rat).Sub(as[1], cs[1]).Cmp(pad) <= 0) {
 		return zero, true, geom.ErrDomain
 	}
 	h, e := geom.RepresentedExactScalar(new(big.Rat).Sub(as[1], as[0]))
@@ -100,6 +105,14 @@ func finiteParallelTransverseBlind(ctx context.Context, a, b geom.RawCylinder, t
 	d, l := crescent.Faces(), lens.Faces()
 	if len(d) != 4 || len(l) != 6 {
 		return zero, true, geom.ErrDomain
+	}
+	if interior {
+		zhi, err := geom.RepresentedExactScalar(new(big.Rat).Sub(cs[1], as[0]))
+		if err != nil {
+			return zero, true, err
+		}
+		out, err := assembleTransverseInteriorNotch(ctx, d, l, axis, h, [2]float64{z, zhi}, cs, b.Axis.Dot(axis) > 0, tol)
+		return out, true, err
 	}
 	low, high := d[0], d[0]
 	low.V = Interval{0, z}

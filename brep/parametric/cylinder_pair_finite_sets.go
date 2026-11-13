@@ -109,7 +109,8 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // Coordinate-parallel transverse cutters may cover or exceed the complete
 // stock axial interval; their exterior caps do not become result faces.
 // A transverse cutter entering one end may stop at an interior original cap;
-// the retained lens floor has two patches in CutterCapFaces.
+// the retained lens floor has two patches in CutterCapFaces. An interior
+// transverse axial interval retains both lens caps, ordered by cutter Min/Max.
 // Exactly placed oblique parallel pairs support transverse cuts with equal caps.
 // It keeps stock unchanged when coordinate-parallel cylinder interiors are
 // disjoint, including exact radial or cap-only contact (regularized Difference).

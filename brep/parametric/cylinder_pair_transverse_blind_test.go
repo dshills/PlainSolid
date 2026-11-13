@@ -105,8 +105,8 @@ func TestTransverseBlindCylinderFramesAndBounds(t *testing.T) {
 			t.Fatal("unresolved thin slab accepted", e)
 		}
 	}
-	b.Min, b.Max = 2, 6 // Fully internal transverse groove remains out of this one-ended slice.
-	if r, e := FiniteCylinderPairDifference(ctx, a, b, 1e-8); e == nil || len(r.Solids[0].Faces()) != 0 {
-		t.Fatal("two-ended groove accepted", e)
+	b.Min, b.Max = 2, 6 // Interior transverse notch is now separately qualified.
+	if r, e := FiniteCylinderPairDifference(ctx, a, b, 1e-8); e != nil || len(r.CutterCapFaces[0]) != 4 {
+		t.Fatal("interior notch", e)
 	}
 }
