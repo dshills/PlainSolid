@@ -10,7 +10,7 @@ Version-independent source restrictions are deliberate: one bare
 ADVANCED_BREP_SHAPE_REPRESENTATION, one MANIFOLD_SOLID_BREP/CLOSED_SHELL,
 exactly translated signed-coordinate cylinder, local ±X antipodal seam vertices,
 positive height/radius, explicit common signed-cardinal support frames, direct CIRCLE/LINE EDGE_CURVE geometry with positive
-physical circle direction and forward axial sense, and no pcurves, placements of products, tolerance repair or extra
+physical circle direction and forward physical axial direction, and no pcurves, placements of products, tolerance repair or extra
 unowned records. Coordinates must convert from exact source decimals without
 rounding. Only exact SI length contexts are admitted. The entire graph is
 bounded to 256 entities and 32 reference levels in addition to caller limits.
@@ -74,3 +74,6 @@ preserved without numeric scaling; conversion-based units remain unsupported.
 
 Paired reversed circle normals and false curve senses are additionally accepted
 as described in CYLINDER_CELL_CURVE_SENSE.md; canonical writers remain unchanged.
+
+Equivalent paired axial and bound orientation encodings are documented in
+CYLINDER_CELL_BOUND_ORIENTATION.md; default writer declarations are unchanged.

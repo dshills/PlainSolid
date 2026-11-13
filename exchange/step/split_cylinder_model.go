@@ -247,7 +247,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 		if side {
 			n = 4
 		}
-		_, uses, e := analyticFaceLoop(f, id, n)
+		_, uses, e := cylinderCellFaceLoop(f, id, n)
 		if e != nil {
 			return fail()
 		}
@@ -325,7 +325,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 				role = vertices[a]
 			} else if rec.Type == "LINE" {
 				rec, e = simple(f, g, "LINE", 3)
-				if e != nil || !curveSense || points[0].X != points[1].X || points[0].Y != points[1].Y || points[0].Z != 0 || points[1].Z != out.Height {
+				if e != nil || points[0].X != points[1].X || points[0].Y != points[1].Y || points[0].Z != 0 || points[1].Z != out.Height {
 					return fail()
 				}
 				pid, e := ref(rec.Args[1])
@@ -349,7 +349,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 					return fail()
 				}
 				d, e := splitTriple(f, did, "DIRECTION")
-				if e != nil || d != (geom.Vec3{Z: 1}) {
+				if e != nil || (d != (geom.Vec3{Z: 1}) && d != (geom.Vec3{Z: -1})) || curveSense != (d.Z > 0) {
 					return fail()
 				}
 				mag, e := cylinderSupportNumber(v.Args[2])
@@ -579,7 +579,7 @@ func splitNormalizeFrame(f *File) (geom.Frame, error) {
 
 // Edge direction is kept distinct from its model curve parameter direction.
 // Only circle normal/sense pairs whose physical direction is positive local
-// azimuth enter the existing angular coverage proof. Lines remain forward.
+// azimuth enter the existing angular coverage proof. Lines remain physically forward.
 func cylinderCellEdge(f *File, id int64) (int64, int64, int64, bool, error) {
 	r, e := simple(f, id, "EDGE_CURVE", 5)
 	if e != nil {
@@ -633,4 +633,56 @@ func cylinderCellCirclePlacement(f *File, id int64) (float64, int, error) {
 		return 0, 0, splitFailure()
 	}
 	return v.Z, int(z.Z), nil
+}
+
+// A false bound orientation reverses the complete loop, not the face support.
+// Normalize only this private proof view; original source topology is retained.
+func cylinderCellFaceLoop(f *File, id int64, n int) (Record, []analyticUse, error) {
+	face, e := simple(f, id, "ADVANCED_FACE", 4)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	bounds, e := listRefs(face.Args[1], 1)
+	if e != nil || len(bounds) != 1 {
+		return Record{}, nil, splitFailure()
+	}
+	ent := f.Entities[bounds[0]]
+	if len(ent.Records) != 1 {
+		return Record{}, nil, splitFailure()
+	}
+	kind := ent.Records[0].Type
+	if kind != "FACE_BOUND" && kind != "FACE_OUTER_BOUND" {
+		return Record{}, nil, splitFailure()
+	}
+	bound, e := simple(f, bounds[0], kind, 3)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	forward, e := boolean(bound.Args[2])
+	if e != nil {
+		return Record{}, nil, e
+	}
+	if forward {
+		return analyticFaceLoop(f, id, n)
+	}
+	local := *f
+	local.Entities = make(map[int64]Entity, len(f.Entities))
+	for k, v := range f.Entities {
+		local.Entities[k] = v
+	}
+	bound.Args = append([]Value(nil), bound.Args...)
+	bound.Args[2] = Value{Kind: Enumeration, Text: "T"}
+	ent.Records = []Record{bound}
+	local.Entities[bounds[0]] = ent
+	rec, uses, e := analyticFaceLoop(&local, id, n)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	for i, j := 0, len(uses)-1; i < j; i, j = i+1, j-1 {
+		uses[i], uses[j] = uses[j], uses[i]
+	}
+	for i := range uses {
+		uses[i].sense = !uses[i].sense
+	}
+	return rec, uses, nil
 }

@@ -11,7 +11,8 @@ so the existing angular role, coedge and closure proof applies unchanged.
 Both original positive-normal/true-sense and negative-normal/false-sense pairs
 are admitted independently per circle edge. Either reversal alone is rejected;
 for quarter cells it selects the complementary long arc, and for half cells it
-selects the other semicircle. Reversed axial LINE edges remain unsupported.
+selects the other semicircle. Unpaired reversed axial LINE edges remain unsupported; the separately verified
+paired encoding is described in CYLINDER_CELL_BOUND_ORIENTATION.md.
 Arbitrary reference-phase changes and pcurve wrappers are still excluded.
 
 Writers emit the original positive-normal/true-sense canonical encoding.
