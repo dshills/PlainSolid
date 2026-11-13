@@ -17,6 +17,26 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD grouped and successive circular-stock bores — 2026-11-13
+
+The bridge retains disjoint through bores and blind bores from one cap
+on circular stock, including authored profiles with eccentric inner
+wires and stock reimported from STEP. A group skips redundant tools
+and publishes only after the complete exact boundary succeeds. The
+measure-only query subtracts voids already present in the retained body.
+The current constructor limits circular stock to 16 sites and rejects
+intersecting bore footprints and blind entries from both caps.
+
+All [eight original browser cases](evidence/plaincad-grouped-round-stock-browser-2026-11-13.json)
+pass for Hole creation/edit, Revolve, compound profiles, and STEP
+exchange. Two supplemental PlainCAD tests use the same WASM bytes to
+qualify editable grouped and successive holes, project reload, STEP
+readback, and STL fabrication. The [native evidence](evidence/plaincad-grouped-round-stock-native-2026-11-13.json)
+includes the focused race checks and Go vet. The preceding full bridge
+short run passes, and a separate trimmed B-rep short run passes 398
+top-level cases with four skips. The two non-opt-in cases skipped by
+short mode have been started separately.
+
 ## PlainCAD production on the staged viewer update — 2026-11-13
 
 The [integrated production run](evidence/plaincad-integrated-production-2026-11-13.json)

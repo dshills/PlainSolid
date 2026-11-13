@@ -35,9 +35,6 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		if body, ok := tangentBlindBoreRecipe(a, c); ok {
 			return b.putTangentBlindBore(body)
 		}
-		if result, handled, err := b.cutCircularStockBore(a, c); handled {
-			return result, err
-		}
 		if body, removed, handled, e := retainedPlanarBoolean(a, c, "cut"); handled {
 			if e != nil {
 				return Shape{}, e
@@ -77,6 +74,11 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		}
 		planar = planar && c.planar()
 		circular = circular && c.cylinder != nil
+	}
+	if circular {
+		if result, handled, err := b.cutCircularStockBores(a, inputs); handled {
+			return result, err
+		}
 	}
 	if result, _, handled, err := cutRoundedBores(a, inputs); handled {
 		if err != nil {

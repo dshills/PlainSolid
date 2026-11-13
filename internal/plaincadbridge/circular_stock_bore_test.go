@@ -1,8 +1,10 @@
 package plaincadbridge
 
 import (
+	"encoding/base64"
 	"math"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -64,5 +66,98 @@ func TestSTEPIndependentlyAuthoredRoundBlindAndThroughBores(t *testing.T) {
 	}
 	if _, err := b.exportSTEP([]string{s.Handle}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestCircularStockGroupedAndSuccessiveDisjointBores(t *testing.T) {
+	b := New()
+	stock := circle(t, b, vector{}, vector{0, 0, 1}, 6, 8)
+	through := circle(t, b, vector{-3, 0, -1}, vector{0, 0, 1}, 1, 10)
+	blind := circle(t, b, vector{3, 0, 8}, vector{0, 0, -1}, 1, 3)
+	contained := circle(t, b, vector{3, 0, 8}, vector{0, 0, -1}, .5, 2)
+	separate := circle(t, b, vector{0, 3, 6}, vector{0, 0, 1}, 1, 2)
+	intersecting := circle(t, b, vector{-2, 0, 8}, vector{0, 0, -1}, 1, 2)
+	wrongCap := circle(t, b, vector{0, -3, 0}, vector{0, 0, 1}, 1, 2)
+	cut := func(stock, tool Shape) Shape {
+		return shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
+	}
+	before := len(b.shapes)
+	for _, ids := range [][]string{{contained.Handle, through.Handle, blind.Handle, through.Handle}, {blind.Handle, contained.Handle, through.Handle}} {
+		grouped, err := b.cutMany(stock.Handle, ids)
+		if err != nil {
+			t.Fatal(err)
+		}
+		before++
+		if len(b.shapes) != before {
+			t.Fatal("group did not publish exactly one solid")
+		}
+		near(t, grouped.GeometryAssertions.Volume, 277*math.Pi)
+		near(t, grouped.GeometryAssertions.SurfaceArea, 188*math.Pi)
+	}
+	first := cut(stock, through)
+	for _, tool := range []Shape{blind, separate} {
+		want := tool.GeometryAssertions.Volume
+		near(t, overlapMeasure(t, b, first.Handle, tool.Handle), want)
+		near(t, overlapMeasure(t, b, tool.Handle, first.Handle), want)
+	}
+	near(t, overlapMeasure(t, b, first.Handle, intersecting.Handle), 2*(math.Pi/3+math.Sqrt(3)/2))
+	second := cut(first, blind)
+	near(t, overlapMeasure(t, b, second.Handle, blind.Handle), 0)
+	near(t, overlapMeasure(t, b, second.Handle, contained.Handle), 0)
+	before = len(b.shapes)
+	for _, tools := range [][]string{{contained.Handle}, {separate.Handle, intersecting.Handle}, {separate.Handle, wrongCap.Handle}} {
+		if _, err := b.cutMany(second.Handle, tools); err == nil || len(b.shapes) != before {
+			t.Fatalf("invalid group changed handles: %v", err)
+		}
+	}
+	file, err := b.exportSTEP([]string{second.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := base64.StdEncoding.DecodeString(file.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reread, err := b.importSTEP(string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	final := cut(reread, separate)
+	near(t, final.GeometryAssertions.Volume, 275*math.Pi)
+	near(t, final.GeometryAssertions.SurfaceArea, 192*math.Pi)
+	body := b.shapes[final.Handle]
+	mesh, err := body.tessellate(request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	drawing, err := body.drawingGeometry()
+	if err != nil || len(drawing.Bores) != 3 || len(drawing.Warnings) != 0 {
+		t.Fatalf("unexpected drawing bores %+v: %v", drawing, err)
+	}
+}
+
+func TestCircularStockAuthoredEccentricInnerWireAndSignedCut(t *testing.T) {
+	b := New()
+	profile := mixedFixture("disk")
+	profile.Center, profile.Height = []number{2, 0}, -5
+	profile.Circles = []mixedProfileCircle{{Center: []number{4, 0}, Radius: 1}}
+	base, err := b.mixedExtrude(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tool := circle(t, b, vector{-2, 0, 8}, vector{0, 0, 1}, 1, 2)
+	near(t, overlapMeasure(t, b, base.Handle, tool.Handle), 2*math.Pi)
+	hole, err := b.cutMany(base.Handle, []string{tool.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, hole.GeometryAssertions.Volume, 493*math.Pi)
+	near(t, hole.GeometryAssertions.SurfaceArea, 312*math.Pi)
+	outside := circle(t, b, vector{11.5, 0, 8}, vector{0, 0, 1}, 1, 2)
+	if _, err := b.cutMany(base.Handle, []string{outside.Handle}); err == nil || !strings.Contains(err.Error(), "outside wall") {
+		t.Fatalf("expected side-crossing rejection, got %v", err)
 	}
 }
