@@ -26,6 +26,7 @@ type cylinderSetEnvelope struct {
 	StockWallFaces, CutterWallFaces, StockCapFaces [2][]int
 	CommonVolumeSquared, MinimumGapSquared         string
 	ContactNodes                                   *[2]cylinderContactRecipe
+	CommonVolumePiCoefficient                      string `json:",omitempty"`
 }
 
 func cylinderSetPayload(ctx context.Context, r CylinderPairCommonRecipe, difference bool) (env cylinderSetEnvelope, u parametric.FiniteCylinderPairUnionResult, d parametric.FiniteCylinderPairDifferenceResult, err error) {
@@ -69,7 +70,12 @@ func cylinderSetPayload(ctx context.Context, r CylinderPairCommonRecipe, differe
 		}
 		solids = []parametric.Solid{u.Solid}
 		env.WallFaces, env.LowerCapFaces, env.UpperCapFaces = u.WallFaces, u.LowerCapFaces, u.UpperCapFaces
-		env.CommonVolumeSquared = u.CommonVolumeSquared.RatString()
+		if u.CommonVolumeSquared != nil {
+			env.CommonVolumeSquared = u.CommonVolumeSquared.RatString()
+		}
+		if u.CommonVolumePiCoefficient != nil {
+			env.CommonVolumePiCoefficient = u.CommonVolumePiCoefficient.RatString()
+		}
 	}
 	for _, s := range solids {
 		var b bytes.Buffer
