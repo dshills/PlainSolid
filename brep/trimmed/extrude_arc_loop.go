@@ -78,6 +78,11 @@ func ExtrudeArcLoop(ctx context.Context, frame geom.Frame, segments []ExtrusionS
 			continue
 		}
 		count := max(1, int(math.Ceil(math.Abs(s.Sweep)/(math.Pi/4))))
+		// Native face loops require at least three coedges. A circular segment
+		// bounded by one arc and one chord needs an interior analytic arc split.
+		if len(segments) == 2 && segments[(i+1)%2].Radius == 0 {
+			count = max(2, count)
+		}
 		previous := s.Start
 		for j := 0; j < count; j++ {
 			start := s.StartAngle + s.Sweep*float64(j)/float64(count)
