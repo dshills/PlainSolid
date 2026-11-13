@@ -1934,3 +1934,16 @@ recovered outer disk is centered on its local origin and blind entry determines
 signed height. Existing polygon-only and canonical disk contracts are unchanged.
 `disk-pocket-occt.step` is a retained independent OCCT cylinder/Boolean-cut
 fixture, with live source→import→rewrite validity and mass comparison.
+
+`ReadAnalyticRoundedRectangleExtrusions` is a stock-only independent-source
+adapter for four straight sides and one to four positive circular quarter
+corners; the other corners may be sharp. It validates the complete cardinal
+profile against the native rounded-rectangle constructor, both cap loops and
+all lateral ownership, outward planar normals, continuous model/owner pcurves,
+and each cylindrical chart's quarter-width interval. Extra periodic turns are
+rejected even when their seam coordinates map to the same model point. Relative
+`1e-9` analytic comparison applies; this is separate from canonical exact graph
+matching. Hole loops, non-quarter blends, split sides and all-sharp boxes are
+outside this API. The retained `rounded-stock-occt.step` was built independently
+as an OCCT wire of lines and circle arcs followed by a prism, and live
+import/rewrite comparisons check validity, area, volume and centroid.

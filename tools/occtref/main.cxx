@@ -847,6 +847,7 @@ int main(int argc, char** argv) {
 #endif
     }
 #ifdef PLAINSOLID_OCCT_STEP
+    if(argc==3 && mode=="write-step-rounded-stock")return writeRoundedStockReference(argv[1]);
     if(argc==3 && mode=="write-step-disk-pocket")return writeDiskPocketReference(argv[1]);
     if(argc==3 && mode=="write-step-circular-pocket")return writeCircularPocketReference(argv[1]);
     if(argc==3 && mode=="write-step-circular-through")return writeCircularPocketReference(argv[1],true);
