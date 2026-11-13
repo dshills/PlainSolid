@@ -8,8 +8,8 @@ The native constructor does not preserve the artificial lateral split itself.
 
 Version-independent source restrictions are deliberate: one bare
 ADVANCED_BREP_SHAPE_REPRESENTATION, one MANIFOLD_SOLID_BREP/CLOSED_SHELL,
-origin-centered +Z cylinder, ±X antipodal seam vertices, positive height/radius,
-explicit +Z/+X support frames, direct CIRCLE/LINE EDGE_CURVE geometry with true
+exactly translated signed-coordinate cylinder, local ±X antipodal seam vertices,
+positive height/radius, explicit common signed-cardinal support frames, direct CIRCLE/LINE EDGE_CURVE geometry with true
 curve sense, and no pcurves, placements of products, tolerance repair or extra
 unowned records. Coordinates must convert from exact source decimals without
 rounding. Only exact SI length contexts are admitted. The entire graph is
@@ -37,3 +37,16 @@ The rounded independently generated ShapeDivideClosed fixture remains rejected
 (see SPLIT_CYLINDER_EVIDENCE.md). Existing generic and analytic readers are not
 broadened. Neither arbitrary split angles nor an approximate external source is
 silently normalized into this exact domain.
+
+
+The source cylinder frame is returned in `Frame`. Normalization into its local
+coordinates uses exact rational subtraction and signed permutation, never
+floating-point subtraction or tolerance. Every derived coordinate must also be
+exactly representable within the existing bounded scalar codec. All original
+support frames must agree after this normalization. Native material is built
+in the original frame; IDs and length-unit metadata remain unchanged.
+
+The independently posed raw fixture uses origin (10,-4,7), local X=(0,0,-1),
+axis=(-1,0,0). OCCT independently accepts the same four-face topology and mass.
+Tests also verify changing only the declared unit leaves numeric geometry and
+pose unchanged, and reject an almost-cardinal rounded source direction.

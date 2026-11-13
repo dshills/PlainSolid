@@ -3,14 +3,17 @@ package step
 import (
 	"errors"
 	"io"
+	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"strings"
 )
 
 // SplitCylinderModel retains the authored four-face/six-edge ancestry while
-// Solid is the equivalent canonical cylinder. Coordinates are restricted to an
-// origin-centered +Z cylinder with antipodal ±X seams. No source repair occurs.
+// Solid is the equivalent canonical cylinder. Coordinates are restricted to a
+// translated signed-coordinate cylinder with antipodal local ±X seams. No source repair occurs.
 type SplitCylinderModel struct {
+	Frame                      geom.Frame // exact original signed-coordinate source frame
 	Name                       string
 	LengthUnit, Radius, Height float64
 	Solid                      parametric.Solid
@@ -39,6 +42,10 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 		return SplitCylinderModel{}, e
 	}
 	if len(f.Entities) > 256 {
+		return fail()
+	}
+	sourceFrame, e := splitNormalizeFrame(f)
+	if e != nil {
 		return fail()
 	}
 	// Every entity must belong to the single representation's reference closure.
@@ -137,7 +144,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 	if e != nil || len(faces) != 4 {
 		return fail()
 	}
-	out := SplitCylinderModel{Name: name, LengthUnit: unit, Body: ids[0], Shell: sh}
+	out := SplitCylinderModel{Frame: sourceFrame, Name: name, LengthUnit: unit, Body: ids[0], Shell: sh}
 	type faceData struct {
 		id    int64
 		side  bool
@@ -390,8 +397,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 			return fail()
 		}
 	}
-	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
-	out.Solid, e = parametric.Cylinder(frame, out.Radius, out.Height)
+	out.Solid, e = parametric.Cylinder(sourceFrame, out.Radius, out.Height)
 	if e != nil {
 		return fail()
 	}
@@ -435,4 +441,98 @@ func splitPlacement(f *File, id int64) (float64, error) {
 		}
 	}
 	return v.Z, nil
+}
+
+// splitNormalizeFrame changes only the private parsed geometry, preserving IDs.
+// Every subtraction/dot product is rational; conversion must remain exact.
+func splitNormalizeFrame(f *File) (geom.Frame, error) {
+	var pid int64
+	for _, id := range f.Order {
+		e := f.Entities[id]
+		if len(e.Records) == 1 && e.Records[0].Type == "CYLINDRICAL_SURFACE" {
+			r, e := simple(f, id, "CYLINDRICAL_SURFACE", 3)
+			if e != nil {
+				return geom.Frame{}, e
+			}
+			pid, e = ref(r.Args[1])
+			if e != nil {
+				return geom.Frame{}, e
+			}
+			break
+		}
+	}
+	r, e := simple(f, pid, "AXIS2_PLACEMENT_3D", 4)
+	if e != nil {
+		return geom.Frame{}, e
+	}
+	coords := [3]geom.Vec3{}
+	for i, kind := range []string{"CARTESIAN_POINT", "DIRECTION", "DIRECTION"} {
+		id, e := ref(r.Args[i+1])
+		if e != nil {
+			return geom.Frame{}, e
+		}
+		coords[i], e = splitTriple(f, id, kind)
+		if e != nil {
+			return geom.Frame{}, e
+		}
+	}
+	origin, z, x := coords[0], coords[1], coords[2]
+	if !cylinderSupportUnit(z) || !cylinderSupportUnit(x) || z.Dot(x) != 0 {
+		return geom.Frame{}, splitFailure()
+	}
+	frame, e := geom.NewFrame(origin, x, z)
+	if e != nil {
+		return geom.Frame{}, e
+	}
+	axes := []geom.Vec3{x, z.Cross(x), z}
+	for id, ent := range f.Entities {
+		if len(ent.Records) != 1 {
+			continue
+		}
+		rec := ent.Records[0]
+		if rec.Type != "CARTESIAN_POINT" && rec.Type != "DIRECTION" {
+			continue
+		}
+		v, e := splitTriple(f, id, rec.Type)
+		if e != nil {
+			return geom.Frame{}, e
+		}
+		in := []float64{v.X, v.Y, v.Z}
+		org := []float64{origin.X, origin.Y, origin.Z}
+		items := make([]Value, 3)
+		for j, a := range axes {
+			av := []float64{a.X, a.Y, a.Z}
+			q := new(big.Rat)
+			for k, sign := range av {
+				if sign == 0 {
+					continue
+				}
+				w := new(big.Rat).SetFloat64(in[k])
+				if rec.Type == "CARTESIAN_POINT" {
+					w.Sub(w, new(big.Rat).SetFloat64(org[k]))
+				}
+				if sign < 0 {
+					w.Neg(w)
+				}
+				q.Add(q, w)
+			}
+			_, exact := q.Float64()
+			if !exact {
+				return geom.Frame{}, splitFailure()
+			}
+			text := q.FloatString(q.Denom().BitLen() - 1)
+			if strings.Contains(text, ".") {
+				text = strings.TrimRight(strings.TrimRight(text, "0"), ".")
+			}
+			items[j] = Value{Kind: Number, Text: text}
+			if _, e = cylinderSupportNumber(items[j]); e != nil {
+				return geom.Frame{}, e
+			}
+		}
+		rec.Args = append([]Value(nil), rec.Args...)
+		rec.Args[1] = Value{Kind: Aggregate, Items: items}
+		ent.Records = []Record{rec}
+		f.Entities[id] = ent
+	}
+	return frame, nil
 }
