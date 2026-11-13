@@ -107,3 +107,34 @@ func TestFiniteCylinderPairContainedUnion(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairUnequalCrossingUnion(t *testing.T) {
+	ctx := context.Background()
+	center := geom.Vec3{X: 1, Y: 2, Z: 3}
+	a := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Y: 3}, Radius: 3, Min: -2, Max: 2}
+	for _, p := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		u, e := FiniteCylinderPairUnion(ctx, p[0], p[1], 1e-8)
+		if e != nil || u.CommonVolumeSquared != nil || u.CommonVolumePiCoefficient != nil {
+			t.Fatal(e, u.CommonVolumeSquared, u.CommonVolumePiCoefficient)
+		}
+		for owner, c := range p {
+			for cap, ids := range [2][]int{u.LowerCapFaces[owner], u.UpperCapFaces[owner]} {
+				if len(ids) == 0 {
+					t.Fatal("lost cap", owner, cap)
+				}
+				for _, id := range ids {
+					f := u.Solid.Faces()[id]
+					v, e := f.Surface.Eval((f.U.Min+f.U.Max)/2, .5)
+					if e != nil || v.Sub(c.Origin).Dot(c.Axis) != [2]float64{c.Min, c.Max}[cap]*c.Axis.Dot(c.Axis) {
+						t.Fatal(owner, cap, v, e)
+					}
+				}
+			}
+		}
+		m, e := u.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+		if e != nil || m.Centroid.Sub(center).Length() > 1e-8 {
+			t.Fatal(m, e)
+		}
+	}
+}

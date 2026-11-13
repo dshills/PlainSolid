@@ -163,7 +163,8 @@ func readCylinderSet(ctx context.Context, r io.Reader, maxBytes int64, differenc
 }
 
 // WriteCylinderPairUnionRecipeJSON retains original raw operands and canonical
-// native union geometry, ancestry and exact common-volume-squared proof field.
+// native union geometry, ancestry and an exact common-volume proof when
+// available for the selected construction.
 // Construction failures publish nothing; underlying writer failures may be partial.
 func WriteCylinderPairUnionRecipeJSON(ctx context.Context, w io.Writer, r CylinderPairCommonRecipe) error {
 	return writeCylinderSet(ctx, w, r, false)
