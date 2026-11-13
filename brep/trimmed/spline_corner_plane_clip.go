@@ -27,16 +27,29 @@ type SplineCornerPlaneClip struct {
 // UV/model coordinates must be losslessly representable. Work limits apply to
 // each of the bounded face/plane/edge reproofs; no sampled classification is used.
 func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectionGraph, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
+	if graph == nil || graph.ledger == nil {
+		return SplineCornerPlaneClip{}, geom.ErrInvalid
+	}
+	fan := graph.ledger.fan
+	return combineSplinePlaneClip(ctx, splinePlaneClipInput{stock: fan.anchors[0].solids[0], tool: fan.anchors[0].solids[1], active: fan.isolated.faces[1], pointFace: fan.isolated.faces[0], corner: fan.vertex, nodes: graph.nodes, arcs: graph.arcs}, op, o)
+}
+
+type splinePlaneClipInput struct {
+	stock, tool               Solid
+	active, pointFace, corner int
+	nodes                     []cornerGraphNode
+	arcs                      []CornerSectionArc
+}
+
+func combineSplinePlaneClip(ctx context.Context, proof splinePlaneClipInput, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
-	if ctx == nil || graph == nil || graph.ledger == nil || (op != parametric.Intersection && op != parametric.Difference) {
+	if ctx == nil || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
-	fan := graph.ledger.fan
-	stock, tool := fan.anchors[0].solids[0], fan.anchors[0].solids[1]
-	active := fan.isolated.faces[1]
+	stock, tool, active := proof.stock, proof.tool, proof.active
 	var patches [2][]splineEmbeddingFace
 	for i, s := range [2]Solid{stock, tool} {
 		r, e := s.validateSplineRectangleEmbedding(ctx, o, &patches[i])
@@ -109,7 +122,7 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 		sign = -1
 	}
 	crossed := map[int]bool{}
-	for _, arc := range graph.arcs {
+	for _, arc := range proof.arcs {
 		crossed[arc.Faces[0]] = true
 	}
 	var parts []SewFace
@@ -169,7 +182,7 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 				return zero, geom.ErrConvergence
 			}
 			if r.SideMask != 0 || r.CornerMask != 0 {
-				if id != fan.isolated.faces[0] || r.SideMask != 0 {
+				if id != proof.pointFace || r.SideMask != 0 {
 					return zero, geom.ErrConvergence
 				}
 			}
@@ -234,10 +247,10 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 	// reversal selects the active cutter normal for common, its inverse for cut.
 	var capUV [][2]*big.Rat
 	current := 0
-	for i := 0; i < len(graph.nodes); i++ {
-		capUV = append(capUV, graph.nodes[current].uv)
+	for i := 0; i < len(proof.nodes); i++ {
+		capUV = append(capUV, proof.nodes[current].uv)
 		next := -1
-		for _, arc := range graph.arcs {
+		for _, arc := range proof.arcs {
 			if arc.From == current {
 				next = arc.To
 			}
@@ -312,7 +325,7 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 			out.SectionEdges = append(out.SectionEdges, id)
 		}
 	}
-	if len(out.SectionEdges) != 4 {
+	if len(out.SectionEdges) != len(proof.arcs) {
 		return zero, geom.ErrConvergence
 	}
 	out.Solid = result
@@ -328,7 +341,7 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 			}
 		}
 	}
-	if out.OriginalVertices[fan.vertex] < 0 {
+	if proof.corner >= 0 && out.OriginalVertices[proof.corner] < 0 {
 		return zero, geom.ErrConvergence
 	}
 	if e = ctx.Err(); e != nil {
