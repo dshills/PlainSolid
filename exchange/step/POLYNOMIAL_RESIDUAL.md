@@ -298,3 +298,44 @@ width `6.28318530718` has a strictly positive defect, so periodic mismatch is
 proved. The two lifted seams therefore cannot be treated as an exact quotient
 closure. No lifted closure, cylinder-face material coverage or solid import is
 claimed; all strict importers remain unchanged.
+
+### Explicit spherical longitude repair and disk coverage
+
+`CertifyOffAxisSphericalRephase` is a repair certificate, not a source-face
+acceptance certificate. Its bounded subset requires the spherical rim's exact
+polynomial control coordinates to have strictly increasing U, starting at zero
+and ending at positive W, equal endpoint latitudes, and a latitude control hull
+strictly inside `(-pi/2,pi/2)`. The normalized source loop must traverse the rim
+backward, then the low-U meridian downward and high-U meridian upward. Distinct
+meridian pcurves are assigned by exact source U values, not association order.
+
+The explicit theoretical repair replaces longitude by `U*=2*pi*U/W`, keeps
+latitude, and replaces the source pole vertex with the sphere's exact south
+pole. Positive U derivative makes the rim a single-valued continuous latitude
+graph over longitude. Equal endpoint latitudes close that graph on the true
+periodic quotient. The region from the south pole up to that graph is an
+embedded spherical disk: longitude is injective away from its two identified
+seams, latitude remains below the north pole, and only the south-pole circle
+collapses. The source outward face orientation and ordered uses choose this
+lower disk, not its complementary upper disk.
+
+For all rim and assumed finite meridian points, the source longitude change
+is at most `|W-2*pi|`. Sphere speed with respect to longitude is at most R,
+so `LongitudeDisplacementUpper` bounds the continuous positional correction
+by `R*|W-2*pi|`, using the rigorous rational Machin pi enclosure. The exact
+squared distance from the source topological pole vertex to the canonical
+south pole is returned separately as `PoleDisplacementSquared`. Each correction
+must fit the caller's positive tolerance in unconverted model units; these are
+separate correction bounds, not a sum or a whole-shell Hausdorff bound. The
+fixture's longitude correction is below `3e-12` model units but strictly
+nonzero. Source uncertainty metadata does not authorize the correction.
+
+`AssumesFullRimAndCornerSegments` explicitly retains the unresolved selection
+of the full rim and meridian intervals from the pole to chart rim corners.
+The model meridian CIRCLE has a slightly different represented frame; this API
+does not prove its continuous agreement, does not repair that model curve, and
+does not prove source vertex agreement at the upper rim. It emits no new STEP
+geometry. `ModelMeridianAgreementProven` and `SourceMaterialEquivalenceProven`
+remain false. The cylinder boundary still needs agreement with this repaired
+spherical boundary before any repaired shell or material can be accepted.
+Existing strict importers remain unchanged.
