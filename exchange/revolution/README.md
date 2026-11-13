@@ -1,5 +1,6 @@
 # Native standalone revolution supports
 
+Package `plainsolid/exchange/revolution` provides
 `WriteRevolutionSurfacesJSON` and `ReadRevolutionSurfacesJSON` persist a
 `step.RevolutionSurfaceModel` independently of mesh, B-rep and document schemas.
 Version 1 has the distinct kind `standalone-analytic-revolution-surfaces` and

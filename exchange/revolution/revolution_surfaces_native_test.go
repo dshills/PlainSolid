@@ -1,4 +1,4 @@
-package exchange
+package revolution
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 
 func revolutionNativeFixture(t *testing.T) step.RevolutionSurfaceModel {
 	t.Helper()
-	b, e := os.ReadFile("step/testdata/revolution-surface.step")
+	b, e := os.ReadFile("../step/testdata/revolution-surface.step")
 	if e != nil {
 		t.Fatal(e)
 	}
