@@ -156,7 +156,7 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 			}
 		}
 		kind := first[0]
-		if kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 {
+		if kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 {
 			return Model{}, fmt.Errorf("iges: unsupported entity type %d", kind)
 		}
 		if second[0] != kind {
@@ -432,6 +432,22 @@ func decode(kind int, p []parameter, maxPoints int) (Entity, error) {
 		return v, nil
 	}
 	switch kind {
+	case 116:
+		v, e := numbers(1, 3)
+		if e != nil {
+			return Entity{}, e
+		}
+		if len(p) < 5 {
+			return Entity{}, errors.New("iges: missing point symbol pointer")
+		}
+		symbol, e := intValue(p[4])
+		if e != nil || symbol != 0 {
+			return Entity{}, errors.New("iges: point display symbol unsupported")
+		}
+		if e = noPointers(p[5:]); e != nil {
+			return Entity{}, e
+		}
+		return Entity{Point: &geom.Vec3{X: v[0], Y: v[1], Z: v[2]}}, nil
 	case 110:
 		v, e := numbers(1, 6)
 		if e != nil {
