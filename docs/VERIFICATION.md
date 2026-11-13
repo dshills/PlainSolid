@@ -2139,3 +2139,11 @@ within its existing 90-second budget. See the
 [complete production record](evidence/plaincad-reconciled-production-2026-11-13.json)
 for fixture and source identities. Later integration changes require their own
 qualification.
+
+The independent [Firefox and WebKit OCCT control](evidence/plaincad-cross-browser-occt-firefox-webkit-2026-11-13.json)
+ran the untouched current PlainCAD archive at the original port 5281. Both
+engines reproduced the same four stale UI failures and passed the original
+keyboard face-card and dimension case. With the Chromium control, the three
+engines all reproduce the replacement run's three passes and twelve failures.
+The unchanged suite remains failing; the control establishes that these
+observed failures are shared by the original provider.
