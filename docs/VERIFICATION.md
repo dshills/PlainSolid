@@ -4,9 +4,9 @@ Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.
 
-On 2026-11-13 the pinned OCCT reference suite passed 147 test cases (including
-subtests) with two named opt-ins skipped. A separate run enabled both STEP
-import and transverse spline shell operations; both passed. New cubic and
+On 2026-11-13 the expanded pinned OCCT reference suite passed 155 test cases
+(including subtests) with no skips. Both STEP import and transverse spline
+shell operations were enabled. New cubic and
 quartic rational plane cuts match independent OCCT prism Booleans on shell
 count, area, volume and centroid. Independent strip integrals agree, and native
 reload retains exact UV coefficients, rejects a sub-tolerance coedge edit and
@@ -25,6 +25,11 @@ boxes even when both overlap the unsplit control hull. A one-box budget leaves
 the result unresolved, as does an enclosure straddling the actual edge.
 Distance checks attain the exact planar cap bound and enclose a valid closest
 distance near the curved edge using an exact rational trim witness.
+The reusable scalar plane-residual enclosure preserves full-subpatch UV bounds
+in the circle regression and encloses independently derived points on a
+weighted oblique chart. The isolated curved-distance case passed under the
+race detector in 8.72 seconds after the change, against its unchanged
+30-second deadline. This is a local targeted measurement.
 
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
