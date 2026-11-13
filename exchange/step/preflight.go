@@ -125,6 +125,9 @@ func Preflight(r io.Reader, l Limits) (GraphPreflight, error) {
 	}
 	sort.Strings(report.Features)
 	hints := map[string]bool{}
+	if len(types["REPRESENTATION"]) > 0 && len(types["GEOMETRIC_SET"]) > 0 && len(types["TOROIDAL_SURFACE"]) > 0 && !features["face-topology"] && !features["solid-topology"] && !features["assembly"] {
+		hints["ReadTorusSupports"] = true
+	}
 	if len(types["REPRESENTATION"]) > 0 && len(types["GEOMETRIC_SET"]) > 0 && len(types["SPHERICAL_SURFACE"]) > 0 && !features["face-topology"] && !features["solid-topology"] && !features["assembly"] {
 		hints["ReadSphereSupports"] = true
 	}
