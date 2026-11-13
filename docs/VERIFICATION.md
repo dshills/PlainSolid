@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD unit run on `50432ed` — 2026-11-13
+
+The [full unit report](evidence/plaincad-current-unit-50432ed-2026-11-13.json)
+records 1,630 passes and 59 failures of 1,689 originals with real WASM
+and loopback available, while browser and native suites also run. Of the
+failures, 38 repeat the prior full run and 21 are new in this run. Eight
+of the prior failures pass, including the inline sketch workspace test.
+The unchanged 17-file selection for the newly failed tests is being
+rerun with one Vitest worker to check timing sensitivity.
+
 ## PlainCAD asynchronous project-open readiness — 2026-11-13
 
 The staged runtime keeps the previous drawable model while an asynchronous
