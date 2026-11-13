@@ -25,7 +25,7 @@ type SphereOffAxisDoubleCommonResult struct {
 // the same tool azimuth along the wall, even when their cap radii differ.
 func SphereOffAxisCylinderDoubleCommon(ctx context.Context, frame geom.Frame, R, r, d, lower, upper, tolerance float64) (SphereOffAxisDoubleCommonResult, error) {
 	var empty SphereOffAxisDoubleCommonResult
-	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
+	if ctx == nil || !finite(tolerance) || tolerance <= 0 || lower >= 0 || upper <= 0 {
 		return empty, geom.ErrInvalid
 	}
 	s, caps, e := newOffsetDoubleCommon(ctx, frame, R, r, d, lower, upper, tolerance)
@@ -101,7 +101,7 @@ type offsetDoubleCommon struct {
 func newOffsetDoubleCommon(ctx context.Context, frame geom.Frame, R, r, d, lower, upper, tolerance float64) (offsetDoubleCommon, geom.SphereCylinderDoubleCapEvents, error) {
 	var empty offsetDoubleCommon
 	var caps geom.SphereCylinderDoubleCapEvents
-	if !finite(R) || !finite(r) || !finite(d) || !finite(lower) || !finite(upper) || R <= 0 || r <= 0 || d <= 0 || lower >= 0 || upper <= 0 || frame.ZAxis().Length() == 0 {
+	if !finite(R) || !finite(r) || !finite(d) || !finite(lower) || !finite(upper) || R <= 0 || r <= 0 || d <= 0 || lower >= upper || frame.ZAxis().Length() == 0 {
 		return empty, caps, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {

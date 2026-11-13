@@ -990,3 +990,8 @@ The off-axis boss union qualifies the spherical-to-cylindrical rim, exposed
 flat end, native reload, and a closed display with an analytic deflection
 bound. Its volume satisfies the Boolean volume identity and independently
 matches OCCT area, volume, and centroid.
+
+Same-side lens tests cover both hemispheres and different lens widths,
+preserve the exact cap and wall incidence report, and verify volume with
+independent polar integration. Native reload and sampled mesh closure pass.
+The positive slab matches the independent OCCT intersection.

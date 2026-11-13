@@ -48,6 +48,7 @@ type surfaceData struct {
 	OffsetCommon    *offsetCommonData        `json:",omitempty"`
 	PartialCommon   *offsetPartialData       `json:",omitempty"`
 	DoubleCommon    *offsetDoubleData        `json:",omitempty"`
+	SameSideCommon  *offsetDoubleData        `json:",omitempty"`
 }
 
 type offsetBoreData struct {
@@ -138,6 +139,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-partial-common", Frame: frameToData(x.frame), PartialCommon: &offsetPartialData{offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}, x.clipped, x.chordMode}}, nil
 	case offsetDoubleCommon:
 		return surfaceData{Kind: "offset-sphere-double-common", Frame: frameToData(x.frame), DoubleCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
+	case offsetSameSideCommon:
+		return surfaceData{Kind: "offset-sphere-same-side-common", Frame: frameToData(x.frame), SameSideCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -214,6 +217,9 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return nil, geom.ErrInvalid
 	}
 	if (d.Kind == "offset-sphere-double-common") != (d.DoubleCommon != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if (d.Kind == "offset-sphere-same-side-common") != (d.SameSideCommon != nil) {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
@@ -380,12 +386,26 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return s, e
 	case "offset-sphere-double-common":
 		x := d.DoubleCommon
-		if x.Chart < doubleWall || x.Chart > doubleUpperStrip || x.Chart == doubleLowerStrip && !x.Clipped[0] || x.Chart == doubleUpperStrip && !x.Clipped[1] {
+		if x.Lower >= 0 || x.Upper <= 0 || x.Chart < doubleWall || x.Chart > doubleUpperStrip || x.Chart == doubleLowerStrip && !x.Clipped[0] || x.Chart == doubleUpperStrip && !x.Clipped[1] {
 			return nil, geom.ErrInvalid
 		}
 		s, _, e := newOffsetDoubleCommon(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
 		s.kind, s.clipped = x.Chart, x.Clipped
 		return s, e
+	case "offset-sphere-same-side-common":
+		x := d.SameSideCommon
+		if x.Chart < sameSideWall || x.Chart > sameSideStrip {
+			return nil, geom.ErrInvalid
+		}
+		s, _, e := newOffsetSameSideCommon(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
+		if e != nil {
+			return nil, e
+		}
+		if x.Chart == sameSideWall && x.Clipped[s.near] || x.Chart == sameSideStrip && !x.Clipped[s.far] {
+			return nil, geom.ErrInvalid
+		}
+		s.kind, s.clipped = x.Chart, x.Clipped
+		return s, nil
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)
 	case "arc-fan":
