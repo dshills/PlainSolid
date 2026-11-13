@@ -398,7 +398,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind == "steinmetz-clipped-cylinder" {
-		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || !finite(d.B) || d.B <= 0 || d.B >= d.A || d.Steinmetz == nil || d.Steinmetz[0] != 0 || (d.Steinmetz[1] != 1 && d.Steinmetz[1] != -1) || d.Frame != nil {
+		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || !finite(d.B) || d.B <= -d.A || d.B >= d.A || d.Steinmetz == nil || d.Steinmetz[0] != 0 || (d.Steinmetz[1] != 1 && d.Steinmetz[1] != -1) || d.Frame != nil {
 			return nil, geom.ErrInvalid
 		}
 		return steinmetzClippedCylinder{*d.Center, d.A, d.B, d.Steinmetz[1]}, nil
