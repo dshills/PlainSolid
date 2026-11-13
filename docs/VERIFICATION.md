@@ -1,5 +1,14 @@
 # Verification record
 
+## PlainCAD full production acceptance on `254c83b` — 2026-11-13
+
+All [66 original production cases](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
+pass on PlainCAD `50432ed` in 308.528 seconds, with zero skips, retries
+or flaky results. Both TypeScript checks, the production bundle budget
+and independent browser WASM probe pass. The [original performance
+case](evidence/plaincad-production-cylinder-stock-performance-2026-11-13.json)
+finishes in 31.382 seconds with all 25 edits and 11 validated STL downloads.
+
 ## PlainCAD coaxial opposed blind bores on circular stock — 2026-11-13
 
 The layered STEP reader merges connected wall spans without filling a
