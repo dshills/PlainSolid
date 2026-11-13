@@ -186,3 +186,22 @@ has its previously reported zero-angle discrepancy; neither a finite edge
 interval nor branch/coedge parameter mapping is inferred. Cylindrical floor
 lift and seam interval correspondence, spherical coverage, global embedding
 and material reconstruction remain independent proof obligations.
+
+### Cylindrical floor circle lift
+
+`InspectOffAxisFloorCylinderLift` retains the source LINE relation
+`U(t)=AngleOrigin+AngleSlope*t, V(t)=Height`. For signed-coordinate cylinder and
+model-circle frames it compares the lifted circle center, radius and plane
+exactly. `SupportCircleEqual` concerns the entire untrimmed point set; any
+nonzero angular slope covers that circle, regardless of direction or speed.
+`SameParameterization` is a stronger sufficient proof: zero authored phase,
+slope ±1, matching zero-angle axes and correctly signed sine axes. False does
+not choose a replacement parameter mapping. The exact affine U relation is
+always reported for supported input.
+
+The fixture passes both flags. Reversed U, doubled speed and a nonzero phase
+preserve support equality while failing same-parameter equality. A changed
+constant V yields an explicit center discrepancy and fails support equality.
+No arbitrary origin is reused to force a match. As with the planar owner, no
+finite trim interval, coedge branch parameter assignment, oriented disk coverage
+or material interpretation follows from this full-support identity.
