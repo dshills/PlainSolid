@@ -210,7 +210,7 @@ func Sew(ctx context.Context, input []SewFace, o SewOptions) (Solid, SewHistory,
 							}
 						}
 						if !same {
-							return bad("unproved continuous edge correspondence")
+							return bad(fmt.Sprintf("unproved continuous edge correspondence at face %d edge %d", i, old))
 						}
 					}
 				}

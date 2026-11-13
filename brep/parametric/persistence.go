@@ -305,6 +305,13 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 			Helical: &helicalSurfaceData{lead, hand, Interval{Min: d.UMin, Max: d.UMax}}}, nil
 	case *geom.BSplineSurface:
 		d := x.Data()
+		maxWeight := 0.
+		for _, w := range d.Weights {
+			maxWeight = max(maxWeight, w)
+		}
+		if maxWeight != 1 {
+			return surfaceData{Kind: "bspline-exact-weights", Spline: &d}, nil
+		}
 		return surfaceData{Kind: "bspline", Spline: &d}, nil
 	case *geom.WrappedSurfacePatch:
 		if x == nil || x.FundamentalPatch() == nil {
@@ -598,12 +605,18 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		}
 		return steinmetzChart{*d.Center, d.A, d.Steinmetz[0], d.Steinmetz[1]}, nil
 	}
-	if d.Kind == "bspline" || d.Kind == "wrapped-surface" {
+	if d.Kind == "bspline" || d.Kind == "bspline-exact-weights" || d.Kind == "wrapped-surface" {
 		x := d.Spline
 		if x == nil || d.Frame != nil || d.Meridian != nil || len(x.Poles) > *budget {
 			return nil, fmt.Errorf("parametric: invalid spline surface or control point limit")
 		}
 		*budget -= len(x.Poles)
+		if d.Kind == "bspline-exact-weights" {
+			if d.Wrap != nil {
+				return nil, geom.ErrInvalid
+			}
+			return geom.NewBSplineSurfaceWithExactWeights(x.DegreeU, x.DegreeV, x.CountU, x.CountV, x.Poles, x.KnotsU, x.KnotsV, x.Weights)
+		}
 		if d.Kind == "wrapped-surface" {
 			if d.Wrap == nil || len(x.Poles) > 4096 || x.DegreeU > 16 || x.DegreeV > 16 {
 				return nil, geom.ErrInvalid
