@@ -643,6 +643,8 @@ surfaces must keep their geometry through the operation. Continue with:
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock
    UV intersections preserve surviving source faces and edge intervals.
+   The same native assembly accepts nonparallel planes when their exact convex
+   caps are disjoint. Caps that meet require separate shared-edge ownership.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

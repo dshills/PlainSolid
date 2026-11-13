@@ -152,3 +152,20 @@ func TestOCCTWarpedParallelSlab(t *testing.T) {
 	}
 	compare(t, refs["warped-parallel-slab"], mass.Area, mass.Volume, mass.Centroid)
 }
+
+func TestOCCTWarpedSeparatedPlanes(t *testing.T) {
+	refs := runOracle(t, "warped-spline-separated-planes")
+	ctx := context.Background()
+	stock, _ := oracleWarpedOpenBox(t, [3]float64{}, [3]float64{1, 1, 1})
+	lower, _ := oracleSplineBox(t, [3]float64{-1, -1, 0}, [3]float64{2, 2, 2}, func(x, y float64) float64 { return (x+y)/8 + .125 })
+	upper, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 0}, func(x, y float64) float64 { return (x+y)/4 + .5 })
+	r, err := trimmed.CombineSplineSeparatedPlaneCuts(ctx, stock, [2]trimmed.Solid{lower, upper}, [2]int{4, 5}, trimmed.SplineRectangleEmbeddingOptions{})
+	if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges[0]) != 4 || len(r.SectionEdges[1]) != 4 {
+		t.Fatal("nonparallel topology", err)
+	}
+	mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["warped-separated-planes"], mass.Area, mass.Volume, mass.Centroid)
+}
