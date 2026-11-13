@@ -116,7 +116,7 @@ func TestTransverseCommonCapUnionFramesAndGuards(t *testing.T) {
 	cases := []geom.RawCylinder{b, b, b, b}
 	cases[0].Max = math.Nextafter(8, 0) // unresolved tiny exposed shoulder
 	cases[1].Min = 2
-	cases[1].Max = 10                        // neither cap common: not this supported subset
+	cases[1].Max = 6                         // nested spans remain outside this supported subset
 	cases[2].Origin.X = 8                    // external side tangency
 	cases[3].Origin.X = math.Nextafter(8, 0) // transverse but below sewing resolution
 	for i, c := range cases {
