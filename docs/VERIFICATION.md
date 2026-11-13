@@ -35,6 +35,20 @@ also ran two of those short-mode exclusions explicitly in full mode, with
 separate evidence below. These are pinned native results, distinct from the
 browser cases.
 
+The [production run on current PlainCAD `50432ed`](evidence/plaincad-reconciled-production-0312d69-50432ed-2026-11-13.json)
+passed all 66 original cases in 356 seconds on clean `0312d69` with 841
+original sources verified. The newer app's separate unchanged cross-browser
+pass is recorded below. The [older-app supplemental comparisons](evidence/plaincad-prior-cross-browser-supplement-2026-11-13.json)
+passed 15 cases each against pristine OCCT and PlainSolid after updating UI
+entry points in disposable copies. They do not change the older original gate.
+The [CNC coach trace and supplemental comparison](evidence/plaincad-cnc-readiness-supplement-2026-11-13.json)
+prove the failed original checked the success state of an empty prior document.
+Waiting for the imported fixture and enabled command passed on both providers,
+with the same material assertion and deadlines. A [separate Parts Browser
+audit](evidence/plaincad-independent-parts-readiness-audit-2026-11-13.json)
+passed the original with staged asynchronous-open handling but reproduced an
+older in-flight real rebuild publishing success during a held import.
+
 On clean reconciliation `9b12a41`, all three original viewer cases passed
 with the staged camera settling repair: pan/idle (53.8 s), source markers
 (31.1 s), and ORBIT gesture/export (about 72 s). The separate Go/WASM
