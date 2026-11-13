@@ -246,9 +246,13 @@ equal radii and the same clipped blind or through interval, and their exposed
 seam and native spline controls must be exactly representable. The Go bridge
 tests check tool order, reversed drill direction, material capture in either
 argument order, reflection, stock extrema, and model-only STEP writer output.
-An unsupported crossing returns no result handle. This checkpoint does not
-yet exercise the overlap through the browser, qualify its viewer or satisfy
-the app's independent STEP export readback contract.
+An unsupported crossing returns no result handle. The native export path
+keeps the exact AP203 product root when partitioning mixed STEP output, so
+both bodies are read back independently before returning their original
+measures and bounds. The [two original STEP browser regressions](evidence/plaincad-rooted-step-210386c-2026-11-13.json)
+pass on clean combined `210386c` with both type checks and the separate
+Go WASM probe. The new overlap-specific viewer and exchange exercise is
+supplemental and tracked separately.
 
 ## Earlier overlapping Hole cutter checkpoint — 2026-11-13
 
