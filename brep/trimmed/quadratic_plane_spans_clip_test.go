@@ -1,0 +1,203 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"math"
+	"plainsolid/brep/parametric"
+	"plainsolid/collision"
+	"plainsolid/geom"
+	"testing"
+)
+
+func TestPiecewiseQuadraticPlaneNativeClip(t *testing.T) {
+	ctx := context.Background()
+	stock := creasedQuadraticClipStock(t)
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+		r, e := CombinePiecewiseQuadraticSplinePlaneClip(ctx, stock, tool, 5, op, QuadraticPlaneSpanOptions{})
+		if e != nil {
+			t.Fatal(op, e)
+		}
+		// Integrate q(x)^2/8 separately on [0,1/2] and [1/2,1], where
+		// q=3/4-x²/2-|x-1/2|/8. The original stock has unit volume.
+		volume, center := 631./15360, geom.Vec3{X: 235. / 631, Y: 117349. / 565376, Z: 306683. / 2261504}
+		if op == parametric.Difference {
+			volume = 14729. / 15360
+			center = geom.Vec3{X: 7445. / 14729, Y: 6763931. / 13197184, Z: 36823557. / 52788736}
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(m.Volume-volume) > 1e-8 || m.Centroid.Sub(center).Length() > 1e-8 {
+			t.Fatal("independent crease integral", m, e)
+		}
+		if len(r.Knots) != 2 || len(r.SectionEdges) != 6 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("knot topology", len(r.Knots), len(r.SectionEdges))
+		}
+		for _, k := range r.Knots {
+			if k.Pieces != [2]int{0, 1} || k.Edges[0] == k.Edges[1] {
+				t.Fatal("piece ownership")
+			}
+			for _, id := range k.Edges {
+				edge := r.Solid.edges[id]
+				if edge.Start != k.Vertex && edge.End != k.Vertex {
+					t.Fatal("shared vertex")
+				}
+			}
+			v := r.Solid.vertices[k.Vertex]
+			if k.Point[0].Cmp(ratInset(v.X)) != 0 || k.Point[1].Cmp(ratInset(v.Y)) != 0 || k.Point[2].Cmp(ratInset(v.Z)) != 0 {
+				t.Fatal("exact knot point")
+			}
+			if r.Solid.faces[r.StockFaces[k.Face][0]].Surface != stock.faces[k.Face].Surface {
+				t.Fatal("original support replaced")
+			}
+		}
+		owned := map[int]bool{}
+		for _, ids := range r.StockEdges {
+			for _, id := range ids {
+				if owned[id] {
+					t.Fatal("duplicate ancestry")
+				}
+				owned[id] = true
+			}
+		}
+		for _, id := range r.SectionEdges {
+			if owned[id] {
+				t.Fatal("duplicate section")
+			}
+			owned[id] = true
+		}
+		if len(owned) != len(r.Solid.edges) {
+			t.Fatal("missing ancestry")
+		}
+		var native bytes.Buffer
+		if e = WriteJSON(&native, r.Solid); e != nil {
+			t.Fatal(e)
+		}
+		loaded, e := ReadJSONContext(ctx, &native, JSONLimits{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		lm, e := loaded.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(lm.Volume-volume) > 1e-8 {
+			t.Fatal("native reload", e)
+		}
+		mesh, e := r.Solid.Tessellate(ctx, parametric.TessellationOptions{Deflection: .02})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = mesh.ValidateSolid(); e != nil {
+			t.Fatal(e)
+		}
+		contacts, e := collision.SelfIntersectionsBVHContext(ctx, mesh, collision.Options{})
+		if e != nil || !contacts.Complete || len(contacts.Contacts) != 0 {
+			t.Fatal("contacts", e)
+		}
+	}
+	if r, e := CombineQuadraticSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, SplineRectangleEmbeddingOptions{}); e == nil || len(r.Solid.faces) != 0 {
+		t.Fatal("legacy span gate widened")
+	}
+	for _, o := range []QuadraticPlaneSpanOptions{{MaxSpans: 1}, {MaxSpans: -1}, {Faces: SplineRectangleEmbeddingOptions{Patches: geom.SurfacePatchOptions{MaxOperations: 1}}}} {
+		if r, e := CombinePiecewiseQuadraticSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, o); e == nil || len(r.Solid.faces) != 0 || len(r.Knots) != 0 {
+			t.Fatal("atomic budget")
+		}
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, e := CombinePiecewiseQuadraticSplinePlaneClip(canceled, stock, tool, 5, parametric.Intersection, QuadraticPlaneSpanOptions{}); e != context.Canceled {
+		t.Fatal("cancel", e)
+	}
+}
+func TestQuadraticPlaneWholeKnotSeamRequired(t *testing.T) {
+	ctx := context.Background()
+	s := creasedQuadraticClipStock(t)
+	proof, e := CertifyPiecewiseQuadraticPlaneFaceSection(ctx, s, 4, 3./16, 0, QuadraticPlaneSpanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := proof.patch.Trim(proof.domains[0])
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, e := proof.patch.Trim(proof.domains[1])
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Scaling the right residual about the cutting plane preserves the exact
+	// branch and its junction, but makes the REST of the source seam discontinuous.
+	b, e = b.Transformed(geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 2, -3. / 16}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	q, _, e := quadraticPlaneTrimAxis(b, ratInset(3./16), 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	right, _ := q.Endpoints()
+	left, _ := proof.pieces[0].Endpoints()
+	for k := range right[0] {
+		if right[0][k].Cmp(left[1][k]) != 0 {
+			t.Fatal("branch junction must match")
+		}
+	}
+	if e = quadraticPlaneSeam(ctx, a, b, 0, .5, []float64{0, 1}, geom.SurfacePatchEvaluationOptions{}); e == nil {
+		t.Fatal("accepted discontinuous source through matching branch point")
+	}
+}
+
+func TestPiecewiseQuadraticPlaneFreeV(t *testing.T) {
+	ctx := context.Background()
+	source := creasedQuadraticClipStock(t)
+	var surfaces []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reversed []bool
+	for _, f := range source.faces {
+		d := f.Surface.(*geom.BSplineSurface).Data()
+		p := make([]geom.Vec3, len(d.Poles))
+		w := make([]float64, len(d.Weights))
+		for i := 0; i < d.CountU; i++ {
+			for j := 0; j < d.CountV; j++ {
+				p[j*d.CountU+i] = d.Poles[i*d.CountV+j]
+				if len(w) > 0 {
+					w[j*d.CountU+i] = d.Weights[i*d.CountV+j]
+				}
+			}
+		}
+		s, e := geom.NewBSplineSurface(d.DegreeV, d.DegreeU, d.CountV, d.CountU, p, d.KnotsV, d.KnotsU, w)
+		if e != nil {
+			t.Fatal(e)
+		}
+		surfaces = append(surfaces, s)
+		domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+		reversed = append(reversed, !f.Reversed)
+	}
+	stock, _, e := SewSplineRectangles(ctx, surfaces, domains, reversed, SewOptions{Tolerance: 1e-10})
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	r, e := CombinePiecewiseQuadraticSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, QuadraticPlaneSpanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, k := range r.Knots {
+		if k.FreeAxis != 1 || k.Edges[0] == k.Edges[1] {
+			t.Fatal("original V ownership")
+		}
+	}
+	m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+	if e != nil || math.Abs(m.Volume-631./15360) > 1e-8 {
+		t.Fatal("transposed crease integral", m, e)
+	}
+	// A second knot direction needs a different arrangement proof and is not
+	// implicitly accepted by trying the other free coordinate.
+	bad := stock
+	bad.faces = append([]Face(nil), stock.faces...)
+	s, e := surfaces[4].InsertUKnot(.5, 1)
+	if e != nil {
+		t.Fatal(e)
+	}
+	bad.faces[4].Surface = s
+	if _, e = CertifyPiecewiseQuadraticPlaneFaceSection(ctx, bad, 4, 3./16, 1, QuadraticPlaneSpanOptions{}); e == nil {
+		t.Fatal("dependent-axis knot")
+	}
+}
