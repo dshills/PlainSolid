@@ -125,7 +125,7 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 					}
 					eval, err := f.Surface.Eval(p[i].X, p[i].Y)
 					if err != nil || !eval.IsFinite() {
-						return mesh.Mesh{}, fmt.Errorf("trimmed: invalid midpoint evaluation on face %d", fi)
+						return mesh.Mesh{}, fmt.Errorf("trimmed: invalid midpoint evaluation on face %d (%T at %.17g, %.17g): %v", fi, f.Surface, p[i].X, p[i].Y, err)
 					}
 					if e := t.edge[i].edge; e >= 0 {
 						if s.edges[e].Curve == nil {
