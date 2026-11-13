@@ -20,15 +20,11 @@ func TreatPlanarOrthogonalEdge(ctx context.Context, base brep.Solid, start, end 
 	if e := ctx.Err(); e != nil {
 		return Solid{}, e
 	}
-	source, e := FromPlanar(base, tolerance)
+	source, e := CoalesceCardinalPlanar(ctx, base, tolerance)
 	if e != nil {
 		return Solid{}, e
 	}
-	faces, e := mergeEdgeTreatmentPlanes(source)
-	if e != nil {
-		return Solid{}, e
-	}
-	source, e = collapseTreatmentEdges(ctx, source, faces)
+	source, e = collapseTreatmentEdges(ctx, source, source.Faces())
 	if e != nil {
 		return Solid{}, e
 	}
