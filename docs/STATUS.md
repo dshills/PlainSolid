@@ -43,8 +43,9 @@ modeling and display as a regularized difference. Fabrication and STEP
 validation reject its four-face contact. Cross-browser qualification passes
 the keyboard face-card and dimension dialog case on
 all three engines. Four other cases per engine stop at current application
-controls. The same four failures reproduce on the pristine Chromium OCCT
-control.
+controls. The same four failures reproduce with pristine OCCT on all three engines.
+The current production Workbench, native sketch and AI controls pass all
+12 cases across Chromium, Firefox and WebKit.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular

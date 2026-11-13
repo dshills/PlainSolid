@@ -25,7 +25,9 @@ side-tangent blind Hole. Its four-face contact is retained for modeling
 and display. STL fabrication and STEP reject this non-manifold boundary.
 The cross-browser run passes one case on each of the
 three engines and records four UI locator failures per engine. Pristine
-OCCT reproduces those four failures in Chromium. See the
+OCCT reproduces those four failures across Chromium, Firefox and WebKit.
+Current Workbench, native sketch and AI production controls pass all 12
+cases on the same three engines. See the
 [verification record](VERIFICATION.md) for reports and exact test scope.
 
 ## Selected production acceptance — 2026-11-13
