@@ -3,6 +3,8 @@ package parametric
 import (
 	"context"
 	"errors"
+	"math"
+
 	"testing"
 
 	"plainsolid/geom"
@@ -63,5 +65,25 @@ func TestFiniteCylinderPairCommon(t *testing.T) {
 	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-9)
 	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
 		t.Fatal(out, e)
+	}
+}
+
+func TestFiniteParallelCylinderPairCommon(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2}, Axis: geom.Vec3{Y: 2}, Radius: 2, Min: -1, Max: 3}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 10}, Axis: geom.Vec3{Y: -3}, Radius: 2, Min: 1, Max: 2}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if e != nil || out.Construction != CylinderCommonParallelAxes || len(out.SideFaces[0]) != 1 || len(out.SideFaces[1]) != 1 ||
+		len(out.LowerCapFaces[1]) != 2 || len(out.UpperCapFaces[1]) != 2 || len(out.LowerCapFaces[0])+len(out.UpperCapFaces[0]) != 0 {
+		t.Fatal(out, e)
+	}
+	p, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+	if e != nil || math.Abs(p.Volume-3*(8*math.Acos(.25)-math.Sqrt(15)/2)) > 1e-8 || math.Abs(p.Centroid.Y-5.5) > 1e-9 {
+		t.Fatal(p, e)
+	}
+	b.Origin.X = 5
+	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+		t.Fatal("regularized tangent parallel common", out, e)
 	}
 }

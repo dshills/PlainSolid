@@ -17,6 +17,7 @@ const (
 	CylinderCommonPerpendicularCap
 	CylinderCommonPerpendicularSlab
 	CylinderCommonPerpendicularQuadrant
+	CylinderCommonParallelAxes
 )
 
 // FiniteCylinderPairCommonResult is the native intersection of two supported
@@ -29,8 +30,8 @@ type FiniteCylinderPairCommonResult struct {
 }
 
 // FiniteCylinderPairCommon selects a native construction for two finite
-// cylinders. It handles unclipped nonparallel crossing axes, exactly placed
-// skew axes, and selected equal-radius perpendicular cap arrangements. All
+// cylinders. It handles coordinate-parallel axes, unclipped nonparallel
+// crossing or exactly placed skew axes, and selected perpendicular caps. All
 // input raw axes and cap limits retain their original meaning. Unsupported
 // arrangements fail without returning partial solids.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
@@ -40,6 +41,9 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 	}
 	if _, e := geom.NewCylinderPairCommon(a, b); e != nil {
 		return empty, e
+	}
+	if rawAxesParallel(a.Axis, b.Axis) {
+		return finiteParallelCylinderCommon(ctx, a, b, tolerance)
 	}
 	m, e := geom.NewObliqueSkewCylinderMap(ctx, a.Origin, a.Axis, a.Radius, b.Origin, b.Axis, b.Radius, geom.SurfacePatchEvaluationOptions{})
 	if e != nil {
@@ -86,6 +90,130 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		return empty, e
 	}
 	return finitePerpendicularCapCommon(ctx, a, b, center, windows, tolerance)
+}
+
+func rawAxesParallel(a, b geom.Vec3) bool {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	x, y := [3]float64{a.X, a.Y, a.Z}, [3]float64{b.X, b.Y, b.Z}
+	for i := range 3 {
+		j, k := (i+1)%3, (i+2)%3
+		if new(big.Rat).Mul(q(x[j]), q(y[k])).Cmp(new(big.Rat).Mul(q(x[k]), q(y[j]))) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
+	var empty FiniteCylinderPairCommonResult
+	if e := ctx.Err(); e != nil {
+		return empty, e
+	}
+	axis := 0
+	if a.Axis.Y != 0 {
+		axis = 1
+	}
+	if a.Axis.Z != 0 {
+		axis = 2
+	}
+	axisValues := func(v geom.Vec3) [3]float64 { return [3]float64{v.X, v.Y, v.Z} }
+	for _, s := range [2]geom.RawCylinder{a, b} {
+		for j, v := range axisValues(s.Axis) {
+			if j != axis && v != 0 {
+				return empty, geom.ErrDomain
+			}
+		}
+	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	minmax := [2][2]*big.Rat{}
+	ownerLower := [2]bool{}
+	for i, s := range [2]geom.RawCylinder{a, b} {
+		base, scale := q(axisValues(s.Origin)[axis]), q(axisValues(s.Axis)[axis])
+		lo := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Min)))
+		hi := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Max)))
+		ownerLower[i] = scale.Sign() > 0
+		if !ownerLower[i] {
+			lo, hi = hi, lo
+		}
+		minmax[i] = [2]*big.Rat{lo, hi}
+	}
+	lo, hi := minmax[0][0], minmax[0][1]
+	if minmax[1][0].Cmp(lo) > 0 {
+		lo = minmax[1][0]
+	}
+	if minmax[1][1].Cmp(hi) < 0 {
+		hi = minmax[1][1]
+	}
+	if lo.Cmp(hi) >= 0 {
+		return empty, nil
+	}
+	j, k := (axis+1)%3, (axis+2)%3
+	coordA, coordB := axisValues(a.Origin), axisValues(b.Origin)
+	dx := new(big.Rat).Sub(q(coordB[j]), q(coordA[j]))
+	dy := new(big.Rat).Sub(q(coordB[k]), q(coordA[k]))
+	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	d2 := new(big.Rat).Add(sq(dx), sq(dy))
+	if d2.Cmp(sq(new(big.Rat).Add(q(a.Radius), q(b.Radius)))) >= 0 {
+		return empty, nil
+	}
+	start, e := geom.RepresentedExactScalar(lo)
+	if e != nil {
+		return empty, e
+	}
+	if _, e := geom.RepresentedExactScalar(hi); e != nil {
+		return empty, e
+	}
+	height, e := geom.RepresentedExactScalar(new(big.Rat).Sub(hi, lo))
+	if e != nil {
+		return empty, e
+	}
+	x, e := geom.RepresentedExactScalar(dx)
+	if e != nil {
+		return empty, e
+	}
+	y, e := geom.RepresentedExactScalar(dy)
+	if e != nil {
+		return empty, e
+	}
+	coordA[axis] = start
+	vec := func(c [3]float64) geom.Vec3 { return geom.Vec3{X: c[0], Y: c[1], Z: c[2]} }
+	var ex, ez [3]float64
+	ex[j], ez[axis] = 1, 1
+	f, e := geom.NewFrame(vec(coordA), vec(ex), vec(ez))
+	if e != nil {
+		return empty, e
+	}
+	s, e := CombineParallelCylinders(f, DiskProfile{Radius: a.Radius}, DiskProfile{Center: geom.Vec2{X: x, Y: y}, Radius: b.Radius}, height, Intersection, tolerance)
+	if e != nil {
+		return empty, e
+	}
+	out := FiniteCylinderPairCommonResult{Solid: s, Construction: CylinderCommonParallelAxes}
+	for id, face := range s.Faces() {
+		if cylinder, ok := face.Surface.(geom.CylinderSurface); ok {
+			f0, r := cylinder.Parameters()
+			center := axisValues(f0.Origin())
+			for i, c := range [2]geom.RawCylinder{a, b} {
+				p := axisValues(c.Origin)
+				if center[j] == p[j] && center[k] == p[k] && r == c.Radius {
+					out.SideFaces[i] = append(out.SideFaces[i], id)
+				}
+			}
+			continue
+		}
+		for i, m := range minmax {
+			if !face.Reversed && m[0].Cmp(lo) == 0 || face.Reversed && m[1].Cmp(hi) == 0 {
+				if ownerLower[i] != face.Reversed {
+					out.LowerCapFaces[i] = append(out.LowerCapFaces[i], id)
+				} else {
+					out.UpperCapFaces[i] = append(out.UpperCapFaces[i], id)
+				}
+			}
+		}
+	}
+	if e = ctx.Err(); e != nil {
+		return empty, e
+	}
+	return out, nil
 }
 
 // The clipped family currently uses exact +X/+Z unit axes. The
