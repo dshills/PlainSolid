@@ -666,9 +666,10 @@ surfaces must keep their geometry through the operation. Continue with:
    entity ancestry, and add adversarial OCCT differential fixtures.
 4. Extend general fillets, offset, draft and sewing after Boolean assembly;
    use the same topology for curved STEP/IGES B-reps and assembly metadata.
-   Convex planar hollowing now supports two opposite parallel openings, with
-   exact cap coincidence and original opening ancestry. Rectangular and
-   sheared ducts pass independent OCCT comparisons.
+   Convex planar hollowing supports two separated complete openings, including
+   nonparallel original supports. It retains exact cap coincidence and
+   opening ancestry. Rectangular, sheared, and inclined ducts pass independent
+   OCCT comparisons.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

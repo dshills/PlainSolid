@@ -1132,6 +1132,10 @@ sheared stock. Both have exact ideal volume 60 and match independent OCCT
 prism subtraction on area, volume and centroid. A separate test rejects an
 opening whose rounded cap would move off its original plane by less than one
 binary64 ULP, even though the usual output displacement tolerance is larger.
+An independent wedge-prism cut verifies a duct opening on each of the
+nonparallel original supports `X=0` and `X+Z=4`. It agrees on area,
+centroid and volume `35/8`. Exact source-face separation accepts a
+`2⁻²⁰` gap and rejects a shared opening edge.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

@@ -68,3 +68,44 @@ func TestOCCTHollowThrough(t *testing.T) {
 		})
 	}
 }
+
+func TestOCCTHollowThroughInclined(t *testing.T) {
+	ref, ok := runOracle(t, "feature")["hollow-through-inclined"]
+	if !ok {
+		t.Fatal("missing independent inclined duct")
+	}
+	s, err := brep.Prism([]geom.Vec3{{}, {X: 4}, {X: 3, Z: 1}, {Z: 1}}, geom.Vec3{Y: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ends := [2]int{-1, -1}
+	faces, edges, vertices := s.Faces(), s.Edges(), s.Vertices()
+	thickness := make([]float64, len(faces))
+	for i, f := range faces {
+		left, right := true, true
+		for _, u := range f.Boundary {
+			p := vertices[edges[u.Edge].Start]
+			left, right = left && p.X == 0, right && p.X+p.Z == 4
+		}
+		switch {
+		case left:
+			ends[0] = i
+		case right:
+			ends[1] = i
+		default:
+			thickness[i] = .25
+		}
+	}
+	out, err := draft.HollowThrough(context.Background(), s, thickness, draft.ThroughHollowOptions{OpenFaces: ends})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if top := out.Solid.Topology(); top.Shells != 1 || top.EulerCharacteristic != 0 || out.ExactVolume.RatString() != "35/8" {
+		t.Fatal("expected one genus-one shell and exact volume 35/8", top, out.ExactVolume)
+	}
+	mass, err := out.Solid.MassProperties()
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, ref, mass.SurfaceArea, mass.Volume, mass.Centroid)
+}
