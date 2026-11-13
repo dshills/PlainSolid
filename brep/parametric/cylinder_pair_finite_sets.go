@@ -102,6 +102,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			if cavity, ok, err := finiteParallelCylinderCavity(ctx, stock, cutter, tolerance); ok || err != nil {
 				return cavity, err
 			}
+			if blind, ok, err := finiteParallelCylinderBlind(ctx, stock, cutter, tolerance); ok || err != nil {
+				return blind, err
+			}
 			bore, err := finiteCoordinateCylinderThroughDifference(ctx, stock, cutter, tolerance, false)
 			if err != nil {
 				return out, err
