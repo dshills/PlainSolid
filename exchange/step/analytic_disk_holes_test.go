@@ -7,11 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
 )
 
 func TestAnalyticDiskNativeSigned(t *testing.T) {
 	for _, height := range []float64{3, -3} {
-		for _, mode := range []string{"solid", "through", "mixed", "blind"} {
+		for _, mode := range []string{"solid", "through", "mixed", "blind", "opposed"} {
 			t.Run(mode+real(height), func(t *testing.T) {
 				m := diskExtrusionFixture(t, height)
 				switch mode {
@@ -22,6 +25,11 @@ func TestAnalyticDiskNativeSigned(t *testing.T) {
 					m.Bodies[0].Blind = nil
 				case "blind":
 					m.Bodies[0].Holes = nil
+				case "opposed":
+					m.Bodies[0].Blind = append(m.Bodies[0].Blind, trimmed.ExtrusionBlindHole{
+						ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 1, Y: 0}, Radius: .5},
+						Depth:           2, OppositeCap: true,
+					})
 				}
 				var data bytes.Buffer
 				if e := WriteDiskHoleExtrusions(&data, m); e != nil {
@@ -37,6 +45,9 @@ func TestAnalyticDiskNativeSigned(t *testing.T) {
 				}
 				if len(b.Blind) > 0 && b.Height != height {
 					t.Fatal("entry lost")
+				}
+				if mode == "opposed" && (b.Blind[0].OppositeCap || !b.Blind[1].OppositeCap || b.Blind[1].Depth != 2) {
+					t.Fatal("opposite entry lost", b.Blind)
 				}
 				var out bytes.Buffer
 				if e = WriteDiskHoleExtrusions(&out, got); e != nil {

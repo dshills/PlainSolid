@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD disjoint blind bores from opposite circular caps — 2026-11-13
+
+Disjoint blind cuts from either circular cap retain analytic walls and floors,
+including unequal depths whose axial spans overlap. Sequential and grouped
+cuts work in both entry orders. Canonical STEP readback and the independently
+validated analytic STEP path preserve which cap each pocket opens from. The
+pinned OCCT reader independently matches area, volume and centroid for the
+new opposed cases and the signed single-cap controls.
+
+All [six original browser regressions](evidence/plaincad-opposed-round-stock-browser-2026-11-13.json)
+pass. Two supplemental PlainCAD tests on the same WASM pass authored opposing
+Hole features through rebuild and save/reopen, STEP reimport, and full STL
+fabrication. The [native evidence](evidence/plaincad-opposed-round-stock-native-2026-11-13.json)
+records race checks for the bridge, STEP and trimmed B-rep and Go vet.
+
 ## PlainCAD grouped and successive circular-stock bores — 2026-11-13
 
 The bridge retains disjoint through bores and blind bores from one cap

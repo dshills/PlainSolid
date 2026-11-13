@@ -90,11 +90,17 @@ func TestWriteDiskHoleExtrusionsOCCT(t *testing.T) {
 		t.Skip("optional OCCT")
 	}
 	for _, z := range []float64{3, -3} {
-		for _, voids := range []bool{true, false} {
+		for _, mode := range []string{"solid", "single-entry", "opposed"} {
 			m := diskExtrusionFixture(t, z)
-			if !voids {
+			switch mode {
+			case "solid":
 				m.Bodies[0].Blind = nil
 				m.Bodies[0].Holes = nil
+			case "opposed":
+				m.Bodies[0].Blind = append(m.Bodies[0].Blind, trimmed.ExtrusionBlindHole{
+					ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 1, Y: 0}, Radius: .5},
+					Depth:           2, OppositeCap: true,
+				})
 			}
 			b := m.Bodies[0]
 			s, e := trimmed.ExtrudeDiskWithHoles(context.Background(), b.Frame, b.Outer, b.Holes, b.Blind, b.Height)
@@ -127,12 +133,15 @@ func TestWriteDiskHoleExtrusionsOCCT(t *testing.T) {
 				t.Fatal(e)
 			}
 			want := 48 * math.Pi
-			if voids {
+			if mode != "solid" {
 				want -= (3*.75*.75 + 1.25) * math.Pi
+			}
+			if mode == "opposed" {
+				want -= .5 * math.Pi
 			}
 			if math.Abs(got.Volume-want) > 1e-8 || math.Abs(got.Volume-p.Volume) > 1e-8 || math.Abs(got.Area-p.Area) > 1e-8 ||
 				p.Centroid.Distance(geom.Vec3{X: got.Centroid[0], Y: got.Centroid[1], Z: got.Centroid[2]}) > 1e-8 {
-				t.Fatal(z, voids, got, p, want)
+				t.Fatal(z, mode, got, p, want)
 			}
 		}
 	}

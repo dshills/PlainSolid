@@ -356,7 +356,7 @@ func recoverAnalyticCircularExtrusion(f *File, id int64, l Limits, allowBlind bo
 			return fail()
 		}
 	}
-	if e = collectCircularSourcePockets(g, cylinders, caps, outerLoops, floors, frame, height, tol, &out); e != nil {
+	if e = collectCircularSourcePockets(g, cylinders, caps, outerLoops, floors, frame, height, tol, &out, false); e != nil {
 		return fail()
 	}
 	inflated := append([]trimmed.ExtrusionCircle(nil), out.Holes...)

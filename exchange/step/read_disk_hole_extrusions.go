@@ -10,6 +10,7 @@ import (
 // by WriteDiskHoleExtrusions, including eccentric bores and blind pockets.
 // It revalidates construction and compares all geometric entities, uses,
 // orientations, trim curves, and sharing against the regenerated STEP graph.
+// The first blind pocket selects the original cap when both caps have entries.
 // Without a blind pocket the sign of the authored sweep cannot be recovered;
 // such bodies start at the lower cap with positive height. Alternate graph
 // orderings and frames and nonrepresentable parameter recovery are unsupported.

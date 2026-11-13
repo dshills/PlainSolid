@@ -240,13 +240,15 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 				cavities = append(cavities, cavity{circle: h, low: lo, high: hi, entry: -1})
 			}
 			for _, h := range b.Blind {
-				depth := h.Depth
-				entry := 0
+				start, depth, entry := 0., h.Depth, 0
 				if b.Height < 0 {
 					depth = -depth
 					entry = 1
 				}
-				cavities = append(cavities, cavity{circle: h.ExtrusionCircle, low: math.Min(0, depth), high: math.Max(0, depth), entry: entry})
+				if h.OppositeCap {
+					start, depth, entry = b.Height, b.Height-depth, entry^1
+				}
+				cavities = append(cavities, cavity{circle: h.ExtrusionCircle, low: math.Min(start, depth), high: math.Max(start, depth), entry: entry})
 			}
 			for _, hole := range cavities {
 				h := hole.circle
