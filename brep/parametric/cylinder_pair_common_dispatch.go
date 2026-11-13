@@ -34,7 +34,8 @@ type FiniteCylinderPairCommonResult struct {
 }
 
 // FiniteCylinderPairCommon selects a native construction for two finite
-// cylinders. It handles coordinate-parallel axes, unclipped nonparallel
+// cylinders. It handles coordinate-parallel and exactly placed oblique
+// parallel axes, unclipped nonparallel
 // crossing or exactly placed skew axes, and selected perpendicular caps on
 // signed coordinate axes of arbitrary nonzero scale, including one clipping
 // cap on each equal-radius cylinder. Raw axes and cap limits
@@ -192,7 +193,7 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	for _, s := range [2]geom.RawCylinder{a, b} {
 		for j, v := range axisValues(s.Axis) {
 			if j != axis && v != 0 {
-				return empty, geom.ErrDomain
+				return finiteObliqueParallelCylinderCommon(ctx, a, b, tolerance)
 			}
 		}
 	}

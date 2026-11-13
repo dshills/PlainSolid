@@ -270,8 +270,8 @@ func TestFiniteObliqueParallelCylinderPairEmpty(t *testing.T) {
 	assertEmpty(a, b) // Axial overlap, exactly tangent radial disks.
 	b.Origin.Z = math.Nextafter(4, 0)
 	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
-	if !errors.Is(e, geom.ErrDomain) || len(out.Solid.Faces()) != 0 {
-		t.Fatal("positive but unsupported radial overlap", out, e)
+	if !errors.Is(e, geom.ErrUnrepresentable) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("positive radial overlap must reject its nonrepresentable projected offset", out, e)
 	}
 	b.Origin = geom.Vec3{X: 6, Y: 8}
 	b.Min, b.Max = -2, 0
@@ -343,5 +343,23 @@ func TestFinitePerpendicularCylinderPairRejectsRoundedCapPlacement(t *testing.T)
 	out, e := FiniteCylinderPairCommon(context.Background(), a, b, 1e-9)
 	if !errors.Is(e, geom.ErrUnrepresentable) || len(out.Solid.Faces()) != 0 {
 		t.Fatal("cap placement silently rounded", out, e)
+	}
+}
+
+func TestFiniteObliqueParallelCylinderPairCommon(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 4}, Radius: 5, Min: 0, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 6, Y: 8, Z: 5}, Axis: geom.Vec3{X: -6, Y: -8}, Radius: 5, Min: 0, Max: .5}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if e != nil || out.Construction != CylinderCommonParallelAxes || len(out.SideFaces[0]) != 1 || len(out.SideFaces[1]) != 1 {
+		t.Fatal(out.Construction, out.SideFaces, e)
+	}
+	if len(out.LowerCapFaces[0]) != 0 || len(out.LowerCapFaces[1]) != 2 || len(out.UpperCapFaces[0]) != 2 || len(out.UpperCapFaces[1]) != 2 {
+		t.Fatal(out.LowerCapFaces, out.UpperCapFaces)
+	}
+	m, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+	want := 5 * (50*math.Pi/3 - 25*math.Sqrt(3)/2)
+	if e != nil || math.Abs(m.Volume-want) > 1e-8 || m.Centroid.Sub(geom.Vec3{X: 4.5, Y: 6, Z: 2.5}).Length() > 1e-9 {
+		t.Fatal(m, want, e)
 	}
 }
