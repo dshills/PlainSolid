@@ -21,7 +21,7 @@ func (b *Bridge) toFace(q request) (Shape, error) {
 		return Shape{}, err
 	}
 	if !target.planar() {
-		return Shape{}, &failureError{"UNSUPPORTED", "to-face termination currently requires a planar target BRep"}
+		return b.toAnalyticFace(target, q)
 	}
 	face, err := matchingPlanarFace(target.solid, q.Origin.vec(), q.Normal.vec())
 	if err != nil {
