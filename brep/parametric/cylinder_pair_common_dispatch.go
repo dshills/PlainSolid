@@ -21,6 +21,7 @@ const (
 	CylinderCommonParallelAxes
 	CylinderCommonContainedCylinder
 	CylinderCommonPerpendicularDualCap
+	CylinderCommonPerpendicularCapWindows
 )
 
 // FiniteCylinderPairCommonResult is the native intersection of two supported
@@ -502,7 +503,7 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 		case after(w[1]) && interior(w[0]):
 			caps[i], signs[i] = -w[0], -1
 		default:
-			return empty, geom.ErrConvergence
+			return finiteSteinmetzCapWindows(ctx, center, r, ends, tolerance, CylinderCommonPerpendicularCapWindows)
 		}
 	}
 	out, e := finiteSteinmetzDualUpperCaps(ctx, geom.Vec3{}, r, caps, tolerance)

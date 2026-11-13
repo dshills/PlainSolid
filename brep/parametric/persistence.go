@@ -209,7 +209,14 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case steinmetzExteriorCylinder:
 		return surfaceData{Kind: "steinmetz-exterior-cylinder", Center: &x.center, A: x.radius, B: x.end, Steinmetz: &[2]int{x.side, x.sign}}, nil
 	case steinmetzDualCapChart:
-		return surfaceData{Kind: "steinmetz-dual-cap", Center: &x.center, A: x.radius, SteinmetzDualCap: &steinmetzDualCapData{x.caps, x.fixed, x.axis, x.side}}, nil
+		d := &steinmetzDualCapData{Axis: x.axis, Side: x.side}
+		if x.caps[0][0] == -x.radius && x.caps[1][0] == -x.radius && x.caps[0][1] < x.radius && x.caps[1][1] < x.radius {
+			d.Caps = [2]float64{x.caps[0][1], x.caps[1][1]}
+			d.Fixed = [2]bool{x.fixed[0][1], x.fixed[1][1]}
+		} else {
+			d.Windows, d.Clipped = &x.caps, &x.fixed
+		}
+		return surfaceData{Kind: "steinmetz-dual-cap", Center: &x.center, A: x.radius, SteinmetzDualCap: d}, nil
 	case steinmetzSlabChart:
 		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
@@ -530,7 +537,15 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, geom.ErrInvalid
 		}
 		x := d.SteinmetzDualCap
-		s := steinmetzDualCapChart{*d.Center, d.A, x.Caps, x.Fixed, x.Axis, x.Side}
+		w := [2][2]float64{{-d.A, x.Caps[0]}, {-d.A, x.Caps[1]}}
+		c := [2][2]bool{{false, x.Fixed[0]}, {false, x.Fixed[1]}}
+		if x.Windows != nil || x.Clipped != nil {
+			if x.Windows == nil || x.Clipped == nil || x.Caps != ([2]float64{}) || x.Fixed != ([2]bool{}) {
+				return nil, geom.ErrInvalid
+			}
+			w, c = *x.Windows, *x.Clipped
+		}
+		s := steinmetzDualCapChart{*d.Center, d.A, w, c, x.Axis, x.Side}
 		if !s.valid() {
 			return nil, geom.ErrInvalid
 		}
