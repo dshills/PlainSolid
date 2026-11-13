@@ -1962,3 +1962,15 @@ Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume
 and first moments, the pinned OCCT result, canonical recipe reload, and a
 closed mesh all agree while caps that enter the common are still rejected.
+
+The original pinned PlainCAD production suite (`5942ff9`) against the clean
+reconciliation snapshot `8aba3fb` passed 64 of 66 on port 5418, including the
+controlled native rebuild and validated STL performance case in 39 seconds.
+Both focused-workspace fixtures use saved browser storage for port 5280. An
+isolated rerun at that original port, with the same WASM, original tests and
+original production configuration, passed both in 2.4 and 4.0 seconds. The
+[run record](evidence/plaincad-pinned-production-reconciliation-2026-11-13.json)
+contains hashes and per-case results. These two runs cover all 66 cases; a
+single full run on the original port and qualification of later revisions are
+separate checks. The production runner now rejects changed ports for fixed-origin
+fixtures before building.
