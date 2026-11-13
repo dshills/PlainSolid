@@ -204,11 +204,12 @@ replacement remains partial. See source-hashed reports in [PlainCAD readiness](P
 Current integration evidence is kept on local `codex/reconcile-plaincad`.
 The other worktree's revision stays separate and is merged into that review
 branch after each coherent milestone. The current committed PlainCAD revision
-`50432ed` passed all 66 original production tests on `0312d69`; the integration
-worktree independently qualified all 15 current cross-browser cases. The full
-unit result still contains failures, with separately recorded isolated retests
-and provider-specific fixture gaps. Production and cross-browser passes do
-not establish a general OCCT replacement.
+`50432ed` passed all 66 original production tests on `0312d69`. The integration
+worktree independently qualified all 15 current cross-browser cases and all
+344 original development cases on its pinned build with staged project-open
+handling. The full unit result still contains failures, with separately
+recorded isolated retests and provider-specific fixture gaps. These application
+checks do not establish a general OCCT replacement.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
@@ -379,6 +380,9 @@ and exact source edge parameters, and keeps nonbinary affine endpoints
 separate from display coordinates. Coplanar faces and unresolved contacts
 are rejected. An optional proof projects the exact wires into an oriented
 plane and groups simple, disjoint rings into material regions and holes.
+Those regions classify points exactly and reconstruct independent planar cap
+faces on an authored affine spline support, retaining each original section
+piece and hole. Sewing both clipped half-shells remains a separate operation.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

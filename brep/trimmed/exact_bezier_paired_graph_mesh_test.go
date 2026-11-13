@@ -80,6 +80,52 @@ func TestPairedBezierCurvedGraphSeam(t *testing.T) {
 			}
 		}
 	}
+	tight := o
+	tight.Interior.Deflection = .04
+	if denied, e := TessellatePairedBezierGraphChainsRefinedCertified(context.Background(), a, trims, new(big.Rat), b, trims, new(big.Rat), tight, 2); e == nil || len(denied.SharedVertices) != 0 {
+		t.Fatal("unsplit curved baseline unexpectedly certified")
+	}
+	tight.Boundary.ClosingSubdivisions = 8
+	refined, err := TessellatePairedBezierGraphChainsRefinedCertified(context.Background(), a, trims, new(big.Rat), b, trims, new(big.Rat), tight, 2)
+	if err != nil {
+		t.Fatal("subdivided curved baseline", err)
+	}
+	if refined.SquaredDistance.Cmp(big.NewRat(1, 625)) > 0 {
+		t.Fatal("tight bound")
+	}
+	for _, face := range []CertifiedCurvedBezierGraphChain{refined.FaceA, refined.FaceB} {
+		for _, chain := range face.GraphChain.ClosingVertices {
+			if len(chain) != 9 {
+				t.Fatal("closing ancestry")
+			}
+			start, end := face.GraphChain.ExactUV[chain[0]], face.GraphChain.ExactUV[chain[8]]
+			for j, id := range chain {
+				for axis := 0; axis < 2; axis++ {
+					want := new(big.Rat).Add(start[axis], new(big.Rat).Mul(new(big.Rat).Sub(end[axis], start[axis]), big.NewRat(int64(j), 8)))
+					if face.GraphChain.ExactUV[id][axis].Cmp(want) != 0 {
+						t.Fatal("off-source closing sample")
+					}
+				}
+			}
+		}
+	}
+	for _, id := range refined.FaceB.GraphChain.ClosingVertices[0] {
+		x := refined.FaceB.ExactPoints[id][0]
+		wantY := new(big.Rat).Add(big.NewRat(1, 1), new(big.Rat).Quo(new(big.Rat).Mul(x, x), big.NewRat(4, 1)))
+		wantZ := new(big.Rat).Neg(new(big.Rat).Quo(wantY, big.NewRat(8, 1)))
+		if refined.FaceB.ExactPoints[id][1].Cmp(wantY) != 0 || refined.FaceB.ExactPoints[id][2].Cmp(wantZ) != 0 {
+			t.Fatal("independent curved baseline model")
+		}
+	}
+	limited := tight
+	limited.Interior.MaxTriangles = 8
+	if denied, e := TessellatePairedBezierGraphChainsRefinedCertified(context.Background(), a, trims, new(big.Rat), b, trims, new(big.Rat), limited, 2); e == nil || len(denied.SharedVertices) != 0 {
+		t.Fatal("amount bound")
+	}
+	tight.Boundary.ClosingSubdivisions = 3
+	if _, e := TessellateCurvedBezierGraphChainCertified(context.Background(), a, trims, new(big.Rat), tight); e == nil {
+		t.Fatal("non-dyadic amount")
+	}
 	bad := append([]ExactBezierUV(nil), trims...)
 	h := bad[0].HomogeneousControls()
 	h[1][1].Add(h[1][1], big.NewRat(1, 128))

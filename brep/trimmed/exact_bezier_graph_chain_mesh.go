@@ -11,6 +11,9 @@ import (
 // neighboring pieces share the same exact UV/model point and display index.
 // The embedded Source/Curve fields are empty: Pieces are the source authority.
 type CertifiedExactBezierGraphChain struct {
+	// ClosingVertices gives the directed baseline, right, and left closing
+	// chains, including both endpoints; curve/junction indices stay explicit.
+	ClosingVertices [3][]int
 	CertifiedExactBezierGraphFace
 	Pieces           []CertifiedExactBezierGraphFace
 	PieceVertices    [][]int
@@ -25,6 +28,8 @@ type CertifiedExactBezierGraphChain struct {
 // budgets divided equally (integer quotient) among pieces before work. Defaults
 // are4096,8M,1M respectively. Chart MaxOperations defaults8M and is divided among
 // len(pieces)+1 chart proofs; exact point evaluation retains its per-point limit.
+// Closing subdivisions add at most381 exact evaluations. Each lies on the same
+// original UV segment, so the source region and its homotopy bound are unchanged.
 // MaxTriangles limits each proposal and the final global mesh. Endpoint/Junction
 // display overrides are not accepted: exact junction points are rounded once.
 func TessellateExactBezierGraphChainCertified(ctx context.Context, p *geom.SurfacePatch, pieces []ExactBezierUV, baseline *big.Rat, o ExactBezierGraphFaceOptions) (CertifiedExactBezierGraphChain, error) {
@@ -39,6 +44,13 @@ func tessellateExactBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePat
 	}
 	if e := ctx.Err(); e != nil {
 		return empty, e
+	}
+	divisions := o.ClosingSubdivisions
+	if divisions == 0 {
+		divisions = 1
+	}
+	if divisions < 1 || divisions > 128 || divisions&(divisions-1) != 0 {
+		return empty, geom.ErrInvalid
 	}
 	if o.Display.MaxSegments == 0 {
 		o.Display.MaxSegments = 4096
@@ -60,6 +72,9 @@ func tessellateExactBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePat
 	}
 	if o.MaxTriangles < 1 || o.MaxTriangles > 1000000 {
 		return empty, geom.ErrInvalid
+	}
+	if o.MaxTriangles < 3*divisions+n-2 {
+		return empty, geom.ErrConvergence
 	}
 	local := o
 	local.Display.MaxSegments /= n
@@ -133,9 +148,45 @@ func tessellateExactBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePat
 		}
 		return index
 	}
+	interior := func(a, b [2]*big.Rat) ([]int, error) {
+		var indices []int
+		for j := 1; j < divisions; j++ {
+			if e := ctx.Err(); e != nil {
+				return nil, e
+			}
+			uv := [2]*big.Rat{}
+			for k := range uv {
+				uv[k] = new(big.Rat).Add(a[k], new(big.Rat).Mul(new(big.Rat).Sub(b[k], a[k]), big.NewRat(int64(j), int64(divisions))))
+			}
+			point, e := chart.EvalExact(uv[0], uv[1])
+			if e != nil {
+				return nil, e
+			}
+			v := geom.Vec3{}
+			for k, f := range []*float64{&v.X, &v.Y, &v.Z} {
+				*f, _ = point[k].Float64()
+			}
+			if !v.IsFinite() {
+				return nil, geom.ErrConvergence
+			}
+			indices = append(indices, add(uv, point, v))
+		}
+		return indices, nil
+	}
 	first, last := r.Pieces[0], r.Pieces[n-1]
-	add(first.ExactUV[0], first.ExactPoints[0], first.Mesh.Vertices[0])
-	add(last.ExactUV[1], last.ExactPoints[1], last.Mesh.Vertices[1])
+	leftBottom := add(first.ExactUV[0], first.ExactPoints[0], first.Mesh.Vertices[0])
+	baseIndices, e := interior(first.ExactUV[0], last.ExactUV[1])
+	if e != nil {
+		return empty, e
+	}
+	rightBottom := add(last.ExactUV[1], last.ExactPoints[1], last.Mesh.Vertices[1])
+	r.ClosingVertices[0] = append(append([]int{leftBottom}, baseIndices...), rightBottom)
+	rightTopUV := last.ExactUV[last.CurveVertices[len(last.CurveVertices)-1]]
+	rightIndices, e := interior(last.ExactUV[1], rightTopUV)
+	if e != nil {
+		return empty, e
+	}
+	r.ClosingVertices[1] = append([]int{rightBottom}, rightIndices...)
 	for i := n - 1; i >= 0; i-- {
 		piece := r.Pieces[i]
 		maximumError = max(maximumError, piece.Curve.MaximumError)
@@ -152,6 +203,13 @@ func tessellateExactBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePat
 		r.JunctionVertices[i] = r.PieceVertices[i][0]
 	}
 	r.JunctionVertices[n] = r.PieceVertices[n-1][len(r.PieceVertices[n-1])-1]
+	r.ClosingVertices[1] = append(r.ClosingVertices[1], r.JunctionVertices[n])
+	leftTop := r.JunctionVertices[0]
+	leftIndices, e := interior(boundary.ExactUV[leftTop], first.ExactUV[0])
+	if e != nil {
+		return empty, e
+	}
+	r.ClosingVertices[2] = append(append([]int{leftTop}, leftIndices...), leftBottom)
 	area := new(big.Rat)
 	for i, a := range boundary.ExactUV {
 		b := boundary.ExactUV[(i+1)%len(boundary.ExactUV)]

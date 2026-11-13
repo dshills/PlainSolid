@@ -1548,6 +1548,10 @@ The projected ring proof recovers a square tube's outer wire and four-edge
 hole from the directed source branches. Independent unordered rings exercise
 disjoint components and an island within a hole; touching rings and proof
 exhaustion return no arrangement.
+The cap reconstruction preserves the square-tube void in a reversed affine
+chart. A second oblique weighted fixture verifies identical rational model
+points on the source and reconstructed planar cap; too small a cap support
+rejects without returning partial faces. Both passed under the race detector.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.

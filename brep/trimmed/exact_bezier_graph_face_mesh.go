@@ -13,10 +13,14 @@ import (
 // Chart evaluation limits apply per boundary vertex (at most the display
 // segment count plus three); composition and display each have separate budgets.
 type ExactBezierGraphFaceOptions struct {
-	Chart        geom.AffineSurfaceChartOptions
-	Composition  geom.SurfaceCurveAgreementOptions
-	Display      geom.ComposedCollectionPolylineOptions
-	MaxTriangles int
+	// ClosingSubdivisions optionally subdivides each straight closing edge of
+	// graph-chain fills into this many exact dyadic intervals (1..128). Zero
+	// preserves one interval. This affects chains, not the single-face API.
+	ClosingSubdivisions int
+	Chart               geom.AffineSurfaceChartOptions
+	Composition         geom.SurfaceCurveAgreementOptions
+	Display             geom.ComposedCollectionPolylineOptions
+	MaxTriangles        int
 }
 
 // CertifiedExactBezierGraphFace is the closed region below Source and above

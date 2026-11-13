@@ -161,6 +161,45 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 		return w
 	}
 	w := checkSection(plane, 1)
+	capSupport, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: 3. / 16}, {Y: 1, Z: 3. / 16}, {X: 4, Z: 1. / 4}, {X: 4, Y: 1, Z: 1. / 4},
+	}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	domain := geom.ParameterRectangle{UMax: 1, VMax: 1}
+	caps, e := w.Regions.BuildCaps(ctx, capSupport, domain, RationalGraphSectionCapOptions{})
+	if e != nil || len(caps) != 1 || len(caps[0].Edges) != 4 || caps[0].Boundary.Face.Reversed {
+		t.Fatal("oblique cap reconstruction", caps, e)
+	}
+	cp, e := geom.NewSurfacePatch(capSupport, geom.SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i, source := range caps[0].Edges {
+		if source.Face != 4 {
+			continue
+		}
+		t0 := big.NewRat(2, 7)
+		a, _, e1 := w.Branches[source.Branch].Pieces[source.Piece].(ExactQuadraticUV).EvaluateRational(t0)
+		b, _, e2 := caps[0].Boundary.Face.Outer[i].Curve.(ExactQuadraticUV).EvaluateRational(t0)
+		if e1 != nil || e2 != nil {
+			t.Fatal(e1, e2)
+		}
+		x, e1 := section.proof.patch.EvaluateRational(ctx, a[0], a[1], geom.SurfacePatchEvaluationOptions{})
+		y, e2 := cp.EvaluateRational(ctx, b[0], b[1], geom.SurfacePatchEvaluationOptions{})
+		if e1 != nil || e2 != nil {
+			t.Fatal(e1, e2)
+		}
+		for j := range x.Point {
+			if x.Point[j].Cmp(y.Point[j]) != 0 {
+				t.Fatal("cap transport broke exact original support identity", x.Point, y.Point)
+			}
+		}
+	}
+	if bad, e := w.Regions.BuildCaps(ctx, capSupport, geom.ParameterRectangle{UMax: .5, VMax: 1}, RationalGraphSectionCapOptions{}); !errors.Is(e, geom.ErrDomain) || bad != nil {
+		t.Fatal("clip to undersized chart exposed a partial cap", bad, e)
+	}
 	if bad, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{MaxPieces: len(w.Branches) - 1}); e == nil || bad.Complete || len(bad.Branches) != 0 || len(bad.Wires) != 0 {
 		t.Fatal("budget exposed a partial section", bad, e)
 	}

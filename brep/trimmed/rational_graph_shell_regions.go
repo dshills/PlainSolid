@@ -31,6 +31,8 @@ type RationalGraphShellRegions struct {
 	certificate    *trimvalidate.CertifiedLoops
 	plane          polynomialPlaneEquation
 	maxBits        int
+	wires          [][]projectedGraphSectionPiece
+	material       []RationalGraphShellRegion
 }
 
 // LocateRational classifies an exact model-space point in the planar material
@@ -70,11 +72,12 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 	}
 	axes := orientedRationalGraphProjection(plane)
 	rings := make([]trimvalidate.Loop, len(section.Wires))
+	wires := make([][]projectedGraphSectionPiece, len(section.Wires))
 	count := 0
 	for i, wire := range section.Wires {
 		for _, id := range wire {
 			b := section.Branches[id]
-			for _, piece := range b.Pieces {
+			for pieceID, piece := range b.Pieces {
 				count++
 				if count > opts.MaxEdges {
 					return nil, geom.ErrConvergence
@@ -88,6 +91,10 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 					return nil, e
 				}
 				rings[i] = append(rings[i], q)
+				wires[i] = append(wires[i], projectedGraphSectionPiece{
+					source:  RationalGraphCapEdgeSource{Wire: i, Branch: id, Piece: pieceID, Face: b.Face},
+					control: h,
+				})
 			}
 		}
 	}
@@ -98,7 +105,7 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 	if proof.Status != trimvalidate.Certified {
 		return nil, geom.ErrConvergence
 	}
-	out := &RationalGraphShellRegions{ProjectionAxes: axes, Rings: placements, certificate: certificate, plane: plane, maxBits: opts.MaxBits}
+	out := &RationalGraphShellRegions{ProjectionAxes: axes, Rings: placements, certificate: certificate, plane: plane, maxBits: opts.MaxBits, wires: wires}
 	byOuter := make(map[int]int, len(placements))
 	for i, r := range placements {
 		if r.Depth%2 == 0 {
@@ -119,6 +126,9 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 			}
 			out.Material[k].Holes = append(out.Material[k].Holes, i)
 		}
+	}
+	for _, r := range out.Material {
+		out.material = append(out.material, RationalGraphShellRegion{Outer: r.Outer, Holes: append([]int(nil), r.Holes...)})
 	}
 	return out, nil
 }
