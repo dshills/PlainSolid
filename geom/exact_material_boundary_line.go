@@ -145,7 +145,7 @@ func intersectMaterialBoundary(ctx context.Context, polynomials []rationalPolyno
 		}
 		previousCovered := covered[i]
 		covered[i], covered[i+1] = true, true
-		if previousCovered && len(out.Intervals) > 0 && out.Intervals[len(out.Intervals)-1].Boundary == mask {
+		if previousCovered && left.mask == mask && len(out.Intervals) > 0 && out.Intervals[len(out.Intervals)-1].Boundary == mask {
 			last := &out.Intervals[len(out.Intervals)-1]
 			last.End = right.root
 			last.EndBounds = b
