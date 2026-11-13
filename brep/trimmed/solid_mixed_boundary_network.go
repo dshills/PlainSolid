@@ -28,7 +28,7 @@ type StoredMixedSeamNetwork struct {
 }
 
 // TessellateMixedBoundaryNetworkCertified accepts a bounded whole Solid with
-// 2..16 faces and1..32 nonperiodic edges, exactly two opposite original uses per
+// 2..16 faces and1..64 nonperiodic edges, exactly two opposite original uses per
 // edge. It aligns ALL edge partitions together (at most2048 global samples),
 // then proves every shared exact model point and original corner identity before
 // assigning shared display IDs. Each face is finally recertified with those
@@ -37,7 +37,7 @@ type StoredMixedSeamNetwork struct {
 // No generic shell or source embedding acceptance is enabled by this method.
 func (s Solid) TessellateMixedBoundaryNetworkCertified(ctx context.Context, options []SolidMixedFaceMeshOptions, maxRounds int) (StoredMixedSeamNetwork, error) {
 	var empty StoredMixedSeamNetwork
-	if ctx == nil || len(s.faces) < 2 || len(s.faces) > 16 || len(s.edges) < 1 || len(s.edges) > 32 || len(options) != len(s.faces) || maxRounds < 1 || maxRounds > 8 {
+	if ctx == nil || len(s.faces) < 2 || len(s.faces) > 16 || len(s.edges) < 1 || len(s.edges) > 64 || len(options) != len(s.faces) || maxRounds < 1 || maxRounds > 8 {
 		return empty, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
