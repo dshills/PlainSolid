@@ -1896,6 +1896,20 @@ both vertex identities and source-edge ancestry, have volumes `17/32` and
 `15/32`, reload identically when the proof order is reversed, and produce
 closed display meshes with no detected contacts. An independent OCCT sweep
 and planar cutter verify one shell, area, volume, and centroid for each result.
+Two opposite active planes qualify a six-face slab on the same warped stock.
+Exact ancestry covers eight cap section edges and four retained stock edge
+intervals. The independent OCCT cutter is an oblique planar face swept by
+`1/4`; the result agrees on one shell, volume `1/4`, centroid and area.
+
+A combined short suite at `5a3c612` reached the existing 45-minute package
+deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
+other packages passed. Point-only B-spline surface evaluation now visits only
+the active tensor span and skips derivatives. The degree-two rational
+benchmark dropped from 1.25–1.85 microseconds, 3,872 bytes and 25 allocations
+per call to 0.18–0.23 microseconds and zero allocations. Full-multiplicity
+knot sidedness, the timed-out mixed-contour fixture in isolation, and the
+corner/slab mesh paths pass focused normal and race checks. This isolated
+result does not supersede the combined run until it is rerun.
 
 On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
 transverse flags passed 112 test and subtest entries. The transverse union

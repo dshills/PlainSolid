@@ -107,17 +107,21 @@ func toHom(poles []Vec3, weights []float64) []homogeneous {
 	}
 	return h
 }
-func evalHom(degree int, poles []homogeneous, knots []float64, t float64) homogeneous {
-	n := len(poles) - 1
-	span := sort.Search(len(knots), func(i int) bool { return knots[i] >= t }) - 1
-	if t < knots[n+1] {
-		span = sort.Search(len(knots), func(i int) bool { return knots[i] > t }) - 1
+func splineSpan(count int, knots []float64, t float64) int {
+	if t < knots[count] {
+		return sort.Search(len(knots), func(i int) bool { return knots[i] > t }) - 1
 	}
-	return evalHomSpan(degree, poles, knots, t, span)
+	return sort.Search(len(knots), func(i int) bool { return knots[i] >= t }) - 1
+}
+func evalHom(degree int, poles []homogeneous, knots []float64, t float64) homogeneous {
+	return evalHomSpan(degree, poles, knots, t, splineSpan(len(poles), knots, t))
 }
 func evalHomSpan(degree int, poles []homogeneous, knots []float64, t float64, span int) homogeneous {
-	d := make([]homogeneous, degree+1)
-	copy(d, poles[span-degree:span+1])
+	var d [65]homogeneous // Validated constructors cap degree at 64.
+	copy(d[:], poles[span-degree:span+1])
+	return reduceHom(degree, knots, t, span, &d)
+}
+func reduceHom(degree int, knots []float64, t float64, span int, d *[65]homogeneous) homogeneous {
 	for r := 1; r <= degree; r++ {
 		for j := degree; j >= r; j-- {
 			i := span - degree + j
@@ -271,8 +275,19 @@ func (s *BSplineSurface) Eval(u, v float64) (Vec3, error) {
 	if !s.validParameter(u, v) {
 		return Vec3{}, ErrDomain
 	}
-	h, _, _ := s.hom(u, v)
-	return projectHom(h)
+	// De Boor only reads the poles of the two selected spans. Build those
+	// homogeneous controls on the stack, in the same order as Partials.
+	su, sv := splineSpan(s.countU, s.knotsU, u), splineSpan(s.countV, s.knotsV, v)
+	var rows, row [65]homogeneous
+	for i := 0; i <= s.degreeU; i++ {
+		start := (su-s.degreeU+i)*s.countV + sv - s.degreeV
+		for j := 0; j <= s.degreeV; j++ {
+			p, w := s.poles[start+j], s.weights[start+j]
+			row[j] = homogeneous{p.X * w, p.Y * w, p.Z * w, w}
+		}
+		rows[i] = reduceHom(s.degreeV, s.knotsV, v, sv, &row)
+	}
+	return projectHom(reduceHom(s.degreeU, s.knotsU, u, su, &rows))
 }
 
 // Partials returns analytic first partial derivatives in u and v.

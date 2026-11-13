@@ -27,6 +27,10 @@ type SplineParallelSlab struct {
 // representable. The bounded source-face proofs and edge reproofs each use o.
 // No sampled classification or sequential rectangle-shell assumption is used.
 func CombineSplineParallelSlab(ctx context.Context, stock Solid, tools [2]Solid, active [2]int, o SplineRectangleEmbeddingOptions) (SplineParallelSlab, error) {
+	return combineSplineSeparatedPlaneCuts(ctx, stock, tools, active, o, true)
+}
+
+func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]Solid, active [2]int, o SplineRectangleEmbeddingOptions, parallel bool) (SplineParallelSlab, error) {
 	var zero SplineParallelSlab
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -57,26 +61,54 @@ func CombineSplineParallelSlab(ctx context.Context, stock Solid, tools [2]Solid,
 			}
 		}
 	}
-	dot := new(big.Rat)
-	for i := 0; i < 3; i++ {
-		j, k := (i+1)%3, (i+2)%3
-		if new(big.Rat).Sub(new(big.Rat).Mul(normals[0][j], normals[1][k]), new(big.Rat).Mul(normals[0][k], normals[1][j])).Sign() != 0 {
-			return zero, geom.ErrConvergence
-		}
-		dot.Add(dot, new(big.Rat).Mul(normals[0][i], normals[1][i]))
-	}
-	if dot.Sign() >= 0 {
-		return zero, geom.ErrConvergence
-	}
-	// Parallel cap support is constant in the other signed plane equation.
-	// Strict negativity proves the whole cap, not just sampled cap vertices.
-	for k := 0; k < 2; k++ {
-		h := new(big.Rat)
+	if parallel {
+		dot := new(big.Rat)
 		for i := 0; i < 3; i++ {
-			h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(origins[k][i], origins[1-k][i])))
+			j, k := (i+1)%3, (i+2)%3
+			if new(big.Rat).Sub(new(big.Rat).Mul(normals[0][j], normals[1][k]), new(big.Rat).Mul(normals[0][k], normals[1][j])).Sign() != 0 {
+				return zero, geom.ErrConvergence
+			}
+			dot.Add(dot, new(big.Rat).Mul(normals[0][i], normals[1][i]))
 		}
-		if h.Sign() >= 0 {
+		if dot.Sign() >= 0 {
 			return zero, geom.ErrConvergence
+		}
+	}
+	// The cap is an affine image of this independently certified convex polygon.
+	// A linear functional reaches its extrema at its vertices, so strict signs
+	// prove exclusion over the entire cap fill, including its original wire.
+	for k := 0; k < 2; k++ {
+		if parallel {
+			// Preserve the slab contract: a parallel plane is constant over
+			// the whole cap, so its polygon need not be convex.
+			h := new(big.Rat)
+			for i := 0; i < 3; i++ {
+				h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(origins[k][i], origins[1-k][i])))
+			}
+			if h.Sign() >= 0 {
+				return zero, geom.ErrConvergence
+			}
+			continue
+		}
+		cap := clips[k].Solid.faces[clips[k].ToolFaces[active[k]][0]]
+		if !slabConvexCCW(slabFaceUV(cap)) {
+			return zero, geom.ErrConvergence
+		}
+		for _, use := range cap.Outer {
+			edge := clips[k].Solid.edges[use.Edge]
+			id := edge.Start
+			if use.Reversed {
+				id = edge.End
+			}
+			p := clips[k].Solid.vertices[id]
+			coords := [3]float64{p.X, p.Y, p.Z}
+			h := new(big.Rat)
+			for i := 0; i < 3; i++ {
+				h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(new(big.Rat).SetFloat64(coords[i]), origins[1-k][i])))
+			}
+			if h.Sign() >= 0 {
+				return zero, geom.ErrConvergence
+			}
 		}
 	}
 	out := SplineParallelSlab{StockFaces: make([][]int, len(stock.faces)), StockEdges: make([][]int, len(stock.edges))}

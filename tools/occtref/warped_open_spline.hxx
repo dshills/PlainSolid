@@ -29,3 +29,13 @@ static void warpedCornerSplineBooleans(std::ostream& out, const std::string& kin
  splineShellRecord(out,("warped-"+kind+"-common").c_str(),BRepAlgoAPI_Common(stock,tool).Shape());
  splineShellRecord(out,("warped-"+kind+"-cut").c_str(),BRepAlgoAPI_Cut(stock,tool).Shape());
 }
+static void warpedSplineSlab(std::ostream& out){
+ auto stock=warpedOpenPrism(0,0,0);
+ BRepBuilderAPI_MakePolygon rim;
+ for(auto xy:std::array<std::array<double,2>,4>{{{-1,-1},{2,-1},{2,2},{-1,2}}})
+   rim.Add(gp_Pnt(xy[0],xy[1],(xy[0]+xy[1])/4+1./8));
+ rim.Close();
+ auto tool=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,0,1./4)).Shape();
+ if(!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent slab cutter");
+ splineShellRecord(out,"warped-parallel-slab",BRepAlgoAPI_Common(stock,tool).Shape());
+}

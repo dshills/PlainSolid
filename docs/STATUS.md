@@ -753,6 +753,9 @@ surfaces must keep their geometry through the operation. Continue with:
    cycle without original vertex contacts or two distinct certified corner
    fans on the same cutter plane. Tangencies and nonaffine crossing faces
    remain unresolved in that path.
+   Two independently certified opposite parallel planes now form a retained
+   slab. Both caps must lie strictly in the other kept halfspace; exact stock
+   UV intersections preserve surviving source faces and edge intervals.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
