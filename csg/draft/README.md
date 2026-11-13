@@ -83,3 +83,29 @@ single-support removal, the aggregate added regions may be disconnected.
 Analytic tests remove two or four independent chamfers. Live OCCT differential
 tests independently reconstruct the remaining support intersections and compare
 area, volume and centroid for both cases.
+
+## Two-ended planar hollowing
+
+`HollowThrough` extends the hollowing family to a through duct bounded by two
+complete, unique, opposite parallel support faces. Both selected thicknesses
+are zero; every other support moves strictly inward. Exact normal cross/dot
+products prove the end-plane relation. Both reconstructed opening faces must
+survive and remain exactly coincident with their original planes after vertex
+conversion. Every converted cavity vertex must be strictly inside all unopened
+supports. Nonparallel or partial coplanar openings, collapsed cavities and
+unproved conversion fail without returning a partial solid.
+
+`ThroughHollowResult` embeds the existing hollow result and additionally reports
+caller-owned ideal exact material volume and the two opening-to-interior face
+IDs. Final material faces and edges retain the Boolean ancestry. Each support
+reconstruction, containment check and Boolean pass retains its separate budget.
+The output includes closed rim and cavity walls, rather than an open display
+mesh. Euclidean and dominant-support-coordinate thickness keep their existing
+explicit meanings; arbitrary curved shells remain outside this operation.
+
+Independent box and sheared-box tests verify volume, centroid, exact interior,
+opening ancestry, inward cavity orientation, genus-one topology and absence of
+mesh contacts. Invalid end pairs, partial coplanar selection, exhausted work,
+cancellation and collapsed cavities are rejected. An oblique cap regression
+rejects a rounded cavity seam displaced from its original plane by less than
+one ULP, even though that error is below the configured conversion tolerance.
