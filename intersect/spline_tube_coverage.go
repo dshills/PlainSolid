@@ -33,6 +33,8 @@ type SplineTubeCoverageOptions struct {
 // candidate tubes may overlap in their interiors, contain duplicate branch
 // segments, or be arranged in an ambiguous endpoint graph.
 type SplineTubeCoverageReport struct {
+	// TubeReuse reports successful local proof reuse; logical ExactOperations remain charged per candidate.
+	TubeReuse                      geom.SurfaceTubeCoverageCacheStats
 	Isolation                      geom.SurfaceSurfaceIsolation
 	Covered, Unresolved, Unchecked []int
 	// BoundaryCovered is a subset of Covered with leftover closed slabs
@@ -103,6 +105,10 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 		// when the two closed boxes share no positive-area rectangle.
 		return a.UMin <= b.UMax && b.UMin <= a.UMax && a.VMin <= b.VMax && b.VMin <= a.VMax
 	}
+	cache, e := geom.NewSurfacePairTubeCoverageCache(pa, pb, 0)
+	if e != nil {
+		return r, e
+	}
 	for i, c := range r.Isolation.Candidates {
 		if e := ctx.Err(); e != nil {
 			for j := i; j < len(r.Isolation.Candidates); j++ {
@@ -121,7 +127,8 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			}
 		}
 		candidate := geom.SurfacePairParameterBox{A: c.DomainA, B: c.DomainB}
-		p, e := geom.CertifySurfacePairCellInTubesContext(ctx, pa, pb, candidate, available, o.Cell)
+		p, e := cache.CertifyCell(ctx, candidate, available, o.Cell)
+		r.TubeReuse = cache.Stats()
 		if e != nil && !errors.Is(e, geom.ErrConvergence) {
 			for j := i; j < len(r.Isolation.Candidates); j++ {
 				r.Unchecked = append(r.Unchecked, j)

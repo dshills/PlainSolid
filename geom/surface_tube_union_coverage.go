@@ -39,6 +39,10 @@ func CertifySurfacePairCellInTubes(a, b *SurfacePatch, candidate SurfacePairPara
 // CertifySurfacePairCellInTubesContext checks for cancellation between bounded
 // exact proofs and preserves a covering of the unchecked contact in Pending.
 func CertifySurfacePairCellInTubesContext(ctx context.Context, a, b *SurfacePatch, candidate SurfacePairParameterBox, tubes []SurfacePairTubeRegion, o SurfaceTubeUnionCoverageOptions) (result SurfaceTubeUnionCoverage, err error) {
+	return certifySurfacePairCellInTubes(ctx, a, b, candidate, tubes, o, nil)
+}
+
+func certifySurfacePairCellInTubes(ctx context.Context, a, b *SurfacePatch, candidate SurfacePairParameterBox, tubes []SurfacePairTubeRegion, o SurfaceTubeUnionCoverageOptions, cache *SurfacePairTubeCoverageCache) (result SurfaceTubeUnionCoverage, err error) {
 	if ctx == nil || a == nil || b == nil || !candidate.A.Valid() || !candidate.B.Valid() {
 		return result, ErrInvalid
 	}
@@ -93,38 +97,52 @@ func CertifySurfacePairCellInTubesContext(ctx context.Context, a, b *SurfacePatc
 		if remaining < 1 {
 			return result, ErrConvergence
 		}
-		budget := &polynomialBudget{maxOperations: remaining, maxBits: o.MaxCoefficientBits}
-		pa, e := trimPatchBudget(a, tube.Box.A, budget)
-		if e != nil {
-			result.ExactOperations += budget.operations
-			return result, e
+
+		key := ""
+		if cache != nil {
+			key = tubeCoverageKey(tube, o.MaxCoefficientBits)
 		}
-		pb, e := trimPatchBudget(b, tube.Box.B, budget)
-		result.ExactOperations += budget.operations
-		if e != nil {
-			return result, e
-		}
-		remaining = o.MaxOperations - result.ExactOperations
-		if remaining < 1 {
-			return result, ErrConvergence
-		}
-		limits := SurfacePairTubeOptions{FreeAxis: tube.FreeAxis, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}
-		var certificate SurfaceTubeCertificate
-		if tube.Boundary == nil {
-			certificate, e = CertifySurfacePairTube(pa, pb, limits)
+		entry, hit := cache.lookup(key, remaining)
+		if hit {
+			result.ExactOperations += entry.work
+			result.Tubes = append(result.Tubes, entry.certificate)
 		} else {
-			anchor := *tube.Boundary
-			anchor.SurfacePairTubeOptions = limits
-			certificate, e = CertifyBoundaryAnchoredSurfacePairTube(ctx, pa, pb, anchor)
+			before := result.ExactOperations
+			budget := &polynomialBudget{maxOperations: remaining, maxBits: o.MaxCoefficientBits}
+			pa, e := trimPatchBudget(a, tube.Box.A, budget)
+			if e != nil {
+				result.ExactOperations += budget.operations
+				return result, e
+			}
+			pb, e := trimPatchBudget(b, tube.Box.B, budget)
+			result.ExactOperations += budget.operations
+			if e != nil {
+				return result, e
+			}
+			remaining = o.MaxOperations - result.ExactOperations
+			if remaining < 1 {
+				return result, ErrConvergence
+			}
+			limits := SurfacePairTubeOptions{FreeAxis: tube.FreeAxis, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}
+			var certificate SurfaceTubeCertificate
+			if tube.Boundary == nil {
+				certificate, e = CertifySurfacePairTube(pa, pb, limits)
+			} else {
+				anchor := *tube.Boundary
+				anchor.SurfacePairTubeOptions = limits
+				certificate, e = CertifyBoundaryAnchoredSurfacePairTube(ctx, pa, pb, anchor)
+			}
+			result.ExactOperations += certificate.Test.ExactOperations
+			result.Tubes = append(result.Tubes, certificate)
+			if e != nil {
+				return result, e
+			}
+			if !certificate.ProvenBranch {
+				return result, ErrConvergence
+			}
+			cache.remember(key, tubeCoverageEntry{certificate: certificate, work: result.ExactOperations - before})
 		}
-		result.ExactOperations += certificate.Test.ExactOperations
-		result.Tubes = append(result.Tubes, certificate)
-		if e != nil {
-			return result, e
-		}
-		if !certificate.ProvenBranch {
-			return result, ErrConvergence
-		}
+
 		next := []SurfacePairParameterBox{}
 		for _, piece := range pieces {
 			if e := ctx.Err(); e != nil {
