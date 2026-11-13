@@ -1,9 +1,13 @@
 package plaincadbridge
 
 import (
+	"bytes"
 	"math"
 	"os"
 	"testing"
+
+	"plainsolid/exchange/step"
+	"plainsolid/geom"
 )
 
 func TestSTEPPlanarAndCylinderNativeRoundTrip(t *testing.T) {
@@ -27,6 +31,48 @@ func TestSTEPPlanarAndCylinderNativeRoundTrip(t *testing.T) {
 	before := len(b.shapes)
 	if _, e := b.importSTEP("ISO-10303-21; malformed"); e == nil || len(b.shapes) != before {
 		t.Fatal("malformed import published")
+	}
+}
+
+func TestSTEPRetainsExactSplitCylinderAsNativeStock(t *testing.T) {
+	b := New()
+	f, err := geom.FrameFromNormal(geom.Vec3{X: 10, Y: 20, Z: 30}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := step.SplitCylinderDescriptor{Name: "Cylinder", Frame: f, LengthUnit: .001, Radius: 8, Height: 12}
+	for _, write := range []func(*bytes.Buffer, step.SplitCylinderDescriptor) error{
+		func(out *bytes.Buffer, source step.SplitCylinderDescriptor) error {
+			return step.WriteSplitCylinderModel(out, source)
+		},
+		func(out *bytes.Buffer, source step.SplitCylinderDescriptor) error {
+			return step.WriteSplitCylinderProduct(out, source)
+		},
+	} {
+		var out bytes.Buffer
+		if err := write(&out, d); err != nil {
+			t.Fatal(err)
+		}
+		imported, err := b.importSTEP(out.String())
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, imported.GeometryAssertions.Volume, 768*math.Pi)
+		for i, coordinate := range (vector{2, 12, 30}) {
+			near(t, imported.Bounds.Min[i], coordinate)
+		}
+		for i, coordinate := range (vector{18, 28, 42}) {
+			near(t, imported.Bounds.Max[i], coordinate)
+		}
+		tool := circle(t, b, vector{12, 20, 30}, vector{0, 0, 1}, 2, 6)
+		cut, err := b.cutMany(imported.Handle, []string{tool.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, cut.GeometryAssertions.Volume, 744*math.Pi)
+		if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

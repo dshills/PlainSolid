@@ -60,6 +60,20 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD split-cylinder STEP import from main — 2026-11-13
+
+The isolated integration worktree takes main's exact two-half cylinder
+coverage checks, signed placements, model and rooted product writers
+and independent rejection fixtures. The PlainCAD bridge retains the
+imported cylinder as native stock. The native check machines either
+admitted input dialect and re-exports its analytic boundary.
+
+Both [original STEP cases](evidence/plaincad-split-cylinder-browser-2026-11-13.json)
+pass. The [same-WASM browser case](evidence/plaincad-split-cylinder-native-2026-11-13.json)
+opens the signed posed fixture, preserves its exact source across
+project reopen, and exports verified analytic STEP and validated STL.
+Independent OCCT transfer checks, focused race checks and Go vet pass.
+
 ## PlainCAD full development acceptance on `50432ed` — 2026-11-13
 
 All [344 original development cases](evidence/plaincad-development-50432ed-2026-11-13.json)

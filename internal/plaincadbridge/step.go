@@ -190,11 +190,33 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		return b.putSTEPAnalytic(s, m.LengthUnit)
 	}
 
+	if m, err := step.ReadSplitCylinderModel(r(), stepLimits()); err == nil {
+		return b.putSTEPCylinder(m)
+	}
+	if m, err := step.ReadSplitCylinderProduct(r(), stepLimits()); err == nil {
+		return b.putSTEPCylinder(m.Model)
+	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
 		return b.putSTEPAnalytic(m.Bodies[0].Solid, m.LengthUnit)
 	}
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
+}
+
+func (b *Bridge) putSTEPCylinder(p step.SplitCylinderModel) (Shape, error) {
+	scale := p.LengthUnit / .001
+	if !finite(scale) || scale <= 0 {
+		return Shape{}, geom.ErrInvalid
+	}
+	f, err := geom.NewFrame(p.Frame.Origin().Scale(scale), p.Frame.XAxis(), p.Frame.ZAxis())
+	if err != nil {
+		return Shape{}, err
+	}
+	cylinder, err := newCylinder(f, p.Radius*scale, p.Height*scale)
+	if err != nil {
+		return Shape{}, err
+	}
+	return b.putCylinder(cylinder)
 }
 
 func scaleSTEPNotch(p step.SideNotchBody, scale float64) (step.SideNotchBody, error) {
