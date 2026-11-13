@@ -98,3 +98,19 @@ func TestFiniteTransverseBoundLineQuery(t *testing.T) {
 		t.Fatal("zero companion", r, e)
 	}
 }
+
+func TestFiniteTransverseFirstBoundaryQuery(t *testing.T) {
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Max: 8, Radius: 5}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -1}, Min: -12, Max: -8, Radius: 3}
+	s, e := NewFiniteTransverseCylinderSet(context.Background(), a, b, Union, 1e-8)
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := s.FirstBoundaryHit(context.Background(), geom.Vec3{X: 3, Z: 4}, geom.Vec3{Z: 2}, 5, geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+	if e != nil || !r.HasHit || r.Boundary != geom.RawCylinderSecondMin || len(r.Normals) != 1 || r.Tangent {
+		t.Fatal(r, e)
+	}
+	if r, e := (FiniteTransverseCylinderSet{}).FirstBoundaryHit(context.Background(), geom.Vec3{}, geom.Vec3{X: 1}, 1, geom.ToroidLineOptions{ParameterTolerance: 1e-9}); e == nil || r.HasHit {
+		t.Fatal("zero bound query", r, e)
+	}
+}
