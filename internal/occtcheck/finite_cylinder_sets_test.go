@@ -108,8 +108,8 @@ func TestOCCTFiniteEccentricCylinderShoulder(t *testing.T) {
 	refs := runOracle(t, "finite-eccentric-shoulder-union")
 	ctx := context.Background()
 	a := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 1, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 4, Min: 0, Max: 2}
-	for i, name := range []string{"finite-eccentric-shoulder-overlap", "finite-eccentric-shoulder-touch"} {
-		b := geom.RawCylinder{Origin: geom.Vec3{X: 3, Y: 1}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -1.5, Max: .5 - float64(i)}
+	for i, name := range []string{"finite-eccentric-shoulder-overlap", "finite-eccentric-shoulder-touch", "finite-eccentric-shoulder-both"} {
+		b := geom.RawCylinder{Origin: geom.Vec3{X: 3, Y: 1}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -1.5, Max: [3]float64{.5, -.5, 2.5}[i]}
 		r, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-9)
 		if err != nil || finiteOracleShellCount(r.Solid) != 1 {
 			t.Fatal(name, "expected one connected shell", err)

@@ -1187,6 +1187,10 @@ through a stock end, retaining the exposed annulus on the original cap plane.
 Both axial ends, operand orders, overlapping and exactly touching spans pass
 mass and closed-mesh tests. The native recipe rechecks original cap ancestry,
 and independent OCCT overlap and touching fuses agree on one shell and mass.
+When the eccentric boss projects past both stock caps, both annular shoulders
+retain their source cap ownership and the internal narrow wall is discarded.
+The two-end fixture passes closed-mesh and independent OCCT mass checks. The
+single-end native recipe keeps its existing face ordering.
 Equal-cap parallel transverse sets compare signed cylinder placement, native
 recipe reload, original cap ancestry, and area, volume, and centroid against
 OCCT. Near tangencies and differing caps remain outside this path.
