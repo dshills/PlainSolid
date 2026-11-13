@@ -104,7 +104,11 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		return empty, e
 	}
 	if a.Radius != b.Radius {
-		return empty, e
+		ua, _ := coordinateCylinderAxis(a.Axis)
+		ub, _ := coordinateCylinderAxis(b.Axis)
+		if ua == (geom.Vec3{}) || ub == (geom.Vec3{}) || ua.Dot(ub) != 0 {
+			return empty, e
+		}
 	}
 	return finitePerpendicularCapCommon(ctx, a, b, center, exactWindows, tolerance)
 }
@@ -371,13 +375,14 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 			return empty, geom.ErrDomain
 		}
 		basis[i] = unit
+		limit := [2]float64{b.Radius, a.Radius}[i]
 		for j, cap := range exactEnds[i] {
 			q := new(big.Rat).Mul(new(big.Rat).SetFloat64(scale), cap)
 			length, e := geom.RepresentedExactScalar(q)
 			if e != nil {
 				return empty, e
 			}
-			if math.Abs(length) < a.Radius {
+			if math.Abs(length) < limit {
 				// Interior caps own planar boundary; preserve their model
 				// coordinate exactly through the signed placement as well.
 				component := center.Dot(unit)
@@ -392,10 +397,16 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 	if x.Dot(z) != 0 {
 		return empty, geom.ErrDomain
 	}
-	if x == (geom.Vec3{X: 1}) && z == (geom.Vec3{Z: 1}) {
-		return finiteCanonicalPerpendicularCapCommon(ctx, center, a.Radius, ends, tolerance)
+	build := func(origin geom.Vec3) (FiniteCylinderPairCommonResult, error) {
+		if a.Radius != b.Radius {
+			return finiteSteinmetzRadiusWindows(ctx, origin, [2]float64{b.Radius, a.Radius}, ends, tolerance, CylinderCommonPerpendicularCapWindows)
+		}
+		return finiteCanonicalPerpendicularCapCommon(ctx, origin, a.Radius, ends, tolerance)
 	}
-	out, e := finiteCanonicalPerpendicularCapCommon(ctx, geom.Vec3{}, a.Radius, ends, tolerance)
+	if x == (geom.Vec3{X: 1}) && z == (geom.Vec3{Z: 1}) {
+		return build(center)
+	}
+	out, e := build(geom.Vec3{})
 	if e != nil || out.Construction == CylinderCommonEmpty {
 		return out, e
 	}

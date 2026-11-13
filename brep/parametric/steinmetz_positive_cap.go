@@ -52,43 +52,9 @@ func buildPositiveSteinmetzCap(ctx context.Context, center geom.Vec3, radius, ca
 	fail := func(e error) (SteinmetzPositiveCap, error) { return SteinmetzPositiveCap{}, e }
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
-	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance))
-	if q(cap).Cmp(pad) <= 0 || alo.Cmp(pad) <= 0 || new(big.Rat).Sub(q(radius), q(cap)).Cmp(pad) <= 0 {
-		return fail(geom.ErrDomain)
-	}
-	angle := math.Atan2(a, cap)
-	if !finite(angle) || angle <= 0 || angle >= math.Pi/2 {
-		return fail(geom.ErrConvergence)
-	}
-	// Degree48 Taylor, with |angle|^49/49! Lagrange remainder for sin/cos.
-	sine, cosine, term := new(big.Rat), new(big.Rat), big.NewRat(1, 1)
-	for k := 0; k <= 48; k++ {
-		if e := ctx.Err(); e != nil {
-			return fail(e)
-		}
-		switch k % 4 {
-		case 0:
-			cosine.Add(cosine, term)
-		case 1:
-			sine.Add(sine, term)
-		case 2:
-			cosine.Sub(cosine, term)
-		case 3:
-			sine.Sub(sine, term)
-		}
-		term.Quo(new(big.Rat).Mul(term, q(angle)), big.NewRat(int64(k+1), 1))
-	}
-	remainder := new(big.Rat).Mul(q(radius), new(big.Rat).Abs(term))
-	errC := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), cosine), q(cap))), remainder)
-	errA := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), alo))
-	far := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), ahi))
-	if far.Cmp(errA) > 0 {
-		errA = far
-	}
-	errA.Add(errA, remainder)
-	bound := new(big.Rat).Add(sq(errC), sq(errA))
-	if bound.Cmp(new(big.Rat).Quo(sq(q(tolerance)), big.NewRat(16, 1))) > 0 {
-		return fail(geom.ErrConvergence)
+	angle, errC, errA, bound, e := steinmetzSplitAngle(ctx, radius, cap, tolerance, a, alo, ahi)
+	if e != nil {
+		return fail(e)
 	}
 	capX, e := geom.RepresentedExactScalar(new(big.Rat).Add(q(center.X), q(cap)))
 	if e != nil {
@@ -140,6 +106,52 @@ func buildPositiveSteinmetzCap(ctx context.Context, center geom.Vec3, radius, ca
 	volumeError := mul(big.NewRat(4, 1), mul(q(radius), mul(q(cap), new(big.Rat).Add(errC, errA))))
 	volumeBounds := [2]*big.Rat{new(big.Rat).Sub(volumeAt(ahi), volumeError), new(big.Rat).Add(volumeAt(alo), volumeError)}
 	return SteinmetzPositiveCap{Solid: solid, Cap: cap, SeamOrdinate: a, SplitAngle: angle, XAxisFaces: xx, ZAxisFaces: zx, CapFace: capID, SeamSquaredBound: bound, IdealVolumeBounds: volumeBounds}, nil
+}
+
+// steinmetzSplitAngle certifies a represented angular split against its exact
+// positive cap distance and enclosed ideal transverse ordinate.
+func steinmetzSplitAngle(ctx context.Context, radius, cap, tolerance, a float64, alo, ahi *big.Rat) (float64, *big.Rat, *big.Rat, *big.Rat, error) {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance))
+	if q(cap).Cmp(pad) <= 0 || alo.Cmp(pad) <= 0 || new(big.Rat).Sub(q(radius), q(cap)).Cmp(pad) <= 0 {
+		return 0, nil, nil, nil, geom.ErrDomain
+	}
+	angle := math.Atan2(a, cap)
+	if !finite(angle) || angle <= 0 || angle >= math.Pi/2 {
+		return 0, nil, nil, nil, geom.ErrConvergence
+	}
+	// Degree48 Taylor, with |angle|^49/49! Lagrange remainder for sin/cos.
+	sine, cosine, term := new(big.Rat), new(big.Rat), big.NewRat(1, 1)
+	for k := 0; k <= 48; k++ {
+		if e := ctx.Err(); e != nil {
+			return 0, nil, nil, nil, e
+		}
+		switch k % 4 {
+		case 0:
+			cosine.Add(cosine, term)
+		case 1:
+			sine.Add(sine, term)
+		case 2:
+			cosine.Sub(cosine, term)
+		case 3:
+			sine.Sub(sine, term)
+		}
+		term.Quo(new(big.Rat).Mul(term, q(angle)), big.NewRat(int64(k+1), 1))
+	}
+	remainder := new(big.Rat).Mul(q(radius), new(big.Rat).Abs(term))
+	errC := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), cosine), q(cap))), remainder)
+	errA := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), alo))
+	far := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), ahi))
+	if far.Cmp(errA) > 0 {
+		errA = far
+	}
+	errA.Add(errA, remainder)
+	bound := new(big.Rat).Add(sq(errC), sq(errA))
+	if bound.Cmp(new(big.Rat).Quo(sq(q(tolerance)), big.NewRat(16, 1))) > 0 {
+		return 0, nil, nil, nil, geom.ErrConvergence
+	}
+	return angle, errC, errA, bound, nil
 }
 
 // Actual X-axis cylindrical support with a nonconstant axial interval.
