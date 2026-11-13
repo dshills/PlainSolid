@@ -13,6 +13,14 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Current PlainCAD revision
+
+Focused original checks on PlainCAD `e65f07b` cover studio Render and
+cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
+native STEP round-trip, and retained pocket and Hole lineage. See the
+[verification record](VERIFICATION.md) for individual runs and outstanding
+release qualification.
+
 ## Selected production acceptance — 2026-11-13
 
 The [production report](evidence/plaincad-production-2026-11-13.json)
