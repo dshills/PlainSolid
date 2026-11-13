@@ -39,6 +39,10 @@ the full run in 56.2 seconds. The original production configuration,
 assertions and deadlines are preserved. The build passes the JavaScript
 bundle budget across 72 bundles, with a largest bundle of 496.82 kB.
 
+The [production rerun after arc-region support](evidence/plaincad-current-production-arc-build-2026-11-13.json)
+also passes all 66 originals in 417.857 seconds. It uses the same analytic arc
+support as the full current development run.
+
 ## PlainCAD isolated production performance — 2026-11-13
 
 The [production benchmark comparison](evidence/plaincad-production-performance-isolated-2026-11-13.json)
