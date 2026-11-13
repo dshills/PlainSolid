@@ -28,7 +28,7 @@ type cylinderSetEnvelope struct {
 	ContactNodes                                   *[2]cylinderContactRecipe
 }
 
-func cylinderSetPayload(ctx context.Context, r CylinderPairCommonRecipe, difference bool) (env cylinderSetEnvelope, u parametric.ObliqueEqualCylinderUnionResult, d parametric.FiniteCylinderPairDifferenceResult, err error) {
+func cylinderSetPayload(ctx context.Context, r CylinderPairCommonRecipe, difference bool) (env cylinderSetEnvelope, u parametric.FiniteCylinderPairUnionResult, d parametric.FiniteCylinderPairDifferenceResult, err error) {
 	if ctx == nil || !utf8.ValidString(r.Name) || len(r.Name) > 4096 || r.LengthUnit <= 0 || math.IsNaN(r.LengthUnit) || math.IsInf(r.LengthUnit, 0) {
 		err = geom.ErrDomain
 		return
@@ -102,12 +102,12 @@ func writeCylinderSet(ctx context.Context, w io.Writer, r CylinderPairCommonReci
 	}
 	return e
 }
-func readCylinderSet(ctx context.Context, r io.Reader, maxBytes int64, difference bool) (recipe CylinderPairCommonRecipe, u parametric.ObliqueEqualCylinderUnionResult, d parametric.FiniteCylinderPairDifferenceResult, err error) {
-	fail := func(e error) (CylinderPairCommonRecipe, parametric.ObliqueEqualCylinderUnionResult, parametric.FiniteCylinderPairDifferenceResult, error) {
+func readCylinderSet(ctx context.Context, r io.Reader, maxBytes int64, difference bool) (recipe CylinderPairCommonRecipe, u parametric.FiniteCylinderPairUnionResult, d parametric.FiniteCylinderPairDifferenceResult, err error) {
+	fail := func(e error) (CylinderPairCommonRecipe, parametric.FiniteCylinderPairUnionResult, parametric.FiniteCylinderPairDifferenceResult, error) {
 		if e == nil {
 			e = geom.ErrDomain
 		}
-		return CylinderPairCommonRecipe{}, parametric.ObliqueEqualCylinderUnionResult{}, parametric.FiniteCylinderPairDifferenceResult{}, e
+		return CylinderPairCommonRecipe{}, parametric.FiniteCylinderPairUnionResult{}, parametric.FiniteCylinderPairDifferenceResult{}, e
 	}
 	if ctx == nil || r == nil || maxBytes < 0 || maxBytes > 16<<20 {
 		return fail(nil)
@@ -166,7 +166,7 @@ func WriteCylinderPairUnionRecipeJSON(ctx context.Context, w io.Writer, r Cylind
 // ReadCylinderPairUnionRecipeJSON rebuilds and compares the entire canonical
 // envelope. Limits default to 1 MiB, maximum 16 MiB. No external authenticity or
 // general Boolean/import capability is implied.
-func ReadCylinderPairUnionRecipeJSON(ctx context.Context, r io.Reader, maxBytes int64) (CylinderPairCommonRecipe, parametric.ObliqueEqualCylinderUnionResult, error) {
+func ReadCylinderPairUnionRecipeJSON(ctx context.Context, r io.Reader, maxBytes int64) (CylinderPairCommonRecipe, parametric.FiniteCylinderPairUnionResult, error) {
 	v, u, _, e := readCylinderSet(ctx, r, maxBytes, false)
 	return v, u, e
 }
