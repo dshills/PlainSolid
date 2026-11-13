@@ -6,8 +6,8 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-The current production run passes all 66 originals on PlainCAD `e65f07b`,
-with zero skips or flakes. It covers the fabrication package, Cable guide
+The production rerun on PlainSolid `0b17938` passes all 66 originals on
+PlainCAD `e65f07b`, with zero skips or flakes. It covers the fabrication package, Cable guide
 live preview, Acme and UNC galleries, and the controlled benchmark. The
 isolated original production performance case passes in 29.5 seconds
 with all 25 edits and 11 STL downloads validated. The compact bore mesh
@@ -30,7 +30,8 @@ tests after the display worker reuses accepted native features. The three
 original signed profile-edge cases also pass on XY, XZ and YZ. Focused
 real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
-STEP round-trip of machined stock. The current studio cancellation and ORBIT
+STEP round-trip of machined stock, including independently authored rounded
+stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
 The full current development run is in progress. The original unit run
 with real WASM initialized passes 1,646 of 1,689 cases. The remaining

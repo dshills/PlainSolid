@@ -19,6 +19,10 @@ type roundedStock struct {
 	pedestal *pedestalStock
 }
 
+func (p *roundedStock) isPlainExtrusion() bool {
+	return p.fillet == 0 && p.chamfer == 0 && p.stack == nil && !p.cut && p.pedestal == nil
+}
+
 func (b *Bridge) filletRoundedStock(s stored, q request) (Shape, error) {
 	p := *s.analytic.rounded
 	if p.cut || p.pedestal != nil || p.stack != nil || p.chamfer != 0 || p.fillet != 0 || p.height <= 0 || q.Normal == nil || q.Origin == nil || q.Radius <= 0 || len(q.Edges) != 0 ||

@@ -12,6 +12,7 @@ import (
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/csg/fillet"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
@@ -81,6 +82,38 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(solid, m.LengthUnit)
 	}
+	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
+		func() (step.RoundedRectangleExtrusionModel, error) {
+			return step.ReadRoundedRectangleExtrusions(r(), stepLimits())
+		},
+		func() (step.RoundedRectangleExtrusionModel, error) {
+			return step.ReadAnalyticRoundedPocketExtrusions(r(), stepLimits())
+		},
+	}
+	for _, read := range roundedReaders {
+		if m, e := read(); e == nil && len(m.Bodies) == 1 {
+			p := m.Bodies[0]
+			s, e := trimmed.ExtrudeRoundedRectangle(context.Background(), p.Frame, p.Profile, p.Holes, p.Blind, p.Height)
+			if e != nil {
+				return Shape{}, e
+			}
+			if m.LengthUnit != .001 {
+				return b.putSTEPAnalytic(s, m.LengthUnit)
+			}
+			properties, err := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+			if err != nil {
+				return Shape{}, err
+			}
+			return b.putAnalyticBody(&analyticBody{solid: s, volume: properties.Volume, area: properties.Area, stepRounded: &p})
+		}
+	}
+	if m, e := step.ReadLongEdgeChains(r(), stepLimits()); e == nil && len(m.Bodies) == 1 {
+		p := m.Bodies[0]
+		return b.putLongEdgeSTEP(p.LongEdgeTreatmentBody, &p.Bore, &p.Pocket, &p.Boss, m.LengthUnit)
+	}
+	if m, e := step.ReadLongEdgeTreatments(r(), stepLimits()); e == nil && len(m.Bodies) == 1 {
+		return b.putLongEdgeSTEP(m.Bodies[0], nil, nil, nil, m.LengthUnit)
+	}
 	if m, e := step.ReadCapsuleExtrusions(r(), stepLimits()); e == nil && len(m.Bodies) == 1 {
 		p := m.Bodies[0]
 		var s trimmed.Solid
@@ -143,6 +176,13 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		if e == nil {
 			e = step.WriteCircularHoleExtrusions(&out, step.CircularHoleExtrusionModel{LengthUnit: .001, Bodies: []step.CircularHoleExtrusionBody{p}})
 		}
+	case s.treated != nil:
+		e = writeLongEdgeSTEP(&out, s.treated)
+	case s.analytic != nil && s.analytic.stepRounded != nil:
+		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
+	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():
+		p := s.analytic.rounded
+		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{{Name: "PlainSolid", Frame: p.frame, Profile: p.profile, Height: p.height}}})
 	case s.analytic != nil && s.analytic.pockets != nil:
 		p := s.analytic.pockets
 		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
@@ -314,4 +354,41 @@ func (b *Bridge) putSTEPCircularRecipe(p step.CircularHoleExtrusionBody) (Shape,
 		return Shape{}, e
 	}
 	return b.putBore(body)
+}
+
+// Only the origin-anchored two-corner recipes verified by the native reader
+// are admitted to this writer. Grouped treatments can have other topology.
+func writeLongEdgeSTEP(out *bytes.Buffer, body *edgeBody) error {
+	c := body.corners
+	if body.frame.Origin() != (geom.Vec3{}) || body.frame.XAxis() != (geom.Vec3{X: 1}) || body.frame.ZAxis() != (geom.Vec3{Z: 1}) ||
+		c[0] != (fillet.LongEdgeCorner{}) || c[1] != (fillet.LongEdgeCorner{}) || c[2].Radius != 0 ||
+		c[2].YSetback <= 0 || c[2].ZSetback <= 0 || c[3].Radius <= 0 || c[3].YSetback != 0 || c[3].ZSetback != 0 {
+		return unsupportedEdge("STEP long-edge export requires the canonical opposite-edge treatment and placement")
+	}
+	p := step.LongEdgeTreatmentBody{Name: "PlainSolid", Length: body.length, Width: body.width, Height: body.height,
+		Radius: c[3].Radius, TopSetback: c[2].YSetback, SideSetback: c[2].ZSetback}
+	if body.bore == nil && body.pocket == nil && body.boss == nil {
+		return step.WriteLongEdgeTreatments(out, step.LongEdgeTreatmentModel{LengthUnit: .001, Bodies: []step.LongEdgeTreatmentBody{p}})
+	}
+	if body.bore == nil || body.pocket == nil || body.boss == nil {
+		return unsupportedEdge("STEP long-edge export requires the complete bore, through pocket and boss chain")
+	}
+	chain := step.LongEdgeChainBody{LongEdgeTreatmentBody: p, Bore: *body.bore, Pocket: *body.pocket, Boss: *body.boss}
+	return step.WriteLongEdgeChains(out, step.LongEdgeChainModel{LengthUnit: .001, Bodies: []step.LongEdgeChainBody{chain}})
+}
+
+func (b *Bridge) putLongEdgeSTEP(p step.LongEdgeTreatmentBody, bore *trimmed.ExtrusionCircle, pocket *trimmed.ExtrusionRectangle, boss *trimmed.ExtrusionBoss, unit float64) (Shape, error) {
+	frame, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		return Shape{}, err
+	}
+	body, err := rebuildEdge(edgeBody{frame: frame, length: p.Length, width: p.Width, height: p.Height, bore: bore, pocket: pocket, boss: boss,
+		corners: [4]fillet.LongEdgeCorner{2: {YSetback: p.TopSetback, ZSetback: p.SideSetback}, 3: {Radius: p.Radius}}})
+	if err != nil {
+		return Shape{}, err
+	}
+	if unit != .001 {
+		return b.putSTEPAnalytic(body.chain.Solid, unit)
+	}
+	return b.putEdge(body)
 }
