@@ -1972,3 +1972,16 @@ starting cap. This bounded adapter supports one body and preserves its name and
 units. Negative quarter, reflex and full turns have live OCCT mass qualification;
 an independently generated OCCT elbow also verifies restoration of a negative
 construction description without inferring history from the source.
+
+`WriteLongEdgeTreatments` and `WriteLongEdgeChains` export the native horizontal
+long-cap fillet/chamfer stock and its supported Z-through circular bore,
+rectangular through pocket and upper rectangular boss chain. The constructors
+revalidate the recipe, then the writer retains their actual vertices, shared
+edges, face loops and hole ownership. Plane/cylinder supports and line/circle
+model curves have explicit owner pcurves; clockwise bore curves retain their
+`EDGE_CURVE.same_sense` flag. The adapter accepts one origin-anchored recipe,
+not arbitrary supplied solids or general affine placements. It does not add a
+generic import claim. Independent OCCT line/arc-profile extrusion followed by
+cylinder/box cuts and boss fusion matches validity, area, volume and centroid;
+unequal chamfer setbacks are also qualified. Invalid dimensions, feature
+placement, names and units fail before output.
