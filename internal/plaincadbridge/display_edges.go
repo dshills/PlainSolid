@@ -25,6 +25,14 @@ func nativeDisplayEdges(s stored, maxSegments int, remaining *int) (displayEdges
 	if maxSegments < 0 || maxSegments > 60000 || remaining != nil && (*remaining < 0 || *remaining > 40000) {
 		return out, errors.New("invalid native display budget")
 	}
+	if s.tangent != nil {
+		maxUses := 12000
+		if remaining != nil && *remaining < maxUses {
+			maxUses = *remaining
+		}
+		r, e := s.tangent.displayEdges(maxUses, maxSegments)
+		return displayEdges{Positions: r.Segments, EdgeUses: r.EdgeUses}, e
+	}
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	var uses [][]displayUse

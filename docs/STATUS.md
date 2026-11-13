@@ -34,10 +34,14 @@ STEP round-trip of machined stock. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
 The full current development run is in progress. The original unit run
 with real WASM initialized passes 1,646 of 1,689 cases. The remaining
-failures include uninitialized fallback expectations, OCCT-private test
-bindings. Focused original tests verify six repairs. The remaining
-portable gap is an exactly tangent blind Hole, whose cylindrical wall
-touches the stock side along a generator. Cross-browser qualification passes the keyboard face-card and dimension dialog case on
+failures include uninitialized fallback expectations and OCCT-private test
+bindings. All ten private tests pass on pristine OCCT. The 26 fallback
+fixtures pass 25 on the OCCT control and five with PlainSolid deliberately
+uninitialized. Focused original tests now pass all seven portable failures,
+including an exact side-tangent blind Hole. This Hole is retained for
+modeling and display as a regularized difference. Fabrication and STEP
+validation reject its four-face contact. Cross-browser qualification passes
+the keyboard face-card and dimension dialog case on
 all three engines. Four other cases per engine stop at current application
 controls. The same four failures reproduce on the pristine Chromium OCCT
 control.

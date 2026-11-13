@@ -12,10 +12,10 @@ func TestExactBlindBoreTopologyDiagnostic(t *testing.T) {
 	for _, x := range []float64{1, math.Nextafter(1, 0), math.Nextafter(1, 2)} {
 		b := New()
 		stock := box(t, b, vector{0, 0, 0}, vector{20, 10, 10})
-		tool := circle(t, b, vector{x, 5, 10}, vector{0, 0, -1}, 1, 3)
+		tool := circle(t, b, vector{x, x, 10}, vector{0, 0, -1}, 1, 3)
 		base := b.shapes[stock.Handle].solid
 		before := len(b.shapes)
-		_, e := b.execute(request{Op: "cut", A: stock.Handle, B: tool.Handle})
+		_, e := newBore(base, []*cylinderBody{b.shapes[tool.Handle].cylinder})
 		var contact *NonManifoldBoreContactError
 		if x != 1 {
 			if errors.As(e, &contact) {
@@ -30,7 +30,7 @@ func TestExactBlindBoreTopologyDiagnostic(t *testing.T) {
 		if !errors.As(e, &failure) || failure.code != "UNSUPPORTED" {
 			t.Fatal(e)
 		}
-		if len(b.shapes) != before || contact.ToolIndex != 0 || len(contact.SideFaces) != 1 {
+		if len(b.shapes) != before || contact.ToolIndex != 0 || len(contact.SideFaces) != 2 {
 			t.Fatal("publication or ancestry")
 		}
 		entry, _ := base.FacePlane(contact.EntryFace)

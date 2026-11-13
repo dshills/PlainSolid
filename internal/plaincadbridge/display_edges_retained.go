@@ -17,6 +17,9 @@ func (s stored) displayEdges(maxUses, maxSegments int) (displayEdgeResult, error
 	if maxUses < 1 || maxUses > 12000 || maxSegments < 1 || maxSegments > 24000 {
 		return displayEdgeResult{}, geom.ErrInvalid
 	}
+	if s.tangent != nil {
+		return s.tangent.displayEdges(maxUses, maxSegments)
+	}
 	if s.planar() {
 		return planarDisplayEdges(s.solid, maxUses, maxSegments)
 	}

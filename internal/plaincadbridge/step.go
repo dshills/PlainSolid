@@ -132,6 +132,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	switch {
 	case isPlanar:
 		e = step.Write(&out, step.Model{LengthUnit: .001, Bodies: []step.Body{{Name: "PlainSolid", Solid: planar}}})
+	case s.tangent != nil:
+		return nil, unsupportedEdge("STEP export requires a manifold boundary. The side-tangent blind bore has a non-manifold contact edge.")
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})

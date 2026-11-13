@@ -1,5 +1,26 @@
 # Verification record
 
+## PlainCAD exact side-tangent blind Hole — 2026-11-13
+
+The [focused retest](evidence/plaincad-tangent-contact-2026-11-13.json)
+passes all seven portable failures from the full original unit baseline
+and both neighboring outward through-all cases with real Go WASM. The
+original guided Hole test accepts the exact one-millimetre and
+one-tenth-millimetre contacts. Native checks cover both tool axis signs,
+measure-only overlap, exact area and volume, planar floor reference,
+edge display, rigid reflection, and rejection of through and off-contact
+tools from this domain.
+
+The [pristine OCCT contact probe](evidence/plaincad-occt-tangent-contact-2026-11-13.json)
+finds four incident triangles on one welded contact edge. PlainCAD's
+fabrication validation rejects that mesh. The PlainSolid model retains the
+same exact contact as a regularized material boundary and displays it
+with one balanced four-use edge. Every other display edge has two
+opposite uses. Native STL and STEP export reject the boundary. An additional
+real-WASM probe confirms that PlainCAD's STL fabrication API rejects it
+with both topology-only and full validation. The native bridge short
+suite passes in 152.081 seconds.
+
 ## PlainCAD current real-WASM unit baseline — 2026-11-13
 
 The [classified unit report](evidence/plaincad-current-unit-baseline-2026-11-13.json)
@@ -18,6 +39,16 @@ and stock side touch along a generator, where the boundary has four local
 surface branches. PlainSolid currently rejects this operation under its
 closed manifold boundary contract. The staged test sources and authored
 hole dimensions were preserved.
+
+The [fixture controls](evidence/plaincad-unit-fixture-controls-2026-11-13.json)
+run the ten OCCT-private cases against pristine OCCT, where all pass.
+Among 26 fallback-dependent originals, pristine OCCT with the original
+initialization mode passes 25 and fails one at missing extrusion draft
+setup. PlainSolid with the global WASM initializer omitted passes five
+and fails 21. The replacement adapter requires an initialized WASM
+kernel for modeling. The fallback cases exercise the application
+provider's pre-initialization behavior and still need provider-neutral
+fixture setup for a replacement-only unit gate.
 
 ## PlainCAD cross-browser acceptance and OCCT control — 2026-11-13
 
