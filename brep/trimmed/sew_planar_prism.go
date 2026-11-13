@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"plainsolid/brep/parametric"
-	"plainsolid/geom"
 	"reflect"
 	"sort"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
 )
 
 // SewPlanarThroughPrism subtracts a convex analytic prism whose two caps exactly
@@ -80,6 +81,13 @@ func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, sto
 	// The complete tool footprint and caps are bounded by this box in the
 	// common sketch frame; support-separation proofs below use all eight corners.
 	rawMin, rawMax := toolMin, toolMax
+	var disk *prismDisk
+	if circle, ok := prismWholeCircle(caps[2].Outer); ok {
+		center := frames[2].ToWorld(geom.Vec3{X: circle.Center.X, Y: circle.Center.Y})
+		if p, err := prismExactLocal(frames[2], center); err == nil && p == (geom.Vec3{X: circle.Center.X, Y: circle.Center.Y}) {
+			disk = &prismDisk{center: center, axis: frames[2].ZAxis(), radius: circle.Cos.X}
+		}
+	}
 	toolMin.X = math.Nextafter(toolMin.X+offsets[2].X, math.Inf(-1))
 	toolMin.Y = math.Nextafter(toolMin.Y+offsets[2].Y, math.Inf(-1))
 	toolMax.X = math.Nextafter(toolMax.X+offsets[2].X, math.Inf(1))
@@ -87,7 +95,7 @@ func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, sto
 	for i := 0; i < 2; i++ {
 		lo := geom.Vec2{X: math.Nextafter(toolMin.X-offsets[i].X, math.Inf(-1)), Y: math.Nextafter(toolMin.Y-offsets[i].Y, math.Inf(-1))}
 		hi := geom.Vec2{X: math.Nextafter(toolMax.X-offsets[i].X, math.Inf(1)), Y: math.Nextafter(toolMax.Y-offsets[i].Y, math.Inf(1))}
-		if e := prismCapContains(caps[i], lo, hi, pad); e != nil {
+		if e := prismCapContains(caps[i], lo, hi, disk.inFrame(frames[i]), pad); e != nil {
 			return Solid{}, fmt.Errorf("through prism cap %d: %w", i, e)
 		}
 	}
@@ -119,7 +127,7 @@ func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, sto
 		if e := ctx.Err(); e != nil {
 			return Solid{}, e
 		}
-		if !prismMissesFace(f, world, worldBox, pad) {
+		if !prismMissesFace(f, world, worldBox, disk, pad) {
 			return Solid{}, fmt.Errorf("through prism stock face %d (%T): %w", i, f.Surface, geom.ErrDomain)
 		}
 	}
@@ -173,7 +181,7 @@ func SewPlanarThroughPrism(ctx context.Context, stock, tool Solid, stockLow, sto
 	for k, id := range []int{stockLow, stockHigh} {
 		lo := geom.Vec2{X: math.Nextafter(toolMin.X-offsets[k].X, math.Inf(-1)), Y: math.Nextafter(toolMin.Y-offsets[k].Y, math.Inf(-1))}
 		hi := geom.Vec2{X: math.Nextafter(toolMax.X-offsets[k].X, math.Inf(1)), Y: math.Nextafter(toolMax.Y-offsets[k].Y, math.Inf(1))}
-		stock, e = prismRefineCapSeed(ctx, stock, id, lo, hi, pad)
+		stock, e = prismRefineCapSeed(ctx, stock, id, lo, hi, disk.inFrame(frames[k]), pad)
 		if e != nil {
 			return Solid{}, e
 		}
@@ -252,6 +260,10 @@ func prismCircleCurve(c PCurve) (EllipseUV, bool) {
 		return v, true
 	case anchoredCircularUV:
 		return v.EllipseUV, true
+	case reverseTrim:
+		c, ok := prismCircleCurve(v.differentiableTrim)
+		c.From, c.To = c.To, c.From
+		return c, ok
 	case subTrim:
 		c, ok := prismCircleCurve(v.base)
 		if !ok {
@@ -298,20 +310,23 @@ func prismWireBounds(w []Use) (geom.Vec2, geom.Vec2, error) {
 	}
 	return lo, hi, nil
 }
-func prismCapContains(f Face, lo, hi geom.Vec2, pad float64) error {
+func prismCapContains(f Face, lo, hi geom.Vec2, disk *prismCircle, pad float64) error {
 	if e := prismConvexWire(f.Outer); e != nil {
 		return e
 	}
 	corners := []geom.Vec2{{X: lo.X - pad, Y: lo.Y - pad}, {X: hi.X + pad, Y: lo.Y - pad}, {X: hi.X + pad, Y: hi.Y + pad}, {X: lo.X - pad, Y: hi.Y + pad}}
 	first, circle := prismWholeCircle(f.Outer)
 	if circle {
-		r2 := new(big.Rat).Mul(ratInset(first.Cos.X), ratInset(first.Cos.X))
-		for _, p := range corners {
-			dx := new(big.Rat).Sub(ratInset(p.X), ratInset(first.Center.X))
-			dy := new(big.Rat).Sub(ratInset(p.Y), ratInset(first.Center.Y))
-			d2 := new(big.Rat).Add(new(big.Rat).Mul(dx, dx), new(big.Rat).Mul(dy, dy))
-			if d2.Cmp(r2) >= 0 {
+		if disk != nil {
+			if !disk.inside(first.Center, ratInset(first.Cos.X), pad) {
 				return geom.ErrDomain
+			}
+		} else {
+			r2 := new(big.Rat).Mul(ratInset(first.Cos.X), ratInset(first.Cos.X))
+			for _, p := range corners {
+				if prismDistanceSquared(p, first.Center).Cmp(r2) >= 0 {
+					return geom.ErrDomain
+				}
 			}
 		}
 	} else {
@@ -325,6 +340,12 @@ func prismCapContains(f Face, lo, hi geom.Vec2, pad float64) error {
 		}
 	}
 	for _, hole := range f.Holes {
+		if disk != nil {
+			circle, ok := prismWholeCircle(hole)
+			if ok && disk.outside(circle.Center, ratInset(circle.Cos.X), pad) {
+				continue
+			}
+		}
 		a, b, e := prismWireBounds(hole)
 		if e != nil {
 			return e
@@ -340,6 +361,20 @@ func prismShiftWire(w []Use, d geom.Vec2, offset int) ([]Use, error) {
 	for i, u := range out {
 		u.Edge += offset
 		var e error
+		if c, ok := u.Curve.(anchoredCircularUV); ok {
+			c.Center, e = prismExactAdd(c.Center, d)
+			if e != nil {
+				return nil, e
+			}
+			// Keep the exact analytic center and radius. The cardinal UV
+			// representatives use the same rounded sums as the model edge.
+			c.Start = geom.Vec2{X: c.Start.X + d.X, Y: c.Start.Y + d.Y}
+			c.End = geom.Vec2{X: c.End.X + d.X, Y: c.End.Y + d.Y}
+			u.UVStart, u.UVEnd = c.Start, c.End
+			u.Curve = c
+			out[i] = u
+			continue
+		}
 		u.UVStart, e = prismExactAdd(u.UVStart, d)
 		if e != nil {
 			return nil, e
@@ -356,20 +391,6 @@ func prismShiftWire(w []Use, d geom.Vec2, offset int) ([]Use, error) {
 					return nil, e
 				}
 				u.Curve = c
-			case anchoredCircularUV:
-				c.Center, e = prismExactAdd(c.Center, d)
-				if e != nil {
-					return nil, e
-				}
-				c.Start, e = prismExactAdd(c.Start, d)
-				if e != nil {
-					return nil, e
-				}
-				c.End, e = prismExactAdd(c.End, d)
-				if e != nil {
-					return nil, e
-				}
-				u.Curve = c
 			default:
 				return nil, geom.ErrDomain
 			}
@@ -378,7 +399,7 @@ func prismShiftWire(w []Use, d geom.Vec2, offset int) ([]Use, error) {
 	}
 	return out, nil
 }
-func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, pad float64) bool {
+func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, disk *prismDisk, pad float64) bool {
 	d, e := faceUVBounds(f)
 	if e != nil {
 		return false
@@ -398,7 +419,20 @@ func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, pad float64) b
 			positive = positive && value.Cmp(ratInset(pad)) > 0
 			negative = negative && value.Cmp(ratInset(-pad)) < 0
 		}
-		return positive || negative
+		if positive || negative {
+			return true
+		}
+		if profile := disk.inFrame(p.Frame()); profile != nil {
+			for _, hole := range f.Holes {
+				c, ok := prismWholeCircle(hole)
+				if ok && profile.inside(c.Center, ratInset(c.Cos.X), pad) {
+					return true
+				}
+			}
+			c, ok := prismWholeCircle(f.Outer)
+			return ok && profile.outside(c.Center, ratInset(c.Cos.X), pad)
+		}
+		return false
 	}
 	var frame geom.Frame
 	var minimum, maximum *big.Rat
@@ -432,6 +466,10 @@ func prismMissesFace(f Face, world []geom.Vec3, toolBox geom.Box, pad float64) b
 	}
 	if !prismCardinal(frame) {
 		return false
+	}
+	if profile := disk.inFrame(frame); profile != nil &&
+		(profile.inside(geom.Vec2{}, minimum, pad) || profile.outside(geom.Vec2{}, maximum, pad)) {
+		return true
 	}
 	lo, hi := geom.Vec2{X: math.Inf(1), Y: math.Inf(1)}, geom.Vec2{X: math.Inf(-1), Y: math.Inf(-1)}
 	for _, p := range world {
@@ -475,13 +513,17 @@ func prismExactAdd(a, b geom.Vec2) (geom.Vec2, error) {
 // Refining a circular cap's analytic coedges keeps its coarse chord seed from
 // excluding a hole proved inside the actual circle. Model edges remain shared;
 // at most four bisections of the initial cap are attempted.
-func prismRefineCapSeed(ctx context.Context, s Solid, id int, lo, hi geom.Vec2, pad float64) (Solid, error) {
+func prismRefineCapSeed(ctx context.Context, s Solid, id int, lo, hi geom.Vec2, disk *prismCircle, pad float64) (Solid, error) {
 	if _, ok := prismWholeCircle(s.faces[id].Outer); !ok {
 		return s, nil
 	}
 	for round := 0; round <= 4; round++ {
 		inside := true
 		for _, u := range s.faces[id].Outer {
+			if disk != nil {
+				inside = inside && disk.leftOf(u.UVStart, u.UVEnd, pad)
+				continue
+			}
 			for _, p := range []geom.Vec2{{X: lo.X - pad, Y: lo.Y - pad}, {X: hi.X + pad, Y: lo.Y - pad}, {X: hi.X + pad, Y: hi.Y + pad}, {X: lo.X - pad, Y: hi.Y + pad}} {
 				turn, e := geom.Orient2D(u.UVStart, u.UVEnd, p)
 				inside = inside && e == nil && turn > 0
@@ -522,7 +564,12 @@ func prismWholeCircle(w []Use) (EllipseUV, bool) {
 		if i == 0 {
 			first = c
 		}
-		if c.Center != first.Center || c.Cos != first.Cos || c.Sin != first.Sin || c.Linear != (geom.Vec2{}) || c.To <= c.From || c.To-c.From > math.Pi/2 {
+		if c.From > c.To {
+			c.From, c.To = c.To, c.From
+		}
+		if c.Center != first.Center || c.Cos != first.Cos || c.Sin != first.Sin || c.Linear != (geom.Vec2{}) ||
+			c.Cos.X <= 0 || c.Cos.Y != 0 || c.Sin.X != 0 || math.Abs(c.Sin.Y) != c.Cos.X ||
+			c.To <= c.From || c.To-c.From > math.Pi/2 {
 			return EllipseUV{}, false
 		}
 		curves = append(curves, c)

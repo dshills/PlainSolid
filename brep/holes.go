@@ -1,6 +1,8 @@
 package brep
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"math"
 	"plainsolid/geom"
@@ -82,7 +84,49 @@ func reverseIDs(ids []int) {
 	}
 }
 
+var ErrTriangulationLimit = errors.New("brep: planar triangulation work limit exceeded")
+
+// PlanarTriangulationOptions bounds vertices and conservative point/edge visits.
+// Existing solid constructors retain their 256-vertex domain.
+type PlanarTriangulationOptions struct{ MaxVertices, MaxOperations int }
+
+// TriangulatePlanarRings validates planar simple loops, preserves all input
+// vertices, and returns indices into outer followed by each hole. Inner loops
+// must oppose the outer winding. No Steiner vertices or approximations occur.
+func TriangulatePlanarRings(ctx context.Context, outer []geom.Vec3, holes [][]geom.Vec3, o PlanarTriangulationOptions) ([][3]int, error) {
+	if ctx == nil {
+		return nil, geom.ErrInvalid
+	}
+	if o.MaxVertices == 0 {
+		o.MaxVertices = 256
+	}
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 64000000
+	}
+	if o.MaxVertices < 3 || o.MaxVertices > 1024 || o.MaxOperations < 1 || o.MaxOperations > 128000000 {
+		return nil, geom.ErrInvalid
+	}
+	return triangulateRingsWork(ctx, outer, holes, o.MaxVertices, o.MaxOperations)
+}
 func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) {
+	return triangulateRingsWork(context.Background(), outer, holes, MaxHoledFaceVertices, 0)
+}
+func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom.Vec3, maximum, budget int) ([][3]int, error) {
+	visits := 0
+	step := func(n int) error {
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		if budget > 0 && n > budget-visits {
+			return ErrTriangulationLimit
+		}
+		visits += n
+		return nil
+	}
+	if e := step(0); e != nil {
+		return nil, e
+	}
+
 	if len(outer) < 3 {
 		return nil, fmt.Errorf("outer wire needs at least three vertices")
 	}
@@ -93,8 +137,8 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 		}
 		count += len(hole)
 	}
-	if count > MaxHoledFaceVertices {
-		return nil, fmt.Errorf("holed face exceeds %d vertex work limit", MaxHoledFaceVertices)
+	if count > maximum {
+		return nil, ErrTriangulationLimit
 	}
 	origin := outer[0]
 	scale := 0.0
@@ -180,6 +224,9 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 		rings = append(rings, ids)
 	}
 	for i, p := range points {
+		if e := step(i); e != nil {
+			return nil, e
+		}
 		for j := 0; j < i; j++ {
 			q := points[j]
 			if math.Hypot(p.X-q.X, p.Y-q.Y) <= resolution {
@@ -213,6 +260,9 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 		}
 	}
 	for i, a := range boundary {
+		if e := step(len(boundary) - i); e != nil {
+			return nil, e
+		}
 		for _, b := range boundary[i+1:] {
 			if a.a == b.a || a.a == b.b || a.b == b.a || a.b == b.b {
 				continue
@@ -263,10 +313,33 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 		edge     segment2
 		distance float64
 	}
+	// A diagonal whose endpoints belong to one strictly convex hole lies
+	// inside that excluded region. Prove convexity once instead of repeatedly
+	// testing all of its chords against the entire constrained graph.
+	owner := make([]int, len(points))
+	convexHole := make([]bool, len(rings))
+	for ri, ring := range rings {
+		if ri == 0 {
+			continue
+		}
+		convexHole[ri] = true
+		for i, id := range ring {
+			owner[id] = ri
+			if sign2(points[id], points[ring[(i+1)%len(ring)]], points[ring[(i+2)%len(ring)]]) >= 0 {
+				convexHole[ri] = false
+			}
+		}
+	}
 	var candidates []candidate
 	for a := range points {
+		if e := step(len(points) - a); e != nil {
+			return nil, e
+		}
 		for b := a + 1; b < len(points); b++ {
 			key := segment2{a, b}
+			if owner[a] > 0 && owner[a] == owner[b] && convexHole[owner[a]] {
+				continue
+			}
 			if present[key] {
 				continue
 			}
@@ -276,6 +349,14 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 	}
 	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].distance < candidates[j].distance })
 	for _, candidate := range candidates {
+		// A connected constrained triangulation has exactly this many edges.
+		// Further noncrossing diagonals cannot be added once it is complete.
+		if len(edges) == 2*len(points)+3*len(holes)-3 {
+			break
+		}
+		if e := step(2*len(points) + len(edges)); e != nil {
+			return nil, e
+		}
 		a, b := candidate.edge.a, candidate.edge.b
 		p, q := points[a], points[b]
 		if !inside(geom.Vec2{X: (p.X + q.X) / 2, Y: (p.Y + q.Y) / 2}) {
@@ -331,6 +412,9 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 	visited := map[segment2]bool{}
 	var triangles [][3]int
 	for _, edge := range edges {
+		if e := step(1); e != nil {
+			return nil, e
+		}
 		for _, start := range []segment2{edge, {edge.b, edge.a}} {
 			if visited[start] {
 				continue

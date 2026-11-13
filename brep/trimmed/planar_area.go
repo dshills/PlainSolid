@@ -30,27 +30,16 @@ func (s Solid) PlanarFaceArea(id int) (float64, error) {
 		}
 		anchor := loop[0].UVStart
 		for _, u := range loop {
-			switch c := u.Curve.(type) {
-			case nil:
-				area += cross(sub2(u.UVStart, anchor), sub2(u.UVEnd, anchor))
-			case anchoredCircularUV:
-				area += cross(sub2(c.Center, anchor), sub2(c.End, c.Start)) + cross(c.Cos, c.Sin)*(c.To-c.From)
-			case EllipseUV:
-				if c.Linear != (geom.Vec2{}) {
-					return 0, fmt.Errorf("unsupported planar face chart or trim: %w", geom.ErrDomain)
-				}
-				a, err := c.EvalUV(0)
-				if err != nil {
-					return 0, err
-				}
-				b, err := c.EvalUV(1)
-				if err != nil {
-					return 0, err
-				}
-				area += cross(sub2(c.Center, anchor), sub2(b, a)) + cross(c.Cos, c.Sin)*(c.To-c.From)
-			default:
+			start, end := sub2(u.UVStart, anchor), sub2(u.UVEnd, anchor)
+			if u.Curve == nil {
+				area += cross(start, end)
+				continue
+			}
+			c, ok := prismCircleCurve(u.Curve)
+			if !ok || c.Linear != (geom.Vec2{}) {
 				return 0, fmt.Errorf("unsupported planar face chart or trim: %w", geom.ErrDomain)
 			}
+			area += cross(sub2(c.Center, anchor), sub2(end, start)) + cross(c.Cos, c.Sin)*(c.To-c.From)
 		}
 	}
 	area = math.Abs(area) * x.Cross(y).Length() / 2
@@ -68,13 +57,8 @@ func CircularPlanarWire(wire []Use, chart geom.Affine, center geom.Vec3, radius,
 	}
 	var turn float64
 	for _, use := range wire {
-		var a EllipseUV
-		switch c := use.Curve.(type) {
-		case EllipseUV:
-			a = c
-		case anchoredCircularUV:
-			a = c.EllipseUV
-		default:
+		a, ok := prismCircleCurve(use.Curve)
+		if !ok {
 			return false
 		}
 		if a.Linear != (geom.Vec2{}) || chart.Apply(geom.Vec3{X: a.Center.X, Y: a.Center.Y}).Sub(center).Length() > tolerance {

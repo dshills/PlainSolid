@@ -106,8 +106,14 @@ func TestCompactCylinderMeshFineBoundaryFallsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts := parametric.TessellationOptions{Deflection: .0002, Angle: .2, MaxSubdivisions: 128, MaxTriangles: 1000000}
-	if _, ok, err := body.compactCylinderMesh(context.Background(), opts); ok || err != nil {
-		t.Fatalf("fine compact boundary must delegate: %v %v", ok, err)
+	if _, ok, err := body.compactCylinderMesh(context.Background(), opts); !ok || err != nil {
+		t.Fatalf("bounded larger compact boundary must succeed: %v %v", ok, err)
+	}
+	finer := opts
+	finer.Deflection = .000001
+	finer.MaxSubdivisions = 512
+	if _, ok, err := body.compactCylinderMesh(context.Background(), finer); ok || err != nil {
+		t.Fatalf("boundary beyond compact cap must delegate: %v %v", ok, err)
 	}
 	m, err := body.Tessellate(context.Background(), opts)
 	if err != nil {

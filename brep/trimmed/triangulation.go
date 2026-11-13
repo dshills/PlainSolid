@@ -1,8 +1,11 @@
 package trimmed
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"math"
+	"plainsolid/brep/parametric"
 
 	"plainsolid/brep"
 	"plainsolid/geom"
@@ -12,6 +15,9 @@ import (
 // triangulator, then restores them to the affected boundary triangles. This
 // keeps every trim vertex and edge use in the conforming seed mesh.
 func triangulateUV(rings [][]geom.Vec3) ([][3]geom.Vec2, error) {
+	return triangulateUVBounded(context.Background(), rings, brep.MaxHoledFaceVertices)
+}
+func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int) ([][3]geom.Vec2, error) {
 	uv := func(p geom.Vec3) geom.Vec2 { return geom.Vec2{X: p.X, Y: p.Y} }
 	turn := func(a, b, c geom.Vec3) int { n, _ := geom.Orient2D(uv(a), uv(b), uv(c)); return n }
 	clean := make([][]geom.Vec3, len(rings))
@@ -47,24 +53,51 @@ func triangulateUV(rings [][]geom.Vec3) ([][3]geom.Vec2, error) {
 			}
 		}
 	}
-	z := 0.
-	for _, r := range clean {
-		for _, p := range r {
-			z = math.Max(z, math.Max(math.Abs(p.X-clean[0][0].X), math.Abs(p.Y-clean[0][0].Y)))
-		}
-	}
-	prism, e := brep.PrismWithHoles(clean[0], clean[1:], geom.Vec3{Z: z})
-	if e != nil {
-		return nil, e
-	}
-	m := prism.Tessellate()
 	var out [][3]geom.Vec2
-	for _, tri := range m.Triangles {
-		a, b, c := m.Vertices[tri[0]], m.Vertices[tri[1]], m.Vertices[tri[2]]
-		if a.Z == 0 && b.Z == 0 && c.Z == 0 {
-			out = append(out, [3]geom.Vec2{uv(a), uv(c), uv(b)})
+	if maximum > brep.MaxHoledFaceVertices {
+		ids, e := brep.TriangulatePlanarRings(ctx, clean[0], clean[1:], brep.PlanarTriangulationOptions{MaxVertices: maximum, MaxOperations: 64000000})
+		if errors.Is(e, brep.ErrTriangulationLimit) {
+			return nil, parametric.ErrBudget
+		}
+		if e != nil {
+			return nil, e
+		}
+		var points []geom.Vec3
+		for _, ring := range clean {
+			points = append(points, ring...)
+		}
+		for _, tri := range ids {
+			a, b, c := uv(points[tri[0]]), uv(points[tri[1]]), uv(points[tri[2]])
+			sign, e := geom.Orient2D(a, b, c)
+			if e != nil || sign == 0 {
+				return nil, geom.ErrDegenerate
+			}
+			if sign < 0 {
+				b, c = c, b
+			}
+			out = append(out, [3]geom.Vec2{a, b, c})
+		}
+	} else {
+		z := 0.
+		for _, r := range clean {
+			for _, p := range r {
+				z = math.Max(z, math.Max(math.Abs(p.X-clean[0][0].X), math.Abs(p.Y-clean[0][0].Y)))
+			}
+		}
+		prism, e := brep.PrismWithHoles(clean[0], clean[1:], geom.Vec3{Z: z})
+		if e != nil {
+			return nil, e
+		}
+		m := prism.Tessellate()
+
+		for _, tri := range m.Triangles {
+			a, b, c := m.Vertices[tri[0]], m.Vertices[tri[1]], m.Vertices[tri[2]]
+			if a.Z == 0 && b.Z == 0 && c.Z == 0 {
+				out = append(out, [3]geom.Vec2{uv(a), uv(c), uv(b)})
+			}
 		}
 	}
+
 	for _, s := range splits {
 		found := false
 		for i, t := range out {

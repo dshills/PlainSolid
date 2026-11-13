@@ -9,16 +9,17 @@ import (
 )
 
 type roundedStock struct {
-	frame   geom.Frame
-	profile trimmed.RoundedRectangle
-	height  float64
-	fillet  float64
-	cut     bool
+	frame    geom.Frame
+	profile  trimmed.RoundedRectangle
+	height   float64
+	fillet   float64
+	cut      bool
+	pedestal *pedestalStock
 }
 
 func (b *Bridge) filletRoundedStock(s stored, q request) (Shape, error) {
 	p := *s.analytic.rounded
-	if p.cut || p.fillet != 0 || p.height <= 0 || q.Normal == nil || q.Origin == nil || q.Radius <= 0 || len(q.Edges) != 0 ||
+	if p.cut || p.pedestal != nil || p.fillet != 0 || p.height <= 0 || q.Normal == nil || q.Origin == nil || q.Radius <= 0 || len(q.Edges) != 0 ||
 		q.Normal.vec() != p.frame.ZAxis() || exactDotDifference(q.Origin.vec(), p.frame.ToWorld(geom.Vec3{Z: p.height}), p.frame.ZAxis()) != 0 {
 		return Shape{}, unsupportedEdge("rounded perimeter requires one original upper cap")
 	}

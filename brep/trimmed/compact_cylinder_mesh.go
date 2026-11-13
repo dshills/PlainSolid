@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"math"
 
-	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
 )
+
+const maxCompactFaceVertices = 1024
 
 var errCompactBoundaryLimit = fmt.Errorf("trimmed: compact boundary sampling limit")
 
@@ -61,15 +62,36 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 			}
 		}
 	}
-	for n := 1; n <= o.MaxSubdivisions; n *= 2 {
+	groups := compactEdgeGroups(s.faces, curved)
+	levels := make([]int, len(curved))
+	for i := range levels {
+		levels[i] = 1
+	}
+	for iteration := 0; iteration <= len(s.edges)*11; iteration++ {
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, true, err
 		}
-		m, err := s.compactCylinderCandidate(ctx, n, curved, o)
+		counts := s.compactEdgeCounts(levels, curved)
+		m, err := s.compactCandidateCounts(ctx, counts, o)
 		if err == errCompactBoundaryLimit {
 			return mesh.Mesh{}, false, nil
 		}
-		if err == errRefine {
+		if refine, ok := err.(*compactRefinement); ok {
+			roots := map[int]bool{}
+			for edge := range refine.edges {
+				roots[groups[edge]] = true
+			}
+			if len(roots) == 0 {
+				return mesh.Mesh{}, true, parametric.ErrBudget
+			}
+			for i := range levels {
+				if roots[groups[i]] && curved[i] {
+					if levels[i] > o.MaxSubdivisions/2 {
+						return mesh.Mesh{}, true, parametric.ErrBudget
+					}
+					levels[i] *= 2
+				}
+			}
 			continue
 		}
 		return m, true, err
@@ -123,22 +145,20 @@ func compactStraightEdge(curve geom.Curve) bool {
 
 func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []bool, o parametric.TessellationOptions) (mesh.Mesh, error) {
 
-	counts := make([]int, len(s.edges))
-	for i := range counts {
-		counts[i] = 1
-		if curved[i] {
-			counts[i] = n
-		}
+	levels := make([]int, len(curved))
+	for i := range levels {
+		levels[i] = n
 	}
-	for _, f := range s.faces {
-		if _, ok := compactAxialStart(f); ok {
-			for _, u := range f.Outer {
-				if u.UVStart.Y == u.UVEnd.Y {
-					counts[u.Edge] = compactAngularCount(n, math.Abs(u.UVEnd.X-u.UVStart.X))
-				}
-			}
-		}
+	m, err := s.compactCandidateCounts(ctx, s.compactEdgeCounts(levels, curved), o)
+	if _, ok := err.(*compactRefinement); ok {
+		return mesh.Mesh{}, errRefine
 	}
+	return m, err
+}
+
+func (s Solid) compactCandidateCounts(ctx context.Context, counts []int, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	failures := &compactRefinement{edges: map[int]bool{}}
+
 	// Bound all face triangulations before allocating edge samples. A polygon
 	// with h holes and v boundary vertices has v+2h-2 triangles; rectangular
 	// cylinders use two triangles per angular strip.
@@ -154,7 +174,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 				vertices += count
 			}
 		}
-		if vertices > brep.MaxHoledFaceVertices {
+		if vertices > maxCompactFaceVertices {
 			return mesh.Mesh{}, errCompactBoundaryLimit
 		}
 		count := vertices + 2*len(f.Holes) - 2
@@ -217,7 +237,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 					u = loop[(ui+start)%len(loop)]
 				}
 				count := len(edgeIDs[u.Edge]) - 1
-				if len(indices)+count > brep.MaxHoledFaceVertices {
+				if len(indices)+count > maxCompactFaceVertices {
 					return mesh.Mesh{}, errCompactBoundaryLimit
 				}
 				uv := make([]geom.Vec2, count+1)
@@ -280,7 +300,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			}
 		} else {
 			var err error
-			triangles, err = triangulateUV(rings)
+			triangles, err = triangulateUVBounded(ctx, rings, maxCompactFaceVertices)
 			if err != nil {
 				return mesh.Mesh{}, err
 			}
@@ -306,7 +326,25 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 				}
 			}
 			if err := check(f.Surface, t, p, o.Deflection, o.Angle); err != nil {
-				return mesh.Mesh{}, err
+				if err != errRefine {
+					return mesh.Mesh{}, err
+				}
+				base, _ := parametric.SurfaceMapping(f.Surface)
+				_, planar := base.(geom.PlaneSurface)
+				found := false
+				if planar {
+					for _, side := range t.edge {
+						if side.edge >= 0 && counts[side.edge] > 0 {
+							failures.edges[side.edge] = true
+							found = true
+						}
+					}
+				}
+				if !planar || !found {
+					for _, u := range f.Outer {
+						failures.edges[u.Edge] = true
+					}
+				}
 			}
 			ids := t.ids
 			if f.Reversed {
@@ -314,6 +352,9 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			}
 			m.Triangles = append(m.Triangles, ids)
 		}
+	}
+	if len(failures.edges) > 0 {
+		return mesh.Mesh{}, failures
 	}
 	if err := m.ValidateSolid(); err != nil {
 		return mesh.Mesh{}, err
