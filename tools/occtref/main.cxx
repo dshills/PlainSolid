@@ -65,6 +65,12 @@
 #endif
 
 #ifdef PLAINSOLID_OCCT_IGES
+#include <BRep_Tool.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+#include <TopExp.hxx>
+#include <NCollection_IndexedMap.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <GeomToIGES_GeomSurface.hxx>
 #include <GeomToIGES_GeomCurve.hxx>
 #include <IGESGeom_CurveOnSurface.hxx>
@@ -1013,6 +1019,23 @@ int main(int argc, char** argv) {
 #endif
     }
 #ifdef PLAINSOLID_OCCT_IGES
+    if(argc==3 && mode=="write-iges-point"){
+      IGESControl_Writer writer("MM");
+      auto point=BRepBuilderAPI_MakeVertex(gp_Pnt(2.5,-3.25,7.5)).Vertex();
+      if(!writer.AddShape(point)||!writer.Write(argv[1]))throw std::runtime_error("OCCT IGES point export failed");
+      return 0;
+    }
+    if(argc==4 && mode=="iges-point"){
+      IGESControl_Reader reader;
+      if(reader.ReadFile(argv[3])!=IFSelect_RetDone||reader.TransferRoots()==0)throw std::runtime_error("OCCT IGES point import failed");
+      NCollection_IndexedMap<TopoDS_Shape,TopTools_ShapeMapHasher> points;
+      TopExp::MapShapes(reader.OneShape(),TopAbs_VERTEX,points);
+      if(points.Extent()!=1)throw std::runtime_error("expected one IGES vertex");
+      const auto p=BRep_Tool::Pnt(TopoDS::Vertex(points(1)));
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      out<<std::setprecision(17)<<'['<<p.X()<<','<<p.Y()<<','<<p.Z()<<"]\n";
+      return 0;
+    }
 #ifdef PLAINSOLID_OCCT_STEP
     if(argc==3&&mode=="write-step-quadratic-annulus")return writeSTEPQuadraticTrim(argv[1]);
 #endif

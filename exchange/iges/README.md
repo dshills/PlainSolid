@@ -567,4 +567,5 @@ Type 116 requires a zero display-symbol pointer. Nonzero forms and referenced
 symbols fail explicitly. Points consume ordinary entity/value/record budgets;
 they do not consume the spline-control-point budget. The independent authored
 `testdata/points.iges` fixture and mixed placed roundtrip tests qualify this
-subset; native OCCT point interoperability has not yet been qualified.
+subset. The optional OCCT oracle writes an independent type 116 vertex and
+reads a placed PlainSolid point back in model coordinates.

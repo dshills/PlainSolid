@@ -94,6 +94,39 @@ func TestOCCTIGESImport(t *testing.T) {
 	checkOracleLength(t, writeModelFile(t, m))
 }
 
+func TestOCCTIGESPointRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "occt-point.igs")
+	oracleCommand(t, path, "write-iges-point")
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := Read(f, Limits{})
+	_ = f.Close()
+	if err != nil || len(m.Entities) != 1 || m.Entities[0].Point == nil || m.LengthUnit != .001 {
+		t.Fatal(m, err)
+	}
+	want := geom.Vec3{X: 2.5, Y: -3.25, Z: 7.5}
+	p, err := m.Entities[0].Eval(0)
+	if err != nil || p.Distance(want) > 1e-9 {
+		t.Fatal(p, err)
+	}
+	// Export through PlainSolid with a directory placement, and let OCCT
+	// transfer it to model coordinates.
+	m.Entities[0].Transform = &geom.Affine{{1, 0, 0, 1}, {0, 1, 0, -2}, {0, 0, 1, 3}}
+	out := filepath.Join(dir, "occt-point.json")
+	oracleCommand(t, out, "iges-point", writeModelFile(t, m))
+	b, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got [3]float64
+	if err := json.Unmarshal(b, &got); err != nil || (geom.Vec3{X: got[0], Y: got[1], Z: got[2]}).Distance(want.Add(geom.Vec3{X: 1, Y: -2, Z: 3})) > 1e-9 {
+		t.Fatal(got, err)
+	}
+}
+
 func checkOracleSurface(t *testing.T, path string) {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "surface.json")
