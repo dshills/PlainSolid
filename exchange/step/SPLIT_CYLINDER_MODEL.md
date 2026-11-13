@@ -50,3 +50,24 @@ The independently posed raw fixture uses origin (10,-4,7), local X=(0,0,-1),
 axis=(-1,0,0). OCCT independently accepts the same four-face topology and mass.
 Tests also verify changing only the declared unit leaves numeric geometry and
 pose unchanged, and reject an almost-cardinal rounded source direction.
+
+## Exact writer
+
+`WriteSplitCylinderModel(w, SplitCylinderDescriptor{...})` constructs the six
+model curves, four directed face loops and shared topology from an explicit
+name, frame, radius, height and length unit. It does not accept stale `Solid` or
+source IDs as evidence. Re-reading exposes deterministic source-role IDs.
+
+World-coordinate sums and scalar decimals are generated with rational
+arithmetic from the represented inputs. Every result must be losslessly
+representable under the reader's bounded numeric contract; rejected examples
+include a tiny translated origin whose radius-offset point would round. The
+writer stages the whole file and invokes the strict reader before writing.
+Invalid input leaves output untouched; short writes and other I/O errors are
+reported. Canonical repeated writes are byte-stable.
+
+This milestone preserves the bare representation envelope; its independent
+OCCT qualification explicitly transfers the body entity rather than claiming
+TransferRoots/product interoperability. Product ownership is not yet part of
+this exact reader/writer domain. SI length units accepted by the reader are
+preserved without numeric scaling; conversion-based units remain unsupported.

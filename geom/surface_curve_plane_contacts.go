@@ -22,9 +22,15 @@ type ComposedPlaneContactEntry struct {
 	Local    []ComposedPlaneContact
 	Junction *ComposedPlaneJunction
 }
+
+// ComposedPlaneContactTable is complete only on Domain over CellCount supplied cells.
+// It does not certify coverage of an omitted parent source or periodic quotient.
+// Equal model points at distinct domain endpoints remain distinct occurrences.
 type ComposedPlaneContactTable struct {
-	Complete bool
-	Events   []ComposedPlaneContactEntry
+	Domain    [2]*ExactAlgebraicRoot
+	CellCount int
+	Complete  bool
+	Events    []ComposedPlaneContactEntry
 }
 
 // DiscoverPlaneContacts proves the finite ordered contact table on this entire
@@ -113,6 +119,9 @@ func (c SurfaceCurveCompositionCells) DiscoverPlaneContacts(ctx context.Context,
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
+	out.Domain[0], _ = c.Cells[0].EndpointRoot(0)
+	out.Domain[1], _ = c.Cells[len(c.Cells)-1].EndpointRoot(1)
+	out.CellCount = len(c.Cells)
 	out.Complete = true
 	return out, nil
 }
