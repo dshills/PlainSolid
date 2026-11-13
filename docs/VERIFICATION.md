@@ -957,3 +957,8 @@ separated case has a closed mesh without detected contacts, exact native
 reload, and independent OCCT area, volume and centroid checks. Coincident
 line tests also preserve floor and wall intervals, clipped and reversed
 parameter ranges, exact endpoints, and both owners at a shared rim.
+
+The native offset through bore matches an independent OCCT cut and the
+volume identity from two half cuts. Both rim loops persist through native
+reload. Its closed oriented mesh passes the self-contact check. Exact
+line queries retain both shared sphere/cylinder owners on wall intervals.

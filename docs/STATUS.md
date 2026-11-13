@@ -438,6 +438,8 @@ The off-axis blind-bore shell covers contained round cutters with footprints
 that include or miss the sphere axis. It retains native analytic faces and
 has a bounded display and native reload. Exact point and line queries
 support the same material, including coincident floor and wall intervals.
+The off-axis through-bore shell retains both analytic rim loops and its
+inward cylindrical wall, with corresponding exact point and line queries.
 General curved fragment assembly is still open.
 
 ## Continuing implementation

@@ -13,6 +13,8 @@ const (
 	toolBoreUpper
 	toolBoreWall
 	toolBoreFloor
+	toolBoreLowerAnnulus
+	toolBoreThroughWall
 )
 
 // toolBoreChart uses the same tool-centered angle across the two sphere
@@ -29,7 +31,8 @@ func newToolBoreChart(ctx context.Context, s offsetBoreChart, tolerance float64)
 	var result toolBoreChart
 	if !finite(s.radius) || !finite(s.bore) || !finite(s.offset) || !finite(s.floor) ||
 		s.offset < 0 || s.bore <= 0 || s.radius <= 0 || s.frame.ZAxis().Length() == 0 ||
-		s.kind < toolBoreLower || s.kind > toolBoreFloor {
+		s.kind < toolBoreLower || s.kind > toolBoreThroughWall ||
+		s.kind >= toolBoreLowerAnnulus && s.floor != 0 {
 		return result, geom.ErrInvalid
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
@@ -108,10 +111,13 @@ func (s toolBoreChart) toolEval(u, v float64) (p, du, dv geom.Vec3, err error) {
 	z := geom.Vec3{Z: 1}
 	o := geom.Vec3{X: s.offset}
 	switch s.kind {
-	case toolBoreUpper:
+	case toolBoreUpper, toolBoreLowerAnnulus:
 		p, err = s.upper.Eval(u, v)
 		if err == nil {
 			du, dv, err = s.upper.Partials(u, v)
+		}
+		if s.kind == toolBoreLowerAnnulus {
+			p.Z, du.Z, dv.Z = -p.Z, -du.Z, -dv.Z
 		}
 	case toolBoreLower:
 		var xy geom.Vec2
@@ -128,7 +134,7 @@ func (s toolBoreChart) toolEval(u, v float64) (p, du, dv geom.Vec3, err error) {
 			du = t.Scale(cl * phiFirst)
 			dv = r.Scale(-sl * math.Pi / 2).Add(z.Scale(s.radius * cl * math.Pi / 2))
 		}
-	case toolBoreWall:
+	case toolBoreWall, toolBoreThroughWall:
 		var rim geom.Vec3
 		var dRim geom.Vec3
 		rim, err = s.upper.Eval(u, 0)
@@ -136,12 +142,16 @@ func (s toolBoreChart) toolEval(u, v float64) (p, du, dv geom.Vec3, err error) {
 			dRim, _, err = s.upper.Partials(u, 0)
 		}
 		if err == nil {
-			p = o.Add(e.Scale(s.bore)).Add(z.Scale(s.floor + v*(rim.Z-s.floor)))
+			floor, dFloor := s.floor, 0.
+			if s.kind == toolBoreThroughWall {
+				floor, dFloor = -rim.Z, -dRim.Z
+			}
+			p = o.Add(e.Scale(s.bore)).Add(z.Scale(floor + v*(rim.Z-floor)))
 			if v == 1 {
 				p = rim
 			}
-			du = n.Scale(s.bore).Add(z.Scale(v * dRim.Z))
-			dv = z.Scale(rim.Z - s.floor)
+			du = n.Scale(s.bore).Add(z.Scale(dFloor + v*(dRim.Z-dFloor)))
+			dv = z.Scale(rim.Z - floor)
 		}
 	case toolBoreFloor:
 		p = o.Add(e.Scale(v * s.bore)).Add(z.Scale(s.floor))
@@ -165,7 +175,7 @@ func (s toolBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interval
 	}
 	var uu, uv, vv float64
 	switch s.kind {
-	case toolBoreUpper:
+	case toolBoreUpper, toolBoreLowerAnnulus:
 		b, e := s.upper.HessianBounds()
 		if e != nil {
 			return 0, 0, 0, e
@@ -176,12 +186,15 @@ func (s toolBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interval
 		q := upperBoreRat(s.equator.SphereAngleSecondAbsolute)
 		k := up(math.Pi / 2)
 		uu, uv, vv = upMul(s.radius, upAdd(upMul(p, p), q)), upMul(s.radius, upMul(p, k)), upMul(s.radius, upMul(k, k))
-	case toolBoreWall:
+	case toolBoreWall, toolBoreThroughWall:
 		b, e := geom.BoundSphereCylinderRimHeight(ctx, geom.Vec3{}, s.radius, geom.Vec3{X: s.offset}, geom.Vec3{Z: 1}, s.bore, geom.SurfacePatchEvaluationOptions{})
 		if e != nil {
 			return 0, 0, 0, e
 		}
 		uu, uv = upAdd(s.bore, upperBoreRat(b.SecondDerivativeAbsolute)), upperBoreRat(b.FirstDerivativeAbsolute)
+		if s.kind == toolBoreThroughWall {
+			uv = upMul(uv, 2)
+		}
 	case toolBoreFloor:
 		uu, uv = s.bore, s.bore
 	default:
