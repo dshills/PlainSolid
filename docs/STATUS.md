@@ -488,6 +488,9 @@ equator cap or a positive cap with a representable rim ordinate.
 Signed algebraic caps, two-cap slabs, and exact caps on both perpendicular
 axes are supported in bounded cases. Equal-radius perpendicular finite
 cylinders also have a native union with all four exposed cap disks.
+Equal-radius oblique cylinders have native union and subtraction when the
+finite caps strictly clear the common. Perpendicular and oblique subtraction
+retain two closed bodies and report their two intrinsic closure contacts.
 
 ## Continuing implementation
 

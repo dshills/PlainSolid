@@ -406,6 +406,13 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 
 	ux, e := parametric.PerpendicularCylinderUnion(ctx, geom.Vec3{}, 2, 3, 4, 1e-9)
 	check("perpendicular-cylinder-union", ux.Solid, e)
+
+	longCaps := [2]float64{-4, 4}
+	ou2, e := parametric.ObliqueEqualCylinderUnion(ctx, geom.Vec3{}, geom.Vec3{X: 3, Y: 4}, geom.Vec3{X: 4, Y: 3}, 2, longCaps, longCaps, 1e-9)
+	check("oblique-equal-cylinder-union", ou2.Solid, e)
+	od, e := parametric.ObliqueEqualCylinderDifference(ctx, geom.Vec3{}, geom.Vec3{X: 3, Y: 4}, geom.Vec3{X: 4, Y: 3}, 2, longCaps, longCaps, 1e-9)
+	check("oblique-cylinder-difference-minus", od.Solids[0], e)
+	check("oblique-cylinder-difference-plus", od.Solids[1], e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

@@ -1106,6 +1106,19 @@ int main(int argc, char** argv) {
     const auto unionX = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-3, 0, 0), gp_Dir(1, 0, 0)), 2, 6).Shape();
     const auto unionZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, -4), gp_Dir(0, 0, 1)), 2, 8).Shape();
     record(out, "perpendicular-cylinder-union", BRepAlgoAPI_Fuse(unionX, unionZ).Shape(), 1e-10);
+    const auto unionObliqueA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-12, -16, 0), gp_Dir(3, 4, 0)), 2, 40).Shape();
+    const auto unionObliqueB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-16, -12, 0), gp_Dir(4, 3, 0)), 2, 40).Shape();
+    record(out, "oblique-equal-cylinder-union", BRepAlgoAPI_Fuse(unionObliqueA, unionObliqueB).Shape(), 1e-10);
+    const auto obliqueDifference = BRepAlgoAPI_Cut(unionObliqueA, unionObliqueB).Shape();
+    int obliqueDifferenceCount = 0;
+    for (TopExp_Explorer ex(obliqueDifference, TopAbs_SOLID); ex.More(); ex.Next()) {
+      GProp_GProps props;
+      BRepGProp::VolumeProperties(ex.Current(), props);
+      const gp_Pnt p = props.CentreOfMass();
+      record(out, 3*p.X()+4*p.Y() < 0 ? "oblique-cylinder-difference-minus" : "oblique-cylinder-difference-plus", ex.Current(), 1e-10);
+      ++obliqueDifferenceCount;
+    }
+    if (obliqueDifferenceCount != 2) throw std::runtime_error("oblique cylinder subtraction did not yield two bodies");
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

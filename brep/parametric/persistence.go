@@ -30,6 +30,7 @@ func (f *frameData) decode() (geom.Frame, error) {
 
 type surfaceData struct {
 	SteinmetzUnion  *steinmetzUnionData `json:",omitempty"`
+	ObliqueUnion    *obliqueUnionData   `json:",omitempty"`
 	SteinmetzSlab   *steinmetzSlabData  `json:",omitempty"`
 	Steinmetz       *[2]int             `json:",omitempty"`
 	Transform       *geom.Affine        `json:",omitempty"`
@@ -59,6 +60,14 @@ type surfaceData struct {
 	SkewOverlap     *skewOverlapData         `json:",omitempty"`
 	ObliqueCylinder *obliqueCylinderData     `json:",omitempty"`
 	GeneralCylinder *generalCylinderData     `json:",omitempty"`
+}
+
+type obliqueUnionData struct {
+	Center, U, V      geom.Vec3
+	Radius            float64
+	Caps              [2][2]float64
+	Owner, Side, Half int
+	Cap               bool
 }
 
 type steinmetzUnionData struct {
@@ -187,6 +196,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "steinmetz-clipped-cylinder", Center: &x.center, A: x.radius, B: x.cap, Steinmetz: &[2]int{0, x.sign}}, nil
 	case steinmetzUnionChart:
 		return surfaceData{Kind: "steinmetz-union", SteinmetzUnion: &steinmetzUnionData{x.center, x.radius, x.halfLength, x.axis, x.side, x.half, x.cap}}, nil
+	case obliqueCylinderUnionChart:
+		return surfaceData{Kind: "oblique-cylinder-union", ObliqueUnion: &obliqueUnionData{x.center, x.u, x.v, x.radius, x.caps, x.owner, x.side, x.half, x.cap}}, nil
 	case steinmetzDisk:
 		return surfaceData{Kind: "steinmetz-disk", Center: &x.center, A: x.radius}, nil
 	case steinmetzChart:
@@ -277,6 +288,20 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "oblique-cylinder-union") != (d.ObliqueUnion != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.ObliqueUnion; x != nil {
+		if x.Owner < 0 || x.Owner > 1 || x.Side != 1 && x.Side != -1 || x.Half != 1 && x.Half != -1 {
+			return nil, geom.ErrInvalid
+		}
+		s, e := newObliqueCylinderUnionChart(context.Background(), x.Center, x.U, x.V, x.Radius, x.Caps[0], x.Caps[1])
+		if e != nil {
+			return nil, e
+		}
+		s.owner, s.side, s.half, s.cap = x.Owner, x.Side, x.Half, x.Cap
+		return s, nil
+	}
 	if (d.Kind == "steinmetz-union") != (d.SteinmetzUnion != nil) {
 		return nil, geom.ErrInvalid
 	}

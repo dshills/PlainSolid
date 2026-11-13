@@ -145,6 +145,8 @@ func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (flo
 		return x.secondDerivativeBounds(ctx, u, v)
 	case obliqueCylinderChart:
 		return x.secondDerivativeBounds(ctx, u, v)
+	case obliqueCylinderUnionChart:
+		return x.secondDerivativeBounds(ctx, u, v)
 	case generalCylinderCommonChart:
 		return x.secondDerivativeBounds(ctx, u, v)
 	case toolBoreChart:

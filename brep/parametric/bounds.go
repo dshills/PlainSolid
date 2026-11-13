@@ -279,6 +279,23 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		}
 		m := upperBoreRat(h.UU)
 		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
+	case obliqueCylinderUnionChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var e error
+		f, e = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if e != nil {
+			return geom.Box{}, e
+		}
+		d := a.u
+		if a.owner == 1 {
+			d = a.v
+		}
+		w := a.caps[a.owner]
+		n := upAdd(upAdd(math.Abs(d.X), math.Abs(d.Y)), math.Abs(d.Z))
+		m := upAdd(upMul(n, max(math.Abs(w[0]), math.Abs(w[1]))), a.radius)
+		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
 	case generalCylinderCommonChart:
 		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < -1 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain

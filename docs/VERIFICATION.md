@@ -1044,3 +1044,12 @@ The perpendicular union retains both walls and four exposed end disks.
 Its volume matches the exact inclusion-exclusion formula and its area
 matches the two cylinders minus the interior Steinmetz faces. Native reload,
 certified display, no detected self-contacts, and OCCT comparison pass.
+
+The oblique equal-radius union preserves both original cylinder equations
+and four exposed ends. Native mass matches the inclusion-exclusion volume
+and independent OCCT properties, with reload and certified display checks.
+
+Oblique subtraction verifies the two component volumes, opposing centroids,
+both original support types, exact pole-contact provenance, and a closed
+display for each body after reload. OCCT independently returns and qualifies
+the corresponding two solids.
