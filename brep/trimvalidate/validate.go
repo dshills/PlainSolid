@@ -894,6 +894,9 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 		rings, status, reason := classifyRingForest(loops, signs, &r, b)
 		if status == Certified {
 			*forest = rings
+			if retain != nil {
+				*retain = &CertifiedLoops{rings: loops, edges: all, options: o, forest: true}
+			}
 			r.LoopA, r.EdgeA, r.LoopB, r.EdgeB = -1, -1, -1, -1
 		}
 		return finish(status, reason)
@@ -923,11 +926,11 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 	}
 	var status Status
 	var reason string
-	location, status, reason = locateCertifiedLoops(loops, all, query, &r, b, boxes...)
+	location, status, reason = locateCertifiedLoops(loops, all, query, &r, b, false, boxes...)
 	return finish(status, reason)
 }
 
-func locateCertifiedLoops(loops [][]curve, all []curve, query *point, r *Report, b *budget, boxes ...rationalQueryBox) (Location, Status, string) {
+func locateCertifiedLoops(loops [][]curve, all []curve, query *point, r *Report, b *budget, forest bool, boxes ...rationalQueryBox) (Location, Status, string) {
 	if len(boxes) == 1 {
 		box := boxes[0]
 		b.check(box.lo)
@@ -962,6 +965,7 @@ func locateCertifiedLoops(loops [][]curve, all []curve, query *point, r *Report,
 				pointProofPending = pointProofPending || !complete
 			}
 		}
+		windingSum := 0
 		for i, loop := range loops {
 			w, ok := winding(*query, loop, b)
 			if !ok {
@@ -971,9 +975,13 @@ func locateCertifiedLoops(loops [][]curve, all []curve, query *point, r *Report,
 				}
 				return Unknown, Unresolved, "point location budget exhausted or boundary unresolved"
 			}
-			if i == 0 && w == 0 || i != 0 && w != 0 {
+			if !forest && (i == 0 && w == 0 || i != 0 && w != 0) {
 				return Outside, Certified, "exact winding proves point outside material"
 			}
+			windingSum += w
+		}
+		if forest && windingSum == 0 {
+			return Outside, Certified, "total winding is zero"
 		}
 		return Inside, Certified, "exact winding proves point inside material"
 	}

@@ -14,6 +14,7 @@ type CertifiedLoops struct {
 	rings   [][]curve
 	edges   []curve
 	options Options
+	forest  bool
 }
 
 // CertifyLoops proves positive outer winding, simple disjoint rings and
@@ -52,14 +53,14 @@ func emptyLoopReport() Report { return Report{LoopA: -1, EdgeA: -1, LoopB: -1, E
 
 func (c *CertifiedLoops) locate(ctx context.Context, p *point, boxes ...rationalQueryBox) (Location, Report, error) {
 	r := emptyLoopReport()
-	if ctx == nil || c == nil || len(c.rings) == 0 {
+	if ctx == nil || c == nil || len(c.rings) == 0 && !c.forest {
 		return Unknown, r, ErrOptions
 	}
 	if e := ctx.Err(); e != nil {
 		return Unknown, r, e
 	}
 	b := &budget{ctx: ctx, o: c.options}
-	loc, status, reason := locateCertifiedLoops(c.rings, c.edges, p, &r, b, boxes...)
+	loc, status, reason := locateCertifiedLoops(c.rings, c.edges, p, &r, b, c.forest, boxes...)
 	r.Status, r.Reason, r.Work, r.Subdivisions = status, reason, b.work, b.subdivisions
 	if b.err != nil {
 		r.Status = Unresolved

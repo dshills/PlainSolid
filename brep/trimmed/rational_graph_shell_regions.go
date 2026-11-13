@@ -28,18 +28,57 @@ type RationalGraphShellRegions struct {
 	ProjectionAxes [2]int
 	Rings          []trimvalidate.RingPlacement
 	Material       []RationalGraphShellRegion
+	certificate    *trimvalidate.CertifiedLoops
+	plane          polynomialPlaneEquation
+	maxBits        int
 }
 
-func classifyRationalGraphShellRegions(ctx context.Context, section RationalGraphShellSection, faces []splineEmbeddingFace, plane polynomialPlaneEquation, limits geom.SurfacePatchOptions, o RationalGraphShellRegionOptions) (*RationalGraphShellRegions, error) {
+// LocateRational classifies an exact model-space point in the planar material
+// region. A nonincident point returns ErrDomain. Boundary is proved against
+// the exact curves; no projected display polygon is used.
+func (r *RationalGraphShellRegions) LocateRational(ctx context.Context, point [3]*big.Rat) (trimvalidate.Location, trimvalidate.Report, error) {
+	if ctx == nil || r == nil || r.certificate == nil || point[0] == nil || point[1] == nil || point[2] == nil {
+		return trimvalidate.Unknown, trimvalidate.Report{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return trimvalidate.Unknown, trimvalidate.Report{}, e
+	}
+	for _, q := range point {
+		if q.Num().BitLen() > r.maxBits || q.Denom().BitLen() > r.maxBits {
+			return trimvalidate.Unknown, trimvalidate.Report{}, geom.ErrConvergence
+		}
+	}
+	if r.plane.dot(point).Cmp(r.plane.offset) != 0 {
+		return trimvalidate.Unknown, trimvalidate.Report{}, geom.ErrDomain
+	}
+	axes := orientedRationalGraphProjection(r.plane)
+	return r.certificate.Locate(ctx, [2]*big.Rat{point[axes[0]], point[axes[1]]})
+}
+
+func orientedRationalGraphProjection(plane polynomialPlaneEquation) [2]int {
 	axes := plane.axes
 	if plane.orientation < 0 {
 		axes[0], axes[1] = axes[1], axes[0]
 	}
+	return axes
+}
+
+func classifyRationalGraphShellRegions(ctx context.Context, section RationalGraphShellSection, faces []splineEmbeddingFace, plane polynomialPlaneEquation, limits geom.SurfacePatchOptions, o RationalGraphShellRegionOptions) (*RationalGraphShellRegions, error) {
+	opts, e := o.Topology.WithDefaults()
+	if e != nil {
+		return nil, e
+	}
+	axes := orientedRationalGraphProjection(plane)
 	rings := make([]trimvalidate.Loop, len(section.Wires))
+	count := 0
 	for i, wire := range section.Wires {
 		for _, id := range wire {
 			b := section.Branches[id]
 			for _, piece := range b.Pieces {
+				count++
+				if count > opts.MaxEdges {
+					return nil, geom.ErrConvergence
+				}
 				h, e := projectedRationalGraphSectionControls(ctx, faces[b.Face].patch, piece, axes, limits)
 				if e != nil {
 					return nil, e
@@ -52,14 +91,14 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 			}
 		}
 	}
-	placements, proof, e := trimvalidate.ClassifyRingForest(ctx, rings, o.Topology)
+	certificate, placements, proof, e := trimvalidate.CertifyRingForest(ctx, rings, opts)
 	if e != nil {
 		return nil, e
 	}
 	if proof.Status != trimvalidate.Certified {
 		return nil, geom.ErrConvergence
 	}
-	out := &RationalGraphShellRegions{ProjectionAxes: axes, Rings: placements}
+	out := &RationalGraphShellRegions{ProjectionAxes: axes, Rings: placements, certificate: certificate, plane: plane, maxBits: opts.MaxBits}
 	byOuter := make(map[int]int, len(placements))
 	for i, r := range placements {
 		if r.Depth%2 == 0 {
