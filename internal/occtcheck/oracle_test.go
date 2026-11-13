@@ -494,3 +494,66 @@ func TestOCCTSphericalPocket(t *testing.T) {
 	}
 	compare(t, r["spherical-pocket"], p.Area, p.Volume, p.Centroid)
 }
+
+// The reference builds independent finite OCCT primitives, including physical
+// lengths of reversed/scaled raw axes. Empty is asserted in the executable:
+// ordinary mass records deliberately require positive volume and area.
+func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
+	ref := runOracle(t, "finite-cylinder-dispatch")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 1}, Radius: 5, Min: -6, Max: 6}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -6, Max: 6}
+	for _, tc := range []struct {
+		name             string
+		lo, hi, zlo, zhi float64
+		kind             parametric.CylinderCommonConstruction
+	}{
+		{"finite-pair-cap", -6, 2, -6, 6, parametric.CylinderCommonPerpendicularCap},
+		{"finite-pair-slab", -3, 2, -6, 6, parametric.CylinderCommonPerpendicularSlab},
+		{"finite-pair-quadrant", 0, 6, -6, 0, parametric.CylinderCommonPerpendicularQuadrant},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			aa, bb := a, b
+			aa.Min, aa.Max = tc.lo, tc.hi
+			bb.Min, bb.Max = tc.zlo, tc.zhi
+			s, e := parametric.FiniteCylinderPairCommon(ctx, aa, bb, 1e-8)
+			if e != nil || s.Construction != tc.kind {
+				t.Fatal(s.Construction, e)
+			}
+			p, e := s.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			if e != nil {
+				t.Fatal(e)
+			}
+			compare(t, ref[tc.name], p.Area, p.Volume, p.Centroid)
+		})
+	}
+	a = geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2}, Axis: geom.Vec3{Y: 2}, Radius: 2, Min: -1, Max: 3}
+	b = geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 10}, Axis: geom.Vec3{Y: -3}, Radius: 2, Min: 1, Max: 2}
+	s, e := parametric.FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if e != nil || s.Construction != parametric.CylinderCommonParallelAxes {
+		t.Fatal(s.Construction, e)
+	}
+	p, e := s.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if e != nil {
+		t.Fatal(e)
+	}
+	compare(t, ref["finite-pair-reverse-parallel"], p.Area, p.Volume, p.Centroid)
+	t.Run("signed-scaled", func(t *testing.T) {
+		aa := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: -1}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: 0, Max: 2.5}
+		bb := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 6, Z: -3}, Axis: geom.Vec3{Y: 4}, Radius: 5, Min: -2.5, Max: .5}
+		out, err := parametric.FiniteCylinderPairCommon(ctx, aa, bb, 1e-8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mass, err := out.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(err)
+		}
+		compare(t, ref["finite-pair-signed-scaled"], mass.Area, mass.Volume, mass.Centroid)
+	})
+	b.Origin.X = 6
+	s, e = parametric.FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if e != nil || s.Construction != parametric.CylinderCommonEmpty || len(s.Solid.Faces()) != 0 {
+		t.Fatal("empty", s.Construction, e)
+	}
+}

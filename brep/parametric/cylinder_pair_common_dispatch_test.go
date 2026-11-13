@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-
 	"testing"
 
 	"plainsolid/geom"
@@ -85,5 +84,55 @@ func TestFiniteParallelCylinderPairCommon(t *testing.T) {
 	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-9)
 	if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
 		t.Fatal("regularized tangent parallel common", out, e)
+	}
+}
+
+func TestFiniteCylinderPairCommonSignedCoordinateCaps(t *testing.T) {
+	ctx := context.Background()
+	center := geom.Vec3{X: 1, Y: 2, Z: -3}
+	// The two raw origins do not coincide. The signed directions and raw
+	// norms put the shared axes at center and the physical caps at [-2, 3]
+	// and [-6, 6]. Cap ancestry must follow raw Min/Max after placement.
+	a := geom.RawCylinder{Origin: center.Add(geom.Vec3{Z: 2}), Axis: geom.Vec3{Z: -2}, Radius: 5, Min: 0, Max: 2.5}
+	b := geom.RawCylinder{Origin: center.Add(geom.Vec3{Y: 4}), Axis: geom.Vec3{Y: 4}, Radius: 5, Min: -2.5, Max: .5}
+	want, e := PerpendicularCylinderSlab(ctx, geom.Vec3{}, 5, -2, 3, 6, 1e-8, geom.ExactCurvePlaneEventOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	props, e := want.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, pair[0], pair[1], 1e-8)
+		if e != nil || out.Construction != CylinderCommonPerpendicularSlab {
+			t.Fatal(out.Construction, e)
+		}
+		owner := 0
+		if pair[1] == a {
+			owner = 1
+		}
+		faces := out.Solid.Faces()
+		for cap, ids := range [2][]int{out.LowerCapFaces[owner], out.UpperCapFaces[owner]} {
+			if len(ids) == 0 {
+				t.Fatal("missing cap ownership", out.LowerCapFaces, out.UpperCapFaces)
+			}
+			z := [2]float64{-1, -6}[cap]
+			for _, id := range ids {
+				f := faces[id]
+				p, e := f.Surface.Eval((f.U.Min+f.U.Max)/2, (f.V.Min+f.V.Max)/2)
+				if e != nil || p.Z != z {
+					t.Fatal("cap moved", p, z, e)
+				}
+			}
+		}
+		if len(out.LowerCapFaces[1-owner])+len(out.UpperCapFaces[1-owner]) != 0 {
+			t.Fatal("unclipped owner acquired a cap")
+		}
+		got, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+		centroid := center.Add(geom.Vec3{X: -props.Centroid.Y, Y: props.Centroid.Z, Z: -props.Centroid.X})
+		if e != nil || math.Abs(got.Volume-props.Volume) > 1e-6 || got.Centroid.Sub(centroid).Length() > 1e-6 {
+			t.Fatal(got, props, centroid, e)
+		}
 	}
 }
