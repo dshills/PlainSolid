@@ -1998,3 +1998,46 @@ local chain through a single STEP assembly occurrence with a proper signed
 coordinate rotation and finite translation. The reader verifies the assembly
 and its local geometry as one canonical graph. OCCT verifies the placed
 shape's area, volume, and transformed centroid.
+
+### Standalone bounded linear extrusion surfaces
+
+`ReadLinearExtrusions`, `WriteLinearExtrusions`, and
+`DecodeLinearExtrusionSurface` add `RECTANGULAR_TRIMMED_SURFACE` over
+`SURFACE_OF_LINEAR_EXTRUSION`, with a clamped full-domain polynomial or rational
+B-spline profile. `LinearExtrusionSurface.Surface()` constructs the equivalent
+native tensor spline with two rows, preserving its U knot parameterization and
+finite V interval. Original profile name/flags, bounded-surface name, signed
+coordinate unit axis and model length unit are preserved. Both trim senses must
+be positive. Partial U, unbounded V, non-unit VECTOR magnitudes, arbitrary axis
+normalization, placed/assembled or topological surface models are rejected.
+
+The standalone reader requires one bounded surface representation with one
+geometric set. Each trim, swept support and profile has one owner; unused
+swept/spline geometry and unsupported records fail. Parser limits bound the
+source, while `MaxVertices` limits the cumulative derived control nets and
+`MaxFaces` limits the surface count. Writer validation and profile staging occur
+before caller output. Geometry scalar decoding follows the native float64
+spline codec; raw decimal spellings are not retained. Source axis/magnitude
+validation and full-U endpoint comparisons use exact decimal values, preventing
+near-unit snapping or a partial interval hidden by float rounding. Weight
+normalization must preserve the represented weight ratios exactly. Translating
+represented poles by the finite V endpoints must be float64-lossless or the
+conversion fails with `geom.ErrUnrepresentable`.
+
+No surface regularity, embedding, face ownership, trim-wire, shell or material
+proof follows from this geometry codec. Generic `ReadSurfaces` remains strict
+and does not silently convert swept surfaces. The retained OCCT source fixture
+contains face topology plus one independently emitted bounded support; only
+its explicit bounded support is decoded by the entity API, and standalone
+`ReadLinearExtrusions` rejects that topological file.
+
+Independent qualification uses `tools/occtref/linear_extrusion.cxx`, built by
+`build_linear_extrusion.sh`; set `PLAINSOLID_OCCT_LINEAR_EXTRUSION` to that
+executable for the optional test. It independently builds a quadratic parabolic
+profile extrusion and verifies native output as one valid OCCT face. The
+millimeter fixture's area is `3*(sqrt(5)+asinh(2)/2)`. Direct OCCT D1 composite
+Simpson integration at 8192/16384 intervals agrees with this analytic value;
+OCCT 8.1 `BRepGProp` returned a discrepant quadrature estimate even with tight
+requested epsilon, so the helper reports that raw value separately. Other
+length units are covered by native round trips, not claimed as independently
+qualified OCCT parameter-scaling conventions.

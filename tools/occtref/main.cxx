@@ -231,6 +231,14 @@ int main(int argc, char** argv) {
       if(count!=2)throw std::runtime_error("expected two independently cut axial cylinders");
       return 0;
     }
+    if(argc==3 && mode=="finite-oblique-parallel-sets"){
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      const auto a=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(3,4,0)),5,10).Shape();
+      const auto b=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(6,8,5),gp_Dir(-3,-4,0)),5,10).Shape();
+      splineShellRecord(out,"finite-oblique-parallel-union",BRepAlgoAPI_Fuse(a,b).Shape());
+      splineShellRecord(out,"finite-oblique-parallel-cut",BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
     if(argc==3 && mode=="finite-cylinder-sets") {
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(13,9,2),gp_Dir(-3,-4,0)),2,30).Shape();

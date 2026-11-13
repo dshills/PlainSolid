@@ -2100,6 +2100,10 @@ mesh closure, and independent OCCT mass properties agree.
 Equal-cap parallel transverse sets compare signed cylinder placement, native
 recipe reload, original cap ancestry, and area, volume, and centroid against
 OCCT. Near tangencies and differing caps remain outside this path.
+The same transverse union and difference now support selected oblique
+parallel axes through an exactly represented similarity. Antiparallel
+input order preserves original wall and cap ownership. Both native reload
+and closed meshes pass, and independent OCCT mass properties agree.
 The native two-radius stepped cylinder can also round-trip through STEP from
 its proved complete revolution boundary. Both signed axial orientations retain
 the analytic annular cap, units, name, and mass. OCCT independently reads the
