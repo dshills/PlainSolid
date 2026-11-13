@@ -31,6 +31,7 @@ type analyticBody struct {
 	stepRounded    *step.RoundedRectangleExtrusionBody
 	stepDisk       *step.DiskHoleExtrusionBody
 	sideNotch      *step.SideNotchBody
+	sideDualDisk   *sideDualDiskRecipe
 	layeredDisk    bool
 	pockets        *pocketStock
 	coaxial        *coaxialBody
@@ -63,6 +64,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 		box, err = body.segment.bounds()
 	} else if body.sideNotch != nil {
 		box, err = sideNotchBounds(*body.sideNotch)
+	} else if body.sideDualDisk != nil {
+		box, err = body.sideDualDisk.bounds()
 	} else if body.coaxial != nil {
 		box, err = body.coaxial.bounds()
 	} else if body.islandPocket != nil {
@@ -164,6 +167,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.stepRounded = nil
 	out.stepDisk = nil
 	out.sideNotch = nil
+	out.sideDualDisk = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -220,6 +224,16 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		if e == nil && cardinalFrame(f) && f.YAxis() == y {
 			p.Frame = f
 			out.sideNotch = &p
+		}
+	}
+	if a.sideDualDisk != nil {
+		if p, ok := a.sideDualDisk.transformed(m); ok {
+			cut, e := p.solid()
+			if e != nil {
+				return nil, e
+			}
+			out.solid, out.sideDualDisk = cut.Solid, &p
+			return &out, nil
 		}
 	}
 	if a.stepRounded != nil {

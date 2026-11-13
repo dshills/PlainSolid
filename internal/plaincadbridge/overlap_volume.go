@@ -63,6 +63,16 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		return result(removed)
 	}
 
+	dualStock, dualTool := a, c
+	if a.cylinder != nil && c.analytic != nil {
+		dualStock, dualTool = c, a
+	}
+	if volume, handled, err := overlapSideDualDisk(dualStock, dualTool); handled {
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	if volume, handled, err := overlapSideNotchBores(a, c); handled {
 		if err != nil {
 			return nil, err

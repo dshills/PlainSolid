@@ -305,6 +305,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.sideNotch != nil:
 		e = step.WriteSideNotch(&out, step.SideNotchModel{Body: *s.analytic.sideNotch, LengthUnit: .001})
+	case s.analytic != nil && s.analytic.sideDualDisk != nil:
+		p := s.analytic.sideDualDisk
+		e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, step.SideOpenDualDiskDescriptor{
+			Name: "PlainSolid", Frame: p.frame, Min: p.min, Max: p.max, Discs: p.discs,
+			Height: p.height, Depth: p.depth, LengthUnit: .001, Tolerance: 1e-9,
+		})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():

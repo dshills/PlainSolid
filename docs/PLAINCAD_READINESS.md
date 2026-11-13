@@ -238,6 +238,18 @@ BRep serialization of anchored analytic trims remains unqualified.
 PlainCAD's recipe persistence is checked separately. Full application and OCCT
 replacement qualification remain open.
 
+## Side-opening overlap adapter checkpoint — 2026-11-13
+
+The review branch now recognizes two same-side circular cuts in one batch or
+as consecutive cuts on a cardinal rectangular solid. The cutters must have
+equal radii and the same clipped blind or through interval, and their exposed
+seam and native spline controls must be exactly representable. The Go bridge
+tests check tool order, reversed drill direction, material capture in either
+argument order, reflection, stock extrema, and model-only STEP writer output.
+An unsupported crossing returns no result handle. This checkpoint does not
+yet exercise the overlap through the browser, qualify its viewer or satisfy
+the app's independent STEP export readback contract.
+
 ## Earlier overlapping Hole cutter checkpoint — 2026-11-13
 
 **22 existing PlainCAD acceptance scenarios pass unchanged**, with zero skipped,
