@@ -847,6 +847,7 @@ int main(int argc, char** argv) {
 #endif
     }
 #ifdef PLAINSOLID_OCCT_STEP
+    if(argc==3 && mode=="polygon-revolve-axis")return polygonRevolveReference(argv[1],true);
     if(argc==3 && mode=="polygon-revolve")return polygonRevolveReference(argv[1]);
 #endif
     if (argc == 3 && mode == "write-iges") {

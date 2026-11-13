@@ -12,24 +12,28 @@ import (
 )
 
 // PolygonRevolveBody sweeps a simple radius/height meridian about Frame Z.
-// This export subset requires 3–32 strictly positive-radius vertices and a
+// This export subset requires 3–32 nonnegative-radius vertices and a
 // nonzero signed partial angle of magnitude less than one full turn.
-// Original concave meridians and planar/cylindrical/conical sides are retained.
+// Radii must be strictly positive unless AllowAxisContact explicitly enables
+// the native-supported single contiguous axis side. Original concave meridians
+// and planar/cylindrical/conical sides are retained.
 type PolygonRevolveBody struct {
 	Name    string
 	Frame   geom.Frame
 	Profile []geom.Vec2
 	Angle   float64
+	// AllowAxisContact admits exactly one contiguous side on the revolution axis.
+	AllowAxisContact bool
 }
 type PolygonRevolveModel struct {
 	Bodies     []PolygonRevolveBody
 	LengthUnit float64
 }
 type revolveSTEPFace struct {
-	frame               geom.Frame
-	kind                string
-	radius, angle, sign float64
-	sense               bool
+	frame                      geom.Frame
+	kind                       string
+	radius, angle, sign, baseZ float64
+	sense                      bool
 }
 
 // WritePolygonRevolves writes closed analytic ADVANCED_FACE graphs with shared
@@ -46,7 +50,7 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 			return geom.ErrInvalid
 		}
 		for _, p := range b.Profile {
-			if p.X <= 0 {
+			if p.X < 0 || p.X == 0 && !b.AllowAxisContact {
 				return geom.ErrInvalid
 			}
 		}
@@ -61,12 +65,19 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 		fs := make([]revolveSTEPFace, len(p)+2)
 		for i, a := range p {
 			z := p[(i+1)%len(p)]
+			if a.X == 0 && z.X == 0 {
+				continue
+			}
 			dr, dz := z.X-a.X, z.Y-a.Y
-			f, e := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{Z: a.Y}), b.Frame.XAxis(), b.Frame.ZAxis())
+			origin := a
+			if a.X == 0 && dz != 0 {
+				origin = z
+			}
+			f, e := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{Z: origin.Y}), b.Frame.XAxis(), b.Frame.ZAxis())
 			if e != nil {
 				return e
 			}
-			s := revolveSTEPFace{frame: f, radius: a.X, sign: 1, sense: dz > 0}
+			s := revolveSTEPFace{frame: f, radius: origin.X, baseZ: origin.Y, sign: 1, sense: dz > 0}
 			switch {
 			case dz == 0:
 				s.kind = "PLANE"
@@ -138,11 +149,18 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 				for i, p := range b.Profile {
 					v := b.Frame.ToWorld(geom.Vec3{X: p.X * math.Cos(u), Y: p.X * math.Sin(u), Z: p.Y})
 					points[j*n+i] = v
+					if j == 1 && p.X == 0 {
+						vertices[j*n+i] = vertices[i]
+						continue
+					}
 					pt := point(v)
 					vertices[j*n+i] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", pt))
 				}
 			}
 			for i, s := range fs {
+				if s.kind == "" {
+					continue
+				}
 				p := place(s.frame)
 				switch s.kind {
 				case "PLANE":
@@ -154,6 +172,9 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 				}
 			}
 			for i, p := range b.Profile {
+				if p.X == 0 {
+					continue
+				}
 				f, _ := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{Z: p.Y}), b.Frame.XAxis(), b.Frame.ZAxis())
 				a := place(f)
 				circle := emit(fmt.Sprintf("CIRCLE('',#%d,%s)", a, real(p.X)))
@@ -164,7 +185,7 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 					if s.kind == "PLANE" {
 						c = circle2(p.X)
 					} else {
-						height := p.Y - b.Profile[owner].Y
+						height := p.Y - s.baseZ
 						if s.kind == "CONICAL_SURFACE" {
 							height /= s.sign * math.Cos(s.angle)
 						}
@@ -178,6 +199,11 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 			for j, u := range []float64{lo, hi} {
 				for i, p := range b.Profile {
 					next := (i + 1) % n
+					axis := p.X == 0 && b.Profile[next].X == 0
+					if axis && j == 1 {
+						edges[2*n+i] = edges[n+i]
+						continue
+					}
 					origin := points[j*n+i]
 					delta := points[j*n+next].Sub(origin)
 					unit, _ := delta.Unit()
@@ -186,15 +212,20 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 					line := emit(fmt.Sprintf("LINE('',#%d,#%d)", pt, v))
 					pcs := []int64{}
 					s := fs[i]
-					if s.kind == "PLANE" {
+					if axis {
+						q := fs[n+1].frame.ToLocal(origin)
+						pcs = append(pcs, pc(surfaces[n+1], line2(geom.Vec2{X: q.X, Y: q.Y}, geom.Vec2{X: unit.Dot(fs[n+1].frame.XAxis()), Y: unit.Dot(fs[n+1].frame.YAxis())})))
+					} else if s.kind == "PLANE" {
 						q := s.frame.ToLocal(origin)
 						pcs = append(pcs, pc(surfaces[i], line2(geom.Vec2{X: q.X, Y: q.Y}, geom.Vec2{X: unit.Dot(s.frame.XAxis()), Y: unit.Dot(s.frame.YAxis())})))
 					} else {
 						v := unit.Dot(b.Frame.ZAxis())
+						startV := p.Y - s.baseZ
 						if s.kind == "CONICAL_SURFACE" {
 							v /= s.sign * math.Cos(s.angle)
+							startV /= s.sign * math.Cos(s.angle)
 						}
-						pcs = append(pcs, pc(surfaces[i], line2(geom.Vec2{X: s.sign * u}, geom.Vec2{Y: v})))
+						pcs = append(pcs, pc(surfaces[i], line2(geom.Vec2{X: s.sign * u, Y: startV}, geom.Vec2{Y: v})))
 					}
 					d := geom.Vec2{X: (b.Profile[next].X - p.X) / delta.Length(), Y: (b.Profile[next].Y - p.Y) / delta.Length()}
 					pcs = append(pcs, pc(surfaces[n+j], line2(p, d)))
@@ -206,6 +237,9 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 			addFace := func(index int, ids []int, forward []bool) {
 				uses := []int64{}
 				for j, id := range ids {
+					if edges[id] == 0 {
+						continue
+					}
 					sense := ".F."
 					if forward[j] {
 						sense = ".T."
@@ -221,6 +255,9 @@ func WritePolygonRevolves(w io.Writer, m PolygonRevolveModel) error {
 				faces = append(faces, emit(fmt.Sprintf("ADVANCED_FACE('',(#%d),#%d,%s)", bound, surfaces[index], sense)))
 			}
 			for i := range b.Profile {
+				if surfaces[i] == 0 {
+					continue
+				}
 				addFace(i, []int{i, 2*n + i, (i + 1) % n, n + i}, []bool{true, true, false, false})
 			}
 			ids := make([]int, n)

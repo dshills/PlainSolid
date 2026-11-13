@@ -1816,7 +1816,8 @@ close the shell. Names and model length units are retained. No triangulation or
 mesh conversion is used. This is an export-only adapter: it does not broaden
 existing shape readers into a general polygon-revolution decoder.
 
-Axis-contacting profiles, full turns, degenerate/near-full sweeps, intersecting
+Without the explicit option below, axis-contacting profiles are rejected.
+Full turns, degenerate/near-full sweeps, intersecting
 meridians and unrepresentable cone angles are rejected explicitly. As with the
 existing analytic sector codecs, analytic placement and cone angles use
 represented float64 values and the native validation tolerance, not the
@@ -1824,3 +1825,13 @@ rational coefficient identity contract of the certified spline codecs.
 Independent pinned OCCT native revolutions and imported output agree in area,
 volume and centroid for concave and mixed conical meridians at +90°, −60° and
 +270°, using a translated axis rotated away from global Z.
+
+`PolygonRevolveBody.AllowAxisContact` explicitly admits one contiguous axis
+side, still validated by the native meridian and material constructor. Both
+radial caps share the same axis edge and pole vertices; zero-radius angular
+edges are omitted, so adjacent planar/conical sides have triangular boundary
+loops instead of artificial collapsed circles. Isolated/multiple/noncontiguous
+axis contacts remain unsupported. Independent OCCT native-revolve comparisons
+qualify concave axis-contact profiles and both expanding/narrowing conical
+apices for signed and greater-than-half-turn sweeps. Source topology tests
+verify every nondegenerate edge has exactly two opposite owner uses.

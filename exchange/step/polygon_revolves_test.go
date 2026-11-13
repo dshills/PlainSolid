@@ -20,10 +20,21 @@ func polygonRevolveFixture(t *testing.T, kind string, angle float64) PolygonRevo
 		t.Fatal(e)
 	}
 	p := []geom.Vec2{{X: 1}, {X: 3}, {X: 3, Y: 1}, {X: 2, Y: 1}, {X: 2, Y: 2}, {X: 1, Y: 2}}
+	if kind == "axis-concave" {
+		for i := range p {
+			p[i].X--
+		}
+	}
+	if kind == "apex-end" {
+		p = []geom.Vec2{{}, {X: 1}, {X: 2, Y: 2}, {Y: 3}}
+	}
+	if kind == "apex" {
+		p = []geom.Vec2{{}, {X: 2, Y: 1}, {X: 1, Y: 3}, {Y: 3}}
+	}
 	if kind == "cone" {
 		p = []geom.Vec2{{X: 1}, {X: 3}, {X: 2.5, Y: 1}, {X: 3, Y: 2}, {X: 1.5, Y: 2}, {X: 1, Y: 1}}
 	}
-	return PolygonRevolveModel{LengthUnit: .001, Bodies: []PolygonRevolveBody{{Name: kind, Frame: f, Profile: p, Angle: angle}}}
+	return PolygonRevolveModel{LengthUnit: .001, Bodies: []PolygonRevolveBody{{Name: kind, Frame: f, Profile: p, Angle: angle, AllowAxisContact: kind == "axis-concave" || kind == "apex" || kind == "apex-end"}}}
 }
 func TestPolygonRevolveSTEP(t *testing.T) {
 	for _, kind := range []string{"concave", "cone"} {
