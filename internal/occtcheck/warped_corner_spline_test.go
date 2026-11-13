@@ -219,11 +219,16 @@ func oracleGraphClipStock(t *testing.T, crease, cubic bool) trimmed.Solid {
 			}
 			ku, kv := knots(degree[0]), knots(degree[1])
 			counts := [2]int{degree[0] + 1, degree[1] + 1}
-			if crease && u == 0 {
-				ku, counts[0] = []float64{0, 0, 0, .5, .5, 1, 1, 1}, 5
-			}
-			if crease && v == 0 {
-				kv, counts[1] = []float64{0, 0, 0, .5, .5, 1, 1, 1}, 5
+			if crease {
+				kx, count := []float64{0, 0, 0, .5, .5, 1, 1, 1}, 5
+				if cubic {
+					kx, count = []float64{0, 0, 0, 0, 0, .5, .5, .5, .5, 1, 1, 1, 1, 1}, 9
+				}
+				if u == 0 {
+					ku, counts[0] = kx, count
+				} else if v == 0 {
+					kv, counts[1] = kx, count
+				}
 			}
 			var points []geom.Vec3
 			for i := range counts[0] {
@@ -232,7 +237,11 @@ func oracleGraphClipStock(t *testing.T, crease, cubic bool) trimmed.Solid {
 					p[axis], p[u], p[v] = float64(side), float64(i)/float64(counts[0]-1), float64(j)/float64(counts[1]-1)
 					xz := p[0] / 8
 					if cubic {
-						z := [5]float64{0, 0, 0, 1. / 32, 1. / 8}
+						z := []float64{0, 0, 0, 1. / 32, 1. / 8}
+						if crease {
+							z = []float64{1. / 64, 3. / 256, 1. / 128, 1. / 128, 1. / 64, 1. / 32, 7. / 128, 23. / 256, 9. / 64}
+							xz += 1. / 64
+						}
 						if u == 0 {
 							xz = z[i]
 						} else if v == 0 {
@@ -322,5 +331,25 @@ func TestOCCTPolynomialSplinePlaneClip(t *testing.T) {
 			t.Fatal(name, err)
 		}
 		compare(t, refs[name], mass.Area, mass.Volume, mass.Centroid)
+	}
+}
+
+func TestOCCTPiecewisePolynomialSplinePlaneClip(t *testing.T) {
+	refs := runOracle(t, "piecewise-polynomial-graph-plane")
+	ctx := context.Background()
+	stock := oracleGraphClipStock(t, true, true)
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(x, y float64) float64 { return 0 })
+	for i, name := range []string{"piecewise-polynomial-plane-common", "piecewise-polynomial-plane-cut"} {
+		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
+		r, err := trimmed.CombinePiecewisePolynomialSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.PolynomialPlaneSpanOptions{})
+		ref, ok := refs[name]
+		if err != nil || !ok || ref.Shells != 1 || len(r.Solid.Topology().Shells) != ref.Shells || len(r.SectionEdges) != 6 || len(r.Knots) != 2 {
+			t.Fatal(name, "piecewise topology", ref.Shells, err)
+		}
+		mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(err)
+		}
+		compare(t, ref, mass.Area, mass.Volume, mass.Centroid)
 	}
 }

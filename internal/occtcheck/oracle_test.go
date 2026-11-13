@@ -27,6 +27,7 @@ type record struct {
 	Name         string
 	Area, Volume float64
 	Centroid     [3]float64
+	Shells       int
 }
 
 func runOracle(t *testing.T, args ...string) map[string]record {
