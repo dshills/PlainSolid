@@ -424,12 +424,16 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 Finite coaxial sphere/cylinder common now retains the applicable
 cylindrical band, spherical caps or zones, and planar clipping caps.
 Subtraction supports a contained cavity, a blind or through bore, and
-cuts that separate the sphere into two native components. A
+cuts that separate the sphere into two native components. Union retains
+annular shoulders at the ends of protruding cylindrical stock and preserves
+disjoint components. The nonpolar algebraic common operation encloses the
+ideal volume and supplies explicit seam bounds for irrational trims. A
 separate finite blind bore supports exact and algebraically enclosed rim
 heights. Exact off-axis angular contact classification distinguishes
 smooth loops, isolated tangency, and a crossing node; general off-axis
-trim assembly remains open. Fixed finite cap events now have an exact
-zero, one, two or coincident-circle classifier.
+trim assembly remains open. Fixed finite cap events have an exact zero,
+one, two or coincident-circle classifier. Finite off-axis contact graphs
+preserve cap ownership, isolated points, and four-germ tangent nodes.
 
 ## Continuing implementation
 

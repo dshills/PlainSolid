@@ -931,3 +931,12 @@ The long fillet and chamfer STEP fixtures retain native vertex and edge
 identities through export. The optional OCCT oracle builds an independent
 arc-and-line prism, adds the bores and pocket by cutting, and adds the boss
 by fusing; both resulting STEP bodies match its area, volume and centroid.
+
+Finite union tests qualify annular shoulders, both transverse rim joins,
+contained stock and two disconnected bodies. The shoulder mesh has positive
+orientation and no detected self-contacts. Independent OCCT comparisons
+match native area, volume and centroid for a shoulder union, blind bore,
+finite common with one axial cap, and finite common with two algebraic
+sphere-to-cylinder rim heights and algebraic cap radii. The off-axis
+finite graph tests distinguish cap folds, a four-germ node, and isolated
+points without inventing edges for sheets clipped to zero width.

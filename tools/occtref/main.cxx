@@ -1055,6 +1055,14 @@ int main(int argc, char** argv) {
     const auto boreTool = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, -4), gp_Dir(0, 0, 1)), std::sqrt(5.0), 8).Shape();
     record(out, "bored-sphere", BRepAlgoAPI_Cut(boreBall, boreTool).Shape());
     record(out, "spherical-core", BRepAlgoAPI_Common(boreBall, boreTool).Shape());
+    const auto finiteBall = BRepPrimAPI_MakeSphere(5).Shape();
+    const auto finiteBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, 2), gp_Dir(0, 0, 1)), 3, 4).Shape();
+    const auto finiteBand = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, -4), gp_Dir(0, 0, 1)), 5, 8).Shape();
+    const auto algebraicBand = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, -4.75), gp_Dir(0, 0, 1)), 2, 9.5).Shape();
+    record(out, "finite-sphere-cylinder-blind-cut", BRepAlgoAPI_Cut(finiteBall, finiteBore).Shape());
+    record(out, "finite-sphere-cylinder-union", BRepAlgoAPI_Fuse(finiteBall, finiteBand).Shape());
+    record(out, "finite-sphere-cylinder-common", BRepAlgoAPI_Common(finiteBall, finiteBore).Shape());
+    record(out, "finite-sphere-cylinder-algebraic-common", BRepAlgoAPI_Common(finiteBall, algebraicBand).Shape());
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

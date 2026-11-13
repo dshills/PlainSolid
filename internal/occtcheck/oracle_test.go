@@ -330,6 +330,40 @@ func TestOCCTSphereCylinder(t *testing.T) {
 	}
 }
 
+func TestOCCTFiniteSphereCylinder(t *testing.T) {
+	r := runOracle(t)
+	ctx := context.Background()
+	f, e := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	check := func(name string, s parametric.Solid, e error) {
+		t.Helper()
+		if e != nil {
+			t.Fatal(name, e)
+		}
+		p, e := s.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil {
+			t.Fatal(name, e)
+		}
+		compare(t, r[name], p.Area, p.Volume, p.Centroid)
+	}
+	d, e := parametric.SphereFiniteCylinderDifference(ctx, f, 5, 3, 2, 6, 1e-9)
+	if e != nil || len(d.Solids) != 1 {
+		t.Fatal("blind cut", e, len(d.Solids))
+	}
+	check("finite-sphere-cylinder-blind-cut", d.Solids[0], nil)
+	u, e := parametric.SphereFiniteCylinderUnion(ctx, f, 5, 5, -4, 4, 1e-9)
+	if e != nil || len(u.Solids) != 1 {
+		t.Fatal("union", e, len(u.Solids))
+	}
+	check("finite-sphere-cylinder-union", u.Solids[0], nil)
+	c, e := parametric.SphereFiniteCylinderCommon(ctx, f, 5, 3, 2, 6, 1e-9)
+	check("finite-sphere-cylinder-common", c.Solid, e)
+	a, e := parametric.SphereFiniteCylinderCommonAlgebraic(ctx, f, 5, 2, -4.75, 4.75, 1e-8, geom.ExactCurvePlaneEventOptions{})
+	check("finite-sphere-cylinder-algebraic-common", a.Solid, e)
+}
+
 func TestOCCTBoredBox(t *testing.T) {
 	r := runOracle(t)
 	box, e := brep.Box(geom.Vec3{X: -2, Y: -2, Z: -1}, geom.Vec3{X: 4, Y: 3, Z: 2})
