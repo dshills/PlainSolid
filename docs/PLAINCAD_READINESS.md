@@ -19,7 +19,13 @@ The [production report](evidence/plaincad-production-2026-11-13.json)
 records all seven selected original tests passing with the built Go WASM
 app under its production CSP. Coverage includes native modeling, circle
 STL, scope capture, STEP export and import, and shop drawing. The original
-bundle budget also passes. The full production suite remains open.
+bundle budget also passes.
+
+The first full [production run](evidence/plaincad-production-full-baseline-2026-11-13.json)
+passes 61 of 66 originals. The five remaining cases cover the configuration
+package, production performance deadline, cable-guide preview, Acme lead
+pair and UNC thread pair. The full development suite contains 340 originals
+and remains open.
 
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 

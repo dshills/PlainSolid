@@ -6,6 +6,14 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+The first full production run passes 61 of 66 originals. The five failures
+are the fabrication package's STEP wait, the production performance test's
+overall deadline, the cable-guide live preview, the non-dyadic Acme lead
+pair, and the quarter-inch UNC pair. The UNC internal thread also requires
+retaining the exterior of rectangular stock around its machined bore.
+Full development discovery lists 340 original cases and execution remains
+open.
+
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
 Shell and three Hole pattern cases pass the expanded original selection.
 The same run exposes two remaining pattern failures, a circular pocket
