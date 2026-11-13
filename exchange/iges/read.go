@@ -34,6 +34,9 @@ func field(s string) (int, error) {
 // agree. Unsupported entities, transformations and non-unit model scales fail.
 func Read(r io.Reader, l Limits) (Model, error) { return readCurvedMode(r, l, false) }
 func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
+	return readGeometryMode(r, l, curved, false)
+}
+func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -192,6 +195,11 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 		if e != nil {
 			return Model{}, e
 		}
+		if wires {
+			if e := compositeSourceNumbers(kind, values); e != nil {
+				return Model{}, e
+			}
+		}
 		if kind == 124 {
 			if first[6] != 0 || second[4] != 0 {
 				return Model{}, errors.New("iges: nested/nonzero-form matrix unsupported")
@@ -256,12 +264,12 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 			continue
 		}
 		if kind == 102 {
-			if first[6] != 0 || second[4] != 0 || len(values) < 6 {
+			if first[6] != 0 || second[4] != 0 || len(values) < 3 {
 				return Model{}, errors.New("iges: invalid composite directory")
 			}
 			typ, er := intValue(values[0])
 			n, er2 := intValue(values[1])
-			if er != nil || er2 != nil || typ != 102 || n < 4 || n > MaxOrthogonalVertices || n%2 != 0 || len(values) < 2+n {
+			if er != nil || er2 != nil || typ != 102 || n < 1 || n > MaxOrthogonalVertices || (!wires && (n < 4 || n%2 != 0)) || len(values) < 2+n {
 				return Model{}, errors.New("iges: unsupported composite edge count")
 			}
 			refs := make([]int, n)
@@ -338,7 +346,7 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 			model.Entities[idx].Composite.Curves[j] = k
 			owned[id] = true
 		}
-		if e := model.validateComposite(idx); e != nil {
+		if e := model.validateCompositeMode(idx, wires); e != nil {
 			return Model{}, e
 		}
 	}
@@ -367,7 +375,7 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 		model.CurvesOnSurfaces = append(model.CurvesOnSurfaces, c)
 	}
 	for id, idx := range entityIndex {
-		if model.Entities[idx].Composite != nil && !owned[id] {
+		if model.Entities[idx].Composite != nil && !owned[id] && !wires {
 			return Model{}, errors.New("iges: standalone composites unsupported")
 		}
 	}

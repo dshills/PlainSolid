@@ -70,7 +70,7 @@ type Entity struct {
 	Composite *CompositeCurve
 }
 
-// CompositeCurve contains 4–64 direct curve entity indices. Nested composites are unsupported.
+// CompositeCurve contains 1–64 direct curve entity indices. Generic surface-trim codecs require even counts of at least four; standalone wires use ReadCompositeCurves/WriteCompositeCurves. Nested composites are unsupported.
 type CompositeCurve struct{ Curves []int }
 
 // Polyline stores a type-106 form-12 sequence of XYZ points. It is not a
@@ -199,7 +199,7 @@ func (e Entity) validate() error {
 	n := 0
 	if e.Composite != nil {
 		n++
-		if (len(e.Composite.Curves) < 4 || len(e.Composite.Curves) > MaxOrthogonalVertices || len(e.Composite.Curves)%2 != 0) || e.Transform != nil || e.Form != 0 {
+		if (len(e.Composite.Curves) < 1 || len(e.Composite.Curves) > MaxOrthogonalVertices) || e.Transform != nil || e.Form != 0 {
 			return errors.New("iges: unsupported composite curve")
 		}
 	}

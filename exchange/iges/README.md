@@ -587,3 +587,36 @@ line/spline-only scope.
 The independently authored `testdata/polyline.iges` fixes form and flag semantics.
 The optional OCCT oracle independently writes an ordered form-12/IP2 entity
 and verifies that a placed PlainSolid export preserves each transformed point.
+
+## Standalone exact direct composite curves
+
+`ReadCompositeCurves` and `WriteCompositeCurves` add a separate type-102 wire
+codec. Each root owns 1–64 ordered direct type-110 lines, type-100 circular arcs,
+or type-126 bounded spline leaves. Up to 64 roots, 4096 total entities and 4096
+spline poles are accepted, in addition to parser limits. A leaf belongs to
+exactly one root; duplicates, cycles, nested composites, unowned geometry and
+surface topology fail. Generic `Read`/`Write` retain their prior trim-only
+composite contract. Roots and leaves retain original model order, directory
+labels, units and supported type-124 affine transforms.
+
+Every consecutive pair must have exactly equal directed model endpoints;
+there is no reversal inference, tolerance welding or implied final closure.
+Arc endpoint squared radii must agree exactly. Bounded spline endpoints are
+computed by the exact homogeneous evaluator and must be representable without
+rounding. Affine endpoint mapping and join comparisons use rational arithmetic.
+This proves connectivity, not simplicity, tangent continuity or material bounds.
+
+Original geometry parameter decimals must be exactly representable as float64;
+nonbinary decimal coordinates such as `0.1` are explicitly unsupported here.
+Source scalars are limited to 64 characters, exponent magnitude 256 and 2048
+rational coefficient bits. Source spline weight normalization must also be exact.
+Consequently a decimal gap cannot disappear during parsing. Writer output is
+staged and checked against the same contract before any bytes reach the caller;
+a represented float whose emitted decimal would change its exact value fails.
+This deliberately narrow source identity requirement is separate from generic
+IGES numeric import behavior. Units remain explicit metadata without rescaling.
+
+The independently authored OCCT type-102 fixture combines a line and quarter
+circle. `tools/occtref/build_composite_curve.sh` builds an optional standalone
+helper; set `PLAINSOLID_OCCT_COMPOSITE` to run both-direction wire validity,
+edge count and analytic length checks. No runtime OCCT dependency is introduced.

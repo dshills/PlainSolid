@@ -112,6 +112,9 @@ func encode(e Entity) (int, string) {
 // Optional associativity/property pointers are emitted as zero. Caller owns w.
 func Write(w io.Writer, m Model) error { return writeCurvedMode(w, m, false) }
 func writeCurvedMode(w io.Writer, m Model, curved bool) error {
+	return writeGeometryMode(w, m, curved, false)
+}
+func writeGeometryMode(w io.Writer, m Model, curved, wires bool) error {
 	if w == nil {
 		return errors.New("iges: nil writer")
 	}
@@ -130,7 +133,7 @@ func writeCurvedMode(w io.Writer, m Model, curved bool) error {
 		usedComposites[c.ModelCurve] = true
 	}
 	for i, e := range m.Entities {
-		if e.Composite != nil && !usedComposites[i] {
+		if e.Composite != nil && !usedComposites[i] && !wires {
 			return errors.New("iges: standalone composites unsupported")
 		}
 	}
@@ -158,7 +161,7 @@ func writeCurvedMode(w io.Writer, m Model, curved bool) error {
 	}
 	for i, e := range m.Entities {
 		if e.Composite != nil {
-			if err := m.validateComposite(i); err != nil {
+			if err := m.validateCompositeMode(i, wires); err != nil {
 				return err
 			}
 		}
