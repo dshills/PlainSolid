@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "kind": "original-real-wasm-unit-subset",
+  "workspace": "/tmp/plainsolid-unit-native-01",
+  "sourceSnapshot": "/tmp/plainsolid-unc-placement-acceptance-01/readiness.json",
+  "sourceManifest": {
+    "src/cad/kernel/OpenCascadeKernel.ts": "93a79f80e5a2d7421cb167a0ec60a38e7ea09721c8abbf9e90d5e17e132fd264",
+    "src/tests/modelingGeometry.test.ts": "3be9d1484bcfcb7f4959818fd91bf33eef50a510ad98aff92aaabd7ef03b9214",
+    "src/tests/setup.ts": "efcd3b707146cdcef297325821736f2b564c48294c19da84fab920c0471cb544",
+    "src/tests/plainSolidRuntimeSetup.ts": "620ada2100f2672048fe423ac5946b2fb5bb21baa2d5e0c1ef3d45b4a744f9b4",
+    "vitest.plainsolid.config.ts": "cebeb37c57a3ef832d3a85bf26fa8b98386096eedae78c5534435b427317182a",
+    "public/assets/plainsolid-kernel.wasm": "dc0fca5d0fc0a6478f155aac5043cc71691496575ae00a43655341e1bb8eba6c"
+  },
+  "result": "/tmp/plainsolid-unit-ownership-results-01.json",
+  "resultSha256": "685fad2357c54cace122792c7282ca4a50171cf7549cefaa3fbc116c407fd0a2",
+  "selectedOriginalCases": 4,
+  "passed": 4,
+  "failed": 0,
+  "unselected": 33,
+  "setup": "Isolated opt-in setup serves actual local WASM bytes and awaits original adapter initialize; original selected assertions unchanged, provider literal labels inherited from harness.",
+  "notes": [
+    "33 unselected tests are not counted as passes.",
+    "Native runtime pinned to captured UNC snapshot; adapter contains targeted metadata/disposal repair and existing placement identity change."
+  ]
+}
