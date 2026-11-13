@@ -164,8 +164,10 @@ func TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry(t *testing.T) {
 	}
 	grazing := circle(t, b, vector{3.5, 0, 0}, vector{0, 0, 1}, 1, 8)
 	before = len(b.shapes)
-	reply = b.Call(`{"op":"overlapVolume","a":"` + base.Handle + `","b":"` + grazing.Handle + `"}`)
-	if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {
-		t.Fatal("unsupported overlap silently classified", reply)
+	want := 8 * (math.Pi - math.Acos(.5) + .5*math.Sqrt(.75))
+	near(t, overlapMeasure(t, b, base.Handle, grazing.Handle), want)
+	near(t, overlapMeasure(t, b, grazing.Handle, base.Handle), want)
+	if len(b.shapes) != before {
+		t.Fatal("side-clipped overlap allocated a handle")
 	}
 }

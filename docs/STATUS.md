@@ -13,8 +13,9 @@ gallery, including placement of both helical bodies. Production performance
 still exceeds its overall deadline after producing all validated samples.
 The volume-checked compact bore mesh reduces the benchmark from 528 to
 144 triangles per STL. The concurrent production run still exceeds its
-deadline. An isolated timing retest and OCCT control are pending. Full development discovery lists 340 original
-cases and execution remains open.
+deadline. An isolated timing retest and OCCT control are pending. The frozen development baseline ran 340 originals with 264 passes. Later
+focused runs pass 54 of the baseline failures, including 10 origin-dependent
+setup cases. The current integration still needs a consolidated rerun.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,
