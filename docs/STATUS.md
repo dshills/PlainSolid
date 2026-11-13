@@ -26,6 +26,11 @@ Separated blind spans at the same interior site preserve the material web
 and both cap openings through STEP.
 Intersecting noncoaxial notch footprints remain open.
 
+PlainCAD also imports the strict split-cylinder STEP model and rooted
+product dialects from main as native cylindrical stock, retaining its
+signed coordinate pose and allowing a subsequent exact Hole and STEP
+export.
+
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The
 original eight-case Hole, Revolve, compound profile and STEP selection
