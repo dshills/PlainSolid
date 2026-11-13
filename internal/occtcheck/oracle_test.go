@@ -569,6 +569,28 @@ func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
 		}
 		compare(t, ref["finite-pair-contained-skew"], mass.Area, mass.Volume, mass.Centroid)
 	})
+
+	for _, tc := range []struct {
+		name                       string
+		ra, rb, xlo, xhi, zlo, zhi float64
+	}{
+		{"finite-pair-unequal-window", 3, 5, -2, 4.5, -2, 1},
+		{"finite-pair-unequal-swapped", 5, 3, .5, 2, -4.5, 3.5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			aa := geom.RawCylinder{Axis: geom.Vec3{X: 1}, Radius: tc.ra, Min: tc.xlo, Max: tc.xhi}
+			bb := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: tc.rb, Min: tc.zlo, Max: tc.zhi}
+			out, err := parametric.FiniteCylinderPairCommon(ctx, aa, bb, 1e-8)
+			if err != nil || out.Construction != parametric.CylinderCommonPerpendicularCapWindows {
+				t.Fatal(out.Construction, err)
+			}
+			mass, err := out.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			if err != nil {
+				t.Fatal(err)
+			}
+			compare(t, ref[tc.name], mass.Area, mass.Volume, mass.Centroid)
+		})
+	}
 	b.Origin.X = 6
 	s, e = parametric.FiniteCylinderPairCommon(ctx, a, b, 1e-9)
 	if e != nil || s.Construction != parametric.CylinderCommonEmpty || len(s.Solid.Faces()) != 0 {

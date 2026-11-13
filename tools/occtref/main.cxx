@@ -220,6 +220,12 @@ int main(int argc, char** argv) {
       record(out,"finite-pair-dual-cap-tail",BRepAlgoAPI_Common(x(2,6),z(-6,-3)).Shape(),1e-11);
       record(out,"finite-pair-four-cap",BRepAlgoAPI_Common(x(-1,2),z(-3,4)).Shape(),1e-11);
       record(out,"finite-pair-four-cap-tail",BRepAlgoAPI_Common(x(1,2),z(-4,-3)).Shape(),1e-11);
+      const auto unequalX = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,0,0),gp_Dir(1,0,0)),3,6.5).Shape();
+      const auto unequalZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,-2),gp_Dir(0,0,1)),5,3).Shape();
+      record(out,"finite-pair-unequal-window",BRepAlgoAPI_Common(unequalX,unequalZ).Shape(),1e-11);
+      const auto swappedX = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5,0,0),gp_Dir(1,0,0)),5,1.5).Shape();
+      const auto swappedZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,-4.5),gp_Dir(0,0,1)),3,8).Shape();
+      record(out,"finite-pair-unequal-swapped",BRepAlgoAPI_Common(swappedX,swappedZ).Shape(),1e-11);
       const auto containedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,3,4),gp_Dir(1,0,0)),2,8).Shape();
       const auto containedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,4,6),gp_Dir(0,0,-1)),5,4).Shape();
       record(out,"finite-pair-contained-skew",BRepAlgoAPI_Common(containedA,containedB).Shape(),1e-11);
