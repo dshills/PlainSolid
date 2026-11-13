@@ -972,6 +972,258 @@
       "fullReport": "/tmp/plainsolid-worker-e73ed26/readiness.json",
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1112
+    },
+    {
+      "sourceIdentity": {
+        "head": "1c591283824087a688489b238006e49344aa9e48",
+        "status": "M e2e/studio.spec.ts\n M specs/working-cad/VALIDATION_LOG.md\n M src/viewer/CadViewer.tsx\n M src/viewer/studioEffectsController.ts\n M src/viewer/studioLighting.ts\n M src/viewer/viewerControls.css",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "13fd01afbee8b6f0c6c02ad6b477f7548f9c5cd4",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/hole-edit.spec.ts",
+        "grep": "Edit Hole verifies"
+      },
+      "startedAt": "2026-11-13T17:46:24.026Z",
+      "finishedAt": "2026-11-13T17:49:04.350Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "2354f8b47bbc5581277f4abd8280e66296c6c2c9ed82af6eb49b08b451234d2b",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-holeedit-13fd01a/backend-results.json",
+          "startTime": "2026-11-13T17:47:09.969Z",
+          "duration": 16644.923000000003,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-holeedit-13fd01a/playwright-results.json",
+          "startTime": "2026-11-13T17:47:27.384Z",
+          "duration": 96945.22,
+          "expected": 0,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 13659,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "hole-edit.spec.ts",
+          "line": 159,
+          "title": "Edit Hole verifies the operation and downstream chamfer, cancels, rejects no-op downstream cuts, and preserves native geometry/IDs through undo/save/open/STL",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "durationMs": 91413,
+              "errors": [
+                {
+                  "location": {
+                    "file": "/private/tmp/plainsolid-holeedit-13fd01a/e2e/hole-edit.spec.ts",
+                    "column": 6,
+                    "line": 150
+                  },
+                  "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7msucceed\u001b[27med\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mfail\u001b[27med\"\u001b[39m\n\nCall Log:\n- Test timeout of 90000ms exceeded\n\n  148 |     ).toBeLessThan(1e-8);\n  149 |     if (operation) expect(mesh!.kernelOperation).toBe(operation);\n> 150 |   }).toPass();\n      |      ^\n  151 | }\n  152 | async function open(page: Page) {\n  153 |   await page\n    at ready (/private/tmp/plainsolid-holeedit-13fd01a/e2e/hole-edit.spec.ts:150:6)\n    at /private/tmp/plainsolid-holeedit-13fd01a/e2e/hole-edit.spec.ts:165:9"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-holeedit-13fd01a/readiness.json",
+      "fullReportSha256": "472a7f876c95972c525ef87e02bea1a47e121fd942ed919bb0b80636d88d32bd",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1112,
+      "firstFailure": "Initial layered-bore chamfer is unsupported; editing and its downstream assertions were not reached."
+    },
+    {
+      "sourceIdentity": {
+        "head": "1c591283824087a688489b238006e49344aa9e48",
+        "status": "M e2e/studio.spec.ts\n M specs/working-cad/VALIDATION_LOG.md\n M src/viewer/CadViewer.tsx\n M src/viewer/studioEffectsController.ts\n M src/viewer/studioLighting.ts\n M src/viewer/viewerControls.css",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "13fd01afbee8b6f0c6c02ad6b477f7548f9c5cd4",
+        "status": "",
+        "branch": ""
+      },
+      "selected": {
+        "testFile": "e2e/display-mesh.spec.ts",
+        "grep": "zoomed native display"
+      },
+      "startedAt": "2026-11-13T17:48:38.236Z",
+      "finishedAt": "2026-11-13T17:50:03.394Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "4b18fb7138d579c47265f6cad619b3cf39458ad7781798e68c19a5d201dd7131",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-displaymesh-13fd01a/backend-results.json",
+          "startTime": "2026-11-13T17:49:16.094Z",
+          "duration": 16963.911,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-displaymesh-13fd01a/playwright-results.json",
+          "startTime": "2026-11-13T17:49:33.787Z",
+          "duration": 29595.136,
+          "expected": 0,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 13517,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "display-mesh.spec.ts",
+          "line": 16,
+          "title": "zoomed native display uses finer triangles without replacing the pick geometry or issuing another rebuild",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "durationMs": 23621,
+              "errors": [
+                {
+                  "location": {
+                    "file": "/private/tmp/plainsolid-displaymesh-13fd01a/e2e/display-mesh.spec.ts",
+                    "column": 47,
+                    "line": 19
+                  },
+                  "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.rebuild-pill')\nExpected: \u001b[32m\"\u001b[7msucceed\u001b[27med\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mfail\u001b[27med\"\u001b[39m\nTimeout:  20000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" locator('.rebuild-pill') with timeout 20000ms\u001b[22m\n\u001b[2m  - waiting for locator('.rebuild-pill')\u001b[22m\n\u001b[2m    5 × locator resolved to <div class=\"rebuild-pill loadingKernel\">loadingKernel</div>\u001b[22m\n\u001b[2m      - unexpected value \"loadingKernel\"\u001b[22m\n\u001b[2m    39 × locator resolved to <div class=\"rebuild-pill failed\">failed</div>\u001b[22m\n\u001b[2m       - unexpected value \"failed\"\u001b[22m\n\n\n  17 |   await page.goto(\"/\");\n  18 |   await page.locator('input[type=\"file\"]').setInputFiles(orbitFile);\n> 19 |   await expect(page.locator(\".rebuild-pill\")).toHaveText(\"succeeded\");\n     |                                               ^\n  20 |   await expect.poll(async () => (await view(page))?.meshes.length).toBe(1);\n  21 |   const accepted = await aiSnapshot(page);\n  22 |   const first = await view(page);\n    at /private/tmp/plainsolid-displaymesh-13fd01a/e2e/display-mesh.spec.ts:19:47"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-displaymesh-13fd01a/readiness.json",
+      "fullReportSha256": "245986a35f6133161ad2cb9043f2dd4e6bb0b26b9bdf72fdbdeb3450635e0236",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1112,
+      "firstFailure": "Orbit-drive-housing initial rebuild fails; zoom and refinement assertions were not reached."
+    },
+    {
+      "sourceIdentity": {
+        "head": "1c591283824087a688489b238006e49344aa9e48",
+        "status": "M e2e/studio.spec.ts\n M specs/working-cad/VALIDATION_LOG.md\n M src/viewer/CadViewer.tsx\n M src/viewer/studioEffectsController.ts\n M src/viewer/studioLighting.ts\n M src/viewer/viewerControls.css",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "13fd01afbee8b6f0c6c02ad6b477f7548f9c5cd4",
+        "status": "",
+        "branch": ""
+      },
+      "selected": {
+        "testFile": "e2e/retained-edge-picking.spec.ts",
+        "grep": "retained-edge native preview cannot apply"
+      },
+      "startedAt": "2026-11-13T17:49:57.649Z",
+      "finishedAt": "2026-11-13T17:51:29.849Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "4b18fb7138d579c47265f6cad619b3cf39458ad7781798e68c19a5d201dd7131",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-retainedstale-13fd01a/backend-results.json",
+          "startTime": "2026-11-13T17:50:48.000Z",
+          "duration": 18772.472,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-retainedstale-13fd01a/playwright-results.json",
+          "startTime": "2026-11-13T17:51:07.349Z",
+          "duration": 22487.381999999998,
+          "expected": 0,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 14187,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-edge-picking.spec.ts",
+          "line": 160,
+          "title": "retained-edge native preview cannot apply after same-ID project replacement",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "durationMs": 18745,
+              "errors": [
+                {
+                  "location": {
+                    "file": "/private/tmp/plainsolid-retainedstale-13fd01a/e2e/retained-edge-picking.spec.ts",
+                    "column": 101,
+                    "line": 163
+                  },
+                  "message": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-operation-target=\"edge:feature_f0308632:endCapPerimeter:line_285c0511\"]')\u001b[22m\n\n\n  161 |   const ids = await fixture(page, { plane: \"XY\", mode: \"join\", direction: \"positive\" });\n  162 |   await page.getByRole(\"button\", { name: \"Use Chamfer on geometry\", exact: true }).click();\n> 163 |   await page.locator(`[data-operation-target=\"edge:${ids.ownerId}:endCapPerimeter:${ids.leftId}\"]`).click();\n      |                                                                                                     ^\n  164 |   const dialog = page.getByRole(\"dialog\", { name: \"Chamfer\", exact: true });\n  165 |   await expect(dialog.getByRole(\"status\")).toContainText(\"Native preview ready\");\n  166 |   const before = await aiSnapshot(page);\n    at /private/tmp/plainsolid-retainedstale-13fd01a/e2e/retained-edge-picking.spec.ts:163:101"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-retainedstale-13fd01a/readiness.json",
+      "fullReportSha256": "4067532b63deb79432b1a64047803cdf9b2b76149730e8dd5d063ddc6c5adec7",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1112,
+      "firstFailure": "Authored end-cap edge target is missing after join; no preview or stale-result assertion was reached."
     }
   ]
 }

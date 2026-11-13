@@ -181,13 +181,25 @@ the stale UI status had made it appear to be a validation timeout. The
 [production rerun record](evidence/plaincad-fabrication-reconciliation-2026-11-13.json)
 retains the tested build identity and result. The production Acme gallery
 case passed on the same build. UNC progressed past fractional pitch but
-still needed an internal thread on rectangular stock. The isolated
+still needed an internal thread on rectangular stock. The combined checkout
+`6736193` passed the original Cable guide, Acme and UNC production gallery
+cases after incorporating the other worktree’s machining and thread repairs.
+The [gallery retest record](evidence/plaincad-gallery-reconciliation-2026-11-13.json)
+pins that production build. The isolated
 controlled performance case collected all 25 edits and 11 STL samples, then
 exceeded its 90-second overall deadline; the original test remains failed.
 On `acce666`, stale fabrication ZIP validation/native union and cancellation
 of a pending STEP preview on same-ID project replacement both passed.
 On `e73ed26`, both real-worker stale-result/error ordering cases and the
 real STEP worker load failure and retry case passed.
+Three further original development cases failed before their target actions on
+candidate `13fd01a`. Hole Edit could not apply a chamfer after layered bores;
+the display test could not rebuild its orbit housing; the retained-edge
+preview case could not find its authored joined-stock edge. The real WASM
+backend check passed for all three. The
+[reconciliation report](evidence/plaincad-reconciliation-2026-11-13.json)
+records these as fixture failures, not regressions in zoom refinement or
+stale-preview cancellation.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
@@ -663,8 +675,8 @@ representable. Independent OCCT primitives verify these mass properties.
 Finite union and difference retain selected separated and fully contained
 coordinate-parallel stocks. A narrower perpendicular cylinder can also cut
 one connected through-bore through wider stock. That path requires signed
-coordinate axes crossing at a representable center, symmetric caps beyond
-the opposite radius, and an exactly representable shoulder. The native
+coordinate axes crossing at a representable center, both caps of each cylinder
+beyond the opposite radius, and an exactly representable shoulder. The native
 result preserves the two stock caps and an inward cylindrical bore wall.
 A smaller coaxial cutter covering both stock caps also retains a native
 annular body for signed coordinate axes, including equal cap locations.
