@@ -353,7 +353,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if s.treated == nil && !s.planar() && s.bore == nil {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
 	}
-	if q.Op == "chamfer" && s.planar() && len(refs) == 1 && refs[0].Start != nil && refs[0].End != nil && len(s.solid.Vertices()) != 8 {
+	if q.Op == "chamfer" && q.Direction == nil && s.planar() && len(refs) == 1 && refs[0].Start != nil && refs[0].End != nil && len(s.solid.Vertices()) != 8 {
 		out, e := chamferSupportingChain(s.solid, refs[0].Start.vec(), refs[0].End.vec(), normal, size)
 		if e != nil {
 			return Shape{}, e
