@@ -15,7 +15,7 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 	// z=(1+x)/3 crosses four stock edges at points that cannot be
 	// represented in binary64. A section does not need to alter the solid.
 	q := [3]geom.Vec3{{X: -1}, {X: 2, Z: 1}, {X: -1, Y: 1}}
-	r, e := s.SectionRationalGraphSplineShell(ctx, q, RationalGraphShellSectionOptions{})
+	r, e := s.SectionRationalGraphSplineShell(ctx, q, RationalGraphShellSectionOptions{VerifyModelEdges: true})
 	if e != nil || !r.Complete || len(r.Wires) != 1 || len(r.Wires[0]) != 4 {
 		t.Fatal("exact rational box section", r, e)
 	}
@@ -40,6 +40,10 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 	}
 	if len(seen) != 4 {
 		t.Fatal("missing corner columns", seen)
+	}
+	limited := RationalGraphShellSectionOptions{VerifyModelEdges: true, EdgeContacts: geom.ComposedPlaneContactsOptions{EventOptions: geom.ExactCurvePlaneEventOptions{MaxOperations: 1}}}
+	if bad, e := s.SectionRationalGraphSplineShell(ctx, q, limited); e == nil || bad.Complete || len(bad.Branches) != 0 {
+		t.Fatal("exhausted independent model-edge verification returned a wire", bad, e)
 	}
 	for _, c := range []struct {
 		h    float64

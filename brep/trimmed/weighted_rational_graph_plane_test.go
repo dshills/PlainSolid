@@ -108,7 +108,7 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 	}
 	checkSection := func(plane [3]geom.Vec3, orientation int) RationalGraphShellSection {
 		t.Helper()
-		w, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{})
+		w, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{VerifyModelEdges: true})
 		if e != nil || !w.Complete || len(w.Wires) != 1 || len(w.Wires[0]) != 4 || len(w.Branches) != 4 {
 			t.Fatal("entire oblique shell section", w, e)
 		}

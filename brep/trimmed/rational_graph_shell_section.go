@@ -14,6 +14,12 @@ import (
 type RationalGraphShellSectionOptions struct {
 	Spans     PolynomialPlaneSpanOptions
 	MaxPieces int
+	// VerifyModelEdges independently isolates the complete contact set on
+	// each intersected model edge, in addition to both owning UV proofs.
+	// Limits apply per edge. Some proven coedges may lack a model descriptor
+	// in this narrower optional verification domain.
+	VerifyModelEdges bool
+	EdgeContacts     geom.ComposedPlaneContactsOptions
 }
 
 // RationalGraphShellTerminal retains an original edge, its model-curve
@@ -108,8 +114,29 @@ func (s Solid) SectionRationalGraphSplineShell(ctx context.Context, points [3]ge
 	if e != nil {
 		return zero, e
 	}
+	if o.VerifyModelEdges {
+		if e = s.verifyRationalGraphShellModelEdges(ctx, out.Branches, plane, o); e != nil {
+			return zero, e
+		}
+	}
 	out.Complete = true
 	return out, nil
+}
+
+func (s Solid) verifyRationalGraphShellModelEdges(ctx context.Context, branches []RationalGraphShellBranch, plane polynomialPlaneEquation, o RationalGraphShellSectionOptions) error {
+	raw := [4]*big.Rat{plane.normal[0], plane.normal[1], plane.normal[2], new(big.Rat).Neg(plane.offset)}
+	for _, b := range branches {
+		// Each original cut edge occurs once as a branch end and once as a
+		// branch start. The directed graph has already proved their equality.
+		x := b.Ends[1]
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		if e := verifyRationalGraphModelTerminal(ctx, s.edges[x.Edge], x, raw, o.Spans.Faces.Patches, o.EdgeContacts); e != nil {
+			return fmt.Errorf("trimmed: section edge %d: %w", x.Edge, e)
+		}
+	}
+	return nil
 }
 
 func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splineEmbeddingFace, plane polynomialPlaneEquation, o PolynomialPlaneSpanOptions) (RationalGraphShellBranch, error) {
