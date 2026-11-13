@@ -1,5 +1,18 @@
 # Verification record
 
+## PlainCAD full development rerun after viewer changes — 2026-11-13
+
+The [344-case development rerun](evidence/plaincad-development-viewer-complete-2026-11-13.json)
+on `7cd0396` passes 342 originals in 3,569.354 seconds. There are no
+retries or skips. The original pan idle, source point markers, gesture PNG
+and 40-body viewer cases all pass on that run.
+
+Parts Browser reads the prior empty rebuild while its project is opening.
+The YZ guarded drag reaches its 20-second startup assertion while the
+kernel is loading. Both original cases pass unchanged on the identical
+WASM snapshot in isolated retests. The Parts Browser original also passes
+on pristine OCCT. The complete suite retains both failures in its record.
+
 ## PlainCAD full production qualification with dense mesh validation — 2026-11-13
 
 All [66 original production tests](evidence/plaincad-production-dense-validation-2026-11-13.json)

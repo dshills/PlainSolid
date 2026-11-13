@@ -22,9 +22,8 @@ bores now also pass exact native volume and surface checks, editable
 PlainCAD reload and STL fabrication. Canonical STEP now round-trips
 qualified overlapping circular boundaries and matches independent OCCT
 measures. Eight additional original STEP, Hole Edit and machined-reference
-browser regressions pass. The full browser development rerun is running
-separately. Both native trimmed
-spline cases excluded by short mode pass with full mode enabled.
+browser regressions pass. Both native trimmed spline cases excluded by
+short mode pass with full mode enabled.
 
 The latest completed production build `11216c5` passes all 66 originals
 on PlainCAD `e65f07b`, with zero skips or retries. It includes main's dense
@@ -38,9 +37,10 @@ The frozen development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures. The first consolidated current
 run passes 342 of 344. Its two viewport failures pass in focused verification,
 with the staged camera damping update for pan idle. The new full rerun
-passes the original pan, marker and gesture cases together. The isolated
-reruns of its Parts Browser and YZ guarded drag failures both pass on the
-same WASM.
+also passes 342 of 344, including the original pan, marker, gesture and
+40-body viewer cases together. Parts Browser and YZ guarded drag fail on
+startup timing in that run and both pass unchanged on the identical WASM
+in isolation.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,

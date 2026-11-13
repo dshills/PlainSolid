@@ -17,11 +17,13 @@ against the selected PlainSolid kernel.
 
 Focused original checks on PlainCAD `e65f07b` cover studio Render and
 cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
-native STEP round-trip, and retained pocket and Hole lineage. One production
-build passes all 66 originals. The later integrated build passes 65 in the
-full run and the remaining benchmark in an unchanged rerun. The consolidated
-development run passes 342 of 344 originals. Both remaining viewport cases
-pass focused verification, with elapsed-time camera damping for pan idle.
+native STEP round-trip, and retained pocket and Hole lineage. The latest full
+production build passes all 66 originals, including its 60.790-second
+performance case. The two consolidated development runs each pass 342 of
+344 originals. The latest run passes pan, markers, gesture and 40-body
+viewer cases together. Its two startup failures pass unchanged on the
+identical WASM in isolation. The complete reports preserve the original
+assertions and outcomes.
 The latest full real-WASM unit run passes 1,643 of 1,689 originals. The
 remaining 46 include 36 repeated provider fixture assumptions, nine
 recovered in focused retests, and one inline workspace case reproduced
