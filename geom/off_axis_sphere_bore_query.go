@@ -80,7 +80,10 @@ func (s OffAxisSphereBore) Classify(p Vec3) (BorePointLocation, BoreBoundaryMask
 	x, y, z := q(p.X), q(p.Y), q(p.Z)
 	sphere := new(big.Rat).Sub(new(big.Rat).Add(new(big.Rat).Add(sq(x), sq(y)), sq(z)), sq(s.R))
 	cyl := new(big.Rat).Sub(new(big.Rat).Add(sq(new(big.Rat).Sub(x, s.cx)), sq(new(big.Rat).Sub(y, s.cy))), sq(s.r))
-	h := new(big.Rat).Sub(z, s.floor)
+	h := big.NewRat(1, 1)
+	if s.floor != nil {
+		h.Sub(z, s.floor)
+	}
 	loc, mask := boreLocation(sphere.Sign(), cyl.Sign(), h.Sign())
 	return loc, mask, nil
 }
@@ -150,7 +153,10 @@ func (s OffAxisSphereBore) IntersectLine(ctx context.Context, origin, direction 
 		}
 	}
 	poly[1][0].Sub(poly[1][0], new(big.Rat).Mul(s.r, s.r))
-	poly[2] = rationalPolynomial{new(big.Rat).Sub(q(origin.Z), s.floor), q(direction.Z)}
+	poly[2] = rationalPolynomial{big.NewRat(1, 1)}
+	if s.floor != nil {
+		poly[2] = rationalPolynomial{new(big.Rat).Sub(q(origin.Z), s.floor), q(direction.Z)}
+	}
 	for i := range poly {
 		poly[i] = trimPolynomial(poly[i])
 		if len(poly[i]) == 0 {

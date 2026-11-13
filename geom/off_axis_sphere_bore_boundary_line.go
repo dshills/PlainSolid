@@ -74,7 +74,10 @@ func (s OffAxisSphereBore) IntersectLineBoundary(ctx context.Context, origin, di
 		}
 	}
 	polynomials[1][0].Sub(polynomials[1][0], new(big.Rat).Mul(s.r, s.r))
-	polynomials[2] = rationalPolynomial{new(big.Rat).Sub(q(origin.Z), s.floor), q(direction.Z)}
+	polynomials[2] = rationalPolynomial{big.NewRat(1, 1)}
+	if s.floor != nil {
+		polynomials[2] = rationalPolynomial{new(big.Rat).Sub(q(origin.Z), s.floor), q(direction.Z)}
+	}
 	for i := range polynomials {
 		polynomials[i] = trimPolynomial(polynomials[i])
 		for _, x := range polynomials[i] {
