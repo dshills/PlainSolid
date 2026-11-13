@@ -962,3 +962,10 @@ The native offset through bore matches an independent OCCT cut and the
 volume identity from two half cuts. Both rim loops persist through native
 reload. Its closed oriented mesh passes the self-contact check. Exact
 line queries retain both shared sphere/cylinder owners on wall intervals.
+
+The finite off-axis common tests qualify every choice of flat or spherical
+end with an independent polar volume integral, native reload, and a closed
+mesh with an analytic error bound. OCCT independently matches the case
+with one flat end and one spherical end. Exact cap classification covers
+the partial lens, tangencies, and coincident disks; exact query tests also
+cover isolated points and intervals owned by either finite cap.

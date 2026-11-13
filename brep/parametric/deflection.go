@@ -124,6 +124,8 @@ func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (flo
 		return x.secondDerivativeBounds(ctx, u, v)
 	case toolBoreChart:
 		return x.secondDerivativeBounds(ctx, u, v)
+	case offsetCommonChart:
+		return x.secondDerivativeBounds(ctx, u, v)
 	case *geom.BSplineSurface:
 		r, e := splinebounds.Bound(ctx, x, splinebounds.Domain{U0: u.Min, U1: u.Max, V0: v.Min, V1: v.Max}, splinebounds.Options{})
 		if e != nil {

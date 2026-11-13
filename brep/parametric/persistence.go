@@ -45,11 +45,17 @@ type surfaceData struct {
 	Twisted         *[2]float64              `json:",omitempty"`
 	AngularReversed bool                     `json:",omitempty"`
 	OffsetBore      *offsetBoreData          `json:",omitempty"`
+	OffsetCommon    *offsetCommonData        `json:",omitempty"`
 }
 
 type offsetBoreData struct {
 	Radius, Bore, Offset, Floor float64
 	Chart                       int
+}
+
+type offsetCommonData struct {
+	Radius, Tool, Offset, Lower, Upper float64
+	Chart                              int
 }
 
 type helicalSurfaceData struct {
@@ -113,6 +119,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
+	case offsetCommonChart:
+		return surfaceData{Kind: "offset-sphere-common", Frame: frameToData(x.frame), OffsetCommon: &offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -180,6 +188,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 	if (d.Kind == "offset-sphere-bore") != (d.OffsetBore != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if (d.Kind == "offset-sphere-common") != (d.OffsetCommon != nil) {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
@@ -328,6 +339,14 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, e
 		}
 		return s, nil
+	case "offset-sphere-common":
+		x := d.OffsetCommon
+		if x.Chart < offsetCommonWall || x.Chart > offsetCommonUpper {
+			return nil, geom.ErrInvalid
+		}
+		s, e := newOffsetCommonChart(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
+		s.kind = x.Chart
+		return s, e
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)
 	case "arc-fan":
