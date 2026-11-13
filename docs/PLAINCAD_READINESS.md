@@ -13,6 +13,29 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Exact circle extrusion milestone — 2026-11-13
+
+The existing `extrude-dialog.spec.ts` case `profile choice and negative XZ native
+preview cancel cleanly and apply only current settings` now passes with the
+PlainSolid backend. It verifies profile choice between two full circles, negative
+XZ extrusion, analytic volume to seven decimal places, bounds, invalid depth,
+preview/cancel, rapid edits, Apply and Undo/Redo. Both original TypeScript checks
+and the independent real-WASM probe passed. The probe checks analytic circle mass
+and conservative bounds separately from the display mesh.
+
+The [source-hashed circle report](evidence/plaincad-circle-extrusion-2026-11-13.json)
+comes from `/tmp/plainsolid-circle-acceptance-03`. This is one additional existing
+application scenario; it does not yet establish the cylindrical through-cut path.
+The bridge keeps an analytic cylinder B-rep, supports signed height, rigid
+placement and actual cap-plane queries, and rejects mixed-arc/holed-circle input.
+Native tests cover all three axes and both signs, independent surface integration,
+mesh convergence/closure, matching STL vertices, strict input rejection and limits.
+Focused race, vet and WASM build checks pass; no external dependency was added.
+
+```sh
+node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/extrude-dialog.spec.ts --grep 'profile choice and negative XZ native preview cancel cleanly and apply only current settings'
+```
+
 ## Recorded browser runs — 2026-11-13
 
 Six existing PlainCAD acceptance cases pass against the real Go WASM backend:

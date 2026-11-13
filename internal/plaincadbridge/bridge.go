@@ -17,11 +17,13 @@ import (
 	"sync"
 
 	"plainsolid/brep"
+	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/csg/draft"
 	"plainsolid/csg/poly"
 	"plainsolid/exchange"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 const MaxRequestBytes = 1 << 20
@@ -63,20 +65,24 @@ func (v vector) vec() geom.Vec3      { return geom.Vec3{X: v[0], Y: v[1], Z: v[2
 func coordinates(v geom.Vec3) vector { return vector{v.X, v.Y, v.Z} }
 
 type request struct {
-	Op       string     `json:"op"`
-	Handle   string     `json:"handle,omitempty"`
-	A        string     `json:"a,omitempty"`
-	B        string     `json:"b,omitempty"`
-	Min      *vector    `json:"min,omitempty"`
-	Max      *vector    `json:"max,omitempty"`
-	Outer    []vector   `json:"outer,omitempty"`
-	Holes    [][]vector `json:"holes,omitempty"`
-	Offset   *vector    `json:"offset,omitempty"`
-	Matrix   [][]number `json:"matrix,omitempty"`
-	OpenFace *int       `json:"openFace,omitempty"`
-	Wall     number     `json:"wall,omitempty"`
-	Origin   *vector    `json:"origin,omitempty"`
-	Normal   *vector    `json:"normal,omitempty"`
+	Op                string         `json:"op"`
+	Handle            string         `json:"handle,omitempty"`
+	A                 string         `json:"a,omitempty"`
+	B                 string         `json:"b,omitempty"`
+	Min               *vector        `json:"min,omitempty"`
+	Max               *vector        `json:"max,omitempty"`
+	Outer             []vector       `json:"outer,omitempty"`
+	Holes             [][]vector     `json:"holes,omitempty"`
+	Offset            *vector        `json:"offset,omitempty"`
+	Matrix            [][]number     `json:"matrix,omitempty"`
+	OpenFace          *int           `json:"openFace,omitempty"`
+	Wall              number         `json:"wall,omitempty"`
+	Origin            *vector        `json:"origin,omitempty"`
+	Normal            *vector        `json:"normal,omitempty"`
+	Radius            number         `json:"radius,omitempty"`
+	Height            number         `json:"height,omitempty"`
+	LinearDeflection  optionalNumber `json:"linearDeflection,omitempty"`
+	AngularDeflection optionalNumber `json:"angularDeflection,omitempty"`
 }
 
 type Assertions struct {
@@ -95,8 +101,9 @@ type Shape struct {
 	Bounds             Bounds     `json:"bounds"`
 }
 type stored struct {
-	solid  brep.Solid
-	result Shape
+	solid    brep.Solid
+	cylinder *cylinderBody
+	result   Shape
 }
 type failure struct {
 	Code    string `json:"code"`
@@ -156,7 +163,7 @@ func (b *Bridge) Call(input string) (output string) {
 		var e *failureError
 		if errors.As(err, &e) {
 			code = e.code
-		} else if errors.Is(err, poly.ErrLimit) || errors.Is(err, collision.ErrLimit) {
+		} else if errors.Is(err, poly.ErrLimit) || errors.Is(err, collision.ErrLimit) || errors.Is(err, parametric.ErrBudget) {
 			code = "LIMIT"
 		}
 		return bad(code, err)
@@ -186,7 +193,12 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_brep", "operations": []string{"box", "prism", "cut", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "cut", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "circle":
+		if q.Origin == nil || q.Normal == nil {
+			return nil, errors.New("circle requires origin and normal")
+		}
+		return b.circle(q.Origin.vec(), q.Normal.vec(), float64(q.Radius), float64(q.Height))
 	case "box":
 		if q.Min == nil || q.Max == nil {
 			return nil, errors.New("box requires min and max")
@@ -225,6 +237,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if a.cylinder != nil || c.cylinder != nil {
+			return nil, &failureError{"UNSUPPORTED", "curved Boolean combinations are not yet supported by this bridge"}
+		}
 		op := poly.Difference
 		if q.Op == "fuse" {
 			op = poly.Union
@@ -247,8 +262,14 @@ func (b *Bridge) execute(q request) (any, error) {
 			if q.Origin == nil || q.Normal == nil {
 				return nil, errors.New("planarFace requires origin and normal")
 			}
+			if s.cylinder != nil {
+				return s.cylinder.planarFace(q.Origin.vec(), q.Normal.vec())
+			}
 			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
+			if s.cylinder != nil {
+				return nil, &failureError{"UNSUPPORTED", "shell requires planar stock"}
+			}
 			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
 				return nil, errors.New("shell requires a valid opening face and positive wall thickness")
 			}
@@ -266,7 +287,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		case "inspect":
 			return s.result, nil
 		case "clone":
-			return b.put(s.solid)
+			return b.publish(s)
 		case "dispose":
 			delete(b.shapes, q.Handle)
 			return map[string]bool{"disposed": true}, nil
@@ -283,16 +304,27 @@ func (b *Bridge) execute(q request) (any, error) {
 					m[i][j] = float64(value)
 				}
 			}
+			if s.cylinder != nil {
+				c, err := s.cylinder.transformed(m)
+				if err != nil {
+					return nil, err
+				}
+				return b.putCylinder(c)
+			}
 			t, err := s.solid.Transformed(m)
 			if err != nil {
 				return nil, err
 			}
 			return b.put(t)
 		case "mesh":
-			return renderMesh(s)
+			return renderMesh(s, q)
 		case "stl":
 			var out bytes.Buffer
-			if err := exchange.WriteSTL(&out, s.solid.Tessellate()); err != nil {
+			m, err := s.tessellate(q)
+			if err != nil {
+				return nil, err
+			}
+			if err := exchange.WriteSTL(&out, m); err != nil {
 				return nil, err
 			}
 			return map[string]string{"base64": base64.StdEncoding.EncodeToString(out.Bytes())}, nil
@@ -336,7 +368,7 @@ func (b *Bridge) put(s brep.Solid) (Shape, error) {
 	}
 	b.next++
 	r.Handle = "ps:" + strconv.FormatUint(b.next, 10)
-	b.shapes[r.Handle] = stored{s, r}
+	b.shapes[r.Handle] = stored{solid: s, result: r}
 	return r, nil
 }
 
@@ -403,8 +435,14 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 	return PlanarFace{Face: face, Origin: coordinates(plane.Origin()), Normal: coordinates(plane.Normal()), Area: area}, nil
 }
 
-func renderMesh(s stored) (Mesh, error) {
-	m := s.solid.Tessellate()
+func renderMesh(s stored, q request) (Mesh, error) {
+	m, err := s.tessellate(q)
+	if err != nil {
+		return Mesh{}, err
+	}
+	return renderTriangles(s, m)
+}
+func renderTriangles(s stored, m mesh.Mesh) (Mesh, error) {
 	r := Mesh{Positions: make([]float64, 0, len(m.Triangles)*9), Normals: make([]float64, 0, len(m.Triangles)*9), Indices: make([]int, 0, len(m.Triangles)*3), Bounds: s.result.Bounds, GeometryAssertions: s.result.GeometryAssertions}
 	// Duplicate per triangle so sharp planar edges retain flat face normals.
 	for _, t := range m.Triangles {

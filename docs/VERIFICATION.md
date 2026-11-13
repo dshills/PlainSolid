@@ -1,5 +1,29 @@
 # Verification record
 
+## PlainCAD exact-circle bridge milestone — 2026-11-13
+
+The bridge now retains a closed analytic cylinder for a single full circular
+profile, with signed extrusion height and an explicit origin/axis. It publishes
+analytic mass and conservative bounds independently of its display mesh.
+Cloning, rigid placement, current cap-plane queries, meshing and STL retain the
+curved B-rep. Nonrigid curved placement and curved Boolean combinations remain
+explicitly unsupported at this milestone.
+
+Focused tests verify all three axes and both height signs, mass/bounds, independent
+retained-surface integration and cylinder evaluation, correct outward cap normals,
+clone ownership, rigid placement, closed display topology and mesh-volume
+convergence. Mesh and STL at the same deflection settings retain identical
+triangle vertices after float32 export. Explicit null mesh settings are rejected;
+tessellation budget exhaustion returns `LIMIT`.
+
+Focused Go tests, race checks, vet and WASM compilation pass. The existing
+PlainCAD negative-XZ circle profile-choice/preview/cancel/apply/UndoRedo scenario
+also passes, along with both TypeScript checks and the real-WASM analytic-mass
+probe. Its source-hashed report is
+`docs/evidence/plaincad-circle-extrusion-2026-11-13.json`. Cylindrical through-cut
+acceptance remains a separate next milestone. No dependency was added; work
+remains isolated on `codex/plaincad-integration`.
+
 ## PlainCAD integration checkpoint — 2026-11-13
 
 The first Git snapshot is `7b11e83` (work in progress, not full qualification).

@@ -60,9 +60,22 @@ export class OpenCascadeKernel implements KernelAdapter {
     return owned(request({ op: "box", min: [0, 0, 0], max: [width, height, depth] }), "box");
   }
   extrudeProfile(profile: SketchProfile, distance: number, transform = defaultPlane): KernelShape {
+    if (profile.outerLoop.type === "circle") {
+      if (profile.innerLoops.length || profile.holes.length)
+        throw new Error("PlainSolid circular extrusion does not yet support inner loops.");
+      const { minX, maxX, minY, maxY } = profile.bounds;
+      const diameter = maxX - minX, otherDiameter = maxY - minY;
+      if (![minX, maxX, minY, maxY, diameter, otherDiameter, distance].every(Number.isFinite) || diameter <= 0 || otherDiameter <= 0 || distance === 0 ||
+          Math.abs(diameter - otherDiameter) > 1e-8 * Math.max(1, diameter, otherDiameter))
+        throw new Error("Circular extrusion requires a finite circle and nonzero distance.");
+      const center = transformPoint(transform, minX + diameter / 2, minY + otherDiameter / 2);
+      const shape = owned(request({ op: "circle", origin: xyz(center), normal: xyz(transform.normal), radius: diameter / 2, height: distance }), "extrusion");
+      handle(shape).extrusion = { profile: structuredClone(profile), distance };
+      return shape;
+    }
     const loop = (boundary: ProfileLoop) => {
       if (boundary.type !== "polygon" || !boundary.segments?.length || boundary.segments.some(segment => segment.type !== "line"))
-        throw new Error("PlainSolid adapter currently requires exact straight polygon profiles; circular and arc profiles are unsupported.");
+        throw new Error("PlainSolid adapter requires exact straight polygon loops or a single full circle; mixed arcs and curved inner loops are unsupported.");
       return boundary.segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y)));
     };
     const shape = owned(request({ op: "prism", outer: loop(profile.outerLoop), holes: profile.innerLoops.map(loop), offset: xyz(transform.normal).map(value => value * distance) }), "extrusion");
@@ -108,12 +121,12 @@ export class OpenCascadeKernel implements KernelAdapter {
     try { for (const tool of tools) { const next = this.cut(current, tool); this.disposeShape(current); current = next; } return current; }
     catch (error) { this.disposeShape(current); throw error; }
   }
-  tessellate(shape: KernelShape, _options: TessellationOptions): RenderMesh {
-    const mesh = request<Omit<RenderMesh, "id" | "bodyId">>({ op: "mesh", handle: handle(shape).proof.handle });
+  tessellate(shape: KernelShape, options: TessellationOptions): RenderMesh {
+    const mesh = request<Omit<RenderMesh, "id" | "bodyId">>({ op: "mesh", handle: handle(shape).proof.handle, linearDeflection: options.linearDeflection, angularDeflection: options.angularDeflection });
     return { ...mesh, id: shape.id, bodyId: shape.id, geometrySource: "plainsolid", kernelOperation: handle(shape).operation };
   }
   exportStl(shape: KernelShape): ArrayBuffer {
-    const { base64 } = request<{ base64: string }>({ op: "stl", handle: handle(shape).proof.handle });
+    const { base64 } = request<{ base64: string }>({ op: "stl", handle: handle(shape).proof.handle, linearDeflection: 0.5, angularDeflection: 0.2 });
     return Uint8Array.from(atob(base64), character => character.charCodeAt(0)).buffer;
   }
   disposeShape(shape: KernelShape) { request({ op: "dispose", handle: handle(shape).proof.handle }); }

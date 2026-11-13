@@ -46,8 +46,11 @@ local server and browser process permissions.
   and export union semantics. This probe is not counted as an existing fixture.
 
 The initial adapter supports exact straight polygon extrusion (including supported
-polygon holes), boxes, planar cut/join/common, clone/rigid placement, tessellation,
-STL, and unchanged rectangular extrusion shelling. Curved profiles, revolutions,
+polygon holes), single full-circle extrusion without inner loops, boxes, planar
+cut/join/common, clone/rigid placement, tessellation, STL, and unchanged rectangular
+extrusion shelling. Circle geometry retains analytic cylinder/cap surfaces; only
+display and STL are tessellated using the requested deflection settings. Mixed
+line/arc profiles, curved inner loops, curved Boolean combinations, revolutions,
 fillets/chamfers, STEP, threads, lead parts, and unproved topology references fail
 explicitly. Scoped atomic operations and some app feature gates are still absent.
 This harness is an acceptance integration, not a published production backend.

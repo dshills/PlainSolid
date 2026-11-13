@@ -16,8 +16,11 @@ PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
 The initial adapter now passes the existing XY/XZ/YZ signed-extrusion cases,
 both stale-worker cases, and the rectangular Shell workflow: six application
 scenarios, plus a separate backend proof. The next existing XY modeling case
-fails at circular-profile extrusion preview. Resume with exact circle extrusion
-and cylindrical through-cut support, retaining the six passing regression cases.
+previously failed at circular-profile extrusion preview. Exact single-circle
+extrusion now passes the existing negative-XZ circle-dialog acceptance scenario,
+with independent analytic mass checks. Resume with finite cylindrical through-cut
+support and the existing XYZ modeling cases, retaining the foundation and
+circle-dialog regression cases.
 See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and

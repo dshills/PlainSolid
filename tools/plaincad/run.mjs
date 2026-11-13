@@ -110,12 +110,28 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const tinyCavityRejected = rejects(() => kernel.shell(tinyCavity, "endCap", 1));
     const union = kernel.unionForExport(base, far);
     const unionProof = kernel.tessellate(union, { linearDeflection: .1, angularDeflection: .2 }).geometryAssertions;
-    for (const item of [base, inside, covering, far, union, large, tinyCavity]) kernel.disposeShape(item);
-    return { symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    const circleProfile = { id: "circle-probe", sketchId: "probe", signature: "circle-probe", outerLoop: { type: "circle", entityIds: ["circle"] }, innerLoops: [], holes: [], bounds: { minX: 2, maxX: 6, minY: 2, maxY: 6 } };
+    const cylinder = kernel.extrudeProfile(circleProfile, 3);
+    const cylinderMesh = kernel.tessellate(cylinder, { linearDeflection: .1, angularDeflection: .1 });
+    const holedCircleRejected = rejects(() => kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3));
+    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder]) kernel.disposeShape(item);
+    return { cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
   expect(proof.proof).toMatchObject({ valid: true, volume: 24, solidCount: 1 });
+  expect(proof.cylinderProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.cylinderProof.volume).toBeCloseTo(12 * Math.PI, 8);
+  expect(proof.cylinderProof.surfaceArea).toBeCloseTo(20 * Math.PI, 8);
+  for (const [side, expected] of [["min", [2, 2, 0]], ["max", [6, 6, 3]]] as const) {
+    for (let axis = 0; axis < 3; axis++) {
+      const value = proof.cylinderBounds[side][axis];
+      expect(Math.abs(value - expected[axis])).toBeLessThan(1e-8);
+      if (side === "min") expect(value).toBeLessThanOrEqual(expected[axis]);
+      else expect(value).toBeGreaterThanOrEqual(expected[axis]);
+    }
+  }
+  expect(proof.holedCircleRejected).toBe(true);
   expect(proof.symmetricScope).toEqual([true, true]);
   expect(proof.tinyCavityRejected).toBe(true);
   expect(proof.rejected).toEqual({ noOpCut: true, emptyCut: true, disconnectedJoin: true, containedJoin: true });
