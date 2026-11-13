@@ -52,7 +52,7 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
   const dot = (a: Point, b: Point) => a.x * b.x + a.y * b.y;
   const scale = (a: Point, value: number): Point => ({ x: a.x * value, y: a.y * value });
   const length = (a: Point) => Math.hypot(a.x, a.y);
-  const fail = (): never => { throw new Error("Mixed extrusion requires a proved circular segment, semicircle, capsule, matching capsule ring, or circular holes in a supported planar profile."); };
+  const fail = (): never => { throw new Error("Mixed extrusion requires a proved rounded rectangle, circular segment, semicircle, capsule, matching capsule ring, or circular holes in a supported planar profile."); };
   const validateLoop = (loop: ProfileLoop) => {
     const segments = loop.segments;
     if (!segments?.length) return fail();
@@ -131,6 +131,42 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
     }
     const u = scale(subtract(arc.start, arc.center), Math.sign(arc.sweep) / arc.radius);
     return { op: "mixedExtrude", profile: { ...localFrame(arc.center, u), kind: "semicircle", center: [0, 0], radius: arc.radius } };
+  }
+  if (arcs.length === 4) {
+    const segments = validateLoop(profile.outerLoop), lines = segments.filter(segment => segment.type === "line");
+    if (segments.length !== 8 || lines.length !== 4 || arcs.some(arc => Math.abs(arc.sweep) !== Math.PI / 2)) return fail();
+    // This bounded family is proved from authored cardinal endpoints, not from
+    // sampled bounds or a tolerance-based replacement of an arbitrary arc.
+    const points = segments.flatMap(segment => [segment.start, segment.end]);
+    const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x));
+    const minY = Math.min(...points.map(p => p.y)), maxY = Math.max(...points.map(p => p.y));
+    const exact = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
+    const corners = [{ x: minX, y: minY }, { x: maxX, y: minY }, { x: maxX, y: maxY }, { x: minX, y: maxY }];
+    const incoming = [{ x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }];
+    const outgoing = [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
+    const radii: number[] = [], starts: Point[] = [], ends: Point[] = [], used = new Set<Arc>();
+    for (let i = 0; i < 4; i++) {
+      const corner = corners[i], a = incoming[i], b = outgoing[i];
+      const matches = arcs.filter(arc => {
+        const radius = arc.radius;
+        const center = { x: corner.x + radius * (a.x + b.x), y: corner.y + radius * (a.y + b.y) };
+        const start = { x: corner.x + radius * a.x, y: corner.y + radius * a.y };
+        const end = { x: corner.x + radius * b.x, y: corner.y + radius * b.y };
+        return exact(arc.center, center) && ((arc.sweep > 0 && exact(arc.start, start) && exact(arc.end, end)) || (arc.sweep < 0 && exact(arc.start, end) && exact(arc.end, start)));
+      });
+      if (matches.length !== 1 || used.has(matches[0])) return fail();
+      const arc = matches[0], radius = arc.radius; used.add(arc); radii.push(radius);
+      starts.push({ x: corner.x + radius * a.x, y: corner.y + radius * a.y });
+      ends.push({ x: corner.x + radius * b.x, y: corner.y + radius * b.y });
+    }
+    const usedLines = new Set<typeof lines[number]>();
+    for (let i = 0; i < 4; i++) {
+      const a = ends[i], b = starts[(i + 1) % 4];
+      const matches = lines.filter(line => (exact(line.start, a) && exact(line.end, b)) || (exact(line.start, b) && exact(line.end, a)));
+      if (matches.length !== 1 || usedLines.has(matches[0]) || exact(a, b)) return fail();
+      usedLines.add(matches[0]);
+    }
+    return { op: "mixedExtrude", profile: { ...common, kind: "roundedRectangle", min: [minX, minY], max: [maxX, maxY], radii, circles: circleHoles() } };
   }
   const outer = capsule(profile.outerLoop);
   let innerRadius: number | undefined;
@@ -504,9 +540,20 @@ export class OpenCascadeKernel implements KernelAdapter {
         refs.every(ref => (!ref.sourceEntityId || (source.profile.outerLoop.entityIds.length === 1 &&
           ref.sourceEntityId === source.profile.outerLoop.entityIds[0])) && !ref.repairRequired && ref.kind === "edge" &&
           (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
+      const roundedCandidate = operation === "fillet" && source && refs.length === 1 &&
+        refs[0].role === "endCapPerimeter" && !refs[0].sourceEntityId && !refs[0].repairRequired &&
+        refs[0].kind === "edge" && source.profile.outerLoop.segments?.length === 8 &&
+        source.profile.outerLoop.segments.filter(segment => segment.type === "arc").length === 4;
+      const roundedPerimeter = roundedCandidate &&
+        (mixedExtrusionRequest(source.profile, source.distance, source.transform)?.profile as { kind?: string } | undefined)?.kind === "roundedRectangle";
+      const annularPerimeter = operation === "chamfer" && source && refs.length === 1 &&
+        refs[0].kind === "edge" && !refs[0].sourceEntityId && !refs[0].repairRequired &&
+        (refs[0].role === "startCapPerimeter" || refs[0].role === "endCapPerimeter") &&
+        source.profile.outerLoop.type === "circle" && source.profile.innerLoops.length === 1 &&
+        source.profile.innerLoops[0].type === "circle";
       let perimeter: TopologyRef[] | undefined;
       for (const ref of refs) {
-        if (ref.sourceEntityId || circularRims) continue;
+        if (ref.sourceEntityId || circularRims || roundedPerimeter || annularPerimeter) continue;
         if (!source || source.profile.innerLoops.length || source.profile.outerLoop.type !== "polygon")
           throw new Error("This complete perimeter is unsupported; select individual authored cap edges.");
         const segments = source.profile.outerLoop.segments ?? [];
@@ -521,7 +568,15 @@ export class OpenCascadeKernel implements KernelAdapter {
       }
       const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
       let result: Proof;
-      if (circularRims && source) {
+      if (annularPerimeter && source) {
+        const end = refs[0].role === "endCapPerimeter";
+        result = request({ op: "capChamfer", handle: before.handle,
+          normal: xyz(source.transform.normal).map(value => value * (end ? 1 : -1) * Math.sign(source.distance)),
+          origin: xyz(transformPoint(source.transform, 0, 0, end ? source.distance : 0)), distance: size });
+      } else if (roundedPerimeter && source) {
+        result = request({ op: "capFillet", handle: before.handle, normal: xyz(source.transform.normal),
+          origin: xyz(transformPoint(source.transform, 0, 0, source.distance)), radius: size });
+      } else if (circularRims && source) {
         const bounds = source.profile.bounds;
         const x = (bounds.minX + bounds.maxX) / 2, y = (bounds.minY + bounds.maxY) / 2;
         const roles = [...new Set(refs.map(ref => ref.role))];

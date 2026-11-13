@@ -3,6 +3,8 @@ package plaincadbridge
 import (
 	"math"
 	"testing"
+
+	"plainsolid/geom"
 )
 
 func TestPlainCADModeledThreadNative(t *testing.T) {
@@ -48,6 +50,47 @@ func TestPlainCADModeledThreadNative(t *testing.T) {
 		}
 		if !b.shapes[result.Handle].analytic.helical {
 			t.Fatal("thread did not retain helical ownership")
+		}
+	}
+}
+
+func TestQuarterInchThreadRetainsRectangularStock(t *testing.T) {
+	b := New()
+	const pitch, inner, outer, height = 1.27, .1005 * 25.4, .125 * 25.4, .36 * 25.4
+	stock := shape(t, b, map[string]any{"op": "mixedExtrude", "profile": map[string]any{
+		"kind": "polygon", "origin": vector{}, "normal": vector{0, 0, 1}, "xDirection": vector{1, 0, 0},
+		"outer": [][2]float64{{-6.5, -6}, {6.5, -6}, {6.5, 6}, {-6.5, 6}}, "height": height,
+		"circles": []any{map[string]any{"center": []float64{0, 0}, "radius": inner}},
+	}})
+	result := shape(t, b, map[string]any{"op": "thread", "handle": stock.Handle, "thread": map[string]any{
+		"side": "internal", "hand": "right", "radius": inner, "pitch": pitch, "length": .25 * 25.4, "offset": 0,
+		"innerRadius": inner, "outerRadius": outer, "innerHalfWidth": pitch/16 + (outer-inner)/math.Sqrt(3), "outerHalfWidth": pitch / 16,
+	}})
+	if math.Abs(result.GeometryAssertions.Volume-1201.099) >= .005 {
+		t.Fatal(result)
+	}
+	for axis := range 3 {
+		near(t, result.Bounds.Min[axis], stock.Bounds.Min[axis])
+		near(t, result.Bounds.Max[axis], stock.Bounds.Max[axis])
+	}
+	m := b.shapes[result.Handle].analytic.helicalMesh
+	if m == nil || len(m.Triangles) >= 15000 {
+		t.Fatal("missing compact, qualified display mesh")
+	}
+	if err := m.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	rx, _ := geom.Rotation(geom.Vec3{X: 1}, .25)
+	ry, _ := geom.Rotation(geom.Vec3{Y: 1}, .33)
+	rz, _ := geom.Rotation(geom.Vec3{Z: 1}, -.18)
+	matrix := geom.Translation(geom.Vec3{X: 8, Y: 3}).Mul(rz).Mul(ry).Mul(rx)
+	placed := shape(t, b, map[string]any{"op": "transform", "handle": result.Handle, "matrix": matrix})
+	near(t, placed.GeometryAssertions.Volume, result.GeometryAssertions.Volume)
+	for _, v := range b.shapes[placed.Handle].analytic.helicalMesh.Vertices {
+		for i, value := range coordinates(v) {
+			if value < placed.Bounds.Min[i]-1e-9 || value > placed.Bounds.Max[i]+1e-9 {
+				t.Fatal("placed mesh is outside the analytic bounds", v, placed.Bounds)
+			}
 		}
 	}
 }

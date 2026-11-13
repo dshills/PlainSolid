@@ -9,6 +9,7 @@ import (
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 type threadRequest struct {
@@ -42,6 +43,7 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 	}
 	var recipe trimmed.HelicalGrooveRecipe
 	var head *trimmed.SteppedShaft
+	var block *planarThreadStock
 	entryRadius := inner - pitch*.02
 	switch q.Side {
 	case "external":
@@ -67,11 +69,19 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 			return Shape{}, errors.New("internal thread radius must match the bore")
 		}
 		band := s.analytic
-		if band == nil || band.sector == nil || band.sector.inner != radius || band.sector.angle != 2*math.Pi {
+		if band != nil && band.threadStock != nil && band.threadStock.radius == radius {
+			block = band.threadStock
+			recipe.Frame, recipe.Height, recipe.BoreRadius = block.frame, block.height, block.radius
+			recipe.OuterRadius = min(-block.footprint.Min.X, -block.footprint.Min.Y, block.footprint.Max.X, block.footprint.Max.Y) * .9
+			if recipe.OuterRadius <= outer+pitch*.02 {
+				return Shape{}, errors.New("Thread cutter exceeds the available radial wall thickness")
+			}
+		} else if band == nil || band.sector == nil || band.sector.inner != radius || band.sector.angle != 2*math.Pi {
 			return Shape{}, &failureError{"UNSUPPORTED", "Select one complete coaxial tap-drill bore for the modeled thread"}
+		} else {
+			r := band.sector
+			recipe.Frame, recipe.Height, recipe.BoreRadius, recipe.OuterRadius = r.frame, r.height, r.inner, r.radius
 		}
-		r := band.sector
-		recipe.Frame, recipe.Height, recipe.BoreRadius, recipe.OuterRadius = r.frame, r.height, r.inner, r.radius
 		entryRadius = outer + pitch*.02
 	default:
 		return Shape{}, errors.New("thread requires an external shaft or internal bore")
@@ -90,6 +100,7 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 	ctx := context.Background()
 	var solid trimmed.Solid
 	var removedPi *big.Rat
+	var display *mesh.Mesh
 	if head != nil {
 		var err error
 		solid, removedPi, err = trimmed.SteppedShaftWithGrooveAndEntryRelief(ctx, *head, recipe, entryRadius, depth, threadChartBudget(recipe))
@@ -97,7 +108,17 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 			return Shape{}, fmt.Errorf("thread head attachment: %w", err)
 		}
 	} else {
-		groove, err := trimmed.GrooveWithOverlappingEntryRelief(ctx, recipe, entryRadius, depth, threadChartBudget(recipe))
+		build := func() (trimmed.HelicalOverlapRelief, error) {
+			if block != nil {
+				result, verified, err := trimmed.ThreadedRectangularPrism(ctx, recipe, block.footprint, entryRadius, depth, threadChartBudget(recipe))
+				if err == nil {
+					display = &verified
+				}
+				return result, err
+			}
+			return trimmed.GrooveWithOverlappingEntryRelief(ctx, recipe, entryRadius, depth, threadChartBudget(recipe))
+		}
+		groove, err := build()
 		if err != nil {
 			return Shape{}, fmt.Errorf("thread groove: %w", err)
 		}
@@ -110,7 +131,7 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 	if err != nil {
 		return Shape{}, fmt.Errorf("thread surface measures: %w", err)
 	}
-	return b.putAnalyticBody(&analyticBody{solid: solid, volume: volume, area: area, helical: true})
+	return b.putAnalyticBody(&analyticBody{solid: solid, volume: volume, area: area, helical: true, helicalMesh: display})
 }
 
 func threadProfile(inner, outer, center, innerHalf, outerHalf float64) []geom.Vec2 {

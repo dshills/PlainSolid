@@ -11,6 +11,9 @@ import (
 // mixedProfileRequest describes proved analytic sketch families, never sampled
 // arc polygons. Coordinates are in the supplied orthonormal sketch frame.
 type mixedProfileRequest struct {
+	Min         []number             `json:"min"`
+	Max         []number             `json:"max"`
+	Radii       []number             `json:"radii"`
 	Kind        string               `json:"kind"`
 	Origin      *vector              `json:"origin"`
 	Normal      *vector              `json:"normal"`
@@ -66,9 +69,34 @@ func newMixedProfile(q mixedProfileRequest) (trimmed.Solid, float64, float64, er
 	if q.Kind != "capsule" && q.InnerRadius != 0 || q.Kind != "circularSegment" && (q.StartAngle != 0 || q.Sweep != 0) {
 		return fail(geom.ErrDomain)
 	}
+	if q.Kind != "roundedRectangle" && (len(q.Min) != 0 || len(q.Max) != 0 || len(q.Radii) != 0) {
+		return fail(geom.ErrDomain)
+	}
 	var s trimmed.Solid
 	var area, perimeter float64
 	switch q.Kind {
+	case "roundedRectangle":
+		if len(q.Center) != 0 || len(q.Right) != 0 || len(q.Outer) != 0 || r != 0 || len(q.Radii) != 4 {
+			return fail(geom.ErrDomain)
+		}
+		minimum, err := mixedPoint(q.Min)
+		if err != nil {
+			return fail(err)
+		}
+		maximum, err := mixedPoint(q.Max)
+		if err != nil {
+			return fail(err)
+		}
+		profile := trimmed.RoundedRectangle{Min: minimum, Max: maximum}
+		area = (maximum.X - minimum.X) * (maximum.Y - minimum.Y)
+		perimeter = 2 * ((maximum.X - minimum.X) + (maximum.Y - minimum.Y))
+		for i, v := range q.Radii {
+			radius := float64(v)
+			profile.Radii[i] = radius
+			area -= (1 - math.Pi/4) * radius * radius
+			perimeter += (math.Pi/2 - 2) * radius
+		}
+		s, e = trimmed.ExtrudeRoundedRectangle(context.Background(), f, profile, holes, nil, h)
 	case "semicircle", "circularSegment", "capsule", "disk":
 		if len(q.Outer) != 0 || (q.Kind != "disk" && len(holes) != 0) || (q.Kind != "capsule" && len(q.Right) != 0) {
 			return fail(geom.ErrDomain)
@@ -186,6 +214,19 @@ func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
 		return Shape{}, err
 	}
 	body := &analyticBody{solid: s, volume: volume, area: area}
+	if p.Kind == "roundedRectangle" && len(p.Circles) == 0 {
+		frame, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
+		if err != nil {
+			return Shape{}, err
+		}
+		lo, _ := mixedPoint(p.Min)
+		hi, _ := mixedPoint(p.Max)
+		profile := trimmed.RoundedRectangle{Min: lo, Max: hi}
+		for i, radius := range p.Radii {
+			profile.Radii[i] = float64(radius)
+		}
+		body.rounded = &roundedStock{frame: frame, profile: profile, height: float64(p.Height)}
+	}
 	if p.Kind == "disk" && len(p.Circles) == 1 {
 		center, err := mixedPoint(p.Center)
 		if err != nil {
@@ -209,6 +250,9 @@ func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
 			body.sector = &radialSector{frame: frame, inner: float64(p.Circles[0].Radius),
 				radius: float64(p.Radius), height: math.Abs(height), angle: 2 * math.Pi}
 		}
+	}
+	if p.Kind == "polygon" && len(p.Circles) == 1 {
+		body.threadStock = rectangularThreadStock(p)
 	}
 	if p.Kind == "semicircle" || p.Kind == "circularSegment" {
 		f, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())

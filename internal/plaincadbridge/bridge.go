@@ -288,6 +288,12 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		if q.Op == "capChamfer" || q.Op == "capFillet" {
+			if q.Op == "capFillet" && s.analytic != nil && s.analytic.rounded != nil {
+				return b.filletRoundedStock(s, q)
+			}
+			if q.Op == "capChamfer" && len(q.Edges) == 0 {
+				return b.chamferAnnularStock(s, q)
+			}
 			return b.treatCapPerimeter(s, q)
 		}
 		if q.Op == "filletCylinderRims" {
@@ -350,6 +356,15 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		if q.Op == "cut" {
+			if result, handled, err := b.rectangularIslandPocket(a, c); handled {
+				return result, err
+			}
+			if result, _, handled, err := cutThroughProfiles(a, []stored{c}); handled {
+				if err != nil {
+					return nil, err
+				}
+				return b.putAnalyticBody(result)
+			}
 			if c.planar() {
 				if result, handled, err := b.rectangularPocket(a, c); handled {
 					return result, err
@@ -389,6 +404,11 @@ func (b *Bridge) execute(q request) (any, error) {
 		if q.Op == "fuse" {
 			if result, handled, err := b.fuseCoaxial(a, c); handled {
 				return result, err
+			}
+			if a.planar() && c.cylinder != nil {
+				if result, handled, err := b.fusePlainCircularBoss(a, c.cylinder); handled {
+					return result, err
+				}
 			}
 		}
 		if a.analytic != nil || c.analytic != nil {

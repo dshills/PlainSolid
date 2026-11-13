@@ -9,22 +9,27 @@ import (
 )
 
 // BoxBoreAndBoss retains a rectangular stock, a through or bottom-entry blind bore and a
-// circular boss seated on its top face. Both disks are strictly interior and
-// disjoint. The boss consumes only its matching cap footprint.
+// circular boss seated on its top face. A zero bore radius and depth omit
+// the bore. Present disks are strictly interior and disjoint.
 func BoxBoreAndBoss(ctx context.Context, frame geom.Frame, size geom.Vec3, bore, boss ExtrusionCircle, boreDepth, height float64) (Solid, error) {
-	if ctx == nil || !size.IsFinite() || min(size.X, size.Y, size.Z) <= 0 || !finite(height) || height <= 0 || !finite(boreDepth) || boreDepth <= 0 || boreDepth > size.Z {
+	if ctx == nil || !size.IsFinite() || min(size.X, size.Y, size.Z) <= 0 || !finite(height) || height <= 0 || !finite(boreDepth) ||
+		boreDepth < 0 || boreDepth > size.Z || (boreDepth == 0) != (bore.Radius == 0) {
 		return Solid{}, geom.ErrInvalid
 	}
 	tol := max(size.X, size.Y, size.Z, height) * 1e-11
 	gap := 8 * tol
-	for _, disk := range []ExtrusionCircle{bore, boss} {
+	disks := []ExtrusionCircle{boss}
+	if boreDepth > 0 {
+		disks = append(disks, bore)
+	}
+	for _, disk := range disks {
 		c, r := disk.Center, disk.Radius
 		if !uvFinite(c) || !finite(r) || r <= gap || min(c.X, c.Y, size.X-c.X, size.Y-c.Y)-r <= gap {
 			return Solid{}, geom.ErrDomain
 		}
 	}
 	sum := new(big.Rat).Add(new(big.Rat).Add(ratInset(bore.Radius), ratInset(boss.Radius)), ratInset(gap))
-	if extrusionCenterDistanceSquared(bore, boss).Cmp(sum.Mul(sum, sum)) <= 0 || height <= gap {
+	if (boreDepth > 0 && extrusionCenterDistanceSquared(bore, boss).Cmp(sum.Mul(sum, sum)) <= 0) || height <= gap {
 		return Solid{}, geom.ErrDomain
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
@@ -43,7 +48,7 @@ func BoxBoreAndBoss(ctx context.Context, frame geom.Frame, size geom.Vec3, bore,
 		if err := b.addBoxBore(bore, size.Z); err != nil {
 			return Solid{}, err
 		}
-	} else {
+	} else if boreDepth > 0 {
 		if size.Z-boreDepth <= gap {
 			return Solid{}, geom.ErrDomain
 		}

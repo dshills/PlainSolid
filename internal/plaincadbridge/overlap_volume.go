@@ -42,6 +42,18 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			return result(volume)
 		}
 	}
+	// Test a through-profile overlap without reordering operands for later
+	// paths when neither side is supported as through-profile stock.
+	profileStock, profileTool := a, c
+	if profileStock.cylinder != nil && profileTool.analytic != nil {
+		profileStock, profileTool = profileTool, profileStock
+	}
+	if _, volume, handled, err := cutThroughProfiles(profileStock, []stored{profileTool}); handled {
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	if a.cylinder != nil && c.cylinder != nil {
 		n, m := a.cylinder.frame.ZAxis(), c.cylinder.frame.ZAxis()
 		if cardinalFrame(a.cylinder.frame) && (m == n || m == n.Scale(-1)) {
@@ -90,10 +102,10 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, err := trimmed.ExtrudeBoxWithPocketsAndBore(context.Background(), p.frame, p.size, p.pockets, p.bore); err != nil {
+		if _, err := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), p.frame, p.size, p.pockets, p.bores); err != nil {
 			return nil, err
 		}
-		return result(math.Pi * p.bore.Radius * p.bore.Radius * p.size.Z)
+		return result(math.Pi * c.cylinder.radius * c.cylinder.radius * p.size.Z)
 	}
 	if a.analytic != nil || c.analytic != nil {
 		return nil, &failureError{"UNSUPPORTED", "overlap volume is outside the supported analytic stock domain"}

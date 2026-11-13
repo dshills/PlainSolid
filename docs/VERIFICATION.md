@@ -1,5 +1,25 @@
 # Verification record
 
+## PlainCAD modeling and production repairs — 2026-11-13
+
+The [development retest](evidence/plaincad-gap-repairs-2026-11-13.json)
+passes all seven originals with zero skips or flakes. Exact analytic
+boundaries preserve the four prior through bores through a blind pocket,
+the island in a rectangular pocket, the circular boss, and the top fillet
+through an opposite-cap chamfer. The remaining cases exercise compound
+profiles, XY holes and pocket, and separated rotated collision. Both
+TypeScript checks and the separate WASM check pass.
+
+The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
+passes the original fabrication package, cable-guide live preview and
+left-hand Acme pair. The quarter-inch UNC pair reaches placement after
+building the exact external screw and internally threaded rectangular
+block, then fails the uniform display seed. A native placement test passes
+with conforming helical tessellation. The original gallery retest remains
+open. The [circle retest](evidence/plaincad-circle-measurement-2026-11-13.json)
+passes original cylinder measurement and grouped circular fillets across
+XY, XZ and YZ.
+
 ## PlainCAD original modeled Thread and lead pair — 2026-11-13
 
 The [accepted helical report](evidence/plaincad-helical-accepted-2026-11-13.json)

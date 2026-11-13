@@ -18,6 +18,16 @@ type BoxBlindPocket struct {
 // ExtrudeBoxWithPocketsAndBore builds a rectangular stock with successively
 // nested top pockets and an optional disjoint cylindrical through bore.
 func ExtrudeBoxWithPocketsAndBore(ctx context.Context, frame geom.Frame, size geom.Vec3, pockets []BoxBlindPocket, bore *ExtrusionCircle) (Solid, error) {
+	var bores []ExtrusionCircle
+	if bore != nil {
+		bores = []ExtrusionCircle{*bore}
+	}
+	return ExtrudeBoxWithPocketsAndBores(ctx, frame, size, pockets, bores)
+}
+
+// ExtrudeBoxWithPocketsAndBores retains disjoint through bores around one
+// nested rectangular pocket chain.
+func ExtrudeBoxWithPocketsAndBores(ctx context.Context, frame geom.Frame, size geom.Vec3, pockets []BoxBlindPocket, bores []ExtrusionCircle) (Solid, error) {
 	if ctx == nil || !size.IsFinite() || size.X <= 0 || size.Y <= 0 || size.Z <= 0 || len(pockets) == 0 || len(pockets) > 8 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -37,7 +47,8 @@ func ExtrudeBoxWithPocketsAndBore(ctx context.Context, frame geom.Frame, size ge
 		}
 		bound, capHeight = r, p.Floor
 	}
-	if bore != nil {
+	for i := range bores {
+		bore := &bores[i]
 		c, r := bore.Center, bore.Radius
 		if !uvFinite(c) || !finite(r) || r <= gap || min(c.X, c.Y, size.X-c.X, size.Y-c.Y)-r <= gap {
 			return Solid{}, geom.ErrDomain
@@ -47,6 +58,12 @@ func ExtrudeBoxWithPocketsAndBore(ctx context.Context, frame geom.Frame, size ge
 		pad := new(big.Rat).Add(ratInset(r), ratInset(gap))
 		if extrusionCenterDistanceSquared(*bore, ExtrusionCircle{Center: closest}).Cmp(pad.Mul(pad, pad)) <= 0 {
 			return Solid{}, geom.ErrDomain
+		}
+		for _, prior := range bores[:i] {
+			sep := new(big.Rat).Add(new(big.Rat).Add(ratInset(r), ratInset(prior.Radius)), ratInset(gap))
+			if extrusionCenterDistanceSquared(*bore, prior).Cmp(sep.Mul(sep, sep)) <= 0 {
+				return Solid{}, geom.ErrDomain
+			}
 		}
 	}
 	ring := extrusionRectangleRing(stock)
@@ -71,8 +88,8 @@ func ExtrudeBoxWithPocketsAndBore(ctx context.Context, frame geom.Frame, size ge
 		}
 		capIndex, top = len(b.faces)-1, pocket.Floor
 	}
-	if bore != nil {
-		if err := b.addBoxBore(*bore, size.Z); err != nil {
+	for _, bore := range bores {
+		if err := b.addBoxBore(bore, size.Z); err != nil {
 			return Solid{}, err
 		}
 	}

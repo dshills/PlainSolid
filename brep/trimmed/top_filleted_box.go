@@ -11,14 +11,18 @@ import (
 // diagonal-plane elliptical seams; no spherical corner or faceted substitute
 // changes the intended intersection. Radius must leave a nonempty top face.
 func TopFilletedBox(ctx context.Context, frame geom.Frame, width, depth, height, radius, tolerance float64) (Solid, error) {
-	if ctx == nil || !finite(width) || !finite(depth) || !finite(height) || !finite(radius) || !finite(tolerance) || tolerance <= 0 {
+	return topFilletedBox(ctx, frame, width, depth, height, radius, 0, tolerance)
+}
+
+func topFilletedBox(ctx context.Context, frame geom.Frame, width, depth, height, radius, bottomChamfer, tolerance float64) (Solid, error) {
+	if ctx == nil || !finite(width) || !finite(depth) || !finite(height) || !finite(radius) || !finite(tolerance) || tolerance <= 0 || !finite(bottomChamfer) || bottomChamfer < 0 {
 		return Solid{}, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return Solid{}, e
 	}
 	pad := 8 * tolerance
-	if !finite(pad) || radius <= pad || height-radius <= pad || width-2*radius <= pad || depth-2*radius <= pad {
+	if !finite(pad) || radius <= pad || height-radius-bottomChamfer <= pad || width-2*radius <= pad || depth-2*radius <= pad || width-2*bottomChamfer <= pad || depth-2*bottomChamfer <= pad {
 		return Solid{}, geom.ErrDomain
 	}
 	if frame.XAxis().Length() == 0 || frame.ZAxis().Length() == 0 {
@@ -27,7 +31,8 @@ func TopFilletedBox(ctx context.Context, frame geom.Frame, width, depth, height,
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
 	outer := []geom.Vec2{{}, {X: width}, {X: width, Y: depth}, {Y: depth}}
 	inner := []geom.Vec2{{X: radius, Y: radius}, {X: width - radius, Y: radius}, {X: width - radius, Y: depth - radius}, {X: radius, Y: depth - radius}}
-	if e := b.horizontal(outer, nil, 0, true, 0); e != nil {
+	bottom := []geom.Vec2{{X: bottomChamfer, Y: bottomChamfer}, {X: width - bottomChamfer, Y: bottomChamfer}, {X: width - bottomChamfer, Y: depth - bottomChamfer}, {X: bottomChamfer, Y: depth - bottomChamfer}}
+	if e := b.horizontal(bottom, nil, 0, true, 0); e != nil {
 		return Solid{}, e
 	}
 	if e := b.horizontal(inner, nil, height, false, 0); e != nil {
@@ -36,7 +41,12 @@ func TopFilletedBox(ctx context.Context, frame geom.Frame, width, depth, height,
 	for i, p := range outer {
 		j := (i + 1) % 4
 		q := outer[j]
-		if e := b.wall(p, q, 0, height-radius); e != nil {
+		if bottomChamfer > 0 {
+			if e := b.bottomChamferFace(bottom[i], bottom[j], p, q, bottomChamfer); e != nil {
+				return Solid{}, e
+			}
+		}
+		if e := b.wall(p, q, bottomChamfer, height-radius); e != nil {
 			return Solid{}, e
 		}
 		edge := geom.Vec3{X: q.X - p.X, Y: q.Y - p.Y}

@@ -41,16 +41,15 @@ first 53-case combined run passed 47. All six failures exposed the same
 multi-rim display budget regression. The correction passes the focused
 original XY cases and STEP import. A new consolidated run is required.
 
-Native M3 external and internal threads with overlapping lead-in match the
-app's volume assertions. Four-start lead parts also retain finite phased
-grooves. Finish the angular tessellation and end reliefs, then run both
-original helical workflows, including handedness edits and cold open.
-The original machined-reference workflow exercises nested blind pockets,
-bore rim measurement and lost floor diagnostics. Its native route is under
-browser verification. Broader retained references, complete and nonparallel
-edge groups, general curved Boolean composition, and full development and
-production qualification remain open. See [PlainCAD readiness](PLAINCAD_READINESS.md)
-for the selected domains and evidence.
+Both original helical workflows now pass, including the M3 external and
+internal thread and the editable four-start lead pair. The original
+machined-reference workflow passes nested blind pockets, bore rim
+measurement and lost floor diagnostics. Focused retests cover seven
+additional original development workflows and three original production
+regressions. Complete the rotary fixture, fix failures exposed by the full
+development run, rerun the UNC gallery and production performance cases,
+and execute the current full release checks. See
+[PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions

@@ -30,6 +30,14 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 		surface, _ := parametric.SurfaceMapping(f.Surface)
 		switch surface.(type) {
 		case geom.PlaneSurface:
+		case geom.TorusSurface:
+			if !compactTorus(f) {
+				return mesh.Mesh{}, false, nil
+			}
+			for _, u := range f.Outer {
+				curved[u.Edge] = true
+			}
+			found = true
 		default:
 			_, ok := compactAxialStart(f)
 			if !ok {
@@ -150,6 +158,9 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			return mesh.Mesh{}, errCompactBoundaryLimit
 		}
 		count := vertices + 2*len(f.Holes) - 2
+		if compactTorus(f) {
+			count = 2 * counts[f.Outer[0].Edge] * counts[f.Outer[1].Edge]
+		}
 		if _, ok := compactAxialStart(f); ok {
 			count = 0
 			for _, u := range f.Outer {
@@ -244,7 +255,24 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			}
 		}
 		var triangles [][3]geom.Vec2
-		if cylinder {
+		if compactTorus(f) {
+			var err error
+			triangles, err = compactTorusGrid(outer, func(p geom.Vec2) error {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				world, err := f.Surface.Eval(p.X, p.Y)
+				if err != nil || !world.IsFinite() {
+					return geom.ErrInvalid
+				}
+				indices[p] = len(m.Vertices)
+				m.Vertices = append(m.Vertices, world)
+				return nil
+			})
+			if err != nil {
+				return mesh.Mesh{}, err
+			}
+		} else if cylinder {
 			var err error
 			triangles, err = compactAxialTriangles(outer)
 			if err != nil {
