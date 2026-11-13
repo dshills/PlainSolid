@@ -47,3 +47,52 @@ func TestNativeBoxPocketBoreAndNestedCut(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestScopedRotatedPocketCopiesOnPocketedStock(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{0, -40, -25}, vector{20, 40, 25})
+	tool := box(t, b, vector{0, 10, -2}, vector{5, 14, 2})
+	seed := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
+	copies := make([]string, 0, 3)
+	for i := 1; i <= 3; i++ {
+		cosine, sine := math.Cos(float64(i)*math.Pi/2), math.Sin(float64(i)*math.Pi/2)
+		copy := shape(t, b, map[string]any{
+			"op": "prism", "offset": vector{5, 0, 0},
+			"outer": []vector{
+				{0, 10*cosine + 2*sine, 10*sine - 2*cosine},
+				{0, 14*cosine + 2*sine, 14*sine - 2*cosine},
+				{0, 14*cosine - 2*sine, 14*sine + 2*cosine},
+				{0, 10*cosine - 2*sine, 10*sine + 2*cosine},
+			},
+		})
+		var hit struct{ Volume float64 }
+		err := json.Unmarshal(invoke(t, b, map[string]any{"op": "overlapVolume", "a": seed.Handle, "b": copy.Handle}), &hit)
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, hit.Volume, 80)
+		cut := shape(t, b, map[string]any{"op": "cut", "a": seed.Handle, "b": copy.Handle})
+		near(t, cut.GeometryAssertions.Volume, 80000-160)
+		copies = append(copies, copy.Handle)
+	}
+	result := shape(t, b, map[string]any{"op": "cutMany", "a": seed.Handle, "tools": copies})
+	near(t, result.GeometryAssertions.Volume, 80000-320)
+	if result.GeometryAssertions.SolidCount != 1 {
+		t.Fatal(result)
+	}
+}
+
+func TestPatternOverlapUsesFiniteCylinderLens(t *testing.T) {
+	b := New()
+	first := circle(t, b, vector{}, vector{0, 0, 1}, 2, 20)
+	second := circle(t, b, vector{1, 0, 15}, vector{0, 0, -1}, 2, 10)
+	want := (8*math.Acos(.25) - .5*math.Sqrt(15)) * 10
+	for _, operands := range [][2]string{{first.Handle, second.Handle}, {second.Handle, first.Handle}} {
+		var hit struct{ Volume float64 }
+		err := json.Unmarshal(invoke(t, b, map[string]any{"op": "overlapVolume", "a": operands[0], "b": operands[1]}), &hit)
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, hit.Volume, want)
+	}
+}

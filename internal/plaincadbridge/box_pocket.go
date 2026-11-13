@@ -132,3 +132,41 @@ func (p pocketStock) throughBore(tool *cylinderBody) (pocketStock, error) {
 	p.bore = &trimmed.ExtrusionCircle{Center: geom.Vec2{X: x.X, Y: x.Y}, Radius: tool.radius}
 	return p, nil
 }
+
+// A pocket-only box has a straight shared-edge graph. Preserve that graph
+// when a later planar cut cannot use the nested rectangular recipe.
+func (s stored) planarCutBoundary() (brep.Solid, bool, error) {
+	if s.planar() {
+		return s.solid, true, nil
+	}
+	if s.analytic == nil || s.analytic.pockets == nil || s.analytic.pockets.bore != nil {
+		return brep.Solid{}, false, nil
+	}
+	native := s.analytic.solid
+	modelEdges := native.Edges()
+	edges := make([]brep.Edge, len(modelEdges))
+	for i, edge := range modelEdges {
+		edges[i] = brep.Edge{Start: edge.Start, End: edge.End}
+	}
+	convert := func(loop []trimmed.Use, reverse bool) []brep.EdgeUse {
+		uses := make([]brep.EdgeUse, len(loop))
+		for i, use := range loop {
+			j := i
+			if reverse {
+				j = len(loop) - 1 - i
+			}
+			uses[j] = brep.EdgeUse{Edge: use.Edge, Reversed: use.Reversed != reverse}
+		}
+		return uses
+	}
+	var faces []brep.Face
+	for _, face := range native.Faces() {
+		polygon := brep.Face{Boundary: convert(face.Outer, face.Reversed)}
+		for _, hole := range face.Holes {
+			polygon.Holes = append(polygon.Holes, convert(hole, face.Reversed))
+		}
+		faces = append(faces, polygon)
+	}
+	solid, err := brep.NewSolid(native.Vertices(), edges, faces)
+	return solid, true, err
+}

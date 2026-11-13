@@ -352,6 +352,22 @@ func (b *Bridge) execute(q request) (any, error) {
 				if result, handled, err := b.rectangularPocket(a, c); handled {
 					return result, err
 				}
+				if !a.planar() {
+					stock, converted, err := a.planarCutBoundary()
+					if err != nil {
+						return nil, err
+					}
+					if converted {
+						if pocket, ok := openPlanarPocket(stock, c.solid); ok {
+							return b.publish(pocket)
+						}
+						solid, err := poly.Combine(ctx, stock, c.solid, poly.Difference, poly.Options{})
+						if err != nil {
+							return nil, err
+						}
+						return b.put(solid)
+					}
+				}
 			}
 			if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
 				p, err := a.analytic.pockets.throughBore(c.cylinder)

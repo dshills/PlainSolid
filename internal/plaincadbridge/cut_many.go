@@ -26,14 +26,13 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		if err != nil {
 			return Shape{}, err
 		}
-		p, err := a.analytic.pockets.throughBore(tool.cylinder)
-		if err != nil {
-			return Shape{}, err
+		if tool.cylinder != nil {
+			p, err := a.analytic.pockets.throughBore(tool.cylinder)
+			if err != nil {
+				return Shape{}, err
+			}
+			return b.putPocketStock(p)
 		}
-		return b.putPocketStock(p)
-	}
-	if a.analytic != nil {
-		return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this analytic stock"}
 	}
 	inputs := make([]stored, len(tools))
 	planar, circular := true, true
@@ -52,9 +51,19 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if a.treated != nil {
 		return b.cutManyTreated(a, inputs)
 	}
-	if planar && a.planar() {
-		solid := a.solid
+	if planar {
+		solid, supported, err := a.planarCutBoundary()
+		if err != nil {
+			return Shape{}, err
+		}
+		if !supported {
+			return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this stock with planar tools"}
+		}
 		for _, tool := range inputs {
+			if pocket, ok := openPlanarPocket(solid, tool.solid); ok {
+				solid = pocket.solid
+				continue
+			}
 			solid, err = poly.Combine(context.Background(), solid, tool.solid, poly.Difference, poly.Options{})
 			if err != nil {
 				return Shape{}, err
@@ -69,7 +78,7 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		}
 		return b.put(solid)
 	}
-	if !circular || a.cylinder != nil {
+	if !circular || a.cylinder != nil || a.analytic != nil {
 		return Shape{}, &failureError{"UNSUPPORTED", "cutMany requires planar tools on planar stock or cylindrical tools on qualified stock"}
 	}
 	base := a.solid
