@@ -95,6 +95,11 @@ func CertifyShearedAffineXYGraphOverlap(ctx context.Context, source, target *Sur
 			normalized[i][j] = new(big.Rat).Quo(new(big.Rat).Mul(out.Map[i][j], new(big.Rat).Sub(sh[j], sl[j])), span)
 		}
 		normalized[i][2] = new(big.Rat).Quo(constant, span)
+		for _, q := range normalized[i] {
+			if e := b.check(q); e != nil {
+				return out, e
+			}
+		}
 	}
 	poly := [][2]*big.Rat{{big.NewRat(0, 1), big.NewRat(0, 1)}, {big.NewRat(1, 1), big.NewRat(0, 1)}, {big.NewRat(1, 1), big.NewRat(1, 1)}, {big.NewRat(0, 1), big.NewRat(1, 1)}}
 	for axis := 0; axis < 2; axis++ {
@@ -113,6 +118,9 @@ func CertifyShearedAffineXYGraphOverlap(ctx context.Context, source, target *Sur
 	for i, p := range poly {
 		q := poly[(i+1)%len(poly)]
 		area.Add(area, new(big.Rat).Sub(new(big.Rat).Mul(p[0], q[1]), new(big.Rat).Mul(p[1], q[0])))
+	}
+	if e := b.check(area); e != nil {
+		return out, e
 	}
 	if len(poly) < 3 || area.Sign() == 0 {
 		out.NoArea = true
@@ -241,6 +249,9 @@ func clipShearPolygon(p [][2]*big.Rat, row [3]*big.Rat, b *polynomialBudget) ([]
 	for i, a := range p {
 		c := p[(i+1)%len(p)]
 		fa, fc := value(a), value(c)
+		if e := b.check(fc); e != nil {
+			return nil, e
+		}
 		if e := b.check(fa); e != nil {
 			return nil, e
 		}
