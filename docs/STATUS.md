@@ -744,6 +744,9 @@ surfaces must keep their geometry through the operation. Continue with:
    plane is active and every other cutter plane strictly contains the stock.
    It keeps original stock and cap supports and records the reused corner,
    retained edge intervals, and generated section edges.
+   The same single-plane assembly now accepts a complete interior-edge section
+   cycle without original vertex contacts. Tangencies and nonaffine crossing
+   faces remain unresolved in that path.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
