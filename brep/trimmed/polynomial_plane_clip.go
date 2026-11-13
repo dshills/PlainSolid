@@ -205,16 +205,14 @@ func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 					axis, sign = cert.freeAxis, cert.sign
 				}
 			} else {
-				cert, e := certifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+				cert, pieces, e := certifyPiecewiseGraphPlaneFaceSection(ctx, stock, id, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o}, rationalGraph)
 				if errors.Is(e, geom.ErrConvergence) {
-					cert, e = certifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, plane, 1, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+					cert, pieces, e = certifyPiecewiseGraphPlaneFaceSection(ctx, stock, id, plane, 1, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o}, rationalGraph)
 				}
 				if e != nil {
 					return zero, e
 				}
-				for _, q := range cert.Pieces() {
-					sections = append(sections, q)
-				}
+				sections = pieces
 				axis, sign = cert.axis, cert.sign
 				spans.knots = append(spans.knots, cert.Knots()...)
 			}
