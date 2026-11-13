@@ -70,7 +70,9 @@ selected checkpoint for the newer tested pair of revisions.
 
 The separate [isolated integration performance retest](evidence/plaincad-production-performance-isolated-2026-11-13.json)
 passes the original case in 29.5 seconds with all 25 edits and 11 validated
-STL downloads. That report records its own app and kernel inputs.
+STL downloads. The external worktree's independently tested
+[current production run](evidence/plaincad-current-production-2026-11-13.json)
+also passed all 66 originals. Each report records its own app and kernel inputs.
 
 The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
 passes cold load of all 40 bodies, cached rename, and a platter thickness

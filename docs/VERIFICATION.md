@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD full current production acceptance — 2026-11-13
+
+The [production report](evidence/plaincad-current-production-2026-11-13.json)
+passes 66 of 66 originals in 403.549 seconds on PlainCAD `e65f07b`. No
+tests skip, flake or retry. The built app uses the same Go WASM as the
+isolated performance comparison. The performance case also passes within
+the full run in 56.2 seconds. The original production configuration,
+assertions and deadlines are preserved. The build passes the JavaScript
+bundle budget across 72 bundles, with a largest bundle of 496.82 kB.
+
 ## PlainCAD isolated production performance — 2026-11-13
 
 The [production benchmark comparison](evidence/plaincad-production-performance-isolated-2026-11-13.json)
@@ -33,7 +43,11 @@ The remaining ten fail in the older frozen preview path. The
 passes every original in 162.429 seconds, including major arc fragmentation,
 lens and crescent selection, circular notches, arc-only intersections, and
 arc Extend on YZ. Native race tests verify signed convex/concave corners,
-analytic volume, mesh closure and JSON round-trips. The [revolve retest](evidence/plaincad-current-revolve-capture-2026-11-13.json)
+analytic volume, mesh closure and JSON round-trips. The
+[development retest](evidence/plaincad-current-development-retests-2026-11-13.json)
+passes all 17 originals in the remaining focused selection. That includes
+configuration packaging, placed circles, reusable parts, both PNG tests,
+gallery, and 40-body GPU buffer reuse. The [revolve retest](evidence/plaincad-current-revolve-capture-2026-11-13.json)
 passes original Cut and Join auto-target capture on PlainCAD `e65f07b`.
 
 ## PlainCAD current studio, native modeling and lineage — 2026-11-13
