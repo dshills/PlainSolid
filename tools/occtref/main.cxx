@@ -334,6 +334,14 @@ int main(int argc, char** argv) {
       record(out,"finite-parallel-transverse-cut",BRepAlgoAPI_Cut(unequalWide,parallelTool).Shape(),1e-11);
       const auto coveringTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(5,2,11),gp_Dir(0,0,-1)),3,16).Shape();
       record(out,"finite-parallel-transverse-covering-cut",BRepAlgoAPI_Cut(unequalWide,coveringTool).Shape(),1e-11);
+      const auto notchStock=BRepPrimAPI_MakeCylinder(5,8).Shape();
+      for(auto fixture:std::array<std::pair<double,double>,3>{{{10,7},{5,7},{6,4}}}){
+        const auto notchTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(4,0,fixture.first),gp_Dir(0,0,-1)),3,fixture.second).Shape();
+        const auto cut=BRepAlgoAPI_Cut(notchStock,notchTool).Shape();
+        int shells=0;for(TopExp_Explorer it(cut,TopAbs_SHELL);it.More();it.Next())++shells;
+        if(shells!=1)throw std::runtime_error("transverse notch did not retain one shell");
+        record(out,fixture.first==10?"finite-transverse-upper-notch":fixture.first==5?"finite-transverse-lower-notch":"finite-transverse-interior-notch",cut,1e-11);
+      }
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);

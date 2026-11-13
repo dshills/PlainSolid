@@ -412,3 +412,31 @@ func TestOCCTFiniteParallelTransverseCylinderSets(t *testing.T) {
 	}
 	check(refName, d.Solids[0])
 }
+
+func TestOCCTFiniteTransverseBlindCylinderCut(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Min: 0, Max: 4, Radius: 5}
+	for _, tc := range []struct {
+		name     string
+		min, max float64
+		faces    int
+		caps     int
+	}{
+		{"finite-transverse-upper-notch", -5, -1.5, 10, 2},
+		{"finite-transverse-lower-notch", -2.5, 1, 10, 2},
+		{"finite-transverse-interior-notch", -3, -1, 16, 4},
+	} {
+		b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Min: tc.min, Max: tc.max, Radius: 3}
+		r, err := parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-8)
+		if err != nil || finiteOracleShellCount(r.Solids[0]) != 1 || len(r.Solids[0].Faces()) != tc.faces ||
+			len(r.CutterWallFaces[0]) != 1 || len(r.CutterCapFaces[0]) != tc.caps {
+			t.Fatal(tc.name, "unexpected analytic shell or original floor ownership", err)
+		}
+		m, err := r.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+		if err != nil {
+			t.Fatal(tc.name, err)
+		}
+		compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+	}
+}

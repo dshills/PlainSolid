@@ -1134,6 +1134,12 @@ A reverse-axis cylindrical cutter with a larger axial span independently
 qualifies the transverse crescent difference against OCCT area, volume, and
 centroid. Native ancestry records the two original stock caps and the
 cutter wall; temporary clipping planes do not acquire cutter cap ancestry.
+Independent OCCT cuts cover an upper, lower, and interior transverse
+notch. All retain one shell and agree on area, volume, and centroid.
+The upper and lower cuts retain two analytic floor patches; the interior
+notch retains four patches on the two original caps in original parameter
+order, including for a reversed cutter axis. Native tests also verify
+opposite floor normals, closed display meshes and no undeclared contacts.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding

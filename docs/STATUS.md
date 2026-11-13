@@ -602,6 +602,9 @@ disk crossing retain the analytic union or cut with signed cap ancestry.
 A transverse cut also accepts an axially longer parallel cutter that exactly
 covers the stock span. Only original stock caps and the original cutter wall
 appear on the retained crescent.
+One-ended cuts and interior side notches keep native lens floor patches on
+the original cutter cap planes. Exact axial ordering retains the original
+stock caps and the cutter wall across all three represented orientations.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
