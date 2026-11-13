@@ -233,3 +233,19 @@ func TestOCCTUnequalFiniteCylinderAsymmetricCaps(t *testing.T) {
 	}
 	check("finite-unequal-offset-cut", d.Solids[0])
 }
+
+func TestOCCTFiniteParallelCylinderCavity(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	stock := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	cutter := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 2.5, Z: 2}, Axis: geom.Vec3{Z: -1}, Radius: 2, Min: 0, Max: 2}
+	d, err := parametric.FiniteCylinderPairDifference(ctx, stock, cutter, 1e-9)
+	if err != nil || len(d.Solids[1].Faces()) != 0 || finiteOracleShellCount(d.Solids[0]) != 2 {
+		t.Fatal("expected one stock with two closed shells", err)
+	}
+	m, err := d.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["finite-parallel-cavity"], m.Area, m.Volume, m.Centroid)
+}

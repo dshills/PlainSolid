@@ -60,11 +60,13 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 // FiniteCylinderPairDifferenceResult preserves the retained stock components
 // in raw-axis order, with unused slots empty. A split equal-radius result
 // touches at ContactNodes; a split wider cut has a positive MinimumGapSquared.
-// Face IDs are local to the corresponding solid. A nil proof means its case
-// does not apply.
+// Face IDs are local to the corresponding solid. CutterCapFaces tracks
+// retained cavity floors in original cutter Min/Max order. A nil proof
+// means its case does not apply.
 type FiniteCylinderPairDifferenceResult struct {
 	Solids                                         [2]Solid
 	StockWallFaces, CutterWallFaces, StockCapFaces [2][]int
+	CutterCapFaces                                 [2][]int
 	ContactNodes                                   *[2]geom.EqualCylinderBisectorNode
 	MinimumGapSquared                              *big.Rat
 }
@@ -72,6 +74,7 @@ type FiniteCylinderPairDifferenceResult struct {
 // FiniteCylinderPairDifference cuts a crossing equal-radius or wider cutter
 // from finite stock under strict cap clearance. It retains a single bored
 // stock for selected narrower perpendicular or contained parallel cutters.
+// Strictly enclosed coordinate-parallel cutters leave an inward cavity shell.
 // It keeps stock unchanged when coordinate-parallel cylinders are separated.
 // It returns empty when exact perpendicular or coordinate-parallel containment
 // covers the stock.
@@ -92,6 +95,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			return out, nil
 		}
 		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
+			if cavity, ok, err := finiteParallelCylinderCavity(ctx, stock, cutter, tolerance); ok || err != nil {
+				return cavity, err
+			}
 			bore, err := finiteCoordinateCylinderThroughDifference(ctx, stock, cutter, tolerance, false)
 			if err != nil {
 				return out, err

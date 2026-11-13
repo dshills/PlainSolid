@@ -251,6 +251,13 @@ int main(int argc, char** argv) {
       record(out,"finite-coaxial-cut",coaxialCut,1e-11);
       const auto eccentricTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,2.5,-4),gp_Dir(0,0,1)),3,15).Shape();
       record(out,"finite-eccentric-cut",BRepAlgoAPI_Cut(unequalWide,eccentricTool).Shape(),1e-11);
+      const auto cavityTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,2.5,2),gp_Dir(0,0,-1)),2,2).Shape();
+      const auto cavity=BRepAlgoAPI_Cut(unequalWide,cavityTool).Shape();
+      int cavitySolids=0,cavityShells=0;
+      for(TopExp_Explorer it(cavity,TopAbs_SOLID);it.More();it.Next())++cavitySolids;
+      for(TopExp_Explorer it(cavity,TopAbs_SHELL);it.More();it.Next())++cavityShells;
+      if(cavitySolids!=1||cavityShells!=2)throw std::runtime_error("parallel cylinder cavity not one solid with two shells");
+      record(out,"finite-parallel-cavity",cavity,1e-11);
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);

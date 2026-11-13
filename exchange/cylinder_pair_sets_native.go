@@ -24,6 +24,7 @@ type cylinderSetEnvelope struct {
 	Boundaries                                     []json.RawMessage
 	WallFaces, LowerCapFaces, UpperCapFaces        [2][]int
 	StockWallFaces, CutterWallFaces, StockCapFaces [2][]int
+	CutterCapFaces                                 *[2][]int `json:",omitempty"`
 	CommonVolumeSquared, MinimumGapSquared         string
 	ContactNodes                                   *[2]cylinderContactRecipe
 	CommonVolumePiCoefficient                      string `json:",omitempty"`
@@ -49,6 +50,9 @@ func cylinderSetPayload(ctx context.Context, r CylinderPairCommonRecipe, differe
 		}
 		solids = d.Solids[:]
 		env.StockWallFaces, env.CutterWallFaces, env.StockCapFaces = d.StockWallFaces, d.CutterWallFaces, d.StockCapFaces
+		if len(d.CutterCapFaces[0])+len(d.CutterCapFaces[1]) > 0 {
+			env.CutterCapFaces = &d.CutterCapFaces
+		}
 		if d.MinimumGapSquared != nil {
 			env.MinimumGapSquared = d.MinimumGapSquared.RatString()
 		}
