@@ -70,6 +70,17 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(s, m.LengthUnit)
 	}
+	if m, e := step.ReadBoxPocketExtrusions(r(), stepLimits()); e == nil && len(m.Bodies) == 1 {
+		p := m.Bodies[0]
+		if m.LengthUnit == .001 {
+			return b.putPocketStock(pocketStock{frame: p.Frame, size: p.Size, pockets: p.Pockets, bores: p.Bores})
+		}
+		solid, err := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), p.Frame, p.Size, p.Pockets, p.Bores)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putSTEPAnalytic(solid, m.LengthUnit)
+	}
 	if m, e := step.ReadCapsuleExtrusions(r(), stepLimits()); e == nil && len(m.Bodies) == 1 {
 		p := m.Bodies[0]
 		var s trimmed.Solid
@@ -130,6 +141,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		if e == nil {
 			e = step.WriteCircularHoleExtrusions(&out, step.CircularHoleExtrusionModel{LengthUnit: .001, Bodies: []step.CircularHoleExtrusionBody{p}})
 		}
+	case s.analytic != nil && s.analytic.pockets != nil:
+		p := s.analytic.pockets
+		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
 	case s.analytic != nil:
 		e = step.WriteCapsuleBoundary(&out, s.analytic.solid, .001, "PlainSolid")
 	default:
