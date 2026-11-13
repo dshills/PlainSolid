@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/brep/parametric"
 	"strings"
 	"testing"
 	"time"
@@ -51,34 +52,45 @@ func TestSplitCylinderProductOCCTRoots(t *testing.T) {
 	if bin == "" {
 		t.Skip("optional OCCT")
 	}
-	var b bytes.Buffer
-	if e := WriteSplitCylinderProduct(&b, splitWriterFixture(t)); e != nil {
-		t.Fatal(e)
-	}
-	p := filepath.Join(t.TempDir(), "product.step")
-	if e := os.WriteFile(p, b.Bytes(), 0600); e != nil {
-		t.Fatal(e)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	raw, e := exec.CommandContext(ctx, bin, p, "roots").CombinedOutput()
-	if e != nil {
-		t.Fatal(e, string(raw))
-	}
-	var v struct {
-		Faces        int
-		Volume, Area float64
-		Center       [3]float64
-	}
-	if e = json.Unmarshal(raw, &v); e != nil {
-		t.Fatal(e, string(raw))
-	}
-	if v.Faces != 4 || math.Abs(v.Volume-12*math.Pi) > 1e-10 || math.Abs(v.Area-20*math.Pi) > 1e-10 {
-		t.Fatal(v)
-	}
-	for i, x := range []float64{8.5, -4, 7} {
-		if math.Abs(v.Center[i]-x) > 1e-10 {
+	for _, native := range []bool{false, true} {
+		var b bytes.Buffer
+		d := splitWriterFixture(t)
+		if native {
+			solid, e := parametric.Cylinder(d.Frame, d.Radius, d.Height)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if e = WriteNativeSplitCylinderProduct(&b, solid, d.Name, d.LengthUnit); e != nil {
+				t.Fatal(e)
+			}
+		} else if e := WriteSplitCylinderProduct(&b, d); e != nil {
+			t.Fatal(e)
+		}
+		p := filepath.Join(t.TempDir(), "product.step")
+		if e := os.WriteFile(p, b.Bytes(), 0600); e != nil {
+			t.Fatal(e)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		raw, e := exec.CommandContext(ctx, bin, p, "roots").CombinedOutput()
+		if e != nil {
+			t.Fatal(e, string(raw))
+		}
+		var v struct {
+			Faces        int
+			Volume, Area float64
+			Center       [3]float64
+		}
+		if e = json.Unmarshal(raw, &v); e != nil {
+			t.Fatal(e, string(raw))
+		}
+		if v.Faces != 4 || math.Abs(v.Volume-12*math.Pi) > 1e-10 || math.Abs(v.Area-20*math.Pi) > 1e-10 {
 			t.Fatal(v)
+		}
+		for i, x := range []float64{8.5, -4, 7} {
+			if math.Abs(v.Center[i]-x) > 1e-10 {
+				t.Fatal(v)
+			}
 		}
 	}
 }

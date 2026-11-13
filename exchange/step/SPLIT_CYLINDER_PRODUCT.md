@@ -30,3 +30,22 @@ area20π and centroid(8.5,-4,7). Tests also cover missing/foreign/cyclic/duplica
 product graph, dimension limits and the unchanged rejection by the bare reader.
 This is one actual rooted BRep exchange dialect, not general product assemblies,
 AP203 conformance certification or approximate STEP healing.
+
+## Canonical native cylinder route
+
+`WriteNativeSplitCylinderProduct(w, solid, name, lengthUnit)` is the explicit
+high-level export entry point. `NativeSplitCylinderDescriptor` exposes its
+classification gate: the solid must match a freshly reconstructed
+`parametric.Cylinder` in all vertices, edge curves/ranges, built-in surface
+charts, face senses, topology and constructor tolerance. Matching uses concrete
+immutable descriptor data, never evaluator samples. Custom wrappers, changed
+tolerances and reordered but potentially equivalent topology are rejected.
+The recovered frame/dimensions must additionally pass the exact STEP writer.
+
+Use `ReadSplitCylinderProduct` for import; it already returns native analytic
+geometry, name, unit, exact frame and source ancestry, so no alias or implicit
+generic dispatch is added. Native output is the canonical three-chart cylinder;
+the four source face roles remain explicit ancestry, not fictitious native face
+IDs. The native→rooted STEP→native→rooted STEP chain is byte-stable for admitted
+inputs. Conventional OCCT TransferRoots independently verifies output from both
+the descriptor and native-solid entry points.
