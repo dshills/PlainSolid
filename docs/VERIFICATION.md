@@ -788,3 +788,10 @@ tapered coaxial bore walls, and three wrapped loft bands with two genuine
 station creases. They pass outward manifold and exact represented contact
 checks. The loft test reloads the native solid before mesh qualification,
 and matches the original station identities along all 64 shared samples.
+
+Signed partial polygon revolutions qualify a translated, rotated, concave
+meridian both with and without an axis side. The independent first radial
+moments give volume `abs(angle)*2.5` and `abs(angle)*5.5` respectively. A
+negative sweep retains topology and outward tessellation after native reload.
+The helix tests compare both hands to independent turn, speed and derivative
+formulas and verify conservative ideal-curve chord and parameter bounds.

@@ -24,6 +24,9 @@ line/arc profiles and partial revolutions; cap-edge treatments followed by
 bores, pockets and joins; helical threads and lead parts; and STEP roundtrips of
 the resulting solids. General current-face/edge proof and browser resource
 behavior are part of those gates, not optional integration details.
+Signed partial polygon-meridian revolutions and analytic bounded helix curves
+are now available in the Go kernel. They still need application acceptance;
+curved meridian profiles and helical tool solids remain separate work.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|
