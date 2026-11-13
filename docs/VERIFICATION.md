@@ -17,6 +17,52 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD STEP for overlapping circular bores — 2026-11-13
+
+The canonical STEP writer preserves the actual circular arcs, planar
+crescent floors, cylindrical walls, face uses and paired pcurves. The
+reader recovers candidate cutter intervals from those surfaces and accepts
+the file only if native reconstruction regenerates the complete graph.
+The focused suite verifies reader limits, graph corruption rejection,
+placement and retained editing after reimport. Independent OCCT checks
+match area, volume and centroid for both sweep directions.
+
+All [eight original cases](evidence/plaincad-layered-round-stock-step-browser-2026-11-13.json)
+pass for STEP import, export and cancellation, stale workers, machined
+references and Hole Edit. The [native evidence](evidence/plaincad-layered-round-stock-step-native-2026-11-13.json)
+records two same-WASM supplemental checks for authored rebuild, persistence,
+STEP and validated STL, the native race checks and Go vet. The full
+browser run's YZ guarded sketch drag reaches the readiness deadline with
+`loadingKernel`; the unchanged original passes on the same WASM in
+10.826 seconds in isolation.
+
+## PlainCAD overlapping bores on circular stock — 2026-11-13
+
+Circular stock now reuses the exact axial bore arrangement. Unequal-depth
+opposed tools, subsequent cuts and measure-only overlap preserve material
+volume, cylindrical walls and crescent floor topology. Native tests also
+cover the original planar-stock callers and verify signed, placed stock,
+independently integrated area and volume, and watertight tessellation.
+STEP exchange remains open for the intersecting bore boundary.
+
+All [eight original browser cases](evidence/plaincad-overlap-round-stock-browser-2026-11-13.json)
+pass for Hole, grouped edge edits, multi-body scopes, and STEP import. A
+[supplemental PlainCAD check](evidence/plaincad-overlap-round-stock-native-2026-11-13.json)
+uses the same WASM for authored opposed cuts, project reload and validated
+STL. Focused native race checks and Go vet pass. The same evidence records
+both successful native full-mode spline tests and the unchanged Parts Browser
+reruns. The browser full-run failure read the initial empty rebuild before the
+asynchronous project open. The same WASM and pristine OCCT both pass isolated
+reruns of that test.
+
+## Additional full-mode trimmed spline checks — 2026-11-13
+
+`TestNestedQuarticTubeMaterial` and
+`TestCombineTransverseSplineShellsAdditionalOperations` both pass in the
+integration worktree with full mode enabled. The tests take 524.10 and
+29.69 seconds. The separate 398-case short run excludes those two cases
+and two explicitly opt-in investigations.
+
 ## PlainCAD disjoint blind bores from opposite circular caps — 2026-11-13
 
 Disjoint blind cuts from either circular cap retain analytic walls and floors,

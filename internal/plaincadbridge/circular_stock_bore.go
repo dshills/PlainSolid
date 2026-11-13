@@ -103,6 +103,8 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 	p.Holes, p.Blind = slices.Clone(p.Holes), slices.Clone(p.Blind)
 	before := a.result.GeometryAssertions.Volume
 	volume, area := before, a.result.GeometryAssertions.SurfaceArea
+	layered := a.analytic != nil && a.analytic.layeredDisk
+	changed := false
 	type boreSpan struct {
 		tool   *cylinderBody
 		circle trimmed.ExtrusionCircle
@@ -145,12 +147,8 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 		if redundant {
 			continue
 		}
-		if contact {
-			return Shape{}, true, unsupportedEdge("circular stock requires disjoint bore footprints")
-		}
-		if len(p.Holes)+len(p.Blind) == 16 {
-			return Shape{}, true, &failureError{"LIMIT", "circular stock accepts at most 16 distinct bore sites"}
-		}
+		layered = layered || contact
+		changed = true
 		depth := hi - lo
 		if !exactAxisDistance(hi, lo, depth) {
 			return Shape{}, true, geom.ErrUnrepresentable
@@ -183,15 +181,43 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 		}
 		p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: depth, OppositeCap: opposite})
 	}
-	if !removesMaterial(before, volume) {
+	if !changed {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
 	}
-	s, err := trimmed.ExtrudeDiskWithHoles(context.Background(), p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
-	if err != nil {
-		return Shape{}, true, err
+	limit := 16
+	if layered {
+		limit = 32
 	}
-	out, err := b.putAnalyticBody(&analyticBody{solid: s, stepDisk: &p, volume: volume, area: area})
+	if len(p.Holes)+len(p.Blind) > limit {
+		return Shape{}, true, &failureError{"LIMIT", "circular stock bore count exceeds the qualified limit"}
+	}
+	ctx := context.Background()
+	var body *analyticBody
+	if layered {
+		s, proof, err := trimmed.BoreDiskDepthUnion(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		if err != nil {
+			return Shape{}, true, err
+		}
+		body = layeredCircularBody(s, p, proof)
+	} else {
+		s, err := trimmed.ExtrudeDiskWithHoles(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		if err != nil {
+			return Shape{}, true, err
+		}
+		body = &analyticBody{solid: s, stepDisk: &p, volume: volume, area: area}
+	}
+	if !removesMaterial(before, body.volume) {
+		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
+	}
+	out, err := b.putAnalyticBody(body)
 	return out, true, err
+}
+
+func layeredCircularBody(s trimmed.Solid, p step.DiskHoleExtrusionBody, h trimmed.LayeredBoreHistory) *analyticBody {
+	r, height := p.Outer.Radius, math.Abs(p.Height)
+	return &analyticBody{solid: s, stepDisk: &p, layeredDisk: true,
+		volume: math.Pi*r*r*height - h.RemovedVolume,
+		area:   2*math.Pi*r*(r+height) + h.SurfaceAreaDelta}
 }
 
 func circularBoreContact(p step.DiskHoleExtrusionBody, hole trimmed.ExtrusionCircle, lo, hi float64) (redundant, contact bool) {
@@ -231,6 +257,10 @@ func overlapCircularStockBores(a, tool stored) (float64, bool, error) {
 	}
 	if redundant, _ := circularBoreContact(p, hole, lo, hi); redundant {
 		return 0, true, nil
+	}
+	if a.analytic.layeredDisk {
+		removed, err := trimmed.DiskDepthUnionOverlap(p.Frame, p.Outer, p.Holes, p.Blind, p.Height, hole, lo, hi)
+		return removed, true, err
 	}
 	volume := math.Pi * hole.Radius * hole.Radius * (hi - lo)
 	removed := func(prior trimmed.ExtrusionCircle, depth float64) (float64, error) {
