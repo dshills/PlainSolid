@@ -1900,6 +1900,10 @@ Two opposite active planes qualify a six-face slab on the same warped stock.
 Exact ancestry covers eight cap section edges and four retained stock edge
 intervals. The independent OCCT cutter is an oblique planar face swept by
 `1/4`; the result agrees on one shell, volume `1/4`, centroid and area.
+Two nonparallel cutter prisms with disjoint caps produce one six-face shell
+on the warped stock. Native reload, edge ancestry, mesh closure and exact
+display contacts are checked in both cutter orders. Independent sequential
+OCCT commons agree on area, centroid and volume `1/2`.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
