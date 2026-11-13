@@ -16,6 +16,12 @@ allocation and dense manifold validation changes. The [Thread comparison](eviden
 retains the prior timeouts, exact external mesh hash, and distinct clean
 build IDs. A fresh full development run started on `e060654`.
 
+The [full production suite](evidence/plaincad-reconciled-production-e579e5c-2026-11-13.json)
+passed all 66 original cases on clean `e579e5c` with PlainCAD `e65f07b`.
+The build verified 841 original sources. There were no skips, failures or
+flaky outcomes. The separate backend preflight passed on port 5440; the
+unchanged production fixtures used their original port 5280.
+
 On clean reconciliation `9b12a41`, all three original viewer cases passed
 with the staged camera settling repair: pan/idle (53.8 s), source markers
 (31.1 s), and ORBIT gesture/export (about 72 s). The separate Go/WASM
