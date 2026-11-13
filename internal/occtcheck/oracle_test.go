@@ -416,6 +416,9 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 	sp, e := parametric.PerpendicularCylinderSplitCut(ctx, geom.Vec3{}, 2, 3, 5, 4, 1e-9)
 	check("unequal-cylinder-split-minus", sp.Solids[0], e)
 	check("unequal-cylinder-split-plus", sp.Solids[1], e)
+	osp, e := parametric.ObliqueCylinderSplitCut(ctx, geom.Vec3{}, geom.Vec3{X: 2}, geom.Vec3{X: 3, Y: 4}, 1, 2, longCaps, longCaps, 1e-9)
+	check("oblique-cylinder-split-minus", osp.Solids[0], e)
+	check("oblique-cylinder-split-plus", osp.Solids[1], e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

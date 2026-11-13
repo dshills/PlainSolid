@@ -491,8 +491,8 @@ cylinders also have a native union with all four exposed cap disks.
 Equal-radius oblique cylinders have native union and subtraction when the
 finite caps strictly clear the common. Perpendicular and oblique subtraction
 retain two closed bodies and report their two intrinsic closure contacts.
-Subtracting a wider perpendicular tool keeps two strictly separated stock
-bodies, with an exact squared lower bound on their gap.
+Subtracting a wider perpendicular or oblique tool keeps two strictly
+separated stock bodies, with an exact squared lower bound on their gap.
 
 ## Continuing implementation
 

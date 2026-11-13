@@ -555,6 +555,10 @@ in the trimmed suite; the other packages finished. CI now allocates 45 minutes
 per ordinary package and 60 per race package to preserve the full fixture
 set. Those new CI budgets have not yet been verified remotely.
 
+The subsequent local 45-minute run passed across all packages; the full
+trimmed suite took 2,204 seconds. Later analytic cylinder and exchange
+milestones also passed their focused race and differential checks.
+
 The rational graph-line fixture proves that two independent top equations
 share an irrational root, then merges their original face ownership.
 Rounded-cylinder section tests preserve an irrational radius as a rational
@@ -1057,3 +1061,5 @@ the corresponding two solids.
 The wider perpendicular cutter yields two strictly separated bodies. Tests
 check the analytic gap, inclusion-exclusion volume, native reload, certified
 display, and each component against an independent OCCT cut.
+The oblique variant checks the same invariants with the gap measured along
+the unit normal to the cutter axis in the two-axis plane.

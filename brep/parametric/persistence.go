@@ -29,6 +29,7 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
+	ObliqueSplit     *obliqueSplitData     `json:",omitempty"`
 	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
 	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
 	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
@@ -61,6 +62,14 @@ type surfaceData struct {
 	SkewOverlap      *skewOverlapData         `json:",omitempty"`
 	ObliqueCylinder  *obliqueCylinderData     `json:",omitempty"`
 	GeneralCylinder  *generalCylinderData     `json:",omitempty"`
+}
+
+type obliqueSplitData struct {
+	Center, StockAxis, CutterAxis geom.Vec3
+	Stock, Cutter                 float64
+	StockCaps, CutterCaps         [2]float64
+	Side, Half                    int
+	Cap                           bool
 }
 
 type splitCylinderCutData struct {
@@ -208,6 +217,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "oblique-cylinder-union", ObliqueUnion: &obliqueUnionData{x.center, x.u, x.v, x.radius, x.caps, x.owner, x.side, x.half, x.cap}}, nil
 	case splitCylinderCutChart:
 		return surfaceData{Kind: "split-cylinder-cut", SplitCylinderCut: &splitCylinderCutData{x.center, x.stock, x.cutter, x.end, x.side, x.half, x.cap}}, nil
+	case obliqueSplitChart:
+		return surfaceData{Kind: "oblique-split-cylinder-cut", ObliqueSplit: &obliqueSplitData{x.center, x.stockAxis, x.cutterAxis, x.stock, x.cutter, x.stockCaps, x.cutterCaps, x.side, x.half, x.cap}}, nil
 	case steinmetzDisk:
 		return surfaceData{Kind: "steinmetz-disk", Center: &x.center, A: x.radius}, nil
 	case steinmetzChart:
@@ -298,6 +309,20 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "oblique-split-cylinder-cut") != (d.ObliqueSplit != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.ObliqueSplit; x != nil {
+		if x.Side != 1 && x.Side != -1 || x.Half != 1 && x.Half != -1 {
+			return nil, geom.ErrInvalid
+		}
+		s, _, e := newObliqueSplitChart(context.Background(), x.Center, x.StockAxis, x.CutterAxis, x.Stock, x.Cutter, x.StockCaps, x.CutterCaps)
+		if e != nil {
+			return nil, e
+		}
+		s.side, s.half, s.cap = x.Side, x.Half, x.Cap
+		return s, nil
+	}
 	if (d.Kind == "split-cylinder-cut") != (d.SplitCylinderCut != nil) {
 		return nil, geom.ErrInvalid
 	}

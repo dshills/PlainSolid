@@ -1130,6 +1130,17 @@ int main(int argc, char** argv) {
       ++splitDifferenceCount;
     }
     if (splitDifferenceCount != 2) throw std::runtime_error("unequal cylinder split did not yield two bodies");
+    const auto obliqueSplitStock = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-8, 0, 0), gp_Dir(2, 0, 0)), 1, 16).Shape();
+    const auto obliqueSplitTool = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-12, -16, 0), gp_Dir(3, 4, 0)), 2, 40).Shape();
+    const auto obliqueSplit = BRepAlgoAPI_Cut(obliqueSplitStock, obliqueSplitTool).Shape();
+    int obliqueSplitCount = 0;
+    for (TopExp_Explorer ex(obliqueSplit, TopAbs_SOLID); ex.More(); ex.Next()) {
+      GProp_GProps props;
+      BRepGProp::VolumeProperties(ex.Current(), props);
+      record(out, props.CentreOfMass().X() < 0 ? "oblique-cylinder-split-minus" : "oblique-cylinder-split-plus", ex.Current(), 1e-10);
+      ++obliqueSplitCount;
+    }
+    if (obliqueSplitCount != 2) throw std::runtime_error("unequal oblique cylinder split did not yield two bodies");
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

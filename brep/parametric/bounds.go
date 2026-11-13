@@ -201,6 +201,19 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 			return geom.Box{}, e
 		}
 		x, y, z = scalarBounds{-a.end, a.end}, scalarBounds{-a.stock, a.stock}, scalarBounds{-a.stock, a.stock}
+	case obliqueSplitChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var e error
+		f, e = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if e != nil {
+			return geom.Box{}, e
+		}
+		d := a.stockAxis
+		n := upAdd(upAdd(math.Abs(d.X), math.Abs(d.Y)), math.Abs(d.Z))
+		m := upAdd(upMul(n, max(math.Abs(a.stockCaps[0]), math.Abs(a.stockCaps[1]))), a.stock)
+		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
 	case steinmetzClippedCylinder:
 		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain
