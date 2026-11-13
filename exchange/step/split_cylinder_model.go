@@ -26,7 +26,7 @@ func splitFailure() error { return errors.New("step: unsupported exact model-onl
 
 // ReadSplitCylinderModel accepts one independent model-only BRep with two
 // complementary semicylindrical faces. It requires exact represented source
-// numbers, direct circle/line edges, positive curve senses and complete oriented
+// numbers, direct circle/line edges, positive physical circle direction and complete oriented
 // ownership. Pcurves, transforms, assemblies and tolerance repair are excluded.
 func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 	m, e := readCylinderCells(r, l, 2)
@@ -247,7 +247,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 		if side {
 			n = 4
 		}
-		_, uses, e := analyticFaceLoop(f, id, n)
+		_, uses, e := cylinderCellFaceLoop(f, id, n)
 		if e != nil {
 			return fail()
 		}
@@ -271,7 +271,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 			if _, ok := edges[u.id]; ok {
 				continue
 			}
-			a, b, g, e := analyticEdge(f, u.id)
+			a, b, g, curveSense, e := cylinderCellEdge(f, u.id)
 			if e != nil || a == b {
 				return fail()
 			}
@@ -314,8 +314,8 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 				if e != nil {
 					return fail()
 				}
-				z, e := splitPlacement(f, pid)
-				if e != nil || z != points[0].Z {
+				z, normal, e := cylinderCellCirclePlacement(f, pid)
+				if e != nil || curveSense != (normal > 0) || z != points[0].Z {
 					return fail()
 				}
 				rad, e := cylinderSupportNumber(rec.Args[2])
@@ -349,7 +349,7 @@ func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, er
 					return fail()
 				}
 				d, e := splitTriple(f, did, "DIRECTION")
-				if e != nil || d != (geom.Vec3{Z: 1}) {
+				if e != nil || (d != (geom.Vec3{Z: 1}) && d != (geom.Vec3{Z: -1})) || curveSense != (d.Z > 0) {
 					return fail()
 				}
 				mag, e := cylinderSupportNumber(v.Args[2])
@@ -575,4 +575,114 @@ func splitNormalizeFrame(f *File) (geom.Frame, error) {
 		f.Entities[id] = ent
 	}
 	return frame, nil
+}
+
+// Edge direction is kept distinct from its model curve parameter direction.
+// Only circle normal/sense pairs whose physical direction is positive local
+// azimuth enter the existing angular coverage proof. Lines remain physically forward.
+func cylinderCellEdge(f *File, id int64) (int64, int64, int64, bool, error) {
+	r, e := simple(f, id, "EDGE_CURVE", 5)
+	if e != nil {
+		return 0, 0, 0, false, e
+	}
+	if _, e = textValue(r.Args[0]); e != nil {
+		return 0, 0, 0, false, e
+	}
+	a, e := ref(r.Args[1])
+	if e != nil {
+		return 0, 0, 0, false, e
+	}
+	b, e := ref(r.Args[2])
+	if e != nil {
+		return 0, 0, 0, false, e
+	}
+	g, e := ref(r.Args[3])
+	if e != nil {
+		return 0, 0, 0, false, e
+	}
+	sense, e := boolean(r.Args[4])
+	return a, b, g, sense, e
+}
+func cylinderCellCirclePlacement(f *File, id int64) (float64, int, error) {
+	r, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)
+	if e != nil {
+		return 0, 0, e
+	}
+	p, e := ref(r.Args[1])
+	if e != nil {
+		return 0, 0, e
+	}
+	v, e := splitTriple(f, p, "CARTESIAN_POINT")
+	if e != nil || v.X != 0 || v.Y != 0 {
+		return 0, 0, splitFailure()
+	}
+	axis, e := ref(r.Args[2])
+	if e != nil {
+		return 0, 0, e
+	}
+	z, e := splitTriple(f, axis, "DIRECTION")
+	if e != nil || (z != (geom.Vec3{Z: 1}) && z != (geom.Vec3{Z: -1})) {
+		return 0, 0, splitFailure()
+	}
+	reference, e := ref(r.Args[3])
+	if e != nil {
+		return 0, 0, e
+	}
+	x, e := splitTriple(f, reference, "DIRECTION")
+	if e != nil || x != (geom.Vec3{X: 1}) {
+		return 0, 0, splitFailure()
+	}
+	return v.Z, int(z.Z), nil
+}
+
+// A false bound orientation reverses the complete loop, not the face support.
+// Normalize only this private proof view; original source topology is retained.
+func cylinderCellFaceLoop(f *File, id int64, n int) (Record, []analyticUse, error) {
+	face, e := simple(f, id, "ADVANCED_FACE", 4)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	bounds, e := listRefs(face.Args[1], 1)
+	if e != nil || len(bounds) != 1 {
+		return Record{}, nil, splitFailure()
+	}
+	ent := f.Entities[bounds[0]]
+	if len(ent.Records) != 1 {
+		return Record{}, nil, splitFailure()
+	}
+	kind := ent.Records[0].Type
+	if kind != "FACE_BOUND" && kind != "FACE_OUTER_BOUND" {
+		return Record{}, nil, splitFailure()
+	}
+	bound, e := simple(f, bounds[0], kind, 3)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	forward, e := boolean(bound.Args[2])
+	if e != nil {
+		return Record{}, nil, e
+	}
+	if forward {
+		return analyticFaceLoop(f, id, n)
+	}
+	local := *f
+	local.Entities = make(map[int64]Entity, len(f.Entities))
+	for k, v := range f.Entities {
+		local.Entities[k] = v
+	}
+	bound.Args = append([]Value(nil), bound.Args...)
+	bound.Args[2] = Value{Kind: Enumeration, Text: "T"}
+	ent.Records = []Record{bound}
+	local.Entities[bounds[0]] = ent
+	rec, uses, e := analyticFaceLoop(&local, id, n)
+	if e != nil {
+		return Record{}, nil, e
+	}
+	for i, j := 0, len(uses)-1; i < j; i, j = i+1, j-1 {
+		uses[i], uses[j] = uses[j], uses[i]
+	}
+	for i := range uses {
+		uses[i].sense = !uses[i].sense
+	}
+	return rec, uses, nil
 }

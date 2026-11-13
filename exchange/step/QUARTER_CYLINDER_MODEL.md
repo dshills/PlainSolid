@@ -46,3 +46,6 @@ OCCT's conventional TransferRoots requires exactly one root and verifies six
 faces from native output with local reference +Y, axis -Z and origin(-3,5,2).
 Measured volume12π, area20π and centroid(-3,5,0.5) independently qualify the pose
 and product envelope. The bare/direct-transfer tests remain separate.
+
+See CYLINDER_CELL_CURVE_SENSE.md for the separately verified equivalent
+negative-circle-normal/false-curve-sense input encoding.
