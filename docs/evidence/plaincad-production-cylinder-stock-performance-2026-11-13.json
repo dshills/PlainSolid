@@ -1,0 +1,472 @@
+{
+  "reportVersion": 1,
+  "scenario": "XY rectangle → 12mm extrusion → native circular through-cut; UI width edits, distance overlay and alternating section clipping",
+  "recordedAt": "2026-11-13T23:05:27.284Z",
+  "environment": {
+    "browser": "153.0.8010.12",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "os": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logicalCpus": 14,
+    "node": "v26.13.1",
+    "developmentBuild": false
+  },
+  "counts": {
+    "parameters": 1,
+    "sketches": 2,
+    "features": 2,
+    "bodies": 1,
+    "warmup": 5,
+    "measured": 20,
+    "exportsMeasured": 10
+  },
+  "coldLoadToFirstModelMs": 843.6292079999985,
+  "timingsMs": {
+    "editToCurrentModel": {
+      "min": 529.2688330000092,
+      "p50": 771.6893750000017,
+      "p95": 946.8397499999992,
+      "max": 1176.6529169999994
+    },
+    "exportToDownload": {
+      "min": 62.990832999988925,
+      "p50": 67.9126249999972,
+      "p95": 107.26687500000116,
+      "max": 107.26687500000116
+    }
+  },
+  "samples": [
+    {
+      "iteration": 0,
+      "widthMm": 61,
+      "warmup": true,
+      "editToCurrentModelMs": 616.2879590000084,
+      "expectedNativeVolumeMm3": 28940.707993412303,
+      "observedNativeVolumeMm3": 28940.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 1,
+      "widthMm": 62,
+      "warmup": true,
+      "editToCurrentModelMs": 639.4575000000041,
+      "expectedNativeVolumeMm3": 29420.707993412303,
+      "observedNativeVolumeMm3": 29420.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 2,
+      "widthMm": 63,
+      "warmup": true,
+      "editToCurrentModelMs": 604.1417499999952,
+      "expectedNativeVolumeMm3": 29900.707993412303,
+      "observedNativeVolumeMm3": 29900.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 3,
+      "widthMm": 64,
+      "warmup": true,
+      "editToCurrentModelMs": 897.6695419999887,
+      "expectedNativeVolumeMm3": 30380.707993412303,
+      "observedNativeVolumeMm3": 30380.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 4,
+      "widthMm": 65,
+      "warmup": true,
+      "editToCurrentModelMs": 858.6531669999968,
+      "expectedNativeVolumeMm3": 30860.707993412303,
+      "observedNativeVolumeMm3": 30860.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 5,
+      "widthMm": 66,
+      "warmup": false,
+      "editToCurrentModelMs": 861.2287919999944,
+      "expectedNativeVolumeMm3": 31340.707993412303,
+      "observedNativeVolumeMm3": 31340.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 6,
+      "widthMm": 67,
+      "warmup": false,
+      "editToCurrentModelMs": 771.6893750000017,
+      "expectedNativeVolumeMm3": 31820.707993412303,
+      "observedNativeVolumeMm3": 31820.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 7,
+      "widthMm": 68,
+      "warmup": false,
+      "editToCurrentModelMs": 946.8397499999992,
+      "expectedNativeVolumeMm3": 32300.707993412303,
+      "observedNativeVolumeMm3": 32300.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 8,
+      "widthMm": 69,
+      "warmup": false,
+      "editToCurrentModelMs": 823.7521249999991,
+      "expectedNativeVolumeMm3": 32780.7079934123,
+      "observedNativeVolumeMm3": 32780.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 9,
+      "widthMm": 70,
+      "warmup": false,
+      "editToCurrentModelMs": 858.1361670000042,
+      "expectedNativeVolumeMm3": 33260.7079934123,
+      "observedNativeVolumeMm3": 33260.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 10,
+      "widthMm": 71,
+      "warmup": false,
+      "editToCurrentModelMs": 1176.6529169999994,
+      "expectedNativeVolumeMm3": 33740.7079934123,
+      "observedNativeVolumeMm3": 33740.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 11,
+      "widthMm": 72,
+      "warmup": false,
+      "editToCurrentModelMs": 698.3912500000006,
+      "expectedNativeVolumeMm3": 34220.7079934123,
+      "observedNativeVolumeMm3": 34220.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 12,
+      "widthMm": 73,
+      "warmup": false,
+      "editToCurrentModelMs": 903.7336660000001,
+      "expectedNativeVolumeMm3": 34700.7079934123,
+      "observedNativeVolumeMm3": 34700.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 13,
+      "widthMm": 74,
+      "warmup": false,
+      "editToCurrentModelMs": 885.6276249999937,
+      "expectedNativeVolumeMm3": 35180.7079934123,
+      "observedNativeVolumeMm3": 35180.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 14,
+      "widthMm": 75,
+      "warmup": false,
+      "editToCurrentModelMs": 648.6918330000044,
+      "expectedNativeVolumeMm3": 35660.7079934123,
+      "observedNativeVolumeMm3": 35660.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 15,
+      "widthMm": 76,
+      "warmup": false,
+      "editToCurrentModelMs": 620.3715830000001,
+      "expectedNativeVolumeMm3": 36140.7079934123,
+      "observedNativeVolumeMm3": 36140.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 16,
+      "widthMm": 77,
+      "warmup": false,
+      "editToCurrentModelMs": 608.9736670000129,
+      "expectedNativeVolumeMm3": 36620.7079934123,
+      "observedNativeVolumeMm3": 36620.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 17,
+      "widthMm": 78,
+      "warmup": false,
+      "editToCurrentModelMs": 560.1280419999966,
+      "expectedNativeVolumeMm3": 37100.7079934123,
+      "observedNativeVolumeMm3": 37100.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 18,
+      "widthMm": 79,
+      "warmup": false,
+      "editToCurrentModelMs": 780.3371250000055,
+      "expectedNativeVolumeMm3": 37580.7079934123,
+      "observedNativeVolumeMm3": 37580.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 19,
+      "widthMm": 80,
+      "warmup": false,
+      "editToCurrentModelMs": 832.6288749999949,
+      "expectedNativeVolumeMm3": 38060.7079934123,
+      "observedNativeVolumeMm3": 38060.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 20,
+      "widthMm": 81,
+      "warmup": false,
+      "editToCurrentModelMs": 778.840458000006,
+      "expectedNativeVolumeMm3": 38540.7079934123,
+      "observedNativeVolumeMm3": 38540.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 21,
+      "widthMm": 82,
+      "warmup": false,
+      "editToCurrentModelMs": 627.0640419999982,
+      "expectedNativeVolumeMm3": 39020.7079934123,
+      "observedNativeVolumeMm3": 39020.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 22,
+      "widthMm": 83,
+      "warmup": false,
+      "editToCurrentModelMs": 529.2688330000092,
+      "expectedNativeVolumeMm3": 39500.7079934123,
+      "observedNativeVolumeMm3": 39500.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 23,
+      "widthMm": 84,
+      "warmup": false,
+      "editToCurrentModelMs": 558.6367500000051,
+      "expectedNativeVolumeMm3": 39980.7079934123,
+      "observedNativeVolumeMm3": 39980.708,
+      "jsHeapUsedBytes": 23100000
+    },
+    {
+      "iteration": 24,
+      "widthMm": 85,
+      "warmup": false,
+      "editToCurrentModelMs": 745.0627499999973,
+      "expectedNativeVolumeMm3": 40460.7079934123,
+      "observedNativeVolumeMm3": 40460.708,
+      "jsHeapUsedBytes": 23100000
+    }
+  ],
+  "exports": [
+    {
+      "warmup": true,
+      "exportToDownloadMs": 86.22579099998984,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 63.13270799999009,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 92.3116250000021,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 71.99400000000605,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 67.9126249999972,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 63.04837500001304,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 75.97849999999744,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 62.990832999988925,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 67.13470799999777,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 107.26687500000116,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    },
+    {
+      "warmup": false,
+      "exportToDownloadMs": 78.79750000001513,
+      "triangles": 144,
+      "signedVolumeMm3": 40462.88389093029,
+      "bytes": 7284,
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "max": [
+        85,
+        40,
+        12
+      ]
+    }
+  ],
+  "telemetry": {
+    "kernelPhases": "unavailable",
+    "viewerResources": "unavailable",
+    "wasmCapacity": "unavailable",
+    "exportPhases": "unavailable"
+  },
+  "limitations": [
+    "Timings include UI automation, rebuild debounce/scheduling and public body inspection/readout observation; export includes fresh worker startup and download initiation, excluding saveAs and test-side STL parsing.",
+    "Native volumes are verified through the public BRep readout rounded to three decimals; every exported STL also verifies signed volume, finite coordinates, triangle count and global bounds.",
+    "Production exposes no development store or viewer instrumentation. Internal phase timings and viewer/WASM resource counts are unavailable, not zero.",
+    "Optional Chromium JS heap telemetry has no threshold because GC/process sharing varies; this test does not assert resource growth or prove absence of leaks.",
+    "This bounded Chromium workload has no hard shared-CI latency threshold; complex documents and other browsers still require broader measurements."
+  ]
+}

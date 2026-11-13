@@ -47,8 +47,10 @@ Eight additional original STEP, Hole Edit and machined-reference
 browser regressions pass. Both native trimmed spline cases excluded by
 short mode pass with full mode enabled.
 
-The latest completed production run passes all 66 originals on PlainCAD
-`50432ed`, with zero skips or retries. It includes the staged project-open
+The latest completed production run on clean `254c83b` passes all 66
+originals on PlainCAD `50432ed`, with zero skips or retries. Its original
+performance case finishes in 31.382 seconds, with all 25 edits and 11 STL
+downloads validated. The earlier full pass on the same app includes the staged project-open
 readiness fix. The original performance case finishes in 42.966 seconds with
 all 25 edits and 11 STL downloads validated. The preceding production build
 `11216c5` also passes all 66 on `e65f07b`, including main's dense mesh

@@ -60,6 +60,24 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD equivalent STEP cylinder orientation encodings — 2026-11-13
+
+Main's paired circle-frame and edge-sense reversals, plus axial and
+face-bound reversals, now pass the strict half- and quarter-cylinder
+readers in the integration worktree. The imported native tests include
+positive and malformed encodings, and independent OCCT reads verify the
+qualified fixtures. Both [original PlainCAD STEP cases](evidence/plaincad-cylinder-cell-orientation-2026-11-13.json),
+focused race checks and Go vet pass.
+
+## PlainCAD full production acceptance on `254c83b` — 2026-11-13
+
+All [66 original production cases](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
+pass on PlainCAD `50432ed` in 308.528 seconds, with zero skips, retries
+or flaky results. Both TypeScript checks, the production bundle budget
+and independent browser WASM probe pass. The [original performance
+case](evidence/plaincad-production-cylinder-stock-performance-2026-11-13.json)
+finishes in 31.382 seconds with all 25 edits and 11 validated STL downloads.
+
 ## PlainCAD coaxial opposed blind bores on circular stock — 2026-11-13
 
 The layered STEP reader merges connected wall spans without filling a

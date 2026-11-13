@@ -15,6 +15,11 @@ against the selected PlainSolid kernel.
 
 ## Current PlainCAD revision
 
+The [latest full production run](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
+passes all 66 originals on integration commit `254c83b`. The original
+benchmark takes 31.382 seconds, and both TypeScript checks and the
+production bundle budget pass.
+
 The [full development run](evidence/plaincad-development-50432ed-2026-11-13.json)
 on PlainCAD `50432ed` passes all 344 originals on clean integration
 commit `92e22ab`, with zero skips, retries or flaky results. Both
