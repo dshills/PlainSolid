@@ -1,0 +1,32 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "ea3c644b237c691c514cbc3b3f8a82683d8bdd5f820f0d35a801e30e6d43b8d6",
+  "supplemental": {
+    "report": "/tmp/plainsolid-notch-opposed-browser-5415/browser-results.json",
+    "reportSha256": "9938d2f4dab2407cc7d3b8e319c251496d917e4da566a31cc68e629ea141906b",
+    "sourceSha256": "5df1cf9cf66f49b688b6b712efa19d89e57988b84d22b94b9f769ff30994493c",
+    "summary": {
+      "startTime": "2026-11-13T22:45:59.474Z",
+      "duration": 22948.523,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "durationMs": 18817,
+    "e2eTypecheck": "passed",
+    "retainedWebMm": 3,
+    "analyticVolume": 3094.7566461047422,
+    "surfaceArea": 1495.106186954104,
+    "stlTriangles": 314,
+    "stlSignedVolume": 3095.431573963572,
+    "stepSha256": "f60cb30f9221e0377398be408f9f1ffc4b296c3e1514b8a2fced2ab7db61dd17",
+    "stlSha256": "9abd2834d823e6b79ad1f091e0c61e0beac3e85b46afa4aa4367a77678b13de1"
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 37.074,
+    "exchange/step": 2.998,
+    "brep/trimmed": 3.082
+  },
+  "vet": "passed"
+}

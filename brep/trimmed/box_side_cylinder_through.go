@@ -160,7 +160,7 @@ func validateNotchedBoxBores(ctx context.Context, frame geom.Frame, minX, maxX, 
 	if len(through)+len(blind) == 0 {
 		return nil
 	}
-	holes, e := validateExtrusionHoles(ctx, frame, through, blind, length)
+	holes, e := validateAxialExtrusionHoles(ctx, frame, through, blind, length, pad)
 	if e != nil {
 		return e
 	}

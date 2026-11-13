@@ -130,7 +130,11 @@ func recoverSideNotch(f *File, id int64) (SideNotchBody, error) {
 			}
 		}
 	}
-	seen := map[trimmed.ExtrusionCircle]bool{}
+	type boreSpan struct {
+		hole      trimmed.ExtrusionCircle
+		low, high float64
+	}
+	seen := map[boreSpan]bool{}
 	for _, face := range g.faces {
 		if face.kind != "CYLINDER" {
 			continue
@@ -147,10 +151,6 @@ func recoverSideNotch(f *File, id int64) (SideNotchBody, error) {
 			continue
 		}
 		hole := trimmed.ExtrusionCircle{Center: geom.Vec2{X: center.X, Y: center.Y}, Radius: face.radius}
-		if seen[hole] {
-			continue
-		}
-		seen[hole] = true
 		low, high := math.Inf(1), math.Inf(-1)
 		for _, use := range face.loops[0] {
 			edge := g.edges[use.id]
@@ -162,6 +162,11 @@ func recoverSideNotch(f *File, id int64) (SideNotchBody, error) {
 		if low < 0 || high <= low || high > p.Length {
 			return fail()
 		}
+		span := boreSpan{hole, low, high}
+		if seen[span] {
+			continue
+		}
+		seen[span] = true
 		switch {
 		case low == 0 && high == p.Length:
 			p.Through = append(p.Through, hole)
