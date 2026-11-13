@@ -65,3 +65,48 @@ func TestBoxPocketSTEPFullGraphRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestBoxPocketSTEPFaceLimit(t *testing.T) {
+	frame, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := BoxPocketBody{Frame: frame, Size: geom.Vec3{X: 100, Y: 100, Z: 10}}
+	for i := 0; i < 8; i++ {
+		b.Pockets = append(b.Pockets, trimmed.BoxBlindPocket{Footprint: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: float64(i + 1), Y: float64(i + 1)}, Max: geom.Vec2{X: float64(20 - i), Y: float64(20 - i)}}, Floor: float64(9 - i)})
+	}
+	for i := 0; i < 3; i++ {
+		b.Bores = append(b.Bores, trimmed.ExtrusionCircle{Center: geom.Vec2{X: 30 + 5*float64(i), Y: 50}, Radius: 1})
+	}
+	m := BoxPocketModel{Bodies: []BoxPocketBody{b}, LengthUnit: .001}
+	var out bytes.Buffer
+	if err := WriteBoxPocketExtrusions(&out, m); err != nil {
+		t.Fatal("58-face writer", err)
+	}
+	if _, err := ReadBoxPocketExtrusions(bytes.NewReader(out.Bytes()), Limits{}); err != nil {
+		t.Fatal("58-face reader", err)
+	}
+	if _, err := ReadBoxPocketExtrusions(bytes.NewReader(out.Bytes()), Limits{MaxFaces: 57}); err == nil {
+		t.Fatal("ignored caller face limit")
+	}
+	// The next bore exceeds the five-wire cap limit. Preserve existing bytes.
+	m.Bodies[0].Bores = append(m.Bodies[0].Bores, trimmed.ExtrusionCircle{Center: geom.Vec2{X: 85, Y: 50}, Radius: 1})
+	before := out.String()
+	if err := WriteBoxPocketExtrusions(&out, m); err == nil {
+		t.Fatal("accepted oversized recipe")
+	}
+	if out.String() != before {
+		t.Fatal("published partial output")
+	}
+	// Invalid numeric geometry cannot be reached before the count rejection.
+	m.Bodies[0].Bores = make([]trimmed.ExtrusionCircle, 10000)
+	if err := WriteBoxPocketExtrusions(&out, m); err != geom.ErrDomain {
+		t.Fatal("count not rejected first", err)
+	}
+	if out.String() != before {
+		t.Fatal("published rejected recipe")
+	}
+	if boundedBoxPocketRecipe(2, int(^uint(0)>>1)) {
+		t.Fatal("count overflow")
+	}
+}

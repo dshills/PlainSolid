@@ -24,11 +24,29 @@ type BoxPocketModel struct {
 	LengthUnit float64
 }
 
+// The canonical reader and writer share a 64-face bound. A box has six
+// faces; each nested pocket adds five and each full-depth bore adds four.
+// The long-edge writer permits five loops per face, hence at most three bores
+// beside the top cap outer wire and pocket wire.
+const maxBoxPocketFaces = 64
+
+func boundedBoxPocketRecipe(pockets, bores int) bool {
+	return pockets >= 1 && pockets <= 8 && bores <= 3 && bores <= (maxBoxPocketFaces-6-5*pockets)/4
+}
+
 func WriteBoxPocketExtrusions(w io.Writer, m BoxPocketModel) error {
 	if w == nil || len(m.Bodies) != 1 {
 		return geom.ErrDomain
 	}
 	b := m.Bodies[0]
+	// Check counts before construction (including quadratic bore-clearance work)
+	// and before writing any output bytes. Division avoids count overflow.
+	if len(b.Pockets) == 0 || len(b.Pockets) > 8 {
+		return geom.ErrInvalid
+	}
+	if !boundedBoxPocketRecipe(len(b.Pockets), len(b.Bores)) {
+		return geom.ErrDomain
+	}
 	s, e := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), b.Frame, b.Size, b.Pockets, b.Bores)
 	if e != nil {
 		return e
@@ -66,7 +84,7 @@ func ReadBoxPocketExtrusions(r io.Reader, l Limits) (BoxPocketModel, error) {
 		return fail()
 	}
 	faces, e := listRefs(shell.Args[1], 1)
-	if e != nil || len(faces) > 64 {
+	if e != nil || len(faces) > maxBoxPocketFaces {
 		return fail()
 	}
 	parsed := make([]circularSourceFace, len(faces))
