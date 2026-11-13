@@ -26,6 +26,10 @@ func PerpendicularCylinderNegativeCap(ctx context.Context, center geom.Vec3, rad
 	if e != nil {
 		return fail(e)
 	}
+	return buildNegativeSteinmetzCap(ctx, center, radius, cap, tolerance, proof)
+}
+func buildNegativeSteinmetzCap(ctx context.Context, center geom.Vec3, radius, cap, tolerance float64, proof SteinmetzPositiveCap) (SteinmetzNegativeCap, error) {
+	fail := func(e error) (SteinmetzNegativeCap, error) { return SteinmetzNegativeCap{}, e }
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	capX, e := geom.RepresentedExactScalar(new(big.Rat).Add(q(center.X), q(cap)))
 	if e != nil {

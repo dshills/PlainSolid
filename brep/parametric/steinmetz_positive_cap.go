@@ -45,14 +45,27 @@ func PerpendicularCylinderPositiveCap(ctx context.Context, center geom.Vec3, rad
 	if e != nil {
 		return fail(e)
 	}
+	return buildPositiveSteinmetzCap(ctx, center, radius, cap, tolerance, a, ar, ar)
+}
+
+func buildPositiveSteinmetzCap(ctx context.Context, center geom.Vec3, radius, cap, tolerance, a float64, alo, ahi *big.Rat) (SteinmetzPositiveCap, error) {
+	fail := func(e error) (SteinmetzPositiveCap, error) { return SteinmetzPositiveCap{}, e }
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
 	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance))
-	if q(cap).Cmp(pad) <= 0 || ar.Cmp(pad) <= 0 || new(big.Rat).Sub(q(radius), q(cap)).Cmp(pad) <= 0 {
+	if q(cap).Cmp(pad) <= 0 || alo.Cmp(pad) <= 0 || new(big.Rat).Sub(q(radius), q(cap)).Cmp(pad) <= 0 {
 		return fail(geom.ErrDomain)
 	}
 	angle := math.Atan2(a, cap)
+	if !finite(angle) || angle <= 0 || angle >= math.Pi/2 {
+		return fail(geom.ErrConvergence)
+	}
 	// Degree48 Taylor, with |angle|^49/49! Lagrange remainder for sin/cos.
 	sine, cosine, term := new(big.Rat), new(big.Rat), big.NewRat(1, 1)
 	for k := 0; k <= 48; k++ {
+		if e := ctx.Err(); e != nil {
+			return fail(e)
+		}
 		switch k % 4 {
 		case 0:
 			cosine.Add(cosine, term)
@@ -67,7 +80,12 @@ func PerpendicularCylinderPositiveCap(ctx context.Context, center geom.Vec3, rad
 	}
 	remainder := new(big.Rat).Mul(q(radius), new(big.Rat).Abs(term))
 	errC := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), cosine), q(cap))), remainder)
-	errA := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), ar)), remainder)
+	errA := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), alo))
+	far := new(big.Rat).Abs(new(big.Rat).Sub(new(big.Rat).Mul(q(radius), sine), ahi))
+	if far.Cmp(errA) > 0 {
+		errA = far
+	}
+	errA.Add(errA, remainder)
 	bound := new(big.Rat).Add(sq(errC), sq(errA))
 	if bound.Cmp(new(big.Rat).Quo(sq(q(tolerance)), big.NewRat(16, 1))) > 0 {
 		return fail(geom.ErrConvergence)
@@ -112,12 +130,15 @@ func PerpendicularCylinderPositiveCap(ctx context.Context, center geom.Vec3, rad
 	// difference of their radius-r vectors bounds angle error by 2*chord/r,
 	// using sin(x)>=2x/pi and pi<4. Coordinate L1 error bounds the chord.
 	mul := func(a, b *big.Rat) *big.Rat { return new(big.Rat).Mul(a, b) }
-	volume := mul(big.NewRat(16, 3), mul(sq(q(radius)), q(radius)))
-	volume.Sub(volume, mul(big.NewRat(2, 3), mul(sq(ar), ar)))
-	volume.Sub(volume, mul(big.NewRat(2, 1), mul(sq(q(radius)), ar)))
-	volume.Add(volume, mul(big.NewRat(2, 1), mul(sq(q(radius)), mul(q(cap), q(angle)))))
+	volumeAt := func(ordinate *big.Rat) *big.Rat {
+		volume := mul(big.NewRat(16, 3), mul(sq(q(radius)), q(radius)))
+		volume.Sub(volume, mul(big.NewRat(2, 3), mul(sq(ordinate), ordinate)))
+		volume.Sub(volume, mul(big.NewRat(2, 1), mul(sq(q(radius)), ordinate)))
+		volume.Add(volume, mul(big.NewRat(2, 1), mul(sq(q(radius)), mul(q(cap), q(angle)))))
+		return volume
+	}
 	volumeError := mul(big.NewRat(4, 1), mul(q(radius), mul(q(cap), new(big.Rat).Add(errC, errA))))
-	volumeBounds := [2]*big.Rat{new(big.Rat).Sub(volume, volumeError), new(big.Rat).Add(volume, volumeError)}
+	volumeBounds := [2]*big.Rat{new(big.Rat).Sub(volumeAt(ahi), volumeError), new(big.Rat).Add(volumeAt(alo), volumeError)}
 	return SteinmetzPositiveCap{Solid: solid, Cap: cap, SeamOrdinate: a, SplitAngle: angle, XAxisFaces: xx, ZAxisFaces: zx, CapFace: capID, SeamSquaredBound: bound, IdealVolumeBounds: volumeBounds}, nil
 }
 
