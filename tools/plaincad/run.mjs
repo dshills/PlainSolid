@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs real PlainCAD fixtures against Go WASM in an isolated copy. Never edits
 // the source app and never imports OCCT from the replacement kernel adapter.
-import { cp, mkdir, readdir, readFile, writeFile, symlink, stat, realpath } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, writeFile, unlink, symlink, stat, realpath } from "node:fs/promises";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
@@ -17,8 +17,12 @@ const source = resolve(option("--source"));
 const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date.now()}`)));
 const port = option("--port", "5279");
 if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535) throw new Error("Invalid --port");
-const testFile = option("--test", "e2e/extrusion-hole.spec.ts");
-const grep = option("--grep", "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding");
+const suite = option("--suite", "development");
+const testFile = option("--test", suite === "development" ? "e2e/extrusion-hole.spec.ts" : suite === "production" ? "production-e2e" : "cross-browser-e2e");
+const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
+const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts" };
+if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production or cross-browser.");
+const acceptanceConfig = acceptanceConfigs[suite];
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
@@ -43,7 +47,7 @@ if (!sourceIdentity.head) {
     if (error?.code !== "ENOENT") throw error;
   }
 }
-const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
+const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { suite, testFile, grep }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
 async function command(program, argv, logName, env = {}, cwd = work) {
   const logPath = join(work, logName);
   const chunks = [];
@@ -79,11 +83,21 @@ try {
       const before = await readFile(path, "utf8");
       report.sourceHashes[relative] = hash(before);
       const matches = [...before.matchAll(/(["'])opencascade\1/g)];
+      const adapted = matches.length ? before.replace(/(["'])opencascade\1/g, "$1plainsolid$1") : before;
       if (matches.length) {
-        const after = before.replace(/(["'])opencascade\1/g, "$1plainsolid$1");
-        await writeFile(path, after);
-        report.providerLabelAdaptations.push({ file: relative, count: matches.length, beforeSha256: hash(before), afterSha256: hash(after) });
+        report.providerLabelAdaptations.push({ file: relative, count: matches.length, beforeSha256: hash(before), afterSha256: hash(adapted) });
       }
+      // Preserve the original storage-state layout while binding it to the
+      // isolated server. No test action or expectation changes.
+      const origin = /(focusedWorkspaceStorageState\()(["'])http:\/\/127\.0\.0\.1:5279\2(\))/g;
+      const after = port !== "5279" && relative.startsWith("e2e/")
+        ? adapted.replace(origin, (_, call, quote, end) => `${call}${quote}http://127.0.0.1:${port}${quote}${end}`)
+        : adapted;
+      if (after !== adapted) {
+        report.testOriginAdaptations ??= [];
+        report.testOriginAdaptations.push({ file: relative, beforeSha256: hash(adapted), afterSha256: hash(after) });
+      }
+      if (after !== before) await writeFile(path, after);
     }
   }
   for (const folder of ["internal/plaincadbridge", "cmd/plaincadwasm", "tools/plaincad"]) for (const path of await files(join(root, folder))) {
@@ -466,14 +480,20 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const preflight = join(work, "backend-results.json");
     resultPaths.push(preflight);
     await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", "e2e/plainsolid-backend.spec.ts", "--reporter=list,json"], "backend.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: preflight });
+    await unlink(join(work, "e2e/plainsolid-backend.spec.ts"));
+    if (acceptanceConfig) {
+      report.acceptanceConfigSha256 = hash(await readFile(join(work, acceptanceConfig)));
+      await command("npm", ["run", "build"], "production-build.log");
+    }
     const acceptance = join(work, "playwright-results.json");
     resultPaths.push(acceptance);
-    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", testFile, "--grep", grep, "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: acceptance });
+    const configArgs = acceptanceConfig ? ["--config", acceptanceConfig] : [];
+    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", ...configArgs, testFile, "--grep", grep, "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: acceptance });
     report.status = "passed";
   } catch (error) { report.status = "failed"; report.error = String(error); }
   try {
     const visit = suite => {
-      for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) report.tests.push({ file: spec.file, line: spec.line, title: spec.title, status: test.status, results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })) });
+      for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) report.tests.push({ file: spec.file, line: spec.line, title: spec.title, project: test.projectName, status: test.status, results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })) });
       for (const child of suite.suites ?? []) visit(child);
     };
     report.summaries = [];
