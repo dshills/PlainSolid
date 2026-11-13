@@ -9,7 +9,15 @@ file. Twenty-six failed assertions depend on uninitialized fallback behavior
 and ten inspect or mock private OCCT APIs or handle layouts. Seven portable
 assertions remain for focused verification: two treatments after pockets,
 one tangent hole, two outward-Hole diagnostics, one display budget diagnostic,
-and one tangent-contour selection rule.
+and one tangent-contour selection rule. The
+[focused unit retest](evidence/plaincad-portable-unit-final-2026-11-13.json)
+passes the six repaired assertions, both neighboring outward through-all
+assertions, and repeats the exactly tangent blind Hole failure. The
+pristine OCCT control passes that original case. The exact circular wall
+and stock side touch along a generator, where the boundary has four local
+surface branches. PlainSolid currently rejects this operation under its
+closed manifold boundary contract. The staged test sources and authored
+hole dimensions were preserved.
 
 ## PlainCAD cross-browser acceptance and OCCT control — 2026-11-13
 
