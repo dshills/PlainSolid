@@ -1,5 +1,24 @@
 # Verification record
 
+## Curved mesh angular-tolerance fix — 2026-11-13
+
+PlainCAD's existing multi-body Hole STL check exposed coarse cylindrical facets:
+centroid-only normal checks allowed eight-sided radius-3 holes at angle 0.2.
+Refinement now checks vertices, edge midpoints and centroid, with explicit
+singular-boundary/pole handling. Rectangular cylindrical walls use a structured
+UV grid in the sampled fallback, preserving shared edge samples and avoiding
+thin fan triangles. Cancellation and existing mesh budgets remain enforced.
+Display and STL use the same tessellator and requested options.
+
+Independent review and focused trimmed tests pass (1.568 seconds):
+`TestSampledCylinderFallbackAngularBound`, `TestCylinderAngularCheckIncludesFacetEnds`,
+`TestBoreMeshAngularSamples`, `TestBoreCylinder*`, `TestMultipleThroughBores`,
+`TestPromotedSeamsAndPoles`, `TestTrimmedTorusAndConeQueries`, `TestSphereCutBox`
+and `TestCertifiedWrappedConeTruePole`. Direct regressions check analytic cylinder
+normals at every wall vertex, closure, and the previous fallback failure. Bridge
+native tests pass, including previous transformed-bore cases and the application's
+0.5% retained-volume mesh requirement. Browser qualification follows separately.
+
 ## Holed-face predicate projection fix — 2026-11-13
 
 PlainCAD's guided Hole diameter edit exposed a valid radius-3 circular trim whose
@@ -13,8 +32,11 @@ Mesh validity checks remain unchanged.
 The physical-collinearity regression, closed-prism check, scale tests from
 2^-1000 through 2^1000, relative-resolution rejection and huge dropped-axis case
 pass with `go test ./brep`. The bridge's exact guided radius-3 input also passes.
-The wider trimmed-package regression is running; application scoped-Hole
-qualification is recorded separately when its existing scenarios complete.
+Focused trimmed-bore checks pass. A supplementary full `brep/trimmed` run hit
+the 600-second Go timeout in `TestCombineSplineGraphNestedContours`, without a
+preceding assertion failure reported. It used the pre-angular-fix snapshot and
+is not a full-suite pass. Application scoped-Hole qualification is recorded
+separately below when its existing scenarios complete.
 
 ## PlainCAD finite cylindrical through-cut milestone — 2026-11-13
 
