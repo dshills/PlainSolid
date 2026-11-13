@@ -51,8 +51,9 @@ original Chromium, Firefox and WebKit configuration on port 5281.
   dependency directory. An optional port changes the copied test config and its focused workspace
   storage-state origins.
 - The isolated viewer advances missed camera-damping updates without drawing
-  them. This keeps input settling bounded when software rendering is slow.
-  The harness records the exact runtime adaptation and its hashes.
+  them. The staged project-open command retains the drawable model and marks
+  readiness pending until its asynchronous open completes. The harness records
+  the exact runtime adaptations and their hashes.
 - A separate generated backend test proves real WASM execution and rejects OCCT
   asset requests. It checks nonempty material, no-op cut, connected-join behavior,
   and export union semantics. This probe is not counted as an existing fixture.

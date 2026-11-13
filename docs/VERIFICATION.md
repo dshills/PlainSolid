@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD asynchronous project-open readiness — 2026-11-13
+
+The staged runtime keeps the previous drawable model while an asynchronous
+project open is pending. Readiness belongs to the newest open. A rejected
+or canceled open restores the previous readiness if no newer model state
+has replaced it. Original fixture assertions and timeouts are unchanged.
+
+All [seven original cases](evidence/plaincad-project-open-readiness-2026-11-13.json)
+pass on `50432ed`, including Parts Browser, file-drop handling, recovery
+and both stale-worker tests. The [supplemental browser control](evidence/plaincad-project-open-ownership-2026-11-13.json)
+intercepts the actual import worker and verifies that a superseding invalid
+open restores the old two-body model and that the obsolete open cannot
+replace it.
+
 ## PlainCAD opposite-cap interior bores on notched stock — 2026-11-13
 
 A disjoint contained blind hole can enter either cap of a side-notched

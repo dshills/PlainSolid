@@ -75,8 +75,10 @@ modeling and display as a regularized difference. Fabrication and STEP
 validation reject its four-face contact. The current PlainCAD revision `50432ed` passes all 15 original cross-browser
 cases across Chromium, Firefox and WebKit. It passes six of seven focused
 originals. The Parts Browser asynchronous-open timing failure reproduces
-and a staged readiness fix is under verification. The native bridge, STEP
-and mesh packages pass a combined short run.
+and the staged readiness fix passes the original Parts Browser case,
+file-drop, recovery and both stale-worker cases. A separate browser probe
+verifies superseded and rejected opens. The native bridge, STEP and mesh
+packages pass a combined short run.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
