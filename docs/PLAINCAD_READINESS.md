@@ -42,9 +42,10 @@ passes 47 of 53 selected originals. Six guided multi-hole previews hit the
 mesh budget with the finer rim setting. A corrected multi-rim setting is
 being retested.
 
-Native helical constructors and M3 coordinate bounds have separate
-verification. The [original helical baseline](evidence/plaincad-helical-baseline-2026-11-13.json)
-failed before geometry and the app helical gate remains open.
+The original modeled Thread and linked lead screw/nut both pass on one
+[source-hashed snapshot](evidence/plaincad-helical-accepted-2026-11-13.json).
+Additional gallery Acme and UNC forms remain open in the full production
+baseline.
 
 ## Finite To Face extrusion checkpoint — 2026-11-13
 

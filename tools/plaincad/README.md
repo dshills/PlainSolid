@@ -66,11 +66,12 @@ General curved Boolean combinations, general fillets/chamfers, and unproved
 topology references fail explicitly.
 
 Modeled-thread and lead screw/nut methods forward their resolved dimensions and
-handedness to bounded native helical constructors. The original lead-pair fixture
-has passed linked edits and cold reopening. Modeled-thread creation, editing and
-reopening have passed, but its original STL export currently detects a mesh
-self-intersection; that workflow is not yet qualified. Unsupported helical stock
-or parameter combinations reject explicitly.
+handedness to bounded native helical constructors. Both original focused fixtures
+pass: modeled Thread covers external editing, reopening and STL plus an internal
+threaded nut; the lead pair covers linked edits and cold reopening. Broader gallery
+qualification still finds unsupported Acme/UNC representations and rectangular
+tapped-block stock. These focused passes do not qualify arbitrary helical stocks
+or dimensions; unsupported combinations reject explicitly.
 
 Native STEP import/export runs in isolated workers and retains analytic BRep
 geometry. Export returns independent before/after native read-back proofs and
@@ -100,8 +101,11 @@ Every explicit reference is validated against the original input before one
 result is published; repeated references resolve once. Authored straight outer-edge
 IDs resolve to original endpoints and the physical sweep axis; native queries
 prove complete sharp edges before advertising them. Treated or split edges are
-not retargeted. A complete nonparallel perimeter remains unsupported; a missing
-original member is diagnosed as lost instead of silently applying the survivors.
+not retargeted. A complete rectangular cap perimeter supports a bounded native
+fillet on plain stock or an equal-setback chamfer on qualified plain or bored
+stock. All four original edges must still exist; a missing original member is
+diagnosed as lost instead of silently applying the survivors. Other nonparallel
+perimeters remain unsupported.
 Untouched native extrusions also expose their complete cap boundaries for linked
 projection after actual planar-face validation; modified shapes do not inherit
 that proof merely because source metadata remains.
