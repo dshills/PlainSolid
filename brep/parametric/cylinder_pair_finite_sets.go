@@ -107,7 +107,8 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // A coordinate-parallel cutter that covers the stock disk can remove a full
 // axial slab, retaining one or two original wall intervals.
 // Exactly placed oblique parallel pairs support transverse cuts with equal caps.
-// It keeps stock unchanged when coordinate-parallel cylinders are separated.
+// It keeps stock unchanged when coordinate-parallel cylinder interiors are
+// disjoint, including exact radial or cap-only contact (regularized Difference).
 // It returns empty when exact perpendicular or coordinate-parallel containment
 // covers the stock.
 // Other arrangements fail without publishing a partial solid.
@@ -135,7 +136,7 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 		if parallelCoordinateContainment(stock, cutter)[0] {
 			return out, nil
 		}
-		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
+		if !parallelCylinderSupportsSeparated(stock, cutter, false) {
 			if split, ok, err := finiteParallelCylinderAxialDifference(ctx, stock, cutter, tolerance); ok || err != nil {
 				return split, err
 			}

@@ -245,8 +245,10 @@ int main(int argc, char** argv) {
       const auto wide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,1,3),gp_Dir(0,0,-1)),4,4).Shape();
       const auto bossOverlap=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3,1,-3),gp_Dir(0,0,1)),2,4).Shape();
       const auto bossTouch=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3,1,-3),gp_Dir(0,0,1)),2,2).Shape();
+      const auto bossBoth=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3,1,-3),gp_Dir(0,0,1)),2,8).Shape();
       splineShellRecord(out,"finite-eccentric-shoulder-overlap",BRepAlgoAPI_Fuse(wide,bossOverlap).Shape());
       splineShellRecord(out,"finite-eccentric-shoulder-touch",BRepAlgoAPI_Fuse(wide,bossTouch).Shape());
+      splineShellRecord(out,"finite-eccentric-shoulder-both",BRepAlgoAPI_Fuse(wide,bossBoth).Shape());
       return 0;
     }
     if(argc==3 && mode=="finite-cylinder-sets") {

@@ -73,3 +73,38 @@ func TestFiniteEccentricCylinderShoulderUnion(t *testing.T) {
 		t.Fatal("tangent shoulder accepted", err)
 	}
 }
+
+func TestFiniteEccentricCylinderTwoShoulders(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 1, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 4, Min: 0, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 3, Y: 1}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -1.5, Max: 2.5}
+	for _, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		r, err := FiniteCylinderPairUnion(ctx, pair[0], pair[1], 1e-9)
+		if err != nil || len(r.Solid.Faces()) != 28 || len(r.WallFaces[0])+len(r.WallFaces[1]) != 12 || r.CommonVolumePiCoefficient == nil || r.CommonVolumePiCoefficient.RatString() != "16" {
+			t.Fatal("two shoulders", err)
+		}
+		for i, c := range pair {
+			for end, ids := range [2][]int{r.LowerCapFaces[i], r.UpperCapFaces[i]} {
+				if len(ids) != 4 {
+					t.Fatal("source cap coverage", i, end)
+				}
+				for _, id := range ids {
+					f := r.Solid.Faces()[id]
+					p, err := f.Surface.Eval(f.U.Min, f.V.Max)
+					want := c.Origin.Z + c.Axis.Z*[2]float64{c.Min, c.Max}[end]
+					if err != nil || p.Z != want {
+						t.Fatal("original cap plane", i, end, p, err)
+					}
+				}
+			}
+		}
+		m, err := r.Solid.MassProperties(ctx, IntegrationOptions{})
+		if err != nil || math.Abs(m.Volume-80*math.Pi) > 1e-8 || math.Abs(m.Area-80*math.Pi) > 1e-8 || m.Centroid.Distance(geom.Vec3{X: 2.2, Y: 1, Z: 1}) > 1e-9 {
+			t.Fatal("independent volume, area and centroid", m, err)
+		}
+		mesh, err := r.Solid.Tessellate(ctx, TessellationOptions{Deflection: .1})
+		if err != nil || mesh.ValidateSolid() != nil {
+			t.Fatal("closed mesh", err)
+		}
+	}
+}
