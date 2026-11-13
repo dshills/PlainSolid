@@ -254,10 +254,22 @@ func TestNotchedStockMergesInteriorBoresInAnyOrder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	before := len(b.shapes)
-	if _, err := b.cutMany(prior.Handle, []string{upper.Handle}); err == nil || len(b.shapes) != before {
-		t.Fatal("separated spans without a through tool must reject atomically", err)
+	separated, err := b.cutMany(prior.Handle, []string{upper.Handle})
+	if err != nil {
+		t.Fatal(err)
 	}
+	near(t, separated.GeometryAssertions.Volume, base.GeometryAssertions.Volume-36*math.Pi)
+	near(t, separated.GeometryAssertions.SurfaceArea, base.GeometryAssertions.SurfaceArea+36*math.Pi)
+	near(t, overlapMeasure(t, b, separated.Handle, through.Handle), 12*math.Pi)
+	if _, err := b.exportSTEP([]string{separated.Handle}); err != nil {
+		t.Fatal(err)
+	}
+	opened, err := b.cutMany(separated.Handle, []string{through.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, opened.GeometryAssertions.Volume, base.GeometryAssertions.Volume-48*math.Pi)
+	near(t, opened.GeometryAssertions.SurfaceArea, base.GeometryAssertions.SurfaceArea+40*math.Pi)
 }
 
 func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {

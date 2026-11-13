@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD same-site opposed blind bores on notched stock — 2026-11-13
+
+Opposed blind cuts at one interior site preserve their intervening
+material web. The native overlap query subtracts both previously cut
+spans and reports the remaining material for a subsequent through tool.
+STEP uses axial spans as well as circular supports to recover both bores.
+The [three original grouped Hole and STEP cases](evidence/plaincad-opposed-coaxial-notch-browser-2026-11-13.json)
+pass. The [same-WASM authored browser case](evidence/plaincad-opposed-coaxial-notch-native-2026-11-13.json)
+preserves a 3 mm web and its analytic measures through STEP export,
+reimport, project reopen and validated STL. Focused race checks and Go
+vet pass.
+
 ## PlainCAD STEP units on notched stock — 2026-11-13
 
 The bridge retains a qualified notched-stock boundary after converting

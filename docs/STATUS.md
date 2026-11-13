@@ -22,6 +22,8 @@ with disjoint interior bores. Same-center, equal-radius tools with
 connected depth spans can deepen the original notch or open its far cap.
 Contained coaxial cutters on the same body merge independently of batch
 order, including through cutters that join two opposed blind spans.
+Separated blind spans at the same interior site preserve the material web
+and both cap openings through STEP.
 Intersecting noncoaxial notch footprints remain open.
 
 Circular stock now supports grouped and successive disjoint axial bores,

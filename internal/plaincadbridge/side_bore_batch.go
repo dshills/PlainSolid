@@ -121,21 +121,17 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		}
 		p.Depth = end
 	}
-	// Merge a site's complete batch before checking connectedness so an
-	// intervening through cut can join opposed blind cuts in either input order.
-	previous := append([]sideStockBore(nil), bores...)
-	bores = append(bores, added...)
-	merged := make([]sideStockBore, 0, len(bores))
-	slices.SortFunc(bores, compareSideStockBores)
-	for _, bore := range bores {
-		if len(merged) == 0 || merged[len(merged)-1].circle != bore.circle {
+	// Merge connected spans across the whole batch. A separated pair retains
+	// its material web and two independent cap openings.
+	merged := make([]sideStockBore, 0, len(bores)+len(added))
+	spans := slices.Concat(bores, added)
+	slices.SortFunc(spans, compareSideStockBores)
+	for _, bore := range spans {
+		if len(merged) == 0 || merged[len(merged)-1].circle != bore.circle || merged[len(merged)-1].high < bore.low {
 			merged = append(merged, bore)
 			continue
 		}
 		last := &merged[len(merged)-1]
-		if last.high < bore.low {
-			return Shape{}, true, unsupportedEdge("opposed cuts at one side-notch bore site require connected axial spans")
-		}
 		last.high = max(last.high, bore.high)
 	}
 	var addedVolume, addedArea float64
@@ -145,11 +141,11 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 			return Shape{}, true, geom.ErrUnrepresentable
 		}
 		removed, delta := bore.measures(p.Length)
-		if i := slices.IndexFunc(previous, func(prior sideStockBore) bool { return prior.circle == bore.circle }); i >= 0 {
-			before, oldDelta := previous[i].measures(p.Length)
-			removed, delta = removed-before, delta-oldDelta
-		}
 		addedVolume, addedArea = addedVolume+removed, addedArea+delta
+	}
+	for _, bore := range bores {
+		removed, delta := bore.measures(p.Length)
+		addedVolume, addedArea = addedVolume-removed, addedArea-delta
 	}
 	volume, area = volume-addedVolume, area+addedArea
 	if !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
@@ -217,15 +213,17 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 		compareCircularFootprints(trimmed.ExtrusionCircle{Radius: p.Radius}, hole, false) <= 0 {
 		return 0, true, unsupportedEdge("additional bore footprint must clear the side notch and stock walls")
 	}
+	depth := high - low
 	for _, prior := range sideStockBores(p) {
 		if prior.circle == hole {
-			return math.Pi * r * r * (high - low - max(0, min(high, prior.high)-max(low, prior.low))), true, nil
+			depth -= max(0, min(high, prior.high)-max(low, prior.low))
+			continue
 		}
 		if compareCircularFootprints(prior.circle, hole, false) <= 0 {
 			return 0, true, unsupportedEdge("additional bore footprints must remain disjoint")
 		}
 	}
-	return math.Pi * r * r * (high - low), true, nil
+	return math.Pi * r * r * max(0, depth), true, nil
 }
 
 func notchSection(p step.SideNotchBody) (area, wallDelta float64) {
