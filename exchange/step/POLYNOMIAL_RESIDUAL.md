@@ -220,3 +220,32 @@ source topological vertices; it does not establish an authored trim interval.
 Source uncertainty inventory remains unassigned metadata, not an acceptance
 threshold. Primitive support proofs use exact source decimals and bounded
 arithmetic; they do not validate full EXPRESS semantics or material coverage.
+
+### Exact upper-intersection correspondence
+
+`BoundOffAxisRimCorrespondence` adds a bounded full-domain curve certificate,
+not a solid importer. It validates the existing three-face ownership graph and
+requires exact canonical +XYZ sphere/cylinder frames, a positive X center
+offset `d`, equal center Y, and `R>d+r`. Support values must be losslessly
+representable by the existing residual APIs; there is no support snapping.
+The model polynomial spline must close exactly and have one strictly positive
+azimuth turn. Its full control hull must lie above the sphere center's Z.
+
+At each model point, radial XY projection onto the cylinder preserves azimuth;
+choosing the sphere's positive Z root defines a unique continuous target.
+One-turn strict azimuth makes this correspondence onto the entire upper
+intersection. For sphere/cylinder equation bounds `Es,Ec`, let `delta=Ec/r`,
+`H` bound the source horizontal norm, `z0>0` bound source height, and
+`h0=R-d-r>0`. The vertical error is at most
+`(Es+2*H*delta+delta²)/(z0+h0)`. Adding `delta` yields a rational Euclidean
+Hausdorff upper bound in both directions. All source-polynomial bounds are
+continuous Bernstein proofs, not samples. Tolerance is in source length units
+and is supplied explicitly; source uncertainty metadata is not adopted.
+
+The result concerns the entire clamped spline domain and the entire exact upper
+intersection. It does not establish authored edge trim selection, source
+vertex coincidence, seam/pole correspondence, pcurve lift agreement, other
+boundary curves, face coverage, embedding of the complete boundary or material
+equivalence. Existing strict shape importers continue rejecting this approximate
+STEP B-rep. Small tolerance failure returns a completed certificate with
+`WithinTolerance=false`; unsupported geometry or exhausted proof budgets errors.

@@ -1890,6 +1890,12 @@ Shifting the active cutter plane by `1/8` also qualifies a closed section with
 four original edge-interior events and no vertex contact. Native intersection
 and cut retain their original stock supports and the oriented tool cap. Their
 volumes `11/32` and `21/32`, centroid, and area match independent checks.
+An active plane through two opposite original stock vertices certifies both
+oriented corner fans and all four exact side branches. Native results retain
+both vertex identities and source-edge ancestry, have volumes `17/32` and
+`15/32`, reload identically when the proof order is reversed, and produce
+closed display meshes with no detected contacts. An independent OCCT sweep
+and planar cutter verify one shell, area, volume, and centroid for each result.
 
 On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
 transverse flags passed 112 test and subtest entries. The transverse union

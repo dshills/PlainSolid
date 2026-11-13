@@ -17,15 +17,15 @@ static void warpedOpenSplineBooleans(std::ostream& out){
  splineShellRecord(out,"warped-open-common",BRepAlgoAPI_Common(a,b).Shape());
  splineShellRecord(out,"warped-open-cut",BRepAlgoAPI_Cut(a,b).Shape());
 }
-static void warpedCornerSplineBooleans(std::ostream& out, bool interior=false){
+static void warpedCornerSplineBooleans(std::ostream& out, const std::string& kind, double slope, double offset){
  auto stock=warpedOpenPrism(0,0,0);
  BRepBuilderAPI_MakePolygon rim;
  for(auto xy:std::array<std::array<double,2>,4>{{{-1,-1},{2,-1},{2,2},{-1,2}}})
-   rim.Add(gp_Pnt(xy[0],xy[1],(xy[0]+xy[1])/4+(interior?1./8:0)));
+   rim.Add(gp_Pnt(xy[0],xy[1],slope*(xy[0]+xy[1])+offset));
  rim.Close();
  auto top=BRepBuilderAPI_MakeFace(rim.Wire()).Face();
- auto tool=BRepPrimAPI_MakePrism(top,gp_Vec(0,0,-2)).Shape();
+ auto tool=BRepPrimAPI_MakePrism(top,gp_Vec(0,0,-4)).Shape();
  if(!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent corner cutter");
- splineShellRecord(out,interior?"warped-interior-common":"warped-corner-common",BRepAlgoAPI_Common(stock,tool).Shape());
- splineShellRecord(out,interior?"warped-interior-cut":"warped-corner-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ splineShellRecord(out,("warped-"+kind+"-common").c_str(),BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,("warped-"+kind+"-cut").c_str(),BRepAlgoAPI_Cut(stock,tool).Shape());
 }
