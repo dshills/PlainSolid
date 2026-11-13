@@ -73,12 +73,11 @@ func sideCylinderStockRecipe(stock brep.Solid, tool *cylinderBody, blind bool) (
 	return geom.Frame{}, geom.Box{}, false
 }
 func sideCylinderMeasures(box geom.Box, r float64) (float64, float64) {
-	area, perimeter := sideCylinderSection(box, r)
+	area, perimeter := sideCylinderSection(-box.Min.Y, r)
 	return area * box.Max.Z, perimeter*box.Max.Z - 2*area
 }
 
-func sideCylinderSection(box geom.Box, r float64) (area, wallDelta float64) {
-	a := -box.Min.Y
+func sideCylinderSection(a, r float64) (area, wallDelta float64) {
 	sweep := math.Pi + 2*math.Asin(a/r)
 	chord := 2 * math.Sqrt((r-a)*(r+a))
 	return r*r*sweep/2 + a*chord/2, r*sweep - chord
@@ -116,7 +115,7 @@ func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
 	if err != nil {
 		return Shape{}, true, err
 	}
-	section, wall := sideCylinderSection(box, radius)
+	section, wall := sideCylinderSection(p.Inset, radius)
 	body := &analyticBody{solid: s, sideNotch: &p,
 		volume: a.result.GeometryAssertions.Volume - section*depth,
 		area:   a.result.GeometryAssertions.SurfaceArea + wall*depth}

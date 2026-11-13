@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"cmp"
 	"context"
 	"math"
 	"slices"
@@ -22,6 +23,7 @@ func sideNotchBore(p step.SideNotchBody, tool *cylinderBody) (trimmed.ExtrusionC
 func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error) {
 	var p step.SideNotchBody
 	var bores []sideStockBore
+	var notchSpans [][2]float64
 	var skip *cylinderBody
 	volume, area := a.result.GeometryAssertions.Volume, a.result.GeometryAssertions.SurfaceArea
 	if a.analytic != nil && a.analytic.sideNotch != nil {
@@ -35,7 +37,7 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 			if f, box, ok := sideCylinderBlindRecipe(a.solid, tool.cylinder); ok {
 				skip = tool.cylinder
 				p = sideNotchRecipe(f, box, skip.radius, skip.height)
-				section, wall := sideCylinderSection(box, p.Radius)
+				section, wall := sideCylinderSection(p.Inset, p.Radius)
 				volume, area = volume-section*p.Depth, area+wall*p.Depth
 				break
 			}
@@ -78,7 +80,8 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 			continue
 		}
 		hole, low, high, ok := sideNotchBore(p, tool.cylinder)
-		if ok && hole == (trimmed.ExtrusionCircle{Radius: p.Radius}) && low == 0 && high <= p.Depth {
+		if ok && hole == (trimmed.ExtrusionCircle{Radius: p.Radius}) && high > low {
+			notchSpans = append(notchSpans, [2]float64{low, high})
 			continue
 		}
 		if !ok || low != 0 && high != p.Length || high <= low || !exactAxisDistance(high, low, high-low) {
@@ -107,6 +110,27 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		if low == 0 && high == p.Length {
 			area -= 2 * diskArea
 		}
+	}
+	slices.SortFunc(notchSpans, func(a, b [2]float64) int { return cmp.Compare(a[0], b[0]) })
+	end := p.Depth
+	for _, span := range notchSpans {
+		if span[0] > end {
+			return Shape{}, true, unsupportedEdge("coaxial notch cuts require connected axial spans")
+		}
+		end = max(end, span[1])
+	}
+	if end > p.Depth {
+		extra := end - p.Depth
+		if !exactAxisDistance(end, p.Depth, extra) {
+			return Shape{}, true, geom.ErrUnrepresentable
+		}
+		section, wall := notchSection(p)
+		volume -= section * extra
+		area += wall * extra
+		if end == p.Length {
+			area -= 2 * section
+		}
+		p.Depth = end
 	}
 	if !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
@@ -152,8 +176,9 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 		return 0, true, nil
 	}
 	x, y, r := hole.Center.X, hole.Center.Y, hole.Radius
-	if hole == (trimmed.ExtrusionCircle{Radius: p.Radius}) && low >= 0 && high <= p.Depth {
-		return 0, true, nil
+	if hole == (trimmed.ExtrusionCircle{Radius: p.Radius}) {
+		section, _ := notchSection(p)
+		return section * max(0, high-max(low, p.Depth)), true, nil
 	}
 	if x-r <= -p.Left || x+r >= p.Right || y-r <= -p.Inset || y+r >= p.Back ||
 		compareCircularFootprints(trimmed.ExtrusionCircle{Radius: p.Radius}, hole, false) <= 0 {
@@ -168,4 +193,11 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 		}
 	}
 	return math.Pi * r * r * (high - low), true, nil
+}
+
+func notchSection(p step.SideNotchBody) (area, wallDelta float64) {
+	if p.Left == 0 {
+		return math.Pi * p.Radius * p.Radius / 4, (math.Pi/2 - 2) * p.Radius
+	}
+	return sideCylinderSection(p.Inset, p.Radius)
 }

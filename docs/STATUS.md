@@ -18,7 +18,9 @@ scoped through-all Hole now accepts the same qualified rectangular side
 and corner notches as direct Cut. A one-side through notch also supports
 disjoint interior bores and round-trips canonical STEP. Corner-notch
 blind and through cuts also round-trip canonical STEP, including batches
-with disjoint interior bores. Intersecting notch footprints remain open.
+with disjoint interior bores. Same-center, equal-radius tools with
+connected depth spans can deepen the original notch or open its far cap.
+Intersecting noncoaxial notch footprints remain open.
 
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The

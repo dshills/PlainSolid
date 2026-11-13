@@ -146,6 +146,43 @@ func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
 	}
 }
 
+func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
+	for _, origin := range []vector{{10, 1, 0}, {0, 0, 0}} {
+		b := New()
+		stock := box(t, b, vector{}, vector{20, 20, 12})
+		lower := circle(t, b, origin, vector{0, 0, 1}, 3, 5)
+		middle := circle(t, b, vector{origin[0], origin[1], 4}, vector{0, 0, 1}, 3, 5)
+		upper := circle(t, b, vector{origin[0], origin[1], 12}, vector{0, 0, -1}, 3, 4)
+		all := circle(t, b, origin, vector{0, 0, 1}, 3, 12)
+		blind := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": lower.Handle})
+		want := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": all.Handle})
+		near(t, overlapMeasure(t, b, blind.Handle, all.Handle), blind.GeometryAssertions.Volume-want.GeometryAssertions.Volume)
+		before := len(b.shapes)
+		if _, err := b.cutMany(blind.Handle, []string{upper.Handle}); err == nil || len(b.shapes) != before {
+			t.Fatal("a disconnected coaxial notch must be rejected atomically", err)
+		}
+		for _, tc := range []struct {
+			base  Shape
+			tools []string
+		}{
+			{blind, []string{upper.Handle, middle.Handle}},
+			{blind, []string{all.Handle}},
+			{stock, []string{lower.Handle, upper.Handle, middle.Handle}},
+		} {
+			cut, err := b.cutMany(tc.base.Handle, tc.tools)
+			if err != nil {
+				t.Fatal(origin, err)
+			}
+			near(t, cut.GeometryAssertions.Volume, want.GeometryAssertions.Volume)
+			near(t, cut.GeometryAssertions.SurfaceArea, want.GeometryAssertions.SurfaceArea)
+			near(t, overlapMeasure(t, b, cut.Handle, all.Handle), 0)
+			if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}
+
 func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {
 	t.Helper()
 	b := New()
