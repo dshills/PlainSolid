@@ -191,8 +191,13 @@ identity. Rational seam splits and conic Boolean junctions qualify that path.
 Version 6 retains exact cubic and quartic rational Bézier trims on the
 original stock and cutter charts. This path covers one active plane with
 an exact graph proof per original knot cell; it also supports bounded ray
-and distance queries on the resulting trims. General intersection curves
-still require branch discovery and an exact trim arrangement.
+and distance queries on the resulting trims. A tool-free shell section
+checks all source faces and joins exact directed branches by original edge
+identity, parameter and model point. Curved graph-chain mesh lifts preserve
+source boundary indices and bound the two directed image distances on a
+single positive rational biquadratic patch. General intersection curves
+still require complete contact discovery, exact trim arrangements, and
+global material classification.
 Continuous edge agreement handles distinct algebraic knot events using ordered
 root identities and polynomial composition. A dedicated native algebraic
 subdivision format persists an irrational split as a bounded root recipe and

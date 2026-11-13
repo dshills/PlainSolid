@@ -1450,6 +1450,17 @@ weighted oblique chart. The isolated curved-distance case passed under the
 race detector in 8.72 seconds after the change, against its unchanged
 30-second deadline. This is a local targeted measurement.
 
+Exact spline section checks retain original edge parameters across an
+oblique weighted shell, reverse every directed wire when plane orientation
+reverses, preserve the six pieces and internal knot positions of the creased
+cubic cut, and preserve the exact nonbinary terminal heights 1/3 and 2/3 on
+an affine box. The supported tests passed under the race detector. Separate
+tests retain exact curve-plane contact ownership at algebraic knots and report
+whole coincident spans without duplicating their endpoint events.
+An independently authored exact four-face split-cylinder STEP and a translated
+signed-axis variant both pass OCCT solid validation and exact-domain import.
+The rounded OCCT-generated split fixture is an independent rejection case.
+
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
 sphere validation benchmark went from 31.18 ms and 10.26 MB to 8.89 ms and

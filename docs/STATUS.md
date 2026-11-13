@@ -352,6 +352,14 @@ native version 6 codec verifies continuous edge agreement and UV topology
 again on reload. This still requires a certified graph, exact endpoints and
 one active cutter plane. Bounded spline face and ray queries classify whole
 enclosures against the resulting cubic and quartic trims.
+The same graph proof now discovers a directed plane section of an embedded
+rectangular spline shell without a cutter. It retains original face pieces
+and exact source edge parameters, and keeps nonbinary affine endpoints
+separate from display coordinates. Coplanar faces and unresolved contacts
+are rejected. Exact model spline and surface-composed curve queries also
+order isolated plane events and join matching knot-side germs.
+The display mesher certifies affine faces with a bounded chain of adjacent
+cubic or quartic graph trims, including C0 joins and shared sample indices.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and
@@ -369,6 +377,13 @@ seam or pole topology. Converters require lossless frame, unit and metadata tran
 The separate IGES/STEP extrusion converter
 retains exact fraction-to-distance parameter scaling and rejects metadata or
 normalization that cannot be preserved.
+Ordered mixed support imports and direct transfers cover planes, cylinders,
+spheres and ring tori; a strict native envelope preserves these leaf records.
+A model-only STEP reader also accepts a bounded four-face split cylinder,
+proves both semicylinders cover the original cylinder, and retains source
+face and edge IDs. The canonical native cylinder does not retain the artificial
+split. An independently authored OCCT STEP with off-circle binary seam
+coordinates remains outside the exact reader.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|

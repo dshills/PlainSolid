@@ -106,11 +106,63 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 	if section.Pieces()[0] == nil {
 		t.Fatal("section allowed modification of its trim list")
 	}
+	checkSection := func(plane [3]geom.Vec3, orientation int) RationalGraphShellSection {
+		t.Helper()
+		w, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{})
+		if e != nil || !w.Complete || len(w.Wires) != 1 || len(w.Wires[0]) != 4 || len(w.Branches) != 4 {
+			t.Fatal("entire oblique shell section", w, e)
+		}
+		wire := w.Wires[0]
+		found := false
+		for i, id := range wire {
+			b := w.Branches[id]
+			next := w.Branches[wire[(i+1)%len(wire)]]
+			start, end := b.Ends[0], b.Ends[1]
+			if end.Edge != next.Ends[0].Edge || end.Parameter.Cmp(next.Ends[0].Parameter) != 0 {
+				t.Fatal("original model edge parameter was not retained")
+			}
+			for k := range end.Point {
+				if end.Point[k].Cmp(next.Ends[0].Point[k]) != 0 {
+					t.Fatal("exact model terminal mismatch")
+				}
+			}
+			if b.Face != 4 {
+				continue
+			}
+			found = true
+			// Bottom-face outward normal has negative Z. For this plane,
+			// the positive wire traverses the bottom branch toward lower X.
+			if end.Point[0].Cmp(start.Point[0]) != -orientation || len(b.Pieces) != 1 {
+				t.Fatal("incorrect original-chart traversal", b)
+			}
+			piece, ok := b.Pieces[0].(ExactQuadraticUV)
+			if !ok {
+				t.Fatal("missing exact rational trim")
+			}
+			uv, _, e := piece.EvaluateRational(big.NewRat(3, 7))
+			if e != nil {
+				t.Fatal(e)
+			}
+			p, e := section.proof.patch.EvaluateRational(ctx, uv[0], uv[1], geom.SurfacePatchEvaluationOptions{})
+			if e != nil || new(big.Rat).Sub(p.Point[2], new(big.Rat).Quo(p.Point[0], big.NewRat(64, 1))).Cmp(big.NewRat(3, 16)) != 0 {
+				t.Fatal("retained curved trim is off the authored plane", p, e)
+			}
+		}
+		if !found {
+			t.Fatal("missing original curved face")
+		}
+		return w
+	}
+	w := checkSection(plane, 1)
+	if bad, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{MaxPieces: len(w.Branches) - 1}); e == nil || bad.Complete || len(bad.Branches) != 0 || len(bad.Wires) != 0 {
+		t.Fatal("budget exposed a partial section", bad, e)
+	}
 	plane[1], plane[2] = plane[2], plane[1]
 	negative, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{})
 	if e != nil || negative.PlaneSideSign() != -1 || negative.Edges() != section.Edges() {
 		t.Fatal("reversed plane lost ownership or orientation", e)
 	}
+	checkSection(plane, -1)
 	// Independent vertical wedge: X=3*s, lower height is s²/(32*(1-s/2))+Y/4.
 	// Integrate Y first and then the smooth one-dimensional section by Simpson.
 	const n = 1024

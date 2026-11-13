@@ -387,6 +387,10 @@ func combineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, act
 }
 
 func quadraticLine(a, b [2]*big.Rat) (ExactQuadraticUV, error) {
+	return quadraticLineWithEndpoints(a, b, false)
+}
+
+func quadraticLineWithEndpoints(a, b [2]*big.Rat, rationalEndpoints bool) (ExactQuadraticUV, error) {
 	var h [3][3]*big.Rat
 	for i := range h {
 		h[i][2] = big.NewRat(1, 1)
@@ -394,7 +398,7 @@ func quadraticLine(a, b [2]*big.Rat) (ExactQuadraticUV, error) {
 			h[i][axis] = new(big.Rat).Add(a[axis], new(big.Rat).Mul(big.NewRat(int64(i), 2), new(big.Rat).Sub(b[axis], a[axis])))
 		}
 	}
-	return NewExactQuadraticUV(h)
+	return newExactQuadraticUV(h, rationalEndpoints)
 }
 func reversePlaneQuadratic(q ExactQuadraticUV) ExactQuadraticUV {
 	h := q.HomogeneousControls()

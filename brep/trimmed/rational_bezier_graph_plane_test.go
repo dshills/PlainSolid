@@ -394,4 +394,25 @@ func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
 	if bad, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: 1}); e == nil || bad != nil {
 		t.Fatal("face-only certificate ignored span budget", e)
 	}
+	wire, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{})
+	if e != nil || !wire.Complete || len(wire.Wires) != 1 || len(wire.Wires[0]) != 4 {
+		t.Fatal("piecewise shell section", wire, e)
+	}
+	pieces, junction := 0, false
+	for _, b := range wire.Branches {
+		pieces += len(b.Pieces)
+		if b.Face == 4 {
+			if len(b.Pieces) != 2 {
+				t.Fatal("lost original bottom-face knot")
+			}
+			left, _, e1 := polynomialPlaneEndpoints(b.Pieces[0])
+			right, _, e2 := polynomialPlaneEndpoints(b.Pieces[1])
+			k := section.Knots()[0].UV
+			junction = e1 == nil && e2 == nil && left[1][0].Cmp(k[0]) == 0 && left[1][1].Cmp(k[1]) == 0 &&
+				right[0][0].Cmp(k[0]) == 0 && right[0][1].Cmp(k[1]) == 0
+		}
+	}
+	if pieces != 6 || !junction {
+		t.Fatal("composed wire lost original piecewise branches", pieces, junction)
+	}
 }

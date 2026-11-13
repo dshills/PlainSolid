@@ -3,6 +3,7 @@ package step
 import (
 	"bytes"
 	"os"
+	"plainsolid/geom"
 	"strings"
 	"testing"
 )
@@ -87,4 +88,37 @@ func FuzzSplitCylinderModel(f *testing.F) {
 			}
 		}
 	})
+}
+
+func TestSplitCylinderModelPose(t *testing.T) {
+	b, e := os.ReadFile("testdata/split-cylinder-model-posed.step")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, e := ReadSplitCylinderModel(bytes.NewReader(b), Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if m.Frame.Origin() != (geom.Vec3{X: 10, Y: -4, Z: 7}) || m.Frame.XAxis() != (geom.Vec3{Z: -1}) || m.Frame.ZAxis() != (geom.Vec3{X: -1}) || m.Radius != 2 || m.Height != 3 {
+		t.Fatal(m)
+	}
+	unrepresentable := strings.Replace(string(b), "(10.,-4.,7.)", "(8.67361737988403547205962240695953369140625E-19,-4.,7.)", 1)
+	if unrepresentable == string(b) {
+		t.Fatal("missing source origin")
+	}
+	if _, e = ReadSplitCylinderModel(strings.NewReader(unrepresentable), Limits{}); e == nil {
+		t.Fatal("rounded local subtraction")
+	}
+	metre := strings.Replace(string(b), "SI_UNIT(.MILLI.,.METRE.)", "SI_UNIT($,.METRE.)", 1)
+	n, e := ReadSplitCylinderModel(strings.NewReader(metre), Limits{})
+	if e != nil || n.LengthUnit != 1 || n.Frame != m.Frame || n.Radius != m.Radius || n.Height != m.Height {
+		t.Fatal(n, e)
+	}
+	bad := strings.Replace(string(b), "(-1.,0.,0.)", "(-1.,0.000000000000001,0.)", 1)
+	if bad == string(b) {
+		t.Fatal("missing axis")
+	}
+	if _, e = ReadSplitCylinderModel(strings.NewReader(bad), Limits{}); e == nil {
+		t.Fatal("accepted rounded frame")
+	}
 }
