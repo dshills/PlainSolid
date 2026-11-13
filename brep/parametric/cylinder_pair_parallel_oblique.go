@@ -15,7 +15,9 @@ func finiteObliqueParallelCylinderCommon(ctx context.Context, a, b geom.RawCylin
 }
 
 // Union and difference use the same exact similarity only for a transverse
-// disk overlap between identical physical cap planes.
+// disk overlap between identical physical cap planes. Unequal cap planes use
+// the separately qualified coordinate-axis constructions after lossless
+// projection and exact original world-cap validation.
 func finiteObliqueParallelCylinderSet(ctx context.Context, a, b geom.RawCylinder, tolerance float64, op BooleanOp) (FiniteCylinderPairCommonResult, error) {
 	var zero FiniteCylinderPairCommonResult
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
@@ -123,7 +125,7 @@ func finiteObliqueParallelCylinderSet(ctx context.Context, a, b geom.RawCylinder
 		limits[i] = [2]*big.Rat{lo, hi}
 	}
 	if op != Intersection && (limits[0][0].Cmp(limits[1][0]) != 0 || limits[0][1].Cmp(limits[1][1]) != 0) {
-		return zero, geom.ErrDomain
+		return finiteObliqueAsymmetricTransverseSet(ctx, a, b, tolerance, op, basis, norm, x, y, limits, forward)
 	}
 	lo, hi := limits[0][0], limits[0][1]
 	if limits[1][0].Cmp(lo) > 0 {

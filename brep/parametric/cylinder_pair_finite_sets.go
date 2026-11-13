@@ -149,6 +149,7 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			}
 			out.Solids[0], out.StockWallFaces[0], out.CutterWallFaces[0] = r.Solid, r.SideFaces[0], r.SideFaces[1]
 			out.StockCapFaces[0] = append(r.LowerCapFaces[0], r.UpperCapFaces[0]...)
+			out.CutterCapFaces[0] = append(r.LowerCapFaces[1], r.UpperCapFaces[1]...)
 			return out, nil
 		}
 		if parallelCoordinateContainment(stock, cutter)[0] {
