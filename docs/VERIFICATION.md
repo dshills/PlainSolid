@@ -1,5 +1,13 @@
 # Verification record
 
+## PlainCAD reverse-endpoint blind corner cut — 2026-11-13
+
+A finite corner cutter with its terminal endpoint on the stock cap now
+shares the same native cut and overlap measures as the forward tool.
+The native check covers scoped Cut, direct Cut and STEP readback.
+Both [original guided Hole and scoped Revolve Cut tests](evidence/plaincad-corner-blind-endpoints-2026-11-13.json)
+pass. Focused race checks and Go vet pass.
+
 ## PlainCAD same-site opposed blind bores on notched stock — 2026-11-13
 
 Opposed blind cuts at one interior site preserve their intervening

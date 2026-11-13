@@ -147,7 +147,7 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		if _, d, ok := cornerCylinderThroughRecipe(a.solid, c.cylinder); ok {
 			return result(math.Pi * c.cylinder.radius * c.cylinder.radius * d.Z / 4)
 		}
-		if _, _, ok := cornerCylinderRecipe(a.solid, c.cylinder); ok {
+		if _, _, ok := cornerCylinderBlindRecipe(a.solid, c.cylinder); ok {
 			r := c.cylinder.radius
 			return result(math.Pi * r * r * c.cylinder.height / 4)
 		}
