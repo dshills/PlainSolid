@@ -170,6 +170,21 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 				s.minimumLevel = max(s.minimumLevel, level+1)
 			}
 		}
+		if wall, ok := base.(geom.TwistedCylinderSurface); ok {
+			d, e := faceUVBounds(f)
+			if e != nil {
+				return Solid{}, e
+			}
+			_, _, twist, _ := wall.Parameters()
+			span := d.UMax - d.UMin + math.Abs(twist)*(d.VMax-d.VMin)
+			if !finite(span) || span > 16 || len(faces) > 34 {
+				return Solid{}, parametric.ErrBudget
+			}
+			for level := 0; span > .25; level++ {
+				span /= 2
+				s.minimumLevel = max(s.minimumLevel, level+1)
+			}
+		}
 		s.faces[fi] = cloneFace(f)
 		sides := map[[2]geom.Vec2]trimSide{}
 		indices := map[geom.Vec2]int{}

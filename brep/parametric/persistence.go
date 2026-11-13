@@ -42,6 +42,7 @@ type surfaceData struct {
 	Band      *[2][4]float64           `json:",omitempty"`
 	Wrap      *wrappedSurfaceData      `json:",omitempty"`
 	Helical   *helicalSurfaceData      `json:",omitempty"`
+	Twisted   *[2]float64              `json:",omitempty"`
 }
 
 type helicalSurfaceData struct {
@@ -89,6 +90,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case geom.CylinderSurface:
 		f, r := x.Parameters()
 		return surfaceData{Kind: "cylinder", Frame: frameToData(f), A: r}, nil
+	case geom.TwistedCylinderSurface:
+		f, r, twist, phase := x.Parameters()
+		return surfaceData{Kind: "twisted-cylinder", Frame: frameToData(f), A: r, Twisted: &[2]float64{twist, phase}}, nil
 	case geom.ConeSurface:
 		f, a := x.Parameters()
 		return surfaceData{Kind: "cone", Frame: frameToData(f), A: a}, nil
@@ -165,6 +169,9 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind != "helical-profile" && d.Helical != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind != "twisted-cylinder" && d.Twisted != nil {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind == "mapped" {
@@ -273,6 +280,11 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return geom.NewPlaneSurface(f)
 	case "cylinder":
 		return geom.NewCylinderSurface(f, d.A)
+	case "twisted-cylinder":
+		if d.Twisted == nil {
+			return nil, geom.ErrInvalid
+		}
+		return geom.NewTwistedCylinderSurface(f, d.A, d.Twisted[0], d.Twisted[1])
 	case "cone":
 		return geom.NewConeSurfaceSlope(f, d.A)
 	case "sphere":

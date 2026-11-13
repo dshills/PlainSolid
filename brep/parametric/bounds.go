@@ -120,6 +120,10 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		f = frame
 		radial(scalarBounds{r, r})
 		z = scalarBounds{v.Min, v.Max}
+	case geom.TwistedCylinderSurface:
+		frame, r, _, _ := a.Parameters()
+		f = frame
+		x, y, z = scalarBounds{-r, r}, scalarBounds{-r, r}, scalarBounds{v.Min, v.Max}
 	case geom.ConeSurface:
 		frame, r := a.Parameters()
 		f = frame

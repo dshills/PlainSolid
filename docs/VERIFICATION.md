@@ -817,3 +817,11 @@ void, floor and retained material behind it after native reload. The cylinder
 groove tests compare both handedness values with independently integrated
 volume `(12-11/96)π`, recheck original cap/wall topology, and reject a cut
 crossing the current cylinder seam.
+The twisted chart case retains a two-turn groove without splitting its
+opening at that seam, verifies volume `(12-11/24)π`, and checks a closed
+analytic-bound tessellation after native reload for both hands.
+Two start openings on the same twisted wall independently verify retained
+volume `(16-11/12)π`, preserve both inner wires, and reject starts whose
+profile widths reach their phase spacing. Exact axial helical queries
+retain intervals and ancestry and distinguish retained from cut material
+on their selected finite line.

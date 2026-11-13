@@ -105,3 +105,52 @@ func TestGrooveCylinderWithHelicalPolygon(t *testing.T) {
 		t.Fatal("unresolved periodic crossing accepted", e)
 	}
 }
+
+func TestGrooveCylinderWithHelicalSeam(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.NewFrame(geom.Vec3{X: 3, Y: 4, Z: 1}, geom.Vec3{X: 1}, geom.Vec3{Y: 1})
+	p := []geom.Vec2{{X: 1.5, Y: .5}, {X: 2, Y: .375}, {X: 2, Y: .625}}
+	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {
+		s, e := GrooveCylinderWithHelicalSeam(ctx, f, 2, 3, p, 1, .125, 2.125, hand)
+		if e != nil || s.Topology().EulerCharacteristic != 2 || s.Topology().InnerWires != 1 || len(s.faces) != 7 {
+			t.Fatal(hand, s.Topology(), e)
+		}
+		v, e := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+		want := (12 - 11.0/24) * math.Pi
+		if e != nil || math.Abs(v.Volume-want) > want*1e-7 {
+			t.Fatal(hand, v.Volume, want, e)
+		}
+		var file bytes.Buffer
+		if e := WriteJSON(&file, s); e != nil {
+			t.Fatal(e)
+		}
+		back, e := ReadJSONContext(ctx, &file, JSONLimits{})
+		if e != nil || back.Topology().EulerCharacteristic != 2 {
+			t.Fatal(hand, back.Topology(), e)
+		}
+		m, e := back.Tessellate(ctx, parametric.TessellationOptions{Deflection: .1, MaxTriangles: 500000, AnalyticBound: true})
+		if e != nil || m.ValidateSolid() != nil || math.Abs(m.SignedVolume()-want) > .02*want {
+			t.Fatal("analytic helical seam display", hand, len(m.Triangles), m.SignedVolume(), e)
+		}
+	}
+}
+
+func TestGrooveCylinderWithHelicalStarts(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := []geom.Vec2{{X: 1.5, Y: .5}, {X: 2, Y: .375}, {X: 2, Y: .625}}
+	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {
+		s, e := GrooveCylinderWithHelicalStarts(ctx, f, 2, 4, p, 1, .125, 2.125, hand, 2)
+		if e != nil || s.Topology().EulerCharacteristic != 2 || s.Topology().InnerWires != 2 || len(s.faces) != 11 {
+			t.Fatal(hand, s.Topology(), e)
+		}
+		v, e := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+		want := (16 - 11.0/12) * math.Pi
+		if e != nil || math.Abs(v.Volume-want) > want*1e-7 {
+			t.Fatal(hand, v.Volume, want, e)
+		}
+	}
+	if s, e := GrooveCylinderWithHelicalStarts(ctx, f, 2, 4, p, 1, .125, 2.125, geom.RightHanded, 4); !errors.Is(e, geom.ErrDomain) || len(s.faces) != 0 {
+		t.Fatal("touching starts must reject", e)
+	}
+}

@@ -114,6 +114,8 @@ func upDiv(a, b float64) float64 {
 
 func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (float64, float64, float64, error) {
 	switch x := s.(type) {
+	case geom.TwistedCylinderSurface:
+		return x.SecondDerivativeBounds()
 	case geom.HelicalProfileSurface:
 		return x.SecondDerivativeBounds(geom.ParameterRectangle{UMin: u.Min, UMax: u.Max, VMin: v.Min, VMax: v.Max})
 	case *geom.BSplineSurface:
