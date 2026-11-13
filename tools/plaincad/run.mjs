@@ -95,6 +95,22 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
+  // The worker already accepts this progress callback for modeled threads.
+  // Report actual feature boundaries for the synchronous Go kernel as well.
+  const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
+  const rebuildBefore = await readFile(rebuildPath, "utf8");
+  const featureBoundary = "        operationCount += 1;";
+  if (rebuildBefore.split(featureBoundary).length !== 2 || !rebuildBefore.includes("onNativeProgress?:")) {
+    throw new Error("PlainCAD rebuild progress boundary changed.");
+  }
+  const rebuildAfter = rebuildBefore.replace(featureBoundary,
+    featureBoundary + '\n        options.onNativeProgress?.("native_feature");');
+  await writeFile(rebuildPath, rebuildAfter);
+  report.runtimeAdaptations = [{
+    file: "src/cad/features/rebuildGraph.ts",
+    purpose: "Report existing native-worker progress at each executed feature.",
+    beforeSha256: hash(rebuildBefore), afterSha256: hash(rebuildAfter),
+  }];
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');
