@@ -55,15 +55,30 @@ static void warpedSplineTwoPlanes(std::ostream& out,bool crossing){
  auto first=BRepAlgoAPI_Common(stock,lower).Shape();
  splineShellRecord(out,crossing?"warped-crossing-planes":"warped-separated-planes",BRepAlgoAPI_Common(first,upper).Shape());
 }
-static void quadraticGraphPlaneBooleans(std::ostream& out){
- NCollection_Array2<gp_Pnt> poles(1,3,1,2);
- for(int i=1;i<=3;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/2.,j-1,(i==3?1./8:0)+(j-1)/4.));
+static void quadraticGraphPlaneBooleans(std::ostream& out,bool crease=false){
+ NCollection_Array2<gp_Pnt> poles(1,crease?5:3,1,2);
+ const double z[]={1./64,1./128,1./32,9./128,9./64};
+ for(int i=1;i<=(crease?5:3);++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/(crease?4.:2.),j-1,(crease?z[i-1]:(i==3?1./8:0))+(j-1)/4.));
  NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);
  NCollection_Array1<int> xmult(1,2),ymult(1,2);xmult.Init(3);ymult.Init(2);
- occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xmult,ymult,2,1);
+ NCollection_Array1<double> creaseKnots(1,3);creaseKnots.SetValue(1,0);creaseKnots.SetValue(2,.5);creaseKnots.SetValue(3,1);
+ NCollection_Array1<int> creaseMult(1,3);creaseMult.Init(3);creaseMult.SetValue(2,2);
+ occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,crease?creaseKnots:knots,knots,crease?creaseMult:xmult,ymult,2,1);
  auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
  auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent quadratic stock or cutter");
- splineShellRecord(out,"quadratic-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
- splineShellRecord(out,"quadratic-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ auto common=BRepAlgoAPI_Common(stock,tool).Shape(), cut=BRepAlgoAPI_Cut(stock,tool).Shape();
+ if(!crease){splineShellRecord(out,"quadratic-plane-common",common);splineShellRecord(out,"quadratic-plane-cut",cut);return;}
+ // The ordinary OCCT integrator does not split the internal C0 span for
+ // first moments. Use its independent span-aware Gauss–Kronrod integrator.
+ auto withSpans=[&](const char* name,const TopoDS_Shape& s){
+  if(!BRepCheck_Analyzer(s).IsValid())throw std::runtime_error("invalid independent creased Boolean");
+  GProp_GProps mass,area;
+  if(BRepGProp::VolumePropertiesGK(s,mass,1e-11,true,true,true)<0)throw std::runtime_error("OCCT span-aware volume failed");
+  BRepGProp::SurfaceProperties(s,area,1e-10);
+  const auto p=mass.CentreOfMass();
+  int shells=0;for(TopExp_Explorer it(s,TopAbs_SHELL);it.More();it.Next())++shells;
+  out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"Volume\":"<<mass.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<p.X()<<','<<p.Y()<<','<<p.Z()<<"],\"Shells\":"<<shells<<"}\n";
+ };
+ withSpans("piecewise-quadratic-plane-common",common);withSpans("piecewise-quadratic-plane-cut",cut);
 }

@@ -765,6 +765,8 @@ surfaces must keep their geometry through the operation. Continue with:
    cycle without original vertex contacts or two distinct certified corner
    fans on the same cutter plane. A separate exact quadratic graph path
    retains nonaffine section curves on original stock and cap supports.
+   In either original UV direction it can now traverse bounded free-axis
+   knots, provided exact C0 agreement holds over the complete knot seam.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock
