@@ -16,6 +16,20 @@ type EdgeSplit struct{ First, Second, Vertex int }
 // The curve is retained with disjoint parameter intervals. Collapsed pole
 // edges cannot be split. The resulting UV polygons must remain simple.
 func (s Solid) SplitEdge(edgeID int, t float64) (Solid, EdgeSplit, error) {
+	draft, split, err := s.splitEdgeDraft(edgeID, t)
+	if err != nil {
+		return Solid{}, EdgeSplit{}, err
+	}
+	result, err := NewSolid(draft.vertices, draft.edges, draft.faces, s.tolerance)
+	if err != nil {
+		return Solid{}, EdgeSplit{}, err
+	}
+	return result, split, nil
+}
+
+// splitEdgeDraft is private so a multi-step topology edit can validate the
+// complete boundary once, before returning a Solid to the caller.
+func (s Solid) splitEdgeDraft(edgeID int, t float64) (Solid, EdgeSplit, error) {
 	var h EdgeSplit
 	if edgeID < 0 || edgeID >= len(s.edges) {
 		return Solid{}, h, fmt.Errorf("trimmed: edge index out of range")
@@ -81,11 +95,7 @@ func (s Solid) SplitEdge(edgeID int, t float64) (Solid, EdgeSplit, error) {
 		}
 		faces[i] = f
 	}
-	r, e := NewSolid(vertices, edges, faces, s.tolerance)
-	if e != nil {
-		return Solid{}, EdgeSplit{}, e
-	}
-	return r, h, nil
+	return Solid{vertices: vertices, edges: edges, faces: faces, tolerance: s.tolerance}, h, nil
 }
 
 func subCurve(c PCurve, a, b float64) PCurve {

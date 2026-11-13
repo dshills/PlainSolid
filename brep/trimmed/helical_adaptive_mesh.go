@@ -180,6 +180,21 @@ func (s Solid) TessellateHelical(ctx context.Context, o parametric.TessellationO
 			}
 		}
 		if len(marked) == 0 {
+			// Refinement can leave a chain of thin interior triangles adjacent
+			// to a periodic trim seam. Finish monotone collapses to a fixed
+			// point; every replacement satisfies the same error/phase checks.
+			for fi := range current {
+				for pass := 0; pass < 32; pass++ {
+					before := len(current[fi])
+					current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole)
+					if e != nil {
+						return mesh.Mesh{}, e
+					}
+					if len(current[fi]) == before {
+						break
+					}
+				}
+			}
 			for fi, triangles := range current {
 				for _, t := range triangles {
 					turn, e := geom.Orient2D(t.uv[0], t.uv[1], t.uv[2])
@@ -436,9 +451,20 @@ func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samp
 // triangle already satisfies the requested surface checks. The link condition
 // preserves a manifold chart triangulation and all boundary samples stay fixed.
 func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samples, vertices []geom.Vec3, o parametric.TessellationOptions, poles map[int]bool) ([]samples, error) {
+	base, _ := parametric.SurfaceMapping(surface)
+	cylinder, isCylinder := base.(geom.TwistedCylinderSurface)
+	collapseToBoundary := isCylinder && !cylinder.AngularReversed()
 	boundary := map[int]bool{}
 	incident := map[int][]int{}
 	uvs := map[int]geom.Vec2{}
+	// Retain directed boundary ownership when an interior vertex collapses
+	// onto a trim vertex: a deleted triangle may transfer its model edge
+	// to a replacement triangle, but no boundary sample is moved or removed.
+	type boundarySide struct {
+		side       trimSide
+		start, end float64
+	}
+	boundarySides := map[[2]int]boundarySide{}
 	candidates := []int{}
 	for ti, t := range triangles {
 		if ti%256 == 0 {
@@ -459,6 +485,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 				incident[id] = append(incident[id], ti)
 			}
 			if t.edge[j].edge >= 0 {
+				boundarySides[[2]int{id, t.ids[(j+1)%3]}] = boundarySide{t.edge[j], t.start[j], t.end[j]}
 				boundary[id] = true
 				boundary[t.ids[(j+1)%3]] = true
 			}
@@ -512,16 +539,28 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 			return a < b
 		})
 		for _, u := range order {
-			if boundary[u] || len(incident[u]) == 0 {
+			if boundary[u] && !collapseToBoundary || poles[u] || len(incident[u]) == 0 {
 				continue
 			}
 			shared := 0
+			// A periodic seam vertex can own different UV coordinates. Use the
+			// coordinate belonging to this collapse fan, never a global choice.
+			targetUV := uvs[u]
+			compatibleUV := true
 			for _, ti := range incident[v] {
 				if contains(triangles[ti], u) {
+					for j, id := range triangles[ti].ids {
+						if id == u {
+							if shared != 0 && targetUV != triangles[ti].uv[j] {
+								compatibleUV = false
+							}
+							targetUV = triangles[ti].uv[j]
+						}
+					}
 					shared++
 				}
 			}
-			if shared != 2 {
+			if shared != 2 || !compatibleUV {
 				continue
 			}
 			common := 0
@@ -558,7 +597,12 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 				for j, id := range t.ids {
 					if id == v {
 						t.ids[j] = u
-						t.uv[j] = uvs[u]
+						t.uv[j] = targetUV
+					}
+				}
+				for j, id := range t.ids {
+					if side, ok := boundarySides[[2]int{id, t.ids[(j+1)%3]}]; ok {
+						t.edge[j], t.start[j], t.end[j] = side.side, side.start, side.end
 					}
 				}
 				if !adaptivePositiveFilter(t.uv[0], t.uv[1], t.uv[2]) {
@@ -571,7 +615,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 					break
 				}
 				points := [3]geom.Vec3{vertices[t.ids[0]], vertices[t.ids[1]], vertices[t.ids[2]]}
-				if check(surface, t, points, o.Deflection, o.Angle, [3]bool{poles[t.ids[0]], poles[t.ids[1]], poles[t.ids[2]]}) != nil {
+				if !adaptivePhaseSafe(surface, t) || check(surface, t, points, o.Deflection, o.Angle, [3]bool{poles[t.ids[0]], poles[t.ids[1]], poles[t.ids[2]]}) != nil {
 					valid = false
 					break
 				}
@@ -621,4 +665,28 @@ func adaptivePositiveFilter(a, b, c geom.Vec2) bool {
 	left, right := x*v, y*u
 	det := left - right
 	return finite(det) && det > 1e-14*(math.Abs(left)+math.Abs(right))
+}
+
+// Coarsening must preserve the same anti-alias phase bound as refinement.
+func adaptivePhaseSafe(surface geom.Surface, t samples) bool {
+	base, _ := parametric.SurfaceMapping(surface)
+	for i := range 3 {
+		a, b := t.uv[i], t.uv[(i+1)%3]
+		phase := 0.
+		switch x := base.(type) {
+		case geom.TwistedCylinderSurface:
+			_, _, tw, _ := x.Parameters()
+			du := b.X - a.X
+			if x.AngularReversed() {
+				du = -du
+			}
+			phase = math.Abs(du + tw*(b.Y-a.Y))
+		case geom.HelicalProfileSurface:
+			phase = math.Abs(b.X - a.X)
+		}
+		if phase > .25 {
+			return false
+		}
+	}
+	return true
 }

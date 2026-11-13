@@ -1,9 +1,11 @@
 package plaincadbridge
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"plainsolid/brep/parametric"
+	"plainsolid/collision"
 	"testing"
 	"time"
 )
@@ -38,6 +40,16 @@ func TestPlainCADM3ThreadMesh(t *testing.T) {
 			t.Log("mesh", len(m.Triangles), time.Since(start))
 			if e = m.ValidateSolid(); e != nil {
 				t.Fatal(e)
+			}
+			// STL and the application validator store float32 coordinates.
+			// Closed double-precision topology alone misses thin seam slivers
+			// that cross after this required serialization.
+			for i, p := range m.Vertices {
+				m.Vertices[i].X, m.Vertices[i].Y, m.Vertices[i].Z = float64(float32(p.X)), float64(float32(p.Y)), float64(float32(p.Z))
+			}
+			report, err := collision.SelfIntersectionsBVHContext(context.Background(), m, collision.Options{MaxPairs: 10000000, MaxContacts: 1})
+			if err != nil || !report.Complete || len(report.Contacts) != 0 {
+				t.Fatalf("float32 mesh embedding: %v %+v", err, report)
 			}
 			mass, e := m.MassProperties()
 			if e != nil {
