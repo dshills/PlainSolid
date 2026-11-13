@@ -33,6 +33,7 @@ type surfaceData struct {
 	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
 	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
 	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
+	SteinmetzDualCap *steinmetzDualCapData `json:",omitempty"`
 	SteinmetzSlab    *steinmetzSlabData    `json:",omitempty"`
 	Steinmetz        *[2]int               `json:",omitempty"`
 	Transform        *geom.Affine          `json:",omitempty"`
@@ -207,6 +208,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case steinmetzExteriorCylinder:
 		return surfaceData{Kind: "steinmetz-exterior-cylinder", Center: &x.center, A: x.radius, B: x.end, Steinmetz: &[2]int{x.side, x.sign}}, nil
+	case steinmetzDualCapChart:
+		return surfaceData{Kind: "steinmetz-dual-cap", Center: &x.center, A: x.radius, SteinmetzDualCap: &steinmetzDualCapData{x.caps, x.fixed, x.axis, x.side}}, nil
 	case steinmetzSlabChart:
 		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
@@ -517,6 +520,17 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, geom.ErrInvalid
 		}
 		s := steinmetzExteriorCylinder{*d.Center, d.A, d.B, d.Steinmetz[0], d.Steinmetz[1]}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
+		return s, nil
+	}
+	if d.Kind == "steinmetz-dual-cap" {
+		if d.Center == nil || d.SteinmetzDualCap == nil || d.Frame != nil {
+			return nil, geom.ErrInvalid
+		}
+		x := d.SteinmetzDualCap
+		s := steinmetzDualCapChart{*d.Center, d.A, x.Caps, x.Fixed, x.Axis, x.Side}
 		if !s.valid() {
 			return nil, geom.ErrInvalid
 		}

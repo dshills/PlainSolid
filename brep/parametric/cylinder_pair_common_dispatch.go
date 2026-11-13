@@ -20,6 +20,7 @@ const (
 	CylinderCommonPerpendicularQuadrant
 	CylinderCommonParallelAxes
 	CylinderCommonContainedCylinder
+	CylinderCommonPerpendicularDualCap
 )
 
 // FiniteCylinderPairCommonResult is the native intersection of two supported
@@ -34,7 +35,8 @@ type FiniteCylinderPairCommonResult struct {
 // FiniteCylinderPairCommon selects a native construction for two finite
 // cylinders. It handles coordinate-parallel axes, unclipped nonparallel
 // crossing or exactly placed skew axes, and selected perpendicular caps on
-// signed coordinate axes of arbitrary nonzero scale. Raw axes and cap limits
+// signed coordinate axes of arbitrary nonzero scale, including one clipping
+// cap on each equal-radius cylinder. Raw axes and cap limits
 // retain their original meaning. Unsupported
 // arrangements fail without returning partial solids. A tangent cap that
 // retains the entire crossing common adds no planar boundary face. Complete
@@ -491,7 +493,32 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 		}
 		return result, nil
 	}
-	return empty, geom.ErrConvergence
+	var caps [2]float64
+	var signs [2]float64
+	for i, w := range ends {
+		switch {
+		case before(w[0]) && interior(w[1]):
+			caps[i], signs[i] = w[1], 1
+		case after(w[1]) && interior(w[0]):
+			caps[i], signs[i] = -w[0], -1
+		default:
+			return empty, geom.ErrConvergence
+		}
+	}
+	out, e := finiteSteinmetzDualUpperCaps(ctx, geom.Vec3{}, r, caps, tolerance)
+	if e != nil {
+		return empty, e
+	}
+	out.Solid, e = out.Solid.Transformed(geom.Affine{{signs[0], 0, 0, center.X}, {0, 1, 0, center.Y}, {0, 0, signs[1], center.Z}})
+	if e != nil {
+		return empty, e
+	}
+	for i, sign := range signs {
+		if sign < 0 {
+			out.LowerCapFaces[i], out.UpperCapFaces[i] = out.UpperCapFaces[i], nil
+		}
+	}
+	return out, nil
 }
 
 type cylinderCenterHalf struct {
