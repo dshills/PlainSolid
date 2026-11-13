@@ -995,3 +995,7 @@ Same-side lens tests cover both hemispheres and different lens widths,
 preserve the exact cap and wall incidence report, and verify volume with
 independent polar integration. Native reload and sampled mesh closure pass.
 The positive slab matches the independent OCCT intersection.
+
+Finite offset dispatch tests cover both hemispheres, preserved cap ownership,
+reflected lower lenses, mixed full spherical and partial lens ends, disjoint
+and tangent regularization, and rejection of an unhandled sphere-only disk.

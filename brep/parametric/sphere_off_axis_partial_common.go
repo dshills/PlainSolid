@@ -13,6 +13,7 @@ import (
 type SphereOffAxisPartialCommonResult struct {
 	Solid                                                Solid
 	CylindricalFaces, LowerCap, UpperCap, SphericalFaces []int
+	LowerSphericalFaces                                  []int
 	UpperCapMaterial                                     geom.SphereCylinderCapMaterial
 }
 
@@ -36,7 +37,8 @@ func SphereOffAxisCylinderPartialCommon(ctx context.Context, frame geom.Frame, R
 
 // SphereOffAxisCylinderChordCommon assembles the same one-lens operation
 // around the exact radical-chord midpoint. The lens need not contain either
-// circle center. The lower cap must still cut the entire cylindrical disk.
+// circle center. The lower end either cuts the entire cylindrical disk or
+// leaves the entire lower spherical patch intact.
 func SphereOffAxisCylinderChordCommon(ctx context.Context, frame geom.Frame, R, r, offset, lower, upper, tolerance float64) (SphereOffAxisPartialCommonResult, error) {
 	var empty SphereOffAxisPartialCommonResult
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
@@ -70,7 +72,11 @@ func sewOffsetPartialCommon(ctx context.Context, s offsetPartialCommon, material
 			case partialCommonWall:
 				out.CylindricalFaces = append(out.CylindricalFaces, len(faces))
 			case partialCommonLower:
-				out.LowerCap = append(out.LowerCap, len(faces))
+				if s.lowerSphere {
+					out.LowerSphericalFaces = append(out.LowerSphericalFaces, len(faces))
+				} else {
+					out.LowerCap = append(out.LowerCap, len(faces))
+				}
 			case partialCommonUpper:
 				out.UpperCap = append(out.UpperCap, len(faces))
 			case partialCommonStrip:
@@ -98,12 +104,12 @@ const (
 )
 
 type offsetPartialCommon struct {
-	frame                      geom.Frame
-	R, r, offset, lower, upper float64
-	angle, endAngle, a2        float64
-	hub, chord, chordMargin    float64
-	kind                       int
-	clipped, chordMode         bool
+	frame                           geom.Frame
+	R, r, offset, lower, upper      float64
+	angle, endAngle, a2             float64
+	hub, chord, chordMargin         float64
+	kind                            int
+	clipped, chordMode, lowerSphere bool
 }
 
 func newOffsetPartialCommon(ctx context.Context, frame geom.Frame, R, r, offset, lower, upper, tolerance float64) (offsetPartialCommon, geom.SphereCylinderCapMaterial, error) {
@@ -126,8 +132,13 @@ func newOffsetPartialCommonMode(ctx context.Context, frame geom.Frame, R, r, off
 	far := add(q(offset), q(r))
 	a2 := sub(sq(q(R)), sq(q(upper)))
 	lo := add(q(math.Abs(lower)), pad)
+	near := sub(q(offset), q(r))
+	if near.Sign() < 0 {
+		near.SetInt64(0)
+	}
+	lowerSphere := chord && lower < 0 && add(sq(near), sq(q(lower))).Cmp(sq(q(R))) >= 0
 	if sub(q(R), far).Cmp(pad) <= 0 || sub(q(upper), q(lower)).Cmp(pad) <= 0 || q(r).Cmp(pad) <= 0 ||
-		add(sq(far), sq(lo)).Cmp(sq(q(R))) >= 0 || !chord && a2.Cmp(sq(add(q(offset), pad))) <= 0 {
+		!lowerSphere && add(sq(far), sq(lo)).Cmp(sq(q(R))) >= 0 || !chord && a2.Cmp(sq(add(q(offset), pad))) <= 0 {
 		return s, no, geom.ErrConvergence
 	}
 	m, e := geom.ClassifySphereCylinderCapMaterial(ctx, geom.Vec3{}, R, geom.Vec3{X: offset}, geom.Vec3{Z: 1}, r, q(upper), geom.SurfacePatchEvaluationOptions{})
@@ -148,7 +159,7 @@ func newOffsetPartialCommonMode(ctx context.Context, frame geom.Frame, R, r, off
 	if !finite(f) || f <= 0 {
 		return s, no, geom.ErrUnrepresentable
 	}
-	s = offsetPartialCommon{frame: frame, R: R, r: r, offset: offset, lower: lower, upper: upper, angle: angle, endAngle: 2*math.Pi - angle, a2: f}
+	s = offsetPartialCommon{frame: frame, R: R, r: r, offset: offset, lower: lower, upper: upper, angle: angle, endAngle: 2*math.Pi - angle, a2: f, lowerSphere: lowerSphere}
 	if chord {
 		hub := m.Events.Points[0].Base[0]
 		// At the radical chord both squared radial margins are equal.
@@ -294,16 +305,22 @@ func (s offsetPartialCommon) evaluateChord(sn, cs, v float64, switchAngle bool) 
 	switch s.kind {
 	case partialCommonWall:
 		b, db := o.Add(e.Scale(c)), e.Scale(dc).Add(t.Scale(c))
-		dh := 0.
-		if s.clipped {
+		dlo, dh := 0., 0.
+		if s.clipped || s.lowerSphere {
 			n := b.Length()
 			h := math.Sqrt((1 - n) * (1 + n))
-			dh = -b.Dot(db) / h
-			if !switchAngle {
-				hi = h
+			first := -b.Dot(db) / h
+			if s.lowerSphere {
+				lo, dlo = -h, -first
+			}
+			if s.clipped {
+				dh = first
+				if !switchAngle {
+					hi = h
+				}
 			}
 		}
-		p, du, dv = b.Add(z.Scale((1-v)*lo+v*hi)), db.Add(z.Scale(v*dh)), z.Scale(hi-lo)
+		p, du, dv = b.Add(z.Scale((1-v)*lo+v*hi)), db.Add(z.Scale((1-v)*dlo+v*dh)), z.Scale(hi-lo)
 	case partialCommonLower, partialCommonUpper:
 		rho, drho, h := c, dc, lo
 		if s.kind == partialCommonUpper {
@@ -312,7 +329,13 @@ func (s offsetPartialCommon) evaluateChord(sn, cs, v float64, switchAngle bool) 
 				rho, drho = a, da
 			}
 		}
-		p, du, dv = o.Add(e.Scale(v*rho)).Add(z.Scale(h)), t.Scale(v*rho).Add(e.Scale(v*drho)), e.Scale(rho)
+		p, du, dv = o.Add(e.Scale(v*rho)), t.Scale(v*rho).Add(e.Scale(v*drho)), e.Scale(rho)
+		if s.kind == partialCommonLower && s.lowerSphere {
+			n := p.Length()
+			h = -math.Sqrt((1 - n) * (1 + n))
+			du.Z, dv.Z = -p.Dot(du)/h, -p.Dot(dv)/h
+		}
+		p.Z = h
 	case partialCommonStrip:
 		if !s.clipped {
 			return p, du, dv, geom.ErrDomain

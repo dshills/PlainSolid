@@ -448,6 +448,11 @@ cover broader partial cuts. Two transverse partial caps on opposite sides
 of the equator now have native shell assembly, including unequal lens radii.
 The same-side case uses a common pole inside both lenses and preserves
 the spherical zone with only the exposed cylinder wall sectors.
+Finite common dispatch now selects these native cases from exact cap
+material, including a full spherical end opposite a transverse lens.
+Finite difference dispatch similarly selects enclosed cavity, blind bore,
+through bore, unchanged or empty outcomes where the finite limits prove
+those constructions apply.
 Finite off-axis union also retains a protruding cylindrical boss with one
 buried cap and one fully exposed cap.
 General curved fragment assembly remains open.
