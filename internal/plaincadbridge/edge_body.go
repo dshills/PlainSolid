@@ -91,6 +91,9 @@ func (b *Bridge) putEdge(body *edgeBody) (Shape, error) {
 	return b.publish(stored{treated: body, result: Shape{GeometryAssertions: Assertions{true, volume, area, 1}, Bounds: Bounds{coordinates(box.Min), coordinates(box.Max)}}})
 }
 func (body *edgeBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if body.bore != nil {
+		o.Angle = min(o.Angle, .045)
+	}
 	m, err := body.chain.Solid.Tessellate(context.Background(), o)
 	if err != nil {
 		return mesh.Mesh{}, err
@@ -154,6 +157,9 @@ func planarEdge(s brep.Solid, start, end geom.Vec3) (geom.Vec3, geom.Vec3, bool)
 			}
 			first, last, found = v[e.Start], v[e.End], true
 		}
+	}
+	if !found {
+		return planarEdgeChain(s, start, end)
 	}
 	return first, last, found
 }
@@ -381,6 +387,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		body, err = inferEdgeStock(base, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
+			if s.bore == nil && len(resolved) == 1 {
+				return b.treatRetainedPlanarEdge(s, q, normal, size, resolved[0])
+			}
 			return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
 		}
 		if s.bore != nil && len(s.bore.cylinders) == 1 && s.bore.layered == nil && s.bore.union == nil && !s.bore.blind[0] {
