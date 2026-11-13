@@ -1,0 +1,39 @@
+package plaincadbridge
+
+import (
+	"context"
+	"math"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+	"plainsolid/mesh"
+)
+
+func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	ctx := context.Background()
+	// Keep the established single-rim refinement when a coarser mesh
+	// would lose more than the material-volume budget after STL rounding.
+	fine := o
+	fine.Angle = min(o.Angle, .045)
+	if len(s.bore.cylinders) != 1 || fine.Angle == o.Angle {
+		return s.bore.solid.Tessellate(ctx, o)
+	}
+	m, err := s.bore.solid.Tessellate(ctx, o)
+	if err != nil {
+		return mesh.Mesh{}, err
+	}
+	volume := s.result.GeometryAssertions.Volume
+	tolerance := volume * 1e-4
+	if math.Abs(float32MeshVolume(m)-volume) < tolerance {
+		return m, nil
+	}
+	return s.bore.solid.Tessellate(ctx, fine)
+}
+
+func float32MeshVolume(m mesh.Mesh) float64 {
+	vertices := make([]geom.Vec3, len(m.Vertices))
+	for i, v := range m.Vertices {
+		vertices[i] = geom.Vec3{X: float64(float32(v.X)), Y: float64(float32(v.Y)), Z: float64(float32(v.Z))}
+	}
+	return (mesh.Mesh{Vertices: vertices, Triangles: m.Triangles}).SignedVolume()
+}
