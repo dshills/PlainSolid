@@ -56,54 +56,8 @@ func (c SurfaceCurveCompositionCells) DiscoverPlaneContacts(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
-	for i, cell := range c.Cells {
-		if cell == nil {
-			return zero, ErrInvalid
-		}
-		start, e := cell.EndpointRoot(0)
-		if e != nil {
-			return zero, e
-		}
-		end, e := cell.EndpointRoot(1)
-		if e != nil {
-			return zero, e
-		}
-		order, e := start.Compare(ctx, end, opts)
-		if e != nil {
-			return zero, e
-		}
-		if !order.Proven || order.Order != -1 {
-			return zero, ErrDomain
-		}
-		if i > 0 {
-			prev := c.Cells[i-1]
-			last, e := prev.EndpointRoot(1)
-			if e != nil {
-				return zero, e
-			}
-			q, e := last.Compare(ctx, start, opts)
-			if e != nil {
-				return zero, e
-			}
-			if !q.Proven || q.Order != 0 {
-				return zero, ErrDomain
-			}
-			a, e := prev.BindRoot(ctx, last, opts)
-			if e != nil {
-				return zero, e
-			}
-			b, e := cell.BindRoot(ctx, start, opts)
-			if e != nil {
-				return zero, e
-			}
-			equal, _, e := a.CompareModelPoint(ctx, b, opts)
-			if e != nil {
-				return zero, e
-			}
-			if !equal {
-				return zero, ErrDomain
-			}
-		}
+	if e := c.validateContactSeams(ctx, opts); e != nil {
+		return zero, e
 	}
 	out := ComposedPlaneContactTable{}
 	rawCount := 0
@@ -161,4 +115,57 @@ func (c SurfaceCurveCompositionCells) DiscoverPlaneContacts(ctx context.Context,
 	}
 	out.Complete = true
 	return out, nil
+}
+
+func (c SurfaceCurveCompositionCells) validateContactSeams(ctx context.Context, opts ExactCurvePlaneEventOptions) error {
+	for i, cell := range c.Cells {
+		if cell == nil {
+			return ErrInvalid
+		}
+		start, e := cell.EndpointRoot(0)
+		if e != nil {
+			return e
+		}
+		end, e := cell.EndpointRoot(1)
+		if e != nil {
+			return e
+		}
+		order, e := start.Compare(ctx, end, opts)
+		if e != nil {
+			return e
+		}
+		if !order.Proven || order.Order != -1 {
+			return ErrDomain
+		}
+		if i > 0 {
+			prev := c.Cells[i-1]
+			last, e := prev.EndpointRoot(1)
+			if e != nil {
+				return e
+			}
+			q, e := last.Compare(ctx, start, opts)
+			if e != nil {
+				return e
+			}
+			if !q.Proven || q.Order != 0 {
+				return ErrDomain
+			}
+			a, e := prev.BindRoot(ctx, last, opts)
+			if e != nil {
+				return e
+			}
+			b, e := cell.BindRoot(ctx, start, opts)
+			if e != nil {
+				return e
+			}
+			equal, _, e := a.CompareModelPoint(ctx, b, opts)
+			if e != nil {
+				return e
+			}
+			if !equal {
+				return ErrDomain
+			}
+		}
+	}
+	return nil
 }
