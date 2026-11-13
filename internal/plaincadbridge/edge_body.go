@@ -365,6 +365,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		resolved[i] = [2]geom.Vec3{a, c}
 	}
+	if result, handled, err := b.chamferLayeredBoreEdge(s, q, resolved, normal); handled {
+		return result, err
+	}
 	var body edgeBody
 	if s.treated != nil {
 		body = *s.treated
