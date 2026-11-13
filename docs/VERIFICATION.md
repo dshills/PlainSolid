@@ -15,6 +15,11 @@ also checked on a two-span cubic with a crease.
 For the quadratic denominator `(1+3X²)/4`, complementary cuts agree with
 independent arctangent/log strip integrals and OCCT. A second quadratic with
 positive endpoint values and an interior double zero is rejected.
+A positive rational weight depending on the free coordinate is also retained
+exactly. For the weighted wedge, the Go result matches an independent
+one-dimensional volume integral and the two independently swept and cut OCCT
+solids. Nonaffine projected charts and weights that depend on the other
+coordinate are rejected.
 
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
