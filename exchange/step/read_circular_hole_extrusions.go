@@ -20,17 +20,40 @@ import (
 // World-to-sketch recovery must be exactly representable. Equivalent alternate
 // parameter frames or edge partitions are unsupported.
 func ReadCircularHoleExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionModel, error) {
-	fail := func() (CircularHoleExtrusionModel, error) {
-		return CircularHoleExtrusionModel{}, fmt.Errorf("step: unsupported circular extrusion source graph")
+	f, repID, unit, ids, e := parseCanonicalCircularExtrusions(r, l)
+	if e != nil {
+		return CircularHoleExtrusionModel{}, e
+	}
+	m := CircularHoleExtrusionModel{LengthUnit: unit}
+	for _, id := range ids {
+		b, e := recoverCircularExtrusion(f, id, nil)
+		if e != nil {
+			return CircularHoleExtrusionModel{}, e
+		}
+		m.Bodies = append(m.Bodies, b)
+	}
+	var out bytes.Buffer
+	if e = WriteCircularHoleExtrusions(&out, m); e != nil {
+		return CircularHoleExtrusionModel{}, e
+	}
+	if e := verifyCanonicalCircularExtrusionGraph(f, repID, &out); e != nil {
+		return CircularHoleExtrusionModel{}, e
+	}
+	return m, nil
+}
+
+func parseCanonicalCircularExtrusions(r io.Reader, l Limits) (*File, int64, float64, []int64, error) {
+	fail := func() (*File, int64, float64, []int64, error) {
+		return nil, 0, 0, nil, fmt.Errorf("step: unsupported circular extrusion source graph")
 	}
 	var e error
 	l, e = l.defaults()
 	if e != nil {
-		return CircularHoleExtrusionModel{}, e
+		return nil, 0, 0, nil, e
 	}
 	f, e := Parse(r, l)
 	if e != nil {
-		return CircularHoleExtrusionModel{}, e
+		return nil, 0, 0, nil, e
 	}
 	repID := int64(0)
 	counts := map[string]int{}
@@ -67,19 +90,12 @@ func ReadCircularHoleExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionMod
 	if e != nil || len(ids) > 32 {
 		return fail()
 	}
-	m := CircularHoleExtrusionModel{LengthUnit: unit}
-	for _, id := range ids {
-		b, e := recoverCircularExtrusion(f, id)
-		if e != nil {
-			return CircularHoleExtrusionModel{}, e
-		}
-		m.Bodies = append(m.Bodies, b)
-	}
-	var out bytes.Buffer
-	if e = WriteCircularHoleExtrusions(&out, m); e != nil {
-		return CircularHoleExtrusionModel{}, e
-	}
-	expected, e := Parse(&out, Limits{})
+	return f, repID, unit, ids, nil
+}
+
+func verifyCanonicalCircularExtrusionGraph(f *File, repID int64, out io.Reader) error {
+	fail := func() error { return fmt.Errorf("step: unsupported circular extrusion source graph") }
+	expected, e := Parse(out, Limits{})
 	if e != nil {
 		return fail()
 	}
@@ -91,7 +107,7 @@ func ReadCircularHoleExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionMod
 	}
 	used, e := equalCircularExtrusionGraph(f, repID, expected, expectedRep)
 	if e != nil {
-		return CircularHoleExtrusionModel{}, e
+		return e
 	}
 	// Only the producer's non-geometric product metadata may remain outside
 	// the represented geometry closure; detached or unknown geometry fails closed.
@@ -102,14 +118,14 @@ func ReadCircularHoleExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionMod
 		}
 		for _, rec := range en.Records {
 			if !metadata[rec.Type] {
-				return fail()
+				return fmt.Errorf("step: detached circular extrusion entity #%d (%s)", id, rec.Type)
 			}
 		}
 	}
 
-	return m, nil
+	return nil
 }
-func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, error) {
+func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircle) (CircularHoleExtrusionBody, error) {
 	fail := func() (CircularHoleExtrusionBody, error) {
 		return CircularHoleExtrusionBody{}, fmt.Errorf("step: unsupported canonical circular extrusion body")
 	}
@@ -129,7 +145,7 @@ func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, err
 	if e != nil {
 		return fail()
 	}
-	faces, e := listRefs(shell.Args[1], 6)
+	faces, e := listRefs(shell.Args[1], 3)
 	if e != nil || len(faces) > 98 {
 		return fail()
 	}
@@ -173,40 +189,66 @@ func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, err
 	if e != nil {
 		return fail()
 	}
-	uses, e := listRefs(loop.Args[1], 3)
+	uses, e := listRefs(loop.Args[1], 1)
 	if e != nil || len(uses) > 64 {
 		return fail()
 	}
 	m := CircularHoleExtrusionBody{Name: name, Frame: caps[0], Height: height}
-	for _, uid := range uses {
-		u, e := simple(f, uid, "ORIENTED_EDGE", 5)
+	if diskOut == nil {
+		if len(faces) < 6 || len(uses) < 3 {
+			return fail()
+		}
+		for _, uid := range uses {
+			u, e := simple(f, uid, "ORIENTED_EDGE", 5)
+			if e != nil {
+				return fail()
+			}
+			eid, e := ref(u.Args[3])
+			if e != nil {
+				return fail()
+			}
+			a, z, _, e := analyticEdge(f, eid)
+			if e != nil {
+				return fail()
+			}
+			forward, e := boolean(u.Args[4])
+			if e != nil {
+				return fail()
+			}
+			if !forward {
+				a = z
+			}
+			p, e := analyticVertex(f, a)
+			if e != nil {
+				return fail()
+			}
+			q := caps[1].ToLocal(p)
+			if q.Z != 0 {
+				return fail()
+			}
+			m.Outer = append(m.Outer, geom.Vec2{X: q.X, Y: q.Y})
+		}
+	} else {
+		if len(uses) != 1 {
+			return fail()
+		}
+		use, e := simple(f, uses[0], "ORIENTED_EDGE", 5)
 		if e != nil {
 			return fail()
 		}
-		eid, e := ref(u.Args[3])
+		edge, e := ref(use.Args[3])
 		if e != nil {
 			return fail()
 		}
-		a, z, _, e := analyticEdge(f, eid)
+		rim, radius, e := canonicalExtrusionRim(f, edge)
 		if e != nil {
 			return fail()
 		}
-		forward, e := boolean(u.Args[4])
-		if e != nil {
-			return fail()
-		}
-		if !forward {
-			a = z
-		}
-		p, e := analyticVertex(f, a)
-		if e != nil {
-			return fail()
-		}
-		q := caps[1].ToLocal(p)
+		q := caps[1].ToLocal(rim.Origin())
 		if q.Z != 0 {
 			return fail()
 		}
-		m.Outer = append(m.Outer, geom.Vec2{X: q.X, Y: q.Y})
+		*diskOut = trimmed.ExtrusionCircle{Center: geom.Vec2{X: q.X, Y: q.Y}, Radius: radius}
 	}
 	entry := -1
 	for _, fid := range faces[:len(faces)-2] {
@@ -232,40 +274,27 @@ func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, err
 		cf, radius := cyl.Parameters()
 		c := caps[0].ToLocal(cf.Origin())
 		h := trimmed.ExtrusionCircle{Center: geom.Vec2{X: c.X, Y: c.Y}, Radius: radius}
+		exterior := diskOut != nil && fid == faces[0]
+		if exterior && h != *diskOut {
+			return fail()
+		}
 		_, edgeUses, e := analyticFaceLoop(f, fid, 4)
 		if e != nil {
 			return fail()
 		}
 		zs := []float64{}
 		for _, u := range edgeUses {
-			a, z, g, e := analyticEdge(f, u.id)
+			a, z, _, e := analyticEdge(f, u.id)
 			if e != nil {
 				return fail()
 			}
-			if a != z {
-				continue
+			if a == z {
+				fr, _, e := canonicalExtrusionRim(f, u.id)
+				if e != nil {
+					return fail()
+				}
+				zs = append(zs, caps[0].ToLocal(fr.Origin()).Z)
 			}
-			sc, e := simple(f, g, "SURFACE_CURVE", 4)
-			if e != nil {
-				return fail()
-			}
-			curve, e := ref(sc.Args[1])
-			if e != nil {
-				return fail()
-			}
-			circle, e := simple(f, curve, "CIRCLE", 3)
-			if e != nil {
-				return fail()
-			}
-			place, e := ref(circle.Args[1])
-			if e != nil {
-				return fail()
-			}
-			fr, e := placement(f, place)
-			if e != nil {
-				return fail()
-			}
-			zs = append(zs, caps[0].ToLocal(fr.Origin()).Z)
 		}
 		if len(zs) != 2 {
 			return fail()
@@ -273,6 +302,12 @@ func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, err
 		low, high := math.Min(zs[0], zs[1]), math.Max(zs[0], zs[1])
 		if low < 0 || high > height || low >= high {
 			return fail()
+		}
+		if exterior {
+			if low != 0 || high != height {
+				return fail()
+			}
+			continue
 		}
 		if low == 0 && high == height {
 			m.Holes = append(m.Holes, h)
@@ -298,6 +333,40 @@ func recoverCircularExtrusion(f *File, id int64) (CircularHoleExtrusionBody, err
 		m.Height = -height
 	}
 	return m, nil
+}
+func canonicalExtrusionRim(f *File, edge int64) (geom.Frame, float64, error) {
+	fail := func() (geom.Frame, float64, error) {
+		return geom.Frame{}, 0, fmt.Errorf("step: unsupported circular extrusion rim")
+	}
+	a, z, g, e := analyticEdge(f, edge)
+	if e != nil || a != z {
+		return fail()
+	}
+	sc, e := simple(f, g, "SURFACE_CURVE", 4)
+	if e != nil {
+		return fail()
+	}
+	curve, e := ref(sc.Args[1])
+	if e != nil {
+		return fail()
+	}
+	circle, e := simple(f, curve, "CIRCLE", 3)
+	if e != nil {
+		return fail()
+	}
+	id, e := ref(circle.Args[1])
+	if e != nil {
+		return fail()
+	}
+	fr, e := placement(f, id)
+	if e != nil {
+		return fail()
+	}
+	radius, e := numeric(circle.Args[2])
+	if e != nil || radius <= 0 {
+		return fail()
+	}
+	return fr, radius, nil
 }
 
 // A bidirectional entity map preserves sharing, owner identity and repeated

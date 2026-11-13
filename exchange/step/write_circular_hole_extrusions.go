@@ -96,8 +96,11 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 			a := emit(fmt.Sprintf("AXIS2_PLACEMENT_2D('',#%d,#%d)", p, d))
 			return emit(fmt.Sprintf("CIRCLE('',#%d,%s)", a, real(r)))
 		}
-		ctx := emit("(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''))")
+		var ctx int64
 		pc := func(surface, curve int64) int64 {
+			if ctx == 0 {
+				ctx = emit("(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''))")
+			}
 			r := emit(fmt.Sprintf("DEFINITIONAL_REPRESENTATION('',(#%d),#%d)", curve, ctx))
 			return emit(fmt.Sprintf("PCURVE('',#%d,#%d)", surface, r))
 		}
@@ -182,7 +185,7 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 				faces = append(faces, face(walls[i], []int64{bound(loop, true)}, true))
 			}
 			capBounds := [2][]int64{}
-			for j := 0; j < 2; j++ {
+			for j := 0; b.disk == nil && j < 2; j++ {
 				uses := []int64{}
 				for i := 0; i < n; i++ {
 					k := i
@@ -191,9 +194,7 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 					}
 					uses = append(uses, use(ring[j][k], j == 1))
 				}
-				if b.disk == nil {
-					capBounds[j] = []int64{bound(uses, true)}
-				}
+				capBounds[j] = []int64{bound(uses, true)}
 			}
 			type cavity struct {
 				circle    trimmed.ExtrusionCircle
@@ -253,9 +254,11 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 					}
 				}
 				seam := edge(pole[0], pole[1], line(seamPoints[0], seamPoints[1]), []int64{pc(cylinder, line2(geom.Vec2{}, geom.Vec2{Y: 1})), pc(cylinder, line2(geom.Vec2{X: 2 * math.Pi}, geom.Vec2{Y: 1}))}, true)
-				loop := []int64{use(seam, false), use(rim[0], false), use(seam, true), use(rim[1], true)}
+				var loop []int64
 				if hole.outer {
 					loop = []int64{use(rim[0], true), use(seam, true), use(rim[1], false), use(seam, false)}
+				} else {
+					loop = []int64{use(seam, false), use(rim[0], false), use(seam, true), use(rim[1], true)}
 				}
 				faces = append(faces, face(cylinder, []int64{bound(loop, true)}, hole.outer))
 			}
