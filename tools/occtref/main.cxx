@@ -94,6 +94,7 @@
 #include "wrapped_station_bore_exchange.hxx"
 #include "curved_oval_exchange.hxx"
 #include "spline_lens_exchange.hxx"
+#include "polygon_revolve.hxx"
 #include "iges_spline_lens.hxx"
 #include <array>
 
@@ -845,6 +846,9 @@ int main(int argc, char** argv) {
       throw std::runtime_error("reference executable built without STEP support");
 #endif
     }
+#ifdef PLAINSOLID_OCCT_STEP
+    if(argc==3 && mode=="polygon-revolve")return polygonRevolveReference(argv[1]);
+#endif
     if (argc == 3 && mode == "write-iges") {
 #ifdef PLAINSOLID_OCCT_IGES
       IGESControl_Writer writer("MM");

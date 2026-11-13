@@ -1803,3 +1803,24 @@ OCCT verifies regenerated styles (within its existing `1e-6` RGB conversion
 precision) and tight aggregate analytic mass. Invalid colors, unowned/occurrence
 style targets, oversized recipes and changed native assets after reload are
 rejected before output. Native document schema and core topology are unchanged.
+
+`WritePolygonRevolves` exports named partial revolutions of simple polygonal
+radius/height meridians about a supplied frame. The bounded subset admits
+3–32 strictly positive-radius vertices per body, at most 64 bodies, and signed
+partial sweeps with magnitude below one full turn. Concave profiles, clockwise
+input winding, translated/rotated axes, cylindrical sides, planar shoulders and
+both narrowing/widening conical sides are retained as analytic STEP geometry.
+Each body is validated by `trimmed.RevolvePolygon` before output. Shared circle
+and line edges have explicit pcurves on both owners; two polygonal radial caps
+close the shell. Names and model length units are retained. No triangulation or
+mesh conversion is used. This is an export-only adapter: it does not broaden
+existing shape readers into a general polygon-revolution decoder.
+
+Axis-contacting profiles, full turns, degenerate/near-full sweeps, intersecting
+meridians and unrepresentable cone angles are rejected explicitly. As with the
+existing analytic sector codecs, analytic placement and cone angles use
+represented float64 values and the native validation tolerance, not the
+rational coefficient identity contract of the certified spline codecs.
+Independent pinned OCCT native revolutions and imported output agree in area,
+volume and centroid for concave and mixed conical meridians at +90°, −60° and
++270°, using a translated axis rotated away from global Z.
