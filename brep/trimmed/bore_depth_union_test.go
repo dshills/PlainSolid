@@ -175,7 +175,7 @@ func TestDepthUnionDisconnectedAreaUsesLocalAnchors(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	visible, e := a.exposed(1, 1e-9)
+	visible, e := a.exposed(0, 1, 1e-9)
 	if e != nil {
 		t.Fatal(e)
 	}
