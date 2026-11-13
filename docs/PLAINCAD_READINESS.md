@@ -35,10 +35,11 @@ performance case. The two consolidated development runs each pass 342 of
 viewer cases together. Its two startup failures pass unchanged on the
 identical WASM in isolation. The complete reports preserve the original
 assertions and outcomes.
-The latest full real-WASM unit run passes 1,630 of 1,689 originals on
-`50432ed`. All 21 new failures pass unchanged in a one-worker retest.
-Thirty-eight repeat the previous run, including provider-specific fixture
-assumptions. The latest run passes the previous inline workspace case.
+The [full one-worker unit run](evidence/plaincad-unit-one-worker-full-2026-11-13.json)
+passes 1,647 of 1,689 originals on `50432ed`. All five new failures and
+the recurring cold Unified thread test pass unchanged on the same WASM.
+The remaining 36 repeat failures concern provider-specific bindings or
+fixtures that assume an uninitialized kernel.
 All seven portable failures pass a focused retest, including the exact
 side-tangent blind Hole. Its four-face contact is retained for modeling
 and display. STL fabrication and STEP reject this non-manifold boundary.
