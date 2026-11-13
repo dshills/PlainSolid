@@ -114,9 +114,13 @@ func (b *Bridge) putSTEPAnalytic(s trimmed.Solid, unit float64) (Shape, error) {
 func writeSTEPBody(s stored) ([]byte, error) {
 	var out bytes.Buffer
 	var e error
+	planar, isPlanar, err := s.planarCutBoundary()
+	if err != nil {
+		return nil, err
+	}
 	switch {
-	case s.planar():
-		e = step.Write(&out, step.Model{LengthUnit: .001, Bodies: []step.Body{{Name: "PlainSolid", Solid: s.solid}}})
+	case isPlanar:
+		e = step.Write(&out, step.Model{LengthUnit: .001, Bodies: []step.Body{{Name: "PlainSolid", Solid: planar}}})
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})

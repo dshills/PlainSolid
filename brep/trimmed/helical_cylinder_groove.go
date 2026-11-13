@@ -126,11 +126,11 @@ func GrooveTubeWithHelicalStarts(ctx context.Context, frame geom.Frame, outerRad
 
 func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
 	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
-	return grooveCylinderStarts(ctx, frame, stockRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil, roundChart, true)
+	return grooveCylinderStarts(ctx, frame, stockRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil, roundChart, nil, true)
 }
 
 func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
-	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, phaseTurns *big.Rat, roundChart func(*big.Rat, bool) (float64, error), validateDisplay bool) (Solid, error) {
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, phaseTurns *big.Rat, roundChart func(*big.Rat, bool) (float64, error), roundTwist func(*big.Rat) (float64, error), validateDisplay bool) (Solid, error) {
 	if ctx == nil || !finite(stockRadius) || stockRadius <= 0 || !finite(height) || height <= 0 ||
 		!finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start || end-start > 16 ||
 		hand != geom.LeftHanded && hand != geom.RightHanded || len(profile) > 32 || starts < 1 || starts > 8 {
@@ -205,6 +205,9 @@ func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, ou
 	}
 	tw := new(big.Rat).Quo(big.NewRat(int64(hand), 1), ratInset(lead))
 	twist, e := geom.RepresentedExactScalar(tw)
+	if e != nil && roundTwist != nil {
+		twist, e = roundTwist(tw)
+	}
 	if e != nil {
 		return Solid{}, e
 	}
