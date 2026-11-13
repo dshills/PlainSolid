@@ -118,9 +118,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(layeredCircularBody(s, p, h))
 	}
-	if m, e := step.ReadSideBlindNotch(r(), stepLimits()); e == nil {
+	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
-		s, err := trimmed.BoxSideCylinderBlindWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+		s, err := trimmed.BoxSideCylinderWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -131,7 +131,7 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		if err != nil {
 			return Shape{}, err
 		}
-		return b.putAnalyticBody(&analyticBody{solid: s, sideBlindNotch: &p, volume: properties.Volume, area: properties.Area})
+		return b.putAnalyticBody(&analyticBody{solid: s, sideNotch: &p, volume: properties.Volume, area: properties.Area})
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
@@ -233,8 +233,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteLayeredDiskBores(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepDisk != nil:
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
-	case s.analytic != nil && s.analytic.sideBlindNotch != nil:
-		e = step.WriteSideBlindNotch(&out, step.SideBlindNotchModel{Body: *s.analytic.sideBlindNotch, LengthUnit: .001})
+	case s.analytic != nil && s.analytic.sideNotch != nil:
+		e = step.WriteSideNotch(&out, step.SideNotchModel{Body: *s.analytic.sideNotch, LengthUnit: .001})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():

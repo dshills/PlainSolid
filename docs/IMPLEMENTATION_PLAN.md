@@ -47,12 +47,12 @@ threads and the editable four-start lead pair. The machined-reference workflow
 passes nested blind pockets and retained bore rims. The 40-body rotary fixture
 passes cold load, rename and platter edit. Circular stock retains unequal-depth
 opposed bore layers and round-trips qualified STEP boundaries. Rectangular stock
-retains a qualified side-opening blind notch and supports disjoint interior
-bores in the same batch. Both families have focused original regressions and
+retains a qualified blind or through side-opening notch and supports disjoint
+interior bores in the same batch. Both families have focused original regressions and
 independent OCCT exchange measurements.
 
 The latest completed production run passes all 66 originals, including the
-60.790-second performance case. The latest consolidated development run passes
+42.966-second performance case. The latest consolidated development run passes
 342 of 344. Its Parts Browser and YZ guarded drag failures both pass unchanged
 on the same WASM in isolation. The camera pan and gesture originals pass in the
 consolidated run. All seven portable failures from the real-WASM unit baseline

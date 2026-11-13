@@ -381,7 +381,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 
 		if q.Op == "cut" {
-			if a.analytic != nil && a.analytic.sideBlindNotch != nil {
+			if a.analytic != nil && a.analytic.sideNotch != nil {
 				if result, handled, err := b.cutSideNotchBores(a, []stored{c}); handled {
 					return result, err
 				}

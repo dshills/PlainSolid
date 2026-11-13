@@ -15,17 +15,17 @@ type sideStockBore struct {
 	low, high float64
 }
 
-func sideNotchBore(p step.SideBlindNotchBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
+func sideNotchBore(p step.SideNotchBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
 	return circularStockSpan(step.DiskHoleExtrusionBody{Frame: p.Frame, Height: p.Length}, tool)
 }
 
 func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error) {
-	var p step.SideBlindNotchBody
+	var p step.SideNotchBody
 	var bores []sideStockBore
 	var skip *cylinderBody
 	volume, area := a.result.GeometryAssertions.Volume, a.result.GeometryAssertions.SurfaceArea
-	if a.analytic != nil && a.analytic.sideBlindNotch != nil {
-		p = *a.analytic.sideBlindNotch
+	if a.analytic != nil && a.analytic.sideNotch != nil {
+		p = *a.analytic.sideNotch
 		bores = sideStockBores(p)
 	} else {
 		if !a.planar() || len(tools) < 2 {
@@ -34,9 +34,16 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		for _, tool := range tools {
 			if f, box, ok := sideCylinderBlindRecipe(a.solid, tool.cylinder); ok {
 				skip = tool.cylinder
-				p = sideBlindNotchRecipe(f, box, skip.radius, skip.height)
+				p = sideNotchRecipe(f, box, skip.radius, skip.height)
 				section, wall := sideCylinderSection(box, p.Radius)
 				volume, area = volume-section*p.Depth, area+wall*p.Depth
+				break
+			}
+			if f, box, ok := sideCylinderThroughRecipe(a.solid, tool.cylinder); ok {
+				skip = tool.cylinder
+				p = sideNotchRecipe(f, box, skip.radius, box.Max.Z)
+				removed, delta := sideCylinderMeasures(box, p.Radius)
+				volume, area = volume-removed, area+delta
 				break
 			}
 		}
@@ -96,15 +103,15 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: bore.circle, Depth: bore.high - bore.low, OppositeCap: bore.low != 0})
 		}
 	}
-	solid, err := trimmed.BoxSideCylinderBlindWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+	solid, err := trimmed.BoxSideCylinderWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
 	if err != nil {
 		return Shape{}, true, err
 	}
-	result, err := b.putAnalyticBody(&analyticBody{solid: solid, sideBlindNotch: &p, volume: volume, area: area})
+	result, err := b.putAnalyticBody(&analyticBody{solid: solid, sideNotch: &p, volume: volume, area: area})
 	return result, true, err
 }
 
-func sideStockBores(p step.SideBlindNotchBody) []sideStockBore {
+func sideStockBores(p step.SideNotchBody) []sideStockBore {
 	bores := make([]sideStockBore, 0, len(p.Through)+len(p.Blind))
 	for _, h := range p.Through {
 		bores = append(bores, sideStockBore{h, 0, p.Length})
@@ -117,10 +124,10 @@ func sideStockBores(p step.SideBlindNotchBody) []sideStockBore {
 }
 
 func overlapSideNotchBores(a, c stored) (float64, bool, error) {
-	if a.analytic == nil || a.analytic.sideBlindNotch == nil || c.cylinder == nil {
+	if a.analytic == nil || a.analytic.sideNotch == nil || c.cylinder == nil {
 		return 0, false, nil
 	}
-	p := *a.analytic.sideBlindNotch
+	p := *a.analytic.sideNotch
 	hole, low, high, ok := sideNotchBore(p, c.cylinder)
 	if !ok {
 		return 0, true, geom.ErrUnrepresentable

@@ -111,20 +111,20 @@ func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
 		return Shape{}, false, nil
 	}
 	radius, depth := c.cylinder.radius, c.cylinder.height
-	p := sideBlindNotchRecipe(f, box, radius, depth)
+	p := sideNotchRecipe(f, box, radius, depth)
 	s, err := trimmed.BoxSideCylinderBlind(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, 1e-9)
 	if err != nil {
 		return Shape{}, true, err
 	}
 	section, wall := sideCylinderSection(box, radius)
-	body := &analyticBody{solid: s, sideBlindNotch: &p,
+	body := &analyticBody{solid: s, sideNotch: &p,
 		volume: a.result.GeometryAssertions.Volume - section*depth,
 		area:   a.result.GeometryAssertions.SurfaceArea + wall*depth}
 	out, err := b.putNotchedAnalytic(body, a.result.Bounds)
 	return out, true, err
 }
-func sideBlindNotchRecipe(f geom.Frame, box geom.Box, radius, depth float64) step.SideBlindNotchBody {
-	return step.SideBlindNotchBody{Name: "PlainSolid", Frame: f, Left: -box.Min.X, Right: box.Max.X,
+func sideNotchRecipe(f geom.Frame, box geom.Box, radius, depth float64) step.SideNotchBody {
+	return step.SideNotchBody{Name: "PlainSolid", Frame: f, Left: -box.Min.X, Right: box.Max.X,
 		Back: box.Max.Y, Inset: -box.Min.Y, Length: box.Max.Z, Radius: radius, Depth: depth}
 }
 
@@ -136,13 +136,16 @@ func (b *Bridge) sideCylinderCut(a, c stored) (Shape, bool, error) {
 	if !ok {
 		return Shape{}, false, nil
 	}
-	r := c.cylinder.radius
-	s, e := trimmed.BoxSideCylinderThrough(context.Background(), f, -box.Min.X, box.Max.X, box.Max.Y, -box.Min.Y, box.Max.Z, r, 1e-9)
+	p := sideNotchRecipe(f, box, c.cylinder.radius, box.Max.Z)
+	s, e := trimmed.BoxSideCylinderThrough(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, 1e-9)
 	if e != nil {
 		return Shape{}, true, e
 	}
-	v, area := sideCylinderMeasures(box, r)
-	out, e := b.putNotchedStock(s, a.result.GeometryAssertions.Volume-v, a.result.GeometryAssertions.SurfaceArea+area, a.result.Bounds)
+	v, area := sideCylinderMeasures(box, p.Radius)
+	body := &analyticBody{solid: s, sideNotch: &p,
+		volume: a.result.GeometryAssertions.Volume - v,
+		area:   a.result.GeometryAssertions.SurfaceArea + area}
+	out, e := b.putNotchedAnalytic(body, a.result.Bounds)
 	return out, true, e
 }
 
@@ -160,7 +163,7 @@ func (b *Bridge) putNotchedAnalytic(body *analyticBody, bounds Bounds) (Shape, e
 
 // The retained notch leaves all original box corners intact. Their world
 // support also excludes the empty part of the cylindrical surface chart.
-func sideBlindNotchBounds(p step.SideBlindNotchBody) (geom.Box, error) {
+func sideNotchBounds(p step.SideNotchBody) (geom.Box, error) {
 	var points [8]geom.Vec3
 	i := 0
 	for _, x := range []float64{-p.Left, p.Right} {
