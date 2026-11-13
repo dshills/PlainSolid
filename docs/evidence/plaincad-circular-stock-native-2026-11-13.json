@@ -1,0 +1,16 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "wasmSha256": "fbc39b134141638cb0d1ab3f1465e710e513051422d1b82cce08fe4fcd828a0e",
+  "independentStepFixtureSha256": "357b8261b278a65b80f5ee49c80dca92bf037aa5fb5b1087741fb759e6b1c251",
+  "supplementalProbe": {
+    "report": "/tmp/plainsolid-circular-stock-app-unit-01.json",
+    "reportSha256": "c262df26e013e098637bf8c27369e5ba7a0cebc1b3731c0a819fafe9b8a980b5",
+    "status": "passed",
+    "title": "uses native scoped eccentric bores and verified STEP and STL on circular stock",
+    "durationMs": 2698.284208
+  },
+  "nativeRaceSeconds": {
+    "internal/plaincadbridge": 23.935,
+    "exchange/step": 2.519
+  }
+}

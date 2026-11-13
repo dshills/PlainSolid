@@ -29,6 +29,7 @@ type analyticBody struct {
 	lead           *leadPart
 	helicalMesh    *mesh.Mesh
 	stepRounded    *step.RoundedRectangleExtrusionBody
+	stepDisk       *step.DiskHoleExtrusionBody
 	pockets        *pocketStock
 	coaxial        *coaxialBody
 	rounded        *roundedStock
@@ -151,6 +152,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	// recipe only for coordinate-aligned proper rotations.
 	out.sector = nil
 	out.stepRounded = nil
+	out.stepDisk = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -173,6 +175,14 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 				return nil, e
 			}
 			out.planarBores = &p
+		}
+	}
+	if a.stepDisk != nil {
+		p := *a.stepDisk
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.stepDisk = &p
 		}
 	}
 	if a.stepRounded != nil {

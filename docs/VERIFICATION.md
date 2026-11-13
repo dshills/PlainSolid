@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD eccentric bores in circular stock — 2026-11-13
+
+Finite, strictly contained cylindrical tools now cut native circular
+stock in the scoped Hole and direct Cut paths. Both entry signs and
+through cuts retain exact circular boundary faces and analytic measures.
+The bridge also reads and reexports independently authored round stock
+with one blind and one through bore. Tests cover native measures,
+manifold tessellation, and STEP readback.
+
+The [five original browser regressions](evidence/plaincad-circular-stock-browser-2026-11-13.json)
+pass unchanged. The [real-WASM supplement](evidence/plaincad-circular-stock-native-2026-11-13.json)
+verifies scoped overlap and Cut, STEP reimport and PlainCAD STL
+fabrication validation. The focused native bridge and STEP race checks
+and Go vet pass.
+
 ## PlainCAD consolidated current development run — 2026-11-13
 
 The [full current development report](evidence/plaincad-current-development-full-2026-11-13.json)

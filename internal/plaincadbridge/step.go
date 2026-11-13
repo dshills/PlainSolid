@@ -82,6 +82,31 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(solid, m.LengthUnit)
 	}
+	diskReaders := []func() (step.DiskHoleExtrusionModel, error){
+		func() (step.DiskHoleExtrusionModel, error) {
+			return step.ReadDiskHoleExtrusions(r(), stepLimits())
+		},
+		func() (step.DiskHoleExtrusionModel, error) {
+			return step.ReadAnalyticDiskHoleExtrusions(r(), stepLimits())
+		},
+	}
+	for _, read := range diskReaders {
+		if m, e := read(); e == nil && len(m.Bodies) == 1 {
+			p := m.Bodies[0]
+			s, e := trimmed.ExtrudeDiskWithHoles(context.Background(), p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+			if e != nil {
+				return Shape{}, e
+			}
+			if m.LengthUnit != .001 {
+				return b.putSTEPAnalytic(s, m.LengthUnit)
+			}
+			properties, err := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+			if err != nil {
+				return Shape{}, err
+			}
+			return b.putAnalyticBody(&analyticBody{solid: s, volume: properties.Volume, area: properties.Area, stepDisk: &p})
+		}
+	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
 			return step.ReadRoundedRectangleExtrusions(r(), stepLimits())
@@ -178,6 +203,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 	case s.treated != nil:
 		e = writeLongEdgeSTEP(&out, s.treated)
+	case s.analytic != nil && s.analytic.stepDisk != nil:
+		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():
