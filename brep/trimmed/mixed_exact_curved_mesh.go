@@ -11,6 +11,12 @@ import (
 // and fixed-boundary surface lift. Interior.Deflection is the total requested
 // model-space distance; Boundary.Display.Deflection is derived from that target.
 type MixedExactCurvedMeshOptions struct {
+	// RectangularGrid optionally replaces an exactly rectangular UV polygon
+	// seed when opposite boundary cuts match. It preserves all source boundary
+	// IDs and adds only interior vertices, with fresh exact coverage/roundoff.
+	// A separately proved affine support keeps its cheaper polygon seed; that
+	// additional chart proof uses Boundary.Chart limits independently.
+	RectangularGrid bool
 	// Cuts optionally prescribes original normalized pcurve parameters, outer
 	// then holes, retaining all coedge occurrences. Non-nil per-trim lists
 	// include 0 and 1 in increasing order; nil leaves that trim adaptive.
@@ -27,6 +33,7 @@ type MixedExactCurvedMeshOptions struct {
 // proved distance applies in both directions between the trimmed surface image
 // and triangle union; no injectivity, shell or embeddedness claim is made.
 type CertifiedMixedExactCurvedMesh struct {
+	RectangularGrid bool
 	CertifiedCurvedQuadraticTrimMesh
 	UVRegion CertifiedMixedExactAffineMesh
 }
@@ -108,9 +115,24 @@ func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch,
 	if e != nil {
 		return empty, e
 	}
+	grid := false
+	if o.RectangularGrid {
+		_, affineError := geom.NewAffineSurfaceChart(ctx, p, o.Boundary.Chart)
+		if err := ctx.Err(); err != nil {
+			return empty, err
+		}
+		if affineError != nil {
+			var seed CertifiedAffineQuadraticTrimMesh
+			seed, grid, e = mixedRectangleGridSeed(ctx, uv.CertifiedAffineQuadraticTrimMesh, m.MaxTriangles)
+			if e != nil {
+				return empty, e
+			}
+			uv.CertifiedAffineQuadraticTrimMesh = seed
+		}
+	}
 	lifted, e := tessellateCertifiedTrimBoundaryMode(ctx, p, uv.CertifiedAffineQuadraticTrimMesh, m, 1, spans, l2, true)
 	if e != nil {
 		return empty, e
 	}
-	return CertifiedMixedExactCurvedMesh{CertifiedCurvedQuadraticTrimMesh: lifted, UVRegion: uv}, nil
+	return CertifiedMixedExactCurvedMesh{CertifiedCurvedQuadraticTrimMesh: lifted, UVRegion: uv, RectangularGrid: grid}, nil
 }
