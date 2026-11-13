@@ -3,6 +3,7 @@ package parametric
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 
 	"plainsolid/geom"
@@ -31,7 +32,8 @@ type FiniteCylinderPairCommonResult struct {
 
 // FiniteCylinderPairCommon selects a native construction for two finite
 // cylinders. It handles coordinate-parallel axes, unclipped nonparallel
-// crossing or exactly placed skew axes, and selected perpendicular caps. All
+// crossing or exactly placed skew axes, and selected perpendicular caps on
+// signed coordinate axes of arbitrary nonzero scale. All
 // input raw axes and cap limits retain their original meaning. Unsupported
 // arrangements fail without returning partial solids.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
@@ -216,14 +218,57 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	return out, nil
 }
 
-// The clipped family currently uses exact +X/+Z unit axes. The
-// general free-axis construction above does not need this restriction.
+// The clipped charts are built with +X and +Z at unit scale. An exact
+// signed permutation places them on the original cylinder axes; converting
+// cap parameters to physical lengths must not snap a cap to a nearby plane.
 func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, center geom.Vec3, ends [2][2]float64, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
-	if a.Axis != (geom.Vec3{X: 1}) || b.Axis != (geom.Vec3{Z: 1}) {
+	var basis [2]geom.Vec3
+	for i, cylinder := range [2]geom.RawCylinder{a, b} {
+		axis := cylinder.Axis
+		var scale float64
+		switch {
+		case axis.Y == 0 && axis.Z == 0:
+			scale, basis[i].X = math.Abs(axis.X), math.Copysign(1, axis.X)
+		case axis.X == 0 && axis.Z == 0:
+			scale, basis[i].Y = math.Abs(axis.Y), math.Copysign(1, axis.Y)
+		case axis.X == 0 && axis.Y == 0:
+			scale, basis[i].Z = math.Abs(axis.Z), math.Copysign(1, axis.Z)
+		default:
+			return empty, geom.ErrDomain
+		}
+		for j, cap := range ends[i] {
+			q := new(big.Rat).Mul(new(big.Rat).SetFloat64(scale), new(big.Rat).SetFloat64(cap))
+			length, e := geom.RepresentedExactScalar(q)
+			if e != nil {
+				return empty, e
+			}
+			ends[i][j] = length
+		}
+	}
+	x, z := basis[0], basis[1]
+	if x.Dot(z) != 0 {
 		return empty, geom.ErrDomain
 	}
-	r := a.Radius
+	if x == (geom.Vec3{X: 1}) && z == (geom.Vec3{Z: 1}) {
+		return finiteCanonicalPerpendicularCapCommon(ctx, center, a.Radius, ends, tolerance)
+	}
+	out, e := finiteCanonicalPerpendicularCapCommon(ctx, geom.Vec3{}, a.Radius, ends, tolerance)
+	if e != nil || out.Construction == CylinderCommonEmpty {
+		return out, e
+	}
+	y := z.Cross(x)
+	out.Solid, e = out.Solid.Transformed(geom.Affine{
+		{x.X, y.X, z.X, center.X}, {x.Y, y.Y, z.Y, center.Y}, {x.Z, y.Z, z.Z, center.Z},
+	})
+	if e != nil {
+		return empty, e
+	}
+	return out, nil
+}
+
+func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3, r float64, ends [2][2]float64, tolerance float64) (FiniteCylinderPairCommonResult, error) {
+	var empty FiniteCylinderPairCommonResult
 	if ends[0][0] >= r || ends[0][1] <= -r || ends[1][0] >= r || ends[1][1] <= -r {
 		return empty, nil
 	}
@@ -261,7 +306,7 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 			// Reflect the X coordinate after constructing the complementary
 			// upper-cap chart. The transform keeps the body orientation.
 			m := geom.Affine{{-1, 0, 0, center.X}, {0, 1, 0, center.Y}, {0, 0, 1, center.Z}}
-			local, e := finitePerpendicularCapCommon(ctx, a, b, geom.Vec3{}, [2][2]float64{{-u, -l}, ends[1]}, tolerance)
+			local, e := finiteCanonicalPerpendicularCapCommon(ctx, geom.Vec3{}, r, [2][2]float64{{-u, -l}, ends[1]}, tolerance)
 			if e != nil {
 				return empty, e
 			}
@@ -274,9 +319,9 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 		}
 	}
 	if clear(ends[0]) {
-		swapped, e := finitePerpendicularCapCommon(ctx, geom.RawCylinder{Axis: geom.Vec3{X: 1}, Radius: r}, geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: r}, geom.Vec3{}, [2][2]float64{ends[1], ends[0]}, tolerance)
-		if e != nil {
-			return empty, e
+		swapped, e := finiteCanonicalPerpendicularCapCommon(ctx, geom.Vec3{}, r, [2][2]float64{ends[1], ends[0]}, tolerance)
+		if e != nil || swapped.Construction == CylinderCommonEmpty {
+			return swapped, e
 		}
 		m := geom.Affine{{0, 0, 1, center.X}, {0, 1, 0, center.Y}, {1, 0, 0, center.Z}}
 		swapped.Solid, e = swapped.Solid.Transformed(m)

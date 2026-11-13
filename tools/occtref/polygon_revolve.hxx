@@ -34,6 +34,7 @@ static int circularHoleExtrusionReference(const char* path,int mode=0) {
  return 0;
 }
 
+#ifdef PLAINSOLID_OCCT_STEP
 static int writeCircularPocketReference(const char* path, bool allThrough=false) {
  const double p[5][2]={{0,0},{6,0},{7,3},{4,5},{0,4}};
  BRepBuilderAPI_MakePolygon wire;for(const auto& v:p)wire.Add(gp_Pnt(2,3-v[1],4+v[0]));wire.Close();
@@ -68,3 +69,5 @@ static int writeRoundedStockReference(const char* path,bool pockets=false) {
  if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent rounded stock source");
  STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent rounded stock STEP export");return 0;
 }
+
+#endif // PLAINSOLID_OCCT_STEP

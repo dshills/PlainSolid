@@ -95,8 +95,12 @@
 #include "curved_oval_exchange.hxx"
 #include "spline_lens_exchange.hxx"
 #include "polygon_revolve.hxx"
+#ifdef PLAINSOLID_OCCT_STEP
 #include "long_edge_chain.hxx"
+#endif
+#ifdef PLAINSOLID_OCCT_IGES
 #include "iges_spline_lens.hxx"
+#endif
 #include <array>
 
 static void record(std::ostream& out, const char* name, const TopoDS_Shape& shape, double integrationError = 0) {
@@ -201,6 +205,28 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if (argc == 3 && mode == "finite-cylinder-dispatch") {
+      std::ofstream out(argv[1]); out.exceptions(std::ios::failbit | std::ios::badbit);
+      // Independently authored finite cylinders: physical starts and lengths,
+      // not the Go dispatcher's chart construction or intersection formulas.
+      auto x = [](double lo, double hi) { return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(lo,0,0),gp_Dir(1,0,0)),5,hi-lo).Shape(); };
+      auto z = [](double lo, double hi) { return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,lo),gp_Dir(0,0,1)),5,hi-lo).Shape(); };
+      record(out,"finite-pair-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,6)).Shape(),1e-11);
+      record(out,"finite-pair-slab",BRepAlgoAPI_Common(x(-3,2),z(-6,6)).Shape(),1e-11);
+      record(out,"finite-pair-quadrant",BRepAlgoAPI_Common(x(0,6),z(-6,0)).Shape(),1e-11);
+      const auto signedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,-1),gp_Dir(0,0,-1)),5,5).Shape();
+      const auto signedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-4,-3),gp_Dir(0,1,0)),5,12).Shape();
+      record(out,"finite-pair-signed-scaled",BRepAlgoAPI_Common(signedA,signedB).Shape(),1e-11);
+      const auto pa = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,0,0),gp_Dir(0,1,0)),2,8).Shape();
+      const auto pb = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,7,0),gp_Dir(0,-1,0)),2,3).Shape();
+      record(out,"finite-pair-reverse-parallel",BRepAlgoAPI_Common(pa,pb).Shape(),1e-11);
+      const auto distant = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(6,7,0),gp_Dir(0,-1,0)),2,3).Shape();
+      const auto empty = BRepAlgoAPI_Common(pa,distant).Shape();
+      if (TopExp_Explorer(empty,TopAbs_FACE).More() || TopExp_Explorer(empty,TopAbs_SOLID).More())
+        throw std::runtime_error("disjoint finite cylinder common is not empty");
+      return 0;
+    }
+
     if(argc==3 && mode=="repeated-spline-shell"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);repeatedSplineShellBooleans(out);return 0;}
     if(argc==3 && mode=="multiple-open-spline-box"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);multipleOpenSplineBoxBooleans(out);return 0;}
     if(argc==3 && mode=="open-spline-box"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);openSplineBoxBooleans(out);return 0;}
