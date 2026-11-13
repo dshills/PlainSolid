@@ -45,10 +45,10 @@ Both original helical workflows now pass, including the M3 external and
 internal thread and the editable four-start lead pair. The original
 machined-reference workflow passes nested blind pockets, bore rim
 measurement and lost floor diagnostics. Focused retests cover seven
-additional original development workflows and three original production
-regressions. Complete the rotary fixture, fix failures exposed by the full
-development run, rerun the UNC gallery and production performance cases,
-and execute the current full release checks. See
+additional original development workflows and four original production
+regressions, including the UNC gallery. Complete the rotary fixture, fix
+failures exposed by the full development run, rerun the production
+performance case, and execute the current full release checks. See
 [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.

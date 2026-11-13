@@ -40,10 +40,11 @@ regressions in 53.554 seconds.
 
 The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
 passes the fabrication package, the Cable guide live preview and the
-left-hand Acme gallery. The quarter-inch UNC gallery progresses to
-placement of both modeled bodies and exposes a display-validation error.
-The controlled production performance case and full production rerun
-remain open.
+left-hand Acme gallery. A [separate retest](evidence/plaincad-production-unc-2026-11-13.json)
+passes the quarter-inch UNC gallery in 14.9 seconds after repairing helical
+placement. Production performance exceeds its overall deadline after
+checking all 25 edits and 11 STL downloads. The case and a full production
+rerun remain open.
 
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 

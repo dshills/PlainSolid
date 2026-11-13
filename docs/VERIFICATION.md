@@ -14,9 +14,11 @@ The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
 passes the original fabrication package, cable-guide live preview and
 left-hand Acme pair. The quarter-inch UNC pair reaches placement after
 building the exact external screw and internally threaded rectangular
-block, then fails the uniform display seed. A native placement test passes
-with conforming helical tessellation. The original gallery retest remains
-open. The [circle retest](evidence/plaincad-circle-measurement-2026-11-13.json)
+block, then fails the uniform display seed. Conforming helical tessellation
+passes both the native placement and the [original gallery retest](evidence/plaincad-production-unc-2026-11-13.json).
+The same production snapshot completes all performance samples and
+exceeds the 90-second overall deadline while generating the report.
+The [circle retest](evidence/plaincad-circle-measurement-2026-11-13.json)
 passes original cylinder measurement and grouped circular fillets across
 XY, XZ and YZ.
 

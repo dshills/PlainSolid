@@ -8,10 +8,10 @@ OCCT compatibility qualification is claimed.
 
 The full production baseline passes 61 of 66 originals. The focused
 production retest passes the fabrication package, Cable guide live preview
-and left-hand Acme pair. UNC now builds both helical bodies and reaches
-component placement. Its repaired helical placement passes the native case
-and is awaiting the original gallery retest. The production performance
-deadline is under retest. Full development discovery lists 340 original
+and left-hand Acme pair. A separate retest passes the quarter-inch UNC
+gallery, including placement of both helical bodies. Production performance
+still exceeds its overall deadline after producing all validated samples.
+The volume-checked compact bore mesh is under retest. Full development discovery lists 340 original
 cases and execution remains open.
 
 The focused development retest passes all seven originals for a pocket
