@@ -99,7 +99,10 @@ func JoinIndependentModels(w io.Writer, sources [][]byte, l Limits) error {
 }
 
 // SplitIndependentModels validates that the file contains independent shape
-// representations and returns their complete geometric reference closures.
+// representations and returns their complete geometric reference closures,
+// retaining each complete registered AP203 product envelope when present.
+// Metadata-less inputs remain metadata-less. Only declarative unit/context
+// nodes may be shared across models; topology and products are singly owned.
 // Assembly mappings and detached geometry are rejected, never silently dropped.
 func SplitIndependentModels(r io.Reader, l Limits) ([][]byte, error) {
 	f, e := Parse(r, l)
@@ -124,30 +127,42 @@ func SplitIndependentModels(r io.Reader, l Limits) ([][]byte, error) {
 	all := map[int64]bool{}
 	out := make([][]byte, 0, len(roots))
 	for _, root := range roots {
-		used := map[int64]bool{}
-		var entity func(int64)
-		var value func(Value)
-		value = func(v Value) {
-			if v.Kind == Reference {
-				entity(v.Ref)
-			}
-			for _, a := range v.Items {
-				value(a)
-			}
+		productRoots, err := independentProductRoots(f, root)
+		if err != nil {
+			return nil, err
 		}
-		entity = func(id int64) {
+		used := map[int64]bool{}
+		pending := append([]int64{root}, productRoots...)
+		for len(pending) > 0 {
+			id := pending[len(pending)-1]
+			pending = pending[:len(pending)-1]
 			if used[id] {
-				return
+				continue
 			}
 			used[id] = true
-			all[id] = true
-			for _, rec := range f.Entities[id].Records {
-				for _, v := range rec.Args {
-					value(v)
+			en, ok := f.Entities[id]
+			if !ok {
+				return nil, fmt.Errorf("step: missing independent entity")
+			}
+			if all[id] && !independentShareable(en) {
+				return nil, fmt.Errorf("step: cross-model ownership of #%d", id)
+			}
+			var values []Value
+			for _, rec := range en.Records {
+				values = append(values, rec.Args...)
+			}
+			for len(values) > 0 {
+				v := values[len(values)-1]
+				values = values[:len(values)-1]
+				if v.Kind == Reference {
+					pending = append(pending, v.Ref)
 				}
+				values = append(values, v.Items...)
 			}
 		}
-		entity(root)
+		for id := range used {
+			all[id] = true
+		}
 		var b bytes.Buffer
 		b.WriteString(graphHeader)
 		for _, id := range f.Order {
@@ -158,15 +173,9 @@ func SplitIndependentModels(r io.Reader, l Limits) ([][]byte, error) {
 		b.WriteString("ENDSEC;\nEND-ISO-10303-21;\n")
 		out = append(out, b.Bytes())
 	}
-	metadata := map[string]bool{"APPLICATION_CONTEXT": true, "APPLICATION_PROTOCOL_DEFINITION": true, "MECHANICAL_CONTEXT": true, "DESIGN_CONTEXT": true, "PRODUCT": true, "PRODUCT_CONTEXT": true, "PRODUCT_DEFINITION_FORMATION": true, "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE": true, "PRODUCT_DEFINITION": true, "PRODUCT_DEFINITION_CONTEXT": true, "PRODUCT_DEFINITION_SHAPE": true, "SHAPE_DEFINITION_REPRESENTATION": true}
 	for id, en := range f.Entities {
-		if all[id] {
-			continue
-		}
-		for _, rec := range en.Records {
-			if !metadata[rec.Type] {
-				return nil, fmt.Errorf("step: detached or unsupported entity %s", rec.Type)
-			}
+		if !all[id] {
+			return nil, fmt.Errorf("step: detached or unsupported entity #%d (%s)", id, en.Records[0].Type)
 		}
 	}
 	return out, nil
