@@ -182,6 +182,11 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 		}
 		cuts[i], spans[i] = cut, end-start-deltas[i]
 	}
+	if len(cylinders) == 1 && blind[0] {
+		if err := exactBlindBoreContact(base, cylinders[0], cuts[0].Entry, 0); err != nil {
+			return nil, err
+		}
+	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
 		return newUnionBore(base, cylinders, cuts, blind)
