@@ -9,6 +9,10 @@ import (
 // root. The caller supplies exact polynomial predicates and their set semantics.
 // No classification is inferred from approximate endpoint brackets.
 func intersectMaterialBoundary(ctx context.Context, polynomials []rationalPolynomial, minT, maxT float64, o ToroidLineOptions, budget *polynomialBudget, ro ExactCurvePlaneEventOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BoreLineBoundary, error) {
+	return intersectMaterialBoundaryRational(ctx, polynomials, new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), o, budget, ro, classify)
+}
+
+func intersectMaterialBoundaryRational(ctx context.Context, polynomials []rationalPolynomial, minT, maxT *big.Rat, o ToroidLineOptions, budget *polynomialBudget, ro ExactCurvePlaneEventOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BoreLineBoundary, error) {
 	fail := func(e error) (BoreLineBoundary, error) { return BoreLineBoundary{}, e }
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	var e error
@@ -45,8 +49,8 @@ func intersectMaterialBoundary(ctx context.Context, polynomials []rationalPolyno
 		events[at] = event{root: root, multiplicity: m}
 		return nil
 	}
-	for _, v := range []float64{minT, maxT} {
-		root, _, e := NewExactRationalRoot(ctx, q(v), ro)
+	for _, v := range []*big.Rat{minT, maxT} {
+		root, _, e := NewExactRationalRoot(ctx, v, ro)
 		if e != nil {
 			return fail(e)
 		}
@@ -62,7 +66,7 @@ func intersectMaterialBoundary(ctx context.Context, polynomials []rationalPolyno
 		for i, x := range p {
 			coeff[i] = x.RatString()
 		}
-		_, e := isolatePolynomialRoots(p, q(minT), q(maxT), budget, o.MaxSubdivisions, func(lo, hi *big.Rat, m int) (bool, error) {
+		_, e := isolatePolynomialRoots(p, minT, maxT, budget, o.MaxSubdivisions, func(lo, hi *big.Rat, m int) (bool, error) {
 			if e := ctx.Err(); e != nil {
 				return false, e
 			}
