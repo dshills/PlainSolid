@@ -496,6 +496,23 @@ func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	z := 3. / 16
+	plane := [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}
+	d := geom.ParameterRectangle{UMax: 1, VMax: 1}
+	// Use a standalone support, unrelated to the finite OCCT cutter.
+	k2 := []float64{0, 0, 1, 1}
+	cap, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: z}, {Y: 1, Z: z}, {X: 4, Z: z}, {X: 4, Y: 1, Z: z},
+	}, k2, k2, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	split, e := weighted.SplitRationalGraphSplineShell(ctx, plane, cap, d, trimmed.RationalGraphShellSplitOptions{
+		Section: trimmed.RationalGraphShellSectionOptions{VerifyModelEdges: true},
+	})
+	if e != nil || !split.Section.Complete {
+		t.Fatal("source shell split using independent affine cap", e)
+	}
 	for i, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
 		key := "rational-bezier-weighted-" + [2]string{"common", "cut"}[i]
 		r, e := trimmed.CombineRationalGraphSplinePlaneClip(ctx, weighted, weightedTool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
@@ -505,6 +522,15 @@ func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
 		mass, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 		if e != nil {
 			t.Fatal(e)
+		}
+		compare(t, refs[key], mass.Area, mass.Volume, mass.Centroid)
+		half := split.Halves[i]
+		if len(half.Solid.Topology().Shells) != refs[key].Shells || len(half.CapFaces) != 1 || len(half.CapEdges[0]) != 4 {
+			t.Fatal(key, "direct split ancestry and topology")
+		}
+		mass, e = half.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if e != nil {
+			t.Fatal(key, e)
 		}
 		compare(t, refs[key], mass.Area, mass.Volume, mass.Centroid)
 	}
