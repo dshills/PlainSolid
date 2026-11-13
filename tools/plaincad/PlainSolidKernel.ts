@@ -19,6 +19,7 @@ type Handle = {
   proof: Proof;
   operation: RenderMesh["kernelOperation"];
   edgeProofIdentity: string;
+  disposed?: boolean;
   extrusion?: { profile: SketchProfile; distance: number; transform: SketchPlaneTransform };
 };
 type Runtime = typeof globalThis & {
@@ -236,20 +237,24 @@ export class OpenCascadeKernel implements KernelAdapter {
     return shape;
   }
   cloneShape(shape: KernelShape): KernelShape {
+    const metadata = shape.metadata === undefined ? undefined : structuredClone(shape.metadata);
     const copy = this.retainExtrusion(
       owned(request({ op: "clone", handle: handle(shape).proof.handle }), handle(shape).operation, shape.id),
       shape,
     );
     handle(copy).edgeProofIdentity = handle(shape).edgeProofIdentity;
+    if (metadata !== undefined) copy.metadata = metadata;
     return copy;
   }
   placeShape(shape: KernelShape, placement: ComponentPlacement): KernelShape {
+    const metadata = shape.metadata === undefined ? undefined : structuredClone(shape.metadata);
     const frame = placementTransform(placement);
     const matrix = (["x", "y", "z"] as const).map(axis => [frame.u[axis], frame.v[axis], frame.normal[axis], frame.origin[axis]]);
     const result = this.retainExtrusion(
       owned(request({ op: "transform", handle: handle(shape).proof.handle, matrix }), handle(shape).operation, shape.id),
       shape,
     );
+    if (metadata !== undefined) result.metadata = metadata;
     const source = handle(result).extrusion;
     if (source) {
       const vector = (v: { x: number; y: number; z: number }) => ({
@@ -316,7 +321,12 @@ export class OpenCascadeKernel implements KernelAdapter {
     const { base64 } = request<{ base64: string }>({ op: "stl", handle: handle(shape).proof.handle, linearDeflection: 0.5, angularDeflection: 0.2 });
     return Uint8Array.from(atob(base64), character => character.charCodeAt(0)).buffer;
   }
-  disposeShape(shape: KernelShape) { request({ op: "dispose", handle: handle(shape).proof.handle }); }
+  disposeShape(shape: KernelShape) {
+    const state = handle(shape);
+    if (state.disposed) return;
+    request({ op: "dispose", handle: state.proof.handle });
+    state.disposed = true;
+  }
   // Unproved reference queries reject or return no eligible references.
   validatePlanarFace(shape: KernelShape, plane: SketchPlaneTransform): void {
     request({ op: "planarFace", handle: handle(shape).proof.handle, origin: xyz(plane.origin), normal: xyz(plane.normal) });
