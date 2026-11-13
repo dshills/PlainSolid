@@ -147,3 +147,22 @@ are not silently converted into curve parameters. Arbitrary source offsets
 are preserved and discrepancies reported. Full floor pcurve lift agreement,
 seam endpoint parameter matching, circle arc selection and face coverage remain
 outside this inspection API; it performs no repair or shape import.
+
+### Spherical seam meridian pcurve branches
+
+`InspectSphericalSeamPCurves` preserves the two source association branches and
+requires each to be an untrimmed constant-U LINE with signed coordinate-axis V
+direction and positive VECTOR magnitude. It reports each source U/V origin,
+direction, magnitude and pcurve/model IDs. A verified radian context permits
+exact rational enclosures of `(U0-U1)-2π`; the difference is not normalized to a
+preferred angular representative. Separate fields report V-origin difference,
+equal V direction and equal magnitude; disagreement is retained, not repaired.
+
+The retained fixture has branches #564/#571, each starting at V=-6.28318530718
+and moving in positive V with magnitude one. Their U difference is
+6.28318530718, whose positive discrepancy from 2π is rigorously bounded.
+This does not prove periodic lift equivalence: no finite LINE interval is
+authored, and the unusual V origins cannot be treated as trim endpoints.
+Branch-to-coedge mapping, selected meridian arc, pole matching, spherical face
+coverage and material interpretation remain unknown. Nonmeridian parameter
+lines are rejected rather than approximately classified.
