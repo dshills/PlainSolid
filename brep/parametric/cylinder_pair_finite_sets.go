@@ -54,11 +54,11 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 	return FiniteCylinderPairUnionResult{Solid: r.Solid, WallFaces: r.WallFaces, LowerCapFaces: r.LowerCapFaces, UpperCapFaces: r.UpperCapFaces, CommonVolumeSquared: r.CommonVolumeSquared}, nil
 }
 
-// FiniteCylinderPairDifferenceResult preserves the two stock-side components
-// ordered by the first cylinder's original raw axis. For equal radii the
-// closures touch at ContactNodes; otherwise MinimumGapSquared bounds their
-// separation from below. Face IDs are local to the corresponding solid.
-// A nil contact or gap report means that case does not apply.
+// FiniteCylinderPairDifferenceResult preserves the retained stock components
+// in raw-axis order, with unused slots empty. A split equal-radius result
+// touches at ContactNodes; a split wider cut has a positive MinimumGapSquared.
+// Face IDs are local to the corresponding solid. A nil proof means its case
+// does not apply.
 type FiniteCylinderPairDifferenceResult struct {
 	Solids                                         [2]Solid
 	StockWallFaces, CutterWallFaces, StockCapFaces [2][]int
@@ -67,11 +67,39 @@ type FiniteCylinderPairDifferenceResult struct {
 }
 
 // FiniteCylinderPairDifference cuts a crossing equal-radius or wider cutter
-// from finite stock. The same strict cap-clearance and representability
-// requirements as the native analytic constructors apply. Other arrangements
-// fail without publishing a partial solid.
+// from finite stock under strict cap clearance. It also retains the original
+// stock for strictly separated coordinate-parallel cylinders, and returns an
+// empty result when exact perpendicular containment covers the stock. Other
+// arrangements fail without publishing a partial solid.
 func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCylinder, tolerance float64) (FiniteCylinderPairDifferenceResult, error) {
 	var out FiniteCylinderPairDifferenceResult
+	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
+		return out, geom.ErrInvalid
+	}
+	if _, err := geom.NewCylinderPairCommon(stock, cutter); err != nil {
+		return out, err
+	}
+	if err := ctx.Err(); err != nil {
+		return out, err
+	}
+	if rawAxesParallel(stock.Axis, cutter.Axis) {
+		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
+			return out, geom.ErrDomain
+		}
+		s, err := nativeCoordinateCylinder(stock)
+		if err != nil {
+			return out, err
+		}
+		out.Solids[0], out.StockWallFaces[0], out.StockCapFaces[0] = s, []int{0}, []int{1, 2}
+		return out, nil
+	}
+	if stock.Radius < cutter.Radius {
+		if owner, ok, err := finiteRawPerpendicularContainment(ctx, stock, cutter); err != nil {
+			return out, err
+		} else if ok && owner == 0 {
+			return out, nil
+		}
+	}
 	center, caps, err := finiteCylinderCrossingFrame(ctx, stock, cutter, tolerance)
 	if err != nil {
 		return out, err

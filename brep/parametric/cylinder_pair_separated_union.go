@@ -77,23 +77,12 @@ func nativeCoordinateCylinder(c geom.RawCylinder) (Solid, error) {
 // and has no rational representation. Return the exact coefficient separately.
 func finiteContainedCylinderUnion(ctx context.Context, a, b geom.RawCylinder) (FiniteCylinderPairUnionResult, bool, error) {
 	var zero FiniteCylinderPairUnionResult
-	if a.Radius == b.Radius {
-		return zero, false, nil
+	inner, ok, err := finiteRawPerpendicularContainment(ctx, a, b)
+	if err != nil || !ok {
+		return zero, ok, err
 	}
-	m, err := geom.NewObliqueSkewCylinderMap(ctx, a.Origin, a.Axis, a.Radius, b.Origin, b.Axis, b.Radius, geom.SurfacePatchEvaluationOptions{})
-	if err != nil {
-		return zero, false, err
-	}
-	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
-	var windows [2][2]*big.Rat
 	operands := [2]geom.RawCylinder{a, b}
-	for i, c := range operands {
-		windows[i] = [2]*big.Rat{new(big.Rat).Sub(q(c.Min), m.ClosestRawParameters[i]), new(big.Rat).Sub(q(c.Max), m.ClosestRawParameters[i])}
-	}
-	inner, ok := perpendicularCylinderContainmentOwner(a, b, windows, m.SeparationSquared)
-	if !ok {
-		return zero, false, nil
-	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	outer := 1 - inner
 	s, err := nativeCoordinateCylinder(operands[outer])
 	if err != nil {
@@ -106,4 +95,26 @@ func finiteContainedCylinderUnion(ctx context.Context, a, b geom.RawCylinder) (F
 	out := FiniteCylinderPairUnionResult{Solid: s, CommonVolumePiCoefficient: coefficient}
 	out.WallFaces[outer], out.LowerCapFaces[outer], out.UpperCapFaces[outer] = []int{0}, []int{1}, []int{2}
 	return out, true, nil
+}
+
+func finiteRawPerpendicularContainment(ctx context.Context, a, b geom.RawCylinder) (int, bool, error) {
+	if a.Radius == b.Radius {
+		return 0, false, nil
+	}
+	ua, _ := coordinateCylinderAxis(a.Axis)
+	ub, _ := coordinateCylinderAxis(b.Axis)
+	if ua == (geom.Vec3{}) || ub == (geom.Vec3{}) || ua.Dot(ub) != 0 {
+		return 0, false, nil
+	}
+	m, err := geom.NewObliqueSkewCylinderMap(ctx, a.Origin, a.Axis, a.Radius, b.Origin, b.Axis, b.Radius, geom.SurfacePatchEvaluationOptions{})
+	if err != nil {
+		return 0, false, err
+	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	var windows [2][2]*big.Rat
+	for i, c := range [2]geom.RawCylinder{a, b} {
+		windows[i] = [2]*big.Rat{new(big.Rat).Sub(q(c.Min), m.ClosestRawParameters[i]), new(big.Rat).Sub(q(c.Max), m.ClosestRawParameters[i])}
+	}
+	owner, ok := perpendicularCylinderContainmentOwner(a, b, windows, m.SeparationSquared)
+	return owner, ok, nil
 }
