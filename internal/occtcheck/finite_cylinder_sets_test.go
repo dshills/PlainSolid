@@ -249,3 +249,21 @@ func TestOCCTFiniteParallelCylinderCavity(t *testing.T) {
 	}
 	compare(t, refs["finite-parallel-cavity"], m.Area, m.Volume, m.Centroid)
 }
+
+func TestOCCTFiniteCoaxialCylinderUnion(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 2, Min: -1, Max: 2}
+	for i, name := range []string{"finite-coaxial-overlap-union", "finite-coaxial-touch-union"} {
+		b := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 5}, Axis: geom.Vec3{Z: 3}, Radius: 2, Min: float64(i - 1), Max: 2}
+		u, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+		if err != nil || finiteOracleShellCount(u.Solid) != 1 {
+			t.Fatal(name, err)
+		}
+		m, err := u.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+	}
+}

@@ -258,6 +258,14 @@ int main(int argc, char** argv) {
       for(TopExp_Explorer it(cavity,TopAbs_SHELL);it.More();it.Next())++cavityShells;
       if(cavitySolids!=1||cavityShells!=2)throw std::runtime_error("parallel cylinder cavity not one solid with two shells");
       record(out,"finite-parallel-cavity",cavity,1e-11);
+      const auto coaxialA=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,5),gp_Dir(0,0,-1)),2,6).Shape();
+      for(int touch=0;touch<2;++touch){
+        const auto coaxialB=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,touch?5:2),gp_Dir(0,0,1)),2,touch?6:9).Shape();
+        const auto fused=BRepAlgoAPI_Fuse(coaxialA,coaxialB).Shape();
+        int solids=0;for(TopExp_Explorer it(fused,TopAbs_SOLID);it.More();it.Next())++solids;
+        if(solids!=1)throw std::runtime_error("coaxial axial union not one solid");
+        record(out,touch?"finite-coaxial-touch-union":"finite-coaxial-overlap-union",fused,1e-11);
+      }
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);

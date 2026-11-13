@@ -8,9 +8,9 @@ import (
 )
 
 // FiniteCylinderPairUnionResult retains the analytic union and raw face
-// ancestry. Crossing and disjoint constructions report an exact squared
-// common volume. Containment instead reports its exact coefficient of π.
-// The two proof fields are mutually exclusive.
+// ancestry. Selected crossings and empty commons report an exact squared
+// common volume. Containment and coaxial overlap report its coefficient of π.
+// The two proof fields are mutually exclusive; both can be nil.
 type FiniteCylinderPairUnionResult struct {
 	Solid                                          Solid
 	WallFaces, LowerCapFaces, UpperCapFaces        [2][]int
@@ -18,7 +18,8 @@ type FiniteCylinderPairUnionResult struct {
 }
 
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
-// raw finite cylinders, two strictly separated coordinate-parallel bodies,
+// raw finite cylinders, strictly separated coordinate-parallel bodies or a
+// joined equal-radius coaxial body with overlapping or touching axial spans,
 // and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
@@ -36,6 +37,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 	if rawAxesParallel(a.Axis, b.Axis) {
 		if contained := parallelCoordinateContainment(a, b); contained[0] || contained[1] {
 			return unionContainedParallelCylinder(ctx, a, b, contained)
+		}
+		if u, ok, err := finiteCoaxialEqualCylinderUnion(ctx, a, b); ok || err != nil {
+			return u, err
 		}
 		return unionSeparatedCoordinateCylinders(ctx, a, b)
 	}

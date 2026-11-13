@@ -1100,6 +1100,9 @@ The enclosed cavity uses one stock and two oriented closed shells. It
 preserves both cutter floors in raw parameter order and compares area,
 volume, and centroid against OCCT. Its canonical recipe and certified mesh
 pass; axial and radial contact are rejected by this interior-only path.
+Coaxial union fixtures with overlapping axial intervals and exactly touching
+end disks verify both operand orders, exposed cap ancestry, exact common
+volume, canonical reload, and a single stock against the pinned OCCT fuse.
 
 Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume
