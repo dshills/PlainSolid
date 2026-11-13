@@ -20,6 +20,9 @@ type RationalGraphShellSectionOptions struct {
 	// in this narrower optional verification domain.
 	VerifyModelEdges bool
 	EdgeContacts     geom.ComposedPlaneContactsOptions
+	// Regions additionally certifies all projected rings and classifies
+	// their nesting with one global topology budget.
+	Regions *RationalGraphShellRegionOptions
 }
 
 // RationalGraphShellTerminal retains an original edge, its model-curve
@@ -46,6 +49,8 @@ type RationalGraphShellSection struct {
 	Branches []RationalGraphShellBranch
 	Wires    [][]int
 	Complete bool
+	// Regions is present only when its optional proof was requested.
+	Regions *RationalGraphShellRegions
 }
 
 // SectionRationalGraphSplineShell certifies a plane section of one outward
@@ -116,6 +121,12 @@ func (s Solid) SectionRationalGraphSplineShell(ctx context.Context, points [3]ge
 	}
 	if o.VerifyModelEdges {
 		if e = s.verifyRationalGraphShellModelEdges(ctx, out.Branches, plane, o); e != nil {
+			return zero, e
+		}
+	}
+	if o.Regions != nil {
+		out.Regions, e = classifyRationalGraphShellRegions(ctx, out, faces, plane, o.Spans.Faces.Patches, *o.Regions)
+		if e != nil {
 			return zero, e
 		}
 	}

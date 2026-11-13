@@ -1,5 +1,5 @@
 // Package trimvalidate certifies planar UV-loop topology for straight and
-// positive-weight rational quadratic Bézier trims. It does not certify model-space surface embedding or
+// bounded positive-weight rational Bézier trims. It does not certify model-space surface embedding or
 // continuous agreement between model-space edges and p-curves.
 package trimvalidate
 
@@ -616,7 +616,7 @@ func (o Options) WithDefaults() (Options, error) {
 // error; unsupported kinds or exhausted proof budgets return Unresolved with
 // nil error. Bad options and cancellation return an error and never Certified.
 func ValidateLoops(ctx context.Context, outer Loop, holes []Loop, o Options) (Report, error) {
-	r, _, e := validateLoops(ctx, outer, holes, nil, o, nil)
+	r, _, e := validateLoops(ctx, outer, holes, nil, o, nil, nil)
 	return r, e
 }
 
@@ -638,7 +638,7 @@ func LocateRationalInLoops(ctx context.Context, outer Loop, holes []Loop, uv [2]
 		return Unknown, Report{LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}, ErrOptions
 	}
 	p := point{uv[0], uv[1]}
-	r, location, e := validateLoops(ctx, outer, holes, &p, o, nil)
+	r, location, e := validateLoops(ctx, outer, holes, &p, o, nil, nil)
 	return location, r, e
 }
 
@@ -653,7 +653,7 @@ func LocateRationalBoxInLoops(ctx context.Context, outer Loop, holes []Loop, lo,
 		}
 	}
 	box := rationalQueryBox{lo: lo, hi: hi}
-	r, location, e := validateLoops(ctx, outer, holes, nil, o, nil, box)
+	r, location, e := validateLoops(ctx, outer, holes, nil, o, nil, nil, box)
 	return location, r, e
 }
 
@@ -731,7 +731,7 @@ func (q rationalQueryBox) intersectsLine(a, z point, b *budget) bool {
 	return lo.Cmp(hi) <= 0
 }
 
-func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, o Options, retain **CertifiedLoops, boxes ...rationalQueryBox) (Report, Location, error) {
+func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, o Options, retain **CertifiedLoops, forest *[]RingPlacement, boxes ...rationalQueryBox) (Report, Location, error) {
 	r := Report{Status: Unresolved, LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}
 	o, e := o.WithDefaults()
 	if ctx == nil || e != nil {
@@ -750,6 +750,7 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 		return finish(Unresolved, "proof budget or cancellation")
 	}
 	var loops [][]curve
+	var signs []int
 	var all []curve
 	for li, uses := range append([]Loop{outer}, holes...) {
 		r.LoopA = li
@@ -850,8 +851,14 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 		if !ok {
 			return finish(Unresolved, "orientation proof budget exhausted")
 		}
-		if li == 0 && sign <= 0 || li > 0 && sign >= 0 {
+		if forest == nil && (li == 0 && sign <= 0 || li > 0 && sign >= 0) {
 			return finish(Invalid, "outer must be counterclockwise and holes clockwise")
+		}
+		if forest != nil {
+			if sign == 0 {
+				return finish(Invalid, "ring has zero orientation")
+			}
+			signs = append(signs, sign)
 		}
 		loops = append(loops, loop)
 	}
@@ -882,6 +889,14 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 				return finish(Unresolved, "intersection proof budget exhausted")
 			}
 		}
+	}
+	if forest != nil {
+		rings, status, reason := classifyRingForest(loops, signs, &r, b)
+		if status == Certified {
+			*forest = rings
+			r.LoopA, r.EdgeA, r.LoopB, r.EdgeB = -1, -1, -1, -1
+		}
+		return finish(status, reason)
 	}
 	for i := 1; i < len(loops); i++ {
 		r.LoopA, r.EdgeA = i, 0

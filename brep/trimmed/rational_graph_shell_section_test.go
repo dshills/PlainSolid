@@ -15,9 +15,12 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 	// z=(1+x)/3 crosses four stock edges at points that cannot be
 	// represented in binary64. A section does not need to alter the solid.
 	q := [3]geom.Vec3{{X: -1}, {X: 2, Z: 1}, {X: -1, Y: 1}}
-	r, e := s.SectionRationalGraphSplineShell(ctx, q, RationalGraphShellSectionOptions{VerifyModelEdges: true})
+	r, e := s.SectionRationalGraphSplineShell(ctx, q, RationalGraphShellSectionOptions{VerifyModelEdges: true, Regions: &RationalGraphShellRegionOptions{}})
 	if e != nil || !r.Complete || len(r.Wires) != 1 || len(r.Wires[0]) != 4 {
 		t.Fatal("exact rational box section", r, e)
+	}
+	if len(r.Regions.Material) != 1 || len(r.Regions.Material[0].Holes) != 0 || r.Regions.Rings[0].Orientation != 1 {
+		t.Fatal("exact nonbinary section does not prove the projected material", r.Regions)
 	}
 	seen := map[[2]int64]bool{}
 	for _, b := range r.Branches {
@@ -59,5 +62,60 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 	cancel()
 	if r, e := s.SectionRationalGraphSplineShell(canceled, q, RationalGraphShellSectionOptions{}); !errors.Is(e, context.Canceled) || r.Complete {
 		t.Fatal("canceled section published a result", r, e)
+	}
+}
+
+func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
+	ctx := context.Background()
+	var surfaces []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	domain := geom.ParameterRectangle{UMax: 1, VMax: 1}
+	k := []float64{0, 0, 1, 1}
+	rect := func(p, u, v geom.Vec3) {
+		t.Helper()
+		s, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{p, p.Add(v), p.Add(u), p.Add(u).Add(v)}, k, k, nil)
+		if e != nil {
+			t.Fatal(e)
+		}
+		surfaces = append(surfaces, s)
+		domains = append(domains, domain)
+	}
+	occupied := func(x, y int) bool { return x >= 0 && x < 3 && y >= 0 && y < 3 && (x != 1 || y != 1) }
+	ex, ey, ez := geom.Vec3{X: 1}, geom.Vec3{Y: 1}, geom.Vec3{Z: 1}
+	for x := range 3 {
+		for y := range 3 {
+			if !occupied(x, y) {
+				continue
+			}
+			p := geom.Vec3{X: float64(x), Y: float64(y)}
+			rect(p, ey, ex)
+			rect(p.Add(ez), ex, ey)
+			if !occupied(x-1, y) {
+				rect(p, ez, ey)
+			}
+			if !occupied(x+1, y) {
+				rect(p.Add(ex), ey, ez)
+			}
+			if !occupied(x, y-1) {
+				rect(p, ex, ez)
+			}
+			if !occupied(x, y+1) {
+				rect(p.Add(ey), ez, ex)
+			}
+		}
+	}
+	s, _, e := SewSplineRectangles(ctx, surfaces, domains, make([]bool, len(surfaces)), SewOptions{Tolerance: 1e-10})
+	if e != nil {
+		t.Fatal(e)
+	}
+	z := .5
+	p := [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}
+	r, e := s.SectionRationalGraphSplineShell(ctx, p, RationalGraphShellSectionOptions{Regions: &RationalGraphShellRegionOptions{}})
+	if e != nil || !r.Complete || len(r.Wires) != 2 || len(r.Regions.Material) != 1 {
+		t.Fatal("section of the square tube", r, e)
+	}
+	m := r.Regions.Material[0]
+	if len(m.Holes) != 1 || len(r.Wires[m.Outer]) != 12 || len(r.Wires[m.Holes[0]]) != 4 || r.Regions.Rings[m.Holes[0]].Parent != m.Outer {
+		t.Fatal("square-tube void was not retained as a hole", r.Regions)
 	}
 }

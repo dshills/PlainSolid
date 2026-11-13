@@ -21,7 +21,7 @@ type CertifiedLoops struct {
 // nil and the same diagnostic as ValidateLoops.
 func CertifyLoops(ctx context.Context, outer Loop, holes []Loop, o Options) (*CertifiedLoops, Report, error) {
 	var loops *CertifiedLoops
-	r, _, e := validateLoops(ctx, outer, holes, nil, o, &loops)
+	r, _, e := validateLoops(ctx, outer, holes, nil, o, &loops, nil)
 	if e != nil || r.Status != Certified {
 		return nil, r, e
 	}

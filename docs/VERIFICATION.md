@@ -38,9 +38,16 @@ cubic cut, and preserve the exact nonbinary terminal heights 1/3 and 2/3 on
 an affine box. The supported tests passed under the race detector. Separate
 tests retain exact curve-plane contact ownership at algebraic knots and report
 whole coincident spans without duplicating their endpoint events.
+The projected ring proof recovers a square tube's outer wire and four-edge
+hole from the directed source branches. Independent unordered rings exercise
+disjoint components and an island within a hole; touching rings and proof
+exhaustion return no arrangement.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.
+The rooted writer also transfers one valid solid through OCCT's conventional
+product-root reader. Exact finite line tests retain irrational knot contacts,
+nonbinary line parameter mappings and closed cap hits on coincident curves.
 
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
