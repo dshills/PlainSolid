@@ -29,6 +29,28 @@ func TestSTEPPlanarAndCylinderNativeRoundTrip(t *testing.T) {
 		t.Fatal("malformed import published")
 	}
 }
+
+func TestSTEPFittedEnclosureWithPlanarInnerWire(t *testing.T) {
+	b := New()
+	first := box(t, b, vector{0, 0, 0}, vector{30, 10, 5})
+	second := box(t, b, vector{0, 0, 10}, vector{30, 10, 15})
+	outer := box(t, b, vector{-4, -4, -4}, vector{34, 14, 7})
+	inner := box(t, b, vector{-2, -2, -2}, vector{32, 12, 9})
+	fitted := shape(t, b, map[string]any{"op": "cut", "a": outer.Handle, "b": inner.Handle})
+	output, err := b.exportSTEP([]string{first.Handle, second.Handle, fitted.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(output.After) != 3 || output.After[2].SolidCount != 1 {
+		t.Fatal(output.After)
+	}
+	for axis := range 3 {
+		near(t, output.After[2].Bounds.Min[axis], fitted.Bounds.Min[axis])
+		near(t, output.After[2].Bounds.Max[axis], fitted.Bounds.Max[axis])
+	}
+	near(t, output.After[2].Volume, 3240)
+	near(t, output.After[2].SurfaceArea, 3464)
+}
 func TestSTEPExistingPlainCADImportFixture(t *testing.T) {
 	// Source: pinned PlainCAD schema-v21.pcaddoc stepImport feature.
 	data, e := os.ReadFile("testdata/plaincad-placed-bore.step")
