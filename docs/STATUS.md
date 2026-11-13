@@ -184,6 +184,8 @@ faces on an authored affine spline support, retaining each original section
 piece and hole. In the certified rectangular spline domain, direct plane
 split now sews both complete halves with opposite cap orientation and
 separate original-edge versus section-edge ancestry.
+Two parallel cuts can also form a band directly on the same curved stock,
+including square-tube caps with holes and faces crossed by both planes.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

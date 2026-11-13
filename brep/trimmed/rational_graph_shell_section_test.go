@@ -237,4 +237,35 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 			t.Fatal("incomplete split model-edge ancestry", side)
 		}
 	}
+	bandPoint := func(z float64) [3]geom.Vec3 {
+		return [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}
+	}
+	// Exercise both cap wires in both planes on a constant square annulus.
+	upper, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: .75}, {X: 4, Z: .75}, {Y: 4, Z: .75}, {X: 4, Y: 4, Z: .75},
+	}, k, k, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	band, e := s.ClipParallelRationalGraphSplineShell(ctx, [2][3]geom.Vec3{bandPoint(.5), bandPoint(.75)},
+		[2]geom.Surface{support, upper}, [2]geom.ParameterRectangle{domain, domain}, RationalGraphParallelBandOptions{})
+	if e != nil || len(band.CapFaces[0]) != 1 || len(band.CapFaces[1]) != 1 || len(band.CapEdges[0]) != 16 || len(band.CapEdges[1]) != 16 {
+		t.Fatal("square tube band loses cap loops", e, band.CapFaces)
+	}
+	mp, e := band.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+	if e != nil || math.Abs(mp.Volume-2) > 1e-8 {
+		t.Fatal("independent square tube band volume", e, mp.Volume)
+	}
+	got := map[int]bool{}
+	for _, row := range append(append([][]int(nil), band.CapEdges[:]...), band.SourceEdges...) {
+		for _, id := range row {
+			if got[id] {
+				t.Fatal("ambiguous two-plane edge ancestry", id)
+			}
+			got[id] = true
+		}
+	}
+	if len(got) != len(band.Solid.edges) {
+		t.Fatal("incomplete two-plane edge ancestry")
+	}
 }

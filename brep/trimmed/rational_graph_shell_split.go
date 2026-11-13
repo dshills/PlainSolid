@@ -178,36 +178,9 @@ func (s Solid) SplitRationalGraphSplineShell(ctx context.Context, points [3]geom
 		for _, id := range r.CapFaces {
 			r.CapEdges = append(r.CapEdges, history.Edges[id])
 		}
-		edgeSources := make([]int, len(solid.edges))
-		for i := range edgeSources {
-			edgeSources[i] = -2
-		}
-		set := func(id, src int) bool {
-			if edgeSources[id] == -2 {
-				edgeSources[id] = src
-			}
-			return edgeSources[id] == src
-		}
-		for part, old := range owners[h] {
-			for i, src := range old {
-				if !set(history.Edges[part][i], src) {
-					return zero, geom.ErrConvergence
-				}
-			}
-		}
-		for _, cap := range r.CapEdges {
-			for _, id := range cap {
-				if !set(id, -1) {
-					return zero, geom.ErrConvergence
-				}
-			}
-		}
-		for id, src := range edgeSources {
-			if src >= 0 {
-				r.SourceEdges[src] = append(r.SourceEdges[src], id)
-			} else if src != -1 {
-				return zero, geom.ErrConvergence
-			}
+		r.SourceEdges, e = classifyRationalGraphSewnEdges(solid, history, owners[h], len(s.edges), r.CapEdges)
+		if e != nil {
+			return zero, e
 		}
 		r.Solid = solid
 	}
@@ -215,6 +188,42 @@ func (s Solid) SplitRationalGraphSplineShell(ctx context.Context, points [3]geom
 		return zero, e
 	}
 	return out, nil
+}
+
+func classifyRationalGraphSewnEdges(solid Solid, history SewHistory, owners [][]int, originals int, caps [][]int) ([][]int, error) {
+	rows := make([][]int, originals)
+	edgeSources := make([]int, len(solid.edges))
+	for i := range edgeSources {
+		edgeSources[i] = -2
+	}
+	set := func(id, src int) bool {
+		if edgeSources[id] == -2 {
+			edgeSources[id] = src
+		}
+		return edgeSources[id] == src
+	}
+	for part, old := range owners {
+		for i, src := range old {
+			if !set(history.Edges[part][i], src) {
+				return nil, geom.ErrConvergence
+			}
+		}
+	}
+	for _, cap := range caps {
+		for _, id := range cap {
+			if !set(id, -1) {
+				return nil, geom.ErrConvergence
+			}
+		}
+	}
+	for id, src := range edgeSources {
+		if src >= 0 {
+			rows[src] = append(rows[src], id)
+		} else if src != -1 {
+			return nil, geom.ErrConvergence
+		}
+	}
+	return rows, nil
 }
 
 func rationalGraphFragmentEdgeSources(f Face, part SewFace) ([]int, error) {
@@ -324,21 +333,28 @@ func splitRationalGraphFaceFragment(ctx context.Context, face Face, patch *geom.
 	if e != nil {
 		return SewFace{}, e
 	}
-	for _, piece := range b.Pieces {
+	if e = installRationalGraphFragmentTrims(ctx, &part, b.Pieces, rationalEndpoints); e != nil {
+		return SewFace{}, e
+	}
+	return part, nil
+}
+
+func installRationalGraphFragmentTrims(ctx context.Context, part *SewFace, pieces []PCurve, rationalEndpoints bool) error {
+	for _, piece := range pieces {
 		if rationalEndpoints {
 			src, ok := piece.(ExactQuadraticUV)
 			if !ok {
-				return SewFace{}, geom.ErrConvergence
+				return geom.ErrConvergence
 			}
 			q, e := NewRationalEndpointQuadraticUV(src.HomogeneousControls())
 			if e != nil {
-				return SewFace{}, e
+				return e
 			}
 			piece = q
 		}
 		_, p, e := graphSectionCapEndpoints(piece, rationalEndpoints)
 		if e != nil {
-			return SewFace{}, e
+			return e
 		}
 		match := 0
 		for i := range part.Face.Outer {
@@ -352,17 +368,14 @@ func splitRationalGraphFaceFragment(ctx context.Context, face Face, patch *geom.
 				continue
 			}
 			u.Curve = q
-			part.Edges[u.Edge].Curve = surfaceTrimCurve{face.Surface, u.UVStart, u.UVEnd, q}
+			part.Edges[u.Edge].Curve = surfaceTrimCurve{part.Face.Surface, u.UVStart, u.UVEnd, q}
 			match++
 		}
 		if match != 1 {
-			return SewFace{}, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 	}
-	if e = validatePolynomialPlanePart(ctx, part); e != nil {
-		return SewFace{}, e
-	}
-	return part, nil
+	return validatePolynomialPlanePart(ctx, *part)
 }
 
 func reverseGraphUVChain(chain [][2]*big.Rat) {
