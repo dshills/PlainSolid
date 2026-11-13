@@ -65,3 +65,12 @@ func (s FiniteTransverseCylinderSet) ClipLine(ctx context.Context, origin, direc
 	}
 	return s.query.ClipLine(ctx, origin, direction, minT, maxT, o)
 }
+
+// FirstBoundaryHit preserves exact algebraic hit identity, outward rational
+// model enclosures and all exposed oriented source normals on 0<=t<=maxT.
+func (s FiniteTransverseCylinderSet) FirstBoundaryHit(ctx context.Context, origin, direction geom.Vec3, maxT float64, o geom.ToroidLineOptions) (geom.TransverseCylinderFirstHit, error) {
+	if !s.valid {
+		return geom.TransverseCylinderFirstHit{}, geom.ErrInvalid
+	}
+	return s.query.FirstBoundaryHit(ctx, origin, direction, maxT, o)
+}
