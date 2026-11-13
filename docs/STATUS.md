@@ -36,6 +36,15 @@ deflection, and bounds registration files changed on main. Preserve both
 sets of registered analytic charts when reconciling those files, then run
 native reload and certified mesh tests alongside the browser acceptance.
 
+A later read-only preview of `cecb0f3` and `df1fe09` found 11 conflicts.
+Reconcile phased helical starts and integration rounding bounds with the
+existing strict constructors; retain the shared certified angular sweep
+helpers in the polygon revolution code. The two branches also define the
+same `certifiedSweepPi` helper in separate files, which a textual merge
+does not detect. Keep one definition. Retain the grouped/optional edge
+implementation with the original chain ancestry and qualify translated
+STEP output. The integration worktree was left untouched.
+
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
 bores, pockets and joins; helical threads and lead parts; and STEP roundtrips of
