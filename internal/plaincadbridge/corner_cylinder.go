@@ -77,7 +77,7 @@ func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, err
 			}
 			v := a.result.GeometryAssertions.Volume - math.Pi*r*r*d.Z/4
 			area := a.result.GeometryAssertions.SurfaceArea + (math.Pi/2-2)*r*d.Z - math.Pi*r*r/2
-			p := step.SideNotchBody{Name: "PlainSolid", Frame: f, Right: d.X, Back: d.Y, Length: d.Z, Radius: r, Depth: d.Z}
+			p := cornerNotchRecipe(f, d, r, d.Z)
 			result, err := b.putNotchedAnalytic(&analyticBody{solid: solid, sideNotch: &p, volume: v, area: area}, a.result.Bounds)
 			return result, true, err
 		}
@@ -100,10 +100,14 @@ func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, err
 	} else {
 		volume -= .25 * math.Pi * r * r * h
 		area += (math.Pi/2 - 2) * r * h
-		p := step.SideNotchBody{Name: "PlainSolid", Frame: f, Right: d.X, Back: d.Y, Length: d.Z, Radius: r, Depth: h}
+		p := cornerNotchRecipe(f, d, r, h)
 		result, err := b.putNotchedAnalytic(&analyticBody{solid: s, sideNotch: &p, volume: volume, area: area}, a.result.Bounds)
 		return result, true, err
 	}
 	result, err := b.putAnalytic(s, volume, area)
 	return result, true, err
+}
+
+func cornerNotchRecipe(f geom.Frame, size geom.Vec3, radius, depth float64) step.SideNotchBody {
+	return step.SideNotchBody{Name: "PlainSolid", Frame: f, Right: size.X, Back: size.Y, Length: size.Z, Radius: radius, Depth: depth}
 }

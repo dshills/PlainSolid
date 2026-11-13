@@ -161,8 +161,8 @@ func (b *Bridge) putNotchedAnalytic(body *analyticBody, bounds Bounds) (Shape, e
 	return b.publish(stored{analytic: body, result: Shape{GeometryAssertions: Assertions{true, body.volume, body.area, 1}, Bounds: bounds}})
 }
 
-// The retained notch leaves all original box corners intact. Their world
-// support also excludes the empty part of the cylindrical surface chart.
+// The qualified notch leaves each coordinate extremum attained elsewhere
+// on the box. Box bounds exclude the empty part of the cylinder chart.
 func sideNotchBounds(p step.SideNotchBody) (geom.Box, error) {
 	var points [8]geom.Vec3
 	i := 0

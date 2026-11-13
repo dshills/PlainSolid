@@ -142,8 +142,8 @@ tools must open on one cap and end within the stock. One qualified rectangular
 side-opening notch can be blind, retaining its circular-segment floor, or
 through. Either can share a batch with disjoint contained blind bores from
 either cap and through bores. Qualified cardinal placements round-trip
-through STEP. A quarter-circle cut centered on a stock corner also
-round-trips STEP in its blind and through forms.
+through STEP. A quarter-circle cut centered on a stock corner supports
+the same contained bores and round-trips STEP in its blind and through forms.
 A single exact side tangent on rectangular stock retains its four-use
 contact for modeling and display. Fabrication and STEP reject that contact.
 

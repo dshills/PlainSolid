@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD mixed corner and contained Hole batch — 2026-11-13
+
+A single blind or through corner Hole can share a native batch with
+disjoint contained through bores and blind bores from either cap. Native
+checks cover swapped input order, successive builds, exact measures,
+atomic failure and canonical STEP. The independent OCCT readback matches
+volume, area and centroid for both mixed corner cases. All
+[ten original browser cases](evidence/plaincad-corner-batch-browser-2026-11-13.json)
+pass on PlainCAD `50432ed`. The [same-WASM probe](evidence/plaincad-corner-batch-native-2026-11-13.json)
+reopens an actual placed STEP export with three authored holes and
+validates the resulting STL. Race checks and Go vet pass.
+
 ## PlainCAD STEP for quarter-circle corner Holes — 2026-11-13
 
 The canonical notch codec now supports the existing rectangular stock

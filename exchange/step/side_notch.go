@@ -14,7 +14,7 @@ import (
 // The cylinder is centered at the frame origin. The box spans [-Left,Right],
 // [-Inset,Back], and [0,Length] in the local X, Y and Z directions. The notch
 // opens on both caps when Depth equals Length. A corner cut has Left and
-// Inset both zero and has no additional bores.
+// Inset both zero.
 type SideNotchBody struct {
 	Name                                            string
 	Frame                                           geom.Frame
@@ -32,13 +32,7 @@ type SideNotchModel struct {
 func (p SideNotchBody) Solid(ctx context.Context) (trimmed.Solid, error) {
 	const tolerance = 1e-9
 	if p.Left == 0 && p.Inset == 0 {
-		if len(p.Through)+len(p.Blind) != 0 {
-			return trimmed.Solid{}, geom.ErrDomain
-		}
-		if p.Depth == p.Length {
-			return trimmed.BoxCornerCylinderThrough(ctx, p.Frame, p.Right, p.Back, p.Length, p.Radius, tolerance)
-		}
-		return trimmed.BoxCornerCylinder(ctx, p.Frame, p.Right, p.Back, p.Length, p.Radius, p.Depth, false, tolerance)
+		return trimmed.BoxCornerCylinderCutWithBores(ctx, p.Frame, p.Right, p.Back, p.Length, p.Radius, p.Depth, p.Through, p.Blind, tolerance)
 	}
 	return trimmed.BoxSideCylinderWithBores(ctx, p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, tolerance)
 }

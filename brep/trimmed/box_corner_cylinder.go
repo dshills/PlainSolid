@@ -14,6 +14,19 @@ import (
 // cylindrical walls and circular cap trims, including the internal cut floor
 // or external union shoulder. This is a bounded constructor, not general CSG.
 func BoxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, fuse bool, tolerance float64) (Solid, error) {
+	return boxCornerCylinder(ctx, frame, width, height, length, radius, depth, fuse, nil, nil, tolerance)
+}
+
+// BoxCornerCylinderCutWithBores cuts the stock corner and additional disjoint
+// contained bores. A depth equal to length opens both caps.
+func BoxCornerCylinderCutWithBores(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
+	if depth == length {
+		return boxCornerCylinderThrough(ctx, frame, width, height, length, radius, through, blind, tolerance)
+	}
+	return boxCornerCylinder(ctx, frame, width, height, length, radius, depth, false, through, blind, tolerance)
+}
+
+func boxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, fuse bool, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if ctx == nil || !finite(width) || !finite(height) || !finite(length) || !finite(radius) || !finite(depth) || !finite(tolerance) || tolerance <= 0 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -26,6 +39,9 @@ func BoxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, len
 	}
 	if frame.XAxis().Length() == 0 || frame.ZAxis().Length() == 0 {
 		return Solid{}, geom.ErrInvalid
+	}
+	if e := validateNotchedBoxBores(ctx, frame, 0, width, 0, height, length, radius, pad, through, blind); e != nil {
+		return Solid{}, e
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
 	// Counterclockwise outer profile below the finite cylinder endpoint.
@@ -70,6 +86,9 @@ func BoxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, len
 		if err := b.wall(p, upper[(i+1)%len(upper)], depth, length); err != nil {
 			return Solid{}, err
 		}
+	}
+	if e := b.addNotchedBoxBores(length, 1, through, blind); e != nil {
+		return Solid{}, e
 	}
 	return NewSolidContext(ctx, b.vertices, b.edges, b.faces, tolerance)
 }

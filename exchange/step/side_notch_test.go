@@ -30,6 +30,8 @@ func TestSideNotchSTEP(t *testing.T) {
 		{geom.Vec3{X: -1}, 1, true, 20, false},
 		{geom.Vec3{Z: 1}, 0, false, 6, true},
 		{geom.Vec3{Y: -1}, 0, false, 20, true},
+		{geom.Vec3{X: -1}, 0, true, 6, true},
+		{geom.Vec3{Y: 1}, 0, true, 20, true},
 	} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, tc.normal)
 		if err != nil {
@@ -41,10 +43,14 @@ func TestSideNotchSTEP(t *testing.T) {
 			p.Left = 0
 		}
 		if tc.mixed {
-			p.Through = []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: -4, Y: 9}, Radius: 1}}
+			center := -4.
+			if tc.corner {
+				center = 8
+			}
+			p.Through = []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: center, Y: 9}, Radius: 1}}
 			p.Blind = []trimmed.ExtrusionBlindHole{
 				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 4, Y: 9}, Radius: 2}, Depth: 4},
-				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{Y: 14}, Radius: 1}, Depth: 6, OppositeCap: true},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 4, Y: 14}, Radius: 1}, Depth: 6, OppositeCap: true},
 			}
 		}
 		var out bytes.Buffer
