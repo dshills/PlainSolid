@@ -1065,6 +1065,14 @@ patches and compares the area, volume and centroid of all three results. Tests
 also check simultaneous source-edge ownership, require proof before discarding
 conservative extra pairs, and reject omitted contacts.
 
+The corner-plane clip adds a contact through an existing stock vertex. It
+proves all 36 original face pairs, the oriented section cycle, and strict
+inactive halfspaces before sewing. Analytic volumes `7/32` and `25/32`,
+original-face and edge ancestry, native reload, a closed mesh, and zero
+detected display contacts verify the two retained bodies. OCCT independently
+sweeps the bilinear stock and the planar cutter and verifies both shell counts
+and mass properties.
+
 The perpendicular union retains both walls and four exposed end disks.
 Its volume matches the exact inclusion-exclusion formula and its area
 matches the two cylinders minus the interior Steinmetz faces. Native reload,
