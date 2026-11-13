@@ -1299,6 +1299,84 @@
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1130,
       "candidateCommit": "96ab139"
+    },
+    {
+      "sourceIdentity": {
+        "head": "07668754276c816cf96174056bbc3f109adb289f",
+        "status": "M specs/working-cad/VALIDATION_LOG.md",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "f81028769ac46039e6814a755c7f98b8a1e7fe1d",
+        "status": "M internal/plaincadbridge/edge_body.go\n?? internal/plaincadbridge/planar_chain_clip.go\n?? internal/plaincadbridge/planar_edge_chain.go\n?? internal/plaincadbridge/planar_edge_chain_test.go",
+        "branch": ""
+      },
+      "selected": {
+        "testFile": "e2e/retained-edge-picking.spec.ts",
+        "grep": "retained-edge native preview cannot apply"
+      },
+      "startedAt": "2026-11-13T18:04:00.290Z",
+      "finishedAt": "2026-11-13T18:04:54.612Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "cea1a471aab05c97a55111af8838e0d2b736599b4c72ca6b00bb1a7b45280854",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-chain-browser/backend-results.json",
+          "startTime": "2026-11-13T18:04:32.763Z",
+          "duration": 15233.001,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-chain-browser/playwright-results.json",
+          "startTime": "2026-11-13T18:04:48.428Z",
+          "duration": 6169.738,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 13190,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-edge-picking.spec.ts",
+          "line": 160,
+          "title": "retained-edge native preview cannot apply after same-ID project replacement",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 4268,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-chain-browser/readiness.json",
+      "fullReportSha256": "cc36144c1f1274a0b3faf2768a2cf54835b321d9d851c92063ea007b32153ae6",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1136,
+      "candidateCommit": "98551a0",
+      "notes": [
+        "Browser snapshot predates additional finite input, work-limit and exact-offset guards; same authored span verified in final Go fixture."
+      ]
     }
   ]
 }
