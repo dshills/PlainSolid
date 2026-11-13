@@ -218,6 +218,8 @@ int main(int argc, char** argv) {
       record(out,"finite-pair-quadrant",BRepAlgoAPI_Common(x(0,6),z(-6,0)).Shape(),1e-11);
       record(out,"finite-pair-dual-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,3)).Shape(),1e-11);
       record(out,"finite-pair-dual-cap-tail",BRepAlgoAPI_Common(x(2,6),z(-6,-3)).Shape(),1e-11);
+      record(out,"finite-pair-four-cap",BRepAlgoAPI_Common(x(-1,2),z(-3,4)).Shape(),1e-11);
+      record(out,"finite-pair-four-cap-tail",BRepAlgoAPI_Common(x(1,2),z(-4,-3)).Shape(),1e-11);
       const auto containedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,3,4),gp_Dir(1,0,0)),2,8).Shape();
       const auto containedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,4,6),gp_Dir(0,0,-1)),5,4).Shape();
       record(out,"finite-pair-contained-skew",BRepAlgoAPI_Common(containedA,containedB).Shape(),1e-11);

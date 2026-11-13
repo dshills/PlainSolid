@@ -377,6 +377,14 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 			if e != nil {
 				return empty, e
 			}
+			if math.Abs(length) < a.Radius {
+				// Interior caps own planar boundary; preserve their model
+				// coordinate exactly through the signed placement as well.
+				component := center.Dot(unit)
+				if _, e = geom.RepresentedExactScalar(new(big.Rat).Add(new(big.Rat).SetFloat64(component), q)); e != nil {
+					return empty, e
+				}
+			}
 			ends[i][j] = length
 		}
 	}

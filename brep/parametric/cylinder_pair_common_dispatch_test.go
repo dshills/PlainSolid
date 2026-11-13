@@ -334,3 +334,14 @@ func TestFiniteSkewPerpendicularCylinderPairContainment(t *testing.T) {
 		t.Fatal("radial sliver incorrectly ignored", out, e)
 	}
 }
+
+func TestFinitePerpendicularCylinderPairRejectsRoundedCapPlacement(t *testing.T) {
+	// The raw cap offset is a binary64 value, but the physical cap plane at
+	// 1 + 0.1 cannot be represented exactly. Returning 1.1 would move it.
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1}, Axis: geom.Vec3{X: 1}, Radius: 5, Min: -6, Max: .1}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 1}, Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -6, Max: 3}
+	out, e := FiniteCylinderPairCommon(context.Background(), a, b, 1e-9)
+	if !errors.Is(e, geom.ErrUnrepresentable) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("cap placement silently rounded", out, e)
+	}
+}

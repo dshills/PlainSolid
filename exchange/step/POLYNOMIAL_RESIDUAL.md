@@ -166,3 +166,23 @@ authored, and the unusual V origins cannot be treated as trim endpoints.
 Branch-to-coedge mapping, selected meridian arc, pole matching, spherical face
 coverage and material interpretation remain unknown. Nonmeridian parameter
 lines are rejected rather than approximately classified.
+
+### Exact planar floor circle lift
+
+`InspectOffAxisFloorCircleLift` compares the authoritative 3D CIRCLE with its
+planar owner's CIRCLE pcurve after exact lifting through the plane placement.
+For signed-coordinate 3D frames and an exactly unit represented 2D reference,
+it compares all coefficients of `C + A cos(t) + B sin(t)`. The returned center,
+cosine and sine differences retain exact source decimals; the identity flag is
+true only when every coefficient agrees. Thus a phase-shifted circle is not
+mistaken for the same parameterization merely because its point set is equal.
+Nonunit planar reference directions are explicitly unsupported rather than
+rounded during normalization.
+
+The retained floor circle passes whole-parameter identity. Mutated pcurve
+center, radius and phase produce explicit nonzero coefficients. This closes
+only the planar owner's full-circle lift gap. The source floor vertex still
+has its previously reported zero-angle discrepancy; neither a finite edge
+interval nor branch/coedge parameter mapping is inferred. Cylindrical floor
+lift and seam interval correspondence, spherical coverage, global embedding
+and material reconstruction remain independent proof obligations.
