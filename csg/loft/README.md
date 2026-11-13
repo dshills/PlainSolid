@@ -62,3 +62,23 @@ source/parameter rational sizes obey the support bit limit. The bounded linear
 simplification is followed by the usual independently bounded loft proofs.
 Tests evaluate each original point exactly from its returned merged-edge
 parameter, including 1/3, multiple upper breakpoints, and reversed winding.
+
+`MiteredStations` admits differently oriented planar station rings. Each ring
+plane must strictly separate every original vertex at every earlier/later
+station, and adjacent oriented normals must have positive dot product. Convex
+cell proofs plus these complete separating planes exclude overlap; final exact
+shell embedding remains mandatory. It is a bounded miter-cell construction,
+not an arbitrary spatial path sweep. Shared miter loops keep their original
+vertex and edge maps, with no hidden intermediate cap in the final boundary.
+
+All-ring separation has its own shared support work budget. Cell and final-shell
+proofs retain independent budgets and the existing global station limits. Tests
+integrate a right-angle rectangular elbow: start x=0, y,z in [-1/2,1/2], miter
+x+y=2, and end y=3, x in [3/2,5/2]. Its exact volume is 5 and centroid (13/8,7/8,0).
+Both windings pass. An end ring crossing the miter plane fails even though its
+center is past that plane, demonstrating whole-ring rather than center testing.
+
+Explicit support face/vertex limits and embedding triangle limits are preflighted
+before native cap triangulation. For accepted n-vertex, s-station topology the
+exact counts are V=ns, F=2+n(s-1), T=2V-4. Unset proof limits remain enforced by
+their original proof passes, preserving default geometry-error precedence.

@@ -60,6 +60,9 @@ func zero(a qpoint) bool { return a[0].Sign() == 0 && a[1].Sign() == 0 && a[2].S
 // repaired. No partial output is returned. Defaults bound each ring to256
 // vertices (hard maximum4096); support and embedding have separate budgets.
 func Planar(ctx context.Context, lower, upper []geom.Vec3, o Options) (Result, error) {
+	return planarPair(ctx, lower, upper, o, true)
+}
+func planarPair(ctx context.Context, lower, upper []geom.Vec3, o Options, parallel bool) (Result, error) {
 	empty := Result{}
 	if ctx == nil {
 		return empty, ErrInvalid
@@ -80,6 +83,9 @@ func Planar(ctx context.Context, lower, upper []geom.Vec3, o Options) (Result, e
 	if n < 3 || len(upper) != n {
 		return empty, ErrInvalid
 	}
+	if e := preflightSizes(2*n, n+2, o); e != nil {
+		return empty, e
+	}
 	vertices := append(append([]geom.Vec3(nil), lower...), upper...)
 	points := make([]qpoint, len(vertices))
 	for i, v := range vertices {
@@ -90,7 +96,7 @@ func Planar(ctx context.Context, lower, upper []geom.Vec3, o Options) (Result, e
 	}
 	normal := cross(diff(points[1], points[0]), diff(points[2], points[0]))
 	other := cross(diff(points[n+1], points[n]), diff(points[n+2], points[n]))
-	if zero(normal) || zero(other) || !zero(cross(normal, other)) || dot(normal, other).Sign() <= 0 {
+	if zero(normal) || zero(other) || (parallel && !zero(cross(normal, other))) || dot(normal, other).Sign() <= 0 {
 		return empty, ErrUnsupported
 	}
 	direction := dot(normal, diff(points[n], points[0])).Sign()
@@ -99,7 +105,7 @@ func Planar(ctx context.Context, lower, upper []geom.Vec3, o Options) (Result, e
 	}
 	// Each cap is proved exactly planar before construction; no tolerance gate.
 	for i := 0; i < n; i++ {
-		if dot(normal, diff(points[i], points[0])).Sign() != 0 || dot(normal, diff(points[n+i], points[n])).Sign() != 0 {
+		if dot(normal, diff(points[i], points[0])).Sign() != 0 || dot(other, diff(points[n+i], points[n])).Sign() != 0 {
 			return empty, ErrUnsupported
 		}
 	}

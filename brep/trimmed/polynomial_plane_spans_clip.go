@@ -29,6 +29,19 @@ type PiecewisePolynomialPlaneClip struct {
 // is limited to64 pieces. Each face tries at most two axes. Limits otherwise
 // apply per span proof as documented by PolynomialPlaneSpanOptions.
 func CombinePiecewisePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o PolynomialPlaneSpanOptions) (PiecewisePolynomialPlaneClip, error) {
+	return combinePiecewiseGraphPlaneClip(ctx, stock, tool, active, op, o, false)
+}
+
+// CombinePiecewiseRationalGraphSplinePlaneClip permits a regular polynomial
+// or rational-quadratic graph on each original free-axis knot span. It retains
+// both neighboring section edges at each exact original knot junction.
+// The same embedding, full-seam and section limits as the polynomial clip
+// apply. Rational sections add one bounded coefficient check per span.
+func CombinePiecewiseRationalGraphSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o PolynomialPlaneSpanOptions) (PiecewisePolynomialPlaneClip, error) {
+	return combinePiecewiseGraphPlaneClip(ctx, stock, tool, active, op, o, true)
+}
+
+func combinePiecewiseGraphPlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o PolynomialPlaneSpanOptions, rationalGraph bool) (PiecewisePolynomialPlaneClip, error) {
 	var zero PiecewisePolynomialPlaneClip
 	if o.MaxSpans == 0 {
 		o.MaxSpans = 32
@@ -37,7 +50,7 @@ func CombinePiecewisePolynomialSplinePlaneClip(ctx context.Context, stock, tool 
 		return zero, geom.ErrInvalid
 	}
 	state := &polynomialClipSpanState{maxSpans: o.MaxSpans}
-	r, e := combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o.Faces, state, false)
+	r, e := combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o.Faces, state, rationalGraph)
 	if e != nil {
 		return zero, e
 	}

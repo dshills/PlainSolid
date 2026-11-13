@@ -118,6 +118,12 @@ func writeGeometryMode(w io.Writer, m Model, curved, wires bool) error {
 	return writeRevolutionMode(w, m, curved, wires, false)
 }
 func writeRevolutionMode(w io.Writer, m Model, curved, wires, revolutions bool) error {
+	return writeSweptMode(w, m, curved, wires, revolutions, false)
+}
+func writeSweptMode(w io.Writer, m Model, curved, wires, revolutions, tabulated bool) error {
+	if !tabulated && len(m.TabulatedSurfaces) != 0 {
+		return errors.New("iges: tabulated surface requires dedicated codec")
+	}
 	if !revolutions && len(m.Revolutions) != 0 {
 		return errors.New("iges: revolution requires dedicated codec")
 	}
@@ -235,6 +241,9 @@ func writeRevolutionMode(w io.Writer, m Model, curved, wires, revolutions bool) 
 		owned[r.Axis] = true
 		owned[r.Generatrix] = true
 	}
+	for _, r := range m.TabulatedSurfaces {
+		owned[r.Directrix] = true
+	}
 	entityIDs := make([]int, len(m.Entities))
 	nextID := 1
 	for i, e := range m.Entities {
@@ -281,6 +290,12 @@ func writeRevolutionMode(w io.Writer, m Model, curved, wires, revolutions bool) 
 	for _, r := range m.Revolutions {
 		data := fmt.Sprintf("120,%d,%d,%s,%s,0,0;", entityIDs[r.Axis], entityIDs[r.Generatrix], number(r.AngleStart), number(r.AngleEnd))
 		if e := appendEntity(120, r.Label, r.Subscript, 0, 0, data); e != nil {
+			return e
+		}
+	}
+	for _, r := range m.TabulatedSurfaces {
+		data := fmt.Sprintf("122,%d,%s,%s,%s,0,0;", entityIDs[r.Directrix], number(r.End.X), number(r.End.Y), number(r.End.Z))
+		if e := appendEntity(122, r.Label, r.Subscript, 0, 0, data); e != nil {
 			return e
 		}
 	}

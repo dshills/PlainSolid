@@ -1,10 +1,20 @@
 package trimmed
 
 import (
+	"errors"
 	"math/big"
 
 	"plainsolid/geom"
 )
+
+func graphPlaneTrimEquation(p *geom.SurfacePatch, plane polynomialPlaneEquation, freeAxis int, rational bool) (PCurve, int, error) {
+	q, sign, err := polynomialPlaneTrimEquation(p, plane, freeAxis)
+	if rational && errors.Is(err, geom.ErrConvergence) {
+		r, sign, err := rationalGraphPlaneTrim(p, plane, freeAxis)
+		return r, sign, err
+	}
+	return q, sign, err
+}
 
 // rationalGraphPlaneTrim handles a single polynomial knot cell with an
 // affine projection and plane residual A(s)+B(s)t, where deg(A) <= 2 and

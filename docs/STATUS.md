@@ -760,6 +760,10 @@ native shoulders for one common cap, staggered spans, and nested spans.
 An exactly shared terminal lens has both original cap owners.
 Exact represented similarities extend these transverse cuts and unions
 to qualified oblique parallel axes without reassigning source cap IDs.
+Exactly abutting transverse cylinders also join across a positive-area
+cap lens. The internal lens is removed from the boundary. An exact point
+query on the constructed set distinguishes exposed faces from canceled
+source incidence, including interior lens points on the old cap plane.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -814,6 +818,8 @@ surfaces must keep their geometry through the operation. Continue with:
    A separate clip handles a single-span polynomial support with affine
    projection and a linearly varying, nonzero dependent coefficient.
    Its exact rational quadratic section remains on both original supports.
+   Its piecewise variant retains the exact rational branches on both sides
+   of a free-axis crease and records their original junctions.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock

@@ -2256,6 +2256,13 @@ rational section. Independent integration gives common volume
 Boolean results. Native reload and closed contact-free meshes pass.
 A denominator with an interior zero and a tampered trim with unchanged
 endpoints are rejected.
+The piecewise rational fixture adds an actual `|X−1/2|/64` crease and
+uses two rational branches. Native mass agrees with exact strip integrals;
+native reload and mesh checks preserve both original knot junctions.
+OCCT validates the unsplit Boolean shells and their external areas.
+Separate OCCT half-solids split at the crease for first moments; both
+volumes agree within `1e-7` model units cubed, and centroids within
+`3e-7` model units. The unsplit OCCT integrators showed larger residuals.
 
 A reverse-axis cylindrical cutter with a larger axial span independently
 qualifies the transverse crescent difference against OCCT area, volume, and
@@ -2278,6 +2285,11 @@ covering cut, blind cut, interior notch, and common-cap, staggered, and
 nested unions. All agree on area, volume and centroid. Native tests check
 original signed cap IDs, native reload, and strict failure when original
 cap coordinates or the similarity cannot be represented exactly.
+End-to-end transverse cylinders independently match OCCT on one shell,
+area, volume and centroid. The abutting cap lens cancels in union, has no
+positive common volume, and leaves difference unchanged. The exact point
+classifier distinguishes the hidden lens interior from its exposed rim,
+and reports canceled source cap incidence separately from the result boundary.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding
