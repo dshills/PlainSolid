@@ -13,11 +13,11 @@ func finiteUnequalPerpendicularUnion(ctx context.Context, a, b geom.RawCylinder,
 	if a.Radius < b.Radius {
 		operands[0], operands[1] = b, a
 	}
-	half, placement, err := finiteSignedPerpendicularSymmetricFrame(ctx, operands, tolerance)
+	windows, placement, err := finiteSignedPerpendicularWindowsFrame(ctx, operands, tolerance)
 	if err != nil {
 		return zero, err
 	}
-	local, err := UnequalPerpendicularCylinderUnion(ctx, geom.Vec3{}, operands[0].Radius, operands[1].Radius, half[0], half[1], tolerance)
+	local, err := UnequalPerpendicularCylinderUnionWindows(ctx, geom.Vec3{}, operands[0].Radius, operands[1].Radius, windows[0], windows[1], tolerance)
 	if err != nil {
 		return zero, err
 	}
@@ -39,11 +39,11 @@ func finiteUnequalPerpendicularUnion(ctx context.Context, a, b geom.RawCylinder,
 
 func finiteUnequalPerpendicularDifference(ctx context.Context, stock, cutter geom.RawCylinder, tolerance float64) (FiniteCylinderPairDifferenceResult, error) {
 	var out FiniteCylinderPairDifferenceResult
-	half, placement, err := finiteSignedPerpendicularSymmetricFrame(ctx, [2]geom.RawCylinder{stock, cutter}, tolerance)
+	windows, placement, err := finiteSignedPerpendicularWindowsFrame(ctx, [2]geom.RawCylinder{stock, cutter}, tolerance)
 	if err != nil {
 		return out, err
 	}
-	local, err := UnequalPerpendicularCylinderDifference(ctx, geom.Vec3{}, stock.Radius, cutter.Radius, half[0], half[1], tolerance)
+	local, err := UnequalPerpendicularCylinderDifferenceWindows(ctx, geom.Vec3{}, stock.Radius, cutter.Radius, windows[0], windows[1], tolerance)
 	if err != nil {
 		return out, err
 	}
@@ -59,41 +59,42 @@ func finiteUnequalPerpendicularDifference(ctx context.Context, stock, cutter geo
 	return out, nil
 }
 
-// finiteSignedPerpendicularSymmetricFrame places the first cylinder on local
+// finiteSignedPerpendicularWindowsFrame places the first cylinder on local
 // X and the second on local Z. It preserves both raw axis directions and
 // checks that the physical caps survive the conversion to this frame exactly.
-func finiteSignedPerpendicularSymmetricFrame(ctx context.Context, operands [2]geom.RawCylinder, tolerance float64) (half [2]float64, placement geom.Affine, err error) {
+func finiteSignedPerpendicularWindowsFrame(ctx context.Context, operands [2]geom.RawCylinder, tolerance float64) (windows [2]Interval, placement geom.Affine, err error) {
 	var axes [2]geom.Vec3
 	var scale [2]float64
 	for i, c := range operands {
 		axes[i], scale[i] = coordinateCylinderAxis(c.Axis)
 	}
 	if scale[0] == 0 || scale[1] == 0 || axes[0].Dot(axes[1]) != 0 {
-		return half, placement, geom.ErrDomain
+		return windows, placement, geom.ErrDomain
 	}
 	center, caps, err := finiteCylinderCrossingFrame(ctx, operands[0], operands[1], tolerance)
 	if err != nil {
-		return half, placement, err
+		return windows, placement, err
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	for i, window := range caps {
-		if window[1] <= 0 || window[0] != -window[1] {
-			return [2]float64{}, placement, geom.ErrDomain
+		if window[0] >= 0 || window[1] <= 0 {
+			return windows, placement, geom.ErrDomain
 		}
-		length := new(big.Rat).Mul(q(window[1]), q(scale[i]))
-		half[i], err = geom.RepresentedExactScalar(length)
-		if err != nil {
-			return [2]float64{}, placement, err
-		}
-		coordinate := q(center.Dot(axes[i]))
-		for _, sign := range []int64{-1, 1} {
-			cap := new(big.Rat).Add(coordinate, new(big.Rat).Mul(length, big.NewRat(sign, 1)))
+		ends := [2]float64{}
+		for j, t := range window {
+			distance := new(big.Rat).Mul(q(t), q(scale[i]))
+			ends[j], err = geom.RepresentedExactScalar(distance)
+			if err != nil {
+				return [2]Interval{}, placement, err
+			}
+			cap := new(big.Rat).Add(q(center.Dot(axes[i])), distance)
 			if _, err = geom.RepresentedExactScalar(cap); err != nil {
-				return [2]float64{}, placement, err
+				return [2]Interval{}, placement, err
 			}
 		}
+		windows[i] = Interval{ends[0], ends[1]}
 	}
 	x, z := axes[0], axes[1]
 	y := z.Cross(x)
-	return half, geom.Affine{{x.X, y.X, z.X, center.X}, {x.Y, y.Y, z.Y, center.Y}, {x.Z, y.Z, z.Z, center.Z}}, nil
+	return windows, geom.Affine{{x.X, y.X, z.X, center.X}, {x.Y, y.Y, z.Y, center.Y}, {x.Z, y.Z, z.Z, center.Z}}, nil
 }

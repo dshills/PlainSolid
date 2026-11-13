@@ -1860,3 +1860,8 @@ cutter caps on all three coordinate axes. The native annulus preserves the
 original signed stock cap order and both radii. Its exact volume coefficient,
 independent OCCT mass properties, canonical reload, and closed genus-one mesh
 with no detected contacts verify the retained result.
+
+Asymmetric clear-cap fixtures verify each original raw cap in both union
+orders and in the narrower-cutter difference. Independent extension volume
+and first moments, the pinned OCCT result, canonical recipe reload, and a
+closed mesh all agree while caps that enter the common are still rejected.

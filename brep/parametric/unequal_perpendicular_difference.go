@@ -23,8 +23,14 @@ type UnequalPerpendicularDifference struct {
 // matches UnequalPerpendicularCylinderUnion; unsupported radii fail explicitly.
 // The result has one connected genus-one boundary, not two separated end solids.
 func UnequalPerpendicularCylinderDifference(ctx context.Context, center geom.Vec3, stockRadius, cutterRadius, stockHalf, cutterHalf, tolerance float64) (UnequalPerpendicularDifference, error) {
+	return UnequalPerpendicularCylinderDifferenceWindows(ctx, center, stockRadius, cutterRadius, Interval{-stockHalf, stockHalf}, Interval{-cutterHalf, cutterHalf}, tolerance)
+}
+
+// UnequalPerpendicularCylinderDifferenceWindows retains stock between independently
+// placed clear X caps; both Z cutter caps must also strictly clear the stock.
+func UnequalPerpendicularCylinderDifferenceWindows(ctx context.Context, center geom.Vec3, stockRadius, cutterRadius float64, stockWindow, cutterWindow Interval, tolerance float64) (UnequalPerpendicularDifference, error) {
 	empty := UnequalPerpendicularDifference{}
-	donor, e := UnequalPerpendicularCylinderUnion(ctx, center, stockRadius, cutterRadius, stockHalf, cutterHalf, tolerance)
+	donor, e := UnequalPerpendicularCylinderUnionWindows(ctx, center, stockRadius, cutterRadius, stockWindow, cutterWindow, tolerance)
 	if e != nil {
 		return empty, e
 	}
@@ -56,8 +62,8 @@ func UnequalPerpendicularCylinderDifference(ctx context.Context, center geom.Vec
 	if e != nil {
 		return empty, e
 	}
-	r, l := new(big.Rat).SetFloat64(stockRadius), new(big.Rat).SetFloat64(stockHalf)
-	out.StockVolumePiCoefficient = new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(new(big.Rat).Mul(r, r), l))
+	r, l := new(big.Rat).SetFloat64(stockRadius), new(big.Rat).Sub(new(big.Rat).SetFloat64(stockWindow.Max), new(big.Rat).SetFloat64(stockWindow.Min))
+	out.StockVolumePiCoefficient = new(big.Rat).Mul(new(big.Rat).Mul(r, r), l)
 	if e = ctx.Err(); e != nil {
 		return empty, e
 	}
