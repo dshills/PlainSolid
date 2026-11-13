@@ -1,5 +1,23 @@
 # Verification record
 
+## PlainCAD full development baseline — 2026-11-13
+
+The [classified baseline](evidence/plaincad-development-baseline-2026-11-13.json)
+records 264 passes and 76 failures on frozen PlainSolid `048dd26` and
+PlainCAD `5942ff9`, with zero skips or flakes. The 340 originals ran in
+105.3 minutes. Forty-four failures later passed focused original tests.
+Another ten passed when rerun on the original port 5279. Eleven had a
+later failing focused result and eleven lacked a focused retest at the
+time of classification. These results span artifacts and require a current
+consolidated run before release readiness can be claimed.
+
+The [first arc-region retest](evidence/plaincad-current-arc-loop-baseline-2026-11-13.json)
+passes all six analytic circle/arc divider originals on XY, XZ and YZ.
+The remaining ten fail in the older frozen preview path. Current native
+verification covers rounded authored endpoints and initial lens/crescent
+previews. The [revolve retest](evidence/plaincad-current-revolve-capture-2026-11-13.json)
+passes original Cut and Join auto-target capture on PlainCAD `e65f07b`.
+
 ## PlainCAD current studio, native modeling and lineage — 2026-11-13
 
 PlainCAD `e65f07b` was archived with the locked npm dependencies. Its
