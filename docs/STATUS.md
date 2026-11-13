@@ -45,6 +45,22 @@ does not detect. Keep one definition. Retain the grouped/optional edge
 implementation with the original chain ancestry and qualify translated
 STEP output. The integration worktree was left untouched.
 
+An isolated candidate then reconciled `589411f` with `cc55825`, preserving the
+registered analytic charts and both branches’ treatment and sweep behavior.
+It compiled all packages and passed the targeted helical, treatment, and
+translated STEP checks. Chromium passed the Go/WASM provider preflight and
+existing finite To Face, native edge treatment, revolve/Boolean, and long
+machining chain fixtures on that combined source. The candidate also adds a
+bounded native display edge operation for the current PlainCAD adapter. It
+samples native curves and suppresses periodic seams and sampled tangent joins.
+The later `53d8432` integration snapshot adds circular rim fillets and machined
+references. Its overlapping helical relief implementation needed a distinct
+result type to retain the existing main constructor and both public operations.
+The combined candidate also passed the three existing grouped circular rim
+browser cases on XY, XZ, and YZ. The local `codex/reconcile-plaincad` review
+branch retains this candidate and the independent `45110e0` production evidence.
+These are integration candidate results; neither active branch was advanced.
+
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
 bores, pockets and joins; helical threads and lead parts; and STEP roundtrips of
@@ -502,6 +518,18 @@ finite caps strictly clear the common. Perpendicular and oblique subtraction
 retain two closed bodies and report their two intrinsic closure contacts.
 Subtracting a wider perpendicular or oblique tool keeps two strictly
 separated stock bodies, with an exact squared lower bound on their gap.
+Finite cylinder common now dispatches across the supported unclipped, clipped,
+parallel, and empty families. Exact axial overlap handles reversed and scaled
+coordinate-parallel axes; clipped perpendicular caps accept signed and scaled
+coordinate axes without changing raw cap ownership. Six independent OCCT cases
+check the dispatcher’s geometric results. The native JSON recipe retains the
+raw inputs, construction choice, face ownership, and canonical boundary.
+
+STEP inspection for the retained off-axis bore now verifies its oriented
+incidence graph, exact one-turn winding, both continuous spline lift bounds,
+and source rim endpoint gaps. Separate exact decimal support residuals cover
+the floor circle and cylindrical seam. These reports preserve the source seam
+mismatch and uncertainty metadata; the STEP importer still rejects this shell.
 
 ## Continuing implementation
 

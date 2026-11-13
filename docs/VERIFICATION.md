@@ -1044,6 +1044,14 @@ scaling, shifted axes, certified display and native reload. OCCT independently
 qualifies the asymmetric overlapping case. A nonrepresentable placement is
 rejected by this exact-map path.
 
+The finite cylinder dispatcher has six independent OCCT differential cases:
+one clipped cap, a two-cap slab, a two-axis quadrant, a translated signed and
+scaled perpendicular slab, reversed and scaled parallel overlap, and disjoint
+empty. Both the default and STEP+IGES pinned oracle builds pass the focused
+check. Nonempty cases compare area, volume, and centroid. Native recipe tests
+also verify round-trip raw cap parameters and face ancestry and reject altered
+payloads.
+
 The perpendicular union retains both walls and four exposed end disks.
 Its volume matches the exact inclusion-exclusion formula and its area
 matches the two cylinders minus the interior Steinmetz faces. Native reload,
