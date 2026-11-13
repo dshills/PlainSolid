@@ -36,6 +36,9 @@ func PlanarStations(ctx context.Context, rings [][]geom.Vec3, options StationOpt
 }
 
 func planarStations(ctx context.Context, rings [][]geom.Vec3, options StationOptions, convex bool) (StationResult, error) {
+	return stationShell(ctx, rings, options, convex, true)
+}
+func stationShell(ctx context.Context, rings [][]geom.Vec3, options StationOptions, convex, parallel bool) (StationResult, error) {
 	empty := StationResult{}
 	if ctx == nil {
 		return empty, ErrInvalid
@@ -101,15 +104,50 @@ func planarStations(ctx context.Context, rings [][]geom.Vec3, options StationOpt
 		}
 		base := k * n
 		other := cross(diff(points[base+1], points[base]), diff(points[base+2], points[base]))
-		if zero(other) || !zero(cross(normal, other)) || dot(normal, other).Sign() <= 0 {
+		if zero(other) || (parallel && !zero(cross(normal, other))) || (parallel && dot(normal, other).Sign() <= 0) {
 			return empty, ErrUnsupported
 		}
-		if k > 0 && dot(normal, diff(points[base], points[base-n])).Sign() != direction {
+		if parallel && k > 0 && dot(normal, diff(points[base], points[base-n])).Sign() != direction {
 			return empty, ErrUnsupported
 		}
 		for i := 0; i < n; i++ {
-			if dot(normal, diff(points[base+i], points[base])).Sign() != 0 {
+			if dot(other, diff(points[base+i], points[base])).Sign() != 0 {
 				return empty, ErrUnsupported
+			}
+		}
+	}
+
+	if !parallel {
+		work, maxWork := 0, o.Support.MaxWork
+		if maxWork < 0 {
+			return empty, ErrInvalid
+		}
+		if maxWork == 0 {
+			maxWork = 2000000
+		}
+		for k := 0; k < count; k++ {
+			base := k * n
+			normal := cross(diff(points[base+1], points[base]), diff(points[base+2], points[base]))
+			for j := 0; j < count; j++ {
+				if j == k {
+					continue
+				}
+				want := direction
+				if j < k {
+					want = -want
+				}
+				for i := 0; i < n; i++ {
+					if e := ctx.Err(); e != nil {
+						return empty, e
+					}
+					work++
+					if work > maxWork {
+						return empty, ErrLimit
+					}
+					if dot(normal, diff(points[j*n+i], points[base])).Sign() != want {
+						return empty, ErrUnsupported
+					}
+				}
 			}
 		}
 	}
