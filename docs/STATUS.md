@@ -690,6 +690,8 @@ The same construction accepts a parallel eccentric through-bore when the
 exact transverse disk gap and axial coverage prove a fully enclosed opening.
 An axially and radially enclosed parallel cutter instead retains a separate
 inward cavity shell, with cutter wall and both original floor IDs.
+Equal-radius coaxial stock with overlapping or coincident end spans now
+joins as one cylinder, retaining the original exposed caps and wall owners.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
