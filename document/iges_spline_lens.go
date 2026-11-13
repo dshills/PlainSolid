@@ -99,6 +99,9 @@ func (s State) writeSplineLensIGES(w io.Writer, rational bool) error {
 	if !ok || label.Target != AssetLabel || label.TargetID != asset {
 		return geom.ErrInvalid
 	}
+	if _, has := label.Attributes["iges.lens.affine-partitioned.recipe"]; has {
+		return fmt.Errorf("document: affine partitioned IGES recipe requires its dedicated exporter")
+	}
 	if _, has := label.Attributes["iges.lens.partitioned.recipe"]; has {
 		return fmt.Errorf("document: partitioned IGES recipe requires explicit partitioned export")
 	}

@@ -543,5 +543,17 @@ values. Irrational knot cuts and unrepresentable source poles likewise fail.
 The independent OCCT fixture uses conjugate axes `(6r,4r),(-8r,3r)` and a
 refined lower chart with three exact pieces of the first quarter; its original
 six-edge source and native reconstruction pass OCCT validity, area and volume
-checks. Older readers, writers and document adapters reject nonzero `Tilt`;
+checks. Older readers and writers reject nonzero `Tilt`;
 they do not discard the affine source basis.
+
+The document package's separate `ReadAffinePartitionedSplineLensIGES`,
+`FromAffinePartitionedSplineLensIGES` and
+`State.WriteAffinePartitionedSplineLensIGES` preserve that rotated source basis
+through native save/reload. Its distinct 128-KiB recipe retains `Tilt`, `Shear`,
+exact cuts, both knot-cell ancestries and all raw curves. Export reconstructs the
+native material with `iges.AffineSplineLensFromSolid` and compares the complete
+canonical native topology/geometry serialization before recovering supports.
+Only an unchanged single identity occurrence is admitted. Altered basis, stale
+geometry, conflicting recipe modes, excessive rational sizes and extra owner
+entries fail before output. An independent OCCT chain qualifies the six-edge
+fixture after native reload, preserving model units and all source bases.

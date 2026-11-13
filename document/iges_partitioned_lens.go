@@ -26,6 +26,7 @@ type partitionedIGESRecipe struct {
 	Geometry                           string
 	Center, Radii                      geom.Vec2
 	Shear                              float64
+	Tilt                               float64
 	Pieces                             []partitionedIGESPiece
 	Curves                             [][]iges.RationalLensCurve
 }
@@ -34,7 +35,14 @@ type partitionedIGESRecipe struct {
 // owner/model bases alongside canonical native material, without conflating
 // source piece IDs with the native solid's four ellipse edges.
 func ReadPartitionedSplineLensIGES(r io.Reader, l iges.Limits, historyLimit int) (*Document, error) {
-	m, e := iges.ReadPartitionedRationalSplineLensSolid(r, l)
+	return readPartitionedLensDocument(r, l, historyLimit, false)
+}
+func readPartitionedLensDocument(r io.Reader, l iges.Limits, historyLimit int, affine bool) (*Document, error) {
+	reader := iges.ReadPartitionedRationalSplineLensSolid
+	if affine {
+		reader = iges.ReadAffinePartitionedSplineLensSolid
+	}
+	m, e := reader(r, l)
 	if e != nil {
 		return nil, e
 	}
@@ -47,7 +55,7 @@ func ReadPartitionedSplineLensIGES(r io.Reader, l iges.Limits, historyLimit int)
 	if e != nil {
 		return nil, e
 	}
-	p := partitionedIGESRecipe{Solid: m.Body.SourceSolidID, Shell: m.Body.SourceShellID, EdgeList: m.Body.SourceEdgeListID, VertexList: m.Body.SourceVertexListID, Faces: append([]int(nil), m.Body.SourceFaceIDs[:]...), Geometry: digest, Center: m.Body.Center, Radii: m.Body.Radii, Shear: m.Body.Shear, Pieces: nil}
+	p := partitionedIGESRecipe{Solid: m.Body.SourceSolidID, Shell: m.Body.SourceShellID, EdgeList: m.Body.SourceEdgeListID, VertexList: m.Body.SourceVertexListID, Faces: append([]int(nil), m.Body.SourceFaceIDs[:]...), Geometry: digest, Center: m.Body.Center, Radii: m.Body.Radii, Shear: m.Body.Shear, Tilt: m.Body.Tilt, Pieces: nil}
 	for _, v := range m.Pieces {
 		p.Pieces = append(p.Pieces, partitionedIGESPiece{Quarter: v.Quarter, Start: v.Start, End: v.End, Cells: append([]geom.ParameterRectangle(nil), v.Cells[:]...), ModelCurveID: v.ModelCurveID, ParameterCurveIDs: append([]int(nil), v.ParameterCurveIDs[:]...)})
 	}
@@ -61,7 +69,8 @@ func ReadPartitionedSplineLensIGES(r io.Reader, l iges.Limits, historyLimit int)
 	if len(raw) > maxPartitionedIGESRecipeBytes {
 		return nil, geom.ErrInvalid
 	}
-	s.Labels = map[string]Label{"iges:" + "body-000001": {Name: "Partitioned IGES lens", Target: AssetLabel, TargetID: "body-000001", Attributes: map[string]Attribute{"iges.lens.partitioned.recipe": {Kind: "string", Text: string(raw)}, "iges.lens.partitioned.binding": {Kind: "string", Text: lensProvenanceDigest(raw)}, "iges.source.solid": {Kind: "integer", Integer: int64(p.Solid)}}}}
+	prefix := partitionedIGESPrefix(affine)
+	s.Labels = map[string]Label{"iges:" + "body-000001": {Name: "Partitioned IGES lens", Target: AssetLabel, TargetID: "body-000001", Attributes: map[string]Attribute{prefix + ".recipe": {Kind: "string", Text: string(raw)}, prefix + ".binding": {Kind: "string", Text: lensProvenanceDigest(raw)}, "iges.source.solid": {Kind: "integer", Integer: int64(p.Solid)}}}}
 	return New(s, historyLimit)
 }
 
@@ -78,6 +87,10 @@ func FromPartitionedSplineLensIGES(m iges.PartitionedRationalSplineLens, history
 // WritePartitionedSplineLensIGES re-derives the exact union of original chart
 // knot cuts before export. Only one unchanged identity occurrence is supported.
 func (s State) WritePartitionedSplineLensIGES(w io.Writer) error {
+	return s.writePartitionedLensIGES(w, false)
+}
+func (s State) writePartitionedLensIGES(w io.Writer, affine bool) error {
+	prefix := partitionedIGESPrefix(affine)
 	if w == nil {
 		return geom.ErrInvalid
 	}
@@ -107,7 +120,10 @@ func (s State) WritePartitionedSplineLensIGES(w io.Writer) error {
 	if !ok || label.Target != AssetLabel || label.TargetID != asset {
 		return geom.ErrInvalid
 	}
-	raw, binding := label.Attributes["iges.lens.partitioned.recipe"], label.Attributes["iges.lens.partitioned.binding"]
+	if _, exists := label.Attributes[partitionedIGESPrefix(!affine)+".recipe"]; exists {
+		return fmt.Errorf("document: conflicting IGES lens recipe modes")
+	}
+	raw, binding := label.Attributes[prefix+".recipe"], label.Attributes[prefix+".binding"]
 	if raw.Kind != "string" || binding.Kind != "string" || len(raw.Text) > maxPartitionedIGESRecipeBytes || binding.Text != lensProvenanceDigest([]byte(raw.Text)) {
 		return fmt.Errorf("document: stale partitioned IGES recipe")
 	}
@@ -172,11 +188,14 @@ func (s State) WritePartitionedSplineLensIGES(w io.Writer) error {
 	if digest != p.Geometry {
 		return fmt.Errorf("document: partitioned IGES material changed")
 	}
-	native, e := step.AffineSplineLensFromSolid(solid, p.Center, p.Radii, p.Shear, "", s.LengthUnit, step.CurvedOvalOptions{})
+	if !affine && p.Tilt != 0 {
+		return geom.ErrInvalid
+	}
+	native, e := iges.AffineSplineLensFromSolid(solid, p.Center, p.Radii, p.Shear, p.Tilt, s.LengthUnit)
 	if e != nil {
 		return e
 	}
-	m := iges.PartitionedRationalSplineLens{Body: iges.SplineLensSolid{Upper: native.Upper, Lower: native.Lower, Center: p.Center, Radii: p.Radii, Shear: p.Shear, LengthUnit: s.LengthUnit}, Pieces: make([]iges.LensSeamPiece, n), Curves: make([][3]iges.RationalLensCurve, n)}
+	m := iges.PartitionedRationalSplineLens{Body: native, Pieces: make([]iges.LensSeamPiece, n), Curves: make([][3]iges.RationalLensCurve, n)}
 	for i, row := range p.Curves {
 		v := p.Pieces[i]
 		m.Pieces[i] = iges.LensSeamPiece{Quarter: v.Quarter, Start: v.Start, End: v.End, ModelCurveID: v.ModelCurveID}
@@ -184,5 +203,15 @@ func (s State) WritePartitionedSplineLensIGES(w io.Writer) error {
 		copy(m.Pieces[i].ParameterCurveIDs[:], v.ParameterCurveIDs)
 		copy(m.Curves[i][:], row)
 	}
+	if affine {
+		return iges.WriteAffinePartitionedSplineLensSolid(w, m)
+	}
 	return iges.WritePartitionedRationalSplineLensSolid(w, m)
+}
+
+func partitionedIGESPrefix(affine bool) string {
+	if affine {
+		return "iges.lens.affine-partitioned"
+	}
+	return "iges.lens.partitioned"
 }
