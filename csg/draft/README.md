@@ -118,3 +118,28 @@ The exact material volume is `35/8`; independently integrated centroid and
 surface area, closed genus-one topology and contact-free tessellation are
 checked. A tiny but strictly positive original end-face gap remains accepted;
 the coincident-edge limit is rejected before subtraction.
+
+## Tapered planar chamfers
+
+`ChamferTapered` accepts four strictly positive endpoint setbacks for every
+selected original edge: one distance into each incident face at its stored
+Start vertex and another pair at its stored End vertex. The distances vary
+linearly along that original direction. Exact in-face offset construction and
+four-point coplanarity prove a single planar bevel; incompatible width ratios
+are rejected rather than approximated with a twisted or sampled surface.
+The original edge endpoints must both lie strictly on the removed side, which
+proves the same sign along the complete original edge.
+
+Constant-width selections preserve `Chamfer` results. Mixed constant/tapered
+selections are applied simultaneously to unchanged original supports. The same
+Euclidean rational-length and dominant-support-coordinate metric rules apply.
+Large/interacting bevels can remove faces or empty the convex result, with the
+existing bounded reconstruction, conversion, and embedding checks. Selections
+are atomic: any invalid edge, width, coplanarity or budget returns no result.
+
+`TaperedChamferResult` retains the usual face/edge ancestry plus original edge
+vertex direction, both incident face IDs, input widths and four caller-owned
+exact offset points. Their linear interpolation describes the entire accepted
+width field. Tests integrate tapered triangular cross-sections independently,
+cover multiple separated bevels and mixed widths, reverse the original stored
+edge direction, and check exact plane incidence and contact-free display.
