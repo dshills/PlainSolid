@@ -31,13 +31,18 @@ type RationalGraphSectionCap struct {
 type RationalGraphSectionCapOptions struct {
 	Patches  geom.SurfacePatchOptions
 	Topology trimvalidate.Options
+	// RationalEndpoints admits exact nonbinary endpoints on quadratic
+	// caps. The corresponding model display vertices are rounded once.
+	RationalEndpoints bool
 }
 
 // BuildCaps transports the section regions onto a caller-supplied affine
 // spline support in their exact plane. An outer cap faces the oriented section
 // plane direction; each void is a separate inner loop. The support rectangle
-// must contain all projected control points. The current sewable BRep
-// requires exactly representable model and UV endpoints; failure is atomic.
+// must contain all projected control points. The default requires exactly
+// representable model and UV endpoints. RationalEndpoints admits nonbinary
+// endpoints on quadratic caps through the native rational endpoint path.
+// Failure is atomic.
 // Input is the previously certified private arrangement, so edits to returned
 // diagnostic wires or material rows do not change the caps.
 func (r *RationalGraphShellRegions) BuildCaps(ctx context.Context, surface geom.Surface, domain geom.ParameterRectangle, o RationalGraphSectionCapOptions) ([]RationalGraphSectionCap, error) {
@@ -102,7 +107,7 @@ func (r *RationalGraphShellRegions) BuildCaps(ctx context.Context, surface geom.
 		cap := RationalGraphSectionCap{Boundary: SewFace{Face: Face{Surface: surface, Reversed: reverse < 0}}}
 		for i, id := range append([]int{region.Outer}, region.Holes...) {
 			wire := r.wires[id]
-			part, edges, e := r.buildCapWire(ctx, wire, surface, p, chart, reverse < 0, o.Patches)
+			part, edges, e := r.buildCapWire(ctx, wire, surface, p, chart, reverse < 0, o)
 			if e != nil {
 				return nil, e
 			}
@@ -138,10 +143,10 @@ func (r *RationalGraphShellRegions) BuildCaps(ctx context.Context, surface geom.
 	return out, nil
 }
 
-func (r *RationalGraphShellRegions) buildCapWire(ctx context.Context, wire []projectedGraphSectionPiece, surface geom.Surface, patch *geom.SurfacePatch, chart *geom.AffineSurfaceChart, reverse bool, o geom.SurfacePatchOptions) (SewFace, []RationalGraphCapEdgeSource, error) {
+func (r *RationalGraphShellRegions) buildCapWire(ctx context.Context, wire []projectedGraphSectionPiece, surface geom.Surface, patch *geom.SurfacePatch, chart *geom.AffineSurfaceChart, reverse bool, o RationalGraphSectionCapOptions) (SewFace, []RationalGraphCapEdgeSource, error) {
 	var zero SewFace
 	axes := orientedRationalGraphProjection(r.plane)
-	limits := geom.AffineChartInverseOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+	limits := geom.AffineChartInverseOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits}
 	var points [][2]*big.Rat
 	var curves []PCurve
 	var sources []RationalGraphCapEdgeSource
@@ -177,8 +182,11 @@ func (r *RationalGraphShellRegions) buildCapWire(ctx context.Context, wire []pro
 		var e error
 		switch len(control) {
 		case 3:
-			c, e = NewExactQuadraticUV([3][3]*big.Rat{control[0], control[1], control[2]})
+			c, e = newExactQuadraticUV([3][3]*big.Rat{control[0], control[1], control[2]}, o.RationalEndpoints)
 		case 4, 5:
+			if o.RationalEndpoints {
+				return zero, nil, geom.ErrConvergence
+			}
 			c, e = NewExactBezierUV(control)
 		default:
 			e = geom.ErrConvergence
@@ -186,20 +194,26 @@ func (r *RationalGraphShellRegions) buildCapWire(ctx context.Context, wire []pro
 		if e != nil {
 			return zero, nil, e
 		}
-		ends, _, e := polynomialPlaneEndpoints(c)
+		ends, _, e := graphSectionCapEndpoints(c, o.RationalEndpoints)
 		if e != nil {
 			return zero, nil, e
 		}
 		x.source.Reversed = reverse
 		points, curves, sources = append(points, ends[0]), append(curves, c), append(sources, x.source)
 	}
-	part, e := slabSewFace(ctx, Face{Surface: surface, Reversed: reverse}, patch, points, SplineRectangleEmbeddingOptions{Patches: o})
+	var part SewFace
+	var e error
+	if o.RationalEndpoints {
+		part, e = rationalQuadraticSewFace(ctx, Face{Surface: surface, Reversed: reverse}, patch, points, o.Patches)
+	} else {
+		part, e = slabSewFace(ctx, Face{Surface: surface, Reversed: reverse}, patch, points, SplineRectangleEmbeddingOptions{Patches: o.Patches})
+	}
 	if e != nil {
 		return zero, nil, e
 	}
 	for i, c := range curves {
 		u := &part.Face.Outer[i]
-		_, xy, e := polynomialPlaneEndpoints(c)
+		_, xy, e := graphSectionCapEndpoints(c, o.RationalEndpoints)
 		if e != nil || xy != [2]geom.Vec2{u.UVStart, u.UVEnd} {
 			return zero, nil, geom.ErrConvergence
 		}
@@ -207,4 +221,12 @@ func (r *RationalGraphShellRegions) buildCapWire(ctx context.Context, wire []pro
 		part.Edges[i].Curve = surfaceTrimCurve{surface, u.UVStart, u.UVEnd, c}
 	}
 	return part, sources, nil
+}
+
+func graphSectionCapEndpoints(c PCurve, allowRational bool) ([2][2]*big.Rat, [2]geom.Vec2, error) {
+	if q, ok := c.(ExactQuadraticUV); ok && allowRational {
+		x, d := q.Endpoints()
+		return x, d, nil
+	}
+	return polynomialPlaneEndpoints(c)
 }
