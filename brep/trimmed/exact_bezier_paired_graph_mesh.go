@@ -26,6 +26,10 @@ type CertifiedPairedBezierGraphMesh struct {
 // atomically, never weld by proximity. Options apply independently to two face
 // proofs, one B recertification, and each (at most64) seam agreement proof.
 func TessellatePairedBezierGraphChainsCertified(ctx context.Context, a *geom.SurfacePatch, qa []ExactBezierUV, baseA *big.Rat, b *geom.SurfacePatch, qb []ExactBezierUV, baseB *big.Rat, o CurvedBezierGraphChainOptions) (CertifiedPairedBezierGraphMesh, error) {
+	return tessellatePairedBezierGraphChains(ctx, a, qa, baseA, b, qb, baseB, o, 0)
+}
+
+func tessellatePairedBezierGraphChains(ctx context.Context, a *geom.SurfacePatch, qa []ExactBezierUV, baseA *big.Rat, b *geom.SurfacePatch, qb []ExactBezierUV, baseB *big.Rat, o CurvedBezierGraphChainOptions, rounds int) (CertifiedPairedBezierGraphMesh, error) {
 	var empty CertifiedPairedBezierGraphMesh
 	if ctx == nil || a == nil || b == nil || baseA == nil || baseB == nil || len(qa) == 0 || len(qa) > 64 || len(qa) != len(qb) {
 		return empty, geom.ErrInvalid
@@ -55,6 +59,20 @@ func TessellatePairedBezierGraphChainsCertified(ctx context.Context, a *geom.Sur
 	right, e := TessellateCurvedBezierGraphChainCertified(ctx, b, qb, baseB, o)
 	if e != nil {
 		return empty, e
+	}
+	for round := 0; round < rounds && !graphChainPartitionsEqual(left, right); round++ {
+		cuts, err := commonGraphChainCuts(ctx, left, right)
+		if err != nil {
+			return empty, err
+		}
+		left, err = tessellateCurvedBezierGraphChainCuts(ctx, a, qa, baseA, cuts, o)
+		if err != nil {
+			return empty, err
+		}
+		right, err = tessellateCurvedBezierGraphChainCuts(ctx, b, qb, baseB, cuts, o)
+		if err != nil {
+			return empty, err
+		}
 	}
 	r := CertifiedPairedBezierGraphMesh{FaceA: left, Agreement: proof}
 	overrides := map[int]geom.Vec3{}
