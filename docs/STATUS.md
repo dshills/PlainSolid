@@ -72,12 +72,11 @@ fixtures pass 25 on the OCCT control and five with PlainSolid deliberately
 uninitialized. Focused original tests now pass all seven portable failures,
 including an exact side-tangent blind Hole. This Hole is retained for
 modeling and display as a regularized difference. Fabrication and STEP
-validation reject its four-face contact. Cross-browser qualification passes
-the keyboard face-card and dimension dialog case on
-all three engines. Four other cases per engine stop at current application
-controls. The same four failures reproduce with pristine OCCT on all three engines.
-The current production Workbench, native sketch and AI controls pass all
-12 cases across Chromium, Firefox and WebKit.
+validation reject its four-face contact. The current PlainCAD revision `50432ed` passes all 15 original cross-browser
+cases across Chromium, Firefox and WebKit. It passes six of seven focused
+originals. The Parts Browser asynchronous-open timing failure reproduces
+and a staged readiness fix is under verification. The native bridge, STEP
+and mesh packages pass a combined short run.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
