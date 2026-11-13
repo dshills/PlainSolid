@@ -158,6 +158,16 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		default:
 			return geom.Box{}, geom.ErrInvalid
 		}
+	case steinmetzExteriorCylinder:
+		if !a.valid() || u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var err error
+		f, err = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			return geom.Box{}, err
+		}
+		x, y, z = scalarBounds{math.Min(0, a.end), math.Max(0, a.end)}, scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}
 	case steinmetzSlabChart:
 		if !a.valid() || u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain
