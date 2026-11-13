@@ -50,6 +50,10 @@ type CertifiedExactBezierGraphFace struct {
 // filled-region distance; exact triangle orientation/incidence/area checks
 // independently prove coverage of the chord polygon. Failure is atomic.
 func TessellateExactBezierGraphFaceCertified(ctx context.Context, p *geom.SurfacePatch, trim ExactBezierUV, baseline *big.Rat, o ExactBezierGraphFaceOptions) (CertifiedExactBezierGraphFace, error) {
+	return tessellateExactBezierGraphFaceCuts(ctx, p, trim, baseline, nil, o)
+}
+
+func tessellateExactBezierGraphFaceCuts(ctx context.Context, p *geom.SurfacePatch, trim ExactBezierUV, baseline *big.Rat, cuts []*big.Rat, o ExactBezierGraphFaceOptions) (CertifiedExactBezierGraphFace, error) {
 	var empty CertifiedExactBezierGraphFace
 	if ctx == nil || p == nil || baseline == nil {
 		return empty, geom.ErrInvalid
@@ -94,7 +98,7 @@ func TessellateExactBezierGraphFaceCertified(ctx context.Context, p *geom.Surfac
 	if !cells.Complete {
 		return empty, geom.ErrConvergence
 	}
-	line, e := cells.TessellateCertified(ctx, o.Display)
+	line, e := tessellateGraphPrescribedCuts(ctx, cells, cuts, o.Display)
 	if e != nil {
 		return empty, e
 	}

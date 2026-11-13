@@ -75,6 +75,36 @@ func TestExactGraphPartitionActualScaledChartMismatch(t *testing.T) {
 		}
 	}
 	t.Logf("source A=%d B=%d common=%d", len(aa[0]), len(bb[0]), plan.Parameters)
+	for owner, patch := range []*geom.SurfacePatch{pa, pb} {
+		trim := a
+		if owner == 1 {
+			trim = b
+		}
+		fixed, err := TessellateExactBezierGraphChainWithCutsCertified(context.Background(), patch, []ExactBezierUV{trim}, new(big.Rat), [][]*big.Rat{plan.Pieces[0].Parameters}, ExactBezierGraphFaceOptions{Display: geom.ComposedCollectionPolylineOptions{ComposedCurvePolylineOptions: geom.ComposedCurvePolylineOptions{Deflection: .002}}})
+		if err != nil {
+			t.Fatal("fixed consumer", owner, err)
+		}
+		line := fixed.Pieces[0].Curve
+		for _, q := range plan.Pieces[0].Parameters {
+			found := false
+			for _, v := range line.Vertices {
+				if v.Parameter.Lower.Cmp(q) == 0 && v.Parameter.Upper.Cmp(q) == 0 {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatal("mandatory cut omitted", q)
+			}
+		}
+		if !line.Complete || line.MaximumError > .002 || fixed.FillSquaredDistance.Sign() < 0 || fixed.PolygonUVArea.Sign() <= 0 {
+			t.Fatal("missing recertification")
+		}
+		if len(fixed.Mesh.Triangles) != len(fixed.Boundary)-2 {
+			t.Fatal("polygon coverage triangle count")
+		}
+	}
+
 	// Planner does not silently widen the existing strict acceptance boundary.
 	if _, e = TessellatePairedBezierGraphChainsCertified(context.Background(), pa, []ExactBezierUV{a}, new(big.Rat), pb, []ExactBezierUV{b}, new(big.Rat), o); e == nil {
 		t.Fatal("strict pair unexpectedly accepts unmatched partitions")
@@ -101,6 +131,48 @@ func TestExactGraphPartitionBudgetsAndOwnership(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, e = PlanExactGraphChainPartition(ctx, a, b, ExactGraphChainPartitionOptions{}); !errors.Is(e, context.Canceled) {
+		t.Fatal(e)
+	}
+}
+
+func TestExactGraphFixedCutsAtomicLimits(t *testing.T) {
+	_, q, _, _ := bezierSeamFixture(t, 3)
+	s, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1}}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	p, e := geom.NewSurfacePatch(s, geom.SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	cuts := [][]*big.Rat{{new(big.Rat), big.NewRat(1, 3), big.NewRat(1, 1)}}
+	positive, err := TessellateExactBezierGraphChainWithCutsCertified(context.Background(), p, []ExactBezierUV{q}, new(big.Rat), cuts, ExactBezierGraphFaceOptions{Display: geom.ComposedCollectionPolylineOptions{ComposedCurvePolylineOptions: geom.ComposedCurvePolylineOptions{Deflection: .01}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, v := range positive.Pieces[0].Curve.Vertices {
+		if v.Parameter.Lower.Cmp(big.NewRat(1, 3)) == 0 && v.Parameter.Upper.Cmp(big.NewRat(1, 3)) == 0 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("nonbinary cut lost")
+	}
+	o := ExactBezierGraphFaceOptions{}
+	o.Display.MaxOperations = 1
+	r, e := TessellateExactBezierGraphChainWithCutsCertified(context.Background(), p, []ExactBezierUV{q}, new(big.Rat), cuts, o)
+	if e == nil || len(r.Mesh.Vertices) != 0 {
+		t.Fatal("partial budget success")
+	}
+	cuts[0][1].SetInt64(0)
+	if r, e = TessellateExactBezierGraphChainWithCutsCertified(context.Background(), p, []ExactBezierUV{q}, new(big.Rat), cuts, ExactBezierGraphFaceOptions{}); e == nil || len(r.Pieces) != 0 {
+		t.Fatal("duplicate cut")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	cuts[0][1].SetFrac64(1, 3)
+	if _, e = TessellateExactBezierGraphChainWithCutsCertified(ctx, p, []ExactBezierUV{q}, new(big.Rat), cuts, ExactBezierGraphFaceOptions{}); !errors.Is(e, context.Canceled) {
 		t.Fatal(e)
 	}
 }
