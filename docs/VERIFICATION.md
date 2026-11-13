@@ -74,6 +74,13 @@ artifact directory, and browser projects.
 
 ## PlainCAD full current production acceptance — 2026-11-13
 
+The [production rerun after exact side-tangent Hole support](evidence/plaincad-current-production-tangent-build-2026-11-13.json)
+passes all 66 original cases in 611.585 seconds on committed PlainSolid
+`0b17938`. The TypeScript checks, real-WASM backend preflight, and production
+bundle budget pass. There were zero skips, flakes or retries. The original
+performance case passes its 90-second deadline while other validation
+runs are active on the same host.
+
 The [production report](evidence/plaincad-current-production-2026-11-13.json)
 passes 66 of 66 originals in 403.549 seconds on PlainCAD `e65f07b`. No
 tests skip, flake or retry. The built app uses the same Go WASM as the
