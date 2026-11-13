@@ -449,10 +449,15 @@ func (s Solid) seedTriangles() [][]samples {
 // are checked at samples. AnalyticBound adds a real-arithmetic interpolation
 // bound for straight trims on supported analytic and clamped spline surfaces.
 func (s Solid) Tessellate(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	return s.tessellateWithTrimMemo(ctx, o, &tessellationTrimMemo{limit: tessellationTrimMemoLimit})
+}
+
+func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.TessellationOptions, memo *tessellationTrimMemo) (mesh.Mesh, error) {
 	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi ||
 		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
 		return mesh.Mesh{}, fmt.Errorf("trimmed: invalid options")
 	}
+	s = s.withTessellationTrimMemo(memo)
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 128
 	}
