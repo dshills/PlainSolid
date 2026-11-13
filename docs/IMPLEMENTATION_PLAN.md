@@ -50,10 +50,12 @@ regressions, including the UNC gallery. The original 40-body rotary
 fixture passes all three rebuilds. ORBIT passes the current detail and
 gesture export originals. The classified 340-case baseline and focused
 retests identify the next work: arc-region previews, the remaining exact
-browser retests, and isolated production performance. Then run the
-current 344 development, 66 production and 15 cross-browser cases on one
-frozen integration revision. Keep provider-private OCCT fixture checks
-visible alongside the portable unit results. See
+browser retests, and isolated production performance. These focused retests
+now pass. Current production passes all 66 originals. Current development
+and unit qualification are in progress. Cross-browser tests expose four
+current application control mismatches per engine that also reproduce on the
+Chromium OCCT control. Keep provider-private OCCT fixture checks visible
+alongside portable unit results. See
 [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.
