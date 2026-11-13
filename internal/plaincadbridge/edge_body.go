@@ -228,6 +228,9 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 		return false
 	}
 	_, _, ok := planarEdge(s.solid, start, end)
+	if !ok {
+		_, ok = supportingEdgeChain(s.solid, start, end)
+	}
 	return ok
 }
 
@@ -341,6 +344,13 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	}
 	if s.treated == nil && !s.planar() && s.bore == nil {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
+	}
+	if q.Op == "chamfer" && s.planar() && len(refs) == 1 && refs[0].Start != nil && refs[0].End != nil && len(s.solid.Vertices()) != 8 {
+		out, e := chamferSupportingChain(s.solid, refs[0].Start.vec(), refs[0].End.vec(), normal, size)
+		if e != nil {
+			return Shape{}, e
+		}
+		return b.put(out)
 	}
 	resolved := make([][2]geom.Vec3, len(refs))
 	for i, ref := range refs {
