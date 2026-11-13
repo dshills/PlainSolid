@@ -46,13 +46,35 @@ type CertifiedRevolvedPolygonMesh struct {
 // vertex bounds account for frame normalization and display rounding. Shared
 // axis points are identified only by exact radius zero. No partial certificate
 // is returned on resource exhaustion or a nonembedded display.
-func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []geom.Vec2, angle float64, o CertifiedRevolvePolygonOptions) (out CertifiedRevolvedPolygonMesh, err error) {
+func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []geom.Vec2, angle float64, o CertifiedRevolvePolygonOptions) (CertifiedRevolvedPolygonMesh, error) {
+	if ctx == nil || !finite(angle) || angle == 0 || math.Abs(angle) > 6 {
+		return CertifiedRevolvedPolygonMesh{}, geom.ErrInvalid
+	}
+	p, _, e := parametric.PrepareRevolutionMeridian(frame, profile)
+	if e != nil {
+		return CertifiedRevolvedPolygonMesh{}, e
+	}
+	source, e := RevolvePolygon(ctx, frame, p, angle)
+	if e != nil {
+		return CertifiedRevolvedPolygonMesh{}, e
+	}
+	recipe := certifiedAngularSweep{lo: ratInset(math.Min(0, angle)), hi: ratInset(math.Max(0, angle)), rate: big.NewRat(1, 1), lead: new(big.Rat), phase: revolutionTrigTaylor}
+	return certifiedPolygonAngularMesh(ctx, frame, p, source, recipe, o)
+}
+
+type certifiedAngularSweep struct {
+	lo, hi, rate, lead *big.Rat
+	reversed           bool
+	phase              func(context.Context, *big.Rat, CertifiedRevolvePolygonOptions, *int) (*big.Rat, *big.Rat, *big.Rat, error)
+}
+
+func certifiedPolygonAngularMesh(ctx context.Context, frame geom.Frame, p []geom.Vec2, source Solid, recipe certifiedAngularSweep, o CertifiedRevolvePolygonOptions) (out CertifiedRevolvedPolygonMesh, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedRevolvedPolygonMesh{}
 		}
 	}()
-	if ctx == nil || !finite(angle) || angle == 0 || math.Abs(angle) > 6 || !finite(o.Deflection) || o.Deflection <= 0 {
+	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 {
 		return out, geom.ErrInvalid
 	}
 	if o.MaxSegments == 0 {
@@ -75,14 +97,6 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 	}
 	if o.MaxSegments < 1 || o.MaxSegments > 4096 || o.MaxVertices < 3 || o.MaxVertices > 1000000 || o.MaxTriangles < 1 || o.MaxTriangles > 2000000 || o.MaxPredicates < 1 || o.MaxPredicates > 100000000 || o.MaxTrigTerms < 1 || o.MaxTrigTerms > 2000000 || o.MaxBits < 64 || o.MaxBits > 65536 {
 		return out, geom.ErrInvalid
-	}
-	p, _, e := parametric.PrepareRevolutionMeridian(frame, profile)
-	if e != nil {
-		return out, e
-	}
-	source, e := RevolvePolygon(ctx, frame, p, angle)
-	if e != nil {
-		return out, e
 	}
 	axes := [3][3]*big.Rat{exactBoundPoint(frame.XAxis()), exactBoundPoint(frame.YAxis()), exactBoundPoint(frame.ZAxis())}
 	origin := exactBoundPoint(frame.Origin())
@@ -127,7 +141,7 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 	if len(chain) != 0 || area.Cmp(proof.area(ring)) != 0 {
 		return out, geom.ErrConvergence
 	}
-	lo, hi := ratInset(math.Min(0, angle)), ratInset(math.Max(0, angle))
+	lo, hi := recipe.lo, recipe.hi
 	span := new(big.Rat).Sub(hi, lo)
 	tol := ratInset(o.Deflection)
 	tol.Mul(tol, tol)
@@ -137,17 +151,20 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 			return out, geom.ErrConvergence
 		}
 		du := new(big.Rat).Quo(span, big.NewRat(int64(n), 1))
+		angularDu := new(big.Rat).Mul(du, recipe.rate)
 		cellBounds := make([]*big.Rat, len(p))
 		viable := true
-		// For F(u,v), ||F_uu||<=R*M, ||F_uv||<=|dr|*M and F_vv=0.
-		// Taylor expansion at the common barycentric UV point cancels the
-		// weighted first derivatives. |delta u|<=du, |delta v|<=1 gives
-		// B=M*(R*du²/2+|dr|*du) in both directions under that correspondence.
+		// In angular coordinates, the rotational Hessian satisfies
+		// ||F_theta_theta||<=R*M, ||F_theta_v||<=|dr|*M, F_vv=0.
+		// Axial elevation is affine and adds no second derivative. Taylor
+		// expansion at the barycentric UV point cancels first derivatives.
+		// |delta theta|<=angularDu, |delta v|<=1 gives the stated B bound
+		// in both directions under the common parameter correspondence.
 		for i, a := range p {
 			b := p[(i+1)%len(p)]
 			r := ratInset(math.Max(a.X, b.X))
 			dr := new(big.Rat).Abs(new(big.Rat).Sub(ratInset(a.X), ratInset(b.X)))
-			bound := new(big.Rat).Mul(mnorm, new(big.Rat).Add(new(big.Rat).Quo(new(big.Rat).Mul(r, new(big.Rat).Mul(du, du)), big.NewRat(2, 1)), new(big.Rat).Mul(dr, du)))
+			bound := new(big.Rat).Mul(mnorm, new(big.Rat).Add(new(big.Rat).Quo(new(big.Rat).Mul(r, new(big.Rat).Mul(angularDu, angularDu)), big.NewRat(2, 1)), new(big.Rat).Mul(dr, angularDu)))
 			cellBounds[i] = new(big.Rat).Mul(bound, bound)
 			if new(big.Rat).Mul(big.NewRat(4, 1), cellBounds[i]).Cmp(tol) > 0 {
 				viable = false
@@ -164,7 +181,7 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 				return out, e
 			}
 			u := new(big.Rat).Add(lo, new(big.Rat).Mul(du, big.NewRat(int64(k), 1)))
-			sin, cos, rem, e := revolutionTrigTaylor(ctx, u, o, &terms)
+			sin, cos, rem, e := recipe.phase(ctx, u, o, &terms)
 			if e != nil {
 				return out, e
 			}
@@ -176,7 +193,7 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 					errors[k][i] = new(big.Rat).Set(errors[0][i])
 					continue
 				}
-				r, z := ratInset(q.X), ratInset(q.Y)
+				r, z := ratInset(q.X), new(big.Rat).Add(ratInset(q.Y), new(big.Rat).Mul(recipe.lead, u))
 				var display [3]float64
 				squared := new(big.Rat)
 				for axis := 0; axis < 3; axis++ {
@@ -195,6 +212,9 @@ func RevolvePolygonCertified(ctx context.Context, frame geom.Frame, profile []ge
 			}
 		}
 		appendTri := func(tri [3]int, face int, bound *big.Rat) {
+			if recipe.reversed {
+				tri[1], tri[2] = tri[2], tri[1]
+			}
 			result.Mesh.Triangles = append(result.Mesh.Triangles, tri)
 			result.OriginalFace = append(result.OriginalFace, face)
 			result.SquaredErrors = append(result.SquaredErrors, new(big.Rat).Set(bound))
