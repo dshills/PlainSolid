@@ -26,7 +26,7 @@ func ReadCircularHoleExtrusions(r io.Reader, l Limits) (CircularHoleExtrusionMod
 	}
 	m := CircularHoleExtrusionModel{LengthUnit: unit}
 	for _, id := range ids {
-		b, e := recoverCircularExtrusion(f, id, nil)
+		b, e := recoverCircularExtrusion(f, id, nil, nil)
 		if e != nil {
 			return CircularHoleExtrusionModel{}, e
 		}
@@ -125,7 +125,7 @@ func verifyCanonicalCircularExtrusionGraph(f *File, repID int64, out io.Reader) 
 
 	return nil
 }
-func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircle) (CircularHoleExtrusionBody, error) {
+func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircle, roundedOut *trimmed.RoundedRectangle) (CircularHoleExtrusionBody, error) {
 	fail := func() (CircularHoleExtrusionBody, error) {
 		return CircularHoleExtrusionBody{}, fmt.Errorf("step: unsupported canonical circular extrusion body")
 	}
@@ -198,6 +198,9 @@ func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircl
 		if len(faces) < 6 || len(uses) < 3 {
 			return fail()
 		}
+		if roundedOut != nil && (len(uses) < 4 || len(uses) > 8 || len(faces) < len(uses)+2) {
+			return fail()
+		}
 		for _, uid := range uses {
 			u, e := simple(f, uid, "ORIENTED_EDGE", 5)
 			if e != nil {
@@ -250,8 +253,17 @@ func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircl
 		}
 		*diskOut = trimmed.ExtrusionCircle{Center: geom.Vec2{X: q.X, Y: q.Y}, Radius: radius}
 	}
+	sideFaces := faces[:len(faces)-2]
+	if roundedOut != nil {
+		profile, e := recoverRoundedRectangle(f, caps[0], m.Outer, sideFaces[:len(uses)])
+		if e != nil {
+			return fail()
+		}
+		*roundedOut = profile
+		sideFaces = sideFaces[len(uses):]
+	}
 	entry := -1
-	for _, fid := range faces[:len(faces)-2] {
+	for _, fid := range sideFaces {
 		face, e := simple(f, fid, "ADVANCED_FACE", 4)
 		if e != nil {
 			return fail()

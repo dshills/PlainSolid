@@ -111,6 +111,14 @@ func TestWriteRoundedRectangleExtrusionsOCCT(t *testing.T) {
 		if e = WriteRoundedRectangleExtrusions(&out, model); e != nil {
 			t.Fatal(e)
 		}
+		canonical, e := ReadRoundedRectangleExtrusions(bytes.NewReader(out.Bytes()), Limits{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		out.Reset()
+		if e = WriteRoundedRectangleExtrusions(&out, canonical); e != nil {
+			t.Fatal(e)
+		}
 		path := filepath.Join(t.TempDir(), "rounded.step")
 		if e = os.WriteFile(path, out.Bytes(), 0600); e != nil {
 			t.Fatal(e)

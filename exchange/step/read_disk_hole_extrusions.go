@@ -21,7 +21,7 @@ func ReadDiskHoleExtrusions(r io.Reader, l Limits) (DiskHoleExtrusionModel, erro
 	m := DiskHoleExtrusionModel{LengthUnit: unit}
 	for _, id := range ids {
 		var outer trimmed.ExtrusionCircle
-		b, e := recoverCircularExtrusion(f, id, &outer)
+		b, e := recoverCircularExtrusion(f, id, &outer, nil)
 		if e != nil {
 			return DiskHoleExtrusionModel{}, e
 		}
