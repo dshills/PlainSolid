@@ -359,6 +359,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if !finite(size) || size <= 0 {
 		return Shape{}, errors.New(q.Op + " failed: size must be positive")
 	}
+	retainedPocket := false
 	// A straight pocket has an exact planar boundary. Resolve and treat the
 	// actual retained boundary, including its interior wires and floor, rather
 	// than substituting the uncut stock recipe.
@@ -370,6 +371,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		if ok {
 			s.solid = planar
 			s.analytic = nil
+			retainedPocket = true
 		}
 	}
 	if s.treated == nil && !s.planar() && s.bore == nil {
@@ -378,6 +380,15 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if q.Op == "chamfer" && q.Direction == nil && s.planar() && len(refs) == 1 && refs[0].Start != nil && refs[0].End != nil && len(s.solid.Vertices()) != 8 {
 		out, e := chamferSupportingChain(s.solid, refs[0].Start.vec(), refs[0].End.vec(), normal, size)
 		if e != nil {
+			// The legacy whole-boundary clip cannot encode a cap with an
+			// interior pocket wire. Only this recognized retained boundary
+			// may try the independent local native edge/clearance proof.
+			if retainedPocket {
+				a, c, ok := planarEdge(s.solid, refs[0].Start.vec(), refs[0].End.vec())
+				if ok {
+					return b.treatRetainedPlanarEdge(s, q, normal, size, [2]geom.Vec3{a, c})
+				}
+			}
 			return Shape{}, e
 		}
 		return b.put(out)
