@@ -144,13 +144,10 @@ export class OpenCascadeKernel implements KernelAdapter {
     const b = request<Proof>({ op: "inspect", handle: handle(tool).proof.handle });
     const upper = Math.min(a.geometryAssertions.volume, b.geometryAssertions.volume);
     const tolerance = Math.max(1e-9, Math.abs(upper) * 1e-10);
-    const proof = request<Proof>({ op: "common", a: a.handle, b: b.handle });
-    try {
-      const volume = proof.geometryAssertions.volume;
-      if (!Number.isFinite(volume) || volume < -tolerance || volume > upper + tolerance)
-        throw new Error("Scope intersection produced inconsistent volume.");
-      return volume > tolerance;
-    } finally { request({ op: "dispose", handle: proof.handle }); }
+    const { volume } = request<{ volume: number }>({ op: "overlapVolume", a: a.handle, b: b.handle });
+    if (!Number.isFinite(volume) || volume < -tolerance || volume > upper + tolerance)
+      throw new Error("Scope intersection produced inconsistent volume.");
+    return volume > tolerance;
   }
   cutScope(targets: KernelShape[], tools: KernelShape[]): KernelShape[] {
     if (!targets.length || !tools.length)

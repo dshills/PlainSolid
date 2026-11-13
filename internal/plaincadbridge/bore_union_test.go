@@ -124,7 +124,7 @@ func TestHoleUnionUnsupportedBatchDoesNotPublish(t *testing.T) {
 	b := New()
 	base := box(t, b, vector{-6, -5, 0}, vector{6, 5, 8})
 	first := circle(t, b, vector{-1, 0, 0}, vector{0, 0, 1}, 2, 3)
-	for _, tc := range []struct{ x, r, h float64 }{{1, 2, 4}, {3, 2, 3}, {1, 2, 8}} {
+	for _, tc := range []struct{ x, r, h float64 }{{3, 2, 3}} {
 		tool := circle(t, b, vector{tc.x, 0, 0}, vector{0, 0, 1}, tc.r, tc.h)
 		before := len(b.shapes)
 		data, _ := json.Marshal(map[string]any{"op": "cutMany", "a": base.Handle, "tools": []string{first.Handle, tool.Handle}})

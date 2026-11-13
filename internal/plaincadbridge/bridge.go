@@ -195,7 +195,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "cut", "cutMany", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "circle":
 		if q.Origin == nil || q.Normal == nil {
 			return nil, errors.New("circle requires origin and normal")
@@ -230,6 +230,8 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		return b.put(s)
+	case "overlapVolume":
+		return b.overlapVolume(q.A, q.B)
 	case "cutMany":
 		return b.cutMany(q.A, q.Tools)
 	case "cut", "fuse", "common":

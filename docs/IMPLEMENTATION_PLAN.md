@@ -35,13 +35,16 @@ may proceed in parallel:
 
 Current checkpoint (2026-11-13): PC0's selected browser regressions pass. PC1
 implements scoped Hole validation, atomic cutter batches, and analytic overlapping
-circular footprints with a common effective entry/stop depth. Duplicates and
-contained tools are accepted collectively; standalone no-op cuts remain rejected.
-All 22 existing browser regressions and the separate real-WASM overlap probe
-pass, along with both TypeScript checks. There is no existing overlap-specific
-browser fixture; supplemental overlap evidence is labeled separately. Guided-hole placement restrictions remain unchanged.
-See readiness for final source-hashed evidence and bounded support. Next PC1
-work includes mixed line/arc profiles, differing-depth overlapping cuts, and
+circular footprints. Unequal-depth work now adds axial layers, crescent/annular
+floors and volume-only scope queries for successive Hole features on retained
+bored stock. The final source-hashed run passes all 22 existing acceptance cases,
+both TypeScript checks and the separate real-WASM supplement, with zero skips
+or flaky results. Native/race checks and independent geometry review pass.
+Duplicates and contained tools are accepted collectively; standalone no-op cuts
+remain rejected. New overlap evidence is supplemental because there is no
+existing overlap-specific browser fixture. Guided-hole restrictions remain
+unchanged. See readiness for qualified boundaries and source-hashed evidence.
+Next PC1 work includes mixed line/arc profiles, opposed-entry blind overlaps and
 broader modified/curved target bodies. Downstream Hole editing with chamfers also
 depends on PC2 edge-treatment support.
 

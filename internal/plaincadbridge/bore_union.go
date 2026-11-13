@@ -9,24 +9,28 @@ import (
 	"plainsolid/geom"
 )
 
-// newUnionBore is a bounded fallback for intersecting tools with one common
-// entry plane and stop plane. Unequal-depth and opposed blind pockets remain
-// unsupported rather than being replaced by an infinite cylinder union.
+// newUnionBore retains exact layered circular footprints from a common
+// opening side. Through tools can be reoriented without changing geometry;
+// opposed blind pockets remain outside this bounded layered representation.
 func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.CylinderCut, blind []bool) (*boreBody, error) {
 	fail := func(message string) (*boreBody, error) { return nil, &failureError{"UNSUPPORTED", message} }
 	if len(cylinders) < 2 {
 		return fail("cylindrical cut is outside the strictly contained convex-stock domain")
 	}
-	axis := cuts[0].Direction
-	first := cylinders[0]
-	floor := first.frame.Origin().Add(axis.Scale(first.height))
-	for i, c := range cylinders {
-		if blind[i] != blind[0] {
-			return fail("overlapping cylinders require equal finite stop planes")
+	anchor := 0
+	for i, isBlind := range blind {
+		if isBlind {
+			anchor = i
+			break
 		}
+	}
+	axis := cuts[anchor].Direction
+	entry, exit := cuts[anchor].Entry, cuts[anchor].Exit
+	depths := make([]float64, len(cylinders))
+	for i, c := range cylinders {
 		if cuts[i].Direction != axis {
 			if blind[i] || cuts[i].Direction != axis.Scale(-1) {
-				return fail("overlapping cylinders require the same represented axis direction")
+				return fail("overlapping blind cylinders require a common opening side")
 			}
 			finish := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
 			frame, err := geom.NewFrame(finish, c.frame.XAxis(), c.frame.ZAxis().Scale(-1))
@@ -47,36 +51,63 @@ func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.Cyl
 			}
 			cuts[i] = cut
 		}
-		if cuts[i].Entry != cuts[0].Entry || cuts[i].Exit != cuts[0].Exit {
+		if cuts[i].Entry != entry || cuts[i].Exit != exit {
 			return fail("overlapping cylinders require common stock cap planes")
 		}
-		if blind[0] && exactDotDifference(c.frame.Origin().Add(axis.Scale(c.height)), floor, axis) != 0 {
-			return fail("overlapping blind cylinders require equal finite floor planes")
+		if blind[i] {
+			_, start, _, err := boreSpan(base, c, false)
+			if err != nil {
+				return nil, err
+			}
+			depths[i] = c.height - start
 		}
 	}
-	depth := 0.
-	if blind[0] {
-		_, start, _, err := boreSpan(base, first, false)
+	uniform := true
+	floor := cylinders[0].frame.Origin().Add(axis.Scale(cylinders[0].height))
+	for i, c := range cylinders {
+		if blind[i] != blind[0] || depths[i] != depths[0] || (blind[i] && exactDotDifference(c.frame.Origin().Add(axis.Scale(c.height)), floor, axis) != 0) {
+			uniform = false
+		}
+	}
+	body := &boreBody{base: base, cylinders: append([]*cylinderBody(nil), cylinders...), cuts: cuts, blind: blind}
+	if uniform {
+		solid, h, err := trimmed.BoreCylinderUnion(base, cuts, depths[0], 1e-9)
 		if err != nil {
-			return nil, err
+			return fail("cylindrical cutter union is outside the qualified domain: " + err.Error())
 		}
-		depth = first.height - start
+		body.solid, body.union = solid, &h
+	} else {
+		solid, h, err := trimmed.BoreCylinderDepthUnion(base, cuts, depths, 1e-9)
+		if err != nil {
+			return fail("layered cylindrical union is outside the qualified domain: " + err.Error())
+		}
+		body.solid, body.layered = solid, &h
 	}
-	solid, h, err := trimmed.BoreCylinderUnion(base, cuts, depth, 1e-9)
-	if err != nil {
-		return fail("cylindrical cutter union is outside the qualified domain: " + err.Error())
-	}
-	return &boreBody{solid: solid, base: base, cylinders: append([]*cylinderBody(nil), cylinders...), cuts: cuts, blind: blind, union: &h}, nil
+	return body, nil
 }
 
 func (body *boreBody) unionPlanarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	u := body.union
+	areas := make([]float64, len(u.FloorFaces))
+	for i := range areas {
+		areas[i] = u.Area
+	}
+	exitArea := 0.
+	if !u.Blind {
+		exitArea = u.Area
+	}
+	return body.cutPlanarFace(origin, normal, u.Entry, u.Exit, u.Area, exitArea, u.FloorFaces, areas)
+}
+func (body *boreBody) cutPlanarFace(origin, normal geom.Vec3, entry, exit int, entryArea, exitArea float64, floors []int, areas []float64) (PlanarFace, error) {
+	if len(floors) != len(areas) {
+		return PlanarFace{}, errors.New("invalid floor metadata")
+	}
 	n, err := normal.Unit()
 	if err != nil || !origin.IsFinite() {
 		return PlanarFace{}, errors.New("invalid planar reference")
 	}
 	var floor *PlanarFace
-	for _, id := range u.FloorFaces {
+	for i, id := range floors {
 		p, ok := body.solid.Faces()[id].Surface.(geom.PlaneSurface)
 		if !ok {
 			return PlanarFace{}, errors.New("union floor is not planar")
@@ -92,7 +123,7 @@ func (body *boreBody) unionPlanarFace(origin, normal geom.Vec3) (PlanarFace, err
 		if body.solid.Faces()[id].Reversed {
 			outward = outward.Scale(-1)
 		}
-		q := PlanarFace{id, coordinates(f.Origin()), coordinates(outward), u.Area}
+		q := PlanarFace{id, coordinates(f.Origin()), coordinates(outward), areas[i]}
 		floor = &q
 	}
 	f, err := matchingPlanarFace(body.base, origin, normal)
@@ -105,8 +136,11 @@ func (body *boreBody) unionPlanarFace(origin, normal geom.Vec3) (PlanarFace, err
 	if err != nil {
 		return PlanarFace{}, err
 	}
-	if f.Face == u.Entry || !u.Blind && f.Face == u.Exit {
-		f.Area -= u.Area
+	if f.Face == entry {
+		f.Area -= entryArea
+	}
+	if f.Face == exit {
+		f.Area -= exitArea
 	}
 	if f.Area <= 1e-14 {
 		return PlanarFace{}, errors.New("planar face has no measurable retained area")

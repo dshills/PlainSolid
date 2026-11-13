@@ -1,5 +1,39 @@
 # Verification record
 
+## Unequal-depth scoped Hole integration — 2026-11-13
+
+The bridge selects layered construction for common-entry cutter recipes with
+unequal stop depths, including blind/through mixtures. Through tools can be
+reoriented exactly to the blind opening side. Signed XYZ tests verify retained
+mass, entry/exit areas, individual floor areas/normals, mesh closure, transforms
+and ownership. `overlapVolume` measures actual additional material removal without
+allocating handles, including at full capacity. Symmetric operand queries and
+no-op queries pass; the ordinary `common` operation does not invent geometry.
+The adapter uses this measure to validate successive Hole features on already
+bored stock while preserving indexed scope errors and atomic publication.
+
+Final bridge race tests pass in 16.519 seconds; vet and WASM build pass. The
+reviewed lower geometry is committed as `302184f`. The frozen-source application
+run passes all 22 selected existing acceptance cases in 135.638 seconds, both
+original TypeScript checks, and one supplemental probe in 7.852 seconds (9.329
+seconds including runner startup). All 23 recorded cases actually pass, with
+zero skipped, unexpected or flaky results. Evidence:
+`docs/evidence/plaincad-unequal-depth-holes-2026-11-13.json`, from
+`/tmp/plainsolid-depth-overlap-acceptance-02`. All 677 recorded local source hashes
+match the final tree; independent WASM rebuild SHA-256 is
+`9434e0ea7173091be4f41e2374a27bc49315b4d35c77f624516625e9eec658a8`,
+identical to the tested artifact.
+
+The supplement checks unequal-depth batches in reversed order, sequential actual
+PlainCAD Hole features in both orders, save/reopen/rebuild, exact volume/area,
+mesh and STL volume/normals, late-target rollback and retained inputs. Existing
+acceptance assertions and timeouts are unchanged. No overlap-specific existing
+browser case exists, and guided-hole placement restrictions remain unchanged.
+Opposed-entry blind overlaps, tools beginning wholly inside original stock,
+unresolved/tangent contacts or depth levels, material islands, side-crossing cuts
+and arbitrary curved stock remain unsupported. Neither the original PlainCAD
+checkout nor the other agent's main checkout was modified.
+
 ## Unequal-depth analytic bore construction — 2026-11-13
 
 `trimmed.BoreCylinderDepthUnion` retains a global circular-arc arrangement across
@@ -20,9 +54,9 @@ area cancellation by anchoring each loop's Green integral locally. Floor nesting
 rejects uncertain classifications; eighth-turn analytic subdivisions avoid a
 collinear floor seed in the three-depth fixture without weakening validation.
 
-The bridge and application checkpoint is still pending its final frozen-source
-acceptance run. Generic native BRep persistence of the anchored trim remains
-unqualified; application feature-recipe persistence is a separate browser check.
+The bridge and application checkpoint is qualified separately above. Generic
+native BRep persistence of the anchored trim remains unqualified; application
+feature-recipe persistence passes the separate browser check.
 
 ## Overlapping scoped Hole integration — 2026-11-13
 

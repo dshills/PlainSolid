@@ -6,30 +6,28 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-Development now prioritizes the operations exercised by PlainCAD's existing
-acceptance tests before expanding unrelated OCCT domains. The full specification
-remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
-and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
-
 The Go WebAssembly adapter implements scoped Hole operations with indexed
 center/target errors and atomic publication. Analytic cylinder walls and planar
 floors support blind and through cuts from qualified convex stock. Cutter sets
-now combine proper overlaps, duplicates and contained circles when their entry
-and effective stop planes match. Original-target validation is retained, while
-standalone cuts must still remove meaningful material. Each batch and retained
-cylindrical recipe is bounded to 32 tools.
+combine proper overlaps, duplicates and contained circles; unequal depths now
+use exact axial layers with crescent and annular floors. Retained recipes are
+bounded to 32 tools. A volume-only overlap query supports successive Hole
+features on already-bored stock without fabricating intersection geometry.
 
-The analytic union constructor is committed as `845cf3d`; independent native
-oracles and review pass. Final application qualification passes all 22 existing regressions, both
-TypeScript checks, and a separate real-WASM overlap/document-roundtrip probe,
-with zero skips or flaky results.
+The unequal-depth analytic constructor is committed as `302184f`. Independent
+volume, area and centroid oracles, related bore/mesh regressions, bridge race
+checks and geometry review pass. All 22 selected existing browser acceptance
+cases pass unchanged, with zero skips or flaky results. Both TypeScript checks
+and the separate real-WASM unequal-depth/document-roundtrip supplement pass.
+
 PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
-intentionally rejects overlapping placement. Original acceptance assertions are
-unchanged. Unequal-depth overlap, tangent/unresolved contacts, material islands,
-closed cavities, side-crossing cuts and arbitrary curved targets remain open.
-Next PC1 work includes mixed profiles and broader modified-stock operations;
-Hole edits involving downstream chamfers also require PC2 edge treatments.
-See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
+intentionally rejects overlapping placement. New overlap checks are supplemental.
+Opposed-entry blind overlaps, tools starting wholly inside original stock,
+tangent/unresolved contacts or depth levels, material islands, closed cavities,
+side-crossing cuts and arbitrary curved targets remain open. Next PC1 work also
+includes mixed profiles and broader modified-stock operations; Hole edits with
+downstream chamfers require PC2 edge treatments. The full replacement is not
+complete. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can

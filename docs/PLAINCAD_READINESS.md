@@ -13,7 +13,44 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
-## Overlapping Hole cutter checkpoint — 2026-11-13
+## Unequal-depth Hole checkpoint — 2026-11-13
+
+The analytic layered constructor is committed as `302184f`. It supports unequal
+blind depths and blind/through mixtures from a common original stock opening
+side, retaining cylindrical walls and crescent or annular planar floors.
+Through tools may be reversed exactly to that side. At most 32 cutters may be
+retained; their complete circular footprints must remain strictly inside
+qualified convex planar stock. Duplicate and contained cutters simplify according
+to both footprint and depth. Each axial footprint must avoid material islands.
+
+A handle-free `overlapVolume` query now validates successive Hole features against
+already-bored stock. It measures actual additional removed material through the
+retained cut construction; it does not manufacture an intersection solid.
+The ordinary `common` geometry operation keeps its narrower domain. Scoped
+publication, indexed errors, original-input ownership and standalone no-op
+rejection remain intact, including when the handle store is full.
+
+The final real-WASM supplement passes unequal-depth batches in both orders and actual
+PlainCAD successive Hole features, before and after project save/reopen. Exact
+volume/area, mesh/STL accuracy and normals, late rollback and cleanup are checked.
+All **22 existing acceptance cases pass unchanged**, with zero skipped, unexpected
+or flaky results; the acceptance stage took 135.638 seconds. Both original
+TypeScript checks pass. The supplement itself took 7.852 seconds (9.329 seconds
+including runner startup). The [source-hashed report](evidence/plaincad-unequal-depth-holes-2026-11-13.json)
+records all cases and the tested artifact. All 677 recorded PlainSolid source
+hashes match the final tree, and an independent WASM rebuild has the same hash.
+There is no existing overlap-specific acceptance fixture, so new checks remain
+explicitly supplemental. Guided-hole UI overlap restrictions are unchanged.
+
+Still unsupported: overlapping blind cutters entering from opposite stock caps,
+tools starting wholly inside the original stock (including a newly selected
+interior pocket floor), tangent or unresolved contacts/depth levels, material
+islands, side-crossing footprints, mixed profiles and arbitrary curved targets.
+Generic native BRep serialization of anchored analytic trims remains unqualified;
+PlainCAD's recipe persistence is checked separately. Full application and OCCT
+replacement qualification remain open.
+
+## Earlier overlapping Hole cutter checkpoint — 2026-11-13
 
 **22 existing PlainCAD acceptance scenarios pass unchanged**, with zero skipped,
 unexpected or flaky results. The regression stage took 133.393 seconds. Both
@@ -282,7 +319,7 @@ selected PlainSolid build and record unsupported cases rather than removing them
 Scoped Hole now implements atomic output publication and indexed center/target
 errors, with analytic blind/through cuts in its qualified convex-stock domain.
 Retain the consolidated regression selection recorded above. Remaining work
-includes unequal-depth overlaps and mixed profiles, broader curved target bodies,
+includes opposed-entry blind overlaps and mixed profiles, broader curved target bodies,
 and Hole editing that depends on downstream chamfers/PC2 edge treatments. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.

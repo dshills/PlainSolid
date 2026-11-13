@@ -23,6 +23,7 @@ type boreBody struct {
 	blind     []bool
 	floors    []int
 	union     *trimmed.CylinderUnionHistory
+	layered   *trimmed.LayeredBoreHistory
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -193,7 +194,7 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 			}
 		}
 	}
-	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil}, nil
+	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil, nil}, nil
 }
 func (body *boreBody) measures() (float64, float64, error) {
 	p, err := body.base.MassProperties()
@@ -201,6 +202,14 @@ func (body *boreBody) measures() (float64, float64, error) {
 		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
+	if h := body.layered; h != nil {
+		volume -= h.RemovedVolume
+		area += h.SurfaceAreaDelta
+		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
+			return 0, 0, errors.New("invalid layered-cylinder measures")
+		}
+		return volume, area, nil
+	}
 	if u := body.union; u != nil {
 		volume -= u.Area * u.Depth
 		area += u.Perimeter * u.Depth
@@ -253,6 +262,9 @@ func (body *boreBody) transformed(m geom.Affine) (*boreBody, error) {
 	return newBore(base, cylinders)
 }
 func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	if h := body.layered; h != nil {
+		return body.cutPlanarFace(origin, normal, h.Entry, h.Exit, h.EntryRemovedArea, h.ExitRemovedArea, h.FloorFaces, h.FloorAreas)
+	}
 	if body.union != nil {
 		return body.unionPlanarFace(origin, normal)
 	}

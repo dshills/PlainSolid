@@ -73,14 +73,20 @@ published together; a failed center or target disposes all intermediate outputs
 and preserves the inputs. The native batch applies the union of tools to each
 target; duplicate and contained tools need not remove additional material after
 another tool. Direct single cuts still reject no-ops. Circular overlap uses
-analytic exposed arcs for parallel tools with matching entry and effective depth
-within the bounded bore domain, with at most 32 tools per target batch. Tangent
-unions and intersecting tools with unequal depths remain unsupported; subsequent
-cuts on arbitrary previously modified stocks are not implied. The backend probe
+analytic exposed arcs for parallel tools sharing a blind opening side, including
+unequal effective depths and their exposed stepped floors, within the bounded
+bore domain. Through-tools may be oriented from either cap; opposed blind
+opening sides remain unsupported. At most 32 tools are accepted per target batch. Tangent unions remain
+unsupported; subsequent cuts on arbitrary previously modified stocks are not
+implied. Supported retained bore histories can receive another overlapping Hole
+feature. Scope intersection uses an exact volume query without manufacturing an
+intersection shape. The backend probe
 checks indexed scope errors and fills the remaining native handle capacity after
 repeated late-target failures to verify cleanup. It also measures circular-lens
 union volume and area, tool-order independence, duplicates, contained tools, and
-the actual mesh and STL volume. Existing guided-hole UI overlap restrictions are
+the actual mesh and STL volume. It also rebuilds unequal-depth sequential Hole
+features in both orders, saves/reopens them with the original app functions, and
+checks their exported STL. Existing guided-hole UI overlap restrictions are
 preserved; no existing browser fixture specifically measures overlapping scoped
 holes, so that new coverage is reported separately from the existing regression
 selection. Other scoped operations remain unsupported.
