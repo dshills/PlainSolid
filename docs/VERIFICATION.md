@@ -165,6 +165,20 @@ kernel is loading. Both original cases pass unchanged on the identical
 WASM snapshot in isolated retests. The Parts Browser original also passes
 on pristine OCCT. The complete suite retains both failures in its record.
 
+## PlainCAD full production rerun on `50432ed` — 2026-11-13
+
+All [66 original production tests](evidence/plaincad-production-50432ed-2026-11-13.json)
+pass in 357.132 seconds, with zero skips, retries or flaky results. Both
+TypeScript checks, the production bundle budget, and the separate WASM
+probe pass. The [benchmark](evidence/plaincad-production-50432ed-performance-2026-11-13.json)
+passes in 42.966 seconds against its original 90-second deadline, with
+25 verified edits and 11 validated STL exports.
+
+The run started on `03d5740` with the staged project-open change in the
+working tree. The report's source hash for `display-runtime.mjs` matches
+the committed file in `92e22ab`. The report retains the working-tree
+identity and hashes of the inputs that were actually run.
+
 ## PlainCAD full production qualification with dense mesh validation — 2026-11-13
 
 All [66 original production tests](evidence/plaincad-production-dense-validation-2026-11-13.json)

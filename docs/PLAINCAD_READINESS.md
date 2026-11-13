@@ -15,9 +15,15 @@ against the selected PlainSolid kernel.
 
 ## Current PlainCAD revision
 
+The [full production run](evidence/plaincad-production-50432ed-2026-11-13.json)
+on PlainCAD `50432ed` passes all 66 originals, both TypeScript checks, and
+the independent WASM probe. The [performance case](evidence/plaincad-production-50432ed-performance-2026-11-13.json)
+finishes in 42.966 seconds with 25 verified edits and 11 validated STL
+downloads. This run includes the staged project-open readiness fix.
+
 Focused original checks on PlainCAD `e65f07b` cover studio Render and
 cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
-native STEP round-trip, and retained pocket and Hole lineage. The latest full
+native STEP round-trip, and retained pocket and Hole lineage. Its full
 production build passes all 66 originals, including its 60.790-second
 performance case. The two consolidated development runs each pass 342 of
 344 originals. The latest run passes pan, markers, gesture and 40-body
