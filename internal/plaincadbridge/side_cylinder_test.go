@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"encoding/base64"
 	"math"
 	"testing"
 
@@ -85,6 +86,43 @@ func TestPlacedSideCrossingBlindCylinderCut(t *testing.T) {
 					}
 				}
 			}
+		}
+	}
+}
+
+func TestPlainCADSideBlindNotchSTEPRoundTrip(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 8})
+	tool := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, 6)
+	cut, err := b.cutMany(stock.Handle, []string{tool.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved := shape(t, b, map[string]any{"op": "transform", "handle": cut.Handle, "matrix": [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}})
+	for _, body := range []Shape{cut, moved} {
+		file, err := b.exportSTEP([]string{body.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := base64.StdEncoding.DecodeString(file.Base64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reread, err := b.importSTEP(string(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, reread.GeometryAssertions.Volume, body.GeometryAssertions.Volume)
+		near(t, reread.GeometryAssertions.SurfaceArea, body.GeometryAssertions.SurfaceArea)
+		if reread.Bounds != body.Bounds {
+			t.Fatalf("STEP changed placed bounds: %+v, want %+v", reread.Bounds, body.Bounds)
+		}
+		mesh, err := b.shapes[reread.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := mesh.ValidateSolid(); err != nil {
+			t.Fatal(err)
 		}
 	}
 }

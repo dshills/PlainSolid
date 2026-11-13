@@ -3,8 +3,10 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -109,12 +111,16 @@ func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
 		return Shape{}, false, nil
 	}
 	radius, depth := c.cylinder.radius, c.cylinder.height
-	s, err := trimmed.BoxSideCylinderBlind(context.Background(), f, -box.Min.X, box.Max.X, box.Max.Y, -box.Min.Y, box.Max.Z, radius, depth, 1e-9)
+	p := step.SideBlindNotchBody{Name: "PlainSolid", Frame: f, Left: -box.Min.X, Right: box.Max.X, Back: box.Max.Y, Inset: -box.Min.Y, Length: box.Max.Z, Radius: radius, Depth: depth}
+	s, err := trimmed.BoxSideCylinderBlind(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, 1e-9)
 	if err != nil {
 		return Shape{}, true, err
 	}
 	section, wall := sideCylinderSection(box, radius)
-	out, err := b.putNotchedStock(s, a.result.GeometryAssertions.Volume-section*depth, a.result.GeometryAssertions.SurfaceArea+wall*depth, a.result.Bounds)
+	body := &analyticBody{solid: s, sideBlindNotch: &p,
+		volume: a.result.GeometryAssertions.Volume - section*depth,
+		area:   a.result.GeometryAssertions.SurfaceArea + wall*depth}
+	out, err := b.putNotchedAnalytic(body, a.result.Bounds)
 	return out, true, err
 }
 func (b *Bridge) sideCylinderCut(a, c stored) (Shape, bool, error) {
@@ -137,8 +143,28 @@ func (b *Bridge) sideCylinderCut(a, c stored) (Shape, bool, error) {
 
 // Every original box extremum survives a qualified one-side or corner notch.
 func (b *Bridge) putNotchedStock(s trimmed.Solid, volume, area float64, bounds Bounds) (Shape, error) {
-	if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 || len(s.Topology().Shells) != 1 {
+	return b.putNotchedAnalytic(&analyticBody{solid: s, volume: volume, area: area}, bounds)
+}
+
+func (b *Bridge) putNotchedAnalytic(body *analyticBody, bounds Bounds) (Shape, error) {
+	if !finite(body.volume) || !finite(body.area) || body.volume <= 0 || body.area <= 0 || len(body.solid.Topology().Shells) != 1 {
 		return Shape{}, unsupportedEdge("invalid notched stock measures")
 	}
-	return b.publish(stored{analytic: &analyticBody{solid: s, volume: volume, area: area}, result: Shape{GeometryAssertions: Assertions{true, volume, area, 1}, Bounds: bounds}})
+	return b.publish(stored{analytic: body, result: Shape{GeometryAssertions: Assertions{true, body.volume, body.area, 1}, Bounds: bounds}})
+}
+
+// The retained notch leaves all original box corners intact. Their world
+// support also excludes the empty part of the cylindrical surface chart.
+func sideBlindNotchBounds(p step.SideBlindNotchBody) (geom.Box, error) {
+	var points [8]geom.Vec3
+	i := 0
+	for _, x := range []float64{-p.Left, p.Right} {
+		for _, y := range []float64{-p.Inset, p.Back} {
+			for _, z := range []float64{0, p.Length} {
+				points[i] = p.Frame.ToWorld(geom.Vec3{X: x, Y: y, Z: z})
+				i++
+			}
+		}
+	}
+	return geom.Bounds(points[:])
 }

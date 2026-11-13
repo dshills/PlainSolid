@@ -118,6 +118,21 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(layeredCircularBody(s, p, h))
 	}
+	if m, e := step.ReadSideBlindNotch(r(), stepLimits()); e == nil {
+		p := m.Body
+		s, err := trimmed.BoxSideCylinderBlind(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, 1e-9)
+		if err != nil {
+			return Shape{}, err
+		}
+		if m.LengthUnit != .001 {
+			return b.putSTEPAnalytic(s, m.LengthUnit)
+		}
+		properties, err := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putAnalyticBody(&analyticBody{solid: s, sideBlindNotch: &p, volume: properties.Volume, area: properties.Area})
+	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
 			return step.ReadRoundedRectangleExtrusions(r(), stepLimits())
@@ -218,6 +233,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteLayeredDiskBores(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepDisk != nil:
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
+	case s.analytic != nil && s.analytic.sideBlindNotch != nil:
+		e = step.WriteSideBlindNotch(&out, step.SideBlindNotchModel{Body: *s.analytic.sideBlindNotch, LengthUnit: .001})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():
