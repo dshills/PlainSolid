@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {suitePorts,passedProbe,verifyDelegatedReport} from "./suite-delegation.mjs";
 import { installDisplayRuntime } from "./display-runtime.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -15,9 +16,9 @@ const option = (key, fallback) => { const index = args.indexOf(key); return inde
 if (!option("--source")) throw new Error("Pass --source /absolute/path/to/PlainCAD explicitly.");
 const source = resolve(option("--source"));
 const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date.now()}`)));
-const port = option("--port", "5279");
-if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535) throw new Error("Invalid --port");
 const suite = option("--suite", "development");
+const ports=suitePorts(suite,option("--port"),option("--preflight-port"));
+const port=ports.preflight;
 const testFile = option("--test", suite === "development" ? "e2e/extrusion-hole.spec.ts" : suite === "production" ? "production-e2e" : "cross-browser-e2e");
 const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
 const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts" };
@@ -47,7 +48,7 @@ if (!sourceIdentity.head) {
     if (error?.code !== "ENOENT") throw error;
   }
 }
-const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { suite, testFile, grep }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
+const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { suite, testFile, grep, acceptancePort: ports.acceptance, preflightPort: ports.preflight }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
 async function command(program, argv, logName, env = {}, cwd = work) {
   const logPath = join(work, logName);
   const chunks = [];
@@ -472,13 +473,23 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", "e2e/plainsolid-backend.spec.ts", "--reporter=list,json"], "backend.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: preflight });
     await unlink(join(work, "e2e/plainsolid-backend.spec.ts"));
     if (acceptanceConfig) {
-      report.acceptanceConfigSha256 = hash(await readFile(join(work, acceptanceConfig)));
-      await command("npm", ["run", "build"], "production-build.log");
+      report.tests=passedProbe(JSON.parse(await readFile(preflight,"utf8")));
+      report.backendVerified=true;
+      report.status="preflight_passed";
+      await writeFile(join(work,"readiness.json"),JSON.stringify(report,null,2));
+      const runner=suite==="production"?"production":"cross-browser";
+      const acceptance=join(work,`${runner}-results.json`);
+      resultPaths.push(acceptance);
+      await command("node",[join(root,"tools/plaincad",`${runner}.mjs`),"--work",work,"--port",ports.acceptance,"--test",testFile,"--grep",grep,"--run"],"delegated-acceptance.log");
+      const delegatedBytes=await readFile(join(work,`${runner}-readiness.json`));
+      const delegated=JSON.parse(delegatedBytes);
+      verifyDelegatedReport(delegated,suite,ports.acceptance);
+      report.delegatedAcceptance={runner,reportSha256:hash(delegatedBytes),status:delegated.status,port:delegated.port,originalConfigSha256:delegated.originalConfigSha256,derivedConfigSha256:delegated.derivedConfigSha256};
+    } else {
+      const acceptance=join(work,"playwright-results.json");
+      resultPaths.push(acceptance);
+      await command("node",[join(source,"node_modules/@playwright/test/cli.js"),"test",testFile,"--grep",grep,"--reporter=list,json"],"acceptance.log",{PLAYWRIGHT_JSON_OUTPUT_FILE:acceptance});
     }
-    const acceptance = join(work, "playwright-results.json");
-    resultPaths.push(acceptance);
-    const configArgs = acceptanceConfig ? ["--config", acceptanceConfig] : [];
-    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", ...configArgs, testFile, "--grep", grep, "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: acceptance });
     report.status = "passed";
   } catch (error) { report.status = "failed"; report.error = String(error); }
   try {
@@ -486,6 +497,7 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
       for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) report.tests.push({ file: spec.file, line: spec.line, title: spec.title, project: test.projectName, status: test.status, results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })) });
       for (const child of suite.suites ?? []) visit(child);
     };
+    report.tests = [];
     report.summaries = [];
     for (const path of resultPaths) {
       const results = JSON.parse(await readFile(path, "utf8"));
