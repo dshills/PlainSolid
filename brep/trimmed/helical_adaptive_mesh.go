@@ -77,7 +77,7 @@ func (s Solid) TessellateHelical(ctx context.Context, o parametric.TessellationO
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
 	optimize := true
-	lastMarked := 0
+	lastMarked, lastCount := 0, 0
 	for round := 0; round <= maxRounds; round++ {
 		for fi := range current {
 			if optimize {
@@ -230,12 +230,14 @@ func (s Solid) TessellateHelical(ctx context.Context, o parametric.TessellationO
 			}
 			return m, nil
 		}
-		lastMarked = len(marked)
 		// Freeze diagonal optimization once the remaining refinement front is
-		// small. Subsequent coarsening is monotone: all replacements already pass.
-		if round >= 5 && len(marked)*20 < count {
+		// small or stops shrinking while the mesh size stalls. Continuing flips
+		// can cycle at a stricter normal tolerance. Subsequent coarsening is
+		// monotone: all replacements already pass the requested checks.
+		if round >= 5 && (len(marked)*20 < count || lastMarked > 0 && len(marked) >= lastMarked && count*20 <= lastCount*21) {
 			optimize = false
 		}
+		lastMarked, lastCount = len(marked), count
 		if round == maxRounds {
 			return mesh.Mesh{}, parametric.ErrBudget
 		}
