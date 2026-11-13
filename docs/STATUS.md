@@ -48,6 +48,12 @@ The earlier integrated build passed 65 cases in one run and the benchmark
 in an unchanged isolated retest. The previous complete production pass
 was `0b17938`.
 
+The newer corner-batch build `d2db51d` passes 65 of 66 production originals
+on `50432ed` while several suites run. The benchmark records all 25 edits
+and 11 validated STL downloads but exceeds its 90-second case deadline.
+The unchanged test passes on the same production assets in 56.048 seconds
+when run separately.
+
 The frozen development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures. The first consolidated current
 run passes 342 of 344. Its two viewport failures pass in focused verification,

@@ -188,6 +188,16 @@ on pristine OCCT. The complete suite retains both failures in its record.
 
 ## PlainCAD full production rerun on `50432ed` — 2026-11-13
 
+The [later corner-batch production run](evidence/plaincad-production-corner-batch-2026-11-13.json)
+tests clean `d2db51d` and passes 65 of 66 originals, both TypeScript
+checks, the bundle budget and the independent WASM probe. The benchmark
+exceeds its 90-second case deadline while several suites run. Its
+[recorded samples](evidence/plaincad-production-corner-batch-performance-timeout-2026-11-13.json)
+include all 25 edits and 11 validated STL downloads. The
+[unchanged retest](evidence/plaincad-production-corner-batch-performance-retest-2026-11-13.json)
+passes in 56.048 seconds with the same staged production assets, WASM,
+deadline and test assertions.
+
 All [66 original production tests](evidence/plaincad-production-50432ed-2026-11-13.json)
 pass in 357.132 seconds, with zero skips, retries or flaky results. Both
 TypeScript checks, the production bundle budget, and the separate WASM
