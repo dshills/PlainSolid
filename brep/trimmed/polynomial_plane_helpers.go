@@ -28,20 +28,27 @@ func validatePolynomialPlanePart(ctx context.Context, p SewFace) error {
 	return nil
 }
 
-// Both charts have exactly affine coordinates on the chosen projection.
-// Transport every UV Bernstein control through those affine maps. The caller
-// independently proves the full model composition before accepting the edge.
+// Both charts have exactly affine coordinates on the chosen projection on
+// this section's original knot cell. Transport every UV Bernstein control
+// through those affine maps. The caller independently proves the full model
+// composition before accepting the edge.
 func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c PCurve, cap *geom.SurfacePatch, axes [2]int, o SplineRectangleEmbeddingOptions) (PCurve, error) {
 	h, e := polynomialPlaneControls(c)
 	if e != nil {
 		return nil, e
 	}
-	sd, d := source.Domain(), cap.Domain()
 	opt := geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits}
-	sj, e := source.EvaluateRational(ctx, ratInset(sd.UMin), ratInset(sd.VMin), opt)
+	sourceOrigin := [2]*big.Rat{h[0][0], h[0][1]}
+	// Use an interior anchor to select the actual knot side. A global chart
+	// corner would use a different affine projection after a C0 crease.
+	for axis := range sourceOrigin {
+		sourceOrigin[axis] = new(big.Rat).Quo(new(big.Rat).Add(sourceOrigin[axis], h[len(h)-1][axis]), big.NewRat(2, 1))
+	}
+	sj, e := source.EvaluateRational(ctx, sourceOrigin[0], sourceOrigin[1], opt)
 	if e != nil {
 		return nil, e
 	}
+	d := cap.Domain()
 	j, e := cap.EvaluateRational(ctx, ratInset(d.UMin), ratInset(d.VMin), opt)
 	if e != nil {
 		return nil, e
@@ -55,7 +62,7 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 	for i, p := range h {
 		var xy [2]*big.Rat
 		for k, axis := range axes {
-			xy[k] = new(big.Rat).Add(sj.Point[axis], new(big.Rat).Add(new(big.Rat).Mul(sj.Du[axis], new(big.Rat).Sub(p[0], ratInset(sd.UMin))), new(big.Rat).Mul(sj.Dv[axis], new(big.Rat).Sub(p[1], ratInset(sd.VMin)))))
+			xy[k] = new(big.Rat).Add(sj.Point[axis], new(big.Rat).Add(new(big.Rat).Mul(sj.Du[axis], new(big.Rat).Sub(p[0], sourceOrigin[0])), new(big.Rat).Mul(sj.Dv[axis], new(big.Rat).Sub(p[1], sourceOrigin[1]))))
 			xy[k].Sub(xy[k], j.Point[axis])
 		}
 		u := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(xy[0], j.Dv[b]), new(big.Rat).Mul(xy[1], j.Dv[a])), det)
