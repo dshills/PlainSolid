@@ -682,6 +682,8 @@ surfaces must keep their geometry through the operation. Continue with:
    nonparallel original supports. It retains exact cap coincidence and
    opening ancestry. Rectangular, sheared, and inclined ducts pass independent
    OCCT comparisons.
+   The same proof now handles two to 32 pairwise separated complete ports.
+   A three-port fixture forms one closed genus-two wall shell.
    Planar edge chamfers also accept compatible independent endpoint setbacks.
    Exact coplanarity keeps the entire tapered bevel on one plane, with
    original edge direction and continuous width metadata.

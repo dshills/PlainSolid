@@ -46,6 +46,14 @@ static void featureRecords(std::ostream& out){
  gp_GTrsf bevelMap;bevelMap.SetValue(1,3,.25);
  const auto taper=BRepBuilderAPI_GTransform(wedgeTool,bevelMap,true).Shape();
  record(out,"tapered-planar-chamfer",BRepAlgoAPI_Cut(BRepPrimAPI_MakeBox(4,3,2).Shape(),taper).Shape(),1e-11);
+ auto portPrism=[](double l,double h,double z,double height){
+  BRepBuilderAPI_MakePolygon rim;
+  for(auto xy:std::array<std::array<double,2>,7>{{{1-l,l},{3+l,l},{h,1-l},{h,h},{1-l,h},{l,3+l},{l,1-l}}})
+   rim.Add(gp_Pnt(xy[0],xy[1],z));
+  rim.Close();
+  return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,0,height)).Shape();
+ };
+ record(out,"hollow-three-ports",BRepAlgoAPI_Cut(portPrism(0,4,0,4),portPrism(.25,3.75,.25,3.5)).Shape());
  for(int mode=0;mode<3;++mode){
  auto wire=[](double lo,double hi,bool reverse){std::vector<gp_Pnt> p={{lo,lo,4},{hi,lo,4},{hi,hi,4},{lo,hi,4}};if(reverse)std::reverse(p.begin(),p.end());BRepBuilderAPI_MakeWire w;for(size_t i=0;i<4;++i)w.Add(BRepBuilderAPI_MakeEdge(p[i],p[(i+1)%4]));return w.Wire();};
  BRepBuilderAPI_MakeFace f(wire(.5,3.5,false));f.Add(wire(1.5,2.5,true));
