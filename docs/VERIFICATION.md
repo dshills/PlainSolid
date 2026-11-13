@@ -1,5 +1,14 @@
 # Verification record
 
+## PlainCAD reflected side- and corner-notched stock — 2026-11-13
+
+Signed-coordinate reflections now retain the side or corner notch recipe
+in a right-handed frame and mirror the contained bore centers. Native
+checks cover blind and through cuts, exact measures and bounds, further
+drilling and STEP round-trip after reflection. The
+[original mirror sketch and STEP cases](evidence/plaincad-reflected-notch-2026-11-13.json)
+pass, along with focused race checks and Go vet.
+
 ## PlainCAD cross-browser and native short-suite coverage — 2026-11-13
 
 The [latest cross-browser run](evidence/plaincad-cross-browser-cylinder-stock-2026-11-13.json)

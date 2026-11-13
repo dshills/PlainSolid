@@ -174,7 +174,8 @@ func checkPlainCADSideNotchSTEP(t *testing.T, origin vector, depth float64) {
 		t.Fatal(err)
 	}
 	moved := shape(t, b, map[string]any{"op": "transform", "handle": cut.Handle, "matrix": [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}})
-	for _, body := range []Shape{cut, moved} {
+	reflected := shape(t, b, map[string]any{"op": "transform", "handle": cut.Handle, "matrix": [][]float64{{-1, 0, 0, 30}, {0, 1, 0, 2}, {0, 0, 1, 0}}})
+	for _, body := range []Shape{cut, moved, reflected} {
 		file, err := b.exportSTEP([]string{body.Handle})
 		if err != nil {
 			t.Fatal(err)
@@ -344,6 +345,16 @@ func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {
 		if err := mesh.ValidateSolid(); err != nil {
 			t.Fatal(err)
 		}
+	}
+	reflected := shape(t, b, map[string]any{"op": "transform", "handle": cut.Handle, "matrix": [][]float64{{-1, 0, 0, 30}, {0, 1, 0, 2}, {0, 0, 1, 0}}})
+	newTool := circle(t, b, vector{25, 12, 0}, vector{0, 0, 1}, 2, 3)
+	newCut, err := b.cutMany(reflected.Handle, []string{newTool.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, newCut.GeometryAssertions.Volume, reflected.GeometryAssertions.Volume-12*math.Pi)
+	if _, err := b.exportSTEP([]string{newCut.Handle}); err != nil {
+		t.Fatal(err)
 	}
 	crossingCenter := vector{origin[0], origin[1] + 3, 0}
 	if origin == (vector{}) {
