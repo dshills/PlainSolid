@@ -15,6 +15,8 @@ const (
 	toolBoreFloor
 	toolBoreLowerAnnulus
 	toolBoreThroughWall
+	toolBoreUnionWall
+	toolBoreUnionCap
 )
 
 // toolBoreChart uses the same tool-centered angle across the two sphere
@@ -31,19 +33,32 @@ func newToolBoreChart(ctx context.Context, s offsetBoreChart, tolerance float64)
 	var result toolBoreChart
 	if !finite(s.radius) || !finite(s.bore) || !finite(s.offset) || !finite(s.floor) ||
 		s.offset < 0 || s.bore <= 0 || s.radius <= 0 || s.frame.ZAxis().Length() == 0 ||
-		s.kind < toolBoreLower || s.kind > toolBoreThroughWall ||
-		s.kind >= toolBoreLowerAnnulus && s.floor != 0 {
+		s.kind < toolBoreLower || s.kind > toolBoreUnionCap ||
+		(s.kind == toolBoreLowerAnnulus || s.kind == toolBoreThroughWall) && s.floor != 0 {
 		return result, geom.ErrInvalid
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
 	pad := new(big.Rat).Mul(q(tolerance), big.NewRat(8, 1))
 	outer := new(big.Rat).Add(q(s.offset), q(s.bore))
-	near := new(big.Rat).Add(q(math.Abs(s.floor)), pad)
 	if q(s.bore).Cmp(pad) <= 0 ||
-		new(big.Rat).Sub(q(s.radius), outer).Cmp(pad) <= 0 ||
-		new(big.Rat).Add(sq(outer), sq(near)).Cmp(sq(q(s.radius))) >= 0 {
+		new(big.Rat).Sub(q(s.radius), outer).Cmp(pad) <= 0 {
 		return result, geom.ErrConvergence
+	}
+	if s.kind == toolBoreUnionWall || s.kind == toolBoreUnionCap {
+		near := new(big.Rat).Sub(q(s.offset), q(s.bore))
+		if near.Sign() < 0 {
+			near.SetInt64(0)
+		}
+		h := new(big.Rat).Sub(q(s.floor), pad)
+		if h.Sign() <= 0 || new(big.Rat).Add(sq(near), sq(h)).Cmp(sq(q(s.radius))) <= 0 {
+			return result, geom.ErrConvergence
+		}
+	} else {
+		near := new(big.Rat).Add(q(math.Abs(s.floor)), pad)
+		if new(big.Rat).Add(sq(outer), sq(near)).Cmp(sq(q(s.radius))) >= 0 {
+			return result, geom.ErrConvergence
+		}
 	}
 	upper, e := geom.NewSphereToolUpperPatch(ctx, s.radius, s.bore, s.offset, geom.SurfacePatchEvaluationOptions{})
 	if e != nil {
@@ -134,7 +149,7 @@ func (s toolBoreChart) toolEval(u, v float64) (p, du, dv geom.Vec3, err error) {
 			du = t.Scale(cl * phiFirst)
 			dv = r.Scale(-sl * math.Pi / 2).Add(z.Scale(s.radius * cl * math.Pi / 2))
 		}
-	case toolBoreWall, toolBoreThroughWall:
+	case toolBoreWall, toolBoreThroughWall, toolBoreUnionWall:
 		var rim geom.Vec3
 		var dRim geom.Vec3
 		rim, err = s.upper.Eval(u, 0)
@@ -142,18 +157,20 @@ func (s toolBoreChart) toolEval(u, v float64) (p, du, dv geom.Vec3, err error) {
 			dRim, _, err = s.upper.Partials(u, 0)
 		}
 		if err == nil {
-			floor, dFloor := s.floor, 0.
+			floor, top, dFloor, dTop := s.floor, rim.Z, 0., dRim.Z
 			if s.kind == toolBoreThroughWall {
 				floor, dFloor = -rim.Z, -dRim.Z
+			} else if s.kind == toolBoreUnionWall {
+				floor, top, dFloor, dTop = rim.Z, s.floor, dRim.Z, 0
 			}
-			p = o.Add(e.Scale(s.bore)).Add(z.Scale(floor + v*(rim.Z-floor)))
-			if v == 1 {
+			p = o.Add(e.Scale(s.bore)).Add(z.Scale((1-v)*floor + v*top))
+			if s.kind != toolBoreUnionWall && v == 1 || s.kind == toolBoreUnionWall && v == 0 {
 				p = rim
 			}
-			du = n.Scale(s.bore).Add(z.Scale(dFloor + v*(dRim.Z-dFloor)))
-			dv = z.Scale(rim.Z - floor)
+			du = n.Scale(s.bore).Add(z.Scale((1-v)*dFloor + v*dTop))
+			dv = z.Scale(top - floor)
 		}
-	case toolBoreFloor:
+	case toolBoreFloor, toolBoreUnionCap:
 		p = o.Add(e.Scale(v * s.bore)).Add(z.Scale(s.floor))
 		du, dv = n.Scale(v*s.bore), e.Scale(s.bore)
 	default:
@@ -186,7 +203,7 @@ func (s toolBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interval
 		q := upperBoreRat(s.equator.SphereAngleSecondAbsolute)
 		k := up(math.Pi / 2)
 		uu, uv, vv = upMul(s.radius, upAdd(upMul(p, p), q)), upMul(s.radius, upMul(p, k)), upMul(s.radius, upMul(k, k))
-	case toolBoreWall, toolBoreThroughWall:
+	case toolBoreWall, toolBoreThroughWall, toolBoreUnionWall:
 		b, e := geom.BoundSphereCylinderRimHeight(ctx, geom.Vec3{}, s.radius, geom.Vec3{X: s.offset}, geom.Vec3{Z: 1}, s.bore, geom.SurfacePatchEvaluationOptions{})
 		if e != nil {
 			return 0, 0, 0, e
@@ -195,7 +212,7 @@ func (s toolBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interval
 		if s.kind == toolBoreThroughWall {
 			uv = upMul(uv, 2)
 		}
-	case toolBoreFloor:
+	case toolBoreFloor, toolBoreUnionCap:
 		uu, uv = s.bore, s.bore
 	default:
 		return 0, 0, 0, geom.ErrInvalid

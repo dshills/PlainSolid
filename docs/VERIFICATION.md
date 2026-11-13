@@ -985,3 +985,8 @@ The double-lens shell keeps separate algebraic cap points at shared angular
 stations and handles unequal lens radii. Independent polar volume integration,
 native reload and sampled mesh closure pass. OCCT compares area, volume and
 centroid for an asymmetric pair of partial caps.
+
+The off-axis boss union qualifies the spherical-to-cylindrical rim, exposed
+flat end, native reload, and a closed display with an analytic deflection
+bound. Its volume satisfies the Boolean volume identity and independently
+matches OCCT area, volume, and centroid.

@@ -446,6 +446,8 @@ partial-cap construction handles one transverse upper lens and a full lower
 disk, even when the upper lens excludes both circle centers. Exact cap and material point/line classifiers
 cover broader partial cuts. Two transverse partial caps on opposite sides
 of the equator now have native shell assembly, including unequal lens radii.
+Finite off-axis union also retains a protruding cylindrical boss with one
+buried cap and one fully exposed cap.
 General curved fragment assembly remains open.
 
 ## Continuing implementation

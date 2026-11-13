@@ -168,13 +168,15 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 			z = scalarBounds{-a.radius, 0}
 		case toolBoreUpper:
 			z = scalarBounds{0, a.radius}
-		case toolBoreWall, toolBoreFloor, toolBoreThroughWall:
+		case toolBoreWall, toolBoreFloor, toolBoreThroughWall, toolBoreUnionWall, toolBoreUnionCap:
 			x, y = scalarBounds{-a.bore, upAdd(a.offset, a.bore)}, scalarBounds{-a.bore, a.bore}
 			z = scalarBounds{a.floor, a.floor}
 			if a.kind == toolBoreWall {
 				z.hi = a.radius
 			} else if a.kind == toolBoreThroughWall {
 				z = scalarBounds{-a.radius, a.radius}
+			} else if a.kind == toolBoreUnionWall {
+				z.lo = 0
 			}
 		default:
 			return geom.Box{}, geom.ErrInvalid
