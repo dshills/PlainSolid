@@ -30,6 +30,11 @@ treatment builders. Reconcile shared builder behavior and face/edge ownership
 on a separate integration candidate before merging. Run the kernel suite and
 the affected PlainCAD browser scenarios on that same candidate. The two
 working directories are kept separate while either has uncommitted work.
+The integration branch later qualified finite To Face extrusion (`cf07586`).
+Its subsequent working changes also touch the parametric persistence,
+deflection, and bounds registration files changed on main. Preserve both
+sets of registered analytic charts when reconciling those files, then run
+native reload and certified mesh tests alongside the browser acceptance.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
