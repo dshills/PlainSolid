@@ -403,7 +403,7 @@ func quadraticLineWithEndpoints(a, b [2]*big.Rat, rationalEndpoints bool) (Exact
 func reversePlaneQuadratic(q ExactQuadraticUV) ExactQuadraticUV {
 	h := q.HomogeneousControls()
 	h[0], h[2] = h[2], h[0]
-	r, _ := NewExactQuadraticUV(h)
+	r, _ := newExactQuadraticUV(h, q.rationalEndpoints)
 	return r
 }
 func validateQuadraticPlanePart(ctx context.Context, p SewFace) error {

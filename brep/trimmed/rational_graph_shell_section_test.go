@@ -1,6 +1,7 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math"
@@ -46,6 +47,53 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 	}
 	if len(seen) != 4 {
 		t.Fatal("missing corner columns", seen)
+	}
+	capDomain := geom.ParameterRectangle{UMax: 1, VMax: 1}
+	knots := []float64{0, 0, 1, 1}
+	support, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{X: -1}, {X: -1, Y: 1}, {X: 2, Z: 1}, {X: 2, Y: 1, Z: 1},
+	}, knots, knots, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	opt := RationalGraphShellSplitOptions{Caps: RationalGraphSectionCapOptions{RationalEndpoints: true}}
+	if rejected, e := s.SplitRationalGraphSplineShell(ctx, q, support, capDomain, RationalGraphShellSplitOptions{}); e == nil || len(rejected.Halves[0].Solid.faces) != 0 {
+		t.Fatal("strict binary endpoint path silently rounded", e)
+	}
+	split, e := s.SplitRationalGraphSplineShell(ctx, q, support, capDomain, opt)
+	if e != nil {
+		t.Fatal("nonbinary direct split", e)
+	}
+	for i, h := range split.Halves {
+		var native bytes.Buffer
+		if e = WriteJSON(&native, h.Solid); e != nil {
+			t.Fatal(e)
+		}
+		reload, e := ReadJSONContext(ctx, &native, JSONLimits{})
+		if e != nil {
+			t.Fatal("nonbinary split native reload", e)
+		}
+		vertices, e := reload.RationalVertices(ctx)
+		if e != nil {
+			t.Fatal(e)
+		}
+		saw := 0
+		for _, v := range vertices {
+			if v.Point[2].Denom().Cmp(big.NewInt(3)) == 0 {
+				saw++
+			}
+		}
+		if saw != 4 {
+			t.Fatal("nonbinary vertices lost", i, saw)
+		}
+		mp, e := reload.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(mp.Volume-.5) > 1e-8 {
+			t.Fatal("nonbinary oblique half volume", i, mp.Volume, e)
+		}
+		display, e := reload.TessellateEmbeddedDisplay(ctx, EmbeddedDisplayOptions{Tessellation: parametric.TessellationOptions{Deflection: .05}})
+		if e != nil || display.SignedVolume.Sign() <= 0 {
+			t.Fatal("nonbinary split displays do not close", i, e)
+		}
 	}
 	limited := RationalGraphShellSectionOptions{VerifyModelEdges: true, EdgeContacts: geom.ComposedPlaneContactsOptions{EventOptions: geom.ExactCurvePlaneEventOptions{MaxOperations: 1}}}
 	if bad, e := s.SectionRationalGraphSplineShell(ctx, q, limited); e == nil || bad.Complete || len(bad.Branches) != 0 {

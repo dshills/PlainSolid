@@ -1633,6 +1633,10 @@ closed, positive-volume, and free from non-incidence triangle contacts.
 Section area enclosures match a logarithmic integral for the oblique weighted
 slice, an exact area of 8 for the square tube, and an exact cubic Green
 integral for a polynomial boundary, without relying on display samples.
+The optional quadratic endpoint path splits the affine box at
+`z=(1+x)/3`, retaining the four vertices at exact heights 1/3 and 2/3 in
+each native reload. Both halves have volume 1/2. The strict binary path
+rejects the same source instead of silently rounding it.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.
