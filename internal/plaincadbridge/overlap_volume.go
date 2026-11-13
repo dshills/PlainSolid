@@ -32,6 +32,19 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if sector, ok := coaxialThrough(stock, tool.cylinder); ok {
 		return result(sector.angle * (tool.cylinder.radius*tool.cylinder.radius - sector.inner*sector.inner) * sector.height / 2)
 	}
+	if a.cylinder != nil && c.analytic != nil {
+		a, c = c, a
+	}
+	if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
+		p, err := a.analytic.pockets.throughBore(c.cylinder)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := trimmed.ExtrudeBoxWithPocketsAndBore(context.Background(), p.frame, p.size, p.pockets, p.bore); err != nil {
+			return nil, err
+		}
+		return result(math.Pi * p.bore.Radius * p.bore.Radius * p.size.Z)
+	}
 	if a.analytic != nil || c.analytic != nil {
 		return nil, &failureError{"UNSUPPORTED", "overlap volume is outside the supported analytic stock domain"}
 	}

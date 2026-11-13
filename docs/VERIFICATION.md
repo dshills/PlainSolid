@@ -1,5 +1,32 @@
 # Verification record
 
+## PlainCAD grouped circular cap rims — 2026-11-13
+
+The adapter resolves a complete original circular cap as one native rim.
+The analytic cylinder retains selected quarter-torus blends and planar caps.
+All three original XY, XZ and YZ grouped circular-perimeter cases pass their
+native removed-volume assertions. Both TypeScript checks and the separate
+real-WASM supplement pass. The [three-case report](evidence/plaincad-circle-rim-2026-11-13.json)
+records the exact snapshot and zero skips or flaky results.
+
+## PlainCAD machined references and multi-rim mesh — 2026-11-13
+
+The qualified rectangular stock retains a blind rectangular pocket and
+nested floor cut, with a disjoint analytic through bore. Floor validation
+compares the complete current finite wire and its outward direction.
+The trimmed floor becomes unavailable after the nested cut. Bore rim
+measurements require a complete inward cylinder and a matching circular
+wire on its outward planar cap. The original machined-reference acceptance
+passes native measurements, repair, parameter edits, save/open and floor
+loss after the nested cut.
+
+The [four-case report](evidence/plaincad-machined-references-2026-11-13.json)
+also passes the two original XY guided multi-hole cases and imported STEP
+STL. The acceptance stage takes 50.0 seconds. The separate
+[three-case regression report](evidence/plaincad-multi-rim-mesh-2026-11-13.json)
+passes the same guided and STEP cases in 39.2 seconds. Both runs pass both
+TypeScript checks and the real-WASM supplement with zero skips or flakes.
+
 ## PlainCAD curved profiles, revolutions, drawing and STEP — 2026-11-13
 
 The bridge retains analytic semicircles, circular segments, capsules, nested
@@ -77,6 +104,17 @@ volume, area and centroid, closed mesh and native JSON roundtrip.
 The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
+
+## Phased lead screw and nut end reliefs — 2026-11-13
+
+Native phased reliefs retain the true finite start windows, with a reduced
+shaft entry and widened tube entrances at both ends. The helical bore wall
+splits into independent analytic strips where the reliefs open both ends.
+Both hands pass native topology, integration against independent material
+coefficients, shoulder normals and closed linear-deflection mesh. The
+bridge reproduces the original four-start shaft and nut volumes and bounds
+and checks the shared clearance envelope. Browser angular display and the
+original helical workflows are being qualified separately.
 
 ## Native modeled threads with overlapping lead-in — 2026-11-13
 

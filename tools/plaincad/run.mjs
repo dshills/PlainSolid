@@ -83,12 +83,12 @@ try {
   await writeFile(join(work, "vite.config.ts"), vite);
   const playwrightConfig = await readFile(join(work, "playwright.config.ts"), "utf8");
   await writeFile(join(work, "playwright.config.ts"), playwrightConfig.replaceAll("5279", port));
-  await mkdir(join(work, "public/plainsolid"), { recursive: true });
-  await command("go", ["build", "-o", join(work, "public/plainsolid/kernel.wasm"), "./cmd/plaincadwasm"], "wasm-build.log", { GOCACHE: join(tmpdir(), "plainsolid-cad-review-go-cache"), GOOS: "js", GOARCH: "wasm" }, root);
+  await mkdir(join(work, "public/assets"), { recursive: true });
+  await command("go", ["build", "-o", join(work, "public/assets/plainsolid-kernel.wasm"), "./cmd/plaincadwasm"], "wasm-build.log", { GOCACHE: join(tmpdir(), "plainsolid-cad-review-go-cache"), GOOS: "js", GOARCH: "wasm" }, root);
   const goroot = execFileSync("go", ["env", "GOROOT"], { encoding: "utf8" }).trim();
   await cp(join(goroot, "lib/wasm/wasm_exec.js"), join(work, "src/cad/kernel/wasm_exec.js"));
   await writeFile(join(work, "src/cad/kernel/wasm_exec.d.ts"), "export {};\n");
-  report.wasmSha256 = hash(await readFile(join(work, "public/plainsolid/kernel.wasm")));
+  report.wasmSha256 = hash(await readFile(join(work, "public/assets/plainsolid-kernel.wasm")));
   await writeFile(join(work, "e2e/plainsolid-backend.spec.ts"), `import { test, expect } from "@playwright/test";
 test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async ({ page }) => {
   const forbidden: string[] = [];

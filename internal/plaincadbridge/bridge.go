@@ -89,6 +89,7 @@ type request struct {
 	Direction         *vector              `json:"direction,omitempty"`
 	Origin            *vector              `json:"origin,omitempty"`
 	Normal            *vector              `json:"normal,omitempty"`
+	RimCenters        []vector             `json:"rimCenters,omitempty"`
 	Edges             []edgeReference      `json:"edges,omitempty"`
 	EdgeStart         *vector              `json:"edgeStart,omitempty"`
 	EdgeEnd           *vector              `json:"edgeEnd,omitempty"`
@@ -220,7 +221,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "drawingGeometry", "thread", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "thread":
 		if q.Thread == nil {
 			return nil, errors.New("thread requires dimensions and handedness")
@@ -234,6 +235,18 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.importSTEP(q.Source)
 	case "exportStep":
 		return b.exportSTEP(q.Handles)
+	case "pocketFloor", "holeRim":
+		s, err := b.get(q.Handle)
+		if err != nil {
+			return nil, err
+		}
+		if q.Op == "holeRim" {
+			return s.holeRim(q)
+		}
+		if err := s.pocketFloor(q); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"available": true}, nil
 	case "drawingGeometry":
 		s, err := b.get(q.Handle)
 		if err != nil {
@@ -249,10 +262,13 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.mixedExtrude(*q.Profile)
 	case "revolvePolygon", "revolveCircle":
 		return b.revolve(q)
-	case "edgeAvailable", "fillet", "chamfer":
+	case "edgeAvailable", "fillet", "filletCylinderRims", "chamfer":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
+		}
+		if q.Op == "filletCylinderRims" {
+			return b.filletCylinderRims(s, q)
 		}
 		if q.Op == "edgeAvailable" {
 			if q.EdgeStart == nil || q.EdgeEnd == nil {
@@ -309,6 +325,18 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		if q.Op == "cut" {
+			if c.planar() {
+				if result, handled, err := b.rectangularPocket(a, c); handled {
+					return result, err
+				}
+			}
+			if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
+				p, err := a.analytic.pockets.throughBore(c.cylinder)
+				if err != nil {
+					return nil, err
+				}
+				return b.putPocketStock(p)
+			}
 			if a.analytic != nil && a.analytic.shaft != nil && c.planar() {
 				return b.cutShaftSocket(*a.analytic.shaft, c.solid)
 			}

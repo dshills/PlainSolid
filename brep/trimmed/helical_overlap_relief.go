@@ -33,6 +33,24 @@ func GrooveWithOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe
 	if e != nil {
 		return fail(e)
 	}
+	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, false)
+}
+
+// GrooveWithPhasedOverlappingEntryRelief supports phase-staggered starts in
+// one common axial window. The relief may pass the complete first end profile,
+// but must remain strictly before every far-end profile point.
+func GrooveWithPhasedOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe, initialPhase, reliefRadius, depth, maxChartError float64) (HelicalOverlapRelief, error) {
+	if ctx == nil || !finite(reliefRadius) || !finite(depth) || reliefRadius <= 0 || depth <= 0 {
+		return HelicalOverlapRelief{}, geom.ErrInvalid
+	}
+	original, proof, e := GrooveWithPhasedStarts(ctx, r, initialPhase, maxChartError)
+	if e != nil {
+		return HelicalOverlapRelief{}, e
+	}
+	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, true)
+}
+func finishOverlapEntry(ctx context.Context, r HelicalGrooveRecipe, original Solid, proof HelicalChartRoundoff, reliefRadius, depth float64, phased bool) (HelicalOverlapRelief, error) {
+	fail := func(e error) (HelicalOverlapRelief, error) { return HelicalOverlapRelief{}, e }
 	loR, hiR, loZ, hiZ := math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
 	for _, p := range r.Profile {
 		loR = min(loR, p.X)
@@ -41,7 +59,11 @@ func GrooveWithOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe
 		hiZ = max(hiZ, p.Y+r.Lead*r.Start)
 	}
 	pad := 8 * original.tolerance
-	if depth <= loZ+pad || depth >= hiZ-pad || depth >= r.Height-pad {
+	maxDepth := hiZ
+	if phased {
+		maxDepth = loZ + r.Lead*(r.End-r.Start)
+	}
+	if depth <= loZ+pad || depth >= maxDepth-pad || depth >= r.Height-pad {
 		return fail(geom.ErrDomain)
 	}
 	if r.BoreRadius == 0 {
@@ -73,6 +95,10 @@ func GrooveWithOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe
 	groove, below, e := helicalOverlapVolume(r, depth)
 	if e != nil {
 		return fail(e)
+	}
+	if phased {
+		groove.Mul(groove, big.NewRat(int64(r.Starts), 1))
+		below.Mul(below, big.NewRat(int64(r.Starts), 1))
 	}
 	stockRadius := r.OuterRadius
 	if r.BoreRadius > 0 {
@@ -120,6 +146,9 @@ func reliefBelow(p []reliefExactPoint, z *big.Rat) []reliefExactPoint {
 	return out
 }
 func helicalOverlapVolume(r HelicalGrooveRecipe, depth float64) (*big.Rat, *big.Rat, error) {
+	return helicalOverlapVolumeExactDepth(r, ratInset(depth))
+}
+func helicalOverlapVolumeExactDepth(r HelicalGrooveRecipe, depth *big.Rat) (*big.Rat, *big.Rat, error) {
 	var p []reliefExactPoint
 	for _, v := range r.Profile {
 		p = append(p, reliefExactPoint{ratInset(v.X), ratInset(v.Y)})
@@ -136,7 +165,7 @@ func helicalOverlapVolume(r HelicalGrooveRecipe, depth float64) (*big.Rat, *big.
 	}
 	full := new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(r.End), ratInset(r.Start)), moment))
 	integral := func(turn float64) *big.Rat {
-		z := new(big.Rat).Sub(ratInset(depth), new(big.Rat).Mul(ratInset(r.Lead), ratInset(turn)))
+		z := new(big.Rat).Sub(depth, new(big.Rat).Mul(ratInset(r.Lead), ratInset(turn)))
 		clipped := reliefBelow(p, z)
 		if len(clipped) < 3 {
 			return new(big.Rat)

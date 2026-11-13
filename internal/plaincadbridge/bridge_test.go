@@ -160,7 +160,7 @@ func TestStrictRequestsAndLimits(t *testing.T) {
 			t.Fatal(q, got)
 		}
 	}
-	if got := b.Call(`{"op":"thread"}`); !strings.Contains(got, `"code":"UNSUPPORTED"`) {
+	if got := b.Call(`{"op":"unimplemented"}`); !strings.Contains(got, `"code":"UNSUPPORTED"`) {
 		t.Fatal(got)
 	}
 	if got := b.Call(strings.Repeat(" ", MaxRequestBytes+1)); !strings.Contains(got, `"code":"LIMIT"`) {
