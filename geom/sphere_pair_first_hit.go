@@ -46,6 +46,14 @@ func (s SpherePairMaterial) FirstBoundaryHit(ctx context.Context, origin, direct
 	if e != nil {
 		return zero, e
 	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	return s.firstBoundaryHitRational(ctx, line, [3]*big.Rat{q(origin.X), q(origin.Y), q(origin.Z)}, [3]*big.Rat{q(direction.X), q(direction.Y), q(direction.Z)}, o)
+}
+
+func (s SpherePairMaterial) firstBoundaryHitRational(ctx context.Context, line SpherePairMaterialLine, org, dir [3]*big.Rat, o ToroidLineOptions) (SpherePairFirstHit, error) {
+	var zero SpherePairFirstHit
+	var e error
+
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 1024
 	}
@@ -98,9 +106,6 @@ func (s SpherePairMaterial) FirstBoundaryHit(ctx context.Context, origin, direct
 	}
 	out := SpherePairFirstHit{HasHit: true, Parameter: root, Bounds: root.Interval(), Boundary: mask, Isolated: isolated, Tangent: true}
 	budget := &polynomialBudget{maxOperations: opts.MaxOperations, maxBits: opts.MaxCoefficientBits}
-	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
-	org := [3]*big.Rat{q(origin.X), q(origin.Y), q(origin.Z)}
-	dir := [3]*big.Rat{q(direction.X), q(direction.Y), q(direction.Z)}
 	bounds := func(a, b *big.Rat) (ExactParameterInterval, error) {
 		lo := new(big.Rat).Add(a, new(big.Rat).Mul(b, out.Bounds.Lower))
 		hi := new(big.Rat).Add(a, new(big.Rat).Mul(b, out.Bounds.Upper))

@@ -40,6 +40,11 @@ func (q ExactQuadraticUV) IntersectModelRawPlane(ctx context.Context, p *geom.Su
 	if e != nil {
 		return empty, e
 	}
+	return intersectModelCurveCellsRawPlane(ctx, c, plane, o)
+}
+
+func intersectModelCurveCellsRawPlane(ctx context.Context, c geom.SurfaceCurveCompositionCells, plane [4]*big.Rat, o geom.ExactCurvePlaneEventOptions) (ExactQuadraticAlgebraicPlaneSection, error) {
+	var empty ExactQuadraticAlgebraicPlaneSection
 	if !c.Complete || len(c.Cells) == 0 {
 		return empty, geom.ErrConvergence
 	}
