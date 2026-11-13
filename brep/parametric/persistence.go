@@ -27,6 +27,7 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
+	Steinmetz       *[2]int      `json:",omitempty"`
 	Transform       *geom.Affine `json:",omitempty"`
 	Base            *surfaceData `json:",omitempty"`
 	Kind            string
@@ -131,6 +132,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
 	case offsetBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
+	case steinmetzChart:
+		return surfaceData{Kind: "steinmetz-cylinder", Center: &x.center, A: x.radius, Steinmetz: &[2]int{x.axis, x.sign}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
@@ -294,6 +297,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 
 	if d.Base != nil || d.Transform != nil {
 		return nil, geom.ErrInvalid
+	}
+	if d.Kind == "steinmetz-cylinder" {
+		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || d.A <= 0 || d.Steinmetz == nil || d.Steinmetz[0] < 0 || d.Steinmetz[0] > 1 || (d.Steinmetz[1] != 1 && d.Steinmetz[1] != -1) || d.Frame != nil {
+			return nil, geom.ErrInvalid
+		}
+		return steinmetzChart{*d.Center, d.A, d.Steinmetz[0], d.Steinmetz[1]}, nil
 	}
 	if d.Kind == "bspline" || d.Kind == "wrapped-surface" {
 		x := d.Spline
