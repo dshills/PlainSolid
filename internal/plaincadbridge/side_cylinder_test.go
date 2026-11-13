@@ -3,8 +3,9 @@ package plaincadbridge
 import (
 	"context"
 	"math"
-	"plainsolid/brep/parametric"
 	"testing"
+
+	"plainsolid/brep/parametric"
 )
 
 func TestPlacedSideCrossingCircularCut(t *testing.T) {
@@ -32,6 +33,58 @@ func TestPlacedSideCrossingCircularCut(t *testing.T) {
 		}
 		if e = m.ValidateSolid(); e != nil {
 			t.Fatal(e)
+		}
+	}
+}
+
+func TestPlacedSideCrossingBlindCylinderCut(t *testing.T) {
+	for _, axis := range []int{0, 1, 2} {
+		for _, direction := range []float64{-1, 1} {
+			b := New()
+			lo, hi := vector{16, 32, 48}, vector{36, 52, 68}
+			base := box(t, b, lo, hi)
+			for _, offset := range []float64{-1, 1} {
+				normal := vector{}
+				normal[axis] = direction
+				origin := lo
+				if direction < 0 {
+					origin[axis] = hi[axis]
+				}
+				origin[(axis+1)%3] += 10
+				origin[(axis+2)%3] += offset
+				inset := offset
+				sweep := math.Pi + 2*math.Asin(inset/3)
+				chord := 2 * math.Sqrt(9-inset*inset)
+				area := (9*sweep + inset*chord) / 2
+				for _, reversed := range []bool{false, true} {
+					point, n := origin, normal
+					if reversed {
+						point[axis] += 6 * direction
+						n[axis] = -direction
+					}
+					tool := circle(t, b, point, n, 3, 6)
+					near(t, overlapMeasure(t, b, base.Handle, tool.Handle), 6*area)
+					near(t, overlapMeasure(t, b, tool.Handle, base.Handle), 6*area)
+					for _, q := range []map[string]any{
+						{"op": "cut", "a": base.Handle, "b": tool.Handle},
+						{"op": "cutMany", "a": base.Handle, "tools": []string{tool.Handle}},
+					} {
+						cut := shape(t, b, q)
+						near(t, cut.GeometryAssertions.Volume, 8000-6*area)
+						near(t, cut.GeometryAssertions.SurfaceArea, 2400+6*(3*sweep-chord))
+						if cut.Bounds != base.Bounds {
+							t.Fatalf("stock extrema changed: %+v", cut.Bounds)
+						}
+						mesh, err := b.shapes[cut.Handle].tessellate(request{})
+						if err != nil {
+							t.Fatal(axis, direction, offset, err)
+						}
+						if err := mesh.ValidateSolid(); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+			}
 		}
 	}
 }

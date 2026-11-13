@@ -10,6 +10,20 @@ import (
 // the lower Y side. Frame's axis passes through the circle center; stock spans
 // X=[-left,right], Y=[-inset,back], Z=[0,length].
 func BoxSideCylinderThrough(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, tolerance float64) (Solid, error) {
+	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, length, tolerance)
+}
+
+// BoxSideCylinderBlind cuts a circular notch from Z=0 to depth. The footprint
+// crosses the lower Y side and clears the other three sides. The far cap and
+// the material behind the analytic circular-segment floor remain intact.
+func BoxSideCylinderBlind(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth, tolerance float64) (Solid, error) {
+	if !finite(depth) || length-depth <= 8*tolerance {
+		return Solid{}, geom.ErrDomain
+	}
+	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, depth, tolerance)
+}
+
+func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth, tolerance float64) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -22,7 +36,7 @@ func BoxSideCylinderThrough(ctx context.Context, frame geom.Frame, left, right, 
 		}
 	}
 	pad := 8 * tolerance
-	if tolerance <= 0 || !finite(pad) || radius <= pad || length <= pad || radius-math.Abs(inset) <= pad || left-radius <= pad || right-radius <= pad || back-radius <= pad {
+	if tolerance <= 0 || !finite(pad) || radius <= pad || depth <= pad || depth > length || radius-math.Abs(inset) <= pad || left-radius <= pad || right-radius <= pad || back-radius <= pad {
 		return Solid{}, geom.ErrDomain
 	}
 	root := math.Sqrt((radius - inset) * (radius + inset))
@@ -49,49 +63,75 @@ func BoxSideCylinderThrough(ctx context.Context, frame geom.Frame, left, right, 
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
 
-	for _, cap := range []struct {
-		z       float64
-		reverse bool
-	}{{0, true}, {length, false}} {
-		cf, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: cap.z}), frame.XAxis(), frame.ZAxis())
-		if e != nil {
+	if e := b.sideCylinderCap(p, arcs, 0, radius, tolerance, true); e != nil {
+		return Solid{}, e
+	}
+	upper := p
+	upperArcs := arcs
+	if depth < length {
+		upper, upperArcs = p[:6], nil
+		// The floor runs from the left to the right contact along the
+		// stock side, then back along the circular arc.
+		floor := []geom.Vec2{p[5], p[0]}
+		for i := len(p) - 1; i > 5; i-- {
+			floor = append(floor, p[i])
+		}
+		floorArcs := make(map[int][2]float64, n)
+		for i := 0; i < n; i++ {
+			a := arcs[5+n-1-i]
+			floorArcs[1+i] = [2]float64{a[1], a[0]}
+		}
+		if e := b.sideCylinderCap(floor, floorArcs, depth, radius, tolerance, true); e != nil {
 			return Solid{}, e
 		}
-		surface, e := geom.NewPlaneSurface(cf)
-		if e != nil {
-			return Solid{}, e
-		}
-		points := make([]geom.Vec3, len(p))
-		curves := map[int]PCurve{}
-		for i, v := range p {
-			points[i] = geom.Vec3{X: v.X, Y: v.Y, Z: cap.z}
-			if a, ok := arcs[i]; ok {
-				curve := EllipseUV{Cos: geom.Vec2{X: radius}, Sin: geom.Vec2{Y: radius}, From: a[0], To: a[1]}
-				lo, e0 := curve.EvalUV(0)
-				hi, e1 := curve.EvalUV(1)
-				q := p[(i+1)%len(p)]
-				if e0 != nil || e1 != nil || math.Hypot(lo.X-v.X, lo.Y-v.Y) > tolerance || math.Hypot(hi.X-q.X, hi.Y-q.Y) > tolerance {
-					return Solid{}, geom.ErrUnrepresentable
-				}
-				curves[i] = unionArcUV{EllipseUV: curve, Start: v, End: q}
+		for i, v := range upper {
+			if e := b.wall(v, upper[(i+1)%len(upper)], depth, length); e != nil {
+				return Solid{}, e
 			}
 		}
-		if e = b.face(surface, points, p, curves, cap.reverse); e != nil {
-			return Solid{}, e
-		}
 	}
-
+	if e := b.sideCylinderCap(upper, upperArcs, length, radius, tolerance, false); e != nil {
+		return Solid{}, e
+	}
 	for i, v := range p {
 		q := p[(i+1)%len(p)]
 		var e error
 		if a, ok := arcs[i]; ok {
-			e = b.cylinder(a[1], a[0], length, radius, true, v, q)
+			e = b.cylinder(a[1], a[0], depth, radius, true, v, q)
 		} else {
-			e = b.wall(v, q, 0, length)
+			e = b.wall(v, q, 0, depth)
 		}
 		if e != nil {
 			return Solid{}, e
 		}
 	}
 	return NewSolidContext(ctx, b.vertices, b.edges, b.faces, tolerance)
+}
+
+func (b *cornerCylinderBuilder) sideCylinderCap(p []geom.Vec2, arcs map[int][2]float64, z, radius, tolerance float64, reversed bool) error {
+	frame := b.frame
+	cf, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: z}), frame.XAxis(), frame.ZAxis())
+	if e != nil {
+		return e
+	}
+	surface, e := geom.NewPlaneSurface(cf)
+	if e != nil {
+		return e
+	}
+	points := make([]geom.Vec3, len(p))
+	curves := map[int]PCurve{}
+	for i, v := range p {
+		points[i] = geom.Vec3{X: v.X, Y: v.Y, Z: z}
+		if a, ok := arcs[i]; ok {
+			curve := EllipseUV{Cos: geom.Vec2{X: radius}, Sin: geom.Vec2{Y: radius}, From: a[0], To: a[1]}
+			lo, e0 := curve.EvalUV(0)
+			hi, e1 := curve.EvalUV(1)
+			q := p[(i+1)%len(p)]
+			if e0 != nil || e1 != nil || math.Hypot(lo.X-v.X, lo.Y-v.Y) > tolerance || math.Hypot(hi.X-q.X, hi.Y-q.Y) > tolerance {
+				return geom.ErrUnrepresentable
+			}
+			curves[i] = unionArcUV{EllipseUV: curve, Start: v, End: q}
+		}
+	}
+	return b.face(surface, points, p, curves, reversed)
 }

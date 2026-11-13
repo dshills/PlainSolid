@@ -45,3 +45,31 @@ func TestBoxSideCylinderThroughRejectsTangencyAndOtherSides(t *testing.T) {
 		t.Fatal("second side contact accepted")
 	}
 }
+
+func TestBoxSideCylinderBlindFloor(t *testing.T) {
+	ctx := context.Background()
+	f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inset := range []float64{-1, 0, 1} {
+		const radius, depth = 3, 6
+		s, err := BoxSideCylinderBlind(ctx, f, 10, 10, 19, inset, 20, radius, depth, 1e-9)
+		if err != nil {
+			t.Fatal(inset, err)
+		}
+		sweep := math.Pi + 2*math.Asin(inset/radius)
+		chord := 2 * math.Sqrt(radius*radius-inset*inset)
+		area := (radius*radius*sweep + inset*chord) / 2
+		wantV := 400*(19+inset) - depth*area
+		wantA := 800 + 80*(19+inset) + depth*(radius*sweep-chord)
+		p, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil || math.Abs(p.Volume-wantV) > 1e-7 || math.Abs(p.Area-wantA) > 1e-7 {
+			t.Fatalf("%g: integrated measures %+v, want volume %g and area %g: %v", inset, p, wantV, wantA, err)
+		}
+		floor, err := s.PlanarFaceArea(1)
+		if err != nil || math.Abs(floor-area) > 1e-7 || !s.Faces()[1].Reversed {
+			t.Fatalf("%g: wrong blind floor %g: %v", inset, floor, err)
+		}
+	}
+}

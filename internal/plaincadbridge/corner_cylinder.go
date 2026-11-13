@@ -65,6 +65,9 @@ func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, err
 		if result, handled, err := b.sideCylinderCut(a, c); handled {
 			return result, true, err
 		}
+		if result, handled, err := b.sideCylinderBlindCut(a, c); handled {
+			return result, true, err
+		}
 		if f, d, ok := cornerCylinderThroughRecipe(a.solid, c.cylinder); ok {
 			r := c.cylinder.radius
 			solid, err := trimmed.BoxCornerCylinderThrough(context.Background(), f, d.X, d.Y, d.Z, r, 1e-9)
