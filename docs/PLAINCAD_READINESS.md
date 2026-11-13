@@ -52,7 +52,9 @@ left-hand Acme gallery. A [separate retest](evidence/plaincad-production-unc-202
 passes the quarter-inch UNC gallery in 14.9 seconds after repairing helical
 placement. The [isolated performance retest](evidence/plaincad-production-performance-isolated-2026-11-13.json)
 passes the original production case in 29.5 seconds with all 25 edits and
-11 validated STL downloads. A full current production rerun is in progress.
+11 validated STL downloads. The
+[full current production run](evidence/plaincad-current-production-2026-11-13.json)
+passes all 66 originals.
 
 The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
 passes cold load of all 40 bodies, cached rename, and a platter thickness

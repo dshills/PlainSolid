@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD full current production acceptance — 2026-11-13
+
+The [production report](evidence/plaincad-current-production-2026-11-13.json)
+passes 66 of 66 originals in 403.549 seconds on PlainCAD `e65f07b`. No
+tests skip, flake or retry. The built app uses the same Go WASM as the
+isolated performance comparison. The performance case also passes within
+the full run in 56.2 seconds. The original production configuration,
+assertions and deadlines are preserved. The build passes the JavaScript
+bundle budget across 72 bundles, with a largest bundle of 496.82 kB.
+
 ## PlainCAD isolated production performance — 2026-11-13
 
 The [production benchmark comparison](evidence/plaincad-production-performance-isolated-2026-11-13.json)
