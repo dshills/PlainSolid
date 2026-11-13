@@ -55,3 +55,15 @@ static void warpedSplineTwoPlanes(std::ostream& out,bool crossing){
  auto first=BRepAlgoAPI_Common(stock,lower).Shape();
  splineShellRecord(out,crossing?"warped-crossing-planes":"warped-separated-planes",BRepAlgoAPI_Common(first,upper).Shape());
 }
+static void quadraticGraphPlaneBooleans(std::ostream& out){
+ NCollection_Array2<gp_Pnt> poles(1,3,1,2);
+ for(int i=1;i<=3;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/2.,j-1,(i==3?1./8:0)+(j-1)/4.));
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);
+ NCollection_Array1<int> xmult(1,2),ymult(1,2);xmult.Init(3);ymult.Init(2);
+ occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xmult,ymult,2,1);
+ auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
+ if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent quadratic stock or cutter");
+ splineShellRecord(out,"quadratic-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,"quadratic-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+}
