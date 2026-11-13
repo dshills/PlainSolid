@@ -252,6 +252,9 @@ func ReadLinearExtrusions(r io.Reader, l Limits) (LinearExtrusionModel, error) {
 }
 
 func linearExtrusionRoots(f *File, l Limits) ([]int64, float64, error) {
+	return boundedSweptSurfaceRoots(f, l, "SURFACE_OF_LINEAR_EXTRUSION")
+}
+func boundedSweptSurfaceRoots(f *File, l Limits, basisKind string) ([]int64, float64, error) {
 	fail := func() ([]int64, float64, error) {
 		return nil, 0, errors.New("step: unsupported linear extrusion model ownership")
 	}
@@ -262,7 +265,7 @@ func linearExtrusionRoots(f *File, l Limits) ([]int64, float64, error) {
 	for _, id := range f.Order {
 		en := f.Entities[id]
 		for _, rec := range en.Records {
-			if !linearExtrusionRecordAllowed(rec.Type) {
+			if !linearExtrusionRecordAllowed(rec.Type) && !(basisKind == "SURFACE_OF_REVOLUTION" && (rec.Type == basisKind || rec.Type == "AXIS1_PLACEMENT")) {
 				return fail()
 			}
 			if strings.Contains(rec.Type, "TRANSFORMATION") || strings.Contains(rec.Type, "REPRESENTATION_RELATIONSHIP") || rec.Type == "MAPPED_ITEM" || rec.Type == "REPRESENTATION_MAP" || rec.Type == "ADVANCED_FACE" || rec.Type == "MANIFOLD_SOLID_BREP" {
@@ -322,7 +325,7 @@ func linearExtrusionRoots(f *File, l Limits) ([]int64, float64, error) {
 				return fail()
 			}
 			used[bid] = true
-			sweep, e := simple(f, bid, "SURFACE_OF_LINEAR_EXTRUSION", 3)
+			sweep, e := simple(f, bid, basisKind, 3)
 			if e != nil {
 				return fail()
 			}
@@ -340,7 +343,7 @@ func linearExtrusionRoots(f *File, l Limits) ([]int64, float64, error) {
 	for id, en := range f.Entities {
 		for _, rec := range en.Records {
 			switch rec.Type {
-			case "GEOMETRIC_SET", "RECTANGULAR_TRIMMED_SURFACE", "SURFACE_OF_LINEAR_EXTRUSION", "B_SPLINE_CURVE_WITH_KNOTS", "B_SPLINE_SURFACE_WITH_KNOTS", "B_SPLINE_CURVE", "RATIONAL_B_SPLINE_CURVE", "BOUNDED_CURVE", "CURVE":
+			case "GEOMETRIC_SET", "RECTANGULAR_TRIMMED_SURFACE", "SURFACE_OF_LINEAR_EXTRUSION", "SURFACE_OF_REVOLUTION", "B_SPLINE_CURVE_WITH_KNOTS", "B_SPLINE_SURFACE_WITH_KNOTS", "B_SPLINE_CURVE", "RATIONAL_B_SPLINE_CURVE", "BOUNDED_CURVE", "CURVE":
 				if !used[id] {
 					return fail()
 				}
