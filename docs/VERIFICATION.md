@@ -22,6 +22,19 @@ The build verified 841 original sources. There were no skips, failures or
 flaky outcomes. The separate backend preflight passed on port 5440; the
 unchanged production fixtures used their original port 5280.
 
+The [full cross-browser run](evidence/plaincad-reconciled-cross-browser-e060654-2026-11-13.json)
+ran 15 unchanged cases on `e060654`: three passed and 12 failed in Chromium,
+Firefox, and WebKit, with no skips or retries. All three engines passed the
+native face-card and dimension case. Each of the 12 UI failures matches a
+recorded pristine OCCT control using the same app source, at the same selector
+or assertion. The unchanged cross-browser gate remains failed.
+
+The three local trimmed-kernel short-mode shards passed on `e579e5c`: 478
+top-level cases passed and four skipped by design. The integration worktree
+also ran two of those short-mode exclusions explicitly in full mode, with
+separate evidence below. These are pinned native results, distinct from the
+browser cases.
+
 On clean reconciliation `9b12a41`, all three original viewer cases passed
 with the staged camera settling repair: pan/idle (53.8 s), source markers
 (31.1 s), and ORBIT gesture/export (about 72 s). The separate Go/WASM
