@@ -249,3 +249,26 @@ boundary curves, face coverage, embedding of the complete boundary or material
 equivalence. Existing strict shape importers continue rejecting this approximate
 STEP B-rep. Small tolerance failure returns a completed certificate with
 `WithinTolerance=false`; unsupported geometry or exhausted proof budgets errors.
+
+### Finite cylinder seam tolerance envelope
+
+`BoundOffAxisCylinderSeamCoverage` preserves the actual seam EDGE_CURVE, its
+ordered vertex IDs, source LINE and two oppositely oriented cylinder coedges.
+It does not invent authored LINE trim values. With explicit source-unit distance
+tolerance `tau`, orthogonal vertex projections onto the unit-direction LINE
+provide parameters `a,b`; perpendicular squared gaps must not exceed `tau²`.
+For source vector magnitude `m>0`, every admissible endpoint parameter lies in
+`[a-tau/m,a+tau/m]` or `[b-tau/m,b+tau/m]`. When those enclosures are strictly
+ordered, every admissible finite trim contains the reported guaranteed core
+and lies within the possible envelope. The projections exhibit existence of
+an admissible trim. The enclosures are conservative rather than maximal.
+
+The existing topology subset requires EDGE_CURVE same_sense=true. Reversed
+endpoint order or incompatible line direction is rejected, not silently fixed.
+Insufficient endpoint tolerance or overlapping endpoint enclosures produces
+`OrderedCoverage=false`; no coverage assertion follows. Each separate constant-U
+cylinder pcurve retains its source angle and an exact affine parameter mapping
+obtained from axial height alone, including signed V direction and magnitude.
+This is not angular lift equality, a coedge-to-pcurve assignment, spherical
+seam selection, a full-loop proof or material acceptance. Exact authored trim
+selection remains explicitly unknown, and strict import behavior is unchanged.
