@@ -77,6 +77,10 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		o.MaxTriangles = min(o.MaxTriangles, 100000)
 		return a.solid.TessellateHelical(context.Background(), o)
 	}
+	if a.segment != nil {
+		// Segment rims retain the same facet-angle budget as full circles.
+		o.Angle = min(o.Angle, .025)
+	}
 	if a.patches != nil {
 		// Rectangular-patch tessellation compares normals at centroids.
 		// Use a finer bound for the curved preview than the generic centroid test.

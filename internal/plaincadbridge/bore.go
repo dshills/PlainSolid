@@ -315,6 +315,9 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	return f, nil
 }
 func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
+	if op == "cut" && boundsSeparated(a.result.Bounds, c.result.Bounds) {
+		return nil, &failureError{"UNSUPPORTED", "Boolean cut removed no volume. Move the tool into the target body."}
+	}
 	if op == "common" && a.cylinder != nil && c.cylinder == nil {
 		a, c = c, a
 	}

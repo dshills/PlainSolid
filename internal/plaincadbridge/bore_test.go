@@ -90,8 +90,9 @@ func TestFiniteCylinderCoverageAndPartialCommon(t *testing.T) {
 	if !strings.Contains(reply, `"ok":false`) {
 		t.Fatal(reply)
 	}
-	// Tangential and side-crossing tools must not silently remove an infinite bore.
-	for _, x := range []float64{3, 3.5} {
+	// Tangential tools remain unsupported. Transverse one-side crossings are
+	// covered by TestPlacedSideCrossingCircularCut with exact segment measures.
+	for _, x := range []float64{3} {
 		tool := circle(t, b, vector{x, 0, -1}, vector{0, 0, 1}, 1, 10)
 		reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)
 		if !strings.Contains(reply, `"ok":false`) {
