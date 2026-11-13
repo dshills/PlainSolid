@@ -230,6 +230,12 @@ int main(int argc, char** argv) {
         if(count!=2)throw std::runtime_error("separated finite union did not retain two solids");
         record(out,axial?"finite-separated-axial":"finite-separated-radial",combined,1e-11);
       }
+      const auto unequalWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,8).Shape();
+      const auto unequalNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-4,3),gp_Dir(0,1,0)),3,12).Shape();
+      const auto unequalUnion=BRepAlgoAPI_Fuse(unequalWide,unequalNarrow).Shape();
+      int unequalCount=0;for(TopExp_Explorer it(unequalUnion,TopAbs_SOLID);it.More();it.Next())++unequalCount;
+      if(unequalCount!=1)throw std::runtime_error("unequal finite union not one solid");
+      record(out,"finite-unequal-union",unequalUnion,1e-11);
       return 0;
     }
     if (argc == 3 && mode == "finite-cylinder-dispatch") {

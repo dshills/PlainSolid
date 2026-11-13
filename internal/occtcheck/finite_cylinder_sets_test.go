@@ -116,3 +116,22 @@ func TestOCCTSeparatedFiniteCylinderUnion(t *testing.T) {
 		t.Fatal("tangent policy", e)
 	}
 }
+
+func TestOCCTUnequalFiniteCylinderUnion(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	center := geom.Vec3{X: 1, Y: 2, Z: 3}
+	a := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Y: 3}, Radius: 3, Min: -2, Max: 2}
+	for _, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		u, e := parametric.FiniteCylinderPairUnion(ctx, pair[0], pair[1], 1e-8)
+		if e != nil || finiteOracleShellCount(u.Solid) != 1 {
+			t.Fatal("single closed union", e)
+		}
+		mass, e := u.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if e != nil {
+			t.Fatal(e)
+		}
+		compare(t, refs["finite-unequal-union"], mass.Area, mass.Volume, mass.Centroid)
+	}
+}
