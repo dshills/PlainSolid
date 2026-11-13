@@ -6,6 +6,11 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
+Shell and three Hole pattern cases pass the expanded original selection.
+The same run exposes two remaining pattern failures, a circular pocket
+pattern on previously cut stock and the overlapping Hole diagnostic.
+
 Focused browser runs now pass the original mixed profile, revolve, socket-head
 blank, shop drawing and STEP workflows, including the three repaired regressions
 for the solved circular segment, placed bore axis and imported STEP STL.

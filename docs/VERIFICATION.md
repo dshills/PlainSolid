@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD scoped Join, fitted parts and cached rebuild — 2026-11-13
+
+The [expanded acceptance report](evidence/plaincad-expanded-first-2026-11-13.json)
+passes nine of eleven originals, both TypeScript checks and the native WASM
+probe. Scoped Extrude and Revolve Join connect selected targets, preserve
+first-target identity, reject disconnected or contained selections, and
+survive edits, save/open and STL. The native bridge allocates no intermediate
+handles. Its cylindrical route proves exact containment of every planar target.
+Go race checks for scoped Join, ownership and rectangular shell pass.
+
+Centered box creation matches the PlainCAD adapter contract and all three
+fitted styles pass the original edit, placement, save/open and STL workflow.
+The incremental native cache test and rectangular Shell pass. Three original
+Hole pattern cases pass. The two remaining failures expose a planar cut on
+already-pocketed stock and a cylinder/cylinder overlap query. Focused native
+repairs are underway.
+
 ## PlainCAD thread mesh embedding and native rebuild — 2026-11-13
 
 Skinny seam triangles in external threads could cross after the float32

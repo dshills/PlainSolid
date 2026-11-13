@@ -9,6 +9,7 @@ import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions, ResolvedRevolveAxis } from "./KernelAdapter";
 import { HoleScopeError, PocketFloorMismatchError } from "./KernelAdapter";
+import { withDisposableScope } from "./disposableScope";
 import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
@@ -16,6 +17,7 @@ type Proof = { handle: string; geometryAssertions: GeometryAssertions; bounds: B
 type Handle = {
   proof: Proof;
   operation: RenderMesh["kernelOperation"];
+  edgeProofIdentity: string;
   extrusion?: { profile: SketchProfile; distance: number; transform: SketchPlaneTransform };
 };
 type Runtime = typeof globalThis & {
@@ -24,6 +26,7 @@ type Runtime = typeof globalThis & {
 };
 const runtime = globalThis as Runtime;
 let initialization: Promise<void> | undefined;
+let wasmMemory: WebAssembly.Memory | undefined;
 
 function request<T>(args: Record<string, unknown>): T {
   if (!runtime.plainSolidCall) throw new Error("PlainSolid WebAssembly is not initialized.");
@@ -31,12 +34,9 @@ function request<T>(args: Record<string, unknown>): T {
   if (!response.ok) throw new Error(`PlainSolid ${response.error.code}: ${response.error.message}`);
   return response.result as T;
 }
-function unsupported(..._args: unknown[]): never {
-  throw new Error("This operation is not yet supported by the PlainSolid acceptance adapter.");
-}
 function handle(shape: KernelShape): Handle { return shape.kernelHandle as Handle; }
 function owned(proof: Proof, operation: RenderMesh["kernelOperation"], id = createId("shape")): KernelShape {
-  return { id, kernelHandle: { proof, operation } satisfies Handle };
+  return { id, kernelHandle: { proof, operation, edgeProofIdentity: proof.handle } satisfies Handle };
 }
 const xyz = (point: { x: number; y: number; z: number }) => [point.x, point.y, point.z];
 const defaultPlane: SketchPlaneTransform = { origin: { x: 0, y: 0, z: 0 }, u: { x: 1, y: 0, z: 0 }, v: { x: 0, y: 1, z: 0 }, normal: { x: 0, y: 0, z: 1 } };
@@ -152,6 +152,8 @@ export class OpenCascadeKernel implements KernelAdapter {
       const response = await fetch("/assets/plainsolid-kernel.wasm");
       if (!response.ok) throw new Error(`PlainSolid WASM fetch failed: ${response.status}`);
       const compiled = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
+      const memory = compiled.instance.exports.mem;
+      if (memory instanceof WebAssembly.Memory) wasmMemory = memory;
       void go.run(compiled.instance);
       if (!runtime.plainSolidCall) throw new Error("PlainSolid WASM did not install its dispatcher.");
       request({ op: "capabilities" });
@@ -165,7 +167,7 @@ export class OpenCascadeKernel implements KernelAdapter {
   static threadsAvailable() { return Boolean(runtime.plainSolidCall); }
 
   createBox(width: number, height: number, depth: number): KernelShape {
-    return owned(request({ op: "box", min: [0, 0, 0], max: [width, height, depth] }), "box");
+    return owned(request({ op: "box", min: [-width / 2, -height / 2, 0], max: [width / 2, height / 2, depth] }), "box");
   }
   extrudeProfile(profile: SketchProfile, distance: number, transform = defaultPlane): KernelShape {
     const mixed = mixedExtrusionRequest(profile, distance, transform);
@@ -197,10 +199,12 @@ export class OpenCascadeKernel implements KernelAdapter {
     return shape;
   }
   cloneShape(shape: KernelShape): KernelShape {
-    return this.retainExtrusion(
+    const copy = this.retainExtrusion(
       owned(request({ op: "clone", handle: handle(shape).proof.handle }), handle(shape).operation, shape.id),
       shape,
     );
+    handle(copy).edgeProofIdentity = handle(shape).edgeProofIdentity;
+    return copy;
   }
   placeShape(shape: KernelShape, placement: ComponentPlacement): KernelShape {
     const frame = placementTransform(placement);
@@ -232,8 +236,9 @@ export class OpenCascadeKernel implements KernelAdapter {
   private boolean(base: KernelShape, tool: KernelShape, op: "cut" | "fuse", exportUnion = false): KernelShape {
     const a = request<Proof>({ op: "inspect", handle: handle(base).proof.handle });
     const b = request<Proof>({ op: "inspect", handle: handle(tool).proof.handle });
-    const result = request<Proof>({ op, a: a.handle, b: b.handle });
-    try {
+    return withDisposableScope(scope => {
+      const result = request<Proof>({ op, a: a.handle, b: b.handle });
+      const allocation = scope.use({ delete: () => request({ op: "dispose", handle: result.handle }) });
       const before = a.geometryAssertions.volume, after = result.geometryAssertions;
       const tolerance = Math.max(1e-9, Math.abs(before) * 1e-10);
       if (!after.valid || !Number.isFinite(after.volume) || after.volume <= 1e-12 || after.solidCount < 1)
@@ -246,8 +251,10 @@ export class OpenCascadeKernel implements KernelAdapter {
         throw new Error("Boolean join added no volume. The tool is already contained in the target body.");
       if (op === "fuse" && (after.volume > before + b.geometryAssertions.volume + tolerance || after.volume < Math.max(before, b.geometryAssertions.volume) - tolerance))
         throw new Error("Boolean union produced an inconsistent solid volume.");
-      return this.retainExtrusion(owned(result, op, base.id), base);
-    } catch (error) { request({ op: "dispose", handle: result.handle }); throw error; }
+      const output = this.retainExtrusion(owned(result, op, base.id), base);
+      scope.release(allocation);
+      return output;
+    });
   }
   cut(base: KernelShape, tool: KernelShape): KernelShape { return this.boolean(base, tool, "cut"); }
   fuse(base: KernelShape, tool: KernelShape): KernelShape { return this.boolean(base, tool, "fuse"); }
@@ -344,7 +351,9 @@ export class OpenCascadeKernel implements KernelAdapter {
     }
     return edges;
   }
-  edgeProofSignature(_shape: KernelShape): string | undefined { return undefined; }
+  // The bridge clones immutable native geometry. Authored references are also
+  // cloned, so only a true clone shares this identity with its source.
+  edgeProofSignature(shape: KernelShape): string | undefined { return handle(shape).edgeProofIdentity; }
   hasCommonVolume(base: KernelShape, tool: KernelShape): boolean {
     const a = request<Proof>({ op: "inspect", handle: handle(base).proof.handle });
     const b = request<Proof>({ op: "inspect", handle: handle(tool).proof.handle });
@@ -403,11 +412,25 @@ export class OpenCascadeKernel implements KernelAdapter {
       return outputs;
     } finally { for (const shape of pending) this.disposeShape(shape); }
   }
-  joinAll: NonNullable<KernelAdapter["joinAll"]> = unsupported;
+  joinAll(targets: KernelShape[], tool: KernelShape): KernelShape {
+    if (!targets.length) throw new Error("Boolean join requires target bodies.");
+    if (targets.length === 1) return this.fuse(targets[0], tool);
+    const result = request<Proof>({
+      op: "joinAll",
+      handles: targets.map(target => handle(target).proof.handle),
+      b: handle(tool).proof.handle,
+    });
+    try {
+      return this.retainExtrusion(owned(result, "fuse", targets[0].id), targets[0]);
+    } catch (error) {
+      request({ op: "dispose", handle: result.handle });
+      throw error;
+    }
+  }
   nativeDrawingGeometry(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["nativeDrawingGeometry"]>> {
     return request({ op: "drawingGeometry", handle: handle(shape).proof.handle });
   }
-  getWasmHeapCapacityBytes() { return undefined; }
+  getWasmHeapCapacityBytes() { return wasmMemory?.buffer.byteLength; }
   revolveProfile(profile: SketchProfile, _axis: RevolveAxisReference, angle: number, transform: SketchPlaneTransform, resolvedAxis: ResolvedRevolveAxis): KernelShape {
     if (profile.innerLoops.length || profile.holes.length)
       throw new Error("Revolution of profiles with inner loops is unsupported.");

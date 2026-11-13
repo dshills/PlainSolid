@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strconv"
 	"sync"
 
 	"plainsolid/brep"
@@ -221,7 +220,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "leadPart", "assertLeadPair":
 		if q.Lead == nil {
 			return nil, errors.New("lead screw operation requires dimensions")
@@ -337,6 +336,8 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.overlapVolume(q.A, q.B)
 	case "cutMany":
 		return b.cutMany(q.A, q.Tools)
+	case "joinAll":
+		return b.joinAll(q.Handles, q.B)
 	case "cut", "fuse", "common":
 		a, err := b.get(q.A)
 		if err != nil {
@@ -521,6 +522,14 @@ func (b *Bridge) put(s brep.Solid) (Shape, error) {
 	if len(b.shapes) >= MaxHandles {
 		return Shape{}, &failureError{"LIMIT", "dispose shapes before allocating more than 256 handles"}
 	}
+	r, err := provePlanar(s)
+	if err != nil {
+		return Shape{}, err
+	}
+	return b.publish(stored{solid: s, result: r})
+}
+
+func provePlanar(s brep.Solid) (Shape, error) {
 	// Validate geometric embedding and shell nesting, rather than equating a
 	// watertight display mesh with a valid material solid. Even-depth shells are
 	// separate material components; inward cavity shells do not add solidCount.
@@ -550,9 +559,6 @@ func (b *Bridge) put(s brep.Solid) (Shape, error) {
 		}
 		r.Bounds = Bounds{coordinates(bounds.Min), coordinates(bounds.Max)}
 	}
-	b.next++
-	r.Handle = "ps:" + strconv.FormatUint(b.next, 10)
-	b.shapes[r.Handle] = stored{solid: s, result: r}
 	return r, nil
 }
 
