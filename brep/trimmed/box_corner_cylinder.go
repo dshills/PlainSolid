@@ -101,15 +101,24 @@ func (b *cornerCylinderBuilder) face(surface geom.Surface, points []geom.Vec3, u
 	if e := b.ctx.Err(); e != nil {
 		return e
 	}
+	loop, err := b.wire(surface, points, uv, curves)
+	if err != nil {
+		return err
+	}
+	b.faces = append(b.faces, Face{Surface: surface, Reversed: reversed, Outer: loop})
+	return nil
+}
+
+func (b *cornerCylinderBuilder) wire(surface geom.Surface, points []geom.Vec3, uv []geom.Vec2, curves map[int]PCurve) ([]Use, error) {
 	ids := make([]int, len(points))
 	for i, p := range points {
 		id, e := b.vertex(p)
 		if e != nil {
-			return e
+			return nil, e
 		}
 		ids[i] = id
 	}
-	f := Face{Surface: surface, Reversed: reversed}
+	loop := make([]Use, 0, len(ids))
 	for i, a := range ids {
 		j := (i + 1) % len(ids)
 		z := ids[j]
@@ -120,10 +129,9 @@ func (b *cornerCylinderBuilder) face(surface geom.Surface, points []geom.Vec3, u
 			b.edgesByEnds[key] = id
 			b.edges = append(b.edges, parametric.Edge{Start: a, End: z, Curve: surfaceTrimCurve{surface: surface, a: uv[i], b: uv[j], curve: curves[i]}, Range: parametric.Interval{Max: 1}})
 		}
-		f.Outer = append(f.Outer, Use{Edge: id, Reversed: b.edges[id].Start != a, UVStart: uv[i], UVEnd: uv[j], Curve: curves[i]})
+		loop = append(loop, Use{Edge: id, Reversed: b.edges[id].Start != a, UVStart: uv[i], UVEnd: uv[j], Curve: curves[i]})
 	}
-	b.faces = append(b.faces, f)
-	return nil
+	return loop, nil
 }
 func (b *cornerCylinderBuilder) horizontal(profile []geom.Vec2, arcs map[int][2]float64, z float64, reversed bool, radius float64) error {
 	f, e := geom.NewFrame(b.frame.ToWorld(geom.Vec3{Z: z}), b.frame.XAxis(), b.frame.ZAxis())
@@ -177,11 +185,15 @@ func (b *cornerCylinderBuilder) cylinder(lo, hi, depth, radius float64, reversed
 	if reversed {
 		p, q = q, p
 	}
+	return b.cylinderBand(lo, hi, 0, depth, radius, reversed, p, q)
+}
+
+func (b *cornerCylinderBuilder) cylinderBand(lo, hi, bottom, top, radius float64, reversed bool, p, q geom.Vec2) error {
 	surface, e := geom.NewCylinderSurface(b.frame, radius)
 	if e != nil {
 		return e
 	}
-	points := []geom.Vec3{{X: p.X, Y: p.Y}, {X: q.X, Y: q.Y}, {X: q.X, Y: q.Y, Z: depth}, {X: p.X, Y: p.Y, Z: depth}}
-	uv := []geom.Vec2{{X: lo}, {X: hi}, {X: hi, Y: depth}, {X: lo, Y: depth}}
+	points := []geom.Vec3{{X: p.X, Y: p.Y, Z: bottom}, {X: q.X, Y: q.Y, Z: bottom}, {X: q.X, Y: q.Y, Z: top}, {X: p.X, Y: p.Y, Z: top}}
+	uv := []geom.Vec2{{X: lo, Y: bottom}, {X: hi, Y: bottom}, {X: hi, Y: top}, {X: lo, Y: top}}
 	return b.face(surface, points, uv, nil, reversed)
 }

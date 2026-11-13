@@ -25,6 +25,25 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if boundsSeparated(a.result.Bounds, c.result.Bounds) {
 		return result(0)
 	}
+	stock, tool := a, c
+	if stock.cylinder != nil && tool.analytic != nil || stock.cylinder != nil && tool.cylinder != nil && stock.cylinder.radius < tool.cylinder.radius {
+		stock, tool = tool, stock
+	}
+	if sector, ok := coaxialThrough(stock, tool.cylinder); ok {
+		return result(sector.angle * (tool.cylinder.radius*tool.cylinder.radius - sector.inner*sector.inner) * sector.height / 2)
+	}
+	if a.analytic != nil || c.analytic != nil {
+		return nil, &failureError{"UNSUPPORTED", "overlap volume is outside the supported analytic stock domain"}
+	}
+	if a.cylinder != nil && c.planar() {
+		a, c = c, a
+	}
+	if a.planar() && c.cylinder != nil {
+		if _, _, ok := cornerCylinderRecipe(a.solid, c.cylinder); ok {
+			r := c.cylinder.radius
+			return result(math.Pi * r * r * c.cylinder.height / 4)
+		}
+	}
 	if a.treated != nil || c.treated != nil {
 		volume, err := treatedOverlap(a, c)
 		if err != nil {
@@ -32,7 +51,7 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		}
 		return result(volume)
 	}
-	if a.cylinder == nil && a.bore == nil && c.cylinder == nil && c.bore == nil {
+	if a.planar() && c.planar() {
 		s, err := poly.Combine(context.Background(), a.solid, c.solid, poly.Intersection, poly.Options{})
 		if err != nil {
 			return nil, err

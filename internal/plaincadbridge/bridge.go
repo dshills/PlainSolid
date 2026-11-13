@@ -70,31 +70,35 @@ type edgeReference struct {
 }
 
 type request struct {
-	Op                string          `json:"op"`
-	Handle            string          `json:"handle,omitempty"`
-	A                 string          `json:"a,omitempty"`
-	B                 string          `json:"b,omitempty"`
-	Tools             []string        `json:"tools,omitempty"`
-	Min               *vector         `json:"min,omitempty"`
-	Max               *vector         `json:"max,omitempty"`
-	Outer             []vector        `json:"outer,omitempty"`
-	Holes             [][]vector      `json:"holes,omitempty"`
-	Offset            *vector         `json:"offset,omitempty"`
-	Matrix            [][]number      `json:"matrix,omitempty"`
-	OpenFace          *int            `json:"openFace,omitempty"`
-	Wall              number          `json:"wall,omitempty"`
-	Center            *vector         `json:"center,omitempty"`
-	Direction         *vector         `json:"direction,omitempty"`
-	Origin            *vector         `json:"origin,omitempty"`
-	Normal            *vector         `json:"normal,omitempty"`
-	Edges             []edgeReference `json:"edges,omitempty"`
-	EdgeStart         *vector         `json:"edgeStart,omitempty"`
-	EdgeEnd           *vector         `json:"edgeEnd,omitempty"`
-	Distance          number          `json:"distance,omitempty"`
-	Radius            number          `json:"radius,omitempty"`
-	Height            number          `json:"height,omitempty"`
-	LinearDeflection  optionalNumber  `json:"linearDeflection,omitempty"`
-	AngularDeflection optionalNumber  `json:"angularDeflection,omitempty"`
+	Op                string               `json:"op"`
+	Handle            string               `json:"handle,omitempty"`
+	A                 string               `json:"a,omitempty"`
+	B                 string               `json:"b,omitempty"`
+	Tools             []string             `json:"tools,omitempty"`
+	Min               *vector              `json:"min,omitempty"`
+	Max               *vector              `json:"max,omitempty"`
+	Outer             []vector             `json:"outer,omitempty"`
+	Holes             [][]vector           `json:"holes,omitempty"`
+	Offset            *vector              `json:"offset,omitempty"`
+	Matrix            [][]number           `json:"matrix,omitempty"`
+	OpenFace          *int                 `json:"openFace,omitempty"`
+	Wall              number               `json:"wall,omitempty"`
+	Center            *vector              `json:"center,omitempty"`
+	Direction         *vector              `json:"direction,omitempty"`
+	Origin            *vector              `json:"origin,omitempty"`
+	Normal            *vector              `json:"normal,omitempty"`
+	Edges             []edgeReference      `json:"edges,omitempty"`
+	EdgeStart         *vector              `json:"edgeStart,omitempty"`
+	EdgeEnd           *vector              `json:"edgeEnd,omitempty"`
+	Distance          number               `json:"distance,omitempty"`
+	Radius            number               `json:"radius,omitempty"`
+	Source            string               `json:"source,omitempty"`
+	Handles           []string             `json:"handles,omitempty"`
+	Profile           *mixedProfileRequest `json:"profile,omitempty"`
+	Angle             number               `json:"angle,omitempty"`
+	Height            number               `json:"height,omitempty"`
+	LinearDeflection  optionalNumber       `json:"linearDeflection,omitempty"`
+	AngularDeflection optionalNumber       `json:"angularDeflection,omitempty"`
 }
 
 type Assertions struct {
@@ -117,8 +121,14 @@ type stored struct {
 	cylinder *cylinderBody
 	bore     *boreBody
 	treated  *edgeBody
+	analytic *analyticBody
 	result   Shape
 }
+
+func (s stored) planar() bool {
+	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil
+}
+
 type failure struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -207,9 +217,26 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "drawingGeometry", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "importStep":
+		return b.importSTEP(q.Source)
+	case "exportStep":
+		return b.exportSTEP(q.Handles)
+	case "drawingGeometry":
+		s, err := b.get(q.Handle)
+		if err != nil {
+			return nil, err
+		}
+		return s.drawingGeometry()
 	case "prismToFace", "circleToFace":
 		return b.toFace(q)
+	case "mixedExtrude":
+		if q.Profile == nil {
+			return nil, errors.New("mixedExtrude requires a profile")
+		}
+		return b.mixedExtrude(*q.Profile)
+	case "revolvePolygon", "revolveCircle":
+		return b.revolve(q)
 	case "edgeAvailable", "fillet", "chamfer":
 		s, err := b.get(q.Handle)
 		if err != nil {
@@ -269,6 +296,21 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if q.Op == "cut" {
+			if a.analytic != nil && a.analytic.shaft != nil && c.planar() {
+				return b.cutShaftSocket(*a.analytic.shaft, c.solid)
+			}
+			if sector, ok := coaxialThrough(a, c.cylinder); ok {
+				sector.inner = c.cylinder.radius
+				return b.putRadialSector(sector)
+			}
+		}
+		if a.analytic != nil || c.analytic != nil {
+			return nil, &failureError{"UNSUPPORTED", "Boolean operation is outside the supported analytic stock domain"}
+		}
+		if result, handled, err := b.cornerCylinderBoolean(a, c, q.Op); handled {
+			return result, err
+		}
 		if a.treated != nil || c.treated != nil {
 			return b.treatedBoolean(a, c, q.Op)
 		}
@@ -306,9 +348,12 @@ func (b *Bridge) execute(q request) (any, error) {
 			if s.cylinder != nil {
 				return s.cylinder.planarFace(q.Origin.vec(), q.Normal.vec())
 			}
+			if s.analytic != nil {
+				return s.analytic.planarFace(q.Origin.vec(), q.Normal.vec())
+			}
 			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
-			if s.cylinder != nil || s.bore != nil || s.treated != nil {
+			if !s.planar() {
 				return nil, &failureError{"UNSUPPORTED", "shell requires planar stock"}
 			}
 			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
@@ -365,6 +410,13 @@ func (b *Bridge) execute(q request) (any, error) {
 					return nil, err
 				}
 				return b.putCylinder(c)
+			}
+			if s.analytic != nil {
+				body, err := s.analytic.transformed(m)
+				if err != nil {
+					return nil, err
+				}
+				return b.putAnalyticBody(body)
 			}
 			t, err := s.solid.Transformed(m)
 			if err != nil {

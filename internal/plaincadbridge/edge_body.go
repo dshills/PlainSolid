@@ -217,6 +217,10 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 		_, _, ok := trimmedEdge(s.bore.solid, start, end)
 		return ok
 	}
+	if s.analytic != nil {
+		_, _, ok := trimmedEdge(s.analytic.solid, start, end)
+		return ok
+	}
 	if s.cylinder != nil {
 		return false
 	}
@@ -332,7 +336,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if !finite(size) || size <= 0 {
 		return Shape{}, errors.New(q.Op + " failed: size must be positive")
 	}
-	if s.treated == nil && (s.bore != nil || s.cylinder != nil) {
+	if s.treated == nil && !s.planar() {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
 	}
 	resolved := make([][2]geom.Vec3, len(refs))

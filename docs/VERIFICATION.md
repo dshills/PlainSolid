@@ -1,5 +1,43 @@
 # Verification record
 
+## PlainCAD curved profiles, revolutions, drawing and STEP — 2026-11-13
+
+The bridge retains analytic semicircles, circular segments, capsules, nested
+capsule rings and qualified circle holes. A circular segment reports its
+actual arc/chord extent after rigid placement. This matters after the
+original sketch solver edits the radius and returns an arc slightly shorter
+than a semicircle. Native cap queries integrate the straight and elliptic
+trims in the actual planar chart. The adapter uses those queries before
+offering complete untouched caps for linked projection.
+
+Native revolutions include full cylinders, quarter sectors, annular bores,
+ring tori and torus elbows. A stepped shaft with a polygonal blind socket
+supports the original metric and inch blank. Drawing measures complete
+inward cylindrical bands and places their axes and endpoints in world
+coordinates. STEP covers the selected planar and analytic imports and
+exports, including the original placed bored plate and capsule ring.
+The export reader verifies the retained body count, analytic measures and
+world bounds before publication. Existing STEP tests independently read
+the generated STEP files using their original reader.
+
+The first 10-case mixed/revolve run passed eight originals. The next run
+passed 11 of 13, including linked arc and revolve edit. Separate original
+runs passed the socket-head blank, guided tap-drill and native drawing
+workflows. Four of five STEP originals passed on the first run, including
+all three export cases, independent readback, cancellation, stale results
+and worker load recovery. The STEP import then missed its STL volume error
+bound. The later three-case run passes the original imported STEP STL,
+the placed drawing and the solved circular-segment arc edit. Both TypeScript
+checks and the separate Go WASM proof pass. The [first STEP report](evidence/plaincad-step-first-run-2026-11-13.json)
+and [affected-case report](evidence/plaincad-curved-profile-drawing-step-2026-11-13.json)
+preserve their distinct snapshots. The consolidated acceptance is in progress.
+
+The [helical baseline](evidence/plaincad-helical-baseline-2026-11-13.json)
+records zero of two original PC4 passes. The thread case was blocked by the
+hex-socket blank, subsequently fixed. The lead case was blocked by the
+adapter's unavailable helical capability. Neither reached a helical
+geometry assertion in that snapshot.
+
 ## Tangent through pocket on filleted stock — 2026-11-13
 
 A rectangular pocket may share an exact top edge with a longitudinal fillet.

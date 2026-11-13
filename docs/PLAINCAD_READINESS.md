@@ -13,6 +13,23 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
+
+Focused original cases pass for linked arcs and circles, edited arc
+extrusions, circle and capsule offsets, torus and polygon revolve,
+coaxial full and quarter-sweep bores, socket-head blanks, guided
+tap-drill and shop drawings, and posed STEP import and export. The
+three-case [affected-case report](evidence/plaincad-curved-profile-drawing-step-2026-11-13.json)
+records the final repaired arc bounds, world drawing axis and STEP STL.
+The [first STEP run](evidence/plaincad-step-first-run-2026-11-13.json)
+records all three original export successes and the import regression
+repaired in the later run. A common frozen-source run of all 53 selected
+originals is in progress.
+
+Native helical constructors and M3 coordinate bounds have separate
+verification. The [original helical baseline](evidence/plaincad-helical-baseline-2026-11-13.json)
+failed before geometry and the app helical gate remains open.
+
 ## Finite To Face extrusion checkpoint — 2026-11-13
 
 The existing polygon and circle To Face workflows pass with bounded target

@@ -6,13 +6,22 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+Focused browser runs now pass the original mixed profile, revolve, socket-head
+blank, shop drawing and STEP workflows, including the three repaired regressions
+for the solved circular segment, placed bore axis and imported STEP STL.
+The consolidated 53-case acceptance is running. Native helical dependencies,
+bounded M3 chart coordinates and finite phased starts are verified separately.
+Modeled external and internal thread lead-ins, four-start end reliefs and
+browser-ready helical tessellation are still in progress. The thread and lead
+browser baseline failed before reaching helical geometry.
+
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge
 uses the actual bounded planar support, tracks it through owner edits, and
 rejects lost, uncovered or zero-depth targets. The pinned 31-case run passes
 30 and exposes an exact tangent pocket in the earlier edge-treatment chain.
-That boundary must be sewn before the consolidated gate can pass. Mixed line
-and arc profiles, revolutions, modeled threads and STEP remain in progress.
+That boundary is now split and sewn. The deterministic native cases and the
+first two combined browser runs pass the long chain.
 
 Grouped longitudinal fillet and chamfer geometry is committed as `4f51147`.
 The final browser run passes PlainCAD's existing multi-edge edit and repeated

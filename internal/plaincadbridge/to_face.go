@@ -20,7 +20,7 @@ func (b *Bridge) toFace(q request) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
-	if target.cylinder != nil || target.bore != nil || target.treated != nil {
+	if !target.planar() {
 		return Shape{}, &failureError{"UNSUPPORTED", "to-face termination currently requires a planar target BRep"}
 	}
 	face, err := matchingPlanarFace(target.solid, q.Origin.vec(), q.Normal.vec())

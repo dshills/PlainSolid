@@ -21,6 +21,9 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if a.analytic != nil {
+		return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this analytic stock"}
+	}
 	inputs := make([]stored, len(tools))
 	planar, circular := true, true
 	for i, id := range tools {
@@ -29,13 +32,16 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 			return Shape{}, err
 		}
 		c := inputs[i]
-		planar = planar && c.cylinder == nil && c.bore == nil && c.treated == nil
+		if c.analytic != nil {
+			return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this analytic tool"}
+		}
+		planar = planar && c.planar()
 		circular = circular && c.cylinder != nil
 	}
 	if a.treated != nil {
 		return b.cutManyTreated(a, inputs)
 	}
-	if planar && a.cylinder == nil && a.bore == nil {
+	if planar && a.planar() {
 		solid := a.solid
 		for _, tool := range inputs {
 			solid, err = poly.Combine(context.Background(), solid, tool.solid, poly.Difference, poly.Options{})

@@ -241,7 +241,9 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const oppositeBlindProof = kernel.tessellate(oppositeBlind, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
     const internalTool = kernel.placeShape(shallow, { translation: [0, 0, .5], rotation: [0, 0, 0] });
     const internalCutRejected = rejects(() => kernel.cut(boreBase, internalTool));
-    const holedCircleRejected = rejects(() => kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3));
+    const ring = kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3);
+    const ringProof = kernel.tessellate(ring, { linearDeflection: .05, angularDeflection: .1 }).geometryAssertions;
+    kernel.disposeShape(ring);
     const edgePoints = [{x:0,y:0},{x:20,y:0},{x:20,y:10},{x:0,y:10}];
     const edgeProfile = { ...profile, id: "edge-stock", signature: "edge-stock", bounds: { minX: 0, minY: 0, maxX: 20, maxY: 10 }, outerLoop: { type: "polygon", entityIds: [], segments: edgePoints.map((start, i) => ({ type: "line", id: "authored-" + i, start, end: edgePoints[(i+1)%4] })) } };
     const edgeStock = kernel.extrudeProfile(edgeProfile, 10);
@@ -293,7 +295,7 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     kernel.disposeShape(finiteCircle); kernel.disposeShape(finitePolygon);
     for (const item of [edgeStock, filleted, chamfered, ...batchChamfers]) kernel.disposeShape(item);
     for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shiftedCircle, containedCircle, ...overlapShapes, shallow, farBoreBase, farCylinder, shiftedShallow, ...unequalDepthOutputs, ...reversedDepthOutputs, tangentStock, tangentCylinder, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
-    return { toFaceDefaultStlMatchesCircle, toFaceProofs, toFaceRejected, toFaceTargetVolume, batchChamferProofs, edgeBatchRejected, edgeBatchInputProof, untouchedEndSurvives, edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    return { toFaceDefaultStlMatchesCircle, toFaceProofs, toFaceRejected, toFaceTargetVolume, batchChamferProofs, edgeBatchRejected, edgeBatchInputProof, untouchedEndSurvives, edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, ringProof, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
@@ -405,7 +407,8 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
   expect(proof.oppositeBlindProof.volume).toBeCloseTo(proof.blindProof.volume, 8);
   expect(proof.oppositeBlindProof.surfaceArea).toBeCloseTo(proof.blindProof.surfaceArea, 8);
   expect(proof.internalCutRejected).toBe(true);
-  expect(proof.holedCircleRejected).toBe(true);
+  expect(proof.ringProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.ringProof.volume).toBeCloseTo(9 * Math.PI, 8);
   expect(proof.symmetricScope).toEqual([true, true]);
   expect(proof.tinyCavityRejected).toBe(true);
   expect(proof.rejected).toEqual({ noOpCut: true, emptyCut: true, disconnectedJoin: true, containedJoin: true });

@@ -2,10 +2,10 @@
 // The class name preserves the application's import boundary; all geometry is Go.
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
-import type { ComponentPlacement, TopologyRef } from "../document/schema";
+import type { ComponentPlacement, TopologyRef, RevolveAxisReference } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
-import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions } from "./KernelAdapter";
+import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions, ResolvedRevolveAxis } from "./KernelAdapter";
 import { HoleScopeError } from "./KernelAdapter";
 import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
@@ -39,6 +39,107 @@ function owned(proof: Proof, operation: RenderMesh["kernelOperation"], id = crea
 const xyz = (point: { x: number; y: number; z: number }) => [point.x, point.y, point.z];
 const defaultPlane: SketchPlaneTransform = { origin: { x: 0, y: 0, z: 0 }, u: { x: 1, y: 0, z: 0 }, v: { x: 0, y: 1, z: 0 }, normal: { x: 0, y: 0, z: 1 } };
 
+function mixedExtrusionRequest(profile: SketchProfile, distance: number, transform: SketchPlaneTransform): Record<string, unknown> | undefined {
+  type Point = { x: number; y: number };
+  type Arc = Extract<NonNullable<ProfileLoop["segments"]>[number], { type: "arc" }>;
+  const epsilon = 1e-8;
+  const close = (a: number, b: number) => Math.abs(a - b) <= epsilon * Math.max(1, Math.abs(a), Math.abs(b));
+  const same = (a: Point, b: Point) => close(a.x, b.x) && close(a.y, b.y);
+  const subtract = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
+  const dot = (a: Point, b: Point) => a.x * b.x + a.y * b.y;
+  const scale = (a: Point, value: number): Point => ({ x: a.x * value, y: a.y * value });
+  const length = (a: Point) => Math.hypot(a.x, a.y);
+  const fail = (): never => { throw new Error("Mixed extrusion requires a proved circular segment, semicircle, capsule, matching capsule ring, or circular holes in a supported planar profile."); };
+  const validateLoop = (loop: ProfileLoop) => {
+    const segments = loop.segments;
+    if (!segments?.length) return fail();
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (![segment.start.x, segment.start.y, segment.end.x, segment.end.y].every(Number.isFinite) || !same(segment.end, segments[(i + 1) % segments.length].start)) fail();
+      if (segment.type === "arc") {
+        if (![segment.center.x, segment.center.y, segment.radius, segment.startAngle, segment.sweep].every(Number.isFinite) || segment.radius <= 0 || segment.sweep === 0 || Math.abs(segment.sweep) >= 2 * Math.PI) fail();
+        const pointAt = (angle: number) => ({ x: segment.center.x + segment.radius * Math.cos(angle), y: segment.center.y + segment.radius * Math.sin(angle) });
+        if (!same(segment.start, pointAt(segment.startAngle)) || !same(segment.end, pointAt(segment.startAngle + segment.sweep))) fail();
+      }
+    }
+    return segments;
+  };
+  const capsule = (loop: ProfileLoop) => {
+    const segments = validateLoop(loop), arcs = segments.filter((segment): segment is Arc => segment.type === "arc");
+    if (segments.length !== 4 || arcs.length !== 2 || arcs.some(arc => !close(Math.abs(arc.sweep), Math.PI)) || !close(arcs[0].radius, arcs[1].radius)) return fail();
+    let left = arcs[0], right = arcs[1];
+    const axis = subtract(right.center, left.center), separation = length(axis);
+    if (!Number.isFinite(separation) || separation <= epsilon) return fail();
+    const u = scale(axis, 1 / separation), v = { x: -u.y, y: u.x }, radius = left.radius;
+    for (const [arc, sign] of [[left, -1], [right, 1]] as const) {
+      const midpoint = { x: Math.cos(arc.startAngle + arc.sweep / 2), y: Math.sin(arc.startAngle + arc.sweep / 2) };
+      if (!close(dot(midpoint, u), sign)) fail();
+      for (const endpoint of [arc.start, arc.end]) {
+        const radial = subtract(endpoint, arc.center);
+        if (!close(dot(radial, u), 0) || !close(Math.abs(dot(radial, v)), radius)) fail();
+      }
+    }
+    // The two lines must be the actual external tangents, not diagonals.
+    for (const line of segments.filter(segment => segment.type === "line")) {
+      const a = subtract(line.start, left.center), b = subtract(line.end, left.center);
+      if (!close(dot(a, v), dot(b, v)) || !close(Math.abs(dot(a, v)), radius) || !close(Math.abs(dot(subtract(line.end, line.start), u)), separation)) fail();
+    }
+    return { center: left.center, right: right.center, radius, separation, u };
+  };
+  const circleHoles = () => {
+    if (profile.innerLoops.length !== profile.holes.length) return fail();
+    const used = new Set<string>();
+    const circles = profile.innerLoops.map(loop => {
+      if (loop.type !== "circle" || loop.entityIds.length !== 1 || used.has(loop.entityIds[0])) return fail();
+      const id = loop.entityIds[0], matches = profile.holes.filter(hole => hole.id === id);
+      if (matches.length !== 1) return fail();
+      used.add(id);
+      const hole = matches[0];
+      if (![hole.x, hole.y, hole.radius].every(Number.isFinite) || hole.radius <= 0) return fail();
+      return { center: [hole.x, hole.y], radius: hole.radius };
+    });
+    return circles;
+  };
+  const common = { origin: xyz(transform.origin), normal: xyz(transform.normal), xDirection: xyz(transform.u), height: distance };
+  const localFrame = (center: Point, u: Point) => ({
+    ...common,
+    origin: xyz(transformPoint(transform, center.x, center.y)),
+    xDirection: xyz({ x: transform.u.x * u.x + transform.v.x * u.y, y: transform.u.y * u.x + transform.v.y * u.y, z: transform.u.z * u.x + transform.v.z * u.y }),
+  });
+  if (profile.outerLoop.type === "circle") {
+    if (!profile.innerLoops.length && !profile.holes.length) return undefined;
+    const { minX, minY, maxX, maxY } = profile.bounds, diameter = maxX - minX;
+    if (![minX, minY, maxX, maxY].every(Number.isFinite) || diameter <= 0 || !close(diameter, maxY - minY)) return fail();
+    return { op: "mixedExtrude", profile: { ...common, kind: "disk", center: [(minX + maxX) / 2, (minY + maxY) / 2], radius: diameter / 2, circles: circleHoles() } };
+  }
+  const arcs = profile.outerLoop.segments?.filter((segment): segment is Arc => segment.type === "arc") ?? [];
+  if (!arcs.length) {
+    if (!profile.innerLoops.some(loop => loop.type === "circle")) return undefined;
+    const segments = validateLoop(profile.outerLoop);
+    return { op: "mixedExtrude", profile: { ...common, kind: "polygon", outer: segments.map(segment => [segment.start.x, segment.start.y]), circles: circleHoles() } };
+  }
+  if (arcs.length === 1) {
+    const segments = validateLoop(profile.outerLoop), arc = arcs[0];
+    if (segments.length !== 2 || profile.innerLoops.length || profile.holes.length) return fail();
+    if (Math.abs(arc.sweep) !== Math.PI) {
+      // Keep the solved arc and its chord exactly; a near-semicircle is not a
+      // semicircle and must not be snapped by loosening the classifier tolerance.
+      return { op: "mixedExtrude", profile: { ...common, kind: "circularSegment", center: [arc.center.x, arc.center.y], radius: arc.radius, startAngle: arc.startAngle, sweep: arc.sweep } };
+    }
+    const u = scale(subtract(arc.start, arc.center), Math.sign(arc.sweep) / arc.radius);
+    return { op: "mixedExtrude", profile: { ...localFrame(arc.center, u), kind: "semicircle", center: [0, 0], radius: arc.radius } };
+  }
+  const outer = capsule(profile.outerLoop);
+  let innerRadius: number | undefined;
+  if (profile.innerLoops.length) {
+    if (profile.innerLoops.length !== 1 || profile.innerLoops[0].type !== "polygon" || profile.holes.length) return fail();
+    const inner = capsule(profile.innerLoops[0]);
+    if (!((same(inner.center, outer.center) && same(inner.right, outer.right)) || (same(inner.center, outer.right) && same(inner.right, outer.center))) || inner.radius >= outer.radius) return fail();
+    innerRadius = inner.radius;
+  } else if (profile.holes.length) return fail();
+  return { op: "mixedExtrude", profile: { ...localFrame(outer.center, outer.u), kind: "capsule", center: [0, 0], right: [outer.separation, 0], radius: outer.radius, innerRadius } };
+}
+
 export class OpenCascadeKernel implements KernelAdapter {
   static async initialize(): Promise<void> {
     initialization ??= (async () => {
@@ -56,8 +157,8 @@ export class OpenCascadeKernel implements KernelAdapter {
     return initialization;
   }
   static isInitialized() { return typeof runtime.plainSolidCall === "function"; }
-  static stepExportDiagnostic() { return "PlainSolid STEP adapter is not implemented."; }
-  static stepImportDiagnostic() { return "PlainSolid STEP adapter is not implemented."; }
+  static stepExportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
+  static stepImportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
   static shellAvailable() { return this.isInitialized(); }
   static threadsAvailable() { return false; }
 
@@ -65,6 +166,12 @@ export class OpenCascadeKernel implements KernelAdapter {
     return owned(request({ op: "box", min: [0, 0, 0], max: [width, height, depth] }), "box");
   }
   extrudeProfile(profile: SketchProfile, distance: number, transform = defaultPlane): KernelShape {
+    const mixed = mixedExtrusionRequest(profile, distance, transform);
+    if (mixed) {
+      const shape = owned(request(mixed), "extrusion");
+      handle(shape).extrusion = { profile: structuredClone(profile), distance, transform: structuredClone(transform) };
+      return shape;
+    }
     if (profile.outerLoop.type === "circle") {
       if (profile.innerLoops.length || profile.holes.length)
         throw new Error("PlainSolid circular extrusion does not yet support inner loops.");
@@ -184,9 +291,22 @@ export class OpenCascadeKernel implements KernelAdapter {
     const source = handle(shape).extrusion;
     if (!source) return [];
     const loop = source.profile.outerLoop;
-    if (loop.type !== "polygon") return [];
     const edges: ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> = [];
     for (const role of ["endCapPerimeter", "startCapPerimeter"] as const) {
+      // An untouched extrusion's immutable construction recipe proves its full
+      // boundary. Also resolve the actual retained native cap before exposing it.
+      // Boolean/treatment results keep source metadata but cannot use this proof.
+      if (handle(shape).operation === "extrusion") {
+        const end = role === "endCapPerimeter";
+        const normalSign = (end ? 1 : -1) * Math.sign(source.distance);
+        this.validatePlanarFace(shape, {
+          ...source.transform,
+          origin: transformPoint(source.transform, 0, 0, end ? source.distance : 0),
+          normal: { x: source.transform.normal.x * normalSign, y: source.transform.normal.y * normalSign, z: source.transform.normal.z * normalSign },
+        });
+        edges.push({ role });
+      }
+      if (loop.type !== "polygon") continue;
       for (const segment of loop.segments ?? []) {
         if (segment.type !== "line") continue;
         const ref: TopologyRef = { featureId: "proof", kind: "edge", transientId: "proof", role, sourceEntityId: segment.id };
@@ -258,9 +378,26 @@ export class OpenCascadeKernel implements KernelAdapter {
     } finally { for (const shape of pending) this.disposeShape(shape); }
   }
   joinAll: NonNullable<KernelAdapter["joinAll"]> = unsupported;
-  nativeDrawingGeometry?: KernelAdapter["nativeDrawingGeometry"];
+  nativeDrawingGeometry(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["nativeDrawingGeometry"]>> {
+    return request({ op: "drawingGeometry", handle: handle(shape).proof.handle });
+  }
   getWasmHeapCapacityBytes() { return undefined; }
-  revolveProfile = unsupported;
+  revolveProfile(profile: SketchProfile, _axis: RevolveAxisReference, angle: number, transform: SketchPlaneTransform, resolvedAxis: ResolvedRevolveAxis): KernelShape {
+    if (profile.innerLoops.length || profile.holes.length)
+      throw new Error("Revolution of profiles with inner loops is unsupported.");
+    const args = { origin: xyz(resolvedAxis.origin), direction: xyz(resolvedAxis.direction), angle };
+    if (profile.outerLoop.type === "circle") {
+      const { minX, minY, maxX, maxY } = profile.bounds, diameter = maxX - minX;
+      if (![minX, minY, maxX, maxY, diameter].every(Number.isFinite) || diameter <= 0 || Math.abs(diameter - (maxY - minY)) > 1e-8 * Math.max(1, diameter))
+        throw new Error("Circular revolution requires a finite circle.");
+      const center = transformPoint(transform, (minX + maxX) / 2, (minY + maxY) / 2);
+      return owned(request({ ...args, op: "revolveCircle", normal: xyz(transform.normal), center: xyz(center), radius: diameter / 2 }), "revolve");
+    }
+    const segments = profile.outerLoop.segments;
+    if (!segments?.length || segments.some(segment => segment.type !== "line"))
+      throw new Error("Revolution requires an exact straight polygon or full circle.");
+    return owned(request({ ...args, op: "revolvePolygon", outer: segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y))) }), "revolve");
+  }
   extrudeToFace(profile: SketchProfile, transform: SketchPlaneTransform, target: KernelShape, face: SketchPlaneTransform): KernelShape {
     const boundary = (loop: ProfileLoop) => {
       if (loop.type !== "polygon" || !loop.segments?.length || loop.segments.some(segment => segment.type !== "line"))
@@ -367,6 +504,13 @@ export class OpenCascadeKernel implements KernelAdapter {
   thread = unsupported;
   leadPart = unsupported;
   assertLeadPair = unsupported;
-  importStep = unsupported;
-  exportStep(_shapes: readonly KernelShape[]): NativeStepExport { return unsupported(); }
+  importStep(source: string): KernelShape {
+    if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated native worker.");
+    return owned(request({ op: "importStep", source }), "stepImport");
+  }
+  exportStep(shapes: readonly KernelShape[]): NativeStepExport {
+    if (typeof globalThis.document !== "undefined") throw new Error("STEP export requires an isolated native worker.");
+    const result = request<Omit<NativeStepExport, "bytes"> & { base64: string }>({ op: "exportStep", handles: shapes.map(shape => handle(shape).proof.handle) });
+    return { bytes: Uint8Array.from(atob(result.base64), character => character.charCodeAt(0)).buffer, before: result.before, after: result.after, units: result.units };
+  }
 }
