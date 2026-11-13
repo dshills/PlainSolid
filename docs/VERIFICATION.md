@@ -1,5 +1,14 @@
 # Verification record
 
+## PlainCAD notched stock batch order — 2026-11-13
+
+An interior through cutter joins opposed blind spans at the same site in
+any input order, including after a blind span has already been committed.
+Native checks cover the union's surface and volume, atomic rejection
+of disconnected spans and canonical STEP readback. Both
+[original grouped Hole and STEP cases](evidence/plaincad-notch-batch-order-2026-11-13.json)
+pass on PlainCAD `50432ed`. Focused race checks and Go vet pass.
+
 ## Reproducible PlainCAD unit qualification — 2026-11-13
 
 The staging harness now runs original Vitest cases with a locally served
