@@ -54,7 +54,13 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
-	if a.helicalMesh != nil && o.Deflection >= .5 && o.Angle >= .1 && len(a.helicalMesh.Triangles) <= o.MaxTriangles {
+	// The bridge populates this sampled cache with a 256-subdivision limit.
+	// A cache hit must not bypass analytic certification or stricter/invalid
+	// resource requests; those go through the normal evaluator below.
+	if a.helicalMesh != nil && !o.AnalyticBound && finite(o.Deflection) && finite(o.Angle) &&
+		o.Deflection >= .5 && o.Angle >= .1 && o.Angle <= math.Pi &&
+		o.MaxSubdivisions >= 256 && o.MaxSubdivisions <= 1024 &&
+		len(a.helicalMesh.Triangles) <= o.MaxTriangles {
 		return *a.helicalMesh, nil
 	}
 	if a.helical {
