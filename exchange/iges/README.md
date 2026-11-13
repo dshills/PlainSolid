@@ -1,7 +1,7 @@
 # IGES geometry exchange subset
 
 `exchange/iges` reads and writes actual fixed-record ASCII IGES geometry. It
-supports bounded line segments (type 110, form 0), constant-Z circular arcs and
+supports Cartesian points (type 116, form 0), bounded line segments (type 110, form 0), constant-Z circular arcs and
 full circles (type 100, form 0), and rational B-spline curves (type 126, forms
 0–5), and rational tensor-product B-spline surface patches (type 128, forms 0–9).
 This is a geometry subset, not general IGES CAD/topology support.
@@ -13,7 +13,7 @@ This is a geometry subset, not general IGES CAD/topology support.
 - `Model.LengthUnit` is meters per raw coordinate unit. Coordinates are not
   rescaled. Supported units are inches, millimeters, feet, miles, meters,
   kilometers, mils, microns, centimeters and microinches.
-- Each `Entity` has exactly one of `Line`, `Arc`, `Spline` or `Surface`, plus a directory
+- Each `Entity` has exactly one of `Point`, `Line`, `Arc`, `Spline` or `Surface`, plus a directory
   label, subscript and form number. Optional `Transform` preserves a referenced
   type-124 affine placement; `Entity.Eval(t)` applies it while mapping normalized
   parameters onto the curve trimming interval.
@@ -557,3 +557,14 @@ Only an unchanged single identity occurrence is admitted. Altered basis, stale
 geometry, conflicting recipe modes, excessive rational sizes and extra owner
 entries fail before output. An independent OCCT chain qualifies the six-edge
 fixture after native reload, preserving model units and all source bases.
+
+## Cartesian datum points
+
+`Entity.Point` is a finite `*geom.Vec3` in definition coordinates. `Eval(t)`
+returns the placed point for any normalized `t` in `[0,1]`; this constant
+parameter convention does not make the point a curve or allow it as a trim.
+Type 116 requires a zero display-symbol pointer. Nonzero forms and referenced
+symbols fail explicitly. Points consume ordinary entity/value/record budgets;
+they do not consume the spline-control-point budget. The independent authored
+`testdata/points.iges` fixture and mixed placed roundtrip tests qualify this
+subset; native OCCT point interoperability has not yet been qualified.

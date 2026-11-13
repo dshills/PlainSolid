@@ -1,4 +1,5 @@
-// Package iges reads and writes a bounded ASCII IGES curve subset: line segments
+// Package iges reads and writes a bounded ASCII IGES geometry subset: Cartesian
+// points (116), line segments
 // (110), constant-Z circular arcs (100), rational B-spline curves (126), and tensor-product surfaces (128).
 // Referenced affine placements are supported; topology and assemblies are not.
 package iges
@@ -48,7 +49,7 @@ type Model struct {
 	TrimmedSurfaces  []TrimmedSurface
 }
 
-// Entity contains exactly one curve, surface or bounded direct-curve composite.
+// Entity contains exactly one point, curve, surface or bounded direct-curve composite.
 // Label/subscript preserve directory labels.
 // Form is 0 for lines/arcs and 0..5 for the B-spline classification hint.
 type Entity struct {
@@ -59,11 +60,13 @@ type Entity struct {
 	Transform       *geom.Affine
 	Label           string
 	Subscript, Form int
-	Line            *Line
-	Arc             *Arc
-	Spline          *Spline
-	Surface         *Surface
-	Composite       *CompositeCurve
+	// Point is an independent type-116 Cartesian datum, not a curve.
+	Point     *geom.Vec3
+	Line      *Line
+	Arc       *Arc
+	Spline    *Spline
+	Surface   *Surface
+	Composite *CompositeCurve
 }
 
 // CompositeCurve contains 4–64 direct curve entity indices. Nested composites are unsupported.
@@ -195,6 +198,12 @@ func (e Entity) validate() error {
 			return errors.New("iges: unsupported composite curve")
 		}
 	}
+	if e.Point != nil {
+		n++
+		if !e.Point.IsFinite() || e.Form != 0 {
+			return errors.New("iges: invalid point")
+		}
+	}
 	if e.Line != nil {
 		n++
 		if !e.Line.Start.IsFinite() || !e.Line.End.IsFinite() || e.Line.Start == e.Line.End || !e.Line.End.Sub(e.Line.Start).IsFinite() {
@@ -246,6 +255,7 @@ func (e Entity) validate() error {
 }
 
 // Eval evaluates an entity in model coordinates at a normalized parameter [0,1].
+// Points return their constant coordinate throughout [0,1].
 // For splines this maps onto the stored trimming interval before transformation.
 func (e Entity) Eval(t float64) (geom.Vec3, error) {
 	if err := e.validate(); err != nil {
@@ -257,6 +267,8 @@ func (e Entity) Eval(t float64) (geom.Vec3, error) {
 	var p geom.Vec3
 	var err error
 	switch {
+	case e.Point != nil:
+		p = *e.Point
 	case e.Line != nil:
 		p = e.Line.Start.Scale(1 - t).Add(e.Line.End.Scale(t))
 	case e.Arc != nil:
@@ -280,6 +292,8 @@ func (e Entity) Eval(t float64) (geom.Vec3, error) {
 func (e Entity) bounds() (geom.Box, error) {
 	var points []geom.Vec3
 	switch {
+	case e.Point != nil:
+		points = []geom.Vec3{*e.Point}
 	case e.Line != nil:
 		points = []geom.Vec3{e.Line.Start, e.Line.End}
 	case e.Arc != nil:

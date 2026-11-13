@@ -51,6 +51,11 @@ func encode(e Entity) (int, string) {
 		}
 	}
 	switch {
+	case e.Point != nil:
+		kind = 116
+		p = append(p, "116")
+		add(e.Point.X, e.Point.Y, e.Point.Z)
+		p = append(p, "0")
 	case e.Line != nil:
 		kind = 110
 		p = append(p, "110")
