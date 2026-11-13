@@ -37,6 +37,9 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 	return readGeometryMode(r, l, curved, false)
 }
 func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) {
+	return readRevolutionMode(r, l, curved, wires, false)
+}
+func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -143,6 +146,7 @@ func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) 
 	}
 	var trims []pendingTrim
 	composites := map[int][]int{}
+	var pendingRevolutions []RevolutionSurface
 	for i := 0; i < len(sections['D']); i += 2 {
 		a, c := sections['D'][i].data, sections['D'][i+1].data
 		var first, second [9]int
@@ -159,7 +163,7 @@ func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) 
 			}
 		}
 		kind := first[0]
-		if kind != 106 && kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 {
+		if kind != 106 && kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 && !(revolutions && kind == 120) {
 			return Model{}, fmt.Errorf("iges: unsupported entity type %d", kind)
 		}
 		if second[0] != kind {
@@ -194,6 +198,32 @@ func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) 
 		values, e := parseParameters(params.String(), sep, end, &budget)
 		if e != nil {
 			return Model{}, e
+		}
+		if revolutions {
+			if kind != 110 && kind != 126 && kind != 120 {
+				return Model{}, errors.New("iges: unsupported revolution dependency")
+			}
+			if e := compositeSourceNumbers(110, values); e != nil {
+				return Model{}, e
+			}
+			if kind == 120 {
+				if first[6] != 0 || second[4] != 0 || len(values) < 5 {
+					return Model{}, errors.New("iges: malformed revolution")
+				}
+				typ, e0 := intValue(values[0])
+				axis, e1 := intValue(values[1])
+				profile, e2 := intValue(values[2])
+				a, e3 := realValue(values[3])
+				b, e4 := realValue(values[4])
+				if e0 != nil || e1 != nil || e2 != nil || e3 != nil || e4 != nil || typ != 120 {
+					return Model{}, errors.New("iges: malformed revolution parameters")
+				}
+				if e := noPointers(values[5:]); e != nil {
+					return Model{}, e
+				}
+				pendingRevolutions = append(pendingRevolutions, RevolutionSurface{Axis: axis, Generatrix: profile, AngleStart: a, AngleEnd: b, Label: strings.TrimSpace(c[56:64]), Subscript: second[8]})
+				continue
+			}
 		}
 		if wires {
 			if e := compositeSourceNumbers(kind, values); e != nil {
@@ -413,6 +443,21 @@ func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) 
 			return Model{}, e
 		}
 		model.TrimmedSurfaces = append(model.TrimmedSurfaces, t)
+	}
+	for _, r := range pendingRevolutions {
+		a, ok := entityIndex[r.Axis]
+		if !ok {
+			return Model{}, errors.New("iges: missing revolution axis")
+		}
+		g, ok := entityIndex[r.Generatrix]
+		if !ok {
+			return Model{}, errors.New("iges: missing revolution generatrix")
+		}
+		owned[r.Axis] = true
+		owned[r.Generatrix] = true
+		r.Axis = a
+		r.Generatrix = g
+		model.Revolutions = append(model.Revolutions, r)
 	}
 	for id := range subordinate {
 		if !owned[id] {

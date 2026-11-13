@@ -115,6 +115,12 @@ func writeCurvedMode(w io.Writer, m Model, curved bool) error {
 	return writeGeometryMode(w, m, curved, false)
 }
 func writeGeometryMode(w io.Writer, m Model, curved, wires bool) error {
+	return writeRevolutionMode(w, m, curved, wires, false)
+}
+func writeRevolutionMode(w io.Writer, m Model, curved, wires, revolutions bool) error {
+	if !revolutions && len(m.Revolutions) != 0 {
+		return errors.New("iges: revolution requires dedicated codec")
+	}
 	if w == nil {
 		return errors.New("iges: nil writer")
 	}
@@ -225,6 +231,10 @@ func writeGeometryMode(w io.Writer, m Model, curved, wires bool) error {
 			}
 		}
 	}
+	for _, r := range m.Revolutions {
+		owned[r.Axis] = true
+		owned[r.Generatrix] = true
+	}
 	entityIDs := make([]int, len(m.Entities))
 	nextID := 1
 	for i, e := range m.Entities {
@@ -266,6 +276,12 @@ func writeGeometryMode(w io.Writer, m Model, curved, wires bool) error {
 			if err := appendEntity(124, "", 0, 0, 0, strings.Join(values, ",")+";"); err != nil {
 				return err
 			}
+		}
+	}
+	for _, r := range m.Revolutions {
+		data := fmt.Sprintf("120,%d,%d,%s,%s,0,0;", entityIDs[r.Axis], entityIDs[r.Generatrix], number(r.AngleStart), number(r.AngleEnd))
+		if e := appendEntity(120, r.Label, r.Subscript, 0, 0, data); e != nil {
+			return e
 		}
 	}
 	ownedContours := map[int]bool{}

@@ -140,7 +140,7 @@ func compositeEndpoints(e Entity) ([2][3]*big.Rat, error) {
 	return out, nil
 }
 func validateCompositeWires(m Model) error {
-	if len(m.Entities) > 4096 || len(m.CurvesOnSurfaces) != 0 || len(m.TrimmedSurfaces) != 0 {
+	if len(m.Entities) > 4096 || len(m.CurvesOnSurfaces) != 0 || len(m.TrimmedSurfaces) != 0 || len(m.Revolutions) != 0 {
 		return errors.New("iges: composite graph limit or unsupported surfaces")
 	}
 	owned := map[int]bool{}

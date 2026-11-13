@@ -47,6 +47,7 @@ type Model struct {
 	Entities         []Entity
 	CurvesOnSurfaces []CurveOnSurface
 	TrimmedSurfaces  []TrimmedSurface
+	Revolutions      []RevolutionSurface
 }
 
 // Entity contains exactly one point, curve, surface or bounded direct-curve composite.
