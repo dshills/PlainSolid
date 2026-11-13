@@ -56,3 +56,33 @@ Set `PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS` to the built helper for the
 optional test. The helper also supports `side`, `interior` and `side-through`
 independent source generation. See `OVERLAPPING_SIDE_POCKETS_EVIDENCE.md` for
 source pcurve discrepancies and why the vendor fixture is not an exact import.
+
+## Strict canonical re-import
+
+`ReadSideOpenDualDiskProduct(ctx, reader, limits, tolerance)` reconstructs the
+native body from recoverable exact source geometry and accepts it only after a
+complete regenerated entity-graph comparison. That comparison binds both AP203
+roots together, including product/body names, source units, shared context,
+vertex/edge identity, circle/line geometry, plane/cylinder support, face bounds,
+coedge orientation and face senses. No detached entities, unknown graph records,
+owner pcurves or alternate partitions are ignored. Documentary header timestamps,
+file names and descriptions do not determine geometry; the AP203 schema is
+checked explicitly.
+
+Entity numbering, record encounter order and equivalent exact decimal spellings
+may differ. Reversed senses already emitted by the writer are verified; changing
+an individual sense or choosing another geometrically equivalent sense encoding
+is not supported. The imported descriptor normalizes the local origin to the
+stock lower corner, has `Min == (0,0)`, and orders the two cutters by local X.
+An original choice of frame origin versus rectangle offset, or original cutter
+input ordering, is not uniquely stored by this geometric dialect. Returned source
+face/edge IDs are source provenance, distinct from native topology identifiers.
+The supplied tolerance is a native construction policy, not an inferred source
+uncertainty. Output is all-or-none on failure.
+
+The reader has the writer's 1 MiB and 2048-entity hard bounds in addition to caller
+parser limits. It refuses source scalar values or recovered local differences
+that cannot be represented exactly by the native constructor. It does not import
+the retained independently authored OCCT side-pocket file, whose rounded pcurves
+remain outside this exact model-only dialect. Optional live tests compare native
+re-imported body measures with OCCT's independent read of the regenerated STEP.

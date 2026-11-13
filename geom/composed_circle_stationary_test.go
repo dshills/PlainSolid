@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestCoincidentCircleStationaryReversal(t *testing.T) {
+func stationaryCircleFixture(t *testing.T) *ExactComposedCurveCell {
 	ctx := context.Background()
 	net := make([][4]*big.Rat, 5)
 	// x=(1-s²)/(1+s²), y=2s/(1+s²), s=(t-1/2)².
@@ -26,6 +26,12 @@ func TestCoincidentCircleStationaryReversal(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	return cell
+}
+
+func TestCoincidentCircleStationaryReversal(t *testing.T) {
+	ctx := context.Background()
+	cell := stationaryCircleFixture(t)
 	center := [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}
 	r, e := cell.SplitCoincidentCircleOrientation(ctx, [2]int{0, 1}, center, big.NewRat(1, 1), ExactCurvePlaneEventOptions{})
 	if e != nil || !r.Complete || len(r.Pieces) != 2 || r.Pieces[0].Orientation != -1 || r.Pieces[1].Orientation != 1 || len(r.Stationary) != 1 || !r.Stationary[0].Reverses || r.Stationary[0].Order != 1 {

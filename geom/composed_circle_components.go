@@ -39,7 +39,12 @@ type CircleContactComponents struct {
 // coincident cell. Failure publishes no partial components. Completeness covers
 // only the supplied Domain, not an omitted parent or periodic quotient seam.
 func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions) (CircleContactComponents, error) {
-	var zero CircleContactComponents
+	r, e := c.circleContactComponents(ctx, axes, center, radiusSquared, o, false)
+	return r.CircleContactComponents, e
+}
+
+func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions, stationary bool) (StationaryCircleContactComponents, error) {
+	var zero StationaryCircleContactComponents
 	if ctx == nil || !c.Complete || len(c.Cells) == 0 {
 		return zero, ErrInvalid
 	}
@@ -66,7 +71,8 @@ func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context
 		return zero, e
 	}
 	parts := make([]PlanarCirclePartition, len(c.Cells))
-	orientations := make([]int, len(c.Cells))
+	oriented := make([][]CoincidentCirclePiece, len(c.Cells))
+	var stationaryEvents []CollectionCircleStationaryEvent
 	count := 0
 	for i, cell := range c.Cells {
 		p, e := cell.ClassifyPlanarCircle(ctx, axes, center, radiusSquared, opts)
@@ -85,45 +91,46 @@ func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context
 			return zero, ErrConvergence
 		}
 		if p.Coincident {
-			b := &polynomialBudget{maxOperations: opts.MaxOperations, maxBits: opts.MaxCoefficientBits}
-			x, e := subtractScaledPolynomial(cell.power[axes[0]], cell.power[3], center[axes[0]], b)
+			proof, e := cell.SplitCoincidentCircleOrientation(ctx, axes, center, radiusSquared, opts)
 			if e != nil {
 				return zero, e
 			}
-			y, e := subtractScaledPolynomial(cell.power[axes[1]], cell.power[3], center[axes[1]], b)
-			if e != nil {
-				return zero, e
-			}
-			xy, e := polynomialProduct(x, polynomialDerivative(y), b)
-			if e != nil {
-				return zero, e
-			}
-			yx, e := polynomialProduct(y, polynomialDerivative(x), b)
-			if e != nil {
-				return zero, e
-			}
-			angular, e := subtractScaledPolynomial(xy, yx, big.NewRat(1, 1), b)
-			if e != nil {
-				return zero, e
-			}
-			roots, e := cell.intersectComposedPolynomial(ctx, angular, opts, b)
-			if e != nil {
-				return zero, e
-			}
-			if !roots.Complete || roots.Coincident || len(roots.Events) != 0 {
+			if !proof.Complete {
 				return zero, ErrConvergence
 			}
-			sign, _, e := composedPolynomialRootSign(ctx, cell.endpoints[0], angular, b, opts.MaxSubdivisions)
-			if e != nil {
-				return zero, e
-			}
-			if sign == 0 {
+			if !stationary && len(proof.Stationary) != 0 {
 				return zero, ErrConvergence
 			}
-			orientations[i] = sign
+			count += len(proof.Stationary)
+			if count > o.MaxEvents {
+				return zero, ErrConvergence
+			}
+			for _, piece := range proof.Pieces {
+				piece.Cell = i
+				oriented[i] = append(oriented[i], piece)
+			}
+			for _, event := range proof.Stationary {
+				if event.Event.endpointMask&1 != 0 && i > 0 && parts[i-1].Coincident && len(stationaryEvents) > 0 {
+					last := &stationaryEvents[len(stationaryEvents)-1]
+					if last.Cells[len(last.Cells)-1] == i-1 && last.Local[len(last.Local)-1].Event.endpointMask&2 != 0 {
+						cmp, e := last.Event.CompareParameter(ctx, event.Event, opts)
+						if e != nil {
+							return zero, e
+						}
+						if !cmp.Proven || cmp.Order != 0 {
+							return zero, ErrConvergence
+						}
+						last.Cells = append(last.Cells, i)
+						last.Local = append(last.Local, event)
+						last.SideOrientations[1] = event.SideOrientations[1]
+						continue
+					}
+				}
+				stationaryEvents = append(stationaryEvents, CollectionCircleStationaryEvent{Event: event.Event, Cells: []int{i}, Local: []CircleStationaryEvent{event}, SideOrientations: event.SideOrientations})
+			}
 		}
 	}
-	out := CircleContactComponents{}
+	out := StationaryCircleContactComponents{Stationary: stationaryEvents}
 	entry := func(i int, p PlanarCircleContact) *CollectionCircleContact {
 		return &CollectionCircleContact{Event: p.Event, Cells: []int{i}, Local: []PlanarCircleContact{p}, SideSigns: p.SideSigns}
 	}
@@ -133,7 +140,7 @@ func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context
 			component := CircleContactComponent{}
 			first := i
 			for i < len(parts) && parts[i].Coincident {
-				component.Pieces = append(component.Pieces, CoincidentCirclePiece{Cell: i, Start: parts[i].Domain[0], End: parts[i].Domain[1], Orientation: orientations[i]})
+				component.Pieces = append(component.Pieces, oriented[i]...)
 				i++
 			}
 			if first > 0 {
@@ -186,6 +193,10 @@ func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context
 			p.Crossing = p.SideSigns[0] != p.SideSigns[1]
 			p.Touching = !p.Crossing
 		}
+	}
+	for i := range out.Stationary {
+		p := &out.Stationary[i]
+		p.Reverses = p.SideOrientations[0] != 0 && p.SideOrientations[1] != 0 && p.SideOrientations[0] != p.SideOrientations[1]
 	}
 	if e := ctx.Err(); e != nil {
 		return zero, e
