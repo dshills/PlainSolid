@@ -595,6 +595,8 @@ A contained parallel cutter reaching exactly one stock cap retains one
 eccentric blind bore, including the original floor and cap ordering.
 Equal-radius coaxial stock with overlapping or coincident end spans now
 joins as one cylinder, retaining the original exposed caps and wall owners.
+Unequal coaxial stock preserves an analytic step where the larger disk ends,
+including annular cap ancestry and exact common volume.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,

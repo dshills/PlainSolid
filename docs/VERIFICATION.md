@@ -53,6 +53,10 @@ These are smoke tests, not long-duration robustness qualification. Seed cases
 remain in the source tests; automatically discovered nonfailing cases live in the
 Go build/fuzz cache and are not claimed as a committed fixture corpus.
 
+On clean `5a73d31`, two 20-second campaigns with two workers passed:
+`FuzzExactRationalCircleContainment` executed 6,795 cases;
+`FuzzOrient3DAntisymmetry` executed 51,408. No failures or skips were reported.
+
 ## Benchmark smoke results
 
 `go test ./... -run='^$' -bench=. -benchtime=100ms -benchmem` completed. One short
@@ -1104,6 +1108,9 @@ path instead of emitting an interior shell.
 Coaxial union fixtures with overlapping axial intervals and exactly touching
 end disks verify both operand orders, exposed cap ancestry, exact common
 volume, canonical reload, and a single stock against the pinned OCCT fuse.
+Unequal coaxial union also retains the original annular step support for
+overlapping and exactly touching ends; canonical reload, analytic-bound
+mesh closure, and independent OCCT mass properties agree.
 Eccentric blind-bore fixtures cover both axial entries, signed and scaled
 axes, and cutter caps coincident with or beyond the entry. They verify exact
 mass identities, native reload, floor ancestry, rejection of grazing cuts,
