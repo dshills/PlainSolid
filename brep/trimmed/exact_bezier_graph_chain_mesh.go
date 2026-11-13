@@ -28,6 +28,10 @@ type CertifiedExactBezierGraphChain struct {
 // MaxTriangles limits each proposal and the final global mesh. Endpoint/Junction
 // display overrides are not accepted: exact junction points are rounded once.
 func TessellateExactBezierGraphChainCertified(ctx context.Context, p *geom.SurfacePatch, pieces []ExactBezierUV, baseline *big.Rat, o ExactBezierGraphFaceOptions) (CertifiedExactBezierGraphChain, error) {
+	return tessellateExactBezierGraphChainCuts(ctx, p, pieces, baseline, nil, o)
+}
+
+func tessellateExactBezierGraphChainCuts(ctx context.Context, p *geom.SurfacePatch, pieces []ExactBezierUV, baseline *big.Rat, cuts [][]*big.Rat, o ExactBezierGraphFaceOptions) (CertifiedExactBezierGraphChain, error) {
 	var empty CertifiedExactBezierGraphChain
 	n := len(pieces)
 	if ctx == nil || p == nil || baseline == nil || n < 1 || n > 64 || o.Display.EndpointPoints != nil || o.Display.JunctionPoints != nil {
@@ -100,7 +104,11 @@ func TessellateExactBezierGraphChainCertified(ctx context.Context, p *geom.Surfa
 	r := CertifiedExactBezierGraphChain{PieceVertices: make([][]int, n), JunctionVertices: make([]int, n+1)}
 	for i, q := range pieces {
 		local.Display.EndpointPoints = &[2]geom.Vec3{display[i], display[i+1]}
-		piece, e := TessellateExactBezierGraphFaceCertified(ctx, p, q, baseline, local)
+		var fixed []*big.Rat
+		if cuts != nil {
+			fixed = cuts[i]
+		}
+		piece, e := tessellateExactBezierGraphFaceCuts(ctx, p, q, baseline, fixed, local)
 		if e != nil {
 			return empty, e
 		}

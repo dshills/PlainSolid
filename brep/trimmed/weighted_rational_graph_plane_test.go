@@ -108,9 +108,16 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 	}
 	checkSection := func(plane [3]geom.Vec3, orientation int) RationalGraphShellSection {
 		t.Helper()
-		w, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{VerifyModelEdges: true})
+		w, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{VerifyModelEdges: true, Regions: &RationalGraphShellRegionOptions{}})
 		if e != nil || !w.Complete || len(w.Wires) != 1 || len(w.Wires[0]) != 4 || len(w.Branches) != 4 {
 			t.Fatal("entire oblique shell section", w, e)
+		}
+		axes := [2]int{0, 1}
+		if orientation < 0 {
+			axes = [2]int{1, 0}
+		}
+		if w.Regions.ProjectionAxes != axes || len(w.Regions.Material) != 1 || w.Regions.Material[0].Outer != 0 {
+			t.Fatal("wrong oriented planar material region", w.Regions)
 		}
 		wire := w.Wires[0]
 		found := false

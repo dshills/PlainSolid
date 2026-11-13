@@ -370,8 +370,11 @@ The same graph proof now discovers a directed plane section of an embedded
 rectangular spline shell without a cutter. It retains original face pieces
 and exact source edge parameters, and keeps nonbinary affine endpoints
 separate from display coordinates. Coplanar faces and unresolved contacts
-are rejected. Exact model spline and surface-composed curve queries also
-order isolated plane events and join matching knot-side germs.
+are rejected. An optional proof projects the exact wires into an oriented
+plane and groups simple, disjoint rings into material regions and holes.
+Exact model spline and surface-composed curve queries order isolated plane
+and finite line events, retain coincident plane spans, and classify matching
+knot-side germs. Strictly affine line coincidences have exact finite clipping.
 The display mesher certifies affine faces with a bounded chain of adjacent
 cubic or quartic graph trims, including C0 joins and shared sample indices.
 
@@ -396,7 +399,9 @@ spheres and ring tori; a strict native envelope preserves these leaf records.
 A model-only STEP reader also accepts a bounded four-face split cylinder,
 proves both semicylinders cover the original cylinder, and retains source
 face and edge IDs. The canonical native cylinder does not retain the artificial
-split. An independently authored OCCT STEP with off-circle binary seam
+split. The rooted dialect supports exact import and a canonical native
+cylinder export with one independently verified OCCT product root.
+An independently authored OCCT STEP with off-circle binary seam
 coordinates remains outside the exact reader.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
