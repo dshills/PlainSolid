@@ -510,6 +510,8 @@ func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
 	}{
 		{"finite-pair-cap", -6, 2, -6, 6, parametric.CylinderCommonPerpendicularCap},
 		{"finite-pair-slab", -3, 2, -6, 6, parametric.CylinderCommonPerpendicularSlab},
+		{"finite-pair-dual-cap", -6, 2, -6, 3, parametric.CylinderCommonPerpendicularDualCap},
+		{"finite-pair-dual-cap-tail", 2, 6, -6, -3, parametric.CylinderCommonPerpendicularDualCap},
 		{"finite-pair-quadrant", 0, 6, -6, 0, parametric.CylinderCommonPerpendicularQuadrant},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -550,6 +552,20 @@ func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
 			t.Fatal(err)
 		}
 		compare(t, ref["finite-pair-signed-scaled"], mass.Area, mass.Volume, mass.Centroid)
+	})
+
+	t.Run("contained-skew", func(t *testing.T) {
+		aa := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: 2}, Radius: 2, Min: -2, Max: 2}
+		bb := geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 4, Z: 4}, Axis: geom.Vec3{Z: -4}, Radius: 5, Min: -.5, Max: .5}
+		out, err := parametric.FiniteCylinderPairCommon(ctx, aa, bb, 1e-8)
+		if err != nil || out.Construction != parametric.CylinderCommonContainedCylinder {
+			t.Fatal(out.Construction, err)
+		}
+		mass, err := out.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(err)
+		}
+		compare(t, ref["finite-pair-contained-skew"], mass.Area, mass.Volume, mass.Centroid)
 	})
 	b.Origin.X = 6
 	s, e = parametric.FiniteCylinderPairCommon(ctx, a, b, 1e-9)

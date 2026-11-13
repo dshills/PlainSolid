@@ -216,6 +216,11 @@ int main(int argc, char** argv) {
       record(out,"finite-pair-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,6)).Shape(),1e-11);
       record(out,"finite-pair-slab",BRepAlgoAPI_Common(x(-3,2),z(-6,6)).Shape(),1e-11);
       record(out,"finite-pair-quadrant",BRepAlgoAPI_Common(x(0,6),z(-6,0)).Shape(),1e-11);
+      record(out,"finite-pair-dual-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,3)).Shape(),1e-11);
+      record(out,"finite-pair-dual-cap-tail",BRepAlgoAPI_Common(x(2,6),z(-6,-3)).Shape(),1e-11);
+      const auto containedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,3,4),gp_Dir(1,0,0)),2,8).Shape();
+      const auto containedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,4,6),gp_Dir(0,0,-1)),5,4).Shape();
+      record(out,"finite-pair-contained-skew",BRepAlgoAPI_Common(containedA,containedB).Shape(),1e-11);
       const auto signedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,-1),gp_Dir(0,0,-1)),5,5).Shape();
       const auto signedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-4,-3),gp_Dir(0,1,0)),5,12).Shape();
       record(out,"finite-pair-signed-scaled",BRepAlgoAPI_Common(signedA,signedB).Shape(),1e-11);
