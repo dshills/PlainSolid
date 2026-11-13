@@ -1186,6 +1186,13 @@ Eccentric blind-bore fixtures cover both axial entries, signed and scaled
 axes, and cutter caps coincident with or beyond the entry. They verify exact
 mass identities, native reload, floor ancestry, rejection of grazing cuts,
 mesh closure and independent OCCT area, volume and centroid.
+Coordinate-parallel cutters that completely cover a stock disk now remove
+an axial interval. Signed/scaled and antiparallel axes preserve each stock
+wall interval and the original cutter-cap identity, with exact squared gap
+for two resulting solids. Internal radial tangency may still cover the entire
+disk, but the first representable uncovered sliver fails this route. Native
+reload rechecks cap ancestry, and independent OCCT cut results agree on both
+shells and their area, volume, and centroids.
 
 Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume

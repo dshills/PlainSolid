@@ -56,6 +56,28 @@ func TestOCCTFiniteRawCylinderSets(t *testing.T) {
 	}
 }
 
+func TestOCCTFiniteCylinderAxialCut(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-axial-cut")
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: -2, Z: 5}, Axis: geom.Vec3{Z: -3}, Radius: 2, Min: 0, Max: 3}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 1.5, Y: -2}, Axis: geom.Vec3{Z: 2}, Radius: 3, Min: -.5, Max: .5}
+	r, err := parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-9)
+	if err != nil || r.MinimumGapSquared == nil || r.MinimumGapSquared.RatString() != "4" {
+		t.Fatal("axial split", err)
+	}
+	for i, name := range []string{"finite-axial-cut-first", "finite-axial-cut-second"} {
+		s := r.Solids[i]
+		if finiteOracleShellCount(s) != 1 {
+			t.Fatal(name, "expected one shell")
+		}
+		p, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], p.Area, p.Volume, p.Centroid)
+	}
+}
+
 // Native rectangular-patch topology has no public shell count. Count connected
 // face components through shared edge identity, independently of mesh sampling.
 func finiteOracleShellCount(s parametric.Solid) int {
