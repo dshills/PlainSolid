@@ -55,3 +55,22 @@ func TestCompareRunoutQuarterDistinguishesEndInterference(t *testing.T) {
 		t.Fatal("translated stocks should only touch at a cap", out, e)
 	}
 }
+
+func TestCompareRunoutPhaseWindow(t *testing.T) {
+	ctx := context.Background()
+	p, e := BuildPair(ctx, pairFixture(t, geom.RightHanded), geom.SurfacePatchEvaluationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := big.NewRat(15, 8)
+	phase := [2]*big.Rat{big.NewRat(1, 7), big.NewRat(6, 7)}
+	out, e := p.CompareRunoutPhaseWindow(ctx, r, new(big.Rat), phase, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || out.NoPositiveOverlap || out.WitnessPhase == nil || !out.Witness.Overlap ||
+		out.WitnessPhase.Cmp(phase[0]) < 0 || out.WitnessPhase.Cmp(phase[1]) > 0 {
+		t.Fatal("missing finite runout overlap witness", out, e)
+	}
+	out, e = p.CompareRunoutPhaseWindow(ctx, r, big.NewRat(8, 1), phase, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || !out.NoPositiveOverlap || out.WitnessPhase != nil || out.Probes < 2 {
+		t.Fatal("cap-only contact must have no positive overlap", out, e)
+	}
+}

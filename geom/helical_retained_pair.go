@@ -40,11 +40,14 @@ type HelicalRetainedPair struct {
 // Frame, lead and handedness must match. MaxIntervals bounds each enumeration
 // and the final pair tests. Source turn windows retain their closed semantics.
 func CompareHelicalRetainedQuarter(ctx context.Context, a, c SeparatedHelicalStarts, radius, phase, shift *big.Rat, bandA, bandB [2]*big.Rat, o HelicalStartsLineOptions) (out HelicalRetainedPair, err error) {
+	if phase == nil || !new(big.Rat).Mul(phase, big.NewRat(4, 1)).IsInt() {
+		return out, ErrDomain
+	}
+	return compareHelicalRetainedPhase(ctx, a, c, radius, phase, shift, bandA, bandB, o)
+}
+func compareHelicalRetainedPhase(ctx context.Context, a, c SeparatedHelicalStarts, radius, phase, shift *big.Rat, bandA, bandB [2]*big.Rat, o HelicalStartsLineOptions) (out HelicalRetainedPair, err error) {
 	if ctx == nil || a.count < 1 || c.count < 1 || radius == nil || phase == nil || shift == nil || phase.Sign() < 0 || phase.Cmp(big.NewRat(1, 1)) >= 0 {
 		return out, ErrInvalid
-	}
-	if !new(big.Rat).Mul(phase, big.NewRat(4, 1)).IsInt() {
-		return out, ErrDomain
 	}
 	if a.base.reference.frame != c.base.reference.frame || a.base.reference.lead != c.base.reference.lead || a.base.reference.handedness != c.base.reference.handedness {
 		return out, ErrDomain
