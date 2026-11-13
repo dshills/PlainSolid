@@ -21,9 +21,9 @@ browser baseline failed before reaching helical geometry.
 The original machined-reference acceptance passes nested rectangular blind
 pockets, a disjoint cylindrical through bore, measured rim and floor,
 parameter edits, save/open, and rejection after the original floor is cut.
-The production run has passed six of seven selected cases. The final
-radius-10 cylinder STL requires finer angular sampling, which now passes
-its native volume check and is awaiting production rerun.
+All seven selected original production cases pass, including browser CSP,
+native modeling and STL, STEP workers, scope capture and shop drawing.
+The original three grouped circular rim fillet cases also pass.
 
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge

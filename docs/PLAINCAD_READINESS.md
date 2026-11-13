@@ -13,6 +13,14 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Selected production acceptance — 2026-11-13
+
+The [production report](evidence/plaincad-production-2026-11-13.json)
+records all seven selected original tests passing with the built Go WASM
+app under its production CSP. Coverage includes native modeling, circle
+STL, scope capture, STEP export and import, and shop drawing. The original
+bundle budget also passes. The full production suite remains open.
+
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 
 Focused original cases pass for linked arcs and circles, edited arc
