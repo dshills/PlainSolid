@@ -687,6 +687,9 @@ surfaces must keep their geometry through the operation. Continue with:
    Planar edge chamfers also accept compatible independent endpoint setbacks.
    Exact coplanarity keeps the entire tapered bevel on one plane, with
    original edge direction and continuous width metadata.
+   A convex planar draft can rotate each selected support about its own
+   original edge using a signed half-angle tangent and an exact rational
+   rotation. The support reconstruction reports which original faces survive.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

@@ -1173,6 +1173,11 @@ chamfer's area, centroid and volume `569/24`. The native result retains
 the original vertical edge's direction and both endpoint width pairs.
 Constant widths reproduce the earlier chamfer result. Incompatible ratios
 fail before any chamfer is returned.
+The independent hinge draft fixture sweeps a trapezoid in OCCT. It matches
+the native result on area, centroid and exact ideal volume `1136/105`.
+The two original hinge axes retain their vertex IDs, exact rotation
+matrices and output face mapping. Reversing an original edge and its
+signed angle leaves the reconstructed solid unchanged.
 
 Standalone STEP and IGES revolutions preserve the original signed coordinate
 axis, angular and meridian ranges, units, and exact bounded profile geometry.

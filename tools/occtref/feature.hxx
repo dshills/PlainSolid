@@ -54,6 +54,12 @@ static void featureRecords(std::ostream& out){
   return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,0,height)).Shape();
  };
  record(out,"hollow-three-ports",BRepAlgoAPI_Cut(portPrism(0,4,0,4),portPrism(.25,3.75,.25,3.5)).Shape());
+ BRepBuilderAPI_MakePolygon drafted;
+ for(auto xz:std::array<std::array<double,2>,4>{{{0,0},{4,0},{4-16./63,1},{8./15,1}}})
+  drafted.Add(gp_Pnt(xz[0],0,xz[1]));
+ drafted.Close();
+ record(out,"opposed-edge-hinge-draft",
+  BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(drafted.Wire()).Face(),gp_Vec(0,3,0)).Shape());
  for(int mode=0;mode<3;++mode){
  auto wire=[](double lo,double hi,bool reverse){std::vector<gp_Pnt> p={{lo,lo,4},{hi,lo,4},{hi,hi,4},{lo,hi,4}};if(reverse)std::reverse(p.begin(),p.end());BRepBuilderAPI_MakeWire w;for(size_t i=0;i<4;++i)w.Add(BRepBuilderAPI_MakeEdge(p[i],p[(i+1)%4]));return w.Wire();};
  BRepBuilderAPI_MakeFace f(wire(.5,3.5,false));f.Add(wire(1.5,2.5,true));
