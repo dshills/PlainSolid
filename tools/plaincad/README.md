@@ -39,6 +39,15 @@ staged app and run its original production configuration on port 5280.
 Use `--suite cross-browser --test cross-browser-e2e --grep '.*'` for the
 original Chromium, Firefox and WebKit configuration on port 5281.
 
+Use `--suite unit` to run the original Vitest suite with real PlainSolid WASM
+initialized in each test file. It defaults to one worker to reduce contention
+with solver deadlines. `--test modelingGeometry.test.ts` selects a file and
+`--grep` filters test names. `--workers` allows an explicit concurrency check.
+The unit run preserves the original test assertions and reports every failure,
+including fixtures that assume OCCT-private bindings or an uninitialized
+kernel. This mode uses the local WASM file and does not start a browser;
+original middleware fixtures still require loopback access.
+
 ## What changes in the isolated app
 
 - The `OpenCascadeKernel` import boundary is replaced by `PlainSolidKernel.ts`.

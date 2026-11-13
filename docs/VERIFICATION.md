@@ -1,5 +1,14 @@
 # Verification record
 
+## Reproducible PlainCAD unit qualification — 2026-11-13
+
+The staging harness now runs original Vitest cases with a locally served
+Go WASM asset and one worker by default. It records the generated runtime
+setup, selected assertions, source hashes and actual pass/fail counts.
+The [unit and browser harness checks](evidence/plaincad-unit-harness-2026-11-13.json)
+pass the original native cylinder rim unit test and Parts Browser
+acceptance, including the independent browser backend probe.
+
 ## PlainCAD coaxial side and corner Hole extension — 2026-11-13
 
 Connected depth spans at the same side or corner notch center and radius

@@ -5,7 +5,7 @@ import { cp, mkdir, readdir, readFile, writeFile, unlink, symlink, stat, realpat
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { installDisplayRuntime } from "./display-runtime.mjs";
 
@@ -19,10 +19,13 @@ const requestedPort = option("--port");
 const probePort = requestedPort ?? "5279";
 if (!/^\d+$/.test(probePort) || Number(probePort) < 1024 || Number(probePort) > 65535) throw new Error("Invalid --port");
 const suite = option("--suite", "development");
-const testFile = option("--test", suite === "development" ? "e2e/extrusion-hole.spec.ts" : suite === "production" ? "production-e2e" : "cross-browser-e2e");
+const testDefaults = { development: "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: "" };
+const testFile = option("--test", testDefaults[suite]);
 const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
-const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts" };
-if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production or cross-browser.");
+const unitWorkers = option("--workers", "1");
+if (suite === "unit" && !/^[1-9]\d*$/.test(unitWorkers)) throw new Error("Invalid --workers");
+const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts", unit: undefined };
+if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production, cross-browser or unit.");
 const acceptanceConfig = acceptanceConfigs[suite];
 const suitePort = { development: "5279", production: "5280", "cross-browser": "5281" }[suite];
 const acceptancePort = requestedPort ?? suitePort;
@@ -68,6 +71,60 @@ async function files(directory) {
     else if (entry.isFile()) paths.push(name);
   }
   return paths;
+}
+async function runOriginalUnitTests() {
+  const fixture = "src/tests/plainSolidRuntimeSetup.ts";
+  const setup = `import { beforeAll } from "vitest";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { OpenCascadeKernel } from "../cad/kernel/OpenCascadeKernel";
+const fetchOriginal = globalThis.fetch;
+globalThis.fetch = async (input, init) => {
+  if (String(input) !== "/assets/plainsolid-kernel.wasm") return fetchOriginal(input, init);
+  const bytes = await readFile(join(process.cwd(), "public/assets/plainsolid-kernel.wasm"));
+  return new Response(bytes, { headers: { "Content-Type": "application/wasm" } });
+};
+beforeAll(async () => OpenCascadeKernel.initialize());
+`;
+  const configPath = "vitest.plainsolid.config.ts";
+  const config = `import { defineConfig } from "vitest/config";
+import base from "./vite.config";
+export default defineConfig({ ...base, test: {
+  ...base.test,
+  setupFiles: [base.test?.setupFiles ?? [], "./${fixture}"].flat(),
+} });
+`;
+  await writeFile(join(work, fixture), setup, { flag: "wx" });
+  await writeFile(join(work, configPath), config, { flag: "wx" });
+  report.unitSetup = { maxWorkers: Number(unitWorkers), sourceHashes: { [fixture]: hash(setup), [configPath]: hash(config) } };
+  const unitResult = join(work, "unit-results.json");
+  try {
+    await command("node", [join(source, "node_modules/vitest/vitest.mjs"), "run", "--config", configPath, "--maxWorkers", unitWorkers,
+      ...(testFile ? [testFile] : []), "--testNamePattern", grep, "--reporter=json", `--outputFile=${unitResult}`], "unit.log");
+  } catch (error) {
+    report.error = String(error);
+  }
+  let bytes;
+  try {
+    bytes = await readFile(unitResult);
+  } catch (error) {
+    report.status = "failed";
+    report.error ??= `Cannot read unit results: ${error}`;
+    return;
+  }
+  const result = JSON.parse(bytes);
+  report.unit = {
+    report: unitResult, reportSha256: hash(bytes),
+    total: result.numTotalTests, passed: result.numPassedTests, failed: result.numFailedTests, pending: result.numPendingTests,
+  };
+  report.tests.push(...result.testResults.flatMap(file => file.assertionResults.map(test => ({
+    file: relative(work, file.name), title: test.fullName, status: test.status, durationMs: test.duration,
+    ...(test.failureMessages.length && { errors: test.failureMessages }),
+  }))));
+  const complete = report.unit.passed > 0 && report.unit.failed === 0 &&
+    report.unit.total === report.unit.passed + report.unit.pending && (grep !== ".*" || report.unit.pending === 0);
+  report.status = !report.error && complete ? "passed" : "failed";
+  if (report.status === "failed") report.error ??= "All selected original unit tests must pass.";
 }
 await mkdir(work, { recursive: true });
 if ((await readdir(work)).length) throw new Error("Acceptance workspace must be empty; choose a fresh --work directory.");
@@ -149,6 +206,21 @@ try {
   await cp(join(goroot, "lib/wasm/wasm_exec.js"), join(work, "src/cad/kernel/wasm_exec.js"));
   await writeFile(join(work, "src/cad/kernel/wasm_exec.d.ts"), "export {};\n");
   report.wasmSha256 = hash(await readFile(join(work, "public/assets/plainsolid-kernel.wasm")));
+  if (suite === "unit") {
+    await runOriginalUnitTests();
+  } else {
+    await runOriginalBrowserTests();
+  }
+} catch (error) {
+  report.status = "setup_failed";
+  report.error = String(error);
+}
+report.finishedAt = new Date().toISOString();
+await writeFile(join(work, "readiness.json"), JSON.stringify(report, null, 2));
+console.log(`PlainSolid readiness: ${report.status}; ${join(work, "readiness.json")}`);
+if (report.status !== "passed") { console.error(report.error); process.exitCode = 1; }
+
+async function runOriginalBrowserTests() {
   await writeFile(join(work, "e2e/plainsolid-backend.spec.ts"), `import { test, expect } from "@playwright/test";
 test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async ({ page }) => {
   const forbidden: string[] = [];
@@ -519,11 +591,4 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
       report.error ??= "A passing real backend probe and actual passes for every selected existing fixture are required; skips and interruptions do not count.";
     }
   } catch (error) { report.status = "failed"; report.error ??= `Cannot read test results: ${error}`; }
-} catch (error) {
-  report.status = "setup_failed";
-  report.error = String(error);
 }
-report.finishedAt = new Date().toISOString();
-await writeFile(join(work, "readiness.json"), JSON.stringify(report, null, 2));
-console.log(`PlainSolid readiness: ${report.status}; ${join(work, "readiness.json")}`);
-if (report.status !== "passed") { console.error(report.error); process.exitCode = 1; }
