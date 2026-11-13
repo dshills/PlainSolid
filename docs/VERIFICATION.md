@@ -32,6 +32,38 @@ This is bridge evidence only; application browser results are recorded separatel
 in [PlainCAD readiness](PLAINCAD_READINESS.md). The full library test/race suite
 and the full PlainCAD release gates were not rerun for this focused increment.
 
+The next increment adds `planarFace`, which measures the current B-rep rather
+than trusting authored metadata. It requires one finite matching face and
+rejects missing or split/ambiguous supports using PlainCAD's existing plane
+tolerances. Original, transformed, opposite-normal, tolerance-boundary,
+coplanar-ambiguity and invalid-input cases pass; focused race, vet and WASM build
+checks also pass. Independent review approved the query and the adapter after
+correcting Boolean invariants, symmetric overlap thresholds, measurable shell
+removal and skipped-test scoring. The query follows the actual
+`OpenCascadeKernel.validatePlanarFace` contract (face-normal distance).
+
+Real browser evidence on 2026-11-13:
+
+- Six existing PlainCAD scenarios passed in a single selected run: XY/XZ/YZ
+  signed extrusion with edit/save/STL, rectangular Shell with both cap choices
+  and its full edit/undo/save/STL flow, and both stale-worker delivery cases.
+- A separate Go-WASM/backend probe passed; it also verifies rejection of no-op
+  and empty cuts, disconnected/contained joins, asymmetric-scale common-volume
+  consistency, and negligible shell cavities. Disconnected export union remains
+  allowed as in the original application.
+- Both original TypeScript checks passed. Only provider string literals were
+  adapted in existing fixtures; geometry/workflow assertions were retained.
+- The next existing XY non-template modeling case failed at circular-profile
+  extrusion preview. Circular/arc profiles are explicitly unsupported in the
+  adapter; this is the next integration gap, not a passed feature.
+
+The two full readiness reports, including source hashes, revisions/dirty states,
+WASM hashes, adaptations and per-test results, are committed under `docs/evidence`.
+See [PlainCAD readiness](PLAINCAD_READINESS.md) for commands and current scope.
+No original PlainCAD source was modified. Production, bundle-size/performance,
+the original OCCT-specific unit suite, and full application release checks are
+not claimed by these targeted development-browser runs.
+
 Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.

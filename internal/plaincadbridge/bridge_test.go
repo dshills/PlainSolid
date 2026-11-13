@@ -220,3 +220,72 @@ func TestMalformedNumericFieldsCannotPublishGeometry(t *testing.T) {
 	near(t, moved.Bounds.Min[0], 5)
 	near(t, moved.GeometryAssertions.Volume, 1000)
 }
+
+func TestPlanarFaceMatchesCurrentGeometry(t *testing.T) {
+	b := New()
+	s := box(t, b, vector{}, vector{10, 8, 6})
+	for _, normal := range []vector{{0, 0, 1}, {0, 0, -1}} {
+		var face PlanarFace
+		if err := json.Unmarshal(invoke(t, b, map[string]any{"op": "planarFace", "handle": s.Handle, "origin": vector{4, 3, 6}, "normal": normal}), &face); err != nil {
+			t.Fatal(err)
+		}
+		if face.Face != 1 || face.Normal != (vector{0, 0, 1}) {
+			t.Fatal(face)
+		}
+		near(t, face.Area, 80)
+	}
+	// The native contract compares supporting planes, not the location of the
+	// arbitrary frame origin within a finite face boundary.
+	invoke(t, b, map[string]any{"op": "planarFace", "handle": s.Handle, "origin": vector{100, -100, 6 + 5e-8}, "normal": vector{0, 0, 1}})
+	for _, q := range []map[string]any{
+		{"op": "planarFace", "handle": s.Handle, "origin": vector{0, 0, 6 + 2e-7}, "normal": vector{0, 0, 1}},
+		{"op": "planarFace", "handle": s.Handle, "origin": vector{0, 0, 6}, "normal": vector{1, 0, 1}},
+		{"op": "planarFace", "handle": s.Handle, "origin": vector{0, 0, 6}, "normal": vector{}},
+	} {
+		data, err := json.Marshal(q)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if reply := b.Call(string(data)); !strings.Contains(reply, `"ok":false`) {
+			t.Fatal(reply)
+		}
+	}
+	// A rigidly moved face must be measured from the current B-rep rather than
+	// from the original primitive's authored cap coordinates.
+	moved := shape(t, b, map[string]any{"op": "transform", "handle": s.Handle, "matrix": [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}})
+	var face PlanarFace
+	if err := json.Unmarshal(invoke(t, b, map[string]any{"op": "planarFace", "handle": moved.Handle, "origin": vector{13, 8, 9}, "normal": vector{1, 0, 0}}), &face); err != nil {
+		t.Fatal(err)
+	}
+	near(t, face.Area, 80)
+	if face.Normal != (vector{1, 0, 0}) {
+		t.Fatal(face)
+	}
+	// Two separate coplanar caps cannot be claimed as one retained face, even
+	// when the authored origin lies over only one of them.
+	far := box(t, b, vector{20, 0, 0}, vector{30, 8, 6})
+	combined := shape(t, b, map[string]any{"op": "fuse", "a": s.Handle, "b": far.Handle})
+	q := `{"op":"planarFace","handle":"` + combined.Handle + `","origin":[4,3,6],"normal":[0,0,1]}`
+	if reply := b.Call(q); !strings.Contains(reply, `"ok":false`) || !strings.Contains(reply, "ambiguous") {
+		t.Fatal(reply)
+	}
+}
+
+func TestPlanarFaceRejectsNullWithoutMutation(t *testing.T) {
+	b := New()
+	s := box(t, b, vector{}, vector{10, 8, 6})
+	for _, query := range []string{
+		`{"op":"planarFace","handle":"HANDLE","origin":[null,0,6],"normal":[0,0,1]}`,
+		`{"op":"planarFace","handle":"HANDLE","origin":[0,0,6],"normal":[null,0,1]}`,
+		`{"op":"planarFace","handle":"HANDLE","origin":null,"normal":[0,0,1]}`,
+		`{"op":"planarFace","handle":"HANDLE","origin":[0,0,6],"normal":null}`,
+	} {
+		if reply := b.Call(strings.ReplaceAll(query, "HANDLE", s.Handle)); !strings.Contains(reply, `"code":"INVALID"`) {
+			t.Fatal(reply)
+		}
+		if len(b.shapes) != 1 || b.next != 1 {
+			t.Fatal("face query changed registry")
+		}
+	}
+	near(t, shape(t, b, map[string]any{"op": "inspect", "handle": s.Handle}).GeometryAssertions.Volume, 480)
+}

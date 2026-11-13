@@ -1,0 +1,165 @@
+#!/usr/bin/env node
+// Runs real PlainCAD fixtures against Go WASM in an isolated copy. Never edits
+// the source app and never imports OCCT from the replacement kernel adapter.
+import { cp, mkdir, readdir, readFile, writeFile, symlink, stat, realpath } from "node:fs/promises";
+import { spawn, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import { resolve, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const args = process.argv.slice(2);
+const option = (key, fallback) => { const index = args.indexOf(key); return index < 0 ? fallback : args[index + 1]; };
+if (!option("--source")) throw new Error("Pass --source /absolute/path/to/PlainCAD explicitly.");
+const source = resolve(option("--source"));
+const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date.now()}`)));
+const port = option("--port", "5279");
+if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535) throw new Error("Invalid --port");
+const testFile = option("--test", "e2e/extrusion-hole.spec.ts");
+const grep = option("--grep", "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding");
+const gitIdentity = cwd => {
+  const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
+  return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
+};
+const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity: gitIdentity(source), plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
+async function command(program, argv, logName, env = {}, cwd = work) {
+  const logPath = join(work, logName);
+  const chunks = [];
+  const child = spawn(program, argv, { cwd, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+  for (const stream of [child.stdout, child.stderr]) stream.on("data", data => { chunks.push(data); process.stdout.write(data); });
+  const code = await new Promise((resolveExit, reject) => { child.on("error", reject); child.on("close", resolveExit); });
+  await writeFile(logPath, Buffer.concat(chunks));
+  if (code !== 0) throw new Error(`${program} exited ${code}; see ${logPath}`);
+}
+async function files(directory) {
+  const paths = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const name = join(directory, entry.name);
+    if (entry.isDirectory()) paths.push(...await files(name));
+    else if (entry.isFile()) paths.push(name);
+  }
+  return paths;
+}
+await mkdir(work, { recursive: true });
+if ((await readdir(work)).length) throw new Error("Acceptance workspace must be empty; choose a fresh --work directory.");
+try {
+  await stat(join(source, "node_modules/@playwright/test"));
+  await cp(source, work, { recursive: true, filter: path => !/(^|\/)(node_modules|\.git|dist|test-results|playwright-report|\.plainSolidViteCache)(\/|$)/.test(path) });
+  await mkdir(join(work, "node_modules"));
+  for (const name of await readdir(join(source, "node_modules"))) {
+    if (name.startsWith(".") && name !== ".bin") continue;
+    await symlink(join(source, "node_modules", name), join(work, "node_modules", name));
+  }
+  for (const folder of ["src", "e2e", "production-e2e"]) {
+    for (const path of await files(join(work, folder))) {
+      if (!/\.[cm]?[jt]sx?$/.test(path)) continue;
+      const relative = path.slice(work.length + 1);
+      const before = await readFile(path, "utf8");
+      report.sourceHashes[relative] = hash(before);
+      const matches = [...before.matchAll(/(["'])opencascade\1/g)];
+      if (matches.length) {
+        const after = before.replace(/(["'])opencascade\1/g, "$1plainsolid$1");
+        await writeFile(path, after);
+        report.providerLabelAdaptations.push({ file: relative, count: matches.length, beforeSha256: hash(before), afterSha256: hash(after) });
+      }
+    }
+  }
+  for (const folder of ["internal/plaincadbridge", "cmd/plaincadwasm", "tools/plaincad"]) for (const path of await files(join(root, folder))) {
+    report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
+  }
+  await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
+  let vite = await readFile(join(work, "vite.config.ts"), "utf8");
+  vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');
+  vite = vite.replace("server: {", `server: {\n    fs: { allow: [${JSON.stringify(await realpath(work))}, ${JSON.stringify(await realpath(join(source, "node_modules")))}] },`);
+  await writeFile(join(work, "vite.config.ts"), vite);
+  const playwrightConfig = await readFile(join(work, "playwright.config.ts"), "utf8");
+  await writeFile(join(work, "playwright.config.ts"), playwrightConfig.replaceAll("5279", port));
+  await mkdir(join(work, "public/plainsolid"), { recursive: true });
+  await command("go", ["build", "-o", join(work, "public/plainsolid/kernel.wasm"), "./cmd/plaincadwasm"], "wasm-build.log", { GOCACHE: join(tmpdir(), "plainsolid-cad-review-go-cache"), GOOS: "js", GOARCH: "wasm" }, root);
+  const goroot = execFileSync("go", ["env", "GOROOT"], { encoding: "utf8" }).trim();
+  await cp(join(goroot, "lib/wasm/wasm_exec.js"), join(work, "src/cad/kernel/wasm_exec.js"));
+  await writeFile(join(work, "src/cad/kernel/wasm_exec.d.ts"), "export {};\n");
+  report.wasmSha256 = hash(await readFile(join(work, "public/plainsolid/kernel.wasm")));
+  await writeFile(join(work, "e2e/plainsolid-backend.spec.ts"), `import { test, expect } from "@playwright/test";
+test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async ({ page }) => {
+  const forbidden: string[] = [];
+  page.on("request", request => { if (/opencascade\\.(?:wasm|js)/.test(request.url())) forbidden.push(request.url()); });
+  await page.goto("/");
+  const proof = await page.evaluate(async () => {
+    const path = "/src/cad/kernel/OpenCascadeKernel.ts";
+    const { OpenCascadeKernel } = await import(path);
+    await OpenCascadeKernel.initialize();
+    const kernel = new OpenCascadeKernel();
+    const shape = kernel.createBox(2, 3, 4);
+    const mesh = kernel.tessellate(shape, { linearDeflection: .1, angularDeflection: .2 });
+    kernel.disposeShape(shape);
+    const base = kernel.createBox(2, 3, 4);
+    const inside = kernel.createBox(1, 1, 1);
+    const covering = kernel.createBox(3, 4, 5);
+    const far = kernel.placeShape(inside, { translation: [10, 0, 0], rotation: [0, 0, 0] });
+    const rejects = (operation: () => unknown) => { try { operation(); return false; } catch { return true; } };
+    const rejected = { noOpCut: rejects(() => kernel.cut(base, far)), emptyCut: rejects(() => kernel.cut(base, covering)), disconnectedJoin: rejects(() => kernel.fuse(base, far)), containedJoin: rejects(() => kernel.fuse(base, inside)) };
+    const large = kernel.createBox(10000, 10000, 10000);
+    const symmetricScope = [kernel.hasCommonVolume(large, inside), kernel.hasCommonVolume(inside, large)];
+    const width = 2.000002, height = 2.000002;
+    const points = [{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];
+    const profile = { id: "probe", sketchId: "probe", signature: "probe", outerLoop: { type: "polygon", entityIds: [], segments: points.map((start,i) => ({ type: "line", id: String(i), start, end: points[(i+1)%4] })) }, innerLoops: [], holes: [], bounds: { minX: 0, maxX: width, minY: 0, maxY: height } };
+    const tinyCavity = kernel.extrudeProfile(profile, 1.000002);
+    const tinyCavityRejected = rejects(() => kernel.shell(tinyCavity, "endCap", 1));
+    const union = kernel.unionForExport(base, far);
+    const unionProof = kernel.tessellate(union, { linearDeflection: .1, angularDeflection: .2 }).geometryAssertions;
+    for (const item of [base, inside, covering, far, union, large, tinyCavity]) kernel.disposeShape(item);
+    return { symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+  });
+  expect(proof.dispatcher).toBe("function");
+  expect(proof.source).toBe("plainsolid");
+  expect(proof.proof).toMatchObject({ valid: true, volume: 24, solidCount: 1 });
+  expect(proof.symmetricScope).toEqual([true, true]);
+  expect(proof.tinyCavityRejected).toBe(true);
+  expect(proof.rejected).toEqual({ noOpCut: true, emptyCut: true, disconnectedJoin: true, containedJoin: true });
+  expect(proof.unionProof).toMatchObject({ valid: true, volume: 25, solidCount: 2 });
+  expect(forbidden).toEqual([]);
+});\n`);
+  await command("node", [join(source, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
+  await command("node", [join(source, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.e2e.json"], "typecheck-e2e.log");
+  report.typecheck = "passed";
+  // Fail the backend preflight before spending time on application fixtures.
+  const resultPaths = [];
+  try {
+    const preflight = join(work, "backend-results.json");
+    resultPaths.push(preflight);
+    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", "e2e/plainsolid-backend.spec.ts", "--reporter=list,json"], "backend.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: preflight });
+    const acceptance = join(work, "playwright-results.json");
+    resultPaths.push(acceptance);
+    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", testFile, "--grep", grep, "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: acceptance });
+    report.status = "passed";
+  } catch (error) { report.status = "failed"; report.error = String(error); }
+  try {
+    const visit = suite => {
+      for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) report.tests.push({ file: spec.file, line: spec.line, title: spec.title, status: test.status, results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })) });
+      for (const child of suite.suites ?? []) visit(child);
+    };
+    report.summaries = [];
+    for (const path of resultPaths) {
+      const results = JSON.parse(await readFile(path, "utf8"));
+      for (const suite of results.suites ?? []) visit(suite);
+      report.summaries.push({ path, ...results.stats });
+    }
+    const passed = test => test.status === "expected" && test.results.length > 0 && test.results.every(result => result.status === "passed");
+    report.backendVerified = report.tests.some(test => test.title.startsWith("PlainSolid backend:") && passed(test));
+    const existing = report.tests.filter(test => !test.title.startsWith("PlainSolid backend:"));
+    if (!report.backendVerified || existing.length === 0 || existing.some(test => !passed(test))) {
+      report.status = "failed";
+      report.error ??= "A passing real backend probe and actual passes for every selected existing fixture are required; skips and interruptions do not count.";
+    }
+  } catch (error) { report.status = "failed"; report.error ??= `Cannot read test results: ${error}`; }
+} catch (error) {
+  report.status = "setup_failed";
+  report.error = String(error);
+}
+report.finishedAt = new Date().toISOString();
+await writeFile(join(work, "readiness.json"), JSON.stringify(report, null, 2));
+console.log(`PlainSolid readiness: ${report.status}; ${join(work, "readiness.json")}`);
+if (report.status !== "passed") { console.error(report.error); process.exitCode = 1; }

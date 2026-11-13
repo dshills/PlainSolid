@@ -8,10 +8,68 @@ not all OCCT APIs. The source audit used the sibling PlainCAD checkout at revisi
 changes and source hashes with each run; this revision alone does not pin a dirty
 working tree. The full PlainSolid specification remains required separately.
 
-No PlainSolid-backed PlainCAD application acceptance pass is established by this
-initial inventory. Existing OCCT test results, PlainSolid Go tests, a successful
-WASM build, and extracted/reimplemented fixtures are not substitutes for running
-these scenarios against the selected PlainSolid kernel.
+The first PlainSolid-backed browser acceptance pass is recorded below. Existing
+OCCT test results, PlainSolid Go tests, a successful WASM build, and
+extracted/reimplemented fixtures are not substitutes for running these scenarios
+against the selected PlainSolid kernel.
+
+## Recorded browser runs — 2026-11-13
+
+Six existing PlainCAD acceptance cases pass against the real Go WASM backend:
+
+| Existing case | Result |
+|---|---|
+| XY negative/symmetric extrusion, parameter edits, save/open and STL winding | Passed |
+| XZ variant of that same scenario | Passed |
+| YZ variant of that same scenario | Passed |
+| Rectangular Shell: either cap, invalid walls, edits, Undo, command plan, save/open and STL | Passed |
+| Real-worker stale result cannot overwrite a newer edit | Passed |
+| Real-worker failure cannot overwrite a newer edit | Passed |
+| XY non-template modeling with circular-profile extrusion and through-cut | Failed at circular-profile extrusion preview |
+
+The [foundation report](evidence/plaincad-foundation-2026-11-13.json) preserves
+source identities/hashes, provider adaptations and all six passing cases from
+`/tmp/plainsolid-cad-acceptance-12`. The existing cases took 29.58 seconds;
+a separate backend probe took 3.06 seconds. Neither stage skipped any tests.
+The probe verifies actual Go WASM dispatch, `geometrySource: plainsolid`, no OCCT
+asset requests, Boolean no-op/empty/disconnected handling, symmetric overlap
+classification and negligible-shell-cavity rejection. It is not counted as an
+existing application acceptance case.
+
+Both TypeScript checks passed (`tsc -b --noEmit`, and separately in that copied
+app `tsc -p tsconfig.e2e.json`). The runner now executes both checks itself.
+Runtime: Go 1.27.4, Node 26.13.1, Playwright 1.63.0 with its Chromium on macOS arm64.
+WASM SHA-256 for the foundation run:
+`25dfddde41c2854e762230e53a9d7e76ee1d230564ca743cbff014b54447a93f`.
+The original PlainCAD checkout was not modified; its pre-existing dirty validation
+log is recorded in the report. Source hashes, not only Git HEAD, identify the run.
+
+The [next-gate report](evidence/plaincad-circular-profile-2026-11-13.json), from
+`/tmp/plainsolid-cad-acceptance-13`, records both TypeScript checks and the backend
+probe passing, but the existing XY modeling fixture failing at its second
+extrusion (`modeling.spec.ts:153`). It expects `Native preview ready` and receives
+`Preview failed` after adding a circle. The adapter explicitly rejects circular
+and arc profiles; it does not substitute polygonal geometry. The next work is
+exact circular-profile extrusion and a matching cylindrical through-cut, then
+rerun that same fixture in all three planes. General mixed line/arc profiles
+remain a separate requirement.
+
+These are **six passing existing scenarios and one failing next-gate scenario**,
+not a full-application percentage. All unselected cases remain not run.
+Full production/CSP, bundle/performance and release checks remain open.
+No full OCCT or PlainCAD replacement claim is made.
+
+Reproduce the passing selection from the integration worktree:
+
+```sh
+node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test 'e2e/(extrusion-hole|shell|stale-results).spec.ts' --grep 'native negative/symmetric|native Shell|real-worker'
+```
+
+Reproduce the next failing requirement:
+
+```sh
+node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/modeling.spec.ts --grep 'XY: non-template modeling, edit, save/open, and real-kernel STL'
+```
 
 Readiness has two separate dimensions:
 
@@ -40,11 +98,11 @@ itself as `plainsolid`; claiming OCCT identity to satisfy an assertion is forbid
 
 | PlainCAD requirement and source | Current PlainSolid correspondence | Remaining integration or geometry gate |
 |---|---|---|
-| [Kernel adapter](../../PlainCAD/src/cad/kernel/KernelAdapter.ts), browser worker and runtime handles | Go APIs; no previously qualified application adapter | WASM dispatch, worker ownership, explicit provider, stale-result rejection, runtime performance |
+| [Kernel adapter](../../PlainCAD/src/cad/kernel/KernelAdapter.ts), browser worker and runtime handles | Go WASM adapter with six existing application scenarios passing | Broader geometry, production worker/CSP and runtime performance qualification |
 | Exact line/arc/circle profiles with holes, signed extrusion: [OpenCascadeKernel](../../PlainCAD/src/cad/kernel/OpenCascadeKernel.ts), `createOcctFace` / `createOcctExtrusion` | Planar polygon extrusion and specialized curved extrusions | General supported sketch-face conversion retaining analytic arcs and holes, arbitrary sketch planes |
 | Cut/fuse/common/scoped atomic cuts: same file, `cutScope` / `joinAll` | Exact planar BSP, selected cylindrical bores and curved Boolean families | Compose on revolved/filleted/modified bodies; preserve atomic failure, connected joins and no-op rejection |
 | Cap/vertical-edge treatments: same file, `treatEdges` / `resolveNativeEdges` | Convex vertical-prism corner fillets, selected cylinder rims, planar chamfers | Cap perimeter blends and subsequent curved cuts; retained original-edge proof |
-| Rectangular shell: [nativeShell](../../PlainCAD/src/cad/kernel/nativeShell.ts) | Convex planar hollowing including an open face | Integrate unchanged rectangular extrusion and start/end cap roles; this does not require general curved shelling |
+| Rectangular shell: [nativeShell](../../PlainCAD/src/cad/kernel/nativeShell.ts) | Convex planar hollowing with the existing rectangular Shell scenario passing | Wider input families remain out of scope; this does not require general curved shelling |
 | Partial/full revolve around resolved axis: `createOcctRevolve` | Full meridian polygon revolution and selected analytic primitives | Partial-angle and circular-arc profile solids plus later cut/join |
 | Real modeled threads: [nativeThreads](../../PlainCAD/src/cad/kernel/nativeThreads.ts) | No qualified helical tool path found in audit | Helical p-curve/model curve, solid sweep, thread cuts and material classification |
 | Lead screws/nuts: [nativeLeadScrew](../../PlainCAD/src/cad/kernel/nativeLeadScrew.ts) | No qualified matching operation found in audit | Multi-start tools, end reliefs, engagement and nominal clearance checks |
@@ -93,12 +151,11 @@ selected PlainSolid build and record unsupported cases rather than removing them
 
 ## First run and resumption
 
-Start with the exact XY rectangle test from `extrusion-hole.spec.ts`. It does not
-require circular holes or fillets and exercises the real app worker, rebuild,
-parameter edit, persistence and STL paths. After it passes, run the corresponding
-XZ/YZ cases and stale-result cases, then proceed to PC1. Use the first failing
-geometric assertion or explicit unsupported operation as the next implementation
-task; do not relax the test to match the implementation.
+Resume from the failing XY non-template modeling case in `modeling.spec.ts`.
+Add exact circular extrusion and its through-cut, then test all three planes.
+Retain the six passing foundation/shell scenarios as regression gates. Use the
+first failing geometric assertion or explicit unsupported operation as the next
+implementation task; do not relax the test to match the implementation.
 
 Retain an OCCT baseline on the same selected source as a diagnostic control when
 possible. Report control passes separately from PlainSolid passes. Any temporary

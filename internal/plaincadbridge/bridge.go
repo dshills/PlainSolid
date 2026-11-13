@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"sync"
 
@@ -74,6 +75,8 @@ type request struct {
 	Matrix   [][]number `json:"matrix,omitempty"`
 	OpenFace *int       `json:"openFace,omitempty"`
 	Wall     number     `json:"wall,omitempty"`
+	Origin   *vector    `json:"origin,omitempty"`
+	Normal   *vector    `json:"normal,omitempty"`
 }
 
 type Assertions struct {
@@ -183,7 +186,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_brep", "operations": []string{"box", "prism", "cut", "fuse", "common", "shell", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_brep", "operations": []string{"box", "prism", "cut", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "box":
 		if q.Min == nil || q.Max == nil {
 			return nil, errors.New("box requires min and max")
@@ -234,12 +237,17 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		return b.put(s)
-	case "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell":
+	case "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell", "planarFace":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
 		}
 		switch q.Op {
+		case "planarFace":
+			if q.Origin == nil || q.Normal == nil {
+				return nil, errors.New("planarFace requires origin and normal")
+			}
+			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
 			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
 				return nil, errors.New("shell requires a valid opening face and positive wall thickness")
@@ -338,6 +346,61 @@ type Mesh struct {
 	Indices            []int      `json:"indices"`
 	Bounds             Bounds     `json:"bounds"`
 	GeometryAssertions Assertions `json:"geometryAssertions"`
+}
+
+type PlanarFace struct {
+	Face   int     `json:"face"`
+	Origin vector  `json:"origin"`
+	Normal vector  `json:"normal"`
+	Area   float64 `json:"area"`
+}
+
+// matchingPlanarFace follows PlainCAD's native reference contract: exactly one
+// finite face on the authored support plane, with either orientation. This is
+// not a point-in-face test and does not recover a split or deleted feature role.
+// Tolerances match OpenCascadeKernel.validatePlanarFace
+// (millimetres): parallel unit normals within 1e-9 in absolute dot product,
+// support-plane distance at most 1e-7, and area greater than (1e-7)^2.
+func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, error) {
+	n, err := normal.Unit()
+	if err != nil || !origin.IsFinite() {
+		return PlanarFace{}, errors.New("planarFace requires a finite origin and nonzero normal")
+	}
+	face := -1
+	var plane geom.Plane
+	for i := range s.Faces() {
+		p, err := s.FacePlane(i)
+		if err != nil {
+			return PlanarFace{}, err
+		}
+		delta := p.Origin().Sub(origin)
+		if !delta.IsFinite() {
+			return PlanarFace{}, errors.New("planarFace support-plane comparison overflows")
+		}
+		if math.Abs(math.Abs(p.Normal().Dot(n))-1) > 1e-9 || math.Abs(delta.Dot(p.Normal())) > 1e-7 {
+			continue
+		}
+		if face != -1 {
+			return PlanarFace{}, errors.New("planar face reference is ambiguous after splitting")
+		}
+		face, plane = i, p
+	}
+	if face == -1 {
+		return PlanarFace{}, errors.New("planar face reference no longer exists")
+	}
+	m := s.Tessellate()
+	owners := s.TriangleFaces()
+	area := 0.0
+	for i, triangle := range m.Triangles {
+		if owners[i] == face {
+			a, b, c := m.Vertices[triangle[0]], m.Vertices[triangle[1]], m.Vertices[triangle[2]]
+			area += b.Sub(a).Cross(c.Sub(a)).Length() / 2
+		}
+	}
+	if math.IsNaN(area) || math.IsInf(area, 0) || area <= 1e-14 {
+		return PlanarFace{}, errors.New("planar face reference has no finite measurable area")
+	}
+	return PlanarFace{Face: face, Origin: coordinates(plane.Origin()), Normal: coordinates(plane.Normal()), Area: area}, nil
 }
 
 func renderMesh(s stored) (Mesh, error) {

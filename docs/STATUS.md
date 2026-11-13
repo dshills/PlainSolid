@@ -13,6 +13,12 @@ and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
+The initial adapter now passes the existing XY/XZ/YZ signed-extrusion cases,
+both stale-worker cases, and the rectangular Shell workflow: six application
+scenarios, plus a separate backend proof. The next existing XY modeling case
+fails at circular-profile extrusion preview. Resume with exact circle extrusion
+and cylindrical through-cut support, retaining the six passing regression cases.
+See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can
