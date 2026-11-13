@@ -504,6 +504,17 @@ export class OpenCascadeKernel implements KernelAdapter {
       return loop.segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y)));
     };
     const args = { b: handle(target).proof.handle, origin: xyz(face.origin), normal: xyz(face.normal), direction: xyz(transform.normal) };
+    const terminate = (geometry: Record<string, unknown>): Proof => {
+      try {
+        return request<Proof>({ ...args, ...geometry });
+      } catch (error) {
+        if (error instanceof Error && error.message.endsWith("brep: termination face does not cover the projected profile"))
+          throw new Error("Extrude profile extends outside the finite target face or crosses a face hole.");
+        if (error instanceof Error && error.message.includes("brep: termination must be strictly ahead of every source vertex:"))
+          throw new Error("Extrude to face requires the entire profile to lie before the target in the positive extrusion direction.");
+        throw error;
+      }
+    };
     let proof: Proof;
     if (profile.outerLoop.type === "circle") {
       if (profile.innerLoops.length || profile.holes.length)
@@ -514,9 +525,9 @@ export class OpenCascadeKernel implements KernelAdapter {
           Math.abs(diameter - otherDiameter) > 1e-8 * Math.max(1, diameter, otherDiameter))
         throw new Error("Circular to-face extrusion requires a finite circle.");
       const center = transformPoint(transform, minX + diameter / 2, minY + otherDiameter / 2);
-      proof = request({ ...args, op: "circleToFace", center: xyz(center), radius: diameter / 2 });
+      proof = terminate({ op: "circleToFace", center: xyz(center), radius: diameter / 2 });
     } else {
-      proof = request({ ...args, op: "prismToFace", outer: boundary(profile.outerLoop), holes: profile.innerLoops.map(boundary) });
+      proof = terminate({ op: "prismToFace", outer: boundary(profile.outerLoop), holes: profile.innerLoops.map(boundary) });
     }
     const result = owned(proof, "toFace");
     const dot = (a: typeof face.normal, b: typeof face.normal) => a.x * b.x + a.y * b.y + a.z * b.z;
