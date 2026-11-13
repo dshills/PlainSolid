@@ -83,6 +83,9 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 			recipe.Frame, recipe.Height, recipe.BoreRadius, recipe.OuterRadius = r.frame, r.height, r.inner, r.radius
 		}
 		entryRadius = outer + pitch*.02
+		if entryRadius >= recipe.OuterRadius {
+			return Shape{}, errors.New("Thread lead-in would remove the surrounding wall and leave no retained material")
+		}
 	default:
 		return Shape{}, errors.New("thread requires an external shaft or internal bore")
 	}

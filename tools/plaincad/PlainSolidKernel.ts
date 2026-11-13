@@ -43,6 +43,19 @@ function owned(proof: Proof, operation: RenderMesh["kernelOperation"], id = crea
 const xyz = (point: { x: number; y: number; z: number }) => [point.x, point.y, point.z];
 const defaultPlane: SketchPlaneTransform = { origin: { x: 0, y: 0, z: 0 }, u: { x: 1, y: 0, z: 0 }, v: { x: 0, y: 1, z: 0 }, normal: { x: 0, y: 0, z: 1 } };
 
+function continuesStraight(a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }): boolean {
+  const ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
+  return ux * vy === uy * vx && ux * vx + uy * vy > 0;
+}
+
+function straightLoopCorners(segments: NonNullable<ProfileLoop["segments"]>) {
+  return segments.flatMap((segment, i) => {
+    const previous = segments[(i + segments.length - 1) % segments.length];
+    const connected = previous.end.x === segment.start.x && previous.end.y === segment.start.y;
+    return connected && continuesStraight(previous.start, segment.start, segment.end) ? [] : [segment.start];
+  });
+}
+
 function mixedExtrusionRequest(profile: SketchProfile, distance: number, transform: SketchPlaneTransform): Record<string, unknown> | undefined {
   type Point = { x: number; y: number };
   type Arc = Extract<NonNullable<ProfileLoop["segments"]>[number], { type: "arc" }>;
@@ -91,15 +104,16 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
     return { center: left.center, right: right.center, radius, separation, u };
   };
   const circleHoles = () => {
-    if (profile.innerLoops.length !== profile.holes.length) return fail();
+    const missingCircle = (): never => { throw new Error("Inner circle profile is missing a unique valid circle definition."); };
+    if (profile.innerLoops.length !== profile.holes.length) return missingCircle();
     const used = new Set<string>();
     const circles = profile.innerLoops.map(loop => {
-      if (loop.type !== "circle" || loop.entityIds.length !== 1 || used.has(loop.entityIds[0])) return fail();
+      if (loop.type !== "circle" || loop.entityIds.length !== 1 || used.has(loop.entityIds[0])) return missingCircle();
       const id = loop.entityIds[0], matches = profile.holes.filter(hole => hole.id === id);
-      if (matches.length !== 1) return fail();
+      if (matches.length !== 1) return missingCircle();
       used.add(id);
       const hole = matches[0];
-      if (![hole.x, hole.y, hole.radius].every(Number.isFinite) || hole.radius <= 0) return fail();
+      if (![hole.x, hole.y, hole.radius].every(Number.isFinite) || hole.radius <= 0) return missingCircle();
       return { center: [hole.x, hole.y], radius: hole.radius };
     });
     return circles;
@@ -208,6 +222,7 @@ export class OpenCascadeKernel implements KernelAdapter {
     return owned(request({ op: "box", min: [-width / 2, -height / 2, 0], max: [width / 2, height / 2, depth] }), "box");
   }
   extrudeProfile(profile: SketchProfile, distance: number, transform = defaultPlane): KernelShape {
+    if (!Number.isFinite(distance) || distance <= 0) throw new Error("Extrude distance must be a positive finite length.");
     const mixed = mixedExtrusionRequest(profile, distance, transform);
     if (mixed) {
       const shape = owned(request(mixed), "extrusion");
@@ -230,7 +245,7 @@ export class OpenCascadeKernel implements KernelAdapter {
     const loop = (boundary: ProfileLoop) => {
       if (boundary.type !== "polygon" || !boundary.segments?.length || boundary.segments.some(segment => segment.type !== "line"))
         throw new Error("PlainSolid adapter requires exact straight polygon loops or a single full circle; mixed arcs and curved inner loops are unsupported.");
-      return boundary.segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y)));
+      return straightLoopCorners(boundary.segments).map(point => xyz(transformPoint(transform, point.x, point.y)));
     };
     const shape = owned(request({ op: "prism", outer: loop(profile.outerLoop), holes: profile.innerLoops.map(loop), offset: xyz(transform.normal).map(value => value * distance) }), "extrusion");
     handle(shape).extrusion = { profile: structuredClone(profile), distance, transform: structuredClone(transform) };
@@ -364,7 +379,7 @@ export class OpenCascadeKernel implements KernelAdapter {
     const segments = source.profile.outerLoop.type === "polygon" ? source.profile.outerLoop.segments ?? [] : [];
     const matches = segments.filter(segment => segment.id === ref.sourceEntityId);
     if (matches.length !== 1 || matches[0].type !== "line")
-      throw new Error("Authored cap edge is missing, ambiguous, or curved; repair the edge reference.");
+      throw new Error("Edge reference was lost or is ambiguous. Reselect the current feature-owned perimeter.");
     const segment = matches[0];
     const height = ref.role === "startCapPerimeter" ? 0 : source.distance;
     return {
@@ -391,10 +406,15 @@ export class OpenCascadeKernel implements KernelAdapter {
     const normal = xyz({ x: source.transform.u.x * dy - source.transform.v.x * dx,
       y: source.transform.u.y * dy - source.transform.v.y * dx,
       z: source.transform.u.z * dy - source.transform.v.z * dx });
-    return [segment.start, segment.end].map(point => ({
+    const edges = [segment.start, segment.end].map(point => ({
       edgeStart: xyz(transformPoint(source.transform, point.x, point.y, 0)),
       edgeEnd: xyz(transformPoint(source.transform, point.x, point.y, source.distance)), normal,
     }));
+    if (edges.some(edge => !request<{ available: boolean }>({
+      op: "edgeAvailable", handle: handle(shape).proof.handle, ...edge,
+    }).available))
+      throw new Error("Some selected edges are not sharp treatment contours. Reselect sharp edges.");
+    return edges;
   }
   availableExtrudeCapEdges(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> {
     const source = handle(shape).extrusion;
@@ -556,7 +576,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         return request<Proof>({ ...args, ...geometry });
       } catch (error) {
         if (error instanceof Error && error.message.endsWith("brep: termination face does not cover the projected profile"))
-          throw new Error("Extrude profile extends outside the finite target face or crosses a face hole.");
+          throw new Error("Extrude profile extends outside the finite target face or crosses a face hole. Reselect a covering planar face.");
         if (error instanceof Error && error.message.includes("brep: termination must be strictly ahead of every source vertex:"))
           throw new Error("Extrude to face requires the entire profile to lie before the target in the positive extrusion direction.");
         throw error;
@@ -595,7 +615,7 @@ export class OpenCascadeKernel implements KernelAdapter {
       // Resolve all authored references before publishing any native result.
       // The bridge validates the complete batch against the original solid.
       const source = handle(shape).extrusion;
-      const circularRims = operation === "fillet" && source?.profile.outerLoop.type === "circle" &&
+      const circularRims = source?.profile.outerLoop.type === "circle" &&
         !source.profile.innerLoops.length && !source.profile.holes.length &&
         refs.every(ref => (!ref.sourceEntityId || (source.profile.outerLoop.entityIds.length === 1 &&
           ref.sourceEntityId === source.profile.outerLoop.entityIds[0])) && !ref.repairRequired && ref.kind === "edge" &&
@@ -644,7 +664,9 @@ export class OpenCascadeKernel implements KernelAdapter {
         const x = (bounds.minX + bounds.maxX) / 2, y = (bounds.minY + bounds.maxY) / 2;
         const roles = [...new Set(refs.map(ref => ref.role))];
         const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
-        result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
+        result = request({ op: operation === "fillet" ? "filletCylinderRims" : "chamferCylinderRims",
+          handle: before.handle, normal: xyz(source.transform.normal), rimCenters,
+          [operation === "fillet" ? "radius" : "distance"]: size });
       } else {
         const edges = (perimeter ?? refs).flatMap(ref => ref.role === "profileEdge" ? this.profileEdges(shape, ref) : [this.capEdge(shape, ref)]);
         const normal = perimeter?.[0].role === "startCapPerimeter" ? edges[0].normal.map(value => -value) : edges[0].normal;
@@ -678,7 +700,7 @@ export class OpenCascadeKernel implements KernelAdapter {
     const source = handle(shape).extrusion;
     const dimensions = source && rectangularShellDimensions(source.profile);
     if (!source || !dimensions || handle(shape).operation !== "extrusion" || source.distance <= 0)
-      throw new Error("Shell requires one unchanged positive rectangular extrusion without holes.");
+      throw new Error("Shell requires one unmodified native positive rectangular extrusion without holes.");
     const [width, height] = dimensions, depth = source.distance;
     if (!Number.isFinite(wall) || wall < 1e-6) throw new Error("Wall thickness must be at least 0.000001 mm.");
     if (Math.min(width - 2 * wall, height - 2 * wall, depth - wall) <= 1e-6)
@@ -711,12 +733,19 @@ export class OpenCascadeKernel implements KernelAdapter {
     request({ op: "assertLeadPair", a: handle(screw).proof.handle, b: handle(nut).proof.handle, lead: dimensions });
   }
   importStep(source: string): KernelShape {
-    if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated native worker.");
+    if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated browser worker.");
     return owned(request({ op: "importStep", source }), "stepImport");
   }
   exportStep(shapes: readonly KernelShape[]): NativeStepExport {
-    if (typeof globalThis.document !== "undefined") throw new Error("STEP export requires an isolated native worker.");
-    const result = request<Omit<NativeStepExport, "bytes"> & { base64: string }>({ op: "exportStep", handles: shapes.map(shape => handle(shape).proof.handle) });
+    if (typeof globalThis.document !== "undefined") throw new Error("STEP export requires an isolated browser worker.");
+    const handles = shapes.map(shape => {
+      const native = handle(shape);
+      if (!native?.proof || typeof native.proof.handle !== "string" || native.disposed)
+        throw new Error("STEP export accepts native solids only.");
+      return native.proof.handle;
+    });
+    if (new Set(handles).size !== handles.length) throw new Error("STEP export requires unique native bodies.");
+    const result = request<Omit<NativeStepExport, "bytes"> & { base64: string }>({ op: "exportStep", handles });
     return { bytes: Uint8Array.from(atob(result.base64), character => character.charCodeAt(0)).buffer, before: result.before, after: result.after, units: result.units };
   }
 }
