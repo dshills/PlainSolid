@@ -37,3 +37,19 @@ Tests exercise both STEP→native→reload→STEP chains, source/native role dis
 malformed and forged valid JSON, stale evidence and exact unit tags. The optional
 `PLAINSOLID_OCCT_SPLIT_CYLINDER` helper validates conventional TransferRoots,
 face count, volume, area and centroid for both re-exported dialects.
+
+## Original versus canonical STEP output
+
+`WriteOriginalSTEP` requires retained, currently valid rooted source evidence.
+It reproduces those bytes exactly: header, whitespace, entity IDs and equivalent
+orientation flags. Missing source returns `ErrNoSource`; stale descriptor/source
+binding fails without writing. It never invents a source file or implicitly
+roots an unsupported bare model. The existing asset schema accepts only the
+explicit rooted half/quarter dialects.
+
+`WriteCanonicalSTEP` re-proves the asset and generates a canonical new rooted
+product. `WriteSTEP` remains its compatibility entry point, with unchanged
+behavior. Canonical output may normalize flags and IDs. Tests demonstrate the
+distinction using reversed bound encodings, preserve original bytes through
+native persistence, and independently verify both outputs with OCCT TransferRoots.
+Short writes and ordinary I/O failures are reported by either output mode.
