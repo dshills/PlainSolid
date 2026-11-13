@@ -9,9 +9,13 @@ import (
 
 func cornerLedgerFixture(t *testing.T) *SplineCornerFan {
 	t.Helper()
-	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, .125)
 	b, _ := makeCornerShearBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 0}, 0)
+	return cornerLedgerFromSolids(t, a, b)
+}
+func cornerLedgerFromSolids(t *testing.T, a, b Solid) *SplineCornerFan {
+	t.Helper()
+	ctx := context.Background()
 	var anchors [2]*SplineCornerAnchor
 	for i, face := range []int{0, 2} {
 		box := geom.ParameterRectangle{UMin: -.125, UMax: .125, VMin: 0, VMax: .25}

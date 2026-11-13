@@ -65,6 +65,15 @@ func TestSurfaceTubeCoverageCache(t *testing.T) {
 	if we != nil || ge != nil || !reflect.DeepEqual(want, got) {
 		t.Fatal("duplicates", we, ge)
 	}
+
+	for _, limit := range []int{want.ExactOperations - 1, want.ExactOperations, want.ExactOperations + 1} {
+		o := SurfaceTubeUnionCoverageOptions{MaxOperations: limit}
+		old, oe := CertifySurfacePairCellInTubesContext(ctx, a, b, cell, duplicates, o)
+		cached, ce := cache.CertifyCell(ctx, cell, duplicates, o)
+		if !errors.Is(ce, oe) || !reflect.DeepEqual(old, cached) {
+			t.Fatal("duplicate budget", limit, oe, ce, old, cached)
+		}
+	}
 	var wg sync.WaitGroup
 	for i := 0; i < 4; i++ {
 		wg.Add(1)

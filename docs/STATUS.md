@@ -736,6 +736,10 @@ surfaces must keep their geometry through the operation. Continue with:
    ownership before accepting transverse vertex fans in assembly. A complete
    bounded fixture now proves all original face pairs and an oriented section
    cycle with the existing corner vertex and three edge-interior events.
+   The bounded clip assembles common and difference when one convex cutter
+   plane is active and every other cutter plane strictly contains the stock.
+   It keeps original stock and cap supports and records the reused corner,
+   retained edge intervals, and generated section edges.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
