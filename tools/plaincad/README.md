@@ -136,9 +136,10 @@ Finite cylindrical through-cuts and blind bores are supported on qualified
 convex planar and circular stock with parallel perpendicular caps. Through
 tools must cover both stock caps, including exact endpoint equality. Blind
 tools must open on one cap and end within the stock. One qualified rectangular
-side-opening blind notch retains its true circular-segment floor. It can
-share a batch with disjoint contained blind bores from either cap and
-through bores. Qualified cardinal placements round-trip through STEP.
+side-opening notch can be blind, retaining its circular-segment floor, or
+through. Either can share a batch with disjoint contained blind bores from
+either cap and through bores. Qualified cardinal placements round-trip
+through STEP.
 A single exact side tangent on rectangular stock retains its four-use
 contact for modeling and display. Fabrication and STEP reject that contact.
 

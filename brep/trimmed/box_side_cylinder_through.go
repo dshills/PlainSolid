@@ -12,7 +12,7 @@ import (
 // the lower Y side. Frame's axis passes through the circle center; stock spans
 // X=[-left,right], Y=[-inset,back], Z=[0,length].
 func BoxSideCylinderThrough(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, tolerance float64) (Solid, error) {
-	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, length, nil, nil, tolerance)
+	return BoxSideCylinderWithBores(ctx, frame, left, right, back, inset, length, radius, length, nil, nil, tolerance)
 }
 
 // BoxSideCylinderBlind cuts a circular notch from Z=0 to depth. The footprint
@@ -28,23 +28,28 @@ func BoxSideCylinderBlindWithBores(ctx context.Context, frame geom.Frame, left, 
 	if !finite(depth) || length-depth <= 8*tolerance {
 		return Solid{}, geom.ErrDomain
 	}
-	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, depth, through, blind, tolerance)
+	return BoxSideCylinderWithBores(ctx, frame, left, right, back, inset, length, radius, depth, through, blind, tolerance)
 }
 
-func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
+// BoxSideCylinderWithBores cuts a side notch from Z=0 to depth and adds
+// disjoint interior bores. A depth equal to length opens both caps.
+func BoxSideCylinderWithBores(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return Solid{}, e
 	}
-	for _, v := range []float64{left, right, back, inset, length, radius, tolerance} {
+	for _, v := range []float64{left, right, back, inset, length, radius, depth, tolerance} {
 		if !finite(v) {
 			return Solid{}, geom.ErrInvalid
 		}
 	}
 	pad := 8 * tolerance
 	if tolerance <= 0 || !finite(pad) || radius <= pad || depth <= pad || depth > length || radius-math.Abs(inset) <= pad || left-radius <= pad || right-radius <= pad || back-radius <= pad {
+		return Solid{}, geom.ErrDomain
+	}
+	if depth < length && length-depth <= pad {
 		return Solid{}, geom.ErrDomain
 	}
 	if len(through)+len(blind) != 0 {

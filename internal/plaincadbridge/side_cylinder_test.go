@@ -94,10 +94,17 @@ func TestPlacedSideCrossingBlindCylinderCut(t *testing.T) {
 	}
 }
 
-func TestPlainCADSideBlindNotchSTEPRoundTrip(t *testing.T) {
+func TestPlainCADSideNotchSTEPRoundTrip(t *testing.T) {
+	for _, depth := range []float64{6, 10} {
+		checkPlainCADSideNotchSTEP(t, depth)
+	}
+}
+
+func checkPlainCADSideNotchSTEP(t *testing.T, depth float64) {
+	t.Helper()
 	b := New()
 	stock := box(t, b, vector{}, vector{20, 20, 8})
-	tool := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, 6)
+	tool := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, depth)
 	cut, err := b.cutMany(stock.Handle, []string{tool.Handle})
 	if err != nil {
 		t.Fatal(err)
@@ -132,9 +139,16 @@ func TestPlainCADSideBlindNotchSTEPRoundTrip(t *testing.T) {
 }
 
 func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
+	for _, depth := range []float64{6, 10} {
+		checkSideNotchMixedBoreBatch(t, depth)
+	}
+}
+
+func checkSideNotchMixedBoreBatch(t *testing.T, depth float64) {
+	t.Helper()
 	b := New()
 	stock := box(t, b, vector{}, vector{20, 20, 8})
-	notch := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, 6)
+	notch := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, depth)
 	blind := circle(t, b, vector{5, 10, 0}, vector{0, 0, 1}, 2, 3)
 	through := circle(t, b, vector{15, 10, -1}, vector{0, 0, 1}, 2, 10)
 	opposed := circle(t, b, vector{10, 14, 8}, vector{0, 0, -1}, 1, 5)

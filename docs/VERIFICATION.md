@@ -57,6 +57,22 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD STEP for a one-side through notch — 2026-11-13
+
+A qualified through-all Hole opening one rectangular stock side now
+round-trips canonical STEP, also when grouped with disjoint interior bores.
+Native checks cover grouped and successive cuts, atomic rejection, exact
+measures and placed bounds. Independent OCCT reads match volume, surface
+area and centroid in five blind and through cases.
+
+All [13 original browser regressions](evidence/plaincad-side-through-step-browser-2026-11-13.json)
+pass on PlainCAD `50432ed`, including the export hub and STEP workers.
+Both original Hole Edit cases pass separately on the same staged build.
+The [same-WASM app probe](evidence/plaincad-side-through-step-native-2026-11-13.json)
+exports a posed scoped through-all Hole, imports the downloaded STEP in a
+fresh browser context, reopens the saved project and validates STL. Focused
+race checks and Go vet pass.
+
 ## PlainCAD scoped through-all side notch — 2026-11-13
 
 Single-tool scoped Hole now uses the same qualified rectangular side and

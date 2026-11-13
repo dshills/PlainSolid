@@ -15,20 +15,25 @@ import (
 	"plainsolid/geom"
 )
 
-func TestSideBlindNotchSTEP(t *testing.T) {
+func TestSideNotchSTEP(t *testing.T) {
 	for _, tc := range []struct {
 		normal geom.Vec3
 		inset  float64
 		mixed  bool
+		depth  float64
 	}{
-		{geom.Vec3{Z: 1}, 1, false}, {geom.Vec3{Y: -1}, -1, false}, {geom.Vec3{X: 1}, 1, true},
+		{geom.Vec3{Z: 1}, 1, false, 6},
+		{geom.Vec3{Y: -1}, -1, false, 6},
+		{geom.Vec3{X: 1}, 1, true, 6},
+		{geom.Vec3{Y: 1}, -2.5, false, 20},
+		{geom.Vec3{X: -1}, 1, true, 20},
 	} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, tc.normal)
 		if err != nil {
 			t.Fatal(err)
 		}
-		p := SideBlindNotchBody{Name: "side-opening bore", Frame: f, Left: 10, Right: 10, Back: 19,
-			Inset: tc.inset, Length: 20, Radius: 3, Depth: 6}
+		p := SideNotchBody{Name: "side-opening bore", Frame: f, Left: 10, Right: 10, Back: 19,
+			Inset: tc.inset, Length: 20, Radius: 3, Depth: tc.depth}
 		if tc.mixed {
 			p.Through = []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: -4, Y: 9}, Radius: 1}}
 			p.Blind = []trimmed.ExtrusionBlindHole{
@@ -37,11 +42,11 @@ func TestSideBlindNotchSTEP(t *testing.T) {
 			}
 		}
 		var out bytes.Buffer
-		m := SideBlindNotchModel{Body: p, LengthUnit: .001}
-		if err := WriteSideBlindNotch(&out, m); err != nil {
+		m := SideNotchModel{Body: p, LengthUnit: .001}
+		if err := WriteSideNotch(&out, m); err != nil {
 			t.Fatal(tc, err)
 		}
-		got, err := ReadSideBlindNotch(bytes.NewReader(out.Bytes()), Limits{})
+		got, err := ReadSideNotch(bytes.NewReader(out.Bytes()), Limits{})
 		if err != nil || !reflect.DeepEqual(got, m) {
 			t.Fatal(tc, got, err)
 		}
@@ -63,7 +68,7 @@ func TestSideBlindNotchSTEP(t *testing.T) {
 				t.Fatal(err)
 			}
 			ctx := context.Background()
-			s, err := trimmed.BoxSideCylinderBlindWithBores(ctx, p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+			s, err := trimmed.BoxSideCylinderWithBores(ctx, p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
 			if err != nil {
 				t.Fatal(err)
 			}
