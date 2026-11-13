@@ -81,7 +81,11 @@ func TestFiniteParallelTransverseRejects(t *testing.T) {
 	a := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: 0, Max: 8}
 	b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Radius: 3, Min: -4, Max: 0}
 	for i, bad := range []geom.RawCylinder{{Origin: b.Origin, Axis: b.Axis, Radius: 3, Min: -3, Max: 0}, {Origin: geom.Vec3{X: 8 - 1e-9}, Axis: b.Axis, Radius: 3, Min: -4, Max: 0}, {Origin: geom.Vec3{X: 2 + 1e-9}, Axis: b.Axis, Radius: 3, Min: -4, Max: 0}} {
-		if r, e := FiniteCylinderPairUnion(context.Background(), a, bad, 1e-8); e == nil || len(r.Solid.Faces()) != 0 {
+		if r, e := FiniteCylinderPairUnion(context.Background(), a, bad, 1e-8); i == 0 {
+			if e != nil || len(r.Solid.Faces()) != 12 {
+				t.Fatal("qualified common-cap union", e)
+			}
+		} else if e == nil || len(r.Solid.Faces()) != 0 {
 			t.Fatal("union accepted", e)
 		}
 		if r, e := FiniteCylinderPairDifference(context.Background(), a, bad, 1e-8); i == 0 {
