@@ -69,9 +69,10 @@ func location2(p geom.Vec2, ring []int, points []geom.Vec2) int {
 }
 func area2(ring []int, points []geom.Vec2) float64 {
 	sum := 0.0
+	origin := points[ring[0]]
 	for i, a := range ring {
 		b := ring[(i+1)%len(ring)]
-		sum += points[a].X*points[b].Y - points[a].Y*points[b].X
+		sum += cross2(origin, points[a], points[b])
 	}
 	return sum
 }
@@ -124,6 +125,29 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 	if math.Abs(normal.Z) > math.Abs([]float64{normal.X, normal.Y}[axis]) {
 		axis = 2
 	}
+	// Predicate coordinates must preserve the represented input geometry.
+	// Subtracting an origin and dividing by an arbitrary scale can turn exact
+	// collinearity into a tiny nonzero determinant, producing degenerate model
+	// triangles. A power-of-two scaling without translation is exact here.
+	maxCoordinate := 0.0
+	for _, ring := range append([][]geom.Vec3{outer}, holes...) {
+		for _, p := range ring {
+			components := [3]float64{p.X, p.Y, p.Z}
+			for i, value := range components {
+				if i != axis {
+					maxCoordinate = math.Max(maxCoordinate, math.Abs(value))
+				}
+			}
+		}
+	}
+	_, exponent := math.Frexp(maxCoordinate)
+	projectScale := func(v float64) float64 { return math.Ldexp(v, -exponent) }
+	projectedScale := projectScale(scale)
+	resolution := faceTolerance * projectedScale
+	areaResolution := faceTolerance * projectedScale * projectedScale
+	if (math.IsInf(projectedScale, 0) || math.IsNaN(projectedScale)) || resolution == 0 || areaResolution == 0 {
+		return nil, fmt.Errorf("face projection scale is unresolved")
+	}
 	points := make([]geom.Vec2, 0, count)
 	rings := make([][]int, 0, 1+len(holes))
 	for _, ring := range append([][]geom.Vec3{outer}, holes...) {
@@ -136,11 +160,19 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 			var projected geom.Vec2
 			switch axis {
 			case 0:
-				projected = geom.Vec2{X: q.Y, Y: q.Z}
+				projected = geom.Vec2{X: projectScale(p.Y), Y: projectScale(p.Z)}
 			case 1:
-				projected = geom.Vec2{X: q.X, Y: q.Z}
+				projected = geom.Vec2{X: projectScale(p.X), Y: projectScale(p.Z)}
 			case 2:
-				projected = geom.Vec2{X: q.X, Y: q.Y}
+				projected = geom.Vec2{X: projectScale(p.X), Y: projectScale(p.Y)}
+			}
+			// Reject an exponent spread that loses represented coordinates rather
+			// than silently changing predicate geometry through underflow.
+			components := [3]float64{p.X, p.Y, p.Z}
+			for component, value := range components {
+				if component != axis && math.Ldexp(projectScale(value), exponent) != value {
+					return nil, fmt.Errorf("face coordinate exponent spread exceeds exact projection range")
+				}
 			}
 			ids[i] = len(points)
 			points = append(points, projected)
@@ -150,28 +182,28 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 	for i, p := range points {
 		for j := 0; j < i; j++ {
 			q := points[j]
-			if math.Hypot(p.X-q.X, p.Y-q.Y) <= faceTolerance {
+			if math.Hypot(p.X-q.X, p.Y-q.Y) <= resolution {
 				return nil, fmt.Errorf("face wires share coincident or unresolved vertices")
 			}
 		}
 	}
 	outerArea := area2(rings[0], points)
-	if math.Abs(outerArea) <= faceTolerance {
+	if math.Abs(outerArea) <= areaResolution {
 		return nil, fmt.Errorf("degenerate outer wire")
 	}
 	flip := outerArea < 0
 	var boundary []segment2
 	for r, ids := range rings {
 		area := area2(ids, points)
-		if math.Abs(area) <= faceTolerance {
+		if math.Abs(area) <= areaResolution {
 			return nil, fmt.Errorf("degenerate wire")
 		}
-		if r > 0 && area*outerArea >= 0 {
+		if r > 0 && (area > 0) == (outerArea > 0) {
 			return nil, fmt.Errorf("inner wires must oppose outer winding")
 		}
 		for i, a := range ids {
 			b, c := ids[(i+1)%len(ids)], ids[(i+2)%len(ids)]
-			if math.Abs(cross2(points[a], points[b], points[c])) <= faceTolerance {
+			if math.Abs(cross2(points[a], points[b], points[c])) <= areaResolution {
 				return nil, fmt.Errorf("collinear or unresolved consecutive wire vertices")
 			}
 			boundary = append(boundary, segment2{a, b})
@@ -361,7 +393,7 @@ func triangulateRings(outer []geom.Vec3, holes [][]geom.Vec3) ([][3]int, error) 
 	for _, t := range triangles {
 		actual += math.Abs(cross2(points[t[0]], points[t[1]], points[t[2]]))
 	}
-	if math.Abs(actual-expected) > 1e-10*math.Max(1, expected) {
+	if math.Abs(actual-expected) > 1e-10*math.Max(projectedScale*projectedScale, expected) {
 		return nil, fmt.Errorf("constrained triangulation area mismatch")
 	}
 	return triangles, nil

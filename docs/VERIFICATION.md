@@ -1,5 +1,21 @@
 # Verification record
 
+## Holed-face predicate projection fix — 2026-11-13
+
+PlainCAD's guided Hole diameter edit exposed a valid radius-3 circular trim whose
+seed triangulation contained a degenerate triangle. Arbitrary coordinate division
+had changed exact collinearity before the triangulator's predicates. Projection
+now uses reversible power-of-two scaling of the retained axes, keeps relative
+resolution checks, and rejects exponent ranges that cannot preserve coordinates.
+Area accumulation is translation-relative and winding compares signs directly.
+Mesh validity checks remain unchanged.
+
+The physical-collinearity regression, closed-prism check, scale tests from
+2^-1000 through 2^1000, relative-resolution rejection and huge dropped-axis case
+pass with `go test ./brep`. The bridge's exact guided radius-3 input also passes.
+The wider trimmed-package regression is running; application scoped-Hole
+qualification is recorded separately when its existing scenarios complete.
+
 ## PlainCAD finite cylindrical through-cut milestone — 2026-11-13
 
 Retained trimmed cylinder walls now support finite through-cuts on supported
