@@ -143,3 +143,29 @@ exact offset points. Their linear interpolation describes the entire accepted
 width field. Tests integrate tapered triangular cross-sections independently,
 cover multiple separated bevels and mixed widths, reverse the original stored
 edge direction, and check exact plane incidence and contact-free display.
+
+`HollowPorts` extends through hollowing to 2–32 distinct complete supporting
+faces. Every pair of original opening polygons must be strictly separated by
+its original supports; adjacent or touching ports are rejected exactly. The
+cavity must retain every port and conversion must preserve each opening plane
+exactly. It returns original port IDs, cavity-face mappings, exact ideal volume,
+and full Boolean topology history. Pairwise separation shares one reconstruction
+work budget; reconstruction and Boolean validation retain independent budgets.
+`HollowThrough` remains the compatible two-port wrapper.
+
+## Independent original-edge hinge draft
+
+`HingeDraft` rotates selected supporting faces about individually named incident
+original edges. Each signed `HalfAngleTangent` means tan(angle/2), with the axis
+oriented from the edge's stored Start to End. Rational Rodrigues coefficients
+are constructed without rounding a transform matrix. Axis lengths must have
+rational square roots; other axes fail explicitly. Reversing an edge's stored
+orientation and negating its coefficient gives the identical rotation.
+
+Returned hinge records retain original face/edge/endpoint IDs, exact fixed
+endpoints and exact rotation matrices. Subsequent intersection with other moved
+supports can trim away the hinge or remove a selected face; `OutputFace` is -1
+for a vanished support. These records certify the original transformation axis,
+not survival of an output edge. Preparation and reconstruction have independent
+bounded work passes. This adds rigid per-face hinge rotation to the existing
+common-neutral-plane shear; it does not create curved draft surfaces.

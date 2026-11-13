@@ -23,7 +23,7 @@ type FiniteCylinderPairUnionResult struct {
 // a strictly radially contained eccentric boss extending through one end,
 // exactly placed oblique parallel cylinders with transverse overlap and equal
 // physical caps, coordinate-parallel transverse overlaps with exactly one common
-// physical cap or strictly staggered or nested overlapping spans, and selected unequal-radius perpendicular pairs with clear finite caps
+// physical cap or strictly staggered or nested overlapping spans, or exactly abutting caps sharing a positive-area lens, and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.
@@ -67,6 +67,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 			return u, err
 		}
 		if u, ok, err := finiteParallelTransverseNestedUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteParallelTransverseAbuttingUnion(ctx, a, b, tolerance); ok || err != nil {
 			return u, err
 		}
 		if u, ok, err := finiteParallelOverlapUnion(ctx, a, b, tolerance); ok || err != nil {
@@ -149,6 +152,7 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			}
 			out.Solids[0], out.StockWallFaces[0], out.CutterWallFaces[0] = r.Solid, r.SideFaces[0], r.SideFaces[1]
 			out.StockCapFaces[0] = append(r.LowerCapFaces[0], r.UpperCapFaces[0]...)
+			out.CutterCapFaces[0] = append(r.LowerCapFaces[1], r.UpperCapFaces[1]...)
 			return out, nil
 		}
 		if parallelCoordinateContainment(stock, cutter)[0] {

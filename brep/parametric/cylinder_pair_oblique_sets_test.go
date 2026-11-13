@@ -66,7 +66,7 @@ func TestFiniteObliqueParallelCylinderSets(t *testing.T) {
 		}
 	}
 	for _, bad := range []geom.RawCylinder{
-		{Origin: b.Origin, Axis: b.Axis, Radius: 5, Min: 0, Max: .75},                   // different caps
+		{Origin: b.Origin, Axis: b.Axis, Radius: 5, Min: 0, Max: math.Nextafter(1, 0)},  // unresolved tiny exposed axial band
 		{Origin: geom.Vec3{X: 6, Y: 8, Z: 10}, Axis: b.Axis, Radius: 5, Min: 0, Max: 1}, // tangent
 	} {
 		if r, err := FiniteCylinderPairUnion(ctx, a, bad, 1e-9); !errors.Is(err, geom.ErrDomain) || len(r.Solid.Faces()) != 0 {

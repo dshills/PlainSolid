@@ -620,3 +620,45 @@ The independently authored OCCT type-102 fixture combines a line and quarter
 circle. `tools/occtref/build_composite_curve.sh` builds an optional standalone
 helper; set `PLAINSOLID_OCCT_COMPOSITE` to run both-direction wire validity,
 edge count and analytic length checks. No runtime OCCT dependency is introduced.
+
+## Standalone type-120 revolution supports
+
+`ReadRevolutionSurfaces` / `WriteRevolutionSurfaces` preserve standalone type-120
+records in `Model.Revolutions`. Each record refers to exactly one owned type-110
+axis line and one owned type-126 spline generatrix in `Model.Entities`. Neither
+may be shared by two roots. Orphan geometry, nesting, transforms, surface trims
+and B-rep entities are rejected. Generic `Read` / `Write` remain strict and do
+not silently consume this new family.
+
+The source axis line must have exactly one nonzero endpoint difference, equal to
++1 or −1. Endpoints are compared as exact represented rationals; there is no
+normalization or axis snapping. The generatrix must use its entire clamped curve
+domain, with no closed/periodic flag. `Model.RevolutionGeometry(index)` reconstructs
+`geom.RevolutionSurface`, preserving original profile V, source radian U, axis
+origin/direction and angles. Its positive-radius meridian half-plane, exact
+monotone axial proof and angular domain [-3,3] of width at most 3 remain required.
+Polynomial profiles and the bounded certified rational subset are supported.
+
+Source geometric decimals must be exactly representable as float64, including
+angles and source spline data. Weight normalization must preserve exact ratios.
+The same bounded scalar gate as standalone type-102 wires applies. This is a
+strict source identity subset: even ordinary nonbinary decimals can be rejected,
+and writer output is staged and rechecked before I/O. Units, root directory
+labels/subscripts and leaf labels remain explicit and coordinates are not scaled.
+There are at most 64 roots, 128 dependent entities and 4096 cumulative poles,
+plus caller parser limits and the rational native proof budgets.
+
+Orientation is explicit: native U increases by positive rotation about the
+source directed axis, so native `Du×Dv` is its source-parameter convention. The
+qualified OCCT IGES converter reverses the axis and rephases its face parameter
+as `Uocct = AngleEnd − U`; its corresponding `Du` is negative native `Du` and
+its cross-product normal is opposite. The codec retains the authored axis and
+range rather than silently replacing them to match that face convention. It
+constructs analytic geometry only, not an oriented face or material shell.
+
+The independent `tools/occtref/iges_revolution.cxx` helper authors type-120 records
+with a rational quadratic generatrix and both positive/negative axis/range cases.
+Set `PLAINSOLID_OCCT_IGES_REVOLUTION` to its compiled path to compare original and
+PlainSolid-exported face validity, area and source-parameter position/partials.
+The helper explicitly applies OCCT's documented converter parameter map, including
+the derivative sign; no approximately corrected geometry enters the Go reader.

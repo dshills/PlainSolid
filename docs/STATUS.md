@@ -750,6 +750,8 @@ stock caps and the cutter wall across all three represented orientations.
 With transverse disks and positive axial overlap, union also retains
 native shoulders for one common cap, staggered spans, and nested spans.
 An exactly shared terminal lens has both original cap owners.
+Exact represented similarities extend these transverse cuts and unions
+to qualified oblique parallel axes without reassigning source cap IDs.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -824,9 +826,17 @@ surfaces must keep their geometry through the operation. Continue with:
    nonparallel original supports. It retains exact cap coincidence and
    opening ancestry. Rectangular, sheared, and inclined ducts pass independent
    OCCT comparisons.
+   The same proof now handles two to 32 pairwise separated complete ports.
+   A three-port fixture forms one closed genus-two wall shell.
    Planar edge chamfers also accept compatible independent endpoint setbacks.
    Exact coplanarity keeps the entire tapered bevel on one plane, with
    original edge direction and continuous width metadata.
+   A convex planar draft can rotate each selected support about its own
+   original edge using a signed half-angle tangent and an exact rational
+   rotation. The support reconstruction reports which original faces survive.
+   Exact planar lofts now connect corresponding convex polygon stations.
+   The separate band operation accepts a reentrant profile when every
+   adjacent slab is convex and the assembled shell passes exact validation.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

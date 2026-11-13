@@ -109,3 +109,44 @@ func TestOCCTHollowThroughInclined(t *testing.T) {
 	}
 	compare(t, ref, mass.SurfaceArea, mass.Volume, mass.Centroid)
 }
+
+func TestOCCTHollowThreePorts(t *testing.T) {
+	ref := runOracle(t, "feature")["hollow-three-ports"]
+	profile := []geom.Vec3{{X: 1}, {X: 3}, {X: 4, Y: 1}, {X: 4, Y: 4}, {X: 1, Y: 4}, {Y: 3}, {Y: 1}}
+	s, err := brep.Prism(profile, geom.Vec3{Z: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	faces, edges, vertices := s.Faces(), s.Edges(), s.Vertices()
+	thickness := make([]float64, len(faces))
+	var ports []int
+	for i, f := range faces {
+		bottomLeft, bottomRight, topLeft := true, true, true
+		for _, u := range f.Boundary {
+			p := vertices[edges[u.Edge].Start]
+			bottomLeft = bottomLeft && p.X+p.Y == 1
+			bottomRight = bottomRight && p.X-p.Y == 3
+			topLeft = topLeft && p.Y-p.X == 3
+		}
+		if bottomLeft || bottomRight || topLeft {
+			ports = append(ports, i)
+		} else {
+			thickness[i] = .25
+		}
+	}
+	if len(ports) != 3 {
+		t.Fatal("expected three original port supports", ports)
+	}
+	r, err := draft.HollowPorts(context.Background(), s, thickness, draft.PortHollowOptions{OpenFaces: ports})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if top := r.Solid.Topology(); top.Shells != 1 || top.EulerCharacteristic != -2 || r.ExactVolume.RatString() != "263/16" {
+		t.Fatal("expected one genus-two shell and exact volume 263/16", top, r.ExactVolume)
+	}
+	m, err := r.Solid.MassProperties()
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, ref, m.SurfaceArea, m.Volume, m.Centroid)
+}

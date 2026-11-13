@@ -2252,6 +2252,12 @@ ends, and nested axial spans for intersecting transverse disks. All four
 native results agree on shell count, area, volume and centroid. Both
 operand orders and signed frames preserve the original cap ownership;
 common terminal lens fans retain both owners.
+The oblique asymmetric fixtures apply an exact scale-five similarity to
+the same native constructions. Independent OCCT cylinders verify the
+covering cut, blind cut, interior notch, and common-cap, staggered, and
+nested unions. All agree on area, volume and centroid. Native tests check
+original signed cap IDs, native reload, and strict failure when original
+cap coordinates or the similarity cannot be represented exactly.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding
@@ -2263,11 +2269,33 @@ An independent wedge-prism cut verifies a duct opening on each of the
 nonparallel original supports `X=0` and `X+Z=4`. It agrees on area,
 centroid and volume `35/8`. Exact source-face separation accepts a
 `2⁻²⁰` gap and rejects a shared opening edge.
+The three-port hollow uses distinct original diagonal supports on a
+seven-sided prism. Independent OCCT prismatic subtraction agrees on area,
+centroid and material volume `263/16`. The native shell has Euler
+characteristic −2 and retains all three original opening identities.
 An independently swept and sheared OCCT cutter qualifies the tapered planar
 chamfer's area, centroid and volume `569/24`. The native result retains
 the original vertical edge's direction and both endpoint width pairs.
 Constant widths reproduce the earlier chamfer result. Incompatible ratios
 fail before any chamfer is returned.
+The independent hinge draft fixture sweeps a trapezoid in OCCT. It matches
+the native result on area, centroid and exact ideal volume `1136/105`.
+The two original hinge axes retain their vertex IDs, exact rotation
+matrices and output face mapping. Reversing an original edge and its
+signed angle leaves the reconstructed solid unchanged.
+Independent OCCT face sewing qualifies the variable-width rectangular
+loft (volume `70`), the convex three-station loft (`56/3`), and a reentrant
+waist loft assembled from convex bands (`14/3`). All agree on area,
+volume, and centroid. Native station seams remain explicit, including
+when adjacent planar bands share the same support.
+
+Standalone STEP and IGES revolutions preserve the original signed coordinate
+axis, angular and meridian ranges, units, and exact bounded profile geometry.
+Independent OCCT read/write fixtures cover polynomial and rational meridians
+and non-cardinal meridian phase. The native `exchange/revolution` leaf
+package retains the standalone representation through versioned JSON.
+IGES type 102 also retains bounded ordered direct mixed curve chains with
+exact joints. These are support and wire codecs without a solid claim.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

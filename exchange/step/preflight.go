@@ -30,10 +30,12 @@ type GraphPreflight struct {
 
 var preflightCatalog = func() map[string]string {
 	groups := map[string]string{
-		"placement":         "AXIS2_PLACEMENT_2D AXIS2_PLACEMENT_3D CARTESIAN_POINT DIRECTION VECTOR",
+		"placement":         "AXIS1_PLACEMENT AXIS2_PLACEMENT_2D AXIS2_PLACEMENT_3D CARTESIAN_POINT DIRECTION VECTOR",
 		"analytic-curves":   "LINE CIRCLE ELLIPSE PARABOLA HYPERBOLA TRIMMED_CURVE",
 		"spline-curves":     "B_SPLINE_CURVE B_SPLINE_CURVE_WITH_KNOTS RATIONAL_B_SPLINE_CURVE",
 		"analytic-surfaces": "PLANE CYLINDRICAL_SURFACE CONICAL_SURFACE SPHERICAL_SURFACE TOROIDAL_SURFACE",
+		"swept-surfaces":    "SURFACE_OF_LINEAR_EXTRUSION SURFACE_OF_REVOLUTION",
+		"surface-trims":     "RECTANGULAR_TRIMMED_SURFACE",
 		"spline-surfaces":   "B_SPLINE_SURFACE B_SPLINE_SURFACE_WITH_KNOTS RATIONAL_B_SPLINE_SURFACE",
 		"pcurves":           "PCURVE SURFACE_CURVE SEAM_CURVE DEFINITIONAL_REPRESENTATION",
 		"face-topology":     "FACE ADVANCED_FACE FACE_SURFACE FACE_BOUND FACE_OUTER_BOUND EDGE_CURVE EDGE_LOOP ORIENTED_EDGE VERTEX_POINT POLY_LOOP",
@@ -123,6 +125,28 @@ func Preflight(r io.Reader, l Limits) (GraphPreflight, error) {
 	}
 	sort.Strings(report.Features)
 	hints := map[string]bool{}
+	// These are declaration-level routes, not acceptance or ownership proofs.
+	// OCCT fixture files may include a bounded support alongside unrelated face
+	// topology: those receive only entity-decoder hints for the swept family.
+	linear := len(types["SURFACE_OF_LINEAR_EXTRUSION"]) > 0
+	revolution := len(types["SURFACE_OF_REVOLUTION"]) > 0
+	trimmed := len(types["RECTANGULAR_TRIMMED_SURFACE"]) > 0
+	if trimmed && linear {
+		hints["DecodeLinearExtrusionSurface"] = true
+		hints["DecodeRationalLinearExtrusionSurface"] = true
+	}
+	if trimmed && revolution {
+		hints["DecodeRevolutionSurface"] = true
+	}
+	standalone := trimmed && len(types["GEOMETRIC_SET"]) > 0 && len(types["GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION"]) > 0 && !features["face-topology"] && !features["solid-topology"] && !features["cavities"] && !features["assembly"]
+	if standalone && linear && !revolution {
+		hints["ReadLinearExtrusions"] = true
+		hints["ReadRationalLinearExtrusions"] = true
+	}
+	if standalone && revolution && !linear {
+		hints["ReadRevolutionSurfaces"] = true
+	}
+
 	if features["solid-topology"] {
 		hints["Read"] = true
 		hints["ReadAnalyticBodies"] = true
