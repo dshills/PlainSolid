@@ -44,6 +44,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 		if u, ok, err := finiteCoaxialSteppedCylinderUnion(ctx, a, b, tolerance); ok || err != nil {
 			return u, err
 		}
+		if u, ok, err := finiteParallelOverlapUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
 		return unionSeparatedCoordinateCylinders(ctx, a, b)
 	}
 	if a.Radius != b.Radius {
@@ -107,6 +110,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			}
 			if blind, ok, err := finiteParallelCylinderBlind(ctx, stock, cutter, tolerance); ok || err != nil {
 				return blind, err
+			}
+			if d, ok, err := finiteParallelOverlapDifference(ctx, stock, cutter, tolerance); ok || err != nil {
+				return d, err
 			}
 			bore, err := finiteCoordinateCylinderThroughDifference(ctx, stock, cutter, tolerance, false)
 			if err != nil {
