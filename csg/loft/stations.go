@@ -32,6 +32,10 @@ type StationResult struct {
 // Coplanar consecutive patches retain distinct faces and their shared ring edge.
 // All Planar exact incidence, embedding and atomic failure rules apply.
 func PlanarStations(ctx context.Context, rings [][]geom.Vec3, options StationOptions) (StationResult, error) {
+	return planarStations(ctx, rings, options, true)
+}
+
+func planarStations(ctx context.Context, rings [][]geom.Vec3, options StationOptions, convex bool) (StationResult, error) {
 	empty := StationResult{}
 	if ctx == nil {
 		return empty, ErrInvalid
@@ -151,7 +155,7 @@ func PlanarStations(ctx context.Context, rings [][]geom.Vec3, options StationOpt
 		return empty, e
 	}
 	so := o.Support
-	so.Convex = true
+	so.Convex = convex
 	proof, e := support.Certify(ctx, s, so)
 	if e != nil {
 		return empty, e

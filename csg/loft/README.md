@@ -32,3 +32,18 @@ Independent tests integrate square sections of sides 2,4,2 at heights 0,1,2:
 volume 56/3. The globally convex angular crease passes; sides 2,1,2 fail. A
 constant-slope 2,3,4 fixture preserves all four coplanar station seams and all
 ten faces. Two stations reproduce the original `Planar` topology exactly.
+
+For a nonconvex waist, `PlanarStationBands` is a distinct additive operation.
+Every adjacent pair must pass the original convex `Planar` certificate. Strict
+parallel station ordering separates slab interiors, and shared rings identify
+exactly coincident intermediate caps. Those caps are omitted from the final
+boundary while station seam edges remain. The assembled shell additionally
+passes exact planarity and embedding checks. Its global support report does not
+claim convexity; per-band support reports do. Exact owned band volumes sum to
+the returned shell volume. The 2,1,2 square waist at heights 0,1,2 has volume
+14/3 and centroid (0,0,1), while the stricter `PlanarStations` still rejects it.
+
+Each band and the final shell have separate configured support/embedding work
+limits. The bounded station count therefore bounds the number of proof passes;
+there is no unbounded retry or sampled fallback. A locally nonconvex slab,
+twisted side, invalid ordering or exhausted budget returns no body.
