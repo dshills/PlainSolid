@@ -106,6 +106,8 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // Strictly enclosed coordinate-parallel cutters leave an inward cavity shell.
 // A coordinate-parallel cutter that covers the stock disk can remove a full
 // axial slab, retaining one or two original wall intervals.
+// Coordinate-parallel transverse cutters may cover or exceed the complete
+// stock axial interval; their exterior caps do not become result faces.
 // Exactly placed oblique parallel pairs support transverse cuts with equal caps.
 // It keeps stock unchanged when coordinate-parallel cylinder interiors are
 // disjoint, including exact radial or cap-only contact (regularized Difference).

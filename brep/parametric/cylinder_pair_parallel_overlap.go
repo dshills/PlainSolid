@@ -6,7 +6,8 @@ import (
 	"plainsolid/geom"
 )
 
-// finiteParallelOverlap requires identical physical cap planes and a strictly
+// finiteParallelOverlap requires identical physical cap planes (or a cutter
+// covering the stock span for Difference) and a strictly
 // transverse circular intersection. Raw endpoints and local center differences
 // must be exactly representable; circle trim angles use the existing analytic
 // CombineParallelCylinders implementation and its tolerance checks.
@@ -26,6 +27,15 @@ func finiteParallelOverlap(ctx context.Context, a, b geom.RawCylinder, tol float
 		be[0], be[1] = be[1], be[0]
 	}
 	if ae[0].Cmp(be[0]) != 0 || ae[1].Cmp(be[1]) != 0 {
+		if op == Difference {
+			clipped, ok, err := clipParallelCoveringCutter(a, b)
+			if err != nil {
+				return Solid{}, ok, err
+			}
+			if ok {
+				return finiteParallelOverlap(ctx, a, clipped, tol, op)
+			}
+		}
 		return Solid{}, false, nil
 	}
 	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tol))
