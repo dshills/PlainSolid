@@ -37,9 +37,12 @@ func sign2(a, b, c geom.Vec2) int {
 	return sign
 }
 func onSegment2(p, a, b geom.Vec2) bool {
-	return sign2(a, b, p) == 0 && p.X >= math.Min(a.X, b.X) && p.X <= math.Max(a.X, b.X) && p.Y >= math.Min(a.Y, b.Y) && p.Y <= math.Max(a.Y, b.Y)
+	return p.X >= math.Min(a.X, b.X) && p.X <= math.Max(a.X, b.X) && p.Y >= math.Min(a.Y, b.Y) && p.Y <= math.Max(a.Y, b.Y) && sign2(a, b, p) == 0
 }
 func intersects2(a, b, c, d geom.Vec2) bool {
+	if math.Max(a.X, b.X) < math.Min(c.X, d.X) || math.Max(c.X, d.X) < math.Min(a.X, b.X) || math.Max(a.Y, b.Y) < math.Min(c.Y, d.Y) || math.Max(c.Y, d.Y) < math.Min(a.Y, b.Y) {
+		return false
+	}
 	s1, s2, s3, s4 := sign2(a, b, c), sign2(a, b, d), sign2(c, d, a), sign2(c, d, b)
 	if s1*s2 < 0 && s3*s4 < 0 {
 		return true
@@ -103,7 +106,7 @@ func TriangulatePlanarRings(ctx context.Context, outer []geom.Vec3, holes [][]ge
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 64000000
 	}
-	if o.MaxVertices < 3 || o.MaxVertices > 1024 || o.MaxOperations < 1 || o.MaxOperations > 128000000 {
+	if o.MaxVertices < 3 || o.MaxVertices > 2048 || o.MaxOperations < 1 || o.MaxOperations > 128000000 {
 		return nil, geom.ErrInvalid
 	}
 	return triangulateRingsWork(ctx, outer, holes, o.MaxVertices, o.MaxOperations)
@@ -282,16 +285,39 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 			}
 		}
 	}
-	inside := func(p geom.Vec2) bool {
-		if location2(p, rings[0], points) != 1 {
-			return false
+	type ringBox struct{ lo, hi geom.Vec2 }
+	boxes := make([]ringBox, len(rings))
+	for i, ring := range rings {
+		boxes[i] = ringBox{points[ring[0]], points[ring[0]]}
+		for _, id := range ring {
+			p := points[id]
+			boxes[i].lo.X = min(boxes[i].lo.X, p.X)
+			boxes[i].lo.Y = min(boxes[i].lo.Y, p.Y)
+			boxes[i].hi.X = max(boxes[i].hi.X, p.X)
+			boxes[i].hi.Y = max(boxes[i].hi.Y, p.Y)
 		}
-		for _, ring := range rings[1:] {
-			if location2(p, ring, points) != 0 {
-				return false
+	}
+	inside := func(p geom.Vec2) (bool, error) {
+		for i, ring := range rings {
+			if e := step(1); e != nil {
+				return false, e
+			}
+			box := boxes[i]
+			if p.X < box.lo.X || p.X > box.hi.X || p.Y < box.lo.Y || p.Y > box.hi.Y {
+				if i == 0 {
+					return false, nil
+				}
+				continue
+			}
+			if e := step(len(ring)); e != nil {
+				return false, e
+			}
+			location := location2(p, ring, points)
+			if i == 0 && location != 1 || i > 0 && location != 0 {
+				return false, nil
 			}
 		}
-		return true
+		return true, nil
 	}
 	// Boundary edges constrain the graph. Both directions record whether the
 	// domain is on the left, allowing hole interiors to be excluded without an
@@ -307,6 +333,12 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 			present[key] = true
 			domainLeft[segment2{a, b}] = true
 			domainLeft[segment2{b, a}] = false
+		}
+	}
+	grid := newPlanarEdgeGrid(points)
+	for i, edge := range edges {
+		if e := step(grid.add(points[edge.a], points[edge.b], i)); e != nil {
+			return nil, e
 		}
 	}
 	type candidate struct {
@@ -330,6 +362,27 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 			}
 		}
 	}
+	// A candidate must leave both endpoints into the local material wedge.
+	// Ring orientation puts material on the left, including around holes.
+	// Strict wrong-side tests preserve boundary-collinear candidates for the
+	// subsequent full intersection proof.
+	previous, next := make([]int, len(points)), make([]int, len(points))
+	for _, ring := range rings {
+		for i, id := range ring {
+			previous[id] = ring[(i+len(ring)-1)%len(ring)]
+			next[id] = ring[(i+1)%len(ring)]
+		}
+	}
+	enters := func(a, b int) bool {
+		p, q := points[a], points[b]
+		leftIncoming := sign2(points[previous[a]], p, q)
+		leftOutgoing := sign2(p, points[next[a]], q)
+		turn := sign2(points[previous[a]], p, points[next[a]])
+		if turn > 0 {
+			return leftIncoming >= 0 && leftOutgoing >= 0
+		}
+		return leftIncoming >= 0 || leftOutgoing >= 0
+	}
 	var candidates []candidate
 	for a := range points {
 		if e := step(len(points) - a); e != nil {
@@ -343,9 +396,65 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 			if present[key] {
 				continue
 			}
+			if !enters(a, b) || !enters(b, a) {
+				continue
+			}
 			p, q := points[a], points[b]
 			candidates = append(candidates, candidate{key, (p.X-q.X)*(p.X-q.X) + (p.Y-q.Y)*(p.Y-q.Y)})
 		}
+	}
+	// Certify completed triangular faces once. A later diagonal entering one
+	// of their vertex wedges must cross its opposite edge: the triangle has
+	// no other boundary vertex where that diagonal could terminate.
+	neighborsDone := make([][]int, len(points))
+	for _, edge := range edges {
+		neighborsDone[edge.a] = append(neighborsDone[edge.a], edge.b)
+		neighborsDone[edge.b] = append(neighborsDone[edge.b], edge.a)
+	}
+	sealed := make([][][2]int, len(points))
+	seal := func(a, b int) error {
+		for _, c := range neighborsDone[a] {
+			if c == b || !present[edgeKey(b, c)] {
+				continue
+			}
+			x, y, z := a, b, c
+			turn := sign2(points[x], points[y], points[z])
+			if turn == 0 {
+				continue
+			}
+			if turn < 0 {
+				y, z = z, y
+			}
+			if e := step(len(points)); e != nil {
+				return e
+			}
+			empty := true
+			loX, hiX := min(points[x].X, points[y].X, points[z].X), max(points[x].X, points[y].X, points[z].X)
+			loY, hiY := min(points[x].Y, points[y].Y, points[z].Y), max(points[x].Y, points[y].Y, points[z].Y)
+			for id, p := range points {
+				if id == x || id == y || id == z || p.X < loX || p.X > hiX || p.Y < loY || p.Y > hiY {
+					continue
+				}
+				if sign2(points[x], points[y], p) >= 0 && sign2(points[y], points[z], p) >= 0 && sign2(points[z], points[x], p) >= 0 {
+					empty = false
+					break
+				}
+			}
+			if empty {
+				sealed[x] = append(sealed[x], [2]int{y, z})
+				sealed[y] = append(sealed[y], [2]int{z, x})
+				sealed[z] = append(sealed[z], [2]int{x, y})
+			}
+		}
+		return nil
+	}
+	blocked := func(a, b int) bool {
+		for _, w := range sealed[a] {
+			if sign2(points[a], points[w[0]], points[b]) >= 0 && sign2(points[a], points[b], points[w[1]]) >= 0 {
+				return true
+			}
+		}
+		return false
 	}
 	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].distance < candidates[j].distance })
 	for _, candidate := range candidates {
@@ -354,25 +463,43 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 		if len(edges) == 2*len(points)+3*len(holes)-3 {
 			break
 		}
-		if e := step(2*len(points) + len(edges)); e != nil {
+		if e := step(1); e != nil {
 			return nil, e
 		}
 		a, b := candidate.edge.a, candidate.edge.b
+		if e := step(len(sealed[a]) + len(sealed[b])); e != nil {
+			return nil, e
+		}
+		if blocked(a, b) || blocked(b, a) {
+			continue
+		}
 		p, q := points[a], points[b]
-		if !inside(geom.Vec2{X: (p.X + q.X) / 2, Y: (p.Y + q.Y) / 2}) {
+		contained, e := inside(geom.Vec2{X: (p.X + q.X) / 2, Y: (p.Y + q.Y) / 2})
+		if e != nil {
+			return nil, e
+		}
+		if !contained {
 			continue
 		}
 		valid := true
-		for i, r := range points {
-			if i != a && i != b && onSegment2(r, p, q) {
-				valid = false
+		nearby, work := grid.query(p, q)
+		if e := step(work); e != nil {
+			return nil, e
+		}
+		for _, id := range nearby {
+			edge := edges[id]
+			// Every boundary vertex is incident to an indexed edge. Test both
+			// endpoints before skipping shared candidate endpoints, preserving the
+			// original rejection of a diagonal through any other model vertex.
+			for _, v := range []int{edge.a, edge.b} {
+				if v != a && v != b && onSegment2(points[v], p, q) {
+					valid = false
+					break
+				}
+			}
+			if !valid {
 				break
 			}
-		}
-		if !valid {
-			continue
-		}
-		for _, edge := range edges {
 			if edge.a == a || edge.a == b || edge.b == a || edge.b == b {
 				continue
 			}
@@ -382,8 +509,16 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 			}
 		}
 		if valid {
+			if e := step(grid.add(p, q, len(edges))); e != nil {
+				return nil, e
+			}
 			edges = append(edges, candidate.edge)
 			present[candidate.edge] = true
+			if e := seal(a, b); e != nil {
+				return nil, e
+			}
+			neighborsDone[a] = append(neighborsDone[a], b)
+			neighborsDone[b] = append(neighborsDone[b], a)
 		}
 	}
 	neighbors := make([][]int, len(points))

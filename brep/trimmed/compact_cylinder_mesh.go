@@ -10,7 +10,7 @@ import (
 	"plainsolid/mesh"
 )
 
-const maxCompactFaceVertices = 1024
+const maxCompactFaceVertices = 2048
 
 var errCompactBoundaryLimit = fmt.Errorf("trimmed: compact boundary sampling limit")
 
