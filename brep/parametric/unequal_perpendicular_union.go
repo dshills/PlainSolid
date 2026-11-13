@@ -22,6 +22,16 @@ type UnequalPerpendicularUnion struct {
 // radius by 8*tolerance. The shoulder sqrt(xRadius²−zRadius²) must be exactly
 // representable; other radii fail explicitly. No generic Boolean is implied.
 func UnequalPerpendicularCylinderUnion(ctx context.Context, center geom.Vec3, xRadius, zRadius, xHalf, zHalf, tolerance float64) (UnequalPerpendicularUnion, error) {
+	return UnequalPerpendicularCylinderUnionWindows(ctx, center, xRadius, zRadius, Interval{-xHalf, xHalf}, Interval{-zHalf, zHalf}, tolerance)
+}
+
+// UnequalPerpendicularCylinderUnionWindows supports independently placed clear
+// caps on both axes. Windows are signed physical coordinates from center.
+func UnequalPerpendicularCylinderUnionWindows(ctx context.Context, center geom.Vec3, xRadius, zRadius float64, xWindow, zWindow Interval, tolerance float64) (UnequalPerpendicularUnion, error) {
+	xHalf, zHalf := math.Min(-xWindow.Min, xWindow.Max), math.Min(-zWindow.Min, zWindow.Max)
+	if !finite(xWindow.Min) || !finite(xWindow.Max) || !finite(zWindow.Min) || !finite(zWindow.Max) {
+		return UnequalPerpendicularUnion{}, geom.ErrInvalid
+	}
 	empty := UnequalPerpendicularUnion{}
 	if ctx == nil || !center.IsFinite() || !finite(xRadius) || !finite(zRadius) || !finite(xHalf) || !finite(zHalf) || !finite(tolerance) || tolerance <= 0 || zRadius <= 0 || xRadius <= zRadius {
 		return empty, geom.ErrInvalid
@@ -54,7 +64,11 @@ func UnequalPerpendicularCylinderUnion(ctx context.Context, center geom.Vec3, xR
 					ys = []int{-1, 1}
 				}
 				for _, ySign := range ys {
-					chart := unequalUnionChart{center, xRadius, zRadius, width, xHalf, zHalf, kind, side, half, ySign}
+					xe, ze := xWindow.Max, zWindow.Max
+					if side < 0 {
+						xe, ze = -xWindow.Min, -zWindow.Min
+					}
+					chart := unequalUnionChart{center, xRadius, zRadius, width, xe, ze, kind, side, half, ySign}
 					domain := Interval{-math.Pi / 2, math.Pi / 2}
 					if kind == 1 || kind == 3 {
 						domain = Interval{0, math.Pi / 2}
@@ -101,7 +115,7 @@ func UnequalPerpendicularCylinderUnion(ctx context.Context, center geom.Vec3, xR
 	if e != nil {
 		return empty, e
 	}
-	out.VolumePiCoefficient = new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Add(new(big.Rat).Mul(new(big.Rat).Mul(q(xRadius), q(xRadius)), q(xHalf)), new(big.Rat).Mul(new(big.Rat).Mul(q(zRadius), q(zRadius)), q(zHalf))))
+	out.VolumePiCoefficient = new(big.Rat).Add(new(big.Rat).Mul(new(big.Rat).Mul(q(xRadius), q(xRadius)), new(big.Rat).Sub(q(xWindow.Max), q(xWindow.Min))), new(big.Rat).Mul(new(big.Rat).Mul(q(zRadius), q(zRadius)), new(big.Rat).Sub(q(zWindow.Max), q(zWindow.Min))))
 	if e = ctx.Err(); e != nil {
 		return empty, e
 	}

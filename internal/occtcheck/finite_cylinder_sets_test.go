@@ -192,3 +192,33 @@ func TestOCCTCoaxialFiniteCylinderThroughDifference(t *testing.T) {
 	}
 	compare(t, refs["finite-coaxial-cut"], mass.Area, mass.Volume, mass.Centroid)
 }
+
+func TestOCCTUnequalFiniteCylinderAsymmetricCaps(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	stock := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 5}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -1, Max: 4.5}
+	cutter := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 4, Z: 3}, Axis: geom.Vec3{Y: 2}, Radius: 3, Min: -5, Max: 2}
+	check := func(name string, s parametric.Solid) {
+		t.Helper()
+		if finiteOracleShellCount(s) != 1 {
+			t.Fatal(name, "expected one shell")
+		}
+		mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], mass.Area, mass.Volume, mass.Centroid)
+	}
+	for _, pair := range [][2]geom.RawCylinder{{stock, cutter}, {cutter, stock}} {
+		u, err := parametric.FiniteCylinderPairUnion(ctx, pair[0], pair[1], 1e-8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		check("finite-unequal-offset-union", u.Solid)
+	}
+	d, err := parametric.FiniteCylinderPairDifference(ctx, stock, cutter, 1e-8)
+	if err != nil || len(d.Solids[1].Faces()) != 0 {
+		t.Fatal("expected one retained stock", err)
+	}
+	check("finite-unequal-offset-cut", d.Solids[0])
+}

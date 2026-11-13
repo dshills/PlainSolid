@@ -19,7 +19,7 @@ type FiniteCylinderPairUnionResult struct {
 
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
 // raw finite cylinders, two strictly separated coordinate-parallel bodies,
-// and selected unequal-radius perpendicular pairs with clear symmetric caps
+// and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.

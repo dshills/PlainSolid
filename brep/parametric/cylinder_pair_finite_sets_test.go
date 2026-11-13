@@ -198,7 +198,7 @@ func TestFiniteCylinderPairUnequalCrossingDifference(t *testing.T) {
 		cutter geom.RawCylinder
 		want   error
 	}{
-		{geom.RawCylinder{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 3, Min: -3, Max: 2}, geom.ErrDomain},
+		{geom.RawCylinder{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 3, Min: -3, Max: .5}, geom.ErrDomain},
 		{geom.RawCylinder{Origin: cutter.Origin.Add(geom.Vec3{X: 1}), Axis: cutter.Axis, Radius: 3, Min: -3, Max: 1}, geom.ErrDomain},
 		{geom.RawCylinder{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 2, Min: -3, Max: 1}, geom.ErrUnrepresentable},
 	} {
