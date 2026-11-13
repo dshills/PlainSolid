@@ -181,9 +181,13 @@ func (a Asset) Validate() (Result, error) {
 	return result, nil
 }
 
-// WriteSTEP emits canonical rooted geometry after proof. Original source
-// orientation flags may be normalized; SourceSTEP itself remains unmodified.
-func WriteSTEP(w io.Writer, a Asset) error {
+// WriteSTEP retains its original canonical-export behavior. Use
+// WriteOriginalSTEP for exact re-emission of retained evidence.
+func WriteSTEP(w io.Writer, a Asset) error { return WriteCanonicalSTEP(w, a) }
+
+// WriteCanonicalSTEP emits canonical rooted geometry after proof. Original
+// source orientation flags may be normalized; SourceSTEP remains unmodified.
+func WriteCanonicalSTEP(w io.Writer, a Asset) error {
 	if w == nil {
 		return ErrAsset
 	}
@@ -195,4 +199,29 @@ func WriteSTEP(w io.Writer, a Asset) error {
 		return e
 	}
 	return write(w, a, d)
+}
+
+// ErrNoSource means the asset is native-only and has no authored source to emit.
+var ErrNoSource = errors.New("cylindercells: no retained source provenance")
+
+// WriteOriginalSTEP reproduces validated original rooted STEP bytes exactly,
+// including its header, whitespace and equivalent orientation encodings. It
+// never synthesizes missing evidence or strips/adds an envelope. This asset
+// schema accepts rooted sources only; bare STEP is not an implicit fallback.
+// Validation failures write nothing; underlying I/O failures are propagated.
+func WriteOriginalSTEP(w io.Writer, a Asset) error {
+	if w == nil {
+		return ErrAsset
+	}
+	if a.SourceSTEP == "" {
+		return ErrNoSource
+	}
+	if _, e := a.Validate(); e != nil {
+		return e
+	}
+	n, e := io.WriteString(w, a.SourceSTEP)
+	if e == nil && n != len(a.SourceSTEP) {
+		e = io.ErrShortWrite
+	}
+	return e
 }
