@@ -120,6 +120,8 @@ func (b *Bridge) treatCapPerimeter(s stored, q request) (Shape, error) {
 			return reject()
 		}
 		size = stock.Max.Sub(stock.Min)
+	} else if s.analytic != nil && s.analytic.filletedCap != nil && q.Op == "capChamfer" {
+		return b.chamferOppositeCap(s, q, normal)
 	} else {
 		return reject()
 	}
@@ -153,7 +155,8 @@ func (b *Bridge) treatCapPerimeter(s stored, q request) (Shape, error) {
 		removed := 2*(w+h)*d*d*(1-math.Pi/4) - 4*d*d*d*(5./3-math.Pi/2)
 		area := w*h + (w-2*d)*(h-2*d) + 2*(w+h)*(size.Z-d) +
 			2*d*((w+h-4*d)*math.Pi/2+4*d)
-		return b.putAnalytic(body, s.result.GeometryAssertions.Volume-removed, area)
+		return b.putAnalyticBody(&analyticBody{solid: body, volume: s.result.GeometryAssertions.Volume - removed,
+			area: area, filletedCap: &filletedCapStock{frame, size, d}})
 	}
 	body, err := trimmed.TopChamferedBox(context.Background(), frame, size.X, size.Y, size.Z, d, hole.Center, hole.Radius, 1e-9)
 	if err != nil {
@@ -190,6 +193,37 @@ func (b *Bridge) fuseCircularBoss(a *boreBody, c *cylinderBody) (Shape, bool, er
 		return Shape{}, true, err
 	}
 	result, err := b.putAnalytic(s, volume+math.Pi*c.radius*c.radius*c.height, area+2*math.Pi*c.radius*c.height)
+	return result, true, err
+}
+
+func (b *Bridge) fusePlainCircularBoss(a stored, c *cylinderBody) (Shape, bool, error) {
+	frame, err := geom.FrameFromNormal(geom.Vec3{}, c.frame.ZAxis())
+	if err != nil || !cardinalFrame(frame) {
+		return Shape{}, false, nil
+	}
+	bounds, ok := orthogonalPrism(a.solid, frame)
+	if !ok {
+		return Shape{}, false, nil
+	}
+	frame, err = geom.NewFrame(frame.ToWorld(bounds.Min), frame.XAxis(), frame.ZAxis())
+	if err != nil {
+		return Shape{}, false, nil
+	}
+	size := bounds.Max.Sub(bounds.Min)
+	p := frame.ToLocal(c.frame.Origin())
+	if p.Z != size.Z || frame.ToWorld(p) != c.frame.Origin() {
+		return Shape{}, false, nil
+	}
+	boss := trimmed.ExtrusionCircle{Center: geom.Vec2{X: p.X, Y: p.Y}, Radius: c.radius}
+	if min(p.X, p.Y, size.X-p.X, size.Y-p.Y) <= c.radius {
+		return Shape{}, false, nil
+	}
+	solid, err := trimmed.BoxBoreAndBoss(context.Background(), frame, size, trimmed.ExtrusionCircle{}, boss, 0, c.height)
+	if err != nil {
+		return Shape{}, true, err
+	}
+	proof := a.result.GeometryAssertions
+	result, err := b.putAnalytic(solid, proof.Volume+math.Pi*c.radius*c.radius*c.height, proof.SurfaceArea+2*math.Pi*c.radius*c.height)
 	return result, true, err
 }
 

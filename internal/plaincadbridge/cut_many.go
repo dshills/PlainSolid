@@ -42,11 +42,14 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 			return Shape{}, err
 		}
 		c := inputs[i]
-		if c.analytic != nil {
-			return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this analytic tool"}
-		}
 		planar = planar && c.planar()
 		circular = circular && c.cylinder != nil
+	}
+	if result, _, handled, err := cutThroughProfiles(a, inputs); handled {
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putAnalyticBody(result)
 	}
 	if a.treated != nil {
 		return b.cutManyTreated(a, inputs)

@@ -13,11 +13,11 @@ type pocketStock struct {
 	frame   geom.Frame
 	size    geom.Vec3
 	pockets []trimmed.BoxBlindPocket
-	bore    *trimmed.ExtrusionCircle
+	bores   []trimmed.ExtrusionCircle
 }
 
 func (b *Bridge) putPocketStock(p pocketStock) (Shape, error) {
-	s, err := trimmed.ExtrudeBoxWithPocketsAndBore(context.Background(), p.frame, p.size, p.pockets, p.bore)
+	s, err := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), p.frame, p.size, p.pockets, p.bores)
 	if err != nil {
 		return Shape{}, err
 	}
@@ -32,8 +32,8 @@ func (b *Bridge) putPocketStock(p pocketStock) (Shape, error) {
 		area += 2 * (w + h) * depth
 		top = cut.Floor
 	}
-	if p.bore != nil {
-		r := p.bore.Radius
+	for _, bore := range p.bores {
+		r := bore.Radius
 		volume -= math.Pi * r * r * z
 		area += 2 * math.Pi * r * (z - r)
 	}
@@ -66,16 +66,20 @@ func (b *Bridge) rectangularPocket(a, tool stored) (Shape, bool, error) {
 			return Shape{}, false, nil
 		}
 		extent = bounds
-	} else if a.planar() {
+	} else if a.planar() || a.bore != nil {
 		// Infer the entrance from whichever cardinal stock cap the tool spans.
 		// Its other axial end must be strictly interior.
 		found := false
+		source := a.solid
+		if a.bore != nil {
+			source = a.bore.base
+		}
 		for _, axis := range []geom.Vec3{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {Z: 1}, {Z: -1}} {
 			f, err := geom.FrameFromNormal(geom.Vec3{}, axis)
 			if err != nil {
 				continue
 			}
-			stock, ok := orthogonalPrism(a.solid, f)
+			stock, ok := orthogonalPrism(source, f)
 			if !ok {
 				continue
 			}
@@ -109,6 +113,15 @@ func (b *Bridge) rectangularPocket(a, tool stored) (Shape, bool, error) {
 	}
 	p.pockets = append(append([]trimmed.BoxBlindPocket(nil), p.pockets...), trimmed.BoxBlindPocket{
 		Footprint: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: extent.Min.X, Y: extent.Min.Y}, Max: geom.Vec2{X: extent.Max.X, Y: extent.Max.Y}}, Floor: extent.Min.Z})
+	if a.bore != nil {
+		for _, cylinder := range a.bore.cylinders {
+			var err error
+			p, err = p.throughBore(cylinder)
+			if err != nil {
+				return Shape{}, true, err
+			}
+		}
+	}
 	result, err := b.putPocketStock(p)
 	return result, true, err
 }
@@ -117,7 +130,7 @@ func (p pocketStock) throughBore(tool *cylinderBody) (pocketStock, error) {
 	fail := func() (pocketStock, error) {
 		return pocketStock{}, &failureError{"UNSUPPORTED", "pocket stock requires a disjoint full axial through bore"}
 	}
-	if tool == nil || p.bore != nil {
+	if tool == nil || len(p.bores) >= 32 {
 		return fail()
 	}
 	a, z := tool.frame.ZAxis(), p.frame.ZAxis()
@@ -129,7 +142,8 @@ func (p pocketStock) throughBore(tool *cylinderBody) (pocketStock, error) {
 	if p.frame.ToWorld(x) != start || p.frame.ToWorld(y) != end || min(x.Z, y.Z) > 0 || max(x.Z, y.Z) < p.size.Z {
 		return fail()
 	}
-	p.bore = &trimmed.ExtrusionCircle{Center: geom.Vec2{X: x.X, Y: x.Y}, Radius: tool.radius}
+	p.bores = append(append([]trimmed.ExtrusionCircle(nil), p.bores...),
+		trimmed.ExtrusionCircle{Center: geom.Vec2{X: x.X, Y: x.Y}, Radius: tool.radius})
 	return p, nil
 }
 
@@ -139,7 +153,7 @@ func (s stored) planarCutBoundary() (brep.Solid, bool, error) {
 	if s.planar() {
 		return s.solid, true, nil
 	}
-	if s.analytic == nil || s.analytic.pockets == nil || s.analytic.pockets.bore != nil {
+	if s.analytic == nil || s.analytic.pockets == nil || len(s.analytic.pockets.bores) != 0 {
 		return brep.Solid{}, false, nil
 	}
 	native := s.analytic.solid

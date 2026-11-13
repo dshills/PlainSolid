@@ -190,6 +190,10 @@ func AttachSteppedShaftHead(ctx context.Context, p SteppedShaft, groove Solid) (
 	return compactSteppedTopology(ctx, vertices, edges, faces, max(head.tolerance, groove.tolerance))
 }
 func compactSteppedTopology(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tol float64) (Solid, error) {
+	return compactSteppedTopologyWithValidation(ctx, vertices, edges, faces, tol, true)
+}
+
+func compactSteppedTopologyWithValidation(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tol float64, validateDisplay bool) (Solid, error) {
 	edgeMap := map[int]int{}
 	vertexMap := map[int]int{}
 	var outV []geom.Vec3
@@ -221,5 +225,5 @@ func compactSteppedTopology(ctx context.Context, vertices []geom.Vec3, edges []p
 			}
 		}
 	}
-	return NewSolidContext(ctx, outV, outE, faces, tol)
+	return newSolidContext(ctx, outV, outE, faces, tol, validateDisplay)
 }

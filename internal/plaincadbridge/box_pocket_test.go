@@ -96,3 +96,24 @@ func TestPatternOverlapUsesFiniteCylinderLens(t *testing.T) {
 		near(t, hit.Volume, want)
 	}
 }
+
+func TestPlanarPocketAfterFourDisjointBores(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{40, 30, 10})
+	var tools []string
+	for _, point := range []vector{{5, 5, 0}, {35, 5, 0}, {5, 25, 0}, {35, 25, 0}} {
+		c := circle(t, b, point, vector{0, 0, 1}, 1.5, 10)
+		tools = append(tools, c.Handle)
+	}
+	bored := shape(t, b, map[string]any{"op": "cutMany", "a": stock.Handle, "tools": tools})
+	pocket := box(t, b, vector{15, 10, 8}, vector{25, 20, 10})
+	result := shape(t, b, map[string]any{"op": "cut", "a": bored.Handle, "b": pocket.Handle})
+	near(t, result.GeometryAssertions.Volume, 12000-200-90*math.Pi)
+	mesh, err := b.shapes[result.Handle].tessellate(request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+}

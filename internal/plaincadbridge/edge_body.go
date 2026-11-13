@@ -218,6 +218,9 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 		return ok
 	}
 	if s.analytic != nil {
+		if s.analytic.filletedCap != nil && s.analytic.filletedCap.retainedLowerEdge(start, end) {
+			return true
+		}
 		_, _, ok := trimmedEdge(s.analytic.solid, start, end)
 		return ok
 	}

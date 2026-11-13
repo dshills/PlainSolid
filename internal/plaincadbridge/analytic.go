@@ -24,6 +24,11 @@ type analyticBody struct {
 	helicalMesh  *mesh.Mesh
 	pockets      *pocketStock
 	coaxial      *coaxialBody
+	rounded      *roundedStock
+	annular      *annularStock
+	threadStock  *planarThreadStock
+	islandPocket *trimmed.RectangularIslandPocket
+	filletedCap  *filletedCapStock
 	volume, area float64
 }
 
@@ -44,6 +49,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 		box, err = body.segment.bounds()
 	} else if body.coaxial != nil {
 		box, err = body.coaxial.bounds()
+	} else if body.islandPocket != nil {
+		box, err = islandPocketBounds(*body.islandPocket)
 	} else {
 		box, err = body.solid.Bounds()
 	}
@@ -59,6 +66,9 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	if a.coaxial != nil {
 		return a.coaxial.tessellate(o)
+	}
+	if a.annular != nil && !a.annular.cut {
+		return a.annular.Tessellate(context.Background(), o)
 	}
 	if a.helicalMesh != nil && o.Deflection >= .5 && o.Angle >= .1 && len(a.helicalMesh.Triangles) <= o.MaxTriangles {
 		return *a.helicalMesh, nil
@@ -84,19 +94,6 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		return nil, err
 	}
 	out := *a
-	if a.helicalMesh != nil {
-		meshCopy := mesh.Mesh{Vertices: make([]geom.Vec3, len(a.helicalMesh.Vertices)), Triangles: a.helicalMesh.Triangles}
-		for i, v := range a.helicalMesh.Vertices {
-			meshCopy.Vertices[i] = m.Apply(v)
-		}
-		if m.Determinant() < 0 {
-			meshCopy.Triangles = append([][3]int(nil), meshCopy.Triangles...)
-			for i, t := range meshCopy.Triangles {
-				meshCopy.Triangles[i] = [3]int{t[0], t[2], t[1]}
-			}
-		}
-		out.helicalMesh = &meshCopy
-	}
 	if a.segment != nil {
 		s := *a.segment
 		s.origin = m.Apply(s.origin)
@@ -109,6 +106,11 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.shaft = nil
 	out.pockets = nil
 	out.coaxial = nil
+	out.rounded = nil
+	out.annular = nil
+	out.threadStock = nil
+	out.islandPocket = nil
+	out.filletedCap = nil
 	if a.coaxial != nil {
 		out.coaxial, _ = a.coaxial.transformed(m)
 	}
@@ -137,7 +139,14 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		}
 	}
 	var err error
-	out.solid, err = a.solid.Transformed(m)
+	if a.helical {
+		var display mesh.Mesh
+		options := parametric.TessellationOptions{Deflection: .5, Angle: .1, MaxSubdivisions: 256, MaxTriangles: 100000}
+		out.solid, display, err = a.solid.TransformedHelical(context.Background(), m, options)
+		out.helicalMesh = &display
+	} else {
+		out.solid, err = a.solid.Transformed(m)
+	}
 	if err != nil {
 		return nil, err
 	}

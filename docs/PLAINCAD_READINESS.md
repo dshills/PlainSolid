@@ -27,6 +27,24 @@ package, production performance deadline, cable-guide preview, Acme lead
 pair and UNC thread pair. The full development suite contains 340 originals
 and remains open.
 
+## Development and production retests — 2026-11-13
+
+The [development retest](evidence/plaincad-gap-repairs-2026-11-13.json)
+passes seven original cases in 55.891 seconds, plus both TypeScript checks
+and the separate WASM check. It covers the pocket after four bores, a
+circular island pocket, a circular face boss, compound profiles, fillet
+and chamfer on opposite caps, XY holes and pocket, and separated rotated
+collision. The [circle measurement retest](evidence/plaincad-circle-measurement-2026-11-13.json)
+passes the original cylinder measurement and the three original rim
+regressions in 53.554 seconds.
+
+The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
+passes the fabrication package, the Cable guide live preview and the
+left-hand Acme gallery. The quarter-inch UNC gallery progresses to
+placement of both modeled bodies and exposes a display-validation error.
+The controlled production performance case and full production rerun
+remain open.
+
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 
 Focused original cases pass for linked arcs and circles, edited arc
@@ -44,8 +62,8 @@ being retested.
 
 The original modeled Thread and linked lead screw/nut both pass on one
 [source-hashed snapshot](evidence/plaincad-helical-accepted-2026-11-13.json).
-Additional gallery Acme and UNC forms remain open in the full production
-baseline.
+The Acme gallery passes the focused production retest. The UNC gallery
+requires the placement retest recorded above.
 
 ## Finite To Face extrusion checkpoint — 2026-11-13
 

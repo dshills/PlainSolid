@@ -6,13 +6,21 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-The first full production run passes 61 of 66 originals. The five failures
-are the fabrication package's STEP wait, the production performance test's
-overall deadline, the cable-guide live preview, the non-dyadic Acme lead
-pair, and the quarter-inch UNC pair. The UNC internal thread also requires
-retaining the exterior of rectangular stock around its machined bore.
-Full development discovery lists 340 original cases and execution remains
-open.
+The full production baseline passes 61 of 66 originals. The focused
+production retest passes the fabrication package, Cable guide live preview
+and left-hand Acme pair. UNC now builds both helical bodies and reaches
+component placement. Its repaired helical placement passes the native case
+and is awaiting the original gallery retest. The production performance
+deadline is under retest. Full development discovery lists 340 original
+cases and execution remains open.
+
+The focused development retest passes all seven originals for a pocket
+after four bores, island pocket, circular face boss, compound profiles,
+opposite cap treatments, XY feature addition and separated rotated
+collision. Authored circle measurement and all three circular rim
+regressions pass in a separate four-case run. Current gaps include the
+40-body rotary fixture and the exact cut of a rectangular tool after
+joining that same tool. See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
 Shell and three Hole pattern cases pass the expanded original selection.
@@ -20,9 +28,7 @@ The same run exposes two remaining pattern failures, a circular pocket
 pattern on previously cut stock and the overlapping Hole diagnostic. Both
 now pass the focused original retest. Its controlled performance test passes
 the original 25 rebuild and 11 export iterations and resource-growth bounds.
-Slider and hinge originals pass, and the separated rotated collision case
-needs a retest after returning zero for a proved empty native intersection.
-The 40-body rotary fixture still requires additional retained curved modeling.
+Slider, hinge and separated rotated collision originals pass.
 
 Focused browser runs now pass the original mixed profile, revolve, socket-head
 blank, shop drawing and STEP workflows, including the three repaired regressions
