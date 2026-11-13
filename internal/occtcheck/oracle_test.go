@@ -591,6 +591,20 @@ func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
 			compare(t, ref[tc.name], mass.Area, mass.Volume, mass.Centroid)
 		})
 	}
+
+	t.Run("oblique-parallel", func(t *testing.T) {
+		aa := geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 4}, Radius: 5, Min: 0, Max: 2}
+		bb := geom.RawCylinder{Origin: geom.Vec3{X: 6, Y: 8, Z: 5}, Axis: geom.Vec3{X: -6, Y: -8}, Radius: 5, Min: 0, Max: .5}
+		out, err := parametric.FiniteCylinderPairCommon(ctx, aa, bb, 1e-8)
+		if err != nil || out.Construction != parametric.CylinderCommonParallelAxes {
+			t.Fatal(out.Construction, err)
+		}
+		mass, err := out.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(err)
+		}
+		compare(t, ref["finite-pair-oblique-parallel"], mass.Area, mass.Volume, mass.Centroid)
+	})
 	b.Origin.X = 6
 	s, e = parametric.FiniteCylinderPairCommon(ctx, a, b, 1e-9)
 	if e != nil || s.Construction != parametric.CylinderCommonEmpty || len(s.Solid.Faces()) != 0 {
