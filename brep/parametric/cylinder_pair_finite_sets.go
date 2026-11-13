@@ -20,7 +20,8 @@ type FiniteCylinderPairUnionResult struct {
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
 // raw finite cylinders, strictly separated coordinate-parallel bodies or a
 // joined coaxial body with overlapping or touching axial spans,
-// and selected unequal-radius perpendicular pairs with clear finite caps
+// exactly placed oblique parallel cylinders with transverse overlap and equal
+// physical caps, and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.
@@ -35,6 +36,13 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 		return FiniteCylinderPairUnionResult{}, err
 	}
 	if rawAxesParallel(a.Axis, b.Axis) {
+		if _, speed := coordinateCylinderAxis(a.Axis); speed == 0 {
+			r, err := finiteObliqueParallelCylinderSet(ctx, a, b, tolerance, Union)
+			if err != nil {
+				return FiniteCylinderPairUnionResult{}, err
+			}
+			return FiniteCylinderPairUnionResult{Solid: r.Solid, WallFaces: r.SideFaces, LowerCapFaces: r.LowerCapFaces, UpperCapFaces: r.UpperCapFaces}, nil
+		}
 		if contained := parallelCoordinateContainment(a, b); contained[0] || contained[1] {
 			return unionContainedParallelCylinder(ctx, a, b, contained)
 		}
@@ -94,6 +102,7 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // Strictly enclosed coordinate-parallel cutters leave an inward cavity shell.
 // A coordinate-parallel cutter that covers the stock disk can remove a full
 // axial slab, retaining one or two original wall intervals.
+// Exactly placed oblique parallel pairs support transverse cuts with equal caps.
 // It keeps stock unchanged when coordinate-parallel cylinders are separated.
 // It returns empty when exact perpendicular or coordinate-parallel containment
 // covers the stock.
@@ -110,6 +119,15 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 		return out, err
 	}
 	if rawAxesParallel(stock.Axis, cutter.Axis) {
+		if _, speed := coordinateCylinderAxis(stock.Axis); speed == 0 {
+			r, err := finiteObliqueParallelCylinderSet(ctx, stock, cutter, tolerance, Difference)
+			if err != nil {
+				return out, err
+			}
+			out.Solids[0], out.StockWallFaces[0], out.CutterWallFaces[0] = r.Solid, r.SideFaces[0], r.SideFaces[1]
+			out.StockCapFaces[0] = append(r.LowerCapFaces[0], r.UpperCapFaces[0]...)
+			return out, nil
+		}
 		if parallelCoordinateContainment(stock, cutter)[0] {
 			return out, nil
 		}

@@ -11,6 +11,12 @@ import (
 // only after exact arithmetic proves its axes, projected offsets and cap
 // locations. The local Boolean preserves native circular chart geometry.
 func finiteObliqueParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
+	return finiteObliqueParallelCylinderSet(ctx, a, b, tolerance, Intersection)
+}
+
+// Union and difference use the same exact similarity only for a transverse
+// disk overlap between identical physical cap planes.
+func finiteObliqueParallelCylinderSet(ctx context.Context, a, b geom.RawCylinder, tolerance float64, op BooleanOp) (FiniteCylinderPairCommonResult, error) {
 	var zero FiniteCylinderPairCommonResult
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	vec := func(v geom.Vec3) [3]*big.Rat { return [3]*big.Rat{q(v.X), q(v.Y), q(v.Z)} }
@@ -116,6 +122,9 @@ func finiteObliqueParallelCylinderCommon(ctx context.Context, a, b geom.RawCylin
 		}
 		limits[i] = [2]*big.Rat{lo, hi}
 	}
+	if op != Intersection && (limits[0][0].Cmp(limits[1][0]) != 0 || limits[0][1].Cmp(limits[1][1]) != 0) {
+		return zero, geom.ErrDomain
+	}
 	lo, hi := limits[0][0], limits[0][1]
 	if limits[1][0].Cmp(lo) > 0 {
 		lo = limits[1][0]
@@ -161,12 +170,38 @@ func finiteObliqueParallelCylinderCommon(ctx context.Context, a, b geom.RawCylin
 	if localTolerance <= 0 || !finite(localTolerance) {
 		return zero, geom.ErrUnrepresentable
 	}
-	s, e := CombineParallelCylinders(f, profiles[0], profiles[1], height, Intersection, localTolerance)
+	var s Solid
+	if op == Intersection {
+		s, e = CombineParallelCylinders(f, profiles[0], profiles[1], height, op, localTolerance)
+	} else {
+		var accepted bool
+		local := func(p DiskProfile) geom.RawCylinder {
+			return geom.RawCylinder{Origin: geom.Vec3{X: p.Center.X, Y: p.Center.Y}, Axis: geom.Vec3{Z: 1}, Radius: p.Radius, Min: 0, Max: height}
+		}
+		s, accepted, e = finiteParallelOverlap(ctx, local(profiles[0]), local(profiles[1]), localTolerance, op)
+		if e == nil && !accepted {
+			e = geom.ErrDomain
+		}
+	}
 	if e != nil {
 		return zero, e
 	}
 	out := FiniteCylinderPairCommonResult{Construction: CylinderCommonParallelAxes}
+	if op == Union {
+		out.SideFaces = [2][]int{{0}, {3}}
+		out.LowerCapFaces, out.UpperCapFaces = [2][]int{{1}, {4}}, [2][]int{{2}, {5}}
+		if !forward[1] {
+			out.LowerCapFaces[1], out.UpperCapFaces[1] = out.UpperCapFaces[1], out.LowerCapFaces[1]
+		}
+	}
+	if op == Difference {
+		out.SideFaces = [2][]int{{0}, {1}}
+		out.LowerCapFaces[0], out.UpperCapFaces[0] = []int{2}, []int{3}
+	}
 	for id, face := range s.Faces() {
+		if op != Intersection {
+			break
+		}
 		if cylinder, ok := face.Surface.(geom.CylinderSurface); ok {
 			f, r := cylinder.Parameters()
 			p := f.Origin()
