@@ -235,3 +235,51 @@ func BenchmarkSplineEval(b *testing.B) {
 		_, _ = c.Eval(.3)
 	}
 }
+
+func BenchmarkSplineSurfaceEval(b *testing.B) {
+	knots := []float64{0, 0, 0, .25, .5, .75, 1, 1, 1}
+	poles := make([]Vec3, 36)
+	weights := make([]float64, len(poles))
+	for i := range poles {
+		x, y := float64(i/6), float64(i%6)
+		poles[i], weights[i] = Vec3{x, y, x * y / 8}, 1+float64(i%5)/8
+	}
+	s, e := NewBSplineSurface(2, 2, 6, 6, poles, knots, knots, weights)
+	if e != nil {
+		b.Fatal(e)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = s.Eval(float64(i%101)/100, float64(i%97)/96)
+	}
+}
+
+func TestSplineSurfacePointUsesOriginalKnotSides(t *testing.T) {
+	// A full-multiplicity knot has different limits. At the knot use the
+	// right chart, and at the domain maximum use the final left chart.
+	knots := []float64{0, 0, .5, .5, 1, 1}
+	poles := make([]Vec3, 16)
+	for i, x := range []float64{0, 1, 10, 11} {
+		for j, y := range []float64{0, 2, 20, 22} {
+			poles[4*i+j] = Vec3{x, y, x + y}
+		}
+	}
+	s, e := NewBSplineSurface(1, 1, 4, 4, poles, knots, knots, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, c := range []struct {
+		u, v float64
+		want Vec3
+	}{
+		{0, 0, Vec3{}}, {.25, .25, Vec3{.5, 1, 1.5}},
+		{.5, .25, Vec3{10, 1, 11}}, {.25, .5, Vec3{.5, 20, 20.5}},
+		{.5, .5, Vec3{10, 20, 30}}, {1, 1, Vec3{11, 22, 33}},
+	} {
+		got, err := s.Eval(c.u, c.v)
+		if err != nil || got != c.want {
+			t.Fatalf("(%v, %v): got %v, %v; want %v", c.u, c.v, got, err, c.want)
+		}
+	}
+}
