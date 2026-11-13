@@ -9,6 +9,20 @@ import (
 	"plainsolid/geom"
 )
 
+// Exact native Bézier uses have a separate trim proof path. Ordinary spline
+// evaluation alone is not a substitute for the original homogeneous controls.
+func hasNativeExactSplineTrim(f Face) bool {
+	for _, ring := range append([][]Use{f.Outer}, f.Holes...) {
+		for _, u := range ring {
+			switch u.Curve.(type) {
+			case ExactQuadraticUV, ExactBezierUV:
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // SplineFaceLineReport retains all proved interior contacts, excluded
 // outside-trim contacts, and unresolved contacts. Complete is true only
 // when the support solver and every trim membership proof are exhaustive.
@@ -88,6 +102,10 @@ func classifySplineFaceRootBox(ctx context.Context, face Face, box geom.UVBox, o
 	if e != nil || proof.Status != trimvalidate.Certified {
 		return trimvalidate.Unknown, false, e
 	}
+	return classifyCertifiedSplineFaceBox(ctx, face, box, o, trimBoxes)
+}
+
+func classifyCertifiedSplineFaceBox(ctx context.Context, face Face, box geom.UVBox, o trimvalidate.Options, trimBoxes int) (trimvalidate.Location, bool, error) {
 	// Exact point boxes can be classified directly, including trim hits.
 	if box.Min == box.Max {
 		loc, proof, e := LocateInFaceTrim(ctx, face, box.Min, o)

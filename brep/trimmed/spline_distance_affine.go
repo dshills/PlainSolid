@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
 
@@ -70,7 +71,13 @@ func affineSplineDistanceProjection(ctx context.Context, p *geom.SurfacePatch, f
 	ua, va := axis(a, d.UMin, d.UMax), axis(b, d.VMin, d.VMax)
 	r.uv = rationalUVBounds(ua, va)
 	loc, known := parametric.Inside, f.rectangle
-	if !known {
+	if !known && hasNativeExactSplineTrim(f.face) {
+		inside, report, e := LocateRationalInFaceTrim(ctx, f.face, [2]*big.Rat{ua, va}, trimvalidate.Options{})
+		if e != nil {
+			return r, e
+		}
+		known = report.Status == trimvalidate.Certified && (inside == trimvalidate.Inside || inside == trimvalidate.Boundary)
+	} else if !known {
 		loc, known, e = classifyTrimBox(ctx, f.face, r.uv, 48)
 		if e != nil {
 			return r, e

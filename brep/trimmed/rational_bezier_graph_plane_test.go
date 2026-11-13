@@ -300,6 +300,36 @@ func TestRationalBezierGraphTrimRay(t *testing.T) {
 	}
 }
 
+func TestRationalBezierGraphBoundaryDistance(t *testing.T) {
+	ctx := context.Background()
+	stock := rationalBezierGraphStock(t, 4)
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	r, e := CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, SplineRectangleEmbeddingOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Every point of the common is at or below Z=3/16. Its projection
+	// on the trimmed cap lies strictly inside, attaining the plane bound.
+	o := SplineBoundaryDistanceOptions{SquaredTolerance: 1e-9, MaxCells: 64}
+	q := geom.Vec3{X: .5, Y: .25, Z: 7. / 16}
+	got, e := r.Solid.BoundSplineBoundaryDistance(ctx, q, o)
+	if e != nil || !got.Complete || !got.HasWitness || got.Face != r.ToolFaces[5][0] || got.SquaredMin != .0625 || got.SquaredMax != .0625 {
+		t.Fatal("exact cap projection", got, e)
+	}
+	// At parameter 1/2 on the quartic edge, its nonbinary Y value is a true
+	// attainable point. The query uses that nearest display coordinate while
+	// constructing a rational witness independently of the rounded float.
+	edgeY := 47. / 96
+	q.Y = edgeY + 1./128
+	o.SquaredTolerance = 4e-4
+	o.MaxCells = 4096
+	got, e = r.Solid.BoundSplineBoundaryDistance(ctx, q, o)
+	if e != nil || !got.Complete || !got.HasWitness || got.SquaredMin > .0625+1./(128*128) ||
+		got.SquaredMax < .0625 || got.SquaredMax > .0625+1./(128*128)+o.SquaredTolerance {
+		t.Fatal("curved-edge witness or distance bound", got, e)
+	}
+}
+
 func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
 	ctx := context.Background()
 	base := rationalBezierGraphStock(t, 3)
