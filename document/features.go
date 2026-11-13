@@ -24,6 +24,9 @@ const (
 	PlanarProtrusionFeature      FeatureKind = "planar-protrusion"
 	PlanarPocketFeature          FeatureKind = "planar-pocket"
 	PlanarThroughPocketFeature   FeatureKind = "planar-through-pocket"
+	PlanarToFaceFeature          FeatureKind = "planar-to-face"
+	PlanarRevolveFeature         FeatureKind = "planar-revolve"
+	LongCapChainFeature          FeatureKind = "long-cap-chain"
 	BoxFeature                   FeatureKind = "box"
 	PrismFeature                 FeatureKind = "prism"
 	SphereFeature                FeatureKind = "sphere"
@@ -56,6 +59,11 @@ const (
 // every vertical edge, or CornerRadii selects individual edges and radii.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
+// PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
+// stable target role is resolved against the regenerated box or placed box.
+// PlanarRevolve uses a world-space Profile, Center as a point on the directed
+// axis, Direction as the axis, and Distance as the signed angle in radians.
+// LongCapChain uses its explicit LongCapChainRecipe field.
 // A wrapped cylinder uses Center as the lower cap center, Radius and Offset.Z
 // as height. A wrapped draft uses a canonical cylinder Input and the lower
 // and upper radial changes in Radius and Distance. A wrapped bore uses two
@@ -80,12 +88,17 @@ type Feature struct {
 	Direction                   geom.Vec3
 	CornerRadii                 []fillet.CornerRadius        `json:",omitempty"`
 	Stations                    []trimmed.WrappedLoftStation `json:",omitempty"`
+	LongCapChain                *LongCapChainRecipe          `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
 	f.Profile = append([]geom.Vec3(nil), f.Profile...)
 	f.CornerRadii = append([]fillet.CornerRadius(nil), f.CornerRadii...)
 	f.Stations = append([]trimmed.WrappedLoftStation(nil), f.Stations...)
+	if f.LongCapChain != nil {
+		recipe := *f.LongCapChain
+		f.LongCapChain = &recipe
+	}
 	h := make([][]geom.Vec3, len(f.Holes))
 	for i, x := range f.Holes {
 		h[i] = append([]geom.Vec3(nil), x...)
@@ -165,7 +178,7 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 				}
 				marks[name] = 1
 				stack = append(stack, item{name, true})
-				needsInput := f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == CylinderBoreFeature ||
+				needsInput := f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == CylinderBoreFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
 					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
@@ -228,6 +241,27 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 						r = x.Solid
 					}
 				}
+			case PlanarToFaceFeature:
+				target, ok := result.Planar[f.Input]
+				if !ok {
+					e = fmt.Errorf("to-face extrusion requires planar target %q", f.Input)
+					break
+				}
+				var face int
+				face, e = s.ResolveBoxFace(FeatureFace{f.Input, f.EntryRole})
+				if e == nil {
+					p, e = brep.PrismToFace(ctx, f.Profile, f.Holes, f.Direction, target, face)
+				}
+			case PlanarRevolveFeature:
+				uv = true
+				if len(f.Holes) != 0 {
+					e = fmt.Errorf("model-space polygon revolve does not accept sketch holes")
+					break
+				}
+				r, e = trimmed.RevolvePlanarPolygon(ctx, f.Profile, f.Center, f.Direction, f.Distance)
+			case LongCapChainFeature:
+				uv = true
+				r, e = evaluateLongCapChain(ctx, f)
 			case PlanarProtrusionFeature, PlanarPocketFeature, PlanarThroughPocketFeature:
 				a, ok := result.Planar[f.Input]
 				if !ok {

@@ -881,3 +881,10 @@ enclosure against the analytic parameter correspondence. Exact display
 contact and positive orientation checks are independent of the error bound.
 Signed elbow queries qualify both planar caps, side hits and material
 classification before and after native reload for angles below and above π.
+
+Document recipes regenerate a planar to-face tool after edits to its selected
+box face, switch a signed polygon revolution between coordinate axes, and
+rebuild the long cap chain after radius and depth edits. Missing references,
+uncovered targets, excessive angles, and feature intrusion leave the prior
+document revision intact. Tests also cover owned recipe snapshots, undo,
+redo, and reload.
