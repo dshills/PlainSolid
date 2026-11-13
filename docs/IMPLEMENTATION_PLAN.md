@@ -48,6 +48,16 @@ rendering and unrelated feature families follow these gates unless needed by a
 selected PlainCAD case. Keep the phase exits below as the remaining full-target
 backlog, and continue them after PlainCAD compatibility.
 
+The main branch now contains native Go evidence for the selected finite-stop,
+mixed-extrusion, long-cap feature chain, polygon and torus revolve, and
+blind-ended lead-part families. The separate integration branch owns browser
+evidence for the selected PC0/PC1 cases. Continue browser integration without
+changing geometry assertions and keep native kernel qualification separate.
+For PC4, prioritize modeling lead-ins that actually intersect a helical
+groove and qualify the finished pair for the app's authored dimensions. In
+parallel, continue the full-target curved intersection, trim arrangement, and
+Boolean work below; the named PlainCAD cases do not replace those phase exits.
+
 ## Phase 1 — numeric and mesh foundation
 
 1. Establish Go module, documentation and CI; require formatting, vet, unit/race tests.
