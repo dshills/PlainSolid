@@ -9,3 +9,11 @@ For the retained pinned OCCT off-axis fixture, model curve #25 has 28 spans. The
 Limits are degree 1–8, 512 poles, 64 spans, clamped knots, source decimals at most 64 characters with exponent magnitude at most 256 and numerator/denominator at most 1024 bits, and computed coefficients at most 16384 bits. General rational splines, periodic conventions and discontinuous interior knots are unsupported. Normal STEP parser limits also apply.
 
 This result does **not** prove proximity to the cylinder, paired pcurve agreement, coverage of the true intersection, source edge ownership, closed-shell embedding or material equivalence. It does not authorize exact or approximate import. The output retains exact rational bounds; decimal rendering must use outward rounding if displayed as a certified upper bound.
+
+## Cylinder evidence
+
+`BoundPolynomialSplineCylinderResidual` uses the same bounded source decoder and Bernstein enclosure for `|d|²-(d·a)²/(a·a)-R²`, with `d=C(t)-origin`. The axis `a` is any finite nonzero represented vector. All projection arithmetic is rational; normalization and square roots are unnecessary. Exact scaling or sign reversal of the axis leaves the result invariant, including very small or large axis magnitudes.
+
+On the same retained OCCT model curve #25 and the same 28 parameter spans, the cylinder radius 2, source origin `(1,0,-0.75)`, axis `(0,0,1)` certificate proves distance to the infinite cylindrical support below `8e-8` model units. Together with the sphere certificate below `3e-8`, this establishes continuous proximity to **each** support for every represented model-curve parameter.
+
+It still does not bound distance to their intersection without a separate conditioning/transversality proof. It does not establish inverse parameter matching to either source pcurve, matching source parameter intervals, unique traversal or endpoint/branch correspondence. No ownership, closed-face coverage or material inference follows. The STEP body remains rejected by the exact analytic importer.

@@ -27,12 +27,30 @@ type PolynomialSphereResidualSpan struct {
 // nonrational clamped 3D STEP B-splines, degree1..8, at most64 spans/512 poles.
 // Decimal size and rational coefficient bit budgets fail closed. No acceptance
 // of a body or its source ownership is implied by a small residual.
-func BoundPolynomialSplineSphereResidual(r io.Reader, l Limits, curveID int64, center geom.Vec3, radius float64) (out PolynomialSphereResidual, err error) {
+func BoundPolynomialSplineSphereResidual(r io.Reader, l Limits, curveID int64, center geom.Vec3, radius float64) (PolynomialSphereResidual, error) {
+	return boundPolynomialSplineSupportResidual(r, l, curveID, center, radius, nil)
+}
+
+func boundPolynomialSplineSupportResidual(r io.Reader, l Limits, curveID int64, center geom.Vec3, radius float64, cylinderAxis *geom.Vec3) (out PolynomialSphereResidual, err error) {
 	fail := func() (PolynomialSphereResidual, error) {
 		return PolynomialSphereResidual{}, fmt.Errorf("step: unsupported polynomial residual input or budget")
 	}
 	if !center.IsFinite() || !finiteNumber(radius) || radius <= 0 {
 		return fail()
+	}
+	var axis [3]*big.Rat
+	axisSquared := new(big.Rat)
+	if cylinderAxis != nil {
+		if !cylinderAxis.IsFinite() {
+			return fail()
+		}
+		axis = [3]*big.Rat{new(big.Rat).SetFloat64(cylinderAxis.X), new(big.Rat).SetFloat64(cylinderAxis.Y), new(big.Rat).SetFloat64(cylinderAxis.Z)}
+		for _, q := range axis {
+			axisSquared.Add(axisSquared, new(big.Rat).Mul(q, q))
+		}
+		if axisSquared.Sign() == 0 {
+			return fail()
+		}
 	}
 	f, e := Parse(r, l)
 	if e != nil {
@@ -127,9 +145,16 @@ func BoundPolynomialSplineSphereResidual(r io.Reader, l Limits, curveID int64, c
 				return fail()
 			}
 			v := new(big.Rat).Neg(r2)
-			for axis := 0; axis < 3; axis++ {
-				d := new(big.Rat).Sub(point[axis], c[axis])
+			dot := new(big.Rat)
+			for coordinate := 0; coordinate < 3; coordinate++ {
+				d := new(big.Rat).Sub(point[coordinate], c[coordinate])
 				v.Add(v, new(big.Rat).Mul(d, d))
+				if cylinderAxis != nil {
+					dot.Add(dot, new(big.Rat).Mul(d, axis[coordinate]))
+				}
+			}
+			if cylinderAxis != nil {
+				v.Sub(v, new(big.Rat).Quo(new(big.Rat).Mul(dot, dot), axisSquared))
 			}
 			if !residualBits(v) {
 				return fail()
