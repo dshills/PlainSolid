@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD selected production acceptance — 2026-11-13
+
+All seven selected original production cases pass in 25.572 seconds, with
+zero skips or flakes. They exercise CSP, native modeling and STL,
+scope capture, shop drawing, and STEP import and export with the original
+independent reader. The production build passes its original JavaScript
+bundle budget, with 70 bundles and a 496,089 byte maximum.
+
+The earlier production snapshots exposed two gaps. The Go WASM was served
+outside the asset path inspected by the CSP test, and the radius-10
+cylinder mesh lost 0.641% of native volume. The final package serves the
+kernel under assets and uses finer cylinder sampling, with unchanged
+original assertions. The [production report](evidence/plaincad-production-2026-11-13.json)
+pins the staged app, original test selection, build and WASM.
+
 ## PlainCAD grouped circular cap rims — 2026-11-13
 
 The adapter resolves a complete original circular cap as one native rim.
