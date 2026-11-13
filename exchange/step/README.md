@@ -716,6 +716,15 @@ approximated or silently flattened. Tests cover all checked-in independent STEP
 fixtures, unknown simple and complex records, deterministic ordering, malformed
 syntax/references and resource budgets.
 
+Standalone bounded extrusion/revolution declarations now receive dedicated
+codec hints. Whole-model `Read*` hints require the bounded-surface/GEOMETRIC_SET
+root names and exclude declared face/solid/assembly topology or mixed swept
+families. Retained OCCT face graphs instead receive support-level `Decode*`
+hints; their surrounding topology is not accepted by standalone readers. These
+additional structural filters still do not prove argument validity or ownership.
+Tests retain all-fixture inventory coverage and separately run exact standalone
+readers/entity decoders while asserting generic solid reader rejection.
+
 ## Certified straight tube geometry export
 
 `WriteTubeLines(ctx, writer, TubeLineModel, TubeLineOptions)` connects native
