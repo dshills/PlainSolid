@@ -27,6 +27,21 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if boundsSeparated(a.result.Bounds, c.result.Bounds) {
 		return result(0)
 	}
+	// Capture may test a complete planar target against a containing circular
+	// tool. This is the inverse of the contained-bore overlap route below.
+	if a.cylinder != nil && c.planar() || c.cylinder != nil && a.planar() {
+		cylinder, planar := a.cylinder, c.solid
+		if cylinder == nil {
+			cylinder, planar = c.cylinder, a.solid
+		}
+		volume, proven, err := containedPlanarCylinderVolume(cylinder, planar)
+		if err != nil {
+			return nil, err
+		}
+		if proven {
+			return result(volume)
+		}
+	}
 	if a.cylinder != nil && c.cylinder != nil {
 		n, m := a.cylinder.frame.ZAxis(), c.cylinder.frame.ZAxis()
 		if cardinalFrame(a.cylinder.frame) && (m == n || m == n.Scale(-1)) {
