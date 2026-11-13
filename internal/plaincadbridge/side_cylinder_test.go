@@ -15,6 +15,10 @@ func TestPlacedSideCrossingCircularCut(t *testing.T) {
 		base := box(t, b, vector{}, vector{30, 20, 8})
 		tool := circle(t, b, vector{x, 7, -1}, vector{0, 0, 1}, 3, 10)
 		out := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
+		scoped := shape(t, b, map[string]any{"op": "cutMany", "a": base.Handle, "tools": []string{tool.Handle}})
+		if scoped.Bounds != out.Bounds || scoped.GeometryAssertions != out.GeometryAssertions {
+			t.Fatal("single scoped through notch differs from direct Cut", scoped, out)
+		}
 		if out.Bounds != base.Bounds {
 			t.Fatal("notch changed surviving stock extrema", out.Bounds, base.Bounds)
 		}

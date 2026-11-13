@@ -13,7 +13,9 @@ Canonical STEP now round-trips the placed boundary and matches OCCT's
 independent volume, area and centroid. Mixed batches with disjoint
 blind bores from either cap and through bores now pass original
 regressions, authored persistence, placed STEP and STL fabrication. Additional side-crossing
-tools and intersecting side-notch footprints remain open.
+tools and intersecting side-notch footprints remain open. Single-tool
+scoped through-all Hole now accepts the same qualified rectangular side
+and corner notches as direct Cut.
 
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The

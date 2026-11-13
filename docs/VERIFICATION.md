@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD scoped through-all side notch — 2026-11-13
+
+Single-tool scoped Hole now uses the same qualified rectangular side and
+corner cylindrical notch constructors as direct Cut. Native tests compare
+through-notch measures and bounds through both bridge operations. All
+[five original browser regressions](evidence/plaincad-scoped-side-through-2026-11-13.json)
+pass. The [same-WASM app probe](evidence/plaincad-scoped-side-through-native-2026-11-13.json)
+rebuilds a through-all side-opening Hole, checks analytic area and volume,
+saves and reloads it, and validates STL. Race checks and Go vet pass.
+
 ## PlainCAD unit run on `50432ed` — 2026-11-13
 
 The [full unit report](evidence/plaincad-current-unit-50432ed-2026-11-13.json)
