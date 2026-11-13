@@ -563,6 +563,21 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 
 ## Continuing implementation
 
+For PlainCAD, the next geometry gap is a second side-opening cutter with
+a different footprint on already notched stock. Start with two crossing
+circles on the same rectangular side and parallel axes. Qualify the
+section arrangement and axial spans, then verify exact measures,
+rebuild and STEP before expanding to cutters on different sides.
+The full unit gate still has 36 repeat failures after focused retests.
+The recorded controls identify the OCCT-private bindings and fixtures
+that depend on an uninitialized kernel.
+
+The two short-mode exclusions for nested quartic material and transverse
+shell operations passed separately earlier. A fresh opt-in run for
+`TestQualifyNestedQuarticShell` and `TestStraightTubeMassInvestigation`
+is in progress. Its JSON log is
+`/tmp/plainsolid-integration-native-two-opt-ins-20261113.jsonl`.
+
 For immediate work, follow the PlainCAD gates above. Within the remaining full
 replacement scope, the critical path is general curved Boolean assembly. The current exact planar
 BSP can serve as an independent topology oracle for planar cases; curved
