@@ -487,6 +487,16 @@ func TestAlgebraicShellSectionIrrationalOriginalEdges(t *testing.T) {
 			t.Fatal("lost section pieces", sections, len(parts[0].Section))
 		}
 		if row.op == parametric.Intersection {
+			b, e := q.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 11})
+			// Integrate roof thickness y²−1/2 on sqrt(1/2)<y<1
+			// across width 1/2: volume is (sqrt(2)−1)/12.
+			lower, upper := big.NewRat(414213562373095, 12000000000000000), big.NewRat(414213562373096, 12000000000000000)
+			if e != nil || b.Volume.Lower.Cmp(lower) > 0 || b.Volume.Upper.Cmp(upper) < 0 || b.Volume.Lower.Sign() <= 0 {
+				t.Fatal("certified Boolean volume", b, e)
+			}
+			lo, _ := b.Volume.Lower.Float64()
+			hi, _ := b.Volume.Upper.Float64()
+			t.Log("irrational intersection volume", lo, hi, "cells", b.VisitedCells, "ambiguous", b.AmbiguousCells)
 			var f bytes.Buffer
 			q.Faces[0].Original = -1 // reload must reconstruct from original sources
 			if e := WriteAlgebraicShellBooleanJSON(&f, q); e != nil {
