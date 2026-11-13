@@ -52,6 +52,7 @@ func (g *SplineCornerSectionGraph) Nodes() []CornerSectionNode {
 
 // BuildSplineCornerSectionGraph re-proves every nonempty branch pair by exact
 // affine clipping; no caller links or sampled classifications are accepted.
+// Work limits apply per bounded face/chart/clip reproof (at most four pairs).
 // Initial scope is exactly four affine segments on one cutter face, one proved
 // stock vertex fan and three distinct interior stock-edge events. Every original
 // pair must remain explicitly classified. Nonadjacent UV segments must be disjoint.
