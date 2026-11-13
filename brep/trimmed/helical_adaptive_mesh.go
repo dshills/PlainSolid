@@ -35,6 +35,9 @@ func adaptiveKey(fi int, t samples, i int) adaptiveSideKey {
 // MaxSubdivisions bounds four bisection rounds per dyadic grid level, allowing
 // directional refinement without constructing the full isotropic tensor grid.
 func (s Solid) TessellateHelical(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	return s.tessellateHelicalAllocation(ctx, o, true)
+}
+func (s Solid) tessellateHelicalAllocation(ctx context.Context, o parametric.TessellationOptions, preallocate bool) (mesh.Mesh, error) {
 	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi || o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
 		return mesh.Mesh{}, geom.ErrInvalid
 	}
@@ -241,7 +244,33 @@ func (s Solid) TessellateHelical(ctx context.Context, o parametric.TessellationO
 		if round == maxRounds {
 			return mesh.Mesh{}, parametric.ErrBudget
 		}
+
 		next := make([][]samples, len(current))
+		// Splitting k distinct sides emits exactly k+1 triangles, including
+		// k=0. Reserve exact output sizes instead of repeatedly growing and
+		// copying the large samples records. No sampling/refinement decisions
+		// change; the private switch retains a reference path for equality tests.
+		if preallocate {
+			planned := 0
+			for fi, triangles := range current {
+				count := len(triangles)
+				for _, t := range triangles {
+					if e := ctx.Err(); e != nil {
+						return mesh.Mesh{}, e
+					}
+					for i := range 3 {
+						if marked[adaptiveKey(fi, t, i)] {
+							count++
+						}
+					}
+				}
+				if count > o.MaxTriangles-planned {
+					return mesh.Mesh{}, parametric.ErrBudget
+				}
+				planned += count
+				next[fi] = make([]samples, 0, count)
+			}
+		}
 		total := 0
 		for fi, triangles := range current {
 			surface := numericalWrappedSupport(s.faces[fi].Surface)
