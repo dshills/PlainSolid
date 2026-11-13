@@ -1577,6 +1577,10 @@ The cap reconstruction preserves the square-tube void in a reversed affine
 chart. A second oblique weighted fixture verifies identical rational model
 points on the source and reconstructed planar cap; too small a cap support
 rejects without returning partial faces. Both passed under the race detector.
+Direct splits close both square-tube halves with one holed cap and volume 4.
+Oblique weighted splits preserve the original support, validate opposite cap
+orientations, and match complementary independently integrated volumes.
+The exact source-edge/section-edge ancestry partitions every output edge.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.

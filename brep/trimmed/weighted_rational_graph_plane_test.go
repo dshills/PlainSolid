@@ -200,6 +200,44 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 	if bad, e := w.Regions.BuildCaps(ctx, capSupport, geom.ParameterRectangle{UMax: .5, VMax: 1}, RationalGraphSectionCapOptions{}); !errors.Is(e, geom.ErrDomain) || bad != nil {
 		t.Fatal("clip to undersized chart exposed a partial cap", bad, e)
 	}
+	split, e := stock.SplitRationalGraphSplineShell(ctx, plane, capSupport, domain, RationalGraphShellSplitOptions{
+		Section: RationalGraphShellSectionOptions{VerifyModelEdges: true},
+	})
+	if e != nil || !split.Section.Complete {
+		t.Fatal("whole curved shell split", e)
+	}
+	const nSplit = 512
+	var expectedNegative float64
+	for i := 0; i <= nSplit; i++ {
+		s := float64(i) / nSplit
+		// Cut z=3/16+3s/64. The lower stock is y/4+s²/(32(1−s/2)).
+		// For fixed s the positive thickness is a triangle in the y/z slice.
+		h := 3./16 + 3*s/64 - s*s/(32*(1-s/2))
+		weight := 2.
+		if i == 0 || i == nSplit {
+			weight = 1
+		} else if i%2 != 0 {
+			weight = 4
+		}
+		expectedNegative += weight * 6 * h * h / (3 * nSplit)
+	}
+	for side, h := range split.Halves {
+		if len(h.CapFaces) != 1 || len(h.CapEdges[0]) != 4 || len(h.Solid.Topology().Shells) != 1 {
+			t.Fatal("curved split boundaries are not individually closed", side)
+		}
+		faces := h.Solid.Faces()
+		if faces[h.CapFaces[0]].Reversed != (side == 1) || faces[h.SourceFaces[4][0]].Surface != supports[4] {
+			t.Fatal("lost outward cap orientation or original support", side)
+		}
+		properties, e := h.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-7})
+		want := expectedNegative
+		if side == 1 {
+			want = 3 - want
+		}
+		if e != nil || math.Abs(properties.Volume-want) > 1e-7 {
+			t.Fatal("independent split volume", side, properties.Volume, want, e)
+		}
+	}
 	if bad, e := stock.SectionRationalGraphSplineShell(ctx, plane, RationalGraphShellSectionOptions{MaxPieces: len(w.Branches) - 1}); e == nil || bad.Complete || len(bad.Branches) != 0 || len(bad.Wires) != 0 {
 		t.Fatal("budget exposed a partial section", bad, e)
 	}
