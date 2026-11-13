@@ -17,23 +17,24 @@ type analyticBody struct {
 	planarBores *planarBoredStock
 	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
 	polygonExtrema []geom.Vec3
-	solid        trimmed.Solid
-	patches      *parametric.Solid
-	rimPatches   bool
-	sector       *radialSector
-	shaft        *trimmed.SteppedShaft
-	segment      *circularSegmentSweep
-	helical      bool
-	lead         *leadPart
-	helicalMesh  *mesh.Mesh
-	pockets      *pocketStock
-	coaxial      *coaxialBody
-	rounded      *roundedStock
-	annular      *annularStock
-	threadStock  *planarThreadStock
-	islandPocket *trimmed.RectangularIslandPocket
-	filletedCap  *filletedCapStock
-	volume, area float64
+	solid          trimmed.Solid
+	patches        *parametric.Solid
+	rimPatches     bool
+	sector         *radialSector
+	shaft          *trimmed.SteppedShaft
+	segment        *circularSegmentSweep
+	arcLoop        *arcLoopSupport
+	helical        bool
+	lead           *leadPart
+	helicalMesh    *mesh.Mesh
+	pockets        *pocketStock
+	coaxial        *coaxialBody
+	rounded        *roundedStock
+	annular        *annularStock
+	threadStock    *planarThreadStock
+	islandPocket   *trimmed.RectangularIslandPocket
+	filletedCap    *filletedCapStock
+	volume, area   float64
 }
 
 func (b *Bridge) putAnalytic(s trimmed.Solid, volume, area float64) (Shape, error) {
@@ -51,6 +52,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 	var err error
 	if len(body.polygonExtrema) != 0 {
 		box, err = geom.Bounds(body.polygonExtrema)
+	} else if body.arcLoop != nil {
+		box = body.arcLoop.bounds
 	} else if body.segment != nil {
 		box, err = body.segment.bounds()
 	} else if body.coaxial != nil {
@@ -89,7 +92,7 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		o.MaxTriangles = min(o.MaxTriangles, 100000)
 		return a.solid.TessellateHelical(context.Background(), o)
 	}
-	if a.segment != nil {
+	if a.segment != nil || a.arcLoop != nil {
 		// Segment rims retain the same facet-angle budget as full circles.
 		o.Angle = min(o.Angle, .025)
 	}
@@ -119,6 +122,29 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			out.polygonExtrema[i] = m.Apply(p)
 		}
 	}
+	if a.arcLoop != nil {
+		p := *a.arcLoop
+		// Reflection changes the sign of the frame's Y axis. Reflect the
+		// profile in the rebuilt right-handed chart as well.
+		if m.Determinant() < 0 {
+			p.segments = append([]trimmed.ExtrusionSegment(nil), p.segments...)
+			for i := range p.segments {
+				s := &p.segments[i]
+				s.Start.Y, s.End.Y, s.Center.Y = -s.Start.Y, -s.End.Y, -s.Center.Y
+				s.StartAngle, s.Sweep = -s.StartAngle, -s.Sweep
+			}
+		}
+		f, err := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if err != nil {
+			return nil, err
+		}
+		p.frame = f
+		p.bounds, err = trimmed.ArcLoopBounds(f, p.segments, p.height)
+		if err != nil {
+			return nil, err
+		}
+		out.arcLoop = &p
+	}
 	if a.segment != nil {
 		s := *a.segment
 		s.origin = m.Apply(s.origin)
@@ -139,14 +165,6 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.filletedCap = nil
 	if a.coaxial != nil {
 		out.coaxial, _ = a.coaxial.transformed(m)
-	}
-	if a.pockets != nil {
-		p := *a.pockets
-		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
-		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
-			p.frame = f
-			out.pockets = &p
-		}
 	}
 	if a.planarBores != nil {
 		p := *a.planarBores

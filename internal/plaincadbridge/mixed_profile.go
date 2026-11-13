@@ -11,26 +11,36 @@ import (
 // mixedProfileRequest describes proved analytic sketch families, never sampled
 // arc polygons. Coordinates are in the supplied orthonormal sketch frame.
 type mixedProfileRequest struct {
-	Min         []number             `json:"min"`
-	Max         []number             `json:"max"`
-	Radii       []number             `json:"radii"`
-	Kind        string               `json:"kind"`
-	Origin      *vector              `json:"origin"`
-	Normal      *vector              `json:"normal"`
-	XDirection  *vector              `json:"xDirection"`
-	Center      []number             `json:"center"`
-	Right       []number             `json:"right"`
-	Radius      number               `json:"radius"`
-	StartAngle  number               `json:"startAngle"`
-	Sweep       number               `json:"sweep"`
-	InnerRadius number               `json:"innerRadius"`
-	Height      number               `json:"height"`
-	Outer       [][]number           `json:"outer"`
-	Circles     []mixedProfileCircle `json:"circles"`
+	Min         []number              `json:"min"`
+	Max         []number              `json:"max"`
+	Radii       []number              `json:"radii"`
+	Kind        string                `json:"kind"`
+	Origin      *vector               `json:"origin"`
+	Normal      *vector               `json:"normal"`
+	XDirection  *vector               `json:"xDirection"`
+	Center      []number              `json:"center"`
+	Right       []number              `json:"right"`
+	Radius      number                `json:"radius"`
+	StartAngle  number                `json:"startAngle"`
+	Sweep       number                `json:"sweep"`
+	InnerRadius number                `json:"innerRadius"`
+	Height      number                `json:"height"`
+	Outer       [][]number            `json:"outer"`
+	Circles     []mixedProfileCircle  `json:"circles"`
+	Segments    []mixedProfileSegment `json:"segments"`
 }
 type mixedProfileCircle struct {
 	Center []number `json:"center"`
 	Radius number   `json:"radius"`
+}
+
+type mixedProfileSegment struct {
+	Start      []number `json:"start"`
+	End        []number `json:"end"`
+	Center     []number `json:"center"`
+	Radius     number   `json:"radius"`
+	StartAngle number   `json:"startAngle"`
+	Sweep      number   `json:"sweep"`
 }
 
 func mixedPoint(p []number) (geom.Vec2, error) {
@@ -209,6 +219,12 @@ func (s circularSegmentSweep) bounds() (geom.Box, error) {
 }
 
 func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
+	if p.Kind == "arcLoop" {
+		return b.extrudeArcLoop(p)
+	}
+	if len(p.Segments) != 0 {
+		return Shape{}, geom.ErrDomain
+	}
 	s, volume, area, err := newMixedProfile(p)
 	if err != nil {
 		return Shape{}, err

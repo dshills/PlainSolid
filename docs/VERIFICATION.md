@@ -28,9 +28,12 @@ consolidated run before release readiness can be claimed.
 
 The [first arc-region retest](evidence/plaincad-current-arc-loop-baseline-2026-11-13.json)
 passes all six analytic circle/arc divider originals on XY, XZ and YZ.
-The remaining ten fail in the older frozen preview path. Current native
-verification covers rounded authored endpoints and initial lens/crescent
-previews. The [revolve retest](evidence/plaincad-current-revolve-capture-2026-11-13.json)
+The remaining ten fail in the older frozen preview path. The
+[current 17-case retest](evidence/plaincad-current-arc-loop-2026-11-13.json)
+passes every original in 162.429 seconds, including major arc fragmentation,
+lens and crescent selection, circular notches, arc-only intersections, and
+arc Extend on YZ. Native race tests verify signed convex/concave corners,
+analytic volume, mesh closure and JSON round-trips. The [revolve retest](evidence/plaincad-current-revolve-capture-2026-11-13.json)
 passes original Cut and Join auto-target capture on PlainCAD `e65f07b`.
 
 ## PlainCAD current studio, native modeling and lineage — 2026-11-13
