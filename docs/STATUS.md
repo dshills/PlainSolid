@@ -18,7 +18,10 @@ focused runs pass 54 of the baseline failures, including 10 origin-dependent
 setup cases. The consolidated current run passes 342 of 344 originals.
 Both remaining viewer cases pass focused verification. The gesture passed
 an unchanged rerun. The pan case passes after the staged viewer advances
-missed camera damping updates without drawing them.
+missed camera damping updates without drawing them. The current integrated
+production run passes 65 originals and times out in the performance case
+after completing its 25 edits and 11 exports. The same build passes the
+unchanged benchmark in 89.225 seconds on a focused rerun.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,
@@ -36,10 +39,12 @@ and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock, including independently authored rounded
 stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The original unit run
-with real WASM initialized passes 1,646 of 1,689 cases. The remaining
-failures include uninitialized fallback expectations and OCCT-private test
-bindings. All ten private tests pass on pristine OCCT. The 26 fallback
+The latest full unit run with real WASM and loopback passes 1,643 of 1,689
+originals, including all 39 modeling geometry and 15 local middleware
+cases. The baseline passed 1,646. Thirty-six failures repeat fallback
+expectations and OCCT-private fixture bindings. Nine of ten new failures
+pass unchanged in focused reruns. The remaining inline sketch workspace
+case also fails with pristine OCCT. All ten private tests pass on pristine OCCT. The 26 fallback
 fixtures pass 25 on the OCCT control and five with PlainSolid deliberately
 uninitialized. Focused original tests now pass all seven portable failures,
 including an exact side-tangent blind Hole. This Hole is retained for

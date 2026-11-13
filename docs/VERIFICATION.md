@@ -130,6 +130,20 @@ real-WASM probe confirms that PlainCAD's STL fabrication API rejects it
 with both topology-only and full validation. The native bridge short
 suite passes in 152.081 seconds.
 
+## PlainCAD full unit rerun and provider controls — 2026-11-13
+
+The [current unit reports](evidence/plaincad-current-unit-controls-2026-11-13.json)
+record 1,643 passes of 1,689 originals with initialized WASM and loopback
+available. All 15 local middleware cases and all 39 modeling geometry
+cases pass. The sandboxed concurrent run records 1,622 passes. All seven
+portable failures from the original baseline pass both reruns.
+
+Of the 46 failures with loopback, 36 repeat fallback-dependent or
+OCCT-private fixture assumptions. Nine of the ten new failures pass
+unchanged in focused retests. The remaining inline sketch workspace
+fixture reproduces on pristine OCCT. The full original unit gate remains
+open, including the provider-specific setup described below.
+
 ## PlainCAD current real-WASM unit baseline — 2026-11-13
 
 The [classified unit report](evidence/plaincad-current-unit-baseline-2026-11-13.json)

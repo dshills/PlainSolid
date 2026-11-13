@@ -39,7 +39,8 @@ finite To Face, grouped edge treatments, mixed circular profiles, revolve,
 component placement, drawing and STEP workflows in the original app. The
 first 53-case combined run passed 47. All six failures exposed the same
 multi-rim display budget regression. The correction passes the focused
-original XY cases and STEP import. A new consolidated run is required.
+original XY cases and STEP import. The later consolidated report is recorded
+below.
 
 Both original helical workflows now pass, including the M3 external and
 internal thread and the editable four-start lead pair. The original
@@ -51,8 +52,11 @@ fixture passes all three rebuilds. ORBIT passes the current detail and
 gesture export originals. The classified 340-case baseline and focused
 retests identify the next work: arc-region previews, the remaining exact
 browser retests, and isolated production performance. These focused retests
-now pass. Current production passes all 66 originals. The consolidated development run passes 342 of 344 originals. Both
-remaining viewport cases pass focused verification. All seven portable failures from the
+now pass. The tangent-Hole production build passes all 66 originals.
+The later production build passes 65 in the full run and the remaining
+performance case in an unchanged isolated rerun. The consolidated
+development run passes 342 of 344 originals. Both remaining viewport
+cases pass focused verification, with a current full rerun underway. All seven portable failures from the
 real-WASM unit baseline pass focused retests. One result is the exact
 side-tangent blind Hole, which is retained for display while fabrication
 rejects its four-face contact. Cross-browser tests expose four
