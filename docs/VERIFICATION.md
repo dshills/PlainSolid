@@ -1,5 +1,37 @@
 # Verification record
 
+## PlainCAD integration checkpoint — 2026-11-13
+
+The first Git snapshot is `7b11e83` (work in progress, not full qualification).
+PlainCAD integration continues on `codex/plaincad-integration` in a separate
+worktree so the ongoing kernel development checkout is not edited by this task.
+
+The initial standard-library-only JSON/WASM bridge supports planar boxes,
+signed polygon extrusion with holes, planar cut/fuse/common, convex planar
+hollowing, clone/transform, mass/bounds, mesh/STL and explicit handle disposal.
+It independently checks planar embedding and shell nesting before publishing
+material assertions; inward cavity shells do not increase the solid count.
+Requests, profile vertices and live handles are bounded. Calls are synchronous;
+browser cancellation requires terminating the owning worker.
+
+Checks passed for this increment:
+
+- `go test ./brep ./csg/poly ./csg/draft ./mesh ./exchange`.
+- `go test -race ./internal/plaincadbridge ./cmd/plaincadwasm`.
+- `go vet ./internal/plaincadbridge ./cmd/plaincadwasm`; focused tests, race
+  checks and vet passed after the numeric parser review fix.
+- `GOOS=js GOARCH=wasm go build -o /tmp/plainsolid-plaincad-reviewed.wasm ./cmd/plaincadwasm`.
+- Independent review found and then rechecked strict rejection of JSON null
+  numeric values (including JavaScript NaN/Infinity serialization), with no
+  handle allocation or mutation on failure. No remaining bridge review findings.
+
+Tests include both extrusion signs, holed volume, transformed bounds, independent
+clone ownership, STL volume, cavity versus disconnected component counts, empty
+intersection, both rectangular shell openings, malformed input and handle limits.
+This is bridge evidence only; application browser results are recorded separately
+in [PlainCAD readiness](PLAINCAD_READINESS.md). The full library test/race suite
+and the full PlainCAD release gates were not rerun for this focused increment.
+
 Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.

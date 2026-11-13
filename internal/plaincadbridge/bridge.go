@@ -1,0 +1,360 @@
+// Package plaincadbridge provides a bounded JSON bridge for the initial planar
+// PlainCAD integration. Handles own immutable B-reps; meshes are derived output.
+// Unsupported curves and operations must be rejected by the caller, never
+// polygonized and labeled as exact geometry.
+package plaincadbridge
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"strconv"
+	"sync"
+
+	"plainsolid/brep"
+	"plainsolid/collision"
+	"plainsolid/csg/draft"
+	"plainsolid/csg/poly"
+	"plainsolid/exchange"
+	"plainsolid/geom"
+)
+
+const MaxRequestBytes = 1 << 20
+const MaxHandles = 256
+const MaxProfileVertices = 128
+
+type vector [3]float64
+
+// encoding/json accepts null into a float64 as its zero value. Coordinates,
+// transform entries and wall thicknesses must instead be actual JSON numbers.
+type number float64
+
+func (n *number) UnmarshalJSON(b []byte) error {
+	var value *float64
+	if err := json.Unmarshal(b, &value); err != nil {
+		return err
+	}
+	if value == nil {
+		return errors.New("expected a JSON number, not null")
+	}
+	*n = number(*value)
+	return nil
+}
+
+func (v *vector) UnmarshalJSON(b []byte) error {
+	var a []number
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	if len(a) != 3 {
+		return errors.New("coordinates require exactly three numbers")
+	}
+	for i, value := range a {
+		v[i] = float64(value)
+	}
+	return nil
+}
+func (v vector) vec() geom.Vec3      { return geom.Vec3{X: v[0], Y: v[1], Z: v[2]} }
+func coordinates(v geom.Vec3) vector { return vector{v.X, v.Y, v.Z} }
+
+type request struct {
+	Op       string     `json:"op"`
+	Handle   string     `json:"handle,omitempty"`
+	A        string     `json:"a,omitempty"`
+	B        string     `json:"b,omitempty"`
+	Min      *vector    `json:"min,omitempty"`
+	Max      *vector    `json:"max,omitempty"`
+	Outer    []vector   `json:"outer,omitempty"`
+	Holes    [][]vector `json:"holes,omitempty"`
+	Offset   *vector    `json:"offset,omitempty"`
+	Matrix   [][]number `json:"matrix,omitempty"`
+	OpenFace *int       `json:"openFace,omitempty"`
+	Wall     number     `json:"wall,omitempty"`
+}
+
+type Assertions struct {
+	Valid       bool    `json:"valid"`
+	Volume      float64 `json:"volume"`
+	SurfaceArea float64 `json:"surfaceArea"`
+	SolidCount  int     `json:"solidCount"`
+}
+type Bounds struct {
+	Min vector `json:"min"`
+	Max vector `json:"max"`
+}
+type Shape struct {
+	Handle             string     `json:"handle"`
+	GeometryAssertions Assertions `json:"geometryAssertions"`
+	Bounds             Bounds     `json:"bounds"`
+}
+type stored struct {
+	solid  brep.Solid
+	result Shape
+}
+type failure struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+type response struct {
+	OK     bool     `json:"ok"`
+	Result any      `json:"result,omitempty"`
+	Error  *failure `json:"error,omitempty"`
+}
+
+// Bridge is an isolated handle registry. Calls are serialized, and all state
+// disappears when its owning worker exits. A browser call is synchronous;
+// cancellation requires terminating that worker, not a queued cancel message.
+type Bridge struct {
+	mu     sync.Mutex
+	next   uint64
+	shapes map[string]stored
+}
+
+func New() *Bridge { return &Bridge{shapes: make(map[string]stored)} }
+
+func encode(r response) string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return `{"ok":false,"error":{"code":"INTERNAL","message":"response contains invalid geometry"}}`
+	}
+	return string(b)
+}
+
+// Call accepts one strict JSON request and returns a JSON response. It never
+// exposes native pointers, and failed operations do not publish handles.
+func (b *Bridge) Call(input string) (output string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	defer func() {
+		if recover() != nil {
+			output = encode(response{Error: &failure{"INTERNAL", "kernel operation failed"}})
+		}
+	}()
+	bad := func(code string, err error) string { return encode(response{Error: &failure{code, err.Error()}}) }
+	if len(input) > MaxRequestBytes {
+		return bad("LIMIT", errors.New("request exceeds 1 MiB"))
+	}
+	var q request
+	d := json.NewDecoder(bytes.NewBufferString(input))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&q); err != nil {
+		return bad("INVALID", err)
+	}
+	if err := d.Decode(new(any)); err != io.EOF {
+		return bad("INVALID", errors.New("expected one JSON request"))
+	}
+	r, err := b.execute(q)
+	if err != nil {
+		code := "INVALID"
+		var e *failureError
+		if errors.As(err, &e) {
+			code = e.code
+		} else if errors.Is(err, poly.ErrLimit) || errors.Is(err, collision.ErrLimit) {
+			code = "LIMIT"
+		}
+		return bad(code, err)
+	}
+	return encode(response{OK: true, Result: r})
+}
+
+type failureError struct{ code, message string }
+
+func (e *failureError) Error() string { return e.message }
+
+func (b *Bridge) get(h string) (stored, error) {
+	s, ok := b.shapes[h]
+	if !ok {
+		return stored{}, &failureError{"HANDLE", "unknown or disposed shape handle"}
+	}
+	return s, nil
+}
+func loop(vs []vector) []geom.Vec3 {
+	out := make([]geom.Vec3, len(vs))
+	for i, v := range vs {
+		out[i] = v.vec()
+	}
+	return out
+}
+func (b *Bridge) execute(q request) (any, error) {
+	ctx := context.Background()
+	switch q.Op {
+	case "capabilities":
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_brep", "operations": []string{"box", "prism", "cut", "fuse", "common", "shell", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "box":
+		if q.Min == nil || q.Max == nil {
+			return nil, errors.New("box requires min and max")
+		}
+		s, err := brep.Box(q.Min.vec(), q.Max.vec())
+		if err != nil {
+			return nil, err
+		}
+		return b.put(s)
+	case "prism":
+		if q.Offset == nil {
+			return nil, errors.New("prism requires offset")
+		}
+		n := len(q.Outer)
+		for _, h := range q.Holes {
+			n += len(h)
+		}
+		if n > MaxProfileVertices {
+			return nil, &failureError{"LIMIT", "profile exceeds 128 vertices"}
+		}
+		holes := make([][]geom.Vec3, len(q.Holes))
+		for i, h := range q.Holes {
+			holes[i] = loop(h)
+		}
+		s, err := brep.PrismWithHoles(loop(q.Outer), holes, q.Offset.vec())
+		if err != nil {
+			return nil, err
+		}
+		return b.put(s)
+	case "cut", "fuse", "common":
+		a, err := b.get(q.A)
+		if err != nil {
+			return nil, err
+		}
+		c, err := b.get(q.B)
+		if err != nil {
+			return nil, err
+		}
+		op := poly.Difference
+		if q.Op == "fuse" {
+			op = poly.Union
+		}
+		if q.Op == "common" {
+			op = poly.Intersection
+		}
+		s, err := poly.Combine(ctx, a.solid, c.solid, op, poly.Options{})
+		if err != nil {
+			return nil, err
+		}
+		return b.put(s)
+	case "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell":
+		s, err := b.get(q.Handle)
+		if err != nil {
+			return nil, err
+		}
+		switch q.Op {
+		case "shell":
+			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
+				return nil, errors.New("shell requires a valid opening face and positive wall thickness")
+			}
+			thickness := make([]float64, len(s.solid.Faces()))
+			for i := range thickness {
+				if i != *q.OpenFace {
+					thickness[i] = float64(q.Wall)
+				}
+			}
+			hollow, err := draft.Hollow(ctx, s.solid, thickness, draft.HollowOptions{OpenFace: *q.OpenFace})
+			if err != nil {
+				return nil, err
+			}
+			return b.put(hollow.Solid)
+		case "inspect":
+			return s.result, nil
+		case "clone":
+			return b.put(s.solid)
+		case "dispose":
+			delete(b.shapes, q.Handle)
+			return map[string]bool{"disposed": true}, nil
+		case "transform":
+			if len(q.Matrix) != 3 {
+				return nil, errors.New("matrix requires three rows of four numbers")
+			}
+			var m geom.Affine
+			for i, row := range q.Matrix {
+				if len(row) != 4 {
+					return nil, errors.New("matrix requires three rows of four numbers")
+				}
+				for j, value := range row {
+					m[i][j] = float64(value)
+				}
+			}
+			t, err := s.solid.Transformed(m)
+			if err != nil {
+				return nil, err
+			}
+			return b.put(t)
+		case "mesh":
+			return renderMesh(s)
+		case "stl":
+			var out bytes.Buffer
+			if err := exchange.WriteSTL(&out, s.solid.Tessellate()); err != nil {
+				return nil, err
+			}
+			return map[string]string{"base64": base64.StdEncoding.EncodeToString(out.Bytes())}, nil
+		}
+	}
+	return nil, &failureError{"UNSUPPORTED", fmt.Sprintf("operation %q is outside the planar bridge", q.Op)}
+}
+
+func (b *Bridge) put(s brep.Solid) (Shape, error) {
+	if len(b.shapes) >= MaxHandles {
+		return Shape{}, &failureError{"LIMIT", "dispose shapes before allocating more than 256 handles"}
+	}
+	// Validate geometric embedding and shell nesting, rather than equating a
+	// watertight display mesh with a valid material solid. Even-depth shells are
+	// separate material components; inward cavity shells do not add solidCount.
+	l, err := collision.NewPointLocator(context.Background(), s, collision.LocationOptions{})
+	if err != nil {
+		return Shape{}, err
+	}
+	r := Shape{GeometryAssertions: Assertions{Valid: true}}
+	for _, shell := range l.Shells() {
+		if shell.Depth%2 == 0 {
+			r.GeometryAssertions.SolidCount++
+		}
+	}
+	if len(s.Faces()) > 0 {
+		p, err := s.MassProperties()
+		if err != nil {
+			return Shape{}, err
+		}
+		if p.Volume <= 0 {
+			return Shape{}, errors.New("material must have positive volume")
+		}
+		r.GeometryAssertions.Volume = p.Volume
+		r.GeometryAssertions.SurfaceArea = p.SurfaceArea
+		bounds, err := s.Bounds()
+		if err != nil {
+			return Shape{}, err
+		}
+		r.Bounds = Bounds{coordinates(bounds.Min), coordinates(bounds.Max)}
+	}
+	b.next++
+	r.Handle = "ps:" + strconv.FormatUint(b.next, 10)
+	b.shapes[r.Handle] = stored{s, r}
+	return r, nil
+}
+
+type Mesh struct {
+	Positions          []float64  `json:"positions"`
+	Normals            []float64  `json:"normals"`
+	Indices            []int      `json:"indices"`
+	Bounds             Bounds     `json:"bounds"`
+	GeometryAssertions Assertions `json:"geometryAssertions"`
+}
+
+func renderMesh(s stored) (Mesh, error) {
+	m := s.solid.Tessellate()
+	r := Mesh{Positions: make([]float64, 0, len(m.Triangles)*9), Normals: make([]float64, 0, len(m.Triangles)*9), Indices: make([]int, 0, len(m.Triangles)*3), Bounds: s.result.Bounds, GeometryAssertions: s.result.GeometryAssertions}
+	// Duplicate per triangle so sharp planar edges retain flat face normals.
+	for _, t := range m.Triangles {
+		n, err := m.Vertices[t[1]].Sub(m.Vertices[t[0]]).Cross(m.Vertices[t[2]].Sub(m.Vertices[t[0]])).Unit()
+		if err != nil {
+			return Mesh{}, err
+		}
+		for _, id := range t {
+			v := m.Vertices[id]
+			r.Indices = append(r.Indices, len(r.Indices))
+			r.Positions = append(r.Positions, v.X, v.Y, v.Z)
+			r.Normals = append(r.Normals, n.X, n.Y, n.Z)
+		}
+	}
+	return r, nil
+}
