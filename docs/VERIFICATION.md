@@ -12,6 +12,12 @@ application opens the part-name controls through the closed-by-default
 New part menu and exposes AI through the bottom dock. The original tests
 and production application checkout were preserved.
 
+The [three-engine production modeling selection](evidence/plaincad-native-three-engines-2026-11-13.json)
+passes six cases in 43.3 seconds. It runs the original production CSP
+modeling and STL case and the placed STEP import case in each of Chromium,
+Firefox, and WebKit. The staged configuration changes only the preview port,
+artifact directory, and browser projects.
+
 ## PlainCAD full current production acceptance — 2026-11-13
 
 The [production report](evidence/plaincad-current-production-2026-11-13.json)
