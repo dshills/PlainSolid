@@ -108,6 +108,11 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		a, c = c, a
 	}
 	if a.planar() && c.cylinder != nil {
+		// The same exact convex containment proof used by scoped Join also
+		// qualifies capture queries when the tool encloses the whole stock.
+		if cylinderContainsPlanar(c.cylinder, a.solid) {
+			return result(a.result.GeometryAssertions.Volume)
+		}
 		if _, box, ok := sideCylinderThroughRecipe(a.solid, c.cylinder); ok {
 			v, _ := sideCylinderMeasures(box, c.cylinder.radius)
 			return result(v)
