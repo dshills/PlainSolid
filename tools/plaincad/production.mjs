@@ -4,6 +4,7 @@ import {readFile,writeFile,readdir,open} from 'node:fs/promises';
 import {resolve,join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
+import {originalSources,replayDisplay,displayFiles} from './production-provenance.mjs';
 
 const usage='Usage: node tools/plaincad/production.mjs --work /staged/workspace [--port 5280] [--test production-e2e/file.spec.ts] [--grep expression] [--check | --run]\nDefault --check verifies inputs without building or running tests. --run builds and runs the selected originals (all production tests by default).';
 const args=process.argv.slice(2), options={};
@@ -22,9 +23,11 @@ const readinessPath=join(work,'readiness.json'),readinessBytes=await readFile(re
 if(r.backend!=='plainsolid-go-wasm'||r.typecheck!=='passed'||!r.backendVerified||!r.tests?.some(t=>t.title?.startsWith('PlainSolid backend:')&&t.status==='expected'&&t.results?.length&&t.results.every(x=>x.status==='passed')))throw Error('Require passing staged typecheck and real backend probe');
 if(resolve(r.workspace)!==work)throw Error('Readiness belongs to a different workspace');
 const adaptations=new Map((r.providerLabelAdaptations??[]).map(x=>[x.file,x]));
+const {originals,missing}=originalSources(r,hash);
+const displayReplay=await replayDisplay(r,originals,hash);
 const runtime=new Map();
 for(const a of r.runtimeAdaptations??[]){
- if(a.file!=='src/cad/features/rebuildGraph.ts'||runtime.has(a.file))throw Error('Unsupported runtime adaptation');
+ if((a.file!=='src/cad/features/rebuildGraph.ts'&&!displayFiles.includes(a.file))||runtime.has(a.file))throw Error('Unsupported runtime adaptation');
  runtime.set(a.file,a);
 }
 let checked=0,production=0;
@@ -34,7 +37,10 @@ for(const [file,before] of Object.entries(r.sourceHashes??{})){
  const a=adaptations.get(file);if(a&&a.beforeSha256!==before)throw Error(`Inconsistent adaptation ${file}`);
  const content=await readFile(join(work,file),'utf8'),rt=runtime.get(file);
  const prior=a?.afterSha256??before;
- if(rt){
+ if(rt&&displayReplay.has(file)){
+  if(content!==displayReplay.get(file))throw Error('Staged display replay mismatch');
+  runtime.delete(file);
+ }else if(rt){
   const boundary='        operationCount += 1;', insertion='\n        options.onNativeProgress?.("native_feature");';
   if(rt.beforeSha256!==prior||rt.afterSha256!==hash(content)||content.split(boundary+insertion).length!==2||!content.includes('onNativeProgress?:')||hash(content.replace(boundary+insertion,boundary))!==prior)throw Error('Invalid heartbeat adaptation');
   runtime.delete(file);
@@ -54,7 +60,7 @@ const original=execFileSync('git',['show',`${r.sourceIdentity.head}:${configFile
 if(config!==original)throw Error('Original production configuration changed');
 if(!/workers:\s*1\b/.test(config)||!config.includes('5280'))throw Error('Expected original single-worker production config');
 const derived=config.replaceAll('5280',port),configName='playwright.plainsolid-production.config.ts';
-const report={schema:1,backend:r.backend,sourceIdentity:r.sourceIdentity,plainSolidIdentity:r.plainSolidIdentity,plainSolidSourceHashes:r.plainSolidSourceHashes,wasmSha256:r.wasmSha256,readinessSha256:hash(readinessBytes),sourceHashes:r.sourceHashes,providerLabelAdaptations:r.providerLabelAdaptations,runtimeAdaptations:r.runtimeAdaptations,adapterSha256:hash(adapter),originalConfigSha256:hash(config),derivedConfigSha256:hash(derived),port,selection:{test:options['--test']??'all production originals',grep:options['--grep']??null},checkedSourceFiles:checked,startedAt:new Date().toISOString(),status:'verified',notes:['Original assertions and timeouts preserved; derived config changes only port5280.','Single worker; run with other expensive qualification jobs paused.','Selected passes do not qualify unselected tests.']};
+const report={schema:1,backend:r.backend,sourceIdentity:r.sourceIdentity,plainSolidIdentity:r.plainSolidIdentity,plainSolidSourceHashes:r.plainSolidSourceHashes,wasmSha256:r.wasmSha256,readinessSha256:hash(readinessBytes),sourceHashes:r.sourceHashes,providerLabelAdaptations:r.providerLabelAdaptations,runtimeAdaptations:r.runtimeAdaptations,adapterSha256:hash(adapter),originalConfigSha256:hash(config),derivedConfigSha256:hash(derived),port,selection:{test:options['--test']??'all production originals',grep:options['--grep']??null},checkedSourceFiles:checked,originalSourceVerification:{verified:originals.size,missing},startedAt:new Date().toISOString(),status:'verified',notes:['Original assertions and timeouts preserved; derived config changes only port5280.','Single worker; run with other expensive qualification jobs paused.','Selected passes do not qualify unselected tests.']};
 if(!options['--run']){console.log(JSON.stringify(report,null,2));process.exit(0)}
 await writeFile(join(work,configName),derived);
 async function command(cmd,argv,log,env={}){
