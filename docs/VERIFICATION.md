@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD full production baseline — 2026-11-13
+
+The first full production run passes 61 of 66 original cases in 445.821
+seconds, with zero skips or flakes. Production compilation and the original
+bundle budget pass with 70 JavaScript bundles and a maximum of 496,089
+bytes. The [full report](evidence/plaincad-production-full-baseline-2026-11-13.json)
+records the exact WASM and source hashes, every original result and the
+original five failures.
+
+The fabrication package remains in its STEP validation stage at the
+original 20-second wait. The controlled performance test records all
+25 edit samples and the measured STL exports, then exceeds its overall
+deadline. The cable-guide gallery cannot display its native preview.
+The Acme and UNC cases expose a nonrepresentable reciprocal lead in the
+native wall chart, and UNC also requires an internal thread on bored
+rectangular stock. The M6 and trapezoidal gallery originals pass.
+
 ## PlainCAD scoped Join, fitted parts and cached rebuild — 2026-11-13
 
 The [expanded acceptance report](evidence/plaincad-expanded-first-2026-11-13.json)
