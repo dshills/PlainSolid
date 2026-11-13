@@ -3,7 +3,11 @@ package step
 import (
 	"errors"
 	"io"
+	"math"
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+	"reflect"
 	"strings"
 )
 
@@ -15,6 +19,44 @@ type TrimmedBody struct {
 type TrimmedModel struct {
 	Bodies     []TrimmedBody
 	LengthUnit float64
+}
+
+// CompleteCylinder recovers the full, two-cap cylinder produced by the
+// analytic reader. It verifies the trimmed topology against the native
+// constructor before returning the descriptor.
+func (b TrimmedBody) CompleteCylinder() (CylinderBody, bool) {
+	faces := b.Solid.Faces()
+	if len(faces) != 3 {
+		return CylinderBody{}, false
+	}
+	side, lateral := faces[0].Surface.(geom.CylinderSurface)
+	_, bottom := parametric.PolarPlaneFrame(faces[1].Surface)
+	_, top := parametric.PolarPlaneFrame(faces[2].Surface)
+	if !lateral || !bottom || !top || len(faces[0].Outer) != 4 {
+		return CylinderBody{}, false
+	}
+	uv := faces[0].Outer
+	height := uv[2].UVStart.Y
+	if height <= 0 || !finiteNumber(height) {
+		return CylinderBody{}, false
+	}
+	points := [4]geom.Vec2{{}, {X: 2 * math.Pi}, {X: 2 * math.Pi, Y: height}, {Y: height}}
+	for i, use := range uv {
+		if use.Curve != nil || use.UVStart != points[i] || use.UVEnd != points[(i+1)%4] {
+			return CylinderBody{}, false
+		}
+	}
+	frame, radius := side.Parameters()
+	cylinder, err := parametric.Cylinder(frame, radius, height)
+	if err != nil {
+		return CylinderBody{}, false
+	}
+	want, err := trimmed.FromParametric(cylinder)
+	if err != nil || !reflect.DeepEqual(b.Solid.Vertices(), want.Vertices()) ||
+		!reflect.DeepEqual(b.Solid.Edges(), want.Edges()) || !reflect.DeepEqual(faces, want.Faces()) {
+		return CylinderBody{}, false
+	}
+	return CylinderBody{Name: b.Name, Frame: frame, Radius: radius, Height: height}, true
 }
 
 // ReadTrimmedBodies reads the strict full analytic body graphs supported by

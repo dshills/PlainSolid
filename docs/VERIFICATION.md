@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD preserves ordinary cylinder STEP as machinable stock — 2026-11-13
+
+The native reader now retains the complete cylinder created by PlainCAD's
+ordinary STEP writer. It checks the recovered cap and side topology
+against the complete cylinder constructor. The focused regression drills
+the reimported cylinder and exports it again. The
+[original STEP import and export cases](evidence/plaincad-step-cylinder-stock-2026-11-13.json)
+pass, as do the split/quarter cylinder, oblique cylinder, race and Go vet
+checks.
+
 ## PlainCAD quarter-cylinder STEP import from main — 2026-11-13
 
 Main's exact four-quarter cylinder model and rooted product dialects
