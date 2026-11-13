@@ -167,3 +167,34 @@ passing backend probe and actual passes for every selected existing fixture.
 Unselected fixtures remain **untested**; these results do not establish full
 PlainCAD compatibility or full OCCT replacement. The original PlainCAD unit
 suite contains OCCT-specific mocks and is not silently treated as portable.
+
+### Optional production stage
+
+After `run.mjs` has staged an isolated workspace with passing typecheck and real
+Go WASM backend probe, verify it without launching a build or browser:
+
+```sh
+node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --check
+```
+
+The verifier checks recorded source hashes (including provider-only adaptations),
+original production configuration against the pinned app commit, adapter and WASM
+hashes. It rejects extra unrecorded production inputs. The original configuration
+stays untouched; the derived configuration changes only the isolation port.
+
+When other expensive qualification jobs are paused, run all original production
+cases, or select an original file/title explicitly:
+
+```sh
+node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --run
+node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --test production-e2e/step-import.spec.ts --run
+```
+
+This builds production assets, checks the built WASM identity, and records
+`production-readiness.json`, `production-results.json`, build/test logs, original
+source provenance and selected test outcomes. Original timeouts/assertions are
+retained. Skips, zero selected tests and interrupted results cannot count as a
+pass. Only the selected cases are qualified. The staging `readiness.json` is never
+rewritten. Do not edit or concurrently run another harness in the staged workspace.
+
+Run the inexpensive verifier tests with `node --test tools/plaincad/production.test.mjs`.
