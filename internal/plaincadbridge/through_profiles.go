@@ -3,6 +3,7 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+	"math/big"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -46,9 +47,14 @@ func (p throughProfileStock) clipTool(ctx context.Context, tool stored) (trimmed
 		if !ok {
 			return trimmed.Solid{}, 0, 0, geom.ErrDomain
 		}
+		center := p.frame.ToWorld(geom.Vec3{X: start.X, Y: start.Y, Z: p.low})
+		frame, err := geom.NewFrame(center, p.frame.XAxis(), n)
+		if err != nil {
+			return trimmed.Solid{}, 0, 0, err
+		}
 		area, perimeter := math.Pi*c.radius*c.radius, 2*math.Pi*c.radius
 		geometry, err := trimmed.ExtrudeDiskWithHoles(ctx, frame,
-			trimmed.ExtrusionCircle{Center: geom.Vec2{X: start.X, Y: start.Y}, Radius: c.radius}, nil, nil, h)
+			trimmed.ExtrusionCircle{Radius: c.radius}, nil, nil, h)
 		return geometry, area, perimeter, err
 	}
 	if tool.analytic != nil && tool.analytic.rounded != nil {
@@ -83,11 +89,19 @@ func cutThroughProfiles(a stored, tools []stored) (*analyticBody, float64, bool,
 	ctx := context.Background()
 	removed := 0.
 	for _, tool := range tools {
+		upperCap := p.upperCap
+		if result.rounded != nil && result.rounded.pedestal != nil {
+			var err error
+			upperCap, err = result.rounded.pedestal.cutCap(p, tool)
+			if err != nil {
+				return nil, 0, true, err
+			}
+		}
 		clipped, area, perimeter, err := p.clipTool(ctx, tool)
 		if err != nil {
 			return nil, 0, true, err
 		}
-		result.solid, err = trimmed.SewPlanarThroughPrism(ctx, result.solid, clipped, p.lowerCap, p.upperCap, 0, 1)
+		result.solid, err = trimmed.SewPlanarThroughPrism(ctx, result.solid, clipped, p.lowerCap, upperCap, 0, 1)
 		if err != nil {
 			return nil, 0, true, err
 		}
@@ -107,4 +121,28 @@ func cutThroughProfiles(a stored, tools []stored) (*analyticBody, float64, bool,
 		result.annular = &recipe
 	}
 	return &result, removed, true, nil
+}
+
+func (a pedestalStock) cutCap(p throughProfileStock, tool stored) (int, error) {
+	c := tool.cylinder
+	if c == nil {
+		return 0, geom.ErrDomain
+	}
+	center := p.frame.ToLocal(c.frame.Origin())
+	if p.frame.ToWorld(center) != c.frame.Origin() {
+		return 0, geom.ErrUnrepresentable
+	}
+	exact := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	dx := new(big.Rat).Sub(exact(center.X), exact(a.center.X))
+	dy := new(big.Rat).Sub(exact(center.Y), exact(a.center.Y))
+	distance2 := new(big.Rat).Add(dx.Mul(dx, dx), dy.Mul(dy, dy))
+	gap := new(big.Rat).Sub(exact(a.inner), exact(c.radius))
+	if gap.Sign() > 0 && distance2.Cmp(gap.Mul(gap, gap)) < 0 {
+		return a.centerFace, nil
+	}
+	reach := new(big.Rat).Add(exact(a.outer), exact(c.radius))
+	if distance2.Cmp(reach.Mul(reach, reach)) > 0 {
+		return p.upperCap, nil
+	}
+	return 0, geom.ErrDomain
 }

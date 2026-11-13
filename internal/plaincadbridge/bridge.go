@@ -400,6 +400,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 		}
 		if q.Op == "fuse" {
+			if result, handled, err := b.fuseAnnularPedestal(a, c); handled {
+				return result, err
+			}
 			if result, handled, err := b.fuseCoaxial(a, c); handled {
 				return result, err
 			}
