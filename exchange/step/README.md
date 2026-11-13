@@ -1992,3 +1992,9 @@ They rebuild the supported body and verify the complete geometry and topology,
 including exact decimal coefficients and all edge and pcurve orientations.
 Independently authored graphs that use other topology or charts are outside
 this reader's contract.
+
+`WritePlacedLongEdgeChains` and `ReadPlacedLongEdgeChains` carry the same
+local chain through a single STEP assembly occurrence with a proper signed
+coordinate rotation and finite translation. The reader verifies the assembly
+and its local geometry as one canonical graph. OCCT verifies the placed
+shape's area, volume, and transformed centroid.
