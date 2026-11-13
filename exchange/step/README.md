@@ -1871,3 +1871,25 @@ OCCT prism/cylinder-cut fixtures qualify mixed through/blind and blind-only
 models in both signs, including two different floor depths, area, volume and
 centroid. Source tests verify floor heights/normals, two opposite uses of each
 edge, and the Euler characteristic appropriate to the remaining through holes.
+
+`ReadCircularHoleExtrusions` is an additive, strict producer-graph reader. It
+recovers convex sketches, circular through holes and finite pockets, then runs
+the native material constructor and re-authors the entire geometry graph. A
+bidirectional entity correspondence must preserve every geometric numeric
+value, curve/support, face loop, pcurve owner, shared edge and repeated seam
+reference. Entity numbers may change and equivalent decimal spelling is
+accepted; numeric rounding, cloned owners and detached geometry are not.
+Input topology budgets are enforced before reconstruction. The graph comparison
+has fixed depth/work and bounded exact numeric parsing limits.
+
+Blind entries recover the signed height relative to the cap frame. Through-only
+geometry cannot identify an original signed feature, so it is explicitly
+normalized to positive height from the lower cap. World-to-sketch recovery must
+be exactly representable; alternate frames, face order, partitions and general
+assembly placement are unsupported. The pinned independently authored OCCT
+prism/cut source in `testdata/circular-pocket-occt.step` uses reordered caps and
+reversed plane frames; it is deliberately rejected, not approximately repaired.
+Accepted canonical through/mixed/blind sources pass read/re-export and independent
+OCCT validity/mass comparisons in both signed directions. This reader is not a
+general mixed analytic STEP importer and does not recover arbitrary feature
+history.

@@ -33,3 +33,14 @@ static int circularHoleExtrusionReference(const char* path,int mode=0) {
  }
  return 0;
 }
+
+static int writeCircularPocketReference(const char* path) {
+ const double p[5][2]={{0,0},{6,0},{7,3},{4,5},{0,4}};
+ BRepBuilderAPI_MakePolygon wire;for(const auto& v:p)wire.Add(gp_Pnt(2,3-v[1],4+v[0]));wire.Close();
+ auto face=BRepBuilderAPI_MakeFace(wire.Wire()).Face();TopoDS_Shape shape=BRepPrimAPI_MakePrism(face,gp_Vec(3,0,0)).Shape();
+ auto through=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,1,6),gp_Dir(1,0,0),gp_Dir(0,0,1)),.5,3).Shape();
+ auto blind=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,1,9),gp_Dir(1,0,0),gp_Dir(0,0,1)),.75,1.25).Shape();
+ shape=BRepAlgoAPI_Cut(BRepAlgoAPI_Cut(shape,through).Shape(),blind).Shape();
+ if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent pocket STEP source");
+ STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent pocket STEP export");return 0;
+}

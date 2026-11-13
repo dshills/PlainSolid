@@ -132,6 +132,14 @@ func TestCircularHoleExtrusionSTEPOCCT(t *testing.T) {
 			if e = WriteCircularHoleExtrusions(&out, m); e != nil {
 				t.Fatal(e)
 			}
+			decoded, e := ReadCircularHoleExtrusions(bytes.NewReader(out.Bytes()), Limits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			out.Reset()
+			if e = WriteCircularHoleExtrusions(&out, decoded); e != nil {
+				t.Fatal(e)
+			}
 			path := filepath.Join(t.TempDir(), "body.step")
 			if e = os.WriteFile(path, out.Bytes(), 0600); e != nil {
 				t.Fatal(e)
