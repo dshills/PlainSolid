@@ -70,10 +70,18 @@ external creation, edit, reopen, and STL on the combined branch. The full
 original case then timed out during internal preview; the lead pair and all
 eight viewport operation cases passed. A separate Node/WASM reproduction
 found that constant-radius UV interpolation could exceed the annular domain
-by one ULP. An isolated check of the independent worktree fix resolves that
-reproduction; the original browser case still needs qualification.
+by one ULP. The committed fix resolves that reproduction. The browser trace
+also showed repeated rebuilding of the existing external thread during each
+step of the internal nut preview. With the committed stepped construction
+speedup `048dd26`, both original helical browser cases passed on `80fac9c`
+with unchanged deadlines and assertions.
 The three bridge failures from the earlier broad candidate run passed when
-rerun on the reconciled snapshot. A new broad run is still pending.
+rerun on the reconciled snapshot. The full short-mode Go suite then passed on
+candidate `274540f`; later changes have separate focused checks. Both original
+target-capture cases also passed after exact planar containment was connected
+to the overlap query. The independent production baseline `65f053d` passed
+61 of 66 original cases; its five failures remain separate from candidate
+browser evidence.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
@@ -541,7 +549,11 @@ raw inputs, construction choice, face ownership, and canonical boundary.
 Perpendicular equal-radius pairs now support two, three, or four interior
 clipping caps with retained cylindrical and planar charts. Exact containment
 also retains the original smaller cylinder in supported signed-coordinate
-perpendicular placements, including a skew axis gap.
+perpendicular placements, including a skew axis gap. Unequal radii also
+support finite axial windows when the axes cross perpendicularly in signed
+coordinate directions. Parallel oblique cylinders can retain a native common
+when the similarity basis, cap positions and transverse offsets are exactly
+representable. Independent OCCT primitives verify these mass properties.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -566,8 +578,10 @@ surfaces must keep their geometry through the operation. Continue with:
    proves open branches against the original rectangles and preserves exact
    endpoint ownership. Native shell assembly consumes those open sections,
    preserves simultaneous source-edge ownership, and independently rejects
-   omitted contacts. Extend complete transverse arrangements beyond
-   rectangular input supports and
+   omitted contacts. Overlap-guided closed contours now seal single and
+   multiple native graph regions after rechecking coverage on the original
+   supports. Extend complete transverse arrangements beyond rectangular input
+   supports and
    handle curved edge-edge crossings, tangencies and coincident intervals.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
