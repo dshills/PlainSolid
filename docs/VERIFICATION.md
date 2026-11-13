@@ -1,5 +1,16 @@
 # Verification record
 
+## PlainCAD original modeled Thread and lead pair — 2026-11-13
+
+The [accepted helical report](evidence/plaincad-helical-accepted-2026-11-13.json)
+passes both original cases and the independent WASM probe, with both
+TypeScript checks passing and zero skips or flakes. Modeled Thread takes
+79.325 seconds and the four-start lead pair takes 22.783 seconds. Exact
+constant trim interpolation removes the WebAssembly-only internal
+construction failure. Final-boundary validation in the composed external
+thread constructor avoids repeated display validation in each cold plan
+worker. The original geometry assertions and 90-second deadline pass.
+
 ## PlainCAD full production baseline — 2026-11-13
 
 The first full production run passes 61 of 66 original cases in 445.821

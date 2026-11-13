@@ -31,18 +31,11 @@ The first consolidated run passes 47 of 53 originals. A finer bore mesh
 exhausts the triangulation budget in six guided multi-hole previews. Single
 bores retain the finer setting and multiple rims use their earlier setting.
 The corrected focused runs pass both original XY guided cases and STEP STL.
-The first helical run passes the original four-start lead screw and matching
-nut, including handedness edits and cold open. The modeled Thread case
-initially failed full STL validation on intersecting float32 seam triangles.
-A second run passes external preview, length edit, save/open and STL, then
-times out during internal preview. The current native code passes float32
-embedding for both external lengths and the internal thread, restores the
-lead nut mesh budget, and avoids redundant head-rim validation. Both full
-originals are being rerun. An exact constant-coordinate interpolation fix
-resolves the internal WASM geometry failure. The latest original Thread run
-reaches internal modeling step seven before its overall 90-second deadline.
-Each preceding plan step creates a worker and cold-rebuilds the external
-thread. Lead passes in the same run.
+Both original helical cases now pass on one immutable snapshot. Modeled
+Thread completes external preview/edit/cold-open/STL and internal preview,
+apply and exact volume in 79.325 seconds under its 90-second deadline. The
+four-start lead screw and matching nut pass linked edits and cold open in
+22.783 seconds. The original gallery extends qualification to Acme and UNC.
 
 The original machined-reference acceptance passes nested rectangular blind
 pockets, a disjoint cylindrical through bore, measured rim and floor,
