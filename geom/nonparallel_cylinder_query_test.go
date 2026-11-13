@@ -42,11 +42,24 @@ func TestCylinderPairCommonExactOblique(t *testing.T) {
 			t.Fatal(x)
 		}
 	}
+	filled, e := s.ClipLine(ctx, origin, Vec3{Z: 2}, -.5, 4, o)
+	if e != nil || len(filled.Points) != 0 || len(filled.Intervals) != 1 {
+		t.Fatal(filled, e)
+	}
+	segment := filled.Intervals[0]
+	if segment.Boundary != 0 || segment.StartBoundary != 0 || segment.EndBoundary != RawCylinderFirstSide|RawCylinderSecondSide ||
+		segment.StartBounds.Lower.Cmp(big.NewRat(-1, 2)) != 0 || segment.EndBounds.Upper.Cmp(big.NewRat(1, 1)) != 0 {
+		t.Fatal(segment)
+	}
 	// One raw generator lies on the first wall, while the other
 	// cylinder bounds it to the single shared tangent point.
 	h, e = s.IntersectLineBoundary(ctx, origin.Add(Vec3{Z: 2}), a.Axis, -1, 1, o)
 	if e != nil || len(h.Hits) != 1 || h.Hits[0].Multiplicity != 2 || len(h.Intervals) != 0 {
 		t.Fatal(h, e)
+	}
+	filled, e = s.ClipLine(ctx, origin.Add(Vec3{Z: 2}), a.Axis, -1, 1, o)
+	if e != nil || len(filled.Points) != 1 || len(filled.Intervals) != 0 {
+		t.Fatal(filled, e)
 	}
 	a.Min, a.Max = -1, 1
 	s, e = NewCylinderPairCommon(a, a)

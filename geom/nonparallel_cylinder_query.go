@@ -77,6 +77,34 @@ func (s CylinderPairCommon) Classify(p Vec3) (BorePointLocation, BoreBoundaryMas
 // Every algebraic endpoint retains all active cylinder supports. Direction
 // and the result parameter stay in the caller's unnormalized line chart.
 func (s CylinderPairCommon) IntersectLineBoundary(ctx context.Context, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) (BoreLineBoundary, error) {
+	return s.intersectLine(ctx, origin, direction, minT, maxT, o, perpendicularCylinderLocation)
+}
+
+// CylinderMaterialLine is the complete filled intersection of a finite line
+// with two finite cylinder bodies. Boundary masks identify exposed supports
+// along intervals and at endpoints; a zero interior mask denotes solid
+// interior. Points contains isolated lower-dimensional contacts.
+type CylinderMaterialLine struct {
+	Intervals []BoreBoundaryInterval
+	Points    []BoreLineHit
+}
+
+// ClipLine retains material intervals as well as isolated contacts.
+func (s CylinderPairCommon) ClipLine(ctx context.Context, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) (CylinderMaterialLine, error) {
+	r, e := s.intersectLine(ctx, origin, direction, minT, maxT, o, func(signs []int) (BorePointLocation, BoreBoundaryMask) {
+		l, m := perpendicularCylinderLocation(signs)
+		if l == BoreInside {
+			l = BoreBoundary
+		}
+		return l, m
+	})
+	if e != nil {
+		return CylinderMaterialLine{}, e
+	}
+	return CylinderMaterialLine{Intervals: r.Intervals, Points: r.Hits}, nil
+}
+
+func (s CylinderPairCommon) intersectLine(ctx context.Context, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BoreLineBoundary, error) {
 	var empty BoreLineBoundary
 	if ctx == nil || s.s[0].norm2 == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || !finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
 		return empty, ErrInvalid
@@ -135,5 +163,5 @@ func (s CylinderPairCommon) IntersectLineBoundary(ctx context.Context, origin, d
 			}
 		}
 	}
-	return intersectMaterialBoundary(ctx, ps, minT, maxT, o, b, ro, perpendicularCylinderLocation)
+	return intersectMaterialBoundary(ctx, ps, minT, maxT, o, b, ro, classify)
 }
