@@ -55,6 +55,17 @@ func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
 			near(t, read.GeometryAssertions.Volume, volume)
 		}
 		out := shape(t, bridge, map[string]any{"op": "cut", "a": first.Handle, "b": right.Handle})
+		control := box(t, bridge, vector{20, 1, 2}, vector{22, 4, 6})
+		published := len(bridge.shapes)
+		stepExport, err := bridge.exportSTEP([]string{out.Handle, control.Handle})
+		if err != nil || len(stepExport.After) != 2 || len(bridge.shapes) != published {
+			t.Fatal("mixed rooted STEP export did not independently read back both bodies", err)
+		}
+		near(t, stepExport.After[0].Volume, volume)
+		near(t, stepExport.After[1].Volume, 24)
+		if stepExport.After[0].Bounds != out.Bounds || stepExport.After[1].Bounds != control.Bounds {
+			t.Fatal("mixed readback changed placement", stepExport.After)
+		}
 		body, err := bridge.shapes[out.Handle].analytic.transformed(geom.Affine{{-1, 0, 0, 12}, {0, 1, 0, 20}, {0, 0, 1, 1}})
 		if err != nil || body.sideDualDisk == nil {
 			t.Fatal("cardinal reflection lost dual cut recipe", err)
