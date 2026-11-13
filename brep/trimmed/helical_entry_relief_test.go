@@ -53,9 +53,6 @@ func TestHelicalEntryReliefHandsAndLimits(t *testing.T) {
 	f, _ := geom.NewFrame(geom.Vec3{X: 3, Y: -2, Z: 1}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	for _, hand := range []geom.HelixHandedness{geom.LeftHanded, geom.RightHanded} {
 		r := HelicalGrooveRecipe{Frame: f, OuterRadius: 4, BoreRadius: 2, Height: 5, Profile: []geom.Vec2{{X: 2, Y: 1}, {X: 2.5, Y: 1.125}, {X: 2, Y: 1.25}}, Lead: 1, Start: .25, End: 2.25, Hand: hand, Starts: 2}
-		if hand == geom.LeftHanded {
-			r.Starts = 1
-		}
 		if _, e := GrooveTubeWithHelicalStarts(context.Background(), r.Frame, r.OuterRadius, r.BoreRadius, r.Height, r.Profile, r.Lead, r.Start, r.End, r.Hand, r.Starts); e != nil {
 			t.Fatalf("original hand %v: %v", hand, e)
 		}
