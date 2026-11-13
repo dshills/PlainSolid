@@ -11,16 +11,16 @@ acceptance tests before expanding unrelated OCCT domains. The full specification
 remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
 and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
 
-The first gate is a real Go WebAssembly kernel adapter exercised through
-PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
-The initial adapter now passes the existing XY/XZ/YZ signed-extrusion cases,
-both stale-worker cases, and the rectangular Shell workflow: six application
-scenarios, plus a separate backend proof. The next existing XY modeling case
-previously failed at circular-profile extrusion preview. Exact single-circle
-extrusion now passes the existing negative-XZ circle-dialog acceptance scenario,
-with independent analytic mass checks. Resume with finite cylindrical through-cut
-support and the existing XYZ modeling cases, retaining the foundation and
-circle-dialog regression cases.
+The Go WebAssembly adapter now supports exact single-circle extrusion and finite
+cylindrical through-cuts on convex planar stock with strictly interior radial
+footprints and provably perpendicular parallel caps. Repeated separated bores
+retain analytic cylinder walls. Blind, partial, grazing and side-crossing cuts
+remain unsupported. The existing XYZ modeling and negative/symmetric through-all
+scenarios pass alongside the circle-dialog case and six foundation scenarios.
+The final consolidated regression report is recorded in PlainCAD readiness.
+Next, select the existing scoped native-Hole acceptance gate and implement its
+atomic cut contract; mixed line/arc profiles and broader curved operations remain
+open PC1 work. Preserve these eleven existing scenarios as regression gates.
 See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and

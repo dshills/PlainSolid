@@ -103,6 +103,7 @@ type Shape struct {
 type stored struct {
 	solid    brep.Solid
 	cylinder *cylinderBody
+	bore     *boreBody
 	result   Shape
 }
 type failure struct {
@@ -237,8 +238,8 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		if a.cylinder != nil || c.cylinder != nil {
-			return nil, &failureError{"UNSUPPORTED", "curved Boolean combinations are not yet supported by this bridge"}
+		if a.cylinder != nil || c.cylinder != nil || a.bore != nil || c.bore != nil {
+			return b.curvedBoolean(a, c, q.Op)
 		}
 		op := poly.Difference
 		if q.Op == "fuse" {
@@ -262,12 +263,15 @@ func (b *Bridge) execute(q request) (any, error) {
 			if q.Origin == nil || q.Normal == nil {
 				return nil, errors.New("planarFace requires origin and normal")
 			}
+			if s.bore != nil {
+				return s.bore.planarFace(q.Origin.vec(), q.Normal.vec())
+			}
 			if s.cylinder != nil {
 				return s.cylinder.planarFace(q.Origin.vec(), q.Normal.vec())
 			}
 			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
-			if s.cylinder != nil {
+			if s.cylinder != nil || s.bore != nil {
 				return nil, &failureError{"UNSUPPORTED", "shell requires planar stock"}
 			}
 			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
@@ -303,6 +307,13 @@ func (b *Bridge) execute(q request) (any, error) {
 				for j, value := range row {
 					m[i][j] = float64(value)
 				}
+			}
+			if s.bore != nil {
+				body, err := s.bore.transformed(m)
+				if err != nil {
+					return nil, err
+				}
+				return b.putBore(body)
 			}
 			if s.cylinder != nil {
 				c, err := s.cylinder.transformed(m)

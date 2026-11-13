@@ -1,5 +1,29 @@
 # Verification record
 
+## PlainCAD finite cylindrical through-cut milestone — 2026-11-13
+
+Retained trimmed cylinder walls now support finite through-cuts on supported
+convex planar stock. Exact endpoint predicates reject tools one ULP too short
+and starts just inside a cap. Strict radial containment and perpendicular parallel
+caps are required; blind, grazing, partial and side-crossing cuts are rejected.
+Repeated separated bores rebuild from retained source recipes. Planar/cylinder
+common clips the finite axial interval; general curved overlap remains unsupported.
+
+Tests cover all axes and signs, independent curved-boundary mass integration,
+current cap areas, finite/tangent/disjoint common, repeated-bore separation,
+clone and supported placement ownership, closed meshes, and identical mesh/STL
+sampling. Focused native tests, race tests (15.727 seconds), vet and WASM build
+passed. Independent review approved the bounded core. Runner syntax and diff
+whitespace checks passed. No dependency was added.
+
+The consolidated original PlainCAD selection passes 11/11 cases in 78.999 seconds,
+with zero skipped, unexpected or flaky results. Both original TypeScript checks
+and the separate strengthened real-WASM probe pass (4.327 seconds). The report
+`docs/evidence/plaincad-through-cuts-2026-11-13.json` preserves source hashes and
+all per-case results. Only provider literals change in the staged application;
+geometry and workflow assertions remain intact. Other checkouts are untouched.
+Unselected application cases and full replacement qualification remain open.
+
 ## PlainCAD exact-circle bridge milestone — 2026-11-13
 
 The bridge now retains a closed analytic cylinder for a single full circular

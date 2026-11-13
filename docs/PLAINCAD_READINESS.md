@@ -13,6 +13,28 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Exact circular extrusion and through-cut checkpoint — 2026-11-13
+
+**Eleven existing PlainCAD scenarios pass** in the consolidated run, with zero
+skipped, unexpected or flaky results. The acceptance stage took 78.999 seconds;
+a separate real-WASM backend probe took 4.327 seconds. Both original TypeScript
+checks passed. The [source-hashed report](evidence/plaincad-through-cuts-2026-11-13.json)
+records `/tmp/plainsolid-circle-acceptance-06`, every case, provider-only literal
+adaptations, source identities and WASM SHA-256.
+
+The selection includes the six foundation scenarios below, circle-dialog profile
+choice/negative-XZ preview, all three XYZ non-template modeling/edit/save/open/STL
+cases, and negative/symmetric through-all cutting with invalid-direction rejection.
+Existing geometry and workflow assertions are unchanged. The independent probe
+also checks analytic circle and bored-stock volume/area, without OCCT requests.
+
+Through-cuts retain analytic cylinder walls on convex planar stock with strictly
+interior radial footprints and provably perpendicular parallel caps. Finite tools
+must cover both caps; separated repeated bores are supported. Blind, partial,
+grazing, side-crossing and unsupported oblique-cap cuts are rejected. General
+curved Booleans, arbitrary curved placement and native scoped Hole remain open.
+This is a selected PC1 subset, not full application or OCCT replacement.
+
 ## Exact circle extrusion milestone — 2026-11-13
 
 The existing `extrude-dialog.spec.ts` case `profile choice and negative XZ native
@@ -36,7 +58,7 @@ Focused race, vet and WASM build checks pass; no external dependency was added.
 node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/extrude-dialog.spec.ts --grep 'profile choice and negative XZ native preview cancel cleanly and apply only current settings'
 ```
 
-## Recorded browser runs — 2026-11-13
+## Historical foundation browser runs — 2026-11-13
 
 Six existing PlainCAD acceptance cases pass against the real Go WASM backend:
 
@@ -71,13 +93,12 @@ The [next-gate report](evidence/plaincad-circular-profile-2026-11-13.json), from
 `/tmp/plainsolid-cad-acceptance-13`, records both TypeScript checks and the backend
 probe passing, but the existing XY modeling fixture failing at its second
 extrusion (`modeling.spec.ts:153`). It expects `Native preview ready` and receives
-`Preview failed` after adding a circle. The adapter explicitly rejects circular
-and arc profiles; it does not substitute polygonal geometry. The next work is
-exact circular-profile extrusion and a matching cylindrical through-cut, then
-rerun that same fixture in all three planes. General mixed line/arc profiles
+`Preview failed` after adding a circle. At that snapshot the adapter rejected circular
+and arc profiles without substituting polygonal geometry. The circular extrusion
+and through-cut failure is now resolved in all three planes. General mixed line/arc profiles
 remain a separate requirement.
 
-These are **six passing existing scenarios and one failing next-gate scenario**,
+That historical run had **six passing scenarios and one failing next gate**,
 not a full-application percentage. All unselected cases remain not run.
 Full production/CSP, bundle/performance and release checks remain open.
 No full OCCT or PlainCAD replacement claim is made.
@@ -88,7 +109,7 @@ Reproduce the passing selection from the integration worktree:
 node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test 'e2e/(extrusion-hole|shell|stale-results).spec.ts' --grep 'native negative/symmetric|native Shell|real-worker'
 ```
 
-Reproduce the next failing requirement:
+Reproduce the formerly failing requirement:
 
 ```sh
 node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/modeling.spec.ts --grep 'XY: non-template modeling, edit, save/open, and real-kernel STL'
@@ -174,9 +195,10 @@ selected PlainSolid build and record unsupported cases rather than removing them
 
 ## First run and resumption
 
-Resume from the failing XY non-template modeling case in `modeling.spec.ts`.
-Add exact circular extrusion and its through-cut, then test all three planes.
-Retain the six passing foundation/shell scenarios as regression gates. Use the
+The XYZ modeling and directional through-all gates now pass. Resume with an
+existing scoped native-Hole case: the adapter still explicitly rejects its
+`cutScope` contract. Keep blind cuts and mixed-profile support distinct from the
+qualified through-cut subset. Retain all eleven passing scenarios as regressions. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.
 

@@ -33,6 +33,14 @@ may proceed in parallel:
 | PC4: Helical parts | Helical swept solid cutters, internal/external threads, handedness, lead-in/runout, multi-start lead screws and matching nuts; point/common-volume proofs | Existing modeled Thread and lead-screw/nut cold-open fixtures |
 | PC5: Exchange and complete app qualification | STEP for actual app outputs and accepted imported solids; export/reimport volume, topology and bounds; worker cancellation, stale previews, production CSP and performance | Existing STEP import/export and failure tests, full native development and production suites |
 
+Current checkpoint (2026-11-13): PC0's selected browser regressions pass. PC1 now
+has exact single-circle extrusion, finite strictly interior cylindrical through-cuts
+on supported convex planar stock, and separated repeated bores. The original XYZ
+modeling, circle-dialog and directional through-all scenarios pass. PC1 is still
+partial: prioritize the existing scoped native-Hole acceptance contract next,
+then its unsupported blind/termination inputs and mixed-profile requirements.
+See readiness for source-hashed evidence and explicit domain limits.
+
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions
 may be parameterized to expect `plainsolid`; never label its output `opencascade`

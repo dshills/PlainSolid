@@ -113,9 +113,14 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const circleProfile = { id: "circle-probe", sketchId: "probe", signature: "circle-probe", outerLoop: { type: "circle", entityIds: ["circle"] }, innerLoops: [], holes: [], bounds: { minX: 2, maxX: 6, minY: 2, maxY: 6 } };
     const cylinder = kernel.extrudeProfile(circleProfile, 3);
     const cylinderMesh = kernel.tessellate(cylinder, { linearDeflection: .1, angularDeflection: .1 });
+    const boreBase = kernel.createBox(8, 8, 3);
+    const bored = kernel.cut(boreBase, cylinder);
+    const boreProof = kernel.tessellate(bored, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
+    const shallow = kernel.extrudeProfile(circleProfile, 2);
+    const partialCutRejected = rejects(() => kernel.cut(boreBase, shallow));
     const holedCircleRejected = rejects(() => kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3));
-    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder]) kernel.disposeShape(item);
-    return { cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shallow]) kernel.disposeShape(item);
+    return { cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, partialCutRejected, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
@@ -131,6 +136,10 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
       else expect(value).toBeGreaterThanOrEqual(expected[axis]);
     }
   }
+  expect(proof.boreProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.boreProof.volume).toBeCloseTo(192 - 12 * Math.PI, 8);
+  expect(proof.boreProof.surfaceArea).toBeCloseTo(224 + 4 * Math.PI, 8);
+  expect(proof.partialCutRejected).toBe(true);
   expect(proof.holedCircleRejected).toBe(true);
   expect(proof.symmetricScope).toEqual([true, true]);
   expect(proof.tinyCavityRejected).toBe(true);
