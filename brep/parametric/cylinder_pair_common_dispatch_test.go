@@ -218,3 +218,98 @@ func TestFiniteCylinderPairCommonTangentCaps(t *testing.T) {
 		t.Fatal("contact still owns the original raw cap", loc, mask, e)
 	}
 }
+
+func TestFiniteCylinderPairCommonClippedWithSupportingCaps(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 1}, Radius: 5, Min: -5, Max: 2}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -5, Max: 5}
+	for _, c := range []struct {
+		x, z [2]float64
+		kind CylinderCommonConstruction
+	}{
+		{[2]float64{-5, 2}, [2]float64{-5, 5}, CylinderCommonPerpendicularCap},
+		{[2]float64{-3, 2}, [2]float64{-5, 5}, CylinderCommonPerpendicularSlab},
+		{[2]float64{0, 5}, [2]float64{-5, 0}, CylinderCommonPerpendicularQuadrant},
+	} {
+		a.Min, a.Max, b.Min, b.Max = c.x[0], c.x[1], c.z[0], c.z[1]
+		tight, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+		if e != nil || tight.Construction != c.kind {
+			t.Fatal(c, tight.Construction, e)
+		}
+		for _, v := range []*float64{&a.Min, &a.Max, &b.Min, &b.Max} {
+			if math.Abs(*v) == 5 {
+				*v = math.Copysign(6, *v)
+			}
+		}
+		wide, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+		if e != nil || tight.Construction != wide.Construction {
+			t.Fatal(c, wide.Construction, e)
+		}
+		pt, e := tight.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+		if e != nil {
+			t.Fatal(e)
+		}
+		pw, e := wide.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+		if e != nil || pt != pw {
+			t.Fatal("touching the support changed material", c, pt, pw, e)
+		}
+	}
+}
+
+func TestFiniteObliqueParallelCylinderPairEmpty(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 4}, Radius: 2, Min: 0, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{Z: 4}, Axis: geom.Vec3{X: -6, Y: -8}, Radius: 2, Min: -1, Max: 0}
+	assertEmpty := func(a, b geom.RawCylinder) {
+		t.Helper()
+		out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+		if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+			t.Fatal(out, e)
+		}
+	}
+	assertEmpty(a, b) // Axial overlap, exactly tangent radial disks.
+	b.Origin.Z = math.Nextafter(4, 0)
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrDomain) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("positive but unsupported radial overlap", out, e)
+	}
+	b.Origin = geom.Vec3{X: 6, Y: 8}
+	b.Min, b.Max = -2, 0
+	assertEmpty(a, b) // Same axis, cap-only contact with reversed raw direction.
+	assertEmpty(b, a)
+}
+
+func TestFinitePerpendicularCylinderPairContainment(t *testing.T) {
+	ctx := context.Background()
+	// A smaller cylinder of radius 3 fits at its x=±4 caps exactly because
+	// the perpendicular radius is 5. The larger body's Y caps also touch.
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{X: -2}, Radius: 3, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Y: 1}, Radius: 5, Min: -3, Max: 3}
+	for owner, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, pair[0], pair[1], 1e-9)
+		if e != nil || out.Construction != CylinderCommonContainedCylinder || len(out.Solid.Faces()) != 3 {
+			t.Fatal(out.Construction, e)
+		}
+		for _, group := range [][2][]int{out.SideFaces, out.LowerCapFaces, out.UpperCapFaces} {
+			if len(group[owner]) != 1 || len(group[1-owner]) != 0 {
+				t.Fatal("lost original owner", group)
+			}
+		}
+		p, e := out.Solid.MassProperties(ctx, IntegrationOptions{})
+		if e != nil || math.Abs(p.Volume-72*math.Pi) > 1e-8 || p.Centroid.Sub(a.Origin).Length() > 1e-9 {
+			t.Fatal(p, e)
+		}
+		for i, id := range []int{out.LowerCapFaces[owner][0], out.UpperCapFaces[owner][0]} {
+			f := out.Solid.Faces()[id]
+			point, e := f.Surface.Eval(0, 0)
+			if e != nil || point.X != [2]float64{5, -3}[i] {
+				t.Fatal("raw cap direction lost", point, e)
+			}
+		}
+	}
+	a.Max = math.Nextafter(a.Max, math.Inf(1))
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("noncontained sliver was silently removed", out, e)
+	}
+}

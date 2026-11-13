@@ -1,0 +1,424 @@
+{
+  "schema": 1,
+  "backend": "plainsolid-go-wasm",
+  "runs": [
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "d06a739bba7ac0794b9f47f092b8b1cd3c710522",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/(step-import|step-export|modeling-operations|extrude-termination).spec.ts",
+        "grep": "STEP UI and JSON import|public STEP body selection|native edge treatments:|finite to-face termination|native revolve axes|long native feature chain|To Face creation requires"
+      },
+      "startedAt": "2026-11-13T16:45:43.336Z",
+      "finishedAt": "2026-11-13T16:47:30.668Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "abb545d9b0f395f04716f933af97ed024ebf4eaaf0e21bed1183e057f4a36aad",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-cad-gates-d06a739/backend-results.json",
+          "startTime": "2026-11-13T16:46:00.741Z",
+          "duration": 15918.841,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-cad-gates-d06a739/playwright-results.json",
+          "startTime": "2026-11-13T16:46:17.160Z",
+          "duration": 73489.15699999999,
+          "expected": 7,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 12936,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "extrude-termination.spec.ts",
+          "line": 202,
+          "title": "To Face creation requires a covering native face and follows its owner through XZ edits and save/open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 16219,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "modeling-operations.spec.ts",
+          "line": 155,
+          "title": "native edge treatments: edit, parameter change, save/open, STL, and invalid-size recovery",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 7195,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "modeling-operations.spec.ts",
+          "line": 249,
+          "title": "finite to-face termination follows upstream edits and diagnoses lost references",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 3391,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "modeling-operations.spec.ts",
+          "line": 296,
+          "title": "native revolve axes and angle edits, plus real boolean cut and join",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 10676,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "modeling-operations.spec.ts",
+          "line": 505,
+          "title": "long native feature chain preserves exact geometry through edits, blocked downstream recovery, save/open and STL",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 15517,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "step-export.spec.ts",
+          "line": 23,
+          "title": "public STEP body selection exports analytic posed solids with actual native reader volume and world bounds through edits and save/open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 10447,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "step-import.spec.ts",
+          "line": 4,
+          "title": "STEP UI and JSON import preserve placed native geometry, cancel, undo, save/open and STL",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 5680,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-cad-gates-d06a739/readiness.json",
+      "sourceHashes": 839,
+      "plainSolidSourceHashes": 1068
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "d06a739bba7ac0794b9f47f092b8b1cd3c710522",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/machined-references.spec.ts",
+        "grep": "native pocket floor and hole rim"
+      },
+      "startedAt": "2026-11-13T16:42:35.691Z",
+      "finishedAt": "2026-11-13T16:43:18.558Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "abb545d9b0f395f04716f933af97ed024ebf4eaaf0e21bed1183e057f4a36aad",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-machined-d06a739-loopback/backend-results.json",
+          "startTime": "2026-11-13T16:42:48.606Z",
+          "duration": 14721.45,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-machined-d06a739-loopback/playwright-results.json",
+          "startTime": "2026-11-13T16:43:03.883Z",
+          "duration": 14657.604,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 12553,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "machined-references.spec.ts",
+          "line": 4,
+          "title": "native pocket floor and hole rim are selectable, measurable and durable",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 12476,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-machined-d06a739-loopback/readiness.json",
+      "sourceHashes": 839,
+      "plainSolidSourceHashes": 1068
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "e06b76e20ad4eddbb9e340b2beee9b3736e9a7e5",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/retained-references.spec.ts",
+        "grep": "grouped circle perimeter matches the native seam"
+      },
+      "startedAt": "2026-11-13T16:39:37.584Z",
+      "finishedAt": "2026-11-13T16:40:52.605Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "5936d2842159ae1b79c857ba21b82fd53aa06327b389caf69017f3a57b5f1cad",
+      "summaries": [
+        {
+          "path": "/tmp/plaincad-reconcile-rims-e06b76e/backend-results.json",
+          "startTime": "2026-11-13T16:40:01.888Z",
+          "duration": 12965.217,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plaincad-reconcile-rims-e06b76e/playwright-results.json",
+          "startTime": "2026-11-13T16:40:15.153Z",
+          "duration": 37439.248,
+          "expected": 3,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 11552,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-references.spec.ts",
+          "line": 450,
+          "title": "XY: grouped circle perimeter matches the native seam and removes exact fillet volume",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 12268,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-references.spec.ts",
+          "line": 450,
+          "title": "XZ: grouped circle perimeter matches the native seam and removes exact fillet volume",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 11516,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-references.spec.ts",
+          "line": 450,
+          "title": "YZ: grouped circle perimeter matches the native seam and removes exact fillet volume",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 12102,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plaincad-reconcile-rims-e06b76e/readiness.json",
+      "sourceHashes": 839,
+      "plainSolidSourceHashes": 1064
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "5990537d5784720539606133ba4db49a3b6362ca",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/fastener-presets.spec.ts",
+        "grep": "modeled Thread previews|lead screw and matching nut"
+      },
+      "startedAt": "2026-11-13T16:48:34.900Z",
+      "finishedAt": "2026-11-13T16:51:02.714Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "8588c2cf56f9731626b1d60e364606f87f715118f4e285a99526e224b4ae8280",
+      "summaries": [
+        {
+          "path": "/tmp/plaincad-reconcile-helical-5990537/backend-results.json",
+          "startTime": "2026-11-13T16:48:56.365Z",
+          "duration": 13605.441,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plaincad-reconcile-helical-5990537/playwright-results.json",
+          "startTime": "2026-11-13T16:49:10.367Z",
+          "duration": 112324.86200000001,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 11698,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 99,
+          "title": "modeled Thread previews and persists native external and internal grooves",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "durationMs": 78155,
+              "errors": [
+                {
+                  "location": {
+                    "file": "/private/tmp/plaincad-reconcile-helical-5990537/e2e/fastener-presets.spec.ts",
+                    "column": 10,
+                    "line": 144
+                  },
+                  "message": "TimeoutError: page.waitForEvent: Timeout 15000ms exceeded while waiting for event \"download\"\n=========================== logs ===========================\nwaiting for event \"download\"\n============================================================\n\n  142 |\n  143 |   const [stl] = await Promise.all([\n> 144 |     page.waitForEvent(\"download\", { timeout: 15000 }),\n      |          ^\n  145 |     command(page, { command: \"file.exportStl\", arguments: {} }),\n  146 |   ]);\n  147 |   const bytes = await readFile((await stl.path())!);\n    at /private/tmp/plaincad-reconcile-helical-5990537/e2e/fastener-presets.spec.ts:144:10"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 169,
+          "title": "lead screw and matching nut are linked, editable and survive a cold open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 27168,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plaincad-reconcile-helical-5990537/readiness.json",
+      "sourceHashes": 839,
+      "plainSolidSourceHashes": 1077
+    }
+  ]
+}

@@ -36,13 +36,19 @@ func CertifyOverlappingAffineXYGraphPair(ctx context.Context, a, b Patch, o Over
 // CertifyOverlappingProjectedGraphPair accepts signed axis-aligned projected
 // graph charts, with exactly representable clipped UV endpoints. Seeds and
 // coverage are independently proved in original XYZ; model permutations are
-// used only to establish exact overlap. Failed proofs return no partial result.
+// used only to establish exact overlap. Finite discovery cuts outside/on the
+// retained A boundary are omitted; interior cuts are sorted and deduplicated.
+// The raw guidance count remains bounded before filtering. Failed proofs
+// return no partial result.
 func CertifyOverlappingProjectedGraphPair(ctx context.Context, a, b Patch, axes [2]int, o OverlappingGraphTraceOptions) (OverlappingGraphTrace, error) {
 	fail := func(e error) (OverlappingGraphTrace, error) { return OverlappingGraphTrace{}, e }
 	if ctx == nil || !a.valid() || !b.valid() || axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1] {
 		return fail(geom.ErrInvalid)
 	}
 	if e := ctx.Err(); e != nil {
+		return fail(e)
+	}
+	if _, e := retainedGraphCuts(o.Discovery, a); e != nil {
 		return fail(e)
 	}
 	mapped := [2]Patch{a, b}
@@ -74,7 +80,11 @@ func CertifyOverlappingProjectedGraphPair(ctx context.Context, a, b Patch, axes 
 	}
 	a.Min, a.Max = geom.Vec2{X: clip.A.UMin, Y: clip.A.VMin}, geom.Vec2{X: clip.A.UMax, Y: clip.A.VMax}
 	b.Min, b.Max = geom.Vec2{X: clip.B.UMin, Y: clip.B.VMin}, geom.Vec2{X: clip.B.UMax, Y: clip.B.VMax}
-	seeds, e := DiscoverProjectedAffineGraphPairTubes(ctx, a, b, o.Surface, axes, o.Discovery)
+	guidance, e := retainedGraphCuts(o.Discovery, a)
+	if e != nil {
+		return fail(e)
+	}
+	seeds, e := DiscoverProjectedAffineGraphPairTubes(ctx, a, b, o.Surface, axes, guidance)
 	if e != nil {
 		return fail(e)
 	}

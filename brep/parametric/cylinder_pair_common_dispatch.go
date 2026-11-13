@@ -19,6 +19,7 @@ const (
 	CylinderCommonPerpendicularSlab
 	CylinderCommonPerpendicularQuadrant
 	CylinderCommonParallelAxes
+	CylinderCommonContainedCylinder
 )
 
 // FiniteCylinderPairCommonResult is the native intersection of two supported
@@ -33,10 +34,12 @@ type FiniteCylinderPairCommonResult struct {
 // FiniteCylinderPairCommon selects a native construction for two finite
 // cylinders. It handles coordinate-parallel axes, unclipped nonparallel
 // crossing or exactly placed skew axes, and selected perpendicular caps on
-// signed coordinate axes of arbitrary nonzero scale. All
-// input raw axes and cap limits retain their original meaning. Unsupported
+// signed coordinate axes of arbitrary nonzero scale. Raw axes and cap limits
+// retain their original meaning. Unsupported
 // arrangements fail without returning partial solids. A tangent cap that
-// retains the entire crossing common adds no planar boundary face.
+// retains the entire crossing common adds no planar boundary face. Complete
+// containment is also supported for unequal signed-coordinate perpendicular
+// cylinders whose resulting cap centers and height are exactly representable.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
@@ -92,6 +95,10 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		return empty, e
 	}
 	if a.Radius != b.Radius {
+		result, contained, err := finitePerpendicularContainedCylinder(ctx, a, b, center, exactWindows)
+		if err != nil || contained {
+			return result, err
+		}
 		return empty, e
 	}
 	return finitePerpendicularCapCommon(ctx, a, b, center, exactWindows, tolerance)
@@ -118,10 +125,52 @@ func rawAxesParallel(a, b geom.Vec3) bool {
 	return true
 }
 
+// A common axial covector orders both finite cap intervals without needing a
+// represented unit direction. The radial test compares squared distances with
+// the axis norm still factored out. Both comparisons are exact for any parallel
+// raw axes, including a noncoordinate pair for which we cannot build a shell.
+func parallelCylinderCommonEmpty(a, b geom.RawCylinder) bool {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	v := func(p geom.Vec3) [3]*big.Rat { return [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)} }
+	dot := func(x, y [3]*big.Rat) *big.Rat {
+		r := new(big.Rat)
+		for i := range x {
+			r.Add(r, new(big.Rat).Mul(x[i], y[i]))
+		}
+		return r
+	}
+	axis := v(a.Axis)
+	interval := func(s geom.RawCylinder) [2]*big.Rat {
+		base, scale := dot(axis, v(s.Origin)), dot(axis, v(s.Axis))
+		lo := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Min)))
+		hi := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Max)))
+		if scale.Sign() < 0 {
+			lo, hi = hi, lo
+		}
+		return [2]*big.Rat{lo, hi}
+	}
+	x, y := interval(a), interval(b)
+	if x[1].Cmp(y[0]) <= 0 || y[1].Cmp(x[0]) <= 0 {
+		return true
+	}
+	p, r := v(a.Origin), v(b.Origin)
+	for i := range p {
+		p[i].Sub(r[i], p[i])
+	}
+	along, n := dot(axis, p), dot(axis, axis)
+	d2 := new(big.Rat).Sub(new(big.Rat).Mul(n, dot(p, p)), new(big.Rat).Mul(along, along))
+	rsum := new(big.Rat).Add(q(a.Radius), q(b.Radius))
+	limit := new(big.Rat).Mul(n, new(big.Rat).Mul(rsum, rsum))
+	return d2.Cmp(limit) >= 0
+}
+
 func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
 	if e := ctx.Err(); e != nil {
 		return empty, e
+	}
+	if parallelCylinderCommonEmpty(a, b) {
+		return empty, nil
 	}
 	axis := 0
 	if a.Axis.Y != 0 {
@@ -158,18 +207,10 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	if minmax[1][1].Cmp(hi) < 0 {
 		hi = minmax[1][1]
 	}
-	if lo.Cmp(hi) >= 0 {
-		return empty, nil
-	}
 	j, k := (axis+1)%3, (axis+2)%3
 	coordA, coordB := axisValues(a.Origin), axisValues(b.Origin)
 	dx := new(big.Rat).Sub(q(coordB[j]), q(coordA[j]))
 	dy := new(big.Rat).Sub(q(coordB[k]), q(coordA[k]))
-	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
-	d2 := new(big.Rat).Add(sq(dx), sq(dy))
-	if d2.Cmp(sq(new(big.Rat).Add(q(a.Radius), q(b.Radius)))) >= 0 {
-		return empty, nil
-	}
 	start, e := geom.RepresentedExactScalar(lo)
 	if e != nil {
 		return empty, e
@@ -230,6 +271,82 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	return out, nil
 }
 
+func coordinateCylinderAxis(axis geom.Vec3) (unit geom.Vec3, scale float64) {
+	switch {
+	case axis.Y == 0 && axis.Z == 0 && axis.X != 0:
+		return geom.Vec3{X: math.Copysign(1, axis.X)}, math.Abs(axis.X)
+	case axis.X == 0 && axis.Z == 0 && axis.Y != 0:
+		return geom.Vec3{Y: math.Copysign(1, axis.Y)}, math.Abs(axis.Y)
+	case axis.X == 0 && axis.Y == 0 && axis.Z != 0:
+		return geom.Vec3{Z: math.Copysign(1, axis.Z)}, math.Abs(axis.Z)
+	}
+	return unit, 0
+}
+
+// The extreme squared transverse distance to the larger perpendicular axis
+// is max(|lower|,|upper|)^2 + radius^2 over the entire smaller cylinder.
+// The other cylinder's axial coordinate spans exactly [-radius,+radius].
+func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCylinder, center geom.Vec3, windows [2][2]*big.Rat) (FiniteCylinderPairCommonResult, bool, error) {
+	var empty FiniteCylinderPairCommonResult
+	unitA, scaleA := coordinateCylinderAxis(a.Axis)
+	unitB, scaleB := coordinateCylinderAxis(b.Axis)
+	if scaleA == 0 || scaleB == 0 || unitA.Dot(unitB) != 0 {
+		return empty, false, nil
+	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	limits := [2][2]*big.Rat{}
+	for i, scale := range [2]float64{scaleA, scaleB} {
+		for j, cap := range windows[i] {
+			limits[i][j] = new(big.Rat).Mul(q(scale), cap)
+		}
+	}
+	owner := 0
+	radius, larger, axis := a.Radius, b.Radius, unitA
+	if radius > larger {
+		owner, radius, larger, axis = 1, larger, radius, unitB
+	}
+	lo, hi, other := limits[owner][0], limits[owner][1], limits[1-owner]
+	if other[0].Cmp(q(-radius)) > 0 || other[1].Cmp(q(radius)) < 0 {
+		return empty, false, nil
+	}
+	square := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	allowed := new(big.Rat).Sub(square(q(larger)), square(q(radius)))
+	if square(lo).Cmp(allowed) > 0 || square(hi).Cmp(allowed) > 0 {
+		return empty, false, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return empty, true, err
+	}
+	var start geom.Vec3
+	for i, dst := range [3]*float64{&start.X, &start.Y, &start.Z} {
+		p := [3]float64{center.X, center.Y, center.Z}[i]
+		d := [3]float64{axis.X, axis.Y, axis.Z}[i]
+		value, err := geom.RepresentedExactScalar(new(big.Rat).Add(q(p), new(big.Rat).Mul(q(d), lo)))
+		if err != nil {
+			return empty, true, err
+		}
+		if _, err = geom.RepresentedExactScalar(new(big.Rat).Add(q(p), new(big.Rat).Mul(q(d), hi))); err != nil {
+			return empty, true, err
+		}
+		*dst = value
+	}
+	height, err := geom.RepresentedExactScalar(new(big.Rat).Sub(hi, lo))
+	if err != nil {
+		return empty, true, err
+	}
+	frame, err := geom.FrameFromNormal(start, axis)
+	if err != nil {
+		return empty, true, err
+	}
+	solid, err := Cylinder(frame, radius, height)
+	if err != nil {
+		return empty, true, err
+	}
+	result := FiniteCylinderPairCommonResult{Solid: solid, Construction: CylinderCommonContainedCylinder}
+	result.SideFaces[owner], result.LowerCapFaces[owner], result.UpperCapFaces[owner] = []int{0}, []int{1}, []int{2}
+	return result, true, nil
+}
+
 // The clipped charts are built with +X and +Z at unit scale. An exact
 // signed permutation places them on the original cylinder axes; converting
 // cap parameters to physical lengths must not snap a cap to a nearby plane.
@@ -238,18 +355,11 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 	var ends [2][2]float64
 	var basis [2]geom.Vec3
 	for i, cylinder := range [2]geom.RawCylinder{a, b} {
-		axis := cylinder.Axis
-		var scale float64
-		switch {
-		case axis.Y == 0 && axis.Z == 0:
-			scale, basis[i].X = math.Abs(axis.X), math.Copysign(1, axis.X)
-		case axis.X == 0 && axis.Z == 0:
-			scale, basis[i].Y = math.Abs(axis.Y), math.Copysign(1, axis.Y)
-		case axis.X == 0 && axis.Y == 0:
-			scale, basis[i].Z = math.Abs(axis.Z), math.Copysign(1, axis.Z)
-		default:
+		unit, scale := coordinateCylinderAxis(cylinder.Axis)
+		if scale == 0 {
 			return empty, geom.ErrDomain
 		}
+		basis[i] = unit
 		for j, cap := range exactEnds[i] {
 			q := new(big.Rat).Mul(new(big.Rat).SetFloat64(scale), cap)
 			length, e := geom.RepresentedExactScalar(q)
@@ -287,12 +397,21 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	guard := new(big.Rat).Add(q(r), new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance)))
-	before := func(x float64) bool { return q(x).Cmp(new(big.Rat).Neg(guard)) < 0 }
-	after := func(x float64) bool { return q(x).Cmp(guard) > 0 }
+	before := func(x float64) bool { return x <= -r }
+	after := func(x float64) bool { return x >= r }
 	clear := func(w [2]float64) bool { return before(w[0]) && after(w[1]) }
+	// These charts use the nonclipping cap limits only as clearance
+	// witnesses. An exact supporting cap can be replaced by an artificial
+	// farther witness because no interior of the common lies beyond it.
+	far := func(x float64) float64 {
+		if q(x).Cmp(guard) > 0 {
+			return x
+		}
+		return r * 2
+	}
 	interior := func(x float64) bool { return x > -r && x < r }
 	if clear(ends[1]) {
-		z := min(-ends[1][0], ends[1][1])
+		z := far(min(-ends[1][0], ends[1][1]))
 		l, u := ends[0][0], ends[0][1]
 		if interior(l) && interior(u) {
 			out, e := PerpendicularCylinderSlab(ctx, center, r, l, u, z, tolerance, geom.ExactCurvePlaneEventOptions{})
@@ -303,13 +422,13 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 		}
 		if before(l) && interior(u) {
 			if u == 0 {
-				out, e := PerpendicularCylinderEquatorHalf(ctx, center, r, -l, z, tolerance, false)
+				out, e := PerpendicularCylinderEquatorHalf(ctx, center, r, far(-l), z, tolerance, false)
 				if e != nil {
 					return empty, e
 				}
 				return FiniteCylinderPairCommonResult{out.Solid, CylinderCommonPerpendicularCap, [2][]int{out.XAxisFaces, out.ZAxisFaces}, [2][]int{}, [2][]int{{out.CapFace}, nil}}, nil
 			}
-			out, e := PerpendicularCylinderAlgebraicCap(ctx, center, r, u, -l, z, tolerance, geom.ExactCurvePlaneEventOptions{})
+			out, e := PerpendicularCylinderAlgebraicCap(ctx, center, r, u, far(-l), z, tolerance, geom.ExactCurvePlaneEventOptions{})
 			if e != nil {
 				return empty, e
 			}
@@ -349,7 +468,7 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 	x, ok := centerCapHalf(ends[0], before, after)
 	z, ok2 := centerCapHalf(ends[1], before, after)
 	if ok && ok2 {
-		out, e := PerpendicularCylinderQuadrant(ctx, center, r, x.length, z.length, tolerance, x.positive, z.positive)
+		out, e := PerpendicularCylinderQuadrant(ctx, center, r, far(x.length), far(z.length), tolerance, x.positive, z.positive)
 		if e != nil {
 			return empty, e
 		}
