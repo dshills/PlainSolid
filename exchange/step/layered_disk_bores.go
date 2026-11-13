@@ -2,9 +2,11 @@ package step
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"math"
+	"slices"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -90,7 +92,7 @@ func recoverLayeredDiskBores(f *File, id int64) (DiskHoleExtrusionBody, error) {
 	}
 	out := DiskHoleExtrusionBody{Name: name, Frame: frame, Height: shift.Z}
 	type axialSpan struct{ low, high float64 }
-	tools := map[trimmed.ExtrusionCircle]axialSpan{}
+	tools := map[trimmed.ExtrusionCircle][]axialSpan{}
 	for i, face := range g.faces[2:] {
 		if i >= 4 && face.kind == "PLANE" {
 			continue
@@ -109,10 +111,7 @@ func recoverLayeredDiskBores(f *File, id int64) (DiskHoleExtrusionBody, error) {
 			}
 			continue
 		}
-		span, seen := tools[circle]
-		if !seen {
-			span = axialSpan{math.Inf(1), math.Inf(-1)}
-		}
+		span := axialSpan{math.Inf(1), math.Inf(-1)}
 		for _, use := range face.loops[0] {
 			edge := g.edges[use.id]
 			if edge.kind == "CIRCLE" {
@@ -123,23 +122,38 @@ func recoverLayeredDiskBores(f *File, id int64) (DiskHoleExtrusionBody, error) {
 		if span.low < 0 || span.high > out.Height || span.high <= span.low {
 			return fail()
 		}
-		tools[circle] = span
+		tools[circle] = append(tools[circle], span)
 	}
 	if len(tools) == 0 || len(tools) > 32 {
 		return fail()
 	}
 	// The native arrangement sorts its tools by footprint and axial span.
 	// No stored process metadata is used to reproduce the material boundary.
-	for circle, span := range tools {
-		switch {
-		case span.low == 0 && span.high == out.Height:
-			out.Holes = append(out.Holes, circle)
-		case span.low == 0:
-			out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: span.high})
-		case span.high == out.Height:
-			out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: out.Height - span.low, OppositeCap: true})
-		default:
-			return fail()
+	for circle, spans := range tools {
+		slices.SortFunc(spans, func(a, b axialSpan) int { return cmp.Compare(a.low, b.low) })
+		merged := spans[:1]
+		for _, span := range spans[1:] {
+			last := &merged[len(merged)-1]
+			if span.low > last.high {
+				merged = append(merged, span)
+			} else {
+				last.high = max(last.high, span.high)
+			}
+		}
+		for _, span := range merged {
+			if len(out.Holes)+len(out.Blind) == 32 {
+				return fail()
+			}
+			switch {
+			case span.low == 0 && span.high == out.Height:
+				out.Holes = append(out.Holes, circle)
+			case span.low == 0:
+				out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: span.high})
+			case span.high == out.Height:
+				out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: out.Height - span.low, OppositeCap: true})
+			default:
+				return fail()
+			}
 		}
 	}
 	return out, nil
