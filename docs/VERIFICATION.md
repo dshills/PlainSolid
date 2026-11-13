@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD consolidated current development run — 2026-11-13
+
+The [full current development report](evidence/plaincad-current-development-full-2026-11-13.json)
+passes 342 of 344 original cases in 3,721.761 seconds. No cases skip or
+retry. The source-hashed WASM snapshot includes the analytic arc profiles
+and the separate backend preflight passes. Two staged storage-state origins
+follow the isolated server port. Original assertions and deadlines were
+preserved.
+
+The two failures are viewport idle after a right-button pan and the final
+Playwright screenshot of the ORBIT gesture case. The gesture run completes
+the native geometry, full-resolution PNG, buffer reuse, and resolution
+restoration assertions. Its final screenshot exceeds the original deadline.
+The unchanged viewport idle test reproduces on the same PlainSolid WASM
+and with pristine OCCT at the same pan step.
+
 ## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
 
 The bridge now reads and reexports independent OCCT-authored rounded

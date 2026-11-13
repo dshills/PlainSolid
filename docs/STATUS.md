@@ -15,7 +15,8 @@ uses 144 triangles per STL. The pristine OCCT control completes the same
 checks and exceeds the original 90-second deadline on this host. The frozen
 development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures, including 10 origin-dependent
-setup cases. The current integration still needs a consolidated rerun.
+setup cases. The consolidated current run passes 342 of 344 originals. The open viewer
+cases concern frame scheduling after pan and a final screenshot deadline.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,
@@ -33,7 +34,7 @@ and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock, including independently authored rounded
 stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The full current development run is in progress. The original unit run
+The original unit run
 with real WASM initialized passes 1,646 of 1,689 cases. The remaining
 failures include uninitialized fallback expectations and OCCT-private test
 bindings. All ten private tests pass on pristine OCCT. The 26 fallback

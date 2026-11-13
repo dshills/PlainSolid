@@ -51,8 +51,8 @@ fixture passes all three rebuilds. ORBIT passes the current detail and
 gesture export originals. The classified 340-case baseline and focused
 retests identify the next work: arc-region previews, the remaining exact
 browser retests, and isolated production performance. These focused retests
-now pass. Current production passes all 66 originals. Current development
-qualification is in progress. All seven portable failures from the
+now pass. Current production passes all 66 originals. The consolidated development run passes 342 of 344 originals. Two
+viewport timing cases remain in verification. All seven portable failures from the
 real-WASM unit baseline pass focused retests. One result is the exact
 side-tangent blind Hole, which is retained for display while fabrication
 rejects its four-face contact. Cross-browser tests expose four
