@@ -676,6 +676,9 @@ surfaces must keep their geometry through the operation. Continue with:
    nonparallel original supports. It retains exact cap coincidence and
    opening ancestry. Rectangular, sheared, and inclined ducts pass independent
    OCCT comparisons.
+   Planar edge chamfers also accept compatible independent endpoint setbacks.
+   Exact coplanarity keeps the entire tapered bevel on one plane, with
+   original edge direction and continuous width metadata.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

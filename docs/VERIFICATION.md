@@ -1151,6 +1151,11 @@ An independent wedge-prism cut verifies a duct opening on each of the
 nonparallel original supports `X=0` and `X+Z=4`. It agrees on area,
 centroid and volume `35/8`. Exact source-face separation accepts a
 `2⁻²⁰` gap and rejects a shared opening edge.
+An independently swept and sheared OCCT cutter qualifies the tapered planar
+chamfer's area, centroid and volume `569/24`. The native result retains
+the original vertical edge's direction and both endpoint width pairs.
+Constant widths reproduce the earlier chamfer result. Incompatible ratios
+fail before any chamfer is returned.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

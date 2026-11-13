@@ -38,6 +38,14 @@ static void featureRecords(std::ostream& out){
   return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,y1-y0,0)).Shape();
  };
  record(out,"hollow-through-inclined",BRepAlgoAPI_Cut(wedge(0,2,0,1),wedge(.25,1.75,.25,.75)).Shape());
+ // Sweep a fixed, oversize triangular cutter, then shear its X/Z plane
+ // into the variable-width tool's lateral bevel plane.
+ BRepBuilderAPI_MakePolygon triangle;
+ triangle.Add(gp_Pnt(-1,-1,-1));triangle.Add(gp_Pnt(2.5,-1,-1));triangle.Add(gp_Pnt(-1,.75,-1));triangle.Close();
+ const auto wedgeTool=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(triangle.Wire()).Face(),gp_Vec(0,0,4)).Shape();
+ gp_GTrsf bevelMap;bevelMap.SetValue(1,3,.25);
+ const auto taper=BRepBuilderAPI_GTransform(wedgeTool,bevelMap,true).Shape();
+ record(out,"tapered-planar-chamfer",BRepAlgoAPI_Cut(BRepPrimAPI_MakeBox(4,3,2).Shape(),taper).Shape(),1e-11);
  for(int mode=0;mode<3;++mode){
  auto wire=[](double lo,double hi,bool reverse){std::vector<gp_Pnt> p={{lo,lo,4},{hi,lo,4},{hi,hi,4},{lo,hi,4}};if(reverse)std::reverse(p.begin(),p.end());BRepBuilderAPI_MakeWire w;for(size_t i=0;i<4;++i)w.Add(BRepBuilderAPI_MakeEdge(p[i],p[(i+1)%4]));return w.Wire();};
  BRepBuilderAPI_MakeFace f(wire(.5,3.5,false));f.Add(wire(1.5,2.5,true));
