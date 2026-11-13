@@ -42,6 +42,9 @@ func finiteCommonLocation(signs []int) (BorePointLocation, BoreBoundaryMask) {
 	return BoreInside, 0
 }
 func (s OffAxisSphereFiniteCylinderCommon) Classify(p Vec3) (BorePointLocation, BoreBoundaryMask, error) {
+	return s.classifyMaterial(p, finiteCommonLocation)
+}
+func (s OffAxisSphereFiniteCylinderCommon) classifyMaterial(p Vec3, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BorePointLocation, BoreBoundaryMask, error) {
 	if s.R == nil || !p.IsFinite() {
 		return BoreOutside, 0, ErrInvalid
 	}
@@ -50,7 +53,7 @@ func (s OffAxisSphereFiniteCylinderCommon) Classify(p Vec3) (BorePointLocation, 
 	x, y, z := q(p.X), q(p.Y), q(p.Z)
 	a := new(big.Rat).Sub(new(big.Rat).Add(new(big.Rat).Add(sq(x), sq(y)), sq(z)), sq(s.R))
 	b := new(big.Rat).Sub(new(big.Rat).Add(sq(new(big.Rat).Sub(x, s.cx)), sq(new(big.Rat).Sub(y, s.cy))), sq(s.r))
-	l, m := finiteCommonLocation([]int{a.Sign(), b.Sign(), new(big.Rat).Sub(s.lower, z).Sign(), new(big.Rat).Sub(z, s.upper).Sign()})
+	l, m := classify([]int{a.Sign(), b.Sign(), new(big.Rat).Sub(s.lower, z).Sign(), new(big.Rat).Sub(z, s.upper).Sign()})
 	return l, m, nil
 }
 
@@ -60,6 +63,9 @@ func (s OffAxisSphereFiniteCylinderCommon) Classify(p Vec3) (BorePointLocation, 
 // All root classifications use exact rational signs. Options bound isolation
 // and arithmetic; each exact comparison receives the same bounded options.
 func (s OffAxisSphereFiniteCylinderCommon) IntersectLineBoundary(ctx context.Context, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) (BoreLineBoundary, error) {
+	return s.intersectMaterial(ctx, origin, direction, minT, maxT, o, finiteCommonLocation)
+}
+func (s OffAxisSphereFiniteCylinderCommon) intersectMaterial(ctx context.Context, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BoreLineBoundary, error) {
 	fail := func(e error) (BoreLineBoundary, error) { return BoreLineBoundary{}, e }
 	if ctx == nil || s.R == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || !finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
 		return fail(ErrInvalid)
@@ -115,7 +121,7 @@ func (s OffAxisSphereFiniteCylinderCommon) IntersectLineBoundary(ctx context.Con
 			}
 		}
 	}
-	return intersectMaterialBoundary(ctx, poly, minT, maxT, o, budget, ro, finiteCommonLocation)
+	return intersectMaterialBoundary(ctx, poly, minT, maxT, o, budget, ro, classify)
 }
 
 // IntersectLine is the isolated-only variant. Continuous contact is explicitly
