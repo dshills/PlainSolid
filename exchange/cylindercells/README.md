@@ -53,3 +53,24 @@ behavior. Canonical output may normalize flags and IDs. Tests demonstrate the
 distinction using reversed bound encodings, preserve original bytes through
 native persistence, and independently verify both outputs with OCCT TransferRoots.
 Short writes and ordinary I/O failures are reported by either output mode.
+
+## Exact SI rescaling
+
+`RescaleSI(asset,targetUnit)` multiplies origin coordinates, radius and height by
+exact rational 10^(oldExponent-newExponent). Reference and axis directions are
+unchanged. All five scalar results must be exactly binary64-representable before
+either input or result geometry is constructed; otherwise
+`errors.Is(err, ErrUnrepresentableScale)` identifies rounding/overflow/underflow
+rejection and the returned asset is empty. Unsupported SI exponents also fail.
+The converted geometry must still satisfy the strict exact STEP numeric domain.
+
+The name and dialect are preserved. Identical unit requests validate and retain
+original evidence. A changed unit produces a new native-only asset with
+SourceSTEP empty, even when the conversion is exact. The old asset is untouched
+and can still re-emit its original source separately; no false source IDs are
+invented for converted geometry.
+
+Tests compare exact rational physical coordinates/dimensions, round-trip
+metre↔millimetre conversions, persist both dialects, and prove scalar-failure
+ordering using deliberately invalid retained evidence. Independent OCCT root
+loads of both unit encodings yield matching physical volume, area and centroid.

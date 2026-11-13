@@ -50,6 +50,10 @@ type CertifiedMixedExactAffineMesh struct {
 // is within the maximum exact model chord error of the other. Final triangle
 // display rounding is added independently. Unsupported topology fails atomically.
 func TessellateMixedExactAffineRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactAffineMeshOptions) (CertifiedMixedExactAffineMesh, error) {
+	return tessellateMixedExactAffineRegionCuts(ctx, p, outer, holes, nil, o)
+}
+
+func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, cuts [][][]*big.Rat, o MixedExactAffineMeshOptions) (CertifiedMixedExactAffineMesh, error) {
 	var empty CertifiedMixedExactAffineMesh
 	if ctx == nil || p == nil || len(holes) > 64 || o.Display.EndpointPoints != nil || o.Display.JunctionPoints != nil {
 		return empty, geom.ErrInvalid
@@ -85,6 +89,28 @@ func TessellateMixedExactAffineRegionCertified(ctx context.Context, p *geom.Surf
 	}
 	if o.Display.MaxSegments < count || o.Display.MaxOperations < count || o.Composition.MaxOperations < count {
 		return empty, geom.ErrConvergence
+	}
+	if cuts != nil {
+		if len(cuts) != len(input) {
+			return empty, geom.ErrInvalid
+		}
+		total := 0
+		for i, loop := range cuts {
+			if len(loop) != len(input[i]) {
+				return empty, geom.ErrInvalid
+			}
+			for _, q := range loop {
+				total += len(q)
+				if total > 2048 {
+					return empty, geom.ErrConvergence
+				}
+				if q != nil {
+					if err := validateGraphCuts(q); err != nil {
+						return empty, err
+					}
+				}
+			}
+		}
 	}
 	chart, e := geom.NewAffineSurfaceChart(ctx, p, o.Chart)
 	if e != nil {
@@ -164,7 +190,18 @@ func TessellateMixedExactAffineRegionCertified(ctx context.Context, p *geom.Surf
 			if e != nil {
 				return empty, e
 			}
-			line, e := cells.TessellateCertified(ctx, local)
+			var fixed []*big.Rat
+			if cuts != nil {
+				fixed = cuts[li][index]
+				if fixed != nil && li > 0 {
+					reversed := make([]*big.Rat, len(fixed))
+					for k, t := range fixed {
+						reversed[len(fixed)-1-k] = new(big.Rat).Sub(big.NewRat(1, 1), t)
+					}
+					fixed = reversed
+				}
+			}
+			line, e := tessellateGraphPrescribedCuts(ctx, cells, fixed, local)
 			if e != nil {
 				return empty, e
 			}

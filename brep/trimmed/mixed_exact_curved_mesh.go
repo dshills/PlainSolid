@@ -11,6 +11,12 @@ import (
 // and fixed-boundary surface lift. Interior.Deflection is the total requested
 // model-space distance; Boundary.Display.Deflection is derived from that target.
 type MixedExactCurvedMeshOptions struct {
+	// Cuts optionally prescribes original normalized pcurve parameters, outer
+	// then holes, retaining all coedge occurrences. Non-nil per-trim lists
+	// include 0 and 1 in increasing order; nil leaves that trim adaptive.
+	// At most2048 total occurrences are allowed. Additional adaptive samples
+	// may be generated. Original hole direction is preserved by the mapping.
+	Cuts     [][][]*big.Rat
 	Boundary MixedExactAffineMeshOptions
 	Interior CurvedQuadraticTrimMeshOptions
 }
@@ -98,7 +104,7 @@ func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch,
 	if o.Boundary.MaxTriangles == 0 || o.Boundary.MaxTriangles > m.MaxTriangles {
 		o.Boundary.MaxTriangles = m.MaxTriangles
 	}
-	uv, e := TessellateMixedExactAffineRegionCertified(ctx, identity, outer, holes, o.Boundary)
+	uv, e := tessellateMixedExactAffineRegionCuts(ctx, identity, outer, holes, o.Cuts, o.Boundary)
 	if e != nil {
 		return empty, e
 	}
