@@ -45,4 +45,18 @@ func TestOCCTExactPlanarLofts(t *testing.T) {
 		t.Fatal(err)
 	}
 	compare(t, refs["planar-waist-station-loft"], m.SurfaceArea, m.Volume, m.Centroid)
+	elbow := [][]geom.Vec3{
+		{{Y: -.5, Z: -.5}, {Y: .5, Z: -.5}, {Y: .5, Z: .5}, {Y: -.5, Z: .5}},
+		{{X: 2.5, Y: -.5, Z: -.5}, {X: 1.5, Y: .5, Z: -.5}, {X: 1.5, Y: .5, Z: .5}, {X: 2.5, Y: -.5, Z: .5}},
+		{{X: 2.5, Y: 3, Z: -.5}, {X: 1.5, Y: 3, Z: -.5}, {X: 1.5, Y: 3, Z: .5}, {X: 2.5, Y: 3, Z: .5}},
+	}
+	d, err := loft.MiteredStations(ctx, elbow, loft.StationOptions{})
+	if err != nil || len(d.RingEdges[1]) != 4 || len(d.BandFaces) != 2 || d.ExactVolume.RatString() != "5" {
+		t.Fatal("mitered elbow", err)
+	}
+	m, err = d.Solid.MassProperties()
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["planar-mitered-elbow"], m.SurfaceArea, m.Volume, m.Centroid)
 }
