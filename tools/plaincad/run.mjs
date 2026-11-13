@@ -69,6 +69,13 @@ try {
   for (const folder of ["internal/plaincadbridge", "cmd/plaincadwasm", "tools/plaincad"]) for (const path of await files(join(root, folder))) {
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
   }
+  // Pin every local Go source selected for the WASM build, including kernel
+  // dependencies outside the bridge. Record collection tooling separately too.
+  const runtimeSources = execFileSync("go", ["list", "-deps", "-f", '{{if not .Standard}}{{range .GoFiles}}{{$.Dir}}/{{.}}{{"\\n"}}{{end}}{{end}}', "./cmd/plaincadwasm"], {
+    cwd: root, encoding: "utf8", env: { ...process.env, GOOS: "js", GOARCH: "wasm", GOCACHE: join(tmpdir(), "plainsolid-cad-review-go-cache") },
+  }).trim().split("\n").filter(path => path.startsWith(root + "/"));
+  for (const path of [...runtimeSources, join(root, "go.mod")])
+    report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');
@@ -101,6 +108,36 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const far = kernel.placeShape(inside, { translation: [10, 0, 0], rotation: [0, 0, 0] });
     const rejects = (operation: () => unknown) => { try { operation(); return false; } catch { return true; } };
     const rejected = { noOpCut: rejects(() => kernel.cut(base, far)), emptyCut: rejects(() => kernel.cut(base, covering)), disconnectedJoin: rejects(() => kernel.fuse(base, far)), containedJoin: rejects(() => kernel.fuse(base, inside)) };
+    const contractPath = "/src/cad/kernel/KernelAdapter.ts";
+    const { HoleScopeError } = await import(contractPath);
+    const farBase = kernel.placeShape(base, { translation: [10, 0, 0], rotation: [0, 0, 0] });
+    const missedBase = kernel.placeShape(base, { translation: [20, 0, 0], rotation: [0, 0, 0] });
+    const missedTool = kernel.placeShape(inside, { translation: [20, 0, 0], rotation: [0, 0, 0] });
+    const scopeError = (targets: any[], tools: any[]) => {
+      try { for (const output of kernel.cutScope(targets, tools)) kernel.disposeShape(output); return null; }
+      catch (error) {
+        if (!(error instanceof HoleScopeError)) return { unexpected: String(error) };
+        const scoped = error as Error & { scope: "center" | "target"; index: number };
+        return { scope: scoped.scope, index: scoped.index, message: scoped.message };
+      }
+    };
+    const crossed = kernel.cutScope([base, farBase], [inside, far]);
+    const crossedVolumes = crossed.map((output: any) => output.kernelHandle.proof.geometryAssertions.volume);
+    for (const output of crossed) kernel.disposeShape(output);
+    const missedCenter = scopeError([base, farBase], [inside, far, missedTool]);
+    // Two output handles exist before target 3 fails. After repeated rollback,
+    // fill the remaining handle capacity: any leaked probe/output prevents this.
+    const rollbackErrors = [];
+    for (let i = 0; i < 3; i++) rollbackErrors.push(scopeError([base, farBase, missedBase], [inside, far]));
+    const capacityShapes = [];
+    let capacityOverflowRejected = false;
+    try {
+      // Exactly seven caller-owned inputs are live at this point.
+      for (let i = 0; i < 249; i++) capacityShapes.push(kernel.createBox(1, 1, 1));
+      capacityOverflowRejected = rejects(() => kernel.createBox(1, 1, 1));
+    } finally { for (const input of capacityShapes) kernel.disposeShape(input); }
+    const retainedVolumes = [base, farBase, missedBase, inside, far, missedTool].map((input: any) => kernel.tessellate(input, { linearDeflection: .1, angularDeflection: .2 }).geometryAssertions.volume);
+    for (const input of [farBase, missedBase, missedTool]) kernel.disposeShape(input);
     const large = kernel.createBox(10000, 10000, 10000);
     const symmetricScope = [kernel.hasCommonVolume(large, inside), kernel.hasCommonVolume(inside, large)];
     const width = 2.000002, height = 2.000002;
@@ -116,14 +153,42 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const boreBase = kernel.createBox(8, 8, 3);
     const bored = kernel.cut(boreBase, cylinder);
     const boreProof = kernel.tessellate(bored, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
+    const signedVolume = (mesh: any) => {
+      let volume = 0;
+      for (let i = 0; i < mesh.indices.length; i += 3) {
+        const [a, b, c] = mesh.indices.slice(i, i + 3).map((index: number) => mesh.positions.slice(index * 3, index * 3 + 3));
+        volume += (a[0] * (b[1]*c[2]-b[2]*c[1]) - a[1] * (b[0]*c[2]-b[2]*c[0]) + a[2] * (b[0]*c[1]-b[1]*c[0])) / 6;
+      }
+      return volume;
+    };
+    const boreMeshVolume = signedVolume(kernel.tessellate(bored, { linearDeflection: .5, angularDeflection: .2 }));
+    const overlappingScope = scopeError([boreBase], [cylinder, cylinder]);
     const shallow = kernel.extrudeProfile(circleProfile, 2);
-    const partialCutRejected = rejects(() => kernel.cut(boreBase, shallow));
+    const blind = kernel.cut(boreBase, shallow);
+    const blindProof = kernel.tessellate(blind, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
+    const blindMeshVolume = signedVolume(kernel.tessellate(blind, { linearDeflection: .5, angularDeflection: .2 }));
+    const oppositeTool = kernel.placeShape(shallow, { translation: [0, 0, 1], rotation: [0, 0, 0] });
+    const oppositeBlind = kernel.cut(boreBase, oppositeTool);
+    const oppositeBlindProof = kernel.tessellate(oppositeBlind, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
+    const internalTool = kernel.placeShape(shallow, { translation: [0, 0, .5], rotation: [0, 0, 0] });
+    const internalCutRejected = rejects(() => kernel.cut(boreBase, internalTool));
     const holedCircleRejected = rejects(() => kernel.extrudeProfile({ ...circleProfile, innerLoops: [{ type: "circle", entityIds: ["inner"] }], holes: [{ id: "inner", x: 4, y: 4, radius: 1 }] }, 3));
-    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shallow]) kernel.disposeShape(item);
-    return { cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, partialCutRejected, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shallow, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
+    return { boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, overlappingScope, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
+  expect(proof.crossedVolumes).toEqual([23, 23]);
+  expect(proof.missedCenter).toMatchObject({ scope: "center", index: 2 });
+  expect(proof.missedCenter?.message).toContain("removed no volume");
+  expect(proof.rollbackErrors).toHaveLength(3);
+  expect(proof.capacityCount).toBe(249);
+  expect(proof.capacityOverflowRejected).toBe(true);
+  for (const error of proof.rollbackErrors) {
+    expect(error).toMatchObject({ scope: "target", index: 2 });
+    expect(error?.message).toContain("removed no volume");
+  }
+  expect(proof.retainedVolumes).toEqual([24, 24, 24, 1, 1, 1]);
   expect(proof.proof).toMatchObject({ valid: true, volume: 24, solidCount: 1 });
   expect(proof.cylinderProof).toMatchObject({ valid: true, solidCount: 1 });
   expect(proof.cylinderProof.volume).toBeCloseTo(12 * Math.PI, 8);
@@ -137,9 +202,18 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     }
   }
   expect(proof.boreProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.overlappingScope).toMatchObject({ scope: "target", index: 0 });
   expect(proof.boreProof.volume).toBeCloseTo(192 - 12 * Math.PI, 8);
   expect(proof.boreProof.surfaceArea).toBeCloseTo(224 + 4 * Math.PI, 8);
-  expect(proof.partialCutRejected).toBe(true);
+  expect(Math.abs(proof.boreMeshVolume - proof.boreProof.volume)).toBeLessThan(12 * Math.PI * .02);
+  expect(proof.blindProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.blindProof.volume).toBeCloseTo(192 - 8 * Math.PI, 8);
+  expect(proof.blindProof.surfaceArea).toBeCloseTo(224 + 8 * Math.PI, 8);
+  expect(Math.abs(proof.blindMeshVolume - proof.blindProof.volume)).toBeLessThan(8 * Math.PI * .02);
+  expect(proof.oppositeBlindProof).toMatchObject({ valid: true, solidCount: 1 });
+  expect(proof.oppositeBlindProof.volume).toBeCloseTo(proof.blindProof.volume, 8);
+  expect(proof.oppositeBlindProof.surfaceArea).toBeCloseTo(proof.blindProof.surfaceArea, 8);
+  expect(proof.internalCutRejected).toBe(true);
   expect(proof.holedCircleRejected).toBe(true);
   expect(proof.symmetricScope).toEqual([true, true]);
   expect(proof.tinyCavityRejected).toBe(true);

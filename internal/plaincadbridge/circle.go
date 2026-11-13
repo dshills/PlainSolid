@@ -91,7 +91,18 @@ func tessellationOptions(q request) (parametric.TessellationOptions, error) {
 	if !finite(d) || d <= 0 || !finite(a) || a <= 0 || a > math.Pi {
 		return parametric.TessellationOptions{}, errors.New("mesh requires positive deflection and angular deflection at most pi")
 	}
-	return parametric.TessellationOptions{Deflection: d, Angle: a, MaxSubdivisions: 256, MaxTriangles: 1000000}, nil
+	// PlainCAD's angular deflection limits normal turning across a facet.
+	// The kernel option limits sampled normals relative to the facet normal.
+	// Half the requested turn bounds any pair of those sampled normals by the
+	// triangle inequality. This remains sampled, not a surface-wide certificate.
+	facetAngle := a / 2
+	if facetAngle == 0 {
+		return parametric.TessellationOptions{}, parametric.ErrBudget
+	}
+	if facetAngle*2 > a {
+		facetAngle = math.Nextafter(facetAngle, 0)
+	}
+	return parametric.TessellationOptions{Deflection: d, Angle: facetAngle, MaxSubdivisions: 256, MaxTriangles: 1000000}, nil
 }
 func (s stored) tessellate(q request) (mesh.Mesh, error) {
 	o, err := tessellationOptions(q)

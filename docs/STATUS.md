@@ -11,16 +11,21 @@ acceptance tests before expanding unrelated OCCT domains. The full specification
 remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
 and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
 
-The Go WebAssembly adapter now supports exact single-circle extrusion and finite
-cylindrical through-cuts on convex planar stock with strictly interior radial
-footprints and provably perpendicular parallel caps. Repeated separated bores
-retain analytic cylinder walls. Blind, partial, grazing and side-crossing cuts
-remain unsupported. The existing XYZ modeling and negative/symmetric through-all
-scenarios pass alongside the circle-dialog case and six foundation scenarios.
-The final consolidated regression report is recorded in PlainCAD readiness.
-Next, select the existing scoped native-Hole acceptance gate and implement its
-atomic cut contract; mixed line/arc profiles and broader curved operations remain
-open PC1 work. Preserve these eleven existing scenarios as regression gates.
+The Go WebAssembly adapter now implements scoped Hole operations with indexed
+center/target errors and atomic publication. It retains analytic cylinder walls
+and planar floors for blind and through cuts from either cap of qualified convex
+planar stock. Every center must hit the original selected scope and every target
+must lose material; proven separated pairs may miss. Repeated separated bores
+retain source recipes. Overlapping tools, internal cavities, side-crossing and
+unsupported oblique-cap cuts remain explicitly unsupported.
+All 22 selected existing acceptance cases pass: guided Hole, multi-body, dialog
+and target capture alongside the previous eleven scenarios. Both TypeScript
+checks and a separate real-WASM probe pass, with no skips or flaky results. The diameter-edit test
+exposed a predicate projection bug, fixed in commit `0037fb1`; selected-body STL
+exposed missing boundary-normal checks, fixed in `14e5760`. Compact cylinder
+meshing preserves accuracy while restoring the original modeling-test runtime.
+Final source-hashed run evidence is recorded in PlainCAD readiness. Next PC1 work includes overlapping tools and mixed profiles;
+Hole edits involving downstream chamfers also require PC2 edge treatments.
 See the committed source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and

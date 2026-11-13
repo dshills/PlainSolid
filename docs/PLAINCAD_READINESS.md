@@ -8,12 +8,57 @@ not all OCCT APIs. The source audit used the sibling PlainCAD checkout at revisi
 changes and source hashes with each run; this revision alone does not pin a dirty
 working tree. The full PlainSolid specification remains required separately.
 
-The first PlainSolid-backed browser acceptance pass is recorded below. Existing
+Source-hashed PlainSolid-backed browser acceptance runs are recorded below. Existing
 OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
-## Exact circular extrusion and through-cut checkpoint — 2026-11-13
+## Scoped Hole checkpoint — 2026-11-13
+
+**22 existing PlainCAD acceptance scenarios pass**, with zero skipped, unexpected
+or flaky results. The consolidated acceptance stage took 151.620 seconds. Both
+original TypeScript checks pass; a separate real-WASM backend probe passes in
+8.450 seconds. The [source-hashed report](evidence/plaincad-scoped-holes-2026-11-13.json)
+records `/tmp/plainsolid-hole-acceptance-11`, source identities, every selected
+case and provider-only literal adaptations. A labeled post-run supplement pins
+all selected kernel sources; rebuilding them exactly matches the accepted WASM
+hash. Geometry/workflow assertions and
+original test timeouts are unchanged. Interrupted and failed exploratory runs
+are not counted as successful qualification.
+
+| Existing selection | Passing cases |
+|---|---:|
+| Previous circle, extrusion, XYZ modeling, shell and stale-worker regressions | 11 |
+| Guided face Hole: blind and through-all in XY/XZ/YZ; edits, Undo, save/open, STL | 6 |
+| Explicit multi-body Hole: all centers/targets, rollback, raised-stock blind depth, persistence and STL | 3 |
+| Native Hole dialog: explicit selection, blind/through edits, parameters and empty-center recovery | 1 |
+| Automatic target capture across different centers and stale in-flight capture rejection | 1 |
+
+The scope adapter validates every center against the original selected bodies,
+requires every selected body to lose volume, and publishes owned outputs together.
+Failure preserves original shapes and disposes intermediate outputs. The probe
+checks exact center/target error indices and fills all 249 remaining handle slots
+after repeated late failures with seven inputs live, proving no handle leakage.
+
+Blind and through cylindrical cuts retain analytic walls and planar floors on
+qualified convex planar stock, with strictly interior radial footprints and
+perpendicular parallel caps. Either cap may be the opening. Repeated separated
+bores and proven individual target misses are supported. Overlapping tools,
+closed internal cavities, side-crossing/grazing cuts, unprovable finite reversal,
+and arbitrary curved targets remain unsupported. Blind depth and remaining wall
+must exceed the supported 1e-9 geometric threshold.
+
+Display and STL share the requested tolerance mapping and mesh. Compact sampling
+preserves circular edge detail without subdividing straight lengths or flat face
+interiors unnecessarily: a representative bored part uses 144 triangles instead
+of 2,048. Existing guided STL removal-volume accuracy and full modeling vertex
+checks pass. The numerical prerequisite fixes are commits `0037fb1` and `14e5760`.
+Native/race/vet/WASM checks and independent review pass. A supplementary full
+trimmed-kernel run timed out at 600 seconds; it is not a full-suite pass (see
+[verification](VERIFICATION.md)). Unselected tests and full production/release
+qualification remain open. No full OCCT or PlainCAD replacement claim is made.
+
+## Earlier circular extrusion and through-cut checkpoint — 2026-11-13
 
 **Eleven existing PlainCAD scenarios pass** in the consolidated run, with zero
 skipped, unexpected or flaky results. The acceptance stage took 78.999 seconds;
@@ -195,10 +240,11 @@ selected PlainSolid build and record unsupported cases rather than removing them
 
 ## First run and resumption
 
-The XYZ modeling and directional through-all gates now pass. Resume with an
-existing scoped native-Hole case: the adapter still explicitly rejects its
-`cutScope` contract. Keep blind cuts and mixed-profile support distinct from the
-qualified through-cut subset. Retain all eleven passing scenarios as regressions. Use the
+Scoped Hole now implements atomic output publication and indexed center/target
+errors, with analytic blind/through cuts in its qualified convex-stock domain.
+Retain the consolidated regression selection recorded above. Remaining work
+includes overlapping cutters and mixed profiles, broader curved target bodies,
+and Hole editing that depends on downstream chamfers/PC2 edge treatments. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.
 

@@ -1,5 +1,53 @@
 # Verification record
 
+## Scoped Hole implementation checks — 2026-11-13
+
+The adapter's `cutScope` validates tools against original targets, requires every
+selected target to lose material, returns the real indexed `HoleScopeError`, and
+publishes independently owned outputs only after the whole operation succeeds.
+Temporary probes and partial results are disposed on failure. The WASM preflight
+checks crossed target/tool hits, missed-center and missed-target indices, preserved
+inputs, repeated late rollback and the exact remaining capacity of the 256-handle
+store. Overlapping cylindrical tools remain explicitly unsupported.
+
+The bridge retains analytic cylinder walls and shared-edge planar floors for
+blind pockets from either stock cap. Canonical reversal requires exact frame and
+endpoint preservation. Tests cover all axes/signs, raised stock with 5 mm removed,
+mixed and multiple blind/through recipes, original cap areas, floor normals,
+cloning/placement, independent surface-integrated mass, closed meshes and rejected
+closed cavities or ambiguous references. Proven disjoint bounds permit individual
+scope misses; a new tool separated from previous bore bounds can query remaining
+stock. Unproved overlap is never treated as a miss.
+
+The PlainCAD angular setting maps conservatively to half the kernel facet-angle
+bound. Tiny settings cannot silently disable checking. Actual guided two-hole
+blind/through inputs satisfy the original 2% removed-volume mesh tolerance and
+sampled normal-turn bound. Mesh and STL use the same helper; this does not certify
+arbitrary surfaces between samples. A compact mesher for exact plane/rectangular-
+cylinder domains keeps straight edges and axial strips unsubdivided while sharing
+all circular boundary samples. The representative default one-bore mesh drops
+from 2,048 to 144 triangles, preserving accuracy and matching display/STL vertices.
+Independent tests verify linear mesh growth, exact triangle/subdivision budgets,
+cancellation, unsupported-domain fallback and analytic-certificate bypass.
+Selected trimmed tests, including cylinder, sphere, torus and cone poles, pass
+(2.489 seconds); native bridge tests pass (0.861 seconds). The compact-specific
+boundary limit delegates fine meshes to the general path;
+explicit caller budgets remain enforced. The fine-deflection fallback regression
+passes (0.623 seconds). Final bridge race (6.575 seconds), vet and WASM build pass.
+Independent core, adapter and probe review approved the bounded implementation.
+
+The final consolidated run passes all 22 existing PlainCAD scenarios in 151.620
+seconds, plus one separate backend probe in 8.450 seconds, with zero skipped,
+unexpected or flaky results. Both original TypeScript checks pass. Evidence:
+`docs/evidence/plaincad-scoped-holes-2026-11-13.json`. The source-hashed snapshot
+includes final compact meshing and angular mapping; geometry assertions and
+original timeouts are unchanged. A post-run provenance supplement pins all 658
+selected local Go source files and `go.mod`. Rebuilding those unchanged runtime
+sources exactly reproduced the accepted WASM SHA-256. The runner then received
+a metadata-only improvement to collect those dependency hashes in future runs;
+its original run-time hash is preserved alongside the updated hash. All runtime work is isolated in the integration
+worktree; the source PlainCAD and active main checkouts are untouched.
+
 ## Curved mesh angular-tolerance fix — 2026-11-13
 
 PlainCAD's existing multi-body Hole STL check exposed coarse cylindrical facets:

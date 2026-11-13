@@ -12,13 +12,16 @@ import (
 
 // boreBody preserves the planar source and each exact analytic cylindrical tool.
 // The specialized constructor proves strict radial containment and convex stock.
-// It accepts only parallel opening planes perpendicular to the cylinder axis.
+// It accepts only parallel stock caps perpendicular to the cylinder axis,
+// with through cuts or finite entry-open blind pockets.
 type boreBody struct {
 	solid     trimmed.Solid
 	base      brep.Solid
 	cylinders []*cylinderBody
 	cuts      []trimmed.CylinderCut
 	spans     []float64
+	blind     []bool
+	floors    []int
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -109,20 +112,84 @@ func boreSpan(base brep.Solid, c *cylinderBody, through bool) (trimmed.CylinderC
 	return trimmed.CylinderCut{Entry: entry, Exit: exit, AxisPoint: origin, Direction: axis, Radius: c.radius}, start, end, nil
 }
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
+	cylinders = append([]*cylinderBody(nil), cylinders...)
 	cuts := make([]trimmed.CylinderCut, len(cylinders))
 	spans := make([]float64, len(cylinders))
+	blind := make([]bool, len(cylinders))
+	floors := make([]int, len(cylinders))
+	deltas := make([]float64, len(cylinders))
 	for i, c := range cylinders {
 		cut, start, end, err := boreSpan(base, c, true)
 		if err != nil {
-			return nil, err
+			cut, start, end, err = boreSpan(base, c, false)
+			if err != nil {
+				return nil, err
+			}
+			finish := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
+			entrySide, entryErr := capSide(base, cut.Entry, c.frame.Origin())
+			exitSide, exitErr := capSide(base, cut.Exit, finish)
+			if entryErr != nil {
+				return nil, entryErr
+			}
+			if exitErr != nil {
+				return nil, exitErr
+			}
+
+			// Negative CAD sweeps may encode the same finite tool with a positive
+			// axis and its origin inside stock. Canonicalize an exit-open pocket to
+			// entry-open geometry only after exact support-side classification.
+			if entrySide > 0 && exitSide <= 0 {
+				frame, e := geom.NewFrame(finish, c.frame.XAxis(), c.frame.ZAxis().Scale(-1))
+				if e != nil {
+					return nil, e
+				}
+				if frame.XAxis() != c.frame.XAxis() || frame.YAxis() != c.frame.YAxis().Scale(-1) || frame.ZAxis() != c.frame.ZAxis().Scale(-1) {
+					return nil, &failureError{"UNSUPPORTED", "finite cylinder reversal cannot preserve represented radial frame"}
+				}
+				reversed, e := newCylinder(frame, c.radius, c.height)
+				if e != nil {
+					return nil, e
+				}
+				if reversed.frame.Origin().Add(reversed.frame.ZAxis().Scale(reversed.height)) != c.frame.Origin() {
+					return nil, &failureError{"UNSUPPORTED", "finite cylinder reversal cannot preserve represented endpoints"}
+				}
+				c = reversed
+				cylinders[i] = c
+				cut, start, end, err = boreSpan(base, c, false)
+				if err != nil {
+					return nil, err
+				}
+				finish = c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
+				entrySide, entryErr = capSide(base, cut.Entry, c.frame.Origin())
+				exitSide, exitErr = capSide(base, cut.Exit, finish)
+				if entryErr != nil {
+					return nil, entryErr
+				}
+				if exitErr != nil {
+					return nil, exitErr
+				}
+			}
+			if !finish.IsFinite() || entrySide > 0 || exitSide <= 0 || c.height-start <= 1e-9 || end-c.height <= 1e-9 {
+				return nil, &failureError{"UNSUPPORTED", "finite cylinder is not a measurable entry-open blind pocket or through bore"}
+			}
+			blind[i] = true
+			deltas[i] = end - c.height
 		}
-		cuts[i], spans[i] = cut, end-start
+		cuts[i], spans[i] = cut, end-start-deltas[i]
 	}
-	s, _, err := trimmed.BoreCylinders(base, cuts, 1e-9)
+	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
-		return nil, &failureError{"UNSUPPORTED", "cylinder through-cut is outside the strictly contained convex-stock domain: " + err.Error()}
+		return nil, &failureError{"UNSUPPORTED", "finite cylindrical cut is outside the strictly contained convex-stock domain: " + err.Error()}
 	}
-	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans}, nil
+	for i := range cylinders {
+		if blind[i] {
+			s, floors[i], err = stopBore(s, history[i], cuts[i].Direction, deltas[i])
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors}, nil
 }
 func (b *Bridge) putBore(body *boreBody) (Shape, error) {
 	p, err := body.base.MassProperties()
@@ -137,6 +204,9 @@ func (b *Bridge) putBore(body *boreBody) (Shape, error) {
 	for i, c := range body.cylinders {
 		volume -= math.Pi * c.radius * c.radius * body.spans[i]
 		area += 2 * math.Pi * c.radius * (body.spans[i] - c.radius)
+		if body.blind[i] {
+			area += 2 * math.Pi * c.radius * c.radius
+		}
 	}
 	if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
 		return Shape{}, errors.New("invalid cylindrical-cut material measures")
@@ -161,6 +231,33 @@ func (body *boreBody) transformed(m geom.Affine) (*boreBody, error) {
 	return newBore(base, cylinders)
 }
 func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	n, err := normal.Unit()
+	if err != nil || !origin.IsFinite() {
+		return PlanarFace{}, errors.New("invalid planar reference")
+	}
+	var floor *PlanarFace
+	for i, blind := range body.blind {
+		if !blind {
+			continue
+		}
+		c := body.cylinders[i]
+		p := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
+		axis := c.frame.ZAxis()
+		if math.Abs(math.Abs(axis.Dot(n))-1) <= 1e-9 && math.Abs(p.Sub(origin).Dot(axis)) <= 1e-7 {
+			if floor != nil {
+				return PlanarFace{}, errors.New("planar face reference is ambiguous")
+			}
+			f := PlanarFace{body.floors[i], coordinates(p), coordinates(axis.Scale(-1)), math.Pi * c.radius * c.radius}
+			floor = &f
+		}
+	}
+	if floor != nil {
+		if _, err := matchingPlanarFace(body.base, origin, normal); err == nil {
+			return PlanarFace{}, errors.New("planar face reference is ambiguous")
+		}
+		return *floor, nil
+	}
+
 	// BoreCylinders retains every original planar face and introduces strictly
 	// interior circular holes; it neither removes nor merges original supports.
 	f, err := matchingPlanarFace(body.base, origin, normal)
@@ -171,7 +268,7 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		return PlanarFace{}, errors.New("retained planar support mismatch")
 	}
 	for i, c := range body.cylinders {
-		if body.cuts[i].Entry == f.Face || body.cuts[i].Exit == f.Face {
+		if body.cuts[i].Entry == f.Face || (!body.blind[i] && body.cuts[i].Exit == f.Face) {
 			f.Area -= math.Pi * c.radius * c.radius
 		}
 	}
@@ -185,7 +282,7 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		a, c = c, a
 	}
 	if c.cylinder == nil || a.cylinder != nil {
-		return nil, &failureError{"UNSUPPORTED", "curved Boolean combination is outside the cylinder-through-cut domain"}
+		return nil, &failureError{"UNSUPPORTED", "curved Boolean combination is outside the finite entry-open cylinder-cut domain"}
 	}
 	base := a.solid
 	var cylinders []*cylinderBody
@@ -200,7 +297,19 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		}
 		return b.putBore(body)
 	}
-	if op == "common" && a.bore == nil {
+	if op == "common" && boundsSeparated(a.result.Bounds, c.result.Bounds) {
+		return b.put(brep.Solid{})
+	}
+	if op == "common" {
+		for _, old := range cylinders {
+			oldBounds, err := old.solid.Bounds()
+			if err != nil {
+				return nil, err
+			}
+			if !boundsSeparated(Bounds{coordinates(oldBounds.Min), coordinates(oldBounds.Max)}, c.result.Bounds) {
+				return nil, &failureError{"UNSUPPORTED", "cylinder overlap with an existing bore is unresolved"}
+			}
+		}
 		cut, start, end, err := boreSpan(base, c.cylinder, false)
 		if err != nil {
 			return nil, err
@@ -208,7 +317,7 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		// This construction validates the full radial footprint independently from
 		// finite axial clipping, so an intersecting side wall cannot be ignored.
 		if _, _, err := trimmed.BoreCylinderAlong(base, cut.Entry, cut.Exit, cut.AxisPoint, cut.Direction, cut.Radius, 1e-9); err != nil {
-			return nil, &failureError{"UNSUPPORTED", "cylinder overlap requires a strictly contained radial footprint"}
+			return nil, &failureError{"UNSUPPORTED", "cylinder overlap requires a strictly contained radial footprint: " + err.Error()}
 		}
 		lo, hi := math.Max(0, start), math.Min(c.cylinder.height, end)
 		if hi <= lo {
@@ -216,5 +325,31 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		}
 		return b.circle(c.cylinder.frame.Origin().Add(c.cylinder.frame.ZAxis().Scale(lo)), c.cylinder.frame.ZAxis(), c.cylinder.radius, hi-lo)
 	}
-	return nil, &failureError{"UNSUPPORTED", "curved Boolean combination is outside the cylinder-through-cut domain"}
+	return nil, &failureError{"UNSUPPORTED", "curved Boolean combination is outside the finite entry-open cylinder-cut domain"}
+}
+
+// Existing shape bounds enclose the original analytic geometry. Strictly
+// separated intervals prove a miss without assuming unsupported intersections.
+func boundsSeparated(a, b Bounds) bool {
+	for i := 0; i < 3; i++ {
+		if a.Max[i] < b.Min[i] || b.Max[i] < a.Min[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func capSide(base brep.Solid, face int, p geom.Vec3) (int, error) {
+	m := base.Tessellate()
+	for i, f := range base.TriangleFaces() {
+		if f == face {
+			t := m.Triangles[i]
+			side, err := geom.Orient3D(m.Vertices[t[0]], m.Vertices[t[1]], m.Vertices[t[2]], p)
+			if err != nil {
+				return 0, err
+			}
+			return int(side), nil
+		}
+	}
+	return 0, errors.New("missing cylinder support face")
 }

@@ -34,12 +34,16 @@ may proceed in parallel:
 | PC5: Exchange and complete app qualification | STEP for actual app outputs and accepted imported solids; export/reimport volume, topology and bounds; worker cancellation, stale previews, production CSP and performance | Existing STEP import/export and failure tests, full native development and production suites |
 
 Current checkpoint (2026-11-13): PC0's selected browser regressions pass. PC1 now
-has exact single-circle extrusion, finite strictly interior cylindrical through-cuts
-on supported convex planar stock, and separated repeated bores. The original XYZ
-modeling, circle-dialog and directional through-all scenarios pass. PC1 is still
-partial: prioritize the existing scoped native-Hole acceptance contract next,
-then its unsupported blind/termination inputs and mixed-profile requirements.
-See readiness for source-hashed evidence and explicit domain limits.
+implements scoped Hole validation and atomic outputs, exact blind/through circular
+cuts from either cap on supported convex planar stock, and separated repeated
+bores. All 22 selected existing scenarios pass: guided Hole, multi-body scope, native
+dialog and target capture alongside the previous eleven regressions. Both
+TypeScript checks and the separate real-WASM proof pass.
+See readiness for final source-hashed results and explicit domain limits.
+PC1 remains partial: overlapping cylindrical tools, mixed line/arc profiles,
+side-crossing cuts and arbitrary curved target bodies remain open. Next, select
+the first existing acceptance gate requiring one of those capabilities; downstream
+Hole editing with chamfers also depends on PC2 edge-treatment support.
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions

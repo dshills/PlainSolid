@@ -6,6 +6,7 @@ import type { ComponentPlacement } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions } from "./KernelAdapter";
+import { HoleScopeError } from "./KernelAdapter";
 import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
@@ -151,7 +152,51 @@ export class OpenCascadeKernel implements KernelAdapter {
       return volume > tolerance;
     } finally { request({ op: "dispose", handle: proof.handle }); }
   }
-  cutScope: NonNullable<KernelAdapter["cutScope"]> = unsupported;
+  cutScope(targets: KernelShape[], tools: KernelShape[]): KernelShape[] {
+    if (!targets.length || !tools.length)
+      throw new Error("Hole scope requires target bodies and center tools.");
+    const owned = new Set<KernelShape>();
+    const hits = targets.map(() => tools.map(() => false));
+    const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
+    try {
+      // Every center is proved against the original scope, never an intermediate
+      // result. A missed individual body is allowed; an unused center is not.
+      for (const [toolIndex, tool] of tools.entries()) {
+        let hit = false;
+        try {
+          for (const [targetIndex, target] of targets.entries()) {
+            if (!this.hasCommonVolume(target, tool)) continue;
+            const probe = this.cut(target, tool);
+            owned.add(probe);
+            this.disposeShape(probe);
+            owned.delete(probe);
+            hits[targetIndex][toolIndex] = true;
+            hit = true;
+          }
+          if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+        } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
+      }
+      const outputs = targets.map((target, targetIndex) => {
+        try {
+          if (!hits[targetIndex].some(Boolean))
+            throw new Error("Boolean cut removed no volume. Move a tool into the target body.");
+          let current = target;
+          for (const [toolIndex, tool] of tools.entries()) {
+            if (!hits[targetIndex][toolIndex]) continue;
+            // The bridge accepts separated analytic bores and rejects unproved
+            // overlapping cutters explicitly; never silently drop a cutter.
+            const next = this.cut(current, tool);
+            owned.add(next);
+            if (owned.has(current)) { this.disposeShape(current); owned.delete(current); }
+            current = next;
+          }
+          return current;
+        } catch (error) { throw new HoleScopeError("target", targetIndex, reason(error)); }
+      });
+      for (const output of outputs) owned.delete(output);
+      return outputs;
+    } finally { for (const shape of owned) this.disposeShape(shape); }
+  }
   joinAll: NonNullable<KernelAdapter["joinAll"]> = unsupported;
   nativeDrawingGeometry?: KernelAdapter["nativeDrawingGeometry"];
   getWasmHeapCapacityBytes() { return undefined; }

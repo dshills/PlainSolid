@@ -59,7 +59,7 @@ func TestThroughCircleCutAllAxesAndSigns(t *testing.T) {
 func TestFiniteCylinderCoverageAndPartialCommon(t *testing.T) {
 	b := New()
 	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
-	for _, tc := range []struct{ z, height float64 }{{0, 7}, {1, 8}, {9, 8}, {-9, 8}, {math.SmallestNonzeroFloat64, 8}, {0, math.Nextafter(8, 0)}} {
+	for _, tc := range []struct{ z, height float64 }{{9, 8}, {-9, 8}, {math.SmallestNonzeroFloat64, 8}, {0, math.Nextafter(8, 0)}} {
 		tool := circle(t, b, vector{0, 0, tc.z}, vector{0, 0, 1}, 1, tc.height)
 		before := len(b.shapes)
 		reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)

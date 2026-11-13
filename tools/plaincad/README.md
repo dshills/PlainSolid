@@ -49,19 +49,31 @@ The initial adapter supports exact straight polygon extrusion (including support
 polygon holes), single full-circle extrusion without inner loops, boxes, planar
 cut/join/common, clone/rigid placement, tessellation, STL, and unchanged rectangular
 extrusion shelling. Circle geometry retains analytic cylinder/cap surfaces; only
-display and STL are tessellated using the requested deflection settings. Mixed
+display and STL are tessellated using the requested deflection settings. The
+bridge conservatively maps angular deflection to half the kernel facet-normal
+bound so sampled normal turning across cylindrical facets stays within the
+requested angle. This is a sampled check, not a surface-wide certificate. Mixed
 line/arc profiles, curved inner loops, general curved Boolean combinations,
 revolutions, fillets/chamfers, STEP, threads, lead parts, and unproved topology
 references fail explicitly.
 
-Finite cylindrical through-cuts are supported on qualified convex planar stock
+Finite cylindrical through-cuts and blind bores are supported on qualified convex planar stock
 with parallel caps perpendicular to the cylinder axis and a strictly interior
-circular footprint. The tool must cover both stock caps; equality at the caps is
-accepted. Partial/blind, tangential, clipped-side and unsupported oblique-cap cuts
+circular footprint. A through-tool must cover both stock caps; equality at the caps is
+accepted. A blind tool must enter a stock cap and end inside the stock, producing
+an exact planar floor. Fully internal, tangential, clipped-side and unsupported oblique-cap cuts
 are rejected instead of extending the cylinder infinitely. Multiple separated
 bores use the original stock and validated cut recipes. These restrictions do not
-imply support for cutting arbitrary previously filleted or revolved bodies. Scoped
-atomic operations and some app feature gates are still absent.
+imply support for cutting arbitrary previously filleted or revolved bodies.
+
+Scoped Hole cuts validate every center against the original selected bodies and
+require every selected body to lose volume. Individual center/body misses are
+allowed only when the native intersection proves no common volume. Results are
+published together; a failed center or target disposes all intermediate outputs
+and preserves the inputs. Separated cylindrical cutters are supported within the
+bounded bore domain; overlapping cutters reject explicitly. The backend probe
+checks indexed scope errors and fills the remaining native handle capacity after
+repeated late-target failures to verify cleanup. Other scoped operations remain unsupported.
 This harness is an acceptance integration, not a published production backend.
 
 ## Evidence

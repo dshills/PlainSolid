@@ -404,6 +404,9 @@ func (s Solid) Tessellate(ctx context.Context, o parametric.TessellationOptions)
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
+	if m, ok, err := s.compactCylinderMesh(ctx, o); ok {
+		return m, err
+	}
 	n := 0
 	maximum := 0.
 	for i, triangles := range s.seeds {
