@@ -61,7 +61,8 @@ type offsetCommonData struct {
 
 type offsetPartialData struct {
 	offsetCommonData
-	Clipped bool
+	Clipped   bool
+	ChordMode bool `json:",omitempty"`
 }
 
 type helicalSurfaceData struct {
@@ -128,7 +129,7 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case offsetCommonChart:
 		return surfaceData{Kind: "offset-sphere-common", Frame: frameToData(x.frame), OffsetCommon: &offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}}, nil
 	case offsetPartialCommon:
-		return surfaceData{Kind: "offset-sphere-partial-common", Frame: frameToData(x.frame), PartialCommon: &offsetPartialData{offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}, x.clipped}}, nil
+		return surfaceData{Kind: "offset-sphere-partial-common", Frame: frameToData(x.frame), PartialCommon: &offsetPartialData{offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}, x.clipped, x.chordMode}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -363,7 +364,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		if x.Chart < partialCommonWall || x.Chart > partialCommonStrip || x.Chart == partialCommonStrip && !x.Clipped {
 			return nil, geom.ErrInvalid
 		}
-		s, _, e := newOffsetPartialCommon(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
+		s, _, e := newOffsetPartialCommonMode(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0, x.ChordMode)
 		s.kind, s.clipped = x.Chart, x.Clipped
 		return s, e
 	case "torus":

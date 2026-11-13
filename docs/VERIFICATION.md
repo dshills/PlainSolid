@@ -975,3 +975,8 @@ and tool-polar volume integral. Both algebraic cap events remain available
 alongside the native spherical strips, cylinder wall and planar lens.
 Native reload and sampled watertight display with no detected contacts
 pass. The rounded angular split is not covered by a deflection certificate.
+
+The chord-centered counterpart covers lenses containing neither circle
+center. It agrees with the tool-centered chart where both apply and with
+OCCT for a narrower lens beyond the tool axis. Native reload and mesh
+closure/self-contact tests also pass for the chord-centered shell.
