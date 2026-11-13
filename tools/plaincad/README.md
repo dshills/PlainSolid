@@ -26,11 +26,11 @@ node tools/plaincad/run.mjs \
 ```
 
 `--work` must be empty or nonexistent. The default is a fresh timestamped
-temporary directory. `--port` defaults to 5279. The harness builds its own WASM
+temporary directory. Development uses port 5279 by default. The harness builds its own WASM
 binary, copies the matching Go JavaScript runtime, typechecks the app, runs a
 backend preflight, and then runs the selected existing fixtures. It requires
-local server and browser process permissions. A nondefault port also maps the
-original focused workspace storage-state origin to the staged server.
+local server and browser process permissions. Fixtures that pin their storage
+origin use the original port. The harness keeps fixture source unchanged.
 
 Pass `--suite production --test production-e2e --grep '.*'` to build the
 staged app and run its original production configuration on port 5280.
@@ -181,7 +181,7 @@ After `run.mjs` has staged an isolated workspace with passing typecheck and real
 Go WASM backend probe, verify it without launching a build or browser:
 
 ```sh
-node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --check
+node tools/plaincad/production.mjs --work /tmp/staged-plaincad --check
 ```
 
 The verifier checks recorded source hashes (including provider-only adaptations),
@@ -193,7 +193,7 @@ When other expensive qualification jobs are paused, run all original production
 cases, or select an original file/title explicitly:
 
 ```sh
-node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --run
+node tools/plaincad/production.mjs --work /tmp/staged-plaincad --run
 node tools/plaincad/production.mjs --work /tmp/staged-plaincad --port 5415 --test production-e2e/step-import.spec.ts --run
 ```
 
@@ -203,5 +203,10 @@ source provenance and selected test outcomes. Original timeouts/assertions are
 retained. Skips, zero selected tests and interrupted results cannot count as a
 pass. Only the selected cases are qualified. The staging `readiness.json` is never
 rewritten. Do not edit or concurrently run another harness in the staged workspace.
+
+The [development](DEVELOPMENT.md) and [cross-browser](CROSS_BROWSER.md)
+stages record independent evidence for their original suites. Direct suite
+selection uses the same [verified delegation](SUITE_DELEGATION.md) for
+production and cross-browser qualification.
 
 Run the inexpensive verifier tests with `node --test tools/plaincad/production.test.mjs`.
