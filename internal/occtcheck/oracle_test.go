@@ -362,6 +362,8 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 	check("finite-sphere-cylinder-common", c.Solid, e)
 	a, e := parametric.SphereFiniteCylinderCommonAlgebraic(ctx, f, 5, 2, -4.75, 4.75, 1e-8, geom.ExactCurvePlaneEventOptions{})
 	check("finite-sphere-cylinder-algebraic-common", a.Solid, e)
+	b, e := parametric.SphereOffAxisBlindBore(ctx, f, 5, 2, 1, -.75, 1e-9)
+	check("off-axis-sphere-blind-bore", b.Solid, e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

@@ -44,6 +44,12 @@ type surfaceData struct {
 	Helical         *helicalSurfaceData      `json:",omitempty"`
 	Twisted         *[2]float64              `json:",omitempty"`
 	AngularReversed bool                     `json:",omitempty"`
+	OffsetBore      *offsetBoreData          `json:",omitempty"`
+}
+
+type offsetBoreData struct {
+	Radius, Bore, Offset, Floor float64
+	Chart                       int
 }
 
 type helicalSurfaceData struct {
@@ -103,6 +109,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case geom.SphereSurface:
 		f, r := x.Parameters()
 		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
+	case offsetBoreChart:
+		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -169,6 +177,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "offset-sphere-bore") != (d.OffsetBore != nil) {
+		return nil, geom.ErrInvalid
+	}
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
 		return nil, geom.ErrInvalid
 	}
@@ -305,6 +316,13 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return geom.NewConeSurfaceSlope(f, d.A)
 	case "sphere":
 		return geom.NewSphereSurface(f, d.A)
+	case "offset-sphere-bore":
+		x := d.OffsetBore
+		s := offsetBoreChart{f, x.Radius, x.Bore, x.Offset, x.Floor, x.Chart}
+		if e := s.validate(0); e != nil {
+			return nil, e
+		}
+		return s, nil
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)
 	case "arc-fan":

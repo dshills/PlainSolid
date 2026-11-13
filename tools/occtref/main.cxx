@@ -99,12 +99,17 @@
 #include "iges_spline_lens.hxx"
 #include <array>
 
-static void record(std::ostream& out, const char* name, const TopoDS_Shape& shape) {
+static void record(std::ostream& out, const char* name, const TopoDS_Shape& shape, double integrationError = 0) {
   if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid())
     throw std::runtime_error(std::string("invalid reference shape: ") + name);
   GProp_GProps volume, area;
-  BRepGProp::VolumeProperties(shape, volume);
-  BRepGProp::SurfaceProperties(shape, area);
+  if (integrationError > 0) {
+    BRepGProp::VolumeProperties(shape, volume, integrationError, true);
+    BRepGProp::SurfaceProperties(shape, area, integrationError);
+  } else {
+    BRepGProp::VolumeProperties(shape, volume);
+    BRepGProp::SurfaceProperties(shape, area);
+  }
   const gp_Pnt c = volume.CentreOfMass();
   out << std::setprecision(17) << "{\"Name\":\"" << name
       << "\",\"Area\":" << area.Mass() << ",\"Volume\":" << volume.Mass()
@@ -1063,6 +1068,8 @@ int main(int argc, char** argv) {
     record(out, "finite-sphere-cylinder-union", BRepAlgoAPI_Fuse(finiteBall, finiteBand).Shape());
     record(out, "finite-sphere-cylinder-common", BRepAlgoAPI_Common(finiteBall, finiteBore).Shape());
     record(out, "finite-sphere-cylinder-algebraic-common", BRepAlgoAPI_Common(finiteBall, algebraicBand).Shape());
+    const auto offAxisBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1, 0, -.75), gp_Dir(0, 0, 1)), 2, 7).Shape();
+    record(out, "off-axis-sphere-blind-bore", BRepAlgoAPI_Cut(finiteBall, offAxisBore).Shape(), 1e-10);
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

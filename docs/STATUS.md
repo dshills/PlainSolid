@@ -434,6 +434,11 @@ smooth loops, isolated tangency, and a crossing node; general off-axis
 trim assembly remains open. Fixed finite cap events have an exact zero,
 one, two or coincident-circle classifier. Finite off-axis contact graphs
 preserve cap ownership, isolated points, and four-germ tangent nodes.
+The off-axis blind-bore shell now covers contained round cutters whose
+footprint includes the sphere axis. It retains native analytic faces and
+has a bounded display and native reload. Exact point and isolated line
+queries support any contained cutter, including a footprint disjoint from
+the sphere axis. General curved fragment assembly is still open.
 
 ## Continuing implementation
 

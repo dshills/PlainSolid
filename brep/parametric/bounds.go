@@ -139,6 +139,24 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		cv, sv := trig(v, false), trig(v, true)
 		radial(multiply(cv, scalarBounds{r, r}))
 		z = multiply(sv, scalarBounds{r, r})
+	case offsetBoreChart:
+		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		f = a.frame
+		switch a.kind {
+		case offsetBoreSphere:
+			radial(scalarBounds{0, a.radius})
+			z = scalarBounds{-a.radius, a.radius}
+		case offsetBoreWall, offsetBoreFloor:
+			radial(scalarBounds{0, upAdd(a.offset, a.bore)})
+			z = scalarBounds{a.floor, a.floor}
+			if a.kind == offsetBoreWall {
+				z.hi = a.radius
+			}
+		default:
+			return geom.Box{}, geom.ErrInvalid
+		}
 	case geom.TorusSurface:
 		frame, r, t := a.Parameters()
 		f = frame

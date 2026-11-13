@@ -940,3 +940,12 @@ finite common with one axial cap, and finite common with two algebraic
 sphere-to-cylinder rim heights and algebraic cap radii. The off-axis
 finite graph tests distinguish cap folds, a four-germ node, and isolated
 points without inventing edges for sheets clipped to zero width.
+
+The native off-axis blind bore matches the independent OCCT cut in area,
+volume and centroid using adaptive oracle integration. An independent
+tool-polar volume integral and native save/reload also agree. Rational
+chart Hessian bounds qualify the real-arithmetic tessellation error,
+excluding evaluation roundoff. The conforming mesh has positive signed
+volume and passes a complete self-contact check. The exact query tests
+cover both support junctions, hidden sphere filtering, tangencies, line
+endpoints, and contained cutters that do not cover the sphere axis.
