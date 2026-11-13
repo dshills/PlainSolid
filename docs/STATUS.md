@@ -22,6 +22,15 @@ supporting evidence, not PlainCAD end-to-end passes. The separate
 through scoped blind/through holes in commit `3d9bf1f`; that branch owns its
 browser evidence and is not included in this checkout's kernel test results.
 
+The integration branch also records the long feature chain (`64152c9`),
+grouped edge treatments (`c5206db`), and finite-face sweep proofs (`86a0a73`).
+A read-only merge preview against `0c09b62` found six conflicts: repository
+instructions, three rectangular extrusion builders, and two long-edge
+treatment builders. Reconcile shared builder behavior and face/edge ownership
+on a separate integration candidate before merging. Run the kernel suite and
+the affected PlainCAD browser scenarios on that same candidate. The two
+working directories are kept separate while either has uncommitted work.
+
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
 bores, pockets and joins; helical threads and lead parts; and STEP roundtrips of
