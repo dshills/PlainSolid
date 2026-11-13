@@ -847,6 +847,8 @@ int main(int argc, char** argv) {
 #endif
     }
 #ifdef PLAINSOLID_OCCT_STEP
+    if(argc==3 && mode=="circular-pocket-extrusion")return circularHoleExtrusionReference(argv[1],1);
+    if(argc==3 && mode=="circular-blind-extrusion")return circularHoleExtrusionReference(argv[1],2);
     if(argc==3 && mode=="circular-hole-extrusion")return circularHoleExtrusionReference(argv[1]);
     if(argc==3 && mode=="polygon-revolve-axis")return polygonRevolveReference(argv[1],true);
     if(argc==3 && mode=="polygon-revolve")return polygonRevolveReference(argv[1]);

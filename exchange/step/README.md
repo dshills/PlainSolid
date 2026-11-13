@@ -1855,3 +1855,19 @@ analytic placements use the same float64/native-tolerance contract as sector
 and polygon-revolve exports. Independent OCCT prism-minus-cylinder construction
 and imported output agree with native area, volume and centroid for a rotated
 convex pentagon with two different hole radii and both signed directions.
+
+`CircularHoleExtrusionBody.Blind` adds optional finite circular pockets with
+positive `Depth` strictly less than the absolute extrusion height. They begin
+on the original sketch cap at axial zero and advance toward the signed endpoint.
+The combined through/blind footprint count is limited to 16; all footprints
+remain strictly contained and pairwise disjoint. Depth zero, overshoot and an
+exact full-depth pocket are rejected instead of being silently reclassified.
+
+A blind wall stops at its own planar disk floor. Its other circular rim belongs
+only to the entry cap; the opposite exterior cap is unchanged. Floor faces
+carry the material orientation appropriate to the signed direction, and share
+their authoritative rim and owner pcurves with the stopped cylinder. Independent
+OCCT prism/cylinder-cut fixtures qualify mixed through/blind and blind-only
+models in both signs, including two different floor depths, area, volume and
+centroid. Source tests verify floor heights/normals, two opposite uses of each
+edge, and the Euler characteristic appropriate to the remaining through holes.

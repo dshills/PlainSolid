@@ -14,10 +14,13 @@ import (
 // polygon and disjoint interior circles in Frame XY. The native constructor
 // proves strict circle containment/disjointness in represented coordinates.
 type CircularHoleExtrusionBody struct {
-	Name   string
-	Frame  geom.Frame
-	Outer  []geom.Vec2
-	Holes  []trimmed.ExtrusionCircle
+	Name  string
+	Frame geom.Frame
+	Outer []geom.Vec2
+	Holes []trimmed.ExtrusionCircle
+	// Blind holes start at the original sketch cap and stop at positive Depth
+	// toward the signed extrusion endpoint; floors remain explicit planar faces.
+	Blind  []trimmed.ExtrusionBlindHole
 	Height float64
 }
 type CircularHoleExtrusionModel struct {
@@ -34,14 +37,15 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 	}
 	bodies := make([]CircularHoleExtrusionBody, len(m.Bodies))
 	for i, b := range m.Bodies {
-		if !utf8.ValidString(b.Name) || len(b.Name) > 4096 || len(b.Outer) < 3 || len(b.Outer) > 64 || len(b.Holes) < 1 || len(b.Holes) > 16 {
+		if !utf8.ValidString(b.Name) || len(b.Name) > 4096 || len(b.Outer) < 3 || len(b.Outer) > 64 || len(b.Holes)+len(b.Blind) < 1 || len(b.Holes)+len(b.Blind) > 16 {
 			return geom.ErrInvalid
 		}
-		if _, e := trimmed.ExtrudePolygonWithCircularHoles(context.Background(), b.Frame, b.Outer, b.Holes, b.Height); e != nil {
+		if _, e := trimmed.ExtrudePolygonWithHoles(context.Background(), b.Frame, b.Outer, b.Holes, b.Blind, b.Height); e != nil {
 			return e
 		}
 		b.Outer = append([]geom.Vec2(nil), b.Outer...)
 		b.Holes = append([]trimmed.ExtrusionCircle(nil), b.Holes...)
+		b.Blind = append([]trimmed.ExtrusionBlindHole(nil), b.Blind...)
 		sign, _ := geom.Orient2D(b.Outer[0], b.Outer[1], b.Outer[2])
 		if sign < 0 {
 			for a, z := 0, len(b.Outer)-1; a < z; a, z = a+1, z-1 {
@@ -118,7 +122,6 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 		for _, b := range bodies {
 			n := len(b.Outer)
 			lo, hi := math.Min(0, b.Height), math.Max(0, b.Height)
-			height := hi - lo
 			caps := [2]int64{}
 			capFrames := [2]geom.Frame{}
 			walls := make([]int64, n)
@@ -177,13 +180,42 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 				}
 				capBounds[j] = []int64{bound(uses, true)}
 			}
+			type cavity struct {
+				circle    trimmed.ExtrusionCircle
+				low, high float64
+				entry     int
+			}
+			cavities := make([]cavity, 0, len(b.Holes)+len(b.Blind))
 			for _, h := range b.Holes {
-				cf, _ := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{X: h.Center.X, Y: h.Center.Y, Z: lo}), b.Frame.XAxis(), b.Frame.ZAxis())
+				cavities = append(cavities, cavity{h, lo, hi, -1})
+			}
+			for _, h := range b.Blind {
+				depth := h.Depth
+				entry := 0
+				if b.Height < 0 {
+					depth = -depth
+					entry = 1
+				}
+				cavities = append(cavities, cavity{h.ExtrusionCircle, math.Min(0, depth), math.Max(0, depth), entry})
+			}
+			for _, hole := range cavities {
+				h := hole.circle
+				low, high := hole.low, hole.high
+				owners := caps
+				if hole.entry >= 0 {
+					floorZ := high
+					if hole.entry == 1 {
+						floorZ = low
+					}
+					ff, _ := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{Z: floorZ}), b.Frame.XAxis(), b.Frame.ZAxis())
+					owners[1-hole.entry] = emit(fmt.Sprintf("PLANE('',#%d)", place(ff)))
+				}
+				cf, _ := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{X: h.Center.X, Y: h.Center.Y, Z: low}), b.Frame.XAxis(), b.Frame.ZAxis())
 				cylinder := emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)", place(cf), real(h.Radius)))
 				rim := [2]int64{}
 				pole := [2]int64{}
 				seamPoints := [2]geom.Vec3{}
-				for j, z := range []float64{lo, hi} {
+				for j, z := range []float64{low, high} {
 					center := b.Frame.ToWorld(geom.Vec3{X: h.Center.X, Y: h.Center.Y, Z: z})
 					f, _ := geom.NewFrame(center, b.Frame.XAxis(), b.Frame.ZAxis())
 					q := center.Add(b.Frame.XAxis().Scale(h.Radius))
@@ -191,8 +223,12 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 					pt := point(q)
 					pole[j] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", pt))
 					circle := emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(f), real(h.Radius)))
-					rim[j] = edge(pole[j], pole[j], circle, []int64{pc(cylinder, line2(geom.Vec2{Y: float64(j) * height}, geom.Vec2{X: 1})), pc(caps[j], circle2(h.Center, h.Radius))}, false)
-					capBounds[j] = append(capBounds[j], bound([]int64{use(rim[j], j == 0)}, false))
+					rim[j] = edge(pole[j], pole[j], circle, []int64{pc(cylinder, line2(geom.Vec2{Y: float64(j) * (high - low)}, geom.Vec2{X: 1})), pc(owners[j], circle2(h.Center, h.Radius))}, false)
+					if hole.entry < 0 || j == hole.entry {
+						capBounds[j] = append(capBounds[j], bound([]int64{use(rim[j], j == 0)}, false))
+					} else {
+						faces = append(faces, face(owners[j], []int64{bound([]int64{use(rim[j], j == 0)}, true)}, j == 0))
+					}
 				}
 				seam := edge(pole[0], pole[1], line(seamPoints[0], seamPoints[1]), []int64{pc(cylinder, line2(geom.Vec2{}, geom.Vec2{Y: 1})), pc(cylinder, line2(geom.Vec2{X: 2 * math.Pi}, geom.Vec2{Y: 1}))}, true)
 				loop := []int64{use(seam, false), use(rim[0], false), use(seam, true), use(rim[1], true)}
