@@ -29,6 +29,9 @@ static void planarLoftRecords(std::ostream& out){
  record(out,"planar-rectangular-loft",sewnPlanarLoft({rectangle(0,0,4,3,0),rectangle(.5,-.5,2,5,6)}));
  record(out,"planar-convex-station-loft",sewnPlanarLoft({rectangle(-1,-1,2,2,0),rectangle(-2,-2,4,4,1),rectangle(-1,-1,2,2,2)}));
  record(out,"planar-waist-station-loft",sewnPlanarLoft({rectangle(-1,-1,2,2,0),rectangle(-.5,-.5,1,1,1),rectangle(-1,-1,2,2,2)}));
+ auto first=BRepPrimAPI_MakeBox(gp_Pnt(0,-.5,-.5),2.5,1,1).Shape();
+ auto second=BRepPrimAPI_MakeBox(gp_Pnt(1.5,-.5,-.5),1,3.5,1).Shape();
+ record(out,"planar-mitered-elbow",BRepAlgoAPI_Fuse(first,second).Shape());
 }
 
 static void featureRecords(std::ostream& out){

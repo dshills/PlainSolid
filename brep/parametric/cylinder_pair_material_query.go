@@ -56,3 +56,12 @@ func (s FiniteTransverseCylinderSet) Classify(p geom.Vec3) (geom.CylinderSetPoin
 	}
 	return s.query.Classify(p)
 }
+
+// ClipLine returns regularized material and separate original support incidence
+// on the caller's finite raw line. It never substitutes closed-set difference.
+func (s FiniteTransverseCylinderSet) ClipLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions) (geom.TransverseCylinderMaterialLine, error) {
+	if !s.valid {
+		return geom.TransverseCylinderMaterialLine{}, geom.ErrInvalid
+	}
+	return s.query.ClipLine(ctx, origin, direction, minT, maxT, o)
+}

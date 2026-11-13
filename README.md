@@ -18,8 +18,10 @@ license must be selected before distribution.
 | `mesh`, `brep` | Indexed triangle meshes, planar shared-edge topology and holes, box and prism construction |
 | `brep/parametric`, `brep/trimmed`, `brep/trimvalidate` | Analytic and spline patches, seams, poles, exact multispan degree-one/two trim topology, conforming tessellation and direct patch integration |
 | `solid`, `csg`, `csg/poly`, `csg/offset`, `csg/fillet`, `csg/draft`, `csg/feature`, `section` | Box-cell, convex and nonconvex planar Booleans, sections, split, ancestry, planar offsets, draft and chamfer, blind pockets, protrusions and convex prism fillets |
+| `csg/loft` | Exact corresponding planar rings, multi-station lofts, reentrant convex bands, separated miter cells, and original edge ancestry |
 | `heal`, `heal/unify`, `collision`, `query` | Planar sewing and face unification, exact triangle contact, planar boundary distance and point location, mesh BVH |
 | `exchange`, `exchange/step`, `exchange/iges` | OBJ/STL/PLY, embedded triangle glTF/GLB, native topology, planar/analytic STEP bodies, rigid STEP assemblies, STEP/IGES spline geometry and IGES planar trims |
+| `exchange/revolution` | Standalone versioned revolution persistence and strict IGES/STEP conversion |
 | `document`, `scene` | Mixed asset assemblies, typed labels, feature regeneration, transactions, cameras, picking and projected hidden lines |
 
 The curved kernel includes exact sphere, cylinder, cone and torus primitives,
@@ -164,6 +166,7 @@ explicit limits of the evidence.
 go test ./...
 go test -race ./...
 go vet ./...
+bash tools/ci/trimmed-shard.sh 0 3 -timeout 45m # Repeat for indices 1 and 2
 go test ./exchange -fuzz=FuzzReadSTL -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadOBJ -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadJSON -fuzztime=10s

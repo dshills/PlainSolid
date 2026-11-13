@@ -2320,6 +2320,10 @@ loft (volume `70`), the convex three-station loft (`56/3`), and a reentrant
 waist loft assembled from convex bands (`14/3`). All agree on area,
 volume, and centroid. Native station seams remain explicit, including
 when adjacent planar bands share the same support.
+Two independently fused OCCT boxes qualify the nonparallel miter elbow
+with exact volume `5` and centroid `(13/8,7/8,0)`. Native tests retain all
+four original miter edges and reject a station whose corner crosses the
+miter plane even when its center is on the expected side.
 
 Standalone STEP and IGES revolutions preserve the original signed coordinate
 axis, angular and meridian ranges, units, and exact bounded profile geometry.
@@ -2328,6 +2332,9 @@ and non-cardinal meridian phase. The native `exchange/revolution` leaf
 package retains the standalone representation through versioned JSON.
 IGES type 102 also retains bounded ordered direct mixed curve chains with
 exact joints. These are support and wire codecs without a solid claim.
+IGES type 122 retains the authored directrix and terminal point exactly.
+Independent OCCT cases for both displacement signs agree after mapping
+normalized displacement parameters to the physical distance used by OCCT.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
