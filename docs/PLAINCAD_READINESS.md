@@ -68,6 +68,10 @@ passed the unchanged controlled performance case in 64.7 seconds against
 its 90-second limit. The full production result above supersedes this
 selected checkpoint for the newer tested pair of revisions.
 
+The separate [isolated integration performance retest](evidence/plaincad-production-performance-isolated-2026-11-13.json)
+passes the original case in 29.5 seconds with all 25 edits and 11 validated
+STL downloads. That report records its own app and kernel inputs.
+
 The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
 passes cold load of all 40 bodies, cached rename, and a platter thickness
 edit. The [cache metrics](evidence/plaincad-rotary-cache-metrics-2026-11-13.json)

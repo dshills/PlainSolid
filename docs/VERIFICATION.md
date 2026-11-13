@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD isolated production performance — 2026-11-13
+
+The [production benchmark comparison](evidence/plaincad-production-performance-isolated-2026-11-13.json)
+records the original test on two serial production builds of PlainCAD
+`e65f07b`. PlainSolid passes in 29.5 seconds. The pristine OCCT control
+exceeds the test's original 90-second deadline. Both complete 25 edits
+and 11 exports with the original volume, bounds, winding and triangle
+checks. No benchmark assertions or deadlines were changed.
+
+Median edit-to-current-model time was 721 ms for PlainSolid and 1,100 ms
+for the OCCT control. Median export-to-download time was 69 ms and 150 ms.
+Cold load took 1.015 and 3.518 seconds. The production bundle budget passes
+for both builds. These measurements describe one workload and one run per
+provider.
+
 ## PlainCAD full development baseline — 2026-11-13
 
 The [classified baseline](evidence/plaincad-development-baseline-2026-11-13.json)

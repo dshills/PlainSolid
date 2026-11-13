@@ -29,7 +29,13 @@ node tools/plaincad/run.mjs \
 temporary directory. `--port` defaults to 5279. The harness builds its own WASM
 binary, copies the matching Go JavaScript runtime, typechecks the app, runs a
 backend preflight, and then runs the selected existing fixtures. It requires
-local server and browser process permissions.
+local server and browser process permissions. A nondefault port also maps the
+original focused workspace storage-state origin to the staged server.
+
+Pass `--suite production --test production-e2e --grep '.*'` to build the
+staged app and run its original production configuration on port 5280.
+Use `--suite cross-browser --test cross-browser-e2e --grep '.*'` for the
+original Chromium, Firefox and WebKit configuration on port 5281.
 
 ## What changes in the isolated app
 
@@ -40,7 +46,8 @@ local server and browser process permissions.
   topology, UI, persistence, and export assertions are otherwise preserved.
   Each changed file, replacement count, and before/after hash is recorded.
 - Vite receives an isolated cache and explicit serving permission for the shared
-  dependency directory. An optional port changes only the copied test config.
+  dependency directory. An optional port changes the copied test config and its focused workspace
+  storage-state origins.
 - A separate generated backend test proves real WASM execution and rejects OCCT
   asset requests. It checks nonempty material, no-op cut, connected-join behavior,
   and export union semantics. This probe is not counted as an existing fixture.
