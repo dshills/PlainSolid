@@ -2,6 +2,7 @@ package poly
 
 import (
 	"context"
+	"errors"
 	"plainsolid/brep"
 	"plainsolid/geom"
 )
@@ -72,10 +73,19 @@ func ValidateEmbeddedBoundary(ctx context.Context, s brep.Solid, o Options) erro
 // Combine applies a regularized Boolean to the exact oriented triangle surfaces
 // represented by the inputs. Inputs must be embedded manifolds with outward
 // material boundaries (cavity shells inward). Edge/vertex-only contacts that
-// cannot form an embedded manifold are rejected. No convex decomposition is used.
+// cannot form an embedded manifold are rejected. After a conversion failure,
+// axis-aligned boundaries may retry with an exact coordinate grid; consumed
+// work and fragment counters carry into that bounded retry.
 func Combine(ctx context.Context, a, b brep.Solid, op Operation, o Options) (brep.Solid, error) {
 	var sources []Source
-	return combine(ctx, a, b, op, o, &sources)
+	var usage [2]int
+	result, err := combineMeasured(ctx, a, b, op, o, &sources, nil, &usage)
+	if errors.Is(err, ErrPrecision) {
+		if exact, handled, e := combineAxisAlignedBudget(ctx, a, b, op, o, usage); handled {
+			return exact, e
+		}
+	}
+	return result, err
 }
 
 // CombineWithHistory performs the same operation as Combine and returns boundary

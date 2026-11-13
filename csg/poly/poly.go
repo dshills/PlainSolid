@@ -348,6 +348,9 @@ func combine(ctx context.Context, a, b brep.Solid, op Operation, o Options, hist
 	return combineDetailed(ctx, a, b, op, o, history, nil)
 }
 func combineDetailed(ctx context.Context, a, b brep.Solid, op Operation, o Options, history *[]Source, exactVertices *[]point) (result brep.Solid, retErr error) {
+	return combineMeasured(ctx, a, b, op, o, history, exactVertices, nil)
+}
+func combineMeasured(ctx context.Context, a, b brep.Solid, op Operation, o Options, history *[]Source, exactVertices *[]point, usage *[2]int) (result brep.Solid, retErr error) {
 	if ctx == nil || op > Difference {
 		return brep.Solid{}, ErrInvalid
 	}
@@ -358,6 +361,9 @@ func combineDetailed(ctx context.Context, a, b brep.Solid, op Operation, o Optio
 	}
 	bu := &budget{ctx: ctx, o: o}
 	defer func() {
+		if usage != nil {
+			*usage = [2]int{bu.work, bu.fragments}
+		}
 		if retErr == nil {
 			*history = bu.sources
 			if exactVertices != nil {
