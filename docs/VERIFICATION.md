@@ -1,5 +1,14 @@
 # Verification record
 
+## PlainCAD STEP units on notched stock — 2026-11-13
+
+The bridge retains a qualified notched-stock boundary after converting
+its recipe to millimetres. A native regression imports a centimetre STEP
+file with a corner notch and an opposed blind bore, checks world bounds
+and volume, adds another scoped bore and exports STEP again. The
+[two original STEP browser cases](evidence/plaincad-notch-step-units-2026-11-13.json)
+pass, along with focused race checks and Go vet.
+
 ## PlainCAD notched stock batch order — 2026-11-13
 
 An interior through cutter joins opposed blind spans at the same site in
