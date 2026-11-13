@@ -422,11 +422,14 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 [oracle instructions](../tools/occtref/README.md).
 
 Finite coaxial sphere/cylinder common now retains the applicable
-cylindrical band, spherical caps or zones, and planar clipping caps. A
+cylindrical band, spherical caps or zones, and planar clipping caps.
+Subtraction supports a contained cavity, a blind or through bore, and
+cuts that separate the sphere into two native components. A
 separate finite blind bore supports exact and algebraically enclosed rim
 heights. Exact off-axis angular contact classification distinguishes
 smooth loops, isolated tangency, and a crossing node; general off-axis
-trim assembly remains open.
+trim assembly remains open. Fixed finite cap events now have an exact
+zero, one, two or coincident-circle classifier.
 
 ## Continuing implementation
 

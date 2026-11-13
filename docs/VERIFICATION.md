@@ -920,3 +920,14 @@ independent axial integration; a mesh has positive volume and no detected
 contacts. Off-axis support tests independently qualify all angular topology
 regimes, including algebraic boundary rays and the distinct curve tangent
 directions at a shared node.
+
+Finite coaxial subtraction tests compare native mass with independent exact
+coefficients for an enclosed cavity, blind and through bores, and two caps
+separated by a cut. They verify an empty result for complete removal, no
+change for a pole-only cut, and rejection of a nonmanifold tool-floor pinch
+or a seam outside the exact representation contract.
+
+The long fillet and chamfer STEP fixtures retain native vertex and edge
+identities through export. The optional OCCT oracle builds an independent
+arc-and-line prism, adds the bores and pocket by cutting, and adds the boss
+by fusing; both resulting STEP bodies match its area, volume and centroid.
