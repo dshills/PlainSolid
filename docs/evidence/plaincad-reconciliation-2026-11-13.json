@@ -787,6 +787,92 @@
       "fullReport": "/tmp/plaincad-reconcile-helical-80fac9c/readiness.json",
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1100
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M e2e/studio.spec.ts\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "acce666ad593527a0c39ff3f4bfc7acd8f307e5e",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/(step-import|durability-fabrication).spec.ts",
+        "grep": "same-ID project replacement|separate ZIP alignment"
+      },
+      "startedAt": "2026-11-13T17:37:41.617Z",
+      "finishedAt": "2026-11-13T17:38:24.228Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "238e27955faf64b92e6f068507416927a15b47b7b32faf5204b4a71d6a072f55",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-lifecycle-acce666/backend-results.json",
+          "startTime": "2026-11-13T17:38:00.790Z",
+          "duration": 12311.238000000001,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-lifecycle-acce666/playwright-results.json",
+          "startTime": "2026-11-13T17:38:13.802Z",
+          "duration": 10412.677,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 10830,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "durability-fabrication.spec.ts",
+          "line": 260,
+          "title": "separate ZIP alignment, overlapping shells warning, stale validation and real native union",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 4799,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "step-import.spec.ts",
+          "line": 8,
+          "title": "same-ID project replacement aborts the pending native STEP preview and forbids Apply",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 2438,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-lifecycle-acce666/readiness.json",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1110
     }
   ]
 }

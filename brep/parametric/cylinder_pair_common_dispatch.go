@@ -72,11 +72,8 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 			return empty, nil
 		}
 	}
-	if a.Radius != b.Radius {
-		result, contained, err := finitePerpendicularContainedCylinder(ctx, a, b, m.ClosestFeet, exactWindows, m.SeparationSquared)
-		if err != nil || contained {
-			return result, err
-		}
+	if owner, contained := perpendicularCylinderContainmentOwner(a, b, exactWindows, m.SeparationSquared); contained {
+		return finiteContainedCoordinateCommon(ctx, [2]geom.RawCylinder{a, b}, owner)
 	}
 	if m.SeparationSign != 0 {
 		r, e := ObliqueSkewCylinderCommon(ctx, a, b, tolerance)
@@ -294,12 +291,14 @@ func coordinateCylinderAxis(axis geom.Vec3) (unit geom.Vec3, scale float64) {
 // The extreme squared transverse distance to the larger perpendicular axis
 // is max(|lower|,|upper|)^2 + (radius + axis gap)^2 over the smaller
 // cylinder. The other cylinder's axial coordinate spans [-radius,+radius].
-func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCylinder, feet [2][3]*big.Rat, windows [2][2]*big.Rat, gapSquared *big.Rat) (FiniteCylinderPairCommonResult, bool, error) {
-	var empty FiniteCylinderPairCommonResult
+func perpendicularCylinderContainmentOwner(a, b geom.RawCylinder, windows [2][2]*big.Rat, gapSquared *big.Rat) (int, bool) {
+	if a.Radius == b.Radius {
+		return 0, false
+	}
 	unitA, scaleA := coordinateCylinderAxis(a.Axis)
 	unitB, scaleB := coordinateCylinderAxis(b.Axis)
 	if scaleA == 0 || scaleB == 0 || unitA.Dot(unitB) != 0 {
-		return empty, false, nil
+		return 0, false
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	limits := [2][2]*big.Rat{}
@@ -309,13 +308,13 @@ func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCyli
 		}
 	}
 	owner := 0
-	radius, larger, axis := a.Radius, b.Radius, unitA
+	radius, larger := a.Radius, b.Radius
 	if radius > larger {
-		owner, radius, larger, axis = 1, larger, radius, unitB
+		owner, radius, larger = 1, larger, radius
 	}
 	lo, hi, other := limits[owner][0], limits[owner][1], limits[1-owner]
 	if other[0].Cmp(q(-radius)) > 0 || other[1].Cmp(q(radius)) < 0 {
-		return empty, false, nil
+		return 0, false
 	}
 	square := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
 	allowed := new(big.Rat).Sub(square(q(larger)), square(q(radius)))
@@ -325,40 +324,23 @@ func finitePerpendicularContainedCylinder(ctx context.Context, a, b geom.RawCyli
 	for _, cap := range []*big.Rat{lo, hi} {
 		margin := new(big.Rat).Sub(allowed, square(cap))
 		if margin.Sign() < 0 || square(margin).Cmp(crossSquared) < 0 {
-			return empty, false, nil
+			return 0, false
 		}
 	}
+	return owner, true
+}
+
+func finiteContainedCoordinateCommon(ctx context.Context, operands [2]geom.RawCylinder, owner int) (FiniteCylinderPairCommonResult, error) {
 	if err := ctx.Err(); err != nil {
-		return empty, true, err
+		return FiniteCylinderPairCommonResult{}, err
 	}
-	var start geom.Vec3
-	for i, dst := range [3]*float64{&start.X, &start.Y, &start.Z} {
-		p := feet[owner][i]
-		d := [3]float64{axis.X, axis.Y, axis.Z}[i]
-		value, err := geom.RepresentedExactScalar(new(big.Rat).Add(p, new(big.Rat).Mul(q(d), lo)))
-		if err != nil {
-			return empty, true, err
-		}
-		if _, err = geom.RepresentedExactScalar(new(big.Rat).Add(p, new(big.Rat).Mul(q(d), hi))); err != nil {
-			return empty, true, err
-		}
-		*dst = value
-	}
-	height, err := geom.RepresentedExactScalar(new(big.Rat).Sub(hi, lo))
+	solid, err := nativeCoordinateCylinder(operands[owner])
 	if err != nil {
-		return empty, true, err
-	}
-	frame, err := geom.FrameFromNormal(start, axis)
-	if err != nil {
-		return empty, true, err
-	}
-	solid, err := Cylinder(frame, radius, height)
-	if err != nil {
-		return empty, true, err
+		return FiniteCylinderPairCommonResult{}, err
 	}
 	result := FiniteCylinderPairCommonResult{Solid: solid, Construction: CylinderCommonContainedCylinder}
 	result.SideFaces[owner], result.LowerCapFaces[owner], result.UpperCapFaces[owner] = []int{0}, []int{1}, []int{2}
-	return result, true, nil
+	return result, nil
 }
 
 // The clipped charts are built with +X and +Z at unit scale. An exact

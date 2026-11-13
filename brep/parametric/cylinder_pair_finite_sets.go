@@ -8,35 +8,50 @@ import (
 )
 
 // FiniteCylinderPairUnionResult retains the analytic union and raw face
-// ancestry. CommonVolumeSquared is zero for proved disjoint closures.
-// The alias also supports the original equal-radius crossing result API.
-type FiniteCylinderPairUnionResult = ObliqueEqualCylinderUnionResult
+// ancestry. Crossing and disjoint constructions report an exact squared
+// common volume. Containment instead reports its exact coefficient of π.
+// The two proof fields are mutually exclusive.
+type FiniteCylinderPairUnionResult struct {
+	Solid                                          Solid
+	WallFaces, LowerCapFaces, UpperCapFaces        [2][]int
+	CommonVolumeSquared, CommonVolumePiCoefficient *big.Rat
+}
 
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
-// raw finite cylinders, or two strictly separated coordinate-parallel bodies.
+// raw finite cylinders, two strictly separated coordinate-parallel bodies,
+// and selected unequal-radius perpendicular pairs with clear symmetric caps
+// or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.
 func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairUnionResult, error) {
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
-		return ObliqueEqualCylinderUnionResult{}, geom.ErrInvalid
+		return FiniteCylinderPairUnionResult{}, geom.ErrInvalid
 	}
 	if _, err := geom.NewCylinderPairCommon(a, b); err != nil {
-		return ObliqueEqualCylinderUnionResult{}, err
+		return FiniteCylinderPairUnionResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return ObliqueEqualCylinderUnionResult{}, err
+		return FiniteCylinderPairUnionResult{}, err
 	}
 	if rawAxesParallel(a.Axis, b.Axis) {
 		return unionSeparatedCoordinateCylinders(ctx, a, b)
 	}
+	if a.Radius != b.Radius {
+		result, ok, err := finiteContainedCylinderUnion(ctx, a, b)
+		if err != nil || ok {
+			return result, err
+		}
+		return finiteUnequalPerpendicularUnion(ctx, a, b, tolerance)
+	}
 	center, caps, err := finiteCylinderCrossingFrame(ctx, a, b, tolerance)
 	if err != nil {
-		return ObliqueEqualCylinderUnionResult{}, err
+		return FiniteCylinderPairUnionResult{}, err
 	}
-	if a.Radius != b.Radius {
-		return ObliqueEqualCylinderUnionResult{}, geom.ErrDomain
+	r, err := ObliqueEqualCylinderUnion(ctx, center, a.Axis, b.Axis, a.Radius, caps[0], caps[1], tolerance)
+	if err != nil {
+		return FiniteCylinderPairUnionResult{}, err
 	}
-	return ObliqueEqualCylinderUnion(ctx, center, a.Axis, b.Axis, a.Radius, caps[0], caps[1], tolerance)
+	return FiniteCylinderPairUnionResult{Solid: r.Solid, WallFaces: r.WallFaces, LowerCapFaces: r.LowerCapFaces, UpperCapFaces: r.UpperCapFaces, CommonVolumeSquared: r.CommonVolumeSquared}, nil
 }
 
 // FiniteCylinderPairDifferenceResult preserves the two stock-side components

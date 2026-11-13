@@ -7,12 +7,12 @@ import (
 	"plainsolid/geom"
 )
 
-func unionSeparatedCoordinateCylinders(ctx context.Context, a, b geom.RawCylinder) (ObliqueEqualCylinderUnionResult, error) {
-	var zero ObliqueEqualCylinderUnionResult
+func unionSeparatedCoordinateCylinders(ctx context.Context, a, b geom.RawCylinder) (FiniteCylinderPairUnionResult, error) {
+	var zero FiniteCylinderPairUnionResult
 	if !parallelCylinderSupportsSeparated(a, b, true) {
 		return zero, geom.ErrDomain
 	}
-	out := ObliqueEqualCylinderUnionResult{CommonVolumeSquared: new(big.Rat)}
+	out := FiniteCylinderPairUnionResult{CommonVolumeSquared: new(big.Rat)}
 	var parts [2]Solid
 	n := 0
 	for i, c := range [2]geom.RawCylinder{a, b} {
@@ -69,4 +69,41 @@ func nativeCoordinateCylinder(c geom.RawCylinder) (Solid, error) {
 		return Solid{}, err
 	}
 	return Cylinder(frame, c.Radius, height)
+}
+
+// finiteContainedCylinderUnion retains the outer original boundary once the
+// exact perpendicular containment test has excluded every exposed inner face.
+// The common volume is that of the contained cylinder; its square includes π²
+// and has no rational representation. Return the exact coefficient separately.
+func finiteContainedCylinderUnion(ctx context.Context, a, b geom.RawCylinder) (FiniteCylinderPairUnionResult, bool, error) {
+	var zero FiniteCylinderPairUnionResult
+	if a.Radius == b.Radius {
+		return zero, false, nil
+	}
+	m, err := geom.NewObliqueSkewCylinderMap(ctx, a.Origin, a.Axis, a.Radius, b.Origin, b.Axis, b.Radius, geom.SurfacePatchEvaluationOptions{})
+	if err != nil {
+		return zero, false, err
+	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	var windows [2][2]*big.Rat
+	operands := [2]geom.RawCylinder{a, b}
+	for i, c := range operands {
+		windows[i] = [2]*big.Rat{new(big.Rat).Sub(q(c.Min), m.ClosestRawParameters[i]), new(big.Rat).Sub(q(c.Max), m.ClosestRawParameters[i])}
+	}
+	inner, ok := perpendicularCylinderContainmentOwner(a, b, windows, m.SeparationSquared)
+	if !ok {
+		return zero, false, nil
+	}
+	outer := 1 - inner
+	s, err := nativeCoordinateCylinder(operands[outer])
+	if err != nil {
+		return zero, true, err
+	}
+	c := operands[inner]
+	_, scale := coordinateCylinderAxis(c.Axis)
+	r := q(c.Radius)
+	coefficient := new(big.Rat).Mul(new(big.Rat).Mul(r, r), new(big.Rat).Mul(q(scale), new(big.Rat).Sub(q(c.Max), q(c.Min))))
+	out := FiniteCylinderPairUnionResult{Solid: s, CommonVolumePiCoefficient: coefficient}
+	out.WallFaces[outer], out.LowerCapFaces[outer], out.UpperCapFaces[outer] = []int{0}, []int{1}, []int{2}
+	return out, true, nil
 }

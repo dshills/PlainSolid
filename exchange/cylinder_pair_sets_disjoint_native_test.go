@@ -110,3 +110,27 @@ func TestCylinderPairUnionDisjointNative(t *testing.T) {
 		}
 	}
 }
+
+func TestCylinderPairContainedUnionRecipe(t *testing.T) {
+	ctx := context.Background()
+	r := CylinderPairCommonRecipe{
+		Name: "contained skew", LengthUnit: .001, Tolerance: 1e-9,
+		A: geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: 2}, Radius: 2, Min: -2, Max: 2},
+		B: geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 4, Z: 4}, Axis: geom.Vec3{Z: -4}, Radius: 5, Min: -.5, Max: .5},
+	}
+	var buffer bytes.Buffer
+	if e := WriteCylinderPairUnionRecipeJSON(ctx, &buffer, r); e != nil {
+		t.Fatal(e)
+	}
+	p, u, e := ReadCylinderPairUnionRecipeJSON(ctx, bytes.NewReader(buffer.Bytes()), 0)
+	if e != nil || p != r || u.CommonVolumeSquared != nil || u.CommonVolumePiCoefficient == nil || u.CommonVolumePiCoefficient.RatString() != "32" || len(u.Solid.Faces()) != 3 {
+		t.Fatal(p, u, e)
+	}
+	bad := bytes.Replace(buffer.Bytes(), []byte(`"CommonVolumePiCoefficient":"32"`), []byte(`"CommonVolumePiCoefficient":"31"`), 1)
+	if bytes.Equal(buffer.Bytes(), bad) {
+		t.Fatal("fixture did not carry containment proof")
+	}
+	if _, u, e := ReadCylinderPairUnionRecipeJSON(ctx, bytes.NewReader(bad), 0); e == nil || len(u.Solid.Faces()) != 0 {
+		t.Fatal("accepted altered containment proof", e)
+	}
+}

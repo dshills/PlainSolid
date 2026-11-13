@@ -31,6 +31,7 @@ func (f *frameData) decode() (geom.Frame, error) {
 type surfaceData struct {
 	ObliqueSplit     *obliqueSplitData     `json:",omitempty"`
 	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
+	UnequalUnion     *unequalUnionData     `json:",omitempty"`
 	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
 	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
 	SteinmetzDualCap *steinmetzDualCapData `json:",omitempty"`
@@ -88,6 +89,11 @@ type obliqueUnionData struct {
 	Cap               bool
 }
 
+type unequalUnionData struct {
+	Center                               geom.Vec3
+	Wide, Narrow, Shoulder, XHalf, ZHalf float64
+	Kind, Side, Half, YSign              int
+}
 type steinmetzUnionData struct {
 	Center             geom.Vec3
 	Radius, HalfLength float64
@@ -221,6 +227,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
 		return surfaceData{Kind: "steinmetz-clipped-cylinder", Center: &x.center, A: x.radius, B: x.cap, Steinmetz: &[2]int{0, x.sign}}, nil
+	case unequalUnionChart:
+		return surfaceData{Kind: "unequal-perpendicular-union", UnequalUnion: &unequalUnionData{x.center, x.wide, x.narrow, x.shoulder, x.xHalf, x.zHalf, x.kind, x.side, x.half, x.ySign}}, nil
 	case steinmetzUnionChart:
 		return surfaceData{Kind: "steinmetz-union", SteinmetzUnion: &steinmetzUnionData{x.center, x.radius, x.halfLength, x.axis, x.side, x.half, x.cap}}, nil
 	case obliqueCylinderUnionChart:
@@ -354,6 +362,16 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, e
 		}
 		s.owner, s.side, s.half, s.cap = x.Owner, x.Side, x.Half, x.Cap
+		return s, nil
+	}
+	if (d.Kind == "unequal-perpendicular-union") != (d.UnequalUnion != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.UnequalUnion; x != nil {
+		s := unequalUnionChart{x.Center, x.Wide, x.Narrow, x.Shoulder, x.XHalf, x.ZHalf, x.Kind, x.Side, x.Half, x.YSign}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
 		return s, nil
 	}
 	if (d.Kind == "steinmetz-union") != (d.SteinmetzUnion != nil) {
