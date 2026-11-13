@@ -1,5 +1,37 @@
 # Verification record
 
+## PlainCAD grouped edge edit integration — 2026-11-13
+
+The adapter sends individual authored edge references as one native operation.
+The bridge resolves each against the retained source shape, deduplicates repeated
+physical edges, and publishes a single result after the entire group succeeds.
+Mixed orientations, partial or consumed references, overlapping treatments and
+mixed-owner adapter inputs fail explicitly. The original extrusion direction
+anchors the cap frame, so reversing a mixed-cap group preserves the location of
+a later cap boss. Native tests also verify closed display meshes, independent
+volume and centroid, face area and normal, unchanged inputs and handle counters.
+The final bridge race checks pass in 16.153 seconds; fillet race checks pass in
+21.661 seconds. Vet and an independent WASM build pass.
+
+The baseline failed initial volume in the original multi-edge edit test because
+the previous adapter rejected two references. The focused grouped build passes
+both original edge edit/draft tests, both TypeScript checks and the separate
+WASM probe. The probe adds grouped chamfer mass, mesh and STL, reordered and
+repeated edge selections, and a failed second reference that preserves input.
+The final frozen run passes all 26 selected existing acceptance cases in
+172.906 seconds. The original multi-edge edit takes 9.926 seconds and the
+repeated XZ drafts take 8.716 seconds. Both TypeScript checks and the separate
+7.385-second WASM probe pass. All 27 recorded cases actually pass with zero
+skips, failures or flakes. The original browser assertions and timeouts are
+preserved, with only the provider label adapted. The 80-triangle multi-edge
+STL has positive signed volume within 0.0026% of the analytic volume.
+
+Evidence is in `docs/evidence/plaincad-grouped-edge-treatments-2026-11-13.json`
+from `/tmp/plainsolid-multiedge-acceptance-03`. All 694 recorded PlainSolid source
+hashes match, and the independent WASM SHA-256 matches the tested artifact
+`a5056d13c374ff9cb6e664dba6e7255ed1a4467b482757db4d635c9ae139d5c1`.
+The original PlainCAD checkout and the other agent's main checkout were untouched.
+
 ## Grouped analytic longitudinal edge treatments — 2026-11-13
 
 The grouped constructor supports one independent sharp, rounded or chamfered

@@ -48,8 +48,11 @@ Next PC1 work includes mixed line/arc profiles, opposed-entry blind overlaps and
 broader modified/curved target bodies. PC2 now has the native long-chain geometry
 and a passing frozen-source browser run for the original fillet, chamfer, Hole,
 pocket and boss case, adjacent edge-treatment recovery and the previous 22
-acceptance cases. Grouped edge treatments,
-broader retained-stock cuts and the remaining PC2 workflows are still open.
+acceptance cases. Grouped parallel fillets and chamfers pass the multi-edge edit
+and repeated XZ edge-draft cases in a consolidated run of 26 existing cases.
+A separate WASM probe verifies grouped chamfers. Nonparallel and complete
+perimeter groups, broader retained-stock cuts and other PC2 workflows remain
+open.
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions

@@ -57,11 +57,17 @@ line/arc profiles, curved inner loops, general curved Boolean combinations,
 revolutions, general fillets/chamfers, STEP, threads, lead parts, and unproved topology
 references fail explicitly.
 
-A bounded rectangular-stock history supports one cap-edge fillet and one eligible
-equal-setback chamfer along the same stock length. Authored straight outer-edge
+A bounded rectangular-stock history supports atomic fillet and equal-setback
+chamfer batches on compatible parallel cap edges along the same stock length.
+Every explicit reference is validated against the original input before one
+result is published; repeated references resolve once. Authored straight outer-edge
 IDs resolve to original endpoints and the physical sweep axis; native queries
 prove complete sharp edges before advertising them. Treated or split edges are
-not retargeted, and grouped perimeter treatments are unsupported. The history can
+not retargeted. A complete nonparallel perimeter remains unsupported; a missing
+original member is diagnosed as lost instead of silently applying the survivors.
+The original multi-edge edit and edge-draft cases cover retained references,
+preview cancellation, invalid-size recovery, repeated treatments, and persistence.
+The history can
 then retain one cylindrical through-bore, one aligned rectangular through-pocket,
 and one upper rectangular boss, strictly within the surviving flat strip and
 separated from each other. Bounds and geometry use signed cardinal frames with

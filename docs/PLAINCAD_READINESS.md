@@ -13,7 +13,30 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
-## Long native feature chain checkpoint — 2026-11-13
+## Grouped edge treatment checkpoint — 2026-11-13
+
+The existing PlainCAD multi-edge edit case passes with two authored fillet
+references on XZ stock. It changes one reference to the opposite cap, retains
+the other reference and the downstream chamfer, and checks preview, invalid-size
+recovery, cancellation, undo/redo, save/reopen and STL. The adjacent original
+edge-draft case also passes three successive XZ treatments and verifies that
+an edge already consumed by a treatment reports as lost. The final run passes
+all 26 existing cases in 172.906 seconds, both TypeScript checks and a separate
+WASM probe, with zero skips or flaky results. The multi-edge edit takes 9.926
+seconds. The [source-hashed report](evidence/plaincad-grouped-edge-treatments-2026-11-13.json)
+records all 27 results. Its 694 PlainSolid source hashes match the tree and an
+independent WASM rebuild matches the tested artifact.
+
+The analytic constructor in `4f51147` allows independent rounds and bevels on
+up to four parallel, full-length original edges of qualified rectangular stock.
+The adapter resolves individual authored references, and the bridge validates
+the group against the same input before one publication. Repeated references
+to the same physical edge resolve once. Nonparallel groups, complete perimeter
+treatments, ambiguous or consumed references, and interacting treatments remain
+outside this domain. A separate WASM probe verifies a two-edge chamfer, reordered
+and repeated references, exact mass, closed display and STL, and atomic failure.
+
+## Earlier long native feature chain checkpoint — 2026-11-13
 
 PlainCAD's existing `long native feature chain preserves exact geometry through
 edits, blocked downstream recovery, save/open and STL` runs the original six
@@ -324,6 +347,7 @@ start as **not run with PlainSolid**; subsequent run records must state results.
 | PC1 | [component-placement.spec.ts](../../PlainCAD/e2e/component-placement.spec.ts): `moves and rotates native components with mouse cancellation, exact fields, one Undo, save/open and correctly oriented STL` | Rigid placement, ownership and exported world coordinates |
 | PC2 | [modeling-operations.spec.ts](../../PlainCAD/e2e/modeling-operations.spec.ts): `native edge treatments: edit, parameter change, save/open, STL, and invalid-size recovery` | Selected edge treatments and dimensional changes |
 | PC2 | Same source: `long native feature chain preserves exact geometry through edits, blocked downstream recovery, save/open and STL` | Extrusion → fillet → chamfer → hole → pocket → boss on one retained body |
+| PC2 | [edge-edit.spec.ts](../../PlainCAD/e2e/edge-edit.spec.ts): `Edit Fillet/Chamfer preserves multiple authored refs` | Multiple authored edges, mixed caps, downstream validation, cancellation, save/open and STL |
 | PC2 | [edge-dialog.spec.ts](../../PlainCAD/e2e/edge-dialog.spec.ts): `native edge drafts cancel cleanly, reject invalid/changed edges, and apply three exact XZ treatments with stable owners and save/open` | Current references and repeated treatments on a non-XY plane |
 | PC3 | [revolve-dialog.spec.ts](../../PlainCAD/e2e/revolve-dialog.spec.ts): `Revolve previews a construction-axis torus, diagnoses axis/angle errors, cancels, and saves only the latest native quarter sweep` | Circular profile, nontrivial axis and partial angle |
 | PC3 | [modeling-operations.spec.ts](../../PlainCAD/e2e/modeling-operations.spec.ts): `native revolve axes and angle edits, plus real boolean cut and join` | Revolved solids compose with Boolean operations |

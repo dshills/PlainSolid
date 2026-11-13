@@ -254,9 +254,27 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const edgeAfterChamfer = kernel.availableExtrudeCapEdges(chamfered);
     const edgeMeshes = [filleted, chamfered].map((shape: any) => kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 }));
     const edgeProofs = edgeMeshes.map((mesh: any) => ({ assertions: mesh.geometryAssertions, source: mesh.geometrySource, operation: mesh.kernelOperation, volume: signedVolume(mesh) }));
-    for (const item of [edgeStock, filleted, chamfered]) kernel.disposeShape(item);
+    const frontStart = { ...edgeRef, role: "startCapPerimeter" };
+    const backStart = { ...frontStart, sourceEntityId: "authored-2" };
+    const batchChamfers = [
+      kernel.chamfer(edgeStock, [frontStart, backStart], 1),
+      kernel.chamfer(edgeStock, [backStart, frontStart], 1),
+      kernel.chamfer(edgeStock, [frontStart, frontStart], 1),
+    ];
+    const batchChamferProofs = batchChamfers.map((shape: any) => {
+      const mesh = kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 });
+      return { assertions: mesh.geometryAssertions, operation: mesh.kernelOperation, volume: signedVolume(mesh), stlVolume: stlVolume(kernel.exportStl(shape)) };
+    });
+    const edgeBatchRejected = {
+      mixedOwners: rejects(() => kernel.chamfer(edgeStock, [frontStart, { ...backStart, featureId: "other-owner" }], 1)),
+      nonparallel: rejects(() => kernel.chamfer(edgeStock, [frontStart, { ...frontStart, sourceEntityId: "authored-1" }], 1)),
+      lostSecond: rejects(() => kernel.fillet(batchChamfers[0], [edgeRef, frontStart], 1)),
+    };
+    const edgeBatchInputProof = kernel.tessellate(batchChamfers[0], { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions;
+    const untouchedEndSurvives = kernel.availableExtrudeCapEdges(batchChamfers[0]).some((edge: any) => edge.role === "endCapPerimeter" && edge.sourceEntityId === "authored-0");
+    for (const item of [edgeStock, filleted, chamfered, ...batchChamfers]) kernel.disposeShape(item);
     for (const item of [base, inside, covering, far, union, large, tinyCavity, cylinder, boreBase, bored, shiftedCircle, containedCircle, ...overlapShapes, shallow, farBoreBase, farCylinder, shiftedShallow, ...unequalDepthOutputs, ...reversedDepthOutputs, tangentStock, tangentCylinder, blind, oppositeTool, oppositeBlind, internalTool]) kernel.disposeShape(item);
-    return { edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
+    return { batchChamferProofs, edgeBatchRejected, edgeBatchInputProof, untouchedEndSurvives, edgeBefore, edgeAfterFillet, edgeAfterChamfer, repeatedEdgeRejected, edgeProofs, sequentialProofs, unequalDepthProofs, unequalDepthMeshVolumes, unequalDepthStlVolumes, lateOverlapFailure, tangentFailure, overlapRetainedVolumes, overlapStlNormalsValid, reopenedOverlapProof, rebuiltOverlapProof, overlapProofs, overlapMeshVolumes, overlapStlVolumes, strictNoOpRejected, boreMeshVolume, blindMeshVolume, oppositeBlindProof, capacityCount: capacityShapes.length, capacityOverflowRejected, blindProof, internalCutRejected, crossedVolumes, missedCenter, rollbackErrors, retainedVolumes, cylinderProof: cylinderMesh.geometryAssertions, cylinderBounds: cylinderMesh.bounds, boreProof, holedCircleRejected, symmetricScope, tinyCavityRejected, rejected, unionProof, dispatcher: typeof (globalThis as any).plainSolidCall, source: mesh.geometrySource, proof: mesh.geometryAssertions };
   });
   expect(proof.dispatcher).toBe("function");
   expect(proof.source).toBe("plainsolid");
@@ -265,6 +283,17 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
   expect(proof.edgeAfterFillet).toContainEqual({ role: "startCapPerimeter", sourceEntityId: "authored-0" });
   expect(proof.edgeAfterChamfer).not.toContainEqual({ role: "startCapPerimeter", sourceEntityId: "authored-0" });
   expect(proof.repeatedEdgeRejected).toBe(true);
+  expect(proof.batchChamferProofs).toHaveLength(3);
+  proof.batchChamferProofs.forEach((item: any, index: number) => {
+    const expected = index === 2 ? 1990 : 1980;
+    expect(item).toMatchObject({ operation: "chamfer", assertions: { valid: true, solidCount: 1 } });
+    expect(item.assertions.volume).toBeCloseTo(expected, 8);
+    expect(item.volume).toBeCloseTo(expected, 5);
+    expect(item.stlVolume).toBeCloseTo(expected, 4);
+  });
+  expect(proof.edgeBatchRejected).toEqual({ mixedOwners: true, nonparallel: true, lostSecond: true });
+  expect(proof.edgeBatchInputProof.volume).toBeCloseTo(1980, 8);
+  expect(proof.untouchedEndSurvives).toBe(true);
   expect(proof.edgeProofs).toHaveLength(2);
   proof.edgeProofs.forEach((item: any, index: number) => {
     const volume = 2000 - 20 * (1 - Math.PI / 4) - (index ? 10 : 0);

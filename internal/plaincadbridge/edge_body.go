@@ -20,8 +20,7 @@ import (
 type edgeBody struct {
 	frame                 geom.Frame
 	length, width, height float64
-	radius, chamfer       float64
-	bottomFront           bool
+	corners               [4]fillet.LongEdgeCorner
 	bore                  *trimmed.ExtrusionCircle
 	pocket                *trimmed.ExtrusionRectangle
 	boss                  *trimmed.ExtrusionBoss
@@ -38,7 +37,7 @@ func sameEnds(a, b, c, d geom.Vec3) bool {
 }
 func unsupportedEdge(s string) error { return &failureError{"UNSUPPORTED", s} }
 func rebuildEdge(body edgeBody) (*edgeBody, error) {
-	chain, err := fillet.TreatLongCapEdgesOptional(context.Background(), body.length, body.width, body.height, body.radius, body.chamfer, body.chamfer, body.bottomFront, body.bore, body.pocket, body.boss, fillet.Options{})
+	chain, err := fillet.TreatLongEdgesGrouped(context.Background(), body.length, body.width, body.height, body.corners, body.bore, body.pocket, body.boss, fillet.Options{})
 	if err != nil {
 		return nil, unsupportedEdge("edge-treated stock recipe is outside the qualified domain: " + err.Error())
 	}
@@ -225,7 +224,7 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 	return ok
 }
 
-func inferEdgeStock(s brep.Solid, start, end, normal geom.Vec3, top bool) (edgeBody, error) {
+func inferEdgeStock(s brep.Solid, start, end, normal geom.Vec3) (edgeBody, error) {
 	fail := func() (edgeBody, error) {
 		return edgeBody{}, unsupportedEdge("edge treatment requires a represented orthogonal rectangular stock and an original cap edge")
 	}
@@ -266,13 +265,6 @@ func inferEdgeStock(s brep.Solid, start, end, normal geom.Vec3, top bool) (edgeB
 	if lo.Z != 0 && hi.Z != 0 {
 		return fail()
 	}
-	if (top && hi.Z > 0) || (!top && lo.Z < 0) {
-		axis = axis.Scale(-1)
-		frame, err = geom.NewFrame(start, end.Sub(start), axis)
-		if err != nil {
-			return fail()
-		}
-	}
 	lo, hi = extent(frame)
 	if lo.Y != 0 && hi.Y != 0 {
 		return fail()
@@ -307,13 +299,31 @@ func inferEdgeStock(s brep.Solid, start, end, normal geom.Vec3, top bool) (edgeB
 	}
 	return edgeBody{frame: frame, length: length, width: width, height: height}, nil
 }
+
+// treatEdge resolves every reference against the original retained input before
+// setting any corner recipe. Repeated references to the same physical edge are
+// deduplicated as in the application's native kernel; no intermediate handles
+// are published, and a consumed edge from an earlier operation is not reused.
 func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
-	if q.EdgeStart == nil || q.EdgeEnd == nil || q.Normal == nil {
-		return Shape{}, errors.New("edge treatment requires edge endpoints and extrusion normal")
+	refs := q.Edges
+	if len(refs) > 32 {
+		return Shape{}, &failureError{"LIMIT", "edge treatment accepts at most 32 authored references"}
 	}
-	start, end := q.EdgeStart.vec(), q.EdgeEnd.vec()
-	if !s.edgeAvailable(start, end) {
-		return Shape{}, unsupportedEdge(q.Op + " failed: edge reference no longer identifies a complete sharp edge")
+	if len(refs) > 0 && (q.EdgeStart != nil || q.EdgeEnd != nil) {
+		return Shape{}, errors.New("use either grouped or legacy edge references")
+	}
+	if len(refs) == 0 {
+		if q.EdgeStart == nil || q.EdgeEnd == nil {
+			return Shape{}, errors.New("edge treatment requires at least one complete edge reference")
+		}
+		refs = []edgeReference{{q.EdgeStart, q.EdgeEnd}}
+	}
+	if q.Normal == nil {
+		return Shape{}, errors.New("edge treatment requires the original extrusion normal")
+	}
+	normal, err := q.Normal.vec().Unit()
+	if err != nil {
+		return Shape{}, errors.New("invalid extrusion normal")
 	}
 	size := float64(q.Radius)
 	if q.Op == "chamfer" {
@@ -322,45 +332,72 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if !finite(size) || size <= 0 {
 		return Shape{}, errors.New(q.Op + " failed: size must be positive")
 	}
+	if s.treated == nil && (s.bore != nil || s.cylinder != nil) {
+		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
+	}
+	resolved := make([][2]geom.Vec3, len(refs))
+	for i, ref := range refs {
+		if ref.Start == nil || ref.End == nil {
+			return Shape{}, errors.New("edge reference requires both endpoints")
+		}
+		start, end := ref.Start.vec(), ref.End.vec()
+		var a, c geom.Vec3
+		var ok bool
+		if !start.IsFinite() || !end.IsFinite() || nearPoint(start, end) {
+			return Shape{}, unsupportedEdge(q.Op + " failed: edge reference is invalid")
+		}
+		if s.treated != nil {
+			a, c, ok = trimmedEdge(s.treated.chain.Solid, s.treated.frame.ToLocal(start), s.treated.frame.ToLocal(end))
+		} else {
+			a, c, ok = planarEdge(s.solid, start, end)
+		}
+		if !ok {
+			return Shape{}, unsupportedEdge(q.Op + " failed: edge reference was lost or is ambiguous; no complete sharp edge resolves")
+		}
+		resolved[i] = [2]geom.Vec3{a, c}
+	}
 	var body edgeBody
 	if s.treated != nil {
 		body = *s.treated
 	} else {
-		if s.bore != nil || s.cylinder != nil {
-			return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
-		}
-		var err error
-		body, err = inferEdgeStock(s.solid, start, end, q.Normal.vec(), q.Op == "fillet")
+		body, err = inferEdgeStock(s.solid, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
 			return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
 		}
-	}
-	a, c, ok := trimmedEdge(body.chain.Solid, body.frame.ToLocal(start), body.frame.ToLocal(end))
-	if s.treated == nil {
-		a, c = body.frame.ToLocal(start), body.frame.ToLocal(end)
-		ok = true
-	}
-	if !ok || math.Abs(a.X-c.X-body.length) > 1e-7 && math.Abs(c.X-a.X-body.length) > 1e-7 || math.Abs(a.Y-c.Y) > 1e-7 || math.Abs(a.Z-c.Z) > 1e-7 {
-		return Shape{}, unsupportedEdge(q.Op + " failed: edge must span the retained stock length")
-	}
-	at := func(y, z float64) bool { return math.Abs(a.Y-y) <= 1e-7 && math.Abs(a.Z-z) <= 1e-7 }
-	if q.Op == "fillet" {
-		if body.radius != 0 || !at(0, body.height) {
-			return Shape{}, unsupportedEdge("fillet failed: selected corner is outside the qualified recipe")
+		for i, pair := range resolved {
+			resolved[i] = [2]geom.Vec3{body.frame.ToLocal(pair[0]), body.frame.ToLocal(pair[1])}
 		}
-		body.radius = size
-	} else {
-		if body.chamfer != 0 {
-			return Shape{}, unsupportedEdge("chamfer failed: a chamfer is already present")
+	}
+	if normal != body.frame.ZAxis() && normal != body.frame.ZAxis().Scale(-1) {
+		return Shape{}, unsupportedEdge(q.Op + " failed: extrusion normal does not match retained stock")
+	}
+	selected := [4]bool{}
+	for _, pair := range resolved {
+		a, c := pair[0], pair[1]
+		if !((a.X == 0 && c.X == body.length) || (c.X == 0 && a.X == body.length)) || a.Y != c.Y || a.Z != c.Z {
+			return Shape{}, unsupportedEdge(q.Op + " failed: grouped edges must be complete parallel longitudinal stock edges")
 		}
-		if at(0, 0) {
-			body.bottomFront = true
-		} else if at(body.width, body.height) {
-			body.bottomFront = false
+		corner := -1
+		for i, p := range [4]geom.Vec2{{}, {X: body.width}, {X: body.width, Y: body.height}, {Y: body.height}} {
+			if a.Y == p.X && a.Z == p.Y {
+				corner = i
+				break
+			}
+		}
+		if corner < 0 || body.corners[corner] != (fillet.LongEdgeCorner{}) {
+			return Shape{}, unsupportedEdge(q.Op + " failed: selected original edge was lost or is no longer available")
+		}
+		selected[corner] = true
+	}
+	for i, yes := range selected {
+		if !yes {
+			continue
+		}
+		if q.Op == "fillet" {
+			body.corners[i] = fillet.LongEdgeCorner{Radius: size}
 		} else {
-			return Shape{}, unsupportedEdge("chamfer failed: selected corner is outside the qualified recipe")
+			body.corners[i] = fillet.LongEdgeCorner{YSetback: size, ZSetback: size}
 		}
-		body.chamfer = size
 	}
 	next, err := rebuildEdge(body)
 	if err != nil {

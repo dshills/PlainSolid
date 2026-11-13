@@ -264,11 +264,30 @@ export class OpenCascadeKernel implements KernelAdapter {
   extrudeToFace = unsupported;
   private treatEdge(shape: KernelShape, refs: TopologyRef[], size: number, operation: "fillet" | "chamfer"): KernelShape {
     try {
-      if (refs.length !== 1 || !Number.isFinite(size) || size <= 0)
-        throw new Error("Edge treatment requires one authored cap edge and a positive finite size.");
+      if (!refs.length || !Number.isFinite(size) || size <= 0)
+        throw new Error("Edge treatment requires authored cap edges and a positive finite size.");
+      if (refs.some(ref => ref.featureId !== refs[0].featureId))
+        throw new Error("Edge treatment references must share one source feature.");
+      // Resolve all authored references before publishing any native result.
+      // The bridge validates the complete batch against the original solid.
+      const source = handle(shape).extrusion;
+      for (const ref of refs) {
+        if (ref.sourceEntityId) continue;
+        if (!source || source.profile.innerLoops.length || source.profile.outerLoop.type !== "polygon")
+          throw new Error("This complete perimeter is unsupported; select individual authored cap edges.");
+        const segments = source.profile.outerLoop.segments ?? [];
+        if (!segments.length || segments.some(segment => segment.type !== "line"))
+          throw new Error("This complete perimeter is unsupported; select individual authored straight cap edges.");
+        const available = this.availableExtrudeCapEdges(shape);
+        if (segments.some(segment => !available.some(edge => edge.role === ref.role && edge.sourceEntityId === segment.id)))
+          throw new Error("The complete perimeter contains an edge that was lost or is ambiguous. Select a surviving authored edge.");
+        throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
+      }
+      const edges = refs.map(ref => this.capEdge(shape, ref));
       const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
       const result = request<Proof>({
-        op: operation, handle: before.handle, ...this.capEdge(shape, refs[0]),
+        op: operation, handle: before.handle, normal: edges[0].normal,
+        edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
         [operation === "fillet" ? "radius" : "distance"]: size,
       });
       try {

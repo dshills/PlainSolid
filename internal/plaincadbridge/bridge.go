@@ -64,29 +64,35 @@ func (v *vector) UnmarshalJSON(b []byte) error {
 func (v vector) vec() geom.Vec3      { return geom.Vec3{X: v[0], Y: v[1], Z: v[2]} }
 func coordinates(v geom.Vec3) vector { return vector{v.X, v.Y, v.Z} }
 
+type edgeReference struct {
+	Start *vector `json:"start"`
+	End   *vector `json:"end"`
+}
+
 type request struct {
-	Op                string         `json:"op"`
-	Handle            string         `json:"handle,omitempty"`
-	A                 string         `json:"a,omitempty"`
-	B                 string         `json:"b,omitempty"`
-	Tools             []string       `json:"tools,omitempty"`
-	Min               *vector        `json:"min,omitempty"`
-	Max               *vector        `json:"max,omitempty"`
-	Outer             []vector       `json:"outer,omitempty"`
-	Holes             [][]vector     `json:"holes,omitempty"`
-	Offset            *vector        `json:"offset,omitempty"`
-	Matrix            [][]number     `json:"matrix,omitempty"`
-	OpenFace          *int           `json:"openFace,omitempty"`
-	Wall              number         `json:"wall,omitempty"`
-	Origin            *vector        `json:"origin,omitempty"`
-	Normal            *vector        `json:"normal,omitempty"`
-	EdgeStart         *vector        `json:"edgeStart,omitempty"`
-	EdgeEnd           *vector        `json:"edgeEnd,omitempty"`
-	Distance          number         `json:"distance,omitempty"`
-	Radius            number         `json:"radius,omitempty"`
-	Height            number         `json:"height,omitempty"`
-	LinearDeflection  optionalNumber `json:"linearDeflection,omitempty"`
-	AngularDeflection optionalNumber `json:"angularDeflection,omitempty"`
+	Op                string          `json:"op"`
+	Handle            string          `json:"handle,omitempty"`
+	A                 string          `json:"a,omitempty"`
+	B                 string          `json:"b,omitempty"`
+	Tools             []string        `json:"tools,omitempty"`
+	Min               *vector         `json:"min,omitempty"`
+	Max               *vector         `json:"max,omitempty"`
+	Outer             []vector        `json:"outer,omitempty"`
+	Holes             [][]vector      `json:"holes,omitempty"`
+	Offset            *vector         `json:"offset,omitempty"`
+	Matrix            [][]number      `json:"matrix,omitempty"`
+	OpenFace          *int            `json:"openFace,omitempty"`
+	Wall              number          `json:"wall,omitempty"`
+	Origin            *vector         `json:"origin,omitempty"`
+	Normal            *vector         `json:"normal,omitempty"`
+	Edges             []edgeReference `json:"edges,omitempty"`
+	EdgeStart         *vector         `json:"edgeStart,omitempty"`
+	EdgeEnd           *vector         `json:"edgeEnd,omitempty"`
+	Distance          number          `json:"distance,omitempty"`
+	Radius            number          `json:"radius,omitempty"`
+	Height            number          `json:"height,omitempty"`
+	LinearDeflection  optionalNumber  `json:"linearDeflection,omitempty"`
+	AngularDeflection optionalNumber  `json:"angularDeflection,omitempty"`
 }
 
 type Assertions struct {
@@ -205,10 +211,10 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		if q.EdgeStart == nil || q.EdgeEnd == nil {
-			return nil, errors.New("edge endpoints required")
-		}
 		if q.Op == "edgeAvailable" {
+			if q.EdgeStart == nil || q.EdgeEnd == nil {
+				return nil, errors.New("edge endpoints required")
+			}
 			return map[string]bool{"available": s.edgeAvailable(q.EdgeStart.vec(), q.EdgeEnd.vec())}, nil
 		}
 		return b.treatEdge(s, q)

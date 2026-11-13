@@ -15,14 +15,9 @@ func (body *edgeBody) planeArea(id int, f trimmed.Face, n geom.Vec3) (float64, e
 		return stock.NominalVolume / body.length, nil
 	}
 	if id == stock.TopFace || id == stock.BottomFace {
-		width := body.width
+		width := stock.BottomMaxY - stock.BottomMinY
 		if id == stock.TopFace {
-			width -= body.radius
-			if !body.bottomFront {
-				width -= body.chamfer
-			}
-		} else if body.bottomFront {
-			width -= body.chamfer
+			width = stock.TopMaxY - stock.TopMinY
 		}
 		area := body.length * width
 		if body.bore != nil {
