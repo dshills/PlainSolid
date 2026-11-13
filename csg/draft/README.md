@@ -143,3 +143,12 @@ exact offset points. Their linear interpolation describes the entire accepted
 width field. Tests integrate tapered triangular cross-sections independently,
 cover multiple separated bevels and mixed widths, reverse the original stored
 edge direction, and check exact plane incidence and contact-free display.
+
+`HollowPorts` extends through hollowing to 2–32 distinct complete supporting
+faces. Every pair of original opening polygons must be strictly separated by
+its original supports; adjacent or touching ports are rejected exactly. The
+cavity must retain every port and conversion must preserve each opening plane
+exactly. It returns original port IDs, cavity-face mappings, exact ideal volume,
+and full Boolean topology history. Pairwise separation shares one reconstruction
+work budget; reconstruction and Boolean validation retain independent budgets.
+`HollowThrough` remains the compatible two-port wrapper.
