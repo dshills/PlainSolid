@@ -244,6 +244,24 @@ int main(int argc, char** argv) {
       splineShellRecord(out,"finite-oblique-parallel-cut",BRepAlgoAPI_Cut(a,b).Shape());
       return 0;
     }
+    if(argc==3 && mode=="finite-oblique-asymmetric-sets"){
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(3,0,4)),25,40).Shape();
+      auto cutter=[](double upper,double lower){
+        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3*upper,20,4*upper),gp_Dir(-3,0,-4)),15,5*(upper-lower)).Shape();
+      };
+      for(auto span:std::array<std::pair<double,double>,3>{{{10,-2},{10,3},{6,2}}}){
+        const auto result=BRepAlgoAPI_Cut(stock,cutter(span.first,span.second)).Shape();
+        const char* name=span.second<0?"oblique-transverse-cover-cut":span.second==3?"oblique-transverse-blind-cut":"oblique-transverse-notch-cut";
+        splineShellRecord(out,name,result);
+      }
+      for(auto span:std::array<std::pair<double,double>,3>{{{5,0},{10,2},{5,1}}}){
+        const auto result=BRepAlgoAPI_Fuse(stock,cutter(span.first,span.second)).Shape();
+        const char* name=span.second==0?"oblique-transverse-common-union":span.second==2?"oblique-transverse-staggered-union":"oblique-transverse-nested-union";
+        splineShellRecord(out,name,result);
+      }
+      return 0;
+    }
     if(argc==3 && mode=="finite-eccentric-shoulder-union"){
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto wide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,1,3),gp_Dir(0,0,-1)),4,4).Shape();

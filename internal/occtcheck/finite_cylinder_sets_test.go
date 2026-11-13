@@ -104,6 +104,50 @@ func TestOCCTFiniteObliqueParallelCylinderSets(t *testing.T) {
 	}
 }
 
+func TestOCCTFiniteObliqueAsymmetricCylinderSets(t *testing.T) {
+	refs := runOracle(t, "finite-oblique-asymmetric-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 6, Z: 8}, Radius: 25, Max: 4}
+	for _, tc := range []struct {
+		name     string
+		min, max float64
+		cut      bool
+	}{
+		{"oblique-transverse-cover-cut", -5, 1, true},
+		{"oblique-transverse-blind-cut", -5, -1.5, true},
+		{"oblique-transverse-notch-cut", -3, -1, true},
+		{"oblique-transverse-common-union", -2.5, 0, false},
+		{"oblique-transverse-staggered-union", -5, -1, false},
+		{"oblique-transverse-nested-union", -2.5, -.5, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := geom.RawCylinder{Origin: geom.Vec3{Y: 20}, Axis: geom.Vec3{X: -6, Z: -8}, Radius: 15, Min: tc.min, Max: tc.max}
+			var s parametric.Solid
+			if tc.cut {
+				r, err := parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-8)
+				if err != nil || len(r.Solids[1].Faces()) != 0 {
+					t.Fatal("one component required", err)
+				}
+				s = r.Solids[0]
+			} else {
+				r, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-8)
+				if err != nil {
+					t.Fatal(err)
+				}
+				s = r.Solid
+			}
+			if finiteOracleShellCount(s) != 1 {
+				t.Fatal("expected one native shell")
+			}
+			m, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+			if err != nil {
+				t.Fatal(err)
+			}
+			compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+		})
+	}
+}
+
 func TestOCCTFiniteEccentricCylinderShoulder(t *testing.T) {
 	refs := runOracle(t, "finite-eccentric-shoulder-union")
 	ctx := context.Background()

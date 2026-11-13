@@ -1153,6 +1153,12 @@ ends, and nested axial spans for intersecting transverse disks. All four
 native results agree on shell count, area, volume and centroid. Both
 operand orders and signed frames preserve the original cap ownership;
 common terminal lens fans retain both owners.
+The oblique asymmetric fixtures apply an exact scale-five similarity to
+the same native constructions. Independent OCCT cylinders verify the
+covering cut, blind cut, interior notch, and common-cap, staggered, and
+nested unions. All agree on area, volume and centroid. Native tests check
+original signed cap IDs, native reload, and strict failure when original
+cap coordinates or the similarity cannot be represented exactly.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding

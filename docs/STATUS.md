@@ -608,6 +608,8 @@ stock caps and the cutter wall across all three represented orientations.
 With transverse disks and positive axial overlap, union also retains
 native shoulders for one common cap, staggered spans, and nested spans.
 An exactly shared terminal lens has both original cap owners.
+Exact represented similarities extend these transverse cuts and unions
+to qualified oblique parallel axes without reassigning source cap IDs.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
