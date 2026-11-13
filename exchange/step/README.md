@@ -1985,3 +1985,10 @@ generic import claim. Independent OCCT line/arc-profile extrusion followed by
 cylinder/box cuts and boss fusion matches validity, area, volume and centroid;
 unequal chamfer setbacks are also qualified. Invalid dimensions, feature
 placement, names and units fail before output.
+
+`ReadLongEdgeTreatments` and `ReadLongEdgeChains` recover recipes from the
+canonical graph produced by these writers, allowing source entity renumbering.
+They rebuild the supported body and verify the complete geometry and topology,
+including exact decimal coefficients and all edge and pcurve orientations.
+Independently authored graphs that use other topology or charts are outside
+this reader's contract.
