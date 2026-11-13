@@ -60,6 +60,17 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD quarter-cylinder STEP import from main — 2026-11-13
+
+Main's exact four-quarter cylinder model and rooted product dialects
+are available through the PlainCAD bridge. Both retain the canonical
+cylinder as native stock for a subsequent Hole and STEP export.
+The [two original STEP cases](evidence/plaincad-quarter-cylinder-browser-2026-11-13.json)
+pass. The [same-WASM Chromium case](evidence/plaincad-quarter-cylinder-native-2026-11-13.json)
+imports the exact fixture, preserves it through reopen, and exports
+analytic STEP and validated STL. Independent OCCT model and product
+transfer, focused race checks and Go vet pass.
+
 ## PlainCAD split-cylinder STEP import from main — 2026-11-13
 
 The isolated integration worktree takes main's exact two-half cylinder
