@@ -120,12 +120,23 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
+		unit := m.LengthUnit
+		if m.LengthUnit != .001 {
+			scaled, err := scaleSTEPNotch(p, m.LengthUnit/.001)
+			if err == nil {
+				p, unit = scaled, .001
+			}
+		}
 		s, err := p.Solid(context.Background())
+		if err != nil && m.LengthUnit != .001 && unit == .001 {
+			p, unit = m.Body, m.LengthUnit
+			s, err = p.Solid(context.Background())
+		}
 		if err != nil {
 			return Shape{}, err
 		}
-		if m.LengthUnit != .001 {
-			return b.putSTEPAnalytic(s, m.LengthUnit)
+		if unit != .001 {
+			return b.putSTEPAnalytic(s, unit)
 		}
 		properties, err := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
 		if err != nil {
@@ -185,6 +196,32 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
 }
+
+func scaleSTEPNotch(p step.SideNotchBody, scale float64) (step.SideNotchBody, error) {
+	if !finite(scale) || scale <= 0 {
+		return step.SideNotchBody{}, geom.ErrInvalid
+	}
+	frame, err := geom.NewFrame(p.Frame.Origin().Scale(scale), p.Frame.XAxis(), p.Frame.ZAxis())
+	if err != nil {
+		return step.SideNotchBody{}, err
+	}
+	p.Frame = frame
+	p.Left, p.Right, p.Back, p.Inset = p.Left*scale, p.Right*scale, p.Back*scale, p.Inset*scale
+	p.Length, p.Radius, p.Depth = p.Length*scale, p.Radius*scale, p.Depth*scale
+	p.Through = append([]trimmed.ExtrusionCircle(nil), p.Through...)
+	p.Blind = append([]trimmed.ExtrusionBlindHole(nil), p.Blind...)
+	for i := range p.Through {
+		h := &p.Through[i]
+		h.Center.X, h.Center.Y, h.Radius = h.Center.X*scale, h.Center.Y*scale, h.Radius*scale
+	}
+	for i := range p.Blind {
+		h := &p.Blind[i]
+		h.Center.X, h.Center.Y, h.Radius = h.Center.X*scale, h.Center.Y*scale, h.Radius*scale
+		h.Depth *= scale
+	}
+	return p, nil
+}
+
 func (b *Bridge) putSTEPAnalytic(s trimmed.Solid, unit float64) (Shape, error) {
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 {

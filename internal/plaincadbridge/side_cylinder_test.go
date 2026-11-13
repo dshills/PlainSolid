@@ -1,12 +1,16 @@
 package plaincadbridge
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"math"
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
+	"plainsolid/geom"
 )
 
 func TestPlacedSideCrossingCircularCut(t *testing.T) {
@@ -98,6 +102,43 @@ func TestPlainCADSideNotchSTEPRoundTrip(t *testing.T) {
 	for _, depth := range []float64{6, 10} {
 		checkPlainCADSideNotchSTEP(t, vector{10, 1, 0}, depth)
 		checkPlainCADSideNotchSTEP(t, vector{}, depth)
+	}
+}
+
+func TestNotchedStockSTEPUnitsRetainRecipe(t *testing.T) {
+	b := New()
+	frame, err := geom.FrameFromNormal(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	notch := step.SideNotchBody{
+		Name: "corner bore", Frame: frame, Right: 20, Back: 20,
+		Length: 8, Radius: 3, Depth: 6,
+		Blind: []trimmed.ExtrusionBlindHole{{
+			ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10, Y: 10}, Radius: 1},
+			Depth:           4, OppositeCap: true,
+		}},
+	}
+	var source bytes.Buffer
+	if err := step.WriteSideNotch(&source, step.SideNotchModel{Body: notch, LengthUnit: .01}); err != nil {
+		t.Fatal(err)
+	}
+	imported, err := b.importSTEP(source.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, imported.GeometryAssertions.Volume, (3200-17.5*math.Pi)*1000)
+	if imported.Bounds != (Bounds{Min: vector{10, 20, 30}, Max: vector{210, 220, 110}}) {
+		t.Fatal(imported.Bounds)
+	}
+	tool := circle(t, b, vector{150, 60, 30}, vector{0, 0, 1}, 10, 80)
+	cut, err := b.cutMany(imported.Handle, []string{tool.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, cut.GeometryAssertions.Volume, imported.GeometryAssertions.Volume-8000*math.Pi)
+	if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+		t.Fatal(err)
 	}
 }
 

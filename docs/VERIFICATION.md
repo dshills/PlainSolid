@@ -60,6 +60,15 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD STEP units on notched stock — 2026-11-13
+
+The bridge retains a qualified notched-stock boundary after converting
+its recipe to millimetres. A native regression imports a centimetre STEP
+file with a corner notch and an opposed blind bore, checks world bounds
+and volume, adds another scoped bore and exports STEP again. The
+[two original STEP browser cases](evidence/plaincad-notch-step-units-2026-11-13.json)
+pass, along with focused race checks and Go vet.
+
 ## PlainCAD notched stock batch order — 2026-11-13
 
 An interior through cutter joins opposed blind spans at the same site in
@@ -247,6 +256,16 @@ WASM snapshot in isolated retests. The Parts Browser original also passes
 on pristine OCCT. The complete suite retains both failures in its record.
 
 ## PlainCAD full production rerun on `50432ed` — 2026-11-13
+
+The [later corner-batch production run](evidence/plaincad-production-corner-batch-2026-11-13.json)
+tests clean `d2db51d` and passes 65 of 66 originals, both TypeScript
+checks, the bundle budget and the independent WASM probe. The benchmark
+exceeds its 90-second case deadline while several suites run. Its
+[recorded samples](evidence/plaincad-production-corner-batch-performance-timeout-2026-11-13.json)
+include all 25 edits and 11 validated STL downloads. The
+[unchanged retest](evidence/plaincad-production-corner-batch-performance-retest-2026-11-13.json)
+passes in 56.048 seconds with the same staged production assets, WASM,
+deadline and test assertions.
 
 All [66 original production tests](evidence/plaincad-production-50432ed-2026-11-13.json)
 pass in 357.132 seconds, with zero skips, retries or flaky results. Both
