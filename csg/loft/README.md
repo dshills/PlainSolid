@@ -47,3 +47,18 @@ Each band and the final shell have separate configured support/embedding work
 limits. The bounded station count therefore bounds the number of proof passes;
 there is no unbounded retry or sampled fallback. A locally nonconvex slab,
 twisted side, invalid ordering or exhausted budget returns no body.
+
+`PlanarSubdivided` accepts differing forward collinear breakpoints on corresponding
+cap sides. Input index zero must be a genuine corresponding corner; automatic
+cyclic matching is outside scope. Native planar faces continue to omit collinear
+vertices. Every original segment receives an exact normalized interval on its
+merged cap edge, and every original vertex receives an exact parameter occurrence
+with native vertex ID -1 when removed. Parameters follow original ring traversal;
+a separate reversed flag relates that traversal to the native edge direction.
+No source occurrence is claimed to be a surviving native vertex.
+
+The original input counts obey the per-ring vertex limit before simplification;
+source/parameter rational sizes obey the support bit limit. The bounded linear
+simplification is followed by the usual independently bounded loft proofs.
+Tests evaluate each original point exactly from its returned merged-edge
+parameter, including 1/3, multiple upper breakpoints, and reversed winding.
