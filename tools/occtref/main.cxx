@@ -1100,6 +1100,9 @@ int main(int argc, char** argv) {
     record(out, "oblique-equal-cylinder-common", BRepAlgoAPI_Common(obliqueA, obliqueB).Shape(), 1e-10);
     const auto generalA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-6, 0, 0), gp_Dir(2, 0, 0)), 1, 12).Shape();
     record(out, "oblique-unequal-cylinder-common", BRepAlgoAPI_Common(generalA, obliqueA).Shape(), 1e-10);
+    const auto skewObliqueA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-10, 0, 0), gp_Dir(2, 0, 0)), 3, 20).Shape();
+    const auto skewObliqueB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-15, -20, 2), gp_Dir(3, 4, 0)), 2, 50).Shape();
+    record(out, "oblique-skew-cylinder-common", BRepAlgoAPI_Common(skewObliqueA, skewObliqueB).Shape(), 1e-10);
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

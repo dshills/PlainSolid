@@ -1028,3 +1028,8 @@ The unequal-radius oblique common retains original cylinder ownership for
 either radius ordering and handles different raw axis norms. Independent
 slice integration and OCCT mass checks agree. The reloaded body has a
 closed certified display with no detected contacts.
+
+The oblique skew fixture checks original cylinder equations, affine volume
+scaling, shifted axes, certified display and native reload. OCCT independently
+qualifies the asymmetric overlapping case. A nonrepresentable placement is
+rejected by this exact-map path.

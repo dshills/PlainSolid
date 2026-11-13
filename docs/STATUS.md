@@ -481,6 +481,8 @@ and skew tangent nodes. Oblique intersecting equal-radius cylinders now
 have a native common with two certified bisector seams when all caps clear
 the intersection. The general oblique chart also assembles unequal radii
 and unequal raw axis norms with the same strict cap-clearance requirement.
+Selected oblique skew placements also retain both circular supports when the
+exact section map and axis separation are representable.
 A separate perpendicular shell supports an exact
 equator cap or a positive cap with a representable rim ordinate.
 
