@@ -1090,6 +1090,11 @@ Two nonparallel cutter prisms with disjoint caps produce one six-face shell
 on the warped stock. Native reload, edge ancestry, mesh closure and exact
 display contacts are checked in both cutter orders. Independent sequential
 OCCT commons agree on area, centroid and volume `1/2`.
+The crossing-cap fixture produces a single shell with one shared cap-cap
+segment. Both original charts lift the complete exact segment, including an
+independent interior rational sample, and the ancestry accounts for every
+output edge. The closed mesh and native reload pass. Independent sequential
+OCCT commons agree on area, centroid, and volume `25/192`.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
