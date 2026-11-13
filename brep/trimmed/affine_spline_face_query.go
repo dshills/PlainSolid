@@ -19,6 +19,7 @@ type AffineSplineFaceQueryOptions struct {
 // Native positive-weight quadratic/cubic/quartic trims and straight uses are
 // supported when their entire control hull lies in the support rectangle.
 type AffineSplineFaceQuery struct {
+	loops *trimvalidate.CertifiedLoops
 	face  Face
 	chart *geom.AffineSurfaceChart
 	plane [4]*big.Rat
@@ -108,7 +109,8 @@ func NewAffineSplineFaceQuery(ctx context.Context, f Face, o AffineSplineFaceQue
 			}
 		}
 	}
-	proof, e := ValidateFaceTrimLoops(ctx, f, opts)
+	var loops *trimvalidate.CertifiedLoops
+	proof, e := proveFaceTrimLoops(ctx, f, opts, &loops, nil, nil)
 	if e != nil {
 		return nil, e
 	}
@@ -136,7 +138,7 @@ func NewAffineSplineFaceQuery(ctx context.Context, f Face, o AffineSplineFaceQue
 			}
 		}
 	}
-	return &AffineSplineFaceQuery{face: snapshot, chart: chart, plane: plane, trim: opts}, nil
+	return &AffineSplineFaceQuery{face: snapshot, chart: chart, plane: plane, trim: opts, loops: loops}, nil
 }
 
 // Plane returns caller-owned exact coefficients N·XYZ+D=0. N has the face's
