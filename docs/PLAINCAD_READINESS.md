@@ -15,6 +15,11 @@ against the selected PlainSolid kernel.
 
 ## Current PlainCAD revision
 
+The [full development run](evidence/plaincad-development-50432ed-2026-11-13.json)
+on PlainCAD `50432ed` passes all 344 originals on clean integration
+commit `92e22ab`, with zero skips, retries or flaky results. Both
+previous startup failures pass in the same full run.
+
 The [full production run](evidence/plaincad-production-50432ed-2026-11-13.json)
 on PlainCAD `50432ed` passes all 66 originals, both TypeScript checks, and
 the independent WASM probe. The [performance case](evidence/plaincad-production-50432ed-performance-2026-11-13.json)

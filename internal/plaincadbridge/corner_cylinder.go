@@ -55,6 +55,24 @@ func cornerCylinderRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame, geo
 	return geom.Frame{}, geom.Vec3{}, false
 }
 
+func cornerCylinderBlindRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame, geom.Vec3, bool) {
+	if f, size, ok := cornerCylinderRecipe(stock, tool); ok || tool == nil || !cardinalFrame(tool.frame) {
+		return f, size, ok
+	}
+	axis := tool.frame.ZAxis()
+	end := tool.frame.ToWorld(geom.Vec3{Z: tool.height})
+	if !exactAxisDistance(end.Dot(axis), tool.frame.Origin().Dot(axis), tool.height) {
+		return geom.Frame{}, geom.Vec3{}, false
+	}
+	f, err := geom.NewFrame(end, tool.frame.XAxis(), axis.Scale(-1))
+	if err != nil {
+		return geom.Frame{}, geom.Vec3{}, false
+	}
+	reversed := *tool
+	reversed.frame = f
+	return cornerCylinderRecipe(stock, &reversed)
+}
+
 func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, error) {
 	if op == "fuse" && a.cylinder != nil && c.planar() {
 		a, c = c, a
@@ -82,12 +100,16 @@ func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, err
 			return result, true, err
 		}
 	}
-	f, d, ok := cornerCylinderRecipe(a.solid, c.cylinder)
+	fuse := op == "fuse"
+	recipe := cornerCylinderBlindRecipe
+	if fuse {
+		recipe = cornerCylinderRecipe
+	}
+	f, d, ok := recipe(a.solid, c.cylinder)
 	if !ok {
 		return Shape{}, false, nil
 	}
 	r, h := c.cylinder.radius, c.cylinder.height
-	fuse := op == "fuse"
 	s, err := trimmed.BoxCornerCylinder(context.Background(), f, d.X, d.Y, d.Z, r, h, fuse, 1e-9)
 	if err != nil {
 		return Shape{}, true, err

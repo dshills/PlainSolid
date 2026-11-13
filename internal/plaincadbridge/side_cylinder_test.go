@@ -105,6 +105,28 @@ func TestPlainCADSideNotchSTEPRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCornerBlindCutQualifiesEitherToolEndpoint(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 8})
+	interior := circle(t, b, vector{0, 0, 5}, vector{0, 0, -1}, 3, 5)
+	cap := circle(t, b, vector{}, vector{0, 0, 1}, 3, 5)
+	want := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": cap.Handle})
+	near(t, overlapMeasure(t, b, stock.Handle, interior.Handle), 45*math.Pi/4)
+	near(t, overlapMeasure(t, b, interior.Handle, stock.Handle), 45*math.Pi/4)
+	for _, op := range []map[string]any{
+		{"op": "cut", "a": stock.Handle, "b": interior.Handle},
+		{"op": "cutMany", "a": stock.Handle, "tools": []string{interior.Handle}},
+	} {
+		cut := shape(t, b, op)
+		if cut.Bounds != want.Bounds || cut.GeometryAssertions != want.GeometryAssertions {
+			t.Fatal(cut, want)
+		}
+		if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestNotchedStockSTEPUnitsRetainRecipe(t *testing.T) {
 	b := New()
 	frame, err := geom.FrameFromNormal(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{Z: 1})

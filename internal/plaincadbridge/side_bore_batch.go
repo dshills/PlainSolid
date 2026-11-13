@@ -67,7 +67,7 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 				area += (math.Pi/2-2)*r*size.Z - math.Pi*r*r/2
 				break
 			}
-			if f, size, ok := cornerCylinderRecipe(a.solid, tool.cylinder); ok {
+			if f, size, ok := cornerCylinderBlindRecipe(a.solid, tool.cylinder); ok {
 				skip = tool.cylinder
 				r, depth := skip.radius, skip.height
 				p = cornerNotchRecipe(f, size, r, depth)

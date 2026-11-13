@@ -60,6 +60,24 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD full development acceptance on `50432ed` — 2026-11-13
+
+All [344 original development cases](evidence/plaincad-development-50432ed-2026-11-13.json)
+pass in 3,014.679 seconds on clean integration commit `92e22ab`.
+There are zero skips, retries and flaky results. Both TypeScript
+checks and the independent browser WASM probe pass. The full run
+includes the original Parts Browser, YZ guarded drag, long modeling chain,
+grouped edge treatments, helical parts, camera idle, ORBIT and 40-body
+viewer cases. It includes the staged asynchronous project-open fix.
+
+## PlainCAD reverse-endpoint blind corner cut — 2026-11-13
+
+A finite corner cutter with its terminal endpoint on the stock cap now
+shares the same native cut and overlap measures as the forward tool.
+The native check covers scoped Cut, direct Cut and STEP readback.
+Both [original guided Hole and scoped Revolve Cut tests](evidence/plaincad-corner-blind-endpoints-2026-11-13.json)
+pass. Focused race checks and Go vet pass.
+
 ## PlainCAD same-site opposed blind bores on notched stock — 2026-11-13
 
 Opposed blind cuts at one interior site preserve their intervening
