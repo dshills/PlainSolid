@@ -1,5 +1,30 @@
 # Verification record
 
+## Analytic cylindrical-union construction — 2026-11-13
+
+`trimmed.BoreCylinderUnion` retains the exposed circular arcs of up to 32 disks
+and their inward cylindrical walls, with shared entry/exit rims or planar blind
+floors. Inputs require convex stock, strictly interior footprints, perpendicular
+parallel caps, and a common effective depth. Exact represented squared-distance
+predicates classify duplicates, containment and tangency before constructing
+transverse intersections. Geometry-based ordering makes the union independent
+of input order. Unsupported contacts, ambiguous triple intersections and inner
+footprint loops that could isolate material are rejected.
+
+Adjacent arc supports share endpoint representatives only after agreement within
+the existing BRep tolerance is checked. Model rim curves and interior p-curves
+remain analytic; no mesh substitutes for the retained boundary. The new anchored
+trim type is not yet supported by generic native BRep persistence. PlainCAD
+persists its feature recipes, which are qualified separately.
+
+Independent checks compare retained-boundary mass with closed-form two-circle
+lens and three-circle formulas, plus a separate parametric cylinder-union
+construction. Permutations, genuine triple common regions, disconnected loops,
+duplicates/containment, exact tangent predicates, unresolved crescents, material
+islands, mesh closure/budgets, and scaled/translated inputs pass. The final union
+suite passes in 0.533 seconds; parent review and independent oracle tests pass.
+Application adapter and browser qualification follow as a separate milestone.
+
 ## Scoped Hole implementation checks — 2026-11-13
 
 The adapter's `cutScope` validates tools against original targets, requires every
