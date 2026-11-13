@@ -52,30 +52,8 @@ func BoxSideCylinderWithBores(ctx context.Context, frame geom.Frame, left, right
 	if depth < length && length-depth <= pad {
 		return Solid{}, geom.ErrDomain
 	}
-	if len(through)+len(blind) != 0 {
-		holes, e := validateExtrusionHoles(ctx, frame, through, blind, length)
-		if e != nil {
-			return Solid{}, e
-		}
-		for _, h := range blind {
-			if h.Depth <= pad || length-h.Depth <= pad {
-				return Solid{}, geom.ErrDomain
-			}
-		}
-		for _, h := range holes {
-			for _, pair := range [][2]float64{{h.Center.X, -left}, {right, h.Center.X}, {h.Center.Y, -inset}, {back, h.Center.Y}} {
-				gap := new(big.Rat).Sub(ratInset(pair[0]), ratInset(pair[1]))
-				gap.Sub(gap, ratInset(h.Radius))
-				if gap.Cmp(ratInset(pad)) <= 0 {
-					return Solid{}, geom.ErrDomain
-				}
-			}
-			gap := new(big.Rat).Add(ratInset(radius), ratInset(h.Radius))
-			gap.Add(gap, ratInset(pad))
-			if extrusionCenterDistanceSquared(h, ExtrusionCircle{}).Cmp(gap.Mul(gap, gap)) <= 0 {
-				return Solid{}, geom.ErrDomain
-			}
-		}
+	if e := validateNotchedBoxBores(ctx, frame, -left, right, -inset, back, length, radius, pad, through, blind); e != nil {
+		return Solid{}, e
 	}
 	root := math.Sqrt((radius - inset) * (radius + inset))
 	start, end := math.Pi+math.Asin(inset/radius), -math.Asin(inset/radius)
@@ -144,22 +122,8 @@ func BoxSideCylinderWithBores(ctx context.Context, frame geom.Frame, left, right
 			return Solid{}, e
 		}
 	}
-	for _, h := range through {
-		if e := b.addBoxBoreAtCaps(h, length, [2]int{0, upperCap}); e != nil {
-			return Solid{}, e
-		}
-	}
-	for _, h := range blind {
-		opening, floor, cap := 0., h.Depth, 0
-		if h.OppositeCap {
-			opening, floor, cap = length, length-h.Depth, upperCap
-			if new(big.Rat).Sub(ratInset(length), ratInset(h.Depth)).Cmp(ratInset(floor)) != 0 {
-				return Solid{}, geom.ErrUnrepresentable
-			}
-		}
-		if e := b.addBoxBlindBore(h.ExtrusionCircle, opening, floor, cap); e != nil {
-			return Solid{}, e
-		}
+	if e := b.addNotchedBoxBores(length, upperCap, through, blind); e != nil {
+		return Solid{}, e
 	}
 	return NewSolidContext(ctx, b.vertices, b.edges, b.faces, tolerance)
 }
@@ -190,4 +154,55 @@ func (b *cornerCylinderBuilder) sideCylinderCap(p []geom.Vec2, arcs map[int][2]f
 		}
 	}
 	return b.face(surface, points, p, curves, reversed)
+}
+
+func validateNotchedBoxBores(ctx context.Context, frame geom.Frame, minX, maxX, minY, maxY, length, radius, pad float64, through []ExtrusionCircle, blind []ExtrusionBlindHole) error {
+	if len(through)+len(blind) == 0 {
+		return nil
+	}
+	holes, e := validateExtrusionHoles(ctx, frame, through, blind, length)
+	if e != nil {
+		return e
+	}
+	for _, h := range blind {
+		if h.Depth <= pad || length-h.Depth <= pad {
+			return geom.ErrDomain
+		}
+	}
+	for _, h := range holes {
+		for _, pair := range [][2]float64{{h.Center.X, minX}, {maxX, h.Center.X}, {h.Center.Y, minY}, {maxY, h.Center.Y}} {
+			gap := new(big.Rat).Sub(ratInset(pair[0]), ratInset(pair[1]))
+			gap.Sub(gap, ratInset(h.Radius))
+			if gap.Cmp(ratInset(pad)) <= 0 {
+				return geom.ErrDomain
+			}
+		}
+		gap := new(big.Rat).Add(ratInset(radius), ratInset(h.Radius))
+		gap.Add(gap, ratInset(pad))
+		if extrusionCenterDistanceSquared(h, ExtrusionCircle{}).Cmp(gap.Mul(gap, gap)) <= 0 {
+			return geom.ErrDomain
+		}
+	}
+	return nil
+}
+
+func (b *cornerCylinderBuilder) addNotchedBoxBores(length float64, upperCap int, through []ExtrusionCircle, blind []ExtrusionBlindHole) error {
+	for _, h := range through {
+		if e := b.addBoxBoreAtCaps(h, length, [2]int{0, upperCap}); e != nil {
+			return e
+		}
+	}
+	for _, h := range blind {
+		opening, floor, cap := 0., h.Depth, 0
+		if h.OppositeCap {
+			opening, floor, cap = length, length-h.Depth, upperCap
+			if new(big.Rat).Sub(ratInset(length), ratInset(h.Depth)).Cmp(ratInset(floor)) != 0 {
+				return geom.ErrUnrepresentable
+			}
+		}
+		if e := b.addBoxBlindBore(h.ExtrusionCircle, opening, floor, cap); e != nil {
+			return e
+		}
+	}
+	return nil
 }

@@ -9,6 +9,10 @@ import (
 // BoxCornerCylinderThrough cuts a quarter circular notch through the complete
 // axial extent of a rectangular prism. Opposite radial sides remain untouched.
 func BoxCornerCylinderThrough(ctx context.Context, frame geom.Frame, width, height, length, radius, tolerance float64) (Solid, error) {
+	return boxCornerCylinderThrough(ctx, frame, width, height, length, radius, nil, nil, tolerance)
+}
+
+func boxCornerCylinderThrough(ctx context.Context, frame geom.Frame, width, height, length, radius float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if ctx == nil || !finite(width) || !finite(height) || !finite(length) || !finite(radius) || !finite(tolerance) || tolerance <= 0 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -18,6 +22,9 @@ func BoxCornerCylinderThrough(ctx context.Context, frame geom.Frame, width, heig
 	pad := 8 * tolerance
 	if !finite(pad) || radius <= pad || length <= pad || width-radius <= pad || height-radius <= pad {
 		return Solid{}, geom.ErrDomain
+	}
+	if e := validateNotchedBoxBores(ctx, frame, 0, width, 0, height, length, radius, pad, through, blind); e != nil {
+		return Solid{}, e
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
 	p := []geom.Vec2{{X: radius}, {X: width}, {X: width, Y: height}, {Y: height}, {Y: radius}}
@@ -39,6 +46,9 @@ func BoxCornerCylinderThrough(ctx context.Context, frame geom.Frame, width, heig
 		if e != nil {
 			return Solid{}, e
 		}
+	}
+	if e := b.addNotchedBoxBores(length, 1, through, blind); e != nil {
+		return Solid{}, e
 	}
 	return NewSolidContext(ctx, b.vertices, b.edges, b.faces, tolerance)
 }

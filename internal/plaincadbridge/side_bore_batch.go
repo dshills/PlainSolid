@@ -26,9 +26,6 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 	volume, area := a.result.GeometryAssertions.Volume, a.result.GeometryAssertions.SurfaceArea
 	if a.analytic != nil && a.analytic.sideNotch != nil {
 		p = *a.analytic.sideNotch
-		if p.Left == 0 {
-			return Shape{}, false, nil
-		}
 		bores = sideStockBores(p)
 	} else {
 		if !a.planar() || len(tools) < 2 {
@@ -47,6 +44,22 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 				p = sideNotchRecipe(f, box, skip.radius, box.Max.Z)
 				removed, delta := sideCylinderMeasures(box, p.Radius)
 				volume, area = volume-removed, area+delta
+				break
+			}
+			if f, size, ok := cornerCylinderThroughRecipe(a.solid, tool.cylinder); ok {
+				skip = tool.cylinder
+				r := skip.radius
+				p = cornerNotchRecipe(f, size, r, size.Z)
+				volume -= math.Pi * r * r * size.Z / 4
+				area += (math.Pi/2-2)*r*size.Z - math.Pi*r*r/2
+				break
+			}
+			if f, size, ok := cornerCylinderRecipe(a.solid, tool.cylinder); ok {
+				skip = tool.cylinder
+				r, depth := skip.radius, skip.height
+				p = cornerNotchRecipe(f, size, r, depth)
+				volume -= math.Pi * r * r * depth / 4
+				area += (math.Pi/2 - 2) * r * depth
 				break
 			}
 		}
@@ -131,9 +144,6 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 		return 0, false, nil
 	}
 	p := *a.analytic.sideNotch
-	if p.Left == 0 {
-		return 0, false, nil
-	}
 	hole, low, high, ok := sideNotchBore(p, c.cylinder)
 	if !ok {
 		return 0, true, geom.ErrUnrepresentable

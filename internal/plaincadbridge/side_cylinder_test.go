@@ -141,15 +141,16 @@ func checkPlainCADSideNotchSTEP(t *testing.T, origin vector, depth float64) {
 
 func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
 	for _, depth := range []float64{6, 10} {
-		checkSideNotchMixedBoreBatch(t, depth)
+		checkSideNotchMixedBoreBatch(t, vector{10, 1, 0}, depth)
+		checkSideNotchMixedBoreBatch(t, vector{}, depth)
 	}
 }
 
-func checkSideNotchMixedBoreBatch(t *testing.T, depth float64) {
+func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {
 	t.Helper()
 	b := New()
 	stock := box(t, b, vector{}, vector{20, 20, 8})
-	notch := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, depth)
+	notch := circle(t, b, origin, vector{0, 0, 1}, 3, depth)
 	blind := circle(t, b, vector{5, 10, 0}, vector{0, 0, 1}, 2, 3)
 	through := circle(t, b, vector{15, 10, -1}, vector{0, 0, 1}, 2, 10)
 	opposed := circle(t, b, vector{10, 14, 8}, vector{0, 0, -1}, 1, 5)
@@ -196,7 +197,11 @@ func checkSideNotchMixedBoreBatch(t *testing.T, depth float64) {
 			t.Fatal(err)
 		}
 	}
-	crossing := circle(t, b, vector{10, 4, 0}, vector{0, 0, 1}, 2, 4)
+	crossingCenter := vector{origin[0], origin[1] + 3, 0}
+	if origin == (vector{}) {
+		crossingCenter[0] = 1
+	}
+	crossing := circle(t, b, crossingCenter, vector{0, 0, 1}, 2, 4)
 	before := len(b.shapes)
 	if _, err := b.cutMany(stock.Handle, []string{notch.Handle, through.Handle, crossing.Handle}); err == nil || len(b.shapes) != before {
 		t.Fatal("intersecting notch batch did not reject atomically", err)

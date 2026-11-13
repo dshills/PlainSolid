@@ -1,0 +1,55 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "ece446d44e4408a7f04405aed3b90c1a94155b3be08336b3d8c2e717950d37ec",
+  "supplemental": {
+    "report": "/tmp/plainsolid-corner-mixed-browser-5391/browser-results.json",
+    "reportSha256": "cb9c036ee134a7b87fd11aaef7c4c599bf85469785bceacbafe18f457bf15e2b",
+    "sourceSha256": "6697a1e6fc8532f8a506f15d79503db331d50f763409c695be3f3fcbdcafe1bd",
+    "summary": {
+      "startTime": "2026-11-13T22:22:56.776Z",
+      "duration": 13150.092,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "durationMs": 10545,
+    "worldBounds": [
+      [
+        7,
+        -19,
+        19
+      ],
+      [
+        27,
+        -11,
+        39
+      ]
+    ],
+    "e2eTypecheck": "passed",
+    "analyticVolume": 3044.4911636473053,
+    "surfaceArea": 1532.8052987971814,
+    "stlTriangles": 318,
+    "stlSignedVolume": 3045.4884373339323,
+    "stepSha256": "65e74a680e5b18f2714788cf2cf7a17d6d5f1fed0bfd72f6312d51466559e4ea",
+    "stlSha256": "07223a50965971999b05ece0259be33f629a8088b5ce5892acd62f07b034e109"
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 20.634,
+    "exchange/step": 2.234,
+    "brep/trimmed": 3.836
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestSideNotchSTEP",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "cases": 9,
+    "mixedCornerCases": 2,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}

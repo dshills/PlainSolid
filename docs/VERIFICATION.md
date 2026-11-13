@@ -60,6 +60,18 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD mixed corner and contained Hole batch — 2026-11-13
+
+A single blind or through corner Hole can share a native batch with
+disjoint contained through bores and blind bores from either cap. Native
+checks cover swapped input order, successive builds, exact measures,
+atomic failure and canonical STEP. The independent OCCT readback matches
+volume, area and centroid for both mixed corner cases. All
+[ten original browser cases](evidence/plaincad-corner-batch-browser-2026-11-13.json)
+pass on PlainCAD `50432ed`. The [same-WASM probe](evidence/plaincad-corner-batch-native-2026-11-13.json)
+reopens an actual placed STEP export with three authored holes and
+validates the resulting STL. Race checks and Go vet pass.
+
 ## PlainCAD STEP for quarter-circle corner Holes — 2026-11-13
 
 The canonical notch codec now supports the existing rectangular stock
@@ -109,6 +121,14 @@ All 21 newly failed tests pass unchanged in the one-worker retest on the
 same staged app and WASM, including all three helical cases. The 17-file
 selection passes 213 of 217 originals. The four repeated failures in that
 selection all exercise fallback behavior.
+
+The [two remaining repeat diagnostics](evidence/plaincad-unit-remaining-controls-2026-11-13.json)
+hold the test assertions fixed. The workbench layout case passes a
+one-worker rerun on the original WASM. The laser screening fixture expects
+three unverified profiles. It gets one with either initialized kernel,
+and passes with OCCT left uninitialized, the fixture's original default.
+The two authored rectangular extrusions have verified cap faces when the
+native kernel is initialized, while the fitted body still receives a warning.
 
 ## PlainCAD asynchronous project-open readiness — 2026-11-13
 
