@@ -290,3 +290,21 @@ func TestOCCTFiniteParallelCylinderBlindBore(t *testing.T) {
 		compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
 	}
 }
+
+func TestOCCTFiniteCoaxialSteppedCylinderUnion(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	for i, name := range []string{"finite-coaxial-stepped-overlap", "finite-coaxial-stepped-touch"} {
+		b := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: float64(5 + 2*i)}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: 0, Max: float64(3 - i)}
+		u, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+		if err != nil || finiteOracleShellCount(u.Solid) != 1 {
+			t.Fatal(name, err)
+		}
+		m, err := u.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+	}
+}

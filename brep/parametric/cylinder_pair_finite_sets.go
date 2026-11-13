@@ -19,7 +19,7 @@ type FiniteCylinderPairUnionResult struct {
 
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
 // raw finite cylinders, strictly separated coordinate-parallel bodies or a
-// joined equal-radius coaxial body with overlapping or touching axial spans,
+// joined coaxial body with overlapping or touching axial spans,
 // and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
@@ -39,6 +39,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 			return unionContainedParallelCylinder(ctx, a, b, contained)
 		}
 		if u, ok, err := finiteCoaxialEqualCylinderUnion(ctx, a, b); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteCoaxialSteppedCylinderUnion(ctx, a, b, tolerance); ok || err != nil {
 			return u, err
 		}
 		return unionSeparatedCoordinateCylinders(ctx, a, b)
