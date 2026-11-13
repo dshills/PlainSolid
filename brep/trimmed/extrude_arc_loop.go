@@ -26,6 +26,16 @@ type ArcLoopExtrusion struct {
 // with one transverse circular notch whose disk is strictly clear of the
 // closing chord. Unresolved nonconvex arrangements are rejected rather than
 // replaced by a polygon. Positive and negative heights are supported.
+//
+// General trigonometric arcs use tolerant endpoint anchoring, not an exact
+// algebraic incidence certificate. Authored endpoints are retained verbatim
+// when their distance from the evaluated circle is at most both tolerance and
+// 1024 ULPs of max(abs(center.X), abs(center.Y), radius). Interior evaluation
+// remains the analytic circle; thus endpoint continuity is only within that
+// allowance. Cardinal quarters retain the stricter existing construction.
+// Area, perimeter and bounds are floating-point analytic estimates, not outward
+// certified enclosures. Callers requiring exact incidence must use exact-curve
+// proof APIs rather than infer it from this tolerant solid constructor.
 func ExtrudeArcLoop(ctx context.Context, frame geom.Frame, segments []ExtrusionSegment, height, tolerance float64) (ArcLoopExtrusion, error) {
 	var result ArcLoopExtrusion
 	if ctx == nil || len(segments) < 2 || len(segments) > 64 || !finite(height) || height == 0 || !finite(tolerance) || tolerance <= 0 {
