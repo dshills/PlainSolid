@@ -98,3 +98,27 @@ units, not converted or interpreted as acceptance tolerances; this inventory
 does not assign an uncertainty to a particular edge or claim its context applies
 to every body. No reconstruction, face coverage or material certification is
 provided by this API.
+
+### Spherical seam supporting circle and endpoint evidence
+
+`InspectOffAxisSphericalSeam` checks the selected sphere seam using exact source
+numbers. It requires a concentric circle and sphere, nonzero exactly orthogonal
+circle normal/reference directions, and a signed-coordinate sphere frame. The
+circle directions may be nonunit. The full-circle sphere residual is the exact
+difference of squared radii. The meridian flag reports whether the circle plane
+contains the source sphere axis. This is not a claim about the selected arc.
+
+For both topological endpoints, the report includes the sphere equation
+residual, squared distance to the circle plane, radial equation residual of the
+orthogonal projection into that plane, and squared distance to the sphere axis.
+Plane distance divides by the raw normal's exact squared norm, so no rounded
+normalization is needed. These are point/support claims, not an endpoint angle,
+nearest-circle distance, pole acceptance, or edge-interval proof.
+
+The retained fixture's full circle is exactly on the sphere and its plane
+contains the sphere axis. Its normal and reference squared norms are equal but
+strictly greater than one. Both source endpoints have small positive sphere
+residuals and plane distances; the nominal pole also has positive axis distance.
+Those represented discrepancies remain nonzero. Nonconcentric circles and
+nonorthogonal directions are rejected; radius mismatches are reported exactly.
+No tolerance-based repair, face coverage or material reconstruction is implied.
