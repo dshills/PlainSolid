@@ -17,6 +17,18 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD production on the staged viewer update — 2026-11-13
+
+The [integrated production run](evidence/plaincad-integrated-production-2026-11-13.json)
+passes 65 of 66 original cases. The 90-second performance case records all
+25 current-model edits and 11 fully validated STL downloads, then reaches the
+test deadline. An identical staged build passes the same original case in
+89.225 seconds on the second isolated retest. The earlier production build
+passes the parallel control in 86.294 seconds. The
+[benchmark artifacts](evidence/plaincad-integrated-production-benchmark-controls-2026-11-13.json)
+record both timeouts and the successful controls. All observed STL outputs
+retain 144 triangles and their original geometry checks.
+
 ## PlainCAD eccentric bores in circular stock — 2026-11-13
 
 Finite, strictly contained cylindrical tools now cut native circular
@@ -55,7 +67,9 @@ pan-idle, source-marker and gesture cases all pass with that change.
 Their measured times are 38.779, 20.592 and 54.799 seconds. The
 [final viewer harness run](evidence/plaincad-final-viewer-harness-2026-11-13.json)
 passes those three originals plus studio effects, 40-body GPU buffer
-reuse, and viewport fit. All six pass with zero skips or retries.
+reuse, and viewport fit. All six pass with zero skips or retries. Applying
+the same camera change to a separate OCCT-backed staged copy also passes
+the original pan-idle case.
 
 ## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
 

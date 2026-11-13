@@ -31,10 +31,25 @@ func TestRevolveAndCoaxialThroughBore(t *testing.T) {
 			t.Fatal(angle, mp.Volume, want, err)
 		}
 		q["b"] = shape(t, b, map[string]any{"op": "circle", "origin": vector{0, 11, 0}, "normal": vector{0, -1, 0}, "radius": 2, "height": 10}).Handle
-		n := b.next
-		input := strings.NewReplacer("A", target.Handle, "B", q["b"].(string)).Replace(`{"op":"cut","a":"A","b":"B"}`)
-		if response := b.Call(input); !strings.Contains(response, `"ok":false`) || b.next != n {
-			t.Fatal("short coaxial tool was accepted", response)
+		if angle == 2*math.Pi {
+			// The full circular stock uses the finite blind-bore constructor.
+			// Its entry is at Y=10 and the floor remains one unit above the
+			// original lower cap.
+			blind := shape(t, b, q)
+			near(t, blind.GeometryAssertions.Volume, (250-36)*math.Pi)
+			near(t, blind.GeometryAssertions.SurfaceArea, (150+36)*math.Pi)
+			s := b.shapes[blind.Handle]
+			floor, err := s.analytic.planarFace(vector{0, 1, 0}.vec(), vector{0, 1, 0}.vec())
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, floor.Area, 4*math.Pi)
+		} else {
+			n := b.next
+			input := strings.NewReplacer("A", target.Handle, "B", q["b"].(string)).Replace(`{"op":"cut","a":"A","b":"B"}`)
+			if response := b.Call(input); !strings.Contains(response, `"ok":false`) || b.next != n {
+				t.Fatal("short coaxial tool on a partial sector was accepted", response)
+			}
 		}
 		near(t, b.shapes[target.Handle].result.GeometryAssertions.Volume, math.Abs(angle)*125)
 	}
