@@ -11,9 +11,14 @@ type SideOpenDualDiskReadOptions struct {
 	// AllowReversedModelLines permits a direct LINE with a negated cardinal unit
 	// direction paired with EDGE_CURVE.same_sense=false. The line origin must be
 	// the original edge-start vertex, vector magnitude exactly one, and the line,
-	// vector and direction must each be singly owned. Circle, coedge and face
-	// encodings remain canonical. This does not admit pcurves or repair geometry.
+	// vector and direction must each be singly owned. Coedge and face encodings
+	// remain canonical; circle changes require the separate circle option.
+	// This does not admit pcurves or repair geometry.
 	AllowReversedModelLines bool
+	// AllowRephasedModelCircles permits a different signed cardinal reference
+	// direction on the same oriented supporting circle. Exact endpoints and the
+	// directed minor arc are proved; normals and edge senses are not flipped.
+	AllowRephasedModelCircles bool
 }
 
 // f is the reader's private parsed graph. Only successfully proved source line
