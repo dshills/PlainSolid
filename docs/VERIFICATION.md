@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD ORBIT display and signed profile edges — 2026-11-13
+
+The [ORBIT display report](evidence/plaincad-current-orbit-display-2026-11-13.json)
+passes all three original cases on PlainCAD `1c591283` in 129.156 seconds.
+These cover fine close-up tessellation, Render visibility and PNG export, and
+a full-resolution PNG during orbit or zoom. The harness records the runtime
+changes applied to the isolated application copy. Fine display uses the
+accepted geometry worker's native feature cache and retains the original
+document, bounds, volume and cancellation checks. The original test bodies
+and deadlines are unchanged. Both TypeScript checks and the separate real
+WASM provider check pass.
+
+The [signed edge report](evidence/plaincad-signed-edges-2026-11-13.json)
+passes all three original XY, XZ and YZ negative/symmetric profile-edge
+cases in 116.943 seconds. The [retained reference report](evidence/plaincad-retained-and-origin-2026-11-13.json)
+passes 18 originals for retained edges, workspace and guided modeling, Parts
+Browser, and AI To Face. The circular side and corner cut and moved projected
+cut also pass their original selections.
+
 ## PlainCAD rotary fixture and downstream Hole edit — 2026-11-13
 
 The [rotary acceptance](evidence/plaincad-rotary-accepted-2026-11-13.json)

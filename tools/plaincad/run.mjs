@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { installDisplayRuntime } from "./display-runtime.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -111,6 +112,7 @@ try {
     purpose: "Report existing native-worker progress at each executed feature.",
     beforeSha256: hash(rebuildBefore), afterSha256: hash(rebuildAfter),
   }];
+  report.runtimeAdaptations.push(...await installDisplayRuntime(work, hash));
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');
