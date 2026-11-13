@@ -131,4 +131,29 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	if loc, _, e := r.Regions.LocateRational(ctx, [3]*big.Rat{big.NewRat(1, 2), big.NewRat(3, 2), big.NewRat(1, 3)}); !errors.Is(e, geom.ErrDomain) || loc != trimvalidate.Unknown {
 		t.Fatal("section query accepted an off-plane point", loc, e)
 	}
+	// The cap chart swaps model axes, so its native normal points down.
+	// Return a correctly reversed upward face with the same physical hole.
+	support, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: z}, {X: 4, Z: z}, {Y: 4, Z: z}, {X: 4, Y: 4, Z: z},
+	}, k, k, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	r.Regions.Material[0].Holes[0] = -1 // diagnostic mutation cannot alter proof
+	caps, e := r.Regions.BuildCaps(ctx, support, domain, RationalGraphSectionCapOptions{})
+	if e != nil || len(caps) != 1 {
+		t.Fatal("square-tube cap", caps, e)
+	}
+	cap := caps[0]
+	if !cap.Boundary.Face.Reversed || len(cap.Boundary.Face.Outer) != 12 || len(cap.Boundary.Face.Holes) != 1 || len(cap.Boundary.Face.Holes[0]) != 4 || len(cap.Edges) != 16 {
+		t.Fatal("cap chart orientation or hole ownership changed", cap)
+	}
+	for i, x := range cap.Edges {
+		if !x.Reversed || r.Branches[x.Branch].Face != x.Face || x.Piece != 0 {
+			t.Fatal("cap edge ownership", i, x)
+		}
+	}
+	if loc, report, e := LocateRationalInFaceTrim(ctx, cap.Boundary.Face, [2]*big.Rat{big.NewRat(3, 8), big.NewRat(3, 8)}, trimvalidate.Options{}); e != nil || report.Status != trimvalidate.Certified || loc != trimvalidate.Outside {
+		t.Fatal("cap trim filled the void", loc, report, e)
+	}
 }
