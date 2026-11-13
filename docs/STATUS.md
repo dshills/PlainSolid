@@ -421,6 +421,13 @@ corrected by writing explicit planar surface entities. Both-direction IGES
 curve qualification also passed. See [verification](VERIFICATION.md) and
 [oracle instructions](../tools/occtref/README.md).
 
+Finite coaxial sphere/cylinder common now retains the applicable
+cylindrical band, spherical caps or zones, and planar clipping caps. A
+separate finite blind bore supports exact and algebraically enclosed rim
+heights. Exact off-axis angular contact classification distinguishes
+smooth loops, isolated tangency, and a crossing node; general off-axis
+trim assembly remains open.
+
 ## Continuing implementation
 
 For immediate work, follow the PlainCAD gates above. Within the remaining full

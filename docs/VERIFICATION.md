@@ -912,3 +912,11 @@ nut shoulders and the shaft tip through independent mass differences. A
 full-turn comparison splits at relief radii and distinguishes a radial-wall
 witness from an interior one; it preserves cap-only contact as zero positive
 axial overlap.
+
+Finite coaxial sphere/cylinder intersection tests distinguish two curved
+rims, one curved rim plus an axial cap, caps at the exact transverse rim,
+a spherical zone, and regularized pole contact. Analytic mass agrees with
+independent axial integration; a mesh has positive volume and no detected
+contacts. Off-axis support tests independently qualify all angular topology
+regimes, including algebraic boundary rays and the distinct curve tangent
+directions at a shared node.
