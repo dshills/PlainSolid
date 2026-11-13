@@ -138,3 +138,23 @@ func TestFiniteCylinderPairUnequalCrossingUnion(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairUnchangedOrCoveredDifference(t *testing.T) {
+	ctx := context.Background()
+	stock := geom.RawCylinder{Axis: geom.Vec3{Z: -2}, Radius: 2, Min: -1, Max: 1}
+	cutter := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: 3}, Radius: 1, Min: -1, Max: 1}
+	d, e := FiniteCylinderPairDifference(ctx, stock, cutter, 1e-9)
+	if e != nil || len(d.Solids[0].Faces()) != 3 || len(d.Solids[1].Faces()) != 0 || len(d.StockCapFaces[0]) != 2 || len(d.CutterWallFaces[0]) != 0 || d.ContactNodes != nil || d.MinimumGapSquared != nil {
+		t.Fatal(d, e)
+	}
+	p, e := d.Solids[0].MassProperties(ctx, IntegrationOptions{})
+	if e != nil || math.Abs(p.Volume-16*math.Pi) > 1e-9 {
+		t.Fatal(p, e)
+	}
+	stock = geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: 2}, Radius: 2, Min: -2, Max: 2}
+	cutter = geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 4, Z: 4}, Axis: geom.Vec3{Z: -4}, Radius: 5, Min: -.5, Max: .5}
+	d, e = FiniteCylinderPairDifference(ctx, stock, cutter, 1e-9)
+	if e != nil || len(d.Solids[0].Faces())+len(d.Solids[1].Faces()) != 0 {
+		t.Fatal(d, e)
+	}
+}

@@ -179,7 +179,9 @@ func ReadCylinderPairUnionRecipeJSON(ctx context.Context, r io.Reader, maxBytes 
 }
 
 // WriteCylinderPairDifferenceRecipeJSON retains two ordered native components,
-// component-local ancestry and exact contact expressions or separation bound.
+// component-local ancestry and applicable exact contact expressions or separation
+// bound. Unchanged stock occupies slot 0 with slot 1 empty; fully covered stock
+// leaves both slots empty. Empty slots are serialized, never compacted.
 // Contact refinement Bounds are deliberately regenerated, not serialized.
 func WriteCylinderPairDifferenceRecipeJSON(ctx context.Context, w io.Writer, r CylinderPairCommonRecipe) error {
 	return writeCylinderSet(ctx, w, r, true)
@@ -187,7 +189,9 @@ func WriteCylinderPairDifferenceRecipeJSON(ctx context.Context, w io.Writer, r C
 
 // ReadCylinderPairDifferenceRecipeJSON requires canonical reconstruction of all
 // components and stable contact/gap data. A is stock, B is cutter; raw signed
-// axes and parameter limits are retained. Limits match the union reader.
+// axes and parameter limits are retained. Either or both slots may be empty;
+// unchanged/covered cases have neither contact nor gap proof. Limits match the
+// union reader.
 func ReadCylinderPairDifferenceRecipeJSON(ctx context.Context, r io.Reader, maxBytes int64) (CylinderPairCommonRecipe, parametric.FiniteCylinderPairDifferenceResult, error) {
 	v, _, d, e := readCylinderSet(ctx, r, maxBytes, true)
 	return v, d, e
