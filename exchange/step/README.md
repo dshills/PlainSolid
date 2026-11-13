@@ -1947,3 +1947,14 @@ matching. Hole loops, non-quarter blends, split sides and all-sharp boxes are
 outside this API. The retained `rounded-stock-occt.step` was built independently
 as an OCCT wire of lines and circle arcs followed by a prism, and live
 import/rewrite comparisons check validity, area, volume and centroid.
+
+`ReadAnalyticRoundedPocketExtrusions` adds through circles and common-entry blind
+pockets without broadening the stock-only API. A bounded view retaining all
+original exterior curve/vertex identities first passes the complete rounded
+stock proof. The original graph then passes inward-wall, full seam, cap/floor
+ownership, continuous pcurve, orientation and depth checks. Enlarged hole
+footprints must pass native rounded-profile containment and disjointness. The
+recovered frame follows source analytic supports; signed height preserves the
+entry cap, not unrecorded feature history. Independent OCCT cut output in
+`rounded-pocket-occt.step` exercises changed analytic frame choices, an eccentric
+through hole and a blind floor; live rewrite checks validity and mass.

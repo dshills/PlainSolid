@@ -55,7 +55,7 @@ static int writeDiskPocketReference(const char* path) {
  STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent disk pocket STEP export");return 0;
 }
 
-static int writeRoundedStockReference(const char* path) {
+static int writeRoundedStockReference(const char* path,bool pockets=false) {
  const double pi=std::acos(-1.0);
  const gp_Pnt origin(2,-3,4); const gp_Dir x(0,1,0),axis(-1,0,0);
  auto pt=[&](double u,double v){return gp_Pnt(2,-3+u,4-v);};
@@ -64,6 +64,7 @@ static int writeRoundedStockReference(const char* path) {
  auto arc=[&](double u,double v,double r,double a,double b){gp_Circ circle(gp_Ax2(pt(u,v),axis,x),r);wire.Add(BRepBuilderAPI_MakeEdge(circle,a,b).Edge());};
  line(.5,0,7,0);arc(7,1,1,-pi/2,0);line(8,1,8,5);line(8,5,1.5,5);arc(1.5,3.5,1.5,pi/2,pi);line(0,3.5,0,.5);arc(.5,.5,.5,pi,3*pi/2);
  TopoDS_Shape shape=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(wire.Wire()).Face(),gp_Vec(-3,0,0)).Shape();
+ if(pockets){ auto through=BRepPrimAPI_MakeCylinder(gp_Ax2(pt(2,2),axis,x),.5,3).Shape(); auto blind=BRepPrimAPI_MakeCylinder(gp_Ax2(pt(5,3),axis,x),.75,1).Shape();shape=BRepAlgoAPI_Cut(BRepAlgoAPI_Cut(shape,through).Shape(),blind).Shape(); }
  if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent rounded stock source");
  STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent rounded stock STEP export");return 0;
 }
