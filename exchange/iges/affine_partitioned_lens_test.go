@@ -145,3 +145,17 @@ func TestAffinePartitionedIGESLensOCCT(t *testing.T) {
 		}
 	}
 }
+
+func FuzzAffinePartitionedIGESLens(f *testing.F) {
+	for _, name := range []string{"affine-partitioned-lens", "sheared-partitioned-lens", "concurrent-partitioned-lens"} {
+		b, e := os.ReadFile("testdata/" + name + ".igs")
+		if e != nil {
+			f.Fatal(e)
+		}
+		f.Add(b)
+	}
+	f.Add([]byte{})
+	f.Fuzz(func(t *testing.T, b []byte) {
+		_, _ = ReadAffinePartitionedSplineLensSolid(bytes.NewReader(b), Limits{MaxBytes: 128 << 10, MaxRecords: 2000, MaxEntities: 128, MaxValues: 20000, MaxControlPoints: 2048})
+	})
+}
