@@ -70,6 +70,8 @@ type edgeReference struct {
 }
 
 type request struct {
+	MaxSegments       int                  `json:"maxSegments,omitempty"`
+	EdgeUses          *int                 `json:"edgeUses,omitempty"`
 	Op                string               `json:"op"`
 	Handle            string               `json:"handle,omitempty"`
 	A                 string               `json:"a,omitempty"`
@@ -339,12 +341,14 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, err
 		}
 		return b.put(s)
-	case "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell", "planarFace":
+	case "displayEdges", "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell", "planarFace":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
 		}
 		switch q.Op {
+		case "displayEdges":
+			return nativeDisplayEdges(s, q.MaxSegments, q.EdgeUses)
 		case "planarFace":
 			if q.Origin == nil || q.Normal == nil {
 				return nil, errors.New("planarFace requires origin and normal")

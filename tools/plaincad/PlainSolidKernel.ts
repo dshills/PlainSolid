@@ -2,6 +2,7 @@
 // The class name preserves the application's import boundary; all geometry is Go.
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
+import type { DisplayEdgeBudget } from "./nativeDisplayEdges";
 import type { ComponentPlacement, TopologyRef, RevolveAxisReference } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
@@ -254,6 +255,13 @@ export class OpenCascadeKernel implements KernelAdapter {
     let current = this.cloneShape(base);
     try { for (const tool of tools) { const next = this.cut(current, tool); this.disposeShape(current); current = next; } return current; }
     catch (error) { this.disposeShape(current); throw error; }
+  }
+  nativeDisplayEdges(shape: KernelShape, maxSegments: number, budget?: DisplayEdgeBudget): Float32Array {
+    const { positions, edgeUses } = request<{ positions: number[]; edgeUses: number }>({
+      op: "displayEdges", handle: handle(shape).proof.handle, maxSegments, edgeUses: budget?.edgeUses,
+    });
+    if (budget) budget.edgeUses -= edgeUses;
+    return Float32Array.from(positions);
   }
   tessellate(shape: KernelShape, options: TessellationOptions): RenderMesh {
     const mesh = request<Omit<RenderMesh, "id" | "bodyId">>({ op: "mesh", handle: handle(shape).proof.handle, linearDeflection: options.linearDeflection, angularDeflection: options.angularDeflection });
