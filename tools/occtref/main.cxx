@@ -222,6 +222,14 @@ int main(int argc, char** argv) {
         }
         if(count!=2)throw std::runtime_error("raw cylinder difference component count");
       }
+      const auto separatedA=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,-2),gp_Dir(0,0,1)),2,4).Shape();
+      for(int axial=0;axial<2;++axial){
+        const auto separatedB=BRepPrimAPI_MakeCylinder(gp_Ax2(axial?gp_Pnt(0,0,11):gp_Pnt(4,0,3),gp_Dir(0,0,-1)),1,6).Shape();
+        const auto combined=BRepAlgoAPI_Fuse(separatedA,separatedB).Shape();
+        int count=0;for(TopExp_Explorer it(combined,TopAbs_SOLID);it.More();it.Next())++count;
+        if(count!=2)throw std::runtime_error("separated finite union did not retain two solids");
+        record(out,axial?"finite-separated-axial":"finite-separated-radial",combined,1e-11);
+      }
       return 0;
     }
     if (argc == 3 && mode == "finite-cylinder-dispatch") {

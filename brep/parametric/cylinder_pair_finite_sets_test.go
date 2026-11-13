@@ -58,3 +58,31 @@ func TestFiniteCylinderPairSetsRetainRawCaps(t *testing.T) {
 		t.Fatal("unsupported skew must fail", e)
 	}
 }
+
+func TestFiniteCylinderPairSeparatedUnion(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -1, Max: 1}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -3}, Radius: 1, Min: -1, Max: 1}
+	for _, x := range []geom.RawCylinder{b, {Origin: geom.Vec3{Z: 8}, Axis: geom.Vec3{Z: -3}, Radius: 1, Min: -1, Max: 1}} {
+		u, e := FiniteCylinderPairUnion(ctx, a, x, 1e-9)
+		if e != nil || u.CommonVolumeSquared.Sign() != 0 || len(u.Solid.Faces()) != 6 {
+			t.Fatal(u, e)
+		}
+		p, e := u.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+		if e != nil || math.Abs(p.Volume-22*math.Pi) > 1e-9 {
+			t.Fatal(p, e)
+		}
+		for side, id := range []int{u.LowerCapFaces[1][0], u.UpperCapFaces[1][0]} {
+			f := u.Solid.Faces()[id]
+			p, e := f.Surface.Eval(0, 0)
+			if e != nil || p.Z != x.Origin.Z+[2]float64{3, -3}[side] {
+				t.Fatal("raw reversed cap", p, e)
+			}
+		}
+	}
+	b.Origin.X = 3
+	u, e := FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrDomain) || len(u.Solid.Faces()) != 0 {
+		t.Fatal("radial contact does not prove disjoint closures", u, e)
+	}
+}
