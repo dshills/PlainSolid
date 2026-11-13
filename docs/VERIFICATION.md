@@ -2181,3 +2181,11 @@ keyboard face-card and dimension case. With the Chromium control, the three
 engines all reproduce the replacement run's three passes and twelve failures.
 The unchanged suite remains failing; the control establishes that these
 observed failures are shared by the original provider.
+
+The clean reconciled candidate `73cb617` and current PlainCAD archive
+`e65f07b` passed [all eleven original arc-region regressions](evidence/plaincad-reconciled-arc-regressions-2026-11-13.json),
+including major arc fragmentation, all signed plane variants of circle/arc
+intersections and arc-only regions, and the analytic YZ Extend workflow.
+The real Go-WASM preflight and both original TypeScript checks also passed.
+This focused pass qualifies the merged arc implementation independently of
+the earlier full development run, which started before the arc merge.
