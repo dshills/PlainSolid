@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD cross-browser and native short-suite coverage — 2026-11-13
+
+The [latest cross-browser run](evidence/plaincad-cross-browser-cylinder-stock-2026-11-13.json)
+passes all 15 originals on clean `19b63f4` across Chromium, Firefox and
+WebKit. Both TypeScript checks, the bundle budget and separate real-WASM
+probe pass.
+
+The [native short-suite run and continuation](evidence/native-short-partition-2026-11-13.json)
+record 38 passing packages and four packages without tests. The trimmed
+package reaches Go's 30-minute package timeout after 353 passing and
+three skipped top-level tests. A second short-mode selection completes its
+remaining 44 tests and one explicit skip. The combined native evidence
+therefore covers all 401 trimmed top-level tests as 397 passing and four
+skipped across the two runs. The original all-package invocation remains
+recorded as a timeout. The two earlier timeout cases also pass directly.
+
 ## PlainCAD equivalent STEP cylinder orientation encodings — 2026-11-13
 
 Main's paired circle-frame and edge-sense reversals, plus axial and
