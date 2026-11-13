@@ -33,17 +33,14 @@ type FiniteCylinderPairCommonResult struct {
 	SideFaces, LowerCapFaces, UpperCapFaces [2][]int
 }
 
-// FiniteCylinderPairCommon selects a native construction for two finite
-// cylinders. It handles coordinate-parallel and exactly placed oblique
-// parallel axes, unclipped nonparallel
-// crossing or exactly placed skew axes, and selected perpendicular caps on
-// signed coordinate axes of arbitrary nonzero scale, including one clipping
-// cap on each equal-radius cylinder. Raw axes and cap limits
-// retain their original meaning. Unsupported
-// arrangements fail without returning partial solids. A tangent cap that
-// retains the entire crossing common adds no planar boundary face. Complete
-// containment is also supported for unequal signed-coordinate perpendicular
-// cylinders whose resulting cap centers and height are exactly representable.
+// FiniteCylinderPairCommon selects a native intersection of two finite raw
+// cylinders. It supports coordinate-parallel and exactly placed oblique
+// parallel axes, unclipped crossing or selected skew axes, and finite cap
+// windows for perpendicular signed-coordinate axes. The latter includes
+// unequal radii and complete containment in selected skew placements.
+// Original raw cap parameters determine face ownership. Caps that merely
+// touch the common without clipping its interior add no planar faces.
+// Unsupported arrangements fail without returning a partial solid.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
