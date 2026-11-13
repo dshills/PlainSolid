@@ -17,6 +17,7 @@ type SideOpenDualDiskCut struct {
 	Solid     Solid
 	WallFaces [2][]int
 	FloorFace int
+	source    *sideOpenDualDiskSource
 }
 
 // CutSideOpenDualDisks constructs the solid from the certified section and
@@ -178,6 +179,7 @@ func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 		return zero, geom.ErrConvergence
 	}
 	out.Solid = solid
+	out.source = &sideOpenDualDiskSource{frame, min, max, discs, height, depth}
 	return out, nil
 }
 

@@ -1614,6 +1614,14 @@ Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.
 
+Blind and through equal-depth overlapping side pockets now have a direct
+material query in the certified cardinal frame. It distinguishes the actual
+exposed circular seam from a buried individual cutter boundary, and resolves
+opposite rational probes separated by less than a float64 ULP. Closed-form
+volume, area and centroid agree with independent integration of the stored
+curved faces on translated and rotated stock, and with the optional OCCT
+blind-pocket oracle. These results do not use a mesh.
+
 On 2026-11-13 the expanded pinned OCCT reference suite passed 155 test cases
 (including subtests) with no skips. Both STEP import and transverse spline
 shell operations were enabled. New cubic and
