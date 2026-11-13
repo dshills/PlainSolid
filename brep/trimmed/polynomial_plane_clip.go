@@ -18,6 +18,9 @@ import (
 // Each face tries at most two axes; limits apply per bounded surface/edge proof
 // and loop certificate, with at most64 total section pieces.
 func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
+	return combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o, nil)
+}
+func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions, spans *polynomialClipSpanState) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
@@ -169,15 +172,30 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 			sections = []PCurve{section}
 		} else {
 			axis, sign := 0, 0
-			cert, e := CertifyPolynomialPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
-			if errors.Is(e, geom.ErrConvergence) {
-				cert, e = CertifyPolynomialPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+			if spans == nil {
+				cert, e := CertifyPolynomialPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = CertifyPolynomialPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+				}
+				if e != nil {
+					return zero, e
+				}
+				sections = []PCurve{cert.trim}
+				axis, sign = cert.freeAxis, cert.sign
+			} else {
+				cert, e := CertifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, raw[0].Z, 0, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = CertifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, raw[0].Z, 1, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+				}
+				if e != nil {
+					return zero, e
+				}
+				for _, q := range cert.Pieces() {
+					sections = append(sections, q)
+				}
+				axis, sign = cert.axis, cert.sign
+				spans.knots = append(spans.knots, cert.Knots()...)
 			}
-			if e != nil {
-				return zero, e
-			}
-			sections = []PCurve{cert.trim}
-			axis, sign = cert.freeAxis, cert.sign
 			var chain [][2]*big.Rat
 			for i, q := range sections {
 				ends, _, qe := polynomialPlaneEndpoints(q)
