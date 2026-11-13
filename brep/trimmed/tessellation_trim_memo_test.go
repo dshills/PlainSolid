@@ -62,11 +62,15 @@ func TestTessellationTrimMemoIdentityAndBounds(t *testing.T) {
 }
 func TestTessellationTrimMemoEquivalence(t *testing.T) {
 	ctx := context.Background()
-	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
-	s, e := ExtrudeDiskWithHoles(ctx, frame, ExtrusionCircle{Radius: 4}, []ExtrusionCircle{{Center: geom.Vec2{X: 1}, Radius: 1}}, nil, 3)
+	// The spline graph requires ordinary trim refinement even when analytic
+	// primitive meshers are available.
+	stock, _ := polynomialClipStock(t)
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{3, 3, 3. / 16}, 0)
+	result, e := CombinePolynomialSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, SplineRectangleEmbeddingOptions{})
 	if e != nil {
 		t.Fatal(e)
 	}
+	s := result.Solid
 	before := s.Faces()
 	for _, o := range []parametric.TessellationOptions{{Deflection: .1, Angle: .2}, {Deflection: .01, MaxTriangles: 1}, {Deflection: .1, AnalyticBound: true}} {
 		old, oe := s.tessellateWithTrimMemo(ctx, o, nil)

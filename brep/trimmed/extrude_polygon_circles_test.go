@@ -68,7 +68,7 @@ func TestExtrudePolygonWithBlindAndThroughHoles(t *testing.T) {
 	f, _ := geom.NewFrame(geom.Vec3{X: 2, Y: -1, Z: 4}, geom.Vec3{X: 1}, geom.Vec3{Y: 1})
 	p := []geom.Vec2{{}, {X: 8}, {X: 8, Y: 4}, {Y: 4}}
 	through := []ExtrusionCircle{{geom.Vec2{X: 2, Y: 2}, .5}}
-	blind := []ExtrusionBlindHole{{ExtrusionCircle{geom.Vec2{X: 6, Y: 2}, .75}, 1.25}}
+	blind := []ExtrusionBlindHole{{ExtrusionCircle: ExtrusionCircle{geom.Vec2{X: 6, Y: 2}, .75}, Depth: 1.25}}
 	for _, z := range []float64{-3, 3} {
 		s, e := ExtrudePolygonWithHoles(ctx, f, p, through, blind, z)
 		if e != nil || s.Topology().EulerCharacteristic != 0 || s.Topology().InnerWires != 3 || len(s.faces) != 15 {
