@@ -19,6 +19,9 @@ import (
 // Work limits apply per surface/edge proof and trim loop validation; the single-
 // span gate remains unchanged, including at exact internal source knots.
 func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
+	return combineQuadraticSplinePlaneClip(ctx, stock, tool, active, op, o, nil)
+}
+func combineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions, spans *quadraticClipSpanState) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
@@ -127,7 +130,7 @@ func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, act
 		}
 		face := stock.faces[id]
 		var uv [][2]*big.Rat
-		var section ExactQuadraticUV
+		var sections []ExactQuadraticUV
 		if _, ae := geom.NewAffineSurfaceChart(ctx, f.patch, geom.AffineSurfaceChartOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits}); ae == nil {
 			points := slabFaceUV(face)
 			var heights []*big.Rat
@@ -163,75 +166,109 @@ func CombineQuadraticSplinePlaneClip(ctx context.Context, stock, tool Solid, act
 			if len(ends) != 2 {
 				return zero, geom.ErrConvergence
 			}
-			section, e = quadraticLine(ends[0], ends[1])
+			section, e := quadraticLine(ends[0], ends[1])
 			if e != nil {
 				return zero, e
 			}
+			sections = []ExactQuadraticUV{section}
 		} else {
-			cert, e := CertifyQuadraticPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
-			if errors.Is(e, geom.ErrConvergence) {
-				cert, e = CertifyQuadraticPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+			axis, sign := 0, 0
+			if spans == nil {
+				cert, e := CertifyQuadraticPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = CertifyQuadraticPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+				}
+				if e != nil {
+					return zero, e
+				}
+				sections = []ExactQuadraticUV{cert.trim}
+				axis, sign = cert.freeAxis, cert.sign
+			} else {
+				options := QuadraticPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o}
+				cert, e := CertifyPiecewiseQuadraticPlaneFaceSection(ctx, stock, id, raw[0].Z, 0, options)
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = CertifyPiecewiseQuadraticPlaneFaceSection(ctx, stock, id, raw[0].Z, 1, options)
+				}
+				if e != nil {
+					return zero, e
+				}
+				sections = cert.Pieces()
+				axis, sign = cert.axis, cert.sign
+				spans.knots = append(spans.knots, cert.Knots()...)
 			}
-			if e != nil {
-				return zero, e
+			var chain [][2]*big.Rat
+			for i, q := range sections {
+				ends, _ := q.Endpoints()
+				if i == 0 {
+					chain = append(chain, ends[0])
+				}
+				chain = append(chain, ends[1])
 			}
-			section = cert.trim
-			ends, _ := section.Endpoints()
+			reverse := append([][2]*big.Rat(nil), chain...)
+			for i, j := 0, len(reverse)-1; i < j; i, j = i+1, j-1 {
+				reverse[i], reverse[j] = reverse[j], reverse[i]
+			}
 			d := f.patch.Domain()
 			lo := [2]*big.Rat{ratInset(d.UMin), ratInset(d.VMin)}
 			hi := [2]*big.Rat{ratInset(d.UMax), ratInset(d.VMax)}
-			if cert.freeAxis == 1 {
-				if keep*cert.sign > 0 {
-					uv = [][2]*big.Rat{lo, ends[0], ends[1], {lo[0], hi[1]}}
+			if axis == 1 {
+				if keep*sign > 0 {
+					uv = append([][2]*big.Rat{lo}, chain...)
+					uv = append(uv, [2]*big.Rat{lo[0], hi[1]})
 				} else {
-					uv = [][2]*big.Rat{ends[0], {hi[0], lo[1]}, hi, ends[1]}
+					uv = append([][2]*big.Rat{{hi[0], lo[1]}, hi}, reverse...)
 				}
-			} else if keep*cert.sign > 0 {
-				uv = [][2]*big.Rat{lo, {hi[0], lo[1]}, ends[1], ends[0]}
+			} else if keep*sign > 0 {
+				uv = append([][2]*big.Rat{lo, {hi[0], lo[1]}}, reverse...)
 			} else {
-				uv = [][2]*big.Rat{ends[0], ends[1], hi, {lo[0], hi[1]}}
+				uv = append(append([][2]*big.Rat(nil), chain...), hi, [2]*big.Rat{lo[0], hi[1]})
 			}
+		}
+		if len(sections) > 64-len(arcs) {
+			return zero, geom.ErrConvergence
 		}
 		part, e := slabSewFace(ctx, face, f.patch, uv, o)
 		if e != nil {
 			return zero, e
 		}
-		_, display := section.Endpoints()
-		found := false
-		for i, u := range part.Face.Outer {
-			q := section
-			if u.UVStart == display[1] && u.UVEnd == display[0] {
-				q = reversePlaneQuadratic(q)
-			} else if u.UVStart != display[0] || u.UVEnd != display[1] {
-				continue
+		for _, section := range sections {
+			_, display := section.Endpoints()
+			found := false
+			for i, u := range part.Face.Outer {
+				q := section
+				if u.UVStart == display[1] && u.UVEnd == display[0] {
+					q = reversePlaneQuadratic(q)
+				} else if u.UVStart != display[0] || u.UVEnd != display[1] {
+					continue
+				}
+				if found {
+					return zero, geom.ErrConvergence
+				}
+				found = true
+				part.Face.Outer[i].Curve = q
+				part.Edges[u.Edge].Curve = surfaceTrimCurve{face.Surface, u.UVStart, u.UVEnd, q}
 			}
-			if found {
+			if !found {
 				return zero, geom.ErrConvergence
 			}
-			found = true
-			part.Face.Outer[i].Curve = q
-			part.Edges[u.Edge].Curve = surfaceTrimCurve{face.Surface, u.UVStart, u.UVEnd, q}
-		}
-		if !found {
-			return zero, geom.ErrConvergence
+			capq, e := quadraticPlaneCapCurve(ctx, f.patch, section, patches[1][active].patch, o)
+			if e != nil {
+				return zero, e
+			}
+			_, sp := section.Endpoints()
+			_, cp := capq.Endpoints()
+			paired, pe := compareSplineEdgeUse(ctx, parametric.Edge{Start: 0, End: 1, Curve: surfaceTrimCurve{face.Surface, sp[0], sp[1], section}, Range: parametric.Interval{Max: 1}}, tool.faces[active].Surface, Use{UVStart: cp[0], UVEnd: cp[1], Curve: capq}, o.EdgeAgreement)
+			if pe != nil {
+				return zero, pe
+			}
+			if !paired {
+				return zero, geom.ErrConvergence
+			}
+			arcs = append(arcs, capq)
 		}
 		if e = validateQuadraticPlanePart(ctx, part); e != nil {
 			return zero, e
 		}
-		capq, e := quadraticPlaneCapCurve(ctx, f.patch, section, patches[1][active].patch, o)
-		if e != nil {
-			return zero, e
-		}
-		_, sp := section.Endpoints()
-		_, cp := capq.Endpoints()
-		paired, pe := compareSplineEdgeUse(ctx, parametric.Edge{Start: 0, End: 1, Curve: surfaceTrimCurve{face.Surface, sp[0], sp[1], section}, Range: parametric.Interval{Max: 1}}, tool.faces[active].Surface, Use{UVStart: cp[0], UVEnd: cp[1], Curve: capq}, o.EdgeAgreement)
-		if pe != nil {
-			return zero, pe
-		}
-		if !paired {
-			return zero, geom.ErrConvergence
-		}
-		arcs = append(arcs, capq)
 		add(part, id)
 		out.ClippedStockFaces = append(out.ClippedStockFaces, id)
 	}
