@@ -1119,6 +1119,12 @@ UV and model coordinates and both neighboring edge owners. The native common
 and cut agree with analytic integrals at volumes `4031/86016` and
 `81985/86016`; independent span-aware OCCT calculations agree on shell count,
 area, volume, and centroid for both operations.
+An oblique cutter `Z=3/16+X/32` produces cubic and creased commons of
+`3257/53760` and `23921/430080`. Both complementary cuts, original cap
+support, native reload, closed meshes, and absence of undeclared mesh
+contacts pass. Independent OCCT prisms agree on area, volume and centroid
+for all four results. A cyclic physical-axis permutation checks the YZ
+projection without changing the original UV coordinates.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

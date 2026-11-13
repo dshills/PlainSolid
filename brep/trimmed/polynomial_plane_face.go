@@ -49,10 +49,17 @@ func CertifyPolynomialPlaneFaceSection(ctx context.Context, s Solid, face int, h
 // original edges of that free coordinate; Parameters retains each model edge's
 // own declared range and direction. Knot crossings remain unsupported.
 func CertifyPolynomialPlaneFaceSectionAxis(ctx context.Context, s Solid, face int, height float64, freeAxis int, o SplineRectangleEmbeddingOptions) (*PolynomialPlaneFaceSection, error) {
+	if !finite(height) {
+		return nil, geom.ErrInvalid
+	}
+	return certifyPolynomialPlaneFaceSection(ctx, s, face, horizontalPolynomialPlane(ratInset(height)), freeAxis, o)
+}
+
+func certifyPolynomialPlaneFaceSection(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o SplineRectangleEmbeddingOptions) (*PolynomialPlaneFaceSection, error) {
 	if freeAxis < 0 || freeAxis > 1 {
 		return nil, geom.ErrInvalid
 	}
-	if ctx == nil || face < 0 || face >= len(s.faces) || !finite(height) {
+	if ctx == nil || face < 0 || face >= len(s.faces) {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -62,11 +69,11 @@ func CertifyPolynomialPlaneFaceSectionAxis(ctx context.Context, s Solid, face in
 	if e != nil {
 		return nil, e
 	}
-	q, sign, e := polynomialPlaneTrimAxis(f.patch, new(big.Rat).SetFloat64(height), freeAxis)
+	q, sign, e := polynomialPlaneTrimEquation(f.patch, plane, freeAxis)
 	if e != nil {
 		return nil, e
 	}
-	r := &PolynomialPlaneFaceSection{source: s, face: face, patch: f.patch, trim: q, height: new(big.Rat).SetFloat64(height), sign: sign, freeAxis: freeAxis, edges: [2]int{f.edge[geom.SurfaceEdge(2*freeAxis)], f.edge[geom.SurfaceEdge(2*freeAxis+1)]}}
+	r := &PolynomialPlaneFaceSection{source: s, face: face, patch: f.patch, trim: q, height: new(big.Rat).Set(plane.offset), sign: sign, freeAxis: freeAxis, edges: [2]int{f.edge[geom.SurfaceEdge(2*freeAxis)], f.edge[geom.SurfaceEdge(2*freeAxis+1)]}}
 	ends, _, e := polynomialPlaneEndpoints(q)
 	if e != nil {
 		return nil, e
@@ -111,6 +118,10 @@ func polynomialChoose(n, k int) int64 {
 	return x
 }
 func polynomialPlaneTrimAxis(p *geom.SurfacePatch, height *big.Rat, freeAxis int) (SplineUV, int, error) {
+	return polynomialPlaneTrimEquation(p, horizontalPolynomialPlane(height), freeAxis)
+}
+
+func polynomialPlaneTrimEquation(p *geom.SurfacePatch, plane polynomialPlaneEquation, freeAxis int) (SplineUV, int, error) {
 	var zero SplineUV
 	if freeAxis < 0 || freeAxis > 1 {
 		return zero, 0, geom.ErrInvalid
@@ -138,12 +149,12 @@ func polynomialPlaneTrimAxis(p *geom.SurfacePatch, height *big.Rat, freeAxis int
 			if i+j > 0 && c[3].Sign() != 0 {
 				return zero, 0, geom.ErrConvergence
 			}
-			for axis := 0; axis < 2; axis++ {
+			for _, axis := range plane.axes {
 				if i+j > 1 && c[axis].Sign() != 0 {
 					return zero, 0, geom.ErrConvergence
 				}
 			}
-			if !(j == 0 || i == 0 && j == 1) && c[2].Sign() != 0 {
+			if !(j == 0 || i == 0 && j == 1) && c[plane.dropped].Sign() != 0 {
 				return zero, 0, geom.ErrConvergence
 			}
 		}
@@ -152,7 +163,8 @@ func polynomialPlaneTrimAxis(p *geom.SurfacePatch, height *big.Rat, freeAxis int
 		if i >= len(h) || j >= len(h[i]) {
 			return new(big.Rat)
 		}
-		return new(big.Rat).Quo(h[i][j][2], w)
+		x := h[i][j]
+		return new(big.Rat).Quo(plane.dot([3]*big.Rat{x[0], x[1], x[2]}), w)
 	}
 	b := c(0, 1)
 	if b.Sign() == 0 {
@@ -163,7 +175,7 @@ func polynomialPlaneTrimAxis(p *geom.SurfacePatch, height *big.Rat, freeAxis int
 	for i := range power {
 		a := new(big.Rat).Neg(c(i, 0))
 		if i == 0 {
-			a.Add(a, height)
+			a.Add(a, plane.offset)
 		}
 		power[i] = a.Quo(a, b)
 		if power[i].Sign() != 0 {

@@ -647,6 +647,9 @@ surfaces must keep their geometry through the operation. Continue with:
    The piecewise polynomial clip extends this to free-axis knot spans,
    preserving each exact model and chart knot junction. The creased cubic
    fixture passes native reload, mesh closure, and OCCT comparison.
+   Both polynomial clips also retain oblique cuts when the exact cutter
+   projection admits the same regular graph proof. All retained faces keep
+   their original charts, including the oblique cutter cap.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock

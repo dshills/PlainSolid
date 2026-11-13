@@ -62,8 +62,18 @@ func (p *PiecewisePolynomialPlaneFaceSection) Knots() []PolynomialPlaneKnot {
 	}
 	return out
 }
+
+// CertifyPiecewisePolynomialPlaneFaceSection proves a horizontal section in
+// the supplied original UV direction.
 func CertifyPiecewisePolynomialPlaneFaceSection(ctx context.Context, s Solid, face int, height float64, freeAxis int, o PolynomialPlaneSpanOptions) (*PiecewisePolynomialPlaneFaceSection, error) {
-	if ctx == nil || face < 0 || face >= len(s.faces) || !finite(height) || freeAxis < 0 || freeAxis > 1 {
+	if !finite(height) {
+		return nil, geom.ErrInvalid
+	}
+	return certifyPiecewisePolynomialPlaneFaceSection(ctx, s, face, horizontalPolynomialPlane(ratInset(height)), freeAxis, o)
+}
+
+func certifyPiecewisePolynomialPlaneFaceSection(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o PolynomialPlaneSpanOptions) (*PiecewisePolynomialPlaneFaceSection, error) {
+	if ctx == nil || face < 0 || face >= len(s.faces) || freeAxis < 0 || freeAxis > 1 {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -103,7 +113,7 @@ func CertifyPiecewisePolynomialPlaneFaceSection(ctx context.Context, s Solid, fa
 		if e != nil {
 			return nil, e
 		}
-		trim, sign, e := polynomialPlaneTrimAxis(cell, ratInset(height), freeAxis)
+		trim, sign, e := polynomialPlaneTrimEquation(cell, plane, freeAxis)
 		if e != nil {
 			return nil, e
 		}

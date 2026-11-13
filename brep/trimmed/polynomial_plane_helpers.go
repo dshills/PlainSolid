@@ -28,10 +28,10 @@ func validatePolynomialPlanePart(ctx context.Context, p SewFace) error {
 	return nil
 }
 
-// Both charts have exactly affine model XY coordinates. Transport every UV
-// Bernstein control through those exact affine maps; the caller independently
-// proves the full model composition, including Z, before accepting the edge.
-func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c PCurve, cap *geom.SurfacePatch, o SplineRectangleEmbeddingOptions) (PCurve, error) {
+// Both charts have exactly affine coordinates on the chosen projection.
+// Transport every UV Bernstein control through those affine maps. The caller
+// independently proves the full model composition before accepting the edge.
+func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c PCurve, cap *geom.SurfacePatch, axes [2]int, o SplineRectangleEmbeddingOptions) (PCurve, error) {
 	h, e := polynomialPlaneControls(c)
 	if e != nil {
 		return nil, e
@@ -46,19 +46,20 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 	if e != nil {
 		return nil, e
 	}
-	det := new(big.Rat).Sub(new(big.Rat).Mul(j.Du[0], j.Dv[1]), new(big.Rat).Mul(j.Du[1], j.Dv[0]))
+	a, b := axes[0], axes[1]
+	det := new(big.Rat).Sub(new(big.Rat).Mul(j.Du[a], j.Dv[b]), new(big.Rat).Mul(j.Du[b], j.Dv[a]))
 	if det.Sign() == 0 {
 		return nil, geom.ErrConvergence
 	}
 	control := make([][3]*big.Rat, len(h))
 	for i, p := range h {
 		var xy [2]*big.Rat
-		for a := range xy {
-			xy[a] = new(big.Rat).Add(sj.Point[a], new(big.Rat).Add(new(big.Rat).Mul(sj.Du[a], new(big.Rat).Sub(p[0], ratInset(sd.UMin))), new(big.Rat).Mul(sj.Dv[a], new(big.Rat).Sub(p[1], ratInset(sd.VMin)))))
-			xy[a].Sub(xy[a], j.Point[a])
+		for k, axis := range axes {
+			xy[k] = new(big.Rat).Add(sj.Point[axis], new(big.Rat).Add(new(big.Rat).Mul(sj.Du[axis], new(big.Rat).Sub(p[0], ratInset(sd.UMin))), new(big.Rat).Mul(sj.Dv[axis], new(big.Rat).Sub(p[1], ratInset(sd.VMin)))))
+			xy[k].Sub(xy[k], j.Point[axis])
 		}
-		u := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(xy[0], j.Dv[1]), new(big.Rat).Mul(xy[1], j.Dv[0])), det)
-		v := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(j.Du[0], xy[1]), new(big.Rat).Mul(j.Du[1], xy[0])), det)
+		u := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(xy[0], j.Dv[b]), new(big.Rat).Mul(xy[1], j.Dv[a])), det)
+		v := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(j.Du[a], xy[1]), new(big.Rat).Mul(j.Du[b], xy[0])), det)
 		control[i] = [3]*big.Rat{u.Add(u, ratInset(d.UMin)), v.Add(v, ratInset(d.VMin)), big.NewRat(1, 1)}
 	}
 	return polynomialNativeTrim(control)

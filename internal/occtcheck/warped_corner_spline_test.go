@@ -353,3 +353,39 @@ func TestOCCTPiecewisePolynomialSplinePlaneClip(t *testing.T) {
 		compare(t, ref, mass.Area, mass.Volume, mass.Centroid)
 	}
 }
+
+func TestOCCTObliquePolynomialSplinePlaneClip(t *testing.T) {
+	refs := runOracle(t, "oblique-polynomial-graph-plane")
+	ctx := context.Background()
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(x, y float64) float64 { return x / 32 })
+	for _, crease := range []bool{false, true} {
+		stock := oracleGraphClipStock(t, crease, true)
+		prefix := "oblique-polynomial-plane-"
+		if crease {
+			prefix = "oblique-piecewise-polynomial-plane-"
+		}
+		for i, name := range []string{prefix + "common", prefix + "cut"} {
+			op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
+			var solid trimmed.Solid
+			var err error
+			if crease {
+				var r trimmed.PiecewisePolynomialPlaneClip
+				r, err = trimmed.CombinePiecewisePolynomialSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.PolynomialPlaneSpanOptions{})
+				solid = r.Solid
+			} else {
+				var r trimmed.SplineCornerPlaneClip
+				r, err = trimmed.CombinePolynomialSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
+				solid = r.Solid
+			}
+			ref, ok := refs[name]
+			if err != nil || !ok || len(solid.Topology().Shells) != 1 || crease && ref.Shells != 1 {
+				t.Fatal(name, "oblique topology", ref.Shells, err)
+			}
+			mass, err := solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			if err != nil {
+				t.Fatal(name, err)
+			}
+			compare(t, ref, mass.Area, mass.Volume, mass.Centroid)
+		}
+	}
+}

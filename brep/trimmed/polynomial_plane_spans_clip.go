@@ -21,7 +21,8 @@ type PiecewisePolynomialPlaneClip struct {
 }
 
 // CombinePiecewisePolynomialSplinePlaneClip retains original multispan supports
-// and emits one exact polynomial edge per certified free-axis span. Whole source
+// and emits one exact polynomial edge per certified free-axis span of the graph
+// over the cutter projection described by CombinePolynomialSplinePlaneClip. Whole source
 // embedding, full-range C0 seams, cap Jordan topology and continuous model
 // pairing must all be proved. Internal dependent knots and nonrepresentable
 // junctions remain unsupported. MaxSpans bounds each face; the complete section

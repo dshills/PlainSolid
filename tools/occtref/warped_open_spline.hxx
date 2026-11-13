@@ -83,7 +83,14 @@ static void quadraticGraphPlaneBooleans(std::ostream& out,bool crease=false){
  creasedGraphRecord(out,"piecewise-quadratic-plane-common",common);
  creasedGraphRecord(out,"piecewise-quadratic-plane-cut",cut);
 }
-static void polynomialGraphPlaneBooleans(std::ostream& out){
+static TopoDS_Shape obliquePolynomialCutter(){
+ BRepBuilderAPI_MakePolygon rim;
+ for(auto xy:std::array<std::array<double,2>,4>{{{-1,-1},{2,-1},{2,2},{-1,2}}})
+  rim.Add(gp_Pnt(xy[0],xy[1],3./16+xy[0]/32));
+ rim.Close();
+ return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,0,-3)).Shape();
+}
+static void polynomialGraphPlaneBooleans(std::ostream& out,bool oblique=false){
  NCollection_Array2<gp_Pnt> poles(1,5,1,2);
  const double z[]={0,0,0,1./32,1./8};
  for(int i=1;i<=5;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/4.,j-1,z[i-1]+(j-1)/4.));
@@ -91,12 +98,12 @@ static void polynomialGraphPlaneBooleans(std::ostream& out){
  NCollection_Array1<int> xmult(1,2),ymult(1,2);xmult.Init(5);ymult.Init(2);
  occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xmult,ymult,4,1);
  auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
- auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(3,3,3./16)).Shape();
+ auto tool=oblique?obliquePolynomialCutter():BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(3,3,3./16)).Shape();
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent polynomial stock or cutter");
- splineShellRecord(out,"polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
- splineShellRecord(out,"polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ splineShellRecord(out,oblique?"oblique-polynomial-plane-common":"polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,oblique?"oblique-polynomial-plane-cut":"polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
 }
-static void piecewisePolynomialGraphPlaneBooleans(std::ostream& out){
+static void piecewisePolynomialGraphPlaneBooleans(std::ostream& out,bool oblique=false){
  // Native OCCT construction of x³/8+y/4+|x-.5|/32, swept vertically.
  NCollection_Array2<gp_Pnt> poles(1,9,1,2);
  const double z[]={1./64,3./256,1./128,1./128,1./64,1./32,7./128,23./256,9./64};
@@ -105,8 +112,8 @@ static void piecewisePolynomialGraphPlaneBooleans(std::ostream& out){
  NCollection_Array1<int> xm(1,3),ym(1,2);xm.Init(5);xm.SetValue(2,4);ym.Init(2);
  occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,xk,yk,xm,ym,4,1);
  auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
- auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
+ auto tool=oblique?obliquePolynomialCutter():BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent piecewise polynomial stock or cutter");
- creasedGraphRecord(out,"piecewise-polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
- creasedGraphRecord(out,"piecewise-polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-common":"piecewise-polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-cut":"piecewise-polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
 }

@@ -221,6 +221,7 @@ int main(int argc, char** argv) {
     if(argc==3 && mode=="piecewise-quadratic-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);quadraticGraphPlaneBooleans(out,true);return 0;}
     if(argc==3 && mode=="polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);polynomialGraphPlaneBooleans(out);return 0;}
     if(argc==3 && mode=="piecewise-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);piecewisePolynomialGraphPlaneBooleans(out);return 0;}
+    if(argc==3 && mode=="oblique-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);polynomialGraphPlaneBooleans(out,true);piecewisePolynomialGraphPlaneBooleans(out,true);return 0;}
     if(argc==3 && mode=="finite-cylinder-axial-cut"){
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-2,5),gp_Dir(0,0,-1)),2,9).Shape();
