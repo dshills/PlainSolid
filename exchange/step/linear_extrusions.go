@@ -85,8 +85,34 @@ func (s LinearExtrusionSurface) Surface() (*geom.BSplineSurface, error) {
 // Extrusion VECTOR magnitude must be exactly one; arbitrary direction
 // normalization and partial U trimming are intentionally unsupported.
 func DecodeLinearExtrusionSurface(f *File, id int64, maxPoints int) (LinearExtrusionSurface, error) {
-	fail := func() (LinearExtrusionSurface, error) {
-		return LinearExtrusionSurface{}, errors.New("step: unsupported bounded linear extrusion")
+	fields, e := decodeLinearExtrusionFields(f, id, maxPoints)
+	if e != nil {
+		return LinearExtrusionSurface{}, e
+	}
+	var axis [3]float64
+	for i, r := range fields.ratios {
+		x, exact := r.Float64()
+		if !exact {
+			return LinearExtrusionSurface{}, geom.ErrDomain
+		}
+		axis[i] = x
+	}
+	out := fields.surface
+	out.Axis = geom.Vec3{X: axis[0], Y: axis[1], Z: axis[2]}
+	if _, e = out.Surface(); e != nil {
+		return LinearExtrusionSurface{}, e
+	}
+	return out, nil
+}
+
+type linearExtrusionFields struct {
+	surface LinearExtrusionSurface
+	ratios  [3]*big.Rat
+}
+
+func decodeLinearExtrusionFields(f *File, id int64, maxPoints int) (linearExtrusionFields, error) {
+	fail := func() (linearExtrusionFields, error) {
+		return linearExtrusionFields{}, errors.New("step: unsupported bounded linear extrusion")
 	}
 	if f == nil || maxPoints < 4 {
 		return fail()
@@ -127,7 +153,7 @@ func DecodeLinearExtrusionSurface(f *File, id int64, maxPoints int) (LinearExtru
 		return fail()
 	}
 	if e = exactSplineWeightNormalization(f, curve, "RATIONAL_B_SPLINE_CURVE"); e != nil {
-		return LinearExtrusionSurface{}, e
+		return linearExtrusionFields{}, e
 	}
 	u0, u1 := profile.Geometry.Domain()
 	var bounds [4]float64
@@ -185,22 +211,15 @@ func DecodeLinearExtrusionSurface(f *File, id int64, maxPoints int) (LinearExtru
 	if _, e = textValue(direction.Args[0]); e != nil {
 		return fail()
 	}
-	var axis [3]float64
+	var ratios [3]*big.Rat
 	for i, x := range direction.Args[1].Items {
-		q, err := liftSourceRat(x)
-		if err != nil {
-			return fail()
-		}
-		axis[i], e = numeric(x)
-		if e != nil || q.Cmp(new(big.Rat).SetFloat64(axis[i])) != 0 {
+		ratios[i], e = liftSourceRat(x)
+		if e != nil {
 			return fail()
 		}
 	}
-	out := LinearExtrusionSurface{Name: name, Profile: profile, Axis: geom.Vec3{X: axis[0], Y: axis[1], Z: axis[2]}, VStart: bounds[2], VEnd: bounds[3]}
-	if _, e = out.Surface(); e != nil {
-		return LinearExtrusionSurface{}, e
-	}
-	return out, nil
+	out := LinearExtrusionSurface{Name: name, Profile: profile, VStart: bounds[2], VEnd: bounds[3]}
+	return linearExtrusionFields{out, ratios}, nil
 }
 
 // ReadLinearExtrusions reads standalone bounded surface geometry, preserving
@@ -215,12 +234,30 @@ func ReadLinearExtrusions(r io.Reader, l Limits) (LinearExtrusionModel, error) {
 	if e != nil {
 		return LinearExtrusionModel{}, e
 	}
-	fail := func() (LinearExtrusionModel, error) {
-		return LinearExtrusionModel{}, errors.New("step: unsupported linear extrusion model ownership")
+	roots, unit, e := linearExtrusionRoots(f, l)
+	if e != nil {
+		return LinearExtrusionModel{}, e
 	}
-	var m LinearExtrusionModel
-	used := map[int64]bool{}
+	m := LinearExtrusionModel{LengthUnit: unit}
 	count := 0
+	for _, id := range roots {
+		s, e := DecodeLinearExtrusionSurface(f, id, l.MaxVertices-count)
+		if e != nil {
+			return LinearExtrusionModel{}, e
+		}
+		count += 2 * len(s.Profile.Geometry.Poles())
+		m.Surfaces = append(m.Surfaces, s)
+	}
+	return m, nil
+}
+
+func linearExtrusionRoots(f *File, l Limits) ([]int64, float64, error) {
+	fail := func() ([]int64, float64, error) {
+		return nil, 0, errors.New("step: unsupported linear extrusion model ownership")
+	}
+	var roots []int64
+	var unit float64
+	used := map[int64]bool{}
 	reps := 0
 	for _, id := range f.Order {
 		en := f.Entities[id]
@@ -250,7 +287,7 @@ func ReadLinearExtrusions(r io.Reader, l Limits) (LinearExtrusionModel, error) {
 		if e != nil {
 			return fail()
 		}
-		m.LengthUnit, e = contextUnits(f, ctx)
+		unit, e = contextUnits(f, ctx)
 		if e != nil {
 			return fail()
 		}
@@ -272,25 +309,32 @@ func ReadLinearExtrusions(r io.Reader, l Limits) (LinearExtrusionModel, error) {
 			if used[sid] {
 				return fail()
 			}
-			s, e := DecodeLinearExtrusionSurface(f, sid, l.MaxVertices-count)
-			if e != nil {
-				return LinearExtrusionModel{}, e
-			}
-			count += 2 * len(s.Profile.Geometry.Poles())
 			used[sid] = true
-			trim, _ := simple(f, sid, "RECTANGULAR_TRIMMED_SURFACE", 8)
-			bid, _ := ref(trim.Args[1])
+			trim, e := simple(f, sid, "RECTANGULAR_TRIMMED_SURFACE", 8)
+			if e != nil {
+				return fail()
+			}
+			bid, e := ref(trim.Args[1])
+			if e != nil {
+				return fail()
+			}
 			if used[bid] {
 				return fail()
 			}
 			used[bid] = true
-			sweep, _ := simple(f, bid, "SURFACE_OF_LINEAR_EXTRUSION", 3)
-			cid, _ := ref(sweep.Args[1])
+			sweep, e := simple(f, bid, "SURFACE_OF_LINEAR_EXTRUSION", 3)
+			if e != nil {
+				return fail()
+			}
+			cid, e := ref(sweep.Args[1])
+			if e != nil {
+				return fail()
+			}
 			if used[cid] {
 				return fail()
 			}
 			used[cid] = true
-			m.Surfaces = append(m.Surfaces, s)
+			roots = append(roots, sid)
 		}
 	}
 	for id, en := range f.Entities {
@@ -303,10 +347,10 @@ func ReadLinearExtrusions(r io.Reader, l Limits) (LinearExtrusionModel, error) {
 			}
 		}
 	}
-	if len(m.Surfaces) == 0 {
+	if len(roots) == 0 {
 		return fail()
 	}
-	return m, nil
+	return roots, unit, nil
 }
 
 // WriteLinearExtrusions emits swept source profiles, not approximated tensor

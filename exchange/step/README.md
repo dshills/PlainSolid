@@ -2041,3 +2041,43 @@ OCCT 8.1 `BRepGProp` returned a discrepant quadrature estimate even with tight
 requested epsilon, so the helper reports that raw value separately. Other
 length units are covered by native round trips, not claimed as independently
 qualified OCCT parameter-scaling conventions.
+
+### Exact rational-direction linear extrusions
+
+The additive `NewRationalLinearExtrusionSurface`,
+`ReadRationalLinearExtrusions`, `WriteRationalLinearExtrusions` and
+`DecodeRationalLinearExtrusionSurface` support oblique directions whose exact
+normalization is rational. They preserve the original direction ratios as
+owned immutable rationals; `DirectionRatios()` returns independent copies.
+The existing signed-coordinate APIs still reject oblique directions.
+
+Ratios must have at most 256 numerator/denominator bits and a finite decimal
+encoding of at most 64 characters. An exact integer square-root test proves
+that the sum of their squares has a rational square root. No floating
+normalization is used. Irrational normalization such as `(1,1,0)`, all-zero
+ratios, unsupported decimal encodings and over-budget inputs fail. The source
+VECTOR magnitude remains exactly one. All earlier full-U, positive-sense,
+finite-V, exact represented weight normalization and ownership limits remain.
+
+For example, direction ratios `(3,4,0)` normalize to `(3/5,4/5,0)`. V endpoints
+0 and 5 give a losslessly representable offset `(3,4,0)`, whereas an endpoint
+of 1 generally fails rather than rounding the control net. OCCT's exact source
+decimals `(0.6,0.8,0)` retain the same rational direction without passing through
+binary approximations. Caller-created binary approximations of those fractions
+are different exact inputs and may fail the rational-normalization proof.
+
+Continuous identity follows from the constructed tensor basis, not sampled
+agreement: each U weight is repeated in the two V rows, so the rational
+denominator is independent of V; the linear V basis reproduces the original
+parameter v, and every numerator row is the original weighted pole plus
+`v*unitDirection`. Thus the entire patch equals `profile(u)+v*unitDirection`.
+All endpoint pole coordinates must be float64-lossless. Exact nonbinary
+interior evaluations and derivatives exercise this identity in tests.
+
+The separate OCCT helper also accepts `write-oblique`. Set
+`PLAINSOLID_OCCT_RATIONAL_EXTRUSION` to its updated executable for the optional
+live test. An independently emitted `(0.6,0.8,0)` profile extrusion decodes,
+and native output transfers as one valid OCCT face. Derivative integration
+matches the independent analytic area `5*sqrt(26)+asinh(5)` for the retained
+fixture. Geometry-only, millimeter qualification and all earlier exclusions
+of topology, embedding and material claims remain in force.
