@@ -42,7 +42,7 @@ func newSplineWindingCache(faces int) *splineWindingCache {
 	return &splineWindingCache{faces: make([][][]splineWindingUse, faces), exact: make(map[int]*trimvalidate.CertifiedLoops), left: 16384}
 }
 
-func (c *splineWindingCache) init(face int, f Face) {
+func (c *splineWindingCache) init(ctx context.Context, face int, f Face) {
 	for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
 		l := make([]splineWindingUse, len(loop))
 		for i, u := range loop {
@@ -55,8 +55,13 @@ func (c *splineWindingCache) init(face int, f Face) {
 				}
 			} else if trim, rev, ok := trimCertifiedSpline(u.Curve); ok {
 				x.curve, x.reverse = trim, rev
-				x.enclose = func(ctx context.Context, a, b float64) (geom.UVBox, bool, error) {
-					return trim.EncloseSplineUV(ctx, a, b, geom.SurfaceArcIntervalOptions{MaxIterations: 4})
+				fast, e := trim.SplineUVEncloser(ctx, geom.SurfaceArcUVOptions{})
+				if e == nil {
+					x.enclose = fast
+				} else {
+					x.enclose = func(ctx context.Context, a, b float64) (geom.UVBox, bool, error) {
+						return trim.EncloseSplineUV(ctx, a, b, geom.SurfaceArcIntervalOptions{MaxIterations: 4})
+					}
 				}
 			}
 		}
@@ -93,7 +98,7 @@ func (c *splineWindingCache) classify(ctx context.Context, face int, f Face, q g
 		return parametric.Outside, report.Status == trimvalidate.Certified && loc == trimvalidate.Outside, e
 	}
 	if c.faces[face] == nil {
-		c.init(face, f)
+		c.init(ctx, face, f)
 	}
 	// SplineUV has its own exact Bézier trim subdivision path.
 	for _, loop := range c.faces[face] {
