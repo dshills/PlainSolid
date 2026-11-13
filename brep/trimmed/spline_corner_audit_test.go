@@ -12,6 +12,39 @@ import (
 func TestCornerTerminalAudit(t *testing.T) {
 	a, af := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, .125)
 	b, bf := makeCornerShearBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 0}, 0)
+	ledger, err := CertifySplineFacePointContact(context.Background(), a, b, [2]int{4, 5}, SplineRectangleEmbeddingOptions{})
+	if err != nil {
+		t.Fatal("point ledger", err)
+	}
+	if !ledger.PointOnly() || !ledger.PendingFan() || !ledger.Matches(a, b, [2]int{4, 5}) || ledger.Matches(b, a, [2]int{4, 5}) {
+		t.Fatal("ledger binding")
+	}
+	if ledger.Domains()[0] == ledger.Domains()[1] || ledger.OverlapDomains()[0] != ledger.OverlapDomains()[1] {
+		t.Fatal("original domain binding")
+	}
+	point := ledger.Point()
+	for _, q := range point {
+		if q.Sign() != 0 {
+			t.Fatal(q)
+		}
+	}
+	point[0].SetInt64(99)
+	if ledger.Point()[0].Sign() != 0 {
+		t.Fatal("alias")
+	}
+	for _, pair := range [][2]int{{-1, 5}, {0, 5}, {4, 0}} {
+		if r, e := CertifySplineFacePointContact(context.Background(), a, b, pair, SplineRectangleEmbeddingOptions{}); e == nil || r != nil {
+			t.Fatal("unsupported contact accepted", pair)
+		}
+	}
+	if r, e := CertifySplineFacePointContact(context.Background(), a, b, [2]int{4, 5}, SplineRectangleEmbeddingOptions{Patches: geom.SurfacePatchOptions{MaxOperations: 1}}); e == nil || r != nil {
+		t.Fatal("budget")
+	}
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if r, e := CertifySplineFacePointContact(canceled, a, b, [2]int{4, 5}, SplineRectangleEmbeddingOptions{}); e != context.Canceled || r != nil {
+		t.Fatal("cancel", e)
+	}
 	var pairs [][2]int
 	for i := range af {
 		for j := range bf {
