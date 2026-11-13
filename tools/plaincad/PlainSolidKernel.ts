@@ -65,7 +65,7 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
   const dot = (a: Point, b: Point) => a.x * b.x + a.y * b.y;
   const scale = (a: Point, value: number): Point => ({ x: a.x * value, y: a.y * value });
   const length = (a: Point) => Math.hypot(a.x, a.y);
-  const fail = (): never => { throw new Error("Mixed extrusion requires a proved rounded rectangle, circular segment, semicircle, capsule, matching capsule ring, or circular holes in a supported planar profile."); };
+  const fail = (): never => { throw new Error("Mixed extrusion requires a supported closed line-and-arc loop or a profile with valid interior loops."); };
   const validateLoop = (loop: ProfileLoop) => {
     const segments = loop.segments;
     if (!segments?.length) return fail();
@@ -133,11 +133,23 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
   if (!arcs.length) {
     if (!profile.innerLoops.some(loop => loop.type === "circle")) return undefined;
     const segments = validateLoop(profile.outerLoop);
-    return { op: "mixedExtrude", profile: { ...common, kind: "polygon", outer: segments.map(segment => [segment.start.x, segment.start.y]), circles: circleHoles() } };
+    return { op: "mixedExtrude", profile: { ...common, kind: "polygon", outer: straightLoopCorners(segments).map(point => [point.x, point.y]), circles: circleHoles() } };
   }
+  const arcLoop = () => {
+    if (profile.innerLoops.length || profile.holes.length) return fail();
+    const segments = validateLoop(profile.outerLoop);
+    const point = (p: Point) => [p.x, p.y];
+    return { op: "mixedExtrude", profile: { ...common, kind: "arcLoop",
+      segments: segments.map((segment, i) => ({
+        start: point(segment.start), end: point(segments[(i + 1) % segments.length].start),
+        ...(segment.type === "arc" ? { center: point(segment.center), radius: segment.radius,
+          startAngle: segment.startAngle, sweep: segment.sweep } : {}),
+      })),
+    } };
+  };
   if (arcs.length === 1) {
     const segments = validateLoop(profile.outerLoop), arc = arcs[0];
-    if (segments.length !== 2 || profile.innerLoops.length || profile.holes.length) return fail();
+    if (segments.length !== 2 || profile.innerLoops.length || profile.holes.length) return arcLoop();
     if (Math.abs(arc.sweep) !== Math.PI) {
       // Keep the solved arc and its chord exactly; a near-semicircle is not a
       // semicircle and must not be snapped by loosening the classifier tolerance.
@@ -148,7 +160,7 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
   }
   if (arcs.length === 4) {
     const segments = validateLoop(profile.outerLoop), lines = segments.filter(segment => segment.type === "line");
-    if (segments.length !== 8 || lines.length !== 4 || arcs.some(arc => Math.abs(arc.sweep) !== Math.PI / 2)) return fail();
+    if (segments.length !== 8 || lines.length !== 4 || arcs.some(arc => Math.abs(arc.sweep) !== Math.PI / 2)) return arcLoop();
     // This bounded family is proved from authored cardinal endpoints, not from
     // sampled bounds or a tolerance-based replacement of an arbitrary arc.
     const points = segments.flatMap(segment => [segment.start, segment.end]);
@@ -168,7 +180,7 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
         const end = { x: corner.x + radius * b.x, y: corner.y + radius * b.y };
         return exact(arc.center, center) && ((arc.sweep > 0 && exact(arc.start, start) && exact(arc.end, end)) || (arc.sweep < 0 && exact(arc.start, end) && exact(arc.end, start)));
       });
-      if (matches.length !== 1 || used.has(matches[0])) return fail();
+      if (matches.length !== 1 || used.has(matches[0])) return arcLoop();
       const arc = matches[0], radius = arc.radius; used.add(arc); radii.push(radius);
       starts.push({ x: corner.x + radius * a.x, y: corner.y + radius * a.y });
       ends.push({ x: corner.x + radius * b.x, y: corner.y + radius * b.y });
@@ -177,12 +189,20 @@ function mixedExtrusionRequest(profile: SketchProfile, distance: number, transfo
     for (let i = 0; i < 4; i++) {
       const a = ends[i], b = starts[(i + 1) % 4];
       const matches = lines.filter(line => (exact(line.start, a) && exact(line.end, b)) || (exact(line.start, b) && exact(line.end, a)));
-      if (matches.length !== 1 || usedLines.has(matches[0]) || exact(a, b)) return fail();
+      if (matches.length !== 1 || usedLines.has(matches[0]) || exact(a, b)) return arcLoop();
       usedLines.add(matches[0]);
     }
     return { op: "mixedExtrude", profile: { ...common, kind: "roundedRectangle", min: [minX, minY], max: [maxX, maxY], radii, circles: circleHoles() } };
   }
-  const outer = capsule(profile.outerLoop);
+  if (arcs.length !== 2 || profile.outerLoop.segments?.length !== 4 ||
+      arcs.some(arc => !close(Math.abs(arc.sweep), Math.PI)) || !close(arcs[0].radius, arcs[1].radius)) return arcLoop();
+  let outer: ReturnType<typeof capsule>;
+  try {
+    outer = capsule(profile.outerLoop);
+  } catch (error) {
+    if (profile.innerLoops.length || profile.holes.length) throw error;
+    return arcLoop();
+  }
   let innerRadius: number | undefined;
   if (profile.innerLoops.length) {
     if (profile.innerLoops.length !== 1 || profile.innerLoops[0].type !== "polygon" || profile.holes.length) return fail();
@@ -675,15 +695,19 @@ export class OpenCascadeKernel implements KernelAdapter {
         result = request({
           op: perimeter ? (operation === "fillet" ? "capFillet" : "capChamfer") : operation, handle: before.handle, normal,
           edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
+          ...(source && refs.every(ref => ref.role === "profileEdge") ? { direction: xyz(source.transform.normal) } : {}),
           [operation === "fillet" ? "radius" : "distance"]: size,
         });
       }
       try {
         const after = result.geometryAssertions;
-        const tolerance = Math.max(1e-9, before.geometryAssertions.volume * 1e-10);
+        const volumeTolerance = Math.max(1e-9, before.geometryAssertions.volume * 1e-10);
+        const areaTolerance = Math.max(1e-9, before.geometryAssertions.surfaceArea * 1e-10);
         if (!after.valid || !Number.isFinite(after.volume) || after.volume <= 0 ||
+            !Number.isFinite(after.surfaceArea) || after.surfaceArea <= 0 ||
             after.solidCount !== before.geometryAssertions.solidCount ||
-            before.geometryAssertions.volume - after.volume <= tolerance)
+            (Math.abs(before.geometryAssertions.volume - after.volume) <= volumeTolerance &&
+             Math.abs(before.geometryAssertions.surfaceArea - after.surfaceArea) <= areaTolerance))
           throw new Error("Edge treatment did not retain valid changed solid geometry.");
         return this.retainExtrusion(owned(result, operation, shape.id), shape);
       } catch (error) {

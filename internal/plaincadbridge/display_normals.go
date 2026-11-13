@@ -39,7 +39,7 @@ func (s stored) analyticDisplayMesh(q request) (mesh.Mesh, [][3]geom.Vec3, bool,
 	if s.treated != nil && s.treated.bore != nil {
 		o.Angle = min(o.Angle, .045)
 	}
-	if s.analytic != nil && s.analytic.segment != nil {
+	if s.analytic != nil && (s.analytic.segment != nil || s.analytic.arcLoop != nil) {
 		o.Angle = min(o.Angle, .025)
 	}
 	native, placement, ok := s.retainedTrimmed()

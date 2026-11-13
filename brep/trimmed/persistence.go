@@ -417,6 +417,9 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 			if x.AnchoredCircle {
 				q, e := newAnchoredCircularUV(*x.Ellipse, x.UVStart, x.UVEnd)
 				if e != nil {
+					q, e = newBoundedAnchoredCircularUV(*x.Ellipse, x.UVStart, x.UVEnd)
+				}
+				if e != nil {
 					return nil, e
 				}
 				u.Curve = q

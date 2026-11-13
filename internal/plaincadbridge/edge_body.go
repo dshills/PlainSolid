@@ -387,6 +387,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		body, err = inferEdgeStock(base, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
+			if s.bore == nil && q.Direction != nil {
+				return b.treatOrthogonalAxialEdges(base, q, resolved, size)
+			}
 			if s.bore == nil && len(resolved) == 1 {
 				return b.treatRetainedPlanarEdge(s, q, normal, size, resolved[0])
 			}

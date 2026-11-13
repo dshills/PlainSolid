@@ -30,8 +30,9 @@ original signed profile-edge cases also pass on XY, XZ and YZ. Focused
 real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock. The current studio cancellation and ORBIT
-gesture originals pass together. The remaining arc-region cases and production
-and cross-browser release qualification are in progress.
+gesture originals pass together. All 17 original arc-region cases pass.
+Full current development, production and cross-browser qualification runs
+are in progress.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
