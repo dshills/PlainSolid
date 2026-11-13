@@ -60,6 +60,24 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD notched stock batch order — 2026-11-13
+
+An interior through cutter joins opposed blind spans at the same site in
+any input order, including after a blind span has already been committed.
+Native checks cover the union's surface and volume, atomic rejection
+of disconnected spans and canonical STEP readback. Both
+[original grouped Hole and STEP cases](evidence/plaincad-notch-batch-order-2026-11-13.json)
+pass on PlainCAD `50432ed`. Focused race checks and Go vet pass.
+
+## Reproducible PlainCAD unit qualification — 2026-11-13
+
+The staging harness now runs original Vitest cases with a locally served
+Go WASM asset and one worker by default. It records the generated runtime
+setup, selected assertions, source hashes and actual pass/fail counts.
+The [unit and browser harness checks](evidence/plaincad-unit-harness-2026-11-13.json)
+pass the original native cylinder rim unit test and Parts Browser
+acceptance, including the independent browser backend probe.
+
 ## PlainCAD coaxial side and corner Hole extension — 2026-11-13
 
 Connected depth spans at the same side or corner notch center and radius

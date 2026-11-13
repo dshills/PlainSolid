@@ -20,6 +20,8 @@ disjoint interior bores and round-trips canonical STEP. Corner-notch
 blind and through cuts also round-trip canonical STEP, including batches
 with disjoint interior bores. Same-center, equal-radius tools with
 connected depth spans can deepen the original notch or open its far cap.
+Contained coaxial cutters on the same body merge independently of batch
+order, including through cutters that join two opposed blind spans.
 Intersecting noncoaxial notch footprints remain open.
 
 Circular stock now supports grouped and successive disjoint axial bores,

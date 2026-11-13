@@ -1,6 +1,6 @@
 export function suitePorts(suite, port, preflightPort) {
- if(!['development','production','cross-browser'].includes(suite))throw Error('Invalid suite');
- const acceptance=port??({development:'5279',production:'5280','cross-browser':'5281'}[suite]);
+ if(!['development','production','cross-browser','unit'].includes(suite))throw Error('Invalid suite');
+ const acceptance=port??({development:'5279',production:'5280','cross-browser':'5281',unit:'5279'}[suite]);
  const preflight=preflightPort??(suite==='development'?acceptance:'5279');
  for(const value of [acceptance,preflight])if(!/^\d+$/.test(value)||+value<1024||+value>65535)throw Error('Invalid suite port');
  if(suite==='development'&&acceptance!==preflight)throw Error('Development preflight and acceptance share one port');

@@ -183,6 +183,42 @@ func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
 	}
 }
 
+func TestNotchedStockMergesInteriorBoresInAnyOrder(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 12})
+	notch := circle(t, b, vector{}, vector{0, 0, 1}, 3, 5)
+	base := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": notch.Handle})
+	lower := circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 5)
+	upper := circle(t, b, vector{10, 10, 12}, vector{0, 0, -1}, 2, 4)
+	through := circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 12)
+	prior, err := b.cutMany(base.Handle, []string{lower.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		base  Shape
+		tools []string
+	}{
+		{base, []string{lower.Handle, upper.Handle, through.Handle}},
+		{base, []string{through.Handle, upper.Handle, lower.Handle}},
+		{prior, []string{upper.Handle, through.Handle}},
+	} {
+		cut, err := b.cutMany(tc.base.Handle, tc.tools)
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, cut.GeometryAssertions.Volume, base.GeometryAssertions.Volume-48*math.Pi)
+		near(t, cut.GeometryAssertions.SurfaceArea, base.GeometryAssertions.SurfaceArea+40*math.Pi)
+		if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before := len(b.shapes)
+	if _, err := b.cutMany(prior.Handle, []string{upper.Handle}); err == nil || len(b.shapes) != before {
+		t.Fatal("separated spans without a through tool must reject atomically", err)
+	}
+}
+
 func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {
 	t.Helper()
 	b := New()

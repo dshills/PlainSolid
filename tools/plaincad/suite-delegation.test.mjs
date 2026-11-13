@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {suitePorts,passedProbe,verifyDelegatedReport} from './suite-delegation.mjs';
 test('suite defaults and independent preflight ports',()=>{
  assert.deepEqual(suitePorts('development'),{acceptance:'5279',preflight:'5279'});
+ assert.deepEqual(suitePorts('unit'),{acceptance:'5279',preflight:'5279'});
  assert.deepEqual(suitePorts('production'),{acceptance:'5280',preflight:'5279'});
  assert.deepEqual(suitePorts('cross-browser'),{acceptance:'5281',preflight:'5279'});
  assert.deepEqual(suitePorts('cross-browser','5427','5428'),{acceptance:'5427',preflight:'5428'});

@@ -16,6 +16,16 @@ type sideStockBore struct {
 	low, high float64
 }
 
+func (bore sideStockBore) measures(length float64) (volume, surfaceDelta float64) {
+	depth, radius := bore.high-bore.low, bore.circle.Radius
+	disk := math.Pi * radius * radius
+	delta := 2 * math.Pi * radius * depth
+	if bore.low == 0 && bore.high == length {
+		delta -= 2 * disk
+	}
+	return disk * depth, delta
+}
+
 func sideNotchBore(p step.SideNotchBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
 	return circularStockSpan(step.DiskHoleExtrusionBody{Frame: p.Frame, Height: p.Length}, tool)
 }
@@ -23,6 +33,7 @@ func sideNotchBore(p step.SideNotchBody, tool *cylinderBody) (trimmed.ExtrusionC
 func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error) {
 	var p step.SideNotchBody
 	var bores []sideStockBore
+	var added []sideStockBore
 	var notchSpans [][2]float64
 	var skip *cylinderBody
 	volume, area := a.result.GeometryAssertions.Volume, a.result.GeometryAssertions.SurfaceArea
@@ -87,29 +98,7 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		if !ok || low != 0 && high != p.Length || high <= low || !exactAxisDistance(high, low, high-low) {
 			return Shape{}, true, unsupportedEdge("additional side-notch bores must open on an exterior cap")
 		}
-		depth := high - low
-		prior := slices.IndexFunc(bores, func(bore sideStockBore) bool { return bore.circle == hole })
-		if prior >= 0 {
-			previous := bores[prior]
-			if previous.low > high || previous.high < low {
-				return Shape{}, true, unsupportedEdge("opposed cuts at one side-notch bore site require connected axial spans")
-			}
-			newLow, newHigh := min(previous.low, low), max(previous.high, high)
-			if newLow == previous.low && newHigh == previous.high {
-				continue
-			}
-			bores[prior] = sideStockBore{hole, newLow, newHigh}
-			depth = newHigh - newLow - (previous.high - previous.low)
-			low, high = newLow, newHigh
-		} else {
-			bores = append(bores, sideStockBore{hole, low, high})
-		}
-		diskArea := math.Pi * hole.Radius * hole.Radius
-		volume -= diskArea * depth
-		area += 2 * math.Pi * hole.Radius * depth
-		if low == 0 && high == p.Length {
-			area -= 2 * diskArea
-		}
+		added = append(added, sideStockBore{hole, low, high})
 	}
 	slices.SortFunc(notchSpans, func(a, b [2]float64) int { return cmp.Compare(a[0], b[0]) })
 	end := p.Depth
@@ -132,11 +121,42 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		}
 		p.Depth = end
 	}
+	// Merge a site's complete batch before checking connectedness so an
+	// intervening through cut can join opposed blind cuts in either input order.
+	previous := append([]sideStockBore(nil), bores...)
+	bores = append(bores, added...)
+	merged := make([]sideStockBore, 0, len(bores))
+	slices.SortFunc(bores, compareSideStockBores)
+	for _, bore := range bores {
+		if len(merged) == 0 || merged[len(merged)-1].circle != bore.circle {
+			merged = append(merged, bore)
+			continue
+		}
+		last := &merged[len(merged)-1]
+		if last.high < bore.low {
+			return Shape{}, true, unsupportedEdge("opposed cuts at one side-notch bore site require connected axial spans")
+		}
+		last.high = max(last.high, bore.high)
+	}
+	var addedVolume, addedArea float64
+	for _, bore := range merged {
+		depth := bore.high - bore.low
+		if !exactAxisDistance(bore.high, bore.low, depth) {
+			return Shape{}, true, geom.ErrUnrepresentable
+		}
+		removed, delta := bore.measures(p.Length)
+		if i := slices.IndexFunc(previous, func(prior sideStockBore) bool { return prior.circle == bore.circle }); i >= 0 {
+			before, oldDelta := previous[i].measures(p.Length)
+			removed, delta = removed-before, delta-oldDelta
+		}
+		addedVolume, addedArea = addedVolume+removed, addedArea+delta
+	}
+	volume, area = volume-addedVolume, area+addedArea
 	if !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
 	}
 	p.Through, p.Blind = nil, nil
-	for _, bore := range bores {
+	for _, bore := range merged {
 		if bore.low == 0 && bore.high == p.Length {
 			p.Through = append(p.Through, bore.circle)
 		} else {
@@ -149,6 +169,19 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 	}
 	result, err := b.putAnalyticBody(&analyticBody{solid: solid, sideNotch: &p, volume: volume, area: area})
 	return result, true, err
+}
+
+func compareSideStockBores(a, b sideStockBore) int {
+	if order := cmp.Compare(a.circle.Center.X, b.circle.Center.X); order != 0 {
+		return order
+	}
+	if order := cmp.Compare(a.circle.Center.Y, b.circle.Center.Y); order != 0 {
+		return order
+	}
+	if order := cmp.Compare(a.circle.Radius, b.circle.Radius); order != 0 {
+		return order
+	}
+	return cmp.Compare(a.low, b.low)
 }
 
 func sideStockBores(p step.SideNotchBody) []sideStockBore {

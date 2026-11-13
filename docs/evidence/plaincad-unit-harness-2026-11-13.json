@@ -1,0 +1,96 @@
+{
+  "unit": {
+    "report": "/tmp/plainsolid-unit-smoke-final-5405/readiness.json",
+    "reportSha256": "1a1e7cc08db1d0c0105d08c03f036d42a7159d01de8b1a4ce681c453da6d77f2",
+    "wasmSha256": "4d58ebedad2f8f9119de6ec92e97315f08c1fdbda8b0c432fc1ebf903a252230",
+    "selection": {
+      "suite": "unit",
+      "testFile": "modelingGeometry.test.ts",
+      "grep": "draws native cylinder rims"
+    },
+    "tests": [
+      {
+        "file": "../../private/tmp/plainsolid-unit-smoke-final-5405/src/tests/modelingGeometry.test.ts",
+        "title": "native modeling geometry draws native cylinder rims without its periodic seam or tangent fillet boundaries",
+        "status": "passed",
+        "durationMs": 1179.665833
+      }
+    ],
+    "unit": {
+      "report": "/tmp/plainsolid-unit-smoke-final-5405/unit-results.json",
+      "reportSha256": "448c28af2898596b13a96d4d89e3a32762e71df93d0e8ea6234fdbf1ea656e10",
+      "total": 39,
+      "passed": 1,
+      "failed": 0,
+      "pending": 38
+    },
+    "unitSetup": {
+      "maxWorkers": 1,
+      "sourceHashes": {
+        "src/tests/plainSolidRuntimeSetup.ts": "6c85c8de8b30a62286b6ac9d672639372560d1f571d7206ef84535ad6b91b705",
+        "vitest.plainsolid.config.ts": "c3b525d4909b2f0492a9d7480c25142bc5896dc7428360574ed907e0b694a8b5"
+      }
+    }
+  },
+  "browser": {
+    "report": "/tmp/plainsolid-browser-harness-regression-5407/readiness.json",
+    "reportSha256": "04d35ec7a9aac5afb88e9560c050ef183b29a9a3d92efdeb9c66fe29f36fc887",
+    "wasmSha256": "4d58ebedad2f8f9119de6ec92e97315f08c1fdbda8b0c432fc1ebf903a252230",
+    "selection": {
+      "suite": "development",
+      "testFile": "e2e/parts-browser.spec.ts",
+      "grep": "compact Parts rows"
+    },
+    "tests": [
+      {
+        "file": "plainsolid-backend.spec.ts",
+        "line": 2,
+        "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+        "project": "",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 11553,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "file": "parts-browser.spec.ts",
+        "line": 6,
+        "title": "compact Parts rows support keyboard activation, contextual isolation, and descendant search without modeling edits",
+        "project": "",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "durationMs": 9195,
+            "errors": []
+          }
+        ]
+      }
+    ],
+    "summaries": [
+      {
+        "path": "/tmp/plainsolid-browser-harness-regression-5407/backend-results.json",
+        "startTime": "2026-11-13T22:34:29.737Z",
+        "duration": 19865.943,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      {
+        "path": "/tmp/plainsolid-browser-harness-regression-5407/playwright-results.json",
+        "startTime": "2026-11-13T22:34:51.228Z",
+        "duration": 17628.505999999998,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    ]
+  },
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb"
+}
