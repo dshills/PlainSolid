@@ -24,7 +24,7 @@ func (s stored) retainedTrimmed() (trimmed.Solid, geom.Affine, bool) {
 }
 
 func (s stored) pocketFloor(q request) error {
-	mismatch := &failureError{"MISMATCH", "Pocket floor is missing, trimmed or split. Reselect a supported upstream face"}
+	mismatch := &failureError{"MISMATCH", "Pocket floor is missing, trimmed, split or ambiguous. Reselect a supported upstream face"}
 	if q.Origin == nil || q.Normal == nil || len(q.Outer) < 3 || len(q.Outer) > MaxProfileVertices || len(q.Holes) != 0 {
 		return errors.New("pocket floor proof requires one bounded straight profile")
 	}

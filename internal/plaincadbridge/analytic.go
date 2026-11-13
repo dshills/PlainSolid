@@ -14,6 +14,7 @@ import (
 // analyticBody owns an analytic boundary. Some revolutions also retain a
 // rectangular patch representation for shared-grid display at polar caps.
 type analyticBody struct {
+	planarBores *planarBoredStock
 	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
 	polygonExtrema []geom.Vec3
 	solid        trimmed.Solid
@@ -43,7 +44,7 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 	if !finite(body.volume) || !finite(body.area) || body.volume <= 0 || body.area <= 0 {
 		return Shape{}, errors.New("invalid analytic solid measures")
 	}
-	if len(body.solid.Topology().Shells) != 1 {
+	if len(body.solid.Topology().Shells) != 1 && (body.planarBores == nil || !body.planarBores.connected) {
 		return Shape{}, errors.New("expected one connected analytic shell")
 	}
 	var box geom.Box
@@ -123,6 +124,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.sector = nil
 	out.shaft = nil
 	out.pockets = nil
+	out.planarBores = nil
 	out.coaxial = nil
 	out.rounded = nil
 	out.annular = nil
@@ -131,6 +133,26 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.filletedCap = nil
 	if a.coaxial != nil {
 		out.coaxial, _ = a.coaxial.transformed(m)
+	}
+	if a.pockets != nil {
+		p := *a.pockets
+		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
+			p.frame = f
+			out.pockets = &p
+		}
+	}
+	if a.planarBores != nil {
+		p := *a.planarBores
+		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
+			p.frame = f
+			p.base, e = p.base.Transformed(m)
+			if e != nil {
+				return nil, e
+			}
+			out.planarBores = &p
+		}
 	}
 	if a.pockets != nil {
 		p := *a.pockets

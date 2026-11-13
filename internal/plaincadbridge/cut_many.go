@@ -21,17 +21,35 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if len(tools) == 1 {
+		c, e := b.get(tools[0])
+		if e != nil {
+			return Shape{}, e
+		}
+		if body, removed, handled, e := retainedPlanarBoolean(a, c, "cut"); handled {
+			if e != nil {
+				return Shape{}, e
+			}
+			if removed <= 0 {
+				return Shape{}, unsupportedEdge("Boolean cut removed no volume")
+			}
+			return b.putAnalyticBody(body)
+		}
+	}
+
 	if a.analytic != nil && a.analytic.pockets != nil && len(tools) == 1 {
 		tool, err := b.get(tools[0])
 		if err != nil {
 			return Shape{}, err
 		}
-		if tool.cylinder != nil {
-			p, err := a.analytic.pockets.throughBore(tool.cylinder)
+		if body, removed, handled, err := cutPocketCylinder(a, tool.cylinder); handled {
 			if err != nil {
 				return Shape{}, err
 			}
-			return b.putPocketStock(p)
+			if removed <= 0 {
+				return Shape{}, unsupportedEdge("Boolean cut removed no volume")
+			}
+			return b.putAnalyticBody(body)
 		}
 	}
 	inputs := make([]stored, len(tools))

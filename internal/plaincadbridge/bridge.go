@@ -359,6 +359,18 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if q.Op != "common" {
+			if result, removed, handled, err := retainedPlanarBoolean(a, c, q.Op); handled {
+				if err != nil {
+					return nil, err
+				}
+				if q.Op == "cut" && removed <= 0 {
+					return nil, unsupportedEdge("Boolean cut removed no volume")
+				}
+				return b.putAnalyticBody(result)
+			}
+		}
+
 		if q.Op == "cut" {
 			if result, handled, err := b.rectangularIslandPocket(a, c); handled {
 				return result, err
@@ -399,12 +411,14 @@ func (b *Bridge) execute(q request) (any, error) {
 					}
 				}
 			}
-			if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
-				p, err := a.analytic.pockets.throughBore(c.cylinder)
+			if body, removed, handled, err := cutPocketCylinder(a, c.cylinder); handled {
 				if err != nil {
 					return nil, err
 				}
-				return b.putPocketStock(p)
+				if removed <= 0 {
+					return nil, unsupportedEdge("Boolean cut removed no volume")
+				}
+				return b.putAnalyticBody(body)
 			}
 			if a.analytic != nil && a.analytic.shaft != nil && c.planar() {
 				return b.cutShaftSocket(*a.analytic.shaft, c.solid)
@@ -643,7 +657,8 @@ type PlanarFace struct {
 
 // matchingPlanarFace follows PlainCAD's native reference contract: exactly one
 // finite face on the authored support plane, with either orientation. This is
-// not a point-in-face test and does not recover a split or deleted feature role.
+// not a point-in-face test. Shared-edge coplanar seams are coalesced, while
+// disconnected supports remain ambiguous; deleted feature roles are not recovered.
 // Tolerances match OpenCascadeKernel.validatePlanarFace
 // (millimetres): parallel unit normals within 1e-9 in absolute dot product,
 // support-plane distance at most 1e-7, and area greater than (1e-7)^2.
@@ -653,6 +668,7 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 		return PlanarFace{}, errors.New("planarFace requires a finite origin and nonzero normal")
 	}
 	face := -1
+	selected := map[int]bool{}
 	var plane geom.Plane
 	for i := range s.Faces() {
 		p, err := s.FacePlane(i)
@@ -666,19 +682,25 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 		if math.Abs(math.Abs(p.Normal().Dot(n))-1) > 1e-9 || math.Abs(delta.Dot(p.Normal())) > 1e-7 {
 			continue
 		}
-		if face != -1 {
-			return PlanarFace{}, errors.New("planar face reference is ambiguous after splitting")
+		if face != -1 && p.Normal().Dot(plane.Normal()) < 1-1e-9 {
+			return PlanarFace{}, errors.New("planar face reference has conflicting orientations")
 		}
-		face, plane = i, p
+		selected[i] = true
+		if face == -1 {
+			face, plane = i, p
+		}
 	}
 	if face == -1 {
 		return PlanarFace{}, errors.New("planar face reference no longer exists")
+	}
+	if !connectedPlanarFaces(s, selected) {
+		return PlanarFace{}, errors.New("planar face reference is ambiguous after splitting")
 	}
 	m := s.Tessellate()
 	owners := s.TriangleFaces()
 	area := 0.0
 	for i, triangle := range m.Triangles {
-		if owners[i] == face {
+		if selected[owners[i]] {
 			a, b, c := m.Vertices[triangle[0]], m.Vertices[triangle[1]], m.Vertices[triangle[2]]
 			area += b.Sub(a).Cross(c.Sub(a)).Length() / 2
 		}
