@@ -30,7 +30,9 @@ The original retained-reference cases now pass across two focused runs,
 including whole rectangular cap chamfer after a bore, an authored fillet
 after Cut and Join, merged STL with a circular boss and a retained side
 sketch. Complete rectangular cap fillets pass native volume, area, centroid
-and mesh checks. The original viewport-operation run is in progress.
+and mesh checks. All eight original viewport-operation cases pass, including
+complete rectangular cap fillet and chamfer on XY, XZ and YZ, individual
+chamfer on those planes, cancellation and the section overlay.
 
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge
