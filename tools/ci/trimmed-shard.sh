@@ -29,5 +29,5 @@ for flag in "$@"; do
       exit 2 ;;
   esac
 done
-pattern=$(printf '%s\n' "$selected" | paste -sd '|')
+pattern=$(printf '%s\n' "$selected" | paste -sd '|' -)
 exec go test ./brep/trimmed -run "^($pattern)$" "$@"
