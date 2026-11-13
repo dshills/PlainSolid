@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD coaxial side and corner Hole extension — 2026-11-13
+
+Connected depth spans at the same side or corner notch center and radius
+extend its original floor or open the far cap. Native checks verify the
+removed volume, surface area, grouped order and atomic rejection of an
+isolated opposed span. [Four original guided, grouped Hole and STEP
+cases](evidence/plaincad-coaxial-notch-browser-2026-11-13.json) pass.
+The [same-WASM browser probe](evidence/plaincad-coaxial-notch-native-2026-11-13.json)
+extends a blind corner Hole through the stock, verifies exact removed
+volume and reopens the resulting STEP before validating STL. Focused
+race checks and Go vet pass.
+
 ## PlainCAD mixed corner and contained Hole batch — 2026-11-13
 
 A single blind or through corner Hole can share a native batch with
