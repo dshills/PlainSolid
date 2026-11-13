@@ -457,5 +457,121 @@
       "file": "sketchWorkspace.test.tsx",
       "test": "edits inline, blocks competing creation commands, and returns to the same model viewer"
     }
-  ]
+  ],
+  "oneWorkerRetest": {
+    "report": "/tmp/plainsolid-current-unit-focused-50432ed.json",
+    "reportSha256": "3f15e408d6fafaff6c838a5ce1dc4a09fb1143eb5b9adee32426daaa3b107c97",
+    "summary": {
+      "numTotalTests": 217,
+      "numPassedTests": 213,
+      "numFailedTests": 4
+    },
+    "newFailuresRecovered": [
+      {
+        "file": "App.test.tsx",
+        "test": "loads and edits a parameter",
+        "durationMs": 1481.5457920000003
+      },
+      {
+        "file": "aiFeatureFollowUp.test.tsx",
+        "test": "does not reuse an old native failure after a new provider request times out",
+        "durationMs": 74.39645900000005
+      },
+      {
+        "file": "aiFeatureFollowUp.test.tsx",
+        "test": "repairs the original request with its latest failure without automatically applying",
+        "durationMs": 57.987707999999884
+      },
+      {
+        "file": "aiHistory.test.ts",
+        "test": "records a dimension/refinement batch once and restores observable solved dimensions through shared history",
+        "durationMs": 37.02229199999999
+      },
+      {
+        "file": "canvasDeformation.test.tsx",
+        "test": "propagates corner coordinates through orthogonal constraints while keeping the fixed anchor and profile IDs",
+        "durationMs": 20.57100000000014
+      },
+      {
+        "file": "commandInstrumentation.test.ts",
+        "test": "covers every current JSX interaction and input listener without syntax errors",
+        "durationMs": 1837.659458
+      },
+      {
+        "file": "componentPlacementCommand.test.ts",
+        "test": "previews immutably and saves one undo step only for the exact proven placement",
+        "durationMs": 196.6963330000001
+      },
+      {
+        "file": "components.test.tsx",
+        "test": "guides a blank project through a named component, plane choice and Finish Sketch",
+        "durationMs": 798.4066660000001
+      },
+      {
+        "file": "featureGraph.test.ts",
+        "test": "skips suppressed extrude features",
+        "durationMs": 24.474416999999903
+      },
+      {
+        "file": "guidedExport.test.tsx",
+        "test": "explains editable saving separately, saves the captured current project, and leaves geometry/history unchanged",
+        "durationMs": 191.47608300000002
+      },
+      {
+        "file": "guidedHoleCommand.test.ts",
+        "test": "places centers on current native face triangles, rejects invalid references and bounds, and stages immutable inward geometry",
+        "durationMs": 330.74412499999994
+      },
+      {
+        "file": "measurements.test.ts",
+        "test": "measures XY world points on offset planes and analytic line lengths",
+        "durationMs": 18.42816700000003
+      },
+      {
+        "file": "modelMeasurementPanel.test.tsx",
+        "test": "has a click-first flow, exact accessible target alternative, units and explicit mixed-pair diagnostics",
+        "durationMs": 175.39862500000004
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "builds a maximum-length Unified inch thread in a cold rebuild and rejects an oversize request",
+        "durationMs": 9159.433250000002
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "cuts 1 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+        "durationMs": 13952.997334
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "cuts 4 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+        "durationMs": 13193.370582999996
+      },
+      {
+        "file": "placedSketchProjection.test.ts",
+        "test": "projects translated XY analytic circles into target design coordinates",
+        "durationMs": 151.85445800000002
+      },
+      {
+        "file": "placedSketchProjection.test.ts",
+        "test": "projects translated XZ analytic circles into target design coordinates",
+        "durationMs": 6.237583000000086
+      },
+      {
+        "file": "selectionInspector.test.tsx",
+        "test": "links rebuild errors back to source objects and shows file errors",
+        "durationMs": 148.42783299999974
+      },
+      {
+        "file": "sizedCanvasGeometry.test.ts",
+        "test": "preserves a multi-point fixed user relation and both points when deleting a center rectangle",
+        "durationMs": 2.2857919999999012
+      },
+      {
+        "file": "sketchReplication.test.ts",
+        "test": "mirrors a dimension-driven circle about a construction line, preserves source IDs, and remaps the bound dimension",
+        "durationMs": 19.243375000000015
+      }
+    ]
+  }
 }

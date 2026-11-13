@@ -17,8 +17,10 @@ records 1,630 passes and 59 failures of 1,689 originals with real WASM
 and loopback available, while browser and native suites also run. Of the
 failures, 38 repeat the prior full run and 21 are new in this run. Eight
 of the prior failures pass, including the inline sketch workspace test.
-The unchanged 17-file selection for the newly failed tests is being
-rerun with one Vitest worker to check timing sensitivity.
+All 21 newly failed tests pass unchanged in the one-worker retest on the
+same staged app and WASM, including all three helical cases. The 17-file
+selection passes 213 of 217 originals. The four repeated failures in that
+selection all exercise fallback behavior.
 
 ## PlainCAD asynchronous project-open readiness — 2026-11-13
 
