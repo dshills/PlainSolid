@@ -136,7 +136,7 @@ func rawAxesParallel(a, b geom.Vec3) bool {
 // represented unit direction. The radial test compares squared distances with
 // the axis norm still factored out. Both comparisons are exact for any parallel
 // raw axes, including a noncoordinate pair for which we cannot build a shell.
-func parallelCylinderCommonEmpty(a, b geom.RawCylinder) bool {
+func parallelCylinderSupportsSeparated(a, b geom.RawCylinder, strict bool) bool {
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	v := func(p geom.Vec3) [3]*big.Rat { return [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)} }
 	dot := func(x, y [3]*big.Rat) *big.Rat {
@@ -157,7 +157,8 @@ func parallelCylinderCommonEmpty(a, b geom.RawCylinder) bool {
 		return [2]*big.Rat{lo, hi}
 	}
 	x, y := interval(a), interval(b)
-	if x[1].Cmp(y[0]) <= 0 || y[1].Cmp(x[0]) <= 0 {
+	separated := func(order int) bool { return order < 0 || order == 0 && !strict }
+	if separated(x[1].Cmp(y[0])) || separated(y[1].Cmp(x[0])) {
 		return true
 	}
 	p, r := v(a.Origin), v(b.Origin)
@@ -168,7 +169,7 @@ func parallelCylinderCommonEmpty(a, b geom.RawCylinder) bool {
 	d2 := new(big.Rat).Sub(new(big.Rat).Mul(n, dot(p, p)), new(big.Rat).Mul(along, along))
 	rsum := new(big.Rat).Add(q(a.Radius), q(b.Radius))
 	limit := new(big.Rat).Mul(n, new(big.Rat).Mul(rsum, rsum))
-	return d2.Cmp(limit) >= 0
+	return separated(limit.Cmp(d2))
 }
 
 func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
@@ -176,7 +177,7 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	if e := ctx.Err(); e != nil {
 		return empty, e
 	}
-	if parallelCylinderCommonEmpty(a, b) {
+	if parallelCylinderSupportsSeparated(a, b, false) {
 		return empty, nil
 	}
 	axis := 0

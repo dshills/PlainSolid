@@ -8,10 +8,22 @@ import (
 )
 
 // FiniteCylinderPairUnion retains the native crossing equal-radius union of
-// raw finite cylinders. It requires representable crossing coordinates and
-// raw cap limits recentered about that crossing. Caps must clear the common.
-// Wall and cap ancestry remains in original operand and raw parameter order.
+// raw finite cylinders, or two strictly separated coordinate-parallel bodies.
+// A crossing requires representable crossing coordinates and recentered caps
+// that clear the common. Wall and cap ancestry is in original operand order.
 func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (ObliqueEqualCylinderUnionResult, error) {
+	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
+		return ObliqueEqualCylinderUnionResult{}, geom.ErrInvalid
+	}
+	if _, err := geom.NewCylinderPairCommon(a, b); err != nil {
+		return ObliqueEqualCylinderUnionResult{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return ObliqueEqualCylinderUnionResult{}, err
+	}
+	if rawAxesParallel(a.Axis, b.Axis) {
+		return unionSeparatedCoordinateCylinders(ctx, a, b)
+	}
 	center, caps, err := finiteCylinderCrossingFrame(ctx, a, b, tolerance)
 	if err != nil {
 		return ObliqueEqualCylinderUnionResult{}, err
