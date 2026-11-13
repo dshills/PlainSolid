@@ -1,5 +1,25 @@
 # Verification record
 
+## PlainCAD opposed-entry blind bores — 2026-11-13
+
+The layered cylinder construction now retains tools entering either stock
+cap. Exact circular footprint changes orient each floor toward its
+corresponding opening. Tests cover intersecting axial intervals and tools
+that meet at one floor plane, including a coaxial through opening and two
+oppositely oriented crescent floors. Independent volume and area formulas,
+B-rep integration, ordered and reversed batches, manifold mesh validation,
+and measure-only overlap queries pass on the qualified domain.
+
+All [12 original browser regressions](evidence/plaincad-opposed-holes-browser-2026-11-13.json)
+pass, covering guided blind and through holes, editing, multi-body scope,
+rollback and STL. The [real-WASM supplement](evidence/plaincad-opposed-hole-native-2026-11-13.json)
+builds two intersecting blind Hole features from opposite faces of one
+PlainCAD document, verifies exact measures, reopens the saved document,
+and validates its STL. The supplemental fixture is separate from the
+original acceptance cases. The same final WASM passes the unchanged
+side-tangent guided Hole test after adopting the shared exact contact
+classifier from main.
+
 ## PlainCAD exact side-tangent blind Hole — 2026-11-13
 
 The [focused retest](evidence/plaincad-tangent-contact-2026-11-13.json)

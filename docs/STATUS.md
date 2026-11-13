@@ -127,10 +127,12 @@ and the separate real-WASM unequal-depth/document-roundtrip supplement pass.
 
 PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
 intentionally rejects overlapping placement. New overlap checks are supplemental.
-Opposed-entry blind overlaps, tools starting wholly inside original stock,
-tangent/unresolved contacts or depth levels, material islands, closed cavities,
-side-crossing cuts and arbitrary curved targets remain open. Next PC1 work also
-includes mixed profiles and broader modified-stock operations. The full
+Opposed-entry blind overlaps now pass exact measures, manifold topology,
+PlainCAD save/reopen, and STL validation. Coincident stop levels qualify
+for the supported circle arrangements. General internal cutters, unresolved
+contacts, material-island footprints, closed cavities, and arbitrary curved
+targets remain open. Some named interior pocket floors and one-side through
+cuts already have qualified constructors. The full
 replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and

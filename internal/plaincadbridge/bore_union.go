@@ -9,9 +9,8 @@ import (
 	"plainsolid/geom"
 )
 
-// newUnionBore retains exact layered circular footprints from a common
-// opening side. Through tools can be reoriented without changing geometry;
-// opposed blind pockets remain outside this bounded layered representation.
+// newUnionBore retains exact layered circular footprints from either of two
+// common stock caps. Through tools can be reoriented without changing geometry.
 func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.CylinderCut, blind []bool) (*boreBody, error) {
 	fail := func(message string) (*boreBody, error) { return nil, &failureError{"UNSUPPORTED", message} }
 	if len(cylinders) < 2 {
@@ -27,11 +26,12 @@ func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.Cyl
 	axis := cuts[anchor].Direction
 	entry, exit := cuts[anchor].Entry, cuts[anchor].Exit
 	depths := make([]float64, len(cylinders))
+	opposedBlind := false
 	for i, c := range cylinders {
-		if cuts[i].Direction != axis {
-			if blind[i] || cuts[i].Direction != axis.Scale(-1) {
-				return fail("overlapping blind cylinders require a common opening side")
-			}
+		if cuts[i].Direction != axis && cuts[i].Direction != axis.Scale(-1) {
+			return fail("overlapping cylinders require parallel axes")
+		}
+		if cuts[i].Direction != axis && !blind[i] {
 			finish := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
 			frame, err := geom.NewFrame(finish, c.frame.XAxis(), c.frame.ZAxis().Scale(-1))
 			if err != nil {
@@ -51,8 +51,15 @@ func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.Cyl
 			}
 			cuts[i] = cut
 		}
-		if cuts[i].Entry != entry || cuts[i].Exit != exit {
-			return fail("overlapping cylinders require common stock cap planes")
+		if cuts[i].Direction == axis {
+			if cuts[i].Entry != entry || cuts[i].Exit != exit {
+				return fail("overlapping cylinders require common stock cap planes")
+			}
+		} else {
+			if cuts[i].Entry != exit || cuts[i].Exit != entry {
+				return fail("overlapping cylinders require common stock cap planes")
+			}
+			opposedBlind = true
 		}
 		if blind[i] {
 			_, start, _, err := boreSpan(base, c, false)
@@ -62,7 +69,7 @@ func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.Cyl
 			depths[i] = c.height - start
 		}
 	}
-	uniform := true
+	uniform := !opposedBlind
 	floor := cylinders[0].frame.Origin().Add(axis.Scale(cylinders[0].height))
 	for i, c := range cylinders {
 		if blind[i] != blind[0] || depths[i] != depths[0] || (blind[i] && exactDotDifference(c.frame.Origin().Add(axis.Scale(c.height)), floor, axis) != 0) {

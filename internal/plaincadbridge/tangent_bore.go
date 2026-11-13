@@ -27,7 +27,17 @@ func tangentBlindBoreRecipe(stock, tool stored) (*tangentBlindBore, bool) {
 	if len(vertices) != 8 || len(stock.solid.Edges()) != 12 || len(stock.solid.Faces()) != 6 {
 		return nil, false
 	}
+	bounds, err := geom.Bounds(vertices)
+	if err != nil {
+		return nil, false
+	}
 	axis := c.frame.ZAxis()
+	index := 0
+	for i, component := range coordinates(axis) {
+		if component != 0 {
+			index = i
+		}
+	}
 	for _, end := range []bool{false, true} {
 		origin, inward := c.frame.Origin(), axis
 		if end {
@@ -35,6 +45,10 @@ func tangentBlindBoreRecipe(stock, tool stored) (*tangentBlindBore, bool) {
 			if !exactAxisDistance(origin.Dot(axis), c.frame.Origin().Dot(axis), c.height) {
 				continue
 			}
+		}
+		contact, err := geom.ClassifyAxialBlindBoreContact(bounds, origin, c.radius, c.height, index, int(coordinates(inward)[index]))
+		if err != nil || contact.Kind != geom.BlindBoreSideTangency {
+			continue
 		}
 		for _, x := range []geom.Vec3{c.frame.XAxis(), c.frame.YAxis(), c.frame.XAxis().Scale(-1), c.frame.YAxis().Scale(-1)} {
 			frame, err := geom.NewFrame(origin, x, inward)
@@ -53,24 +67,13 @@ func tangentBlindBoreRecipe(stock, tool stored) (*tangentBlindBore, bool) {
 				box.Min.Y != -r || box.Max.Y <= r || box.Min.X >= -r || box.Max.X <= r {
 				continue
 			}
-			if !exactTangentSide(vertices, frame, r) || !rectangularFaces(stock.solid, frame, box.Min, box.Max) {
+			if !rectangularFaces(stock.solid, frame, box.Min, box.Max) {
 				continue
 			}
 			return &tangentBlindBore{frameMap(frame), box, r, c.height}, true
 		}
 	}
 	return nil, false
-}
-
-// Float subtraction can round a small clearance or overlap to the same
-// local ordinate as the radius. Prove the contact on the represented input.
-func exactTangentSide(vertices []geom.Vec3, frame geom.Frame, radius float64) bool {
-	n, origin := frame.YAxis(), frame.Origin()
-	side := math.Inf(1)
-	for _, p := range vertices {
-		side = min(side, p.Dot(n))
-	}
-	return exactAxisDistance(origin.Dot(n), side, radius)
 }
 
 func exactAxisDistance(high, low, distance float64) bool {

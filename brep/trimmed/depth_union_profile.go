@@ -9,7 +9,7 @@ import (
 
 type depthDisk struct {
 	unionDisk
-	depth float64
+	start, depth float64
 }
 type depthArrangement struct {
 	disks  []depthDisk
@@ -42,19 +42,31 @@ func newDepthArrangement(input []depthDisk, tol float64) (depthArrangement, erro
 		if a.radius != b.radius {
 			return a.radius > b.radius
 		}
+		if a.start != b.start {
+			return a.start < b.start
+		}
 		return a.depth > b.depth
 	})
+	// Coaxial intervals with the same footprint form one interval when
+	// they meet or overlap. This also removes repeated tools without leaving
+	// coincident arrangement arcs.
+	merged := make([]depthDisk, 0, len(disks))
+	for _, d := range disks {
+		if len(merged) > 0 {
+			last := &merged[len(merged)-1]
+			if last.center == d.center && last.radius == d.radius && d.start <= last.depth {
+				last.depth = max(last.depth, d.depth)
+				continue
+			}
+		}
+		merged = append(merged, d)
+	}
+	disks = merged
 	out := depthArrangement{}
 	for i, a := range disks {
 		redundant := false
 		for j, b := range disks {
-			if i == j || a.depth > b.depth {
-				continue
-			}
-			if a.center == b.center && a.radius == b.radius {
-				if a.depth < b.depth || j < i {
-					redundant = true
-				}
+			if i == j || a.start < b.start || a.depth > b.depth {
 				continue
 			}
 			if a.radius <= b.radius && circleRelation(a.unionDisk, b.unionDisk, false) <= 0 {
@@ -73,6 +85,9 @@ func newDepthArrangement(input []depthDisk, tol float64) (depthArrangement, erro
 	for i, a := range out.disks {
 		for j := i + 1; j < len(out.disks); j++ {
 			b := out.disks[j]
+			if a.start > b.depth || b.start > a.depth {
+				continue
+			}
 			outer := circleRelation(a.unionDisk, b.unionDisk, true)
 			if outer > 0 {
 				continue
@@ -167,33 +182,45 @@ func newDepthArrangement(input []depthDisk, tol float64) (depthArrangement, erro
 	return out, nil
 }
 
-func (a depthArrangement) exposed(height, tol float64) ([]bool, error) {
+func (a depthArrangement) exposed(lo, hi, tol float64) ([]bool, error) {
 	visible := make([]bool, len(a.arcs))
 	for i, arc := range a.arcs {
-		c := a.disks[arc.disk]
-		if c.depth < height {
+		disk := a.disks[arc.disk]
+		if disk.start > lo || hi > disk.depth {
 			continue
 		}
-		theta := (arc.from + arc.to) / 2
-		p := geom.Vec2{X: c.center.X + c.radius*math.Cos(theta), Y: c.center.Y + c.radius*math.Sin(theta)}
-		visible[i] = true
-		for j, d := range a.disks {
-			if j == arc.disk || d.depth < height {
-				continue
-			}
-			distance := math.Hypot(p.X-d.center.X, p.Y-d.center.Y)
-			margin := tol + 128*0x1p-52*math.Max(distance, d.radius)
-			if math.Abs(distance-d.radius) <= margin {
-				return nil, fmt.Errorf("trimmed: unresolved depth-boundary classification")
-			}
-			if distance < d.radius {
-				visible[i] = false
-				break
-			}
+		covered, err := a.coveredArc(i, lo, hi, tol)
+		if err != nil {
+			return nil, err
 		}
+		visible[i] = !covered
 	}
 	return visible, nil
 }
+
+// coveredArc classifies the interior of an arrangement arc against the
+// other disks active in one axial slab.
+func (a depthArrangement) coveredArc(id int, lo, hi, tol float64) (bool, error) {
+	arc := a.arcs[id]
+	disk := a.disks[arc.disk]
+	theta := (arc.from + arc.to) / 2
+	p := geom.Vec2{X: disk.center.X + disk.radius*math.Cos(theta), Y: disk.center.Y + disk.radius*math.Sin(theta)}
+	for j, other := range a.disks {
+		if j == arc.disk || other.start > lo || hi > other.depth {
+			continue
+		}
+		distance := math.Hypot(p.X-other.center.X, p.Y-other.center.Y)
+		margin := tol + 128*0x1p-52*math.Max(distance, other.radius)
+		if math.Abs(distance-other.radius) <= margin {
+			return false, fmt.Errorf("trimmed: unresolved depth-boundary classification")
+		}
+		if distance < other.radius {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (a depthArrangement) boundary(arcs []directedUnionArc, allowHoles bool, tol float64) (depthBoundary, error) {
 	fail := func(s string) (depthBoundary, error) {
 		return depthBoundary{}, fmt.Errorf("trimmed: depth boundary: %s", s)

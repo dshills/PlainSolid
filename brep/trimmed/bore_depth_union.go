@@ -18,9 +18,10 @@ type LayeredBoreHistory struct {
 	FloorAreas                                                         []float64
 }
 
-// BoreCylinderDepthUnion removes parallel cylinders entering the same cap of
-// convex stock. A zero depth reaches the exit cap; positive depths stop inside.
-// It preserves analytic arcs and cylinder surfaces across axial depth layers.
+// BoreCylinderDepthUnion removes parallel cylinders entering either of two
+// opposite caps of convex stock. A zero depth reaches the other cap; positive
+// depths stop inside. It preserves analytic arcs and cylinder surfaces across
+// axial depth layers.
 func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float64, tolerance float64) (Solid, LayeredBoreHistory, error) {
 	fail := func(s string) (Solid, LayeredBoreHistory, error) {
 		return Solid{}, LayeredBoreHistory{}, fmt.Errorf("trimmed: layered cylinder bore: %s", s)
@@ -32,7 +33,15 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 	span := 0.
 	var disks []depthDisk
 	for i, c := range cuts {
-		if c.Entry != entry || c.Exit != exit {
+		opposed := c.Entry == exit && c.Exit == entry
+		if opposed {
+			// Qualify the original axis against its authored entry before
+			// using the common chart for this tool's circular footprint.
+			if _, _, err := BoreCylinderAlong(base, c.Entry, c.Exit, c.AxisPoint, c.Direction, c.Radius, tolerance); err != nil {
+				return Solid{}, LayeredBoreHistory{}, err
+			}
+			c.Direction = c.Direction.Scale(-1)
+		} else if c.Entry != entry || c.Exit != exit {
 			return fail("different opening faces")
 		}
 		if !finite(depths[i]) || depths[i] < 0 {
@@ -70,7 +79,11 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		} else if depth <= tolerance || span-depth <= tolerance {
 			return fail("unresolved depth or remaining wall")
 		}
-		disks = append(disks, depthDisk{unionDisk: unionDisk{radius: c.Radius, frame: f}, depth: depth})
+		start := 0.
+		if opposed {
+			start, depth = span-depth, span
+		}
+		disks = append(disks, depthDisk{unionDisk: unionDisk{radius: c.Radius, frame: f}, start: start, depth: depth})
 	}
 	sort.Slice(disks, func(i, j int) bool {
 		a, b := disks[i].frame.Origin(), disks[j].frame.Origin()
@@ -100,7 +113,7 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 	}
 	levels := []float64{0, span}
 	for _, d := range arrangement.disks {
-		levels = append(levels, d.depth)
+		levels = append(levels, d.start, d.depth)
 	}
 	sort.Float64s(levels)
 	unique := levels[:0]
@@ -125,7 +138,7 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 	boundaries := make([]depthBoundary, len(visible))
 	wallArea := 0.
 	for i := range visible {
-		visible[i], err = arrangement.exposed(levels[i+1], tolerance)
+		visible[i], err = arrangement.exposed(levels[i], levels[i+1], tolerance)
 		if err != nil {
 			return Solid{}, history, err
 		}
@@ -286,20 +299,42 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		}
 		faces[exit].Holes = append(faces[exit].Holes, reverseUnionLoop(uses))
 	}
-	floorArea := 0.
+	floorArea, signedFloorArea := 0., 0.
 	for level := 1; level < len(levels)-1; level++ {
-		var list []directedUnionArc
+		starting, stopping := false, false
+		for _, disk := range arrangement.disks {
+			starting = starting || disk.start == levels[level]
+			stopping = stopping || disk.depth == levels[level]
+		}
+		var floors, ceilings []directedUnionArc
 		for id, before := range visible[level-1] {
 			after := visible[level][id]
-			if before != after {
-				list = append(list, directedUnionArc{id: id, reverse: after})
+			if before == after {
+				continue
+			}
+			growing, reverse := starting, before == starting
+			if starting && stopping {
+				// A disappearing arc bounds a stopped floor when the new
+				// slab is empty at the arc. If the new slab covers it, the
+				// arc instead bounds a growing ceiling on its right.
+				lo, hi := levels[level-1], levels[level]
+				if before {
+					lo, hi = levels[level], levels[level+1]
+				}
+				covered, e := arrangement.coveredArc(id, lo, hi, tolerance)
+				if e != nil {
+					return Solid{}, history, e
+				}
+				growing, reverse = before == covered, covered
+			}
+			arc := directedUnionArc{id: id, reverse: reverse}
+			if growing {
+				ceilings = append(ceilings, arc)
+			} else {
+				floors = append(floors, arc)
 			}
 		}
-		boundary, e := arrangement.boundary(list, true, tolerance)
-		if e != nil {
-			return Solid{}, history, e
-		}
-		if len(boundary.loops) == 0 {
+		if len(floors)+len(ceilings) == 0 {
 			continue
 		}
 		f, e := geom.NewFrame(frame.Origin().Add(frame.ZAxis().Scale(levels[level])), frame.XAxis(), frame.ZAxis())
@@ -310,77 +345,91 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		if e != nil {
 			return Solid{}, history, e
 		}
-		groups := map[int][]int{}
-		for i, area := range boundary.areas {
-			if area > 0 {
-				groups[i] = nil
-			}
-		}
-		for i, area := range boundary.areas {
-			if area >= 0 {
-				continue
-			}
-			arc := arrangement.arcs[boundary.loops[i][0].id]
-			disk := arrangement.disks[arc.disk]
-			owner := -1
-			for _, fraction := range []float64{.5, .25, .75, .375, .625, .125, .875} {
-				angle := arc.from + (arc.to-arc.from)*fraction
-				point := geom.Vec2{X: disk.center.X + disk.radius*math.Cos(angle), Y: disk.center.Y + disk.radius*math.Sin(angle)}
-				candidate := -1
-				resolved := true
-				for j := range groups {
-					inside, e := arrangement.insideLoop(point, boundary.loops[j], tolerance)
-					if e != nil {
-						resolved = false
-						break
-					}
-					if inside {
-						if candidate >= 0 {
-							return fail("ambiguous nested floor")
-						}
-						candidate = j
-					}
-				}
-				if resolved {
-					owner = candidate
-					break
-				}
-			}
-			if owner < 0 {
-				return fail("unresolved or uncontained floor hole")
-			}
-
-			groups[owner] = append(groups[owner], i)
-		}
-		// Iterate original loop order, not map order, for stable face IDs.
-		for i := range boundary.loops {
-			holes, ok := groups[i]
-			if !ok {
-				continue
-			}
-			outer, e := planeLoop(boundary.loops[i], level, plane)
+		for _, change := range []struct {
+			arcs    []directedUnionArc
+			growing bool
+		}{{floors, false}, {ceilings, true}} {
+			boundary, e := arrangement.boundary(change.arcs, true, tolerance)
 			if e != nil {
 				return Solid{}, history, e
 			}
-			face := Face{Surface: plane, Outer: outer, Reversed: true}
-			area := boundary.areas[i]
-			for _, h := range holes {
-				loop, e := planeLoop(boundary.loops[h], level, plane)
+			groups := map[int][]int{}
+			for i, area := range boundary.areas {
+				if area > 0 {
+					groups[i] = nil
+				}
+			}
+			for i, area := range boundary.areas {
+				if area >= 0 {
+					continue
+				}
+				arc := arrangement.arcs[boundary.loops[i][0].id]
+				disk := arrangement.disks[arc.disk]
+				owner := -1
+				for _, fraction := range []float64{.5, .25, .75, .375, .625, .125, .875} {
+					angle := arc.from + (arc.to-arc.from)*fraction
+					point := geom.Vec2{X: disk.center.X + disk.radius*math.Cos(angle), Y: disk.center.Y + disk.radius*math.Sin(angle)}
+					candidate := -1
+					resolved := true
+					for j := range groups {
+						inside, e := arrangement.insideLoop(point, boundary.loops[j], tolerance)
+						if e != nil {
+							resolved = false
+							break
+						}
+						if inside {
+							if candidate >= 0 {
+								return fail("ambiguous nested floor")
+							}
+							candidate = j
+						}
+					}
+					if resolved {
+						owner = candidate
+						break
+					}
+				}
+				if owner < 0 {
+					return fail("unresolved or uncontained floor hole")
+				}
+
+				groups[owner] = append(groups[owner], i)
+			}
+			// Iterate original loop order, not map order, for stable face IDs.
+			for i := range boundary.loops {
+				holes, ok := groups[i]
+				if !ok {
+					continue
+				}
+				outer, e := planeLoop(boundary.loops[i], level, plane)
 				if e != nil {
 					return Solid{}, history, e
 				}
-				face.Holes = append(face.Holes, loop)
-				area += boundary.areas[h]
-			}
-			if area <= tolerance*tolerance {
-				return fail("unresolved floor material")
-			}
-			history.FloorFaces = append(history.FloorFaces, len(faces))
-			history.FloorAreas = append(history.FloorAreas, area)
-			floorArea += area
-			faces = append(faces, face)
-			if len(faces) > 4096 {
-				return fail("layered face work limit")
+				face := Face{Surface: plane, Outer: outer, Reversed: !change.growing}
+				area := boundary.areas[i]
+				for _, h := range holes {
+					loop, e := planeLoop(boundary.loops[h], level, plane)
+					if e != nil {
+						return Solid{}, history, e
+					}
+					face.Holes = append(face.Holes, loop)
+					area += boundary.areas[h]
+				}
+				if area <= tolerance*tolerance {
+					return fail("unresolved floor material")
+				}
+				history.FloorFaces = append(history.FloorFaces, len(faces))
+				history.FloorAreas = append(history.FloorAreas, area)
+				floorArea += area
+				if change.growing {
+					signedFloorArea -= area
+				} else {
+					signedFloorArea += area
+				}
+				faces = append(faces, face)
+				if len(faces) > 4096 {
+					return fail("layered face work limit")
+				}
 			}
 		}
 	}
@@ -388,7 +437,7 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 	if !finite(history.RemovedVolume) || history.RemovedVolume <= 0 || !finite(history.SurfaceAreaDelta) || !finite(history.EntryRemovedArea) || !finite(history.ExitRemovedArea) {
 		return fail("invalid layered material measures")
 	}
-	if math.Abs(floorArea-(history.EntryRemovedArea-history.ExitRemovedArea)) > 1e-9*math.Max(1, history.EntryRemovedArea) {
+	if math.Abs(signedFloorArea-(history.EntryRemovedArea-history.ExitRemovedArea)) > 1e-9*math.Max(1, math.Max(history.EntryRemovedArea, history.ExitRemovedArea)) {
 		return fail("inconsistent layered floor partition")
 	}
 	solid, err := NewSolid(vertices, edges, faces, tolerance)

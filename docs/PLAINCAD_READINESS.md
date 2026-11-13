@@ -203,11 +203,13 @@ hashes match the final tree, and an independent WASM rebuild has the same hash.
 There is no existing overlap-specific acceptance fixture, so new checks remain
 explicitly supplemental. Guided-hole UI overlap restrictions are unchanged.
 
-Still unsupported: overlapping blind cutters entering from opposite stock caps,
-tools starting wholly inside the original stock (including a newly selected
-interior pocket floor), tangent or unresolved contacts/depth levels, material
-islands, side-crossing footprints, mixed profiles and arbitrary curved targets.
-Generic native BRep serialization of anchored analytic trims remains unqualified;
+The later [opposed-entry checkpoint](evidence/plaincad-opposed-holes-browser-2026-11-13.json)
+passes 12 original Hole cases. Its real-WASM supplement verifies two overlapping
+blind tools entering opposite caps, exact measures, save/reopen and validated
+STL. The lower-level tests also cover opposing floors at a common level.
+General internal cutters, material-island footprints, unresolved contacts and
+arbitrary curved targets remain outside this layered recipe. Generic native
+BRep serialization of anchored analytic trims remains unqualified.
 PlainCAD's recipe persistence is checked separately. Full application and OCCT
 replacement qualification remain open.
 
@@ -481,8 +483,8 @@ selected PlainSolid build and record unsupported cases rather than removing them
 Scoped Hole now implements atomic output publication and indexed center/target
 errors, with analytic blind/through cuts in its qualified convex-stock domain.
 Retain the consolidated regression selection recorded above. Remaining work
-includes opposed-entry blind overlaps, mixed profiles, broader curved target
-bodies, and more edge-treatment combinations and reference workflows. Use the
+includes broader curved target bodies, more edge-treatment combinations and
+STEP coverage for additional retained boundaries. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.
 
