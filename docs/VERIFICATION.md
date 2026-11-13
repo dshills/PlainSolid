@@ -35,6 +35,17 @@ The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
 
+## Bounded chart coordinates for PlainCAD M3 grooves — 2026-11-13
+
+The bounded entry point retains the actual authored groove surfaces and
+permits a quantified axial and angular representation error on the stock
+wall trims. The strict entry points retain their exact requirements.
+The external and internal M3 profiles construct for both hands and their
+retained B-rep mass matches independent radial integration. A closed
+analytic-bound mesh passes the native display check at 0.1 mm deflection.
+The browser angular setting still reaches the uniform tessellation budget.
+The overlapping lead-in and the original browser thread cases remain open.
+
 ## Native helical groove dependencies — 2026-11-13
 
 The integration branch imports the qualified single- and multi-start

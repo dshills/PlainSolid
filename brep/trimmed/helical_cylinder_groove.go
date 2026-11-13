@@ -109,7 +109,7 @@ func GrooveCylinderWithHelicalSeam(ctx context.Context, frame geom.Frame, stockR
 // This operation does not open any groove through a stock cap.
 func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, height float64,
 	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int) (Solid, error) {
-	return grooveCylinderWithHelicalStarts(ctx, frame, stockRadius, 0, height, profile, lead, start, end, hand, starts)
+	return grooveCylinderWithHelicalStarts(ctx, frame, stockRadius, 0, height, profile, lead, start, end, hand, starts, nil)
 }
 
 // GrooveTubeWithHelicalStarts cuts the inner wall of an annular cylinder.
@@ -121,11 +121,11 @@ func GrooveTubeWithHelicalStarts(ctx context.Context, frame geom.Frame, outerRad
 	if !finite(boreRadius) || !finite(outerRadius) || boreRadius <= 0 || outerRadius <= boreRadius {
 		return Solid{}, geom.ErrInvalid
 	}
-	return grooveCylinderWithHelicalStarts(ctx, frame, boreRadius, outerRadius, height, profile, lead, start, end, hand, starts)
+	return grooveCylinderWithHelicalStarts(ctx, frame, boreRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil)
 }
 
 func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
-	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int) (Solid, error) {
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
 	if ctx == nil || !finite(stockRadius) || stockRadius <= 0 || !finite(height) || height <= 0 ||
 		!finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start || end-start > 16 ||
 		hand != geom.LeftHanded && hand != geom.RightHanded || len(profile) > 32 || starts < 1 || starts > 8 {
@@ -189,6 +189,12 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 			return Solid{}, geom.ErrDomain
 		}
 	}
+	representChart := func(q *big.Rat, angular bool) (float64, error) {
+		if roundChart != nil {
+			return roundChart(q, angular)
+		}
+		return geom.RepresentedExactScalar(q)
+	}
 	tw := new(big.Rat).Quo(big.NewRat(int64(hand), 1), ratInset(lead))
 	twist, e := geom.RepresentedExactScalar(tw)
 	if e != nil {
@@ -199,7 +205,7 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 	center := new(big.Rat).Quo(new(big.Rat).Add(ratInset(low), ratInset(high)), big.NewRat(2, 1))
 	halfStep := new(big.Rat).Quo(big.NewRat(1, 2), big.NewRat(int64(starts), 1))
 	phaseExact := new(big.Rat).Neg(new(big.Rat).Add(halfStep, new(big.Rat).Mul(tw, center)))
-	phase, e := geom.RepresentedExactScalar(phaseExact)
+	phase, e := representChart(phaseExact, true)
 	if e != nil {
 		return Solid{}, e
 	}
@@ -232,12 +238,12 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 			if u.Sign() <= 0 || u.Cmp(big.NewRat(1, 1)) >= 0 {
 				return Solid{}, geom.ErrDomain
 			}
-			sideU[i], e = geom.RepresentedExactScalar(u)
+			sideU[i], e = representChart(u, true)
 			if e != nil {
 				return Solid{}, e
 			}
 			if internal {
-				sideU[i], e = geom.RepresentedExactScalar(new(big.Rat).Sub(big.NewRat(1, 1), u))
+				sideU[i], e = representChart(new(big.Rat).Sub(big.NewRat(1, 1), u), true)
 				if e != nil {
 					return Solid{}, e
 				}
@@ -253,7 +259,13 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 				return geom.Vec2{}, geom.ErrDomain
 			}
 			z := new(big.Rat).Add(zEnds[k], new(big.Rat).Mul(ratInset(lead), ratInset(uv.X)))
-			v, e := geom.RepresentedExactScalar(z)
+			var v float64
+			var e error
+			if roundChart != nil {
+				v, e = roundChart(z, false)
+			} else {
+				v, e = geom.RepresentedExactScalar(z)
+			}
 			return geom.Vec2{X: sideU[k], Y: v}, e
 		}
 		stock, e = sewHelicalGrooveOnWall(ctx, stock, tool, outer, wall, hand, project)
