@@ -754,8 +754,9 @@ surfaces must keep their geometry through the operation. Continue with:
    retained edge intervals, and generated section edges.
    The same single-plane assembly now accepts a complete interior-edge section
    cycle without original vertex contacts or two distinct certified corner
-   fans on the same cutter plane. Tangencies and nonaffine crossing faces
-   remain unresolved in that path.
+   fans on the same cutter plane. A separate exact quadratic graph path
+   retains nonaffine section curves on original stock and cap supports.
+   General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock
    UV intersections preserve surviving source faces and edge intervals.

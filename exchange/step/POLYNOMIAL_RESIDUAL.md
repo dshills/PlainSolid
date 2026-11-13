@@ -339,3 +339,45 @@ geometry. `ModelMeridianAgreementProven` and `SourceMaterialEquivalenceProven`
 remain false. The cylinder boundary still needs agreement with this repaired
 spherical boundary before any repaired shell or material can be accepted.
 Existing strict importers remain unchanged.
+
+### Continuous authored cross-face rim gap
+
+`BoundOffAxisRimLiftAgreement` combines the independent spherical and cylindrical
+lift bounds through their identical source model curve. It validates the whole
+selected body ownership graph, reparses one bounded immutable byte buffer, and
+requires the owner codecs' exact model/pcurve degree, knot and parameter-domain
+agreements. It preserves both owner pcurve IDs, curve IDs, model ID, full domain,
+span counts and independent model-error budgets. It does not accept caller-made
+certificates or combine evidence from different files.
+
+For the same parameter t, write M(t) for the source model spline, S(t) for the
+sphere pcurve lift and C(t) for the cylinder pcurve lift. Independent error
+bounds enclose `S-M` and `C-M`. The bound for each world coordinate i is
+`B_i=sum_a |sphereAxis[a][i]|*S_a + sum_b |cylinderAxis[b][i]|*C_b`.
+The returned squared distance bound is `sum_i B_i^2`. The shared model value
+cancels by the triangle inequality; no floating square root or assumed owner
+frame alignment is used. Both frames remain restricted to the existing exact
+signed-coordinate orthonormal subset. Separate owner world-component budgets
+and squared model-distance budgets remain visible alongside their combined
+bound. All bounds apply continuously over the full common parameter interval.
+
+A positive caller tolerance in unconverted model units controls only
+`WithinTolerance`; failure to certify is inconclusive. Source uncertainty
+metadata is neither enlarged nor used as permission to close the gap. Bounds
+are unchanged when only the requested tolerance changes. Existing parser,
+source-number, coefficient and span limits remain enforced independently in
+both underlying lift computations, plus bounded topological validation.
+
+This quantifies an authored cross-face gap and provides the next numerical
+input to a future repair policy. It is not exact gluing, injectivity or material
+acceptance. In particular it does not apply automatically to the explicitly
+rephased spherical boundary: that correction must be budgeted separately.
+Authored finite edge selection, continuous meridian agreement and repaired
+whole-shell closure remain unproved; strict geometry import is unchanged.
+
+For the retained OCCT fixture the squared combined bound is approximately
+`1.642533625026e-13` model-unit squared (distance about `4.053e-7`). This
+certifies a caller threshold of `5e-7`, but does not certify the source's
+`1e-7` uncertainty. It does not establish that the actual discrepancy exceeds
+that uncertainty; tighter direct lift-difference bounds might improve this
+conservative result.

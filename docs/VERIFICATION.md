@@ -1971,6 +1971,11 @@ segment. Both original charts lift the complete exact segment, including an
 independent interior rational sample, and the ancestry accounts for every
 output edge. The closed mesh and native reload pass. Independent sequential
 OCCT commons agree on area, centroid, and volume `25/192`.
+The regular quadratic graph cut retains the parabola on the original warped
+stock and cap as exact native pcurves. Source edge parameters, independent
+volumes `29/640` and `611/640`, centroids, native reload, and closed display
+meshes with zero detected contacts pass. The independently swept OCCT stock
+and planar cutter agree on both shell counts, area, volume and centroid.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
@@ -1986,6 +1991,10 @@ the adjacent homogeneous controls in the original knot units. A separable
 rational surface checks both derivatives analytically at interior points and
 domain ends. The corresponding benchmark now uses zero allocations and took
 0.40–0.49 microseconds per call.
+Second partial derivatives use the active span as well. Existing repeated-knot
+and rational surface tests pass normally, under race, and on Go 1.23. The
+second-partial benchmark uses zero allocations; it took 1.46–2.06 microseconds
+instead of 6.32–6.62 microseconds on the sampled host.
 
 On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
 transverse flags passed 112 test and subtest entries. The transverse union

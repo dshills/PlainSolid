@@ -265,6 +265,9 @@ func sameSewStraightTrimEdges(a, b parametric.Edge, reversed bool) bool {
 }
 
 func compareSewSplineEdges(ctx context.Context, a, b parametric.Edge, reversed bool, o edgecheck.Options) (bool, error) {
+	if equal, e := compareSewExactQuadratics(ctx, a, b, reversed, o); equal || e != nil {
+		return equal, e
+	}
 	x, revX, e := exactEdgeSpline(a)
 	if e != nil || x == nil {
 		return false, e
