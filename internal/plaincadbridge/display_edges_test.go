@@ -42,6 +42,11 @@ func TestNativeDisplayEdgesCylinder(t *testing.T) {
 			t.Fatal(r)
 		}
 	}
+	q := `{"op":"displayEdges","handle":"` + shape.Handle + `","maxEdgeSegments":2,"maxEdgeUses":12000}`
+	var limited response
+	if err := json.Unmarshal([]byte(b.Call(q)), &limited); err != nil || limited.OK || limited.Result != nil || limited.Error == nil || limited.Error.Code != "LIMIT" || !strings.Contains(limited.Error.Message, "display segment budget") {
+		t.Fatal("expected typed segment budget failure without partial edges", limited, err)
+	}
 }
 
 func TestDisplayEdgeBudgetFormats(t *testing.T) {

@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"plainsolid/brep/parametric"
@@ -29,7 +30,7 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 					return nil, uses, e
 				}
 				if uses >= maxUses {
-					return nil, uses, parametric.ErrBudget
+					return nil, uses, fmt.Errorf("display edge use budget exhausted: %w", parametric.ErrBudget)
 				}
 				uses++
 				owners[u.Edge][counts[u.Edge]] = owner{i, u}
@@ -73,19 +74,24 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 		if smooth {
 			continue
 		}
+		remaining := maxSegments - len(lines)/2
+		segmentBudget := func() error { return fmt.Errorf("display segment budget exhausted: %w", parametric.ErrBudget) }
+		if remaining <= 0 {
+			return nil, uses, segmentBudget()
+		}
 		if compactStraightEdge(edge.Curve) {
-			if len(lines)/2 >= maxSegments {
-				return nil, uses, parametric.ErrBudget
-			}
 			lines = append(lines, s.vertices[edge.Start], s.vertices[edge.End])
 			continue
 		}
 		options := geom.CurveTessellationOptions{
 			ChordTolerance: .02, InitialSegments: 4, MaxDepth: 12,
-			MaxEvaluations: min(4096, (maxSegments-len(lines)/2)*12+64),
+			MaxEvaluations: min(4096, remaining*12+64),
 		}
 		chords, err := geom.TessellateCurve(edge.Curve, edge.Range.Min, edge.Range.Max, options)
 		if err != nil {
+			if errors.Is(err, geom.ErrConvergence) {
+				return nil, uses, fmt.Errorf("display segment budget or subdivision limit at edge %d: %w", i, parametric.ErrBudget)
+			}
 			return nil, uses, fmt.Errorf("invalid display curve at edge %d: %w", i, err)
 		}
 		chords[0].Start = s.vertices[edge.Start]
@@ -93,7 +99,7 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 		for _, chord := range chords {
 			if span := chord.Start.Sub(chord.End).Length(); finite(span) && span > 1e-9 {
 				if len(lines)/2 >= maxSegments {
-					return nil, uses, parametric.ErrBudget
+					return nil, uses, segmentBudget()
 				}
 				lines = append(lines, chord.Start, chord.End)
 			}
