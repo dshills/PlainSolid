@@ -9,7 +9,12 @@ OCCT compatibility qualification is claimed.
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
 Shell and three Hole pattern cases pass the expanded original selection.
 The same run exposes two remaining pattern failures, a circular pocket
-pattern on previously cut stock and the overlapping Hole diagnostic.
+pattern on previously cut stock and the overlapping Hole diagnostic. Both
+now pass the focused original retest. Its controlled performance test passes
+the original 25 rebuild and 11 export iterations and resource-growth bounds.
+Slider and hinge originals pass, and the separated rotated collision case
+needs a retest after returning zero for a proved empty native intersection.
+The 40-body rotary fixture still requires additional retained curved modeling.
 
 Focused browser runs now pass the original mixed profile, revolve, socket-head
 blank, shop drawing and STEP workflows, including the three repaired regressions
@@ -25,7 +30,11 @@ A second run passes external preview, length edit, save/open and STL, then
 times out during internal preview. The current native code passes float32
 embedding for both external lengths and the internal thread, restores the
 lead nut mesh budget, and avoids redundant head-rim validation. Both full
-originals are being rerun.
+originals are being rerun. An exact constant-coordinate interpolation fix
+resolves the internal WASM geometry failure. The latest original Thread run
+reaches internal modeling step seven before its overall 90-second deadline.
+Each preceding plan step creates a worker and cold-rebuilds the external
+thread. Lead passes in the same run.
 
 The original machined-reference acceptance passes nested rectangular blind
 pockets, a disjoint cylindrical through bore, measured rim and floor,

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"math"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/csg/poly"
+	"plainsolid/geom"
 )
 
 // overlapVolume is a measure-only query. In particular it does not publish a
@@ -24,6 +26,39 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	result := func(volume float64) (any, error) { return map[string]float64{"volume": volume}, nil }
 	if boundsSeparated(a.result.Bounds, c.result.Bounds) {
 		return result(0)
+	}
+	if a.cylinder != nil && c.cylinder != nil {
+		n, m := a.cylinder.frame.ZAxis(), c.cylinder.frame.ZAxis()
+		if cardinalFrame(a.cylinder.frame) && (m == n || m == n.Scale(-1)) {
+			volume, err := parallelCylinderOverlap(a.cylinder, c.cylinder)
+			if err != nil {
+				return nil, err
+			}
+			return result(volume)
+		}
+	}
+	if a.planar() && c.analytic != nil && c.analytic.pockets != nil {
+		a, c = c, a
+	}
+	if c.planar() {
+		stock, supported, err := a.planarCutBoundary()
+		if err != nil {
+			return nil, err
+		}
+		if supported {
+			s, err := poly.Combine(context.Background(), stock, c.solid, poly.Intersection, poly.Options{})
+			if err != nil {
+				return nil, err
+			}
+			if len(s.Faces()) == 0 {
+				return result(0)
+			}
+			p, err := s.MassProperties()
+			if err != nil {
+				return nil, err
+			}
+			return result(p.Volume)
+		}
 	}
 	stock, tool := a, c
 	if stock.cylinder != nil && tool.analytic != nil || stock.cylinder != nil && tool.cylinder != nil && stock.cylinder.radius < tool.cylinder.radius {
@@ -64,17 +99,6 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		}
 		return result(volume)
 	}
-	if a.planar() && c.planar() {
-		s, err := poly.Combine(context.Background(), a.solid, c.solid, poly.Intersection, poly.Options{})
-		if err != nil {
-			return nil, err
-		}
-		p, err := s.MassProperties()
-		if err != nil {
-			return nil, err
-		}
-		return result(p.Volume)
-	}
 	if a.cylinder != nil && c.cylinder == nil {
 		a, c = c, a
 	}
@@ -114,4 +138,25 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		return nil, errors.New("inconsistent overlap volume")
 	}
 	return result(math.Max(0, delta))
+}
+
+func parallelCylinderOverlap(a, b *cylinderBody) (float64, error) {
+	m := b.frame.ZAxis()
+	origin := b.frame.Origin()
+	end := origin.Add(m.Scale(b.height))
+	p, q := a.frame.ToLocal(origin), a.frame.ToLocal(end)
+	if a.frame.ToWorld(p) != origin || a.frame.ToWorld(q) != end || p.X != q.X || p.Y != q.Y {
+		return 0, geom.ErrUnrepresentable
+	}
+	height := min(a.height, max(p.Z, q.Z)) - max(0, min(p.Z, q.Z))
+	if height <= 0 {
+		return 0, nil
+	}
+	solid, err := parametric.CombineParallelCylinders(a.frame, parametric.DiskProfile{Radius: a.radius},
+		parametric.DiskProfile{Center: geom.Vec2{X: p.X, Y: p.Y}, Radius: b.radius}, height, parametric.Intersection, 1e-9)
+	if err != nil || len(solid.Faces()) == 0 {
+		return 0, err
+	}
+	mass, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{})
+	return mass.Volume, err
 }

@@ -17,6 +17,16 @@ Hole pattern cases pass. The two remaining failures expose a planar cut on
 already-pocketed stock and a cylinder/cylinder overlap query. Focused native
 repairs are underway.
 
+The [focused follow-up](evidence/plaincad-pattern-performance-2026-11-13.json)
+passes both previously failing original patterns and the original controlled
+performance benchmark. Exact finite cylinder lens overlap diagnoses pattern
+collisions. Direct planar cap sewing preserves the represented rotated
+pocket profile and validates the resulting connected material boundary.
+The benchmark passes its original rebuild, export, native ownership and
+WASM capacity checks. Slider and hinge pass. A true empty planar
+intersection in the rotated assembly case and missing curved features in
+the 40-body rotary fixture account for the two failures in that report.
+
 ## PlainCAD thread mesh embedding and native rebuild — 2026-11-13
 
 Skinny seam triangles in external threads could cross after the float32
