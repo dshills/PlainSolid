@@ -6,8 +6,8 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-The current production run passes all 66 originals on PlainCAD `e65f07b`,
-with zero skips or flakes. It covers the fabrication package, Cable guide
+The production rerun on PlainSolid `0b17938` passes all 66 originals on
+PlainCAD `e65f07b`, with zero skips or flakes. It covers the fabrication package, Cable guide
 live preview, Acme and UNC galleries, and the controlled benchmark. The
 isolated original production performance case passes in 29.5 seconds
 with all 25 edits and 11 STL downloads validated. The compact bore mesh
@@ -15,7 +15,8 @@ uses 144 triangles per STL. The pristine OCCT control completes the same
 checks and exceeds the original 90-second deadline on this host. The frozen
 development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures, including 10 origin-dependent
-setup cases. The current integration still needs a consolidated rerun.
+setup cases. The consolidated current run passes 342 of 344 originals. The open viewer
+cases concern frame scheduling after pan and a final screenshot deadline.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,
@@ -30,9 +31,10 @@ tests after the display worker reuses accepted native features. The three
 original signed profile-edge cases also pass on XY, XZ and YZ. Focused
 real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
-STEP round-trip of machined stock. The current studio cancellation and ORBIT
+STEP round-trip of machined stock, including independently authored rounded
+stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-The full current development run is in progress. The original unit run
+The original unit run
 with real WASM initialized passes 1,646 of 1,689 cases. The remaining
 failures include uninitialized fallback expectations and OCCT-private test
 bindings. All ten private tests pass on pristine OCCT. The 26 fallback

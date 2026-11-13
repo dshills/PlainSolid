@@ -7,6 +7,7 @@ import (
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 	"plainsolid/mesh"
 )
@@ -27,6 +28,7 @@ type analyticBody struct {
 	helical        bool
 	lead           *leadPart
 	helicalMesh    *mesh.Mesh
+	stepRounded    *step.RoundedRectangleExtrusionBody
 	pockets        *pocketStock
 	coaxial        *coaxialBody
 	rounded        *roundedStock
@@ -154,6 +156,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	// Preserve the analytic boundary for every rigid map. Requalify an axis
 	// recipe only for coordinate-aligned proper rotations.
 	out.sector = nil
+	out.stepRounded = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -176,6 +179,14 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 				return nil, e
 			}
 			out.planarBores = &p
+		}
+	}
+	if a.stepRounded != nil {
+		p := *a.stepRounded
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.stepRounded = &p
 		}
 	}
 	if a.pockets != nil {

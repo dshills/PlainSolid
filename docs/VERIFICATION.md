@@ -1,5 +1,39 @@
 # Verification record
 
+## PlainCAD consolidated current development run — 2026-11-13
+
+The [full current development report](evidence/plaincad-current-development-full-2026-11-13.json)
+passes 342 of 344 original cases in 3,721.761 seconds. No cases skip or
+retry. The source-hashed WASM snapshot includes the analytic arc profiles
+and the separate backend preflight passes. Two staged storage-state origins
+follow the isolated server port. Original assertions and deadlines were
+preserved.
+
+The two failures are viewport idle after a right-button pan and the final
+Playwright screenshot of the ORBIT gesture case. The gesture run completes
+the native geometry, full-resolution PNG, buffer reuse, and resolution
+restoration assertions. Its final screenshot exceeds the original deadline.
+The unchanged viewport idle test reproduces on the same PlainSolid WASM
+and with pristine OCCT at the same pan step.
+
+## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
+
+The bridge now reads and reexports independent OCCT-authored rounded
+stock with separate circular blind and through bores. It also round-trips
+the origin-anchored opposite fillet/chamfer stock and its complete circular
+through bore, rectangular through pocket and upper boss chain using the
+existing exact STEP graph readers. The rounded-pocket reader and fixture
+come from main's `c35c793`; this worktree uses the committed independent
+file for the comparison.
+
+All [six original browser regressions](evidence/plaincad-machined-step-browser-2026-11-13.json)
+pass, including exact STEP measurements and placement, worker cancellation,
+retry, imported STL and machined references. The
+[real-WASM supplement](evidence/plaincad-machined-step-native-2026-11-13.json)
+imports the independent rounded stock, places it, reexports, reloads,
+and runs PlainCAD's STL fabrication checks. Native round trips and focused
+race checks pass in the bridge and STEP packages.
+
 ## PlainCAD opposed-entry blind bores — 2026-11-13
 
 The layered cylinder construction now retains tools entering either stock
