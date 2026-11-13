@@ -19,9 +19,19 @@ import (
 // Each face tries at most two axes; limits apply per bounded surface/edge proof
 // and loop certificate, with at most64 total section pieces.
 func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
-	return combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o, nil)
+	return combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o, nil, false)
 }
-func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions, spans *polynomialClipSpanState) (SplineCornerPlaneClip, error) {
+
+// CombineRationalGraphSplinePlaneClip additionally accepts single-span
+// polynomial supports with a cutter residual A(s)+B(s)t, where the free-axis
+// degree of A is at most two and B is affine and never zero. The original
+// surface is unchanged; the section is an exact rational quadratic in both
+// original UV charts. The section endpoints must still be representable.
+func CombineRationalGraphSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
+	return combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o, nil, true)
+}
+
+func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions, spans *polynomialClipSpanState, rationalGraph bool) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
@@ -175,11 +185,25 @@ func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 				if errors.Is(e, geom.ErrConvergence) {
 					cert, e = certifyPolynomialPlaneFaceSection(ctx, stock, id, plane, 1, o)
 				}
+				if e != nil && rationalGraph && errors.Is(e, geom.ErrConvergence) {
+					for a := range 2 {
+						q, s, err := rationalGraphPlaneTrim(f.patch, plane, a)
+						if err == nil {
+							sections, axis, sign, e = []PCurve{q}, a, s, nil
+							break
+						}
+						if !errors.Is(err, geom.ErrConvergence) {
+							return zero, err
+						}
+					}
+				}
 				if e != nil {
 					return zero, e
 				}
-				sections = []PCurve{cert.trim}
-				axis, sign = cert.freeAxis, cert.sign
+				if cert != nil {
+					sections = []PCurve{cert.trim}
+					axis, sign = cert.freeAxis, cert.sign
+				}
 			} else {
 				cert, e := certifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
 				if errors.Is(e, geom.ErrConvergence) {
@@ -285,7 +309,7 @@ func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 	if len(arcs) < 3 || len(arcs) > 64 {
 		return zero, geom.ErrConvergence
 	}
-	loop, e := polynomialPlaneCycle(arcs)
+	loop, e := polynomialPlaneCycle(ctx, arcs)
 	if e != nil {
 		return zero, e
 	}

@@ -131,14 +131,7 @@ func polynomialPlaneTrimEquation(p *geom.SurfacePatch, plane polynomialPlaneEqua
 		return zero, 0, geom.ErrConvergence
 	}
 	if freeAxis == 1 {
-		transpose := make([][][4]*big.Rat, len(h[0]))
-		for i := range transpose {
-			transpose[i] = make([][4]*big.Rat, len(h))
-			for j := range h {
-				transpose[i][j] = h[j][i]
-			}
-		}
-		h = transpose
+		h = transposePolynomialPlanePower(h)
 	}
 	w := h[0][0][3]
 	if w.Sign() <= 0 {
@@ -212,6 +205,17 @@ func polynomialPlaneTrimEquation(p *geom.SurfacePatch, plane polynomialPlaneEqua
 	q, e := polynomialNativeTrim(controls)
 	return q, b.Sign(), e
 }
+
+func transposePolynomialPlanePower(h [][][4]*big.Rat) [][][4]*big.Rat {
+	t := make([][][4]*big.Rat, len(h[0]))
+	for i := range t {
+		t[i] = make([][4]*big.Rat, len(h))
+		for j := range h {
+			t[i][j] = h[j][i]
+		}
+	}
+	return t
+}
 func polynomialNativeTrim(h [][3]*big.Rat) (SplineUV, error) {
 	var zero SplineUV
 	if len(h) < 2 || len(h) > 5 {
@@ -246,11 +250,6 @@ func polynomialPlaneControls(c PCurve) ([][3]*big.Rat, error) {
 	switch q := c.(type) {
 	case ExactQuadraticUV:
 		h := q.HomogeneousControls()
-		for _, p := range h {
-			if p[2].Cmp(big.NewRat(1, 1)) != 0 {
-				return nil, geom.ErrConvergence
-			}
-		}
 		return h[:], nil
 	case SplineUV:
 		if q.Curve == nil || q.Range != (UVInterval{Max: 1}) || q.Curve.Degree() > 4 || len(q.Curve.Poles()) != q.Curve.Degree()+1 {
@@ -285,7 +284,7 @@ func polynomialPlaneEndpoints(c PCurve) ([2][2]*big.Rat, [2]geom.Vec2, error) {
 		return exact, display, e
 	}
 	for i, j := range []int{0, len(h) - 1} {
-		exact[i] = [2]*big.Rat{new(big.Rat).Set(h[j][0]), new(big.Rat).Set(h[j][1])}
+		exact[i] = [2]*big.Rat{new(big.Rat).Quo(h[j][0], h[j][2]), new(big.Rat).Quo(h[j][1], h[j][2])}
 		display[i].X, e = geom.RepresentedExactScalar(exact[i][0])
 		if e != nil {
 			return exact, display, e

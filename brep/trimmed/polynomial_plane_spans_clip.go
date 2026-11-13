@@ -37,7 +37,7 @@ func CombinePiecewisePolynomialSplinePlaneClip(ctx context.Context, stock, tool 
 		return zero, geom.ErrInvalid
 	}
 	state := &polynomialClipSpanState{maxSpans: o.MaxSpans}
-	r, e := combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o.Faces, state)
+	r, e := combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o.Faces, state, false)
 	if e != nil {
 		return zero, e
 	}
