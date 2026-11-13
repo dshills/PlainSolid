@@ -36,6 +36,14 @@ func ObliqueCylinderCommon(ctx context.Context, center, u, v geom.Vec3, ru, rv f
 		}
 		w[i] = [2]*big.Rat{q(c[0]), q(c[1])}
 	}
+	return obliqueCylinderCommonExactWindows(ctx, center, u, v, ru, rv, w, tolerance)
+}
+
+// Exact raw windows can be non-dyadic when measured from the common axis foot.
+// The untrimmed common only needs their cap-clearance proof, never float caps.
+func obliqueCylinderCommonExactWindows(ctx context.Context, center, u, v geom.Vec3, ru, rv float64, w [2][2]*big.Rat, tolerance float64) (ObliqueCylinderCommonResult, error) {
+	var empty ObliqueCylinderCommonResult
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	proof, e := geom.ClassifyCylinderCommonCaps(ctx, u, v, ru, rv, &w[0], &w[1], geom.SurfacePatchEvaluationOptions{})
 	if e != nil {
 		return empty, e

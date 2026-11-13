@@ -162,3 +162,32 @@ func TestFiniteCylinderPairCommonOutsideAxialSupport(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairCommonNonDyadicFootParameters(t *testing.T) {
+	ctx := context.Background()
+	// Both axes cross at the origin, but the first foot has raw parameter
+	// -1/3. Recentring the original cap bounds must keep that exact fraction.
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1}, Axis: geom.Vec3{X: 3}, Radius: 5, Min: -3, Max: 3}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -6, Max: 6}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonIntersectingAxes {
+		t.Fatal(out.Construction, e)
+	}
+	props, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+	if e != nil || math.Abs(props.Volume-2000.0/3) > 1e-6 {
+		t.Fatal(props, e)
+	}
+	a.Max = 0
+	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonPerpendicularCap || len(out.UpperCapFaces[0]) == 0 {
+		t.Fatal(out.Construction, out.UpperCapFaces, e)
+	}
+	faces := out.Solid.Faces()
+	for _, id := range out.UpperCapFaces[0] {
+		f := faces[id]
+		p, e := f.Surface.Eval((f.U.Min+f.U.Max)/2, (f.V.Min+f.V.Max)/2)
+		if e != nil || p.X != 1 {
+			t.Fatal("cap must stay on the original plane", p, e)
+		}
+	}
+}

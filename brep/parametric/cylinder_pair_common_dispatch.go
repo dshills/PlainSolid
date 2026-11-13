@@ -83,17 +83,7 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		}
 		*coord[i] = f
 	}
-	var windows [2][2]float64
-	for i, caps := range exactWindows {
-		for j, x := range caps {
-			f, e := geom.RepresentedExactScalar(x)
-			if e != nil {
-				return empty, e
-			}
-			windows[i][j] = f
-		}
-	}
-	proof, e := ObliqueCylinderCommon(ctx, center, a.Axis, b.Axis, a.Radius, b.Radius, windows[0], windows[1], tolerance)
+	proof, e := obliqueCylinderCommonExactWindows(ctx, center, a.Axis, b.Axis, a.Radius, b.Radius, exactWindows, tolerance)
 	if e == nil {
 		return FiniteCylinderPairCommonResult{Solid: proof.Solid, Construction: CylinderCommonIntersectingAxes, SideFaces: proof.CylinderFaces}, nil
 	}
@@ -103,7 +93,7 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 	if a.Radius != b.Radius {
 		return empty, e
 	}
-	return finitePerpendicularCapCommon(ctx, a, b, center, windows, tolerance)
+	return finitePerpendicularCapCommon(ctx, a, b, center, exactWindows, tolerance)
 }
 
 // The extent square is base + sqrt(radicand). Compare without a square root.
@@ -242,8 +232,9 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 // The clipped charts are built with +X and +Z at unit scale. An exact
 // signed permutation places them on the original cylinder axes; converting
 // cap parameters to physical lengths must not snap a cap to a nearby plane.
-func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, center geom.Vec3, ends [2][2]float64, tolerance float64) (FiniteCylinderPairCommonResult, error) {
+func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, center geom.Vec3, exactEnds [2][2]*big.Rat, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
+	var ends [2][2]float64
 	var basis [2]geom.Vec3
 	for i, cylinder := range [2]geom.RawCylinder{a, b} {
 		axis := cylinder.Axis
@@ -258,8 +249,8 @@ func finitePerpendicularCapCommon(ctx context.Context, a, b geom.RawCylinder, ce
 		default:
 			return empty, geom.ErrDomain
 		}
-		for j, cap := range ends[i] {
-			q := new(big.Rat).Mul(new(big.Rat).SetFloat64(scale), new(big.Rat).SetFloat64(cap))
+		for j, cap := range exactEnds[i] {
+			q := new(big.Rat).Mul(new(big.Rat).SetFloat64(scale), cap)
 			length, e := geom.RepresentedExactScalar(q)
 			if e != nil {
 				return empty, e
