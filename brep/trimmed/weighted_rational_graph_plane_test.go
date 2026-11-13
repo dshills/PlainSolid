@@ -78,6 +78,39 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 	if !found {
 		t.Fatal("missing weighted section on stock support")
 	}
+	plane := [3]geom.Vec3{{Z: 3. / 16}, {X: 1, Z: 13. / 64}, {Y: 1, Z: 3. / 16}}
+	section, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{})
+	if e != nil || section.Face() != 4 || section.FreeAxis() != 0 || section.PlaneSideSign() != 1 || len(section.Pieces()) != 1 || section.ProjectionAxes() != [2]int{0, 1} {
+		t.Fatal("missing exact oblique face section", section, e)
+	}
+	sectionFaces := stock.faces[4]
+	for i, id := range section.Edges() {
+		p := section.Parameters()[i]
+		if p.Cmp(big.NewRat(0, 1)) <= 0 || p.Cmp(big.NewRat(1, 1)) >= 0 {
+			t.Fatal("source edge range not retained", id, p)
+		}
+		found = false
+		for _, u := range sectionFaces.Outer {
+			found = found || u.Edge == id
+		}
+		if !found {
+			t.Fatal("edge is not owned by original face")
+		}
+	}
+	cells, e := section.ModelCurveCells(ctx, 0, geom.SurfaceCurveAgreementOptions{})
+	if e != nil || !cells.Complete || len(cells.Cells) != 1 {
+		t.Fatal("section lost original support composition", cells, e)
+	}
+	copyPieces := section.Pieces()
+	copyPieces[0] = nil
+	if section.Pieces()[0] == nil {
+		t.Fatal("section allowed modification of its trim list")
+	}
+	plane[1], plane[2] = plane[2], plane[1]
+	negative, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{})
+	if e != nil || negative.PlaneSideSign() != -1 || negative.Edges() != section.Edges() {
+		t.Fatal("reversed plane lost ownership or orientation", e)
+	}
 	// Independent vertical wedge: X=3*s, lower height is s²/(32*(1-s/2))+Y/4.
 	// Integrate Y first and then the smooth one-dimensional section by Simpson.
 	const n = 1024
