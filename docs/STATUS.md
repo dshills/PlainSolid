@@ -188,6 +188,11 @@ The [gallery retest record](evidence/plaincad-gallery-reconciliation-2026-11-13.
 pins that production build. The isolated
 controlled performance case collected all 25 edits and 11 STL samples, then
 exceeded its 90-second overall deadline; the original test remains failed.
+The subsequent clean compact-mesh snapshot `1e78c8a` passed the unchanged
+original production performance test in 64.7 seconds. The
+[focused performance record](evidence/plaincad-compact-performance-reconciliation-2026-11-13.json)
+preserves the original deadline, WASM identity, and all samples. Full
+production qualification on one final combined revision remains open.
 On `acce666`, stale fabrication ZIP validation/native union and cancellation
 of a pending STEP preview on same-ID project replacement both passed.
 On `e73ed26`, both real-worker stale-result/error ordering cases and the

@@ -46,6 +46,10 @@ placement. Production performance exceeds its overall deadline after
 checking all 25 edits and 11 STL downloads. The case and a full production
 rerun remain open.
 
+The [clean combined compact-mesh retest](evidence/plaincad-compact-performance-reconciliation-2026-11-13.json)
+passed the unchanged controlled performance case in 64.7 seconds against
+its 90-second limit. The full production rerun remains open.
+
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 
 Focused original cases pass for linked arcs and circles, edited arc
