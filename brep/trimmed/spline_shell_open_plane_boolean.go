@@ -18,7 +18,10 @@ import (
 // assembly independently verifies both edge anchors and local continuation.
 // Affine/affine pairs additionally use exact affine chart intersection when
 // graph projection discovery cannot express their oblique parameterization.
-// Pairs are input face IDs; no trace or caller-authored endpoint proof is trusted.
+// Pairs are candidate input face IDs. A failed discovery can be discarded
+// only after independent exact pair separation proves no contact. Tangent or
+// coincident candidates are never discarded as disjoint. No caller-authored
+// trace or endpoint proof is trusted.
 func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanOp, pairs [][2]int,
 	discovery intersect.SplinePlanePairDiscoveryOptions, o SplineShellOpenOptions) (Solid, SplineShellOpenHistory, error) {
 	fail := func(e error) (Solid, SplineShellOpenHistory, error) { return Solid{}, SplineShellOpenHistory{}, e }
@@ -52,15 +55,14 @@ func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric
 			if !isUnresolvedOpenSpline(e) {
 				return fail(e)
 			}
-			// Affine/affine oblique charts can fail the graph projection gate.
-			// Recover only through exact affine chart intersection, retaining
-			// both source boundary masks and re-proving the generated tubes.
+			// First attempt an independent exact exclusion. An unresolved
+			// exclusion is not evidence of disjointness; only an exact affine
+			// intersection fallback can recover that case here.
 			var exact [2]*geom.SurfacePatch
-			var charts [2]*geom.AffineSurfaceChart
 			for i, p := range patches {
 				surface, ok := p.Surface.(*geom.BSplineSurface)
 				if !ok {
-					return fail(e)
+					return fail(geom.ErrInvalid)
 				}
 				exact[i], e = geom.NewSurfacePatch(surface, o.Trace.Seeds.Patches)
 				if e != nil {
@@ -70,6 +72,16 @@ func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric
 				if e != nil {
 					return fail(e)
 				}
+			}
+			separation := proveSplinePatchPairDisjoint(ctx, exact[0], exact[1], o.Shells.Separation)
+			if separation == nil {
+				continue
+			}
+			if !isUnresolvedOpenSpline(separation) {
+				return fail(separation)
+			}
+			var charts [2]*geom.AffineSurfaceChart
+			for i := range exact {
 				charts[i], e = geom.NewAffineSurfaceChart(ctx, exact[i], geom.AffineSurfaceChartOptions{MaxOperations: o.Trace.Coincidence.MaxOperations, MaxCoefficientBits: o.Trace.Coincidence.MaxCoefficientBits})
 				if e != nil {
 					return fail(e)
