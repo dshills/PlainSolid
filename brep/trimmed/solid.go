@@ -370,7 +370,17 @@ func closePoint(a, b geom.Vec3, t float64) bool {
 	return a.IsFinite() && b.IsFinite() && a.Sub(b).Length() <= t
 }
 func mix(a, b geom.Vec2, t float64) geom.Vec2 {
-	return geom.Vec2{X: (1-t)*a.X + t*b.X, Y: (1-t)*a.Y + t*b.Y}
+	p := geom.Vec2{X: (1-t)*a.X + t*b.X, Y: (1-t)*a.Y + t*b.Y}
+	// A constant trim coordinate must remain the represented constant.
+	// Separate multiply/add evaluation (notably WASM) can otherwise round
+	// outside a closed support domain even when both endpoints lie on it.
+	if a.X == b.X {
+		p.X = a.X
+	}
+	if a.Y == b.Y {
+		p.Y = a.Y
+	}
+	return p
 }
 func (u Use) uv(t float64) (geom.Vec2, error) {
 	if u.Curve == nil {
