@@ -255,3 +255,26 @@ func TestFiniteCylinderPairCommonClippedWithSupportingCaps(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteObliqueParallelCylinderPairEmpty(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 4}, Radius: 2, Min: 0, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{Z: 4}, Axis: geom.Vec3{X: -6, Y: -8}, Radius: 2, Min: -1, Max: 0}
+	assertEmpty := func(a, b geom.RawCylinder) {
+		t.Helper()
+		out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+		if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+			t.Fatal(out, e)
+		}
+	}
+	assertEmpty(a, b) // Axial overlap, exactly tangent radial disks.
+	b.Origin.Z = math.Nextafter(4, 0)
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrDomain) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("positive but unsupported radial overlap", out, e)
+	}
+	b.Origin = geom.Vec3{X: 6, Y: 8}
+	b.Min, b.Max = -2, 0
+	assertEmpty(a, b) // Same axis, cap-only contact with reversed raw direction.
+	assertEmpty(b, a)
+}

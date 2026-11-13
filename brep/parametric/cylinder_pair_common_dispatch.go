@@ -118,10 +118,52 @@ func rawAxesParallel(a, b geom.Vec3) bool {
 	return true
 }
 
+// A common axial covector orders both finite cap intervals without needing a
+// represented unit direction. The radial test compares squared distances with
+// the axis norm still factored out. Both comparisons are exact for any parallel
+// raw axes, including a noncoordinate pair for which we cannot build a shell.
+func parallelCylinderCommonEmpty(a, b geom.RawCylinder) bool {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	v := func(p geom.Vec3) [3]*big.Rat { return [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)} }
+	dot := func(x, y [3]*big.Rat) *big.Rat {
+		r := new(big.Rat)
+		for i := range x {
+			r.Add(r, new(big.Rat).Mul(x[i], y[i]))
+		}
+		return r
+	}
+	axis := v(a.Axis)
+	interval := func(s geom.RawCylinder) [2]*big.Rat {
+		base, scale := dot(axis, v(s.Origin)), dot(axis, v(s.Axis))
+		lo := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Min)))
+		hi := new(big.Rat).Add(base, new(big.Rat).Mul(scale, q(s.Max)))
+		if scale.Sign() < 0 {
+			lo, hi = hi, lo
+		}
+		return [2]*big.Rat{lo, hi}
+	}
+	x, y := interval(a), interval(b)
+	if x[1].Cmp(y[0]) <= 0 || y[1].Cmp(x[0]) <= 0 {
+		return true
+	}
+	p, r := v(a.Origin), v(b.Origin)
+	for i := range p {
+		p[i].Sub(r[i], p[i])
+	}
+	along, n := dot(axis, p), dot(axis, axis)
+	d2 := new(big.Rat).Sub(new(big.Rat).Mul(n, dot(p, p)), new(big.Rat).Mul(along, along))
+	rsum := new(big.Rat).Add(q(a.Radius), q(b.Radius))
+	limit := new(big.Rat).Mul(n, new(big.Rat).Mul(rsum, rsum))
+	return d2.Cmp(limit) >= 0
+}
+
 func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
 	if e := ctx.Err(); e != nil {
 		return empty, e
+	}
+	if parallelCylinderCommonEmpty(a, b) {
+		return empty, nil
 	}
 	axis := 0
 	if a.Axis.Y != 0 {
@@ -158,18 +200,10 @@ func finiteParallelCylinderCommon(ctx context.Context, a, b geom.RawCylinder, to
 	if minmax[1][1].Cmp(hi) < 0 {
 		hi = minmax[1][1]
 	}
-	if lo.Cmp(hi) >= 0 {
-		return empty, nil
-	}
 	j, k := (axis+1)%3, (axis+2)%3
 	coordA, coordB := axisValues(a.Origin), axisValues(b.Origin)
 	dx := new(big.Rat).Sub(q(coordB[j]), q(coordA[j]))
 	dy := new(big.Rat).Sub(q(coordB[k]), q(coordA[k]))
-	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
-	d2 := new(big.Rat).Add(sq(dx), sq(dy))
-	if d2.Cmp(sq(new(big.Rat).Add(q(a.Radius), q(b.Radius)))) >= 0 {
-		return empty, nil
-	}
 	start, e := geom.RepresentedExactScalar(lo)
 	if e != nil {
 		return empty, e
