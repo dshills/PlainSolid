@@ -9,6 +9,21 @@ and [divider](evidence/plaincad-reconciled-divider-regressions-2026-11-13.json)
 retests. These retests do not change the baseline count. A fresh full run
 was started on the verified combined `6d76880` WASM build.
 
+## PlainCAD eccentric bores in circular stock — 2026-11-13
+
+Finite, strictly contained cylindrical tools now cut native circular
+stock in the scoped Hole and direct Cut paths. Both entry signs and
+through cuts retain exact circular boundary faces and analytic measures.
+The bridge also reads and reexports independently authored round stock
+with one blind and one through bore. Tests cover native measures,
+manifold tessellation, and STEP readback.
+
+The [five original browser regressions](evidence/plaincad-circular-stock-browser-2026-11-13.json)
+pass unchanged. The [real-WASM supplement](evidence/plaincad-circular-stock-native-2026-11-13.json)
+verifies scoped overlap and Cut, STEP reimport and PlainCAD STL
+fabrication validation. The focused native bridge and STEP race checks
+and Go vet pass.
+
 ## PlainCAD consolidated current development run — 2026-11-13
 
 The [full current development report](evidence/plaincad-current-development-full-2026-11-13.json)
@@ -29,7 +44,10 @@ record both reproductions and the original gesture case passing an
 unchanged rerun in 88.653 seconds. The staged viewer now advances missed
 camera damping updates without issuing extra WebGL draws. The original
 pan-idle, source-marker and gesture cases all pass with that change.
-Their measured times are 38.779, 20.592 and 54.799 seconds.
+Their measured times are 38.779, 20.592 and 54.799 seconds. The
+[final viewer harness run](evidence/plaincad-final-viewer-harness-2026-11-13.json)
+passes those three originals plus studio effects, 40-body GPU buffer
+reuse, and viewport fit. All six pass with zero skips or retries.
 
 ## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
 

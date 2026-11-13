@@ -133,9 +133,10 @@ PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
 intentionally rejects overlapping placement. New overlap checks are supplemental.
 Opposed-entry blind overlaps now pass exact measures, manifold topology,
 PlainCAD save/reopen, and STL validation. Coincident stop levels qualify
-for the supported circle arrangements. General internal cutters, unresolved
-contacts, material-island footprints, closed cavities, and arbitrary curved
-targets remain open. Some named interior pocket floors and one-side through
+for the supported circle arrangements. Circular stock also supports one strictly contained eccentric blind or
+through bore, with native STEP readback and STL validation. General internal
+cutters, unresolved contacts, material-island footprints, closed cavities,
+and arbitrary curved targets remain open. Some named interior pocket floors and one-side through
 cuts already have qualified constructors. The full
 replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.

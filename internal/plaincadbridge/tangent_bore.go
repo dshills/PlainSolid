@@ -76,13 +76,13 @@ func tangentBlindBoreRecipe(stock, tool stored) (*tangentBlindBore, bool) {
 	return nil, false
 }
 
-func exactAxisDistance(high, low, distance float64) bool {
-	if !finite(high) || !finite(low) {
+func exactAxisDistance(end, start, distance float64) bool {
+	if !finite(end) || !finite(start) || !finite(distance) {
 		return false
 	}
 	var a, b, d big.Rat
-	a.SetFloat64(high)
-	b.SetFloat64(low)
+	a.SetFloat64(end)
+	b.SetFloat64(start)
 	d.SetFloat64(distance)
 	return a.Sub(&a, &b).Cmp(&d) == 0
 }
