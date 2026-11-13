@@ -39,7 +39,18 @@ type CertifiedCircularHoleExtrusion struct {
 // all holes; cylindrical sides use the same angular correspondence. All rims
 // are assigned once and shared by caps/walls/floors. MaxSegments limits circle
 // samples; MaxTrigTerms and MaxPredicates are cumulative construction budgets.
-func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, outer []geom.Vec2, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
+func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, outer []geom.Vec2, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
+	return certifyCircularExtrusion(ctx, frame, outer, nil, through, blind, height, o)
+}
+
+// ExtrudeDiskWithHolesCertified constructs and tessellates the circular stock
+// and its bores and pockets. It uses the same exact represented-affine ideal
+// boundary and mesh embedding certificate as ExtrudePolygonWithHolesCertified.
+func ExtrudeDiskWithHolesCertified(ctx context.Context, frame geom.Frame, outer ExtrusionCircle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
+	return certifyCircularExtrusion(ctx, frame, nil, &outer, through, blind, height, o)
+}
+
+func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedCircularHoleExtrusion{}
@@ -100,24 +111,37 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 	if o.MaxSegments < 4 || o.MaxSegments > 4096 || o.MaxVertices < 3 || o.MaxVertices > 1000000 || o.MaxTriangles < 1 || o.MaxTriangles > 2000000 || o.MaxPredicates < 1 || o.MaxPredicates > 100000000 || o.MaxTrigTerms < 1 || o.MaxTrigTerms > 2000000 || o.MaxBits < 64 || o.MaxBits > 65536 {
 		return out, geom.ErrInvalid
 	}
-	source, e := ExtrudePolygonWithHoles(ctx, frame, outer, through, blind, height)
+	var source Solid
+	var e error
+	if disk == nil {
+		source, e = ExtrudePolygonWithHoles(ctx, frame, outer, through, blind, height)
+	} else {
+		source, e = ExtrudeDiskWithHoles(ctx, frame, *disk, through, blind, height)
+	}
 	if e != nil {
 		return out, e
 	}
 	var p []geom.Vec2
-	for _, use := range source.faces[0].Outer {
-		p = append(p, use.UVStart)
+	if disk == nil {
+		for _, use := range source.faces[0].Outer {
+			p = append(p, use.UVStart)
+		}
 	}
+	outerWallCount := len(source.faces[0].Outer)
 	holes := append([]ExtrusionCircle(nil), through...)
 	for _, h := range blind {
 		holes = append(holes, h.ExtrusionCircle)
+	}
+	circles := holes
+	if disk != nil {
+		circles = append([]ExtrusionCircle{*disk}, holes...)
 	}
 	tolerance := ratInset(o.Deflection)
 	tolerance.Mul(tolerance, tolerance)
 	n := 4
 	for ; n <= o.MaxSegments; n *= 2 {
 		ok := true
-		for _, h := range holes {
+		for _, h := range circles {
 			b := new(big.Rat).Mul(ratInset(h.Radius), big.NewRat(49, int64(8*n*n)))
 			if new(big.Rat).Mul(planarNorm, new(big.Rat).Mul(big.NewRat(8, 1), new(big.Rat).Mul(b, b))).Cmp(tolerance) > 0 {
 				ok = false
@@ -127,13 +151,13 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 			break
 		}
 	}
-	if n > o.MaxSegments || 2*(len(p)+len(holes)*n) > o.MaxVertices {
+	if n > o.MaxSegments || 2*(len(p)+len(circles)*n) > o.MaxVertices {
 		return out, geom.ErrConvergence
 	}
 	work := 0
 	var piMid, piError *big.Rat
 	var sine, cosine, errors []*big.Rat
-	if len(holes) > 0 {
+	if len(circles) > 0 {
 		piMid, piError, e = certifiedSweepPi(ctx, o, &work)
 		if e != nil {
 			return out, e
@@ -164,16 +188,22 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 		exact = append(exact, [2]*big.Rat{ratInset(v.X), ratInset(v.Y)})
 		return id
 	}
-	var ring []int
-	for _, v := range p {
-		ring = append(ring, appendPoint(v))
+	if disk == nil {
+		var ring []int
+		for _, v := range p {
+			ring = append(ring, appendPoint(v))
+		}
+		loops = append(loops, ring)
 	}
-	loops = append(loops, ring)
-	for _, h := range holes {
+	for circle, h := range circles {
 		var ring []int
 		round := new(big.Rat)
 		for i := 0; i < n; i++ {
-			centers := [2]*big.Rat{new(big.Rat).Add(ratInset(h.Center.X), new(big.Rat).Mul(ratInset(h.Radius), cosine[i])), new(big.Rat).Add(ratInset(h.Center.Y), new(big.Rat).Mul(ratInset(h.Radius), sine[i]))}
+			dy := new(big.Rat).Mul(ratInset(h.Radius), sine[i])
+			if disk != nil && circle == 0 {
+				dy.Neg(dy) // The outer circle is counterclockwise in the cap chart.
+			}
+			centers := [2]*big.Rat{new(big.Rat).Add(ratInset(h.Center.X), new(big.Rat).Mul(ratInset(h.Radius), cosine[i])), new(big.Rat).Add(ratInset(h.Center.Y), dy)}
 			var xy [2]float64
 			squared := new(big.Rat)
 			for axis, c := range centers {
@@ -301,7 +331,9 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 			b := ring[(i+1)%len(ring)]
 			face := 2 + i
 			if loop > 0 {
-				face = 2 + len(p) + 4*(loop-1) + i/(n/4)
+				face = 2 + outerWallCount + 4*(loop-1) + i/(n/4)
+			} else if disk != nil {
+				face = 2 + i/(n/4)
 			}
 			quad := [4]int{mapping[0][a], mapping[0][b], mapping[1][b], mapping[1][a]}
 			for _, t := range [][3]int{{0, 1, 2}, {0, 2, 3}} {
@@ -330,7 +362,7 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 			if height > 0 {
 				q[1], q[2] = q[2], q[1]
 			}
-			if e := appendTri(q, 2+len(p)+4*len(holes)+i); e != nil {
+			if e := appendTri(q, 2+outerWallCount+4*len(holes)+i); e != nil {
 				return out, e
 			}
 		}

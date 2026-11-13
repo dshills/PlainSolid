@@ -837,3 +837,13 @@ exact loss of coverage at a target hole, a concave notch, and a one-ULP
 overhang. Parallel rays, nonplanarity, endpoints without an exact float64
 representation, a lost face index, and cancellation return no partial solid.
 These are Go kernel tests; the PlainCAD browser gate is separate.
+
+Circular stock with one eccentric bore and one blind pocket was checked for
+both signed extrusions: independent volume and centroid, native reload, bore
+and floor point classification, closed collision-free display and ancestry for
+every native face. A pinned OCCT STEP reader independently validated positive
+and negative exports with and without the cavities and matched analytic
+volume, area and centroid. The general trimmed tessellator hit its budget on
+the mixed round-stock fixture; use the specialized certified tessellator.
+Circular finite termination tests cover the six coordinate directions and
+reject footprint overlap with target holes or one-ULP uncovered material.

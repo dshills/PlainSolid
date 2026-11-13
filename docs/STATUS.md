@@ -44,7 +44,10 @@ strictly disjoint circular holes now retains analytic cap arcs, walls and
 selected blind-hole floors. STEP independently qualifies signed through
 and blind cylindrical features. The strict circular extrusion STEP reader
 reconstructs and checks canonical producer graphs; alternate OCCT placements
-and pcurve conventions require a separate import path.
+and pcurve conventions require a separate import path. Circular stock now
+supports eccentric through bores and blind pockets, with a certified display
+and an analytic STEP writer. Axis-aligned circular profiles can also terminate
+against a parallel finite polygon face with holes.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|

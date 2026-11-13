@@ -54,7 +54,20 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 		}
 		bodies[i] = b
 	}
-	return writeStandalone(w, m.LengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	specs := make([]circularExtrusionExport, len(bodies))
+	for i, body := range bodies {
+		specs[i].CircularHoleExtrusionBody = body
+	}
+	return writeCircularExtrusionSTEP(w, m.LengthUnit, specs)
+}
+
+type circularExtrusionExport struct {
+	CircularHoleExtrusionBody
+	disk *trimmed.ExtrusionCircle
+}
+
+func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtrusionExport) error {
+	return writeStandalone(w, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		point := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
@@ -178,16 +191,23 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 					}
 					uses = append(uses, use(ring[j][k], j == 1))
 				}
-				capBounds[j] = []int64{bound(uses, true)}
+				if b.disk == nil {
+					capBounds[j] = []int64{bound(uses, true)}
+				}
 			}
 			type cavity struct {
 				circle    trimmed.ExtrusionCircle
 				low, high float64
 				entry     int
+				outer     bool
 			}
-			cavities := make([]cavity, 0, len(b.Holes)+len(b.Blind))
+			cavities := make([]cavity, 0, 1+len(b.Holes)+len(b.Blind))
+			if b.disk != nil {
+				cavities = append(cavities, cavity{circle: *b.disk, low: lo, high: hi, entry: -1, outer: true})
+			}
+
 			for _, h := range b.Holes {
-				cavities = append(cavities, cavity{h, lo, hi, -1})
+				cavities = append(cavities, cavity{circle: h, low: lo, high: hi, entry: -1})
 			}
 			for _, h := range b.Blind {
 				depth := h.Depth
@@ -196,7 +216,7 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 					depth = -depth
 					entry = 1
 				}
-				cavities = append(cavities, cavity{h.ExtrusionCircle, math.Min(0, depth), math.Max(0, depth), entry})
+				cavities = append(cavities, cavity{circle: h.ExtrusionCircle, low: math.Min(0, depth), high: math.Max(0, depth), entry: entry})
 			}
 			for _, hole := range cavities {
 				h := hole.circle
@@ -224,7 +244,9 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 					pole[j] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", pt))
 					circle := emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(f), real(h.Radius)))
 					rim[j] = edge(pole[j], pole[j], circle, []int64{pc(cylinder, line2(geom.Vec2{Y: float64(j) * (high - low)}, geom.Vec2{X: 1})), pc(owners[j], circle2(h.Center, h.Radius))}, false)
-					if hole.entry < 0 || j == hole.entry {
+					if hole.outer {
+						capBounds[j] = append(capBounds[j], bound([]int64{use(rim[j], j == 1)}, true))
+					} else if hole.entry < 0 || j == hole.entry {
 						capBounds[j] = append(capBounds[j], bound([]int64{use(rim[j], j == 0)}, false))
 					} else {
 						faces = append(faces, face(owners[j], []int64{bound([]int64{use(rim[j], j == 0)}, true)}, j == 0))
@@ -232,7 +254,10 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 				}
 				seam := edge(pole[0], pole[1], line(seamPoints[0], seamPoints[1]), []int64{pc(cylinder, line2(geom.Vec2{}, geom.Vec2{Y: 1})), pc(cylinder, line2(geom.Vec2{X: 2 * math.Pi}, geom.Vec2{Y: 1}))}, true)
 				loop := []int64{use(seam, false), use(rim[0], false), use(seam, true), use(rim[1], true)}
-				faces = append(faces, face(cylinder, []int64{bound(loop, true)}, false))
+				if hole.outer {
+					loop = []int64{use(rim[0], true), use(seam, true), use(rim[1], false), use(seam, false)}
+				}
+				faces = append(faces, face(cylinder, []int64{bound(loop, true)}, hole.outer))
 			}
 			for j := 0; j < 2; j++ {
 				faces = append(faces, face(caps[j], capBounds[j], j == 1))
