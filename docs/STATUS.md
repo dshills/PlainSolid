@@ -15,8 +15,10 @@ uses 144 triangles per STL. The pristine OCCT control completes the same
 checks and exceeds the original 90-second deadline on this host. The frozen
 development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures, including 10 origin-dependent
-setup cases. The consolidated current run passes 342 of 344 originals. The open viewer
-cases concern frame scheduling after pan and a final screenshot deadline.
+setup cases. The consolidated current run passes 342 of 344 originals.
+Both remaining viewer cases pass focused verification. The gesture passed
+an unchanged rerun. The pan case passes after the staged viewer advances
+missed camera damping updates without drawing them.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,

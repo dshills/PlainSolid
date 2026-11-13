@@ -15,14 +15,17 @@ const option = (key, fallback) => { const index = args.indexOf(key); return inde
 if (!option("--source")) throw new Error("Pass --source /absolute/path/to/PlainCAD explicitly.");
 const source = resolve(option("--source"));
 const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date.now()}`)));
-const port = option("--port", "5279");
-if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535) throw new Error("Invalid --port");
+const requestedPort = option("--port");
+const probePort = requestedPort ?? "5279";
+if (!/^\d+$/.test(probePort) || Number(probePort) < 1024 || Number(probePort) > 65535) throw new Error("Invalid --port");
 const suite = option("--suite", "development");
 const testFile = option("--test", suite === "development" ? "e2e/extrusion-hole.spec.ts" : suite === "production" ? "production-e2e" : "cross-browser-e2e");
 const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
 const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts" };
 if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production or cross-browser.");
 const acceptanceConfig = acceptanceConfigs[suite];
+const suitePort = { development: "5279", production: "5280", "cross-browser": "5281" }[suite];
+const acceptancePort = requestedPort ?? suitePort;
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
@@ -89,9 +92,10 @@ try {
       }
       // Preserve the original storage-state layout while binding it to the
       // isolated server. No test action or expectation changes.
-      const origin = /(focusedWorkspaceStorageState\()(["'])http:\/\/127\.0\.0\.1:5279\2(\))/g;
-      const after = port !== "5279" && relative.startsWith("e2e/")
-        ? adapted.replace(origin, (_, call, quote, end) => `${call}${quote}http://127.0.0.1:${port}${quote}${end}`)
+      const origin = /(focusedWorkspaceStorageState\()(["'])http:\/\/127\.0\.0\.1:(?:5279|5280)\2(\))/g;
+      const storagePort = relative.startsWith("e2e/") ? probePort : relative.startsWith("production-e2e/") && suite === "production" ? acceptancePort : undefined;
+      const after = storagePort
+        ? adapted.replace(origin, (_, call, quote, end) => `${call}${quote}http://127.0.0.1:${storagePort}${quote}${end}`)
         : adapted;
       if (after !== adapted) {
         report.testOriginAdaptations ??= [];
@@ -133,7 +137,12 @@ try {
   vite = vite.replace("server: {", `server: {\n    fs: { allow: [${JSON.stringify(await realpath(work))}, ${JSON.stringify(await realpath(join(source, "node_modules")))}] },`);
   await writeFile(join(work, "vite.config.ts"), vite);
   const playwrightConfig = await readFile(join(work, "playwright.config.ts"), "utf8");
-  await writeFile(join(work, "playwright.config.ts"), playwrightConfig.replaceAll("5279", port));
+  await writeFile(join(work, "playwright.config.ts"), playwrightConfig.replaceAll("5279", probePort));
+  if (acceptanceConfig && acceptancePort !== suitePort) {
+    const path = join(work, acceptanceConfig);
+    const config = await readFile(path, "utf8");
+    await writeFile(path, config.replaceAll(suitePort, acceptancePort));
+  }
   await mkdir(join(work, "public/assets"), { recursive: true });
   await command("go", ["build", "-o", join(work, "public/assets/plainsolid-kernel.wasm"), "./cmd/plaincadwasm"], "wasm-build.log", { GOCACHE: join(tmpdir(), "plainsolid-cad-review-go-cache"), GOOS: "js", GOARCH: "wasm" }, root);
   const goroot = execFileSync("go", ["env", "GOROOT"], { encoding: "utf8" }).trim();

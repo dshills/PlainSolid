@@ -26,7 +26,9 @@ node tools/plaincad/run.mjs \
 ```
 
 `--work` must be empty or nonexistent. The default is a fresh timestamped
-temporary directory. `--port` defaults to 5279. The harness builds its own WASM
+temporary directory. The preflight and development suites default to port
+5279. An explicit `--port` selects the staged port for the preflight and
+acceptance suite, which run sequentially. The harness builds its own WASM
 binary, copies the matching Go JavaScript runtime, typechecks the app, runs a
 backend preflight, and then runs the selected existing fixtures. It requires
 local server and browser process permissions. A nondefault port also maps the
@@ -48,6 +50,9 @@ original Chromium, Firefox and WebKit configuration on port 5281.
 - Vite receives an isolated cache and explicit serving permission for the shared
   dependency directory. An optional port changes the copied test config and its focused workspace
   storage-state origins.
+- The isolated viewer advances missed camera-damping updates without drawing
+  them. This keeps input settling bounded when software rendering is slow.
+  The harness records the exact runtime adaptation and its hashes.
 - A separate generated backend test proves real WASM execution and rejects OCCT
   asset requests. It checks nonempty material, no-op cut, connected-join behavior,
   and export union semantics. This probe is not counted as an existing fixture.

@@ -10,17 +10,41 @@ export async function installDisplayRuntime(work, hash) {
   if (client === undefined) return [];
 
   const changes = [];
-  async function install(file, match, replacement) {
+  async function install(file, match, replacement, purpose = "Tessellate detail from the accepted geometry worker's native feature cache.") {
     const path = join(work, file);
     const before = await readFile(path, "utf8");
     if (before.split(match).length !== 2) throw new Error(`PlainCAD display worker boundary changed in ${file}.`);
     const after = before.replace(match, replacement);
     await writeFile(path, after);
     changes.push({
-      file, purpose: "Tessellate detail from the accepted geometry worker's native feature cache.",
+      file, purpose,
       beforeSha256: hash(before), afterSha256: hash(after),
     });
   }
+
+  await install("src/viewer/CadViewer.tsx",
+    `    const frames = new DemandRenderer(() => {
+      if (!host.clientWidth || !host.clientHeight || renderer.getContext().isContextLost()) {
+        publishRenderStatus("");
+        return false;
+      }
+      const changed = controls.update();`,
+    `    let lastFrameTime = performance.now();
+    const frames = new DemandRenderer(() => {
+      if (!host.clientWidth || !host.clientHeight || renderer.getContext().isContextLost()) {
+        publishRenderStatus("");
+        return false;
+      }
+      const now = performance.now();
+      const ticks = interacting ? 1 : Math.min(60, Math.max(1, Math.floor((now - lastFrameTime) / (1000 / 60))));
+      lastFrameTime = now;
+      let changed = controls.update();
+      // Camera damping is measured per update. Advance missed nominal
+      // frames without drawing them when the graphics renderer is slow.
+      for (let tick = 1; tick < ticks && changed; tick++) {
+        changed = controls.update();
+      }`,
+    "Advance camera damping on elapsed time without drawing missed frames.");
 
   await install(detailClient,
     "  return backgroundJob<DisplayMeshRequest, DisplayMesh[]>(PreviewWorker, request, signal, undefined, 20000);",
