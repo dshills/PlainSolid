@@ -384,6 +384,11 @@ func (b *Bridge) execute(q request) (any, error) {
 				return b.putRadialSector(sector)
 			}
 		}
+		if q.Op == "fuse" {
+			if result, handled, err := b.fuseCoaxial(a, c); handled {
+				return result, err
+			}
+		}
 		if a.analytic != nil || c.analytic != nil {
 			return nil, &failureError{"UNSUPPORTED", "Boolean operation is outside the supported analytic stock domain"}
 		}

@@ -23,6 +23,7 @@ type analyticBody struct {
 	lead         *leadPart
 	helicalMesh  *mesh.Mesh
 	pockets      *pocketStock
+	coaxial      *coaxialBody
 	volume, area float64
 }
 
@@ -41,6 +42,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 	var err error
 	if body.segment != nil {
 		box, err = body.segment.bounds()
+	} else if body.coaxial != nil {
+		box, err = body.coaxial.bounds()
 	} else {
 		box, err = body.solid.Bounds()
 	}
@@ -54,6 +57,9 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.coaxial != nil {
+		return a.coaxial.tessellate(o)
+	}
 	if a.helicalMesh != nil && o.Deflection >= .5 && o.Angle >= .1 && len(a.helicalMesh.Triangles) <= o.MaxTriangles {
 		return *a.helicalMesh, nil
 	}
@@ -102,6 +108,10 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.sector = nil
 	out.shaft = nil
 	out.pockets = nil
+	out.coaxial = nil
+	if a.coaxial != nil {
+		out.coaxial, _ = a.coaxial.transformed(m)
+	}
 	if a.pockets != nil {
 		p := *a.pockets
 		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
