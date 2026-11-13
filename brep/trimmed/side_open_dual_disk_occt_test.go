@@ -57,4 +57,8 @@ func TestExactSameSideDualDiskAgainstOCCT(t *testing.T) {
 	if math.Abs(got.Volume-want.Volume) > 1e-7 || math.Abs(got.Area-want.Area) > 1e-7 || got.Centroid.Sub(center).Length() > 1e-8 {
 		t.Fatal("Go exact circular chart vs OCCT solid", got, want)
 	}
+	closedForm, e := r.Measures()
+	if e != nil || math.Abs(closedForm.Volume-want.Volume) > 1e-7 || math.Abs(closedForm.Area-want.Area) > 1e-7 || closedForm.Centroid.Sub(center).Length() > 1e-8 {
+		t.Fatal("Go closed-form circular measures vs OCCT solid", closedForm, want, e)
+	}
 }
