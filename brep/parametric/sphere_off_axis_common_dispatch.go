@@ -17,6 +17,7 @@ const (
 	SphereCylinderCommonOneLens
 	SphereCylinderCommonOppositeLenses
 	SphereCylinderCommonSameSideLenses
+	SphereCylinderCommonSphericalSlab
 )
 
 // SphereFiniteOffsetCommon includes native face ancestry and exact source cap
@@ -25,6 +26,7 @@ type SphereFiniteOffsetCommon struct {
 	Solid                             Solid
 	Regime                            SphereCylinderCommonRegime
 	WallFaces                         []int
+	SphericalZoneFaces                []int
 	PlanarEndFaces, SphericalEndFaces [2][]int
 	CapMaterial                       [2]geom.SphereCylinderCapMaterial
 }
@@ -59,6 +61,15 @@ func SphereFiniteOffsetCylinderCommon(ctx context.Context, frame geom.Frame, R, 
 		return empty, nil
 	}
 	var out SphereFiniteOffsetCommon
+	// A cylinder that encloses the largest spherical cross section of
+	// this axial window contains every other section in the window.
+	coverage, e := geom.ClassifySphereSlabCylinderCover(ctx, geom.Vec3{}, R, geom.Vec3{X: d}, geom.Vec3{Z: 1}, r, [2]*big.Rat{q(lower), q(upper)}, geom.SurfacePatchEvaluationOptions{})
+	if e != nil {
+		return empty, e
+	}
+	if coverage.Coverage == geom.SphereSlabStrictlyCovered || coverage.Coverage == geom.SphereSlabCoveredTouching {
+		return sphereOffsetCommonSlab(ctx, frame, R, r, d, lower, upper, tolerance)
+	}
 	lenses := [2]bool{}
 	for i, h := range [2]float64{lower, upper} {
 		c, e := geom.ClassifySphereCylinderCapMaterial(ctx, geom.Vec3{}, R, geom.Vec3{X: d}, geom.Vec3{Z: 1}, r, q(h), geom.SurfacePatchEvaluationOptions{})
@@ -128,5 +139,30 @@ func SphereFiniteOffsetCylinderCommon(ctx context.Context, frame geom.Frame, R, 
 			}
 		}
 	}
+	return out, nil
+}
+
+func sphereOffsetCommonSlab(ctx context.Context, frame geom.Frame, R, r, d, lower, upper, tolerance float64) (SphereFiniteOffsetCommon, error) {
+	var out SphereFiniteOffsetCommon
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	for i, h := range [2]float64{lower, upper} {
+		m, e := geom.ClassifySphereCylinderCapMaterial(ctx, geom.Vec3{}, R, geom.Vec3{X: d}, geom.Vec3{Z: 1}, r, q(h), geom.SurfacePatchEvaluationOptions{})
+		if e != nil {
+			return SphereFiniteOffsetCommon{}, e
+		}
+		out.CapMaterial[i] = m
+	}
+	var faceIDs, lowerIDs, upperIDs []int
+	result, e := SphereFiniteCylinderCommonAlgebraic(ctx, frame, R, R, lower, upper, tolerance, geom.ExactCurvePlaneEventOptions{})
+	if e != nil {
+		return SphereFiniteOffsetCommon{}, e
+	}
+	out.Solid = result.Solid
+	faceIDs, lowerIDs, upperIDs = result.SphericalFaces, result.LowerCap, result.UpperCap
+	out.Regime = SphereCylinderCommonSphericalSlab
+	out.PlanarEndFaces = [2][]int{lowerIDs, upperIDs}
+	// A spherical zone is a lateral surface, rather than one of the
+	// two axial ends. The aggregate remains available independently.
+	out.SphericalZoneFaces = faceIDs
 	return out, nil
 }

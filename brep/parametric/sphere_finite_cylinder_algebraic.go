@@ -28,22 +28,26 @@ type SphereFiniteCylinderAlgebraicResult struct {
 	VolumePiInterval                                     [2]*big.Rat
 }
 
-// SphereFiniteCylinderCommonAlgebraic handles finite nonpolar cap planes
-// strictly inside the sphere. Sphere-controlled cap radii and internal crossing
+// SphereFiniteCylinderCommonAlgebraic handles finite axial cap planes and
+// uncut sphere poles. Sphere-controlled cap radii and internal crossing
 // heights may be irrational. Root isolation obeys options; each rim additionally
 // uses a fixed 49-term rational Taylor enclosure. Ambiguous cap/crossing order,
-// tangency, poles and inadequate sewing bounds fail atomically. The volume
+// tangency and inadequate sewing bounds fail atomically. The volume
 // interval bounds ideal represented-affine material, not numerical quadrature.
 func SphereFiniteCylinderCommonAlgebraic(ctx context.Context, frame geom.Frame, R, r, lower, upper, tolerance float64, o geom.ExactCurvePlaneEventOptions) (SphereFiniteCylinderAlgebraicResult, error) {
 	fail := func(e error) (SphereFiniteCylinderAlgebraicResult, error) {
 		return SphereFiniteCylinderAlgebraicResult{}, e
 	}
-	if ctx == nil || !finite(R) || !finite(r) || !finite(lower) || !finite(upper) || !finite(tolerance) || R <= 0 || r <= 0 || lower >= upper || tolerance <= 0 {
+	if ctx == nil || !finite(R) || !finite(r) || !finite(lower) || !finite(upper) || !finite(tolerance) || R <= 0 || r <= 0 || lower >= upper || tolerance <= 0 || frame.ZAxis().Length() == 0 {
 		return fail(geom.ErrInvalid)
 	}
 	if e := ctx.Err(); e != nil {
 		return fail(e)
 	}
+	if lower >= R || upper <= -R {
+		return SphereFiniteCylinderAlgebraicResult{VolumePiInterval: [2]*big.Rat{new(big.Rat), new(big.Rat)}}, nil
+	}
+	lower, upper = max(lower, -R), min(upper, R)
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	add := func(a, b *big.Rat) *big.Rat { return new(big.Rat).Add(a, b) }
 	sub := func(a, b *big.Rat) *big.Rat { return new(big.Rat).Sub(a, b) }
@@ -52,7 +56,7 @@ func SphereFiniteCylinderCommonAlgebraic(ctx context.Context, frame geom.Frame, 
 	sq := func(a *big.Rat) *big.Rat { return mul(a, a) }
 	R2, r2 := sq(q(R)), sq(q(r))
 	pad := mul(q(tolerance), big.NewRat(8, 1))
-	for _, gap := range []*big.Rat{add(q(lower), q(R)), sub(q(R), q(upper)), sub(q(upper), q(lower)), q(r)} {
+	for _, gap := range []*big.Rat{sub(q(upper), q(lower)), q(r)} {
 		if gap.Cmp(pad) <= 0 {
 			return fail(geom.ErrConvergence)
 		}
@@ -126,6 +130,12 @@ func SphereFiniteCylinderCommonAlgebraic(ctx context.Context, frame geom.Frame, 
 	sort.Slice(rims, func(i, j int) bool { return rims[i].NativeHeight < rims[j].NativeHeight })
 	for i := range rims {
 		rim := &rims[i]
+		if math.Abs(rim.NativeHeight) == R && rim.HeightRoot == nil {
+			rim.Radius = singleton(0)
+			rim.Latitude = math.Copysign(math.Pi/2, rim.NativeHeight)
+			rim.SeamSquaredBound = new(big.Rat)
+			continue
+		}
 		if rim.HeightRoot == nil {
 			rad2 := sub(R2, sq(q(rim.NativeHeight)))
 			if rad2.Cmp(r2) < 0 {
@@ -234,6 +244,9 @@ func SphereFiniteCylinderCommonAlgebraic(ctx context.Context, frame geom.Frame, 
 		}
 		for cap, index := range []int{0, len(rims) - 1} {
 			rim := rims[index]
+			if rim.NativeRadius == 0 {
+				continue
+			}
 			f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: rim.NativeHeight}), frame.XAxis(), frame.ZAxis())
 			if e != nil {
 				return fail(e)

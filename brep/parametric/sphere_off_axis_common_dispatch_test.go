@@ -57,3 +57,33 @@ func TestSphereFiniteOffsetCylinderCommon(t *testing.T) {
 		t.Fatal("unimplemented sphere-only disk and lens was accepted", e)
 	}
 }
+
+func TestSphereFiniteOffsetCylinderCommonCoveredSlab(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	for _, c := range []struct {
+		r, d, lo, hi float64
+		caps         [2]bool
+	}{
+		{7, 1, -2, 3, [2]bool{true, true}},  // two irrational planar rims
+		{6, 1, -2, 7, [2]bool{true, false}}, // equatorial tangency and a pole
+		{4, 1, 4, 6, [2]bool{true, false}},  // tangency at the nearest slice
+		{7, 1, -7, 7, [2]bool{}},            // full sphere
+	} {
+		out, e := SphereFiniteOffsetCylinderCommon(ctx, f, 5, c.r, c.d, c.lo, c.hi, 1e-8)
+		if e != nil || out.Regime != SphereCylinderCommonSphericalSlab || len(out.WallFaces) != 0 || len(out.SphericalZoneFaces) != 4 {
+			t.Fatal(c, out.Regime, e)
+		}
+		for i, yes := range c.caps {
+			if (len(out.PlanarEndFaces[i]) > 0) != yes {
+				t.Fatal(c, out.PlanarEndFaces)
+			}
+		}
+		p, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+		primitive := func(z float64) float64 { return 25*z - z*z*z/3 }
+		want := math.Pi * (primitive(min(5, c.hi)) - primitive(max(-5, c.lo)))
+		if e != nil || math.Abs(p.Volume-want) > 2e-7 {
+			t.Fatal(c, p.Volume, want, e)
+		}
+	}
+}

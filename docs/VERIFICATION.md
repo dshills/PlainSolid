@@ -999,3 +999,8 @@ The positive slab matches the independent OCCT intersection.
 Finite offset dispatch tests cover both hemispheres, preserved cap ownership,
 reflected lower lenses, mixed full spherical and partial lens ends, disjoint
 and tangent regularization, and rejection of an unhandled sphere-only disk.
+
+Covered-slab tests use exact containment at the largest sphere section,
+including tangency, full sphere retention, and irrational planar radii
+next to an uncut pole. The shell keeps no cylindrical wall. Native mass
+matches exact axial integration and an independent OCCT cut.

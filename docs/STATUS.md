@@ -450,6 +450,8 @@ The same-side case uses a common pole inside both lenses and preserves
 the spherical zone with only the exposed cylinder wall sectors.
 Finite common dispatch now selects these native cases from exact cap
 material, including a full spherical end opposite a transverse lens.
+The dispatcher also recognizes a cylinder covering an entire sphere slab,
+including tangency and algebraic planar radii next to an uncut pole.
 Finite difference dispatch similarly selects enclosed cavity, blind bore,
 through bore, unchanged or empty outcomes where the finite limits prove
 those constructions apply.
