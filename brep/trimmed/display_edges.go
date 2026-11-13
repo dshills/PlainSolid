@@ -2,11 +2,16 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
+
+// ErrDisplaySegmentBudget signals that sampling the requested native edge
+// lines would exceed the caller's output segment budget.
+var ErrDisplaySegmentBudget = errors.New("native edges exceed the display segment budget")
 
 // DisplayEdges samples sharp model edges. Face normals suppress regular
 // tangent connections, and two uses by the same face identify a seam.
@@ -75,16 +80,23 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 		}
 		if compactStraightEdge(edge.Curve) {
 			if len(lines)/2 >= maxSegments {
-				return nil, uses, parametric.ErrBudget
+				return nil, uses, ErrDisplaySegmentBudget
 			}
 			lines = append(lines, s.vertices[edge.Start], s.vertices[edge.End])
 			continue
 		}
+		remaining := maxSegments - len(lines)/2
+		if remaining == 0 {
+			return nil, uses, ErrDisplaySegmentBudget
+		}
 		options := geom.CurveTessellationOptions{
-			ChordTolerance: .02, InitialSegments: 4, MaxDepth: 12,
-			MaxEvaluations: min(4096, (maxSegments-len(lines)/2)*12+64),
+			ChordTolerance: .02, InitialSegments: min(4, remaining), MaxDepth: 12,
+			MaxEvaluations: min(4096, remaining*12+64),
 		}
 		chords, err := geom.TessellateCurve(edge.Curve, edge.Range.Min, edge.Range.Max, options)
+		if errors.Is(err, geom.ErrConvergence) {
+			return nil, uses, ErrDisplaySegmentBudget
+		}
 		if err != nil {
 			return nil, uses, fmt.Errorf("invalid display curve at edge %d: %w", i, err)
 		}
@@ -93,7 +105,7 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 		for _, chord := range chords {
 			if span := chord.Start.Sub(chord.End).Length(); finite(span) && span > 1e-9 {
 				if len(lines)/2 >= maxSegments {
-					return nil, uses, parametric.ErrBudget
+					return nil, uses, ErrDisplaySegmentBudget
 				}
 				lines = append(lines, chord.Start, chord.End)
 			}

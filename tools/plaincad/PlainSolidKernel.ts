@@ -504,7 +504,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         for (const [toolIndex, tool] of tools.entries()) {
           try {
             if (!this.hasCommonVolume(targets[0], tool))
-              throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+              throw new Error("Boolean cut removed no volume. Move the tool into the target body.");
             hits[0][toolIndex] = true;
           } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
         }
@@ -523,7 +523,7 @@ export class OpenCascadeKernel implements KernelAdapter {
               hits[targetIndex][toolIndex] = true;
               hit = true;
             }
-            if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+            if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target body.");
           } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
         }
       }

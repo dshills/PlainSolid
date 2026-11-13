@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"errors"
 
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
@@ -29,6 +30,9 @@ func (s stored) displayEdges(maxUses, maxSegments int) (displayEdgeResult, error
 		}
 	}
 	lines, uses, err := native.DisplayEdges(context.Background(), maxUses, maxSegments)
+	if errors.Is(err, trimmed.ErrDisplaySegmentBudget) {
+		return displayEdgeResult{EdgeUses: uses}, &failureError{"LIMIT", err.Error()}
+	}
 	if err != nil {
 		return displayEdgeResult{EdgeUses: uses}, err
 	}
@@ -69,7 +73,7 @@ func planarDisplayEdges(s brep.Solid, maxUses, maxSegments int) (displayEdgeResu
 					continue
 				}
 				if len(out.Segments)/6 >= maxSegments {
-					return out, &failureError{"LIMIT", "planar display segment limit exceeded"}
+					return out, &failureError{"LIMIT", "native edges exceed the display segment budget"}
 				}
 				for _, id := range []int{edges[e].Start, edges[e].End} {
 					p := vertices[id]
