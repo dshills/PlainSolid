@@ -27,6 +27,8 @@ const (
 	PlanarToFaceFeature          FeatureKind = "planar-to-face"
 	PlanarRevolveFeature         FeatureKind = "planar-revolve"
 	LongCapChainFeature          FeatureKind = "long-cap-chain"
+	HelicalGrooveFeature         FeatureKind = "helical-groove"
+	HelicalPairPartFeature       FeatureKind = "helical-pair-part"
 	BoxFeature                   FeatureKind = "box"
 	PrismFeature                 FeatureKind = "prism"
 	SphereFeature                FeatureKind = "sphere"
@@ -64,6 +66,7 @@ const (
 // PlanarRevolve uses a world-space Profile, Center as a point on the directed
 // axis, Direction as the axis, and Distance as the signed angle in radians.
 // LongCapChain uses its explicit LongCapChainRecipe field.
+// HelicalGroove uses HelicalGroove; HelicalPairPart uses HelicalPair.
 // A wrapped cylinder uses Center as the lower cap center, Radius and Offset.Z
 // as height. A wrapped draft uses a canonical cylinder Input and the lower
 // and upper radial changes in Radius and Distance. A wrapped bore uses two
@@ -89,6 +92,8 @@ type Feature struct {
 	CornerRadii                 []fillet.CornerRadius        `json:",omitempty"`
 	Stations                    []trimmed.WrappedLoftStation `json:",omitempty"`
 	LongCapChain                *LongCapChainRecipe          `json:",omitempty"`
+	HelicalGroove               *HelicalGrooveRecipe         `json:",omitempty"`
+	HelicalPair                 *HelicalPairPartRecipe       `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
@@ -98,6 +103,15 @@ func (f Feature) clone() Feature {
 	if f.LongCapChain != nil {
 		recipe := *f.LongCapChain
 		f.LongCapChain = &recipe
+	}
+	if f.HelicalGroove != nil {
+		recipe := f.HelicalGroove.clone()
+		f.HelicalGroove = &recipe
+	}
+	if f.HelicalPair != nil {
+		recipe := *f.HelicalPair
+		recipe.Shaft, recipe.Nut = recipe.Shaft.clone(), recipe.Nut.clone()
+		f.HelicalPair = &recipe
 	}
 	h := make([][]geom.Vec3, len(f.Holes))
 	for i, x := range f.Holes {
@@ -262,6 +276,9 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 			case LongCapChainFeature:
 				uv = true
 				r, e = evaluateLongCapChain(ctx, f)
+			case HelicalGrooveFeature, HelicalPairPartFeature:
+				uv = true
+				r, e = evaluateHelicalFeature(ctx, f)
 			case PlanarProtrusionFeature, PlanarPocketFeature, PlanarThroughPocketFeature:
 				a, ok := result.Planar[f.Input]
 				if !ok {

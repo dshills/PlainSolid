@@ -41,8 +41,10 @@ qualification remain open.
 The same bounded construction also cuts grooves on the inside of a tube
 while retaining annular caps and an unchanged outer wall. A paired shaft and
 nut constructor now checks exact clearance at both nominal flanks over the
-shared radial band. Clearance at the finite ends and overlapping reliefs
-remain open.
+shared radial band. A finite ridge-window proof resolves neighboring starts across turn wraps,
+and exact quarter-phase probes detect selected end collisions. A stepped
+entry relief can end before the internal groove. Global clearance at the
+finite ends and overlapping reliefs remain open.
 Selected signed off-axis circular meridians produce analytic torus elbows.
 The STEP polygon revolve writer qualifies signed partial sweeps and axis
 contact; the closed display proof is opt-in. Convex polygon extrusion with

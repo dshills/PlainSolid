@@ -895,3 +895,12 @@ The shared radial band [7/4,2] has exact nominal lower and upper flank gaps
 of 1/8. Tests distinguish shaft valleys, retained ridge and clearance probes,
 reject zero clearance on either flank, and preserve both native parts on
 reload. These tests do not qualify clearance at finite runouts.
+
+Finite helical engagement tests clip a ridge spanning neighboring starts at
+the last available turn, preserve both exact shaft and nut witnesses, and
+distinguish nominal flank fit from actual runout overlap on a quarter ray.
+A shifted nut tests cap-only contact. The independent stepped-entry relief
+preserves all later groove supports and qualifies the analytic removed
+volume and native reload; it does not intersect a groove. Helical document
+recipes preserve both source meridians and handedness and reject edited
+zero-clearance flanks on regeneration.

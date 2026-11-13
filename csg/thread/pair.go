@@ -25,10 +25,14 @@ type PairRecipe struct {
 }
 
 type Pair struct {
-	Shaft, Nut     trimmed.HelicalGrooveMaterial
-	Fit            FitProof
-	ShaftRemovedPi *big.Rat
-	NutRemovedPi   *big.Rat
+	Shaft, Nut                trimmed.HelicalGrooveMaterial
+	Fit                       FitProof
+	ShaftRemovedPi            *big.Rat
+	NutRemovedPi              *big.Rat
+	shaftStarts, nutStarts    geom.SeparatedHelicalStarts
+	radialRange, stockOverlap [2]*big.Rat
+	stockBands                [2][2]*big.Rat
+	lead                      float64
 }
 
 type FlankClearance struct {
@@ -88,7 +92,8 @@ func BuildPair(ctx context.Context, p PairRecipe, o geom.SurfacePatchEvaluationO
 	if e != nil {
 		return empty, e
 	}
-	if _, e := geom.NewSeparatedHelicalStarts(pb, b.Starts); e != nil {
+	bs, e := geom.NewSeparatedHelicalStarts(pb, b.Starts)
+	if e != nil {
 		return empty, e
 	}
 	_, spacing, _, e := as.Separation()
@@ -153,7 +158,13 @@ func BuildPair(ctx context.Context, p PairRecipe, o geom.SurfacePatchEvaluationO
 	if e != nil {
 		return empty, e
 	}
-	return Pair{shaft, nut, fit, removedVolumePi(a), removedVolumePi(b)}, nil
+	return Pair{
+		Shaft: shaft, Nut: nut, Fit: fit, ShaftRemovedPi: removedVolumePi(a), NutRemovedPi: removedVolumePi(b),
+		shaftStarts: as, nutStarts: bs,
+		radialRange:  [2]*big.Rat{exact(b.BoreRadius), exact(a.OuterRadius)},
+		stockOverlap: [2]*big.Rat{new(big.Rat), exact(min(a.Height, b.Height))}, lead: a.Lead,
+		stockBands: [2][2]*big.Rat{{new(big.Rat), exact(a.Height)}, {new(big.Rat), exact(b.Height)}},
+	}, nil
 }
 
 func exact(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
