@@ -196,6 +196,16 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 			return geom.Box{}, err
 		}
 		x, y, z = scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}
+	case unequalUnionChart:
+		if !a.valid() || u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 || ((a.kind == 1 || a.kind == 3) && u.Min < 0) {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var err error
+		f, err = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			return geom.Box{}, err
+		}
+		x, y, z = scalarBounds{-max(a.xHalf, a.narrow), max(a.xHalf, a.narrow)}, scalarBounds{-a.wide, a.wide}, scalarBounds{-max(a.zHalf, a.wide), max(a.zHalf, a.wide)}
 	case steinmetzUnionChart:
 		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain
