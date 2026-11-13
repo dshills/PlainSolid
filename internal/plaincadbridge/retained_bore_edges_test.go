@@ -3,9 +3,10 @@ package plaincadbridge
 import (
 	"context"
 	"math"
-	"plainsolid/brep/parametric"
 	"strings"
 	"testing"
+
+	"plainsolid/brep/parametric"
 )
 
 func TestEditedHoleRetainsDownstreamChamfer(t *testing.T) {
@@ -20,7 +21,20 @@ func TestEditedHoleRetainsDownstreamChamfer(t *testing.T) {
 		stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
 		out := shape(t, b, map[string]any{"op": "chamfer", "handle": stock.Handle, "edgeStart": vector{0, 0, 0}, "edgeEnd": vector{20, 0, 0}, "normal": vector{0, 0, 1}, "distance": .5})
 		near(t, out.GeometryAssertions.Volume, 2000-tc.w*math.Pi-2.5)
-		s := b.shapes[out.Handle].analytic.solid
+		// The selected-edge path now replays retained cutters against the
+		// chamfered native planar base, preserving the layered bore owner.
+		owner := b.shapes[out.Handle].bore
+		source := b.shapes[stock.Handle].bore
+		if owner == nil || source == nil || owner.layered == nil || len(owner.cylinders) != 3 {
+			t.Fatal("lost retained layered bore ownership")
+		}
+		for i, tool := range source.cylinders {
+			if owner.cylinders[i] != tool {
+				t.Fatal("changed original cutter lineage")
+			}
+		}
+		near(t, b.shapes[stock.Handle].result.GeometryAssertions.Volume, 2000-tc.w*math.Pi)
+		s := owner.solid
 		p, e := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-8})
 		if e != nil {
 			t.Fatal(e)
