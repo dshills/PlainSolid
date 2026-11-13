@@ -134,20 +134,28 @@ func (p *SurfacePatch) ExactOperations() int {
 }
 func (p *SurfacePatch) computeBounds(budget *polynomialBudget) error {
 	var minimum, maximum [3]*big.Rat
+	var scratch big.Rat
 	for _, h := range p.net {
 		if h[3].Sign() <= 0 {
 			return ErrInvalid
 		}
 		for axis := 0; axis < 3; axis++ {
-			coordinate := new(big.Rat).Quo(h[axis], h[3])
+			coordinate := h[axis]
+			if !h[3].IsInt() || h[3].Num().BitLen() != 1 {
+				coordinate = scratch.Quo(coordinate, h[3])
+			}
 			if e := budget.check(coordinate); e != nil {
 				return e
 			}
-			if minimum[axis] == nil || coordinate.Cmp(minimum[axis]) < 0 {
+			if minimum[axis] == nil {
 				minimum[axis] = new(big.Rat).Set(coordinate)
+			} else if coordinate.Cmp(minimum[axis]) < 0 {
+				minimum[axis].Set(coordinate)
 			}
-			if maximum[axis] == nil || coordinate.Cmp(maximum[axis]) > 0 {
+			if maximum[axis] == nil {
 				maximum[axis] = new(big.Rat).Set(coordinate)
+			} else if coordinate.Cmp(maximum[axis]) > 0 {
+				maximum[axis].Set(coordinate)
 			}
 		}
 	}

@@ -54,6 +54,26 @@ func assertExactPointInBox(t *testing.T, point [3]*big.Rat, box Box) {
 		}
 	}
 }
+
+func BenchmarkExactSurfacePatchTrim(b *testing.B) {
+	knots := []float64{0, 0, 0, 1, 1, 1}
+	poles := []Vec3{{0, 0, 0}, {0, .5, 0}, {0, 1, 0}, {.5, 0, 0}, {.5, .5, .125}, {.5, 1, .25}, {1, 0, 0}, {1, .5, .25}, {1, 1, .5}}
+	s, err := NewBSplineSurface(2, 2, 3, 3, poles, knots, knots, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	p, err := NewSurfacePatch(s, SurfacePatchOptions{})
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := p.Trim(ParameterRectangle{.23, .72, .11, .64}); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
 func TestExactSurfacePatchTrimBounds(t *testing.T) {
 	surface, _ := NewBSplineSurface(1, 1, 2, 2, []Vec3{{0, 0, 0}, {0, 2, 1}, {1, 0, 1}, {1, 2, 2}}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
 	patch, e := NewSurfacePatch(surface, SurfacePatchOptions{})

@@ -85,10 +85,23 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 	}
 	for a := 0; a <= 2; a++ {
 		for b := 0; b <= 2; b++ {
+			nonzero := false
+			for k := 0; k < 4; k++ {
+				nonzero = nonzero || coefficients[a][b][k].Sign() != 0
+			}
+			if !nonzero {
+				continue
+			}
 			term := multiplyTrianglePower5(powers[0][a], powers[1][b])
 			for i := 0; i <= 5; i++ {
 				for j := 0; j <= 5-i; j++ {
+					if term[i][j].Sign() == 0 {
+						continue
+					}
 					for k := 0; k < 4; k++ {
+						if coefficients[a][b][k].Sign() == 0 {
+							continue
+						}
 						homogeneous[k][i][j].Add(homogeneous[k][i][j], new(big.Rat).Mul(term[i][j], coefficients[a][b][k]))
 					}
 				}
@@ -110,13 +123,6 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 			}
 		}
 	}
-	falling := func(n, k int) int64 {
-		r := int64(1)
-		for i := 0; i < k; i++ {
-			r *= int64(n - i)
-		}
-		return r
-	}
 	bound := new(big.Rat)
 	// s^a*t^b has control (i)_a*(j)_b/(5)_(a+b) at index(i,j).
 	for i := 0; i <= 5; i++ {
@@ -127,8 +133,11 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 			}
 			for a := 0; a <= i; a++ {
 				for b := 0; b <= j; b++ {
-					factor := big.NewRat(falling(i, a)*falling(j, b), falling(5, a+b))
+					factor := &triangleDegreeFiveFactors[i][j][a][b]
 					for k := 0; k < 3; k++ {
+						if residual[k][a][b].Sign() == 0 {
+							continue
+						}
 						control[k].Add(control[k], new(big.Rat).Mul(residual[k][a][b], factor))
 					}
 				}
@@ -141,3 +150,27 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 	}
 	return bound.Quo(bound, new(big.Rat).Mul(minimumWeight, minimumWeight)), true
 }
+
+// Read-only exact power-to-Bernstein factors for total degree five. Receivers
+// are always fresh rationals; no caller can mutate this shared table. Skipping
+// exact zeros and reusing these constants leaves every certificate unchanged.
+var triangleDegreeFiveFactors = func() [6][6][6][6]big.Rat {
+	var out [6][6][6][6]big.Rat
+	falling := func(n, k int) int64 {
+		r := int64(1)
+		for i := 0; i < k; i++ {
+			r *= int64(n - i)
+		}
+		return r
+	}
+	for i := 0; i <= 5; i++ {
+		for j := 0; j <= 5-i; j++ {
+			for a := 0; a <= i; a++ {
+				for b := 0; b <= j; b++ {
+					out[i][j][a][b].SetFrac64(falling(i, a)*falling(j, b), falling(5, a+b))
+				}
+			}
+		}
+	}
+	return out
+}()

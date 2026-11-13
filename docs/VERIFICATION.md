@@ -2089,6 +2089,18 @@ curve, and the native reader rejects a changed interior with unchanged endpoints
 The independent OCCT swept stock and box agree on one shell, area, centroid,
 and volumes `23/448` and `425/448`. A separate test proves a quartic section;
 unrepresentable trim controls and degrees above four fail explicitly.
+The piecewise polynomial fixture crosses a genuine C0 crease in
+`x³/8+y/4+|x−1/2|/32`. The two exact knot junctions retain their original
+UV and model coordinates and both neighboring edge owners. The native common
+and cut agree with analytic integrals at volumes `4031/86016` and
+`81985/86016`; independent span-aware OCCT calculations agree on shell count,
+area, volume, and centroid for both operations.
+An oblique cutter `Z=3/16+X/32` produces cubic and creased commons of
+`3257/53760` and `23921/430080`. Both complementary cuts, original cap
+support, native reload, closed meshes, and absence of undeclared mesh
+contacts pass. Independent OCCT prisms agree on area, volume and centroid
+for all four results. A cyclic physical-axis permutation checks the YZ
+projection without changing the original UV coordinates.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

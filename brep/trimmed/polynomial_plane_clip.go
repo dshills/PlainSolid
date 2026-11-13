@@ -8,16 +8,20 @@ import (
 	"plainsolid/geom"
 )
 
-// CombinePolynomialSplinePlaneClip supports a horizontal active cutter plane
+// CombinePolynomialSplinePlaneClip supports one active cutter plane
 // and single-span polynomial graph crossings of degree at most four. Exact
 // Bernstein bounds prove one regular section per face. Native SplineUV controls
 // must be losslessly representable; cap and original support curves are compared
-// by exact whole-composition identities. Vertex events, mixed/nonlinear dependent
-// terms, weighted patches and unresolved topology fail atomically. Other cutter
-// planes strictly contain stock. Existing quadratic/multispan APIs are unchanged.
+// by exact whole-composition identities. A nonaffine crossing must be a graph
+// over the cutter projection: XY when possible, then YZ, then ZX. Vertex events,
+// mixed/nonlinear dependent terms, weighted patches and unresolved topology fail
+// atomically. Other cutter planes strictly contain stock.
 // Each face tries at most two axes; limits apply per bounded surface/edge proof
 // and loop certificate, with at most64 total section pieces.
 func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {
+	return combinePolynomialSplinePlaneClip(ctx, stock, tool, active, op, o, nil)
+}
+func combinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions, spans *polynomialClipSpanState) (SplineCornerPlaneClip, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
@@ -79,18 +83,14 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 	}
 
 	raw := planes[active]
-	if raw[0].Z != raw[1].Z || raw[0].Z != raw[2].Z {
-		return zero, geom.ErrConvergence
+	plane, e := polynomialPlaneFromPoints(raw)
+	if e != nil {
+		return zero, e
 	}
-	cross := slabUVSide([2]*big.Rat{ratInset(raw[0].X), ratInset(raw[0].Y)}, [2]*big.Rat{ratInset(raw[1].X), ratInset(raw[1].Y)}, [2]*big.Rat{ratInset(raw[2].X), ratInset(raw[2].Y)})
-	keep := cross.Sign()
-	if keep == 0 {
-		return zero, geom.ErrConvergence
-	}
+	keep := plane.orientation
 	if op == parametric.Difference {
 		keep = -keep
 	}
-	height := ratInset(raw[0].Z)
 	out := SplineCornerPlaneClip{StockFaces: make([][]int, len(stock.faces)), ToolFaces: make([][]int, len(tool.faces)), ActiveToolFace: active}
 	var parts []SewFace
 	var owners []int
@@ -136,7 +136,8 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 				if e != nil {
 					return zero, e
 				}
-				h := new(big.Rat).Sub(j.Point[2], height)
+				h := plane.dot(j.Point)
+				h.Sub(h, plane.offset)
 				if h.Sign() == 0 {
 					return zero, geom.ErrConvergence
 				}
@@ -169,15 +170,30 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 			sections = []PCurve{section}
 		} else {
 			axis, sign := 0, 0
-			cert, e := CertifyPolynomialPlaneFaceSection(ctx, stock, id, raw[0].Z, o)
-			if errors.Is(e, geom.ErrConvergence) {
-				cert, e = CertifyPolynomialPlaneFaceSectionAxis(ctx, stock, id, raw[0].Z, 1, o)
+			if spans == nil {
+				cert, e := certifyPolynomialPlaneFaceSection(ctx, stock, id, plane, 0, o)
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = certifyPolynomialPlaneFaceSection(ctx, stock, id, plane, 1, o)
+				}
+				if e != nil {
+					return zero, e
+				}
+				sections = []PCurve{cert.trim}
+				axis, sign = cert.freeAxis, cert.sign
+			} else {
+				cert, e := certifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+				if errors.Is(e, geom.ErrConvergence) {
+					cert, e = certifyPiecewisePolynomialPlaneFaceSection(ctx, stock, id, plane, 1, PolynomialPlaneSpanOptions{MaxSpans: spans.maxSpans, Faces: o})
+				}
+				if e != nil {
+					return zero, e
+				}
+				for _, q := range cert.Pieces() {
+					sections = append(sections, q)
+				}
+				axis, sign = cert.axis, cert.sign
+				spans.knots = append(spans.knots, cert.Knots()...)
 			}
-			if e != nil {
-				return zero, e
-			}
-			sections = []PCurve{cert.trim}
-			axis, sign = cert.freeAxis, cert.sign
 			var chain [][2]*big.Rat
 			for i, q := range sections {
 				ends, _, qe := polynomialPlaneEndpoints(q)
@@ -239,7 +255,7 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 			if !found {
 				return zero, geom.ErrConvergence
 			}
-			capq, e := polynomialPlaneCapCurve(ctx, f.patch, section, patches[1][active].patch, o)
+			capq, e := polynomialPlaneCapCurve(ctx, f.patch, section, patches[1][active].patch, plane.axes, o)
 			if e != nil {
 				return zero, e
 			}

@@ -2081,3 +2081,61 @@ and native output transfers as one valid OCCT face. Derivative integration
 matches the independent analytic area `5*sqrt(26)+asinh(5)` for the retained
 fixture. Geometry-only, millimeter qualification and all earlier exclusions
 of topology, embedding and material claims remain in force.
+
+### Bounded standalone revolution surfaces
+
+`ReadRevolutionSurfaces`, `WriteRevolutionSurfaces` and
+`DecodeRevolutionSurface` exchange `RECTANGULAR_TRIMMED_SURFACE` over
+`SURFACE_OF_REVOLUTION` with an explicit `AXIS1_PLACEMENT`. The returned
+`geom.RevolutionSurface` is an immutable analytic evaluator with copied profile
+storage and copy-returning access. It implements `geom.Surface`, with U in
+radians and V in the original full profile knot domain. No rational tensor
+substitution, turn conversion, seam rephase or periodic closure is inferred.
+Its position and first partials follow Rodrigues rotation of the original
+model-space profile about the original axis and origin.
+
+The initial subset requires a continuous clamped polynomial B-spline meridian
+(at most 4096 poles; equal rational source weights are also polynomial), an
+exact signed-coordinate unit axis, and a coordinate meridian half-plane with
+strictly positive control radii. Axial control coordinates must be strictly
+monotone, increasing or decreasing. The polynomial derivative has same-sign
+axial coefficients on every nonzero knot span: each coefficient is the signed
+control difference divided by a positive knot span factor. The nonnegative
+partition-of-unity derivative basis therefore keeps the axial tangent nonzero.
+Positive control radii keep the angular tangent nonzero and independent.
+Interior multiplicity above degree is rejected, including discontinuities;
+one-sided derivatives retain the original spline's knot convention.
+
+The increasing angular interval is explicitly restricted to `[-3,3]` radians
+and width at most 3 radians. This conservative exact range is smaller than a
+half-turn and avoids periodic ambiguity and large-angle evaluation. Valid
+negative starting angles are retained. Both trim senses must be positive and
+V must be the full original profile interval. Native length units are preserved
+without conversion. All source global unit contexts must agree and specify
+unscaled SI radians; missing, prefixed, converted or mixed angular units fail.
+Source axis, meridian half-plane, positive radius, monotone heights, polynomial
+weight equality and trim endpoint checks use bounded exact source decimals,
+preventing hidden normalization or coplanarity manufactured by float rounding.
+Scalar geometry evaluation otherwise follows the native float64 contract.
+
+Standalone ownership and parser budgets are shared with the extrusion codec,
+whose existing APIs remain strict. Native spline/tensor readers are not
+broadened. Regular analytic surface geometry does not establish a B-rep face,
+wire, shell, material, or native trimmed-solid persistence capability.
+
+`tools/occtref/revolution_surface.cxx` is an independent optional helper built
+with `build_revolution_surface.sh`; set `PLAINSOLID_OCCT_REVOLUTION_SURFACE` to
+run live qualification. Straight and curved meridians are generated in OCCT,
+and native output must transfer as one valid face with matching position,
+partials and independently integrated area. The one-radian straight fixture
+has area `(5/2)*sqrt(10)`; the curved fixture
+`C(v)=(2+4v-3v^2,0,2v+v^2)` has area
+`sqrt(10)*(43*sqrt(2)+55*asinh(1))/32`.
+
+The helper explicitly authors the typed bounded STEP record with original
+radian bounds. OCCT 8.1's generic rectangular-surface converter hardcodes degree
+conversion for revolution U, independently of the radian model context; using
+it directly produced `14.323944878271` for the intended `0.25` radians. This
+codec does not detect-and-repair such a mismatch. The retained positive
+fixtures use OCCT's typed entity writer with explicit radian bounds; entity
+geometry decoding does not import their surrounding topological faces.

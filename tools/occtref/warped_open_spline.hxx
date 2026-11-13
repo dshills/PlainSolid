@@ -55,6 +55,17 @@ static void warpedSplineTwoPlanes(std::ostream& out,bool crossing){
  auto first=BRepAlgoAPI_Common(stock,lower).Shape();
  splineShellRecord(out,crossing?"warped-crossing-planes":"warped-separated-planes",BRepAlgoAPI_Common(first,upper).Shape());
 }
+// OCCT's ordinary volume integrator does not split a C0 span for first
+// moments. Use the independent span-aware Gauss–Kronrod integrator.
+static void creasedGraphRecord(std::ostream& out,const char* name,const TopoDS_Shape& s){
+ if(!BRepCheck_Analyzer(s).IsValid())throw std::runtime_error("invalid independent creased Boolean");
+ GProp_GProps mass,area;
+ if(BRepGProp::VolumePropertiesGK(s,mass,1e-11,true,true,true)<0)throw std::runtime_error("OCCT span-aware volume failed");
+ BRepGProp::SurfaceProperties(s,area,1e-10);
+ const auto p=mass.CentreOfMass();
+ int shells=0;for(TopExp_Explorer it(s,TopAbs_SHELL);it.More();it.Next())++shells;
+ out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"Volume\":"<<mass.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<p.X()<<','<<p.Y()<<','<<p.Z()<<"],\"Shells\":"<<shells<<"}\n";
+}
 static void quadraticGraphPlaneBooleans(std::ostream& out,bool crease=false){
  NCollection_Array2<gp_Pnt> poles(1,crease?5:3,1,2);
  const double z[]={1./64,1./128,1./32,9./128,9./64};
@@ -69,20 +80,17 @@ static void quadraticGraphPlaneBooleans(std::ostream& out,bool crease=false){
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent quadratic stock or cutter");
  auto common=BRepAlgoAPI_Common(stock,tool).Shape(), cut=BRepAlgoAPI_Cut(stock,tool).Shape();
  if(!crease){splineShellRecord(out,"quadratic-plane-common",common);splineShellRecord(out,"quadratic-plane-cut",cut);return;}
- // The ordinary OCCT integrator does not split the internal C0 span for
- // first moments. Use its independent span-aware Gauss–Kronrod integrator.
- auto withSpans=[&](const char* name,const TopoDS_Shape& s){
-  if(!BRepCheck_Analyzer(s).IsValid())throw std::runtime_error("invalid independent creased Boolean");
-  GProp_GProps mass,area;
-  if(BRepGProp::VolumePropertiesGK(s,mass,1e-11,true,true,true)<0)throw std::runtime_error("OCCT span-aware volume failed");
-  BRepGProp::SurfaceProperties(s,area,1e-10);
-  const auto p=mass.CentreOfMass();
-  int shells=0;for(TopExp_Explorer it(s,TopAbs_SHELL);it.More();it.Next())++shells;
-  out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"Volume\":"<<mass.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<p.X()<<','<<p.Y()<<','<<p.Z()<<"],\"Shells\":"<<shells<<"}\n";
- };
- withSpans("piecewise-quadratic-plane-common",common);withSpans("piecewise-quadratic-plane-cut",cut);
+ creasedGraphRecord(out,"piecewise-quadratic-plane-common",common);
+ creasedGraphRecord(out,"piecewise-quadratic-plane-cut",cut);
 }
-static void polynomialGraphPlaneBooleans(std::ostream& out){
+static TopoDS_Shape obliquePolynomialCutter(){
+ BRepBuilderAPI_MakePolygon rim;
+ for(auto xy:std::array<std::array<double,2>,4>{{{-1,-1},{2,-1},{2,2},{-1,2}}})
+  rim.Add(gp_Pnt(xy[0],xy[1],3./16+xy[0]/32));
+ rim.Close();
+ return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(rim.Wire()).Face(),gp_Vec(0,0,-3)).Shape();
+}
+static void polynomialGraphPlaneBooleans(std::ostream& out,bool oblique=false){
  NCollection_Array2<gp_Pnt> poles(1,5,1,2);
  const double z[]={0,0,0,1./32,1./8};
  for(int i=1;i<=5;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/4.,j-1,z[i-1]+(j-1)/4.));
@@ -90,8 +98,22 @@ static void polynomialGraphPlaneBooleans(std::ostream& out){
  NCollection_Array1<int> xmult(1,2),ymult(1,2);xmult.Init(5);ymult.Init(2);
  occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xmult,ymult,4,1);
  auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
- auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(3,3,3./16)).Shape();
+ auto tool=oblique?obliquePolynomialCutter():BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(3,3,3./16)).Shape();
  if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent polynomial stock or cutter");
- splineShellRecord(out,"polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
- splineShellRecord(out,"polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+ splineShellRecord(out,oblique?"oblique-polynomial-plane-common":"polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,oblique?"oblique-polynomial-plane-cut":"polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+}
+static void piecewisePolynomialGraphPlaneBooleans(std::ostream& out,bool oblique=false){
+ // Native OCCT construction of x³/8+y/4+|x-.5|/32, swept vertically.
+ NCollection_Array2<gp_Pnt> poles(1,9,1,2);
+ const double z[]={1./64,3./256,1./128,1./128,1./64,1./32,7./128,23./256,9./64};
+ for(int i=1;i<=9;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/8.,j-1,z[i-1]+(j-1)/4.));
+ NCollection_Array1<double> xk(1,3),yk(1,2);xk.SetValue(1,0);xk.SetValue(2,.5);xk.SetValue(3,1);yk.SetValue(1,0);yk.SetValue(2,1);
+ NCollection_Array1<int> xm(1,3),ym(1,2);xm.Init(5);xm.SetValue(2,4);ym.Init(2);
+ occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,xk,yk,xm,ym,4,1);
+ auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ auto tool=oblique?obliquePolynomialCutter():BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
+ if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent piecewise polynomial stock or cutter");
+ creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-common":"piecewise-polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ creasedGraphRecord(out,oblique?"oblique-piecewise-polynomial-plane-cut":"piecewise-polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
 }
