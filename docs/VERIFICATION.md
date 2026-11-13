@@ -1662,6 +1662,10 @@ The optional quadratic endpoint path splits the affine box at
 `z=(1+x)/3`, retaining the four vertices at exact heights 1/3 and 2/3 in
 each native reload. Both halves have volume 1/2. The strict binary path
 rejects the same source instead of silently rounding it.
+Two parallel cuts of the weighted curved stock match the independent volume
+integral with both caps attached. A square-tube band preserves two holed caps,
+has volume 2, and assigns every output edge to exactly one original edge or
+cut plane. Focused race checks passed.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.

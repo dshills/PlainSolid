@@ -260,6 +260,50 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 		t.Fatal("reversed plane lost ownership or orientation", e)
 	}
 	checkSection(plane, -1)
+	// Opposite input order and an independently reversed upper plane.
+	lower, upper := plane, [3]geom.Vec3{{Z: 13. / 64}, {X: 1, Z: 14. / 64}, {Y: 1, Z: 13. / 64}}
+	lower[1], lower[2] = lower[2], lower[1]
+	upper[1], upper[2] = upper[2], upper[1]
+	upperCap, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: 13. / 64}, {Y: 1, Z: 13. / 64}, {X: 4, Z: 17. / 64}, {X: 4, Y: 1, Z: 17. / 64},
+	}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	planes := [2][3]geom.Vec3{upper, lower}
+	capCharts := [2]geom.Surface{upperCap, capSupport}
+	domains2 := [2]geom.ParameterRectangle{domain, domain}
+	band, e := stock.ClipParallelRationalGraphSplineShell(ctx, planes, capCharts, domains2, RationalGraphParallelBandOptions{
+		Sections: RationalGraphShellSectionOptions{VerifyModelEdges: true},
+	})
+	if e != nil || band.Sections.Lower != 1 || band.Sections.ProjectedGap.Cmp(big.NewRat(1, 64)) != 0 ||
+		len(band.CapEdges[0]) != 4 || len(band.CapEdges[1]) != 4 || len(band.Solid.Topology().Shells) != 1 {
+		t.Fatal("parallel cuts across the same original weighted faces", e, band.CapFaces)
+	}
+	mp, e := band.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-7})
+	// Vertical slice thickness is the difference of two triangular cross
+	// sections: 2((h+1/64)^2−h^2) times dX=3 ds.
+	var expectedBand float64
+	for i := 0; i <= nSplit; i++ {
+		s := float64(i) / nSplit
+		h := 3./16 + 3*s/64 - s*s/(32*(1-s/2))
+		weight := 2.
+		if i == 0 || i == nSplit {
+			weight = 1
+		} else if i%2 != 0 {
+			weight = 4
+		}
+		delta := 1. / 64
+		expectedBand += weight * 6 * (2*h*delta + delta*delta) / (3 * nSplit)
+	}
+	if e != nil || math.Abs(mp.Volume-expectedBand) > 1e-7 {
+		t.Fatal("independent parallel band volume", mp.Volume, expectedBand, e)
+	}
+	nonparallel := planes
+	nonparallel[0][1].Z += 1. / 256
+	if bad, e := stock.SectionParallelRationalGraphSplineShell(ctx, nonparallel, RationalGraphShellSectionOptions{}); !errors.Is(e, geom.ErrDomain) || bad.Sections[0].Complete {
+		t.Fatal("nonparallel cut admitted", e)
+	}
 	// Independent vertical wedge: X=3*s, lower height is s²/(32*(1-s/2))+Y/4.
 	// Integrate Y first and then the smooth one-dimensional section by Simpson.
 	const n = 1024
