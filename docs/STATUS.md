@@ -599,6 +599,9 @@ Unequal coaxial stock preserves an analytic step where the larger disk ends,
 including annular cap ancestry and exact common volume.
 Coordinate-parallel cylinders with identical cap planes and a transverse
 disk crossing retain the analytic union or cut with signed cap ancestry.
+A transverse cut also accepts an axially longer parallel cutter that exactly
+covers the stock span. Only original stock caps and the original cutter wall
+appear on the retained crescent.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,

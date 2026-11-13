@@ -1125,6 +1125,15 @@ support, native reload, closed meshes, and absence of undeclared mesh
 contacts pass. Independent OCCT prisms agree on area, volume and centroid
 for all four results. A cyclic physical-axis permutation checks the YZ
 projection without changing the original UV coordinates.
+When the projection derivative changes at a knot, the cap uses each
+original knot cell's exact affine map. A fixture verifies the original
+`U=1/2` and model `X=3/8` junctions, independent piecewise-Jacobian mass
+integrals, and native reload.
+
+A reverse-axis cylindrical cutter with a larger axial span independently
+qualifies the transverse crescent difference against OCCT area, volume, and
+centroid. Native ancestry records the two original stock caps and the
+cutter wall; temporary clipping planes do not acquire cutter cap ancestry.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding

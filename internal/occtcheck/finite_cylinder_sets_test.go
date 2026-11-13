@@ -403,4 +403,12 @@ func TestOCCTFiniteParallelTransverseCylinderSets(t *testing.T) {
 		t.Fatal("expected one retained stock", err)
 	}
 	check("finite-parallel-transverse-cut", d.Solids[0])
+	b.Axis, b.Min, b.Max = geom.Vec3{Z: -4}, -2, 2
+	d, err = parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-9)
+	refName := "finite-parallel-transverse-covering-cut"
+	if _, ok := refs[refName]; !ok || err != nil || len(d.Solids[1].Faces()) != 0 ||
+		len(d.StockCapFaces[0]) != 2 || len(d.CutterCapFaces[0]) != 0 || len(d.CutterWallFaces[0]) != 1 {
+		t.Fatal("expected one retained stock with original stock caps and a cutter wall", err)
+	}
+	check(refName, d.Solids[0])
 }

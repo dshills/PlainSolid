@@ -332,6 +332,8 @@ int main(int argc, char** argv) {
       const auto parallelTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(5,2,-1),gp_Dir(0,0,1)),3,8).Shape();
       record(out,"finite-parallel-transverse-union",BRepAlgoAPI_Fuse(unequalWide,parallelTool).Shape(),1e-11);
       record(out,"finite-parallel-transverse-cut",BRepAlgoAPI_Cut(unequalWide,parallelTool).Shape(),1e-11);
+      const auto coveringTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(5,2,11),gp_Dir(0,0,-1)),3,16).Shape();
+      record(out,"finite-parallel-transverse-covering-cut",BRepAlgoAPI_Cut(unequalWide,coveringTool).Shape(),1e-11);
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);
