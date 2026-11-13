@@ -131,14 +131,30 @@ func TestPolynomialSplinePlaneClip(t *testing.T) {
 		corrupt.faces = append([]Face(nil), r.Solid.faces...)
 		capID := r.ToolFaces[5][0]
 		corrupt.faces[capID].Outer = append([]Use(nil), r.Solid.faces[capID].Outer...)
-		q := corrupt.faces[capID].Outer[0].Curve.(SplineUV)
+		bottomEdges := make(map[int]bool)
+		for _, use := range r.Solid.faces[r.StockFaces[4][0]].Outer {
+			bottomEdges[use.Edge] = true
+		}
+		section := -1
+		var q SplineUV
+		for i, use := range corrupt.faces[capID].Outer {
+			if spline, ok := use.Curve.(SplineUV); bottomEdges[use.Edge] && ok && spline.Curve.Degree() == 4 {
+				if section >= 0 {
+					t.Fatal("multiple cubic graph sections on the cap")
+				}
+				section, q = i, spline
+			}
+		}
+		if section < 0 {
+			t.Fatal("missing cubic graph section on the cap")
+		}
 		ps := q.Curve.Poles()
 		ps[1].Y += 1. / 64
 		q.Curve, e = geom.NewBSpline(q.Curve.Degree(), ps, q.Curve.Knots(), q.Curve.Weights())
 		if e != nil {
 			t.Fatal(e)
 		}
-		corrupt.faces[capID].Outer[0].Curve = q
+		corrupt.faces[capID].Outer[section].Curve = q
 		var bad bytes.Buffer
 		if e = WriteJSON(&bad, corrupt); e == nil {
 			if _, e = ReadJSONContext(ctx, &bad, JSONLimits{}); e == nil {
