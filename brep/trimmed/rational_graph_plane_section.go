@@ -39,6 +39,10 @@ func CertifyRationalGraphPlaneFaceSection(ctx context.Context, s Solid, face int
 	if e != nil {
 		return nil, e
 	}
+	return certifyRationalGraphPlaneFaceSection(ctx, s, face, plane, freeAxis, o)
+}
+
+func certifyRationalGraphPlaneFaceSection(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o PolynomialPlaneSpanOptions) (*SplineGraphPlaneSection, error) {
 	proof, pieces, e := certifyPiecewiseGraphPlaneFaceSection(ctx, s, face, plane, freeAxis, o, true)
 	if e != nil {
 		return nil, e
