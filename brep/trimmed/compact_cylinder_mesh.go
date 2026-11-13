@@ -14,9 +14,9 @@ import (
 var errCompactBoundaryLimit = fmt.Errorf("trimmed: compact boundary sampling limit")
 
 // compactCylinderMesh specializes flat faces joined to rectangular cylinder
-// patches. Curvature only needs angular subdivisions: straight edges and the
-// axial direction need none. It retains shared model-edge samples and subjects
-// every emitted triangle to the ordinary sampled deflection/normal checks.
+// patches, including mapped analytic supports. It subdivides the angular
+// direction and leaves straight edges intact. All faces share model-edge
+// samples and use the ordinary sampled deflection and normal checks.
 func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, bool, error) {
 	if o.AnalyticBound {
 		return mesh.Mesh{}, false, nil
@@ -27,7 +27,8 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, true, err
 		}
-		switch f.Surface.(type) {
+		surface, _ := parametric.SurfaceMapping(f.Surface)
+		switch surface.(type) {
 		case geom.PlaneSurface:
 		case geom.CylinderSurface:
 			if len(f.Holes) != 0 || len(f.Outer) != 4 {
@@ -54,7 +55,8 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 	}
 	for i, e := range s.edges {
 		if !curved[i] {
-			if _, ok := e.Curve.(geom.Line); !ok {
+			curve, _ := parametric.CurveMapping(e.Curve)
+			if _, ok := curve.(geom.Line); !ok {
 				return mesh.Mesh{}, false, nil
 			}
 		}
@@ -98,7 +100,8 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			return mesh.Mesh{}, errCompactBoundaryLimit
 		}
 		count := vertices + 2*len(f.Holes) - 2
-		if _, ok := f.Surface.(geom.CylinderSurface); ok {
+		surface, _ := parametric.SurfaceMapping(f.Surface)
+		if _, ok := surface.(geom.CylinderSurface); ok {
 			count = 2 * n
 		}
 		if count > o.MaxTriangles-total {
@@ -185,7 +188,8 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			}
 		}
 		var triangles [][3]geom.Vec2
-		if _, ok := f.Surface.(geom.CylinderSurface); ok {
+		surface, _ := parametric.SurfaceMapping(f.Surface)
+		if _, ok := surface.(geom.CylinderSurface); ok {
 			if len(outer[0]) != n+1 || len(outer[2]) != n+1 || len(outer[1]) != 2 || len(outer[3]) != 2 {
 				return mesh.Mesh{}, fmt.Errorf("trimmed: incompatible compact cylinder edges")
 			}

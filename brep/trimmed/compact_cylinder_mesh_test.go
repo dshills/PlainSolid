@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"math"
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -128,5 +129,27 @@ func TestCompactCylinderMeshFineBoundaryFallsBack(t *testing.T) {
 	opts.MaxSubdivisions = 1
 	if _, err := body.Tessellate(context.Background(), opts); !errors.Is(err, parametric.ErrBudget) {
 		t.Fatalf("subdivision budget after fallback: %v", err)
+	}
+}
+
+func TestCompactCylinderMeshMappedSupports(t *testing.T) {
+	body := compactBoreFixture(t)
+	// The long-edge fillet constructor places an authored section with this
+	// cyclic coordinate map. Its planes, walls and straight edges stay mapped.
+	body, err := body.Transformed(geom.Affine{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts := parametric.TessellationOptions{Deflection: .5, Angle: .1, MaxSubdivisions: 32, MaxTriangles: 200}
+	m, err := body.Tessellate(context.Background(), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = m.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	want := 2000 - 90*math.Pi
+	if got := m.SignedVolume(); math.Abs(got-want) > .002*want {
+		t.Fatalf("mapped mesh volume = %g, want approximately %g", got, want)
 	}
 }

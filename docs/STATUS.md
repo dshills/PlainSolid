@@ -6,6 +6,12 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+The existing PlainCAD long feature chain is the next acceptance gate. Its baseline
+run reaches the first fillet preview and fails because the adapter does not yet
+expose the analytic edge-treatment kernel. Work in the integration checkout
+brings over the relevant constructors from `main` and adds incremental rebuilds
+for the original authored edges, bore, pocket and boss.
+
 The Go WebAssembly adapter implements scoped Hole operations with indexed
 center/target errors and atomic publication. Analytic cylinder walls and planar
 floors support blind and through cuts from qualified convex stock. Cutter sets

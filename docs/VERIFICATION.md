@@ -1,5 +1,18 @@
 # Verification record
 
+## Mapped cylinder display for the long edge chain — 2026-11-13
+
+The compact trimmed mesher recognizes mapped plane, cylinder and line supports
+while sampling their actual placed geometry and retaining shared model edges.
+A cyclic coordinate placement with translation passes mesh closure and volume
+checks within a 200-triangle budget. The related bore, union and compact mesh
+regressions pass.
+
+The baseline run of PlainCAD's existing long native feature chain passed both
+TypeScript checks and the backend probe, then failed at the first fillet preview
+(`modeling-operations.spec.ts:559`). The adapter did not expose fillet at this
+checkpoint. Evidence is in `/tmp/plainsolid-chain-acceptance-01/readiness.json`.
+
 ## Unequal-depth scoped Hole integration — 2026-11-13
 
 The bridge selects layered construction for common-entry cutter recipes with
