@@ -8,10 +8,12 @@ OCCT compatibility qualification is claimed.
 
 The current production run passes all 66 originals on PlainCAD `e65f07b`,
 with zero skips or flakes. It covers the fabrication package, Cable guide
-live preview, Acme and UNC galleries, and the controlled benchmark. The isolated original production performance case passes in 29.5 seconds
+live preview, Acme and UNC galleries, and the controlled benchmark. The
+isolated original production performance case passes in 29.5 seconds
 with all 25 edits and 11 STL downloads validated. The compact bore mesh
 uses 144 triangles per STL. The pristine OCCT control completes the same
-checks and exceeds the original 90-second deadline on this host. The frozen development baseline ran 340 originals with 264 passes. Later
+checks and exceeds the original 90-second deadline on this host. The frozen
+development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures, including 10 origin-dependent
 setup cases. The current integration still needs a consolidated rerun.
 
@@ -30,9 +32,11 @@ real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock. The current studio cancellation and ORBIT
 gesture originals pass together. All 17 original arc-region cases pass.
-Full current development and cross-browser qualification runs are in
-progress. The four original Chromium locator failures also reproduce on
-the pristine OCCT app.
+The full current development and unit runs are in progress. Cross-browser
+qualification passes the keyboard face-card and dimension dialog case on
+all three engines. Four other cases per engine stop at current application
+controls. The same four failures reproduce on the pristine Chromium OCCT
+control.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular

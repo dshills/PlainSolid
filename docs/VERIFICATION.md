@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD cross-browser acceptance and OCCT control — 2026-11-13
+
+The [cross-browser report](evidence/plaincad-current-cross-browser-2026-11-13.json)
+passes the original keyboard face-card and dimension dialog case in Chromium,
+Firefox, and WebKit. Four other cases on each engine stop on the original
+locators for the sketch row, AI drawer, part name, or Start a part region.
+The [pristine Chromium OCCT control](evidence/plaincad-cross-browser-occt-control-2026-11-13.json)
+reproduces the same four failures on PlainCAD `e65f07b`. The current
+application opens the part-name controls through the closed-by-default
+New part menu and exposes AI through the bottom dock. The original tests
+and production application checkout were preserved.
+
 ## PlainCAD full current production acceptance — 2026-11-13
 
 The [production report](evidence/plaincad-current-production-2026-11-13.json)
