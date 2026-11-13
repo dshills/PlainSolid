@@ -1126,6 +1126,13 @@ contacts pass. Independent OCCT prisms agree on area, volume and centroid
 for all four results. A cyclic physical-axis permutation checks the YZ
 projection without changing the original UV coordinates.
 
+Convex planar through hollowing retains a closed genus-one shell for a
+rectangular duct with four distinct wall thicknesses and for the corresponding
+sheared stock. Both have exact ideal volume 60 and match independent OCCT
+prism subtraction on area, volume and centroid. A separate test rejects an
+opening whose rounded cap would move off its original plane by less than one
+binary64 ULP, even though the usual output displacement tolerance is larger.
+
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
 other packages passed. Point-only B-spline surface evaluation now visits only

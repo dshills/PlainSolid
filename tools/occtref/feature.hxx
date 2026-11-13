@@ -19,6 +19,17 @@ static void featureRecords(std::ostream& out){
  record(out,oblique?"oblique-through":"through",result);
  }
  for(int tray=0;tray<2;++tray){auto base=BRepPrimAPI_MakeBox(4,4,4).Shape();auto cavity=BRepPrimAPI_MakeBox(gp_Pnt(.5,.5,.5),3,3,tray?3.5:3).Shape();record(out,tray?"hollow-tray":"hollow-cavity",BRepAlgoAPI_Cut(base,cavity).Shape());}
+ for(int shear=0;shear<2;++shear){
+  auto prism=[&](double x0,double y0,double x1,double y1){
+   BRepBuilderAPI_MakePolygon wire;
+   for(auto xy:std::array<std::array<double,2>,4>{{{x0,y0},{x1,y0},{x1,y1},{x0,y1}}})
+    wire.Add(gp_Pnt(xy[0],xy[1],0));
+   wire.Close();
+   return BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(wire.Wire()).Face(),gp_Vec(shear?3:0,0,6)).Shape();
+  };
+  auto stock=prism(0,0,4,5),cavity=prism(1,.25,3.5,4.25);
+  record(out,shear?"hollow-through-sheared":"hollow-through-box",BRepAlgoAPI_Cut(stock,cavity).Shape());
+ }
  for(int mode=0;mode<3;++mode){
  auto wire=[](double lo,double hi,bool reverse){std::vector<gp_Pnt> p={{lo,lo,4},{hi,lo,4},{hi,hi,4},{lo,hi,4}};if(reverse)std::reverse(p.begin(),p.end());BRepBuilderAPI_MakeWire w;for(size_t i=0;i<4;++i)w.Add(BRepBuilderAPI_MakeEdge(p[i],p[(i+1)%4]));return w.Wire();};
  BRepBuilderAPI_MakeFace f(wire(.5,3.5,false));f.Add(wire(1.5,2.5,true));

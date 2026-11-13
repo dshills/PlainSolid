@@ -34,3 +34,37 @@ func TestOCCTHollow(t *testing.T) {
 		})
 	}
 }
+
+func TestOCCTHollowThrough(t *testing.T) {
+	refs := runOracle(t, "feature")
+	for _, name := range []string{"hollow-through-box", "hollow-through-sheared"} {
+		t.Run(name, func(t *testing.T) {
+			s, err := brep.Box(geom.Vec3{}, geom.Vec3{X: 4, Y: 5, Z: 6})
+			if err != nil {
+				t.Fatal(err)
+			}
+			shear := name == "hollow-through-sheared"
+			if shear {
+				s, err = s.Transformed(geom.Affine{{1, 0, .5, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			r, err := draft.HollowThrough(context.Background(), s, []float64{0, 0, .25, .5, .75, 1},
+				draft.ThroughHollowOptions{OpenFaces: [2]int{0, 1}, CoordinateThickness: shear})
+			if err != nil {
+				t.Fatal(err)
+			}
+			top := r.Solid.Topology()
+			ref, ok := refs[name]
+			if !ok || top.Shells != 1 || top.EulerCharacteristic != 0 || r.ExactVolume.RatString() != "60" {
+				t.Fatal("expected a genus-one shell and exact volume 60", top, r.ExactVolume)
+			}
+			m, err := r.Solid.MassProperties()
+			if err != nil {
+				t.Fatal(err)
+			}
+			compare(t, ref, m.SurfaceArea, m.Volume, m.Centroid)
+		})
+	}
+}
