@@ -9,6 +9,10 @@ import (
 	"plainsolid/geom"
 )
 
+// ErrDisplaySegmentBudget signals that sampling the requested native edge
+// lines would exceed the caller's output segment budget.
+var ErrDisplaySegmentBudget = fmt.Errorf("native edges exceed the display segment budget: %w", parametric.ErrBudget)
+
 // DisplayEdges samples sharp model edges. Face normals suppress regular
 // tangent connections, and two uses by the same face identify a seam.
 // maxUses and maxSegments bound traversal and output independently.
@@ -75,23 +79,22 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 			continue
 		}
 		remaining := maxSegments - len(lines)/2
-		segmentBudget := func() error { return fmt.Errorf("display segment budget exhausted: %w", parametric.ErrBudget) }
 		if remaining <= 0 {
-			return nil, uses, segmentBudget()
+			return nil, uses, ErrDisplaySegmentBudget
 		}
 		if compactStraightEdge(edge.Curve) {
 			lines = append(lines, s.vertices[edge.Start], s.vertices[edge.End])
 			continue
 		}
 		options := geom.CurveTessellationOptions{
-			ChordTolerance: .02, InitialSegments: 4, MaxDepth: 12,
+			ChordTolerance: .02, InitialSegments: min(4, remaining), MaxDepth: 12,
 			MaxEvaluations: min(4096, remaining*12+64),
 		}
 		chords, err := geom.TessellateCurve(edge.Curve, edge.Range.Min, edge.Range.Max, options)
+		if errors.Is(err, geom.ErrConvergence) {
+			return nil, uses, ErrDisplaySegmentBudget
+		}
 		if err != nil {
-			if errors.Is(err, geom.ErrConvergence) {
-				return nil, uses, fmt.Errorf("display segment budget or subdivision limit at edge %d: %w", i, parametric.ErrBudget)
-			}
 			return nil, uses, fmt.Errorf("invalid display curve at edge %d: %w", i, err)
 		}
 		chords[0].Start = s.vertices[edge.Start]
@@ -99,7 +102,7 @@ func (s Solid) DisplayEdges(ctx context.Context, maxUses, maxSegments int) ([]ge
 		for _, chord := range chords {
 			if span := chord.Start.Sub(chord.End).Length(); finite(span) && span > 1e-9 {
 				if len(lines)/2 >= maxSegments {
-					return nil, uses, segmentBudget()
+					return nil, uses, ErrDisplaySegmentBudget
 				}
 				lines = append(lines, chord.Start, chord.End)
 			}

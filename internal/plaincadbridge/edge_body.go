@@ -226,6 +226,15 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 		return ok
 	}
 	if s.analytic != nil {
+		if s.analytic.pockets != nil && len(s.analytic.pockets.bores) == 0 {
+			native, ok, e := s.planarCutBoundary()
+			if e != nil || !ok {
+				return false
+			}
+			_, _, found := planarEdge(native, start, end)
+			return found
+		}
+
 		if s.analytic.filletedCap != nil && s.analytic.filletedCap.retainedLowerEdge(start, end) {
 			return true
 		}
@@ -349,6 +358,19 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	}
 	if !finite(size) || size <= 0 {
 		return Shape{}, errors.New(q.Op + " failed: size must be positive")
+	}
+	// A straight pocket has an exact planar boundary. Resolve and treat the
+	// actual retained boundary, including its interior wires and floor, rather
+	// than substituting the uncut stock recipe.
+	if s.analytic != nil && s.analytic.pockets != nil && len(s.analytic.pockets.bores) == 0 {
+		planar, ok, e := s.planarCutBoundary()
+		if e != nil {
+			return Shape{}, e
+		}
+		if ok {
+			s.solid = planar
+			s.analytic = nil
+		}
 	}
 	if s.treated == nil && !s.planar() && s.bore == nil {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")

@@ -440,6 +440,31 @@ export class OpenCascadeKernel implements KernelAdapter {
     const source = handle(shape).extrusion;
     if (!source) return [];
     const loop = source.profile.outerLoop;
+    // A complete convex ring of shallow line turns is a single selection
+    // contour. Do not offer one member as an independently propagating edge.
+    // This is deliberately loop-wide: an isolated shallow authored corner in
+    // an ordinary profile keeps its individual reference. Actual treatment
+    // support is still checked separately by the native operation.
+    const shallowRing = (() => {
+      if (loop.type !== "polygon" || !loop.segments || loop.segments.length < 3) return false;
+      let winding = 0;
+      let turnSum = 0;
+      for (let index = 0; index < loop.segments.length; index++) {
+        const current = loop.segments[index];
+        const next = loop.segments[(index + 1) % loop.segments.length];
+        if (current.type !== "line" || next.type !== "line" ||
+            current.end.x !== next.start.x || current.end.y !== next.start.y) return false;
+        const ax = current.end.x - current.start.x, ay = current.end.y - current.start.y;
+        const bx = next.end.x - next.start.x, by = next.end.y - next.start.y;
+        if (![ax, ay, bx, by].every(Number.isFinite) || Math.hypot(ax, ay) === 0 || Math.hypot(bx, by) === 0) return false;
+        const turn = Math.atan2(ax * by - ay * bx, ax * bx + ay * by);
+        if (!Number.isFinite(turn) || turn === 0 || Math.abs(turn) > 0.1) return false;
+        if (winding && Math.sign(turn) !== winding) return false;
+        winding = Math.sign(turn);
+        turnSum += turn;
+      }
+      return Math.abs(Math.abs(turnSum) - 2 * Math.PI) < 1e-8;
+    })();
     const edges: ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> = [];
     for (const role of ["endCapPerimeter", "startCapPerimeter"] as const) {
       // An untouched extrusion's immutable construction recipe proves its full
@@ -472,7 +497,11 @@ export class OpenCascadeKernel implements KernelAdapter {
       if (handle(shape).operation !== "extrusion" && !source.profile.innerLoops.length &&
           loop.segments?.length === 4 && complete.length === 4)
         edges.push({ role });
-      edges.push(...complete);
+      // Suppress members only after every actual native edge and the complete
+      // untouched cap were proven. A modified or incomplete boundary cannot
+      // acquire a group merely from its authored recipe.
+      if (!(handle(shape).operation === "extrusion" && shallowRing && complete.length === loop.segments?.length))
+        edges.push(...complete);
     }
     return edges;
   }
@@ -502,7 +531,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         for (const [toolIndex, tool] of tools.entries()) {
           try {
             if (!this.hasCommonVolume(targets[0], tool))
-              throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+              throw new Error("Boolean cut removed no volume. Move the tool into the target body.");
             hits[0][toolIndex] = true;
           } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
         }
@@ -521,7 +550,7 @@ export class OpenCascadeKernel implements KernelAdapter {
               hits[targetIndex][toolIndex] = true;
               hit = true;
             }
-            if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+            if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target body.");
           } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
         }
       }
