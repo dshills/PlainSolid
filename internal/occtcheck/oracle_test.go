@@ -403,6 +403,9 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 		geom.RawCylinder{Axis: geom.Vec3{X: 2}, Radius: 3, Min: -5, Max: 5},
 		geom.RawCylinder{Origin: geom.Vec3{Z: 2}, Axis: geom.Vec3{X: 3, Y: 4}, Radius: 2, Min: -5, Max: 5}, 1e-9)
 	check("oblique-skew-cylinder-common", osh.Solid, e)
+
+	ux, e := parametric.PerpendicularCylinderUnion(ctx, geom.Vec3{}, 2, 3, 4, 1e-9)
+	check("perpendicular-cylinder-union", ux.Solid, e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

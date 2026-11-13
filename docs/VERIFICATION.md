@@ -1039,3 +1039,8 @@ The oblique skew fixture checks original cylinder equations, affine volume
 scaling, shifted axes, certified display and native reload. OCCT independently
 qualifies the asymmetric overlapping case. A nonrepresentable placement is
 rejected by this exact-map path.
+
+The perpendicular union retains both walls and four exposed end disks.
+Its volume matches the exact inclusion-exclusion formula and its area
+matches the two cylinders minus the interior Steinmetz faces. Native reload,
+certified display, no detected self-contacts, and OCCT comparison pass.

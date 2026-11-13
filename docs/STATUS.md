@@ -485,6 +485,9 @@ Selected oblique skew placements also retain both circular supports when the
 exact section map and axis separation are representable.
 A separate perpendicular shell supports an exact
 equator cap or a positive cap with a representable rim ordinate.
+Signed algebraic caps, two-cap slabs, and exact caps on both perpendicular
+axes are supported in bounded cases. Equal-radius perpendicular finite
+cylinders also have a native union with all four exposed cap disks.
 
 ## Continuing implementation
 

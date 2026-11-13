@@ -124,6 +124,11 @@ func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (flo
 		return x.secondDerivativeBounds(ctx, u, v)
 	case steinmetzSlabChart:
 		return x.secondDerivativeBounds(ctx, u, v)
+	case steinmetzUnionChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
+			return 0, 0, 0, geom.ErrDomain
+		}
+		return upMul(3, x.radius), x.radius, 0, nil
 	case steinmetzClippedCylinder:
 		return x.secondDerivativeBounds(ctx, u, v)
 	case steinmetzDisk:

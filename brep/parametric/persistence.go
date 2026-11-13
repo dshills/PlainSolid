@@ -29,10 +29,11 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	SteinmetzSlab   *steinmetzSlabData `json:",omitempty"`
-	Steinmetz       *[2]int            `json:",omitempty"`
-	Transform       *geom.Affine       `json:",omitempty"`
-	Base            *surfaceData       `json:",omitempty"`
+	SteinmetzUnion  *steinmetzUnionData `json:",omitempty"`
+	SteinmetzSlab   *steinmetzSlabData  `json:",omitempty"`
+	Steinmetz       *[2]int             `json:",omitempty"`
+	Transform       *geom.Affine        `json:",omitempty"`
+	Base            *surfaceData        `json:",omitempty"`
 	Kind            string
 	Frame           *frameData               `json:",omitempty"`
 	A, B            float64                  `json:",omitempty"`
@@ -58,6 +59,13 @@ type surfaceData struct {
 	SkewOverlap     *skewOverlapData         `json:",omitempty"`
 	ObliqueCylinder *obliqueCylinderData     `json:",omitempty"`
 	GeneralCylinder *generalCylinderData     `json:",omitempty"`
+}
+
+type steinmetzUnionData struct {
+	Center             geom.Vec3
+	Radius, HalfLength float64
+	Axis, Side, Half   int
+	Cap                bool
 }
 
 type generalCylinderData struct {
@@ -175,6 +183,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
 		return surfaceData{Kind: "steinmetz-clipped-cylinder", Center: &x.center, A: x.radius, B: x.cap, Steinmetz: &[2]int{0, x.sign}}, nil
+	case steinmetzUnionChart:
+		return surfaceData{Kind: "steinmetz-union", SteinmetzUnion: &steinmetzUnionData{x.center, x.radius, x.halfLength, x.axis, x.side, x.half, x.cap}}, nil
 	case steinmetzDisk:
 		return surfaceData{Kind: "steinmetz-disk", Center: &x.center, A: x.radius}, nil
 	case steinmetzChart:
@@ -265,6 +275,15 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "steinmetz-union") != (d.SteinmetzUnion != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.SteinmetzUnion; x != nil {
+		if !x.Center.IsFinite() || !finite(x.Radius) || !finite(x.HalfLength) || x.Radius <= 0 || x.HalfLength <= x.Radius || x.Axis < 0 || x.Axis > 1 || x.Side != 1 && x.Side != -1 || x.Half != 1 && x.Half != -1 {
+			return nil, geom.ErrInvalid
+		}
+		return steinmetzUnionChart{x.Center, x.Radius, x.HalfLength, x.Axis, x.Side, x.Half, x.Cap}, nil
+	}
 	if (d.Kind == "general-cylinder-common") != (d.GeneralCylinder != nil) {
 		return nil, geom.ErrInvalid
 	}
