@@ -969,3 +969,9 @@ mesh with an analytic error bound. OCCT independently matches the case
 with one flat end and one spherical end. Exact cap classification covers
 the partial lens, tangencies, and coincident disks; exact query tests also
 cover isolated points and intervals owned by either finite cap.
+
+The upper partial lens fixture matches the independent OCCT intersection
+and tool-polar volume integral. Both algebraic cap events remain available
+alongside the native spherical strips, cylinder wall and planar lens.
+Native reload and sampled watertight display with no detected contacts
+pass. The rounded angular split is not covered by a deflection certificate.

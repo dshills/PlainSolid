@@ -46,6 +46,7 @@ type surfaceData struct {
 	AngularReversed bool                     `json:",omitempty"`
 	OffsetBore      *offsetBoreData          `json:",omitempty"`
 	OffsetCommon    *offsetCommonData        `json:",omitempty"`
+	PartialCommon   *offsetPartialData       `json:",omitempty"`
 }
 
 type offsetBoreData struct {
@@ -56,6 +57,11 @@ type offsetBoreData struct {
 type offsetCommonData struct {
 	Radius, Tool, Offset, Lower, Upper float64
 	Chart                              int
+}
+
+type offsetPartialData struct {
+	offsetCommonData
+	Clipped bool
 }
 
 type helicalSurfaceData struct {
@@ -121,6 +127,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
 		return surfaceData{Kind: "offset-sphere-common", Frame: frameToData(x.frame), OffsetCommon: &offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}}, nil
+	case offsetPartialCommon:
+		return surfaceData{Kind: "offset-sphere-partial-common", Frame: frameToData(x.frame), PartialCommon: &offsetPartialData{offsetCommonData{x.R, x.r, x.offset, x.lower, x.upper, x.kind}, x.clipped}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -191,6 +199,9 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return nil, geom.ErrInvalid
 	}
 	if (d.Kind == "offset-sphere-common") != (d.OffsetCommon != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if (d.Kind == "offset-sphere-partial-common") != (d.PartialCommon != nil) {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
@@ -346,6 +357,14 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		}
 		s, e := newOffsetCommonChart(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
 		s.kind = x.Chart
+		return s, e
+	case "offset-sphere-partial-common":
+		x := d.PartialCommon
+		if x.Chart < partialCommonWall || x.Chart > partialCommonStrip || x.Chart == partialCommonStrip && !x.Clipped {
+			return nil, geom.ErrInvalid
+		}
+		s, _, e := newOffsetPartialCommon(context.Background(), f, x.Radius, x.Tool, x.Offset, x.Lower, x.Upper, 0)
+		s.kind, s.clipped = x.Chart, x.Clipped
 		return s, e
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)

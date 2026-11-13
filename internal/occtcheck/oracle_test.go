@@ -370,6 +370,8 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 	check("offset-sphere-through-bore", tb.Solid, e)
 	oc, e := parametric.SphereOffAxisCylinderCommon(ctx, f, 5, 1, 2, -2, 6, 1e-9)
 	check("offset-sphere-cylinder-common", oc.Solid, e)
+	pc, e := parametric.SphereOffAxisCylinderPartialCommon(ctx, f, 5, 1, 2, -2, 4.25, 1e-9)
+	check("offset-sphere-cylinder-partial-common", pc.Solid, e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

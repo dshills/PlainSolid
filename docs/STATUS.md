@@ -441,9 +441,10 @@ support the same material, including coincident floor and wall intervals.
 The off-axis through-bore shell retains both analytic rim loops and its
 inward cylindrical wall, with corresponding exact point and line queries.
 Finite off-axis intersection now assembles full planar or spherical ends
-when the cap planes do not cut part of a curved rim. The exact cap lens and
-point/line classifiers already handle partial cap material. Native assembly
-for those partial ends and general curved fragment assembly remain open.
+when the cap planes do not cut part of a curved rim. A separate native
+partial-cap construction handles one transverse upper lens containing the
+tool axis and a full lower disk. Exact cap and material point/line classifiers
+cover broader partial cuts. General curved fragment assembly remains open.
 
 ## Continuing implementation
 

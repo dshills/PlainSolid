@@ -1076,6 +1076,8 @@ int main(int argc, char** argv) {
     record(out, "offset-sphere-through-bore", BRepAlgoAPI_Cut(finiteBall, throughOffsetBore).Shape(), 1e-10);
     const auto clippedOffsetCore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2, 0, -2), gp_Dir(0, 0, 1)), 1, 8).Shape();
     record(out, "offset-sphere-cylinder-common", BRepAlgoAPI_Common(finiteBall, clippedOffsetCore).Shape(), 1e-10);
+    const auto partialOffsetCore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2, 0, -2), gp_Dir(0, 0, 1)), 1, 6.25).Shape();
+    record(out, "offset-sphere-cylinder-partial-common", BRepAlgoAPI_Common(finiteBall, partialOffsetCore).Shape(), 1e-10);
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());
