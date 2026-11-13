@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD side-opening blind cylindrical notch — 2026-11-13
+
+One finite axial cylinder crossing one rectangular stock side now forms
+a watertight notch with its true circular-segment floor. Direct Cut and
+single-tool scoped Hole share the same analytic construction. Native
+checks cover all axis signs, tool endpoint orders, centers inside and
+outside the crossed side, volume, area, bounds and STL topology.
+
+All [seven original regressions](evidence/plaincad-side-blind-notch-browser-2026-11-13.json)
+pass for guided Hole, edited Hole, the long fillet/chamfer/machining chain,
+and multi-body Extrude/Revolve Cut. A [supplemental app test](evidence/plaincad-side-blind-notch-native-2026-11-13.json)
+uses the same WASM to rebuild and reload an authored Hole and validate STL.
+Native race checks and Go vet pass. STEP for the side-opening notch and
+mixed batches combining side-opening tools remain open.
+
 ## PlainCAD STEP for overlapping circular bores — 2026-11-13
 
 The canonical STEP writer preserves the actual circular arcs, planar

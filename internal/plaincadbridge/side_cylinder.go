@@ -9,7 +9,12 @@ import (
 )
 
 func sideCylinderThroughRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame, geom.Box, bool) {
-	if tool == nil || !cardinalFrame(tool.frame) || len(stock.Vertices()) != 8 || len(stock.Edges()) != 12 || len(stock.Faces()) != 6 {
+	return sideCylinderStockRecipe(stock, tool, false)
+}
+
+func sideCylinderStockRecipe(stock brep.Solid, tool *cylinderBody, blind bool) (geom.Frame, geom.Box, bool) {
+	vertices := stock.Vertices()
+	if tool == nil || !cardinalFrame(tool.frame) || len(vertices) != 8 || len(stock.Edges()) != 12 || len(stock.Faces()) != 6 {
 		return geom.Frame{}, geom.Box{}, false
 	}
 	for _, x := range []geom.Vec3{tool.frame.XAxis(), tool.frame.YAxis(), tool.frame.XAxis().Scale(-1), tool.frame.YAxis().Scale(-1)} {
@@ -19,7 +24,7 @@ func sideCylinderThroughRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame
 		}
 		v := make([]geom.Vec3, 8)
 		good := true
-		for i, p := range stock.Vertices() {
+		for i, p := range vertices {
 			v[i] = f.ToLocal(p)
 			if f.ToWorld(v[i]) != p {
 				good = false
@@ -28,9 +33,28 @@ func sideCylinderThroughRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame
 		if !good {
 			continue
 		}
+		if blind {
+			origin := f.Origin()
+			for i, p := range vertices {
+				q := v[i]
+				if !exactAxisDistance(p.Dot(f.XAxis()), origin.Dot(f.XAxis()), q.X) ||
+					!exactAxisDistance(p.Dot(f.YAxis()), origin.Dot(f.YAxis()), q.Y) ||
+					!exactAxisDistance(p.Dot(f.ZAxis()), origin.Dot(f.ZAxis()), q.Z) {
+					good = false
+					break
+				}
+			}
+			finish := f.ToWorld(geom.Vec3{Z: tool.height})
+			if !good || !exactAxisDistance(finish.Dot(f.ZAxis()), origin.Dot(f.ZAxis()), tool.height) {
+				continue
+			}
+		}
 		box, e := geom.Bounds(v)
 		r := tool.radius
-		if e != nil || box.Min.X >= -r || box.Max.X <= r || math.Abs(box.Min.Y) >= r || box.Max.Y <= r || box.Min.Z < 0 || box.Max.Z > tool.height {
+		if e != nil || box.Min.X >= -r || box.Max.X <= r || math.Abs(box.Min.Y) >= r || box.Max.Y <= r || box.Min.Z < 0 {
+			continue
+		}
+		if blind && (box.Min.Z != 0 || box.Max.Z <= tool.height) || !blind && box.Max.Z > tool.height {
 			continue
 		}
 		origin := f.ToWorld(geom.Vec3{Z: box.Min.Z})
@@ -47,11 +71,51 @@ func sideCylinderThroughRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame
 	return geom.Frame{}, geom.Box{}, false
 }
 func sideCylinderMeasures(box geom.Box, r float64) (float64, float64) {
+	area, perimeter := sideCylinderSection(box, r)
+	return area * box.Max.Z, perimeter*box.Max.Z - 2*area
+}
+
+func sideCylinderSection(box geom.Box, r float64) (area, wallDelta float64) {
 	a := -box.Min.Y
 	sweep := math.Pi + 2*math.Asin(a/r)
 	chord := 2 * math.Sqrt((r-a)*(r+a))
-	area := r*r*sweep/2 + a*chord/2
-	return area * box.Max.Z, (r*sweep-chord)*box.Max.Z - 2*area
+	return r*r*sweep/2 + a*chord/2, r*sweep - chord
+}
+
+func sideCylinderBlindRecipe(stock brep.Solid, tool *cylinderBody) (geom.Frame, geom.Box, bool) {
+	if f, box, ok := sideCylinderStockRecipe(stock, tool, true); ok || tool == nil || !cardinalFrame(tool.frame) {
+		return f, box, ok
+	}
+	axis := tool.frame.ZAxis()
+	end := tool.frame.ToWorld(geom.Vec3{Z: tool.height})
+	if !exactAxisDistance(end.Dot(axis), tool.frame.Origin().Dot(axis), tool.height) {
+		return geom.Frame{}, geom.Box{}, false
+	}
+	f, err := geom.NewFrame(end, tool.frame.XAxis(), axis.Scale(-1))
+	if err != nil {
+		return geom.Frame{}, geom.Box{}, false
+	}
+	reversed := *tool
+	reversed.frame = f
+	return sideCylinderStockRecipe(stock, &reversed, true)
+}
+
+func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
+	if !a.planar() {
+		return Shape{}, false, nil
+	}
+	f, box, ok := sideCylinderBlindRecipe(a.solid, c.cylinder)
+	if !ok {
+		return Shape{}, false, nil
+	}
+	radius, depth := c.cylinder.radius, c.cylinder.height
+	s, err := trimmed.BoxSideCylinderBlind(context.Background(), f, -box.Min.X, box.Max.X, box.Max.Y, -box.Min.Y, box.Max.Z, radius, depth, 1e-9)
+	if err != nil {
+		return Shape{}, true, err
+	}
+	section, wall := sideCylinderSection(box, radius)
+	out, err := b.putNotchedStock(s, a.result.GeometryAssertions.Volume-section*depth, a.result.GeometryAssertions.SurfaceArea+wall*depth, a.result.Bounds)
+	return out, true, err
 }
 func (b *Bridge) sideCylinderCut(a, c stored) (Shape, bool, error) {
 	if !a.planar() || c.cylinder == nil {

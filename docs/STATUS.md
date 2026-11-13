@@ -6,6 +6,11 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+A finite blind Hole crossing one rectangular stock side now retains a
+watertight analytic notch and circular-segment floor. Seven original
+browser regressions and an authored rebuild, reload and STL check pass.
+STEP and mixed batches for this boundary remain open.
+
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The
 original eight-case Hole, Revolve, compound profile and STEP selection
