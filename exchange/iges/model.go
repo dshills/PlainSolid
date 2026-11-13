@@ -43,11 +43,12 @@ func (l Limits) defaults() (Limits, error) {
 // Model stores raw file coordinates. LengthUnit is meters per coordinate unit;
 // coordinates are not rescaled. Only model-space scale 1 is supported.
 type Model struct {
-	LengthUnit       float64
-	Entities         []Entity
-	CurvesOnSurfaces []CurveOnSurface
-	TrimmedSurfaces  []TrimmedSurface
-	Revolutions      []RevolutionSurface
+	LengthUnit        float64
+	Entities          []Entity
+	CurvesOnSurfaces  []CurveOnSurface
+	TrimmedSurfaces   []TrimmedSurface
+	TabulatedSurfaces []TabulatedSurface
+	Revolutions       []RevolutionSurface
 }
 
 // Entity contains exactly one point, curve, surface or bounded direct-curve composite.

@@ -40,6 +40,9 @@ func readGeometryMode(r io.Reader, l Limits, curved, wires bool) (Model, error) 
 	return readRevolutionMode(r, l, curved, wires, false)
 }
 func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) (Model, error) {
+	return readSweptMode(r, l, curved, wires, revolutions, false)
+}
+func readSweptMode(r io.Reader, l Limits, curved, wires, revolutions, tabulated bool) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -147,6 +150,7 @@ func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) 
 	var trims []pendingTrim
 	composites := map[int][]int{}
 	var pendingRevolutions []RevolutionSurface
+	var pendingTabulated []TabulatedSurface
 	for i := 0; i < len(sections['D']); i += 2 {
 		a, c := sections['D'][i].data, sections['D'][i+1].data
 		var first, second [9]int
@@ -163,7 +167,7 @@ func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) 
 			}
 		}
 		kind := first[0]
-		if kind != 106 && kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 && !(revolutions && kind == 120) {
+		if kind != 106 && kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 && !(revolutions && kind == 120) && !(tabulated && kind == 122) {
 			return Model{}, fmt.Errorf("iges: unsupported entity type %d", kind)
 		}
 		if second[0] != kind {
@@ -198,6 +202,32 @@ func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) 
 		values, e := parseParameters(params.String(), sep, end, &budget)
 		if e != nil {
 			return Model{}, e
+		}
+		if tabulated {
+			if kind != 126 && kind != 122 {
+				return Model{}, errors.New("iges: unsupported tabulated dependency")
+			}
+			if e := compositeSourceNumbers(110, values); e != nil {
+				return Model{}, e
+			}
+			if kind == 122 {
+				if first[6] != 0 || second[4] != 0 || len(values) < 5 {
+					return Model{}, errors.New("iges: malformed tabulated cylinder")
+				}
+				typ, e0 := intValue(values[0])
+				profile, e1 := intValue(values[1])
+				x, e2 := realValue(values[2])
+				y, e3 := realValue(values[3])
+				z, e4 := realValue(values[4])
+				if e0 != nil || e1 != nil || e2 != nil || e3 != nil || e4 != nil || typ != 122 {
+					return Model{}, errors.New("iges: invalid tabulated parameters")
+				}
+				if e := noPointers(values[5:]); e != nil {
+					return Model{}, e
+				}
+				pendingTabulated = append(pendingTabulated, TabulatedSurface{Directrix: profile, End: geom.Vec3{X: x, Y: y, Z: z}, Label: strings.TrimSpace(c[56:64]), Subscript: second[8]})
+				continue
+			}
 		}
 		if revolutions {
 			if kind != 110 && kind != 126 && kind != 120 {
@@ -458,6 +488,15 @@ func readRevolutionMode(r io.Reader, l Limits, curved, wires, revolutions bool) 
 		r.Axis = a
 		r.Generatrix = g
 		model.Revolutions = append(model.Revolutions, r)
+	}
+	for _, r := range pendingTabulated {
+		g, ok := entityIndex[r.Directrix]
+		if !ok {
+			return Model{}, errors.New("iges: missing tabulated directrix")
+		}
+		owned[r.Directrix] = true
+		r.Directrix = g
+		model.TabulatedSurfaces = append(model.TabulatedSurfaces, r)
 	}
 	for id := range subordinate {
 		if !owned[id] {

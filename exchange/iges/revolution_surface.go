@@ -64,7 +64,7 @@ func (m Model) RevolutionGeometry(index int) (geom.RevolutionSurface, error) {
 	return geom.NewRevolutionSurface(s.Curve, start, geom.Vec3{X: dir[0], Y: dir[1], Z: dir[2]}, r.AngleStart, r.AngleEnd)
 }
 func validateRevolutions(m Model) error {
-	if len(m.Revolutions) < 1 || len(m.Revolutions) > 64 || len(m.Entities) > 128 || len(m.CurvesOnSurfaces) > 0 || len(m.TrimmedSurfaces) > 0 {
+	if len(m.Revolutions) < 1 || len(m.Revolutions) > 64 || len(m.Entities) > 128 || len(m.CurvesOnSurfaces) > 0 || len(m.TrimmedSurfaces) > 0 || len(m.TabulatedSurfaces) > 0 {
 		return geom.ErrDomain
 	}
 	owned := map[int]bool{}

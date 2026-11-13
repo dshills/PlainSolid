@@ -662,3 +662,35 @@ Set `PLAINSOLID_OCCT_IGES_REVOLUTION` to its compiled path to compare original a
 PlainSolid-exported face validity, area and source-parameter position/partials.
 The helper explicitly applies OCCT's documented converter parameter map, including
 the derivative sign; no approximately corrected geometry enters the Go reader.
+
+## Standalone type-122 tabulated surfaces
+
+`ReadTabulatedSurfaces` / `WriteTabulatedSurfaces` retain type-122 records in
+`Model.TabulatedSurfaces`. Each uniquely owns one direct, continuous clamped
+full-interval type-126 spline. The record's `End` is the original terminal point
+of the generating segment, **not** a direction: displacement is exactly
+`D = End - C(start)`. Arbitrary signed displacement is allowed without direction
+normalization, provided every translated pole is exactly representable. Zero
+length, rounded translations, partial directrix intervals, closed/periodic flags,
+transforms, shared/orphan dependencies, mixed surface roots and topology fail.
+
+`Model.TabulatedGeometry(index)` returns an exact represented tensor support
+`S(u,v)=C(u)+vD` with original curve U and normalized fraction V in [0,1].
+Repeated profile weights make the denominator independent of V, and linear V
+basis coefficients prove the identity throughout the rectangle. This does not
+prove regularity, absence of self-intersection, face trimming or a B-rep shell.
+Original source scalars must survive float64 conversion exactly and source weight
+normalization must preserve exact ratios, as for type120. Model units, terminal
+point, root/curve labels and subscripts remain explicit; no rescaling occurs.
+Limits allow at most 64 roots, 64 profile entities and 4096 cumulative poles,
+plus caller parser bounds. Output is staged and read-back checked before I/O.
+Generic codecs still reject this distinct family.
+
+OCCT parameterizes the extrusion by physical distance along a unit direction,
+so `Vocct = v*|D|` and the native normalized-V partial is `|D|` times OCCT's
+physical-distance partial. The standalone `iges_tabulated.cxx` oracle explicitly
+checks this conversion for displacement (0,3,4) and its negative, with a rational
+quadratic directrix. It uses model coordinates in millimeters throughout and
+never silently rescales the source. Set `PLAINSOLID_OCCT_IGES_TABULATED` for live
+both-direction validity, area, point and derivative checks. Independent exact
+rational evaluation tests also verify the tensor at nonbinary U/V parameters.
