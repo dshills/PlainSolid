@@ -1,5 +1,32 @@
 # Verification record
 
+## PlainCAD long feature chain integration — 2026-11-13
+
+The WASM bridge resolves complete authored straight cap edges on retained stock.
+Each operation publishes one owned shape after successful construction. It
+replays fillet and chamfer with the disjoint through bore, rectangular through
+pocket, and upper boss, preserving the actual curved and planar supports.
+Cardinal frame and rectangle proofs guard tool placement. A measure-only query
+qualifies Hole scope without creating an intersection handle. Native tests
+verify the rotated and translated chain, exact bounds, retained volume and area,
+closed mesh, unchanged prior shapes, and the suppressed-pocket state. Final race
+checks pass for the bridge (16.883 seconds) and fillet package (9.291 seconds).
+Vet and an independent WASM rebuild pass.
+
+The final frozen-source browser run passes all 24 selected original cases in
+161.868 seconds, including the original long chain (12.606 seconds) and adjacent
+invalid-size recovery (6.586 seconds). Both TypeScript checks and the separate
+WebAssembly probe (7.698 seconds) pass, with zero skips, unexpected results or
+flakes. The original acceptance source differs in the staged copy only in the
+provider label. The final chain's 216-triangle STL has positive volume and
+0.0036% error against the analytic volume.
+
+Evidence is in `docs/evidence/plaincad-long-feature-chain-2026-11-13.json` from
+`/tmp/plainsolid-chain-acceptance-03`. All 691 recorded PlainSolid source hashes
+match. The independently built WASM matches the browser artifact SHA-256
+`c4c83804d6dc8e30c37a5dfd9ac915cdcfd4219b6aba8d9db8cdbd75d933b68b`.
+The original PlainCAD checkout and the other agent's main checkout were untouched.
+
 ## Incremental analytic edge chain — 2026-11-13
 
 The integration checkout imports the long-edge treatment and feature-chain

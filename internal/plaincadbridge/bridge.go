@@ -80,6 +80,9 @@ type request struct {
 	Wall              number         `json:"wall,omitempty"`
 	Origin            *vector        `json:"origin,omitempty"`
 	Normal            *vector        `json:"normal,omitempty"`
+	EdgeStart         *vector        `json:"edgeStart,omitempty"`
+	EdgeEnd           *vector        `json:"edgeEnd,omitempty"`
+	Distance          number         `json:"distance,omitempty"`
 	Radius            number         `json:"radius,omitempty"`
 	Height            number         `json:"height,omitempty"`
 	LinearDeflection  optionalNumber `json:"linearDeflection,omitempty"`
@@ -105,6 +108,7 @@ type stored struct {
 	solid    brep.Solid
 	cylinder *cylinderBody
 	bore     *boreBody
+	treated  *edgeBody
 	result   Shape
 }
 type failure struct {
@@ -195,7 +199,19 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "circle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "edgeAvailable", "fillet", "chamfer":
+		s, err := b.get(q.Handle)
+		if err != nil {
+			return nil, err
+		}
+		if q.EdgeStart == nil || q.EdgeEnd == nil {
+			return nil, errors.New("edge endpoints required")
+		}
+		if q.Op == "edgeAvailable" {
+			return map[string]bool{"available": s.edgeAvailable(q.EdgeStart.vec(), q.EdgeEnd.vec())}, nil
+		}
+		return b.treatEdge(s, q)
 	case "circle":
 		if q.Origin == nil || q.Normal == nil {
 			return nil, errors.New("circle requires origin and normal")
@@ -243,6 +259,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if a.treated != nil || c.treated != nil {
+			return b.treatedBoolean(a, c, q.Op)
+		}
 		if a.cylinder != nil || c.cylinder != nil || a.bore != nil || c.bore != nil {
 			return b.curvedBoolean(a, c, q.Op)
 		}
@@ -268,6 +287,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			if q.Origin == nil || q.Normal == nil {
 				return nil, errors.New("planarFace requires origin and normal")
 			}
+			if s.treated != nil {
+				return s.treated.planarFace(q.Origin.vec(), q.Normal.vec())
+			}
 			if s.bore != nil {
 				return s.bore.planarFace(q.Origin.vec(), q.Normal.vec())
 			}
@@ -276,7 +298,7 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
-			if s.cylinder != nil || s.bore != nil {
+			if s.cylinder != nil || s.bore != nil || s.treated != nil {
 				return nil, &failureError{"UNSUPPORTED", "shell requires planar stock"}
 			}
 			if q.OpenFace == nil || *q.OpenFace < 0 || *q.OpenFace >= len(s.solid.Faces()) || q.Wall <= 0 {
@@ -312,6 +334,13 @@ func (b *Bridge) execute(q request) (any, error) {
 				for j, value := range row {
 					m[i][j] = float64(value)
 				}
+			}
+			if s.treated != nil {
+				body, err := s.treated.transformed(m)
+				if err != nil {
+					return nil, err
+				}
+				return b.putEdge(body)
 			}
 			if s.bore != nil {
 				body, err := s.bore.transformed(m)

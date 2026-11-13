@@ -2,7 +2,7 @@
 // The class name preserves the application's import boundary; all geometry is Go.
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
-import type { ComponentPlacement } from "../document/schema";
+import type { ComponentPlacement, TopologyRef } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions } from "./KernelAdapter";
@@ -11,7 +11,11 @@ import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
 type Proof = { handle: string; geometryAssertions: GeometryAssertions; bounds: BoundingBox };
-type Handle = { proof: Proof; operation: RenderMesh["kernelOperation"]; extrusion?: { profile: SketchProfile; distance: number } };
+type Handle = {
+  proof: Proof;
+  operation: RenderMesh["kernelOperation"];
+  extrusion?: { profile: SketchProfile; distance: number; transform: SketchPlaneTransform };
+};
 type Runtime = typeof globalThis & {
   Go?: new () => { importObject: WebAssembly.Imports; run(instance: WebAssembly.Instance): Promise<void> };
   plainSolidCall?: (request: string) => string;
@@ -71,7 +75,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         throw new Error("Circular extrusion requires a finite circle and nonzero distance.");
       const center = transformPoint(transform, minX + diameter / 2, minY + otherDiameter / 2);
       const shape = owned(request({ op: "circle", origin: xyz(center), normal: xyz(transform.normal), radius: diameter / 2, height: distance }), "extrusion");
-      handle(shape).extrusion = { profile: structuredClone(profile), distance };
+      handle(shape).extrusion = { profile: structuredClone(profile), distance, transform: structuredClone(transform) };
       return shape;
     }
     const loop = (boundary: ProfileLoop) => {
@@ -80,18 +84,40 @@ export class OpenCascadeKernel implements KernelAdapter {
       return boundary.segments.map(segment => xyz(transformPoint(transform, segment.start.x, segment.start.y)));
     };
     const shape = owned(request({ op: "prism", outer: loop(profile.outerLoop), holes: profile.innerLoops.map(loop), offset: xyz(transform.normal).map(value => value * distance) }), "extrusion");
-    handle(shape).extrusion = { profile: structuredClone(profile), distance };
+    handle(shape).extrusion = { profile: structuredClone(profile), distance, transform: structuredClone(transform) };
     return shape;
   }
   cloneShape(shape: KernelShape): KernelShape {
-    const clone = owned(request({ op: "clone", handle: handle(shape).proof.handle }), handle(shape).operation, shape.id);
-    if (handle(shape).extrusion) handle(clone).extrusion = structuredClone(handle(shape).extrusion);
-    return clone;
+    return this.retainExtrusion(
+      owned(request({ op: "clone", handle: handle(shape).proof.handle }), handle(shape).operation, shape.id),
+      shape,
+    );
   }
   placeShape(shape: KernelShape, placement: ComponentPlacement): KernelShape {
     const frame = placementTransform(placement);
     const matrix = (["x", "y", "z"] as const).map(axis => [frame.u[axis], frame.v[axis], frame.normal[axis], frame.origin[axis]]);
-    return owned(request({ op: "transform", handle: handle(shape).proof.handle, matrix }), handle(shape).operation, shape.id);
+    const result = this.retainExtrusion(
+      owned(request({ op: "transform", handle: handle(shape).proof.handle, matrix }), handle(shape).operation, shape.id),
+      shape,
+    );
+    const source = handle(result).extrusion;
+    if (source) {
+      const vector = (v: { x: number; y: number; z: number }) => ({
+        x: frame.u.x * v.x + frame.v.x * v.y + frame.normal.x * v.z,
+        y: frame.u.y * v.x + frame.v.y * v.y + frame.normal.y * v.z,
+        z: frame.u.z * v.x + frame.v.z * v.y + frame.normal.z * v.z,
+      });
+      const t = source.transform;
+      source.transform = {
+        origin: transformPoint(frame, t.origin.x, t.origin.y, t.origin.z),
+        u: vector(t.u), v: vector(t.v), normal: vector(t.normal),
+      };
+    }
+    return result;
+  }
+  private retainExtrusion(result: KernelShape, source: KernelShape): KernelShape {
+    if (handle(source).extrusion) handle(result).extrusion = structuredClone(handle(source).extrusion);
+    return result;
   }
   nativeBounds(shape: KernelShape): BoundingBox { return request<Proof>({ op: "inspect", handle: handle(shape).proof.handle }).bounds; }
   private boolean(base: KernelShape, tool: KernelShape, op: "cut" | "fuse", exportUnion = false): KernelShape {
@@ -111,7 +137,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         throw new Error("Boolean join added no volume. The tool is already contained in the target body.");
       if (op === "fuse" && (after.volume > before + b.geometryAssertions.volume + tolerance || after.volume < Math.max(before, b.geometryAssertions.volume) - tolerance))
         throw new Error("Boolean union produced an inconsistent solid volume.");
-      return owned(result, op, base.id);
+      return this.retainExtrusion(owned(result, op, base.id), base);
     } catch (error) { request({ op: "dispose", handle: result.handle }); throw error; }
   }
   cut(base: KernelShape, tool: KernelShape): KernelShape { return this.boolean(base, tool, "cut"); }
@@ -137,7 +163,41 @@ export class OpenCascadeKernel implements KernelAdapter {
   }
   validatePocketFloor?: KernelAdapter["validatePocketFloor"];
   measureHoleRim?: KernelAdapter["measureHoleRim"];
-  availableExtrudeCapEdges(_shape: KernelShape): ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> { return []; }
+  private capEdge(shape: KernelShape, ref: TopologyRef): { edgeStart: number[]; edgeEnd: number[]; normal: number[] } {
+    const source = handle(shape).extrusion;
+    if (!source || ref.kind !== "edge" || ref.repairRequired || !ref.sourceEntityId ||
+        (ref.role !== "startCapPerimeter" && ref.role !== "endCapPerimeter"))
+      throw new Error("Edge treatment requires one authored straight cap edge on its original extrusion.");
+    const segments = source.profile.outerLoop.type === "polygon" ? source.profile.outerLoop.segments ?? [] : [];
+    const matches = segments.filter(segment => segment.id === ref.sourceEntityId);
+    if (matches.length !== 1 || matches[0].type !== "line")
+      throw new Error("Authored cap edge is missing, ambiguous, or curved; repair the edge reference.");
+    const segment = matches[0];
+    const height = ref.role === "startCapPerimeter" ? 0 : source.distance;
+    return {
+      edgeStart: xyz(transformPoint(source.transform, segment.start.x, segment.start.y, height)),
+      edgeEnd: xyz(transformPoint(source.transform, segment.end.x, segment.end.y, height)),
+      normal: xyz(source.transform.normal).map(value => value * Math.sign(source.distance)),
+    };
+  }
+  availableExtrudeCapEdges(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> {
+    const source = handle(shape).extrusion;
+    if (!source) return [];
+    const loop = source.profile.outerLoop;
+    if (loop.type !== "polygon") return [];
+    const edges: ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> = [];
+    for (const role of ["endCapPerimeter", "startCapPerimeter"] as const) {
+      for (const segment of loop.segments ?? []) {
+        if (segment.type !== "line") continue;
+        const ref: TopologyRef = { featureId: "proof", kind: "edge", transientId: "proof", role, sourceEntityId: segment.id };
+        const { available } = request<{ available: boolean }>({
+          op: "edgeAvailable", handle: handle(shape).proof.handle, ...this.capEdge(shape, ref),
+        });
+        if (available) edges.push({ role, sourceEntityId: segment.id });
+      }
+    }
+    return edges;
+  }
   edgeProofSignature(_shape: KernelShape): string | undefined { return undefined; }
   hasCommonVolume(base: KernelShape, tool: KernelShape): boolean {
     const a = request<Proof>({ op: "inspect", handle: handle(base).proof.handle });
@@ -182,7 +242,7 @@ export class OpenCascadeKernel implements KernelAdapter {
           // need not remove additional material in an arbitrary sequential order.
           const before = request<Proof>({ op: "inspect", handle: handle(target).proof.handle });
           const result = request<Proof>({ op: "cutMany", a: before.handle, tools: tools.filter((_, index) => hits[targetIndex][index]).map(tool => handle(tool).proof.handle) });
-          const output = owned(result, "cut", target.id);
+          const output = this.retainExtrusion(owned(result, "cut", target.id), target);
           pending.add(output);
           const after = result.geometryAssertions;
           const tolerance = Math.max(1e-9, Math.abs(before.geometryAssertions.volume) * 1e-10);
@@ -202,8 +262,34 @@ export class OpenCascadeKernel implements KernelAdapter {
   getWasmHeapCapacityBytes() { return undefined; }
   revolveProfile = unsupported;
   extrudeToFace = unsupported;
-  fillet = unsupported;
-  chamfer = unsupported;
+  private treatEdge(shape: KernelShape, refs: TopologyRef[], size: number, operation: "fillet" | "chamfer"): KernelShape {
+    try {
+      if (refs.length !== 1 || !Number.isFinite(size) || size <= 0)
+        throw new Error("Edge treatment requires one authored cap edge and a positive finite size.");
+      const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
+      const result = request<Proof>({
+        op: operation, handle: before.handle, ...this.capEdge(shape, refs[0]),
+        [operation === "fillet" ? "radius" : "distance"]: size,
+      });
+      try {
+        const after = result.geometryAssertions;
+        const tolerance = Math.max(1e-9, before.geometryAssertions.volume * 1e-10);
+        if (!after.valid || !Number.isFinite(after.volume) || after.volume <= 0 ||
+            after.solidCount !== before.geometryAssertions.solidCount ||
+            before.geometryAssertions.volume - after.volume <= tolerance)
+          throw new Error("Edge treatment did not retain valid changed solid geometry.");
+        return this.retainExtrusion(owned(result, operation, shape.id), shape);
+      } catch (error) {
+        request({ op: "dispose", handle: result.handle });
+        throw error;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message.includes(`${operation} failed`) ? message : `${operation} failed: ${message}`);
+    }
+  }
+  fillet(shape: KernelShape, refs: TopologyRef[], radius: number): KernelShape { return this.treatEdge(shape, refs, radius, "fillet"); }
+  chamfer(shape: KernelShape, refs: TopologyRef[], distance: number): KernelShape { return this.treatEdge(shape, refs, distance, "chamfer"); }
   shell(shape: KernelShape, opening: "startCap" | "endCap", wall: number): KernelShape {
     requireShellOpening(opening);
     const source = handle(shape).extrusion;

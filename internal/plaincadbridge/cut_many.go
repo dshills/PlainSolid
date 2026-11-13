@@ -29,8 +29,11 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 			return Shape{}, err
 		}
 		c := inputs[i]
-		planar = planar && c.cylinder == nil && c.bore == nil
+		planar = planar && c.cylinder == nil && c.bore == nil && c.treated == nil
 		circular = circular && c.cylinder != nil
+	}
+	if a.treated != nil {
+		return b.cutManyTreated(a, inputs)
 	}
 	if planar && a.cylinder == nil && a.bore == nil {
 		solid := a.solid

@@ -6,11 +6,15 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
-The existing PlainCAD long feature chain is the next acceptance gate. Its baseline
-run reaches the first fillet preview and fails because the adapter does not yet
-expose the analytic edge-treatment kernel. Work in the integration checkout
-brings over the relevant constructors from `main` and adds incremental rebuilds
-for the original authored edges, bore, pocket and boss.
+The imported analytic edge chain is committed as `4916667`. The frozen browser
+run passes PlainCAD's existing fillet, chamfer, Hole, pocket and boss workflow,
+including edits, downstream failure recovery, save/reopen and STL. The adjacent
+edge-treatment recovery case and the previous 22 cases pass as well. All 24
+existing cases, both TypeScript checks, and the supplemental WASM probe pass with
+zero skips or flaky results. The bridge supports individual cap edges and a
+single disjoint through bore, rectangular through pocket and upper boss on the
+qualified rectangular stock. Broader edge treatments and cuts on modified stock
+remain open. See [PlainCAD readiness](PLAINCAD_READINESS.md) for the evidence.
 
 The Go WebAssembly adapter implements scoped Hole operations with indexed
 center/target errors and atomic publication. Analytic cylinder walls and planar
@@ -31,9 +35,8 @@ intentionally rejects overlapping placement. New overlap checks are supplemental
 Opposed-entry blind overlaps, tools starting wholly inside original stock,
 tangent/unresolved contacts or depth levels, material islands, closed cavities,
 side-crossing cuts and arbitrary curved targets remain open. Next PC1 work also
-includes mixed profiles and broader modified-stock operations; Hole edits with
-downstream chamfers require PC2 edge treatments. The full replacement is not
-complete. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
+includes mixed profiles and broader modified-stock operations. The full
+replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can

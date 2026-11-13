@@ -25,6 +25,13 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if boundsSeparated(a.result.Bounds, c.result.Bounds) {
 		return result(0)
 	}
+	if a.treated != nil || c.treated != nil {
+		volume, err := treatedOverlap(a, c)
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	if a.cylinder == nil && a.bore == nil && c.cylinder == nil && c.bore == nil {
 		s, err := poly.Combine(context.Background(), a.solid, c.solid, poly.Intersection, poly.Options{})
 		if err != nil {

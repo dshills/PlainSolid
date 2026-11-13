@@ -54,8 +54,21 @@ bridge conservatively maps angular deflection to half the kernel facet-normal
 bound so sampled normal turning across cylindrical facets stays within the
 requested angle. This is a sampled check, not a surface-wide certificate. Mixed
 line/arc profiles, curved inner loops, general curved Boolean combinations,
-revolutions, fillets/chamfers, STEP, threads, lead parts, and unproved topology
+revolutions, general fillets/chamfers, STEP, threads, lead parts, and unproved topology
 references fail explicitly.
+
+A bounded rectangular-stock history supports one cap-edge fillet and one eligible
+equal-setback chamfer along the same stock length. Authored straight outer-edge
+IDs resolve to original endpoints and the physical sweep axis; native queries
+prove complete sharp edges before advertising them. Treated or split edges are
+not retargeted, and grouped perimeter treatments are unsupported. The history can
+then retain one cylindrical through-bore, one aligned rectangular through-pocket,
+and one upper rectangular boss, strictly within the surviving flat strip and
+separated from each other. Bounds and geometry use signed cardinal frames with
+translations and proper cardinal rotations; arbitrary rotations, reflections,
+scales, interacting tools, and general modified-stock operations remain outside
+this domain. The original long feature-chain and adjacent edge-treatment cases
+measure parameter edits, invalid-size/downstream recovery, save/reopen, and STL.
 
 Finite cylindrical through-cuts and blind bores are supported on qualified convex planar stock
 with parallel caps perpendicular to the cylinder axis and a strictly interior

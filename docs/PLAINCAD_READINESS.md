@@ -13,7 +13,33 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
-## Unequal-depth Hole checkpoint — 2026-11-13
+## Long native feature chain checkpoint — 2026-11-13
+
+PlainCAD's existing `long native feature chain preserves exact geometry through
+edits, blocked downstream recovery, save/open and STL` runs the original six
+features against PlainSolid WebAssembly. The test checks exact analytic volume
+and bounds, mesh volume, parameter edits, undo/redo, a failed pocket that blocks
+the boss, suppress/restore, stable feature IDs on save/reopen and STL volume.
+The adjacent original edge-treatment case checks invalid chamfer size and
+recovery. Both pass in the final run, along with the previous 22 existing cases,
+both TypeScript checks and a separate real-WASM probe. The 24-case acceptance
+stage takes 161.868 seconds with zero skips, failures or flakes. The long chain
+itself passes in 12.606 seconds. The [source-hashed report](evidence/plaincad-long-feature-chain-2026-11-13.json)
+records all 25 cases and the tested WASM. Its 691 source hashes match the final
+tree, and an independent WASM rebuild matches the tested artifact.
+
+The analytic construction comes from `main` and is retained on the integration
+branch in `4916667`. The bridge resolves complete straight edges from authored
+extrusion endpoints against the current retained geometry. The chain supports a
+single longitudinal cap fillet and one equal-setback chamfer on a supported
+remaining edge of rectangular stock. Through bores, through rectangular
+pockets, and upper rectangular bosses keep disjoint interior footprints and
+preserve the analytic fillet and chamfer. There is room for one of each feature.
+Signed cardinal placements require represented geometry to survive the map.
+Grouped edge operations, interacting tools on treated stock, and general
+curved Boolean composition remain open.
+
+## Earlier unequal-depth Hole checkpoint — 2026-11-13
 
 The analytic layered constructor is committed as `302184f`. It supports unequal
 blind depths and blind/through mixtures from a common original stock opening
@@ -319,8 +345,8 @@ selected PlainSolid build and record unsupported cases rather than removing them
 Scoped Hole now implements atomic output publication and indexed center/target
 errors, with analytic blind/through cuts in its qualified convex-stock domain.
 Retain the consolidated regression selection recorded above. Remaining work
-includes opposed-entry blind overlaps and mixed profiles, broader curved target bodies,
-and Hole editing that depends on downstream chamfers/PC2 edge treatments. Use the
+includes opposed-entry blind overlaps, mixed profiles, broader curved target
+bodies, and more edge-treatment combinations and reference workflows. Use the
 first failing geometric assertion or explicit unsupported operation as the next
 implementation task; do not relax the test to match the implementation.
 

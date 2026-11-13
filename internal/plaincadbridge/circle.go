@@ -109,6 +109,9 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 	if err != nil {
 		return mesh.Mesh{}, err
 	}
+	if s.treated != nil {
+		return s.treated.tessellate(o)
+	}
 	if s.bore != nil {
 		return s.bore.solid.Tessellate(context.Background(), o)
 	}
