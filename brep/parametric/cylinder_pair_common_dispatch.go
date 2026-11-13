@@ -33,8 +33,8 @@ type FiniteCylinderPairCommonResult struct {
 // FiniteCylinderPairCommon selects a native construction for two finite
 // cylinders. It handles coordinate-parallel axes, unclipped nonparallel
 // crossing or exactly placed skew axes, and selected perpendicular caps on
-// signed coordinate axes of arbitrary nonzero scale. All
-// input raw axes and cap limits retain their original meaning. Unsupported
+// signed coordinate axes of arbitrary nonzero scale. Raw axes and cap limits
+// retain their original meaning. Unsupported
 // arrangements fail without returning partial solids. A tangent cap that
 // retains the entire crossing common adds no planar boundary face.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
@@ -287,12 +287,21 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	guard := new(big.Rat).Add(q(r), new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance)))
-	before := func(x float64) bool { return q(x).Cmp(new(big.Rat).Neg(guard)) < 0 }
-	after := func(x float64) bool { return q(x).Cmp(guard) > 0 }
+	before := func(x float64) bool { return x <= -r }
+	after := func(x float64) bool { return x >= r }
 	clear := func(w [2]float64) bool { return before(w[0]) && after(w[1]) }
+	// These charts use the nonclipping cap limits only as clearance
+	// witnesses. An exact supporting cap can be replaced by an artificial
+	// farther witness because no interior of the common lies beyond it.
+	far := func(x float64) float64 {
+		if q(x).Cmp(guard) > 0 {
+			return x
+		}
+		return r * 2
+	}
 	interior := func(x float64) bool { return x > -r && x < r }
 	if clear(ends[1]) {
-		z := min(-ends[1][0], ends[1][1])
+		z := far(min(-ends[1][0], ends[1][1]))
 		l, u := ends[0][0], ends[0][1]
 		if interior(l) && interior(u) {
 			out, e := PerpendicularCylinderSlab(ctx, center, r, l, u, z, tolerance, geom.ExactCurvePlaneEventOptions{})
@@ -303,13 +312,13 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 		}
 		if before(l) && interior(u) {
 			if u == 0 {
-				out, e := PerpendicularCylinderEquatorHalf(ctx, center, r, -l, z, tolerance, false)
+				out, e := PerpendicularCylinderEquatorHalf(ctx, center, r, far(-l), z, tolerance, false)
 				if e != nil {
 					return empty, e
 				}
 				return FiniteCylinderPairCommonResult{out.Solid, CylinderCommonPerpendicularCap, [2][]int{out.XAxisFaces, out.ZAxisFaces}, [2][]int{}, [2][]int{{out.CapFace}, nil}}, nil
 			}
-			out, e := PerpendicularCylinderAlgebraicCap(ctx, center, r, u, -l, z, tolerance, geom.ExactCurvePlaneEventOptions{})
+			out, e := PerpendicularCylinderAlgebraicCap(ctx, center, r, u, far(-l), z, tolerance, geom.ExactCurvePlaneEventOptions{})
 			if e != nil {
 				return empty, e
 			}
@@ -349,7 +358,7 @@ func finiteCanonicalPerpendicularCapCommon(ctx context.Context, center geom.Vec3
 	x, ok := centerCapHalf(ends[0], before, after)
 	z, ok2 := centerCapHalf(ends[1], before, after)
 	if ok && ok2 {
-		out, e := PerpendicularCylinderQuadrant(ctx, center, r, x.length, z.length, tolerance, x.positive, z.positive)
+		out, e := PerpendicularCylinderQuadrant(ctx, center, r, far(x.length), far(z.length), tolerance, x.positive, z.positive)
 		if e != nil {
 			return empty, e
 		}

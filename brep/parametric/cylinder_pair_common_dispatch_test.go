@@ -218,3 +218,40 @@ func TestFiniteCylinderPairCommonTangentCaps(t *testing.T) {
 		t.Fatal("contact still owns the original raw cap", loc, mask, e)
 	}
 }
+
+func TestFiniteCylinderPairCommonClippedWithSupportingCaps(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 1}, Radius: 5, Min: -5, Max: 2}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -5, Max: 5}
+	for _, c := range []struct {
+		x, z [2]float64
+		kind CylinderCommonConstruction
+	}{
+		{[2]float64{-5, 2}, [2]float64{-5, 5}, CylinderCommonPerpendicularCap},
+		{[2]float64{-3, 2}, [2]float64{-5, 5}, CylinderCommonPerpendicularSlab},
+		{[2]float64{0, 5}, [2]float64{-5, 0}, CylinderCommonPerpendicularQuadrant},
+	} {
+		a.Min, a.Max, b.Min, b.Max = c.x[0], c.x[1], c.z[0], c.z[1]
+		tight, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+		if e != nil || tight.Construction != c.kind {
+			t.Fatal(c, tight.Construction, e)
+		}
+		for _, v := range []*float64{&a.Min, &a.Max, &b.Min, &b.Max} {
+			if math.Abs(*v) == 5 {
+				*v = math.Copysign(6, *v)
+			}
+		}
+		wide, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+		if e != nil || tight.Construction != wide.Construction {
+			t.Fatal(c, wide.Construction, e)
+		}
+		pt, e := tight.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+		if e != nil {
+			t.Fatal(e)
+		}
+		pw, e := wide.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+		if e != nil || pt != pw {
+			t.Fatal("touching the support changed material", c, pt, pw, e)
+		}
+	}
+}
