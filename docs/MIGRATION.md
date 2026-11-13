@@ -19,7 +19,7 @@ operation and exchange the geometry through a format both kernels support.
 | Signed polygon extrusion with circular holes | `trimmed.ExtrudePolygonWithHoles` builds a convex outer profile with strictly interior, disjoint through bores and blind pockets with planar floors in the sketch frame. |
 | `BRepPrimAPI_MakeCylinder`, sphere, cone or torus | `brep/parametric` analytic primitives; use `trimmed.FromParametric` if you also need face wires. |
 | `BRepPrimAPI_MakeRevol` with a polygon meridian | `trimmed.RevolvePolygon` accepts signed partial sweeps and a full turn, with concave meridian caps and an optional contiguous axis side. |
-| `BRepPrimAPI_MakeRevol` with an off-axis disk meridian | `trimmed.RevolveCircle` constructs a signed torus elbow or a full ring torus in the supplied frame. |
+| `BRepPrimAPI_MakeRevol` with an off-axis disk meridian | `trimmed.RevolveCircle` constructs a signed torus elbow or a full ring torus in the supplied frame. `RevolveCircleCertified` certifies a closed display against the ideal sweep. |
 | Constant-lead helical sweep of a polygon | `trimmed.SweepHelicalPolygon` retains analytic thread flank supports, shared helical edges, and planar ends for a strictly positive-radius profile whose axial width is less than one lead. `HelicalCylinderCommon` restricts a convex sweep to a coaxial radial band when axial caps do not cut it. |
 | Blind-ended helical grooves on a cylinder | `trimmed.GrooveCylinderWithHelicalStarts` cuts separated convex profiles that meet the original wall in one side, using a pitch-matched seam to keep multi-turn openings in one chart. |
 | Blind-ended internal helical grooves | `trimmed.GrooveTubeWithHelicalStarts` cuts the inner wall of an annular cylinder and retains both annular caps. |

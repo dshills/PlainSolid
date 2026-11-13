@@ -865,3 +865,19 @@ uses the dimensions from the PlainCAD scenario; this particular fixture
 rounds vertical corners. A separate long-cap treatment reproduces the
 application's horizontal fillet and opposite chamfer and tests both analytic
 surfaces. The integrated horizontal feature chain is tracked separately.
+
+The actual long-cap edge treatment fixture retains a cylindrical horizontal
+fillet and a planar chamfer on the opposite cap edge. The native chain grafts
+a circular through-bore, rectangular through-pocket, and boss onto those
+supports, preserves original model-edge and vertex IDs, and matches the
+PlainCAD fixture's analytic mass formula. Native reload, genus-two closed
+topology, and a complete mesh contact check pass. The generic display uses
+an explicit 128-subdivision budget; its distance is not certified here.
+
+The certified circular revolve display checks both signed elbow directions
+and a periodic full torus, including shared rim indices and independent
+faceted volume. A tilted-frame fixture checks the reported ideal-boundary
+enclosure against the analytic parameter correspondence. Exact display
+contact and positive orientation checks are independent of the error bound.
+Signed elbow queries qualify both planar caps, side hits and material
+classification before and after native reload for angles below and above π.

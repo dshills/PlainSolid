@@ -55,7 +55,11 @@ round cap with circular holes. The exact polygon sweep also supports recognized
 round caps. Mixed line and quarter-circle rectangular profiles retain analytic
 rounded walls, through bores and blind floors, and have a certified mesh and
 STEP writer. The tolerant analytic STEP reader separately verifies selected
-independently authored polygon stock with through and blind holes.
+independently authored polygon and round stock with through and blind holes.
+The native PlainCAD long feature layout now combines horizontal fillet,
+opposite chamfer, through bore, rectangular through-pocket and top boss.
+Its mesh passes exact contact checks with a larger subdivision budget;
+browser acceptance of this chain remains separate.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|
