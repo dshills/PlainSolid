@@ -1,0 +1,861 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "backend": "plainsolid-go-wasm",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "1c591283824087a688489b238006e49344aa9e48",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "bd20b48a9032eb5d9b5ece6fc5c6393f3ed0615d1427017c70facd63812bb269"
+  },
+  "plainSolidIdentity": {
+    "head": "5a69c0bf9e1b442f570bffe06f590cd913d22438",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "wasmSha256": "55f85e2cfba2c79ea640fa97a808660911eb2c2011d4e4a1c50e451d781aeb00",
+  "readinessSha256": "87a4b31a24f633a4f173e091185a5e5be8f6919aaff7829b7a32bca428593d8c",
+  "resultSha256": "18583949cbb737e8329b4e6ceee12257beddfb7376518476228a9c70144da5d8",
+  "originalConfigSha256": "f5e9e86da979866034e56f32ea8afe423fb4b5d97fd6110473a18d79a3fad64d",
+  "derivedConfigSha256": "f5e9e86da979866034e56f32ea8afe423fb4b5d97fd6110473a18d79a3fad64d",
+  "originalSourceVerification": {
+    "verified": 841,
+    "missing": []
+  },
+  "runtimeAdaptations": [
+    {
+      "file": "src/cad/features/rebuildGraph.ts",
+      "purpose": "Report existing native-worker progress at each executed feature.",
+      "beforeSha256": "0d12476e27bec686f0cde64527912883d2e3b13d8fbcdcb5a2fe925762561d32",
+      "afterSha256": "5de4ae9be5ddbce63138b9ecd6a1e7be5708c3e085b202e77206e708e6f65452"
+    },
+    {
+      "file": "src/cad/worker/displayMeshClient.ts",
+      "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+      "beforeSha256": "a38366457cc22d78492f740bb0e8faba553839a8cc633614883c626a626e14da",
+      "afterSha256": "c317ad79ee044cf7995a437691e9b07e32b3b80882213d3808d04cfbc95c4436"
+    },
+    {
+      "file": "src/state/useCadStore.ts",
+      "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+      "beforeSha256": "8d6ef433dff777daaad7683d76ef1c3944f093a00565a6a8dc3d1fe708865448",
+      "afterSha256": "6cfff87201b67d016572ad156fa5108617a8b560a83d0fb2c66f7d365d0ac0db"
+    },
+    {
+      "file": "src/cad/worker/geometryWorker.ts",
+      "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+      "beforeSha256": "334561e0fbed785a6160c34702fb5c4e6db5b5839b0109bd67bc72a3e8206eb9",
+      "afterSha256": "d1e0c48cd4f62f6c0051f9c045599451a39620b56d6732a3f79dc7f2f6d8487a"
+    }
+  ],
+  "port": "5280",
+  "selection": {
+    "test": "all production originals",
+    "grep": null
+  },
+  "stats": {
+    "startTime": "2026-11-13T18:57:09.581Z",
+    "duration": 378849.178,
+    "expected": 66,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "startedAt": "2026-11-13T18:56:41.683Z",
+  "finishedAt": "2026-11-13T19:03:28.464Z",
+  "tests": [
+    {
+      "title": "built docked AI contains its input and preserves native geometry and draft under CSP",
+      "file": "ai-canvas-shell.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2199,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built AI drawer fetches real gateway status under CSP; fixed AI recipes preview and apply native editable geometry",
+      "file": "ai-drawer.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3021,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built assembly controls apply native collision motion and retain positioned solids under CSP",
+      "file": "assembly-joints.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2675,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built command agent previews native geometry and applies with AI Undo and Redo",
+      "file": "command-agent.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4404,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "stages a non-template scoped cut on the main canvas and accepts it with one Undo",
+      "file": "../e2e/commandPlansAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2244,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "cancels native parameter proposals and rejects editing from replaced sessions",
+      "file": "../e2e/commandPlansAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1989,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "UI and JSON commands share parameter history, native geometry and stale-session guards",
+      "file": "../e2e/sharedCommandAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3247,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "CLI uses the production command transport for modeling, undo, save/open and STL/drawing downloads",
+      "file": "../e2e/sharedCommandAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6416,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "CLI native pointer commands draw a non-template sketch and apply a real extrude preview",
+      "file": "../e2e/sharedCommandAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4125,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built fabrication package proves the same native variant under CSP",
+      "file": "configuration-package.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5026,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+      "file": "csp.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5942,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production CSP blocks inline scripts, JS eval and remote fetch",
+      "file": "csp.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 525,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production CSP permits explicit native scope capture and subsequent STL export",
+      "file": "csp.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2385,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built app draws and dimensions a native sketch under production CSP",
+      "file": "csp.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4754,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built export hub hands off native STEP and PNG under production security headers",
+      "file": "export-hub.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3832,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "CLI creates a native face pocket, edits its depth and undoes the whole plan",
+      "file": "../e2e/facePocketCommandsAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4193,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "AI uses current native face IDs for an explicit pocket and a one-step Undo",
+      "file": "../e2e/facePocketCommandsAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3803,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "semantic Through All and To Face use explicit native cut targets",
+      "file": "../e2e/facePocketCommandsAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4579,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 14 associative hole pattern: production native edit, source update, save/open and STL",
+      "file": "feature-pattern-schema.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5623,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built fitted-part command validates native geometry under CSP and exports its own material",
+      "file": "fitted-part.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2827,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built focused workspace starts quietly and edits/exports a native example under CSP",
+      "file": "focused-workspace.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3115,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built Focused precise sketch and inline dimension edit produce native STL under CSP",
+      "file": "focused-workspace.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4835,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built live relay and CLI edit the current project with native geometry and shared Undo",
+      "file": "live-session.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5127,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built pocket floor and hole rim use the native worker under CSP",
+      "file": "machined-references.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12826,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "records parameter intent and replays a typed native preview as one reversible edit",
+      "file": "../e2e/macrosAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3910,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built CNC coach applies a verified native hole correction under production CSP",
+      "file": "manufacturing-coach.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4723,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production CSP: controlled current-native-model and validated STL download timings",
+      "file": "performance.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 50371,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 17 production world links preserve different poses, native bounds and parameter associations through save/open",
+      "file": "placed-projection-schema.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3923,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production CSP permits native viewer and dimensioned SVG PNG downloads",
+      "file": "png-export.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3179,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built product configurations compare and batch-export native variants under CSP",
+      "file": "product-family.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2053,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built gallery serves native assets, previews under CSP, opens an editable example and downloads its actual model PNG",
+      "file": "project-gallery.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5289,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "gallery opens Trapezoidal lead screw and nut with its cover and native threads",
+      "file": "project-gallery.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 7352,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "gallery opens Left-hand Acme lead screw and nut with its cover and native threads",
+      "file": "project-gallery.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 8989,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "gallery opens M6 socket screw and tapped collar with its cover and native threads",
+      "file": "project-gallery.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 18091,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "gallery opens Quarter-inch UNC screw and tapped block with its cover and native threads",
+      "file": "project-gallery.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 17204,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 16 native component poses preserve orientation, parameters, save/open and separate STL shells",
+      "file": "project-schema.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4284,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production native Render preset changes PNG pixels, preserves STL and restores public controls under CSP",
+      "file": "render-view.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4502,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 1: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3838,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 2: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3526,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 3: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4448,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 4: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5973,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 5: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4302,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 6: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3933,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 7: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3778,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 8: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3744,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 9: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4135,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 10: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3719,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 11: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3747,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 12: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4518,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 13: production native migration, edit, save/open and STL preserve intent",
+      "file": "schema-fixtures.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4374,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "semantic commands produce editable native parts, scoped holes, placements and save/open geometry",
+      "file": "../e2e/semanticCadCommandsAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3764,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "semantic revolve preserves XZ orientation and native edge treatments change actual solids",
+      "file": "../e2e/semanticCadCommandsAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4251,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "production native Shell and stable plans preserve editable solids under CSP",
+      "file": "../e2e/shellAcceptance.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 8562,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built native shop drawing exports current dimensions and bore callouts under CSP",
+      "file": "shop-drawing.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2412,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "schema 15 preserves linked cover dimensions through native parameter edit, save/open and multibody STL",
+      "file": "sketch-projection-schema.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3988,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built STEP export reimports posed analytic and drilled solids under CSP with exact native proofs and saved parameter edits",
+      "file": "step-export.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5878,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built STEP import validates the placed native solid, reopens and exports STL under CSP",
+      "file": "step-import.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3425,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built studio lazy controls and real material/backdrop PNG export work under CSP",
+      "file": "studio.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4996,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built timeline story renders native worker thumbnails under CSP with exact before and after volumes",
+      "file": "timeline-story.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1641,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "built workbench loads editors on demand and retains the AI draft across hiding",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2096,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench edits Extrude via a solid dimension and saves/reopens/exports real geometry under CSP",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5622,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench edits Revolve via a solid dimension and saves/reopens/exports real geometry under CSP",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11149,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench edits Hole via a solid dimension and saves/reopens/exports real geometry under CSP",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 7136,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench edits Fillet via a solid dimension and saves/reopens/exports real geometry under CSP",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9811,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench edits Chamfer via a solid dimension and saves/reopens/exports real geometry under CSP",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 8209,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "default workbench keyboard dock controls and compact navigation work in all three themes",
+      "file": "workbench.spec.ts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1049,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

@@ -2012,3 +2012,12 @@ records the exact app and kernel revisions. Production preflight verified all
 841 recorded original app files against the pinned Git tree and replayed the
 three display runtime edits from those originals before accepting the staged
 source. No application source checkout was modified.
+
+The same `1c59128`/`5a69c0b` archive and WASM passed all **66 original
+production cases in one run** at port 5280, with no failures, retries, or
+skips. The original production configuration hash was unchanged. The controlled
+native model and validated STL performance fixture finished in 50.4 seconds
+within its existing 90-second budget. See the
+[complete production record](evidence/plaincad-reconciled-production-2026-11-13.json)
+for fixture and source identities. Later integration changes require their own
+qualification.
