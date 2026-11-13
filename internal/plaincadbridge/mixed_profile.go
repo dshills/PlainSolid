@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math"
+
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -273,28 +275,29 @@ func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
 		}
 		body.rounded = &roundedStock{frame: frame, profile: profile, height: float64(p.Height)}
 	}
-	if p.Kind == "disk" && len(p.Circles) == 1 {
-		center, err := mixedPoint(p.Center)
-		if err != nil {
-			return Shape{}, err
+	if p.Kind == "disk" {
+		// newMixedProfile validated this exact frame and every loop above.
+		f, _ := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
+		center, _ := mixedPoint(p.Center)
+		height, radius := float64(p.Height), float64(p.Radius)
+		disk := &step.DiskHoleExtrusionBody{
+			Name: "PlainSolid", Frame: f, Height: height,
+			Outer: trimmed.ExtrusionCircle{Center: center, Radius: radius},
+			Holes: make([]trimmed.ExtrusionCircle, len(p.Circles)),
 		}
-		hole, err := mixedPoint(p.Circles[0].Center)
-		if err != nil {
-			return Shape{}, err
+		for i, circle := range p.Circles {
+			hole, _ := mixedPoint(circle.Center)
+			disk.Holes[i] = trimmed.ExtrusionCircle{Center: hole, Radius: float64(circle.Radius)}
 		}
-		if center == hole {
-			f, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
-			if err != nil {
-				return Shape{}, err
-			}
-			height := float64(p.Height)
+		body.stepDisk = disk
+		if len(disk.Holes) == 1 && center == disk.Holes[0].Center {
 			origin := f.ToWorld(geom.Vec3{X: center.X, Y: center.Y, Z: min(0, height)})
 			frame, err := geom.NewFrame(origin, f.XAxis(), f.ZAxis())
 			if err != nil {
 				return Shape{}, err
 			}
-			body.sector = &radialSector{frame: frame, inner: float64(p.Circles[0].Radius),
-				radius: float64(p.Radius), height: math.Abs(height), angle: 2 * math.Pi}
+			body.sector = &radialSector{frame: frame, inner: disk.Holes[0].Radius,
+				radius: radius, height: math.Abs(height), angle: 2 * math.Pi}
 		}
 	}
 	if p.Kind == "polygon" && len(p.Circles) == 1 {

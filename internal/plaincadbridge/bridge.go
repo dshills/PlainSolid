@@ -436,7 +436,7 @@ func (b *Bridge) execute(q request) (any, error) {
 				sector.inner = c.cylinder.radius
 				return b.putRadialSector(sector)
 			}
-			if result, handled, err := b.cutCircularStockBore(a, c); handled {
+			if result, handled, err := b.cutCircularStockBores(a, []stored{c}); handled {
 				return result, err
 			}
 		}
