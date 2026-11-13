@@ -1011,3 +1011,9 @@ line intervals. The unequal native solid matches independent slice volume
 and OCCT area, volume, and centroid. Native reload preserves its supports,
 and the certified display passes closure and self-contact tests. Algebraic
 sphere/cylinder tests now treat retained uncut poles as a positive case.
+
+The skew orthogonal common matches independent rectangle slice integration
+and OCCT mass properties. The fixture preserves placement, orientation,
+and native chart data on reload. Its certified display has no detected
+self-contacts. Equal-radius native equator-cap tests retain one half of the
+Steinmetz solid and verify analytic area, volume, and centroid.

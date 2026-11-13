@@ -470,6 +470,9 @@ General curved fragment assembly remains open.
 Perpendicular intersecting cylinders now have exact four-cap contact branch
 and material queries. Native intersection retains both cylindrical supports
 for equal and unequal radii when no finite end clips the result.
+Skew orthogonal cylinders retain both supports when one radial projection
+is strictly inside the other. The exact support graph also covers overlapping
+projections, isolated tangency, and skew tangent nodes beyond that shell case.
 
 ## Continuing implementation
 

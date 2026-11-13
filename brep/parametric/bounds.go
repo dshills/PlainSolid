@@ -190,6 +190,21 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		if a.swap {
 			x, z = z, x
 		}
+	case skewCylinderChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < -1 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var err error
+		f, err = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			return geom.Box{}, err
+		}
+		x, y, z = scalarBounds{-a.small, a.small}, scalarBounds{-a.small, a.small}, scalarBounds{-a.large, a.large}
+		if a.swap {
+			x, z = z, x
+		} else {
+			y = scalarBounds{math.Nextafter(a.shift-a.small, math.Inf(-1)), math.Nextafter(a.shift+a.small, math.Inf(1))}
+		}
 	case toolBoreChart:
 		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain

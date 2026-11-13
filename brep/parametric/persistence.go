@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 
 	"plainsolid/geom"
 )
@@ -51,6 +53,12 @@ type surfaceData struct {
 	DoubleCommon    *offsetDoubleData        `json:",omitempty"`
 	SameSideCommon  *offsetDoubleData        `json:",omitempty"`
 	UnequalCylinder *unequalCylinderData     `json:",omitempty"`
+	SkewCylinder    *skewCylinderData        `json:",omitempty"`
+}
+
+type skewCylinderData struct {
+	unequalCylinderData
+	Shift float64
 }
 
 type unequalCylinderData struct {
@@ -146,6 +154,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "steinmetz-cylinder", Center: &x.center, A: x.radius, Steinmetz: &[2]int{x.axis, x.sign}}, nil
 	case unequalCylinderCommonChart:
 		return surfaceData{Kind: "perpendicular-cylinder-common", UnequalCylinder: &unequalCylinderData{x.center, x.small, x.large, x.k, x.sign, x.swap}}, nil
+	case skewCylinderChart:
+		return surfaceData{Kind: "skew-cylinder-common", SkewCylinder: &skewCylinderData{unequalCylinderData{x.center, x.small, x.large, x.k, x.sign, x.swap}, x.shift}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
@@ -222,6 +232,24 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "skew-cylinder-common") != (d.SkewCylinder != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if d.SkewCylinder != nil {
+		x := d.SkewCylinder
+		if !x.Center.IsFinite() || !finite(x.Small) || !finite(x.Large) || !finite(x.Shift) || x.Small <= 0 || x.Large <= x.Small || x.Shift == 0 || x.Chart < 0 || x.Chart > 1 || x.Sign != 1 && x.Sign != -1 {
+			return nil, geom.ErrInvalid
+		}
+		q := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
+		if new(big.Rat).Add(q(x.Small), q(math.Abs(x.Shift))).Cmp(q(x.Large)) >= 0 {
+			return nil, geom.ErrInvalid
+		}
+		offset := x.Shift
+		if !x.Swap {
+			offset = -offset
+		}
+		return skewCylinderChart{x.Center, x.Small, x.Large, x.Shift, offset, x.Chart, x.Sign, x.Swap}, nil
+	}
 	if (d.Kind == "perpendicular-cylinder-common") != (d.UnequalCylinder != nil) {
 		return nil, geom.ErrInvalid
 	}
