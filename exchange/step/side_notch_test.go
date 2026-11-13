@@ -21,12 +21,15 @@ func TestSideNotchSTEP(t *testing.T) {
 		inset  float64
 		mixed  bool
 		depth  float64
+		corner bool
 	}{
-		{geom.Vec3{Z: 1}, 1, false, 6},
-		{geom.Vec3{Y: -1}, -1, false, 6},
-		{geom.Vec3{X: 1}, 1, true, 6},
-		{geom.Vec3{Y: 1}, -2.5, false, 20},
-		{geom.Vec3{X: -1}, 1, true, 20},
+		{geom.Vec3{Z: 1}, 1, false, 6, false},
+		{geom.Vec3{Y: -1}, -1, false, 6, false},
+		{geom.Vec3{X: 1}, 1, true, 6, false},
+		{geom.Vec3{Y: 1}, -2.5, false, 20, false},
+		{geom.Vec3{X: -1}, 1, true, 20, false},
+		{geom.Vec3{Z: 1}, 0, false, 6, true},
+		{geom.Vec3{Y: -1}, 0, false, 20, true},
 	} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, tc.normal)
 		if err != nil {
@@ -34,6 +37,9 @@ func TestSideNotchSTEP(t *testing.T) {
 		}
 		p := SideNotchBody{Name: "side-opening bore", Frame: f, Left: 10, Right: 10, Back: 19,
 			Inset: tc.inset, Length: 20, Radius: 3, Depth: tc.depth}
+		if tc.corner {
+			p.Left = 0
+		}
 		if tc.mixed {
 			p.Through = []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: -4, Y: 9}, Radius: 1}}
 			p.Blind = []trimmed.ExtrusionBlindHole{
@@ -68,7 +74,7 @@ func TestSideNotchSTEP(t *testing.T) {
 				t.Fatal(err)
 			}
 			ctx := context.Background()
-			s, err := trimmed.BoxSideCylinderWithBores(ctx, p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+			s, err := p.Solid(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -1,0 +1,70 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "453517ee92e6c5f09054aac18628f478f3e88fdd2f6e68e3875a33381e5e8c1f",
+  "supplemental": {
+    "report": "/tmp/plainsolid-corner-step-browser-5385/browser-results.json",
+    "reportSha256": "98fd0e5448dff016227f3a2f931f0a56ee20b474eb77e22900acd449dc6eeb25",
+    "sourceSha256": "94835cbe24bfb11f9f33720ff2cd832c209c2044514326f40316c4868e4cb429",
+    "summary": {
+      "startTime": "2026-11-13T22:17:16.810Z",
+      "duration": 25828.348,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "worldBounds": [
+      [
+        7,
+        -19,
+        19
+      ],
+      [
+        27,
+        -11,
+        39
+      ]
+    ],
+    "e2eTypecheck": "passed",
+    "tests": [
+      {
+        "depth": "throughAll",
+        "durationMs": 10830,
+        "analyticVolume": 3143.4513322353837,
+        "surfaceArea": 1415.5619449019237,
+        "stlTriangles": 44,
+        "stlSignedVolume": 3143.8139789061597,
+        "stepSha256": "9d5d519bee3f6814168de0cc1837778204a07b8a162f5099e2d1706237160cdc",
+        "stlSha256": "81cefa369df712aa6f223b7b1ab7af61f5efde1e91742ed14ba9bfc3b275a67a"
+      },
+      {
+        "depth": "blind",
+        "durationMs": 10814,
+        "analyticVolume": 3157.588499176538,
+        "surfaceArea": 1432.2743338823082,
+        "stlTriangles": 58,
+        "stlSignedVolume": 3157.8604841796214,
+        "stepSha256": "4c7bc33718562c8ac6a008d84d6e0f59a56529bf15a7251ce9c8910402aadd82",
+        "stlSha256": "5c38bf0c4995d965d04b8edc1e241a09afabfe95d840c7e36aa15c7a73119d3f"
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 13.126,
+    "exchange/step": 2.003,
+    "brep/trimmed": 3.563
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestSideNotchSTEP",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "cases": 7,
+    "cornerCases": 2,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}

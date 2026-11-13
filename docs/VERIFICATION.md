@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD STEP for quarter-circle corner Holes — 2026-11-13
+
+The canonical notch codec now supports the existing rectangular stock
+corner cuts, including the blind floor and through-all boundary. All
+[ten original browser cases](evidence/plaincad-corner-step-browser-2026-11-13.json)
+pass on PlainCAD `50432ed`, including Hole Edit, multi-body cuts and STEP.
+Both [same-WASM authored corner cases](evidence/plaincad-corner-step-native-2026-11-13.json)
+preserve placed bounds and analytic measures through STEP export and
+import, project reopen and validated STL. The independent OCCT reader
+matches volume, area and centroid in both corner cases. Focused race
+checks and Go vet pass.
+
 ## PlainCAD STEP for a one-side through notch — 2026-11-13
 
 A qualified through-all Hole opening one rectangular stock side now

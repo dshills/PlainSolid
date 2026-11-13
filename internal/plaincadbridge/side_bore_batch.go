@@ -26,6 +26,9 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 	volume, area := a.result.GeometryAssertions.Volume, a.result.GeometryAssertions.SurfaceArea
 	if a.analytic != nil && a.analytic.sideNotch != nil {
 		p = *a.analytic.sideNotch
+		if p.Left == 0 {
+			return Shape{}, false, nil
+		}
 		bores = sideStockBores(p)
 	} else {
 		if !a.planar() || len(tools) < 2 {
@@ -103,7 +106,7 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: bore.circle, Depth: bore.high - bore.low, OppositeCap: bore.low != 0})
 		}
 	}
-	solid, err := trimmed.BoxSideCylinderWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+	solid, err := p.Solid(context.Background())
 	if err != nil {
 		return Shape{}, true, err
 	}
@@ -128,6 +131,9 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 		return 0, false, nil
 	}
 	p := *a.analytic.sideNotch
+	if p.Left == 0 {
+		return 0, false, nil
+	}
 	hole, low, high, ok := sideNotchBore(p, c.cylinder)
 	if !ok {
 		return 0, true, geom.ErrUnrepresentable

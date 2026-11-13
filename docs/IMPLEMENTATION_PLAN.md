@@ -50,6 +50,7 @@ opposed bore layers and round-trips qualified STEP boundaries. Rectangular stock
 retains a qualified blind or through side-opening notch and supports disjoint
 interior bores in the same batch. Both families have focused original regressions and
 independent OCCT exchange measurements.
+The existing blind and through quarter-circle corner cuts also round-trip STEP.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The latest consolidated development run passes

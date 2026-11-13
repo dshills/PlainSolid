@@ -96,15 +96,16 @@ func TestPlacedSideCrossingBlindCylinderCut(t *testing.T) {
 
 func TestPlainCADSideNotchSTEPRoundTrip(t *testing.T) {
 	for _, depth := range []float64{6, 10} {
-		checkPlainCADSideNotchSTEP(t, depth)
+		checkPlainCADSideNotchSTEP(t, vector{10, 1, 0}, depth)
+		checkPlainCADSideNotchSTEP(t, vector{}, depth)
 	}
 }
 
-func checkPlainCADSideNotchSTEP(t *testing.T, depth float64) {
+func checkPlainCADSideNotchSTEP(t *testing.T, origin vector, depth float64) {
 	t.Helper()
 	b := New()
 	stock := box(t, b, vector{}, vector{20, 20, 8})
-	tool := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, depth)
+	tool := circle(t, b, origin, vector{0, 0, 1}, 3, depth)
 	cut, err := b.cutMany(stock.Handle, []string{tool.Handle})
 	if err != nil {
 		t.Fatal(err)
