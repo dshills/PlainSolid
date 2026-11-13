@@ -46,6 +46,12 @@ including fixtures that assume OCCT-private bindings or an uninitialized
 kernel. This mode uses the local WASM file and does not start a browser;
 original middleware fixtures still require loopback access.
 
+The opt-in side-opening overlap fixture runs through the actual application
+commands, viewer and exchange workers, and is recorded separately from
+original PlainCAD fixtures. Enable it with `--side-dual-disk-fixture --test
+e2e/plainsolid-side-dual-disk.spec.ts --grep 'Go WASM overlap'`. The harness
+adds the fixture only to the disposable copy and records its source hash.
+
 ## What changes in the isolated app
 
 - The `OpenCascadeKernel` import boundary is replaced by `PlainSolidKernel.ts`.

@@ -27,6 +27,9 @@ if (suite === "unit" && !/^[1-9]\d*$/.test(unitWorkers)) throw new Error("Invali
 const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts", unit: undefined };
 if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production, cross-browser or unit.");
 const acceptanceConfig = acceptanceConfigs[suite];
+const sideDualDiskFixture = args.includes("--side-dual-disk-fixture");
+if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainsolid-side-dual-disk.spec.ts"))
+  throw new Error("The supplemental dual-disk fixture must run by itself in the development suite.");
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
@@ -203,6 +206,12 @@ console.log(`PlainSolid readiness: ${report.status}; ${join(work, "readiness.jso
 if (report.status !== "passed") { console.error(report.error); process.exitCode = 1; }
 
 async function runOriginalBrowserTests() {
+  if (sideDualDiskFixture) {
+    const fixture = "e2e/plainsolid-side-dual-disk.spec.ts";
+    const content = await readFile(join(root, "tools/plaincad/side-dual-disk.fixture.ts"));
+    await writeFile(join(work, fixture), content, { flag: "wx" });
+    report.supplementalFixture = { file: fixture, sha256: hash(content) };
+  }
   await writeFile(join(work, "e2e/plainsolid-backend.spec.ts"), `import { test, expect } from "@playwright/test";
 test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async ({ page }) => {
   const forbidden: string[] = [];
@@ -578,8 +587,8 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     }
     const passed = test => test.status === "expected" && test.results.length > 0 && test.results.every(result => result.status === "passed");
     report.backendVerified = report.tests.some(test => test.title.startsWith("PlainSolid backend:") && passed(test));
-    const existing = report.tests.filter(test => !test.title.startsWith("PlainSolid backend:"));
-    if (!report.backendVerified || existing.length === 0 || existing.some(test => !passed(test))) {
+    const selectedCases = report.tests.filter(test => !test.title.startsWith("PlainSolid backend:"));
+    if (!report.backendVerified || selectedCases.length === 0 || selectedCases.some(test => !passed(test))) {
       report.status = "failed";
       report.error ??= "A passing real backend probe and actual passes for every selected existing fixture are required; skips and interruptions do not count.";
     }
