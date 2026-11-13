@@ -2041,6 +2041,12 @@ away from them. Native common and cut volumes are `631/15360` and
 `14729/15360`. Independent OCCT shell, area, volume, and centroid checks pass.
 OCCT's ordinary volume integrator differed on first moments at the crease;
 its span-aware Gauss–Kronrod integrator agrees with the analytic moments.
+The bounded polynomial graph clip retains a cubic model section as native
+`SplineUV` on both original supports. Exact composition proves the full shared
+curve, and the native reader rejects a changed interior with unchanged endpoints.
+The independent OCCT swept stock and box agree on one shell, area, centroid,
+and volumes `23/448` and `425/448`. A separate test proves a quartic section;
+unrepresentable trim controls and degrees above four fail explicitly.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

@@ -82,3 +82,16 @@ static void quadraticGraphPlaneBooleans(std::ostream& out,bool crease=false){
  };
  withSpans("piecewise-quadratic-plane-common",common);withSpans("piecewise-quadratic-plane-cut",cut);
 }
+static void polynomialGraphPlaneBooleans(std::ostream& out){
+ NCollection_Array2<gp_Pnt> poles(1,5,1,2);
+ const double z[]={0,0,0,1./32,1./8};
+ for(int i=1;i<=5;++i)for(int j=1;j<=2;++j)poles.SetValue(i,j,gp_Pnt((i-1)/4.,j-1,z[i-1]+(j-1)/4.));
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);
+ NCollection_Array1<int> xmult(1,2),ymult(1,2);xmult.Init(5);ymult.Init(2);
+ occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,knots,knots,xmult,ymult,4,1);
+ auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(support,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(3,3,3./16)).Shape();
+ if(!BRepCheck_Analyzer(stock).IsValid()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid independent polynomial stock or cutter");
+ splineShellRecord(out,"polynomial-plane-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,"polynomial-plane-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+}
