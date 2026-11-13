@@ -23,6 +23,16 @@ release qualification.
 
 ## Selected production acceptance — 2026-11-13
 
+The clean app archive `1c59128` with PlainSolid reconciliation snapshot
+`5a69c0b` passed [all 66 original production tests](evidence/plaincad-reconciled-production-2026-11-13.json)
+in one run on the original port, without skips or retries. The unchanged
+performance fixture completed in 50.4 seconds. The same snapshot separately
+passed the original [zoom and ORBIT display tests](evidence/plaincad-reconciled-orbit-2026-11-13.json),
+including the full-resolution PNG during motion. All 841 staged original
+source files were checked against their pinned app Git blobs. This qualifies
+the tested production snapshot; the full development suite and newer
+reconciliation revisions still need qualification.
+
 The [production report](evidence/plaincad-production-2026-11-13.json)
 records all seven selected original tests passing with the built Go WASM
 app under its production CSP. Coverage includes native modeling, circle
@@ -51,12 +61,12 @@ passes the fabrication package, the Cable guide live preview and the
 left-hand Acme gallery. A [separate retest](evidence/plaincad-production-unc-2026-11-13.json)
 passes the quarter-inch UNC gallery in 14.9 seconds after repairing helical
 placement. Production performance exceeds its overall deadline after
-checking all 25 edits and 11 STL downloads. The case and a full production
-rerun remain open.
+checking all 25 edits and 11 STL downloads in that earlier run.
 
 The [clean combined compact-mesh retest](evidence/plaincad-compact-performance-reconciliation-2026-11-13.json)
 passed the unchanged controlled performance case in 64.7 seconds against
-its 90-second limit. The full production rerun remains open.
+its 90-second limit. The full production result above supersedes this
+selected checkpoint for the newer tested pair of revisions.
 
 The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
 passes cold load of all 40 bodies, cached rename, and a platter thickness
