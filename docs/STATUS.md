@@ -11,8 +11,8 @@ watertight analytic notch and circular-segment floor. Seven original
 browser regressions and an authored rebuild, reload and STL check pass.
 Canonical STEP now round-trips the placed boundary and matches OCCT's
 independent volume, area and centroid. Mixed batches with disjoint
-same-cap blind and through bores now pass original regressions, authored
-persistence, placed STEP and STL fabrication. Additional side-crossing
+blind bores from either cap and through bores now pass original
+regressions, authored persistence, placed STEP and STL fabrication. Additional side-crossing
 tools and intersecting side-notch footprints remain open.
 
 Circular stock now supports grouped and successive disjoint axial bores,

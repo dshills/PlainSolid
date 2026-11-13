@@ -123,12 +123,16 @@ func (b *cornerCylinderBuilder) addBoxBoss(h ExtrusionCircle, lo, hi float64) er
 }
 
 func (b *cornerCylinderBuilder) addBoxBottomBlindBore(h ExtrusionCircle, depth float64) error {
+	return b.addBoxBlindBore(h, 0, depth, 0)
+}
+
+func (b *cornerCylinderBuilder) addBoxBlindBore(h ExtrusionCircle, opening, floor float64, cap int) error {
 	rim, err := mixedCardinalPoints(h.Center, h.Radius)
 	if err != nil {
 		return err
 	}
-	for i, z := range []float64{0, depth} {
-		plane := b.faces[0].Surface
+	for i, z := range []float64{opening, floor} {
+		plane := b.faces[cap].Surface
 		if i == 1 {
 			f, err := geom.NewFrame(b.frame.ToWorld(geom.Vec3{Z: z}), b.frame.XAxis(), b.frame.ZAxis())
 			if err != nil {
@@ -157,9 +161,9 @@ func (b *cornerCylinderBuilder) addBoxBottomBlindBore(h ExtrusionCircle, depth f
 			return err
 		}
 		if i == 0 {
-			b.faces[0].Holes = append(b.faces[0].Holes, wire)
+			b.faces[cap].Holes = append(b.faces[cap].Holes, wire)
 		} else {
-			b.faces = append(b.faces, Face{Surface: plane, Outer: wire, Reversed: true})
+			b.faces = append(b.faces, Face{Surface: plane, Outer: wire, Reversed: floor > opening})
 		}
 	}
 	f, err := geom.NewFrame(b.frame.ToWorld(geom.Vec3{X: h.Center.X, Y: h.Center.Y}), b.frame.XAxis(), b.frame.ZAxis())
@@ -173,8 +177,9 @@ func (b *cornerCylinderBuilder) addBoxBottomBlindBore(h ExtrusionCircle, depth f
 	for i, p := range rim {
 		q := rim[(i+1)%4]
 		a, z := float64(i)*math.Pi/2, float64(i+1)*math.Pi/2
-		points := []geom.Vec3{{X: p.X, Y: p.Y}, {X: q.X, Y: q.Y}, {X: q.X, Y: q.Y, Z: depth}, {X: p.X, Y: p.Y, Z: depth}}
-		uv := []geom.Vec2{{X: a}, {X: z}, {X: z, Y: depth}, {X: a, Y: depth}}
+		lo, hi := min(opening, floor), max(opening, floor)
+		points := []geom.Vec3{{X: p.X, Y: p.Y, Z: lo}, {X: q.X, Y: q.Y, Z: lo}, {X: q.X, Y: q.Y, Z: hi}, {X: p.X, Y: p.Y, Z: hi}}
+		uv := []geom.Vec2{{X: a, Y: lo}, {X: z, Y: lo}, {X: z, Y: hi}, {X: a, Y: hi}}
 		if err := b.face(wall, points, uv, nil, true); err != nil {
 			return err
 		}

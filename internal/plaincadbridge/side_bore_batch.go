@@ -11,8 +11,8 @@ import (
 )
 
 type sideStockBore struct {
-	circle trimmed.ExtrusionCircle
-	depth  float64
+	circle    trimmed.ExtrusionCircle
+	low, high float64
 }
 
 func sideNotchBore(p step.SideBlindNotchBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
@@ -58,25 +58,31 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 		if ok && hole == (trimmed.ExtrusionCircle{Radius: p.Radius}) && low == 0 && high <= p.Depth {
 			continue
 		}
-		if !ok || low != 0 || high <= low {
-			return Shape{}, true, unsupportedEdge("additional side-notch bores must enter the same cap or cut through")
+		if !ok || low != 0 && high != p.Length || high <= low || !exactAxisDistance(high, low, high-low) {
+			return Shape{}, true, unsupportedEdge("additional side-notch bores must open on an exterior cap")
 		}
+		depth := high - low
 		prior := slices.IndexFunc(bores, func(bore sideStockBore) bool { return bore.circle == hole })
 		if prior >= 0 {
-			if bores[prior].depth >= high {
+			previous := bores[prior]
+			if previous.low > high || previous.high < low {
+				return Shape{}, true, unsupportedEdge("opposed cuts at one side-notch bore site require connected axial spans")
+			}
+			newLow, newHigh := min(previous.low, low), max(previous.high, high)
+			if newLow == previous.low && newHigh == previous.high {
 				continue
 			}
-			old := bores[prior].depth
-			bores[prior].depth = high
-			volume -= math.Pi * hole.Radius * hole.Radius * (high - old)
-			area += 2 * math.Pi * hole.Radius * (high - old)
+			bores[prior] = sideStockBore{hole, newLow, newHigh}
+			depth = newHigh - newLow - (previous.high - previous.low)
+			low, high = newLow, newHigh
 		} else {
-			bores = append(bores, sideStockBore{hole, high})
-			volume -= math.Pi * hole.Radius * hole.Radius * high
-			area += 2 * math.Pi * hole.Radius * high
+			bores = append(bores, sideStockBore{hole, low, high})
 		}
-		if high == p.Length {
-			area -= 2 * math.Pi * hole.Radius * hole.Radius
+		diskArea := math.Pi * hole.Radius * hole.Radius
+		volume -= diskArea * depth
+		area += 2 * math.Pi * hole.Radius * depth
+		if low == 0 && high == p.Length {
+			area -= 2 * diskArea
 		}
 	}
 	if !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
@@ -84,10 +90,10 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 	}
 	p.Through, p.Blind = nil, nil
 	for _, bore := range bores {
-		if bore.depth == p.Length {
+		if bore.low == 0 && bore.high == p.Length {
 			p.Through = append(p.Through, bore.circle)
 		} else {
-			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: bore.circle, Depth: bore.depth})
+			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: bore.circle, Depth: bore.high - bore.low, OppositeCap: bore.low != 0})
 		}
 	}
 	solid, err := trimmed.BoxSideCylinderBlindWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
@@ -101,10 +107,11 @@ func (b *Bridge) cutSideNotchBores(a stored, tools []stored) (Shape, bool, error
 func sideStockBores(p step.SideBlindNotchBody) []sideStockBore {
 	bores := make([]sideStockBore, 0, len(p.Through)+len(p.Blind))
 	for _, h := range p.Through {
-		bores = append(bores, sideStockBore{h, p.Length})
+		bores = append(bores, sideStockBore{h, 0, p.Length})
 	}
 	for _, h := range p.Blind {
-		bores = append(bores, sideStockBore{h.ExtrusionCircle, h.Depth})
+		low, high := circularBlindSpan(p.Length, h)
+		bores = append(bores, sideStockBore{h.ExtrusionCircle, low, high})
 	}
 	return bores
 }
@@ -131,7 +138,7 @@ func overlapSideNotchBores(a, c stored) (float64, bool, error) {
 	}
 	for _, prior := range sideStockBores(p) {
 		if prior.circle == hole {
-			return math.Pi * r * r * max(0, high-max(low, prior.depth)), true, nil
+			return math.Pi * r * r * (high - low - max(0, min(high, prior.high)-max(low, prior.low))), true, nil
 		}
 		if compareCircularFootprints(prior.circle, hole, false) <= 0 {
 			return 0, true, unsupportedEdge("additional bore footprints must remain disjoint")

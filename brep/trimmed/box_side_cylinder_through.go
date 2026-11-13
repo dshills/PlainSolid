@@ -22,8 +22,8 @@ func BoxSideCylinderBlind(ctx context.Context, frame geom.Frame, left, right, ba
 	return BoxSideCylinderBlindWithBores(ctx, frame, left, right, back, inset, length, radius, depth, nil, nil, tolerance)
 }
 
-// BoxSideCylinderBlindWithBores adds through holes and blind bores from Z=0
-// whose radial footprints clear the side-opening tool and every other bore.
+// BoxSideCylinderBlindWithBores adds through holes and blind bores from
+// either cap whose footprints clear the side-opening tool and other bores.
 func BoxSideCylinderBlindWithBores(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if !finite(depth) || length-depth <= 8*tolerance {
 		return Solid{}, geom.ErrDomain
@@ -53,7 +53,7 @@ func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, i
 			return Solid{}, e
 		}
 		for _, h := range blind {
-			if h.OppositeCap || h.Depth <= pad || length-h.Depth <= pad {
+			if h.Depth <= pad || length-h.Depth <= pad {
 				return Solid{}, geom.ErrDomain
 			}
 		}
@@ -145,7 +145,14 @@ func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, i
 		}
 	}
 	for _, h := range blind {
-		if e := b.addBoxBottomBlindBore(h.ExtrusionCircle, h.Depth); e != nil {
+		opening, floor, cap := 0., h.Depth, 0
+		if h.OppositeCap {
+			opening, floor, cap = length, length-h.Depth, upperCap
+			if new(big.Rat).Sub(ratInset(length), ratInset(h.Depth)).Cmp(ratInset(floor)) != 0 {
+				return Solid{}, geom.ErrUnrepresentable
+			}
+		}
+		if e := b.addBoxBlindBore(h.ExtrusionCircle, opening, floor, cap); e != nil {
 			return Solid{}, e
 		}
 	}

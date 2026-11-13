@@ -1,5 +1,17 @@
 # Verification record
 
+## PlainCAD opposite-cap interior bores on notched stock — 2026-11-13
+
+A disjoint contained blind hole can enter either cap of a side-notched
+body. The same bounded constructor retains through bores, and canonical
+STEP recovers which cap each blind cut opens from. Independent OCCT
+readback matches the opposed, placed geometry's volume, area and centroid.
+
+The [four original browser regressions](evidence/plaincad-opposed-side-batch-browser-2026-11-13.json)
+pass on PlainCAD `50432ed`. The [native evidence](evidence/plaincad-opposed-side-batch-native-2026-11-13.json)
+records two same-WASM checks for authored opposed Hole edits, reload,
+placed STEP and validated STL, along with focused race checks and Go vet.
+
 ## Current PlainCAD cross-browser and focused acceptance — 2026-11-13
 
 On committed PlainCAD `50432ed`, the
