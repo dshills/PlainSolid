@@ -37,6 +37,7 @@ func CombineSplineCornerPlaneClip(ctx context.Context, graph *SplineCornerSectio
 type splinePlaneClipInput struct {
 	stock, tool               Solid
 	active, pointFace, corner int
+	pointFaces, corners       map[int]bool
 	nodes                     []cornerGraphNode
 	arcs                      []CornerSectionArc
 }
@@ -182,7 +183,7 @@ func combineSplinePlaneClip(ctx context.Context, proof splinePlaneClipInput, op 
 				return zero, geom.ErrConvergence
 			}
 			if r.SideMask != 0 || r.CornerMask != 0 {
-				if id != proof.pointFace || r.SideMask != 0 {
+				if (id != proof.pointFace && !proof.pointFaces[id]) || r.SideMask != 0 {
 					return zero, geom.ErrConvergence
 				}
 			}
@@ -343,6 +344,11 @@ func combineSplinePlaneClip(ctx context.Context, proof splinePlaneClipInput, op 
 	}
 	if proof.corner >= 0 && out.OriginalVertices[proof.corner] < 0 {
 		return zero, geom.ErrConvergence
+	}
+	for vertex := range proof.corners {
+		if out.OriginalVertices[vertex] < 0 {
+			return zero, geom.ErrConvergence
+		}
 	}
 	if e = ctx.Err(); e != nil {
 		return zero, e

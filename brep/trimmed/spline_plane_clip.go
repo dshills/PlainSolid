@@ -21,6 +21,10 @@ type SplinePlaneClipResult = SplineCornerPlaneClip
 // Exact cutter convexity/inactive containment and closed source embedding are
 // re-proved by the shared assembler. Limits apply per face/plane reproof.
 func CombineSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplinePlaneClipResult, error) {
+	return combineSplinePlaneClipFans(ctx, stock, tool, active, nil, op, o)
+}
+
+func combineSplinePlaneClipFans(ctx context.Context, stock, tool Solid, active int, fans []*SplineCornerFan, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplinePlaneClipResult, error) {
 	var zero SplineCornerPlaneClip
 	if ctx == nil || active < 0 || active >= len(tool.faces) || (op != parametric.Intersection && op != parametric.Difference) {
 		return zero, geom.ErrInvalid
@@ -73,6 +77,27 @@ func CombineSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, 
 	}
 	proof := splinePlaneClipInput{stock: stock, tool: tool, active: active, pointFace: -1, corner: -1}
 	keys := map[string]int{}
+	pointFaces := map[int]bool{}
+	branches := map[int]*SplineCornerAffineBranch{}
+	vertices := map[int]bool{}
+	for _, fan := range fans {
+		if fan == nil || !fan.isolated.Matches(stock, tool, [2]int{fan.isolated.faces[0], active}) || vertices[fan.vertex] || pointFaces[fan.isolated.faces[0]] {
+			return zero, geom.ErrInvalid
+		}
+		vertices[fan.vertex] = true
+		pointFaces[fan.isolated.faces[0]] = true
+		for _, anchor := range fan.anchors {
+			if branches[anchor.pair[0]] != nil {
+				return zero, geom.ErrConvergence
+			}
+			branch, e := CertifySplineCornerAffineBranch(ctx, anchor, o)
+			if e != nil {
+				return zero, e
+			}
+			branches[anchor.pair[0]] = branch
+		}
+	}
+	proof.pointFaces, proof.corners = pointFaces, vertices
 	for id, face := range stock.faces {
 		if e := ctx.Err(); e != nil {
 			return zero, e
@@ -83,7 +108,7 @@ func CombineSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, 
 		}
 		halfspace, he := geom.CertifySurfaceSupportingPlane(ctx, source.patch, plane[0], plane[1], plane[2], o.Plane)
 		if he == nil {
-			if !halfspace.Complete || halfspace.Coincident || halfspace.HalfspaceSign == 0 || halfspace.SideMask != 0 || halfspace.CornerMask != 0 {
+			if !halfspace.Complete || halfspace.Coincident || halfspace.HalfspaceSign == 0 || halfspace.SideMask != 0 || (halfspace.CornerMask != 0 && !pointFaces[id]) {
 				return zero, geom.ErrConvergence
 			}
 			continue
@@ -126,8 +151,44 @@ func CombineSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, 
 		}
 		arc := CornerSectionArc{Faces: [2]int{id, active}}
 		for end, p := range ends {
-			if p.BoundaryB != 0 || p.BoundaryA == 0 || p.BoundaryA&(p.BoundaryA-1) != 0 {
+			if p.BoundaryB != 0 || p.BoundaryA == 0 {
 				return zero, geom.ErrConvergence
+			}
+			if p.BoundaryA&(p.BoundaryA-1) != 0 {
+				branch := branches[id]
+				if branch == nil {
+					return zero, geom.ErrConvergence
+				}
+				bound := branch.endpoints[branch.corner]
+				for i := range p.Point {
+					if p.Point[i].Cmp(bound.Point[i]) != 0 {
+						return zero, geom.ErrConvergence
+					}
+				}
+				for i := range p.A {
+					if p.A[i].Cmp(bound.A[i]) != 0 || p.B[i].Cmp(bound.B[i]) != 0 {
+						return zero, geom.ErrConvergence
+					}
+				}
+				key := "vertex:" + new(big.Int).SetInt64(int64(branch.anchor.vertex)).String()
+				node, found := keys[key]
+				if !found {
+					node = len(proof.nodes)
+					keys[key] = node
+					proof.nodes = append(proof.nodes, cornerGraphNode{CornerSectionNode: CornerSectionNode{Point: p.Point, Vertex: branch.anchor.vertex, Edge: -1}, uv: p.B})
+				} else {
+					for i := range p.B {
+						if proof.nodes[node].uv[i].Cmp(p.B[i]) != 0 {
+							return zero, geom.ErrConvergence
+						}
+					}
+				}
+				if end == 0 {
+					arc.From = node
+				} else {
+					arc.To = node
+				}
+				continue
 			}
 			side := geom.SurfaceEdge(0)
 			mask := p.BoundaryA
@@ -203,11 +264,22 @@ func CombineSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, 
 		return zero, geom.ErrConvergence
 	}
 	next, previous, owned := map[int]int{}, map[int]int{}, map[int]bool{}
+	foundCorners := map[int]bool{}
 	for _, node := range proof.nodes {
+		if node.Vertex >= 0 {
+			if foundCorners[node.Vertex] {
+				return zero, geom.ErrConvergence
+			}
+			foundCorners[node.Vertex] = true
+			continue
+		}
 		if owned[node.Edge] {
 			return zero, geom.ErrConvergence
 		}
 		owned[node.Edge] = true
+	}
+	if len(foundCorners) != len(vertices) {
+		return zero, geom.ErrConvergence
 	}
 	for i, arc := range proof.arcs {
 		if _, ok := next[arc.From]; ok {
