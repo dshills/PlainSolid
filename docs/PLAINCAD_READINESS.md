@@ -50,9 +50,9 @@ The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
 passes the fabrication package, the Cable guide live preview and the
 left-hand Acme gallery. A [separate retest](evidence/plaincad-production-unc-2026-11-13.json)
 passes the quarter-inch UNC gallery in 14.9 seconds after repairing helical
-placement. Production performance exceeds its overall deadline after
-checking all 25 edits and 11 STL downloads. The case and a full production
-rerun remain open.
+placement. The [isolated performance retest](evidence/plaincad-production-performance-isolated-2026-11-13.json)
+passes the original production case in 29.5 seconds with all 25 edits and
+11 validated STL downloads. A full current production rerun is in progress.
 
 The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
 passes cold load of all 40 bodies, cached rename, and a platter thickness

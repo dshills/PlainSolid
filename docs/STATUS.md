@@ -9,11 +9,10 @@ OCCT compatibility qualification is claimed.
 The full production baseline passes 61 of 66 originals. The focused
 production retest passes the fabrication package, Cable guide live preview
 and left-hand Acme pair. A separate retest passes the quarter-inch UNC
-gallery, including placement of both helical bodies. Production performance
-still exceeds its overall deadline after producing all validated samples.
-The volume-checked compact bore mesh reduces the benchmark from 528 to
-144 triangles per STL. The concurrent production run still exceeds its
-deadline. An isolated timing retest and OCCT control are pending. The frozen development baseline ran 340 originals with 264 passes. Later
+gallery, including placement of both helical bodies. The isolated original production performance case passes in 29.5 seconds
+with all 25 edits and 11 STL downloads validated. The compact bore mesh
+uses 144 triangles per STL. The pristine OCCT control completes the same
+checks and exceeds the original 90-second deadline on this host. The frozen development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures, including 10 origin-dependent
 setup cases. The current integration still needs a consolidated rerun.
 
@@ -27,8 +26,8 @@ corner cuts and moved projected cut pass. All 18 originals in the retained
 reference and workspace retest pass, including Parts Browser and AI To Face.
 The current ORBIT model passes the original close-up, Render and gesture PNG
 tests after the display worker reuses accepted native features. The three
-original signed profile-edge cases also pass on XY, XZ and YZ. The original
-development baseline continues. Focused real-WASM cases now pass for pocket
+original signed profile-edge cases also pass on XY, XZ and YZ. Focused
+real-WASM cases now pass for pocket
 and Hole lineage, fine lead-screw meshes at one, two and four starts, and
 STEP round-trip of machined stock. The current studio cancellation and ORBIT
 gesture originals pass together. The remaining arc-region cases and production
