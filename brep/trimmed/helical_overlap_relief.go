@@ -25,15 +25,34 @@ type HelicalOverlapRelief struct {
 // Native clipped helical supports and a polar analytic shoulder are sewn using
 // the original tolerance. Original upper cap and rim geometry remain unchanged.
 func GrooveWithOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe, reliefRadius, depth, maxChartError float64) (HelicalOverlapRelief, error) {
+	return grooveWithOverlappingEntryRelief(ctx, r, reliefRadius, depth, maxChartError, true, true)
+}
+
+// SteppedShaftWithGrooveAndEntryRelief returns the final relieved shaft with
+// its original head attached. Intermediate boundaries are checked for
+// topology and edge agreement, and only the published solid is meshed.
+func SteppedShaftWithGrooveAndEntryRelief(ctx context.Context, shaft SteppedShaft, r HelicalGrooveRecipe, reliefRadius, depth, maxChartError float64) (Solid, *big.Rat, error) {
+	groove, err := grooveWithOverlappingEntryRelief(ctx, r, reliefRadius, depth, maxChartError, false, false)
+	if err != nil {
+		return Solid{}, nil, err
+	}
+	solid, err := AttachSteppedShaftHead(ctx, shaft, groove.Solid)
+	if err != nil {
+		return Solid{}, nil, err
+	}
+	return solid, new(big.Rat).Add(groove.GrooveVolumePiCoefficient, groove.EntryVolumePiCoefficient), nil
+}
+
+func grooveWithOverlappingEntryRelief(ctx context.Context, r HelicalGrooveRecipe, reliefRadius, depth, maxChartError float64, validateOriginal, validateResult bool) (HelicalOverlapRelief, error) {
 	fail := func(e error) (HelicalOverlapRelief, error) { return HelicalOverlapRelief{}, e }
 	if ctx == nil || r.Starts != 1 || !finite(reliefRadius) || !finite(depth) || reliefRadius <= 0 || depth <= 0 {
 		return fail(geom.ErrInvalid)
 	}
-	original, proof, e := GrooveWithBoundedChart(ctx, r, maxChartError)
+	original, proof, e := grooveWithBoundedChart(ctx, r, nil, maxChartError, validateOriginal)
 	if e != nil {
 		return fail(e)
 	}
-	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, false)
+	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, false, validateResult)
 }
 
 // GrooveWithPhasedOverlappingEntryRelief supports phase-staggered starts in
@@ -47,9 +66,9 @@ func GrooveWithPhasedOverlappingEntryRelief(ctx context.Context, r HelicalGroove
 	if e != nil {
 		return HelicalOverlapRelief{}, e
 	}
-	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, true)
+	return finishOverlapEntry(ctx, r, original, proof, reliefRadius, depth, true, true)
 }
-func finishOverlapEntry(ctx context.Context, r HelicalGrooveRecipe, original Solid, proof HelicalChartRoundoff, reliefRadius, depth float64, phased bool) (HelicalOverlapRelief, error) {
+func finishOverlapEntry(ctx context.Context, r HelicalGrooveRecipe, original Solid, proof HelicalChartRoundoff, reliefRadius, depth float64, phased, validateDisplay bool) (HelicalOverlapRelief, error) {
 	fail := func(e error) (HelicalOverlapRelief, error) { return HelicalOverlapRelief{}, e }
 	loR, hiR, loZ, hiZ := math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
 	for _, p := range r.Profile {
@@ -88,7 +107,7 @@ func finishOverlapEntry(ctx context.Context, r HelicalGrooveRecipe, original Sol
 	if e != nil {
 		return fail(e)
 	}
-	solid, e := c.solid()
+	solid, e := c.solidWithValidation(validateDisplay)
 	if e != nil {
 		return fail(e)
 	}

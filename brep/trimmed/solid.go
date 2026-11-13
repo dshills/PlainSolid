@@ -102,6 +102,13 @@ func NewSolid(vertices []geom.Vec3, edges []parametric.Edge, faces []Face, toler
 // NewSolidContext is NewSolid with cooperative cancellation during boundary
 // validation and seed mesh construction.
 func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64) (Solid, error) {
+	return newSolidContext(ctx, vertices, edges, faces, tolerance, true)
+}
+
+// Intermediate graphs in a single analytic construction retain the complete
+// topology and sampled coedge agreement checks. The finished graph performs
+// display validation before publication.
+func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64, validateDisplay bool) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -353,8 +360,10 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			return Solid{}, fmt.Errorf("trimmed: edge %d needs two opposite uses", i)
 		}
 	}
-	if _, err := s.refine(ctx, s.minimumLevel, 0, 0); err != nil {
-		return Solid{}, err
+	if validateDisplay {
+		if _, err := s.refine(ctx, s.minimumLevel, 0, 0); err != nil {
+			return Solid{}, err
+		}
 	}
 	if usesRationalEndpoints(s) {
 		if err := validateNativeExactQuadratics(ctx, s); err != nil {

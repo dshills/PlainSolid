@@ -20,7 +20,7 @@ type HelicalChartRoundoff struct{ MaxAxialError, MaxTurnError float64 }
 // quarter of that budget, with turns scaled by a conservative 2*pi*outerRadius.
 // The reciprocal lead remains exactly represented. NewSolid validation applies.
 func GrooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, maxError float64) (Solid, HelicalChartRoundoff, error) {
-	return grooveWithBoundedChart(ctx, r, nil, maxError)
+	return grooveWithBoundedChart(ctx, r, nil, maxError, true)
 }
 
 // GrooveWithPhasedStarts keeps every start in the same finite axial window.
@@ -30,10 +30,10 @@ func GrooveWithPhasedStarts(ctx context.Context, r HelicalGrooveRecipe, initialP
 	if !finite(initialPhase) || initialPhase < 0 || initialPhase >= 1 {
 		return Solid{}, HelicalChartRoundoff{}, geom.ErrDomain
 	}
-	return grooveWithBoundedChart(ctx, r, ratInset(initialPhase), maxError)
+	return grooveWithBoundedChart(ctx, r, ratInset(initialPhase), maxError, true)
 }
 
-func grooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, phase *big.Rat, maxError float64) (Solid, HelicalChartRoundoff, error) {
+func grooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, phase *big.Rat, maxError float64, validateDisplay bool) (Solid, HelicalChartRoundoff, error) {
 	var proof HelicalChartRoundoff
 	if !finite(maxError) || maxError <= 0 || !finite(r.OuterRadius) || !finite(r.Height) || maxError > math.Max(r.OuterRadius, r.Height)*1e-11/8 || !finite(r.BoreRadius) || r.BoreRadius < 0 || r.BoreRadius >= r.OuterRadius {
 		return Solid{}, proof, geom.ErrInvalid
@@ -66,6 +66,6 @@ func grooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, phase *b
 	if r.BoreRadius > 0 {
 		stockRadius, outer = r.BoreRadius, r.OuterRadius
 	}
-	s, e := grooveCylinderStarts(ctx, r.Frame, stockRadius, outer, r.Height, r.Profile, r.Lead, r.Start, r.End, r.Hand, r.Starts, phase, rounder)
+	s, e := grooveCylinderStarts(ctx, r.Frame, stockRadius, outer, r.Height, r.Profile, r.Lead, r.Start, r.End, r.Hand, r.Starts, phase, rounder, validateDisplay)
 	return s, proof, e
 }
