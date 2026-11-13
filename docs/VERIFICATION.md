@@ -1,5 +1,14 @@
 # Verification record
 
+The [earlier reconciled development baseline](evidence/plaincad-reconciled-development-baseline-2026-11-13.json)
+ran all 344 original cases on clean `c1ba0f3` with pinned PlainCAD
+`e65f07b`: 324 passed, 20 failed, and none skipped or retried. It
+predates the arc and divider fixes. Eighteen of its failed originals passed
+in separately pinned [arc](evidence/plaincad-reconciled-arc-regressions-2026-11-13.json)
+and [divider](evidence/plaincad-reconciled-divider-regressions-2026-11-13.json)
+retests. These retests do not change the baseline count. A fresh full run
+was started on the verified combined `6d76880` WASM build.
+
 ## PlainCAD consolidated current development run — 2026-11-13
 
 The [full current development report](evidence/plaincad-current-development-full-2026-11-13.json)
