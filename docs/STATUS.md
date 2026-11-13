@@ -22,26 +22,25 @@ bores now also pass exact native volume and surface checks, editable
 PlainCAD reload and STL fabrication. Canonical STEP now round-trips
 qualified overlapping circular boundaries and matches independent OCCT
 measures. Eight additional original STEP, Hole Edit and machined-reference
-browser regressions pass. The full browser development rerun is running
-separately. Both native trimmed
-spline cases excluded by short mode pass with full mode enabled.
+browser regressions pass. Both native trimmed spline cases excluded by
+short mode pass with full mode enabled.
 
-The production rerun on PlainSolid `0b17938` passes all 66 originals on
-PlainCAD `e65f07b`, with zero skips or flakes. It covers the fabrication package, Cable guide
-live preview, Acme and UNC galleries, and the controlled benchmark. The
-isolated original production performance case passes in 29.5 seconds
-with all 25 edits and 11 STL downloads validated. The compact bore mesh
-uses 144 triangles per STL. The pristine OCCT control completes the same
-checks and exceeds the original 90-second deadline on this host. The frozen
-development baseline ran 340 originals with 264 passes. Later
-focused runs pass 54 of the baseline failures, including 10 origin-dependent
-setup cases. The consolidated current run passes 342 of 344 originals.
-Both remaining viewer cases pass focused verification. The gesture passed
-an unchanged rerun. The pan case passes after the staged viewer advances
-missed camera damping updates without drawing them. The current integrated
-production run passes 65 originals and times out in the performance case
-after completing its 25 edits and 11 exports. The same build passes the
-unchanged benchmark in 89.225 seconds on a focused rerun.
+The latest completed production build `11216c5` passes all 66 originals
+on PlainCAD `e65f07b`, with zero skips or retries. It includes main's dense
+mesh manifold validation. The original performance case finishes in 60.790
+seconds with all 25 edits and 11 144-triangle STL downloads validated.
+The earlier integrated build passed 65 cases in one run and the benchmark
+in an unchanged isolated retest. The previous complete production pass
+was `0b17938`.
+
+The frozen development baseline ran 340 originals with 264 passes. Later
+focused runs pass 54 of the baseline failures. The first consolidated current
+run passes 342 of 344. Its two viewport failures pass in focused verification,
+with the staged camera damping update for pan idle. The new full rerun
+also passes 342 of 344, including the original pan, marker, gesture and
+40-body viewer cases together. Parts Browser and YZ guarded drag fail on
+startup timing in that run and both pass unchanged on the identical WASM
+in isolation.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,

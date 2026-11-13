@@ -30,6 +30,34 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD full development rerun after viewer changes — 2026-11-13
+
+The [344-case development rerun](evidence/plaincad-development-viewer-complete-2026-11-13.json)
+on `7cd0396` passes 342 originals in 3,569.354 seconds. There are no
+retries or skips. The original pan idle, source point markers, gesture PNG
+and 40-body viewer cases all pass on that run.
+
+Parts Browser reads the prior empty rebuild while its project is opening.
+The YZ guarded drag reaches its 20-second startup assertion while the
+kernel is loading. Both original cases pass unchanged on the identical
+WASM snapshot in isolated retests. The Parts Browser original also passes
+on pristine OCCT. The complete suite retains both failures in its record.
+
+## PlainCAD full production qualification with dense mesh validation — 2026-11-13
+
+All [66 original production tests](evidence/plaincad-production-dense-validation-2026-11-13.json)
+pass on `11216c5`, with zero retries or skips, including both TypeScript
+checks, the production bundle budget, the real-WASM probe and the original
+performance test. The [benchmark report](evidence/plaincad-production-dense-performance-2026-11-13.json)
+records 25 verified edits and 11 validated 144-triangle STL exports. The case
+finishes in 60.790 seconds against its original 90-second deadline.
+
+Main's dense-link manifold validation passes its 300 seeded comparisons
+against the reference implementation and rejects the disconnected vertex fan.
+A native benchmark on this host records 12.0–18.4 ms and 147 allocations per
+mesh, compared with 34.4–57.0 ms and roughly 137,505 allocations for the
+reference. The browser result measures the integrated build.
+
 ## PlainCAD side-opening blind cylindrical notch — 2026-11-13
 
 One finite axial cylinder crossing one rectangular stock side now forms
