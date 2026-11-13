@@ -1,5 +1,20 @@
 # Verification record
 
+## Grouped analytic longitudinal edge treatments — 2026-11-13
+
+The grouped constructor supports one independent sharp, rounded or chamfered
+state at each of the four parallel corners of a rectangular section. It retains
+analytic cylindrical rounds and planar bevels. Exact represented side-clearance
+checks reject treatments that consume a supporting side. The original constructors
+retain their interface and expose consistent corner and cap metadata.
+
+Native tests cover all 81 corner assignments, analytic volume and area, closed
+meshes, physical corner placement, invalid sizes, and retained bore, pocket and
+boss composition. The full fillet suite passes in 2.352 seconds. An independent
+bridge oracle verifies volume and centroid against closed-form removed-corner
+moments for both XZ edit states and a grouped chamfer. Application qualification
+is tracked separately.
+
 ## PlainCAD long feature chain integration — 2026-11-13
 
 The WASM bridge resolves complete authored straight cap edges on retained stock.

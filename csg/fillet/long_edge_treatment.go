@@ -5,11 +5,16 @@ import (
 	"plainsolid/brep/trimmed"
 )
 
-// LongEdgeTreatment describes stock [0,Length]×[0,Width]×[0,Height]. The
-// fillet replaces the X-directed top/front edge (Y=0,Z=Height); the chamfer
-// replaces the opposite top/back edge (Y=Width,Z=Height). Face IDs survive the
-// exact cyclic coordinate placement from the authored YZ profile.
+// LongEdgeTreatment retains stock [0,Length]×[0,Width]×[0,Height].
+// Corner face arrays use lower/front, lower/back, upper/back, upper/front
+// order, with -1 for absent treatments. Top/Bottom MinY/MaxY describe the
+// surviving straight horizontal cap strips. Original side IDs refer to the
+// corresponding straight profile side; EndFaces are the X-normal ends.
+// Radius, setbacks and singular FilletFace/ChamferFace describe the legacy
+// one-fillet/one-chamfer constructor only; grouped callers use corner arrays.
 type LongEdgeTreatment struct {
+	CornerFilletFaces, CornerChamferFaces                             [4]int
+	TopMinY, TopMaxY, BottomMinY, BottomMaxY                          float64
 	Solid                                                             trimmed.Solid
 	Profile                                                           SelectiveResult
 	Length, Width, Height, Radius, TopSetback, SideSetback            float64

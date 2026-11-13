@@ -3,6 +3,7 @@ package fillet
 import (
 	"context"
 	"math"
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -18,6 +19,21 @@ func TreatLongCapEdgesOptional(ctx context.Context, length, width, height, radiu
 	if e != nil {
 		return fail(e)
 	}
+	low, high := radius, width-topSetback
+	if bottomFrontChamfer {
+		low = max(radius, topSetback)
+		high = width
+	}
+	return appendLongEdgeFeatures(ctx, stock, low, high, bore, pocket, boss, o)
+}
+
+func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, high float64, bore *trimmed.ExtrusionCircle, pocket *trimmed.ExtrusionRectangle, boss *trimmed.ExtrusionBoss, o Options) (LongEdgeChain, error) {
+	fail := func(e error) (LongEdgeChain, error) { return LongEdgeChain{}, e }
+	length, width, height := stock.Length, stock.Width, stock.Height
+	if bore == nil && pocket == nil && boss == nil {
+		return LongEdgeChain{Solid: stock.Solid, Stock: stock, PocketFaces: [4]int{-1, -1, -1, -1}, BoreFaces: [4]int{-1, -1, -1, -1}, BossFaces: [5]int{-1, -1, -1, -1, -1}, NominalVolume: stock.NominalVolume, NominalSurfaceArea: stock.NominalSurfaceArea}, nil
+	}
+	var e error
 	if (boss != nil && !boss.Upper) || (bore != nil && (!finite(bore.Center.X) || !finite(bore.Center.Y) || !finite(bore.Radius) || bore.Radius <= 0)) {
 		return fail(ErrInvalid)
 	}
@@ -26,11 +42,6 @@ func TreatLongCapEdgesOptional(ctx context.Context, length, width, height, radiu
 		tol = 1e-9
 	}
 	pad := qm(num(8), num(tol))
-	low, high := radius, width-topSetback
-	if bottomFrontChamfer {
-		low = max(radius, topSetback)
-		high = width
-	}
 	lowY, highY := qa(num(low), pad), qs(num(high), pad)
 	check := func(x0, y0, x1, y1 q) bool {
 		return x0.Cmp(pad) > 0 && x1.Cmp(qs(num(length), pad)) < 0 && y0.Cmp(lowY) > 0 && y1.Cmp(highY) < 0
@@ -127,7 +138,11 @@ func TreatLongCapEdgesOptional(ctx context.Context, length, width, height, radiu
 				a, b = b, a
 			}
 			p, q := vertices[a], vertices[b]
-			if p.Z != z || q.Z != z {
+			base, _ := parametric.CurveMapping(edges[u.Edge].Curve)
+			if _, ok := base.(geom.Line); !ok {
+				return fail(ErrInvalid)
+			}
+			if math.Abs(p.Z-z) > tol || math.Abs(q.Z-z) > tol {
 				return fail(ErrInvalid)
 			}
 			u.UVStart = geom.Vec2{X: p.X, Y: p.Y}
@@ -288,11 +303,25 @@ func treatOptionalStock(ctx context.Context, length, width, height, radius, topS
 		return fail(e)
 	}
 	r := LongEdgeTreatment{Solid: world, Profile: local, Length: length, Width: width, Height: height, Radius: radius, TopSetback: topSetback, SideSetback: sideSetback, EndFaces: local.Caps, BottomFace: local.StraightFaces[bottom], BackFace: local.StraightFaces[back], TopFace: local.StraightFaces[top], FrontFace: local.StraightFaces[front], FilletFace: -1, ChamferFace: -1}
+	r.CornerFilletFaces = [4]int{-1, -1, -1, -1}
+	r.CornerChamferFaces = [4]int{-1, -1, -1, -1}
+	r.TopMinY, r.TopMaxY, r.BottomMinY, r.BottomMaxY = radius, width, 0, width
+	if bottomFront {
+		r.BottomMinY = topSetback
+	} else {
+		r.TopMaxY = width - topSetback
+	}
 	if radius > 0 {
 		r.FilletFace = local.Corners[corner].CylinderFace
+		r.CornerFilletFaces[3] = r.FilletFace
 	}
 	if chamfer >= 0 {
 		r.ChamferFace = local.StraightFaces[chamfer]
+		if bottomFront {
+			r.CornerChamferFaces[0] = r.ChamferFace
+		} else {
+			r.CornerChamferFaces[2] = r.ChamferFace
+		}
 	}
 	r.NominalVolume = length * (width*height - (1-math.Pi/4)*radius*radius - topSetback*sideSetback/2)
 	per := 2*(width+height) - 2*radius + math.Pi*radius/2 - topSetback - sideSetback + math.Hypot(topSetback, sideSetback)

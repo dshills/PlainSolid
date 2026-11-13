@@ -6,6 +6,11 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+Grouped longitudinal fillet and chamfer geometry passes native verification.
+The multi-edge browser test is the current acceptance gate. Its baseline fails
+at initial rebuild because the previous adapter accepts only one edge reference.
+The grouped bridge and adapter are being verified with the original edit test.
+
 The imported analytic edge chain is committed as `4916667`. The frozen browser
 run passes PlainCAD's existing fillet, chamfer, Hole, pocket and boss workflow,
 including edits, downstream failure recovery, save/reopen and STL. The adjacent
