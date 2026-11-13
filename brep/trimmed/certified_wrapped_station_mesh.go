@@ -41,6 +41,9 @@ type CertifiedWrappedStationMesh struct {
 // reject without tolerance welding. The complete display must be closed with
 // manifold links, positive exact volume and no non-incidence contacts.
 func (s Solid) TessellateWrappedStationLoftCertified(ctx context.Context, o CertifiedWrappedStationMeshOptions) (out CertifiedWrappedStationMesh, err error) {
+	return s.tessellateWrappedStationLoftFrom(ctx, o, 1)
+}
+func (s Solid) tessellateWrappedStationLoftFrom(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int) (out CertifiedWrappedStationMesh, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedWrappedStationMesh{}
@@ -77,7 +80,7 @@ func (s Solid) TessellateWrappedStationLoftCertified(ctx context.Context, o Cert
 	if !proof.Complete || len(bands) == 0 {
 		return out, geom.ErrConvergence
 	}
-	checks, minimum := 0, 1
+	checks, minimum := 0, first
 	var local []CertifiedWrappedFrustumMesh
 	for {
 		local = make([]CertifiedWrappedFrustumMesh, len(bands))
