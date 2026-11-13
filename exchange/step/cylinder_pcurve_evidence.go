@@ -26,6 +26,7 @@ type CylinderPCurveEvidence struct {
 // shell, exactly one associated pcurve per owner and one cylindrical owner.
 // The simple polynomial cylinder pcurve must use a 2D context and the same exact
 // source parameter domain as its 3D polynomial model. U' is enclosed exactly.
+// The unique owning body representation must declare unscaled radians.
 // No periodic closure, winding, inverse matching or material acceptance follows.
 func InspectCylinderPCurve(r io.Reader, l Limits, edgeID int64) (out CylinderPCurveEvidence, err error) {
 	fail := func() (CylinderPCurveEvidence, error) {
@@ -277,7 +278,7 @@ func InspectCylinderPCurve(r io.Reader, l Limits, edgeID int64) (out CylinderPCu
 			}
 		}
 	}
-	if body == 0 {
+	if body == 0 || !liftRadianContext(f, body) {
 		return fail()
 	}
 	p, poles, knots, e := readResidualPolynomialDimension(bytes.NewReader(raw), l, param, 2)

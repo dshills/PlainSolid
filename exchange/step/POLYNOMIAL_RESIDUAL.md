@@ -205,3 +205,18 @@ constant V yields an explicit center discrepancy and fails support equality.
 No arbitrary origin is reused to force a match. As with the planar owner, no
 finite trim interval, coedge branch parameter assignment, oriented disk coverage
 or material interpretation follows from this full-support identity.
+
+### Evidence review: angular units
+
+The standalone cylinder-pcurve inspection now requires the uniquely owning
+body representation to declare unscaled radians before reporting its 2π
+turn-defect enclosure. Previously only downstream lift checks enforced that
+context; standalone inspection could label raw angles as radians despite a
+prefixed or missing angular unit. Mutation regressions reject those cases.
+This does not convert angles or extend the supported unit subset.
+
+The endpoint-gap bundle still compares clamped model-domain endpoints with
+source topological vertices; it does not establish an authored trim interval.
+Source uncertainty inventory remains unassigned metadata, not an acceptance
+threshold. Primitive support proofs use exact source decimals and bounded
+arithmetic; they do not validate full EXPRESS semantics or material coverage.
