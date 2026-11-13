@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"math/big"
+	"testing"
+
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
-	"testing"
 )
 
 func TestPiecewisePolynomialPlaneNativeClip(t *testing.T) {
@@ -105,6 +107,52 @@ func TestPiecewisePolynomialPlaneNativeClip(t *testing.T) {
 	cancel()
 	if _, e := CombinePiecewisePolynomialSplinePlaneClip(canceled, stock, tool, 5, parametric.Intersection, PolynomialPlaneSpanOptions{}); e != context.Canceled {
 		t.Fatal("cancel", e)
+	}
+}
+
+func TestPiecewisePolynomialPlaneRetainsLocalProjection(t *testing.T) {
+	ctx := context.Background()
+	// Reparameterize X piecewise, keeping its range [0,1]. The physical
+	// derivative jumps from 3/4 to 5/4 at U=1/2. Both source cells must
+	// therefore supply their own affine cap transport.
+	stock := remapPolynomialClipFixture(t, creasedPolynomialClipStock(t), func(p geom.Vec3) geom.Vec3 {
+		if p.X <= .5 {
+			p.X *= .75
+		} else {
+			p.X = (5*p.X - 1) / 4
+		}
+		return p
+	})
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	for i, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+		r, err := CombinePiecewisePolynomialSplinePlaneClip(ctx, stock, tool, 5, op, PolynomialPlaneSpanOptions{})
+		if err != nil {
+			t.Fatal(op, err)
+		}
+		if len(r.Knots) != 2 || len(r.SectionEdges) != 6 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("expected two original junctions on one closed shell")
+		}
+		for _, k := range r.Knots {
+			if k.Knot.Cmp(big.NewRat(1, 2)) != 0 || k.Point[0].Cmp(big.NewRat(3, 8)) != 0 {
+				t.Fatal("lost original parameter or model knot", k.Knot, k.Point)
+			}
+		}
+		v := [2]float64{37097. / 860160, 823063. / 860160}[i]
+		c := [2]geom.Vec3{
+			{X: 223017. / 593552, Y: 503587. / 2374208, Z: 1277069. / 9496832},
+			{X: 6658263. / 13169008, Y: 27021533. / 52676032, Z: 146455411. / 210704128},
+		}[i]
+		mass, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil || math.Abs(mass.Volume-v) > 1e-8 || mass.Centroid.Sub(c).Length() > 1e-8 {
+			t.Fatal("piecewise Jacobian integral", mass, err)
+		}
+		var native bytes.Buffer
+		if err = WriteJSON(&native, r.Solid); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ReadJSONContext(ctx, &native, JSONLimits{}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 func TestPolynomialPlaneWholeKnotSeamRequired(t *testing.T) {

@@ -8,10 +8,14 @@ import (
 
 var rectangleOptions = geom.SurfacePatchOptions{MaxOperations: 200000, MaxCoefficientBits: 4096}
 
-func (m Model) validateComposite(index int) error {
+func (m Model) validateComposite(index int) error { return m.validateCompositeMode(index, false) }
+func (m Model) validateCompositeMode(index int, wires bool) error {
 	e := m.Entities[index]
 	if err := e.validate(); err != nil {
 		return err
+	}
+	if !wires && (len(e.Composite.Curves) < 4 || len(e.Composite.Curves)%2 != 0) {
+		return errors.New("iges: unsupported trim composite count")
 	}
 	seen := map[int]bool{}
 	for _, k := range e.Composite.Curves {
@@ -20,7 +24,7 @@ func (m Model) validateComposite(index int) error {
 		}
 		seen[k] = true
 		leaf := m.Entities[k]
-		if leaf.Line == nil && leaf.Spline == nil {
+		if leaf.Line == nil && leaf.Spline == nil && (!wires || leaf.Arc == nil) {
 			return errors.New("iges: composite requires direct lines or splines")
 		}
 		if err := leaf.validate(); err != nil {

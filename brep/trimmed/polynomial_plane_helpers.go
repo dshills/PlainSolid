@@ -28,20 +28,27 @@ func validatePolynomialPlanePart(ctx context.Context, p SewFace) error {
 	return nil
 }
 
-// Both charts have exactly affine coordinates on the chosen projection.
-// Transport every UV Bernstein control through those affine maps. The caller
-// independently proves the full model composition before accepting the edge.
+// Both charts have exactly affine coordinates on the chosen projection on
+// this section's original knot cell. Transport every UV Bernstein control
+// through those affine maps. The caller independently proves the full model
+// composition before accepting the edge.
 func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c PCurve, cap *geom.SurfacePatch, axes [2]int, o SplineRectangleEmbeddingOptions) (PCurve, error) {
 	h, e := polynomialPlaneControls(c)
 	if e != nil {
 		return nil, e
 	}
-	sd, d := source.Domain(), cap.Domain()
 	opt := geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits}
-	sj, e := source.EvaluateRational(ctx, ratInset(sd.UMin), ratInset(sd.VMin), opt)
+	sourceOrigin := [2]*big.Rat{h[0][0], h[0][1]}
+	// Use an interior anchor to select the actual knot side. A global chart
+	// corner would use a different affine projection after a C0 crease.
+	for axis := range sourceOrigin {
+		sourceOrigin[axis] = new(big.Rat).Quo(new(big.Rat).Add(sourceOrigin[axis], h[len(h)-1][axis]), big.NewRat(2, 1))
+	}
+	sj, e := source.EvaluateRational(ctx, sourceOrigin[0], sourceOrigin[1], opt)
 	if e != nil {
 		return nil, e
 	}
+	d := cap.Domain()
 	j, e := cap.EvaluateRational(ctx, ratInset(d.UMin), ratInset(d.VMin), opt)
 	if e != nil {
 		return nil, e
@@ -55,12 +62,21 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 	for i, p := range h {
 		var xy [2]*big.Rat
 		for k, axis := range axes {
-			xy[k] = new(big.Rat).Add(sj.Point[axis], new(big.Rat).Add(new(big.Rat).Mul(sj.Du[axis], new(big.Rat).Sub(p[0], ratInset(sd.UMin))), new(big.Rat).Mul(sj.Dv[axis], new(big.Rat).Sub(p[1], ratInset(sd.VMin)))))
-			xy[k].Sub(xy[k], j.Point[axis])
+			xy[k] = new(big.Rat).Mul(new(big.Rat).Sub(sj.Point[axis], j.Point[axis]), p[2])
+			for a, derivative := range [2]*big.Rat{sj.Du[axis], sj.Dv[axis]} {
+				delta := new(big.Rat).Sub(p[a], new(big.Rat).Mul(sourceOrigin[a], p[2]))
+				xy[k].Add(xy[k], new(big.Rat).Mul(derivative, delta))
+			}
 		}
 		u := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(xy[0], j.Dv[b]), new(big.Rat).Mul(xy[1], j.Dv[a])), det)
 		v := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Mul(j.Du[a], xy[1]), new(big.Rat).Mul(j.Du[b], xy[0])), det)
-		control[i] = [3]*big.Rat{u.Add(u, ratInset(d.UMin)), v.Add(v, ratInset(d.VMin)), big.NewRat(1, 1)}
+		control[i] = [3]*big.Rat{
+			u.Add(u, new(big.Rat).Mul(ratInset(d.UMin), p[2])),
+			v.Add(v, new(big.Rat).Mul(ratInset(d.VMin), p[2])), p[2],
+		}
+	}
+	if _, ok := c.(ExactQuadraticUV); ok {
+		return NewExactQuadraticUV([3][3]*big.Rat{control[0], control[1], control[2]})
 	}
 	return polynomialNativeTrim(control)
 }
@@ -68,7 +84,7 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 // Endpoint incidence selects a single cycle; exact polynomial Green integration
 // fixes its orientation. The subsequent trim validator independently proves
 // Jordan topology, so nonzero signed area alone never certifies embeddedness.
-func polynomialPlaneCycle(arcs []PCurve) ([]PCurve, error) {
+func polynomialPlaneCycle(ctx context.Context, arcs []PCurve) ([]PCurve, error) {
 	if len(arcs) == 0 {
 		return nil, geom.ErrConvergence
 	}
@@ -124,6 +140,43 @@ func polynomialPlaneCycle(arcs []PCurve) ([]PCurve, error) {
 	if end != ends[0][0] {
 		return nil, geom.ErrConvergence
 	}
+	reverse := func() {
+		for i, j := 0, len(loop)-1; i <= j; i, j = i+1, j-1 {
+			a, b := loop[i], loop[j]
+			loop[i], loop[j] = reversePolynomialPlaneCurve(b), reversePolynomialPlaneCurve(a)
+		}
+	}
+	for _, q := range loop {
+		h, e := polynomialPlaneControls(q)
+		if e != nil {
+			return nil, e
+		}
+		for _, c := range h {
+			if c[2].Cmp(big.NewRat(1, 1)) != 0 {
+				// The exact trim validator encloses rational signed area and
+				// proves a simple loop. Endpoint polygon area is not sufficient.
+				for range 2 {
+					var face Face
+					for _, curve := range loop {
+						_, p, e := polynomialPlaneEndpoints(curve)
+						if e != nil {
+							return nil, e
+						}
+						face.Outer = append(face.Outer, Use{UVStart: p[0], UVEnd: p[1], Curve: curve})
+					}
+					report, e := ValidateFaceTrimLoops(ctx, face, trimvalidate.Options{})
+					if e != nil {
+						return nil, e
+					}
+					if report.Status == trimvalidate.Certified {
+						return loop, nil
+					}
+					reverse()
+				}
+				return nil, geom.ErrConvergence
+			}
+		}
+	}
 	area := new(big.Rat)
 	for _, q := range loop {
 		h, e := polynomialPlaneControls(q)
@@ -155,10 +208,7 @@ func polynomialPlaneCycle(arcs []PCurve) ([]PCurve, error) {
 		return nil, geom.ErrConvergence
 	}
 	if area.Sign() < 0 {
-		for i, j := 0, len(loop)-1; i <= j; i, j = i+1, j-1 {
-			a, b := loop[i], loop[j]
-			loop[i], loop[j] = reversePolynomialPlaneCurve(b), reversePolynomialPlaneCurve(a)
-		}
+		reverse()
 	}
 	return loop, nil
 }

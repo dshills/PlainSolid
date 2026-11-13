@@ -122,7 +122,7 @@ func revolutionSourcePoint(f *File, id int64, kind string) ([3]*big.Rat, error) 
 	}
 	return out, nil
 }
-func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int) error {
+func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int, normalized []float64) error {
 	en := f.Entities[cid]
 	r, ok := component(en, "B_SPLINE_CURVE")
 	var refs Value
@@ -143,46 +143,45 @@ func revolutionExactMeridian(f *File, cid int64, origin [3]*big.Rat, axis int) e
 		if len(w.Args) != 1 || w.Args[0].Kind != Aggregate || len(w.Args[0].Items) != len(ids) {
 			return geom.ErrDomain
 		}
-		var first *big.Rat
-		for _, v := range w.Args[0].Items {
+		maximum := new(big.Rat)
+		raw := make([]*big.Rat, len(ids))
+		for i, v := range w.Args[0].Items {
 			q, e := liftSourceRat(v)
 			if e != nil || q.Sign() <= 0 {
 				return geom.ErrDomain
 			}
-			if first == nil {
-				first = q
-			} else if q.Cmp(first) != 0 {
+			raw[i] = q
+			if q.Cmp(maximum) > 0 {
+				maximum.Set(q)
+			}
+		}
+		if len(normalized) != len(raw) {
+			return geom.ErrDomain
+		}
+		for i, q := range raw {
+			ratio := new(big.Rat).Quo(q, maximum)
+			if ratio.Cmp(new(big.Rat).SetFloat64(normalized[i])) != 0 {
 				return geom.ErrDomain
 			}
 		}
+
 	}
-	radial, radialSign, heightSign := -1, 0, 0
-	var previous *big.Rat
+	heightSign := 0
+	var previous, first0, first1 *big.Rat
+	perp0, perp1 := (axis+1)%3, (axis+2)%3
 	for i, id := range ids {
 		p, e := revolutionSourcePoint(f, id, "CARTESIAN_POINT")
 		if e != nil {
 			return e
 		}
+		q0 := new(big.Rat).Sub(p[perp0], origin[perp0])
+		q1 := new(big.Rat).Sub(p[perp1], origin[perp1])
 		if i == 0 {
-			for j := 0; j < 3; j++ {
-				if j != axis && p[j].Cmp(origin[j]) != 0 {
-					if radial >= 0 {
-						return geom.ErrDomain
-					}
-					radial = j
-					radialSign = p[j].Cmp(origin[j])
-				}
-			}
-			if radial < 0 {
-				return geom.ErrDomain
-			}
+			first0, first1 = q0, q1
 		}
-		for j := 0; j < 3; j++ {
-			if j != axis && j != radial && p[j].Cmp(origin[j]) != 0 {
-				return geom.ErrDomain
-			}
-		}
-		if p[radial].Cmp(origin[radial]) != radialSign {
+		cross := new(big.Rat).Sub(new(big.Rat).Mul(q0, first1), new(big.Rat).Mul(q1, first0))
+		dot := new(big.Rat).Add(new(big.Rat).Mul(q0, first0), new(big.Rat).Mul(q1, first1))
+		if cross.Sign() != 0 || dot.Sign() <= 0 {
 			return geom.ErrDomain
 		}
 		if previous != nil {
@@ -289,7 +288,7 @@ func decodeRevolutionSurface(f *File, id int64, maxPoints int) (RevolutionSurfac
 	if ax < 0 {
 		return fail()
 	}
-	if e = revolutionExactMeridian(f, cid, origin, ax); e != nil {
+	if e = revolutionExactMeridian(f, cid, origin, ax, profile.Geometry.Weights()); e != nil {
 		return fail()
 	}
 	var bounds [4]float64

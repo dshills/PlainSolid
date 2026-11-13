@@ -22,10 +22,14 @@ type FiniteCylinderPairUnionResult struct {
 // joined coaxial body with overlapping or touching axial spans,
 // a strictly radially contained eccentric boss extending through one end,
 // exactly placed oblique parallel cylinders with transverse overlap and equal
-// physical caps, and selected unequal-radius perpendicular pairs with clear finite caps
+// physical caps, coordinate-parallel transverse overlaps with exactly one common
+// physical cap or strictly staggered or nested overlapping spans, and selected unequal-radius perpendicular pairs with clear finite caps
 // or complete containment.
 // A crossing requires representable crossing coordinates and recentered caps
 // that clear the common. Wall and cap ancestry is in original operand order.
+// Shared common-cap lens patches belong to both source caps. Analytic arc
+// evaluation and sewing use tolerance; exact predicates do not imply exact
+// floating-point trigonometric boundary coordinates.
 func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairUnionResult, error) {
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
 		return FiniteCylinderPairUnionResult{}, geom.ErrInvalid
@@ -54,6 +58,15 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 			return u, err
 		}
 		if u, ok, err := finiteParallelEccentricShoulderUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteParallelTransverseShoulderUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteParallelTransverseStaggeredUnion(ctx, a, b, tolerance); ok || err != nil {
+			return u, err
+		}
+		if u, ok, err := finiteParallelTransverseNestedUnion(ctx, a, b, tolerance); ok || err != nil {
 			return u, err
 		}
 		if u, ok, err := finiteParallelOverlapUnion(ctx, a, b, tolerance); ok || err != nil {
@@ -106,6 +119,11 @@ type FiniteCylinderCutCap struct{ Solid, Face int }
 // Strictly enclosed coordinate-parallel cutters leave an inward cavity shell.
 // A coordinate-parallel cutter that covers the stock disk can remove a full
 // axial slab, retaining one or two original wall intervals.
+// Coordinate-parallel transverse cutters may cover or exceed the complete
+// stock axial interval; their exterior caps do not become result faces.
+// A transverse cutter entering one end may stop at an interior original cap;
+// the retained lens floor has two patches in CutterCapFaces. An interior
+// transverse axial interval retains both lens caps, ordered by cutter Min/Max.
 // Exactly placed oblique parallel pairs support transverse cuts with equal caps.
 // It keeps stock unchanged when coordinate-parallel cylinder interiors are
 // disjoint, including exact radial or cap-only contact (regularized Difference).
@@ -142,6 +160,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			}
 			if cavity, ok, err := finiteParallelCylinderCavity(ctx, stock, cutter, tolerance); ok || err != nil {
 				return cavity, err
+			}
+			if blind, ok, err := finiteParallelTransverseBlind(ctx, stock, cutter, tolerance); ok || err != nil {
+				return blind, err
 			}
 			if blind, ok, err := finiteParallelCylinderBlind(ctx, stock, cutter, tolerance); ok || err != nil {
 				return blind, err

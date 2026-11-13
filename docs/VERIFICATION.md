@@ -2188,6 +2188,50 @@ support, native reload, closed meshes, and absence of undeclared mesh
 contacts pass. Independent OCCT prisms agree on area, volume and centroid
 for all four results. A cyclic physical-axis permutation checks the YZ
 projection without changing the original UV coordinates.
+When the projection derivative changes at a knot, the cap uses each
+original knot cell's exact affine map. A fixture verifies the original
+`U=1/2` and model `X=3/8` junctions, independent piecewise-Jacobian mass
+integrals, and native reload.
+The regular rational graph fixture cuts the polynomial surface
+`Z=X/16+X²/32+(1+X)Y/4` at `Z=3/16`. Its nonconstant denominator is
+proved strictly positive, and both original trims retain the complete
+rational section. Independent integration gives common volume
+`49 ln(2)/512−69/2048`; OCCT agrees on area, volume and centroid for both
+Boolean results. Native reload and closed contact-free meshes pass.
+A denominator with an interior zero and a tampered trim with unchanged
+endpoints are rejected.
+
+A reverse-axis cylindrical cutter with a larger axial span independently
+qualifies the transverse crescent difference against OCCT area, volume, and
+centroid. Native ancestry records the two original stock caps and the
+cutter wall; temporary clipping planes do not acquire cutter cap ancestry.
+Independent OCCT cuts cover an upper, lower, and interior transverse
+notch. All retain one shell and agree on area, volume, and centroid.
+The upper and lower cuts retain two analytic floor patches; the interior
+notch retains four patches on the two original caps in original parameter
+order, including for a reversed cutter axis. Native tests also verify
+opposite floor normals, closed display meshes and no undeclared contacts.
+Independent OCCT union checks cover common lower and upper caps, staggered
+ends, and nested axial spans for intersecting transverse disks. All four
+native results agree on shell count, area, volume and centroid. Both
+operand orders and signed frames preserve the original cap ownership;
+common terminal lens fans retain both owners.
+
+Convex planar through hollowing retains a closed genus-one shell for a
+rectangular duct with four distinct wall thicknesses and for the corresponding
+sheared stock. Both have exact ideal volume 60 and match independent OCCT
+prism subtraction on area, volume and centroid. A separate test rejects an
+opening whose rounded cap would move off its original plane by less than one
+binary64 ULP, even though the usual output displacement tolerance is larger.
+An independent wedge-prism cut verifies a duct opening on each of the
+nonparallel original supports `X=0` and `X+Z=4`. It agrees on area,
+centroid and volume `35/8`. Exact source-face separation accepts a
+`2⁻²⁰` gap and rejects a shared opening edge.
+An independently swept and sheared OCCT cutter qualifies the tapered planar
+chamfer's area, centroid and volume `569/24`. The native result retains
+the original vertical edge's direction and both endpoint width pairs.
+Constant widths reproduce the earlier chamfer result. Incompatible ratios
+fail before any chamfer is returned.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The

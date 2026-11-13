@@ -26,10 +26,12 @@ int main(int argc,char**argv){
  if(argc!=3)return 2;
  try{
   std::string mode=argv[1];
-  if(mode=="write"||mode=="write-curved"){
-   bool curved=mode=="write-curved";int n=curved?3:2;NCollection_Array1<gp_Pnt> poles(1,n);poles(1)=gp_Pnt(2,0,0);poles(n)=gp_Pnt(3,0,3);if(curved)poles(2)=gp_Pnt(4,0,1);
+  if(mode=="write"||mode=="write-curved"||mode=="write-oblique"||mode=="write-rational"){
+   bool curved=mode!="write";int n=curved?3:2;NCollection_Array1<gp_Pnt> poles(1,n);poles(1)=gp_Pnt(2,0,0);poles(n)=gp_Pnt(3,0,3);if(curved)poles(2)=gp_Pnt(4,0,1);
+   if(mode=="write-oblique") for(int i=1;i<=n;++i) poles(i)=gp_Pnt(3*poles(i).X(),4*poles(i).X(),poles(i).Z());
    NCollection_Array1<double> knots(1,2);knots(1)=0;knots(2)=1;NCollection_Array1<int> mults(1,2);mults(1)=n;mults(2)=n;
    occ::handle<Geom_BSplineCurve> profile=new Geom_BSplineCurve(poles,knots,mults,n-1);
+   if(mode=="write-rational"){NCollection_Array1<double> weights(1,3);weights(1)=1;weights(2)=.5;weights(3)=1;profile=new Geom_BSplineCurve(poles,weights,knots,mults,n-1);}
    occ::handle<Geom_SurfaceOfRevolution> support=new Geom_SurfaceOfRevolution(profile,gp_Ax1(gp_Pnt(0,0,0),gp_Dir(0,0,1)));
    occ::handle<Geom_RectangularTrimmedSurface> patch=new Geom_RectangularTrimmedSurface(support,.25,1.25,0.,1.);
    STEPControl_Writer writer;if(writer.Transfer(BRepBuilderAPI_MakeFace(patch,1e-9).Face(),STEPControl_AsIs)!=IFSelect_RetDone)return 3;

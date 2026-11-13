@@ -6,9 +6,9 @@ import (
 )
 
 // RevolutionSurface is an immutable bounded analytic sweep. U is radians and
-// V is the original polynomial B-spline parameter; no tensor reparameterization
+// V is the original B-spline parameter; no tensor reparameterization
 // or periodic closure is introduced. The supported meridian occupies one
-// coordinate half-plane about a signed-coordinate axis, with positive radii
+// fixed meridian half-plane about a signed-coordinate axis, with positive radii
 // and strictly monotone axial control heights. These conditions keep its
 // angular and meridian tangents independent throughout each smooth knot span.
 type RevolutionSurface struct {
@@ -17,11 +17,13 @@ type RevolutionSurface struct {
 	start, end   float64
 }
 
-// NewRevolutionSurface accepts a continuous clamped polynomial meridian of at
+// NewRevolutionSurface accepts a continuous clamped positive-weight meridian of at
 // most 4096 poles, an exact signed-coordinate unit axis, and an increasing
 // angular interval within [-3,3] radians of width at most 3. These conservative
 // bounds exclude complete turns and periodic ambiguity. It retains the source
-// profile and axis without snapping or normalizing them.
+// profile and axis without snapping or normalizing them. Nonconstant weights
+// additionally require degree <=16, <=256 poles, <=64 knot spans and an exact
+// strict Bernstein sign proof of the axial rational derivative on every span.
 func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float64) (RevolutionSurface, error) {
 	fail := func() (RevolutionSurface, error) { return RevolutionSurface{}, ErrDomain }
 	if profile == nil || !origin.IsFinite() || !axis.IsFinite() || !finite(start) || !finite(end) || start < -3 || end > 3 || start >= end || new(big.Rat).Sub(new(big.Rat).SetFloat64(end), new(big.Rat).SetFloat64(start)).Cmp(big.NewRat(3, 1)) > 0 || len(profile.poles) > 4096 {
@@ -44,9 +46,10 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 	if ax < 0 {
 		return fail()
 	}
+	rational := false
 	for _, w := range profile.weights {
 		if w != 1 {
-			return fail()
+			rational = true
 		}
 	}
 	for i := 0; i <= profile.degree; i++ {
@@ -66,8 +69,8 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 		}
 	}
 	oo := [3]float64{origin.X, origin.Y, origin.Z}
-	radial := -1
-	radialSign := 0.
+	perp0, perp1 := (ax+1)%3, (ax+2)%3
+	var first0, first1 *big.Rat
 	heightSign := 0.
 	previous := 0.
 	for i, p := range profile.poles {
@@ -75,26 +78,14 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 		if !p.Sub(origin).IsFinite() {
 			return fail()
 		}
+		q0 := new(big.Rat).Sub(new(big.Rat).SetFloat64(pp[perp0]), new(big.Rat).SetFloat64(oo[perp0]))
+		q1 := new(big.Rat).Sub(new(big.Rat).SetFloat64(pp[perp1]), new(big.Rat).SetFloat64(oo[perp1]))
 		if i == 0 {
-			for j := 0; j < 3; j++ {
-				if j != ax && pp[j] != oo[j] {
-					if radial >= 0 {
-						return fail()
-					}
-					radial = j
-					radialSign = math.Copysign(1, pp[j]-oo[j])
-				}
-			}
-			if radial < 0 {
-				return fail()
-			}
+			first0, first1 = q0, q1
 		}
-		for j := 0; j < 3; j++ {
-			if j != ax && j != radial && pp[j] != oo[j] {
-				return fail()
-			}
-		}
-		if (pp[radial]-oo[radial])*radialSign <= 0 {
+		cross := new(big.Rat).Sub(new(big.Rat).Mul(q0, first1), new(big.Rat).Mul(q1, first0))
+		dot := new(big.Rat).Add(new(big.Rat).Mul(q0, first0), new(big.Rat).Mul(q1, first1))
+		if cross.Sign() != 0 || dot.Sign() <= 0 {
 			return fail()
 		}
 		// Compare original coordinates rather than a rounded projected height.
@@ -110,6 +101,11 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 			}
 		}
 		previous = pp[ax]
+	}
+	if rational {
+		if e := certifyRevolutionRationalHeight(profile, ax, heightSign); e != nil {
+			return RevolutionSurface{}, e
+		}
 	}
 	owned, e := NewBSpline(profile.degree, profile.poles, profile.knots, profile.weights)
 	if e != nil {

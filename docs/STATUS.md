@@ -736,6 +736,15 @@ Unequal coaxial stock preserves an analytic step where the larger disk ends,
 including annular cap ancestry and exact common volume.
 Coordinate-parallel cylinders with identical cap planes and a transverse
 disk crossing retain the analytic union or cut with signed cap ancestry.
+A transverse cut also accepts an axially longer parallel cutter that exactly
+covers the stock span. Only original stock caps and the original cutter wall
+appear on the retained crescent.
+One-ended cuts and interior side notches keep native lens floor patches on
+the original cutter cap planes. Exact axial ordering retains the original
+stock caps and the cutter wall across all three represented orientations.
+With transverse disks and positive axial overlap, union also retains
+native shoulders for one common cap, staggered spans, and nested spans.
+An exactly shared terminal lens has both original cap owners.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -787,6 +796,9 @@ surfaces must keep their geometry through the operation. Continue with:
    Both polynomial clips also retain oblique cuts when the exact cutter
    projection admits the same regular graph proof. All retained faces keep
    their original charts, including the oblique cutter cap.
+   A separate clip handles a single-span polynomial support with affine
+   projection and a linearly varying, nonzero dependent coefficient.
+   Its exact rational quadratic section remains on both original supports.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock
@@ -803,6 +815,13 @@ surfaces must keep their geometry through the operation. Continue with:
    entity ancestry, and add adversarial OCCT differential fixtures.
 4. Extend general fillets, offset, draft and sewing after Boolean assembly;
    use the same topology for curved STEP/IGES B-reps and assembly metadata.
+   Convex planar hollowing supports two separated complete openings, including
+   nonparallel original supports. It retains exact cap coincidence and
+   opening ancestry. Rectangular, sheared, and inclined ducts pass independent
+   OCCT comparisons.
+   Planar edge chamfers also accept compatible independent endpoint setbacks.
+   Exact coplanarity keeps the entire tapered bevel on one plane, with
+   original edge direction and continuous width metadata.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

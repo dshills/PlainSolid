@@ -403,4 +403,69 @@ func TestOCCTFiniteParallelTransverseCylinderSets(t *testing.T) {
 		t.Fatal("expected one retained stock", err)
 	}
 	check("finite-parallel-transverse-cut", d.Solids[0])
+	b.Axis, b.Min, b.Max = geom.Vec3{Z: -4}, -2, 2
+	d, err = parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-9)
+	refName := "finite-parallel-transverse-covering-cut"
+	if _, ok := refs[refName]; !ok || err != nil || len(d.Solids[1].Faces()) != 0 ||
+		len(d.StockCapFaces[0]) != 2 || len(d.CutterCapFaces[0]) != 0 || len(d.CutterWallFaces[0]) != 1 {
+		t.Fatal("expected one retained stock with original stock caps and a cutter wall", err)
+	}
+	check(refName, d.Solids[0])
+}
+
+func TestOCCTFiniteTransverseBlindCylinderCut(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Min: 0, Max: 4, Radius: 5}
+	for _, tc := range []struct {
+		name     string
+		min, max float64
+		faces    int
+		caps     int
+	}{
+		{"finite-transverse-upper-notch", -5, -1.5, 10, 2},
+		{"finite-transverse-lower-notch", -2.5, 1, 10, 2},
+		{"finite-transverse-interior-notch", -3, -1, 16, 4},
+	} {
+		b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Min: tc.min, Max: tc.max, Radius: 3}
+		r, err := parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-8)
+		if err != nil || finiteOracleShellCount(r.Solids[0]) != 1 || len(r.Solids[0].Faces()) != tc.faces ||
+			len(r.CutterWallFaces[0]) != 1 || len(r.CutterCapFaces[0]) != tc.caps {
+			t.Fatal(tc.name, "unexpected analytic shell or original floor ownership", err)
+		}
+		m, err := r.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+		if err != nil {
+			t.Fatal(tc.name, err)
+		}
+		compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+	}
+}
+
+func TestOCCTFiniteTransverseShoulderCylinderUnions(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Min: 0, Max: 4, Radius: 5}
+	for _, tc := range []struct {
+		name     string
+		min, max float64
+		faces    int
+	}{
+		{"finite-transverse-common-lower-union", -2.5, 0, 12},
+		{"finite-transverse-common-upper-union", -4, -1.5, 12},
+		{"finite-transverse-staggered-union", -5, -1, 14},
+		{"finite-transverse-nested-union", -2.5, -.5, 14},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Min: tc.min, Max: tc.max, Radius: 3}
+			r, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-8)
+			if err != nil || len(r.Solid.Faces()) != tc.faces || finiteOracleShellCount(r.Solid) != 1 {
+				t.Fatal("unexpected analytic shell", err)
+			}
+			m, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+			if err != nil {
+				t.Fatal(err)
+			}
+			compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+		})
+	}
 }

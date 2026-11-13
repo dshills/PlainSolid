@@ -2101,9 +2101,9 @@ substitution, turn conversion, seam rephase or periodic closure is inferred.
 Its position and first partials follow Rodrigues rotation of the original
 model-space profile about the original axis and origin.
 
-The initial subset requires a continuous clamped polynomial B-spline meridian
-(at most 4096 poles; equal rational source weights are also polynomial), an
-exact signed-coordinate unit axis, and a coordinate meridian half-plane with
+The subset requires a continuous clamped positive-weight B-spline meridian
+(at most 4096 poles for polynomial profiles; see rational limits below), an
+exact signed-coordinate unit axis, and a fixed meridian half-plane with
 strictly positive control radii. Axial control coordinates must be strictly
 monotone, increasing or decreasing. The polynomial derivative has same-sign
 axial coefficients on every nonzero knot span: each coefficient is the signed
@@ -2120,8 +2120,8 @@ negative starting angles are retained. Both trim senses must be positive and
 V must be the full original profile interval. Native length units are preserved
 without conversion. All source global unit contexts must agree and specify
 unscaled SI radians; missing, prefixed, converted or mixed angular units fail.
-Source axis, meridian half-plane, positive radius, monotone heights, polynomial
-weight equality and trim endpoint checks use bounded exact source decimals,
+Source axis, meridian half-plane, positive radius, monotone heights, lossless
+weight normalization and trim endpoint checks use bounded exact source decimals,
 preventing hidden normalization or coplanarity manufactured by float rounding.
 Scalar geometry evaluation otherwise follows the native float64 contract.
 
@@ -2146,3 +2146,33 @@ it directly produced `14.323944878271` for the intended `0.25` radians. This
 codec does not detect-and-repair such a mismatch. The retained positive
 fixtures use OCCT's typed entity writer with explicit radian bounds; entity
 geometry decoding does not import their surrounding topological faces.
+
+The meridian half-plane may have arbitrary represented phase around that axis.
+For example the radial pairs (6,8), (12,16), (9,12) are accepted without
+normalization. Exact rational determinants of the original binary coordinates
+(native API), and independently of original decimal coordinates (STEP reader),
+prove proportionality to the first radial vector; positive exact dot products
+exclude the opposite ray and axis contact. Both proofs must pass. This does not
+admit general oblique axes or approximately coplanar profiles. An independently
+authored OCCT fixture uses that 3:4 phase with angular bounds [0.25,1.25]; live
+qualification checks source poles, exported positions, partials and area.
+
+Rational revolution meridians additionally require degree at most 16, at most
+256 poles and 64 nonempty knot spans. Original axial control heights remain
+strictly monotone. Exact homogeneous knot extraction produces each Bernstein
+span; the codec requires every coefficient of `H'W-HW'` to have the same strict
+sign, where H is homogeneous axial position and W is positive weight. This
+proves a nonzero axial derivative on the entire span, including its endpoints,
+with the same reversed-sign proof for decreasing profiles. Inconclusive hulls
+fail closed; there is no sampled acceptance. Extraction and sign arithmetic use
+at most 600000 checked operations and 8192-bit rational coefficients. Existing
+polynomial profiles retain their previous limits and proof path.
+
+STEP source weight ratios are compared exactly against the decoded normalized
+binary weights. Common source weight scale is immaterial; any normalization that
+would change a rational ratio is rejected. Pole and knot scalar conversion keeps
+the documented float64 model contract, with independent exact source meridian
+and monotone-height checks. An independent OCCT rational quadratic fixture uses
+weights (1,0.5,1); live tests compare original parameters, derivatives and area in
+both directions. Standalone native JSON version 1 remains polynomial-only and
+explicitly rejects these newly supported weighted profiles.

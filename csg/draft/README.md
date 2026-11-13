@@ -83,3 +83,63 @@ single-support removal, the aggregate added regions may be disconnected.
 Analytic tests remove two or four independent chamfers. Live OCCT differential
 tests independently reconstruct the remaining support intersections and compare
 area, volume and centroid for both cases.
+
+## Two-ended planar hollowing
+
+`HollowThrough` extends the hollowing family to a through duct bounded by two
+complete, unique, separated support faces. Both selected thicknesses
+are zero; every other support moves strictly inward. Exact support signs at every original face vertex prove that each whole
+opening lies strictly inside the other opening’s halfspace. This includes
+nonparallel end planes whose finite faces are disjoint, while rejecting even
+a single shared original corner or edge. Both reconstructed opening faces must
+survive and remain exactly coincident with their original planes after vertex
+conversion. Every converted cavity vertex must be strictly inside all unopened
+supports. Touching or partial coplanar openings, collapsed cavities and
+unproved conversion fail without returning a partial solid.
+
+`ThroughHollowResult` embeds the existing hollow result and additionally reports
+caller-owned ideal exact material volume and the two opening-to-interior face
+IDs. Final material faces and edges retain the Boolean ancestry. Each support
+reconstruction, containment check and Boolean pass retains its separate budget.
+The output includes closed rim and cavity walls, rather than an open display
+mesh. Euclidean and dominant-support-coordinate thickness keep their existing
+explicit meanings; arbitrary curved shells remain outside this operation.
+
+Independent box and sheared-box tests verify volume, centroid, exact interior,
+opening ancestry, inward cavity orientation, genus-one topology and absence of
+mesh contacts. Invalid end pairs, partial coplanar selection, exhausted work,
+cancellation and collapsed cavities are rejected. An oblique cap regression
+rejects a rounded cavity seam displaced from its original plane by less than
+one ULP, even though that error is below the configured conversion tolerance.
+
+Nonparallel wedge regression: `0≤y≤2`, `0≤z≤1`, `0≤x≤4−z`, with
+openings at `x=0` and `x+z=4` and quarter-unit offsets of the other walls.
+The exact material volume is `35/8`; independently integrated centroid and
+surface area, closed genus-one topology and contact-free tessellation are
+checked. A tiny but strictly positive original end-face gap remains accepted;
+the coincident-edge limit is rejected before subtraction.
+
+## Tapered planar chamfers
+
+`ChamferTapered` accepts four strictly positive endpoint setbacks for every
+selected original edge: one distance into each incident face at its stored
+Start vertex and another pair at its stored End vertex. The distances vary
+linearly along that original direction. Exact in-face offset construction and
+four-point coplanarity prove a single planar bevel; incompatible width ratios
+are rejected rather than approximated with a twisted or sampled surface.
+The original edge endpoints must both lie strictly on the removed side, which
+proves the same sign along the complete original edge.
+
+Constant-width selections preserve `Chamfer` results. Mixed constant/tapered
+selections are applied simultaneously to unchanged original supports. The same
+Euclidean rational-length and dominant-support-coordinate metric rules apply.
+Large/interacting bevels can remove faces or empty the convex result, with the
+existing bounded reconstruction, conversion, and embedding checks. Selections
+are atomic: any invalid edge, width, coplanarity or budget returns no result.
+
+`TaperedChamferResult` retains the usual face/edge ancestry plus original edge
+vertex direction, both incident face IDs, input widths and four caller-owned
+exact offset points. Their linear interpolation describes the entire accepted
+width field. Tests integrate tapered triangular cross-sections independently,
+cover multiple separated bevels and mixed widths, reverse the original stored
+edge direction, and check exact plane incidence and contact-free display.

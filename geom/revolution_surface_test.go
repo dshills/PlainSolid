@@ -50,8 +50,8 @@ func TestRevolutionSurfaceRejects(t *testing.T) {
 		}
 	}
 	r, _ := NewBSpline(1, []Vec3{{X: 2}, {X: 3, Z: 1}}, []float64{0, 0, 1, 1}, []float64{1, .75})
-	if _, e := NewRevolutionSurface(r, Vec3{}, Vec3{Z: 1}, 0, 1); e == nil {
-		t.Fatal("rational meridian")
+	if _, e := NewRevolutionSurface(r, Vec3{}, Vec3{Z: 1}, 0, 1); e != nil {
+		t.Fatal("certifiable rational meridian", e)
 	}
 }
 
