@@ -33,5 +33,5 @@ type StationaryCircleContactComponents struct {
 // with raw stationary roots additionally charged to MaxEvents before merging.
 // The strict API continues to reject any stationary coincident cell.
 func (c SurfaceCurveCompositionCells) ClassifyStationaryPlanarCircleComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions) (StationaryCircleContactComponents, error) {
-	return c.circleContactComponents(ctx, axes, center, radiusSquared, o, true)
+	return c.circleContactComponents(ctx, axes, center, radiusSquared, o, true, false)
 }

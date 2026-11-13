@@ -19,9 +19,10 @@ type CoincidentCirclePiece struct {
 // germs, retained with source ownership. They do not turn a continuous contact
 // interval into a crossing/touching point. Pieces may reverse at a C0 seam.
 type CircleContactComponent struct {
-	Point         *CollectionCircleContact
-	Pieces        []CoincidentCirclePiece
-	Before, After *CollectionCircleContact
+	ConstantPieces []ConstantCirclePiece
+	Point          *CollectionCircleContact
+	Pieces         []CoincidentCirclePiece
+	Before, After  *CollectionCircleContact
 }
 
 type CircleContactComponents struct {
@@ -39,11 +40,11 @@ type CircleContactComponents struct {
 // coincident cell. Failure publishes no partial components. Completeness covers
 // only the supplied Domain, not an omitted parent or periodic quotient seam.
 func (c SurfaceCurveCompositionCells) ClassifyPlanarCircleComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions) (CircleContactComponents, error) {
-	r, e := c.circleContactComponents(ctx, axes, center, radiusSquared, o, false)
+	r, e := c.circleContactComponents(ctx, axes, center, radiusSquared, o, false, false)
 	return r.CircleContactComponents, e
 }
 
-func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions, stationary bool) (StationaryCircleContactComponents, error) {
+func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Context, axes [2]int, center [3]*big.Rat, radiusSquared *big.Rat, o ComposedPlaneContactsOptions, stationary, constants bool) (StationaryCircleContactComponents, error) {
 	var zero StationaryCircleContactComponents
 	if ctx == nil || !c.Complete || len(c.Cells) == 0 {
 		return zero, ErrInvalid
@@ -73,6 +74,7 @@ func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Contex
 	parts := make([]PlanarCirclePartition, len(c.Cells))
 	oriented := make([][]CoincidentCirclePiece, len(c.Cells))
 	var stationaryEvents []CollectionCircleStationaryEvent
+	constantPieces := make([]*ConstantCirclePiece, len(c.Cells))
 	count := 0
 	for i, cell := range c.Cells {
 		p, e := cell.ClassifyPlanarCircle(ctx, axes, center, radiusSquared, opts)
@@ -91,6 +93,16 @@ func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Contex
 			return zero, ErrConvergence
 		}
 		if p.Coincident {
+			if constants {
+				point, ok, e := cell.constantCirclePoint(ctx, opts)
+				if e != nil {
+					return zero, e
+				}
+				if ok {
+					constantPieces[i] = &ConstantCirclePiece{Cell: i, Start: p.Domain[0], End: p.Domain[1], Point: point}
+					continue
+				}
+			}
 			proof, e := cell.SplitCoincidentCircleOrientation(ctx, axes, center, radiusSquared, opts)
 			if e != nil {
 				return zero, e
@@ -141,6 +153,9 @@ func (c SurfaceCurveCompositionCells) circleContactComponents(ctx context.Contex
 			first := i
 			for i < len(parts) && parts[i].Coincident {
 				component.Pieces = append(component.Pieces, oriented[i]...)
+				if constantPieces[i] != nil {
+					component.ConstantPieces = append(component.ConstantPieces, *constantPieces[i])
+				}
 				i++
 			}
 			if first > 0 {
