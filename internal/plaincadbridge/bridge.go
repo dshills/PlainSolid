@@ -95,6 +95,8 @@ type request struct {
 	Radius            number               `json:"radius,omitempty"`
 	Source            string               `json:"source,omitempty"`
 	Handles           []string             `json:"handles,omitempty"`
+	Lead              *leadRequest         `json:"lead,omitempty"`
+	Nut               bool                 `json:"nut,omitempty"`
 	Thread            *threadRequest       `json:"thread,omitempty"`
 	Profile           *mixedProfileRequest `json:"profile,omitempty"`
 	Angle             number               `json:"angle,omitempty"`
@@ -219,7 +221,26 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "leadPart", "assertLeadPair":
+		if q.Lead == nil {
+			return nil, errors.New("lead screw operation requires dimensions")
+		}
+		if q.Op == "leadPart" {
+			return b.createLeadPart(*q.Lead, q.Nut)
+		}
+		a, err := b.get(q.A)
+		if err != nil {
+			return nil, err
+		}
+		c, err := b.get(q.B)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.checkLeadPair(a, c, *q.Lead); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"compatible": true}, nil
 	case "thread":
 		if q.Thread == nil {
 			return nil, errors.New("thread requires dimensions and handedness")

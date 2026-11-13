@@ -20,6 +20,8 @@ type analyticBody struct {
 	shaft        *trimmed.SteppedShaft
 	segment      *circularSegmentSweep
 	helical      bool
+	lead         *leadPart
+	helicalMesh  *mesh.Mesh
 	pockets      *pocketStock
 	volume, area float64
 }
@@ -52,6 +54,13 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.helicalMesh != nil && o.Deflection >= .5 && o.Angle >= .1 && len(a.helicalMesh.Triangles) <= o.MaxTriangles {
+		return *a.helicalMesh, nil
+	}
+	if a.helical {
+		o.MaxTriangles = min(o.MaxTriangles, 100000)
+		return a.solid.TessellateHelical(context.Background(), o)
+	}
 	if a.patches != nil {
 		// Rectangular-patch tessellation compares normals at centroids.
 		// Use a finer bound for the curved preview than the generic centroid test.
@@ -69,6 +78,19 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		return nil, err
 	}
 	out := *a
+	if a.helicalMesh != nil {
+		meshCopy := mesh.Mesh{Vertices: make([]geom.Vec3, len(a.helicalMesh.Vertices)), Triangles: a.helicalMesh.Triangles}
+		for i, v := range a.helicalMesh.Vertices {
+			meshCopy.Vertices[i] = m.Apply(v)
+		}
+		if m.Determinant() < 0 {
+			meshCopy.Triangles = append([][3]int(nil), meshCopy.Triangles...)
+			for i, t := range meshCopy.Triangles {
+				meshCopy.Triangles[i] = [3]int{t[0], t[2], t[1]}
+			}
+		}
+		out.helicalMesh = &meshCopy
+	}
 	if a.segment != nil {
 		s := *a.segment
 		s.origin = m.Apply(s.origin)

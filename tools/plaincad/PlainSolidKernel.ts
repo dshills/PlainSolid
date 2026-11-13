@@ -2,7 +2,9 @@
 // The class name preserves the application's import boundary; all geometry is Go.
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
-import type { ComponentPlacement, TopologyRef, RevolveAxisReference } from "../document/schema";
+import type { LeadScrewDimensions } from "../hardware/leadScrewSettings";
+import type { ThreadDimensions } from "../hardware/threadSettings";
+import type { ComponentPlacement, TopologyRef, RevolveAxisReference, ThreadFeature } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions, ResolvedRevolveAxis } from "./KernelAdapter";
@@ -160,7 +162,7 @@ export class OpenCascadeKernel implements KernelAdapter {
   static stepExportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
   static stepImportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
   static shellAvailable() { return this.isInitialized(); }
-  static threadsAvailable() { return false; }
+  static threadsAvailable() { return Boolean(runtime.plainSolidCall); }
 
   createBox(width: number, height: number, depth: number): KernelShape {
     return owned(request({ op: "box", min: [0, 0, 0], max: [width, height, depth] }), "box");
@@ -533,9 +535,18 @@ export class OpenCascadeKernel implements KernelAdapter {
     }
     return owned(result, "shell", shape.id);
   }
-  thread = unsupported;
-  leadPart = unsupported;
-  assertLeadPair = unsupported;
+  thread(shape: KernelShape, settings: Pick<ThreadFeature, "side" | "hand">, dimensions: ThreadDimensions): KernelShape {
+    const proof = request<Proof>({ op: "thread", handle: handle(shape).proof.handle, thread: { ...dimensions, side: settings.side, hand: settings.hand } });
+    return owned(proof, "thread", shape.id);
+  }
+  leadPart(dimensions: LeadScrewDimensions, nut: boolean, progress?: (stage: string) => void): KernelShape {
+    progress?.(nut ? "lead_nut_thread" : "lead_screw_thread");
+    return owned(request({ op: "leadPart", lead: dimensions, nut }), nut ? "leadNut" : "leadScrew");
+  }
+  assertLeadPair(screw: KernelShape, nut: KernelShape, dimensions: LeadScrewDimensions, progress?: (stage: string) => void): void {
+    progress?.("lead_pair_fit");
+    request({ op: "assertLeadPair", a: handle(screw).proof.handle, b: handle(nut).proof.handle, lead: dimensions });
+  }
   importStep(source: string): KernelShape {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated native worker.");
     return owned(request({ op: "importStep", source }), "stepImport");

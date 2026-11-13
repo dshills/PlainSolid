@@ -120,6 +120,21 @@ The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
 
+## PlainCAD original helical workflows, first run — 2026-11-13
+
+The original linked four-start lead screw and nut passes in 18.194 seconds.
+It measures retained native stock, edits handedness, cold-opens the document
+and exports both real STL meshes. The modeled Thread case passes external
+native preview, both length checks and save/open, then fails during the
+full STL intersection check. Replaying the exact WASM snapshot reproduces
+a crossing between two nonadjacent triangles near the external lead-in.
+Native tests independently verify the internal M3 groove and both hands of
+the finite lead pair. A mesh embedding repair is in progress.
+
+The [two-case report](evidence/plaincad-helical-first-run-2026-11-13.json)
+records the one pass and one failure, both TypeScript checks and the
+separate native WASM supplement.
+
 ## Phased lead screw and nut end reliefs — 2026-11-13
 
 Native phased reliefs retain the true finite start windows, with a reduced
