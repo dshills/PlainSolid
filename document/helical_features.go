@@ -43,6 +43,7 @@ func (r HelicalGrooveRecipe) native() (trimmed.HelicalGrooveRecipe, error) {
 type HelicalPairPartRecipe struct {
 	Shaft, Nut HelicalGrooveRecipe
 	SelectNut  bool
+	Reliefs    thread.PairReliefs
 }
 
 func evaluateHelicalFeature(ctx context.Context, f Feature) (trimmed.Solid, error) {
@@ -69,7 +70,18 @@ func evaluateHelicalFeature(ctx context.Context, f Feature) (trimmed.Solid, erro
 	if e != nil {
 		return trimmed.Solid{}, e
 	}
-	p, e := thread.BuildPair(ctx, thread.PairRecipe{Shaft: a, Nut: b}, geom.SurfacePatchEvaluationOptions{})
+	recipe := thread.PairRecipe{Shaft: a, Nut: b}
+	if r.Reliefs != (thread.PairReliefs{}) {
+		p, e := thread.BuildRelievedPair(ctx, recipe, r.Reliefs, geom.SurfacePatchEvaluationOptions{})
+		if e != nil {
+			return trimmed.Solid{}, e
+		}
+		if r.SelectNut {
+			return p.Nut, nil
+		}
+		return p.Shaft, nil
+	}
+	p, e := thread.BuildPair(ctx, recipe, geom.SurfacePatchEvaluationOptions{})
 	if e != nil {
 		return trimmed.Solid{}, e
 	}

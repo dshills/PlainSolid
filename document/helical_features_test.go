@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
@@ -74,5 +75,31 @@ func TestHelicalPartRecipesPersistAndRegenerate(t *testing.T) {
 	tx.State.Features["nut"].HelicalPair.Nut.Profile[1].Y = .625
 	if e := tx.Commit(); e == nil {
 		t.Fatal("accepted a zero-clearance flank")
+	}
+	tx.Rollback()
+	tx = d.Begin()
+	tx.State.Features["nut"].HelicalPair.Reliefs.NutLower = trimmed.HelicalReliefSpec{Radius: 2.125, Depth: .5}
+	if e := tx.Commit(); e != nil {
+		t.Fatal(e)
+	}
+	var finished bytes.Buffer
+	if e := d.Write(&finished); e != nil {
+		t.Fatal(e)
+	}
+	loaded, e := Read(&finished, 0, 2)
+	if e != nil {
+		t.Fatal(e)
+	}
+	state, _ := loaded.Snapshot()
+	if state.Features["nut"].HelicalPair.Reliefs.NutLower != (trimmed.HelicalReliefSpec{Radius: 2.125, Depth: .5}) {
+		t.Fatal("lost relief recipe")
+	}
+	result, e := state.EvaluateFeatures(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, e := result.Trimmed["nut"].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6, MaxSubdivisions: 128})
+	if want := (43.5 - 93./128) * math.Pi; e != nil || math.Abs(m.Volume-want) > 1e-6 {
+		t.Fatal(m, want, e)
 	}
 }
