@@ -1088,3 +1088,9 @@ and the display mesh has genus one and no detected self-contacts. Independent
 slice integration and the pinned OCCT cut agree on area and volume; the OCCT
 cut also verifies centroid and one closed shell. Native geometry and the raw
 difference recipe both reload, and the unused result slot remains empty.
+
+Coaxial through-bore fixtures cover both exactly coincident and extending
+cutter caps on all three coordinate axes. The native annulus preserves the
+original signed stock cap order and both radii. Its exact volume coefficient,
+independent OCCT mass properties, canonical reload, and closed genus-one mesh
+with no detected contacts verify the retained result.
