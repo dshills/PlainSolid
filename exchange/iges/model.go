@@ -12,7 +12,7 @@ import (
 
 // Limits bounds input records, scalar parameters and decoded control points.
 // Zero fields select 64 MiB, one million records, 100,000 entities, four million
-// values and one million control points. Input is buffered before parsing.
+// values and one million spline control/polyline points. Input is buffered before parsing.
 type Limits struct {
 	MaxBytes                                             int64
 	MaxRecords, MaxEntities, MaxValues, MaxControlPoints int
@@ -51,7 +51,7 @@ type Model struct {
 
 // Entity contains exactly one point, curve, surface or bounded direct-curve composite.
 // Label/subscript preserve directory labels.
-// Form is 0 for lines/arcs and 0..5 for the B-spline classification hint.
+// Form is 0 for lines/arcs/points, 12 for polylines, and 0..5 for splines.
 type Entity struct {
 	// Retains source provenance: generic import may round weight normalization,
 	// but an exact curve-on-surface proof must reject that alteration.
@@ -62,6 +62,7 @@ type Entity struct {
 	Subscript, Form int
 	// Point is an independent type-116 Cartesian datum, not a curve.
 	Point     *geom.Vec3
+	Polyline  *Polyline
 	Line      *Line
 	Arc       *Arc
 	Spline    *Spline
@@ -71,6 +72,10 @@ type Entity struct {
 
 // CompositeCurve contains 4–64 direct curve entity indices. Nested composites are unsupported.
 type CompositeCurve struct{ Curves []int }
+
+// Polyline stores a type-106 form-12 sequence of XYZ points. It is not a
+// point set. Eval uses equal parameter spans for successive straight segments.
+type Polyline struct{ Points []geom.Vec3 }
 
 type Line struct{ Start, End geom.Vec3 }
 
@@ -204,6 +209,17 @@ func (e Entity) validate() error {
 			return errors.New("iges: invalid point")
 		}
 	}
+	if e.Polyline != nil {
+		n++
+		if e.Form != 12 || len(e.Polyline.Points) < 2 {
+			return errors.New("iges: invalid 3D polyline")
+		}
+		for i, p := range e.Polyline.Points {
+			if !p.IsFinite() || i > 0 && (p == e.Polyline.Points[i-1] || !p.Sub(e.Polyline.Points[i-1]).IsFinite()) {
+				return errors.New("iges: invalid polyline segment")
+			}
+		}
+	}
 	if e.Line != nil {
 		n++
 		if !e.Line.Start.IsFinite() || !e.Line.End.IsFinite() || e.Line.Start == e.Line.End || !e.Line.End.Sub(e.Line.Start).IsFinite() {
@@ -269,6 +285,16 @@ func (e Entity) Eval(t float64) (geom.Vec3, error) {
 	switch {
 	case e.Point != nil:
 		p = *e.Point
+	case e.Polyline != nil:
+		points := e.Polyline.Points
+		if t == 1 {
+			p = points[len(points)-1]
+		} else {
+			x := t * float64(len(points)-1)
+			i := min(int(x), len(points)-2)
+			f := x - float64(i)
+			p = points[i].Scale(1 - f).Add(points[i+1].Scale(f))
+		}
 	case e.Line != nil:
 		p = e.Line.Start.Scale(1 - t).Add(e.Line.End.Scale(t))
 	case e.Arc != nil:
@@ -294,6 +320,8 @@ func (e Entity) bounds() (geom.Box, error) {
 	switch {
 	case e.Point != nil:
 		points = []geom.Vec3{*e.Point}
+	case e.Polyline != nil:
+		points = e.Polyline.Points
 	case e.Line != nil:
 		points = []geom.Vec3{e.Line.Start, e.Line.End}
 	case e.Arc != nil:

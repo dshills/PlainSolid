@@ -51,6 +51,12 @@ func encode(e Entity) (int, string) {
 		}
 	}
 	switch {
+	case e.Polyline != nil:
+		kind = 106
+		p = append(p, "106", "2", strconv.Itoa(len(e.Polyline.Points)))
+		for _, v := range e.Polyline.Points {
+			add(v.X, v.Y, v.Z)
+		}
 	case e.Point != nil:
 		kind = 116
 		p = append(p, "116")

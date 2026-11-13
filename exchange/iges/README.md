@@ -13,7 +13,7 @@ This is a geometry subset, not general IGES CAD/topology support.
 - `Model.LengthUnit` is meters per raw coordinate unit. Coordinates are not
   rescaled. Supported units are inches, millimeters, feet, miles, meters,
   kilometers, mils, microns, centimeters and microinches.
-- Each `Entity` has exactly one of `Point`, `Line`, `Arc`, `Spline` or `Surface`, plus a directory
+- Each `Entity` has exactly one of `Polyline`, `Point`, `Line`, `Arc`, `Spline` or `Surface`, plus a directory
   label, subscript and form number. Optional `Transform` preserves a referenced
   type-124 affine placement; `Entity.Eval(t)` applies it while mapping normalized
   parameters onto the curve trimming interval.
@@ -569,3 +569,21 @@ they do not consume the spline-control-point budget. The independent authored
 `testdata/points.iges` fixture and mixed placed roundtrip tests qualify this
 subset. The optional OCCT oracle writes an independent type 116 vertex and
 reads a placed PlainSolid point back in model coordinates.
+
+## Copious 3D polylines
+
+`Entity.Polyline` supports type 106 **form 12**, interpretation flag 2, as an
+ordered sequence of at least two finite XYZ points. Form 2 represents a point
+set and remains unsupported; it is never silently connected. Consecutive
+identical vertices and nonfinite segment differences are rejected. Explicitly
+repeated first/last points can close a polyline; no closure or simplicity proof
+is implied. Points count against the same cumulative `MaxControlPoints` budget
+as spline poles, checked against declared count and available parameters before
+allocation. `Eval` assigns each segment an equal normalized parameter span,
+preserves endpoints, and applies the existing type-124 placement. It is not an
+arc-length parameterization. Referenced trim/composite APIs retain their prior
+line/spline-only scope.
+
+The independently authored `testdata/polyline.iges` fixes form and flag semantics
+against OCCT's `IGESGeom_CopiousData` and `IGESGeom_ToolCopiousData` reference.
+Native OCCT polyline roundtrip interoperability remains unqualified.

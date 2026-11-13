@@ -156,7 +156,7 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 			}
 		}
 		kind := first[0]
-		if kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 {
+		if kind != 106 && kind != 116 && kind != 102 && kind != 100 && kind != 110 && kind != 126 && kind != 124 && kind != 128 && kind != 142 && kind != 144 {
 			return Model{}, fmt.Errorf("iges: unsupported entity type %d", kind)
 		}
 		if second[0] != kind {
@@ -290,6 +290,9 @@ func readCurvedMode(r io.Reader, l Limits, curved bool) (Model, error) {
 		entity.Form = second[4]
 		if e = entity.validate(); e != nil {
 			return Model{}, e
+		}
+		if entity.Polyline != nil {
+			controlPoints += len(entity.Polyline.Points)
 		}
 		if entity.Surface != nil {
 			controlPoints += len(entity.Surface.Geometry.Data().Poles)
@@ -432,6 +435,31 @@ func decode(kind int, p []parameter, maxPoints int) (Entity, error) {
 		return v, nil
 	}
 	switch kind {
+	case 106:
+		if len(p) < 3 {
+			return Entity{}, errors.New("iges: truncated polyline")
+		}
+		ip, err := intValue(p[1])
+		if err != nil || ip != 2 {
+			return Entity{}, errors.New("iges: only XYZ copious data supported")
+		}
+		n, err := intValue(p[2])
+		if err != nil || n < 2 || n > maxPoints || n > (len(p)-3)/3 {
+			return Entity{}, errors.New("iges: invalid or over-budget polyline count")
+		}
+		end := 3 + 3*n
+		if err = noPointers(p[end:]); err != nil {
+			return Entity{}, err
+		}
+		points := make([]geom.Vec3, n)
+		for i := range points {
+			v, err := numbers(3+3*i, 3)
+			if err != nil {
+				return Entity{}, err
+			}
+			points[i] = geom.Vec3{X: v[0], Y: v[1], Z: v[2]}
+		}
+		return Entity{Polyline: &Polyline{Points: points}}, nil
 	case 116:
 		v, e := numbers(1, 3)
 		if e != nil {

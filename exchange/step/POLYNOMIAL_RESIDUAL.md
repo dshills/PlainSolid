@@ -272,3 +272,29 @@ obtained from axial height alone, including signed V direction and magnitude.
 This is not angular lift equality, a coedge-to-pcurve assignment, spherical
 seam selection, a full-loop proof or material acceptance. Exact authored trim
 selection remains explicitly unknown, and strict import behavior is unchanged.
+
+### Conditional cylinder-chart boundary
+
+`CertifyOffAxisCylinderChartBoundary` assumes the entire authored polynomial
+rim domain and the floor/seam segments between reported chart corners are
+selected (`AssumesCornerSelectedSegments`). These line supports carry no
+authored trim parameters; their finite selection is an explicit assumption.
+It requires its exact U derivative bounds to be strictly
+positive, its entire V control hull strictly above the floor, and exact corner
+matches with two distinct constant-U seam branches. Normalized source coedge
+order must traverse rim forward, high-U seam downward, floor backward and
+low-U seam upward. The floor's exact positive same-parameter cylinder lift is
+required so that its decreasing chart direction agrees with source model sense.
+The source seam endpoint projections must match these chart corners through
+exact axial parameter maps, with the requested endpoint tolerance separately
+qualified. Branch source-list order is not used to guess assignments.
+
+These conditions prove a simple clockwise Jordan boundary in the unwrapped UV
+chart. They do not prove that the full rim domain is the authored edge trim.
+The returned interval for `(UEnd-UStart)-2*pi` reuses exact rational source U
+values and the existing rigorous rational pi enclosure from cylinder-pcurve
+evidence; it does not subtract a floating-point `math.Pi`. The retained decimal
+width `6.28318530718` has a strictly positive defect, so periodic mismatch is
+proved. The two lifted seams therefore cannot be treated as an exact quotient
+closure. No lifted closure, cylinder-face material coverage or solid import is
+claimed; all strict importers remain unchanged.
