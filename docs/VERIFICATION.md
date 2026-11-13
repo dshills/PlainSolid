@@ -1910,6 +1910,11 @@ per call to 0.18–0.23 microseconds and zero allocations. Full-multiplicity
 knot sidedness, the timed-out mixed-contour fixture in isolation, and the
 corner/slab mesh paths pass focused normal and race checks. This isolated
 result does not supersede the combined run until it is rerun.
+First partial derivatives now use the same active controls and differentiate
+the adjacent homogeneous controls in the original knot units. A separable
+rational surface checks both derivatives analytically at interior points and
+domain ends. The corresponding benchmark now uses zero allocations and took
+0.40–0.49 microseconds per call.
 
 On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
 transverse flags passed 112 test and subtest entries. The transverse union
