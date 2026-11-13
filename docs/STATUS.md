@@ -401,6 +401,16 @@ split now sews both complete halves with opposite cap orientation and
 separate original-edge versus section-edge ancestry.
 Two parallel cuts can also form a band directly on the same curved stock,
 including square-tube caps with holes and faces crossed by both planes.
+
+Two same-side overlapping circular cutters now have a native rectangular
+stock constructor for equal radii, exact crossing coordinates, common
+blind depth or through length, and a signed coordinate frame. Two rational
+spline wall charts retain the exact circles and raw weights. OCCT mass
+comparison and native reload qualify this geometry. The general sampled
+display currently exhausts its budget on this shape; a conforming exact
+mesh and the PlainCAD adapter are separate pending gates. OCCT-produced
+rounded cutter pcurves are independently proved unsuitable for strict
+exact import.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

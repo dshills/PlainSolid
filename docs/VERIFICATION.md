@@ -1678,6 +1678,11 @@ A second oblique band uses two genuinely nonbinary section boundaries.
 All eight exact model vertices satisfy one of the authored plane equations
 and the volume is 1/8. The same quadratic rational endpoint proofs used by
 single-plane splitting certify the shared topology before sewing.
+The same-side overlapping circular cutter constructor matches independent
+OCCT volume, area and centroid for the favorable blind case. Analytic tests
+cover both blind and through cuts, and native reload retains verbatim
+weights of both exact cylindrical charts. The existing sampled display
+currently reaches its budget; this is not a browser or display pass.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.

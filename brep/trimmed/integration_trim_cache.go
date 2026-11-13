@@ -67,6 +67,24 @@ type massAffineProofs struct {
 }
 
 func (p *massAffineProofs) zeroStrip(ctx context.Context, u Use) (bool, error) {
+	if c, ok := u.Curve.(ExactQuadraticUV); ok && !c.rationalEndpoints && c.control[0][2] != nil {
+		// The native trim may store the exact straight chord explicitly.
+		// Equal weights and the exact midpoint identity prove that the
+		// complete parameterized strip has zero width.
+		w := c.control[0][2]
+		if c.ends == [2]geom.Vec2{u.UVStart, u.UVEnd} && w.Cmp(c.control[1][2]) == 0 && w.Cmp(c.control[2][2]) == 0 {
+			two := big.NewRat(2, 1)
+			linear := true
+			for i := 0; i < 2; i++ {
+				a := new(big.Rat).Mul(two, c.control[1][i])
+				b := new(big.Rat).Add(c.control[0][i], c.control[2][i])
+				linear = linear && a.Cmp(b) == 0
+			}
+			if linear {
+				return true, nil
+			}
+		}
+	}
 	trim, reversed, ok := trimTube(u.Curve)
 	if !ok {
 		return false, nil
