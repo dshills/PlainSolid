@@ -87,12 +87,14 @@ area, volume and centroid for both cases.
 ## Two-ended planar hollowing
 
 `HollowThrough` extends the hollowing family to a through duct bounded by two
-complete, unique, opposite parallel support faces. Both selected thicknesses
-are zero; every other support moves strictly inward. Exact normal cross/dot
-products prove the end-plane relation. Both reconstructed opening faces must
+complete, unique, separated support faces. Both selected thicknesses
+are zero; every other support moves strictly inward. Exact support signs at every original face vertex prove that each whole
+opening lies strictly inside the other opening’s halfspace. This includes
+nonparallel end planes whose finite faces are disjoint, while rejecting even
+a single shared original corner or edge. Both reconstructed opening faces must
 survive and remain exactly coincident with their original planes after vertex
 conversion. Every converted cavity vertex must be strictly inside all unopened
-supports. Nonparallel or partial coplanar openings, collapsed cavities and
+supports. Touching or partial coplanar openings, collapsed cavities and
 unproved conversion fail without returning a partial solid.
 
 `ThroughHollowResult` embeds the existing hollow result and additionally reports
@@ -109,3 +111,10 @@ mesh contacts. Invalid end pairs, partial coplanar selection, exhausted work,
 cancellation and collapsed cavities are rejected. An oblique cap regression
 rejects a rounded cavity seam displaced from its original plane by less than
 one ULP, even though that error is below the configured conversion tolerance.
+
+Nonparallel wedge regression: `0≤y≤2`, `0≤z≤1`, `0≤x≤4−z`, with
+openings at `x=0` and `x+z=4` and quarter-unit offsets of the other walls.
+The exact material volume is `35/8`; independently integrated centroid and
+surface area, closed genus-one topology and contact-free tessellation are
+checked. A tiny but strictly positive original end-face gap remains accepted;
+the coincident-edge limit is rejected before subtraction.
