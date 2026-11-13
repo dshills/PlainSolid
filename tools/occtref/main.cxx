@@ -242,6 +242,13 @@ int main(int argc, char** argv) {
       for(TopExp_Explorer it(unequalCut,TopAbs_SHELL);it.More();it.Next())++cutShells;
       if(cutSolids!=1||cutShells!=1)throw std::runtime_error("unequal finite cut not one solid with one shell");
       record(out,"finite-unequal-cut",unequalCut,1e-11);
+      const auto coaxialTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,-4),gp_Dir(0,0,1)),3,15).Shape();
+      const auto coaxialCut=BRepAlgoAPI_Cut(unequalWide,coaxialTool).Shape();
+      int coaxialSolids=0,coaxialShells=0;
+      for(TopExp_Explorer it(coaxialCut,TopAbs_SOLID);it.More();it.Next())++coaxialSolids;
+      for(TopExp_Explorer it(coaxialCut,TopAbs_SHELL);it.More();it.Next())++coaxialShells;
+      if(coaxialSolids!=1||coaxialShells!=1)throw std::runtime_error("coaxial finite cut not one solid with one shell");
+      record(out,"finite-coaxial-cut",coaxialCut,1e-11);
       return 0;
     }
     if (argc == 3 && mode == "finite-cylinder-dispatch") {

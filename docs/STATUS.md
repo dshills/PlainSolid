@@ -666,6 +666,8 @@ one connected through-bore through wider stock. That path requires signed
 coordinate axes crossing at a representable center, symmetric caps beyond
 the opposite radius, and an exactly representable shoulder. The native
 result preserves the two stock caps and an inward cylindrical bore wall.
+A smaller coaxial cutter covering both stock caps also retains a native
+annular body for signed coordinate axes, including equal cap locations.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,

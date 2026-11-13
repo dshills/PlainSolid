@@ -176,3 +176,19 @@ func TestOCCTUnequalFiniteCylinderDifference(t *testing.T) {
 		t.Fatal("expected genus-one boundary")
 	}
 }
+
+func TestOCCTCoaxialFiniteCylinderThroughDifference(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	stock := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	cutter := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 5}, Axis: geom.Vec3{Z: 3}, Radius: 3, Min: -3, Max: 2}
+	out, err := parametric.FiniteCylinderPairDifference(ctx, stock, cutter, 1e-8)
+	if err != nil || len(out.Solids[1].Faces()) != 0 || finiteOracleShellCount(out.Solids[0]) != 1 {
+		t.Fatal("expected one closed coaxial bore", err)
+	}
+	mass, err := out.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["finite-coaxial-cut"], mass.Area, mass.Volume, mass.Centroid)
+}

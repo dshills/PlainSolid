@@ -71,9 +71,10 @@ type FiniteCylinderPairDifferenceResult struct {
 
 // FiniteCylinderPairDifference cuts a crossing equal-radius or wider cutter
 // from finite stock under strict cap clearance. It retains a single bored
-// stock for selected narrower perpendicular cutters, the original stock for
-// strictly separated coordinate-parallel cylinders, and an empty result when
-// exact perpendicular or coordinate-parallel containment covers the stock.
+// stock for selected narrower perpendicular or coaxial cutters and keeps the
+// stock unchanged when coordinate-parallel cylinders are strictly separated.
+// It returns empty when exact perpendicular or coordinate-parallel containment
+// covers the stock.
 // Other arrangements fail without publishing a partial solid.
 func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCylinder, tolerance float64) (FiniteCylinderPairDifferenceResult, error) {
 	var out FiniteCylinderPairDifferenceResult
@@ -91,7 +92,13 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			return out, nil
 		}
 		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
-			return out, geom.ErrDomain
+			bore, err := FiniteCoaxialCylinderThroughDifference(ctx, stock, cutter, tolerance)
+			if err != nil {
+				return out, err
+			}
+			out.Solids[0], out.StockWallFaces[0], out.CutterWallFaces[0] = bore.Solid, bore.StockWallFaces, bore.CutterWallFaces
+			out.StockCapFaces[0] = append(bore.LowerCapFaces, bore.UpperCapFaces...)
+			return out, nil
 		}
 		s, err := nativeCoordinateCylinder(stock)
 		if err != nil {
