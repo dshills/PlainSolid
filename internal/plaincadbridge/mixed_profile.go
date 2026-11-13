@@ -214,6 +214,36 @@ func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
 		return Shape{}, err
 	}
 	body := &analyticBody{solid: s, volume: volume, area: area}
+	if p.Kind == "polygon" {
+		// The constructor proved each circular hole strictly inside this
+		// straight convex outer wire. Every support extreme is therefore at
+		// one of the actual outer vertices on either extrusion endpoint.
+		frame, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
+		if err != nil {
+			return Shape{}, err
+		}
+		vertices := s.Vertices()
+		for _, xy := range p.Outer {
+			point, err := mixedPoint(xy)
+			if err != nil {
+				return Shape{}, err
+			}
+			for _, z := range []float64{0, float64(p.Height)} {
+				v := frame.ToWorld(geom.Vec3{X: point.X, Y: point.Y, Z: z})
+				retained := false
+				for _, actual := range vertices {
+					if actual == v {
+						retained = true
+						break
+					}
+				}
+				if !retained {
+					return Shape{}, fmt.Errorf("polygon outer extremum is not retained: %w", geom.ErrDomain)
+				}
+				body.polygonExtrema = append(body.polygonExtrema, v)
+			}
+		}
+	}
 	if p.Kind == "roundedRectangle" && len(p.Circles) == 0 {
 		frame, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
 		if err != nil {

@@ -14,6 +14,8 @@ import (
 // analyticBody owns an analytic boundary. Some revolutions also retain a
 // rectangular patch representation for shared-grid display at polar caps.
 type analyticBody struct {
+	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
+	polygonExtrema []geom.Vec3
 	solid        trimmed.Solid
 	patches      *parametric.Solid
 	rimPatches   bool
@@ -46,7 +48,9 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 	}
 	var box geom.Box
 	var err error
-	if body.segment != nil {
+	if len(body.polygonExtrema) != 0 {
+		box, err = geom.Bounds(body.polygonExtrema)
+	} else if body.segment != nil {
 		box, err = body.segment.bounds()
 	} else if body.coaxial != nil {
 		box, err = body.coaxial.bounds()
@@ -102,6 +106,12 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		return nil, err
 	}
 	out := *a
+	if len(a.polygonExtrema) != 0 {
+		out.polygonExtrema = make([]geom.Vec3, len(a.polygonExtrema))
+		for i, p := range a.polygonExtrema {
+			out.polygonExtrema[i] = m.Apply(p)
+		}
+	}
 	if a.segment != nil {
 		s := *a.segment
 		s.origin = m.Apply(s.origin)
