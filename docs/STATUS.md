@@ -86,7 +86,13 @@ browser evidence. The original production fabrication case later passed on
 through the planar STEP writer. The previous bridge error returned quickly;
 the stale UI status had made it appear to be a validation timeout. The
 [production rerun record](evidence/plaincad-fabrication-reconciliation-2026-11-13.json)
-retains the tested build identity and result.
+retains the tested build identity and result. The production Acme gallery
+case passed on the same build. UNC progressed past fractional pitch but
+still needed an internal thread on rectangular stock. The isolated
+controlled performance case collected all 25 edits and 11 STL samples, then
+exceeded its 90-second overall deadline; the original test remains failed.
+On `acce666`, stale fabrication ZIP validation/native union and cancellation
+of a pending STEP preview on same-ID project replacement both passed.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
