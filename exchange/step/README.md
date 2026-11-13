@@ -2096,7 +2096,7 @@ model-space profile about the original axis and origin.
 
 The initial subset requires a continuous clamped polynomial B-spline meridian
 (at most 4096 poles; equal rational source weights are also polynomial), an
-exact signed-coordinate unit axis, and a coordinate meridian half-plane with
+exact signed-coordinate unit axis, and a fixed meridian half-plane with
 strictly positive control radii. Axial control coordinates must be strictly
 monotone, increasing or decreasing. The polynomial derivative has same-sign
 axial coefficients on every nonzero knot span: each coefficient is the signed
@@ -2139,3 +2139,13 @@ it directly produced `14.323944878271` for the intended `0.25` radians. This
 codec does not detect-and-repair such a mismatch. The retained positive
 fixtures use OCCT's typed entity writer with explicit radian bounds; entity
 geometry decoding does not import their surrounding topological faces.
+
+The meridian half-plane may have arbitrary represented phase around that axis.
+For example the radial pairs (6,8), (12,16), (9,12) are accepted without
+normalization. Exact rational determinants of the original binary coordinates
+(native API), and independently of original decimal coordinates (STEP reader),
+prove proportionality to the first radial vector; positive exact dot products
+exclude the opposite ray and axis contact. Both proofs must pass. This does not
+admit general oblique axes or approximately coplanar profiles. An independently
+authored OCCT fixture uses that 3:4 phase with angular bounds [0.25,1.25]; live
+qualification checks source poles, exported positions, partials and area.

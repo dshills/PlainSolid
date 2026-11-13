@@ -8,7 +8,7 @@ import (
 // RevolutionSurface is an immutable bounded analytic sweep. U is radians and
 // V is the original polynomial B-spline parameter; no tensor reparameterization
 // or periodic closure is introduced. The supported meridian occupies one
-// coordinate half-plane about a signed-coordinate axis, with positive radii
+// fixed meridian half-plane about a signed-coordinate axis, with positive radii
 // and strictly monotone axial control heights. These conditions keep its
 // angular and meridian tangents independent throughout each smooth knot span.
 type RevolutionSurface struct {
@@ -66,8 +66,8 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 		}
 	}
 	oo := [3]float64{origin.X, origin.Y, origin.Z}
-	radial := -1
-	radialSign := 0.
+	perp0, perp1 := (ax+1)%3, (ax+2)%3
+	var first0, first1 *big.Rat
 	heightSign := 0.
 	previous := 0.
 	for i, p := range profile.poles {
@@ -75,26 +75,14 @@ func NewRevolutionSurface(profile *BSpline, origin, axis Vec3, start, end float6
 		if !p.Sub(origin).IsFinite() {
 			return fail()
 		}
+		q0 := new(big.Rat).Sub(new(big.Rat).SetFloat64(pp[perp0]), new(big.Rat).SetFloat64(oo[perp0]))
+		q1 := new(big.Rat).Sub(new(big.Rat).SetFloat64(pp[perp1]), new(big.Rat).SetFloat64(oo[perp1]))
 		if i == 0 {
-			for j := 0; j < 3; j++ {
-				if j != ax && pp[j] != oo[j] {
-					if radial >= 0 {
-						return fail()
-					}
-					radial = j
-					radialSign = math.Copysign(1, pp[j]-oo[j])
-				}
-			}
-			if radial < 0 {
-				return fail()
-			}
+			first0, first1 = q0, q1
 		}
-		for j := 0; j < 3; j++ {
-			if j != ax && j != radial && pp[j] != oo[j] {
-				return fail()
-			}
-		}
-		if (pp[radial]-oo[radial])*radialSign <= 0 {
+		cross := new(big.Rat).Sub(new(big.Rat).Mul(q0, first1), new(big.Rat).Mul(q1, first0))
+		dot := new(big.Rat).Add(new(big.Rat).Mul(q0, first0), new(big.Rat).Mul(q1, first1))
+		if cross.Sign() != 0 || dot.Sign() <= 0 {
 			return fail()
 		}
 		// Compare original coordinates rather than a rounded projected height.
