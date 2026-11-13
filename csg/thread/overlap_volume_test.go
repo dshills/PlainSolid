@@ -40,3 +40,26 @@ func TestPairCertifiesPositiveRunoutVolume(t *testing.T) {
 		t.Fatal(got, e)
 	}
 }
+
+func TestPairIntegratesConstantRunoutCell(t *testing.T) {
+	ctx := context.Background()
+	p, e := BuildPair(ctx, pairFixture(t, geom.LeftHanded), geom.SurfacePatchEvaluationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := [2]*big.Rat{big.NewRat(29, 16), big.NewRat(31, 16)}
+	phase := [2]*big.Rat{new(big.Rat), big.NewRat(1, 8)}
+	got, e := p.IntegrateOverlapCell(ctx, big.NewRat(8, 1), r, phase, geom.HelicalStartsLineOptions{})
+	if e != nil || !got.Proven || got.PiCoefficient.Sign() != 0 {
+		t.Fatal("cap-only contact must have zero common volume", got, e)
+	}
+	got, e = p.IntegrateOverlapCell(ctx, new(big.Rat), r, phase, geom.HelicalStartsLineOptions{})
+	// The active lattice indices are 2 through 5. At each index k
+	// the shaft cutter [k−1/8,k+5/8] and nut cutter [k+1/2,k+1]
+	// overlap and meet the next shaft cutter. After the common phase
+	// translation the cut union is [15/8,6], of length 33/8.
+	if e != nil || !got.Proven || got.LengthSlope.Sign() != 0 || got.LengthIntercept.Cmp(big.NewRat(31, 8)) != 0 ||
+		got.PiCoefficient.Cmp(big.NewRat(465, 2048)) != 0 {
+		t.Fatal("wrong constant-cell overlap", got, e)
+	}
+}
