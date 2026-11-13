@@ -218,6 +218,19 @@ int main(int argc, char** argv) {
     if(argc==3 && mode=="warped-spline-slab"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedSplineSlab(out);return 0;}
     if(argc==3 && mode=="warped-spline-separated-planes"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedSplineTwoPlanes(out,false);warpedSplineTwoPlanes(out,true);return 0;}
     if(argc==3 && mode=="quadratic-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);quadraticGraphPlaneBooleans(out);return 0;}
+    if(argc==3 && mode=="finite-cylinder-axial-cut"){
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-2,5),gp_Dir(0,0,-1)),2,9).Shape();
+      const auto cutter=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1.5,-2,-1),gp_Dir(0,0,1)),3,2).Shape();
+      const auto cut=BRepAlgoAPI_Cut(stock,cutter).Shape();
+      int count=0;
+      for(TopExp_Explorer it(cut,TopAbs_SOLID);it.More();it.Next()){
+        GProp_GProps p;BRepGProp::VolumeProperties(it.Current(),p,1e-11);
+        record(out,p.CentreOfMass().Z()>0?"finite-axial-cut-first":"finite-axial-cut-second",it.Current(),1e-11);++count;
+      }
+      if(count!=2)throw std::runtime_error("expected two independently cut axial cylinders");
+      return 0;
+    }
     if(argc==3 && mode=="finite-cylinder-sets") {
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(13,9,2),gp_Dir(-3,-4,0)),2,30).Shape();

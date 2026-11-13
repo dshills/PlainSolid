@@ -71,20 +71,29 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 // in raw-axis order, with unused slots empty. A split equal-radius result
 // touches at ContactNodes; a split wider cut has a positive MinimumGapSquared.
 // Face IDs are local to the corresponding solid. CutterCapFaces tracks
-// retained cavity floors in original cutter Min/Max order. A nil proof
-// means its case does not apply.
+// retained cutter cap fragments per resulting solid, in original cutter
+// Min/Max order within each solid. AxialCutCaps maps each original cutter
+// cap to its surviving result face for full cross-section cuts.
+// A nil proof means its case does not apply.
 type FiniteCylinderPairDifferenceResult struct {
 	Solids                                         [2]Solid
 	StockWallFaces, CutterWallFaces, StockCapFaces [2][]int
 	CutterCapFaces                                 [2][]int
+	AxialCutCaps                                   [2]*FiniteCylinderCutCap
 	ContactNodes                                   *[2]geom.EqualCylinderBisectorNode
 	MinimumGapSquared                              *big.Rat
 }
+
+// FiniteCylinderCutCap identifies one output face on an original axial cutter
+// cap. Solid and Face index the corresponding FiniteCylinderPairDifferenceResult.
+type FiniteCylinderCutCap struct{ Solid, Face int }
 
 // FiniteCylinderPairDifference cuts a crossing equal-radius or wider cutter
 // from finite stock under strict cap clearance. It retains a single bored
 // stock for selected narrower perpendicular or contained parallel cutters.
 // Strictly enclosed coordinate-parallel cutters leave an inward cavity shell.
+// A coordinate-parallel cutter that covers the stock disk can remove a full
+// axial slab, retaining one or two original wall intervals.
 // It keeps stock unchanged when coordinate-parallel cylinders are separated.
 // It returns empty when exact perpendicular or coordinate-parallel containment
 // covers the stock.
@@ -105,6 +114,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 			return out, nil
 		}
 		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
+			if split, ok, err := finiteParallelCylinderAxialDifference(ctx, stock, cutter, tolerance); ok || err != nil {
+				return split, err
+			}
 			if cavity, ok, err := finiteParallelCylinderCavity(ctx, stock, cutter, tolerance); ok || err != nil {
 				return cavity, err
 			}
