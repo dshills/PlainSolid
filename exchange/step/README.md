@@ -1921,3 +1921,16 @@ disjointness are rechecked with the same clearance margin. The retained
 hole and a stopped cylindrical cut; live import/rewrite checks validity, area,
 volume and centroid. The through-only and canonical exact readers are unchanged
 in accepted scope.
+
+`ReadAnalyticDiskHoleExtrusions` separately accepts full round stock with optional
+eccentric through bores and common-entry blind pockets. It requires exactly one
+outward full cylindrical stock wall, two shared circular cap rims and a two-use
+seam; inward cylindrical walls and planar floors use the same ownership,
+orientation and depth checks as the analytic polygon reader. Every model circle
+and line is checked against its owner pcurves. Stock radius is reduced and hole
+radii enlarged by 32 geometric tolerances before exact native footprint
+containment/disjointness validation; near-contact cases are unsupported. The
+recovered outer disk is centered on its local origin and blind entry determines
+signed height. Existing polygon-only and canonical disk contracts are unchanged.
+`disk-pocket-occt.step` is a retained independent OCCT cylinder/Boolean-cut
+fixture, with live source→import→rewrite validity and mass comparison.

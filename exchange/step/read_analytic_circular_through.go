@@ -20,16 +20,31 @@ func ReadAnalyticCircularThroughExtrusions(r io.Reader, l Limits) (CircularHoleE
 	return readAnalyticCircularExtrusions(r, l, false)
 }
 func readAnalyticCircularExtrusions(r io.Reader, l Limits, allowBlind bool) (CircularHoleExtrusionModel, error) {
-	fail := func() (CircularHoleExtrusionModel, error) {
-		return CircularHoleExtrusionModel{}, circularSourceFailure()
-	}
 	l, e := l.defaults()
 	if e != nil {
 		return CircularHoleExtrusionModel{}, e
 	}
-	f, e := Parse(r, l)
+	f, id, unit, e := parseAnalyticCircularExtrusion(r, l)
 	if e != nil {
 		return CircularHoleExtrusionModel{}, e
+	}
+	b, e := recoverAnalyticCircularExtrusion(f, id, l, allowBlind)
+	if e != nil {
+		return CircularHoleExtrusionModel{}, e
+	}
+	return CircularHoleExtrusionModel{LengthUnit: unit, Bodies: []CircularHoleExtrusionBody{b}}, nil
+}
+func parseAnalyticCircularExtrusion(r io.Reader, l Limits) (*File, int64, float64, error) {
+	fail := func() (*File, int64, float64, error) {
+		return nil, 0, 0, circularSourceFailure()
+	}
+	l, e := l.defaults()
+	if e != nil {
+		return nil, 0, 0, e
+	}
+	f, e := Parse(r, l)
+	if e != nil {
+		return nil, 0, 0, e
 	}
 	repID := int64(0)
 	counts := map[string]int{}
@@ -88,10 +103,6 @@ func readAnalyticCircularExtrusions(r io.Reader, l Limits, allowBlind bool) (Cir
 			return fail()
 		}
 	}
-	b, e := recoverAnalyticCircularExtrusion(f, bodyID, l, allowBlind)
-	if e != nil {
-		return CircularHoleExtrusionModel{}, e
-	}
 	// Every geometric entity must be reachable from the selected representation.
 	seen := map[int64]bool{}
 	todo := []int64{repID}
@@ -128,7 +139,7 @@ func readAnalyticCircularExtrusions(r io.Reader, l Limits, allowBlind bool) (Cir
 			}
 		}
 	}
-	return CircularHoleExtrusionModel{LengthUnit: unit, Bodies: []CircularHoleExtrusionBody{b}}, nil
+	return f, bodyID, unit, nil
 }
 func recoverAnalyticCircularExtrusion(f *File, id int64, l Limits, allowBlind bool) (CircularHoleExtrusionBody, error) {
 	fail := func() (CircularHoleExtrusionBody, error) { return CircularHoleExtrusionBody{}, circularSourceFailure() }

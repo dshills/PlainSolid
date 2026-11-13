@@ -44,3 +44,13 @@ static int writeCircularPocketReference(const char* path, bool allThrough=false)
  if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent pocket STEP source");
  STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent pocket STEP export");return 0;
 }
+
+static int writeDiskPocketReference(const char* path) {
+ const gp_Dir axis(-1,0,0), x(0,0,1);
+ TopoDS_Shape stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,7,-2),axis,x),4,3).Shape();
+ TopoDS_Shape through=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,7,-4),axis,x),.75,3).Shape();
+ TopoDS_Shape blind=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,7,0),axis,x),1,1.25).Shape();
+ TopoDS_Shape shape=BRepAlgoAPI_Cut(BRepAlgoAPI_Cut(stock,through).Shape(),blind).Shape();
+ if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent disk pocket source");
+ STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(path)!=IFSelect_RetDone)throw std::runtime_error("independent disk pocket STEP export");return 0;
+}

@@ -332,7 +332,7 @@ func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
 	if e != nil {
 		return out, e
 	}
-	ids, e := listRefs(s.Args[1], 5)
+	ids, e := listRefs(s.Args[1], 3)
 	if e != nil || len(ids) > 98 {
 		return out, circularSourceFailure()
 	}
