@@ -120,7 +120,7 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
-		s, err := trimmed.BoxSideCylinderWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+		s, err := p.Solid(context.Background())
 		if err != nil {
 			return Shape{}, err
 		}

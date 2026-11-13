@@ -10,10 +10,11 @@ import (
 	"plainsolid/geom"
 )
 
-// SideNotchBody retains a blind or through side-opening cut on rectangular stock.
+// SideNotchBody retains a blind or through side or corner cut on rectangular stock.
 // The cylinder is centered at the frame origin. The box spans [-Left,Right],
 // [-Inset,Back], and [0,Length] in the local X, Y and Z directions. The notch
-// opens on both caps when Depth equals Length.
+// opens on both caps when Depth equals Length. A corner cut has Left and
+// Inset both zero and has no additional bores.
 type SideNotchBody struct {
 	Name                                            string
 	Frame                                           geom.Frame
@@ -25,6 +26,21 @@ type SideNotchBody struct {
 type SideNotchModel struct {
 	Body       SideNotchBody
 	LengthUnit float64
+}
+
+// Solid reconstructs the qualified analytic boundary.
+func (p SideNotchBody) Solid(ctx context.Context) (trimmed.Solid, error) {
+	const tolerance = 1e-9
+	if p.Left == 0 && p.Inset == 0 {
+		if len(p.Through)+len(p.Blind) != 0 {
+			return trimmed.Solid{}, geom.ErrDomain
+		}
+		if p.Depth == p.Length {
+			return trimmed.BoxCornerCylinderThrough(ctx, p.Frame, p.Right, p.Back, p.Length, p.Radius, tolerance)
+		}
+		return trimmed.BoxCornerCylinder(ctx, p.Frame, p.Right, p.Back, p.Length, p.Radius, p.Depth, false, tolerance)
+	}
+	return trimmed.BoxSideCylinderWithBores(ctx, p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, tolerance)
 }
 
 func WriteSideNotch(w io.Writer, m SideNotchModel) error {
@@ -44,7 +60,7 @@ func WriteSideNotch(w io.Writer, m SideNotchModel) error {
 
 func writeSideNotchBody(w io.Writer, m SideNotchModel) error {
 	p := m.Body
-	s, err := trimmed.BoxSideCylinderWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
+	s, err := p.Solid(context.Background())
 	if err != nil {
 		return err
 	}
@@ -77,7 +93,7 @@ func recoverSideNotch(f *File, id int64) (SideNotchBody, error) {
 	fail := func() (SideNotchBody, error) { return SideNotchBody{}, circularSourceFailure() }
 	// This canonical reader compares every edge sense against regenerated STEP.
 	g, err := readCircularGraph(f, id, true)
-	if err != nil || len(g.faces) < 8 || len(g.faces) > 64 || g.faces[0].kind != "PLANE" || g.faces[1].kind != "PLANE" {
+	if err != nil || len(g.faces) < 7 || len(g.faces) > 64 || g.faces[0].kind != "PLANE" || g.faces[1].kind != "PLANE" {
 		return fail()
 	}
 	frame := g.faces[0].frame
@@ -109,6 +125,17 @@ func recoverSideNotch(f *File, id int64) (SideNotchBody, error) {
 	}
 	p := SideNotchBody{Name: name, Frame: frame, Depth: end.Z, Length: bounds.Max.Z,
 		Left: -bounds.Min.X, Right: bounds.Max.X, Back: bounds.Max.Y, Inset: -bounds.Min.Y}
+	if p.Left == 0 && p.Inset == 0 {
+		if end.Z != p.Length {
+			return fail()
+		}
+		if g.faces[2].kind == "PLANE" {
+			floor := frame.ToLocal(g.faces[2].frame.Origin())
+			if floor.X == 0 && floor.Y == 0 && floor.Z > 0 && floor.Z < p.Length {
+				p.Depth = floor.Z
+			}
+		}
+	}
 	seen := map[trimmed.ExtrusionCircle]bool{}
 	for _, face := range g.faces {
 		if face.kind != "CYLINDER" {
