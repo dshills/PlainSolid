@@ -122,3 +122,65 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 	}
 	return result, h, nil
 }
+
+// MergeExactBezierTrimEdges rejoins a coherent cubic or quartic split. It
+// reconstructs the whole homogeneous curve from the first subcurve, then
+// independently verifies both subcurves and their owning face loops. The
+// intermediate vertex must not belong to any other edge.
+func (s Solid) MergeExactBezierTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
+	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
+		x, xok := a.(ExactBezierUV)
+		y, yok := b.(ExactBezierUV)
+		if !xok || !yok {
+			return nil, [2]geom.Vec2{}, geom.ErrInvalid
+		}
+		q, e := joinExactBezierControls(x, y, t)
+		return q, q.ends, e
+	})
+}
+
+func joinExactBezierControls(a, b ExactBezierUV, t *big.Rat) (ExactBezierUV, error) {
+	var zero ExactBezierUV
+	n := len(a.control)
+	if n < 4 || n > 5 || n != len(b.control) || a.ends[1] != b.ends[0] ||
+		t.Num().BitLen() > 4096 || t.Denom().BitLen() > 4096 {
+		return zero, geom.ErrConvergence
+	}
+	// The endpoint of each de Casteljau row is a triangular change of
+	// basis: L_i = sum choose(i,j)*(1-t)^(i-j)*t^j*C_j. Recover C_i
+	// in order, then certify that BOTH original nets are the actual split.
+	u := new(big.Rat).Sub(big.NewRat(1, 1), t)
+	powT, powU := [5]*big.Rat{big.NewRat(1, 1)}, [5]*big.Rat{big.NewRat(1, 1)}
+	for i := 1; i < n; i++ {
+		powT[i] = new(big.Rat).Mul(t, powT[i-1])
+		powU[i] = new(big.Rat).Mul(u, powU[i-1])
+	}
+	h := make([][3]*big.Rat, n)
+	for i := range h {
+		for axis, control := range a.control[i] {
+			x := new(big.Rat).Set(control)
+			for j := 0; j < i; j++ {
+				w := new(big.Rat).Mul(powT[j], powU[i-j])
+				w.Mul(w, big.NewRat(polynomialChoose(i, j), 1))
+				x.Sub(x, w.Mul(w, h[j][axis]))
+			}
+			h[i][axis] = x.Quo(x, powT[i])
+		}
+	}
+	q, e := NewExactBezierUV(h)
+	if e != nil {
+		return zero, e
+	}
+	l, r, e := q.Split(t)
+	if e != nil {
+		return zero, e
+	}
+	for i := range l.control {
+		for j := range l.control[i] {
+			if l.control[i][j].Cmp(a.control[i][j]) != 0 || r.control[i][j].Cmp(b.control[i][j]) != 0 {
+				return zero, geom.ErrConvergence
+			}
+		}
+	}
+	return q, nil
+}

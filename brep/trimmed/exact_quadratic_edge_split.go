@@ -135,6 +135,19 @@ func (s Solid) splitExactQuadraticTrimEdge(ctx context.Context, edge int, t *big
 // using the exact original normalized split parameter. Both homogeneous
 // subcurve identities are reproved; geometric proximity is insufficient.
 func (s Solid) MergeExactQuadraticTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
+	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
+		x, xok := a.(ExactQuadraticUV)
+		y, yok := b.(ExactQuadraticUV)
+		if !xok || !yok {
+			return nil, [2]geom.Vec2{}, geom.ErrInvalid
+		}
+		q, e := joinExactQuadraticControls(x, y, t)
+		return q, q.ends, e
+	})
+}
+
+func (s Solid) mergeExactTrimEdges(ctx context.Context, first, second int, split *big.Rat,
+	join func(PCurve, PCurve, *big.Rat) (PCurve, [2]geom.Vec2, error)) (Solid, EdgeMergeHistory, error) {
 	var bad EdgeMergeHistory
 	if ctx == nil || first < 0 || second < 0 || first == second || first >= len(s.edges) || second >= len(s.edges) ||
 		split == nil || split.Sign() <= 0 || split.Cmp(big.NewRat(1, 1)) >= 0 {
@@ -154,12 +167,7 @@ func (s Solid) MergeExactQuadraticTrimEdges(ctx context.Context, first, second i
 	if !aok || !bok || !geom.SameSplineSurface(as, bs) {
 		return Solid{}, bad, geom.ErrConvergence
 	}
-	xu, xok := x.curve.(ExactQuadraticUV)
-	yu, yok := y.curve.(ExactQuadraticUV)
-	if !xok || !yok {
-		return Solid{}, bad, geom.ErrInvalid
-	}
-	whole, e := joinExactQuadraticControls(xu, yu, split)
+	whole, endpoints, e := join(x.curve, y.curve, split)
 	if e != nil {
 		return Solid{}, bad, e
 	}
@@ -207,16 +215,14 @@ func (s Solid) MergeExactQuadraticTrimEdges(ctx context.Context, first, second i
 				want = first
 				fraction = new(big.Rat).Sub(big.NewRat(1, 1), split)
 			}
-			p, pok := x.Curve.(ExactQuadraticUV)
-			q, qok := y.Curve.(ExactQuadraticUV)
-			if y.Edge != want || x.Reversed != y.Reversed || !pok || !qok || x.UVEnd != y.UVStart {
+			if y.Edge != want || x.Reversed != y.Reversed || x.UVEnd != y.UVStart {
 				return Solid{}, bad, geom.ErrConvergence
 			}
-			uv, e := joinExactQuadraticControls(p, q, fraction)
+			uv, ends, e := join(x.Curve, y.Curve, fraction)
 			if e != nil {
 				return Solid{}, bad, e
 			}
-			out := []Use{{Edge: first, Reversed: x.Reversed, UVStart: uv.ends[0], UVEnd: uv.ends[1], Curve: uv}}
+			out := []Use{{Edge: first, Reversed: x.Reversed, UVStart: ends[0], UVEnd: ends[1], Curve: uv}}
 			for j := 2; j < len(u); j++ {
 				z := u[(start+j)%len(u)]
 				if z.Edge == first || z.Edge == second {
@@ -246,7 +252,7 @@ func (s Solid) MergeExactQuadraticTrimEdges(ctx context.Context, first, second i
 		}
 		h.Edges[i] = len(edges)
 		if i == first {
-			e.End, e.Curve = b.End, surfaceTrimCurve{x.surface, whole.ends[0], whole.ends[1], whole}
+			e.End, e.Curve = b.End, surfaceTrimCurve{x.surface, endpoints[0], endpoints[1], whole}
 		}
 		e.Start, e.End = h.Vertices[e.Start], h.Vertices[e.End]
 		edges = append(edges, e)

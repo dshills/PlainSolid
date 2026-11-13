@@ -16,6 +16,33 @@ func (p CertifiedTrim) EncloseSplineUV(ctx context.Context, start, end float64, 
 	if ctx == nil || p.plane || s.surface == nil || !finite(start) || !finite(end) || start < 0 || end > 1 || start >= end {
 		return geom.UVBox{}, false, geom.ErrInvalid
 	}
+	a, b := s.enclosingFreeInterval(start, end)
+	r, e := s.arc.EncloseInterval(ctx, a, b, o)
+	return r.Parameters, r.HasBounds, e
+}
+
+// SplineUVEncloser binds a faster exact parameter-only enclosure to the
+// original trim. It incorporates the algebraic endpoint enclosures in each
+// normalized subinterval just like EncloseSplineUV.
+func (p CertifiedTrim) SplineUVEncloser(ctx context.Context, o geom.SurfaceArcUVOptions) (func(context.Context, float64, float64) (geom.UVBox, bool, error), error) {
+	s := p.segment
+	if ctx == nil || p.plane || s.surface == nil {
+		return nil, geom.ErrInvalid
+	}
+	q, e := s.arc.NewSurfaceArcUVEncloser(ctx, o)
+	if e != nil {
+		return nil, e
+	}
+	return func(ctx context.Context, start, end float64) (geom.UVBox, bool, error) {
+		if ctx == nil || !finite(start) || !finite(end) || start < 0 || end > 1 || start >= end {
+			return geom.UVBox{}, false, geom.ErrInvalid
+		}
+		a, b := s.enclosingFreeInterval(start, end)
+		return q.Enclose(ctx, a, b)
+	}, nil
+}
+
+func (s CertifiedSegment) enclosingFreeInterval(start, end float64) (float64, float64) {
 	var lower, upper *big.Rat
 	for _, t := range []float64{start, end} {
 		for _, b := range []struct{ a, b geom.Vec2 }{{s.ends[0].Parameters.Min, s.ends[1].Parameters.Min}, {s.ends[0].Parameters.Max, s.ends[1].Parameters.Max}} {
@@ -32,6 +59,5 @@ func (p CertifiedTrim) EncloseSplineUV(ctx context.Context, start, end float64, 
 	if a == b {
 		a, b = math.Nextafter(a, math.Inf(-1)), math.Nextafter(b, math.Inf(1))
 	}
-	r, e := s.arc.EncloseInterval(ctx, a, b, o)
-	return r.Parameters, r.HasBounds, e
+	return a, b
 }

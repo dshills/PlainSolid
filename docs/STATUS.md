@@ -1,8 +1,8 @@
 # Implementation status
 
 The full OCCT replacement is **not complete**. This document distinguishes the
-implemented, tested kernel from the much larger specification. No production or
-OCCT compatibility qualification is claimed.
+implemented, tested kernel from the much larger specification. Full replacement
+and general-purpose production use remain unqualified.
 
 ## Immediate priority: PlainCAD compatibility
 
@@ -174,6 +174,18 @@ cutters, unresolved contacts, material-island footprints, closed cavities,
 and arbitrary curved targets remain open. Some named interior pocket floors and one-side through
 cuts already have qualified constructors. The full
 replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
+
+Current integration evidence is kept on local `codex/reconcile-plaincad`.
+The other worktree's revision stays separate and is merged into that review
+branch after each coherent milestone. The current committed PlainCAD revision
+`50432ed` passed all 66 original production tests on `0312d69`; the integration
+worktree independently qualified all 15 current cross-browser cases. The full
+unit result still contains failures, with separately recorded isolated retests
+and provider-specific fixture gaps. Production and cross-browser passes do
+not establish a general OCCT replacement.
+
+The first gate is a real Go WebAssembly kernel adapter exercised through
+PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
 The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can
