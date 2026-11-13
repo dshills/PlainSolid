@@ -3,9 +3,11 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
@@ -155,5 +157,32 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	}
 	if loc, report, e := LocateRationalInFaceTrim(ctx, cap.Boundary.Face, [2]*big.Rat{big.NewRat(3, 8), big.NewRat(3, 8)}, trimvalidate.Options{}); e != nil || report.Status != trimvalidate.Certified || loc != trimvalidate.Outside {
 		t.Fatal("cap trim filled the void", loc, report, e)
+	}
+	split, e := s.SplitRationalGraphSplineShell(ctx, p, support, domain, RationalGraphShellSplitOptions{})
+	if e != nil {
+		t.Fatal("closed square-tube halves", e)
+	}
+	for side, half := range split.Halves {
+		fs := half.Solid.Faces()
+		if len(half.CapFaces) != 1 || len(half.CapEdges[0]) != 16 || len(half.Solid.Topology().Shells) != 1 ||
+			len(fs[half.CapFaces[0]].Holes) != 1 || fs[half.CapFaces[0]].Reversed != (side == 0) {
+			t.Fatal("clipped tube lost topology or cap normal", side)
+		}
+		mp, e := half.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(mp.Volume-4) > 1e-8 {
+			t.Fatal("independent square tube half volume", side, mp, e)
+		}
+		owned := map[int]bool{}
+		for _, row := range append(append([][]int(nil), half.CapEdges...), half.SourceEdges...) {
+			for _, id := range row {
+				if owned[id] {
+					t.Fatal("ambiguous split model-edge ancestry", side, id)
+				}
+				owned[id] = true
+			}
+		}
+		if len(owned) != len(half.Solid.Edges()) {
+			t.Fatal("incomplete split model-edge ancestry", side)
+		}
 	}
 }

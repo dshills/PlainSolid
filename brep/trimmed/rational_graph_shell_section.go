@@ -38,9 +38,12 @@ type RationalGraphShellTerminal struct {
 // model space is the oriented plane normal crossed with the outward shell
 // normal; the planar material region is to the left in that plane.
 type RationalGraphShellBranch struct {
-	Face   int
-	Pieces []PCurve
-	Ends   [2]RationalGraphShellTerminal
+	Face     int
+	Pieces   []PCurve
+	Ends     [2]RationalGraphShellTerminal
+	freeAxis int  // -1 for an affine chart section
+	positive int  // oriented plane sign as the dependent coordinate increases
+	reversed bool // relative to increasing original free coordinate
 }
 
 // RationalGraphShellSection contains the entire certified section, in
@@ -89,49 +92,58 @@ func (s Solid) SectionRationalGraphSplineShell(ctx context.Context, points [3]ge
 		}
 		return zero, e
 	}
+	r, _, e := s.discoverRationalGraphShellSection(ctx, points, plane, faces, o)
+	return r, e
+}
+
+func (s Solid) discoverRationalGraphShellSection(ctx context.Context, points [3]geom.Vec3, plane polynomialPlaneEquation, faces []splineEmbeddingFace, o RationalGraphShellSectionOptions) (RationalGraphShellSection, []int, error) {
+	var zero RationalGraphShellSection
+	var e error
 	var out RationalGraphShellSection
+	sides := make([]int, len(faces))
 	count := 0
 	for id, f := range faces {
 		if e := ctx.Err(); e != nil {
-			return zero, e
+			return zero, nil, e
 		}
 		h, e := geom.CertifySurfaceSupportingPlane(ctx, f.patch, points[0], points[1], points[2], o.Spans.Faces.Plane)
 		if e == nil {
 			if !h.Complete || h.Coincident || h.HalfspaceSign == 0 || h.SideMask != 0 || h.CornerMask != 0 {
-				return zero, fmt.Errorf("trimmed: plane contact on face %d is not a transverse graph: %w", id, geom.ErrConvergence)
+				return zero, nil, fmt.Errorf("trimmed: plane contact on face %d is not a transverse graph: %w", id, geom.ErrConvergence)
 			}
+			sides[id] = h.HalfspaceSign
 			continue
 		}
 		if !errors.Is(e, geom.ErrConvergence) {
-			return zero, e
+			return zero, nil, e
 		}
 		b, e := s.rationalGraphShellFaceBranch(ctx, id, f, plane, o.Spans)
 		if e != nil {
-			return zero, fmt.Errorf("trimmed: section face %d: %w", id, e)
+			return zero, nil, fmt.Errorf("trimmed: section face %d: %w", id, e)
 		}
 		count += len(b.Pieces)
 		if count > o.MaxPieces {
-			return zero, geom.ErrConvergence
+			return zero, nil, geom.ErrConvergence
 		}
 		out.Branches = append(out.Branches, b)
 	}
 	out.Wires, e = joinRationalGraphShellBranches(ctx, out.Branches)
 	if e != nil {
-		return zero, e
+		return zero, nil, e
 	}
 	if o.VerifyModelEdges {
 		if e = s.verifyRationalGraphShellModelEdges(ctx, out.Branches, plane, o); e != nil {
-			return zero, e
+			return zero, nil, e
 		}
 	}
 	if o.Regions != nil {
 		out.Regions, e = classifyRationalGraphShellRegions(ctx, out, faces, plane, o.Spans.Faces.Patches, *o.Regions)
 		if e != nil {
-			return zero, e
+			return zero, nil, e
 		}
 	}
 	out.Complete = true
-	return out, nil
+	return out, sides, nil
 }
 
 func (s Solid) verifyRationalGraphShellModelEdges(ctx context.Context, branches []RationalGraphShellBranch, plane polynomialPlaneEquation, o RationalGraphShellSectionOptions) error {
@@ -173,7 +185,7 @@ func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splin
 	if e != nil {
 		return RationalGraphShellBranch{}, e
 	}
-	b := RationalGraphShellBranch{Face: id, Pieces: p.Pieces()}
+	b := RationalGraphShellBranch{Face: id, Pieces: p.Pieces(), freeAxis: p.FreeAxis(), positive: p.PlaneSideSign()}
 	edges, parameters := p.Edges(), p.Parameters()
 	for i := range b.Ends {
 		piece := b.Pieces[0]
@@ -197,6 +209,7 @@ func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splin
 		forward = -forward
 	}
 	if forward < 0 {
+		b.reversed = true
 		b.Ends[0], b.Ends[1] = b.Ends[1], b.Ends[0]
 		for i, j := 0, len(b.Pieces)-1; i <= j; i, j = i+1, j-1 {
 			a, c := b.Pieces[i], b.Pieces[j]
@@ -226,7 +239,7 @@ func (s Solid) affineShellPlaneBranch(ctx context.Context, id int, chart *geom.A
 			return zero, geom.ErrConvergence
 		}
 	}
-	b := RationalGraphShellBranch{Face: id}
+	b := RationalGraphShellBranch{Face: id, freeAxis: -1}
 	var ends [2][2]*big.Rat
 	for i, u := range f.Outer {
 		j := (i + 1) % len(uv)

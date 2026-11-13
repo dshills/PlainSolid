@@ -181,7 +181,9 @@ are rejected. An optional proof projects the exact wires into an oriented
 plane and groups simple, disjoint rings into material regions and holes.
 Those regions classify points exactly and reconstruct independent planar cap
 faces on an authored affine spline support, retaining each original section
-piece and hole. Sewing both clipped half-shells remains a separate operation.
+piece and hole. In the certified rectangular spline domain, direct plane
+split now sews both complete halves with opposite cap orientation and
+separate original-edge versus section-edge ancestry.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.
