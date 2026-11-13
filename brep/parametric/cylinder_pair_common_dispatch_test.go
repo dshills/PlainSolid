@@ -136,3 +136,85 @@ func TestFiniteCylinderPairCommonSignedCoordinateCaps(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairCommonOutsideAxialSupport(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 2}, Radius: 3, Min: 1, Max: 3}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 2, Min: -6, Max: 6}
+	// A's physical start is x=2, exactly on B's outermost generator.
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+		t.Fatal(out, e)
+	}
+	a.Min = math.Nextafter(1, 0)
+	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("an unsupported but positive interval was misclassified", out, e)
+	}
+	// The feet are not dyadic raw parameters here. Cap exclusion still
+	// proves empty without constructing or rounding either placement.
+	a = geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 1}, Radius: 3, Min: -15, Max: -10}
+	b = geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: -1, Z: .5}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -10, Max: 10}
+	for _, p := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, p[0], p[1], 1e-8)
+		if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+			t.Fatal(out, e)
+		}
+	}
+}
+
+func TestFiniteCylinderPairCommonNonDyadicFootParameters(t *testing.T) {
+	ctx := context.Background()
+	// Both axes cross at the origin, but the first foot has raw parameter
+	// -1/3. Recentring the original cap bounds must keep that exact fraction.
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1}, Axis: geom.Vec3{X: 3}, Radius: 5, Min: -3, Max: 3}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 5, Min: -6, Max: 6}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonIntersectingAxes {
+		t.Fatal(out.Construction, e)
+	}
+	props, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+	if e != nil || math.Abs(props.Volume-2000.0/3) > 1e-6 {
+		t.Fatal(props, e)
+	}
+	a.Max = 0
+	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonPerpendicularCap || len(out.UpperCapFaces[0]) == 0 {
+		t.Fatal(out.Construction, out.UpperCapFaces, e)
+	}
+	faces := out.Solid.Faces()
+	for _, id := range out.UpperCapFaces[0] {
+		f := faces[id]
+		p, e := f.Surface.Eval((f.U.Min+f.U.Max)/2, (f.V.Min+f.V.Max)/2)
+		if e != nil || p.X != 1 {
+			t.Fatal("cap must stay on the original plane", p, e)
+		}
+	}
+}
+
+func TestFiniteCylinderPairCommonTangentCaps(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 2}, Radius: 5, Min: -2.5, Max: 2.5}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: -1}, Radius: 5, Min: -5, Max: 5}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonIntersectingAxes {
+		t.Fatal(out.Construction, e)
+	}
+	for i := range 2 {
+		if len(out.SideFaces[i]) == 0 || len(out.LowerCapFaces[i])+len(out.UpperCapFaces[i]) != 0 {
+			t.Fatal("tangent caps do not own planar area", out.SideFaces, out.LowerCapFaces, out.UpperCapFaces)
+		}
+	}
+	p, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+	if e != nil || math.Abs(p.Volume-2000.0/3) > 1e-6 || p.Centroid.Length() > 1e-9 {
+		t.Fatal(p, e)
+	}
+	query, e := geom.NewCylinderPairCommon(a, b)
+	if e != nil {
+		t.Fatal(e)
+	}
+	loc, mask, e := query.Classify(geom.Vec3{X: 5})
+	if e != nil || loc != geom.BoreBoundary || mask != geom.RawCylinderFirstMax|geom.RawCylinderSecondSide {
+		t.Fatal("contact still owns the original raw cap", loc, mask, e)
+	}
+}
