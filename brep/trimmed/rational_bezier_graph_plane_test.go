@@ -386,4 +386,12 @@ func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
 	if pieces != 2 {
 		t.Fatal("source knot should retain one cubic trim on either side", pieces)
 	}
+	plane := [3]geom.Vec3{{Z: 1. / 8}, {X: 1, Z: 1. / 8}, {Y: 1, Z: 1. / 8}}
+	section, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{})
+	if e != nil || len(section.Pieces()) != 2 || len(section.Knots()) != 1 || section.Knots()[0].Point[1].Cmp(big.NewRat(5, 16)) != 0 {
+		t.Fatal("face-only certificate loses original piecewise junction", section, e)
+	}
+	if bad, e := CertifyRationalGraphPlaneFaceSection(ctx, stock, 4, plane, 0, PolynomialPlaneSpanOptions{MaxSpans: 1}); e == nil || bad != nil {
+		t.Fatal("face-only certificate ignored span budget", e)
+	}
 }
