@@ -45,6 +45,12 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		planar = planar && c.planar()
 		circular = circular && c.cylinder != nil
 	}
+	if result, _, handled, err := cutRoundedBores(a, inputs); handled {
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putAnalyticBody(result)
+	}
 	if result, _, handled, err := cutThroughProfiles(a, inputs); handled {
 		if err != nil {
 			return Shape{}, err

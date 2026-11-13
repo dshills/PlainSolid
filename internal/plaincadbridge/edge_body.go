@@ -91,6 +91,9 @@ func (b *Bridge) putEdge(body *edgeBody) (Shape, error) {
 	return b.publish(stored{treated: body, result: Shape{GeometryAssertions: Assertions{true, volume, area, 1}, Bounds: Bounds{coordinates(box.Min), coordinates(box.Max)}}})
 }
 func (body *edgeBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if body.bore != nil {
+		o.Angle = min(o.Angle, .045)
+	}
 	m, err := body.chain.Solid.Tessellate(context.Background(), o)
 	if err != nil {
 		return mesh.Mesh{}, err
@@ -153,6 +156,11 @@ func planarEdge(s brep.Solid, start, end geom.Vec3) (geom.Vec3, geom.Vec3, bool)
 				return geom.Vec3{}, geom.Vec3{}, false
 			}
 			first, last, found = v[e.Start], v[e.End], true
+		}
+	}
+	if !found {
+		if _, ok := supportingEdgeChain(s, start, end); ok {
+			return start, end, true
 		}
 	}
 	return first, last, found
@@ -390,7 +398,10 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	} else {
 		base := s.solid
 		if s.bore != nil {
-			if _, _, _, ok := rectangularBoredStock(s.bore, normal, false); !ok {
+			if len(s.bore.cylinders) == 0 {
+				return Shape{}, unsupportedEdge("retained bore has no cylinder recipe")
+			}
+			if _, _, _, ok := rectangularBoredStock(s.bore, normal, false); !ok && len(s.bore.cylinders) == 1 && s.bore.layered == nil && s.bore.union == nil && !s.bore.blind[0] {
 				return Shape{}, unsupportedEdge(q.Op + " failed: retained bore does not qualify for edge treatment")
 			}
 			base = s.bore.base
@@ -402,7 +413,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 			}
 			return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
 		}
-		if s.bore != nil {
+		if s.bore != nil && len(s.bore.cylinders) == 1 && s.bore.layered == nil && s.bore.union == nil && !s.bore.blind[0] {
 			c := s.bore.cylinders[0]
 			center := body.frame.ToLocal(c.frame.Origin())
 			body.bore = &trimmed.ExtrusionCircle{Center: geom.Vec2{X: center.X, Y: center.Y}, Radius: c.radius}
@@ -445,6 +456,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	next, err := rebuildEdge(body)
 	if err != nil {
 		return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
+	}
+	if s.bore != nil && body.bore == nil {
+		return b.finishBoredEdges(s.bore, next)
 	}
 	return b.putEdge(next)
 }

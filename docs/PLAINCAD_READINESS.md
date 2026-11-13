@@ -50,6 +50,14 @@ The [clean combined compact-mesh retest](evidence/plaincad-compact-performance-r
 passed the unchanged controlled performance case in 64.7 seconds against
 its 90-second limit. The full production rerun remains open.
 
+The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
+passes cold load of all 40 bodies, cached rename, and a platter thickness
+edit. The [cache metrics](evidence/plaincad-rotary-cache-metrics-2026-11-13.json)
+record zero modeling operations and 39 edge-proof hits on rename.
+The [exact Join/Cut original](evidence/plaincad-rotary-first-2026-11-13.json)
+and [Hole Edit original](evidence/plaincad-hole-edit-chamfer-2026-11-13.json)
+also pass.
+
 ## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
 
 Focused original cases pass for linked arcs and circles, edited arc
@@ -67,8 +75,7 @@ being retested.
 
 The original modeled Thread and linked lead screw/nut both pass on one
 [source-hashed snapshot](evidence/plaincad-helical-accepted-2026-11-13.json).
-The Acme gallery passes the focused production retest. The UNC gallery
-requires the placement retest recorded above.
+The Acme and UNC gallery cases pass their focused production retests.
 
 ## Finite To Face extrusion checkpoint — 2026-11-13
 

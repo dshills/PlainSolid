@@ -1,5 +1,30 @@
 # Verification record
 
+## PlainCAD rotary fixture and downstream Hole edit — 2026-11-13
+
+The [rotary acceptance](evidence/plaincad-rotary-accepted-2026-11-13.json)
+passes the original 40-body cold load, rename and platter edit in 80.381
+seconds. Compact axial cylinder sampling retains 68 native features in
+6,039,938 bytes. Rename uses 39 edge-proof cache hits and zero modeling
+operations. The platter edit uses 13 edge-proof hits and 47 modeling
+operations. The [metrics](evidence/plaincad-rotary-cache-metrics-2026-11-13.json)
+record cache behavior across all three rebuilds.
+
+The original explicit Join/Cut test passes in 10.9 seconds on the
+[earlier snapshot](evidence/plaincad-rotary-first-2026-11-13.json).
+Exact axis-aligned material cells retain the 1,050 cubic millimeter join
+and 750 cubic millimeter cut when the generic planar output cannot be
+represented. The [Hole Edit retest](evidence/plaincad-hole-edit-chamfer-2026-11-13.json)
+passes the downstream chamfer, cancellation, native volume, undo, save/open
+and STL. The rotary snapshot passes Hole Edit again.
+
+The [compact bore production report](evidence/plaincad-production-mesh-2026-11-13.json)
+passes STEP import and still exceeds the overall 90-second performance
+deadline under concurrent browser load. All 25 edit samples and 11 STL
+downloads were validated. The STL mesh now uses 144 triangles and
+retains the requested angular accuracy. An isolated performance retest
+is still required.
+
 ## PlainCAD modeling and production repairs — 2026-11-13
 
 The [development retest](evidence/plaincad-gap-repairs-2026-11-13.json)

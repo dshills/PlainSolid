@@ -11,16 +11,20 @@ production retest passes the fabrication package, Cable guide live preview
 and left-hand Acme pair. A separate retest passes the quarter-inch UNC
 gallery, including placement of both helical bodies. Production performance
 still exceeds its overall deadline after producing all validated samples.
-The volume-checked compact bore mesh is under retest. Full development discovery lists 340 original
+The volume-checked compact bore mesh reduces the benchmark from 528 to
+144 triangles per STL. The concurrent production run still exceeds its
+deadline. An isolated timing retest and OCCT control are pending. Full development discovery lists 340 original
 cases and execution remains open.
 
 The focused development retest passes all seven originals for a pocket
 after four bores, island pocket, circular face boss, compound profiles,
 opposite cap treatments, XY feature addition and separated rotated
 collision. Authored circle measurement and all three circular rim
-regressions pass in a separate four-case run. Current gaps include the
-40-body rotary fixture and the exact cut of a rectangular tool after
-joining that same tool. See [PlainCAD readiness](PLAINCAD_READINESS.md).
+regressions pass in a separate four-case run. The 40-body rotary fixture now passes cold load, rename and platter edit.
+The original exact Join/Cut and Hole Edit with downstream chamfer also
+pass. The full development baseline continues. Known open cases include
+multi-body corner cuts and current PlainCAD's ORBIT close-up display.
+See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
 Shell and three Hole pattern cases pass the expanded original selection.

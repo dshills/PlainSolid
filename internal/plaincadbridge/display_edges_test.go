@@ -43,6 +43,31 @@ func TestNativeDisplayEdgesCylinder(t *testing.T) {
 		}
 	}
 }
+
+func TestDisplayEdgeBudgetFormats(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{1, 2, 3})
+	var legacy displayEdges
+	if err := json.Unmarshal(invoke(t, b, map[string]any{"op": "displayEdges", "handle": stock.Handle, "maxSegments": 12, "edgeUses": 24}), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	var current displayEdgeResult
+	if err := json.Unmarshal(invoke(t, b, map[string]any{"op": "displayEdges", "handle": stock.Handle, "maxEdgeSegments": 12, "maxEdgeUses": 24}), &current); err != nil {
+		t.Fatal(err)
+	}
+	if len(legacy.Positions) != 72 || len(current.Segments) != 72 || legacy.EdgeUses != 24 || current.EdgeUses != 24 {
+		t.Fatal("inconsistent edge accounting", legacy.EdgeUses, current.EdgeUses)
+	}
+	for _, limits := range []map[string]any{
+		{"maxEdgeSegments": 0, "maxEdgeUses": 0},
+		{"maxEdgeSegments": 12},
+		{"maxEdgeSegments": 12, "maxEdgeUses": 24, "maxSegments": 12},
+		{"maxEdgeSegments": 12, "maxEdgeUses": 23},
+	} {
+		limits["op"], limits["handle"] = "displayEdges", stock.Handle
+		rejectGroup(t, b, limits)
+	}
+}
 func TestNativeDisplayEdgesCapsuleAndBox(t *testing.T) {
 	frame, _ := geom.FrameFromNormal(geom.Vec3{X: 2, Y: 3, Z: 4}, geom.Vec3{Z: 1})
 	body, e := trimmed.ExtrudeCapsule(context.Background(), frame, geom.Vec2{X: -3}, geom.Vec2{X: 3}, 1, 5)

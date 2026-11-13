@@ -42,6 +42,12 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			return result(volume)
 		}
 	}
+	if volume, handled, err := overlapRoundedBore(a, c); handled {
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	// Test a through-profile overlap without reordering operands for later
 	// paths when neither side is supported as through-profile stock.
 	profileStock, profileTool := a, c

@@ -23,7 +23,26 @@ const gitIdentity = cwd => {
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
 };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
-const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity: gitIdentity(source), plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
+const sourceIdentity = gitIdentity(source);
+if (!sourceIdentity.head) {
+  try {
+    const bytes = await readFile(join(source, ".plainSolidSourceIdentity.json"));
+    const archive = JSON.parse(bytes.toString("utf8"));
+    if (archive.kind !== "git-archive" || archive.cleanCommittedArchive !== true ||
+        typeof archive.head !== "string" || !/^[0-9a-f]{40}$/.test(archive.head) ||
+        typeof archive.sourceRepository !== "string" || !archive.sourceRepository.startsWith("/"))
+      throw new Error("Invalid committed archive identity manifest.");
+    // This is explicit archive provenance, not a claim that the copied tree has
+    // a git branch/index. Per-file hashes below prove the actual tested content.
+    Object.keys(sourceIdentity).forEach(key => delete sourceIdentity[key]);
+    Object.assign(sourceIdentity, { kind: "git-archive", head: archive.head,
+      sourceRepository: archive.sourceRepository, cleanCommittedArchive: true,
+      manifestSha256: hash(bytes) });
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
 async function command(program, argv, logName, env = {}, cwd = work) {
   const logPath = join(work, logName);
   const chunks = [];
@@ -76,6 +95,22 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
+  // The worker already accepts this progress callback for modeled threads.
+  // Report actual feature boundaries for the synchronous Go kernel as well.
+  const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
+  const rebuildBefore = await readFile(rebuildPath, "utf8");
+  const featureBoundary = "        operationCount += 1;";
+  if (rebuildBefore.split(featureBoundary).length !== 2 || !rebuildBefore.includes("onNativeProgress?:")) {
+    throw new Error("PlainCAD rebuild progress boundary changed.");
+  }
+  const rebuildAfter = rebuildBefore.replace(featureBoundary,
+    featureBoundary + '\n        options.onNativeProgress?.("native_feature");');
+  await writeFile(rebuildPath, rebuildAfter);
+  report.runtimeAdaptations = [{
+    file: "src/cad/features/rebuildGraph.ts",
+    purpose: "Report existing native-worker progress at each executed feature.",
+    beforeSha256: hash(rebuildBefore), afterSha256: hash(rebuildAfter),
+  }];
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');

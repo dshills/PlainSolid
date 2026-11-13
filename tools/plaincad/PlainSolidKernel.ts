@@ -266,6 +266,7 @@ export class OpenCascadeKernel implements KernelAdapter {
     }
     const result = owned(request({ op: "transform", handle: state.proof.handle, matrix }), state.operation, shape.id);
     if (source) handle(result).extrusion = source;
+    handle(result).edgeProofIdentity = JSON.stringify([state.edgeProofIdentity, matrix]);
     if (metadata !== undefined) result.metadata = metadata;
     return result;
   }
@@ -305,16 +306,20 @@ export class OpenCascadeKernel implements KernelAdapter {
     try { for (const tool of tools) { const next = this.cut(current, tool); this.disposeShape(current); current = next; } return current; }
     catch (error) { this.disposeShape(current); throw error; }
   }
-  nativeDisplayEdges(shape: KernelShape, maxSegments: number, budget?: DisplayEdgeBudget): Float32Array {
-    const { positions, edgeUses } = request<{ positions: number[]; edgeUses: number }>({
-      op: "displayEdges", handle: handle(shape).proof.handle, maxSegments, edgeUses: budget?.edgeUses,
-    });
-    if (budget) budget.edgeUses -= edgeUses;
-    return Float32Array.from(positions);
-  }
   tessellate(shape: KernelShape, options: TessellationOptions): RenderMesh {
-    const mesh = request<Omit<RenderMesh, "id" | "bodyId">>({ op: "mesh", handle: handle(shape).proof.handle, linearDeflection: options.linearDeflection, angularDeflection: options.angularDeflection });
+    const mesh = request<Omit<RenderMesh, "id" | "bodyId">>({ op: "mesh", handle: handle(shape).proof.handle, linearDeflection: options.linearDeflection, angularDeflection: options.angularDeflection,
+      analyticNormals: "analyticNormals" in options && options.analyticNormals === true });
     return { ...mesh, id: shape.id, bodyId: shape.id, geometrySource: "plainsolid", kernelOperation: handle(shape).operation };
+  }
+  nativeDisplayEdges(shape: KernelShape, maxSegments: number, budget?: DisplayEdgeBudget): Float32Array {
+    const maxEdgeUses = Math.min(12_000, budget?.edgeUses ?? 12_000);
+    const result = request<{ segments: number[]; edgeUses: number }>({
+      op: "displayEdges", handle: handle(shape).proof.handle, maxEdgeUses, maxEdgeSegments: maxSegments,
+    });
+    const segments = Float32Array.from(result.segments);
+    if (!segments.every(Number.isFinite)) throw new Error("A native edge exceeds the display coordinate range.");
+    if (budget) budget.edgeUses -= result.edgeUses;
+    return segments;
   }
   exportStl(shape: KernelShape): ArrayBuffer {
     const { base64 } = request<{ base64: string }>({ op: "stl", handle: handle(shape).proof.handle, linearDeflection: 0.5, angularDeflection: 0.2 });
@@ -367,6 +372,29 @@ export class OpenCascadeKernel implements KernelAdapter {
       edgeEnd: xyz(transformPoint(source.transform, segment.end.x, segment.end.y, height)),
       normal: xyz(source.transform.normal).map(value => value * Math.sign(source.distance)),
     };
+  }
+  private profileEdges(shape: KernelShape, ref: TopologyRef): { edgeStart: number[]; edgeEnd: number[]; normal: number[] }[] {
+    const source = handle(shape).extrusion;
+    if (!source || ref.kind !== "edge" || ref.role !== "profileEdge" || ref.repairRequired || !ref.sourceEntityId)
+      throw new Error("Profile edge treatment requires an authored straight segment on its original extrusion.");
+    const segments = source.profile.outerLoop.type === "polygon" ? source.profile.outerLoop.segments ?? [] : [];
+    const matches = segments.filter(segment => segment.id === ref.sourceEntityId);
+    if (matches.length !== 1 || matches[0].type !== "line")
+      throw new Error("Authored profile edge is missing, ambiguous, or curved; repair the edge reference.");
+    const segment = matches[0];
+    const dx = segment.end.x - segment.start.x, dy = segment.end.y - segment.start.y;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.hypot(dx, dy) === 0)
+      throw new Error("Profile edge treatment requires a nondegenerate straight segment.");
+    // A profile-line reference owns the two axial edges at its endpoints.
+    // Reorient the stock frame using the line's in-plane perpendicular; its
+    // longitudinal axis is now the extrusion direction, including signed depth.
+    const normal = xyz({ x: source.transform.u.x * dy - source.transform.v.x * dx,
+      y: source.transform.u.y * dy - source.transform.v.y * dx,
+      z: source.transform.u.z * dy - source.transform.v.z * dx });
+    return [segment.start, segment.end].map(point => ({
+      edgeStart: xyz(transformPoint(source.transform, point.x, point.y, 0)),
+      edgeEnd: xyz(transformPoint(source.transform, point.x, point.y, source.distance)), normal,
+    }));
   }
   availableExtrudeCapEdges(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> {
     const source = handle(shape).extrusion;
@@ -428,22 +456,34 @@ export class OpenCascadeKernel implements KernelAdapter {
     const hits = targets.map(() => tools.map(() => false));
     const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
     try {
-      // Every center is proved against the original scope, never an intermediate
-      // result. A missed individual body is allowed; an unused center is not.
-      for (const [toolIndex, tool] of tools.entries()) {
-        let hit = false;
-        try {
-          for (const [targetIndex, target] of targets.entries()) {
-            if (!this.hasCommonVolume(target, tool)) continue;
-            const probe = this.cut(target, tool);
-            pending.add(probe);
-            this.disposeShape(probe);
-            pending.delete(probe);
-            hits[targetIndex][toolIndex] = true;
-            hit = true;
-          }
-          if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
-        } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
+      if (targets.length === 1) {
+        // The exact intersection proof establishes every center against the
+        // same source. A single atomic native batch proves the final topology.
+        for (const [toolIndex, tool] of tools.entries()) {
+          try {
+            if (!this.hasCommonVolume(targets[0], tool))
+              throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+            hits[0][toolIndex] = true;
+          } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
+        }
+      } else {
+        // Every center is proved against the original scope, never an intermediate
+        // result. A missed individual body is allowed; an unused center is not.
+        for (const [toolIndex, tool] of tools.entries()) {
+          let hit = false;
+          try {
+            for (const [targetIndex, target] of targets.entries()) {
+              if (!this.hasCommonVolume(target, tool)) continue;
+              const probe = this.cut(target, tool);
+              pending.add(probe);
+              this.disposeShape(probe);
+              pending.delete(probe);
+              hits[targetIndex][toolIndex] = true;
+              hit = true;
+            }
+            if (!hit) throw new Error("Boolean cut removed no volume. Move the tool into the target bodies.");
+          } catch (error) { throw new HoleScopeError("center", toolIndex, reason(error)); }
+        }
       }
       const outputs = targets.map((target, targetIndex) => {
         try {
@@ -560,8 +600,8 @@ export class OpenCascadeKernel implements KernelAdapter {
         refs.every(ref => (!ref.sourceEntityId || (source.profile.outerLoop.entityIds.length === 1 &&
           ref.sourceEntityId === source.profile.outerLoop.entityIds[0])) && !ref.repairRequired && ref.kind === "edge" &&
           (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
-      const roundedCandidate = operation === "fillet" && source && refs.length === 1 &&
-        refs[0].role === "endCapPerimeter" && !refs[0].sourceEntityId && !refs[0].repairRequired &&
+      const roundedCandidate = source && refs.length === 1 &&
+        refs[0].role === (operation === "fillet" ? "endCapPerimeter" : "startCapPerimeter") && !refs[0].sourceEntityId && !refs[0].repairRequired &&
         refs[0].kind === "edge" && source.profile.outerLoop.segments?.length === 8 &&
         source.profile.outerLoop.segments.filter(segment => segment.type === "arc").length === 4;
       const roundedPerimeter = roundedCandidate &&
@@ -594,8 +634,11 @@ export class OpenCascadeKernel implements KernelAdapter {
           normal: xyz(source.transform.normal).map(value => value * (end ? 1 : -1) * Math.sign(source.distance)),
           origin: xyz(transformPoint(source.transform, 0, 0, end ? source.distance : 0)), distance: size });
       } else if (roundedPerimeter && source) {
-        result = request({ op: "capFillet", handle: before.handle, normal: xyz(source.transform.normal),
-          origin: xyz(transformPoint(source.transform, 0, 0, source.distance)), radius: size });
+        const end = refs[0].role === "endCapPerimeter";
+        result = request({ op: end ? "capFillet" : "capChamfer", handle: before.handle,
+          normal: xyz(source.transform.normal).map(value => value * (end ? 1 : -1) * Math.sign(source.distance)),
+          origin: xyz(transformPoint(source.transform, 0, 0, end ? source.distance : 0)),
+          ...(end ? { radius: size } : { distance: size }) });
       } else if (circularRims && source) {
         const bounds = source.profile.bounds;
         const x = (bounds.minX + bounds.maxX) / 2, y = (bounds.minY + bounds.maxY) / 2;
@@ -603,7 +646,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
         result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
       } else {
-        const edges = (perimeter ?? refs).map(ref => this.capEdge(shape, ref));
+        const edges = (perimeter ?? refs).flatMap(ref => ref.role === "profileEdge" ? this.profileEdges(shape, ref) : [this.capEdge(shape, ref)]);
         const normal = perimeter?.[0].role === "startCapPerimeter" ? edges[0].normal.map(value => -value) : edges[0].normal;
         result = request({
           op: perimeter ? (operation === "fillet" ? "capFillet" : "capChamfer") : operation, handle: before.handle, normal,
