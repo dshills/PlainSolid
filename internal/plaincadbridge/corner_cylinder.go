@@ -61,6 +61,22 @@ func (b *Bridge) cornerCylinderBoolean(a, c stored, op string) (Shape, bool, err
 	if !a.planar() || c.cylinder == nil || op != "cut" && op != "fuse" {
 		return Shape{}, false, nil
 	}
+	if op == "cut" {
+		if result, handled, err := b.sideCylinderCut(a, c); handled {
+			return result, true, err
+		}
+		if f, d, ok := cornerCylinderThroughRecipe(a.solid, c.cylinder); ok {
+			r := c.cylinder.radius
+			solid, err := trimmed.BoxCornerCylinderThrough(context.Background(), f, d.X, d.Y, d.Z, r, 1e-9)
+			if err != nil {
+				return Shape{}, true, err
+			}
+			v := a.result.GeometryAssertions.Volume - math.Pi*r*r*d.Z/4
+			area := a.result.GeometryAssertions.SurfaceArea + (math.Pi/2-2)*r*d.Z - math.Pi*r*r/2
+			result, err := b.putNotchedStock(solid, v, area, a.result.Bounds)
+			return result, true, err
+		}
+	}
 	f, d, ok := cornerCylinderRecipe(a.solid, c.cylinder)
 	if !ok {
 		return Shape{}, false, nil
