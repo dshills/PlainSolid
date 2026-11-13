@@ -38,6 +38,7 @@ const (
 	TransformFeature             FeatureKind = "transform"
 	BooleanFeature               FeatureKind = "planar-boolean"
 	CylinderBoreFeature          FeatureKind = "cylinder-bore"
+	SideOpenDualDiskCutFeature   FeatureKind = "side-open-dual-disk-cut"
 	PrismFilletFeature           FeatureKind = "prism-corner-fillet"
 	WrappedCylinderFeature       FeatureKind = "wrapped-cylinder"
 	WrappedDraftFeature          FeatureKind = "wrapped-draft"
@@ -80,6 +81,7 @@ const (
 // Radius/Distance; zero leaves the corresponding rim sharp. A complete
 // wrapped cylinder offset uses Input and the signed Distance. A station
 // bore uses coaxial station lofts in Input and Tool.
+// A side-opening dual disk cut uses planar stock Input and SideOpenDualDisk.
 type Feature struct {
 	Kind                        FeatureKind
 	Input                       string `json:",omitempty"`
@@ -98,6 +100,7 @@ type Feature struct {
 	HelicalGroove               *HelicalGrooveRecipe         `json:",omitempty"`
 	HelicalPair                 *HelicalPairPartRecipe       `json:",omitempty"`
 	LinkedHelicalNut            *LinkedHelicalNutRecipe      `json:",omitempty"`
+	SideOpenDualDisk            *SideOpenDualDiskRecipe      `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
@@ -121,6 +124,10 @@ func (f Feature) clone() Feature {
 		recipe := *f.LinkedHelicalNut
 		recipe.Nut = recipe.Nut.clone()
 		f.LinkedHelicalNut = &recipe
+	}
+	if f.SideOpenDualDisk != nil {
+		recipe := *f.SideOpenDualDisk
+		f.SideOpenDualDisk = &recipe
 	}
 	h := make([][]geom.Vec3, len(f.Holes))
 	for i, x := range f.Holes {
@@ -201,7 +208,7 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 				}
 				marks[name] = 1
 				stack = append(stack, item{name, true})
-				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == CylinderBoreFeature ||
+				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
 					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
@@ -353,6 +360,9 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 				} else {
 					r, _, e = trimmed.BoreCylinderAlong(a, entry, exit, f.Center, f.Direction, f.Radius, f.Tolerance)
 				}
+			case SideOpenDualDiskCutFeature:
+				uv = true
+				r, e = evaluateSideOpenDualDisk(ctx, result.Planar[f.Input], f.SideOpenDualDisk)
 			case TransformFeature:
 				if a, ok := result.Planar[f.Input]; ok {
 					p, e = a.Transformed(f.Transform)
