@@ -1080,3 +1080,11 @@ check the analytic gap, inclusion-exclusion volume, native reload, certified
 display, and each component against an independent OCCT cut.
 The oblique variant checks the same invariants with the gap measured along
 the unit normal to the cutter axis in the two-axis plane.
+
+The narrower perpendicular cutter uses signed, scaled raw axes and retains
+one closed stock with a through-bore. Its stock and cutter faces match their
+original support equations, the bore normals point into removed material,
+and the display mesh has genus one and no detected self-contacts. Independent
+slice integration and the pinned OCCT cut agree on area and volume; the OCCT
+cut also verifies centroid and one closed shell. Native geometry and the raw
+difference recipe both reload, and the unused result slot remains empty.

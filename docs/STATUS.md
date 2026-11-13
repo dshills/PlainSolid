@@ -567,6 +567,12 @@ support finite axial windows when the axes cross perpendicularly in signed
 coordinate directions. Parallel oblique cylinders can retain a native common
 when the similarity basis, cap positions and transverse offsets are exactly
 representable. Independent OCCT primitives verify these mass properties.
+Finite union and difference retain selected separated and fully contained
+coordinate-parallel stocks. A narrower perpendicular cylinder can also cut
+one connected through-bore through wider stock. That path requires signed
+coordinate axes crossing at a representable center, symmetric caps beyond
+the opposite radius, and an exactly representable shoulder. The native
+result preserves the two stock caps and an inward cylindrical bore wall.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,

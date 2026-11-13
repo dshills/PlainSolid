@@ -236,6 +236,12 @@ int main(int argc, char** argv) {
       int unequalCount=0;for(TopExp_Explorer it(unequalUnion,TopAbs_SOLID);it.More();it.Next())++unequalCount;
       if(unequalCount!=1)throw std::runtime_error("unequal finite union not one solid");
       record(out,"finite-unequal-union",unequalUnion,1e-11);
+      const auto unequalCut=BRepAlgoAPI_Cut(unequalWide,unequalNarrow).Shape();
+      int cutSolids=0,cutShells=0;
+      for(TopExp_Explorer it(unequalCut,TopAbs_SOLID);it.More();it.Next())++cutSolids;
+      for(TopExp_Explorer it(unequalCut,TopAbs_SHELL);it.More();it.Next())++cutShells;
+      if(cutSolids!=1||cutShells!=1)throw std::runtime_error("unequal finite cut not one solid with one shell");
+      record(out,"finite-unequal-cut",unequalCut,1e-11);
       return 0;
     }
     if (argc == 3 && mode == "finite-cylinder-dispatch") {

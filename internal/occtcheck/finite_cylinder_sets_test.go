@@ -135,3 +135,44 @@ func TestOCCTUnequalFiniteCylinderUnion(t *testing.T) {
 		compare(t, refs["finite-unequal-union"], mass.Area, mass.Volume, mass.Centroid)
 	}
 }
+
+func TestOCCTUnequalFiniteCylinderDifference(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	center := geom.Vec3{X: 1, Y: 2, Z: 3}
+	stock := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	cutter := geom.RawCylinder{Origin: center, Axis: geom.Vec3{Y: 3}, Radius: 3, Min: -2, Max: 2}
+	out, err := parametric.FiniteCylinderPairDifference(ctx, stock, cutter, 1e-8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Solids[1].Faces()) != 0 || finiteOracleShellCount(out.Solids[0]) != 1 {
+		t.Fatal("expected one closed bored stock")
+	}
+	s := out.Solids[0]
+	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["finite-unequal-cut"], mass.Area, mass.Volume, mass.Centroid)
+	m, err := s.Tessellate(ctx, parametric.TessellationOptions{Deflection: 1, AnalyticBound: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = m.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	edges := map[[2]int]bool{}
+	for _, triangle := range m.Triangles {
+		for j, a := range triangle {
+			b := triangle[(j+1)%3]
+			if a > b {
+				a, b = b, a
+			}
+			edges[[2]int{a, b}] = true
+		}
+	}
+	if len(m.Vertices)-len(edges)+len(m.Triangles) != 0 {
+		t.Fatal("expected genus-one boundary")
+	}
+}

@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"math"
+	"testing"
+
 	"plainsolid/collision"
 	"plainsolid/geom"
-	"testing"
 )
 
 func TestUnequalPerpendicularDifference(t *testing.T) {
