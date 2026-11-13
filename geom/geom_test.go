@@ -1,0 +1,237 @@
+package geom
+
+import (
+	"math"
+	"testing"
+)
+
+func near(t *testing.T, got, want Vec3, tol float64) {
+	t.Helper()
+	if got.Distance(want) > tol {
+		t.Fatalf("got %v, want %v (tolerance %g)", got, want, tol)
+	}
+}
+func TestVector(t *testing.T) {
+	a := Vec3{1, 2, 3}
+	b := Vec3{4, 5, 6}
+	near(t, a.Cross(b), Vec3{-3, 6, -3}, 0)
+	if a.Dot(b) != 32 {
+		t.Fatal("dot")
+	}
+	for _, v := range []Vec3{{1e308, 1e308, 1e308}, {1e-320, 0, 0}} {
+		u, e := v.Unit()
+		if e != nil || math.Abs(u.Length()-1) > 1e-15 {
+			t.Fatal(u, e)
+		}
+	}
+	if _, e := (Vec3{}).Unit(); e == nil {
+		t.Fatal("zero vector accepted")
+	}
+	if _, e := (Vec3{math.NaN(), 0, 0}).Unit(); e == nil {
+		t.Fatal("nan accepted")
+	}
+}
+func TestBounds(t *testing.T) {
+	b, e := Bounds([]Vec3{{-2, 3, 0}, {4, -1, 5}})
+	if e != nil || b.Volume() != 120 || !b.Contains(Vec3{}) {
+		t.Fatal(b, e)
+	}
+	c, ok := b.Intersect(Box{Vec3{4, 0, 0}, Vec3{5, 1, 1}})
+	if !ok || c.Volume() != 0 {
+		t.Fatal(c, ok)
+	}
+	if _, e = Bounds(nil); e == nil {
+		t.Fatal("empty accepted")
+	}
+}
+func TestOrient2D(t *testing.T) {
+	cases := []struct {
+		a, b, c Vec2
+		want    int
+	}{{Vec2{0, 0}, Vec2{1, 0}, Vec2{0, 1}, 1}, {Vec2{0, 0}, Vec2{0, 1}, Vec2{1, 0}, -1}, {Vec2{1e308, 1e308}, Vec2{-1e308, -1e308}, Vec2{0, 1}, -1}, {Vec2{0, 0}, Vec2{1, 1}, Vec2{2, 2}, 0}, {Vec2{0, 0}, Vec2{1e-300, 0}, Vec2{0, 1e-300}, 1}}
+	for _, c := range cases {
+		got, e := Orient2D(c.a, c.b, c.c)
+		if e != nil || got != c.want {
+			t.Fatal(c, got, e)
+		}
+	}
+}
+func TestClosestPlane(t *testing.T) {
+	p, u, e := ClosestOnSegment(Vec3{3, 2, 0}, Vec3{}, Vec3{2, 0, 0})
+	if e != nil || u != 1 {
+		t.Fatal(p, u, e)
+	}
+	near(t, p, Vec3{2, 0, 0}, 0)
+	plane, e := NewPlane(Vec3{0, 0, 2}, Vec3{0, 0, 4})
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, plane.Project(Vec3{1, 2, 8}), Vec3{1, 2, 2}, 0)
+	p, u, ok, e := plane.IntersectRay(Vec3{}, Vec3{0, 0, 2}, 1e-12)
+	if e != nil || !ok || u != 1 {
+		t.Fatal(p, u, ok, e)
+	}
+	near(t, p, Vec3{0, 0, 2}, 0)
+}
+func TestAffine(t *testing.T) {
+	r, e := Rotation(Vec3{0, 0, 3}, math.Pi/2)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, r.Apply(Vec3{1, 0, 0}), Vec3{0, 1, 0}, 1e-15)
+	a := Translation(Vec3{3, -4, 2}).Mul(r).Mul(Scaling(Vec3{2, 3, 4}))
+	inv, e := a.Inverse()
+	if e != nil {
+		t.Fatal(e)
+	}
+	v := Vec3{7, -8, 1}
+	near(t, inv.Apply(a.Apply(v)), v, 1e-13)
+	n, e := a.ApplyNormal(Vec3{1, 0, 0})
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, n, Vec3{0, 1, 0}, 1e-15)
+	if _, e = (Affine{}).Inverse(); e == nil {
+		t.Fatal("singular accepted")
+	}
+	box, e := a.ApplyBox(Box{Vec3{}, Vec3{1, 1, 1}})
+	if e != nil || math.Abs(box.Volume()-24) > 1e-12 {
+		t.Fatal(box, e)
+	}
+}
+func TestRationalQuarterCircle(t *testing.T) {
+	poles := []Vec3{{1, 0, 0}, {1, 1, 0}, {0, 1, 0}}
+	c, e := NewBSpline(2, poles, []float64{0, 0, 0, 1, 1, 1}, []float64{1, math.Sqrt(.5), 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	poles[0] = Vec3{99, 99, 99}
+	for i := 0; i <= 100; i++ {
+		u := float64(i) / 100
+		p, e := c.Eval(u)
+		if e != nil || math.Abs(p.Length()-1) > 3e-16 {
+			t.Fatal(u, p, e)
+		}
+		d, e := c.Derivative(u)
+		if e != nil || math.Abs(p.Dot(d)) > 1e-15 {
+			t.Fatal(u, p, d, e)
+		}
+	}
+	p, _ := c.Eval(.5)
+	near(t, p, Vec3{math.Sqrt(.5), math.Sqrt(.5), 0}, 1e-15)
+	d, _ := c.Derivative(0)
+	near(t, d, Vec3{0, math.Sqrt(2), 0}, 1e-15)
+	if _, e = c.Eval(-.1); e == nil {
+		t.Fatal("extrapolation accepted")
+	}
+}
+func TestSplineRepeatedKnotsAndDerivative(t *testing.T) {
+	c, e := NewBSpline(2, []Vec3{{0, 0, 0}, {1, 2, 0}, {2, 1, 0}, {3, 2, 0}, {4, 0, 0}}, []float64{0, 0, 0, .5, .5, 1, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, u := range []float64{.1, .3, .7, .9} {
+		p, _ := c.Eval(u + 1e-6)
+		q, _ := c.Eval(u - 1e-6)
+		d, e := c.Derivative(u)
+		if e != nil {
+			t.Fatal(e)
+		}
+		near(t, d, p.Sub(q).Scale(5e5), 1e-8)
+	}
+	p, e := c.Eval(.5)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, p, Vec3{2, 1, 0}, 0)
+	points, e := c.Sample(5)
+	if e != nil || len(points) != 5 {
+		t.Fatal(e)
+	}
+	near(t, points[4], Vec3{4, 0, 0}, 0)
+}
+func TestSplineUnclamped(t *testing.T) {
+	c, e := NewBSpline(2, []Vec3{{0, 0, 0}, {2, 0, 0}, {4, 0, 0}}, []float64{-2, -1, 0, 1, 2, 3}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	p, _ := c.Eval(0)
+	near(t, p, Vec3{1, 0, 0}, 0)
+	p, _ = c.Eval(1)
+	near(t, p, Vec3{3, 0, 0}, 0)
+	d, _ := c.Derivative(1)
+	near(t, d, Vec3{2, 0, 0}, 0)
+}
+func TestSplineRejectsInvalid(t *testing.T) {
+	cases := []struct {
+		d    int
+		p    []Vec3
+		k, w []float64
+	}{{0, []Vec3{{}, {}}, []float64{0, 0, 1, 1}, nil}, {1, []Vec3{{}, {}}, []float64{0, 1, 0, 1}, nil}, {1, []Vec3{{}, {}}, []float64{0, 0, 0, 0}, nil}, {1, []Vec3{{}, {}}, []float64{0, 0, 1, 1}, []float64{0, 1}}, {1, []Vec3{{math.Inf(1), 0, 0}, {}}, []float64{0, 0, 1, 1}, nil}}
+	for _, c := range cases {
+		if _, e := NewBSpline(c.d, c.p, c.k, c.w); e == nil {
+			t.Fatal(c)
+		}
+	}
+}
+func TestSurface(t *testing.T) {
+	s, e := NewBSplineSurface(1, 1, 2, 2, []Vec3{{0, 0, 0}, {0, 2, 0}, {3, 0, 0}, {3, 2, 0}}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	p, e := s.Eval(.25, .75)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, p, Vec3{.75, 1.5, 0}, 1e-15)
+	du, dv, e := s.Partials(.2, .6)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, du, Vec3{3, 0, 0}, 1e-15)
+	near(t, dv, Vec3{0, 2, 0}, 1e-15)
+	n, e := s.Normal(.5, .5)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near(t, n, Vec3{0, 0, 1}, 1e-15)
+}
+func TestRationalSurface(t *testing.T) {
+	w := math.Sqrt(.5)
+	s, e := NewBSplineSurface(2, 1, 3, 2, []Vec3{{1, 0, 0}, {1, 0, 2}, {1, 1, 0}, {1, 1, 2}, {0, 1, 0}, {0, 1, 2}}, []float64{0, 0, 0, 1, 1, 1}, []float64{0, 0, 1, 1}, []float64{1, 1, w, w, 1, 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, u := range []float64{0, .2, .5, .8, 1} {
+		p, e := s.Eval(u, .3)
+		if e != nil || math.Abs(math.Hypot(p.X, p.Y)-1) > 4e-16 || math.Abs(p.Z-.6) > 1e-15 {
+			t.Fatal(p, e)
+		}
+		du, dv, e := s.Partials(u, .3)
+		if e != nil || math.Abs(du.Dot(Vec3{p.X, p.Y, 0})) > 1e-15 {
+			t.Fatal(du, e)
+		}
+		near(t, dv, Vec3{0, 0, 2}, 1e-15)
+	}
+}
+func FuzzOrientAntisymmetry(f *testing.F) {
+	f.Add(0.0, 0.0, 1.0, 0.0, 0.0, 1.0)
+	f.Fuzz(func(t *testing.T, ax, ay, bx, by, cx, cy float64) {
+		a, b, c := Vec2{ax, ay}, Vec2{bx, by}, Vec2{cx, cy}
+		x, e := Orient2D(a, b, c)
+		if e != nil {
+			return
+		}
+		y, e := Orient2D(b, a, c)
+		if e != nil || x != -y {
+			t.Fatal(x, y, e)
+		}
+	})
+}
+func BenchmarkSplineEval(b *testing.B) {
+	c, _ := NewBSpline(2, []Vec3{{1, 0, 0}, {1, 1, 0}, {0, 1, 0}}, []float64{0, 0, 0, 1, 1, 1}, []float64{1, math.Sqrt(.5), 1})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = c.Eval(.3)
+	}
+}

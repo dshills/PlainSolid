@@ -1,0 +1,629 @@
+package parametric
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+
+	"plainsolid/geom"
+)
+
+// JSONLimits bounds native parametric topology and control data.
+type JSONLimits struct {
+	MaxBytes                      int64
+	MaxEntities, MaxControlPoints int
+}
+
+type frameData struct{ Origin, X, Z geom.Vec3 }
+
+func frameToData(f geom.Frame) *frameData { return &frameData{f.Origin(), f.XAxis(), f.ZAxis()} }
+func (f *frameData) decode() (geom.Frame, error) {
+	if f == nil {
+		return geom.Frame{}, geom.ErrInvalid
+	}
+	return geom.NewFrame(f.Origin, f.X, f.Z)
+}
+
+type surfaceData struct {
+	Transform *geom.Affine `json:",omitempty"`
+	Base      *surfaceData `json:",omitempty"`
+	Kind      string
+	Frame     *frameData               `json:",omitempty"`
+	A, B      float64                  `json:",omitempty"`
+	Meridian  *[2]geom.Vec2            `json:",omitempty"`
+	Spline    *geom.BSplineSurfaceData `json:",omitempty"`
+	Center    *geom.Vec3               `json:",omitempty"`
+	Other     *surfaceData             `json:",omitempty"`
+	U0, U1    *Interval                `json:",omitempty"`
+	Rim       *rimData                 `json:",omitempty"`
+	CutTop    bool                     `json:",omitempty"`
+	Band      *[2][4]float64           `json:",omitempty"`
+	Wrap      *wrappedSurfaceData      `json:",omitempty"`
+}
+
+type wrappedSurfaceData struct {
+	U, V            bool
+	ContinuityOrder int
+}
+
+type rimData struct {
+	Frame                        *frameData
+	Radius, Height, Cosine, Sine float64
+}
+
+func encodeRim(r slantedRim) *rimData {
+	f, rad := r.cyl.Parameters()
+	return &rimData{frameToData(f), rad, r.center, r.cosine, r.sine}
+}
+func (r *rimData) decode() (slantedRim, error) {
+	if r == nil || !finite(r.Height) || !finite(r.Cosine) || !finite(r.Sine) {
+		return slantedRim{}, geom.ErrInvalid
+	}
+	f, e := r.Frame.decode()
+	if e != nil {
+		return slantedRim{}, e
+	}
+	s, e := geom.NewCylinderSurface(f, r.Radius)
+	return slantedRim{s, r.Height, r.Cosine, r.Sine}, e
+}
+
+func encodeSurface(s geom.Surface) (surfaceData, error) {
+	switch x := s.(type) {
+	case mappedSurface:
+		base, e := encodeSurface(x.surface)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		return surfaceData{Kind: "mapped", Transform: &x.transform, Base: &base}, nil
+	case geom.PlaneSurface:
+		return surfaceData{Kind: "plane", Frame: frameToData(x.Frame())}, nil
+	case geom.CylinderSurface:
+		f, r := x.Parameters()
+		return surfaceData{Kind: "cylinder", Frame: frameToData(f), A: r}, nil
+	case geom.ConeSurface:
+		f, a := x.Parameters()
+		return surfaceData{Kind: "cone", Frame: frameToData(f), A: a}, nil
+	case geom.SphereSurface:
+		f, r := x.Parameters()
+		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
+	case geom.TorusSurface:
+		f, a, b := x.Parameters()
+		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
+	case reparameterizedCylinder:
+		base, e := encodeSurface(x.s)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		return surfaceData{Kind: "reparameterized-cylinder", Base: &base, U0: &x.u}, nil
+	case ruledArcs:
+		base, e := encodeSurface(x.a)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		other, e := encodeSurface(x.b)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		return surfaceData{Kind: "ruled-arcs", Base: &base, Other: &other, U0: &x.u, U1: &x.v, A: x.height}, nil
+
+	case cutCylinder:
+		return surfaceData{Kind: "cut-cylinder", Rim: encodeRim(x.rim), A: x.constant, CutTop: x.cutTop}, nil
+	case slantedFan:
+		return surfaceData{Kind: "slanted-fan", Rim: encodeRim(x.rim), Center: &x.center}, nil
+
+	case arcFan:
+		f, r := x.surface.Parameters()
+		return surfaceData{Kind: "arc-fan", Frame: frameToData(f), Center: &x.center, A: r, B: x.height}, nil
+
+	case disk:
+		return surfaceData{Kind: "disk", Frame: frameToData(x.frame)}, nil
+	case ellipticPatch:
+		return surfaceData{Kind: "elliptic", Frame: frameToData(x.frame), A: x.height, Meridian: &[2]geom.Vec2{x.lower, x.upper}}, nil
+	case ellipticBand:
+		return surfaceData{Kind: "elliptic-band", Frame: frameToData(x.frame), A: x.z, B: x.h, Band: &[2][4]float64{x.x, x.y}}, nil
+	case revolvedSide:
+		return surfaceData{Kind: "revolved", Frame: frameToData(x.frame), Meridian: &[2]geom.Vec2{x.a, x.b}}, nil
+	case *geom.BSplineSurface:
+		d := x.Data()
+		return surfaceData{Kind: "bspline", Spline: &d}, nil
+	case *geom.WrappedSurfacePatch:
+		if x == nil || x.FundamentalPatch() == nil {
+			return surfaceData{}, geom.ErrInvalid
+		}
+		recipe, e := x.ExportRecipe()
+		if e != nil {
+			return surfaceData{}, e
+		}
+		d := recipe.Surface.Data()
+		if len(d.Poles) > 4096 || d.DegreeU > 16 || d.DegreeV > 16 {
+			return surfaceData{}, fmt.Errorf("parametric: wrapped spline surface exceeds native codec limits")
+		}
+		o := recipe.Options
+		w := wrappedSurfaceData{U: o.WrapU, V: o.WrapV, ContinuityOrder: o.ContinuityOrder}
+		return surfaceData{Kind: "wrapped-surface", Spline: &d, Wrap: &w}, nil
+	default:
+		return surfaceData{}, fmt.Errorf("parametric: unsupported surface type %T", s)
+	}
+}
+
+func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if d.Kind != "wrapped-surface" && d.Wrap != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind == "mapped" {
+		if d.Base == nil || d.Base.Kind == "mapped" || d.Transform == nil {
+			return nil, geom.ErrInvalid
+		}
+		if _, e := d.Transform.Inverse(); e != nil {
+			return nil, e
+		}
+		s, e := d.Base.decode(budget)
+		if e != nil {
+			return nil, e
+		}
+		return mappedSurface{s, *d.Transform}, nil
+	}
+	if d.Kind == "reparameterized-cylinder" || d.Kind == "ruled-arcs" {
+		cylinder := func(x *surfaceData) (geom.CylinderSurface, error) {
+			if x == nil || x.Kind != "cylinder" {
+				return geom.CylinderSurface{}, geom.ErrInvalid
+			}
+			f, e := x.Frame.decode()
+			if e != nil {
+				return geom.CylinderSurface{}, e
+			}
+			return geom.NewCylinderSurface(f, x.A)
+		}
+		if d.U0 == nil || !d.U0.valid() {
+			return nil, geom.ErrInvalid
+		}
+		a, e := cylinder(d.Base)
+		if e != nil {
+			return nil, e
+		}
+		if d.Kind == "reparameterized-cylinder" {
+			return reparameterizedCylinder{a, *d.U0}, nil
+		}
+		b, e := cylinder(d.Other)
+		if e != nil || d.U1 == nil || !d.U1.valid() || !finite(d.A) {
+			return nil, geom.ErrInvalid
+		}
+		return ruledArcs{a, b, *d.U0, *d.U1, d.A}, nil
+	}
+
+	if d.Kind == "cut-cylinder" || d.Kind == "slanted-fan" {
+		r, e := d.Rim.decode()
+		if e != nil {
+			return nil, e
+		}
+		if d.Kind == "cut-cylinder" {
+			if !finite(d.A) {
+				return nil, geom.ErrInvalid
+			}
+			return cutCylinder{r, d.A, d.CutTop}, nil
+		}
+		if d.Center == nil || !d.Center.IsFinite() {
+			return nil, geom.ErrInvalid
+		}
+		return slantedFan{r, *d.Center}, nil
+	}
+
+	if d.Base != nil || d.Transform != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind == "bspline" || d.Kind == "wrapped-surface" {
+		x := d.Spline
+		if x == nil || d.Frame != nil || d.Meridian != nil || len(x.Poles) > *budget {
+			return nil, fmt.Errorf("parametric: invalid spline surface or control point limit")
+		}
+		*budget -= len(x.Poles)
+		if d.Kind == "wrapped-surface" {
+			if d.Wrap == nil || len(x.Poles) > 4096 || x.DegreeU > 16 || x.DegreeV > 16 {
+				return nil, geom.ErrInvalid
+			}
+			maxWeight := 0.
+			for _, w := range x.Weights {
+				maxWeight = max(maxWeight, w)
+			}
+			// Native lossless export writes a normalized net. Reject a
+			// malicious recipe whose normalization would change its ratios.
+			if len(x.Weights) != 0 && maxWeight != 1 {
+				return nil, geom.ErrUnrepresentable
+			}
+		}
+		p, e := geom.NewBSplineSurface(x.DegreeU, x.DegreeV, x.CountU, x.CountV, x.Poles, x.KnotsU, x.KnotsV, x.Weights)
+		if e != nil || d.Kind == "bspline" {
+			return p, e
+		}
+		q, e := geom.NewSurfacePatch(p, geom.SurfacePatchOptions{})
+		if e != nil {
+			return nil, e
+		}
+		w, _, e := geom.NewWrappedSurfacePatch(context.Background(), q, geom.WrappedSurfaceOptions{
+			WrapU: d.Wrap.U, WrapV: d.Wrap.V, ContinuityOrder: d.Wrap.ContinuityOrder,
+		})
+		return w, e
+	}
+	if d.Spline != nil || d.Kind != "revolved" && d.Kind != "elliptic" && d.Meridian != nil {
+		return nil, fmt.Errorf("parametric: unexpected surface data")
+	}
+	f, e := d.Frame.decode()
+	if e != nil {
+		return nil, e
+	}
+	switch d.Kind {
+	case "plane":
+		return geom.NewPlaneSurface(f)
+	case "cylinder":
+		return geom.NewCylinderSurface(f, d.A)
+	case "cone":
+		return geom.NewConeSurfaceSlope(f, d.A)
+	case "sphere":
+		return geom.NewSphereSurface(f, d.A)
+	case "torus":
+		return geom.NewTorusSurface(f, d.A, d.B)
+	case "arc-fan":
+		if d.Center == nil || !d.Center.IsFinite() || !finite(d.B) {
+			return nil, geom.ErrInvalid
+		}
+		s, e := geom.NewCylinderSurface(f, d.A)
+		if e != nil {
+			return nil, e
+		}
+		return arcFan{s, *d.Center, d.B}, nil
+
+	case "disk":
+		return disk{f}, nil
+	case "elliptic":
+		if d.Meridian == nil || d.A < 0 || !finite(d.A) {
+			return nil, geom.ErrInvalid
+		}
+		a, b := d.Meridian[0], d.Meridian[1]
+		if b.X <= 0 || b.Y <= 0 || a.X < 0 || a.Y < 0 || !finite(a.X) || !finite(a.Y) || !finite(b.X) || !finite(b.Y) ||
+			d.A == 0 && (a.X != 0 || a.Y != 0) || d.A > 0 && (a.X == 0 || a.Y == 0) {
+			return nil, geom.ErrInvalid
+		}
+		return ellipticPatch{f, a, b, d.A}, nil
+	case "elliptic-band":
+		if d.Band == nil {
+			return nil, geom.ErrInvalid
+		}
+		s := ellipticBand{f, d.A, d.B, d.Band[0], d.Band[1]}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
+		return s, nil
+	case "revolved":
+		if d.Meridian == nil {
+			return nil, fmt.Errorf("parametric: missing meridian")
+		}
+		a, b := d.Meridian[0], d.Meridian[1]
+		if a.X < 0 || b.X < 0 || !finite(a.X) || !finite(a.Y) || !finite(b.X) || !finite(b.Y) {
+			return nil, geom.ErrInvalid
+		}
+		return revolvedSide{f, a, b}, nil
+	default:
+		return nil, fmt.Errorf("parametric: unsupported surface kind %q", d.Kind)
+	}
+}
+
+type curveData struct {
+	Transform         *geom.Affine `json:",omitempty"`
+	Base              *curveData   `json:",omitempty"`
+	Kind              string
+	Origin, Direction *geom.Vec3               `json:",omitempty"`
+	Frame             *frameData               `json:",omitempty"`
+	A, B              float64                  `json:",omitempty"`
+	Branch            int                      `json:",omitempty"`
+	Degree            int                      `json:",omitempty"`
+	Poles             []geom.Vec3              `json:",omitempty"`
+	Knots, Weights    []float64                `json:",omitempty"`
+	Surface           *surfaceData             `json:",omitempty"`
+	U, V              *Interval                `json:",omitempty"`
+	Side              int                      `json:",omitempty"`
+	Start, Period     float64                  `json:",omitempty"`
+	Seam              *geom.ClosedCurveOptions `json:",omitempty"`
+}
+
+func encodeCurve(c geom.Curve) (*curveData, error) {
+	switch x := c.(type) {
+	case mappedCurve:
+		base, e := encodeCurve(x.curve)
+		if e != nil {
+			return nil, e
+		}
+		return &curveData{Kind: "mapped", Transform: &x.transform, Base: base}, nil
+	case nil:
+		return nil, nil
+	case geom.Line:
+		o, v := x.Origin(), x.Direction()
+		return &curveData{Kind: "line", Origin: &o, Direction: &v}, nil
+	case geom.Ellipse:
+		f, a, b := x.Parameters()
+		return &curveData{Kind: "ellipse", Frame: frameToData(f), A: a, B: b}, nil
+	case geom.Parabola:
+		f, a := x.Parameters()
+		return &curveData{Kind: "parabola", Frame: frameToData(f), A: a}, nil
+	case geom.Hyperbola:
+		f, a, b, sign := x.Parameters()
+		return &curveData{Kind: "hyperbola", Frame: frameToData(f), A: a, B: b, Branch: sign}, nil
+	case *geom.WrappedBSpline:
+		p := x.FundamentalCurve()
+		if p == nil {
+			return nil, fmt.Errorf("parametric: nil wrapped spline")
+		}
+		d := x.SeamDiagnostics()
+		seam := geom.ClosedCurveOptions{DerivativeOrder: d.DerivativeOrder, PositionTolerance: up(d.PositionResidual), DerivativeTolerance: up(d.DerivativeResidual)}
+		return &curveData{Kind: "wrapped-spline", Degree: p.Degree(), Poles: p.Poles(), Knots: p.Knots(), Weights: p.Weights(), Seam: &seam}, nil
+	case *geom.PeriodicBSpline:
+		if x == nil {
+			return nil, fmt.Errorf("parametric: nil periodic spline")
+		}
+		start, _ := x.Domain()
+		return &curveData{Kind: "periodic-spline", Degree: x.Degree(), Poles: x.Poles(), Weights: x.Weights(), Start: start, Period: x.Period()}, nil
+
+	case *geom.BSpline:
+		if x == nil {
+			return nil, fmt.Errorf("parametric: nil spline")
+		}
+		return &curveData{Kind: "bspline", Degree: x.Degree(), Poles: x.Poles(), Knots: x.Knots(), Weights: x.Weights()}, nil
+	case iso:
+		s, e := encodeSurface(x.face.Surface)
+		if e != nil {
+			return nil, e
+		}
+		u, v := x.face.U, x.face.V
+		return &curveData{Kind: "iso", Surface: &s, U: &u, V: &v, Side: x.side}, nil
+	default:
+		return nil, fmt.Errorf("parametric: unsupported curve type %T", c)
+	}
+}
+func (d *curveData) decode(budget *int) (geom.Curve, error) {
+	if d == nil {
+		return nil, nil
+	}
+	if d.Kind == "mapped" {
+		if d.Base == nil || d.Base.Kind == "mapped" || d.Transform == nil {
+			return nil, geom.ErrInvalid
+		}
+		if _, e := d.Transform.Inverse(); e != nil {
+			return nil, e
+		}
+		c, e := d.Base.decode(budget)
+		if e != nil {
+			return nil, e
+		}
+		return mappedCurve{c, *d.Transform}, nil
+	}
+	if d.Base != nil || d.Transform != nil {
+		return nil, geom.ErrInvalid
+	}
+	switch d.Kind {
+	case "line":
+		if d.Origin == nil || d.Direction == nil {
+			return nil, geom.ErrInvalid
+		}
+		return geom.NewLine(*d.Origin, *d.Direction)
+	case "ellipse":
+		f, e := d.Frame.decode()
+		if e != nil {
+			return nil, e
+		}
+		return geom.NewEllipse(f, d.A, d.B)
+	case "parabola":
+		f, e := d.Frame.decode()
+		if e != nil {
+			return nil, e
+		}
+		return geom.NewParabola(f, d.A)
+	case "hyperbola":
+		f, e := d.Frame.decode()
+		if e != nil {
+			return nil, e
+		}
+		return geom.NewHyperbolaBranch(f, d.A, d.B, d.Branch)
+	case "periodic-spline":
+		if len(d.Poles) > *budget {
+			return nil, fmt.Errorf("parametric: control point limit")
+		}
+		*budget -= len(d.Poles)
+		return geom.NewPeriodicBSpline(d.Degree, d.Poles, d.Weights, d.Start, d.Period)
+	case "wrapped-spline":
+		if d.Seam == nil || len(d.Poles) > *budget {
+			return nil, geom.ErrInvalid
+		}
+		*budget -= len(d.Poles)
+		p, e := geom.NewBSpline(d.Degree, d.Poles, d.Knots, d.Weights)
+		if e != nil {
+			return nil, e
+		}
+		r, _, e := geom.NewWrappedBSpline(p, *d.Seam)
+		return r, e
+
+	case "bspline":
+		if len(d.Poles) > *budget {
+			return nil, fmt.Errorf("parametric: control point limit")
+		}
+		*budget -= len(d.Poles)
+		return geom.NewBSpline(d.Degree, d.Poles, d.Knots, d.Weights)
+	case "iso":
+		if d.Surface == nil || d.U == nil || d.V == nil || !d.U.valid() || !d.V.valid() || d.Side < 0 || d.Side > 3 {
+			return nil, geom.ErrInvalid
+		}
+		s, e := d.Surface.decode(budget)
+		if e != nil {
+			return nil, e
+		}
+		return iso{Face{Surface: s, U: *d.U, V: *d.V}, d.Side}, nil
+	default:
+		return nil, fmt.Errorf("parametric: unsupported curve kind %q", d.Kind)
+	}
+}
+
+type persistedEdge struct {
+	Start, End int
+	Curve      *curveData
+	Range      Interval
+}
+type persistedFace struct {
+	Surface  surfaceData
+	U, V     Interval
+	Boundary []Use
+	Reversed bool
+}
+type persistedSolid struct {
+	Version   int             `json:"version"`
+	Kind      string          `json:"kind"`
+	Tolerance float64         `json:"tolerance"`
+	Vertices  []geom.Vec3     `json:"vertices"`
+	Edges     []persistedEdge `json:"edges"`
+	Faces     []persistedFace `json:"faces"`
+}
+
+// WriteJSON preserves topology and model geometry in version 1 native JSON.
+// Supported evaluators are built-in analytic and spline types and generated
+// primitive sides. Custom evaluators return an error.
+func WriteJSON(w io.Writer, s Solid) error {
+	if w == nil {
+		return fmt.Errorf("parametric: nil writer")
+	}
+	d := persistedSolid{Version: 1, Kind: "parametric-brep", Tolerance: s.tolerance, Vertices: s.vertices}
+	for _, e := range s.edges {
+		curve, err := encodeCurve(e.Curve)
+		if err != nil {
+			return err
+		}
+		d.Edges = append(d.Edges, persistedEdge{e.Start, e.End, curve, e.Range})
+	}
+	for _, f := range s.faces {
+		surface, err := encodeSurface(f.Surface)
+		if err != nil {
+			return err
+		}
+		d.Faces = append(d.Faces, persistedFace{surface, f.U, f.V, append([]Use(nil), f.Boundary[:]...), f.Reversed})
+	}
+	b, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+	n, err := w.Write(b)
+	if err == nil && n != len(b) {
+		return io.ErrShortWrite
+	}
+	return err
+}
+
+// ReadJSON validates both geometric data and the reconstructed boundary. Zero
+// limits default to 32 MiB, 10,000 entities and 100,000 control points.
+func ReadJSON(r io.Reader, l JSONLimits) (Solid, error) {
+	if r == nil || l.MaxBytes < 0 || l.MaxBytes > 1<<30 || l.MaxEntities < 0 || l.MaxControlPoints < 0 {
+		return Solid{}, fmt.Errorf("parametric: invalid input or limits")
+	}
+	if l.MaxBytes == 0 {
+		l.MaxBytes = 32 << 20
+	}
+	if l.MaxEntities == 0 {
+		l.MaxEntities = 10000
+	}
+	if l.MaxControlPoints == 0 {
+		l.MaxControlPoints = 100000
+	}
+	b, err := io.ReadAll(io.LimitReader(r, l.MaxBytes+1))
+	if err != nil {
+		return Solid{}, err
+	}
+	if int64(len(b)) > l.MaxBytes {
+		return Solid{}, fmt.Errorf("parametric: JSON byte limit exceeded")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+	var d persistedSolid
+	if err = decoder.Decode(&d); err != nil {
+		return Solid{}, err
+	}
+	var extra any
+	if err = decoder.Decode(&extra); err != io.EOF {
+		return Solid{}, fmt.Errorf("parametric: trailing JSON data")
+	}
+	if d.Version != 1 || d.Kind != "parametric-brep" {
+		return Solid{}, fmt.Errorf("parametric: unsupported JSON schema")
+	}
+	if len(d.Vertices)+len(d.Edges)+len(d.Faces) > l.MaxEntities {
+		return Solid{}, fmt.Errorf("parametric: entity limit exceeded")
+	}
+	budget := l.MaxControlPoints
+	e, f := make([]Edge, len(d.Edges)), make([]Face, len(d.Faces))
+	for i, x := range d.Edges {
+		c, err := x.Curve.decode(&budget)
+		if err != nil {
+			return Solid{}, fmt.Errorf("parametric: edge %d: %w", i, err)
+		}
+		e[i] = Edge{x.Start, x.End, c, x.Range}
+	}
+	for i, x := range d.Faces {
+		s, err := x.Surface.decode(&budget)
+		if err != nil {
+			return Solid{}, fmt.Errorf("parametric: face %d: %w", i, err)
+		}
+		if len(x.Boundary) != 4 {
+			return Solid{}, fmt.Errorf("parametric: invalid boundary size")
+		}
+		f[i] = Face{s, x.U, x.V, [4]Use(x.Boundary), x.Reversed}
+	}
+	return NewSolid(d.Vertices, e, f, d.Tolerance)
+}
+
+// EncodeSurface encodes a supported surface using the native geometry schema.
+// It is used by boundary representations that store geometry separately.
+func EncodeSurface(s geom.Surface) (json.RawMessage, error) {
+	d, e := encodeSurface(s)
+	if e != nil {
+		return nil, e
+	}
+	return json.Marshal(d)
+}
+
+// DecodeSurface validates native geometry. maxControlPoints must be positive.
+func DecodeSurface(raw json.RawMessage, maxControlPoints int) (geom.Surface, error) {
+	if maxControlPoints <= 0 {
+		return nil, geom.ErrInvalid
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	var s surfaceData
+	if e := d.Decode(&s); e != nil {
+		return nil, e
+	}
+	var extra any
+	if e := d.Decode(&extra); e != io.EOF {
+		return nil, fmt.Errorf("parametric: trailing surface data")
+	}
+	return s.decode(&maxControlPoints)
+}
+
+func EncodeCurve(c geom.Curve) (json.RawMessage, error) {
+	d, e := encodeCurve(c)
+	if e != nil {
+		return nil, e
+	}
+	return json.Marshal(d)
+}
+func DecodeCurve(raw json.RawMessage, maxControlPoints int) (geom.Curve, error) {
+	if maxControlPoints <= 0 {
+		return nil, geom.ErrInvalid
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	var c *curveData
+	if e := d.Decode(&c); e != nil {
+		return nil, e
+	}
+	var extra any
+	if e := d.Decode(&extra); e != io.EOF {
+		return nil, fmt.Errorf("parametric: trailing curve data")
+	}
+	return c.decode(&maxControlPoints)
+}

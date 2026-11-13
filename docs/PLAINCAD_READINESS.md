@@ -1,0 +1,107 @@
+# PlainCAD readiness
+
+## Scope and evidence rules
+
+The immediate target is the current PlainCAD application's actual kernel contract,
+not all OCCT APIs. The source audit used the sibling PlainCAD checkout at revision
+`fd9f7fadea2214b45946b9dcff748642acb5ae9d` on 2026-11-13. Record any uncommitted source
+changes and source hashes with each run; this revision alone does not pin a dirty
+working tree. The full PlainSolid specification remains required separately.
+
+No PlainSolid-backed PlainCAD application acceptance pass is established by this
+initial inventory. Existing OCCT test results, PlainSolid Go tests, a successful
+WASM build, and extracted/reimplemented fixtures are not substitutes for running
+these scenarios against the selected PlainSolid kernel.
+
+Readiness has two separate dimensions:
+
+- **Geometry support:** the PlainSolid APIs can represent and perform the required
+  operation on the actual input family, including operation composition.
+- **Application acceptance:** the existing browser scenario passes with a verified
+  PlainSolid provider, unchanged geometric assertions, and no OCCT fallback.
+
+For each run retain the PlainCAD revision and source hashes, PlainSolid source
+identity, selected provider, exact expanded test titles, command, browser/runtime,
+result counts, duration, and report/trace locations. Mark each case `passed`,
+`failed`, `blocked`, or `not run`. A blocked launch is not a geometry failure; a
+skipped or unsupported case is not a pass. Compute a percentage only against a
+fixed, enumerated selected manifest, and label it **selected acceptance coverage**,
+not full-spec completion or estimated remaining effort. Do not exclude failures
+from the denominator or count repeated successful runs as additional coverage.
+
+PlainCAD's current tests often expect `geometrySource === "opencascade"`.
+Provider-only string-literal adaptations to expect `plainsolid` are allowed in an
+isolated integration checkout and must be recorded with changed-file hashes and
+replacement counts. Preserve all volume, solid-count, validity, bounds, topology,
+STL, lifecycle, persistence and UI assertions. PlainSolid output must identify
+itself as `plainsolid`; claiming OCCT identity to satisfy an assertion is forbidden.
+
+## Kernel contract mapping
+
+| PlainCAD requirement and source | Current PlainSolid correspondence | Remaining integration or geometry gate |
+|---|---|---|
+| [Kernel adapter](../../PlainCAD/src/cad/kernel/KernelAdapter.ts), browser worker and runtime handles | Go APIs; no previously qualified application adapter | WASM dispatch, worker ownership, explicit provider, stale-result rejection, runtime performance |
+| Exact line/arc/circle profiles with holes, signed extrusion: [OpenCascadeKernel](../../PlainCAD/src/cad/kernel/OpenCascadeKernel.ts), `createOcctFace` / `createOcctExtrusion` | Planar polygon extrusion and specialized curved extrusions | General supported sketch-face conversion retaining analytic arcs and holes, arbitrary sketch planes |
+| Cut/fuse/common/scoped atomic cuts: same file, `cutScope` / `joinAll` | Exact planar BSP, selected cylindrical bores and curved Boolean families | Compose on revolved/filleted/modified bodies; preserve atomic failure, connected joins and no-op rejection |
+| Cap/vertical-edge treatments: same file, `treatEdges` / `resolveNativeEdges` | Convex vertical-prism corner fillets, selected cylinder rims, planar chamfers | Cap perimeter blends and subsequent curved cuts; retained original-edge proof |
+| Rectangular shell: [nativeShell](../../PlainCAD/src/cad/kernel/nativeShell.ts) | Convex planar hollowing including an open face | Integrate unchanged rectangular extrusion and start/end cap roles; this does not require general curved shelling |
+| Partial/full revolve around resolved axis: `createOcctRevolve` | Full meridian polygon revolution and selected analytic primitives | Partial-angle and circular-arc profile solids plus later cut/join |
+| Real modeled threads: [nativeThreads](../../PlainCAD/src/cad/kernel/nativeThreads.ts) | No qualified helical tool path found in audit | Helical p-curve/model curve, solid sweep, thread cuts and material classification |
+| Lead screws/nuts: [nativeLeadScrew](../../PlainCAD/src/cad/kernel/nativeLeadScrew.ts) | No qualified matching operation found in audit | Multi-start tools, end reliefs, engagement and nominal clearance checks |
+| Exact shape measurements and retained geometry: [occtGeometry](../../PlainCAD/src/cad/kernel/occtGeometry.ts), [nativeDrawing](../../PlainCAD/src/cad/kernel/nativeDrawing.ts) | Planar/selected curved mass, queries, ancestry and roles | Current finite face, pocket-floor, rim and retained-edge proofs across operation histories |
+| Deflection/angular mesh, bounds and STL | Existing mesh, tessellation, exchange packages | Adapt output buffers; cover all supported feature results; positive orientation and byte limits |
+| STEP import/export: [nativeStep](../../PlainCAD/src/cad/kernel/nativeStep.ts) | Selected planar/analytic/spline STEP families | Import accepted one-solid files and roundtrip actual app-generated curved bodies, not only primitive fixtures |
+
+PlainCAD retains its TypeScript sketch solver, parametric document/history,
+commands, Three.js renderer and application worker protocol. Replacing those with
+PlainSolid's corresponding optional systems is not a prerequisite. Its authored
+face roles and rectangular shell restrictions are narrower than full OCCT parity.
+
+## Ordered acceptance inventory
+
+The selectors below come from existing PlainCAD tests. Parameterized titles expand
+to separate cases; preserve every expansion selected for a gate. All cases below
+start as **not run with PlainSolid**; subsequent run records must state results.
+
+| Gate | Existing source and exact test title | What it proves |
+|---|---|---|
+| PC0 | [extrusion-hole.spec.ts](../../PlainCAD/e2e/extrusion-hole.spec.ts): `XY: native negative/symmetric coordinate extents, parameter edits, save/open and STL winding`; repeat `XZ:` and `YZ:` | Smallest initial geometry gate: rectangle only, signed coordinates, volume 2000 then 2800, persistence, STL orientation |
+| PC0 | [stale-results.spec.ts](../../PlainCAD/e2e/stale-results.spec.ts): `real-worker result cannot overwrite a newer edit during debounce or after its rebuild`; `real-worker worker failure cannot overwrite a newer edit during debounce or after its rebuild` | Worker epoch/request semantics remain correct with actual WASM geometry |
+| PC1 | [modeling.spec.ts](../../PlainCAD/e2e/modeling.spec.ts): `{XY,XZ,YZ}: non-template modeling, edit, save/open, and real-kernel STL` | Rectangle plus circular through-cut; actual GUI, edits, saved project, mesh and STL |
+| PC1 | [extrusion-hole.spec.ts](../../PlainCAD/e2e/extrusion-hole.spec.ts): `negative and symmetric through-all tools cut the real target and reject a direction with no target extent`; `native hole dialog requires explicit centers/target; blind/through edits, parameter changes and empty-center recovery` | Through/blind holes, signed scope and failure diagnostics |
+| PC1 | [modeling-operations.spec.ts](../../PlainCAD/e2e/modeling-operations.spec.ts): `finite to-face termination follows upstream edits and diagnoses lost references` | Finite target face coverage, termination and reference survival |
+| PC1 | [face-pocket.spec.ts](../../PlainCAD/e2e/face-pocket.spec.ts): `endCap Draw here → mouse region → inward native pocket → Undo/save/open/STL`; repeat `side` | Face-derived sketches, pockets, role proof and persistence |
+| PC1 | [shell.spec.ts](../../PlainCAD/e2e/shell.spec.ts): `native Shell preserves its body, opens either cap, cancels collapsed walls and saves editable thickness` | Restricted rectangular shell, cavity volume and invalid thickness |
+| PC1 | [component-placement.spec.ts](../../PlainCAD/e2e/component-placement.spec.ts): `moves and rotates native components with mouse cancellation, exact fields, one Undo, save/open and correctly oriented STL` | Rigid placement, ownership and exported world coordinates |
+| PC2 | [modeling-operations.spec.ts](../../PlainCAD/e2e/modeling-operations.spec.ts): `native edge treatments: edit, parameter change, save/open, STL, and invalid-size recovery` | Selected edge treatments and dimensional changes |
+| PC2 | Same source: `long native feature chain preserves exact geometry through edits, blocked downstream recovery, save/open and STL` | Extrusion → fillet → chamfer → hole → pocket → boss on one retained body |
+| PC2 | [edge-dialog.spec.ts](../../PlainCAD/e2e/edge-dialog.spec.ts): `native edge drafts cancel cleanly, reject invalid/changed edges, and apply three exact XZ treatments with stable owners and save/open` | Current references and repeated treatments on a non-XY plane |
+| PC3 | [revolve-dialog.spec.ts](../../PlainCAD/e2e/revolve-dialog.spec.ts): `Revolve previews a construction-axis torus, diagnoses axis/angle errors, cancels, and saves only the latest native quarter sweep` | Circular profile, nontrivial axis and partial angle |
+| PC3 | [modeling-operations.spec.ts](../../PlainCAD/e2e/modeling-operations.spec.ts): `native revolve axes and angle edits, plus real boolean cut and join` | Revolved solids compose with Boolean operations |
+| PC4 | [fastener-presets.spec.ts](../../PlainCAD/e2e/fastener-presets.spec.ts): `modeled Thread previews and persists native external and internal grooves` | Actual helical solid cuts and both thread sides |
+| PC4 | Same source: `lead screw and matching nut are linked, editable and survive a cold open` | Linked multi-start lead parts, geometry checks and rebuild from persisted intent |
+| PC5 | [step-export.spec.ts](../../PlainCAD/e2e/step-export.spec.ts): `public STEP body selection exports analytic posed solids with actual native reader volume and world bounds through edits and save/open` | Actual STEP writer/reader, solid count, mass and world bounds |
+| PC5 | Same source: `STEP cancellation and running/prepared same-ID stale results never download or retain a usable proof`; `a real STEP worker load failure is actionable, cannot download, and can be retried successfully` | Export cancellation, stale proof and worker recovery |
+| PC5 | [step-import.spec.ts](../../PlainCAD/e2e/step-import.spec.ts): `STEP UI and JSON import preserve placed native geometry, cancel, undo, save/open and STL`; `same-ID project replacement aborts the pending native STEP preview and forbids Apply` | Actual imported solid, placement and safe preview lifecycle |
+
+This inventory is an initial critical-path selection, not the complete PlainCAD
+suite. Before claiming current-feature replacement, enumerate and execute the
+remaining native application tests, including retained-edge picking, scoped cuts,
+patterns, assembly common-volume collision, production workers/CSP, and the
+repository's required `check:item` / `release:check` gates. Run them on an explicitly
+selected PlainSolid build and record unsupported cases rather than removing them.
+
+## First run and resumption
+
+Start with the exact XY rectangle test from `extrusion-hole.spec.ts`. It does not
+require circular holes or fillets and exercises the real app worker, rebuild,
+parameter edit, persistence and STL paths. After it passes, run the corresponding
+XZ/YZ cases and stale-result cases, then proceed to PC1. Use the first failing
+geometric assertion or explicit unsupported operation as the next implementation
+task; do not relax the test to match the implementation.
+
+Retain an OCCT baseline on the same selected source as a diagnostic control when
+possible. Report control passes separately from PlainSolid passes. Any temporary
+integration checkout, provider adaptation, test selection and build artifacts must
+be reproducible from a checked-in harness, with generated artifacts kept out of
+source control.

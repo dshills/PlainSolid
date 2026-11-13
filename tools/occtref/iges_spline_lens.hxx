@@ -1,0 +1,53 @@
+#if defined(PLAINSOLID_OCCT_IGES) && defined(PLAINSOLID_OCCT_STEP)
+#include <IGESData_IGESWriter.hxx>
+#include <IGESSelect_WorkLibrary.hxx>
+static TopoDS_Solid makeRawIGESLens(){
+ const bool sheared=false,refined=false;const double r=105./512;
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);NCollection_Array1<int> mult(1,2);mult.SetValue(1,3);mult.SetValue(2,3);
+ occ::handle<Geom_BSplineSurface> surfaces[2];const double square[3]={.25,-.25,.25};
+ for(int side=0;side<2;++side){NCollection_Array2<gp_Pnt> poles(1,3,1,3);for(int i=0;i<3;++i)for(int j=0;j<3;++j)poles.SetValue(i+1,j+1,gp_Pnt(i*.5,j*.5,2+(side==0?1:-1)*(r*r-square[i]-(sheared?1.25:1)*square[j]-(sheared?(i*.5-.5)*(j*.5-.5):0))/2));surfaces[side]=new Geom_BSplineSurface(poles,knots,knots,mult,mult,2,2);}
+ if(refined){surfaces[1]->InsertUKnot(.5,1,0,true);surfaces[1]->InsertVKnot(.5,2,0,true);}
+ const int xy[9][2]={{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1},{1,0}};
+ TopoDS_Vertex vertices[4];for(int i=0;i<4;++i)vertices[i]=BRepBuilderAPI_MakeVertex(gp_Pnt(.5+r*xy[2*i][0]-(sheared?.125*xy[2*i][1]:0),.5+r*xy[2*i][1],2)).Vertex();
+ BRep_Builder builder;BRepBuilderAPI_MakeWire wire;
+ for(int arc=0;arc<4;++arc){NCollection_Array1<gp_Pnt> poles(1,3);NCollection_Array1<gp_Pnt2d> uvp(1,3);NCollection_Array1<double> weights(1,3);for(int i=0;i<3;++i){double u=.5+r*xy[2*arc+i][0]-(sheared?.125*xy[2*arc+i][1]:0),v=.5+r*xy[2*arc+i][1];poles.SetValue(i+1,gp_Pnt(u,v,2));uvp.SetValue(i+1,gp_Pnt2d(u,v));weights.SetValue(i+1,i==2?2:1);}
+ occ::handle<Geom_BSplineCurve> model=new Geom_BSplineCurve(poles,weights,knots,mult,2);occ::handle<Geom2d_BSplineCurve> uv=new Geom2d_BSplineCurve(uvp,weights,knots,mult,2);
+ NCollection_Array1<gp_Pnt> raw(1,4);NCollection_Array1<double> rw(1,4);NCollection_Array1<int> rm(1,2);rm.SetValue(1,4);rm.SetValue(2,4);
+ raw.SetValue(1,poles.Value(1));raw.SetValue(2,gp_Pnt((poles.Value(1).XYZ()+2*poles.Value(2).XYZ())/3));raw.SetValue(3,gp_Pnt((poles.Value(2).XYZ()+poles.Value(3).XYZ())/2));raw.SetValue(4,poles.Value(3));rw.SetValue(1,3);rw.SetValue(2,3);rw.SetValue(3,4);rw.SetValue(4,6);model=new Geom_BSplineCurve(raw,rw,knots,rm,3);auto edge=BRepBuilderAPI_MakeEdge(model,vertices[arc],vertices[(arc+1)%4],0,1).Edge();for(int owner=0;owner<2;++owner){auto surface=surfaces[owner];auto local=occ::down_cast<Geom2d_BSplineCurve>(uv->Copy());local->InsertKnot(owner==0?.5:.25,1,0);builder.UpdateEdge(edge,local,surface,TopLoc_Location(),1e-10);builder.Range(edge,surface,TopLoc_Location(),0,1);}builder.SameRange(edge,true);builder.SameParameter(edge,true);wire.Add(edge);
+ }
+ auto upper=BRepBuilderAPI_MakeFace(surfaces[0],wire.Wire(),true).Face();auto lower=BRepBuilderAPI_MakeFace(surfaces[1],wire.Wire(),true).Face();lower.Reverse();TopoDS_Shell shell;builder.MakeShell(shell);builder.Add(shell,upper);builder.Add(shell,lower);auto solid=BRepBuilderAPI_MakeSolid(shell).Solid();if(!BRepCheck_Analyzer(solid).IsValid())throw std::runtime_error("invalid spline lens");
+ return solid;
+}
+static void preciseIGES(IGESControl_Writer& writer,const char* path){writer.ComputeModel();IGESData_IGESWriter out(writer.Model());out.FloatWriter().SetFormat("%.16E");out.SendModel(IGESSelect_WorkLibrary::DefineProtocol());std::ofstream stream(path);if(!out.Print(stream))throw std::runtime_error("precise IGES write");}
+static int writeIGESSplineLens(const char* path,bool shear=false,bool refined=false){IGESControl_Writer writer("MM",1);if(!writer.AddShape(makeSplineLens(shear,refined))||!writer.Write(path))throw std::runtime_error("IGES lens write");return 0;}
+static int writeIGESRefinedCurves(const char* path,bool raw=false){IGESControl_Writer writer("MM",1);if(!writer.AddShape(raw?makeRawIGESLens():makeRefinedCurveLens()))throw std::runtime_error("refined IGES curves");preciseIGES(writer,path);return 0;}
+static int writeIGESPartitionedLens(const char* path,bool concurrent=false){IGESControl_Writer writer("MM",1);if(!writer.AddShape(concurrent?makeConcurrentRationalLens():makePartitionedSplineLens()))throw std::runtime_error("partitioned IGES lens");preciseIGES(writer,path);return 0;}
+static int inspectIGESLens(const char* out,const char* path){IGESControl_Reader reader;if(reader.ReadFile(path)!=IFSelect_RetDone||reader.TransferRoots()==0)throw std::runtime_error("IGES lens read");auto s=reader.OneShape();if(!BRepCheck_Analyzer(s).IsValid())throw std::runtime_error("invalid IGES lens");NCollection_IndexedMap<TopoDS_Shape,TopTools_ShapeMapHasher> solids,faces,edges,vertices;TopExp::MapShapes(s,TopAbs_SOLID,solids);TopExp::MapShapes(s,TopAbs_FACE,faces);TopExp::MapShapes(s,TopAbs_EDGE,edges);TopExp::MapShapes(s,TopAbs_VERTEX,vertices);GProp_GProps mass,area;BRepGProp::VolumeProperties(s,mass,1e-12);BRepGProp::SurfaceProperties(s,area,1e-12);std::ofstream f(out);f<<std::setprecision(17)<<"{\"Solids\":"<<solids.Extent()<<",\"Faces\":"<<faces.Extent()<<",\"Edges\":"<<edges.Extent()<<",\"Vertices\":"<<vertices.Extent()<<",\"Volume\":"<<mass.Mass()<<",\"Area\":"<<area.Mass()<<"}\n";return 0;}
+#endif
+
+static TopoDS_Solid makeShearedPartitionedIGESLens(){
+ const double r=15./64,c=.5,knot=11./16,sq[3]={.25,-.25,.25};
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);NCollection_Array1<int> mult(1,2);mult.SetValue(1,3);mult.SetValue(2,3);
+ occ::handle<Geom_BSplineSurface> surfaces[2];for(int side=0;side<2;++side){NCollection_Array2<gp_Pnt> p(1,3,1,3);for(int i=0;i<3;++i)for(int j=0;j<3;++j)p.SetValue(i+1,j+1,gp_Pnt(i*.5,j*.5,2+(side? -1:1)*(r*r-sq[i]-1.25*sq[j]-(i*.5-.5)*(j*.5-.5))/2));surfaces[side]=new Geom_BSplineSurface(p,knots,knots,mult,mult,2,2);}surfaces[1]->InsertVKnot(knot,1,0,true);
+ const double uv[6][3][2]={{{c+r,c},{c+r,c+r/2},{c+3*r/5,c+4*r/5}},{{c+3*r/5,c+4*r/5},{c+r/3,c+r},{c,c+r}},{{c,c+r},{c-r/3,c+r},{c-3*r/5,c+4*r/5}},{{c-3*r/5,c+4*r/5},{c-r,c+r/2},{c-r,c}},{{c-r,c},{c-r,c-r},{c,c-r}},{{c,c-r},{c+r,c-r},{c+r,c}}};
+ const double weights[6][3]={{4,4,5},{5,6,8},{9,9,10},{10,12,18},{1,1,2},{1,1,2}};
+ TopoDS_Vertex vertices[6];for(int i=0;i<6;++i)vertices[i]=BRepBuilderAPI_MakeVertex(gp_Pnt(uv[i][0][0]-.5*(uv[i][0][1]-c),uv[i][0][1],2)).Vertex();BRep_Builder builder;BRepBuilderAPI_MakeWire wire;
+ for(int part=0;part<6;++part){NCollection_Array1<gp_Pnt> p(1,3);NCollection_Array1<gp_Pnt2d> up(1,3);NCollection_Array1<double> wt(1,3);for(int i=0;i<3;++i){p.SetValue(i+1,gp_Pnt(uv[part][i][0]-.5*(uv[part][i][1]-c),uv[part][i][1],2));up.SetValue(i+1,gp_Pnt2d(uv[part][i][0]-.5*(uv[part][i][1]-c),uv[part][i][1]));wt.SetValue(i+1,weights[part][i]);}occ::handle<Geom_BSplineCurve> curve=new Geom_BSplineCurve(p,wt,knots,mult,2);occ::handle<Geom2d_BSplineCurve> pc=new Geom2d_BSplineCurve(up,wt,knots,mult,2);auto edge=BRepBuilderAPI_MakeEdge(curve,vertices[part],vertices[(part+1)%6],0,1).Edge();for(auto surface:surfaces){builder.UpdateEdge(edge,pc,surface,TopLoc_Location(),1e-10);builder.Range(edge,surface,TopLoc_Location(),0,1);}builder.SameRange(edge,true);builder.SameParameter(edge,true);wire.Add(edge);}
+ auto upper=BRepBuilderAPI_MakeFace(surfaces[0],wire.Wire(),true).Face();auto lower=BRepBuilderAPI_MakeFace(surfaces[1],wire.Wire(),true).Face();lower.Reverse();TopoDS_Shell shell;builder.MakeShell(shell);builder.Add(shell,upper);builder.Add(shell,lower);auto solid=BRepBuilderAPI_MakeSolid(shell).Solid();if(!BRepCheck_Analyzer(solid).IsValid())throw std::runtime_error("invalid partitioned spline lens");return solid;
+}
+
+static int writeShearedPartitionedIGESLens(const char* path){IGESControl_Writer writer("MM",1);if(!writer.AddShape(makeShearedPartitionedIGESLens()))throw std::runtime_error("sheared partitioned IGES lens");preciseIGES(writer,path);return 0;}
+
+static TopoDS_Solid makeAffinePartitionedIGESLens(){
+ const double r=165./8192,c=.5,knot=.5+99./1024,sq[3]={.25,-.25,.25};
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);NCollection_Array1<int> mult(1,2);mult.SetValue(1,3);mult.SetValue(2,3);
+ occ::handle<Geom_BSplineSurface> surfaces[2];for(int side=0;side<2;++side){NCollection_Array2<gp_Pnt> p(1,3,1,3);for(int i=0;i<3;++i)for(int j=0;j<3;++j)p.SetValue(i+1,j+1,gp_Pnt(i*.5,j*.5,2+(side? -1:1)*(100*r*r-sq[i]-4*sq[j])/2));surfaces[side]=new Geom_BSplineSurface(p,knots,knots,mult,mult,2,2);}surfaces[1]->InsertVKnot(knot,1,0,true);
+ const double mapped[6][3][2]={{{0.620849609375,0.58056640625},{0.591552734375,0.591552734375},{0.556396484375,0.5966796875}},{{0.556396484375,0.5966796875},{0.5,0.6049041748046875},{0.443603515625,0.5966796875}},{{0.443603515625,0.5966796875},{0.379150390625,0.5872802734375},{0.3388671875,0.5604248046875}},{{0.3388671875,0.5604248046875},{0.218017578125,0.4798583984375},{0.379150390625,0.41943359375}},{{0.379150390625,0.41943359375},{0.540283203125,0.3590087890625},{0.6611328125,0.4395751953125}},{{0.6611328125,0.4395751953125},{0.781982421875,0.5201416015625},{0.620849609375,0.58056640625}}};
+ const double weights[6][3]={{121,121,125},{500,528,605},{5,6,8},{1,1,2},{1,1,2},{1,1,2}};
+ TopoDS_Vertex vertices[6];for(int i=0;i<6;++i)vertices[i]=BRepBuilderAPI_MakeVertex(gp_Pnt(mapped[i][0][0],mapped[i][0][1],2)).Vertex();BRep_Builder builder;BRepBuilderAPI_MakeWire wire;
+ for(int part=0;part<6;++part){NCollection_Array1<gp_Pnt> p(1,3);NCollection_Array1<gp_Pnt2d> up(1,3);NCollection_Array1<double> wt(1,3);for(int i=0;i<3;++i){p.SetValue(i+1,gp_Pnt(mapped[part][i][0],mapped[part][i][1],2));up.SetValue(i+1,gp_Pnt2d(mapped[part][i][0],mapped[part][i][1]));wt.SetValue(i+1,weights[part][i]);}occ::handle<Geom_BSplineCurve> curve=new Geom_BSplineCurve(p,wt,knots,mult,2);occ::handle<Geom2d_BSplineCurve> pc=new Geom2d_BSplineCurve(up,wt,knots,mult,2);auto edge=BRepBuilderAPI_MakeEdge(curve,vertices[part],vertices[(part+1)%6],0,1).Edge();for(auto surface:surfaces){builder.UpdateEdge(edge,pc,surface,TopLoc_Location(),1e-10);builder.Range(edge,surface,TopLoc_Location(),0,1);}builder.SameRange(edge,true);builder.SameParameter(edge,true);wire.Add(edge);}
+ auto upper=BRepBuilderAPI_MakeFace(surfaces[0],wire.Wire(),true).Face();auto lower=BRepBuilderAPI_MakeFace(surfaces[1],wire.Wire(),true).Face();lower.Reverse();TopoDS_Shell shell;builder.MakeShell(shell);builder.Add(shell,upper);builder.Add(shell,lower);auto solid=BRepBuilderAPI_MakeSolid(shell).Solid();if(!BRepCheck_Analyzer(solid).IsValid())throw std::runtime_error("invalid partitioned spline lens");return solid;
+}
+
+
+static int writeAffinePartitionedIGESLens(const char* path){IGESControl_Writer writer("MM",1);if(!writer.AddShape(makeAffinePartitionedIGESLens()))throw std::runtime_error("affine partitioned IGES lens");preciseIGES(writer,path);return 0;}

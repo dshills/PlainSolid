@@ -1,0 +1,178 @@
+package iges
+
+import (
+	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
+
+type topologyRecord struct {
+	id, kind  int
+	label     string
+	subscript int
+	values    []parameter
+}
+type topologySource struct {
+	unit     float64
+	bytes    []byte
+	entities []topologyRecord
+}
+
+func readTopologySource(r io.Reader, l Limits, lensMode ...bool) (topologySource, error) {
+	lens := len(lensMode) == 1 && lensMode[0]
+	l, e := l.defaults()
+	if e != nil {
+		return topologySource{}, e
+	}
+	if r == nil {
+		return topologySource{}, errors.New("iges: nil reader")
+	}
+	b, e := io.ReadAll(io.LimitReader(r, l.MaxBytes+1))
+	if e != nil {
+		return topologySource{}, e
+	}
+	if int64(len(b)) > l.MaxBytes {
+		return topologySource{}, errors.New("iges: byte limit exceeded")
+	}
+	sections := map[byte][]record{}
+	order := map[byte]int{'S': 0, 'G': 1, 'D': 2, 'P': 3, 'T': 4}
+	stage := -1
+	count := 0
+	scan := bufio.NewScanner(bytes.NewReader(b))
+	scan.Buffer(make([]byte, 256), 1024)
+	for scan.Scan() {
+		count++
+		if count > l.MaxRecords {
+			return topologySource{}, errors.New("iges: record limit exceeded")
+		}
+		line := scan.Text()
+		if len(line) != 80 {
+			return topologySource{}, errors.New("iges: expected 80-column ASCII records")
+		}
+		for _, c := range []byte(line) {
+			if c < 32 || c > 126 {
+				return topologySource{}, errors.New("iges: non-ASCII record")
+			}
+		}
+		section := line[72]
+		rank, ok := order[section]
+		if !ok || rank < stage {
+			return topologySource{}, errors.New("iges: invalid section order")
+		}
+		stage = rank
+		n, e := field(line[73:])
+		if e != nil || n != len(sections[section])+1 {
+			return topologySource{}, errors.New("iges: invalid section sequence")
+		}
+		rec := record{data: line[:72]}
+		if section == 'P' {
+			rec.data = line[:64]
+			rec.owner, e = field(line[64:72])
+			if e != nil || rec.owner < 1 || rec.owner%2 != 1 {
+				return topologySource{}, errors.New("iges: invalid parameter back-pointer")
+			}
+		}
+		sections[section] = append(sections[section], rec)
+	}
+	if e = scan.Err(); e != nil {
+		return topologySource{}, e
+	}
+	if len(sections['S']) < 1 || len(sections['G']) < 1 || len(sections['T']) != 1 || len(sections['D'])%2 != 0 {
+		return topologySource{}, errors.New("iges: missing/malformed sections")
+	}
+	if len(sections['D'])/2 > l.MaxEntities {
+		return topologySource{}, errors.New("iges: entity limit exceeded")
+	}
+	term := sections['T'][0].data
+	for i, section := range []byte{'S', 'G', 'D', 'P'} {
+		n, e := field(term[i*8+1 : i*8+8])
+		if term[i*8] != section || e != nil || n != len(sections[section]) {
+			return topologySource{}, errors.New("iges: termination counts disagree")
+		}
+	}
+	if strings.TrimSpace(term[32:]) != "" {
+		return topologySource{}, errors.New("iges: invalid termination padding")
+	}
+	var globals strings.Builder
+	for _, rec := range sections['G'] {
+		globals.WriteString(rec.data)
+	}
+	budget := l.MaxValues
+	g, sep, end, e := globalParameters(globals.String(), &budget)
+	if e != nil {
+		return topologySource{}, e
+	}
+	unit, e := lengthUnit(g)
+	if e != nil {
+		return topologySource{}, e
+	}
+	doc := topologySource{unit: unit, bytes: append([]byte(nil), b...)}
+	used := make([]bool, len(sections['P']))
+	for i := 0; i < len(sections['D']); i += 2 {
+		a, c := sections['D'][i].data, sections['D'][i+1].data
+		var first, second [9]int
+		for j := 0; j < 9; j++ {
+			first[j], e = field(a[j*8 : j*8+8])
+			if e != nil {
+				return topologySource{}, e
+			}
+			if j != 7 {
+				second[j], e = field(c[j*8 : j*8+8])
+				if e != nil {
+					return topologySource{}, e
+				}
+			}
+		}
+		kind := first[0]
+		if kind != 126 && kind != 128 && kind != 502 && kind != 504 && kind != 508 && kind != 510 && kind != 514 && !(lens && kind == 186) {
+			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
+		}
+
+		if second[0] != kind {
+			return topologySource{}, errors.New("iges: directory type mismatch")
+		}
+		for _, j := range []int{2, 5, 7} {
+			if first[j] != 0 {
+				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
+			}
+		}
+		if first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) {
+			return topologySource{}, errors.New("iges: unsupported directory status")
+		}
+		if first[8] == 10000 || first[8] == 10500 {
+			// owned topology geometry
+		}
+		if first[3] < 0 || first[4] < 0 || second[1] < 0 || second[2] < 0 || second[5] != 0 || second[6] != 0 {
+			return topologySource{}, errors.New("iges: directory pointer/style unsupported")
+		}
+		start, lines := first[1], second[3]
+		if start < 1 || lines < 1 || start > len(used) || lines > len(used)-(start-1) {
+			return topologySource{}, errors.New("iges: parameter record range out of bounds")
+		}
+		var params strings.Builder
+		for j := start - 1; j < start-1+lines; j++ {
+			if used[j] || sections['P'][j].owner != i+1 {
+				return topologySource{}, errors.New("iges: overlapping or inconsistent parameter pointers")
+			}
+			used[j] = true
+			params.WriteString(sections['P'][j].data)
+		}
+		values, e := parseParameters(params.String(), sep, end, &budget)
+		if e != nil {
+			return topologySource{}, e
+		}
+		if first[6] != 0 || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0) {
+			return topologySource{}, errors.New("iges: unsupported topology placement/form")
+		}
+		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})
+	}
+	for _, u := range used {
+		if !u {
+			return topologySource{}, errors.New("iges: unclaimed parameter record")
+		}
+	}
+	return doc, nil
+}

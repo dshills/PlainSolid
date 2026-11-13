@@ -1,0 +1,54 @@
+name: Go
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - run: go test ./...
+      - run: go vet ./...
+      - name: Race detector
+        if: runner.os != 'Windows'
+        run: go test -race -timeout 35m ./...
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - run: go test ./exchange -fuzz=FuzzReadSTL -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadOBJ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadPLY -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadBRepJSON -fuzztime=10s -parallel=2
+      - run: go test ./document -fuzz=FuzzRead -fuzztime=10s -parallel=2
+      - run: go test ./query -fuzz=FuzzTriangleQueries -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadGLTF -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -fuzz=FuzzParse -fuzztime=10s -parallel=2
+      - run: go test ./exchange/iges -fuzz=FuzzRead -fuzztime=10s -parallel=2
+      - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -fuzz=FuzzReadSurfaces -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=FuzzWrappedSurface -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=FuzzWrappedCavity -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzReadGLB -fuzztime=10s -parallel=2
+      - run: go test ./exchange -fuzz=FuzzBinaryPLY -fuzztime=10s -parallel=2
+      - run: go test ./brep/trimmed -fuzz=FuzzTrimmedJSON -fuzztime=10s -parallel=2
+      - run: go test ./brep/trimmed -run=^$ -fuzz=FuzzAlgebraicTubeRecipe -fuzztime=10s -parallel=2
