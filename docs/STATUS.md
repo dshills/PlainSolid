@@ -74,7 +74,9 @@ originals with loopback and concurrent verification. Thirty-eight failures
 repeat the preceding full run. All 21 newly failed tests pass unchanged
 on the same WASM in the one-worker retest. Eight earlier failures pass. The preceding unit run passes 1,643 of 1,689, including all 39
 modeling geometry and 15 local middleware cases. The baseline passed 1,646. Thirty-six failures repeat fallback
-expectations and OCCT-private fixture bindings. Nine of ten new failures
+expectations and OCCT-private fixture bindings. The two other repeated cases
+are a workbench layout timeout that passes in isolation and a laser screening
+fixture that disagrees with both initialized kernels. Nine of ten new failures
 pass unchanged in focused reruns. The remaining inline sketch workspace
 case also fails with pristine OCCT. All ten private tests pass on pristine OCCT. The 26 fallback
 fixtures pass 25 on the OCCT control and five with PlainSolid deliberately

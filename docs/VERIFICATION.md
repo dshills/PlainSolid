@@ -62,6 +62,14 @@ same staged app and WASM, including all three helical cases. The 17-file
 selection passes 213 of 217 originals. The four repeated failures in that
 selection all exercise fallback behavior.
 
+The [two remaining repeat diagnostics](evidence/plaincad-unit-remaining-controls-2026-11-13.json)
+hold the test assertions fixed. The workbench layout case passes a
+one-worker rerun on the original WASM. The laser screening fixture expects
+three unverified profiles. It gets one with either initialized kernel,
+and passes with OCCT left uninitialized, the fixture's original default.
+The two authored rectangular extrusions have verified cap faces when the
+native kernel is initialized, while the fitted body still receives a warning.
+
 ## PlainCAD asynchronous project-open readiness — 2026-11-13
 
 The staged runtime keeps the previous drawable model while an asynchronous
