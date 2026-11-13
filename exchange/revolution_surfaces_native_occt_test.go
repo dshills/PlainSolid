@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -14,6 +15,12 @@ import (
 )
 
 func TestOCCTRevolutionSurfacesNative(t *testing.T) {
+	testOCCTRevolutionNative(t, "write-oblique", WriteRevolutionSurfacesJSON, ReadRevolutionSurfacesJSON)
+}
+func TestOCCTRationalRevolutionSurfacesNative(t *testing.T) {
+	testOCCTRevolutionNative(t, "write-rational", WriteRationalRevolutionSurfacesJSON, ReadRationalRevolutionSurfacesJSON)
+}
+func testOCCTRevolutionNative(t *testing.T, mode string, write func(io.Writer, step.RevolutionSurfaceModel) error, read func(io.Reader, RevolutionSurfaceJSONLimits) (step.RevolutionSurfaceModel, error)) {
 	oracle := os.Getenv("PLAINSOLID_OCCT_REVOLUTION_SURFACE")
 	if oracle == "" {
 		t.Skip("optional revolution helper")
@@ -21,7 +28,7 @@ func TestOCCTRevolutionSurfacesNative(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	source := filepath.Join(t.TempDir(), "source.step")
-	if b, e := exec.CommandContext(ctx, oracle, "write-oblique", source).CombinedOutput(); e != nil {
+	if b, e := exec.CommandContext(ctx, oracle, mode, source).CombinedOutput(); e != nil {
 		t.Fatal(e, string(b))
 	}
 	b, e := os.ReadFile(source)
@@ -48,10 +55,10 @@ func TestOCCTRevolutionSurfacesNative(t *testing.T) {
 		t.Fatal(len(m.Surfaces))
 	}
 	var native bytes.Buffer
-	if e = WriteRevolutionSurfacesJSON(&native, m); e != nil {
+	if e = write(&native, m); e != nil {
 		t.Fatal(e)
 	}
-	loaded, e := ReadRevolutionSurfacesJSON(&native, RevolutionSurfaceJSONLimits{})
+	loaded, e := read(&native, RevolutionSurfaceJSONLimits{})
 	if e != nil {
 		t.Fatal(e)
 	}

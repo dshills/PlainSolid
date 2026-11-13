@@ -136,8 +136,15 @@ func FuzzRevolutionSurfacesNative(f *testing.F) {
 		f.Fatal(e)
 	}
 	f.Add(valid.Bytes())
+	weighted, _ := geom.NewBSpline(1, c.Poles(), c.Knots(), []float64{1, .5})
+	var rational bytes.Buffer
+	if e := WriteRationalRevolutionSurfacesJSON(&rational, step.RevolutionSurfaceModel{LengthUnit: 1, Surfaces: []step.RevolutionSurface{{Profile: step.SplineCurve{Geometry: weighted}, Axis: geom.Vec3{Z: 1}, AngleStart: 0, AngleEnd: 1}}}); e != nil {
+		f.Fatal(e)
+	}
+	f.Add(rational.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte) {
 		_, _ = ReadRevolutionSurfacesJSON(bytes.NewReader(b), RevolutionSurfaceJSONLimits{MaxBytes: 65536, MaxSurfaces: 4, MaxPoles: 64})
+		_, _ = ReadRationalRevolutionSurfacesJSON(bytes.NewReader(b), RevolutionSurfaceJSONLimits{MaxBytes: 65536, MaxSurfaces: 4, MaxPoles: 64})
 	})
 }
 

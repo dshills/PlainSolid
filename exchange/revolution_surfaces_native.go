@@ -56,7 +56,10 @@ type revolutionSurfacesJSON struct {
 }
 
 func revolutionSurfacePayload(m step.RevolutionSurfaceModel, l RevolutionSurfaceJSONLimits) (revolutionSurfacesJSON, error) {
-	d := revolutionSurfacesJSON{Version: 1, Kind: "standalone-analytic-revolution-surfaces", AngularUnit: "radian", LengthUnit: m.LengthUnit}
+	return revolutionSurfacePayloadVersion(m, l, 1)
+}
+func revolutionSurfacePayloadVersion(m step.RevolutionSurfaceModel, l RevolutionSurfaceJSONLimits, version int) (revolutionSurfacesJSON, error) {
+	d := revolutionSurfacesJSON{Version: version, Kind: "standalone-analytic-revolution-surfaces", AngularUnit: "radian", LengthUnit: m.LengthUnit}
 	if m.LengthUnit <= 0 || math.IsNaN(m.LengthUnit) || math.IsInf(m.LengthUnit, 0) || len(m.Surfaces) < 1 || len(m.Surfaces) > l.MaxSurfaces {
 		return d, geom.ErrDomain
 	}
@@ -79,7 +82,7 @@ func revolutionSurfacePayload(m step.RevolutionSurfaceModel, l RevolutionSurface
 			return d, geom.ErrDomain
 		}
 		for _, w := range c.Weights() {
-			if w != 1 {
+			if version == 1 && w != 1 {
 				return d, geom.ErrDomain
 			}
 		} // Version1 remains polynomial-only.
@@ -96,11 +99,14 @@ func revolutionSurfacePayload(m step.RevolutionSurfaceModel, l RevolutionSurface
 // V parameters, radian U bounds and meters-per-model-unit metadata. It creates no
 // faces, meshes or document assets. Validation and encoding complete before I/O.
 func WriteRevolutionSurfacesJSON(w io.Writer, m step.RevolutionSurfaceModel) error {
+	return writeRevolutionSurfacesJSON(w, m, 1)
+}
+func writeRevolutionSurfacesJSON(w io.Writer, m step.RevolutionSurfaceModel, version int) error {
 	if w == nil {
 		return geom.ErrDomain
 	}
 	l, _ := (RevolutionSurfaceJSONLimits{}).defaults()
-	d, e := revolutionSurfacePayload(m, l)
+	d, e := revolutionSurfacePayloadVersion(m, l, version)
 	if e != nil {
 		return e
 	}
@@ -124,6 +130,9 @@ func WriteRevolutionSurfacesJSON(w io.Writer, m step.RevolutionSurfaceModel) err
 // Every support is rebuilt through geom.NewRevolutionSurface; any failure returns
 // an empty model. This validates geometry, not authenticity of arbitrary edits.
 func ReadRevolutionSurfacesJSON(r io.Reader, l RevolutionSurfaceJSONLimits) (step.RevolutionSurfaceModel, error) {
+	return readRevolutionSurfacesJSON(r, l, false)
+}
+func readRevolutionSurfacesJSON(r io.Reader, l RevolutionSurfaceJSONLimits, allowRational bool) (step.RevolutionSurfaceModel, error) {
 	fail := func() (step.RevolutionSurfaceModel, error) {
 		return step.RevolutionSurfaceModel{}, fmt.Errorf("exchange: invalid revolution surface JSON")
 	}
@@ -144,7 +153,7 @@ func ReadRevolutionSurfacesJSON(r io.Reader, l RevolutionSurfaceJSONLimits) (ste
 	if e = dec.Decode(&d); e != nil {
 		return fail()
 	}
-	if d.Version != 1 || d.Kind != "standalone-analytic-revolution-surfaces" || d.AngularUnit != "radian" || len(d.Surfaces) < 1 || len(d.Surfaces) > l.MaxSurfaces {
+	if (d.Version != 1 && (!allowRational || d.Version != 2)) || d.Kind != "standalone-analytic-revolution-surfaces" || d.AngularUnit != "radian" || len(d.Surfaces) < 1 || len(d.Surfaces) > l.MaxSurfaces {
 		return fail()
 	}
 	m := step.RevolutionSurfaceModel{LengthUnit: d.LengthUnit}
@@ -161,7 +170,7 @@ func ReadRevolutionSurfacesJSON(r io.Reader, l RevolutionSurfaceJSONLimits) (ste
 		}
 		m.Surfaces = append(m.Surfaces, step.RevolutionSurface{Name: s.Name, Profile: step.SplineCurve{Name: p.Name, Geometry: c, Closed: p.Closed, SelfIntersect: p.SelfIntersect}, Origin: s.Origin, Axis: s.Axis, AngleStart: s.AngleStart, AngleEnd: s.AngleEnd})
 	}
-	expected, e := revolutionSurfacePayload(m, l)
+	expected, e := revolutionSurfacePayloadVersion(m, l, d.Version)
 	if e != nil {
 		return fail()
 	}

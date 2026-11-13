@@ -38,3 +38,20 @@ passes it through native storage and STEP export, and compares valid face count,
 area, positions and partial derivatives. Set
 `PLAINSOLID_OCCT_REVOLUTION_SURFACE` to the independently built revolution helper
 with its `write-oblique` mode to run that test.
+
+## Explicit rational version 2
+
+`WriteRationalRevolutionSurfacesJSON` writes version 2 of the same standalone
+kind. `ReadRationalRevolutionSurfacesJSON` accepts versions 1 and 2; version 1
+still requires polynomial profiles, even through this new reader. The original
+reader/writer remain version-1-only. Other versions are rejected.
+
+Version 2 additionally accepts the bounded positive-weight rational profiles
+proved by `geom.NewRevolutionSurface`: degree at most 16, at most 256 poles and
+64 nonzero spans, exact per-span strict Bernstein sign of axial `H'W-HW'`,
+600000 checked operations and 8192-bit coefficients per support. All previous
+radial, knot, axis, angular and metadata requirements remain. Normalized weights
+are persisted losslessly; no rational profile is converted to polynomial or to
+a tensor representation. The same complete-read/complete-validation guarantee,
+canonical representation and outer resource limits apply. Independent OCCT tests
+now also exercise the rational source → native v2 → STEP export chain.
