@@ -60,71 +60,7 @@ func PrismRectangleCornersCertified(ctx context.Context, min, max geom.Vec2, zMi
 	if e != nil {
 		return out, e
 	}
-	radii := [4]float64{}
-	for _, s := range selection {
-		radii[s.Corner] = s.Radius
-	}
-	directions := [4]geom.Vec2{{X: 1}, {Y: 1}, {X: -1}, {Y: -1}}
-	var incoming, outgoing [4]geom.Vec2
-	for i, p := range polygon {
-		for end := 0; end < 2; end++ {
-			d := directions[(i+3)%4]
-			sign := -1.0
-			if end == 1 {
-				d = directions[i]
-				sign = 1
-			}
-			x, e := geom.RepresentedExactScalar(qa(num(p.X), qm(num(sign*d.X), num(radii[i]))))
-			if e != nil {
-				return out, e
-			}
-			y, e := geom.RepresentedExactScalar(qa(num(p.Y), qm(num(sign*d.Y), num(radii[i]))))
-			if e != nil {
-				return out, e
-			}
-			if end == 0 {
-				incoming[i] = geom.Vec2{X: x, Y: y}
-			} else {
-				outgoing[i] = geom.Vec2{X: x, Y: y}
-			}
-		}
-	}
-	var curves []trimmed.SplineUV
-	var sources []int
-	add := func(p []geom.Vec2, weights []float64, face int) error {
-		poles := make([]geom.Vec3, len(p))
-		for i, q := range p {
-			poles[i] = geom.Vec3{X: q.X, Y: q.Y}
-		}
-		degree := len(p) - 1
-		knots := []float64{0, 0, 1, 1}
-		if degree == 2 {
-			knots = []float64{0, 0, 0, 1, 1, 1}
-		}
-		c, e := geom.NewBSpline(degree, poles, knots, weights)
-		if e != nil {
-			return e
-		}
-		curves = append(curves, trimmed.SplineUV{Curve: c, Range: trimmed.UVInterval{Max: 1}})
-		sources = append(sources, face)
-		return nil
-	}
-	for i := 0; i < 4; i++ {
-		j := (i + 1) % 4
-		if e := add([]geom.Vec2{outgoing[i], incoming[j]}, nil, model.StraightFaces[i]); e != nil {
-			return out, e
-		}
-		if radii[j] > 0 {
-			if e := add([]geom.Vec2{incoming[j], polygon[j], outgoing[j]}, []float64{1, 1, 2}, model.Corners[j].CylinderFace); e != nil {
-				return out, e
-			}
-		}
-	}
-	surface, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{X: min.X, Y: min.Y}, {X: min.X, Y: max.Y}, {X: max.X, Y: min.Y}, {X: max.X, Y: max.Y}}, []float64{min.X, min.X, max.X, max.X}, []float64{min.Y, min.Y, max.Y, max.Y}, nil)
-	if e != nil {
-		return out, e
-	}
-	patch, e := geom.NewSurfacePatch(surface, geom.SurfacePatchOptions{})
+	curves, sources, patch, e := rectangleCertifiedProfile(min, max, selection, model)
 	if e != nil {
 		return out, e
 	}
@@ -224,4 +160,77 @@ func PrismRectangleCornersCertified(ctx context.Context, min, max geom.Vec2, zMi
 		return out, geom.ErrConvergence
 	}
 	return result, nil
+}
+
+func rectangleCertifiedProfile(min, max geom.Vec2, selection []CornerRadius, model SelectiveResult) ([]trimmed.SplineUV, []int, *geom.SurfacePatch, error) {
+	polygon := []geom.Vec2{min, {X: max.X, Y: min.Y}, max, {X: min.X, Y: max.Y}}
+	radii := [4]float64{}
+	for _, s := range selection {
+		radii[s.Corner] = s.Radius
+	}
+	directions := [4]geom.Vec2{{X: 1}, {Y: 1}, {X: -1}, {Y: -1}}
+	var incoming, outgoing [4]geom.Vec2
+	for i, p := range polygon {
+		for end := 0; end < 2; end++ {
+			d := directions[(i+3)%4]
+			sign := -1.0
+			if end == 1 {
+				d = directions[i]
+				sign = 1
+			}
+			x, e := geom.RepresentedExactScalar(qa(num(p.X), qm(num(sign*d.X), num(radii[i]))))
+			if e != nil {
+				return nil, nil, nil, e
+			}
+			y, e := geom.RepresentedExactScalar(qa(num(p.Y), qm(num(sign*d.Y), num(radii[i]))))
+			if e != nil {
+				return nil, nil, nil, e
+			}
+			if end == 0 {
+				incoming[i] = geom.Vec2{X: x, Y: y}
+			} else {
+				outgoing[i] = geom.Vec2{X: x, Y: y}
+			}
+		}
+	}
+	var curves []trimmed.SplineUV
+	var sources []int
+	add := func(p []geom.Vec2, weights []float64, face int) error {
+		poles := make([]geom.Vec3, len(p))
+		for i, q := range p {
+			poles[i] = geom.Vec3{X: q.X, Y: q.Y}
+		}
+		degree := len(p) - 1
+		knots := []float64{0, 0, 1, 1}
+		if degree == 2 {
+			knots = []float64{0, 0, 0, 1, 1, 1}
+		}
+		c, e := geom.NewBSpline(degree, poles, knots, weights)
+		if e != nil {
+			return e
+		}
+		curves = append(curves, trimmed.SplineUV{Curve: c, Range: trimmed.UVInterval{Max: 1}})
+		sources = append(sources, face)
+		return nil
+	}
+	for i := 0; i < 4; i++ {
+		j := (i + 1) % 4
+		if e := add([]geom.Vec2{outgoing[i], incoming[j]}, nil, model.StraightFaces[i]); e != nil {
+			return nil, nil, nil, e
+		}
+		if radii[j] > 0 {
+			if e := add([]geom.Vec2{incoming[j], polygon[j], outgoing[j]}, []float64{1, 1, 2}, model.Corners[j].CylinderFace); e != nil {
+				return nil, nil, nil, e
+			}
+		}
+	}
+	surface, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{X: min.X, Y: min.Y}, {X: min.X, Y: max.Y}, {X: max.X, Y: min.Y}, {X: max.X, Y: max.Y}}, []float64{min.X, min.X, max.X, max.X}, []float64{min.Y, min.Y, max.Y, max.Y}, nil)
+	if e != nil {
+		return nil, nil, nil, e
+	}
+	patch, e := geom.NewSurfacePatch(surface, geom.SurfacePatchOptions{})
+	if e != nil {
+		return nil, nil, nil, e
+	}
+	return curves, sources, patch, nil
 }
