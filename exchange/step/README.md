@@ -1835,3 +1835,23 @@ axis contacts remain unsupported. Independent OCCT native-revolve comparisons
 qualify concave axis-contact profiles and both expanding/narrowing conical
 apices for signed and greater-than-half-turn sweeps. Source topology tests
 verify every nondegenerate edge has exactly two opposite owner uses.
+
+`WriteCircularHoleExtrusions` exports a named signed straight extrusion of a
+convex sketch polygon with disjoint circular through-holes, using explicit
+`CircularHoleExtrusionBody` frame/outer/circle/height descriptors. The native
+`trimmed.ExtrudePolygonWithCircularHoles` constructor first proves strict
+represented-coordinate containment/disjointness and validates the material.
+Limits are 3–64 outer vertices, 1–16 circles and at most 32 independent bodies.
+Names, units and arbitrary valid frames are retained; intersecting/touching
+circles, concave outer loops and degenerate heights fail before output.
+
+The STEP graph retains planar caps and outer walls, and uses one full analytic
+cylinder per hole with two closed circular rims and an explicit two-use seam.
+Both edge owners have pcurves. This deliberately coalesces the native four
+quarter cylinder patches into an exact full cylinder from the explicit sketch
+recipe; STEP face/edge IDs are not presented as native IDs. It is a bounded
+export adapter, not a generic mixed planar/cylindrical STEP importer. Numeric
+analytic placements use the same float64/native-tolerance contract as sector
+and polygon-revolve exports. Independent OCCT prism-minus-cylinder construction
+and imported output agree with native area, volume and centroid for a rotated
+convex pentagon with two different hole radii and both signed directions.

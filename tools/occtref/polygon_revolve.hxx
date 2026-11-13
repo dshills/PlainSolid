@@ -19,3 +19,17 @@ static int polygonRevolveReference(const char* path,bool axis=false) {
  }
  return 0;
 }
+
+static int circularHoleExtrusionReference(const char* path) {
+ const double p[5][2]={{0,0},{6,0},{7,3},{4,5},{0,4}};
+ std::ofstream out(path);
+ for(double height:{3.,-3.}) {
+  BRepBuilderAPI_MakePolygon wire;for(const auto& v:p)wire.Add(gp_Pnt(2,3-v[1],4+v[0]));wire.Close();
+  auto face=BRepBuilderAPI_MakeFace(wire.Wire()).Face();TopoDS_Shape shape=BRepPrimAPI_MakePrism(face,gp_Vec(height,0,0)).Shape();
+  const double holes[2][3]={{2,2,.5},{5,2,.75}};
+  for(const auto& h:holes){auto tool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2+std::min(0.,height),3-h[1],4+h[0]),gp_Dir(1,0,0),gp_Dir(0,0,1)),h[2],std::abs(height)).Shape();shape=BRepAlgoAPI_Cut(shape,tool).Shape();}
+  if(!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid circular-hole prism reference");
+  GProp_GProps v,a;BRepGProp::VolumeProperties(shape,v,1e-12);BRepGProp::SurfaceProperties(shape,a,1e-12);auto c=v.CentreOfMass();out<<std::setprecision(17)<<"{\"Area\":"<<a.Mass()<<",\"Volume\":"<<v.Mass()<<",\"Centroid\":["<<c.X()<<','<<c.Y()<<','<<c.Z()<<"]}\n";
+ }
+ return 0;
+}
