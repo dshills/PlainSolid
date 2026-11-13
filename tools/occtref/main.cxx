@@ -193,6 +193,7 @@ static occ::handle<Geom_BSplineSurface> quarterCylinder() {
 #include "draft.hxx"
 #include "feature.hxx"
 #include "spline_shell_boolean.hxx"
+#include "warped_open_spline.hxx"
 #include "simultaneous_spline_shell.hxx"
 #include "repeated_spline_shell.hxx"
 #include "transverse_spline_shell.hxx"
@@ -205,6 +206,7 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if(argc==3 && mode=="warped-open-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedOpenSplineBooleans(out);return 0;}
     if (argc == 3 && mode == "finite-cylinder-dispatch") {
       std::ofstream out(argv[1]); out.exceptions(std::ios::failbit | std::ios::badbit);
       // Independently authored finite cylinders: physical starts and lengths,
