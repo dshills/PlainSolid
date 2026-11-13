@@ -2204,3 +2204,10 @@ intersections and arc-only regions, and the analytic YZ Extend workflow.
 The real Go-WASM preflight and both original TypeScript checks also passed.
 This focused pass qualifies the merged arc implementation independently of
 the earlier full development run, which started before the arc merge.
+
+The [reconciled divider retest](evidence/plaincad-reconciled-divider-regressions-2026-11-13.json)
+passed the original XZ connected-group gesture and all six original analytic
+circle and arc divider cases. It used `db9c484` with current app archive
+`e65f07b`, after the analytic arc merge. The earlier frozen development suite
+still reports its own failures; these selected retests identify the repaired
+cases without altering that original report.
