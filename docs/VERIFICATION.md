@@ -1100,6 +1100,13 @@ stock and cap as exact native pcurves. Source edge parameters, independent
 volumes `29/640` and `611/640`, centroids, native reload, and closed display
 meshes with zero detected contacts pass. The independently swept OCCT stock
 and planar cutter agree on both shell counts, area, volume and centroid.
+The piecewise extension proves full-range C0 continuity at an actual crease,
+retains six exact section pieces and two original-chart knot junctions, and
+rejects a source with agreeing section endpoints but a discontinuous seam
+away from them. Native common and cut volumes are `631/15360` and
+`14729/15360`. Independent OCCT shell, area, volume, and centroid checks pass.
+OCCT's ordinary volume integrator differed on first moments at the crease;
+its span-aware Gauss–Kronrod integrator agrees with the analytic moments.
 
 A combined short suite at `5a3c612` reached the existing 45-minute package
 deadline in `brep/trimmed` while checking a mixed-contour display mesh. The
