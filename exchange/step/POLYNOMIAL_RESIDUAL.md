@@ -51,3 +51,13 @@ Each source span is converted exactly to Bernstein coefficients. For U, the algo
 The output gives exact rational coordinate bounds in the cylinder frame and their summed squared-distance bound, with the caller's positive tolerance in original model units. `WithinTolerance=true` proves the entire model/pcurve lift difference is no larger than that tolerance. `false` means the bound did not certify it; it does not by itself prove actual disagreement.
 
 For the retained OCCT curve, all 28 spans certify a Euclidean tolerance of `4e-8` model units; `1e-8` is not certified. A changed cylinder-pcurve height is detected by the bound. This proves approximate continuous **same-parameter cylinder** agreement only. The spherical pcurve, endpoint-to-topological-vertex tolerance, source trimming interval ownership, inverse matching and material validation remain unproved. It does not turn the approximated STEP boundary into exact geometry and does not enable import.
+
+## Same-parameter spherical lift agreement
+
+`BoundSpherePCurveLift` adds the spherical owner of the same two-owner sphere/cylinder graph. In the exact signed-coordinate sphere frame it bounds `R*cos(V)*cos(U)`, `R*cos(V)*sin(U)` and `R*sin(V)` against the same-parameter model curve. It requires explicit unscaled radians, equal degrees and exact knot partitions, and a latitude control hull strictly inside `(-π/2,π/2)`, verified using rational π bounds.
+
+To bound cost, the spherical lift uses degree-six Taylor composition per angle (the cylinder's public behavior remains degree ten). Exact Bernstein multiplication combines the trigonometric polynomials. If the individual approximations have errors `eA,eB`, their product error is bounded by `eA+eB+eA*eB`, since the true sine/cosine factors have absolute value at most one. Products have degree at most 96 and a 32768-bit coefficient/result budget; individual trigonometric approximations retain the earlier budgets.
+
+For the retained OCCT sphere pcurve #196 → #203, all 28 spans certify a Euclidean tolerance of `4e-7` model units. The resulting bound does not certify `1e-7`. Altering the latitude pcurve by 0.001 radians fails a `1e-6` tolerance check. The source master-pcurve metadata remains explicit.
+
+Both sphere and cylinder lifts now have independent continuous same-parameter bounds. This does not establish topological endpoint compatibility, trimmed interval selection, source tolerance compatibility, shell embedding or material equivalence. Exact import remains disabled; these are opt-in approximate evidence reports.

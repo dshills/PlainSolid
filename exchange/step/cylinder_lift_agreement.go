@@ -289,6 +289,13 @@ func liftElevate(a []*big.Rat, n int) []*big.Rat {
 	return liftProduct(a, b)
 }
 func liftTrigBernstein(u []*big.Rat) (sine, cosine []*big.Rat, remainder *big.Rat, err error) {
+	return liftTrigBernsteinOrder(u, 10)
+}
+
+func liftTrigBernsteinOrder(u []*big.Rat, order int) (sine, cosine []*big.Rat, remainder *big.Rat, err error) {
+	if len(u) < 2 || order < 1 || order > 10 {
+		return nil, nil, nil, geom.ErrDomain
+	}
 	lo, hi := new(big.Rat).Set(u[0]), new(big.Rat).Set(u[0])
 	for _, v := range u {
 		if v.Cmp(lo) < 0 {
@@ -333,7 +340,6 @@ func liftTrigBernstein(u []*big.Rat) (sine, cosine []*big.Rat, remainder *big.Ra
 		term.Quo(term, big.NewRat(int64(k+1), 1))
 	}
 	centerError := new(big.Rat).Abs(term)
-	const order = 10
 	degree := order * (len(u) - 1)
 	sine, cosine = make([]*big.Rat, degree+1), make([]*big.Rat, degree+1)
 	for i := range sine {
