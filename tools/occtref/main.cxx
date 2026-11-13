@@ -1093,6 +1093,11 @@ int main(int argc, char** argv) {
     record(out, "perpendicular-cylinder-common", BRepAlgoAPI_Common(crossX, crossZ).Shape(), 1e-10);
     const auto skewZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, .5, -5), gp_Dir(0, 0, 1)), 2, 10).Shape();
     record(out, "skew-orthogonal-cylinder-common", BRepAlgoAPI_Common(crossX, skewZ).Shape(), 1e-10);
+    const auto overlapZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 2, -5), gp_Dir(0, 0, 1)), 2, 10).Shape();
+    record(out, "skew-orthogonal-overlap-common", BRepAlgoAPI_Common(crossX, overlapZ).Shape(), 1e-10);
+    const auto obliqueA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-9, -12, 0), gp_Dir(3, 4, 0)), 2, 30).Shape();
+    const auto obliqueB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-12, -9, 0), gp_Dir(4, 3, 0)), 2, 30).Shape();
+    record(out, "oblique-equal-cylinder-common", BRepAlgoAPI_Common(obliqueA, obliqueB).Shape(), 1e-10);
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

@@ -215,6 +215,36 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		} else {
 			y = scalarBounds{math.Nextafter(a.shift-a.small, math.Inf(-1)), math.Nextafter(a.shift+a.small, math.Inf(1))}
 		}
+	case skewOverlapCylinderChart:
+		if u.Min < 0 || u.Max > math.Pi/2 || v.Min < -1 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var err error
+		f, err = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			return geom.Box{}, err
+		}
+		x, y, z = scalarBounds{-a.radiusZ, a.radiusZ}, scalarBounds{math.Nextafter(a.radiusX-a.length, math.Inf(-1)), a.radiusX}, scalarBounds{-a.radiusX, a.radiusX}
+		if a.reflected {
+			y = scalarBounds{-y.hi, -y.lo}
+		}
+	case obliqueCylinderChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < -1 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		var err error
+		f, err = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			return geom.Box{}, err
+		}
+		// Since ∂²P/∂u²=−(P−center), the exact Hessian bound
+		// also bounds the radius of a conservative model-space box.
+		h, err := a.HessianBounds()
+		if err != nil {
+			return geom.Box{}, err
+		}
+		m := upperBoreRat(h.UU)
+		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
 	case toolBoreChart:
 		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain

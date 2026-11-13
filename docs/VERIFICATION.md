@@ -1017,3 +1017,9 @@ and OCCT mass properties. The fixture preserves placement, orientation,
 and native chart data on reload. Its certified display has no detected
 self-contacts. Equal-radius native equator-cap tests retain one half of the
 Steinmetz solid and verify analytic area, volume, and centroid.
+
+Nonnested skew cylinders use a regularized shared-coordinate chart at both
+ends. Native reload and a certified closed mesh pass. Independent slice
+integrals and OCCT mass properties agree. The oblique equal-radius fixture
+retains both analytic cylinder supports and proves exact cap clearance and
+volume; it also passes reload, certified display, and OCCT comparison.

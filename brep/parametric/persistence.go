@@ -54,6 +54,21 @@ type surfaceData struct {
 	SameSideCommon  *offsetDoubleData        `json:",omitempty"`
 	UnequalCylinder *unequalCylinderData     `json:",omitempty"`
 	SkewCylinder    *skewCylinderData        `json:",omitempty"`
+	SkewOverlap     *skewOverlapData         `json:",omitempty"`
+	ObliqueCylinder *obliqueCylinderData     `json:",omitempty"`
+}
+
+type skewOverlapData struct {
+	Center                   geom.Vec3
+	RadiusX, RadiusZ, Offset float64
+	Chart, Sign              int
+	Reflected                bool
+}
+
+type obliqueCylinderData struct {
+	Center, U, V geom.Vec3
+	Radius       float64
+	Index        int
 }
 
 type skewCylinderData struct {
@@ -158,6 +173,10 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "perpendicular-cylinder-common", UnequalCylinder: &unequalCylinderData{x.center, x.small, x.large, x.k, x.sign, x.swap}}, nil
 	case skewCylinderChart:
 		return surfaceData{Kind: "skew-cylinder-common", SkewCylinder: &skewCylinderData{unequalCylinderData{x.center, x.small, x.large, x.k, x.sign, x.swap}, x.shift}}, nil
+	case skewOverlapCylinderChart:
+		return surfaceData{Kind: "skew-cylinder-overlap", SkewOverlap: &skewOverlapData{x.center, x.radiusX, x.radiusZ, x.offset, x.k, x.sign, x.reflected}}, nil
+	case obliqueCylinderChart:
+		return surfaceData{Kind: "oblique-cylinder-common", ObliqueCylinder: &obliqueCylinderData{x.center, x.u, x.v, x.radius, x.index}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
@@ -234,6 +253,34 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "skew-cylinder-overlap") != (d.SkewOverlap != nil) || (d.Kind == "oblique-cylinder-common") != (d.ObliqueCylinder != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.SkewOverlap; x != nil {
+		if !x.Center.IsFinite() || !finite(x.RadiusX) || !finite(x.RadiusZ) || !finite(x.Offset) || x.RadiusX <= 0 || x.RadiusZ <= 0 || x.Offset <= 0 || x.Chart < 0 || x.Chart > 1 || x.Sign != 1 && x.Sign != -1 {
+			return nil, geom.ErrInvalid
+		}
+		q := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
+		L := new(big.Rat).Sub(new(big.Rat).Add(q(x.RadiusX), q(x.RadiusZ)), q(x.Offset))
+		if L.Sign() <= 0 || L.Cmp(new(big.Rat).Mul(big.NewRat(2, 1), q(min(x.RadiusX, x.RadiusZ)))) >= 0 {
+			return nil, geom.ErrInvalid
+		}
+		length, e := geom.RepresentedExactScalar(L)
+		if e != nil {
+			return nil, e
+		}
+		return skewOverlapCylinderChart{x.Center, x.RadiusX, x.RadiusZ, x.Offset, length, x.Chart, x.Sign, x.Reflected}, nil
+	}
+	if x := d.ObliqueCylinder; x != nil {
+		if x.Index < 0 || x.Index >= 4 {
+			return nil, geom.ErrInvalid
+		}
+		walls, e := geom.NewEqualCylinderCommonWalls(context.Background(), x.Center, x.U, x.V, x.Radius, geom.SurfacePatchEvaluationOptions{})
+		if e != nil {
+			return nil, e
+		}
+		return obliqueCylinderChart{walls[x.Index], x.Center, x.U, x.V, x.Radius, x.Index}, nil
+	}
 	if (d.Kind == "skew-cylinder-common") != (d.SkewCylinder != nil) {
 		return nil, geom.ErrInvalid
 	}

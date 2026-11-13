@@ -390,6 +390,12 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 
 	sk, e := parametric.SkewOrthogonalCylinderCommon(ctx, geom.Vec3{}, 3, 2, .5, 4, 5, 1e-9)
 	check("skew-orthogonal-cylinder-common", sk.Solid, e)
+
+	ov, e := parametric.SkewOrthogonalOverlapCommon(ctx, geom.Vec3{}, 3, 2, 2, 4, 5, 1e-9)
+	check("skew-orthogonal-overlap-common", ov.Solid, e)
+	capRange := [2]float64{-3, 3}
+	ob, e := parametric.ObliqueEqualCylinderCommon(ctx, geom.Vec3{}, geom.Vec3{X: 3, Y: 4}, geom.Vec3{X: 4, Y: 3}, 2, capRange, capRange, 1e-9)
+	check("oblique-equal-cylinder-common", ob.Solid, e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {
