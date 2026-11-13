@@ -226,6 +226,9 @@ int main(int argc, char** argv) {
       const auto swappedX = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5,0,0),gp_Dir(1,0,0)),5,1.5).Shape();
       const auto swappedZ = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,-4.5),gp_Dir(0,0,1)),3,8).Shape();
       record(out,"finite-pair-unequal-swapped",BRepAlgoAPI_Common(swappedX,swappedZ).Shape(),1e-11);
+      const auto obliqueParallelA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(3,4,0)),5,10).Shape();
+      const auto obliqueParallelB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(6,8,5),gp_Dir(-3,-4,0)),5,5).Shape();
+      record(out,"finite-pair-oblique-parallel",BRepAlgoAPI_Common(obliqueParallelA,obliqueParallelB).Shape(),1e-11);
       const auto containedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,3,4),gp_Dir(1,0,0)),2,8).Shape();
       const auto containedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,4,6),gp_Dir(0,0,-1)),5,4).Shape();
       record(out,"finite-pair-contained-skew",BRepAlgoAPI_Common(containedA,containedB).Shape(),1e-11);

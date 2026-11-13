@@ -419,6 +419,374 @@
       "fullReport": "/tmp/plaincad-reconcile-helical-5990537/readiness.json",
       "sourceHashes": 839,
       "plainSolidSourceHashes": 1077
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "8867368979c503f388a2e0324f67a488e2b2617d",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/fastener-presets.spec.ts",
+        "grep": "modeled Thread previews|lead screw and matching nut"
+      },
+      "startedAt": "2026-11-13T16:58:00.580Z",
+      "finishedAt": "2026-11-13T17:01:23.134Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "459f8603a277f2bcbeaf05810c1573e8ef8c8f971fa9e390e16faa25a6c9014f",
+      "summaries": [
+        {
+          "path": "/tmp/plaincad-reconcile-helical-8867368/backend-results.json",
+          "startTime": "2026-11-13T16:58:56.218Z",
+          "duration": 20963.158,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plaincad-reconcile-helical-8867368/playwright-results.json",
+          "startTime": "2026-11-13T16:59:17.846Z",
+          "duration": 125265.041,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 17370,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 99,
+          "title": "modeled Thread previews and persists native external and internal grooves",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "timedOut",
+              "durationMs": 93024,
+              "errors": [
+                {
+                  "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                },
+                {
+                  "location": {
+                    "file": "/private/tmp/plaincad-reconcile-helical-8867368/e2e/fastener-presets.spec.ts",
+                    "column": 31,
+                    "line": 15
+                  },
+                  "message": "Error: page.evaluate: Test timeout of 90000ms exceeded.\n\n  13 |\n  14 | async function command(page: Page, request: Omit<CommandRequest, \"session\">) {\n> 15 |   const response = await page.evaluate(async (serialized) => {\n     |                               ^\n  16 |     const input = JSON.parse(serialized);\n  17 |     const listed = await window.plaincadCommands.list();\n  18 |     if (!listed.ok) throw new Error(listed.error.message);\n    at command (/private/tmp/plaincad-reconcile-helical-8867368/e2e/fastener-presets.spec.ts:15:31)\n    at /private/tmp/plaincad-reconcile-helical-8867368/e2e/fastener-presets.spec.ts:151:21"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 169,
+          "title": "lead screw and matching nut are linked, editable and survive a cold open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 24242,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plaincad-reconcile-helical-8867368/readiness.json",
+      "sourceHashes": 839,
+      "plainSolidSourceHashes": 1085
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "a018ede3ef240f3185d2b4be1295a7692fd57c3c",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/fastener-presets.spec.ts",
+        "grep": "modeled Thread previews|lead screw and matching nut"
+      },
+      "startedAt": "2026-11-13T17:12:08.007Z",
+      "finishedAt": "2026-11-13T17:14:43.445Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "failed",
+      "wasmSha256": "78b1e1c36628cfa6b1e0de5953190aca6470ff52cdcd2f1d5065f17c0bf7ad94",
+      "summaries": [
+        {
+          "path": "/tmp/plaincad-reconcile-helical-a018ede/backend-results.json",
+          "startTime": "2026-11-13T17:12:29.595Z",
+          "duration": 17590.535,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plaincad-reconcile-helical-a018ede/playwright-results.json",
+          "startTime": "2026-11-13T17:12:47.850Z",
+          "duration": 115582.472,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 14014,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 99,
+          "title": "modeled Thread previews and persists native external and internal grooves",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "timedOut",
+              "durationMs": 91309,
+              "errors": [
+                {
+                  "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                },
+                {
+                  "location": {
+                    "file": "/private/tmp/plaincad-reconcile-helical-a018ede/e2e/fastener-presets.spec.ts",
+                    "column": 31,
+                    "line": 15
+                  },
+                  "message": "Error: page.evaluate: Test timeout of 90000ms exceeded.\n\n  13 |\n  14 | async function command(page: Page, request: Omit<CommandRequest, \"session\">) {\n> 15 |   const response = await page.evaluate(async (serialized) => {\n     |                               ^\n  16 |     const input = JSON.parse(serialized);\n  17 |     const listed = await window.plaincadCommands.list();\n  18 |     if (!listed.ok) throw new Error(listed.error.message);\n    at command (/private/tmp/plaincad-reconcile-helical-a018ede/e2e/fastener-presets.spec.ts:15:31)\n    at /private/tmp/plaincad-reconcile-helical-a018ede/e2e/fastener-presets.spec.ts:151:21"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 169,
+          "title": "lead screw and matching nut are linked, editable and survive a cold open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 19418,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plaincad-reconcile-helical-a018ede/readiness.json",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1091
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "bab91891f28cadaa3385e1127f90bd08734776d3",
+        "status": "M internal/plaincadbridge/overlap_volume.go\n?? internal/plaincadbridge/cylinder_containment_overlap.go\n?? internal/plaincadbridge/cylinder_containment_overlap_test.go",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/target-scope-capture.spec.ts",
+        "grep": "native join capture preserves|native revolve join capture retains"
+      },
+      "startedAt": "2026-11-13T17:16:14.425Z",
+      "finishedAt": "2026-11-13T17:16:53.110Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "0c0d413e08a28ebfb68b1dbbfdd84dd81e8c131e16dbc39b9b5daf9e17aeb17e",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-join-contained-patch/backend-results.json",
+          "startTime": "2026-11-13T17:16:27.519Z",
+          "duration": 11753.109,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-join-contained-patch/playwright-results.json",
+          "startTime": "2026-11-13T17:16:39.616Z",
+          "duration": 13484.944,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 10261,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "target-scope-capture.spec.ts",
+          "line": 523,
+          "title": "native join capture preserves the authored primary body and diagnoses face-only contact",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 4546,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "target-scope-capture.spec.ts",
+          "line": 617,
+          "title": "native revolve join capture retains an authored primary body",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 7438,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-join-contained-patch/readiness.json",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1094
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "80fac9cd0ddf93b03c9654519606aec3faaf4de0",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/fastener-presets.spec.ts",
+        "grep": "modeled Thread previews|lead screw and matching nut"
+      },
+      "startedAt": "2026-11-13T17:21:37.764Z",
+      "finishedAt": "2026-11-13T17:23:54.345Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "b3b467a9636e48087e5ccbe6adc176c618c4e66f3274d0d7fa4a275118220e1e",
+      "summaries": [
+        {
+          "path": "/tmp/plaincad-reconcile-helical-80fac9c/backend-results.json",
+          "startTime": "2026-11-13T17:21:56.956Z",
+          "duration": 16811.713,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plaincad-reconcile-helical-80fac9c/playwright-results.json",
+          "startTime": "2026-11-13T17:22:14.157Z",
+          "duration": 100180.444,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 14601,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 99,
+          "title": "modeled Thread previews and persists native external and internal grooves",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 82564,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "fastener-presets.spec.ts",
+          "line": 169,
+          "title": "lead screw and matching nut are linked, editable and survive a cold open",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 16003,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plaincad-reconcile-helical-80fac9c/readiness.json",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1100
     }
   ]
 }
