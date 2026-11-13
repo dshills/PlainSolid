@@ -191,6 +191,17 @@ func TestOCCTCoaxialFiniteCylinderThroughDifference(t *testing.T) {
 		t.Fatal(err)
 	}
 	compare(t, refs["finite-coaxial-cut"], mass.Area, mass.Volume, mass.Centroid)
+	cutter.Origin.X++
+	cutter.Origin.Y += .5
+	out, err = parametric.FiniteCylinderPairDifference(ctx, stock, cutter, 1e-8)
+	if err != nil || len(out.Solids[1].Faces()) != 0 || finiteOracleShellCount(out.Solids[0]) != 1 {
+		t.Fatal("expected one closed eccentric bore", err)
+	}
+	mass, err = out.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compare(t, refs["finite-eccentric-cut"], mass.Area, mass.Volume, mass.Centroid)
 }
 
 func TestOCCTUnequalFiniteCylinderAsymmetricCaps(t *testing.T) {

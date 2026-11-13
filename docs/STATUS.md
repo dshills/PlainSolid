@@ -684,6 +684,8 @@ beyond the opposite radius, and an exactly representable shoulder. The native
 result preserves the two stock caps and an inward cylindrical bore wall.
 A smaller coaxial cutter covering both stock caps also retains a native
 annular body for signed coordinate axes, including equal cap locations.
+The same construction accepts a parallel eccentric through-bore when the
+exact transverse disk gap and axial coverage prove a fully enclosed opening.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
