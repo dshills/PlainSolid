@@ -140,6 +140,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
 	case offsetBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
+	case steinmetzDisk:
+		return surfaceData{Kind: "steinmetz-disk", Center: &x.center, A: x.radius}, nil
 	case steinmetzChart:
 		return surfaceData{Kind: "steinmetz-cylinder", Center: &x.center, A: x.radius, Steinmetz: &[2]int{x.axis, x.sign}}, nil
 	case unequalCylinderCommonChart:
@@ -317,6 +319,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 
 	if d.Base != nil || d.Transform != nil {
 		return nil, geom.ErrInvalid
+	}
+	if d.Kind == "steinmetz-disk" {
+		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || d.A <= 0 || d.Frame != nil {
+			return nil, geom.ErrInvalid
+		}
+		return steinmetzDisk{*d.Center, d.A}, nil
 	}
 	if d.Kind == "steinmetz-cylinder" {
 		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || d.A <= 0 || d.Steinmetz == nil || d.Steinmetz[0] < 0 || d.Steinmetz[0] > 1 || (d.Steinmetz[1] != 1 && d.Steinmetz[1] != -1) || d.Frame != nil {

@@ -122,6 +122,8 @@ func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (flo
 		return x.SecondDerivativeBounds(geom.ParameterRectangle{UMin: u.Min, UMax: u.Max, VMin: v.Min, VMax: v.Max})
 	case offsetBoreChart:
 		return x.secondDerivativeBounds(ctx, u, v)
+	case steinmetzDisk:
+		return x.secondDerivativeBounds(ctx, u, v)
 	case steinmetzChart:
 		return x.secondDerivativeBounds(ctx, u, v)
 	case unequalCylinderCommonChart:
