@@ -17,9 +17,12 @@ against the selected PlainSolid kernel.
 
 Focused original checks on PlainCAD `e65f07b` cover studio Render and
 cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
-native STEP round-trip, and retained pocket and Hole lineage. See the
-[verification record](VERIFICATION.md) for individual runs and outstanding
-release qualification.
+native STEP round-trip, and retained pocket and Hole lineage. All 66
+original production cases pass. The current development and unit runs are
+still in progress. The cross-browser run passes one case on each of the
+three engines and records four UI locator failures per engine. Pristine
+OCCT reproduces those four failures in Chromium. See the
+[verification record](VERIFICATION.md) for reports and exact test scope.
 
 ## Selected production acceptance — 2026-11-13
 
