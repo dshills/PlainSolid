@@ -9,7 +9,8 @@ OCCT compatibility qualification is claimed.
 A finite blind Hole crossing one rectangular stock side now retains a
 watertight analytic notch and circular-segment floor. Seven original
 browser regressions and an authored rebuild, reload and STL check pass.
-STEP and mixed batches for this boundary remain open.
+Canonical STEP now round-trips the placed boundary and matches OCCT's
+independent volume, area and centroid. Mixed batches remain open.
 
 Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The

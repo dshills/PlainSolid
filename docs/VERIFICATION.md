@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD STEP for a single side-opening blind bore — 2026-11-13
+
+The canonical STEP path reconstructs the notched box from its actual plane
+and cylinder supports, verifies all topology and pcurves, and preserves the
+original box extrema for cardinal placements. Independent OCCT reads match
+native volume, area and centroid for two posed cases with the tool center
+on either side of the crossed stock plane.
+
+All [eight original browser regressions](evidence/plaincad-side-notch-step-browser-2026-11-13.json)
+pass for Hole Edit, machined references, STEP workers, import and export.
+The [native evidence](evidence/plaincad-side-notch-step-native-2026-11-13.json)
+records the focused race checks, Go vet and both supplemental same-WASM
+checks for authored persistence and placed STEP-to-STL fabrication.
+
 ## PlainCAD full development rerun after viewer changes — 2026-11-13
 
 The [344-case development rerun](evidence/plaincad-development-viewer-complete-2026-11-13.json)

@@ -112,9 +112,13 @@ func readCircularSourceFace(f *File, id int64) (circularSourceFace, error) {
 	return out, nil
 }
 func readCircularSourceEdge(f *File, id int64) (circularSourceEdge, error) {
+	return readCircularEdge(f, id, false)
+}
+
+func readCircularEdge(f *File, id int64, allowReversed bool) (circularSourceEdge, error) {
 	out := circularSourceEdge{id: id}
 	var e error
-	out.a, out.b, out.geometry, e = analyticEdge(f, id)
+	out.a, out.b, out.geometry, e = analyticEdgeGeometry(f, id, allowReversed)
 	if e != nil {
 		return out, e
 	}
@@ -319,6 +323,10 @@ type circularSourceGraph struct {
 }
 
 func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
+	return readCircularGraph(f, body, false)
+}
+
+func readCircularGraph(f *File, body int64, allowReversed bool) (circularSourceGraph, error) {
 	out := circularSourceGraph{edges: map[int64]circularSourceEdge{}, owners: map[int64][]int{}}
 	b, e := simple(f, body, "MANIFOLD_SOLID_BREP", 2)
 	if e != nil {
@@ -362,7 +370,7 @@ func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
 			for k, u := range loop {
 				edge, ok := out.edges[u.id]
 				if !ok {
-					edge, e = readCircularSourceEdge(f, u.id)
+					edge, e = readCircularEdge(f, u.id, allowReversed)
 					if e != nil {
 						return out, e
 					}
@@ -370,7 +378,7 @@ func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
 				}
 				next, ok := out.edges[loop[(k+1)%len(loop)].id]
 				if !ok {
-					next, e = readCircularSourceEdge(f, loop[(k+1)%len(loop)].id)
+					next, e = readCircularEdge(f, loop[(k+1)%len(loop)].id, allowReversed)
 					if e != nil {
 						return out, e
 					}

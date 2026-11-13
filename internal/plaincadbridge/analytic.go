@@ -30,6 +30,7 @@ type analyticBody struct {
 	helicalMesh    *mesh.Mesh
 	stepRounded    *step.RoundedRectangleExtrusionBody
 	stepDisk       *step.DiskHoleExtrusionBody
+	sideBlindNotch *step.SideBlindNotchBody
 	layeredDisk    bool
 	pockets        *pocketStock
 	coaxial        *coaxialBody
@@ -60,6 +61,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 		box = body.arcLoop.bounds
 	} else if body.segment != nil {
 		box, err = body.segment.bounds()
+	} else if body.sideBlindNotch != nil {
+		box, err = sideBlindNotchBounds(*body.sideBlindNotch)
 	} else if body.coaxial != nil {
 		box, err = body.coaxial.bounds()
 	} else if body.islandPocket != nil {
@@ -154,6 +157,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.sector = nil
 	out.stepRounded = nil
 	out.stepDisk = nil
+	out.sideBlindNotch = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -184,6 +188,14 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
 			p.Frame = f
 			out.stepDisk = &p
+		}
+	}
+	if a.sideBlindNotch != nil {
+		p := *a.sideBlindNotch
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.sideBlindNotch = &p
 		}
 	}
 	if a.stepRounded != nil {

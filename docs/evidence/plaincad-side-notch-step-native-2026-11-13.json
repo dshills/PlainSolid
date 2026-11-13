@@ -1,0 +1,37 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "wasmSha256": "992db4bf4d94d887b3605a9494296d8572f95a65657034790c519883c1784910",
+  "supplemental": {
+    "report": "/tmp/plainsolid-side-notch-step-unit-01.json",
+    "reportSha256": "0775c5577630df116992e9c87dea8cc7a2f0e5cf9eda2db61e7293fb39106d32",
+    "sourceSha256": "9024d5749371dfd093559026d005f46c68ce676a7c72cdb42f9639901b53a2bf",
+    "tests": [
+      {
+        "title": "rebuilds a side-opening blind Hole and validates STL after reload",
+        "status": "passed",
+        "duration": 584.3865829999995
+      },
+      {
+        "title": "reimports a placed side-opening blind bore and validates its fabrication mesh",
+        "status": "passed",
+        "duration": 962.7351250000002
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 3.773,
+    "exchange/step": 3.199
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestSideBlindNotchSTEP",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "cases": 2,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}
