@@ -81,7 +81,12 @@ candidate `274540f`; later changes have separate focused checks. Both original
 target-capture cases also passed after exact planar containment was connected
 to the overlap query. The independent production baseline `65f053d` passed
 61 of 66 original cases; its five failures remain separate from candidate
-browser evidence.
+browser evidence. The original production fabrication case later passed on
+`0955719` after integrating `72a778a`, which routes retained fitted boundaries
+through the planar STEP writer. The previous bridge error returned quickly;
+the stale UI status had made it appear to be a validation timeout. The
+[production rerun record](evidence/plaincad-fabrication-reconciliation-2026-11-13.json)
+retains the tested build identity and result.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by

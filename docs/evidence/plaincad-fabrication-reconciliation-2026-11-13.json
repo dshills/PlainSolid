@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "backend": "plainsolid-go-wasm",
+  "candidate": "0955719c6d7d27523062a441dcab19a273afe375",
+  "sourceIdentity": {
+    "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+    "status": "M README.md\n M docs/COMMANDS.md\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+    "branch": "main"
+  },
+  "wasmSha256": "1b40b144120abad341c5ca46abd920b2a39c4d74c3caf2e953e7a48d33047d7d",
+  "productionFixture": "production-e2e/configuration-package.spec.ts",
+  "fixtureSha256": "8bfa1335d60d4dc38d38c411063802c2756ec9ea6c2f636a7a4a20817a345141",
+  "title": "built fabrication package proves the same native variant under CSP",
+  "status": "expected",
+  "durationMs": 4868,
+  "stats": {
+    "startTime": "2026-11-13T17:29:56.474Z",
+    "duration": 8214.846,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "playwrightVersion": "1.63.0",
+  "fullReport": "/tmp/plainsolid-fabrication-candidate/production-results-0955719.json"
+}
