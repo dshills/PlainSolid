@@ -812,3 +812,8 @@ The circular-meridian tests cover both signed quarter turns and a full torus.
 Signed rectangular extrusions with two exact circular bores preserve four
 cap inner wires, Euler characteristic minus two, and independent volume
 `abs(height)*(32-2π*0.75²)` through native reload.
+Mixed signed through/blind extrusion tests verify volume and distinguish the
+void, floor and retained material behind it after native reload. The cylinder
+groove tests compare both handedness values with independently integrated
+volume `(12-11/96)π`, recheck original cap/wall topology, and reject a cut
+crossing the current cylinder seam.

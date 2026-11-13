@@ -76,3 +76,32 @@ func TestHelicalCylinderCommon(t *testing.T) {
 		t.Fatal("unsupported cap crossing must be unresolved", e)
 	}
 }
+
+func TestGrooveCylinderWithHelicalPolygon(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.NewFrame(geom.Vec3{X: 3, Y: 4, Z: 1}, geom.Vec3{X: 1}, geom.Vec3{Y: 1})
+	p := []geom.Vec2{{X: 1.5, Y: .5}, {X: 2, Y: .375}, {X: 2, Y: .625}}
+	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {
+		s, e := GrooveCylinderWithHelicalPolygon(ctx, f, 2, 3, p, 1, .125, .625, hand)
+		if e != nil || s.Topology().EulerCharacteristic != 2 || s.Topology().InnerWires != 1 || len(s.faces) != 7 {
+			t.Fatal(hand, s.Topology(), e)
+		}
+		v, e := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+		// Triangle area=1/16, radial centroid=11/6, angle=π.
+		want := (12 - 11.0/96) * math.Pi
+		if e != nil || math.Abs(v.Volume-want) > want*1e-7 {
+			t.Fatal(hand, v.Volume, want, e)
+		}
+		var file bytes.Buffer
+		if e := WriteJSON(&file, s); e != nil {
+			t.Fatal(e)
+		}
+		back, e := ReadJSONContext(ctx, &file, JSONLimits{})
+		if e != nil || back.Topology().EulerCharacteristic != 2 {
+			t.Fatal(hand, back.Topology(), e)
+		}
+	}
+	if s, e := GrooveCylinderWithHelicalPolygon(ctx, f, 2, 3, p, 1, .75, 1.125, geom.RightHanded); !errors.Is(e, geom.ErrConvergence) || len(s.faces) != 0 {
+		t.Fatal("unresolved periodic crossing accepted", e)
+	}
+}

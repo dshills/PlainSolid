@@ -26,12 +26,14 @@ the resulting solids. General current-face/edge proof and browser resource
 behavior are part of those gates, not optional integration details.
 Signed partial polygon-meridian revolutions and bounded constant-lead
 helical polygon sweeps are now available in the Go kernel. They still need
-application acceptance. Curved meridian profiles, helical cuts of existing
-solids, and lead-in and runout remain separate work.
+application acceptance. Selected convex profiles cut blind-ended grooves
+in a cylinder within one unwrapped wall chart. Multi-turn grooves,
+arbitrary curved meridian profiles, lead-in and runout remain open.
 Selected signed off-axis circular meridians produce analytic torus elbows.
 The STEP polygon revolve writer qualifies signed partial sweeps and axis
 contact; the closed display proof is opt-in. Convex polygon extrusion with
-strictly disjoint circular holes now retains analytic cap arcs and walls.
+strictly disjoint circular holes now retains analytic cap arcs, walls and
+selected blind-hole floors.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|
