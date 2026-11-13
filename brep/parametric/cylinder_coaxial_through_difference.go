@@ -21,6 +21,13 @@ type CoaxialCylinderThroughDifference struct {
 // Equal cap locations are supported. Unsupported or unrepresentable geometry
 // returns no partial result. The retained boundary is one genus-one shell.
 func FiniteCoaxialCylinderThroughDifference(ctx context.Context, stock, cutter geom.RawCylinder, tolerance float64) (CoaxialCylinderThroughDifference, error) {
+	return finiteCoordinateCylinderThroughDifference(ctx, stock, cutter, tolerance, true)
+}
+
+// For each axial section the smaller circle is strictly inside the stock
+// circle. Corresponding radial angles join the two cap boundaries without
+// folding: the gap projected onto any radial direction is positive.
+func finiteCoordinateCylinderThroughDifference(ctx context.Context, stock, cutter geom.RawCylinder, tolerance float64, requireCoaxial bool) (CoaxialCylinderThroughDifference, error) {
 	var zero CoaxialCylinderThroughDifference
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
 		return zero, geom.ErrInvalid
@@ -38,10 +45,15 @@ func FiniteCoaxialCylinderThroughDifference(ctx context.Context, stock, cutter g
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	sv, cv := [3]float64{stock.Origin.X, stock.Origin.Y, stock.Origin.Z}, [3]float64{cutter.Origin.X, cutter.Origin.Y, cutter.Origin.Z}
+	distanceSquared := new(big.Rat)
 	for i, v := range [3]float64{unit.X, unit.Y, unit.Z} {
-		if v == 0 && sv[i] != cv[i] {
-			return zero, geom.ErrDomain
+		if v == 0 {
+			d := new(big.Rat).Sub(q(cv[i]), q(sv[i]))
+			distanceSquared.Add(distanceSquared, new(big.Rat).Mul(d, d))
 		}
+	}
+	if requireCoaxial && distanceSquared.Sign() != 0 {
+		return zero, geom.ErrDomain
 	}
 	span := func(c geom.RawCylinder) [2]*big.Rat {
 		base, delta := q(c.Origin.Dot(unit)), q(c.Axis.Dot(unit))
@@ -78,11 +90,30 @@ func FiniteCoaxialCylinderThroughDifference(ctx context.Context, stock, cutter g
 	if gap.Cmp(clearance) <= 0 || q(cutter.Radius).Cmp(clearance) <= 0 || heightRat.Cmp(clearance) <= 0 {
 		return zero, geom.ErrDomain
 	}
+	gap.Sub(gap, clearance)
+	if distanceSquared.Cmp(new(big.Rat).Mul(gap, gap)) >= 0 {
+		return zero, geom.ErrDomain
+	}
 	frame, err := geom.FrameFromNormal(start, unit)
 	if err != nil {
 		return zero, err
 	}
-	s, err := cylinderAnnulus(frame, DiskProfile{Radius: stock.Radius}, DiskProfile{Radius: cutter.Radius}, height, tolerance)
+	// Express the two transverse coordinates using exact signed cardinal
+	// projections. No subtraction along the stock axis is needed.
+	var center geom.Vec2
+	for i, dir := range [2]geom.Vec3{frame.XAxis(), frame.YAxis()} {
+		delta := new(big.Rat).Sub(q(cutter.Origin.Dot(dir)), q(stock.Origin.Dot(dir)))
+		v, err := geom.RepresentedExactScalar(delta)
+		if err != nil {
+			return zero, err
+		}
+		if i == 0 {
+			center.X = v
+		} else {
+			center.Y = v
+		}
+	}
+	s, err := cylinderAnnulus(frame, DiskProfile{Radius: stock.Radius}, DiskProfile{Center: center, Radius: cutter.Radius}, height, tolerance)
 	if err != nil {
 		return zero, err
 	}

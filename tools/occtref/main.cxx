@@ -249,6 +249,8 @@ int main(int argc, char** argv) {
       for(TopExp_Explorer it(coaxialCut,TopAbs_SHELL);it.More();it.Next())++coaxialShells;
       if(coaxialSolids!=1||coaxialShells!=1)throw std::runtime_error("coaxial finite cut not one solid with one shell");
       record(out,"finite-coaxial-cut",coaxialCut,1e-11);
+      const auto eccentricTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,2.5,-4),gp_Dir(0,0,1)),3,15).Shape();
+      record(out,"finite-eccentric-cut",BRepAlgoAPI_Cut(unequalWide,eccentricTool).Shape(),1e-11);
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();
       record(out,"finite-unequal-offset-union",BRepAlgoAPI_Fuse(offsetWide,offsetNarrow).Shape(),1e-11);

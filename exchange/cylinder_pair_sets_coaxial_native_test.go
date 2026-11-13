@@ -4,14 +4,25 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"testing"
+
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
-	"testing"
 )
 
 func TestCylinderPairCoaxialThroughRecipe(t *testing.T) {
+	t.Run("coaxial", func(t *testing.T) { testCylinderPairParallelThroughRecipe(t, geom.Vec3{}) })
+	t.Run("eccentric", func(t *testing.T) { testCylinderPairParallelThroughRecipe(t, geom.Vec3{X: 1, Y: .5}) })
+}
+
+func testCylinderPairParallelThroughRecipe(t *testing.T, offset geom.Vec3) {
+	t.Helper()
 	ctx := context.Background()
 	r := CylinderPairCommonRecipe{Name: "signed coaxial through", A: geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}, B: geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 5}, Axis: geom.Vec3{Z: 3}, Radius: 3, Min: -3, Max: 2}, Tolerance: 1e-9, LengthUnit: .001}
+	if offset != (geom.Vec3{}) {
+		r.Name = "signed eccentric through"
+		r.B.Origin = r.B.Origin.Add(offset)
+	}
 	var b bytes.Buffer
 	if e := WriteCylinderPairDifferenceRecipeJSON(ctx, &b, r); e != nil {
 		t.Fatal(e)
@@ -50,10 +61,12 @@ func TestCylinderPairCoaxialThroughRecipe(t *testing.T) {
 				}
 			} else {
 				want := 5.0
+				axis := r.A.Origin
 				if role == 1 {
 					want = 3
+					axis = r.B.Origin
 				}
-				radial := geom.Vec3{X: p.X - 1, Y: p.Y - 2}
+				radial := geom.Vec3{X: p.X - axis.X, Y: p.Y - axis.Y}
 				if math.Abs(radial.Length()-want) > 1e-11 {
 					t.Fatal("radius", role, p)
 				}
@@ -87,7 +100,8 @@ func TestCylinderPairCoaxialThroughRecipe(t *testing.T) {
 		t.Fatal("chart changed", e)
 	}
 	m, e := s.MassProperties(ctx, parametric.IntegrationOptions{})
-	if e != nil || math.Abs(m.Volume-128*math.Pi) > 1e-8 || math.Abs(m.Area-160*math.Pi) > 1e-8 || m.Centroid.Sub(r.A.Origin).Length() > 1e-9 {
+	wantCenter := r.A.Origin.Sub(offset.Scale(9.0 / 16))
+	if e != nil || math.Abs(m.Volume-128*math.Pi) > 1e-8 || math.Abs(m.Area-160*math.Pi) > 1e-8 || m.Centroid.Sub(wantCenter).Length() > 1e-9 {
 		t.Fatal(m, e)
 	}
 	again.Reset()
