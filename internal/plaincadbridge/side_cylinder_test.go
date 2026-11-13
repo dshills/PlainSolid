@@ -133,24 +133,26 @@ func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
 	notch := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, 6)
 	blind := circle(t, b, vector{5, 10, 0}, vector{0, 0, 1}, 2, 3)
 	through := circle(t, b, vector{15, 10, -1}, vector{0, 0, 1}, 2, 10)
+	opposed := circle(t, b, vector{10, 14, 8}, vector{0, 0, -1}, 1, 5)
 	cut := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": notch.Handle})
 	for _, tc := range []struct {
 		base  Shape
 		tools []string
 	}{
-		{stock, []string{notch.Handle, blind.Handle, through.Handle}},
-		{stock, []string{through.Handle, blind.Handle, notch.Handle}},
-		{cut, []string{through.Handle, blind.Handle}},
+		{stock, []string{notch.Handle, blind.Handle, through.Handle, opposed.Handle}},
+		{stock, []string{through.Handle, opposed.Handle, blind.Handle, notch.Handle}},
+		{cut, []string{opposed.Handle, through.Handle, blind.Handle}},
 	} {
 		before := len(b.shapes)
 		result, err := b.cutMany(tc.base.Handle, tc.tools)
 		if err != nil || len(b.shapes) != before+1 {
 			t.Fatal("mixed batch did not publish exactly one result", err)
 		}
-		near(t, result.GeometryAssertions.Volume, cut.GeometryAssertions.Volume-44*math.Pi)
-		near(t, result.GeometryAssertions.SurfaceArea, cut.GeometryAssertions.SurfaceArea+36*math.Pi)
+		near(t, result.GeometryAssertions.Volume, cut.GeometryAssertions.Volume-49*math.Pi)
+		near(t, result.GeometryAssertions.SurfaceArea, cut.GeometryAssertions.SurfaceArea+46*math.Pi)
 		near(t, overlapMeasure(t, b, result.Handle, blind.Handle), 0)
 		near(t, overlapMeasure(t, b, result.Handle, through.Handle), 0)
+		near(t, overlapMeasure(t, b, result.Handle, opposed.Handle), 0)
 		near(t, overlapMeasure(t, b, result.Handle, notch.Handle), 0)
 		file, err := b.exportSTEP([]string{result.Handle})
 		if err != nil {

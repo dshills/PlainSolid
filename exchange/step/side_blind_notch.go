@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -128,7 +129,7 @@ func recoverSideBlindNotch(f *File, id int64) (SideBlindNotchBody, error) {
 			continue
 		}
 		seen[hole] = true
-		var low, high float64
+		low, high := math.Inf(1), math.Inf(-1)
 		for _, use := range face.loops[0] {
 			edge := g.edges[use.id]
 			if edge.kind == "CIRCLE" {
@@ -136,13 +137,18 @@ func recoverSideBlindNotch(f *File, id int64) (SideBlindNotchBody, error) {
 				low, high = min(low, z), max(high, z)
 			}
 		}
-		if low != 0 || high <= 0 || high > p.Length {
+		if low < 0 || high <= low || high > p.Length {
 			return fail()
 		}
-		if high == p.Length {
+		switch {
+		case low == 0 && high == p.Length:
 			p.Through = append(p.Through, hole)
-		} else {
+		case low == 0:
 			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: high})
+		case high == p.Length:
+			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: high - low, OppositeCap: true})
+		default:
+			return fail()
 		}
 	}
 	if p.Radius <= 0 {

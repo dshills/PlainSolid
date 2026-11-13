@@ -31,7 +31,10 @@ func TestSideBlindNotchSTEP(t *testing.T) {
 			Inset: tc.inset, Length: 20, Radius: 3, Depth: 6}
 		if tc.mixed {
 			p.Through = []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: -4, Y: 9}, Radius: 1}}
-			p.Blind = []trimmed.ExtrusionBlindHole{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 4, Y: 9}, Radius: 2}, Depth: 4}}
+			p.Blind = []trimmed.ExtrusionBlindHole{
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 4, Y: 9}, Radius: 2}, Depth: 4},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{Y: 14}, Radius: 1}, Depth: 6, OppositeCap: true},
+			}
 		}
 		var out bytes.Buffer
 		m := SideBlindNotchModel{Body: p, LengthUnit: .001}
