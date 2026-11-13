@@ -829,3 +829,11 @@ An internally grooved tube retains Euler characteristic zero and its
 analytic annular caps through reload. Both handedness values match the
 independent two-start volume `(16-5/6)π`. The paired profile query reports
 exact radial-slice clearance with original profile edges and finite turns.
+
+Finite planar extrusion tests reproduce the selected-cap volume change from
+500 to 1000 as the target is rebuilt. They check positive and negative sweeps
+to a tilted cap, a diagonal sweep, contact with coincident boundaries, and
+exact loss of coverage at a target hole, a concave notch, and a one-ULP
+overhang. Parallel rays, nonplanarity, endpoints without an exact float64
+representation, a lost face index, and cancellation return no partial solid.
+These are Go kernel tests; the PlainCAD browser gate is separate.

@@ -24,6 +24,10 @@ line/arc profiles and partial revolutions; cap-edge treatments followed by
 bores, pockets and joins; helical threads and lead parts; and STEP roundtrips of
 the resulting solids. General current-face/edge proof and browser resource
 behavior are part of those gates, not optional integration details.
+Polygon profiles can terminate against a finite planar face, including a
+concave outline and holes. The Go operation proves complete projected coverage
+and positive sweep height; PlainCAD must still resolve references and run the
+browser acceptance case.
 Signed partial polygon-meridian revolutions and bounded constant-lead
 helical polygon sweeps are now available in the Go kernel. They still need
 application acceptance. Selected convex profiles cut blind-ended grooves
@@ -38,7 +42,9 @@ The STEP polygon revolve writer qualifies signed partial sweeps and axis
 contact; the closed display proof is opt-in. Convex polygon extrusion with
 strictly disjoint circular holes now retains analytic cap arcs, walls and
 selected blind-hole floors. STEP independently qualifies signed through
-and blind cylindrical features.
+and blind cylindrical features. The strict circular extrusion STEP reader
+reconstructs and checks canonical producer graphs; alternate OCCT placements
+and pcurve conventions require a separate import path.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|
