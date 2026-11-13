@@ -83,6 +83,9 @@ func planarPair(ctx context.Context, lower, upper []geom.Vec3, o Options, parall
 	if n < 3 || len(upper) != n {
 		return empty, ErrInvalid
 	}
+	if e := preflightSizes(2*n, n+2, o); e != nil {
+		return empty, e
+	}
 	vertices := append(append([]geom.Vec3(nil), lower...), upper...)
 	points := make([]qpoint, len(vertices))
 	for i, v := range vertices {

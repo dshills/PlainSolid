@@ -76,6 +76,9 @@ func stationShell(ctx context.Context, rings [][]geom.Vec3, options StationOptio
 	if n > o.MaxVertices || count > options.MaxTotalVertices/n {
 		return empty, ErrLimit
 	}
+	if e := preflightSizes(n*count, 2+n*(count-1), o); e != nil {
+		return empty, e
+	}
 	vertices := make([]geom.Vec3, 0, n*count)
 	for _, ring := range rings {
 		if len(ring) != n {
