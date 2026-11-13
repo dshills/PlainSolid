@@ -278,3 +278,38 @@ func TestFiniteObliqueParallelCylinderPairEmpty(t *testing.T) {
 	assertEmpty(a, b) // Same axis, cap-only contact with reversed raw direction.
 	assertEmpty(b, a)
 }
+
+func TestFinitePerpendicularCylinderPairContainment(t *testing.T) {
+	ctx := context.Background()
+	// A smaller cylinder of radius 3 fits at its x=±4 caps exactly because
+	// the perpendicular radius is 5. The larger body's Y caps also touch.
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{X: -2}, Radius: 3, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Y: 1}, Radius: 5, Min: -3, Max: 3}
+	for owner, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, pair[0], pair[1], 1e-9)
+		if e != nil || out.Construction != CylinderCommonContainedCylinder || len(out.Solid.Faces()) != 3 {
+			t.Fatal(out.Construction, e)
+		}
+		for _, group := range [][2][]int{out.SideFaces, out.LowerCapFaces, out.UpperCapFaces} {
+			if len(group[owner]) != 1 || len(group[1-owner]) != 0 {
+				t.Fatal("lost original owner", group)
+			}
+		}
+		p, e := out.Solid.MassProperties(ctx, IntegrationOptions{})
+		if e != nil || math.Abs(p.Volume-72*math.Pi) > 1e-8 || p.Centroid.Sub(a.Origin).Length() > 1e-9 {
+			t.Fatal(p, e)
+		}
+		for i, id := range []int{out.LowerCapFaces[owner][0], out.UpperCapFaces[owner][0]} {
+			f := out.Solid.Faces()[id]
+			point, e := f.Surface.Eval(0, 0)
+			if e != nil || point.X != [2]float64{5, -3}[i] {
+				t.Fatal("raw cap direction lost", point, e)
+			}
+		}
+	}
+	a.Max = math.Nextafter(a.Max, math.Inf(1))
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-9)
+	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("noncontained sliver was silently removed", out, e)
+	}
+}
