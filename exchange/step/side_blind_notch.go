@@ -16,6 +16,8 @@ type SideBlindNotchBody struct {
 	Name                                            string
 	Frame                                           geom.Frame
 	Left, Right, Back, Inset, Length, Radius, Depth float64
+	Through                                         []trimmed.ExtrusionCircle
+	Blind                                           []trimmed.ExtrusionBlindHole
 }
 
 type SideBlindNotchModel struct {
@@ -40,7 +42,7 @@ func WriteSideBlindNotch(w io.Writer, m SideBlindNotchModel) error {
 
 func writeSideBlindNotchBody(w io.Writer, m SideBlindNotchModel) error {
 	p := m.Body
-	s, err := trimmed.BoxSideCylinderBlind(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, 1e-9)
+	s, err := trimmed.BoxSideCylinderBlindWithBores(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, p.Through, p.Blind, 1e-9)
 	if err != nil {
 		return err
 	}
@@ -73,7 +75,7 @@ func recoverSideBlindNotch(f *File, id int64) (SideBlindNotchBody, error) {
 	fail := func() (SideBlindNotchBody, error) { return SideBlindNotchBody{}, circularSourceFailure() }
 	// This canonical reader compares every edge sense against regenerated STEP.
 	g, err := readCircularGraph(f, id, true)
-	if err != nil || len(g.faces) < 14 || len(g.faces) > 17 || g.faces[0].kind != "PLANE" || g.faces[1].kind != "PLANE" {
+	if err != nil || len(g.faces) < 14 || len(g.faces) > 64 || g.faces[0].kind != "PLANE" || g.faces[1].kind != "PLANE" {
 		return fail()
 	}
 	frame := g.faces[0].frame
@@ -105,14 +107,43 @@ func recoverSideBlindNotch(f *File, id int64) (SideBlindNotchBody, error) {
 	}
 	p := SideBlindNotchBody{Name: name, Frame: frame, Depth: floor.Z, Length: bounds.Max.Z,
 		Left: -bounds.Min.X, Right: bounds.Max.X, Back: bounds.Max.Y, Inset: -bounds.Min.Y}
+	seen := map[trimmed.ExtrusionCircle]bool{}
 	for _, face := range g.faces {
 		if face.kind != "CYLINDER" {
 			continue
 		}
-		if face.frame != frame || face.sense || p.Radius != 0 && p.Radius != face.radius {
+		center := frame.ToLocal(face.frame.Origin())
+		if center.Z != 0 || face.frame.XAxis() != frame.XAxis() || face.frame.ZAxis() != frame.ZAxis() || face.sense {
 			return fail()
 		}
-		p.Radius = face.radius
+		if center == (geom.Vec3{}) {
+			if p.Radius != 0 && p.Radius != face.radius {
+				return fail()
+			}
+			p.Radius = face.radius
+			continue
+		}
+		hole := trimmed.ExtrusionCircle{Center: geom.Vec2{X: center.X, Y: center.Y}, Radius: face.radius}
+		if seen[hole] {
+			continue
+		}
+		seen[hole] = true
+		var low, high float64
+		for _, use := range face.loops[0] {
+			edge := g.edges[use.id]
+			if edge.kind == "CIRCLE" {
+				z := frame.ToLocal(edge.frame.Origin()).Z
+				low, high = min(low, z), max(high, z)
+			}
+		}
+		if low != 0 || high <= 0 || high > p.Length {
+			return fail()
+		}
+		if high == p.Length {
+			p.Through = append(p.Through, hole)
+		} else {
+			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: high})
+		}
 	}
 	if p.Radius <= 0 {
 		return fail()

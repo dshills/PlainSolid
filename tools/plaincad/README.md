@@ -134,30 +134,28 @@ scales, interacting tools, and general modified-stock operations remain outside
 this domain. The original long feature-chain and adjacent edge-treatment cases
 measure parameter edits, invalid-size/downstream recovery, save/reopen, and STL.
 
-Finite cylindrical through-cuts and blind bores are supported on qualified convex planar stock
-with parallel caps perpendicular to the cylinder axis and a strictly interior
-circular footprint. A through-tool must cover both stock caps; equality at the caps is
-accepted. A blind tool must enter a stock cap and end inside the stock, producing
-an exact planar floor. Fully internal, tangential, clipped-side and unsupported oblique-cap cuts
-are rejected instead of extending the cylinder infinitely. Multiple separated
-bores use the original stock and validated cut recipes. These restrictions do not
-imply support for cutting arbitrary previously filleted or revolved bodies.
+Finite cylindrical through-cuts and blind bores are supported on qualified
+convex planar and circular stock with parallel perpendicular caps. Through
+tools must cover both stock caps, including exact endpoint equality. Blind
+tools must open on one cap and end within the stock. One qualified rectangular
+side-opening blind notch retains its true circular-segment floor. It can
+share a batch with disjoint contained blind bores from the same cap and
+through bores. Qualified cardinal placements round-trip through STEP.
+A single exact side tangent on rectangular stock retains its four-use
+contact for modeling and display. Fabrication and STEP reject that contact.
 
-Scoped Hole cuts validate every center against the original selected bodies and
-require every selected body to lose volume. Individual center/body misses are
-allowed only when the native intersection proves no common volume. Results are
-published together; a failed center or target disposes all intermediate outputs
-and preserves the inputs. The native batch applies the union of tools to each
-target; duplicate and contained tools need not remove additional material after
-another tool. Direct single cuts still reject no-ops. Circular overlap uses
-analytic exposed arcs for parallel tools sharing a blind opening side, including
-unequal effective depths and their exposed stepped floors, within the bounded
-bore domain. Through-tools may be oriented from either cap; opposed blind
-opening sides remain unsupported. At most 32 tools are accepted per target batch. Tangent unions remain
-unsupported; subsequent cuts on arbitrary previously modified stocks are not
-implied. Supported retained bore histories can receive another overlapping Hole
-feature. Scope intersection uses an exact volume query without manufacturing an
-intersection shape. The backend probe
+Scoped Hole checks each center against the original selected bodies and
+requires every selected body to lose volume. A failed center or target
+preserves the inputs and disposes intermediate outputs. The native batch
+unions duplicate, contained and intersecting tools where the boundary is
+proved. Unequal-depth and opposed entry tools retain analytic exposed
+walls and floors across axial layers on qualified planar and circular
+stock. The bridge accepts at most 32 tools per target batch. The measure
+query computes common material volume without allocating an intersection
+shape. The circular layered STEP codec verifies the regenerated canonical
+graph and rejects unproved boundaries. The implementation remains bounded
+to these qualified stock and tool families.
+The backend probe
 checks indexed scope errors and fills the remaining native handle capacity after
 repeated late-target failures to verify cleanup. It also measures circular-lens
 union volume and area, tool-order independence, duplicates, contained tools, and

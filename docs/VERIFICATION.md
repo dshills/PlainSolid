@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD mixed side-opening and contained bore batch — 2026-11-13
+
+A single side-opening blind cut can share a native batch with disjoint
+interior blind cuts from its entry cap and through bores. Grouped and
+successive application preserve exact material volume and publish one
+solid. Contact with the side-notch footprint and unsupported extra entry
+configurations are rejected atomically. The retained batch round-trips
+canonical STEP, and independent OCCT checks match volume, area and centroid.
+
+All [seven original browser regressions](evidence/plaincad-mixed-side-batch-browser-2026-11-13.json)
+pass for Hole, multi-body scope, and STEP. The [native evidence](evidence/plaincad-mixed-side-batch-native-2026-11-13.json)
+records focused race checks, Go vet and two same-WASM app probes for authored
+mixed Hole persistence and placed STEP-to-STL fabrication.
+
 ## PlainCAD STEP for a single side-opening blind bore — 2026-11-13
 
 The canonical STEP path reconstructs the notched box from its actual plane

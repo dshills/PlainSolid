@@ -1,0 +1,39 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "wasmSha256": "9d338407816e7bdc22a1e77a5f475ba98cb5f1bed2948b2e583d0d8e8bec9f4a",
+  "supplemental": {
+    "report": "/tmp/plainsolid-mixed-side-batch-unit-01.json",
+    "reportSha256": "d0e8df675f5692838fcec9d29658a3366011fe09f09e85ec2c50772e2262d53d",
+    "sourceSha256": "58b6a474cca6e252d6e5279f5f31997f53de6bc8c7c4458d45e22fd08952ffa0",
+    "tests": [
+      {
+        "title": "rebuilds a mixed batch of side-opening and contained blind holes and validates STL after reload",
+        "status": "passed",
+        "duration": 213.75312499999995
+      },
+      {
+        "title": "reimports a placed mixed side-opening bore batch and validates its fabrication mesh",
+        "status": "passed",
+        "duration": 408.344292
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 7.934,
+    "brep/trimmed": 1.767,
+    "exchange/step": 2.46
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestSideBlindNotchSTEP",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "cases": 3,
+    "mixedCases": 1,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}

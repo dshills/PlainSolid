@@ -3,6 +3,8 @@ package trimmed
 import (
 	"context"
 	"math"
+	"math/big"
+
 	"plainsolid/geom"
 )
 
@@ -10,20 +12,26 @@ import (
 // the lower Y side. Frame's axis passes through the circle center; stock spans
 // X=[-left,right], Y=[-inset,back], Z=[0,length].
 func BoxSideCylinderThrough(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, tolerance float64) (Solid, error) {
-	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, length, tolerance)
+	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, length, nil, nil, tolerance)
 }
 
 // BoxSideCylinderBlind cuts a circular notch from Z=0 to depth. The footprint
 // crosses the lower Y side and clears the other three sides. The far cap and
 // the material behind the analytic circular-segment floor remain intact.
 func BoxSideCylinderBlind(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth, tolerance float64) (Solid, error) {
+	return BoxSideCylinderBlindWithBores(ctx, frame, left, right, back, inset, length, radius, depth, nil, nil, tolerance)
+}
+
+// BoxSideCylinderBlindWithBores adds through holes and blind bores from Z=0
+// whose radial footprints clear the side-opening tool and every other bore.
+func BoxSideCylinderBlindWithBores(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if !finite(depth) || length-depth <= 8*tolerance {
 		return Solid{}, geom.ErrDomain
 	}
-	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, depth, tolerance)
+	return boxSideCylinder(ctx, frame, left, right, back, inset, length, radius, depth, through, blind, tolerance)
 }
 
-func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth, tolerance float64) (Solid, error) {
+func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, inset, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -38,6 +46,31 @@ func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, i
 	pad := 8 * tolerance
 	if tolerance <= 0 || !finite(pad) || radius <= pad || depth <= pad || depth > length || radius-math.Abs(inset) <= pad || left-radius <= pad || right-radius <= pad || back-radius <= pad {
 		return Solid{}, geom.ErrDomain
+	}
+	if len(through)+len(blind) != 0 {
+		holes, e := validateExtrusionHoles(ctx, frame, through, blind, length)
+		if e != nil {
+			return Solid{}, e
+		}
+		for _, h := range blind {
+			if h.OppositeCap || h.Depth <= pad || length-h.Depth <= pad {
+				return Solid{}, geom.ErrDomain
+			}
+		}
+		for _, h := range holes {
+			for _, pair := range [][2]float64{{h.Center.X, -left}, {right, h.Center.X}, {h.Center.Y, -inset}, {back, h.Center.Y}} {
+				gap := new(big.Rat).Sub(ratInset(pair[0]), ratInset(pair[1]))
+				gap.Sub(gap, ratInset(h.Radius))
+				if gap.Cmp(ratInset(pad)) <= 0 {
+					return Solid{}, geom.ErrDomain
+				}
+			}
+			gap := new(big.Rat).Add(ratInset(radius), ratInset(h.Radius))
+			gap.Add(gap, ratInset(pad))
+			if extrusionCenterDistanceSquared(h, ExtrusionCircle{}).Cmp(gap.Mul(gap, gap)) <= 0 {
+				return Solid{}, geom.ErrDomain
+			}
+		}
 	}
 	root := math.Sqrt((radius - inset) * (radius + inset))
 	start, end := math.Pi+math.Asin(inset/radius), -math.Asin(inset/radius)
@@ -90,6 +123,7 @@ func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, i
 			}
 		}
 	}
+	upperCap := len(b.faces)
 	if e := b.sideCylinderCap(upper, upperArcs, length, radius, tolerance, false); e != nil {
 		return Solid{}, e
 	}
@@ -102,6 +136,16 @@ func boxSideCylinder(ctx context.Context, frame geom.Frame, left, right, back, i
 			e = b.wall(v, q, 0, depth)
 		}
 		if e != nil {
+			return Solid{}, e
+		}
+	}
+	for _, h := range through {
+		if e := b.addBoxBoreAtCaps(h, length, [2]int{0, upperCap}); e != nil {
+			return Solid{}, e
+		}
+	}
+	for _, h := range blind {
+		if e := b.addBoxBottomBlindBore(h.ExtrusionCircle, h.Depth); e != nil {
 			return Solid{}, e
 		}
 	}
