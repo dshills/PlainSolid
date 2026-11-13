@@ -62,3 +62,44 @@ func TestExtrudePolygonWithCircularHoles(t *testing.T) {
 		}
 	}
 }
+
+func TestExtrudePolygonWithBlindAndThroughHoles(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.NewFrame(geom.Vec3{X: 2, Y: -1, Z: 4}, geom.Vec3{X: 1}, geom.Vec3{Y: 1})
+	p := []geom.Vec2{{}, {X: 8}, {X: 8, Y: 4}, {Y: 4}}
+	through := []ExtrusionCircle{{geom.Vec2{X: 2, Y: 2}, .5}}
+	blind := []ExtrusionBlindHole{{ExtrusionCircle{geom.Vec2{X: 6, Y: 2}, .75}, 1.25}}
+	for _, z := range []float64{-3, 3} {
+		s, e := ExtrudePolygonWithHoles(ctx, f, p, through, blind, z)
+		if e != nil || s.Topology().EulerCharacteristic != 0 || s.Topology().InnerWires != 3 || len(s.faces) != 15 {
+			t.Fatal(z, s.Topology(), e)
+		}
+		v, e := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+		want := 3*(32-math.Pi*.25) - math.Pi*.75*.75*1.25
+		if e != nil || math.Abs(v.Volume-want) > 1e-7 {
+			t.Fatal(z, v.Volume, want, e)
+		}
+		var file bytes.Buffer
+		if e := WriteJSON(&file, s); e != nil {
+			t.Fatal(e)
+		}
+		r, e := ReadJSONContext(ctx, &file, JSONLimits{})
+		if e != nil || r.Topology().EulerCharacteristic != 0 {
+			t.Fatal(r.Topology(), e)
+		}
+		for _, q := range []struct {
+			depth float64
+			want  parametric.Location
+		}{{.5, parametric.Outside}, {1.25, parametric.Boundary}, {2, parametric.Inside}} {
+			p := f.ToWorld(geom.Vec3{X: 6, Y: 2, Z: math.Copysign(q.depth, z)})
+			x, e := r.Classify(p, 1e-8)
+			if e != nil || x != q.want {
+				t.Fatal(z, p, x, q.want, e)
+			}
+		}
+	}
+	blind[0].Depth = 3
+	if s, e := ExtrudePolygonWithHoles(ctx, f, p, through, blind, 3); !errors.Is(e, geom.ErrDomain) || len(s.faces) != 0 {
+		t.Fatal("blind hole must leave a floor", e)
+	}
+}

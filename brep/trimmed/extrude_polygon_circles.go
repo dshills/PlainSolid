@@ -14,6 +14,13 @@ type ExtrusionCircle struct {
 	Radius float64
 }
 
+// ExtrusionBlindHole starts on the sketch cap at axial zero and advances
+// toward the signed extrusion endpoint by the positive depth.
+type ExtrusionBlindHole struct {
+	ExtrusionCircle
+	Depth float64
+}
+
 type anchoredCircularUV struct {
 	EllipseUV
 	Start, End geom.Vec2
@@ -21,11 +28,11 @@ type anchoredCircularUV struct {
 
 func newAnchoredCircularUV(x EllipseUV, start, end geom.Vec2) (anchoredCircularUV, error) {
 	r := x.Cos.X
-	if !finite(r) || r <= 0 || x.Cos.Y != 0 || x.Sin != (geom.Vec2{Y: -r}) || x.Linear != (geom.Vec2{}) || !uvFinite(x.Center) {
+	if !finite(r) || r <= 0 || x.Cos.Y != 0 || math.Abs(x.Sin.Y) != r || x.Sin.X != 0 || x.Linear != (geom.Vec2{}) || !uvFinite(x.Center) {
 		return anchoredCircularUV{}, geom.ErrInvalid
 	}
-	p := [4]geom.Vec2{{X: x.Center.X + r, Y: x.Center.Y}, {X: x.Center.X, Y: x.Center.Y - r},
-		{X: x.Center.X - r, Y: x.Center.Y}, {X: x.Center.X, Y: x.Center.Y + r}}
+	p := [4]geom.Vec2{{X: x.Center.X + r, Y: x.Center.Y}, {X: x.Center.X, Y: x.Center.Y + x.Sin.Y},
+		{X: x.Center.X - r, Y: x.Center.Y}, {X: x.Center.X, Y: x.Center.Y - x.Sin.Y}}
 	for i, a := range p {
 		if x.From == float64(i)*math.Pi/2 && x.To == float64(i+1)*math.Pi/2 && start == a && end == p[(i+1)%4] && uvFinite(start) && uvFinite(end) {
 			return anchoredCircularUV{x, start, end}, nil
@@ -55,6 +62,23 @@ func (c anchoredCircularUV) BoundsUV() (geom.UVBox, error) {
 // sketch coordinates. Cylindrical walls and circular cap arcs stay analytic.
 // The same authoritative circular arcs are shared between each cap and wall.
 func ExtrudePolygonWithCircularHoles(ctx context.Context, frame geom.Frame, outer []geom.Vec2, holes []ExtrusionCircle, height float64) (Solid, error) {
+	return ExtrudePolygonWithHoles(ctx, frame, outer, holes, nil, height)
+}
+
+// ExtrudePolygonWithHoles retains circular through holes and finite blind
+// holes with analytic cylindrical walls and planar floors. Every footprint is
+// disjoint, and each blind hole starts at axial zero of the original sketch.
+func ExtrudePolygonWithHoles(ctx context.Context, frame geom.Frame, outer []geom.Vec2, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) (Solid, error) {
+	if len(through)+len(blind) > 16 {
+		return Solid{}, geom.ErrInvalid
+	}
+	holes := append([]ExtrusionCircle(nil), through...)
+	for _, h := range blind {
+		if !finite(h.Depth) || h.Depth <= 0 || h.Depth >= math.Abs(height) {
+			return Solid{}, geom.ErrDomain
+		}
+		holes = append(holes, h.ExtrusionCircle)
+	}
 	if ctx == nil || frame.ZAxis().Length() == 0 || !finite(height) || height == 0 || len(outer) < 3 || len(outer) > 64 || len(holes) > 16 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -113,10 +137,11 @@ func ExtrudePolygonWithCircularHoles(ctx context.Context, frame geom.Frame, oute
 			}
 		}
 	}
-	return extrudePolygonCircularTopology(ctx, frame, p, holes, min(0, height), max(0, height))
+	return extrudePolygonCircularTopology(ctx, frame, p, through, blind, min(0, height), max(0, height))
 }
 
-func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, holes []ExtrusionCircle, lo, hi float64) (Solid, error) {
+func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, holes []ExtrusionCircle,
+	blind []ExtrusionBlindHole, lo, hi float64) (Solid, error) {
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	var caps [2]Face
@@ -137,10 +162,15 @@ func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer
 		return id
 	}
 	var walls []Face
-	loop := func(p []geom.Vec2, chart func(int) (geom.Surface, [4]geom.Vec2, error), hole *ExtrusionCircle) error {
+	var floors []Face
+	loop := func(p []geom.Vec2, chart func(int) (geom.Surface, [4]geom.Vec2, error), hole *ExtrusionCircle, floor *Face, entry int) error {
 		n := len(p)
 		base := len(vertices)
-		for _, f := range caps {
+		var endFaces = [2]*Face{&caps[0], &caps[1]}
+		if floor != nil {
+			endFaces[entry^1] = floor
+		}
+		for _, f := range endFaces {
 			for _, a := range p {
 				x, e := f.Surface.Eval(a.X, a.Y)
 				if e != nil {
@@ -188,9 +218,8 @@ func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer
 			walls = append(walls, f)
 			for k, id := range [2]int{low, high} {
 				q := Use{Edge: id, UVStart: a, UVEnd: p[j]}
-				if hole != nil {
-					q.Curve, e = newAnchoredCircularUV(EllipseUV{Center: hole.Center, Cos: geom.Vec2{X: hole.Radius}, Sin: geom.Vec2{Y: -hole.Radius},
-						From: float64(i) * math.Pi / 2, To: float64(i+1) * math.Pi / 2}, a, p[j])
+				if hole != nil && (floor == nil || k == entry) {
+					q.Curve, e = clockwiseExtrusionArc(*hole, i, a, p[j])
 					if e != nil {
 						return e
 					}
@@ -201,8 +230,21 @@ func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer
 		for i, r := range rings {
 			if hole == nil {
 				caps[i].Outer = r
-			} else {
+			} else if floor == nil || i == entry {
 				caps[i].Holes = append(caps[i].Holes, r)
+			} else {
+				// A floor's boundary is the same model edge but its own
+				// positive UV loop runs counterclockwise.
+				for k := range r {
+					q := r[len(r)-1-k]
+					x := EllipseUV{Center: hole.Center, Cos: geom.Vec2{X: hole.Radius}, Sin: geom.Vec2{Y: hole.Radius},
+						From: float64(k) * math.Pi / 2, To: float64(k+1) * math.Pi / 2}
+					c, e := newAnchoredCircularUV(x, q.UVEnd, q.UVStart)
+					if e != nil {
+						return e
+					}
+					floor.Outer = append(floor.Outer, Use{Edge: q.Edge, Reversed: true, UVStart: q.UVEnd, UVEnd: q.UVStart, Curve: c})
+				}
 			}
 		}
 		return nil
@@ -218,30 +260,57 @@ func extrudePolygonCircularTopology(ctx context.Context, frame geom.Frame, outer
 		s, e := geom.NewPlaneSurface(f)
 		length := u.Length()
 		return s, [4]geom.Vec2{{Y: lo}, {X: length, Y: lo}, {X: length, Y: hi}, {Y: hi}}, e
-	}, nil); e != nil {
+	}, nil, nil, 0); e != nil {
 		return Solid{}, e
 	}
-	for _, h := range holes {
+	addHole := func(h ExtrusionCircle, z0, z1 float64, floor *Face, entry int) error {
 		f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{X: h.Center.X, Y: h.Center.Y}), frame.XAxis(), frame.ZAxis().Scale(-1))
 		if e != nil {
-			return Solid{}, e
+			return e
 		}
 		s, e := geom.NewCylinderSurface(f, h.Radius)
 		if e != nil {
-			return Solid{}, e
+			return e
 		}
 		p := []geom.Vec2{{X: h.Center.X + h.Radius, Y: h.Center.Y}, {X: h.Center.X, Y: h.Center.Y - h.Radius},
 			{X: h.Center.X - h.Radius, Y: h.Center.Y}, {X: h.Center.X, Y: h.Center.Y + h.Radius}}
-		if e := loop(p, func(i int) (geom.Surface, [4]geom.Vec2, error) {
+		return loop(p, func(i int) (geom.Surface, [4]geom.Vec2, error) {
 			a, b := float64(i)*math.Pi/2, float64(i+1)*math.Pi/2
-			return s, [4]geom.Vec2{{X: a, Y: -lo}, {X: b, Y: -lo}, {X: b, Y: -hi}, {X: a, Y: -hi}}, nil
-		}, &h); e != nil {
+			return s, [4]geom.Vec2{{X: a, Y: -z0}, {X: b, Y: -z0}, {X: b, Y: -z1}, {X: a, Y: -z1}}, nil
+		}, &h, floor, entry)
+	}
+	for _, h := range holes {
+		if e := addHole(h, lo, hi, nil, 0); e != nil {
 			return Solid{}, e
 		}
+	}
+	for _, h := range blind {
+		depth, entry := h.Depth, 0
+		if lo < 0 {
+			depth, entry = -depth, 1
+		}
+		f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: depth}), frame.XAxis(), frame.ZAxis())
+		if e != nil {
+			return Solid{}, e
+		}
+		plane, e := geom.NewPlaneSurface(f)
+		if e != nil {
+			return Solid{}, e
+		}
+		floor := Face{Surface: plane, Reversed: entry == 0}
+		if e := addHole(h.ExtrusionCircle, min(0, depth), max(0, depth), &floor, entry); e != nil {
+			return Solid{}, e
+		}
+		floors = append(floors, floor)
 	}
 	scale := hi - lo
 	for _, q := range outer {
 		scale = max(scale, math.Abs(q.X-outer[0].X), math.Abs(q.Y-outer[0].Y))
 	}
-	return NewSolidContext(ctx, vertices, edges, append(caps[:], walls...), scale*1e-11)
+	return NewSolidContext(ctx, vertices, edges, append(append(caps[:], walls...), floors...), scale*1e-11)
+}
+
+func clockwiseExtrusionArc(h ExtrusionCircle, i int, a, b geom.Vec2) (anchoredCircularUV, error) {
+	return newAnchoredCircularUV(EllipseUV{Center: h.Center, Cos: geom.Vec2{X: h.Radius}, Sin: geom.Vec2{Y: -h.Radius},
+		From: float64(i) * math.Pi / 2, To: float64(i+1) * math.Pi / 2}, a, b)
 }
