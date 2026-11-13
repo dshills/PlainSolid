@@ -510,6 +510,8 @@ func TestOCCTFiniteCylinderPairDispatch(t *testing.T) {
 	}{
 		{"finite-pair-cap", -6, 2, -6, 6, parametric.CylinderCommonPerpendicularCap},
 		{"finite-pair-slab", -3, 2, -6, 6, parametric.CylinderCommonPerpendicularSlab},
+		{"finite-pair-four-cap", -1, 2, -3, 4, parametric.CylinderCommonPerpendicularCapWindows},
+		{"finite-pair-four-cap-tail", 1, 2, -4, -3, parametric.CylinderCommonPerpendicularCapWindows},
 		{"finite-pair-dual-cap", -6, 2, -6, 3, parametric.CylinderCommonPerpendicularDualCap},
 		{"finite-pair-dual-cap-tail", 2, 6, -6, -3, parametric.CylinderCommonPerpendicularDualCap},
 		{"finite-pair-quadrant", 0, 6, -6, 0, parametric.CylinderCommonPerpendicularQuadrant},

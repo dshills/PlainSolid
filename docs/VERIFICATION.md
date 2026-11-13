@@ -1050,7 +1050,16 @@ scaled perpendicular slab, reversed and scaled parallel overlap, and disjoint
 empty. Both the default and STEP+IGES pinned oracle builds pass the focused
 check. Nonempty cases compare area, volume, and centroid. Native recipe tests
 also verify round-trip raw cap parameters and face ancestry and reject altered
-payloads.
+payloads. Further differential cases qualify both-axis clipped caps, opposite
+clipped tails, and exact containment of a skew perpendicular cylinder. Four-cap
+fixtures compare native volume with independent slice integration and verify
+face ownership, native reload, mesh closure, and no detected self-intersections.
+
+The open-plane spline shell fixtures qualify union, intersection and difference
+of warped overlapping solids. OCCT independently extrudes the bilinear base
+patches and compares the area, volume and centroid of all three results. Tests
+also check simultaneous source-edge ownership, require proof before discarding
+conservative extra pairs, and reject omitted contacts.
 
 The perpendicular union retains both walls and four exposed end disks.
 Its volume matches the exact inclusion-exclusion formula and its area
