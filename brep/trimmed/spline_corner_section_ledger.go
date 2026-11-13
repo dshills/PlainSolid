@@ -15,6 +15,7 @@ const (
 	SplinePairSeparated
 	SplinePairBranches
 	SplinePairPointOnlyPendingFan
+	SplinePairAffineCornerBranchPendingAssembly
 )
 
 // SplinePairDiagnostic is a diagnostic snapshot, never accepted as proof input.
@@ -35,10 +36,14 @@ type SplineCornerSectionLedgerOptions struct {
 // pairs remain visible even if other pairs have complete branch certificates.
 // Neither classified pairs nor the existing local fan authorize assembly.
 type SplineCornerSectionLedger struct {
-	fan   *SplineCornerFan
-	pairs []SplinePairDiagnostic
+	fan    *SplineCornerFan
+	pairs  []SplinePairDiagnostic
+	affine []*SplineCornerAffineBranch
 }
 
+func (l *SplineCornerSectionLedger) AffineCornerBranches() []*SplineCornerAffineBranch {
+	return append([]*SplineCornerAffineBranch(nil), l.affine...)
+}
 func (l *SplineCornerSectionLedger) Pairs() []SplinePairDiagnostic {
 	return append([]SplinePairDiagnostic(nil), l.pairs...)
 }
