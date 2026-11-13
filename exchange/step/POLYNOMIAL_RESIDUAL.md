@@ -71,3 +71,30 @@ Every loop must close by exact vertex identity. Every edge has exactly two oppos
 `InspectOffAxisBoreEvidence` combines that topology with the existing pcurve ancestry, increasing cylinder U, positive one-turn model winding and both same-parameter lift bounds. Its initial combined frame is positive model Z with positive X reference; required axis-origin coordinates must be exactly representable. It computes exact squared gaps from both source topological rim vertices to the corresponding model-spline endpoints. On the fixture these gaps are nonzero and equal, while the combined numerical evidence meets a `1e-6` model-unit tolerance.
 
 `WithinRequestedTolerance` checks only curve-lift and endpoint error bounds. Entire polynomial source domains are evaluated; selection of trimmed intervals, complete face coverage, planar floor geometry, spatial self-intersection, source uncertainty policy and material classification are **not** certified. No shape is reconstructed or imported from these reports.
+
+### Floor circle and cylinder seam evidence
+
+`InspectOffAxisSimpleGeometry` first validates the selected bore incidence graph,
+then checks exact source-decimal primitive geometry. Its supported frames use
+signed coordinate axes. A floor circle must be coaxial with the cylinder and
+parallel to the floor plane. The returned constant squared-radius residual and
+signed plane distance bound the entire circle, without sampled acceptance.
+A cylindrical seam LINE must be parallel to the cylinder axis; its constant
+squared-radius residual and each source vertex's squared perpendicular distance
+to the infinite line are computed exactly. These checks do not establish line
+trim direction/extent or pcurve lift agreement.
+
+For the retained OCCT fixture, both floor-circle support residuals are zero.
+The seam's source Y coordinate is `-4.898587196589E-16`: its cylinder residual
+is that exact decimal squared, strictly positive. The upper source vertex has
+a different Y coordinate, so its line-distance square is also positive. Neither
+is snapped to zero. A radius or parallel-plane displacement is returned as a
+nonzero residual; unsupported tilted or noncoaxial geometry is rejected.
+
+`SourceUncertainties` inventories source `UNCERTAINTY_MEASURE_WITH_UNIT`
+length values with entity and unit IDs in file order. The fixture declares
+`1.E-07` against unit #639 (millimetres). Values are retained in their declared
+units, not converted or interpreted as acceptance tolerances; this inventory
+does not assign an uncertainty to a particular edge or claim its context applies
+to every body. No reconstruction, face coverage or material certification is
+provided by this API.
