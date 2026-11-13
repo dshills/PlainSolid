@@ -415,4 +415,41 @@ func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
 	if pieces != 6 || !junction {
 		t.Fatal("composed wire lost original piecewise branches", pieces, junction)
 	}
+	cap, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
+		{Z: 1. / 8}, {Y: 1, Z: 1. / 8}, {X: 1, Z: 1. / 8}, {X: 1, Y: 1, Z: 1. / 8},
+	}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	split, e := stock.SplitRationalGraphSplineShell(ctx, plane, cap,
+		geom.ParameterRectangle{UMax: 1, VMax: 1}, RationalGraphShellSplitOptions{})
+	if e != nil {
+		t.Fatal("direct piecewise split", e)
+	}
+	for side, h := range split.Halves {
+		if len(h.CapFaces) != 1 || len(h.CapEdges[0]) != 6 {
+			t.Fatal("piecewise cap lost original knot splits", side)
+		}
+		var stream bytes.Buffer
+		if e := WriteJSON(&stream, h.Solid); e != nil {
+			t.Fatal(e)
+		}
+		reloaded, e := ReadJSONContext(ctx, &stream, JSONLimits{})
+		if e != nil {
+			t.Fatal("exact piecewise split persistence", side, e)
+		}
+		m, e := reloaded.TessellateEmbeddedDisplay(ctx, EmbeddedDisplayOptions{Tessellation: parametric.TessellationOptions{Deflection: .05}})
+		if e != nil || m.SignedVolume.Sign() <= 0 {
+			t.Fatal("reloaded split half does not have an embedded positive display", side, e)
+		}
+		n := 0
+		for _, u := range reloaded.faces[h.CapFaces[0]].Outer {
+			if q, ok := u.Curve.(ExactBezierUV); ok && len(q.HomogeneousControls()) == 4 {
+				n++
+			}
+		}
+		if n != 2 {
+			t.Fatal("native cap lost cubic section pieces", side, n)
+		}
+	}
 }

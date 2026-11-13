@@ -50,6 +50,9 @@ Direct splits close both square-tube halves with one holed cap and volume 4.
 Oblique weighted splits preserve the original support, validate opposite cap
 orientations, and match complementary independently integrated volumes.
 The exact source-edge/section-edge ancestry partitions every output edge.
+Both halves of the creased cubic split survive native JSON reload with their
+two cubic cap pieces and all six section edges. Their display meshes remain
+closed, positive-volume, and free from non-incidence triangle contacts.
 An independently authored exact four-face split-cylinder STEP and a translated
 signed-axis variant both pass OCCT solid validation and exact-domain import.
 The rounded OCCT-generated split fixture is an independent rejection case.
