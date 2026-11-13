@@ -34,6 +34,9 @@ func FiniteCylinderPairUnion(ctx context.Context, a, b geom.RawCylinder, toleran
 		return FiniteCylinderPairUnionResult{}, err
 	}
 	if rawAxesParallel(a.Axis, b.Axis) {
+		if contained := parallelCoordinateContainment(a, b); contained[0] || contained[1] {
+			return unionContainedParallelCylinder(ctx, a, b, contained)
+		}
 		return unionSeparatedCoordinateCylinders(ctx, a, b)
 	}
 	if a.Radius != b.Radius {
@@ -83,6 +86,9 @@ func FiniteCylinderPairDifference(ctx context.Context, stock, cutter geom.RawCyl
 		return out, err
 	}
 	if rawAxesParallel(stock.Axis, cutter.Axis) {
+		if parallelCoordinateContainment(stock, cutter)[0] {
+			return out, nil
+		}
 		if !parallelCylinderSupportsSeparated(stock, cutter, true) {
 			return out, geom.ErrDomain
 		}

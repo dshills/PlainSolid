@@ -158,3 +158,22 @@ func TestFiniteCylinderPairUnchangedOrCoveredDifference(t *testing.T) {
 		t.Fatal(d, e)
 	}
 }
+
+func TestFiniteParallelCylinderPairContainmentSets(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Radius: 3, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 1}, Axis: geom.Vec3{Z: -3}, Radius: 2, Min: -1, Max: 1}
+	out, e := FiniteCylinderPairUnion(ctx, b, a, 1e-9)
+	if e != nil || len(out.WallFaces[0]) != 0 || len(out.WallFaces[1]) != 1 || out.CommonVolumePiCoefficient.RatString() != "24" {
+		t.Fatal(out, e)
+	}
+	cut, e := FiniteCylinderPairDifference(ctx, b, a, 1e-9)
+	if e != nil || len(cut.Solids[0].Faces())+len(cut.Solids[1].Faces()) != 0 {
+		t.Fatal(cut, e)
+	}
+	b = geom.RawCylinder{Axis: geom.Vec3{Z: -4}, Radius: 3, Min: -1, Max: 1}
+	out, e = FiniteCylinderPairUnion(ctx, a, b, 1e-9)
+	if e != nil || len(out.WallFaces[0]) != 1 || len(out.WallFaces[1]) != 1 || out.LowerCapFaces[0][0] != out.UpperCapFaces[1][0] || out.UpperCapFaces[0][0] != out.LowerCapFaces[1][0] {
+		t.Fatal(out, e)
+	}
+}
