@@ -225,7 +225,7 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "displayEdges", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamferCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "displayEdges", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
 	case "leadPart", "assertLeadPair":
 		if q.Lead == nil {
 			return nil, errors.New("lead screw operation requires dimensions")
@@ -285,7 +285,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.mixedExtrude(*q.Profile)
 	case "revolvePolygon", "revolveCircle":
 		return b.revolve(q)
-	case "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet":
+	case "edgeAvailable", "fillet", "filletCylinderRims", "chamferCylinderRims", "chamfer", "capChamfer", "capFillet":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
@@ -302,8 +302,8 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 			return b.treatCapPerimeter(s, q)
 		}
-		if q.Op == "filletCylinderRims" {
-			return b.filletCylinderRims(s, q)
+		if q.Op == "filletCylinderRims" || q.Op == "chamferCylinderRims" {
+			return b.treatCylinderRims(s, q)
 		}
 		if q.Op == "edgeAvailable" {
 			if q.EdgeStart == nil || q.EdgeEnd == nil {
@@ -361,6 +361,18 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if q.Op != "common" {
+			if result, removed, handled, err := retainedPlanarBoolean(a, c, q.Op); handled {
+				if err != nil {
+					return nil, err
+				}
+				if q.Op == "cut" && removed <= 0 {
+					return nil, unsupportedEdge("Boolean cut removed no volume")
+				}
+				return b.putAnalyticBody(result)
+			}
+		}
+
 		if q.Op == "cut" {
 			if result, handled, err := b.rectangularIslandPocket(a, c); handled {
 				return result, err
@@ -401,12 +413,14 @@ func (b *Bridge) execute(q request) (any, error) {
 					}
 				}
 			}
-			if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
-				p, err := a.analytic.pockets.throughBore(c.cylinder)
+			if body, removed, handled, err := cutPocketCylinder(a, c.cylinder); handled {
 				if err != nil {
 					return nil, err
 				}
-				return b.putPocketStock(p)
+				if removed <= 0 {
+					return nil, unsupportedEdge("Boolean cut removed no volume")
+				}
+				return b.putAnalyticBody(body)
 			}
 			if a.analytic != nil && a.analytic.shaft != nil && c.planar() {
 				return b.cutShaftSocket(*a.analytic.shaft, c.solid)
@@ -651,7 +665,8 @@ type PlanarFace struct {
 
 // matchingPlanarFace follows PlainCAD's native reference contract: exactly one
 // finite face on the authored support plane, with either orientation. This is
-// not a point-in-face test and does not recover a split or deleted feature role.
+// not a point-in-face test. Shared-edge coplanar seams are coalesced, while
+// disconnected supports remain ambiguous; deleted feature roles are not recovered.
 // Tolerances match OpenCascadeKernel.validatePlanarFace
 // (millimetres): parallel unit normals within 1e-9 in absolute dot product,
 // support-plane distance at most 1e-7, and area greater than (1e-7)^2.
@@ -661,6 +676,7 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 		return PlanarFace{}, errors.New("planarFace requires a finite origin and nonzero normal")
 	}
 	face := -1
+	selected := map[int]bool{}
 	var plane geom.Plane
 	for i := range s.Faces() {
 		p, err := s.FacePlane(i)
@@ -674,19 +690,25 @@ func matchingPlanarFace(s brep.Solid, origin, normal geom.Vec3) (PlanarFace, err
 		if math.Abs(math.Abs(p.Normal().Dot(n))-1) > 1e-9 || math.Abs(delta.Dot(p.Normal())) > 1e-7 {
 			continue
 		}
-		if face != -1 {
-			return PlanarFace{}, errors.New("planar face reference is ambiguous after splitting")
+		if face != -1 && p.Normal().Dot(plane.Normal()) < 1-1e-9 {
+			return PlanarFace{}, errors.New("planar face reference has conflicting orientations")
 		}
-		face, plane = i, p
+		selected[i] = true
+		if face == -1 {
+			face, plane = i, p
+		}
 	}
 	if face == -1 {
 		return PlanarFace{}, errors.New("planar face reference no longer exists")
+	}
+	if !connectedPlanarFaces(s, selected) {
+		return PlanarFace{}, errors.New("planar face reference is ambiguous after splitting")
 	}
 	m := s.Tessellate()
 	owners := s.TriangleFaces()
 	area := 0.0
 	for i, triangle := range m.Triangles {
-		if owners[i] == face {
+		if selected[owners[i]] {
 			a, b, c := m.Vertices[triangle[0]], m.Vertices[triangle[1]], m.Vertices[triangle[2]]
 			area += b.Sub(a).Cross(c.Sub(a)).Length() / 2
 		}

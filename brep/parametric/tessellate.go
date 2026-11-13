@@ -74,12 +74,34 @@ func (s Solid) grid(n int, check bool, deflection, angle float64) (mesh.Mesh, er
 	return s.gridContext(context.Background(), n, check, deflection, angle)
 }
 func (s Solid) gridContext(ctx context.Context, n int, check bool, deflection, angle float64) (mesh.Mesh, error) {
+	return s.gridWithDivisions(ctx, n, nil, check, deflection, angle)
+}
+
+func (s Solid) gridWithDivisions(ctx context.Context, nu int, vertical []int, check bool, deflection, angle float64) (mesh.Mesh, error) {
 	m := mesh.Mesh{Vertices: s.Vertices()}
+	divisions := make([]int, len(s.edges))
+	for i, f := range s.faces {
+		nv := nu
+		if vertical != nil {
+			nv = vertical[i]
+		}
+		for side, use := range f.Boundary {
+			n := nu
+			if side%2 == 1 {
+				n = nv
+			}
+			if divisions[use.Edge] != 0 && divisions[use.Edge] != n {
+				return mesh.Mesh{}, ErrTopology
+			}
+			divisions[use.Edge] = n
+		}
+	}
 	boundaries := make([][]int, len(s.edges))
 	for i, e := range s.edges {
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, err
 		}
+		n := divisions[i]
 		row := make([]int, n+1)
 		row[0], row[n] = e.Start, e.End
 		for j := 1; j < n; j++ {
@@ -97,24 +119,29 @@ func (s Solid) gridContext(ctx context.Context, n int, check bool, deflection, a
 		boundaries[i] = row
 	}
 	for fi, f := range s.faces {
-		grid := make([]int, (n+1)*(n+1))
-		for j := 0; j <= n; j++ {
+		nv := nu
+		if vertical != nil {
+			nv = vertical[fi]
+		}
+		stride := nu + 1
+		grid := make([]int, stride*(nv+1))
+		for j := 0; j <= nv; j++ {
 			if err := ctx.Err(); err != nil {
 				return mesh.Mesh{}, err
 			}
-			for i := 0; i <= n; i++ {
+			for i := 0; i <= nu; i++ {
 				side, k := -1, 0
 				switch {
 				case j == 0:
 					side, k = 0, i
-				case i == n:
+				case i == nu:
 					side, k = 1, j
-				case j == n:
-					side, k = 2, n-i
+				case j == nv:
+					side, k = 2, nu-i
 				case i == 0:
-					side, k = 3, n-j
+					side, k = 3, nv-j
 				}
-				u, v := float64(i)/float64(n), float64(j)/float64(n)
+				u, v := float64(i)/float64(nu), float64(j)/float64(nv)
 				p, err := f.point(u, v)
 				if err != nil || !p.IsFinite() {
 					return mesh.Mesh{}, fmt.Errorf("%w: face %d sample", ErrTopology, fi)
@@ -122,32 +149,32 @@ func (s Solid) gridContext(ctx context.Context, n int, check bool, deflection, a
 				if side >= 0 {
 					use := f.Boundary[side]
 					if use.Reversed {
-						k = n - k
+						k = len(boundaries[use.Edge]) - 1 - k
 					}
 					id := boundaries[use.Edge][k]
 					if !near(p, m.Vertices[id], s.tolerance) {
 						return mesh.Mesh{}, fmt.Errorf("%w: face %d boundary sample mismatch", ErrTopology, fi)
 					}
-					grid[j*(n+1)+i] = id
+					grid[j*stride+i] = id
 				} else {
-					grid[j*(n+1)+i] = len(m.Vertices)
+					grid[j*stride+i] = len(m.Vertices)
 					m.Vertices = append(m.Vertices, p)
 				}
 			}
 		}
-		for j := 0; j < n; j++ {
+		for j := 0; j < nv; j++ {
 			if err := ctx.Err(); err != nil {
 				return mesh.Mesh{}, err
 			}
-			for i := 0; i < n; i++ {
-				a := j*(n+1) + i
-				for _, tri := range [][3]int{{a, a + 1, a + n + 2}, {a, a + n + 2, a + n + 1}} {
+			for i := 0; i < nu; i++ {
+				a := j*stride + i
+				for _, tri := range [][3]int{{a, a + 1, a + stride + 1}, {a, a + stride + 1, a + stride}} {
 					ids := [3]int{grid[tri[0]], grid[tri[1]], grid[tri[2]]}
 					collapsed := ids[0] == ids[1] || ids[1] == ids[2] || ids[0] == ids[2]
 					if check {
 						var uv [3][2]float64
 						for k, p := range tri {
-							uv[k] = [2]float64{float64(p%(n+1)) / float64(n), float64(p/(n+1)) / float64(n)}
+							uv[k] = [2]float64{float64(p%stride) / float64(nu), float64(p/stride) / float64(nv)}
 						}
 						p := [3]geom.Vec3{m.Vertices[ids[0]], m.Vertices[ids[1]], m.Vertices[ids[2]]}
 						if err := f.checkTriangle(uv, p, deflection, angle, collapsed); err != nil {

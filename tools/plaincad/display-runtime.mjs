@@ -24,10 +24,14 @@ export async function installDisplayRuntime(work, hash) {
 
   await install(detailClient,
     "  return backgroundJob<DisplayMeshRequest, DisplayMesh[]>(PreviewWorker, request, signal, undefined, 20000);",
-    `  return import("../../state/useCadStore").then(({ requestRetainedDisplayMeshes }) => {
-    const retained = requestRetainedDisplayMeshes(request, signal);
-    return retained ?? backgroundJob<DisplayMeshRequest, DisplayMesh[]>(PreviewWorker, request, signal, undefined, 20000);
-  });`);
+    `  const isolated = () => backgroundJob<DisplayMeshRequest, DisplayMesh[]>(PreviewWorker, request, signal, undefined, 20000);
+  // Small rebuilds use the independently cancellable worker. Retained
+  // geometry avoids repeating the modeling work for longer feature graphs.
+  const minRetainedFeatures = 8;
+  if (request.document.features.length < minRetainedFeatures) return isolated();
+  return import("../../state/useCadStore").then(({ requestRetainedDisplayMeshes }) =>
+    requestRetainedDisplayMeshes(request, signal) ?? isolated(),
+  );`);
 
   await install("src/state/useCadStore.ts",
     "function getGeometryWorker(): Worker | undefined {",

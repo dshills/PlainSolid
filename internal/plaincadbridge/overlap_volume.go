@@ -42,6 +42,16 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			return result(volume)
 		}
 	}
+	if a.planar() && c.analytic != nil && (c.analytic.pockets != nil || c.analytic.planarBores != nil) {
+		a, c = c, a
+	}
+	if _, removed, handled, e := retainedPlanarBoolean(a, c, "cut"); handled {
+		if e != nil {
+			return nil, e
+		}
+		return result(removed)
+	}
+
 	if volume, handled, err := overlapRoundedBore(a, c); handled {
 		if err != nil {
 			return nil, err
@@ -103,15 +113,11 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if a.cylinder != nil && c.analytic != nil {
 		a, c = c, a
 	}
-	if a.analytic != nil && a.analytic.pockets != nil && c.cylinder != nil {
-		p, err := a.analytic.pockets.throughBore(c.cylinder)
+	if _, removed, handled, err := cutPocketCylinder(a, c.cylinder); handled {
 		if err != nil {
 			return nil, err
 		}
-		if _, err := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), p.frame, p.size, p.pockets, p.bores); err != nil {
-			return nil, err
-		}
-		return result(math.Pi * c.cylinder.radius * c.cylinder.radius * p.size.Z)
+		return result(removed)
 	}
 	if a.analytic != nil || c.analytic != nil {
 		return nil, &failureError{"UNSUPPORTED", "overlap volume is outside the supported analytic stock domain"}
