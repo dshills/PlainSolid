@@ -3,17 +3,19 @@ package plaincadbridge
 import (
 	"context"
 	"math/big"
+	"sort"
+
 	"plainsolid/brep"
 	"plainsolid/csg/poly"
 	"plainsolid/geom"
-	"sort"
 )
 
 // supportingEdgeChain proves a complete cardinal sharp edge, permitting only
 // subdivisions with the same two globally supporting outward face planes.
 func supportingEdgeChain(s brep.Solid, a, b geom.Vec3) ([2]geom.Vec3, bool) {
 	var normals [2]geom.Vec3
-	if !a.IsFinite() || !b.IsFinite() || len(s.Edges()) > 50000 || len(s.Faces()) > 10000 {
+	verts, edges, faces := s.Vertices(), s.Edges(), s.Faces()
+	if !a.IsFinite() || !b.IsFinite() || len(edges) > 50000 || len(faces) > 10000 {
 		return normals, false
 	}
 	av, bv := coordinates(a), coordinates(b)
@@ -33,7 +35,14 @@ func supportingEdgeChain(s brep.Solid, a, b geom.Vec3) ([2]geom.Vec3, bool) {
 	if lo > hi {
 		lo, hi = hi, lo
 	}
-	verts, edges, faces := s.Vertices(), s.Edges(), s.Faces()
+	incidence := make([][]int, len(edges))
+	for fi, f := range faces {
+		for _, loop := range append([][]brep.EdgeUse{f.Boundary}, f.Holes...) {
+			for _, use := range loop {
+				incidence[use.Edge] = append(incidence[use.Edge], fi)
+			}
+		}
+	}
 	spans := [][2]float64{}
 	for id, e := range edges {
 		p, q := coordinates(verts[e.Start]), coordinates(verts[e.End])
@@ -54,32 +63,25 @@ func supportingEdgeChain(s brep.Solid, a, b geom.Vec3) ([2]geom.Vec3, bool) {
 			continue
 		}
 		ns := []geom.Vec3{}
-		for fi, f := range faces {
-			for _, loop := range append([][]brep.EdgeUse{f.Boundary}, f.Holes...) {
-				for _, u := range loop {
-					if u.Edge == id {
-						plane, err := s.FacePlane(fi)
-						if err != nil {
-							return normals, false
-						}
-						n := plane.Normal()
-						c := coordinates(n)
-						cnt := 0
-						for _, v := range c {
-							if v != 0 {
-								if v != 1 && v != -1 {
-									return normals, false
-								}
-								cnt++
-							}
-						}
-						if cnt != 1 {
-							return normals, false
-						}
-						ns = append(ns, n)
+		for _, fi := range incidence[id] {
+			plane, err := s.FacePlane(fi)
+			if err != nil {
+				return normals, false
+			}
+			n := plane.Normal()
+			count := 0
+			for _, v := range coordinates(n) {
+				if v != 0 {
+					if v != 1 && v != -1 {
+						return normals, false
 					}
+					count++
 				}
 			}
+			if count != 1 {
+				return normals, false
+			}
+			ns = append(ns, n)
 		}
 		if len(ns) != 2 {
 			return normals, false

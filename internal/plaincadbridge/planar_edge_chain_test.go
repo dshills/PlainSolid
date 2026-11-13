@@ -3,10 +3,12 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+	"reflect"
+	"testing"
+
 	"plainsolid/brep"
 	"plainsolid/csg/poly"
 	"plainsolid/geom"
-	"testing"
 )
 
 func TestSupportingJoinedEdgeChamfer(t *testing.T) {
@@ -20,6 +22,7 @@ func TestSupportingJoinedEdgeChamfer(t *testing.T) {
 	if _, ok := supportingEdgeChain(s, p, q); !ok {
 		t.Fatal("chain rejected")
 	}
+	var baseline brep.Solid
 	for _, pair := range [][2]geom.Vec3{{p, q}, {q, p}} {
 		out, e := chamferSupportingChain(s, pair[0], pair[1], geom.Vec3{Z: 1}, 1)
 		if e != nil {
@@ -28,6 +31,11 @@ func TestSupportingJoinedEdgeChamfer(t *testing.T) {
 		m, e := out.MassProperties()
 		if e != nil || math.Abs(m.Volume-2594) > 1e-8 {
 			t.Fatal(m, e)
+		}
+		if len(baseline.Faces()) == 0 {
+			baseline = out
+		} else if !reflect.DeepEqual(out.Vertices(), baseline.Vertices()) || !reflect.DeepEqual(out.Edges(), baseline.Edges()) || !reflect.DeepEqual(out.Faces(), baseline.Faces()) {
+			t.Fatal("reversed authored span changed topology order")
 		}
 	}
 	if _, e := chamferSupportingChain(s, p, q, geom.Vec3{Z: 1}, 11); e == nil {

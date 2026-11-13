@@ -3,6 +3,8 @@ package plaincadbridge
 import (
 	"fmt"
 	"math/big"
+	"sort"
+
 	"plainsolid/brep"
 	"plainsolid/geom"
 )
@@ -68,7 +70,13 @@ func clipCardinalBoundary(s brep.Solid, origin, normal geom.Vec3) (brep.Solid, e
 		}
 	}
 	loops := [][]geom.Vec3{}
-	for _, g := range groups {
+	groupKeys := make([]string, 0, len(groups))
+	for key := range groups {
+		groupKeys = append(groupKeys, key)
+	}
+	sort.Strings(groupKeys)
+	for _, key := range groupKeys {
+		g := groups[key]
 		for len(g) > 0 {
 			next := map[int]int{}
 			for e := range g {
@@ -77,10 +85,9 @@ func clipCardinalBoundary(s brep.Solid, origin, normal geom.Vec3) (brep.Solid, e
 				}
 				next[e[0]] = e[1]
 			}
-			var first int
+			first := len(vs)
 			for e := range g {
-				first = e[0]
-				break
+				first = min(first, e[0])
 			}
 			cur := first
 			loop := []geom.Vec3{}
@@ -155,9 +162,11 @@ func clipCardinalBoundary(s brep.Solid, origin, normal geom.Vec3) (brep.Solid, e
 		return fail()
 	}
 	var first geom.Vec3
+	firstSet := false
 	for a := range cutEdges {
-		first = a
-		break
+		if !firstSet || a.X < first.X || a.X == first.X && (a.Y < first.Y || a.Y == first.Y && a.Z < first.Z) {
+			first, firstSet = a, true
+		}
 	}
 	cap := []geom.Vec3{}
 	cur := first
