@@ -60,6 +60,14 @@ The combined candidate also passed the three existing grouped circular rim
 browser cases on XY, XZ, and YZ. The local `codex/reconcile-plaincad` review
 branch retains this candidate and the independent `45110e0` production evidence.
 These are integration candidate results; neither active branch was advanced.
+The seven-case modeling and STEP browser gate plus the machined reference
+case also passed on `d06a739`. The next reconciliation, with integration
+`391651f`, brings the committed lead and bored-stock reference operations
+into the candidate. The linked lead screw and nut browser fixture passed.
+The external modeled-thread fixture reached STL export and failed the
+nonadjacent triangle intersection check; an independent repair is in progress.
+The three bridge failures from the earlier broad candidate run passed when
+rerun on the reconciled snapshot. A new broad run is still pending.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
@@ -542,8 +550,12 @@ surfaces must keep their geometry through the operation. Continue with:
    parameterized splines. Mixed-axis junctions and tube-union coverage are
    available as proofs; automatic discovery of many closed curves, tangent
    candidates and partial coincidence beyond the shared-graph knot arrangement
-   still require work. Extend
-   complete transverse arrangements beyond rectangular input supports and
+   still require work. Signed affine graph pairs with partially overlapping
+   projections can now prove exclusion outside the exact overlap and verify
+   branch coverage within it in XY, XZ, or YZ. A separate spline/plane path
+   proves open branches against the original rectangles and preserves exact
+   endpoint ownership. Extend complete transverse arrangements beyond
+   rectangular input supports and
    handle curved edge-edge crossings, tangencies and coincident intervals.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
