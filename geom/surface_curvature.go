@@ -2,25 +2,25 @@ package geom
 
 import "math"
 
-func homDerivativeOrder(degree int, poles []homogeneous, knots []float64, t float64, order int) homogeneous {
-	if order > degree {
-		return homogeneous{}
-	}
-	for step := 0; step < order; step++ {
-		next := make([]homogeneous, len(poles)-1)
-		for i := range next {
-			den := knots[i+degree+1] - knots[i+1]
-			if den != 0 {
-				for axis := 0; axis < 4; axis++ {
-					next[i][axis] = float64(degree) * (poles[i+1][axis] - poles[i][axis]) / den
-				}
-			}
+// localHomJet evaluates derivative controls before reducing them with de
+// Boor. The working row starts at the original span minus degree; removing
+// end knots decreases span and degree together, preserving that index.
+func localHomJet(row *[65]homogeneous, degree int, knots []float64, t float64, span, order int) (jet [3]homogeneous) {
+	var first, second [65]homogeneous
+	if order > 0 && degree > 0 {
+		for i := 0; i < degree; i++ {
+			first[i] = localHomDerivative(row[i], row[i+1], degree, knots[span+i+1]-knots[span-degree+i+1])
 		}
-		poles = next
-		knots = knots[1 : len(knots)-1]
-		degree--
+		if order > 1 && degree > 1 {
+			for i := 0; i < degree-1; i++ {
+				second[i] = localHomDerivative(first[i], first[i+1], degree-1, knots[span+i+1]-knots[span-degree+i+2])
+			}
+			jet[2] = reduceHom(degree-2, knots[2:], t, span-2, &second)
+		}
+		jet[1] = reduceHom(degree-1, knots[1:], t, span-1, &first)
 	}
-	return evalHom(degree, poles, knots, t)
+	jet[0] = reduceHom(degree, knots, t, span, row)
+	return jet
 }
 
 // SecondPartials returns analytic uu, uv and vv derivatives, including rational
@@ -32,20 +32,20 @@ func (s *BSplineSurface) SecondPartials(u, v float64) (uu, uv, vv Vec3, err erro
 	if !s.validParameter(u, v) {
 		return uu, uv, vv, ErrDomain
 	}
-	poles := toHom(s.poles, s.weights)
-	var rows [3][]homogeneous
-	for j := range rows {
-		rows[j] = make([]homogeneous, s.countU)
-		for i := range rows[j] {
-			rows[j][i] = homDerivativeOrder(s.degreeV, poles[i*s.countV:(i+1)*s.countV], s.knotsV, v, j)
+	su, sv := splineSpan(s.countU, s.knotsU, u), splineSpan(s.countV, s.knotsV, v)
+	var rows [3][65]homogeneous
+	var row [65]homogeneous
+	for i := 0; i <= s.degreeU; i++ {
+		s.activeRow(&row, su-s.degreeU+i, sv)
+		jet := localHomJet(&row, s.degreeV, s.knotsV, v, sv, 2)
+		for j := range rows {
+			rows[j][i] = jet[j]
 		}
 	}
-	h := evalHom(s.degreeU, rows[0], s.knotsU, u)
-	hu := homDerivativeOrder(s.degreeU, rows[0], s.knotsU, u, 1)
-	hv := evalHom(s.degreeU, rows[1], s.knotsU, u)
-	huu := homDerivativeOrder(s.degreeU, rows[0], s.knotsU, u, 2)
-	huv := homDerivativeOrder(s.degreeU, rows[1], s.knotsU, u, 1)
-	hvv := evalHom(s.degreeU, rows[2], s.knotsU, u)
+	base := localHomJet(&rows[0], s.degreeU, s.knotsU, u, su, 2)
+	mixed := localHomJet(&rows[1], s.degreeU, s.knotsU, u, su, 1)
+	h, hu, huu, hv, huv := base[0], base[1], base[2], mixed[0], mixed[1]
+	hvv := reduceHom(s.degreeU, s.knotsU, u, su, &rows[2])
 	point, e := projectHom(h)
 	if e != nil {
 		return uu, uv, vv, e
