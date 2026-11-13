@@ -1224,6 +1224,81 @@
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1112,
       "firstFailure": "Authored end-cap edge target is missing after join; no preview or stale-result assertion was reached."
+    },
+    {
+      "sourceIdentity": {
+        "head": "1c591283824087a688489b238006e49344aa9e48",
+        "status": "M e2e/studio.spec.ts\n M specs/working-cad/VALIDATION_LOG.md\n M src/viewer/CadViewer.tsx\n M src/viewer/studioEffectsController.ts\n M src/viewer/studioLighting.ts\n M src/viewer/viewerControls.css",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "673619345f9b5c1e64974bf6d83669e82b7f7d74",
+        "status": "M internal/plaincadbridge/edge_body.go\n?? internal/plaincadbridge/bored_cap_edge_chamfer.go\n?? internal/plaincadbridge/bored_cap_edge_chamfer_test.go",
+        "branch": "codex/hole-edit-chamfer"
+      },
+      "selected": {
+        "testFile": "e2e/hole-edit.spec.ts",
+        "grep": "Edit Hole verifies"
+      },
+      "startedAt": "2026-11-13T17:56:47.788Z",
+      "finishedAt": "2026-11-13T17:58:13.267Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "a30c8f010236607bf4c91978c4ba99ccde6154c917ce16cdbda2418228cba808",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-hole-edit-acceptance-02/backend-results.json",
+          "startTime": "2026-11-13T17:57:19.787Z",
+          "duration": 24146.398999999998,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-hole-edit-acceptance-02/playwright-results.json",
+          "startTime": "2026-11-13T17:57:44.669Z",
+          "duration": 28571.223,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 18073,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "hole-edit.spec.ts",
+          "line": 159,
+          "title": "Edit Hole verifies the operation and downstream chamfer, cancels, rejects no-op downstream cuts, and preserves native geometry/IDs through undo/save/open/STL",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 22422,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-hole-edit-acceptance-02/readiness.json",
+      "fullReportSha256": "e5a0ce4a97d02e0c481f1f024d6b5b2126947053468c61e7d426e79ddcb51fa8",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1130,
+      "candidateCommit": "96ab139"
     }
   ]
 }

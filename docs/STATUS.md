@@ -200,6 +200,10 @@ backend check passed for all three. The
 [reconciliation report](evidence/plaincad-reconciliation-2026-11-13.json)
 records these as fixture failures, not regressions in zoom refinement or
 stale-preview cancellation.
+The original Hole Edit case then passed with the isolated repair applied
+as `96ab139`: the selected bottom chamfer replays both through holes and the
+counterbore on the qualified bevel, and the browser reaches undo, save, open,
+and STL. The orbit fixture and retained joined-edge preview remain open.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
