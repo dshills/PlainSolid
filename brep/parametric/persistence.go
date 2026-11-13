@@ -29,9 +29,10 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	Steinmetz       *[2]int      `json:",omitempty"`
-	Transform       *geom.Affine `json:",omitempty"`
-	Base            *surfaceData `json:",omitempty"`
+	SteinmetzSlab   *steinmetzSlabData `json:",omitempty"`
+	Steinmetz       *[2]int            `json:",omitempty"`
+	Transform       *geom.Affine       `json:",omitempty"`
+	Base            *surfaceData       `json:",omitempty"`
 	Kind            string
 	Frame           *frameData               `json:",omitempty"`
 	A, B            float64                  `json:",omitempty"`
@@ -170,6 +171,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
 	case offsetBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
+	case steinmetzSlabChart:
+		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
 		return surfaceData{Kind: "steinmetz-clipped-cylinder", Center: &x.center, A: x.radius, B: x.cap, Steinmetz: &[2]int{0, x.sign}}, nil
 	case steinmetzDisk:
@@ -418,6 +421,17 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 
 	if d.Base != nil || d.Transform != nil {
 		return nil, geom.ErrInvalid
+	}
+	if d.Kind == "steinmetz-slab" {
+		if d.Center == nil || d.SteinmetzSlab == nil || d.Frame != nil {
+			return nil, geom.ErrInvalid
+		}
+		x := d.SteinmetzSlab
+		s := steinmetzSlabChart{*d.Center, d.A, x.Lower, x.Upper, x.LowFixed, x.HighFixed, x.Kind}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
+		return s, nil
 	}
 	if d.Kind == "steinmetz-clipped-cylinder" {
 		if d.Center == nil || !d.Center.IsFinite() || !finite(d.A) || !finite(d.B) || d.B <= -d.A || d.B >= d.A || d.Steinmetz == nil || d.Steinmetz[0] != 0 || (d.Steinmetz[1] != 1 && d.Steinmetz[1] != -1) || d.Frame != nil {
