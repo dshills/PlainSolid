@@ -147,3 +147,25 @@ func TestBoundSpherePairReversedSources(t *testing.T) {
 		t.Fatal("original input masks", r, e)
 	}
 }
+
+func TestBoundSpherePairHorizontalMaterial(t *testing.T) {
+	s, e := NewSpherePairSet(context.Background(), Ball{Radius: 5}, Ball{Center: geom.Vec3{X: 4}, Radius: 3}, Intersection, 1e-8)
+	if e != nil {
+		t.Fatal(e)
+	}
+	section, e := s.HorizontalMaterial(3)
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := section.FirstBoundaryHit(context.Background(), geom.Vec2{}, geom.Vec2{X: 1}, 8, geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+	if e != nil || !r.HasHit || !r.Isolated || r.Boundary != geom.SpherePairFirst|geom.SpherePairSecond {
+		t.Fatal(r, e)
+	}
+	owners := s.SourceFaces()
+	if len(owners[0]) != 1 || len(owners[1]) != 1 {
+		t.Fatal("native support ownership", owners)
+	}
+	if _, e := (SpherePairSet{}).HorizontalMaterial(0); e == nil {
+		t.Fatal("unbound native view")
+	}
+}

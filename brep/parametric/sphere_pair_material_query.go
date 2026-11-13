@@ -163,3 +163,13 @@ func (s SpherePairSet) FirstBoundaryHit(ctx context.Context, origin, direction g
 	}
 	return s.query.FirstBoundaryHit(ctx, origin, direction, maxT, o)
 }
+
+// HorizontalMaterial retains the checked source binding in an immutable exact
+// section query. It uses global regularized semantics, preserving isolated
+// section contacts; it does not claim a separately regularized planar region.
+func (s SpherePairSet) HorizontalMaterial(height float64) (geom.SpherePairHorizontalMaterial, error) {
+	if !s.valid {
+		return geom.SpherePairHorizontalMaterial{}, geom.ErrInvalid
+	}
+	return s.query.HorizontalMaterial(height)
+}
