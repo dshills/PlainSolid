@@ -1980,3 +1980,12 @@ contains hashes and per-case results. These two runs cover all 66 cases; a
 single full run on the original port and qualification of later revisions are
 separate checks. The production runner now rejects changed ports for fixed-origin
 fixtures before building.
+
+The newer clean PlainCAD archive `1c59128` against reconciliation snapshot
+`5a69c0b` independently passed the real Go-WASM backend probe, the original
+zoomed native display test, and the original ORBIT orbit/zoom test including
+full-resolution PNG export during a gesture. The [reconciled run record](evidence/plaincad-reconciled-orbit-2026-11-13.json)
+records the exact app and kernel revisions. Production preflight verified all
+841 recorded original app files against the pinned Git tree and replayed the
+three display runtime edits from those originals before accepting the staged
+source. No application source checkout was modified.
