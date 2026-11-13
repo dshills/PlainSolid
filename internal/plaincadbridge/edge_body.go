@@ -369,6 +369,12 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 			a, c, ok = trimmedEdge(s.bore.solid, start, end)
 		} else {
 			a, c, ok = planarEdge(s.solid, start, end)
+			if !ok && q.Op == "fillet" && len(refs) == 1 {
+				_, ok = supportingEdgeChain(s.solid, start, end)
+				if ok {
+					a, c = start, end
+				}
+			}
 		}
 		if !ok {
 			return Shape{}, unsupportedEdge(q.Op + " failed: edge reference was lost or is ambiguous; no complete sharp edge resolves")
@@ -391,6 +397,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		body, err = inferEdgeStock(base, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
+			if q.Op == "fillet" && s.planar() && len(resolved) == 1 {
+				return b.treatRetainedPlanarEdge(s, q, normal, size, resolved[0])
+			}
 			return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
 		}
 		if s.bore != nil {
