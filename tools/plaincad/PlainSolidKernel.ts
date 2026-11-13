@@ -375,6 +375,29 @@ export class OpenCascadeKernel implements KernelAdapter {
       normal: xyz(source.transform.normal).map(value => value * Math.sign(source.distance)),
     };
   }
+  private profileEdges(shape: KernelShape, ref: TopologyRef): { edgeStart: number[]; edgeEnd: number[]; normal: number[] }[] {
+    const source = handle(shape).extrusion;
+    if (!source || ref.kind !== "edge" || ref.role !== "profileEdge" || ref.repairRequired || !ref.sourceEntityId)
+      throw new Error("Profile edge treatment requires an authored straight segment on its original extrusion.");
+    const segments = source.profile.outerLoop.type === "polygon" ? source.profile.outerLoop.segments ?? [] : [];
+    const matches = segments.filter(segment => segment.id === ref.sourceEntityId);
+    if (matches.length !== 1 || matches[0].type !== "line")
+      throw new Error("Authored profile edge is missing, ambiguous, or curved; repair the edge reference.");
+    const segment = matches[0];
+    const dx = segment.end.x - segment.start.x, dy = segment.end.y - segment.start.y;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.hypot(dx, dy) === 0)
+      throw new Error("Profile edge treatment requires a nondegenerate straight segment.");
+    // A profile-line reference owns the two axial edges at its endpoints.
+    // Reorient the stock frame using the line's in-plane perpendicular; its
+    // longitudinal axis is now the extrusion direction, including signed depth.
+    const normal = xyz({ x: source.transform.u.x * dy - source.transform.v.x * dx,
+      y: source.transform.u.y * dy - source.transform.v.y * dx,
+      z: source.transform.u.z * dy - source.transform.v.z * dx });
+    return [segment.start, segment.end].map(point => ({
+      edgeStart: xyz(transformPoint(source.transform, point.x, point.y, 0)),
+      edgeEnd: xyz(transformPoint(source.transform, point.x, point.y, source.distance)), normal,
+    }));
+  }
   availableExtrudeCapEdges(shape: KernelShape): ReturnType<NonNullable<KernelAdapter["availableExtrudeCapEdges"]>> {
     const source = handle(shape).extrusion;
     if (!source) return [];
@@ -625,7 +648,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
         result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
       } else {
-        const edges = (perimeter ?? refs).map(ref => this.capEdge(shape, ref));
+        const edges = (perimeter ?? refs).flatMap(ref => ref.role === "profileEdge" ? this.profileEdges(shape, ref) : [this.capEdge(shape, ref)]);
         const normal = perimeter?.[0].role === "startCapPerimeter" ? edges[0].normal.map(value => -value) : edges[0].normal;
         result = request({
           op: perimeter ? (operation === "fillet" ? "capFillet" : "capChamfer") : operation, handle: before.handle, normal,
