@@ -26,6 +26,12 @@ All seven selected original production cases pass, including browser CSP,
 native modeling and STL, STEP workers, scope capture and shop drawing.
 The original three grouped circular rim fillet cases also pass.
 
+The original retained-reference cases now pass across two focused runs,
+including whole rectangular cap chamfer after a bore, an authored fillet
+after Cut and Join, merged STL with a circular boss and a retained side
+sketch. Complete rectangular cap fillets pass native volume, area, centroid
+and mesh checks. The original viewport-operation run is in progress.
+
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge
 uses the actual bounded planar support, tracks it through owner edits, and

@@ -328,14 +328,19 @@ export class OpenCascadeKernel implements KernelAdapter {
         edges.push({ role });
       }
       if (loop.type !== "polygon") continue;
+      const complete: typeof edges = [];
       for (const segment of loop.segments ?? []) {
         if (segment.type !== "line") continue;
         const ref: TopologyRef = { featureId: "proof", kind: "edge", transientId: "proof", role, sourceEntityId: segment.id };
         const { available } = request<{ available: boolean }>({
           op: "edgeAvailable", handle: handle(shape).proof.handle, ...this.capEdge(shape, ref),
         });
-        if (available) edges.push({ role, sourceEntityId: segment.id });
+        if (available) complete.push({ role, sourceEntityId: segment.id });
       }
+      if (handle(shape).operation !== "extrusion" && !source.profile.innerLoops.length &&
+          loop.segments?.length === 4 && complete.length === 4)
+        edges.push({ role });
+      edges.push(...complete);
     }
     return edges;
   }
@@ -463,6 +468,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         !source.profile.innerLoops.length && !source.profile.holes.length &&
         refs.every(ref => !ref.sourceEntityId && !ref.repairRequired && ref.kind === "edge" &&
           (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
+      let perimeter: TopologyRef[] | undefined;
       for (const ref of refs) {
         if (ref.sourceEntityId || circularRims) continue;
         if (!source || source.profile.innerLoops.length || source.profile.outerLoop.type !== "polygon")
@@ -473,7 +479,9 @@ export class OpenCascadeKernel implements KernelAdapter {
         const available = this.availableExtrudeCapEdges(shape);
         if (segments.some(segment => !available.some(edge => edge.role === ref.role && edge.sourceEntityId === segment.id)))
           throw new Error("The complete perimeter contains an edge that was lost or is ambiguous. Select a surviving authored edge.");
-        throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
+        if (refs.length !== 1 || segments.length !== 4)
+          throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
+        perimeter = segments.map(segment => ({ ...ref, sourceEntityId: segment.id }));
       }
       const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
       let result: Proof;
@@ -484,9 +492,10 @@ export class OpenCascadeKernel implements KernelAdapter {
         const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
         result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
       } else {
-        const edges = refs.map(ref => this.capEdge(shape, ref));
+        const edges = (perimeter ?? refs).map(ref => this.capEdge(shape, ref));
+        const normal = perimeter?.[0].role === "startCapPerimeter" ? edges[0].normal.map(value => -value) : edges[0].normal;
         result = request({
-          op: operation, handle: before.handle, normal: edges[0].normal,
+          op: perimeter ? (operation === "fillet" ? "capFillet" : "capChamfer") : operation, handle: before.handle, normal,
           edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
           [operation === "fillet" ? "radius" : "distance"]: size,
         });

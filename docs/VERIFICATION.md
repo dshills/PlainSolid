@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD retained references after Cut and Join — 2026-11-13
+
+The first five-case run passes the original complete outer-perimeter
+chamfer after a bore, single-edge fillet after a rectangular extension,
+split-cap ambiguity and earlier-sketch cases. Its two failures are a
+merged STL requiring a circular boss on bored stock and a rectangular join
+whose unmerged coplanar fragments obscure the original side face.
+
+The corrected two-case run passes retained cap edits, merged STL and a
+sketch on the original side after Join, in 54.1 seconds. The union merges
+qualified aligned boxes to a single native boundary. A circular boss on a
+qualified bored cap sews the actual analytic cap and cylinder, retaining
+the disjoint blind or through bore. Both TypeScript checks and the WASM
+probe pass, with zero skips or flakes. The [first report](evidence/plaincad-retained-references-first-2026-11-13.json)
+and [corrected report](evidence/plaincad-retained-references-2026-11-13.json)
+preserve the exact snapshots.
+
 ## PlainCAD selected production acceptance — 2026-11-13
 
 All seven selected original production cases pass in 25.572 seconds, with
