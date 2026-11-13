@@ -1893,3 +1893,19 @@ Accepted canonical through/mixed/blind sources pass read/re-export and independe
 OCCT validity/mass comparisons in both signed directions. This reader is not a
 general mixed analytic STEP importer and does not recover arbitrary feature
 history.
+
+`ReadAnalyticCircularThroughExtrusions` is a separate analytic import subset for
+one convex planar prism with 1–16 full cylindrical through holes. It accepts
+independent OCCT face ordering, alternate planar parameter frames, oriented
+bounds, full-circle rims and two-use cylinder seams. It proves source vertex/edge
+incidence, checks each continuous line/circle model against both owner pcurves,
+and independently validates the planar stock and separated native footprints.
+It normalizes to positive height and does not recover original feature history.
+Its geometric checks use relative `1e-9` tolerance, consistent with the analytic
+STEP codecs; this is not the exact-decimal canonical graph contract of
+`ReadCircularHoleExtrusions`. Near-tangent footprints are rejected with a
+32-tolerance clearance margin. Blind floors, split circular rims, assemblies,
+nonidentity representation placement and detached geometry remain unsupported.
+The retained `circular-through-occt.step` fixture was independently built by
+OCCT prism/cylinder Boolean subtraction; live qualification also imports that
+source, rewrites it and compares OCCT validity, area, volume and centroid.
