@@ -12,11 +12,12 @@ for the solved circular segment, placed bore axis and imported STEP STL.
 The first consolidated run passes 47 of 53 originals. A finer bore mesh
 exhausts the triangulation budget in six guided multi-hole previews. Single
 bores retain the finer setting and multiple rims use their earlier setting.
-The corrected focused runs pass both original XY guided cases and STEP STL. Native helical dependencies,
-bounded M3 chart coordinates and finite phased starts are verified separately.
-Modeled external and internal thread lead-ins, four-start end reliefs and
-browser-ready helical tessellation are still in progress. The thread and lead
-browser baseline failed before reaching helical geometry.
+The corrected focused runs pass both original XY guided cases and STEP STL.
+The first helical run passes the original four-start lead screw and matching
+nut, including handedness edits and cold open. The modeled Thread case
+passes external preview, length edit and save/open, then fails full STL
+validation on intersecting mesh triangles. The internal thread portion
+follows that export and has native geometry and mesh evidence only.
 
 The original machined-reference acceptance passes nested rectangular blind
 pockets, a disjoint cylindrical through bore, measured rim and floor,
@@ -24,6 +25,12 @@ parameter edits, save/open, and rejection after the original floor is cut.
 All seven selected original production cases pass, including browser CSP,
 native modeling and STL, STEP workers, scope capture and shop drawing.
 The original three grouped circular rim fillet cases also pass.
+
+The original retained-reference cases now pass across two focused runs,
+including whole rectangular cap chamfer after a bore, an authored fillet
+after Cut and Join, merged STL with a circular boss and a retained side
+sketch. Complete rectangular cap fillets pass native volume, area, centroid
+and mesh checks. The original viewport-operation run is in progress.
 
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge
@@ -39,7 +46,8 @@ XZ edge-draft cases and the prior 24 regressions. All 26 existing cases, both
 TypeScript checks and the supplemental grouped chamfer probe pass with zero
 skips or flaky results. Groups resolve up to four parallel original edges on
 qualified rectangular stock, with a single publication after validation.
-Complete perimeters, nonparallel edges and intersecting treatments remain open.
+Complete circular rims and sharp rectangular cap perimeters now have native
+constructors. General nonparallel and intersecting treatments remain open.
 
 The imported analytic edge chain is committed as `4916667`. Its browser
 checkpoint passed PlainCAD's existing fillet, chamfer, Hole, pocket and boss workflow,

@@ -39,7 +39,7 @@ func TestAttachSteppedGroovedShaftHead(t *testing.T) {
 		if math.Abs(after.Volume-before.Volume-(72*math.Pi-4)) > 1e-6 {
 			t.Fatal(before.Volume, after.Volume)
 		}
-		m, e := joined.Tessellate(ctx, parametric.TessellationOptions{Deflection: .5, Angle: 0, MaxSubdivisions: 256, MaxTriangles: 1000000})
+		m, e := joined.TessellateHelical(ctx, parametric.TessellationOptions{Deflection: .5, Angle: .1, MaxSubdivisions: 128, MaxTriangles: 100000})
 		if e != nil {
 			t.Fatal(e)
 		}

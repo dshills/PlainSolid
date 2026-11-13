@@ -97,6 +97,8 @@ type request struct {
 	Radius            number               `json:"radius,omitempty"`
 	Source            string               `json:"source,omitempty"`
 	Handles           []string             `json:"handles,omitempty"`
+	Lead              *leadRequest         `json:"lead,omitempty"`
+	Nut               bool                 `json:"nut,omitempty"`
 	Thread            *threadRequest       `json:"thread,omitempty"`
 	Profile           *mixedProfileRequest `json:"profile,omitempty"`
 	Angle             number               `json:"angle,omitempty"`
@@ -221,7 +223,26 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "displayEdges", "thread", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "displayEdges", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "leadPart", "assertLeadPair":
+		if q.Lead == nil {
+			return nil, errors.New("lead screw operation requires dimensions")
+		}
+		if q.Op == "leadPart" {
+			return b.createLeadPart(*q.Lead, q.Nut)
+		}
+		a, err := b.get(q.A)
+		if err != nil {
+			return nil, err
+		}
+		c, err := b.get(q.B)
+		if err != nil {
+			return nil, err
+		}
+		if err := b.checkLeadPair(a, c, *q.Lead); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"compatible": true}, nil
 	case "thread":
 		if q.Thread == nil {
 			return nil, errors.New("thread requires dimensions and handedness")
@@ -262,10 +283,13 @@ func (b *Bridge) execute(q request) (any, error) {
 		return b.mixedExtrude(*q.Profile)
 	case "revolvePolygon", "revolveCircle":
 		return b.revolve(q)
-	case "edgeAvailable", "fillet", "filletCylinderRims", "chamfer":
+	case "edgeAvailable", "fillet", "filletCylinderRims", "chamfer", "capChamfer", "capFillet":
 		s, err := b.get(q.Handle)
 		if err != nil {
 			return nil, err
+		}
+		if q.Op == "capChamfer" || q.Op == "capFillet" {
+			return b.treatCapPerimeter(s, q)
 		}
 		if q.Op == "filletCylinderRims" {
 			return b.filletCylinderRims(s, q)
@@ -351,11 +375,26 @@ func (b *Bridge) execute(q request) (any, error) {
 		if result, handled, err := b.cornerCylinderBoolean(a, c, q.Op); handled {
 			return result, err
 		}
+		if q.Op == "fuse" && a.bore != nil && c.cylinder != nil {
+			if result, handled, err := b.fuseCircularBoss(a.bore, c.cylinder); handled {
+				return result, err
+			}
+		}
+		if q.Op == "fuse" && a.bore != nil && c.planar() {
+			if result, handled, err := b.fuseBoredStock(a.bore, c.solid); handled {
+				return result, err
+			}
+		}
 		if a.treated != nil || c.treated != nil {
 			return b.treatedBoolean(a, c, q.Op)
 		}
 		if a.cylinder != nil || c.cylinder != nil || a.bore != nil || c.bore != nil {
 			return b.curvedBoolean(a, c, q.Op)
+		}
+		if q.Op == "fuse" {
+			if box, ok := joinedRectangularStock(a.solid, c.solid); ok {
+				return b.put(box)
+			}
 		}
 		op := poly.Difference
 		if q.Op == "fuse" {

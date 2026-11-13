@@ -62,8 +62,15 @@ Unsupported arc arrangements and mixed inner-loop families reject; curves are
 never converted to polygon samples. Revolution forwards exact straight polygon
 or full-circle profiles and the resolved world axis to the native bridge, retaining
 `revolve` provenance. Profiles with inner loops remain unsupported for revolution.
-General curved Boolean combinations, general fillets/chamfers, threads,
-lead parts, and unproved topology references fail explicitly.
+General curved Boolean combinations, general fillets/chamfers, and unproved
+topology references fail explicitly.
+
+Modeled-thread and lead screw/nut methods forward their resolved dimensions and
+handedness to bounded native helical constructors. The original lead-pair fixture
+has passed linked edits and cold reopening. Modeled-thread creation, editing and
+reopening have passed, but its original STL export currently detects a mesh
+self-intersection; that workflow is not yet qualified. Unsupported helical stock
+or parameter combinations reject explicitly.
 
 Native STEP import/export runs in isolated workers and retains analytic BRep
 geometry. Export returns independent before/after native read-back proofs and
@@ -81,6 +88,11 @@ Only parallel caps retain constant-distance extrusion metadata. Existing circula
 and polygonal to-face cases measure upstream edits and reference recovery;
 face-pocket and component-placement cases measure inward cuts, previews,
 Undo/save/open, and oriented STL using the same native adapter.
+
+Complete circular cap rims on an unchanged cylinder support bounded analytic
+fillets. Authored cap roles identify the actual native rim centers; the bridge
+retains toroidal fillet surfaces and rejects unsupported radius or rim selections.
+The original XY/XZ/YZ circle-perimeter fixtures measure exact removed volume.
 
 A bounded rectangular-stock history supports atomic fillet and equal-setback
 chamfer batches on compatible parallel cap edges along the same stock length.

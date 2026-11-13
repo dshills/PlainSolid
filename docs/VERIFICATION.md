@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD retained references after Cut and Join — 2026-11-13
+
+The first five-case run passes the original complete outer-perimeter
+chamfer after a bore, single-edge fillet after a rectangular extension,
+split-cap ambiguity and earlier-sketch cases. Its two failures are a
+merged STL requiring a circular boss on bored stock and a rectangular join
+whose unmerged coplanar fragments obscure the original side face.
+
+The corrected two-case run passes retained cap edits, merged STL and a
+sketch on the original side after Join, in 54.1 seconds. The union merges
+qualified aligned boxes to a single native boundary. A circular boss on a
+qualified bored cap sews the actual analytic cap and cylinder, retaining
+the disjoint blind or through bore. Both TypeScript checks and the WASM
+probe pass, with zero skips or flakes. The [first report](evidence/plaincad-retained-references-first-2026-11-13.json)
+and [corrected report](evidence/plaincad-retained-references-2026-11-13.json)
+preserve the exact snapshots.
+
 ## PlainCAD selected production acceptance — 2026-11-13
 
 All seven selected original production cases pass in 25.572 seconds, with
@@ -119,6 +136,21 @@ volume, area and centroid, closed mesh and native JSON roundtrip.
 The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
+
+## PlainCAD original helical workflows, first run — 2026-11-13
+
+The original linked four-start lead screw and nut passes in 18.194 seconds.
+It measures retained native stock, edits handedness, cold-opens the document
+and exports both real STL meshes. The modeled Thread case passes external
+native preview, both length checks and save/open, then fails during the
+full STL intersection check. Replaying the exact WASM snapshot reproduces
+a crossing between two nonadjacent triangles near the external lead-in.
+Native tests independently verify the internal M3 groove and both hands of
+the finite lead pair. A mesh embedding repair is in progress.
+
+The [two-case report](evidence/plaincad-helical-first-run-2026-11-13.json)
+records the one pass and one failure, both TypeScript checks and the
+separate native WASM supplement.
 
 ## Phased lead screw and nut end reliefs — 2026-11-13
 

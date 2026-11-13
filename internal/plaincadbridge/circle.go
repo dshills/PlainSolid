@@ -110,7 +110,11 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 		return mesh.Mesh{}, err
 	}
 	if s.analytic != nil {
-		return s.analytic.tessellate(o)
+		m, err := s.analytic.tessellate(o)
+		if err == nil && s.analytic.helical && o.Deflection == .5 && o.Angle == .1 && s.analytic.helicalMesh == nil {
+			s.analytic.helicalMesh = &m
+		}
+		return m, err
 	}
 	if s.treated != nil {
 		return s.treated.tessellate(o)

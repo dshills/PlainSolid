@@ -3,7 +3,9 @@
 import { rectangularShellDimensions, requireShellOpening } from "../features/shellFeature";
 import type { NativeStepExport } from "./nativeStep";
 import type { DisplayEdgeBudget } from "./nativeDisplayEdges";
-import type { ComponentPlacement, TopologyRef, RevolveAxisReference } from "../document/schema";
+import type { LeadScrewDimensions } from "../hardware/leadScrewSettings";
+import type { ThreadDimensions } from "../hardware/threadSettings";
+import type { ComponentPlacement, TopologyRef, RevolveAxisReference, ThreadFeature } from "../document/schema";
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions, ResolvedRevolveAxis } from "./KernelAdapter";
@@ -161,7 +163,7 @@ export class OpenCascadeKernel implements KernelAdapter {
   static stepExportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
   static stepImportDiagnostic(): string | undefined { return this.isInitialized() ? undefined : "PlainSolid WebAssembly is not initialized."; }
   static shellAvailable() { return this.isInitialized(); }
-  static threadsAvailable() { return false; }
+  static threadsAvailable() { return Boolean(runtime.plainSolidCall); }
 
   createBox(width: number, height: number, depth: number): KernelShape {
     return owned(request({ op: "box", min: [0, 0, 0], max: [width, height, depth] }), "box");
@@ -334,14 +336,19 @@ export class OpenCascadeKernel implements KernelAdapter {
         edges.push({ role });
       }
       if (loop.type !== "polygon") continue;
+      const complete: typeof edges = [];
       for (const segment of loop.segments ?? []) {
         if (segment.type !== "line") continue;
         const ref: TopologyRef = { featureId: "proof", kind: "edge", transientId: "proof", role, sourceEntityId: segment.id };
         const { available } = request<{ available: boolean }>({
           op: "edgeAvailable", handle: handle(shape).proof.handle, ...this.capEdge(shape, ref),
         });
-        if (available) edges.push({ role, sourceEntityId: segment.id });
+        if (available) complete.push({ role, sourceEntityId: segment.id });
       }
+      if (handle(shape).operation !== "extrusion" && !source.profile.innerLoops.length &&
+          loop.segments?.length === 4 && complete.length === 4)
+        edges.push({ role });
+      edges.push(...complete);
     }
     return edges;
   }
@@ -469,6 +476,7 @@ export class OpenCascadeKernel implements KernelAdapter {
         !source.profile.innerLoops.length && !source.profile.holes.length &&
         refs.every(ref => !ref.sourceEntityId && !ref.repairRequired && ref.kind === "edge" &&
           (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
+      let perimeter: TopologyRef[] | undefined;
       for (const ref of refs) {
         if (ref.sourceEntityId || circularRims) continue;
         if (!source || source.profile.innerLoops.length || source.profile.outerLoop.type !== "polygon")
@@ -479,7 +487,9 @@ export class OpenCascadeKernel implements KernelAdapter {
         const available = this.availableExtrudeCapEdges(shape);
         if (segments.some(segment => !available.some(edge => edge.role === ref.role && edge.sourceEntityId === segment.id)))
           throw new Error("The complete perimeter contains an edge that was lost or is ambiguous. Select a surviving authored edge.");
-        throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
+        if (refs.length !== 1 || segments.length !== 4)
+          throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
+        perimeter = segments.map(segment => ({ ...ref, sourceEntityId: segment.id }));
       }
       const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
       let result: Proof;
@@ -490,9 +500,10 @@ export class OpenCascadeKernel implements KernelAdapter {
         const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
         result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
       } else {
-        const edges = refs.map(ref => this.capEdge(shape, ref));
+        const edges = (perimeter ?? refs).map(ref => this.capEdge(shape, ref));
+        const normal = perimeter?.[0].role === "startCapPerimeter" ? edges[0].normal.map(value => -value) : edges[0].normal;
         result = request({
-          op: operation, handle: before.handle, normal: edges[0].normal,
+          op: perimeter ? (operation === "fillet" ? "capFillet" : "capChamfer") : operation, handle: before.handle, normal,
           edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
           [operation === "fillet" ? "radius" : "distance"]: size,
         });
@@ -541,9 +552,18 @@ export class OpenCascadeKernel implements KernelAdapter {
     }
     return owned(result, "shell", shape.id);
   }
-  thread = unsupported;
-  leadPart = unsupported;
-  assertLeadPair = unsupported;
+  thread(shape: KernelShape, settings: Pick<ThreadFeature, "side" | "hand">, dimensions: ThreadDimensions): KernelShape {
+    const proof = request<Proof>({ op: "thread", handle: handle(shape).proof.handle, thread: { ...dimensions, side: settings.side, hand: settings.hand } });
+    return owned(proof, "thread", shape.id);
+  }
+  leadPart(dimensions: LeadScrewDimensions, nut: boolean, progress?: (stage: string) => void): KernelShape {
+    progress?.(nut ? "lead_nut_thread" : "lead_screw_thread");
+    return owned(request({ op: "leadPart", lead: dimensions, nut }), nut ? "leadNut" : "leadScrew");
+  }
+  assertLeadPair(screw: KernelShape, nut: KernelShape, dimensions: LeadScrewDimensions, progress?: (stage: string) => void): void {
+    progress?.("lead_pair_fit");
+    request({ op: "assertLeadPair", a: handle(screw).proof.handle, b: handle(nut).proof.handle, lead: dimensions });
+  }
   importStep(source: string): KernelShape {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated native worker.");
     return owned(request({ op: "importStep", source }), "stepImport");
