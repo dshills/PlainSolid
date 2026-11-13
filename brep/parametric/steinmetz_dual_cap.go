@@ -189,7 +189,20 @@ func finiteSteinmetzRadiusWindows(ctx context.Context, center geom.Vec3, widths 
 			if seen[key] {
 				continue
 			}
-			angle, err := steinmetzRadiusSplit(ctx, radius, ordinate, tolerance)
+			var angle float64
+			var err error
+			if limit == radius {
+				// Keep the established angle and canonical native representation
+				// for the equal-radius chart and the narrow side of an unequal one.
+				var interval *geom.ExactParameterInterval
+				var rounded float64
+				_, interval, rounded, err = encloseSteinmetzCapOrdinate(ctx, radius, abs, tolerance, geom.ExactCurvePlaneEventOptions{})
+				if err == nil {
+					angle, _, _, _, err = steinmetzSplitAngle(ctx, radius, abs, tolerance, rounded, interval.Lower, interval.Upper)
+				}
+			} else {
+				angle, err = steinmetzRadiusSplit(ctx, radius, ordinate, tolerance)
+			}
 			if err != nil {
 				return zero, err
 			}
