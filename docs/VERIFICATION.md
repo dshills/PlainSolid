@@ -20,7 +20,10 @@ record both reproductions and the original gesture case passing an
 unchanged rerun in 88.653 seconds. The staged viewer now advances missed
 camera damping updates without issuing extra WebGL draws. The original
 pan-idle, source-marker and gesture cases all pass with that change.
-Their measured times are 38.779, 20.592 and 54.799 seconds.
+Their measured times are 38.779, 20.592 and 54.799 seconds. The
+[final viewer harness run](evidence/plaincad-final-viewer-harness-2026-11-13.json)
+passes those three originals plus studio effects, 40-body GPU buffer
+reuse, and viewport fit. All six pass with zero skips or retries.
 
 ## PlainCAD STEP for rounded stock and canonical long-edge chains — 2026-11-13
 
