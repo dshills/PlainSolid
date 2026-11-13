@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
@@ -33,12 +34,12 @@ type splineWindingUse struct {
 // accepted only when its enclosure is disjoint from the current query.
 type splineWindingCache struct {
 	faces [][][]splineWindingUse
-	exact []uint8 // 0 untested, 1 certified, 2 unresolved
+	exact map[int]*trimvalidate.CertifiedLoops // nil value means unresolved
 	left  int
 }
 
 func newSplineWindingCache(faces int) *splineWindingCache {
-	return &splineWindingCache{faces: make([][][]splineWindingUse, faces), exact: make([]uint8, faces), left: 16384}
+	return &splineWindingCache{faces: make([][][]splineWindingUse, faces), exact: make(map[int]*trimvalidate.CertifiedLoops), left: 16384}
 }
 
 func (c *splineWindingCache) init(face int, f Face) {
@@ -65,25 +66,31 @@ func (c *splineWindingCache) init(face int, f Face) {
 
 func (c *splineWindingCache) classify(ctx context.Context, face int, f Face, q geom.UVBox) (parametric.Location, bool, error) {
 	if hasNativeExactSplineTrim(f) {
-		o := trimvalidate.Options{}
-		if c.exact[face] == 0 {
-			proof, e := ValidateFaceTrimLoops(ctx, f, o)
+		proof, tried := c.exact[face]
+		if !tried {
+			_, e := proveFaceTrimLoops(ctx, f, trimvalidate.Options{}, &proof, nil, nil)
 			if e != nil {
 				return parametric.Outside, false, e
 			}
-			c.exact[face] = 2
-			if proof.Status == trimvalidate.Certified {
-				c.exact[face] = 1
-			}
+			c.exact[face] = proof
 		}
-		if c.exact[face] != 1 {
+		if proof == nil {
 			return parametric.Outside, false, nil
 		}
-		loc, known, e := classifyCertifiedSplineFaceBox(ctx, f, q, o, 96)
-		if loc == trimvalidate.Inside {
-			return parametric.Inside, known, e
+		lo := [2]*big.Rat{ratInset(q.Min.X), ratInset(q.Min.Y)}
+		hi := [2]*big.Rat{ratInset(q.Max.X), ratInset(q.Max.Y)}
+		var loc trimvalidate.Location
+		var report trimvalidate.Report
+		var e error
+		if q.Min == q.Max {
+			loc, report, e = proof.Locate(ctx, lo)
+		} else {
+			loc, report, e = proof.LocateBox(ctx, lo, hi)
 		}
-		return parametric.Outside, known && loc == trimvalidate.Outside, e
+		if loc == trimvalidate.Inside {
+			return parametric.Inside, report.Status == trimvalidate.Certified, e
+		}
+		return parametric.Outside, report.Status == trimvalidate.Certified && loc == trimvalidate.Outside, e
 	}
 	if c.faces[face] == nil {
 		c.init(face, f)

@@ -616,7 +616,7 @@ func (o Options) WithDefaults() (Options, error) {
 // error; unsupported kinds or exhausted proof budgets return Unresolved with
 // nil error. Bad options and cancellation return an error and never Certified.
 func ValidateLoops(ctx context.Context, outer Loop, holes []Loop, o Options) (Report, error) {
-	r, _, e := validateLoops(ctx, outer, holes, nil, o)
+	r, _, e := validateLoops(ctx, outer, holes, nil, o, nil)
 	return r, e
 }
 
@@ -638,7 +638,7 @@ func LocateRationalInLoops(ctx context.Context, outer Loop, holes []Loop, uv [2]
 		return Unknown, Report{LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}, ErrOptions
 	}
 	p := point{uv[0], uv[1]}
-	r, location, e := validateLoops(ctx, outer, holes, &p, o)
+	r, location, e := validateLoops(ctx, outer, holes, &p, o, nil)
 	return location, r, e
 }
 
@@ -653,7 +653,7 @@ func LocateRationalBoxInLoops(ctx context.Context, outer Loop, holes []Loop, lo,
 		}
 	}
 	box := rationalQueryBox{lo: lo, hi: hi}
-	r, location, e := validateLoops(ctx, outer, holes, nil, o, box)
+	r, location, e := validateLoops(ctx, outer, holes, nil, o, nil, box)
 	return location, r, e
 }
 
@@ -731,7 +731,7 @@ func (q rationalQueryBox) intersectsLine(a, z point, b *budget) bool {
 	return lo.Cmp(hi) <= 0
 }
 
-func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, o Options, boxes ...rationalQueryBox) (Report, Location, error) {
+func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, o Options, retain **CertifiedLoops, boxes ...rationalQueryBox) (Report, Location, error) {
 	r := Report{Status: Unresolved, LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}
 	o, e := o.WithDefaults()
 	if ctx == nil || e != nil {
@@ -903,6 +903,16 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 		}
 	}
 	r.LoopA, r.EdgeA, r.LoopB, r.EdgeB = -1, -1, -1, -1
+	if retain != nil {
+		*retain = &CertifiedLoops{rings: loops, edges: all, options: o}
+	}
+	var status Status
+	var reason string
+	location, status, reason = locateCertifiedLoops(loops, all, query, &r, b, boxes...)
+	return finish(status, reason)
+}
+
+func locateCertifiedLoops(loops [][]curve, all []curve, query *point, r *Report, b *budget, boxes ...rationalQueryBox) (Location, Status, string) {
 	if len(boxes) == 1 {
 		box := boxes[0]
 		b.check(box.lo)
@@ -910,7 +920,7 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 		for _, c := range all {
 			if !box.excludes(c, b) {
 				r.LoopA, r.EdgeA = c.loop, c.edge
-				return finish(Unresolved, "box separation from trim boundary unproved")
+				return Unknown, Unresolved, "box separation from trim boundary unproved"
 			}
 		}
 		p := midpoint(box.lo, box.hi)
@@ -918,20 +928,21 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 	}
 	if query != nil {
 		b.check(*query)
+		if b.err != nil {
+			return Unknown, Unresolved, "rational query exceeds bit budget"
+		}
 		pointProofPending := false
 		for _, c := range all {
 			if !b.tick() {
-				return finish(Unresolved, "point location budget exhausted")
+				return Unknown, Unresolved, "point location budget exhausted"
 			}
 			if onCurve(*query, c) {
-				location = Boundary
-				return finish(Certified, "exact boundary point")
+				return Boundary, Certified, "exact boundary point"
 			}
 			if c.controls != nil && !outsideHull(*query, c) {
 				hit, complete := b.locateBezierPoint(*query, c)
 				if hit {
-					location = Boundary
-					return finish(Certified, "exact algebraic boundary point")
+					return Boundary, Certified, "exact algebraic boundary point"
 				}
 				pointProofPending = pointProofPending || !complete
 			}
@@ -941,16 +952,15 @@ func validateLoops(ctx context.Context, outer Loop, holes []Loop, query *point, 
 			if !ok {
 				r.LoopA = i
 				if pointProofPending {
-					return finish(Unresolved, "higher degree point location proof exhausted")
+					return Unknown, Unresolved, "higher degree point location proof exhausted"
 				}
-				return finish(Unresolved, "point location budget exhausted or boundary unresolved")
+				return Unknown, Unresolved, "point location budget exhausted or boundary unresolved"
 			}
 			if i == 0 && w == 0 || i != 0 && w != 0 {
-				location = Outside
-				return finish(Certified, "exact winding proves point outside material")
+				return Outside, Certified, "exact winding proves point outside material"
 			}
 		}
-		location = Inside
+		return Inside, Certified, "exact winding proves point inside material"
 	}
-	return finish(Certified, "simple oriented loops and disjoint contained holes proved")
+	return Unknown, Certified, "simple oriented loops and disjoint contained holes proved"
 }
