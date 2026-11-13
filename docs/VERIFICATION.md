@@ -14,7 +14,11 @@ CNC coach passed its [separate unchanged retest](evidence/plaincad-reconciled-cn
 The original Thread then passed twice, in 76.9 and 76.4 seconds, using
 allocation and dense manifold validation changes. The [Thread comparison](evidence/plaincad-thread-performance-2026-11-13.json)
 retains the prior timeouts, exact external mesh hash, and distinct clean
-build IDs. A fresh full development run started on `e060654`.
+build IDs. The [next full development run](evidence/plaincad-reconciled-development-e060654-2026-11-13.json)
+finished on `e060654` with 343 of 344 original cases passing in 51.4 minutes,
+with no skips or retries. Thread passed; the CNC coach was the sole failure.
+The run's only untracked files in PlainSolid were earlier verification reports;
+recorded source hashes and the WASM SHA-256 bind the actual inputs.
 
 The [full production suite](evidence/plaincad-reconciled-production-e579e5c-2026-11-13.json)
 passed all 66 original cases on clean `e579e5c` with PlainCAD `e65f07b`.
