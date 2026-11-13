@@ -111,6 +111,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "sphere", Frame: frameToData(f), A: r}, nil
 	case offsetBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
+	case toolBoreChart:
+		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -319,6 +321,9 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 	case "offset-sphere-bore":
 		x := d.OffsetBore
 		s := offsetBoreChart{f, x.Radius, x.Bore, x.Offset, x.Floor, x.Chart}
+		if x.Chart >= toolBoreLower {
+			return newToolBoreChart(context.Background(), s, 0)
+		}
 		if e := s.validate(0); e != nil {
 			return nil, e
 		}

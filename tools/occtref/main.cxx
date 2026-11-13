@@ -1070,6 +1070,8 @@ int main(int argc, char** argv) {
     record(out, "finite-sphere-cylinder-algebraic-common", BRepAlgoAPI_Common(finiteBall, algebraicBand).Shape());
     const auto offAxisBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1, 0, -.75), gp_Dir(0, 0, 1)), 2, 7).Shape();
     record(out, "off-axis-sphere-blind-bore", BRepAlgoAPI_Cut(finiteBall, offAxisBore).Shape(), 1e-10);
+    const auto wideOffsetBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2, 0, .25), gp_Dir(0, 0, 1)), 1, 6).Shape();
+    record(out, "wide-offset-sphere-blind-bore", BRepAlgoAPI_Cut(finiteBall, wideOffsetBore).Shape(), 1e-10);
     const auto boreBox = BRepPrimAPI_MakeBox(gp_Pnt(-2, -2, -1), 6, 5, 3).Shape();
     const auto boxBore = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(.5, .25, -2), gp_Dir(0, 0, 1)), .75, 5).Shape();
     record(out, "bored-box", BRepAlgoAPI_Cut(boreBox, boxBore).Shape());

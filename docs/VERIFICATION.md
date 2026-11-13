@@ -949,3 +949,11 @@ excluding evaluation roundoff. The conforming mesh has positive signed
 volume and passes a complete self-contact check. The exact query tests
 cover both support junctions, hidden sphere filtering, tangencies, line
 endpoints, and contained cutters that do not cover the sphere axis.
+
+The tool-centered shell covers cutters centered on the sphere axis, tangent
+to it in projection, and separated from it. The upper annulus and lower
+hemisphere share an equatorial seam and analytic derivative bounds. The
+separated case has a closed mesh without detected contacts, exact native
+reload, and independent OCCT area, volume and centroid checks. Coincident
+line tests also preserve floor and wall intervals, clipped and reversed
+parameter ranges, exact endpoints, and both owners at a shared rim.

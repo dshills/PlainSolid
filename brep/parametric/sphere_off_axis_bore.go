@@ -18,14 +18,14 @@ type SphereOffAxisBlindBoreResult struct {
 
 // SphereOffAxisBlindBore cuts a vertical round pocket into the north side
 // of a sphere. The sphere is centered on frame.Origin; the tool axis is
-// offset along the local X axis. This construction requires 0 < offset <
-// boreRadius and offset+boreRadius < sphereRadius. The tool extends upward
+// offset along the local X axis. This construction requires offset >= 0
+// and offset+boreRadius < sphereRadius. The tool extends upward
 // from floor, which lies strictly between the lower and upper wall/sphere
 // intersections at every azimuth. Heights are in local model units.
 //
 // The supports and their intersection are analytic. The parameterization
 // covers the sphere from the south pole to the positive wall intersection
-// along each ray, without fitting a spline to the seam. Incidence is sewn
+// without fitting a spline to the seam. Incidence is sewn
 // at the supplied native tolerance. Singular and unresolved inputs fail.
 func SphereOffAxisBlindBore(ctx context.Context, frame geom.Frame, sphereRadius, boreRadius, offset, floor, tolerance float64) (SphereOffAxisBlindBoreResult, error) {
 	var empty SphereOffAxisBlindBoreResult
@@ -36,6 +36,9 @@ func SphereOffAxisBlindBore(ctx context.Context, frame geom.Frame, sphereRadius,
 		return empty, e
 	}
 	cfg := offsetBoreChart{frame: frame, radius: sphereRadius, bore: boreRadius, offset: offset, floor: floor}
+	if offset >= boreRadius || offset == 0 {
+		return makeToolCenteredSphereBore(ctx, cfg, tolerance)
+	}
 	if e := cfg.validate(tolerance); e != nil {
 		return empty, e
 	}
@@ -119,28 +122,21 @@ func (s offsetBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interv
 	if e != nil {
 		return 0, 0, 0, e
 	}
-	upper := func(r *big.Rat) float64 {
-		v, exact := r.Float64()
-		if !exact {
-			return math.Nextafter(v, math.Inf(1))
-		}
-		return v
-	}
 	var uu, uv, vv float64
-	rho, p, q := upper(b.Rho[1]), upper(b.RhoFirst), upper(b.RhoSecond)
+	rho, p, q := upperBoreRat(b.Rho[1]), upperBoreRat(b.RhoFirst), upperBoreRat(b.RhoSecond)
 	xyUU := upAdd(upAdd(rho, upMul(2, p)), q)
 	switch s.kind {
 	case offsetBoreSphere:
 		// Latitude is v*(L(u)+π/2)-π/2. Each first and second
 		// partial of the underlying sphere has norm at most R.
-		a, b := upper(b.LatitudeFirst), upper(b.LatitudeSecond)
+		a, b := upperBoreRat(b.LatitudeFirst), upperBoreRat(b.LatitudeSecond)
 		pi := up(math.Pi)
 		uu = upMul(s.radius, upAdd(upAdd(1, upMul(2, a)), upAdd(upMul(a, a), b)))
 		uv = upMul(s.radius, upAdd(upMul(upAdd(1, a), pi), a))
 		vv = upMul(s.radius, upMul(pi, pi))
 	case offsetBoreWall:
-		uu = upAdd(xyUU, upper(b.HeightSecond))
-		uv = upper(b.HeightFirst)
+		uu = upAdd(xyUU, upperBoreRat(b.HeightSecond))
+		uv = upperBoreRat(b.HeightFirst)
 	case offsetBoreFloor:
 		uu, uv = xyUU, upAdd(rho, p)
 	default:
@@ -148,14 +144,30 @@ func (s offsetBoreChart) secondDerivativeBounds(ctx context.Context, u, v Interv
 	}
 	// Bound the operator norm of the represented affine frame by its
 	// Frobenius norm. This also covers non-coordinate frame roundoff.
+	norm := boreFrameNorm(s.frame)
+	return upMul(uu, norm), upMul(uv, norm), upMul(vv, norm), nil
+}
+
+func upperBoreRat(r *big.Rat) float64 {
+	v, exact := r.Float64()
+	if !exact {
+		return math.Nextafter(v, math.Inf(1))
+	}
+	return v
+}
+
+func boreFrameNorm(f geom.Frame) float64 {
 	norm := 0.
-	for _, a := range [...]geom.Vec3{s.frame.XAxis(), s.frame.YAxis(), s.frame.ZAxis()} {
+	for _, a := range [...]geom.Vec3{f.XAxis(), f.YAxis(), f.ZAxis()} {
 		for _, x := range [...]float64{a.X, a.Y, a.Z} {
 			norm = upAdd(norm, upMul(math.Abs(x), math.Abs(x)))
 		}
 	}
-	norm = up(math.Sqrt(norm))
-	return upMul(uu, norm), upMul(uv, norm), upMul(vv, norm), nil
+	return up(math.Sqrt(norm))
+}
+
+func frameVector(f geom.Frame, v geom.Vec3) geom.Vec3 {
+	return f.XAxis().Scale(v.X).Add(f.YAxis().Scale(v.Y)).Add(f.ZAxis().Scale(v.Z))
 }
 
 func (s offsetBoreChart) evaluate(u, v float64) (p, du, dv geom.Vec3, err error) {
@@ -219,11 +231,8 @@ func (s offsetBoreChart) evaluate(u, v float64) (p, du, dv geom.Vec3, err error)
 	default:
 		return p, du, dv, geom.ErrInvalid
 	}
-	apply := func(v geom.Vec3) geom.Vec3 {
-		return s.frame.XAxis().Scale(v.X).Add(s.frame.YAxis().Scale(v.Y)).Add(s.frame.ZAxis().Scale(v.Z))
-	}
 	p = s.frame.ToWorld(p.Scale(s.radius))
-	du, dv = apply(du.Scale(s.radius)), apply(dv.Scale(s.radius))
+	du, dv = frameVector(s.frame, du.Scale(s.radius)), frameVector(s.frame, dv.Scale(s.radius))
 	if !p.IsFinite() || !du.IsFinite() || !dv.IsFinite() {
 		return geom.Vec3{}, geom.Vec3{}, geom.Vec3{}, geom.ErrConvergence
 	}

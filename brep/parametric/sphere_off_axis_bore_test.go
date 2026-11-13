@@ -77,7 +77,7 @@ func TestSphereOffAxisBlindBore(t *testing.T) {
 
 func TestSphereOffAxisBlindBoreRejectsUnsupportedProfiles(t *testing.T) {
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
-	for _, c := range []struct{ r, d, h float64 }{{2, 2, 0}, {2, 3, 0}, {3, 2, 0}, {3, 1, 3}, {3, 1, -3}} {
+	for _, c := range []struct{ r, d, h float64 }{{2, 3, 0}, {3, 2, 0}, {3, 1, 3}, {3, 1, -3}, {1, 3, 3}} {
 		out, e := SphereOffAxisBlindBore(context.Background(), f, 5, c.r, c.d, c.h, 1e-9)
 		if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
 			t.Fatal(c, e)
@@ -87,5 +87,44 @@ func TestSphereOffAxisBlindBoreRejectsUnsupportedProfiles(t *testing.T) {
 	cancel()
 	if out, e := SphereOffAxisBlindBore(ctx, f, 5, 2, 1, 0, 1e-9); !errors.Is(e, context.Canceled) || len(out.Solid.Faces()) != 0 {
 		t.Fatal(e)
+	}
+}
+
+func TestSphereOffAxisBlindBoreOutsideSphereAxis(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	for _, offset := range []float64{0, 1, 2} {
+		out, e := SphereOffAxisBlindBore(ctx, f, 5, 1, offset, .25, 1e-9)
+		if e != nil || len(out.SphericalFaces) != 8 || len(out.CylindricalFaces) != 4 || len(out.FloorFaces) != 4 {
+			t.Fatal(offset, e, out.SphericalFaces)
+		}
+		p, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+		if e != nil || p.Volume <= 490 || p.Volume >= 515 || math.Abs(p.Centroid.Y) > 1e-10 ||
+			offset > 0 && p.Centroid.X >= 0 || offset == 0 && math.Abs(p.Centroid.X) > 1e-10 {
+			t.Fatal(offset, p, e)
+		}
+		if offset != 2 {
+			continue
+		}
+		var buf bytes.Buffer
+		if e := WriteJSON(&buf, out.Solid); e != nil {
+			t.Fatal(e)
+		}
+		s, e := ReadJSON(&buf, JSONLimits{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		q, e := s.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-7})
+		if e != nil || p != q {
+			t.Fatal("reloaded bore properties changed", p, q, e)
+		}
+		m, e := s.Tessellate(ctx, TessellationOptions{Deflection: .8, AnalyticBound: true})
+		if e != nil || m.ValidateSolid() != nil || m.SignedVolume() <= 0 {
+			t.Fatal("invalid tool-centered display", e)
+		}
+		r, e := collision.SelfIntersectionsBVHContext(ctx, m, collision.Options{})
+		if e != nil || !r.Complete || len(r.Contacts) != 0 {
+			t.Fatal("tool-centered mesh has contacts", r, e)
+		}
 	}
 }

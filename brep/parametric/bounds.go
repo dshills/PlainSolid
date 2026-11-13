@@ -157,6 +157,26 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		default:
 			return geom.Box{}, geom.ErrInvalid
 		}
+	case toolBoreChart:
+		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		f = a.frame
+		x, y = scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}
+		switch a.kind {
+		case toolBoreLower:
+			z = scalarBounds{-a.radius, 0}
+		case toolBoreUpper:
+			z = scalarBounds{0, a.radius}
+		case toolBoreWall, toolBoreFloor:
+			x, y = scalarBounds{-a.bore, upAdd(a.offset, a.bore)}, scalarBounds{-a.bore, a.bore}
+			z = scalarBounds{a.floor, a.floor}
+			if a.kind == toolBoreWall {
+				z.hi = a.radius
+			}
+		default:
+			return geom.Box{}, geom.ErrInvalid
+		}
 	case geom.TorusSurface:
 		frame, r, t := a.Parameters()
 		f = frame
