@@ -396,6 +396,8 @@ func TestOCCTFiniteSphereCylinder(t *testing.T) {
 	capRange := [2]float64{-3, 3}
 	ob, e := parametric.ObliqueEqualCylinderCommon(ctx, geom.Vec3{}, geom.Vec3{X: 3, Y: 4}, geom.Vec3{X: 4, Y: 3}, 2, capRange, capRange, 1e-9)
 	check("oblique-equal-cylinder-common", ob.Solid, e)
+	gen, e := parametric.ObliqueCylinderCommon(ctx, geom.Vec3{}, geom.Vec3{X: 2}, geom.Vec3{X: 3, Y: 4}, 1, 2, capRange, capRange, 1e-9)
+	check("oblique-unequal-cylinder-common", gen.Solid, e)
 }
 
 func TestOCCTBoredBox(t *testing.T) {

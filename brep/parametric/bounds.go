@@ -1,6 +1,7 @@
 package parametric
 
 import (
+	"context"
 	"fmt"
 	"math"
 
@@ -244,6 +245,21 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 			return geom.Box{}, err
 		}
 		m := upperBoreRat(h.UU)
+		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
+	case generalCylinderCommonChart:
+		if u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < -1 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		coverage, e := geom.ClassifyCylinderCommonCaps(context.Background(), a.u, a.v, a.ru, a.rv, nil, nil, geom.SurfacePatchEvaluationOptions{})
+		if e != nil {
+			return geom.Box{}, e
+		}
+		n := upAdd(upAdd(math.Abs(a.u.X), math.Abs(a.u.Y)), math.Abs(a.u.Z))
+		m := upAdd(upMul(upperBoreRat(coverage.Extents[0].Bounds[1]), n), max(a.ru, a.rv))
+		f, e = geom.NewFrame(a.center, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if e != nil {
+			return geom.Box{}, e
+		}
 		x, y, z = scalarBounds{-m, m}, scalarBounds{-m, m}, scalarBounds{-m, m}
 	case toolBoreChart:
 		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {

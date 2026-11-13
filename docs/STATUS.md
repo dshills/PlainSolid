@@ -479,7 +479,9 @@ Skew orthogonal cylinders retain both supports for nested or strictly
 overlapping radial projections. The exact graph also covers isolated tangency
 and skew tangent nodes. Oblique intersecting equal-radius cylinders now
 have a native common with two certified bisector seams when all caps clear
-the intersection. A separate perpendicular shell supports an exact
+the intersection. The general oblique chart also assembles unequal radii
+and unequal raw axis norms with the same strict cap-clearance requirement.
+A separate perpendicular shell supports an exact
 equator cap or a positive cap with a representable rim ordinate.
 
 ## Continuing implementation

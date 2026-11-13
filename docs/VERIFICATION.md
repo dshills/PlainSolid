@@ -1023,3 +1023,8 @@ ends. Native reload and a certified closed mesh pass. Independent slice
 integrals and OCCT mass properties agree. The oblique equal-radius fixture
 retains both analytic cylinder supports and proves exact cap clearance and
 volume; it also passes reload, certified display, and OCCT comparison.
+
+The unequal-radius oblique common retains original cylinder ownership for
+either radius ordering and handles different raw axis norms. Independent
+slice integration and OCCT mass checks agree. The reloaded body has a
+closed certified display with no detected contacts.

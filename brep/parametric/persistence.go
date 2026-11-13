@@ -56,6 +56,13 @@ type surfaceData struct {
 	SkewCylinder    *skewCylinderData        `json:",omitempty"`
 	SkewOverlap     *skewOverlapData         `json:",omitempty"`
 	ObliqueCylinder *obliqueCylinderData     `json:",omitempty"`
+	GeneralCylinder *generalCylinderData     `json:",omitempty"`
+}
+
+type generalCylinderData struct {
+	Center, U, V     geom.Vec3
+	RadiusU, RadiusV float64
+	Index            int
 }
 
 type skewOverlapData struct {
@@ -177,6 +184,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "skew-cylinder-overlap", SkewOverlap: &skewOverlapData{x.center, x.radiusX, x.radiusZ, x.offset, x.k, x.sign, x.reflected}}, nil
 	case obliqueCylinderChart:
 		return surfaceData{Kind: "oblique-cylinder-common", ObliqueCylinder: &obliqueCylinderData{x.center, x.u, x.v, x.radius, x.index}}, nil
+	case generalCylinderCommonChart:
+		return surfaceData{Kind: "general-cylinder-common", GeneralCylinder: &generalCylinderData{x.center, x.u, x.v, x.ru, x.rv, x.index}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
@@ -253,6 +262,19 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "general-cylinder-common") != (d.GeneralCylinder != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.GeneralCylinder; x != nil {
+		if x.Index < 0 || x.Index >= 4 {
+			return nil, geom.ErrInvalid
+		}
+		walls, e := geom.NewCylinderCommonWalls(context.Background(), x.Center, x.U, x.V, x.RadiusU, x.RadiusV, geom.SurfacePatchEvaluationOptions{})
+		if e != nil {
+			return nil, e
+		}
+		return generalCylinderCommonChart{walls[x.Index], x.Center, x.U, x.V, x.RadiusU, x.RadiusV, x.Index}, nil
+	}
 	if (d.Kind == "skew-cylinder-overlap") != (d.SkewOverlap != nil) || (d.Kind == "oblique-cylinder-common") != (d.ObliqueCylinder != nil) {
 		return nil, geom.ErrInvalid
 	}
