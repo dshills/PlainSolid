@@ -30,16 +30,17 @@ func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.Tessellatio
 		surface, _ := parametric.SurfaceMapping(f.Surface)
 		switch surface.(type) {
 		case geom.PlaneSurface:
-		case geom.CylinderSurface:
-			start, ok := compactCylinderStart(f)
+		default:
+			_, ok := compactAxialStart(f)
 			if !ok {
 				return mesh.Mesh{}, false, nil
 			}
-			curved[f.Outer[start].Edge] = true
-			curved[f.Outer[(start+2)%4].Edge] = true
+			for _, u := range f.Outer {
+				if u.UVStart.Y == u.UVEnd.Y {
+					curved[u.Edge] = true
+				}
+			}
 			found = true
-		default:
-			return mesh.Mesh{}, false, nil
 		}
 	}
 	if !found {
@@ -91,6 +92,9 @@ func compactCylinderStart(f Face) (int, bool) {
 
 func compactStraightEdge(curve geom.Curve) bool {
 	base, _ := parametric.CurveMapping(curve)
+	if parametric.IsRevolutionGenerator(base) {
+		return true
+	}
 	switch c := base.(type) {
 	case geom.Line:
 		return true
@@ -110,6 +114,23 @@ func compactStraightEdge(curve geom.Curve) bool {
 }
 
 func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []bool, o parametric.TessellationOptions) (mesh.Mesh, error) {
+
+	counts := make([]int, len(s.edges))
+	for i := range counts {
+		counts[i] = 1
+		if curved[i] {
+			counts[i] = n
+		}
+	}
+	for _, f := range s.faces {
+		if _, ok := compactAxialStart(f); ok {
+			for _, u := range f.Outer {
+				if u.UVStart.Y == u.UVEnd.Y {
+					counts[u.Edge] = compactAngularCount(n, math.Abs(u.UVEnd.X-u.UVStart.X))
+				}
+			}
+		}
+	}
 	// Bound all face triangulations before allocating edge samples. A polygon
 	// with h holes and v boundary vertices has v+2h-2 triangles; rectangular
 	// cylinders use two triangles per angular strip.
@@ -121,10 +142,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 		vertices := 0
 		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
 			for _, u := range loop {
-				count := 1
-				if curved[u.Edge] {
-					count = n
-				}
+				count := counts[u.Edge]
 				vertices += count
 			}
 		}
@@ -132,9 +150,13 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 			return mesh.Mesh{}, errCompactBoundaryLimit
 		}
 		count := vertices + 2*len(f.Holes) - 2
-		surface, _ := parametric.SurfaceMapping(f.Surface)
-		if _, ok := surface.(geom.CylinderSurface); ok {
-			count = 2 * n
+		if _, ok := compactAxialStart(f); ok {
+			count = 0
+			for _, u := range f.Outer {
+				if u.UVStart.Y == u.UVEnd.Y {
+					count += counts[u.Edge]
+				}
+			}
 		}
 		if count > o.MaxTriangles-total {
 			return mesh.Mesh{}, parametric.ErrBudget
@@ -147,10 +169,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 		if err := ctx.Err(); err != nil {
 			return mesh.Mesh{}, err
 		}
-		count := 1
-		if curved[i] {
-			count = n
-		}
+		count := counts[i]
 		ids := make([]int, count+1)
 		ids[0], ids[count] = e.Start, e.End
 		for j := 1; j < count; j++ {
@@ -179,12 +198,7 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 		indices := map[geom.Vec2]int{}
 		sides := map[[2]geom.Vec2]boundarySide{}
 		outer := make([][]geom.Vec2, len(f.Outer))
-		surface, _ := parametric.SurfaceMapping(f.Surface)
-		_, cylinder := surface.(geom.CylinderSurface)
-		start := 0
-		if cylinder {
-			start, _ = compactCylinderStart(f)
-		}
+		start, cylinder := compactAxialStart(f)
 		for ri, loop := range loops {
 			for ui := range loop {
 				u := loop[ui]
@@ -231,12 +245,10 @@ func (s Solid) compactCylinderCandidate(ctx context.Context, n int, curved []boo
 		}
 		var triangles [][3]geom.Vec2
 		if cylinder {
-			if len(outer[0]) != n+1 || len(outer[2]) != n+1 || len(outer[1]) != 2 || len(outer[3]) != 2 {
-				return mesh.Mesh{}, fmt.Errorf("trimmed: incompatible compact cylinder edges")
-			}
-			for i := 0; i < n; i++ {
-				a, b, c, d := outer[0][i], outer[0][i+1], outer[2][n-i-1], outer[2][n-i]
-				triangles = append(triangles, [3]geom.Vec2{a, b, c}, [3]geom.Vec2{a, c, d})
+			var err error
+			triangles, err = compactAxialTriangles(outer)
+			if err != nil {
+				return mesh.Mesh{}, err
 			}
 		} else {
 			var err error
