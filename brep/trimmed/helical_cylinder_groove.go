@@ -109,6 +109,23 @@ func GrooveCylinderWithHelicalSeam(ctx context.Context, frame geom.Frame, stockR
 // This operation does not open any groove through a stock cap.
 func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, height float64,
 	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int) (Solid, error) {
+	return grooveCylinderWithHelicalStarts(ctx, frame, stockRadius, 0, height, profile, lead, start, end, hand, starts)
+}
+
+// GrooveTubeWithHelicalStarts cuts the inner wall of an annular cylinder.
+// Each convex profile meets the bore radius in one side and stays strictly
+// inside the outer radius and both axial caps. The same exact start spacing
+// and representability requirements as the external groove apply.
+func GrooveTubeWithHelicalStarts(ctx context.Context, frame geom.Frame, outerRadius, boreRadius, height float64,
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int) (Solid, error) {
+	if !finite(boreRadius) || !finite(outerRadius) || boreRadius <= 0 || outerRadius <= boreRadius {
+		return Solid{}, geom.ErrInvalid
+	}
+	return grooveCylinderWithHelicalStarts(ctx, frame, boreRadius, outerRadius, height, profile, lead, start, end, hand, starts)
+}
+
+func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int) (Solid, error) {
 	if ctx == nil || !finite(stockRadius) || stockRadius <= 0 || !finite(height) || height <= 0 ||
 		!finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start || end-start > 16 ||
 		hand != geom.LeftHanded && hand != geom.RightHanded || len(profile) > 32 || starts < 1 || starts > 8 {
@@ -122,7 +139,12 @@ func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 		return Solid{}, e
 	}
 	n := len(p)
-	if starts*(n+1)+3 > 34 {
+	stockFaces := 3
+	internal := outerRadius > 0
+	if internal {
+		stockFaces = 4
+	}
+	if starts*(n+1)+stockFaces > 34 {
 		return Solid{}, parametric.ErrBudget
 	}
 	spacing := new(big.Rat).Quo(ratInset(lead), big.NewRat(int64(starts), 1))
@@ -131,7 +153,7 @@ func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 	outer := -1
 	for i, a := range p {
 		low, high = min(low, a.Y), max(high, a.Y)
-		if a.X <= 0 || a.X > stockRadius {
+		if a.X <= 0 || !internal && a.X > stockRadius || internal && (a.X < stockRadius || a.X >= outerRadius) {
 			return Solid{}, geom.ErrDomain
 		}
 		b := p[(i+1)%n]
@@ -181,7 +203,13 @@ func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 	if e != nil {
 		return Solid{}, e
 	}
-	stock, e := helicalSeamCylinder(ctx, frame, stockRadius, height, twist, phase)
+	var stock Solid
+	wall := 0
+	if internal {
+		stock, wall, e = helicalSeamTube(ctx, frame, outerRadius, stockRadius, height, twist, phase)
+	} else {
+		stock, e = helicalSeamCylinder(ctx, frame, stockRadius, height, twist, phase)
+	}
 	if e != nil {
 		return Solid{}, e
 	}
@@ -208,6 +236,12 @@ func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 			if e != nil {
 				return Solid{}, e
 			}
+			if internal {
+				sideU[i], e = geom.RepresentedExactScalar(new(big.Rat).Sub(big.NewRat(1, 1), u))
+				if e != nil {
+					return Solid{}, e
+				}
+			}
 		}
 		tool, e := SweepHelicalPolygon(ctx, frame, q, lead, start, end, hand)
 		if e != nil {
@@ -222,7 +256,7 @@ func GrooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 			v, e := geom.RepresentedExactScalar(z)
 			return geom.Vec2{X: sideU[k], Y: v}, e
 		}
-		stock, e = sewHelicalGroove(ctx, stock, tool, outer, hand, project)
+		stock, e = sewHelicalGrooveOnWall(ctx, stock, tool, outer, wall, hand, project)
 		if e != nil {
 			return Solid{}, e
 		}
@@ -283,6 +317,11 @@ func helicalSeamCylinder(ctx context.Context, frame geom.Frame, radius, height, 
 
 func sewHelicalGroove(ctx context.Context, stock, tool Solid, outer int, hand geom.HelixHandedness,
 	project func(geom.Vec2) (geom.Vec2, error)) (Solid, error) {
+	return sewHelicalGrooveOnWall(ctx, stock, tool, outer, 0, hand, project)
+}
+
+func sewHelicalGrooveOnWall(ctx context.Context, stock, tool Solid, outer, wall int, hand geom.HelixHandedness,
+	project func(geom.Vec2) (geom.Vec2, error)) (Solid, error) {
 	v, edges, faces := stock.Vertices(), stock.Edges(), stock.Faces()
 	vertexBase, edgeBase := len(v), len(edges)
 	v = append(v, tool.vertices...)
@@ -314,7 +353,7 @@ func sewHelicalGroove(ctx context.Context, stock, tool Solid, outer int, hand ge
 		}
 		hole = append(hole, u)
 	}
-	faces[0].Holes = append(faces[0].Holes, hole)
+	faces[wall].Holes = append(faces[wall].Holes, hole)
 	for i, f := range tool.faces {
 		if i == outer+2 {
 			continue
@@ -327,4 +366,66 @@ func sewHelicalGroove(ctx context.Context, stock, tool Solid, outer int, hand ge
 		faces = append(faces, f)
 	}
 	return NewSolidContext(ctx, v, edges, faces, max(stock.tolerance, tool.tolerance))
+}
+
+func helicalSeamTube(ctx context.Context, frame geom.Frame, outer, inner, height, twist, phase float64) (Solid, int, error) {
+	wall, e := geom.NewTwistedCylinderSurface(frame, inner, twist, phase)
+	if e != nil {
+		return Solid{}, 0, e
+	}
+	wall = wall.ReversedAngular()
+	outerWall, e := geom.NewCylinderSurface(frame, outer)
+	if e != nil {
+		return Solid{}, 0, e
+	}
+	vertices := make([]geom.Vec3, 4)
+	for j, s := range [2]geom.Surface{outerWall, wall} {
+		for i, z := range []float64{0, height} {
+			vertices[2*j+i], e = s.Eval(0, z)
+			if e != nil {
+				return Solid{}, 0, e
+			}
+		}
+	}
+	var edges []parametric.Edge
+	var faces []Face
+	add := func(a, b int, s geom.Surface, x, y geom.Vec2) int {
+		id := len(edges)
+		edges = append(edges, parametric.Edge{Start: a, End: b, Curve: surfaceTrimCurve{s, x, y, nil}, Range: parametric.Interval{Max: 1}})
+		return id
+	}
+	for j, s := range [2]geom.Surface{outerWall, wall} {
+		period := 2 * math.Pi
+		if j == 1 {
+			period = 1
+		}
+		p := [4]geom.Vec2{{}, {X: period}, {X: period, Y: height}, {Y: height}}
+		a, b := 2*j, 2*j+1
+		low := add(a, a, s, p[0], p[1])
+		seam := add(a, b, s, p[1], p[2])
+		high := add(b, b, s, p[3], p[2])
+		f := Face{Surface: s}
+		for i, id := range [4]int{low, seam, high, seam} {
+			f.Outer = append(f.Outer, Use{Edge: id, Reversed: i >= 2, UVStart: p[i], UVEnd: p[(i+1)%4]})
+		}
+		faces = append(faces, f)
+	}
+	for i, z := range []float64{0, height} {
+		// The cap's angular coordinate twists between the two rim seam
+		// vertices, preserving both full-circle uses without extra splits.
+		angle := math.Remainder(twist*z+phase, 1)
+		cap, e := geom.NewTwistedAnnularSurface(frame, inner, outer, z, angle)
+		if e != nil {
+			return Solid{}, 0, e
+		}
+		p := [4]geom.Vec2{{Y: inner}, {X: 1, Y: inner}, {X: 1, Y: outer}, {Y: outer}}
+		seam := add(2+i, i, cap, p[1], p[2])
+		f := Face{Surface: cap, Reversed: i == 1}
+		for j, id := range [4]int{3 + 2*i, seam, 2 * i, seam} {
+			f.Outer = append(f.Outer, Use{Edge: id, Reversed: j == 0 || j >= 2, UVStart: p[j], UVEnd: p[(j+1)%4]})
+		}
+		faces = append(faces, f)
+	}
+	s, e := NewSolidContext(ctx, vertices, edges, faces, max(outer, height)*1e-11)
+	return s, 1, e
 }

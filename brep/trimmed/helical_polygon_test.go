@@ -154,3 +154,28 @@ func TestGrooveCylinderWithHelicalStarts(t *testing.T) {
 		t.Fatal("touching starts must reject", e)
 	}
 }
+
+func TestGrooveTubeWithHelicalStarts(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := []geom.Vec2{{X: 1.5, Y: .375}, {X: 2, Y: .5}, {X: 1.5, Y: .625}}
+	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {
+		s, e := GrooveTubeWithHelicalStarts(ctx, f, 2.5, 1.5, 4, p, 1, .125, 2.125, hand, 2)
+		if e != nil || s.Topology().EulerCharacteristic != 0 || s.Topology().InnerWires != 2 || len(s.faces) != 12 {
+			t.Fatal(hand, s.Topology(), e)
+		}
+		v, e := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+		want := (16 - 5.0/6) * math.Pi
+		if e != nil || math.Abs(v.Volume-want) > want*1e-7 {
+			t.Fatal(hand, v.Volume, want, e)
+		}
+		var file bytes.Buffer
+		if e := WriteJSON(&file, s); e != nil {
+			t.Fatal(e)
+		}
+		q, e := ReadJSONContext(ctx, &file, JSONLimits{})
+		if e != nil || q.Topology().EulerCharacteristic != 0 {
+			t.Fatal(hand, q.Topology(), e)
+		}
+	}
+}

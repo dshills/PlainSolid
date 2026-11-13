@@ -31,6 +31,8 @@ in a cylinder. A pitch-matched helical seam retains multiple separated,
 multi-turn openings inside one analytic wall chart. Arbitrary curved
 meridian profiles, lead-in and runout, and complete lead screw and nut
 qualification remain open.
+The same bounded construction also cuts grooves on the inside of a tube
+while retaining annular caps and an unchanged outer wall.
 Selected signed off-axis circular meridians produce analytic torus elbows.
 The STEP polygon revolve writer qualifies signed partial sweeps and axis
 contact; the closed display proof is opt-in. Convex polygon extrusion with

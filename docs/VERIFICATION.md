@@ -825,3 +825,7 @@ volume `(16-11/12)π`, preserve both inner wires, and reject starts whose
 profile widths reach their phase spacing. Exact axial helical queries
 retain intervals and ancestry and distinguish retained from cut material
 on their selected finite line.
+An internally grooved tube retains Euler characteristic zero and its
+analytic annular caps through reload. Both handedness values match the
+independent two-start volume `(16-5/6)π`. The paired profile query reports
+exact radial-slice clearance with original profile edges and finite turns.
