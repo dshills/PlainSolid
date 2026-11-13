@@ -26,8 +26,8 @@ Separated blind spans at the same interior site preserve the material web
 and both cap openings through STEP.
 Intersecting noncoaxial notch footprints remain open.
 
-PlainCAD also imports the strict split-cylinder STEP model and rooted
-product dialects from main as native cylindrical stock, retaining its
+PlainCAD also imports the strict half- and quarter-cylinder STEP model
+and rooted product dialects from main as native cylindrical stock, retaining its
 signed coordinate pose and allowing a subsequent exact Hole and STEP
 export.
 

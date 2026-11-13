@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"bytes"
+	"io"
 	"math"
 	"os"
 	"testing"
@@ -41,13 +42,9 @@ func TestSTEPRetainsExactSplitCylinderAsNativeStock(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := step.SplitCylinderDescriptor{Name: "Cylinder", Frame: f, LengthUnit: .001, Radius: 8, Height: 12}
-	for _, write := range []func(*bytes.Buffer, step.SplitCylinderDescriptor) error{
-		func(out *bytes.Buffer, source step.SplitCylinderDescriptor) error {
-			return step.WriteSplitCylinderModel(out, source)
-		},
-		func(out *bytes.Buffer, source step.SplitCylinderDescriptor) error {
-			return step.WriteSplitCylinderProduct(out, source)
-		},
+	for _, write := range []func(io.Writer, step.SplitCylinderDescriptor) error{
+		step.WriteSplitCylinderModel, step.WriteSplitCylinderProduct,
+		step.WriteQuarterCylinderModel, step.WriteQuarterCylinderProduct,
 	} {
 		var out bytes.Buffer
 		if err := write(&out, d); err != nil {

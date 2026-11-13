@@ -24,6 +24,9 @@ type SplitCylinderDescriptor struct {
 // inputs. Unsupported frames, nonrepresentable sums and units fail atomically.
 // The bare geometric representation has no application/product root.
 func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
+	return writeCylinderCells(w, d, 2)
+}
+func writeCylinderCells(w io.Writer, d SplitCylinderDescriptor, cells int) error {
 	if w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 1024 || !d.Frame.Origin().IsFinite() || !cylinderSupportUnit(d.Frame.XAxis()) || !cylinderSupportUnit(d.Frame.ZAxis()) || d.Frame.XAxis().Dot(d.Frame.ZAxis()) != 0 || !finiteNumber(d.Radius) || !finiteNumber(d.Height) || d.Radius <= 0 || d.Height <= 0 || !validLengthUnit(d.LengthUnit) {
 		return splitFailure()
 	}
@@ -56,14 +59,14 @@ func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
 	direction := func(v geom.Vec3) int64 {
 		return emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", realExact(v.X), realExact(v.Y), realExact(v.Z)))
 	}
-	point := func(x, z float64) int64 {
+	point := func(x, y, z float64) int64 {
 		origin := d.Frame.Origin()
-		xa, za := d.Frame.XAxis(), d.Frame.ZAxis()
+		xa, ya, za := d.Frame.XAxis(), d.Frame.YAxis(), d.Frame.ZAxis()
 		out := []string{}
 		for i, o := range []float64{origin.X, origin.Y, origin.Z} {
 			q := new(big.Rat).SetFloat64(o)
-			for j, a := range []float64{[]float64{xa.X, xa.Y, xa.Z}[i], []float64{za.X, za.Y, za.Z}[i]} {
-				q.Add(q, new(big.Rat).Mul(new(big.Rat).SetFloat64(a), new(big.Rat).SetFloat64([]float64{x, z}[j])))
+			for j, a := range []float64{[]float64{xa.X, xa.Y, xa.Z}[i], []float64{ya.X, ya.Y, ya.Z}[i], []float64{za.X, za.Y, za.Z}[i]} {
+				q.Add(q, new(big.Rat).Mul(new(big.Rat).SetFloat64(a), new(big.Rat).SetFloat64([]float64{x, y, z}[j])))
 			}
 			out = append(out, number(q))
 		}
@@ -71,7 +74,7 @@ func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
 	}
 	axis, reference := direction(d.Frame.ZAxis()), direction(d.Frame.XAxis())
 	place := func(h float64) int64 {
-		return emit(fmt.Sprintf("AXIS2_PLACEMENT_3D('',#%d,#%d,#%d)", point(0, h), axis, reference))
+		return emit(fmt.Sprintf("AXIS2_PLACEMENT_3D('',#%d,#%d,#%d)", point(0, 0, h), axis, reference))
 	}
 	bottom, top := place(0), place(d.Height)
 	cylinder := emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)", bottom, realExact(d.Radius)))
@@ -81,22 +84,37 @@ func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
 		planes[i] = emit(fmt.Sprintf("PLANE('',#%d)", p))
 		circles[i] = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, realExact(d.Radius)))
 	}
-	points := [4]int64{point(d.Radius, 0), point(-d.Radius, 0), point(d.Radius, d.Height), point(-d.Radius, d.Height)}
-	vertices := [4]int64{}
+
+	local := []geom.Vec3{{X: d.Radius}, {X: -d.Radius}}
+	if cells == 4 {
+		local = []geom.Vec3{{X: d.Radius}, {Y: d.Radius}, {X: -d.Radius}, {Y: -d.Radius}}
+	}
+	points := []int64{}
+	for _, height := range []float64{0, d.Height} {
+		for _, p := range local {
+			points = append(points, point(p.X, p.Y, height))
+		}
+	}
+	vertices := make([]int64, 2*cells)
 	for i, p := range points {
 		vertices[i] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", p))
 	}
 	vec := emit(fmt.Sprintf("VECTOR('',#%d,1.)", axis))
-	lines := [2]int64{}
-	for i, p := range points[:2] {
+	lines := make([]int64, cells)
+	for i, p := range points[:cells] {
 		lines[i] = emit(fmt.Sprintf("LINE('',#%d,#%d)", p, vec))
 	}
-	edges := make([]int64, 6)
-	for i, a := range [][3]int64{{vertices[0], vertices[1], circles[0]}, {vertices[1], vertices[0], circles[0]}, {vertices[2], vertices[3], circles[1]}, {vertices[3], vertices[2], circles[1]}, {vertices[0], vertices[2], lines[0]}, {vertices[1], vertices[3], lines[1]}} {
-		edges[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", a[0], a[1], a[2]))
+	edges := make([]int64, 3*cells)
+	for ring := 0; ring < 2; ring++ {
+		for k := 0; k < cells; k++ {
+			edges[ring*cells+k] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertices[ring*cells+k], vertices[ring*cells+(k+1)%cells], circles[ring]))
+		}
+	}
+	for k := 0; k < cells; k++ {
+		edges[2*cells+k] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertices[k], vertices[cells+k], lines[k]))
 	}
 	faces := []int64{}
-	for i, seq := range [][]int{{1, 6, -3, -5}, {2, 5, -4, -6}, {-2, -1}, {3, 4}} {
+	for i, seq := range cylinderCellLoops(cells) {
 		uses := []int64{}
 		for _, v := range seq {
 			sense := "T"
@@ -110,10 +128,10 @@ func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
 		bound := emit(fmt.Sprintf("FACE_OUTER_BOUND('',#%d,.T.)", loop))
 		support := cylinder
 		sense := "T"
-		if i >= 2 {
-			support = planes[i-2]
+		if i >= cells {
+			support = planes[i-cells]
 		}
-		if i == 2 {
+		if i == cells {
 			sense = "F"
 		}
 		faces = append(faces, emit(fmt.Sprintf("ADVANCED_FACE('',(#%d),#%d,.%s.)", bound, support, sense)))
@@ -129,7 +147,7 @@ func WriteSplitCylinderModel(w io.Writer, d SplitCylinderDescriptor) error {
 	if failure != nil {
 		return failure
 	}
-	if _, e := ReadSplitCylinderModel(bytes.NewReader(b.Bytes()), Limits{MaxBytes: 1 << 16, MaxEntities: 256, MaxValues: 4096, MaxDepth: 16}); e != nil {
+	if _, e := readCylinderCells(bytes.NewReader(b.Bytes()), Limits{MaxBytes: 1 << 16, MaxEntities: 256, MaxValues: 4096, MaxDepth: 16}, cells); e != nil {
 		return e
 	}
 	n, e := w.Write(b.Bytes())

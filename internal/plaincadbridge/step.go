@@ -191,10 +191,18 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 
 	if m, err := step.ReadSplitCylinderModel(r(), stepLimits()); err == nil {
-		return b.putSTEPCylinder(m)
+		return b.putSTEPCylinder(m.Frame, m.Radius, m.Height, m.LengthUnit)
 	}
 	if m, err := step.ReadSplitCylinderProduct(r(), stepLimits()); err == nil {
-		return b.putSTEPCylinder(m.Model)
+		p := m.Model
+		return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, p.LengthUnit)
+	}
+	if m, err := step.ReadQuarterCylinderModel(r(), stepLimits()); err == nil {
+		return b.putSTEPCylinder(m.Frame, m.Radius, m.Height, m.LengthUnit)
+	}
+	if m, err := step.ReadQuarterCylinderProduct(r(), stepLimits()); err == nil {
+		p := m.Model
+		return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, p.LengthUnit)
 	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
@@ -203,16 +211,16 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
 }
 
-func (b *Bridge) putSTEPCylinder(p step.SplitCylinderModel) (Shape, error) {
-	scale := p.LengthUnit / .001
+func (b *Bridge) putSTEPCylinder(frame geom.Frame, radius, height, unit float64) (Shape, error) {
+	scale := unit / .001
 	if !finite(scale) || scale <= 0 {
 		return Shape{}, geom.ErrInvalid
 	}
-	f, err := geom.NewFrame(p.Frame.Origin().Scale(scale), p.Frame.XAxis(), p.Frame.ZAxis())
+	f, err := geom.NewFrame(frame.Origin().Scale(scale), frame.XAxis(), frame.ZAxis())
 	if err != nil {
 		return Shape{}, err
 	}
-	cylinder, err := newCylinder(f, p.Radius*scale, p.Height*scale)
+	cylinder, err := newCylinder(f, radius*scale, height*scale)
 	if err != nil {
 		return Shape{}, err
 	}

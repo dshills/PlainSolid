@@ -29,17 +29,60 @@ func splitFailure() error { return errors.New("step: unsupported exact model-onl
 // numbers, direct circle/line edges, positive curve senses and complete oriented
 // ownership. Pcurves, transforms, assemblies and tolerance repair are excluded.
 func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
-	fail := func() (SplitCylinderModel, error) { return SplitCylinderModel{}, splitFailure() }
+	m, e := readCylinderCells(r, l, 2)
+	if e != nil {
+		return SplitCylinderModel{}, e
+	}
+	out := SplitCylinderModel{Frame: m.Frame, Name: m.Name, LengthUnit: m.LengthUnit, Radius: m.Radius, Height: m.Height, Solid: m.Solid, Body: m.Body, Shell: m.Shell}
+	copy(out.Faces[:], m.Faces)
+	copy(out.Edges[:], m.Edges)
+	return out, nil
+}
+
+type cylinderCellsModel struct {
+	Frame                      geom.Frame
+	Name                       string
+	LengthUnit, Radius, Height float64
+	Solid                      parametric.Solid
+	Body, Shell                int64
+	Faces, Edges               []int64
+}
+
+func cylinderCellRole(p geom.Vec3, r float64, n int) int {
+	points := []geom.Vec3{{X: r}, {X: -r}}
+	if n == 4 {
+		points = []geom.Vec3{{X: r}, {Y: r}, {X: -r}, {Y: -r}}
+	}
+	for i, q := range points {
+		if p.X == q.X && p.Y == q.Y {
+			return i
+		}
+	}
+	return -1
+}
+func cylinderCellLoops(n int) [][]int {
+	loops := make([][]int, n+2)
+	for k := 0; k < n; k++ {
+		loops[k] = []int{k + 1, 2*n + (k+1)%n + 1, -(n + k + 1), -(2*n + k + 1)}
+	}
+	for k := 0; k < n; k++ {
+		loops[n] = append(loops[n], -(n - k))
+		loops[n+1] = append(loops[n+1], n+k+1)
+	}
+	return loops
+}
+func readCylinderCells(r io.Reader, l Limits, cells int) (cylinderCellsModel, error) {
+	fail := func() (cylinderCellsModel, error) { return cylinderCellsModel{}, splitFailure() }
 	l, e := l.defaults()
 	if e != nil {
 		return fail()
 	}
-	if l.MaxFaces < 4 || l.MaxVertices < 4 || l.MaxEdgeUses < 12 {
+	if l.MaxFaces < cells+2 || l.MaxVertices < 2*cells || l.MaxEdgeUses < 6*cells {
 		return fail()
 	}
 	f, e := Parse(r, l)
 	if e != nil {
-		return SplitCylinderModel{}, e
+		return cylinderCellsModel{}, e
 	}
 	if len(f.Entities) > 256 {
 		return fail()
@@ -140,11 +183,11 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 	if e != nil {
 		return fail()
 	}
-	faces, e := listRefs(shell.Args[1], 4)
-	if e != nil || len(faces) != 4 {
+	faces, e := listRefs(shell.Args[1], cells+2)
+	if e != nil || len(faces) != cells+2 {
 		return fail()
 	}
-	out := SplitCylinderModel{Frame: sourceFrame, Name: name, LengthUnit: unit, Body: ids[0], Shell: sh}
+	out := cylinderCellsModel{Frame: sourceFrame, Name: name, LengthUnit: unit, Body: ids[0], Shell: sh, Faces: make([]int64, cells+2), Edges: make([]int64, 3*cells)}
 	type faceData struct {
 		id    int64
 		side  bool
@@ -200,7 +243,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 			}
 			out.Radius = rad
 		}
-		n := 2
+		n := cells
 		if side {
 			n = 4
 		}
@@ -243,16 +286,13 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 					return fail()
 				}
 				xyz, e := splitTriple(f, p, "CARTESIAN_POINT")
-				if e != nil || xyz.Y != 0 || (xyz.X != out.Radius && xyz.X != -out.Radius) || (xyz.Z != 0 && xyz.Z != out.Height) {
+				if e != nil || cylinderCellRole(xyz, out.Radius, cells) < 0 || (xyz.Z != 0 && xyz.Z != out.Height) {
 					return fail()
 				}
 				points[i] = xyz
-				role := 0
-				if xyz.X < 0 {
-					role++
-				}
+				role := cylinderCellRole(xyz, out.Radius, cells)
 				if xyz.Z > 0 {
-					role += 2
+					role += cells
 				}
 				if old, ok := vertices[v]; ok && old != role {
 					return fail()
@@ -267,7 +307,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 			rec := ent.Records[0]
 			if rec.Type == "CIRCLE" {
 				rec, e = simple(f, g, "CIRCLE", 3)
-				if e != nil || points[0].Z != points[1].Z || points[0].X != -points[1].X {
+				if e != nil || points[0].Z != points[1].Z || vertices[b]%cells != (vertices[a]+1)%cells {
 					return fail()
 				}
 				pid, e := ref(rec.Args[1])
@@ -285,7 +325,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 				role = vertices[a]
 			} else if rec.Type == "LINE" {
 				rec, e = simple(f, g, "LINE", 3)
-				if e != nil || points[0].X != points[1].X || points[0].Z != 0 || points[1].Z != out.Height {
+				if e != nil || points[0].X != points[1].X || points[0].Y != points[1].Y || points[0].Z != 0 || points[1].Z != out.Height {
 					return fail()
 				}
 				pid, e := ref(rec.Args[1])
@@ -316,11 +356,11 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 				if e != nil || mag <= 0 {
 					return fail()
 				}
-				role = 4 + vertices[a]
+				role = 2*cells + vertices[a]
 			} else {
 				return fail()
 			}
-			if role < 0 || role >= 6 || out.Edges[role] != 0 {
+			if role < 0 || role >= 3*cells || out.Edges[role] != 0 {
 				return fail()
 			}
 			out.Edges[role] = u.id
@@ -328,7 +368,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 			edgeEnds[u.id] = [2]int64{a, b}
 		}
 	}
-	if len(vertices) != 4 || len(edges) != 6 {
+	if len(vertices) != 2*cells || len(edges) != 3*cells {
 		return fail()
 	}
 	roles := map[int]bool{}
@@ -338,7 +378,7 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 		}
 		roles[r] = true
 	}
-	expected := [][]int{{1, 6, -3, -5}, {2, 5, -4, -6}, {-2, -1}, {3, 4}}
+	expected := cylinderCellLoops(cells)
 	// Values encode edge role+1 and directed coedge sense. Cyclic rotation is free.
 	for _, face := range fs {
 		seq := []int{}
@@ -381,12 +421,12 @@ func ReadSplitCylinderModel(r io.Reader, l Limits) (SplitCylinderModel, error) {
 		if matched < 0 || out.Faces[matched] != 0 {
 			return fail()
 		}
-		if matched < 2 {
+		if matched < cells {
 			if !face.side || !face.sense {
 				return fail()
 			}
 		} else {
-			if face.side || face.sense != (matched == 3) || face.z != []float64{0, out.Height}[matched-2] {
+			if face.side || face.sense != (matched == cells+1) || face.z != []float64{0, out.Height}[matched-cells] {
 				return fail()
 			}
 		}
