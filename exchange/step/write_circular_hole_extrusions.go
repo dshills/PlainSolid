@@ -64,6 +64,7 @@ func WriteCircularHoleExtrusions(w io.Writer, m CircularHoleExtrusionModel) erro
 type circularExtrusionExport struct {
 	CircularHoleExtrusionBody
 	disk *trimmed.ExtrusionCircle
+	arcs []roundedSTEPArc
 }
 
 func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtrusionExport) error {
@@ -156,6 +157,13 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 				}
 			}
 			for i := range b.Outer {
+				if len(b.arcs) != 0 && b.arcs[i].radius > 0 {
+					arc := b.arcs[i]
+					f, _ := geom.NewFrame(b.Frame.ToWorld(geom.Vec3{X: arc.center.X, Y: arc.center.Y, Z: lo}), b.Frame.XAxis(), b.Frame.ZAxis())
+					wallFrames[i] = f
+					walls[i] = emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)", place(f), real(arc.radius)))
+					continue
+				}
 				d := points[(i+1)%n].Sub(points[i])
 				f, _ := geom.NewFrame(points[i], d, d.Cross(b.Frame.ZAxis()))
 				wallFrames[i] = f
@@ -166,17 +174,38 @@ func writeCircularExtrusionSTEP(w io.Writer, unit float64, bodies []circularExtr
 				d, _ := z.Sub(a).Unit()
 				return pc(sid, line2(geom.Vec2{X: p.X, Y: p.Y}, geom.Vec2{X: d.Dot(f.XAxis()), Y: d.Dot(f.YAxis())}))
 			}
+			wallVerticalPC := func(i int, atEnd bool, a, z geom.Vec3) int64 {
+				if len(b.arcs) != 0 && b.arcs[i].radius > 0 {
+					q := b.arcs[i].quarter
+					if atEnd {
+						q++
+					}
+					return pc(walls[i], line2(geom.Vec2{X: float64(q) * math.Pi / 2}, geom.Vec2{Y: 1}))
+				}
+				return planePC(walls[i], wallFrames[i], a, z)
+			}
 			ring := [2][]int64{make([]int64, n), make([]int64, n)}
 			vertical := make([]int64, n)
 			for i := range b.Outer {
 				next := (i + 1) % n
 				for j := 0; j < 2; j++ {
 					a, z := points[j*n+i], points[j*n+next]
-					ring[j][i] = edge(vertices[j*n+i], vertices[j*n+next], line(a, z), []int64{planePC(caps[j], capFrames[j], a, z), planePC(walls[i], wallFrames[i], a, z)}, false)
+					if len(b.arcs) != 0 && b.arcs[i].radius > 0 {
+						arc := b.arcs[i]
+						cap := capFrames[j]
+						f, _ := geom.NewFrame(cap.ToWorld(geom.Vec3{X: arc.center.X, Y: arc.center.Y}), cap.XAxis(), cap.ZAxis())
+						model := emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(f), real(arc.radius)))
+						ring[j][i] = edge(vertices[j*n+i], vertices[j*n+next], model, []int64{
+							pc(walls[i], line2(geom.Vec2{Y: float64(j) * (hi - lo)}, geom.Vec2{X: 1})),
+							pc(caps[j], circle2(arc.center, arc.radius)),
+						}, false)
+					} else {
+						ring[j][i] = edge(vertices[j*n+i], vertices[j*n+next], line(a, z), []int64{planePC(caps[j], capFrames[j], a, z), planePC(walls[i], wallFrames[i], a, z)}, false)
+					}
 				}
 				a, z := points[i], points[n+i]
 				previous := (i + n - 1) % n
-				vertical[i] = edge(vertices[i], vertices[n+i], line(a, z), []int64{planePC(walls[previous], wallFrames[previous], a, z), planePC(walls[i], wallFrames[i], a, z)}, false)
+				vertical[i] = edge(vertices[i], vertices[n+i], line(a, z), []int64{wallVerticalPC(previous, true, a, z), wallVerticalPC(i, false, a, z)}, false)
 			}
 			faces := []int64{}
 			for i := range b.Outer {

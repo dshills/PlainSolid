@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"math"
-	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -106,25 +105,14 @@ func ExtrudePolygonWithHoles(ctx context.Context, frame geom.Frame, outer []geom
 		}
 	}
 	for _, h := range holes {
-		if !uvFinite(h.Center) || !finite(h.Radius) || h.Radius <= 0 {
-			return Solid{}, geom.ErrInvalid
-		}
-		r2 := new(big.Rat).Mul(ratInset(h.Radius), ratInset(h.Radius))
-		for j, a := range p {
-			b := p[(j+1)%len(p)]
-			x, y := new(big.Rat).Sub(ratInset(b.X), ratInset(a.X)), new(big.Rat).Sub(ratInset(b.Y), ratInset(a.Y))
-			u, v := new(big.Rat).Sub(ratInset(h.Center.X), ratInset(a.X)), new(big.Rat).Sub(ratInset(h.Center.Y), ratInset(a.Y))
-			c := new(big.Rat).Sub(new(big.Rat).Mul(x, v), new(big.Rat).Mul(y, u))
-			len2 := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
-			if c.Sign() <= 0 || new(big.Rat).Mul(c, c).Cmp(new(big.Rat).Mul(r2, len2)) <= 0 {
-				return Solid{}, geom.ErrDomain
-			}
+		if e := proveDiskInConvexExtrusion(p, h); e != nil {
+			return Solid{}, e
 		}
 	}
-	return extrudeCircularTopology(ctx, frame, p, nil, through, blind, min(0, height), max(0, height))
+	return extrudeCircularTopology(ctx, frame, p, nil, nil, through, blind, min(0, height), max(0, height))
 }
 
-func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, holes []ExtrusionCircle,
+func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, arcs []extrusionQuarterArc, holes []ExtrusionCircle,
 	blind []ExtrusionBlindHole, lo, hi float64) (Solid, error) {
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
@@ -147,7 +135,8 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 	}
 	var walls []Face
 	var floors []Face
-	loop := func(p []geom.Vec2, chart func(int) (geom.Surface, [4]geom.Vec2, error), circle *ExtrusionCircle, inner bool, floor *Face, entry int) error {
+	type capCurve func(int, geom.Vec2, geom.Vec2) (PCurve, error)
+	loop := func(p []geom.Vec2, chart func(int) (geom.Surface, [4]geom.Vec2, error), capTrim capCurve, circle *ExtrusionCircle, inner bool, floor *Face, entry int) error {
 		n := len(p)
 		base := len(vertices)
 		var endFaces = [2]*Face{&caps[0], &caps[1]}
@@ -202,8 +191,8 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 			walls = append(walls, f)
 			for k, id := range [2]int{low, high} {
 				q := Use{Edge: id, UVStart: a, UVEnd: p[j]}
-				if circle != nil && (floor == nil || k == entry) {
-					q.Curve, e = extrusionArc(*circle, i, a, p[j], inner)
+				if capTrim != nil && (floor == nil || k == entry) {
+					q.Curve, e = capTrim(i, a, p[j])
 					if e != nil {
 						return e
 					}
@@ -234,7 +223,10 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		return nil
 	}
 	if disk == nil {
-		if e := loop(outer, func(i int) (geom.Surface, [4]geom.Vec2, error) {
+		outerChart := func(i int) (geom.Surface, [4]geom.Vec2, error) {
+			if len(arcs) > 0 && arcs[i].circle.Radius > 0 {
+				return arcs[i].wall(frame, lo, hi)
+			}
 			a, b := outer[i], outer[(i+1)%len(outer)]
 			axial := frame.ZAxis()
 			u := frame.XAxis().Scale(b.X - a.X).Add(frame.YAxis().Scale(b.Y - a.Y))
@@ -245,7 +237,17 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 			s, e := geom.NewPlaneSurface(f)
 			length := u.Length()
 			return s, [4]geom.Vec2{{Y: lo}, {X: length, Y: lo}, {X: length, Y: hi}, {Y: hi}}, e
-		}, nil, false, nil, 0); e != nil {
+		}
+		var outerTrim capCurve
+		if len(arcs) > 0 {
+			outerTrim = func(i int, a, b geom.Vec2) (PCurve, error) {
+				if arcs[i].circle.Radius == 0 {
+					return nil, nil
+				}
+				return extrusionArc(arcs[i].circle, arcs[i].quadrant, a, b, false)
+			}
+		}
+		if e := loop(outer, outerChart, outerTrim, nil, false, nil, 0); e != nil {
 			return Solid{}, e
 		}
 	}
@@ -267,6 +269,8 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		return loop(p, func(i int) (geom.Surface, [4]geom.Vec2, error) {
 			a, b := float64(i)*math.Pi/2, float64(i+1)*math.Pi/2
 			return s, [4]geom.Vec2{{X: a, Y: sign * z0}, {X: b, Y: sign * z0}, {X: b, Y: sign * z1}, {X: a, Y: sign * z1}}, nil
+		}, func(i int, a, b geom.Vec2) (PCurve, error) {
+			return extrusionArc(h, i, a, b, inner)
 		}, &h, inner, floor, entry)
 	}
 	if disk != nil {

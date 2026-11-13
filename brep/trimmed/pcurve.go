@@ -16,6 +16,10 @@ type EllipseUV struct {
 	From, To                 float64
 }
 
+// EllipseParameters returns the immutable represented coefficient data. Curve
+// implementations with exact endpoint overrides may embed EllipseUV.
+func (c EllipseUV) EllipseParameters() EllipseUV { return c }
+
 func (c EllipseUV) EvalUV(t float64) (geom.Vec2, error) {
 	a, e := c.angle(t)
 	if e != nil {

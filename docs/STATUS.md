@@ -47,7 +47,12 @@ reconstructs and checks canonical producer graphs; alternate OCCT placements
 and pcurve conventions require a separate import path. Circular stock now
 supports eccentric through bores and blind pockets, with a certified display
 and an analytic STEP writer. Axis-aligned circular profiles can also terminate
-against a parallel finite polygon face with holes.
+against a parallel or supported oblique polygon face, or a recognized
+round cap with circular holes. The exact polygon sweep also supports recognized
+round caps. Mixed line and quarter-circle rectangular profiles retain analytic
+rounded walls, through bores and blind floors, and have a certified mesh and
+STEP writer. The tolerant analytic STEP reader separately verifies selected
+independently authored polygon stock with through and blind holes.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|

@@ -847,3 +847,12 @@ volume, area and centroid. The general trimmed tessellator hit its budget on
 the mixed round-stock fixture; use the specialized certified tessellator.
 Circular finite termination tests cover the six coordinate directions and
 reject footprint overlap with target holes or one-ULP uncovered material.
+
+Mixed line and quarter-circle rectangle extrusions with one sharp corner,
+three unequal radii, a through bore, and a blind pocket pass independent
+analytic mass and area checks on a rotated coordinate frame in both
+directions. Native reload retains the rounded wall, bore and floor point
+queries. The certified mesh checks closed topology, zero contacts and all
+straight/curved strip ancestry. Pinned OCCT reads the STEP boundary with
+three exterior curved walls and matches volume, area and centroid for both
+signs. These cases qualify quarter circles on a rectangular footprint.

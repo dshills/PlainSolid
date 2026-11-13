@@ -40,17 +40,17 @@ type CertifiedCircularHoleExtrusion struct {
 // are assigned once and shared by caps/walls/floors. MaxSegments limits circle
 // samples; MaxTrigTerms and MaxPredicates are cumulative construction budgets.
 func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, outer []geom.Vec2, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
-	return certifyCircularExtrusion(ctx, frame, outer, nil, through, blind, height, o)
+	return certifyCircularExtrusion(ctx, frame, outer, nil, nil, through, blind, height, o)
 }
 
 // ExtrudeDiskWithHolesCertified constructs and tessellates the circular stock
 // and its bores and pockets. It uses the same exact represented-affine ideal
 // boundary and mesh embedding certificate as ExtrudePolygonWithHolesCertified.
 func ExtrudeDiskWithHolesCertified(ctx context.Context, frame geom.Frame, outer ExtrusionCircle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
-	return certifyCircularExtrusion(ctx, frame, nil, &outer, through, blind, height, o)
+	return certifyCircularExtrusion(ctx, frame, nil, &outer, nil, through, blind, height, o)
 }
 
-func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
+func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, rounded *RoundedRectangle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedCircularHoleExtrusion{}
@@ -112,11 +112,18 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		return out, geom.ErrInvalid
 	}
 	var source Solid
+	var arcs []extrusionQuarterArc
 	var e error
-	if disk == nil {
-		source, e = ExtrudePolygonWithHoles(ctx, frame, outer, through, blind, height)
-	} else {
+	switch {
+	case rounded != nil:
+		_, arcs, e = roundedExtrusionProfile(*rounded)
+		if e == nil {
+			source, e = ExtrudeRoundedRectangle(ctx, frame, *rounded, through, blind, height)
+		}
+	case disk != nil:
 		source, e = ExtrudeDiskWithHoles(ctx, frame, *disk, through, blind, height)
+	default:
+		source, e = ExtrudePolygonWithHoles(ctx, frame, outer, through, blind, height)
 	}
 	if e != nil {
 		return out, e
@@ -136,12 +143,20 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 	if disk != nil {
 		circles = append([]ExtrusionCircle{*disk}, holes...)
 	}
+	boundCircles := append([]ExtrusionCircle(nil), circles...)
+	arcCount := 0
+	for _, arc := range arcs {
+		if arc.circle.Radius > 0 {
+			boundCircles = append(boundCircles, arc.circle)
+			arcCount++
+		}
+	}
 	tolerance := ratInset(o.Deflection)
 	tolerance.Mul(tolerance, tolerance)
 	n := 4
 	for ; n <= o.MaxSegments; n *= 2 {
 		ok := true
-		for _, h := range circles {
+		for _, h := range boundCircles {
 			b := new(big.Rat).Mul(ratInset(h.Radius), big.NewRat(49, int64(8*n*n)))
 			if new(big.Rat).Mul(planarNorm, new(big.Rat).Mul(big.NewRat(8, 1), new(big.Rat).Mul(b, b))).Cmp(tolerance) > 0 {
 				ok = false
@@ -151,13 +166,13 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 			break
 		}
 	}
-	if n > o.MaxSegments || 2*(len(p)+len(circles)*n) > o.MaxVertices {
+	if n > o.MaxSegments || 2*(len(p)+arcCount*(n/4-1)+len(circles)*n) > o.MaxVertices {
 		return out, geom.ErrConvergence
 	}
 	work := 0
 	var piMid, piError *big.Rat
 	var sine, cosine, errors []*big.Rat
-	if len(circles) > 0 {
+	if len(boundCircles) > 0 {
 		piMid, piError, e = certifiedSweepPi(ctx, o, &work)
 		if e != nil {
 			return out, e
@@ -188,10 +203,65 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		exact = append(exact, [2]*big.Rat{ratInset(v.X), ratInset(v.Y)})
 		return id
 	}
+	sample := func(h ExtrusionCircle, i int, ccw bool) (int, *big.Rat, error) {
+		// Cardinal sin/cos are exact, preserving the specified tangent joins
+		// and avoiding tiny Taylor artifacts at radius extrema.
+		sn, cs, trigError := sine[i], cosine[i], errors[i]
+		if i%(n/4) == 0 {
+			cs = big.NewRat([4]int64{1, 0, -1, 0}[i/(n/4)], 1)
+			sn = big.NewRat([4]int64{0, -1, 0, 1}[i/(n/4)], 1)
+			trigError = new(big.Rat)
+		}
+		dy := new(big.Rat).Mul(ratInset(h.Radius), sn)
+		if ccw {
+			dy.Neg(dy)
+		}
+		centers := [2]*big.Rat{
+			new(big.Rat).Add(ratInset(h.Center.X), new(big.Rat).Mul(ratInset(h.Radius), cs)),
+			new(big.Rat).Add(ratInset(h.Center.Y), dy),
+		}
+		var xy [2]float64
+		squared := new(big.Rat)
+		for axis, c := range centers {
+			xy[axis], _ = c.Float64()
+			if !finite(xy[axis]) {
+				return 0, nil, geom.ErrConvergence
+			}
+			r := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(c, ratInset(xy[axis]))), new(big.Rat).Mul(ratInset(h.Radius), trigError))
+			squared.Add(squared, new(big.Rat).Mul(r, r))
+		}
+		return appendPoint(geom.Vec2{X: xy[0], Y: xy[1]}), squared, nil
+	}
+	collectBound := func(radius float64, round *big.Rat) {
+		b := new(big.Rat).Mul(ratInset(radius), big.NewRat(49, int64(8*n*n)))
+		bound := new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Add(new(big.Rat).Mul(b, b), round))
+		if bound.Cmp(circleBound) > 0 {
+			circleBound.Set(bound)
+		}
+	}
+	var outerOwners []int
 	if disk == nil {
 		var ring []int
-		for _, v := range p {
+		for j, v := range p {
 			ring = append(ring, appendPoint(v))
+			outerOwners = append(outerOwners, j)
+			if len(arcs) == 0 || arcs[j].circle.Radius == 0 {
+				continue
+			}
+			arc := arcs[j]
+			round := new(big.Rat)
+			for k := 1; k < n/4; k++ {
+				id, err2, e := sample(arc.circle, arc.quadrant*(n/4)+k, true)
+				if e != nil {
+					return out, e
+				}
+				if err2.Cmp(round) > 0 {
+					round.Set(err2)
+				}
+				ring = append(ring, id)
+				outerOwners = append(outerOwners, j)
+			}
+			collectBound(arc.circle.Radius, round)
 		}
 		loops = append(loops, ring)
 	}
@@ -199,32 +269,17 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		var ring []int
 		round := new(big.Rat)
 		for i := 0; i < n; i++ {
-			dy := new(big.Rat).Mul(ratInset(h.Radius), sine[i])
-			if disk != nil && circle == 0 {
-				dy.Neg(dy) // The outer circle is counterclockwise in the cap chart.
+			id, err2, e := sample(h, i, disk != nil && circle == 0)
+			if e != nil {
+				return out, e
 			}
-			centers := [2]*big.Rat{new(big.Rat).Add(ratInset(h.Center.X), new(big.Rat).Mul(ratInset(h.Radius), cosine[i])), new(big.Rat).Add(ratInset(h.Center.Y), dy)}
-			var xy [2]float64
-			squared := new(big.Rat)
-			for axis, c := range centers {
-				xy[axis], _ = c.Float64()
-				if !finite(xy[axis]) {
-					return out, geom.ErrConvergence
-				}
-				r := new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(c, ratInset(xy[axis]))), new(big.Rat).Mul(ratInset(h.Radius), errors[i]))
-				squared.Add(squared, new(big.Rat).Mul(r, r))
+			if err2.Cmp(round) > 0 {
+				round.Set(err2)
 			}
-			if squared.Cmp(round) > 0 {
-				round.Set(squared)
-			}
-			ring = append(ring, appendPoint(geom.Vec2{X: xy[0], Y: xy[1]}))
+			ring = append(ring, id)
 		}
 		loops = append(loops, ring)
-		b := new(big.Rat).Mul(ratInset(h.Radius), big.NewRat(49, int64(8*n*n)))
-		bound := new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Add(new(big.Rat).Mul(b, b), round))
-		if bound.Cmp(circleBound) > 0 {
-			circleBound.Set(bound)
-		}
+		collectBound(h.Radius, round)
 	}
 	var polygonLoops []trimvalidate.Loop
 	for _, ring := range loops {
@@ -329,11 +384,13 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 	for loop, ring := range loops {
 		for i, a := range ring {
 			b := ring[(i+1)%len(ring)]
-			face := 2 + i
+			face := 0
 			if loop > 0 {
 				face = 2 + outerWallCount + 4*(loop-1) + i/(n/4)
 			} else if disk != nil {
 				face = 2 + i/(n/4)
+			} else {
+				face = 2 + outerOwners[i]
 			}
 			quad := [4]int{mapping[0][a], mapping[0][b], mapping[1][b], mapping[1][a]}
 			for _, t := range [][3]int{{0, 1, 2}, {0, 2, 3}} {
