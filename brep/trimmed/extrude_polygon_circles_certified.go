@@ -23,12 +23,16 @@ type CertifiedCircularHoleExtrusion struct {
 	OriginalFace                                                             []int
 	RimVertices                                                              [][2][]int // Outer first, then through holes, then blind holes.
 	IdealBoundarySquaredDistance, UVFillSquaredDistance, SignedDisplayVolume *big.Rat
+	FrameDeterminant, PlanarNormSquaredUpper, DisplayRoundingSquaredUpper    *big.Rat
 	Collision                                                                collision.Report
 	Segments, TrigTerms, Predicates                                          int
 }
 
-// ExtrudePolygonWithHolesCertified supports signed extrusion in exact
-// right-handed signed-permutation frames, with any finite represented origin.
+// ExtrudePolygonWithHolesCertified supports signed extrusion in finite
+// represented frames whose exact determinant is positive. The represented
+// axes are interpreted as an affine map; orthogonality is not assumed. An
+// exact Gram-matrix norm bound transports planar errors, while each display
+// vertex includes fresh exact affine-evaluation rounding.
 // Source containment/disjointness is proved by the analytic constructor. Exact
 // displayed loop validation and triangulation prove each polygonal cap/floor.
 // The circle-to-chord straight homotopy transfers closed-fill distance through
@@ -45,23 +49,36 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 		return out, geom.ErrInvalid
 	}
 	axes := [3]geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()}
-	for _, a := range axes {
-		count := 0
-		for _, v := range []float64{a.X, a.Y, a.Z} {
-			if v != 0 {
-				if v != 1 && v != -1 {
-					return out, geom.ErrConvergence
-				}
-				count++
-			}
-		}
-		if count != 1 {
-			return out, geom.ErrConvergence
+	if !frame.Origin().IsFinite() {
+		return out, geom.ErrInvalid
+	}
+	for _, axis := range axes {
+		if !axis.IsFinite() {
+			return out, geom.ErrInvalid
 		}
 	}
-	if axes[0].Cross(axes[1]) != axes[2] {
+	matrix := [3][3]*big.Rat{exactBoundPoint(axes[0]), exactBoundPoint(axes[1]), exactBoundPoint(axes[2])}
+	determinant := new(big.Rat)
+	for i := 0; i < 3; i++ {
+		j, k := (i+1)%3, (i+2)%3
+		determinant.Add(determinant, new(big.Rat).Mul(matrix[0][i], new(big.Rat).Sub(new(big.Rat).Mul(matrix[1][j], matrix[2][k]), new(big.Rat).Mul(matrix[1][k], matrix[2][j]))))
+	}
+	if determinant.Sign() <= 0 {
 		return out, geom.ErrConvergence
 	}
+	// For the 3x2 sketch map A, ||A||_2²=||AᵀA||_2 is bounded
+	// by the maximum absolute row sum of its symmetric 2x2 Gram matrix.
+	xx, yy, xy := new(big.Rat), new(big.Rat), new(big.Rat)
+	for i := 0; i < 3; i++ {
+		xx.Add(xx, new(big.Rat).Mul(matrix[0][i], matrix[0][i]))
+		yy.Add(yy, new(big.Rat).Mul(matrix[1][i], matrix[1][i]))
+		xy.Add(xy, new(big.Rat).Mul(matrix[0][i], matrix[1][i]))
+	}
+	planarNorm := new(big.Rat).Set(xx)
+	if yy.Cmp(planarNorm) > 0 {
+		planarNorm.Set(yy)
+	}
+	planarNorm.Add(planarNorm, new(big.Rat).Abs(xy))
 	if o.MaxSegments == 0 {
 		o.MaxSegments = 512
 	}
@@ -102,7 +119,7 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 		ok := true
 		for _, h := range holes {
 			b := new(big.Rat).Mul(ratInset(h.Radius), big.NewRat(49, int64(8*n*n)))
-			if new(big.Rat).Mul(big.NewRat(8, 1), new(big.Rat).Mul(b, b)).Cmp(tolerance) > 0 {
+			if new(big.Rat).Mul(planarNorm, new(big.Rat).Mul(big.NewRat(8, 1), new(big.Rat).Mul(b, b))).Cmp(tolerance) > 0 {
 				ok = false
 			}
 		}
@@ -194,7 +211,7 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 		}
 		return out, e
 	}
-	result := CertifiedCircularHoleExtrusion{Solid: source, Segments: n, TrigTerms: work, UVFillSquaredDistance: circleBound, IdealBoundarySquaredDistance: new(big.Rat)}
+	result := CertifiedCircularHoleExtrusion{FrameDeterminant: new(big.Rat).Set(determinant), PlanarNormSquaredUpper: new(big.Rat).Set(planarNorm), Solid: source, Segments: n, TrigTerms: work, UVFillSquaredDistance: circleBound, IdealBoundarySquaredDistance: new(big.Rat)}
 	// The exact planar polygon topology is independently proved above. Positive
 	// ear triangles with exact area and boundary cancellation prove filled caps.
 	predicates := validation.Work
@@ -211,7 +228,6 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 	mapping := [2][]int{make([]int, len(points)), make([]int, len(points))}
 	round := new(big.Rat)
 	origin := exactBoundPoint(frame.Origin())
-	matrix := [3][3]*big.Rat{exactBoundPoint(axes[0]), exactBoundPoint(axes[1]), exactBoundPoint(axes[2])}
 	for loop, ring := range loops {
 		z0, z1 := lo, hi
 		if loop > len(through) {
@@ -246,7 +262,8 @@ func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, out
 		}
 		result.RimVertices = append(result.RimVertices, rims)
 	}
-	result.IdealBoundarySquaredDistance.Mul(big.NewRat(2, 1), new(big.Rat).Add(circleBound, round))
+	result.DisplayRoundingSquaredUpper = new(big.Rat).Set(round)
+	result.IdealBoundarySquaredDistance.Mul(big.NewRat(2, 1), new(big.Rat).Add(new(big.Rat).Mul(planarNorm, circleBound), round))
 	if result.IdealBoundarySquaredDistance.Cmp(tolerance) > 0 {
 		return out, geom.ErrConvergence
 	}
