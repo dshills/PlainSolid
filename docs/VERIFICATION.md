@@ -40,6 +40,16 @@ surface branches. PlainSolid currently rejects this operation under its
 closed manifold boundary contract. The staged test sources and authored
 hole dimensions were preserved.
 
+The [fixture controls](evidence/plaincad-unit-fixture-controls-2026-11-13.json)
+run the ten OCCT-private cases against pristine OCCT, where all pass.
+Among 26 fallback-dependent originals, pristine OCCT with the original
+initialization mode passes 25 and fails one at missing extrusion draft
+setup. PlainSolid with the global WASM initializer omitted passes five
+and fails 21. The replacement adapter requires an initialized WASM
+kernel for modeling. The fallback cases exercise the application
+provider's pre-initialization behavior and still need provider-neutral
+fixture setup for a replacement-only unit gate.
+
 ## PlainCAD cross-browser acceptance and OCCT control — 2026-11-13
 
 The [cross-browser report](evidence/plaincad-current-cross-browser-2026-11-13.json)

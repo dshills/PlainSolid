@@ -35,7 +35,9 @@ gesture originals pass together. All 17 original arc-region cases pass.
 The full current development run is in progress. The original unit run
 with real WASM initialized passes 1,646 of 1,689 cases. The remaining
 failures include uninitialized fallback expectations and OCCT-private test
-bindings. Focused original tests now pass all seven portable failures,
+bindings. All ten private tests pass on pristine OCCT. The 26 fallback
+fixtures pass 25 on the OCCT control and five with PlainSolid deliberately
+uninitialized. Focused original tests now pass all seven portable failures,
 including an exact side-tangent blind Hole. This Hole is retained for
 modeling and display as a regularized difference. Fabrication and STEP
 validation reject its four-face contact. Cross-browser qualification passes
