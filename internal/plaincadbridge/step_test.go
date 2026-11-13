@@ -35,7 +35,7 @@ func TestSTEPPlanarAndCylinderNativeRoundTrip(t *testing.T) {
 	}
 }
 
-func TestSTEPRetainsExactSplitCylinderAsNativeStock(t *testing.T) {
+func TestSTEPRetainsCompleteCylindersAsNativeStock(t *testing.T) {
 	b := New()
 	f, err := geom.FrameFromNormal(geom.Vec3{X: 10, Y: 20, Z: 30}, geom.Vec3{Z: 1})
 	if err != nil {
@@ -45,6 +45,10 @@ func TestSTEPRetainsExactSplitCylinderAsNativeStock(t *testing.T) {
 	for _, write := range []func(io.Writer, step.SplitCylinderDescriptor) error{
 		step.WriteSplitCylinderModel, step.WriteSplitCylinderProduct,
 		step.WriteQuarterCylinderModel, step.WriteQuarterCylinderProduct,
+		func(w io.Writer, d step.SplitCylinderDescriptor) error {
+			body := step.CylinderBody{Name: d.Name, Frame: d.Frame, Radius: d.Radius, Height: d.Height}
+			return step.WriteCylinders(w, step.CylinderModel{Bodies: []step.CylinderBody{body}, LengthUnit: d.LengthUnit})
+		},
 	} {
 		var out bytes.Buffer
 		if err := write(&out, d); err != nil {

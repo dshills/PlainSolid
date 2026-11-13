@@ -206,6 +206,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
+		if p, ok := m.Bodies[0].CompleteCylinder(); ok {
+			return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, m.LengthUnit)
+		}
 		return b.putSTEPAnalytic(m.Bodies[0].Solid, m.LengthUnit)
 	}
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
