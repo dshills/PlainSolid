@@ -690,6 +690,9 @@ surfaces must keep their geometry through the operation. Continue with:
    A convex planar draft can rotate each selected support about its own
    original edge using a signed half-angle tangent and an exact rational
    rotation. The support reconstruction reports which original faces survive.
+   Exact planar lofts now connect corresponding convex polygon stations.
+   The separate band operation accepts a reentrant profile when every
+   adjacent slab is convex and the assembled shell passes exact validation.
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.

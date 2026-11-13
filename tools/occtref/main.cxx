@@ -25,6 +25,7 @@
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <GProp_GProps.hxx>
 #include <Standard_Failure.hxx>
+#include <TopExp_Explorer.hxx>
 #include <TopoDS_Shape.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Circ.hxx>
@@ -61,7 +62,6 @@
 #include <Geom_BSplineCurve.hxx>
 #include <NCollection_Array1.hxx>
 #include <TopoDS_Edge.hxx>
-#include <TopExp_Explorer.hxx>
 #endif
 
 #ifdef PLAINSOLID_OCCT_IGES
@@ -406,6 +406,7 @@ int main(int argc, char** argv) {
     if(argc==3 && mode=="transverse-spline-shell"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);transverseSplineBooleans(out);return 0;}
     if(argc==3 && mode=="spline-shell-boolean"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);splineShellBooleans(out);return 0;}
     if(argc==3 && mode=="feature"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);featureRecords(out);return 0;}
+    if(argc==3 && mode=="planar-loft"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);planarLoftRecords(out);return 0;}
     if(argc==3 && mode=="graph-boolean"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);graphBooleanRecords(out);return 0;}
     if(argc==3 && mode=="saddle-graph-boolean"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);saddleGraphBooleanRecords(out);return 0;}
     if(argc==3 && mode=="partial-graph-boolean"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);partialGraphBooleanRecords(out);return 0;}

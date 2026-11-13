@@ -1178,6 +1178,11 @@ the native result on area, centroid and exact ideal volume `1136/105`.
 The two original hinge axes retain their vertex IDs, exact rotation
 matrices and output face mapping. Reversing an original edge and its
 signed angle leaves the reconstructed solid unchanged.
+Independent OCCT face sewing qualifies the variable-width rectangular
+loft (volume `70`), the convex three-station loft (`56/3`), and a reentrant
+waist loft assembled from convex bands (`14/3`). All agree on area,
+volume, and centroid. Native station seams remain explicit, including
+when adjacent planar bands share the same support.
 
 Standalone STEP and IGES revolutions preserve the original signed coordinate
 axis, angular and meridian ranges, units, and exact bounded profile geometry.
