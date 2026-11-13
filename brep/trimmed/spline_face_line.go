@@ -194,12 +194,6 @@ func bezierTrimExcludesUVBox(ctx context.Context, h [][3]*big.Rat, box geom.UVBo
 	q := []item{{net: h}}
 	limits := [2][2]*big.Rat{{ratInset(box.Min.X), ratInset(box.Max.X)}, {ratInset(box.Min.Y), ratInset(box.Max.Y)}}
 	half := big.NewRat(1, 2)
-	mid := func(a, b [3]*big.Rat) (v [3]*big.Rat) {
-		for i := range v {
-			v[i] = new(big.Rat).Mul(new(big.Rat).Add(a[i], b[i]), half)
-		}
-		return v
-	}
 	for len(q) > 0 {
 		if e := ctx.Err(); e != nil {
 			return false, e
@@ -225,17 +219,8 @@ func bezierTrimExcludesUVBox(ctx context.Context, h [][3]*big.Rat, box geom.UVBo
 		if x.depth == 40 {
 			return false, nil
 		}
-		n := len(x.net)
-		var work, lower, upper [5][3]*big.Rat
-		copy(work[:n], x.net)
-		lower[0], upper[n-1] = work[0], work[n-1]
-		for level := 1; level < n; level++ {
-			for i := 0; i < n-level; i++ {
-				work[i] = mid(work[i], work[i+1])
-			}
-			lower[level], upper[n-level-1] = work[0], work[n-level-1]
-		}
-		q = append(q, item{upper[:n], x.depth + 1}, item{lower[:n], x.depth + 1})
+		lower, upper := splitHomogeneousUV(x.net, half)
+		q = append(q, item{upper, x.depth + 1}, item{lower, x.depth + 1})
 	}
 	return true, nil
 }
