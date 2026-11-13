@@ -81,3 +81,57 @@ func TestOCCTWarpedInteriorPlaneClip(t *testing.T) {
 		compare(t, refs[name], mass.Area, mass.Volume, mass.Centroid)
 	}
 }
+
+func TestOCCTWarpedTwoCornerPlaneClip(t *testing.T) {
+	refs := runOracle(t, "warped-corner-spline")
+	ctx := context.Background()
+	a, _ := oracleWarpedOpenBox(t, [3]float64{}, [3]float64{1, 1, 1})
+	b, _ := oracleSplineBox(t, [3]float64{-1, -1, -4}, [3]float64{2, 2, 0}, func(x, y float64) float64 { return 9 * (x + y) / 16 })
+	o := trimmed.SplineRectangleEmbeddingOptions{}
+	proposals := [2][2][2]geom.ParameterRectangle{
+		{
+			{{UMax: .125, VMax: .125}, {UMin: -.125, UMax: .125, VMax: .25}},
+			{{UMax: .5, VMax: .125}, {UMax: .5, VMin: -.125, VMax: .125}},
+		},
+		{
+			{{UMin: .875, UMax: 1, VMin: .875, VMax: 1}, {UMin: .875, UMax: 1.125, VMin: .75, VMax: 1}},
+			{{UMin: .5, UMax: 1, VMin: .875, VMax: 1}, {UMin: .5, UMax: 1, VMin: .875, VMax: 1.125}},
+		},
+	}
+	var fans [2]*trimmed.SplineCornerFan
+	for i, pp := range proposals {
+		var anchors [2]*trimmed.SplineCornerAnchor
+		hint := [4]*big.Rat{}
+		for j := range hint {
+			hint[j] = big.NewRat(int64(i), 1)
+		}
+		for j, pair := range pp {
+			anchor, err := trimmed.CertifySplineFaceCornerAnchor(ctx, a, b, [2]int{2*j + i, 5}, pair, 0,
+				geom.SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: geom.SurfacePairTubeOptions{FreeAxis: j}, Anchor: hint, AtUpper: i == 1}, o)
+			if err != nil {
+				t.Fatal(i, j, err)
+			}
+			anchors[j] = anchor
+		}
+		point, err := trimmed.CertifySplineFacePointContact(ctx, a, b, [2]int{4 + i, 5}, o)
+		if err != nil {
+			t.Fatal(i, err)
+		}
+		fans[i], err = trimmed.CertifySplineCornerFan(ctx, anchors, point, o)
+		if err != nil {
+			t.Fatal(i, err)
+		}
+	}
+	for i, name := range []string{"warped-two-corner-common", "warped-two-corner-cut"} {
+		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
+		out, err := trimmed.CombineSplineTwoCornerPlaneClip(ctx, fans, op, o)
+		if err != nil || len(out.Solid.Topology().Shells) != 1 || len(out.SectionEdges) != 4 {
+			t.Fatal(name, err)
+		}
+		mass, err := out.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], mass.Area, mass.Volume, mass.Centroid)
+	}
+}
