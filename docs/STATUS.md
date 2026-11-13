@@ -591,6 +591,8 @@ The same construction accepts a parallel eccentric through-bore when the
 exact transverse disk gap and axial coverage prove a fully enclosed opening.
 An axially and radially enclosed parallel cutter instead retains a separate
 inward cavity shell, with cutter wall and both original floor IDs.
+A contained parallel cutter reaching exactly one stock cap retains one
+eccentric blind bore, including the original floor and cap ordering.
 Equal-radius coaxial stock with overlapping or coincident end spans now
 joins as one cylinder, retaining the original exposed caps and wall owners.
 

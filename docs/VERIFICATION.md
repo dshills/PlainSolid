@@ -1099,10 +1099,15 @@ radius and axis, canonical reload, and rejection of tangent or clipped disks.
 The enclosed cavity uses one stock and two oriented closed shells. It
 preserves both cutter floors in raw parameter order and compares area,
 volume, and centroid against OCCT. Its canonical recipe and certified mesh
-pass; axial and radial contact are rejected by this interior-only path.
+pass; radial tangency is rejected, and axial opening selects the blind-bore
+path instead of emitting an interior shell.
 Coaxial union fixtures with overlapping axial intervals and exactly touching
 end disks verify both operand orders, exposed cap ancestry, exact common
 volume, canonical reload, and a single stock against the pinned OCCT fuse.
+Eccentric blind-bore fixtures cover both axial entries, signed and scaled
+axes, and cutter caps coincident with or beyond the entry. They verify exact
+mass identities, native reload, floor ancestry, rejection of grazing cuts,
+mesh closure and independent OCCT area, volume and centroid.
 
 Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume

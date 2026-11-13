@@ -258,6 +258,15 @@ int main(int argc, char** argv) {
       for(TopExp_Explorer it(cavity,TopAbs_SHELL);it.More();it.Next())++cavityShells;
       if(cavitySolids!=1||cavityShells!=2)throw std::runtime_error("parallel cylinder cavity not one solid with two shells");
       record(out,"finite-parallel-cavity",cavity,1e-11);
+      for(int lower=0;lower<2;++lower){
+        const auto blindTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,2,lower?9:-1),gp_Dir(0,0,lower?-1:1)),2,lower?6:4).Shape();
+        const auto blind=BRepAlgoAPI_Cut(unequalWide,blindTool).Shape();
+        int solids=0,shells=0;
+        for(TopExp_Explorer it(blind,TopAbs_SOLID);it.More();it.Next())++solids;
+        for(TopExp_Explorer it(blind,TopAbs_SHELL);it.More();it.Next())++shells;
+        if(solids!=1||shells!=1)throw std::runtime_error("finite blind cylinder cut not one solid with one shell");
+        record(out,lower?"finite-blind-lower":"finite-blind-upper",blind,1e-11);
+      }
       const auto coaxialA=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,5),gp_Dir(0,0,-1)),2,6).Shape();
       for(int touch=0;touch<2;++touch){
         const auto coaxialB=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,touch?5:2),gp_Dir(0,0,1)),2,touch?6:9).Shape();

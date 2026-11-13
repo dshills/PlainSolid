@@ -267,3 +267,26 @@ func TestOCCTFiniteCoaxialCylinderUnion(t *testing.T) {
 		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
 	}
 }
+
+func TestOCCTFiniteParallelCylinderBlindBore(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	stock := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	for _, tc := range []struct {
+		name string
+		tool geom.RawCylinder
+	}{
+		{"finite-blind-lower", geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 2, Z: 3}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: 0, Max: 3}},
+		{"finite-blind-upper", geom.RawCylinder{Origin: geom.Vec3{X: 2, Y: 2, Z: 3}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -2, Max: 0}},
+	} {
+		d, err := parametric.FiniteCylinderPairDifference(ctx, stock, tc.tool, 1e-9)
+		if err != nil || len(d.Solids[1].Faces()) != 0 || finiteOracleShellCount(d.Solids[0]) != 1 {
+			t.Fatal(tc.name, err)
+		}
+		m, err := d.Solids[0].MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(tc.name, err)
+		}
+		compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+	}
+}
