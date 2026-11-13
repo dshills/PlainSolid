@@ -36,6 +36,12 @@ func (q ExactQuadraticUV) IntersectModelFiniteLine(ctx context.Context, p *geom.
 	if e != nil {
 		return empty, e
 	}
+	return intersectModelCurveCellsFiniteLine(ctx, c, origin, direction, limits, o)
+}
+
+func intersectModelCurveCellsFiniteLine(ctx context.Context, c geom.SurfaceCurveCompositionCells, origin, direction geom.Vec3,
+	limits [2]*big.Rat, o geom.ComposedCurveLineOptions) (ExactQuadraticModelLineSection, error) {
+	var empty ExactQuadraticModelLineSection
 	if !c.Complete || len(c.Cells) == 0 {
 		return empty, geom.ErrConvergence
 	}
