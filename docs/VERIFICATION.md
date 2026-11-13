@@ -32,6 +32,8 @@ passes 1,647 of 1,689 originals on PlainCAD `50432ed`, with zero pending
 tests. Thirty-seven failures recur from the prior full run, 22 recover,
 and five newly fail. The recorded harness source predates its final
 formatting change, and the report includes the actual setup and WASM hashes.
+The five new failures and the previously intermittent cold Unified thread
+case all pass unchanged on the same staged WASM in a six-case retest.
 
 ## PlainCAD coaxial side and corner Hole extension — 2026-11-13
 

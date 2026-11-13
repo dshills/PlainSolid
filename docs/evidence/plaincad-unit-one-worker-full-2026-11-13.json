@@ -422,5 +422,47 @@
       "repeated": true,
       "firstError": "AssertionError: expected 'plainsolid' to be 'fallback' // Object.is equality"
     }
-  ]
+  ],
+  "sameWasmRetest": {
+    "report": "/tmp/plainsolid-full-unit-six-retest-5403.json",
+    "reportSha256": "46f2432cfc252b9c981129384bad0a04e38ccdc97507458f1bd85f08b6ee4539",
+    "results": [
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "draws native cylinder rims without its periodic seam or tangent fillet boundaries",
+        "durationMs": 821.9195420000001,
+        "status": "passed"
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "builds a maximum-length Unified inch thread in a cold rebuild and rejects an oversize request",
+        "durationMs": 12011.819708,
+        "status": "passed"
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "test": "cuts 2 start(s), left-hand acme threads and verifies coaxial fit",
+        "durationMs": 40283.43575,
+        "status": "passed"
+      },
+      {
+        "file": "operationDrop.test.tsx",
+        "test": "offers only explicit visible active-component profiles and untouched native cap groups",
+        "durationMs": 555.0959160000002,
+        "status": "passed"
+      },
+      {
+        "file": "projectionBoundaryPicking.test.ts",
+        "test": "places source boundaries on the correct XY world axes",
+        "durationMs": 153.286333,
+        "status": "passed"
+      },
+      {
+        "file": "releaseHardening.test.ts",
+        "test": "passes the parametric box edit and rebuild workflow",
+        "durationMs": 275.63824999999997,
+        "status": "passed"
+      }
+    ]
+  }
 }

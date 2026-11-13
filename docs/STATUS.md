@@ -81,7 +81,8 @@ stock with blind and through bores and a canonical long-edge treatment chain. Th
 gesture originals pass together. All 17 original arc-region cases pass.
 The full one-worker real-WASM run on PlainCAD `50432ed` passes 1,647 of
 1,689 originals. Twenty-two earlier failures pass, 37 repeat and five
-newly fail. Its comparison and source hashes are recorded.
+newly fail. All five new failures and the recurring cold Unified thread
+case pass unchanged on the same WASM in a focused retest.
 The earlier full real-WASM unit run on the same app passes 1,630 of 1,689
 originals with loopback and concurrent verification. Thirty-eight failures
 repeat the preceding full run. All 21 newly failed tests pass unchanged
