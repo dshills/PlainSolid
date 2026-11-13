@@ -10,12 +10,16 @@ import (
 // SplineParallelSlab retains original stock and two cutter support identities.
 // SectionEdges are keyed by cutter; StockEdges contain only surviving portions
 // of original edges. OriginalVertices uses -1 for discarded vertices.
+// CapIntersectionEdges and CapIntersection are populated only by the transverse
+// crossing-cap API, and are excluded from both cutter SectionEdges lists.
 type SplineParallelSlab struct {
 	Solid                  Solid
 	StockFaces, StockEdges [][]int
 	ToolFaces              [2][][]int
 	SectionEdges           [2][]int
 	OriginalVertices       []int
+	CapIntersectionEdges   []int
+	CapIntersection        *SplineCapIntersection
 }
 
 // CombineSplineParallelSlab intersects stock with two opposite parallel active
@@ -31,11 +35,16 @@ func CombineSplineParallelSlab(ctx context.Context, stock Solid, tools [2]Solid,
 }
 
 func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]Solid, active [2]int, o SplineRectangleEmbeddingOptions, parallel bool) (SplineParallelSlab, error) {
+	return combineSplinePlaneCuts(ctx, stock, tools, active, o, parallel, false)
+}
+
+func combineSplinePlaneCuts(ctx context.Context, stock Solid, tools [2]Solid, active [2]int, o SplineRectangleEmbeddingOptions, parallel, crossing bool) (SplineParallelSlab, error) {
 	var zero SplineParallelSlab
 	if ctx == nil {
 		return zero, geom.ErrInvalid
 	}
 	var clips [2]SplinePlaneClipResult
+	var capPatches [2]*geom.SurfacePatch
 	var origins, normals [2][3]*big.Rat
 	for k := 0; k < 2; k++ {
 		r, e := CombineSplinePlaneClip(ctx, stock, tools[k], active[k], parametric.Intersection, o)
@@ -47,6 +56,7 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 		if e != nil {
 			return zero, e
 		}
+		capPatches[k] = f.patch
 		d := f.patch.Domain()
 		jet, e := f.patch.EvaluateRational(ctx, new(big.Rat).SetFloat64(d.UMin), new(big.Rat).SetFloat64(d.VMin), geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits})
 		if e != nil {
@@ -74,40 +84,51 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 			return zero, geom.ErrConvergence
 		}
 	}
-	// The cap is an affine image of this independently certified convex polygon.
-	// A linear functional reaches its extrema at its vertices, so strict signs
-	// prove exclusion over the entire cap fill, including its original wire.
-	for k := 0; k < 2; k++ {
-		if parallel {
-			// Preserve the slab contract: a parallel plane is constant over
-			// the whole cap, so its polygon need not be convex.
-			h := new(big.Rat)
-			for i := 0; i < 3; i++ {
-				h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(origins[k][i], origins[1-k][i])))
+	var crossedCaps [2]SewFace
+	var capProof *SplineCapIntersection
+	if crossing {
+		var e error
+		crossedCaps, capProof, e = clipSplineCrossingCaps(ctx, clips, active, capPatches, origins, normals, o)
+		if e != nil {
+			return zero, e
+		}
+	}
+	if !crossing {
+		// The cap is an affine image of this independently certified convex polygon.
+		// A linear functional reaches its extrema at its vertices, so strict signs
+		// prove exclusion over the entire cap fill, including its original wire.
+		for k := 0; k < 2; k++ {
+			if parallel {
+				// Preserve the slab contract: a parallel plane is constant over
+				// the whole cap, so its polygon need not be convex.
+				h := new(big.Rat)
+				for i := 0; i < 3; i++ {
+					h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(origins[k][i], origins[1-k][i])))
+				}
+				if h.Sign() >= 0 {
+					return zero, geom.ErrConvergence
+				}
+				continue
 			}
-			if h.Sign() >= 0 {
+			cap := clips[k].Solid.faces[clips[k].ToolFaces[active[k]][0]]
+			if !slabConvexCCW(slabFaceUV(cap)) {
 				return zero, geom.ErrConvergence
 			}
-			continue
-		}
-		cap := clips[k].Solid.faces[clips[k].ToolFaces[active[k]][0]]
-		if !slabConvexCCW(slabFaceUV(cap)) {
-			return zero, geom.ErrConvergence
-		}
-		for _, use := range cap.Outer {
-			edge := clips[k].Solid.edges[use.Edge]
-			id := edge.Start
-			if use.Reversed {
-				id = edge.End
-			}
-			p := clips[k].Solid.vertices[id]
-			coords := [3]float64{p.X, p.Y, p.Z}
-			h := new(big.Rat)
-			for i := 0; i < 3; i++ {
-				h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(new(big.Rat).SetFloat64(coords[i]), origins[1-k][i])))
-			}
-			if h.Sign() >= 0 {
-				return zero, geom.ErrConvergence
+			for _, use := range cap.Outer {
+				edge := clips[k].Solid.edges[use.Edge]
+				id := edge.Start
+				if use.Reversed {
+					id = edge.End
+				}
+				p := clips[k].Solid.vertices[id]
+				coords := [3]float64{p.X, p.Y, p.Z}
+				h := new(big.Rat)
+				for i := 0; i < 3; i++ {
+					h.Add(h, new(big.Rat).Mul(normals[1-k][i], new(big.Rat).Sub(new(big.Rat).SetFloat64(coords[i]), origins[1-k][i])))
+				}
+				if h.Sign() >= 0 {
+					return zero, geom.ErrConvergence
+				}
 			}
 		}
 	}
@@ -142,6 +163,9 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 			return zero, geom.ErrConvergence
 		}
 		uv := slabClipUV(pa, pb)
+		if crossing && len(uv) == 0 {
+			continue
+		}
 		if len(uv) < 3 || len(uv) > 12 || !slabConvexCCW(uv) {
 			return zero, geom.ErrConvergence
 		}
@@ -157,7 +181,11 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 		out.ToolFaces[k] = make([][]int, len(tools[k].faces))
 		out.ToolFaces[k][active[k]] = []int{len(parts)}
 		cap := clips[k].Solid.faces[clips[k].ToolFaces[active[k]][0]]
-		parts = append(parts, clips[k].Solid.splineSewFace(cap))
+		if crossing {
+			parts = append(parts, crossedCaps[k])
+		} else {
+			parts = append(parts, clips[k].Solid.splineSewFace(cap))
+		}
 		owners = append(owners, [2]int{k + 1, active[k]})
 	}
 	result, history, e := Sew(ctx, parts, SewOptions{Tolerance: max(stock.tolerance, tools[0].tolerance, tools[1].tolerance), Proof: o.EdgeAgreement})
@@ -206,6 +234,14 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 		}
 	}
 	for id := range result.edges {
+		if generated[0][id] && generated[1][id] {
+			if !crossing || covered[id] {
+				return zero, geom.ErrConvergence
+			}
+			covered[id] = true
+			out.CapIntersectionEdges = append(out.CapIntersectionEdges, id)
+			continue
+		}
 		for k := 0; k < 2; k++ {
 			if generated[k][id] {
 				if covered[id] {
@@ -215,6 +251,26 @@ func combineSplineSeparatedPlaneCuts(ctx context.Context, stock Solid, tools [2]
 				out.SectionEdges[k] = append(out.SectionEdges[k], id)
 			}
 		}
+	}
+	if crossing {
+		if len(out.CapIntersectionEdges) != 1 {
+			return zero, geom.ErrConvergence
+		}
+		capProof.Edge = out.CapIntersectionEdges[0]
+		edge := result.edges[capProof.Edge]
+		match := func(p [3]*big.Rat, v geom.Vec3) bool {
+			return p[0].Cmp(new(big.Rat).SetFloat64(v.X)) == 0 && p[1].Cmp(new(big.Rat).SetFloat64(v.Y)) == 0 && p[2].Cmp(new(big.Rat).SetFloat64(v.Z)) == 0
+		}
+		if !match(capProof.Points[0], result.vertices[edge.Start]) {
+			capProof.Points[0], capProof.Points[1] = capProof.Points[1], capProof.Points[0]
+			for k := 0; k < 2; k++ {
+				capProof.UV[k][0], capProof.UV[k][1] = capProof.UV[k][1], capProof.UV[k][0]
+			}
+		}
+		if !match(capProof.Points[0], result.vertices[edge.Start]) || !match(capProof.Points[1], result.vertices[edge.End]) {
+			return zero, geom.ErrConvergence
+		}
+		out.CapIntersection = capProof
 	}
 	if len(covered) != len(result.edges) {
 		return zero, geom.ErrConvergence
