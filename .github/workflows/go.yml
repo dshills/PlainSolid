@@ -44,6 +44,7 @@ jobs:
       - run: go test ./exchange -fuzz=FuzzReadGLTF -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzParse -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/iges -fuzz=FuzzRead -fuzztime=10s -parallel=2
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
