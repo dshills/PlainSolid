@@ -50,50 +50,77 @@ func (m Mesh) ValidateSolid() error {
 	if err := m.Validate(); err != nil {
 		return err
 	}
-	edges := make(map[edge][]use)
-	incident := make(map[int][]int)
+	type edgeRecord struct {
+		face, side, sign int
+		paired           bool
+	}
+	type fan struct{ first, count int }
+	edges := make(map[edge]edgeRecord, len(m.Triangles))
+	incident := make(map[int]fan)
+	adjacent := make([][3]int, len(m.Triangles))
 	for f, t := range m.Triangles {
 		for i, a := range t {
+			v := incident[a]
+			if v.count == 0 {
+				v.first = f
+			}
+			v.count++
+			incident[a] = v
 			b := t[(i+1)%3]
 			k := edge{a, b}
-			s := 1
+			sign := 1
 			if a > b {
 				k = edge{b, a}
-				s = -1
+				sign = -1
 			}
-			edges[k] = append(edges[k], use{f, s})
-			incident[a] = append(incident[a], f)
+			prior, ok := edges[k]
+			if !ok {
+				edges[k] = edgeRecord{face: f, side: i, sign: sign}
+				continue
+			}
+			if prior.paired || prior.sign == sign {
+				return fmt.Errorf("mesh: edge (%d,%d) is not closed and consistently oriented", k.a, k.b)
+			}
+			adjacent[f][i] = prior.face
+			adjacent[prior.face][prior.side] = f
+			prior.paired = true
+			edges[k] = prior
 		}
 	}
-	adjacent := make(map[int][]int)
-	for e, u := range edges {
-		if len(u) != 2 || u[0].sign == u[1].sign {
+	for e, r := range edges {
+		if !r.paired {
 			return fmt.Errorf("mesh: edge (%d,%d) is not closed and consistently oriented", e.a, e.b)
 		}
-		adjacent[u[0].face] = append(adjacent[u[0].face], u[1].face)
-		adjacent[u[1].face] = append(adjacent[u[1].face], u[0].face)
 	}
-	for v, faces := range incident {
-		allowed := make(map[int]bool, len(faces))
-		for _, f := range faces {
-			allowed[f] = true
-		}
-		visited := make(map[int]bool)
-		stack := []int{faces[0]}
+	// A triangle has exactly three neighboring faces after the edge proof.
+	// Traverse only neighbors containing this vertex. Generation stamps avoid
+	// allocating allowed/visited maps for every fan while proving the same link
+	// connectivity. Unused model vertices require no adjacency storage.
+	visited := make([]int, len(m.Triangles))
+	stack := make([]int, 0, 16)
+	generation := 0
+	for v, fan := range incident {
+		generation++
+		stack = append(stack[:0], fan.first)
+		visited[fan.first] = generation
+		reached := 0
 		for len(stack) > 0 {
 			f := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
-			if visited[f] {
-				continue
-			}
-			visited[f] = true
+			reached++
 			for _, g := range adjacent[f] {
-				if allowed[g] && !visited[g] {
-					stack = append(stack, g)
+				if visited[g] == generation {
+					continue
 				}
+				t := m.Triangles[g]
+				if t[0] != v && t[1] != v && t[2] != v {
+					continue
+				}
+				visited[g] = generation
+				stack = append(stack, g)
 			}
 		}
-		if len(visited) != len(allowed) {
+		if reached != fan.count {
 			return fmt.Errorf("mesh: disconnected fan at vertex %d", v)
 		}
 	}
