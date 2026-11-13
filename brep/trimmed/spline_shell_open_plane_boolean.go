@@ -14,6 +14,10 @@ import (
 // exact original-domain terminal ownership and passes all sections to the native
 // shell Boolean verifier. Omitted contacts, ambiguous corner terminals, closed
 // branches and unsupported material arrangements fail without a partial solid.
+// A terminal on one side of both operands retains OtherSide; downstream
+// assembly independently verifies both edge anchors and local continuation.
+// Affine/affine pairs additionally use exact affine chart intersection when
+// graph projection discovery cannot express their oblique parameterization.
 // Pairs are input face IDs; no trace or caller-authored endpoint proof is trusted.
 func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanOp, pairs [][2]int,
 	discovery intersect.SplinePlanePairDiscoveryOptions, o SplineShellOpenOptions) (Solid, SplineShellOpenHistory, error) {
@@ -45,7 +49,41 @@ func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric
 		}
 		proof, e := intersect.CertifyOpenSplinePlanePair(ctx, patches[0], patches[1], intersect.OverlappingGraphTraceOptions{Discovery: discovery, Trace: o.Trace})
 		if e != nil {
-			return fail(e)
+			if !isUnresolvedOpenSpline(e) {
+				return fail(e)
+			}
+			// Affine/affine oblique charts can fail the graph projection gate.
+			// Recover only through exact affine chart intersection, retaining
+			// both source boundary masks and re-proving the generated tubes.
+			var exact [2]*geom.SurfacePatch
+			var charts [2]*geom.AffineSurfaceChart
+			for i, p := range patches {
+				surface, ok := p.Surface.(*geom.BSplineSurface)
+				if !ok {
+					return fail(e)
+				}
+				exact[i], e = geom.NewSurfacePatch(surface, o.Trace.Seeds.Patches)
+				if e != nil {
+					return fail(e)
+				}
+				exact[i], e = exact[i].Trim(geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y})
+				if e != nil {
+					return fail(e)
+				}
+				charts[i], e = geom.NewAffineSurfaceChart(ctx, exact[i], geom.AffineSurfaceChartOptions{MaxOperations: o.Trace.Coincidence.MaxOperations, MaxCoefficientBits: o.Trace.Coincidence.MaxCoefficientBits})
+				if e != nil {
+					return fail(e)
+				}
+			}
+			section, e := proposeAffineSplineSection(ctx, pair, patches, exact, charts, o)
+			if e != nil {
+				return fail(e)
+			}
+			if len(sections) >= 64 {
+				return fail(intersect.ErrUnresolved)
+			}
+			sections = append(sections, section)
+			continue
 		}
 		for index, branch := range proof.Trace.BranchGraph.Branches {
 			if branch.Closed || len(branch.Cells) == 0 || len(sections) >= 64 {
@@ -68,29 +106,15 @@ func CombineOpenPlaneSplineShells(ctx context.Context, a, b Solid, op parametric
 						continue
 					}
 					matches++
-					operand, side := -1, -1
-					for i, mask := range term.OriginalSides {
-						if mask == 0 {
-							continue
-						}
-						if mask&(mask-1) != 0 || operand != -1 {
-							return fail(intersect.ErrUnresolved)
-						}
-						operand = i
-						for j := 0; j < 4; j++ {
-							if mask == 1<<j {
-								side = j
-							}
-						}
-					}
-					if operand < 0 {
-						return fail(intersect.ErrUnresolved)
-					}
 					var hint [4]*big.Rat
 					for j, q := range term.Discovery.Parameters {
 						hint[j] = new(big.Rat).Set(q)
 					}
-					*ends[end] = SplineShellOpenEndpoint{Operand: operand, Edge: SplineTubeEndpoint{Side: geom.SurfaceEdge(side), Hint: hint}}
+					endpoint, e := openPlaneTerminalEndpoint(patches[0], patches[1], hint)
+					if e != nil {
+						return fail(e)
+					}
+					*ends[end] = endpoint
 				}
 				if matches != 1 {
 					return fail(intersect.ErrUnresolved)
