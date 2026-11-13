@@ -1072,6 +1072,19 @@ original-face and edge ancestry, native reload, a closed mesh, and zero
 detected display contacts verify the two retained bodies. OCCT independently
 sweeps the bilinear stock and the planar cutter and verifies both shell counts
 and mass properties.
+Shifting the active cutter plane by `1/8` also qualifies a closed section with
+four original edge-interior events and no vertex contact. Native intersection
+and cut retain their original stock supports and the oriented tool cap. Their
+volumes `11/32` and `21/32`, centroid, and area match independent checks.
+
+On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
+transverse flags passed 112 test and subtest entries. The transverse union
+hit its existing 120-second deadline while other work was active; its common
+and cut passed. Isolated union runs retained the original deadline: baseline
+73.97 seconds, tube coverage cache 86.50 seconds, and oriented trim memo
+49.54 seconds. Wall times reflect different load; profiled tessellation CPU
+dropped from 12.62 to 7.28 seconds with the trim memo. The first cache is
+verified for equivalence and budgets; this fixture does not show its speedup.
 
 The perpendicular union retains both walls and four exposed end disks.
 Its volume matches the exact inclusion-exclusion formula and its area
