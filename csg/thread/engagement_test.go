@@ -93,3 +93,21 @@ func TestCompareRunoutRadialBand(t *testing.T) {
 		t.Fatal("separated radial band", out, e)
 	}
 }
+
+func TestCompareRunoutJointWindow(t *testing.T) {
+	ctx := context.Background()
+	p, e := BuildPair(ctx, pairFixture(t, geom.LeftHanded), geom.SurfacePatchEvaluationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := [2]*big.Rat{big.NewRat(29, 16), big.NewRat(31, 16)}
+	phase := [2]*big.Rat{big.NewRat(1, 7), big.NewRat(6, 7)}
+	out, e := p.CompareRunoutJointWindow(ctx, new(big.Rat), r, phase, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || out.NoPositiveOverlap || out.WitnessRadius == nil || out.WitnessPhase == nil || !out.Witness.Overlap {
+		t.Fatal("missing joint radius/phase interference", out, e)
+	}
+	out, e = p.CompareRunoutJointWindow(ctx, big.NewRat(8, 1), r, phase, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || !out.NoPositiveOverlap || out.WitnessRadius != nil || out.Probes < 2 {
+		t.Fatal("separated joint window", out, e)
+	}
+}

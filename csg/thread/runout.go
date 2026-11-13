@@ -42,3 +42,26 @@ func (p Pair) CompareRunoutRadialBand(ctx context.Context, phase, nutShift *big.
 	}
 	return geom.CompareHelicalRetainedRadialBand(ctx, p.shaftStarts, p.nutStarts, phase, nutShift, radiusBand, p.stockBands[0], p.stockBands[1], o)
 }
+
+// CompareRunoutJointWindow exhausts the closed radius/phase box for a shifted
+// nut. A complete clear result excludes positive axial overlap within that
+// box. It does not assert minimum Euclidean clearance or exclude contacts
+// outside the selected radius/phase region.
+func (p Pair) CompareRunoutJointWindow(ctx context.Context, nutShift *big.Rat, radii, phases [2]*big.Rat, o geom.HelicalStartsLineOptions) (geom.HelicalJointWindowComparison, error) {
+	if ctx == nil || radii[0] == nil || radii[1] == nil || p.radialRange[0] == nil ||
+		radii[0].Cmp(p.radialRange[0]) <= 0 || radii[1].Cmp(p.radialRange[1]) >= 0 {
+		return geom.HelicalJointWindowComparison{}, geom.ErrInvalid
+	}
+	return geom.CompareHelicalRetainedJointWindow(ctx, p.shaftStarts, p.nutStarts, nutShift, radii, phases, p.stockBands[0], p.stockBands[1], o)
+}
+
+// CompareRunoutFullTurn exhausts a radial band over the closed full phase turn
+// [0,1]. Both seam representations are included with reindexed turn ancestry.
+// The radial band must be strictly within the common stock radii.
+func (p Pair) CompareRunoutFullTurn(ctx context.Context, nutShift *big.Rat, radii [2]*big.Rat, o geom.HelicalStartsLineOptions) (geom.HelicalJointWindowComparison, error) {
+	if ctx == nil || radii[0] == nil || radii[1] == nil || p.radialRange[0] == nil ||
+		radii[0].Cmp(p.radialRange[0]) <= 0 || radii[1].Cmp(p.radialRange[1]) >= 0 {
+		return geom.HelicalJointWindowComparison{}, geom.ErrInvalid
+	}
+	return geom.CompareHelicalRetainedFullTurn(ctx, p.shaftStarts, p.nutStarts, nutShift, radii, p.stockBands[0], p.stockBands[1], o)
+}

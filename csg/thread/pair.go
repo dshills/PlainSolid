@@ -180,7 +180,11 @@ func removedVolumePi(p trimmed.HelicalGrooveRecipe) *big.Rat {
 	}
 	radialMoment.Abs(radialMoment)
 	span := new(big.Rat).Sub(exact(p.End), exact(p.Start))
-	x, y, z := p.Frame.XAxis(), p.Frame.YAxis(), p.Frame.ZAxis()
+	return radialMoment.Mul(radialMoment, span).Mul(radialMoment, frameDeterminant(p.Frame)).Mul(radialMoment, big.NewRat(int64(p.Starts), 3))
+}
+
+func frameDeterminant(f geom.Frame) *big.Rat {
+	x, y, z := f.XAxis(), f.YAxis(), f.ZAxis()
 	a, b, c := [3]float64{x.X, x.Y, x.Z}, [3]float64{y.X, y.Y, y.Z}, [3]float64{z.X, z.Y, z.Z}
 	det := new(big.Rat)
 	for i := 0; i < 3; i++ {
@@ -188,6 +192,5 @@ func removedVolumePi(p trimmed.HelicalGrooveRecipe) *big.Rat {
 		m := new(big.Rat).Sub(new(big.Rat).Mul(exact(b[j]), exact(c[k])), new(big.Rat).Mul(exact(b[k]), exact(c[j])))
 		det.Add(det, m.Mul(m, exact(a[i])))
 	}
-	det.Abs(det)
-	return radialMoment.Mul(radialMoment, span).Mul(radialMoment, det).Mul(radialMoment, big.NewRat(int64(p.Starts), 3))
+	return det.Abs(det)
 }

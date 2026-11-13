@@ -18,7 +18,7 @@ type HelicalRadialBandComparison struct {
 	ExactOperations             int
 }
 
-// CompareHelicalRetainedRadialBand fixes 0<=phase<1 and partitions a positive
+// CompareHelicalRetainedRadialBand fixes 0<=phase<=1 and partitions a positive
 // rational radius band at all profile vertex radii and all affine endpoint
 // equality events. Convex polygon slices have affine endpoints on each open
 // vertex slab. Stock/cutter and cutter/cutter order therefore cannot change

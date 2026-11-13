@@ -904,3 +904,11 @@ preserves all later groove supports and qualifies the analytic removed
 volume and native reload; it does not intersect a groove. Helical document
 recipes preserve both source meridians and handedness and reject edited
 zero-clearance flanks on regeneration.
+
+Exact helical runout tests cover full-turn phase seam reindexing, unequal
+start counts, both hands, rational shifts, and an interference witness that
+does not occur on either radial boundary. Finished-pair tests verify both
+nut shoulders and the shaft tip through independent mass differences. A
+full-turn comparison splits at relief radii and distinguishes a radial-wall
+witness from an interior one; it preserves cap-only contact as zero positive
+axial overlap.

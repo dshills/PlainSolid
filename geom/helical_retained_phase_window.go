@@ -20,12 +20,12 @@ type HelicalPhaseWindowComparison struct {
 
 // CompareHelicalRetainedPhaseWindow uses the same local axial stock/shift and
 // regularized slice semantics as CompareHelicalRetainedQuarter. It supports
-// 0<=phaseLo<=phaseHi<1. All cutter endpoints have common slope lead; therefore
+// 0<=phaseLo<=phaseHi<=1. All cutter endpoints have common slope lead; therefore
 // only source turn-window events and cutter/stock endpoint equalities can
 // change retained overlap. Every event and every open cell midpoint is checked
 // exactly. MaxIntervals bounds events/probes as well as each source enumeration.
 func CompareHelicalRetainedPhaseWindow(ctx context.Context, a, c SeparatedHelicalStarts, radius, shift *big.Rat, phase [2]*big.Rat, bandA, bandB [2]*big.Rat, o HelicalStartsLineOptions) (out HelicalPhaseWindowComparison, err error) {
-	if ctx == nil || a.count < 1 || c.count < 1 || radius == nil || shift == nil || phase[0] == nil || phase[1] == nil || phase[0].Sign() < 0 || phase[1].Cmp(big.NewRat(1, 1)) >= 0 || phase[0].Cmp(phase[1]) > 0 {
+	if ctx == nil || a.count < 1 || c.count < 1 || radius == nil || shift == nil || phase[0] == nil || phase[1] == nil || phase[0].Sign() < 0 || phase[1].Cmp(big.NewRat(1, 1)) > 0 || phase[0].Cmp(phase[1]) > 0 {
 		return out, ErrInvalid
 	}
 	max := o.MaxIntervals
