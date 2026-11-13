@@ -94,6 +94,7 @@ type request struct {
 	Radius            number               `json:"radius,omitempty"`
 	Source            string               `json:"source,omitempty"`
 	Handles           []string             `json:"handles,omitempty"`
+	Thread            *threadRequest       `json:"thread,omitempty"`
 	Profile           *mixedProfileRequest `json:"profile,omitempty"`
 	Angle             number               `json:"angle,omitempty"`
 	Height            number               `json:"height,omitempty"`
@@ -217,7 +218,16 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	switch q.Op {
 	case "capabilities":
-		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "drawingGeometry", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "chamfer", "cut", "cutMany", "overlapVolume", "fuse", "common", "shell", "planarFace", "drawingGeometry", "thread", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
+	case "thread":
+		if q.Thread == nil {
+			return nil, errors.New("thread requires dimensions and handedness")
+		}
+		s, err := b.get(q.Handle)
+		if err != nil {
+			return nil, err
+		}
+		return b.threadBody(s, *q.Thread)
 	case "importStep":
 		return b.importSTEP(q.Source)
 	case "exportStep":

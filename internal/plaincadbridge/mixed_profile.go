@@ -186,6 +186,30 @@ func (b *Bridge) mixedExtrude(p mixedProfileRequest) (Shape, error) {
 		return Shape{}, err
 	}
 	body := &analyticBody{solid: s, volume: volume, area: area}
+	if p.Kind == "disk" && len(p.Circles) == 1 {
+		center, err := mixedPoint(p.Center)
+		if err != nil {
+			return Shape{}, err
+		}
+		hole, err := mixedPoint(p.Circles[0].Center)
+		if err != nil {
+			return Shape{}, err
+		}
+		if center == hole {
+			f, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
+			if err != nil {
+				return Shape{}, err
+			}
+			height := float64(p.Height)
+			origin := f.ToWorld(geom.Vec3{X: center.X, Y: center.Y, Z: min(0, height)})
+			frame, err := geom.NewFrame(origin, f.XAxis(), f.ZAxis())
+			if err != nil {
+				return Shape{}, err
+			}
+			body.sector = &radialSector{frame: frame, inner: float64(p.Circles[0].Radius),
+				radius: float64(p.Radius), height: math.Abs(height), angle: 2 * math.Pi}
+		}
+	}
 	if p.Kind == "semicircle" || p.Kind == "circularSegment" {
 		f, err := geom.NewFrame(p.Origin.vec(), p.XDirection.vec(), p.Normal.vec())
 		if err != nil {

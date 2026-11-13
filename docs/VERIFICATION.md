@@ -30,7 +30,12 @@ bound. The later three-case run passes the original imported STEP STL,
 the placed drawing and the solved circular-segment arc edit. Both TypeScript
 checks and the separate Go WASM proof pass. The [first STEP report](evidence/plaincad-step-first-run-2026-11-13.json)
 and [affected-case report](evidence/plaincad-curved-profile-drawing-step-2026-11-13.json)
-preserve their distinct snapshots. The consolidated acceptance is in progress.
+preserve their distinct snapshots. The first
+[consolidated report](evidence/plaincad-consolidated-regressions-2026-11-13.json)
+passes 47 of 53 original cases in 579.170 seconds, with zero skips or flakes.
+All six failures are guided multi-hole previews exhausting the mesh budget
+with the finer rim setting. The corrected setting retains fine single-bore
+meshes and restores the original budget for multiple rims.
 
 The [helical baseline](evidence/plaincad-helical-baseline-2026-11-13.json)
 records zero of two original PC4 passes. The thread case was blocked by the
@@ -72,6 +77,21 @@ volume, area and centroid, closed mesh and native JSON roundtrip.
 The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
+
+## Native modeled threads with overlapping lead-in — 2026-11-13
+
+The stock wall, helical flanks and end faces are clipped in their analytic
+charts. The lead-in shoulder uses polar trims on the exact retained flank
+intersections. Its material proof subtracts the overlapping groove once.
+The external thread attaches to the unchanged socket head. Native tests
+verify both handednesses, internal and external M3 geometry, retained
+B-rep volume and area, JSON and closed linear-deflection display.
+
+The bridge reproduces the original external M3 blank, the 3 mm and 2 mm
+thread edits, and the original internal bore within the acceptance volume
+bounds. Browser angular tessellation and the original thread workflow still
+require qualification. The bounded twisted chart now permits up to 32
+unwrapped turns to construct the full 12 mm blank before its lead-in cut.
 
 ## Finite phased starts and grooved shaft head attachment — 2026-11-13
 

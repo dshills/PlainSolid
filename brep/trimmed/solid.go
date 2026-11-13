@@ -177,10 +177,10 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			}
 			_, _, twist, _ := wall.Parameters()
 			span := d.UMax - d.UMin + math.Abs(twist)*(d.VMax-d.VMin)
-			if !finite(span) || span > 16 || len(faces) > 34 {
+			if !finite(span) || span > 32 || len(faces) > 34 {
 				return Solid{}, parametric.ErrBudget
 			}
-			for level := 0; span > .25; level++ {
+			for level := 0; span > .5; level++ {
 				span /= 2
 				s.minimumLevel = max(s.minimumLevel, level+1)
 			}

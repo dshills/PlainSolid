@@ -19,6 +19,7 @@ type analyticBody struct {
 	sector       *radialSector
 	shaft        *trimmed.SteppedShaft
 	segment      *circularSegmentSweep
+	helical      bool
 	volume, area float64
 }
 

@@ -9,7 +9,10 @@ OCCT compatibility qualification is claimed.
 Focused browser runs now pass the original mixed profile, revolve, socket-head
 blank, shop drawing and STEP workflows, including the three repaired regressions
 for the solved circular segment, placed bore axis and imported STEP STL.
-The consolidated 53-case acceptance is running. Native helical dependencies,
+The first consolidated run passes 47 of 53 originals. A finer bore mesh
+exhausts the triangulation budget in six guided multi-hole previews. Single
+bores retain the finer setting and multiple rims use their earlier setting.
+A corrected focused run is in progress. Native helical dependencies,
 bounded M3 chart coordinates and finite phased starts are verified separately.
 Modeled external and internal thread lead-ins, four-start end reliefs and
 browser-ready helical tessellation are still in progress. The thread and lead
