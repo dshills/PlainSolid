@@ -10,6 +10,10 @@ import (
 )
 
 func readResidualPolynomial(r io.Reader, l Limits, curveID int64) (int, [][3]*big.Rat, []*big.Rat, error) {
+	return readResidualPolynomialDimension(r, l, curveID, 3)
+}
+
+func readResidualPolynomialDimension(r io.Reader, l Limits, curveID int64, dimension int) (int, [][3]*big.Rat, []*big.Rat, error) {
 	f, e := Parse(r, l)
 	if e != nil {
 		return 0, nil, nil, e
@@ -46,9 +50,10 @@ func readResidualPolynomial(r io.Reader, l Limits, curveID int64) (int, [][3]*bi
 	poles := make([][3]*big.Rat, len(ids))
 	for i, id := range ids {
 		point, e := simple(f, id, "CARTESIAN_POINT", 2)
-		if e != nil || point.Args[1].Kind != Aggregate || len(point.Args[1].Items) != 3 {
+		if e != nil || point.Args[1].Kind != Aggregate || len(point.Args[1].Items) != dimension {
 			return 0, nil, nil, fmt.Errorf("step: unsupported polynomial spline input or budget")
 		}
+		poles[i][2] = new(big.Rat)
 		for j, v := range point.Args[1].Items {
 			poles[i][j], e = rat(v)
 			if e != nil {
