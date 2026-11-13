@@ -34,6 +34,16 @@ func (s stored) drawingGeometry() (drawingGeometry, error) {
 	var faces []trimmed.Face
 	mapping := geom.Identity()
 	switch {
+	case s.tangent != nil:
+		h := s.tangent
+		out.Bores = append(out.Bores, drawingBore{
+			Diameter:  2 * h.radius,
+			Length:    h.depth,
+			Start:     coordinates(h.placement.Apply(geom.Vec3{})),
+			Direction: coordinates(h.placement.ApplyVector(geom.Vec3{Z: 1})),
+		})
+		out.Warnings = append(out.Warnings, "The bore touches a stock side along a non-manifold contact edge.")
+		return out, nil
 	case s.bore != nil:
 		faces = s.bore.solid.Faces()
 	case s.treated != nil:

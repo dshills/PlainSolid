@@ -18,8 +18,12 @@ against the selected PlainSolid kernel.
 Focused original checks on PlainCAD `e65f07b` cover studio Render and
 cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
 native STEP round-trip, and retained pocket and Hole lineage. All 66
-original production cases pass. The current development and unit runs are
-still in progress. The cross-browser run passes one case on each of the
+original production cases pass. The consolidated development run is in
+progress. The real-WASM unit baseline passes 1,646 of 1,689 originals.
+All seven portable failures pass a focused retest, including the exact
+side-tangent blind Hole. Its four-face contact is retained for modeling
+and display. STL fabrication and STEP reject this non-manifold boundary.
+The cross-browser run passes one case on each of the
 three engines and records four UI locator failures per engine. Pristine
 OCCT reproduces those four failures in Chromium. See the
 [verification record](VERIFICATION.md) for reports and exact test scope.

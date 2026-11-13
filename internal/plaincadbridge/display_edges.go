@@ -21,6 +21,9 @@ func (s stored) displayEdges(maxUses, maxSegments int) (displayEdgeResult, error
 	if s.planar() {
 		return planarDisplayEdges(s.solid, maxUses, maxSegments)
 	}
+	if s.tangent != nil {
+		return s.tangent.displayEdges(maxUses, maxSegments)
+	}
 	native, placement, ok := s.retainedTrimmed()
 	if !ok {
 		var err error

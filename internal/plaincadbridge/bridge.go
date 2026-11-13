@@ -128,11 +128,12 @@ type stored struct {
 	bore     *boreBody
 	treated  *edgeBody
 	analytic *analyticBody
+	tangent  *tangentBlindBore
 	result   Shape
 }
 
 func (s stored) planar() bool {
-	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil
+	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil
 }
 
 type failure struct {
@@ -359,6 +360,14 @@ func (b *Bridge) execute(q request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if a.tangent != nil || c.tangent != nil {
+			return nil, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
+		}
+		if q.Op == "cut" {
+			if body, ok := tangentBlindBoreRecipe(a, c); ok {
+				return b.putTangentBlindBore(body)
+			}
+		}
 		if q.Op != "common" {
 			if result, removed, handled, err := retainedPlanarBoolean(a, c, q.Op); handled {
 				if err != nil {
@@ -505,6 +514,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			if s.analytic != nil {
 				return s.analytic.planarFace(q.Origin.vec(), q.Normal.vec())
 			}
+			if s.tangent != nil {
+				return s.tangent.planarFace(q.Origin.vec(), q.Normal.vec())
+			}
 			return matchingPlanarFace(s.solid, q.Origin.vec(), q.Normal.vec())
 		case "shell":
 			if !s.planar() {
@@ -574,6 +586,14 @@ func (b *Bridge) execute(q request) (any, error) {
 				}
 				return b.putAnalyticBody(body)
 			}
+			if s.tangent != nil {
+				if err := rigid(m); err != nil {
+					return nil, err
+				}
+				body := *s.tangent
+				body.placement = m.Mul(body.placement)
+				return b.putTangentBlindBore(&body)
+			}
 			t, err := s.solid.Transformed(m)
 			if err != nil {
 				return nil, err
@@ -582,6 +602,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		case "mesh":
 			return renderMesh(s, q)
 		case "stl":
+			if s.tangent != nil {
+				return nil, unsupportedEdge("STL export requires a manifold boundary. The side-tangent blind bore has a non-manifold contact edge.")
+			}
 			var out bytes.Buffer
 			m, err := s.tessellate(q)
 			if err != nil {

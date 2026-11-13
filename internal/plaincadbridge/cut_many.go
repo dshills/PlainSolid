@@ -21,10 +21,16 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if a.tangent != nil {
+		return Shape{}, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
+	}
 	if len(tools) == 1 {
 		c, e := b.get(tools[0])
 		if e != nil {
 			return Shape{}, e
+		}
+		if body, ok := tangentBlindBoreRecipe(a, c); ok {
+			return b.putTangentBlindBore(body)
 		}
 		if body, removed, handled, e := retainedPlanarBoolean(a, c, "cut"); handled {
 			if e != nil {
@@ -60,6 +66,9 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 			return Shape{}, err
 		}
 		c := inputs[i]
+		if c.tangent != nil {
+			return Shape{}, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
+		}
 		planar = planar && c.planar()
 		circular = circular && c.cylinder != nil
 	}
