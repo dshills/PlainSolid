@@ -27,8 +27,11 @@ reference and workspace retest pass, including Parts Browser and AI To Face.
 The current ORBIT model passes the original close-up, Render and gesture PNG
 tests after the display worker reuses accepted native features. The three
 original signed profile-edge cases also pass on XY, XZ and YZ. The original
-development baseline continues. Active gaps include pocket and Hole lineage,
-fine lead-screw tessellation, and STEP round-trip of machined stock.
+development baseline continues. Focused real-WASM cases now pass for pocket
+and Hole lineage, fine lead-screw meshes at one, two and four starts, and
+STEP round-trip of machined stock. The current studio cancellation and ORBIT
+gesture originals pass together. The remaining arc-region cases and production
+and cross-browser release qualification are in progress.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular

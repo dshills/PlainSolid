@@ -413,6 +413,9 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 	}
 	sealed := make([][][2]int, len(points))
 	seal := func(a, b int) error {
+		if e := step(len(neighborsDone[a])); e != nil {
+			return e
+		}
 		for _, c := range neighborsDone[a] {
 			if c == b || !present[edgeKey(b, c)] {
 				continue

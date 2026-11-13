@@ -1,5 +1,34 @@
 # Verification record
 
+## PlainCAD current studio, native modeling and lineage — 2026-11-13
+
+PlainCAD `e65f07b` was archived with the locked npm dependencies. Its
+[studio baseline](evidence/plaincad-current-studio-baseline-2026-11-13.json)
+passes six originals. The remaining studio case requires the independently
+cancellable detail worker on the small template. The
+[cancellation retest](evidence/plaincad-current-studio-cancellation-2026-11-13.json)
+passes both the original studio cancellation and the ORBIT full-resolution
+gesture export on the same artifact.
+
+The [original native unit selection](evidence/plaincad-lineage-unit-2026-11-13.json)
+records the eight lineage cases and six geometry cases on hashed Go WASM.
+Twelve pass initially, including the convex/concave corner pair with no net
+volume change, circular rims and sloped circular termination. Two originals
+hit the sketch solver budget before the native geometry assertions and pass
+unchanged on the same artifact in a separate run. A prior eight-case lineage
+selection passes in one run. The retained geometry supports closed internal
+cavities with a validated outer shell and inward cavity shells. The native
+race run also passes the translated and rotated reopening case.
+
+The [exact bounds and arc STL retest](evidence/plaincad-current-arc-bounds-2026-11-13.json)
+passes all five originals, including mirror and linear sketch copies.
+The [portable unit evidence](evidence/plaincad-current-portable-unit-repairs-2026-11-13.json)
+records the machined STEP round-trip, thin-wall thread diagnostic, STEP
+ownership validation, and compact circular treatment mesh. The fine
+one-, two- and four-start lead-screw pairs pass the app mesh validator
+and native fit checks. Provider-internal OCCT fixture tests are tracked
+separately from these portable contracts.
+
 ## PlainCAD ORBIT display and signed profile edges — 2026-11-13
 
 The [ORBIT display report](evidence/plaincad-current-orbit-display-2026-11-13.json)

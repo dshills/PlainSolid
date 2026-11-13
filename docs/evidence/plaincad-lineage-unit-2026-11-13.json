@@ -1,0 +1,117 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "backend": "plainsolid-go-wasm",
+  "workspace": "/tmp/plainsolid-lineage-native-01",
+  "originalTestFile": "src/tests/modelingGeometry.test.ts",
+  "artifactHashes": {
+    "public/assets/plainsolid-kernel.wasm": "67edc19afe2fb7469f569b29e5d517f85fada122ff4732bcdcca5ced13b2af43",
+    "src/cad/kernel/OpenCascadeKernel.ts": "3479dd2318ba30a7f05d71707592f611d291901c9073077dc4d61aba916d9d5b",
+    "src/tests/modelingGeometry.test.ts": "7b7ae99749b6c65dfd55c18144f34cc20f9f1cef31ee6cb0e0fc169508aad788"
+  },
+  "runs": [
+    {
+      "rawReport": "/tmp/plainsolid-lineage-plus-native-results-03.json",
+      "rawReportSha256": "637705a530cc703436e37a7f6c65d984059dffa66e98cf37381c7b08f3fd509b",
+      "passed": 12,
+      "failed": 2,
+      "unselected": 25,
+      "tests": [
+        {
+          "title": "native modeling geometry keeps Shell's source body ownership on cold and cached rebuilds and validates surviving native faces",
+          "status": "failed",
+          "durationMs": 95.51766700000007,
+          "failureMessages": [
+            "TypeError: Cannot read properties of undefined (reading 'id')\n    at /private/tmp/plainsolid-lineage-native-01/src/tests/modelingGeometry.test.ts:253:111\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2956:64"
+          ]
+        },
+        {
+          "title": "native modeling geometry proves placed pocket floors and complete native hole entrance rims through parameter edits and save/open",
+          "status": "passed",
+          "durationMs": 4811.819667
+        },
+        {
+          "title": "native modeling geometry retains an earlier floor sketch but rejects a trimmed floor and a replaced entrance rim at later stages",
+          "status": "passed",
+          "durationMs": 2974.168458
+        },
+        {
+          "title": "native modeling geometry does not attribute a later joined plate to an earlier through-depth cut, even with native reuse",
+          "status": "passed",
+          "durationMs": 4056.9179160000003
+        },
+        {
+          "title": "native modeling geometry does not revive a destroyed pocket floor when an identical floor is later recut",
+          "status": "failed",
+          "durationMs": 14561.778208,
+          "failureMessages": [
+            "AssertionError: expected [ { \u2026(5) } ] to deeply equal []\n    at check (/private/tmp/plainsolid-lineage-native-01/src/tests/modelingGeometry.test.ts:394:31)\n    at /private/tmp/plainsolid-lineage-native-01/src/tests/modelingGeometry.test.ts:404:7\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///private/tmp/plainsolid-plaincad-latest-e65f07b/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+          ]
+        },
+        {
+          "title": "native modeling geometry keeps the original floor identity when reopening a roof over an existing cavity",
+          "status": "passed",
+          "durationMs": 22540.998833
+        },
+        {
+          "title": "native modeling geometry copies a selected component's floor owner and target independently and rebuilds the remapped sketch",
+          "status": "passed",
+          "durationMs": 1425.960917000004
+        },
+        {
+          "title": "native modeling geometry does not offer an entrance rim when two authored holes claim an identically redrilled native circle",
+          "status": "passed",
+          "durationMs": 2238.255541999999
+        },
+        {
+          "title": "native modeling geometry treats circular cap perimeters with real cylindrical fillet and chamfer geometry",
+          "status": "passed",
+          "durationMs": 3745.3252090000024
+        },
+        {
+          "title": "native modeling geometry rejects a mixed sharp/smooth source-corner group rather than partially treating it",
+          "status": "passed",
+          "durationMs": 280.8610000000044
+        },
+        {
+          "title": "native modeling geometry uses analytic circle extents for sloped termination instead of outside bounding-box corners",
+          "status": "passed",
+          "durationMs": 2329.7425829999993
+        },
+        {
+          "title": "native modeling geometry models convex and concave corner pairs even when their volume changes cancel",
+          "status": "passed",
+          "durationMs": 734.0620830000043
+        },
+        {
+          "title": "native modeling geometry rejects malformed circle holes and nonpositive extrusion depth explicitly",
+          "status": "passed",
+          "durationMs": 1.325249999994412
+        },
+        {
+          "title": "native modeling geometry validates native curved treatment meshes and export unions including contained solids",
+          "status": "passed",
+          "durationMs": 9721.980000000003
+        }
+      ]
+    },
+    {
+      "rawReport": "/tmp/plainsolid-lineage-native-retry-04.json",
+      "rawReportSha256": "c94f8b951e5c238febbbcaa1f3fae1347a00c9c8fa879671479f1d954de1b17a",
+      "passed": 2,
+      "failed": 0,
+      "unselected": 37,
+      "tests": [
+        {
+          "title": "native modeling geometry keeps Shell's source body ownership on cold and cached rebuilds and validates surviving native faces",
+          "status": "passed",
+          "durationMs": 2548.0848749999986
+        },
+        {
+          "title": "native modeling geometry does not revive a destroyed pocket floor when an identical floor is later recut",
+          "status": "passed",
+          "durationMs": 8515.345041999999
+        }
+      ]
+    }
+  ]
+}
