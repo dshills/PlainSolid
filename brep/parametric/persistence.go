@@ -33,6 +33,7 @@ type surfaceData struct {
 	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
 	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
 	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
+	SteinmetzDualCap *steinmetzDualCapData `json:",omitempty"`
 	SteinmetzSlab    *steinmetzSlabData    `json:",omitempty"`
 	Steinmetz        *[2]int               `json:",omitempty"`
 	Transform        *geom.Affine          `json:",omitempty"`
@@ -207,6 +208,15 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case steinmetzExteriorCylinder:
 		return surfaceData{Kind: "steinmetz-exterior-cylinder", Center: &x.center, A: x.radius, B: x.end, Steinmetz: &[2]int{x.side, x.sign}}, nil
+	case steinmetzDualCapChart:
+		d := &steinmetzDualCapData{Axis: x.axis, Side: x.side}
+		if x.caps[0][0] == -x.radius && x.caps[1][0] == -x.radius && x.caps[0][1] < x.radius && x.caps[1][1] < x.radius {
+			d.Caps = [2]float64{x.caps[0][1], x.caps[1][1]}
+			d.Fixed = [2]bool{x.fixed[0][1], x.fixed[1][1]}
+		} else {
+			d.Windows, d.Clipped = &x.caps, &x.fixed
+		}
+		return surfaceData{Kind: "steinmetz-dual-cap", Center: &x.center, A: x.radius, SteinmetzDualCap: d}, nil
 	case steinmetzSlabChart:
 		return surfaceData{Kind: "steinmetz-slab", Center: &x.center, A: x.radius, SteinmetzSlab: &steinmetzSlabData{x.lower, x.upper, x.lowFixed, x.highFixed, x.kind}}, nil
 	case steinmetzClippedCylinder:
@@ -517,6 +527,25 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, geom.ErrInvalid
 		}
 		s := steinmetzExteriorCylinder{*d.Center, d.A, d.B, d.Steinmetz[0], d.Steinmetz[1]}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
+		return s, nil
+	}
+	if d.Kind == "steinmetz-dual-cap" {
+		if d.Center == nil || d.SteinmetzDualCap == nil || d.Frame != nil {
+			return nil, geom.ErrInvalid
+		}
+		x := d.SteinmetzDualCap
+		w := [2][2]float64{{-d.A, x.Caps[0]}, {-d.A, x.Caps[1]}}
+		c := [2][2]bool{{false, x.Fixed[0]}, {false, x.Fixed[1]}}
+		if x.Windows != nil || x.Clipped != nil {
+			if x.Windows == nil || x.Clipped == nil || x.Caps != ([2]float64{}) || x.Fixed != ([2]bool{}) {
+				return nil, geom.ErrInvalid
+			}
+			w, c = *x.Windows, *x.Clipped
+		}
+		s := steinmetzDualCapChart{*d.Center, d.A, w, c, x.Axis, x.Side}
 		if !s.valid() {
 			return nil, geom.ErrInvalid
 		}

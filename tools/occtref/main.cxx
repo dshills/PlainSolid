@@ -193,6 +193,7 @@ static occ::handle<Geom_BSplineSurface> quarterCylinder() {
 #include "draft.hxx"
 #include "feature.hxx"
 #include "spline_shell_boolean.hxx"
+#include "warped_open_spline.hxx"
 #include "simultaneous_spline_shell.hxx"
 #include "repeated_spline_shell.hxx"
 #include "transverse_spline_shell.hxx"
@@ -205,6 +206,7 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if(argc==3 && mode=="warped-open-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedOpenSplineBooleans(out);return 0;}
     if (argc == 3 && mode == "finite-cylinder-dispatch") {
       std::ofstream out(argv[1]); out.exceptions(std::ios::failbit | std::ios::badbit);
       // Independently authored finite cylinders: physical starts and lengths,
@@ -214,6 +216,11 @@ int main(int argc, char** argv) {
       record(out,"finite-pair-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,6)).Shape(),1e-11);
       record(out,"finite-pair-slab",BRepAlgoAPI_Common(x(-3,2),z(-6,6)).Shape(),1e-11);
       record(out,"finite-pair-quadrant",BRepAlgoAPI_Common(x(0,6),z(-6,0)).Shape(),1e-11);
+      record(out,"finite-pair-dual-cap",BRepAlgoAPI_Common(x(-6,2),z(-6,3)).Shape(),1e-11);
+      record(out,"finite-pair-dual-cap-tail",BRepAlgoAPI_Common(x(2,6),z(-6,-3)).Shape(),1e-11);
+      const auto containedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-2,3,4),gp_Dir(1,0,0)),2,8).Shape();
+      const auto containedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,4,6),gp_Dir(0,0,-1)),5,4).Shape();
+      record(out,"finite-pair-contained-skew",BRepAlgoAPI_Common(containedA,containedB).Shape(),1e-11);
       const auto signedA = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,-1),gp_Dir(0,0,-1)),5,5).Shape();
       const auto signedB = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-4,-3),gp_Dir(0,1,0)),5,12).Shape();
       record(out,"finite-pair-signed-scaled",BRepAlgoAPI_Common(signedA,signedB).Shape(),1e-11);
