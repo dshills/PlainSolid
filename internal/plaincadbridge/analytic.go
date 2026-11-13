@@ -198,8 +198,26 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	}
 	if a.sideNotch != nil {
 		p := *a.sideNotch
-		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
-		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
+		if m.Determinant() < 0 {
+			if p.Left == 0 && p.Inset == 0 {
+				x, y = y, x
+				p.Right, p.Back = p.Back, p.Right
+			} else {
+				x = x.Scale(-1)
+				p.Left, p.Right = p.Right, p.Left
+			}
+			p.Through = append([]trimmed.ExtrusionCircle(nil), p.Through...)
+			p.Blind = append([]trimmed.ExtrusionBlindHole(nil), p.Blind...)
+			for i := range p.Through {
+				p.Through[i].Center = reflectedNotchCenter(p, p.Through[i].Center)
+			}
+			for i := range p.Blind {
+				p.Blind[i].Center = reflectedNotchCenter(p, p.Blind[i].Center)
+			}
+		}
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), x, z)
+		if e == nil && cardinalFrame(f) && f.YAxis() == y {
 			p.Frame = f
 			out.sideNotch = &p
 		}
@@ -256,6 +274,13 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		out.patches = &p
 	}
 	return &out, nil
+}
+
+func reflectedNotchCenter(p step.SideNotchBody, center geom.Vec2) geom.Vec2 {
+	if p.Left == 0 && p.Inset == 0 {
+		return geom.Vec2{X: center.Y, Y: center.X}
+	}
+	return geom.Vec2{X: -center.X, Y: center.Y}
 }
 
 func (a *analyticBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {

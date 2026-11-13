@@ -60,6 +60,31 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD reflected side- and corner-notched stock — 2026-11-13
+
+Signed-coordinate reflections now retain the side or corner notch recipe
+in a right-handed frame and mirror the contained bore centers. Native
+checks cover blind and through cuts, exact measures and bounds, further
+drilling and STEP round-trip after reflection. The
+[original mirror sketch and STEP cases](evidence/plaincad-reflected-notch-2026-11-13.json)
+pass, along with focused race checks and Go vet.
+
+## PlainCAD cross-browser and native short-suite coverage — 2026-11-13
+
+The [latest cross-browser run](evidence/plaincad-cross-browser-cylinder-stock-2026-11-13.json)
+passes all 15 originals on clean `19b63f4` across Chromium, Firefox and
+WebKit. Both TypeScript checks, the bundle budget and separate real-WASM
+probe pass.
+
+The [native short-suite run and continuation](evidence/native-short-partition-2026-11-13.json)
+record 38 passing packages and four packages without tests. The trimmed
+package reaches Go's 30-minute package timeout after 353 passing and
+three skipped top-level tests. A second short-mode selection completes its
+remaining 44 tests and one explicit skip. The combined native evidence
+therefore covers all 401 trimmed top-level tests as 397 passing and four
+skipped across the two runs. The original all-package invocation remains
+recorded as a timeout. The two earlier timeout cases also pass directly.
+
 ## PlainCAD equivalent STEP cylinder orientation encodings — 2026-11-13
 
 Main's paired circle-frame and edge-sense reversals, plus axial and

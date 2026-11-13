@@ -70,6 +70,11 @@ on clean `92e22ab`, including Parts Browser and YZ guarded drag. It has
 zero skips, retries or flaky results. Both TypeScript checks and the
 independent WASM probe pass.
 
+All 15 cross-browser originals pass on clean `19b63f4`. The native short
+suite reaches the 30-minute package timeout in `brep/trimmed`; the
+remaining 44 tests pass in a direct continuation. The combined trimmed
+short-mode runs record 397 passes and four explicit skips.
+
 The frozen development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures. The first consolidated current
 run passes 342 of 344. Its two viewport failures pass in focused verification,
