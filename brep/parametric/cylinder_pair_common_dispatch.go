@@ -35,7 +35,8 @@ type FiniteCylinderPairCommonResult struct {
 // crossing or exactly placed skew axes, and selected perpendicular caps on
 // signed coordinate axes of arbitrary nonzero scale. All
 // input raw axes and cap limits retain their original meaning. Unsupported
-// arrangements fail without returning partial solids.
+// arrangements fail without returning partial solids. A tangent cap that
+// retains the entire crossing common adds no planar boundary face.
 func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolerance float64) (FiniteCylinderPairCommonResult, error) {
 	var empty FiniteCylinderPairCommonResult
 	if ctx == nil || !finite(tolerance) || tolerance <= 0 {
@@ -83,7 +84,7 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		}
 		*coord[i] = f
 	}
-	proof, e := obliqueCylinderCommonExactWindows(ctx, center, a.Axis, b.Axis, a.Radius, b.Radius, exactWindows, tolerance)
+	proof, e := obliqueCylinderCommonExactWindows(ctx, center, a.Axis, b.Axis, a.Radius, b.Radius, exactWindows, tolerance, true)
 	if e == nil {
 		return FiniteCylinderPairCommonResult{Solid: proof.Solid, Construction: CylinderCommonIntersectingAxes, SideFaces: proof.CylinderFaces}, nil
 	}

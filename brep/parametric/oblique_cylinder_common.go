@@ -36,12 +36,12 @@ func ObliqueCylinderCommon(ctx context.Context, center, u, v geom.Vec3, ru, rv f
 		}
 		w[i] = [2]*big.Rat{q(c[0]), q(c[1])}
 	}
-	return obliqueCylinderCommonExactWindows(ctx, center, u, v, ru, rv, w, tolerance)
+	return obliqueCylinderCommonExactWindows(ctx, center, u, v, ru, rv, w, tolerance, false)
 }
 
 // Exact raw windows can be non-dyadic when measured from the common axis foot.
 // The untrimmed common only needs their cap-clearance proof, never float caps.
-func obliqueCylinderCommonExactWindows(ctx context.Context, center, u, v geom.Vec3, ru, rv float64, w [2][2]*big.Rat, tolerance float64) (ObliqueCylinderCommonResult, error) {
+func obliqueCylinderCommonExactWindows(ctx context.Context, center, u, v geom.Vec3, ru, rv float64, w [2][2]*big.Rat, tolerance float64, allowTangentCaps bool) (ObliqueCylinderCommonResult, error) {
 	var empty ObliqueCylinderCommonResult
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	proof, e := geom.ClassifyCylinderCommonCaps(ctx, u, v, ru, rv, &w[0], &w[1], geom.SurfacePatchEvaluationOptions{})
@@ -50,7 +50,7 @@ func obliqueCylinderCommonExactWindows(ctx context.Context, center, u, v geom.Ve
 	}
 	pad := new(big.Rat).Mul(big.NewRat(8, 1), q(tolerance))
 	gap := new(big.Rat).Sub(q(max(ru, rv)), q(min(ru, rv)))
-	if !proof.Covers || proof.TouchMask != 0 || q(min(ru, rv)).Cmp(pad) <= 0 || gap.Sign() > 0 && gap.Cmp(pad) <= 0 {
+	if !proof.Covers || !allowTangentCaps && proof.TouchMask != 0 || q(min(ru, rv)).Cmp(pad) <= 0 || gap.Sign() > 0 && gap.Cmp(pad) <= 0 {
 		return empty, geom.ErrConvergence
 	}
 	walls, e := geom.NewCylinderCommonWalls(ctx, center, u, v, ru, rv, geom.SurfacePatchEvaluationOptions{})

@@ -191,3 +191,30 @@ func TestFiniteCylinderPairCommonNonDyadicFootParameters(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairCommonTangentCaps(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 2}, Radius: 5, Min: -2.5, Max: 2.5}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: -1}, Radius: 5, Min: -5, Max: 5}
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonIntersectingAxes {
+		t.Fatal(out.Construction, e)
+	}
+	for i := range 2 {
+		if len(out.SideFaces[i]) == 0 || len(out.LowerCapFaces[i])+len(out.UpperCapFaces[i]) != 0 {
+			t.Fatal("tangent caps do not own planar area", out.SideFaces, out.LowerCapFaces, out.UpperCapFaces)
+		}
+	}
+	p, e := out.Solid.MassProperties(ctx, IntegrationOptions{RelativeTolerance: 1e-6})
+	if e != nil || math.Abs(p.Volume-2000.0/3) > 1e-6 || p.Centroid.Length() > 1e-9 {
+		t.Fatal(p, e)
+	}
+	query, e := geom.NewCylinderPairCommon(a, b)
+	if e != nil {
+		t.Fatal(e)
+	}
+	loc, mask, e := query.Classify(geom.Vec3{X: 5})
+	if e != nil || loc != geom.BoreBoundary || mask != geom.RawCylinderFirstMax|geom.RawCylinderSecondSide {
+		t.Fatal("contact still owns the original raw cap", loc, mask, e)
+	}
+}
