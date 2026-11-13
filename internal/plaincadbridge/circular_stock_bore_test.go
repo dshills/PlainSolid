@@ -253,10 +253,21 @@ func TestCircularStockOverlappingOpposedAndSequentialBores(t *testing.T) {
 			if err := mesh.ValidateSolid(); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := b.exportSTEP([]string{body.Handle}); err == nil {
-				t.Fatal("overlapping STEP needs an exchange proof")
+			file, err := b.exportSTEP([]string{body.Handle})
+			if err != nil {
+				t.Fatal(err)
 			}
-			later, err := b.cutMany(body.Handle, []string{probe.Handle})
+			data, err := base64.StdEncoding.DecodeString(file.Base64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reread, err := b.importSTEP(string(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, reread.GeometryAssertions.Volume, body.GeometryAssertions.Volume)
+			near(t, reread.GeometryAssertions.SurfaceArea, body.GeometryAssertions.SurfaceArea)
+			later, err := b.cutMany(reread.Handle, []string{probe.Handle})
 			if err != nil {
 				t.Fatal(err)
 			}

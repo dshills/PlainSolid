@@ -14,9 +14,11 @@ pass on the same WASM. Disjoint blind bores from opposite circular caps
 now preserve their entry faces through STEP and pass six original browser
 regressions and independent OCCT exchange checks. Overlapping opposed
 bores now also pass exact native volume and surface checks, editable
-PlainCAD reload and STL fabrication. Eight original browser regressions
-pass. STEP exchange for overlapping boundaries remains open. The full
-browser development rerun is running separately. Both native trimmed
+PlainCAD reload and STL fabrication. Canonical STEP now round-trips
+qualified overlapping circular boundaries and matches independent OCCT
+measures. Eight additional original STEP, Hole Edit and machined-reference
+browser regressions pass. The full browser development rerun is running
+separately. Both native trimmed
 spline cases excluded by short mode pass with full mode enabled.
 
 The production rerun on PlainSolid `0b17938` passes all 66 originals on

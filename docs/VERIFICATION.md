@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD STEP for overlapping circular bores — 2026-11-13
+
+The canonical STEP writer preserves the actual circular arcs, planar
+crescent floors, cylindrical walls, face uses and paired pcurves. The
+reader recovers candidate cutter intervals from those surfaces and accepts
+the file only if native reconstruction regenerates the complete graph.
+The focused suite verifies reader limits, graph corruption rejection,
+placement and retained editing after reimport. Independent OCCT checks
+match area, volume and centroid for both sweep directions.
+
+All [eight original cases](evidence/plaincad-layered-round-stock-step-browser-2026-11-13.json)
+pass for STEP import, export and cancellation, stale workers, machined
+references and Hole Edit. The [native evidence](evidence/plaincad-layered-round-stock-step-native-2026-11-13.json)
+records two same-WASM supplemental checks for authored rebuild, persistence,
+STEP and validated STL, the native race checks and Go vet. The full
+browser run's YZ guarded sketch drag reaches the readiness deadline with
+`loadingKernel`; the unchanged original passes on the same WASM in
+10.826 seconds in isolation.
+
 ## PlainCAD overlapping bores on circular stock — 2026-11-13
 
 Circular stock now reuses the exact axial bore arrangement. Unequal-depth

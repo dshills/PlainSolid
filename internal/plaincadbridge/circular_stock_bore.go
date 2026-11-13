@@ -192,25 +192,32 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 		return Shape{}, true, &failureError{"LIMIT", "circular stock bore count exceeds the qualified limit"}
 	}
 	ctx := context.Background()
-	var s trimmed.Solid
-	var err error
+	var body *analyticBody
 	if layered {
-		var proof trimmed.LayeredBoreHistory
-		s, proof, err = trimmed.BoreDiskDepthUnion(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
-		stockHeight := math.Abs(p.Height)
-		volume = math.Pi*p.Outer.Radius*p.Outer.Radius*stockHeight - proof.RemovedVolume
-		area = 2*math.Pi*p.Outer.Radius*(p.Outer.Radius+stockHeight) + proof.SurfaceAreaDelta
+		s, proof, err := trimmed.BoreDiskDepthUnion(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		if err != nil {
+			return Shape{}, true, err
+		}
+		body = layeredCircularBody(s, p, proof)
 	} else {
-		s, err = trimmed.ExtrudeDiskWithHoles(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		s, err := trimmed.ExtrudeDiskWithHoles(ctx, p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		if err != nil {
+			return Shape{}, true, err
+		}
+		body = &analyticBody{solid: s, stepDisk: &p, volume: volume, area: area}
 	}
-	if err != nil {
-		return Shape{}, true, err
-	}
-	if !removesMaterial(before, volume) {
+	if !removesMaterial(before, body.volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
 	}
-	out, err := b.putAnalyticBody(&analyticBody{solid: s, stepDisk: &p, layeredDisk: layered, volume: volume, area: area})
+	out, err := b.putAnalyticBody(body)
 	return out, true, err
+}
+
+func layeredCircularBody(s trimmed.Solid, p step.DiskHoleExtrusionBody, h trimmed.LayeredBoreHistory) *analyticBody {
+	r, height := p.Outer.Radius, math.Abs(p.Height)
+	return &analyticBody{solid: s, stepDisk: &p, layeredDisk: true,
+		volume: math.Pi*r*r*height - h.RemovedVolume,
+		area:   2*math.Pi*r*(r+height) + h.SurfaceAreaDelta}
 }
 
 func circularBoreContact(p step.DiskHoleExtrusionBody, hole trimmed.ExtrusionCircle, lo, hi float64) (redundant, contact bool) {

@@ -107,6 +107,17 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 			return b.putAnalyticBody(&analyticBody{solid: s, volume: properties.Volume, area: properties.Area, stepDisk: &p})
 		}
 	}
+	if m, e := step.ReadLayeredDiskBores(r(), stepLimits()); e == nil {
+		p := m.Bodies[0]
+		s, h, err := trimmed.BoreDiskDepthUnion(context.Background(), p.Frame, p.Outer, p.Holes, p.Blind, p.Height)
+		if err != nil {
+			return Shape{}, err
+		}
+		if m.LengthUnit != .001 {
+			return b.putSTEPAnalytic(s, m.LengthUnit)
+		}
+		return b.putAnalyticBody(layeredCircularBody(s, p, h))
+	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
 			return step.ReadRoundedRectangleExtrusions(r(), stepLimits())
@@ -203,8 +214,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 	case s.treated != nil:
 		e = writeLongEdgeSTEP(&out, s.treated)
-	case s.analytic != nil && s.analytic.layeredDisk:
-		return nil, unsupportedEdge("STEP export of overlapping circular stock bores is outside the qualified exchange domain")
+	case s.analytic != nil && s.analytic.layeredDisk && s.analytic.stepDisk != nil:
+		e = step.WriteLayeredDiskBores(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepDisk != nil:
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
