@@ -35,6 +35,31 @@ type RationalGraphShellRegions struct {
 	material       []RationalGraphShellRegion
 }
 
+// RationalGraphSectionArea reports exact projected area bounds and the squared
+// model-to-projection area scale. True area is projected area times the
+// positive square root of ModelScaleSquared.
+type RationalGraphSectionArea struct {
+	Projection        trimvalidate.SignedAreaInterval
+	ModelScaleSquared *big.Rat
+}
+
+// BoundArea measures the certified planar material without meshing. The
+// requested positive width is in projected model units squared.
+func (r *RationalGraphShellRegions) BoundArea(ctx context.Context, projectedWidth *big.Rat) (RationalGraphSectionArea, error) {
+	if r == nil || r.certificate == nil {
+		return RationalGraphSectionArea{}, geom.ErrInvalid
+	}
+	a, e := r.certificate.BoundSignedArea(ctx, projectedWidth)
+	if e != nil {
+		return RationalGraphSectionArea{}, e
+	}
+	m := new(big.Rat)
+	for _, d := range r.plane.normal {
+		m.Add(m, new(big.Rat).Mul(d, d))
+	}
+	return RationalGraphSectionArea{Projection: a, ModelScaleSquared: m}, nil
+}
+
 // LocateRational classifies an exact model-space point in the planar material
 // region. A nonincident point returns ErrDomain. Boundary is proved against
 // the exact curves; no projected display polygon is used.

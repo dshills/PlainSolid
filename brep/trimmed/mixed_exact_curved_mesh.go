@@ -33,6 +33,10 @@ type CertifiedMixedExactCurvedMesh struct {
 // added independently. Only interior edges refine: insufficient fixed boundary
 // sampling rejects atomically, without moving samples off their source trims.
 func TessellateMixedExactCurvedRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactCurvedMeshOptions) (CertifiedMixedExactCurvedMesh, error) {
+	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o, nil)
+}
+
+func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactCurvedMeshOptions, spans *multiSpanMeshWork) (CertifiedMixedExactCurvedMesh, error) {
 	var empty CertifiedMixedExactCurvedMesh
 	if ctx == nil || p == nil || !finite(o.Interior.Deflection) || o.Interior.Deflection <= 0 {
 		return empty, geom.ErrInvalid
@@ -53,8 +57,21 @@ func TessellateMixedExactCurvedRegionCertified(ctx context.Context, p *geom.Surf
 	if m.MaxSubdivisions < 1 || m.MaxSubdivisions > 128 || m.MaxSubdivisions&(m.MaxSubdivisions-1) != 0 || m.MaxTriangleChecks < 1 || m.MaxTriangles < 1 || m.MaxTriangles > 1000000 {
 		return empty, geom.ErrInvalid
 	}
-	l2, l1, ok := quadraticPatchLipschitz(p)
-	if !ok || l1.Sign() == 0 {
+	var l2, l1 *big.Rat
+	if spans == nil {
+		var ok bool
+		l2, l1, ok = quadraticPatchLipschitz(p)
+		if !ok {
+			return empty, geom.ErrConvergence
+		}
+	} else {
+		var err error
+		l2, l1, err = spans.lipschitz(ctx, p)
+		if err != nil {
+			return empty, err
+		}
+	}
+	if l1.Sign() == 0 {
 		return empty, geom.ErrConvergence
 	}
 	tol := new(big.Rat).Quo(ratInset(m.Deflection), new(big.Rat).Mul(big.NewRat(16, 1), l1))
@@ -85,7 +102,7 @@ func TessellateMixedExactCurvedRegionCertified(ctx context.Context, p *geom.Surf
 	if e != nil {
 		return empty, e
 	}
-	lifted, e := tessellateCertifiedTrimBoundaryMode(ctx, p, uv.CertifiedAffineQuadraticTrimMesh, m, 1, nil, l2, true)
+	lifted, e := tessellateCertifiedTrimBoundaryMode(ctx, p, uv.CertifiedAffineQuadraticTrimMesh, m, 1, spans, l2, true)
 	if e != nil {
 		return empty, e
 	}

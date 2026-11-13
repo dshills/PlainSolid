@@ -121,6 +121,10 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	if len(m.Holes) != 1 || len(r.Wires[m.Outer]) != 12 || len(r.Wires[m.Holes[0]]) != 4 || r.Regions.Rings[m.Holes[0]].Parent != m.Outer {
 		t.Fatal("square-tube void was not retained as a hole", r.Regions)
 	}
+	a, e := r.Regions.BoundArea(ctx, big.NewRat(1, 1<<20))
+	if e != nil || a.ModelScaleSquared.Cmp(big.NewRat(1, 1)) != 0 || a.Projection.Lower.Cmp(big.NewRat(8, 1)) != 0 || a.Projection.Upper.Cmp(a.Projection.Lower) != 0 {
+		t.Fatal("exact square-ring area", a, e)
+	}
 	for _, tt := range []struct {
 		x, y float64
 		want trimvalidate.Location

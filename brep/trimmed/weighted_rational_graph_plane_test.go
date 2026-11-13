@@ -161,6 +161,19 @@ func TestWeightedRationalSplineGraphPlaneClip(t *testing.T) {
 		return w
 	}
 	w := checkSection(plane, 1)
+	area, e := w.Regions.BoundArea(ctx, big.NewRat(1, 10000))
+	if e != nil || area.ModelScaleSquared.Cmp(big.NewRat(4097, 4096)) != 0 {
+		t.Fatal("wrong area scale on oblique slice", area, e)
+	}
+	// In projected coordinates X=3*s. The bottom crossing lies at
+	// y=3/4+3*s/16-s²/(8(1-s/2)), above y=0 and below y=1.
+	// The integral of s²/(1-s/2) over [0,1] is 8 ln 2 - 5.
+	expect := 3 * (3./4 + 3./32 - (8*math.Log(2)-5)/8)
+	l, _ := area.Projection.Lower.Float64()
+	u, _ := area.Projection.Upper.Float64()
+	if l > expect || u < expect || u-l > .0001 {
+		t.Fatal("projected rational area doesn't enclose the independent integral", l, u, expect)
+	}
 	capSupport, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{
 		{Z: 3. / 16}, {Y: 1, Z: 3. / 16}, {X: 4, Z: 1. / 4}, {X: 4, Y: 1, Z: 1. / 4},
 	}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
