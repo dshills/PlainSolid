@@ -275,3 +275,35 @@ func TestCircularStockOverlappingOpposedAndSequentialBores(t *testing.T) {
 		}
 	}
 }
+
+func TestCircularStockCoaxialOpposedSTEPAndThroughCut(t *testing.T) {
+	b := New()
+	stock := circle(t, b, vector{}, vector{0, 0, 1}, 6, 8)
+	lower := circle(t, b, vector{1, 0, 0}, vector{0, 0, 1}, 2, 2)
+	upper := circle(t, b, vector{1, 0, 8}, vector{0, 0, -1}, 2, 3)
+	through := circle(t, b, vector{1, 0, 0}, vector{0, 0, 1}, 2, 8)
+	cut, err := b.cutMany(stock.Handle, []string{lower.Handle, upper.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, cut.GeometryAssertions.Volume, 268*math.Pi)
+	near(t, overlapMeasure(t, b, cut.Handle, through.Handle), 12*math.Pi)
+	file, err := b.exportSTEP([]string{cut.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := base64.StdEncoding.DecodeString(file.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	read, err := b.importSTEP(string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, overlapMeasure(t, b, read.Handle, through.Handle), 12*math.Pi)
+	opened, err := b.cutMany(read.Handle, []string{through.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, opened.GeometryAssertions.Volume, 256*math.Pi)
+}

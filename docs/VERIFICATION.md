@@ -60,6 +60,24 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD coaxial opposed blind bores on circular stock — 2026-11-13
+
+The layered STEP reader merges connected wall spans without filling a
+gap between opposite blind bores. Full graph regeneration still checks
+the source trims and topology. Both signed placements match independent
+OCCT measurements. The bridge native regression drills out the exact
+web after STEP reimport.
+
+The [three original Hole Edit and STEP cases](evidence/plaincad-circular-coaxial-web-browser-2026-11-13.json)
+pass. A [same-WASM app probe](evidence/plaincad-circular-coaxial-web-native-2026-11-13.json)
+reopens a circular part with an intact 3 mm web and verifies analytic
+volume and area. Its first STL check used a 2 mm³ absolute tolerance
+borrowed from the rectangular probe. The updated check verifies closed
+incidence, all four axial rim levels and each regular 32-sided rim, then
+matches signed volume to the analytic polygonal solid within 0.001 mm³.
+The original PlainCAD cases and the supplemental exact B-rep checks keep
+their assertions. Focused race checks and Go vet pass.
+
 ## PlainCAD preserves ordinary cylinder STEP as machinable stock — 2026-11-13
 
 The native reader now retains the complete cylinder created by PlainCAD's

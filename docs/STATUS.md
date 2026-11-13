@@ -41,7 +41,9 @@ regressions and independent OCCT exchange checks. Overlapping opposed
 bores now also pass exact native volume and surface checks, editable
 PlainCAD reload and STL fabrication. Canonical STEP now round-trips
 qualified overlapping circular boundaries and matches independent OCCT
-measures. Eight additional original STEP, Hole Edit and machined-reference
+measures. Opposed blind bores with the same footprint can also preserve
+the remaining material web through STEP and a later through cut.
+Eight additional original STEP, Hole Edit and machined-reference
 browser regressions pass. Both native trimmed spline cases excluded by
 short mode pass with full mode enabled.
 

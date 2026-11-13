@@ -49,6 +49,30 @@ func TestLayeredDiskBoresSTEP(t *testing.T) {
 	}
 }
 
+func TestLayeredDiskBoresSTEPPreservesOpposedCoaxialWeb(t *testing.T) {
+	for _, height := range []float64{8, -8} {
+		model := diskExtrusionFixture(t, height)
+		body := &model.Bodies[0]
+		circle := trimmed.ExtrusionCircle{Center: geom.Vec2{X: 2, Y: 2}, Radius: 2}
+		body.Holes = nil
+		body.Blind = []trimmed.ExtrusionBlindHole{
+			{ExtrusionCircle: circle, Depth: 2},
+			{ExtrusionCircle: circle, Depth: 3, OppositeCap: true},
+		}
+		var out bytes.Buffer
+		if err := WriteLayeredDiskBores(&out, model); err != nil {
+			t.Fatal(height, err)
+		}
+		reread, err := ReadLayeredDiskBores(bytes.NewReader(out.Bytes()), Limits{})
+		if err != nil || len(reread.Bodies) != 1 || len(reread.Bodies[0].Blind) != 2 || len(reread.Bodies[0].Holes) != 0 {
+			t.Fatal(height, reread, err)
+		}
+		if os.Getenv("PLAINSOLID_OCCT_STEP") != "" {
+			checkLayeredDiskOCCT(t, *body, out.Bytes())
+		}
+	}
+}
+
 func checkLayeredDiskOCCT(t *testing.T, b DiskHoleExtrusionBody, data []byte) {
 	t.Helper()
 	path, report := filepath.Join(t.TempDir(), "layered.step"), filepath.Join(t.TempDir(), "mass.json")
