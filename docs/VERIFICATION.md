@@ -1182,6 +1182,11 @@ volume, canonical reload, and a single stock against the pinned OCCT fuse.
 Unequal coaxial union also retains the original annular step support for
 overlapping and exactly touching ends; canonical reload, analytic-bound
 mesh closure, and independent OCCT mass properties agree.
+Strict radial containment also qualifies one eccentric parallel boss extending
+through a stock end, retaining the exposed annulus on the original cap plane.
+Both axial ends, operand orders, overlapping and exactly touching spans pass
+mass and closed-mesh tests. The native recipe rechecks original cap ancestry,
+and independent OCCT overlap and touching fuses agree on one shell and mass.
 Equal-cap parallel transverse sets compare signed cylinder placement, native
 recipe reload, original cap ancestry, and area, volume, and centroid against
 OCCT. Near tangencies and differing caps remain outside this path.

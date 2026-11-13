@@ -240,6 +240,15 @@ int main(int argc, char** argv) {
       splineShellRecord(out,"finite-oblique-parallel-cut",BRepAlgoAPI_Cut(a,b).Shape());
       return 0;
     }
+    if(argc==3 && mode=="finite-eccentric-shoulder-union"){
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      const auto wide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2,1,3),gp_Dir(0,0,-1)),4,4).Shape();
+      const auto bossOverlap=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3,1,-3),gp_Dir(0,0,1)),2,4).Shape();
+      const auto bossTouch=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(3,1,-3),gp_Dir(0,0,1)),2,2).Shape();
+      splineShellRecord(out,"finite-eccentric-shoulder-overlap",BRepAlgoAPI_Fuse(wide,bossOverlap).Shape());
+      splineShellRecord(out,"finite-eccentric-shoulder-touch",BRepAlgoAPI_Fuse(wide,bossTouch).Shape());
+      return 0;
+    }
     if(argc==3 && mode=="finite-cylinder-sets") {
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(13,9,2),gp_Dir(-3,-4,0)),2,30).Shape();
