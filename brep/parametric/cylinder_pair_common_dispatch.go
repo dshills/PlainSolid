@@ -54,6 +54,19 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 	if m.ProjectionRelation <= 0 {
 		return empty, nil
 	}
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	var exactWindows [2][2]*big.Rat
+	for i, c := range [2]geom.RawCylinder{a, b} {
+		foot := m.ClosestRawParameters[i]
+		exactWindows[i] = [2]*big.Rat{new(big.Rat).Sub(q(c.Min), foot), new(big.Rat).Sub(q(c.Max), foot)}
+		// Even in the skew case this half-extent bounds the infinite
+		// cylinder common. A finite window outside it leaves no interior.
+		extent := m.RawAxialHalfExtents[i]
+		if atOrBeyondCylinderExtent(exactWindows[i][0], extent) ||
+			atOrBeyondCylinderExtent(new(big.Rat).Neg(exactWindows[i][1]), extent) {
+			return empty, nil
+		}
+	}
 	if m.SeparationSign != 0 {
 		r, e := ObliqueSkewCylinderCommon(ctx, a, b, tolerance)
 		if e != nil {
@@ -70,11 +83,10 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		}
 		*coord[i] = f
 	}
-	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	var windows [2][2]float64
-	for i, c := range [2]geom.RawCylinder{a, b} {
-		for j, x := range [2]float64{c.Min, c.Max} {
-			f, e := geom.RepresentedExactScalar(new(big.Rat).Sub(q(x), m.ClosestRawParameters[i]))
+	for i, caps := range exactWindows {
+		for j, x := range caps {
+			f, e := geom.RepresentedExactScalar(x)
 			if e != nil {
 				return empty, e
 			}
@@ -92,6 +104,15 @@ func FiniteCylinderPairCommon(ctx context.Context, a, b geom.RawCylinder, tolera
 		return empty, e
 	}
 	return finitePerpendicularCapCommon(ctx, a, b, center, windows, tolerance)
+}
+
+// The extent square is base + sqrt(radicand). Compare without a square root.
+func atOrBeyondCylinderExtent(x *big.Rat, extent geom.CylinderAxialExtent) bool {
+	if x.Sign() <= 0 {
+		return false
+	}
+	delta := new(big.Rat).Sub(new(big.Rat).Mul(x, x), extent.SquaredBase)
+	return delta.Sign() >= 0 && new(big.Rat).Mul(delta, delta).Cmp(extent.SquaredRadicand) >= 0
 }
 
 func rawAxesParallel(a, b geom.Vec3) bool {

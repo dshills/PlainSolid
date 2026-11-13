@@ -136,3 +136,29 @@ func TestFiniteCylinderPairCommonSignedCoordinateCaps(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCylinderPairCommonOutsideAxialSupport(t *testing.T) {
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{X: 2}, Radius: 3, Min: 1, Max: 3}
+	b := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Radius: 2, Min: -6, Max: 6}
+	// A's physical start is x=2, exactly on B's outermost generator.
+	out, e := FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+		t.Fatal(out, e)
+	}
+	a.Min = math.Nextafter(1, 0)
+	out, e = FiniteCylinderPairCommon(ctx, a, b, 1e-8)
+	if !errors.Is(e, geom.ErrConvergence) || len(out.Solid.Faces()) != 0 {
+		t.Fatal("an unsupported but positive interval was misclassified", out, e)
+	}
+	// The feet are not dyadic raw parameters here. Cap exclusion still
+	// proves empty without constructing or rounding either placement.
+	a = geom.RawCylinder{Axis: geom.Vec3{X: 3, Y: 1}, Radius: 3, Min: -15, Max: -10}
+	b = geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: -1, Z: .5}, Axis: geom.Vec3{Z: 2}, Radius: 2, Min: -10, Max: 10}
+	for _, p := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		out, e := FiniteCylinderPairCommon(ctx, p[0], p[1], 1e-8)
+		if e != nil || out.Construction != CylinderCommonEmpty || len(out.Solid.Faces()) != 0 {
+			t.Fatal(out, e)
+		}
+	}
+}
