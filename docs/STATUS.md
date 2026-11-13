@@ -191,11 +191,16 @@ Two same-side overlapping circular cutters now have a native rectangular
 stock constructor for equal radii, exact crossing coordinates, common
 blind depth or through length, and a signed coordinate frame. Two rational
 spline wall charts retain the exact circles and raw weights. OCCT mass
-comparison and native reload qualify this geometry. The general sampled
-display currently exhausts its budget on this shape; a conforming exact
-mesh and the PlainCAD adapter are separate pending gates. OCCT-produced
-rounded cutter pcurves are independently proved unsuitable for strict
-exact import.
+comparison and native reload qualify this geometry. Exact point location
+separates exposed seams from buried cutter boundaries, and closed-form
+measures avoid reintegrating the faces. A boundary-preserving rectangular
+grid certifies an embedded, watertight display on the blind and through
+fixtures at 0.1 distance. The sampled display path still exhausts its budget
+on these shapes. Smooth-wall angular bounds and application viewer acceptance
+are separate gates. The strict model-only STEP writer and reader preserve the
+complete canonical AP203 product; OCCT reads those exports independently.
+OCCT-produced rounded cutter pcurves remain unsuitable for strict exact
+import. The bounded PlainCAD adapter is on the review branch, not this checkout.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

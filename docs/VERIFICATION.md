@@ -12,6 +12,23 @@ volume, area and centroid agree with independent integration of the stored
 curved faces on translated and rotated stock, and with the optional OCCT
 blind-pocket oracle. These results do not use a mesh.
 
+The same blind and through stock fixtures pass closed display qualification
+at model deflection 0.1 with a rectangular seed that preserves shared exact
+boundary parameters. The 3,928- and 3,526-triangle displays independently
+pass manifold, oriented volume, Euler and non-incidence checks. The two
+curved wall seeds converge without the legacy uniform refinement explosion.
+This proof bounds distance and display embedding; it does not bound normal
+angle. Separately, six signed poses of the rooted model-only STEP writer
+passed OCCT `TransferRoots`, shell validity and area, volume and centroid
+comparisons. Native reimport reproves the full emitted product graph and
+rejects tampered endpoints, supports, entity ownership and metadata.
+
+Composed circular event tests now cover whole coincident cells, exact
+stationary roots inside those cells, stationary roots shared by consecutive
+source cells and constant circle-point intervals. Neighboring noncoincident
+endpoint events retain their component ownership; actual isolated crossings
+remain separate. The existing stricter entry points retain their prior gates.
+
 On 2026-11-13 the expanded pinned OCCT reference suite passed 155 test cases
 (including subtests) with no skips. Both STEP import and transverse spline
 shell operations were enabled. New cubic and
