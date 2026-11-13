@@ -6,7 +6,7 @@ import type { ComponentPlacement, TopologyRef, RevolveAxisReference } from "../d
 import { placementTransform } from "../document/componentPlacement";
 import { createId } from "../document/ids";
 import type { KernelAdapter, KernelShape, RenderMesh, GeometryAssertions, BoundingBox, TessellationOptions, ResolvedRevolveAxis } from "./KernelAdapter";
-import { HoleScopeError } from "./KernelAdapter";
+import { HoleScopeError, PocketFloorMismatchError } from "./KernelAdapter";
 import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
@@ -147,7 +147,7 @@ export class OpenCascadeKernel implements KernelAdapter {
       await import("./wasm_exec.js");
       if (!runtime.Go) throw new Error("Go WebAssembly runtime did not initialize.");
       const go = new runtime.Go();
-      const response = await fetch("/plainsolid/kernel.wasm");
+      const response = await fetch("/assets/plainsolid-kernel.wasm");
       if (!response.ok) throw new Error(`PlainSolid WASM fetch failed: ${response.status}`);
       const compiled = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
       void go.run(compiled.instance);
@@ -268,8 +268,27 @@ export class OpenCascadeKernel implements KernelAdapter {
   validatePlanarFace(shape: KernelShape, plane: SketchPlaneTransform): void {
     request({ op: "planarFace", handle: handle(shape).proof.handle, origin: xyz(plane.origin), normal: xyz(plane.normal) });
   }
-  validatePocketFloor?: KernelAdapter["validatePocketFloor"];
-  measureHoleRim?: KernelAdapter["measureHoleRim"];
+  validatePocketFloor(shape: KernelShape, plane: SketchPlaneTransform, profile: SketchProfile): void {
+    const segments = profile.outerLoop.segments;
+    if (!segments?.length || segments.some(segment => segment.type !== "line") || profile.innerLoops.length)
+      throw new Error("Pocket floor proof requires one bounded straight profile.");
+    const outer = segments.map(segment => xyz(transformPoint(plane, segment.start.x, segment.start.y)));
+    try {
+      request({ op: "pocketFloor", handle: handle(shape).proof.handle, origin: xyz(plane.origin), normal: xyz(plane.normal), outer });
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("PlainSolid MISMATCH:"))
+        throw new PocketFloorMismatchError(error.message);
+      throw error;
+    }
+  }
+  measureHoleRim(shape: KernelShape, center: { x: number; y: number; z: number }, outward: { x: number; y: number; z: number }, radius: number) {
+    const rim = request<{ center: [number, number, number]; radius: number } | null | undefined>({
+      op: "holeRim", handle: handle(shape).proof.handle, center: xyz(center), normal: xyz(outward), radius,
+    });
+    if (!rim) return undefined;
+    const [x, y, z] = rim.center;
+    return { center: { x, y, z }, radius: rim.radius };
+  }
   private capEdge(shape: KernelShape, ref: TopologyRef): { edgeStart: number[]; edgeEnd: number[]; normal: number[] } {
     const source = handle(shape).extrusion;
     if (!source || ref.kind !== "edge" || ref.repairRequired || !ref.sourceEntityId ||
@@ -438,8 +457,12 @@ export class OpenCascadeKernel implements KernelAdapter {
       // Resolve all authored references before publishing any native result.
       // The bridge validates the complete batch against the original solid.
       const source = handle(shape).extrusion;
+      const circularRims = operation === "fillet" && source?.profile.outerLoop.type === "circle" &&
+        !source.profile.innerLoops.length && !source.profile.holes.length &&
+        refs.every(ref => !ref.sourceEntityId && !ref.repairRequired && ref.kind === "edge" &&
+          (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
       for (const ref of refs) {
-        if (ref.sourceEntityId) continue;
+        if (ref.sourceEntityId || circularRims) continue;
         if (!source || source.profile.innerLoops.length || source.profile.outerLoop.type !== "polygon")
           throw new Error("This complete perimeter is unsupported; select individual authored cap edges.");
         const segments = source.profile.outerLoop.segments ?? [];
@@ -450,13 +473,22 @@ export class OpenCascadeKernel implements KernelAdapter {
           throw new Error("The complete perimeter contains an edge that was lost or is ambiguous. Select a surviving authored edge.");
         throw new Error("A complete nonparallel perimeter is unsupported; select individual parallel authored cap edges.");
       }
-      const edges = refs.map(ref => this.capEdge(shape, ref));
       const before = request<Proof>({ op: "inspect", handle: handle(shape).proof.handle });
-      const result = request<Proof>({
-        op: operation, handle: before.handle, normal: edges[0].normal,
-        edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
-        [operation === "fillet" ? "radius" : "distance"]: size,
-      });
+      let result: Proof;
+      if (circularRims && source) {
+        const bounds = source.profile.bounds;
+        const x = (bounds.minX + bounds.maxX) / 2, y = (bounds.minY + bounds.maxY) / 2;
+        const roles = [...new Set(refs.map(ref => ref.role))];
+        const rimCenters = roles.map(role => xyz(transformPoint(source.transform, x, y, role === "endCapPerimeter" ? source.distance : 0)));
+        result = request({ op: "filletCylinderRims", handle: before.handle, normal: xyz(source.transform.normal), rimCenters, radius: size });
+      } else {
+        const edges = refs.map(ref => this.capEdge(shape, ref));
+        result = request({
+          op: operation, handle: before.handle, normal: edges[0].normal,
+          edges: edges.map(edge => ({ start: edge.edgeStart, end: edge.edgeEnd })),
+          [operation === "fillet" ? "radius" : "distance"]: size,
+        });
+      }
       try {
         const after = result.geometryAssertions;
         const tolerance = Math.max(1e-9, before.geometryAssertions.volume * 1e-10);

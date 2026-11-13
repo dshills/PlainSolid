@@ -20,6 +20,7 @@ type analyticBody struct {
 	shaft        *trimmed.SteppedShaft
 	segment      *circularSegmentSweep
 	helical      bool
+	pockets      *pocketStock
 	volume, area float64
 }
 
@@ -78,6 +79,15 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	// recipe only for coordinate-aligned proper rotations.
 	out.sector = nil
 	out.shaft = nil
+	out.pockets = nil
+	if a.pockets != nil {
+		p := *a.pockets
+		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
+			p.frame = f
+			out.pockets = &p
+		}
+	}
 	if a.shaft != nil {
 		p := *a.shaft
 		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))

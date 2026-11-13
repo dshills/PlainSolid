@@ -12,11 +12,18 @@ for the solved circular segment, placed bore axis and imported STEP STL.
 The first consolidated run passes 47 of 53 originals. A finer bore mesh
 exhausts the triangulation budget in six guided multi-hole previews. Single
 bores retain the finer setting and multiple rims use their earlier setting.
-A corrected focused run is in progress. Native helical dependencies,
+The corrected focused runs pass both original XY guided cases and STEP STL. Native helical dependencies,
 bounded M3 chart coordinates and finite phased starts are verified separately.
 Modeled external and internal thread lead-ins, four-start end reliefs and
 browser-ready helical tessellation are still in progress. The thread and lead
 browser baseline failed before reaching helical geometry.
+
+The original machined-reference acceptance passes nested rectangular blind
+pockets, a disjoint cylindrical through bore, measured rim and floor,
+parameter edits, save/open, and rejection after the original floor is cut.
+The production run has passed six of seven selected cases. The final
+radius-10 cylinder STL requires finer angular sampling, which now passes
+its native volume check and is awaiting production rerun.
 
 Finite polygon and circular To Face extrusion pass the five selected original
 PlainCAD cases, including face pockets and component placement. The bridge

@@ -33,26 +33,24 @@ may proceed in parallel:
 | PC4: Helical parts | Helical swept solid cutters, internal/external threads, handedness, lead-in/runout, multi-start lead screws and matching nuts; point/common-volume proofs | Existing modeled Thread and lead-screw/nut cold-open fixtures |
 | PC5: Exchange and complete app qualification | STEP for actual app outputs and accepted imported solids; export/reimport volume, topology and bounds; worker cancellation, stale previews, production CSP and performance | Existing STEP import/export and failure tests, full native development and production suites |
 
-Current checkpoint (2026-11-13): PC0's selected browser regressions pass. PC1
-implements scoped Hole validation, atomic cutter batches, and analytic overlapping
-circular footprints. Unequal-depth work now adds axial layers, crescent/annular
-floors and volume-only scope queries for successive Hole features on retained
-bored stock. The final source-hashed run passes all 22 existing acceptance cases,
-both TypeScript checks and the separate real-WASM supplement, with zero skips
-or flaky results. Native/race checks and independent geometry review pass.
-Duplicates and contained tools are accepted collectively; standalone no-op cuts
-remain rejected. New overlap evidence is supplemental because there is no
-existing overlap-specific browser fixture. Guided-hole restrictions remain
-unchanged. See readiness for qualified boundaries and source-hashed evidence.
-Next PC1 work includes mixed line/arc profiles, opposed-entry blind overlaps and
-broader modified/curved target bodies. PC2 now has the native long-chain geometry
-and a passing frozen-source browser run for the original fillet, chamfer, Hole,
-pocket and boss case, adjacent edge-treatment recovery and the previous 22
-acceptance cases. Grouped parallel fillets and chamfers pass the multi-edge edit
-and repeated XZ edge-draft cases in a consolidated run of 26 existing cases.
-A separate WASM probe verifies grouped chamfers. Nonparallel and complete
-perimeter groups, broader retained-stock cuts and other PC2 workflows remain
-open.
+Current checkpoint (2026-11-13): the integration worktree has qualified
+selected signed extrusion, scoped holes, overlapping and unequal-depth cuts,
+finite To Face, grouped edge treatments, mixed circular profiles, revolve,
+component placement, drawing and STEP workflows in the original app. The
+first 53-case combined run passed 47. All six failures exposed the same
+multi-rim display budget regression. The correction passes the focused
+original XY cases and STEP import. A new consolidated run is required.
+
+Native M3 external and internal threads with overlapping lead-in match the
+app's volume assertions. Four-start lead parts also retain finite phased
+grooves. Finish the angular tessellation and end reliefs, then run both
+original helical workflows, including handedness edits and cold open.
+The original machined-reference workflow exercises nested blind pockets,
+bore rim measurement and lost floor diagnostics. Its native route is under
+browser verification. Broader retained references, complete and nonparallel
+edge groups, general curved Boolean composition, and full development and
+production qualification remain open. See [PlainCAD readiness](PLAINCAD_READINESS.md)
+for the selected domains and evidence.
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions

@@ -21,6 +21,17 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if a.analytic != nil && a.analytic.pockets != nil && len(tools) == 1 {
+		tool, err := b.get(tools[0])
+		if err != nil {
+			return Shape{}, err
+		}
+		p, err := a.analytic.pockets.throughBore(tool.cylinder)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putPocketStock(p)
+	}
 	if a.analytic != nil {
 		return Shape{}, &failureError{"UNSUPPORTED", "cutMany does not support this analytic stock"}
 	}
