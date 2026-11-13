@@ -126,6 +126,11 @@ func GrooveTubeWithHelicalStarts(ctx context.Context, frame geom.Frame, outerRad
 
 func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
 	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
+	return grooveCylinderStarts(ctx, frame, stockRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil, roundChart)
+}
+
+func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, phaseTurns *big.Rat, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
 	if ctx == nil || !finite(stockRadius) || stockRadius <= 0 || !finite(height) || height <= 0 ||
 		!finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start || end-start > 16 ||
 		hand != geom.LeftHanded && hand != geom.RightHanded || len(profile) > 32 || starts < 1 || starts > 8 {
@@ -148,7 +153,10 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 		return Solid{}, parametric.ErrBudget
 	}
 	spacing := new(big.Rat).Quo(ratInset(lead), big.NewRat(int64(starts), 1))
-	lastOffset := new(big.Rat).Mul(spacing, big.NewRat(int64(starts-1), 1))
+	lastOffset := new(big.Rat)
+	if phaseTurns == nil {
+		lastOffset.Mul(spacing, big.NewRat(int64(starts-1), 1))
+	}
 	low, high := p[0].Y, p[0].Y
 	outer := -1
 	for i, a := range p {
@@ -205,6 +213,9 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 	center := new(big.Rat).Quo(new(big.Rat).Add(ratInset(low), ratInset(high)), big.NewRat(2, 1))
 	halfStep := new(big.Rat).Quo(big.NewRat(1, 2), big.NewRat(int64(starts), 1))
 	phaseExact := new(big.Rat).Neg(new(big.Rat).Add(halfStep, new(big.Rat).Mul(tw, center)))
+	if phaseTurns != nil {
+		phaseExact.Add(phaseExact, phaseTurns)
+	}
 	phase, e := representChart(phaseExact, true)
 	if e != nil {
 		return Solid{}, e
@@ -220,10 +231,26 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 		return Solid{}, e
 	}
 	for j := range starts {
-		shift := new(big.Rat).Mul(spacing, big.NewRat(int64(j), 1))
-		q := append([]geom.Vec2(nil), p...)
-		for i := range q {
-			q[i].Y, e = geom.RepresentedExactScalar(new(big.Rat).Add(ratInset(q[i].Y), shift))
+		q := p
+		toolFrame := frame
+		toolPhase := new(big.Rat)
+		if phaseTurns == nil {
+			shift := new(big.Rat).Mul(spacing, big.NewRat(int64(j), 1))
+			q = append([]geom.Vec2(nil), p...)
+			for i := range q {
+				q[i].Y, e = geom.RepresentedExactScalar(new(big.Rat).Add(ratInset(q[i].Y), shift))
+				if e != nil {
+					return Solid{}, e
+				}
+			}
+		} else {
+			toolPhase.Add(phaseTurns, big.NewRat(int64(j), int64(starts)))
+			turn, e := representChart(toolPhase, true)
+			if e != nil {
+				return Solid{}, e
+			}
+			sin, cos := math.Sincos(2 * math.Pi * math.Remainder(turn, 1))
+			toolFrame, e = geom.NewFrame(frame.Origin(), frame.XAxis().Scale(cos).Add(frame.YAxis().Scale(sin)), frame.ZAxis())
 			if e != nil {
 				return Solid{}, e
 			}
@@ -231,8 +258,10 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 		zEnds := [2]*big.Rat{ratInset(q[outer].Y), ratInset(q[(outer+1)%n].Y)}
 		var sideU [2]float64
 		for i, z := range zEnds {
-			u := new(big.Rat).Neg(new(big.Rat).Add(phaseExact, new(big.Rat).Mul(tw, z)))
-			if u.Sign() <= 0 {
+			u := new(big.Rat).Sub(toolPhase, new(big.Rat).Add(phaseExact, new(big.Rat).Mul(tw, z)))
+			integer := new(big.Int).Quo(u.Num(), u.Denom())
+			u.Sub(u, new(big.Rat).SetInt(integer))
+			if u.Sign() < 0 {
 				u.Add(u, big.NewRat(1, 1))
 			}
 			if u.Sign() <= 0 || u.Cmp(big.NewRat(1, 1)) >= 0 {
@@ -249,7 +278,7 @@ func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stoc
 				}
 			}
 		}
-		tool, e := SweepHelicalPolygon(ctx, frame, q, lead, start, end, hand)
+		tool, e := SweepHelicalPolygon(ctx, toolFrame, q, lead, start, end, hand)
 		if e != nil {
 			return Solid{}, e
 		}

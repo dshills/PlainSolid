@@ -20,6 +20,20 @@ type HelicalChartRoundoff struct{ MaxAxialError, MaxTurnError float64 }
 // quarter of that budget, with turns scaled by a conservative 2*pi*outerRadius.
 // The reciprocal lead remains exactly represented. NewSolid validation applies.
 func GrooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, maxError float64) (Solid, HelicalChartRoundoff, error) {
+	return grooveWithBoundedChart(ctx, r, nil, maxError)
+}
+
+// GrooveWithPhasedStarts keeps every start in the same finite axial window.
+// InitialPhase is a physical turn about the original axis, independently of
+// handedness. The original bounded chart and separation checks apply.
+func GrooveWithPhasedStarts(ctx context.Context, r HelicalGrooveRecipe, initialPhase, maxError float64) (Solid, HelicalChartRoundoff, error) {
+	if !finite(initialPhase) || initialPhase < 0 || initialPhase >= 1 {
+		return Solid{}, HelicalChartRoundoff{}, geom.ErrDomain
+	}
+	return grooveWithBoundedChart(ctx, r, ratInset(initialPhase), maxError)
+}
+
+func grooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, phase *big.Rat, maxError float64) (Solid, HelicalChartRoundoff, error) {
 	var proof HelicalChartRoundoff
 	if !finite(maxError) || maxError <= 0 || !finite(r.OuterRadius) || !finite(r.Height) || maxError > math.Max(r.OuterRadius, r.Height)*1e-11/8 || !finite(r.BoreRadius) || r.BoreRadius < 0 || r.BoreRadius >= r.OuterRadius {
 		return Solid{}, proof, geom.ErrInvalid
@@ -52,6 +66,6 @@ func GrooveWithBoundedChart(ctx context.Context, r HelicalGrooveRecipe, maxError
 	if r.BoreRadius > 0 {
 		stockRadius, outer = r.BoreRadius, r.OuterRadius
 	}
-	s, e := grooveCylinderWithHelicalStarts(ctx, r.Frame, stockRadius, outer, r.Height, r.Profile, r.Lead, r.Start, r.End, r.Hand, r.Starts, rounder)
+	s, e := grooveCylinderStarts(ctx, r.Frame, stockRadius, outer, r.Height, r.Profile, r.Lead, r.Start, r.End, r.Hand, r.Starts, phase, rounder)
 	return s, proof, e
 }

@@ -73,6 +73,20 @@ The first browser run passes both original capsule offset cases and both
 original circle offset cases. Projection and revolve edit were separate
 failures in that snapshot. The next browser run includes their repairs.
 
+## Finite phased starts and grooved shaft head attachment — 2026-11-13
+
+The four-start constructor keeps the authored angular offsets in a common
+finite axial window. Both hands of the original lead screw and nut recipes
+build as a single connected analytic shell. Integrated volumes agree with
+independent meridian integration. Existing axial-offset constructors retain
+their original contract.
+
+The native shaft attachment preserves the grooved shaft's noncardinal seam
+phase and replaces its upper disk with an analytic annular shoulder attached
+to the retained head and polygon socket. Both hands pass exact volume,
+closed coarse display, native JSON, cancellation and input ownership checks.
+Fine helical display and intersecting end reliefs remain separate gates.
+
 ## Bounded chart coordinates for PlainCAD M3 grooves — 2026-11-13
 
 The bounded entry point retains the actual authored groove surfaces and
