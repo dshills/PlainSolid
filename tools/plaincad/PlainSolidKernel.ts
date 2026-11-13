@@ -341,6 +341,10 @@ export class OpenCascadeKernel implements KernelAdapter {
           normal: { x: source.transform.normal.x * normalSign, y: source.transform.normal.y * normalSign, z: source.transform.normal.z * normalSign },
         });
         edges.push({ role });
+        // A single authored full circle is the exact retained rim of this
+        // untouched analytic extrusion, not a sampled display boundary.
+        if (loop.type === "circle" && loop.entityIds.length === 1)
+          edges.push({ role, sourceEntityId: loop.entityIds[0] });
       }
       if (loop.type !== "polygon") continue;
       const complete: typeof edges = [];
@@ -497,7 +501,8 @@ export class OpenCascadeKernel implements KernelAdapter {
       const source = handle(shape).extrusion;
       const circularRims = operation === "fillet" && source?.profile.outerLoop.type === "circle" &&
         !source.profile.innerLoops.length && !source.profile.holes.length &&
-        refs.every(ref => !ref.sourceEntityId && !ref.repairRequired && ref.kind === "edge" &&
+        refs.every(ref => (!ref.sourceEntityId || (source.profile.outerLoop.entityIds.length === 1 &&
+          ref.sourceEntityId === source.profile.outerLoop.entityIds[0])) && !ref.repairRequired && ref.kind === "edge" &&
           (ref.role === "startCapPerimeter" || ref.role === "endCapPerimeter"));
       let perimeter: TopologyRef[] | undefined;
       for (const ref of refs) {
