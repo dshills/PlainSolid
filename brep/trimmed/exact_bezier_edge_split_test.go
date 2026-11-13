@@ -81,4 +81,20 @@ func TestSplitExactBezierTrimEdge(t *testing.T) {
 	if e != nil || math.Abs(before.Volume-after.Volume) > 1e-9 || before.Centroid.Sub(after.Centroid).Length() > 1e-9 {
 		t.Fatal("split or reload changed material", before, after, e)
 	}
+	if bad, _, e := reloaded.MergeExactBezierTrimEdges(ctx, ids.First, ids.Second, big.NewRat(2, 5)); e == nil || len(bad.faces) != 0 {
+		t.Fatal("wrong global split parameter accepted", e)
+	}
+	merged, history, e := reloaded.MergeExactBezierTrimEdges(ctx, ids.First, ids.Second, t0)
+	if e != nil || history.RemovedVertex != ids.Vertex || history.Edges[ids.First] != history.Edges[ids.Second] ||
+		len(merged.edges) != len(r.Solid.edges) || len(merged.vertices) != len(r.Solid.vertices) {
+		t.Fatal("invalid merge history", history, e)
+	}
+	actual := merged.edges[history.Edge].Curve.(surfaceTrimCurve).curve.(ExactBezierUV)
+	for i := range q.control {
+		for j := range q.control[i] {
+			if q.control[i][j].Cmp(actual.control[i][j]) != 0 {
+				t.Fatal("merge altered original homogeneous coefficient", i, j)
+			}
+		}
+	}
 }
