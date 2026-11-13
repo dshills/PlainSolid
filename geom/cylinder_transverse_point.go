@@ -59,8 +59,6 @@ func (s TransverseCylinderSetQuery) Classify(p Vec3) (CylinderSetPoint, error) {
 	q := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
 	v := [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)}
 	var signs [2][3]int
-	var masks [2]BoreBoundaryMask
-	var state [2]BorePointLocation
 	for i, c := range s.pair.s {
 		dot, sq := new(big.Rat), new(big.Rat)
 		for j := 0; j < 3; j++ {
@@ -70,6 +68,15 @@ func (s TransverseCylinderSetQuery) Classify(p Vec3) (CylinderSetPoint, error) {
 		}
 		rad := new(big.Rat).Sub(new(big.Rat).Mul(c.norm2, new(big.Rat).Sub(sq, c.radius2)), new(big.Rat).Mul(dot, dot))
 		signs[i] = [3]int{rad.Sign(), new(big.Rat).Mul(c.min, c.norm2).Cmp(dot), dot.Cmp(new(big.Rat).Mul(c.max, c.norm2))}
+	}
+	return s.classifySigns(signs), nil
+}
+
+func (s TransverseCylinderSetQuery) classifySigns(signs [2][3]int) CylinderSetPoint {
+	out := CylinderSetPoint{Location: BoreOutside}
+	var masks [2]BoreBoundaryMask
+	var state [2]BorePointLocation
+	for i := 0; i < 2; i++ {
 		state[i] = BoreInside
 		for j, z := range signs[i] {
 			if z > 0 {
@@ -104,14 +111,14 @@ func (s TransverseCylinderSetQuery) Classify(p Vec3) (CylinderSetPoint, error) {
 	}
 	if s.difference {
 		if state[0] == BoreOutside || state[1] == BoreInside {
-			return out, nil
+			return out
 		}
 		if state[0] == BoreInside && state[1] == BoreOutside {
 			out.Location = BoreInside
-			return out, nil
+			return out
 		}
 		if state[0] == BoreBoundary && state[1] == BoreBoundary && signs[1][0] < 0 && capRelation > 0 {
-			return out, nil
+			return out
 		}
 		out.Location = BoreBoundary
 		if state[0] == BoreBoundary {
@@ -124,14 +131,14 @@ func (s TransverseCylinderSetQuery) Classify(p Vec3) (CylinderSetPoint, error) {
 			}
 			out.Boundary |= mask
 		}
-		return out, nil
+		return out
 	}
 	if state[0] == BoreInside || state[1] == BoreInside || (state[0] == BoreBoundary && state[1] == BoreBoundary && signs[0][0] < 0 && signs[1][0] < 0 && capRelation < 0) {
 		out.Location = BoreInside
-		return out, nil
+		return out
 	}
 	if state[0] == BoreOutside && state[1] == BoreOutside {
-		return out, nil
+		return out
 	}
 	out.Location = BoreBoundary
 	out.Boundary = out.Incidence
@@ -151,5 +158,5 @@ func (s TransverseCylinderSetQuery) Classify(p Vec3) (CylinderSetPoint, error) {
 			out.Boundary &^= RawCylinderSecondMin | RawCylinderSecondMax
 		}
 	}
-	return out, nil
+	return out
 }

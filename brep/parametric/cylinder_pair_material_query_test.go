@@ -82,3 +82,19 @@ func TestFiniteTransverseQueryRejects(t *testing.T) {
 		t.Fatal("uncertified native tiny overlap")
 	}
 }
+
+func TestFiniteTransverseBoundLineQuery(t *testing.T) {
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 1}, Max: 8, Radius: 5}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -1}, Min: -8, Max: 0, Radius: 3}
+	s, e := NewFiniteTransverseCylinderSet(context.Background(), a, b, Difference, 1e-8)
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := s.ClipLine(context.Background(), geom.Vec3{Z: 8}, geom.Vec3{X: 1}, -10, 10, geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+	if e != nil || len(r.Material.Intervals) != 1 || r.Material.Intervals[0].Boundary != geom.RawCylinderFirstMax || len(r.Sources.Intervals) != 3 {
+		t.Fatal(r, e)
+	}
+	if r, e := (FiniteTransverseCylinderSet{}).ClipLine(context.Background(), geom.Vec3{}, geom.Vec3{X: 1}, -1, 1, geom.ToroidLineOptions{ParameterTolerance: 1e-9}); e == nil || len(r.Material.Intervals) != 0 {
+		t.Fatal("zero companion", r, e)
+	}
+}
