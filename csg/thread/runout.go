@@ -31,3 +31,14 @@ func (p Pair) CompareRunoutPhaseWindow(ctx context.Context, radius, nutShift *bi
 	}
 	return geom.CompareHelicalRetainedPhaseWindow(ctx, p.shaftStarts, p.nutStarts, radius, nutShift, phase, p.stockBands[0], p.stockBands[1], o)
 }
+
+// CompareRunoutRadialBand tests a closed band of radii at one exact helical
+// phase. It proves no positive overlap or returns a rational collision radius.
+// The endpoints must lie strictly inside the common stock radius band.
+func (p Pair) CompareRunoutRadialBand(ctx context.Context, phase, nutShift *big.Rat, radiusBand [2]*big.Rat, o geom.HelicalStartsLineOptions) (geom.HelicalRadialBandComparison, error) {
+	if ctx == nil || radiusBand[0] == nil || radiusBand[1] == nil || p.radialRange[0] == nil ||
+		radiusBand[0].Cmp(p.radialRange[0]) <= 0 || radiusBand[1].Cmp(p.radialRange[1]) >= 0 {
+		return geom.HelicalRadialBandComparison{}, geom.ErrInvalid
+	}
+	return geom.CompareHelicalRetainedRadialBand(ctx, p.shaftStarts, p.nutStarts, phase, nutShift, radiusBand, p.stockBands[0], p.stockBands[1], o)
+}

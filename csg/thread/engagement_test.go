@@ -74,3 +74,22 @@ func TestCompareRunoutPhaseWindow(t *testing.T) {
 		t.Fatal("cap-only contact must have no positive overlap", out, e)
 	}
 }
+
+func TestCompareRunoutRadialBand(t *testing.T) {
+	ctx := context.Background()
+	p, e := BuildPair(ctx, pairFixture(t, geom.LeftHanded), geom.SurfacePatchEvaluationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := [2]*big.Rat{big.NewRat(29, 16), big.NewRat(31, 16)}
+	phase := big.NewRat(1, 7)
+	out, e := p.CompareRunoutRadialBand(ctx, phase, new(big.Rat), r, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || out.NoPositiveOverlap || out.WitnessRadius == nil || !out.Witness.Overlap ||
+		out.WitnessRadius.Cmp(r[0]) < 0 || out.WitnessRadius.Cmp(r[1]) > 0 {
+		t.Fatal("missing exact interference radius", out, e)
+	}
+	out, e = p.CompareRunoutRadialBand(ctx, phase, big.NewRat(8, 1), r, geom.HelicalStartsLineOptions{})
+	if e != nil || !out.Complete || !out.NoPositiveOverlap || out.WitnessRadius != nil {
+		t.Fatal("separated radial band", out, e)
+	}
+}
