@@ -1,5 +1,13 @@
 # Verification record
 
+The [latest combined development run](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
+passed all 344 original tests on PlainCAD `50432ed` with clean combined kernel
+`178df69` and a real Go WASM build. All 841 pinned sources verified. The original
+suite ran for 43.9 minutes with zero skips, retries or failures. The staged
+project-open and display edits were independently replayed and checked by
+harness `6857a11`; no browser fixture or timeout was changed. This is separate
+from the independently successful integration worktree run below.
+
 The [earlier reconciled development baseline](evidence/plaincad-reconciled-development-baseline-2026-11-13.json)
 ran all 344 original cases on clean `c1ba0f3` with pinned PlainCAD
 `e65f07b`: 324 passed, 20 failed, and none skipped or retried. It
