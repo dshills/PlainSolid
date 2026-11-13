@@ -440,3 +440,32 @@ func TestOCCTFiniteTransverseBlindCylinderCut(t *testing.T) {
 		compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
 	}
 }
+
+func TestOCCTFiniteTransverseShoulderCylinderUnions(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Min: 0, Max: 4, Radius: 5}
+	for _, tc := range []struct {
+		name     string
+		min, max float64
+		faces    int
+	}{
+		{"finite-transverse-common-lower-union", -2.5, 0, 12},
+		{"finite-transverse-common-upper-union", -4, -1.5, 12},
+		{"finite-transverse-staggered-union", -5, -1, 14},
+		{"finite-transverse-nested-union", -2.5, -.5, 14},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := geom.RawCylinder{Origin: geom.Vec3{X: 4}, Axis: geom.Vec3{Z: -2}, Min: tc.min, Max: tc.max, Radius: 3}
+			r, err := parametric.FiniteCylinderPairUnion(ctx, a, b, 1e-8)
+			if err != nil || len(r.Solid.Faces()) != tc.faces || finiteOracleShellCount(r.Solid) != 1 {
+				t.Fatal("unexpected analytic shell", err)
+			}
+			m, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+			if err != nil {
+				t.Fatal(err)
+			}
+			compare(t, refs[tc.name], m.Area, m.Volume, m.Centroid)
+		})
+	}
+}

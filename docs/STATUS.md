@@ -605,6 +605,9 @@ appear on the retained crescent.
 One-ended cuts and interior side notches keep native lens floor patches on
 the original cutter cap planes. Exact axial ordering retains the original
 stock caps and the cutter wall across all three represented orientations.
+With transverse disks and positive axial overlap, union also retains
+native shoulders for one common cap, staggered spans, and nested spans.
+An exactly shared terminal lens has both original cap owners.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -656,6 +659,9 @@ surfaces must keep their geometry through the operation. Continue with:
    Both polynomial clips also retain oblique cuts when the exact cutter
    projection admits the same regular graph proof. All retained faces keep
    their original charts, including the oblique cutter cap.
+   A separate clip handles a single-span polynomial support with affine
+   projection and a linearly varying, nonzero dependent coefficient.
+   Its exact rational quadratic section remains on both original supports.
    General nonaffine crossings and tangencies remain unresolved.
    Two independently certified opposite parallel planes now form a retained
    slab. Both caps must lie strictly in the other kept halfspace; exact stock

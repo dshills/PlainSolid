@@ -222,6 +222,7 @@ int main(int argc, char** argv) {
     if(argc==3 && mode=="polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);polynomialGraphPlaneBooleans(out);return 0;}
     if(argc==3 && mode=="piecewise-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);piecewisePolynomialGraphPlaneBooleans(out);return 0;}
     if(argc==3 && mode=="oblique-polynomial-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);polynomialGraphPlaneBooleans(out,true);piecewisePolynomialGraphPlaneBooleans(out,true);return 0;}
+    if(argc==3 && mode=="rational-graph-plane"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);rationalGraphPlaneBooleans(out);return 0;}
     if(argc==3 && mode=="finite-cylinder-axial-cut"){
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-2,5),gp_Dir(0,0,-1)),2,9).Shape();
@@ -341,6 +342,14 @@ int main(int argc, char** argv) {
         int shells=0;for(TopExp_Explorer it(cut,TopAbs_SHELL);it.More();it.Next())++shells;
         if(shells!=1)throw std::runtime_error("transverse notch did not retain one shell");
         record(out,fixture.first==10?"finite-transverse-upper-notch":fixture.first==5?"finite-transverse-lower-notch":"finite-transverse-interior-notch",cut,1e-11);
+      }
+      for(auto fixture:std::array<std::pair<double,double>,4>{{{5,5},{8,5},{10,8},{5,4}}}){
+        const auto unionTool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(4,0,fixture.first),gp_Dir(0,0,-1)),3,fixture.second).Shape();
+        const auto fused=BRepAlgoAPI_Fuse(notchStock,unionTool).Shape();
+        int shells=0;for(TopExp_Explorer it(fused,TopAbs_SHELL);it.More();it.Next())++shells;
+        if(shells!=1)throw std::runtime_error("transverse shoulder union did not retain one shell");
+        const char* name=fixture.second==4?"finite-transverse-nested-union":fixture.first==5?"finite-transverse-common-lower-union":fixture.first==8?"finite-transverse-common-upper-union":"finite-transverse-staggered-union";
+        record(out,name,fused,1e-11);
       }
       const auto offsetWide=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,2,7),gp_Dir(0,0,-1)),5,11).Shape();
       const auto offsetNarrow=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,-6,3),gp_Dir(0,1,0)),3,14).Shape();

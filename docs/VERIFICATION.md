@@ -1129,6 +1129,14 @@ When the projection derivative changes at a knot, the cap uses each
 original knot cell's exact affine map. A fixture verifies the original
 `U=1/2` and model `X=3/8` junctions, independent piecewise-Jacobian mass
 integrals, and native reload.
+The regular rational graph fixture cuts the polynomial surface
+`Z=X/16+X²/32+(1+X)Y/4` at `Z=3/16`. Its nonconstant denominator is
+proved strictly positive, and both original trims retain the complete
+rational section. Independent integration gives common volume
+`49 ln(2)/512−69/2048`; OCCT agrees on area, volume and centroid for both
+Boolean results. Native reload and closed contact-free meshes pass.
+A denominator with an interior zero and a tampered trim with unchanged
+endpoints are rejected.
 
 A reverse-axis cylindrical cutter with a larger axial span independently
 qualifies the transverse crescent difference against OCCT area, volume, and
@@ -1140,6 +1148,11 @@ The upper and lower cuts retain two analytic floor patches; the interior
 notch retains four patches on the two original caps in original parameter
 order, including for a reversed cutter axis. Native tests also verify
 opposite floor normals, closed display meshes and no undeclared contacts.
+Independent OCCT union checks cover common lower and upper caps, staggered
+ends, and nested axial spans for intersecting transverse disks. All four
+native results agree on shell count, area, volume and centroid. Both
+operand orders and signed frames preserve the original cap ownership;
+common terminal lens fans retain both owners.
 
 Convex planar through hollowing retains a closed genus-one shell for a
 rectangular duct with four distinct wall thicknesses and for the corresponding

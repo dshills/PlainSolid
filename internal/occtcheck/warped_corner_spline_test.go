@@ -389,3 +389,68 @@ func TestOCCTObliquePolynomialSplinePlaneClip(t *testing.T) {
 		}
 	}
 }
+
+func TestOCCTRationalGraphSplinePlaneClip(t *testing.T) {
+	refs := runOracle(t, "rational-graph-plane")
+	ctx := context.Background()
+	var surfaces []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reversed []bool
+	for axis := range 3 {
+		u, v := (axis+1)%3, (axis+2)%3
+		for side := range 2 {
+			count := [2]int{2, 2}
+			if u == 0 {
+				count[0] = 3
+			}
+			if v == 0 {
+				count[1] = 3
+			}
+			var poles []geom.Vec3
+			for i := range count[0] {
+				for j := range count[1] {
+					p := [3]float64{}
+					p[axis], p[u], p[v] = float64(side), float64(i)/float64(count[0]-1), float64(j)/float64(count[1]-1)
+					a := p[0]/16 + p[0]*p[0]/32
+					if u == 0 {
+						a = [3]float64{0, 1. / 32, 3. / 32}[i]
+					} else if v == 0 {
+						a = [3]float64{0, 1. / 32, 3. / 32}[j]
+					}
+					poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2] + a + (1+p[0])*p[1]/4})
+				}
+			}
+			knots := func(n int) []float64 {
+				k := make([]float64, n*2)
+				for i := n; i < len(k); i++ {
+					k[i] = 1
+				}
+				return k
+			}
+			s, err := geom.NewBSplineSurface(count[0]-1, count[1]-1, count[0], count[1], poles, knots(count[0]), knots(count[1]), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			surfaces = append(surfaces, s)
+			domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+			reversed = append(reversed, side == 0)
+		}
+	}
+	stock, _, err := trimmed.SewSplineRectangles(ctx, surfaces, domains, reversed, trimmed.SewOptions{Tolerance: 1e-10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(float64, float64) float64 { return 0 })
+	for i, name := range []string{"rational-graph-plane-common", "rational-graph-plane-cut"} {
+		op := [2]parametric.BooleanOp{parametric.Intersection, parametric.Difference}[i]
+		r, err := trimmed.CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
+		if err != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 4 {
+			t.Fatal(name, "rational section topology", err)
+		}
+		m, err := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+	}
+}
