@@ -1111,6 +1111,13 @@ volume, canonical reload, and a single stock against the pinned OCCT fuse.
 Unequal coaxial union also retains the original annular step support for
 overlapping and exactly touching ends; canonical reload, analytic-bound
 mesh closure, and independent OCCT mass properties agree.
+Equal-cap parallel transverse sets compare signed cylinder placement, native
+recipe reload, original cap ancestry, and area, volume, and centroid against
+OCCT. Near tangencies and differing caps remain outside this path.
+The native two-radius stepped cylinder can also round-trip through STEP from
+its proved complete revolution boundary. Both signed axial orientations retain
+the analytic annular cap, units, name, and mass. OCCT independently reads the
+export; unsupported boundaries publish no STEP bytes.
 Eccentric blind-bore fixtures cover both axial entries, signed and scaled
 axes, and cutter caps coincident with or beyond the entry. They verify exact
 mass identities, native reload, floor ancestry, rejection of grazing cuts,

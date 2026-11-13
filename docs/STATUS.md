@@ -597,6 +597,8 @@ Equal-radius coaxial stock with overlapping or coincident end spans now
 joins as one cylinder, retaining the original exposed caps and wall owners.
 Unequal coaxial stock preserves an analytic step where the larger disk ends,
 including annular cap ancestry and exact common volume.
+Coordinate-parallel cylinders with identical cap planes and a transverse
+disk crossing retain the analytic union or cut with signed cap ancestry.
 
 STEP inspection for the retained off-axis bore now verifies its oriented
 incidence graph, exact one-turn winding, both continuous spline lift bounds,
@@ -627,7 +629,9 @@ surfaces must keep their geometry through the operation. Continue with:
    supports and handle curved edge-edge crossings, tangencies and coincident
    intervals. Exact Bernstein signs now certify isolated corner contacts
    of supported affine graph pairs; use that evidence for source vertex
-   ownership before accepting transverse vertex fans in assembly.
+   ownership before accepting transverse vertex fans in assembly. A complete
+   bounded fixture now proves all original face pairs and an oriented section
+   cycle with the existing corner vertex and three edge-interior events.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

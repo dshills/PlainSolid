@@ -308,3 +308,33 @@ func TestOCCTFiniteCoaxialSteppedCylinderUnion(t *testing.T) {
 		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
 	}
 }
+
+func TestOCCTFiniteParallelTransverseCylinderSets(t *testing.T) {
+	refs := runOracle(t, "finite-cylinder-sets")
+	ctx := context.Background()
+	a := geom.RawCylinder{Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -2, Max: 2}
+	b := geom.RawCylinder{Origin: geom.Vec3{X: 5, Y: 2, Z: 3}, Axis: geom.Vec3{Z: 4}, Radius: 3, Min: -1, Max: 1}
+	check := func(name string, s parametric.Solid) {
+		t.Helper()
+		if finiteOracleShellCount(s) != 1 {
+			t.Fatal(name, "expected one shell")
+		}
+		m, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		compare(t, refs[name], m.Area, m.Volume, m.Centroid)
+	}
+	for _, pair := range [][2]geom.RawCylinder{{a, b}, {b, a}} {
+		u, err := parametric.FiniteCylinderPairUnion(ctx, pair[0], pair[1], 1e-9)
+		if err != nil {
+			t.Fatal(err)
+		}
+		check("finite-parallel-transverse-union", u.Solid)
+	}
+	d, err := parametric.FiniteCylinderPairDifference(ctx, a, b, 1e-9)
+	if err != nil || len(d.Solids[1].Faces()) != 0 {
+		t.Fatal("expected one retained stock", err)
+	}
+	check("finite-parallel-transverse-cut", d.Solids[0])
+}
