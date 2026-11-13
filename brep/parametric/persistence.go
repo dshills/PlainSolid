@@ -209,8 +209,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case steinmetzExteriorCylinder:
 		return surfaceData{Kind: "steinmetz-exterior-cylinder", Center: &x.center, A: x.radius, B: x.end, Steinmetz: &[2]int{x.side, x.sign}}, nil
 	case steinmetzDualCapChart:
-		d := &steinmetzDualCapData{Axis: x.axis, Side: x.side}
-		if x.caps[0][0] == -x.radius && x.caps[1][0] == -x.radius && x.caps[0][1] < x.radius && x.caps[1][1] < x.radius {
+		d := &steinmetzDualCapData{Axis: x.axis, Side: x.side, Large: x.large, WideAxis: x.wideAxis}
+		if x.large == 0 && x.caps[0][0] == -x.radius && x.caps[1][0] == -x.radius && x.caps[0][1] < x.radius && x.caps[1][1] < x.radius {
 			d.Caps = [2]float64{x.caps[0][1], x.caps[1][1]}
 			d.Fixed = [2]bool{x.fixed[0][1], x.fixed[1][1]}
 		} else {
@@ -545,7 +545,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			}
 			w, c = *x.Windows, *x.Clipped
 		}
-		s := steinmetzDualCapChart{*d.Center, d.A, w, c, x.Axis, x.Side}
+		s := steinmetzDualCapChart{center: *d.Center, radius: d.A, large: x.Large, wideAxis: x.WideAxis, caps: w, fixed: c, axis: x.Axis, side: x.Side}
 		if !s.valid() {
 			return nil, geom.ErrInvalid
 		}

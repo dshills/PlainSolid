@@ -12,6 +12,10 @@ import (
 // that every remaining contact belongs to at least one supplied local tube.
 // MaxCandidateTests defaults to 512; each cell also has its own proof limits.
 type SplineTubeCoverageOptions struct {
+	// OverlappingAffineXYFallback retries through exact projected overlap,
+	// excluding omitted domains only by exact graph projection. Each clipping
+	// and cell proof retains its own arithmetic limits.
+	OverlappingAffineXYFallback bool
 	// ProjectedAffineFallback retries unresolved coverage in ProjectionAxes,
 	// ordered distinct model components (0=X,1=Y,2=Z). No default axes are inferred.
 	ProjectedAffineFallback bool
@@ -135,6 +139,16 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 		}
 		if !p.Covered && o.ProjectedAffineFallback {
 			mapped, me := geom.CertifyProjectedAffineSurfacePairCellInTubes(ctx, pa, pb, candidate, available, o.ProjectionAxes, o.Cell)
+			if me == nil && mapped.Covered {
+				p = mapped
+			}
+			if me != nil && !errors.Is(me, geom.ErrConvergence) && !errors.Is(me, geom.ErrUnrepresentable) && !errors.Is(me, geom.ErrDomain) && !errors.Is(me, geom.ErrInvalid) {
+				return r, me
+			}
+		}
+
+		if !p.Covered && o.OverlappingAffineXYFallback {
+			mapped, me := certifyOverlapCell(ctx, pa, pb, candidate, available, o.Cell)
 			if me == nil && mapped.Covered {
 				p = mapped
 			}

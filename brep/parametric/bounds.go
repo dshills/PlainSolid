@@ -179,6 +179,13 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		}
 		// Rounded split angles can leave a chart endpoint a few ulps past a cap.
 		x, y, z = scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}, scalarBounds{-a.radius, a.radius}
+		if a.large > 0 {
+			if a.wideAxis == 0 {
+				x = scalarBounds{-a.large, a.large}
+			} else {
+				z = scalarBounds{-a.large, a.large}
+			}
+		}
 	case steinmetzSlabChart:
 		if !a.valid() || u.Min < -math.Pi/2 || u.Max > math.Pi/2 || v.Min < 0 || v.Max > 1 {
 			return geom.Box{}, geom.ErrDomain

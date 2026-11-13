@@ -30,25 +30,11 @@ func PerpendicularCylinderAlgebraicCap(ctx context.Context, center geom.Vec3, ra
 	if _, e := PerpendicularCylinderCommon(ctx, center, radius, xOtherHalfLength, zHalfLength, tolerance); e != nil {
 		return fail(e)
 	}
-	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
-	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
-	delta := new(big.Rat).Sub(sq(q(radius)), sq(q(cap)))
-	root, e := geom.ImportExactRoot(ctx, geom.ExactRootRecipe{Version: 1, Coefficients: []string{new(big.Rat).Neg(delta).RatString(), "0", "1"}, Lower: "0", Upper: q(radius).RatString()}, geom.ExactRootCodecOptions{ExactCurvePlaneEventOptions: o})
+	root, interval, rounded, e := encloseSteinmetzCapOrdinate(ctx, radius, cap, tolerance, o)
 	if e != nil {
 		return fail(e)
 	}
-	enc, e := root.Enclose(ctx, new(big.Rat).Quo(q(tolerance), big.NewRat(64, 1)), o)
-	if e != nil {
-		return fail(e)
-	}
-	if !enc.Converged {
-		return fail(geom.ErrConvergence)
-	}
-	lo, hi := enc.Interval.Lower, enc.Interval.Upper
-	rounded, _ := new(big.Rat).Quo(new(big.Rat).Add(lo, hi), big.NewRat(2, 1)).Float64()
-	if !finite(rounded) || rounded <= 0 {
-		return fail(geom.ErrConvergence)
-	}
+	lo, hi := interval.Lower, interval.Upper
 	proof, e := buildPositiveSteinmetzCap(ctx, center, radius, math.Abs(cap), tolerance, rounded, lo, hi)
 	if e != nil {
 		return fail(e)
@@ -61,4 +47,28 @@ func PerpendicularCylinderAlgebraicCap(ctx context.Context, center geom.Vec3, ra
 		proof = SteinmetzPositiveCap(negative)
 	}
 	return AlgebraicSteinmetzCap{SteinmetzPositiveCap: proof, OrdinateRoot: root, OrdinateInterval: geom.ExactParameterInterval{Lower: new(big.Rat).Set(lo), Upper: new(big.Rat).Set(hi)}}, nil
+}
+
+// encloseSteinmetzCapOrdinate isolates sqrt(radius²-cap²) in source units.
+func encloseSteinmetzCapOrdinate(ctx context.Context, radius, cap, tolerance float64, o geom.ExactCurvePlaneEventOptions) (*geom.ExactAlgebraicRoot, *geom.ExactParameterInterval, float64, error) {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	delta := new(big.Rat).Sub(sq(q(radius)), sq(q(cap)))
+	root, e := geom.ImportExactRoot(ctx, geom.ExactRootRecipe{Version: 1, Coefficients: []string{new(big.Rat).Neg(delta).RatString(), "0", "1"}, Lower: "0", Upper: q(radius).RatString()}, geom.ExactRootCodecOptions{ExactCurvePlaneEventOptions: o})
+	if e != nil {
+		return nil, nil, 0, e
+	}
+	enc, e := root.Enclose(ctx, new(big.Rat).Quo(q(tolerance), big.NewRat(64, 1)), o)
+	if e != nil {
+		return nil, nil, 0, e
+	}
+	if !enc.Converged {
+		return nil, nil, 0, geom.ErrConvergence
+	}
+	lo, hi := enc.Interval.Lower, enc.Interval.Upper
+	rounded, _ := new(big.Rat).Quo(new(big.Rat).Add(lo, hi), big.NewRat(2, 1)).Float64()
+	if !finite(rounded) || rounded <= 0 {
+		return nil, nil, 0, geom.ErrConvergence
+	}
+	return root, &geom.ExactParameterInterval{Lower: lo, Upper: hi}, rounded, nil
 }
