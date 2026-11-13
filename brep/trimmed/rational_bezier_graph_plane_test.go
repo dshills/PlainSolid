@@ -1,0 +1,237 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"math"
+	"math/big"
+	"testing"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/collision"
+	"plainsolid/geom"
+)
+
+// The lower and upper graphs are Z=X^degree/16+(1+X)Y/4+W.
+// Degree four control grids represent X^3 as well as X^4 exactly.
+func rationalBezierGraphStock(t *testing.T, degree int) Solid {
+	t.Helper()
+	var faces []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reversed []bool
+	knots := []float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}
+	for axis := range 3 {
+		u, v := (axis+1)%3, (axis+2)%3
+		for side := range 2 {
+			var poles []geom.Vec3
+			for i := range 5 {
+				for j := range 5 {
+					p := [3]float64{}
+					p[axis], p[u], p[v] = float64(side), float64(i)/4, float64(j)/4
+					k := int(4 * p[0])
+					xp := float64(polynomialChoose(k, degree)) / float64(polynomialChoose(4, degree))
+					p[2] += xp/16 + (1+p[0])*p[1]/4
+					poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2]})
+				}
+			}
+			s, err := geom.NewBSplineSurface(4, 4, 5, 5, poles, knots, knots, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			faces = append(faces, s)
+			domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+			reversed = append(reversed, side == 0)
+		}
+	}
+	s, _, err := SewSplineRectangles(context.Background(), faces, domains, reversed, SewOptions{Tolerance: 1e-10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestRationalBezierGraphPlaneClip(t *testing.T) {
+	ctx := context.Background()
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	for _, n := range []int{3, 4} {
+		t.Run(fmt.Sprint(n), func(t *testing.T) {
+			stock := rationalBezierGraphStock(t, n)
+			// Integrate between the original lower graph and the cutter.
+			// I and J integrate x^k/(1+x) and x^k/(1+x)^2 respectively.
+			I, J := [14]float64{math.Log(2)}, [14]float64{.5}
+			for k := 1; k < len(I); k++ {
+				I[k] = 1/float64(k) - I[k-1]
+				J[k] = I[k-1] - J[k-1]
+			}
+			v := (9*I[0] - 6*I[n] + I[2*n]) / 128
+			first := geom.Vec3{
+				X: (9*I[1] - 6*I[n+1] + I[2*n+1]) / 128,
+				Y: (27*J[0] - 27*J[n] + 9*J[2*n] - J[3*n]) / 1536,
+				Z: (3./16)*v - (27*I[0]-27*I[n]+9*I[2*n]-I[3*n])/6144,
+			}
+			for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+				res, err := CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, SplineRectangleEmbeddingOptions{})
+				if err != nil {
+					t.Fatal(op, err)
+				}
+				wantV, wantM := v, first
+				if op == parametric.Difference {
+					wantV, wantM = 1-v, (geom.Vec3{X: .5, Y: .5, Z: 11./16 + 1/float64(16*(n+1))}).Sub(first)
+				}
+				mass, err := res.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+				if err != nil || math.Abs(mass.Volume-wantV) > 1e-8 || mass.Centroid.Sub(wantM.Scale(1/wantV)).Length() > 1e-8 {
+					t.Fatal("independent mass", mass, err, wantV, wantM.Scale(1/wantV))
+				}
+				if len(res.SectionEdges) != 4 || res.Solid.Topology().EulerCharacteristic != 2 {
+					t.Fatal("section topology", res.Solid.Topology())
+				}
+				bottomID := res.StockFaces[4][0]
+				bottom := res.Solid.faces[bottomID]
+				if bottom.Surface != stock.faces[4].Surface || res.Solid.faces[res.ToolFaces[5][0]].Surface != tool.faces[5].Surface {
+					t.Fatal("changed original support")
+				}
+				found := false
+				for _, u := range bottom.Outer {
+					q, ok := u.Curve.(ExactBezierUV)
+					if !ok {
+						continue
+					}
+					if found || len(q.control) != n+1 {
+						t.Fatal("wrong section degree or duplicate section")
+					}
+					found = true
+					uv, duv, err := q.EvaluateRational(big.NewRat(1, 7))
+					if err != nil {
+						t.Fatal(err)
+					}
+					x, y := uv[0], uv[1]
+					xPow, xPrev := big.NewRat(1, 1), big.NewRat(1, 1)
+					for range n - 1 {
+						xPrev.Mul(xPrev, x)
+					}
+					xPow.Mul(xPrev, x)
+					den := new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Add(big.NewRat(1, 1), x))
+					if new(big.Rat).Mul(den, y).Cmp(new(big.Rat).Sub(big.NewRat(3, 1), xPow)) != 0 {
+						t.Fatal("exact UV residual", uv)
+					}
+					dh := new(big.Rat).Add(new(big.Rat).Mul(big.NewRat(int64(n), 1), xPrev), new(big.Rat).Mul(big.NewRat(4, 1), y))
+					if new(big.Rat).Add(new(big.Rat).Mul(dh, duv[0]), new(big.Rat).Mul(den, duv[1])).Sign() != 0 {
+						t.Fatal("exact UV derivative residual", uv, duv)
+					}
+				}
+				if !found {
+					t.Fatal("missing graph trim")
+				}
+				var b bytes.Buffer
+				if err = WriteJSON(&b, res.Solid); err != nil {
+					t.Fatal(err)
+				}
+				loaded, err := ReadJSONContext(ctx, bytes.NewReader(b.Bytes()), JSONLimits{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				m, err := loaded.Tessellate(ctx, parametric.TessellationOptions{Deflection: .02})
+				if err != nil || m.ValidateSolid() != nil {
+					t.Fatal("native mesh closure", err)
+				}
+				c, err := collision.SelfIntersectionsBVHContext(ctx, m, collision.Options{})
+				if err != nil || !c.Complete || len(c.Contacts) != 0 {
+					t.Fatal("native mesh contacts", c, err)
+				}
+				if n == 4 && op == parametric.Intersection {
+					var data nativeSolid
+					if err = json.Unmarshal(b.Bytes(), &data); err != nil || data.Version != 6 {
+						t.Fatal("native version", data.Version, err)
+					}
+					data.Version = 5
+					prior, _ := json.Marshal(data)
+					if _, err = ReadJSONContext(ctx, bytes.NewReader(prior), JSONLimits{}); err == nil {
+						t.Fatal("older native schema accepted a new trim tag")
+					}
+					data.Version = 6
+					for _, u := range data.Faces[bottomID].Outer {
+						if len(u.ExactBezier) != 0 {
+							p, _ := new(big.Rat).SetString(u.ExactBezier[1][1])
+							u.ExactBezier[1][1] = p.Add(p, big.NewRat(1, 1<<45)).RatString()
+						}
+					}
+					bad, _ := json.Marshal(data)
+					if _, err = ReadJSONContext(ctx, bytes.NewReader(bad), JSONLimits{}); err == nil {
+						t.Fatal("inexact coedge accepted after a sub-tolerance interior change")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestNativeExactTrimCoefficientBounds(t *testing.T) {
+	for _, raw := range []string{"1e999999999999", "0x10", "01/2", "2/4", "-0", "1/0", "+1"} {
+		if _, e := parseNativeExactTrimCoefficient(raw); e == nil {
+			t.Errorf("accepted noncanonical or oversized coefficient %q", raw)
+		}
+	}
+	if r, e := parseNativeExactTrimCoefficient("-2/3"); e != nil || r.Cmp(big.NewRat(-2, 3)) != 0 {
+		t.Fatal("canonical signed coordinate", r, e)
+	}
+}
+
+func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
+	ctx := context.Background()
+	base := rationalBezierGraphStock(t, 3)
+	var faces []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reversed []bool
+	for i, f := range base.faces {
+		s := f.Surface.(*geom.BSplineSurface)
+		var e error
+		switch i {
+		case 2, 3:
+			s, e = s.InsertVKnot(.5, 4)
+		case 4, 5:
+			s, e = s.InsertUKnot(.5, 4)
+		}
+		if e != nil {
+			t.Fatal(e)
+		}
+		d := s.Data()
+		for j := range d.Poles {
+			d.Poles[j].Z += math.Abs(d.Poles[j].X-.5) / 64
+		}
+		s, e = geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
+		if e != nil {
+			t.Fatal(e)
+		}
+		faces = append(faces, s)
+		domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+		reversed = append(reversed, f.Reversed)
+	}
+	stock, _, e := SewSplineRectangles(ctx, faces, domains, reversed, SewOptions{Tolerance: 1e-10})
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 1. / 8}, 0)
+	r, e := CombinePiecewiseRationalGraphSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, PolynomialPlaneSpanOptions{})
+	if e != nil || len(r.Knots) != 2 || len(r.SectionEdges) != 6 {
+		t.Fatal("piecewise cubic result", e)
+	}
+	for _, k := range r.Knots {
+		if k.Edges[0] == k.Edges[1] || k.Point[0].Cmp(big.NewRat(1, 2)) != 0 || k.Point[2].Cmp(big.NewRat(1, 8)) != 0 {
+			t.Fatal("invalid cubic knot ownership", k)
+		}
+		if k.Face == 4 && k.Point[1].Cmp(big.NewRat(5, 16)) != 0 {
+			t.Fatal("incorrect exact cubic junction", k)
+		}
+	}
+	pieces := 0
+	for _, u := range r.Solid.faces[r.StockFaces[4][0]].Outer {
+		if q, ok := u.Curve.(ExactBezierUV); ok && len(q.control) == 4 {
+			pieces++
+		}
+	}
+	if pieces != 2 {
+		t.Fatal("source knot should retain one cubic trim on either side", pieces)
+	}
+}

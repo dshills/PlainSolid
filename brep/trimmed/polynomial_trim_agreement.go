@@ -17,6 +17,11 @@ func polynomialTrimDescriptor(ctx context.Context, c PCurve, reverse bool, o geo
 			h[0], h[2] = h[2], h[0]
 		}
 		return exactQuadraticTrimParameterCurve(ctx, h, o)
+	case ExactBezierUV:
+		if reverse {
+			q = q.reversed()
+		}
+		return q.descriptor(ctx, o)
 	case SplineUV:
 		if q.Curve == nil || q.Curve.Degree() < 1 || q.Curve.Degree() > 4 || q.Range != (UVInterval{Max: 1}) {
 			return nil, geom.ErrConvergence
@@ -99,7 +104,7 @@ func compareSewPolynomialTrims(ctx context.Context, a, b parametric.Edge, revers
 	}
 	supported := func(c PCurve) bool {
 		switch q := c.(type) {
-		case ExactQuadraticUV:
+		case ExactQuadraticUV, ExactBezierUV:
 			return true
 		case SplineUV:
 			if q.Curve == nil || q.Curve.Degree() < 1 || q.Curve.Degree() > 4 || q.Range != (UVInterval{Max: 1}) {
@@ -123,9 +128,14 @@ func compareSewPolynomialTrims(ctx context.Context, a, b parametric.Edge, revers
 		}
 		return false
 	}
-	_, xok := x.curve.(SplineUV)
-	_, yok := y.curve.(SplineUV)
-	if !xok && !yok {
+	higher := func(c PCurve) bool {
+		switch c.(type) {
+		case SplineUV, ExactBezierUV:
+			return true
+		}
+		return false
+	}
+	if !higher(x.curve) && !higher(y.curve) {
 		return false, nil
 	}
 	if !supported(x.curve) || !supported(y.curve) || a.Range != (parametric.Interval{Max: 1}) || b.Range != (parametric.Interval{Max: 1}) {

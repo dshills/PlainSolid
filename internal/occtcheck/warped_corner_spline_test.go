@@ -2,6 +2,7 @@ package occtcheck
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -397,6 +398,61 @@ func TestOCCTRationalGraphSplinePlaneClip(t *testing.T) {
 
 func TestOCCTPiecewiseRationalGraphSplinePlaneClip(t *testing.T) {
 	testOCCTRationalGraphSplinePlaneClip(t, true)
+}
+
+func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
+	refs := runOracle(t, "rational-bezier-graph-plane")
+	ctx := context.Background()
+	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(float64, float64) float64 { return 0 })
+	k := []float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}
+	for _, degree := range []int{3, 4} {
+		var surfaces []*geom.BSplineSurface
+		var domains []geom.ParameterRectangle
+		var reversed []bool
+		for axis := range 3 {
+			u, v := (axis+1)%3, (axis+2)%3
+			for side := range 2 {
+				var poles []geom.Vec3
+				for i := range 5 {
+					for j := range 5 {
+						p := [3]float64{}
+						p[axis], p[u], p[v] = float64(side), float64(i)/4, float64(j)/4
+						z := 0.
+						switch {
+						case p[0] == 1:
+							z = 1. / 16
+						case degree == 3 && p[0] == .75:
+							z = 1. / 64
+						}
+						poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2] + z + (1+p[0])*p[1]/4})
+					}
+				}
+				s, e := geom.NewBSplineSurface(4, 4, 5, 5, poles, k, k, nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				surfaces = append(surfaces, s)
+				domains = append(domains, geom.ParameterRectangle{UMax: 1, VMax: 1})
+				reversed = append(reversed, side == 0)
+			}
+		}
+		stock, _, e := trimmed.SewSplineRectangles(ctx, surfaces, domains, reversed, trimmed.SewOptions{Tolerance: 1e-10})
+		if e != nil {
+			t.Fatal(e)
+		}
+		for i, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+			key := fmt.Sprintf("rational-bezier-%d-%s", degree, [2]string{"common", "cut"}[i])
+			r, e := trimmed.CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
+			if e != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 4 || refs[key].Shells != 1 {
+				t.Fatal(key, "rational section topology", e)
+			}
+			mass, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			if e != nil {
+				t.Fatal(e)
+			}
+			compare(t, refs[key], mass.Area, mass.Volume, mass.Centroid)
+		}
+	}
 }
 
 func testOCCTRationalGraphSplinePlaneClip(t *testing.T, crease bool) {

@@ -33,7 +33,7 @@ func CombinePiecewisePolynomialSplinePlaneClip(ctx context.Context, stock, tool 
 }
 
 // CombinePiecewiseRationalGraphSplinePlaneClip permits a regular polynomial
-// or rational-quadratic graph on each original free-axis knot span. It retains
+// or rational Bézier graph of degree at most four on each original free-axis knot span. It retains
 // both neighboring section edges at each exact original knot junction.
 // The same embedding, full-seam and section limits as the polynomial clip
 // apply. Rational sections add one bounded coefficient check per span.
