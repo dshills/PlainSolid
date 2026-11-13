@@ -980,3 +980,8 @@ The chord-centered counterpart covers lenses containing neither circle
 center. It agrees with the tool-centered chart where both apply and with
 OCCT for a narrower lens beyond the tool axis. Native reload and mesh
 closure/self-contact tests also pass for the chord-centered shell.
+
+The double-lens shell keeps separate algebraic cap points at shared angular
+stations and handles unequal lens radii. Independent polar volume integration,
+native reload and sampled mesh closure pass. OCCT compares area, volume and
+centroid for an asymmetric pair of partial caps.

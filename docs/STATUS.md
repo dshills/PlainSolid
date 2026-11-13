@@ -444,7 +444,9 @@ Finite off-axis intersection now assembles full planar or spherical ends
 when the cap planes do not cut part of a curved rim. A separate native
 partial-cap construction handles one transverse upper lens and a full lower
 disk, even when the upper lens excludes both circle centers. Exact cap and material point/line classifiers
-cover broader partial cuts. General curved fragment assembly remains open.
+cover broader partial cuts. Two transverse partial caps on opposite sides
+of the equator now have native shell assembly, including unequal lens radii.
+General curved fragment assembly remains open.
 
 ## Continuing implementation
 

@@ -193,6 +193,13 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		f = a.frame
 		x, y = scalarBounds{-a.r, upAdd(a.offset, a.r)}, scalarBounds{-a.r, a.r}
 		z = scalarBounds{a.lower, a.upper}
+	case offsetDoubleCommon:
+		if u.Min < 0 || u.Max > 2*math.Pi || v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		f = a.frame
+		x, y = scalarBounds{-a.r, upAdd(a.d, a.r)}, scalarBounds{-a.r, a.r}
+		z = scalarBounds{a.lower, a.upper}
 	case geom.TorusSurface:
 		frame, r, t := a.Parameters()
 		f = frame
