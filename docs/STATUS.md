@@ -21,9 +21,14 @@ after four bores, island pocket, circular face boss, compound profiles,
 opposite cap treatments, XY feature addition and separated rotated
 collision. Authored circle measurement and all three circular rim
 regressions pass in a separate four-case run. The 40-body rotary fixture now passes cold load, rename and platter edit.
-The original exact Join/Cut and Hole Edit with downstream chamfer also
-pass. The full development baseline continues. Known open cases include
-multi-body corner cuts and current PlainCAD's ORBIT close-up display.
+The original exact Join/Cut, Hole Edit with downstream chamfer, multi-body
+corner cuts and moved projected cut pass. All 18 originals in the retained
+reference and workspace retest pass, including Parts Browser and AI To Face.
+The current ORBIT model passes the original close-up, Render and gesture PNG
+tests after the display worker reuses accepted native features. The three
+original signed profile-edge cases also pass on XY, XZ and YZ. The original
+development baseline continues. Active gaps include pocket and Hole lineage,
+fine lead-screw tessellation, and STEP round-trip of machined stock.
 See [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
