@@ -24,7 +24,8 @@ func CombinePolynomialSplinePlaneClip(ctx context.Context, stock, tool Solid, ac
 
 // CombineRationalGraphSplinePlaneClip additionally accepts single-span
 // polynomial supports with a cutter residual A(s)+B(s)t, where the free-axis
-// degree of A is at most four and B is affine and never zero. The original
+// degree of A is at most four, and B is a polynomial of degree at most two
+// with a proved nonzero sign. The original
 // surface is unchanged; the section is an exact rational Bézier trim in both
 // original UV charts. The section endpoints must still be representable.
 func CombineRationalGraphSplinePlaneClip(ctx context.Context, stock, tool Solid, active int, op parametric.BooleanOp, o SplineRectangleEmbeddingOptions) (SplineCornerPlaneClip, error) {

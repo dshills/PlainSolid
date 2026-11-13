@@ -18,6 +18,14 @@ import (
 // Degree four control grids represent X^3 as well as X^4 exactly.
 func rationalBezierGraphStock(t *testing.T, degree int) Solid {
 	t.Helper()
+	return rationalBezierGraphStockFrom(t, func(k int, y float64) float64 {
+		xp := float64(polynomialChoose(k, degree)) / float64(polynomialChoose(4, degree))
+		return xp/16 + (1+float64(k)/4)*y/4
+	})
+}
+
+func rationalBezierGraphStockFrom(t *testing.T, height func(int, float64) float64) Solid {
+	t.Helper()
 	var faces []*geom.BSplineSurface
 	var domains []geom.ParameterRectangle
 	var reversed []bool
@@ -31,8 +39,7 @@ func rationalBezierGraphStock(t *testing.T, degree int) Solid {
 					p := [3]float64{}
 					p[axis], p[u], p[v] = float64(side), float64(i)/4, float64(j)/4
 					k := int(4 * p[0])
-					xp := float64(polynomialChoose(k, degree)) / float64(polynomialChoose(4, degree))
-					p[2] += xp/16 + (1+p[0])*p[1]/4
+					p[2] += height(k, p[1])
 					poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2]})
 				}
 			}
@@ -50,6 +57,63 @@ func rationalBezierGraphStock(t *testing.T, degree int) Solid {
 		t.Fatal(err)
 	}
 	return s
+}
+
+func TestRationalGraphPlaneQuadraticDenominator(t *testing.T) {
+	ctx := context.Background()
+	stock := rationalBezierGraphStockFrom(t, func(k int, y float64) float64 {
+		return (1 + float64(polynomialChoose(k, 2))/2) * y / 4
+	})
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	// Lower graph Z=(1+3X²)Y/4 gives cutter Y=3/(4(1+3X²)).
+	// Integrate the vertical wedge without using its curve or surface nodes.
+	i := math.Pi / (3 * math.Sqrt(3))
+	v := 9 * i / 128
+	moment := geom.Vec3{X: 3 * math.Log(4) / 256, Y: 9 * (i + .25) / 1024, Z: v / 8}
+	for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+		r, e := CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, SplineRectangleEmbeddingOptions{})
+		if e != nil || len(r.SectionEdges) != 4 {
+			t.Fatal("quadratic-denominator section", e)
+		}
+		want, first := v, moment
+		if op == parametric.Difference {
+			want, first = 1-v, (geom.Vec3{X: .5, Y: .5, Z: .75}).Sub(moment)
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		if e != nil || math.Abs(m.Volume-want) > 1e-8 || m.Centroid.Sub(first.Scale(1/want)).Length() > 1e-8 {
+			t.Fatal("independent quadratic-denominator integral", m, e, want, first.Scale(1/want))
+		}
+		found := false
+		for _, u := range r.Solid.faces[r.StockFaces[4][0]].Outer {
+			if q, ok := u.Curve.(ExactBezierUV); ok {
+				p, _, e := q.EvaluateRational(big.NewRat(3, 11))
+				if e != nil || len(q.control) != 4 {
+					t.Fatal("expected exact rational cubic", e)
+				}
+				x2 := new(big.Rat).Mul(p[0], p[0])
+				b := new(big.Rat).Add(big.NewRat(4, 1), new(big.Rat).Mul(big.NewRat(12, 1), x2))
+				if new(big.Rat).Mul(b, p[1]).Cmp(big.NewRat(3, 1)) != 0 {
+					t.Fatal("trim does not solve the exact quadratic denominator", p)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("native trim absent")
+		}
+	}
+	// Same-sign endpoints do not establish the sign of a quadratic. This
+	// chart has B=3(2X-1)^2/4, so it must fail before any UV trim is returned.
+	singular := rationalBezierGraphStockFrom(t, func(k int, y float64) float64 {
+		return (3 - 3*float64(k) + 2*float64(polynomialChoose(k, 2))) * y / 4
+	})
+	p, _, e := singular.splineEmbeddingFace(ctx, singular.faces[4], SplineRectangleEmbeddingOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if q, _, e := rationalGraphPlaneTrim(p.patch, horizontalPolynomialPlane(big.NewRat(3, 16)), 0); q != nil || e != geom.ErrConvergence {
+		t.Fatal("accepted an interior double zero in the denominator", e)
+	}
 }
 
 func TestRationalBezierGraphPlaneClip(t *testing.T) {

@@ -405,7 +405,7 @@ func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
 	ctx := context.Background()
 	tool, _ := oracleSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, func(float64, float64) float64 { return 0 })
 	k := []float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}
-	for _, degree := range []int{3, 4} {
+	for _, degree := range []int{3, 4, 0} {
 		var surfaces []*geom.BSplineSurface
 		var domains []geom.ParameterRectangle
 		var reversed []bool
@@ -418,13 +418,17 @@ func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
 						p := [3]float64{}
 						p[axis], p[u], p[v] = float64(side), float64(i)/4, float64(j)/4
 						z := 0.
+						linear := (1 + p[0]) / 4
 						switch {
+						case degree == 0:
+							a := int(4 * p[0])
+							linear = .25 + float64(a*(a-1))/16
 						case p[0] == 1:
 							z = 1. / 16
 						case degree == 3 && p[0] == .75:
 							z = 1. / 64
 						}
-						poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2] + z + (1+p[0])*p[1]/4})
+						poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2] + z + linear*p[1]})
 					}
 				}
 				s, e := geom.NewBSplineSurface(4, 4, 5, 5, poles, k, k, nil)
@@ -441,7 +445,11 @@ func TestOCCTRationalBezierGraphPlaneClip(t *testing.T) {
 			t.Fatal(e)
 		}
 		for i, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
-			key := fmt.Sprintf("rational-bezier-%d-%s", degree, [2]string{"common", "cut"}[i])
+			tag := fmt.Sprint(degree)
+			if degree == 0 {
+				tag = "denominator"
+			}
+			key := "rational-bezier-" + tag + "-" + [2]string{"common", "cut"}[i]
 			r, e := trimmed.CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, op, trimmed.SplineRectangleEmbeddingOptions{})
 			if e != nil || len(r.Solid.Topology().Shells) != 1 || len(r.SectionEdges) != 4 || refs[key].Shells != 1 {
 				t.Fatal(key, "rational section topology", e)

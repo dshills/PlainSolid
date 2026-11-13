@@ -181,4 +181,17 @@ static void rationalBezierGraphPlaneBooleans(std::ostream& out){
   splineShellRecord(out,(prefix+"-common").c_str(),BRepAlgoAPI_Common(stock,tool).Shape());
   splineShellRecord(out,(prefix+"-cut").c_str(),BRepAlgoAPI_Cut(stock,tool).Shape());
  }
+ // Author the separate quadratic-denominator fixture in degree two. Its
+ // Y derivative is (1+3X²)/4; the test kernel uses a degree-elevated chart.
+ NCollection_Array2<gp_Pnt> poles(1,3,1,2);
+ NCollection_Array1<int> qm(1,2);qm.Init(3);
+ for(int i=1;i<=3;++i)for(int j=1;j<=2;++j){
+  const double x=(i-1)/2.,y=j-1;
+  poles.SetValue(i,j,gp_Pnt(x,y,(i==3?1.:1./4)*y));
+ }
+ occ::handle<Geom_BSplineSurface> sheet=new Geom_BSplineSurface(poles,knots,knots,qm,ym,2,1);
+ const auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(sheet,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ if(!BRepCheck_Analyzer(stock).IsValid())throw std::runtime_error("invalid independent quadratic denominator stock");
+ splineShellRecord(out,"rational-bezier-denominator-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,"rational-bezier-denominator-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
 }

@@ -18,7 +18,7 @@ func graphPlaneTrimEquation(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 
 // rationalGraphPlaneTrim handles a single polynomial knot cell with an
 // affine projection and plane residual A(s)+B(s)t, where deg(A) <= 4 and
-// deg(B) == 1. Positive homogeneous Bernstein controls certify that B
+// 1 <= deg(B) <= 2. Positive homogeneous Bernstein controls certify that B
 // never vanishes and the complete rational section stays strictly interior.
 func rationalGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation, freeAxis int) (PCurve, int, error) {
 	var zero PCurve
@@ -43,7 +43,7 @@ func rationalGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 					return zero, 0, geom.ErrConvergence
 				}
 			}
-			if !(j == 0 || j == 1 && i <= 1) && c[plane.dropped].Sign() != 0 {
+			if !(j == 0 || j == 1 && i <= 2) && c[plane.dropped].Sign() != 0 {
 				return zero, 0, geom.ErrConvergence
 			}
 		}
@@ -55,13 +55,16 @@ func rationalGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 		x := h[i][j]
 		return new(big.Rat).Quo(plane.dot([3]*big.Rat{x[0], x[1], x[2]}), w)
 	}
-	b0, b1 := c(0, 1), c(1, 1)
-	sign := b0.Sign()
-	if b1.Sign() == 0 || sign == 0 || new(big.Rat).Add(b0, b1).Sign() != sign {
+	denom := [3]*big.Rat{c(0, 1), c(1, 1), c(2, 1)}
+	sign := denom[0].Sign()
+	if (denom[1].Sign() == 0 && denom[2].Sign() == 0) || sign == 0 {
 		return zero, 0, geom.ErrConvergence
 	}
 	numerator := make([]*big.Rat, 5)
 	degree := 2 // The free-coordinate homogeneous numerator is s*B(s).
+	if denom[2].Sign() != 0 {
+		degree = 3
+	}
 	for i := range numerator {
 		numerator[i] = new(big.Rat).Neg(c(i, 0))
 		if numerator[i].Sign() != 0 {
@@ -70,8 +73,9 @@ func rationalGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 	}
 	numerator[0].Add(numerator[0], plane.offset)
 	if sign < 0 {
-		b0.Neg(b0)
-		b1.Neg(b1)
+		for _, x := range denom {
+			x.Neg(x)
+		}
 		for _, x := range numerator {
 			x.Neg(x)
 		}
@@ -83,8 +87,13 @@ func rationalGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 	controls := make([][3]*big.Rat, degree+1)
 	for i := range controls {
 		basis := func(j int) *big.Rat { return big.NewRat(polynomialChoose(i, j), polynomialChoose(degree, j)) }
-		ww := new(big.Rat).Add(b0, new(big.Rat).Mul(b1, basis(1)))
-		free := new(big.Rat).Add(new(big.Rat).Mul(b0, basis(1)), new(big.Rat).Mul(b1, basis(2)))
+		ww, free := new(big.Rat), new(big.Rat)
+		for j := 0; j <= i && j < len(denom); j++ {
+			ww.Add(ww, new(big.Rat).Mul(denom[j], basis(j)))
+			if j < i {
+				free.Add(free, new(big.Rat).Mul(denom[j], basis(j+1)))
+			}
+		}
 		dep := new(big.Rat)
 		for j := 0; j <= i; j++ {
 			dep.Add(dep, new(big.Rat).Mul(numerator[j], basis(j)))

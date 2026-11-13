@@ -12,6 +12,9 @@ count, area, volume and centroid. Independent strip integrals agree, and native
 reload retains exact UV coefficients, rejects a sub-tolerance coedge edit and
 produces closed contact-free display meshes. The original knot ownership is
 also checked on a two-span cubic with a crease.
+For the quadratic denominator `(1+3X²)/4`, complementary cuts agree with
+independent arctangent/log strip integrals and OCCT. A second quadratic with
+positive endpoint values and an interior double zero is rejected.
 
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
