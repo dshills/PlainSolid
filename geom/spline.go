@@ -225,6 +225,18 @@ type BSplineSurface struct {
 }
 
 func NewBSplineSurface(degreeU, degreeV, countU, countV int, poles []Vec3, knotsU, knotsV, weights []float64) (*BSplineSurface, error) {
+	return newBSplineSurface(degreeU, degreeV, countU, countV, poles, knotsU, knotsV, weights, false)
+}
+
+// NewBSplineSurfaceWithExactWeights preserves the represented binary64
+// weights rather than rescaling them. Use it when rescaling would perturb
+// their exact ratios. Every weight and every homogeneous pole product must
+// have a finite floating evaluator; zero weights remain invalid.
+func NewBSplineSurfaceWithExactWeights(degreeU, degreeV, countU, countV int, poles []Vec3, knotsU, knotsV, weights []float64) (*BSplineSurface, error) {
+	return newBSplineSurface(degreeU, degreeV, countU, countV, poles, knotsU, knotsV, weights, true)
+}
+
+func newBSplineSurface(degreeU, degreeV, countU, countV int, poles []Vec3, knotsU, knotsV, weights []float64, exactWeights bool) (*BSplineSurface, error) {
 	if e := validateKnots(degreeU, countU, knotsU); e != nil {
 		return nil, e
 	}
@@ -239,7 +251,22 @@ func NewBSplineSurface(degreeU, degreeV, countU, countV int, poles []Vec3, knots
 			return nil, ErrInvalid
 		}
 	}
-	w, e := copyWeights(len(poles), weights)
+	var w []float64
+	var e error
+	if exactWeights {
+		if len(weights) != len(poles) {
+			return nil, ErrInvalid
+		}
+		w = append([]float64(nil), weights...)
+		for i, x := range w {
+			p := poles[i]
+			if !finite(x) || x <= 0 || !finite(p.X*x) || !finite(p.Y*x) || !finite(p.Z*x) {
+				return nil, ErrInvalid
+			}
+		}
+	} else {
+		w, e = copyWeights(len(poles), weights)
+	}
 	if e != nil {
 		return nil, e
 	}
