@@ -23,7 +23,26 @@ const gitIdentity = cwd => {
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
 };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
-const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity: gitIdentity(source), plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
+const sourceIdentity = gitIdentity(source);
+if (!sourceIdentity.head) {
+  try {
+    const bytes = await readFile(join(source, ".plainSolidSourceIdentity.json"));
+    const archive = JSON.parse(bytes.toString("utf8"));
+    if (archive.kind !== "git-archive" || archive.cleanCommittedArchive !== true ||
+        typeof archive.head !== "string" || !/^[0-9a-f]{40}$/.test(archive.head) ||
+        typeof archive.sourceRepository !== "string" || !archive.sourceRepository.startsWith("/"))
+      throw new Error("Invalid committed archive identity manifest.");
+    // This is explicit archive provenance, not a claim that the copied tree has
+    // a git branch/index. Per-file hashes below prove the actual tested content.
+    Object.keys(sourceIdentity).forEach(key => delete sourceIdentity[key]);
+    Object.assign(sourceIdentity, { kind: "git-archive", head: archive.head,
+      sourceRepository: archive.sourceRepository, cleanCommittedArchive: true,
+      manifestSha256: hash(bytes) });
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+const report = { schema: 1, backend: "plainsolid-go-wasm", source, workspace: work, startedAt: new Date().toISOString(), selected: { testFile, grep }, sourceHashes: {}, sourceIdentity, plainSolidIdentity: gitIdentity(root), plainSolidSourceHashes: {}, providerLabelAdaptations: [], tests: [], status: "running", notes: ["Only selected fixtures are measured; all unselected acceptance tests remain untested.", "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."] };
 async function command(program, argv, logName, env = {}, cwd = work) {
   const logPath = join(work, logName);
   const chunks = [];
