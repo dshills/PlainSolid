@@ -27,8 +27,9 @@ type HelicalRayLineContacts struct {
 	Phase                           [2]*big.Rat
 }
 
-// IntersectRationalRayAxisLine supports exact positive first-quadrant unit rays
-// (cs,sn), including3/5,4/5, with either handedness. The caller line is
+// IntersectRationalRayAxisLine supports exact rational unit rays in all four
+// open quadrants, including (±3/5,±4/5), with either handedness. Cardinal axes
+// use IntersectCardinalAxisLine instead. The caller line is
 // origin+lambda*axisScale*Frame.ZAxis. Exact radial inversion and an invertible
 // represented frame prove all possible roots U=phase+n. Rational alternating
 // arctangent bounds and Machin's identity enclose phase; no rounded atan2 is used.
@@ -89,7 +90,7 @@ func (s HelicalProfileSurface) IntersectRationalRayAxisLine(ctx context.Context,
 			return out, e
 		}
 	}
-	if cs.Sign() <= 0 || sn.Sign() <= 0 {
+	if cs.Sign() == 0 || sn.Sign() == 0 {
 		return out, ErrInvalid
 	}
 	unit := new(big.Rat).Add(new(big.Rat).Mul(cs, cs), new(big.Rat).Mul(sn, sn))
@@ -307,7 +308,7 @@ func helicalRayPhase(ctx context.Context, cs, sn *big.Rat, hand HelixHandedness,
 		return out, e
 	}
 	pi := [2]*big.Rat{new(big.Rat).Sub(new(big.Rat).Mul(big.NewRat(16, 1), a[0]), new(big.Rat).Mul(big.NewRat(4, 1), c[1])), new(big.Rat).Sub(new(big.Rat).Mul(big.NewRat(16, 1), a[1]), new(big.Rat).Mul(big.NewRat(4, 1), c[0]))}
-	x := new(big.Rat).Quo(sn, cs)
+	x := new(big.Rat).Quo(new(big.Rat).Abs(sn), new(big.Rat).Abs(cs))
 	reciprocal := x.Cmp(big.NewRat(1, 1)) > 0
 	if reciprocal {
 		x.Inv(x)
@@ -329,6 +330,16 @@ func helicalRayPhase(ctx context.Context, cs, sn *big.Rat, hand HelixHandedness,
 		angle = [2]*big.Rat{new(big.Rat).Sub(new(big.Rat).Quo(pi[0], big.NewRat(2, 1)), angle[1]), new(big.Rat).Sub(new(big.Rat).Quo(pi[1], big.NewRat(2, 1)), angle[0])}
 	}
 	out = [2]*big.Rat{new(big.Rat).Quo(angle[0], new(big.Rat).Mul(big.NewRat(2, 1), pi[1])), new(big.Rat).Quo(angle[1], new(big.Rat).Mul(big.NewRat(2, 1), pi[0]))}
+
+	// The first-quadrant fraction a lies in (0,1/4). Exact quadrant maps
+	// are a, 1/2-a, 1/2+a, 1-a; decreasing maps swap enclosure ends.
+	if cs.Sign() < 0 && sn.Sign() > 0 {
+		out = [2]*big.Rat{new(big.Rat).Sub(big.NewRat(1, 2), out[1]), new(big.Rat).Sub(big.NewRat(1, 2), out[0])}
+	} else if cs.Sign() < 0 && sn.Sign() < 0 {
+		out = [2]*big.Rat{new(big.Rat).Add(big.NewRat(1, 2), out[0]), new(big.Rat).Add(big.NewRat(1, 2), out[1])}
+	} else if cs.Sign() > 0 && sn.Sign() < 0 {
+		out = [2]*big.Rat{new(big.Rat).Sub(big.NewRat(1, 1), out[1]), new(big.Rat).Sub(big.NewRat(1, 1), out[0])}
+	}
 	if hand == LeftHanded {
 		out = [2]*big.Rat{new(big.Rat).Sub(big.NewRat(1, 1), out[1]), new(big.Rat).Sub(big.NewRat(1, 1), out[0])}
 	}
