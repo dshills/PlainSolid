@@ -207,6 +207,23 @@ int main(int argc, char** argv) {
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
     if(argc==3 && mode=="warped-open-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedOpenSplineBooleans(out);return 0;}
+    if(argc==3 && mode=="finite-cylinder-sets") {
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+      const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(13,9,2),gp_Dir(-3,-4,0)),2,30).Shape();
+      for(int wide=0;wide<2;++wide){
+        const auto tool=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(-8,6,2),gp_Dir(4,-3,0)),wide?3:2,30).Shape();
+        if(!wide)record(out,"finite-raw-union",BRepAlgoAPI_Fuse(stock,tool).Shape(),1e-11);
+        const auto cut=BRepAlgoAPI_Cut(stock,tool).Shape();
+        record(out,wide?"finite-raw-wide-cut":"finite-raw-cut",cut,1e-11);
+        int count=0;for(TopExp_Explorer it(cut,TopAbs_SOLID);it.More();it.Next()){
+          GProp_GProps properties;BRepGProp::VolumeProperties(it.Current(),properties,1e-11);
+          const gp_Pnt c=properties.CentreOfMass();bool minus=-3*(c.X()-4)-4*(c.Y()+3)<0;
+          record(out,wide?(minus?"finite-raw-wide-minus":"finite-raw-wide-plus"):(minus?"finite-raw-minus":"finite-raw-plus"),it.Current(),1e-11);++count;
+        }
+        if(count!=2)throw std::runtime_error("raw cylinder difference component count");
+      }
+      return 0;
+    }
     if (argc == 3 && mode == "finite-cylinder-dispatch") {
       std::ofstream out(argv[1]); out.exceptions(std::ios::failbit | std::ios::badbit);
       // Independently authored finite cylinders: physical starts and lengths,
