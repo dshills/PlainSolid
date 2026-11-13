@@ -260,34 +260,57 @@ func (s *BSplineSurface) validParameter(u, v float64) bool {
 	a, b, c, d := s.Domain()
 	return finite(u) && finite(v) && u >= a && u <= b && v >= c && v <= d
 }
-func (s *BSplineSurface) hom(u, v float64) (homogeneous, homogeneous, homogeneous) {
-	p := toHom(s.poles, s.weights)
-	rows := make([]homogeneous, s.countU)
-	dv := make([]homogeneous, s.countU)
-	for i := range rows {
-		row := p[i*s.countV : (i+1)*s.countV]
-		rows[i] = evalHom(s.degreeV, row, s.knotsV, v)
-		dv[i] = derivHom(s.degreeV, row, s.knotsV, v)
+func (s *BSplineSurface) activeRow(row *[65]homogeneous, i, spanV int) {
+	start := i*s.countV + spanV - s.degreeV
+	for j := 0; j <= s.degreeV; j++ {
+		p, w := s.poles[start+j], s.weights[start+j]
+		row[j] = homogeneous{p.X * w, p.Y * w, p.Z * w, w}
 	}
-	return evalHom(s.degreeU, rows, s.knotsU, u), derivHom(s.degreeU, rows, s.knotsU, u), evalHom(s.degreeU, dv, s.knotsU, u)
 }
+
+func localHomDerivative(p, q homogeneous, degree int, den float64) (d homogeneous) {
+	if den != 0 {
+		for k := range d {
+			d[k] = float64(degree) * (q[k] - p[k]) / den
+		}
+	}
+	return d
+}
+
+// De Boor uses only the control net of the selected tensor span. The
+// derivative knot vectors omit both end knots, so their spans are su-1/sv-1
+// and the first contributing derivative control has the same original index.
+func (s *BSplineSurface) activeHom(u, v float64, derivative bool) (h, du, dv homogeneous) {
+	su, sv := splineSpan(s.countU, s.knotsU, u), splineSpan(s.countV, s.knotsV, v)
+	var rows, row, vRows, work [65]homogeneous
+	for i := 0; i <= s.degreeU; i++ {
+		s.activeRow(&row, su-s.degreeU+i, sv)
+		if derivative {
+			for j := 0; j < s.degreeV; j++ {
+				den := s.knotsV[sv+j+1] - s.knotsV[sv-s.degreeV+j+1]
+				work[j] = localHomDerivative(row[j], row[j+1], s.degreeV, den)
+			}
+			vRows[i] = reduceHom(s.degreeV-1, s.knotsV[1:], v, sv-1, &work)
+		}
+		rows[i] = reduceHom(s.degreeV, s.knotsV, v, sv, &row)
+	}
+	if derivative {
+		for i := 0; i < s.degreeU; i++ {
+			den := s.knotsU[su+i+1] - s.knotsU[su-s.degreeU+i+1]
+			work[i] = localHomDerivative(rows[i], rows[i+1], s.degreeU, den)
+		}
+		du = reduceHom(s.degreeU-1, s.knotsU[1:], u, su-1, &work)
+		dv = reduceHom(s.degreeU, s.knotsU, u, su, &vRows)
+	}
+	return reduceHom(s.degreeU, s.knotsU, u, su, &rows), du, dv
+}
+
 func (s *BSplineSurface) Eval(u, v float64) (Vec3, error) {
 	if !s.validParameter(u, v) {
 		return Vec3{}, ErrDomain
 	}
-	// De Boor only reads the poles of the two selected spans. Build those
-	// homogeneous controls on the stack, in the same order as Partials.
-	su, sv := splineSpan(s.countU, s.knotsU, u), splineSpan(s.countV, s.knotsV, v)
-	var rows, row [65]homogeneous
-	for i := 0; i <= s.degreeU; i++ {
-		start := (su-s.degreeU+i)*s.countV + sv - s.degreeV
-		for j := 0; j <= s.degreeV; j++ {
-			p, w := s.poles[start+j], s.weights[start+j]
-			row[j] = homogeneous{p.X * w, p.Y * w, p.Z * w, w}
-		}
-		rows[i] = reduceHom(s.degreeV, s.knotsV, v, sv, &row)
-	}
-	return projectHom(reduceHom(s.degreeU, s.knotsU, u, su, &rows))
+	h, _, _ := s.activeHom(u, v, false)
+	return projectHom(h)
 }
 
 // Partials returns analytic first partial derivatives in u and v.
@@ -295,7 +318,7 @@ func (s *BSplineSurface) Partials(u, v float64) (Vec3, Vec3, error) {
 	if !s.validParameter(u, v) {
 		return Vec3{}, Vec3{}, ErrDomain
 	}
-	h, du, dv := s.hom(u, v)
+	h, du, dv := s.activeHom(u, v, true)
 	a, e := rationalDerivative(h, du)
 	if e != nil {
 		return Vec3{}, Vec3{}, e

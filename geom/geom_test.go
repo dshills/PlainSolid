@@ -237,6 +237,14 @@ func BenchmarkSplineEval(b *testing.B) {
 }
 
 func BenchmarkSplineSurfaceEval(b *testing.B) {
+	benchmarkSplineSurface(b, false)
+}
+
+func BenchmarkSplineSurfacePartials(b *testing.B) {
+	benchmarkSplineSurface(b, true)
+}
+
+func benchmarkSplineSurface(b *testing.B, partials bool) {
 	knots := []float64{0, 0, 0, .25, .5, .75, 1, 1, 1}
 	poles := make([]Vec3, 36)
 	weights := make([]float64, len(poles))
@@ -251,7 +259,12 @@ func BenchmarkSplineSurfaceEval(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = s.Eval(float64(i%101)/100, float64(i%97)/96)
+		u, v := float64(i%101)/100, float64(i%97)/96
+		if partials {
+			_, _, _ = s.Partials(u, v)
+		} else {
+			_, _ = s.Eval(u, v)
+		}
 	}
 }
 
@@ -280,6 +293,24 @@ func TestSplineSurfacePointUsesOriginalKnotSides(t *testing.T) {
 		got, err := s.Eval(c.u, c.v)
 		if err != nil || got != c.want {
 			t.Fatalf("(%v, %v): got %v, %v; want %v", c.u, c.v, got, err, c.want)
+		}
+	}
+}
+
+func TestSplineSurfaceRationalPartials(t *testing.T) {
+	// Separable weights give S=(x,y,xy), x=2u/(1+u), y=3v/(1+2v).
+	knots := []float64{0, 0, 1, 1}
+	s, err := NewBSplineSurface(1, 1, 2, 2, []Vec3{{}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}}, knots, knots, []float64{1, 3, 2, 6})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, uv := range []Vec2{{0, 0}, {.25, .6}, {1, 1}} {
+		u, v := uv.X, uv.Y
+		x, y := 2*u/(1+u), 3*v/(1+2*v)
+		dx, dy := 2/((1+u)*(1+u)), 3/((1+2*v)*(1+2*v))
+		du, dv, err := s.Partials(u, v)
+		if err != nil || du.Sub(Vec3{dx, 0, dx * y}).Length() > 2e-14 || dv.Sub(Vec3{0, dy, x * dy}).Length() > 2e-14 {
+			t.Fatalf("%v: du=%v dv=%v err=%v", uv, du, dv, err)
 		}
 	}
 }
