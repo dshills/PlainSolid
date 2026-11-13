@@ -237,14 +237,18 @@ func BenchmarkSplineEval(b *testing.B) {
 }
 
 func BenchmarkSplineSurfaceEval(b *testing.B) {
-	benchmarkSplineSurface(b, false)
+	benchmarkSplineSurface(b, 0)
 }
 
 func BenchmarkSplineSurfacePartials(b *testing.B) {
-	benchmarkSplineSurface(b, true)
+	benchmarkSplineSurface(b, 1)
 }
 
-func benchmarkSplineSurface(b *testing.B, partials bool) {
+func BenchmarkSplineSurfaceSecondPartials(b *testing.B) {
+	benchmarkSplineSurface(b, 2)
+}
+
+func benchmarkSplineSurface(b *testing.B, order int) {
 	knots := []float64{0, 0, 0, .25, .5, .75, 1, 1, 1}
 	poles := make([]Vec3, 36)
 	weights := make([]float64, len(poles))
@@ -260,9 +264,12 @@ func benchmarkSplineSurface(b *testing.B, partials bool) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		u, v := float64(i%101)/100, float64(i%97)/96
-		if partials {
+		switch order {
+		case 2:
+			_, _, _, _ = s.SecondPartials(u, v)
+		case 1:
 			_, _, _ = s.Partials(u, v)
-		} else {
+		default:
 			_, _ = s.Eval(u, v)
 		}
 	}
