@@ -873,6 +873,105 @@
       "fullReport": "/tmp/plainsolid-lifecycle-acce666/readiness.json",
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1110
+    },
+    {
+      "sourceIdentity": {
+        "head": "b72c2694671baac438fd9e197c9f6fdd09fb5008",
+        "status": "M README.md\n M docs/COMMANDS.md\n M e2e/studio.spec.ts\n M production-e2e/studio.spec.ts\n M specs/working-cad/CAPABILITY_MATRIX.md\n M specs/working-cad/PERFORMANCE.md\n M specs/working-cad/PHOTO_STUDIO.md\n M specs/working-cad/VALIDATION_LOG.md\n M src/cad/document/migrations.ts\n M src/cad/document/schema.ts\n M src/cad/document/validate.ts\n M src/commands/cadCommandOperations.ts\n M src/commands/cadCommandTypes.ts\n M src/commands/cadCommands.ts\n M src/persistence/appendProject.ts\n M src/persistence/exportPng.ts\n M src/persistence/pngCapture.ts\n M src/tests/aiDrawer.test.tsx\n M src/ui/commands/commandRegistry.ts\n M src/viewer/CadViewer.tsx\n M src/viewer/StudioPanel.tsx\n M src/viewer/aiProposalMeshes.ts\n M src/viewer/modelMeshes.ts\n M src/viewer/studioPanel.css\n?? e2e/studio-component-finishes.spec.ts\n?? src/cad/document/componentAppearance.ts\n?? src/persistence/pngResolution.ts\n?? src/tests/componentAppearance.test.ts\n?? src/viewer/StudioComponentFinish.tsx\n?? src/viewer/StudioPng.tsx\n?? src/viewer/componentFinishes.ts\n?? src/viewer/renderPngResolution.ts",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "e73ed2649c8f3d08617c2c84dbbb97441825a51d",
+        "status": "",
+        "branch": "codex/reconcile-plaincad"
+      },
+      "selected": {
+        "testFile": "e2e/(stale-results|step-export).spec.ts",
+        "grep": "real-worker|real STEP worker load failure"
+      },
+      "startedAt": "2026-11-13T17:40:16.562Z",
+      "finishedAt": "2026-11-13T17:41:39.769Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "bd45d75a451afd425881fbacdf9b2443a3676479d024b8e15558af5ab9613e8e",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-worker-e73ed26/backend-results.json",
+          "startTime": "2026-11-13T17:41:05.098Z",
+          "duration": 16091.374,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-worker-e73ed26/playwright-results.json",
+          "startTime": "2026-11-13T17:41:21.845Z",
+          "duration": 17911.017,
+          "expected": 3,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 13200,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "stale-results.spec.ts",
+          "line": 26,
+          "title": "real-worker result cannot overwrite a newer edit during debounce or after its rebuild",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 5232,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "stale-results.spec.ts",
+          "line": 26,
+          "title": "real-worker worker failure cannot overwrite a newer edit during debounce or after its rebuild",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 5132,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "step-export.spec.ts",
+          "line": 138,
+          "title": "a real STEP worker load failure is actionable, cannot download, and can be retried successfully",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 4213,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-worker-e73ed26/readiness.json",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1112
     }
   ]
 }
