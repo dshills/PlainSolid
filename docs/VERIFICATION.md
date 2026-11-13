@@ -1,5 +1,27 @@
 # Verification record
 
+## PlainCAD thread mesh embedding and native rebuild — 2026-11-13
+
+Skinny seam triangles in external threads could cross after the float32
+conversion used by STL. The native tessellator now collapses eligible
+interior vertices onto fixed exterior cylindrical trim vertices while
+retaining the shared model edges and checking the replacement triangles.
+Fresh WASM meshes for the 3 mm and edited 2 mm external M3 pass PlainCAD's
+original full mesh validator with 14,268 and 11,414 triangles. Native
+float32 embedding checks pass for both external lengths and the internal
+3 mm groove. Both lead hands and both screw/nut parts pass native mesh
+checks. The stepped head attachment validates the completed boundary once
+after its three internal rim splits. Existing public split and attachment
+tests pass.
+
+The [second browser report](evidence/plaincad-helical-second-run-2026-11-13.json)
+records external creation, edit, cold-open and STL passing before the
+overall original Thread test times out during internal preview. That
+intermediate snapshot also regressed the lead nut mesh budget. Restricting
+boundary collapse to exterior twisted cylinders restores the native lead
+checks. Both full originals are being rerun with that restriction and the
+head attachment change.
+
 ## PlainCAD viewport operation drops — 2026-11-13
 
 All eight original cases pass in 57.369 seconds. Complete rectangular cap

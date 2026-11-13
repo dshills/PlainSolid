@@ -15,9 +15,12 @@ bores retain the finer setting and multiple rims use their earlier setting.
 The corrected focused runs pass both original XY guided cases and STEP STL.
 The first helical run passes the original four-start lead screw and matching
 nut, including handedness edits and cold open. The modeled Thread case
-passes external preview, length edit and save/open, then fails full STL
-validation on intersecting mesh triangles. The internal thread portion
-follows that export and has native geometry and mesh evidence only.
+initially failed full STL validation on intersecting float32 seam triangles.
+A second run passes external preview, length edit, save/open and STL, then
+times out during internal preview. The current native code passes float32
+embedding for both external lengths and the internal thread, restores the
+lead nut mesh budget, and avoids redundant head-rim validation. Both full
+originals are being rerun.
 
 The original machined-reference acceptance passes nested rectangular blind
 pockets, a disjoint cylindrical through bore, measured rim and floor,

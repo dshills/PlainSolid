@@ -87,8 +87,11 @@ func AttachSteppedShaftHead(ctx context.Context, p SteppedShaft, groove Solid) (
 	current := topEdge
 	innerEdges := [4]int{}
 	for i := 0; i < 3; i++ {
+		if e := ctx.Err(); e != nil {
+			return Solid{}, e
+		}
 		var h EdgeSplit
-		groove, h, e = groove.SplitEdge(current, float64(i+1)/4)
+		groove, h, e = groove.splitEdgeDraft(current, float64(i+1)/4)
 		if e != nil {
 			return Solid{}, e
 		}
