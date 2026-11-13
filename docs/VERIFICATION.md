@@ -803,3 +803,12 @@ the lead is rejected because adjacent turns can meet.
 The coaxial common operation clips a convex meridian exactly and verifies
 the retained helical solid against `5π/3` for both hands. It distinguishes
 zero-width contact from unresolved caps cutting through the sweep.
+
+Independent OCCT polygon revolve fixtures compare area, volume and centroid
+for 15 signed partial sweeps, including concave meridians and both apex
+directions on a rotated axis. A separate exact trig display proof validates
+closed embedding for selected sweeps, including rounded tilted cap frames.
+The circular-meridian tests cover both signed quarter turns and a full torus.
+Signed rectangular extrusions with two exact circular bores preserve four
+cap inner wires, Euler characteristic minus two, and independent volume
+`abs(height)*(32-2π*0.75²)` through native reload.

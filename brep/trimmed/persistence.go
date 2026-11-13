@@ -36,6 +36,7 @@ type nativeUse struct {
 	ExactQuadratic *[3][3]string      `json:",omitempty"`
 	RationalEnds   bool               `json:",omitempty"`
 	Ellipse        *EllipseUV         `json:",omitempty"`
+	AnchoredCircle bool               `json:",omitempty"`
 	Implicit       *nativeImplicitUse `json:",omitempty"`
 	Tube           *nativeTubeUse     `json:",omitempty"`
 	Wall           *nativeWallTrim    `json:",omitempty"`
@@ -116,6 +117,9 @@ func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
 			t.rationalEnds = t.rationalEnds || c.rationalEndpoints
 		case EllipseUV:
 			x.Ellipse = &c
+		case anchoredCircularUV:
+			x.Ellipse, x.AnchoredCircle = &c.EllipseUV, true
+			x.UVStart, x.UVEnd = c.Start, c.End
 		case intersect.CertifiedTrim:
 			a := c.Data()
 			key := implicitRecipeKey{a.Surface, a.Second, a.Plane, a.Options}
@@ -289,6 +293,9 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 		if x.RationalEnds && (d.version < 5 || x.ExactQuadratic == nil) {
 			return nil, fmt.Errorf("trimmed: invalid rational endpoint representation")
 		}
+		if x.AnchoredCircle && x.Ellipse == nil {
+			return nil, fmt.Errorf("trimmed: missing anchored circle data")
+		}
 		if x.ExactQuadratic != nil {
 			if d.version < 4 || d.maxControls < 3 || x.Implicit != nil || x.Tube != nil || x.Wall != nil ||
 				x.Quadratic != nil || x.Ellipse != nil || len(x.Spline) > 0 || x.Subcurve != nil ||
@@ -407,6 +414,13 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 			u.Curve = *x.Quadratic
 		} else if x.Ellipse != nil {
 			u.Curve = *x.Ellipse
+			if x.AnchoredCircle {
+				q, e := newAnchoredCircularUV(*x.Ellipse, x.UVStart, x.UVEnd)
+				if e != nil {
+					return nil, e
+				}
+				u.Curve = q
+			}
 		}
 		r[i] = u
 	}

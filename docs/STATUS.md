@@ -28,6 +28,10 @@ Signed partial polygon-meridian revolutions and bounded constant-lead
 helical polygon sweeps are now available in the Go kernel. They still need
 application acceptance. Curved meridian profiles, helical cuts of existing
 solids, and lead-in and runout remain separate work.
+Selected signed off-axis circular meridians produce analytic torus elbows.
+The STEP polygon revolve writer qualifies signed partial sweeps and axis
+contact; the closed display proof is opt-in. Convex polygon extrusion with
+strictly disjoint circular holes now retains analytic cap arcs and walls.
 
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|

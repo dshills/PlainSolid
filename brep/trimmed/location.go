@@ -20,7 +20,7 @@ type RayHit struct {
 
 // Ray intersects trimmed plane, polar plane, cylinder, cone, sphere and torus
 // faces, including affine placements, without tessellation. Supported
-// p-curves are straight or angular EllipseUV arcs
+// p-curves are straight, anchored circular arcs, or angular EllipseUV arcs
 // whose vertical component has no linear term. An overlapping face or
 // cylinder generator returns an error because it is not an isolated hit.
 // tol is a positive world-space residual and contact-merging tolerance.
@@ -316,13 +316,23 @@ func validateRayTrims(f Face) error {
 			if u.Curve == nil {
 				continue
 			}
-			c, ok := u.Curve.(EllipseUV)
+			c, ok := rayEllipseTrim(u.Curve)
 			if !ok || c.Linear.Y != 0 || math.Abs(c.From) > 8*math.Pi || math.Abs(c.To) > 8*math.Pi {
 				return fmt.Errorf("unsupported ray p-curve %T", u.Curve)
 			}
 		}
 	}
 	return nil
+}
+
+func rayEllipseTrim(p PCurve) (EllipseUV, bool) {
+	switch q := p.(type) {
+	case EllipseUV:
+		return q, true
+	case anchoredCircularUV:
+		return q.EllipseUV, true
+	}
+	return EllipseUV{}, false
 }
 
 type chartProjection struct {
@@ -420,7 +430,7 @@ func faceContains(f Face, p chartProjection, tol float64) (parametric.Location, 
 		lo, hi := coord(f.Outer[0].UVStart), coord(f.Outer[0].UVStart)
 		for _, u := range f.Outer {
 			lo, hi = min(lo, coord(u.UVStart)), max(hi, coord(u.UVStart))
-			if c, ok := u.Curve.(EllipseUV); ok {
+			if c, ok := rayEllipseTrim(u.Curve); ok {
 				extent := math.Hypot(coord(c.Cos), coord(c.Sin))
 				a, b := coord(c.Center)+coord(c.Linear)*c.From, coord(c.Center)+coord(c.Linear)*c.To
 				lo, hi = min(lo, min(a, b)-extent), max(hi, max(a, b)+extent)
@@ -492,7 +502,7 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 		}
 		return 0, false, nil
 	}
-	c, ok := use.Curve.(EllipseUV)
+	c, ok := rayEllipseTrim(use.Curve)
 	if !ok || c.Linear.Y != 0 || math.Abs(c.From) > 8*math.Pi || math.Abs(c.To) > 8*math.Pi {
 		return 0, false, fmt.Errorf("unsupported ray p-curve %T", use.Curve)
 	}
@@ -514,11 +524,11 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 	w := 0
 	for j := 0; j+1 < len(ts); j++ {
 		l, r := ts[j], ts[j+1]
-		a, e := c.EvalUV(l)
+		a, e := use.Curve.EvalUV(l)
 		if e != nil {
 			return 0, false, e
 		}
-		b, e := c.EvalUV(r)
+		b, e := use.Curve.EvalUV(r)
 		if e != nil {
 			return 0, false, e
 		}
