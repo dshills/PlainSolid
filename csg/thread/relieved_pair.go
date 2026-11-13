@@ -26,6 +26,8 @@ type RelievedPair struct {
 	Reliefs             PairReliefs
 	ShaftTipRemovedPi   *big.Rat
 	NutReliefsRemovedPi *big.Rat
+	proofPair           Pair
+	proofReliefs        PairReliefs
 }
 
 // BuildRelievedPair verifies the pair and builds all requested disjoint
@@ -43,7 +45,7 @@ func BuildRelievedPair(ctx context.Context, recipe PairRecipe, relief PairRelief
 	if e != nil {
 		return empty, e
 	}
-	out := RelievedPair{Pair: p, Shaft: p.Shaft.Solid(), Nut: p.Nut.Solid(), Reliefs: relief, ShaftTipRemovedPi: new(big.Rat), NutReliefsRemovedPi: new(big.Rat)}
+	out := RelievedPair{Pair: p, Shaft: p.Shaft.Solid(), Nut: p.Nut.Solid(), Reliefs: relief, ShaftTipRemovedPi: new(big.Rat), NutReliefsRemovedPi: new(big.Rat), proofPair: p, proofReliefs: relief}
 	if relief.ShaftTip.Depth > 0 {
 		x, e := trimmed.GrooveShaftWithTipRelief(ctx, recipe.Shaft, relief.ShaftTip.Radius, relief.ShaftTip.Depth)
 		if e != nil {
@@ -75,15 +77,15 @@ func (p RelievedPair) CompareRunoutQuarter(ctx context.Context, radius, phase, n
 	if e != nil {
 		return geom.HelicalRetainedPair{}, e
 	}
-	return geom.CompareHelicalRetainedQuarter(ctx, p.Pair.shaftStarts, p.Pair.nutStarts, radius, phase, nutShift, bands[0], bands[1], o)
+	return geom.CompareHelicalRetainedQuarter(ctx, p.proofPair.shaftStarts, p.proofPair.nutStarts, radius, phase, nutShift, bands[0], bands[1], o)
 }
 
 func (p RelievedPair) bandsAtRadius(radius *big.Rat) ([2][2]*big.Rat, error) {
-	q := p.Pair
+	q := p.proofPair
 	if radius == nil || q.radialRange[0] == nil || radius.Cmp(q.radialRange[0]) <= 0 || radius.Cmp(q.radialRange[1]) >= 0 {
 		return [2][2]*big.Rat{}, geom.ErrInvalid
 	}
-	for _, spec := range []trimmed.HelicalReliefSpec{p.Reliefs.ShaftTip, p.Reliefs.NutLower, p.Reliefs.NutUpper} {
+	for _, spec := range []trimmed.HelicalReliefSpec{p.proofReliefs.ShaftTip, p.proofReliefs.NutLower, p.proofReliefs.NutUpper} {
 		if spec.Depth > 0 && radius.Cmp(exact(spec.Radius)) == 0 {
 			return [2][2]*big.Rat{}, geom.ErrDomain
 		}
@@ -92,14 +94,14 @@ func (p RelievedPair) bandsAtRadius(radius *big.Rat) ([2][2]*big.Rat, error) {
 }
 
 func (p RelievedPair) stockBandsAtRadius(radius *big.Rat) [2][2]*big.Rat {
-	bands := p.Pair.stockBands
-	if tip := p.Reliefs.ShaftTip; tip.Depth > 0 && radius.Cmp(exact(tip.Radius)) > 0 {
+	bands := p.proofPair.stockBands
+	if tip := p.proofReliefs.ShaftTip; tip.Depth > 0 && radius.Cmp(exact(tip.Radius)) > 0 {
 		bands[0][0] = exact(tip.Depth)
 	}
-	if lower := p.Reliefs.NutLower; lower.Depth > 0 && radius.Cmp(exact(lower.Radius)) < 0 {
+	if lower := p.proofReliefs.NutLower; lower.Depth > 0 && radius.Cmp(exact(lower.Radius)) < 0 {
 		bands[1][0] = exact(lower.Depth)
 	}
-	if upper := p.Reliefs.NutUpper; upper.Depth > 0 && radius.Cmp(exact(upper.Radius)) < 0 {
+	if upper := p.proofReliefs.NutUpper; upper.Depth > 0 && radius.Cmp(exact(upper.Radius)) < 0 {
 		bands[1][1] = new(big.Rat).Sub(bands[1][1], exact(upper.Depth))
 	}
 	return bands
@@ -123,7 +125,7 @@ type RelievedRunoutComparison struct {
 // regimes (the longer band), which contains the radial wall itself.
 func (p RelievedPair) CompareRunoutFullTurn(ctx context.Context, nutShift *big.Rat, radii [2]*big.Rat, o geom.HelicalStartsLineOptions) (RelievedRunoutComparison, error) {
 	var empty RelievedRunoutComparison
-	q := p.Pair
+	q := p.proofPair
 	if ctx == nil || nutShift == nil || radii[0] == nil || radii[1] == nil || q.radialRange[0] == nil ||
 		radii[0].Cmp(radii[1]) >= 0 || radii[0].Cmp(q.radialRange[0]) <= 0 || radii[1].Cmp(q.radialRange[1]) >= 0 {
 		return empty, geom.ErrInvalid
@@ -139,7 +141,7 @@ func (p RelievedPair) CompareRunoutFullTurn(ctx context.Context, nutShift *big.R
 	}
 	cuts := []*big.Rat{new(big.Rat).Set(radii[0]), new(big.Rat).Set(radii[1])}
 	walls := map[string]bool{}
-	for _, spec := range []trimmed.HelicalReliefSpec{p.Reliefs.ShaftTip, p.Reliefs.NutLower, p.Reliefs.NutUpper} {
+	for _, spec := range []trimmed.HelicalReliefSpec{p.proofReliefs.ShaftTip, p.proofReliefs.NutLower, p.proofReliefs.NutUpper} {
 		if spec.Depth == 0 {
 			continue
 		}

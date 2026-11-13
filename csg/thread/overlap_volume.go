@@ -1,0 +1,48 @@
+package thread
+
+import (
+	"context"
+	"math/big"
+
+	"plainsolid/geom"
+)
+
+// CertifyOverlapVolumeBox proves an explicit radius/phase/axial box lies in
+// both retained parts and returns its exact volume coefficient (times π).
+// Its radii must be strictly inside the common stock band. This is a
+// lower-volume witness; an unsuccessful proof does not establish separation.
+func (p Pair) CertifyOverlapVolumeBox(ctx context.Context, nutShift *big.Rat, radii, phases, axial [2]*big.Rat, o geom.HelicalStartsLineOptions) (geom.HelicalOverlapVolumeBox, error) {
+	if !p.validInteriorRadiusBand(radii) {
+		return geom.HelicalOverlapVolumeBox{}, geom.ErrInvalid
+	}
+	return geom.CertifyHelicalOverlapVolumeBox(ctx, p.shaftStarts, p.nutStarts, nutShift, radii, phases, axial, p.stockBands[0], p.stockBands[1], o)
+}
+
+// CertifyOverlapVolumeBox uses the finished relieved stock. A box spanning a
+// relief radius is tested against the intersection of the neighboring axial
+// stock bands, so success certifies the entire box. A failed request can be
+// retried as smaller boxes on either side of the step.
+func (p RelievedPair) CertifyOverlapVolumeBox(ctx context.Context, nutShift *big.Rat, radii, phases, axial [2]*big.Rat, o geom.HelicalStartsLineOptions) (geom.HelicalOverlapVolumeBox, error) {
+	q := p.proofPair
+	if !q.validInteriorRadiusBand(radii) {
+		return geom.HelicalOverlapVolumeBox{}, geom.ErrInvalid
+	}
+	// Shaft and nut axial regimes each vary monotonically for their own
+	// reliefs; taking the two endpoint-band intersection is sufficient.
+	bands := p.stockBandsAtRadius(radii[0])
+	end := p.stockBandsAtRadius(radii[1])
+	for i := range bands {
+		if end[i][0].Cmp(bands[i][0]) > 0 {
+			bands[i][0] = end[i][0]
+		}
+		if end[i][1].Cmp(bands[i][1]) < 0 {
+			bands[i][1] = end[i][1]
+		}
+	}
+	return geom.CertifyHelicalOverlapVolumeBox(ctx, q.shaftStarts, q.nutStarts, nutShift, radii, phases, axial, bands[0], bands[1], o)
+}
+
+func (p Pair) validInteriorRadiusBand(radii [2]*big.Rat) bool {
+	return radii[0] != nil && radii[1] != nil && p.radialRange[0] != nil &&
+		radii[0].Cmp(radii[1]) < 0 && radii[0].Cmp(p.radialRange[0]) > 0 && radii[1].Cmp(p.radialRange[1]) < 0
+}
