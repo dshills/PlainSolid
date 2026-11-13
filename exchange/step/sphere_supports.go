@@ -88,7 +88,7 @@ func ReadSphereSupports(r io.Reader, l Limits) (SphereSupportModel, error) {
 	if e != nil {
 		return fail()
 	}
-	unit, e := contextUnits(f, ctx)
+	unit, e := analyticSupportContextUnits(f, ctx)
 	if e != nil {
 		return fail()
 	}
