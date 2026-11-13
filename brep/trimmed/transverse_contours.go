@@ -130,6 +130,9 @@ func transverseRingNesting(ctx context.Context, rings []transverseRing, chart in
 			if i == j || !uvBoxesOverlap(ring.boxes[chart], other.boxes[chart]) {
 				continue
 			}
+			if sharedExactRingEndpoint(ring.parts[chart], other.parts[chart]) {
+				return nil, nil, fmt.Errorf("trimmed: contours %d and %d share a source chart endpoint: %w", i, j, geom.ErrConvergence)
+			}
 			face := Face{}
 			for _, u := range other.parts[chart] {
 				face.Outer = append(face.Outer, Use{UVStart: u.from, UVEnd: u.to, Curve: u.curve})
@@ -186,6 +189,33 @@ func transverseRingNesting(ctx context.Context, rings []transverseRing, chart in
 		}
 	}
 	return parent, depth, nil
+}
+
+// The proof requires exact singleton UV enclosures on both curves; an equal
+// displayed endpoint alone does not prove that distinct algebraic roots meet.
+func sharedExactRingEndpoint(a, b []transverseRingUse) bool {
+	endpoints := make(map[geom.Vec2]transverseRingUse, len(a))
+	for _, p := range a {
+		endpoints[p.from] = p
+	}
+	isExact := func(p transverseRingUse) bool {
+		c, reversed, ok := trimTube(p.curve)
+		if !ok {
+			return false
+		}
+		t := 0.
+		if reversed {
+			t = 1
+		}
+		box, err := c.EvaluateBounds(t)
+		return err == nil && box.Min == p.from && box.Max == p.from
+	}
+	for _, p := range b {
+		if q, ok := endpoints[p.from]; ok && isExact(q) && isExact(p) {
+			return true
+		}
+	}
+	return false
 }
 
 func uvBoxesOverlap(a, b geom.UVBox) bool {

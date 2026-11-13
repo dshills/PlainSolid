@@ -247,6 +247,9 @@ func TestTransverseSplineContourArrangementRejectsOverlappingCharts(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
+	if !sharedExactRingEndpoint(r[0].parts[0], r[1].parts[0]) {
+		t.Fatal("fixture did not retain a shared exact chart endpoint")
+	}
 	if _, _, e := transverseRingNesting(ctx, r, 0); e == nil {
 		t.Fatal("accepted intersecting contour bounds in both charts")
 	}
