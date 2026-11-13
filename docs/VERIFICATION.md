@@ -1004,3 +1004,10 @@ Covered-slab tests use exact containment at the largest sphere section,
 including tangency, full sphere retention, and irrational planar radii
 next to an uncut pole. The shell keeps no cylindrical wall. Native mass
 matches exact axial integration and an independent OCCT cut.
+
+Perpendicular cylinder fixtures cover smooth closed seams at unequal radii,
+the equal-radius tangent nodes, exact finite cap clipping, and coincident
+line intervals. The unequal native solid matches independent slice volume
+and OCCT area, volume, and centroid. Native reload preserves its supports,
+and the certified display passes closure and self-contact tests. Algebraic
+sphere/cylinder tests now treat retained uncut poles as a positive case.

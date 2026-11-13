@@ -71,7 +71,7 @@ func TestAlgebraicFiniteSphereCommon(t *testing.T) {
 }
 func TestAlgebraicFiniteCommonRejects(t *testing.T) {
 	f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
-	for _, z := range [][2]float64{{-5, 4}, {4, 5}, {math.Sqrt(21), 4.9}, {2, 1}} {
+	for _, z := range [][2]float64{{math.Sqrt(21), 4.9}, {2, 1}} {
 		out, e := SphereFiniteCylinderCommonAlgebraic(context.Background(), f, 5, 2, z[0], z[1], 1e-8, geom.ExactCurvePlaneEventOptions{})
 		if e == nil || len(out.Solid.Faces()) != 0 {
 			t.Fatal("accepted", z)
@@ -80,6 +80,26 @@ func TestAlgebraicFiniteCommonRejects(t *testing.T) {
 	out, e := SphereFiniteCylinderCommonAlgebraic(context.Background(), f, 5, 2, -4.75, 4.875, 1e-8, geom.ExactCurvePlaneEventOptions{MaxOperations: 1})
 	if e == nil || len(out.Solid.Faces()) != 0 {
 		t.Fatal("partial budget")
+	}
+}
+
+func TestAlgebraicFiniteCommonRetainsPoles(t *testing.T) {
+	ctx := context.Background()
+	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	for _, z := range [][2]float64{{-5, 4}, {4, 5}, {-6, 6}} {
+		out, e := SphereFiniteCylinderCommonAlgebraic(ctx, f, 5, 2, z[0], z[1], 1e-8, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || len(out.SphericalFaces) == 0 {
+			t.Fatal(z, e)
+		}
+		for i, h := range z {
+			if math.Abs(h) < 5 {
+				continue
+			}
+			rim := out.Rims[i*(len(out.Rims)-1)]
+			if rim.NativeRadius != 0 || rim.RadiusRoot != nil || rim.Radius.Lower.Sign() != 0 || math.Abs(rim.Latitude) != math.Pi/2 {
+				t.Fatal(z, rim)
+			}
+		}
 	}
 }
 

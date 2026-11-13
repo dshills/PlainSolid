@@ -458,6 +458,9 @@ those constructions apply.
 Finite off-axis union also retains a protruding cylindrical boss with one
 buried cap and one fully exposed cap.
 General curved fragment assembly remains open.
+Perpendicular intersecting cylinders now have exact four-cap contact branch
+and material queries. Native intersection retains both cylindrical supports
+for equal and unequal radii when no finite end clips the result.
 
 ## Continuing implementation
 

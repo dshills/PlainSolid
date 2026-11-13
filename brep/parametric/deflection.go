@@ -124,6 +124,8 @@ func surfaceDerivatives(ctx context.Context, s geom.Surface, u, v Interval) (flo
 		return x.secondDerivativeBounds(ctx, u, v)
 	case steinmetzChart:
 		return x.secondDerivativeBounds(ctx, u, v)
+	case unequalCylinderCommonChart:
+		return x.secondDerivativeBounds(ctx, u, v)
 	case toolBoreChart:
 		return x.secondDerivativeBounds(ctx, u, v)
 	case offsetCommonChart:

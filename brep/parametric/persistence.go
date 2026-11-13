@@ -50,6 +50,14 @@ type surfaceData struct {
 	PartialCommon   *offsetPartialData       `json:",omitempty"`
 	DoubleCommon    *offsetDoubleData        `json:",omitempty"`
 	SameSideCommon  *offsetDoubleData        `json:",omitempty"`
+	UnequalCylinder *unequalCylinderData     `json:",omitempty"`
+}
+
+type unequalCylinderData struct {
+	Center       geom.Vec3
+	Small, Large float64
+	Chart, Sign  int
+	Swap         bool
 }
 
 type offsetBoreData struct {
@@ -134,6 +142,8 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case steinmetzChart:
 		return surfaceData{Kind: "steinmetz-cylinder", Center: &x.center, A: x.radius, Steinmetz: &[2]int{x.axis, x.sign}}, nil
+	case unequalCylinderCommonChart:
+		return surfaceData{Kind: "perpendicular-cylinder-common", UnequalCylinder: &unequalCylinderData{x.center, x.small, x.large, x.k, x.sign, x.swap}}, nil
 	case toolBoreChart:
 		return surfaceData{Kind: "offset-sphere-bore", Frame: frameToData(x.frame), OffsetBore: &offsetBoreData{x.radius, x.bore, x.offset, x.floor, x.kind}}, nil
 	case offsetCommonChart:
@@ -210,6 +220,16 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "perpendicular-cylinder-common") != (d.UnequalCylinder != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if d.UnequalCylinder != nil {
+		x := d.UnequalCylinder
+		if !x.Center.IsFinite() || !finite(x.Small) || !finite(x.Large) || x.Small <= 0 || x.Large <= x.Small || x.Chart < 0 || x.Chart > 1 || x.Sign != 1 && x.Sign != -1 {
+			return nil, geom.ErrInvalid
+		}
+		return unequalCylinderCommonChart{x.Center, x.Small, x.Large, x.Chart, x.Sign, x.Swap}, nil
+	}
 	if (d.Kind == "offset-sphere-bore") != (d.OffsetBore != nil) {
 		return nil, geom.ErrInvalid
 	}
