@@ -20,6 +20,9 @@ exactly. For the weighted wedge, the Go result matches an independent
 one-dimensional volume integral and the two independently swept and cut OCCT
 solids. Nonaffine projected charts and weights that depend on the other
 coordinate are rejected.
+Ray checks on a rational quartic trim distinguish whole inside and outside UV
+boxes even when both overlap the unsplit control hull. A one-box budget leaves
+the result unresolved, as does an enclosure straddling the actual edge.
 
 The dense mesh validator agrees with the prior implementation over 300
 deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle

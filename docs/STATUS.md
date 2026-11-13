@@ -161,7 +161,8 @@ free coordinate. The stock and cutter keep their original supports, including
 selected cuts across an original free-axis knot. The
 native version 6 codec verifies continuous edge agreement and UV topology
 again on reload. This still requires a certified graph, exact endpoints and
-one active cutter plane.
+one active cutter plane. Bounded spline face and ray queries classify whole
+enclosures against the resulting cubic and quartic trims.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and
@@ -174,7 +175,8 @@ every touching set a manifold solid.
 Independent standalone exchange codecs support exact signed-coordinate
 cylindrical supports in IGES 192 form 1 and STEP, with explicit units and no
 inferred trims or material. Standalone exact planes use STEP and IGES 190
-form 1. Both conversion packages require lossless frame, unit and metadata transfer.
+form 1, and spherical supports use STEP and IGES 196 form 1 without adding
+seam or pole topology. Converters require lossless frame, unit and metadata transfer.
 The separate IGES/STEP extrusion converter
 retains exact fraction-to-distance parameter scaling and rejects metadata or
 normalization that cannot be preserved.

@@ -50,7 +50,7 @@ type SplineRayResult struct {
 // SplineRay intersects a bounded line with trimmed clamped rational spline
 // supports, including affine placements. It classifies the entire root UV box:
 // straight edges use exact orientation; supported curved edges use outward
-// bounds. Faces with native exact quadratic uses have certified rational
+// bounds. Faces with native exact Bézier uses have certified rational
 // winding and bounded homogeneous trim exclusion. The supplied solid
 // must have embedded UV loops. Coincidence and roots near a curved trim
 // can remain unresolved; no sampled winding replaces a missing proof.
@@ -173,7 +173,8 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 func hasNativeExactRayTrim(f Face) bool {
 	for _, ring := range append([][]Use{f.Outer}, f.Holes...) {
 		for _, u := range ring {
-			if _, ok := u.Curve.(ExactQuadraticUV); ok {
+			switch u.Curve.(type) {
+			case ExactQuadraticUV, ExactBezierUV:
 				return true
 			}
 		}

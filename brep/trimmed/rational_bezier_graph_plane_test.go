@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
 )
@@ -239,6 +241,62 @@ func TestNativeExactTrimCoefficientBounds(t *testing.T) {
 	}
 	if r, e := parseNativeExactTrimCoefficient("-2/3"); e != nil || r.Cmp(big.NewRat(-2, 3)) != 0 {
 		t.Fatal("canonical signed coordinate", r, e)
+	}
+}
+
+func TestRationalBezierGraphTrimRay(t *testing.T) {
+	ctx := context.Background()
+	stock := rationalBezierGraphStock(t, 4)
+	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
+	r, e := CombineRationalGraphSplinePlaneClip(ctx, stock, tool, 5, parametric.Intersection, SplineRectangleEmbeddingOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	face := r.StockFaces[4][0]
+	// At X=1/2 the exact section has Y=47/96. Both query boxes are in
+	// the complete curved control hull, so the box proof must subdivide.
+	x := 0.5
+	for _, q := range []struct {
+		y    float64
+		want trimvalidate.Location
+	}{{.47, trimvalidate.Inside}, {.51, trimvalidate.Outside}} {
+		box := geom.UVBox{Min: geom.Vec2{X: x - .001, Y: q.y - .001}, Max: geom.Vec2{X: x + .001, Y: q.y + .001}}
+		loc, known, e := classifySplineFaceRootBox(ctx, r.Solid.faces[face], box, trimvalidate.Options{}, 256)
+		if e != nil || !known || loc != q.want {
+			t.Fatal(loc, known, e)
+		}
+		if _, known, e = classifySplineFaceRootBox(ctx, r.Solid.faces[face], box, trimvalidate.Options{}, 1); e != nil || known {
+			t.Fatal("one hull is insufficient", known, e)
+		}
+		line, e := geom.NewLine(geom.Vec3{X: x, Y: q.y, Z: 1}, geom.Vec3{Z: -1})
+		if e != nil {
+			t.Fatal(e)
+		}
+		hit, e := r.Solid.IntersectSplineFaceLine(ctx, face, line, SplineFaceLineOptions{Support: geom.LineSplineSurfaceOptions{MaxParameter: 2}})
+		if e != nil || !hit.Complete || (len(hit.Hits) == 1) != (q.want == trimvalidate.Inside) || len(hit.Hits)+len(hit.Excluded) != 1 {
+			t.Fatal(hit, e)
+		}
+	}
+	o := SplineRayOptions{Line: geom.LineSplineSurfaceOptions{MaxParameter: 2}}
+	for _, item := range []struct {
+		x, y  float64
+		count int
+	}{{.5, .47, 2}, {.5, .51, 0}} {
+		h, e := r.Solid.SplineRay(ctx, geom.Vec3{X: item.x, Y: item.y, Z: 1}, geom.Vec3{Z: -1}, o)
+		if e != nil || !h.Complete || len(h.Hits) != item.count {
+			t.Fatal(item, h, e)
+		}
+	}
+	// A box straddling the curved edge must remain unresolved.
+	y := 47. / 96
+	box := geom.UVBox{Min: geom.Vec2{X: x - .001, Y: y - .001}, Max: geom.Vec2{X: x + .001, Y: y + .001}}
+	if _, known, e := classifySplineFaceRootBox(ctx, r.Solid.faces[face], box, trimvalidate.Options{}, 256); e != nil || known {
+		t.Fatal("claimed box overlapping exact trim", known, e)
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, e := r.Solid.SplineRay(canceled, geom.Vec3{Z: 1}, geom.Vec3{Z: -1}, o); !errors.Is(e, context.Canceled) {
+		t.Fatal(e)
 	}
 }
 

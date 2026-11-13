@@ -25,7 +25,7 @@ type SplineFaceLineOptions struct {
 	Support geom.LineSplineSurfaceOptions
 	Patch   geom.SurfacePatchOptions
 	Trim    trimvalidate.Options
-	// MaxTrimBoxes bounds rational quadratic control-hull subdivision
+	// MaxTrimBoxes bounds rational Bézier control-hull subdivision
 	// for each candidate root box. Zero selects 256.
 	MaxTrimBoxes int
 }
@@ -109,19 +109,23 @@ func classifySplineFaceRootBox(ctx context.Context, face Face, box geom.UVBox, o
 				return trimvalidate.Unknown, false, nil
 			}
 			if b.X >= box.Min.X && a.X <= box.Max.X && b.Y >= box.Min.Y && a.Y <= box.Max.Y {
-				var h [3][3]*big.Rat
+				var h [][3]*big.Rat
 				switch c := u.Curve.(type) {
 				case SplineUV:
-					h, e = quadraticTrimSourceControls(c)
+					var quadratic [3][3]*big.Rat
+					quadratic, e = quadraticTrimSourceControls(c)
 					if e != nil {
 						return trimvalidate.Unknown, false, nil
 					}
+					h = quadratic[:]
 				case ExactQuadraticUV:
-					h = c.HomogeneousControls()
+					h = c.control[:]
+				case ExactBezierUV:
+					h = c.control
 				default:
 					return trimvalidate.Unknown, false, nil
 				}
-				disjoint, e := quadraticTrimExcludesUVBox(ctx, h, box, &trimBoxes)
+				disjoint, e := bezierTrimExcludesUVBox(ctx, h, box, &trimBoxes)
 				if e != nil || !disjoint {
 					return trimvalidate.Unknown, false, e
 				}
@@ -161,12 +165,12 @@ func lineCrossesUVBox(a, b geom.Vec2, r geom.UVBox) bool {
 	return true
 }
 
-func quadraticTrimExcludesUVBox(ctx context.Context, h [3][3]*big.Rat, box geom.UVBox, left *int) (bool, error) {
-	if h[0][0] == nil {
+func bezierTrimExcludesUVBox(ctx context.Context, h [][3]*big.Rat, box geom.UVBox, left *int) (bool, error) {
+	if len(h) < 3 || len(h) > 5 || h[0][0] == nil {
 		return false, nil
 	}
 	type item struct {
-		net   [3][3]*big.Rat
+		net   [][3]*big.Rat
 		depth int
 	}
 	q := []item{{net: h}}
@@ -203,9 +207,17 @@ func quadraticTrimExcludesUVBox(ctx context.Context, h [3][3]*big.Rat, box geom.
 		if x.depth == 40 {
 			return false, nil
 		}
-		a, b := mid(x.net[0], x.net[1]), mid(x.net[1], x.net[2])
-		c := mid(a, b)
-		q = append(q, item{[3][3]*big.Rat{c, b, x.net[2]}, x.depth + 1}, item{[3][3]*big.Rat{x.net[0], a, c}, x.depth + 1})
+		n := len(x.net)
+		var work, lower, upper [5][3]*big.Rat
+		copy(work[:n], x.net)
+		lower[0], upper[n-1] = work[0], work[n-1]
+		for level := 1; level < n; level++ {
+			for i := 0; i < n-level; i++ {
+				work[i] = mid(work[i], work[i+1])
+			}
+			lower[level], upper[n-level-1] = work[0], work[n-level-1]
+		}
+		q = append(q, item{upper[:n], x.depth + 1}, item{lower[:n], x.depth + 1})
 	}
 	return true, nil
 }
