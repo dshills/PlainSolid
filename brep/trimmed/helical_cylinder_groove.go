@@ -126,11 +126,11 @@ func GrooveTubeWithHelicalStarts(ctx context.Context, frame geom.Frame, outerRad
 
 func grooveCylinderWithHelicalStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
 	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
-	return grooveCylinderStarts(ctx, frame, stockRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil, roundChart)
+	return grooveCylinderStarts(ctx, frame, stockRadius, outerRadius, height, profile, lead, start, end, hand, starts, nil, roundChart, true)
 }
 
 func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, outerRadius, height float64,
-	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, phaseTurns *big.Rat, roundChart func(*big.Rat, bool) (float64, error)) (Solid, error) {
+	profile []geom.Vec2, lead, start, end float64, hand geom.HelixHandedness, starts int, phaseTurns *big.Rat, roundChart func(*big.Rat, bool) (float64, error), validateDisplay bool) (Solid, error) {
 	if ctx == nil || !finite(stockRadius) || stockRadius <= 0 || !finite(height) || height <= 0 ||
 		!finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start || end-start > 16 ||
 		hand != geom.LeftHanded && hand != geom.RightHanded || len(profile) > 32 || starts < 1 || starts > 8 {
@@ -278,7 +278,7 @@ func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, ou
 				}
 			}
 		}
-		tool, e := SweepHelicalPolygon(ctx, toolFrame, q, lead, start, end, hand)
+		tool, e := sweepHelicalPolygon(ctx, toolFrame, q, lead, start, end, hand, false)
 		if e != nil {
 			return Solid{}, e
 		}
@@ -297,7 +297,7 @@ func grooveCylinderStarts(ctx context.Context, frame geom.Frame, stockRadius, ou
 			}
 			return geom.Vec2{X: sideU[k], Y: v}, e
 		}
-		stock, e = sewHelicalGrooveOnWall(ctx, stock, tool, outer, wall, hand, project)
+		stock, e = sewHelicalGrooveOnWall(ctx, stock, tool, outer, wall, hand, project, validateDisplay && j == starts-1)
 		if e != nil {
 			return Solid{}, e
 		}
@@ -353,16 +353,16 @@ func helicalSeamCylinder(ctx context.Context, frame geom.Frame, radius, height, 
 		}
 		faces = append(faces, f2)
 	}
-	return NewSolidContext(ctx, vertices, edges, faces, max(radius, height)*1e-11)
+	return newSolidContext(ctx, vertices, edges, faces, max(radius, height)*1e-11, false)
 }
 
 func sewHelicalGroove(ctx context.Context, stock, tool Solid, outer int, hand geom.HelixHandedness,
 	project func(geom.Vec2) (geom.Vec2, error)) (Solid, error) {
-	return sewHelicalGrooveOnWall(ctx, stock, tool, outer, 0, hand, project)
+	return sewHelicalGrooveOnWall(ctx, stock, tool, outer, 0, hand, project, true)
 }
 
 func sewHelicalGrooveOnWall(ctx context.Context, stock, tool Solid, outer, wall int, hand geom.HelixHandedness,
-	project func(geom.Vec2) (geom.Vec2, error)) (Solid, error) {
+	project func(geom.Vec2) (geom.Vec2, error), validateDisplay bool) (Solid, error) {
 	v, edges, faces := stock.Vertices(), stock.Edges(), stock.Faces()
 	vertexBase, edgeBase := len(v), len(edges)
 	v = append(v, tool.vertices...)
@@ -406,7 +406,7 @@ func sewHelicalGrooveOnWall(ctx context.Context, stock, tool Solid, outer, wall 
 		}
 		faces = append(faces, f)
 	}
-	return NewSolidContext(ctx, v, edges, faces, max(stock.tolerance, tool.tolerance))
+	return newSolidContext(ctx, v, edges, faces, max(stock.tolerance, tool.tolerance), validateDisplay)
 }
 
 func helicalSeamTube(ctx context.Context, frame geom.Frame, outer, inner, height, twist, phase float64) (Solid, int, error) {
@@ -467,6 +467,6 @@ func helicalSeamTube(ctx context.Context, frame geom.Frame, outer, inner, height
 		}
 		faces = append(faces, f)
 	}
-	s, e := NewSolidContext(ctx, vertices, edges, faces, max(outer, height)*1e-11)
+	s, e := newSolidContext(ctx, vertices, edges, faces, max(outer, height)*1e-11, false)
 	return s, 1, e
 }

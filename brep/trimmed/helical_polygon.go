@@ -112,6 +112,11 @@ func HelicalCylinderCommon(ctx context.Context, frame geom.Frame, profile []geom
 // sweep itself, rather than cutting it from another body.
 func SweepHelicalPolygon(ctx context.Context, frame geom.Frame, profile []geom.Vec2, lead, start, end float64,
 	hand geom.HelixHandedness) (Solid, error) {
+	return sweepHelicalPolygon(ctx, frame, profile, lead, start, end, hand, true)
+}
+
+func sweepHelicalPolygon(ctx context.Context, frame geom.Frame, profile []geom.Vec2, lead, start, end float64,
+	hand geom.HelixHandedness, validateDisplay bool) (Solid, error) {
 	if ctx == nil || !finite(lead) || lead <= 0 || !finite(start) || !finite(end) || end <= start ||
 		end-start > 16 || len(profile) > 32 || !finite(lead*start) || !finite(lead*end) || hand != geom.RightHanded && hand != geom.LeftHanded {
 		return Solid{}, geom.ErrInvalid
@@ -189,5 +194,5 @@ func SweepHelicalPolygon(ctx context.Context, frame geom.Frame, profile []geom.V
 		}
 		faces = append(faces, f)
 	}
-	return NewSolidContext(ctx, vertices, edges, faces, tol)
+	return newSolidContext(ctx, vertices, edges, faces, tol, validateDisplay)
 }

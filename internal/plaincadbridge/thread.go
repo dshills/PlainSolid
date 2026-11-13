@@ -88,18 +88,23 @@ func (b *Bridge) threadBody(s stored, q threadRequest) (Shape, error) {
 	recipe.Lead, recipe.End, recipe.Hand, recipe.Starts = pitch, length/pitch, hand, 1
 	depth := center + pitch*.19
 	ctx := context.Background()
-	groove, err := trimmed.GrooveWithOverlappingEntryRelief(ctx, recipe, entryRadius, depth, threadChartBudget(recipe))
-	if err != nil {
-		return Shape{}, fmt.Errorf("thread groove: %w", err)
-	}
-	solid := groove.Solid
+	var solid trimmed.Solid
+	var removedPi *big.Rat
 	if head != nil {
-		solid, err = trimmed.AttachSteppedShaftHead(ctx, *head, solid)
+		var err error
+		solid, removedPi, err = trimmed.SteppedShaftWithGrooveAndEntryRelief(ctx, *head, recipe, entryRadius, depth, threadChartBudget(recipe))
 		if err != nil {
 			return Shape{}, fmt.Errorf("thread head attachment: %w", err)
 		}
+	} else {
+		groove, err := trimmed.GrooveWithOverlappingEntryRelief(ctx, recipe, entryRadius, depth, threadChartBudget(recipe))
+		if err != nil {
+			return Shape{}, fmt.Errorf("thread groove: %w", err)
+		}
+		solid = groove.Solid
+		removedPi = new(big.Rat).Add(groove.GrooveVolumePiCoefficient, groove.EntryVolumePiCoefficient)
 	}
-	removed, _ := new(big.Rat).Add(groove.GrooveVolumePiCoefficient, groove.EntryVolumePiCoefficient).Float64()
+	removed, _ := removedPi.Float64()
 	volume := s.result.GeometryAssertions.Volume - math.Pi*removed
 	area, err := solid.HelicalSurfaceArea(ctx)
 	if err != nil {

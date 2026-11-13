@@ -299,6 +299,10 @@ func (c *entryClipper) appendEntryRelief(radius float64) (int, int, error) {
 	return reliefID, shoulderID, nil
 }
 func (c *entryClipper) solid() (Solid, error) {
+	return c.solidWithValidation(true)
+}
+
+func (c *entryClipper) solidWithValidation(validateDisplay bool) (Solid, error) {
 	used := make([]bool, len(c.vertices))
 	for _, edge := range c.edges {
 		used[edge.Start] = true
@@ -316,5 +320,5 @@ func (c *entryClipper) solid() (Solid, error) {
 		c.edges[i].Start = ids[c.edges[i].Start]
 		c.edges[i].End = ids[c.edges[i].End]
 	}
-	return NewSolidContext(c.ctx, vertices, c.edges, c.faces, c.source.tolerance)
+	return newSolidContext(c.ctx, vertices, c.edges, c.faces, c.source.tolerance, validateDisplay)
 }
