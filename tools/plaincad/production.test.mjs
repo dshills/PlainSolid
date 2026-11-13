@@ -18,6 +18,21 @@ test('check validates staged provenance and rejects changed/unrecorded tests',()
  const check=()=>spawnSync(process.execPath,[script,'--work',work,'--check'],{encoding:'utf8'});
  let result=check();assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).status,'verified');
  writeFileSync(join(work,'production-e2e/a.spec.ts'),'changed assertion');assert.match(check().stderr,/Staged source changed/);writeFileSync(join(work,'production-e2e/a.spec.ts'),fixture);
+
+ assert.equal(JSON.parse(check().stdout).port,'5280');
+ const fixed='focusedWorkspaceStorageState("http://127.0.0.1:5280")';
+ writeFileSync(join(work,'production-e2e/a.spec.ts'),fixed);r.sourceHashes['production-e2e/a.spec.ts']=hash(fixed);writeFileSync(join(work,'readiness.json'),JSON.stringify(r));
+ assert.equal(check().status,0);
+ const alternate=(...extra)=>spawnSync(process.execPath,[script,'--work',work,'--port','5415','--check',...extra],{encoding:'utf8'});
+ assert.match(alternate().stderr,/Fixed-origin fixture/);
+ assert.match(alternate('--test','production-e2e/a.spec.ts').stderr,/Fixed-origin fixture/);
+ assert.equal(alternate('--test','production-e2e/other.spec.ts').status,0);
+ mkdirSync(join(work,'src/cad/features'),{recursive:true});
+ const prior='onNativeProgress?: callback\n        operationCount += 1;',after=prior+'\n        options.onNativeProgress?.("native_feature");';
+ const path='src/cad/features/rebuildGraph.ts';r.sourceHashes[path]=hash(prior);r.runtimeAdaptations=[{file:path,beforeSha256:hash(prior),afterSha256:hash(after)}];writeFileSync(join(work,path),after);writeFileSync(join(work,'readiness.json'),JSON.stringify(r));
+ assert.equal(check().status,0,check().stderr);
+ r.runtimeAdaptations[0].afterSha256=hash(after+'changed');writeFileSync(join(work,path),after+'changed');writeFileSync(join(work,'readiness.json'),JSON.stringify(r));assert.match(check().stderr,/Invalid heartbeat/);
+ writeFileSync(join(work,path),after);r.runtimeAdaptations[0].afterSha256=hash(after);writeFileSync(join(work,'readiness.json'),JSON.stringify(r));
  writeFileSync(join(work,'production-e2e/extra.spec.ts'),'extra');assert.match(check().stderr,/Unrecorded production input/);
  }finally{rmSync(root,{recursive:true,force:true})}
 });
