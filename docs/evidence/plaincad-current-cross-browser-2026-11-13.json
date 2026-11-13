@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "backend": "plainsolid-go-wasm",
-  "source": "/tmp/plainsolid-plaincad-latest-e65f07b",
-  "workspace": "/tmp/plainsolid-current-cross-browser-01",
-  "startedAt": "2026-11-13T19:15:38.937Z",
+  "source": "/tmp/plainsolid-plaincad-latest-50432ed",
+  "workspace": "/tmp/plainsolid-current-cross-browser-5368",
+  "startedAt": "2026-11-13T21:47:21.832Z",
   "selected": {
     "suite": "cross-browser",
     "testFile": "cross-browser-e2e",
@@ -100,7 +100,7 @@
     "src/cad/kernel/nativeDrawing.ts": "5f534467196bc9d0993933f153f99fd642ff8ac85eb9f45e35448804959b65c3",
     "src/cad/kernel/nativeLeadScrew.ts": "0769670d80b43c80661978df9a449c9f44be9d14f34f8a290eea44d804c3c33f",
     "src/cad/kernel/nativeShell.ts": "5e5c05ccbcd601f0475c4ae00a3cc77ccc46f940134dc4a99a63a029d79e3bc0",
-    "src/cad/kernel/nativeStep.ts": "a121faabb4a812b92621334e63834aeb0cda11216b50dce55fd3a02a1377ac63",
+    "src/cad/kernel/nativeStep.ts": "d5c7cf62d94b86898ef1dd90dff13ff107bb064392610c055f19c84491bd47ed",
     "src/cad/kernel/nativeThreads.ts": "ce2c53c7ab313ed6921f53a6b08f9eff86bb3413b340bb916eece6fa961b6af7",
     "src/cad/kernel/occtGeometry.ts": "471b60c7694bc9764e307d8705c052c1c822c5122c5e5ec1a8cc99026724a4b4",
     "src/cad/kernel/occtMachinedReferences.ts": "c1acc78eb0c9883191e60a3d303bedfc655a8751288e431b2919556ba7064b33",
@@ -364,7 +364,7 @@
     "src/tests/nativeFeatureCache.test.ts": "49d5db0acda7eec52fd27c3024fef82765687d9dc067d408956a0fdb3f865202",
     "src/tests/nativeFeatureSignature.test.ts": "088d31310c4e317a3f379d4fd3815c9dbc5524c14833cb96bae2eb4609a27bd9",
     "src/tests/nativeSketchPlanes.test.ts": "7324efb759000bc3cd4d9eb5f6ae42fefd632755d5c926e35a5eb9a9a63d2d64",
-    "src/tests/nativeStep.test.ts": "65e6f5c865cba224f66011589e95ca7067ed50293e2e1e5ff3eb2b5bcc77f95d",
+    "src/tests/nativeStep.test.ts": "abad45342a02572cd2218972e5a78ccb7a959ab9e9c95fb74507e2d44f1bc02c",
     "src/tests/offsetContour.test.ts": "dc7c3536766b42d665a1a8bffbb7c0836ecc2425ed7377b4d97125b21873adf1",
     "src/tests/operationDrop.test.tsx": "b3a272eebf3d9f88ec367041aaf9492175a9f6d65bbc787744603af9b235ff86",
     "src/tests/parameterBindings.test.ts": "2b6d3fe77f44f38f02f856a8648a11096b50d20c1b38467b13683692031e9754",
@@ -679,7 +679,7 @@
     "e2e/ai-sketch-follow-up.spec.ts": "b73fbe50039bcd058a163889159aeb3137a98968cc280781e965ac99a706a3d3",
     "e2e/ai-sketch-history.spec.ts": "16c8e43342ee30a82ecfcd11f7e8d8c7fcdb2128f33cb6be3b877fb3563e7193",
     "e2e/ai-target-highlights.spec.ts": "7587e2784bcd6628d0fe2ed659dd5414877c350026b1fe3b4824ccf0e2b5ccb4",
-    "e2e/aiAcceptanceHelpers.ts": "957109313e37d612082a502f459fabbab1177ac7e7ccde0de267fc89b70422e2",
+    "e2e/aiAcceptanceHelpers.ts": "c54381c7596f3b3cb2b1df4fb54f74123f574e52843d6eac94ddc2638aa262b2",
     "e2e/assembly-joints.spec.ts": "8f92d4fc51dea661a70f68045dd0ca878ba5d0bb2c948134a13c4f585bbffd80",
     "e2e/body-visibility.spec.ts": "9703ace6e4bfae14749673ca89dc4600fbeb3ad4d60747a549580712f06d16a6",
     "e2e/canvas-actions.spec.ts": "99b73ad7f46bd56dd59d5e64dcb026d8930555b96a0703076488e41058b05314",
@@ -717,7 +717,7 @@
     "e2e/feature-repair.spec.ts": "bc25dfbb9723fb318ecc2913893b24b0caf4d1247328bcac6225e6d940a83e56",
     "e2e/first-part.spec.ts": "138853b8c23988059d993cdc8f3392b29af1ebb975eaf2a2804bbb8257bcbbbc",
     "e2e/fitted-part.spec.ts": "636ec2c54d22b6fbdbe37ca1ab9d8339ebcb4276e89a041d63da5723205214dd",
-    "e2e/focused-workspace.spec.ts": "634e5d6cd57a8cfd926fc0c1c0e92a92cd6f5c655275511c82e5925b75c87753",
+    "e2e/focused-workspace.spec.ts": "e456fd396030c668a4398b7ebb81718e4016297d7e3cefbb24d84dff58ecf013",
     "e2e/guided-constraint-repair.spec.ts": "b2d9bae51d13884f8cab8e9ca64efdb77413368a726d62de8a2856d2d3bffac9",
     "e2e/guided-export.spec.ts": "5be5f503ee0e597c97fe6438386ee29871de6dd5ba409ae19116dda7f637f8ee",
     "e2e/guided-hole.spec.ts": "640c0cddc9dcf233ece8161aa95d13cec8bc8a2cfc3faeebe6e463e8c979e81a",
@@ -807,7 +807,7 @@
     "e2e/themes.spec.ts": "d6c4fdd6cb50d193cf914c9e31ea9786e52d847af34c76202d8efb4b14e1242a",
     "e2e/timeline-story.spec.ts": "ec14660928b70a3bc977ca98ac6a688c69abc9de5c90d144242a200b55525c40",
     "e2e/viewer-demand.spec.ts": "31e1d671abb61c686824c86911106fed84b42f1cae255c05bd23af2459c76fba",
-    "e2e/viewer-performance.spec.ts": "ca677a83bf0a9f41104b95d85ec862489afbca8be4923ca0bb74aed17437a1c0",
+    "e2e/viewer-performance.spec.ts": "6bf1b5005c15bf89cfeb5353f562a79a3bb864529e21828b1a703a891c0455e2",
     "e2e/viewport-fit.spec.ts": "b44df81f5b6fb3d59c32b1971270361097bce2041f1249cb83feda44053998f7",
     "e2e/views.spec.ts": "5b8187a65f0969973204c1e667e59ad06eb8a1b3cba729b21c7d0777961631fd",
     "e2e/workbench-motion.spec.ts": "ae2b6e131d7790c52df02fa82d250401f2b5e014597f38f86005d3758140e410",
@@ -849,23 +849,23 @@
     "production-e2e/studio.spec.ts": "96dee2e513fa3c609315e96cf3644fbe4c3e55f0076feaa48b82926ff9e44e10",
     "production-e2e/timeline-story.spec.ts": "5a499fd160a95aa3844bb4379e49eaa58eceaee2b090cc78f71164eb883127c0",
     "production-e2e/workbench.spec.ts": "93aa5281da58f5dd3180f86024f041caf9d9d5b549a795fc087da626d3713981",
-    "cross-browser-e2e/editing-usability.spec.ts": "e0cad53fa181a73c4e669194e7deb20e08f0955cee4fa5952ad1014890d441e7",
-    "cross-browser-e2e/workbench.spec.ts": "8abbb597de5db1a719b21d3859e767663bd3ce6b269fe6ab80af7302a7e50cce"
+    "cross-browser-e2e/editing-usability.spec.ts": "062dd134a77ecb67f08e7de6b9ec32e86c43aac278f7ce73ef60bb9961433393",
+    "cross-browser-e2e/workbench.spec.ts": "563059ff0f6e28e6de9dddf3e8f13caebd392d771633f0cebcdee00db7a0d715"
   },
   "sourceIdentity": {
     "kind": "git-archive",
-    "head": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
     "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
     "cleanCommittedArchive": true,
-    "manifestSha256": "e67ab62efc068ecba0757bf69d3dc99b766dba76925526c3ff624b4435f7e3b1"
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
   },
   "plainSolidIdentity": {
-    "head": "f3d39ed941db36898a6c12ed31125c4886114b96",
-    "status": "M brep/trimmed/persistence.go\n M docs/STATUS.md\n M internal/plaincadbridge/analytic.go\n M internal/plaincadbridge/display_normals.go\n M internal/plaincadbridge/edge_body.go\n M internal/plaincadbridge/mixed_profile.go\n M tools/plaincad/PlainSolidKernel.ts\n M tools/plaincad/README.md\n M tools/plaincad/run.mjs\n?? brep/trimmed/extrude_arc_loop.go\n?? brep/trimmed/extrude_arc_loop_test.go\n?? internal/plaincadbridge/arc_loop.go\n?? internal/plaincadbridge/arc_loop_test.go\n?? internal/plaincadbridge/axial_edge_treatment.go\n?? internal/plaincadbridge/axial_edge_treatment_test.go",
+    "head": "64f4cb99ae5e0ba0fdd33c86126a0a0e4812b642",
+    "status": "M brep/trimmed/box_side_cylinder_through.go\n M brep/trimmed/extrude_box_pockets.go\n M exchange/step/side_blind_notch.go\n M exchange/step/side_blind_notch_test.go\n M internal/plaincadbridge/bridge.go\n M internal/plaincadbridge/cut_many.go\n M internal/plaincadbridge/overlap_volume.go\n M internal/plaincadbridge/side_cylinder.go\n M internal/plaincadbridge/side_cylinder_test.go\n M internal/plaincadbridge/step.go\n?? internal/plaincadbridge/side_bore_batch.go",
     "branch": "codex/plaincad-integration"
   },
   "plainSolidSourceHashes": {
-    "internal/plaincadbridge/analytic.go": "8abde704957c54d4a0df06bc36d4e24773f14a2016a4fdf08ddc4c19bda75193",
+    "internal/plaincadbridge/analytic.go": "11c5e7cb2f3cbcff2c643007a8f4572a8ee10bd21d553ed023e389615539d207",
     "internal/plaincadbridge/annular_pedestal.go": "169f2ace2f82878239f939d23d07009499565fbb49486c859415b56c815b7e44",
     "internal/plaincadbridge/annular_pedestal_test.go": "4aaed791cf9de9ac0707f294e2bf5d72f1399ea5da6af4e17b335f0b6b511899",
     "internal/plaincadbridge/annular_stock.go": "ae4ddbf0d109dd6058c12edb5b261f755b27dccb38d7e052163a21eb1a236837",
@@ -880,30 +880,32 @@
     "internal/plaincadbridge/bore_mesh.go": "d9abc3a5078e7691c431a8f65bbd812a8eb181af6e34c0f9d483f0e729dc6074",
     "internal/plaincadbridge/bore_mesh_test.go": "fd02d4fa9abf41c8fd51e95d053dd2be78359d1b8d16f9b566c2bb807f7f6d9b",
     "internal/plaincadbridge/bore_test.go": "badf1164af165d17b7b2fcb9c5ddeb325e9c4fc8f749c1430703ddda9515cc54",
-    "internal/plaincadbridge/bore_union.go": "5f700b50e64ebaf5da0f156f6c5c51bb0c26b284e2307b1568ac71254bffae06",
+    "internal/plaincadbridge/bore_union.go": "2d7fde5316a2f7c2c3711563231035d2b9b069a355805f776055162a832a457c",
     "internal/plaincadbridge/bore_union_test.go": "6ff8744ffaa964005d041fefb3c449fcb5d0be193c11611226cc0342bbb91b0f",
     "internal/plaincadbridge/box_pocket.go": "a2eaa709ff44f6c5a41a76f532eeb10b8d4550c3b18897c189e4a114a2d33c13",
     "internal/plaincadbridge/box_pocket_test.go": "c5afc7725f7d05d8cb93b6bf6bc02b257c5aa8b27b7ad3674b2571d8f7db8a65",
-    "internal/plaincadbridge/bridge.go": "9bdfc765858211e39d7b839ba7f449d9c08d7f98fa20688aff9b469a9c43abf3",
+    "internal/plaincadbridge/bridge.go": "8abb7895658fe955094d92a5891811e2c3fc3076c5a0be17866d3475b8f46928",
     "internal/plaincadbridge/bridge_test.go": "4ac0b3f987ef732bd302912234a577aeed40e0e80289413553d8bd5b9db38e18",
-    "internal/plaincadbridge/circle.go": "7b600ceb8d25b6b97deb84d8da40d4a37f664a9ce7c6491fc0cfa8344c67ed3b",
+    "internal/plaincadbridge/circle.go": "b28b075e79042792795b2297efe27a2a053fee8771076dc1b21786a43525bd73",
     "internal/plaincadbridge/circle_stl_precision_test.go": "4748901d72e0d479594a393b2e440d0cb929cae663a4bf7eccc5fa996f0532ae",
     "internal/plaincadbridge/circle_test.go": "e9f5d7336907859e4551382e25f7ac44f1ebfbbbf44ec5b2f3e5f8909ab7945a",
+    "internal/plaincadbridge/circular_stock_bore.go": "ddf2c75cf8f1cae7f558086d0c102eede479d38dc3870cee26d640fb6247f52b",
+    "internal/plaincadbridge/circular_stock_bore_test.go": "9555241ce293dad62d405dba732361da22e67ba1f92e09ae0b8013c4cba0dc3c",
     "internal/plaincadbridge/coaxial.go": "cc46a9964daeb2db71cb757e661fe95181a1d35dbab99e9d21bb9364a69d6adc",
     "internal/plaincadbridge/coaxial_join.go": "e2342980fee4eafe0733cdafb05bc41e751361af20947691496b776b3a65ad4e",
     "internal/plaincadbridge/coaxial_join_mesh.go": "a3d357e90ba211df205173aa89feccf301bbaf56c7c0ae5faba3c695873373fa",
     "internal/plaincadbridge/coaxial_join_test.go": "91fe3b06f6cbc3444f2858dbf0d65b18abd0a54526f6b2430a93053e479add69",
-    "internal/plaincadbridge/corner_cylinder.go": "2627d18b80c9e5ee2620a44c64477d33bc5821db167ae02f0b5fd0fdbad2e0a2",
+    "internal/plaincadbridge/corner_cylinder.go": "de302cbd73907652e0d7497c4bbbdea5eccf505022c23ba018ff77bb92bf1acd",
     "internal/plaincadbridge/corner_cylinder_through.go": "431f8600bbd8828f20bb58222ec5b92aaff029ab8d22cd3f57191d99acf7bba6",
-    "internal/plaincadbridge/cut_many.go": "033ed8f7137614f2a28f0f27e2fba7dc19f1b4b3665ab95740f5b0c8a73f01ef",
+    "internal/plaincadbridge/cut_many.go": "3c2b784bd52998f4f92199d7fc60be11d5404cb9fc95d2e43ddbf7a89d3cbc81",
     "internal/plaincadbridge/cut_many_test.go": "c1d99f030108562619176f79f46d73df62c6f160413a4f76b52c3c5c6bb5cb12",
     "internal/plaincadbridge/cylinder_rim.go": "7905076971ba74199f13577d74caf6943b494163860d7e8892044ed9d0d455ec",
     "internal/plaincadbridge/cylinder_rim_test.go": "d90f8c5ba0fc4b44577c910d141f5e02c244be094f6b338605eb5e83ecee6085",
-    "internal/plaincadbridge/display_edges.go": "f0d5263a20ba1eed0a8200dc2538a5404f41b31058f2ddbbfd846d124cffa2f7",
+    "internal/plaincadbridge/display_edges.go": "299b7ac4a4a20430808e03b84ecfdb76cd7641af4c89ff6e940df26d089674ff",
     "internal/plaincadbridge/display_normals.go": "4e09b3d0a004aa438879cf76b95ef65cd2cc7b3e58aeb53dff9e66dea0e63048",
-    "internal/plaincadbridge/drawing.go": "b896d9e173e71808009de1e04fbf7724d164ca45a4f5645dce403af006e2dc8f",
+    "internal/plaincadbridge/drawing.go": "f3028f2975d682a4f36abd1707e76b6bdb2b327275717619d02ccdd99a6e4a26",
     "internal/plaincadbridge/drawing_test.go": "98017e6c83f3267857478d0602dccb048fb393b39f905941c131ec5f149cefe0",
-    "internal/plaincadbridge/edge_body.go": "94df51c57e806115d5596e4c47671a2267369ea355a67ace300b853f5b853b14",
+    "internal/plaincadbridge/edge_body.go": "ee7cd162e08e0554efbb3c35938c1041a3268724e0f47d2bd08516bc65a51ab0",
     "internal/plaincadbridge/edge_boolean.go": "dff60b5587f5d02d6298aef68014a00be8a90eef58bacb7b87608c666501f884",
     "internal/plaincadbridge/edge_chain_oracle_test.go": "ab862616923e25f1253f0b5dd1a1bcb781dd43e59b534bb80b2c1152e96805a7",
     "internal/plaincadbridge/edge_faces.go": "bec9642403cc82ccf8a1cae4f25a6d09cfdb578498a13bb54af39e274a50c068",
@@ -918,12 +920,13 @@
     "internal/plaincadbridge/lead_unit_mesh_test.go": "a576d1298758e29c29120dee60b5859b6274e0ff5be5d3cb0ce60c2eb7230700",
     "internal/plaincadbridge/machined_reference.go": "f2fa399df44604e0561674ba27c465ce593ba7821244ff32fdf378407b22cab5",
     "internal/plaincadbridge/mixed_bounds_test.go": "96fbda9174b33b0abe5be98fe46a59a5563d1b7cab3ba65cd67ed4d5cdf31525",
-    "internal/plaincadbridge/mixed_profile.go": "4e663e51e9d2e03ea431aca2583ece96630e254bbb33bdf40c5e16b3cca0fa19",
+    "internal/plaincadbridge/mixed_profile.go": "ba104f41ae5c33f4ee94af83ca7322100d409179221dec3c1688a09bebd9dce0",
     "internal/plaincadbridge/mixed_profile_test.go": "0d2d8e744a4983661ecfa8e50278f1e680b75be3aacf0290e15eb761f572ef9d",
     "internal/plaincadbridge/multi_body_corner_test.go": "55bcbd725e2d887ccd1d8a29a6fd462c13eeca0d4021d673f50d0d11e8047c27",
+    "internal/plaincadbridge/opposed_blind_bore_test.go": "0f8ad19f845119b79456eea4897489896e7378c117390d1f8d4185787e8eb7b6",
     "internal/plaincadbridge/opposite_cap.go": "a6219a4f8e6e6f32014e9a1eb722a02918df83f942a21f28f81ada7794453744",
     "internal/plaincadbridge/overlap_capture_test.go": "73213a8a46e5629dddc9572466975f8d97aa0c0ce1e4264a4ba6ade8dd2a9a75",
-    "internal/plaincadbridge/overlap_volume.go": "7fbff55b13809811db9475a010bd98f2d00eb7732743b785c05dc89f6138a53a",
+    "internal/plaincadbridge/overlap_volume.go": "aa165f1997dfaca8ac3aa277c5dcb2c4327720420581671c357116c00414a1b3",
     "internal/plaincadbridge/planar_boolean_chain_test.go": "d900c368105e21e6770ef0c7c30483e5806f71bb2605e9c73214b58dd75585c1",
     "internal/plaincadbridge/planar_edge_chain.go": "d03e91b92b6baa982fdca08c2aa8ab1fd76c36b5c09a2a392148ebe7da765ec4",
     "internal/plaincadbridge/planar_face_components.go": "8d989101d2e9c77663cb47ee13f4a7e51531e9d438738272e4c9d8c59c21a8a0",
@@ -932,6 +935,7 @@
     "internal/plaincadbridge/planar_thread_stock.go": "9e9040ffe28bf8bb2e633ba4581b3adf226fc2f4febabceb0cacd738bfd659f6",
     "internal/plaincadbridge/pocket_cylinder_cut.go": "20ee02418a481d810584fdf3ca894ca6db45e6dddf5258d37108082613da8216",
     "internal/plaincadbridge/pocket_cylinder_cut_test.go": "06a8b74b0ce2d06c81401326e57bcecaade1eacb079a206adc8964365f136062",
+    "internal/plaincadbridge/pocket_edge_test.go": "3176fa9871c5985830a2620edb5b9a5072605cff98398bafda4b7342fd1f9133",
     "internal/plaincadbridge/profile_edge_signed_test.go": "bca1983071f600dfd8aeb49ca435e29df8b6b28b50383215e44f9cd763785c41",
     "internal/plaincadbridge/retained_bore.go": "13062d34257406e54a6987f3c395206a96e00b51de9d14123ee1a0427b522414",
     "internal/plaincadbridge/retained_bore_edges.go": "22c6dc3abd0fd4a7ddfd20292499e94540ffc5f176dbd263f3a00ea2b2a59810",
@@ -942,20 +946,25 @@
     "internal/plaincadbridge/retained_planar_edge.go": "b02c4ed17147fb8d076cdb9385f5c928d369a4d48924dcd204058a900bd88a4c",
     "internal/plaincadbridge/retained_planar_edge_test.go": "7b08da2ac369becf714ff46b303490fbec5a180e9695a0a102269eccf6541ace",
     "internal/plaincadbridge/revolve.go": "1428905f8c33e210a3a7e43189fb7f7f882fc6b03af1023c5d8a83c83b0acb4d",
-    "internal/plaincadbridge/revolve_test.go": "d2c7e1765b08e2a0e38be9166951b98c7eafe37489d59a48d60d3813daad5ac9",
+    "internal/plaincadbridge/revolve_test.go": "a30f07cea8a787ed4649c379690e1d48e99084bc91490b149766194a5a0d36b9",
     "internal/plaincadbridge/rotary_platter_test.go": "1561de428ce3ea6539b69c8af79e196ccfb76d6a30383ef92536c2248f5ebdf6",
     "internal/plaincadbridge/rounded_bores.go": "a90b3c91745fc30c82bed1f76b5ec5437435f13b7da3c8325bde5c173d192984",
     "internal/plaincadbridge/rounded_profile_test.go": "ab5fb26ffdc7ff636b4b1cd9c6b73f5373f7ae6657520b0c9d4358b7328b3457",
     "internal/plaincadbridge/rounded_stack.go": "a2975bed50ad5144c6dcd360000350d9af75d7bf345610ab25972d3245d3f60c",
     "internal/plaincadbridge/rounded_stack_test.go": "55e09b724ecd95c4126e434ba505b94670045c2bb8fdfc4fa8177543151d6ceb",
-    "internal/plaincadbridge/rounded_stock.go": "97290d33174587c78e2785ee731569a18d0b3f3e84c40951e050bdc9a495e694",
-    "internal/plaincadbridge/side_cylinder.go": "7016ce30925857a6c97013468a87e41310f998dd6c222a4b983f455271cf811d",
-    "internal/plaincadbridge/side_cylinder_test.go": "5ce92e7f2dd2183466450d1808d23b9235625f05bcfdd40617968b88f8190861",
-    "internal/plaincadbridge/step.go": "57cddc42bfaf4966a7226cf4550cb429ec000d96cfc1298748986c8922e18883",
+    "internal/plaincadbridge/rounded_stock.go": "f4d123361d1b26d76be8eee3345417044839e701ad1e3662331c5587c225551c",
+    "internal/plaincadbridge/side_bore_batch.go": "b2a54e5113c3dfb4fbc8bead836b1f1ecd910f601b6e74d5cb3a661bd2806df8",
+    "internal/plaincadbridge/side_cylinder.go": "109e936ac8b849865aafc16ee1601e20d2c960893af9d479cfa21ed45c9fe161",
+    "internal/plaincadbridge/side_cylinder_test.go": "681a4a64a2ef082f088f3e9fb78304d482aad3f22167d6b260dfcc1a952458b4",
+    "internal/plaincadbridge/step.go": "16a7fe085fe0ebb71fcf6a76a43ed1077030416709c3cd9ce7edea076a1c7545",
+    "internal/plaincadbridge/step_machined_stock_test.go": "b71d141dfd08023d75a7eaae8c0b719faaea9bbfcba1fd064758b781ae3b1bbf",
     "internal/plaincadbridge/step_pocket_test.go": "7cb86b8c6e16d4888e6abccbd5f5596755c08eddb11eb1786b932805cdf442c2",
     "internal/plaincadbridge/step_test.go": "069c3ca0ad90110e1ea307afc5f576b8334620f452ac8b3c1f5174b7d4a8a569",
     "internal/plaincadbridge/stepped_shaft.go": "d89556ebeb964b08aee4e9e2f8c91978d46ab4f618726249ceab52a05327b41f",
     "internal/plaincadbridge/stepped_shaft_test.go": "e093219b667cecc6239fcdd657c8ddba86e95090a613ed9578011693214a2c90",
+    "internal/plaincadbridge/tangent_bore.go": "f130777f01aa2de353646a8b844bb7bd8b2e9a0feb8de460d94764fca5ba298c",
+    "internal/plaincadbridge/tangent_bore_mesh.go": "e5bbb8406d86de718c2e709bc13ac044f207632f0339f39e1967f9ee11e1cfc0",
+    "internal/plaincadbridge/tangent_bore_test.go": "391117f0e84ecb7362f42f753fe5e2a7154208e28b90f3dbc38beb5880908cfb",
     "internal/plaincadbridge/testdata/plaincad-placed-bore.step": "cbfc3782f0411fb56b9ff8c2de8ecc0e645c3942dbb7e201833834e0385672b4",
     "internal/plaincadbridge/thread.go": "2e6dd10668696eea118bd2321033c8db03175cc4af5298664cca8e38cbbfa3bc",
     "internal/plaincadbridge/thread_mesh_test.go": "ec11969c2f41072abc9626ae416542ff27961d3b68e38e239df0804b1e73b0e7",
@@ -970,10 +979,10 @@
     "internal/plaincadbridge/to_face_test.go": "d65fd37a6660384ed1a0625144b00b85e7ed6d45e95676dac56425798c7c9e6c",
     "cmd/plaincadwasm/main_js.go": "9fd6d3a7a970d9967c2b5d6f20dcd1f35c97e63668e4562e6043971cbc4665db",
     "cmd/plaincadwasm/main_other.go": "26f1ece8830695dd7f7e90ef9e7a8641f493edd0f9cbde4cae325b83029dc736",
-    "tools/plaincad/PlainSolidKernel.ts": "126ffaaf77883371541a970f8ee9ae55533d880a84eb6f4fa60a48917e3d24b6",
-    "tools/plaincad/README.md": "d336a78978c287f3d225064a5f459c8fd9e6099ee54b75966b336246409c87fe",
-    "tools/plaincad/display-runtime.mjs": "bf75580dd7b6e5e8880df11a9cca52d5705572d0d236a4a6d13940cb36d30389",
-    "tools/plaincad/run.mjs": "b570a55adeea52aeeff0dd98373195b3d4a00ac73b734017d702e0d52ac13949",
+    "tools/plaincad/PlainSolidKernel.ts": "19c40185a7215cc1c908edbfc2992cd8d1c287ed2dc4dc8b7f27097bd1f37b56",
+    "tools/plaincad/README.md": "9ba8209f0e443743bb708a1d20ce62e45eb7edc94df3f2c48f9fd900ff0f04fe",
+    "tools/plaincad/display-runtime.mjs": "baa4e28ef13fa74dc8b1ef88702f4c046822d4547eee073eddfc739642a49916",
+    "tools/plaincad/run.mjs": "672c0d5f9b1f450088782587c11d80350fe950fde3627baeb810521a9ae45971",
     "geom/affine_chart_intersection.go": "66f8fceed41ec7b3de9db1657da99f20e9bde425f2a59b9fb0c926bc1f904f5d",
     "geom/affine_chart_inverse_export.go": "d4f0af993f382fa2f6816cdb3c7b41a740bd4574828a7b9addc8e38d24582d81",
     "geom/affine_parameter_piece_compare.go": "4f0976a1aa3ff749ab1245bc39fe907c0cc060802db2bb70a916c6fdb301c2ec",
@@ -991,6 +1000,7 @@
     "geom/analytic.go": "b52023bba7ff0a3b3fe85889cb9894b24efa5f60a44d20ec1ec63146298a567f",
     "geom/approximation.go": "2d037a1c6abc4ffabd1b31f4e90ae78376230c6cf9a2ca256270cc6a7c236e52",
     "geom/approximation_qr.go": "79ac672033b21cbf7e03fdb8e11af0ba79fadf75d8dc1a7406a15541bacd8903",
+    "geom/axial_blind_bore_contact.go": "33d7aaca780966e55d4286361beeb39ce4311f3be844e5d0692f6cdbcfefdd08",
     "geom/bilinear_patch_certificate.go": "83bcb4440ce83bd9f63ead9db8910d2a6370efa51ee8935612dedd986183b8fc",
     "geom/biquadratic_patch_certificate.go": "82227362121ecc68bc2fc103c54fa305edc6583619e1df4facca200a30f33be5",
     "geom/circular_annulus_line.go": "9ea1282aa71c0f7b38ad727dfd80fb7258a83e1b2aa650334536a4e9ebb698d4",
@@ -1278,7 +1288,7 @@
     "geom/wrapped_toroid_offset.go": "43ae69cd3ad926637886c59e520227f2a9fcaa6031678fb7dfed52611f33261f",
     "geom/wrapped_toroid_projection.go": "9d73d3c545f77b0072d15290a4ccb941c1bbabbab41fa65e333b3d188b54bf29",
     "mesh/extrude.go": "9813e6db94fc0d6c96fb70d268fc2861c092d13dc03d4a80c64a8258b0718694",
-    "mesh/mesh.go": "89565bfd45cdf82c554accad86621d72b2a40d3a68279c46a7fb769522382e3c",
+    "mesh/mesh.go": "cf6e05aa135e0b9793ceedefda8a7b1e0f31fe07941d7ff01d935a219b836a50",
     "mesh/primitives.go": "f16d85fbd89d897d864a7948cc7e133f3f52c39c71e189c16a09f31abeb539a1",
     "mesh/properties.go": "4d170293826a5df9f8fefc3ded9f051e8f6fdd22ffb842a32595278a13f7bc85",
     "brep/brep.go": "fd23d7f68a52d93bda8494093cd2890ebb5d37eac4a1ccc6e3170b04c4482625",
@@ -1452,12 +1462,13 @@
     "brep/trimmed/bilinear_triangle_bound.go": "35b8f301c068ec5fc4452f6c9b28bc0af8d89feeeddb1cb263275a508f78d36b",
     "brep/trimmed/biquadratic_triangle_bound.go": "1c6a4ac0f295a74c01f3572d3bacfd6327d80fe04624682584f0187cfab06ddb",
     "brep/trimmed/bore.go": "c71ff337174a69dade8c9698388721c51c032beb6f98bf2bb34822f6f0c62a61",
-    "brep/trimmed/bore_depth_union.go": "62fe0cf8ab9f6566e6b179350a2e8ca7fb60840f49f64f531b7c0ff02986756d",
+    "brep/trimmed/bore_depth_union.go": "d99e7d3a2c0d7496ad90ef02c65e220faca0ac0460093c7be7ad424919a85532",
+    "brep/trimmed/bore_disk_depth_union.go": "c93ac0f0f9beec472886b33a1de6d6fbc71ecd22c18ec694ad0610b202a81c08",
     "brep/trimmed/bore_union.go": "4c254b88645d7b5bad3802328d528b57dd9fb841226afae4154285373683c5bb",
     "brep/trimmed/bounds.go": "b043a39ba101f0382698cdda9aad785866874e3307facbdd5b058693f6b3cf0d",
     "brep/trimmed/box_corner_cylinder.go": "8c3e69d27d933d1f31d892403f33a48398209ea925d10b7f871cee5da164d76c",
     "brep/trimmed/box_corner_cylinder_through.go": "9984ecf68c73c7be8f078a0dd120bd924cc2ab70f78eaa0b7116fb1c6589551d",
-    "brep/trimmed/box_side_cylinder_through.go": "906a709d2fd065fda94c9c4ab290587f683ad1336259dc6b9cac6f889777ea5f",
+    "brep/trimmed/box_side_cylinder_through.go": "c1b3032d9581770172f539297d5c599628b3dea8435a13370bad996a1e2129b8",
     "brep/trimmed/box_through_bore_boss.go": "7d7d28ca1cf293a45cafab08124a6660ad3ba3cc06c0f4f9bd9471bc38546d92",
     "brep/trimmed/certified_adaptive_patch_mesh.go": "b4e3f5c642bbc288f36e7740ce6b4f0256f943be865f8b0f75a98616e6cbf831",
     "brep/trimmed/certified_adaptive_polygon_shell.go": "77f26b2a00f6c79129e76249da21b47155f97712f1371d2092d1c5e830af7937",
@@ -1482,8 +1493,8 @@
     "brep/trimmed/compound.go": "38649e778268ddb0bbd684ce3a7def58ae3a63b244caf735e1f494195f7cd5a5",
     "brep/trimmed/cylinder_to_oblique_polygon_face.go": "c8fa7d2caec635c42382dadd697f3a3dd2856205e3ea1ee3c362f94f6e7ad527",
     "brep/trimmed/cylinder_to_polygon_face.go": "663ab50ed25078c8fa7320dd27e2da545e237bc0eead20d11a005897e5dbd700",
-    "brep/trimmed/depth_union_profile.go": "ecdfd92d0ea1d4202b2dedb22e6c67ed3d1ebce964886a4ac6a0a0ff4c2c9478",
-    "brep/trimmed/display_edges.go": "6f181fcf37ad62522824402b8791175edd883a12f971da0d23eb6d91ca993ae1",
+    "brep/trimmed/depth_union_profile.go": "07812e9664330508f9ffff7fbbc17dabf54f9d6a853efadfaf055d397b1d87b8",
+    "brep/trimmed/display_edges.go": "7b44d81648ee495b8bdaf2c71634fd7e66e7726121d0b8be42702aa2a2adb24e",
     "brep/trimmed/edge_face_split.go": "fd6b268cd167e9767782ad921f7a098f5ca4b491f8e94bb82e5e45d00c794b01",
     "brep/trimmed/edge_merge_exact.go": "1c9a512f3deb511f2a7c8efec874f81bef5dc3851b48a5a5e504ef79fdb3b793",
     "brep/trimmed/edge_split.go": "c1e759f0c70c662732770fa324152fc367e20afdabfb523eae1a052a56b228e3",
@@ -1503,12 +1514,12 @@
     "brep/trimmed/exact_quadratic_trim_mesh.go": "3d074088d1d945cdf0d6fb097a8afa54a8e5d5cb924ba519e3fb2e7630345c14",
     "brep/trimmed/exact_quadratic_uv.go": "8f1c726e6cb6eb5881c20315f4fd9d456102e98646601a047d229cacef621c76",
     "brep/trimmed/exact_quadratic_uv_model.go": "a92ed6f504c50498aa4041104e6a09c9910d52007a63116fe2ab01932002c7cf",
-    "brep/trimmed/extrude_arc_loop.go": "7c17db8d317fca07c544e7dddb1db7c25b77f0664856c4b95e91ba3aebdf859d",
-    "brep/trimmed/extrude_box_pockets.go": "b23ad63ec5a04448bab3fe0378b1931b2288b7d115480b653c01922a1fe55c27",
+    "brep/trimmed/extrude_arc_loop.go": "696bff99e5bfec6869faf20dce59b163aeaba62cc3cfd9c6613e2b0638623b06",
+    "brep/trimmed/extrude_box_pockets.go": "ac676eb99f6786a7accc8a23abe8dccc1087e44f46ecd412edbcc19565770a80",
     "brep/trimmed/extrude_capsule_ring.go": "d7120fca728a9b4f6a304dbeeaa989f9f306aea553f3ae03fd7e41a3d5ddd606",
     "brep/trimmed/extrude_circular_segment.go": "afe95c0198e90016c5caffb44c5b9c63920199d8e6a28c8cfdd56c09c92e04d7",
-    "brep/trimmed/extrude_disk_circles.go": "3e4ad44eca0d4810698048a7c031a5f98be82a6a54ae90f37df01630d030f9b3",
-    "brep/trimmed/extrude_polygon_circles.go": "88e9112c607a7c06378c101cd7d0f5b2f8938174fd5ee0b32f4ba6fcaec778db",
+    "brep/trimmed/extrude_disk_circles.go": "96a86be496640b97644bb3f04634b9904eadeaa5f5f8242f0dc73f9ca3acdc28",
+    "brep/trimmed/extrude_polygon_circles.go": "3281d74e43b912df4084cc5fd4c13d31b58decc68ce84ed59c0bcdd60dfa310f",
     "brep/trimmed/extrude_rectangle_boss.go": "10d9a1bb32bc3b630cbf3d748a0c7e14f5c09ab8bce9d80ebe41f33aa6aef495",
     "brep/trimmed/extrude_rectangle_holes.go": "dc373a0c4b7861672c34c6dab2f2cc159404e544e97abd14942a45cbb918124a",
     "brep/trimmed/extrude_rounded_rectangle.go": "1b49fcac54593163572177ed61cb020a920887b3cb1810abf144f96060a0ec79",
@@ -1543,8 +1554,8 @@
     "brep/trimmed/persistence_tubes.go": "e7324b1f5a90183d6060425165abbe1144559549edd466d50c326d3c4c9b4f3c",
     "brep/trimmed/placed_spline_boolean.go": "7525e681cd14f6f8f0dfd1dde914be99ab25150572b503c072c37d7d0a618f6d",
     "brep/trimmed/planar_area.go": "a539ee3c572f15410b021b3f27d24ffe7acb4e332eb9d10eeacb7ab21245ec5a",
-    "brep/trimmed/planar_edge_merge.go": "951c2eb38e1ef6571383a2b2b07e0052f585596c11821c9e9c7e85a9da99ed5e",
-    "brep/trimmed/planar_edge_treatment.go": "2d69971eed3a55c9dddccf30f52344579e0482edd91908a850b0389c55fa07cb",
+    "brep/trimmed/planar_edge_merge.go": "d3ed00c120189af8e8f529440c105ae7b6ecf40437f92aadd38fdb37151d44d8",
+    "brep/trimmed/planar_edge_treatment.go": "4d6b6b5b05b2f04232fad9648346932b0eeb779892b5889c27559cec230564ba",
     "brep/trimmed/planar_face_wires.go": "21d69a315b7760c3cab4b09f8a6ce4a93499d1dd31248d5885d88aa02929e61a",
     "brep/trimmed/properties.go": "5812c845370ccdee54fcb58671c6c9afc98a776caeffc55a07115a691672271b",
     "brep/trimmed/quadratic_shell_display_embedding.go": "ba80e3002d6fef890b6d7f7d3b40c10756c2c27e568863081d3eb1505dd8987c",
@@ -1748,7 +1759,7 @@
     "exchange/step/advanced.go": "061e8081b115c23ae231d151ab4bb26f439aa042b26735d7489473fdd320c722",
     "exchange/step/affine_spline_shells.go": "6011d2ab154f2fdd6637ecabf14fd4a7ef83a43e61b032283e4367cb78b62567",
     "exchange/step/analytic.go": "626b6b2fe3dd1c69bb3eff916ed043032e0643d703c1b689646ecc24294bd71d",
-    "exchange/step/analytic_circular_source.go": "8d3c21ff3e6a130b7c180dd6b06535529051ad4030c0c2783119af85c5d066e0",
+    "exchange/step/analytic_circular_source.go": "2a69340aac19ae0603d0c67d48dfaf431f841aede79837fc1cf57e5084f7bf33",
     "exchange/step/assembly.go": "bac51e836e772e2206c8a1e3f3fa5adb0ace4a6b9180609ccfc7f4ae8d19c9da",
     "exchange/step/assembly_colors.go": "36958fef58dbec83e883efecaf442c3f15ca25f3cd97ab43e37c046f5874b838",
     "exchange/step/assembly_geometry.go": "f4a8fcfd80527ba0713c12facbad6aee359ab52368bac04cc128778ddaf1ffb0",
@@ -1767,13 +1778,14 @@
     "exchange/step/curved_oval_geometry.go": "0ea76d135d74fdda0e14fce20df0efa00d6fe73e419eeea1ac8c21ac69a2cd1d",
     "exchange/step/curved_oval_shell.go": "f7caa61af1b1365ead4b11d14c9d32717b23ea3ea4b58d3e2172979d9a127da5",
     "exchange/step/curves.go": "c9d345e8807d3ef132d46843adf97386291a84077a424f61a120b5d81d7389ad",
-    "exchange/step/cylinder.go": "1f025fb307e375b5726819080d140a20f094cba2d8fc7ac6eeb7b3ec2e3d0fd6",
+    "exchange/step/cylinder.go": "299595f520744460af8d354ee05b9b67473af66101cfc900c7df984f73ac9130",
     "exchange/step/cylinder_sector.go": "6f529fee8bf9787c553bef11df8410629ea1cb91184c52510bfd8d6681be864d",
     "exchange/step/exact_weights.go": "06b40671d2ab6e376f92c71fba0897edd31752f7a3afe3f0c7a62b66b7315b29",
     "exchange/step/face_colors.go": "bf74f480fc2e183019f6242661dec7c21676baece8d54fe3f5c2f70614e82e33",
     "exchange/step/faceted.go": "dda95b7b5e66421c49cfa33c0be9b4ed88b3ca61b9a6056ac3fdf9767190faee",
     "exchange/step/holed_spline_faces.go": "a0a790940c24880f9013e4a5ed41a5376b8d47e3c01b1adedcf64e3d014dbb24",
     "exchange/step/independent_models.go": "6a3cffadee223d756c41c1b0558a0fa1a9a1fb8579f2437110c5f7353c5c7cf8",
+    "exchange/step/layered_disk_bores.go": "0b0e42a0fe04bbe5cb8a76aba7fdc6b8e3bd0fdef44d73f636fe5e6c23458cb8",
     "exchange/step/lens_styles.go": "67eeb3432c87a26b307e8cfa41526890b473f70da0c2057896344235a75f4a44",
     "exchange/step/multiholed_spline_faces.go": "c1b854fce8a757c6f27d6e15cae1f6fbf667e19b713d34fd7d24234e58c74abf",
     "exchange/step/oblique.go": "f74b9ffcdf19568c9422cf3a244d90b1c318811ac425cd18803a64cb7b666e26",
@@ -1793,13 +1805,14 @@
     "exchange/step/quadratic_oval_shell.go": "ae3aea22cf6721ea29ecf08c9ee57435032f04a2e8d6f2f1bffbe706b553af03",
     "exchange/step/rational_lens_assembly.go": "bc44b0bcef800edddf6c7c0381b7dac986a769433217141b47bf1c8b94554960",
     "exchange/step/rational_lens_curves.go": "fdb3a97f3a7368a93288aec223b7a4a6755580aae66a5c73201c3d4253c180e1",
-    "exchange/step/read_analytic_circular_pockets.go": "b4a53e19b4dbdc4771594b4d2c46d5ee44e1cb16b98f4a40d14e887b305df4ea",
-    "exchange/step/read_analytic_circular_through.go": "d65bc027234cf2e33bc474cfc26775ad2671e7896bd68afe2ea22718edd4daf4",
-    "exchange/step/read_analytic_disk_holes.go": "01b2d4c680230f249201f4bc505315a3c619c993db0f5df194993345f50f60f6",
+    "exchange/step/read_analytic_circular_pockets.go": "0ee320d043409c280d310fd42207a430d6631c36ed5c95357505bf6c517a1e21",
+    "exchange/step/read_analytic_circular_through.go": "c4acd03199b1dc334688fb1b4915e6cf1ebf68b423dfbba5ee39924168fd0fd5",
+    "exchange/step/read_analytic_disk_holes.go": "3f06e9895eea1bea5b6013c979b358fc2b8a68b57a89e59a4b4abc9eba497def",
+    "exchange/step/read_analytic_rounded_pockets.go": "90c846d8b236579242a121760f5bc99ba8fe9dfff3fb5cfb70a580d9889a2dd1",
     "exchange/step/read_analytic_rounded_rectangle.go": "45d77cc415b269d59eff1b67db7ccd6d341bce94ab887b718d2d2c92304e4d1d",
-    "exchange/step/read_circular_hole_extrusions.go": "cabe56d20b76dca63aa901b5f9bae57464ea668756cc652eca2d17cc62019cc8",
+    "exchange/step/read_circular_hole_extrusions.go": "e7d6c25ea29d29e7545377daf87fb932b444191a011a85c44350f164be641332",
     "exchange/step/read_curved_oval_face.go": "19e6cde801f586fc9f5bf1da4711e92b89a91b99ee8fd28aa4c57687db61ad8e",
-    "exchange/step/read_disk_hole_extrusions.go": "c3a1e30bdfef3be1c8bc6ab2ccf54954fb6e53db6d29353607892e4ab2da1541",
+    "exchange/step/read_disk_hole_extrusions.go": "52184077b4a7f4541e40b450ac475b7da4277a33f316f3943c8d5c1fcb55f8de",
     "exchange/step/read_long_edge_chains.go": "2b81a8f9ff224757ba913815a7e1eaed46dbd92ebf7059e7b727367e22e401b0",
     "exchange/step/read_rounded_rectangle_extrusions.go": "c6e305be606bde9c66b9107d562202446038992e0931543ddbecb6b9aa60f653",
     "exchange/step/read_spline_lens.go": "348689ece3c8ba43ae0cb051e0baa244226cc4a02f889a6c0ddb8560834674a5",
@@ -1807,6 +1820,7 @@
     "exchange/step/read_wrapped_fillets.go": "6ec6d4870b1df5ac1e20efb3ae0a48ef85edd5dad5ab92673dc2defb2b364a17",
     "exchange/step/refined_lens_assembly.go": "7b7c094019ee1f2f2298cdf6329e5b37ca462064ed7fca1af916cc5365e8265d",
     "exchange/step/refined_lens_curves.go": "4ea119f3709f0aeb8f3e81f77d1890500c08429897cf40eb4234ac052c4aea2c",
+    "exchange/step/side_blind_notch.go": "058c83389d4378fe60359ad1b16542152769b940efc6f63bcc5a1651524af0a1",
     "exchange/step/spherical_cap.go": "81849ce6f125c6067b701419b6dbbe5974acd6ef6113258bc0b4ee1a963700e3",
     "exchange/step/spherical_zone.go": "e2c7a1a51b3c6457a47b325ebc3f58bc1d619039f9e710c0109ae6db38ab0017",
     "exchange/step/spline_faces.go": "d8a8cb2cffe7dcd932d9016cfae592129615d856b87e97545790c14f34c858d6",
@@ -1848,7 +1862,7 @@
     "exchange/step/write_assembly.go": "a0f720f6f09b80f0b097d97797deea5e384860a83edfc63d7a4aa939034ad738",
     "exchange/step/write_axial_profiles.go": "bbabc496a05e0e5d57562305e410adfcc0b4bc41716aeb332affdd1ccdf0958e",
     "exchange/step/write_cavities.go": "7e2271419bf8ffdfaf1961bf74340fdb1e87076a0b023cd09dbc9f1ad0b309e2",
-    "exchange/step/write_circular_hole_extrusions.go": "e76ffaa91aeb4497d8f951d3e5efa740b2bf4c1f2300780dc6ea70ddcd1fc3c5",
+    "exchange/step/write_circular_hole_extrusions.go": "71a32721eeb6ee403fc3412271ffea6cc4da8914de13614011dd65b5e8bc19e9",
     "exchange/step/write_cones.go": "c2e2f33e81aa182c18ff70a8aa6e9ef5377c7091a3d141ee7b974a1ff22e34ba",
     "exchange/step/write_conical_sectors.go": "b2fc4a4cb40e200dc3d80c56a19b66831cf00e4acfd378d05ed2aae9f031d16c",
     "exchange/step/write_curved_oval_face.go": "a18851ced654b2f22a89e1958906689752d890739b4d2cd7841cdb3ffdb31efc",
@@ -1856,7 +1870,7 @@
     "exchange/step/write_curves.go": "49b9bbbefd1776bc1c5be059f298ae0bc91759bfec48a8da67c176763245d9ff",
     "exchange/step/write_cylinder_sectors.go": "3c5da1548009a00a1297a4e902f2fe0052e317cb38e8641be6d6c2de47ae20da",
     "exchange/step/write_cylinders.go": "deb120349b622a5c1e9bade443db5060684d0ab079d22f780d78c03ce6a33810",
-    "exchange/step/write_disk_hole_extrusions.go": "2aff36a8062a547694f1f13e7a7494226df77487d7c9d7d2eca61db14c87f3c0",
+    "exchange/step/write_disk_hole_extrusions.go": "a1c742ac703b0cd004219ea9b8b1b0d3b360d1a8b94d6595fae6dabb265eb5aa",
     "exchange/step/write_geometry.go": "1f358b1e94d4435fe875fae84bb0dbb6db6c1055eb37ed668ee074ff00ffbfc8",
     "exchange/step/write_hollow_cones.go": "0c70eb2b89817383be2341b01a26f4303e4852d2fe8c4229350af630b627267a",
     "exchange/step/write_long_edge_chains.go": "e75410f6688cf88638e999f26f52a44f517cd00f97b824cc05d023c9aebd78dc",
@@ -2580,8 +2594,8 @@
     {
       "file": "e2e/aiAcceptanceHelpers.ts",
       "count": 1,
-      "beforeSha256": "957109313e37d612082a502f459fabbab1177ac7e7ccde0de267fc89b70422e2",
-      "afterSha256": "7c3798dac5c46a4c78e189dab15d90b66598f9fce37fe55e56e3d3ececa602b4"
+      "beforeSha256": "c54381c7596f3b3cb2b1df4fb54f74123f574e52843d6eac94ddc2638aa262b2",
+      "afterSha256": "27bbab49ca7bc2395bae8507671645c009fd6c79ab3470890d72149d687eab2a"
     },
     {
       "file": "e2e/assembly-joints.spec.ts",
@@ -2718,8 +2732,8 @@
     {
       "file": "e2e/focused-workspace.spec.ts",
       "count": 1,
-      "beforeSha256": "634e5d6cd57a8cfd926fc0c1c0e92a92cd6f5c655275511c82e5925b75c87753",
-      "afterSha256": "dddf4ce0826e5428cc9acbe0ac6bf6c2b5adf9e04ae54277bf736c5d04a5a803"
+      "beforeSha256": "e456fd396030c668a4398b7ebb81718e4016297d7e3cefbb24d84dff58ecf013",
+      "afterSha256": "8705086bd78b6717eec7d3c69c84634e2350fe1cfcebe25b60150f0e962808a0"
     },
     {
       "file": "e2e/guided-constraint-repair.spec.ts",
@@ -3108,8 +3122,8 @@
     {
       "file": "e2e/viewer-performance.spec.ts",
       "count": 1,
-      "beforeSha256": "ca677a83bf0a9f41104b95d85ec862489afbca8be4923ca0bb74aed17437a1c0",
-      "afterSha256": "11ce4200cdc32193ac07523a9284f44796adde49043c0307426aa585989f9179"
+      "beforeSha256": "6bf1b5005c15bf89cfeb5353f562a79a3bb864529e21828b1a703a891c0455e2",
+      "afterSha256": "f903c810c1da797b23693ee91fb792406c4fd5db7d67ac76999299b18d3dd796"
     },
     {
       "file": "e2e/viewport-fit.spec.ts",
@@ -3152,334 +3166,233 @@
       "results": [
         {
           "status": "passed",
-          "durationMs": 7150,
+          "durationMs": 14015,
           "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 35,
+      "line": 36,
       "title": "compact editing has reachable named controls, keyboard relation cancellation, trim validation and reflow",
       "project": "chromium",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 23318,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 80,
-                "line": 27
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^Section XY plane, \\d+ entities$/ })\u001b[22m\n\n\n  25 |   const parts = page.getByRole(\"button\", { name: \"Parts\", exact: true });\n  26 |   if (await parts.getAttribute(\"aria-expanded\") !== \"true\") await parts.press(\"Enter\");\n> 27 |   await page.getByRole(\"button\", { name: /^Section XY plane, \\d+ entities$/ }).press(\"Enter\");\n     |                                                                                ^\n  28 |   if (await parts.getAttribute(\"aria-expanded\") === \"true\") await parts.press(\"Enter\");\n  29 |   await page.getByRole(\"button\", { name: \"Draw\", exact: true }).press(\"Enter\");\n  30 |   const edit = page.getByRole(\"navigation\", { name: \"Main CAD commands\" }).getByRole(\"button\", { name: \"Edit sketch canvas\", exact: true });\n    at editSketch (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:27:80)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:40:3"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 14329,
+          "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 89,
+      "line": 90,
       "title": "keyboard face cards expose target/direction and compact dimension dialog exposes validation with contained focus",
       "project": "chromium",
       "status": "expected",
       "results": [
         {
           "status": "passed",
-          "durationMs": 6541,
+          "durationMs": 11008,
           "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 138,
+      "line": 139,
       "title": "AI mode descriptions and consent controls remain reachable in compact production layout",
       "project": "chromium",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 24018,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 75,
-                "line": 143
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Open AI drawer', exact: true })\u001b[22m\n\n\n  141 |   await page.route(\"**/api/ai/status\", (route) => route.fulfill({ json: { providers: [\"anthropic\", \"openai\", \"google\"].map((id) => ({ id, label: id, available: true, model: \"test-model\" })) } }));\n  142 |   await fixture(page);\n> 143 |   await page.getByRole(\"button\", { name: \"Open AI drawer\", exact: true }).press(\"Enter\");\n      |                                                                           ^\n  144 |   const featureMode = page.getByRole(\"button\", { name: \"Add features to this part\", exact: true });\n  145 |   await reachable(featureMode); await featureMode.press(\"Enter\");\n  146 |   const panel = page.getByLabel(\"AI feature additions\", { exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:143:75"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 6662,
+          "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 35,
+      "line": 36,
       "title": "compact editing has reachable named controls, keyboard relation cancellation, trim validation and reflow",
       "project": "firefox",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 24175,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 80,
-                "line": 27
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^Section XY plane, \\d+ entities$/ })\u001b[22m\n\n\n  25 |   const parts = page.getByRole(\"button\", { name: \"Parts\", exact: true });\n  26 |   if (await parts.getAttribute(\"aria-expanded\") !== \"true\") await parts.press(\"Enter\");\n> 27 |   await page.getByRole(\"button\", { name: /^Section XY plane, \\d+ entities$/ }).press(\"Enter\");\n     |                                                                                ^\n  28 |   if (await parts.getAttribute(\"aria-expanded\") === \"true\") await parts.press(\"Enter\");\n  29 |   await page.getByRole(\"button\", { name: \"Draw\", exact: true }).press(\"Enter\");\n  30 |   const edit = page.getByRole(\"navigation\", { name: \"Main CAD commands\" }).getByRole(\"button\", { name: \"Edit sketch canvas\", exact: true });\n    at editSketch (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:27:80)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:40:3"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 29893,
+          "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 89,
+      "line": 90,
       "title": "keyboard face cards expose target/direction and compact dimension dialog exposes validation with contained focus",
       "project": "firefox",
       "status": "expected",
       "results": [
         {
           "status": "passed",
-          "durationMs": 7744,
+          "durationMs": 8944,
           "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 138,
+      "line": 139,
       "title": "AI mode descriptions and consent controls remain reachable in compact production layout",
       "project": "firefox",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 24645,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 75,
-                "line": 143
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Open AI drawer', exact: true })\u001b[22m\n\n\n  141 |   await page.route(\"**/api/ai/status\", (route) => route.fulfill({ json: { providers: [\"anthropic\", \"openai\", \"google\"].map((id) => ({ id, label: id, available: true, model: \"test-model\" })) } }));\n  142 |   await fixture(page);\n> 143 |   await page.getByRole(\"button\", { name: \"Open AI drawer\", exact: true }).press(\"Enter\");\n      |                                                                           ^\n  144 |   const featureMode = page.getByRole(\"button\", { name: \"Add features to this part\", exact: true });\n  145 |   await reachable(featureMode); await featureMode.press(\"Enter\");\n  146 |   const panel = page.getByLabel(\"AI feature additions\", { exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:143:75"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 6792,
+          "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 35,
+      "line": 36,
       "title": "compact editing has reachable named controls, keyboard relation cancellation, trim validation and reflow",
       "project": "webkit",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 23394,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 80,
-                "line": 27
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^Section XY plane, \\d+ entities$/ })\u001b[22m\n\n\n  25 |   const parts = page.getByRole(\"button\", { name: \"Parts\", exact: true });\n  26 |   if (await parts.getAttribute(\"aria-expanded\") !== \"true\") await parts.press(\"Enter\");\n> 27 |   await page.getByRole(\"button\", { name: /^Section XY plane, \\d+ entities$/ }).press(\"Enter\");\n     |                                                                                ^\n  28 |   if (await parts.getAttribute(\"aria-expanded\") === \"true\") await parts.press(\"Enter\");\n  29 |   await page.getByRole(\"button\", { name: \"Draw\", exact: true }).press(\"Enter\");\n  30 |   const edit = page.getByRole(\"navigation\", { name: \"Main CAD commands\" }).getByRole(\"button\", { name: \"Edit sketch canvas\", exact: true });\n    at editSketch (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:27:80)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:40:3"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 7649,
+          "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 89,
+      "line": 90,
       "title": "keyboard face cards expose target/direction and compact dimension dialog exposes validation with contained focus",
       "project": "webkit",
       "status": "expected",
       "results": [
         {
           "status": "passed",
-          "durationMs": 6246,
+          "durationMs": 5779,
           "errors": []
         }
       ]
     },
     {
       "file": "editing-usability.spec.ts",
-      "line": 138,
+      "line": 139,
       "title": "AI mode descriptions and consent controls remain reachable in compact production layout",
       "project": "webkit",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 22254,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts",
-                "column": 75,
-                "line": 143
-              },
-              "message": "TimeoutError: locator.press: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Open AI drawer', exact: true })\u001b[22m\n\n\n  141 |   await page.route(\"**/api/ai/status\", (route) => route.fulfill({ json: { providers: [\"anthropic\", \"openai\", \"google\"].map((id) => ({ id, label: id, available: true, model: \"test-model\" })) } }));\n  142 |   await fixture(page);\n> 143 |   await page.getByRole(\"button\", { name: \"Open AI drawer\", exact: true }).press(\"Enter\");\n      |                                                                           ^\n  144 |   const featureMode = page.getByRole(\"button\", { name: \"Add features to this part\", exact: true });\n  145 |   await reachable(featureMode); await featureMode.press(\"Enter\");\n  146 |   const panel = page.getByLabel(\"AI feature additions\", { exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/editing-usability.spec.ts:143:75"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 5895,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 53,
+      "line": 54,
       "title": "keyboard-assisted non-template Draw → Make solid → native save/open/STL under CSP",
       "project": "chromium",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 23117,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 14,
-                "line": 64
-              },
-              "message": "TimeoutError: locator.fill: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Part name', { exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"Part 1\" maxlength=\"120\" data-command-target=\"_r_1c_\" data-command-site=\"ui.ui.workspace.ProjectStart.dad17286ff7c\"/>\u001b[22m\n\u001b[2m    - fill(\"Browser bracket\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    39 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying fill action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  62 |   await expect(page.locator(\".rebuild-pill\")).toHaveText(\"succeeded\");\n  63 |   const name = page.getByLabel(\"Part name\", { exact: true });\n> 64 |   await name.fill(\"Browser bracket\");\n     |              ^\n  65 |   // macOS WebKit follows Safari's default Option-Tab policy for button traversal.\n  66 |   await name.press(browserName === \"webkit\" && process.platform === \"darwin\" ? \"Alt+Tab\" : \"Tab\");\n  67 |   const draw = page.getByRole(\"button\", { name: \"Draw a shape\", exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:64:14"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 11073,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 113,
+      "line": 111,
       "title": "compact Workbench start and dock controls stay reachable with keyboard and theme contrast",
       "project": "chromium",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 32490,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 25,
-                "line": 29
-              },
-              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true }) with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\u001b[22m\n\n\n  27 | }\n  28 | async function reachable(control: Locator) {\n> 29 |   await expect(control).toBeVisible();\n     |                         ^\n  30 |   expect(await control.evaluate((element) => {\n  31 |     const box = element.getBoundingClientRect();\n  32 |     const x = box.x + box.width / 2, y = box.y + box.height / 2;\n    at reachable (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:29:25)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:125:9"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 4117,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 53,
+      "line": 54,
       "title": "keyboard-assisted non-template Draw → Make solid → native save/open/STL under CSP",
       "project": "firefox",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 30264,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 14,
-                "line": 64
-              },
-              "message": "TimeoutError: locator.fill: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Part name', { exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"Part 1\" maxlength=\"120\" data-command-target=\"_r_1c_\" data-command-site=\"ui.ui.workspace.ProjectStart.dad17286ff7c\"/>\u001b[22m\n\u001b[2m    - fill(\"Browser bracket\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    36 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying fill action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  62 |   await expect(page.locator(\".rebuild-pill\")).toHaveText(\"succeeded\");\n  63 |   const name = page.getByLabel(\"Part name\", { exact: true });\n> 64 |   await name.fill(\"Browser bracket\");\n     |              ^\n  65 |   // macOS WebKit follows Safari's default Option-Tab policy for button traversal.\n  66 |   await name.press(browserName === \"webkit\" && process.platform === \"darwin\" ? \"Alt+Tab\" : \"Tab\");\n  67 |   const draw = page.getByRole(\"button\", { name: \"Draw a shape\", exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:64:14"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 6994,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 113,
+      "line": 111,
       "title": "compact Workbench start and dock controls stay reachable with keyboard and theme contrast",
       "project": "firefox",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 37572,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 25,
-                "line": 29
-              },
-              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true }) with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\u001b[22m\n\n\n  27 | }\n  28 | async function reachable(control: Locator) {\n> 29 |   await expect(control).toBeVisible();\n     |                         ^\n  30 |   expect(await control.evaluate((element) => {\n  31 |     const box = element.getBoundingClientRect();\n  32 |     const x = box.x + box.width / 2, y = box.y + box.height / 2;\n    at reachable (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:29:25)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:125:9"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 3788,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 53,
+      "line": 54,
       "title": "keyboard-assisted non-template Draw → Make solid → native save/open/STL under CSP",
       "project": "webkit",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 21994,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 14,
-                "line": 64
-              },
-              "message": "TimeoutError: locator.fill: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Part name', { exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"Part 1\" maxlength=\"120\" data-command-target=\"_r_1c_\" data-command-site=\"ui.ui.workspace.ProjectStart.dad17286ff7c\"/>\u001b[22m\n\u001b[2m    - fill(\"Browser bracket\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    39 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying fill action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  62 |   await expect(page.locator(\".rebuild-pill\")).toHaveText(\"succeeded\");\n  63 |   const name = page.getByLabel(\"Part name\", { exact: true });\n> 64 |   await name.fill(\"Browser bracket\");\n     |              ^\n  65 |   // macOS WebKit follows Safari's default Option-Tab policy for button traversal.\n  66 |   await name.press(browserName === \"webkit\" && process.platform === \"darwin\" ? \"Alt+Tab\" : \"Tab\");\n  67 |   const draw = page.getByRole(\"button\", { name: \"Draw a shape\", exact: true });\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:64:14"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 4957,
+          "errors": []
         }
       ]
     },
     {
       "file": "workbench.spec.ts",
-      "line": 113,
+      "line": 111,
       "title": "compact Workbench start and dock controls stay reachable with keyboard and theme contrast",
       "project": "webkit",
-      "status": "unexpected",
+      "status": "expected",
       "results": [
         {
-          "status": "failed",
-          "durationMs": 32866,
-          "errors": [
-            {
-              "location": {
-                "file": "/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts",
-                "column": 25,
-                "line": 29
-              },
-              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true }) with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('region', { name: 'Start a part' }).getByLabel('Part name', { exact: true })\u001b[22m\n\n\n  27 | }\n  28 | async function reachable(control: Locator) {\n> 29 |   await expect(control).toBeVisible();\n     |                         ^\n  30 |   expect(await control.evaluate((element) => {\n  31 |     const box = element.getBoundingClientRect();\n  32 |     const x = box.x + box.width / 2, y = box.y + box.height / 2;\n    at reachable (/private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:29:25)\n    at /private/tmp/plainsolid-current-cross-browser-01/cross-browser-e2e/workbench.spec.ts:125:9"
-            }
-          ]
+          "status": "passed",
+          "durationMs": 4547,
+          "errors": []
         }
       ]
     }
   ],
-  "status": "failed",
+  "status": "passed",
   "notes": [
     "Only selected fixtures are measured; all unselected acceptance tests remain untested.",
     "Existing behavior/geometry assertions are preserved. Exact provider string literals are adapted from opencascade to plainsolid in the isolated copy."
+  ],
+  "testOriginAdaptations": [
+    {
+      "file": "e2e/guided-constraint-repair.spec.ts",
+      "beforeSha256": "1027dfc20a160a3690f43f94a8b21ac8e422044fb836cc5bf210e49df79aea00",
+      "afterSha256": "00800fb5325ac54317f917af6a4162a36720f67310fda130fcb1ec25c18986f3"
+    }
   ],
   "runtimeAdaptations": [
     {
@@ -3487,6 +3400,12 @@
       "purpose": "Report existing native-worker progress at each executed feature.",
       "beforeSha256": "0d12476e27bec686f0cde64527912883d2e3b13d8fbcdcb5a2fe925762561d32",
       "afterSha256": "5de4ae9be5ddbce63138b9ecd6a1e7be5708c3e085b202e77206e708e6f65452"
+    },
+    {
+      "file": "src/viewer/CadViewer.tsx",
+      "purpose": "Advance camera damping on elapsed time without drawing missed frames.",
+      "beforeSha256": "8f81762da4fb8c08675e57cd9393b2aa8d19472ecad9a94b79e56b4095732d67",
+      "afterSha256": "acf2ac85c4b32b5bd4c0b2e911f8e8255d8701b4ff37c4bc1e600524bcfb903f"
     },
     {
       "file": "src/cad/worker/displayMeshClient.ts",
@@ -3507,30 +3426,29 @@
       "afterSha256": "d1e0c48cd4f62f6c0051f9c045599451a39620b56d6732a3f79dc7f2f6d8487a"
     }
   ],
-  "wasmSha256": "8924589c5afd7e2fac09a99bea277685833edcac2bf29374ed5c758678e3ca93",
+  "wasmSha256": "9d338407816e7bdc22a1e77a5f475ba98cb5f1bed2948b2e583d0d8e8bec9f4a",
   "typecheck": "passed",
-  "acceptanceConfigSha256": "672a3159b7386d2a577a4f27b90d5a79fc2ee2a985e02a77983531c115e09dd5",
-  "error": "Error: node exited 1; see /tmp/plainsolid-current-cross-browser-01/acceptance.log",
+  "acceptanceConfigSha256": "d5caa0dc74a0b7c36b21a9585f58ab6a73f498c541eb391f43a22ca3b5c7d79d",
   "summaries": [
     {
-      "path": "/tmp/plainsolid-current-cross-browser-01/backend-results.json",
-      "startTime": "2026-11-13T19:16:08.464Z",
-      "duration": 10337.588,
+      "path": "/tmp/plainsolid-current-cross-browser-5368/backend-results.json",
+      "startTime": "2026-11-13T21:49:04.044Z",
+      "duration": 21036.944,
       "expected": 1,
       "skipped": 0,
       "unexpected": 0,
       "flaky": 0
     },
     {
-      "path": "/tmp/plainsolid-current-cross-browser-01/playwright-results.json",
-      "startTime": "2026-11-13T19:17:07.934Z",
-      "duration": 394152.08999999997,
-      "expected": 3,
+      "path": "/tmp/plainsolid-current-cross-browser-5368/playwright-results.json",
+      "startTime": "2026-11-13T21:50:59.527Z",
+      "duration": 149748.403,
+      "expected": 15,
       "skipped": 0,
-      "unexpected": 12,
+      "unexpected": 0,
       "flaky": 0
     }
   ],
   "backendVerified": true,
-  "finishedAt": "2026-11-13T19:23:42.107Z"
+  "finishedAt": "2026-11-13T21:53:29.305Z"
 }

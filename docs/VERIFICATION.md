@@ -1,5 +1,24 @@
 # Verification record
 
+## Current PlainCAD cross-browser and focused acceptance — 2026-11-13
+
+On committed PlainCAD `50432ed`, the
+[original cross-browser suite](evidence/plaincad-current-cross-browser-2026-11-13.json)
+passes all 15 cases across Chromium, Firefox and WebKit. Both TypeScript
+checks, the production bundle budget and the actual Go WASM preflight pass.
+The current app's committed test changes resolve the earlier stale control
+locators. The integration harness preserves the current test assertions.
+
+The [focused run](evidence/plaincad-current-focused-timing-2026-11-13.json)
+passes six of seven originals. All four selected Focused modeling cases,
+the original YZ guarded drag and the current ORBIT gesture pass. Parts
+Browser again reads the previous successful empty rebuild while its
+asynchronous file open is still pending. The staged readiness fix is
+being verified against the same original case.
+
+The combined native short run passes `internal/plaincadbridge`, `exchange/step`
+and `mesh`, and builds `cmd/plaincadwasm`.
+
 ## PlainCAD mixed side-opening and contained bore batch — 2026-11-13
 
 A single side-opening blind cut can share a native batch with disjoint

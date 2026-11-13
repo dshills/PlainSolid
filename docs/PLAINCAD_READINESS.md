@@ -31,11 +31,11 @@ on pristine OCCT.
 All seven portable failures pass a focused retest, including the exact
 side-tangent blind Hole. Its four-face contact is retained for modeling
 and display. STL fabrication and STEP reject this non-manifold boundary.
-The cross-browser run passes one case on each of the
-three engines and records four UI locator failures per engine. Pristine
-OCCT reproduces those four failures across Chromium, Firefox and WebKit.
-Current Workbench, native sketch and AI production controls pass all 12
-cases on the same three engines. See the
+On PlainCAD `50432ed` all 15 current cross-browser originals pass across
+Chromium, Firefox and WebKit. The focused original selection passes six of
+seven, with the same Parts Browser asynchronous-open race. The earlier
+`e65f07b` cross-browser controls reproduce its stale UI locators on pristine
+OCCT. The current committed app fixes those locators. See the
 [verification record](VERIFICATION.md) for reports and exact test scope.
 
 ## Selected production acceptance — 2026-11-13
