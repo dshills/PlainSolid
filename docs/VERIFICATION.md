@@ -856,3 +856,12 @@ queries. The certified mesh checks closed topology, zero contacts and all
 straight/curved strip ancestry. Pinned OCCT reads the STEP boundary with
 three exterior curved walls and matches volume, area and centroid for both
 signs. These cases qualify quarter circles on a rectangular footprint.
+
+Mixed rounded stock tests use a circular bore, a separate rectangular
+through-pocket, and a rectangular boss. They independently check the added
+and removed volumes, the two through handles, point queries on the boss, and
+the embedding and face ancestry of its certified mesh. The feature layout
+uses the dimensions from the PlainCAD scenario; this particular fixture
+rounds vertical corners. A separate long-cap treatment reproduces the
+application's horizontal fillet and opposite chamfer and tests both analytic
+surfaces. The integrated horizontal feature chain is tracked separately.

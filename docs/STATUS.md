@@ -17,7 +17,10 @@ The application is staged separately; its original checkout is not modified.
 Provider labels may be adapted explicitly to `plainsolid`, but geometry and
 workflow assertions must remain intact. No OCCT or faceted curved fallback can
 count as a PlainSolid pass. Existing Go tests and OCCT differential tests remain
-supporting evidence, not PlainCAD end-to-end passes.
+supporting evidence, not PlainCAD end-to-end passes. The separate
+`codex/plaincad-integration` worktree records selected Go/WASM browser passes
+through scoped blind/through holes in commit `3d9bf1f`; that branch owns its
+browser evidence and is not included in this checkout's kernel test results.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by

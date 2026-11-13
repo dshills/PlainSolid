@@ -109,10 +109,10 @@ func ExtrudePolygonWithHoles(ctx context.Context, frame geom.Frame, outer []geom
 			return Solid{}, e
 		}
 	}
-	return extrudeCircularTopology(ctx, frame, p, nil, nil, through, blind, min(0, height), max(0, height))
+	return extrudeCircularTopology(ctx, frame, p, nil, nil, nil, nil, through, blind, min(0, height), max(0, height))
 }
 
-func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, arcs []extrusionQuarterArc, holes []ExtrusionCircle,
+func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, arcs []extrusionQuarterArc, polygonHoles [][]geom.Vec2, boss *ExtrusionBoss, holes []ExtrusionCircle,
 	blind []ExtrusionBlindHole, lo, hi float64) (Solid, error) {
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
@@ -175,7 +175,7 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 			high := add(base+n+i, base+n+j, s, u[3], u[2])
 			f := Face{Surface: s}
 			ids := [4]int{low, vertical[j], high, vertical[i]}
-			if !inner {
+			if !inner || circle == nil {
 				for k, id := range ids {
 					f.Outer = append(f.Outer, Use{Edge: id, Reversed: k >= 2, UVStart: u[k], UVEnd: u[(k+1)%4]})
 				}
@@ -222,21 +222,23 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		}
 		return nil
 	}
+	lineChart := func(a, b geom.Vec2) (geom.Surface, [4]geom.Vec2, error) {
+		axial := frame.ZAxis()
+		u := frame.XAxis().Scale(b.X - a.X).Add(frame.YAxis().Scale(b.Y - a.Y))
+		f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{X: a.X, Y: a.Y}), u, u.Cross(axial))
+		if e != nil {
+			return nil, [4]geom.Vec2{}, e
+		}
+		s, e := geom.NewPlaneSurface(f)
+		length := u.Length()
+		return s, [4]geom.Vec2{{Y: lo}, {X: length, Y: lo}, {X: length, Y: hi}, {Y: hi}}, e
+	}
 	if disk == nil {
 		outerChart := func(i int) (geom.Surface, [4]geom.Vec2, error) {
 			if len(arcs) > 0 && arcs[i].circle.Radius > 0 {
 				return arcs[i].wall(frame, lo, hi)
 			}
-			a, b := outer[i], outer[(i+1)%len(outer)]
-			axial := frame.ZAxis()
-			u := frame.XAxis().Scale(b.X - a.X).Add(frame.YAxis().Scale(b.Y - a.Y))
-			f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{X: a.X, Y: a.Y}), u, u.Cross(axial))
-			if e != nil {
-				return nil, [4]geom.Vec2{}, e
-			}
-			s, e := geom.NewPlaneSurface(f)
-			length := u.Length()
-			return s, [4]geom.Vec2{{Y: lo}, {X: length, Y: lo}, {X: length, Y: hi}, {Y: hi}}, e
+			return lineChart(outer[i], outer[(i+1)%len(outer)])
 		}
 		var outerTrim capCurve
 		if len(arcs) > 0 {
@@ -279,6 +281,13 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		}
 	}
 
+	for _, ring := range polygonHoles {
+		if e := loop(ring, func(i int) (geom.Surface, [4]geom.Vec2, error) {
+			return lineChart(ring[i], ring[(i+1)%len(ring)])
+		}, nil, nil, true, nil, 0); e != nil {
+			return Solid{}, e
+		}
+	}
 	for _, h := range holes {
 		if e := addCircle(h, lo, hi, true, nil, 0); e != nil {
 			return Solid{}, e
@@ -303,12 +312,107 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		}
 		floors = append(floors, floor)
 	}
+	var bossFaces []Face
+	if boss != nil {
+		cap, z := 1, hi
+		if !boss.Upper {
+			cap, z = 0, lo
+		}
+		rim := extrusionRectangleRing(boss.Footprint)
+		first := len(vertices)
+		low, high := z, z+boss.Height
+		if !boss.Upper {
+			low, high = z-boss.Height, z
+		}
+		frameAt := func(z float64) (geom.PlaneSurface, error) {
+			f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: z}), frame.XAxis(), frame.ZAxis())
+			if e != nil {
+				return geom.PlaneSurface{}, e
+			}
+			return geom.NewPlaneSurface(f)
+		}
+		base, e := frameAt(z)
+		if e != nil {
+			return Solid{}, e
+		}
+		end := high
+		if !boss.Upper {
+			end = low
+		}
+		endPlane, e := frameAt(end)
+		if e != nil {
+			return Solid{}, e
+		}
+		for _, plane := range []geom.PlaneSurface{base, endPlane} {
+			for _, uv := range rim {
+				p, e := plane.Eval(uv.X, uv.Y)
+				if e != nil {
+					return Solid{}, e
+				}
+				vertices = append(vertices, p)
+			}
+		}
+		var baseIDs, endIDs, axialIDs [4]int
+		var charts [4]geom.PlaneSurface
+		var lengths [4]float64
+		var bossTrim []Use
+		for i, a := range rim {
+			j := (i + 1) % 4
+			b := rim[j]
+			baseIDs[i] = add(first+i, first+j, base, a, b)
+			endIDs[i] = add(first+4+i, first+4+j, endPlane, a, b)
+			d := frame.XAxis().Scale(b.X - a.X).Add(frame.YAxis().Scale(b.Y - a.Y))
+			f, e := geom.NewFrame(vertices[first+i], frame.ZAxis(), frame.ZAxis().Cross(d))
+			if e != nil {
+				return Solid{}, e
+			}
+			charts[i], e = geom.NewPlaneSurface(f)
+			if e != nil {
+				return Solid{}, e
+			}
+			lengths[i] = d.Length()
+			axialIDs[i] = add(first+i, first+4+i, charts[i], geom.Vec2{}, geom.Vec2{X: end - z})
+			bossTrim = append(bossTrim, Use{Edge: baseIDs[i], UVStart: a, UVEnd: b})
+		}
+		caps[cap].Holes = append(caps[cap].Holes, bossTrim)
+		endFace := Face{Surface: endPlane, Reversed: !boss.Upper}
+		for i := range rim {
+			k := 3 - i
+			endFace.Outer = append(endFace.Outer, Use{Edge: endIDs[k], Reversed: true, UVStart: rim[(k+1)%4], UVEnd: rim[k]})
+		}
+		for i, s := range charts {
+			j := (i + 1) % 4
+			v := lengths[i]
+			u := end - z
+			wall := Face{Surface: s}
+			if boss.Upper {
+				wall.Outer = []Use{
+					{Edge: axialIDs[i], UVEnd: geom.Vec2{X: u}},
+					{Edge: endIDs[i], UVStart: geom.Vec2{X: u}, UVEnd: geom.Vec2{X: u, Y: v}},
+					{Edge: axialIDs[j], Reversed: true, UVStart: geom.Vec2{X: u, Y: v}, UVEnd: geom.Vec2{Y: v}},
+					{Edge: baseIDs[i], Reversed: true, UVStart: geom.Vec2{Y: v}},
+				}
+			} else {
+				wall.Outer = []Use{
+					{Edge: baseIDs[i], UVEnd: geom.Vec2{Y: v}},
+					{Edge: axialIDs[j], UVStart: geom.Vec2{Y: v}, UVEnd: geom.Vec2{X: u, Y: v}},
+					{Edge: endIDs[i], Reversed: true, UVStart: geom.Vec2{X: u, Y: v}, UVEnd: geom.Vec2{X: u}},
+					{Edge: axialIDs[i], Reversed: true, UVStart: geom.Vec2{X: u}},
+				}
+			}
+			bossFaces = append(bossFaces, wall)
+		}
+		bossFaces = append(bossFaces, endFace)
+	}
 	scale := hi - lo
 	if disk != nil {
 		scale = max(scale, disk.Radius)
 	}
+	if boss != nil {
+		scale = max(scale, boss.Height)
+	}
 	for _, q := range outer {
 		scale = max(scale, math.Abs(q.X-outer[0].X), math.Abs(q.Y-outer[0].Y))
 	}
-	return NewSolidContext(ctx, vertices, edges, append(append(caps[:], walls...), floors...), scale*1e-11)
+	return NewSolidContext(ctx, vertices, edges, append(append(append(caps[:], walls...), floors...), bossFaces...), scale*1e-11)
 }

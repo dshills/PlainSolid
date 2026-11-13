@@ -40,17 +40,17 @@ type CertifiedCircularHoleExtrusion struct {
 // are assigned once and shared by caps/walls/floors. MaxSegments limits circle
 // samples; MaxTrigTerms and MaxPredicates are cumulative construction budgets.
 func ExtrudePolygonWithHolesCertified(ctx context.Context, frame geom.Frame, outer []geom.Vec2, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
-	return certifyCircularExtrusion(ctx, frame, outer, nil, nil, through, blind, height, o)
+	return certifyCircularExtrusion(ctx, frame, outer, nil, nil, nil, nil, through, blind, height, o)
 }
 
 // ExtrudeDiskWithHolesCertified constructs and tessellates the circular stock
 // and its bores and pockets. It uses the same exact represented-affine ideal
 // boundary and mesh embedding certificate as ExtrudePolygonWithHolesCertified.
 func ExtrudeDiskWithHolesCertified(ctx context.Context, frame geom.Frame, outer ExtrusionCircle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
-	return certifyCircularExtrusion(ctx, frame, nil, &outer, nil, through, blind, height, o)
+	return certifyCircularExtrusion(ctx, frame, nil, &outer, nil, nil, nil, through, blind, height, o)
 }
 
-func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, rounded *RoundedRectangle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
+func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geom.Vec2, disk *ExtrusionCircle, rounded *RoundedRectangle, rectangles []ExtrusionRectangle, boss *ExtrusionBoss, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (out CertifiedCircularHoleExtrusion, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedCircularHoleExtrusion{}
@@ -118,7 +118,7 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 	case rounded != nil:
 		_, arcs, e = roundedExtrusionProfile(*rounded)
 		if e == nil {
-			source, e = ExtrudeRoundedRectangle(ctx, frame, *rounded, through, blind, height)
+			source, e = extrudeMixedRectangle(ctx, frame, *rounded, rectangles, boss, through, blind, height)
 		}
 	case disk != nil:
 		source, e = ExtrudeDiskWithHoles(ctx, frame, *disk, through, blind, height)
@@ -166,7 +166,11 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 			break
 		}
 	}
-	if n > o.MaxSegments || 2*(len(p)+arcCount*(n/4-1)+len(circles)*n) > o.MaxVertices {
+	bossVertices := 0
+	if boss != nil {
+		bossVertices = 8
+	}
+	if n > o.MaxSegments || bossVertices+2*(len(p)+arcCount*(n/4-1)+4*len(rectangles)+len(circles)*n) > o.MaxVertices {
 		return out, geom.ErrConvergence
 	}
 	work := 0
@@ -265,6 +269,13 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		}
 		loops = append(loops, ring)
 	}
+	for _, r := range rectangles {
+		var ring []int
+		for _, p := range extrusionRectangleRing(r) {
+			ring = append(ring, appendPoint(p))
+		}
+		loops = append(loops, ring)
+	}
 	for circle, h := range circles {
 		var ring []int
 		round := new(big.Rat)
@@ -280,6 +291,13 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		}
 		loops = append(loops, ring)
 		collectBound(h.Radius, round)
+	}
+	if boss != nil {
+		var ring []int
+		for _, p := range extrusionRectangleRing(boss.Footprint) {
+			ring = append(ring, appendPoint(p))
+		}
+		loops = append(loops, ring)
 	}
 	var polygonLoops []trimvalidate.Loop
 	for _, ring := range loops {
@@ -313,10 +331,19 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 	mapping := [2][]int{make([]int, len(points)), make([]int, len(points))}
 	round := new(big.Rat)
 	origin := exactBoundPoint(frame.Origin())
+	ordinaryLoops := len(loops)
+	if boss != nil {
+		ordinaryLoops--
+	}
 	for loop, ring := range loops {
 		z0, z1 := lo, hi
-		if loop > len(through) {
-			depth := math.Copysign(blind[loop-len(through)-1].Depth, height)
+		if loop == ordinaryLoops {
+			z0, z1 = hi, hi+boss.Height
+			if !boss.Upper {
+				z0, z1 = lo-boss.Height, lo
+			}
+		} else if loop > len(rectangles)+len(through) {
+			depth := math.Copysign(blind[loop-len(rectangles)-len(through)-1].Depth, height)
 			z0, z1 = math.Min(0, depth), math.Max(0, depth)
 		}
 		var rims [2][]int
@@ -362,17 +389,26 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 	}
 	for cap := 0; cap < 2; cap++ {
 		selected := [][]int{loops[0]}
-		for i := range holes {
-			if i < len(through) || (height > 0 && cap == 0) || (height < 0 && cap == 1) {
-				selected = append(selected, loops[i+1])
+		for i := 1; i < ordinaryLoops; i++ {
+			if i <= len(rectangles)+len(through) || (height > 0 && cap == 0) || (height < 0 && cap == 1) {
+				selected = append(selected, loops[i])
 			}
+		}
+		if boss != nil && (cap == 1) == boss.Upper {
+			selected = append(selected, loops[ordinaryLoops])
 		}
 		tris, e := triangulate(selected)
 		if e != nil {
 			return out, e
 		}
 		for _, t := range tris {
-			q := [3]int{mapping[cap][t[0]], mapping[cap][t[1]], mapping[cap][t[2]]}
+			endpoint := func(id int) int {
+				if boss != nil && id >= loops[ordinaryLoops][0] {
+					return mapping[cap^1][id]
+				}
+				return mapping[cap][id]
+			}
+			q := [3]int{endpoint(t[0]), endpoint(t[1]), endpoint(t[2])}
 			if cap == 0 {
 				q[1], q[2] = q[2], q[1]
 			}
@@ -381,12 +417,16 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 			}
 		}
 	}
-	for loop, ring := range loops {
+	for loop, ring := range loops[:ordinaryLoops] {
 		for i, a := range ring {
 			b := ring[(i+1)%len(ring)]
 			face := 0
 			if loop > 0 {
-				face = 2 + outerWallCount + 4*(loop-1) + i/(n/4)
+				j := i
+				if loop > len(rectangles) {
+					j /= n / 4
+				}
+				face = 2 + outerWallCount + 4*(loop-1) + j
 			} else if disk != nil {
 				face = 2 + i/(n/4)
 			} else {
@@ -401,7 +441,7 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 		}
 	}
 	for i := range blind {
-		loop := loops[len(through)+i+1]
+		loop := loops[len(rectangles)+len(through)+i+1]
 		positive := append([]int(nil), loop...)
 		for j, k := 0, len(positive)-1; j < k; j, k = j+1, k-1 {
 			positive[j], positive[k] = positive[k], positive[j]
@@ -419,7 +459,36 @@ func certifyCircularExtrusion(ctx context.Context, frame geom.Frame, outer []geo
 			if height > 0 {
 				q[1], q[2] = q[2], q[1]
 			}
-			if e := appendTri(q, 2+outerWallCount+4*len(holes)+i); e != nil {
+			if e := appendTri(q, 2+outerWallCount+4*(len(rectangles)+len(holes))+i); e != nil {
+				return out, e
+			}
+		}
+	}
+	if boss != nil {
+		ring := loops[ordinaryLoops]
+		base, end := 0, 1
+		if !boss.Upper {
+			base, end = end, base
+		}
+		face := len(source.faces) - 5
+		for i, a := range ring {
+			b := ring[(i+1)%4]
+			quad := [4]int{mapping[base][a], mapping[end][a], mapping[end][b], mapping[base][b]}
+			if !boss.Upper {
+				quad[1], quad[3] = quad[3], quad[1]
+			}
+			for _, t := range [][3]int{{0, 1, 2}, {0, 2, 3}} {
+				if e := appendTri([3]int{quad[t[0]], quad[t[1]], quad[t[2]]}, face+i); e != nil {
+					return out, e
+				}
+			}
+		}
+		for i := 1; i < 3; i++ {
+			t := [3]int{mapping[end][ring[0]], mapping[end][ring[i]], mapping[end][ring[i+1]]}
+			if boss.Upper {
+				t[1], t[2] = t[2], t[1]
+			}
+			if e := appendTri(t, face+4); e != nil {
 				return out, e
 			}
 		}

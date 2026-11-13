@@ -40,6 +40,19 @@ type RoundedRectangle struct {
 // chords, a conservative subset of the rounded profile. Height and blind
 // pocket entry semantics match ExtrudeDiskWithHoles.
 func ExtrudeRoundedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) (Solid, error) {
+	return ExtrudeMixedRectangle(ctx, frame, profile, nil, through, blind, height)
+}
+
+// ExtrudeMixedRectangle sweeps an optionally rounded rectangle with strictly
+// disjoint rectangular through pockets, circular bores, and circular blind
+// pockets. Rectangular holes retain planar walls and the circular trims stay
+// analytic. Every opening is wholly inside the corner-chord polygon.
+// Rectangular walls are appended before the circular cavity walls.
+func ExtrudeMixedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, rectangles []ExtrusionRectangle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) (Solid, error) {
+	return extrudeMixedRectangle(ctx, frame, profile, rectangles, nil, through, blind, height)
+}
+
+func extrudeMixedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, rectangles []ExtrusionRectangle, boss *ExtrusionBoss, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) (Solid, error) {
 	holes, e := validateExtrusionHoles(ctx, frame, through, blind, height)
 	if e != nil {
 		return Solid{}, e
@@ -53,14 +66,33 @@ func ExtrudeRoundedRectangle(ctx context.Context, frame geom.Frame, profile Roun
 			return Solid{}, e
 		}
 	}
-	return extrudeCircularTopology(ctx, frame, outer, nil, arcs, through, blind, min(0, height), max(0, height))
+	footprints := rectangles
+	if boss != nil {
+		if !finite(boss.Height) || boss.Height <= 0 {
+			return Solid{}, geom.ErrInvalid
+		}
+		footprints = append(append([]ExtrusionRectangle(nil), rectangles...), boss.Footprint)
+		plane := max(0, height)
+		offset := boss.Height
+		if !boss.Upper {
+			plane, offset = min(0, height), -offset
+		}
+		if _, e := geom.RepresentedExactScalar(new(big.Rat).Add(ratInset(plane), ratInset(offset))); e != nil {
+			return Solid{}, e
+		}
+	}
+	rings, e := proveRectangularExtrusionHoles(outer, footprints, holes)
+	if e != nil {
+		return Solid{}, e
+	}
+	return extrudeCircularTopology(ctx, frame, outer, nil, arcs, rings[:len(rectangles)], boss, through, blind, min(0, height), max(0, height))
 }
 
 // ExtrudeRoundedRectangleCertified adds a closed embedding-checked mesh with
 // face ancestry and a two-sided error bound to the ideal represented-affine
 // rounded extrusion. Straight and curved side strips share cap samples.
 func ExtrudeRoundedRectangleCertified(ctx context.Context, frame geom.Frame, profile RoundedRectangle, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64, o CertifiedRevolvePolygonOptions) (CertifiedCircularHoleExtrusion, error) {
-	return certifyCircularExtrusion(ctx, frame, nil, nil, &profile, through, blind, height, o)
+	return ExtrudeMixedRectangleCertified(ctx, frame, profile, nil, through, blind, height, o)
 }
 
 func roundedExtrusionProfile(p RoundedRectangle) ([]geom.Vec2, []extrusionQuarterArc, error) {

@@ -29,7 +29,7 @@ func ExtrudeDiskWithHoles(ctx context.Context, frame geom.Frame, outer Extrusion
 			return Solid{}, geom.ErrDomain
 		}
 	}
-	return extrudeCircularTopology(ctx, frame, nil, &outer, nil, through, blind, min(0, height), max(0, height))
+	return extrudeCircularTopology(ctx, frame, nil, &outer, nil, nil, nil, through, blind, min(0, height), max(0, height))
 }
 
 func validateExtrusionHoles(ctx context.Context, frame geom.Frame, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) ([]ExtrusionCircle, error) {
