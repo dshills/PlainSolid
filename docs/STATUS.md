@@ -10,9 +10,11 @@ Circular stock now supports grouped and successive disjoint axial bores,
 including preexisting authored eccentric bores and STEP reimport. The
 original eight-case Hole, Revolve, compound profile and STEP selection
 passes. Supplemental PlainCAD rebuild, save/reopen and STL validation
-pass on the same WASM. Blind bores from opposite caps and intersecting
-footprints on circular stock remain open. The full browser development
-rerun and full-mode trimmed spline cases are running separately.
+pass on the same WASM. Disjoint blind bores from opposite circular caps
+now preserve their entry faces through STEP and pass six original browser
+regressions and independent OCCT exchange checks. Intersecting footprints
+on circular stock remain open. The full browser development rerun and
+full-mode trimmed spline cases are running separately.
 
 The production rerun on PlainSolid `0b17938` passes all 66 originals on
 PlainCAD `e65f07b`, with zero skips or flakes. It covers the fabrication package, Cable guide

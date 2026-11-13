@@ -11,7 +11,8 @@ import (
 
 // DiskHoleExtrusionBody describes signed axial extrusion of a circular sketch.
 // Eccentric circular through holes and blind pockets must be strictly inside
-// the outer disk and disjoint. Blind depths start at the original sketch cap.
+// the outer disk and disjoint. Blind depths start at the original sketch cap
+// or the opposite cap as specified on each bore.
 type DiskHoleExtrusionBody struct {
 	Name   string
 	Frame  geom.Frame

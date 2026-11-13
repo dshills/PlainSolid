@@ -1,0 +1,39 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "wasmSha256": "ba16b2f405da53110b5f501875c36c1728bd8dde200f68884397db5cf5201513",
+  "supplemental": {
+    "report": "/tmp/plainsolid-opposed-round-stock-unit-01.json",
+    "reportSha256": "9c8242bf1749df9c82ec6d8a467c959f05ba539a4c2049bc3d62d343b2d349d7",
+    "sourceSha256": "b6279e51e76a3690f7209b9825e90b0a5a7df8bc448357dec4bfc8d3676723fb",
+    "tests": [
+      {
+        "title": "rebuilds opposed round-stock Hole features and validates STL after reload",
+        "status": "passed",
+        "duration": 1620.7015000000001
+      },
+      {
+        "title": "round-trips opposed blind holes on a round-stock STEP body and validates native STL",
+        "status": "passed",
+        "duration": 4175.515584000001
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 48.292,
+    "exchange/step": 2.822,
+    "brep/trimmed": 1.788
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestWriteDiskHoleExtrusionsOCCT",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "signedCases": 6,
+    "opposedCases": 2,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}

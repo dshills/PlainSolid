@@ -261,7 +261,7 @@ func TestAnalyticCircularPocketCommonEntryGuard(t *testing.T) {
 	out := m.Bodies[0]
 	out.Holes = nil
 	out.Blind = nil
-	if e = collectCircularSourcePockets(g, cylinders, caps, outer, floors, out.Frame, 3, 1e-8, &out); e == nil {
+	if e = collectCircularSourcePockets(g, cylinders, caps, outer, floors, out.Frame, 3, 1e-8, &out, false); e == nil {
 		t.Fatal("opposite entry pockets accepted")
 	}
 }

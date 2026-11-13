@@ -17,7 +17,7 @@ func ReadAnalyticCircularPocketExtrusions(r io.Reader, l Limits) (CircularHoleEx
 	return readAnalyticCircularExtrusions(r, l, true)
 }
 
-func collectCircularSourcePockets(g circularSourceGraph, cylinders []int, caps [2]int, outerLoops map[int]int, floors map[int]bool, frame geom.Frame, height, tol float64, out *CircularHoleExtrusionBody) error {
+func collectCircularSourcePockets(g circularSourceGraph, cylinders []int, caps [2]int, outerLoops map[int]int, floors map[int]bool, frame geom.Frame, height, tol float64, out *CircularHoleExtrusionBody, opposed bool) error {
 	fail := circularSourceFailure
 	entry := -1
 	usedFloors := map[int]bool{}
@@ -74,10 +74,12 @@ func collectCircularSourcePockets(g circularSourceGraph, cylinders []int, caps [
 		localEntry := -1
 		if floorIndex >= 0 {
 			localEntry = roles[1-floorIndex]
-			if localEntry < 0 || entry >= 0 && entry != localEntry {
+			if localEntry < 0 || !opposed && entry >= 0 && entry != localEntry {
 				return fail()
 			}
-			entry = localEntry
+			if entry < 0 {
+				entry = localEntry
+			}
 			floorZ := centers[floorIndex].Z
 			if floorZ <= 64*tol || height-floorZ <= 64*tol {
 				return fail()
@@ -140,7 +142,7 @@ func collectCircularSourcePockets(g circularSourceGraph, cylinders []int, caps [
 			if localEntry == 1 {
 				depth = height - depth
 			}
-			out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: depth})
+			out.Blind = append(out.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: circle, Depth: depth, OppositeCap: entry != localEntry})
 		}
 	}
 	if len(usedFloors) != len(floors) || len(g.faces[caps[0]].loops) != capCounts[0]+1 || len(g.faces[caps[1]].loops) != capCounts[1]+1 {

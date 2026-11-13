@@ -82,11 +82,12 @@ func compareCircularFootprints(a, c trimmed.ExtrusionCircle, difference bool) in
 	return distanceSquared.Cmp(radius.Mul(radius, radius))
 }
 
-func circularBlindSpan(height, depth float64) (float64, float64) {
-	if height < 0 {
-		return -depth, 0
+func circularBlindSpan(height float64, hole trimmed.ExtrusionBlindHole) (float64, float64) {
+	depth := math.Copysign(hole.Depth, height)
+	if hole.OppositeCap {
+		return min(height, height-depth), max(height, height-depth)
 	}
-	return 0, depth
+	return min(0, depth), max(0, depth)
 }
 
 func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, error) {
@@ -166,10 +167,11 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 		if p.Height < 0 {
 			entry = hi
 		}
-		if entry != 0 {
-			if len(p.Blind) != 0 || lo != p.Height && hi != p.Height {
-				return Shape{}, true, unsupportedEdge("circular stock requires blind bores on the same cap")
-			}
+		opposite := entry != 0
+		if opposite && lo != p.Height && hi != p.Height {
+			return Shape{}, true, unsupportedEdge("circular stock requires blind bores to open at an exterior cap")
+		}
+		if opposite && len(p.Blind) == 0 {
 			axis := p.Frame.ZAxis()
 			origin := p.Frame.ToWorld(geom.Vec3{Z: p.Height})
 			frame, err := geom.NewFrame(origin, p.Frame.XAxis(), axis)
@@ -177,8 +179,9 @@ func (b *Bridge) cutCircularStockBores(a stored, tools []stored) (Shape, bool, e
 				return Shape{}, true, geom.ErrUnrepresentable
 			}
 			p.Frame, p.Height = frame, -p.Height
+			opposite = false
 		}
-		p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: depth})
+		p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: depth, OppositeCap: opposite})
 	}
 	if !removesMaterial(before, volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
@@ -199,7 +202,7 @@ func circularBoreContact(p step.DiskHoleExtrusionBody, hole trimmed.ExtrusionCir
 		contact = contact || compareCircularFootprints(prior, hole, false) <= 0
 	}
 	for _, prior := range p.Blind {
-		start, end := circularBlindSpan(p.Height, prior.Depth)
+		start, end := circularBlindSpan(p.Height, prior)
 		if lo >= start && hi <= end && compareCircularFootprints(prior.ExtrusionCircle, hole, true) <= 0 {
 			return true, true
 		}
@@ -253,7 +256,7 @@ func overlapCircularStockBores(a, tool stored) (float64, bool, error) {
 		volume -= v
 	}
 	for _, prior := range p.Blind {
-		start, end := circularBlindSpan(p.Height, prior.Depth)
+		start, end := circularBlindSpan(p.Height, prior)
 		v, err := removed(prior.ExtrusionCircle, min(hi, end)-max(lo, start))
 		if err != nil {
 			return 0, true, err

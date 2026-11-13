@@ -77,7 +77,6 @@ func TestCircularStockGroupedAndSuccessiveDisjointBores(t *testing.T) {
 	contained := circle(t, b, vector{3, 0, 8}, vector{0, 0, -1}, .5, 2)
 	separate := circle(t, b, vector{0, 3, 6}, vector{0, 0, 1}, 1, 2)
 	intersecting := circle(t, b, vector{-2, 0, 8}, vector{0, 0, -1}, 1, 2)
-	wrongCap := circle(t, b, vector{0, -3, 0}, vector{0, 0, 1}, 1, 2)
 	cut := func(stock, tool Shape) Shape {
 		return shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
 	}
@@ -105,7 +104,7 @@ func TestCircularStockGroupedAndSuccessiveDisjointBores(t *testing.T) {
 	near(t, overlapMeasure(t, b, second.Handle, blind.Handle), 0)
 	near(t, overlapMeasure(t, b, second.Handle, contained.Handle), 0)
 	before = len(b.shapes)
-	for _, tools := range [][]string{{contained.Handle}, {separate.Handle, intersecting.Handle}, {separate.Handle, wrongCap.Handle}} {
+	for _, tools := range [][]string{{contained.Handle}, {separate.Handle, intersecting.Handle}, {separate.Handle, stock.Handle}} {
 		if _, err := b.cutMany(second.Handle, tools); err == nil || len(b.shapes) != before {
 			t.Fatalf("invalid group changed handles: %v", err)
 		}
@@ -159,5 +158,60 @@ func TestCircularStockAuthoredEccentricInnerWireAndSignedCut(t *testing.T) {
 	outside := circle(t, b, vector{11.5, 0, 8}, vector{0, 0, 1}, 1, 2)
 	if _, err := b.cutMany(base.Handle, []string{outside.Handle}); err == nil || !strings.Contains(err.Error(), "outside wall") {
 		t.Fatalf("expected side-crossing rejection, got %v", err)
+	}
+}
+
+func TestCircularStockDisjointOpposedBoresAndSTEP(t *testing.T) {
+	for _, reverse := range []bool{false, true} {
+		b := New()
+		stock := circle(t, b, vector{}, vector{0, 0, 1}, 6, 8)
+		lower := circle(t, b, vector{-3, 0, 0}, vector{0, 0, 1}, 1, 6)
+		upper := circle(t, b, vector{3, 0, 8}, vector{0, 0, -1}, 1, 5)
+		through := circle(t, b, vector{0, 3, 0}, vector{0, 0, 1}, 1, 8)
+		if reverse {
+			lower, upper = upper, lower
+		}
+		for _, grouped := range []bool{false, true} {
+			base := stock
+			ids := []string{lower.Handle, upper.Handle, through.Handle}
+			if !grouped {
+				base = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": lower.Handle})
+				ids = ids[1:]
+				near(t, overlapMeasure(t, b, base.Handle, upper.Handle), upper.GeometryAssertions.Volume)
+			}
+			solid, err := b.cutMany(base.Handle, ids)
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, solid.GeometryAssertions.Volume, 269*math.Pi)
+			near(t, solid.GeometryAssertions.SurfaceArea, 204*math.Pi)
+			for _, tool := range []Shape{lower, upper, through} {
+				near(t, overlapMeasure(t, b, solid.Handle, tool.Handle), 0)
+			}
+			file, err := b.exportSTEP([]string{solid.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err := base64.StdEncoding.DecodeString(file.Base64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			read, err := b.importSTEP(string(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, read.GeometryAssertions.Volume, solid.GeometryAssertions.Volume)
+			near(t, read.GeometryAssertions.SurfaceArea, solid.GeometryAssertions.SurfaceArea)
+			for _, tool := range []Shape{lower, upper, through} {
+				near(t, overlapMeasure(t, b, read.Handle, tool.Handle), 0)
+			}
+			mesh, err := b.shapes[read.Handle].tessellate(request{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := mesh.ValidateSolid(); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 }

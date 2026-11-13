@@ -10,7 +10,7 @@ import (
 
 // ExtrudeDiskWithHoles sweeps a circular outer sketch with optional eccentric
 // circular bores and blind pockets. Height is signed along the sketch frame Z
-// axis; each pocket starts on the original sketch plane. The caps retain
+// axis; pockets start on either cap using OppositeCap. The caps retain
 // circular trims and the swept walls remain analytic cylinders. The outer disk
 // and all inner disks must be strictly nested and mutually disjoint as
 // appropriate, with no tangencies, in represented sketch coordinates.

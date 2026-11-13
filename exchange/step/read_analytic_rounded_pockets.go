@@ -183,7 +183,7 @@ func recoverAnalyticRoundedPockets(f *File, id int64) (RoundedRectangleExtrusion
 		}
 	}
 	common := CircularHoleExtrusionBody{Frame: frame, Height: height}
-	if e = collectCircularSourcePockets(g, inner, caps, outerLoops, floors, frame, height, tol, &common); e != nil {
+	if e = collectCircularSourcePockets(g, inner, caps, outerLoops, floors, frame, height, tol, &common, false); e != nil {
 		return fail()
 	}
 	out.Frame, out.Height = common.Frame, common.Height
