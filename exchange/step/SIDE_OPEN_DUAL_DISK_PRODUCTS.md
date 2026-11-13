@@ -86,3 +86,24 @@ that cannot be represented exactly by the native constructor. It does not import
 the retained independently authored OCCT side-pocket file, whose rounded pcurves
 remain outside this exact model-only dialect. Optional live tests compare native
 re-imported body measures with OCCT's independent read of the regenerated STEP.
+
+### Opt-in reversed direct lines
+
+`ReadSideOpenDualDiskProductWithOptions` with
+`SideOpenDualDiskReadOptions{AllowReversedModelLines:true}` also accepts direct
+model `LINE` direction reversal paired with `EDGE_CURVE.same_sense = false`.
+The proof requires exact represented endpoint coordinates differing along one
+cardinal axis, a line origin equal to the edge-start point, a direction exactly
+opposite that endpoint axis, and vector magnitude exactly one. The line, vector
+and direction each require exclusive source ownership. Thus reversal traverses
+precisely the same finite segment; there is no snapping or approximate test.
+The private parsed graph is then normalized and subjected to the same complete
+canonical reconstruction comparison. `ReversedModelLines` reports the source
+edge IDs whose paired encodings were proved and normalized.
+
+Zero options and the existing reader remain canonical. Flipping only direction
+or sense, changing magnitude/origin, sharing the direction entity, or using a
+non-cardinal direction is rejected. Circle frames/senses, coedges and faces
+remain canonical; this option does not widen pcurve or vendor import support.
+The optional OCCT test independently validates the alternate directed topology
+and measures for both blind and through bodies.

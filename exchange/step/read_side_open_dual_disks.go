@@ -21,6 +21,9 @@ type SideOpenDualDiskProduct struct {
 	Native       trimmed.SideOpenDualDiskCut
 	Body, Shell  int64
 	Faces, Edges []int64
+	// ReversedModelLines lists source EDGE_CURVE IDs normalized by the opt-in
+	// exact paired line-direction/sense proof. Empty under the canonical reader.
+	ReversedModelLines []int64
 }
 
 // ReadSideOpenDualDiskProduct accepts only the rooted model-only dialect emitted
@@ -29,6 +32,12 @@ type SideOpenDualDiskProduct struct {
 // senses and product metadata. Equivalent decimal spellings and entity numbering
 // are accepted; alternate face partitions, pcurves and sense encodings are not.
 func ReadSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tolerance float64) (SideOpenDualDiskProduct, error) {
+	return ReadSideOpenDualDiskProductWithOptions(ctx, r, l, tolerance, SideOpenDualDiskReadOptions{})
+}
+
+// ReadSideOpenDualDiskProductWithOptions adds only the explicitly selected,
+// independently verified equivalent encodings to the canonical reader.
+func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions) (SideOpenDualDiskProduct, error) {
 	fail := func() (SideOpenDualDiskProduct, error) {
 		return SideOpenDualDiskProduct{}, fmt.Errorf("step: unsupported exact side-open dual-disk product")
 	}
@@ -216,6 +225,13 @@ func ReadSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	if err != nil {
 		return fail()
 	}
+	var reversedLines []int64
+	if options.AllowReversedModelLines {
+		reversedLines, err = sideDiskNormalizeReversedLines(f)
+		if err != nil {
+			return SideOpenDualDiskProduct{}, err
+		}
+	}
 	if err = sideDiskMatchWholeGraph(f, ef); err != nil {
 		return SideOpenDualDiskProduct{}, err
 	}
@@ -226,7 +242,7 @@ func ReadSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	if err = ctx.Err(); err != nil {
 		return SideOpenDualDiskProduct{}, err
 	}
-	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs}, nil
+	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)
