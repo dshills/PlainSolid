@@ -74,6 +74,7 @@
 #include <GeomToIGES_GeomSurface.hxx>
 #include <GeomToIGES_GeomCurve.hxx>
 #include <IGESGeom_CurveOnSurface.hxx>
+#include <IGESGeom_CopiousData.hxx>
 #include <IGESGeom_TrimmedSurface.hxx>
 #include <IGESGeom_TransformationMatrix.hxx>
 #include <IGESData_IGESModel.hxx>
@@ -1035,6 +1036,35 @@ int main(int argc, char** argv) {
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       out<<std::setprecision(17)<<'['<<p.X()<<','<<p.Y()<<','<<p.Z()<<"]\n";
       return 0;
+    }
+    if(argc==3 && mode=="write-iges-polyline"){
+      const double coords[]={0,0,0, 2,0,1, 2,3,4};
+      occ::handle<NCollection_HArray1<double>> values=new NCollection_HArray1<double>(1,9);
+      for(int i=0;i<9;i++)values->SetValue(i+1,coords[i]);
+      occ::handle<IGESGeom_CopiousData> polyline=new IGESGeom_CopiousData;
+      polyline->Init(2,0,values);polyline->SetPolyline(true);
+      IGESControl_Writer writer("MM");
+      if(!writer.AddEntity(polyline)||!writer.Write(argv[1]))throw std::runtime_error("OCCT IGES polyline export failed");
+      return 0;
+    }
+    if(argc==4 && mode=="iges-polyline"){
+      IGESControl_Reader reader;
+      if(reader.ReadFile(argv[3])!=IFSelect_RetDone)throw std::runtime_error("OCCT IGES polyline import failed");
+      auto model=reader.IGESModel();
+      occ::handle<IGESGeom_CopiousData> polyline;
+      for(int i=1;i<=model->NbEntities();i++){
+        const auto p=occ::handle<IGESGeom_CopiousData>::DownCast(model->Entity(i));
+        if(p.IsNull())continue;
+        if(!polyline.IsNull())throw std::runtime_error("expected one IGES polyline");
+        polyline=p;
+      }
+      if(polyline.IsNull()||polyline->FormNumber()!=12||polyline->DataType()!=2)throw std::runtime_error("expected IGES 106 form 12/IP2");
+      std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);out<<std::setprecision(17)<<'[';
+      for(int i=1;i<=polyline->NbPoints();i++){
+        if(i>1)out<<',';
+        const auto p=polyline->TransformedPoint(i);out<<'['<<p.X()<<','<<p.Y()<<','<<p.Z()<<']';
+      }
+      out<<"]\n";return 0;
     }
 #ifdef PLAINSOLID_OCCT_STEP
     if(argc==3&&mode=="write-step-quadratic-annulus")return writeSTEPQuadraticTrim(argv[1]);

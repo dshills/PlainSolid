@@ -127,6 +127,45 @@ func TestOCCTIGESPointRoundTrip(t *testing.T) {
 	}
 }
 
+func TestOCCTIGESPolylineRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "occt-polyline.igs")
+	oracleCommand(t, path, "write-iges-polyline")
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := Read(f, Limits{})
+	_ = f.Close()
+	if err != nil || len(m.Entities) != 1 || m.Entities[0].Polyline == nil || m.LengthUnit != .001 {
+		t.Fatal(m, err)
+	}
+	want := []geom.Vec3{{}, {X: 2, Z: 1}, {X: 2, Y: 3, Z: 4}}
+	for i, v := range want {
+		p, err := m.Entities[0].Eval(float64(i) / 2)
+		if err != nil || p.Distance(v) > 1e-9 {
+			t.Fatal(i, p, err)
+		}
+	}
+	translation := geom.Vec3{X: 1, Y: -2, Z: 3}
+	m.Entities[0].Transform = &geom.Affine{{1, 0, 0, translation.X}, {0, 1, 0, translation.Y}, {0, 0, 1, translation.Z}}
+	out := filepath.Join(dir, "occt-polyline.json")
+	oracleCommand(t, out, "iges-polyline", writeModelFile(t, m))
+	b, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got [][3]float64
+	if err := json.Unmarshal(b, &got); err != nil || len(got) != len(want) {
+		t.Fatal(got, err)
+	}
+	for i, p := range got {
+		if (geom.Vec3{X: p[0], Y: p[1], Z: p[2]}).Distance(want[i].Add(translation)) > 1e-9 {
+			t.Fatal(i, p)
+		}
+	}
+}
+
 func checkOracleSurface(t *testing.T, path string) {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "surface.json")

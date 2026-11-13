@@ -584,6 +584,6 @@ preserves endpoints, and applies the existing type-124 placement. It is not an
 arc-length parameterization. Referenced trim/composite APIs retain their prior
 line/spline-only scope.
 
-The independently authored `testdata/polyline.iges` fixes form and flag semantics
-against OCCT's `IGESGeom_CopiousData` and `IGESGeom_ToolCopiousData` reference.
-Native OCCT polyline roundtrip interoperability remains unqualified.
+The independently authored `testdata/polyline.iges` fixes form and flag semantics.
+The optional OCCT oracle independently writes an ordered form-12/IP2 entity
+and verifies that a placed PlainSolid export preserves each transformed point.
