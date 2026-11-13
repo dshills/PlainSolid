@@ -257,7 +257,12 @@ The whole-shell section and subdivision path verifies a four-branch wire
 with irrational intersections on two original edges. Each split is shared
 by both coedges and persists through native reload. A separate warped-shell
 fixture uses bounded curved graph constraints to reprove its split edges.
-Assembly of a general Boolean with irrational terminals remains open.
+For this regular rectangular-shell subset, exact imprints preserve each
+original support and split coedge, then classification and sewing assemble
+all three Boolean operations as an algebraic boundary. A native recipe
+reproves the result. The volume integrator accounts conservatively for cells
+that overlap the section cover. General irrational Boolean topology and
+conversion into the float-only `Solid` remain open.
 The shared-base Boolean dispatcher now also proves the single isolated
 contact of selected coupled quartics with zero Hessian. It preserves the
 selected original top in union/intersection and diagnoses a pinched result.
@@ -338,6 +343,20 @@ curve bases, source knot cells and entity IDs through native reload and
 checks the exact geometry and source provenance again before export.
 The separate partitioned IGES lens preserves six- and seven-edge source
 graphs with exact rational cut intervals and independent owner knot cells.
+The affine partitioned IGES path also qualifies a rotated original trim
+basis with unequal semiaxes and exact represented model coefficients.
+
+The overlap classifier verifies selected finite-area coincident subdomains
+in different rational graph bases. It compares nonbinary UV endpoints and
+independent knot grids exactly. Ordered model projections retain exact XYZ
+corners; a separate single-cell proof returns exact UV polygons under shear.
+The ordinary-node proof also identifies the two paired germs of a line and
+parabola, with no other branch on the qualified graph rectangle.
+
+Closed certified mesh paths now cover canonical wrapped frustums, exact
+cone poles, nested wrapped bore walls with independent taper, and selected
+multi-station loft solids. They preserve shared rim/station topology, bound
+both directions of source-image distance, and check triangle embedding.
 
 Unit tests include analytic mass properties, rational circle and Bernstein
 oracles, randomized spline edit/affine invariance, topology incidence and vertex

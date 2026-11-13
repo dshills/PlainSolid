@@ -761,8 +761,30 @@ The original model roots match between adjacent chart branches; native
 section reload and subsequent seam subdivision retain both coedges and
 Euler characteristic two. The warped fixture independently rebinds its
 curved graph seam constraints and rejects malformed projection axes.
+The same irrational wire imprints both source shells and sews exact Boolean
+boundaries for union, intersection and subtraction. Their face counts are
+12, 5 and 10; each has Euler characteristic two. The native Boolean recipe
+reconstructs topology from the source shells even when public diagnostics
+have been modified. Its intersection flux bounds `[0.00963859, 0.06284603]`
+enclose the independently integrated `(sqrt(2)−1)/12`; the interval is
+conservative and does not imply that precision for other inputs.
 
 Independent OCCT qualification of six- and seven-edge IGES lens records
 preserves two faces and the full split topology, along with original raw
 model/owner curve bases and both owners' knot-cell ancestry. Irrational
 partition cuts outside the bounded exchange format are rejected.
+The rotated affine-basis lens has six original seams and independent OCCT
+area and volume checks in both directions. The partitioned document chains
+recheck native source geometry, placements, raw bases and per-owner cells.
+
+Partial coincidence tests compare differently weighted and knotted spline
+charts on an exact overlap starting at `1/3`, and independently reject an
+altered pole. Sheared single-cell graph tests retain a triangle with an
+exact `2/3` corner. The line/parabola node test proves exactly one
+transverse intersection, four original terminals, and the two branch pairs.
+
+Canonical closed periodic fixtures cover a true cone pole, independently
+tapered coaxial bore walls, and three wrapped loft bands with two genuine
+station creases. They pass outward manifold and exact represented contact
+checks. The loft test reloads the native solid before mesh qualification,
+and matches the original station identities along all 64 shared samples.
