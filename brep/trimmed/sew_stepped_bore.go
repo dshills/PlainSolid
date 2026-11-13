@@ -16,6 +16,18 @@ type AxialBoreStep struct{ Radius, Depth float64 }
 // envelope must be strictly separated from all other faces and existing holes.
 // Cap charts must be parallel signed-cardinal XY charts. Source face IDs survive.
 func SewPlanarSteppedBore(ctx context.Context, stock Solid, lowCap, highCap int, center geom.Vec2, steps []AxialBoreStep) (Solid, error) {
+	return sewPlanarSteppedBore(ctx, stock, lowCap, highCap, center, steps, true, false)
+}
+
+// ProvePlanarSteppedBore checks the conservative cutter envelope without
+// allocating a resulting stock boundary. The cut constructor still validates
+// the sewn topology before publication.
+func ProvePlanarSteppedBore(ctx context.Context, stock Solid, lowCap, highCap int, center geom.Vec2, steps []AxialBoreStep) error {
+	_, err := sewPlanarSteppedBore(ctx, stock, lowCap, highCap, center, steps, false, false)
+	return err
+}
+
+func sewPlanarSteppedBore(ctx context.Context, stock Solid, lowCap, highCap int, center geom.Vec2, steps []AxialBoreStep, build, draft bool) (Solid, error) {
 	fail := func() (Solid, error) { return Solid{}, geom.ErrDomain }
 	if ctx == nil || highCap < 0 || highCap >= len(stock.faces) || lowCap < -1 || lowCap >= len(stock.faces) || lowCap == highCap || len(steps) == 0 || len(steps) > 32 {
 		return Solid{}, geom.ErrInvalid
@@ -65,19 +77,24 @@ func SewPlanarSteppedBore(ctx context.Context, stock Solid, lowCap, highCap int,
 	if e != nil {
 		return Solid{}, e
 	}
-	envelope, e := ExtrudeDiskWithHoles(ctx, toolFrame, ExtrusionCircle{Radius: maxR}, nil, nil, bottom)
-	if e != nil {
-		return Solid{}, e
+	if !draft {
+		envelope, e := ExtrudeDiskWithHoles(ctx, toolFrame, ExtrusionCircle{Radius: maxR}, nil, nil, bottom)
+		if e != nil {
+			return Solid{}, e
+		}
+		// Reuse the strict whole-envelope proof, including actual finite-face and
+		// existing-hole separation, before building the stepped cavity.
+		if lowCap >= 0 {
+			_, e = sewPlanarThroughPrism(ctx, stock, envelope, lowCap, highCap, 0, 1, false)
+		} else {
+			_, _, e = sewPlanarCapPrism(ctx, stock, envelope, highCap, 0, 1, true, false)
+		}
+		if e != nil {
+			return Solid{}, fmt.Errorf("stepped bore envelope: %w", e)
+		}
 	}
-	// Reuse the strict whole-envelope proof, including actual finite-face and
-	// existing-hole separation. Its temporary result is not used as geometry.
-	if lowCap >= 0 {
-		_, e = SewPlanarThroughPrism(ctx, stock, envelope, lowCap, highCap, 0, 1)
-	} else {
-		_, _, e = SewPlanarCapPrism(ctx, stock, envelope, highCap, 0, 1, true)
-	}
-	if e != nil {
-		return Solid{}, fmt.Errorf("stepped bore envelope: %w", e)
+	if !build {
+		return Solid{}, nil
 	}
 	donorSpan := span
 	if lowCap < 0 {
@@ -170,5 +187,76 @@ func SewPlanarSteppedBore(ctx context.Context, stock Solid, lowCap, highCap int,
 		}
 		faces = append(faces, f)
 	}
+	if draft {
+		// Private append-only graph: all old cap indices stay stable, and no
+		// caller can receive this graph before the aggregate validation below.
+		return Solid{vertices: vertices, edges: edges, faces: faces, tolerance: stock.tolerance}, nil
+	}
 	return compactSteppedTopology(ctx, vertices, edges, faces, stock.tolerance)
+}
+
+// PlanarSteppedBore is one coaxial site whose maximum radial envelope is
+// disjoint from the other sites in a batch. LowerCap=-1 selects blind cuts.
+type PlanarSteppedBore struct {
+	LowerCap, UpperCap int
+	Center             geom.Vec2
+	Steps              []AxialBoreStep
+}
+
+// SewPlanarSteppedBores proves every finite envelope against the original
+// stock and proves strict pairwise radial separation, then validates the
+// combined retained boundary once. No intermediate draft escapes on failure.
+func SewPlanarSteppedBores(ctx context.Context, stock Solid, sites []PlanarSteppedBore) (Solid, error) {
+	if ctx == nil || len(sites) == 0 || len(sites) > 32 {
+		return Solid{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return Solid{}, e
+	}
+	centers := make([]geom.Vec2, len(sites))
+	radii := make([]float64, len(sites))
+	var reference geom.Frame
+	for i, site := range sites {
+		if e := ctx.Err(); e != nil {
+			return Solid{}, e
+		}
+		if e := ProvePlanarSteppedBore(ctx, stock, site.LowerCap, site.UpperCap, site.Center, site.Steps); e != nil {
+			return Solid{}, e
+		}
+		frame := stock.faces[site.UpperCap].Surface.(geom.PlaneSurface).Frame()
+		if i == 0 {
+			reference = frame
+		} else if frame.ZAxis() != reference.ZAxis() {
+			return Solid{}, geom.ErrDomain
+		}
+		offset, e := prismExactLocal(reference, frame.Origin())
+		if e != nil {
+			return Solid{}, e
+		}
+		projected := geom.Vec2{
+			X: frame.XAxis().Dot(reference.XAxis())*site.Center.X + frame.YAxis().Dot(reference.XAxis())*site.Center.Y,
+			Y: frame.XAxis().Dot(reference.YAxis())*site.Center.X + frame.YAxis().Dot(reference.YAxis())*site.Center.Y,
+		}
+		centers[i], e = prismExactAdd(geom.Vec2{X: offset.X, Y: offset.Y}, projected)
+		if e != nil {
+			return Solid{}, e
+		}
+		for _, step := range site.Steps {
+			radii[i] = max(radii[i], step.Radius)
+		}
+		for j := 0; j < i; j++ {
+			if !(prismCircle{center: centers[i], radius: radii[i]}).outside(centers[j], ratInset(radii[j]), 8*stock.tolerance) {
+				return Solid{}, geom.ErrDomain
+			}
+		}
+	}
+	result := stock
+	for _, site := range sites {
+		var e error
+		result, e = sewPlanarSteppedBore(ctx, result, site.LowerCap, site.UpperCap, site.Center, site.Steps, true, true)
+		if e != nil {
+			return Solid{}, e
+		}
+	}
+	return compactSteppedTopology(ctx, result.vertices, result.edges, result.faces, stock.tolerance)
 }
