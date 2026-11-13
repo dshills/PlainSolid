@@ -159,6 +159,56 @@ func TestFiniteCylinderPairUnchangedOrCoveredDifference(t *testing.T) {
 	}
 }
 
+func TestFiniteCylinderPairUnequalCrossingDifference(t *testing.T) {
+	ctx := context.Background()
+	center := geom.Vec3{X: 1, Y: 2, Z: 3}
+	stock := geom.RawCylinder{Origin: center.Add(geom.Vec3{Z: 2}), Axis: geom.Vec3{Z: -2}, Radius: 5, Min: -1, Max: 3}
+	cutter := geom.RawCylinder{Origin: center.Add(geom.Vec3{Y: 3}), Axis: geom.Vec3{Y: 3}, Radius: 3, Min: -3, Max: 1}
+	d, err := FiniteCylinderPairDifference(ctx, stock, cutter, 1e-8)
+	faces := d.Solids[0].Faces()
+	if err != nil || len(faces) != 26 || len(d.Solids[1].Faces()) != 0 || d.ContactNodes != nil || d.MinimumGapSquared != nil {
+		t.Fatal(d, err)
+	}
+	if len(d.StockWallFaces[0]) != 12 || len(d.CutterWallFaces[0]) != 2 || len(d.StockCapFaces[0]) != 12 {
+		t.Fatal("lost ancestry")
+	}
+	for i, id := range d.StockCapFaces[0] {
+		f := faces[id]
+		p, err := f.Surface.Eval((f.U.Min+f.U.Max)/2, .5)
+		raw := [2]float64{stock.Min, stock.Max}[i/6]
+		if err != nil || p.Sub(stock.Origin).Dot(stock.Axis) != raw*stock.Axis.Dot(stock.Axis) {
+			t.Fatal(i, raw, p, err)
+		}
+	}
+	for _, id := range d.CutterWallFaces[0] {
+		f := faces[id]
+		p, err := f.Surface.Eval(0, 0)
+		du, dv, derivativeErr := f.Surface.Partials(0, 0)
+		normal := du.Cross(dv)
+		if f.Reversed {
+			normal = normal.Scale(-1)
+		}
+		radial := p.Sub(center)
+		radial.Y = 0
+		if err != nil || derivativeErr != nil || math.Abs(radial.Length()-3) > 1e-12 || normal.Dot(radial) >= 0 {
+			t.Fatal(id, radial, normal, err, derivativeErr)
+		}
+	}
+	for _, test := range []struct {
+		cutter geom.RawCylinder
+		want   error
+	}{
+		{geom.RawCylinder{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 3, Min: -3, Max: 2}, geom.ErrDomain},
+		{geom.RawCylinder{Origin: cutter.Origin.Add(geom.Vec3{X: 1}), Axis: cutter.Axis, Radius: 3, Min: -3, Max: 1}, geom.ErrDomain},
+		{geom.RawCylinder{Origin: cutter.Origin, Axis: cutter.Axis, Radius: 2, Min: -3, Max: 1}, geom.ErrUnrepresentable},
+	} {
+		out, err := FiniteCylinderPairDifference(ctx, stock, test.cutter, 1e-8)
+		if !errors.Is(err, test.want) || len(out.Solids[0].Faces()) != 0 || len(out.Solids[1].Faces()) != 0 {
+			t.Fatal("unsupported cut produced a result", test.cutter, out, err)
+		}
+	}
+}
+
 func TestFiniteParallelCylinderPairContainmentSets(t *testing.T) {
 	ctx := context.Background()
 	a := geom.RawCylinder{Axis: geom.Vec3{Z: 2}, Radius: 3, Min: -2, Max: 2}
