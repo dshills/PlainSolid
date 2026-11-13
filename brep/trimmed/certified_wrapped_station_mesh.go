@@ -18,6 +18,9 @@ type CertifiedWrappedStationMeshOptions struct {
 	MaxStationSamples int
 }
 
+// CertifiedWrappedStationMesh reports two-sided source/display squared bounds
+// for each retained face triangle, including shared-sample rounding. Exact
+// display volume is diagnostic; no source-volume error bound is asserted.
 type CertifiedWrappedStationMesh struct {
 	Mesh                                            mesh.Mesh
 	Source                                          WrappedStationLoftProof
