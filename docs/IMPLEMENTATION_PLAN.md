@@ -42,27 +42,23 @@ multi-rim display budget regression. The correction passes the focused
 original XY cases and STEP import. The later consolidated report is recorded
 below.
 
-Both original helical workflows now pass, including the M3 external and
-internal thread and the editable four-start lead pair. The original
-machined-reference workflow passes nested blind pockets, bore rim
-measurement and lost floor diagnostics. Focused retests cover seven
-additional original development workflows and four original production
-regressions, including the UNC gallery. The original 40-body rotary
-fixture passes all three rebuilds. ORBIT passes the current detail and
-gesture export originals. The classified 340-case baseline and focused
-retests identify the next work: arc-region previews, the remaining exact
-browser retests, and isolated production performance. These focused retests
-now pass. The tangent-Hole production build passes all 66 originals.
-The later production build passes 65 in the full run and the remaining
-performance case in an unchanged isolated rerun. The consolidated
-development run passes 342 of 344 originals. Both remaining viewport
-cases pass focused verification, with a current full rerun underway. All seven portable failures from the
-real-WASM unit baseline pass focused retests. One result is the exact
-side-tangent blind Hole, which is retained for display while fabrication
-rejects its four-face contact. Cross-browser tests expose four
-current application control mismatches per engine that also reproduce on the
-Chromium OCCT control. Keep provider-private OCCT fixture checks visible
-alongside portable unit results. See
+Both original helical workflows pass, including modeled external and internal
+threads and the editable four-start lead pair. The machined-reference workflow
+passes nested blind pockets and retained bore rims. The 40-body rotary fixture
+passes cold load, rename and platter edit. Circular stock retains unequal-depth
+opposed bore layers and round-trips qualified STEP boundaries. Rectangular stock
+retains a qualified side-opening blind notch and supports disjoint interior
+bores in the same batch. Both families have focused original regressions and
+independent OCCT exchange measurements.
+
+The latest completed production run passes all 66 originals, including the
+60.790-second performance case. The latest consolidated development run passes
+342 of 344. Its Parts Browser and YZ guarded drag failures both pass unchanged
+on the same WASM in isolation. The camera pan and gesture originals pass in the
+consolidated run. All seven portable failures from the real-WASM unit baseline
+pass focused retests. Keep provider-private OCCT fixtures visible alongside
+portable unit results. Current PlainCAD has committed startup and cross-browser
+test repairs and is being verified from a new pinned archive. See
 [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
 
 For every gate, run the original application scenarios with PlainSolid selected.

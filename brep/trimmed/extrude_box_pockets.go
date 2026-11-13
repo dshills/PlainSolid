@@ -115,12 +115,17 @@ func (b *cornerCylinderBuilder) addRectanglePocket(cap int, rim []geom.Vec2, flo
 }
 
 func (b *cornerCylinderBuilder) addBoxBore(h ExtrusionCircle, height float64) error {
+	return b.addBoxBoreAtCaps(h, height, [2]int{0, 1})
+}
+
+func (b *cornerCylinderBuilder) addBoxBoreAtCaps(h ExtrusionCircle, height float64, caps [2]int) error {
 	r, c := h.Radius, h.Center
 	rim, err := mixedCardinalPoints(c, r)
 	if err != nil {
 		return err
 	}
-	for id, z := range []float64{0, height} {
+	for i, z := range []float64{0, height} {
+		id := caps[i]
 		points := make([]geom.Vec3, 4)
 		uv := []geom.Vec2{rim[0], rim[3], rim[2], rim[1]}
 		curves := map[int]PCurve{}

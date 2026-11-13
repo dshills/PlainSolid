@@ -126,3 +126,58 @@ func TestPlainCADSideBlindNotchSTEPRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 8})
+	notch := circle(t, b, vector{10, 1, 0}, vector{0, 0, 1}, 3, 6)
+	blind := circle(t, b, vector{5, 10, 0}, vector{0, 0, 1}, 2, 3)
+	through := circle(t, b, vector{15, 10, -1}, vector{0, 0, 1}, 2, 10)
+	cut := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": notch.Handle})
+	for _, tc := range []struct {
+		base  Shape
+		tools []string
+	}{
+		{stock, []string{notch.Handle, blind.Handle, through.Handle}},
+		{stock, []string{through.Handle, blind.Handle, notch.Handle}},
+		{cut, []string{through.Handle, blind.Handle}},
+	} {
+		before := len(b.shapes)
+		result, err := b.cutMany(tc.base.Handle, tc.tools)
+		if err != nil || len(b.shapes) != before+1 {
+			t.Fatal("mixed batch did not publish exactly one result", err)
+		}
+		near(t, result.GeometryAssertions.Volume, cut.GeometryAssertions.Volume-44*math.Pi)
+		near(t, result.GeometryAssertions.SurfaceArea, cut.GeometryAssertions.SurfaceArea+36*math.Pi)
+		near(t, overlapMeasure(t, b, result.Handle, blind.Handle), 0)
+		near(t, overlapMeasure(t, b, result.Handle, through.Handle), 0)
+		near(t, overlapMeasure(t, b, result.Handle, notch.Handle), 0)
+		file, err := b.exportSTEP([]string{result.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := base64.StdEncoding.DecodeString(file.Base64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reread, err := b.importSTEP(string(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, reread.GeometryAssertions.Volume, result.GeometryAssertions.Volume)
+		near(t, reread.GeometryAssertions.SurfaceArea, result.GeometryAssertions.SurfaceArea)
+		near(t, overlapMeasure(t, b, reread.Handle, blind.Handle), 0)
+		mesh, err := b.shapes[reread.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := mesh.ValidateSolid(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	crossing := circle(t, b, vector{10, 4, 0}, vector{0, 0, 1}, 2, 4)
+	before := len(b.shapes)
+	if _, err := b.cutMany(stock.Handle, []string{notch.Handle, through.Handle, crossing.Handle}); err == nil || len(b.shapes) != before {
+		t.Fatal("intersecting notch batch did not reject atomically", err)
+	}
+}

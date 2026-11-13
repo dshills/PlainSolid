@@ -111,7 +111,7 @@ func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
 		return Shape{}, false, nil
 	}
 	radius, depth := c.cylinder.radius, c.cylinder.height
-	p := step.SideBlindNotchBody{Name: "PlainSolid", Frame: f, Left: -box.Min.X, Right: box.Max.X, Back: box.Max.Y, Inset: -box.Min.Y, Length: box.Max.Z, Radius: radius, Depth: depth}
+	p := sideBlindNotchRecipe(f, box, radius, depth)
 	s, err := trimmed.BoxSideCylinderBlind(context.Background(), p.Frame, p.Left, p.Right, p.Back, p.Inset, p.Length, p.Radius, p.Depth, 1e-9)
 	if err != nil {
 		return Shape{}, true, err
@@ -123,6 +123,11 @@ func (b *Bridge) sideCylinderBlindCut(a, c stored) (Shape, bool, error) {
 	out, err := b.putNotchedAnalytic(body, a.result.Bounds)
 	return out, true, err
 }
+func sideBlindNotchRecipe(f geom.Frame, box geom.Box, radius, depth float64) step.SideBlindNotchBody {
+	return step.SideBlindNotchBody{Name: "PlainSolid", Frame: f, Left: -box.Min.X, Right: box.Max.X,
+		Back: box.Max.Y, Inset: -box.Min.Y, Length: box.Max.Z, Radius: radius, Depth: depth}
+}
+
 func (b *Bridge) sideCylinderCut(a, c stored) (Shape, bool, error) {
 	if !a.planar() || c.cylinder == nil {
 		return Shape{}, false, nil
