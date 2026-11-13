@@ -54,10 +54,10 @@ Blind and through quarter-circle corner cuts support the same contained
 bores and round-trip STEP.
 
 The latest completed production run passes all 66 originals, including the
-42.966-second performance case. The latest consolidated development run passes
-342 of 344. Its Parts Browser and YZ guarded drag failures both pass unchanged
-on the same WASM in isolation. The camera pan and gesture originals pass in the
-consolidated run. All seven portable failures from the real-WASM unit baseline
+42.966-second performance case. The full development run on PlainCAD
+`50432ed` passes all 344 originals, including Parts Browser, YZ guarded
+drag, and the camera pan and gesture cases. All seven portable failures
+from the real-WASM unit baseline
 pass focused retests. Keep provider-private OCCT fixtures visible alongside
 portable unit results. Current PlainCAD has committed startup and cross-browser
 test repairs and is being verified from a new pinned archive. See

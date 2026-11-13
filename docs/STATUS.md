@@ -56,6 +56,11 @@ and 11 validated STL downloads but exceeds its 90-second case deadline.
 The unchanged test passes on the same production assets in 56.048 seconds
 when run separately.
 
+The full development run on PlainCAD `50432ed` passes all 344 originals
+on clean `92e22ab`, including Parts Browser and YZ guarded drag. It has
+zero skips, retries or flaky results. Both TypeScript checks and the
+independent WASM probe pass.
+
 The frozen development baseline ran 340 originals with 264 passes. Later
 focused runs pass 54 of the baseline failures. The first consolidated current
 run passes 342 of 344. Its two viewport failures pass in focused verification,
