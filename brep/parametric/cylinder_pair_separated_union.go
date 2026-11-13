@@ -82,16 +82,12 @@ func finiteContainedCylinderUnion(ctx context.Context, a, b geom.RawCylinder) (F
 		return zero, ok, err
 	}
 	operands := [2]geom.RawCylinder{a, b}
-	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	outer := 1 - inner
 	s, err := nativeCoordinateCylinder(operands[outer])
 	if err != nil {
 		return zero, true, err
 	}
-	c := operands[inner]
-	_, scale := coordinateCylinderAxis(c.Axis)
-	r := q(c.Radius)
-	coefficient := new(big.Rat).Mul(new(big.Rat).Mul(r, r), new(big.Rat).Mul(q(scale), new(big.Rat).Sub(q(c.Max), q(c.Min))))
+	coefficient := nativeCoordinateCylinderVolumePi(operands[inner])
 	out := FiniteCylinderPairUnionResult{Solid: s, CommonVolumePiCoefficient: coefficient}
 	out.WallFaces[outer], out.LowerCapFaces[outer], out.UpperCapFaces[outer] = []int{0}, []int{1}, []int{2}
 	return out, true, nil
