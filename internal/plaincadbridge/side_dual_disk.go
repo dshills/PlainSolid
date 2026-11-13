@@ -22,6 +22,56 @@ func (p sideDualDiskRecipe) solid() (trimmed.SideOpenDualDiskCut, error) {
 	return trimmed.CutSideOpenDualDisks(context.Background(), p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 }
 
+func putSideDualDiskSTEPProduct(b *Bridge, product step.SideOpenDualDiskProduct) (Shape, error) {
+	d := product.Descriptor
+	p := sideDualDiskRecipe{d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth}
+	cut := product.Native
+	if d.LengthUnit != .001 {
+		// This reader proves a supported SI prefix. Identify that prefix
+		// before multiplying, since the floats for 10^n are not generally exact.
+		power := -18
+		for ; power <= 18; power++ {
+			if d.LengthUnit == math.Pow10(power) {
+				break
+			}
+		}
+		if power > 18 {
+			return Shape{}, geom.ErrUnrepresentable
+		}
+		factor := big.NewRat(1, 1)
+		for n := power + 3; n > 0; n-- {
+			factor.Mul(factor, big.NewRat(10, 1))
+		}
+		for n := power + 3; n < 0; n++ {
+			factor.Quo(factor, big.NewRat(10, 1))
+		}
+		o := p.frame.Origin()
+		for _, v := range []*float64{&o.X, &o.Y, &o.Z, &p.min.X, &p.min.Y, &p.max.X, &p.max.Y,
+			&p.discs[0].Center.X, &p.discs[0].Center.Y, &p.discs[1].Center.X, &p.discs[1].Center.Y,
+			&p.discs[0].Radius, &p.discs[1].Radius, &p.height, &p.depth} {
+			scaled, exact := new(big.Rat).Mul(new(big.Rat).SetFloat64(*v), factor).Float64()
+			if !exact || !finite(scaled) {
+				return Shape{}, geom.ErrUnrepresentable
+			}
+			*v = scaled
+		}
+		var e error
+		p.frame, e = geom.NewFrame(o, p.frame.XAxis(), p.frame.ZAxis())
+		if e != nil {
+			return Shape{}, e
+		}
+		cut, e = p.solid()
+		if e != nil {
+			return Shape{}, e
+		}
+	}
+	m, e := cut.Measures()
+	if e != nil {
+		return Shape{}, e
+	}
+	return b.putAnalyticBody(&analyticBody{solid: cut.Solid, sideDualDisk: &p, volume: m.Volume, area: m.Area})
+}
+
 func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecipe, bool) {
 	var out sideDualDiskRecipe
 	if c == nil || p.Left <= 0 || p.Inset != 0 || len(p.Through) != 0 || len(p.Blind) != 0 || !cardinalFrame(p.Frame) {

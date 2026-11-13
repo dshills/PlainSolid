@@ -144,6 +144,11 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(&analyticBody{solid: s, sideNotch: &p, volume: properties.Volume, area: properties.Area})
 	}
+	if strings.Contains(source, "CYLINDRICAL_SURFACE") && strings.Contains(source, "SHAPE_DEFINITION_REPRESENTATION") {
+		if m, e := step.ReadSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
+			return putSideDualDiskSTEPProduct(b, m)
+		}
+	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
 			return step.ReadRoundedRectangleExtrusions(r(), stepLimits())

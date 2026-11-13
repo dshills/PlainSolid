@@ -2,10 +2,13 @@ package plaincadbridge
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"strings"
 	"testing"
 
+	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -45,6 +48,11 @@ func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
 			if err != nil || bytes.Count(data, []byte("CYLINDRICAL_SURFACE(")) != 2 || bytes.Contains(data, []byte("PCURVE(")) {
 				t.Fatal("retained exact STEP topology", err)
 			}
+			read, err := bridge.importSTEP(string(data))
+			if err != nil || bridge.shapes[read.Handle].analytic.sideDualDisk == nil || read.Bounds != out.Bounds {
+				t.Fatal("strict native STEP re-import", read, err)
+			}
+			near(t, read.GeometryAssertions.Volume, volume)
 		}
 		out := shape(t, bridge, map[string]any{"op": "cut", "a": first.Handle, "b": right.Handle})
 		body, err := bridge.shapes[out.Handle].analytic.transformed(geom.Affine{{-1, 0, 0, 12}, {0, 1, 0, 20}, {0, 0, 1, 1}})
@@ -56,6 +64,27 @@ func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
 			t.Fatal("reflected stock extrema", result.Bounds, err)
 		}
 	}
+}
+
+func TestPlainCADSideOpenDualDiskSTEPUnits(t *testing.T) {
+	frame, err := geom.NewFrame(geom.Vec3{Y: 4}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := step.SideOpenDualDiskDescriptor{Name: "Pocket pair", Frame: frame, Max: geom.Vec2{X: 10, Y: 6},
+		Discs:  [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 3.5}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5}, Radius: 2.5}},
+		Height: 6, Depth: 3, Tolerance: 1e-9, LengthUnit: .01}
+	var source bytes.Buffer
+	if err := step.WriteSideOpenDualDiskProduct(context.Background(), &source, d); err != nil {
+		t.Fatal(err)
+	}
+	b := New()
+	s, err := b.importSTEP(source.String())
+	if err != nil || b.shapes[s.Handle].analytic.sideDualDisk == nil || s.Bounds != (Bounds{Min: vector{0, 40, 0}, Max: vector{100, 100, 60}}) {
+		t.Fatal("centimeter model must retain exact millimeter recipe", s, err)
+	}
+	near(t, s.GeometryAssertions.Volume, 1000*(360-3*(6.25*(math.Pi-math.Acos(.6))+3)))
+	near(t, s.GeometryAssertions.SurfaceArea, 100*(312+3*(5*(math.Pi-math.Acos(.6))-8)))
 }
 
 func TestPlainCADSideOpenDualDiskRejectsUnprovedCrossing(t *testing.T) {
