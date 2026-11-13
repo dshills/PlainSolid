@@ -52,7 +52,7 @@ try {
     if (name.startsWith(".") && name !== ".bin") continue;
     await symlink(join(source, "node_modules", name), join(work, "node_modules", name));
   }
-  for (const folder of ["src", "e2e", "production-e2e"]) {
+  for (const folder of ["src", "e2e", "production-e2e", "cross-browser-e2e"]) {
     for (const path of await files(join(work, folder))) {
       if (!/\.[cm]?[jt]sx?$/.test(path)) continue;
       const relative = path.slice(work.length + 1);
@@ -150,7 +150,12 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const circleProfile = { id: "circle-probe", sketchId: "probe", signature: "circle-probe", outerLoop: { type: "circle", entityIds: ["circle"] }, innerLoops: [], holes: [], bounds: { minX: 2, maxX: 6, minY: 2, maxY: 6 } };
     const cylinder = kernel.extrudeProfile(circleProfile, 3);
     const cylinderMesh = kernel.tessellate(cylinder, { linearDeflection: .1, angularDeflection: .1 });
-    const boreBase = kernel.createBox(8, 8, 3);
+    const cornerBox = (width: number, height: number, depth: number) => {
+      const centered = kernel.createBox(width, height, depth);
+      try { return kernel.placeShape(centered, { translation: [width / 2, height / 2, 0], rotation: [0, 0, 0] }); }
+      finally { kernel.disposeShape(centered); }
+    };
+    const boreBase = cornerBox(8, 8, 3);
     const bored = kernel.cut(boreBase, cylinder);
     const boreProof = kernel.tessellate(bored, { linearDeflection: .1, angularDeflection: .1 }).geometryAssertions;
     const signedVolume = (mesh: any) => {
@@ -228,7 +233,7 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     const unequalDepthProofs = [...unequalDepthOutputs, ...reversedDepthOutputs].map((shape: any) => kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 }).geometryAssertions);
     const unequalDepthMeshVolumes = [...unequalDepthOutputs, ...reversedDepthOutputs].map((shape: any) => signedVolume(kernel.tessellate(shape, { linearDeflection: .5, angularDeflection: .2 })));
     const unequalDepthStlVolumes = [...unequalDepthOutputs, ...reversedDepthOutputs].map((shape: any) => stlVolume(kernel.exportStl(shape)));
-    const tangentStock = kernel.createBox(12, 8, 3);
+    const tangentStock = cornerBox(12, 8, 3);
     const tangentCylinder = kernel.placeShape(cylinder, { translation: [4, 0, 0], rotation: [0, 0, 0] });
     const tangentFailure = scopeError([tangentStock], [cylinder, tangentCylinder]);
     const lateOverlapFailure = scopeError([farBoreBase, tangentStock], [farCylinder, cylinder, tangentCylinder]);
