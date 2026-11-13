@@ -173,6 +173,8 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		f = a.frame
 		radial(scalarBounds{math.Min(a.a.X, a.b.X), math.Max(a.a.X, a.b.X)})
 		z = scalarBounds{math.Min(a.a.Y, a.b.Y), math.Max(a.a.Y, a.b.Y)}
+	case geom.HelicalProfileSurface:
+		return a.Bounds(geom.ParameterRectangle{UMin: u.Min, UMax: u.Max, VMin: v.Min, VMax: v.Max})
 	case ellipticPatch:
 		f = a.frame
 		x = multiply(c, scalarBounds{math.Min(a.lower.X, a.upper.X), math.Max(a.lower.X, a.upper.X)})

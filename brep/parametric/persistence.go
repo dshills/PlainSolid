@@ -41,6 +41,13 @@ type surfaceData struct {
 	CutTop    bool                     `json:",omitempty"`
 	Band      *[2][4]float64           `json:",omitempty"`
 	Wrap      *wrappedSurfaceData      `json:",omitempty"`
+	Helical   *helicalSurfaceData      `json:",omitempty"`
+}
+
+type helicalSurfaceData struct {
+	Lead       float64
+	Handedness geom.HelixHandedness
+	Turns      Interval
 }
 
 type wrappedSurfaceData struct {
@@ -125,6 +132,11 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "elliptic-band", Frame: frameToData(x.frame), A: x.z, B: x.h, Band: &[2][4]float64{x.x, x.y}}, nil
 	case revolvedSide:
 		return surfaceData{Kind: "revolved", Frame: frameToData(x.frame), Meridian: &[2]geom.Vec2{x.a, x.b}}, nil
+	case geom.HelicalProfileSurface:
+		f, a, b, lead, hand := x.Parameters()
+		d := x.Domain()
+		return surfaceData{Kind: "helical-profile", Frame: frameToData(f), Meridian: &[2]geom.Vec2{a, b},
+			Helical: &helicalSurfaceData{lead, hand, Interval{Min: d.UMin, Max: d.UMax}}}, nil
 	case *geom.BSplineSurface:
 		d := x.Data()
 		return surfaceData{Kind: "bspline", Spline: &d}, nil
@@ -150,6 +162,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 	if d.Kind != "wrapped-surface" && d.Wrap != nil {
+		return nil, geom.ErrInvalid
+	}
+	if d.Kind != "helical-profile" && d.Helical != nil {
 		return nil, geom.ErrInvalid
 	}
 	if d.Kind == "mapped" {
@@ -246,7 +261,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		})
 		return w, e
 	}
-	if d.Spline != nil || d.Kind != "revolved" && d.Kind != "elliptic" && d.Meridian != nil {
+	if d.Spline != nil || d.Kind != "revolved" && d.Kind != "elliptic" && d.Kind != "helical-profile" && d.Meridian != nil {
 		return nil, fmt.Errorf("parametric: unexpected surface data")
 	}
 	f, e := d.Frame.decode()
@@ -304,6 +319,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 			return nil, geom.ErrInvalid
 		}
 		return revolvedSide{f, a, b}, nil
+	case "helical-profile":
+		if d.Meridian == nil || d.Helical == nil {
+			return nil, geom.ErrInvalid
+		}
+		x := d.Helical
+		return geom.NewHelicalProfileSurface(f, d.Meridian[0], d.Meridian[1], x.Lead, x.Handedness, x.Turns.Min, x.Turns.Max)
 	default:
 		return nil, fmt.Errorf("parametric: unsupported surface kind %q", d.Kind)
 	}

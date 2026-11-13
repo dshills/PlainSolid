@@ -155,6 +155,21 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 		if f.Surface == nil {
 			return Solid{}, fmt.Errorf("trimmed: nil surface at face %d", fi)
 		}
+		base, _ := parametric.SurfaceMapping(f.Surface)
+		if wall, ok := base.(geom.HelicalProfileSurface); ok {
+			d := wall.Domain()
+			// A helical side can span integral turns between adjacent
+			// topology vertices. Keep the initial angular chords at or
+			// below a quarter turn to avoid degenerate construction.
+			span := d.UMax - d.UMin
+			if span > 16 || len(faces) > 34 {
+				return Solid{}, parametric.ErrBudget
+			}
+			for level := 0; span > .25; level++ {
+				span /= 2
+				s.minimumLevel = max(s.minimumLevel, level+1)
+			}
+		}
 		s.faces[fi] = cloneFace(f)
 		sides := map[[2]geom.Vec2]trimSide{}
 		indices := map[geom.Vec2]int{}

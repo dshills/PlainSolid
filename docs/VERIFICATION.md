@@ -795,3 +795,11 @@ moments give volume `abs(angle)*2.5` and `abs(angle)*5.5` respectively. A
 negative sweep retains topology and outward tessellation after native reload.
 The helix tests compare both hands to independent turn, speed and derivative
 formulas and verify conservative ideal-curve chord and parameter bounds.
+The two-turn helical polygon solid qualifies both hands on a translated
+frame, keeps five faces and Euler characteristic two after native reload,
+and agrees with independent volume `7π/3` and axial centroid. The display
+uses the analytic derivative deflection bound; a profile width equal to
+the lead is rejected because adjacent turns can meet.
+The coaxial common operation clips a convex meridian exactly and verifies
+the retained helical solid against `5π/3` for both hands. It distinguishes
+zero-width contact from unresolved caps cutting through the sweep.
