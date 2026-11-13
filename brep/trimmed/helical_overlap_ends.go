@@ -7,10 +7,10 @@ import (
 	"plainsolid/geom"
 )
 
-// HelicalEndReliefs opens both ends of a phase-staggered threaded tube. Entry
+// HelicalOverlapEndReliefs opens both ends of a phase-staggered threaded tube. Entry
 // coefficients include both disjoint axial relief regions, with groove overlap
 // subtracted exactly. Coefficients describe ideal unit-frame geometry.
-type HelicalEndReliefs struct {
+type HelicalOverlapEndReliefs struct {
 	HelicalOverlapRelief
 	UpperReliefWall, UpperShoulder int
 }
@@ -19,8 +19,8 @@ type HelicalEndReliefs struct {
 // both ends. Each relief passes the complete corresponding groove end profile;
 // a nonempty grooved interval remains. The original wall can split into several
 // angular strips, each retaining the same analytic cylindrical support.
-func GrooveWithPhasedEndReliefs(ctx context.Context, r HelicalGrooveRecipe, initialPhase, reliefRadius, lowerDepth, upperDepth, maxChartError float64) (HelicalEndReliefs, error) {
-	fail := func(e error) (HelicalEndReliefs, error) { return HelicalEndReliefs{}, e }
+func GrooveWithPhasedEndReliefs(ctx context.Context, r HelicalGrooveRecipe, initialPhase, reliefRadius, lowerDepth, upperDepth, maxChartError float64) (HelicalOverlapEndReliefs, error) {
+	fail := func(e error) (HelicalOverlapEndReliefs, error) { return HelicalOverlapEndReliefs{}, e }
 	if ctx == nil || r.BoreRadius <= 0 || !finite(reliefRadius) || !finite(lowerDepth) || !finite(upperDepth) || lowerDepth <= 0 || upperDepth <= 0 {
 		return fail(geom.ErrInvalid)
 	}
@@ -95,5 +95,5 @@ func GrooveWithPhasedEndReliefs(ctx context.Context, r HelicalGrooveRecipe, init
 		return fail(geom.ErrDomain)
 	}
 	result := HelicalOverlapRelief{solid, original, proof, wall, shoulder, groove, entry}
-	return HelicalEndReliefs{result, upperWall, upperShoulder}, nil
+	return HelicalOverlapEndReliefs{result, upperWall, upperShoulder}, nil
 }

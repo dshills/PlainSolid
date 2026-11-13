@@ -67,3 +67,24 @@ func TestNativeDisplayEdgesCapsuleAndBox(t *testing.T) {
 		t.Fatal(out, e)
 	}
 }
+
+func TestNativeDisplayEdgesRoundedCylinder(t *testing.T) {
+	for _, axis := range []vector{{0, 0, 1}, {1, 0, 0}, {0, -1, 0}} {
+		b := New()
+		source := circle(t, b, vector{}, axis, 5, 10)
+		rounded := shape(t, b, map[string]any{"op": "filletCylinderRims", "handle": source.Handle, "normal": axis, "rimCenters": []vector{coordinates(axis.vec().Scale(10))}, "radius": 1})
+		var out displayEdges
+		if e := json.Unmarshal(invoke(t, b, map[string]any{"op": "displayEdges", "handle": rounded.Handle, "maxSegments": 1000}), &out); e != nil {
+			t.Fatal(e)
+		}
+		if len(out.Positions)/6 != 64 {
+			t.Fatal("expected untouched rim only", len(out.Positions)/6)
+		}
+		for i := 0; i < len(out.Positions); i += 3 {
+			p := geom.Vec3{X: out.Positions[i], Y: out.Positions[i+1], Z: out.Positions[i+2]}
+			if math.Abs(p.Dot(axis.vec())) > 1e-12 || math.Abs(p.Length()-5) > 1e-10 {
+				t.Fatal("fillet tangent boundary or seam retained", p)
+			}
+		}
+	}
+}
