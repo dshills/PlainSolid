@@ -41,6 +41,10 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 	if tol == 0 {
 		tol = 1e-9
 	}
+	stock, tangentY, tangent, e := prepareTangentPocket(ctx, stock, pocket, tol)
+	if e != nil {
+		return fail(e)
+	}
 	pad := qm(num(8), num(tol))
 	lowY, highY := qa(num(low), pad), qs(num(high), pad)
 	check := func(x0, y0, x1, y1 q) bool {
@@ -56,7 +60,10 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 	if boss != nil {
 		rects = append(rects, boss.Footprint)
 	}
-	for _, r := range rects {
+	for ri, r := range rects {
+		if tangent && pocket != nil && ri == 0 {
+			continue
+		}
 		if !finite(r.Min.X) || !finite(r.Min.Y) || !finite(r.Max.X) || !finite(r.Max.Y) || !check(num(r.Min.X), num(r.Min.Y), num(r.Max.X), num(r.Max.Y)) {
 			return fail(ErrRadius)
 		}
@@ -103,8 +110,29 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 		}
 	}
 	vm, em := make([]int, len(dv)), make([]int, len(de))
+	emReverse := make([]bool, len(de))
+	sharedTangent := -1
+	matchVertex := func(p geom.Vec3) int {
+		if !tangent || p.Y != tangentY || p.Z != height || (p.X != pocket.Min.X && p.X != pocket.Max.X) {
+			return -1
+		}
+		found := -1
+		for i, q := range vertices {
+			if p.Sub(q).Length() <= tol {
+				if found >= 0 {
+					return -1
+				}
+				found = i
+			}
+		}
+		return found
+	}
 	for i, yes := range usedV {
 		if yes {
+			if id := matchVertex(dv[i]); id >= 0 {
+				vm[i] = id
+				continue
+			}
 			vm[i] = len(vertices)
 			vertices = append(vertices, dv[i])
 		}
@@ -114,6 +142,24 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 			x := de[i]
 			x.Start = vm[x.Start]
 			x.End = vm[x.End]
+			if tangent && dv[de[i].Start].Y == tangentY && dv[de[i].End].Y == tangentY && dv[de[i].Start].Z == height && dv[de[i].End].Z == height {
+				found := -1
+				for j, old := range edges {
+					if old.Start == x.Start && old.End == x.End || old.Start == x.End && old.End == x.Start {
+						if found >= 0 {
+							return fail(ErrInvalid)
+						}
+						found = j
+					}
+				}
+				if found < 0 {
+					return fail(ErrInvalid)
+				}
+				em[i] = found
+				emReverse[i] = edges[found].Start != x.Start
+				sharedTangent = found
+				continue
+			}
 			em[i] = len(edges)
 			edges = append(edges, x)
 		}
@@ -121,7 +167,11 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 	remap := func(loop []trimmed.Use) []trimmed.Use {
 		r := append([]trimmed.Use(nil), loop...)
 		for i := range r {
-			r[i].Edge = em[r[i].Edge]
+			old := r[i].Edge
+			r[i].Edge = em[old]
+			if emReverse[old] {
+				r[i].Reversed = !r[i].Reversed
+			}
 		}
 		return r
 	}
@@ -177,8 +227,35 @@ func appendLongEdgeFeatures(ctx context.Context, stock LongEdgeTreatment, low, h
 		f.Surface = plane
 		f.Reversed = cap == 0
 		f.Outer = loop
-		for _, hole := range df[cap].Holes {
-			f.Holes = append(f.Holes, remap(hole))
+		for hi, hole := range df[cap].Holes {
+			mapped := remap(hole)
+			if tangent && cap == 1 && hi == 0 {
+				if sharedTangent < 0 {
+					return fail(ErrInvalid)
+				}
+				for i := range mapped {
+					u := &mapped[i]
+					if u.Curve != nil {
+						return fail(ErrInvalid)
+					}
+					a, b := edges[u.Edge].Start, edges[u.Edge].End
+					if u.Reversed {
+						a, b = b, a
+					}
+					p, q := vertices[a], vertices[b]
+					if math.Abs(p.Z-height) > tol || math.Abs(q.Z-height) > tol {
+						return fail(ErrInvalid)
+					}
+					u.UVStart = geom.Vec2{X: p.X, Y: p.Y}
+					u.UVEnd = geom.Vec2{X: q.X, Y: q.Y}
+				}
+				f.Outer, e = mergeTangentPocketLoop(f.Outer, mapped, sharedTangent)
+				if e != nil {
+					return fail(e)
+				}
+			} else {
+				f.Holes = append(f.Holes, mapped)
+			}
 		}
 		faces[id] = f
 	}

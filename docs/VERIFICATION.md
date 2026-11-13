@@ -1,5 +1,40 @@
 # Verification record
 
+## Tangent through pocket on filleted stock — 2026-11-13
+
+A rectangular pocket may share an exact top edge with a longitudinal fillet.
+The native constructor splits the cylindrical face at the two contact
+endpoints and incorporates the three remaining pocket edges into the planar
+cap boundary. The pocket wall shares the middle cylinder edge directly.
+The opposite cap, other pocket edges, and adjacent features still require
+their prior clearance.
+
+The native fillet suite passes, including both cap-edge choices at depths 10
+and 15, independent volume and area, a closed display mesh, native JSON
+roundtrip, and rejection on both sides of unresolved near-contact. The
+complete bore, tangent pocket and boss chain also passes a deterministic
+native case. The original long-chain browser case passed in the first
+combined profile and revolve run. A consolidated application rerun is pending.
+
+## Native mixed profile and revolve constructors — 2026-11-13
+
+The integration branch imports the coordinate-axis polygon and circular
+revolution constructors from `5f42f97` and `1a4ea44` and the certified
+display variants from `1801da5` and `2e16016`. The native revolve test
+selection passes, including the conservative display certificates.
+The rectangular annular sector retains both coaxial cylinders, two polar
+caps and the exact radial faces. Bridge tests verify full and signed quarter
+revolutions with through bores, closed meshes and independent volumes.
+A box corner can also be cut or fused with a qualified finite cylinder
+using shared analytic arcs and the true shoulder and floor.
+
+Native semicircle, capsule and nested capsule-ring extrusions retain arc
+trims and cylindrical walls. Their signed-axis tests verify analytic
+volume, area and centroid, closed mesh and native JSON roundtrip.
+The first browser run passes both original capsule offset cases and both
+original circle offset cases. Projection and revolve edit were separate
+failures in that snapshot. The next browser run includes their repairs.
+
 ## PlainCAD finite To Face integration — 2026-11-13
 
 The native bridge qualifies a unique planar target against its finite boundary,
