@@ -1082,6 +1082,10 @@ both vertex identities and source-edge ancestry, have volumes `17/32` and
 `15/32`, reload identically when the proof order is reversed, and produce
 closed display meshes with no detected contacts. An independent OCCT sweep
 and planar cutter verify one shell, area, volume, and centroid for each result.
+Two opposite active planes qualify a six-face slab on the same warped stock.
+Exact ancestry covers eight cap section edges and four retained stock edge
+intervals. The independent OCCT cutter is an oblique planar face swept by
+`1/4`; the result agrees on one shell, volume `1/4`, centroid and area.
 
 On combined `5580058`, the opt-in pinned OCCT run with STEP, IGES, and
 transverse flags passed 112 test and subtest entries. The transverse union

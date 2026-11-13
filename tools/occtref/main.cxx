@@ -208,6 +208,7 @@ int main(int argc, char** argv) {
     const std::string mode = argc >= 3 ? argv[2] : "";
     if(argc==3 && mode=="warped-open-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedOpenSplineBooleans(out);return 0;}
     if(argc==3 && mode=="warped-corner-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedCornerSplineBooleans(out,"corner",1./4,0);warpedCornerSplineBooleans(out,"interior",1./4,1./8);warpedCornerSplineBooleans(out,"two-corner",9./16,0);return 0;}
+    if(argc==3 && mode=="warped-spline-slab"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedSplineSlab(out);return 0;}
     if(argc==3 && mode=="finite-cylinder-sets") {
       std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
       const auto stock=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(13,9,2),gp_Dir(-3,-4,0)),2,30).Shape();
