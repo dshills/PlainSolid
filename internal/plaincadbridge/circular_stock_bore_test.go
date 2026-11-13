@@ -77,6 +77,7 @@ func TestCircularStockGroupedAndSuccessiveDisjointBores(t *testing.T) {
 	contained := circle(t, b, vector{3, 0, 8}, vector{0, 0, -1}, .5, 2)
 	separate := circle(t, b, vector{0, 3, 6}, vector{0, 0, 1}, 1, 2)
 	intersecting := circle(t, b, vector{-2, 0, 8}, vector{0, 0, -1}, 1, 2)
+	tangent := circle(t, b, vector{-1, 0, 8}, vector{0, 0, -1}, 1, 2)
 	cut := func(stock, tool Shape) Shape {
 		return shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
 	}
@@ -104,7 +105,7 @@ func TestCircularStockGroupedAndSuccessiveDisjointBores(t *testing.T) {
 	near(t, overlapMeasure(t, b, second.Handle, blind.Handle), 0)
 	near(t, overlapMeasure(t, b, second.Handle, contained.Handle), 0)
 	before = len(b.shapes)
-	for _, tools := range [][]string{{contained.Handle}, {separate.Handle, intersecting.Handle}, {separate.Handle, stock.Handle}} {
+	for _, tools := range [][]string{{contained.Handle}, {separate.Handle, tangent.Handle}, {separate.Handle, stock.Handle}} {
 		if _, err := b.cutMany(second.Handle, tools); err == nil || len(b.shapes) != before {
 			t.Fatalf("invalid group changed handles: %v", err)
 		}
@@ -212,6 +213,54 @@ func TestCircularStockDisjointOpposedBoresAndSTEP(t *testing.T) {
 			if err := mesh.ValidateSolid(); err != nil {
 				t.Fatal(err)
 			}
+		}
+	}
+}
+
+func TestCircularStockOverlappingOpposedAndSequentialBores(t *testing.T) {
+	b := New()
+	stock := circle(t, b, vector{}, vector{0, 0, 1}, 6, 8)
+	lower := circle(t, b, vector{-1, 0, 0}, vector{0, 0, 1}, 2, 6)
+	upper := circle(t, b, vector{1, 0, 8}, vector{0, 0, -1}, 2, 5)
+	probe := circle(t, b, vector{0, 4, 0}, vector{0, 0, 1}, 1, 2)
+	lens := 8*math.Pi/3 - 2*math.Sqrt(3)
+	for _, reverse := range []bool{false, true} {
+		if reverse {
+			lower, upper = upper, lower
+		}
+		first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": lower.Handle})
+		near(t, overlapMeasure(t, b, first.Handle, upper.Handle), upper.GeometryAssertions.Volume-3*lens)
+		for _, tc := range []struct {
+			base  Shape
+			tools []string
+		}{
+			{stock, []string{lower.Handle, upper.Handle}},
+			{first, []string{upper.Handle}},
+		} {
+			body, err := b.cutMany(tc.base.Handle, tc.tools)
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, body.GeometryAssertions.Volume, 244*math.Pi+3*lens)
+			near(t, body.GeometryAssertions.SurfaceArea, 204*math.Pi-2*lens)
+			near(t, overlapMeasure(t, b, body.Handle, lower.Handle), 0)
+			near(t, overlapMeasure(t, b, body.Handle, upper.Handle), 0)
+			near(t, overlapMeasure(t, b, body.Handle, probe.Handle), 2*math.Pi)
+			mesh, err := b.shapes[body.Handle].tessellate(request{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := mesh.ValidateSolid(); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.exportSTEP([]string{body.Handle}); err == nil {
+				t.Fatal("overlapping STEP needs an exchange proof")
+			}
+			later, err := b.cutMany(body.Handle, []string{probe.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, later.GeometryAssertions.Volume, body.GeometryAssertions.Volume-2*math.Pi)
 		}
 	}
 }

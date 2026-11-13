@@ -203,6 +203,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 	case s.treated != nil:
 		e = writeLongEdgeSTEP(&out, s.treated)
+	case s.analytic != nil && s.analytic.layeredDisk:
+		return nil, unsupportedEdge("STEP export of overlapping circular stock bores is outside the qualified exchange domain")
 	case s.analytic != nil && s.analytic.stepDisk != nil:
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepRounded != nil:

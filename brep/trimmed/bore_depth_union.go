@@ -1,12 +1,14 @@
 package trimmed
 
 import (
+	"context"
 	"fmt"
 	"math"
+	"sort"
+
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
-	"sort"
 )
 
 // LayeredBoreHistory records exact analytic slab measures and retained face IDs.
@@ -107,11 +109,19 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		}
 		disks[i].center = geom.Vec2{X: p.X, Y: p.Y}
 	}
-	arrangement, err := newDepthArrangement(disks, tolerance)
+	stock, err := FromPlanar(base, tolerance)
 	if err != nil {
 		return Solid{}, LayeredBoreHistory{}, err
 	}
-	levels := []float64{0, span}
+	return assembleDepthBore(context.Background(), stock, entry, exit, frame, disks, 0, span, tolerance)
+}
+
+func depthBoreSlabs(disks []depthDisk, low, high, tolerance float64) (depthArrangement, []float64, [][]bool, []depthBoundary, error) {
+	arrangement, err := newDepthArrangement(disks, tolerance)
+	if err != nil {
+		return depthArrangement{}, nil, nil, nil, err
+	}
+	levels := []float64{low, high}
 	for _, d := range arrangement.disks {
 		levels = append(levels, d.start, d.depth)
 	}
@@ -123,24 +133,15 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		}
 	}
 	levels = unique
-	for i := 1; i < len(levels); i++ {
-		if levels[i]-levels[i-1] <= tolerance {
-			return fail("unresolved adjacent depth levels")
-		}
-	}
-	stock, err := FromPlanar(base, tolerance)
-	if err != nil {
-		return Solid{}, LayeredBoreHistory{}, err
-	}
-	vertices, edges, faces := stock.Vertices(), stock.Edges(), stock.Faces()
-	history := LayeredBoreHistory{Entry: entry, Exit: exit}
 	visible := make([][]bool, len(levels)-1)
 	boundaries := make([]depthBoundary, len(visible))
-	wallArea := 0.
 	for i := range visible {
+		if levels[i+1]-levels[i] <= tolerance {
+			return depthArrangement{}, nil, nil, nil, fmt.Errorf("trimmed: layered cylinder bore: unresolved adjacent depth levels")
+		}
 		visible[i], err = arrangement.exposed(levels[i], levels[i+1], tolerance)
 		if err != nil {
-			return Solid{}, history, err
+			return depthArrangement{}, nil, nil, nil, err
 		}
 		var list []directedUnionArc
 		for id, on := range visible[i] {
@@ -150,11 +151,27 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 		}
 		boundaries[i], err = arrangement.boundary(list, false, tolerance)
 		if err != nil {
-			return Solid{}, history, err
+			return depthArrangement{}, nil, nil, nil, err
 		}
+	}
+	return arrangement, levels, visible, boundaries, nil
+}
+
+func assembleDepthBore(ctx context.Context, stock Solid, entry, exit int, frame geom.Frame, disks []depthDisk, low, high, tolerance float64) (Solid, LayeredBoreHistory, error) {
+	fail := func(s string) (Solid, LayeredBoreHistory, error) {
+		return Solid{}, LayeredBoreHistory{}, fmt.Errorf("trimmed: layered cylinder bore: %s", s)
+	}
+	arrangement, levels, visible, boundaries, err := depthBoreSlabs(disks, low, high, tolerance)
+	if err != nil {
+		return Solid{}, LayeredBoreHistory{}, err
+	}
+	vertices, edges, faces := stock.Vertices(), stock.Edges(), stock.Faces()
+	history := LayeredBoreHistory{Entry: entry, Exit: exit}
+	wallArea := 0.
+	for i, boundary := range boundaries {
 		dz := levels[i+1] - levels[i]
-		history.RemovedVolume += boundaries[i].area * dz
-		wallArea += boundaries[i].perimeter * dz
+		history.RemovedVolume += boundary.area * dz
+		wallArea += boundary.perimeter * dz
 	}
 	history.EntryRemovedArea = boundaries[0].area
 	history.ExitRemovedArea = boundaries[len(boundaries)-1].area
@@ -285,19 +302,20 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 			faces = append(faces, Face{Surface: surface, Outer: uses, Reversed: true})
 		}
 	}
-	for _, loop := range boundaries[0].loops {
-		uses, e := planeLoop(loop, 0, faces[entry].Surface.(geom.PlaneSurface))
-		if e != nil {
-			return Solid{}, history, e
+	for _, cap := range []struct {
+		face, level, boundary int
+	}{{entry, 0, 0}, {exit, len(levels) - 1, len(boundaries) - 1}} {
+		plane := faces[cap.face].Surface.(geom.PlaneSurface)
+		for _, loop := range boundaries[cap.boundary].loops {
+			uses, e := planeLoop(loop, cap.level, plane)
+			if e != nil {
+				return Solid{}, history, e
+			}
+			if plane.Frame().ZAxis().Dot(frame.ZAxis()) > 0 {
+				uses = reverseUnionLoop(uses)
+			}
+			faces[cap.face].Holes = append(faces[cap.face].Holes, uses)
 		}
-		faces[entry].Holes = append(faces[entry].Holes, uses)
-	}
-	for _, loop := range boundaries[len(boundaries)-1].loops {
-		uses, e := planeLoop(loop, len(levels)-1, faces[exit].Surface.(geom.PlaneSurface))
-		if e != nil {
-			return Solid{}, history, e
-		}
-		faces[exit].Holes = append(faces[exit].Holes, reverseUnionLoop(uses))
 	}
 	floorArea, signedFloorArea := 0., 0.
 	for level := 1; level < len(levels)-1; level++ {
@@ -440,7 +458,7 @@ func BoreCylinderDepthUnion(base brep.Solid, cuts []CylinderCut, depths []float6
 	if math.Abs(signedFloorArea-(history.EntryRemovedArea-history.ExitRemovedArea)) > 1e-9*math.Max(1, math.Max(history.EntryRemovedArea, history.ExitRemovedArea)) {
 		return fail("inconsistent layered floor partition")
 	}
-	solid, err := NewSolid(vertices, edges, faces, tolerance)
+	solid, err := NewSolidContext(ctx, vertices, edges, faces, tolerance)
 	if err != nil {
 		return Solid{}, LayeredBoreHistory{}, err
 	}

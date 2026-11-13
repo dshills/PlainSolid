@@ -1,5 +1,32 @@
 # Verification record
 
+## PlainCAD overlapping bores on circular stock — 2026-11-13
+
+Circular stock now reuses the exact axial bore arrangement. Unequal-depth
+opposed tools, subsequent cuts and measure-only overlap preserve material
+volume, cylindrical walls and crescent floor topology. Native tests also
+cover the original planar-stock callers and verify signed, placed stock,
+independently integrated area and volume, and watertight tessellation.
+STEP exchange remains open for the intersecting bore boundary.
+
+All [eight original browser cases](evidence/plaincad-overlap-round-stock-browser-2026-11-13.json)
+pass for Hole, grouped edge edits, multi-body scopes, and STEP import. A
+[supplemental PlainCAD check](evidence/plaincad-overlap-round-stock-native-2026-11-13.json)
+uses the same WASM for authored opposed cuts, project reload and validated
+STL. Focused native race checks and Go vet pass. The same evidence records
+both successful native full-mode spline tests and the unchanged Parts Browser
+reruns. The browser full-run failure read the initial empty rebuild before the
+asynchronous project open. The same WASM and pristine OCCT both pass isolated
+reruns of that test.
+
+## Additional full-mode trimmed spline checks — 2026-11-13
+
+`TestNestedQuarticTubeMaterial` and
+`TestCombineTransverseSplineShellsAdditionalOperations` both pass in the
+integration worktree with full mode enabled. The tests take 524.10 and
+29.69 seconds. The separate 398-case short run excludes those two cases
+and two explicitly opt-in investigations.
+
 ## PlainCAD disjoint blind bores from opposite circular caps — 2026-11-13
 
 Disjoint blind cuts from either circular cap retain analytic walls and floors,

@@ -30,6 +30,7 @@ type analyticBody struct {
 	helicalMesh    *mesh.Mesh
 	stepRounded    *step.RoundedRectangleExtrusionBody
 	stepDisk       *step.DiskHoleExtrusionBody
+	layeredDisk    bool
 	pockets        *pocketStock
 	coaxial        *coaxialBody
 	rounded        *roundedStock
