@@ -238,24 +238,20 @@ export class OpenCascadeKernel implements KernelAdapter {
   }
   cloneShape(shape: KernelShape): KernelShape {
     const metadata = shape.metadata === undefined ? undefined : structuredClone(shape.metadata);
-    const copy = this.retainExtrusion(
-      owned(request({ op: "clone", handle: handle(shape).proof.handle }), handle(shape).operation, shape.id),
-      shape,
-    );
-    handle(copy).edgeProofIdentity = handle(shape).edgeProofIdentity;
+    const source = handle(shape);
+    const extrusion = source.extrusion ? structuredClone(source.extrusion) : undefined;
+    const copy = owned(request({ op: "clone", handle: source.proof.handle }), source.operation, shape.id);
+    handle(copy).edgeProofIdentity = source.edgeProofIdentity;
+    if (extrusion) handle(copy).extrusion = extrusion;
     if (metadata !== undefined) copy.metadata = metadata;
     return copy;
   }
   placeShape(shape: KernelShape, placement: ComponentPlacement): KernelShape {
     const metadata = shape.metadata === undefined ? undefined : structuredClone(shape.metadata);
+    const state = handle(shape);
+    const source = state.extrusion ? structuredClone(state.extrusion) : undefined;
     const frame = placementTransform(placement);
     const matrix = (["x", "y", "z"] as const).map(axis => [frame.u[axis], frame.v[axis], frame.normal[axis], frame.origin[axis]]);
-    const result = this.retainExtrusion(
-      owned(request({ op: "transform", handle: handle(shape).proof.handle, matrix }), handle(shape).operation, shape.id),
-      shape,
-    );
-    if (metadata !== undefined) result.metadata = metadata;
-    const source = handle(result).extrusion;
     if (source) {
       const vector = (v: { x: number; y: number; z: number }) => ({
         x: frame.u.x * v.x + frame.v.x * v.y + frame.normal.x * v.z,
@@ -268,6 +264,9 @@ export class OpenCascadeKernel implements KernelAdapter {
         u: vector(t.u), v: vector(t.v), normal: vector(t.normal),
       };
     }
+    const result = owned(request({ op: "transform", handle: state.proof.handle, matrix }), state.operation, shape.id);
+    if (source) handle(result).extrusion = source;
+    if (metadata !== undefined) result.metadata = metadata;
     return result;
   }
   private retainExtrusion(result: KernelShape, source: KernelShape): KernelShape {
