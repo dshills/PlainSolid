@@ -1,7 +1,6 @@
 package plaincadbridge
 
 import (
-	"context"
 	"errors"
 	"math"
 	"strconv"
@@ -120,19 +119,15 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 		return s.treated.tessellate(o)
 	}
 	if s.bore != nil {
-		// PlainCAD exports the display mesh for imported STEP bodies too.
-		// Refine simple bores while preserving the budget for dense Hole
-		// batches with many rim segments on the same cap.
-		if len(s.bore.cylinders) == 1 {
-			o.Angle = min(o.Angle, .045)
-		}
-		return s.bore.solid.Tessellate(context.Background(), o)
+		return s.tessellateBore(o)
 	}
 	if s.cylinder != nil {
-		// The rectangular-patch mesher tests angles at triangle centroids.
-		// A stricter per-facet bound also keeps the default STL volume within PlainCAD's production tolerance.
+		// The compact axial mesh keeps circular volume accurate without
+		// subdividing the straight generators and the planar cap interiors.
 		o.Angle = min(o.Angle, .025)
-		return s.cylinder.solid.Tessellate(context.Background(), o)
+		c := s.cylinder
+		p := coaxialBody{frame: c.frame, spans: []coaxialSpan{{0, c.height, c.radius}}}
+		return p.tessellate(o)
 	}
 	return s.solid.Tessellate(), nil
 }
