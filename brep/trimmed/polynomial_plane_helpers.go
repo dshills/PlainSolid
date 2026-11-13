@@ -11,6 +11,8 @@ func reversePolynomialPlaneCurve(c PCurve) PCurve {
 	switch q := c.(type) {
 	case ExactQuadraticUV:
 		return reversePlaneQuadratic(q)
+	case ExactBezierUV:
+		return q.reversed()
 	case SplineUV:
 		q.Reversed = !q.Reversed
 		return q
@@ -38,11 +40,14 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 		return nil, e
 	}
 	opt := geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits}
-	sourceOrigin := [2]*big.Rat{h[0][0], h[0][1]}
+	sourceOrigin := [2]*big.Rat{}
 	// Use an interior anchor to select the actual knot side. A global chart
 	// corner would use a different affine projection after a C0 crease.
 	for axis := range sourceOrigin {
-		sourceOrigin[axis] = new(big.Rat).Quo(new(big.Rat).Add(sourceOrigin[axis], h[len(h)-1][axis]), big.NewRat(2, 1))
+		last := h[len(h)-1]
+		a := new(big.Rat).Quo(h[0][axis], h[0][2])
+		b := new(big.Rat).Quo(last[axis], last[2])
+		sourceOrigin[axis] = new(big.Rat).Quo(new(big.Rat).Add(a, b), big.NewRat(2, 1))
 	}
 	sj, e := source.EvaluateRational(ctx, sourceOrigin[0], sourceOrigin[1], opt)
 	if e != nil {
@@ -75,8 +80,11 @@ func polynomialPlaneCapCurve(ctx context.Context, source *geom.SurfacePatch, c P
 			v.Add(v, new(big.Rat).Mul(ratInset(d.VMin), p[2])), p[2],
 		}
 	}
-	if _, ok := c.(ExactQuadraticUV); ok {
+	switch c.(type) {
+	case ExactQuadraticUV:
 		return NewExactQuadraticUV([3][3]*big.Rat{control[0], control[1], control[2]})
+	case ExactBezierUV:
+		return NewExactBezierUV(control)
 	}
 	return polynomialNativeTrim(control)
 }

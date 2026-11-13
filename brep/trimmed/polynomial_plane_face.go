@@ -251,6 +251,11 @@ func polynomialPlaneControls(c PCurve) ([][3]*big.Rat, error) {
 	case ExactQuadraticUV:
 		h := q.HomogeneousControls()
 		return h[:], nil
+	case ExactBezierUV:
+		if len(q.control) == 0 {
+			return nil, geom.ErrInvalid
+		}
+		return q.HomogeneousControls(), nil
 	case SplineUV:
 		if q.Curve == nil || q.Range != (UVInterval{Max: 1}) || q.Curve.Degree() > 4 || len(q.Curve.Poles()) != q.Curve.Degree()+1 {
 			return nil, geom.ErrConvergence

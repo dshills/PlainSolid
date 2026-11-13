@@ -24,10 +24,11 @@ const (
 // Regularized external tangent intersections and fully removed differences
 // are empty; no lower-dimensional remnants are presented as material.
 type SpherePairMaterial struct {
-	center  [2][3]*big.Rat
-	radius2 [2]*big.Rat
-	op      SphereSetOperation
-	mode    int
+	center     [2][3]*big.Rat
+	radius2    [2]*big.Rat
+	op         SphereSetOperation
+	mode       int
+	transverse bool
 }
 
 // modes: 0 ordinary,1 first only,2 second only,3 empty,4 identical supports.
@@ -51,6 +52,7 @@ func NewSpherePairMaterial(a Vec3, ra float64, b Vec3, rb float64, op SphereSetO
 	diff := new(big.Rat).Sub(q(ra), q(rb))
 	separate := d2.Cmp(new(big.Rat).Mul(sum, sum)) >= 0
 	contained := d2.Cmp(new(big.Rat).Mul(diff, diff)) <= 0
+	s.transverse = !separate && !contained
 	if d2.Sign() == 0 && ra == rb {
 		s.mode = 4
 		if op == SphereSetDifference {

@@ -315,6 +315,30 @@ opposite chamfer, through bore, rectangular through-pocket and top boss.
 Its mesh passes exact contact checks with a larger subdivision budget;
 browser acceptance of this chain remains separate.
 
+Bounded spline plane cuts retain exact cubic and quartic rational UV trims
+when the cutter residual is linear in the dependent coordinate with a
+nonvanishing coefficient of degree at most two. The stock and cutter keep their original
+supports, including selected cuts across an original free-axis knot. The
+native version 6 codec verifies continuous edge agreement and UV topology
+again on reload. This still requires a certified graph, exact endpoints and
+one active cutter plane.
+
+Exact finite line and first-hit queries cover transverse finite cylinders and
+sphere/cylinder union and subtraction. They report algebraic parameters and
+all exposed outward support normals, including simultaneous contacts and
+reversed cutter normals. Regularized two-sphere point, line and first-hit
+queries distinguish empty,
+contained, coincident and singular touching sets. Query support does not make
+every touching set a manifold solid.
+
+Independent standalone exchange codecs support exact signed-coordinate
+cylindrical supports in IGES 192 form 1 and STEP, with explicit units and no
+inferred trims or material. The cylinder converter requires lossless frame,
+unit and metadata transfer, and IGES 190 form 1 has a standalone plane codec.
+The separate IGES/STEP extrusion converter
+retains exact fraction-to-distance parameter scaling and rejects metadata or
+normalization that cannot be preserved.
+
 | Plan phase | Status | Delivered | Still required for phase completion |
 |---|---|---|---|
 | 1: Foundation | Implemented initial domain | Go module/CI configuration; vectors/transforms; rational curves/surfaces; meshes/primitives/extrusion; bounded exchange; box Booleans; end-to-end example | Remote multi-platform CI execution and longer validation campaigns |

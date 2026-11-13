@@ -331,6 +331,12 @@ func TrimValidationSegment(u Use) (trimvalidate.Segment, bool) {
 		}
 		q, e := trimvalidate.ExactQuadratic(c.control)
 		return q, e == nil
+	case ExactBezierUV:
+		if c.ends != ([2]geom.Vec2{u.UVStart, u.UVEnd}) {
+			return v, false
+		}
+		q, e := trimvalidate.ExactBezier(c.control)
+		return q, e == nil
 	case *QuadraticUV:
 		if c == nil {
 			return v, false

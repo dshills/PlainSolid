@@ -34,6 +34,7 @@ type nativeUse struct {
 	UVStart, UVEnd geom.Vec2
 	Quadratic      *QuadraticUV       `json:",omitempty"`
 	ExactQuadratic *[3][3]string      `json:",omitempty"`
+	ExactBezier    [][3]string        `json:",omitempty"`
 	RationalEnds   bool               `json:",omitempty"`
 	Ellipse        *EllipseUV         `json:",omitempty"`
 	AnchoredCircle bool               `json:",omitempty"`
@@ -90,6 +91,7 @@ type trimEncoder struct {
 	tubeIDs        map[intersect.TubeRecipe]int
 	tubes          []nativeTubeRecipe
 	exactQuadratic bool
+	exactBezier    bool
 	rationalEnds   bool
 }
 
@@ -115,6 +117,17 @@ func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
 			x.RationalEnds = c.rationalEndpoints
 			t.exactQuadratic = true
 			t.rationalEnds = t.rationalEnds || c.rationalEndpoints
+		case ExactBezierUV:
+			if len(c.control) < 4 || len(c.control) > 5 {
+				return nil, geom.ErrInvalid
+			}
+			x.ExactBezier = make([][3]string, len(c.control))
+			for j, p := range c.control {
+				for k, n := range p {
+					x.ExactBezier[j][k] = n.RatString()
+				}
+			}
+			t.exactBezier = true
 		case EllipseUV:
 			x.Ellipse = &c
 		case anchoredCircularUV:
@@ -255,7 +268,7 @@ func WriteJSON(w io.Writer, s Solid) error {
 		}
 		d.Version, d.Tubes = 3, t.tubes
 	}
-	if t.exactQuadratic {
+	if t.exactQuadratic || t.exactBezier {
 		if e := validateNativeExactQuadratics(context.Background(), s); e != nil {
 			return e
 		}
@@ -263,6 +276,9 @@ func WriteJSON(w io.Writer, s Solid) error {
 	}
 	if t.rationalEnds {
 		d.Version = 5
+	}
+	if t.exactBezier {
+		d.Version = 6
 	}
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -296,6 +312,31 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 		if x.AnchoredCircle && x.Ellipse == nil {
 			return nil, fmt.Errorf("trimmed: missing anchored circle data")
 		}
+		if x.ExactBezier != nil {
+			m := len(x.ExactBezier)
+			if d.version < 6 || m < 4 || m > 5 || d.maxControls < m || x.Implicit != nil || x.Tube != nil || x.Wall != nil ||
+				x.ExactQuadratic != nil || x.Quadratic != nil || x.Ellipse != nil || len(x.Spline) > 0 || x.Subcurve != nil ||
+				x.SplineReversed || x.SplineRange != (UVInterval{}) || x.Flip || x.SubRange != (UVInterval{}) {
+				return nil, fmt.Errorf("trimmed: invalid exact Bézier trim representation")
+			}
+			h := make([][3]*big.Rat, m)
+			for j, p := range x.ExactBezier {
+				for k, raw := range p {
+					q, e := parseNativeExactTrimCoefficient(raw)
+					if e != nil {
+						return nil, e
+					}
+					h[j][k] = q
+				}
+			}
+			q, e := NewExactBezierUV(h)
+			if e != nil {
+				return nil, e
+			}
+			u.Curve = q
+			r[i] = u
+			continue
+		}
 		if x.ExactQuadratic != nil {
 			if d.version < 4 || d.maxControls < 3 || x.Implicit != nil || x.Tube != nil || x.Wall != nil ||
 				x.Quadratic != nil || x.Ellipse != nil || len(x.Spline) > 0 || x.Subcurve != nil ||
@@ -305,14 +346,9 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 			var h [3][3]*big.Rat
 			for j, p := range *x.ExactQuadratic {
 				for k, raw := range p {
-					// A 4096-bit numerator and denominator require
-					// fewer than 2500 characters in canonical decimal.
-					if len(raw) == 0 || len(raw) > 2500 {
-						return nil, fmt.Errorf("trimmed: exact trim coefficient exceeds bounds")
-					}
-					q, ok := new(big.Rat).SetString(raw)
-					if !ok || q.RatString() != raw {
-						return nil, fmt.Errorf("trimmed: invalid exact trim coefficient")
+					q, e := parseNativeExactTrimCoefficient(raw)
+					if e != nil {
+						return nil, e
 					}
 					h[j][k] = q
 				}
@@ -430,7 +466,25 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 	return r, nil
 }
 
-// ReadJSON bounds and validates a version 1 through 5 trimmed boundary. Zero fields
+func parseNativeExactTrimCoefficient(raw string) (*big.Rat, error) {
+	// Only canonical integer or fraction syntax. In particular, reject an
+	// exponent before SetString can expand it into an unbounded integer.
+	if len(raw) == 0 || len(raw) > 2500 {
+		return nil, fmt.Errorf("trimmed: exact trim coefficient exceeds bounds")
+	}
+	for i, c := range raw {
+		if !(c >= '0' && c <= '9' || c == '/' || i == 0 && c == '-') {
+			return nil, fmt.Errorf("trimmed: invalid exact trim coefficient")
+		}
+	}
+	q, ok := new(big.Rat).SetString(raw)
+	if !ok || q.RatString() != raw || q.Num().BitLen() > 4096 || q.Denom().BitLen() > 4096 {
+		return nil, fmt.Errorf("trimmed: invalid exact trim coefficient")
+	}
+	return q, nil
+}
+
+// ReadJSON bounds and validates a version 1 through 6 trimmed boundary. Zero fields
 // select 32 MiB, 20,000 entities and 4,096 poles per geometry record.
 func ReadJSON(r io.Reader, o JSONLimits) (Solid, error) {
 	return ReadJSONContext(context.Background(), r, o)
@@ -472,7 +526,7 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 	if err = d.Decode(&extra); err != io.EOF {
 		return Solid{}, fmt.Errorf("trimmed: trailing data")
 	}
-	if n.Version < 1 || n.Version > 5 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
+	if n.Version < 1 || n.Version > 6 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
 		n.Version < 3 && len(n.Tubes) > 0 {
 		return Solid{}, fmt.Errorf("trimmed: unsupported schema")
 	}
@@ -618,7 +672,7 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 	var containsExact func(PCurve) bool
 	containsExact = func(p PCurve) bool {
 		switch c := p.(type) {
-		case ExactQuadraticUV:
+		case ExactQuadraticUV, ExactBezierUV:
 			return true
 		case reverseTrim:
 			return containsExact(c.differentiableTrim)

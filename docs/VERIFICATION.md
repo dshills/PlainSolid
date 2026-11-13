@@ -1208,6 +1208,24 @@ Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.
 
+On 2026-11-13 the pinned OCCT reference suite passed 147 test cases (including
+subtests) with two named opt-ins skipped. A separate run enabled both STEP
+import and transverse spline shell operations; both passed. New cubic and
+quartic rational plane cuts match independent OCCT prism Booleans on shell
+count, area, volume and centroid. Independent strip integrals agree, and native
+reload retains exact UV coefficients, rejects a sub-tolerance coedge edit and
+produces closed contact-free display meshes. The original knot ownership is
+also checked on a two-span cubic with a crease.
+For the quadratic denominator `(1+3X²)/4`, complementary cuts agree with
+independent arctangent/log strip integrals and OCCT. A second quadratic with
+positive endpoint values and an interior double zero is rejected.
+
+The dense mesh validator agrees with the prior implementation over 300
+deterministic topology mutations and a pinched-vertex fixture. A 16,000-triangle
+sphere validation benchmark went from 31.18 ms and 10.26 MB to 8.89 ms and
+3.23 MB on the local host; the representative external thread mesh is
+byte-identical. This benchmark measures validation alone.
+
 ## Completed checks
 
 - `go test ./...`: passed.

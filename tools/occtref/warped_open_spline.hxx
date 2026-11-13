@@ -164,3 +164,34 @@ static void rationalGraphPlaneBooleans(std::ostream& out,bool crease=false){
   splineShellRecord(out,"rational-graph-plane-cut",cut);
  }
 }
+static void rationalBezierGraphPlaneBooleans(std::ostream& out){
+ NCollection_Array1<double> knots(1,2);knots.SetValue(1,0);knots.SetValue(2,1);
+ NCollection_Array1<int> xm(1,2),ym(1,2);xm.Init(5);ym.Init(2);
+ auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,-2),gp_Pnt(2,2,3./16)).Shape();
+ for(int degree:{3,4}){
+  NCollection_Array2<gp_Pnt> poles(1,5,1,2);
+  for(int i=1;i<=5;++i)for(int j=1;j<=2;++j){
+   const double x=(i-1)/4.,y=j-1,z=i==5?1./16:(degree==3&&i==4?1./64:0.);
+   poles.SetValue(i,j,gp_Pnt(x,y,z+(1+x)*y/4.));
+  }
+  occ::handle<Geom_BSplineSurface> sheet=new Geom_BSplineSurface(poles,knots,knots,xm,ym,4,1);
+  const auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(sheet,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+  if(!BRepCheck_Analyzer(stock).IsValid())throw std::runtime_error("invalid independent high degree graph stock");
+  const auto prefix="rational-bezier-"+std::to_string(degree);
+  splineShellRecord(out,(prefix+"-common").c_str(),BRepAlgoAPI_Common(stock,tool).Shape());
+  splineShellRecord(out,(prefix+"-cut").c_str(),BRepAlgoAPI_Cut(stock,tool).Shape());
+ }
+ // Author the separate quadratic-denominator fixture in degree two. Its
+ // Y derivative is (1+3X²)/4; the test kernel uses a degree-elevated chart.
+ NCollection_Array2<gp_Pnt> poles(1,3,1,2);
+ NCollection_Array1<int> qm(1,2);qm.Init(3);
+ for(int i=1;i<=3;++i)for(int j=1;j<=2;++j){
+  const double x=(i-1)/2.,y=j-1;
+  poles.SetValue(i,j,gp_Pnt(x,y,(i==3?1.:1./4)*y));
+ }
+ occ::handle<Geom_BSplineSurface> sheet=new Geom_BSplineSurface(poles,knots,knots,qm,ym,2,1);
+ const auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(sheet,1e-10).Face(),gp_Vec(0,0,1)).Shape();
+ if(!BRepCheck_Analyzer(stock).IsValid())throw std::runtime_error("invalid independent quadratic denominator stock");
+ splineShellRecord(out,"rational-bezier-denominator-common",BRepAlgoAPI_Common(stock,tool).Shape());
+ splineShellRecord(out,"rational-bezier-denominator-cut",BRepAlgoAPI_Cut(stock,tool).Shape());
+}
