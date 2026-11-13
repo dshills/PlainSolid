@@ -15,15 +15,16 @@ import (
 // It accepts only parallel stock caps perpendicular to the cylinder axis,
 // with through cuts or finite entry-open blind pockets.
 type boreBody struct {
-	solid     trimmed.Solid
-	base      brep.Solid
-	cylinders []*cylinderBody
-	cuts      []trimmed.CylinderCut
-	spans     []float64
-	blind     []bool
-	floors    []int
-	union     *trimmed.CylinderUnionHistory
-	layered   *trimmed.LayeredBoreHistory
+	inputCylinders []*cylinderBody // exact pre-canonicalization tool lineage
+	solid          trimmed.Solid
+	base           brep.Solid
+	cylinders      []*cylinderBody
+	cuts           []trimmed.CylinderCut
+	spans          []float64
+	blind          []bool
+	floors         []int
+	union          *trimmed.CylinderUnionHistory
+	layered        *trimmed.LayeredBoreHistory
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -117,6 +118,14 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	if len(cylinders) > 32 {
 		return nil, &failureError{"LIMIT", "at most 32 cylindrical tools may be retained"}
 	}
+	if reduced, ok := mergeOpposedBlindBores(base, cylinders); ok {
+		body, err := newBore(base, reduced)
+		if err != nil {
+			return nil, err
+		}
+		body.inputCylinders = append([]*cylinderBody(nil), cylinders...)
+		return body, nil
+	}
 	cylinders = append([]*cylinderBody(nil), cylinders...)
 	cuts := make([]trimmed.CylinderCut, len(cylinders))
 	spans := make([]float64, len(cylinders))
@@ -199,7 +208,7 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 			}
 		}
 	}
-	return &boreBody{s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil, nil}, nil
+	return &boreBody{nil, s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil, nil}, nil
 }
 func (body *boreBody) measures() (float64, float64, error) {
 	p, err := body.base.MassProperties()
@@ -264,7 +273,20 @@ func (body *boreBody) transformed(m geom.Affine) (*boreBody, error) {
 			return nil, err
 		}
 	}
-	return newBore(base, cylinders)
+	out, err := newBore(base, cylinders)
+	if err != nil {
+		return nil, err
+	}
+	if body.inputCylinders != nil {
+		out.inputCylinders = make([]*cylinderBody, len(body.inputCylinders))
+		for i, c := range body.inputCylinders {
+			out.inputCylinders[i], err = c.transformed(m)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return out, nil
 }
 func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	if h := body.layered; h != nil {
@@ -333,7 +355,7 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 	var cylinders []*cylinderBody
 	if a.bore != nil {
 		base = a.bore.base
-		cylinders = a.bore.cylinders
+		cylinders = a.bore.sourceCylinders()
 	}
 	if op == "cut" {
 		body, err := newBore(base, append(append([]*cylinderBody(nil), cylinders...), c.cylinder))

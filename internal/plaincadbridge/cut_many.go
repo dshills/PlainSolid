@@ -112,7 +112,7 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	var cylinders []*cylinderBody
 	if a.bore != nil {
 		base = a.bore.base
-		cylinders = append(cylinders, a.bore.cylinders...)
+		cylinders = append(cylinders, a.bore.sourceCylinders()...)
 	}
 	for _, tool := range inputs {
 		cylinders = append(cylinders, tool.cylinder)
