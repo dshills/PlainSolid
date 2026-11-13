@@ -1,5 +1,29 @@
 # Verification record
 
+## Unequal-depth analytic bore construction — 2026-11-13
+
+`trimmed.BoreCylinderDepthUnion` retains a global circular-arc arrangement across
+axial layers. Exposed cylinder walls share edges across layers; differences
+between successive footprints produce crescent or annular planar floors. The
+history records removed volume, surface-area change, opening areas and individual
+floor areas. Inputs remain bounded to 32 strictly interior parallel cutters on
+convex stock with a common entry side. Zero depth denotes a through cutter.
+
+Independent closed-form lens/counterbore checks compare retained-boundary volume,
+area and centroid, not merely reported metadata or tessellated estimates. Tests
+also cover three-depth chains and triple common regions, permutations, nested and
+disconnected annular floors, duplicate depths, mesh closure, cancellation and
+mesh budgets. Unsafe tangent contacts, unresolved depth/floor separation and
+material-island footprints reject. Related bore/union/compact-mesh tests pass
+in 2.100 seconds. Independent bridge-side geometry review found and resolved
+area cancellation by anchoring each loop's Green integral locally. Floor nesting
+rejects uncertain classifications; eighth-turn analytic subdivisions avoid a
+collinear floor seed in the three-depth fixture without weakening validation.
+
+The bridge and application checkpoint is still pending its final frozen-source
+acceptance run. Generic native BRep persistence of the anchored trim remains
+unqualified; application feature-recipe persistence is a separate browser check.
+
 ## Overlapping scoped Hole integration — 2026-11-13
 
 The bridge adds bounded `cutMany` batches: validate all inputs first, construct
