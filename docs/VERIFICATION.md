@@ -1,5 +1,15 @@
 # Verification record
 
+## PlainCAD viewport operation drops — 2026-11-13
+
+All eight original cases pass in 57.369 seconds. Complete rectangular cap
+fillets and chamfers on XY, XZ and YZ pass preview, native volume, Undo/Redo,
+parameter edits, save/open and STL. The other cases cover individual
+chamfers on those planes, cancellation and a section overlay. The two
+TypeScript checks and the separate Go WASM probe pass. The
+[report](evidence/plaincad-operation-drops-2026-11-13.json) records the
+snapshot with zero skips or flakes.
+
 ## PlainCAD retained references after Cut and Join — 2026-11-13
 
 The first five-case run passes the original complete outer-perimeter
