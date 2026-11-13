@@ -56,3 +56,42 @@ are persisted losslessly; no rational profile is converted to polynomial or to
 a tensor representation. The same complete-read/complete-validation guarantee,
 canonical representation and outer resource limits apply. Independent OCCT tests
 now also exercise the rational source → native v2 → STEP export chain.
+
+## Strict IGES/STEP support bridge
+
+`FromIGES(iges.Model)` and `ToIGES(step.RevolutionSurfaceModel)` connect the
+standalone type-120 codec with native v2 and the bounded STEP revolution codec.
+They preserve the source geometry, source radian/profile parameters and units;
+the OCCT IGES face-parameter convention remains separate as documented by that
+codec. These operations remain in this leaf package to avoid a dependency cycle
+between root mesh exchange and STEP modeling adapters.
+
+The bridge does not silently drop metadata. IGES dependencies must occur as
+axis/profile pairs in root order. Axis labels must be empty; all subscripts and
+directory forms must be zero. Root/profile labels map exactly to surface/profile
+names. The planar flag must be true, polynomial flag must match the represented
+weights, and normal must equal the deterministic radial-cross-positive-coordinate-
+axis unit normal. Its normalization must be rational and float64-exact; an
+otherwise valid oblique meridian with an unrepresentable unit normal is rejected.
+These fields can therefore be regenerated exactly without expanding native v2.
+
+From IGES, the already-proven continuous strict monotonicity of generatrix axial
+height establishes distinct endpoints and no self-intersections, so STEP curve
+flags are explicitly F. To IGES, both STEP flags must already be F: unknown or
+empty values are rejected rather than silently changed. Names must fit eight
+printable ASCII bytes with no boundary spaces (IGES directory parsing trims them). Axis-line endpoint addition, scalar emission and standard
+IGES units must also survive the strict IGES writer/read-back gate. Other valid
+STEP models remain persistable natively but can be outside this bridge subset.
+
+Unsupported conversions return `*UnsupportedConversionError` with `Field` and
+`Reason`; `errors.Is(err, ErrUnsupportedConversion)` identifies the class. Failed
+conversions return empty models. Valid results own independent profile geometry.
+Changing unsupported source metadata is the caller's explicit decision; the
+bridge never performs implicit truncation, normalization or flag replacement.
+
+Independent tests exercise IGES → native v2 → STEP and STEP → native v2 → IGES
+with live OCCT comparisons of face validity, area, positions and source-mapped
+partials. Set both `PLAINSOLID_OCCT_IGES_REVOLUTION` and
+`PLAINSOLID_OCCT_REVOLUTION_SURFACE` to the standalone helpers. A long OCCT-authored
+STEP label is first rejected, then explicitly renamed by the test before the
+reverse conversion; no lossless preservation claim is made for that caller edit.
