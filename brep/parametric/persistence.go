@@ -489,6 +489,7 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 }
 
 type curveData struct {
+	Steinmetz         *[3]int      `json:",omitempty"`
 	Transform         *geom.Affine `json:",omitempty"`
 	Base              *curveData   `json:",omitempty"`
 	Kind              string
@@ -508,6 +509,15 @@ type curveData struct {
 
 func encodeCurve(c geom.Curve) (*curveData, error) {
 	switch x := c.(type) {
+	case SteinmetzSeam:
+		if !x.valid() {
+			return nil, geom.ErrInvalid
+		}
+		rev := 0
+		if x.reversed {
+			rev = 1
+		}
+		return &curveData{Kind: "steinmetz-seam", Origin: &x.center, A: x.radius, Steinmetz: &[3]int{x.sx, x.sz, rev}}, nil
 	case mappedCurve:
 		base, e := encodeCurve(x.curve)
 		if e != nil {
@@ -580,6 +590,15 @@ func (d *curveData) decode(budget *int) (geom.Curve, error) {
 		return nil, geom.ErrInvalid
 	}
 	switch d.Kind {
+	case "steinmetz-seam":
+		if d.Origin == nil || d.Steinmetz == nil || d.Steinmetz[2] < 0 || d.Steinmetz[2] > 1 {
+			return nil, geom.ErrInvalid
+		}
+		s := SteinmetzSeam{*d.Origin, d.A, d.Steinmetz[0], d.Steinmetz[1], d.Steinmetz[2] == 1}
+		if !s.valid() {
+			return nil, geom.ErrInvalid
+		}
+		return s, nil
 	case "line":
 		if d.Origin == nil || d.Direction == nil {
 			return nil, geom.ErrInvalid
