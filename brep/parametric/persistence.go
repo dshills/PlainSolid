@@ -18,6 +18,11 @@ type JSONLimits struct {
 	MaxEntities, MaxControlPoints int
 }
 
+type torusCylinderOuterWallData struct {
+	Major, Minor, Radius, Cap float64
+	Lower                     bool
+}
+
 type torusCylinderChartData struct {
 	Major, Minor, Radius float64
 	Outer, Wall          bool
@@ -34,18 +39,19 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	TorusCylinder    *torusCylinderChartData `json:",omitempty"`
-	ExactBezier      *exactBezierSurfaceData `json:",omitempty"`
-	ObliqueSplit     *obliqueSplitData       `json:",omitempty"`
-	SplitCylinderCut *splitCylinderCutData   `json:",omitempty"`
-	UnequalUnion     *unequalUnionData       `json:",omitempty"`
-	SteinmetzUnion   *steinmetzUnionData     `json:",omitempty"`
-	ObliqueUnion     *obliqueUnionData       `json:",omitempty"`
-	SteinmetzDualCap *steinmetzDualCapData   `json:",omitempty"`
-	SteinmetzSlab    *steinmetzSlabData      `json:",omitempty"`
-	Steinmetz        *[2]int                 `json:",omitempty"`
-	Transform        *geom.Affine            `json:",omitempty"`
-	Base             *surfaceData            `json:",omitempty"`
+	TorusOuterWall   *torusCylinderOuterWallData `json:",omitempty"`
+	TorusCylinder    *torusCylinderChartData     `json:",omitempty"`
+	ExactBezier      *exactBezierSurfaceData     `json:",omitempty"`
+	ObliqueSplit     *obliqueSplitData           `json:",omitempty"`
+	SplitCylinderCut *splitCylinderCutData       `json:",omitempty"`
+	UnequalUnion     *unequalUnionData           `json:",omitempty"`
+	SteinmetzUnion   *steinmetzUnionData         `json:",omitempty"`
+	ObliqueUnion     *obliqueUnionData           `json:",omitempty"`
+	SteinmetzDualCap *steinmetzDualCapData       `json:",omitempty"`
+	SteinmetzSlab    *steinmetzSlabData          `json:",omitempty"`
+	Steinmetz        *[2]int                     `json:",omitempty"`
+	Transform        *geom.Affine                `json:",omitempty"`
+	Base             *surfaceData                `json:",omitempty"`
 	Kind             string
 	Frame            *frameData               `json:",omitempty"`
 	A, B             float64                  `json:",omitempty"`
@@ -268,6 +274,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-double-common", Frame: frameToData(x.frame), DoubleCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
 	case offsetSameSideCommon:
 		return surfaceData{Kind: "offset-sphere-same-side-common", Frame: frameToData(x.frame), SameSideCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
+	case torusCylinderOuterWall:
+		f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		return surfaceData{Kind: "torus-cylinder-outer-wall", Frame: frameToData(f), TorusOuterWall: &torusCylinderOuterWallData{x.source.R, x.source.r, x.source.c, x.cap, x.lower}}, nil
 	case torusCylinderChart:
 		f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 		return surfaceData{Kind: "torus-cylinder-band", Frame: frameToData(f), TorusCylinder: &torusCylinderChartData{x.R, x.r, x.c, x.outer, x.wall}}, nil
@@ -748,6 +757,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		}
 		s.kind, s.clipped = x.Chart, x.Clipped
 		return s, nil
+	case "torus-cylinder-outer-wall":
+		if d.TorusOuterWall == nil || f.Origin() != (geom.Vec3{}) || f.XAxis() != (geom.Vec3{X: 1}) || f.ZAxis() != (geom.Vec3{Z: 1}) {
+			return nil, geom.ErrInvalid
+		}
+		x := d.TorusOuterWall
+		return newTorusCylinderOuterWall(x.Major, x.Minor, x.Radius, x.Cap, x.Lower)
 	case "torus-cylinder-band":
 		if d.TorusCylinder == nil || f.Origin() != (geom.Vec3{}) || f.XAxis() != (geom.Vec3{X: 1}) || f.ZAxis() != (geom.Vec3{Z: 1}) {
 			return nil, geom.ErrInvalid
