@@ -196,8 +196,11 @@ projected graph lens can produce a closed display whose model edge ancestry,
 continuous deflection, orientation and non-incidence checks are preserved.
 Separate affine XY lenses on one source pair now also produce a unified
 display with original topology IDs and an exact contact check across
-components. Extend it to the remaining graph projections, nested regions,
-and different original source pairs before using it as a general shell mesh.
+components. Two nested closed rims on one affine XY source pair form an
+annular Boolean common, including native reload and a certified display.
+Extend these proofs to other graph projections, mixed open and closed
+arrangements, and different original source pairs before using them as
+a general shell mesh.
 The verified cylindrical quotient handles exact two-image intersections and
 annular union, including original charts on both seam occurrences. Native
 curved face trims also handle bounded rational quadratic pieces crossing a

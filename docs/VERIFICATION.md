@@ -23,7 +23,8 @@ skipped, and no duplicate test events across shards (507, 620 and 477 seconds).
 The CGO-disabled short run at `551df78` passed all 49 tested packages outside
 `brep/trimmed`, with three packages reporting no tests. It recorded 3,782
 passing and 316 skipped test events. The trimmed shards for this revision
-are a separate run.
+also passed separately: 637 passing and seven skipped test events, with
+elapsed package times of 655, 938 and 798 seconds.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -227,6 +228,24 @@ The open frustum wall and point classification (`170c638`) retain an
 annular shoulder on either original cap and an inward floor. Four independent
 pinned OCCT cuts agree in area, volume and centroid for both taper directions
 and both openings. Focused normal and race tests pass.
+The open frustum display (`17fe67c`, `7df6c0c`) keeps the native face IDs
+and both original wall sample rings at the opening. The independent volume
+comparison, global exact contact exclusion, continuous material normals,
+and exact placed display passed race. An inexact translation rejects.
+Its line query (`ae41070`) keeps both annular rim owners and the inward
+floor, including coincident generator and cap overlap intervals; the
+removed opening disk never appears as a boundary. It passes focused race.
+The nested Boolean display (`9f8e2fd`) joins the two original rims into
+one contact-free genus-one mesh with 13,416 triangles. Display volume is
+0.00011216016 against the analytic 0.00011571911. It passed the full focused
+normal check and a race check of the guard paths. A separate combined
+nested Boolean race invocation timed out while reconstructing imprints, so
+its full nested test is not counted as a race pass.
+The exact circular IGES material codec (`d596190`) preserves all three
+original face supports and the full degree-based periodic side schedule.
+OCCT accepts the independent exact source and Go output as one three-face
+solid of volume 12π and area 20π. The retained OCCT vendor output with
+rounded seam coordinates is intentionally an unsupported fixture.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
