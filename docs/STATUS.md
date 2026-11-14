@@ -115,8 +115,11 @@ width. Partial transverse overlap now retains a single analytic trim
 loop for equal or unequal radii and passes native STL. STEP exchanges
 the single loop through compact Hermite splines, retaining the analytic
 supports and recovering the native B-rep on readback. Tighter near-contact
-convergence, oblique cutter intersections, and blind cutter intersections
-remain open. A single oblique through cutter in rectangular stock now
+convergence and oblique cutter intersections remain open. A blind Hole
+can intersect an equal-radius perpendicular through Hole when the floor
+lies beyond the complete intersection. Both entry caps, retained face
+references, exact elliptical STEP trims and watertight STL pass. Floors
+inside the intersection and broader blind Hole combinations remain open. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.

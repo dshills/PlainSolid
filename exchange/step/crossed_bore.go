@@ -11,11 +11,15 @@ import (
 
 // CrossedBoreBody describes a rectangular stock and equal-radius through
 // cutters along its local X and Z axes. Crossing is in stock coordinates.
+// A positive BlindDepth stops the Z cutter beyond the complete intersection.
+// OppositeCap starts that cutter at the upper cap.
 type CrossedBoreBody struct {
 	Name                 string
 	Frame                geom.Frame
 	Dimensions, Crossing geom.Vec3
 	Radius               float64
+	BlindDepth           float64
+	OppositeCap          bool
 }
 
 type CrossedBoreModel struct {
@@ -42,7 +46,14 @@ func WriteCrossedBore(w io.Writer, m CrossedBoreModel) error {
 
 func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 	p := m.Body
-	result, err := trimmed.BoxCrossedBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	ctx := context.Background()
+	var result trimmed.BoxCrossedBoresResult
+	var err error
+	if p.BlindDepth != 0 || p.OppositeCap {
+		result, err = trimmed.BoxBlindCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, p.OppositeCap, 1e-9)
+	} else {
+		result, err = trimmed.BoxCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	}
 	if err != nil {
 		return err
 	}
@@ -90,15 +101,20 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		return fail()
 	}
 	faces, err := listRefs(shell.Args[1], 22)
-	if err != nil || len(faces) != 22 {
+	if err != nil || len(faces) != 22 && len(faces) != 23 {
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
+	cylinderStart := 6
+	blind := len(faces) == 23
+	if blind {
+		cylinderStart++
+	}
 	var supports [2]circularSourceFace
-	for i, id := range []int64{faces[6], faces[14]} {
+	for i, id := range []int64{faces[cylinderStart], faces[cylinderStart+8]} {
 		supports[i], err = readCircularSourceFace(f, id)
 		if err != nil || supports[i].kind != "CYLINDER" || supports[i].sense {
 			return fail()
@@ -134,5 +150,22 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 	if err != nil || bounds.Min != (geom.Vec3{}) {
 		return fail()
 	}
-	return CrossedBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(a.frame.Origin()), Radius: a.radius}, nil
+	p := CrossedBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(a.frame.Origin()), Radius: a.radius}
+	if blind {
+		floor, err := readCircularSourceFace(f, faces[trimmed.BlindCrossedBoreFloorFace])
+		if err != nil || floor.kind != "PLANE" || len(floor.loops) != 1 || len(floor.loops[0]) != 4 {
+			return fail()
+		}
+		high, err := readCircularSourceFace(f, faces[1])
+		if err != nil || len(lower.loops)+len(high.loops) != 3 {
+			return fail()
+		}
+		p.OppositeCap = len(high.loops) == 2
+		level := frame.ToLocal(floor.frame.Origin()).Z
+		p.BlindDepth = level
+		if p.OppositeCap {
+			p.BlindDepth = bounds.Max.Z - level
+		}
+	}
+	return p, nil
 }

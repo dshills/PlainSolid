@@ -28,6 +28,7 @@ type boreBody struct {
 	crossed        *trimmed.BoxCrossedBoresResult
 	oblique        *obliqueBore
 	partialSkew    bool
+	blindCrossed   *blindCrossedGeometry
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -217,6 +218,9 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
+		if result, handled, err := newBlindCrossedBore(base, cylinders, cuts, spans, blind); handled {
+			return result, err
+		}
 		if result, handled, err := newCrossedBore(base, cylinders, cuts, spans, blind); handled {
 			return result, err
 		}

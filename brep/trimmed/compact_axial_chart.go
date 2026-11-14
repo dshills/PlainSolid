@@ -10,6 +10,9 @@ import (
 // revolution chart. Quarter-rim coedges may subdivide its horizontal sides;
 // opposite chains must use the same exact angular partition.
 func compactAxialStart(f Face) (int, bool) {
+	if compactCrossedStrip(f) {
+		return 0, true
+	}
 	if len(f.Holes) != 0 || len(f.Outer) < 4 {
 		return 0, false
 	}

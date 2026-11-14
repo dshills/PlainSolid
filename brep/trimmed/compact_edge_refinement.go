@@ -30,7 +30,7 @@ func compactEdgeGroups(faces []Face, curved []bool) []int {
 			if !curved[u.Edge] {
 				continue
 			}
-			if axial && u.UVStart.Y != u.UVEnd.Y {
+			if axial && u.UVStart.X == u.UVEnd.X {
 				continue
 			}
 			if first < 0 {
@@ -57,7 +57,7 @@ func (s Solid) compactEdgeCounts(levels []int, curved []bool) []int {
 	for _, f := range s.faces {
 		if _, ok := compactAxialStart(f); ok {
 			for _, u := range f.Outer {
-				if u.UVStart.Y == u.UVEnd.Y {
+				if u.UVStart.X != u.UVEnd.X {
 					counts[u.Edge] = compactAngularCount(levels[u.Edge], math.Abs(u.UVEnd.X-u.UVStart.X))
 				}
 			}
