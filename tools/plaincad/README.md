@@ -37,6 +37,20 @@ staged app and run its original production configuration on port 5280.
 Use `--suite cross-browser --test cross-browser-e2e --grep '.*'` for the
 original Chromium, Firefox and WebKit configuration on port 5281.
 
+Chromium can evict the fingerprinted WASM response from its DevTools
+inspector cache before Playwright hashes it in the production CSP test.
+Keep the ordinary run's result. To verify the same assertions on an
+isolated copy with Playwright 1.63.0 and local dependencies, enlarge
+Chromium's response capture buffers before rerunning production.
+
+```sh
+node tools/plaincad/chromium-response-buffer.mjs --work /isolated/plaincad/stage
+```
+
+The command reports the exact before/after Playwright bundle hashes.
+Use the original app test configuration and archive the control's report
+separately from the ordinary run.
+
 Use `--suite unit` to run the original Vitest suite with real PlainSolid WASM
 initialized in each test file. It defaults to one worker to reduce contention
 with solver deadlines. `--test modelingGeometry.test.ts` selects a file and
