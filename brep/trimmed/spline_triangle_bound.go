@@ -34,6 +34,10 @@ type SplineTriangleDeviation struct {
 // work uses the immutable patch's construction limits. Cancellation is checked
 // before and after the bounded trim stage. No partial certificate is returned.
 func BoundSplineTriangleDeviation(ctx context.Context, patch *geom.SurfacePatch, uv [3]geom.Vec2, model [3]geom.Vec3) (SplineTriangleDeviation, error) {
+	return boundSplineTriangleDeviationPrepared(ctx, patch, uv, model, nil)
+}
+
+func boundSplineTriangleDeviationPrepared(ctx context.Context, patch *geom.SurfacePatch, uv [3]geom.Vec2, model [3]geom.Vec3, memo *triangleRectangleMemo) (SplineTriangleDeviation, error) {
 	empty := SplineTriangleDeviation{}
 	if ctx == nil || patch == nil {
 		return empty, geom.ErrInvalid
@@ -71,11 +75,7 @@ func BoundSplineTriangleDeviation(ctx context.Context, patch *geom.SurfacePatch,
 		d.VMin = min(d.VMin, p.Y)
 		d.VMax = max(d.VMax, p.Y)
 	}
-	restricted, e := patch.Trim(d)
-	if e != nil {
-		return empty, e
-	}
-	box, e := restricted.Bounds()
+	restricted, box, e := memo.prepare(patch, d)
 	if e != nil {
 		return empty, e
 	}
