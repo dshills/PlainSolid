@@ -6088,3 +6088,11 @@ Independent OCCT authors two group uses with six distinct leaf paths and a
 shared internal override. The original, reloaded and regenerated source
 all retain the six native placements and colors, volume 108 and area 252.
 The combined flat and nested live race passed in 4.696 s.
+
+### Anisotropic point classification qualification
+
+Exact quadrant and sub-float radial probes exercise filled, boundary and
+outside results with original topology after reload and index changes.
+Both wall owners survive at a crease. Exact and one-short query limits
+are checked. The integrated geometry race passed in 1.199 s and the combined
+trimmed race in 44.829 s.

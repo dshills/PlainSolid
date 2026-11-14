@@ -82,3 +82,30 @@ first moments, with exact Cz=−112/43. Independent Green quadrature checks the
 nontrivial profile values, tighter refinement gives nested volume intervals,
 and segment/work/bit/cancellation failures are atomic. No numerical quadrature
 is used by the certified API itself.
+
+## Exact point and original incidence
+
+`LocateWrappedAnisotropicStationRational` authenticates the original solid and
+classifies exact rational model points. It uses independent positive scale
+inversion at the query height and the guarded original weighted-quadrant conic;
+it does not use an ellipse or a rounded membership test. `Faces` reports all
+original material boundary owners. `RimEdges` reports only actual station edges,
+while `Edges` also includes the native periodic wall seam at positive X.
+Cardinal station points own both adjacent rim edges and their shared original
+vertex. Neither this incidence nor a representative point is claimed to prove
+a unique native curve parameter.
+
+The geometry primitive `LocateWrappedAnisotropicRational` reports local capped
+band support masks. The native query explicitly removes artificial internal
+band-cap attainment: an internal station disk is interior, whereas its rim owns
+both original walls. Outside points on a cap plane are still outside. The query
+arithmetic and one conic reproof share the exact remaining `MaxPointOperations`
+allowance; native source authentication retains its separate source quotas.
+Failure returns no partial evidence and must not be interpreted as Outside.
+
+Tests qualify nonbinary rational sections, all four weighted quadrants, opposite
+radial perturbations smaller than binary64 resolution, original periodic seam
+and cardinal vertex incidence, rotated coedge loops, reversed face ordering and
+native reload. A weighted profile interior point outside the corresponding
+ellipse explicitly rejects circular substitution. The exact reported allowance
+succeeds while one fewer query operation fails atomically.

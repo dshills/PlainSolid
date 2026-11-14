@@ -2273,3 +2273,10 @@ ordinary whole-body contextual style ownership. An internal override is
 applied to each independently identified use of that context. Exact paths,
 geometry, placements and appearance revalidate on native reload. See the
 [nested occurrence contract](../exchange/step/NESTED_OCCURRENCE_COLORS.md).
+
+### Exact anisotropic station point ownership
+
+Rational point classification uses the original independent station scales
+and weighted profile. Results retain original cap, rim, vertex, crease and
+periodic seam owners. Interior section disks never create an artificial
+material boundary.
