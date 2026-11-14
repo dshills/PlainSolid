@@ -169,3 +169,18 @@ for a vanished support. These records certify the original transformation axis,
 not survival of an output edge. Preparation and reconstruction have independent
 bounded work passes. This adds rigid per-face hinge rotation to the existing
 common-neutral-plane shear; it does not create curved draft surfaces.
+
+## Euclidean inset with an exact irrational normal
+
+`InsetStableEuclidean` erodes an authenticated convex planar body by a
+ball. Each original support moves inward by the requested distance.
+Rational normal lengths and irrational lengths in one rational square
+class qualify. Coordinates and volume are returned as exact pairs
+representing `a + b√D`. The native boundary has an outward rational bound
+on its binary64 displacement and passes native embedding validation.
+
+The proof enumerates every independent triple of displaced supports and
+checks all remaining support inequalities exactly. The same simple vertex
+incidence must survive every displaced support. Coplanar original faces
+can share a retained support and ancestry. Topology change or several
+independent irrational normal classes fall outside this entry point.

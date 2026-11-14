@@ -2229,3 +2229,11 @@ inverse, verifies every paired cap and side in the canonical chart, and
 maps the native result back to exactly represented model coordinates.
 Original cap IDs, trim-edge parameters and source wall uses survive the
 map. Exact volume includes the affine determinant.
+
+### Convex Euclidean inset with irrational supports
+
+`draft.InsetStableEuclidean` models ball erosion of convex planar solids
+with stable simple incidence. A support may have an irrational normal
+length in the common quadratic field. Every displaced plane triple is
+classified exactly, and native conversion returns a proved displacement
+bound alongside algebraic vertices, volume and original face ancestry.

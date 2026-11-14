@@ -6026,3 +6026,11 @@ cases verify disconnected holed Difference, a reflected determinant-two
 geometry map, competing extrusion directions and bounded or invalid
 sources. The combined oblique, cardinal and arrangement materialization
 race passed in 2.487 s.
+
+### Irrational convex inset qualification
+
+The triangular prism independently verifies the exact volume
+`297/32 − (21/16)√2` and the Euclidean shift of the hypotenuse. The cuboid
+keeps exact rational coordinates. Collapsed incidence, incompatible
+quadratic fields, insufficient conversion accuracy and cancellation
+reject without geometry. The full draft package race passed in 7.760 s.
