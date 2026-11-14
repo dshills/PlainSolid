@@ -27,6 +27,9 @@ type NormalizedIndependentAnalyticHierarchy struct {
 // planar UV scalars must normalize without binary64 rounding. The unchanged
 // hierarchy proof authenticates topology, ownership and every occurrence path.
 func ReadNormalizedIndependentAnalyticHierarchy(ctx context.Context, r io.Reader, target IndependentMaterialSIUnit, l Limits, tol float64) (NormalizedIndependentAnalyticHierarchy, error) {
+	return readNormalizedAnalyticHierarchy(ctx, r, target, l, tol, false, nil)
+}
+func readNormalizedAnalyticHierarchy(ctx context.Context, r io.Reader, target IndependentMaterialSIUnit, l Limits, tol float64, occt bool, mappings *[]OCCTHierarchyMapping) (NormalizedIndependentAnalyticHierarchy, error) {
 	bad := func() (NormalizedIndependentAnalyticHierarchy, error) {
 		return NormalizedIndependentAnalyticHierarchy{}, geom.ErrInvalid
 	}
@@ -52,7 +55,7 @@ func ReadNormalizedIndependentAnalyticHierarchy(ctx context.Context, r io.Reader
 	// qualified under the consumer's rotated relationship convention.
 	for _, en := range source.Entities {
 		for _, rec := range en.Records {
-			if rec.Type == "ITEM_DEFINED_TRANSFORMATION" {
+			if rec.Type == "ITEM_DEFINED_TRANSFORMATION" && !occt {
 				if len(rec.Args) != 4 || rec.Args[2].Kind != Reference {
 					return bad()
 				}
@@ -175,6 +178,15 @@ func ReadNormalizedIndependentAnalyticHierarchy(ctx context.Context, r io.Reader
 	}
 	if len(units) < 4 {
 		return bad()
+	}
+	if occt {
+		derived, err := normalizeOCCTHierarchyFrames(ctx, view, l)
+		if err != nil {
+			return NormalizedIndependentAnalyticHierarchy{}, err
+		}
+		if mappings != nil {
+			*mappings = derived
+		}
 	}
 	normalized, e := mappedPlanarSourceBytes(view)
 	if e != nil {
