@@ -11,12 +11,19 @@ import (
 )
 
 func TestAlgebraicBooleanCertifiedLensFill(t *testing.T) {
-	t.Run("XY", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, false) })
-	t.Run("YZ", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, true) })
+	t.Run("XY", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, false, false) })
+	t.Run("YZ", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, true, false) })
 }
-func checkAlgebraicBooleanCertifiedLensFill(t *testing.T, rotated bool) {
+func TestAlgebraicBooleanCertifiedExactLensFill(t *testing.T) {
+	checkAlgebraicBooleanCertifiedLensFill(t, false, true)
+}
+
+func checkAlgebraicBooleanCertifiedLensFill(t *testing.T, rotated, exact bool) {
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
+	if exact {
+		b = exactRoofForLensMesh(t, b)
+	}
 	o := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}
 	o.Trace.Coverage.Isolation.SeparatingProjections = true
 	o.Trace.Coverage.Isolation.ParameterTolerance = .25
@@ -74,6 +81,9 @@ func checkAlgebraicBooleanCertifiedLensFill(t *testing.T, rotated bool) {
 	options.Section.Clip.Projection = &axes
 	options.Mesh.Closed.Boundary.Run.Display.Deflection = .04
 	options.Mesh.Closed.Interior.Deflection = .02
+	if exact {
+		options.Mesh.Span.MaxDegree = 5
+	}
 	result, e := solid.TessellateLensCertified(ctx, options)
 	if e != nil {
 		t.Fatal("filled Boolean lens", e)
@@ -131,7 +141,7 @@ func checkAlgebraicBooleanCertifiedLensFill(t *testing.T, rotated bool) {
 	if bad, e := solid.TessellateLensCertified(cancelled, options); !errors.Is(e, context.Canceled) || len(bad.Mesh.Vertices) != 0 {
 		t.Fatal("cancelled fill", e)
 	}
-	if rotated {
+	if rotated || exact {
 		return
 	}
 	// Explicitly reject an otherwise valid unsupported material topology.

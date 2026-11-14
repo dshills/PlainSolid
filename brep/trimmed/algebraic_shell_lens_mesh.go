@@ -36,7 +36,7 @@ type CertifiedAlgebraicShellLensMesh struct {
 // rounding. Closed manifold incidence, positive exact displayed volume and
 // absence of nonincident triangle contacts are mandatory. Volume approximation
 // itself has no certified error bound. Source edges, holes, multiple branches,
-// non-B-spline supports and unsupported graph charts fail without partial output.
+// unsupported source supports and graph charts fail without partial output.
 func (s AlgebraicShellBoolean) TessellateLensCertified(ctx context.Context, o AlgebraicShellLensMeshOptions) (CertifiedAlgebraicShellLensMesh, error) {
 	var empty CertifiedAlgebraicShellLensMesh
 	if ctx == nil || s.source == nil {
@@ -64,8 +64,8 @@ func (s AlgebraicShellBoolean) TessellateLensCertified(ctx context.Context, o Al
 		if e != nil {
 			return empty, e
 		}
-		if _, ok := faces[i].Surface.(*geom.BSplineSurface); !ok {
-			return empty, fmt.Errorf("unsupported exact support: %w", geom.ErrConvergence)
+		if !supportsExactSplinePatch(faces[i].Surface) {
+			return empty, fmt.Errorf("unsupported source support: %w", geom.ErrConvergence)
 		}
 		d, e := faceUVBounds(faces[i])
 		if e != nil {
@@ -106,10 +106,10 @@ func (s AlgebraicShellBoolean) TessellateLensCertified(ctx context.Context, o Al
 	if e != nil {
 		return empty, fmt.Errorf("pair reproof: %w", e)
 	}
-	if section.partitionSource == nil || len(section.partitionSource.segments) != 1 || len(section.partitionSource.segments[0]) != n {
+	if section.runSource() == nil || len(section.runSource().segments) != 1 || len(section.runSource().segments[0]) != n {
 		return empty, fmt.Errorf("reproved branch count: %w", geom.ErrConvergence)
 	}
-	for i, p := range section.partitionSource.segments[0] {
+	for i, p := range section.runSource().segments[0] {
 		if !sameShellMeshTube(p, branch.Segments[i]) {
 			return empty, fmt.Errorf("changed original tube recipe: %w", geom.ErrConvergence)
 		}

@@ -51,19 +51,12 @@ func (l AlgebraicProjectedTubeLens) TessellateClosedCertified(ctx context.Contex
 	}
 	virtual := AlgebraicTubeLens{faces: l.faces, upper: l.upper}
 	for i := 0; i < 2; i++ {
-		d := l.faces[i].Support.Data()
-		for j, p := range d.Poles {
-			d.Poles[j] = forward(p)
-		}
-		s, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
+		source, patch, e := permuteTubeLensSupport(l.faces[i], axes, o.Closed.Boundary.Run.Partition.Patches)
 		if e != nil {
 			return empty, e
 		}
-		virtual.faces[i].Support = s
-		patch, e := geom.NewSurfacePatch(s, o.Closed.Boundary.Run.Partition.Patches)
-		if e != nil {
-			return empty, e
-		}
+		virtual.faces[i].SourceSurface = source
+		virtual.faces[i].Support, _ = source.(*geom.BSplineSurface)
 		virtual.graphs[i], e = geom.NewAffineXYGraph(ctx, patch, o.Closed.Boundary.Run.Partition.Patches)
 		if e != nil {
 			return empty, e
