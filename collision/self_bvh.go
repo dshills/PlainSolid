@@ -16,6 +16,9 @@ import (
 // retains its meaning; partial reports never set Complete. Cancellation is
 // checked during input validation, tree construction and pair traversal.
 // At most MaxTriangles triangles and 3*MaxTriangles vertices are accepted.
+// Up to4096 immutable exact triangle/plane values are memoized within this
+// call. Larger IDs use the identical uncached predicate; pair budgets/order
+// and contact witnesses are unchanged.
 func SelfIntersectionsBVHContext(ctx context.Context, m mesh.Mesh, o Options) (report Report, err error) {
 	defer func() {
 		sort.Slice(report.Contacts, func(i, j int) bool {
@@ -154,6 +157,7 @@ func SelfIntersectionsBVHContext(ctx context.Context, m mesh.Mesh, o Options) (r
 		report.BroadPhasePairs++
 		return nil
 	}
+	memo := newExactTriangleMemo(m)
 	check := func(a, b item) error {
 		if e := charge(); e != nil {
 			return e
@@ -166,7 +170,7 @@ func SelfIntersectionsBVHContext(ctx context.Context, m mesh.Mesh, o Options) (r
 			ta, tb = tb, ta
 		}
 		report.NarrowPhasePairs++
-		kind, points := triangleIntersection(triangle(m, ta), triangle(m, tb))
+		kind, points := preparedTriangleIntersection(memo.get(ta), memo.get(tb))
 		if kind == Disjoint || expectedSharedContact(m, ta, tb, kind, points) {
 			return nil
 		}
