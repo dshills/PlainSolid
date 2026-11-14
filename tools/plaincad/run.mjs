@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs real PlainCAD fixtures against Go WASM in an isolated copy. Never edits
 // the source app and never imports OCCT from the replacement kernel adapter.
-import { cp, mkdir, readdir, readFile, writeFile, unlink, symlink, stat, realpath } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, writeFile, unlink, stat, realpath } from "node:fs/promises";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
@@ -110,7 +110,7 @@ export default defineConfig({ ...base, test: {
   report.unitSetup = { maxWorkers: Number(unitWorkers), sourceHashes: { [fixture]: hash(setup), [configPath]: hash(config) } };
   const unitResult = join(work, "unit-results.json");
   try {
-    await command("node", [join(source, "node_modules/vitest/vitest.mjs"), "run", "--config", configPath, "--maxWorkers", unitWorkers,
+    await command("node", [join(work, "node_modules/vitest/vitest.mjs"), "run", "--config", configPath, "--maxWorkers", unitWorkers,
       ...(testFile ? [testFile] : []), "--testNamePattern", grep, "--reporter=json", `--outputFile=${unitResult}`], "unit.log");
   } catch (error) {
     report.error = String(error);
@@ -142,11 +142,15 @@ if ((await readdir(work)).length) throw new Error("Acceptance workspace must be 
 try {
   await stat(join(source, "node_modules/@playwright/test"));
   await cp(source, work, { recursive: true, filter: path => !/(^|\/)(node_modules|\.git|dist|test-results|playwright-report|\.plainSolidViteCache)(\/|$)/.test(path) });
-  await mkdir(join(work, "node_modules"));
-  for (const name of await readdir(join(source, "node_modules"))) {
-    if (name.startsWith(".") && name !== ".bin") continue;
-    await symlink(join(source, "node_modules", name), join(work, "node_modules", name));
-  }
+  // Keep installed dependencies within Vite's workspace. Preserve npm's
+  // relative .bin links so they resolve to the staged packages as well.
+  const dependencies = await realpath(join(source, "node_modules"));
+  const caches = new Set([".cache", ".vite", ".vite-temp"]);
+  await cp(dependencies, join(work, "node_modules"), {
+    recursive: true,
+    verbatimSymlinks: true,
+    filter: path => !caches.has(relative(dependencies, path)),
+  });
   for (const folder of ["src", "e2e", "production-e2e", "cross-browser-e2e"]) {
     for (const path of await files(join(work, folder))) {
       if (!/\.[cm]?[jt]sx?$/.test(path)) continue;
@@ -191,7 +195,7 @@ try {
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');
-  vite = vite.replace("server: {", `server: {\n    fs: { allow: [${JSON.stringify(await realpath(work))}, ${JSON.stringify(await realpath(join(source, "node_modules")))}] },`);
+  vite = vite.replace("server: {", `server: {\n    fs: { allow: [${JSON.stringify(await realpath(work))}] },`);
   await writeFile(join(work, "vite.config.ts"), vite);
   const playwrightConfig = await readFile(join(work, "playwright.config.ts"), "utf8");
   await writeFile(join(work, "playwright.config.ts"), playwrightConfig.replaceAll("5279", port));
@@ -553,15 +557,15 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
   expect(proof.unionProof).toMatchObject({ valid: true, volume: 25, solidCount: 2 });
   expect(forbidden).toEqual([]);
 });\n`);
-  await command("node", [join(source, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
-  await command("node", [join(source, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.e2e.json"], "typecheck-e2e.log");
+  await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
+  await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.e2e.json"], "typecheck-e2e.log");
   report.typecheck = "passed";
   // Fail the backend preflight before spending time on application fixtures.
   const resultPaths = [];
   try {
     const preflight = join(work, "backend-results.json");
     resultPaths.push(preflight);
-    await command("node", [join(source, "node_modules/@playwright/test/cli.js"), "test", "e2e/plainsolid-backend.spec.ts", "--reporter=list,json"], "backend.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: preflight });
+    await command("node", [join(work, "node_modules/@playwright/test/cli.js"), "test", "e2e/plainsolid-backend.spec.ts", "--reporter=list,json"], "backend.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: preflight });
     await unlink(join(work, "e2e/plainsolid-backend.spec.ts"));
     if (acceptanceConfig) {
       report.tests=passedProbe(JSON.parse(await readFile(preflight,"utf8")));
@@ -579,7 +583,7 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     } else {
       const acceptance=join(work,"playwright-results.json");
       resultPaths.push(acceptance);
-      await command("node",[join(source,"node_modules/@playwright/test/cli.js"),"test",testFile,"--grep",grep,"--reporter=list,json"],"acceptance.log",{PLAYWRIGHT_JSON_OUTPUT_FILE:acceptance});
+      await command("node",[join(work,"node_modules/@playwright/test/cli.js"),"test",testFile,"--grep",grep,"--reporter=list,json"],"acceptance.log",{PLAYWRIGHT_JSON_OUTPUT_FILE:acceptance});
     }
     report.status = "passed";
   } catch (error) { report.status = "failed"; report.error = String(error); }

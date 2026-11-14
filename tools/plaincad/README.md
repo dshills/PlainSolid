@@ -60,8 +60,8 @@ adds the fixture only to the disposable copy and records its source hash.
   TypeScript become `"plainsolid"` / `'plainsolid'`. Existing geometry, volume,
   topology, UI, persistence, and export assertions are otherwise preserved.
   Each changed file, replacement count, and before/after hash is recorded.
-- Vite receives an isolated cache and explicit serving permission for the shared
-  dependency directory. An optional port changes the copied test configuration.
+- Vite serves copied dependencies from the isolated workspace and uses its own
+  cache. An optional port changes the copied test configuration.
 - The staged viewer advances missed camera damping updates without drawing
   extra WebGL frames. The project-open command retains the drawable model
   and marks readiness pending during its asynchronous open. The harness
