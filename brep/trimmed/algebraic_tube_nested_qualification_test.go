@@ -87,6 +87,10 @@ func TestNestedQuarticTubeMaterial(t *testing.T) {
 }
 
 func nestedTubeMaterialFixture(t *testing.T) AlgebraicTubeRegions {
+	return nestedTubeMaterialOwnerFixture(t, false)
+}
+
+func nestedTubeMaterialOwnerFixture(t *testing.T, exact bool) AlgebraicTubeRegions {
 	t.Helper()
 	ctx := context.Background()
 	k := []float64{0, 0, 1, 1}
@@ -114,8 +118,13 @@ func nestedTubeMaterialFixture(t *testing.T) AlgebraicTubeRegions {
 	for i, p := range v {
 		loop = append(loop, Use{Edge: i, UVStart: p, UVEnd: v[(i+1)%4]})
 	}
-	p := [2]intersect.Patch{{Surface: a, Max: v[2]}, {Surface: b, Max: v[2]}}
-	f := [2]Face{{Surface: a, Outer: loop}, {Surface: b, Outer: loop}}
+	var owner geom.Surface = a
+	if exact {
+		stock, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
+		owner = exactPlaneOwnerForRegions(t, stock).faces[4].Surface
+	}
+	p := [2]intersect.Patch{{Surface: owner, Max: v[2]}, {Surface: b, Max: v[2]}}
+	f := [2]Face{{Surface: owner, Outer: loop}, {Surface: b, Outer: loop}}
 	o := nestedTubeSectionOptions()
 	h, e := intersect.DiscoverRadialGraphPairTubes(ctx, p[0], p[1], geom.SurfacePatchOptions{}, intersect.SplinePlanePairDiscoveryOptions{MaxTubes: 128})
 	if e != nil {
