@@ -19,6 +19,7 @@ type FilletedFrustumMaterialPoint struct {
 // prepared only by re-proving the native fillet and finite-bore construction.
 type FilletedFrustumMaterial struct {
 	solid   Solid
+	recipe  *filletedFrustumMaterialRecipe
 	center  [2]*big.Rat
 	z, r    [2]*big.Rat
 	slope   *big.Rat
@@ -45,6 +46,7 @@ func PrepareFilletedFrustumMaterial(ctx context.Context, source Solid, lower, up
 		return FilletedFrustumMaterial{}, e
 	}
 	q := FilletedFrustumMaterial{solid: result.Solid, center: [2]*big.Rat{new(big.Rat).Set(p.CenterX), new(big.Rat).Set(p.CenterY)}, z: [2]*big.Rat{new(big.Rat).Set(p.LowerZ), new(big.Rat).Set(p.UpperZ)}, r: [2]*big.Rat{new(big.Rat).Set(p.LowerRadius), new(big.Rat).Set(p.UpperRadius)}, fillets: result.Fillets}
+	q.recipe = &filletedFrustumMaterialRecipe{source: source, lower: lower, upper: upper, cuts: append([]FilletedFrustumBoreCut(nil), cuts...)}
 	q.slope = new(big.Rat).Quo(new(big.Rat).Sub(q.r[1], q.r[0]), new(big.Rat).Sub(q.z[1], q.z[0]))
 	for i, c := range cuts {
 		v := filletedFrustumMaterialCut{center: [2]*big.Rat{new(big.Rat).SetFloat64(c.Center.X), new(big.Rat).SetFloat64(c.Center.Y)}, radius: new(big.Rat).SetFloat64(c.Radius), z: q.z, open: [2]bool{true, true}, wall: result.Cuts[i].BoreFace, floor: result.Cuts[i].FloorFace}

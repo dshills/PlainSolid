@@ -28,6 +28,7 @@ type AlgebraicGraphShellEdge struct {
 type AlgebraicGraphShellFace struct {
 	StockFace int // -1 for a generated cap boundary group
 	Cap       int // -1 for original stock
+	CapRegion int // region index on this cap, or -1 for original stock
 	Loops     [][]AlgebraicGraphShellUse
 }
 
@@ -45,15 +46,25 @@ type AlgebraicGraphShellBoundary struct {
 // attachments, and inherited perimeter intervals by ownership, once both
 // charts agree. It rechecks all directed links. The returned object is exact
 // topology and original ancestry; it does not construct an ordinary Solid.
-// Cap loops remain separate boundary components of their plane role until
-// explicitly grouped by exact nesting. EulerCharacteristic is available
-// only when every cap has one retained ring (zero otherwise).
+// Exact planar nesting separates material cap islands and assigns void loops
+// to their owning face before calculating EulerCharacteristic.
 func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) (AlgebraicGraphShellBoundary, error) {
 	var zero AlgebraicGraphShellBoundary
 	stock, e := c.OriginalStockLoops(ctx, o, roots)
 	if e != nil {
 		return zero, e
 	}
+	maxWork, maxSplits, maxBits := roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits
+	if maxWork == 0 {
+		maxWork = 2000000
+	}
+	if maxSplits == 0 {
+		maxSplits = 8192
+	}
+	if maxBits == 0 {
+		maxBits = 16384
+	}
+	nest := capClipBudget{ctx, maxWork, maxSplits, maxBits}
 	type capKey struct{ cap, wire, use int }
 	seamID := make(map[capKey]int)
 	var out AlgebraicGraphShellBoundary
@@ -65,7 +76,11 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 	}
 	attachID := make(map[capKey]int)
 	for i, cap := range c.caps {
-		f := AlgebraicGraphShellFace{StockFace: -1, Cap: i}
+		regions, e := cap.materialRegions(&nest)
+		if e != nil {
+			return zero, e
+		}
+		loops := make([][]AlgebraicGraphShellUse, len(cap.wires))
 		for wi, wire := range cap.wires {
 			var row []AlgebraicGraphShellUse
 			for ui, u := range wire {
@@ -83,9 +98,15 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 				out.Edges = append(out.Edges, AlgebraicGraphShellEdge{StockEdge: -1, CapSeam: -1, Cap: i, CapBoundary: AlgebraicGraphCapSeamOwner{wi, ui}})
 				row = append(row, AlgebraicGraphShellUse{id, false})
 			}
-			f.Loops = append(f.Loops, row)
+			loops[wi] = row
 		}
-		out.Faces = append(out.Faces, f)
+		for regionID, region := range regions {
+			f := AlgebraicGraphShellFace{StockFace: -1, Cap: i, CapRegion: regionID, Loops: [][]AlgebraicGraphShellUse{loops[region.Outer]}}
+			for _, hole := range region.Holes {
+				f.Loops = append(f.Loops, loops[hole])
+			}
+			out.Faces = append(out.Faces, f)
+		}
 	}
 	type perimeter struct {
 		edge         int
@@ -93,7 +114,7 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 	}
 	perimeterIDs := make(map[perimeter]int)
 	for _, face := range stock {
-		f := AlgebraicGraphShellFace{StockFace: face.OriginalFace, Cap: -1, Loops: make([][]AlgebraicGraphShellUse, 1)}
+		f := AlgebraicGraphShellFace{StockFace: face.OriginalFace, Cap: -1, CapRegion: -1, Loops: make([][]AlgebraicGraphShellUse, 1)}
 		for _, side := range face.Uses {
 			id, reverse := -1, true
 			if side.OriginalEdge >= 0 {
@@ -225,6 +246,18 @@ func completeAlgebraicGraphShell(ctx context.Context, out AlgebraicGraphShellBou
 		graph[edge.Start] = append(graph[edge.Start], edge.End)
 		graph[edge.End] = append(graph[edge.End], edge.Start)
 	}
+	// Separate loops on one face belong to the same connected surface,
+	// even when the original indexed edge graph has disconnected cycles.
+	for _, face := range out.Faces {
+		first, _ := ends(face.Loops[0][0])
+		root := vertices[find(first)]
+		for _, wire := range face.Loops[1:] {
+			first, _ := ends(wire[0])
+			hole := vertices[find(first)]
+			graph[root] = append(graph[root], hole)
+			graph[hole] = append(graph[hole], root)
+		}
+	}
 	visited := make([]bool, len(graph))
 	for start := range graph {
 		if visited[start] {
@@ -244,8 +277,9 @@ func completeAlgebraicGraphShell(ctx context.Context, out AlgebraicGraphShellBou
 			}
 		}
 	}
-	if len(out.Faces) >= 2 && len(out.Faces[0].Loops) == 1 && len(out.Faces[1].Loops) == 1 {
-		out.EulerCharacteristic = out.Vertices - len(out.Edges) + len(out.Faces)
+	out.EulerCharacteristic = out.Vertices - len(out.Edges) + len(out.Faces)
+	for _, face := range out.Faces {
+		out.EulerCharacteristic -= len(face.Loops) - 1
 	}
 	return out, nil
 }
