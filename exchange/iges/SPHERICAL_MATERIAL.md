@@ -87,3 +87,32 @@ coincident seams and radius, exact pole positions, source/native persistence,
 invalid or disagreeing transforms, forbidden pcurve placement, metadata tamper,
 lossy translations and limits. Normal/live, race, Go 1.23, vet and bounded fuzz
 cover the additive mode. Original unplaced acceptance remains unchanged.
+
+## Reordered original sphere topology
+
+`ReadReindexedSphericalMaterial` separately accepts directory reindexing, a
+permutation of the two pole vertices, and a cyclic start change of the four
+original uses. Pole roles follow exact world coordinates inverted through the
+original support placement. Both 504 terminal ordinals and the degenerate 508
+vertex ordinals are remapped consistently. The unique shared meridian remains
+one model edge; all four distinct degree pcurves retain their original IDs.
+A bounded bijective traversal follows the root, support, vertices, curve and
+transform references, then the original strict canonical reader repeats the
+complete geometry, senses and degree-space proof. No loop reversal is inferred.
+
+`SourceForCanonical`, `SourceVertexOrdinals`, `SourceEdgeOrdinals`,
+`SourceUseOrdinals` and `SourceDegreeCurveIDs` retain the original identities.
+The native face points back to its original source face; source-bound native
+reload regenerates every map. Changed public ancestry maps reject before source
+writing. Duplicate/foreign ownership, transform recursion, transformed degree
+pcurves, reversed inconsistent uses, changed poles and changed degree coordinates
+fail closed. The existing 32 KiB/512-record/2048-value limits apply, with at most
+17 entities and 512 graph traversal steps.
+
+`reorder_iges_spherical_material.py` independently reverses directory records and
+pole order, updates every affected pointer/ordinal, and rotates the loop start.
+Both unplaced and placed sources remain valid one-face/one-solid spheres in
+pinned OCCT and survive source/native reload without changing original bytes.
+Focused ordinary/live, race, Go 1.23, vet, prior sphere/torus regression and
+bounded fuzz qualify the separate reader. Native angular evaluation limitations
+are unchanged from the canonical material codec above.
