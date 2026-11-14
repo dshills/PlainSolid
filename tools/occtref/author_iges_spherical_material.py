@@ -1,5 +1,7 @@
 # Independently authored exact IGES186 sphere: poles, meridian, degree pcurves.
 from pathlib import Path
+import sys
+placed="--placed" in sys.argv
 records=[(186,0,'186,3,1,0;'),(514,1,'514,1,5,1;'),(510,1,'510,7,1,1,15;'),
 (196,1,'196,9,2,11,13;'),(116,0,'116,0,0,0,0;'),(123,0,'123,0,0,1;'),(123,0,'123,1,0,0;'),
 (508,1,'508,4,1,17,1,0,1,0,19,0,21,1,0,1,0,27,1,17,2,1,1,0,29,0,21,1,1,1,0,31;'),
@@ -7,6 +9,10 @@ records=[(186,0,'186,3,1,0;'),(514,1,'514,1,5,1;'),(510,1,'510,7,1,1,15;'),
 (504,1,'504,1,23,17,2,17,1;'),(100,0,'100,0,0,0,0,-2,0,2;'),
 (124,0,'124,1,0,0,0,0,0,-1,0,0,1,0,0;'),
 (110,0,'110,0,90,0,0,-90,0;'),(110,0,'110,0,-90,0,360,-90,0;'),(110,0,'110,360,-90,0,360,90,0;')]
+if placed:
+ records[8]=(502,1,'502,2,12,-3,5,8,-3,5;')
+ records[12]=(124,0,'124,0,1,0,10,0,0,-1,-3,-1,0,0,5;')
+ records.append((124,0,'124,0,0,1,10,0,1,0,-3,-1,0,0,5;'))
 base=Path('exchange/iges/testdata/conical45-frustum.igs').read_text().splitlines();g=[x[:72] for x in base if x[72]=='G'];out=[];params=[]
 def emit(s,k,n):out.append(f'{s:<72}{k}{n:7d}')
 emit('Independent exact sphere with poles and meridian degree pcurves','S',1)
@@ -16,9 +22,9 @@ for i,(kind,form,s) in enumerate(records):
  while len(s)>64:
   cut=s.rfind(',',0,64)+1;chunks.append(s[:cut]);s=s[cut:]
  chunks.append(s);start=len(params)+1;params.extend((x,2*i+1) for x in chunks)
- status=0 if kind==186 else (10001 if kind==504 else 10000);tr=25 if 2*i+1==23 else 0
+ status=0 if kind==186 else (10001 if kind==504 else 10000);tr=25 if 2*i+1==23 else (33 if placed and 2*i+1==7 else 0)
  emit(''.join(f'{x:8d}' for x in (kind,start,0,0,0,0,tr,0))+f'{status:08d}','D',2*i+1)
  emit(''.join(f'{x:8d}' for x in (kind,0,0,len(chunks),form,0,0))+' '*8+f'{0:8d}','D',2*i+2)
 for i,(s,owner) in enumerate(params):emit(f'{s:<64}{owner:8d}','P',i+1)
 emit(f'S{1:7d}G{len(g):7d}D{2*len(records):7d}P{len(params):7d}','T',1)
-Path('exchange/iges/testdata/spherical-material.igs').write_text('\n'.join(out)+'\n')
+Path('exchange/iges/testdata/'+('placed-spherical-material.igs' if placed else 'spherical-material.igs')).write_text('\n'.join(out)+'\n')
