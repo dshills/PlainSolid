@@ -32,7 +32,12 @@ type AlgebraicGraphPolynomialWindowIntegral struct {
 // intervals with exact polynomial integrals. Unresolved rim cells retain their
 // previous enclosures and explicit unresolved area. This does not classify
 // unknown cells or integrate a rational denominator by polynomial approximation.
-func (q *AlgebraicGraphMaterialQuery) IntegratePolynomialWindow(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphPolynomialWindowOptions) (out AlgebraicGraphPolynomialWindowIntegral, err error) {
+func (q *AlgebraicGraphMaterialQuery) IntegratePolynomialWindow(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphPolynomialWindowOptions) (AlgebraicGraphPolynomialWindowIntegral, error) {
+	return q.integratePolynomialWindowPrepared(ctx, w, o, nil)
+}
+
+// prepared is private same-call evidence, never a caller-supplied partition.
+func (q *AlgebraicGraphMaterialQuery) integratePolynomialWindowPrepared(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphPolynomialWindowOptions, prepared *AlgebraicGraphWindowAggregate) (out AlgebraicGraphPolynomialWindowIntegral, err error) {
 	defer func() {
 		if err != nil {
 			out = AlgebraicGraphPolynomialWindowIntegral{PolynomialQuotaCharged: out.PolynomialQuotaCharged}
@@ -51,9 +56,23 @@ func (q *AlgebraicGraphMaterialQuery) IntegratePolynomialWindow(ctx context.Cont
 	if e != nil {
 		return out, e
 	}
-	base, e := q.RefineWindowDepth(ctx, w, o.Refinement)
-	if e != nil {
-		return out, e
+	var base AlgebraicGraphWindowAggregate
+	if prepared == nil {
+		base, e = q.RefineWindowDepth(ctx, w, o.Refinement)
+		if e != nil {
+			return out, e
+		}
+	} else {
+		if ctx == nil || q == nil || !prepared.HasBounds {
+			return out, geom.ErrInvalid
+		}
+		if e := ctx.Err(); e != nil {
+			return out, e
+		}
+		base = *prepared
+		for i := 0; i < 2; i++ {
+			base.Volume[i] = new(big.Rat).Set(prepared.Volume[i])
+		}
 	}
 	out.Bounds = base
 	out.RetainedCellVolume = new(big.Rat)
