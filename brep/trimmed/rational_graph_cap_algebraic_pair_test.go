@@ -1,11 +1,14 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math/big"
+	"reflect"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
@@ -123,6 +126,44 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	rechecked, e := diag.ExactIndexedBoundary(ctx, section, opts)
 	if e != nil || rechecked.Vertices != indexed.Vertices || rechecked.EulerCharacteristic != indexed.EulerCharacteristic {
 		t.Fatal("diagnostic edits changed the exact shell", e)
+	}
+	var data bytes.Buffer
+	if e := WriteAlgebraicGraphStockJSON(&data, diag); e != nil {
+		t.Fatal(e)
+	}
+	raw := append([]byte(nil), data.Bytes()...)
+	restored, topology, e := ReadAlgebraicGraphStockJSON(ctx, bytes.NewReader(raw), JSONLimits{},
+		RationalGraphShellSectionOptions{}, RationalGraphShellRegionOptions{}, opts)
+	if e != nil || !reflect.DeepEqual(topology, indexed) || len(restored.Seams) != 2 {
+		t.Fatal("native reload must re-prove the exact closed indexed stock shell", e)
+	}
+	for i, cap := range r.Caps {
+		for j, root := range cap.Section.Contacts {
+			other := restored.Caps[i].Section.Contacts[j]
+			order, e := root.Parameter.Compare(ctx, other.Parameter, opts)
+			if e != nil || !order.Proven || order.Order != 0 || root.Source != other.Source {
+				t.Fatal("saved stock recipe changed the exact junction", i, j, e)
+			}
+		}
+	}
+	if pair, boundary, e := ReadAlgebraicGraphStockJSON(ctx, bytes.NewReader(raw), JSONLimits{MaxBytes: 32},
+		section, RationalGraphShellRegionOptions{}, opts); !errors.Is(e, geom.ErrConvergence) || len(pair.Seams)+len(boundary.Edges) != 0 {
+		t.Fatal("bounded reader must fail before publishing", e)
+	}
+	for _, probe := range []struct {
+		p    geom.Vec3
+		want parametric.Location
+	}{
+		{geom.Vec3{X: .5, Y: 1.75, Z: .52}, parametric.Inside},
+		{geom.Vec3{X: 1.5, Y: 1.75, Z: .52}, parametric.Outside},
+		{geom.Vec3{X: .5, Y: 1.4, Z: .48}, parametric.Outside},
+		{geom.Vec3{X: .5, Y: 11. / 8, Z: .5}, parametric.Boundary},
+		{geom.Vec3{X: 1.5, Y: 11. / 8, Z: .5}, parametric.Outside},
+	} {
+		got, e := restored.LocateMaterial(ctx, probe.p, SplineShellBooleanOptions{})
+		if e != nil || got != probe.want {
+			t.Fatal("exact source material and both halfspaces", probe, got, e)
+		}
 	}
 	if len(owners) != attachments {
 		t.Fatal("each retained cap side must appear once on a closed stock loop", len(owners), attachments)
