@@ -28,16 +28,20 @@ func TestFiniteUnequalBoreSTEP(t *testing.T) {
 					XOppositeCap: q[2] != 0 && i == 1, ZOppositeCap: q[3] != 0 && i != 1}
 				if i == 1 {
 					p.Offset = .5
-					if p.XRadius < p.ZRadius {
-						p.ZRadius = 4
-					} else {
+					if p.XRadius == 3 {
 						p.XRadius = 4
+					} else {
+						p.ZRadius = 4
 					}
 				}
 				m := UnequalBoreModel{Body: p, LengthUnit: .001}
 				var out bytes.Buffer
 				if err := WriteUnequalBore(&out, m); err != nil {
 					t.Fatal(err)
+				}
+				t.Logf("STEP bytes=%d", out.Len())
+				if out.Len() > 512*1024 {
+					t.Fatal("exceeds app byte budget")
 				}
 				got, err := ReadUnequalBore(bytes.NewReader(out.Bytes()), Limits{})
 				if err != nil {

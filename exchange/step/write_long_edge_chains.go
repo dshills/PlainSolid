@@ -142,6 +142,14 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 }
 
 func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3) error {
+	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, false)
+}
+
+func writeNativeFiniteUnequalBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid, tolerance float64) error {
+	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, tolerance, nil, true)
+}
+
+func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite bool) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -209,7 +217,7 @@ func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name st
 		}
 		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
 			if unequalTolerance > 0 {
-				fitted, err := approximateUnequalBoreEdge(a, b, os, surfaces, unequalTolerance)
+				fitted, err := approximateUnequalBoreEdgeOptions(a, b, os, surfaces, unequalTolerance, compactFinite)
 				if err != nil {
 					return err
 				}

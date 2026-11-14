@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD compact STEP for unequal finite crossings — 2026-11-14
+
+Finite crossed Hole STEP uses checked interior pole rounding and join
+compaction within the existing 0.0000001 mm declared uncertainty. The
+same interpolation and resource guards apply. Previous canonical
+through STEP bytes remain identical. The reader also verifies and
+accepts the earlier complete finite graph.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-unequal-compact-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-unequal-compact-step-native-2026-11-14.json)
+pass on the same WASM. The 3 mm and 2 mm radius model exports in
+412,000 bytes, reimports below the 512 KiB app limit, reopens and retains
+its floor in watertight STL. Nine independent OCCT STEP comparisons
+cover signed centered and covered-skew stops. The largest sampled model
+curve deviation was 0.000000002429 mm. Legacy readback, race tests and
+Go vet pass.
+
 ## PlainCAD three intersecting cardinal through Holes — 2026-11-14
 
 Equal-radius X, Y and Z cutters with one common crossing retain the

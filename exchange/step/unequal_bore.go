@@ -55,6 +55,10 @@ func WriteUnequalBore(w io.Writer, m UnequalBoreModel) error {
 }
 
 func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
+	return writeUnequalBoreOptions(w, m, true)
+}
+
+func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool) error {
 	if !validLengthUnit(m.LengthUnit) {
 		return geom.ErrInvalid
 	}
@@ -132,6 +136,9 @@ func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
 		return err
 	}
 	tolerance := UnequalBoreSTEPAccuracyMillimeters * .001 / m.LengthUnit
+	if hasFloor && compactFinite {
+		return writeNativeFiniteUnequalBoreTopology(w, m.LengthUnit, p.Name, result.Solid, tolerance)
+	}
 	return writeNativeLongEdgeTopologyOptions(w, m.LengthUnit, p.Name, result.Solid, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, tolerance)
 }
 
@@ -187,7 +194,18 @@ func ReadUnequalBore(r io.Reader, limits Limits) (UnequalBoreModel, error) {
 		return UnequalBoreModel{}, err
 	}
 	if err := verifyCanonicalCircularExtrusionGraph(f, rep, &out); err != nil {
-		return UnequalBoreModel{}, err
+		// Accept only the earlier, independently regenerated finite representation.
+		// Through families retain their single existing canonical graph.
+		if p.XBlindDepth == 0 && p.ZBlindDepth == 0 {
+			return UnequalBoreModel{}, err
+		}
+		var legacy bytes.Buffer
+		if legacyErr := writeUnequalBoreOptions(&legacy, m, false); legacyErr != nil {
+			return UnequalBoreModel{}, legacyErr
+		}
+		if legacyErr := verifyCanonicalCircularExtrusionGraph(f, rep, &legacy); legacyErr != nil {
+			return UnequalBoreModel{}, err
+		}
 	}
 	return m, nil
 }
