@@ -381,6 +381,21 @@ func (d *RationalSphericalHierarchyDocument) BoundaryNormals(ctx context.Context
 	return step.BoundaryNormalsRationalHierarchy(ctx, d.model, point, o)
 }
 
+// PlanarDistance returns exact squared material and boundary distances, and
+// all nearest source-owned points, for each authenticated planar occurrence.
+func (d *RationalSphericalHierarchyDocument) PlanarDistance(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyPlanarDistanceOptions) (step.RationalHierarchyPlanarDistance, error) {
+	if d == nil {
+		return step.RationalHierarchyPlanarDistance{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.PlanarDistance(ctx, point, o)
+	}
+	if d.vendor {
+		return step.DistanceOCCTRationalHierarchyPlanarMaterials(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.DistanceRationalHierarchyPlanarMaterials(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.

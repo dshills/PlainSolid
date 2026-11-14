@@ -155,7 +155,22 @@ func TestAffinePCurveHierarchyDocumentRetainsAuthoring(t *testing.T) {
 									t.Fatal("wrong outward world normal into the hole", v)
 								}
 							}
-							return
+							for i, row := range use.World {
+								point[i].Add(point[i], row[0]) // local X=-8, hole centre
+							}
+							distances, err := edited.PlanarDistance(ctx, point, step.RationalHierarchyPlanarDistanceOptions{})
+							if err != nil {
+								t.Fatal(err)
+							}
+							for _, distance := range distances.Leaves {
+								if reflect.DeepEqual(distance.Path, use.Path) {
+									if !distance.Supported || distance.Location != step.AnalyticPointOutside || distance.MaterialSquaredDistance().Cmp(big.NewRat(1, 1)) != 0 || len(distance.NearestBoundary) != 4 {
+										t.Fatal("all four original walls must tie for the exact distance", distance)
+									}
+									return
+								}
+							}
+							t.Fatal("missing moved distance occurrence")
 						}
 					}
 					t.Fatal("missing moved hole use")
