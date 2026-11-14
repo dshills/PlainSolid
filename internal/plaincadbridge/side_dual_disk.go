@@ -10,6 +10,7 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 type sideDualDiskRecipe struct {
@@ -340,4 +341,21 @@ func (p sideDualDiskRecipe) transformed(m geom.Affine) (sideDualDiskRecipe, bool
 	}
 	p.frame = f
 	return p, true
+}
+
+// A larger external-center opening magnifies a circular chord error across
+// the axial span. STL uses a tighter wall angle for that bounded family.
+// Viewport mesh requests keep their individual tolerances.
+func (s stored) tessellateSTL(q request) (mesh.Mesh, error) {
+	if s.analytic == nil || s.analytic.sideDualDisk == nil || !s.analytic.sideDualDisk.offsetCenters() {
+		return s.tessellate(q)
+	}
+	o, e := tessellationOptions(q)
+	if e != nil {
+		return mesh.Mesh{}, e
+	}
+	if o.Angle > .025 {
+		q.AngularDeflection = optionalNumber{value: .05, set: true}
+	}
+	return s.tessellate(q)
 }

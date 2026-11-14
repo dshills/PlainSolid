@@ -625,7 +625,7 @@ func (b *Bridge) execute(q request) (any, error) {
 				return nil, unsupportedEdge("STL export requires a manifold boundary. The side-tangent blind bore has a non-manifold contact edge.")
 			}
 			var out bytes.Buffer
-			m, err := s.tessellate(q)
+			m, err := s.tessellateSTL(q)
 			if err != nil {
 				return nil, err
 			}

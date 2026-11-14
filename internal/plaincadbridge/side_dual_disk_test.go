@@ -282,6 +282,14 @@ func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 			near(t, s.GeometryAssertions.Volume, wantV)
 			near(t, s.GeometryAssertions.SurfaceArea, wantA)
 			near(t, overlapMeasure(t, b, s.Handle, c.Handle), 0)
+			m, e := b.shapes[s.Handle].tessellateSTL(requestForSideMesh(optionalNumber{value: .5, set: true}, optionalNumber{value: .2, set: true}))
+			if e != nil {
+				t.Fatal("offset STL mesh", e)
+			}
+			mass, e := m.MassProperties()
+			if e != nil || math.Abs(mass.Volume-wantV) >= .3 {
+				t.Fatal("offset STL exceeds the machining volume check", mass.Volume, wantV, e)
+			}
 			data, e := writeSTEPBody(b.shapes[s.Handle])
 			if e != nil || !bytes.Contains(data, []byte("PRODUCT('side-cut-offset-disks'")) {
 				t.Fatal("offset export did not register its product class", e)
