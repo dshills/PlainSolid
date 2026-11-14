@@ -25,10 +25,11 @@ type WrappedQuadraticFaceOptions struct {
 // wrapped support. Rational seam/knot events split proof curves, not the native
 // authored edge. This is an embedded open face, not a closed shell or solid.
 type WrappedQuadraticFace struct {
-	native     SewFace
-	loops      [][]ExactQuadraticUV
-	proofs     [][]geom.WrappedCurveComposition
-	operations int
+	native         SewFace
+	loops          [][]ExactQuadraticUV
+	proofs         [][]geom.WrappedCurveComposition
+	operations     int
+	projectionAxes [2]int
 }
 
 func (r *WrappedQuadraticFace) NativeFace() SewFace {
@@ -170,6 +171,7 @@ func NewWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, o
 		return nil, geom.ErrConvergence
 	}
 	used += embedding.ExactOperations
+	r.projectionAxes = embedding.ProjectionAxes
 	r.native.Face = Face{Surface: w, Reversed: o.Reversed}
 	pieces := 0
 	for li, l := range r.loops {
