@@ -32,7 +32,9 @@ events; 358, 400 and 343 seconds). This verifies the pinned revision; later
 milestones have separate focused qualification below.
 The archived `e1e871c` CGO-disabled non-trimmed snapshot also passes all 49
 packages with tests and reports 3,873 passing and 332 skipped test events;
-three packages have no tests. Its three trimmed shards are tracked separately.
+three packages have no tests. The three trimmed shards at the same revision
+also passed, with 696 passing and 19 skipped test events (659, 650 and 782
+seconds). These are short-mode counts, including subtests.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
