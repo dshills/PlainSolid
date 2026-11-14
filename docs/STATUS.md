@@ -888,7 +888,10 @@ surfaces must keep their geometry through the operation. Continue with:
    A lens-shaped cap with two equal endpoint pairs can now be subdivided on
    the original retained piece before both sides sew. A cap section can now
    keep irrational contacts with exact original parameters, projected roots,
-   and ordered material intervals. Native sewing of those irrational roots,
+   and ordered material intervals. Exact clipping now joins their retained
+   original curve intervals and line seams into closed world-space cap
+   boundaries, with separate occurrences and original parameter ownership.
+   Native sewing of those irrational roots,
    stock faces bounded solely by two unsubdivided edges, and general mixed-axis
    trim arrangements remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,

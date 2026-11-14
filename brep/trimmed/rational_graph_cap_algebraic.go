@@ -34,6 +34,22 @@ type AlgebraicGraphCapSection struct {
 // including irrational and arbitrarily close contacts. Original vertices,
 // tangencies and intervals on the cutting plane remain unresolved.
 func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions) (AlgebraicGraphCapSection, error) {
+	return r.sectionAlgebraicHalfspace(ctx, points, keepPositive, o, nil)
+}
+
+type algebraicGraphCapPieceProof struct {
+	local    []*geom.ExactAlgebraicRoot
+	contacts []int // temporary encounter IDs (before the cut line sort)
+}
+
+type algebraicGraphCapProof struct {
+	form                      [3]*big.Rat
+	axis, direction, keepSign int
+	pieces                    [][]algebraicGraphCapPieceProof
+	contactOrder              []int
+}
+
+func (r *RationalGraphShellRegions) sectionAlgebraicHalfspace(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions, proof *algebraicGraphCapProof) (AlgebraicGraphCapSection, error) {
 	var zero AlgebraicGraphCapSection
 	if ctx == nil || r == nil || r.certificate == nil {
 		return zero, geom.ErrInvalid
@@ -86,11 +102,23 @@ func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Contex
 		return zero, geom.ErrConvergence
 	}
 	direction *= other.orientation * keep
+	if proof != nil {
+		proof.form, proof.axis, proof.direction, proof.keepSign = form, axis, direction, other.orientation*keep
+		proof.pieces = make([][]algebraicGraphCapPieceProof, len(r.wires))
+	}
 	raw := [4]*big.Rat{form[0], form[1], nil, form[2]}
 	out := AlgebraicGraphCapSection{ProjectionAxes: orientedRationalGraphProjection(r.plane)}
+	type orderedContact struct {
+		AlgebraicGraphCapContact
+		id int
+	}
+	var roots []orderedContact
 	count := 0
-	for _, wire := range r.wires {
-		for _, piece := range wire {
+	for wi, wire := range r.wires {
+		if proof != nil {
+			proof.pieces[wi] = make([]algebraicGraphCapPieceProof, len(wire))
+		}
+		for pi, piece := range wire {
 			count++
 			if count > opts.MaxEdges || len(piece.control) < 2 || len(piece.control) > 5 {
 				return zero, geom.ErrConvergence
@@ -125,6 +153,7 @@ func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Contex
 			if !hits.Complete || hits.Coincident {
 				return zero, geom.ErrConvergence
 			}
+			var record algebraicGraphCapPieceProof
 			for _, event := range hits.Events {
 				p, e := event.ClassifyPlaneContact(ctx, raw, limits())
 				if e != nil {
@@ -133,11 +162,15 @@ func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Contex
 				if e = charge(p.Operations, p.Subdivisions); e != nil {
 					return zero, e
 				}
-				if !p.Proven || !p.Crossing || !p.Transverse || p.EndpointMask != 0 || len(out.Contacts) >= opts.MaxEdges {
+				if !p.Proven || !p.Crossing || !p.Transverse || p.EndpointMask != 0 || len(roots) >= opts.MaxEdges {
 					return zero, geom.ErrConvergence
 				}
 				entry := AlgebraicGraphCapContact{Source: piece.source, KeepBefore: p.SideSigns[0]*other.orientation*keep > 0}
 				entry.Parameter = event.Root()
+				if proof != nil {
+					record.local = append(record.local, entry.Parameter)
+					record.contacts = append(record.contacts, len(roots))
+				}
 				if piece.span[0] != nil || piece.span[1] != nil {
 					a, b := graphCapOriginalParameter(piece.span, new(big.Rat)), graphCapOriginalParameter(piece.span, big.NewRat(1, 1))
 					scale := new(big.Rat).Sub(b, a)
@@ -160,16 +193,18 @@ func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Contex
 					}
 					entry.CoordinateRoots[i] = root
 				}
-				out.Contacts = append(out.Contacts, entry)
+				roots = append(roots, orderedContact{entry, len(roots)})
+			}
+			if proof != nil {
+				proof.pieces[wi][pi] = record
 			}
 		}
 	}
-	if len(out.Contacts)%2 != 0 {
+	if len(roots)%2 != 0 {
 		return zero, geom.ErrConvergence
 	}
 	// A conservative endpoint sort is only a proposal. Reprove every
 	// adjacent order, inserting by exact order if two brackets overlap.
-	roots := out.Contacts
 	sort.SliceStable(roots, func(i, j int) bool {
 		a, b := roots[i].CoordinateRoots[axis].Interval(), roots[j].CoordinateRoots[axis].Interval()
 		return a.Lower.Cmp(b.Lower)*direction < 0
@@ -200,6 +235,15 @@ func (r *RationalGraphShellRegions) SectionAlgebraicHalfspace(ctx context.Contex
 			return zero, geom.ErrConvergence
 		}
 		out.Material = append(out.Material, RationalGraphCapSeam{i, i + 1})
+	}
+	if proof != nil {
+		proof.contactOrder = make([]int, len(roots))
+	}
+	for i, root := range roots {
+		out.Contacts = append(out.Contacts, root.AlgebraicGraphCapContact)
+		if proof != nil {
+			proof.contactOrder[root.id] = i
+		}
 	}
 	out.ExactOperations = opts.MaxWork - work
 	out.Subdivisions = opts.MaxSubdivisions - subdiv

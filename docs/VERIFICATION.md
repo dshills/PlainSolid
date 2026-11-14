@@ -92,7 +92,17 @@ the independent envelope volume 221/30720.
 Algebraic cap section tests preserve two irrational roots on the same original
 quadratic edge, exactly reverse their order with the cutting orientation,
 and exclude the through-void gap when four contacts are present. Tangency
-and insufficient cumulative work return no partial section.
+and insufficient cumulative work return no partial section. Constructive
+cap clipping joins one retained parabolic interval to an exact restricted
+line and handles the opposite side's two pieces on the original arc. The
+holed fixture joins its two original rings into one notch with two seams.
+Tests prove equality of every neighboring world-space endpoint across the
+original and seam parameterizations and reject exhausted clipping without
+publishing the earlier section. Focused normal, race and Go 1.23 passed.
+Simultaneous conical fillets (`105312d`) keep five native faces, unchanged
+original end caps and circular bases, and exact original cone ownership.
+Both slope directions and equal/unequal radii match independent volume and
+area integrals and reload. Touching or overlapping runouts fail atomically.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

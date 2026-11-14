@@ -27,6 +27,18 @@ func TestRationalGraphPolygonalCapCutThroughHole(t *testing.T) {
 		if e != nil || len(algebraic.Contacts) != 4 || len(algebraic.Material) != 2 {
 			t.Fatal("algebraic order must exclude the same through-void interval", algebraic, e)
 		}
+		clipped, e := sec.Regions.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(clipped.Wires) != 1 || len(clipped.Section.Material) != 2 {
+			t.Fatal("rejoin both original rings into one notched wire", clipped, e)
+		}
+		counts := map[int]int{}
+		for _, use := range clipped.Wires[0] {
+			counts[use.InputWire]++
+		}
+		if counts[-1] != 2 || counts[0] < 3 || counts[1] < 3 {
+			t.Fatal("notch must include both original loops connected by two seams", counts)
+		}
+		checkAlgebraicGraphCapClosure(t, clipped)
 		if len(r.Cuts) != 4 || len(r.Seams) != 2 || len(r.Regions.Material) != 1 || len(r.Regions.Material[0].Holes) != 0 {
 			t.Fatal("inner loop must become a notch with two disjoint cap seams", r)
 		}
@@ -195,6 +207,39 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 		if a.ExactOperations <= 0 || a.Subdivisions <= 0 {
 			t.Fatal("algebraic cuts must record charged work", a)
 		}
+		clip, e := base.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		wantUses := 6 // the original four sides, one split original, and the seam
+		if keep {
+			wantUses = 2 // just the middle interval of the original arc and the new seam
+		}
+		if e != nil || len(clip.Wires) != 1 || len(clip.Wires[0]) != wantUses {
+			t.Fatal("incorrect kept runs", keep, clip, e)
+		}
+		checkAlgebraicGraphCapClosure(t, clip)
+		var sourceUses, seams int
+		for _, u := range clip.Wires[0] {
+			if u.Seam >= 0 {
+				seams++
+			}
+			if u.InputPiece == 2 {
+				sourceUses++
+				for j, id := range u.EndpointContacts {
+					if id >= 0 {
+						p, e := u.SourceParameters[j].Compare(ctx, a.Contacts[id].Parameter, geom.ExactCurvePlaneEventOptions{})
+						if e != nil || !p.Proven || p.Order != 0 {
+							t.Fatal("cut changed the exact original parameter", p, e)
+						}
+					}
+				}
+			}
+		}
+		if seams != 1 || sourceUses != map[bool]int{true: 1, false: 2}[keep] {
+			t.Fatal("must retain the original curved piece on all local intervals", sourceUses, seams)
+		}
+		clippingLimit := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: clip.ExactOperations}}
+		if partial, e := base.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, clippingLimit); !errors.Is(e, geom.ErrConvergence) || len(partial.Wires)+len(partial.Section.Contacts) != 0 {
+			t.Fatal("a completed section alone must not publish incomplete clipping", partial, e)
+		}
 		limit := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: a.ExactOperations - 1}}
 		if bad, e := base.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, limit); !errors.Is(e, geom.ErrConvergence) || len(bad.Contacts) != 0 {
 			t.Fatal("exhausted algebraic cut must reject atomically", bad, e)
@@ -231,4 +276,39 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 		}
 	}
 	t.Fatal("missing original curved owner after repeated clipping", s.Cuts)
+}
+
+// Compare true endpoint images, including seam and original continuations
+// with different parameters. An overlapping enclosure is not sufficient.
+func checkAlgebraicGraphCapClosure(t *testing.T, clip AlgebraicGraphCapClip) {
+	t.Helper()
+	ctx := context.Background()
+	o := geom.ExactCurvePlaneEventOptions{}
+	for _, wire := range clip.Wires {
+		event := func(u AlgebraicGraphCapUse, side int) *geom.ExactComposedCurveEvent {
+			t.Helper()
+			if u.Reversed {
+				side = 1 - side
+			}
+			p, e := u.Cell.EndpointRoot(side)
+			if e != nil {
+				t.Fatal(e)
+			}
+			x, e := u.Cell.BindRoot(ctx, p, o)
+			if e != nil {
+				t.Fatal(e)
+			}
+			return x
+		}
+		for i, u := range wire {
+			v := wire[(i+1)%len(wire)]
+			if u.EndpointContacts[1] != v.EndpointContacts[0] {
+				t.Fatal("boundary contact incidence", u, v)
+			}
+			equal, _, e := event(u, 1).CompareModelPoint(ctx, event(v, 0), o)
+			if e != nil || !equal {
+				t.Fatal("oriented wire endpoints must be the identical model point", i, e)
+			}
+		}
+	}
 }
