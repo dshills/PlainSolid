@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "status": "failed",
+  "class": "supplemental-different-center-side-cut-workflows",
+  "backend": "plainsolid-go-wasm",
+  "workspace": "/tmp/plainsolid-reconciled-different-center-50dd15f-5448",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "50dd15f7e5204e66a0ff18af5ea12a77f48aa141",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "wasmSha256": "69797d49942adb3e6a165eb694cb0f43d7e244d93dffd3796e78ffe0c3b06f34",
+  "readinessSha256": "92c85753183337b9bc138f0aa9cf41030d07491a18f3a3c07353f4f0a1e574c7",
+  "selected": {
+    "suite": "development",
+    "testFile": "e2e/plainsolid-side-dual-disk.spec.ts",
+    "grep": "side-opening different-center circles",
+    "acceptancePort": "5448",
+    "preflightPort": "5448"
+  },
+  "supplementalFixture": {
+    "file": "e2e/plainsolid-side-dual-disk.spec.ts",
+    "sha256": "cd835a172a1a31f846d2002fab5f449385af883901286097b8cad0a90755b569"
+  },
+  "sourceFileCount": 841,
+  "backendVerified": true,
+  "typecheck": "passed",
+  "summaries": [
+    {
+      "path": "/tmp/plainsolid-reconciled-different-center-50dd15f-5448/backend-results.json",
+      "startTime": "2026-11-14T01:28:12.760Z",
+      "duration": 12402.158,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "path": "/tmp/plainsolid-reconciled-different-center-50dd15f-5448/playwright-results.json",
+      "startTime": "2026-11-14T01:28:26.504Z",
+      "duration": 91816.065,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  ],
+  "tests": [
+    {
+      "title": "Go WASM overlap of two side-opening different-center circles: blind rebuild, reopen, STL and STEP",
+      "status": "passed",
+      "durationMs": 68186
+    },
+    {
+      "title": "Go WASM overlap of two side-opening different-center circles: through rebuild, reopen, STL and STEP",
+      "status": "failed",
+      "durationMs": 19378
+    }
+  ],
+  "finding": "Blind workflow passed all assertions. Through stopped during its first native rebuild after the original 8000 ms without worker progress. The native mesh volume check passes at the keyed quality; the next kernel target is reducing meshing work at the same volume and distance constraints."
+}
