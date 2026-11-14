@@ -210,6 +210,13 @@ func TestOCCTRepairCircularTubeNAUO(t *testing.T) {
 func FuzzRepairCircularTubeNAUO(f *testing.F) {
 	raw, id := circularTubeSource(f)
 	f.Add(raw, 1e-9)
+	for _, name := range []string{"occt-circular-tube-nauo-cm.step", "occt-circular-tube-nauo-cm-scaled.step"} {
+		b, e := os.ReadFile("testdata/" + name)
+		if e != nil {
+			f.Fatal(e)
+		}
+		f.Add(b, 1e-10)
+	}
 	f.Add(raw, 1e-14)
 	f.Add([]byte("ISO-10303-21;"), 1e-9)
 	f.Fuzz(func(t *testing.T, b []byte, tol float64) {

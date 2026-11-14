@@ -25,10 +25,12 @@ type RepairedCircularTubeNAUO struct {
 // and master pcurve selection. Source IDs and all residuals are original;
 // bounds use the wall's positive cylinder as a geometric proof factor only.
 type CircularTubeNAUOWallEvidence struct {
-	Source             CircularNAUOInspection
-	Bounds             CircularNAUORepairBounds
-	SourceFaceSense    bool
-	RimMasterPCurveIDs [2]int64 // lower, upper original selected owner
+	Source                CircularNAUOInspection
+	Bounds                CircularNAUORepairBounds
+	SourceFaceSense       bool
+	RimMasterPCurveIDs    [2]int64 // lower, upper original selected owner
+	ModelSeamMagnitude    *big.Rat // original positive LINE magnitude
+	ModelSeamParameterEnd *big.Rat // repaired endpoint selection height/magnitude; not authored trim
 }
 
 // circularTubeLoop normalizes FACE_BOUND orientation in a private proof graph.
@@ -234,6 +236,24 @@ func RepairCircularTubeNAUOProduct(r io.Reader, l Limits, productID int64, o Cir
 	}
 	// Normalize the two original material wall loops, recording the unique rim
 	// owner. A false inner face is complemented solely in this proof factor.
+	incoming := map[int64]int{}
+	var count func(Value)
+	count = func(v Value) {
+		if v.Kind == Reference {
+			incoming[v.Ref]++
+		}
+		for _, x := range v.Items {
+			count(x)
+		}
+	}
+	for _, ent := range f.Entities {
+		for _, rec := range ent.Records {
+			for _, v := range rec.Args {
+				count(v)
+			}
+		}
+	}
+	magnitudes := [2]*big.Rat{}
 	seen := map[int64]bool{}
 	rimOwner := map[int64]int{}
 
@@ -263,6 +283,42 @@ func RepairCircularTubeNAUOProduct(r io.Reader, l Limits, productID int64, o Cir
 				rimOwner[edge] = i
 			} else if n != 2 {
 				return fail()
+			} else {
+				_, _, geometry, e := analyticEdge(f, edge)
+				if e != nil {
+					return fail()
+				}
+				seam, e := simple(f, geometry, "SEAM_CURVE", 4)
+				if e != nil {
+					return fail()
+				}
+				lineID, e := ref(seam.Args[1])
+				if e != nil || incoming[lineID] != 1 {
+					return fail()
+				}
+				line, e := simple(f, lineID, "LINE", 3)
+				if e != nil {
+					return fail()
+				}
+				vectorID, e := ref(line.Args[2])
+				if e != nil || incoming[vectorID] != 1 {
+					return fail()
+				}
+				vector, e := simple(f, vectorID, "VECTOR", 3)
+				if e != nil {
+					return fail()
+				}
+				magnitude, e := liftSourceRat(vector.Args[2])
+				if e != nil || magnitude.Sign() <= 0 {
+					return fail()
+				}
+				magnitudes[i] = magnitude
+				// Exact change of parameter s=m*t only. The original finite trim is
+				// unknown; the explicit reconstruction selects t in [0,height/m].
+				vector.Args[2] = Value{Kind: Number, Text: "1."}
+				ent := f.Entities[vectorID]
+				ent.Records[0] = vector
+				f.Entities[vectorID] = ent
 			}
 		}
 	}
@@ -382,7 +438,7 @@ func RepairCircularTubeNAUOProduct(r io.Reader, l Limits, productID int64, o Cir
 	}
 	outer, inner := repaired[0], repaired[1]
 	for i, w := range repaired {
-		result.Walls[i] = CircularTubeNAUOWallEvidence{Source: w.Source, Bounds: w.Bounds, SourceFaceSense: i == 0, RimMasterPCurveIDs: [2]int64{master[w.Source.Rims[0].EdgeID], master[w.Source.Rims[1].EdgeID]}}
+		result.Walls[i] = CircularTubeNAUOWallEvidence{Source: w.Source, Bounds: w.Bounds, SourceFaceSense: i == 0, ModelSeamMagnitude: new(big.Rat).Set(magnitudes[i]), ModelSeamParameterEnd: new(big.Rat).Quo(new(big.Rat).SetFloat64(w.Body.Height), magnitudes[i]), RimMasterPCurveIDs: [2]int64{master[w.Source.Rims[0].EdgeID], master[w.Source.Rims[1].EdgeID]}}
 	}
 	if outer.Body.Frame != inner.Body.Frame || outer.Body.Height != inner.Body.Height || outer.Body.Radius <= inner.Body.Radius || outer.LengthUnit != inner.LengthUnit {
 		return fail()
