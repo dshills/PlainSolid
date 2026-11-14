@@ -373,6 +373,12 @@ verified. Both [authored workflows](evidence/plaincad-reconciled-d97fd910-supple
 passed. The exported STEP structure matched the worktree's; numerical tokens
 differed by at most `8.89e-15`. The 264-triangle STL was watertight, and
 independent OCCT reproduced volume, area, and centroid.
+The [circular-lens reconciliation](evidence/plaincad-reconciled-2154f73d-development-circular-lens-holes-step-2026-11-14.json)
+adds worktree revision `e5f4a249` to review `2154f73d`. Native checks and
+all eight original browser cases passed, with 841 app and 2,080 kernel source
+blobs verified. Both [authored lens exports](evidence/plaincad-reconciled-2154f73d-supplemental-circular-lens-step-2026-11-14.json)
+produced identical STEP and watertight STL in both checkouts. Independent
+OCCT reproduced the volume, area, and centroid of the equal and unequal lenses.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
