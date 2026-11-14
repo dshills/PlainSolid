@@ -346,7 +346,13 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				continue
 			}
 			if curve.unequal != nil {
-				model = emitUnequalBoreSpline(emit, curve.unequal.model, point3)
+				splinePoint := point3
+				if curve.unequal.compact {
+					splinePoint = func(p geom.Vec3) int64 {
+						return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", compactUnequalBoreReal(p.X), compactUnequalBoreReal(p.Y), compactUnequalBoreReal(p.Z)))
+					}
+				}
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, splinePoint)
 			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
@@ -362,6 +368,9 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				var geometry int64
 				if curve.unequal != nil {
 					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], func(p geom.Vec3) int64 {
+						if curve.unequal.compact {
+							return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s))", compactUnequalBoreReal(p.X), compactUnequalBoreReal(p.Y)))
+						}
 						return point2(geom.Vec2{X: p.X, Y: p.Y})
 					})
 				} else if surface.kind == "PLANE" {

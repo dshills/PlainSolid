@@ -69,7 +69,10 @@ through Holes retain two analytic radical trim rings for native modeling
 and STL. STEP retains the cylindrical and planar supports, approximates
 the nonrational model edge and both UV trims with cubic splines, and
 reads its own canonical files back to the native recipe. Radius and
-scale envelopes bound the approximation work.
+scale envelopes bound the approximation work. Two skew perpendicular
+through axes use the same topology and STEP exchange when the larger
+bore covers the smaller bore's full transverse width. Partial width
+requires a different trim arrangement.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

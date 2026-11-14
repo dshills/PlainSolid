@@ -47,9 +47,11 @@ perpendicular axes retain analytic radical trims and pass native rebuild,
 project reopen and watertight STL. STEP preserves the analytic support
 surfaces and exchanges the nonrational trim rings as cubic splines with
 declared 0.0000001 mm uncertainty. The native importer checks the complete
-canonical graph before recovering the analytic recipe. Wider radius and
-coordinate ranges, skew or oblique intersections, and intersecting blind
-cutters remain open.
+canonical graph before recovering the analytic recipe. Perpendicular
+skew axes also retain two radical trim rings and round-trip STEP when
+the larger radius covers the smaller bore across the whole transverse
+width. Partial transverse overlap, wider STEP radius and coordinate
+ranges, oblique intersections, and intersecting blind cutters remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
@@ -589,8 +591,8 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 ## Continuing implementation
 
 The remaining rectangular Hole geometry work includes expanding unequal-
-radius STEP beyond the bounded spline budget, skew and oblique cutter
-axes, and nonparallel blind cuts.
+radius STEP beyond the bounded spline budget, partially overlapping skew
+bores, oblique cutter axes, and nonparallel blind cuts.
 The full unit gate still has 36 repeat failures after focused retests.
 The recorded controls identify the OCCT-private bindings and fixtures
 that depend on an uninitialized kernel.

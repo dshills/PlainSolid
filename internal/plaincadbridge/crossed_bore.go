@@ -2,13 +2,22 @@ package plaincadbridge
 
 import (
 	"context"
+	"math"
 
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
-func crossedBoreFromSTEP(frame geom.Frame, dimensions, crossing geom.Vec3, radii [2]float64, unit float64) (*boreBody, error) {
+type crossedBoreGeometry struct {
+	frame                geom.Frame
+	dimensions, crossing geom.Vec3
+	radii                [2]float64
+	offset               float64
+}
+
+func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error) {
+	frame, dimensions, crossing := p.frame, p.dimensions, p.crossing
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 || !cardinalFrame(frame) {
 		return nil, geom.ErrInvalid
@@ -27,7 +36,7 @@ func crossedBoreFromSTEP(frame geom.Frame, dimensions, crossing geom.Vec3, radii
 		origin, end, axis geom.Vec3
 	}{
 		{geom.Vec3{Y: crossing.Y, Z: crossing.Z}, geom.Vec3{X: dimensions.X, Y: crossing.Y, Z: crossing.Z}, frame.XAxis()},
-		{geom.Vec3{X: crossing.X, Y: crossing.Y}, geom.Vec3{X: crossing.X, Y: crossing.Y, Z: dimensions.Z}, frame.ZAxis()},
+		{geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset}, geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset, Z: dimensions.Z}, frame.ZAxis()},
 	} {
 		start, finish := frame.ToWorld(site.origin).Scale(scale), frame.ToWorld(site.end).Scale(scale)
 		length := finish.Sub(start).Dot(site.axis)
@@ -38,7 +47,7 @@ func crossedBoreFromSTEP(frame geom.Frame, dimensions, crossing geom.Vec3, radii
 		if err != nil {
 			return nil, err
 		}
-		tool, err := newCylinder(f, radii[i]*scale, length)
+		tool, err := newCylinder(f, p.radii[i]*scale, length)
 		if err != nil {
 			return nil, err
 		}
@@ -47,19 +56,16 @@ func crossedBoreFromSTEP(frame geom.Frame, dimensions, crossing geom.Vec3, radii
 	return newBore(base, tools)
 }
 
-func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (geom.Frame, geom.Vec3, geom.Vec3, [2]float64, bool) {
-	fail := func() (geom.Frame, geom.Vec3, geom.Vec3, [2]float64, bool) {
-		return geom.Frame{}, geom.Vec3{}, geom.Vec3{}, [2]float64{}, false
-	}
+func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (crossedBoreGeometry, bool) {
 	vertices := base.Vertices()
 	if len(tools) != 2 || blind[0] || blind[1] || len(vertices) != 8 ||
 		len(base.Edges()) != 12 || len(base.Faces()) != 6 {
-		return fail()
+		return crossedBoreGeometry{}, false
 	}
 	a, b := tools[0], tools[1]
 	if !cardinalFrame(a.frame) || !cardinalFrame(b.frame) ||
 		a.frame.ZAxis().Dot(b.frame.ZAxis()) != 0 {
-		return fail()
+		return crossedBoreGeometry{}, false
 	}
 	// Sort the two unoriented cardinal axes so grouped and successive cuts
 	// use the same chart regardless of tool order or signed through extent.
@@ -75,27 +81,31 @@ func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (ge
 	}
 	orientation, err := geom.NewFrame(geom.Vec3{}, x, z)
 	if err != nil {
-		return fail()
+		return crossedBoreGeometry{}, false
 	}
 	for i, v := range vertices {
 		vertices[i] = orientation.ToLocal(v)
 	}
 	bounds, err := geom.Bounds(vertices)
 	if err != nil || !rectangularFaces(base, orientation, bounds.Min, bounds.Max) {
-		return fail()
+		return crossedBoreGeometry{}, false
 	}
 	origin := orientation.ToWorld(bounds.Min)
 	frame, err := geom.NewFrame(origin, x, z)
 	size := bounds.Max.Sub(bounds.Min)
 	if err != nil || frame.ToWorld(size) != orientation.ToWorld(bounds.Max) {
-		return fail()
+		return crossedBoreGeometry{}, false
 	}
 	p, q := frame.ToLocal(a.frame.Origin()), frame.ToLocal(b.frame.Origin())
-	if p.Y != q.Y || frame.ToWorld(p) != a.frame.Origin() || frame.ToWorld(q) != b.frame.Origin() {
-		return fail()
+	if frame.ToWorld(p) != a.frame.Origin() || frame.ToWorld(q) != b.frame.Origin() {
+		return crossedBoreGeometry{}, false
 	}
 	crossing := geom.Vec3{X: q.X, Y: p.Y, Z: p.Z}
-	return frame, size, crossing, [2]float64{a.radius, b.radius}, true
+	offset := q.Y - p.Y
+	if p.Y+offset != q.Y || offset != 0 && min(a.radius, b.radius)+math.Abs(offset) >= max(a.radius, b.radius) {
+		return crossedBoreGeometry{}, false
+	}
+	return crossedBoreGeometry{frame: frame, dimensions: size, crossing: crossing, radii: [2]float64{a.radius, b.radius}, offset: offset}, true
 }
 
 func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (*boreBody, bool, error) {
@@ -131,17 +141,17 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 		spans = []float64{spans[i], spans[j]}
 		blind = []bool{false, false}
 	}
-	frame, size, crossing, radii, ok := crossedBoreRecipe(base, tools, blind)
+	p, ok := crossedBoreRecipe(base, tools, blind)
 	if !ok {
 		return nil, false, nil
 	}
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
-	if radii[0] == radii[1] {
-		result, err = trimmed.BoxCrossedBores(ctx, frame, size, crossing, radii[0], 1e-9)
+	if p.radii[0] == p.radii[1] {
+		result, err = trimmed.BoxCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
 	} else {
-		result, err = trimmed.BoxUnequalCrossedBores(ctx, frame, size, crossing, radii[0], radii[1], 1e-9)
+		result, err = trimmed.BoxSkewCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, 1e-9)
 	}
 	if err != nil {
 		return nil, true, err

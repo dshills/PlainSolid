@@ -53,3 +53,42 @@ func TestUnequalCrossedBoreScopeAndSTL(t *testing.T) {
 		t.Fatal("noncanonical re-export", err)
 	}
 }
+
+func TestSkewCrossedBoreScopeAndSTEP(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{0, 0, 0}, vector{20, 24, 18})
+	x := circle(t, b, vector{0, 12, 9}, vector{1, 0, 0}, 5, 20)
+	z := circle(t, b, vector{8, 13, 18}, vector{0, 0, -1}, 2, 18)
+	first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": x.Handle})
+	next := shape(t, b, map[string]any{"op": "cut", "a": first.Handle, "b": z.Handle})
+	const wantVolume, wantArea = 6963.3892873778959, 3072.4364948965858
+	if m := next.GeometryAssertions; !m.Valid || m.SolidCount != 1 ||
+		math.Abs(m.Volume-wantVolume) > 1e-5 || math.Abs(m.SurfaceArea-wantArea) > 1e-5 {
+		t.Fatal(m)
+	}
+	near(t, overlapMeasure(t, b, first.Handle, z.Handle), first.GeometryAssertions.Volume-next.GeometryAssertions.Volume)
+	grouped, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle, z.Handle})
+	if err != nil || grouped.GeometryAssertions != next.GeometryAssertions || grouped.Bounds != stock.Bounds {
+		t.Fatal(grouped, err)
+	}
+	stepOut, err := b.exportSTEP([]string{grouped.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := base64.StdEncoding.DecodeString(stepOut.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reimport, err := b.importSTEP(string(source))
+	if err != nil || reimport.Bounds != stock.Bounds || reimport.GeometryAssertions != next.GeometryAssertions {
+		t.Fatal(reimport, err)
+	}
+	near(t, overlapMeasure(t, b, reimport.Handle, z.Handle), 0)
+	mesh, err := b.shapes[reimport.Handle].tessellate(request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+}
