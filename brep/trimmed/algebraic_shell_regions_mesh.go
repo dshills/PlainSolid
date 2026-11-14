@@ -37,7 +37,7 @@ type CertifiedAlgebraicShellRegionsMesh struct {
 
 // TessellateDisjointLensesCertified fills an intersection whose complete
 // boundary consists of hole-free, mutually disjoint lenses between the same
-// two original spline graph faces in model XY or cyclic YZ projection. Full original domains are
+// two original spline graph faces in model XY, YZ or XZ projection. Full original domains are
 // requalified together; no face truncation or omitted branch is permitted.
 // Exact source recipes, whole edge intervals and physical face orientation
 // bind the existing region fill proof to native Boolean IDs. Every component
@@ -179,7 +179,7 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 		return empty, e
 	}
 	source := section.runSource()
-	if source == nil || len(source.segments) != n || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2}) {
+	if source == nil || len(source.segments) != n || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2} && source.projection != [2]int{0, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	for i, b := range source.segments {
@@ -196,7 +196,7 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 		o.Regions.MaxLoops = o.MaxComponents
 	}
 	var regions AlgebraicTubeRegions
-	if source.projection == [2]int{1, 2} {
+	if source.projection != [2]int{0, 1} {
 		branches := make([]int, n)
 		for i := range branches {
 			branches[i] = i
@@ -223,13 +223,17 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 		lens := AlgebraicTubeLens{faces: regions.partitions[r.Outer].Faces, graphs: regions.graphs, upper: r.UpperChart}
 		for chart, f := range lens.Faces() {
 			id := owners[loop.Branch][chart]
-			if id < 0 || f.Reversed != s.faces[id].Reversed {
+			physicalReverse := f.Reversed
+			if projectedAxisParity(source.projection) < 0 {
+				physicalReverse = !physicalReverse
+			}
+			if id < 0 || physicalReverse != s.faces[id].Reversed {
 				return empty, geom.ErrConvergence
 			}
 		}
 	}
 	var display CertifiedAlgebraicTubeRegionsMesh
-	if source.projection == [2]int{1, 2} {
+	if source.projection != [2]int{0, 1} {
 		display, e = tessellateProjectedDisjointBooleanRegions(ctx, regions, o.Mesh)
 	} else {
 		display, e = regions.TessellateDisjointClosedCertified(ctx, o.Mesh)

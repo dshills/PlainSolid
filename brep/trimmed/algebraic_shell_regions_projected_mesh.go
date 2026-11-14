@@ -5,12 +5,12 @@ import (
 	"plainsolid/geom"
 )
 
-// Only even YZ permutation is accepted here. Every original branch and its
+// Every original branch and its
 // parameter data remain unchanged; the private canonical graph/network view
 // exists only during the existing component and global contact proofs.
 func tessellateProjectedDisjointBooleanRegions(ctx context.Context, r AlgebraicTubeRegions, o AlgebraicTubeRegionsMeshOptions) (CertifiedAlgebraicTubeRegionsMesh, error) {
 	var empty CertifiedAlgebraicTubeRegionsMesh
-	if r.section.runSource() == nil || r.section.runSource().projection != [2]int{1, 2} {
+	if r.section.runSource() == nil || (r.section.runSource().projection != [2]int{1, 2} && r.section.runSource().projection != [2]int{0, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	if o.Boundary.Loop.Run.Display.Point.Tolerance == 0 {
@@ -22,8 +22,21 @@ func tessellateProjectedDisjointBooleanRegions(ctx context.Context, r AlgebraicT
 	}
 	projected := original
 	projected.Vertices = append([]geom.Vec3(nil), original.Vertices...)
-	forward := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Y, Y: p.Z, Z: p.X} }
-	inverse := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Z, Y: p.X, Z: p.Y} }
+	axes := r.section.runSource().projection
+	order := [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}
+	forward := func(p geom.Vec3) geom.Vec3 {
+		v := [3]float64{p.X, p.Y, p.Z}
+		return geom.Vec3{X: v[order[0]], Y: v[order[1]], Z: v[order[2]]}
+	}
+	inverse := func(p geom.Vec3) geom.Vec3 {
+		var v [3]float64
+		v[order[0]], v[order[1]], v[order[2]] = p.X, p.Y, p.Z
+		return geom.Vec3{X: v[0], Y: v[1], Z: v[2]}
+	}
+	odd := projectedAxisParity(axes) < 0
+	if odd {
+		reverseProjectedBoundaryOwners(&original)
+	}
 	for i, p := range projected.Vertices {
 		projected.Vertices[i] = forward(p)
 	}
@@ -49,8 +62,20 @@ func tessellateProjectedDisjointBooleanRegions(ctx context.Context, r AlgebraicT
 			c.Mesh.Vertices[j] = inverse(p)
 		}
 		c.Boundary = original.Loops[r.regions[i].Outer]
+		if odd {
+			for j := range c.Mesh.Triangles {
+				t := &c.Mesh.Triangles[j]
+				t[1], t[2] = t[2], t[1]
+			}
+		}
 	}
-	// Exact proper permutation transports all recorded triangle contacts and
+	if odd {
+		for i := range out.Mesh.Triangles {
+			t := &out.Mesh.Triangles[i]
+			t[1], t[2] = t[2], t[1]
+		}
+	}
+	// Exact permutation transports all recorded triangle contacts and
 	// distance bounds. Check returned incidence without re-spending pair budgets.
 	if e := out.Mesh.ValidateSolid(); e != nil {
 		return empty, e

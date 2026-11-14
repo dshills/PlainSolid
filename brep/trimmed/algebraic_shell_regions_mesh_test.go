@@ -11,15 +11,17 @@ import (
 )
 
 func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
-	checkDisjointBooleanLensFill(t, false, false)
+	checkDisjointBooleanLensFill(t, false, 0)
 }
 func TestCertifiedExactOwnerDisjointBooleanLensFill(t *testing.T) {
-	checkDisjointBooleanLensFill(t, true, false)
+	checkDisjointBooleanLensFill(t, true, 0)
 }
 func TestCertifiedYZDisjointBooleanLensFill(t *testing.T) {
-	checkDisjointBooleanLensFill(t, false, true)
+	checkDisjointBooleanLensFill(t, false, 1)
 }
-func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
+func TestCertifiedXZDisjointBooleanLensFill(t *testing.T) { checkDisjointBooleanLensFill(t, false, 2) }
+func checkDisjointBooleanLensFill(t *testing.T, exact bool, projection int) {
+	rotated := projection != 0
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, 0)
 	b := disjointLoopRoof(t)
@@ -72,6 +74,9 @@ func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
 				d := f.Surface.(*geom.BSplineSurface).Data()
 				for i, p := range d.Poles {
 					d.Poles[i] = geom.Vec3{X: 2 - p.Z, Y: -3 - p.X, Z: 4 + p.Y}
+					if projection == 2 {
+						d.Poles[i] = geom.Vec3{X: 2 - p.X, Y: -3 + p.Z, Z: 4 + p.Y}
+					}
 				}
 				support, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
 				if e != nil {
@@ -91,6 +96,9 @@ func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
 		}
 		a, b = rotate(a), rotate(b)
 		axes = [2]int{1, 2}
+		if projection == 2 {
+			axes = [2]int{0, 2}
+		}
 		o.Trace.GraphProjectionAxes = axes
 		o.Trace.Coverage.OverlappingAffineXYFallback = true
 		for i := range hints.Attempts {
@@ -164,9 +172,16 @@ func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
 		for _, p := range component.Mesh.Vertices {
 			x := p.X
 			if rotated {
-				x = -p.Y - 3
-				if p.X > 2+1e-7 || p.Y >= -3 || p.Z <= 4 {
-					t.Fatal("signed world restoration", p)
+				if projection == 1 {
+					x = -p.Y - 3
+					if p.X > 2+1e-7 || p.Y >= -3 || p.Z <= 4 {
+						t.Fatal("signed YZ restoration", p)
+					}
+				} else {
+					x = 2 - p.X
+					if p.Y < -3-1e-7 || p.X >= 2 || p.Z <= 4 {
+						t.Fatal("signed XZ restoration", p)
+					}
 				}
 			}
 			lo = math.Min(lo, x)
@@ -176,8 +191,40 @@ func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
 			t.Fatal("independent spatial separation", lo, hi)
 		}
 	}
+
+	offset := 0
+	for c, component := range m.Components {
+		if component.Mesh.SignedVolume() <= 0 {
+			t.Fatal("component winding")
+		}
+		for i, tri := range component.Mesh.Triangles {
+			mapped := [3]int{}
+			for j, v := range tri {
+				mapped[j] = m.ComponentVertices[c][v]
+			}
+			if mapped != m.Mesh.Triangles[offset+i] {
+				t.Fatal("component/global orientation identity")
+			}
+		}
+		offset += len(component.Mesh.Triangles)
+	}
+	if rotated {
+		for i, tri := range m.Mesh.Triangles {
+			if common.faces[m.TriangleFaces[i]].Operand != 0 {
+				continue
+			}
+			a, b, c := m.Mesh.Vertices[tri[0]], m.Mesh.Vertices[tri[1]], m.Mesh.Vertices[tri[2]]
+			normal := b.Sub(a).Cross(c.Sub(a))
+			if projection == 1 && normal.X <= 0 || projection == 2 && normal.Y >= 0 {
+				t.Fatal("physical plane normals", normal)
+			}
+		}
+	}
 	want := math.Pi * math.Pow(5.0/64, 4)
 	volume, _ := m.SignedDisplayVolume.Float64()
+	if m.Mesh.SignedVolume() <= 0 || math.Abs(m.Mesh.SignedVolume()-volume) > 1e-10 {
+		t.Fatal("world signed volume", m.Mesh.SignedVolume(), volume)
+	}
 	if volume <= 0 || math.Abs(volume-want) > .15*want {
 		t.Fatal("two-lobe analytic integral", volume, want)
 	}

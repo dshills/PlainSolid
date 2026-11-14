@@ -146,3 +146,26 @@ output: three solids,13 faces, volume `8/3+12*pi`; the cylinder center is
 `(8.5,-4,2)`. Tests compare total area and all centroid coordinates analytically.
 This is an independent material collection, not a shared-instance assembly or a
 Boolean union, and does not prove that distinct members do not intersect.
+
+
+## Attached blind and through openings
+
+`MixedTopologyBlindCylinder` and `MixedTopologyThroughCylinder` have explicit
+`BlindCylinder` and `ThroughCylinder` descriptor/result payloads. They are distinct
+material families, with39- and36-record structural discriminators respectively.
+Record count only selects the candidate validator: the complete independently
+recovered blind/through support, loop, sense and native material proof must pass.
+Neither falls back to a plain cylinder, and unused tagged payloads are rejected.
+Original local-to-source maps preserve all opening/floor/cap/inner-wall roles.
+The source graph has no new reference grammar: existing typed186/514/510/508/504
+edges prove exclusive ownership, including every hole loop and full-circle rim.
+
+The retained independently authored `mixed-bored-material.igs` contains one
+non-cylinder tetrahedron, a radius3/radius1/height4 blind cylinder at X=-10
+(floor2), and a radius3/radius1/height4 through cylinder at X=10. Pinned OCCT
+TransferRoots and BRepCheck accept source and Go output: three solids,13faces,
+volume `4/3+66*pi`, area `6+2*sqrt(3)+94*pi`, and exact analytic first moments
+`(2/3-20*pi,2/3,2/3+130*pi)`. This independently exercises both annular cap
+forms together. Repeated members have separate mutable parameter maps and source
+provenance. Cross-root hole-loop/model-edge links, invalid inner-wall sense,
+radius mismatch, aggregate limits and inappropriate payloads fail atomically.

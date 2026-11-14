@@ -11,6 +11,9 @@ import (
 // normalized parameters, not merely common endpoints or control identity.
 // It supports only unchanged source chart coordinates and equal placements.
 func compareWrappedQuadraticUse(ctx context.Context, model parametric.Edge, surface geom.Surface, use Use, o edgecheck.Options) (bool, int, error) {
+	if _, ok := model.Curve.(wrappedAlgebraicTrimCurve); ok {
+		return compareWrappedAlgebraicQuadraticUse(ctx, model, surface, use, o)
+	}
 	m, ok := model.Curve.(surfaceTrimCurve)
 	if !ok || model.Range != (parametric.Interval{Max: 1}) {
 		return false, 0, nil

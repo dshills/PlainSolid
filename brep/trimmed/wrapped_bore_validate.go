@@ -19,6 +19,18 @@ type WrappedBoreProof struct {
 // complete canonical rim partition and exact cap pcurves. It never infers
 // material closure from two wrapped supports alone.
 func (s Solid) ValidateCanonicalWrappedBore(ctx context.Context, o geom.SurfacePatchOptions) (WrappedBoreProof, error) {
+	return s.validateCanonicalWrappedBore(ctx, o, false)
+}
+
+// ValidateCanonicalWrappedFrustumBore proves a canonical circular frustum
+// tube, blind bore or cavity in the existing Solid, including after JSON
+// reload. Original supports may have parallel eccentric axes. Every retained
+// edge, coedge, vertex and cap is matched to an independently rebuilt solid.
+func (s Solid) ValidateCanonicalWrappedFrustumBore(ctx context.Context, o geom.SurfacePatchOptions) (WrappedBoreProof, error) {
+	return s.validateCanonicalWrappedBore(ctx, o, true)
+}
+
+func (s Solid) validateCanonicalWrappedBore(ctx context.Context, o geom.SurfacePatchOptions, frustum bool) (WrappedBoreProof, error) {
 	fail := func() (WrappedBoreProof, error) { return WrappedBoreProof{}, geom.ErrConvergence }
 	if ctx == nil {
 		return WrappedBoreProof{}, geom.ErrInvalid
@@ -45,7 +57,11 @@ func (s Solid) ValidateCanonicalWrappedBore(ctx context.Context, o geom.SurfaceP
 	if p.Outer == nil || p.Inner == nil {
 		return fail()
 	}
-	reference, h, e := NewWrappedCylinderBore(ctx, p.Outer, p.Inner, s.tolerance, o)
+	build := NewWrappedCylinderBore
+	if frustum {
+		build = NewWrappedEccentricCircularFrustumBore
+	}
+	reference, h, e := build(ctx, p.Outer, p.Inner, s.tolerance, o)
 	if e != nil {
 		return WrappedBoreProof{}, e
 	}
