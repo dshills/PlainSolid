@@ -162,20 +162,24 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
 
-static void tangentSplineShellRecords(std::ostream& out) {
+static void tangentSplineShellRecords(std::ostream& out, bool quartic = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
+  const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
+  const int degree = quartic ? 4 : 2;
   for (int fixed = 0; fixed < 3; ++fixed) for (int side = 0; side < 2; ++side) {
     const int u = (fixed + 1) % 3, v = (fixed + 2) % 3;
-    const int du = u == 2 ? 1 : 2, dv = v == 2 ? 1 : 2;
+    const int du = u == 2 ? 1 : degree, dv = v == 2 ? 1 : degree;
     NCollection_Array2<gp_Pnt> poles(1,du+1,1,dv+1);
     for (int i = 0; i <= du; ++i) for (int j = 0; j <= dv; ++j) {
       int p[3]{};
-      p[fixed] = side * (fixed == 2 ? 1 : 2);
+      p[fixed] = side * (fixed == 2 ? 1 : degree);
       p[u] = i;
       p[v] = j;
-      const double z = p[2] == 0 ? -1 : -sq[p[0]] - sq[p[1]];
-      poles.SetValue(i+1,j+1,gp_Pnt(.5*p[0],.5*p[1],z));
+      const double z = p[2] == 0 ? -1 : quartic ?
+        -(9*(q4[p[0]]+q4[p[1]])+2*q2[p[0]]*q2[p[1]])/256 :
+        -sq[p[0]] - sq[p[1]];
+      poles.SetValue(i+1,j+1,gp_Pnt(double(p[0])/degree,double(p[1])/degree,z));
     }
     NCollection_Array1<double> k(1,2);
     k.SetValue(1,0); k.SetValue(2,1);

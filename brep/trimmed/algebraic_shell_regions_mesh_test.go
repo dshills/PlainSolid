@@ -10,11 +10,16 @@ import (
 	"testing"
 )
 
-func TestCertifiedDisjointBooleanLensFill(t *testing.T) { checkDisjointBooleanLensFill(t, false) }
-func TestCertifiedExactOwnerDisjointBooleanLensFill(t *testing.T) {
-	checkDisjointBooleanLensFill(t, true)
+func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
+	checkDisjointBooleanLensFill(t, false, false)
 }
-func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
+func TestCertifiedExactOwnerDisjointBooleanLensFill(t *testing.T) {
+	checkDisjointBooleanLensFill(t, true, false)
+}
+func TestCertifiedYZDisjointBooleanLensFill(t *testing.T) {
+	checkDisjointBooleanLensFill(t, false, true)
+}
+func checkDisjointBooleanLensFill(t *testing.T, exact, rotated bool) {
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, 0)
 	b := disjointLoopRoof(t)
@@ -59,6 +64,40 @@ func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
 		}
 		hints.Attempts = append(hints.Attempts, r.Attempts...)
 	}
+	axes := [2]int{0, 1}
+	if rotated {
+		rotate := func(s Solid) Solid {
+			var faces []SewFace
+			for _, f := range s.Faces() {
+				d := f.Surface.(*geom.BSplineSurface).Data()
+				for i, p := range d.Poles {
+					d.Poles[i] = geom.Vec3{X: 2 - p.Z, Y: -3 - p.X, Z: 4 + p.Y}
+				}
+				support, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
+				if e != nil {
+					t.Fatal(e)
+				}
+				face, e := RectangularSplineFace(support, f.Reversed)
+				if e != nil {
+					t.Fatal(e)
+				}
+				faces = append(faces, face)
+			}
+			out, _, e := Sew(ctx, faces, SewOptions{Tolerance: 1e-9})
+			if e != nil {
+				t.Fatal(e)
+			}
+			return out
+		}
+		a, b = rotate(a), rotate(b)
+		axes = [2]int{1, 2}
+		o.Trace.GraphProjectionAxes = axes
+		o.Trace.Coverage.OverlappingAffineXYFallback = true
+		for i := range hints.Attempts {
+			hints.Attempts[i].Sample = nil
+			hints.Attempts[i].Section = nil
+		}
+	}
 	o.Seeds = []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: hints}}
 	r, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if e != nil || !r.Complete || len(r.Wires) != 2 || len(r.Branches) != 2 {
@@ -71,6 +110,8 @@ func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
 	}
 	options := AlgebraicShellRegionsMeshOptions{Section: AlgebraicTrimmedPairSectionOptions{Trace: o.Trace}}
 	options.Mesh.AffineCharts = true
+	options.Section.Trace.GraphProjectionAxes = axes
+	options.Section.Clip.Projection = &axes
 	if exact {
 		options.Mesh.Span.MaxDegree = 3
 	}
@@ -82,6 +123,9 @@ func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
 	m, e := common.TessellateDisjointLensesCertified(ctx, options)
 	if e != nil {
 		t.Fatal("multi-lens fill", e)
+	}
+	if m.ProjectionAxes != axes {
+		t.Fatal("source projection lost")
 	}
 	if len(m.Components) != 2 || !m.Collision.Complete || len(m.Collision.Contacts) != 0 {
 		t.Fatal("global collection embedding")
@@ -118,8 +162,15 @@ func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
 	for _, component := range m.Components {
 		lo, hi := math.Inf(1), math.Inf(-1)
 		for _, p := range component.Mesh.Vertices {
-			lo = math.Min(lo, p.X)
-			hi = math.Max(hi, p.X)
+			x := p.X
+			if rotated {
+				x = -p.Y - 3
+				if p.X > 2+1e-7 || p.Y >= -3 || p.Z <= 4 {
+					t.Fatal("signed world restoration", p)
+				}
+			}
+			lo = math.Min(lo, x)
+			hi = math.Max(hi, x)
 		}
 		if !(hi < .5 || lo > .5) {
 			t.Fatal("independent spatial separation", lo, hi)

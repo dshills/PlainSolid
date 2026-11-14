@@ -1904,6 +1904,21 @@ The native open-face constructor still requires its representable boundary.
 The shell Boolean dispatcher (`538dee7`) now selects the sole-contact proof
 after independently separating all other face pairs. The existing
 separated, closed, affine and boundary-contact dispatch checks pass.
+The isolated quartic contact (`d25b642`) verifies empty common and an
+unchanged unit cut even though the Hessian vanishes at the touching point.
+The full exact numerator proof, focused race and independent OCCT results passed.
+The wrapped model comparison (`e26ecd3`) proves complete continuous agreement
+across independent original knot refinements, opposite traversal and an
+integer-period owner lift. Same-endpoint curves with different interiors reject.
+The signed and translated YZ disjoint lens mesh (`63c1dc9`) preserves
+world-space native IDs across its two independently closed components. It
+passes normal qualification with 3,392 triangles and an exact collection
+contact check. The limit and ancestry guard paths pass race.
+Analytic blind and through IGES bores (`813909d`, `2c75ecf`) preserve
+original analytic walls, opening rims, degree-based UV ownership and
+the retained floor where present. OCCT transfers the independent source
+and Go results with volumes 34π and 32π, and areas 46π and 48π.
+The rounded vendor copies are documented negative cases for the exact codecs.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the

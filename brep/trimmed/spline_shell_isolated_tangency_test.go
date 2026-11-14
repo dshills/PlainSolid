@@ -124,6 +124,15 @@ func TestExternallyTangentSplineShells(t *testing.T) {
 }
 
 func TestOCCTExternallyTangentSplineShells(t *testing.T) {
+	checkOCCTExternalSplineTangency(t, "isolated-tangent-shells")
+}
+
+func TestOCCTExternallyTangentQuarticSplineShells(t *testing.T) {
+	checkOCCTExternalSplineTangency(t, "isolated-quartic-tangent-shells")
+}
+
+func checkOCCTExternalSplineTangency(t *testing.T, mode string) {
+	t.Helper()
 	program := os.Getenv("PLAINSOLID_OCCT_ORACLE")
 	if program == "" {
 		t.Skip("set PLAINSOLID_OCCT_ORACLE to the optional OCCT executable")
@@ -131,7 +140,7 @@ func TestOCCTExternallyTangentSplineShells(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "contact.json")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if b, e := exec.CommandContext(ctx, program, path, "isolated-tangent-shells").CombinedOutput(); e != nil {
+	if b, e := exec.CommandContext(ctx, program, path, mode).CombinedOutput(); e != nil {
 		t.Fatal("independent OCCT tangency", e, string(b))
 	}
 	b, e := os.ReadFile(path)
@@ -151,5 +160,18 @@ func TestOCCTExternallyTangentSplineShells(t *testing.T) {
 	if p.Name != "isolated-tangent-stock-cut" || math.Abs(p.Area-6) > 1e-10 ||
 		math.Abs(p.Volume-1) > 1e-10 || math.Abs(p.Centroid[0]-.5)+math.Abs(p.Centroid[1]-.5)+math.Abs(p.Centroid[2]-.5) > 1e-10 {
 		t.Fatal("cut at isolated contact should retain the unit stock", p)
+	}
+}
+
+func TestExternallyTangentQuarticSplineShells(t *testing.T) {
+	ctx := context.Background()
+	stock, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
+	// z=-(9/16)*((x-.5)²+(y-.5)²)² is strictly below the plane
+	// except at its unique zero. The Hessian at that point vanishes.
+	tool := quarticRoofSolid(t, 0, 0)
+	out, h, p, e := CombineExternallyTangentSplineShells(ctx, stock, tool, parametric.Intersection, SplineShellTangencyOptions{Faces: [2]int{4, 1}})
+	if e != nil || len(out.faces) != 0 || p.Point[0].Cmp(big.NewRat(1, 2)) != 0 || p.Point[1].Cmp(big.NewRat(1, 2)) != 0 ||
+		p.Point[2].Sign() != 0 || p.StrictOrder != 1 || h.Method != "isolated-graph-tangency" {
+		t.Fatal("exact quartic contact", h, p, e)
 	}
 }

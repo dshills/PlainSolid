@@ -123,9 +123,13 @@ func checkNestedShellOperations(t *testing.T, ctx context.Context, section Algeb
 
 func nestedQuarticRoofSolid(t *testing.T) Solid {
 	t.Helper()
+	return quarticRoofSolid(t, 25.0/1024, 25.0/256)
+}
+
+func quarticRoofSolid(t *testing.T, ri, ro float64) Solid {
+	t.Helper()
 	x2 := [5]float64{3, 0, -1, 0, 3}
 	x4 := [5]float64{1, -1, 1, -1, 1}
-	const ri, ro = 25.0 / 1024, 25.0 / 256
 	height := func(i, j int) float64 {
 		return (9*(x4[i]+x4[j]) + 2*x2[i]*x2[j] - 12*(ri+ro)*(x2[i]+x2[j]) + 144*ri*ro) / 256
 	}

@@ -183,11 +183,41 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 	}
 	point, e := geom.DiscoverSplineGraphPointContact(ctx, patches[0], alignment.TargetOnSource(), o.Contact)
 	proof.ExactOperations += point.ExactOperations
-	c := point.Contact
+	var parameters [2]*big.Rat
+	var xyz [3]*big.Rat
+	side := 0
+	if e == nil && point.Contact.Proven && point.Contact.BoundaryMask == 0 {
+		parameters, xyz, side = point.Contact.Parameters, point.Contact.Point, point.Contact.Side
+	} else if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) {
+		// A strict coupled quartic can lose its Hessian at the contact.
+		// Accept it only after recovering and proving the complete exact
+		// numerator and retaining a strictly interior witness.
+		p := o.Contact.GraphPointContactOptions
+		p.MaxOperations = limit().MaxOperations
+		if p.MaxOperations < 1 {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		q, usedErr := geom.DiscoverCoupledQuarticGraphPointContact(ctx, patches[0], alignment.TargetOnSource(), p)
+		proof.ExactOperations += q.ExactOperations
+		if usedErr != nil {
+			return Solid{}, history, empty, usedErr
+		}
+		if !q.Proven {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		box := patches[0].Domain()
+		for i, b := range [2][2]float64{{box.UMin, box.UMax}, {box.VMin, box.VMax}} {
+			if q.Parameters[i].Cmp(ratInset(b[0])) <= 0 || q.Parameters[i].Cmp(ratInset(b[1])) >= 0 {
+				return Solid{}, history, empty, geom.ErrConvergence
+			}
+		}
+		parameters, xyz, side = q.Parameters, q.Point, q.Side
+		e = nil
+	}
 	if e != nil {
 		return Solid{}, history, empty, e
 	}
-	if !c.Proven || c.BoundaryMask != 0 || c.Side != -sign[0] {
+	if side != -sign[0] {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
 	for i, f := range all[0] {
@@ -220,16 +250,16 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 		return Solid{}, history, empty, e
 	}
 	for i, axis := range order {
-		proof.Point[axis] = new(big.Rat).Set(c.Point[i])
+		proof.Point[axis] = new(big.Rat).Set(xyz[i])
 	}
-	proof.UV[0] = c.Parameters
+	proof.UV[0] = parameters
 	for i, row := range mapping {
 		proof.UV[1][i] = new(big.Rat).Set(row[2])
-		for j, q := range c.Parameters {
+		for j, q := range parameters {
 			proof.UV[1][i].Add(proof.UV[1][i], new(big.Rat).Mul(row[j], q))
 		}
 	}
-	proof.StrictOrder = c.Side
+	proof.StrictOrder = side
 	native, history := regularizedTouchResult(solids[0], solids[1], op)
 	history.Method = "isolated-graph-tangency"
 	history.EdgesA, history.EdgesB = make([][]int, len(solids[0].edges)), make([][]int, len(solids[1].edges))
