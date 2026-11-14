@@ -2344,5 +2344,5 @@ exact directed parameter intervals and account for every stock edge.
 The transition certificate now builds a complete native Cut. Exact cap
 triangles and wall quads share all boundary atoms across the internal
 floor and retained profiles. Multiple retained and floor regions qualify
-when each cycle is simple and hole-free. Original support and clipping
-history survive the conforming subdivision.
+with holes through bounded exact cap triangulation. Original support and
+clipping history survive the conforming subdivision.

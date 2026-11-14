@@ -58,11 +58,13 @@ func (s *NativeCrossingPrismCut) NativeOperations() int {
 }
 
 // BuildNative consumes the authenticated exact imprint. This first domain has
-// one or more simple positive cycles in each region (no holes). Exact cap triangulation
+// simple outer/hole cycles in each region. Exact cap triangulation
 // preserves every crossing atom; wall quads split at the internal tool cap.
 // All shared vertices are losslessly represented; unrepresentable coordinates
 // reject rather than changing the original source geometry. The final closed
 // graph and its exact signed boundary volume are independently rechecked.
+// Holed cap triangulation has an additional 96-boundary-vertex limit per cap,
+// with cumulative exact arithmetic charged to MaxOperations.
 func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArrangementPrismOptions) (*NativeCrossingPrismCut, error) {
 	if s == nil || ctx == nil || s.regions[0] == nil || s.regions[1] == nil {
 		return nil, geom.ErrInvalid
@@ -89,11 +91,6 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 		if len(c) == 0 {
 			return nil, geom.ErrDomain
 		}
-		for _, cycle := range c {
-			if cycle.SignedAreaA.Sign() <= 0 {
-				return nil, geom.ErrDomain
-			}
-		}
 	}
 	profiles := [2]nativePrismProfile{}
 	for i := range profiles {
@@ -105,10 +102,10 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 	}
 	// Original stock edge intervals, already proved gap-free by the imprint.
 	type atom struct {
-		edge  int
-		t     [2]*big.Rat
-		point [2][3]*big.Rat
-		use   NativePrismIntervalWallUse
+		ring, edge int
+		t          [2]*big.Rat
+		point      [2][3]*big.Rat
+		use        NativePrismIntervalWallUse
 	}
 	atoms := []atom{}
 	for region, a := range s.regions {
@@ -116,11 +113,14 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 		uses := s.BoundaryUses(region)
 		for i, e := range a.Edges() {
 			if e.Owner == 0 {
-				atoms = append(atoms, atom{e.Edge, e.Parameter, [2][3]*big.Rat{v[e.Start].Point, v[e.End].Point}, uses[i]})
+				atoms = append(atoms, atom{e.Ring, e.Edge, e.Parameter, [2][3]*big.Rat{v[e.Start].Point, v[e.End].Point}, uses[i]})
 			}
 		}
 	}
 	sort.Slice(atoms, func(i, j int) bool {
+		if atoms[i].ring != atoms[j].ring {
+			return atoms[i].ring < atoms[j].ring
+		}
 		if atoms[i].edge != atoms[j].edge {
 			return atoms[i].edge < atoms[j].edge
 		}
@@ -129,12 +129,21 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 	if len(atoms) < 3 {
 		return nil, geom.ErrInvalid
 	}
-	for i, a := range atoms {
-		b := atoms[(i+1)%len(atoms)]
-		for k := 0; k < 3; k++ {
-			budget.check(a.point[1][k])
-			if a.point[1][k].Cmp(b.point[0][k]) != 0 {
-				return nil, geom.ErrInvalid
+	atomRings := make([][]atom, 1+len(profiles[0].trim.Holes))
+	for _, a := range atoms {
+		atomRings[a.ring] = append(atomRings[a.ring], a)
+	}
+	for _, ring := range atomRings {
+		if len(ring) < 3 {
+			return nil, geom.ErrInvalid
+		}
+		for i, a := range ring {
+			next := ring[(i+1)%len(ring)]
+			for k := 0; k < 3; k++ {
+				budget.check(a.point[1][k])
+				if a.point[1][k].Cmp(next.point[0][k]) != 0 {
+					return nil, geom.ErrInvalid
+				}
 			}
 		}
 	}
@@ -244,21 +253,72 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 		}
 		return nil
 	}
+	triangulateAll := func(loops [][]int, normal int, use NativePrismTransitionFaceUse) error {
+		holed := false
+		for _, loop := range loops {
+			area := new(big.Rat)
+			for i, a := range loop {
+				c := loop[(i+1)%len(loop)]
+				area = budget.op('+', area, budget.op('-', budget.op('*', exact[a][xy[0]], exact[c][xy[1]]), budget.op('*', exact[a][xy[1]], exact[c][xy[0]])))
+			}
+			if area.Sign() < 0 {
+				holed = true
+			}
+			if area.Sign() == 0 {
+				return geom.ErrDomain
+			}
+		}
+		if budget.err != nil {
+			return budget.err
+		}
+		if !holed {
+			for ci, loop := range loops {
+				u := use
+				if u.Region >= 0 {
+					u.Cycle = ci
+				}
+				if e := triangulate(loop, normal, u); e != nil {
+					return e
+				}
+			}
+			return nil
+		}
+		triangles, e := nativePrismHoledCapTriangles(loops, exact, xy, budget)
+		if e != nil {
+			return e
+		}
+		for _, tri := range triangles {
+			loop := []int{tri.ids[0], tri.ids[1], tri.ids[2]}
+			if normal < 0 {
+				loop[1], loop[2] = loop[2], loop[1]
+			}
+			u := use
+			if u.Region >= 0 {
+				u.Cycle = tri.cycle
+			}
+			addFace(loop, u)
+		}
+		return nil
+	}
 	opposite := new(big.Rat).SetFloat64(profiles[0].lo)
 	oppositeCap := profiles[0].lowerCap
 	if s.normal < 0 {
 		opposite.SetFloat64(profiles[0].hi)
 		oppositeCap = profiles[0].upperCap
 	}
-	stockLoop := []int{}
-	for _, a := range atoms {
-		id, e := vertex(a.point[0], opposite)
-		if e != nil {
-			return nil, e
+	stockLoops := [][]int{}
+	for _, ring := range atomRings {
+		loop := []int{}
+		for _, a := range ring {
+			id, e := vertex(a.point[0], opposite)
+			if e != nil {
+				return nil, e
+			}
+			loop = append(loop, id)
 		}
-		stockLoop = append(stockLoop, id)
+		stockLoops = append(stockLoops, loop)
 	}
-	if e := triangulate(stockLoop, -s.normal, NativePrismTransitionFaceUse{Operand: 0, OriginalFace: oppositeCap, Region: -1, Edge: -1, Cycle: -1}); e != nil {
+	if e := triangulateAll(stockLoops, -s.normal, NativePrismTransitionFaceUse{Operand: 0, OriginalFace: oppositeCap, Region: -1, Edge: -1, Cycle: -1}); e != nil {
 		return nil, e
 	}
 	for region, arr := range s.regions {
@@ -269,7 +329,8 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 			owner = s.floorOwner
 		}
 		v, e := arr.Vertices(), arr.Edges()
-		for ci, cycle := range arr.Cycles() {
+		loops := [][]int{}
+		for _, cycle := range arr.Cycles() {
 			loop := []int{}
 			for _, i := range cycle.Edges {
 				id, err := vertex(v[e[i].Start].Point, z)
@@ -278,11 +339,13 @@ func (s *NativePrismCutTransition) BuildNative(ctx context.Context, o AffineArra
 				}
 				loop = append(loop, id)
 			}
-			if err := triangulate(loop, s.normal, NativePrismTransitionFaceUse{Operand: owner.Operand, OriginalFace: owner.Face, Region: region, Edge: -1, Cycle: ci, Reversed: region == 1}); err != nil {
-				return nil, err
-			}
+			loops = append(loops, loop)
+		}
+		if err := triangulateAll(loops, s.normal, NativePrismTransitionFaceUse{Operand: owner.Operand, OriginalFace: owner.Face, Region: region, Edge: -1, Cycle: -1, Reversed: region == 1}); err != nil {
+			return nil, err
 		}
 	}
+
 	wall := func(p [2][3]*big.Rat, lo, hi *big.Rat, use NativePrismIntervalWallUse, region, edge int) error {
 		loop := make([]int, 4)
 		for i, k := range []int{0, 1, 1, 0} {

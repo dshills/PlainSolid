@@ -6223,3 +6223,11 @@ Horizontal terminal-plane clips retain closed cap material spans, tangent
 and singleton contacts, original rim and wall ties, and no volume-interior
 intervals. Exact lower-degree sector guards are normalized before root-sign
 proof. The combined cap and wall line race passed in 37.879 s.
+
+### Original holes in native crossing prism Cuts
+
+Exact constrained cap triangulation retains both stock and tool hole
+incidences, including a retained tool-hole island. Independent mass,
+centroid and Euler checks cover retained and floor holes. Original hole
+wall edges and parameter ancestry survive. The integrated crossing-prism
+and generator race passed in 12.595 s.

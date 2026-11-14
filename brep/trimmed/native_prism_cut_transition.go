@@ -97,7 +97,8 @@ func (s *NativePrismCutTransition) Operations() (int, int) {
 }
 
 // ImprintCrossingNativePrismCut authenticates original cardinal prisms and a
-// one-ended blind axial Cut. Strict transverse profile arrangements must retain
+// one-ended blind axial Cut, including original outer and hole rings.
+// Strict transverse profile arrangements must retain
 // positive A-B and A intersect B. Every original stock boundary interval is
 // accounted for exactly once, while every internal tool segment is paired in
 // opposite directions. Contact degeneracies remain unsupported. No native shell
@@ -141,9 +142,6 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			continue
-		}
-		if len(a.trim.Holes) > 0 || len(b.trim.Holes) > 0 {
 			continue
 		}
 		up := a.lo < b.lo && b.lo < a.hi && a.hi <= b.hi
@@ -233,7 +231,11 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 		low, high = high, low
 	}
 	areas := [2]*big.Rat{new(big.Rat), new(big.Rat)}
-	stockParts := make([][][2]*big.Rat, len(profiles[0].trim.Outer))
+	stockRings := append([][][2]*big.Rat{profiles[0].trim.Outer}, profiles[0].trim.Holes...)
+	stockParts := make([][][][2]*big.Rat, len(stockRings))
+	for r, ring := range stockRings {
+		stockParts[r] = make([][][2]*big.Rat, len(ring))
+	}
 	edges := [2][]intersect.AffineArrangementEdge{result.regions[0].Edges(), result.regions[1].Edges()}
 	for region, arr := range result.regions {
 		for _, cycle := range arr.Cycles() {
@@ -263,24 +265,26 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 				if edge.Parameter[0].Cmp(edge.Parameter[1]) >= 0 {
 					return nil, geom.ErrInvalid
 				}
-				stockParts[edge.Edge] = append(stockParts[edge.Edge], edge.Parameter)
+				stockParts[edge.Ring][edge.Edge] = append(stockParts[edge.Ring][edge.Edge], edge.Parameter)
 			}
 		}
 	}
 	// Complete stock-boundary ownership, independent of area conservation.
-	for _, parts := range stockParts {
-		sort.Slice(parts, func(i, j int) bool { return parts[i][0].Cmp(parts[j][0]) < 0 })
-		cursor := new(big.Rat)
-		for _, p := range parts {
-			budget.check(p[0])
-			budget.check(p[1])
-			if p[0].Cmp(cursor) != 0 {
+	for _, ringParts := range stockParts {
+		for _, parts := range ringParts {
+			sort.Slice(parts, func(i, j int) bool { return parts[i][0].Cmp(parts[j][0]) < 0 })
+			cursor := new(big.Rat)
+			for _, p := range parts {
+				budget.check(p[0])
+				budget.check(p[1])
+				if p[0].Cmp(cursor) != 0 {
+					return nil, geom.ErrInvalid
+				}
+				cursor = p[1]
+			}
+			if cursor.Cmp(big.NewRat(1, 1)) != 0 {
 				return nil, geom.ErrInvalid
 			}
-			cursor = p[1]
-		}
-		if cursor.Cmp(big.NewRat(1, 1)) != 0 {
-			return nil, geom.ErrInvalid
 		}
 	}
 	used := make([]bool, len(edges[1]))
@@ -314,19 +318,22 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 	}
 	// Require genuine crossing rather than a wholly contained circular boundary.
 	crossed := false
-	for _, parts := range stockParts {
-		if len(parts) > 1 {
-			crossed = true
+	for _, ringParts := range stockParts {
+		for _, parts := range ringParts {
+			if len(parts) > 1 {
+				crossed = true
+			}
 		}
 	}
 	if !crossed {
 		return nil, geom.ErrDomain
 	}
 	stockArea := new(big.Rat)
-	ring := profiles[0].trim.Outer
-	for i, v := range ring {
-		w := ring[(i+1)%len(ring)]
-		stockArea = budget.op('+', stockArea, budget.op('-', budget.op('*', v[0], w[1]), budget.op('*', v[1], w[0])))
+	for _, ring := range stockRings {
+		for i, v := range ring {
+			w := ring[(i+1)%len(ring)]
+			stockArea = budget.op('+', stockArea, budget.op('-', budget.op('*', v[0], w[1]), budget.op('*', v[1], w[0])))
+		}
 	}
 	stockArea = budget.op('/', stockArea, big.NewRat(2, 1))
 	if budget.op('+', areas[0], areas[1]).Cmp(stockArea) != 0 {
