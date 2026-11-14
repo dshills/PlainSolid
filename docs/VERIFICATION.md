@@ -6319,3 +6319,12 @@ Tests confirm shared cap removal, original wall ancestry, and rejection
 of isolated point and line contacts. The combined main race run for the
 dispatcher, abutting Fuse, and anisotropic bore measures passed in
 62.052 seconds.
+
+### Exact nonconforming spline border sewing
+
+A spline roof and wall with different subdivisions sewed into the
+original closed shell. Tests checked complete curve identity, source
+ownership, physical volume, native reload, and exact work limits.
+A curve with the same endpoint anchors and a different interior was
+rejected. Combined spline, straight, and original sewing race tests
+passed in 4.355 seconds.

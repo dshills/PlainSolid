@@ -24,14 +24,17 @@ type ExactSewnSegment struct {
 	Lower, Upper *big.Rat
 }
 
-// ExactStraightSewReport maps every original vertex and model edge. Segments
+// ExactSubdivisionSewReport maps every original vertex and model edge. Segments
 // for an original edge are ordered by its original increasing parameter.
 // InsertedVertices counts source slots added before canonical sewing.
-type ExactStraightSewReport struct {
+type ExactSubdivisionSewReport struct {
 	Vertices, FlippedFaces                   []int
 	Segments                                 [][]ExactSewnSegment
 	PairTests, Comparisons, InsertedVertices int
 }
+
+// ExactStraightSewReport is the subdivision report for straight borders.
+type ExactStraightSewReport = ExactSubdivisionSewReport
 
 // SewExactStraightSubdivisions discovers unmatched straight source borders
 // with different segmentations. It subdivides only single-use borders with
@@ -60,11 +63,18 @@ func SewExactStraightSubdivisions(ctx context.Context, vertices []geom.Vec3, edg
 	if err != nil {
 		return Solid{}, empty, err
 	}
-	split, intervals, err := splitStraightSewBorders(ctx, source, partitions)
+	return sewSubdividedBorders(ctx, source, settings, partitions, tested, func(edge int, parameters []*big.Rat) ([]geom.Vec3, []geom.Curve, error) {
+		return sampleStraightSewBorder(source, edge, parameters)
+	})
+}
+
+func sewSubdividedBorders(ctx context.Context, source Solid, settings ExactSewOptions, partitions [][]*big.Rat, tested int, sample sewBorderSampler) (Solid, ExactSubdivisionSewReport, error) {
+	var empty ExactSubdivisionSewReport
+	split, intervals, err := splitSewBorders(ctx, source, partitions, sample)
 	if err != nil {
 		return Solid{}, empty, err
 	}
-	if len(split.edges) != len(edges) {
+	if len(split.edges) != len(source.edges) {
 		if err = validateExactSewSource(ctx, split, settings); err != nil {
 			return Solid{}, empty, err
 		}
@@ -78,9 +88,9 @@ func SewExactStraightSubdivisions(ctx context.Context, vertices []geom.Vec3, edg
 			pieces[i].ExactSewnEdge = report.Edges[pieces[i].Edge]
 		}
 	}
-	return solid, ExactStraightSewReport{
-		Vertices: slices.Clone(report.Vertices[:len(vertices)]), FlippedFaces: report.FlippedFaces, Segments: intervals,
-		PairTests: tested, Comparisons: report.Comparisons, InsertedVertices: len(split.vertices) - len(vertices),
+	return solid, ExactSubdivisionSewReport{
+		Vertices: slices.Clone(report.Vertices[:len(source.vertices)]), FlippedFaces: report.FlippedFaces, Segments: intervals,
+		PairTests: tested, Comparisons: report.Comparisons, InsertedVertices: len(split.vertices) - len(source.vertices),
 	}, nil
 }
 
@@ -220,7 +230,11 @@ func (a affineSewBorder) coordinate(p [3]float64) *big.Rat {
 	return t
 }
 
-func splitStraightSewBorders(ctx context.Context, s Solid, cuts [][]*big.Rat) (Solid, [][]ExactSewnSegment, error) {
+// A sampler gets the ascending partition including zero and one, returning
+// exact source points and normalized curves in the original traversal.
+type sewBorderSampler func(edge int, parameters []*big.Rat) ([]geom.Vec3, []geom.Curve, error)
+
+func splitSewBorders(ctx context.Context, s Solid, cuts [][]*big.Rat, sample sewBorderSampler) (Solid, [][]ExactSewnSegment, error) {
 	var out Solid
 	out.vertices, out.faces = s.Vertices(), s.Faces()
 	pieces := make([][]ExactSewnSegment, len(s.edges))
@@ -234,25 +248,22 @@ func splitStraightSewBorders(ctx context.Context, s Solid, cuts [][]*big.Rat) (S
 			out.edges = append(out.edges, e)
 			continue
 		}
-		start, end := s.vertices[e.Start], s.vertices[e.End]
-		lo, previous := zero, e.Start
-		for _, hi := range append(cuts[i], one) {
+		parameters := append([]*big.Rat{zero}, cuts[i]...)
+		parameters = append(parameters, one)
+		points, curves, err := sample(i, parameters)
+		if err != nil {
+			return Solid{}, nil, err
+		}
+		previous := e.Start
+		for j, curve := range curves {
 			next := e.End
-			if hi != one {
-				v, err := straightSewMix(hi, [3]float64{start.X, start.Y, start.Z}, [3]float64{end.X, end.Y, end.Z})
-				if err != nil {
-					return Solid{}, nil, err
-				}
+			if j+1 < len(curves) {
 				next = len(out.vertices)
-				out.vertices = append(out.vertices, geom.Vec3{X: v[0], Y: v[1], Z: v[2]})
+				out.vertices = append(out.vertices, points[j+1])
 			}
-			curve, err := straightSewCurve([2]geom.Vec3{out.vertices[previous], out.vertices[next]})
-			if err != nil {
-				return Solid{}, nil, err
-			}
-			pieces[i] = append(pieces[i], ExactSewnSegment{ExactSewnEdge{Edge: len(out.edges)}, lo, hi})
+			pieces[i] = append(pieces[i], ExactSewnSegment{ExactSewnEdge{Edge: len(out.edges)}, parameters[j], parameters[j+1]})
 			out.edges = append(out.edges, parametric.Edge{Start: previous, End: next, Curve: curve, Range: parametric.Interval{Max: 1}})
-			lo, previous = hi, next
+			previous = next
 		}
 	}
 	for i := range out.faces {
@@ -270,6 +281,28 @@ func splitStraightSewBorders(ctx context.Context, s Solid, cuts [][]*big.Rat) (S
 		}
 	}
 	return out, pieces, nil
+}
+
+func sampleStraightSewBorder(s Solid, edge int, parameters []*big.Rat) ([]geom.Vec3, []geom.Curve, error) {
+	e := s.edges[edge]
+	start, end := s.vertices[e.Start], s.vertices[e.End]
+	points, curves := make([]geom.Vec3, len(parameters)), make([]geom.Curve, len(parameters)-1)
+	points[0], points[len(points)-1] = start, end
+	for i := 1; i+1 < len(points); i++ {
+		v, err := straightSewMix(parameters[i], [3]float64{start.X, start.Y, start.Z}, [3]float64{end.X, end.Y, end.Z})
+		if err != nil {
+			return nil, nil, err
+		}
+		points[i] = geom.Vec3{X: v[0], Y: v[1], Z: v[2]}
+	}
+	for i := range curves {
+		c, err := straightSewCurve([2]geom.Vec3{points[i], points[i+1]})
+		if err != nil {
+			return nil, nil, err
+		}
+		curves[i] = c
+	}
+	return points, curves, nil
 }
 
 func straightSewMix(t *big.Rat, a, b [3]float64) (out [3]float64, err error) {

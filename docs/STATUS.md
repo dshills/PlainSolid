@@ -2403,3 +2403,10 @@ Prisms meeting on an exact cap plane can be fused when their crossing cap
 footprints have positive-area overlap. The native result removes the
 shared cap interior. Its exposed shoulders keep the original cap IDs,
 and both original wall bands retain their full source intervals.
+
+### Exact spline border subdivision during sewing
+
+`SewExactSplineSubdivisions` recovers unique rational endpoint preimages
+on supported single-span spline borders with affine UV coedges. It
+proves equality over the full common interval before subdividing.
+The result retains original supports and exact source parameter ranges.
