@@ -98,8 +98,8 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 			if v.Kind != Number || len(v.Text) > 128 {
 				return geom.ErrInvalid
 			}
-			q, ok := new(big.Rat).SetString(v.Text)
-			if !ok || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
+			q, err := liftSourceRat(*v)
+			if err != nil || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
 				return geom.ErrInvalid
 			}
 			q.Mul(q, ratio)
