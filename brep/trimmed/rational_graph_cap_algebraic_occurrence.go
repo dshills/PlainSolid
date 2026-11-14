@@ -168,6 +168,22 @@ func (o AlgebraicGraphStockOccurrence) IntersectVerticalBoundaryRational(ctx con
 	return o.model.IntersectRationalVerticalBoundary(ctx, a, d, extent, options)
 }
 
+// CoverLineRational returns the placed stock's complete material coverage
+// along a line with a nonzero direction transverse to its original Z axis.
+func (o AlgebraicGraphStockOccurrence) CoverLineRational(ctx context.Context, origin, direction [3]*big.Rat,
+	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphStockLineCoverage, error) {
+	var zero AlgebraicGraphStockLineCoverage
+	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	return o.model.CoverRationalLine(ctx, a, d, extent, options)
+}
+
 func (o AlgebraicGraphStockOccurrence) intersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions, includeTouches, includeJunctions bool) (AlgebraicGraphVerticalLine, error) {
 	var zero AlgebraicGraphVerticalLine
