@@ -591,6 +591,13 @@ live STEP checks and all 17 original browser cases passed; 841 app and
 2,023 kernel source hashes matched. The [authored model](evidence/plaincad-reconciled-3a36a277-supplemental-skew-companion-step-2026-11-14.json)
 retained both blind floors and its separate through passage in STEP and
 watertight STL. Independent OCCT readback reproduced the reference measures.
+The [cardinal and oblique crossing reconciliation](evidence/plaincad-reconciled-0cc754b3-development-crossed-oblique-holes-step-2026-11-14.json)
+adds worktree revisions through `7a6f097f` to review `0cc754b3`.
+The focused Go and live STEP checks and all 17 original browser cases
+passed, verifying 841 app and 2,035 kernel source files. The [authored model](evidence/plaincad-reconciled-0cc754b3-supplemental-crossed-oblique-step-2026-11-14.json)
+retained its 16 analytic elliptical trims, reopened through STEP, and
+produced watertight STL. The actual exported STEP matched live OCCT
+reference measures.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

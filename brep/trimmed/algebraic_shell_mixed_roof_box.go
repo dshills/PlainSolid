@@ -112,12 +112,17 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 			return nil, err
 		}
 		coeff, minWeight, ok := r.roof.RationalBiquadraticCoefficients()
-		if !ok || coeff[2][2][3].Sign() != 0 {
+		// With identity XY, Hx=X*W and Hy=Y*W. A biquadratic
+		// patch can therefore have at most bilinear nonconstant weight.
+		if !ok {
 			return nil, geom.ErrUnrepresentable
 		}
 		r.minWeight = minWeight
 		for a, row := range coeff {
 			for b, c := range row {
+				if (a == 2 || b == 2) && c[3].Sign() != 0 {
+					return nil, geom.ErrUnrepresentable
+				}
 				for _, v := range []*big.Rat{c[2], c[3], minWeight} {
 					if !mixedRoofFits(v, 4096) {
 						return nil, geom.ErrConvergence

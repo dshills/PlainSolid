@@ -40,9 +40,10 @@ func TestOCCTTorusCylinderOccurrence(t *testing.T) {
 	}
 	for {
 		var ref struct {
-			Operation     int
-			Normal, Point [3]float64
-			Parameters    []float64
+			Operation       int
+			SquaredDistance float64
+			Normal, Point   [3]float64
+			Parameters      []float64
 		}
 		e := dec.Decode(&ref)
 		if e == io.EOF {
@@ -60,6 +61,17 @@ func TestOCCTTorusCylinderOccurrence(t *testing.T) {
 		occ, e := placement.PlaceTorusCylinder(ctx, source, pose)
 		if e != nil {
 			t.Fatal(e)
+		}
+		query, _ := pose.TransformPoint(ctx, [3]*big.Rat{r(4, 1), r(1, 1), r(3, 2)}, false, 4096)
+		nearest, err := occ.BoundBoundaryDistance(ctx, query, geom.TorusCylinderDistanceOptions{SquaredTolerance: r(1, 10000)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		lo, _ := nearest.Base.Lower.Float64()
+		hi, _ := nearest.Base.Upper.Float64()
+		tol := 3e-7 * math.Max(1, ref.SquaredDistance)
+		if math.IsNaN(ref.SquaredDistance) || ref.SquaredDistance < lo-tol || ref.SquaredDistance > hi+tol {
+			t.Fatal("placed boundary distance", ref.SquaredDistance, lo, hi)
 		}
 		x := int64(7)
 		if ref.Operation == 0 {
