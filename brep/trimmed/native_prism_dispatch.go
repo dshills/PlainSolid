@@ -43,6 +43,7 @@ const (
 	NativePrismFamilyAbuttingFuse
 	NativePrismFamilyTiedFuse
 	NativePrismFamilySideAbuttingFuse
+	NativePrismFamilyProfileCoveredCut
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
@@ -70,6 +71,7 @@ type NativePrismMaterial struct {
 	tiedFuse           *NativeTiedPrismFuse
 	sideAbuttingFuse   *NativeSideAbuttingPrismFuse
 	classificationWork int
+	profileCoveredCut  *NativePrismProfileCoveredCut
 }
 
 // Complete distinguishes a published proof from a zero-value result.
@@ -181,6 +183,12 @@ func (s *NativePrismMaterial) CoveringCutProof() *NativePrismCoveringCut {
 	}
 	return s.coveringCut
 }
+func (s *NativePrismMaterial) ProfileCoveredCutProof() *NativePrismProfileCoveredCut {
+	if s == nil {
+		return nil
+	}
+	return s.profileCoveredCut
+}
 func (s *NativePrismMaterial) SideAbuttingFuseProof() *NativeSideAbuttingPrismFuse {
 	if s == nil {
 		return nil
@@ -264,6 +272,12 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 		} else if y.lo <= x.lo && x.hi <= y.hi {
 			rank = 3
 		}
+		// Proposal priority only: exact complete profile inclusion is re-proved
+		// below before the covering-slab family can publish any material.
+		if operation == intersect.AffineRingDifference && x.lo < y.hi && y.lo < x.hi && !(y.lo <= x.lo && x.hi <= y.hi) && y.bounds[0][0] <= x.bounds[0][0] && x.bounds[0][1] <= y.bounds[0][1] && y.bounds[1][0] <= x.bounds[1][0] && x.bounds[1][1] <= y.bounds[1][1] {
+			rank = 1
+		}
+
 		if operation == intersect.AffineRingUnion && ((x.lo == y.lo && x.hi != y.hi) || (x.hi == y.hi && x.lo != y.lo)) {
 			rank = 1
 		}
@@ -433,7 +447,13 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 	}
 	out.kind = NativePrismMaterialSolid
 	if operation == intersect.AffineRingDifference {
-		if bInsideA {
+		if aInsideB {
+			out.profileCoveredCut, e = buildProfileCoveredNativePrismCut(ctx, common, o.Publish, 0)
+			if e == nil {
+				out.family = NativePrismFamilyProfileCoveredCut
+				out.components = out.profileCoveredCut.Components()
+			}
+		} else if bInsideA {
 			switch {
 			case y.lo <= x.lo && x.hi <= y.hi:
 				out.through, e = CutContainedNativePrismThrough(ctx, a, b, o.Construct)

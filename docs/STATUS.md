@@ -2436,3 +2436,10 @@ interior shoulder retain their own cap IDs. Side-abutting prisms can
 also fuse over an exact positive-area wall interface. The wall builder
 retains both sets of original caps and records the surviving original
 wall fractions.
+
+### Profile-covering axial Cut
+
+A cutter that covers the complete stock footprint can remove an
+interior or one-ended axial interval. The retained native slabs
+preserve the stock's holes and original wall ranges. Forming caps
+retain the reversed original cutter-cap provenance.

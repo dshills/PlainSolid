@@ -6357,3 +6357,12 @@ the removed shared area and surviving original wall fractions for
 staggered and nested spans. The combined main race run passed in
 42.309 seconds. Lower-dimensional contact and unrepresentable native
 vertices were checked separately.
+
+### Profile-covering Cut qualification
+
+The exact retained-slab tests exercised one and two components,
+original stock holes, reversed forming caps, tied heights, and
+construction quotas. The pinned OCCT comparator also independently
+verified volume, area, centroid, and topology for both slab configurations
+under two placements. The combined comparator and native prism race
+run passed in 5.971 seconds.
