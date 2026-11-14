@@ -58,18 +58,12 @@ func CombineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op param
 	return combineCoaxialWrappedStationLofts(ctx, a, b, op, o, true)
 }
 
-// CombineCoaxialWrappedRationalStationLofts builds Common or Fuse of two
-// complete station lofts sharing an exact normalized rational profile, axis
-// and end planes. Each output wall preserves the selected original U basis.
-// Crossing vertices must be exactly representable in native topology.
+// CombineCoaxialWrappedRationalStationLofts builds Common, Fuse or strict
+// through-bore Cut of two complete lofts sharing an exact normalized
+// rational profile, axis and end planes. Each output wall preserves the
+// selected original U basis. Crossing vertices must be exactly represented.
 func CombineCoaxialWrappedRationalStationLofts(ctx context.Context, a, b Solid, op parametric.BooleanOp,
 	o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
-	if ctx == nil || op > parametric.Difference {
-		return Solid{}, WrappedStationBooleanHistory{}, geom.ErrInvalid
-	}
-	if op == parametric.Difference {
-		return Solid{}, WrappedStationBooleanHistory{}, geom.ErrUnrepresentable
-	}
 	return combineCoaxialWrappedStationLofts(ctx, a, b, op, o, false)
 }
 
@@ -94,9 +88,8 @@ func combineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op param
 	if !circular {
 		// Each original station proof guarantees one shared profile
 		// within its operand. Compare the first normalized rims in full.
-		p := geom.WrappedCylinderEmbedding{CenterX: x.Center[0], CenterY: x.Center[1], Radius: x.Radii[0]}
-		q := geom.WrappedCylinderEmbedding{CenterX: y.Center[0], CenterY: y.Center[1], Radius: y.Radii[0]}
-		equal, e := sameNormalizedCylinderProfile(ctx, xb[0], yb[0], p, q, o)
+		equal, e := sameNormalizedWrappedProfile(ctx, [2]*geom.WrappedSurfacePatch{xb[0], yb[0]},
+			x.Center, [2]*big.Rat{x.Radii[0], y.Radii[0]}, o)
 		if e != nil {
 			return Solid{}, h, e
 		}
@@ -236,6 +229,9 @@ func combineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op param
 		}
 		if strictBore {
 			return joinWrappedStationLoftBore(ctx, a, b, x, y, o)
+		}
+		if !circular {
+			return Solid{}, h, geom.ErrUnrepresentable
 		}
 		return Solid{}, h, geom.ErrConvergence
 	}

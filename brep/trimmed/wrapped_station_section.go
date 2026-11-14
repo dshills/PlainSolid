@@ -51,21 +51,8 @@ func (s Solid) SectionWrappedCircularStationLoft(ctx context.Context, height flo
 func (s Solid) SectionWrappedRationalStationLoftRational(ctx context.Context, height *big.Rat,
 	o geom.SurfacePatchOptions) (WrappedStationSection, error) {
 	empty := WrappedStationSection{Cap: -1}
-	if ctx == nil || height == nil {
-		return empty, geom.ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
+	if err := checkStationSectionHeight(ctx, height, o); err != nil {
 		return empty, err
-	}
-	bits := o.MaxCoefficientBits
-	if bits == 0 {
-		bits = 16384
-	}
-	if bits < 64 || bits > 65536 {
-		return empty, geom.ErrInvalid
-	}
-	if height.Num().BitLen() > bits || height.Denom().BitLen() > bits {
-		return empty, geom.ErrConvergence
 	}
 	height = new(big.Rat).Set(height)
 	p, _, err := s.validateWrappedProfileStationLoft(ctx, o, false)
@@ -83,15 +70,50 @@ func (s Solid) SectionWrappedRationalStationLoftRational(ctx context.Context, he
 // section curves, with independent crease ancestry on each wall family.
 func (s Solid) SectionWrappedCircularStationBore(ctx context.Context, height float64,
 	o geom.SurfacePatchOptions) (WrappedStationSection, error) {
-	r := WrappedStationSection{Cap: -1}
 	if !finite(height) {
-		return r, geom.ErrInvalid
+		return WrappedStationSection{Cap: -1}, geom.ErrInvalid
 	}
-	p, e := s.ValidateWrappedCircularStationBore(ctx, o)
+	return s.sectionWrappedStationBore(ctx, ratInset(height), o, true)
+}
+
+// SectionWrappedRationalStationBoreRational returns both original weighted
+// section loops. Inner is the hole, not a second solid. A terminal section
+// names the original annular cap, and internal station rims name both walls.
+func (s Solid) SectionWrappedRationalStationBoreRational(ctx context.Context, height *big.Rat,
+	o geom.SurfacePatchOptions) (WrappedStationSection, error) {
+	if err := checkStationSectionHeight(ctx, height, o); err != nil {
+		return WrappedStationSection{Cap: -1}, err
+	}
+	return s.sectionWrappedStationBore(ctx, new(big.Rat).Set(height), o, false)
+}
+
+func checkStationSectionHeight(ctx context.Context, z *big.Rat, o geom.SurfacePatchOptions) error {
+	if ctx == nil || z == nil {
+		return geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	bits := o.MaxCoefficientBits
+	if bits == 0 {
+		bits = 16384
+	}
+	if bits < 64 || bits > 65536 {
+		return geom.ErrInvalid
+	}
+	if z.Num().BitLen() > bits || z.Denom().BitLen() > bits {
+		return geom.ErrConvergence
+	}
+	return nil
+}
+
+func (s Solid) sectionWrappedStationBore(ctx context.Context, z *big.Rat,
+	o geom.SurfacePatchOptions, circular bool) (WrappedStationSection, error) {
+	r := WrappedStationSection{Cap: -1}
+	p, e := s.validateWrappedProfileStationBore(ctx, o, circular)
 	if e != nil {
 		return r, e
 	}
-	z := ratInset(height)
 	r.Outer, e = s.sectionWrappedStationWalls(ctx, p.Outer, p.OuterWalls, z, o)
 	if e != nil {
 		return WrappedStationSection{Cap: -1}, e

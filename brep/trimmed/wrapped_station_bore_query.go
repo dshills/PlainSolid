@@ -10,7 +10,7 @@ import (
 )
 
 // WrappedStationBoreProof recovers both original band families and two
-// annular caps of a strictly nested equal-height circular station loft bore.
+// annular caps of a strictly nested equal-height station loft bore.
 // The station proofs refer to reconstructed cap-complete shells; their wall
 // IDs are remapped in OuterWalls and InnerWalls to the original solid.
 type WrappedStationBoreProof struct {
@@ -24,13 +24,23 @@ type WrappedStationBoreProof struct {
 // capped lofts and proves their nested radii and the original shared
 // annular topology. This includes exact validation after native reload.
 func (s Solid) ValidateWrappedCircularStationBore(ctx context.Context, o geom.SurfacePatchOptions) (WrappedStationBoreProof, error) {
+	return s.validateWrappedProfileStationBore(ctx, o, true)
+}
+
+// ValidateWrappedRationalStationBore independently authenticates both
+// original outward/inward rational profile families and their annular caps.
+func (s Solid) ValidateWrappedRationalStationBore(ctx context.Context, o geom.SurfacePatchOptions) (WrappedStationBoreProof, error) {
+	return s.validateWrappedProfileStationBore(ctx, o, false)
+}
+
+func (s Solid) validateWrappedProfileStationBore(ctx context.Context, o geom.SurfacePatchOptions, circular bool) (WrappedStationBoreProof, error) {
 	if ctx == nil {
 		return WrappedStationBoreProof{}, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return WrappedStationBoreProof{}, e
 	}
-	if len(s.faces) < 4 || len(s.faces) > 256 {
+	if len(s.faces) < 4 || len(s.faces) > 256 || !circular && len(s.faces) > 34 {
 		return WrappedStationBoreProof{}, geom.ErrConvergence
 	}
 	type item struct {
@@ -46,7 +56,7 @@ func (s Solid) ValidateWrappedCircularStationBore(ctx context.Context, o geom.Su
 			if e != nil {
 				return WrappedStationBoreProof{}, e
 			}
-			if !p.Circular || len(f.Holes) != 0 {
+			if circular && !p.Circular || len(f.Holes) != 0 {
 				return WrappedStationBoreProof{}, geom.ErrConvergence
 			}
 			i := 0
@@ -68,23 +78,27 @@ func (s Solid) ValidateWrappedCircularStationBore(ctx context.Context, o geom.Su
 	}
 	var solids [2]Solid
 	var proofs [2]WrappedStationLoftProof
+	build := NewWrappedRationalStationLoft
+	if circular {
+		build = NewWrappedCircularStationLoft
+	}
 	for i, items := range sides {
 		sort.Slice(items, func(i, j int) bool { return items[i].z.Cmp(items[j].z) < 0 })
 		w := make([]*geom.WrappedSurfacePatch, len(items))
 		for j, x := range items {
 			w[j] = x.w
 		}
-		q, _, e := NewWrappedCircularStationLoft(ctx, w, s.tolerance, o)
+		q, _, e := build(ctx, w, s.tolerance, o)
 		if e != nil {
 			return WrappedStationBoreProof{}, e
 		}
-		p, e := q.ValidateWrappedCircularStationLoft(ctx, o)
+		p, _, e := q.validateWrappedProfileStationLoft(ctx, o, circular)
 		if e != nil {
 			return WrappedStationBoreProof{}, e
 		}
 		solids[i], proofs[i] = q, p
 	}
-	ref, h, e := CombineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o)
+	ref, h, e := combineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o, circular)
 	if e != nil {
 		return WrappedStationBoreProof{}, e
 	}

@@ -212,25 +212,28 @@ func sameNormalizedCylinderProfile(ctx context.Context, a, b *geom.WrappedSurfac
 	if pa.Circular && pb.Circular {
 		return true, nil
 	}
+	return sameNormalizedWrappedProfile(ctx, [2]*geom.WrappedSurfacePatch{a, b},
+		[2]*big.Rat{pa.CenterX, pa.CenterY}, [2]*big.Rat{pa.Radius, pb.Radius}, o)
+}
+
+func sameNormalizedWrappedProfile(ctx context.Context, support [2]*geom.WrappedSurfacePatch, axis, radii [2]*big.Rat, o geom.SurfacePatchOptions) (bool, error) {
 	// The canonical axes and center already agree. Compare cross-scaled
 	// profiles using exact represented radii without dividing into a
 	// potentially unrepresentable scale.
-	support := [2]*geom.WrappedSurfacePatch{a, b}
-	scales := [2]*big.Rat{pb.Radius, pa.Radius}
 	var curves [2]*geom.ExactSplineCurve
 	// Translate by the common center before scaling. Translation after
 	// scaling is performed separately so no rational product is rounded.
-	cx, e := geom.RepresentedExactScalar(pa.CenterX)
+	cx, e := geom.RepresentedExactScalar(axis[0])
 	if e != nil {
 		return false, e
 	}
-	cy, e := geom.RepresentedExactScalar(pa.CenterY)
+	cy, e := geom.RepresentedExactScalar(axis[1])
 	if e != nil {
 		return false, e
 	}
 	center := geom.Affine{{1, 0, 0, -cx}, {0, 1, 0, -cy}, {0, 0, 0, 0}}
 	for i, w := range support {
-		s, e := geom.RepresentedExactScalar(scales[i])
+		s, e := geom.RepresentedExactScalar(radii[1-i])
 		if e != nil {
 			return false, e
 		}
