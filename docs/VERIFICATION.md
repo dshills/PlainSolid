@@ -6199,3 +6199,12 @@ and irrational corner contacts. Tests distinguish a single corner tangent,
 a supporting edge span and an open material interval. The line scale and
 original corner and edge IDs remain intact. Insufficient bracket precision
 returns no partial clip. The combined focused race passed in 1.271 s.
+
+### Full native CI partition
+
+Intersection has a separate job because its measured full race run lasted
+71.7 minutes. The three longest measured trimmed fixtures also have separate
+jobs, with the remaining tests split across six deterministic groups. A local
+inventory comparison covered 1,123 top-level tests, examples and fuzz seed
+entries exactly once. The three original complete-group selectors still
+produce the same combined inventory. Hosted jobs are unverified until run.

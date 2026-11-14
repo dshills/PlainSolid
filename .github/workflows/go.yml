@@ -19,11 +19,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
           cache: false
-      - name: Tests outside the trimmed-solid package
+      - name: Tests outside the intersection and trimmed-solid packages
         shell: bash
         run: |
           packages=$(go list ./...)
-          packages=$(printf '%s\n' "$packages" | awk '$0 != "plainsolid/brep/trimmed"')
+          packages=$(printf '%s\n' "$packages" | awk '$0 != "plainsolid/brep/trimmed" && $0 != "plainsolid/intersect"')
           go test -timeout 45m $packages
       - run: go vet ./...
       - name: Race detector
@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           packages=$(go list ./...)
-          packages=$(printf '%s\n' "$packages" | awk '$0 != "plainsolid/brep/trimmed"')
+          packages=$(printf '%s\n' "$packages" | awk '$0 != "plainsolid/brep/trimmed" && $0 != "plainsolid/intersect"')
           go test -race -timeout 60m $packages
   trimmed:
     strategy:
@@ -39,7 +39,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         go: ['1.23.x', stable]
-        shard: [0, 1, 2]
+        shard: [0, 1, 2, 3, 4, 5]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -50,11 +50,52 @@ jobs:
           cache: false
       - name: Trimmed-solid tests
         shell: bash
-        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 -timeout 45m
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 6 --regular -timeout 45m
       - name: Trimmed-solid race detector
         if: runner.os != 'Windows'
         shell: bash
-        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 -race -timeout 60m
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 6 --regular -race -timeout 60m
+  intersect:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 260
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Intersection tests
+        run: go test ./intersect -timeout 65m
+      - name: Intersection race detector
+        if: runner.os != 'Windows'
+        run: go test -race ./intersect -timeout 175m
+  trimmed-long:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+        shard: [0, 1, 2]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 290
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Long trimmed-solid test
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 --long -timeout 65m
+      - name: Long trimmed-solid race test
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 --long -race -timeout 205m
   fuzz:
     runs-on: ubuntu-latest
     steps:
