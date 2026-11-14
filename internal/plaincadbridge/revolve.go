@@ -89,16 +89,7 @@ func (b *Bridge) revolveCircle(q request, angle float64) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
-	var s parametric.Solid
-	if math.Abs(angle) == 2*math.Pi {
-		s, err = parametric.Torus(f, major, minor)
-	} else {
-		s, err = parametric.TorusElbow(f, major, minor, math.Abs(angle))
-	}
-	if err != nil {
-		return Shape{}, err
-	}
-	body, err := revolutionPatches(s)
+	body, err := (torusSweep{frame: f, major: major, minor: minor, angle: math.Abs(angle)}).body()
 	if err != nil {
 		return Shape{}, err
 	}

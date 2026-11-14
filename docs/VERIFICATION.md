@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD construction-axis Revolve STEP exchange — 2026-11-14
+
+Circular Revolve retains the recipe for a complete ring torus or bounded
+elbow. The STEP path uses the existing toroidal writer and verifies the
+face and seam graph on import before rebuilding the native display and
+fabrication patches. Signed sweeps, rigid reflection, non-millimeter
+units and an independently authored elbow pass the bridge checks.
+
+[Five original Revolve and STEP cases plus provider preflight](evidence/plaincad-torus-sweep-step-browser-2026-11-14.json)
+pass on the same WASM as the [authored construction-axis round-trip](evidence/plaincad-torus-sweep-step-native-2026-11-14.json).
+The 3,990-byte quarter-torus STEP reexports byte-identically after
+import and project reopen. Its STL has 24,448 triangles and a
+two-use edge count throughout. OCCT agrees with the analytic volume
+and area. The existing independent ring and elbow exchange checks,
+focused race checks and Go vet pass.
+
 ## PlainCAD circular lens STEP exchange — 2026-11-14
 
 Exact disk and circular-arc intersections extrude two cylindrical walls

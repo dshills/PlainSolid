@@ -296,6 +296,17 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		p := m.Model
 		return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, p.LengthUnit)
 	}
+	if strings.Contains(strings.ToUpper(source), "TOROIDAL_SURFACE") {
+		if m, e := step.ReadAnalyticBodies(r(), stepLimits()); e == nil {
+			if recipe, ok := torusFromSTEP(m); ok {
+				body, err := recipe.body()
+				if err != nil {
+					return Shape{}, err
+				}
+				return b.putAnalyticBody(body)
+			}
+		}
+	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
 		if p, ok := m.Bodies[0].CompleteCylinder(); ok {
@@ -469,6 +480,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.pockets != nil:
 		p := s.analytic.pockets
 		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
+	case s.analytic != nil && s.analytic.torus != nil:
+		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
 		if s.analytic.segment != nil {
 			if p, ok := s.analytic.segment.semicircleSTEP(); ok {
