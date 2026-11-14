@@ -14,6 +14,7 @@ import (
 // have identically zero XY Jacobian.
 type AlgebraicGraphVerticalMaterial struct {
 	caps      [2]AlgebraicGraphCapClip
+	seams     []AlgebraicGraphCapPairSeam
 	lower     int
 	maxBits   int
 	lineReady bool
@@ -76,7 +77,7 @@ func (c AlgebraicGraphCapPair) PrepareVerticalMaterial(ctx context.Context, o Ra
 	if e != nil {
 		return zero, e
 	}
-	return AlgebraicGraphVerticalMaterial{caps: c.caps, lower: lower, maxBits: roots.MaxCoefficientBits, lineReady: lineReady}, nil
+	return AlgebraicGraphVerticalMaterial{caps: c.caps, seams: c.seams, lower: lower, maxBits: roots.MaxCoefficientBits, lineReady: lineReady}, nil
 }
 
 // VerticalFiber proves exact material on the vertical line through xy. Both

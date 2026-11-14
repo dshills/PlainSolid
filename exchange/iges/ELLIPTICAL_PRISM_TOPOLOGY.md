@@ -54,3 +54,34 @@ bounded parsing and exact geometry's own budgets. Staged writer re-import,
 mutation tests for rim ownership/vertex incidence/coedge and shell senses,
 normal/race/Go1.23/vet and100x fuzz. Optional live variable:
 `PLAINSOLID_OCCT_IGES_ELLIPTICAL_PRISM_TOPOLOGY`.
+
+## Native exact material promotion
+
+`ReadEllipticalPrismMaterial` now authenticates that same strict source and
+constructs a native `trimmed.Solid` directly through `internal/ellipticprism`.
+The internal builder is shared with existing STEP codecs; no STEP text or
+format dependency is introduced. It uses exact rational ellipse quarters with
+weights(1,1,2), exact representable translated poles, four tensor side patches
+and two analytic planar caps. Continuous model/pcurve edge identity and native
+closure are proved by existing exact sewing. The positive-height extrusion of
+one simple ellipse gives the constructive material orientation and embedding;
+no topology-only inference or vendor approximation is promoted.
+
+Native face order is lower cap,upper cap,four sides, mapped separately to source
+face IDs35,33,31,31,31,31. Two arrays of four native rim edges retain the partition
+of source full rim curves9,11. Original source edges/face/entity IDs stay in the
+`Topology` record and are not overwritten by native partition IDs. A positive
+caller tolerance controls native validation only; it cannot relax the strict
+source predicate or change exact control geometry.
+
+`Write/ReadEllipticalPrismMaterialJSON` persists a version1 source-bound recipe
+and the complete native trimmed JSON. Read independently re-proves source,
+rebuilds canonical native geometry and matches the supplied native JSON plus
+all source parameters/metadata and partition ancestry. Changed controls,
+ancestry, tolerance or format cannot bypass this reproof. Envelope512KiB maximum
+(and caller MaxBytes), source retains the smaller topology limits. Invalid data
+returns no partial material. Stable canonical bytes, plain trimmed reload,
+zero continuous edge discrepancies, closed tessellation, analytic volume/area
+and centroid are exercised. Independent OCCT also loads IGES generated after
+material JSON reload. Original STEP exact/repaired/Pythagorean builder paths
+remain regression tested after the shared code extraction.

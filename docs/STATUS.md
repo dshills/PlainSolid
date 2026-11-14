@@ -14,9 +14,17 @@ These additions do not qualify arbitrary curved Boolean inputs, arbitrary
 STEP assemblies, or general offset/fillet topology.
 The weighted stock case subsequently gained a closed certified fill
 (`e594887`) and exact original-wall distance under placement (`952e9a4`).
-Exact IGES model-curve exchange now covers independent full and directed
-quarter ellipses (`1d82f07`, `3fe7325`). This is curve exchange; IGES
-ellipse-face and solid ownership still require additional work.
+Exact IGES exchange covers full and directed quarter ellipses, elliptical
+disk and concentric annulus faces, and a strictly authenticated model-only
+elliptical prism topology graph (`a33b4a4`). Pinned OCCT accepts the
+authored prism graph; the independently emitted vendor spline file
+remains outside the exact input domain. The supported exact graph
+can be sewn into a native solid and revalidated on reload. All five planar
+mixed Boolean fragments now have certified
+fills on the shared boundary network (`7e3c670`); the three original
+nonlinear roof fragments are still open. Exact stock line queries also
+resolve isolated shared wall and cap events without duplicating or losing
+their original face owners (`dda46a5`, `22ef5ba`).
 
 ## Immediate priority: PlainCAD compatibility
 
@@ -299,6 +307,11 @@ openings from worktree commit `852f3e08`. Exact two-hole stock can feed the
 grouped path for a third cut. The combined bridge, STEP, and native focused
 tests passed, as did the no-OCCT browser preflight. Both the pinned application
 sources and the full Go/WASM source inventory were independently verified.
+On the same independent worktree ancestry, [the current cross-browser
+reconciliation](evidence/plaincad-reconciled-56b4633-cross-browser-2026-11-14.json)
+passed 15 unchanged cases across Chromium, Firefox, and WebKit on
+`56b4633`. The exact original Playwright config and every source hash
+were independently checked; there were no skipped cases or retries.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.

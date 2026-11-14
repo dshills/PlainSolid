@@ -32,7 +32,7 @@ type FilletedFrustumAlgebraicRimWitness struct {
 // FilletedFrustumRimDistance refines the always-rational-witness baseline.
 // If Rim is nonnil its exact algebraic point, not Baseline.Witness, supplies
 // the new upper bound. NearestProven proves the selected witness is globally
-// nearest: an exact baseline witness or the guarded entry-hole rim case. It
+// nearest: an exact baseline witness or a guarded entry-hole/blind-floor rim case. It
 // never claims uniqueness. Otherwise the
 // result is only a conservative interval. Baseline retains all source faces.
 type FilletedFrustumRimDistance struct {
@@ -95,7 +95,7 @@ func (q FilletedFrustumMaterial) BoundBoundaryRimDistanceRational(ctx context.Co
 	if bits == 0 {
 		bits = 64
 	}
-	candidate := func(center [2]*big.Rat, radius, z *big.Rat, faces [2]int, entryEnd int) error {
+	candidate := func(center [2]*big.Rat, radius, z *big.Rat, faces [2]int, entryEnd int, floor bool) error {
 		if e := ctx.Err(); e != nil {
 			return e
 		}
@@ -128,8 +128,11 @@ func (q FilletedFrustumMaterial) BoundBoundaryRimDistanceRational(ctx context.Co
 		out.NearestProven = false
 		// Inside an entry disk, on the external side of its original cap, both
 		// the holed cap and finite cylinder attain their minimum on this circle.
+		// At a blind end, outside the floor disk and beyond the wall end,
+		// the retained disk and finite cylinder likewise share this minimum.
 		// All other faces must independently be farther than this upper enclosure.
-		if entryEnd >= 0 && rho2.Cmp(fdSquare(radius)) < 0 && ((entryEnd == 0 && p[2].Cmp(z) <= 0) || (entryEnd == 1 && p[2].Cmp(z) >= 0)) {
+		radialSide := rho2.Cmp(fdSquare(radius))
+		if entryEnd >= 0 && ((!floor && radialSide < 0) || (floor && radialSide > 0)) && ((entryEnd == 0 && p[2].Cmp(z) <= 0) || (entryEnd == 1 && p[2].Cmp(z) >= 0)) {
 			proven := true
 			for _, f := range base.PerFace {
 				if f.Face != faces[0] && f.Face != faces[1] && f.SquaredLower.Cmp(upper) < 0 {
@@ -142,21 +145,21 @@ func (q FilletedFrustumMaterial) BoundBoundaryRimDistanceRational(ctx context.Co
 		return nil
 	}
 	for end, c := range q.fillets.Circles {
-		if e := candidate(q.center, c.Center[0], q.z[end], [2]int{q.fillets.Caps[end], q.fillets.Blends[end]}, -1); e != nil {
+		if e := candidate(q.center, c.Center[0], q.z[end], [2]int{q.fillets.Caps[end], q.fillets.Blends[end]}, -1, false); e != nil {
 			return out, e
 		}
-		if e := candidate(q.center, c.Tangency[0], c.Tangency[1], [2]int{q.fillets.Lateral, q.fillets.Blends[end]}, -1); e != nil {
+		if e := candidate(q.center, c.Tangency[0], c.Tangency[1], [2]int{q.fillets.Lateral, q.fillets.Blends[end]}, -1, false); e != nil {
 			return out, e
 		}
 	}
 	for _, c := range q.cuts {
 		for end, z := range c.z {
-			face, entry := c.floor, -1
+			face, entry := c.floor, end
 			if c.open[end] {
 				face = q.fillets.Caps[end]
 				entry = end
 			}
-			if e := candidate(c.center, c.radius, z, [2]int{face, c.wall}, entry); e != nil {
+			if e := candidate(c.center, c.radius, z, [2]int{face, c.wall}, entry, !c.open[end]); e != nil {
 				return out, e
 			}
 		}

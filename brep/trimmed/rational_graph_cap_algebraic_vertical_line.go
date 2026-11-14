@@ -112,6 +112,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 	var events []AlgebraicGraphVerticalLineContact
 	var residual [2][]*big.Rat
 	var capBoundary [2]bool
+	var capTimes [2]*big.Rat
 	for i, cap := range m.caps {
 		plane := cap.regions.plane
 		slope := plane.dot(direction)
@@ -125,6 +126,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 			continue
 		}
 		t := new(big.Rat).Quo(new(big.Rat).Neg(cst), slope)
+		capTimes[i] = t
 		p := point(t)
 		where, e := cap.locateRationalBudget(p, &b)
 		if e != nil {
@@ -146,6 +148,24 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		}
 		events = append(events, AlgebraicGraphVerticalLineContact{Parameter: h, Cap: i, OtherCap: -1,
 			StockFace: -1, OtherStockFace: -1, Entry: slope.Sign()*plane.orientation < 0})
+	}
+	if includeJunctions && direction[0].Sign() == 0 && direction[1].Sign() == 0 &&
+		capBoundary[0] && capBoundary[1] && capTimes[0].Cmp(capTimes[1]) == 0 {
+		// On an exact vertical line the complete fiber is between the
+		// two cap heights. Here it is a singleton; a positive height
+		// would be a line coincident with a wall, which we still reject.
+		p := point(capTimes[0])
+		owners, e := m.exactVerticalPinchOwners(p, &b)
+		if e != nil {
+			return zero, e
+		}
+		h, e := root(capTimes[0])
+		if e != nil {
+			return zero, e
+		}
+		events = append(events, AlgebraicGraphVerticalLineContact{Parameter: h, Cap: 0, OtherCap: 1,
+			StockFace: owners[0], OtherStockFace: owners[1], Junction: true, Touch: true})
+		capBoundary = [2]bool{}
 	}
 	if direction[0].Sign() != 0 || direction[1].Sign() != 0 {
 		cap := m.caps[m.lower]
