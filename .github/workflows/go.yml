@@ -97,6 +97,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMappedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedTopologySolids$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadSurfaces -fuzztime=10s -parallel=2
