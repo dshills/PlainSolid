@@ -90,6 +90,7 @@ jobs:
       - run: go test ./exchange/iges -run=^$ -fuzz=^FuzzIGESTabulated$ -fuzztime=10s -parallel=2
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzHexahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBiquadraticSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadSurfaces -fuzztime=10s -parallel=2

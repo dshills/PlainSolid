@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -57,5 +58,23 @@ func TestAlgebraicShellProjectedSharedBoundary(t *testing.T) {
 	result, e := section.CombineAlgebraic(ctx, parametric.Union, AlgebraicShellBooleanOptions{})
 	if e != nil || result.Topology.EulerCharacteristic != 2 {
 		t.Fatal("rotated shell Boolean must close on both originals", result.Topology, e)
+	}
+	mesh, e := result.TessellateBoundaryCertified(ctx, AlgebraicShellBoundaryOptions{Deflection: .04, MaxOperations: 64000000,
+		Section: RationalTubePolylineOptions{Projection: &axes, Interval: geom.SurfaceTubeIntervalOptions{MaxIterations: 2}}})
+	if e != nil || len(mesh.SourceCertificates) == 0 || len(mesh.SectionCertificates) == 0 || len(mesh.Coedges) != 2*len(mesh.Edges) {
+		t.Fatal("rotated display lost shared topology or original ancestry", e)
+	}
+	for _, curve := range mesh.SectionCertificates {
+		for _, x := range curve.Samples {
+			p := x.Point
+			dy, dz := p.Y-.5, p.Z-.5
+			// Exact junction displays are outward representatives, not
+			// exact evaluations in the YZ plane. Verify their distance to
+			// the independent circle at the vertex allocation (.04/16).
+			distance := math.Hypot(p.X, math.Hypot(dy, dz)-5.0/16)
+			if distance > .04/16 {
+				t.Fatal("display does not follow the independent YZ circle", p)
+			}
+		}
 	}
 }

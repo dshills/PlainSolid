@@ -108,6 +108,10 @@ two-image cylinder proof (`92a3723`) separately distinguishes two physically
 disjoint intersection components from the connected annular union. The YZ
 shell regression (`6abcc6b`) uses overlapping unequal projected rectangles and
 closes the resulting union on the original sources.
+The biquadratic IGES shell (`8bf3e78`) preserves a curved roof and retains
+original spline charts through shared-edge proofs and global native embedding.
+Both the independent fixture and Go output transfer through pinned OCCT as
+one valid solid with volume 37/36 and centroid (1/2, 1/2, 951/1850).
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
