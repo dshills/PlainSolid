@@ -7,9 +7,9 @@ import (
 	"plainsolid/geom"
 )
 
-// AlgebraicGraphProjectedRelation classifies the projections of two stocks
-// on one rational direction. Touching or overlapping projections alone
-// give no conclusion about intersection of the actual solids.
+// AlgebraicGraphProjectedRelation classifies the intervals between the
+// extrema of two stocks in one rational direction. Touching or overlapping
+// intervals alone give no conclusion about intersection of the actual solids.
 type AlgebraicGraphProjectedRelation uint8
 
 const (
@@ -19,16 +19,19 @@ const (
 	AlgebraicGraphProjectionOverlapping
 )
 
-// AlgebraicGraphProjectedSeparation contains the true projected extents.
+// AlgebraicGraphProjectedSeparation contains the exact extremal intervals.
 // First and Second provide extremal trim witnesses. Before is 0 if First
 // precedes Second, 1 if Second precedes First, and -1 if their interiors
 // overlap. Gap is a rational enclosure in units of the original, unnormalized
 // functional. It is present only for separated or touching projections.
+// PlaneOffset is present only for strict separation and defines the plane
+// direction·point=PlaneOffset, with operand Before on its negative side.
 type AlgebraicGraphProjectedSeparation struct {
 	First, Second                 AlgebraicGraphDirectionalBounds
 	Relation                      AlgebraicGraphProjectedRelation
 	Before                        int
 	Gap                           geom.ExactParameterInterval
+	PlaneOffset                   *big.Rat
 	ExactOperations, Subdivisions int
 }
 
@@ -98,6 +101,12 @@ func (o AlgebraicGraphStockOccurrence) ProjectedSeparationRational(ctx context.C
 			lo := new(big.Rat).Sub(r.Intervals[1][0], r.Intervals[0][1])
 			hi := new(big.Rat).Sub(r.Intervals[1][1], r.Intervals[0][0])
 			if lo.Sign() <= 0 {
+				return zero, geom.ErrConvergence
+			}
+			// Any rational value in this strictly open gap defines a
+			// separating plane with the exact caller-supplied normal.
+			out.PlaneOffset = new(big.Rat).Quo(new(big.Rat).Add(r.Intervals[0][1], r.Intervals[1][0]), big.NewRat(2, 1))
+			if max(out.PlaneOffset.Num().BitLen(), out.PlaneOffset.Denom().BitLen()) > b.bits {
 				return zero, geom.ErrConvergence
 			}
 			if new(big.Rat).Sub(hi, lo).Cmp(width) > 0 {

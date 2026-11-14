@@ -59,6 +59,17 @@ func TestAlgebraicStockProjectedSeparation(t *testing.T) {
 		} else if res.Gap.Lower.Cmp(v.gap) != 0 || res.Gap.Upper.Cmp(v.gap) != 0 {
 			t.Fatal("exact directional gap", res.Gap, v.gap)
 		}
+		if v.relation == AlgebraicGraphProjectionSeparated {
+			bounds := [2]AlgebraicGraphDirectionalBounds{res.First, res.Second}
+			for i, root := range []*geom.ExactAlgebraicRoot{bounds[v.before].Max.Value, bounds[v.before^1].Min.Value} {
+				r, err := root.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(res.PlaneOffset), q(1, 1)}, opts)
+				if err != nil || r.Sign != 2*i-1 {
+					t.Fatal("signed separating plane residual must be strict at each true extent", res.PlaneOffset, r, err)
+				}
+			}
+		} else if res.PlaneOffset != nil {
+			t.Fatal("touching or overlapping can never publish a strict separating plane")
+		}
 	}
 	bad, err := origin.ProjectedSeparationRational(ctx, at(q(4, 1)), axis, one,
 		geom.ExactCurvePlaneEventOptions{MaxOperations: 1})
