@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/geom"
@@ -49,7 +50,7 @@ func (c AlgebraicGraphCapPair) boundVerticalVolume(ctx context.Context, width *b
 		return zero, e
 	}
 	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
-	if e := c.proveZeroStockXYFlux(exact, o, &b); e != nil {
+	if e := c.proveZeroStockXYFlux(exact, o, &b, rational); e != nil {
 		return zero, e
 	}
 	n := 0
@@ -110,7 +111,7 @@ func (c AlgebraicGraphCapPair) boundVerticalVolume(ctx context.Context, width *b
 	return geom.ExactParameterInterval{Lower: lo, Upper: hi}, nil
 }
 
-func (c AlgebraicGraphCapPair) proveZeroStockXYFlux(exact AlgebraicGraphShellBoundary, o RationalGraphShellSectionOptions, b *capClipBudget) error {
+func (c AlgebraicGraphCapPair) proveZeroStockXYFlux(exact AlgebraicGraphShellBoundary, o RationalGraphShellSectionOptions, b *capClipBudget, rational bool) error {
 	for _, f := range exact.Faces {
 		if f.StockFace < 0 {
 			continue
@@ -128,7 +129,15 @@ func (c AlgebraicGraphCapPair) proveZeroStockXYFlux(exact AlgebraicGraphShellBou
 		if e != nil {
 			return e
 		}
-		zeroFlux, used, e := patch.ProjectedJacobianZero(b.ctx, [2]int{0, 1}, geom.SurfacePatchEvaluationOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
+		limits := geom.SurfacePatchEvaluationOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits}
+		zeroFlux, used, e := patch.ProjectedJacobianZero(b.ctx, [2]int{0, 1}, limits)
+		if rational && errors.Is(e, geom.ErrUnrepresentable) {
+			if e := b.charge(used, 0); e != nil {
+				return e
+			}
+			limits.MaxOperations = b.work
+			zeroFlux, used, e = patch.RationalProjectedJacobianZero(b.ctx, [2]int{0, 1}, limits)
+		}
 		if e != nil {
 			return e
 		}

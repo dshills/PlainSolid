@@ -58,7 +58,7 @@ func (c AlgebraicGraphCapPair) PrepareVerticalMaterial(ctx context.Context, o Ra
 		return zero, geom.ErrUnrepresentable
 	}
 	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
-	if e := c.proveZeroStockXYFlux(exact, o, &b); e != nil {
+	if e := c.proveZeroStockXYFlux(exact, o, &b, true); e != nil {
 		return zero, e
 	}
 	lower := 0

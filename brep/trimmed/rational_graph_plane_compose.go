@@ -7,9 +7,10 @@ import (
 	"plainsolid/geom"
 )
 
-// composedGraphPlaneTrim proves the complete homogeneous residual over one
-// tensor span. A(s)+B*t with constant, nonzero B and constant positive weight
-// determines a unique section regardless of the world projection.
+// composedGraphPlaneTrim solves the complete homogeneous plane equation
+// A(s)+B(s)t on a tensor span. A strict positive control hull for the
+// denominator proves one regular dependent coordinate on the original chart.
+// Unlike the affine-projection path, the world curve itself may be rational.
 func composedGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation, free int) (PCurve, int, error) {
 	if free != 0 && free != 1 {
 		return nil, 0, geom.ErrInvalid
@@ -21,63 +22,98 @@ func composedGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 	if free == 1 {
 		h = transposePolynomialPlanePower(h)
 	}
-	if len(h[0]) < 2 || h[0][0][3].Sign() <= 0 {
+	if len(h[0]) < 2 {
 		return nil, 0, geom.ErrConvergence
 	}
-	var b *big.Rat
-	powers := make([]*big.Rat, len(h))
+	a, b := make([]*big.Rat, len(h)), make([]*big.Rat, len(h))
+	degree := 2
 	for i, row := range h {
 		for j, c := range row {
-			if i+j > 0 && c[3].Sign() != 0 {
-				return nil, 0, geom.ErrConvergence
-			}
 			x := new(big.Rat).Sub(plane.dot([3]*big.Rat{c[0], c[1], c[2]}), new(big.Rat).Mul(c[3], plane.offset))
 			switch {
 			case j == 0:
-				powers[i] = x.Neg(x)
-			case j == 1 && i == 0:
-				b = x
+				a[i] = x.Neg(x)
+				if x.Sign() != 0 {
+					degree = max(degree, i)
+				}
+			case j == 1:
+				b[i] = x
+				if x.Sign() != 0 {
+					degree = max(degree, i+1)
+				}
 			case x.Sign() != 0:
 				return nil, 0, geom.ErrConvergence
 			}
 		}
 	}
-	if b == nil || b.Sign() == 0 {
+	sign := b[0].Sign()
+	if sign == 0 || degree > 4 {
 		return nil, 0, geom.ErrConvergence
 	}
-	degree := 2
-	for i, x := range powers {
-		x.Quo(x, b)
-		if i > degree && x.Sign() != 0 {
-			degree = 4
+	if sign < 0 {
+		for i := range a {
+			a[i].Neg(a[i])
+			b[i].Neg(b[i])
 		}
+	}
+	// When A is proportional to B the true section is a straight UV
+	// isocurve; remove the positive common factor before composition.
+	ratio := new(big.Rat).Quo(a[0], b[0])
+	constant := true
+	for i := range a {
+		constant = constant && a[i].Cmp(new(big.Rat).Mul(ratio, b[i])) == 0
+	}
+	// Prove B positive even in the proportional case; cancelling a zero
+	// factor would silently remove an entire coplanar source fiber.
+	for i := 0; i <= degree; i++ {
+		v := new(big.Rat)
+		for j := 0; j <= i && j < len(b); j++ {
+			v.Add(v, new(big.Rat).Mul(b[j], big.NewRat(polynomialChoose(i, j), polynomialChoose(degree, j))))
+		}
+		if v.Sign() <= 0 {
+			return nil, 0, geom.ErrConvergence
+		}
+	}
+	if constant {
+		a, b, degree = []*big.Rat{ratio}, []*big.Rat{big.NewRat(1, 1)}, 2
+	}
+	// Keep the established quadratic/quartic UV representation.
+	if degree == 3 {
+		degree = 4
 	}
 	d := p.Domain()
 	lo, hi := [2]*big.Rat{ratInset(d.UMin), ratInset(d.VMin)}, [2]*big.Rat{ratInset(d.UMax), ratInset(d.VMax)}
 	width := [2]*big.Rat{new(big.Rat).Sub(hi[0], lo[0]), new(big.Rat).Sub(hi[1], lo[1])}
 	controls := make([][3]*big.Rat, degree+1)
 	for i := range controls {
-		value := new(big.Rat)
-		for j := 0; j <= i && j < len(powers); j++ {
-			value.Add(value, new(big.Rat).Mul(powers[j], big.NewRat(polynomialChoose(i, j), polynomialChoose(degree, j))))
+		power := func(row []*big.Rat, shift int) *big.Rat {
+			v := new(big.Rat)
+			for j := 0; j+shift <= i && j < len(row); j++ {
+				n := j + shift
+				v.Add(v, new(big.Rat).Mul(row[j], big.NewRat(polynomialChoose(i, n), polynomialChoose(degree, n))))
+			}
+			return v
 		}
-		controls[i][free] = new(big.Rat).Add(lo[free], new(big.Rat).Mul(width[free], big.NewRat(int64(i), int64(degree))))
-		controls[i][1-free] = value.Add(lo[1-free], value.Mul(value, width[1-free]))
-		controls[i][2] = big.NewRat(1, 1)
+		w, s, t := power(b, 0), power(b, 1), power(a, 0)
+		controls[i][free] = new(big.Rat).Add(new(big.Rat).Mul(lo[free], w), new(big.Rat).Mul(width[free], s))
+		controls[i][1-free] = new(big.Rat).Add(new(big.Rat).Mul(lo[1-free], w), new(big.Rat).Mul(width[1-free], t))
+		controls[i][2] = w
 	}
 	if !strictComposedGraphControls(controls, free, lo[1-free], hi[1-free], 0) {
 		return nil, 0, geom.ErrConvergence
 	}
 	if degree == 2 {
-		q, e := NewExactQuadraticUV([3][3]*big.Rat{controls[0], controls[1], controls[2]})
-		return q, b.Sign(), e
+		q, e := NewRationalEndpointQuadraticUV([3][3]*big.Rat{controls[0], controls[1], controls[2]})
+		return q, sign, e
 	}
 	q, e := NewExactBezierUV(controls)
-	return q, b.Sign(), e
+	return q, sign, e
 }
 
 func strictComposedGraphControls(h [][3]*big.Rat, free int, lo, hi *big.Rat, depth int) bool {
-	inside := func(p [3]*big.Rat) bool { return p[1-free].Cmp(lo) > 0 && p[1-free].Cmp(hi) < 0 }
+	inside := func(p [3]*big.Rat) bool {
+		return p[2].Sign() > 0 && p[1-free].Cmp(new(big.Rat).Mul(lo, p[2])) > 0 && p[1-free].Cmp(new(big.Rat).Mul(hi, p[2])) < 0
+	}
 	if !inside(h[0]) || !inside(h[len(h)-1]) {
 		return false
 	}
@@ -110,6 +146,18 @@ func composeProjectedGraphSectionControls(ctx context.Context, patch *geom.Surfa
 	power, _, e := cells.Cells[0].HomogeneousPower(ctx, geom.SurfacePatchEvaluationOptions{MaxOperations: limits.MaxOperations, MaxCoefficientBits: limits.MaxCoefficientBits})
 	if e != nil {
 		return nil, e
+	}
+	// When the control hull is already inside one original knot cell,
+	// prefer the reduced positive homogeneous net. This cancels common
+	// factors such as the homogeneous denominator of an axial graph.
+	if reduced, composedErr := patch.ComposeParameterCurve(ctx, curve, limits); composedErr == nil {
+		if span, _, e := reduced.BezierControlNet(ctx, limits); e == nil && len(span.Control) >= 2 && len(span.Control) <= 5 {
+			h := make([][3]*big.Rat, len(span.Control))
+			for i, c := range span.Control {
+				h[i] = [3]*big.Rat{c[axes[0]], c[axes[1]], c[3]}
+			}
+			return h, nil
+		}
 	}
 	degree := 2
 	for _, axis := range []int{axes[0], axes[1], 3} {
