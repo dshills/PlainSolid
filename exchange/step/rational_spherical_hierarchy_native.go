@@ -47,8 +47,11 @@ func rationalHierarchyMatrixClaim(m [3][4]*big.Rat) (out [3][4]string, e error) 
 	}
 	return
 }
-func rationalSphericalHierarchyEnvelopeFor(ctx context.Context, m RationalSphericalHierarchy) (rationalSphericalHierarchyEnvelope, []IndependentExactMaterial, error) {
+func rationalSphericalHierarchyEnvelopeFor(ctx context.Context, m RationalSphericalHierarchy, occtMode ...bool) (rationalSphericalHierarchyEnvelope, []IndependentExactMaterial, error) {
 	q := rationalSphericalHierarchyEnvelope{Format: rationalSphericalHierarchyFormat, Version: 1, LengthUnit: m.LengthUnit, Definitions: m.Definitions, Roots: m.Roots}
+	if len(occtMode) == 1 && occtMode[0] {
+		q.Format = occtRationalSphericalHierarchyFormat
+	}
 	if !independentNativeSourceBound(m.Source, 4096) || len(m.Relationships) > 64 || len(m.Instances) > 64 || len(m.Definitions) > 16 {
 		return q, nil, geom.ErrInvalid
 	}
@@ -89,21 +92,24 @@ func rationalSphericalHierarchyEnvelopeFor(ctx context.Context, m RationalSpheri
 // path matrices, separately from the private neutral local-material proof.
 // One source reproof checks both; no rational pose becomes a float transform.
 func WriteRationalSphericalHierarchyJSON(ctx context.Context, w io.Writer, m RationalSphericalHierarchy) error {
+	return writeRationalSphericalHierarchyJSON(ctx, w, m, false)
+}
+func writeRationalSphericalHierarchyJSON(ctx context.Context, w io.Writer, m RationalSphericalHierarchy, occt bool) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return e
 	}
-	q, c, e := rationalSphericalHierarchyEnvelopeFor(ctx, m)
+	q, c, e := rationalSphericalHierarchyEnvelopeFor(ctx, m, occt)
 	if e != nil {
 		return e
 	}
-	proof, e := ReadRationalSphericalHierarchy(ctx, bytes.NewBufferString(q.Source), Limits{}, q.LocalProof.Proof.Tolerance)
+	proof, e := readRationalSphericalHierarchy(ctx, bytes.NewBufferString(q.Source), Limits{}, q.LocalProof.Proof.Tolerance, occt)
 	if e != nil {
 		return e
 	}
-	expected, d, e := rationalSphericalHierarchyEnvelopeFor(ctx, proof)
+	expected, d, e := rationalSphericalHierarchyEnvelopeFor(ctx, proof, occt)
 	if e != nil {
 		return e
 	}
@@ -131,6 +137,13 @@ func WriteRationalSphericalHierarchyJSON(ctx context.Context, w io.Writer, m Rat
 // ReadRationalSphericalHierarchyJSON reconstructs only from original STEP,
 // validating every stored rational matrix, path and native local body claim.
 func ReadRationalSphericalHierarchyJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (RationalSphericalHierarchy, error) {
+	return readRationalSphericalHierarchyJSON(ctx, r, l, false)
+}
+func readRationalSphericalHierarchyJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, occt bool) (RationalSphericalHierarchy, error) {
+	format := rationalSphericalHierarchyFormat
+	if occt {
+		format = occtRationalSphericalHierarchyFormat
+	}
 	bad := func() (RationalSphericalHierarchy, error) { return RationalSphericalHierarchy{}, geom.ErrInvalid }
 	if ctx == nil || r == nil {
 		return bad()
@@ -154,18 +167,18 @@ func ReadRationalSphericalHierarchyJSON(ctx context.Context, r io.Reader, l Inde
 	var q rationalSphericalHierarchyEnvelope
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
-	if d.Decode(&q) != nil || q.Format != rationalSphericalHierarchyFormat || q.Version != 1 || len(q.Relationships) > 64 || len(q.Instances) > 64 {
+	if d.Decode(&q) != nil || q.Format != format || q.Version != 1 || len(q.Relationships) > 64 || len(q.Instances) > 64 {
 		return bad()
 	}
 	var extra any
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewBufferString(q.Source), l.Source, q.LocalProof.Proof.Tolerance)
+	m, e := readRationalSphericalHierarchy(ctx, bytes.NewBufferString(q.Source), l.Source, q.LocalProof.Proof.Tolerance, occt)
 	if e != nil {
 		return RationalSphericalHierarchy{}, e
 	}
-	expected, _, e := rationalSphericalHierarchyEnvelopeFor(ctx, m)
+	expected, _, e := rationalSphericalHierarchyEnvelopeFor(ctx, m, occt)
 	if e != nil {
 		return RationalSphericalHierarchy{}, e
 	}

@@ -59,6 +59,9 @@ func rationalHierarchyFrameBound(b mappedRationalBasis) error {
 // metre/mm units. Exact composition is bounded at every prefix. Local geometry
 // is authenticated by a disjoint, private neutral-placement proof view.
 func ReadRationalSphericalHierarchy(ctx context.Context, r io.Reader, l Limits, tol float64) (RationalSphericalHierarchy, error) {
+	return readRationalSphericalHierarchy(ctx, r, l, tol, false)
+}
+func readRationalSphericalHierarchy(ctx context.Context, r io.Reader, l Limits, tol float64, occt bool) (RationalSphericalHierarchy, error) {
 	bad := func() (RationalSphericalHierarchy, error) { return RationalSphericalHierarchy{}, geom.ErrInvalid }
 	if ctx == nil || r == nil {
 		return bad()
@@ -272,9 +275,16 @@ func ReadRationalSphericalHierarchy(ctx context.Context, r io.Reader, l Limits, 
 		if !ok {
 			return bad()
 		}
-		neutral, e := independentTorusAssemblyPose(from)
-		if e != nil || neutral != (geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}}) {
-			return bad()
+		if occt {
+			to = composeMappedPose(inverseMappedPose(from), to)
+			if e = rationalHierarchyFrameBound(to); e != nil {
+				return RationalSphericalHierarchy{}, e
+			}
+		} else {
+			neutral, err := independentTorusAssemblyPose(from)
+			if err != nil || neutral != (geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}}) {
+				return bad()
+			}
 		}
 		if _, exists := poses[u.ID]; exists {
 			return bad()
@@ -309,6 +319,9 @@ func ReadRationalSphericalHierarchy(ctx context.Context, r io.Reader, l Limits, 
 // WriteRationalSphericalHierarchySource re-proves original rational source and
 // emits its actual placements; the private neutral graph is never exported.
 func WriteRationalSphericalHierarchySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64) error {
+	return writeRationalSphericalHierarchySource(ctx, w, source, l, tol, false)
+}
+func writeRationalSphericalHierarchySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, occt bool) error {
 	if ctx == nil || w == nil || !independentNativeSourceBound(source, 4096) {
 		return geom.ErrInvalid
 	}
@@ -316,7 +329,7 @@ func WriteRationalSphericalHierarchySource(ctx context.Context, w io.Writer, sou
 	if e != nil {
 		return e
 	}
-	if _, e = ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), l, tol); e != nil {
+	if _, e = readRationalSphericalHierarchy(ctx, bytes.NewReader(raw), l, tol, occt); e != nil {
 		return e
 	}
 	if e = ctx.Err(); e != nil {
