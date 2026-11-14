@@ -42,3 +42,30 @@ Tests retain shared leaf identity through different ancestors, deep-copied nativ
 paths and exact bounds. They reject cycles, detached geometry, duplicate children,
 limits and a fifth mapping step, while accepting an explicitly added fourth
 step. A bounded100-execution parser fuzz campaign uses the independent DAG seed.
+
+## Explicit root versus shared definition edits
+
+`WriteDAGRationalMappedRootPlacements` edits a nonempty selected subset of root
+uses. A source item used internally as well is deliberately excluded: changing
+it has wider effects. `WriteDAGRationalMappedSharedPlacements` explicitly edits
+internal definitions, affecting every incoming path containing that item—even
+if it is also a root use. Neither API silently clones a use to hide shared
+semantics. Duplicate, foreign or wrong-role IDs reject atomically.
+
+Selected items receive private newly authored operators. Every unselected item,
+local geometry record, name, context and membership remains unchanged. The input
+source is immutable; old unused operator dependencies are removed only when no
+remaining source owner references them. Complete DAG proof runs after editing.
+New ancestry names actual new target IDs while item/map/path identities remain.
+
+Native `WithDAGRootPlacements` and `WithDAGSharedPlacements` return new separately
+validated documents and require unchanged local asset bytes. Existing native
+version/format contracts remain. Tests prove all four incoming paths of a shared
+leaf update, all unaffected poses and retained records stay unchanged, and the
+root API rejects a source item reused both at root and internally.
+
+The live fixture moves one root group to Z100 and the shared selected leaf to
+X30. Native reload→STEP→pinned OCCT gives bounds(−10,−10,0) to(204,156/5,104), with
+unchanged shared local materials. Run `TestOCCTEditedDAGMappedNative` through
+`PLAINSOLID_OCCT_MAPPED_BOUNDS`. The bounded edit fuzz target checks successful
+re-read, unchanged local asset vertices and no partial output on failure.
