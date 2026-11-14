@@ -296,3 +296,30 @@ Native integration volume 21.52961182634816 matches independent original-profile
 area times 217/32. Tests include deterministic reload, material/opening/rim probes,
 wrong inward ownership, tangency, profile mismatch, limits and a protrusion
 visible only at an inner-only station.
+
+## Through-bore material measures and annular sections
+
+`BoundWrappedAnisotropicStationBoreMass` authenticates the actual sealed bore,
+including inward walls and both annular caps, before integrating. Outer and
+inner station cuts may differ. Their ten polynomial axial factors are integrated
+on their respective original intervals and subtracted exactly before applying
+one common original weighted-profile area/first/second-moment enclosure.
+No circular surrogate or sampled material classification is used.
+
+The result provides unit-density volume, raw first and second moments relative
+to an explicit lower-cap origin, absolute centroid, and centroidal physical
+inertia. Separate positive volume and inertia tolerances constrain volume width
+and every inertia entry width. Centroid and raw moments are conservative
+intervals without an independent width promise. Signed model heights and signed
+mixed moments are retained. Profile refinement, factor arithmetic and all result
+arithmetic share a cumulative operation/bit limit; source authentication retains
+its separately bounded passes. Limit/cancellation failures return no result.
+
+`SectionWrappedAnisotropicStationBoreRational` returns the two exact authored
+weighted curves, each with its original U basis and rational V coordinate.
+The inner curve has an explicit reversed-loop flag rather than a silently
+reparameterized curve. Face and station-rim IDs refer to the actual bore.
+A crease on only one source wall does not invent a crease on the other. At either
+terminal plane the section is the actual annulus; its central opening is not
+material. Native reauthentication binds every original model edge and coedge
+before the section's rim identities are resolved.
