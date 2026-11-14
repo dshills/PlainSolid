@@ -140,8 +140,13 @@ func TestOccurrenceColorsRetargetAndLive(t *testing.T) {
 			}
 			for _, o := range q.Occurrences {
 				want, ok := expected[o.Translation]
-				if !ok || want != o.Color {
-					t.Fatal("effective occurrence color", q)
+				if !ok {
+					t.Fatal(q)
+				}
+				for i, v := range o.Color {
+					if math.Abs(v-want[i]) > 1e-12 {
+						t.Fatal("effective occurrence color", q)
+					}
 				}
 			}
 		}

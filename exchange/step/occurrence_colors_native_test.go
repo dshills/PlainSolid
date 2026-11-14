@@ -210,8 +210,13 @@ func TestOccurrenceColorsNativeLive(t *testing.T) {
 	expected := map[[3]float64][3]float64{{10, 0, 0}: {1, 0, 0}, {0, 20, 0}: {0, 0, 1}, {-10, -5, 7}: {0, 1, 0}}
 	for _, o := range q.Occurrences {
 		want, ok := expected[o.Translation]
-		if !ok || want != o.Color {
+		if !ok {
 			t.Fatal(q)
+		}
+		for i, v := range o.Color {
+			if math.Abs(v-want[i]) > 1e-12 {
+				t.Fatal(q)
+			}
 		}
 	}
 }

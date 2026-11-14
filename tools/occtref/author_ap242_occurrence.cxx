@@ -36,7 +36,8 @@ int main(int argc,char**argv) {
    Quantity_Color c;
    if(colors->GetColor(it.Value(),XCAFDoc_ColorSurf,c)) {
     if(comma) std::cout<<","; comma=true;
-    std::cout<<"["<<c.Red()<<","<<c.Green()<<","<<c.Blue()<<"]";
+    double red,green,blue; c.Values(red,green,blue,Quantity_TOC_sRGB);
+    std::cout<<"["<<red<<","<<green<<","<<blue<<"]";
    }
   }
   std::cout<<"],\"occurrences\":[";
@@ -48,8 +49,9 @@ int main(int argc,char**argv) {
     bool overridden=colors->GetInstanceColor(shape,XCAFDoc_ColorSurf,c);
     if(!overridden) { TDF_Label product; if(!shapes->GetReferredShape(uses.Value(j),product)||!colors->GetColor(product,XCAFDoc_ColorSurf,c)) return 6; }
     auto t=shape.Location().Transformation().TranslationPart();
+    double red,green,blue; c.Values(red,green,blue,Quantity_TOC_sRGB);
     if(comma) std::cout<<","; comma=true;
-    std::cout<<"{\"translation\":["<<t.X()<<","<<t.Y()<<","<<t.Z()<<"],\"resolved\":"<<(overridden?"true":"false")<<",\"color\":["<<c.Red()<<","<<c.Green()<<","<<c.Blue()<<"]}";
+    std::cout<<"{\"translation\":["<<t.X()<<","<<t.Y()<<","<<t.Z()<<"],\"resolved\":"<<(overridden?"true":"false")<<",\"color\":["<<red<<","<<green<<","<<blue<<"]}";
    }
   }
   std::cout<<"]}\n"; return 0;

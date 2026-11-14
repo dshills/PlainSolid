@@ -42,5 +42,6 @@ go test ./exchange/step -run '^$' -fuzz '^FuzzOccurrenceColorsNative$' \
 ```
 
 The oracle build and OCCT pin are documented in `OCCURRENCE_COLORS.md`. Native
-reload retains original source re-export; this format does not authorize edited
-appearance or broaden contextual styling to nested assemblies or face overrides.
+reload retains source re-export. This persistence API does not perform edits;
+separately re-proved edits from `EditOccurrenceSurfaceColor` use the same format.
+It does not broaden contextual styling to nested assemblies or face overrides.
