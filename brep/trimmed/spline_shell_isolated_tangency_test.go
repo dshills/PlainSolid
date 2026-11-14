@@ -64,6 +64,12 @@ func TestExternallyTangentSplineShells(t *testing.T) {
 		return s
 	}
 	b := roof(0)
+	wide, _ := makeOpenSplineBox(t, [3]float64{-.25, 0, 0}, [3]float64{.875, 1, 1}, 0)
+	if out, _, p, e := CombineExternallyTangentSplineShells(ctx, wide, b, parametric.Intersection,
+		SplineShellTangencyOptions{Faces: [2]int{4, 1}}); e != nil || len(out.Faces()) != 0 ||
+		p.SeparatedPairs != 35 || p.Point[0].Cmp(big.NewRat(1, 2)) != 0 || p.UV[1][1].Cmp(big.NewRat(1, 2)) != 0 {
+		t.Fatal("sole contact on unequal original graph rectangles", p, e)
+	}
 	for _, rotated := range []bool{false, true} {
 		stock, tool := a, b
 		o := SplineShellTangencyOptions{Faces: [2]int{4, 1}}

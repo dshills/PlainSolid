@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -34,7 +35,8 @@ type SplineShellTangency struct {
 // CombineExternallyTangentSplineShells handles a sole isolated quadratic
 // or definite graph contact of two independently embedded rectangular
 // spline shells. Opposite outward graph normals and strict graph order
-// prove no local material overlap at the contact. With all other face pairs
+// over the complete common projection prove no local material overlap at
+// the contact. With all other face pairs
 // disjoint and original vertex witnesses outside either shell, common is
 // empty and cut retains the stock. Union at a single point is not a native
 // manifold and returns ErrConvergence.
@@ -117,9 +119,50 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 	if sign[0] == sign[1] || limit().MaxOperations < 1 {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
-	alignment, used, e := geom.AlignAffineXYChartsWithWork(ctx, patches[0], patches[1], limit())
-	proof.ExactOperations += used
-	if e != nil {
+	align := func() (*geom.AffineXYChartAlignment, error) {
+		p := limit()
+		if p.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		a, used, e := geom.AlignAffineXYChartsWithWork(ctx, patches[0], patches[1], p)
+		proof.ExactOperations += used
+		return a, e
+	}
+	alignment, e := align()
+	if errors.Is(e, geom.ErrDomain) {
+		// Discard only the part of either original chart with no
+		// possible common projection. Analyze the full shared rectangle.
+		p := limit()
+		if p.MaxOperations < 1 {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		overlap, e := geom.ClipAffineXYGraphOverlap(ctx, patches[0], patches[1], p)
+		proof.ExactOperations += min(overlap.ExactOperations, p.MaxOperations)
+		if e != nil {
+			return Solid{}, history, empty, e
+		}
+		if overlap.Disjoint {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		for i, d := range [2]geom.ParameterRectangle{overlap.A, overlap.B} {
+			if patches[i].Domain() == d {
+				continue
+			}
+			if limit().MaxOperations < 1 {
+				return Solid{}, history, empty, geom.ErrConvergence
+			}
+			var used int
+			patches[i], used, e = patches[i].TrimWithWorkLimit(d, limit().MaxOperations)
+			proof.ExactOperations += used
+			if e != nil {
+				return Solid{}, history, empty, e
+			}
+		}
+		alignment, e = align()
+		if e != nil {
+			return Solid{}, history, empty, e
+		}
+	} else if e != nil {
 		return Solid{}, history, empty, e
 	}
 	o.Contact.MaxOperations = limit().MaxOperations
