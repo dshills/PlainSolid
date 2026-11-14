@@ -115,6 +115,10 @@ cylinder axis. Matched angular strips preserve the exact elliptical rims
 and bound the mesh work for steeper and three-component axes. The authored
 2:3 pair reopens through STEP and exports a watertight 276-triangle STL.
 
+The existing PlainCAD Arc Extend workflow now exports and reimports the
+quarter-sector extrusion with its exact cylindrical wall and circular
+edges. The authored YZ model reopens and exports watertight STL.
+
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
 signed coordinate pose and allowing a subsequent exact Hole and STEP

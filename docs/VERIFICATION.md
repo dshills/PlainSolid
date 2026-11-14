@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD Arc Extend quarter-sector STEP exchange — 2026-11-14
+
+The exact quarter-sector produced by the original YZ Arc Extend workflow
+round-trips its analytic cylindrical wall and circular edges. The retained
+recipe supports signed cardinal placement, clockwise authored order and
+negative extrusion. The importer verifies the complete regenerated graph.
+
+[Seven original curved-sketch and STEP cases](evidence/plaincad-quarter-sector-step-browser-2026-11-14.json)
+and an [extension of the original Arc Extend workflow](evidence/plaincad-quarter-sector-step-native-2026-11-14.json)
+pass on the same WASM. The 8,992-byte STEP reimports and reopens after
+the authored edit and Undo/Redo. The imported STL has 132 watertight
+triangles. Twenty-four independent OCCT placements, the authored STEP
+measurements, malformed graph rejection, focused race and Go vet pass.
+The representable non-millimeter bridge fixture also passes.
+
 ## PlainCAD multiple finite floors in a three-Hole crossing — 2026-11-14
 
 Two or three concurrent cardinal cutters can retain their complete blind

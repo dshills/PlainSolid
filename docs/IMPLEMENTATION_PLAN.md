@@ -108,6 +108,8 @@ A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.
+The Arc Extend quarter-sector extrusion round-trips its exact cylindrical
+wall through STEP. Next qualify the half-disk extrusion from Circle Trim.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `65441a2d` passes 345 development, 66 production and 15 cross-browser
