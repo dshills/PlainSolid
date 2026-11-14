@@ -8,9 +8,12 @@ import (
 )
 
 func cuspSectionFixture(t *testing.T) (Patch, Patch) {
+	return cuspSectionFixtureCenter(t, big.NewRat(1, 2))
+}
+func cuspSectionFixtureCenter(t *testing.T, center *big.Rat) (Patch, Patch) {
 	t.Helper()
 	up := quarticSectionRootPower(big.NewRat(1, 4), 3)
-	vp := quarticSectionRootPower(big.NewRat(1, 2), 2)
+	vp := quarticSectionRootPower(center, 2)
 	bern := func(power []*big.Rat, i, n int) *big.Rat {
 		q := new(big.Rat)
 		for j := 0; j <= i; j++ {
