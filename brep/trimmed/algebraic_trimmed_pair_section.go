@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 	"plainsolid/intersect"
@@ -197,6 +198,11 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 }
 
 func sameTrimmedSectionChart(a, b geom.Surface) bool {
+	a, m := parametric.SurfaceMapping(a)
+	b, n := parametric.SurfaceMapping(b)
+	if m != n {
+		return false
+	}
 	switch s := a.(type) {
 	case *geom.BSplineSurface:
 		t, ok := b.(*geom.BSplineSurface)

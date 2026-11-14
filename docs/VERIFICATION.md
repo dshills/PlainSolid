@@ -130,6 +130,14 @@ directions. Native mass, continuous rim agreement and race checks passed.
 Closed frustum walls also match the independently subtracted OCCT cavities.
 Exact parallel-axis containment admits an eccentric interior frustum with an
 irrational axis distance and rejects equality at the lateral contact.
+The reordered, translated IGES roof (`d250f71`) preserves original entity
+and directed owner identities; both the source and canonical Go re-export
+pass pinned OCCT transfer. A seam-crossing diamond hole and a separately
+authored nonconvex outer loop (`955ef3e`) pass exact trim embedding and
+continuous native edge correspondence. The grouped line-event API (`7020ef7`)
+retains both original rim hits and verifies the different adjacent material
+states for common, union and cut; the simpler transition API still fails
+on simultaneous contacts.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

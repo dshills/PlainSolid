@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sync"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -193,6 +194,11 @@ func (p TubeTrim) CertifiesPairedTubeOnSurfaces(q TubeTrim, a, b geom.Surface) b
 }
 
 func sameStoredTubeSupport(a, b geom.Surface) bool {
+	a, m := parametric.SurfaceMapping(a)
+	b, n := parametric.SurfaceMapping(b)
+	if m != n {
+		return false
+	}
 	switch s := a.(type) {
 	case *geom.BSplineSurface:
 		t, ok := b.(*geom.BSplineSurface)

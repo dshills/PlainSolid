@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/intersect"
 )
@@ -374,8 +375,9 @@ func joinAlgebraicShellSectionBranches(ctx context.Context, branches []Algebraic
 }
 
 func algebraicShellTracePatch(f Face, d geom.ParameterRectangle) (intersect.Patch, error) {
-	if _, ok := f.Surface.(*geom.ExactBezierSurface); ok {
-		return intersect.Patch{Surface: f.Surface, Min: geom.Vec2{X: d.UMin, Y: d.VMin}, Max: geom.Vec2{X: d.UMax, Y: d.VMax}}, nil
+	base, _ := parametric.SurfaceMapping(f.Surface)
+	if !supportsExactSplinePatch(base) {
+		return intersect.Patch{}, geom.ErrInvalid
 	}
-	return intersectSplineFace(f, d)
+	return intersect.Patch{Surface: f.Surface, Min: geom.Vec2{X: d.UMin, Y: d.VMin}, Max: geom.Vec2{X: d.UMax, Y: d.VMax}}, nil
 }

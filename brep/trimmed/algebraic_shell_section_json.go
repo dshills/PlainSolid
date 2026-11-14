@@ -146,7 +146,8 @@ func ReadAlgebraicShellSectionJSON(ctx context.Context, r io.Reader, l JSONLimit
 			}
 			x := patches[i]
 			same := sameTrimmedSectionChart(f.Surface, x.Surface)
-			if _, exact := f.Surface.(*geom.ExactBezierSurface); exact {
+			base, _ := parametric.SurfaceMapping(f.Surface)
+			if _, exact := base.(*geom.ExactBezierSurface); exact {
 				// Recipes and shell faces are independently decoded. Require
 				// canonical stored identity before using the saved proposals.
 				p, e := parametric.EncodeSurface(f.Surface)

@@ -96,10 +96,11 @@ func rebuildAlgebraicTubeSeeds(ctx context.Context, input [2]nativeTubePatch, tu
 		if e != nil {
 			return charts, seeds, e
 		}
-		if !supportsExactSplinePatch(s) {
+		base, _ := parametric.SurfaceMapping(s)
+		if !supportsExactSplinePatch(base) {
 			return charts, seeds, geom.ErrInvalid
 		}
-		support, e := exactSplineSupportPatch(s, trace.Seeds.Patches)
+		support, e := exactFaceSupportPatch(Face{Surface: s}, trace.Seeds.Patches)
 		if e != nil {
 			return charts, seeds, e
 		}
