@@ -9,8 +9,8 @@ import (
 
 // AlgebraicGraphStockCoedge is one oriented edge of a retained original face
 // loop. UV is expressed on the original stock chart. For an inherited stock
-// perimeter edge, OriginalEdge is its initial stock ID and Cap is -1. For a cap attachment, Cap and Owner locate
-// its already-proved coedge on the paired cap and OriginalEdge is -1.
+// perimeter edge, OriginalEdge is its initial stock ID and Cap is -1. For a
+// cap attachment, Cap and Owner locate its proved cap coedge instead.
 type AlgebraicGraphStockCoedge struct {
 	UV           *geom.ExactComposedCurveCell
 	Reversed     bool
@@ -32,8 +32,9 @@ type AlgebraicGraphStockFaceLoop struct {
 // OriginalStockLoops reconstructs the retained directed UV loops on the
 // original stock faces. It includes unchanged faces and every shared cap
 // contact; no constructed endpoint is rounded. Each incident face must be a
-// certified rectangular stock chart. Only a single simple retained loop per
-// selected face is admitted here; general disconnected portions stay open.
+// certified rectangular stock chart. Separate directed cycles on the same
+// chart are retained as distinct fragments. A nested stock face hole is
+// outside this operation's domain.
 func (c AlgebraicGraphCapPair) OriginalStockLoops(ctx context.Context, o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) ([]AlgebraicGraphStockFaceLoop, error) {
 	if ctx == nil || c.caps[0].recipe == nil || c.caps[1].recipe == nil || len(c.seams) == 0 {
 		return nil, geom.ErrInvalid
@@ -178,16 +179,18 @@ func (c AlgebraicGraphCapPair) OriginalStockLoops(ctx context.Context, o Rationa
 		if len(row) == 0 {
 			continue
 		}
-		w, e := orderAlgebraicStockLoop(row, &b)
+		w, e := orderAlgebraicStockLoops(row, &b)
 		if e != nil {
 			return nil, e
 		}
-		out = append(out, AlgebraicGraphStockFaceLoop{id, face.Reversed, w})
+		for _, loop := range w {
+			out = append(out, AlgebraicGraphStockFaceLoop{id, face.Reversed, loop})
+		}
 	}
 	return out, nil
 }
 
-func orderAlgebraicStockLoop(uses []AlgebraicGraphStockCoedge, b *capClipBudget) ([]AlgebraicGraphStockCoedge, error) {
+func orderAlgebraicStockLoops(uses []AlgebraicGraphStockCoedge, b *capClipBudget) ([][]AlgebraicGraphStockCoedge, error) {
 	type ends [2][2]*geom.ExactAlgebraicRoot
 	points := make([]ends, len(uses))
 	for i, u := range uses {
@@ -230,37 +233,50 @@ func orderAlgebraicStockLoop(uses []AlgebraicGraphStockCoedge, b *capClipBudget)
 	if len(uses) < 2 {
 		return nil, geom.ErrConvergence
 	}
-	w := make([]AlgebraicGraphStockCoedge, 0, len(uses))
+	var out [][]AlgebraicGraphStockCoedge
 	seen := make([]bool, len(uses))
-	for i := 0; ; {
-		if seen[i] {
-			return nil, geom.ErrConvergence
+	for start := range uses {
+		if seen[start] {
+			continue
 		}
-		seen[i] = true
-		w = append(w, uses[i])
-		next := -1
-		for j := range uses {
-			same, e := equal(points[i][1], points[j][0])
-			if e != nil {
-				return nil, e
-			}
-			if same {
-				if next >= 0 {
-					return nil, geom.ErrConvergence
-				}
-				next = j
-			}
-		}
-		if next < 0 {
-			return nil, geom.ErrConvergence
-		}
-		if next == 0 {
-			if len(w) != len(uses) {
+		var w []AlgebraicGraphStockCoedge
+		for i := start; ; {
+			if seen[i] {
 				return nil, geom.ErrConvergence
 			}
-			break
+			seen[i] = true
+			w = append(w, uses[i])
+			next := -1
+			for j := range uses {
+				same, e := equal(points[i][1], points[j][0])
+				if e != nil {
+					return nil, e
+				}
+				if same {
+					if next >= 0 {
+						return nil, geom.ErrConvergence
+					}
+					next = j
+				}
+			}
+			if next < 0 {
+				return nil, geom.ErrConvergence
+			}
+			if next == start {
+				if len(w) < 2 {
+					return nil, geom.ErrConvergence
+				}
+				break
+			}
+			i = next
 		}
-		i = next
+		out = append(out, w)
 	}
-	return w, nil
+	// With two regular sections, each nonintersecting arrangement arc lies
+	// on a graph crossing the original rectangle. A bounded complement
+	// cannot form a stock hole: each excluded side reaches the rectangle
+	// boundary. A single clipped graph, or the union of both excluded
+	// sides, has the same property. Thus disjoint closed stock cycles are
+	// distinct retained faces rather than inner loops of one face.
+	return out, nil
 }
