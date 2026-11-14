@@ -12,8 +12,7 @@ browser regressions and an authored rebuild, reload and STL check pass.
 Canonical STEP now round-trips the placed boundary and matches OCCT's
 independent volume, area and centroid. Mixed batches with disjoint
 blind bores from either cap and through bores now pass original
-regressions, authored persistence, placed STEP and STL fabrication. Additional side-crossing
-tools and intersecting side-notch footprints remain open. Single-tool
+regressions, authored persistence, placed STEP and STL fabrication. Single-tool
 scoped through-all Hole now accepts the same qualified rectangular side
 and corner notches as direct Cut. A one-side through notch also supports
 disjoint interior bores and round-trips canonical STEP. Corner-notch
@@ -24,10 +23,11 @@ Contained coaxial cutters on the same body merge independently of batch
 order, including through cutters that join two opposed blind spans.
 Separated blind spans at the same interior site preserve the material web
 and both cap openings through STEP.
-Two transversely intersecting side-opening Hole cutters from the same
-cap now retain exact cylindrical walls and blind floors on rectangular
-stock. Grouped and successive cuts, unequal depths, through cuts, and
-canonical STEP round-trip pass verification.
+Two transversely intersecting Hole cutters opening on the same stock side
+retain exact cylindrical walls and blind floors on rectangular stock.
+Grouped and successive cuts, unequal depths, through cuts, and canonical
+STEP round-trip pass verification. The cutters can enter from either cap,
+including opposed blind spans that overlap or leave a material web.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

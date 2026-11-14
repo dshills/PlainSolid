@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD intersecting side openings from opposite caps — 2026-11-14
+
+The same rectangular stock side can retain two intersecting circular Hole
+footprints entering from opposite caps. The analytic result preserves
+overlapping depth intervals or a material web between separated blind spans.
+Grouped and successive native cuts pass in both orders. Exact contact between
+opposed floors remains outside this milestone.
+
+[Nine original PlainCAD Hole and STEP cases](evidence/plaincad-opposed-side-opening-pair-browser-2026-11-14.json)
+pass on `50432ed`, along with the real WASM probe and both TypeScript checks.
+[Two Chromium probes on the same WASM](evidence/plaincad-opposed-side-opening-pair-native-2026-11-14.json)
+verify overlapping and separated spans, save/reopen, STEP reimport and watertight
+STL. The focused native race checks and Go vet pass. Independent OCCT confirms
+STEP volume, surface area and centroid for 42 signed-axis/depth cases, including
+12 opposed-entry cases.
+
 ## PlainCAD intersecting same-side Hole cutters — 2026-11-14
 
 Two transverse circular cutters that open on the same rectangular stock
