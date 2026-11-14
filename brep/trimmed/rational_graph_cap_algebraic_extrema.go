@@ -15,6 +15,13 @@ type AlgebraicGraphDirectionalWitness struct {
 	Value, CurveParameter *geom.ExactAlgebraicRoot
 	Cap, Wire, Use        int
 	ConstantUse           bool
+	source                *algebraicGraphDirectionalSource
+}
+
+type algebraicGraphDirectionalSource struct {
+	stock *algebraicGraphCapRecipe
+	index [3]int
+	root  *geom.ExactAlgebraicRoot
 }
 
 // AlgebraicGraphDirectionalBounds contains the true min/max of the
@@ -99,8 +106,13 @@ func (m AlgebraicGraphVerticalMaterial) boundDirectionBudget(direction [3]*big.R
 					return zero, err
 				}
 				for _, v := range stage.Candidates {
-					w := AlgebraicGraphDirectionalWitness{v.Value, v.Parameter, ci, wi, ui, stage.Constant}
+					w := AlgebraicGraphDirectionalWitness{v.Value, v.Parameter, ci, wi, ui, stage.Constant, nil}
+					bind := func() AlgebraicGraphDirectionalWitness {
+						w.source = &algebraicGraphDirectionalSource{cap.recipe, [3]int{ci, wi, ui}, v.Parameter}
+						return w
+					}
 					if out.Min.Value == nil {
+						w = bind()
 						out.Min, out.Max = w, w
 						continue
 					}
@@ -109,14 +121,14 @@ func (m AlgebraicGraphVerticalMaterial) boundDirectionBudget(direction [3]*big.R
 						return zero, e
 					}
 					if c < 0 {
-						out.Min = w
+						out.Min = bind()
 					}
 					c, e = cmp(w.Value, out.Max.Value)
 					if e != nil {
 						return zero, e
 					}
 					if c > 0 {
-						out.Max = w
+						out.Max = bind()
 					}
 				}
 			}

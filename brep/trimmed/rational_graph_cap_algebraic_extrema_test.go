@@ -49,6 +49,19 @@ func TestAlgebraicStockDirectionalBounds(t *testing.T) {
 	if r.Min.ConstantUse || r.Min.Cap != 0 || r.Min.CurveParameter == nil {
 		t.Fatal("a true interior stationary minimum with stable original owner is required", r.Min)
 	}
+	localPoint, err := stockModel.ResolveDirectionalWitness(ctx, r.Min, q(1, 1<<20), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := [3]*big.Rat{q(3, 2), q(9, 32), q(1, 4)}
+	for i, c := range localPoint.Coordinates {
+		assertValue(AlgebraicGraphDirectionalWitness{Value: c}, expected[i])
+	}
+	tampered := r.Min
+	tampered.Use++
+	if bad, err := stockModel.ResolveDirectionalWitness(ctx, tampered, q(1, 64), opts); !errors.Is(err, geom.ErrInvalid) || bad.Coordinates[0] != nil {
+		t.Fatal("mutated source owner must not publish a different support point", bad, err)
+	}
 	u := p.caps[r.Min.Cap].wires[r.Min.Wire][r.Min.Use]
 	lo, _ := u.Cell.EndpointRoot(0)
 	hi, _ := u.Cell.EndpointRoot(1)
@@ -95,6 +108,20 @@ func TestAlgebraicStockDirectionalBounds(t *testing.T) {
 	x := out.Min
 	if x.Cap != r.Min.Cap || x.Wire != r.Min.Wire || x.Use != r.Min.Use {
 		t.Fatal("exact placement may not change original owners", r.Min, out.Min)
+	}
+	pworld, err := world.ResolveDirectionalWitness(ctx, x, q(1, 1<<20), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := pose.TransformPoint(ctx, expected, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, c := range pworld.Coordinates {
+		assertValue(AlgebraicGraphDirectionalWitness{Value: c}, target[i])
+		if pworld.Bounds[i].Lower.Cmp(target[i]) > 0 || pworld.Bounds[i].Upper.Cmp(target[i]) < 0 {
+			t.Fatal("world coordinate enclosure", pworld.Bounds[i], target[i])
+		}
 	}
 	width := q(1, 256)
 	localBox, err := stockModel.BoundBoxRational(ctx, width, opts)

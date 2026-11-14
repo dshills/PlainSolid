@@ -112,3 +112,43 @@ func (c *ExactComposedCurveCell) LinearExtremaCandidates(ctx context.Context, fu
 	}
 	return r, ctx.Err()
 }
+
+// LinearImageRootWithWork evaluates an exact affine functional at a retained
+// algebraic parameter, reporting both work counters. Nil coefficients are
+// zero; the fourth coefficient is a constant. The selected root must lie on
+// this cell's actual algebraic domain.
+func (c *ExactComposedCurveCell) LinearImageRootWithWork(ctx context.Context, source *ExactAlgebraicRoot, form [4]*big.Rat,
+	opts ExactCurvePlaneEventOptions) (out *ExactAlgebraicRoot, operations, subdivisions int, err error) {
+	if ctx == nil || c == nil || len(c.power[3]) == 0 || source == nil {
+		return nil, 0, 0, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, 0, 0, e
+	}
+	opts, err = graphRootOptions(opts)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	b := &polynomialBudget{maxOperations: opts.MaxOperations, maxBits: opts.MaxCoefficientBits}
+	defer func() { operations += b.operations }()
+	var numerator rationalPolynomial
+	for axis, coeff := range form {
+		if coeff == nil || coeff.Sign() == 0 {
+			continue
+		}
+		if err = b.check(coeff); err != nil {
+			return nil, 0, 0, err
+		}
+		numerator, err = subtractScaledPolynomial(numerator, c.power[axis], new(big.Rat).Neg(coeff), b)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	}
+	opts.MaxOperations -= b.operations
+	if opts.MaxOperations < 1 {
+		return nil, 0, 0, ErrConvergence
+	}
+	image := *c
+	image.power = [4]rationalPolynomial{numerator, nil, nil, c.power[3]}
+	return image.CoordinateRootWithWork(ctx, source, 0, opts)
+}
