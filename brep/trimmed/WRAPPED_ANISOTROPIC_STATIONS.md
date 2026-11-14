@@ -195,3 +195,25 @@ Internal station planes and nonhorizontal lines remain outside this cap API;
 existing isolated-line contracts are unchanged. Tests use independent weighted
 midpoint roots ±5/7, scaled cardinal roots, upper/lower caps, reverse direction,
 finite clipped and singleton intervals, isolated tangency and exact work limits.
+
+## Selected original wall-generator coincidence
+
+`ClipWrappedAnisotropicStationGeneratorRational` requires an explicit original
+wall-face ID. It proves both exact affine identities
+`x' sx - (x-cx) sx' = 0` and `y' sy - (y-cy) sy' = 0`, so the normalized profile
+point is constant throughout the selected band. Positive scales are already
+proved on that whole band. Exact boundary membership at its rational mid-height
+therefore proves the entire generator; membership alone is not used as a
+coincidence proof. An interior fiber and any nonzero directional discrepancy,
+including a sub-ULP one, fail.
+
+The returned closed span is clipped to the selected wall and caller's finite
+parameter range. Relative-interior ownership includes the original periodic seam
+edge when applicable. Endpoint records retain all cap/crease faces, actual rim
+edges and cardinal vertices. Singleton clips are separate hits. Nothing is
+asserted about portions outside the selected wall, even if they intersect the
+rest of the stock. There is no tolerance or volume-interior result. One query
+ledger covers identities, clipping and prepared classifications; initial native
+authentication has separately bounded Source quotas. Tests reindex faces, rotate
+coedge loops and reload before checking lower/upper generators, periodic seam,
+reverse parameter direction, exact work bounds, wrong walls and nongenerators.

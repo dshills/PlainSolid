@@ -6231,3 +6231,11 @@ incidences, including a retained tool-hole island. Independent mass,
 centroid and Euler checks cover retained and floor holes. Original hole
 wall edges and parameter ancestry survive. The integrated crossing-prism
 and generator race passed in 12.595 s.
+
+### Original anisotropic wall generator qualification
+
+The selected original wall generator is proved by constant exact normalized
+coordinates and weighted profile membership. Tests preserve periodic seam,
+cap, crease, rim and vertex ancestry through native reload and reindexing.
+Near but distinct directions reject at sub-ULP separation. The combined
+crossing-prism and generator race passed in 12.595 s.
