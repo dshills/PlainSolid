@@ -174,6 +174,14 @@ func readOrientedEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limi
 	if e != nil {
 		return EllipticalAnnularPrism{}, e
 	}
+	return readOrientedEllipticalAnnularPrismFile(ctx, f, l, tol, nonhomothetic, orthogonal)
+}
+func readOrientedEllipticalAnnularPrismFile(ctx context.Context, f *File, l Limits, tol float64, nonhomothetic, orthogonal bool) (EllipticalAnnularPrism, error) {
+	fail := func() (EllipticalAnnularPrism, error) {
+		return EllipticalAnnularPrism{}, fmt.Errorf("step: unsupported exact elliptical annular prism")
+	}
+	var e error
+
 	if len(f.Entities) != 118 {
 		return fail()
 	}

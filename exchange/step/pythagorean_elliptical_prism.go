@@ -226,6 +226,14 @@ func readRationalFrameEllipticalPrism(ctx context.Context, r io.Reader, l Limits
 	if e != nil {
 		return PythagoreanEllipticalPrism{}, e
 	}
+	return readRationalFrameEllipticalPrismFile(ctx, f, l, tolerance, exactControls, tilted)
+}
+func readRationalFrameEllipticalPrismFile(ctx context.Context, f *File, l Limits, tolerance float64, exactControls, tilted bool) (PythagoreanEllipticalPrism, error) {
+	fail := func() (PythagoreanEllipticalPrism, error) {
+		return PythagoreanEllipticalPrism{}, fmt.Errorf("step: unsupported exact Pythagorean ellipse prism")
+	}
+	var e error
+
 	if len(f.Entities) != 76 {
 		return fail()
 	}
