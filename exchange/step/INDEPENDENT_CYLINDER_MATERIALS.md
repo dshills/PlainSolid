@@ -16,8 +16,12 @@ Native geometry uses exact rational quarter patches; source face/edge IDs and
 native cap/quarter face correspondences remain separate. This is a collection of
 independent products, not a union or a guarantee of spatial disjointness.
 Vendor-rounded pcurves, arbitrary angular cells and unsupported product signatures
-remain outside this API. Native solids can be saved through trimmed JSON; no new
-source-bound collection persistence version is introduced here.
+remain outside this API. Native solids can also be saved through trimmed JSON. The separate
+`Write/ReadIndependentCylinderMaterialsJSON` API uses the explicit
+`plainsolid-step-independent-cylinder-materials` version-one envelope. It re-proves
+the source once, compares every product/shape/ancestry claim and canonical native
+geometry, and enforces separate envelope/source limits. It does not accept the
+older two-family tag; the older API likewise rejects this tag.
 
 The retained six-root fixture combines the independently OCCT-authored planar and
 elliptical products with independently authored model-only half/quarter cylinder
