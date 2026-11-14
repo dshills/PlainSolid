@@ -1,13 +1,14 @@
 package trimmed
 
 import (
+	"errors"
 	"math/big"
 
 	"plainsolid/geom"
 )
 
 // Existing shell coverage already proves disjoint regular wires. For nested
-// imprint, keep a single original affine XY chart pair and classify exact
+// imprint, keep one common original affine graph projection and classify exact
 // points on each wire against all the others in their original UV chart.
 // The deepest containing loop is the immediate parent; the uncut face
 // exterior is the parent of each root loop.
@@ -71,16 +72,33 @@ func (w *shellImprintWork) closedPathParents(face, op int, s AlgebraicShellImpri
 		if e != nil {
 			return nil, e
 		}
-		if w.exact.MaxOperations < 1 {
-			return nil, geom.ErrConvergence
-		}
-		p.MaxOperations = w.exact.MaxOperations
-		graph, e := geom.NewAffineXYGraph(w.ctx, patch, p)
-		if e != nil {
-			return nil, e
-		}
-		w.exact.MaxOperations -= graph.ExactOperations()
 		support[i] = patch
+	}
+	projection := [2]int{-1, -1}
+	for _, axes := range [3][2]int{{0, 1}, {1, 2}, {0, 2}} {
+		ok := true
+		for _, patch := range support {
+			if w.exact.MaxOperations < 1 {
+				return nil, geom.ErrConvergence
+			}
+			p := geom.SurfacePatchOptions{MaxOperations: w.exact.MaxOperations, MaxCoefficientBits: w.exact.MaxCoefficientBits}
+			_, used, e := geom.NewAffineProjectedGraphWithWork(w.ctx, patch, axes, p)
+			w.exact.MaxOperations -= used
+			if errors.Is(e, geom.ErrDegenerate) || errors.Is(e, geom.ErrConvergence) {
+				ok = false
+				break
+			}
+			if e != nil {
+				return nil, e
+			}
+		}
+		if ok {
+			projection = axes
+			break
+		}
+	}
+	if projection[0] < 0 {
+		return nil, geom.ErrConvergence
 	}
 
 	contains := make([][]bool, len(paths))
@@ -90,7 +108,7 @@ func (w *shellImprintWork) closedPathParents(face, op int, s AlgebraicShellImpri
 			if i == j {
 				continue
 			}
-			in, used, e := tubeLoopContainmentOnChart(w.ctx, op, support[op], outer, inner, w.exact)
+			in, used, e := tubeLoopContainmentOnChart(w.ctx, op, support[op], outer, inner, projection, w.exact)
 			w.exact.MaxOperations -= used
 			if e != nil {
 				return nil, e
