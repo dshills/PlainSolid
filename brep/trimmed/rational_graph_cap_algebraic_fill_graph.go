@@ -7,11 +7,13 @@ import (
 	"math"
 	"math/big"
 
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
 
 // AlgebraicGraphStockFillOptions extends the planar shell mesher to stock
 // supports with a certified affine projection and bounded Bézier residuals.
+// The affine projection may be on an exactly equivalent projective chart.
 type AlgebraicGraphStockFillOptions struct {
 	AlgebraicGraphPlanarMeshOptions
 	Deflection    float64 // maximum two-sided source-fill error
@@ -58,11 +60,12 @@ func (c AlgebraicGraphCapPair) TessellateAffineProjectedStockCertified(ctx conte
 			return zero, geom.ErrConvergence
 		}
 		if face.Cap >= 0 {
-			t, ops, e := fillAlgebraicGraphPlanarFace(ctx, net, face, c.caps[face.Cap].regions.plane, o.Polygon, remaining)
+			t, ops, errorBound, e := fillAlgebraicGraphPlanarLift(ctx, net, face, c.caps[face.Cap].regions.plane, o.Polygon, remaining, budget.bits)
 			if e != nil {
 				return zero, fmt.Errorf("clipped cap %d: %w", face.Cap, e)
 			}
 			out.Predicates += ops
+			out.MaximumFillError = max(out.MaximumFillError, errorBound)
 			out.appendIndexedGraphTriangles(fi, t)
 			continue
 		}
@@ -81,49 +84,35 @@ func (c AlgebraicGraphCapPair) TessellateAffineProjectedStockCertified(ctx conte
 		}
 		plane, e := exactGraphStockFacePlane(ctx, patch, original.Reversed, o.Boundary.Section.Spans.Faces)
 		if e == nil {
-			t, ops, e := fillAlgebraicGraphPlanarFace(ctx, net, face, plane, o.Polygon, remaining)
+			t, ops, errorBound, e := fillAlgebraicGraphPlanarLift(ctx, net, face, plane, o.Polygon, remaining, budget.bits)
 			if e != nil {
 				return zero, fmt.Errorf("planar stock face %d: %w", face.StockFace, e)
 			}
 			out.Predicates += ops
+			out.MaximumFillError = max(out.MaximumFillError, errorBound)
 			out.appendIndexedGraphTriangles(fi, t)
 			continue
 		}
+
 		if !errors.Is(e, geom.ErrUnrepresentable) && !errors.Is(e, geom.ErrConvergence) {
 			return zero, e
 		}
-		var graph *geom.AffineProjectedGraph
-		var axes [2]int
-		for _, a := range [][2]int{{0, 1}, {0, 2}, {1, 2}} {
-			for _, g := range [][2]int{a, {a[1], a[0]}} {
-				h, work, e := geom.NewAffineProjectedGraphWithWork(ctx, patch, g, geom.SurfacePatchOptions{MaxOperations: budget.work, MaxCoefficientBits: budget.bits})
-				if e := budget.charge(work, 0); e != nil {
-					return zero, e
-				}
-				if e == nil && (h.Orientation() < 0) == original.Reversed {
-					graph, axes = h, g
-					break
-				}
-			}
-			if graph != nil {
-				break
-			}
-		}
-		if graph == nil {
-			return zero, fmt.Errorf("stock face %d affine chart: %w", face.StockFace, geom.ErrUnrepresentable)
+		graph, axes, e := findAlgebraicStockFillGraph(ctx, patch, original.Reversed, &budget)
+		if e != nil {
+			return zero, fmt.Errorf("stock face %d affine chart: %w", face.StockFace, e)
 		}
 		t, ops, e := fillAlgebraicGraphProjectedFace(ctx, net, face, axes, nil, o.Polygon, remaining)
 		if e != nil {
 			return zero, fmt.Errorf("curved stock face %d projection: %w", face.StockFace, e)
 		}
 		out.Predicates += ops
-		inv, e := graph.InverseCoefficients()
+		inv, e := graph.proof.InverseCoefficients()
 		if e != nil {
 			return zero, e
 		}
 		// L1 bounds for the source Jacobian and affine inverse multiply to
 		// an (intentionally conservative) projected-space Lipschitz bound.
-		_, jac, ok := patch.RationalBezierDerivativeBounds(4)
+		_, jac, ok := graph.patch.RationalBezierDerivativeBounds(4)
 		if !ok {
 			return zero, geom.ErrUnrepresentable
 		}
@@ -138,7 +127,7 @@ func (c AlgebraicGraphCapPair) TessellateAffineProjectedStockCertified(ctx conte
 			for i, id := range tr {
 				model[i] = exactBoundPoint(out.Mesh.Vertices[id])
 				target := [2]*big.Rat{model[i][axes[0]], model[i][axes[1]]}
-				q, e := graph.InvertRational(ctx, target, geom.SurfacePatchEvaluationOptions{MaxOperations: budget.work, MaxCoefficientBits: budget.bits})
+				q, e := graph.proof.InvertRational(ctx, target, geom.SurfacePatchEvaluationOptions{MaxOperations: budget.work, MaxCoefficientBits: budget.bits})
 				if e != nil {
 					return zero, e
 				}
@@ -150,7 +139,7 @@ func (c AlgebraicGraphCapPair) TessellateAffineProjectedStockCertified(ctx conte
 				}
 				uv[i] = q.UV
 			}
-			r, e := BoundRationalBezierTriangleDeviation(ctx, patch, uv, model, BezierTriangleBoundOptions{MaxOperations: min(budget.work, 100000000), MaxBits: budget.bits})
+			r, e := BoundRationalBezierTriangleDeviation(ctx, graph.patch, uv, model, BezierTriangleBoundOptions{MaxOperations: min(budget.work, 100000000), MaxBits: budget.bits})
 			if e != nil || !r.BothDirections {
 				if e == nil {
 					e = geom.ErrConvergence
@@ -191,4 +180,118 @@ func (o *CertifiedAlgebraicGraphPlanarMesh) appendIndexedGraphTriangles(face int
 	for range t {
 		o.IndexedFaces = append(o.IndexedFaces, face)
 	}
+}
+
+type algebraicStockFillGraph struct {
+	proof *geom.AffineProjectedGraph
+	patch *geom.SurfacePatch
+}
+
+func findAlgebraicStockFillGraph(ctx context.Context, patch *geom.SurfacePatch, reversed bool,
+	b *capClipBudget) (algebraicStockFillGraph, [2]int, error) {
+	var zero algebraicStockFillGraph
+	var noAxes [2]int
+	find := func(p *geom.SurfacePatch) (algebraicStockFillGraph, [2]int, error) {
+		for _, a := range [][2]int{{0, 1}, {0, 2}, {1, 2}} {
+			for _, axes := range [][2]int{a, {a[1], a[0]}} {
+				g, work, e := geom.NewAffineProjectedGraphWithWork(ctx, p, axes, geom.SurfacePatchOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
+				if e := b.charge(work, 0); e != nil {
+					return zero, noAxes, e
+				}
+				if e == nil && (g.Orientation() < 0) == reversed {
+					return algebraicStockFillGraph{g, p}, axes, nil
+				}
+				if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrUnrepresentable) && !errors.Is(e, geom.ErrDegenerate) {
+					return zero, noAxes, e
+				}
+			}
+		}
+		return zero, noAxes, geom.ErrUnrepresentable
+	}
+	g, a, e := find(patch)
+	if !errors.Is(e, geom.ErrUnrepresentable) {
+		return g, a, e
+	}
+	// Positive Möbius reparameterization changes no geometric point and
+	// fixes all original rectangular sides. The edge network and source
+	// ownership stay native; the equivalent chart only bounds lift error.
+	for axis := range 2 {
+		scale, ops, e := patch.VerticalProjectiveScale(ctx, axis, geom.SurfacePatchEvaluationOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
+		if err := b.charge(ops, 0); err != nil {
+			return zero, noAxes, err
+		}
+		if errors.Is(e, geom.ErrUnrepresentable) {
+			continue
+		}
+		if e != nil {
+			return zero, noAxes, e
+		}
+		p, ops, e := patch.NormalizeVerticalProjectiveChart(ctx, axis, scale, geom.SurfacePatchOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
+		if err := b.charge(ops, 0); err != nil {
+			return zero, noAxes, err
+		}
+		if e != nil {
+			return zero, noAxes, e
+		}
+		g, a, e := find(p)
+		if !errors.Is(e, geom.ErrUnrepresentable) {
+			return g, a, e
+		}
+	}
+	return zero, noAxes, geom.ErrUnrepresentable
+}
+
+// Use the same shared XYZ samples; only the triangulation coordinates are
+// projected. For the affine lift F of the chosen projection, winding
+// outside the projected chord homotopy is unchanged. Its displacement in
+// the true support plane is at most ||F|| times the original chord error.
+// At each triangle, physical lift discrepancy is at most the greatest
+// represented nodal discrepancy because both lifts are affine.
+func fillAlgebraicGraphPlanarLift(ctx context.Context, net CertifiedAlgebraicGraphStockBoundary, face AlgebraicGraphShellFace,
+	plane polynomialPlaneEquation, o trimvalidate.Options, limit, bits int) ([][3]int, int, float64, error) {
+	exact := true
+	maxResidual := new(big.Rat)
+	for _, loop := range face.Loops {
+		for _, u := range loop {
+			for _, i := range net.Edges[u.Edge] {
+				if e := ctx.Err(); e != nil {
+					return nil, 0, 0, e
+				}
+				p := exactBoundPoint(net.Vertices[i])
+				d := new(big.Rat).Abs(new(big.Rat).Sub(plane.dot(p), plane.offset))
+				if d.Sign() != 0 {
+					exact = false
+				}
+				if d.Cmp(maxResidual) > 0 {
+					maxResidual.Set(d)
+				}
+			}
+		}
+	}
+	if exact {
+		t, n, e := fillAlgebraicGraphPlanarFace(ctx, net, face, plane, o, limit)
+		return t, n, net.MaximumBoundaryError, e
+	}
+	axes := orientedRationalGraphProjection(plane)
+	t, n, e := fillAlgebraicGraphProjectedFace(ctx, net, face, axes, nil, o, limit)
+	if e != nil {
+		return nil, n, 0, e
+	}
+	scale := big.NewRat(1, 1)
+	for _, i := range plane.axes {
+		scale.Add(scale, new(big.Rat).Mul(plane.normal[i], plane.normal[i]))
+	}
+	_, upper, e := graphAreaSqrt(scale, 128, bits)
+	if e != nil {
+		return nil, n, 0, e
+	}
+	q := new(big.Rat).Add(new(big.Rat).Mul(upper, ratInset(net.MaximumBoundaryError)), maxResidual)
+	f, _ := q.Float64()
+	if !finite(f) {
+		return nil, n, 0, geom.ErrConvergence
+	}
+	if ratInset(f).Cmp(q) < 0 {
+		f = math.Nextafter(f, math.Inf(1))
+	}
+	return t, n, f, nil
 }

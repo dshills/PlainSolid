@@ -108,6 +108,23 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 	if e != nil || !same.Proven || same.Order != 0 {
 		t.Fatal("world line changed its exact algebraic parameter", same, e)
 	}
+	touchOrigin, e := pose.TransformPoint(ctx, [3]*big.Rat{q(0, 1), q(79, 128), q(1025, 2048)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	touchDirection, e := pose.TransformVector(ctx, [3]*big.Rat{q(1, 1), q(7, 16), q(0, 1)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	touch, e := w.IntersectLineRationalWithTouches(ctx, touchOrigin, touchDirection, [2]*big.Rat{q(-1, 1), q(4, 1)}, root)
+	if e != nil || len(touch.Contacts) != 3 || len(touch.Material) != 1 || !touch.Contacts[1].Touch ||
+		touch.Contacts[1].StockFace < 0 {
+		t.Fatal("world tangent and native wall owner", touch, e)
+	}
+	at, e := touch.Contacts[1].Parameter.SignPolynomial(ctx, []*big.Rat{q(-7, 4), q(1, 1)}, root)
+	if e != nil || at.Sign != 0 {
+		t.Fatal("proper pose changed exact tangency station", at, e)
+	}
 	options := AlgebraicGraphStockFillOptions{Deflection: .12}
 	options.Boundary.Section = selection
 	options.Boundary.Display.Deflection = .003
@@ -125,6 +142,34 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 	b, e := w.BoundVolume(ctx, width, selection, root)
 	if e != nil || a.Lower.Cmp(b.Lower) != 0 || a.Upper.Cmp(b.Upper) != 0 {
 		t.Fatal("proper rational rigid placement must preserve volume bounds", a, b, e)
+	}
+
+	localWall := [3]*big.Rat{q(7, 4), q(177, 128), q(1025, 2048)}
+	localWall[0].Sub(q(7, 4), q(7, 8192))
+	localWall[1].Add(localWall[1], q(1, 512))
+	worldWall, e := pose.TransformPoint(ctx, localWall, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near, e := w.NearestBoundaryRational(ctx, worldWall, root)
+	if e != nil || near.Wall < 0 || near.HeightCap >= 0 || near.ModelParameter == nil {
+		t.Fatal("world nearest source wall and height", near, e)
+	}
+	dProof, e := near.SquaredDistance.SignPolynomial(ctx, []*big.Rat{q(-305, 67108864), q(1, 1)}, root)
+	if e != nil || dProof.Sign != 0 {
+		t.Fatal("proper pose changed exact distance", dProof, e)
+	}
+	worldCap, e := pose.TransformPoint(ctx, [3]*big.Rat{q(1, 2), q(7, 4), q(127, 256)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	near, e = w.NearestBoundaryRational(ctx, worldCap, root)
+	if e != nil || near.Cap != 0 || near.Point[0] == nil {
+		t.Fatal("exact world plane witness", near, e)
+	}
+	foot, e := pose.TransformPoint(ctx, near.Point, true, 4096)
+	if e != nil || foot[0].Cmp(q(1, 2)) != 0 || foot[1].Cmp(q(7, 4)) != 0 || foot[2].Cmp(q(1, 2)) != 0 {
+		t.Fatal("placed witness did not invert exactly", foot, e)
 	}
 	mass, e := w.BoundCentroid(ctx, q(1, 1<<18), selection, root)
 	if e != nil || mass.Volume.Lower.Sign() <= 0 {

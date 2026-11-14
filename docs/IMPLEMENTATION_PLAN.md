@@ -150,6 +150,14 @@ Pin an OCCT revision and curate licensed, reproducible fixtures for each capabil
 
 ## Remaining full-target critical path
 
+The current exact curved Boolean checkpoint includes a mixed-path section,
+indexed material reconstruction, native reload and conservative volume.
+The first shared boundary mesh remains distinct from a proof that every
+retained face can be filled. Curved and singular family coverage remains
+a release requirement. Separate exact weighted-stock proofs now cover
+closed certified display, finite line events, nearest original owners and
+mass properties through rational rigid placement.
+
 The PlainCAD gates above determine immediate implementation order. The following
 work remains required for the phase exits above. Each result should
 record what was proved and what remained unresolved; a successful example

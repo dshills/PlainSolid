@@ -6,6 +6,11 @@ three packages have no tests. Go reported 4,414 passing test events and
 381 skips, including opt-in external comparators. The previously short-only
 trimmed cases are tracked separately. The exact Go module list contains
 only PlainSolid.
+The [selected trimmed full-mode run](evidence/native-full-selected-trimmed-2026-11-14.json)
+passed all 14 top-level cases and their eight nested test events, including
+the expensive nested exact annulus meshes and closed transverse Boolean
+operations. It was a working-checkout diagnostic; the pinned entire trimmed
+suite is tracked separately.
 
 The [latest combined development run](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
 passed all 344 original tests on PlainCAD `50432ed` with clean combined kernel

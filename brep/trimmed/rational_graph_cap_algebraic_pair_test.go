@@ -338,6 +338,22 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 		fiber.Heights[1].Cmp(big.NewRat(35, 64)) != 0 {
 		t.Fatal("exact vertical interval between both original caps", fiber, e)
 	}
+	// At (x,y)=(7/4,177/128), slope dy/dx=7/16 on the original
+	// sheared bore. Its tangent remains inside material on both sides.
+	anchor := [3]*big.Rat{q(0, 1), q(79, 128), q(1025, 2048)}
+	tangent := [3]*big.Rat{q(1, 1), q(7, 16), q(0, 1)}
+	window = [2]*big.Rat{q(-1, 1), q(4, 1)}
+	if failed, e := fiberModel.IntersectRationalLine(ctx, anchor, tangent, window, opts); !errors.Is(e, geom.ErrConvergence) || len(failed.Contacts) != 0 {
+		t.Fatal("legacy crossings-only line should reject a touching contact", failed, e)
+	}
+	touch, e := fiberModel.IntersectRationalLineWithTouches(ctx, anchor, tangent, window, opts)
+	if e != nil || len(touch.Material) != 1 || len(touch.Contacts) != 3 || !touch.Contacts[1].Touch || touch.Contacts[1].Entry || touch.Contacts[1].StockFace < 0 {
+		t.Fatal("curve tangent must preserve the one material interval and shared wall owner", touch, e)
+	}
+	event, e := touch.Contacts[1].Parameter.SignPolynomial(ctx, []*big.Rat{q(-7, 4), q(1, 1)}, opts)
+	if e != nil || event.Sign != 0 {
+		t.Fatal("wrong repeated exact wall station", event, e)
+	}
 	eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
 	for _, side := range []int64{-1, 0, 1} {
 		p := [3]*big.Rat{big.NewRat(1, 2), big.NewRat(7, 4),
