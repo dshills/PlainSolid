@@ -155,6 +155,12 @@ jobs:
           for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative FuzzIndependentPlanarUnits FuzzIndependentPlanarUnitsNative FuzzIndependentHeterogeneousUnits FuzzIndependentHeterogeneousUnitsNative FuzzIndependentToroidalMaterials FuzzIndependentToroidalMaterialsNative FuzzIndependentToroidalUnits FuzzIndependentToroidalUnitsNative FuzzIndependentTorusAssembly FuzzIndependentTorusAssemblyNative FuzzIndependentAnalyticAssembly FuzzIndependentAnalyticAssemblyNative FuzzIndependentAnalyticDAGAssembly FuzzIndependentAnalyticDAGAssemblyNative FuzzIndependentAnalyticHierarchy FuzzIndependentAnalyticHierarchyNative FuzzNormalizedAnalyticHierarchy FuzzNormalizedAnalyticHierarchyNative FuzzOCCTAnalyticHierarchy FuzzOCCTAnalyticHierarchyNative FuzzIndependentSphericalHierarchy FuzzIndependentSphericalHierarchyNative; do
             GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
           done
+      - name: Bounded fuzzing for rational STEP hierarchy persistence and bounds
+        shell: bash
+        run: |
+          for target in FuzzRationalSphericalHierarchy FuzzRationalSphericalHierarchyNative FuzzOCCTRationalSphericalHierarchy FuzzOCCTRationalSphericalHierarchyNative FuzzRationalHierarchyBounds; do
+            GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzHexahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBiquadraticSolid$ -fuzztime=100x -parallel=1 -timeout=90s
