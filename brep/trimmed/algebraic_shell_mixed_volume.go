@@ -19,6 +19,26 @@ func (s *MixedAlgebraicShellBoolean) BoundVolume(ctx context.Context, o Algebrai
 	}
 	return s.boundary.BoundVolume(ctx, o)
 }
+
+// BoundSurfaceArea encloses the area of the original retained faces.
+// Restricted branches provide a conservative cover in the original
+// chart domains before integration; no display mesh is used.
+func (s *MixedAlgebraicShellBoolean) BoundSurfaceArea(ctx context.Context, o AlgebraicShellMeasureOptions) (AlgebraicShellAreaBounds, error) {
+	if s == nil || s.section == nil {
+		return AlgebraicShellAreaBounds{}, geom.ErrInvalid
+	}
+	return s.boundary.BoundSurfaceArea(ctx, o)
+}
+
+// BoundMassProperties encloses volume, world first moments, centroid and
+// origin inertia on the retained original spline supports. Unclassified
+// cells contribute conservative signed flux intervals.
+func (s *MixedAlgebraicShellBoolean) BoundMassProperties(ctx context.Context, o AlgebraicShellMeasureOptions) (AlgebraicShellMassBounds, error) {
+	if s == nil || s.section == nil {
+		return AlgebraicShellMassBounds{}, geom.ErrInvalid
+	}
+	return s.boundary.BoundMassProperties(ctx, o)
+}
 func rationalShellBranchCover(ctx context.Context, b AlgebraicShellSectionBranch, n int, o geom.SurfacePatchOptions) (out [2][]geom.UVBox, err error) {
 	if ctx == nil || b.rational == nil || b.rational.PieceCount() == 0 || b.rationalSource < 0 || b.rationalSource > 1 || n < 1 || n > 128 || o.MaxOperations < 0 {
 		return out, geom.ErrInvalid
