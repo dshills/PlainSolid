@@ -80,6 +80,9 @@ func (m AlgebraicGraphVerticalMaterial) boundDirectionBudget(direction [3]*big.R
 	if direction[0].Sign() == 0 && direction[1].Sign() == 0 && direction[2].Sign() == 0 {
 		return zero, geom.ErrDegenerate
 	}
+	if offset != nil && max(offset.Num().BitLen(), offset.Denom().BitLen()) > b.bits {
+		return zero, geom.ErrConvergence
+	}
 	form := [4]*big.Rat{direction[0], direction[1], direction[2], offset}
 	var out AlgebraicGraphDirectionalBounds
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {
@@ -150,6 +153,27 @@ func (m AlgebraicGraphVerticalMaterial) boundDirectionBudget(direction [3]*big.R
 func (o AlgebraicGraphStockOccurrence) BoundDirectionRational(ctx context.Context, direction [3]*big.Rat,
 	opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphDirectionalBounds, error) {
 	var zero AlgebraicGraphDirectionalBounds
+	b, err := o.model.extremaBudget(ctx, opts)
+	if err != nil {
+		return zero, err
+	}
+	form, err := o.directionForm(ctx, direction)
+	if err != nil {
+		return zero, err
+	}
+	if err := b.charge(30, 0); err != nil {
+		return zero, err
+	}
+	out, err := o.model.boundDirectionBudget([3]*big.Rat{form[0], form[1], form[2]}, form[3], &b)
+	if err != nil {
+		return zero, err
+	}
+	out.ExactOperations += 30
+	return out, nil
+}
+
+func (o AlgebraicGraphStockOccurrence) directionForm(ctx context.Context, direction [3]*big.Rat) ([4]*big.Rat, error) {
+	var zero [4]*big.Rat
 	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
 	if e != nil {
 		return zero, e
@@ -162,5 +186,5 @@ func (o AlgebraicGraphStockOccurrence) BoundDirectionRational(ctx context.Contex
 	for i, q := range direction {
 		offset.Add(offset, new(big.Rat).Mul(m[i][3], q))
 	}
-	return o.model.boundDirectionRational(ctx, d, offset, opts)
+	return [4]*big.Rat{d[0], d[1], d[2], offset}, ctx.Err()
 }
