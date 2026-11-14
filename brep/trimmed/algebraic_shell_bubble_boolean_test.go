@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"math/big"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -52,6 +53,33 @@ func TestBubbleRoofAlgebraicMaterial(t *testing.T) {
 		result := results[i]
 		if result.Topology.EulerCharacteristic != []int{2, 2, 4}[i] {
 			t.Fatal("material topology", i, result.Topology)
+		}
+		roof, e := result.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+		if e != nil {
+			t.Fatal("prepare original quartic roof line", i, e)
+		}
+		// The original stock Z on X=Y=t is t²(1-t)²/64. The
+		// intersection hides it where the tool's roof is lower.
+		r := big.NewRat
+		quartic := []*big.Rat{r(-1, 4096), r(0, 1), r(1, 64), r(-1, 32), r(1, 64)}
+		tool := []*big.Rat{r(767, 4096), r(-63, 64), r(1, 1), r(-1, 32), r(1, 64)}
+		line, e := roof.IntersectLineRational(ctx,
+			[3]*big.Rat{r(0, 1), r(0, 1), r(1, 4096)}, [3]*big.Rat{r(1, 1), r(1, 1), r(0, 1)},
+			r(1, 16), r(15, 16), MixedRoofLineOptions{})
+		if e != nil || len(line.Events) != [3]int{4, 0, 2}[i] || len(line.Spans) != [3]int{2, 1, 1}[i] {
+			t.Fatal("quartic material section", i, line, e)
+		}
+		for j, event := range line.Events {
+			// The inner roots of common and difference come from the tool;
+			// the two outer roots of common come from the stock.
+			p, owner := tool, 1
+			if i == 0 && (j == 0 || j == len(line.Events)-1) {
+				p, owner = quartic, 0
+			}
+			sign, e := event.Parameter.SignPolynomial(ctx, p, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || sign.Sign != 0 || len(event.Owners) != 1 || event.Owners[0] != (MixedRoofFaceOwner{owner, 1}) {
+				t.Fatal("quartic witness lost original polynomial identity", i, j, sign, event, e)
+			}
 		}
 		volume, e := result.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 6, TubeSubdivisions: 8})
 		if e != nil {

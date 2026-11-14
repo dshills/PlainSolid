@@ -12,6 +12,7 @@
 #include <Geom_BezierSurface.hxx>
 #include <GProp.hxx>
 #include <GProp_GProps.hxx>
+#include <IntCurvesFace_ShapeIntersector.hxx>
 #include <NCollection_Array2.hxx>
 #include <NCollection_IndexedMap.hxx>
 #include <TopExp.hxx>
@@ -22,12 +23,16 @@
 #include <TopTools_ShapeMapHasher.hxx>
 #include <Standard_Failure.hxx>
 #include <gp_Mat.hxx>
+#include <gp_Lin.hxx>
 
+#include <algorithm>
+#include <cmath>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -141,6 +146,24 @@ void reportVerticalWall(const char* name, const TopoDS_Shape& shape) {
   std::cout << "]}\n";
 }
 
+void reportObliqueLine(const char* name, const TopoDS_Shape& shape) {
+  IntCurvesFace_ShapeIntersector intersector;
+  intersector.Load(shape,1e-9);
+  const gp_Vec direction(1,1.0/4,0);
+  const double scale=direction.Magnitude();
+  intersector.Perform(gp_Lin(gp_Pnt(0,1.0/4,0),gp_Dir(direction)),scale/16,scale*15/16);
+  if (!intersector.IsDone()) throw std::runtime_error("incomplete oblique line query");
+  std::vector<double> stations;
+  for (int i=1;i<=intersector.NbPnt();++i) stations.push_back(intersector.WParameter(i)/scale);
+  std::sort(stations.begin(),stations.end());
+  stations.erase(std::unique(stations.begin(),stations.end(),[](double a,double b) {
+    return std::abs(a-b)<1e-8;
+  }),stations.end());
+  std::cout << "{\"name\":\"" << name << "\",\"stations\":[";
+  for (unsigned i=0;i<stations.size();++i) std::cout << (i ? "," : "") << stations[i];
+  std::cout << "]}\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -151,6 +174,12 @@ int main(int argc, char** argv) {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());
       reportVerticalWall("difference", BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="oblique-line") {
+      reportObliqueLine("intersection", BRepAlgoAPI_Common(a,b).Shape());
+      reportObliqueLine("union", BRepAlgoAPI_Fuse(a,b).Shape());
+      reportObliqueLine("difference", BRepAlgoAPI_Cut(a,b).Shape());
       return 0;
     }
     if (argc!=1) throw std::runtime_error("unknown probe");

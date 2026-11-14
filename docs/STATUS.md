@@ -36,10 +36,13 @@ source error bound below 0.143 model units. Its complement proof clips
 query cells to the opposing chart before testing height. All three mesh
 operations now run end to end on the two original shells without caller
 face assignments or rational wall seeds.
-On proved original roof boxes, exact rational point and vertical-line
-queries preserve original floor and roof owners, including simultaneous
-contacts and a retained difference span below binary64 resolution. Line
-parameters remain exact with either direction and at distant origins.
+On proved original roof boxes, exact rational point and line queries
+preserve original floor, side, and roof owners, including simultaneous
+contacts and a retained difference span below binary64 resolution.
+The arbitrary-direction line sweep isolates up to quartic restrictions,
+distinguishes repeated roots from crossings, and reports exposed
+coincident spans separately from the interior. It qualifies both the
+mixed restricted-wall Boolean and the independently curved bubble roofs.
 The native tube adapter also assembles the original triple radial
 intersection as separate disk and annular solids with four original
 faces, 228 retained edges, and two inner wires. Whole original ring
