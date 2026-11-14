@@ -146,6 +146,14 @@ func TestWrappedOpenRegionIncidenceRejectsPinchesAndExtraUses(t *testing.T) {
 	// still one; an edge-only/Euler check would incorrectly accept this pinch.
 	edges := []parametric.Edge{{Start: 0, End: 1}, {Start: 1, End: 2}, {Start: 2, End: 3}, {Start: 3, End: 0}, {Start: 0, End: 4}, {Start: 4, End: 5}, {Start: 5, End: 6}, {Start: 6, End: 0}}
 	faces := []Face{{Outer: []Use{{Edge: 0}, {Edge: 1}, {Edge: 2}, {Edge: 3}}}, {Outer: []Use{{Edge: 4}, {Edge: 5}, {Edge: 6}, {Edge: 7}}}}
+	uv := []geom.Vec2{{}, {X: 1}, {X: 1, Y: 1}, {Y: 1}, {X: -1}, {X: -1, Y: -1}, {Y: -1}}
+	for fi := range faces {
+		for i := range faces[fi].Outer {
+			edge := edges[faces[fi].Outer[i].Edge]
+			faces[fi].Outer[i].UVStart = uv[edge.Start]
+			faces[fi].Outer[i].UVEnd = uv[edge.End]
+		}
+	}
 	if _, e := validateWrappedOpenRegionIncidence(ctx, 7, edges, faces); e == nil {
 		t.Fatal("pinched fan accepted")
 	}

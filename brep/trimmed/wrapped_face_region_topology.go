@@ -13,6 +13,7 @@ type WrappedFaceRegionSelection uint8
 const (
 	WrappedFaceRegionUnion WrappedFaceRegionSelection = iota + 1
 	WrappedFaceRegionIntersection
+	WrappedFaceRegionDifference
 )
 
 // WrappedRegionCellAncestry keeps the original arrangement cell and all lifted
@@ -23,16 +24,18 @@ type WrappedRegionCellAncestry struct {
 	OwnerUV    [2][4][2]*big.Rat
 }
 
-// WrappedFaceRegionTopology is an immutable embedded, oriented open disk made
+// WrappedFaceRegionTopology is an immutable embedded, oriented open region made
 // of exact cofacial rectangular cells. It is not a Solid, material union, or
 // volume certificate. Faces use A's original wrapped support and Reversed flag.
 // Original B's orientation is retained separately and never silently reconciled.
 // Exported edges are unique; each has one boundary or two opposite face uses.
-// The exterior is directed consistently with the chosen oriented surface.
+// The exterior and any hole are directed consistently with the chosen surface.
+// A successful empty Difference has no cells, edges or boundary loops.
 type WrappedFaceRegionTopology struct {
 	vertices   []geom.Vec3
 	edges      []parametric.Edge
 	faces      []Face
+	boundaries [][]Use
 	exterior   []Use
 	cells      []WrappedRegionCellAncestry
 	ancestry   [][]WrappedFaceFragmentOwner
@@ -135,9 +138,14 @@ func (r *WrappedFaceRegionTopology) EdgeAncestry() [][]WrappedFaceFragmentOwner 
 // rather than accepting a caller-editable Complete/Cells report. The fixed
 // scope is at most nine cells. Edge reuse additionally checks exact affine UV
 // identity and the certified reverse cell mate. Vertex fans, global incidence
-// and a single simple exterior are checked independently before publication.
+// and simple boundary cycles are checked independently before publication.
+// Difference is directed A minus B, retaining the closure of its 2D cells.
+// It supports a connected disk or disk with one hole; disconnected or pinched
+// results remain unresolved. Empty() distinguishes a proved empty Difference.
+// The embedding guard still rejects hulls crossing a fundamental seam;
+// different whole-period lifted owner charts remain supported.
 func NewWrappedFaceRegionTopology(ctx context.Context, a, b SewFace, selection WrappedFaceRegionSelection, o WrappedRectangleFaceOverlapOptions) (*WrappedFaceRegionTopology, error) {
-	if selection != WrappedFaceRegionUnion && selection != WrappedFaceRegionIntersection {
+	if selection != WrappedFaceRegionUnion && selection != WrappedFaceRegionIntersection && selection != WrappedFaceRegionDifference {
 		return nil, geom.ErrInvalid
 	}
 	material, e := MaterializeWrappedRectangleFaceCells(ctx, a, b, o)
@@ -148,9 +156,18 @@ func NewWrappedFaceRegionTopology(ctx context.Context, a, b SewFace, selection W
 	type occurrence struct{ cell, side, edge int }
 	selected := map[int]bool{}
 	for i, c := range material.Cells {
-		if selection == WrappedFaceRegionUnion || c.Owners == 3 {
+		if selection == WrappedFaceRegionUnion || (selection == WrappedFaceRegionIntersection && c.Owners == 3) || (selection == WrappedFaceRegionDifference && c.Owners == 1) {
 			selected[i] = true
 		}
+	}
+	if len(selected) == 0 {
+		if selection != WrappedFaceRegionDifference {
+			return nil, geom.ErrConvergence
+		}
+		if e := ctx.Err(); e != nil {
+			return nil, e
+		}
+		return result, nil
 	}
 	vertexIDs := map[geom.Vec2]int{}
 	modelIDs := map[geom.Vec3]geom.Vec2{}
@@ -221,7 +238,25 @@ func NewWrappedFaceRegionTopology(ctx context.Context, a, b SewFace, selection W
 			use.Edge = id
 			use.Reversed = reverse
 			f.Outer = append(f.Outer, use)
-			for _, source := range c.Sides[i].Original {
+			originals := append([]WrappedFaceFragmentOwner(nil), c.Sides[i].Original...)
+			if selection == WrappedFaceRegionDifference {
+				side := c.Sides[i]
+				if side.MateCell >= 0 && !selected[side.MateCell] {
+					mate := material.Cells[side.MateCell].Sides[side.MateSide]
+					if mate.MateCell != ci || mate.MateSide != i {
+						return nil, geom.ErrConvergence
+					}
+					for _, source := range mate.Original {
+						if source.Face == 1 {
+							p := copyWrappedFragmentOwner(source)
+							p.Parameters[0], p.Parameters[1] = p.Parameters[1], p.Parameters[0]
+							p.UV[0], p.UV[1] = p.UV[1], p.UV[0]
+							originals = append(originals, p)
+						}
+					}
+				}
+			}
+			for _, source := range originals {
 				p := copyWrappedFragmentOwner(source)
 				if reverse {
 					p.Parameters[0], p.Parameters[1] = p.Parameters[1], p.Parameters[0]
@@ -252,18 +287,37 @@ func NewWrappedFaceRegionTopology(ctx context.Context, a, b SewFace, selection W
 		result.faces = append(result.faces, f)
 		result.cells = append(result.cells, WrappedRegionCellAncestry{SourceCell: ci, Owners: c.Owners, OwnerUV: c.OwnerUV})
 	}
-	exterior, e := validateWrappedOpenRegionIncidence(ctx, len(result.vertices), result.edges, result.faces)
+	maxCycles := 1
+	if selection == WrappedFaceRegionDifference {
+		maxCycles = 2
+	}
+	cycles, e := validateWrappedOpenRegionCycles(ctx, len(result.vertices), result.edges, result.faces, maxCycles)
 	if e != nil {
 		return nil, e
 	}
-	result.exterior = exterior
+	for _, cycle := range cycles {
+		for _, use := range cycle {
+			if len(result.ancestry[use.Edge]) == 0 {
+				return nil, geom.ErrConvergence
+			}
+		}
+	}
+	result.boundaries = cycles
+	result.exterior = cycles[0]
 	return result, nil
 }
 
 // Pure bounded topological validation. Geometry identity is established by the
 // constructor above; endpoint incidence alone is never used as a curve proof.
 func validateWrappedOpenRegionIncidence(ctx context.Context, nv int, edges []parametric.Edge, faces []Face) ([]Use, error) {
-	if ctx == nil || nv < 4 || nv > 36 || len(edges) < 4 || len(edges) > 36 || len(faces) < 1 || len(faces) > 9 {
+	cycles, e := validateWrappedOpenRegionCycles(ctx, nv, edges, faces, 1)
+	if e != nil {
+		return nil, e
+	}
+	return cycles[0], nil
+}
+func validateWrappedOpenRegionCycles(ctx context.Context, nv int, edges []parametric.Edge, faces []Face, maxCycles int) ([][]Use, error) {
+	if maxCycles < 1 || maxCycles > 2 || ctx == nil || nv < 4 || nv > 36 || len(edges) < 4 || len(edges) > 36 || len(faces) < 1 || len(faces) > 9 {
 		return nil, geom.ErrInvalid
 	}
 	type incidence struct {
@@ -272,6 +326,7 @@ func validateWrappedOpenRegionIncidence(ctx context.Context, nv int, edges []par
 	}
 	incidents := make([][]incidence, len(edges))
 	vertexFaces := make([]map[int]bool, nv)
+	vertexUV := make(map[int]geom.Vec2)
 	for fi, f := range faces {
 		if e := ctx.Err(); e != nil {
 			return nil, e
@@ -293,6 +348,19 @@ func validateWrappedOpenRegionIncidence(ctx context.Context, nv int, edges []par
 			}
 			if start < 0 || end < 0 || start >= nv || end >= nv || start == end {
 				return nil, geom.ErrConvergence
+			}
+			if u.Curve != nil || !uvFinite(u.UVStart) || !uvFinite(u.UVEnd) {
+				return nil, geom.ErrConvergence
+			}
+			for j, v := range [2]int{start, end} {
+				uv := u.UVStart
+				if j == 1 {
+					uv = u.UVEnd
+				}
+				if old, ok := vertexUV[v]; ok && old != uv {
+					return nil, geom.ErrConvergence
+				}
+				vertexUV[v] = uv
 			}
 			if first < 0 {
 				first = start
@@ -387,36 +455,55 @@ func validateWrappedOpenRegionIncidence(ctx context.Context, nv int, edges []par
 			return nil, geom.ErrConvergence
 		}
 	}
-	if nv-len(edges)+len(faces) != 1 || len(boundary) < 4 {
+	if len(boundary) < 4 {
 		return nil, geom.ErrConvergence
 	}
 	byStart := map[int]incidence{}
-	start := nv
 	for _, p := range boundary {
 		if _, exists := byStart[p.start]; exists {
 			return nil, geom.ErrConvergence
 		}
 		byStart[p.start] = p
-		if p.start < start {
-			start = p.start
-		}
 	}
-	var out []Use
-	at := start
-	for i := 0; i < len(boundary); i++ {
-		p, ok := byStart[at]
-		if !ok {
+	var cycles [][]Use
+	for len(byStart) > 0 {
+		if len(cycles) >= maxCycles {
 			return nil, geom.ErrConvergence
 		}
-		out = append(out, p.use)
-		delete(byStart, at)
-		at = p.end
+		start := nv
+		for v := range byStart {
+			if v < start {
+				start = v
+			}
+		}
+		at := start
+		var cycle []Use
+		for step := 0; step < len(boundary); step++ {
+			p, ok := byStart[at]
+			if !ok {
+				return nil, geom.ErrConvergence
+			}
+			cycle = append(cycle, p.use)
+			delete(byStart, at)
+			at = p.end
+			if at == start {
+				break
+			}
+		}
+		if at != start || len(cycle) < 4 {
+			return nil, geom.ErrConvergence
+		}
+		cycles = append(cycles, cycle)
 	}
-	if at != start || len(byStart) != 0 {
+	if nv-len(edges)+len(faces) != 2-len(cycles) {
 		return nil, geom.ErrConvergence
+	}
+	cycles, e := validateWrappedBoundaryCycles(cycles, faces[0].Reversed)
+	if e != nil {
+		return nil, e
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	return out, nil
+	return cycles, nil
 }
