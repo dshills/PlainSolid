@@ -164,8 +164,13 @@ func bernsteinToPower(coefficients []*big.Rat, b *polynomialBudget) (rationalPol
 	for k := 0; k <= n; k++ {
 		p[k] = new(big.Rat)
 		for i := 0; i <= k; i++ {
-			factor := new(big.Int).Mul(new(big.Int).Binomial(int64(n), int64(i)), new(big.Int).Binomial(int64(n-i), int64(k-i)))
-			term := new(big.Rat).Mul(coefficients[i], new(big.Rat).SetInt(factor))
+			factor := new(big.Rat)
+			if n < len(smallBernsteinPowerFactors) {
+				factor.SetInt64(smallBernsteinPowerFactors[n][k][i])
+			} else {
+				factor.SetInt(new(big.Int).Mul(new(big.Int).Binomial(int64(n), int64(i)), new(big.Int).Binomial(int64(n-i), int64(k-i))))
+			}
+			term := new(big.Rat).Mul(coefficients[i], factor)
 			if (k-i)%2 == 1 {
 				term.Neg(term)
 			}
