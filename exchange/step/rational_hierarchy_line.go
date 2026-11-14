@@ -14,6 +14,7 @@ type RationalHierarchyLineOptions struct {
 	MaxOperations, MaxCoefficientBits, MaxSubdivisions int
 	MaxPlanarTests                                     int
 	Source                                             Limits
+	MaxRayDirections                                   int
 }
 type HierarchyLineOwner struct {
 	ProductID, SourceProductID, SourceBodyID         int64
@@ -61,6 +62,7 @@ type RationalHierarchyLine struct {
 	LengthUnit               float64
 	Operations, Subdivisions int
 	PlanarTests              int
+	RayDirections            int
 }
 
 func ClipRationalHierarchyAnalyticLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
@@ -69,7 +71,7 @@ func ClipRationalHierarchyAnalyticLine(ctx context.Context, m RationalSphericalH
 func ClipOCCTRationalHierarchyAnalyticLine(ctx context.Context, m OCCTRationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
 	return clipRationalHierarchyLine(ctx, RationalSphericalHierarchy(m), origin, direction, lower, upper, o, true)
 }
-func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions, vendor bool) (RationalHierarchyLine, error) {
+func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions, vendor bool, generalMode ...bool) (RationalHierarchyLine, error) {
 	bad := func(e error) (RationalHierarchyLine, error) { return RationalHierarchyLine{}, e }
 	if ctx == nil || lower == nil || upper == nil || lower.Cmp(upper) >= 0 {
 		return bad(geom.ErrInvalid)
@@ -92,6 +94,14 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 	if o.MaxPlanarTests < 1 || o.MaxPlanarTests > 1048576 {
 		return bad(geom.ErrInvalid)
 	}
+	if o.MaxRayDirections == 0 {
+		o.MaxRayDirections = 256
+	}
+	if o.MaxRayDirections < 1 || o.MaxRayDirections > 4096 {
+		return bad(geom.ErrInvalid)
+	}
+	general := len(generalMode) > 0 && generalMode[0]
+	generalPrepared := map[int64]*hierarchyGeneralPlanarProof{}
 	a := hierarchyPointArithmetic{bits: o.MaxCoefficientBits}
 	nonzero := false
 	for i := 0; i < 3; i++ {
@@ -193,6 +203,30 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 		owner := HierarchyLineOwner{ProductID: location.ProductID, SourceProductID: location.SourceProductID, SourceBodyID: location.SourceBodyID, Path: append([]int64(nil), location.Path...), SourceFaceIDs: append([]int64(nil), location.SourceFaceIDs...), Family: location.Family}
 		leaf := HierarchyLineLeaf{Owner: owner}
 		if location.Family == "planar" {
+			if general {
+				cert, ok := generalPrepared[location.ProductID]
+				if !ok {
+					tick := func() error {
+						out.PlanarTests++
+						if out.PlanarTests > o.MaxPlanarTests {
+							return geom.ErrConvergence
+						}
+						return ctx.Err()
+					}
+					cert, e = prepareHierarchyGeneralPlanar(ctx, m.Products[location.ProductID], owner.SourceFaceIDs, &a, tick)
+					if e != nil {
+						return bad(e)
+					}
+					generalPrepared[location.ProductID] = cert
+				}
+				leaf, e = clipHierarchyGeneralPlanar(ctx, leaf, cert, m.Instances[k], origin, direction, lower, upper, &a, &out, o.MaxPlanarTests, o.MaxRayDirections, opts, addHit)
+				if e != nil {
+					return bad(e)
+				}
+				out.Leaves = append(out.Leaves, leaf)
+				continue
+			}
+
 			leaf, e = clipHierarchyPlanar(ctx, leaf, m.Products[location.ProductID], m.Instances[k], origin, direction, lower, upper, &a, &out, o.MaxPlanarTests, opts, addHit)
 			if e != nil {
 				return bad(e)

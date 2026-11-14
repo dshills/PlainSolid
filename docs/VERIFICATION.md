@@ -822,12 +822,18 @@ these labels on the shared asset definitions rather than duplicating them
 on each occurrence. The original transfer, document reopen and live OCCT
 edit regression passed under the race detector.
 
-The read-only rational hierarchy document keeps exact oblique occurrence
+The immutable rational hierarchy document keeps exact oblique occurrence
 matrices separate from local geometry. Both convention fixtures retain seven
 paths to four shared assets. The tests verify caller mutation isolation,
 canonical source and byte-stable native round trips, separation of the
 two native tags, exact world bounds, symbolic volume, and point and line
 queries. The focused document race tests passed.
+Exact relationship edits return a new proved document in either frame
+convention. A shared cylinder relationship moved both expanded occurrences
+while preserving product, body, face, and relationship IDs and retaining the
+original child datum. Both edited transfers matched OCCT volume, body/face
+counts, and world extents. Improper rotations and nonterminating STEP
+translations were rejected before output.
 
 Document planar face history now propagates authored box roles through
 the same geometry evaluation that builds each planar Boolean. The
@@ -5318,3 +5324,38 @@ route now charges997027 operations after removing redundant canonical reproof.
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestAffineRadialOriginalTransport|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
 ```
+
+## Exact radial transfer strata (2026-11-14)
+
+Focused geometry tests independently exercise an uncovered tangent on an open
+edge, a vertex-only tangent, a covered boundary-only contact, and an uncovered
+radius-one arc inside a rectangle of half-width 2^-40. Public original-support
+checks reject the corresponding tangent/tiny-arc candidates without targets,
+freshly prove a valid uniform target, reject a forged broad target, and enforce
+cancellation and exact/one-less operation quotas. Focused race passed for the
+strata, original target certificates, and non-unit pair integration. The
+physical rectangle pair uses 36 cover cells and 1,104,858 exact operations on
+the integrated revision, including fresh target proofs.
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./intersect -run '^(TestRadialTransferClosedStrata|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom -run '^TestRadialTransferOriginalCertificate$' -count=1
+PLAINSOLID_RADIAL_TRANSFER_TRIPLE=1 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./intersect -run '^TestTripleRadialPhysicalTransferCoverage$' -count=1 -v -timeout 15m
+```
+
+The opt-in direct original triple test passed in 75.60 s on the isolated
+implementation at `0c2b241`. It verified 228 original tubes and 248 overlapping
+cover cells, with 47,917,293 exact operations, 15,124 partition strata and
+7,240 uncovered-stratum checks. This qualifies the original coverage transfer;
+native assembly and meshing with this strategy have their own end-to-end test.
+
+## Direct coincident roof-box volume and mass (2026-11-14)
+
+`TestCoincidentRoofBoxMaterialMoments` compares direct rational volume, first
+moments, centroid and world inertia intervals with independent pinned OCCT
+construction and `GProp` evaluation for nine Common, Fuse and Cut results.
+The fixtures include a face-only intersection, overlapping boxes with shared
+walls, floor and roof, and equal boxes. Tests check exact rational values and
+atomic cancellation and fail-closed source rejection. The live focused race
+run (`PLAINSOLID_OCCT_COINCIDENT_ROOF_AREA` with `mass` mode) passed; the separate
+surface area regression passed in the same run.

@@ -828,6 +828,13 @@ adds worktree revision `988ddd4d` to review `23613ca2`. It passed all
 [authored lower and upper cases](evidence/plaincad-reconciled-23613ca2-supplemental-double-blind-oblique-step-2026-11-14.json)
 preserve both floors and reproduce the worktree STEP and watertight STL.
 Independent OCCT transfer and direct construction agree in both cases.
+The [tighter partial-hole reconciliation](evidence/plaincad-reconciled-6a3d7c88-development-tight-partial-holes-step-2026-11-14.json)
+adds worktree revision `23f6b13f` to review `6a3d7c88`. All 17 original
+browser cases and the focused native race suite passed. The run verified 841
+app and 2,180 kernel source blobs. The [authored 2 mm offset case](evidence/plaincad-reconciled-6a3d7c88-supplemental-tight-partial-step-2026-11-14.json)
+reproduced the 258,205-byte STEP and watertight 1,294-triangle STL, including
+eight bounded spline edge records. Independent OCCT transfer matched direct
+construction.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
@@ -1868,3 +1875,33 @@ can be nonbinary rationals. Existing unit-domain radial mass APIs retain their
 strict public contract; the generalized coefficient variant is private to the
 affine coverage certificate. No new native solid or mass formula is inferred
 from a normalized proof chart.
+
+## Exact physical radial transfer (2026-11-14)
+
+The explicit affine radial strategy now transfers coverage by an exact physical
+XY arrangement, through `AffineRadialContours.CertifyCellInTubes`. Every target
+is freshly verified as a uniform tube on the original supports. Exact affine
+source identities map both closed original UV domains to rational physical
+rectangles; their intersection gives precisely the possible contact locations.
+A bounded partition includes vertices, open edges and open cells. Uncovered
+strata are excluded by exact circle-distance extrema with endpoint
+attainability, retaining isolated tangent contacts and tiny arcs. Midpoints
+select constant rectangle membership only; they never sample curve incidence.
+
+This resolves a concrete generic 4D quartic exclusion limitation (one unresolved
+cell at 205,780 operations, not arithmetic exhaustion) without weakening the
+generic proof. `RadialOverlapCoverage.TransferMode` identifies the selected
+proof; `TransferStrata` and `TransferTests` report its bounded arrangement work.
+The generic original-cell union remains available on the non-affine strategy.
+The opt-in direct original triple-pair test passed for all 228 original tubes,
+using 248 overlapping cover cells. Native assembly and mesh qualification with
+this strategy are tracked separately.
+
+## Direct regularized measures for coincident roof boxes (2026-11-14)
+
+`BoundRoofBoxVolume` and `BoundRoofBoxMass` evaluate the original roof-box pair
+directly, without assembling a result shell. Common, Fuse and both directions
+of Cut accept supported shared floor, wall and roof supports. Mass includes
+world first moments and inertia. Zero-volume intersections have exact zero
+moments and no defined centroid. This adds measure queries; construction and
+source topology for coincident Boolean results remain separate.

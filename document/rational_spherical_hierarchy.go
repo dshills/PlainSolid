@@ -15,8 +15,8 @@ import (
 )
 
 // RationalSphericalHierarchyDocument retains a verified source hierarchy and
-// exact occurrence poses. It is read-only and keeps geometry in local charts.
-// It does not synthesize floating transforms for the editable State graph.
+// exact occurrence poses. A snapshot is immutable and keeps geometry in local
+// charts. Placement edits return a new document with independently proved poses.
 type RationalSphericalHierarchyDocument struct {
 	source []byte
 	native []byte
@@ -300,4 +300,34 @@ func (d *RationalSphericalHierarchyDocument) Mass(ctx context.Context, o step.Ra
 		return step.MeasureOCCTRationalSphericalHierarchy(ctx, step.OCCTRationalSphericalHierarchy(d.model), o)
 	}
 	return step.MeasureRationalSphericalHierarchy(ctx, d.model, o)
+}
+
+// Relationships returns the proved source uses, including their original frame
+// IDs and immutable exact local matrices. One relationship may expand to more
+// than one material path.
+func (d *RationalSphericalHierarchyDocument) Relationships() []step.ExactNAUOOccurrence {
+	if d == nil {
+		return nil
+	}
+	return append([]step.ExactNAUOOccurrence(nil), d.model.Relationships...)
+}
+
+// EditRelationships returns a new source-bound document after applying exact
+// local edits. All paths using a selected relationship adopt the same placement.
+// The original document is unchanged if validation or publication fails.
+func (d *RationalSphericalHierarchyDocument) EditRelationships(ctx context.Context, edits []step.RationalSphericalHierarchyEdit, o STEPAssemblyOptions) (*RationalSphericalHierarchyDocument, error) {
+	if d == nil {
+		return nil, geom.ErrInvalid
+	}
+	var output bytes.Buffer
+	if d.vendor {
+		if err := step.WriteOCCTRationalSphericalHierarchyEdits(ctx, &output, d.model.Source, edits, o.Geometry, d.model.Tolerance()); err != nil {
+			return nil, err
+		}
+		return ReadOCCTRationalSphericalHierarchyDocumentSTEP(ctx, &output, o, d.model.Tolerance())
+	}
+	if err := step.WriteRationalSphericalHierarchyEdits(ctx, &output, d.model.Source, edits, o.Geometry, d.model.Tolerance()); err != nil {
+		return nil, err
+	}
+	return ReadRationalSphericalHierarchyDocumentSTEP(ctx, &output, o, d.model.Tolerance())
 }

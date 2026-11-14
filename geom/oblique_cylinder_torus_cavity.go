@@ -193,6 +193,21 @@ func (s ObliqueCylinderTorusCavityMaterial) classifyWithBudget(ctx context.Conte
 }
 
 func (s ObliqueCylinderTorusCavityMaterial) ClipRationalLine(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions) (TorusCylinderLine, error) {
+	return s.clipRationalLine(ctx, p, d, min, max, o, true)
+}
+
+// IntersectRationalLineBoundary reports actual exposed boundary hits (including
+// non-toggling tangent multiplicity) and coincident wall/cap intervals. Unlike
+// ClipRationalLine, material interiors are not reported as boundary intervals.
+// It inherits the same exact root ledger and bounded proof contract.
+func (s ObliqueCylinderTorusCavityMaterial) IntersectRationalLineBoundary(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions) (BoreLineBoundary, error) {
+	q, e := s.clipRationalLine(ctx, p, d, min, max, o, false)
+	if e != nil {
+		return BoreLineBoundary{}, e
+	}
+	return BoreLineBoundary{Hits: q.Points, Intervals: q.Intervals}, nil
+}
+func (s ObliqueCylinderTorusCavityMaterial) clipRationalLine(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions, material bool) (TorusCylinderLine, error) {
 	var z TorusCylinderLine
 	if ctx == nil || s.source.R == nil || min == nil || max == nil || min.Cmp(max) > 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
 		return z, ErrInvalid
@@ -234,7 +249,7 @@ func (s ObliqueCylinderTorusCavityMaterial) ClipRationalLine(ctx context.Context
 	ro := ExactCurvePlaneEventOptions{MaxOperations: limits.MaxOperations, MaxCoefficientBits: limits.MaxCoefficientBits, MaxSubdivisions: o.MaxSubdivisions}
 	out, e := intersectMaterialBoundaryRational(ctx, ps, min, max, o, b, ro, func(v []int) (BorePointLocation, BoreBoundaryMask) {
 		l, m := s.location(v)
-		if l == BoreInside {
+		if material && l == BoreInside {
 			l = BoreBoundary
 		}
 		return l, m
