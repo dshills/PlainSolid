@@ -26,6 +26,11 @@ func WriteGeneralSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d Gen
 	if e != nil {
 		return e
 	}
+	for _, q := range section.Join {
+		if _, exact := q.Float64(); !exact {
+			return geom.ErrUnrepresentable
+		}
+	}
 	lo, hi := sideRat(d.Discs[0].Center.X), sideRat(d.Discs[1].Center.X)
 	if lo.Cmp(hi) > 0 {
 		lo, hi = hi, lo
