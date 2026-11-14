@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "kernelRevision": "f8f37eee",
+  "appRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "bc4ec950500a1421bab2a65afa0dc73b32aca3d5301bc737a683085ddf886312",
+  "testSourceSha256": "7e2d4f7b7984cf6d30ab212cf4ea49a4249a28c59e912ea5e5fee5e89e903f37",
+  "resultSha256": "6193de9d48319208ef827b435f116d7069ff3b6e380ac80d6231ef5fd27bff77",
+  "stats": {
+    "startTime": "2026-11-14T12:42:40.812Z",
+    "duration": 25622.477,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "stepSha256": "31fc8a9dcb54687e6e555dcac5419d950e5adb94fadabb6942a5dcfe0e09710c",
+  "stlSha256": "d43520e8fef7fc28d4daa366336dfd72989b22906cbc6946bf76f3a2d0c60ac7",
+  "occtBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtReadback": {
+    "Area": 3027.265079371979,
+    "Volume": 7505.778239017334,
+    "Centroid": [
+      10.034350098744811,
+      12.000000000000004,
+      9.000000000000004
+    ]
+  },
+  "disposableConfigChanges": [
+    "port 5473 to 5474",
+    "Vite file serving root moved to disposable supplemental checkout"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schema": "native-trimmed-full-reconciled-shards-v1",
+  "pinnedRevision": "b7e62101090e5e80c13d604538a4f187ef26ffb1",
+  "goVersion": "go version go1.27.4 darwin/arm64",
+  "cgo": false,
+  "command": "go test ./brep/trimmed -run <shard regex> -json -count=1 -timeout=<shard time limit>",
+  "initialTimeout": "65m",
+  "continuationTimeout": "95m",
+  "timeoutObservation": "Initial shard 0 timed out in TestOffsetSideOpenDualDiskNative. Finished cases account individually; the timed-out case was then isolated and passed on the same pinned archive. The other 97 unrun cases resumed in four disjoint shards.",
+  "topLevel": {
+    "pass": 783,
+    "skip": 13
+  },
+  "events": {
+    "pass": 920,
+    "skip": 13
+  },
+  "skipped": [
+    "TestExactSameSideDualDiskAgainstOCCT",
+    "TestGeneralSideOpenDualDiskAgainstOCCT",
+    "TestOCCTExternallyTangentQuarticSplineShells",
+    "TestOCCTExternallyTangentSeparableSplineShells",
+    "TestOCCTExternallyTangentSplineShells",
+    "TestOCCTExternallyTangentSplineShellsDistinctPairs",
+    "TestOCCTExternallyTangentSplineShellsMultipleKnotContacts",
+    "TestOCCTWrappedFrustumBoreBoundaryDistance",
+    "TestOCCTWrappedFrustumBoreMass",
+    "TestQualifyNestedQuarticShell",
+    "TestSplineMultiPlaneCutsOCCT",
+    "TestStraightTubeMassInvestigation",
+    "TestUnequalSideOpenDualDiskAgainstOCCT"
+  ],
+  "testsSha256": "30da74afe558d1f72209f285f581454c7f86630f76e3fc7ae1ee5218b8c51c9c",
+  "runs": [
+    {
+      "shard": "shard-0",
+      "selectionSha256": "6be9c6d469e50978d0733873a0a79009b68e2819e66218dde8c623c08c9a57fc",
+      "reportSha256": "a403a9406c1d9b0d53ab4b2b29ebb1021883685ca203d3537ec33092e18d804d",
+      "status": "fail",
+      "elapsedSeconds": 3900.205,
+      "completedTopLevel": 101,
+      "skipCount": 0
+    },
+    {
+      "shard": "shard-1",
+      "selectionSha256": "32b9dbb8c6a0fc6af5453facdf005497f09d0ed4cdb0b659b00844cad041035d",
+      "reportSha256": "9013051d0a0dc760143630b5264c60bfa5429e997e18ff88b81a6e91f68b2ed1",
+      "status": "pass",
+      "elapsedSeconds": 972.594,
+      "completedTopLevel": 199,
+      "skipCount": 4
+    },
+    {
+      "shard": "shard-2",
+      "selectionSha256": "6645a40d436760c2d9b0c628bd53edf5a895eb918e377d11e8318ba434b6d04b",
+      "reportSha256": "abfff054b16b61c1cf9ba82a629b5b3a9df3215bee12a110745e9bb6e276ca42",
+      "status": "pass",
+      "elapsedSeconds": 3147.846,
+      "completedTopLevel": 199,
+      "skipCount": 4
+    },
+    {
+      "shard": "shard-3",
+      "selectionSha256": "2d72054f511d867d66574e443c3acc3a946d20a544e6cba5e163a6e99bf06e9d",
+      "reportSha256": "3c18411aa3285e16244f20ef2fd53981c0fd34680d3f7313bb5841fbc7678791",
+      "status": "pass",
+      "elapsedSeconds": 2371.058,
+      "completedTopLevel": 199,
+      "skipCount": 2
+    },
+    {
+      "shard": "shard-0-retained-special",
+      "selectionSha256": "f16a0baeb896bd161ede7c2594e78360726566d4cce0b50395686bbc24086c84",
+      "reportSha256": "96a77fc6c7072164757f4fc1cae2ccace068b1b2c04bb55f4af7020f0ce0cbf1",
+      "status": "pass",
+      "elapsedSeconds": 23.377,
+      "completedTopLevel": 1,
+      "skipCount": 0
+    },
+    {
+      "shard": "shard-0-continuation-0",
+      "selectionSha256": "241c90b1ed4692598200a4e3fc207455d01b49dbb79efa8fdb2827ce4433da96",
+      "reportSha256": "aea43d5b79158e8ac76dbeb2a3757056205c39794ca0bc4e8be3f9ab31a1adf1",
+      "status": "pass",
+      "elapsedSeconds": 28.762,
+      "completedTopLevel": 25,
+      "skipCount": 1
+    },
+    {
+      "shard": "shard-0-continuation-1",
+      "selectionSha256": "5f4c3a6daebcc84eacadaa8afa00c67939ed956fdbaeb2ae8d5b5bb9018b25f8",
+      "reportSha256": "0cc79ef2d439aa085bd67c6da9d50d1143ac2be8dcbdfcec6af9646a9a126fee",
+      "status": "pass",
+      "elapsedSeconds": 43.447,
+      "completedTopLevel": 24,
+      "skipCount": 0
+    },
+    {
+      "shard": "shard-0-continuation-2",
+      "selectionSha256": "10ca723f07664c2764b6b6222a07d9654ce52a155ec43bcc135c2d848c85ce8b",
+      "reportSha256": "5874025bad30a08cea0becc03e53d4ae8bf8c78ac582c447adadc43ba250dab1",
+      "status": "pass",
+      "elapsedSeconds": 20.584,
+      "completedTopLevel": 24,
+      "skipCount": 0
+    },
+    {
+      "shard": "shard-0-continuation-3",
+      "selectionSha256": "ac35cb22087aba2265c37c727b7241e61ea6a1c5d7ef560a54ee72ef7d3853ca",
+      "reportSha256": "da710839cda6262516909ec49b285c6eeeffaef57d5e4b24eefbec5f77156a07",
+      "status": "pass",
+      "elapsedSeconds": 27.228,
+      "completedTopLevel": 24,
+      "skipCount": 2
+    }
+  ]
+}

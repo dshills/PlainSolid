@@ -6,8 +6,10 @@ import (
 )
 
 // CoordinateRoot proves the exact coordinate N(root)/W(root) of a cell point.
-// The source root must have a defining polynomial of degree at most four; the
-// coordinate polynomials may have any supported cell degree. Exact reduction
+// General coordinate images support defining polynomials of degree at most four.
+// Degrees five through eight require an exact affine numerator over a nonzero
+// constant denominator after reduction. Coordinate polynomials may have any
+// supported cell degree. Exact reduction
 // modulo a quadratic yields an affine expression; degree three/four uses a
 // quotient-algebra characteristic polynomial with unique image-root isolation. No interval midpoint is used as the algebraic value.
 // Membership in the true cell domain and a nonzero denominator are rechecked.
@@ -41,8 +43,17 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
 	defer func() { operations = b.operations }()
-	if len(root.root.polynomial) > 5 || len(root.root.polynomial) < 2 {
+	if len(root.root.polynomial) > 9 || len(root.root.polynomial) < 2 {
 		return nil, 0, subdivisions, ErrConvergence
+	}
+	if len(root.root.polynomial) > 5 {
+		for _, poly := range append([]rationalPolynomial{root.root.polynomial}, c.power[:]...) {
+			for _, q := range poly {
+				if e := b.check(q); e != nil {
+					return nil, 0, subdivisions, e
+				}
+			}
+		}
 	}
 	for endpoint := 0; endpoint < 2; endpoint++ {
 		comparison, e := compareRootBudget(ctx, root.root, c.endpoints[endpoint], b, options.MaxSubdivisions-subdivisions)
@@ -95,6 +106,33 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 		return nil, 0, subdivisions, e
 	}
 
+	if len(p) > 5 {
+		if len(w) != 1 || w[0].Sign() == 0 || len(n) > 2 {
+			return nil, 0, subdivisions, ErrConvergence
+		}
+		offset, scale := new(big.Rat), new(big.Rat)
+		if len(n) > 0 {
+			offset.Quo(n[0], w[0])
+		}
+		if len(n) > 1 {
+			scale.Quo(n[1], w[0])
+		}
+		for _, q := range []*big.Rat{offset, scale} {
+			if e := b.check(q); e != nil {
+				return nil, 0, subdivisions, e
+			}
+		}
+		source := copyExactRoot(root.root)
+		source.polynomial = p
+		mapped, e := affineMapRoot(source, offset, scale, b)
+		if e != nil {
+			return nil, 0, subdivisions, e
+		}
+		if e = ctx.Err(); e != nil {
+			return nil, 0, subdivisions, e
+		}
+		return &ExactAlgebraicRoot{root: mapped}, b.operations, subdivisions, nil
+	}
 	if len(p) > 3 {
 		mapped, used, e := coordinateRootCharacteristic(ctx, root.root, p, n, w, b, options.MaxSubdivisions-subdivisions)
 		subdivisions += used

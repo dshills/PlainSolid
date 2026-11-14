@@ -29,8 +29,10 @@ type TubeAlgebraicGraphEndpointCertificate struct {
 // as source and requires the other chart to prove an invertible affine XY projection. The proposal is the
 // source iso's original varying coordinate. Both graph contact and strict
 // containment of all dependent coordinates are independently rechecked, so tube
-// uniqueness identifies the selected endpoint. Source root degree <=4 is
-// supported. Dependent boundary equality is accepted only at the exact immutable anchor.
+// uniqueness identifies the selected endpoint. General coordinate images support
+// source root degree <=4; degrees 5..8 additionally support affine/constant exact
+// coordinate residues. Dependent boundary equality is accepted only at the exact
+// immutable anchor.
 func (t VerifiedSurfaceTube) CertifyAlgebraicGraphEndpoint(ctx context.Context, upper bool, proposal *ExactAlgebraicRoot, o TubeAlgebraicGraphEndpointOptions) (TubeAlgebraicGraphEndpointCertificate, error) {
 	if proposal == nil || proposal.root == nil {
 		return TubeAlgebraicGraphEndpointCertificate{}, ErrInvalid
