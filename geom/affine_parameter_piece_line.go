@@ -22,8 +22,9 @@ type PiecewiseGraphLineHit struct {
 // intervals along a normalized affine UV path. Every curve piece must have
 // a continuous identity-XY model image for the intended graph use.
 type PiecewiseGraphLineIntersection struct {
-	Hits       []PiecewiseGraphLineHit
-	Coincident []ExactParameterInterval
+	Hits            []PiecewiseGraphLineHit
+	Coincident      []ExactParameterInterval
+	ExactOperations int
 }
 
 // IntersectAffineGraphCurveHeight intersects the Z coordinate of a complete
@@ -32,9 +33,25 @@ type PiecewiseGraphLineIntersection struct {
 // to a curve coefficient, a piece interval, or a height.
 func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCurvePieces, start, end *big.Rat,
 	o ToroidLineOptions) (PiecewiseGraphLineIntersection, error) {
+	if !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
+		return PiecewiseGraphLineIntersection{}, ErrInvalid
+	}
+	return intersectAffineGraphCurveHeight(ctx, curves, 2, start, end, new(big.Rat).SetFloat64(o.ParameterTolerance), o, false)
+}
+
+// IntersectAffineGraphCurveHeightRational selects any original coordinate as
+// the graph height, isolates all contacts to an exact positive normalized
+// tolerance, and recovers exactly representable rational roots when possible.
+func IntersectAffineGraphCurveHeightRational(ctx context.Context, curves SurfaceAffineCurvePieces, axis int, start, end, tolerance *big.Rat,
+	o ToroidLineOptions) (PiecewiseGraphLineIntersection, error) {
+	return intersectAffineGraphCurveHeight(ctx, curves, axis, start, end, tolerance, o, true)
+}
+
+func intersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCurvePieces, axis int, start, end, tol *big.Rat,
+	o ToroidLineOptions, recover bool) (PiecewiseGraphLineIntersection, error) {
 	var empty PiecewiseGraphLineIntersection
-	if ctx == nil || start == nil || end == nil || len(curves.Pieces) == 0 || len(curves.Pieces) > 4096 ||
-		!finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || o.MaxSubdivisions < 0 || o.MaxSubdivisions > 65536 {
+	if ctx == nil || axis < 0 || axis > 2 || start == nil || end == nil || tol == nil || tol.Sign() <= 0 || len(curves.Pieces) == 0 || len(curves.Pieces) > 4096 ||
+		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 65536 {
 		return empty, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -48,7 +65,11 @@ func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 		return empty, e
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
-	tol := new(big.Rat).SetFloat64(o.ParameterTolerance)
+	for _, v := range []*big.Rat{start, end, tol} {
+		if e := b.check(v); e != nil {
+			return empty, e
+		}
+	}
 	delta := new(big.Rat).Sub(end, start)
 	one, zero := big.NewRat(1, 1), new(big.Rat)
 	atHeight := func(t *big.Rat) *big.Rat { return new(big.Rat).Add(start, new(big.Rat).Mul(delta, t)) }
@@ -70,7 +91,7 @@ func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 			return empty, ErrInvalid
 		}
 		first, final := p.net[0], p.net[(p.countU-1)*p.countV]
-		z0, z1 := new(big.Rat).Quo(first[2], first[3]), new(big.Rat).Quo(final[2], final[3])
+		z0, z1 := new(big.Rat).Quo(first[axis], first[3]), new(big.Rat).Quo(final[axis], final[3])
 		if previous != nil && previous.Cmp(z0) != 0 {
 			return empty, ErrConvergence
 		}
@@ -85,7 +106,7 @@ func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 		n, w := make([]*big.Rat, p.countU), make([]*big.Rat, p.countU)
 		for j := range n {
 			h := p.net[j*p.countV]
-			n[j], w[j] = h[2], h[3]
+			n[j], w[j] = h[axis], h[3]
 		}
 		f, e := bernsteinToPower(n, b)
 		if e != nil {
@@ -126,6 +147,15 @@ func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 		steps, e := isolatePolynomialRoots(equation, zero, one, b, remaining, func(l, h *big.Rat, m int) (bool, error) {
 			if e := ctx.Err(); e != nil {
 				return false, e
+			}
+			if recover {
+				x, e := recoverRationalPolynomialRoot(equation, l, h, b)
+				if e != nil {
+					return false, e
+				}
+				if x != nil {
+					l, h = x, x
+				}
 			}
 			a, z := global(l), global(h)
 			if l.Cmp(h) != 0 && (l.Sign() == 0 || h.Cmp(one) == 0 || new(big.Rat).Sub(z, a).Cmp(tol) > 0) {
@@ -204,5 +234,6 @@ func IntersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 		out = append(out, h)
 	}
 	r.Hits = out
+	r.ExactOperations = b.operations
 	return r, nil
 }
