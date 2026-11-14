@@ -22,7 +22,7 @@ The complete AP203 product envelope has the explicit identifier
 `side-cut-exact-walls`, while the authored product/solid names and SI units remain
 intact. This marker captures the named dialect; it does not substitute for the
 native geometry proof. All three earlier canonical readers/writers remain
-strict. A separate exact-wall reader is not included in this writer milestone.
+strict. The separate exact-wall reader below retains this registered class contract.
 
 ## Qualification
 
@@ -48,3 +48,32 @@ and compared the entire second partition's rooted graph after renumbering.
 `TestExactWallUnchangedSplitQualification` passed; the ordinary first partition
 also passed its strict typed reader. No splitter or bridge acceptance changes
 were made for this dialect.
+
+
+## Strict exact-wall reader
+
+`ReadExactWallSideOpenDualDiskProduct` and its `WithOptions` variant recover the
+represented stock and original disk support, re-establish failure of ordinary
+float-wall storage, construct the exact homogeneous-wall native solid, and
+compare the complete rooted analytic model graph. The named product identifier
+is mandatory; removing it fails. Adding the marker to an ordinary binary-wall
+source also fails, because metadata never replaces the geometry-class proof.
+
+The result retains source body/shell/face/edge IDs, per-disk source wall ownership,
+the blind floor source ID, exact radical join coordinates and explicit left/right
+classification. Original input order is normalized by local X. Exact native wall
+surface types are checked, and native version-7 save/reload preserves coefficients
+such as 26/3. No exact control is exported as a rounded STEP spline pole.
+
+Only explicitly selected existing line/circle/plane orientation identities are
+normalized; exact support and complete shared topology are still compared after
+those proofs. Malformed support radii, circle ownership, names, units and product
+class reject without partial results. All three old reader categories remain
+unchanged, including with their orientation options enabled.
+
+Focused tests cover blind/through and signed/reordered inputs, both external join
+sides, all supported orientation identities composed, class tampering, native
+persistence and optional OCCT readback. The unchanged candidate splitter was also
+checked in the same isolated qualification described above, now including a real
+`ReadExactWallSideOpenDualDiskProduct` call on the renumbered exact-wall partition.
+Both product partitions retained their strict readback contracts.

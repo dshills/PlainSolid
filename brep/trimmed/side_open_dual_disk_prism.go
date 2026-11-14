@@ -50,6 +50,14 @@ func cutSideOpenDualDisksWithSupport(ctx context.Context, frame geom.Frame, min,
 	if e != nil {
 		return zero, e
 	}
+	return buildSideOpenDualDiskSection(ctx, frame, min, max, discs, height, depth, tolerance, topology, s, general, exactWallSupport)
+}
+
+// buildSideOpenDualDiskSection consumes an independently certified exact
+// section. Admission remains in the callers, including legacy section gates.
+func buildSideOpenDualDiskSection(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, s SideOpenDualDiskSection, general, exactWallSupport bool) (SideOpenDualDiskCut, error) {
+	var zero SideOpenDualDiskCut
+	var e error
 	// The section splits each circle at its highest point for proof and
 	// display. A single projective chart across each exposed physical arc
 	// can have exactly representable storage even when a subdivided
