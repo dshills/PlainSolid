@@ -2429,6 +2429,15 @@ without that option was deliberately stopped after original section coverage;
 it was not a mesh qualification and its log is retained separately. No identity
 chart assumption or proof gate was weakened.
 
+Setting both `PLAINSOLID_TRIPLE_RADIAL_MESH=1` and
+`PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE=1` separately exercises the newer
+radial-cover strategy in both original section construction and native mesh
+reproof. The first full attempt reached 228 original proposals and exhausted
+local transfer proof work before section completion in 664.23 seconds. The
+generic affine-chart flagship above remains independently qualified. The compact
+affine radial strategy passes; no triple radial transfer or mesh claim is made
+for the new strategy until its own full run finishes.
+
 The corrected original-source flagship passed on commit
 `72682d7a63a351bf6793da48214e1a470d2c47ea` with the explicit environment gate:
 2376.98 seconds for the complete test (2377.206 seconds package total), under

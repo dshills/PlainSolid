@@ -3,10 +3,25 @@ package trimmed
 import (
 	"context"
 	"math"
+	"math/big"
+	"os"
+	"testing"
+
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
-	"testing"
+	"plainsolid/geom"
+	"plainsolid/internal/testgraphfixture"
+	"plainsolid/intersect"
 )
+
+func tripleRadialAffineCoverage() *intersect.RadialOverlapCoverageOptions {
+	return &intersect.RadialOverlapCoverageOptions{
+		AffineCharts: true,
+		Center:       [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)},
+		Radii:        testgraphfixture.TripleRadialRadii(),
+		Proof:        geom.RadialTubeCoverageOptions{MaxOperations: 128000000, MaxTubes: 512},
+	}
+}
 
 // Invoked by the original material fixture only under the explicit environment
 // gate PLAINSOLID_TRIPLE_RADIAL_MESH=1. It reuses the genuine nominal-degree8
@@ -16,6 +31,9 @@ func qualifyTripleRadialNativeMesh(t *testing.T, s AlgebraicShellBoolean) {
 	o := AlgebraicShellRegionCollectionMeshOptions{Section: nestedTubeSectionOptions(), Regions: nestedTubeRegionOptions()}
 	o.Section.MaxSegments = 512
 	o.Section.Trace.Coverage.OverlappingAffineXYFallback = true
+	if os.Getenv("PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE") == "1" {
+		o.Section.Trace.Coverage.RadialOverlap = tripleRadialAffineCoverage()
+	}
 	o.Mesh.Component = AlgebraicTubeRegionMeshOptions{
 		Footprint: AlgebraicTubeFootprintMeshOptions{
 			Boundary: AlgebraicTubeRegionsBoundaryOptions{MaxOperations: 512000000, Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .03, MaxOperations: 64000000}, MaxPieces: 512}, MaxOwnerOperations: 64000000}},
