@@ -112,6 +112,11 @@ and four actual-WASM contracts. The isolated PlainCAD provider branch
 selects PlainSolid in the app and its workers, with a fingerprinted WASM
 file and the matching Go runtime. Later kernel milestones have focused
 browser and exchange evidence.
+The [latest selectable provider qualification](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json)
+pins app `efae4d2` and kernel `fa857e59`. It independently passed all
+345 original development, 66 production and 15 cross-browser cases,
+1,691 ordinary tests and four actual-WASM provider contracts.
+
 
 Development now prioritizes the operations exercised by PlainCAD's existing
 acceptance tests before expanding unrelated OCCT domains. The full specification
@@ -221,7 +226,8 @@ Grouped oblique crossings discard fully covered coaxial tools after
 proving the retained spans. Their STEP matches the visible-only pair.
 The oblique Hole itself can carry a circular blind floor after the
 complete crossing. Both entry directions and a later deeper Hole
-retain canonical STEP.
+retain canonical STEP. Both equal-radius tools can be blind in the same
+part when their floors remain beyond the entire crossing.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its

@@ -344,7 +344,25 @@ func boxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 // crossing. Depth is measured inward from the lower or upper cardinal cap.
 // The oblique cylinder still opens through both X faces.
 func BoxBlindCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, ratio geom.Vec2, radius, depth float64, opposite bool, tolerance float64) (BoxCrossedBoresResult, int, error) {
-	fail := func(e error) (BoxCrossedBoresResult, int, error) { return BoxCrossedBoresResult{}, -1, e }
+	out, floors, err := boxCrossedObliqueWithCardinalFloor(ctx, frame, dimensions, crossing, ratio, radius, depth, opposite, 0, tolerance)
+	return out, floors[0], err
+}
+
+// BoxDoubleBlindCrossedObliqueBores retains both circular floors beyond the
+// complete intersection. Floor identifiers are returned in cardinal, oblique
+// order. Depth runs inward from its cardinal entry and station is signed
+// along the oblique axis measured from the crossing point.
+func BoxDoubleBlindCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, ratio geom.Vec2, radius, depth float64, opposite bool, station, tolerance float64) (BoxCrossedBoresResult, [2]int, error) {
+	if !finite(station) || station == 0 {
+		return BoxCrossedBoresResult{}, [2]int{-1, -1}, geom.ErrDomain
+	}
+	return boxCrossedObliqueWithCardinalFloor(ctx, frame, dimensions, crossing, ratio, radius, depth, opposite, station, tolerance)
+}
+
+func boxCrossedObliqueWithCardinalFloor(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, ratio geom.Vec2, radius, depth float64, opposite bool, station, tolerance float64) (BoxCrossedBoresResult, [2]int, error) {
+	fail := func(e error) (BoxCrossedBoresResult, [2]int, error) {
+		return BoxCrossedBoresResult{}, [2]int{-1, -1}, e
+	}
 	k, ok := CrossedObliqueCoefficients(ratio)
 	if !ok || ctx == nil || !finite(depth) || depth <= 0 || !finite(tolerance) || tolerance <= 0 {
 		return fail(geom.ErrInvalid)
@@ -357,7 +375,7 @@ func BoxBlindCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensio
 	if depth >= dimensions.Z-pad || advance <= k.Positive*radius+pad {
 		return fail(geom.ErrDomain)
 	}
-	out, err := BoxCrossedObliqueBores(ctx, frame, dimensions, crossing, ratio, radius, tolerance)
+	out, obliqueFloor, err := boxCrossedObliqueBores(ctx, frame, dimensions, crossing, ratio, radius, station, station < 0, tolerance)
 	if err != nil {
 		return fail(err)
 	}
@@ -368,7 +386,7 @@ func BoxBlindCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensio
 	}
 	out.RemovedVolume -= math.Pi * radius * radius * remaining
 	out.SurfaceAreaDelta += 2 * math.Pi * radius * (radius - remaining)
-	return out, cap, nil
+	return out, [2]int{cap, obliqueFloor}, nil
 }
 
 func (s Solid) TessellateCrossedBores345(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
@@ -392,7 +410,7 @@ func (s Solid) TessellateCrossedObliqueBores(ctx context.Context, o parametric.T
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
-	if len(s.faces) != 22 && len(s.faces) != 23 {
+	if len(s.faces) < 22 || len(s.faces) > 24 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	found := false

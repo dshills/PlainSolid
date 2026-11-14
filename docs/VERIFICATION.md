@@ -1,5 +1,31 @@
 # Verification record
 
+## Full PlainCAD provider rerun on kernel fa857e59 — 2026-11-14
+
+The [pinned production build and complete run](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json)
+pass 345 development, 66 production and 15 Chromium, Firefox and WebKit
+cases with zero skips, failures, retries or flakes. Both TypeScript checks,
+1,691 ordinary unit and component tests, four actual-WASM contracts, and
+all 72 JavaScript bundle budgets pass. The development and production
+benchmarks took 18.5 and 32.4 seconds and verified 25 edits and 11
+STL downloads in each environment. The isolated PlainCAD branch records
+the pin in `efae4d2` after independent internal review.
+
+## PlainCAD two blind floors in an oblique Hole crossing — 2026-11-14
+
+The cardinal and oblique tools each retain a circular floor when both
+stops are beyond the entire equal-radius crossing. STEP recovers both
+stops from the appended plane and cylinder supports, then checks the
+entire regenerated boundary. Native tests deepen the cardinal cut
+after import and compare its STEP to the corresponding fresh cut.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-double-blind-oblique-step-browser-2026-11-14.json)
+and the authored [lower](evidence/plaincad-double-blind-oblique-lower-step-native-2026-11-14.json)
+and [upper](evidence/plaincad-double-blind-oblique-upper-step-native-2026-11-14.json)
+oblique entries pass. Each imported part retains the two floors and
+exports 396 watertight triangles. Independent OCCT checks both authored
+files and 16 native two-floor combinations. Focused race and vet pass.
+
 ## PlainCAD blind floor on an oblique Hole — 2026-11-14
 
 One oblique cutter may terminate inside the rectangular stock beyond

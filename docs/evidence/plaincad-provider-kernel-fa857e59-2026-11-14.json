@@ -1,0 +1,111 @@
+{
+  "plainCadProviderCommit": "d1e053809fc89398f402a2ac540d266c39a11fab",
+  "plainCadApplicationCommit": "9779044e222a284de9cf5405dd3178102b3070e2",
+  "plainCadBase": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "buildKernel": {
+    "revision": "fa857e59099b66f89a66424d833168baf12e3d1f",
+    "go": "go version go1.27.4 darwin/arm64",
+    "wasmSha256": "00988a784090709a3efd04330f0dd90924aaf06e4d010df8a7dc288c1ce34204",
+    "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "reports": {
+    "dev": {
+      "path": "/tmp/plaincad-kernel-fa857e59-dev.json",
+      "sha256": "2c9547a04deccb2319174c82d341b99c63fd022bda2d5f33c042008fb16c4ceb",
+      "stats": {
+        "startTime": "2026-11-14T16:34:43.955Z",
+        "duration": 2396089.432,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1
+    },
+    "production": {
+      "path": "/tmp/plaincad-kernel-fa857e59-production.json",
+      "sha256": "d8d568ece8233e8b9fa3393ba665b58068059140b171209cbae2a76fb4c107bb",
+      "stats": {
+        "startTime": "2026-11-14T16:34:47.410Z",
+        "duration": 299209.62700000004,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1
+    },
+    "cross-browser": {
+      "path": "/tmp/plaincad-kernel-fa857e59-cross-browser.json",
+      "sha256": "9992cb9305f09bafe421c10ecaea2e1289fd01453fa8cb228a0c7046fa9610b6",
+      "stats": {
+        "startTime": "2026-11-14T16:34:45.678Z",
+        "duration": 65979.853,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ]
+    },
+    "unit-controlled": {
+      "path": "/tmp/plaincad-kernel-fa857e59-unit-loopback.json",
+      "sha256": "fad26239edef9a2891a759592ca20326f9abfe1971710efe8829bf6939e17f99",
+      "stats": {
+        "files": 220,
+        "passed": 1691,
+        "maxWorkers": 1,
+        "retryLimit": 2,
+        "testTimeoutMs": 15000
+      }
+    }
+  },
+  "typechecks": "passed",
+  "typecheckLog": {
+    "path": "/tmp/plaincad-kernel-fa857e59-lint.log",
+    "sha256": "ff610e03902daa5e6fc10b21d75419670df9386aa4fbe470d8dbb977214a0963"
+  },
+  "plainSolidProviderContracts": {
+    "status": "passed",
+    "count": 4,
+    "log": {
+      "path": "/tmp/plaincad-kernel-fa857e59-provider.log",
+      "sha256": "ece92a4bed5d1b68df8a6e5eacf31b2901d0c90f70112f22b0d1e9200752c7d4"
+    }
+  },
+  "bundleBudget": {
+    "count": 72,
+    "largestKb": 496.5,
+    "limitKb": 500
+  },
+  "builtWasm": {
+    "asset": "plainsolid-kernel-BAp5SUG8.wasm",
+    "sha256": "00988a784090709a3efd04330f0dd90924aaf06e4d010df8a7dc288c1ce34204"
+  },
+  "buildLog": {
+    "path": "/tmp/plaincad-kernel-fa857e59-build.log",
+    "sha256": "8eb3934225be3d530387be0b77386251bd32802ac63fc620acddec06ebd527c4"
+  },
+  "performance": {
+    "dev": {
+      "path": "/tmp/plaincad-kernel-fa857e59-dev-artifacts/performance-controlled-nat-d2f5b-viewer-WASM-resource-growth/performance.json",
+      "sha256": "2dcced8d2608c31289aba40f2a2489fa17f5f87c53dc6f8d719987ba86fadff9",
+      "testSeconds": 18.488,
+      "editCount": 25,
+      "stlDownloadCount": 11
+    },
+    "production": {
+      "path": "/tmp/plaincad-kernel-fa857e59-production-artifacts/performance-production-CSP-84684-idated-STL-download-timings/performance.json",
+      "sha256": "74a28e450a0ae623e1e131b57fe36be89972cbf7f01499405e444455b0ae2a2b",
+      "testSeconds": 32.442,
+      "editCount": 25,
+      "stlDownloadCount": 11
+    }
+  },
+  "readmePinCommit": "efae4d2ffa6065875d3a76fc5926f358b5936a29"
+}
