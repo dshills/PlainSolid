@@ -168,6 +168,10 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	if a.Sign() <= 0 || a.Mul(a, a).Cmp(wantSquared) > 0 || b.Mul(b, b).Cmp(wantSquared) < 0 {
 		t.Fatal("certified volume must contain the independent irrational answer", volume)
 	}
+	wide, e := restored.BoundVerticalVolume(ctx, width, section, opts)
+	if e != nil || wide.Lower.Cmp(volume.Lower) != 0 || wide.Upper.Cmp(volume.Upper) != 0 {
+		t.Fatal("rational-cap method must retain the exact polynomial volume path", e)
+	}
 	if oracle := os.Getenv("PLAINSOLID_OCCT_ALGEBRAIC_CAP_STOCK"); oracle != "" {
 		output, e := exec.CommandContext(ctx, oracle, "sheared-sleeve").Output()
 		if e != nil {
@@ -289,6 +293,45 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	fiberModel, e := restored.PrepareVerticalMaterial(ctx, section, opts)
 	if e != nil {
 		t.Fatal("vertical material proof", e)
+	}
+	q := big.NewRat
+	axis := [3]*big.Rat{q(1, 1), q(0, 1), q(0, 1)}
+	lineExtent := [2]*big.Rat{q(-1, 1), q(4, 1)}
+	cross, e := fiberModel.IntersectRationalLine(ctx, [3]*big.Rat{q(0, 1), q(89, 64), q(513, 1024)}, axis, lineExtent, opts)
+	if e != nil || len(cross.Contacts) != 4 || len(cross.Material) != 2 {
+		t.Fatal("exact 3D wall events and the original bore", cross, e)
+	}
+	for i, hit := range cross.Contacts {
+		if hit.Cap != -1 || hit.StockFace < 0 || hit.Entry != (i%2 == 0) {
+			t.Fatal("stock-wall ancestry and crossing orientation", i, hit)
+		}
+		poly := []*big.Rat{q(-int64(i), 1), q(1, 1)}
+		if i == 2 {
+			poly = []*big.Rat{q(-25, 8), q(0, 1), q(1, 1)}
+		}
+		sign, e := hit.Parameter.SignPolynomial(ctx, poly, opts)
+		if e != nil || sign.Sign != 0 {
+			t.Fatal("wrong rational or algebraic line parameter", i, sign, e)
+		}
+	}
+	oblique := [3]*big.Rat{q(1, 4), q(0, 1), q(1, 16)}
+	enter := [3]*big.Rat{q(1, 2), q(7, 4), q(31, 64)}
+	cross, e = fiberModel.IntersectRationalLine(ctx, enter, oblique, lineExtent, opts)
+	if e != nil || len(cross.Contacts) != 2 || len(cross.Material) != 1 {
+		t.Fatal("an oblique line must cross the caps and discard out-of-band walls", cross, e)
+	}
+	for i, hit := range cross.Contacts {
+		if hit.Cap != i || hit.StockFace != -1 || hit.Entry != (i == 0) {
+			t.Fatal("cap ancestry and crossing orientation", i, hit)
+		}
+		want := [2]*big.Rat{q(1, 4), q(1, 1)}[i]
+		sign, e := hit.Parameter.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(want), q(1, 1)}, opts)
+		if e != nil || sign.Sign != 0 {
+			t.Fatal("wrong cap line parameter", i, sign, e)
+		}
+	}
+	if partial, e := fiberModel.IntersectRationalLine(ctx, enter, oblique, lineExtent, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(e, geom.ErrConvergence) || len(partial.Contacts)+len(partial.Material) != 0 {
+		t.Fatal("exact work exhaustion must publish no line events", partial, e)
 	}
 	fiber, e := fiberModel.VerticalFiber(ctx, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(7, 4)})
 	if e != nil || !fiber.Found || fiber.BoundaryOnly || fiber.Heights[0].Cmp(big.NewRat(1, 2)) != 0 ||

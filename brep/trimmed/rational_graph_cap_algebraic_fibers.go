@@ -13,9 +13,10 @@ import (
 // stock whose two caps are graphs over XY and whose remaining supports
 // have identically zero XY Jacobian.
 type AlgebraicGraphVerticalMaterial struct {
-	caps    [2]AlgebraicGraphCapClip
-	lower   int
-	maxBits int
+	caps      [2]AlgebraicGraphCapClip
+	lower     int
+	maxBits   int
+	lineReady bool
 }
 
 // AlgebraicGraphVerticalFiber contains the exact heights and cap roles at a
@@ -67,7 +68,15 @@ func (c AlgebraicGraphCapPair) PrepareVerticalMaterial(ctx context.Context, o Ra
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
-	return AlgebraicGraphVerticalMaterial{caps: c.caps, lower: lower, maxBits: roots.MaxCoefficientBits}, nil
+	// Fibers need only the flux test. An arbitrary line needs the
+	// stronger property that every wall is swept continuously between
+	// both complete cap graphs, with no stacked chart at intermediate Z.
+	// Leave the existing fiber scope unchanged when this proof is absent.
+	lineReady, e := c.proveVerticalLineWalls(exact, o, &b)
+	if e != nil {
+		return zero, e
+	}
+	return AlgebraicGraphVerticalMaterial{caps: c.caps, lower: lower, maxBits: roots.MaxCoefficientBits, lineReady: lineReady}, nil
 }
 
 // VerticalFiber proves exact material on the vertical line through xy. Both

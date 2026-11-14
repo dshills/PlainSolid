@@ -35,6 +35,8 @@ type AlgebraicShellSectionBranch struct {
 	EndEdges       [2]int
 	EdgeParameters [2]*geom.ExactAlgebraicRoot // normalized original model-edge traversal
 	Closed         bool
+	rational       *geom.RationalIsoTubeChain
+	rationalSource int
 }
 
 type AlgebraicShellSectionWireUse struct {
@@ -67,6 +69,10 @@ type algebraicShellSectionSource struct {
 // original edge identity is required on the terminal owner. It does not
 // classify material, split either shell, or resolve simultaneous edge events.
 func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicShellSectionOptions) (AlgebraicShellSectionResult, error) {
+	return sectionSplineShellsAlgebraic(ctx, a, b, o, nil)
+}
+
+func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicShellSectionOptions, mixed *mixedShellSectionBuild) (AlgebraicShellSectionResult, error) {
 	var out AlgebraicShellSectionResult
 	if ctx == nil || o.MaxFacePairs < 0 || o.MaxFacePairs > 16384 || o.MaxBranches < 0 || o.MaxBranches > 4096 || o.MaxComparisons < 0 || o.MaxComparisons > 262144 {
 		return out, geom.ErrInvalid
@@ -119,7 +125,7 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 			}
 			ids := [2]int{i, j}
 			seed := provided[ids]
-			if seed == nil {
+			if seed == nil && (mixed == nil || mixed.proposals[ids] == nil) {
 				e := proveSplinePatchPairDisjoint(ctx, p.patch, q.patch, o.Shells.Separation)
 				if e == nil {
 					continue
@@ -135,6 +141,22 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 			y, e := algebraicShellTracePatch(b.faces[j], q.patch.Domain())
 			if e != nil {
 				return out, e
+			}
+			if mixed != nil && mixed.proposals[ids] != nil {
+				if seed != nil {
+					return out, geom.ErrInvalid
+				}
+				if len(out.Branches) >= o.MaxBranches {
+					return out, geom.ErrConvergence
+				}
+				z, err := mixed.branch(ctx, ids, [2]*geom.SurfacePatch{p.patch, q.patch}, [2]intersect.Patch{x, y}, [2]Solid{a, b}, faces, o)
+				if err != nil {
+					return out, err
+				}
+				out.Pairs = append(out.Pairs, ids)
+				out.Sections = append(out.Sections, AlgebraicSplinePairSection{})
+				out.Branches = append(out.Branches, z)
+				continue
 			}
 			r, e := SectionSplinePairAlgebraic(ctx, x, y, seed, trace, o.Endpoints)
 			if e != nil && seed == nil && trace.ProjectedGraphFallback.Enabled && (isUnresolvedOpenSpline(e) || errors.Is(e, geom.ErrDomain)) {

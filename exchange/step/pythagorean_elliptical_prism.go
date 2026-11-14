@@ -196,6 +196,12 @@ func sewRationalEllipticalPrism(ctx context.Context, b mappedRationalBasis, a, r
 // has an exact rational square root. All source frames must retain the same
 // declared ratios. Every native world/UV pole must be losslessly representable.
 func ReadPythagoreanEllipticalPrism(ctx context.Context, r io.Reader, l Limits, tolerance float64) (PythagoreanEllipticalPrism, error) {
+	return readPythagoreanEllipticalPrism(ctx, r, l, tolerance, false)
+}
+func readPythagoreanEllipticalPrism(ctx context.Context, r io.Reader, l Limits, tolerance float64, exactControls bool) (PythagoreanEllipticalPrism, error) {
+	return readRationalFrameEllipticalPrism(ctx, r, l, tolerance, exactControls, false)
+}
+func readRationalFrameEllipticalPrism(ctx context.Context, r io.Reader, l Limits, tolerance float64, exactControls, tilted bool) (PythagoreanEllipticalPrism, error) {
 	fail := func() (PythagoreanEllipticalPrism, error) {
 		return PythagoreanEllipticalPrism{}, fmt.Errorf("step: unsupported exact Pythagorean ellipse prism")
 	}
@@ -249,7 +255,12 @@ func ReadPythagoreanEllipticalPrism(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return fail()
 	}
-	if _, e = rationalPrismAxis(basis); e != nil {
+	if tilted {
+		e = tiltedPrismBasis(basis)
+	} else {
+		_, e = rationalPrismAxis(basis)
+	}
+	if e != nil {
 		return fail()
 	}
 	profile, _ := simple(f, roles[33], "ELLIPSE", 4)
@@ -274,7 +285,12 @@ func ReadPythagoreanEllipticalPrism(ctx context.Context, r io.Reader, l Limits, 
 		return fail()
 	}
 	ref, _ := simple(f, roles[37], "DIRECTION", 2)
-	if e = fillRationalPrism(want, basis, ref.Args[1], profile.Args[2], profile.Args[3], a, h); e != nil {
+	if exactControls {
+		e = fillExactControlPrism(want, basis, ref.Args[1], profile.Args[2], profile.Args[3], a, h)
+	} else {
+		e = fillRationalPrism(want, basis, ref.Args[1], profile.Args[2], profile.Args[3], a, h)
+	}
+	if e != nil {
 		return PythagoreanEllipticalPrism{}, e
 	}
 	proved, ok := ellipseFaceGraph(want, f, roots)
@@ -290,7 +306,13 @@ func ReadPythagoreanEllipticalPrism(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil || unit != .001 {
 		return fail()
 	}
-	solid, rims, e := sewRationalEllipticalPrism(ctx, basis, a, b, h, tolerance)
+	var solid trimmed.Solid
+	var rims [2][4]int
+	if exactControls {
+		solid, rims, e = sewExactControlEllipticalPrism(ctx, basis, a, b, h, tolerance)
+	} else {
+		solid, rims, e = sewRationalEllipticalPrism(ctx, basis, a, b, h, tolerance)
+	}
 	if e != nil {
 		return PythagoreanEllipticalPrism{}, e
 	}

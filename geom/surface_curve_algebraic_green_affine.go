@@ -82,3 +82,80 @@ func (c *ExactComposedCurveCell) BoundPolynomialProjectedAffineGreen(ctx context
 	r.Interval = ExactParameterInterval{Lower: bound.lo, Upper: bound.hi}
 	return r, nil
 }
+
+// BoundProjectedAffineGreen integrates the signed primitive
+// (a*x+b*x²/2+c*x*y)dy on the original polynomial or positive-weight
+// rational model edge. On an oriented closed wire this encloses the
+// planar integral of a+b*x+c*y, including algebraic clipped endpoints.
+func (c *ExactComposedCurveCell) BoundProjectedAffineGreen(ctx context.Context, axes [2]int, affine [3]*big.Rat,
+	width *big.Rat, options ExactCurvePlaneEventOptions) (r ProjectedGreenBounds, err error) {
+	if ctx == nil || c == nil || width == nil || width.Sign() <= 0 ||
+		axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1] ||
+		c.endpoints[0] == nil || c.endpoints[1] == nil {
+		return r, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return r, e
+	}
+	if len(c.power[3]) == 1 {
+		return c.BoundPolynomialProjectedAffineGreen(ctx, axes, affine, width, options)
+	}
+	o, e := graphRootOptions(options)
+	if e != nil {
+		return r, e
+	}
+	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	defer func() { r.Operations = b.operations }()
+	for _, v := range append(affine[:], width) {
+		if v == nil {
+			return r, ErrInvalid
+		}
+		if e := b.check(v); e != nil {
+			return r, e
+		}
+	}
+	x, y, w := c.power[axes[0]], c.power[axes[1]], c.power[3]
+	// In homogeneous coordinates the primitive is
+	// X(aW + bX/2 + cY)/W² and dy = (Y'W - YW')/W².
+	g, e := subtractScaledPolynomial(nil, w, new(big.Rat).Neg(affine[0]), b)
+	if e != nil {
+		return r, e
+	}
+	g, e = subtractScaledPolynomial(g, x, new(big.Rat).Quo(new(big.Rat).Neg(affine[1]), big.NewRat(2, 1)), b)
+	if e != nil {
+		return r, e
+	}
+	g, e = subtractScaledPolynomial(g, y, new(big.Rat).Neg(affine[2]), b)
+	if e != nil {
+		return r, e
+	}
+	g, e = polynomialProduct(x, g, b)
+	if e != nil {
+		return r, e
+	}
+	dy, e := polynomialProduct(polynomialDerivative(y), w, b)
+	if e != nil {
+		return r, e
+	}
+	yw, e := polynomialProduct(y, polynomialDerivative(w), b)
+	if e != nil {
+		return r, e
+	}
+	dy, e = subtractScaledPolynomial(dy, yw, big.NewRat(1, 1), b)
+	if e != nil {
+		return r, e
+	}
+	p, e := polynomialProduct(g, dy, b)
+	if e != nil {
+		return r, e
+	}
+	d, e := polynomialProduct(w, w, b)
+	if e != nil {
+		return r, e
+	}
+	d, e = polynomialProduct(d, d, b)
+	if e != nil {
+		return r, e
+	}
+	return c.integrateRationalGreen(ctx, p, d, width, o, b)
+}

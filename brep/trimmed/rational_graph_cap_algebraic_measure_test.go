@@ -58,8 +58,118 @@ func TestAlgebraicGraphCapRationalWeightsArea(t *testing.T) {
 		new(big.Rat).Sub(got.Projection.Upper, got.Projection.Lower).Cmp(width) > 0 || got.Projection.Subdivisions < 1 {
 		t.Fatal("failed certified rational quarter-segment area", got, e)
 	}
+	// A vertical wall has zero z-flux, so the volume between z=0 and
+	// z=a+bx+cy over this footprint reduces to the weighted cap integral.
+	// Independent integrals of X and Y over this clipped quarter disk
+	// are 5/48 and sqrt(3)/8 respectively.
+	q := big.NewRat
+	fluxOptions := geom.ExactCurvePlaneEventOptions{MaxOperations: 4000000, MaxCoefficientBits: 32768}
+	for axis := 1; axis <= 2; axis++ {
+		a := [3]*big.Rat{q(0, 1), q(0, 1), q(0, 1)}
+		a[axis].SetInt64(1)
+		lo, hi := new(big.Rat), new(big.Rat)
+		for _, use := range clip.wires[0] {
+			area, e := use.Cell.BoundProjectedAffineGreen(ctx, [2]int{0, 1}, a, q(1, 4<<20), fluxOptions)
+			if e != nil {
+				t.Fatal("positive-weight projected affine flux", axis, e)
+			}
+			if use.Reversed {
+				lo.Sub(lo, area.Interval.Upper)
+				hi.Sub(hi, area.Interval.Lower)
+			} else {
+				lo.Add(lo, area.Interval.Lower)
+				hi.Add(hi, area.Interval.Upper)
+			}
+		}
+		if lo.Sign() <= 0 || new(big.Rat).Sub(hi, lo).Cmp(width) > 0 {
+			t.Fatal("flux must have the requested width", axis, lo, hi)
+		}
+		if axis == 1 {
+			if lo.Cmp(q(5, 48)) > 0 || hi.Cmp(q(5, 48)) < 0 {
+				t.Fatal("X integral does not enclose 5/48", lo, hi)
+			}
+		} else if lo.Mul(lo, lo).Cmp(q(3, 64)) > 0 || hi.Mul(hi, hi).Cmp(q(3, 64)) < 0 {
+			t.Fatal("Y integral does not enclose sqrt(3)/8", lo, hi)
+		}
+	}
+	// The nearest point to (1,1,0) on the retained quadrant is
+	// (1/√2,1/√2,0), inside the rational arc's true shortened domain.
+	query := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1), new(big.Rat)}
+	near, e := clip.NearestQuadraticRational(ctx, query, geom.ExactCurvePlaneEventOptions{})
+	if e != nil || near.FaceInterior || near.Wire < 0 || near.Use < 0 || near.CurveParameter == nil ||
+		clip.Wires[near.Wire][near.Use].InputPiece != 1 {
+		t.Fatal("exact rational arc distance and original owner", near, e)
+	}
+	// D=(√2−1)²=3−2√2, so D²−6D+1 vanishes.
+	identity, e := near.SquaredDistance.SignPolynomial(ctx, []*big.Rat{big.NewRat(1, 1), big.NewRat(-6, 1), big.NewRat(1, 1)}, geom.ExactCurvePlaneEventOptions{})
+	if e != nil || identity.Sign != 0 {
+		t.Fatal("weighted stationary root does not satisfy independent distance", identity, e)
+	}
+	square, e := near.SquaredDistance.Enclose(ctx, big.NewRat(1, 64), geom.ExactCurvePlaneEventOptions{})
+	if e != nil || square.Interval.Upper.Cmp(big.NewRat(1, 1)) >= 0 {
+		t.Fatal("weighted stationary distance should be the smaller conjugate", square, e)
+	}
 	piece.Topology.MaxSubdivisions = 1
 	if a, e := clip.BoundArea(ctx, width, piece); !errors.Is(e, geom.ErrConvergence) || a.Projection.Lower != nil {
 		t.Fatal("the exhaustion result must be atomic", a, e)
+	}
+}
+
+func TestNearestPolynomialAlgebraicCap(t *testing.T) {
+	ctx := context.Background()
+	point := func(x, y *big.Rat) [3]*big.Rat { return [3]*big.Rat{x, y, big.NewRat(1, 1)} }
+	rat := big.NewRat
+	row := [][][3]*big.Rat{
+		{point(rat(0, 1), rat(0, 1)), point(rat(2, 1), rat(0, 1)), point(rat(4, 1), rat(0, 1))},
+		{point(rat(4, 1), rat(0, 1)), point(rat(4, 1), rat(1, 2)), point(rat(4, 1), rat(1, 1))},
+		{point(rat(4, 1), rat(1, 1)), point(rat(2, 1), rat(3, 1)), point(rat(0, 1), rat(1, 1))},
+		{point(rat(0, 1), rat(1, 1)), point(rat(0, 1), rat(1, 2)), point(rat(0, 1), rat(0, 1))},
+	}
+	var wire []projectedGraphSectionPiece
+	var ring trimvalidate.Loop
+	for i, controls := range row {
+		s, e := trimvalidate.ExactBezier(controls)
+		if e != nil {
+			t.Fatal(e)
+		}
+		wire = append(wire, projectedGraphSectionPiece{control: controls, source: RationalGraphCapEdgeSource{Piece: i}})
+		ring = append(ring, s)
+	}
+	opts, _ := (trimvalidate.Options{}).WithDefaults()
+	r, e := certifyProjectedRationalGraphRegions(ctx, [][]projectedGraphSectionPiece{wire}, []trimvalidate.Loop{ring}, horizontalPolynomialPlane(new(big.Rat)), opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	y := 1.5
+	clip, e := r.ClipAlgebraicHalfspace(ctx, [3]geom.Vec3{{Y: y}, {Y: y, Z: 1}, {X: 1, Y: y}}, true, RationalGraphShellRegionOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	root := geom.ExactCurvePlaneEventOptions{}
+	for _, item := range []struct {
+		point [3]*big.Rat
+		dist  []*big.Rat
+		face  bool
+	}{
+		{[3]*big.Rat{rat(2, 1), rat(7, 4), rat(3, 5)}, []*big.Rat{rat(-9, 25), rat(1, 1)}, true},
+		{[3]*big.Rat{rat(2, 1), rat(3, 1), rat(0, 1)}, []*big.Rat{rat(-1, 1), rat(1, 1)}, false},
+		// Left cut tip (2−√2,3/2,0) is nearest to (0,3/2,0).
+		// Squared distance 6−4√2 is the smaller root of D²−12D+4.
+		{[3]*big.Rat{rat(0, 1), rat(3, 2), rat(0, 1)}, []*big.Rat{rat(4, 1), rat(-12, 1), rat(1, 1)}, false},
+	} {
+		got, e := clip.NearestPolynomialRational(ctx, item.point, root)
+		if e != nil || got.FaceInterior != item.face || got.SquaredDistance == nil || (!item.face && got.CurveParameter == nil) {
+			t.Fatal("exact retained minimum and owner", item.point, got, e)
+		}
+		p, e := got.SquaredDistance.SignPolynomial(ctx, item.dist, root)
+		if e != nil || p.Sign != 0 {
+			t.Fatal("minimum does not satisfy its independent distance identity", item.point, p, e)
+		}
+		if len(item.dist) == 3 {
+			interval, e := got.SquaredDistance.Enclose(ctx, rat(1, 64), root)
+			if e != nil || interval.Interval.Upper.Cmp(rat(1, 1)) >= 0 {
+				t.Fatal("nearest tip uses the correct quadratic conjugate", interval, e)
+			}
+		}
 	}
 }

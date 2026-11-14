@@ -14,6 +14,20 @@ import (
 // unresolved by this specialized measure, even if their topology is closed.
 func (c AlgebraicGraphCapPair) BoundVerticalPolynomialVolume(ctx context.Context, width *big.Rat,
 	o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) (geom.ExactParameterInterval, error) {
+	return c.boundVerticalVolume(ctx, width, o, roots, false)
+}
+
+// BoundVerticalVolume certifies the retained volume by exact divergence
+// flux and also accepts positive-weight rational cuts on the cap boundaries.
+// The original stock walls must still have identically zero XY-projected
+// Jacobian and both cap planes must be graphs over XY.
+func (c AlgebraicGraphCapPair) BoundVerticalVolume(ctx context.Context, width *big.Rat,
+	o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) (geom.ExactParameterInterval, error) {
+	return c.boundVerticalVolume(ctx, width, o, roots, true)
+}
+
+func (c AlgebraicGraphCapPair) boundVerticalVolume(ctx context.Context, width *big.Rat,
+	o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions, rational bool) (geom.ExactParameterInterval, error) {
 	var zero geom.ExactParameterInterval
 	if ctx == nil || width == nil || width.Sign() <= 0 || roots.MaxOperations < 0 || roots.MaxSubdivisions < 0 || roots.MaxCoefficientBits < 0 {
 		return zero, geom.ErrInvalid
@@ -60,7 +74,11 @@ func (c AlgebraicGraphCapPair) BoundVerticalPolynomialVolume(ctx context.Context
 		affine := [3]*big.Rat{plane.offset, new(big.Rat).Neg(plane.normal[axes[0]]), new(big.Rat).Neg(plane.normal[axes[1]])}
 		for _, ring := range cap.wires {
 			for _, use := range ring {
-				flux, e := use.Cell.BoundPolynomialProjectedAffineGreen(ctx, axes, affine, part, b.limits())
+				integrate := use.Cell.BoundPolynomialProjectedAffineGreen
+				if rational {
+					integrate = use.Cell.BoundProjectedAffineGreen
+				}
+				flux, e := integrate(ctx, axes, affine, part, b.limits())
 				if e != nil {
 					return zero, e
 				}
@@ -86,7 +104,10 @@ func (c AlgebraicGraphCapPair) BoundVerticalPolynomialVolume(ctx context.Context
 	if hi.Cmp(lo) < 0 || new(big.Rat).Sub(hi, lo).Cmp(width) > 0 {
 		return zero, geom.ErrConvergence
 	}
-	return geom.ExactParameterInterval{Lower: lo, Upper: hi}, ctx.Err()
+	if e := ctx.Err(); e != nil {
+		return zero, e
+	}
+	return geom.ExactParameterInterval{Lower: lo, Upper: hi}, nil
 }
 
 func (c AlgebraicGraphCapPair) proveZeroStockXYFlux(exact AlgebraicGraphShellBoundary, o RationalGraphShellSectionOptions, b *capClipBudget) error {

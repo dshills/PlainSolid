@@ -1738,6 +1738,11 @@ passed all 49 tested packages outside `brep/trimmed` with 4,335 passing
 and 368 skipped events. All three trimmed shards passed, with 850 passing
 and 23 skipped events (441, 597, and 563 seconds). These short-mode
 counts include subtests; later focused results are recorded separately.
+The [CGO-disabled run at `60ad6754`](evidence/native-short-60ad6754-2026-11-14.json)
+passed all 49 tested packages outside `brep/trimmed` with 4,379 passing
+and 373 skipped events. All three trimmed shards passed with 864 passing
+and 23 skips (832, 786, and 514 seconds), for 5,243 passing test events
+overall. This is short mode; full release qualification remains separate.
 On 2026-11-14, the exact multi-cap wedge (`a0aa095`) matched a pinned live
 OCCT halfspace common in volume, area, centroid, and its 6 vertices, 9
 edges and 5 faces. The exact volume is 19/1536; the three generated seam
@@ -1845,6 +1850,12 @@ queries (`5b2cd321`) separate retained toroidal quartic roots from the
 inner branch and from trimmed support events under a cumulative budget.
 Prepared material persistence (`d9d6bc15`) re-proves native owners and
 those queries; changed depth/radius and stale source geometry fail.
+Pinned OCCT native cone fillets and three cylinder cuts (`efd8d4b3`)
+agree in solid count, genus, mass, centroid and 14 line contacts.
+Placed conical queries (`52d8708e`) retain algebraic parameters and
+native owners. The trim-aware closest-distance query (`a2f14ea8`) now
+certifies squared distance 1/4 exactly at a through-hole entry rim and
+returns both original owners.
 The exact clipped planar cap mesh triangulates the original coplanar
 boundary samples with the void open or intact. It proves chord ownership,
 display ring topology, oriented coverage and a two-sided fill error.
@@ -1868,7 +1879,12 @@ surface charts, certifies two-sided source error, and independently
 checks all display triangle contacts. Exact cap nesting (`8b7dc323`)
 preserves both holes in the second sheared-sleeve fixture (Euler 0).
 Two disconnected original floor fragments have separate indexed loops,
-keep their irrational contacts, and reload the same closed topology.
+keep their irrational contacts, and reload the same closed topology. Rational vertical fibers
+(`5661de68`) distinguish coordinates offset by 2⁻¹²⁰. Finite cap lines
+(`ee24cf25`) retain the original irrational void exit; nearest polynomial
+cap queries (`976a70df`) prove the squared distance 6−4√2 at an
+irrational trim tip. A rational rigid occurrence (`7ee0cf62`) keeps these
+line parameters and global mesh ownership through native reload.
 The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
 original outer ellipse and preserves both owners. Pinned OCCT confirms
 native reload, two original edges, and area 38π. The two-hole STEP face
@@ -1882,6 +1898,10 @@ the exact promotion (`db873281`) sews four rational tensor walls and
 two caps at zero continuous edge error. The independent native STEP
 writer (`327e0e49`) retains analytic curves and independently reads
 in pinned OCCT at the original and a translated placement.
+Strict model-only import (`dadfc986`) round-trips that native material
+without seam repair. The original Pythagorean STEP specimen
+(`893aebbe`) retains exact 3/5 and 4/5 frame components and measures
+150π at zero native continuous edge discrepancy.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
@@ -2320,6 +2340,14 @@ one close-up pick/display regression), one independent Go/WASM backend
 probe, both typechecks, and 841 source hash comparisons. The seven
 supplemental cases took 199 seconds with zero retries, skips or failures.
 The focused native bridge and STEP suite also passed with CGO disabled.
+The [grouped-opening reconciliation](evidence/plaincad-reconciled-d52a3af3-development-holes-step-2026-11-14.json)
+passed ten unchanged Hole and STEP cases in 81.3 seconds on clean `d52a3af3`
+with no retries, skips, or failures. The report verifies 841 original
+PlainCAD sources and 1,745 kernel and harness source files against their
+Git blobs, including the unchanged browser configuration. A separate
+focused native regression confirms the exact two-cut body can continue
+into a three-cut grouped body, preserve measures, and reload from STEP.
+
 The [original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
 on `bf37aa5` recorded 1,653 passes and 36 failures out of 1,689, with no
 pending tests. All 841 pinned files and both runner setup hashes were
