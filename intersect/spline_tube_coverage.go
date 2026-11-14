@@ -12,6 +12,10 @@ import (
 // that every remaining contact belongs to at least one supplied local tube.
 // MaxCandidateTests defaults to 512; each cell also has its own proof limits.
 type SplineTubeCoverageOptions struct {
+	// RadialOverlap explicitly selects exact radial coverage and independent local
+	// transfer into supplied tubes. Nil preserves the generic isolation strategy.
+	RadialOverlap *RadialOverlapCoverageOptions
+
 	// IsoPlaneFallback enables an independent full-domain scalar plane reduction.
 	IsoPlaneFallback bool
 	IsoPlane         IsoPlaneTubeCoverageOptions
@@ -40,6 +44,8 @@ type SplineTubeCoverageOptions struct {
 // candidate tubes may overlap in their interiors, contain duplicate branch
 // segments, or be arranged in an ambiguous endpoint graph.
 type SplineTubeCoverageReport struct {
+	RadialOverlap *RadialOverlapCoverage
+
 	// IsoPlane retains the independent full original-domain coverage proof.
 	// When present, it establishes completeness independently of Isolation.Complete.
 	IsoPlane *IsoPlaneTubeCoverage
@@ -82,6 +88,15 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return r, e
+	}
+	if o.RadialOverlap != nil {
+		proof, err := certifyRadialOverlapCoverage(ctx, pa, pb, supplied, o)
+		if err != nil {
+			return r, err
+		}
+		r.RadialOverlap = proof
+		r.CoversAllContacts = true
+		return r, nil
 	}
 	r.Isolation, e = geom.BoundSurfaceSurfaceContext(ctx, pa, pb, o.Isolation)
 	if e != nil && !errors.Is(e, geom.ErrConvergence) {

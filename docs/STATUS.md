@@ -1406,3 +1406,21 @@ topology. Anchored tubes, endpoint-only joins and changed chart correspondence
 remain outside this sufficient method. Next integration must independently
 certify overlapping free intervals: the existing abutting radial proposals do
 not automatically satisfy this stronger coverage criterion.
+
+## Independent overlapping radial coverage strategy (2026-11-14)
+
+`DiscoverOverlappingRadialGraphContourTubes` is an additive, independently proved
+proposal lane. `SplineTubeCoverageOptions.RadialOverlap` explicitly selects its
+complete exact circle cover, followed by bounded exact local transfer of every
+cover cell into the supplied original tube union. Thus independent proposals
+cannot conceal an omitted native branch. Nil retains generic full-domain
+isolation unchanged. Existing original branch ordering, trim classification,
+material assembly and native edge checks are untouched.
+
+A genuine original unit-chart plane/dome shell passes section, Intersection and
+native two-face component construction with original support ownership. The
+strategy currently requires the radial certificate's identity-XY original
+charts; it is not an automatic affine-chart fallback. Overlapping proposals
+alone are not ordered topology. No new persistence or flagship qualification is
+claimed. Next work may align independent original charts, then requalify larger
+nested families through the same transfer proof.
