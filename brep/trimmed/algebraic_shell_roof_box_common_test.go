@@ -153,9 +153,71 @@ func TestOrderedRoofBoxRedundantExactKnots(t *testing.T) {
 			}
 		}
 	}
-	crease := weightedIdentityRoofStockMode(t, false, 2, true, true)
-	if s, h, err := IntersectOrderedRoofBoxes(ctx, crease, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
-		t.Fatal("a genuine original height crease must not be erased", s.Topology(), h, err)
+}
+
+func TestOrderedRoofBoxPiecewiseCommon(t *testing.T) {
+	ctx := context.Background()
+	creased := weightedIdentityRoofStockMode(t, false, 2, false, true)
+	flat, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 3}, 0)
+	split, h, err := IntersectOrderedRoofBoxes(ctx, creased, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 10 {
+		t.Fatal("both original roof spans must survive", h, err)
+	}
+	top := split.Topology()
+	if len(top.Shells) != 1 || top.EulerCharacteristic != 2 || top.Faces != 10 || top.Edges != 20 {
+		t.Fatal("the knot grid must not add an interior partition wall", top)
+	}
+	owner := MixedRoofFaceOwner{Operand: 0, Face: 1}
+	var slopes []*big.Rat
+	for i, parent := range h.Faces {
+		if parent != owner {
+			continue
+		}
+		p := split.Faces()[i].Surface.(*geom.ExactBezierSurface).ExactPatch()
+		j, e := p.EvaluateRational(ctx, big.NewRat(1, 2), big.NewRat(1, 3), geom.SurfacePatchEvaluationOptions{})
+		if e != nil || j.Point[2].Cmp(big.NewRat(5, 2)) != 0 {
+			t.Fatal("the seam is an exact original crease", j, e)
+		}
+		slopes = append(slopes, j.Du[2])
+	}
+	if len(slopes) != 2 || slopes[0].Cmp(big.NewRat(1, 1)) != 0 || slopes[1].Cmp(big.NewRat(-1, 1)) != 0 {
+		t.Fatal("the seam must retain the sharp change of roof normal", slopes)
+	}
+	mass, err := split.MassProperties(ctx, parametric.IntegrationOptions{})
+	if err != nil || math.Abs(mass.Volume-9./4) > 1e-12 || math.Abs(mass.Area-(9.5+math.Sqrt2)) > 1e-12 {
+		t.Fatal("independent piecewise prism integral", mass, err)
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "piecewise-ordered-common").Output()
+		var ref struct {
+			Volume, Area  float64
+			Centroid      [3]float64
+			Solids, Euler int
+		}
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 2 || math.Abs(ref.Volume-mass.Volume) > 1e-9 || math.Abs(ref.Area-mass.Area) > 1e-9 {
+			t.Fatal("pinned OCCT creased intersection", ref, err, string(data))
+		}
+	}
+	var native bytes.Buffer
+	if err := WriteJSON(&native, split); err != nil {
+		t.Fatal(err)
+	}
+	if restored, err := ReadJSONContext(ctx, &native, JSONLimits{}); err != nil || restored.Topology().EulerCharacteristic != 2 {
+		t.Fatal("native piecewise roof must revalidate on read", err)
+	}
+	flatCrossing, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 2.25}, 0)
+	if s, h, err := IntersectOrderedRoofBoxes(ctx, creased, flatCrossing, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("roof crossings inside span interiors need an imprint", s.Topology(), h, err)
+	}
+	tilted := orderedRoofParabolaSourceControls(t, [3]float64{1.5, 2.5, 3.5})
+	switched, h, err := IntersectOrderedRoofBoxes(ctx, creased, tilted, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || switched.Topology().EulerCharacteristic != 2 || len(h.Faces) != 10 || h.Faces[0] != (MixedRoofFaceOwner{Operand: 1, Face: 1}) || h.Faces[5] != owner {
+		t.Fatal("the original active roof switches on a pre-existing exact knot", switched.Topology(), h, err)
+	}
+	mass, err = switched.MassProperties(ctx, parametric.IntegrationOptions{})
+	// Integrate 1.5+2X on the left half (1) and 3-X on the right (9/8).
+	if err != nil || math.Abs(mass.Volume-17./8) > 1e-12 {
+		t.Fatal("distinct roof owners must meet at the original knot without an interior wall", mass, err)
 	}
 }
 func orderedRoofTangentSource(t *testing.T) Solid {

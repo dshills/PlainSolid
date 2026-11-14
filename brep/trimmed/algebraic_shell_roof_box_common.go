@@ -27,11 +27,11 @@ type RoofBoxDifferenceHistory struct {
 }
 
 // IntersectOrderedRoofBoxes builds a native regularized Common when the two
-// roofs have a provably fixed order over the entire common XY rectangle. Its
-// construction lane requires a single rational polynomial on the selected
-// lower roof. Redundant knots can be removed after exact proof. Its geometry
-// is preserved by exact restriction and ruled side faces. Changing order,
-// roof/floor pinches, and unrepresentable vertices are unsupported. Disjoint or
+// roofs have a provable height order on each original knot rectangle.
+// Redundant knots can be removed after exact proof. Genuine creases are
+// kept by sewing adjacent roof fragments on their original chart, with no
+// internal walls. Order changes within a knot rectangle, roof/floor pinches,
+// and unrepresentable vertices are unsupported. Disjoint or
 // proved zero-volume results are empty. The exact arithmetic allowance bounds
 // chart restriction/selection and construction. Continuous edge checks spend
 // the remaining allowance independently for each original use.
@@ -71,7 +71,7 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	}
 	floor := q.box[floorIndex].floor
 	if len(left.roofSpans) != 0 || len(right.roofSpans) != 0 {
-		return empty, zero, geom.ErrUnrepresentable
+		return intersectPiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, &work)
 	}
 	order, err := orderedRoofBoxOrder(ctx, q.box, xy, &work)
 	if err != nil {
@@ -106,15 +106,22 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 		return empty, zero, err
 	}
 	history.Faces = append(history.Faces, MixedRoofFaceOwner{roofIndex, roof.roofFace}, MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace})
-	for boundary, fixed := range [4]float64{d.UMin, d.UMax, d.VMin, d.VMax} {
-		owner := 0
-		if fixed != [4]float64{left.domain.UMin, left.domain.UMax, left.domain.VMin, left.domain.VMax}[boundary] {
-			owner = 1
-		}
-		history.Faces = append(history.Faces, MixedRoofFaceOwner{owner, q.box[owner].sideFaces[boundary]})
+	for boundary := range 4 {
+		history.Faces = append(history.Faces, roofCommonWallOwner(q.box, d, boundary))
 	}
 	history.ExactOperations = work.operations
 	return out, history, nil
+}
+
+func roofCommonWallOwner(boxes [2]*mixedRoofBox, domain geom.ParameterRectangle, boundary int) MixedRoofFaceOwner {
+	coordinate := func(d geom.ParameterRectangle) float64 {
+		return [4]float64{d.UMin, d.UMax, d.VMin, d.VMax}[boundary]
+	}
+	owner := 0
+	if coordinate(domain) != coordinate(boxes[0].domain) {
+		owner = 1
+	}
+	return MixedRoofFaceOwner{owner, boxes[owner].sideFaces[boundary]}
 }
 
 func certifyRoofStrictlyAboveFloor(ctx context.Context, roof *geom.SurfacePatch, floor *big.Rat, w *mixedRoofLineWork) error {
@@ -141,12 +148,24 @@ func certifyRoofStrictlyAboveFloor(ctx context.Context, roof *geom.SurfacePatch,
 // A positive sign means the first roof is the higher one; zero denotes
 // identical graphs. An unresolved mixed sign is never reported as equality.
 func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
-	cache := make(roofOrderCache)
-	difference, err := cache.order(boxes, xy, w)
+	axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
+	var numerator, weight [2]roofPowerGrid
+	for i, box := range boxes {
+		var err error
+		numerator[i], weight[i], err = box.roofOrderPower(axes, w)
+		if err != nil {
+			return 0, err
+		}
+	}
+	power, err := roofHeightDifference(numerator, weight, w)
 	if err != nil {
 		return 0, err
 	}
-	sign, _, err := orderedRoofPowerSign(ctx, cache[boxes].power, difference, w)
+	difference, err := mixedRoofPowerRange(power, orderedRoofUnitIntervals(), w)
+	if err != nil {
+		return 0, err
+	}
+	sign, _, err := orderedRoofPowerSign(ctx, power, difference, w)
 	return sign, err
 }
 
@@ -168,12 +187,16 @@ func orderedRoofAgainstFloorDetail(ctx context.Context, roof *mixedRoofBox, xy [
 	if err != nil {
 		return 0, false, err
 	}
-	unit := [2]geom.ExactParameterInterval{{Lower: new(big.Rat), Upper: one}, {Lower: new(big.Rat), Upper: one}}
-	bounds, err := mixedRoofPowerRange(gap, unit, w)
+	bounds, err := mixedRoofPowerRange(gap, orderedRoofUnitIntervals(), w)
 	if err != nil {
 		return 0, false, err
 	}
 	return orderedRoofPowerSign(ctx, gap, bounds, w)
+}
+
+func orderedRoofUnitIntervals() [2]geom.ExactParameterInterval {
+	zero, one := new(big.Rat), big.NewRat(1, 1)
+	return [2]geom.ExactParameterInterval{{Lower: zero, Upper: one}, {Lower: zero, Upper: one}}
 }
 
 func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (sign int, strict bool, err error) {
@@ -252,6 +275,14 @@ func orderedRoofFlatFloor(ctx context.Context, d geom.ParameterRectangle, xy [2]
 // Both complete graphs must project identically and be strictly separated
 // over d. Exact rational ruled walls interpolate their physical heights.
 func assembleOrderedRoofBox(ctx context.Context, upper, lower *geom.SurfacePatch, d geom.ParameterRectangle, tolerance float64, w *mixedRoofLineWork) (Solid, error) {
+	parts, err := orderedRoofBoxFaces(ctx, upper, lower, d, 0b1111, w)
+	if err != nil {
+		return Solid{}, err
+	}
+	return sewOrderedRoofBoxFaces(ctx, parts, tolerance, w)
+}
+
+func orderedRoofBoxFaces(ctx context.Context, upper, lower *geom.SurfacePatch, d geom.ParameterRectangle, boundaryMask uint8, w *mixedRoofLineWork) ([]SewFace, error) {
 	parts := make([]SewFace, 0, 6)
 	add := func(patch *geom.SurfacePatch, reversed bool) error {
 		if err := ctx.Err(); err != nil {
@@ -273,20 +304,23 @@ func assembleOrderedRoofBox(ctx context.Context, upper, lower *geom.SurfacePatch
 		return nil
 	}
 	if err := add(upper, false); err != nil {
-		return Solid{}, err
+		return nil, err
 	}
 	if err := add(lower, true); err != nil {
-		return Solid{}, err
+		return nil, err
 	}
 	var recipes [2]geom.ExactBezierSurfaceRecipe
 	for i, p := range []*geom.SurfacePatch{lower, upper} {
 		var err error
 		recipes[i], err = p.ExportExactBezierRecipe()
 		if err != nil {
-			return Solid{}, geom.ErrUnrepresentable
+			return nil, geom.ErrUnrepresentable
 		}
 	}
 	for boundary := range 4 {
+		if boundaryMask&(1<<boundary) == 0 {
+			continue
+		}
 		axis, side := boundary/2, boundary%2
 		var borders [2][][4]*big.Rat
 		for i, data := range recipes {
@@ -305,7 +339,7 @@ func assembleOrderedRoofBox(ctx context.Context, upper, lower *geom.SurfacePatch
 		}
 		controls, err := roofBoxRuledControls(borders, w)
 		if err != nil {
-			return Solid{}, err
+			return nil, err
 		}
 		domain := geom.ParameterRectangle{UMin: d.VMin, UMax: d.VMax, VMax: 1}
 		if axis == 1 {
@@ -313,12 +347,16 @@ func assembleOrderedRoofBox(ctx context.Context, upper, lower *geom.SurfacePatch
 		}
 		p, err := roofBoxConstructionPatch(ctx, domain, len(controls)/2-1, 1, controls, w)
 		if err != nil {
-			return Solid{}, err
+			return nil, err
 		}
 		if err := add(p, axis == side); err != nil {
-			return Solid{}, err
+			return nil, err
 		}
 	}
+	return parts, nil
+}
+
+func sewOrderedRoofBoxFaces(ctx context.Context, parts []SewFace, tolerance float64, w *mixedRoofLineWork) (Solid, error) {
 	remaining, err := roofBoxConstructionOptions(w)
 	if err != nil {
 		return Solid{}, err

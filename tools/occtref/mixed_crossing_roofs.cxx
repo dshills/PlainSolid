@@ -323,6 +323,12 @@ int main(int argc, char** argv) {
       report("tangent-ordered-common",BRepAlgoAPI_Common(curved,plane).Shape());
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="piecewise-ordered-common") {
+      const auto stock=BRepAlgoAPI_Fuse(creasedHalf(false),creasedHalf(true)).Shape();
+      const auto limit=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,3)).Shape();
+      report("piecewise-ordered-common",BRepAlgoAPI_Common(stock,limit).Shape(),1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="weighted-ordered-difference") {
       const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,4)).Shape();
       report("weighted-ordered-difference",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape());
