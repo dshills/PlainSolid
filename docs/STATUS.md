@@ -454,6 +454,12 @@ The run verified 841 app and 2,155 kernel source blobs. The
 [authored oblique crossing](evidence/plaincad-reconciled-9b93d85d-supplemental-placed-oblique-crossing-step-2026-11-14.json)
 reproduced the original STEP and watertight 404-triangle STL;
 OCCT transfer and direct construction agreed.
+The [5–12–13 oblique hole reconciliation](evidence/plaincad-reconciled-27fa07c2-development-pythagorean-oblique-holes-step-2026-11-14.json)
+adds worktree revision `aa57c278` to review `27fa07c2`. Native race and
+all 17 original browser cases passed; 841 app and 2,163 kernel source
+blobs were verified. The two [authored shallow and steep cases](evidence/plaincad-reconciled-27fa07c2-supplemental-pythagorean-oblique-step-2026-11-14.json)
+reproduced the worktree's STEP and watertight STL byte for byte, with
+independent OCCT transfer and direct geometry agreement.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
