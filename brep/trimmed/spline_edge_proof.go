@@ -352,21 +352,7 @@ func compareSplineRationalTrimUse(ctx context.Context, model parametric.Edge, su
 	if use.Reversed {
 		target[0], target[2] = target[2], target[0]
 	}
-	sourceBase, sourceMap := parametric.SurfaceMapping(m.surface)
-	targetBase, targetMap := parametric.SurfaceMapping(surface)
-	if !supportsExactSplinePatch(sourceBase) || !supportsExactSplinePatch(targetBase) || sourceMap != targetMap {
-		return false, nil
-	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
-	ap, e := exactSplineSupportPatch(sourceBase, limits)
-	if e != nil {
-		return false, e
-	}
-	bp, e := exactSplineSupportPatch(targetBase, limits)
-	if e != nil {
-		return false, e
-	}
-
 	uvA, e := exactQuadraticTrimParameterCurve(ctx, source, limits)
 	if e != nil {
 		return false, e
@@ -375,10 +361,7 @@ func compareSplineRationalTrimUse(ctx context.Context, model parametric.Edge, su
 	if e != nil {
 		return false, e
 	}
-	r, e := geom.CompareSurfaceCurveCompositions(ctx, ap, uvA, bp, uvB, geom.SurfaceCurveAgreementOptions{
-		SurfacePatchOptions: limits, MaxEvents: o.MaxIntervals,
-	})
-	return r.Complete && r.Equal, e
+	return compareTrimCompositionsOnPlacedSplineSupports(ctx, m.surface, uvA, surface, uvB, o)
 }
 
 func composeSplineTrimControls(ctx context.Context, p *geom.SurfacePatch, h [3][3]*big.Rat,

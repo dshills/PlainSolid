@@ -837,6 +837,11 @@ surfaces must keep their geometry through the operation. Continue with:
    edges have an original stock, stock/cap, or cap/cap owner. An uncut curved
    face can be retained intact. Arbitrary curved crossings and coincidence
    still require a separate proof.
+   A separate nonparallel band path clips an already embeddable curved stock
+   where both exact sections remain strictly in the other retained halfspace.
+   It sews continuous original graph trims against independently placed cap
+   charts. A cubic fixture retains both trims through native reload. The
+   path rejects intersecting or touching caps.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

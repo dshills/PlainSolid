@@ -203,3 +203,7 @@ and unique vertex/edge/face counts. Set `PLAINSOLID_OCCT_MULTI_PLANE_CUTS` to
 `OUTPUT` and run `go test ./brep/trimmed -run '^TestSplineMultiPlaneCuts'` to
 compare it against the native result. The ordinary tests also check exact
 three-way seam ancestry and the volume of a body with an uncut curved face.
+The same binary's `curved-band` mode independently sweeps an exact cubic
+floor and applies two finite-height-separating, nonparallel halfspaces.
+`TestClipSeparatedRationalGraphSplineShell` compares its measure and topology
+with the native cubic band, also checked against independent integrals.

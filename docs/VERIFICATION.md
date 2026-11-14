@@ -40,6 +40,23 @@ passed all 49 tested packages outside `brep/trimmed` with 3,997 passing and
 342 skipped test events. All three trimmed shards passed with 777 passing
 and 22 skipped test events (650, 586, and 846 seconds). The run includes
 subtests and short-mode skips; newer milestones have focused checks below.
+On 2026-11-14, the exact multi-cap wedge (`a0aa095`) matched a pinned live
+OCCT halfspace common in volume, area, centroid, and its 6 vertices, 9
+edges and 5 faces. The exact volume is 19/1536; the three generated seam
+edges independently identify the same native apex on their original cap
+charts. A second native fixture retains its original curved upper face
+with volume 35/48. A nonparallel cubic band passes native reload, both cap
+orders and chart orientation reversal, the independent volume 2969/122880,
+and an independent area integral. OCCT agrees on all topology counts; its
+volume and area differ by about 5.5e-8 and 2.7e-6 respectively.
+The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
+missing, misassigned and stale original contacts on reload. Rational graph
+occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
+through world line queries, reflected/sheared bounds, and all volume moments
+under nonbinary exact placements. The bounded STEP cylinder repair (`d454fa5`)
+passes the pinned source and repaired-output OCCT mass comparisons, Go 1.23,
+race and bounded fuzz; it reports exact displacement without weakening the
+strict source import.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP

@@ -46,9 +46,25 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 	keep := [2]int{}
 	keep[sections.Lower] = planes[sections.Lower].orientation
 	keep[1-sections.Lower] = -planes[1-sections.Lower].orientation
+	out, e := s.assembleRationalGraphBand(ctx, sections.Sections, faces, planes, signs, keep, caps, domains, o)
+	if e == nil {
+		out.Sections = sections
+	}
+	return out, e
+}
+
+// assembleRationalGraphBand consumes complete sections already proved
+// disjoint on the entire stock. The retained side of each plane is expressed
+// relative to its original ordered points.
+func (s Solid) assembleRationalGraphBand(ctx context.Context, sections [2]RationalGraphShellSection, faces []splineEmbeddingFace,
+	planes [2]polynomialPlaneEquation, signs [2][]int, keep [2]int, caps [2]geom.Surface,
+	domains [2]geom.ParameterRectangle, o RationalGraphParallelBandOptions) (RationalGraphParallelBand, error) {
+	var zero RationalGraphParallelBand
+	var e error
+	so := o.Sections
 	lookup := [2]map[int]RationalGraphShellBranch{}
 	var capParts [2][]RationalGraphSectionCap
-	for i, sec := range sections.Sections {
+	for i, sec := range sections {
 		if len(sec.Branches) == 0 {
 			return zero, geom.ErrConvergence
 		}
@@ -61,7 +77,7 @@ func (s Solid) ClipParallelRationalGraphSplineShell(ctx context.Context, points 
 			return zero, e
 		}
 	}
-	out := RationalGraphParallelBand{Sections: sections, SourceFaces: make([][]int, len(faces))}
+	out := RationalGraphParallelBand{SourceFaces: make([][]int, len(faces))}
 	var parts []SewFace
 	var owners [][]int
 	for id, f := range faces {
@@ -199,9 +215,9 @@ func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePa
 				return SewFace{}, geom.ErrConvergence
 			}
 		}
-		// The exact parallel planes are disjoint; no source point can be
-		// on both. Continuous graph branches cannot change their order
-		// between these independently ordered exact knot endpoints.
+		// No retained source point can be on both sections by the caller's
+		// complete separation proof. Continuous graph branches cannot change
+		// order between these independently ordered exact knot endpoints.
 		if free == 1 {
 			a, b = b, a
 		}
