@@ -124,6 +124,68 @@ func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
 		t.Fatal("the reported work exhausts exactly one shared proof ledger", out, e)
 	}
 
+	opts.MaxOperations = 20000000
+	tensor, e := pair.BoundVerticalMass(ctx, q(1, 1<<13), o, opts)
+	if e != nil {
+		t.Fatal("weighted sleeve raw moments and centroid inertia", e)
+	}
+	rr := [6][2]*big.Rat{
+		{q(19441, 6720), q(9, 4480)}, {q(7762633, 1290240), q(1821, 286720)},
+		{q(7939259, 30965760), q(2547, 2293760)}, {q(375089, 98304), q(0, 1)},
+		{q(405541, 524288), q(0, 1)}, {q(12644999, 10321920), q(3039, 1146880)},
+	}
+	for i, u := range tensor.SecondMoments {
+		v, k := rr[i][0], rr[i][1]
+		if k.Sign() == 0 {
+			if u.Lower.Cmp(v) > 0 || u.Upper.Cmp(v) < 0 {
+				t.Fatal("raw second mixed moment", i, u)
+			}
+			continue
+		}
+		lo, hi := new(big.Rat).Sub(v, u.Upper), new(big.Rat).Sub(v, u.Lower)
+		want := new(big.Rat).Mul(q(3, 1), new(big.Rat).Mul(k, k))
+		if lo.Sign() <= 0 || lo.Mul(lo, lo).Cmp(want) > 0 || hi.Mul(hi, hi).Cmp(want) < 0 {
+			t.Fatal("independent raw second moment", i, u)
+		}
+	}
+	// Calculate the reference inertia from independent vertical slices,
+	// direct centroid reduction and Cartesian tensor convention.
+	m2 := [6]float64{2.8895263860264615, 6.005425122192287, .2544650381262126, 3.8156026204427085, .7735080718994141, 1.2204730978696003}
+	m1 := [3]float64{1.2921549479166667, 2.041078406599444, .42483225948143355}
+	v := .7179226785061876
+	for i, ij := range [6][2]int{{0, 0}, {1, 1}, {2, 2}, {0, 1}, {0, 2}, {1, 2}} {
+		m2[i] -= m1[ij[0]] * m1[ij[1]] / v
+	}
+	for i, ij := range [6][2]int{{0, 0}, {1, 1}, {2, 2}, {0, 1}, {0, 2}, {1, 2}} {
+		want := -m2[i]
+		if i < 3 {
+			want = m2[(i+1)%3] + m2[(i+2)%3]
+		}
+		a := tensor.CentroidInertia[ij[0]][ij[1]]
+		lo, _ := a.Lower.Float64()
+		hi, _ := a.Upper.Float64()
+		z := tensor.CentroidInertia[ij[1]][ij[0]]
+		if lo > want || hi < want || hi-lo > .003 || z.Lower.Cmp(a.Lower) != 0 || z.Upper.Cmp(a.Upper) != 0 {
+			t.Fatal("inertia bound or Cartesian tensor symmetry", ij, lo, hi, want)
+		}
+	}
+
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ALGEBRAIC_CAP_INERTIA"); oracle != "" {
+		data, e := exec.CommandContext(ctx, oracle, "sheared-sleeve-inertia").Output()
+		var tensorRef [9]float64
+		if e != nil || json.Unmarshal(data, &tensorRef) != nil {
+			t.Fatal("independent OCCT inertia tensor", e)
+		}
+		for i, row := range tensor.CentroidInertia {
+			for j, cell := range row {
+				v := ratInset(tensorRef[3*i+j])
+				if cell.Lower.Cmp(v) > 0 || cell.Upper.Cmp(v) < 0 {
+					t.Fatal("independent OCCT tensor outside the certificate", i, j, tensorRef[3*i+j])
+				}
+			}
+		}
+	}
+
 }
 
 func reparameterizedGraphSleeveForFlux(t *testing.T) Solid {

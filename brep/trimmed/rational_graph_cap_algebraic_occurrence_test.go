@@ -146,4 +146,38 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 		}
 	}
 
+	full, e := w.BoundMass(ctx, q(1, 1<<17), selection, root)
+	if e != nil {
+		t.Fatal("world second moments and inertia", e)
+	}
+	rot := [3][3]float64{{.6, 0, .8}, {0, 1, 0}, {-.8, 0, .6}}
+	localInertia := [3][3]float64{{.2056399733393955, -.14196249019767038, -.008872655637354399},
+		{-.14196249019767038, .5669076886572255, -.01266064505970843},
+		{-.008872655637354399, -.01266064505970843, .7664083572284945}}
+	localSecond := [3][3]float64{{2.8895263860264615, 3.8156026204427085, .7735080718994141},
+		{3.8156026204427085, 6.005425122192287, 1.2204730978696003},
+		{.7735080718994141, 1.2204730978696003, .2544650381262126}}
+	offset := [3]float64{1. / 7, -1. / 3, 1. / 11}
+	volume := .7179226785061876
+	for k, ij := range [6][2]int{{0, 0}, {1, 1}, {2, 2}, {0, 1}, {0, 2}, {1, 2}} {
+		i, j := ij[0], ij[1]
+		var expectedInertia, expectedSecond float64
+		for a := 0; a < 3; a++ {
+			for b := 0; b < 3; b++ {
+				expectedInertia += rot[i][a] * localInertia[a][b] * rot[j][b]
+				expectedSecond += rot[i][a] * localSecond[a][b] * rot[j][b]
+			}
+			expectedSecond += (rot[i][a]*offset[j] + rot[j][a]*offset[i]) * local[a] * volume
+		}
+		expectedSecond += offset[i] * offset[j] * volume
+		for _, z := range []struct {
+			b    geom.ExactParameterInterval
+			want float64
+		}{{full.CentroidInertia[i][j], expectedInertia}, {full.SecondMoments[k], expectedSecond}} {
+			if z.b.Lower.Cmp(ratInset(z.want)) > 0 || z.b.Upper.Cmp(ratInset(z.want)) < 0 {
+				t.Fatal("world second moment or rotated inertia", ij, z.b, z.want)
+			}
+		}
+	}
+
 }
