@@ -521,3 +521,68 @@ func TestSideOpeningPairWriterRejectsSingleRecoveredSupport(t *testing.T) {
 		t.Fatal("pair writer published a single recovered support", err, out.Len())
 	}
 }
+
+func TestVertexSideOpeningCutsSTEP(t *testing.T) {
+	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, site := range []struct {
+			name   string
+			center geom.Vec2
+		}{
+			{"lower-left", geom.Vec2{X: 3, Y: 4}},
+			{"upper-right", geom.Vec2{X: 17, Y: 16}},
+			{"outside-x", geom.Vec2{X: -3, Y: 4}},
+			{"outside-y", geom.Vec2{X: 3, Y: -4}},
+			{"endpoint-tangent-x", geom.Vec2{X: 5}},
+			{"endpoint-tangent-y", geom.Vec2{Y: 5}},
+		} {
+			for _, depth := range []float64{3, 8} {
+				t.Run(fmt.Sprintf("single/%s/%g/%d", site.name, depth, ni), func(t *testing.T) {
+					p := SideOpeningCutsBody{Name: "exact stock vertex opening", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: site.center, Radius: 5}, Depth: depth}}}
+					checkCornerSideOpeningSTEP(t, p)
+				})
+			}
+		}
+		for _, span := range []struct {
+			name    string
+			depths  [2]float64
+			opposed bool
+		}{
+			{"blind", [2]float64{3, 6}, false}, {"through", [2]float64{8, 8}, false}, {"opposed", [2]float64{6, 5}, true},
+		} {
+			t.Run(fmt.Sprintf("group/%s/%d", span.name, ni), func(t *testing.T) {
+				p := SideOpeningCutsBody{Name: "vertex and side openings", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{
+					{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}, Depth: span.depths[0]},
+					{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 8}, Radius: 3}, Depth: span.depths[1], OppositeCap: span.opposed},
+				}}
+				checkCornerSideOpeningSTEP(t, p)
+			})
+		}
+		t.Run(fmt.Sprintf("external-point-only/%d", ni), func(t *testing.T) {
+			p := SideOpeningCutsBody{Name: "external point contact", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: -3, Y: -4}, Radius: 5}, Depth: 8}}}
+			var out bytes.Buffer
+			if err := WriteSideOpeningCuts(&out, SideOpeningCutsModel{Body: p, LengthUnit: .001}); err == nil || out.Len() != 0 {
+				t.Fatal("point-only external contact published a cut", err, out.Len())
+			}
+		})
+	}
+}
+
+func TestVertexSideOpeningSharedIntersectionSTEP(t *testing.T) {
+	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+		t.Run(fmt.Sprint(ni), func(t *testing.T) {
+			frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := SideOpeningCutsBody{Name: "shared exact vertex", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: -4, Y: 3}, Radius: 5}, Depth: 5},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}, Depth: 2},
+			}}
+			checkCornerSideOpeningSTEP(t, p)
+		})
+	}
+}

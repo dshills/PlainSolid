@@ -137,6 +137,9 @@ func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, leng
 				sideOpeningRemovedArea(points, edges, active) - sideOpeningRemovedArea(points, edges, next)
 		}
 	}
+	if out.RemovedVolume <= 0 {
+		return SideOpeningCutsResult{}, geom.ErrDomain
+	}
 	// Retained stock bounds and STEP recovery require evidence for each
 	// rectangular extent. A chain of through cuts can erase a whole side.
 	local := make([]geom.Vec3, len(builder.vertices))
@@ -267,8 +270,8 @@ func sideOpeningDistances(width, back float64, p geom.Vec2) [4]float64 {
 	return [4]float64{p.Y, width - p.X, back - p.Y, p.X}
 }
 
-// BoxSideOpeningCount returns the number of eligible stock side supports
-// crossed by a footprint, or zero outside the side-opening domain.
+// BoxSideOpeningCount returns the number of eligible stock side contacts
+// for a footprint, or zero outside the side-opening domain.
 func BoxSideOpeningCount(width, back float64, c ExtrusionCircle, tolerance float64) int {
 	return bits.OnesCount8(sideOpeningSides(width, back, c, tolerance))
 }
@@ -285,7 +288,15 @@ func sideOpeningSides(width, back float64, c ExtrusionCircle, tol float64) uint8
 			continue
 		}
 		if c.Radius-math.Abs(distance) <= pad {
-			return 0
+			along, limit := c.Center.X, width
+			if side%2 == 1 {
+				along, limit = c.Center.Y, back
+			}
+			// Tangency to a supporting line is eligible only when the
+			// disk lies inside that half-plane and touches its endpoint.
+			if distance != c.Radius || along != 0 && along != limit {
+				return 0
+			}
 		}
 		openings |= 1 << side
 	}
@@ -316,9 +327,19 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 		angle float64
 	}
 	events := make([][]event, len(circles))
+	cornerEvents := make([][4]bool, len(circles))
 	add := func(i, id int) {
+		if id < 4 {
+			if cornerEvents[i][id] {
+				return
+			}
+			cornerEvents[i][id] = true
+		}
 		c, p := circles[i], points[id]
 		events[i] = append(events[i], event{id, math.Atan2(p.Y-c.Center.Y, p.X-c.Center.X)})
+	}
+	onCircle := func(p geom.Vec2, c ExtrusionCircle) bool {
+		return circleRelation(unionDisk{center: p}, unionDisk{center: c.Center, radius: c.Radius}, true) == 0
 	}
 	transverse := false
 	for i, first := range circles {
@@ -350,6 +371,18 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 				if !uvFinite(p) {
 					return fail()
 				}
+				corner := -1
+				for id, vertex := range points[:4] {
+					if math.Hypot(p.X-vertex.X, p.Y-vertex.Y) <= pad && onCircle(vertex, first) && onCircle(vertex, second) {
+						corner = id
+						break
+					}
+				}
+				if corner >= 0 {
+					add(i, corner)
+					add(j, corner)
+					continue
+				}
 				for _, distance := range sideOpeningDistances(width, back, p) {
 					if math.Abs(distance) <= pad {
 						return fail()
@@ -374,7 +407,7 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 				continue
 			}
 			root := math.Sqrt((c.Radius - offset) * (c.Radius + offset))
-			before := len(events[i])
+			hitsSide := false
 			for _, delta := range []float64{-root, root} {
 				var p geom.Vec2
 				var along, limit float64
@@ -386,7 +419,22 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 					p = geom.Vec2{X: float64(1-j/2) * width, Y: along}
 				}
 				if math.Abs(along) <= pad || math.Abs(limit-along) <= pad {
-					return fail()
+					first, last := sides[j][0], sides[j][1]
+					if j >= 2 {
+						first, last = last, first
+					}
+					id := first
+					if math.Abs(limit-along) < math.Abs(along) {
+						id = last
+					}
+					// Both support lines meet at this existing vertex. Prove
+					// equality before sharing its ID with the circular trim.
+					if !onCircle(points[id], c) {
+						return fail()
+					}
+					add(i, id)
+					hitsSide = true
+					continue
 				}
 				if along < 0 || along > limit {
 					continue
@@ -395,8 +443,9 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 				points = append(points, p)
 				sides[j] = append(sides[j], id)
 				add(i, id)
+				hitsSide = true
 			}
-			if len(events[i]) == before {
+			if !hitsSide {
 				return fail()
 			}
 		}

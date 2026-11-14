@@ -197,10 +197,63 @@ func TestBoxSideOpeningCornerClipKeepsBlindCornerIsland(t *testing.T) {
 	if _, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9); err == nil {
 		t.Fatal("accepted a through-cut that detached the stock corner")
 	}
-	// Contact exactly at a stock vertex has a different topology.
-	cut.ExtrusionCircle = ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}
-	if _, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9); err == nil {
-		t.Fatal("accepted exact circle contact at a stock vertex")
+}
+
+func TestBoxSideOpeningCutAtExactVertex(t *testing.T) {
+	ctx := context.Background()
+	f, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	capX := 25*math.Acos(.6) - 12
+	capY := 25*math.Acos(.8) - 12
+	for _, tc := range []struct {
+		center  geom.Vec2
+		section float64
+	}{
+		{geom.Vec2{X: 3, Y: 4}, 25*math.Pi - capX - capY},
+		{geom.Vec2{X: -3, Y: 4}, capX},
+		{geom.Vec2{X: 3, Y: -4}, capY},
+		{geom.Vec2{X: 0, Y: 5}, 12.5 * math.Pi},
+		{geom.Vec2{X: 5, Y: 0}, 12.5 * math.Pi},
+		{geom.Vec2{X: -3, Y: -4}, 0},
+	} {
+		for _, depth := range []float64{3, 8} {
+			circle := ExtrusionCircle{Center: tc.center, Radius: 5}
+			cut := SideOpeningCut{ExtrusionCircle: circle, Depth: depth}
+			volume, err := BoxSideOpeningCutsOverlap(f, 20, 20, 8, nil, circle, 0, depth, 1e-9)
+			if err != nil || math.Abs(volume-depth*tc.section) > 1e-8 {
+				t.Fatal(tc, depth, volume, err)
+			}
+			result, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9)
+			if tc.section == 0 {
+				if err == nil {
+					t.Fatal("pure exterior vertex contact published a cut")
+				}
+				continue
+			}
+			if err != nil || math.Abs(result.RemovedVolume-volume) > 1e-8 {
+				t.Fatal(tc, depth, result.RemovedVolume, err)
+			}
+			properties, err := result.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			if err != nil || math.Abs(properties.Volume-(3200-volume)) > 1e-7 || math.Abs(properties.Area-(1440+result.SurfaceAreaDelta)) > 1e-7 {
+				t.Fatal(tc, depth, properties, err)
+			}
+			m, err := result.Solid.Tessellate(ctx, parametric.TessellationOptions{Deflection: .1, Angle: .2, MaxSubdivisions: 128, MaxTriangles: 50000})
+			if err != nil {
+				t.Fatal(tc, depth, err)
+			}
+			if err := m.ValidateSolid(); err != nil {
+				t.Fatal(tc, depth, err)
+			}
+		}
+	}
+	nearContact := SideOpeningCut{
+		ExtrusionCircle: ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: math.Nextafter(5, 6)},
+		Depth:           3,
+	}
+	if _, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{nearContact}, 1e-9); err == nil {
+		t.Fatal("rounded near contact to an exact stock vertex")
 	}
 }
 

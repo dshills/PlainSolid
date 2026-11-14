@@ -44,9 +44,11 @@ sides, including offset corners. Grouped and successive cuts, unequal
 depths, through cuts that leave one solid, and canonical STEP round-trip
 pass verification. Cutters can enter from either cap, including opposed
 blind spans that overlap or leave a material web. STEP recovers partially
-buried cylindrical walls from their neighboring faces. Nonparallel axes,
-coincident opposed floors across overlapping footprints, and exact contact
-at a stock vertex remain open.
+buried cylindrical walls from their neighboring faces. Exact stock
+vertex contacts also pass for blind and through cutters, for two cutters
+sharing the vertex, and for endpoint tangency when the cutter opens
+across the adjacent side. Nonparallel axes and coincident opposed floors
+across overlapping footprints remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
