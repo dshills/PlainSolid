@@ -5605,6 +5605,10 @@ The strict vertical-gap Fuse preserves both original six-face shells and
 face ancestry under operand reversal, with Euler characteristic four and
 an analytic volume check. Edge-only contact is distinguished from strict
 separation. The focused roof suite passed under race in 12.731 s.
+Projected footprint containment preserves the original weighted stock and
+its face ownership under operand swap; strict XY separation preserves both
+shells, and partial overlap still fails this path. The focused live Fuse
+race passed in 6.330 s.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 
@@ -5670,3 +5674,7 @@ exact terminal witnesses without sampling the interiors to claim
 completeness. Nonbinary coefficients, operand reversal, source
 perturbations and exact budget failures are checked. The integrated
 focused race passed in 1.311 s.
+The immutable intersect-level cusp section independently evaluates both
+supports for rational samples on both labeled germs. It distinguishes
+the shared cusp from each finite boundary terminal and preserves original
+owner identity. The integrated focused race passed in 1.209 s.

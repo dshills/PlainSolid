@@ -114,3 +114,27 @@ func TestOrderedRoofBoxFuseStrictlySeparateBands(t *testing.T) {
 		t.Fatal("edge contact cannot be promoted to strictly separate shell material", s.Topology(), h, err)
 	}
 }
+
+func TestOrderedRoofBoxFuseOriginalFootprintContainment(t *testing.T) {
+	ctx := context.Background()
+	outer, inner := weightedIdentityRoofStock(t, false, 2), weightedIdentityRoofStock(t, true, 2)
+	for i, sources := range [][2]Solid{{outer, inner}, {inner, outer}} {
+		s, h, err := FuseOrderedRoofBoxes(ctx, sources[0], sources[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(h.Faces) != 6 || s.Topology().EulerCharacteristic != 2 {
+			t.Fatal("contained footprint and heights retain the entire original outer", s.Topology(), h, err)
+		}
+		for f, owners := range h.Faces {
+			if len(owners) != 1 || owners[0] != (MixedRoofFaceOwner{i, f}) || s.faces[f].Surface != outer.faces[f].Surface {
+				t.Fatal("original unmodified container ancestry", f, owners)
+			}
+		}
+	}
+	lateral, _ := makeOpenSplineBox(t, [3]float64{1.125, 0, 0}, [3]float64{2, 1, 1}, 0)
+	if s, h, err := FuseOrderedRoofBoxes(ctx, outer, lateral, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err != nil || len(s.Topology().Shells) != 2 || len(h.Faces) != 12 {
+		t.Fatal("strict projected separation", s.Topology(), h, err)
+	}
+	partial, _ := makeOpenSplineBox(t, [3]float64{.5, 0, 0}, [3]float64{2, 1, 1}, 0)
+	if s, h, err := FuseOrderedRoofBoxes(ctx, outer, partial, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("partially overlapping footprints need a different proof", s.Topology(), h, err)
+	}
+}

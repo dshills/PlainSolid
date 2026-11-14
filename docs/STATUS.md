@@ -1988,7 +1988,9 @@ lower original floor, and the two original contributors to each merged
 wall. The opt-in dispatcher falls back for unsupported geometry. Height
 order changes and gaps covering only part of the footprint remain outside
 this constructor. A strict gap across the whole footprint retains both
-original solids with no welding.
+original solids with no welding. Strictly separate projected footprints and
+fully contained footprint/height combinations preserve their original solid
+supports without reconstruction.
 An exact full-footprint Cut with a cutter wholly between the stock floor
 and roof returns two closed solids. Each retains one of the two cutter
 caps, reversed, and all remaining stock wall fragments keep their sources.
@@ -2005,6 +2007,8 @@ The intersect package now exposes the complete isolated point with both
 original patch owners; it does not require or emit a transverse tube.
 `CertifyGraphSemicubicalCusp` proves a complete cusp section in a common
 injective chart, with two regular germs and exact rational boundary exits.
+`CertifySplinePairCuspSection` exposes those germs and their terminal
+ownership on the original finite surface pair, with exact rational samples.
 
 Exact hierarchy queries now find the nearest original retained boundary
 across the planar, sphere, cylinder and torus occurrence families. All

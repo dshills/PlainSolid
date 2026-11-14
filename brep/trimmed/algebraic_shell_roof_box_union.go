@@ -16,12 +16,12 @@ type RoofBoxUnionHistory struct {
 	ExactOperations int
 }
 
-// FuseOrderedRoofBoxes builds the regularized union of two roof boxes with
-// identical XY footprints and single-span roofs. When the bands overlap or
-// meet everywhere in a proved roof order, it sews four merged walls to the
-// higher roof and lower floor. A strictly separating floor preserves both
-// original, disconnected shells. Gaps limited to part of the footprint and
-// unresolved height orders fail closed.
+// FuseOrderedRoofBoxes builds the regularized union of two proved roof boxes.
+// Disjoint footprints retain both original shells. For contained or identical
+// footprints, single-span ordered roofs also qualify: a fully contained box
+// keeps just its original container; matching bands can merge, or a strictly
+// separating floor keeps both. Partial overlaps and unresolved height orders
+// fail closed.
 func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxUnionHistory, error) {
 	var zero RoofBoxUnionHistory
 	q, err := prepareDirectRoofBoxMeasure(ctx, a, b, parametric.Union, proof)
@@ -37,14 +37,20 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 	}
 	boxes := q.box
 	d := boxes[0].domain
-	if d != boxes[1].domain || len(boxes[0].roofSpans) != 0 || len(boxes[1].roofSpans) != 0 {
-		return Solid{}, zero, geom.ErrUnrepresentable
-	}
 	w := mixedRoofLineWork{o: MixedRoofLineOptions{SurfacePatchEvaluationOptions: o}}
 	for _, s := range []Solid{a, b} {
 		if err := roofBoxCheckSourceEdges(ctx, s, &w); err != nil {
 			return Solid{}, zero, fmt.Errorf("ordered roof Fuse source edges: %w", err)
 		}
+	}
+	if footprintStrictlyDisjoint(d, boxes[1].domain) {
+		return fuseSeparateOrderedRoofBoxes(ctx, a, b, &w)
+	}
+	if len(boxes[0].roofSpans) != 0 || len(boxes[1].roofSpans) != 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	if d != boxes[1].domain {
+		return fuseContainedOrderedRoofBoxes(ctx, [2]Solid{a, b}, boxes, &w)
 	}
 	xy := [2]geom.ExactParameterInterval{
 		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
@@ -65,18 +71,7 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 			if !strict {
 				return Solid{}, zero, geom.ErrUnrepresentable
 			}
-			identity := geom.Identity()
-			out, err := AssembleShells(ctx, []PlacedSolid{{a, identity}, {b, identity}}, 12)
-			if err != nil {
-				return Solid{}, zero, err
-			}
-			h := RoofBoxUnionHistory{ExactOperations: w.operations}
-			for i, s := range []Solid{a, b} {
-				for face := range s.faces {
-					h.Faces = append(h.Faces, []MixedRoofFaceOwner{{i, face}})
-				}
-			}
-			return out, h, nil
+			return fuseSeparateOrderedRoofBoxes(ctx, a, b, &w)
 		}
 	}
 	order, err := orderedRoofBoxOrder(ctx, boxes, xy, &w)
@@ -106,4 +101,56 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		h.Faces = append(h.Faces, []MixedRoofFaceOwner{{0, boxes[0].sideFaces[i]}, {1, boxes[1].sideFaces[i]}})
 	}
 	return out, h, nil
+}
+
+func footprintStrictlyDisjoint(a, b geom.ParameterRectangle) bool {
+	return a.UMax < b.UMin || b.UMax < a.UMin || a.VMax < b.VMin || b.VMax < a.VMin
+}
+
+func fuseSeparateOrderedRoofBoxes(ctx context.Context, a, b Solid, w *mixedRoofLineWork) (Solid, RoofBoxUnionHistory, error) {
+	identity := geom.Identity()
+	out, err := AssembleShells(ctx, []PlacedSolid{{a, identity}, {b, identity}}, 12)
+	if err != nil {
+		return Solid{}, RoofBoxUnionHistory{}, err
+	}
+	h := RoofBoxUnionHistory{ExactOperations: w.operations}
+	for i, s := range []Solid{a, b} {
+		for face := range s.faces {
+			h.Faces = append(h.Faces, []MixedRoofFaceOwner{{i, face}})
+		}
+	}
+	return out, h, nil
+}
+
+func fuseContainedOrderedRoofBoxes(ctx context.Context, solids [2]Solid, boxes [2]*mixedRoofBox, w *mixedRoofLineWork) (Solid, RoofBoxUnionHistory, error) {
+	var zero RoofBoxUnionHistory
+	d := intersectRectangles(boxes[0].domain, boxes[1].domain)
+	outer := 0
+	if d == boxes[0].domain {
+		outer = 1
+	}
+	inner := 1 - outer
+	if d != boxes[inner].domain || boxes[outer].floor.Cmp(boxes[inner].floor) > 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	xy := [2]geom.ExactParameterInterval{
+		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
+		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
+	}
+	sign, err := orderedRoofBoxOrder(ctx, [2]*mixedRoofBox{boxes[outer], boxes[inner]}, xy, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if sign < 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	if err := ctx.Err(); err != nil {
+		return Solid{}, zero, err
+	}
+	stock := solids[outer]
+	h := RoofBoxUnionHistory{ExactOperations: w.operations, Faces: make([][]MixedRoofFaceOwner, len(stock.faces))}
+	for i := range stock.faces {
+		h.Faces[i] = []MixedRoofFaceOwner{{outer, i}}
+	}
+	return stock, h, nil
 }
