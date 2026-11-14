@@ -6191,3 +6191,11 @@ passed in 11.562 s.
 Both entry directions verify exact retained and exposed regions, original
 source intervals, paired interface directions and independent area and
 volume. The integrated transition and sewing race passed in 4.174 s.
+
+### Rounded footprint line qualification
+
+Independent exact secant parameters and quadratic signs verify rational
+and irrational corner contacts. Tests distinguish a single corner tangent,
+a supporting edge span and an open material interval. The line scale and
+original corner and edge IDs remain intact. Insufficient bracket precision
+returns no partial clip. The combined focused race passed in 1.271 s.

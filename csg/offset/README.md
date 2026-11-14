@@ -144,3 +144,8 @@ line and arc endpoints must fit binary64 exactly in the section chart.
 The native analytic realization uses the existing bounded angular anchoring
 and supports ordinary native persistence. `LocateRational` queries the ideal
 section and preserves both original owners at a tangent line-arc join.
+
+`ClipLineRational` intersects the ideal rounded section in its original
+local chart. Finite shifted sides yield rational events. Circular corner
+roots use exact sector guards and outward rational parameter intervals.
+Straight supporting lines retain their closed coincident edge spans.

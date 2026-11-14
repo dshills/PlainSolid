@@ -160,7 +160,7 @@ func DilateConvexPrismFootprint(ctx context.Context, frame geom.Frame, profile [
 	areaPi, length := mul(r, r), num(math.Abs(height))
 	return ConvexFootprintDilation{Native: native, Primitives: primitives, AreaConstant: area, AreaPiCoefficient: areaPi,
 		VolumeConstant: mul(length, area), VolumePiCoefficient: mul(length, areaPi),
-		source: &convexFootprintSource{points, original, edgeIDs, new(big.Rat).Set(areaPi)}}, nil
+		source: &convexFootprintSource{points, original, edgeIDs, new(big.Rat).Set(areaPi), slices.Clone(primitives)}}, nil
 }
 
 func footprintCross(a, b pt) *big.Rat { return sub(mul(a.x, b.y), mul(a.y, b.x)) }
