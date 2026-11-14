@@ -81,3 +81,30 @@ Both original blends occur only in the two rim contact records, while the three
 retained faces map only to the original lateral wall and caps. Neither prior
 entry point changes its boundary policy. A nonrepresentable resulting coordinate
 is rejected rather than rounded into a different erosion.
+
+### Independent circular-frustum support setbacks
+
+`InsetWrappedCircularFrustumSupports` edits a validated native circular frustum
+with independent inward lateral-normal, lower-cap and upper-cap distances.
+For source radius `r0+s*(z-z0)`, the result is exactly the support intersection
+`r <= r0+s*(z-z0)-lateral*sqrt(1+s*s)` between the independently shifted cap
+planes. Equal distances recover whole-body ball erosion; unequal distances are
+selective support edits, not a claim of constant Euclidean boundary distance.
+
+The normal scale must be rational, retained endpoint radii and height strictly
+positive, and native output coordinates exactly representable. Original circular
+weights and circumferential basis survive exact draft/reheight operations.
+History identifies the three original faces, exact resulting intersection
+radii/heights and both shared rim edge lists. Limits apply separately to the
+fixed proof/edit/construction calls; all failure paths return no partial body.
+
+`InsetWrappedCircularFrustumTube` applies independent material setbacks to a
+validated coaxial circular through-bore: the outer wall shrinks, the inner wall
+expands, and both annular cap planes move inward. Each wall uses its own exact
+normal scale. The original native wall and annular-cap identities are recovered
+by full bore validation, rather than inferred from two isolated surfaces.
+Strict positive radial clearance at both retained endpoints proves separation
+throughout because the two radii and their difference are affine in height.
+History retains the original face IDs and exact endpoint clearance witnesses.
+Blind/cavity/eccentric inputs, contacting walls, collapsed intervals and
+nonrepresentable native results are rejected without a partial result.
