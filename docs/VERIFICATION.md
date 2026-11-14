@@ -119,6 +119,12 @@ disabled. Four packages have no tests. Go recorded 4,495 passing test
 events and 386 skips, including opt-in comparators. The module list
 contains only PlainSolid.
 
+A [later count-one Go package summary](evidence/native-full-nontrimmed-c5067418-summary-2026-11-14.json)
+from the working checkout based on `c5067418` also passed all 49 tested
+packages outside `brep/trimmed` with CGO disabled. The four remaining
+packages report no tests. Separate focused qualification covers the
+subsequent changes; this summary does not record per-test events.
+
 The [full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-d6fe29e4-2026-11-14.json)
 passed 49 tested packages on a clean `d6fe29e4` archive with CGO disabled;
 three packages have no tests. Go reported 4,414 passing test events and

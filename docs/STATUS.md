@@ -467,6 +467,13 @@ original browser cases passed with 841 app and 2,167 kernel source blobs
 verified. Both [authored blind-floor cases](evidence/plaincad-reconciled-cc2030ea-supplemental-blind-oblique-step-2026-11-14.json)
 reproduced the worktree's STEP and watertight STL. Independent OCCT
 transfer and direct construction agreed on their physical properties.
+The [grouped concealed-cutter reconciliation](evidence/plaincad-reconciled-dd49d102-development-concealed-oblique-holes-step-2026-11-14.json)
+adds worktree revision `19ca5756` to review `dd49d102`. Focused native
+race checks and all 17 original browser cases passed. The run verified
+841 app and 2,168 kernel source blobs. The [authored concealed-cutter case](evidence/plaincad-reconciled-dd49d102-supplemental-concealed-oblique-step-2026-11-14.json)
+confirmed that a wholly covered cutter leaves the canonical STEP unchanged.
+The reconciled STEP and watertight STL matched the worktree's files, and
+independent OCCT confirmed the resulting geometry.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
