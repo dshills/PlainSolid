@@ -8,15 +8,21 @@ import (
 // MixedExactMultiSpanMeshOptions bounds source/UV/lift work as before, plus
 // cumulative exact knot-cell and clipped triangle-piece work across all lift
 // refinement passes. The span defaults/limits match MultiSpanCurvedTrimMeshOptions.
-// MaxDegree must be0(default2),1,or2; higher-degree supports are not accepted here.
+// Span.MaxDegree defaults to2; explicit values through6 enable exact higher-
+// degree rational residuals on a single Bézier span only. MaxResidualOperations bounds their cumulative work
+// across every triangle/refinement pass (default128M, maximum1B).
 type MixedExactMultiSpanMeshOptions struct {
+	MaxResidualOperations       int
 	Face                        MixedExactCurvedMeshOptions
 	Span                        MultiSpanTriangleBoundOptions
 	MaxSpanCells, MaxSpanPieces int
 }
 
 // TessellateMixedExactMultiSpanRegionCertified extends the mixed native trim
-// face proof to C0 positive rational multi-span supports of degree<=2 per axis.
+// face proof to C0 positive rational multi-span supports. Degree<=2 is the
+// default; explicit Span.MaxDegree enables a single-span Bézier support with
+// degrees through6 per axis. Higher-degree multiple-span charts are rejected;
+// no additional cross-knot continuity assumption is introduced.
 // It integrates exact cellwise derivative bounds to obtain a whole-chart
 // Lipschitz bound. Each display triangle residual is independently partitioned
 // at all represented knots using exact rational UV intersections, then bounded
@@ -26,10 +32,19 @@ type MixedExactMultiSpanMeshOptions struct {
 // crease nor approximate knot placement is assumed. This is an image-distance
 // certificate, not a topology or embedding proof of the source surface.
 func TessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactMultiSpanMeshOptions) (CertifiedMixedExactCurvedMesh, error) {
-	if o.Span.MaxDegree < 0 || o.Span.MaxDegree > 2 {
+	if o.Span.MaxDegree < 0 || o.Span.MaxDegree > 6 {
 		return CertifiedMixedExactCurvedMesh{}, geom.ErrInvalid
 	}
-	work, e := newTubeLensSpanWork(MultiSpanTubeLensMeshOptions{Span: o.Span, MaxSpanCells: o.MaxSpanCells, MaxSpanPieces: o.MaxSpanPieces})
+	if o.Span.MaxDegree > 2 {
+		if p == nil {
+			return CertifiedMixedExactCurvedMesh{}, geom.ErrInvalid
+		}
+		us, vs := p.KnotBreaks()
+		if len(us) != 2 || len(vs) != 2 {
+			return CertifiedMixedExactCurvedMesh{}, geom.ErrConvergence
+		}
+	}
+	work, e := newTubeLensSpanWork(MultiSpanTubeLensMeshOptions{MaxResidualOperations: o.MaxResidualOperations, Span: o.Span, MaxSpanCells: o.MaxSpanCells, MaxSpanPieces: o.MaxSpanPieces})
 	if e != nil {
 		return CertifiedMixedExactCurvedMesh{}, e
 	}
