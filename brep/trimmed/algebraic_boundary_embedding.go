@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"sort"
 )
 
 // AlgebraicBoundaryEmbeddingOptions bounds all segment-pair work, including
@@ -19,7 +20,7 @@ type AlgebraicBoundaryEmbeddingOptions struct {
 // separation of curved arcs, surface filling, or an embedded solid.
 type EmbeddedAlgebraicBoundaryMesh struct {
 	Boundary   CertifiedAlgebraicBoundaryMesh
-	PairChecks int
+	PairChecks int // Conservative all-pairs count, including sweep exclusions.
 }
 
 // TessellateEmbeddedBoundaryCertified generates the independently certified
@@ -82,9 +83,32 @@ func checkBoundaryPolylineEmbedding(ctx context.Context, vertices []geom.Vec3, e
 		}
 		points[i] = exactBoundPoint(p)
 	}
+	// Sort by exact represented lower X; strict interval gaps certify exclusion.
+	// Equal endpoints stay candidates. Original index deterministically breaks ties.
+	order := make([]int, count)
+	for i := range order {
+		order[i] = i
+	}
+	lower := func(i int) float64 { s := segments[i]; return min(vertices[s.a].X, vertices[s.b].X) }
+	sort.Slice(order, func(i, j int) bool {
+		a, b := lower(order[i]), lower(order[j])
+		if a == b {
+			return order[i] < order[j]
+		}
+		return a < b
+	})
 	checks := 0
-	for i, a := range segments {
-		for _, b := range segments[i+1:] {
+	for i, id := range order {
+		if e := ctx.Err(); e != nil {
+			return checks, e
+		}
+		a := segments[id]
+		upper := max(vertices[a.a].X, vertices[a.b].X)
+		for _, other := range order[i+1:] {
+			if lower(other) > upper {
+				break
+			}
+			b := segments[other]
 			if e := ctx.Err(); e != nil {
 				return checks, e
 			}
@@ -108,7 +132,7 @@ func checkBoundaryPolylineEmbedding(ctx context.Context, vertices []geom.Vec3, e
 			}
 		}
 	}
-	return checks, nil
+	return count * (count - 1) / 2, nil
 }
 
 func boundarySegmentsUnexpected(a, b, c, d [3]*big.Rat, shared *[3]*big.Rat) bool {
