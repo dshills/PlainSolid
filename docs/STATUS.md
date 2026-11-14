@@ -292,6 +292,12 @@ original 17 browser tests and focused live STEP checks passed; 841 app
 and 2,008 kernel source hashes matched. In the [authored floor case](evidence/plaincad-reconciled-329fe4a3-supplemental-partial-finite-step-2026-11-14.json),
 the browser preserved the blind floor through STEP and STL, and OCCT
 independently reproduced the STEP's mass properties.
+The [blind triple-crossing reconciliation](evidence/plaincad-reconciled-c130b571-development-blind-triple-holes-step-2026-11-14.json)
+adds worktree commit `65441a2d` to review revision `c130b571`. The
+native and live STEP checks and all 17 original browser cases passed,
+verifying 841 app and 2,015 kernel source hashes. The [authored blind floor](evidence/plaincad-reconciled-c130b571-supplemental-blind-triple-step-2026-11-14.json)
+survived STEP reimport and watertight STL; live OCCT matched the exported
+solid's reference volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
