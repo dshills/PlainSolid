@@ -155,3 +155,92 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 		}
 	}
 }
+
+func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
+	for _, opposite := range []bool{false, true} {
+		b := New()
+		stock := box(t, b, vector{}, vector{20, 16, 40})
+		origin, axis := vector{10, 8, 0}, vector{0, 0, 1}
+		if opposite {
+			origin, axis = vector{10, 8, 40}, vector{0, 0, -1}
+		}
+		cardinal := circle(t, b, origin, axis, 2, 28)
+		through := circle(t, b, vector{-4, 8, 9.5}, vector{4, 0, 3}, 2, 35)
+		one := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": cardinal.Handle})
+		near(t, overlapMeasure(t, b, one.Handle, through.Handle), 100*math.Pi-160./3)
+		out, err := b.cutMany(stock.Handle, []string{through.Handle, cardinal.Handle})
+		if err != nil {
+			t.Fatal(opposite, err)
+		}
+		near(t, out.GeometryAssertions.Volume, 12800-212*math.Pi+160./3)
+		near(t, out.GeometryAssertions.SurfaceArea, 3520+202*math.Pi-80)
+		saved, err := b.exportSTEP([]string{out.Handle})
+		if err != nil {
+			t.Fatal(opposite, err)
+		}
+		raw, err := base64.StdEncoding.DecodeString(saved.Base64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := b.importSTEP(string(raw))
+		if err != nil || got.GeometryAssertions != out.GeometryAssertions || got.Bounds != stock.Bounds {
+			t.Fatal(opposite, got, err)
+		}
+		again, err := b.exportSTEP([]string{got.Handle})
+		if err != nil || again.Base64 != saved.Base64 {
+			t.Fatal(opposite, err)
+		}
+		body := b.shapes[got.Handle]
+		floor, err := body.bore.planarFace(origin.vec().Add(axis.vec().Scale(28)), axis.vec().Scale(-1))
+		if err != nil || floor.Face != 22 || floor.Normal != coordinates(axis.vec().Scale(-1)) {
+			t.Fatal(opposite, floor, err)
+		}
+		near(t, floor.Area, 4*math.Pi)
+		entry, err := body.bore.planarFace(origin.vec(), axis.vec())
+		if err != nil {
+			t.Fatal(opposite, err)
+		}
+		near(t, entry.Area, 320-4*math.Pi)
+		exit, err := body.bore.planarFace(origin.vec().Add(axis.vec().Scale(40)), axis.vec())
+		if err != nil {
+			t.Fatal(opposite, err)
+		}
+		near(t, exit.Area, 320)
+		mesh, err := body.tessellate(request{})
+		if err != nil {
+			t.Fatal(opposite, err)
+		}
+		if err := mesh.ValidateSolid(); err != nil {
+			t.Fatal(opposite, err)
+		}
+		near(t, overlapMeasure(t, b, got.Handle, cardinal.Handle), 0)
+		withoutCover := circle(t, b, coordinates(origin.vec().Add(axis.vec().Scale(26))), axis, 2, 5)
+		if _, err := b.cutMany(got.Handle, []string{withoutCover.Handle}); err == nil {
+			t.Fatal("in-stock cutter unexpectedly accepted as a replacement")
+		}
+		for _, depth := range []float64{32, 40} {
+			deeper := circle(t, b, origin, axis, 2, depth)
+			near(t, overlapMeasure(t, b, got.Handle, deeper.Handle), (depth-28)*4*math.Pi)
+			next, err := b.cutMany(got.Handle, []string{deeper.Handle})
+			if err != nil {
+				t.Fatal(opposite, depth, err)
+			}
+			fresh, err := b.cutMany(stock.Handle, []string{through.Handle, deeper.Handle})
+			if err != nil || fresh.GeometryAssertions != next.GeometryAssertions {
+				t.Fatal(opposite, depth, fresh, next, err)
+			}
+			file, err := b.exportSTEP([]string{next.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			reference, err := b.exportSTEP([]string{fresh.Handle})
+			if err != nil || reference.Base64 != file.Base64 {
+				t.Fatal(opposite, depth, err)
+			}
+		}
+		inside := circle(t, b, origin, axis, 2, 21)
+		if _, err := b.cutMany(stock.Handle, []string{through.Handle, inside.Handle}); err == nil {
+			t.Fatal("intersecting floor unexpectedly accepted")
+		}
+	}
+}

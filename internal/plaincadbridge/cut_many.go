@@ -145,6 +145,11 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	for _, tool := range inputs {
 		cylinders = append(cylinders, tool.cylinder)
 	}
+	if a.bore != nil && len(inputs) == 1 {
+		if deeper, ok := deepenObliqueCrossedFloor(a.bore, inputs[0].cylinder); ok {
+			cylinders = deeper
+		}
+	}
 	body, err := newBore(base, cylinders)
 	if err != nil {
 		return Shape{}, err

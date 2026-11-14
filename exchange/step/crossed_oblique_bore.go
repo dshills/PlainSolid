@@ -11,7 +11,7 @@ import (
 )
 
 // CrossedObliqueBoreBody retains a cardinal Z bore and a concurrent
-// equal-radius 3–4–5 bore crossing opposite X stock caps.
+// equal-radius oblique bore crossing opposite X stock caps.
 type CrossedObliqueBoreBody struct {
 	Name                 string
 	Frame                geom.Frame
@@ -20,6 +20,9 @@ type CrossedObliqueBoreBody struct {
 	// AxisRatio zero preserves the legacy 4:3 file representation.
 	// The additional supported ratios are (3,4), (12,5) and (5,12).
 	AxisRatio geom.Vec2
+	// Positive blind depth stops the cardinal bore beyond the intersection.
+	BlindDepth  float64
+	OppositeCap bool
 }
 
 type CrossedObliqueBoreModel struct {
@@ -44,20 +47,25 @@ func WriteCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 
 func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	p := m.Body
+	ctx := context.Background()
+	ratio := p.AxisRatio
+	if ratio == (geom.Vec2{X: 4, Y: 3}) || p.BlindDepth == 0 && p.OppositeCap {
+		return geom.ErrDomain
+	}
+	if ratio == (geom.Vec2{}) {
+		ratio = geom.Vec2{X: 4, Y: 3}
+	}
 	var r trimmed.BoxCrossedBoresResult
 	var err error
-	switch p.AxisRatio {
-	case geom.Vec2{}:
-		r, err = trimmed.BoxCrossedBores345(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
-	case geom.Vec2{X: 3, Y: 4}, geom.Vec2{X: 12, Y: 5}, geom.Vec2{X: 5, Y: 12}:
-		r, err = trimmed.BoxCrossedObliqueBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.AxisRatio, p.Radius, 1e-9)
-	default:
-		return geom.ErrDomain
+	if p.BlindDepth == 0 {
+		r, err = trimmed.BoxCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, 1e-9)
+	} else {
+		r, _, err = trimmed.BoxBlindCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.BlindDepth, p.OppositeCap, 1e-9)
 	}
 	if err != nil {
 		return err
 	}
-	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{22, 96, 64, 2, 4}, false, 0, nil, false, true)
+	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{23, 96, 64, 2, 4}, false, 0, nil, false, true)
 }
 
 func ReadCrossedObliqueBore(r io.Reader, l Limits) (CrossedObliqueBoreModel, error) {
@@ -99,7 +107,7 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		return fail()
 	}
 	ids, err := listRefs(shell.Args[1], 22)
-	if err != nil || len(ids) != 22 {
+	if err != nil || len(ids) != 22 && len(ids) != 23 {
 		return fail()
 	}
 	z, err := readCircularSourceFaceBounded(f, ids[6], 1, 4)
@@ -152,5 +160,24 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 	if err != nil {
 		return fail()
 	}
-	return CrossedObliqueBoreBody{Name: name, Frame: placed, Dimensions: bounds.Max.Sub(bounds.Min), Crossing: placed.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}, nil
+	out := CrossedObliqueBoreBody{Name: name, Frame: placed, Dimensions: bounds.Max.Sub(bounds.Min), Crossing: placed.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}
+	if len(ids) == 23 {
+		floor, err := readCircularSourceFaceBounded(f, ids[22], 1, 4)
+		if err != nil || floor.kind != "PLANE" || floor.sense || len(floor.loops[0]) != 4 {
+			return fail()
+		}
+		level := placed.ToLocal(floor.frame.Origin()).Z
+		switch floor.frame.ZAxis() {
+		case axis:
+			out.BlindDepth = level
+		case axis.Scale(-1):
+			out.BlindDepth, out.OppositeCap = out.Dimensions.Z-level, true
+		default:
+			return fail()
+		}
+		if out.BlindDepth <= 0 {
+			return fail()
+		}
+	}
+	return out, nil
 }
