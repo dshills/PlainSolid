@@ -89,6 +89,10 @@ With both cuts keeping the lower side, the same original support has two
 graph owner changes. An exact interior split in the curved lens boundary
 appears identically on cap and stock; the native result reloads and matches
 the independent envelope volume 221/30720.
+Algebraic cap section tests preserve two irrational roots on the same original
+quadratic edge, exactly reverse their order with the cutting orientation,
+and exclude the through-void gap when four contacts are present. Tangency
+and insufficient cumulative work return no partial section.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

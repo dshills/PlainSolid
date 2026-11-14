@@ -23,6 +23,10 @@ func TestRationalGraphPolygonalCapCutThroughHole(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
+		algebraic, e := sec.Regions.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(algebraic.Contacts) != 4 || len(algebraic.Material) != 2 {
+			t.Fatal("algebraic order must exclude the same through-void interval", algebraic, e)
+		}
 		if len(r.Cuts) != 4 || len(r.Seams) != 2 || len(r.Regions.Material) != 1 || len(r.Regions.Material[0].Holes) != 0 {
 			t.Fatal("inner loop must become a notch with two disjoint cap seams", r)
 		}
@@ -164,6 +168,40 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 		if out, e := base.IntersectRationalHalfspace(ctx, cut(y), true, RationalGraphShellRegionOptions{}); !errors.Is(e, geom.ErrConvergence) || out.Regions != nil {
 			t.Fatal("tangent and irrational contacts must reject atomically", y, e)
 		}
+	}
+	for _, keep := range []bool{false, true} {
+		a, e := base.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(a.Material) != 1 || len(a.Contacts) != 2 || a.Material[0] != (RationalGraphCapSeam{0, 1}) {
+			t.Fatal("irrational interval must remain exact and complete", a, e)
+		}
+		for _, c := range a.Contacts {
+			if c.Source.Branch != 2 {
+				t.Fatal("lost original parameter owner", c.Source)
+			}
+			q, e := c.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || q.Kind != geom.ExactRootKindIrrational {
+				t.Fatal("parameter root must retain irrational identity", q, e)
+			}
+			q, e = c.CoordinateRoots[1].Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || q.Kind != geom.ExactRootKindRational || q.Rational.Cmp(big.NewRat(3, 2)) != 0 {
+				t.Fatal("the other coordinate lies exactly on the cut", q, e)
+			}
+		}
+		lo, hi := a.Contacts[0].CoordinateRoots[0], a.Contacts[1].CoordinateRoots[0]
+		order, e := lo.Compare(ctx, hi, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || !order.Proven || order.Order != map[bool]int{true: -1, false: 1}[keep] {
+			t.Fatal("clip orientation must reverse the proved algebraic order", keep, order, e)
+		}
+		if a.ExactOperations <= 0 || a.Subdivisions <= 0 {
+			t.Fatal("algebraic cuts must record charged work", a)
+		}
+		limit := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: a.ExactOperations - 1}}
+		if bad, e := base.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, limit); !errors.Is(e, geom.ErrConvergence) || len(bad.Contacts) != 0 {
+			t.Fatal("exhausted algebraic cut must reject atomically", bad, e)
+		}
+	}
+	if out, e := base.SectionAlgebraicHalfspace(ctx, cut(2), true, RationalGraphShellRegionOptions{}); !errors.Is(e, geom.ErrConvergence) || len(out.Contacts)+len(out.Material) != 0 {
+		t.Fatal("tangent algebraic cut must not publish contacts", e)
 	}
 	// Clip the already restricted cap again. Its parabolic owner has a
 	// local root at 1/4; the original graph root must be reported as 3/8.
