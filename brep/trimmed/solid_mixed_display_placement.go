@@ -37,14 +37,16 @@ func (a StoredDisplayAncestry) clone() StoredDisplayAncestry {
 }
 
 // PreparedStoredMixedDisplay is an immutable certificate bound to the original
-// Solid. Only PrepareMixedClosedDisplay can create it: arbitrary mesh reports
+// Solid. Only the proved single-shell or nested-material constructors create
+// it: arbitrary mesh reports
 // and caller-asserted deviations are not accepted. Solid's immutable surface/
 // curve implementation contract continues to apply.
 type PreparedStoredMixedDisplay struct {
-	source   Solid
-	display  *placement.PreparedClosedDisplay
-	squared  *big.Rat
-	ancestry StoredDisplayAncestry
+	sourceSeparationSquared *big.Rat // optional strict original multi-shell clearance
+	source                  Solid
+	display                 *placement.PreparedClosedDisplay
+	squared                 *big.Rat
+	ancestry                StoredDisplayAncestry
 }
 
 // PrepareMixedClosedDisplay generates and proves the supported native trim mesh
@@ -66,7 +68,7 @@ func (s Solid) PrepareMixedClosedDisplay(ctx context.Context, meshing StoredMixe
 		return nil, e
 	}
 	ancestry := StoredDisplayAncestry{report.FaceVertices, report.Network.EdgeVertices, report.Network.EdgeParameters, report.Network.CornerVertices}
-	return &PreparedStoredMixedDisplay{s, prepared, new(big.Rat).Set(report.SquaredDistance), ancestry}, nil
+	return &PreparedStoredMixedDisplay{source: s, display: prepared, squared: new(big.Rat).Set(report.SquaredDistance), ancestry: ancestry}, nil
 }
 func (p *PreparedStoredMixedDisplay) Source() Solid {
 	if p == nil {
@@ -154,6 +156,9 @@ func (p *PreparedStoredMixedDisplay) bindPlacedDisplay(ctx context.Context, worl
 		squared.Add(squared, p.squared)
 	}
 	if squared.Num().BitLen() > 200000 || squared.Denom().BitLen() > 200000 {
+		return nil, geom.ErrConvergence
+	}
+	if p.sourceSeparationSquared != nil && new(big.Rat).Mul(big.NewRat(4, 1), squared).Cmp(p.sourceSeparationSquared) >= 0 {
 		return nil, geom.ErrConvergence
 	}
 	if e := ctx.Err(); e != nil {

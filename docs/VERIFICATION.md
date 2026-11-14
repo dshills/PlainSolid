@@ -5508,3 +5508,15 @@ operations. Omitting one branch or allowing one fewer operation failed;
 unsupported projections still use the generic route and duplicate tube
 topology fails. The originating focused race passed in 404.491 s, and the
 integrated non-race rerun passed in 25.557 s.
+
+## Original nested spline cavity and island display (2026-11-14)
+
+The warped stock with an inward cavity and a depth-two material island
+matches analytic material volumes 4.5 and 4.5 + 1/16 within the display
+error test. The displayed nesting, signed orientation and triangle owners
+agree with the original native components, including after source reload and
+a proper rational rotation. The source shell gap guard rejects one rounded
+placement that passes generic mesh embedding. Too-close original boundaries,
+wrong cavity polarity and insufficient face-pair, triangle or intersection
+allowance fail atomically. The originating focused race passed in 62.647 s;
+the integrated non-race rerun passed in 3.308 s.

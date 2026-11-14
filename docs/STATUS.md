@@ -1962,3 +1962,10 @@ Exact homogeneous restriction and ruled walls keep the original geometry
 and a face ownership map, including equal roofs. A bounded Bernstein sign
 proof handles selected non-switching tangencies. Changing order and pinched
 material remain outside this constructor.
+
+`PrepareNestedMixedDisplay` verifies a single native rectangular spline
+material with nested cavity and island shells, retaining the original
+face, edge, and vertex identities after sewing and reload. Proper rational
+placement, including composed placement, must preserve a proved clearance
+between the original boundary shells after accounting for display error.
+The current clearance test is sufficient and may reject close curved shells.
