@@ -119,3 +119,30 @@ fixtures redirect a cylinder rim into another body's geometry, invalidate a
 cap's declared pcurve count, change radius or chart period, and tighten aggregate
 limits. Independent root collections still do not imply shared occurrences,
 Boolean union or inter-body noninterference.
+
+
+## Explicit placed circular members
+
+`MixedTopologyPlacedCylinder` uses `MixedTopologyInput.Cylinder` plus a proper
+signed-coordinate `Placement`. Its decoded `PlacedCylinder` retains the local
+canonical source graph, world vertices, exact placement and world native solid.
+The existing unplaced cylinder tag rejects a placement payload. Placed and
+unplaced cylinders count as one material family for the collection's requirement
+of at least two different families.
+
+Each of the six geometric leaf directory transform pointers participates in
+root reachability and exclusive ownership. The terminal type124 is included in
+`LocalToSource` (local ID49); its actual original source address is therefore
+`body.LocalToSource[body.PlacedCylinder.SourceTransformID]`. Both parameter
+references and directory transform references are rebased, never numeric scalar
+fields. A shared cross-root transform, orphan matrix, missing leaf placement,
+transformed pcurve or topology record fails atomically. Original per-component
+25-record proof remains mandatory. Aggregate limits are unchanged.
+
+The independent Python-authored `mixed-placed-circular-material.igs` combines the
+retained tetrahedron and spline roof with a cylinder under `(x,y,z) ->
+(z+7,x-4,y+2)`. Pinned OCCT ordinary TransferRoots accepts both this source and Go
+output: three solids,13 faces, volume `8/3+12*pi`; the cylinder center is
+`(8.5,-4,2)`. Tests compare total area and all centroid coordinates analytically.
+This is an independent material collection, not a shared-instance assembly or a
+Boolean union, and does not prove that distinct members do not intersect.
