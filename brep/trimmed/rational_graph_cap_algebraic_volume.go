@@ -35,33 +35,8 @@ func (c AlgebraicGraphCapPair) BoundVerticalPolynomialVolume(ctx context.Context
 		return zero, e
 	}
 	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
-	for _, f := range exact.Faces {
-		if f.StockFace < 0 {
-			continue
-		}
-		face := c.caps[0].recipe.stock.faces[f.StockFace]
-		patch, e := exactFaceSupportPatch(face, o.Spans.Faces.Patches)
-		if e != nil {
-			return zero, e
-		}
-		uv, e := faceUVBounds(face)
-		if e != nil {
-			return zero, e
-		}
-		patch, e = patch.Trim(uv)
-		if e != nil {
-			return zero, e
-		}
-		zeroFlux, used, e := patch.ProjectedJacobianZero(ctx, [2]int{0, 1}, geom.SurfacePatchEvaluationOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
-		if e != nil {
-			return zero, e
-		}
-		if !zeroFlux {
-			return zero, geom.ErrUnrepresentable
-		}
-		if e := b.charge(used, 0); e != nil {
-			return zero, e
-		}
+	if e := c.proveZeroStockXYFlux(exact, o, &b); e != nil {
+		return zero, e
 	}
 	n := 0
 	for _, cap := range c.caps {
@@ -112,4 +87,36 @@ func (c AlgebraicGraphCapPair) BoundVerticalPolynomialVolume(ctx context.Context
 		return zero, geom.ErrConvergence
 	}
 	return geom.ExactParameterInterval{Lower: lo, Upper: hi}, ctx.Err()
+}
+
+func (c AlgebraicGraphCapPair) proveZeroStockXYFlux(exact AlgebraicGraphShellBoundary, o RationalGraphShellSectionOptions, b *capClipBudget) error {
+	for _, f := range exact.Faces {
+		if f.StockFace < 0 {
+			continue
+		}
+		face := c.caps[0].recipe.stock.faces[f.StockFace]
+		patch, e := exactFaceSupportPatch(face, o.Spans.Faces.Patches)
+		if e != nil {
+			return e
+		}
+		uv, e := faceUVBounds(face)
+		if e != nil {
+			return e
+		}
+		patch, e = patch.Trim(uv)
+		if e != nil {
+			return e
+		}
+		zeroFlux, used, e := patch.ProjectedJacobianZero(b.ctx, [2]int{0, 1}, geom.SurfacePatchEvaluationOptions{MaxOperations: b.work, MaxCoefficientBits: b.bits})
+		if e != nil {
+			return e
+		}
+		if !zeroFlux {
+			return geom.ErrUnrepresentable
+		}
+		if e := b.charge(used, 0); e != nil {
+			return e
+		}
+	}
+	return nil
 }
