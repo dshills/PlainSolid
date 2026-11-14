@@ -11,8 +11,8 @@ import (
 
 // LocateNestedSplineMaterial classifies a represented point against a
 // certified nested shell arrangement. Wrapped frusta and circular toroids
-// use exact predicates. Rectangular spline shells try exact vertex/edge
-// identity and then deterministic transverse witness rays. Other boundary
+// use exact predicates. Rectangular spline and exact Bézier shells try exact
+// face membership and then deterministic transverse witness rays. Other boundary
 // points or inconclusive rays can remain unresolved.
 func (s Solid) LocateNestedSplineMaterial(ctx context.Context, point geom.Vec3, o SplineShellBooleanOptions) (parametric.Location, error) {
 	if ctx == nil || !point.IsFinite() {
@@ -99,7 +99,7 @@ func locateCertifiedSplineMaterialShell(ctx context.Context, s certifiedSplineMa
 	// points lying on the face, including at a shared original edge.
 	for _, f := range s.solid.faces {
 		base, m := parametric.SurfaceMapping(f.Surface)
-		patch, e := geom.NewSurfacePatch(base.(*geom.BSplineSurface), o.Embedding.Patches)
+		patch, e := exactSplineSupportPatch(base, o.Embedding.Patches)
 		if e != nil {
 			return parametric.Outside, e
 		}
@@ -117,9 +117,8 @@ func locateCertifiedSplineMaterialShell(ctx context.Context, s certifiedSplineMa
 			MaxOperations: o.Embedding.Patches.MaxOperations, MaxCoefficientBits: o.Embedding.Patches.MaxCoefficientBits,
 		})
 		if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDegenerate) {
-			if base, ok := base.(*geom.BSplineSurface); ok && m == geom.Identity() &&
-				requireIdentitySplineChart(ctx, base, o.Embedding.Patches) == nil &&
-				p.X >= d.UMin && p.X <= d.UMax && p.Y >= d.VMin && p.Y <= d.VMax {
+			if m == geom.Identity() && p.X >= d.UMin && p.X <= d.UMax && p.Y >= d.VMin && p.Y <= d.VMax &&
+				provedIdentitySplineQueryChart(ctx, base, patch, o.Embedding.Patches) {
 				jet, err := patch.EvaluateRational(ctx, ratInset(p.X), ratInset(p.Y),
 					geom.SurfacePatchEvaluationOptions{MaxOperations: o.Embedding.Patches.MaxOperations,
 						MaxCoefficientBits: o.Embedding.Patches.MaxCoefficientBits})

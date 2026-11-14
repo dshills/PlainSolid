@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
@@ -57,20 +56,9 @@ func (s Solid) IntersectSplineFaceLine(ctx context.Context, face int, line geom.
 		o.MaxTrimBoxes = 256
 	}
 	f := s.faces[face]
-	base, mapToWorld := parametric.SurfaceMapping(f.Surface)
-	bs, ok := base.(*geom.BSplineSurface)
-	if !ok {
-		return out, geom.ErrConvergence
-	}
-	p, e := geom.NewSurfacePatch(bs, o.Patch)
+	p, e := exactFaceSupportPatch(f, o.Patch)
 	if e != nil {
 		return out, e
-	}
-	if mapToWorld != geom.Identity() {
-		p, e = p.Transformed(mapToWorld)
-		if e != nil {
-			return out, e
-		}
 	}
 	support, e := geom.IntersectLineSplineSurfaceContext(ctx, line, p, o.Support)
 	out.Support = support

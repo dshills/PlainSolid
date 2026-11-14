@@ -80,7 +80,7 @@ func tessellateTubeLensBoundary(ctx context.Context, section AlgebraicTrimmedPai
 				options.MaxOperations = remaining
 			}
 			if sample.Rational != nil {
-				p, e := piece.Segment.EvaluateRationalProjectedGraph(ctx, sample.Rational, section.partitionSource.projection, options)
+				p, e := piece.Segment.EvaluateRationalProjectedGraph(ctx, sample.Rational, section.runSource().projection, options)
 				result.OwnerOperations += p.ExactOperations
 				if e != nil {
 					return empty, e
@@ -96,7 +96,7 @@ func tessellateTubeLensBoundary(ctx context.Context, section AlgebraicTrimmedPai
 				} else if j != 0 {
 					return empty, geom.ErrInvalid
 				}
-				binding, e := piece.Segment.BindProjectedGraphEvent(ctx, event, section.partitionSource.projection, options)
+				binding, e := piece.Segment.BindProjectedGraphEvent(ctx, event, section.runSource().projection, options)
 				if binding != nil {
 					result.OwnerOperations += binding.ExactOperations()
 				}

@@ -23,6 +23,34 @@ type SurfaceAreaBounds struct {
 	Cells, ExactOperations int
 }
 
+// EncloseSurfaceCellArea bounds the area of one knot cell with one exact
+// derivative enclosure. Its upper bound also bounds the area of every
+// measurable subregion of the cell. The context is checked before the
+// bounded polynomial operations. A patch spanning an internal knot is
+// outside this method's domain.
+func EncloseSurfaceCellArea(ctx context.Context, p *SurfacePatch, o SurfacePatchEvaluationOptions) (lower, upper float64, err error) {
+	if ctx == nil || p == nil || len(p.net) == 0 {
+		return 0, 0, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return 0, 0, e
+	}
+	if _, _, split := patchSplitChoice(p); split {
+		return 0, 0, ErrDomain
+	}
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 4000000
+	}
+	if o.MaxCoefficientBits == 0 {
+		o.MaxCoefficientBits = 16384
+	}
+	if o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
+		return 0, 0, ErrInvalid
+	}
+	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	return surfaceAreaCellBounds(p, b)
+}
+
 // surfaceAreaCellBounds integrates a box enclosure of Su cross Sv.
 func surfaceAreaCellBounds(p *SurfacePatch, b *polynomialBudget) (float64, float64, error) {
 	_, derivative, e := surfaceDifferentialIntervals(p, -1, 0, b)

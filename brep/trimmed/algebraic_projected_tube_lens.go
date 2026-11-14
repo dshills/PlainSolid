@@ -37,7 +37,7 @@ func (l AlgebraicProjectedTubeLens) Faces() (out [2]AlgebraicTubeLensFace) {
 	}
 	parity := projectedAxisParity(l.axes)
 	for i, f := range l.faces {
-		out[i] = AlgebraicTubeLensFace{Support: f.Support, SourceChart: i,
+		out[i] = AlgebraicTubeLensFace{Support: f.Support, SourceSurface: tubeLensPartitionSurface(f), SourceChart: i,
 			Reversed: (i != l.upper) == (parity*l.graphs[i].Orientation() > 0), CutReversed: f.Fragments[0].CutReversed}
 	}
 	return out
@@ -65,13 +65,13 @@ func (s AlgebraicTrimmedPairSection) SealProjectedAlgebraicTubeLens(ctx context.
 			l = AlgebraicProjectedTubeLens{}
 		}
 	}()
-	if ctx == nil || s.partitionSource == nil {
+	if ctx == nil || s.runSource() == nil {
 		return l, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return l, e
 	}
-	src := s.partitionSource
+	src := s.runSource()
 	l.axes = src.projection
 	l.residual = 3 - l.axes[0] - l.axes[1]
 	branch := -1
@@ -96,7 +96,7 @@ func (s AlgebraicTrimmedPairSection) SealProjectedAlgebraicTubeLens(ctx context.
 		if !convexStraightTubeLensFace(f) {
 			return l, geom.ErrConvergence
 		}
-		p, e := geom.NewSurfacePatch(facespline(f), o.Graph)
+		p, e := exactSplineSupportPatch(f.Surface, o.Graph)
 		if e != nil {
 			return l, e
 		}
@@ -154,7 +154,7 @@ func (l AlgebraicProjectedTubeLens) ProjectionInterval(ctx context.Context, xy [
 		if e != nil {
 			return r, e
 		}
-		if !u.Inside || !insideConvexTubeFace(l.section.partitionSource.faces[i], u.UV) {
+		if !u.Inside || !insideConvexTubeFace(l.section.runSource().faces[i], u.UV) {
 			r.Complete = true
 			return r, nil
 		}
@@ -202,14 +202,15 @@ func (l AlgebraicProjectedTubeLens) Solid(ctx context.Context, tolerance float64
 	f := l.Faces()
 	var faces [2]Face
 	for i, x := range f {
-		faces[i] = Face{Surface: x.Support, Reversed: x.Reversed}
+		faces[i] = Face{Surface: x.SourceSurface, Reversed: x.Reversed}
 	}
 	r := tubeRegionSolidRing{cut: l.faces[0].Cut, reversed: [2]bool{f[0].CutReversed, f[1].CutReversed}}
 	return assembleTubeRegionSolid(ctx, faces, []tubeRegionSolidRing{r}, tolerance, o)
 }
 
-// BoundMassProperties reports exact rational volume, centroid and inertia
-// intervals in original model coordinates for matched rectangular charts.
+// BoundMassProperties certifies mass on the common projection of the two
+// original rectangular graph charts, including exact homogeneous supports.
+// It returns rational volume, centroid and inertia bounds in model coordinates.
 func (l AlgebraicProjectedTubeLens) BoundMassProperties(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (AlgebraicTubeLensMassBounds, error) {
 	if l.graphs[0] == nil {
 		return AlgebraicTubeLensMassBounds{}, geom.ErrInvalid

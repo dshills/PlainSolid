@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 	"plainsolid/intersect"
@@ -50,6 +51,14 @@ type AlgebraicTrimmedPairSection struct {
 	Complete                                    bool
 	native                                      *nativeTrimmedPairSection
 	partitionSource                             *trimmedSectionPartitionSource
+	exactPartitionSource                        *trimmedSectionPartitionSource
+}
+
+func (r AlgebraicTrimmedPairSection) runSource() *trimmedSectionPartitionSource {
+	if r.partitionSource != nil {
+		return r.partitionSource
+	}
+	return r.exactPartitionSource
 }
 
 // SectionTrimmedSplinePair proves all contacts between two trimmed faces on
@@ -79,9 +88,7 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 		}
 	}
 	for i, p := range patches {
-		a, aok := p.Surface.(*geom.BSplineSurface)
-		b, bok := faces[i].Surface.(*geom.BSplineSurface)
-		if !aok || !bok || !geom.SameSplineSurface(a, b) {
+		if !sameTrimmedSectionChart(p.Surface, faces[i].Surface) {
 			return r, geom.ErrDomain
 		}
 		box, e := faceUVBounds(faces[i])
@@ -177,8 +184,35 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 	}
 	r.Complete = true
 	r.native = encodeTrimmedPairSection(patches, faces, r.Trace.Curves, o.Clip.Projection)
-	r.partitionSource = captureTrimmedSectionPartitions(patches, faces, r.Branches, r.Trace.Curves, o.Clip.Projection)
+	source := captureTrimmedSectionPartitions(patches, faces, r.Branches, r.Trace.Curves, o.Clip.Projection)
+	// Solid assembly still has a separate float B-spline source gate.
+	if _, a := faces[0].Surface.(*geom.BSplineSurface); a {
+		if _, b := faces[1].Surface.(*geom.BSplineSurface); b {
+			r.partitionSource = source
+		}
+	}
+	if r.partitionSource == nil {
+		r.exactPartitionSource = source
+	}
 	return r, nil
+}
+
+func sameTrimmedSectionChart(a, b geom.Surface) bool {
+	a, m := parametric.SurfaceMapping(a)
+	b, n := parametric.SurfaceMapping(b)
+	if m != n {
+		return false
+	}
+	switch s := a.(type) {
+	case *geom.BSplineSurface:
+		t, ok := b.(*geom.BSplineSurface)
+		return ok && geom.SameSplineSurface(s, t)
+	case *geom.ExactBezierSurface:
+		t, ok := b.(*geom.ExactBezierSurface)
+		return ok && s.ExactPatch() != nil && s.ExactPatch() == t.ExactPatch()
+	default:
+		return false
+	}
 }
 
 func assembleAlgebraicTrimmedSectionBranch(clips []SplineTubeClipReport, closed bool) (r AlgebraicTrimmedSectionBranch, err error) {

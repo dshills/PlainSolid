@@ -86,8 +86,8 @@ func (t nativeTubeRecipe) rebuildWithExactSupport(ctx context.Context, maxContro
 			return intersect.Patch{}, e
 		}
 		_, spline := s.(*geom.BSplineSurface)
-		_, exact := s.(*geom.ExactBezierSurface)
-		if !spline && !(allowExact && exact) {
+		base, _ := parametric.SurfaceMapping(s)
+		if !spline && !(allowExact && supportsExactSplinePatch(base)) {
 			return intersect.Patch{}, fmt.Errorf("trimmed: tube recipe requires two splines")
 		}
 		return intersect.Patch{Surface: s, Min: p.Min, Max: p.Max}, nil

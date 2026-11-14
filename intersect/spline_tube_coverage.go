@@ -19,7 +19,11 @@ type SplineTubeCoverageOptions struct {
 	// ProjectedAffineFallback retries unresolved coverage in ProjectionAxes,
 	// ordered distinct model components (0=X,1=Y,2=Z). No default axes are inferred.
 	ProjectedAffineFallback bool
-	ProjectionAxes          [2]int
+	// OverlappingProjectedFallback clips unresolved candidates in ProjectionAxes
+	// before checking the original tube cover. Only exact affine graph maps
+	// with representable overlap intervals participate.
+	OverlappingProjectedFallback bool
+	ProjectionAxes               [2]int
 	// AffineXYFallback retries unresolved cells through an exact represented rectangular chart map.
 	AffineXYFallback  bool
 	Patches           geom.SurfacePatchOptions
@@ -145,6 +149,15 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 
 		if !p.Covered && o.OverlappingAffineXYFallback {
 			mapped, me := certifyOverlapCell(ctx, pa, pb, candidate, available, o.Cell)
+			if me == nil && mapped.Covered {
+				p = mapped
+			}
+			if me != nil && !errors.Is(me, geom.ErrConvergence) && !errors.Is(me, geom.ErrUnrepresentable) && !errors.Is(me, geom.ErrDomain) && !errors.Is(me, geom.ErrInvalid) {
+				return r, me
+			}
+		}
+		if !p.Covered && o.OverlappingProjectedFallback {
+			mapped, me := certifyProjectedOverlapCell(ctx, pa, pb, candidate, available, o.ProjectionAxes, o.Cell)
 			if me == nil && mapped.Covered {
 				p = mapped
 			}

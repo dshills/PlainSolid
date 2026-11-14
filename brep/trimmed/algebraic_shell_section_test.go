@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -21,6 +22,13 @@ func TestAlgebraicShellSectionSeparated(t *testing.T) {
 	r, e := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
 	if e != nil || !r.Complete || len(r.Wires) != 0 || len(r.Pairs) != 0 {
 		t.Fatal(r, e)
+	}
+	common, e := r.CombineAlgebraic(ctx, parametric.Intersection, AlgebraicShellBooleanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if b, empty, e := common.Bounds(); e != nil || !empty || b != (geom.Box{}) {
+		t.Fatal("a disjoint result must report proved empty bounds", b, empty, e)
 	}
 	if _, e := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{MaxFacePairs: 1}); !errors.Is(e, geom.ErrConvergence) {
 		t.Fatal(e)
@@ -486,6 +494,66 @@ func TestAlgebraicShellSectionIrrationalOriginalEdges(t *testing.T) {
 		if sections != len(parts[0].Section) {
 			t.Fatal("lost section pieces", sections, len(parts[0].Section))
 		}
+		history := q.History()
+		if len(history.SectionEdges) != sections {
+			t.Fatal("generated edge ancestry", history.SectionEdges)
+		}
+		seenEdges, seenFaces := make(map[int]bool), make(map[int]bool)
+		for _, id := range history.SectionEdges {
+			seenEdges[id] = true
+		}
+		for operand := range history.Edges {
+			for original, row := range history.Edges[operand] {
+				prev := -1
+				for _, id := range row {
+					x := q.index[id]
+					if seenEdges[id] || x.Operand != operand || x.OriginalSubdivisionEdge <= prev ||
+						parts[operand].Subdivision.edges[x.OriginalSubdivisionEdge].Original != original {
+						t.Fatal("incorrect original edge ancestry or traversal order", operand, original, id)
+					}
+					seenEdges[id], prev = true, x.OriginalSubdivisionEdge
+				}
+			}
+			for original, row := range history.Faces[operand] {
+				for _, id := range row {
+					if seenFaces[id] || q.faces[id].Operand != operand || q.faces[id].Original != original {
+						t.Fatal("incorrect original face ancestry", operand, original, id)
+					}
+					seenFaces[id] = true
+				}
+			}
+		}
+		if len(seenEdges) != len(q.index) || len(seenFaces) != len(q.faces) {
+			t.Fatal("history did not cover the result", len(seenEdges), len(seenFaces))
+		}
+		if row.op == parametric.Difference {
+			owners := map[int]AlgebraicShellBooleanCoedge{}
+			for fi, face := range q.faces {
+				original, e := q.OriginalFace(fi)
+				if e != nil {
+					t.Fatal(e)
+				}
+				for li, ring := range append([][]AlgebraicShellBooleanUse{face.Outer}, face.Holes...) {
+					for ui, use := range ring {
+						x, e := q.Coedge(ctx, fi, li, ui, AlgebraicSeamOptions{})
+						if e != nil || x.Edge != use.Edge || x.Reverse != use.Reversed || x.PhysicalReverse != (use.Reversed != face.Reversed) {
+							t.Fatal("coedge direction or indexed owner", fi, li, ui, x, e)
+						}
+						if y, ok := owners[x.Edge]; ok && y.PhysicalReverse == x.PhysicalReverse {
+							t.Fatal("opposite owners traverse one physical direction", x.Edge)
+						}
+						owners[x.Edge] = x
+						if q.index[use.Edge].SectionPiece >= 0 {
+							if x.Source != nil || x.Section == nil || !x.Section.HasSourceSurface(original.Surface) {
+								t.Fatal("lost original chart of section edge", x.Edge)
+							}
+						} else if x.Source == nil || x.Section != nil || x.Source.UV == nil || !x.Source.Model.Complete {
+							t.Fatal("lost restricted original edge chart", x.Edge)
+						}
+					}
+				}
+			}
+		}
 		if row.op == parametric.Intersection {
 			b, e := q.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 11})
 			// Integrate roof thickness y²−1/2 on sqrt(1/2)<y<1
@@ -505,6 +573,13 @@ func TestAlgebraicShellSectionIrrationalOriginalEdges(t *testing.T) {
 			back, e := ReadAlgebraicShellBooleanJSON(ctx, bytes.NewReader(f.Bytes()), JSONLimits{}, o, AlgebraicShellBooleanOptions{})
 			if e != nil || back.Topology != q.Topology || back.Faces[0].Original < 0 {
 				t.Fatal("Boolean native reconstruction", back.Topology, e)
+			}
+			if !reflect.DeepEqual(back.History(), history) {
+				t.Fatal("history changed after native reconstruction")
+			}
+			history.SectionEdges[0] = -1
+			if !reflect.DeepEqual(back.History(), q.History()) {
+				t.Fatal("caller changed the private history snapshot")
 			}
 			if back, e = ReadAlgebraicShellBooleanJSON(ctx, bytes.NewReader(f.Bytes()), JSONLimits{MaxBytes: 16}, o, AlgebraicShellBooleanOptions{}); !errors.Is(e, geom.ErrConvergence) || len(back.Faces) != 0 {
 				t.Fatal("Boolean native byte cap", e)

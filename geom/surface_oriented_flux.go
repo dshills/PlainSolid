@@ -13,6 +13,35 @@ import (
 // number of additional bisection levels per Bézier piece.
 func BoundSurfaceOrientedVolumeFlux(ctx context.Context, p *SurfacePatch, origin Vec3, depth int,
 	o SurfacePatchEvaluationOptions) (lower, upper *big.Rat, err error) {
+	return boundSurfaceOrientedFlux(ctx, p, origin, depth, -1, -1, o)
+}
+
+// BoundSurfaceOrientedFirstMomentFlux encloses the flux whose sum on a
+// closed embedded oriented boundary is its first moment along axis about
+// origin. A depth-zero single cell gives pointwise bounds scaled by the
+// cell's parameter area, which also bound the flux of clipped subsets
+// when the interval is expanded to include zero.
+func BoundSurfaceOrientedFirstMomentFlux(ctx context.Context, p *SurfacePatch, origin Vec3, depth, axis int,
+	o SurfacePatchEvaluationOptions) (lower, upper *big.Rat, err error) {
+	if axis < 0 || axis > 2 {
+		return nil, nil, ErrInvalid
+	}
+	return boundSurfaceOrientedFlux(ctx, p, origin, depth, axis, -1, o)
+}
+
+// BoundSurfaceOrientedSecondMomentFlux encloses the flux associated with the
+// volume integral of (x_i-origin_i)(x_j-origin_j), including i=j. A single
+// cell's pointwise enclosure can be used for clipped parts by including zero.
+func BoundSurfaceOrientedSecondMomentFlux(ctx context.Context, p *SurfacePatch, origin Vec3, depth, i, j int,
+	o SurfacePatchEvaluationOptions) (lower, upper *big.Rat, err error) {
+	if i < 0 || i > 2 || j < 0 || j > 2 {
+		return nil, nil, ErrInvalid
+	}
+	return boundSurfaceOrientedFlux(ctx, p, origin, depth, i, j, o)
+}
+
+func boundSurfaceOrientedFlux(ctx context.Context, p *SurfacePatch, origin Vec3, depth, momentAxis, secondAxis int,
+	o SurfacePatchEvaluationOptions) (lower, upper *big.Rat, err error) {
 	if ctx == nil || p == nil || len(p.net) == 0 || !origin.IsFinite() || depth < 0 || depth > 12 {
 		return nil, nil, ErrInvalid
 	}
@@ -66,6 +95,56 @@ func BoundSurfaceOrientedVolumeFlux(ctx context.Context, p *SurfacePatch, origin
 		}
 		r := q.p.Domain()
 		scale := new(big.Rat).Mul(new(big.Rat).Sub(rat(r.UMax), rat(r.UMin)), new(big.Rat).Sub(rat(r.VMax), rat(r.VMin)))
+		if momentAxis >= 0 {
+			// ∇·((x_i−o_i)² e_i/2) = x_i−o_i. Squaring an interval
+			// that straddles zero must retain zero as its lower bound.
+			v := rat(coordinate(origin, momentAxis))
+			delta, e := intervalSubtract(x[momentAxis], exactInterval{v, v}, b)
+			if e != nil {
+				return nil, nil, e
+			}
+			a, z := new(big.Rat).Mul(delta.lo, delta.lo), new(big.Rat).Mul(delta.hi, delta.hi)
+			if a.Cmp(z) > 0 {
+				a, z = z, a
+			}
+			if delta.lo.Sign() <= 0 && delta.hi.Sign() >= 0 {
+				a.SetInt64(0)
+			}
+			power, factor := exactInterval{a, z}, int64(2)
+			if secondAxis == momentAxis {
+				// d((x_i−o_i)^3/3)/dx_i = (x_i−o_i)^2.
+				power.lo = new(big.Rat).Mul(new(big.Rat).Mul(delta.lo, delta.lo), delta.lo)
+				power.hi = new(big.Rat).Mul(new(big.Rat).Mul(delta.hi, delta.hi), delta.hi)
+				factor = 3
+			} else if secondAxis >= 0 {
+				// d((x_i−o_i)^2 (x_j−o_j)/2)/dx_i = (x_i−o_i)(x_j−o_j).
+				v := rat(coordinate(origin, secondAxis))
+				y, e := intervalSubtract(x[secondAxis], exactInterval{v, v}, b)
+				if e != nil {
+					return nil, nil, e
+				}
+				power, e = intervalMultiply(power, y, b)
+				if e != nil {
+					return nil, nil, e
+				}
+			}
+			scale.Quo(scale, big.NewRat(factor, 1))
+			t, e := intervalMultiply(power, n[momentAxis], b)
+			if e != nil {
+				return nil, nil, e
+			}
+			t, e = intervalMultiply(t, exactInterval{scale, scale}, b)
+			if e != nil {
+				return nil, nil, e
+			}
+			if e := b.check(lower.Add(lower, t.lo)); e != nil {
+				return nil, nil, e
+			}
+			if e := b.check(upper.Add(upper, t.hi)); e != nil {
+				return nil, nil, e
+			}
+			continue
+		}
 		scale.Quo(scale, big.NewRat(3, 1))
 		for j := range n {
 			v := rat(coordinate(origin, j))

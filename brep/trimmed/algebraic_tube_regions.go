@@ -86,13 +86,13 @@ func (s AlgebraicTrimmedPairSection) SealAlgebraicTubeRegions(ctx context.Contex
 			out = AlgebraicTubeRegions{ExactOperations: out.ExactOperations}
 		}
 	}()
-	if ctx == nil || s.partitionSource == nil || o.MaxLoops < 0 || o.MaxLoops > 64 {
+	if ctx == nil || s.runSource() == nil || o.MaxLoops < 0 || o.MaxLoops > 64 {
 		return out, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
-	if s.partitionSource.projection != [2]int{0, 1} {
+	if s.runSource().projection != [2]int{0, 1} {
 		return out, geom.ErrConvergence
 	}
 	if o.MaxLoops == 0 {
@@ -107,7 +107,7 @@ func (s AlgebraicTrimmedPairSection) SealAlgebraicTubeRegions(ctx context.Contex
 	if o.Exact.MaxOperations < 1 || o.Exact.MaxCoefficientBits < 64 || o.Exact.MaxSubdivisions < 0 {
 		return out, geom.ErrInvalid
 	}
-	for _, f := range s.partitionSource.faces {
+	for _, f := range s.runSource().faces {
 		if !convexStraightTubeLensFace(f) {
 			return out, geom.ErrConvergence
 		}
@@ -117,13 +117,13 @@ func (s AlgebraicTrimmedPairSection) SealAlgebraicTubeRegions(ctx context.Contex
 		p.MaxOperations -= out.ExactOperations
 		return p
 	}
-	for i, f := range s.partitionSource.faces {
+	for i, f := range s.runSource().faces {
 		p := o.Graph
 		p.MaxOperations = capPositiveBudget(p.MaxOperations, exact().MaxOperations)
 		if p.MaxOperations < 1 {
 			return out, geom.ErrConvergence
 		}
-		q, e := geom.NewSurfacePatch(facespline(f), p)
+		q, e := exactSplineSupportPatch(f.Surface, p)
 		if e != nil {
 			return out, e
 		}
@@ -141,7 +141,7 @@ func (s AlgebraicTrimmedPairSection) SealAlgebraicTubeRegions(ctx context.Contex
 			out.support = q
 		}
 	}
-	for i, b := range s.partitionSource.branches {
+	for i, b := range s.runSource().branches {
 		for _, n := range b.Nodes {
 			if n.Isolated {
 				return out, geom.ErrConvergence
@@ -240,6 +240,7 @@ func assembleTubeRegionHierarchy(loops []AlgebraicTubeRegionLoop, contains [][]b
 // RegionFaces returns the two original graph supports with outward physical
 // orientation, and exact original-UV traversal of their outer and hole cuts.
 type AlgebraicTubeRegionFace struct {
+	SourceSurface           geom.Surface // Original exact adapter or float support; Support is nil for adapters.
 	Support                 *geom.BSplineSurface
 	Reversed, OuterReversed bool
 	HolesReversed           []bool
@@ -253,6 +254,7 @@ func (r AlgebraicTubeRegions) RegionFaces(i int) (out [2]AlgebraicTubeRegionFace
 	for chart := range out {
 		o := &out[chart]
 		o.Support = r.partitions[x.Outer].Faces[chart].Support
+		o.SourceSurface = tubeLensPartitionSurface(r.partitions[x.Outer].Faces[chart])
 		o.Reversed = (chart != x.UpperChart) == (r.graphs[chart].Orientation() > 0)
 		o.OuterReversed = r.loops[x.Outer].Winding[chart] < 0
 		for _, h := range x.Holes {
@@ -318,7 +320,7 @@ func (r AlgebraicTubeRegions) VerticalInterval(ctx context.Context, xy [2]*big.R
 		if e != nil {
 			return out, e
 		}
-		if !x.Inside || !insideConvexTubeFace(r.section.partitionSource.faces[chart], x.UV) {
+		if !x.Inside || !insideConvexTubeFace(r.section.runSource().faces[chart], x.UV) {
 			out.Complete = true
 			return out, nil
 		}

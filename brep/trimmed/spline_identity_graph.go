@@ -23,9 +23,17 @@ func requireIdentitySplineChart(ctx context.Context, s *geom.BSplineSurface, lim
 	if p.Domain() != (geom.ParameterRectangle{UMax: 1, VMax: 1}) {
 		return geom.ErrDomain
 	}
-	k := []float64{0, 0, 1, 1}
-	plane, _ := geom.NewBSplineSurface(1, 1, 2, 2,
-		[]geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1}}, k, k, nil)
+	return requireIdentityPatchXY(ctx, p, limits)
+}
+
+func requireIdentityPatchXY(ctx context.Context, p *geom.SurfacePatch, limits geom.SurfacePatchOptions) error {
+	d := p.Domain()
+	plane, e := geom.NewBSplineSurface(1, 1, 2, 2,
+		[]geom.Vec3{{X: d.UMin, Y: d.VMin}, {X: d.UMin, Y: d.VMax}, {X: d.UMax, Y: d.VMin}, {X: d.UMax, Y: d.VMax}},
+		[]float64{d.UMin, d.UMin, d.UMax, d.UMax}, []float64{d.VMin, d.VMin, d.VMax, d.VMax}, nil)
+	if e != nil {
+		return e
+	}
 	q, e := geom.NewSurfacePatch(plane, limits)
 	if e != nil {
 		return e
@@ -37,4 +45,11 @@ func requireIdentitySplineChart(ctx context.Context, s *geom.BSplineSurface, lim
 		return fmt.Errorf("trimmed: could not prove exact identity XY chart: %w", e)
 	}
 	return nil
+}
+
+func provedIdentitySplineQueryChart(ctx context.Context, base geom.Surface, patch *geom.SurfacePatch, o geom.SurfacePatchOptions) bool {
+	if bs, ok := base.(*geom.BSplineSurface); ok {
+		return requireIdentitySplineChart(ctx, bs, o) == nil
+	}
+	return requireIdentityPatchXY(ctx, patch, o) == nil
 }

@@ -1,9 +1,9 @@
 # Bounded side-cut product decoder fuzzing
 
 `FuzzReadSideCutProducts` exercises the actual strict typed equal, between-center
-unequal, external-radical general, exact-wall and offset STEP readers. It does not substitute parser-
-only validation or expand geometry acceptance. There are 92 initial seeds:
-blind/through output from each of the five registered writers, wrong-category
+unequal, external-radical general, exact-wall, offset and different-center STEP
+readers. It exercises typed geometry without expanding the accepted domains.
+There are 110 fixed seeds: blind/through output from each of the six writers, wrong-category
 inputs, truncations, invalid prefix/NUL payloads, trailing out-of-file records,
 invalid terminators and small malformed inputs. Every valid seed additionally contributes forged
 product-class, model-circle edge-owner and shared cylinder-placement mutations.
@@ -19,7 +19,7 @@ resource limits remain active independently of wall-clock scheduling.
 
 Assertions cover all-or-none failures, complete native shell results, required
 source lineage/proof fields, accepted-descriptor re-emission and normalized
-readback stability. Separate ordinary tests prove the ten valid seeds fit these
+readback stability. Separate ordinary tests prove the twelve valid seeds fit these
 limits, reject category crossings and malformed outer payloads, and check
 pre-cancelled calls. Deadline/cancellation during accepted-output checks is an
 inconclusive bounded case, not a falsely reported semantic defect.
@@ -62,3 +62,8 @@ mutation campaign. It does not qualify general STEP acceptance.
 The expanded count-bounded campaign passed 100 executions in 46.641 seconds:
 all 92 baseline seeds completed, one new interesting input and no failing artifact.
 Focused semantic/cross-family tests passed in 9.809 seconds; Go 1.23 passed in 8.414 seconds.
+
+The sixth family also compares both rational join coordinates after a complete
+re-emit and readback. The CI limit is now 128 executions. A local run finished in
+41.520 seconds, completing 111 initial entries (110 fixed and one cached), with
+one further interesting input and no failing artifact.

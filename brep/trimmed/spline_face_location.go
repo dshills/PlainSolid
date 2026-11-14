@@ -47,8 +47,8 @@ type SplineFacePointResult struct {
 	Triangle *geom.TriangularSurfaceInverse
 }
 
-// LocateOnSplineFace proves model point membership on a clamped spline
-// face. Affine charts are inverted exactly. Other charts require a proved
+// LocateOnSplineFace proves model point membership on a clamped spline or
+// exact Bézier face. Affine charts are inverted exactly. Other charts require a proved
 // projection-injective chart and a matching exact rational UV candidate.
 // The input may have arbitrary supported trim topology and affine placement.
 func (s Solid) LocateOnSplineFace(ctx context.Context, face int, point geom.Vec3, o SplineFacePointOptions) (SplineFacePointResult, error) {
@@ -77,11 +77,7 @@ func (s Solid) LocateRationalOnSplineFace(ctx context.Context, face int, query [
 	}
 	f := s.faces[face]
 	base, placement := parametric.SurfaceMapping(f.Surface)
-	bs, ok := base.(*geom.BSplineSurface)
-	if !ok || bs == nil {
-		return r, geom.ErrConvergence
-	}
-	patch, e := geom.NewSurfacePatch(bs, o.Patch)
+	patch, e := exactSplineSupportPatch(base, o.Patch)
 	if e != nil {
 		return r, e
 	}
@@ -149,7 +145,7 @@ func (s Solid) LocateRationalOnSplineFace(ctx context.Context, face int, query [
 			}
 		}
 		if r.UV[0] == nil {
-			if e := locateCandidateFacePoint(ctx, patch, bs, placement, query, o, &r); e != nil || r.Location == SplineFacePointOutside {
+			if e := locateCandidateFacePoint(ctx, patch, base, placement, query, o, &r); e != nil || r.Location == SplineFacePointOutside {
 				return r, e
 			}
 		}
@@ -230,7 +226,7 @@ func classifyAlgebraicFacePoint(ctx context.Context, f Face, inverse geom.Triang
 	return r, nil
 }
 
-func locateCandidateFacePoint(ctx context.Context, patch *geom.SurfacePatch, bs *geom.BSplineSurface, placement geom.Affine,
+func locateCandidateFacePoint(ctx context.Context, patch *geom.SurfacePatch, base geom.Surface, placement geom.Affine,
 	query [3]*big.Rat, o SplineFacePointOptions, r *SplineFacePointResult) error {
 	axes := o.Injectivity.ProjectionAxes
 	if axes == ([2]int{}) {
@@ -241,7 +237,7 @@ func locateCandidateFacePoint(ctx context.Context, patch *geom.SurfacePatch, bs 
 		return geom.ErrInvalid
 	}
 	candidates := append([][2]*big.Rat(nil), o.UV...)
-	if placement == geom.Identity() && axes == ([2]int{0, 1}) && requireIdentitySplineChart(ctx, bs, o.Patch) == nil {
+	if placement == geom.Identity() && axes == ([2]int{0, 1}) && provedIdentitySplineQueryChart(ctx, base, patch, o.Patch) {
 		candidates = append(candidates, [2]*big.Rat{query[0], query[1]})
 	}
 	inverse, e := geom.InvertSurfaceProjectionRational(ctx, patch, [2]*big.Rat{query[axes[0]], query[axes[1]]},

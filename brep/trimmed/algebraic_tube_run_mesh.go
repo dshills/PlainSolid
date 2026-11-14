@@ -257,7 +257,7 @@ func (r AlgebraicTrimmedPairSection) TessellateTubeRunCertified(ctx context.Cont
 			if po.MaxOperations == 0 || po.MaxOperations > n {
 				po.MaxOperations = n
 			}
-			cert, e := piece.Segment.EvaluateRationalProjectedGraph(ctx, mid, r.partitionSource.projection, po)
+			cert, e := piece.Segment.EvaluateRationalProjectedGraph(ctx, mid, p.ProjectionAxes, po)
 			out.ExactOperations += cert.ExactOperations
 			if e != nil {
 				return empty, e

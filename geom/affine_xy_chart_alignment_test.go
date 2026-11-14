@@ -2,6 +2,7 @@ package geom
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"testing"
 )
@@ -68,8 +69,8 @@ func TestAffineXYChartAlignment(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = AlignAffineXYCharts(ctx, a, short, SurfacePatchOptions{}); e == nil {
-		t.Fatal("domain mismatch")
+	if result, work, e := AlignAffineXYChartsWithWork(ctx, a, short, SurfacePatchOptions{}); result != nil || work < 1 || !errors.Is(e, ErrDomain) {
+		t.Fatal("domain mismatch", result, work, e)
 	}
 	if _, e = AlignAffineXYCharts(ctx, a, b, SurfacePatchOptions{MaxOperations: 1}); e == nil {
 		t.Fatal("limit")

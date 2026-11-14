@@ -426,13 +426,49 @@ round trip through their own reader, with exact wall and floor lineage.
 Vendor-rounded partial-cylinder pcurves remain rejected. Unequal disks with a
 common center Y below the opening side now have a separate exact section and
 native blind/through construction, exact point and line boundary queries,
-and an independently checked model-only STEP writer. Other transverse center
-placements and arcs extending past a semicircle have no qualification here.
+and an independently checked model-only STEP round trip. A separate
+different-center construction verifies an explicit rational join and its
+excluded lower intersection. It supports native queries, certified display,
+authored document regeneration, and registered analytic STEP readback.
+Arcs extending past a semicircle and general cutter arrangements remain open.
+Both common-offset PlainCAD workflow fixtures passed on candidate `2851e23`.
+The different-center blind workflow passed at `50dd15f`; the through workflow
+passed at `1c1c70d`, retaining the same eight-second inactivity watchdog after
+the certified mesher gained an intermediate rational rim sampling count.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.
 The display mesher certifies affine faces with a bounded chain of adjacent
 cubic or quartic graph trims, including C0 joins and shared sample indices.
+Nonbinary exact supports participate in complete certified transverse section
+traces and standalone algebraic section persistence, including original
+trim clipping. A closed two-face shell intersection preserves its exact Bézier
+roof through imprint, original-face selection, volume bounds and native
+reconstruction. Exact support queries cover face membership, bounded line
+contacts, distance, regularity, and material location on rectangular shells.
+Independently refined wrapped charts now sew constant
+whole-period UV line shifts. A bounded partial coincidence and arrangement API
+retains exact original lifted intervals, materializes original-support faces,
+and proves immutable open union, intersection and directed difference with
+original edge ancestry and oriented hole cycles. Lifted rectangle injectivity
+now spans a true fundamental seam using one exact global projection proof.
+The opt-in wrapped face arrangement and open region operators use that proof
+and keep original edge evaluators across the seam. Multi-image periodic
+assembly remains a separate gate.
+The shell imprint now keeps disjoint closed sections on the same source face
+when exact chart boxes prove that they do not touch or nest. A two-lobe roof
+has two closed common components and can return two independent native solids
+with continuously certified paired trims. General mixed and nested arrangements
+remain open.
+Qualified shell Booleans now classify represented material points and finite
+line transitions and bound volume, area, centroid and inertia on the original
+charts. The certified indexed display shares vertices between opposing
+coedges and rejects unindexed contacts. Two-face graph lenses also have a
+closed certified fill. A rotated shell section with unequal graph rectangles
+proves coverage on the full source charts after clipping only the seed search.
+The cylindrical quotient proof handles two physical intersections and a
+connected annular union, with separate native open topology, original
+parameter lifts, and continuous edge proofs for representable vertices.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and

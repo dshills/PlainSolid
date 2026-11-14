@@ -2,8 +2,10 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/intersect"
 )
@@ -49,6 +51,7 @@ type AlgebraicShellSectionResult struct {
 
 type algebraicShellSectionSource struct {
 	a, b     Solid
+	bounds   [2]geom.Box
 	pairs    [][2]int
 	sections []AlgebraicSplinePairSection
 	branches []AlgebraicShellSectionBranch
@@ -56,8 +59,9 @@ type algebraicShellSectionSource struct {
 }
 
 // SectionSplineShellsAlgebraic isolates a section graph of two independently
-// embedded rectangular spline shells. Every retained pair has independent
-// coverage. Exact cross-chart model point equality joins open terminals;
+// embedded rectangular spline shells, including original exact homogeneous
+// supports. Every retained pair has independent coverage. Exact cross-chart
+// model point equality joins open terminals;
 // original edge identity is required on the terminal owner. It does not
 // classify material, split either shell, or resolve simultaneous edge events.
 func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicShellSectionOptions) (AlgebraicShellSectionResult, error) {
@@ -78,6 +82,11 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 		return out, e
 	}
 	provided := map[[2]int]*intersect.SplineSeedReport{}
+	trace := o.Trace
+	if trace.ProjectedGraphFallback.Enabled {
+		trace.Coverage.OverlappingProjectedFallback = true
+		trace.Coverage.ProjectionAxes = trace.GraphProjectionAxes
+	}
 	if len(o.Seeds) > o.MaxFacePairs {
 		return out, geom.ErrConvergence
 	}
@@ -117,21 +126,33 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 					return out, e
 				}
 			}
-			x, e := intersectSplineFace(a.faces[i], p.patch.Domain())
+			x, e := algebraicShellTracePatch(a.faces[i], p.patch.Domain())
 			if e != nil {
 				return out, e
 			}
-			y, e := intersectSplineFace(b.faces[j], q.patch.Domain())
+			y, e := algebraicShellTracePatch(b.faces[j], q.patch.Domain())
 			if e != nil {
 				return out, e
 			}
-			r, e := SectionSplinePairAlgebraic(ctx, x, y, seed, o.Trace, o.Endpoints)
+			r, e := SectionSplinePairAlgebraic(ctx, x, y, seed, trace, o.Endpoints)
+			if e != nil && seed == nil && trace.ProjectedGraphFallback.Enabled && (isUnresolvedOpenSpline(e) || errors.Is(e, geom.ErrDomain)) {
+				// The first discovery path expects equal projected face
+				// rectangles. Clip only the proposal geometry, then reprove
+				// every tube and coverage on the full original pair.
+				p, e2 := intersect.DiscoverOverlappingProjectedGraphPairTubes(ctx, x, y, trace.GraphProjectionAxes, trace.Seeds.Patches, trace.ProjectedGraphFallback)
+				if e2 == nil && !p.Disjoint {
+					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, trace, o.Endpoints)
+				}
+				if e2 != nil && !isUnresolvedOpenSpline(e2) && !errors.Is(e2, geom.ErrDomain) {
+					return out, e2
+				}
+			}
 			if e != nil && seed == nil && o.Trace.PlaneFallback.Enabled && isUnresolvedOpenSpline(e) {
 				d := o.Trace.PlaneFallback
 				d.Plane.Arcs.ResolveSubdivisionCorners = true
 				p, e2 := intersect.DiscoverSplinePlanePairSections(ctx, x, y, o.Trace.Seeds.Patches, d)
 				if e2 == nil {
-					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, o.Trace, o.Endpoints)
+					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, trace, o.Endpoints)
 				}
 				if e2 != nil && !isUnresolvedOpenSpline(e2) {
 					return out, e2
@@ -174,6 +195,11 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 	}
 	out.Complete = true
 	source := &algebraicShellSectionSource{a: a, b: b, pairs: append([][2]int(nil), out.Pairs...)}
+	for i, row := range faces {
+		if len(row) != 0 {
+			source.bounds[i] = splineShellPatchBounds(row)
+		}
+	}
 	for _, b := range out.Branches {
 		b.Segments = append([]intersect.TubeSegment(nil), b.Segments...)
 		source.branches = append(source.branches, b)
@@ -346,4 +372,12 @@ func joinAlgebraicShellSectionBranches(ctx context.Context, branches []Algebraic
 		out = append(out, wire)
 	}
 	return out, nil
+}
+
+func algebraicShellTracePatch(f Face, d geom.ParameterRectangle) (intersect.Patch, error) {
+	base, _ := parametric.SurfaceMapping(f.Surface)
+	if !supportsExactSplinePatch(base) {
+		return intersect.Patch{}, geom.ErrInvalid
+	}
+	return intersect.Patch{Surface: f.Surface, Min: geom.Vec2{X: d.UMin, Y: d.VMin}, Max: geom.Vec2{X: d.UMax, Y: d.VMax}}, nil
 }

@@ -11,6 +11,7 @@ import (
 
 type topologyRecord struct {
 	id, kind  int
+	transform int
 	label     string
 	subscript int
 	values    []parameter
@@ -38,6 +39,9 @@ func readRingSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, sphe
 	return readConeSupportRecords(r, l, lens, cylinders, planes, spheres, tori, false)
 }
 func readConeSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones bool) (topologySource, error) {
+	return readPlacedTopologyRecords(r, l, lens, cylinders, planes, spheres, tori, cones, false)
+}
+func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed bool) (topologySource, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return topologySource{}, e
@@ -142,7 +146,7 @@ func readConeSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, sphe
 			}
 		}
 		kind := first[0]
-		supported := kind == 126 || kind == 128 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514 || (lens && kind == 186)
+		supported := (placed && kind == 124) || kind == 126 || kind == 128 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514 || (lens && kind == 186)
 		if cylinders || planes || spheres || tori || cones {
 			supported = kind == 116 || kind == 123 || (cylinders && kind == 192) || (planes && kind == 190) || (spheres && kind == 196) || (tori && kind == 198) || (cones && kind == 194)
 		}
@@ -183,10 +187,10 @@ func readConeSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, sphe
 		if e != nil {
 			return topologySource{}, e
 		}
-		if first[6] != 0 || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] == 1)) || ((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] != 1) {
+		if (first[6] != 0 && !(placed && (kind == 126 || kind == 128))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] == 1)) || ((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194) && second[4] != 1) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}
-		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})
+		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, transform: first[6], values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})
 	}
 	for _, u := range used {
 		if !u {

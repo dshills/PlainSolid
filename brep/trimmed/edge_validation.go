@@ -191,18 +191,18 @@ func sameCertifiedSection(e parametric.Edge, surface geom.Surface, use Use) bool
 	}
 	x, px := parametric.SurfaceMapping(m.surface)
 	y, py := parametric.SurfaceMapping(surface)
-	sa, ok := x.(*geom.BSplineSurface)
-	sb, has := y.(*geom.BSplineSurface)
-	if !ok || !has || px != py {
+	if px != py {
 		return false
 	}
-	switch x := a.(type) {
+	switch p := a.(type) {
 	case intersect.CertifiedTrim:
-		y, ok := b.(intersect.CertifiedTrim)
-		return ok && x.CertifiesSharedChartSection(y, sa, sb)
+		sa, hasA := x.(*geom.BSplineSurface)
+		sb, hasB := y.(*geom.BSplineSurface)
+		q, ok := b.(intersect.CertifiedTrim)
+		return ok && hasA && hasB && p.CertifiesSharedChartSection(q, sa, sb)
 	case intersect.TubeTrim:
-		y, ok := b.(intersect.TubeTrim)
-		return ok && x.CertifiesPairedTube(y, sa, sb)
+		q, ok := b.(intersect.TubeTrim)
+		return ok && p.CertifiesPairedTubeOnSurfaces(q, x, y)
 	}
 	return false
 }

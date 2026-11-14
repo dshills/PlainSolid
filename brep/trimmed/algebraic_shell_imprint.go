@@ -57,8 +57,9 @@ type AlgebraicShellImprint struct {
 
 // ImprintOriginalShells arranges a complete regular section on both original
 // rectangular spline shells. It supports proper open cuts, with distinct
-// transverse anchors, and one closed section wholly inside an original face.
-// Faces carrying both kinds of cut or several closed loops remain unresolved.
+// transverse anchors, and closed sections wholly inside an original face.
+// Multiple closed loops on one face require disjoint conservative chart
+// boxes. Nested loops and faces carrying both kinds of cut remain unresolved.
 // Every section segment is shared by corresponding source fragments. Both
 // results are returned only after closed incidence and vertex links pass.
 func (r AlgebraicShellSectionResult) ImprintOriginalShells(ctx context.Context,
@@ -207,7 +208,7 @@ func (w *shellImprintWork) modelPoint(branch, piece, end int, s intersect.TubeSe
 		if e != nil {
 			return nil, e
 		}
-		faces[i], e = intersectSplineFace(f, d)
+		faces[i], e = algebraicShellTracePatch(f, d)
 		if e != nil {
 			return nil, e
 		}
@@ -429,22 +430,9 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 		return []AlgebraicShellImprintFace{original}, nil
 	}
 	for _, p := range paths {
-		if !p.closed {
-			continue
+		if p.closed {
+			return w.arrangeClosedFacePaths(face, op, original, s, paths)
 		}
-		if len(paths) != 1 {
-			return nil, geom.ErrConvergence
-		}
-		winding, e := w.closedPathWinding(face, op, p, s)
-		if e != nil {
-			return nil, e
-		}
-		outer, inner := p.uses, reverseImprintUses(p.uses)
-		if winding < 0 {
-			outer, inner = inner, outer
-		}
-		original.Holes = [][]AlgebraicShellImprintUse{inner}
-		return []AlgebraicShellImprintFace{original, {Original: face, Fragment: 1, Reversed: f.Reversed, Outer: outer}}, nil
 	}
 	indices := map[int]int{}
 	for i, u := range original.Outer {
@@ -491,6 +479,68 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 	if len(out) != len(paths)+1 {
 		return nil, geom.ErrConvergence
 	}
+	return out, nil
+}
+
+func (w *shellImprintWork) arrangeClosedFacePaths(face, op int, original AlgebraicShellImprintFace,
+	s AlgebraicShellImprint, paths []shellImprintPath) ([]AlgebraicShellImprintFace, error) {
+	var boxes []geom.UVBox
+	if len(paths) > 128 {
+		return nil, geom.ErrConvergence
+	}
+	for _, p := range paths {
+		if e := w.ctx.Err(); e != nil {
+			return nil, e
+		}
+		if !p.closed {
+			return nil, geom.ErrConvergence
+		}
+		if len(paths) == 1 {
+			continue
+		}
+		var box geom.UVBox
+		for i, use := range p.uses {
+			x := s.Section[use.SectionPiece]
+			b := w.source.branches[x.Branch]
+			if b.Faces[op] != face {
+				return nil, geom.ErrConvergence
+			}
+			seg := b.Segments[x.Index]
+			q, e := [2]intersect.TubeTrim{seg.TrimA(), seg.TrimB()}[op].BoundsUV()
+			if e != nil {
+				return nil, e
+			}
+			if i == 0 {
+				box = q
+				continue
+			}
+			box.Min.X, box.Min.Y = min(box.Min.X, q.Min.X), min(box.Min.Y, q.Min.Y)
+			box.Max.X, box.Max.Y = max(box.Max.X, q.Max.X), max(box.Max.Y, q.Max.Y)
+		}
+		// Every bounded Jordan interior is contained in its wire's exact
+		// conservative box. Strictly separated closed boxes therefore
+		// exclude touching loops and nesting without sampled classification.
+		for _, other := range boxes {
+			if box.Min.X <= other.Max.X && other.Min.X <= box.Max.X && box.Min.Y <= other.Max.Y && other.Min.Y <= box.Max.Y {
+				return nil, geom.ErrConvergence
+			}
+		}
+		boxes = append(boxes, box)
+	}
+	out := make([]AlgebraicShellImprintFace, 1, len(paths)+1)
+	for _, p := range paths {
+		winding, e := w.closedPathWinding(face, op, p, s)
+		if e != nil {
+			return nil, e
+		}
+		outer, inner := p.uses, reverseImprintUses(p.uses)
+		if winding < 0 {
+			outer, inner = inner, outer
+		}
+		original.Holes = append(original.Holes, inner)
+		out = append(out, AlgebraicShellImprintFace{Original: face, Fragment: len(out), Reversed: original.Reversed, Outer: outer})
+	}
+	out[0] = original
 	return out, nil
 }
 

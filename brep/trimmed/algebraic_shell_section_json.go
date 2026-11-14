@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -144,8 +145,22 @@ func ReadAlgebraicShellSectionJSON(ctx context.Context, r io.Reader, l JSONLimit
 				return out, e
 			}
 			x := patches[i]
-			if !geom.SameSplineSurface(facespline(f), x.Surface.(*geom.BSplineSurface)) ||
-				b != (geom.ParameterRectangle{UMin: x.Min.X, UMax: x.Max.X, VMin: x.Min.Y, VMax: x.Max.Y}) {
+			same := sameTrimmedSectionChart(f.Surface, x.Surface)
+			base, _ := parametric.SurfaceMapping(f.Surface)
+			if _, exact := base.(*geom.ExactBezierSurface); exact {
+				// Recipes and shell faces are independently decoded. Require
+				// canonical stored identity before using the saved proposals.
+				p, e := parametric.EncodeSurface(f.Surface)
+				if e != nil {
+					return out, e
+				}
+				q, e := parametric.EncodeSurface(x.Surface)
+				if e != nil {
+					return out, e
+				}
+				same = bytes.Equal(p, q)
+			}
+			if !same || b != (geom.ParameterRectangle{UMin: x.Min.X, UMax: x.Max.X, VMin: x.Min.Y, VMax: x.Max.Y}) {
 				return out, geom.ErrDomain
 			}
 		}

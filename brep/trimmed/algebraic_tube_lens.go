@@ -72,6 +72,9 @@ func (l AlgebraicTubeLens) Topology() AlgebraicTubeLensTopology {
 }
 
 type AlgebraicTubeLensFace struct {
+	// SourceSurface retains exact homogeneous adapters; Support remains the
+	// original float B-spline when available and is nil otherwise.
+	SourceSurface         geom.Surface
 	Support               *geom.BSplineSurface
 	SourceChart           int
 	Reversed, CutReversed bool
@@ -83,7 +86,7 @@ func (l AlgebraicTubeLens) Faces() [2]AlgebraicTubeLensFace {
 		return out
 	}
 	for i, f := range l.faces {
-		out[i] = AlgebraicTubeLensFace{Support: f.Support, SourceChart: i,
+		out[i] = AlgebraicTubeLensFace{Support: f.Support, SourceSurface: tubeLensPartitionSurface(f), SourceChart: i,
 			Reversed: (i != l.upper) == (l.graphs[i].Orientation() > 0), CutReversed: f.Fragments[0].CutReversed}
 	}
 	return out

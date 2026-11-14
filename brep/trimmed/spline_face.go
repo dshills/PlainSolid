@@ -2,9 +2,47 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
+
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
+
+// ExactSplineFaceRectangle builds a four-use rectangle on an original exact
+// homogeneous spline chart. The model vertices and bounds of the original
+// chart interval must be exactly representable. The caller can use Sew and
+// ValidateSplineRectangleEmbedding to qualify global incidence and embedding.
+func ExactSplineFaceRectangle(ctx context.Context, s *geom.ExactBezierSurface, domain geom.ParameterRectangle, reversed bool, o geom.SurfacePatchOptions) (SewFace, error) {
+	if ctx == nil {
+		return SewFace{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return SewFace{}, e
+	}
+	p, e := exactSplineSupportPatch(s, o)
+	if e != nil {
+		return SewFace{}, e
+	}
+	if domain == (geom.ParameterRectangle{}) {
+		domain = p.Domain()
+	} else if p, e = p.Trim(domain); e != nil {
+		return SewFace{}, e
+	}
+	a, b, c, d := ratInset(domain.UMin), ratInset(domain.UMax), ratInset(domain.VMin), ratInset(domain.VMax)
+	f, e := slabSewFace(ctx, Face{Surface: s, Reversed: reversed}, p,
+		[][2]*big.Rat{{a, c}, {b, c}, {b, d}, {a, d}}, SplineRectangleEmbeddingOptions{Patches: o})
+	if e != nil {
+		return SewFace{}, e
+	}
+	seen := make(map[geom.Vec3]bool, len(f.Vertices))
+	for _, point := range f.Vertices {
+		if seen[point] {
+			return SewFace{}, geom.ErrDegenerate
+		}
+		seen[point] = true
+	}
+	return f, nil
+}
 
 // RectangularSplineFace makes a standalone full-domain spline face with
 // independent local indices, suitable for Sew. Its four model edges are

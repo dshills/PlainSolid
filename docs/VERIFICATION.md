@@ -1617,7 +1617,19 @@ This record validates the current supported subsets, not full OCCT replacement.
 On 2026-11-13, the CGO-disabled run pinned to `f8b543f` passed all 49
 packages with tests other than `brep/trimmed`; the three remaining packages
 had no tests. The run reported 3,540 passing and 293 skipped test events,
-including subtests. The native `brep/trimmed` qualification runs separately.
+including subtests. The separate short-mode `brep/trimmed` run at `245b07a`
+passed in the three CI shards (542 passing and seven skipped test events,
+including subtests; 554, 393 and 473 seconds elapsed). A prior unsharded run
+hit the default ten-minute package timeout. The wrapped bore test also passed
+in isolation; that timeout does not establish an individual test failure.
+The subsequent CGO-disabled run at `0309862` again passed all 49 tested
+packages outside `brep/trimmed`, with three packages reporting no tests;
+it recorded 3,672 passing and 301 skipped test events, including subtests.
+The later CGO-disabled non-trimmed qualification at `61faf72` passed all 49
+tested packages, with three reporting no tests. It recorded 3,751 passing
+and 310 skipped test events. The three CGO-disabled short-mode trimmed
+shards at the same revision all passed: 613 passing test events, seven
+skipped, and no duplicate test events across shards (507, 620 and 477 seconds).
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -1635,6 +1647,145 @@ Pinned PlainCAD Chromium candidate `57f40ad` passed the supplemental zoom
 test (19.330 seconds for the entire test), with 841 original application
 sources, the unchanged test hash, and a passed Go/WASM preflight. The display
 certificate's distance, normal angle, and collision guards all remain active.
+The same pinned build also passed both supplemental blind and through save,
+reopen, STL and STEP workflows without retries or skips.
+Chromium candidate `2851e23` separately passed the larger offset blind and
+through workflows (40.285 and 49.604 seconds), including the same public STL
+volume check and native STEP readback. Public fabrication uses the accepted
+model mesh, so tightening only the direct kernel STL writer did not satisfy
+the workflow. The narrower circular-wall angle applies to that model family.
+
+Different-center cuts prove the retained join and the other intersection
+below the stock before sewing. Live OCCT comparisons verify signed placements
+and both depths (`c09769b`, `660ca95`, `454b2f3`). Their native STEP reader
+derives the join from the one axial edge shared by the two cylindrical walls,
+and rejects altered owners and vendor-rounded graphs. Certified meshes repeat
+after reload, with exact collision and independent volume segment bounds.
+The PlainCAD review branch records the passing blind workflow at `50dd15f`
+and the passing through rerun at `1c1c70d` (43.304 seconds for the test).
+Both runs used the same 841 pinned application source files and identical
+supplemental assertions. The through rerun retained the original eight-second
+worker inactivity watchdog. On the native quarter-arc fixture, the optional
+bounded rim schedule reduced 1,040 triangles to 784 at the same distance,
+angle and collision gates. The independent volume-error bound was below 0.205.
+
+For broader curved contacts, `aa2f953` and `c1f0aca` preserve nonbinary source
+charts through certified transverse branch coverage and independent algebraic
+section reload. The curved fixture retains original coordinates 1/3 and 2/3.
+An independently refined periodic toroid sews with exact chart correspondence
+(`b0ff31f`), and nonconstant or fractional wrap shifts reject. Exact periodic
+overlaps and bounded chart arrangements retain original owner UV intervals;
+the arrangement independently cancels shared interior edges (`a0d72b1`). The optional
+circular wrapped cylinder/frustum mesher (`2ab2135`) additionally bounds the
+continuous facet normal deviation, including taper. Bore meshing adds material
+normals on each inner/outer wall and the two caps. Lossless signed-axis rigid
+placement transfers the proof to the world mesh (`8450183`, `d62e758`); mesh
+translations requiring coordinate rounding reject.
+
+`3c72c14` builds original-support wrapped face cells for the qualified overlap;
+`bce61a1` connects the cells in an immutable open union/intersection graph.
+Certified shared edges have opposing uses and the exterior follows the first
+face orientation. Focused race checks cover guarded topology failures and
+immutable accessors. The exact directed G1 STEP codec (`66c15f5`) retains
+joins with unequal speeds. The independently transferred OCCT model has one
+wire, two edges, and length 3.0259717630258898; the C1 codec rejects that input.
+The exact roof shell regression uses a degree-elevated homogeneous chart. It
+proves a closed section and a two-face common volume
+on the original roof, then reconstructs both from native JSON. A modified
+recipe chart fails to bind to the original face. The rational volume enclosure
+narrows on refinement and contains an independent bracket of π(5/16)^4/2.
+The same exact shell classifies roof, inside and outside points. An independent
+cubic fixture checks exact point membership, a sub-ULP rejection, line
+parameters and the minimum distance, including translated bounds and regularity.
+Wrapped Difference (`2a35e85`) qualifies an annulus with original cut-edge
+ownership, plus an empty result and a partially overlapping lift. A separate
+true seam crossing proof (`d09b8b7`) rejects a fold even though each side
+independently has an injective projection. Mixed-trim display qualifies an
+exact cubic after reload and a multispan model with a true cubic derivative
+crease (`c008e53`, `6573299`). The split cylinder STEP fixtures (`aec0684`,
+`977b2da`) transfer as valid four-face OCCT solids with rational and explicit
+parameter-trimmed rational axial curves; readers retain original parameters
+and senses and reject edits to the represented geometry.
+The true seam proof is used end-to-end by opt-in wrapped face operations
+(`aaf6fe0`), including continuous native agreement across the physical seam.
+The native two-face lens conversion (`36ea13e`) reconstructs both original
+faces and proves every implicit model/UV edge use. The two-lobe shell regression
+then qualifies two independent closures and an analytic total volume bracket
+for its two disjoint circular sections. Independently authored and Go-written
+IGES type 186 fixtures (`23c2931`) both transfer through pinned OCCT as valid
+tetrahedra with four faces, volume 4/3 and centroid (1/2, 1/2, 1/2).
+The reflected oblique IGES hexahedron (`bd81c25`) transfers both ways as one
+valid six-face OCCT solid, with volume 13 and centroid (2.5, 5, 6.5). The
+shared algebraic Boolean display (`9983659`) has 56 model edges and 180
+certified straight display segments at deflection 0.02. Opposite coedges
+share indices, and edits to diagnostic views do not change the proof. The
+two-image cylinder proof (`92a3723`) separately distinguishes two physically
+disjoint intersection components from the connected annular union. The YZ
+shell regression (`6abcc6b`) uses overlapping unequal projected rectangles and
+closes the resulting union on the original sources.
+The biquadratic IGES shell (`8bf3e78`) preserves a curved roof and retains
+original spline charts through shared-edge proofs and global native embedding.
+Both the independent fixture and Go output transfer through pinned OCCT as
+one valid solid with volume 37/36 and centroid (1/2, 1/2, 951/1850).
+The curved-rim IGES solid (`8226fd9`) independently transfers in and out of
+OCCT with two quadratic model edges, volume 4/3, and centroid (9/16, 1/2,
+7/10). The first-moment and world inertia bounds (`ce5ad8f`, `7030f52`)
+enclose independent volume integrals of a signed, translated warped slab
+and a separate box. The exact-lens point/line test (`66eb459`) passed race;
+the finite line suppresses buried crossings and rejects a simultaneous rim
+contact atomically. The closed graph-lens mesh (`f0ccdaa`) passed race in
+both XY and YZ. Its 1,520 and 1,696 triangles satisfy bounds of 0.097219 and
+0.072267 respectively and pass exact display non-incidence checks. The
+exact annular union and its native adapter (`41a1275`, `94cff4e`) keep two
+oppositely directed boundary loops; nonbinary native vertices are rejected
+without losing the exact complex.
+The capped circular frustum erosion matched independent pinned OCCT
+intersections of the shifted analytic cone and cap slab for both taper
+directions. Native mass, continuous rim agreement and race checks passed.
+Closed frustum walls also match the independently subtracted OCCT cavities.
+Exact parallel-axis containment admits an eccentric interior frustum with an
+irrational axis distance and rejects equality at the lateral contact.
+The reordered, translated IGES roof (`d250f71`) preserves original entity
+and directed owner identities; both the source and canonical Go re-export
+pass pinned OCCT transfer. A seam-crossing diamond hole and a separately
+authored nonconvex outer loop (`955ef3e`) pass exact trim embedding and
+continuous native edge correspondence. The grouped line-event API (`7020ef7`)
+retains both original rim hits and verifies the different adjacent material
+states for common, union and cut; the simpler transition API still fails
+on simultaneous contacts.
+The placed-shell regression (`66b2456`) passed race on a reflected and
+translated original spline shell, including native reload and changed-recipe
+placement rejection. The certified degree-five mesh fixture (`c5bff88`)
+uses an original homogeneous X control of 11/40 and retains its source
+through section, Boolean, and closed tessellation. Its 1,520 triangles
+meet a two-sided distance bound of 0.097164 and pass exact contact checks.
+The full exact roof line-event regression also passed race, including both
+source hits at simultaneous contacts and the adjacent Boolean material states.
+The wrapped quadratic native face (`0d6a13e`) splits a curved owner at exact
+parameter 2/3, retains the original lifted chart across the seam, and
+proves continuous model agreement with independently refined reversed edges.
+A changed curve with identical endpoints, an irrational seam parameter and
+exhausted proof limits reject without producing a face or an edge agreement.
+The leaf-placed IGES roof (`64c3792`) keeps original local model and UV curves
+and returns a separately proved world solid. Pinned OCCT reads both the
+independently authored source and Go output as one valid six-face solid,
+with volume 4/3 and the posed centroid (10.7, -3.1875, 0.5). It ignores a
+root-only transform on the comparison fixture; the Go reader rejects it.
+The mixed placed IGES roof (`6f062ea`) retains both baked world-space leaves
+and leaves with an exact placement pointer, keeping unplaced original UV
+curves. Both independent source and Go output again transfer as one valid
+solid with the same world mass properties. The two placement readers have
+separate bounded fuzz checks.
+The unequal projected lens (`b9e7a63`) keeps an exact, degree-five original
+roof and its narrower projected domain. The rational volume, three centroid
+coordinates and selected world inertia terms enclose the independent disk
+integrals. The unequal exact, XZ and independent affine-chart tests all passed
+race; a small budget returned no partial mass values.
+The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
+edge and vertex indices for 3,392 triangles in two closed components. Its
+two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
+whole display. The fixture passes under race and checks display volume
+against the independent total analytic volume of the two lobes.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

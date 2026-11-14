@@ -38,7 +38,7 @@ type CertifiedAlgebraicTubeRegionsMesh struct {
 // does not promote a quartic annular section certificate to a fill certificate.
 func (r AlgebraicTubeRegions) TessellateDisjointClosedCertified(ctx context.Context, o AlgebraicTubeRegionsMeshOptions) (CertifiedAlgebraicTubeRegionsMesh, error) {
 	var empty CertifiedAlgebraicTubeRegionsMesh
-	if ctx == nil || r.section.partitionSource == nil || len(r.regions) == 0 || o.MaxResidualOperations < 0 || o.MaxResidualOperations > 1000000000 {
+	if ctx == nil || r.section.runSource() == nil || len(r.regions) == 0 || o.MaxResidualOperations < 0 || o.MaxResidualOperations > 1000000000 {
 		return empty, geom.ErrInvalid
 	}
 	for _, x := range r.regions {

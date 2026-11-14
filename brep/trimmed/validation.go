@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
@@ -27,7 +28,7 @@ type SplineFaceRegularity struct {
 }
 
 // ValidateSplineRegularity proves one-sided regularity over each supported
-// spline face's conservative UV rectangle, with work limits per face.
+// spline or exact Bézier face's conservative UV rectangle, with work limits per face.
 // Singularities outside a trimmed region can make the result inconclusive.
 // It does not certify global surface or shell embedding.
 func (s Solid) ValidateSplineRegularity(ctx context.Context, patch geom.SurfacePatchOptions, options geom.SurfaceRegularityOptions) ([]SplineFaceRegularity, error) {
@@ -42,12 +43,12 @@ func (s Solid) ValidateSplineRegularity(ctx context.Context, patch geom.SurfaceP
 		if e := ctx.Err(); e != nil {
 			return r, e
 		}
-		b, ok := f.Surface.(*geom.BSplineSurface)
-		if !ok {
+		base, _ := parametric.SurfaceMapping(f.Surface)
+		if !supportsExactSplinePatch(base) {
 			r = append(r, SplineFaceRegularity{Face: i})
 			continue
 		}
-		p, e := geom.NewSurfacePatch(b, patch)
+		p, e := exactFaceSupportPatch(f, patch)
 		if e != nil {
 			return r, e
 		}

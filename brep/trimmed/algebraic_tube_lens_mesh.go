@@ -210,7 +210,7 @@ func (l AlgebraicTubeLens) tessellateClosedTubeLens(ctx context.Context, o Algeb
 	var work [2]faceWork
 	var refinedFaces [2]CertifiedCurvedQuadraticTrimMesh
 	for face := 0; face < 2; face++ {
-		patch, e := geom.NewSurfacePatch(l.faces[face].Support, o.Boundary.Run.Partition.Patches)
+		patch, e := exactSplineSupportPatch(tubeLensPartitionSurface(l.faces[face]), o.Boundary.Run.Partition.Patches)
 		if e != nil {
 			return empty, e
 		}

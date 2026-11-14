@@ -76,8 +76,7 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 	if chart == 1 {
 		trim = segment.TrimB()
 	}
-	support, ok := f.Surface.(*geom.BSplineSurface)
-	if !ok || !geom.SameSplineSurface(support, trim.Support()) {
+	if !trim.HasSourceSurface(f.Surface) {
 		return r, geom.ErrDomain
 	}
 	if o.MaxOperations == 0 {
@@ -106,7 +105,10 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 				return r, e
 			}
 			p := o.SurfacePatchOptions
-			p.MaxOperations -= r.ExactOperations
+			if p.MaxOperations == 0 {
+				p.MaxOperations = o.MaxOperations
+			}
+			p.MaxOperations = min(p.MaxOperations, o.MaxOperations) - r.ExactOperations
 			if p.MaxOperations < 1 {
 				return r, geom.ErrConvergence
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -124,17 +125,42 @@ func exactSplinePatch(p Patch, o geom.SurfacePatchOptions) (*geom.SurfacePatch, 
 }
 
 func exactSplineSupport(surface geom.Surface, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
-	switch s := surface.(type) {
+	base, placement := parametric.SurfaceMapping(surface)
+	var patch *geom.SurfacePatch
+	var e error
+	switch s := base.(type) {
 	case *geom.BSplineSurface:
-		return geom.NewSurfacePatch(s, o)
+		patch, e = geom.NewSurfacePatch(s, o)
 	case *geom.ExactBezierSurface:
-		return s.ExactPatch().WithLimits(o)
+		if s == nil || s.ExactPatch() == nil {
+			return nil, geom.ErrInvalid
+		}
+		patch, e = s.ExactPatch().WithLimits(o)
 	default:
 		return nil, geom.ErrInvalid
 	}
+	if e != nil {
+		return nil, e
+	}
+	return patch.Transformed(placement)
 }
 
 func permuteSplineSupport(surface geom.Surface, order [3]int, o geom.SurfacePatchOptions) (geom.Surface, error) {
+	base, placement := parametric.SurfaceMapping(surface)
+	if placement != geom.Identity() {
+		var m geom.Affine
+		var seen [3]bool
+		for i, axis := range order {
+			if axis < 0 || axis > 2 || seen[axis] {
+				return nil, geom.ErrInvalid
+			}
+			seen[axis], m[i][axis] = true, 1
+		}
+		// Permute placement rows rather than reconstructing or rounding
+		// the original multi-span spline. The world-space seed proof
+		// still uses the original support and original placement.
+		return parametric.MapSurface(base, m.Mul(placement)), nil
+	}
 	if s, ok := surface.(*geom.BSplineSurface); ok {
 		return s.PermutedModelAxes(order)
 	}

@@ -2,8 +2,10 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -28,7 +30,7 @@ type AlgebraicTubeLensMassBounds struct {
 }
 
 // BoundVolume integrates the positive part of the signed height difference
-// over matching projected rectangular faces. Complete section coverage and
+// over the common projection of rectangular faces. Complete section coverage and
 // the single interior loop identify that positive part with the lens.
 // Positive homogeneous weights bound each cell, and an exact projected
 // Jacobian converts UV area to model area. Returned intervals include all
@@ -39,7 +41,7 @@ func (l AlgebraicTubeLens) BoundVolume(ctx context.Context, o AlgebraicTubeLensV
 }
 
 // BoundMassProperties encloses volume, first moments and centroid without
-// meshing or quadrature. It has the same matching-rectangle scope as
+// meshing or quadrature. It has the same rectangular-chart scope as
 // BoundVolume. A zero lower volume leaves Centroid unavailable.
 func (l AlgebraicTubeLens) BoundMassProperties(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (AlgebraicTubeLensMassBounds, error) {
 	return l.boundLensMass(ctx, o, true)
@@ -58,7 +60,8 @@ func (l AlgebraicTubeLens) boundLensMass(ctx context.Context, o AlgebraicTubeLen
 
 func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection, upper int, axes [2]int,
 	m [2][3]*big.Rat, o AlgebraicTubeLensVolumeOptions, moments bool) (r AlgebraicTubeLensMassBounds, err error) {
-	if ctx == nil || section.partitionSource == nil || o.MaxDepth < 0 || o.MaxDepth > 20 ||
+	source := section.runSource()
+	if ctx == nil || source == nil || o.MaxDepth < 0 || o.MaxDepth > 20 ||
 		o.MaxCells < 0 || o.MaxCells > 1048576 {
 		return r, geom.ErrInvalid
 	}
@@ -92,9 +95,30 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 		p.MaxOperations -= r.ExactOperations
 		return p
 	}
+	transform := func(s *geom.SurfacePatch, placement geom.Affine) (*geom.SurfacePatch, error) {
+		remaining := child().MaxOperations
+		if remaining < 1 {
+			return nil, geom.ErrConvergence
+		}
+		out, work, e := s.TransformedWithWorkLimit(placement, remaining)
+		r.ExactOperations += work
+		return out, e
+	}
+	trim := func(s *geom.SurfacePatch, d geom.ParameterRectangle) (*geom.SurfacePatch, error) {
+		if s.Domain() == d {
+			return s, nil
+		}
+		remaining := child().MaxOperations
+		if remaining < 1 {
+			return nil, geom.ErrConvergence
+		}
+		out, work, e := s.TrimWithWorkLimit(d, remaining)
+		r.ExactOperations += work
+		return out, e
+	}
 	var patches [2]*geom.SurfacePatch
 	order := [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}
-	for i, f := range section.partitionSource.faces {
+	for i, f := range source.faces {
 		d, e := faceUVBounds(f)
 		if e != nil {
 			return r, e
@@ -106,46 +130,80 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 		if p.MaxOperations < 1 {
 			return r, geom.ErrConvergence
 		}
-		s, e := geom.NewSurfacePatch(facespline(f), p)
+		base, placement := parametric.SurfaceMapping(f.Surface)
+		s, e := exactSplineSupportPatch(base, p)
 		if e != nil {
 			return r, e
 		}
 		r.ExactOperations += s.ExactOperations()
-		if child().MaxOperations < 1 {
-			return r, geom.ErrConvergence
+		if placement != geom.Identity() {
+			s, e = transform(s, placement)
+			if e != nil {
+				return r, e
+			}
 		}
-		patches[i], e = s.Trim(d)
+		patches[i], e = trim(s, d)
 		if e != nil {
 			return r, e
 		}
-		r.ExactOperations += patches[i].ExactOperations()
 		if axes != [2]int{0, 1} {
 			var move geom.Affine
 			for i, k := range order {
 				move[i][k] = 1
 			}
-			q, e := patches[i].Transformed(move)
+			q, e := transform(patches[i], move)
 			if e != nil {
 				return r, e
 			}
 			patches[i] = q
-			r.ExactOperations += q.ExactOperations()
 		}
 		if r.ExactOperations >= o.Patch.MaxOperations {
 			return r, geom.ErrConvergence
 		}
 	}
-	p := child()
-	align, e := geom.AlignAffineXYCharts(ctx, patches[0], patches[1], p)
+	align := func() (*geom.AffineXYChartAlignment, error) {
+		p := child()
+		if p.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		a, work, e := geom.AlignAffineXYChartsWithWork(ctx, patches[0], patches[1], p)
+		r.ExactOperations += work
+		return a, e
+	}
+	alignment, e := align()
+	if errors.Is(e, geom.ErrDomain) {
+		// Both supports were proved graph charts and the lens lies in
+		// their common projection. Only the shared rectangle can contribute
+		// to the material integral. Verify its original trimmed supports.
+		p := child()
+		if p.MaxOperations < 1 {
+			return r, geom.ErrConvergence
+		}
+		clip, clipErr := geom.ClipAffineXYGraphOverlap(ctx, patches[0], patches[1], p)
+		r.ExactOperations += min(clip.ExactOperations, p.MaxOperations)
+		if clipErr != nil || clip.Disjoint {
+			if clipErr == nil {
+				clipErr = geom.ErrConvergence
+			}
+			return r, clipErr
+		}
+		for i, bounds := range [2]geom.ParameterRectangle{clip.A, clip.B} {
+			var e error
+			patches[i], e = trim(patches[i], bounds)
+			if e != nil {
+				return r, e
+			}
+		}
+		alignment, e = align()
+	}
 	if e != nil {
 		return r, e
 	}
-	r.ExactOperations += align.ExactOperations()
-	p = child()
+	p := child()
 	if p.MaxOperations < 1 {
 		return r, geom.ErrConvergence
 	}
-	d, e := geom.NewGeneralSurfaceHeightDifferencePatch(ctx, patches[0], align.TargetOnSource(),
+	d, e := geom.NewGeneralSurfaceHeightDifferencePatch(ctx, patches[0], alignment.TargetOnSource(),
 		geom.GeneralSurfaceHeightOptions{MaxPoles: p.MaxPoles, MaxOperations: p.MaxOperations, MaxCoefficientBits: p.MaxCoefficientBits})
 	if e != nil {
 		return r, e
@@ -170,7 +228,7 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 			}
 		}
 	}
-	queue := []cell{{p: d, s: [2]*geom.SurfacePatch{patches[0], align.TargetOnSource()}}}
+	queue := []cell{{p: d, s: [2]*geom.SurfacePatch{patches[0], alignment.TargetOnSource()}}}
 	for len(queue) > 0 {
 		if e := ctx.Err(); e != nil {
 			return r, e
@@ -246,30 +304,16 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 				return r, geom.ErrConvergence
 			}
 			for _, b := range [2]geom.ParameterRectangle{right, left} {
-				if child().MaxOperations < 1 {
-					return r, geom.ErrConvergence
-				}
-				p, e := x.p.Trim(b)
+				p, e := trim(x.p, b)
 				if e != nil {
 					return r, e
-				}
-				r.ExactOperations += p.ExactOperations()
-				if r.ExactOperations > o.Patch.MaxOperations {
-					return r, geom.ErrConvergence
 				}
 				next := cell{p: p, depth: x.depth + 1, lo: lo, hi: hi, coordinate: coordinates, height: heights}
 				if moments {
 					for i, s := range x.s {
-						if child().MaxOperations < 1 {
-							return r, geom.ErrConvergence
-						}
-						q, e := s.Trim(b)
+						q, e := trim(s, b)
 						if e != nil {
 							return r, e
-						}
-						r.ExactOperations += q.ExactOperations()
-						if r.ExactOperations > o.Patch.MaxOperations {
-							return r, geom.ErrConvergence
 						}
 						next.s[i] = q
 					}

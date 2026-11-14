@@ -38,7 +38,7 @@ func (r AlgebraicTubeRegions) Solid(ctx context.Context, region int, tolerance f
 	f := r.RegionFaces(region)
 	var faces [2]Face
 	for i, z := range f {
-		faces[i] = Face{Surface: z.Support, Reversed: z.Reversed}
+		faces[i] = Face{Surface: z.SourceSurface, Reversed: z.Reversed}
 	}
 	rings := []tubeRegionSolidRing{{cut: r.partitions[x.Outer].Faces[0].Cut,
 		reversed: [2]bool{f[0].OuterReversed, f[1].OuterReversed}}}

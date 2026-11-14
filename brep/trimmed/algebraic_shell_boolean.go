@@ -49,6 +49,7 @@ type AlgebraicShellBoolean struct {
 	parts    [2]AlgebraicShellImprint
 	index    []AlgebraicShellBooleanEdge
 	faces    []AlgebraicShellBooleanFace
+	vertices []AlgebraicShellBooleanVertex
 }
 
 // OriginalFace retrieves the original, unsplit support and trim data for one
@@ -314,8 +315,15 @@ func sewAlgebraicImprint(ctx context.Context, src *algebraicShellSectionSource, 
 	}
 	out.Topology = check.Topology
 	out.index = append([]AlgebraicShellBooleanEdge(nil), out.Edges...)
+	out.vertices = append([]AlgebraicShellBooleanVertex(nil), out.Vertices...)
 	for _, f := range out.Faces {
-		out.faces = append(out.faces, AlgebraicShellBooleanFace{Operand: f.Operand, Original: f.Original, Fragment: f.Fragment, Reversed: f.Reversed})
+		q := f
+		q.Outer = append([]AlgebraicShellBooleanUse(nil), f.Outer...)
+		q.Holes = make([][]AlgebraicShellBooleanUse, len(f.Holes))
+		for j, ring := range f.Holes {
+			q.Holes[j] = append([]AlgebraicShellBooleanUse(nil), ring...)
+		}
+		out.faces = append(out.faces, q)
 	}
 	return out, nil
 }

@@ -48,7 +48,7 @@ type SplineRayResult struct {
 }
 
 // SplineRay intersects a bounded line with trimmed clamped rational spline
-// supports, including affine placements. It classifies the entire root UV box:
+// or exact Bézier supports, including affine placements. It classifies the entire root UV box:
 // straight edges use exact orientation; supported curved edges use outward
 // bounds. Faces with native exact Bézier uses have certified rational
 // winding and bounded homogeneous trim exclusion. The supplied solid
@@ -79,12 +79,11 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 			return r, e
 		}
 		support, placement := parametric.SurfaceMapping(f.Surface)
-		base, ok := support.(*geom.BSplineSurface)
-		if !ok {
+		if !supportsExactSplinePatch(support) {
 			return r, fmt.Errorf("trimmed: spline ray face %d has unsupported support %T", i, f.Surface)
 		}
 		exactTrim := hasNativeExactSplineTrim(f)
-		if exactTrim {
+		if base, ok := support.(*geom.BSplineSurface); ok && exactTrim {
 			handled, e := exactVerticalGraphFaceRay(ctx, &r, i, f, base, placement, line, o)
 			if e != nil {
 				return r, e
@@ -97,15 +96,9 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 		if e != nil {
 			return r, e
 		}
-		p, e := geom.NewSurfacePatch(base, o.Patch)
+		p, e := exactFaceSupportPatch(f, o.Patch)
 		if e != nil {
 			return r, e
-		}
-		if placement != geom.Identity() {
-			p, e = p.Transformed(placement)
-			if e != nil {
-				return r, e
-			}
 		}
 		full := p.Domain()
 		d.UMin, d.UMax = max(d.UMin, full.UMin), min(d.UMax, full.UMax)
