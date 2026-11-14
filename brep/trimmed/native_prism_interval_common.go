@@ -117,6 +117,10 @@ func (s *NativePrismIntervalCommon) WallUses() []NativePrismIntervalWallUse {
 // line, planar and zero-height contacts remain explicit non-solid witnesses.
 // Unequal-height Fuse/Cut shoulder sewing is not claimed by this API.
 func CommonNativePrismIntervals(ctx context.Context, a, c brep.Solid, o NativePrismBooleanOptions) (*NativePrismIntervalCommon, error) {
+	return commonNativePrismIntervalsAxis(ctx, a, c, o, -1)
+}
+
+func commonNativePrismIntervalsAxis(ctx context.Context, a, c brep.Solid, o NativePrismBooleanOptions, preferred int) (*NativePrismIntervalCommon, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -136,6 +140,9 @@ func CommonNativePrismIntervals(ctx context.Context, a, c brep.Solid, o NativePr
 	profiles := [2]nativePrismProfile{}
 	axis := -1
 	for candidate := 0; candidate < 3; candidate++ {
+		if preferred >= 0 && candidate != preferred {
+			continue
+		}
 		x, e := authenticateNativePrism(ctx, a, candidate, limit)
 		if e != nil {
 			if ctx.Err() != nil {

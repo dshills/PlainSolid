@@ -6263,3 +6263,12 @@ Both original operand orders, exposed shoulders, original tool holes,
 independent mass and centroid, exact orientation and atomic conversion
 failure pass. The combined original transition, closed native Fuse and
 anisotropic mesh race passed in 9.184 s.
+
+### Unified native prism operations
+
+Integrated race coverage exercised actual closed volumes and ancestry for
+matching and unequal Common, staggered crossing Fuse and Cut, contained
+cavity, blind and through Cut, boss Fuse, and exact disjoint and containment
+outcomes. Unsheared boxes exercised axis selection. Contact, publication
+limits, and cancellation checked atomic failure. The combined dispatcher,
+legacy interval, and anisotropic area race run passed in 13.776 seconds.

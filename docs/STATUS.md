@@ -2360,3 +2360,13 @@ A separate exact transition certifies the exposed underside and shoulder,
 then sews one native boundary across the three axial layers. Original
 walls, caps and holes retain exact source ownership. The native conversion
 requires lossless represented output vertices.
+
+### Unified authenticated cardinal prism operations
+
+`CombineNativePrisms` authenticates the original cardinal prism faces and
+routes Common, Fuse, and Cut to the applicable exact construction. The result
+includes original operand ordering and the typed construction history. It
+distinguishes empty and contact-only Common, preserves a stock body for
+zero-volume Cut, and returns both original components for disjoint Fuse.
+Unsupported contact joins return an error. Classification, construction, and
+publication each have resource limits.
