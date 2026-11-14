@@ -100,3 +100,31 @@ internal/unknown/duplicate use IDs, shared targets, nonterminating/oversized
 translations, irrational/nonorthogonal axes and reduced parser limits. A
 nonidentity original from datum is explicitly tested. The fixed-work writer fuzz
 target `FuzzExactDAGNAUORootEdit` verifies atomic failure and re-readable successes.
+
+## Explicit shared internal-use edits
+
+`WriteExactDAGNAUOSharedPlacements` and native
+`ExactDAGPlanarNAUODocument.WithSharedPlacements` are separate opt-in operations
+for internal group→group or group→leaf relationships. They reject root use IDs;
+the existing root-only operation continues rejecting internal use IDs.
+Selection identifies the original **NAUO relationship**, not its child product
+or one expanded occurrence. Consequently every root-to-leaf path containing that
+selected use changes together. Other NAUOs referring to the same child product
+remain unchanged. Every original path and source entity ID is retained.
+
+Exact pose, decimal and ownership gates match the root API, except the exclusive
+target datum is owned by the selected use's actual parent representation. Shared
+datum targets remain unsupported even when selected relationships share the same
+requested pose. No implicit co-edit or geometry change is introduced. Input,
+source staging, native immutability and output atomicity guarantees are unchanged.
+
+The genuine XCAF fixture's A→large-leaf translation is changed from (10,0,0) to
+(20,0,0). This use appears under root→A and root→B→A, so it changes one world X
+placement and one world Y placement. Other references to the large product and
+the independent small leaf remain unchanged. Native reload and independent
+pinned OCCT re-transfer report 7 valid solids, 42 faces, volume 114, area 274,
+bounds (0,-5,0)–(122,122,72), centroid (2073/38,1169/19,1119/38).
+A separate group→group edit verifies all three descendant paths move and no other
+paths do. Focused tests compare every unedited source record, reject root IDs,
+duplicate/unknown/internal malformed poses/shared target datums, and exercise
+bounded atomic writer fuzz (`FuzzExactDAGNAUOSharedEdit`, 100x), race and Go 1.23.

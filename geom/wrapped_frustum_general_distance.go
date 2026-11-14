@@ -14,21 +14,26 @@ import (
 // searches has the supplied work limits; proof/extraction have the corresponding
 // arithmetic limits. Failure returns no partial result. Uniqueness is not proved.
 func BoundPointWrappedFrustumDistance(ctx context.Context, w *WrappedSurfacePatch, q Vec3, o SurfaceDistanceOptions) (CylinderDistanceBounds, error) {
-	empty := CylinderDistanceBounds{}
 	if !q.IsFinite() {
-		return empty, ErrInvalid
+		return CylinderDistanceBounds{}, ErrInvalid
 	}
+	return BoundPointWrappedFrustumDistanceRational(ctx, w, rationalLineVec3(q), o)
+}
+
+// BoundPointWrappedFrustumDistanceRational retains rational cap projections,
+// rim and original support witnesses even for nonbinary query coordinates.
+func BoundPointWrappedFrustumDistanceRational(ctx context.Context, w *WrappedSurfacePatch, query [3]*big.Rat, o SurfaceDistanceOptions) (CylinderDistanceBounds, error) {
+	empty := CylinderDistanceBounds{}
 	po := SurfacePatchOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+	options, e := validateRationalPoint(ctx, query, po)
+	if e != nil {
+		return empty, e
+	}
 	proof, e := CertifyWrappedFrustumEmbedding(ctx, w, po)
 	if e != nil {
 		return empty, e
 	}
-	options, e := patchOptions(po)
-	if e != nil {
-		return empty, e
-	}
 	budget := &polynomialBudget{operations: proof.ExactOperations, maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
-	query := [3]*big.Rat{new(big.Rat).SetFloat64(q.X), new(big.Rat).SetFloat64(q.Y), new(big.Rat).SetFloat64(q.Z)}
 	result := CylinderDistanceBounds{}
 	add := func(lower *big.Rat, point [3]*big.Rat, part CylinderBoundaryPart) error {
 		upper := new(big.Rat)
@@ -146,36 +151,29 @@ func BoundPointWrappedFrustumDistance(ctx context.Context, w *WrappedSurfacePatc
 		if e != nil {
 			return empty, e
 		}
-		bound, e := BoundPointExactCurveDistance(ctx, q, rim, CurveDistanceOptions{SquaredTolerance: o.SquaredTolerance, MaxDepth: o.MaxDepth, MaxCells: o.MaxCells, MaxQueuedPoles: o.MaxQueuedPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
+		bound, e := boundPointSurfaceDistanceRational(ctx, query, rim.patch, o, true)
 		if e != nil {
 			return empty, e
 		}
-		if !bound.Complete || !bound.HasWitness || !finite(bound.SquaredDistanceMin) {
+		if !bound.Complete || !bound.HasUpperPoint || bound.Squared.Lower == nil {
 			return empty, ErrConvergence
 		}
 		result.VisitedCells += bound.VisitedCells
-		jet, e := rim.patch.EvaluateRational(ctx, new(big.Rat).SetFloat64(bound.Parameter), big.NewRat(0, 1), SurfacePatchEvaluationOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
-		if e != nil {
+		if e := add(bound.Squared.Lower, bound.Witness, part); e != nil {
 			return empty, e
 		}
-		if e := add(new(big.Rat).SetFloat64(bound.SquaredDistanceMin), jet.Point, part); e != nil {
-			return empty, e
-		}
+
 	}
-	side, e := BoundPointSurfaceDistanceContext(ctx, q, w.patch, o)
+	side, e := BoundPointSurfaceDistanceRational(ctx, query, w.patch, o)
 	if e != nil {
 		return empty, e
 	}
-	if !side.Complete || !side.HasUpperPoint || !finite(side.SquaredDistanceMin) {
+	if !side.Complete || !side.HasUpperPoint || side.Squared.Lower == nil {
 		return empty, ErrConvergence
 	}
 	result.VisitedCells += side.VisitedCells
-	jet, e := w.patch.EvaluateRational(ctx, new(big.Rat).SetFloat64(side.UpperUV.X), new(big.Rat).SetFloat64(side.UpperUV.Y), SurfacePatchEvaluationOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
-	if e != nil {
+	if e := add(side.Squared.Lower, side.Witness, CylinderLateral); e != nil {
 		return empty, e
 	}
-	if e := add(new(big.Rat).SetFloat64(side.SquaredDistanceMin), jet.Point, CylinderLateral); e != nil {
-		return empty, e
-	}
-	return result, nil
+	return result, ctx.Err()
 }
