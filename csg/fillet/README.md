@@ -85,3 +85,15 @@ the inward floor support and orientation. `FloorFace`/`FloorZ` identify the new
 floor (no original face ancestor); `BoreRims` retain lower/upper axial ordering.
 The opposite original cap is untouched. For the through API, `FloorFace` is -1
 and `FloorZ` is nil. Both modes retain every original topology ID.
+
+`BoreWrappedRoundedCylinderSet` composes 1..16 independently authored through or
+blind removals against the same original stock. For every overlapping CLOSED
+axial interval pair, exact squared center distance must strictly exceed the
+squared sum of radii. Disk tangency, shared floors and overlapping tools fail;
+blind cutters with strictly separated axial intervals may share a center.
+Every cutter first passes the existing single-stock proof. Generated topology
+is then remapped into one result, all cap holes receive exact trim validation,
+and the combined closed topology/model edges are checked. Original IDs remain
+fixed and each cutter receives its own final wall/floor/rim history. No partial
+result is returned on a conflict. Through specifications require zero depth and
+no upper-entry flag, so ignored parameters cannot silently change meaning.
