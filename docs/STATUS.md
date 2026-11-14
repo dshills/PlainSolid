@@ -39,7 +39,7 @@ face assignments or rational wall seeds.
 On proved original roof boxes, exact rational point and line queries
 preserve original floor, side, and roof owners, including simultaneous
 contacts and a retained difference span below binary64 resolution.
-The arbitrary-direction line sweep isolates up to sixth-degree restrictions,
+The arbitrary-direction line sweep isolates up to eighth-degree restrictions,
 distinguishes repeated roots from crossings, and reports exposed
 coincident spans separately from the interior. It qualifies both the
 mixed restricted-wall Boolean and the independently curved bubble roofs.
@@ -54,13 +54,17 @@ outward volume interval is positive and narrower than `2^-80`.
 For the mixed roof solids, bounded nearest queries search the original
 exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
-inertia have separate original OCCT comparisons.
+inertia have separate original OCCT comparisons. Direct column integration
+now encloses the volume to `1/1000` for all three original operations and
+certifies raw second moments, centroid and inertia, including exact transport
+through a proper rigid occurrence.
 Prepared roof queries also admit original single-span positive rational
-surfaces through degree three in each chart axis. The weighted cavity
+surfaces through degree four in each chart axis. The weighted cavity
 kept its exact roof hit, quotient normal and floor distance, and an
 independently sewn OCCT rational model gave the same line parameter.
-A separate original bicubic roof retained its different sixth-degree
-line root. The specialized polynomial mesh proof keeps its existing scope.
+Separate original bicubic and biquartic roofs retain their different sixth-
+and eighth-degree line roots. The specialized polynomial mesh proof keeps
+its existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -74,6 +78,17 @@ sources, including authenticated reordered records. The analytic sphere
 reader qualifies exact IGES pole and seam graphs, including proper signed-axis
 placements; the promoted native sphere uses its established numerical angular
 evaluation and does not claim rational patch sewing.
+
+Transverse coaxial torus-cylinder Common, Cut, and Fuse build native analytic
+solids with algebraically identified rims. Paired STEP read and write preserve
+analytic supports and prove the replacement error for irrational rim heights.
+Fuse retains the actual caps; Common and Cut expose that those cap positions
+cannot be recovered from the retained STEP faces. The writer also preserves
+proper finite-decimal rational placements. Exact planar, finite cylinder and
+ring torus bodies now exchange in a bounded two-level product hierarchy,
+keeping local bodies, original occurrence paths and exact placements through
+source-bound native reload. Both exchange paths have independent live OCCT
+comparisons.
 
 ## Immediate priority: PlainCAD compatibility
 
@@ -657,6 +672,12 @@ verified. Both [authored workflows](evidence/plaincad-reconciled-d97fd910-supple
 passed. The exported STEP structure matched the worktree's; numerical tokens
 differed by at most `8.89e-15`. The 264-triangle STL was watertight, and
 independent OCCT reproduced volume, area, and centroid.
+The [circular-lens reconciliation](evidence/plaincad-reconciled-2154f73d-development-circular-lens-holes-step-2026-11-14.json)
+adds worktree revision `e5f4a249` to review `2154f73d`. Native checks and
+all eight original browser cases passed, with 841 app and 2,080 kernel source
+blobs verified. Both [authored lens exports](evidence/plaincad-reconciled-2154f73d-supplemental-circular-lens-step-2026-11-14.json)
+produced identical STEP and watertight STL in both checkouts. Independent
+OCCT reproduced the volume, area, and centroid of the equal and unequal lenses.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
@@ -1574,3 +1595,35 @@ charts, degree admission, positive-weight proof and arithmetic limits are
 unchanged. This is an image-distance calculation, not a surface embedding or
 volume certificate. Higher nominal degree and complete nested-region display
 qualification remain separate work.
+
+### Selected original graph region display collections
+
+`AlgebraicTubeRegions.TessellateSelectedRegionsClosedCertified` accepts up to
+eight nonadjacent complete regions from one proved XY graph pair. One certified
+boundary network serves disks and annuli, including a disk nested inside a
+separate annulus hole. Exact represented display rings must reproduce the
+original containment forest; selected regions sharing a rim reject. Polygon,
+residual, triangle and collision limits are cumulative. Every component and the
+combined display must pass closed manifold and exact nonintersection checks.
+The output preserves source region/chart indices without coordinate welding.
+
+`AlgebraicShellBoolean.TessellateTubeRegionComponentsCertified` independently
+rebuilds source coverage/containment and binds selected regions to original
+native face orientations, edge parameters and indexed vertices. This adapter
+currently requires one complete model-XY graph pair with whole section loops.
+Its focused native qualification is a single original lens; the nested
+collection qualification uses an independently authored exact degree-six roof.
+The original nominal degree-eight triple-roof native mesh remains a separate
+flagship qualification. Image-distance bounds do not certify volume error or
+general source embedding; displayed and analytic volumes remain distinct.
+
+### Explicit degree-eight exact residuals
+
+The positive-weight homogeneous coefficient/Jacobian and multispan triangular
+residual paths now accept explicit degree limits through eight per axis. Existing
+defaults and requests through six retain their original degree gates. Exact
+nonzero-coefficient total degree controls residual storage; genuine denominator
+products through total degree seventeen are retained. Existing operation/bit
+limits are unchanged. The original native triple-roof mesh qualification is
+explicitly enabled with `PLAINSOLID_TRIPLE_RADIAL_MESH=1`; a passing small
+residual proof does not itself claim that whole native mesh has qualified.

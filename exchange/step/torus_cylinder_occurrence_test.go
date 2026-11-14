@@ -152,6 +152,20 @@ func TestOCCTPlacedTorusCylinderSTEP(t *testing.T) {
 			if e != nil || ce != nil {
 				t.Fatal(e, ce)
 			}
+			originalBytes, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			restored, err := ReadTorusCylinderOccurrence(ctx, bytes.NewReader(originalBytes), Limits{}, 1e-8)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var roundtrip bytes.Buffer
+			if err = restored.WriteSTEP(&roundtrip); err != nil || !bytes.Equal(originalBytes, roundtrip.Bytes()) {
+				t.Fatal("placed paired reexport", err)
+			}
+			s = restored
+
 			output := filepath.Join(t.TempDir(), "read.json")
 			args := []string{output, path, "5", "2", "6", "-3", "4", strconv.Itoa(int(op)), strconv.Itoa(mode)}
 			call, cancel := context.WithTimeout(ctx, 30*time.Second)

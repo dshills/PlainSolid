@@ -46,7 +46,7 @@ func newTubeLensSpanWork(o MultiSpanTubeLensMeshOptions) (multiSpanMeshWork, err
 	if o.MaxSpanCells < 1 || o.MaxSpanCells > 1000000 || o.MaxSpanPieces < 1 || o.MaxSpanPieces > 1000000 || o.Span.MaxCells < 1 || o.Span.MaxCells > 65536 || o.Span.MaxPieces < 1 || o.Span.MaxPieces > 1000000 || o.Span.MaxInputBits < 1 || o.Span.MaxInputBits > 65536 {
 		return multiSpanMeshWork{}, geom.ErrInvalid
 	}
-	if o.Span.MaxDegree < 0 || o.Span.MaxDegree > 6 || o.Span.MaxResidualOperations < 0 || o.Span.MaxResidualOperations > 100000000 || o.MaxResidualOperations < 0 || o.MaxResidualOperations > 1000000000 {
+	if o.Span.MaxDegree < 0 || o.Span.MaxDegree > 8 || o.Span.MaxResidualOperations < 0 || o.Span.MaxResidualOperations > 100000000 || o.MaxResidualOperations < 0 || o.MaxResidualOperations > 1000000000 {
 		return multiSpanMeshWork{}, geom.ErrInvalid
 	}
 	return multiSpanMeshWork{options: MultiSpanCurvedTrimMeshOptions{Span: o.Span, MaxSpanCells: o.MaxSpanCells, MaxSpanPieces: o.MaxSpanPieces, MaxResidualOperations: o.MaxResidualOperations}}, nil

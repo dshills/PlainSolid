@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"os"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -199,6 +200,9 @@ func TestAlgebraicShellTripleRadialMaterialComponents(t *testing.T) {
 		}
 	}
 	t.Log("two native original material tensors, exact centroid Z", wantZ, "ZZ/pi", wantZZ, "work", tensor.Tensor.ExactOperations)
+	if os.Getenv("PLAINSOLID_TRIPLE_RADIAL_MESH") == "1" {
+		qualifyTripleRadialNativeMesh(t, common)
+	}
 
 }
 

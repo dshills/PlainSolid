@@ -83,7 +83,7 @@ func multiplyTrianglePower(a, c trianglePower, b *bezierTriangleBudget) (triangl
 // largest control norm by a proved positive denominator lower bound. Display
 // targets may be arbitrary rational points, so all prior rounding is included.
 // This certifies image distance, not surface or triangle embedding. Degree is
-// bounded (default4,max6), arithmetic default2M operations/16384bits; failures
+// bounded (default4,max8), arithmetic default2M operations/16384bits; failures
 // return no distance certificate. Source must be one positive-weight span.
 func BoundRationalBezierTriangleDeviation(ctx context.Context, p *geom.SurfacePatch, uv [3][2]*big.Rat, model [3][3]*big.Rat, o BezierTriangleBoundOptions) (out BezierTriangleDeviation, err error) {
 	if ctx == nil || p == nil {
@@ -98,7 +98,7 @@ func BoundRationalBezierTriangleDeviation(ctx context.Context, p *geom.SurfacePa
 	if o.MaxBits == 0 {
 		o.MaxBits = 16384
 	}
-	if o.MaxDegree < 1 || o.MaxDegree > 6 || o.MaxOperations < 1 || o.MaxOperations > 100000000 || o.MaxBits < 64 || o.MaxBits > 65536 {
+	if o.MaxDegree < 1 || o.MaxDegree > 8 || o.MaxOperations < 1 || o.MaxOperations > 100000000 || o.MaxBits < 64 || o.MaxBits > 65536 {
 		return out, geom.ErrInvalid
 	}
 	budget := &bezierTriangleBudget{ctx: ctx, limit: o.MaxOperations, bits: o.MaxBits}
@@ -254,6 +254,11 @@ func BoundRationalBezierTriangleDeviation(ctx context.Context, p *geom.SurfacePa
 				}
 			}
 		}
+	}
+	// The explicit degree-eight gate bounds the residual total degree by 17;
+	// all falling-factorial products below are then at most 17! < 2^63.
+	if n > 17 {
+		return out, geom.ErrConvergence
 	}
 	falling := func(n, k int) int64 {
 		x := int64(1)

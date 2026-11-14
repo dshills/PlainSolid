@@ -1,0 +1,89 @@
+{
+  "schema": "plaincad-reconciled-supplemental-circular-lens-step-v1",
+  "status": "passed",
+  "integrationCommit": "e5f4a2492709754a467ad8375cdadcd7d43f67f7",
+  "reviewCommit": "2154f73d787071b86086e25058f853ccebcbbfce",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "2a86fd680784481bfde517c19378b6c3122f688ec2f55fa3cf76d7cf5f0cd1ca",
+  "fixture": "e2e/plainsolid-circular-lens-step-holes.spec.ts",
+  "sourceSha256": "9a0bdb963552c4ec21a081c720459d22132b0af0ada2099d1abba94d1794e138",
+  "runSha256": "8a7d3c1627b4b116ff581134e86666f7fec8c5a97cf7af149d6122fe021f344f",
+  "reportStats": {
+    "startTime": "2026-11-14T15:32:27.977Z",
+    "duration": 38027.563,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "cases": [
+    {
+      "name": "equal",
+      "case": {
+        "profile": "equal circles, radii 12 and center spacing 12",
+        "originalPlainCadCase": "XY intersecting circles",
+        "exactNativeRoundTrip": true,
+        "stepByteCount": 17602,
+        "stepSha256": "5c0f1af0a56233a1023fcd16d9c19516f3097cf1f614a801aecac940452bc724",
+        "stlTriangles": 356,
+        "stlTwoUseEdges": 534,
+        "stlSha256": "269026c6426086f8629adf843254bcea6377d17371eea3ada9aa06b7625dffaf",
+        "occtStepReadback": {
+          "Area": 856.425297773689,
+          "Volume": 1768.8523659966102,
+          "Centroid": [
+            6.000000000000001,
+            -1.2854304848393877e-16,
+            5.000000000000002
+          ]
+        },
+        "analyticVolume": 1768.8523659966097,
+        "analyticArea": 856.4252977736888
+      },
+      "occtStepReadback": {
+        "Area": 856.425297773689,
+        "Volume": 1768.8523659966102,
+        "Centroid": [
+          6.000000000000001,
+          -1.2854304848393877e-16,
+          5.000000000000002
+        ]
+      }
+    },
+    {
+      "name": "unequal",
+      "case": {
+        "profile": "circle and arc, radii 12 and 6 with center spacing 12",
+        "originalPlainCadCase": "XY circle/arc crossings",
+        "exactNativeRoundTrip": true,
+        "stepByteCount": 17404,
+        "stepSha256": "98aa736895da66fb9d54f5caf0364d124df119a50f92fac96e85ce311a2478ac",
+        "stlTriangles": 308,
+        "stlTwoUseEdges": 462,
+        "stlSha256": "67945f48323486d2b8920cb42b393077df65877cff0c4fd29bda812e908ed406",
+        "occtStepReadback": {
+          "Area": 380.4812347239091,
+          "Volume": 505.10391828686585,
+          "Centroid": [
+            -1.4067258440005975e-15,
+            9.203167423112514,
+            4.999999999999999
+          ]
+        },
+        "analyticVolume": 505.103918286866,
+        "analyticArea": 380.48123472390915
+      },
+      "occtStepReadback": {
+        "Area": 380.4812347239091,
+        "Volume": 505.10391828686585,
+        "Centroid": [
+          -1.4067258440005975e-15,
+          9.203167423112514,
+          4.999999999999999
+        ]
+      }
+    }
+  ]
+}
