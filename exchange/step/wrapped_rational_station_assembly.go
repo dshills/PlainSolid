@@ -30,6 +30,12 @@ type WrappedRationalStationAssemblyModel struct {
 }
 
 func ReadWrappedRationalStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions) (WrappedRationalStationAssembly, error) {
+	return readWeightedStationAssembly(ctx, r, l, o, func(raw []byte, l Limits, o WrappedSurfaceOptions) (WrappedRationalStationLoftBody, error) {
+		return ReadWrappedRationalStationLoft(bytes.NewReader(raw), l, o)
+	})
+}
+
+func readWeightedStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions, local func([]byte, Limits, WrappedSurfaceOptions) (WrappedRationalStationLoftBody, error)) (WrappedRationalStationAssembly, error) {
 	var zero WrappedRationalStationAssembly
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
@@ -108,7 +114,7 @@ func ReadWrappedRationalStationAssembly(ctx context.Context, r io.Reader, l Limi
 			if e != nil {
 				return zero, e
 			}
-			body, e := ReadWrappedRationalStationLoft(bytes.NewReader(raw), l, o)
+			body, e := local(raw, l, o)
 			if e != nil {
 				return zero, e
 			}
@@ -146,7 +152,7 @@ func ReadWrappedRationalStationAssembly(ctx context.Context, r io.Reader, l Limi
 		sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
 		var found int64
 		for _, id := range out.SourceFaceIDs {
-			_, uses, e := analyticFaceLoop(f, id, 4)
+			uses, e := weightedAssemblyFaceUses(f, id)
 			if e != nil {
 				continue
 			}
@@ -388,4 +394,48 @@ func WriteWrappedRationalStationAssemblySource(ctx context.Context, w io.Writer,
 		return io.ErrShortWrite
 	}
 	return e
+}
+
+// This maps identities only after the selected local material reader proved
+// orientation. Inner bore bounds can be false; no source record is changed.
+func weightedAssemblyFaceUses(f *File, id int64) ([]analyticUse, error) {
+	face, e := simple(f, id, "ADVANCED_FACE", 4)
+	if e != nil {
+		return nil, e
+	}
+	ids, e := listRefs(face.Args[1], 1)
+	if e != nil || len(ids) != 1 {
+		return nil, geom.ErrInvalid
+	}
+	b, e := simple(f, ids[0], "FACE_BOUND", 3)
+	if e != nil {
+		b, e = simple(f, ids[0], "FACE_OUTER_BOUND", 3)
+	}
+	if e != nil {
+		return nil, e
+	}
+	if _, e = boolean(b.Args[2]); e != nil {
+		return nil, e
+	}
+	loop, e := simple(f, b.Args[1].Ref, "EDGE_LOOP", 2)
+	if e != nil {
+		return nil, e
+	}
+	edges, e := listRefs(loop.Args[1], 4)
+	if e != nil || len(edges) != 4 {
+		return nil, geom.ErrInvalid
+	}
+	var out []analyticUse
+	for _, eid := range edges {
+		u, e := simple(f, eid, "ORIENTED_EDGE", 5)
+		if e != nil {
+			return nil, e
+		}
+		sense, e := boolean(u.Args[4])
+		if e != nil {
+			return nil, e
+		}
+		out = append(out, analyticUse{u.Args[3].Ref, sense})
+	}
+	return out, nil
 }

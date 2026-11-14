@@ -118,3 +118,27 @@ The optional pinned XCAF test includes source → native envelope → reload →
 source/generated STEP and checks shared identity, both poses, volume, area and
 centroid. Mutation tests cover support weights, original owner IDs, source
 units, occurrence matrices, native geometry and envelope versions.
+
+## Separate through-bore assembly
+
+`ReadWrappedRationalStationBoreAssembly`,
+`WriteWrappedRationalStationBoreAssembly` and its `Source` writer admit one
+strict weighted through-bore local product under the same flat two-product,
+2..16-use graph. They retain separate bottom-to-top original outer and inner
+wall face IDs and all annular-cap face records. The local proof is exactly
+`ReadWrappedRationalStationBore`: both independently partitioned station grids,
+positive weighted profiles, strict radial nesting on every station slab,
+reversed inner walls, and shared exact end annuli. The shared assembly layer
+maps edge identities only after that full orientation proof; false inner
+`FACE_BOUND` senses are not changed in the original source.
+
+The filled reader and filled native tag still reject this family. This slice
+provides local native material reload plus source/generated assembly transfer,
+not a new bore assembly JSON envelope. The independent XCAF author accepts
+`write-bore output.step`, builds two rational lofts independently and cuts the
+inner from the outer before adding two shared product uses. Its retained
+450-entity source and generated output transfer as two solids / twelve face
+uses with the same poses, approximately 48.711798213 volume, and agreeing
+adaptive area and centroid. All values are model-coordinate measures; the
+source unit remains millimetres. Source output preserves IDs, generated output
+creates new IDs. No general XCAF or vendor approximation acceptance is added.

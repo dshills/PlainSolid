@@ -59,8 +59,9 @@ int main(int argc,char**argv){try{
  if(argc!=3)return 2;
  occ::handle<TDocStd_Document> doc=new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));
  auto shapes=XCAFDoc_DocumentTool::ShapeTool(doc->Main());
- if(std::string(argv[1])=="write"){
- auto part=shapes->AddShape(loft(false),false);auto root=shapes->NewShape();
+ if(std::string(argv[1])=="write"||std::string(argv[1])=="write-bore"){
+ TopoDS_Shape local=loft(false);if(std::string(argv[1])=="write-bore"){BRepAlgoAPI_Cut cut(local,loft(true));cut.Build();if(!cut.IsDone())return 7;local=cut.Shape();}
+ auto part=shapes->AddShape(local,false);auto root=shapes->NewShape();
  TDataStd_Name::Set(part,TCollection_ExtendedString("Original weighted station product"));TDataStd_Name::Set(root,TCollection_ExtendedString("Repeated curved AP242 product"));
  gp_Trsf a;a.SetTranslation(gp_Vec(10,0,0));auto u=shapes->AddComponent(root,part,TopLoc_Location(a));TDataStd_Name::Set(u,TCollection_ExtendedString("Translated weighted use"));
  gp_Trsf b;b.SetValues(0,0,1,0,1,0,0,20,0,1,0,0);u=shapes->AddComponent(root,part,TopLoc_Location(b));TDataStd_Name::Set(u,TCollection_ExtendedString("Cyclic weighted use"));shapes->UpdateAssemblies();
