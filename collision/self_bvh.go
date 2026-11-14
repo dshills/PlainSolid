@@ -170,6 +170,9 @@ func SelfIntersectionsBVHContext(ctx context.Context, m mesh.Mesh, o Options) (r
 			ta, tb = tb, ta
 		}
 		report.NarrowPhasePairs++
+		if coordinatePlaneExpectedContact(m, ta, tb) {
+			return nil
+		}
 		kind, points := preparedTriangleIntersection(memo.get(ta), memo.get(tb))
 		if kind == Disjoint || expectedSharedContact(m, ta, tb, kind, points) {
 			return nil

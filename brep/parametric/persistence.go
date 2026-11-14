@@ -29,16 +29,17 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
-	ObliqueSplit     *obliqueSplitData     `json:",omitempty"`
-	SplitCylinderCut *splitCylinderCutData `json:",omitempty"`
-	UnequalUnion     *unequalUnionData     `json:",omitempty"`
-	SteinmetzUnion   *steinmetzUnionData   `json:",omitempty"`
-	ObliqueUnion     *obliqueUnionData     `json:",omitempty"`
-	SteinmetzDualCap *steinmetzDualCapData `json:",omitempty"`
-	SteinmetzSlab    *steinmetzSlabData    `json:",omitempty"`
-	Steinmetz        *[2]int               `json:",omitempty"`
-	Transform        *geom.Affine          `json:",omitempty"`
-	Base             *surfaceData          `json:",omitempty"`
+	ExactBezier      *exactBezierSurfaceData `json:",omitempty"`
+	ObliqueSplit     *obliqueSplitData       `json:",omitempty"`
+	SplitCylinderCut *splitCylinderCutData   `json:",omitempty"`
+	UnequalUnion     *unequalUnionData       `json:",omitempty"`
+	SteinmetzUnion   *steinmetzUnionData     `json:",omitempty"`
+	ObliqueUnion     *obliqueUnionData       `json:",omitempty"`
+	SteinmetzDualCap *steinmetzDualCapData   `json:",omitempty"`
+	SteinmetzSlab    *steinmetzSlabData      `json:",omitempty"`
+	Steinmetz        *[2]int                 `json:",omitempty"`
+	Transform        *geom.Affine            `json:",omitempty"`
+	Base             *surfaceData            `json:",omitempty"`
 	Kind             string
 	Frame            *frameData               `json:",omitempty"`
 	A, B             float64                  `json:",omitempty"`
@@ -303,6 +304,12 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		d := x.Domain()
 		return surfaceData{Kind: "helical-profile", Frame: frameToData(f), Meridian: &[2]geom.Vec2{a, b},
 			Helical: &helicalSurfaceData{lead, hand, Interval{Min: d.UMin, Max: d.UMax}}}, nil
+	case *geom.ExactBezierSurface:
+		d, e := encodeExactBezierSurface(x)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		return surfaceData{Kind: "exact-bezier-surface", ExactBezier: d}, nil
 	case *geom.BSplineSurface:
 		d := x.Data()
 		maxWeight := 0.
@@ -334,6 +341,16 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "exact-bezier-surface") != (d.ExactBezier != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if d.ExactBezier != nil {
+		if !validExactSurfaceEnvelope(d) {
+			return nil, geom.ErrInvalid
+		}
+		return d.ExactBezier.decodeExact(budget)
+	}
+
 	if (d.Kind == "oblique-split-cylinder-cut") != (d.ObliqueSplit != nil) {
 		return nil, geom.ErrInvalid
 	}
