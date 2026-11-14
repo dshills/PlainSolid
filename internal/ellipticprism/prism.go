@@ -24,8 +24,20 @@ func Prism(ctx context.Context, frame geom.Frame, a, b, height, tolerance float6
 
 // Parts returns exact cap/cap/four-wall faces for already proved ellipse data.
 func Parts(ctx context.Context, frame geom.Frame, a, b, height, tolerance float64) ([]trimmed.SewFace, error) {
+	return parts(ctx, frame, a, b, height, tolerance, false)
+}
+
+// CirclePrism uses the same exact quarter construction for equal positive radii.
+func CirclePrism(ctx context.Context, frame geom.Frame, radius, height, tolerance float64) (trimmed.Solid, [2][4]int, error) {
+	p, e := parts(ctx, frame, radius, radius, height, tolerance, true)
+	if e != nil {
+		return trimmed.Solid{}, [2][4]int{}, e
+	}
+	return sewParts(ctx, p, tolerance)
+}
+func parts(ctx context.Context, frame geom.Frame, a, b, height, tolerance float64, circular bool) ([]trimmed.SewFace, error) {
 	failure := func(e error) ([]trimmed.SewFace, error) { return nil, e }
-	if ctx == nil || !finite(a) || !finite(b) || !finite(height) || !finite(tolerance) || a <= b || b <= 0 || height <= 0 || tolerance <= 0 {
+	if ctx == nil || !finite(a) || !finite(b) || !finite(height) || !finite(tolerance) || (!circular && a <= b) || (circular && a != b) || b <= 0 || height <= 0 || tolerance <= 0 {
 		return failure(geom.ErrInvalid)
 	}
 	if e := ctx.Err(); e != nil {
