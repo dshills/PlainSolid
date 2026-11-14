@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/geom"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -61,20 +62,23 @@ func TestFilletedFrustumAllSupportDistance(t *testing.T) {
 	c := q.fillets.Circles[1]
 	rr := fdAdd(c.Radius, r(1, 64))
 	check([3]*big.Rat{fdAdd(c.Center[0], fdMul(rr, r(4, 5))), r(0, 1), fdAdd(c.Center[1], fdMul(rr, r(3, 5)))}, r(1, 4096), []int{q.fillets.Blends[1]})
-	// The closest point on the entire lower plane is in the through hole.
-	// Never accept it as an upper witness or claim that its zero lower bound
-	// identifies a retained cap contact. The actual nearest rim is distance1/2.
-	p := [3]*big.Rat{r(-2, 1), r(0, 1), r(0, 1)}
-	ambiguous, e := q.BoundBoundaryDistanceRational(ctx, p, FilletedFrustumDistanceOptions{})
-	if e != nil {
-		t.Fatal(e)
+	// Same-owner hole clearance removes the old zero lower bound from the
+	// discarded full-plane projection. The retained rim owns cap and bore.
+	check([3]*big.Rat{r(-2, 1), r(0, 1), r(0, 1)}, r(1, 4), []int{q.fillets.Caps[0], q.cuts[0].wall})
+	check([3]*big.Rat{r(-2, 1), r(0, 1), r(-1, 8)}, r(17, 64), []int{q.fillets.Caps[0], q.cuts[0].wall})
+	// Disk clipping also excludes the unrelated blind floor beside this cone.
+	check([3]*big.Rat{fdAdd(r(28, 3), r(3, 320)), r(0, 1), fdSub(r(1, 1), r(1, 80))}, r(1, 4096), []int{q.fillets.Lateral})
+	for end, c := range q.fillets.Circles {
+		p := [3]*big.Rat{fdAdd(c.Tangency[0], fdMul(r(1, 64), c.Normal[0])), r(0, 1), fdAdd(c.Tangency[1], fdMul(r(1, 64), c.Normal[1]))}
+		owners, e := q.ClassifyRational(ctx, [3]*big.Rat{c.Tangency[0], r(0, 1), c.Tangency[1]})
+		if e != nil || len(owners.Faces) != 2 {
+			t.Fatal(owners, e)
+		}
+		expected := []int{q.fillets.Lateral, q.fillets.Blends[end]}
+		sort.Ints(expected)
+		check(p, r(1, 4096), expected)
 	}
-	if ambiguous.Exact || ambiguous.Converged || ambiguous.Lower.Sign() != 0 || ambiguous.Upper.Cmp(r(1, 4)) != 0 {
-		t.Fatal(ambiguous)
-	}
-	if !reflect.DeepEqual(ambiguous.WitnessFaces, []int{q.fillets.Caps[0], q.cuts[0].wall}) {
-		t.Fatal(ambiguous.WitnessFaces)
-	}
+	var p [3]*big.Rat
 	// Non-Pythagorean azimuth: increasingly precise sqrt enclosures retain
 	// validity and cannot lower the all-support lower bound.
 	p = [3]*big.Rat{r(1, 1), r(1, 1), r(3, 1)}
@@ -92,6 +96,16 @@ func TestFilletedFrustumAllSupportDistance(t *testing.T) {
 	// 1/sqrt(radial) intervals do not fabricate rational contact witnesses.
 	if fine.Exact {
 		t.Fatal("unexpected trim resolution")
+	}
+	// A lower blind hole must never exclude material from the intact upper
+	// cap. This fails if hole clearance is applied without exact cap ownership.
+	one, e := PrepareFilletedFrustumMaterial(ctx, s, 15./16, 15./8, []FilletedFrustumBoreCut{{Center: geom.Vec2{X: 2}, Radius: .5, Depth: 1}}, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	intact, e := one.BoundBoundaryDistanceRational(ctx, [3]*big.Rat{r(2, 1), r(0, 1), r(49, 8)}, FilletedFrustumDistanceOptions{})
+	if e != nil || !intact.Exact || intact.Lower.Cmp(r(1, 64)) != 0 || !reflect.DeepEqual(intact.WitnessFaces, []int{one.fillets.Caps[1]}) {
+		t.Fatal(intact, e)
 	}
 	for _, opts := range []FilletedFrustumDistanceOptions{{MaxSupportChecks: 9}, {SqrtBits: 257}, {SquaredTolerance: r(-1, 1)}} {
 		v, e := q.BoundBoundaryDistanceRational(ctx, p, opts)

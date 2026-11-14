@@ -11,6 +11,7 @@ import (
 // bounded integer square root; at most1+2*2+len(cuts) are needed. The checked
 // input and immutable source have4096-bit rational coefficients. This is not
 // a subdivision solver: unresolved trim exclusions can leave a wide interval.
+// The16-cut preparation limit also bounds exact retained-witness checks to75.
 type FilletedFrustumDistanceOptions struct {
 	SqrtBits         int
 	MaxSupportChecks int      // zero:37, range1..37; one per original native face
@@ -18,7 +19,9 @@ type FilletedFrustumDistanceOptions struct {
 }
 
 // FilletedFrustumFaceDistanceLower bounds distance to one retained native face
-// by distance to a larger full analytic support, intersected with its axial slab.
+// by distance to a larger analytic support, with axial slab and original
+// circular cap/floor domain restrictions. Cap exclusions apply only to holes
+// actually entering that cap; independent constraint distances use a maximum.
 type FilletedFrustumFaceDistanceLower struct {
 	Face         int
 	SquaredLower *big.Rat
@@ -70,7 +73,8 @@ func fdSqrt(x *big.Rat, bits int) (*big.Rat, *big.Rat) {
 // BoundBoundaryDistanceRational considers every original cap, cone, torus,
 // bore wall and blind floor. Upper candidates are accepted only through the
 // exact retained-material classifier, never from an untrimmed projection.
-// An exact cap/blend joint provides a fallback witness. Errors are atomic.
+// Rational cap/bore and cone/fillet rim projections retain all exact native
+// owners. An exact cap/blend joint provides a fallback witness. Errors are atomic.
 func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumDistanceOptions) (out FilletedFrustumDistance, err error) {
 	defer func() {
 		if err != nil {
@@ -154,12 +158,6 @@ func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Conte
 		}
 		return nil
 	}
-	plane := func(face int, z *big.Rat) error {
-		if e := add(face, fdSquare(fdSub(p[2], z)), z, z); e != nil {
-			return e
-		}
-		return witness([3]*big.Rat{p[0], p[1], z})
-	}
 	radialPoint := func(cx, cy, rho, radius, z *big.Rat) [3]*big.Rat {
 		if rho.Sign() == 0 {
 			return [3]*big.Rat{fdAdd(cx, radius), new(big.Rat).Set(cy), z}
@@ -167,12 +165,42 @@ func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Conte
 		scale := new(big.Rat).Quo(radius, rho)
 		return [3]*big.Rat{fdAdd(cx, fdMul(fdSub(p[0], cx), scale)), fdAdd(cy, fdMul(fdSub(p[1], cy), scale)), z}
 	}
+	rhoLo, rhoHi := fdSqrt(fdAdd(fdSquare(fdSub(p[0], q.center[0])), fdSquare(fdSub(p[1], q.center[1]))), o.SqrtBits)
+	type radialBracket struct{ lo, hi *big.Rat }
+	cutRadial := make([]radialBracket, len(q.cuts))
+	for i, c := range q.cuts {
+		lo, hi := fdSqrt(fdAdd(fdSquare(fdSub(p[0], c.center[0])), fdSquare(fdSub(p[1], c.center[1]))), o.SqrtBits)
+		cutRadial[i] = radialBracket{lo, hi}
+	}
+	positiveSquare := func(v *big.Rat) *big.Rat {
+		if v.Sign() <= 0 {
+			return new(big.Rat)
+		}
+		return fdSquare(v)
+	}
+	// A retained cap is inside its original flat disk and outside precisely
+	// the cutter disks entering that end. Each exclusion independently bounds
+	// planar travel; take their maximum, then add orthogonal plane separation.
+	plane := func(face int, z, radialLower *big.Rat) error {
+		if e := add(face, fdAdd(fdSquare(fdSub(p[2], z)), radialLower), z, z); e != nil {
+			return e
+		}
+		return witness([3]*big.Rat{p[0], p[1], z})
+	}
 	for end := 0; end < 2; end++ {
-		if e := plane(q.fillets.Caps[end], q.z[end]); e != nil {
+		lower := positiveSquare(fdSub(rhoLo, q.fillets.Circles[end].Center[0]))
+		for i, c := range q.cuts {
+			if c.open[end] {
+				v := positiveSquare(fdSub(c.radius, cutRadial[i].hi))
+				if v.Cmp(lower) > 0 {
+					lower = v
+				}
+			}
+		}
+		if e := plane(q.fillets.Caps[end], q.z[end], lower); e != nil {
 			return out, e
 		}
 	}
-	rhoLo, rhoHi := fdSqrt(fdAdd(fdSquare(fdSub(p[0], q.center[0])), fdSquare(fdSub(p[1], q.center[1]))), o.SqrtBits)
 	radius := fdAdd(q.r[0], fdMul(q.slope, fdSub(p[2], q.z[0])))
 	resLo, resHi := fdSub(rhoLo, radius), fdSub(rhoHi, radius)
 	denom := fdAdd(big.NewRat(1, 1), fdSquare(q.slope))
@@ -216,14 +244,29 @@ func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Conte
 				}
 			}
 		}
+		// Original full-circle cap/blend and cone/blend junctions. A rational
+		// azimuth produces an exact candidate and classification proves all owners.
+		if rhoLo.Cmp(rhoHi) == 0 {
+			for _, rz := range [][2]*big.Rat{{c.Center[0], q.z[end]}, c.Tangency} {
+				if e := witness(radialPoint(q.center[0], q.center[1], rhoLo, rz[0], rz[1])); e != nil {
+					return out, e
+				}
+			}
+		}
 		// This exact cap/blend joint is clear of every cutter by preparation proof.
 		if e := witness([3]*big.Rat{fdAdd(q.center[0], c.Center[0]), q.center[1], q.z[end]}); e != nil {
 			return out, e
 		}
 	}
-	for _, c := range q.cuts {
-		lo, hi := fdSqrt(fdAdd(fdSquare(fdSub(p[0], c.center[0])), fdSquare(fdSub(p[1], c.center[1]))), o.SqrtBits)
+	for i, c := range q.cuts {
+		lo, hi := cutRadial[i].lo, cutRadial[i].hi
 		lower, _ := fdSquareRange(fdSub(lo, c.radius), fdSub(hi, c.radius))
+		// Product cylinder support permits summing radial and axial distances.
+		if p[2].Cmp(c.z[0]) < 0 {
+			lower.Add(lower, fdSquare(fdSub(p[2], c.z[0])))
+		} else if p[2].Cmp(c.z[1]) > 0 {
+			lower.Add(lower, fdSquare(fdSub(p[2], c.z[1])))
+		}
 		if e := add(c.wall, lower, c.z[0], c.z[1]); e != nil {
 			return out, e
 		}
@@ -232,12 +275,20 @@ func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Conte
 				return out, e
 			}
 		}
+		// Both exact end circles are retained cap or blind-floor rim contacts.
+		if lo.Cmp(hi) == 0 {
+			for _, z := range c.z {
+				if e := witness(radialPoint(c.center[0], c.center[1], lo, c.radius, z)); e != nil {
+					return out, e
+				}
+			}
+		}
 		if c.floor >= 0 {
 			z := c.z[1]
 			if c.open[1] {
 				z = c.z[0]
 			}
-			if e := plane(c.floor, z); e != nil {
+			if e := plane(c.floor, z, positiveSquare(fdSub(lo, c.radius))); e != nil {
 				return out, e
 			}
 		}
