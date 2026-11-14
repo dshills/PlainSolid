@@ -125,6 +125,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedCircularMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBlindCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzThroughCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEccentricThroughCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedBoredMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
