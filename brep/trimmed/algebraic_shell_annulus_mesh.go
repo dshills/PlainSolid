@@ -30,10 +30,13 @@ type CertifiedAlgebraicShellAnnulusMesh struct {
 	EndpointOperations int
 }
 
-// TessellateAnnulusCertified fills a common bounded by two original affine-XY
-// graph faces in model XY or cyclic YZ projection, each retaining one outer and one inner whole section loop.
+// TessellateAnnulusCertified fills a common bounded by two original affine-projected
+// graph faces in model XY, YZ or XZ. Each retains one outer and one inner
+// whole section loop.
 // Original domains and complete pair coverage are independently requalified;
 // exact recipes and intervals bind every displayed boundary to native IDs.
+// An XZ scratch permutation reverses triangle orientation on restoration;
+// exact isometry preserves the distance and contact certificates.
 // The returned closed manifold has positive displayed volume and no exact
 // nonincidence triangle contacts. Its two-sided source-image distance bound
 // does not imply a volume-error bound or embedding of the original source.
@@ -170,7 +173,7 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 		return empty, e
 	}
 	source := section.runSource()
-	if source == nil || len(source.segments) != 2 || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2}) {
+	if source == nil || len(source.segments) != 2 || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2} && source.projection != [2]int{0, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	for i, b := range source.segments {
@@ -188,7 +191,7 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 		o.Regions.MaxLoops = 2
 	}
 	var regions AlgebraicTubeRegions
-	if source.projection == [2]int{1, 2} {
+	if source.projection != [2]int{0, 1} {
 		regions, e = projectedBooleanAnnulusView(ctx, section, loopBranches, o.Regions)
 	} else {
 		regions, e = section.SealAlgebraicTubeRegions(ctx, o.Regions)
@@ -216,12 +219,16 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 		return empty, geom.ErrConvergence
 	}
 	for chart, f := range regions.RegionFaces(selected) {
-		if owners[chart] < 0 || f.Reversed != s.faces[owners[chart]].Reversed {
+		physicalReverse := f.Reversed
+		if projectedAxisParity(source.projection) < 0 {
+			physicalReverse = !physicalReverse
+		}
+		if owners[chart] < 0 || physicalReverse != s.faces[owners[chart]].Reversed {
 			return empty, geom.ErrConvergence
 		}
 	}
 	var display CertifiedAlgebraicTubeRegionMesh
-	if source.projection == [2]int{1, 2} {
+	if source.projection != [2]int{0, 1} {
 		display, e = tessellateProjectedBooleanAnnulus(ctx, regions, o.Mesh)
 	} else {
 		display, e = regions.TessellateRegionClosedCertified(ctx, selected, o.Mesh)

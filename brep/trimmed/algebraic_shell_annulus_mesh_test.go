@@ -12,9 +12,11 @@ import (
 	"testing"
 )
 
-func TestCertifiedBooleanAnnulusFill(t *testing.T)   { checkCertifiedBooleanAnnulusFill(t, false) }
-func TestCertifiedYZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, true) }
-func checkCertifiedBooleanAnnulusFill(t *testing.T, rotated bool) {
+func TestCertifiedBooleanAnnulusFill(t *testing.T)   { checkCertifiedBooleanAnnulusFill(t, 0) }
+func TestCertifiedYZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 1) }
+func TestCertifiedXZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 2) }
+func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
+	rotated := projection != 0
 	if testing.Short() {
 		t.Skip("complete nested Boolean section and certified annulus")
 	}
@@ -43,6 +45,9 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, rotated bool) {
 				d := f.Surface.(*geom.BSplineSurface).Data()
 				for i, p := range d.Poles {
 					d.Poles[i] = geom.Vec3{X: -p.Z, Y: -p.X, Z: p.Y}
+					if projection == 2 {
+						d.Poles[i] = geom.Vec3{X: -p.X, Y: p.Z, Z: p.Y}
+					}
 				}
 				support, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
 				if e != nil {
@@ -68,6 +73,9 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, rotated bool) {
 			h.Attempts[i].Section = nil
 		}
 		axes = [2]int{1, 2}
+		if projection == 2 {
+			axes = [2]int{0, 2}
+		}
 		o.Trace.GraphProjectionAxes = axes
 		o.Seeds = []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: h}}
 	}
@@ -102,20 +110,39 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, rotated bool) {
 	if rotated && (display.Region != -1 || display.Footprint.Region != -1) {
 		t.Fatal("scratch region exposed as original")
 	}
+
 	if rotated {
-		minX := 0.0
+		extreme := 0.0
 		for _, p := range display.Mesh.Vertices {
-			minX = math.Min(minX, p.X)
-			if p.X > 1e-7 || p.Y >= 0 || p.Z <= 0 {
-				t.Fatal("signed world restoration", p)
+			if projection == 1 {
+				extreme = math.Min(extreme, p.X)
+				if p.X > 1e-7 || p.Y >= 0 || p.Z <= 0 {
+					t.Fatal("YZ world restoration", p)
+				}
+			} else {
+				extreme = math.Max(extreme, p.Y)
+				if p.Y < -1e-7 || p.X >= 0 || p.Z <= 0 {
+					t.Fatal("XZ world restoration", p)
+				}
 			}
 		}
-		if minX >= -1e-5 {
+		if math.Abs(extreme) < 1e-5 {
 			t.Fatal("lost nonplanar retained roof")
 		}
 		for _, p := range display.Footprint.Mesh.Vertices {
 			if p.Z != 0 || p.X >= 0 || p.Y <= 0 {
-				t.Fatal("YZ footprint coordinates", p)
+				t.Fatal("projected footprint coordinates", p)
+			}
+		}
+		for i, tri := range display.Mesh.Triangles {
+			native := common.faces[display.TriangleFaces[i]]
+			if native.Operand != 0 {
+				continue
+			}
+			p, q, r := display.Mesh.Vertices[tri[0]], display.Mesh.Vertices[tri[1]], display.Mesh.Vertices[tri[2]]
+			n := q.Sub(p).Cross(r.Sub(p))
+			if projection == 1 && n.X <= 0 || projection == 2 && n.Y >= 0 {
+				t.Fatal("physical plane winding after permutation", n)
 			}
 		}
 	}

@@ -64,6 +64,12 @@ func TestExternallyTangentSplineShells(t *testing.T) {
 		return s
 	}
 	b := roof(0)
+	wide, _ := makeOpenSplineBox(t, [3]float64{-.25, 0, 0}, [3]float64{.875, 1, 1}, 0)
+	if out, _, p, e := CombineExternallyTangentSplineShells(ctx, wide, b, parametric.Intersection,
+		SplineShellTangencyOptions{Faces: [2]int{4, 1}}); e != nil || len(out.Faces()) != 0 ||
+		p.SeparatedPairs != 35 || p.Point[0].Cmp(big.NewRat(1, 2)) != 0 || p.UV[1][1].Cmp(big.NewRat(1, 2)) != 0 {
+		t.Fatal("sole contact on unequal original graph rectangles", p, e)
+	}
 	for _, rotated := range []bool{false, true} {
 		stock, tool := a, b
 		o := SplineShellTangencyOptions{Faces: [2]int{4, 1}}
@@ -97,8 +103,13 @@ func TestExternallyTangentSplineShells(t *testing.T) {
 			}
 		}
 		out, h, _, e = CombineExternallyTangentSplineShells(ctx, stock, tool, parametric.Difference, o)
-		if e != nil || len(out.Faces()) != len(stock.Faces()) || len(h.FacesA) != 6 || len(h.FacesB[1]) != 0 || out.faces[4].Surface != stock.faces[4].Surface {
+		if e != nil || len(out.Faces()) != len(stock.Faces()) || len(h.FacesA) != 6 || len(h.FacesB[1]) != 0 ||
+			out.faces[4].Surface != stock.faces[4].Surface || len(h.EdgesA) != len(stock.edges) || h.EdgesA[0][0] != 0 {
 			t.Fatal("cut by externally tangent tool altered stock", e, h)
+		}
+		out, h, e = CombineSplineShells(ctx, stock, tool, parametric.Intersection, SplineShellCombineOptions{})
+		if e != nil || len(out.faces) != 0 || h.Method != "isolated-graph-tangency" {
+			t.Fatal("native shell dispatcher did not select the complete sole-contact proof", h.Method, e)
 		}
 		if out, _, _, e := CombineExternallyTangentSplineShells(ctx, stock, tool, parametric.Union, o); !errors.Is(e, geom.ErrConvergence) || len(out.Faces()) != 0 {
 			t.Fatal("point-only union should not emit a manifold", e)

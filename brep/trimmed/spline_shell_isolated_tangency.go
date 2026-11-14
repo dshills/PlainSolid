@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -34,7 +35,8 @@ type SplineShellTangency struct {
 // CombineExternallyTangentSplineShells handles a sole isolated quadratic
 // or definite graph contact of two independently embedded rectangular
 // spline shells. Opposite outward graph normals and strict graph order
-// prove no local material overlap at the contact. With all other face pairs
+// over the complete common projection prove no local material overlap at
+// the contact. With all other face pairs
 // disjoint and original vertex witnesses outside either shell, common is
 // empty and cut retains the stock. Union at a single point is not a native
 // manifold and returns ErrConvergence.
@@ -46,9 +48,28 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 		o.Contact.MaxOperations < 0 || o.Contact.MaxCoefficientBits != 0 && o.Contact.MaxCoefficientBits < 64 {
 		return Solid{}, history, empty, geom.ErrInvalid
 	}
+	solids := [2]Solid{a, b}
+	var all [2][]splineEmbeddingFace
 	if op == parametric.Union {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
+	for i, s := range solids {
+		if o.Faces[i] < 0 || o.Faces[i] >= len(s.faces) {
+			return Solid{}, history, empty, geom.ErrInvalid
+		}
+		if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
+			return Solid{}, history, empty, e
+		}
+	}
+	return combineTangentSplineShellPair(ctx, solids, all, op, o, false)
+}
+
+// separated is true only if the caller has already proved every unselected
+// face pair disjoint on the exact original embedding patches.
+func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace,
+	op parametric.BooleanOp, o SplineShellTangencyOptions, separated bool) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
+	var history SplineShellCombineHistory
+	var empty SplineShellTangency
 	axes := o.Projection
 	if axes == [2]int{} {
 		axes = [2]int{0, 1}
@@ -59,18 +80,11 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 	if o.Shells.MaxRays == 0 {
 		o.Shells.MaxRays = 12
 	}
+	if o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
+		return Solid{}, history, empty, geom.ErrInvalid
+	}
 	if o.Contact.MaxOperations == 0 {
 		o.Contact.MaxOperations = 8000000
-	}
-	solids := [2]Solid{a, b}
-	var all [2][]splineEmbeddingFace
-	for i, s := range solids {
-		if o.Faces[i] < 0 || o.Faces[i] >= len(s.faces) {
-			return Solid{}, history, empty, geom.ErrInvalid
-		}
-		if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
-			return Solid{}, history, empty, e
-		}
 	}
 	if len(all[0])*len(all[1]) > 256 {
 		return Solid{}, history, empty, geom.ErrConvergence
@@ -117,9 +131,50 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 	if sign[0] == sign[1] || limit().MaxOperations < 1 {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
-	alignment, used, e := geom.AlignAffineXYChartsWithWork(ctx, patches[0], patches[1], limit())
-	proof.ExactOperations += used
-	if e != nil {
+	align := func() (*geom.AffineXYChartAlignment, error) {
+		p := limit()
+		if p.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		a, used, e := geom.AlignAffineXYChartsWithWork(ctx, patches[0], patches[1], p)
+		proof.ExactOperations += used
+		return a, e
+	}
+	alignment, e := align()
+	if errors.Is(e, geom.ErrDomain) {
+		// Discard only the part of either original chart with no
+		// possible common projection. Analyze the full shared rectangle.
+		p := limit()
+		if p.MaxOperations < 1 {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		overlap, e := geom.ClipAffineXYGraphOverlap(ctx, patches[0], patches[1], p)
+		proof.ExactOperations += min(overlap.ExactOperations, p.MaxOperations)
+		if e != nil {
+			return Solid{}, history, empty, e
+		}
+		if overlap.Disjoint {
+			return Solid{}, history, empty, geom.ErrConvergence
+		}
+		for i, d := range [2]geom.ParameterRectangle{overlap.A, overlap.B} {
+			if patches[i].Domain() == d {
+				continue
+			}
+			if limit().MaxOperations < 1 {
+				return Solid{}, history, empty, geom.ErrConvergence
+			}
+			var used int
+			patches[i], used, e = patches[i].TrimWithWorkLimit(d, limit().MaxOperations)
+			proof.ExactOperations += used
+			if e != nil {
+				return Solid{}, history, empty, e
+			}
+		}
+		alignment, e = align()
+		if e != nil {
+			return Solid{}, history, empty, e
+		}
+	} else if e != nil {
 		return Solid{}, history, empty, e
 	}
 	o.Contact.MaxOperations = limit().MaxOperations
@@ -140,8 +195,10 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 			if i == o.Faces[0] && j == o.Faces[1] {
 				continue
 			}
-			if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
-				return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+			if !separated {
+				if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
+					return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+				}
 			}
 			proof.SeparatedPairs++
 		}
@@ -173,7 +230,13 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 		}
 	}
 	proof.StrictOrder = c.Side
-	native, history := regularizedTouchResult(a, b, op)
+	native, history := regularizedTouchResult(solids[0], solids[1], op)
 	history.Method = "isolated-graph-tangency"
+	history.EdgesA, history.EdgesB = make([][]int, len(solids[0].edges)), make([][]int, len(solids[1].edges))
+	if op == parametric.Difference {
+		for i := range history.EdgesA {
+			history.EdgesA[i] = []int{i}
+		}
+	}
 	return native, history, proof, nil
 }

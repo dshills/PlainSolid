@@ -1879,6 +1879,31 @@ mode also preserves affine coincident intervals in the same ordered proof.
 The sole external spline shell touch (`25d9d47`) qualifies an interior
 quadratic contact in XY and YZ. Normal, race and OCCT tests verify empty
 common and unchanged cut; native union fails on the nonmanifold point join.
+The unequal-rectangle variant (`ec71388`) first clips both original
+affine chart domains to their exact physical overlap and proves the contact
+there. The analytic world point and both original owner UV coordinates
+survive; normal and focused race checks passed.
+The placed circular IGES material (`02cd1c4`) puts the same proper signed
+type 124 placement on all six support/model leaves. It preserves local
+analytic charts and verifies authored world vertices. OCCT source and output
+agree on one solid, three faces, volume 12π, area 20π, and centroid
+(8.5, -4, 2).
+Mixed placed circular material (`8474571`) keeps the original type 124 as
+a uniquely owned dependency of its own cylinder and preserves its directory
+ID through exact rebasing. An independent planar/spline/placed-cylinder
+source and Go output transfer in OCCT as three solids and 13 faces.
+The signed XZ annulus (`14926ac`) qualifies the odd projection permutation.
+The independently checked world stock normal and both original boundary
+traversals agree with the native shell; its full normal test and focused
+guard race test passed.
+Wrapped composition proof cells (`5b39e64`) retain an irrational seam
+root, the original and shifted UV occurrences, exact original curve
+parameters and a proved model endpoint join. Reversing the authored
+curve or refining original knots preserves the attained model image.
+The native open-face constructor still requires its representable boundary.
+The shell Boolean dispatcher (`538dee7`) now selects the sole-contact proof
+after independently separating all other face pairs. The existing
+separated, closed, affine and boundary-contact dispatch checks pass.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
