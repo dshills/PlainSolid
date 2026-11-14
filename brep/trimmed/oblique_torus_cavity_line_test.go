@@ -72,6 +72,18 @@ func TestNativeObliqueCavityLine(t *testing.T) {
 				}
 			}
 		}
+		partition, e := s.PartitionPlacedRationalLine(ctx, pose, a, d, r(-8, 1), r(8, 1), o)
+		if e != nil || len(partition.Boundary.Hits) != len(world.Boundary.Hits) {
+			t.Fatal("partition boundary", e)
+		}
+		for i, hit := range partition.Boundary.Hits {
+			cmp, e := hit.Parameter.Compare(ctx, world.Boundary.Hits[i].Parameter, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || !cmp.Proven || cmp.Order != 0 || hit.Boundary != world.Boundary.Hits[i].Boundary {
+				t.Fatal("partition original event", e)
+			}
+		}
+		// Feed this one-pass partition's boundary into the live reference below.
+		world.Boundary = partition.Boundary
 		if oracle := os.Getenv("PLAINSOLID_OCCT_OBLIQUE_CAVITY_LINE"); oracle != "" {
 			args := []string{}
 			for _, vector := range [][3]*big.Rat{a, d} {
