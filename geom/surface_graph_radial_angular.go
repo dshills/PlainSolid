@@ -6,7 +6,7 @@ import (
 )
 
 // Dense exact power coefficients indexed by original world X,Y exponents.
-// The original charts prove X=u,Y=v; no numerical coordinate inversion occurs.
+// Exact physical chart transport, when needed, is applied before integration.
 type radialPower [][]*big.Rat
 
 func newRadialPower(n, m int) radialPower {
@@ -72,6 +72,13 @@ func radialHeightPowers(ctx context.Context, r *SplineGraphRadialContours, b *po
 			}
 			for i, c := range column {
 				out[k][i][j].Set(c)
+			}
+		}
+		if r.heightRectangle[0][0] != nil {
+			var e error
+			out[k], e = radialPhysicalHeightPower(ctx, out[k], r.heightRectangle, b)
+			if e != nil {
+				return [2]radialPower{}, e
 			}
 		}
 	}

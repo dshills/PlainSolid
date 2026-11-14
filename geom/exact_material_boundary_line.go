@@ -13,6 +13,10 @@ func intersectMaterialBoundary(ctx context.Context, polynomials []rationalPolyno
 }
 
 func intersectMaterialBoundaryRational(ctx context.Context, polynomials []rationalPolynomial, minT, maxT *big.Rat, o ToroidLineOptions, budget *polynomialBudget, ro ExactCurvePlaneEventOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask)) (BoreLineBoundary, error) {
+	return partitionMaterialBoundaryRational(ctx, polynomials, minT, maxT, o, budget, ro, classify, nil)
+}
+
+func partitionMaterialBoundaryRational(ctx context.Context, polynomials []rationalPolynomial, minT, maxT *big.Rat, o ToroidLineOptions, budget *polynomialBudget, ro ExactCurvePlaneEventOptions, classify func([]int) (BorePointLocation, BoreBoundaryMask), partition *ExactMaterialLinePartition) (BoreLineBoundary, error) {
 	fail := func(e error) (BoreLineBoundary, error) { return BoreLineBoundary{}, e }
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	var e error
@@ -96,6 +100,11 @@ func intersectMaterialBoundaryRational(ctx context.Context, polynomials []ration
 		}
 		events[i].location, events[i].mask = classify(signs)
 	}
+	if partition != nil {
+		for _, event := range events {
+			partition.Stations = append(partition.Stations, ExactMaterialLineStation{Parameter: event.root, Location: event.location, Boundary: event.mask, Multiplicity: event.multiplicity})
+		}
+	}
 	covered := make([]bool, len(events))
 	var out BoreLineBoundary
 	for i := 0; i+1 < len(events); i++ {
@@ -141,6 +150,9 @@ func intersectMaterialBoundaryRational(ctx context.Context, polynomials []ration
 			signs[j] = value.Sign()
 		}
 		loc, mask := classify(signs)
+		if partition != nil {
+			partition.Spans = append(partition.Spans, ExactMaterialLineSpan{Start: i, End: i + 1, Location: loc, Boundary: mask})
+		}
 		if loc != BoreBoundary {
 			continue
 		}

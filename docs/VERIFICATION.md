@@ -5372,3 +5372,62 @@ walls, floor and roof, and equal boxes. Tests check exact rational values and
 atomic cancellation and fail-closed source rejection. The live focused race
 run (`PLAINSOLID_OCCT_COINCIDENT_ROOF_AREA` with `mass` mode) passed; the separate
 surface area regression passed in the same run.
+
+`TestCoincidentRoofBoxPointLocation` checks 36 source classifications against
+independent OCCT regularized box Common, Fuse and Cut, including both sides
+of an exposed seam and a zero-volume contact. `TestRoofBoxNonlinearPointGerms`
+checks a nonplanar wedge and cancellation on coincident rational and creased
+roofs. The tangent regression uses `(Y-X)^2-X^3`, where diagonal cancellation
+is necessary to see both signs. Work exhaustion and cancellation return no
+location result. The focused live race run passed in 4.533 s, including the
+shared boundary measures and independent creased-roof check.
+
+## Original non-unit native annulus (2026-11-14)
+
+`TestNativeNonunitRadialAnnulus` checks the original roof height in the annulus,
+hole and exterior without meshing. Full section, intersection and native
+assembly retain two original supports, 176 original edges, two inner wires
+and Euler characteristic zero, with two opposed uses per edge. Removing a
+loop fails. The earlier complete normal run passed in 108.16 s; the final
+race run with ownership and mutation checks passed in 589.60 s.
+`TestNonunitRadialExactTransfer` checks 124 independent cover cells against
+176 tubes and exercises operation, stratum and cell limits; it passed in
+32.09 s under the race detector. Both ran together on isolated `84b54eac`'s
+test tree in 623.161 s. Independent integration of the original height field
+gives volume π·421875/2147483648; this test qualifies native topology.
+
+## Complete affine triple-region qualification (2026-11-14)
+
+The integrated affine strategy at `ca88d4ad` passed the full original
+`TestAlgebraicShellTripleRadialMaterialComponents` in 1,339.65 s (package
+1,339.900 s). The 248 independently covered overlap cells transferred to
+228 original tubes with 47,917,325 exact operations. Native assembly retained
+four original faces and two components. The exact volume coefficient was
+63333935546875/864691128455135232 times π, and the exact centroid Z was
+106610222140625/232841378390867968.
+
+The certified degree-eight native display retained 10,066 vertices and
+20,128 triangles, checked 5,204,760 collision candidates with zero collisions,
+and spent 59,134,086 exact residual operations. Display volume was
+0.0002195165898933681 against analytic 0.00023010462359255695. This qualifies the
+same retained material as the earlier generic run, which took 2,376.98 s.
+
+```sh
+PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE=1 PLAINSOLID_TRIPLE_RADIAL_MESH=1 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestAlgebraicShellTripleRadialMaterialComponents$' -count=1 -timeout 75m -v
+```
+
+Local log: `/tmp/plainsolid-affine-triple-physical-full-2026-11-14.log`, SHA-256
+`7ca811e33294fab9574071ff8340960268a93604b9d8ddf1ca3b12ca98b8053a`.
+
+## Physical annulus moments with independent beta integral (2026-11-14)
+
+`TestAffineRadialPhysicalAnnulusMoments` uses exact Bernstein roofs over
+[2,4]×[−1,2] with a swapped, reversed chart and common nonradial height
+7+X/3−Y/5. For q=(X−3)²+(Y−1/2)², a=25/1024, b=25/256 and L=b−a,
+the gap is H=3(q−a)(b−q). Independent integration gives volume/π=L³/2,
+integral(H²)dq=3L⁵/10, mean q=(a+b)/2, and centroid Z=79/10+3L²/10.
+The new physical volume, planar and mass APIs agree on the exact volume,
+second moments, centroid and first Z moment, including work limits and output
+ownership. The integrated focused geometry race passed in 1.680 s. These
+methods accept explicit radial bands and do not independently select native
+Boolean material.

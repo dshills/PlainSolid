@@ -836,6 +836,12 @@ app and 2,180 kernel source blobs. The [authored 2 mm offset case](evidence/plai
 reproduced the 258,205-byte STEP and watertight 1,294-triangle STL, including
 eight bounded spline edge records. Independent OCCT transfer matched direct
 construction.
+The [tighter covered-width reconciliation](evidence/plaincad-reconciled-8417c286-development-tight-covered-holes-step-2026-11-14.json)
+adds worktree revision `e2e9a253` to review `8417c286`. All 17 original
+browser cases and the focused native race suite passed; 841 app and 2,186
+kernel source blobs were verified. The [authored 0.75 mm offset case](evidence/plaincad-reconciled-8417c286-supplemental-tight-covered-step-2026-11-14.json)
+reproduced the 378,805-byte STEP and watertight 1,672-triangle STL. Independent
+OCCT transfer matched direct construction.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
@@ -1894,9 +1900,10 @@ cell at 205,780 operations, not arithmetic exhaustion) without weakening the
 generic proof. `RadialOverlapCoverage.TransferMode` identifies the selected
 proof; `TransferStrata` and `TransferTests` report its bounded arrangement work.
 The generic original-cell union remains available on the non-affine strategy.
-The opt-in direct original triple-pair test passed for all 228 original tubes,
-using 248 overlapping cover cells. Native assembly and mesh qualification with
-this strategy are tracked separately.
+The opt-in complete affine triple-region test passed on the original fixture:
+248 overlap cells certify 228 retained edges, two native components, exact
+original material moments, and a collision-free 20,128-triangle certified
+display. The generic transfer remains separately qualified on this fixture.
 
 ## Direct regularized measures for coincident roof boxes (2026-11-14)
 
@@ -1906,3 +1913,23 @@ of Cut accept supported shared floor, wall and roof supports. Mass includes
 world first moments and inertia. Zero-volume intersections have exact zero
 moments and no defined centroid. This adds measure queries; construction and
 source topology for coincident Boolean results remain separate.
+
+`PrepareRoofBoxPointQuery` also classifies the same original source pair on
+coincident supports. It uses local occupied layers to distinguish an internal
+union seam, a face-only intersection, and a genuinely exposed contact. Exact
+one-sided polynomial proofs include shared rational roofs and piecewise roof
+creases. A harder tangential order that affects the location fails closed.
+
+## Non-unit native radial annulus qualification (2026-11-14)
+
+A separate original-source fixture uses the roof rectangle [2,4]×[-1,2]
+and stock footprint [1.5,4.5]×[-1.5,2.5]. For
+q=(X−3)²+(Y−1/2)², the exact height is −3(q−25/1024)(q−25/256), against
+stock bottom Z=0. The retained annulus has physical radii 5/32 and 5/16.
+The source floor Z=−256 satisfies the existing sufficient wall injectivity
+proof and does not alter the retained material.
+
+Native assembly retains 176 ordered original tube edges, the original UV
+owners and two original support objects. Each edge has two opposed uses;
+there are two inner wires and Euler characteristic zero. Removing an inner
+wire fails atomically. Separate tests cover exact transfer work limits.

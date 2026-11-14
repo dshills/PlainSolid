@@ -9,7 +9,8 @@ import (
 
 // clipHierarchyGeneralPlanar accepts transverse finite-face events only. A line
 // contained in any support plane is explicitly unsupported before events emit.
-func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, proof *hierarchyGeneralPlanarProof, u RationalHierarchyInstance, origin, direction [3]*big.Rat, lower, upper *big.Rat, a *hierarchyPointArithmetic, out *RationalHierarchyLine, maxTests, maxRays int, opts func() (geom.ExactCurvePlaneEventOptions, error), addHit func(*geom.ExactAlgebraicRoot, HierarchyLineOwner) error) (HierarchyLineLeaf, error) {
+func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, proof *hierarchyGeneralPlanarProof, u RationalHierarchyInstance, origin, direction [3]*big.Rat, lower, upper *big.Rat, a *hierarchyPointArithmetic, out *RationalHierarchyLine, maxTests, maxRays int, opts func() (geom.ExactCurvePlaneEventOptions, error), addHit func(*geom.ExactAlgebraicRoot, HierarchyLineOwner) error, coplanarMode ...bool) (HierarchyLineLeaf, error) {
+	allowCoplanar := len(coplanarMode) > 0 && coplanarMode[0]
 	fail := func(e error) (HierarchyLineLeaf, error) { return HierarchyLineLeaf{}, e }
 	tick := func() error {
 		out.PlanarTests++
@@ -40,7 +41,7 @@ func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, pro
 		}
 		constants[i] = a.add(a.planarDot(f.plane.n, x), f.plane.c)
 		slopes[i] = a.planarDot(f.plane.n, d)
-		if slopes[i].Sign() == 0 && constants[i].Sign() == 0 {
+		if slopes[i].Sign() == 0 && constants[i].Sign() == 0 && !allowCoplanar {
 			if a.err != nil {
 				return fail(a.err)
 			}
@@ -69,6 +70,43 @@ func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, pro
 	add(upper, false)
 	for i, f := range proof.faces {
 		if slopes[i].Sign() == 0 {
+			if constants[i].Sign() != 0 {
+				continue
+			}
+			first, second := (f.drop+1)%3, (f.drop+2)%3
+			cross2 := func(ax, ay, bx, by *big.Rat) *big.Rat { return a.sub(a.mul(ax, by), a.mul(ay, bx)) }
+			for _, loop := range f.loops {
+				for j, vid := range loop {
+					if e := tick(); e != nil {
+						return fail(e)
+					}
+					v, w := proof.base.vertices[vid], proof.base.vertices[loop[(j+1)%len(loop)]]
+					ex, ey := a.sub(w[first], v[first]), a.sub(w[second], v[second])
+					px, py := a.sub(v[first], x[first]), a.sub(v[second], x[second])
+					det := cross2(d[first], d[second], ex, ey)
+					if det.Sign() != 0 {
+						t := a.check(new(big.Rat).Quo(cross2(px, py, ex, ey), det))
+						u := a.check(new(big.Rat).Quo(cross2(px, py, d[first], d[second]), det))
+						if u.Sign() >= 0 && u.Cmp(big.NewRat(1, 1)) <= 0 && t.Cmp(lower) >= 0 && t.Cmp(upper) <= 0 {
+							add(t, true)
+						}
+					} else if cross2(px, py, d[first], d[second]).Sign() == 0 {
+						axis := first
+						if d[axis].Sign() == 0 {
+							axis = second
+						}
+						if d[axis].Sign() == 0 {
+							return fail(geom.ErrInvalid)
+						}
+						for _, vertex := range [][3]*big.Rat{v, w} {
+							t := a.check(new(big.Rat).Quo(a.sub(vertex[axis], x[axis]), d[axis]))
+							if t.Cmp(lower) >= 0 && t.Cmp(upper) <= 0 {
+								add(t, true)
+							}
+						}
+					}
+				}
+			}
 			continue
 		}
 		t := a.check(new(big.Rat).Quo(new(big.Rat).Neg(constants[i]), slopes[i]))
@@ -127,10 +165,16 @@ func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, pro
 			owner.ContactEdgeIDs = eds
 			owner.ContactVertexIDs = vs
 			for _, id := range fs {
-				owner.Supports = append(owner.Supports, HierarchyLineSupport{SourceFaceID: id, Role: "planar-face", Multiplicity: 1})
+				multiplicity := 1
+				for j, f := range proof.faces {
+					if f.plane.id == id && slopes[j].Sign() == 0 {
+						multiplicity = 0
+					}
+				}
+				owner.Supports = append(owner.Supports, HierarchyLineSupport{SourceFaceID: id, Role: "planar-face", Multiplicity: multiplicity})
 			}
 			if len(fs) == 1 {
-				owner.Multiplicity = 1
+				owner.Multiplicity = owner.Supports[0].Multiplicity
 			}
 			if e = addHit(s.root, owner); e != nil {
 				return fail(e)
@@ -139,12 +183,15 @@ func clipHierarchyGeneralPlanar(ctx context.Context, leaf HierarchyLineLeaf, pro
 	}
 	for i := 1; i < len(ordered); i++ {
 		mid := a.check(new(big.Rat).Quo(a.add(ordered[i-1].t, ordered[i].t), big.NewRat(2, 1)))
-		where, _, _, _, e := classify(mid)
+		where, fs, eds, _, e := classify(mid)
 		if e != nil {
 			return fail(e)
 		}
 		if where == AnalyticPointBoundary {
-			return fail(geom.ErrInvalid)
+			if !allowCoplanar {
+				return fail(geom.ErrInvalid)
+			}
+			leaf.BoundarySpans = append(leaf.BoundarySpans, HierarchyLineBoundarySpan{Lower: ordered[i-1].root, Upper: ordered[i].root, Roles: []string{"planar-face"}, SourceFaceIDs: fs, SourceEdgeIDs: eds})
 		}
 		if where == AnalyticPointInside {
 			leaf.Spans = append(leaf.Spans, HierarchyLineSpan{Lower: ordered[i-1].root, Upper: ordered[i].root})
@@ -165,4 +212,13 @@ func ClipGeneralRationalHierarchyLine(ctx context.Context, m RationalSphericalHi
 }
 func ClipGeneralOCCTRationalHierarchyLine(ctx context.Context, m OCCTRationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
 	return clipRationalHierarchyLine(ctx, RationalSphericalHierarchy(m), origin, direction, lower, upper, o, true, true)
+}
+
+// ClipCoplanarGeneralRationalHierarchyLine additionally proves finite coplanar
+// polygon and hole spans; the transverse-only API keeps its original gate.
+func ClipCoplanarGeneralRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
+	return clipRationalHierarchyLine(ctx, m, origin, direction, lower, upper, o, false, true, true)
+}
+func ClipCoplanarGeneralOCCTRationalHierarchyLine(ctx context.Context, m OCCTRationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
+	return clipRationalHierarchyLine(ctx, RationalSphericalHierarchy(m), origin, direction, lower, upper, o, true, true, true)
 }

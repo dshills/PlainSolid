@@ -27,6 +27,9 @@ type NativeObliqueCavityLine struct {
 }
 
 func (p *PreparedObliqueTorusCavity) IntersectRationalLineBoundary(ctx context.Context, origin, direction [3]*big.Rat, min, max *big.Rat, o NativeObliqueCavityLineOptions) (out NativeObliqueCavityLine, err error) {
+	return p.bindLineBoundary(ctx, origin, direction, min, max, o, nil)
+}
+func (p *PreparedObliqueTorusCavity) bindLineBoundary(ctx context.Context, origin, direction [3]*big.Rat, min, max *big.Rat, o NativeObliqueCavityLineOptions, boundary *geom.BoreLineBoundary) (out NativeObliqueCavityLine, err error) {
 	defer func() {
 		if err != nil {
 			out = NativeObliqueCavityLine{}
@@ -88,7 +91,11 @@ func (p *PreparedObliqueTorusCavity) IntersectRationalLineBoundary(ctx context.C
 		}
 	}
 	out.OwnershipOperations = 128
-	out.Boundary, err = p.source.IntersectRationalLineBoundary(ctx, origin, direction, min, max, o.Line)
+	if boundary == nil {
+		out.Boundary, err = p.source.IntersectRationalLineBoundary(ctx, origin, direction, min, max, o.Line)
+	} else {
+		out.Boundary = *boundary
+	}
 	if err != nil {
 		return out, err
 	}

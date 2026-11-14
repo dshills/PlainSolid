@@ -23,6 +23,7 @@ type RationalSphericalHierarchyDocument struct {
 	model  step.RationalSphericalHierarchy
 	uses   []RationalHierarchyDocumentOccurrence
 	vendor bool
+	affine *step.AffinePCurveHierarchy
 }
 
 // RationalHierarchyDocumentOccurrence names one original use and material
@@ -87,6 +88,32 @@ func ReadOCCTRationalSphericalHierarchyDocumentNative(ctx context.Context, r io.
 }
 
 func materializeRationalSphericalHierarchyDocument(ctx context.Context, m step.RationalSphericalHierarchy, o STEPAssemblyOptions, vendor bool) (*RationalSphericalHierarchyDocument, error) {
+	uses, err := rationalHierarchyDocumentUses(ctx, m, o)
+	if err != nil {
+		return nil, err
+	}
+	var native, source bytes.Buffer
+	if vendor {
+		err = step.WriteOCCTRationalSphericalHierarchyJSON(ctx, &native, step.OCCTRationalSphericalHierarchy(m))
+	} else {
+		err = step.WriteRationalSphericalHierarchyJSON(ctx, &native, m)
+	}
+	if err != nil {
+		return nil, err
+	}
+	tol := m.Tolerance()
+	if vendor {
+		err = step.WriteOCCTRationalSphericalHierarchySource(ctx, &source, m.Source, o.Geometry, tol)
+	} else {
+		err = step.WriteRationalSphericalHierarchySource(ctx, &source, m.Source, o.Geometry, tol)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &RationalSphericalHierarchyDocument{source: source.Bytes(), native: native.Bytes(), model: m, uses: uses, vendor: vendor}, nil
+}
+
+func rationalHierarchyDocumentUses(ctx context.Context, m step.RationalSphericalHierarchy, o STEPAssemblyOptions) ([]RationalHierarchyDocumentOccurrence, error) {
 	if o.MaxNodes == 0 {
 		o.MaxNodes = 10000
 	}
@@ -129,26 +156,7 @@ func materializeRationalSphericalHierarchyDocument(ctx context.Context, m step.R
 			Path: append([]int64(nil), u.Path...), SourceFaceIDs: faces, World: u.Matrix(),
 		})
 	}
-	var native, source bytes.Buffer
-	var err error
-	if vendor {
-		err = step.WriteOCCTRationalSphericalHierarchyJSON(ctx, &native, step.OCCTRationalSphericalHierarchy(m))
-	} else {
-		err = step.WriteRationalSphericalHierarchyJSON(ctx, &native, m)
-	}
-	if err != nil {
-		return nil, err
-	}
-	tol := m.Tolerance()
-	if vendor {
-		err = step.WriteOCCTRationalSphericalHierarchySource(ctx, &source, m.Source, o.Geometry, tol)
-	} else {
-		err = step.WriteRationalSphericalHierarchySource(ctx, &source, m.Source, o.Geometry, tol)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &RationalSphericalHierarchyDocument{source: source.Bytes(), native: native.Bytes(), model: m, uses: uses, vendor: vendor}, nil
+	return uses, nil
 }
 
 func rationalHierarchyDocumentKey(root int64, path []int64) string {
@@ -269,15 +277,16 @@ func (d *RationalSphericalHierarchyDocument) Bounds(ctx context.Context, o step.
 	return step.BoundRationalSphericalHierarchy(ctx, d.model, o)
 }
 
-// Locate classifies each supported material occurrence independently.
+// Locate classifies each supported material occurrence independently, including
+// authenticated reentrant planar boundaries.
 func (d *RationalSphericalHierarchyDocument) Locate(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyPointOptions) (step.RationalHierarchyPointLocations, error) {
 	if d == nil {
 		return step.RationalHierarchyPointLocations{}, geom.ErrInvalid
 	}
 	if d.vendor {
-		return step.LocateOCCTRationalHierarchyPoint(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+		return step.LocateGeneralOCCTRationalHierarchyPoint(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
 	}
-	return step.LocateRationalHierarchyPoint(ctx, d.model, point, o)
+	return step.LocateGeneralRationalHierarchyPoint(ctx, d.model, point, o)
 }
 
 // ClipLine retains original line parameters and every exact occurrence owner.
@@ -291,6 +300,31 @@ func (d *RationalSphericalHierarchyDocument) ClipLine(ctx context.Context, origi
 	return step.ClipRationalHierarchyAnalyticLine(ctx, d.model, origin, direction, lower, upper, o)
 }
 
+// ClipGeneralLine adds transverse clipping of authenticated nonconvex planar
+// occurrences. A planar occurrence is unsupported when the line lies in one
+// of its supporting planes; use ClipLine for coplanar convex occurrences.
+func (d *RationalSphericalHierarchyDocument) ClipGeneralLine(ctx context.Context, origin, direction [3]*big.Rat, lower, upper *big.Rat, o step.RationalHierarchyLineOptions) (step.RationalHierarchyLine, error) {
+	if d == nil {
+		return step.RationalHierarchyLine{}, geom.ErrInvalid
+	}
+	if d.vendor {
+		return step.ClipGeneralOCCTRationalHierarchyLine(ctx, step.OCCTRationalSphericalHierarchy(d.model), origin, direction, lower, upper, o)
+	}
+	return step.ClipGeneralRationalHierarchyLine(ctx, d.model, origin, direction, lower, upper, o)
+}
+
+// ClipCoplanarGeneralLine includes exact boundary spans on finite nonconvex
+// and holed planar faces. All parameters retain the supplied line's scale.
+func (d *RationalSphericalHierarchyDocument) ClipCoplanarGeneralLine(ctx context.Context, origin, direction [3]*big.Rat, lower, upper *big.Rat, o step.RationalHierarchyLineOptions) (step.RationalHierarchyLine, error) {
+	if d == nil {
+		return step.RationalHierarchyLine{}, geom.ErrInvalid
+	}
+	if d.vendor {
+		return step.ClipCoplanarGeneralOCCTRationalHierarchyLine(ctx, step.OCCTRationalSphericalHierarchy(d.model), origin, direction, lower, upper, o)
+	}
+	return step.ClipCoplanarGeneralRationalHierarchyLine(ctx, d.model, origin, direction, lower, upper, o)
+}
+
 // Mass returns exact symbolic unit-density moments summed across occurrences.
 func (d *RationalSphericalHierarchyDocument) Mass(ctx context.Context, o step.RationalHierarchyMassOptions) (step.RationalHierarchyMass, error) {
 	if d == nil {
@@ -300,6 +334,36 @@ func (d *RationalSphericalHierarchyDocument) Mass(ctx context.Context, o step.Ra
 		return step.MeasureOCCTRationalSphericalHierarchy(ctx, step.OCCTRationalSphericalHierarchy(d.model), o)
 	}
 	return step.MeasureRationalSphericalHierarchy(ctx, d.model, o)
+}
+
+// MassFromOrientedBoundary accumulates signed original planar loops and exact
+// analytic moments, then applies each retained occurrence pose.
+func (d *RationalSphericalHierarchyDocument) MassFromOrientedBoundary(ctx context.Context, o step.GeneralRationalHierarchyMassOptions) (step.RationalHierarchyMass, error) {
+	if d == nil {
+		return step.RationalHierarchyMass{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.Measure(ctx, o)
+	}
+	if d.vendor {
+		return step.MeasureGeneralOCCTRationalSphericalHierarchy(ctx, step.OCCTRationalSphericalHierarchy(d.model), o)
+	}
+	return step.MeasureGeneralRationalSphericalHierarchy(ctx, d.model, o)
+}
+
+// BoundaryArea returns exact per-face and per-occurrence areas in original
+// model units. The aggregate counts occurrences independently.
+func (d *RationalSphericalHierarchyDocument) BoundaryArea(ctx context.Context, o step.RationalHierarchyAreaOptions) (step.RationalHierarchyArea, error) {
+	if d == nil {
+		return step.RationalHierarchyArea{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.BoundaryArea(ctx, o)
+	}
+	if d.vendor {
+		return step.MeasureOCCTRationalHierarchyBoundaryArea(ctx, step.OCCTRationalSphericalHierarchy(d.model), o)
+	}
+	return step.MeasureRationalHierarchyBoundaryArea(ctx, d.model, o)
 }
 
 // Relationships returns the proved source uses, including their original frame
@@ -315,11 +379,22 @@ func (d *RationalSphericalHierarchyDocument) Relationships() []step.ExactNAUOOcc
 // EditRelationships returns a new source-bound document after applying exact
 // local edits. All paths using a selected relationship adopt the same placement.
 // The original document is unchanged if validation or publication fails.
+// Affine-pcurve documents edit the authored source and re-prove the original
+// pcurve ownership before publishing the new document.
 func (d *RationalSphericalHierarchyDocument) EditRelationships(ctx context.Context, edits []step.RationalSphericalHierarchyEdit, o STEPAssemblyOptions) (*RationalSphericalHierarchyDocument, error) {
 	if d == nil {
 		return nil, geom.ErrInvalid
 	}
 	var output bytes.Buffer
+	if d.affine != nil {
+		if err := d.affine.WriteEditedSTEP(ctx, &output, edits, o.Geometry); err != nil {
+			return nil, err
+		}
+		if d.vendor {
+			return ReadOCCTAffinePCurveRationalHierarchyDocumentSTEP(ctx, &output, o, d.model.Tolerance())
+		}
+		return ReadAffinePCurveRationalHierarchyDocumentSTEP(ctx, &output, o, d.model.Tolerance())
+	}
 	if d.vendor {
 		if err := step.WriteOCCTRationalSphericalHierarchyEdits(ctx, &output, d.model.Source, edits, o.Geometry, d.model.Tolerance()); err != nil {
 			return nil, err

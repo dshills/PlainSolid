@@ -86,7 +86,27 @@ func writeRationalSphericalHierarchyEdits(ctx context.Context, w io.Writer, sour
 	if err != nil {
 		return err
 	}
-	f := base.Source
+	if len(edits) > 0 {
+		known, err := applyRationalHierarchyEdits(ctx, base.Source, base, edits, vendor)
+		if err != nil {
+			return err
+		}
+		raw, err = mappedPlanarSourceBytes(base.Source)
+		if err != nil {
+			return err
+		}
+		fresh, err := readRationalSphericalHierarchy(ctx, bytes.NewReader(raw), l, tol, vendor)
+		if err != nil {
+			return err
+		}
+		if !matchRationalHierarchyEdits(base, fresh, known) {
+			return geom.ErrUnrepresentable
+		}
+	}
+	return writeRationalHierarchyEditBytes(ctx, w, raw)
+}
+
+func applyRationalHierarchyEdits(ctx context.Context, f *File, base RationalSphericalHierarchy, edits []RationalSphericalHierarchyEdit, vendor bool) (map[int64]ExactNAUOOccurrence, error) {
 	known := make(map[int64]ExactNAUOOccurrence, len(base.Relationships))
 	parent := make(map[int64]int64, len(base.Definitions))
 	for _, r := range base.Relationships {
@@ -98,34 +118,34 @@ func writeRationalSphericalHierarchyEdits(ctx context.Context, w io.Writer, sour
 	selected := make(map[int64]bool, len(edits))
 	for _, edit := range edits {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, err
 		}
 		r, ok := known[edit.NAUOID]
 		if !ok {
-			return geom.ErrUnrepresentable
+			return nil, geom.ErrUnrepresentable
 		}
 		if selected[edit.NAUOID] {
-			return geom.ErrInvalid
+			return nil, geom.ErrInvalid
 		}
 		selected[edit.NAUOID] = true
 		desired, err := rationalSphericalEditBasis(edit.Matrix)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !sameSphericalEditBasis(r.pose, desired) {
 			target := desired
 			if vendor {
 				from, err := mappedRationalFrame(f, r.FromPlacementID)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				target = composeMappedPose(from, desired)
 			}
 			if err := rationalHierarchyFrameBound(target); err != nil {
-				return err
+				return nil, err
 			}
 			if err := setSphericalHierarchyTarget(f, r.TransformationID, parent[r.ParentID], target); err != nil {
-				return err
+				return nil, err
 			}
 			r.ToPlacementID = f.Entities[r.TransformationID].Records[0].Args[3].Ref
 			r.pose = desired
@@ -136,29 +156,27 @@ func writeRationalSphericalHierarchyEdits(ctx context.Context, w io.Writer, sour
 		}
 		known[r.NAUOID] = r
 	}
-	if len(edits) > 0 {
-		raw, err = mappedPlanarSourceBytes(f)
-		if err != nil {
-			return err
+	return known, nil
+}
+
+func matchRationalHierarchyEdits(base, fresh RationalSphericalHierarchy, known map[int64]ExactNAUOOccurrence) bool {
+	if len(fresh.Relationships) != len(known) || !reflect.DeepEqual(fresh.Definitions, base.Definitions) || !reflect.DeepEqual(fresh.Roots, base.Roots) {
+		return false
+	}
+	for _, r := range fresh.Relationships {
+		expect, ok := known[r.NAUOID]
+		if !ok || !sameSphericalEditBasis(expect.pose, r.pose) {
+			return false
 		}
-		fresh, err := readRationalSphericalHierarchy(ctx, bytes.NewReader(raw), l, tol, vendor)
-		if err != nil {
-			return err
-		}
-		if len(fresh.Relationships) != len(known) || !reflect.DeepEqual(fresh.Definitions, base.Definitions) || !reflect.DeepEqual(fresh.Roots, base.Roots) {
-			return geom.ErrUnrepresentable
-		}
-		for _, r := range fresh.Relationships {
-			expect, ok := known[r.NAUOID]
-			if !ok || !sameSphericalEditBasis(expect.pose, r.pose) {
-				return geom.ErrUnrepresentable
-			}
-			expect.pose, r.pose = mappedRationalBasis{}, mappedRationalBasis{}
-			if expect != r {
-				return geom.ErrUnrepresentable
-			}
+		expect.pose, r.pose = mappedRationalBasis{}, mappedRationalBasis{}
+		if expect != r {
+			return false
 		}
 	}
+	return true
+}
+
+func writeRationalHierarchyEditBytes(ctx context.Context, w io.Writer, raw []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

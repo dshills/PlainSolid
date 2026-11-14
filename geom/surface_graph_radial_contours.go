@@ -15,6 +15,7 @@ type SplineGraphRadialContours struct {
 	heightScale      *big.Rat         // optional exact polynomial height difference, not just numerator
 	supports         [2]*SurfacePatch // immutable original patches, for independent height-sum integration
 	side, operations int
+	heightRectangle  [2][2]*big.Rat // optional exact physical rectangle of normalized height charts
 }
 
 func (r *SplineGraphRadialContours) Center() [2]*big.Rat {
@@ -261,6 +262,13 @@ func certifyRadialContoursOnRectangle(ctx context.Context, a, c *SurfacePatch, c
 		return nil, e
 	}
 	r := &SplineGraphRadialContours{center: [2]*big.Rat{new(big.Rat).Set(center[0]), new(big.Rat).Set(center[1])}, side: scale.Sign(), operations: b.operations, supports: [2]*SurfacePatch{a, c}}
+	if physical[0][0].Sign() != 0 || physical[1][0].Sign() != 0 || physical[0][1].Cmp(big.NewRat(1, 1)) != 0 || physical[1][1].Cmp(big.NewRat(1, 1)) != 0 {
+		for axis := range 2 {
+			for end := range 2 {
+				r.heightRectangle[axis][end] = new(big.Rat).Set(physical[axis][end])
+			}
+		}
+	}
 	for _, q := range radii {
 		r.radii = append(r.radii, new(big.Rat).Set(q))
 	}

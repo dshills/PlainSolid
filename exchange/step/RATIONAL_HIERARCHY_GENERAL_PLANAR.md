@@ -80,3 +80,33 @@ crossings/two disjoint material spans, nonunit directions, reentrant edge contac
 and a triple-face vertex. Exact tests also prove hole-preserving intervals,
 source owner sets, coplanar unsupported behavior and exhausted quotas. No general
 coplanar nonconvex clipping is claimed.
+
+## Separate coplanar finite-face mode
+
+`ClipCoplanarGeneralRationalHierarchyLine` and
+`ClipCoplanarGeneralOCCTRationalHierarchyLine` remove the coplanar gate only by
+adding a complete projected line/loop-segment event ledger. Each original outer
+and hole segment is intersected by exact rational determinants. Collinear
+segments contribute their actual endpoint parameters; finite crossings require
+the exact segment parameter in [0,1]. Projection drops a nonzero normal component,
+so no nonzero coplanar line can lose its direction. No coincident parameter is
+chosen by approximation or sampling.
+
+These events are deduplicated against all transverse face events at identical
+original rational t. Every intervening open interval is classified using the
+existing exact finite-loop/material proof. Interior intervals remain Spans;
+finite face/edge-coincident intervals become BoundarySpans with all original
+face and edge IDs. Since every loop crossing and vertex has become a station,
+these owner sets are constant in each open interval. Isolated tangent contacts
+remain hits. Clip endpoints alone are not events, even when the clipped line
+lies along an edge. The transverse-only API preserves its earlier rejection.
+
+The pinned OCCT author now also constructs an outer wire plus reversed inner
+wire and extrudes the resulting holed face. Its genuine original STEP geometry
+closure is inserted into both AP214 hierarchy conventions. Independent transfer
+matches cap-hole, reversed-direction, hole-wall, coincident hole-edge and tangent
+stations, in addition to reentrant disjoint coplanar spans. Exact checks verify
+mixed interior/boundary intervals, finite hole exclusion and clipped edges with
+no invented endpoint hits. Existing quotas apply to every added segment test.
+This is not a widening of the source importer to arbitrary Boolean-generated
+TRIMMED_CURVE edges; only the existing authenticated planar input domain is used.

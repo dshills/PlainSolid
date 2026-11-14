@@ -208,6 +208,9 @@ func (s ObliqueCylinderTorusCavityMaterial) IntersectRationalLineBoundary(ctx co
 	return BoreLineBoundary{Hits: q.Points, Intervals: q.Intervals}, nil
 }
 func (s ObliqueCylinderTorusCavityMaterial) clipRationalLine(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions, material bool) (TorusCylinderLine, error) {
+	return s.partitionRationalLine(ctx, p, d, min, max, o, material, nil)
+}
+func (s ObliqueCylinderTorusCavityMaterial) partitionRationalLine(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions, material bool, partition *ExactMaterialLinePartition) (TorusCylinderLine, error) {
 	var z TorusCylinderLine
 	if ctx == nil || s.source.R == nil || min == nil || max == nil || min.Cmp(max) > 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
 		return z, ErrInvalid
@@ -247,13 +250,13 @@ func (s ObliqueCylinderTorusCavityMaterial) clipRationalLine(ctx context.Context
 		return z, e
 	}
 	ro := ExactCurvePlaneEventOptions{MaxOperations: limits.MaxOperations, MaxCoefficientBits: limits.MaxCoefficientBits, MaxSubdivisions: o.MaxSubdivisions}
-	out, e := intersectMaterialBoundaryRational(ctx, ps, min, max, o, b, ro, func(v []int) (BorePointLocation, BoreBoundaryMask) {
+	out, e := partitionMaterialBoundaryRational(ctx, ps, min, max, o, b, ro, func(v []int) (BorePointLocation, BoreBoundaryMask) {
 		l, m := s.location(v)
 		if material && l == BoreInside {
 			l = BoreBoundary
 		}
 		return l, m
-	})
+	}, partition)
 	if e != nil {
 		return z, e
 	}

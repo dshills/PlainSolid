@@ -140,6 +140,22 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 	if err != nil {
 		return z, err
 	}
+	out, _, err := q.locateOperandPoints(ctx, p, o)
+	if err != nil {
+		return z, err
+	}
+	out.Location, err = mixedRoofBooleanLocation(q.op, out.Operands)
+	if err != nil {
+		return z, err
+	}
+	return out, nil
+}
+
+// The active height is +1 for the floor, -1 for the roof, and zero for
+// strictly intermediate heights or points outside this original operand.
+func (q *MixedRoofMaterialQuery) locateOperandPoints(ctx context.Context, p [3]*big.Rat, o geom.SurfacePatchEvaluationOptions) (MixedRoofMaterialPoint, [2]int, error) {
+	var z MixedRoofMaterialPoint
+	var active [2]int
 	var out MixedRoofMaterialPoint
 	for i, b := range q.box {
 		where := b.footprint([2]*big.Rat{p[0], p[1]})
@@ -150,16 +166,21 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 		opt := o
 		opt.MaxOperations -= out.ExactOperations
 		if opt.MaxOperations <= 0 {
-			return z, geom.ErrConvergence
+			return z, [2]int{}, geom.ErrConvergence
 		}
 		j, err := b.roof.EvaluateRational(ctx, p[0], p[1], opt)
 		if err != nil {
-			return z, err
+			return z, [2]int{}, err
 		}
 		out.ExactOperations += j.ExactOperations
 		roof := p[2].Cmp(j.Point[2])
 		if roof > 0 {
 			continue
+		}
+		if floor == 0 {
+			active[i] = 1
+		} else if roof == 0 {
+			active[i] = -1
 		}
 		if where == parametric.Boundary || floor == 0 || roof == 0 {
 			out.Operands[i] = parametric.Boundary
@@ -168,13 +189,9 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 		}
 	}
 	if err := ctx.Err(); err != nil {
-		return z, err
+		return z, [2]int{}, err
 	}
-	out.Location, err = mixedRoofBooleanLocation(q.op, out.Operands)
-	if err != nil {
-		return z, err
-	}
-	return out, nil
+	return out, active, nil
 }
 
 func (q *MixedRoofMaterialQuery) evaluationOptions(ctx context.Context, o geom.SurfacePatchEvaluationOptions, inputs ...*big.Rat) (geom.SurfacePatchEvaluationOptions, error) {

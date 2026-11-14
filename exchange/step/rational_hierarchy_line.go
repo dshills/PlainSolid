@@ -219,7 +219,7 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 					}
 					generalPrepared[location.ProductID] = cert
 				}
-				leaf, e = clipHierarchyGeneralPlanar(ctx, leaf, cert, m.Instances[k], origin, direction, lower, upper, &a, &out, o.MaxPlanarTests, o.MaxRayDirections, opts, addHit)
+				leaf, e = clipHierarchyGeneralPlanar(ctx, leaf, cert, m.Instances[k], origin, direction, lower, upper, &a, &out, o.MaxPlanarTests, o.MaxRayDirections, opts, addHit, len(generalMode) > 1 && generalMode[1])
 				if e != nil {
 					return bad(e)
 				}

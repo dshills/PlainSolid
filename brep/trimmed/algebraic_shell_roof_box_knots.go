@@ -120,22 +120,28 @@ func mixedRoofSpans(ctx context.Context, p *geom.SurfacePatch, limit int) ([]*mi
 }
 
 func mixedRoofGlobalPower(poly [][][4]*big.Rat, local, whole geom.ParameterRectangle, w *mixedRoofLineWork) ([][][4]*big.Rat, error) {
+	return mixedRoofRebasePower(poly, local, [2][2]*big.Rat{
+		{ratInset(whole.UMin), ratInset(whole.UMax)}, {ratInset(whole.VMin), ratInset(whole.VMax)},
+	}, w)
+}
+
+// mixedRoofRebasePower also accepts descending exact axes for a one-sided germ.
+func mixedRoofRebasePower(poly [][][4]*big.Rat, local geom.ParameterRectangle, axes [2][2]*big.Rat, w *mixedRoofLineWork) ([][][4]*big.Rat, error) {
 	var powers [2][][]*big.Rat
-	for i, pairs := range [2][4]float64{
-		{local.UMin, local.UMax, whole.UMin, whole.UMax}, {local.VMin, local.VMax, whole.VMin, whole.VMax},
-	} {
-		span, err := w.rat(new(big.Rat).Sub(ratInset(pairs[1]), ratInset(pairs[0])))
+	for i, pair := range [2][2]float64{{local.UMin, local.UMax}, {local.VMin, local.VMax}} {
+		lo, hi := ratInset(pair[0]), ratInset(pair[1])
+		span, err := w.rat(new(big.Rat).Sub(hi, lo))
 		if err != nil {
 			return nil, err
 		}
-		offset, err := w.rat(new(big.Rat).Sub(ratInset(pairs[2]), ratInset(pairs[0])))
+		offset, err := w.rat(new(big.Rat).Sub(axes[i][0], lo))
 		if err != nil {
 			return nil, err
 		}
 		if _, err = w.rat(offset.Quo(offset, span)); err != nil {
 			return nil, err
 		}
-		scale, err := w.rat(new(big.Rat).Sub(ratInset(pairs[3]), ratInset(pairs[2])))
+		scale, err := w.rat(new(big.Rat).Sub(axes[i][1], axes[i][0]))
 		if err != nil {
 			return nil, err
 		}

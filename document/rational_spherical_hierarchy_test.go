@@ -123,3 +123,81 @@ func TestRationalSphericalHierarchyDocument(t *testing.T) {
 		})
 	}
 }
+
+func TestRationalSphericalHierarchyDocumentReentrantQueries(t *testing.T) {
+	ctx := context.Background()
+	original, err := os.Open("../exchange/step/testdata/rational-spherical-hierarchy-reentrant.step")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer original.Close()
+	d, err := ReadRationalSphericalHierarchyDocumentSTEP(ctx, original, STEPAssemblyOptions{}, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		p            [3]*big.Rat
+		want         step.AnalyticPointLocation
+		faces, edges int
+	}{{[3]*big.Rat{big.NewRat(-8, 1), big.NewRat(-2, 1), new(big.Rat)}, step.AnalyticPointOutside, 0, 0},
+		{[3]*big.Rat{big.NewRat(-9, 1), big.NewRat(-3, 1), new(big.Rat)}, step.AnalyticPointBoundary, 2, 1}} {
+		out, err := d.Locate(ctx, tc.p, step.RationalHierarchyPointOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, p := range out.Leaves {
+			if p.Family == "planar" {
+				found = true
+				if p.Location != tc.want || len(p.ContactFaceIDs) != tc.faces || len(p.ContactEdgeIDs) != tc.edges {
+					t.Fatal("reentrant source ownership or exact point classification", p)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("missing reentrant planar occurrence")
+		}
+	}
+	origin := [3]*big.Rat{big.NewRat(-11, 1), new(big.Rat), new(big.Rat)}
+	direction := [3]*big.Rat{big.NewRat(2, 1), big.NewRat(-2, 1), new(big.Rat)}
+	line, err := d.ClipGeneralLine(ctx, origin, direction, new(big.Rat), big.NewRat(6, 1), step.RationalHierarchyLineOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, leaf := range line.Leaves {
+		if leaf.Owner.Family != "planar" {
+			continue
+		}
+		if !leaf.Supported || len(leaf.Spans) != 2 || len(leaf.BoundarySpans) != 0 {
+			t.Fatal("reentrant material intervals", leaf)
+		}
+		for i, endpoints := range [][2]*big.Rat{{big.NewRat(1, 2), big.NewRat(1, 1)}, {big.NewRat(3, 2), big.NewRat(2, 1)}} {
+			for j, endpoint := range []*geom.ExactAlgebraicRoot{leaf.Spans[i].Lower, leaf.Spans[i].Upper} {
+				want, _, err := geom.NewExactRationalRoot(ctx, endpoints[j], geom.ExactCurvePlaneEventOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				order, err := endpoint.Compare(ctx, want, geom.ExactCurvePlaneEventOptions{})
+				if err != nil || !order.Proven || order.Order != 0 {
+					t.Fatal("original line parameter", i, j, order, err)
+				}
+			}
+		}
+		origin[2].SetInt64(-2)
+		cap, err := d.ClipCoplanarGeneralLine(ctx, origin, direction, new(big.Rat), big.NewRat(6, 1), step.RationalHierarchyLineOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, capLeaf := range cap.Leaves {
+			if capLeaf.Owner.SourceBodyID != leaf.Owner.SourceBodyID {
+				continue
+			}
+			if len(capLeaf.BoundarySpans) != 2 || len(capLeaf.Spans) != 0 || len(capLeaf.BoundarySpans[0].SourceFaceIDs) != 1 || len(capLeaf.BoundarySpans[1].SourceFaceIDs) != 1 || capLeaf.BoundarySpans[0].SourceFaceIDs[0] != capLeaf.BoundarySpans[1].SourceFaceIDs[0] {
+				t.Fatal("original reentrant cap ownership", capLeaf)
+			}
+			return
+		}
+		t.Fatal("missing reentrant coplanar line occurrence")
+	}
+	t.Fatal("missing reentrant planar line occurrence")
+}
