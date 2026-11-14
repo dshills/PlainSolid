@@ -14,6 +14,8 @@ type mixedRoofBox struct {
 	roof       *geom.SurfacePatch
 	patches    [6]*geom.SurfacePatch
 	power      [3][3]*big.Rat
+	weight     [3][3]*big.Rat
+	minWeight  *big.Rat
 	floor      *big.Rat
 	domain     geom.ParameterRectangle
 	roofFace   int
@@ -49,6 +51,10 @@ func mixedCoordinatePlane(axis int, value float64) [3]geom.Vec3 {
 	}
 }
 func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixedRoofBox, error) {
+	return proveMixedRoofBoxMode(ctx, s, roof, limit, false)
+}
+
+func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, rationalHeight bool) (*mixedRoofBox, error) {
 	if ctx == nil || len(s.faces) != 6 || roof < 0 || roof >= 6 || s.faces[roof].Reversed {
 		return nil, geom.ErrUnrepresentable
 	}
@@ -100,22 +106,41 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 	r.roofFace = roof
 	r.domain = r.roof.Domain()
 	var err error
-	if r.power, err = mixedRoofPower(r.roof); err != nil {
-		return nil, err
+	r.power, err = mixedRoofPower(r.roof)
+	if err != nil {
+		if !rationalHeight || err != geom.ErrUnrepresentable {
+			return nil, err
+		}
+		coeff, minWeight, ok := r.roof.RationalBiquadraticCoefficients()
+		if !ok || coeff[2][2][3].Sign() != 0 {
+			return nil, geom.ErrUnrepresentable
+		}
+		r.minWeight = minWeight
+		for a, row := range coeff {
+			for b, c := range row {
+				for _, v := range []*big.Rat{c[2], c[3], minWeight} {
+					if !mixedRoofFits(v, 4096) {
+						return nil, geom.ErrConvergence
+					}
+				}
+				r.power[a][b], r.weight[a][b] = c[2], c[3]
+			}
+		}
 	}
 	floor := -1
 	for i, p := range patches {
 		if i == roof {
 			continue
 		}
-		c, e := mixedRoofPower(p)
-		if e != nil {
+		c, w, ok := p.RationalBiquadraticCoefficients()
+		if !ok || w.Sign() <= 0 {
 			continue
 		}
+		height := new(big.Rat).Quo(c[0][0][2], c[0][0][3])
 		constant := true
 		for a := 0; a < 3; a++ {
 			for b := 0; b < 3; b++ {
-				if a+b > 0 && c[a][b].Sign() != 0 {
+				if new(big.Rat).Mul(height, c[a][b][3]).Cmp(c[a][b][2]) != 0 {
 					constant = false
 				}
 			}
@@ -130,7 +155,7 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 			return nil, e
 		}
 		floor = i
-		r.floor = new(big.Rat).Set(c[0][0])
+		r.floor = height
 	}
 	if floor < 0 {
 		return nil, geom.ErrUnrepresentable

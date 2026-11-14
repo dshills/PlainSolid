@@ -169,6 +169,9 @@ func (s TorusCylinderMaterial) ClassifyRational(ctx context.Context, p [3]*big.R
 		return BoreOutside, 0, e
 	}
 	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	return s.classifyWithBudget(ctx, p, b)
+}
+func (s TorusCylinderMaterial) classifyWithBudget(ctx context.Context, p [3]*big.Rat, b *polynomialBudget) (BorePointLocation, BoreBoundaryMask, error) {
 	ps, e := s.polynomials(ctx, p, [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}, b)
 	if e != nil {
 		return BoreOutside, 0, e

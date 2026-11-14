@@ -18,6 +18,7 @@ const (
 // NormalizedIndependentPlanarMaterials retains the original geometry and units
 // separately from the losslessly normalized source graph and native bodies.
 type NormalizedIndependentPlanarMaterials struct {
+	tolerance                        float64
 	OriginalSource, NormalizedSource *File
 	Members                          []IndependentExactMaterial
 	OriginalUnits                    []PlanarMaterialSIUnit
@@ -35,7 +36,7 @@ func ReadNormalizedIndependentPlanarMaterials(ctx context.Context, r io.Reader, 
 	if e != nil {
 		return NormalizedIndependentPlanarMaterials{}, e
 	}
-	q := NormalizedIndependentPlanarMaterials{OriginalSource: m.OriginalSource, NormalizedSource: m.NormalizedSource, Members: m.Members, TargetUnit: target}
+	q := NormalizedIndependentPlanarMaterials{OriginalSource: m.OriginalSource, NormalizedSource: m.NormalizedSource, Members: m.Members, TargetUnit: target, tolerance: m.tolerance}
 	for _, u := range m.OriginalUnits {
 		q.OriginalUnits = append(q.OriginalUnits, PlanarMaterialSIUnit(u))
 	}

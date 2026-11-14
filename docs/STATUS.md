@@ -55,6 +55,12 @@ For the mixed roof solids, bounded nearest queries search the original
 exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
 inertia have separate original OCCT comparisons.
+Prepared roof queries also admit original single-span positive rational
+weights whose cleared line equation stays at degree four or below. The
+weighted cavity kept its exact roof hit, quotient normal and floor
+distance, and an independently sewn OCCT rational model gave the same
+line parameter. The specialized polynomial mesh proof keeps its
+existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -576,6 +582,12 @@ native and live STEP checks and all 17 original browser cases passed,
 verifying 841 app and 2,015 kernel source hashes. The [authored blind floor](evidence/plaincad-reconciled-c130b571-supplemental-blind-triple-step-2026-11-14.json)
 survived STEP reimport and watertight STL; live OCCT matched the exported
 solid's reference volume, area, and centroid.
+The [unequal crossed pair and companion reconciliation](evidence/plaincad-reconciled-3a36a277-development-skew-companion-holes-step-2026-11-14.json)
+adds worktree revision `e658813e` to review `3a36a277`. Native and
+live STEP checks and all 17 original browser cases passed; 841 app and
+2,023 kernel source hashes matched. The [authored model](evidence/plaincad-reconciled-3a36a277-supplemental-skew-companion-step-2026-11-14.json)
+retained both blind floors and its separate through passage in STEP and
+watertight STL. Independent OCCT readback reproduced the reference measures.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

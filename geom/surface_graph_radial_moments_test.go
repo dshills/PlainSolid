@@ -8,6 +8,10 @@ import (
 )
 
 func nonradialRoofGap(t *testing.T) *geom.SplineGraphRadialContours {
+	return nonradialRoofGapShift(t, 0)
+}
+
+func nonradialRoofGapShift(t *testing.T, shift float64) *geom.SplineGraphRadialContours {
 	t.Helper()
 	cx, cy, r := .375, .625, .125
 	knots := []float64{0, 0, 0, 1, 1, 1}
@@ -19,7 +23,7 @@ func nonradialRoofGap(t *testing.T) *geom.SplineGraphRadialContours {
 		for i := range 3 {
 			for j := range 3 {
 				x, y := float64(i)/2, float64(j)/2
-				z := x * y / 64
+				z := x*y/64 + shift
 				if k == 1 {
 					z += r*r - qx[i] - qy[j]
 				}

@@ -89,6 +89,54 @@ TopoDS_Solid graphStock(bool tool) {
   return solid;
 }
 
+TopoDS_Solid weightedGraphStock(bool tool) {
+  // Authored from the physical heights (2+x²)/(1+x) and 7/8+x/4.
+  // Every vertical wall uses the original roof's exact numerator and weight.
+  const double x0=tool ? .125 : 0, x1=tool ? .875 : 1;
+  const double y0=x0,y1=x1,floor=tool ? .25 : 0;
+  const double x[]={x0,(x0+x1)/2,x1}, y[]={y0,(y0+y1)/2,y1};
+  auto w=[&](double x){return tool ? 1. : 1+x;};
+  auto h=[&](double x){return tool ? 7./8+x/4 : 2+x*x;};
+  auto bern=[&](const auto& f,int i){return i==1 ? 2*f(x[1])-(f(x0)+f(x1))/2 : f(x[i]);};
+  auto wx=[&](double x){return w(x)*x;};
+  struct Control {double x,y,z,w;};
+  BRepBuilderAPI_Sewing sew(1e-10);
+  auto face=[&](bool reverse,const std::function<Control(int,int)>& control){
+    NCollection_Array2<gp_Pnt> points(1,3,1,2);
+    NCollection_Array2<double> weights(1,3,1,2);
+    for(int i=0;i<3;++i) for(int j=0;j<2;++j) {
+      const auto p=control(i,j);
+      points.SetValue(i+1,j+1,gp_Pnt(p.x/p.w,p.y/p.w,p.z/p.w));
+      weights.SetValue(i+1,j+1,p.w);
+    }
+    occ::handle<Geom_BezierSurface> s=new Geom_BezierSurface(points,weights);
+    auto f=BRepBuilderAPI_MakeFace(s,1e-10).Face();
+    if(reverse) f.Reverse();
+    sew.Add(f);
+  };
+  for(bool lower:{true,false}) face(lower,[&](int i,int j){
+    const double weight=bern(w,i);
+    return Control{bern(wx,i),y[2*j]*weight,lower ? floor*weight : bern(h,i),weight};
+  });
+  for(int k:{0,2}) {
+    face(k==0,[&](int i,int j){
+      const double weight=w(x[k]);
+      return Control{x[k]*weight,y[i]*weight,j ? h(x[k]) : floor*weight,weight};
+    });
+    face(k==2,[&](int i,int j){
+      const double weight=bern(w,i);
+      return Control{bern(wx,i),y[k]*weight,j ? bern(h,i) : floor*weight,weight};
+    });
+  }
+  sew.Perform();
+  TopExp_Explorer shells(sew.SewedShape(),TopAbs_SHELL);
+  if(!shells.More()) throw std::runtime_error("missing weighted shell");
+  const auto solid=BRepBuilderAPI_MakeSolid(TopoDS::Shell(shells.Current())).Solid();
+  shells.Next();
+  if(shells.More()||!BRepCheck_Analyzer(solid).IsValid()) throw std::runtime_error("invalid weighted source");
+  return solid;
+}
+
 void report(const std::string& name, const TopoDS_Shape& shape) {
   if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid())
     throw std::runtime_error("invalid " + name + " result");
@@ -189,11 +237,28 @@ void reportDistance(const char* name, const TopoDS_Shape& shape) {
   std::cout << "]}\n";
 }
 
+void reportWeightedLine() {
+  const auto a=weightedGraphStock(false),b=weightedGraphStock(true);
+  const auto shape=BRepAlgoAPI_Cut(a,b).Shape();
+  if(shape.IsNull()||!BRepCheck_Analyzer(shape).IsValid()) throw std::runtime_error("invalid weighted cavity");
+  const gp_Vec direction(1,0,.25);
+  const double scale=direction.Magnitude();
+  IntCurvesFace_ShapeIntersector intersector;
+  intersector.Load(shape,1e-9);
+  intersector.Perform(gp_Lin(gp_Pnt(0,.5,1.5),gp_Dir(direction)),scale/8,scale*7/8);
+  if(!intersector.IsDone()||intersector.NbPnt()!=1) throw std::runtime_error("weighted line station count");
+  std::cout<<"{\"parameter\":"<<intersector.WParameter(1)/scale<<"}\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
   try {
     std::cout << std::setprecision(17);
+    if (argc==2 && std::string(argv[1])=="weighted-line") {
+      reportWeightedLine();
+      return 0;
+    }
     const auto a=graphStock(false), b=graphStock(true);
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());

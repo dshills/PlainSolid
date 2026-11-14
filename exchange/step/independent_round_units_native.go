@@ -20,7 +20,7 @@ type normalizedRoundEnvelope struct {
 	Normalized     independentMaterialEnvelope
 }
 
-func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMaterials) (normalizedRoundEnvelope, error) {
+func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMaterials, planarMode ...bool) (normalizedRoundEnvelope, error) {
 	if len(m.OriginalUnits) != len(m.Members) || len(m.Members) < 1 || len(m.Members) > 16 {
 		return normalizedRoundEnvelope{}, geom.ErrInvalid
 	}
@@ -47,28 +47,36 @@ func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMate
 		return normalizedRoundEnvelope{}, e
 	}
 	claims.Format = "plainsolid-step-normalized-round-material-claims"
-	return normalizedRoundEnvelope{normalizedRoundFormat, 1, string(original), m.TargetUnit, append([]RoundMaterialSIUnit(nil), m.OriginalUnits...), claims}, nil
+	format := normalizedRoundFormat
+	if len(planarMode) == 1 && planarMode[0] {
+		format = normalizedPlanarFormat
+		claims.Format = "plainsolid-step-normalized-planar-material-claims"
+	}
+	return normalizedRoundEnvelope{format, 1, string(original), m.TargetUnit, append([]RoundMaterialSIUnit(nil), m.OriginalUnits...), claims}, nil
 }
 
 // WriteNormalizedIndependentRoundMaterialsJSON re-proves normalization from the
 // original graph, then compares both source graphs, units, native shapes and
 // original role IDs. No output is written until all claims have been checked.
 func WriteNormalizedIndependentRoundMaterialsJSON(ctx context.Context, w io.Writer, m NormalizedIndependentRoundMaterials) error {
+	return writeNormalizedMaterialsJSON(ctx, w, m, false)
+}
+func writeNormalizedMaterialsJSON(ctx context.Context, w io.Writer, m NormalizedIndependentRoundMaterials, planar bool) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return e
 	}
-	actual, e := normalizedRoundClaims(ctx, m)
+	actual, e := normalizedRoundClaims(ctx, m, planar)
 	if e != nil {
 		return e
 	}
-	proof, e := ReadNormalizedIndependentRoundMaterials(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance, planar)
 	if e != nil {
 		return e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof)
+	expected, e := normalizedRoundClaims(ctx, proof, planar)
 	if e != nil {
 		return e
 	}
@@ -98,6 +106,9 @@ func WriteNormalizedIndependentRoundMaterialsJSON(ctx context.Context, w io.Writ
 // with the proof, never used as reconstruction geometry. Source limits apply to
 // original and normalized STEP validation separately; MaxBytes bounds the envelope.
 func ReadNormalizedIndependentRoundMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (NormalizedIndependentRoundMaterials, error) {
+	return readNormalizedMaterialsJSON(ctx, r, l, false)
+}
+func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, planar bool) (NormalizedIndependentRoundMaterials, error) {
 	bad := func() (NormalizedIndependentRoundMaterials, error) {
 		return NormalizedIndependentRoundMaterials{}, geom.ErrInvalid
 	}
@@ -123,21 +134,26 @@ func ReadNormalizedIndependentRoundMaterialsJSON(ctx context.Context, r io.Reade
 	if e = ctx.Err(); e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}
+	format, claimsFormat := normalizedRoundFormat, "plainsolid-step-normalized-round-material-claims"
+	if planar {
+		format = normalizedPlanarFormat
+		claimsFormat = "plainsolid-step-normalized-planar-material-claims"
+	}
 	var q normalizedRoundEnvelope
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
-	if d.Decode(&q) != nil || q.Format != normalizedRoundFormat || q.Version != 1 || len(q.OriginalUnits) < 1 || len(q.OriginalUnits) > 16 || len(q.Normalized.Members) != len(q.OriginalUnits) || q.Normalized.Format != "plainsolid-step-normalized-round-material-claims" || q.Normalized.Version != 1 {
+	if d.Decode(&q) != nil || q.Format != format || q.Version != 1 || len(q.OriginalUnits) < 1 || len(q.OriginalUnits) > 16 || len(q.Normalized.Members) != len(q.OriginalUnits) || q.Normalized.Format != claimsFormat || q.Normalized.Version != 1 {
 		return bad()
 	}
 	var extra any
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	proof, e := ReadNormalizedIndependentRoundMaterials(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance, planar)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof)
+	expected, e := normalizedRoundClaims(ctx, proof, planar)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}

@@ -124,6 +124,10 @@ func TestRadialVolumeRejectsVariableDenominator(t *testing.T) {
 		t.Fatal("moments require actual radial height", e)
 	}
 
+	if r, e := proof.MassMomentsBands(ctx, []int{0, 2}, geom.RadialGraphMomentOptions{}); e == nil || r.Height.CentroidZ != nil || len(r.Bands) != 0 {
+		t.Fatal("centroid requires original polynomial height", e)
+	}
+
 }
 
 func TestTripleRadialVolumeOCCT(t *testing.T) {

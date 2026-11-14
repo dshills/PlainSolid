@@ -39,3 +39,20 @@ check exact point/speed scaling and unchanged directions, reverse conversion of
 the metre box, native reload, pcurve offsets, curve types, zero/negative speeds,
 huge exponents, units, budgets and cancellation. Enable live qualification with
 `PLAINSOLID_OCCT_INDEPENDENT_PLANAR_UNITS` and the dedicated helper in tools/occtref.
+
+## Native persistence
+
+`WriteNormalizedIndependentPlanarMaterialsJSON` and
+`ReadNormalizedIndependentPlanarMaterialsJSON` use the distinct
+`plainsolid-step-normalized-independent-planar-materials` version-one tag. The
+original source retains each authored 2D/3D line speed, and the normalized source
+retains its exact scaled speed. Reload invokes the complete planar normalization
+pipeline once from original source, then compares both graphs, units, all product
+and shape ancestry, and canonical native geometry. Stored normalized geometry is
+not trusted as input. Older round and unnormalized tags remain separate.
+
+Envelope allocation and source proof limits are independent; cancellation and
+atomic writer validation follow the existing persistence contract. Tests reject
+changed original model/pcurve speeds, shifted pcurves, projected-edge endpoints,
+unit/target/root/native claims, and old tags. Byte-stable native reload followed
+by normalized STEP output is independently transferred and measured by OCCT.
