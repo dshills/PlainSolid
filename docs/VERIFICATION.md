@@ -5652,6 +5652,12 @@ Circular and noncircular frusta use attained support extrema and retain
 every original occurrence path. The aggregate agrees with pinned OCCT;
 forged paths and exhausted source limits fail. The integrated live race
 passed in 14.041 s.
+The circular-only mass query keeps rational-plus-π coefficients throughout
+local section integration and exact signed-pose transport. The independent
+OCCT oracle agrees on volume, centroid and all entries of both inertia
+tensors. Local analytic coefficients, native reload and rejection of a
+forged or noncircular support were checked. The integrated frustum and
+legacy rational hierarchy mass races passed in 16.734 s.
 
 The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
 finished with 340 passes and four failures. The original two focused

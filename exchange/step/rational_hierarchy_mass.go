@@ -201,10 +201,18 @@ func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 	if !reflect.DeepEqual(actual, expected) || !reflect.DeepEqual(c, d) {
 		return bad(geom.ErrInvalid)
 	}
+	return measureAuthenticatedHierarchyProducts(ctx, proof.Source, proof.Products, proof.Instances, proof.LengthUnit, o, general...)
+}
+
+// Call only after complete source/native/pose reproof; no public path accepts
+// caller-constructed products or instances through this integration helper.
+func measureAuthenticatedHierarchyProducts(ctx context.Context, source *File, products map[int64]IndependentExactMaterial, instances []RationalHierarchyInstance, unit float64, o RationalHierarchyMassOptions, general ...int) (RationalHierarchyMass, error) {
+	bad := func(e error) (RationalHierarchyMass, error) { return RationalHierarchyMass{}, e }
+	var e error
 	a := massArithmetic{bits: o.MaxCoefficientBits}
-	out := RationalHierarchyMass{LengthUnit: proof.LengthUnit}
-	ids := make([]int64, 0, len(proof.Products))
-	for id := range proof.Products {
+	out := RationalHierarchyMass{LengthUnit: unit}
+	ids := make([]int64, 0, len(products))
+	for id := range products {
 		ids = append(ids, id)
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
@@ -213,13 +221,13 @@ func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 		if e = ctx.Err(); e != nil {
 			return bad(e)
 		}
-		p := proof.Products[id]
+		p := products[id]
 		v := HierarchyMaterialMass{ProductID: id, SourceProductID: p.SourceProductID, SourceBodyID: p.SourceBodyID}
-		body, e := simple(proof.Source, p.SourceBodyID, "MANIFOLD_SOLID_BREP", 2)
+		body, e := simple(source, p.SourceBodyID, "MANIFOLD_SOLID_BREP", 2)
 		if e != nil {
 			return bad(e)
 		}
-		shell, e := simple(proof.Source, body.Args[1].Ref, "CLOSED_SHELL", 2)
+		shell, e := simple(source, body.Args[1].Ref, "CLOSED_SHELL", 2)
 		if e != nil {
 			return bad(e)
 		}
@@ -271,6 +279,12 @@ func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 			}
 			if mass.v.Coefficients()[0].Sign() <= 0 {
 				return bad(geom.ErrInvalid)
+			}
+		} else if p.Frustum != nil {
+			v.Family = "circular-frustum"
+			mass, e = integrateHierarchyCircularFrustum(p.Frustum.Embedding, &a)
+			if e != nil {
+				return bad(e)
 			}
 		} else {
 			var frame geom.Frame
@@ -333,7 +347,7 @@ func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 		locals[id] = v
 		out.Products = append(out.Products, v)
 	}
-	for _, u := range proof.Instances {
+	for _, u := range instances {
 		if e = ctx.Err(); e != nil {
 			return bad(e)
 		}

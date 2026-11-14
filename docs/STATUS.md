@@ -2024,3 +2024,5 @@ Its native envelope re-proves the original STEP graph, local topology,
 original support IDs and exact placement paths before returning geometry.
 It also returns tight rational world bounds for every original use and
 their aggregate, including noncircular wrapped frustum profiles.
+Exact circular frusta also support symbolic volume, centroid and full
+inertia for each original occurrence and their occurrence sum.

@@ -76,3 +76,28 @@ trimmed faces. Rational coordinate accessors copy their values. Separate source,
 point-evaluation and coefficient budgets fail atomically. Independent OCCT world
 bounds match the translated and rotated nine-occurrence fixture after native
 reload; a noncircular original-support regression uses the same exact extrema.
+
+## Exact circular-frustum mass
+
+`MeasureIndependentCircularFrustumHierarchy` returns symbolic unit-density
+volume, first/second moments, centroid and inertia for every local product,
+every original occurrence, and their sum. This is assembly occurrence mass,
+not regularized Boolean-union mass. A noncircular frustum returns an error with
+no partial products, even though the geometry and bounds codecs support it.
+
+The complete source/native/pose proof must certify the original profile's exact
+circularity. With t in [0,1], radius rho=r0+(r1-r0)t and height h, disk section
+integrals are πrho² for area and πrho⁴/4 for each radial second moment. Exact
+rational polynomial integration gives volume h∫πrho², axial first moment
+h²∫tπrho² and axial second moment h³∫t²πrho². The original center/lower station
+and retained signed occurrence matrix are then applied exactly, including all
+parallel-axis products. No decimal half-angle is converted into a slope.
+
+The shared post-authentication moment accumulator is reused by old queries;
+their source acceptance and results are unchanged. This new mode uses exact
+signed original face-loop integration for planar members with a fixed 65536
+planar-proof-test cap, plus caller triangle/coefficient/source limits. All
+symbolic coefficient accessors copy their rational values. The pinned adaptive
+OCCT mass comparator verifies original emitted STEP after native reload,
+including off-diagonal and centroidal inertia. The canonical local circular
+frustum test has V=35π/3, Fz=−5π/12, Qxx=Qyy=31π/4, Qzz=65π/3.
