@@ -122,3 +122,15 @@ to zero at the shoulder, proving it stays inside the original stock. The middle
 wall equation, cap planes, circular basis and original support ancestry remain
 intact. Each setback is checked against its own cap radius; strict runout and
 representation gates remain. The cylinder entry point is unchanged.
+
+`ChamferWrappedCylinderTubeRims` treats a validated coaxial circular tube with
+four independently authored cap-rim bevels. Outer setbacks reduce the stock
+radius; inner setbacks enlarge the cap opening. Both original circular bases
+and cap planes are retained. Each wall's end runouts must remain disjoint, and
+strict radial clearance is proved at the union of all cap/shoulder heights;
+between these levels the radius difference is affine. Native station-loft
+joining and exact nested difference then revalidate shared seams and annuli.
+History distinguishes original wall fragments from bevel fragments attributed
+to the original wall plus cap. Different wall runouts can subdivide one bevel
+into several result faces without losing its original ownership. Tangent walls,
+apex/runout collapse and nonrepresentable output fail atomically.
