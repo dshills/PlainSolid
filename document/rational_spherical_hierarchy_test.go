@@ -120,6 +120,15 @@ func TestRationalSphericalHierarchyDocument(t *testing.T) {
 			if err != nil || len(hits.Leaves) != 7 {
 				t.Fatal("document world line query", hits, err)
 			}
+			distances, err := d.SphereDistance(ctx, origin, step.RationalHierarchySphereDistanceOptions{})
+			if err != nil || len(distances.Leaves) != len(uses) {
+				t.Fatal("retained occurrence sphere distances", distances, err)
+			}
+			for i, u := range uses {
+				if distances.Leaves[i].Supported != (u.Family == "sphere") || !reflect.DeepEqual(distances.Leaves[i].Path, u.Path) {
+					t.Fatal("sphere distance changed existing original occurrence ownership", distances.Leaves[i], u)
+				}
+			}
 		})
 	}
 }

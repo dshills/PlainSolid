@@ -396,6 +396,21 @@ func (d *RationalSphericalHierarchyDocument) PlanarDistance(ctx context.Context,
 	return step.DistanceRationalHierarchyPlanarMaterials(ctx, d.model, point, o)
 }
 
+// SphereDistance returns exact algebraic material and boundary distances and
+// nearest-set witnesses for each authenticated spherical occurrence.
+func (d *RationalSphericalHierarchyDocument) SphereDistance(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchySphereDistanceOptions) (step.RationalHierarchySphereDistance, error) {
+	if d == nil {
+		return step.RationalHierarchySphereDistance{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.SphereDistance(ctx, point, o)
+	}
+	if d.vendor {
+		return step.DistanceOCCTRationalHierarchySpheres(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.DistanceRationalHierarchySpheres(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.
