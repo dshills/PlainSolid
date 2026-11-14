@@ -88,6 +88,19 @@ func TestAlgebraicStockLineJunctions(t *testing.T) {
 				t.Fatal("world placement changed original owners", i, hit)
 			}
 		}
+		worldA, err = pose.TransformPoint(ctx, vec(q(0, 1), q(0, 1), q(0, 1)), false, 4096)
+		if err != nil {
+			t.Fatal(err)
+		}
+		worldD, err = pose.TransformVector(ctx, vec(q(0, 1), q(0, 1), q(2, 1)), false, 4096)
+		if err != nil {
+			t.Fatal(err)
+		}
+		run, err := w.IntersectVerticalBoundaryRational(ctx, worldA, worldD, extent, opts)
+		if err != nil || !run.Found || run.Extent[0].Cmp(q(1, 8)) != 0 || run.Extent[1].Cmp(q(3, 8)) != 0 ||
+			run.Caps != [2]int{0, 1} || run.StockFaces[0] < 0 || run.StockFaces[1] < 0 {
+			t.Fatal("placed stock axis must preserve the run and all endpoint owners", run, err)
+		}
 		if failed, err := m.IntersectRationalLineWithTouches(ctx, a, d, extent, opts); !errors.Is(err, geom.ErrConvergence) || len(failed.Contacts) != 0 {
 			t.Fatal("legacy touches must still reject corners", failed, err)
 		}
@@ -156,7 +169,30 @@ func TestAlgebraicStockLineJunctions(t *testing.T) {
 		}
 		wall := vec(q(5, 2), q(0, 1), q(0, 1))
 		if got, err := v.IntersectRationalLineWithJunctions(ctx, wall, vertical, extent, opts); !errors.Is(err, geom.ErrConvergence) || len(got.Contacts) != 0 {
-			t.Fatal("nonzero vertical wall runs remain unsupported", got, err)
+			t.Fatal("isolated-event API must reject nonzero wall runs", got, err)
+		}
+		for _, tc := range []struct {
+			a, d    [3]*big.Rat
+			window  [2]*big.Rat
+			rangeAt [2]*big.Rat
+			caps    [2]int
+			walls   int
+		}{
+			{wall, vertical, extent, [2]*big.Rat{q(1, 2), q(5, 8)}, [2]int{0, 1}, 1},
+			{wall, vertical, [2]*big.Rat{q(9, 16), q(1, 1)}, [2]*big.Rat{q(9, 16), q(5, 8)}, [2]int{-1, 1}, 1},
+			{vec(q(3, 1), q(0, 1), q(1, 1)), vec(q(0, 1), q(0, 1), q(-2, 1)), extent,
+				[2]*big.Rat{q(5, 32), q(1, 4)}, [2]int{1, 0}, 2},
+			{vec(q(3, 2), q(1, 2), q(0, 1)), vertical, extent,
+				[2]*big.Rat{q(1, 2), q(1, 2)}, [2]int{0, 1}, 0},
+		} {
+			got, err := v.IntersectRationalVerticalBoundary(ctx, tc.a, tc.d, tc.window, opts)
+			if err != nil || !got.Found || got.Caps != tc.caps || got.Extent[0].Cmp(tc.rangeAt[0]) != 0 || got.Extent[1].Cmp(tc.rangeAt[1]) != 0 ||
+				(got.StockFaces[0] >= 0) != (tc.walls >= 1) || (got.StockFaces[1] >= 0) != (tc.walls >= 2) {
+				t.Fatal("coincident boundary interval and original face owners", tc, got, err)
+			}
+		}
+		if got, err := v.IntersectRationalVerticalBoundary(ctx, vec(q(5, 2), q(1, 2), q(0, 1)), vertical, extent, opts); err != nil || got.Found {
+			t.Fatal("interior station must not produce a coincident boundary run", got, err)
 		}
 	})
 }

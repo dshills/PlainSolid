@@ -99,6 +99,22 @@ func (o AlgebraicGraphStockOccurrence) IntersectLineRationalWithJunctions(ctx co
 	return o.intersectLineRational(ctx, origin, direction, extent, options, true, true)
 }
 
+// IntersectVerticalBoundaryRational proves a coincident retained wall run
+// along the placed stock axis. The original line parameter is preserved.
+func (o AlgebraicGraphStockOccurrence) IntersectVerticalBoundaryRational(ctx context.Context, origin, direction [3]*big.Rat,
+	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalBoundaryRun, error) {
+	var zero AlgebraicGraphVerticalBoundaryRun
+	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	return o.model.IntersectRationalVerticalBoundary(ctx, a, d, extent, options)
+}
+
 func (o AlgebraicGraphStockOccurrence) intersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions, includeTouches, includeJunctions bool) (AlgebraicGraphVerticalLine, error) {
 	var zero AlgebraicGraphVerticalLine
