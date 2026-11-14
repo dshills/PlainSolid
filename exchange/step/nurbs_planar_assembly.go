@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 
+	"plainsolid/csg/poly"
 	"plainsolid/geom"
 )
 
@@ -103,6 +104,13 @@ func ReadNURBSPlanarAssembly(ctx context.Context, r io.Reader, l Limits) (NURBSP
 	}
 	if e = ctx.Err(); e != nil {
 		return zero, e
+	}
+	for _, product := range m.Assembly.Products {
+		for _, body := range m.ProductBodies[product.DefinitionID] {
+			if e = poly.ValidateEmbeddedBoundary(ctx, body.Body.Solid, nurbsPlanarEmbeddingOptions()); e != nil {
+				return zero, e
+			}
+		}
 	}
 	return NURBSPlanarAssembly{m, string(raw), s, c, p}, nil
 }
@@ -580,4 +588,8 @@ func nurbsPlanarView(ctx context.Context, f *File) ([]NURBSPlanarSurfaceEvidence
 		}
 	}
 	return surfaces, curves, nil
+}
+
+func nurbsPlanarEmbeddingOptions() poly.Options {
+	return poly.Options{RequireExactConversion: true, MaxInputTriangles: 512, MaxCollisionPairs: 32768, MaxWork: 250000, MaxBits: 4096}
 }

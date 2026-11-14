@@ -35,6 +35,8 @@ produce the same physical edge.
 Only after these proofs does a private equivalent PLANE/LINE view enter
 `ReadColoredAssembly`, which validates native closed planar topology,
 product ownership, common units, occurrences and product-local styles.
+The NURBS adapter additionally validates exact global embedding and material
+orientation with the planar boundary prover.
 Original occurrence frames must be exact signed cardinal frames, with a
 neutral child mapping frame; there is no rounded inverse or vendor convention
 selection. Contextual overrides, unsupported metadata and mixed units retain
@@ -56,7 +58,9 @@ bases. This milestone does not introduce a new native JSON schema.
 
 Input is capped at 1 MiB, 4096 entities, 65536 parsed values, nesting depth 16,
 4096 edge uses and 16 material bodies, further restricted by caller limits.
-Cancellation is checked before and after bounded validation and during support
+Each native body is limited to 512 proof triangles, 32768 collision pairs,
+250000 embedding operations and 4096 coefficient bits. Cancellation is checked
+before and after bounded validation and during support
 conversion. Failure returns no partial assembly. Source writes are staged
 before touching the destination; a destination I/O error may still be partial.
 

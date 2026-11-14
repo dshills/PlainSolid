@@ -5990,3 +5990,11 @@ permutations and slanted profile edges. They reconstruct original directed
 source intervals on both caps and reject unequal height intervals, tapered
 walls and exhausted budgets. The integrated native prism and arrangement
 race passed in 2.008 s.
+
+### Oblique NURBS planar assembly qualification
+
+Independent OCCT fixtures cover original and shifted local spline charts
+on two oblique products with three original uses. Native material retains
+the original geometry and placement graph. OCCT verifies volume 1750,
+area 1350 and placed centroid (69/14, 66/7, 99/14). The integrated unit,
+scaled and oblique live race passed in 4.092 s.

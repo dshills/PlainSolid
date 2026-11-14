@@ -2192,3 +2192,12 @@ interval. It recovers outer and hole loops, then solves and materializes
 the arrangement. Result walls retain original operand walls and exact
 intervals on both original cap edges. The general Boolean dispatcher
 retains its existing face history contract.
+
+### Independently authored planar NURBS assemblies
+
+Strict AP242 readers authenticate finite original planar NURBS supports,
+B-spline model edges, owned p-curves and nested product use links. Separate
+entry points cover unit, scaled and supported oblique affine charts. The
+oblique route proves a rational rigid basis per product, restores exact
+original model coordinates, and preserves each occurrence placement.
+See the [oblique STEP contract](../exchange/step/OBLIQUE_NURBS_PLANAR_ASSEMBLY.md).
