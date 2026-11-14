@@ -324,6 +324,14 @@ func TestPlainCADUnequalCenterSideOpenDualDisk(t *testing.T) {
 			near(t, s.GeometryAssertions.Volume, wantV)
 			near(t, s.GeometryAssertions.SurfaceArea, wantA)
 			near(t, overlapMeasure(t, b, s.Handle, c.Handle), 0)
+			m, e := b.shapes[s.Handle].tessellate(requestForSideMesh(optionalNumber{value: .5, set: true}, optionalNumber{value: .2, set: true}))
+			if e != nil {
+				t.Fatal("different-center fabrication mesh", e)
+			}
+			mass, e := m.MassProperties()
+			if e != nil || math.Abs(mass.Volume-wantV) >= .3 {
+				t.Fatal("different-center fabrication mesh lost volume accuracy", mass.Volume, wantV, e)
+			}
 			data, e := writeSTEPBody(b.shapes[s.Handle])
 			if e != nil || !bytes.Contains(data, []byte("PRODUCT('side-cut-unequal-centers'")) {
 				t.Fatal("export did not retain its verified different-center class", e)

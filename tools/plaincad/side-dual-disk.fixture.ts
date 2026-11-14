@@ -28,6 +28,11 @@ const offset: SideCutFixture = { label: " offset", bounds: { min: [0, 0, 0], max
     ? { volume: 2282.902744168073, area: 1405.432569688520 }
     : { volume: 2165.805488336147, area: 1332.800302155755 },
 };
+const differentCenters: SideCutFixture = { label: " different-center", bounds: { min: [0, 0, 0], max: [60, 10, 6] },
+  tools: [[7, -3, 5], [30, -20, 29]], product: "side-cut-unequal-centers", measures: depth => depth === 3
+    ? { volume: 2786.5355714934303, area: 2056.2212253330799 }
+    : { volume: 1973.0711429868713, area: 1530.1328316617905 },
+};
 function fixture(depth: number, model: SideCutFixture = equal) {
   const base = addCornerRectangle(createXySketch("Rectangle"), `${model.bounds.max[0]}mm`, `${model.bounds.max[1]}mm`);
   const stock = createExtrudeFeature({ name: "Pocket stock", sketchId: base.id,
@@ -81,7 +86,7 @@ async function rebuilt(page: Page) {
   return state.value as unknown as Snapshot;
 }
 
-for (const model of [equal, offset]) for (const depth of [3, 6]) {
+for (const model of [equal, offset, differentCenters]) for (const depth of [3, 6]) {
   test(`Go WASM overlap of two side-opening${model.label} circles: ${depth === 3 ? "blind" : "through"} rebuild, reopen, STL and STEP`, async ({ page }, info) => {
     const { volume, area } = model.measures(depth);
     const forbidden: string[] = [];

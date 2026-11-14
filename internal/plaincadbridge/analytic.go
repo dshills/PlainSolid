@@ -92,6 +92,8 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 			// PlainCAD fabricates the accepted model mesh. Curved segment
 			// volume accumulates along the axial wall, so cap its turn here.
 			angle = min(angle, .05)
+		} else if a.sideDualDisk.differentCenterY() {
+			angle = min(angle, .025)
 		}
 		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
 			Deflection: o.Deflection, AngularTurn: angle,
