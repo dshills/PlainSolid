@@ -61,12 +61,12 @@ func composedGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 		for j := 0; j <= i && j < len(powers); j++ {
 			value.Add(value, new(big.Rat).Mul(powers[j], big.NewRat(polynomialChoose(i, j), polynomialChoose(degree, j))))
 		}
-		if value.Sign() <= 0 || value.Cmp(big.NewRat(1, 1)) >= 0 {
-			return nil, 0, geom.ErrConvergence
-		}
 		controls[i][free] = new(big.Rat).Add(lo[free], new(big.Rat).Mul(width[free], big.NewRat(int64(i), int64(degree))))
 		controls[i][1-free] = value.Add(lo[1-free], value.Mul(value, width[1-free]))
 		controls[i][2] = big.NewRat(1, 1)
+	}
+	if !strictComposedGraphControls(controls, free, lo[1-free], hi[1-free], 0) {
+		return nil, 0, geom.ErrConvergence
 	}
 	if degree == 2 {
 		q, e := NewExactQuadraticUV([3][3]*big.Rat{controls[0], controls[1], controls[2]})
@@ -74,6 +74,25 @@ func composedGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 	}
 	q, e := NewExactBezierUV(controls)
 	return q, b.Sign(), e
+}
+
+func strictComposedGraphControls(h [][3]*big.Rat, free int, lo, hi *big.Rat, depth int) bool {
+	inside := func(p [3]*big.Rat) bool { return p[1-free].Cmp(lo) > 0 && p[1-free].Cmp(hi) < 0 }
+	if !inside(h[0]) || !inside(h[len(h)-1]) {
+		return false
+	}
+	ok := true
+	for _, p := range h[1 : len(h)-1] {
+		ok = ok && inside(p)
+	}
+	if ok {
+		return true
+	}
+	if depth >= 8 {
+		return false
+	}
+	a, b, e := splitCapBezier(h, big.NewRat(1, 2), 16384)
+	return e == nil && strictComposedGraphControls(a, free, lo, hi, depth+1) && strictComposedGraphControls(b, free, lo, hi, depth+1)
 }
 
 func composeProjectedGraphSectionControls(ctx context.Context, patch *geom.SurfacePatch, c PCurve, axes [2]int, limits geom.SurfacePatchOptions) ([][3]*big.Rat, error) {

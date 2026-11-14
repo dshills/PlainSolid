@@ -97,3 +97,49 @@ and the combined closed topology/model edges are checked. Original IDs remain
 fixed and each cutter receives its own final wall/floor/rim history. No partial
 result is returned on a conflict. Through specifications require zero depth and
 no upper-entry flag, so ignored parameters cannot silently change meaning.
+
+### Independent sharp circular rim chamfers
+
+`ChamferWrappedCylinderRims` replaces either or both sharp rims of a validated
+canonical circular cylinder with exact conical bands. Each end has independently
+authored radial cap setback and axial wall runout; both must be positive or both
+zero. Setbacks remain below the radius and summed runouts below the height,
+proving positive-radius bands and a surviving central cylindrical wall.
+
+The original circular basis/weights and physical cap planes are retained by
+exact support edits and native station joining. History maps the central wall
+and caps to their original supports, and each conical chamfer to its original
+cap plus lateral face. Original source rims and new cap/shoulder rims are kept
+separate; rebuilt output IDs are not represented as retained original IDs.
+Apex/runout contact, unrepresentable geometry, malformed selections and exhausted
+proofs fail atomically. This does not chamfer an already blended or bored stock.
+
+`ChamferWrappedFrustumRims` extends this treatment to an ascending or descending
+canonical circular frustum. Shoulder radii are evaluated on the original affine
+wall equation at the authored axial runouts; they are not copied from the cap
+radii. Each chamfer's removed radial width varies linearly from its cap setback
+to zero at the shoulder, proving it stays inside the original stock. The middle
+wall equation, cap planes, circular basis and original support ancestry remain
+intact. Each setback is checked against its own cap radius; strict runout and
+representation gates remain. The cylinder entry point is unchanged.
+
+`ChamferWrappedCylinderTubeRims` treats a validated coaxial circular tube with
+four independently authored cap-rim bevels. Outer setbacks reduce the stock
+radius; inner setbacks enlarge the cap opening. Both original circular bases
+and cap planes are retained. Each wall's end runouts must remain disjoint, and
+strict radial clearance is proved at the union of all cap/shoulder heights;
+between these levels the radius difference is affine. Native station-loft
+joining and exact nested difference then revalidate shared seams and annuli.
+History distinguishes original wall fragments from bevel fragments attributed
+to the original wall plus cap. Different wall runouts can subdivide one bevel
+into several result faces without losing its original ownership. Tangent walls,
+apex/runout collapse and nonrepresentable output fail atomically.
+
+`ChamferWrappedFrustumTubeRims` accepts independently tapered coaxial original
+outer and inner walls. Each bevel adds/removes a linearly vanishing radial width
+from the original affine radius function; shoulders use the original wall
+values at their actual heights. Strict nested clearance is proved on the union
+of all runout heights, and the same exact native station-bore construction
+retains cap/wall ancestry and circular bases. This accepts rational slopes
+without requiring rational unit-normal lengths. Eccentric axes remain outside
+this API; all original cylinder tube behavior is unchanged.

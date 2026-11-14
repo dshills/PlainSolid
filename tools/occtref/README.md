@@ -213,3 +213,7 @@ one end of their seam on the original cubic floor. The differential is
 `sleeve` independently cuts a square through-void in stock and intersects it
 with two planes whose intersection traverses the void. The native comparison
 uses Euler and material measures because the Go stock has split side charts.
+`two-strips` independently sweeps a quadratic floor and clips it with two
+planes. The counted original-floor trims remain separated on one support;
+`TestRationalGraphTwoRetainedRunsOnOneStockFace` additionally checks analytic
+volume, source identity, and native reload.

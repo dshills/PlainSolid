@@ -1095,8 +1095,15 @@ surfaces must keep their geometry through the operation. Continue with:
    polygonal approximation. Exact plane residuals and composed model curves
    handle selected stock with nonaffine projections. A quadratically sheared
    sleeve retains the actual parabolic boundary of its void on both caps,
-   with two exact seam edges, volume 13/32, and native reload. Irrational
-   terminal persistence and multi-fragment stock faces remain open.
+   with two exact seam edges, volume 13/32, and native reload.
+   A single curved trim piece can now contribute several regular rational
+   contacts. Repeated cap-only clipping retains parameters in that original
+   directed piece, including the two ends of a retained middle interval.
+   Two separated intervals on a shared free axis can become separate native
+   faces from the same original curved stock chart. A quadratic floor fixture
+   retains two such faces in one solid without subdividing the source chart.
+   Irrational terminals, two-edge lenses with identical endpoint pairs, and
+   general multiply fragmented or mixed-axis trim arrangements remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

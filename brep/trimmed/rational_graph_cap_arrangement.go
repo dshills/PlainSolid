@@ -10,7 +10,10 @@ import (
 )
 
 // RationalGraphCapCut identifies a new boundary endpoint on an original
-// section curve. The parameter is normalized to that directed piece.
+// section curve. The parameter is normalized to that directed piece, including
+// after repeated clipping. Generated seams carry Source.Branch == -1;
+// parameters on previously generated seams refer to that seam's own original
+// normalized interval.
 type RationalGraphCapCut struct {
 	Source     RationalGraphCapEdgeSource
 	Parameter  *big.Rat
@@ -44,7 +47,7 @@ func (r *RationalGraphShellRegions) IntersectPolygonalHalfspace(ctx context.Cont
 
 // IntersectRationalHalfspace clips a certified planar section with rational
 // Bezier boundary pieces. Every original contact must be regular, interior
-// to a piece, rational, and the only contact of that piece. Result regions,
+// to its piece, and rational. Result regions,
 // notches and seams retain their exact source curve geometry. Irregular or
 // unresolved contacts return no arrangement.
 func (r *RationalGraphShellRegions) IntersectRationalHalfspace(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions) (RationalGraphCapArrangement, error) {
@@ -213,7 +216,11 @@ func (r *RationalGraphShellRegions) intersectGeneralCap(ctx context.Context, oth
 	}
 	out := RationalGraphCapArrangement{Regions: regions, Seams: seams}
 	for _, cut := range cuts {
-		out.Cuts = append(out.Cuts, RationalGraphCapCut{cut.Source, cut.Parameter, cut.KeepBefore, cut.Point})
+		var point [3]*big.Rat
+		for i, p := range cut.Point {
+			point[i] = new(big.Rat).Set(p)
+		}
+		out.Cuts = append(out.Cuts, RationalGraphCapCut{cut.Source, new(big.Rat).Set(cut.Parameter), cut.KeepBefore, point})
 	}
 	if e := ctx.Err(); e != nil {
 		return zero, e

@@ -19,6 +19,7 @@ type RationalGraphCapEdgeSource struct {
 type projectedGraphSectionPiece struct {
 	source  RationalGraphCapEdgeSource
 	control [][3]*big.Rat
+	span    [2]*big.Rat // nil ends represent the original full normalized piece
 }
 
 // RationalGraphSectionCap is an independently validated planar face, with

@@ -24,6 +24,13 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 	if ctx == nil || r == nil || r.certificate == nil || keep != -1 && keep != 1 {
 		return nil, cuts, geom.ErrInvalid
 	}
+	for _, wire := range r.wires {
+		for _, p := range wire {
+			if p.span[0] != nil || p.span[1] != nil {
+				return nil, cuts, geom.ErrConvergence
+			}
+		}
+	}
 	if len(r.material) != 1 || len(r.wires) != 1+len(r.material[0].Holes) {
 		return nil, cuts, geom.ErrConvergence
 	}
@@ -148,8 +155,10 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 				n++
 				if a > 0 {
 					p.control = left
+					p.span[1] = entry
 				} else {
 					p.control = right
+					p.span[0] = entry
 				}
 			}
 		}
@@ -299,7 +308,7 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 	count := 0
 	check := func(x *big.Rat) error {
 		opts.MaxWork--
-		if opts.MaxWork < 1 || x.Num().BitLen() > opts.MaxBits || x.Denom().BitLen() > opts.MaxBits {
+		if opts.MaxWork < 1 || x == nil || x.Num().BitLen() > opts.MaxBits || x.Denom().BitLen() > opts.MaxBits {
 			return geom.ErrConvergence
 		}
 		return ctx.Err()
@@ -334,8 +343,8 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 			kept        bool
 			before, end int
 		}
-		row := make([]segment, len(wire))
-		for i, p := range wire {
+		row := make([]segment, 0, len(wire))
+		for _, p := range wire {
 			count++
 			n := len(p.control)
 			if count > opts.MaxEdges || n < 2 || n > 5 || polygonal && n != 3 {
@@ -368,8 +377,12 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 			if x == 0 || y == 0 {
 				return nil, nil, geom.ErrConvergence
 			}
-			var t *big.Rat
-			if !polygonal {
+			var hit []*big.Rat
+			if polygonal {
+				if x != y {
+					hit = []*big.Rat{new(big.Rat).Quo(pa, new(big.Rat).Sub(pa, pb))}
+				}
+			} else {
 				hull := x == y
 				for j := 1; j < n-1 && hull; j++ {
 					a, e := signed(p.control[j])
@@ -379,37 +392,65 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 					hull = a.Sign() == x
 				}
 				if !hull {
-					t, e = certifyRationalCapCurveCrossing(ctx, p.control, form, x != y, opts)
+					hit, e = certifyRationalCapCurveCrossings(ctx, p.control, form, x != y, opts)
 					if e != nil {
 						return nil, nil, e
 					}
 				}
 			}
-			row[i] = segment{piece: p, kept: x > 0 || y > 0, before: -1, end: -1}
-			if x != y {
-				if polygonal {
-					t = new(big.Rat).Quo(pa, new(big.Rat).Sub(pa, pb))
-				}
+			ids := make([]int, len(hit))
+			for j, t := range hit {
 				if e := check(t); e != nil {
 					return nil, nil, e
 				}
-				left, right, e := splitCapBezier(p.control, t, opts.MaxBits)
+				left, _, e := splitCapBezier(p.control, t, opts.MaxBits)
 				if e != nil {
 					return nil, nil, e
 				}
-				v, e := signed(right[0])
+				v, e := signed(left[n-1])
 				if e != nil {
 					return nil, nil, e
 				}
 				if v.Sign() != 0 {
 					return nil, nil, geom.ErrConvergence
 				}
-				at := len(cuts)
-				cuts = append(cuts, capBoundaryCut{p.source, t, x > 0, r.capPoint(right[0])})
-				if x > 0 {
-					row[i].piece.control, row[i].end = left, at
-				} else {
-					row[i].piece.control, row[i].before = right, at
+				at := graphCapOriginalParameter(p.span, t)
+				if e := check(at); e != nil {
+					return nil, nil, e
+				}
+				point := r.capPoint(left[n-1])
+				for _, x := range point {
+					if e := check(x); e != nil {
+						return nil, nil, e
+					}
+				}
+				ids[j] = len(cuts)
+				cuts = append(cuts, capBoundaryCut{p.source, at, x > 0 == (j%2 == 0), point})
+			}
+			for j := 0; j <= len(hit); j++ {
+				z := segment{piece: p, kept: (x > 0) == (j%2 == 0), before: -1, end: -1}
+				if j > 0 && z.kept {
+					z.piece.span[0], z.before = graphCapOriginalParameter(p.span, hit[j-1]), ids[j-1]
+				}
+				if j < len(hit) && z.kept {
+					z.piece.span[1], z.end = graphCapOriginalParameter(p.span, hit[j]), ids[j]
+				}
+				if z.kept && len(hit) != 0 {
+					var lo, hi *big.Rat
+					if j > 0 {
+						lo = hit[j-1]
+					}
+					if j < len(hit) {
+						hi = hit[j]
+					}
+					z.piece.control, e = restrictCapBezier(p.control, lo, hi, opts.MaxBits)
+					if e != nil {
+						return nil, nil, e
+					}
+				}
+				row = append(row, z)
+				if len(row) > opts.MaxEdges || len(cuts) > opts.MaxEdges {
+					return nil, nil, geom.ErrConvergence
 				}
 			}
 		}
@@ -450,7 +491,7 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 	return runs, cuts, nil
 }
 
-func certifyRationalCapCurveCrossing(ctx context.Context, h [][3]*big.Rat, form [3]*big.Rat, crossing bool, opts *trimvalidate.Options) (*big.Rat, error) {
+func certifyRationalCapCurveCrossings(ctx context.Context, h [][3]*big.Rat, form [3]*big.Rat, crossing bool, opts *trimvalidate.Options) ([]*big.Rat, error) {
 	controls := make([][4]*big.Rat, len(h))
 	for j, p := range h {
 		controls[j] = [4]*big.Rat{p[0], p[1], new(big.Rat), p[2]}
@@ -482,17 +523,24 @@ func certifyRationalCapCurveCrossing(ctx context.Context, h [][3]*big.Rat, form 
 	if e = charge(hits.Operations); e != nil {
 		return nil, e
 	}
-	if !hits.Complete || hits.Coincident || !crossing && len(hits.Events) != 0 || crossing && len(hits.Events) != 1 {
+	if !hits.Complete || hits.Coincident || (len(hits.Events)%2 == 1) != crossing {
 		return nil, geom.ErrConvergence
 	}
-	if !crossing {
-		return nil, nil
+	out := make([]*big.Rat, len(hits.Events))
+	for i, hit := range hits.Events {
+		if hit.EndpointMask() != 0 || hit.Multiplicity() != 1 {
+			return nil, geom.ErrConvergence
+		}
+		p, e := rationalCapIntersectionParameter(ctx, hit, rootOptions(), &opts.MaxSubdivisions, charge)
+		if e != nil {
+			return nil, e
+		}
+		if i > 0 && out[i-1].Cmp(p) >= 0 {
+			return nil, geom.ErrConvergence
+		}
+		out[i] = p
 	}
-	hit := hits.Events[0]
-	if hit.EndpointMask() != 0 || hit.Multiplicity() != 1 {
-		return nil, geom.ErrConvergence
-	}
-	return rationalCapIntersectionParameter(ctx, hit, rootOptions(), &opts.MaxSubdivisions, charge)
+	return out, nil
 }
 
 type capBoundaryRun struct {
@@ -532,4 +580,32 @@ func splitCapBezier(control [][3]*big.Rat, at *big.Rat, bits int) (left, right [
 		left[i], right[n-1-i] = row[0], row[n-1-i]
 	}
 	return left, right, nil
+}
+
+func restrictCapBezier(control [][3]*big.Rat, lo, hi *big.Rat, bits int) ([][3]*big.Rat, error) {
+	var err error
+	if hi != nil && hi.Cmp(big.NewRat(1, 1)) != 0 {
+		control, _, err = splitCapBezier(control, hi, bits)
+		if err != nil {
+			return nil, err
+		}
+		if lo != nil {
+			lo = new(big.Rat).Quo(lo, hi)
+		}
+	}
+	if lo != nil && lo.Sign() != 0 {
+		_, control, err = splitCapBezier(control, lo, bits)
+	}
+	return control, err
+}
+
+func graphCapOriginalParameter(span [2]*big.Rat, local *big.Rat) *big.Rat {
+	a, b := span[0], span[1]
+	if a == nil {
+		a = new(big.Rat)
+	}
+	if b == nil {
+		b = big.NewRat(1, 1)
+	}
+	return new(big.Rat).Add(a, new(big.Rat).Mul(local, new(big.Rat).Sub(b, a)))
 }
