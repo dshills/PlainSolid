@@ -1,5 +1,14 @@
 # Verification record
 
+## PlainCAD inch socket-head fastener STEP exchange — 2026-11-14
+
+The original 4-40 UNC blank with a 0.5-inch shaft completes the same
+[authored STEP and STL workflow](evidence/plaincad-inch-fastener-step-native-2026-11-14.json)
+on the previously qualified WASM. Its 42,036-byte STEP reexports
+byte-identically after project reopen. The 276-triangle STL is
+watertight. Independent OCCT agrees with the authored inch geometry
+to better than 0.0000001 mm³ and 0.0000001 mm².
+
 ## PlainCAD stepped shaft and hex socket STEP exchange — 2026-11-14
 
 The native shoulder, shaft and head cylinders, and blind polygonal

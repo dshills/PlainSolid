@@ -140,8 +140,8 @@ the coaxial cut recipe after import, including independent and metric files.
 Circular rim fillets on XY, XZ and YZ exchange their exact rational
 quarter-torus bands and preserve the native single- or dual-rim geometry.
 Equal-setback circular rim chamfers on all three working planes exchange
-the exact ruled frustum bands and the retained cylinder. The metric
-socket-head fastener blank also retains its stepped cylindrical shaft,
+the exact ruled frustum bands and the retained cylinder. The metric and inch
+socket-head fastener blanks also retain their stepped cylindrical shaft,
 annular shoulder, and blind polygonal socket through STEP and STL.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
