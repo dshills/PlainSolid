@@ -364,6 +364,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.crossed != nil:
+		if s.bore.cylinders[0].radius != s.bore.cylinders[1].radius {
+			return nil, unsupportedEdge("STEP export does not yet support the trim curves of intersecting unequal-diameter Holes.")
+		}
 		p, err := crossedBoreSTEPRecipe(s.bore)
 		if err != nil {
 			return nil, err

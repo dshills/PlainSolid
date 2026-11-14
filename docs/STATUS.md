@@ -77,8 +77,10 @@ intersect inside a rectangular block retain exact cylindrical walls and
 elliptical intersection edges. Grouped and successive cuts, overlap
 queries, STEP and STL pass. Disjoint through cutters on two or three
 cardinal axes now retain canonical STEP, including unequal radii and
-non-millimeter import. Intersecting unequal-radius cutters, skew or oblique
-intersections and intersecting blind cutters remain open.
+non-millimeter import. Intersecting unequal-radius through cutters on
+perpendicular axes retain analytic radical trims and pass native rebuild,
+project reopen and watertight STL. Their STEP exchange, skew or oblique
+intersections, and intersecting blind cutters remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
@@ -1116,8 +1118,9 @@ mismatch and uncertainty metadata; the STEP importer still rejects this shell.
 
 ## Continuing implementation
 
-The remaining rectangular Hole geometry work includes unequal-radius
-intersections, skew and oblique cutter axes, and nonparallel blind cuts.
+The remaining rectangular Hole geometry work includes STEP exchange for
+unequal-radius intersections, skew and oblique cutter axes, and
+nonparallel blind cuts.
 The full unit gate still has 36 repeat failures after focused retests.
 The recorded controls identify the OCCT-private bindings and fixtures
 that depend on an uninitialized kernel.

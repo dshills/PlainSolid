@@ -101,6 +101,25 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD unequal-radius intersecting perpendicular through Holes — 2026-11-14
+
+Two unequal-radius cylinders with intersecting perpendicular axes now retain
+the analytic intersection on both cylindrical walls. The two shared rings
+have radical parameter curves. Their endpoints and both face uses agree on
+the retained topology. Bounded surface integration computes material
+measures independently of tessellation. Conforming adaptive refinement
+preserves the shared boundary at the app's display and STL tolerances.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-unequal-crossed-browser-2026-11-14.json)
+pass on `50432ed`. A [supplemental Chromium probe on the same WASM](evidence/plaincad-unequal-crossed-native-2026-11-14.json)
+builds and reopens two unequal authored Holes, matches the pinned
+OCCT Boolean's volume and area, and verifies both open passages in
+watertight STL. Native tests compare volume, area and centroid with
+independent cross-section quadrature across 18 signed, swapped and offset
+configurations. Focused race, float32 embedding, existing helical meshing
+and Go vet checks pass. STEP reports this trim family as unsupported pending
+a qualified exchange representation.
+
 ## PlainCAD disjoint nonparallel through Holes — 2026-11-14
 
 Canonical STEP preserves rectangular stock with up to 32 disjoint interior

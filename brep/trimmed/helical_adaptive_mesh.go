@@ -64,6 +64,12 @@ func (s Solid) tessellateHelicalAllocation(ctx context.Context, o parametric.Tes
 	if !eligible {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
+	return s.tessellateAnalyticAdaptive(ctx, o, preallocate)
+}
+
+// tessellateAnalyticAdaptive is shared only by separately qualified analytic
+// entry points. Callers validate options, normalize budgets and prove eligibility.
+func (s Solid) tessellateAnalyticAdaptive(ctx context.Context, o parametric.TessellationOptions, preallocate bool) (mesh.Mesh, error) {
 	m := mesh.Mesh{Vertices: s.Vertices()}
 	initial := s.seedTriangles()
 	var e error
