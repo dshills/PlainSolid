@@ -37,7 +37,7 @@ type CertifiedAlgebraicTubeRegionsBoundary struct {
 // Adjacent nested regions intentionally share the same zero-thickness rim.
 func (r AlgebraicTubeRegions) TessellateBoundaryCertified(ctx context.Context, o AlgebraicTubeRegionsBoundaryOptions) (CertifiedAlgebraicTubeRegionsBoundary, error) {
 	var empty CertifiedAlgebraicTubeRegionsBoundary
-	if ctx == nil || r.section.partitionSource == nil || len(r.loops) == 0 {
+	if ctx == nil || r.section.runSource() == nil || len(r.loops) == 0 {
 		return empty, geom.ErrInvalid
 	}
 	if o.MaxLoops == 0 {

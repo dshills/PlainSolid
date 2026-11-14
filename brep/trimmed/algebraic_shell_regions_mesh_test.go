@@ -10,10 +10,17 @@ import (
 	"testing"
 )
 
-func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
+func TestCertifiedDisjointBooleanLensFill(t *testing.T) { checkDisjointBooleanLensFill(t, false) }
+func TestCertifiedExactOwnerDisjointBooleanLensFill(t *testing.T) {
+	checkDisjointBooleanLensFill(t, true)
+}
+func checkDisjointBooleanLensFill(t *testing.T, exact bool) {
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, 0)
 	b := disjointLoopRoof(t)
+	if exact {
+		a = exactPlaneOwnerForRegions(t, a)
+	}
 	// The stock builder stores its lower Z rectangle at index four.
 	aFace, bFace := a.faces[4], b.faces[1]
 	d, e := faceUVBounds(bFace)
@@ -34,11 +41,11 @@ func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
 		} else {
 			span.UMin = .5
 		}
-		p, e := intersectSplineFace(aFace, span)
+		p, e := algebraicShellTracePatch(aFace, span)
 		if e != nil {
 			t.Fatal(e)
 		}
-		q, e := intersectSplineFace(bFace, span)
+		q, e := algebraicShellTracePatch(bFace, span)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -64,6 +71,9 @@ func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
 	}
 	options := AlgebraicShellRegionsMeshOptions{Section: AlgebraicTrimmedPairSectionOptions{Trace: o.Trace}}
 	options.Mesh.AffineCharts = true
+	if exact {
+		options.Mesh.Span.MaxDegree = 3
+	}
 	options.Mesh.Boundary.Loop.Run.Display.Deflection = .01
 	options.Mesh.Component.Interior.Deflection = .002
 	common.Faces = nil
