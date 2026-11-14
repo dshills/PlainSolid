@@ -137,5 +137,26 @@ func TestAlgebraicStockLineJunctions(t *testing.T) {
 			t.Fatal("common seam owns both caps and no manufactured wall", h)
 		}
 		checkRoot(t, h.Parameter, q(0, 1))
+
+		vertical := vec(q(0, 1), q(0, 1), q(1, 1))
+		for _, tc := range []struct {
+			y     *big.Rat
+			walls int
+		}{{q(1, 2), 0}, {q(0, 1), 1}} {
+			pinch, err := v.IntersectRationalLineWithJunctions(ctx, vec(q(3, 2), tc.y, q(0, 1)), vertical, extent, opts)
+			if err != nil || len(pinch.Material) != 0 || len(pinch.Contacts) != 1 {
+				t.Fatal("collapsed vertical fiber is one isolated contact", tc, pinch, err)
+			}
+			h := pinch.Contacts[0]
+			checkRoot(t, h.Parameter, q(1, 2))
+			if !h.Touch || !h.Junction || h.Entry || h.Cap != 0 || h.OtherCap != 1 ||
+				(h.StockFace >= 0) != (tc.walls == 1) || h.OtherStockFace != -1 {
+				t.Fatal("collapsed fiber lost an original face owner", tc, h)
+			}
+		}
+		wall := vec(q(5, 2), q(0, 1), q(0, 1))
+		if got, err := v.IntersectRationalLineWithJunctions(ctx, wall, vertical, extent, opts); !errors.Is(err, geom.ErrConvergence) || len(got.Contacts) != 0 {
+			t.Fatal("nonzero vertical wall runs remain unsupported", got, err)
+		}
 	})
 }
