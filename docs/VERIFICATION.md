@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD STEP for disjoint mixed-axis blind Holes — 2026-11-14
+
+Canonical STEP retains up to 32 independent interior bores on two or three
+cardinal axes. Blind bores keep their entry sides and exact planar floors.
+This increment qualifies tools whose conservative full-through bounds are
+separated. The existing through-only STEP bytes are unchanged. Grouped and
+successive cuts, scaled STEP import, retained cutter overlap and meshes pass.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-blind-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-disjoint-blind-step-native-2026-11-14.json)
+pass on the same WASM. The authored project reimports and reopens STEP,
+then extracts both blind floor locations from watertight STL. Twelve
+independent OCCT STEP imports pass on signed, mixed and wholly blind
+fixtures. The focused native race tests and Go vet pass.
+
 ## PlainCAD STEP for a split blind Hole floor — 2026-11-14
 
 An equal-radius perpendicular through Hole splits a blind floor into

@@ -29,7 +29,7 @@ func disjointBoreSTEPRecipe(body *boreBody) (step.DisjointBoresBody, bool) {
 	p := step.DisjointBoresBody{Name: "PlainSolid", Frame: frame, Dimensions: size}
 	var axes [3]bool
 	for i, tool := range body.cylinders {
-		if body.blind[i] || !cardinalFrame(tool.frame) {
+		if !cardinalFrame(tool.frame) {
 			return noRecipe, false
 		}
 		direction := tool.frame.ZAxis()
@@ -49,7 +49,12 @@ func disjointBoreSTEPRecipe(body *boreBody) (step.DisjointBoresBody, bool) {
 			return noRecipe, false
 		}
 		axes[axis] = true
-		p.Bores = append(p.Bores, step.DisjointBore{Axis: axis, Center: center, Radius: tool.radius})
+		site := step.DisjointBore{Axis: axis, Center: center, Radius: tool.radius}
+		if body.blind[i] {
+			p.Blind = append(p.Blind, step.DisjointBlindBore{Bore: site, Depth: body.spans[i], OppositeCap: direction.Dot(disjointBoreAxes[axis]) < 0})
+		} else {
+			p.Bores = append(p.Bores, site)
+		}
 	}
 	return p, axes[0] && axes[1] || axes[0] && axes[2] || axes[1] && axes[2]
 }
@@ -74,13 +79,26 @@ func disjointBoresFromSTEP(p step.DisjointBoresBody, unit float64) (*boreBody, e
 	axes := [3]geom.Vec3{p.Frame.XAxis(), p.Frame.YAxis(), p.Frame.ZAxis()}
 	sizes := coordinates(p.Dimensions)
 	tools := make([]*cylinderBody, 0, len(p.Bores))
+	sites := make([]step.DisjointBlindBore, 0, len(p.Bores)+len(p.Blind))
 	for _, site := range p.Bores {
+		sites = append(sites, step.DisjointBlindBore{Bore: site})
+	}
+	sites = append(sites, p.Blind...)
+	for _, item := range sites {
+		site := item.Bore
 		if site.Axis < 0 || site.Axis >= len(axes) {
 			return nil, geom.ErrInvalid
 		}
 		start := p.Frame.ToWorld(site.Center).Scale(scale)
 		end := p.Frame.ToWorld(site.Center.Add(disjointBoreAxes[site.Axis].Scale(sizes[site.Axis]))).Scale(scale)
 		direction := axes[site.Axis]
+		if item.Depth != 0 {
+			if item.OppositeCap {
+				start = end
+				direction = direction.Scale(-1)
+			}
+			end = start.Add(direction.Scale(item.Depth * scale))
+		}
 		length := end.Sub(start).Dot(direction)
 		if start.Add(direction.Scale(length)) != end {
 			return nil, geom.ErrUnrepresentable
