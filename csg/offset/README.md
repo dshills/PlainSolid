@@ -70,3 +70,14 @@ edges in cap traversal order. The extinct blend is contact history only, not a
 surviving face ancestor. The second extinction and deeper offsets remain outside
 this entry point. Work limits apply per source proof and per each of two fixed
 stages; failures expose no intermediate body or history.
+
+`ErodeWrappedRoundedCylinderToSharp` handles the next transition separately:
+with two originally positive blends and depth at least their maximum, both
+rounded support inequalities become redundant. It returns the exact sharp
+cylinder at radius `R-depth` and cap interval `[lower+depth,upper-depth]`, provided
+radius and height remain strictly positive and the native construction is exact.
+Equality at the larger blend radius is accepted; zero-size bodies are rejected.
+Both original blends occur only in the two rim contact records, while the three
+retained faces map only to the original lateral wall and caps. Neither prior
+entry point changes its boundary policy. A nonrepresentable resulting coordinate
+is rejected rather than rounded into a different erosion.
