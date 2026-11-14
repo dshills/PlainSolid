@@ -82,27 +82,12 @@ func (p *PreparedObliqueTorusCavity) TessellatePlacedCertified(ctx context.Conte
 	}
 	out.Pose = matrix
 	out.LocalCollision = base.Collision
-	out.WorldRoundingUpper = new(big.Rat)
-	for i, v := range base.Mesh.Vertices {
-		q, e := pose.TransformPoint(ctx, exactBoundPoint(v), false, 4096)
-		if e != nil {
-			return out, e
-		}
-		display, e := rationalDisplayPoint(q)
-		if e != nil {
-			return out, e
-		}
-		rounded := exactBoundPoint(display)
-		delta := new(big.Rat)
-		for j := 0; j < 3; j++ {
-			x := new(big.Rat).Sub(q[j], rounded[j])
-			delta.Add(delta, x.Abs(x))
-		}
-		if delta.Cmp(out.WorldRoundingUpper) > 0 {
-			out.WorldRoundingUpper.Set(delta)
-		}
-		base.Mesh.Vertices[i] = display
+	image, e := pose.RoundMesh(ctx, base.Mesh, placement.MeshRoundingOptions{MaxVertices: o.MaxWorldVertices, MaxTriangles: collision.MaxTriangles, MaxCoefficientBits: 4096})
+	if e != nil {
+		return out, e
 	}
+	base.Mesh = image.Mesh
+	out.WorldRoundingUpper = image.RoundingUpper
 	base.DistanceUpper = new(big.Rat).Add(base.DistanceUpper, out.WorldRoundingUpper)
 	if base.DistanceUpper.Cmp(ratInset(o.Mesh.Deflection)) > 0 {
 		return out, geom.ErrConvergence
