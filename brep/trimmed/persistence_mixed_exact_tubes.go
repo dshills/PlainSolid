@@ -6,7 +6,7 @@ import (
 	"plainsolid/intersect"
 )
 
-// nativeExactTubeValidationFace substitutes only independently proved affine
+// nativeExactTubeValidationFace substitutes only independently proved affine-UV
 // tube paths in a temporary UV-topology view. Original native storage remains
 // unchanged. This is not sampled polyline validation of implicit boundaries.
 func nativeExactTubeValidationFace(ctx context.Context, s Solid, f Face) (Face, error) {
@@ -41,7 +41,7 @@ func nativeExactTubeValidationFace(ctx context.Context, s Solid, f Face) (Face, 
 			if u.Edge < 0 || u.Edge >= len(s.edges) || !sameCertifiedSection(s.edges[u.Edge], f.Surface, u) || !tube.HasSourceSurface(f.Surface) {
 				return Face{}, geom.ErrConvergence
 			}
-			proof, e := tube.CertifyAffineChord(ctx, geom.TubeAffineLineOptions{MaxOperations: remaining, MaxPoles: 4096, MaxCoefficientBits: 16384})
+			proof, e := tube.CertifyAffinePath(ctx, geom.TubeAffineLineOptions{MaxOperations: remaining, MaxPoles: 4096, MaxCoefficientBits: 16384})
 			remaining -= proof.ExactOperations
 			if e != nil {
 				return Face{}, e

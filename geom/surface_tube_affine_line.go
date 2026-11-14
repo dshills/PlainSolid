@@ -31,6 +31,10 @@ type TubeAffineLineCertificate struct {
 // The immutable tube's uniqueness then identifies this curve with the complete
 // branch. No sampled inference or rounded endpoint reconstruction is used.
 func (t VerifiedSurfaceTube) CertifyAffineParameterLine(ctx context.Context, start, end [4]*big.Rat, o TubeAffineLineOptions) (r TubeAffineLineCertificate, err error) {
+	return t.certifyAffineParameterPath(ctx, start, end, o, true)
+}
+
+func (t VerifiedSurfaceTube) certifyAffineParameterPath(ctx context.Context, start, end [4]*big.Rat, o TubeAffineLineOptions, requireLine bool) (r TubeAffineLineCertificate, err error) {
 	if ctx == nil || t.a == nil || t.b == nil || t.axis < 0 || t.axis > 3 || t.tangentSign == 0 {
 		return r, ErrInvalid
 	}
@@ -171,16 +175,19 @@ func (t VerifiedSurfaceTube) CertifyAffineParameterLine(ctx context.Context, sta
 	if !different {
 		return r, ErrDegenerate
 	}
-	model, e := exactCurveFromHomogeneousBezier(line, o, budget)
-	if e != nil {
-		return r, e
-	}
-	same, e = equal(a, model)
-	if e != nil {
-		return r, e
-	}
-	if !same {
-		return r, ErrConvergence
+	model := a
+	if requireLine {
+		model, e = exactCurveFromHomogeneousBezier(line, o, budget)
+		if e != nil {
+			return r, e
+		}
+		same, e = equal(a, model)
+		if e != nil {
+			return r, e
+		}
+		if !same {
+			return r, ErrConvergence
+		}
 	}
 	for axis := 0; axis < 4; axis++ {
 		r.Start[axis] = new(big.Rat).Set(start[axis])

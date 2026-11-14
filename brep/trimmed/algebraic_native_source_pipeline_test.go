@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+	"plainsolid/intersect"
 	"testing"
 )
 
@@ -17,8 +19,8 @@ import (
 func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 	ctx := context.Background()
 	var e error
-	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, .125)
-	b, _ := makeOpenSplineBox(t, [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5}, .125)
+	a := makeNativeCurvedTubeBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1})
+	b := makeNativeCurvedTubeBox(t, [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5})
 	convert := func(s Solid) Solid {
 		faces := s.Faces()
 		for i := range faces {
@@ -73,6 +75,7 @@ func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 	o.Trace.Coverage.Isolation.SeparatingProjections = true
 	o.Trace.Coverage.Isolation.ParameterTolerance = .25
 	o.Trace.Coverage.Cell.MaxOperations = 16000000
+	o.Seeds = curvedNativeBoxSeeds(t, a, b)
 	section, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if e != nil || !section.Complete {
 		t.Fatal("section", section.Pairs, e)
@@ -84,6 +87,28 @@ func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 	native, e := material.NativeRepresentable(ctx, 1e-8, NativeAlgebraicBooleanOptions{})
 	if e != nil {
 		t.Fatal("native", e)
+	}
+	curved := 0
+	for _, edge := range native.edges {
+		m, ok := edge.Curve.(surfaceTrimCurve)
+		if !ok {
+			continue
+		}
+		tube, ok := m.curve.(intersect.TubeTrim)
+		if !ok {
+			continue
+		}
+		path, e := tube.CertifyAffinePath(ctx, geom.TubeAffineLineOptions{})
+		if e != nil || !path.Proven {
+			t.Fatal("native exact curved path", e)
+		}
+		line, e := tube.CertifyAffineChord(ctx, geom.TubeAffineLineOptions{})
+		if e != nil || !line.Proven {
+			curved++
+		}
+	}
+	if curved == 0 {
+		t.Fatal("fixture lacks curved model tubes")
 	}
 	count := 0
 	for faceID, f := range native.faces {
@@ -160,5 +185,5 @@ func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 	if e = WriteJSON(&rejected, badNative); e == nil || rejected.Len() != 0 {
 		t.Fatal("non-atomic forged write", e)
 	}
-	t.Logf("retained exact source uses=%d faces=%d edges=%d volume=%.12g", count, len(native.faces), len(native.edges), mass.Volume)
+	t.Logf("retained exact source uses=%d faces=%d edges=%d curvedTubes=%d volume=%.12g", count, len(native.faces), len(native.edges), curved, mass.Volume)
 }
