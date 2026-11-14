@@ -83,7 +83,7 @@ func (s State) ResolvePlanarFaceHistory(ctx context.Context, ref PlanarFaceHisto
 			a, b := cache[f.Input], cache[f.Tool]
 			return (a.related || b.related) && a.err == nil && b.err == nil
 		},
-		record: func(id string, f Feature, geometry State, sources []poly.Source) error {
+		record: func(id string, f Feature, geometry State, history poly.TopologyHistory) error {
 			if id == ref.Source.Feature {
 				return nil
 			}
@@ -108,6 +108,7 @@ func (s State) ResolvePlanarFaceHistory(ctx context.Context, ref PlanarFaceHisto
 				}
 				next.err = geom.ErrUnrepresentable
 			case BooleanFeature:
+				sources := history.Faces
 				if len(sources) != len(geometry.Planar[id].Faces()) {
 					next.err = geom.ErrUnrepresentable
 					break

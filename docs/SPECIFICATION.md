@@ -109,4 +109,5 @@ In particular:
 - Document snapshots preserve exact supported assets, stable asset IDs and
   feature recipes. Authored planar box face references trace retained,
   deleted, fragmented and reversed faces across planar Booleans and transforms.
-  Stable generated-edge and general curved topology naming remain open.
+  Authored planar box edges retain exact interval ancestry through those same
+  operations. Stable generated-edge and general curved topology naming remain open.

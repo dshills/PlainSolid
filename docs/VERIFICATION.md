@@ -98,6 +98,12 @@ face reversal, signed reflection, deletion after moving the cutter away,
 and exact re-resolution after Undo and reopening. Unrelated and
 unsupported dependencies return distinct errors. Existing document
 transaction, sketch, label and STEP assembly race regressions passed.
+Named planar box edges now retain exact source and output parameter
+intervals across multiple Booleans. The directed interval maps compose
+through each output edge and survive a reflected placement. The regression
+verifies both ends against the original analytic segment, the surviving
+source lengths `5/8` and `3/4` before and after an edit, and exact
+re-resolution after Undo and reopening. The focused race tests passed.
 
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
