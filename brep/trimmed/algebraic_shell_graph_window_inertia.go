@@ -33,7 +33,10 @@ type AlgebraicGraphWindowInertia struct {
 	SecondQuotaCharged                                 int
 }
 
-func (q *AlgebraicGraphMaterialQuery) IntegrateWindowInertia(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowInertiaOptions) (out AlgebraicGraphWindowInertia, err error) {
+func (q *AlgebraicGraphMaterialQuery) IntegrateWindowInertia(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowInertiaOptions) (AlgebraicGraphWindowInertia, error) {
+	return q.integrateWindowInertiaPrepared(ctx, w, o, nil)
+}
+func (q *AlgebraicGraphMaterialQuery) integrateWindowInertiaPrepared(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowInertiaOptions, prepared *AlgebraicGraphWindowMoments) (out AlgebraicGraphWindowInertia, err error) {
 	defer func() {
 		if err != nil {
 			out = AlgebraicGraphWindowInertia{SecondQuotaCharged: out.SecondQuotaCharged}
@@ -55,9 +58,19 @@ func (q *AlgebraicGraphMaterialQuery) IntegrateWindowInertia(ctx context.Context
 		}
 		return nil
 	}
-	out.Moments, err = q.IntegrateWindowMoments(ctx, w, o.Moments)
-	if err != nil {
-		return out, err
+	if prepared == nil {
+		out.Moments, err = q.IntegrateWindowMoments(ctx, w, o.Moments)
+		if err != nil {
+			return out, err
+		}
+	} else {
+		if ctx == nil || q == nil || !prepared.Volume.Bounds.HasBounds {
+			return out, geom.ErrInvalid
+		}
+		if e := ctx.Err(); e != nil {
+			return out, e
+		}
+		out.Moments = *prepared
 	}
 	var residual [2]*big.Rat
 	for _, p := range q.patches {

@@ -32,7 +32,10 @@ type AlgebraicGraphWindowMoments struct {
 	MomentQuotaCharged     int
 }
 
-func (q *AlgebraicGraphMaterialQuery) IntegrateWindowMoments(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowMomentOptions) (out AlgebraicGraphWindowMoments, err error) {
+func (q *AlgebraicGraphMaterialQuery) IntegrateWindowMoments(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowMomentOptions) (AlgebraicGraphWindowMoments, error) {
+	return q.integrateWindowMomentsPrepared(ctx, w, o, nil)
+}
+func (q *AlgebraicGraphMaterialQuery) integrateWindowMomentsPrepared(ctx context.Context, w AlgebraicGraphProjectionWindow, o AlgebraicGraphWindowMomentOptions, prepared *AlgebraicGraphPolynomialWindowIntegral) (out AlgebraicGraphWindowMoments, err error) {
 	defer func() {
 		if err != nil {
 			out = AlgebraicGraphWindowMoments{MomentQuotaCharged: out.MomentQuotaCharged}
@@ -54,9 +57,19 @@ func (q *AlgebraicGraphMaterialQuery) IntegrateWindowMoments(ctx context.Context
 		}
 		return nil
 	}
-	out.Volume, err = q.IntegratePolynomialWindow(ctx, w, o.Polynomial)
-	if err != nil {
-		return out, err
+	if prepared == nil {
+		out.Volume, err = q.IntegratePolynomialWindow(ctx, w, o.Polynomial)
+		if err != nil {
+			return out, err
+		}
+	} else {
+		if ctx == nil || q == nil || !prepared.Bounds.HasBounds {
+			return out, geom.ErrInvalid
+		}
+		if e := ctx.Err(); e != nil {
+			return out, e
+		}
+		out.Volume = *prepared
 	}
 	var residual [2]*big.Rat
 	for _, p := range q.patches {
