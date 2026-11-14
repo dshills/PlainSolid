@@ -4,6 +4,15 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
+Recent native progress covers the original mixed curved intersection, union,
+and difference (`407ea58d`), revalidated persistence and conservative volume
+bounds (`10a59a3f`), rational weighted stock cut/line/first-moment queries
+(`1ee34f66`, `cc94975e`), and seven exact ellipse-prism source forms in one
+bounded STEP dispatch (`96ccfff0`). Proper rational placements preserve
+fillet distance witnesses even for irrational azimuths (`4f1e9580`).
+These additions do not qualify arbitrary curved Boolean inputs, arbitrary
+STEP assemblies, or general offset/fillet topology.
+
 ## Immediate priority: PlainCAD compatibility
 
 Development now prioritizes the operations exercised by PlainCAD's existing
