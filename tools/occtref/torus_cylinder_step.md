@@ -13,8 +13,7 @@ rim's distance to the original torus `abs(hf²-h²)/r`, and the represented
 tolerance. Source binary scalars are emitted as their exact decimal expansions;
 short decimal formatting is not silently charged as zero. The native algebraic
 source identity is separate and unchanged. These bounds do not certify a
-reader's healing, numerical evaluation or complete STEP support. Native STEP
-reimport into PlainSolid is not added by this export slice.
+reader's healing, numerical evaluation or complete STEP support. The paired native import described below is a separate restricted dialect.
 
 The independent `torus_cylinder_step.cxx` reads each file through pinned OCCT,
 requires a valid single solid/shell with the expected analytic support types and
@@ -57,3 +56,35 @@ The earlier general STEP reader additionally passed the canonical three
 exports; its binary SHA256 was
 `a7a5ebbbb335e186f7efe99fb9be00cd5171d5804c751c3579a1e71f9d876ac0`.
 No binaries are committed.
+
+
+## Strict paired native import
+
+`ReadTorusCylinderSet` accepts one original body in this writer's complete
+analytic entity graph. It recovers represented source scalars from the torus,
+cylinder and retained planes, and recovers the operation from the native face
+layout and sense. Every support, model curve, pcurve, adjacency, trim orientation,
+product link and detached entity is then checked against the independently
+reconstructed graph. Numbers are compared as bounded exact decimal rationals;
+entity IDs may be relabelled bijectively, but encounter order is part of this
+first paired dialect. Genuine OCCT-authored/healed/reordered STEP remains
+unsupported, even where it represents an equivalent solid. No vendor payload
+or implicit tolerance matching is used as authority.
+
+For Fuse the two cap coordinates are observable and retained. Common and Cut
+contain no cap surfaces, so those authored cutter extents cannot be inferred.
+The immutable result's `Source()` explicitly returns `CapsRetained=false` and
+uses the exact represented clear proxy `±nextafter(r,+Inf)` for reconstruction.
+This finite proxy exists because `r<R<Inf`, and the material of Common/Cut is
+independent of clear cylinder cap locations. Tests qualify scales 2^-100 and
+2^100, retained asymmetric caps, original owners, immutable algebraic rim
+roots, exact canonical re-export, entity relabelling, resource limits, and
+atomic rejection of all requested graph mutations including sub-float changes.
+
+Import is bounded to at most 512 entities, 16384 values and 2 MiB, respecting
+smaller caller limits. Exact decimal atoms have at most 1100 characters,
+exponents in [-1100,1100] and numerator/denominator bit lengths at most 4096.
+At most two native factory proofs run with their fixed per-proof root budget.
+The live original-Boolean comparator also tests import/re-export and compares
+the reconstructed native volume/area/centroid with independently authored OCCT
+Common/Cut/Fuse, not merely the geometry emitted by PlainSolid.
