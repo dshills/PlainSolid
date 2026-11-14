@@ -167,6 +167,53 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			}
 		}
 	}
+	// On the exact center line the tool roof is below the stock roof.
+	// z=-1,-1/2,-7/128,1/256 are the four original boundary stations.
+	line := SplineRayOptions{}
+	line.Line.MinParameter, line.Line.MaxParameter = -2, 2
+	for i, tc := range []struct {
+		station []*big.Rat
+		owner   []int
+	}{
+		{[]*big.Rat{big.NewRat(-1, 2), big.NewRat(-7, 128)}, []int{1, 1}},
+		{[]*big.Rat{big.NewRat(-1, 1), big.NewRat(1, 256)}, []int{0, 0}},
+		{[]*big.Rat{big.NewRat(-1, 1), big.NewRat(-1, 2), big.NewRat(-7, 128), big.NewRat(1, 256)}, []int{0, 1, 1, 0}},
+	} {
+		events, err := bodies[i].IntersectMaterialLineEvents(ctx, geom.Vec3{X: .5, Y: .5}, geom.Vec3{Z: 1}, line)
+		if err != nil || len(events) != len(tc.station) {
+			t.Fatal("mixed Boolean line event count", i, events, err)
+		}
+		for j, ev := range events {
+			if len(ev.Hits) != 1 || ev.Hits[0].Operand != tc.owner[j] || ev.ExactParameter == nil ||
+				ev.ExactParameter.Cmp(tc.station[j]) != 0 || ev.Before != (j%2 == 1) || ev.After != (j%2 == 0) {
+				t.Fatal("wrong transition or source owner", i, j, ev)
+			}
+		}
+	}
+	// A dyadic point on the roof section: 64(x-1/2)^2-(y-1/2)^2=15/4.
+	// The roofs coincide at the exact z=xy/64; the difference starts
+	// and ends outside material on opposite sides of this roof contact.
+	for i, b := range bodies {
+		events, err := b.IntersectMaterialLineEvents(ctx, geom.Vec3{X: 95.0 / 128, Y: 9.0 / 16}, geom.Vec3{Z: 1}, line)
+		if err != nil {
+			t.Fatal("mixed roof section line", i, err)
+		}
+		grouped := 0
+		for _, ev := range events {
+			if len(ev.Hits) != 2 {
+				continue
+			}
+			grouped++
+			if ev.ExactParameter == nil || ev.ExactParameter.Cmp(big.NewRat(855, 131072)) != 0 ||
+				ev.Hits[0].Operand == ev.Hits[1].Operand || ev.Hits[0].Face != 1 || ev.Hits[1].Face != 1 ||
+				ev.Before != (i != 2) || ev.After {
+				t.Fatal("lost simultaneous roof ancestry or material states", i, ev)
+			}
+		}
+		if grouped != 1 {
+			t.Fatal("simultaneous original roof contact missing", i, events)
+		}
+	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
