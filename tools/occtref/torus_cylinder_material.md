@@ -1,0 +1,45 @@
+# Coaxial torus/cylinder material differential
+
+Pinned OCCT source `4dbfdcc448c0b3e565488afcd626c84483172db9`, archive
+`/tmp/plainsolid-occt-4dbfdcc.tar.gz`, SHA-256
+`32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7`.
+
+The C++ fixture independently authors an origin-centered Z-axis ring torus
+(major radius 5, minor radius 2) and finite cylinder (radius 6, z=-3..4),
+then constructs actual OCCT Common and Cut. Each must pass BRepCheck and have
+one solid. No PlainSolid-produced BRep, mesh or boundary samples are consumed.
+
+The line is p(t)=±(t,0,t/10), t in [-8,8]. OCCT's normalized physical
+parameter is divided by sqrt(1.01) to recover original t. Four retained
+crossings are required, and both interval midpoints must be inside each
+independent OCCT solid. Go compares all roots and checks exact source masks:
+Common cylinder/torus/torus/cylinder; Difference the reverse ownership.
+The kernel separately tests full cylinder-generator coincidence, irrational
+rim endpoints ±sqrt(3) with both owners, rational rim ties, isolated double
+root touches, buried contacts, sub-float point probes and strict domain gates.
+
+OCCT tolerance is 1e-10; raw-t comparison allowance is 1e-7. Oracle duplicate
+face intersections are merged within 1e-8 only on these separated roots.
+This finite-precision differential does not establish exact source ownership
+or source regularity; those are independently proved by the kernel.
+
+```sh
+c++ -std=c++17 -O2 \
+ -I/tmp/plainsolid-occt-build/include/opencascade \
+ -L/tmp/plainsolid-occt-build/mac64/clang/lib \
+ -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
+ tools/occtref/torus_cylinder_material.cxx \
+ -o /tmp/plainsolid-torus-cylinder-oracle \
+ -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
+ -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-oracle \
+ GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./internal/occtcheck \
+ -run '^(TestTorusCylinderMaterial|TestOCCTTorusCylinderMaterial)$' -count=1
+```
+
+Qualified executable SHA-256:
+`319c8aaff4054ed3254c6bc98921f72c41b11b3f393164392ed0f2934e523d36`.
+No executable or generated reference data is committed. This milestone does
+not add native torus/cylinder Boolean assembly, arbitrary caps, tangency source
+regimes, or Union. The two exposed original supports are distinguished even
+where a line lies continuously on their cylindrical boundary.
