@@ -141,6 +141,14 @@ func TestFilletedFrustumWorldAnalyticNearestFaces(t *testing.T) {
 			}
 			check(b.Center, world(a.Center))
 			check(b.RadialNumerator, vector(a.Numerator))
+		case FilletedFrustumClosestRim:
+			a := original.Proof.Proof.Baseline.Baseline.Baseline.Rim
+			b := got.WorldProof.Fallback.Fallback.Fallback.Fallback.WorldRim
+			if b == nil || !got.Complete || len(got.Tied) != 2 || b.AzimuthSquared.Cmp(a.AzimuthSquared) != 0 {
+				t.Fatal("two owner rim")
+			}
+			check(b.Center, world([3]*big.Rat{a.Center[0], a.Center[1], a.Z}))
+			check(b.RadialNumerator, vector([3]*big.Rat{fdMul(a.Radius, a.Azimuth[0]), fdMul(a.Radius, a.Azimuth[1]), r(0, 1)}))
 		default:
 			if got.Complete || len(got.Tied) != 0 || len(got.Unresolved) != len(q.solid.faces) {
 				t.Fatal("unsupported world promotion")

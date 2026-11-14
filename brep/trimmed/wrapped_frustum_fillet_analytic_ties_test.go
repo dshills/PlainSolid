@@ -70,7 +70,7 @@ func TestFilletedFrustumAnalyticNearestFaces(t *testing.T) {
 			t.Fatal("repeated/changed proof")
 		}
 	}
-	for _, p := range [][3]*big.Rat{{r(-19, 10), r(1, 10), r(-1, 8)}, {r(2, 1), r(0, 1), r(3, 2)}} {
+	for _, p := range [][3]*big.Rat{{r(2, 1), r(0, 1), r(3, 2)}} {
 		got, e := q.ClassifyAnalyticNearestFacesRational(ctx, p, opts)
 		if e != nil || got.Complete || len(got.Tied) != 0 || len(got.Unresolved) != len(q.solid.faces) {
 			t.Fatal("unsupported tie promoted", e)
