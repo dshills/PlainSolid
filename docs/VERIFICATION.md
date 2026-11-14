@@ -5609,6 +5609,10 @@ Projected footprint containment preserves the original weighted stock and
 its face ownership under operand swap; strict XY separation preserves both
 shells, and partial overlap still fails this path. The focused live Fuse
 race passed in 6.330 s.
+The fully enclosed weighted cutter produces an inward cavity with original
+edge and face geometry. Its exact volume difference, area and centroid
+match the pinned OCCT cavity. A cutter touching the stock floor is rejected
+by this enclosure path. The integrated live Cut race passed in 7.730 s.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

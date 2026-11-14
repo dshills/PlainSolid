@@ -8,13 +8,12 @@ import (
 	"plainsolid/geom"
 )
 
-// SubtractOrderedRoofBoxes handles the case where the cutter covers the
-// stock's entire XY rectangle. When the cutter starts at or below the
-// stock floor, its top must be proved entirely below, entirely above, or
-// strictly between the stock's floor and roof. A cutter with its floor
-// strictly inside the stock may remove the whole top or leave an upper
-// band as a second component. The original face ancestry follows the
-// output face order; a retained cutter floor or roof reverses.
+// SubtractOrderedRoofBoxes handles complete ordered roof-box bands and
+// fully enclosed cutters. A cutter spanning the stock's XY rectangle can
+// leave one band or two separated components. A strictly enclosed cutter
+// instead leaves an inward cavity. A disjoint footprint retains the stock.
+// The original face ancestry follows the output face order; retained
+// cutter faces reverse.
 // Each participating roof must be a single rational Bézier span on the
 // stock rectangle. Pinches and unresolved height order fail closed.
 func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxDifferenceHistory, error) {
@@ -38,8 +37,14 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 	}
 	a, b := q.box[0], q.box[1]
 	d := a.domain
-	if intersectRectangles(d, b.domain) != d || len(a.roofSpans) > 0 || len(b.roofSpans) > 0 {
+	if footprintStrictlyDisjoint(d, b.domain) {
+		return unchangedOrderedRoofBox(ctx, stock, &w)
+	}
+	if len(a.roofSpans) > 0 || len(b.roofSpans) > 0 {
 		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	if intersectRectangles(d, b.domain) != d {
+		return subtractEnclosedOrderedRoofBox(ctx, stock, cutter, q.box, &w)
 	}
 	upper, err := roofBoxRestrictedPatch(a.roof, d, &w)
 	if err != nil {
@@ -91,6 +96,48 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 		h.Reversed = append(h.Reversed, false)
 	}
 	return s, h, nil
+}
+
+func subtractEnclosedOrderedRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]*mixedRoofBox, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {
+	var zero RoofBoxDifferenceHistory
+	a, b := boxes[0], boxes[1]
+	d := b.domain
+	if d.UMin <= a.domain.UMin || d.UMax >= a.domain.UMax || d.VMin <= a.domain.VMin || d.VMax >= a.domain.VMax || b.floor.Cmp(a.floor) <= 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	xy := [2]geom.ExactParameterInterval{
+		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
+		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
+	}
+	cache := make(roofOrderCache)
+	order, err := cache.order(boxes, xy, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	sign, strict, err := orderedRoofPowerSign(ctx, cache[boxes].power, order, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if sign != 1 || !strict {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	inward, err := reverseMaterialShell(ctx, cutter)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	identity := geom.Identity()
+	out, err := AssembleShells(ctx, []PlacedSolid{{stock, identity}, {inward, identity}}, 12)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	h := RoofBoxDifferenceHistory{ExactOperations: w.operations}
+	for i, s := range []Solid{stock, cutter} {
+		for face := range s.faces {
+			h.Faces = append(h.Faces, MixedRoofFaceOwner{i, face})
+			h.Reversed = append(h.Reversed, i == 1)
+		}
+	}
+	return out, h, nil
 }
 
 func unchangedOrderedRoofBox(ctx context.Context, stock Solid, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {

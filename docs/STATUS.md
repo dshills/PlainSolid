@@ -1994,6 +1994,8 @@ supports without reconstruction.
 An exact full-footprint Cut with a cutter wholly between the stock floor
 and roof returns two closed solids. Each retains one of the two cutter
 caps, reversed, and all remaining stock wall fragments keep their sources.
+The fully enclosed weighted cutter instead retains all original surfaces
+and reverses the cutter shell to form the native cavity.
 
 `CertifyQuarticGramGraphPointContact` also certifies a single isolated
 order-four contact of exact graphs when the complete homogeneous height

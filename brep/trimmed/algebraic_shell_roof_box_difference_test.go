@@ -57,6 +57,43 @@ func TestOrderedRoofBoxDifferenceNative(t *testing.T) {
 	}
 }
 
+func TestOrderedRoofBoxDifferenceEnclosedCavity(t *testing.T) {
+	ctx := context.Background()
+	stock, cutter := weightedIdentityRoofStock(t, false, 2), weightedIdentityRoofStock(t, true, 2)
+	s, h, err := SubtractOrderedRoofBoxes(ctx, stock, cutter, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 12 || len(h.Reversed) != 12 || len(s.Topology().Shells) != 2 {
+		t.Fatal("original stock plus inward closed cavity", s.Topology(), h, err)
+	}
+	for i, owner := range h.Faces {
+		src := [2]Solid{stock, cutter}[i/6].faces[i%6]
+		if owner != (MixedRoofFaceOwner{i / 6, i % 6}) || h.Reversed[i] != (i >= 6) || s.faces[i].Surface != src.Surface || (s.faces[i].Reversed != src.Reversed) != (i >= 6) {
+			t.Fatal("original supports and inward polarity", i, owner)
+		}
+	}
+	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{})
+	// Cutter height is 7/8+X/4-1/4 on a square with side 3/4; the
+	// linear height at its center is 3/4. Its whole volume is 27/64.
+	want := 3*math.Log(2) - .5 - 27./64
+	if err != nil || math.Abs(mass.Volume-want) > 1e-8 {
+		t.Fatal("independent difference of the volumes", mass, want, err)
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "weighted-ordered-enclosed").Output()
+		var ref struct {
+			Volume, Area  float64
+			Centroid      [3]float64
+			Solids, Euler int
+		}
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 4 || math.Abs(ref.Volume-mass.Volume) > 1e-8 || math.Abs(ref.Area-mass.Area) > 1e-8 || mass.Centroid.Sub(geom.Vec3{X: ref.Centroid[0], Y: ref.Centroid[1], Z: ref.Centroid[2]}).Length() > 1e-8 {
+			t.Fatal("independent pinned OCCT weighted cavity", mass, ref, err, string(data))
+		}
+	}
+	touch, _ := makeOpenSplineBox(t, [3]float64{.125, .125, 0}, [3]float64{.875, .875, 1.25}, 0)
+	if s, h, err := SubtractOrderedRoofBoxes(ctx, stock, touch, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("open cavity must not be represented as enclosed", s.Topology(), h, err)
+	}
+}
+
 func TestOrderedRoofBoxDifferenceFloatingCutter(t *testing.T) {
 	ctx := context.Background()
 	stock, _ := makeOpenSplineBox(t, [3]float64{0, 0, -1}, [3]float64{1, 1, 4}, 0)
