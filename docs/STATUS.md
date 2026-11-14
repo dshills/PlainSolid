@@ -2176,3 +2176,10 @@ families, including independent station grids, both annular caps and
 original rim and vertex identities. Native reload re-authenticates
 strict containment and inward tool orientation. See the
 [weighted bore STEP contract](../exchange/step/WRAPPED_RATIONAL_STATION_BORES.md).
+
+### Weighted station measures under exact placement
+
+A filled loft occurrence preserves the exact per-face and total boundary
+area intervals. Its centroidal inertia uses exact rational rotation in
+world axes. The required original integration width follows from the
+coefficient sums of the symmetric tensor transform.

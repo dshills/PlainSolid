@@ -5965,3 +5965,11 @@ outer and inner partitions. Pinned OCCT reads volume 24.3558991065 and
 axial centroid 1.276666666394, agreeing with independent profile and
 axial integrals. Focused main race covers deterministic re-export, native
 reload and source mutation rejection.
+
+### Weighted occurrence measure qualification
+
+A non-cardinal rational rotation and nonbinary translation preserve the
+original area and enclose all world tensor entries within 1/15. The test
+compares against an independently integrated and rotated tensor, changes
+the translation exactly, and checks independent intervals and atomic
+transform exhaustion. The integrated focused race passed in 7.667 s.
