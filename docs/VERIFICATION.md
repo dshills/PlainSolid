@@ -5908,3 +5908,14 @@ and preserves exact half-edge source parameters. Tests re-evaluate original
 UV and model endpoints and exercise cycle indexing, reversed charts, result
 mutation, exact and one-short budgets, cancellation and unsupported contact
 rejection. The integrated affine polygon and patch race passed in 1.542 s.
+
+### Weighted station boundary area qualification
+
+The area tests re-read native JSON and integrate the original spline partials
+independently for every wall. They verify the asymmetric filled case and
+both wall families of a bore with unequal station subdivisions. Every cap
+uses an independent profile integral and retains its original face identity.
+The filled and hollow enclosures meet total width requests of 1/64 and 1/20
+respectively at 256 spans. Cancellation, limited source proof and one-short
+integration budgets return empty results. The combined area, mass, bore
+and rigid occurrence race run passed in 67.058 s.

@@ -2125,3 +2125,12 @@ original owner, ring, edge, UV endpoints and directed parameter interval.
 Closed-cycle assembly verifies exactly one incoming and outgoing edge at every
 node. Noncontacting rings also qualify. Vertex touches, endpoint-on-edge events
 and coincident spans remain outside this entry point.
+
+### Certified weighted station boundary area
+
+Filled rational station lofts and nested through-bores return outward exact
+rational area intervals for every original face and the total. The lateral
+method integrates the height direction analytically. A bounded Bernstein
+integral encloses the remaining weighted profile derivative on a shared exact
+subdivision. End caps use the authenticated profile area. Annular caps apply
+the exact difference of squared scales before multiplying the profile interval.
