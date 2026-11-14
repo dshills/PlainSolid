@@ -1,0 +1,76 @@
+{
+  "schema": "plaincad-reconciled-supplemental-double-blind-step-v1",
+  "status": "passed",
+  "integrationCommit": "7c54cc752d18eae06c5fb476b8c2f936fd7011ab",
+  "reviewCommit": "3a4a37c863285ab998a0ce27da0f9d309ad58f6e",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "964d53a76748c79e386379e2dfbde01c3e8960415b6ef0f4399d23e44bd60454",
+  "fixture": "e2e/plainsolid-double-crossed-step-holes.spec.ts",
+  "sourceSha256": "7ed2c02189823b3ad246a26c3202704c6ae728540eac6514775ddad20e900c0e",
+  "runSha256": "4f9547b827ec906aa6963334f0251bbf736638040cc519444b3d9a81e11b9440",
+  "reportStats": {
+    "startTime": "2026-11-14T13:25:48.443Z",
+    "duration": 10897.634,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      20,
+      24,
+      18
+    ],
+    "crossingMm": [
+      8,
+      9,
+      7
+    ],
+    "radiusMm": 3,
+    "depthMm": [
+      15.4,
+      15.2
+    ],
+    "stepByteCount": 44829,
+    "stepSha256": "9ce0dcf2a6d8dcee4f82f0e11c1a5e817a7ea13da980e353524091e18ee0550a",
+    "stlTriangles": 396,
+    "stlTwoUseEdges": 594,
+    "stlSha256": "08c4b1ad04e8a419fd55b4f691d67c65111fcc09dfbb648525a8e4f2e0e73367",
+    "occtStepReadback": {
+      "Area": 2976.796410378213,
+      "Volume": 7918.805384022245,
+      "Centroid": [
+        10.198643176335763,
+        12.273220990263537,
+        8.997622325226683
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 7918.80538320139,
+      "Area": 2976.796411199065,
+      "Centroid": [
+        10.198643176592087,
+        12.273220990502455,
+        8.997622325524057
+      ]
+    },
+    "directOracleSourceSha256": "dcc0bacaa8b9f7a892ddf25c66ae5f6391a7a61ac20e7483a13d74e397b4c077",
+    "blindFloorXZMm": [
+      15.4,
+      2.8
+    ]
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 2976.796410378213,
+    "Volume": 7918.805384022245,
+    "Centroid": [
+      10.198643176335763,
+      12.273220990263537,
+      8.997622325226683
+    ]
+  },
+  "projectSha256": "84588c4d491e30edf327ab0daa1a0717df5b62e13a80cb00d3da6139fcdbb4bc"
+}
