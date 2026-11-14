@@ -2,8 +2,8 @@
 
 `ReadMixedTopologySolids` and `WriteMixedTopologySolids` support a collection of
 2–8 type186 solids containing at least two of the exact tetrahedral, convex
-affine-hexahedral, canonical circular-cylinder, and original parabolic spline-roof
-families. Repeated roots
+affine-hexahedral, canonical circular-cylinder, coaxial/eccentric through- or
+blind-bore, and original parabolic spline-roof families. Repeated roots
 of any supported family are allowed within the same cumulative caps. Every root retains its native material
 proof; there is no faceting of the roof or generic approximate surface fitting.
 This is a multi-solid file, not IGES assembly placement, instance sharing, or a
@@ -169,3 +169,45 @@ volume `4/3+66*pi`, area `6+2*sqrt(3)+94*pi`, and exact analytic first moments
 forms together. Repeated members have separate mutable parameter maps and source
 provenance. Cross-root hole-loop/model-edge links, invalid inner-wall sense,
 radius mismatch, aggregate limits and inappropriate payloads fail atomically.
+
+## Distinct eccentric through and blind members
+
+`MixedTopologyEccentricThrough` and `MixedTopologyEccentricBlind` add the two
+independently qualified eccentric circular material normal forms. Input and
+result structs have distinct `EccentricThrough` / `EccentricBlind` fields; results
+retain each complete individual decode, including native stock/cutter/floor
+ancestry and original per-member source metadata. `LocalToSource` maps every
+local proof ID back to the actual collection ID. No individual reader is widened.
+
+The through member has 37 records. Blind members have 39 records in both
+coaxial and eccentric forms: their original stock and floor center XY scalars
+must first pass exact decimal representability, then exact equality selects
+coaxial versus eccentric. The selected reader must prove its entire graph.
+There is no try-another-reader fallback, tolerance classification or name marker.
+Unexpected descriptor payloads for another family reject during writer staging.
+Original cumulative limits and typed reference ownership remain in force.
+
+This keeps the existing **independent material collection** contract. Roots
+must own disjoint entity graphs and all source records must belong to a root;
+spatially overlapping bodies remain permitted. Repeated equal geometry is
+represented by separate original roots/IDs, not shared assembly occurrences.
+No union, inter-body noninterference or shared-instance placement is inferred.
+
+The independent Python author combines a tetrahedron with a blind member at
+X=-10 and a through member at X=10 into the retained 110-record
+`testdata/mixed-eccentric-material.igs`. Neither source member is Go-generated.
+Pinned OCCT ordinary transfer/BRepCheck accepts that fixture and Go output as
+three solids/thirteen faces. Volume is `4/3+66π`, area is `6+2√3+94π`; first
+moments are `(2/3-26π, 2/3-3π, 2/3+130π)`. This independently checks the displaced
+holes as well as the stock translations; mass alone would not distinguish
+coaxial holes. Centroid is approximately
+`(-0.38822764363333,-0.0419694096745734,1.96030646495649)`.
+
+A generic native document regression saves the one planar and two parametric
+local assets with source family/root and floor-index labels, reloads byte-stably,
+and rechecks actual geometry, floor positions and aggregate first moments. This
+uses the existing document schema; descriptive labels are not accepted as
+geometry proofs and this is not a new source-reimport document adapter.
+Collection tests cover cross-root edge/loop references, sense/radius mutations,
+cumulative limits, unused input payloads, repeated-member nonaliasing and the
+new mixed fuzz seed. Both original coaxial families remain regression-tested.

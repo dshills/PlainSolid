@@ -14,13 +14,15 @@ import (
 type MixedTopologyFamily string
 
 const (
-	MixedTopologyTetrahedron     MixedTopologyFamily = "tetrahedron"
-	MixedTopologyRoof            MixedTopologyFamily = "parabolic-roof"
-	MixedTopologyHexahedron      MixedTopologyFamily = "hexahedron"
-	MixedTopologyCylinder        MixedTopologyFamily = "circular-cylinder"
-	MixedTopologyPlacedCylinder  MixedTopologyFamily = "placed-circular-cylinder"
-	MixedTopologyBlindCylinder   MixedTopologyFamily = "blind-circular-cylinder"
-	MixedTopologyThroughCylinder MixedTopologyFamily = "through-circular-cylinder"
+	MixedTopologyTetrahedron      MixedTopologyFamily = "tetrahedron"
+	MixedTopologyRoof             MixedTopologyFamily = "parabolic-roof"
+	MixedTopologyHexahedron       MixedTopologyFamily = "hexahedron"
+	MixedTopologyCylinder         MixedTopologyFamily = "circular-cylinder"
+	MixedTopologyPlacedCylinder   MixedTopologyFamily = "placed-circular-cylinder"
+	MixedTopologyBlindCylinder    MixedTopologyFamily = "blind-circular-cylinder"
+	MixedTopologyThroughCylinder  MixedTopologyFamily = "through-circular-cylinder"
+	MixedTopologyEccentricBlind   MixedTopologyFamily = "eccentric-blind-cylinder"
+	MixedTopologyEccentricThrough MixedTopologyFamily = "eccentric-through-cylinder"
 )
 
 type MixedTopologyBody struct {
@@ -28,28 +30,32 @@ type MixedTopologyBody struct {
 	SourceSolidID int
 	// LocalToSource maps the reindexed proof graph's IDs back to actual source IDs.
 	// All nested decoded source IDs use the local proof graph explicitly.
-	LocalToSource   map[int]int
-	Tetrahedron     *TetrahedronSolid
-	Hexahedron      *HexahedronSolid
-	Cylinder        *CircularCylinderSolid
-	PlacedCylinder  *PlacedCircularCylinderSolid
-	BlindCylinder   *BlindCircularCylinderSolid
-	ThroughCylinder *ThroughCircularCylinderSolid
-	Roof            *MappedParabolicRoofSolid
+	LocalToSource    map[int]int
+	Tetrahedron      *TetrahedronSolid
+	Hexahedron       *HexahedronSolid
+	Cylinder         *CircularCylinderSolid
+	PlacedCylinder   *PlacedCircularCylinderSolid
+	BlindCylinder    *BlindCircularCylinderSolid
+	ThroughCylinder  *ThroughCircularCylinderSolid
+	EccentricBlind   *EccentricBlindCylinderSolid
+	EccentricThrough *EccentricThroughCylinderSolid
+	Roof             *MappedParabolicRoofSolid
 }
 type MixedTopologySolids struct {
 	Bodies     []MixedTopologyBody
 	LengthUnit float64
 }
 type MixedTopologyInput struct {
-	Family          MixedTopologyFamily
-	Vertices        [4]geom.Vec3
-	HexVertices     [8]geom.Vec3
-	Cylinder        CircularCylinderDescriptor
-	Placement       geom.Affine
-	BlindCylinder   BlindCircularCylinderDescriptor
-	ThroughCylinder ThroughCircularCylinderDescriptor
-	Roof            ParabolicRoofDescriptor
+	Family           MixedTopologyFamily
+	Vertices         [4]geom.Vec3
+	HexVertices      [8]geom.Vec3
+	Cylinder         CircularCylinderDescriptor
+	Placement        geom.Affine
+	BlindCylinder    BlindCircularCylinderDescriptor
+	ThroughCylinder  ThroughCircularCylinderDescriptor
+	EccentricBlind   EccentricBlindCylinderDescriptor
+	EccentricThrough EccentricThroughCylinderDescriptor
+	Roof             ParabolicRoofDescriptor
 }
 
 func mixedTopologyFailure() error {
@@ -328,7 +334,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 	}
 	owners := map[int]int{}
 	out := MixedTopologySolids{LengthUnit: doc.unit}
-	nt, nr, nh, nc, nb, nu := 0, 0, 0, 0, 0, 0
+	nt, nr, nh, nc, nb, nu, neb, neu := 0, 0, 0, 0, 0, 0, 0, 0
 	for _, root := range roots {
 		if e = ctx.Err(); e != nil {
 			return MixedTopologySolids{}, e
@@ -351,7 +357,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 			owners[id] = root
 			todo = append(todo, refs[id]...)
 		}
-		if len(visited) != 36 && len(visited) != 39 && len(visited) != 25 && len(visited) != 24 && len(visited) != 34 && len(visited) != 58 {
+		if len(visited) != 37 && len(visited) != 36 && len(visited) != 39 && len(visited) != 25 && len(visited) != 24 && len(visited) != 34 && len(visited) != 58 {
 			return fail()
 		}
 		ids := make([]int, 0, len(visited))
@@ -380,14 +386,58 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 			body.Family = MixedTopologyThroughCylinder
 			body.ThroughCylinder = &v
 			nu++
-		} else if len(visited) == 39 {
-			v, e := ReadBlindCircularCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
+		} else if len(visited) == 37 {
+			v, e := ReadEccentricThroughCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
 			if e != nil {
 				return fail()
 			}
-			body.Family = MixedTopologyBlindCylinder
-			body.BlindCylinder = &v
-			nb++
+			body.Family = MixedTopologyEccentricThrough
+			body.EccentricThrough = &v
+			neu++
+		} else if len(visited) == 39 {
+			// Both blind graphs have 39 records. Exact original point coordinates
+			// determine the family before its complete independent validation.
+			if selected[0].kind != 116 || selected[2].kind != 116 || len(selected[0].values) != 5 || len(selected[2].values) != 5 {
+				return fail()
+			}
+			for _, r := range []topologyRecord{selected[0], selected[2]} {
+				if e = compositeSourceNumbers(110, r.values); e != nil {
+					return fail()
+				}
+			}
+			x, e := realValue(selected[0].values[1])
+			if e != nil {
+				return fail()
+			}
+			y, e := realValue(selected[0].values[2])
+			if e != nil {
+				return fail()
+			}
+			bx, e := realValue(selected[2].values[1])
+			if e != nil {
+				return fail()
+			}
+			by, e := realValue(selected[2].values[2])
+			if e != nil {
+				return fail()
+			}
+			if x == bx && y == by {
+				v, e := ReadBlindCircularCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
+				if e != nil {
+					return fail()
+				}
+				body.Family = MixedTopologyBlindCylinder
+				body.BlindCylinder = &v
+				nb++
+			} else {
+				v, e := ReadEccentricBlindCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
+				if e != nil {
+					return fail()
+				}
+				body.Family = MixedTopologyEccentricBlind
+				body.EccentricBlind = &v
+				neb++
+			}
 		} else if len(visited) == 25 {
 			v, e := ReadPlacedCircularCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
 			if e != nil {
@@ -431,7 +481,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 		}
 		out.Bodies = append(out.Bodies, body)
 	}
-	if len(owners) != len(records) || mixedTopologyFamilyCount(nt, nr, nh, nc, nb, nu) < 2 {
+	if len(owners) != len(records) || mixedTopologyFamilyCount(nt, nr, nh, nc, nb, nu, neb, neu) < 2 {
 		return fail()
 	}
 	return out, nil
@@ -445,7 +495,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 	}
 	var all []topologyRecord
 	to := map[int]int{}
-	nt, nr, nh, nc, nb, nu := 0, 0, 0, 0, 0, 0
+	nt, nr, nh, nc, nb, nu, neb, neu := 0, 0, 0, 0, 0, 0, 0, 0
 	for _, b := range bodies {
 		if e := ctx.Err(); e != nil {
 			return e
@@ -464,17 +514,29 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 		if b.Family != MixedTopologyThroughCylinder && b.ThroughCylinder != (ThroughCircularCylinderDescriptor{}) {
 			return mixedTopologyFailure()
 		}
+		if b.Family != MixedTopologyEccentricBlind && b.EccentricBlind != (EccentricBlindCylinderDescriptor{}) {
+			return mixedTopologyFailure()
+		}
+		if b.Family != MixedTopologyEccentricThrough && b.EccentricThrough != (EccentricThroughCylinderDescriptor{}) {
+			return mixedTopologyFailure()
+		}
 		switch b.Family {
-		case MixedTopologyBlindCylinder, MixedTopologyThroughCylinder:
+		case MixedTopologyBlindCylinder, MixedTopologyThroughCylinder, MixedTopologyEccentricBlind, MixedTopologyEccentricThrough:
 			if b.Vertices != ([4]geom.Vec3{}) || b.HexVertices != ([8]geom.Vec3{}) || b.Roof != (ParabolicRoofDescriptor{}) {
 				return mixedTopologyFailure()
 			}
 			if b.Family == MixedTopologyBlindCylinder {
 				e = WriteBlindCircularCylinderSolid(ctx, &raw, b.BlindCylinder, unit)
 				nb++
-			} else {
+			} else if b.Family == MixedTopologyThroughCylinder {
 				e = WriteThroughCircularCylinderSolid(ctx, &raw, b.ThroughCylinder, unit)
 				nu++
+			} else if b.Family == MixedTopologyEccentricBlind {
+				e = WriteEccentricBlindCylinderSolid(ctx, &raw, b.EccentricBlind, unit)
+				neb++
+			} else {
+				e = WriteEccentricThroughCylinderSolid(ctx, &raw, b.EccentricThrough, unit)
+				neu++
 			}
 		case MixedTopologyPlacedCylinder:
 			if b.Vertices != ([4]geom.Vec3{}) || b.HexVertices != ([8]geom.Vec3{}) || b.Roof != (ParabolicRoofDescriptor{}) {
@@ -538,7 +600,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 			all = append(all, rec)
 		}
 	}
-	if mixedTopologyFamilyCount(nt, nr, nh, nc, nb, nu) < 2 {
+	if mixedTopologyFamilyCount(nt, nr, nh, nc, nb, nu, neb, neu) < 2 {
 		return mixedTopologyFailure()
 	}
 	raw, e := remapTopologyRecords(all, to, unit)
