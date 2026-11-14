@@ -99,7 +99,7 @@ jobs:
       - name: Bounded fuzzing for analytic IGES solids and cavities
         shell: bash
         run: |
-          targets=$(go test ./exchange/iges -list '^Fuzz' | awk '/^Fuzz(Placed|Reindexed)?(Toroidal|Spherical|SphericalCavity|Conical45Cavity|CylinderSphereCavity)(Material)?$/ { print }')
+          targets=$(go test ./exchange/iges -list '^Fuzz' | awk '/^Fuzz(Placed|Reindexed)?(Toroidal|Spherical|SphericalCavity|Conical45Cavity|Conical45CylinderThrough|CylinderSphereCavity)(Material)?$/ { print }')
           test -n "$targets"
           for target in $targets; do
             GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s

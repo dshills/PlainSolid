@@ -20,8 +20,15 @@ func CircularFrustum(ctx context.Context, origin geom.Vec3, lower, upper, height
 
 // CircularFrustumFrame retains exact represented controls in the supplied frame.
 func CircularFrustumFrame(ctx context.Context, frame geom.Frame, lower, upper, height, tol float64) (trimmed.Solid, [2][4]int, error) {
+	p, e := circularFrustumParts(ctx, frame, lower, upper, height, tol)
+	if e != nil {
+		return trimmed.Solid{}, [2][4]int{}, e
+	}
+	return sewParts(ctx, p, tol)
+}
+func circularFrustumParts(ctx context.Context, frame geom.Frame, lower, upper, height, tol float64) ([]trimmed.SewFace, error) {
 	origin := frame.Origin()
-	bad := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
+	bad := func(e error) ([]trimmed.SewFace, error) { return nil, e }
 	if ctx == nil || !origin.IsFinite() || !finite(lower) || !finite(upper) || !finite(height) || !finite(tol) || lower <= 0 || upper <= 0 || height <= 0 || tol <= 0 {
 		return bad(geom.ErrInvalid)
 	}
@@ -83,5 +90,5 @@ func CircularFrustumFrame(ctx context.Context, frame geom.Frame, lower, upper, h
 	if e != nil {
 		return bad(e)
 	}
-	return sewParts(ctx, p, tol)
+	return p, nil
 }

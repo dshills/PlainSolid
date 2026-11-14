@@ -30,6 +30,10 @@ func annulus(ctx context.Context, frame geom.Frame, a, b, ia, ib, height, tol fl
 	if e != nil {
 		return bad(e)
 	}
+	return sewAnnularParts(ctx, outer, inner, tol)
+}
+func sewAnnularParts(ctx context.Context, outer, inner []trimmed.SewFace, tol float64) (trimmed.Solid, [2][2][4]int, error) {
+	bad := func(e error) (trimmed.Solid, [2][2][4]int, error) { return trimmed.Solid{}, [2][2][4]int{}, e }
 	for k := 0; k < 2; k++ {
 		nv, ne := len(outer[k].Vertices), len(outer[k].Edges)
 		hole := []trimmed.Use{}
@@ -71,4 +75,21 @@ func annulus(ctx context.Context, frame geom.Frame, a, b, ia, ib, height, tol fl
 		}
 	}
 	return s, rims, nil
+}
+
+// CircularFrustumThrough constructs exact concentric linearly tapered walls and annular caps.
+// Endpoint clearance is sufficient for every axial station because both radii are affine.
+func CircularFrustumThrough(ctx context.Context, frame geom.Frame, lower, upper, innerRadius, height, tol float64) (trimmed.Solid, [2][2][4]int, error) {
+	if !finite(innerRadius) || innerRadius <= 0 || innerRadius >= lower || innerRadius >= upper {
+		return trimmed.Solid{}, [2][2][4]int{}, geom.ErrInvalid
+	}
+	outer, e := circularFrustumParts(ctx, frame, lower, upper, height, tol)
+	if e != nil {
+		return trimmed.Solid{}, [2][2][4]int{}, e
+	}
+	inner, e := circularFrustumParts(ctx, frame, innerRadius, innerRadius, height, tol)
+	if e != nil {
+		return trimmed.Solid{}, [2][2][4]int{}, e
+	}
+	return sewAnnularParts(ctx, outer, inner, tol)
 }
