@@ -1,0 +1,75 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "2241161bbebdc21ac788f6bd878f51a65878b57a0b686b5430c2a208d62659d8",
+  "supplemental": {
+    "report": "/tmp/plainsolid-crossed-oblique-authored-5558/crossed-oblique-browser.json",
+    "reportSha256": "5d92f041336f8892ff1df7a7209f1fdf4c31da06c720f6760891109d8cf56c1e",
+    "sourceSha256": "0099f091776d0dfd83bb51d9467be7fb7efb6197cf6cbad8db6d2f4d515bc5c9",
+    "summary": {
+      "startTime": "2026-11-14T14:26:01.355Z",
+      "duration": 15212.134,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        16,
+        40
+      ],
+      "crossingMm": [
+        10,
+        8,
+        20
+      ],
+      "radiusMm": 2,
+      "obliqueAxisRatio": [
+        4,
+        0,
+        3
+      ],
+      "analyticEllipses": 16,
+      "stepByteCount": 41699,
+      "stepSha256": "beaa20fd1c6c674c82f532428e1133cdecab7390ad8f2a4a49457bb5fa27442b",
+      "stlTriangles": 404,
+      "stlTwoUseEdges": 606,
+      "stlSha256": "0658742314cff728049b35127dc474af9a30d3a9bd868abfc3a95a9eec50cda0",
+      "occtStepReadback": {
+        "Area": 4200.26542171269,
+        "Volume": 12036.519243704017,
+        "Centroid": [
+          9.999999999999996,
+          8.000000000000004,
+          20
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 12036.519243386216,
+        "Area": 4200.265422189392,
+        "Centroid": [
+          10.00000000000317,
+          8.000000000000002,
+          20.00000000000226
+        ]
+      },
+      "directOracleSourceSha256": "f2208f8b95107e214aaf71a27ad79e2a220e5df25dd00db6b42fac07664e1cb5"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 3
+  },
+  "vet": "passed",
+  "native": {
+    "signedCases": 12,
+    "focusedRaceSeconds": {
+      "brep/trimmed": 15.075,
+      "exchange/step": 2.319,
+      "internal/plaincadbridge": 11.531
+    }
+  }
+}

@@ -77,6 +77,9 @@ type longEdgeOwner struct {
 type longEdgeCurve struct {
 	same              bool
 	circle            bool
+	ellipse           bool
+	minorRadius       float64
+	unequal           *unequalBoreSplines
 	frame             geom.Frame
 	radius            float64
 	origin, direction geom.Vec3
@@ -95,7 +98,7 @@ func longEdgeSurfaceOf(surface geom.Surface) (longEdgeSurface, error) {
 				count++
 			}
 		}
-		if count != 1 || m[i][3] != 0 {
+		if count != 1 || math.IsNaN(m[i][3]) || math.IsInf(m[i][3], 0) {
 			return longEdgeSurface{}, geom.ErrDomain
 		}
 	}
@@ -121,12 +124,45 @@ func longEdgeSurfaceOf(surface geom.Surface) (longEdgeSurface, error) {
 
 // The caller supplies only topology freshly produced by the two validated
 // native constructors above; this is not a generic Solid serializer.
+type nativeLongEdgeLimits struct{ faces, edges, vertices, loops, uses int }
+
 func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
+	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
+}
+func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false, 0)
+}
+
+func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, 0)
+}
+
+func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64) error {
+	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, crossed, unequalTolerance, nil)
+}
+
+func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3) error {
+	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, false)
+}
+
+func writeNativeFiniteUnequalBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid, tolerance float64) error {
+	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, tolerance, nil, true)
+}
+
+func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite bool) error {
+	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, false)
+}
+
+func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool) error {
+	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, crossedOblique, nil)
+}
+
+func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool, directions map[int]geom.Vec3) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
 	vertices, edges, faces := s.Vertices(), s.Edges(), s.Faces()
-	if len(faces) < 3 || len(faces) > 64 || len(edges) > 256 || len(vertices) > 256 {
+	if len(faces) < 3 || len(faces) > limits.faces || len(edges) > limits.edges || len(vertices) > limits.vertices {
 		return geom.ErrDomain
 	}
 	surfaces := make([]longEdgeSurface, len(faces))
@@ -139,11 +175,11 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 			return e
 		}
 		loops := append([][]trimmed.Use{face.Outer}, face.Holes...)
-		if len(loops) > 5 {
+		if len(loops) > limits.loops {
 			return geom.ErrDomain
 		}
 		for _, loop := range loops {
-			if len(loop) < 3 || len(loop) > 64 {
+			if len(loop) < 3 || len(loop) > limits.uses {
 				return geom.ErrDomain
 			}
 			for j, u := range loop {
@@ -179,6 +215,52 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 			return geom.ErrDomain
 		}
 		a, b := vertices[edge.Start], vertices[edge.End]
+		if crossedOblique {
+			var conic longEdgeCurve
+			var err error
+			curved := false
+			if os[0].use.Curve != nil && os[1].use.Curve != nil {
+				first, second := surfaces[os[0].face], surfaces[os[1].face]
+				if first.kind == "CYLINDRICAL_SURFACE" && second.kind == "CYLINDRICAL_SURFACE" {
+					conic, err = crossedObliqueBoreEdge(a, b, os, surfaces)
+					curved = true
+				} else if first.kind != second.kind && first.frame.ZAxis().Cross(second.frame.ZAxis()) != (geom.Vec3{}) {
+					conic, err = obliqueBoreEdgeCurve(a, b, os, surfaces)
+					curved = true
+				}
+			}
+			if err != nil {
+				return err
+			}
+			if curved {
+				curves[i] = conic
+				continue
+			}
+		}
+		if (obliqueDirection != nil || directions != nil) && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
+			curve, err := obliqueBoreEdgeCurve(a, b, os, surfaces)
+			if err != nil {
+				return err
+			}
+			curves[i] = curve
+			continue
+		}
+		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
+			if unequalTolerance > 0 {
+				fitted, err := approximateUnequalBoreEdgeOptions(a, b, os, surfaces, unequalTolerance, compactFinite)
+				if err != nil {
+					return err
+				}
+				curves[i] = longEdgeCurve{unequal: fitted, same: true}
+				continue
+			}
+			curve, err := crossedBoreEdgeCurve(a, b, os, surfaces)
+			if err != nil {
+				return err
+			}
+			curves[i] = curve
+			continue
+		}
 		direction, e := b.Sub(a).Unit()
 		if e != nil {
 			return e
@@ -240,6 +322,9 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 	// Preflight every owner representation before any bytes are written.
 	for i, os := range owners {
 		curve := curves[i]
+		if curve.ellipse || curve.unequal != nil {
+			continue
+		}
 		for _, owner := range os {
 			surface := surfaces[owner.face]
 			u := owner.use
@@ -263,17 +348,18 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 			}
 		}
 	}
-	return writeStandalone(w, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	return writeStandaloneWithUncertainty(w, unit, unequalTolerance, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		point3 := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
 		dir3 := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
-		place := func(f geom.Frame) int64 {
-			p, z, x := point3(f.Origin()), dir3(f.ZAxis()), dir3(f.XAxis())
+		placeDirection := func(f geom.Frame, normal geom.Vec3) int64 {
+			p, z, x := point3(f.Origin()), dir3(normal), dir3(f.XAxis())
 			return emit(fmt.Sprintf("AXIS2_PLACEMENT_3D('',#%d,#%d,#%d)", p, z, x))
 		}
+		place := func(f geom.Frame) int64 { return placeDirection(f, f.ZAxis()) }
 		point2 := func(p geom.Vec2) int64 { return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s))", real(p.X), real(p.Y))) }
 		line2 := func(p, d geom.Vec2) int64 {
 			o := point2(p)
@@ -284,7 +370,14 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 		ctx := emit("(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''))")
 		surfaceIDs := make([]int64, len(faces))
 		for i, surface := range surfaces {
-			p := place(surface.frame)
+			normal := surface.frame.ZAxis()
+			if obliqueDirection != nil && surface.kind == "CYLINDRICAL_SURFACE" {
+				normal = *obliqueDirection
+			}
+			if d, ok := directions[i]; ok {
+				normal = d
+			}
+			p := placeDirection(surface.frame, normal)
 			if surface.kind == "PLANE" {
 				surfaceIDs[i] = emit(fmt.Sprintf("PLANE('',#%d)", p))
 			} else {
@@ -300,7 +393,26 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 		for i, edge := range edges {
 			curve := curves[i]
 			var model int64
-			if curve.circle {
+			if curve.ellipse {
+				p := place(curve.frame)
+				model = emit(fmt.Sprintf("ELLIPSE('',#%d,%s,%s)", p, real(curve.radius), real(curve.minorRadius)))
+				sense := ".T."
+				if !curve.same {
+					sense = ".F."
+				}
+				edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,%s)", vertexIDs[edge.Start], vertexIDs[edge.End], model, sense))
+				continue
+			}
+			if curve.unequal != nil {
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, curve.unequal.smooth, curve.unequal.knots, point3)
+				if len(curve.unequal.knots) != 0 {
+					// The standard model-space curve defines the trim. The
+					// canonical reader independently reproves the matching
+					// native trim graph from the exact cylinder supports.
+					edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[edge.Start], vertexIDs[edge.End], model))
+					continue
+				}
+			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
 			} else {
@@ -313,7 +425,11 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 				surface := surfaces[owner.face]
 				u := owner.use
 				var geometry int64
-				if surface.kind == "PLANE" {
+				if curve.unequal != nil {
+					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], curve.unequal.smooth, curve.unequal.knots, func(p geom.Vec3) int64 {
+						return point2(geom.Vec2{X: p.X, Y: p.Y})
+					})
+				} else if surface.kind == "PLANE" {
 					if curve.circle {
 						p := surface.frame.ToLocal(curve.frame.Origin())
 						x := curve.frame.XAxis()

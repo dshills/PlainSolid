@@ -1,0 +1,71 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "b6542748d5c5d9f54f3badb299d0325832e4cc5e08a7595f1da96746def6b47d",
+  "supplemental": {
+    "report": "/tmp/plainsolid-before-crossed-authored-5536/before-crossed-browser.json",
+    "reportSha256": "e6ccdc110c53286590c3cc4e51533caf1bbe2ea924c21524e1d7c362818fdecd",
+    "sourceSha256": "e79c9a02a2b17ad542bf24d4cc962472a98245d280b7a609cc2320de35788e02",
+    "summary": {
+      "startTime": "2026-11-14T13:33:25.099Z",
+      "duration": 21162.939000000002,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        16,
+        12
+      ],
+      "crossingMm": [
+        10,
+        8,
+        6
+      ],
+      "radiusMm": 2,
+      "topEntryDepthMm": 4.8,
+      "clippedFloorZMm": 7.2,
+      "stepByteCount": 58728,
+      "stepSha256": "517eb6f2172a5eb1c306d4035846d90116bfadfb02755f8f636f683eee0815d9",
+      "stlTriangles": 308,
+      "stlTwoUseEdges": 462,
+      "stlSha256": "4ca74de03558dc66f2888a13e2c5c6ea28fd2406e1ed658e7b908056613ec664",
+      "occtStepReadback": {
+        "Area": 1762.5569223231375,
+        "Volume": 3534.982641353818,
+        "Centroid": [
+          10.000000000000007,
+          8.000000000000004,
+          5.94144724796892
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 3534.9826413366154,
+        "Area": 1762.5569223565033,
+        "Centroid": [
+          10.000000000000092,
+          8.000000000000002,
+          5.941447247963015
+        ]
+      },
+      "directOracleSourceSha256": "dcc0bacaa8b9f7a892ddf25c66ae5f6391a7a61ac20e7483a13d74e397b4c077"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 3
+  },
+  "vet": "passed",
+  "native": {
+    "newSignedOffsetCases": 24,
+    "focusedRaceSeconds": {
+      "brep/trimmed": 73.269,
+      "exchange/step": 25.461,
+      "internal/plaincadbridge": 22.056
+    }
+  }
+}

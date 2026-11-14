@@ -83,6 +83,11 @@ func trimBounds(u Use) (geom.Vec2, geom.Vec2, error) {
 			continue
 		case QuadraticUV:
 			add(x.Control)
+		case unionArcUV:
+			// Keep authoritative shared endpoints already accumulated above,
+			// and bound the unchanged analytic ellipse between them.
+			c = x.EllipseUV
+			continue
 		case *EllipseUV:
 			if x == nil {
 				return geom.Vec2{}, geom.Vec2{}, geom.ErrInvalid

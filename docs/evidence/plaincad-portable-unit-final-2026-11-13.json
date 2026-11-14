@@ -1,0 +1,109 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "plainSolid": {
+    "workspace": "/tmp/plainsolid-portable-contracts-latest-01",
+    "artifactHashes": {
+      "src/cad/kernel/OpenCascadeKernel.ts": "19c40185a7215cc1c908edbfc2992cd8d1c287ed2dc4dc8b7f27097bd1f37b56",
+      "public/assets/plainsolid-kernel.wasm": "d94121bb115cc2f2ebef590b5f95ea8ccf6ccd9261b13f61ff46a487b70bf44f",
+      "src/tests/modelingGeometry.test.ts": "7b7ae99749b6c65dfd55c18144f34cc20f9f1cef31ee6cb0e0fc169508aad788",
+      "src/tests/holeDirection.test.ts": "d52c0f293d939883e3eed23c98f30d3580d8f61df9d31a20ccf0d7e0af9c2270",
+      "src/tests/guidedHoleCommand.test.ts": "55ff51b45e48f093fd2fb94d4e662c8ee86865aa39a79b86ff798817b52f3c54",
+      "src/tests/featureAddition.test.ts": "f8f40ee594ef715e686f7f7030cbffa517fced8b1c6f56759364dbd57c39719a",
+      "src/tests/operationDrop.test.tsx": "4641148b5ab860ffe3ed20c3a3a685a1e95f274d733f47ae1bf7944f644e373c"
+    },
+    "rawReport": "/tmp/plainsolid-portable-contracts-latest-results-01.json",
+    "rawReportSha256": "1c46854cdeb5d4e0e982ac16e9269b2f834d4e05d7848dc7461de9073fb30405",
+    "passed": 8,
+    "failed": 1,
+    "unselected": 99,
+    "tests": [
+      {
+        "file": "featureAddition.test.ts",
+        "title": "adds a supported individual fillet after a pocket while preserving source refs",
+        "status": "passed",
+        "durationMs": 157.88212499999997,
+        "errors": []
+      },
+      {
+        "file": "featureAddition.test.ts",
+        "title": "adds a supported individual chamfer after a pocket while preserving source refs",
+        "status": "passed",
+        "durationMs": 116.80154100000004,
+        "errors": []
+      },
+      {
+        "file": "guidedHoleCommand.test.ts",
+        "title": "rejects circular holes extending beyond a native face edge before changing the document",
+        "status": "failed",
+        "durationMs": 73.50712500000009,
+        "errors": [
+          "AssertionError: expected false to be true // Object.is equality"
+        ]
+      },
+      {
+        "file": "holeDirection.test.ts",
+        "title": "diagnoses outward drilling without successful unchanged geometry (direction=undefined, throughAll=false)",
+        "status": "passed",
+        "durationMs": 63.83795799999996,
+        "errors": []
+      },
+      {
+        "file": "holeDirection.test.ts",
+        "title": "diagnoses outward drilling without successful unchanged geometry (direction=undefined, throughAll=true)",
+        "status": "passed",
+        "durationMs": 41.799999999999955,
+        "errors": []
+      },
+      {
+        "file": "holeDirection.test.ts",
+        "title": "diagnoses outward drilling without successful unchanged geometry (direction='positive', throughAll=false)",
+        "status": "passed",
+        "durationMs": 29.206833000000074,
+        "errors": []
+      },
+      {
+        "file": "holeDirection.test.ts",
+        "title": "diagnoses outward drilling without successful unchanged geometry (direction='positive', throughAll=true)",
+        "status": "passed",
+        "durationMs": 9.321416,
+        "errors": []
+      },
+      {
+        "file": "modelingGeometry.test.ts",
+        "title": "native modeling geometry draws native cylinder rims without its periodic seam or tangent fillet boundaries",
+        "status": "passed",
+        "durationMs": 600.7156250000003,
+        "errors": []
+      },
+      {
+        "file": "operationDrop.test.tsx",
+        "title": "keeps a complete original tangent contour available as a group while excluding ambiguous single-edge propagation",
+        "status": "passed",
+        "durationMs": 1351.755375,
+        "errors": []
+      }
+    ]
+  },
+  "occtTangentControl": {
+    "workspace": "/tmp/plaincad-occt-control-e65",
+    "artifactHashes": {
+      "src/cad/kernel/OpenCascadeKernel.ts": "d2bdde78841e5b31e7f1be9921a608a5280efe41b8f23ff4e0510ae1a075081f",
+      "src/tests/guidedHoleCommand.test.ts": "6e554a03e67857cbc6b7400fb31527f3cbaa1c98020918b3de561449b9eea1c0",
+      "node_modules/opencascade.js/dist/opencascade.wasm.wasm": "6cc2f3fa1611d32ad7563f7092aa1bf58741124302630cef7d21561ecd7b7284"
+    },
+    "rawReport": "/tmp/plaincad-tangent-guided-hole-occt-results-03.json",
+    "rawReportSha256": "a5452a7cc06fd4befcc87aca6ce8a8c76ecc8056c496c0d4d5fe5652e518f259",
+    "passed": 1,
+    "failed": 0,
+    "unselected": 19,
+    "tests": [
+      {
+        "file": "guidedHoleCommand.test.ts",
+        "title": "rejects circular holes extending beyond a native face edge before changing the document",
+        "status": "passed",
+        "durationMs": 680.0901670000003,
+        "errors": []
+      }
+    ]
+  }
+}

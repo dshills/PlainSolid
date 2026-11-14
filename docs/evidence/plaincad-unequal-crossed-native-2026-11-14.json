@@ -1,0 +1,51 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "9d151624018a8209c0eaf203431878970ee13394ae0a67705b4c289dee50c553",
+  "supplemental": {
+    "report": "/tmp/plainsolid-unequal-authored-5504/browser-results.json",
+    "reportSha256": "9ce268b4c8ba0baf361bf2cb39b7bf0836e713477c20dc1987c2b44eda6d07db",
+    "sourceSha256": "8d3559189471e8feab68d5606efdf8631d089ff161a504c0278d21bb3947c85e",
+    "summary": {
+      "startTime": "2026-11-14T12:20:40.443Z",
+      "duration": 14018.582999999999,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        24,
+        18
+      ],
+      "axes": [
+        "X",
+        "Z"
+      ],
+      "radiusMm": [
+        4,
+        2
+      ],
+      "oracleVolume": 7505.778239060554,
+      "oracleSurfaceArea": 3027.2650793521734,
+      "stlTriangles": 1530,
+      "stlTwoUseEdges": 2295,
+      "stlSignedVolume": 7509.29101346581,
+      "stlSha256": "c783c02f8e5f6dfc784e65267e1517ce28137801fc195d32fc696eca90a06485"
+    }
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 9.37,
+    "brep/trimmedGeometry": 134.07,
+    "brep/trimmedAdaptive": 31.465
+  },
+  "independentOcct": {
+    "oracleRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "fixtureOracleSha256": "4b079dda0beaf3d5211581612b7bf090fc81f41029de72bc0dac2e9bb1e353d8",
+    "fixtureOracleSourceSha256": "9b7d9ed4714022c35e50860be0846591f73d2698e92abf3ab65f897506794c48",
+    "status": "passed"
+  },
+  "vet": "passed"
+}

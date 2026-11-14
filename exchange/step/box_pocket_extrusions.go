@@ -1,0 +1,197 @@
+package step
+
+import (
+	"bytes"
+	"context"
+	"io"
+	"sort"
+
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+)
+
+// BoxPocketBody is a rectangular stock with a nested rectangular pocket chain
+// and separated full-depth circular bores. All features retain analytic faces.
+type BoxPocketBody struct {
+	Name    string
+	Frame   geom.Frame
+	Size    geom.Vec3
+	Pockets []trimmed.BoxBlindPocket
+	Bores   []trimmed.ExtrusionCircle
+}
+type BoxPocketModel struct {
+	Bodies     []BoxPocketBody
+	LengthUnit float64
+}
+
+// The canonical reader and writer share a 64-face bound. A box has six
+// faces; each nested pocket adds five and each full-depth bore adds four.
+// The long-edge writer permits five loops per face, hence at most three bores
+// beside the top cap outer wire and pocket wire.
+const maxBoxPocketFaces = 64
+
+func boundedBoxPocketRecipe(pockets, bores int) bool {
+	return pockets >= 1 && pockets <= 8 && bores <= 3 && bores <= (maxBoxPocketFaces-6-5*pockets)/4
+}
+
+func WriteBoxPocketExtrusions(w io.Writer, m BoxPocketModel) error {
+	if w == nil || len(m.Bodies) != 1 {
+		return geom.ErrDomain
+	}
+	b := m.Bodies[0]
+	// Check counts before construction (including quadratic bore-clearance work)
+	// and before writing any output bytes. Division avoids count overflow.
+	if len(b.Pockets) == 0 || len(b.Pockets) > 8 {
+		return geom.ErrInvalid
+	}
+	if !boundedBoxPocketRecipe(len(b.Pockets), len(b.Bores)) {
+		return geom.ErrDomain
+	}
+	s, e := trimmed.ExtrudeBoxWithPocketsAndBores(context.Background(), b.Frame, b.Size, b.Pockets, b.Bores)
+	if e != nil {
+		return e
+	}
+	return writeNativeLongEdgeTopology(w, m.LengthUnit, b.Name, s)
+}
+
+// ReadBoxPocketExtrusions infers a candidate from actual face supports and
+// vertices, then requires exact equality of every reachable STEP graph value
+// against the reconstructed native boundary. A suggestive surface or name
+// alone never qualifies a body; trims, senses and shared topology are checked.
+func ReadBoxPocketExtrusions(r io.Reader, l Limits) (BoxPocketModel, error) {
+	fail := func() (BoxPocketModel, error) { return BoxPocketModel{}, geom.ErrDomain }
+	f, rep, unit, ids, e := parseCanonicalCircularExtrusions(r, l)
+	if e != nil {
+		return BoxPocketModel{}, e
+	}
+	if len(ids) != 1 {
+		return fail()
+	}
+	body, e := simple(f, ids[0], "MANIFOLD_SOLID_BREP", 2)
+	if e != nil {
+		return fail()
+	}
+	name, e := textValue(body.Args[0])
+	if e != nil {
+		return fail()
+	}
+	sid, e := ref(body.Args[1])
+	if e != nil {
+		return fail()
+	}
+	shell, e := simple(f, sid, "CLOSED_SHELL", 2)
+	if e != nil {
+		return fail()
+	}
+	faces, e := listRefs(shell.Args[1], 1)
+	if e != nil || len(faces) > maxBoxPocketFaces {
+		return fail()
+	}
+	parsed := make([]circularSourceFace, len(faces))
+	for i, id := range faces {
+		parsed[i], e = readCircularSourceFace(f, id)
+		if e != nil {
+			return fail()
+		}
+	}
+	if parsed[0].kind != "PLANE" {
+		return fail()
+	}
+	frame := parsed[0].frame
+	points := func(face circularSourceFace) ([]geom.Vec3, error) {
+		var result []geom.Vec3
+		for _, loop := range face.loops {
+			for _, u := range loop {
+				edge, err := simple(f, u.id, "EDGE_CURVE", 5)
+				if err != nil {
+					return nil, err
+				}
+				for _, arg := range edge.Args[1:3] {
+					id, err := ref(arg)
+					if err != nil {
+						return nil, err
+					}
+					p, err := analyticVertex(f, id)
+					if err != nil {
+						return nil, err
+					}
+					q := frame.ToLocal(p)
+					if frame.ToWorld(q) != p {
+						return nil, geom.ErrDomain
+					}
+					result = append(result, q)
+				}
+			}
+		}
+		return result, nil
+	}
+	var all []geom.Vec3
+	for _, face := range parsed {
+		ps, err := points(face)
+		if err != nil {
+			return fail()
+		}
+		all = append(all, ps...)
+	}
+	bounds, e := geom.Bounds(all)
+	if e != nil || bounds.Min != (geom.Vec3{}) {
+		return fail()
+	}
+	b := BoxPocketBody{Name: name, Frame: frame, Size: bounds.Max}
+	for _, face := range parsed {
+		if face.kind == "CYLINDER" {
+			axis := geom.Vec3{X: face.frame.ZAxis().Dot(frame.XAxis()), Y: face.frame.ZAxis().Dot(frame.YAxis()), Z: face.frame.ZAxis().Dot(frame.ZAxis())}
+			if axis != (geom.Vec3{Z: 1}) {
+				return fail()
+			}
+			c := frame.ToLocal(face.frame.Origin())
+			if c.Z != 0 {
+				return fail()
+			}
+			bore := trimmed.ExtrusionCircle{Center: geom.Vec2{X: c.X, Y: c.Y}, Radius: face.radius}
+			found := false
+			for _, prior := range b.Bores {
+				if prior == bore {
+					found = true
+				}
+			}
+			if !found {
+				b.Bores = append(b.Bores, bore)
+			}
+			continue
+		}
+		if face.kind != "PLANE" {
+			return fail()
+		}
+		n := geom.Vec3{X: face.frame.ZAxis().Dot(frame.XAxis()), Y: face.frame.ZAxis().Dot(frame.YAxis()), Z: face.frame.ZAxis().Dot(frame.ZAxis())}
+		if n.X != 0 || n.Y != 0 {
+			continue
+		}
+		ps, err := points(face)
+		if err != nil {
+			return fail()
+		}
+		box, err := geom.Bounds(ps)
+		if err != nil {
+			return fail()
+		}
+		if box.Min.Z != box.Max.Z {
+			return fail()
+		}
+		z := box.Min.Z
+		if z == 0 || z == b.Size.Z {
+			continue
+		}
+		b.Pockets = append(b.Pockets, trimmed.BoxBlindPocket{Footprint: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: box.Min.X, Y: box.Min.Y}, Max: geom.Vec2{X: box.Max.X, Y: box.Max.Y}}, Floor: z})
+	}
+	sort.Slice(b.Pockets, func(i, j int) bool { return b.Pockets[i].Floor > b.Pockets[j].Floor })
+	m := BoxPocketModel{Bodies: []BoxPocketBody{b}, LengthUnit: unit}
+	var generated bytes.Buffer
+	if e = WriteBoxPocketExtrusions(&generated, m); e != nil {
+		return fail()
+	}
+	if e = verifyCanonicalCircularExtrusionGraph(f, rep, &generated); e != nil {
+		return BoxPocketModel{}, e
+	}
+	return m, nil
+}

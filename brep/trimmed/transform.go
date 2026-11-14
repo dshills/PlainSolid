@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 // FromPlanar promotes planar shared topology, including holes, into the
@@ -61,6 +62,25 @@ func FromPlanar(s brep.Solid, tolerance float64) (Solid, error) {
 // Transformed maps the original curves and surfaces, retaining topology and
 // parameter-space trims. A reflection reverses all face orientations.
 func (s Solid) Transformed(m geom.Affine) (Solid, error) {
+	return s.transformed(context.Background(), m, true)
+}
+
+// TransformedHelical uses the conforming helical mesh to validate a mapped
+// boundary. The uniform seed refinement can degenerate where a runout meets
+// a relief edge, even when the shared trims and adaptive facets are valid.
+func (s Solid) TransformedHelical(ctx context.Context, m geom.Affine, options parametric.TessellationOptions) (Solid, mesh.Mesh, error) {
+	out, err := s.transformed(ctx, m, false)
+	if err != nil {
+		return Solid{}, mesh.Mesh{}, err
+	}
+	display, err := out.TessellateHelical(ctx, options)
+	if err != nil {
+		return Solid{}, mesh.Mesh{}, err
+	}
+	return out, display, nil
+}
+
+func (s Solid) transformed(ctx context.Context, m geom.Affine, validateDisplay bool) (Solid, error) {
 	if _, e := m.Inverse(); e != nil {
 		return Solid{}, e
 	}
@@ -86,7 +106,7 @@ func (s Solid) Transformed(m geom.Affine) (Solid, error) {
 		}
 	}
 	if usesRationalEndpoints(s) {
-		points, err := collectRationalVertices(context.Background(), v, e, false)
+		points, err := collectRationalVertices(ctx, v, e, false)
 		if err != nil {
 			return Solid{}, err
 		}
@@ -98,7 +118,7 @@ func (s Solid) Transformed(m geom.Affine) (Solid, error) {
 	for _, r := range m {
 		bound = math.Hypot(bound, math.Hypot(math.Hypot(r[0], r[1]), r[2]))
 	}
-	return NewSolid(v, e, f, s.tolerance*bound)
+	return newSolidContext(ctx, v, e, f, s.tolerance*bound, validateDisplay)
 }
 
 // FromParametric promotes rectangular patches into the general trim graph,

@@ -33,6 +33,116 @@ may proceed in parallel:
 | PC4: Helical parts | Helical swept solid cutters, internal/external threads, handedness, lead-in/runout, multi-start lead screws and matching nuts; point/common-volume proofs | Existing modeled Thread and lead-screw/nut cold-open fixtures |
 | PC5: Exchange and complete app qualification | STEP for actual app outputs and accepted imported solids; export/reimport volume, topology and bounds; worker cancellation, stale previews, production CSP and performance | Existing STEP import/export and failure tests, full native development and production suites |
 
+Current checkpoint (2026-11-13): the integration worktree has qualified
+selected signed extrusion, scoped holes, overlapping and unequal-depth cuts,
+finite To Face, grouped edge treatments, mixed circular profiles, revolve,
+component placement, drawing and STEP workflows in the original app. The
+first 53-case combined run passed 47. All six failures exposed the same
+multi-rim display budget regression. The correction passes the focused
+original XY cases and STEP import. The later consolidated report is recorded
+below.
+
+Both original helical workflows pass, including modeled external and internal
+threads and the editable four-start lead pair. The machined-reference workflow
+passes nested blind pockets and retained bore rims. The 40-body rotary fixture
+passes cold load, rename and platter edit. Circular stock retains unequal-depth
+opposed bore layers and round-trips qualified STEP boundaries. Rectangular stock
+retains a qualified blind or through side-opening notch and supports disjoint
+interior bores in the same batch. Both families have focused original regressions and
+independent OCCT exchange measurements.
+Blind and through quarter-circle corner cuts support the same contained
+bores and round-trip STEP.
+Intersecting circular groups of up to 16 distinct footprints preserve
+their axial layers through STEP. Each cutter opens on one side or across
+two adjacent sides of rectangular stock and may enter from either cap.
+Grouped and successive operations retain unequal blind floors, through cuts that leave one
+solid, and blind floors with inner wires. Exact contacts at stock vertices
+preserve the actual shared vertices and analytic trims. STEP preserves
+the same boundary when a cutter is fully concealed by the other cuts.
+Overlapping opposed floors can meet exactly with the shared footprint
+open through the common level. Equal-radius perpendicular through Holes
+intersecting inside rectangular stock retain elliptical trim edges
+through STEP. Disjoint interior through Holes on multiple cardinal axes
+now also round-trip STEP. The domain requires strict tool bounds separation
+and complete circular openings. Unequal-radius intersecting perpendicular
+through Holes retain two analytic radical trim rings for native modeling
+and STL. STEP retains the cylindrical and planar supports, approximates
+the nonrational model edge and both UV trims with cubic splines, and
+reads its own canonical files back to the native recipe. Radius and
+scale envelopes bound the approximation work. Two skew perpendicular
+through axes use the same topology and STEP exchange when the larger
+bore covers the smaller bore's full transverse width. Partial transverse
+overlap uses one loop with regular radical charts at both turning points.
+Compact cubic STEP trims keep the qualified files within the current app
+import budget. A blind Hole crossing an equal-radius perpendicular
+through Hole preserves its complete planar floor when it stops beyond
+the crossing. Two perpendicular blind Holes can also retain both complete
+floors beyond their intersection. Their exact conic STEP and fabrication
+meshes pass. A blind floor beyond the crossing axis and inside the
+perpendicular through Hole retains two circular segment faces through
+STEP and STL. Disjoint mixed-axis blind bores also retain their floor
+planes and entry caps in STEP when their projected through bounds are
+separated. A stop before the crossing axis retains split floor faces.
+At the axis, the through Hole consumes the full floor. Both now pass
+manufacturing exchange. Finite disjoint bores with crossing full-through
+projections pass with separated finite bounds or a strict finite radial
+clearance proof. The exact far-tangent floor has a closed analytic boundary.
+The near tangent limit rejects because the material pinches along a
+diameter. Unequal-radius crossed Holes support finite floors beyond the
+complete crossing. An equal-radius through pair also retains disjoint
+companion through bores on any cardinal axis. Three concurrent same-radius
+cardinal cutters retain exact elliptical trim arcs and watertight exchange.
+Finite STEP compaction preserves earlier files and fits more unequal
+crossings within the app import limit. Partial-skew crossings also
+retain finite stops beyond the complete intersection. In a concurrent
+same-radius triple crossing, one, two or three cutters can retain floors
+beyond the crossing. Unequal covered-width pairs also support disjoint
+companion through bores. Cardinal and concurrent 4:3, 3:4, 12:5 or 5:12 oblique pairs
+keep exact intersection ellipses. Two or three disjoint through bores
+can combine oblique and cardinal axes and exchange their complete rims.
+Common angular strips extend tessellation to steeper and three-component
+axes. A STEP-reimported three-floor crossing can deepen a bore without
+moving the other floors. A subsequent coaxial through cut produces the
+same STEP as a fresh cut with that passage already open.
+A single oblique through Hole with
+strictly interior apertures on adjacent or opposed faces passes native
+modeling, project reopen and STL. STEP preserves analytic elliptical edges
+and the cylindrical support in the canonical world-coordinate graph.
+Arc Extend quarter-sector and Circle Trim half-disk extrusions round-trip
+their exact cylindrical walls through STEP. The driven arc-and-chord
+workflow also exchanges the original solved angle. Equal-circle and
+unequal circle/arc lens extrusions retain both cylindrical walls through
+STEP and STL. The original construction-axis Revolve now exchanges
+toroidal rings and bounded elbows. The quarter-sweep annular cylinder
+from the existing Edit Revolve workflow now round-trips STEP and
+retains a recipe for subsequent coaxial cuts. The original arc-only lens
+exchanges both cylindrical supports with its four sketch fragments still
+editable. Simple cylindrical Revolve sectors now use the existing
+analytic STEP writer. Full concentric tubes from coaxial cuts use the
+existing periodic STEP graph and retain their edit recipe. Circular rim
+fillets and equal-setback chamfers on XY, XZ and YZ use exact rational
+STEP bands. The original metric and inch fastener blanks preserve their
+stepped shafts and hex sockets through STEP. Finite skew Hole floors can
+now stop beyond the actual transverse crossing even within the previous
+full-radius bound. Bounded tessellation handles the first tighter
+case within the existing worker deadline. The equal-radius cardinal and
+oblique crossing now exchanges on all three cardinal axes. The cardinal
+Hole may retain a blind floor beyond the complete oblique crossing and
+accept a later coaxial cut after STEP import. The oblique Hole can also
+retain a floor beyond its complete crossing, from either entry, including
+a pair with two blind floors. Tighter partial and covered-width perpendicular overlaps use local
+interpolation bounds and compact STEP trims.
+Continue with smaller supported clearances and floors that intersect
+the crossing.
+
+The full selected-provider gate on PlainCAD `efae4d2` and PlainSolid
+`fa857e59` passes 345 development, 66 production and 15 cross-browser
+cases. Both TypeScript checks, the bundle budget, 1,691 ordinary unit and
+component cases, and four actual-WASM contracts pass. Later geometry
+milestones use focused application runs and independent STEP checks.
+See [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open
+geometry coverage.
+
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions
 may be parameterized to expect `plainsolid`; never label its output `opencascade`

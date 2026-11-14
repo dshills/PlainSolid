@@ -102,6 +102,13 @@ func NewSolid(vertices []geom.Vec3, edges []parametric.Edge, faces []Face, toler
 // NewSolidContext is NewSolid with cooperative cancellation during boundary
 // validation and seed mesh construction.
 func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64) (Solid, error) {
+	return newSolidContext(ctx, vertices, edges, faces, tolerance, true)
+}
+
+// Intermediate graphs in a single analytic construction retain the complete
+// topology and sampled coedge agreement checks. The finished graph performs
+// display validation before publication.
+func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64, validateDisplay bool) (Solid, error) {
 	if ctx == nil {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -177,10 +184,16 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			}
 			_, _, twist, _ := wall.Parameters()
 			span := d.UMax - d.UMin + math.Abs(twist)*(d.VMax-d.VMin)
-			if !finite(span) || span > 16 || len(faces) > 34 {
+			if !finite(span) || span > 32 || len(faces) > 34 {
 				return Solid{}, parametric.ErrBudget
 			}
-			for level := 0; span > .25; level++ {
+			// Retain the finer initial bound for the older certified charts;
+			// the expanded integration range has its own sampling budget.
+			step := .25
+			if span > 16 {
+				step = .5
+			}
+			for level := 0; span > step; level++ {
 				span /= 2
 				s.minimumLevel = max(s.minimumLevel, level+1)
 			}
@@ -347,8 +360,10 @@ func NewSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			return Solid{}, fmt.Errorf("trimmed: edge %d needs two opposite uses", i)
 		}
 	}
-	if _, err := s.refine(ctx, s.minimumLevel, 0, 0); err != nil {
-		return Solid{}, err
+	if validateDisplay {
+		if _, err := s.refine(ctx, s.minimumLevel, 0, 0); err != nil {
+			return Solid{}, err
+		}
 	}
 	if usesRationalEndpoints(s) {
 		if err := validateNativeExactQuadratics(ctx, s); err != nil {
@@ -364,7 +379,17 @@ func closePoint(a, b geom.Vec3, t float64) bool {
 	return a.IsFinite() && b.IsFinite() && a.Sub(b).Length() <= t
 }
 func mix(a, b geom.Vec2, t float64) geom.Vec2 {
-	return geom.Vec2{X: (1-t)*a.X + t*b.X, Y: (1-t)*a.Y + t*b.Y}
+	p := geom.Vec2{X: (1-t)*a.X + t*b.X, Y: (1-t)*a.Y + t*b.Y}
+	// A constant trim coordinate must remain the represented constant.
+	// Separate multiply/add evaluation (notably WASM) can otherwise round
+	// outside a closed support domain even when both endpoints lie on it.
+	if a.X == b.X {
+		p.X = a.X
+	}
+	if a.Y == b.Y {
+		p.Y = a.Y
+	}
+	return p
 }
 func (u Use) uv(t float64) (geom.Vec2, error) {
 	if u.Curve == nil {
@@ -438,6 +463,9 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 	}
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
+	}
+	if m, ok, err := s.compactCylinderMesh(ctx, o); ok {
+		return m, err
 	}
 	n := 0
 	maximum := 0.

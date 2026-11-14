@@ -1,0 +1,55 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "0004527a78d0aea4c3bd8e4599412093d0e5066d85c16ed65ba5085e666a4af5",
+  "supplemental": {
+    "report": "/tmp/plainsolid-partial-skew-step-authored-5524/partial-skew-step-browser.json",
+    "reportSha256": "54b62374d0cbbc08130e72cd18a05394e9ca33320c8e87a2381b40b66872d943",
+    "sourceSha256": "41dea9142ad2c3a74149b68804f907d7ffaf7a2c4ab72c11b32b09126827cd62",
+    "summary": {
+      "startTime": "2026-11-14T13:02:17.444Z",
+      "duration": 27018.131,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        40,
+        40,
+        40
+      ],
+      "axisOffsetMm": 5,
+      "radiusMm": [
+        5,
+        4
+      ],
+      "stepByteCount": 367338,
+      "stepSha256": "632fd7c78bcf67e6d8e55f257fd31f64bf3d8ec8468093165d855bcc111bfe9b",
+      "stepDistanceUncertaintyMm": 1e-07,
+      "stlTriangles": 1314,
+      "stlTwoUseEdges": 1971,
+      "stlSha256": "6a87feddd98626b7f337846f4610a1d9724346a482f19452805dfdf182f68942",
+      "occtStepReadback": {
+        "Area": 11408.296380722133,
+        "Volume": 59020.039219240534,
+        "Centroid": [
+          20.000000000000004,
+          20.175868945497683,
+          20
+        ]
+      }
+    }
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 45.482,
+    "exchange/step": 129.854
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newCases": 4
+  },
+  "vet": "passed"
+}

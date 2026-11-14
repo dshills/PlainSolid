@@ -1,0 +1,83 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "plainSolidIdentity": {
+    "head": "f3d39ed941db36898a6c12ed31125c4886114b96",
+    "status": "M brep/trimmed/persistence.go\n M docs/STATUS.md\n M internal/plaincadbridge/analytic.go\n M internal/plaincadbridge/display_normals.go\n M internal/plaincadbridge/edge_body.go\n M internal/plaincadbridge/mixed_profile.go\n M tools/plaincad/PlainSolidKernel.ts\n M tools/plaincad/README.md\n M tools/plaincad/run.mjs\n?? brep/trimmed/extrude_arc_loop.go\n?? brep/trimmed/extrude_arc_loop_test.go\n?? internal/plaincadbridge/arc_loop.go\n?? internal/plaincadbridge/arc_loop_test.go\n?? internal/plaincadbridge/axial_edge_treatment.go\n?? internal/plaincadbridge/axial_edge_treatment_test.go",
+    "branch": "codex/plaincad-integration"
+  },
+  "backend": "plainsolid-go-wasm",
+  "wasmSha256": "8924589c5afd7e2fac09a99bea277685833edcac2bf29374ed5c758678e3ca93",
+  "rawReport": "/tmp/plainsolid-current-production-three-engines-results-01.json",
+  "rawReportSha256": "a11f085bf0a1eac5eb6d607e1f0f9747871366cb84b451ebc67741b203d03290",
+  "summary": {
+    "startTime": "2026-11-13T19:25:59.161Z",
+    "duration": 43313.062999999995,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "configAdaptations": [
+    "Port 5286 for the isolated production preview",
+    "Original Desktop Chrome, Firefox and Safari project definitions from playwright.cross-browser.config.ts"
+  ],
+  "configHashes": {
+    "originalProduction": "f5e9e86da979866034e56f32ea8afe423fb4b5d97fd6110473a18d79a3fad64d",
+    "originalCrossBrowser": "672a3159b7386d2a577a4f27b90d5a79fc2ee2a985e02a77983531c115e09dd5",
+    "selectedProduction": "24dac5fd8f0538febbe4b81f6c9801f0ac76f9fd26ffe31c6972124fcf8484d7"
+  },
+  "originalTestHashes": {
+    "production-e2e/csp.spec.ts": "1201982b9cb55f0a4dd3b376fe9dea02d15bdfbf9fb2e7a3ddb54e28dc3c3f21",
+    "production-e2e/step-import.spec.ts": "1a741952159a4dc9834094b63a12a532e4fa74dd80e26bc40a1a33e6ad4d9d4b"
+  },
+  "tests": [
+    {
+      "file": "csp.spec.ts",
+      "line": 75,
+      "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+      "project": "chromium",
+      "status": "expected",
+      "durationMs": 6338
+    },
+    {
+      "file": "csp.spec.ts",
+      "line": 75,
+      "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+      "project": "firefox",
+      "status": "expected",
+      "durationMs": 11180
+    },
+    {
+      "file": "csp.spec.ts",
+      "line": 75,
+      "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+      "project": "webkit",
+      "status": "expected",
+      "durationMs": 6064
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 4,
+      "title": "built STEP import validates the placed native solid, reopens and exports STL under CSP",
+      "project": "chromium",
+      "status": "expected",
+      "durationMs": 3893
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 4,
+      "title": "built STEP import validates the placed native solid, reopens and exports STL under CSP",
+      "project": "firefox",
+      "status": "expected",
+      "durationMs": 5224
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 4,
+      "title": "built STEP import validates the placed native solid, reopens and exports STL under CSP",
+      "project": "webkit",
+      "status": "expected",
+      "durationMs": 4113
+    }
+  ]
+}

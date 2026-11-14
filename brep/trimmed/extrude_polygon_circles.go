@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -14,10 +15,12 @@ type ExtrusionCircle struct {
 }
 
 // ExtrusionBlindHole starts on the sketch cap at axial zero and advances
-// toward the signed extrusion endpoint by the positive depth.
+// toward the signed extrusion endpoint by the positive depth. A disk extrusion
+// also accepts OppositeCap, which starts at the signed endpoint and cuts inward.
 type ExtrusionBlindHole struct {
 	ExtrusionCircle
-	Depth float64
+	Depth       float64
+	OppositeCap bool
 }
 
 type anchoredCircularUV struct {
@@ -294,9 +297,20 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 		}
 	}
 	for _, h := range blind {
-		depth, entry := h.Depth, 0
+		start, depth, entry := 0., h.Depth, 0
 		if lo < 0 {
 			depth, entry = -depth, 1
+		}
+		if h.OppositeCap {
+			if disk == nil {
+				return Solid{}, geom.ErrDomain
+			}
+			start, entry = lo+hi, entry^1
+			floor := new(big.Rat).Sub(ratInset(start), ratInset(depth))
+			depth = start - depth
+			if floor.Cmp(ratInset(depth)) != 0 {
+				return Solid{}, geom.ErrUnrepresentable
+			}
 		}
 		f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{Z: depth}), frame.XAxis(), frame.ZAxis())
 		if e != nil {
@@ -307,7 +321,7 @@ func extrudeCircularTopology(ctx context.Context, frame geom.Frame, outer []geom
 			return Solid{}, e
 		}
 		floor := Face{Surface: plane, Reversed: entry == 0}
-		if e := addCircle(h.ExtrusionCircle, min(0, depth), max(0, depth), true, &floor, entry); e != nil {
+		if e := addCircle(h.ExtrusionCircle, min(start, depth), max(start, depth), true, &floor, entry); e != nil {
 			return Solid{}, e
 		}
 		floors = append(floors, floor)

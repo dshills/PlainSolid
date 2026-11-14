@@ -1,0 +1,55 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "9d338407816e7bdc22a1e77a5f475ba98cb5f1bed2948b2e583d0d8e8bec9f4a",
+  "controlsRespectOriginalAssertions": true,
+  "results": {
+    "plainSolidInitialized": {
+      "report": "/tmp/plainsolid-two-repeat-units-50432ed.json",
+      "reportSha256": "10778e7fc53139e61fc525586c08cdd28de4d9781841f77dd37564eca76fa002",
+      "passed": 9,
+      "failed": 1,
+      "selected": [
+        {
+          "file": "manufacturingCoach.test.ts",
+          "test": "does not certify curved or modified laser stock based only on bounding dimensions",
+          "status": "failed",
+          "error": "AssertionError: expected [ { \u2026(4) } ] to have a length of 3 but got 1"
+        },
+        {
+          "file": "workbench.test.tsx",
+          "test": "defaults to stable docks and keeps layout, tab switches and resizing out of document history",
+          "status": "passed",
+          "error": null
+        }
+      ]
+    },
+    "occtUninitialized": {
+      "report": "/tmp/plaincad-original-laser-control-50432ed.json",
+      "reportSha256": "7058db8c8909cc57be06c1788e03cb436e45e236a9e0f5b2a81b43b5f0877c29",
+      "passed": 5,
+      "failed": 0,
+      "selected": [
+        {
+          "file": "manufacturingCoach.test.ts",
+          "test": "does not certify curved or modified laser stock based only on bounding dimensions",
+          "status": "passed",
+          "error": null
+        }
+      ]
+    },
+    "occtInitialized": {
+      "report": "/tmp/plaincad-initialized-occt-laser-50432ed.json",
+      "reportSha256": "b4d45801afa45fe2964234f13ee7816ca5ad8799724f894481a2d4d742f81bea",
+      "passed": 4,
+      "failed": 1,
+      "selected": [
+        {
+          "file": "manufacturingCoach.test.ts",
+          "test": "does not certify curved or modified laser stock based only on bounding dimensions",
+          "status": "failed",
+          "error": "AssertionError: expected [ { \u2026(4) } ] to have a length of 3 but got 1"
+        }
+      ]
+    }
+  }
+}

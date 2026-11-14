@@ -1,0 +1,397 @@
+package plaincadbridge
+
+import (
+	"context"
+	"errors"
+	"math"
+	"slices"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
+	"plainsolid/geom"
+	"plainsolid/mesh"
+)
+
+// analyticBody owns an analytic boundary. Some revolutions also retain a
+// rectangular patch representation for shared-grid display at polar caps.
+type analyticBody struct {
+	planarBores *planarBoredStock
+	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
+	polygonExtrema  []geom.Vec3
+	solid           trimmed.Solid
+	patches         *parametric.Solid
+	rimPatches      bool
+	rimTreatment    *cylinderRimTreatment
+	sector          *radialSector
+	torus           *torusSweep
+	shaft           *trimmed.SteppedShaft
+	segment         *circularSegmentSweep
+	arcLoop         *arcLoopSupport
+	helical         bool
+	lead            *leadPart
+	helicalMesh     *mesh.Mesh
+	stepRounded     *step.RoundedRectangleExtrusionBody
+	stepDisk        *step.DiskHoleExtrusionBody
+	sideNotch       *step.SideNotchBody
+	sideDualDisk    *sideDualDiskBody
+	sideOpeningCuts *step.SideOpeningCutsBody
+	layeredDisk     bool
+	pockets         *pocketStock
+	coaxial         *coaxialBody
+	rounded         *roundedStock
+	annular         *annularStock
+	threadStock     *planarThreadStock
+	islandPocket    *trimmed.RectangularIslandPocket
+	filletedCap     *filletedCapStock
+	volume, area    float64
+}
+
+func (b *Bridge) putAnalytic(s trimmed.Solid, volume, area float64) (Shape, error) {
+	return b.putAnalyticBody(&analyticBody{solid: s, volume: volume, area: area})
+}
+
+func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
+	if !finite(body.volume) || !finite(body.area) || body.volume <= 0 || body.area <= 0 {
+		return Shape{}, errors.New("invalid analytic solid measures")
+	}
+	if len(body.solid.Topology().Shells) != 1 && (body.planarBores == nil || !body.planarBores.connected) {
+		return Shape{}, errors.New("expected one connected analytic shell")
+	}
+	var box geom.Box
+	var err error
+	if len(body.polygonExtrema) != 0 {
+		box, err = geom.Bounds(body.polygonExtrema)
+	} else if body.arcLoop != nil {
+		box = body.arcLoop.bounds
+	} else if body.segment != nil {
+		box, err = body.segment.bounds()
+	} else if body.sideNotch != nil {
+		box, err = sideNotchBounds(*body.sideNotch)
+	} else if body.sideDualDisk != nil {
+		box, err = body.sideDualDisk.bounds()
+	} else if body.coaxial != nil {
+		box, err = body.coaxial.bounds()
+	} else if body.islandPocket != nil {
+		box, err = islandPocketBounds(*body.islandPocket)
+	} else {
+		box, err = body.solid.Bounds()
+	}
+	if err != nil {
+		return Shape{}, err
+	}
+	return b.publish(stored{analytic: body, result: Shape{
+		GeometryAssertions: Assertions{true, body.volume, body.area, 1},
+		Bounds:             Bounds{coordinates(box.Min), coordinates(box.Max)},
+	}})
+}
+
+func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.sideDualDisk != nil {
+		// The exact mesher re-proves cylinder and affine support identities
+		// from the boundary and never uses the recipe's radii as evidence.
+		source := trimmed.SideOpenDualDiskCut{Solid: a.sideDualDisk.boundary, WallFaces: a.sideDualDisk.walls}
+		angle := min(2*o.Angle, 1)
+		var rimSchedule []int
+		if a.sideDualDisk.offsetCenters() {
+			// PlainCAD fabricates the accepted model mesh. Curved segment
+			// volume accumulates along the axial wall, so cap its turn here.
+			angle = min(angle, .05)
+		} else if a.sideDualDisk.differentCenterY() {
+			angle = min(angle, .025)
+			rimSchedule = []int{64, 96, 128}
+		}
+		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
+			Deflection: o.Deflection, AngularTurn: angle, RimSchedule: rimSchedule,
+			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
+		})
+		return result.Mesh, err
+	}
+	if a.coaxial != nil {
+		return a.coaxial.tessellate(o)
+	}
+	if a.annular != nil && !a.annular.cut {
+		return a.annular.Tessellate(context.Background(), o)
+	}
+	// The bridge populates this sampled cache with a 256-subdivision limit.
+	// A cache hit must not bypass analytic certification or stricter/invalid
+	// resource requests; those go through the normal evaluator below.
+	if a.helicalMesh != nil && !o.AnalyticBound && finite(o.Deflection) && finite(o.Angle) &&
+		o.Deflection >= .5 && o.Angle >= .1 && o.Angle <= math.Pi &&
+		o.MaxSubdivisions >= 256 && o.MaxSubdivisions <= 1024 &&
+		len(a.helicalMesh.Triangles) <= o.MaxTriangles {
+		return *a.helicalMesh, nil
+	}
+	if a.helical {
+		o.MaxTriangles = min(o.MaxTriangles, 100000)
+		return a.solid.TessellateHelical(context.Background(), o)
+	}
+	if a.segment != nil || a.arcLoop != nil {
+		// Segment rims retain the same facet-angle budget as full circles.
+		o.Angle = min(o.Angle, .025)
+	}
+	if a.patches != nil {
+		// Rectangular-patch tessellation compares normals at centroids.
+		// Use a finer bound for the curved preview than the generic centroid test.
+		o.Angle /= 4
+		if o.Angle == 0 {
+			return mesh.Mesh{}, parametric.ErrBudget
+		}
+		if a.rimPatches {
+			return a.patches.TessellateRevolutionRims(context.Background(), o)
+		}
+		return a.patches.Tessellate(context.Background(), o)
+	}
+	return a.solid.Tessellate(context.Background(), o)
+}
+
+func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
+	if err := rigid(m); err != nil {
+		return nil, err
+	}
+	out := *a
+	if len(a.polygonExtrema) != 0 {
+		out.polygonExtrema = make([]geom.Vec3, len(a.polygonExtrema))
+		for i, p := range a.polygonExtrema {
+			out.polygonExtrema[i] = m.Apply(p)
+		}
+	}
+	if a.arcLoop != nil {
+		p := *a.arcLoop
+		// Reflection changes the sign of the frame's Y axis. Reflect the
+		// profile in the rebuilt right-handed chart as well.
+		if m.Determinant() < 0 {
+			p.segments = append([]trimmed.ExtrusionSegment(nil), p.segments...)
+			for i := range p.segments {
+				s := &p.segments[i]
+				s.Start.Y, s.End.Y, s.Center.Y = -s.Start.Y, -s.End.Y, -s.Center.Y
+				s.StartAngle, s.Sweep = -s.StartAngle, -s.Sweep
+			}
+		}
+		f, err := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if err != nil {
+			return nil, err
+		}
+		p.frame = f
+		p.bounds, err = trimmed.ArcLoopBounds(f, p.segments, p.height)
+		if err != nil {
+			return nil, err
+		}
+		out.arcLoop = &p
+	}
+	if a.segment != nil {
+		s := *a.segment
+		s.origin = m.Apply(s.origin)
+		s.x, s.y, s.z = m.ApplyVector(s.x), m.ApplyVector(s.y), m.ApplyVector(s.z)
+		out.segment = &s
+	}
+	// Preserve the analytic boundary for every rigid map. Requalify an axis
+	// recipe only for coordinate-aligned proper rotations.
+	out.sector = nil
+	out.stepRounded = nil
+	out.stepDisk = nil
+	out.sideNotch = nil
+	out.sideDualDisk = nil
+	out.sideOpeningCuts = nil
+	out.shaft = nil
+	out.pockets = nil
+	out.planarBores = nil
+	out.coaxial = nil
+	out.rounded = nil
+	out.annular = nil
+	out.threadStock = nil
+	out.islandPocket = nil
+	out.filletedCap = nil
+	if a.coaxial != nil {
+		out.coaxial, _ = a.coaxial.transformed(m)
+	}
+	if a.planarBores != nil {
+		p := *a.planarBores
+		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
+			p.frame = f
+			p.base, e = p.base.Transformed(m)
+			if e != nil {
+				return nil, e
+			}
+			out.planarBores = &p
+		}
+	}
+	if a.stepDisk != nil {
+		p := *a.stepDisk
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.stepDisk = &p
+		}
+	}
+	if a.sideNotch != nil {
+		p := *a.sideNotch
+		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
+		if m.Determinant() < 0 {
+			if p.Left == 0 && p.Inset == 0 {
+				x, y = y, x
+				p.Right, p.Back = p.Back, p.Right
+			} else {
+				x = x.Scale(-1)
+				p.Left, p.Right = p.Right, p.Left
+			}
+			p.Through = append([]trimmed.ExtrusionCircle(nil), p.Through...)
+			p.Blind = append([]trimmed.ExtrusionBlindHole(nil), p.Blind...)
+			for i := range p.Through {
+				p.Through[i].Center = reflectedNotchCenter(p, p.Through[i].Center)
+			}
+			for i := range p.Blind {
+				p.Blind[i].Center = reflectedNotchCenter(p, p.Blind[i].Center)
+			}
+		}
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), x, z)
+		if e == nil && cardinalFrame(f) && f.YAxis() == y {
+			p.Frame = f
+			out.sideNotch = &p
+		}
+	}
+	if a.sideDualDisk != nil {
+		if p, ok := a.sideDualDisk.transformed(m); ok {
+			cut, e := p.solid()
+			if e != nil {
+				return nil, e
+			}
+			out.solid, out.sideDualDisk = cut.boundary, cut
+			return &out, nil
+		}
+	}
+	if a.sideOpeningCuts != nil {
+		p := *a.sideOpeningCuts
+		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
+		origin := m.Apply(p.Frame.Origin())
+		if m.Determinant() < 0 {
+			origin = origin.Add(x.Scale(p.Width))
+			x = x.Scale(-1)
+			p.Cuts = slices.Clone(p.Cuts)
+			for i := range p.Cuts {
+				p.Cuts[i].Center.X = p.Width - p.Cuts[i].Center.X
+			}
+		}
+		f, e := geom.NewFrame(origin, x, z)
+		if e == nil && cardinalFrame(f) && f.YAxis() == y {
+			p.Frame = f
+			out.sideOpeningCuts = &p
+		}
+	}
+	if a.stepRounded != nil {
+		p := *a.stepRounded
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.stepRounded = &p
+		}
+	}
+	if a.pockets != nil {
+		p := *a.pockets
+		f, e := geom.NewFrame(m.Apply(p.frame.Origin()), m.ApplyVector(p.frame.XAxis()), m.ApplyVector(p.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.frame.YAxis()) {
+			p.frame = f
+			out.pockets = &p
+		}
+	}
+	if a.shaft != nil {
+		p := *a.shaft
+		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
+			p.Frame = f
+			out.shaft = &p
+		}
+	}
+	if a.sector != nil {
+		r := *a.sector
+		f, e := geom.NewFrame(m.Apply(r.frame.Origin()), m.ApplyVector(r.frame.XAxis()), m.ApplyVector(r.frame.ZAxis()))
+		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(r.frame.YAxis()) {
+			r.frame = f
+			out.sector = &r
+		}
+	}
+	if a.rimTreatment != nil {
+		p, err := a.rimTreatment.transformed(m)
+		if err != nil {
+			return nil, err
+		}
+		out.rimTreatment = p
+	}
+	if a.torus != nil {
+		p, err := a.torus.transformed(m)
+		if err != nil {
+			return nil, err
+		}
+		out.torus = p
+	}
+	var err error
+	if a.helical {
+		var display mesh.Mesh
+		options := parametric.TessellationOptions{Deflection: .5, Angle: .1, MaxSubdivisions: 256, MaxTriangles: 100000}
+		out.solid, display, err = a.solid.TransformedHelical(context.Background(), m, options)
+		out.helicalMesh = &display
+	} else {
+		out.solid, err = a.solid.Transformed(m)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if a.patches != nil {
+		p, e := a.patches.Transformed(m)
+		if e != nil {
+			return nil, e
+		}
+		out.patches = &p
+	}
+	return &out, nil
+}
+
+func reflectedNotchCenter(p step.SideNotchBody, center geom.Vec2) geom.Vec2 {
+	if p.Left == 0 && p.Inset == 0 {
+		return geom.Vec2{X: center.Y, Y: center.X}
+	}
+	return geom.Vec2{X: -center.X, Y: center.Y}
+}
+
+func (a *analyticBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	if a.sideDualDisk != nil {
+		return a.sideDualDisk.planarFace(origin, normal)
+	}
+	n, err := normal.Unit()
+	if err != nil || !origin.IsFinite() {
+		return PlanarFace{}, errors.New("invalid planar reference")
+	}
+	found := -1
+	var result PlanarFace
+	for i, f := range a.solid.Faces() {
+		surface, m := parametric.SurfaceMapping(f.Surface)
+		plane, ok := surface.(geom.PlaneSurface)
+		if !ok {
+			continue
+		}
+		o := m.Apply(plane.Frame().Origin())
+		x := m.ApplyVector(plane.Frame().XAxis())
+		y := m.ApplyVector(plane.Frame().YAxis())
+		faceNormal, err := x.Cross(y).Unit()
+		if err != nil {
+			return PlanarFace{}, err
+		}
+		if math.Abs(math.Abs(faceNormal.Dot(n))-1) > 1e-9 || math.Abs(o.Sub(origin).Dot(faceNormal)) > 1e-7 {
+			continue
+		}
+		if found >= 0 {
+			return PlanarFace{}, errors.New("planar face reference is ambiguous")
+		}
+		found = i
+		if f.Reversed {
+			faceNormal = faceNormal.Scale(-1)
+		}
+		result = PlanarFace{Face: i, Origin: coordinates(o), Normal: coordinates(faceNormal)}
+	}
+	if found < 0 {
+		return PlanarFace{}, errors.New("planar face reference no longer exists")
+	}
+	result.Area, err = a.solid.PlanarFaceArea(found)
+	return result, err
+}

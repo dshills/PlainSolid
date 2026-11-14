@@ -8,6 +8,10 @@ import (
 )
 
 func writeStandalone(w io.Writer, unit float64, setKind, repKind string, geometry func(func(string) int64) []int64) error {
+	return writeStandaloneWithUncertainty(w, unit, 0, setKind, repKind, geometry)
+}
+
+func writeStandaloneWithUncertainty(w io.Writer, unit, uncertainty float64, setKind, repKind string, geometry func(func(string) int64) []int64) error {
 	if !validLengthUnit(unit) {
 		return errors.New("step: invalid length unit")
 	}
@@ -24,7 +28,12 @@ func writeStandalone(w io.Writer, unit float64, setKind, repKind string, geometr
 	length := emitLengthUnit(emit, unit)
 	angle := emit("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
 	solidAngle := emit("(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())")
-	ctx := emit(fmt.Sprintf("(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#%d,#%d,#%d)) REPRESENTATION_CONTEXT('',''))", length, angle, solidAngle))
+	unitContext := fmt.Sprintf("GLOBAL_UNIT_ASSIGNED_CONTEXT((#%d,#%d,#%d))", length, angle, solidAngle)
+	if uncertainty > 0 {
+		id := emit(fmt.Sprintf("UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(%s),#%d,'distance_accuracy_value','')", real(uncertainty), length))
+		unitContext = fmt.Sprintf("GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#%d)) %s", id, unitContext)
+	}
+	ctx := emit(fmt.Sprintf("(GEOMETRIC_REPRESENTATION_CONTEXT(3) %s REPRESENTATION_CONTEXT('',''))", unitContext))
 	ids := geometry(emit)
 	items := ids
 	if setKind != "" {

@@ -38,6 +38,13 @@ The writer retains polygon faces and holes; it does not turn each face into a
 set of STEP triangles. Unicode names are encoded with X4 escapes. Output uses a
 fixed timestamp for reproducibility. Callers own and close streams.
 
+The independent rounded-pocket reader accepts the bounded rounded-rectangle
+extrusion family with strictly separated circular through bores and blind
+pockets. It validates each original support, owner and pcurve before
+reconstructing the analytic recipe. The committed OCCT fixture contains one
+through bore and one blind pocket. The canonical rounded writer and reader
+can exchange that reconstructed boundary.
+
 ## Geometry mapping
 
 | STEP entity | Imported representation |

@@ -10,7 +10,7 @@ import (
 
 // ExtrudeDiskWithHoles sweeps a circular outer sketch with optional eccentric
 // circular bores and blind pockets. Height is signed along the sketch frame Z
-// axis; each pocket starts on the original sketch plane. The caps retain
+// axis; pockets start on either cap using OppositeCap. The caps retain
 // circular trims and the swept walls remain analytic cylinders. The outer disk
 // and all inner disks must be strictly nested and mutually disjoint as
 // appropriate, with no tangencies, in represented sketch coordinates.
@@ -33,6 +33,12 @@ func ExtrudeDiskWithHoles(ctx context.Context, frame geom.Frame, outer Extrusion
 }
 
 func validateExtrusionHoles(ctx context.Context, frame geom.Frame, through []ExtrusionCircle, blind []ExtrusionBlindHole, height float64) ([]ExtrusionCircle, error) {
+	return validateAxialExtrusionHoles(ctx, frame, through, blind, height, 0)
+}
+
+// A positive clearance also qualifies two coaxial opposed blind holes
+// whose axial spans leave a web at least that thick.
+func validateAxialExtrusionHoles(ctx context.Context, frame geom.Frame, through []ExtrusionCircle, blind []ExtrusionBlindHole, height, clearance float64) ([]ExtrusionCircle, error) {
 	if ctx == nil || frame.ZAxis().Length() == 0 || !finite(height) || height == 0 || len(through) > 16 || len(blind) > 16-len(through) {
 		return nil, geom.ErrInvalid
 	}
@@ -50,7 +56,19 @@ func validateExtrusionHoles(ctx context.Context, frame geom.Frame, through []Ext
 		if !uvFinite(h.Center) || !finite(h.Radius) || h.Radius <= 0 {
 			return nil, geom.ErrInvalid
 		}
-		for _, g := range holes[:i] {
+		for j, g := range holes[:i] {
+			if clearance > 0 && h == g && j >= len(through) {
+				a, b := blind[i-len(through)], blind[j-len(through)]
+				if a.OppositeCap != b.OppositeCap {
+					entry, exit := a.Depth, b.Depth
+					if a.OppositeCap {
+						entry, exit = exit, entry
+					}
+					if height-exit-entry > clearance {
+						continue
+					}
+				}
+			}
 			r := new(big.Rat).Add(ratInset(h.Radius), ratInset(g.Radius))
 			if extrusionCenterDistanceSquared(h, g).Cmp(r.Mul(r, r)) <= 0 {
 				return nil, geom.ErrDomain

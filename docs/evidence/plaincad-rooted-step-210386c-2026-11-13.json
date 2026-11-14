@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "backend": "plainsolid-go-wasm",
+  "workspace": "/tmp/plainsolid-reconciled-rooted-step-210386c-5445",
+  "selected": {
+    "suite": "development",
+    "testFile": "e2e",
+    "grep": "public STEP body selection|STEP UI and JSON import",
+    "acceptancePort": "5445",
+    "preflightPort": "5445"
+  },
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "210386c5b0850a239814dda1808e23f3239a45d5",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "wasmSha256": "90303c8b4ac2f815e16afecf5889c64231263177b009cdfa3ce584143a95291d",
+  "readinessSha256": "455f5a9c1c9145155039498b883b2c2ade5784656e026ba2f386c0b8251de247",
+  "sourceFileCount": 841,
+  "originalSelectedSourceHashes": {
+    "step-export.spec.ts": "81144a18399d0cb3711ea8e78c012221257cf6580e0709bae701b53c3c8833dc",
+    "step-import.spec.ts": "a0b22f418d1b24590e51792a28b1b156a5cc226565a55b64e7411d328d48b5a9"
+  },
+  "typecheck": "passed",
+  "backendVerified": true,
+  "summaries": [
+    {
+      "path": "/tmp/plainsolid-reconciled-rooted-step-210386c-5445/backend-results.json",
+      "startTime": "2026-11-13T23:53:54.726Z",
+      "duration": 5501.631,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "path": "/tmp/plainsolid-reconciled-rooted-step-210386c-5445/playwright-results.json",
+      "startTime": "2026-11-13T23:54:00.505Z",
+      "duration": 13855.576,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  ],
+  "tests": [
+    {
+      "file": "plainsolid-backend.spec.ts",
+      "line": 2,
+      "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4041,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-export.spec.ts",
+      "line": 23,
+      "title": "public STEP body selection exports analytic posed solids with actual native reader volume and world bounds through edits and save/open",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6283,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 4,
+      "title": "STEP UI and JSON import preserve placed native geometry, cancel, undo, save/open and STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4245,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

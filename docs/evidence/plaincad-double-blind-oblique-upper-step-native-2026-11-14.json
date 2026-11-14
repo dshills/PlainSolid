@@ -1,0 +1,64 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "050ffdb00cced7f1b5552453337d7f493a0754dd4789a727085b04fb205c6918",
+  "supplemental": {
+    "report": "/tmp/plainsolid-double-blind-oblique-authored-5619/double-blind-oblique-browser.json",
+    "reportSha256": "398f7f44a1f1baa623a2f2143a112df4b6a08527adb384907f73f4b6a304eb82",
+    "sourceSha256": "4d9d1020e851545c16c41f4c14484dcc6fecd4e08974ddc56b8b763a04169c77",
+    "summary": {
+      "startTime": "2026-11-14T17:10:49.943Z",
+      "duration": 48187.426,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "axisRatio": [
+        4,
+        3
+      ],
+      "stockMM": [
+        20,
+        16,
+        40
+      ],
+      "radiusMM": 2,
+      "cardinalBlindDepthMM": 28,
+      "obliqueAuthoredDepthMM": 26.25,
+      "obliqueFloorStationMM": -6.25,
+      "exactEllipses": 12,
+      "stepByteCount": 44318,
+      "stepSha256": "75260cf6fc91f5bfaac8b387da9cff116503d5cc52550b952fd11afc7109097e",
+      "stlTriangles": 396,
+      "stlTwoUseEdges": 594,
+      "stlSha256": "5c69088a8823c7141d331a814e01109de1c5076d4d8640830acdfa629b28694b",
+      "occtStepReadback": {
+        "Area": 4024.33623311166,
+        "Volume": 12265.855507461145,
+        "Centroid": [
+          9.952207068738682,
+          7.999999999999996,
+          19.79107881007507
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 12265.855507095228,
+        "Area": 4024.3362335925494,
+        "Centroid": [
+          9.952207068732854,
+          7.999999999999755,
+          19.7910788101111
+        ]
+      },
+      "directOracleSourceSha256": "f2b67bfb404fe282d1668f409ab6f5c2794a357fdd04ad5add28df57368ccc3f"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 16
+  },
+  "vet": "passed"
+}

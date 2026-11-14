@@ -1,0 +1,50 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "443f31eede354188eddf3b7ba2d778e77fe7b9ea1b403a2c16cb6769159d1419",
+  "supplemental": {
+    "report": "/tmp/plainsolid-disk-web-browser-5433/browser-results.json",
+    "reportSha256": "edd6ac213574bff8638acadf6dfef0da2c15a509d815ad03a9e4fc1c4565c28d",
+    "summary": {
+      "startTime": "2026-11-13T23:06:13.324Z",
+      "duration": 12351.973000000002,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "sourceSha256": "39b0533001d8db615cea12ba9451ef1771940a4dd59f00abd557841913478575",
+    "initialAbsoluteStlToleranceReport": "/tmp/plainsolid-disk-web-browser-5433/browser-results-before-chord-analysis.json",
+    "initialReportSha256": "c444a1ab604e7d78b1069978aa74b776407f1ea68b45902fb9ad5a3309705e29",
+    "analyticVolume": 2450.4422698000385,
+    "analyticArea": 1193.8052083641214,
+    "worldBounds": [
+      [
+        -3,
+        -19,
+        9
+      ],
+      [
+        17,
+        -11,
+        29
+      ]
+    ],
+    "webThicknessMm": 3,
+    "stlPolygonSidesPerRim": 32,
+    "stlVolumeToleranceForPolygonMm3": 0.001,
+    "stepSha256": "9b3da04b36294e7891974bc9c2a7545ae9902a6b0e6839fe1903888e2115f334",
+    "stlSha256": "1e09dd5766d5eeb88e916db40ed81239d5e594c8997e91399a687f364ab9734d"
+  },
+  "focusedRaceSeconds": {
+    "exchange/step": 2.611,
+    "internal/plaincadbridge": 24.214,
+    "explicitWebAndThrough": 2.123
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "test": "TestLayeredDiskBoresSTEPPreservesOpposedCoaxialWeb",
+    "axisSigns": 2
+  },
+  "vet": "passed"
+}

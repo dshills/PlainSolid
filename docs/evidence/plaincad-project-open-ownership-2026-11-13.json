@@ -1,0 +1,12 @@
+{
+  "wasmSha256": "fbcec7a96fcccbc23eee04d3fe817bc467948a77b97e33cb2c57283b4380c0cc",
+  "stagedCommandSha256": "2c062b53e74a6a6ff87feb55326609ec38ac79bca4f5744036fbad934a8c49ae",
+  "supplementalTestSha256": "110ff8032f54f64b223549749a037bcca20868ec508b6b41012af6300ea10b94",
+  "status": "passed",
+  "durationMs": 10091,
+  "checks": [
+    "retain previous meshes while a project opens",
+    "obsolete project open does not restore readiness",
+    "invalid later open restores the original model readiness"
+  ]
+}

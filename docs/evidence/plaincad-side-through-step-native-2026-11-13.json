@@ -1,0 +1,61 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "f7073935e3247b970826416bd1b3112e114663690de946800b38882fa4e14dba",
+  "supplemental": {
+    "report": "/tmp/plainsolid-through-step-browser-5381/browser-results.json",
+    "reportSha256": "d7ef051703ad45cae300c7fc31ff53e3890308504f121c33d713d61d7c8ef215",
+    "sourceSha256": "4d69daf40671aff31352723fcf77caf2ddfb00cb5cac3313ab83ca9648517a70",
+    "test": "authored through-all side notch STEP export, import, reopen and STL",
+    "status": "passed",
+    "durationMs": 10707,
+    "analyticVolume": 3039.806989992101,
+    "surfaceArea": 1446.4073088420391,
+    "worldBounds": [
+      [
+        7,
+        -19,
+        19
+      ],
+      [
+        27,
+        -11,
+        39
+      ]
+    ],
+    "stlSignedVolume": 3040.5648877543927,
+    "stlTriangles": 100,
+    "stepSha256": "014104a9de31b5cae7acc913dad83ce4f7bcd037f1f0f7b51b7748e9b305a7fa",
+    "stlSha256": "c8c34b0a5de43e96ec6b36c99de59a8a0e85819a5f8ab7bd5ebedcb411308bec",
+    "e2eTypecheck": "passed"
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 11.822,
+    "exchange/step": 2.11,
+    "brep/trimmed": 2.153
+  },
+  "occtStep": {
+    "status": "passed",
+    "test": "TestSideNotchSTEP",
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "cases": 5,
+    "throughCases": 2,
+    "checks": [
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed",
+  "originalHoleEdit": {
+    "report": "/tmp/plainsolid-side-through-step-original-5383/hole-edit-results.json",
+    "reportSha256": "f5095f309ed49f658559c5e557092d336a25d9655e4723ff727e8f41e1624c41",
+    "summary": {
+      "startTime": "2026-11-13T22:13:06.271Z",
+      "duration": 20676.442,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "backend": "plainsolid-go-wasm",
+  "workspace": "/tmp/plainsolid-pocket-edge-native-01",
+  "rawReport": "/tmp/plainsolid-pocket-edge-native-results-01.json",
+  "rawReportSha256": "085756b7d35b85de79b052a6883da8a402ad496c37934cc41ce65aeca6ad9930",
+  "artifactHashes": {
+    "public/assets/plainsolid-kernel.wasm": "9cc76564033b60ef3aadb299894961b317c81c6f19510e3bda67fa776ee0b251",
+    "src/cad/kernel/OpenCascadeKernel.ts": "19c40185a7215cc1c908edbfc2992cd8d1c287ed2dc4dc8b7f27097bd1f37b56",
+    "src/tests/featureAddition.test.ts": "f8f40ee594ef715e686f7f7030cbffa517fced8b1c6f56759364dbd57c39719a"
+  },
+  "passed": 2,
+  "failed": 0,
+  "unselected": 11,
+  "tests": [
+    {
+      "title": "adds a supported individual fillet after a pocket while preserving source refs",
+      "status": "passed",
+      "durationMs": 697.8314169999994
+    },
+    {
+      "title": "adds a supported individual chamfer after a pocket while preserving source refs",
+      "status": "passed",
+      "durationMs": 212.10812500000065
+    }
+  ]
+}

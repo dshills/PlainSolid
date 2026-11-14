@@ -19,7 +19,7 @@ func TestExtrudeDiskWithEccentricBlindAndThroughHoles(t *testing.T) {
 	}
 	outer := ExtrusionCircle{geom.Vec2{X: 1, Y: 2}, 4}
 	through := []ExtrusionCircle{{geom.Vec2{X: -1, Y: 2}, .75}}
-	blind := []ExtrusionBlindHole{{ExtrusionCircle{geom.Vec2{X: 3, Y: 2}, 1}, 1.25}}
+	blind := []ExtrusionBlindHole{{ExtrusionCircle: ExtrusionCircle{geom.Vec2{X: 3, Y: 2}, 1}, Depth: 1.25}}
 	for _, z := range []float64{-3, 3} {
 		s, err := ExtrudeDiskWithHoles(ctx, frame, outer, through, blind, z)
 		if err != nil {
@@ -108,9 +108,9 @@ func TestExtrudeDiskWithHolesRejectsContacts(t *testing.T) {
 		{"tangent outer", []ExtrusionCircle{{geom.Vec2{X: 3}, 1}}, nil, geom.ErrDomain},
 		{"cross outer", []ExtrusionCircle{{geom.Vec2{X: math.Nextafter(3, 4)}, 1}}, nil, geom.ErrDomain},
 		{"coincident", []ExtrusionCircle{{Radius: 4}}, nil, geom.ErrDomain},
-		{"touching pockets", []ExtrusionCircle{a}, []ExtrusionBlindHole{{ExtrusionCircle{geom.Vec2{X: 1}, 1}, 1}}, geom.ErrDomain},
+		{"touching pockets", []ExtrusionCircle{a}, []ExtrusionBlindHole{{ExtrusionCircle: ExtrusionCircle{geom.Vec2{X: 1}, 1}, Depth: 1}}, geom.ErrDomain},
 		{"zero radius", []ExtrusionCircle{{}}, nil, geom.ErrInvalid},
-		{"bottomless", nil, []ExtrusionBlindHole{{a, 2}}, geom.ErrDomain},
+		{"bottomless", nil, []ExtrusionBlindHole{{ExtrusionCircle: a, Depth: 2}}, geom.ErrDomain},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			s, err := ExtrudeDiskWithHoles(ctx, f, outer, c.through, c.blind, -2)

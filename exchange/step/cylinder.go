@@ -79,6 +79,10 @@ func analyticFaceLoop(f *File, id int64, n int) (Record, []analyticUse, error) {
 	return face, out, nil
 }
 func analyticEdge(f *File, id int64) (start, end, geometry int64, err error) {
+	return analyticEdgeGeometry(f, id, false)
+}
+
+func analyticEdgeGeometry(f *File, id int64, allowReversed bool) (start, end, geometry int64, err error) {
 	r, e := simple(f, id, "EDGE_CURVE", 5)
 	if e != nil {
 		return 0, 0, 0, e
@@ -99,7 +103,7 @@ func analyticEdge(f *File, id int64) (start, end, geometry int64, err error) {
 		return 0, 0, 0, e
 	}
 	sense, e := boolean(r.Args[4])
-	if e != nil || !sense {
+	if e != nil || !sense && !allowReversed {
 		return 0, 0, 0, errors.New("step: reversed analytic edge geometry unsupported")
 	}
 	return a, b, g, nil

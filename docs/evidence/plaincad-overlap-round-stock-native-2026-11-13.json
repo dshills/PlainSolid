@@ -1,0 +1,37 @@
+{
+  "plainCadRevision": "e65f07b8c6db1805d2baf1d3e9700c8d403c26ab",
+  "wasmSha256": "66bf82685f8d63f1f22bff5691905ad53a6bcf340944fc1c5d554964428d7c11",
+  "supplemental": {
+    "report": "/tmp/plainsolid-overlap-round-stock-unit-01.json",
+    "reportSha256": "a3f816ec05a8788de7d97bd3b6aee14817ad4d871340cd12ec24cddb989bdc82",
+    "sourceSha256": "d13a4c7da169553618e3fd3aff78a3581d4156a34ac95c60b2bbb313bcc8a6d0",
+    "tests": [
+      {
+        "title": "rebuilds overlapping opposed round-stock Hole features and validates STL after reload",
+        "status": "passed",
+        "duration": 510.282459
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 25.062,
+    "brep/trimmed": 6.975
+  },
+  "vet": "passed",
+  "fullModeTrimmedBeforeLayerRefactor": {
+    "log": "/tmp/plainsolid-integration-trimmed-full-only-01.log",
+    "sha256": "2b7876afdac6b0746272358b6f7c702c31335eefa67a5fc5daf415f458d8b71a",
+    "seconds": 553.982,
+    "cases": {
+      "TestNestedQuarticTubeMaterial": 524.1,
+      "TestCombineTransverseSplineShellsAdditionalOperations": 29.69
+    }
+  },
+  "developmentPartsBrowserRetest": {
+    "originalSnapshot": "/tmp/plainsolid-final-integrated-development-5352",
+    "plainSolidWasmSha256": "82ac78e8b529a1fe441debef2a1dabbe9bfec919d1df932459c0a405e59a73ab",
+    "originalFailure": "read previous empty successful rebuild before asynchronous project-open finished",
+    "plainSolidUnchangedSeconds": 7.798,
+    "pristineOcctSeconds": 8.772
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "2a45e54a383336b6983b7683ad1a758c929a5a34c3d663b3cb92e6ad6f2e8d0f",
+  "supplemental": {
+    "report": "/tmp/plainsolid-oblique-authored-5516/oblique-browser.json",
+    "reportSha256": "8a7d653b933b3568ef45a55c565ccf8246bed475583caa9cfb102bb372ad2ff2",
+    "sourceSha256": "117ea24e2c0cad2ad552f4c36d1d54acc0bf83034c7a998a34f766dd1309d172",
+    "summary": {
+      "startTime": "2026-11-14T12:47:21.333Z",
+      "duration": 11754.182999999999,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        4,
+        5,
+        6
+      ],
+      "axis": [
+        1,
+        0,
+        3
+      ],
+      "radiusMm": 0.35,
+      "guideVolume": 12,
+      "occtVolume": 117.56602587487995,
+      "occtArea": 161.0970988637412,
+      "stlTriangles": 866,
+      "stlTwoUseEdges": 1299,
+      "stlSha256": "67487b30b937cd39485940316a148e4ef392deeb8ad08c112479498cc24482c0",
+      "stlSignedVolume": 129.57554378755435
+    }
+  },
+  "focusedRaceSeconds": {
+    "brep/trimmed": 1.407,
+    "internal/plaincadbridge": 10.968
+  },
+  "independentOcct": {
+    "oracleSha256": "da37a3f54cc35a5cd307d3b379da044856027a5c4bb554cf964b069b6c27ba65",
+    "oracleSourceSha256": "8847e4e487ef88acf3ae89baed318ec9508747c94d65324f28442a4e5db36fbd",
+    "status": "passed",
+    "newCases": 2,
+    "adjacentVolume": 118.70919029484797,
+    "adjacentArea": 154.0852457587869
+  },
+  "vet": "passed"
+}

@@ -95,22 +95,365 @@ keeping local bodies, original occurrence paths and exact placements through
 source-bound native reload. Both exchange paths have independent live OCCT
 comparisons.
 
+The [native short suite](evidence/plainsolid-native-981161dd-short-2026-11-14.json)
+completed across all packages on integration revision `981161dd`.
+It records 39 package passes, four packages without tests and no
+failures. Short-mode exclusions and full qualification remain open.
+
 ## Immediate priority: PlainCAD compatibility
 
 The [selectable PlainSolid provider qualification](evidence/plaincad-provider-integration-verified-2026-11-14.json)
-pins the PlainCAD app implementation at `9779044` and PlainSolid at
-`f571a964`. Its selected build passed 345 development, 66 production and
-15 cross-browser cases with no skips or retries. The ordinary app suite
-passed all 1,691 cases with its documented worker and retry settings;
-four separate contracts exercised actual PlainSolid WASM. The report,
-WASM asset, and stamped Go runtime hashes were independently checked.
-This opt-in app build has separate evidence from the later kernel worktree
-reconciliations below.
+pins the PlainCAD app at `9779044` and its initial verified PlainSolid build
+at `f571a964`. Full provider reruns on [kernel 65441a2d](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json)
+and [kernel e60f34e7](evidence/plaincad-provider-kernel-e60f34e7-2026-11-14.json)
+passed 345 development, 66 production and 15 cross-browser cases with no
+skips, retries, or flaky results. The ordinary app suite passed 1,691 cases
+and four actual-WASM contracts. The isolated PlainCAD provider branch
+selects PlainSolid in the app and its workers, with a fingerprinted WASM
+file and the matching Go runtime. Later kernel milestones have focused
+browser and exchange evidence.
+The [latest selectable provider qualification](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json)
+pins app `efae4d2` and kernel `fa857e59`. It independently passed all
+345 original development, 66 production and 15 cross-browser cases,
+1,691 ordinary tests and four actual-WASM provider contracts.
+
 
 Development now prioritizes the operations exercised by PlainCAD's existing
 acceptance tests before expanding unrelated OCCT domains. The full specification
 remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
 and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
+
+A finite blind Hole crossing one rectangular stock side now retains a
+watertight analytic notch and circular-segment floor. Seven original
+browser regressions and an authored rebuild, reload and STL check pass.
+Canonical STEP now round-trips the placed boundary and matches OCCT's
+independent volume, area and centroid. Mixed batches with disjoint
+blind bores from either cap and through bores now pass original
+regressions, authored persistence, placed STEP and STL fabrication. Single-tool
+scoped through-all Hole now accepts the same qualified rectangular side
+and corner notches as direct Cut. A one-side through notch also supports
+disjoint interior bores and round-trips canonical STEP. Corner-notch
+blind and through cuts also round-trip canonical STEP, including batches
+with disjoint interior bores. Same-center, equal-radius tools with
+connected depth spans can deepen the original notch or open its far cap.
+Contained coaxial cutters on the same body merge independently of batch
+order, including through cutters that join two opposed blind spans.
+Separated blind spans at the same interior site preserve the material web
+and both cap openings through STEP.
+Intersecting side- and corner-opening Hole groups preserve analytic
+cylindrical walls and blind floors on rectangular stock. The arrangement
+accepts up to 16 distinct footprints opening on one side or two adjacent
+sides, including offset corners. Grouped and successive cuts, unequal
+depths, through cuts that leave one solid, and canonical STEP round-trip
+pass verification. Cutters can enter from either cap, including opposed
+blind spans that overlap or leave a material web. STEP recovers partially
+buried cylindrical walls from their neighboring faces. Exact stock
+vertex contacts also pass for blind and through cutters, for two cutters
+sharing the vertex, and for endpoint tangency when the cutter opens
+across the adjacent side. Fully concealed cutters no longer leave extra
+STEP face partitions. The exported boundary also round-trips a through
+cutter whose entry is concealed by other Holes. Opposed blind floors
+can now meet exactly and retain an open passage through the shared
+footprint. Two equal-radius through cutters whose perpendicular axes
+intersect inside a rectangular block retain exact cylindrical walls and
+elliptical intersection edges. Grouped and successive cuts, overlap
+queries, STEP and STL pass. An equal-radius crossed through pair can
+retain up to 16 strictly separated cardinal companion bores in the same
+analytic solid and STEP graph. Three concurrent equal-radius through
+Holes along X, Y and Z retain eight exact triple junction vertices and
+exchange their elliptical intersection arcs through STEP. One, two or all
+three Holes can stop beyond the full intersection and retain their planar
+floors from either entry side of each cardinal axis. Disjoint through cutters on two or three
+cardinal axes now retain canonical STEP, including unequal radii and
+non-millimeter import. When the full projected footprints are separated,
+disjoint mixed-axis blind bores can also exchange their finite floors and
+entry faces through STEP. The finite-bore path also handles crossing
+full-through projections when the actual cutter spans have separated
+padded bounds. Exact rational comparisons of finite radial sections can
+also prove disjointness when those bounds overlap. Intersecting unequal-radius through cutters on
+perpendicular axes retain analytic radical trims and pass native rebuild,
+project reopen and watertight STL. STEP preserves the analytic support
+surfaces and exchanges the nonrational trim rings as cubic splines with
+declared 0.0000001 mm uncertainty. The native importer checks the complete
+canonical graph before recovering the analytic recipe. Perpendicular
+skew axes also retain two radical trim rings and round-trip STEP when
+the larger radius covers the smaller bore across the whole transverse
+width. Partial transverse overlap now retains a single analytic trim
+loop for equal or unequal radii and passes native STL. STEP exchanges
+the single loop through compact Hermite splines, retaining the analytic
+supports and recovering the native B-rep on readback. Adaptive STEP spans qualify the 2 mm and 2.5 mm offsets for 5 mm and
+4 mm radii. The 0.75 mm covered-width offset also round-trips with bounded
+local STEP interpolation. Smaller clearances and general oblique cutter intersections
+remain open. A blind Hole
+can intersect an equal-radius perpendicular through Hole when the floor
+lies beyond the complete intersection. Both entry caps, retained face
+references, exact elliptical STEP trims and watertight STL pass. Two
+intersecting equal-radius perpendicular blind Holes also retain both
+complete planar floors and round-trip STEP when both floors lie beyond
+the intersection. Repeated covered cutters can be grouped, and a
+successive coaxial cutter can deepen or open the blind floor. Equal-radius
+perpendicular bores also retain two circular-segment floor faces when
+the blind stop passes the crossing axis and remains within the through
+bore. STEP and STL preserve both segments on either side of the crossing
+axis. A blind stop exactly at the crossing axis retains the wall
+intersection and consumes the entire planar floor. The exact far-tangent
+stop retains a full floor and passes manifold STEP and STL. The
+near-tangent limit forms a nonmanifold contact diameter and rejects.
+Unequal-radius perpendicular Holes with one or both floors beyond their
+complete intersection now retain those floors through STEP and STL.
+Compact finite STEP brings the verified closer-radius and covered-skew
+cases below PlainCAD's import limit. The existing spline span guard still
+limits some smaller clearances and near-contact geometry. Partial skew
+intersections also retain finite floors beyond both tools' axial overlap,
+with compact STEP and watertight STL. A floor may now stop within the
+other cutter’s full-radius bound if exact transverse clearance proves
+it is beyond the actual crossing. Two closer-floor models pass
+rebuild, STEP, project reopen and watertight STL. Bounded conforming
+refinement handles the model that previously exceeded the worker deadline. A covered-width unequal crossed
+pair, including finite stops beyond the crossing, can retain up to two
+disjoint cardinal through companions. Some placements reach the existing
+adaptive mesh budget. A single oblique through cutter in rectangular stock now
+retains two complete elliptical apertures on opposite or adjacent faces.
+The native bridge verifies the finite tool covers both openings before
+scoped Cut, retains the stock face IDs, and generates watertight STL.
+Its STEP exchange preserves both analytic ellipses and the cylinder support.
+An equal-radius cardinal bore and a concurrent oblique bore in local
+4:3, 3:4, 12:5 or 5:12 axis ratio retain their exact crossing ellipses and all four
+full stock openings through STEP and STL. The cardinal axis may lie
+along X, Y, or Z. Both slope signs and transverse coordinate directions
+retain the same exchange proof. The cardinal Hole may retain its blind floor
+beyond the complete crossing. Both entry directions exchange exact STEP,
+and a subsequent coaxial cut can deepen or open the imported floor.
+Grouped oblique crossings discard fully covered coaxial tools after
+proving the retained spans. Their STEP matches the visible-only pair.
+The oblique Hole itself can carry a circular blind floor after the
+complete crossing. Both entry directions and a later deeper Hole
+retain canonical STEP. Both equal-radius tools can be blind in the same
+part when their floors remain beyond the entire crossing.
+Two or three separate through Holes can now combine oblique and cardinal
+axes in one rectangular stock body. Native sewing preserves the stock
+faces, and STEP preserves each circular or elliptical opening and its
+cylinder axis. Matched angular strips preserve the exact elliptical rims
+and bound the mesh work for steeper and three-component axes. The authored
+2:3 pair reopens through STEP and exports a watertight 276-triangle STL.
+
+The existing PlainCAD Arc Extend workflow now exports and reimports the
+quarter-sector extrusion with its exact cylindrical wall and circular
+edges. Circle Trim also exchanges its half-disk extrusion. Both authored
+models reopen and export watertight STL.
+The driven arc-and-chord workflow retains its solved near-semicircular
+angle through STEP. The reader matches the axial seam parameters and
+complete represented graph. Qualified minor and major segments keep the
+circular support and chord. Equal-circle and unequal circle/arc lens
+extrusions also retain both analytic cylindrical walls and their shared
+vertical seams. Both original XY workflows exchange exact solids and
+reopen with watertight STL. The arc-only lens retains all four original
+sketch fragments and produces the same STEP as the equivalent circle lens. The construction-axis Revolve workflow
+round-trips the exact toroidal surface and planar caps of its quarter
+sweep. Full rings and larger signed sweeps also pass the native STEP
+gate, including reflection and non-millimeter readback. The Edit Revolve
+quarter sweep with a coaxial through cut preserves both cylinders, the
+planar caps and the radial walls. A STEP-reimported part can enlarge
+the bore and reproduce the canonical output of a fresh cut. Cylindrical
+Revolve sectors with the axis intact likewise retain their partial angle
+and planar radial faces through STEP and accept a subsequent coaxial cut.
+Full concentric tubes use the periodic two-wall STEP graph and retain
+the coaxial cut recipe after import, including independent and metric files.
+Circular rim fillets on XY, XZ and YZ exchange their exact rational
+quarter-torus bands and preserve the native single- or dual-rim geometry.
+Equal-setback circular rim chamfers on all three working planes exchange
+the exact ruled frustum bands and the retained cylinder. The metric and inch
+socket-head fastener blanks also retain their stepped cylindrical shaft,
+annular shoulder, and blind polygonal socket through STEP and STL.
+
+PlainCAD also imports the strict half- and quarter-cylinder STEP model
+and rooted product dialects from main as native cylindrical stock, retaining its
+signed coordinate pose and allowing a subsequent exact Hole and STEP
+export.
+
+Circular stock now supports grouped and successive disjoint axial bores,
+including preexisting authored eccentric bores and STEP reimport. The
+original eight-case Hole, Revolve, compound profile and STEP selection
+passes. Supplemental PlainCAD rebuild, save/reopen and STL validation
+pass on the same WASM. Disjoint blind bores from opposite circular caps
+now preserve their entry faces through STEP and pass six original browser
+regressions and independent OCCT exchange checks. Overlapping opposed
+bores now also pass exact native volume and surface checks, editable
+PlainCAD reload and STL fabrication. Canonical STEP now round-trips
+qualified overlapping circular boundaries and matches independent OCCT
+measures. Opposed blind bores with the same footprint can also preserve
+the remaining material web through STEP and a later through cut.
+Eight additional original STEP, Hole Edit and machined-reference
+browser regressions pass. Both native trimmed spline cases excluded by
+short mode pass with full mode enabled.
+
+The latest completed production run on clean `254c83b` passes all 66
+originals on PlainCAD `50432ed`, with zero skips or retries. Its original
+performance case finishes in 31.382 seconds, with all 25 edits and 11 STL
+downloads validated. The earlier full pass on the same app includes the staged project-open
+readiness fix. The original performance case finishes in 42.966 seconds with
+all 25 edits and 11 STL downloads validated. The preceding production build
+`11216c5` also passes all 66 on `e65f07b`, including main's dense mesh
+manifold validation and the 60.790-second performance case.
+The earlier integrated build passed 65 cases in one run and the benchmark
+in an unchanged isolated retest. The previous complete production pass
+was `0b17938`.
+
+The newer corner-batch build `d2db51d` passes 65 of 66 production originals
+on `50432ed` while several suites run. The benchmark records all 25 edits
+and 11 validated STL downloads but exceeds its 90-second case deadline.
+The unchanged test passes on the same production assets in 56.048 seconds
+when run separately.
+
+The full development run on PlainCAD `50432ed` passes all 344 originals
+on clean `92e22ab`, including Parts Browser and YZ guarded drag. It has
+zero skips, retries or flaky results. Both TypeScript checks and the
+independent WASM probe pass.
+
+All 15 cross-browser originals pass on clean `19b63f4`. The native short
+suite reaches the 30-minute package timeout in `brep/trimmed`; the
+remaining 44 tests pass in a direct continuation. The combined trimmed
+short-mode runs record 397 passes and four explicit skips.
+
+The frozen development baseline ran 340 originals with 264 passes. Later
+focused runs pass 54 of the baseline failures. The first consolidated current
+run passes 342 of 344. Its two viewport failures pass in focused verification,
+with the staged camera damping update for pan idle. The new full rerun
+also passes 342 of 344, including the original pan, marker, gesture and
+40-body viewer cases together. Parts Browser and YZ guarded drag fail on
+startup timing in that run and both pass unchanged on the identical WASM
+in isolation.
+
+The focused development retest passes all seven originals for a pocket
+after four bores, island pocket, circular face boss, compound profiles,
+opposite cap treatments, XY feature addition and separated rotated
+collision. Authored circle measurement and all three circular rim
+regressions pass in a separate four-case run. The 40-body rotary fixture now passes cold load, rename and platter edit.
+The original exact Join/Cut, Hole Edit with downstream chamfer, multi-body
+corner cuts and moved projected cut pass. All 18 originals in the retained
+reference and workspace retest pass, including Parts Browser and AI To Face.
+The current ORBIT model passes the original close-up, Render and gesture PNG
+tests after the display worker reuses accepted native features. The three
+original signed profile-edge cases also pass on XY, XZ and YZ. Focused
+real-WASM cases now pass for pocket
+and Hole lineage, fine lead-screw meshes at one, two and four starts, and
+STEP round-trip of machined stock, including independently authored rounded
+stock with blind and through bores and a canonical long-edge treatment chain. The current studio cancellation and ORBIT
+gesture originals pass together. All 17 original arc-region cases pass.
+The full one-worker real-WASM run on PlainCAD `50432ed` passes 1,647 of
+1,689 originals. Twenty-two earlier failures pass, 37 repeat and five
+newly fail. All five new failures and the recurring cold Unified thread
+case pass unchanged on the same WASM in a focused retest.
+The earlier full real-WASM unit run on the same app passes 1,630 of 1,689
+originals with loopback and concurrent verification. Thirty-eight failures
+repeat the preceding full run. All 21 newly failed tests pass unchanged
+on the same WASM in the one-worker retest. Eight earlier failures pass. The preceding unit run passes 1,643 of 1,689, including all 39
+modeling geometry and 15 local middleware cases. The baseline passed 1,646. Thirty-six failures repeat fallback
+expectations and OCCT-private fixture bindings. The two other repeated cases
+are a workbench layout timeout that passes in isolation and a laser screening
+fixture that disagrees with both initialized kernels. Nine of ten new failures
+pass unchanged in focused reruns. The remaining inline sketch workspace
+case also fails with pristine OCCT. All ten private tests pass on pristine OCCT. The 26 fallback
+fixtures pass 25 on the OCCT control and five with PlainSolid deliberately
+uninitialized. Focused original tests now pass all seven portable failures,
+including an exact side-tangent blind Hole. This Hole is retained for
+modeling and display as a regularized difference. Fabrication and STEP
+validation reject its four-face contact. The current PlainCAD revision `50432ed` passes all 15 original cross-browser
+cases across Chromium, Firefox and WebKit. It passes six of seven focused
+originals. The Parts Browser asynchronous-open timing failure reproduces
+and the staged readiness fix passes the original Parts Browser case,
+file-drop, recovery and both stale-worker cases. A separate browser probe
+verifies superseded and rejected opens. The native bridge, STEP and mesh
+packages pass a combined short run.
+See [PlainCAD readiness](PLAINCAD_READINESS.md).
+
+Scoped Extrude and Revolve Join, fitted parts, cached rebuilds, rectangular
+Shell and three Hole pattern cases pass the expanded original selection.
+The same run exposes two remaining pattern failures, a circular pocket
+pattern on previously cut stock and the overlapping Hole diagnostic. Both
+now pass the focused original retest. Its controlled performance test passes
+the original 25 rebuild and 11 export iterations and resource-growth bounds.
+Slider, hinge and separated rotated collision originals pass.
+
+Focused browser runs now pass the original mixed profile, revolve, socket-head
+blank, shop drawing and STEP workflows, including the three repaired regressions
+for the solved circular segment, placed bore axis and imported STEP STL.
+The first consolidated run passes 47 of 53 originals. A finer bore mesh
+exhausts the triangulation budget in six guided multi-hole previews. Single
+bores retain the finer setting and multiple rims use their earlier setting.
+The corrected focused runs pass both original XY guided cases and STEP STL.
+Both original helical cases now pass on one immutable snapshot. Modeled
+Thread completes external preview/edit/cold-open/STL and internal preview,
+apply and exact volume in 79.325 seconds under its 90-second deadline. The
+four-start lead screw and matching nut pass linked edits and cold open in
+22.783 seconds. The original gallery extends qualification to Acme and UNC.
+
+The original machined-reference acceptance passes nested rectangular blind
+pockets, a disjoint cylindrical through bore, measured rim and floor,
+parameter edits, save/open, and rejection after the original floor is cut.
+All seven selected original production cases pass, including browser CSP,
+native modeling and STL, STEP workers, scope capture and shop drawing.
+The original three grouped circular rim fillet cases also pass.
+
+The original retained-reference cases now pass across two focused runs,
+including whole rectangular cap chamfer after a bore, an authored fillet
+after Cut and Join, merged STL with a circular boss and a retained side
+sketch. Complete rectangular cap fillets pass native volume, area, centroid
+and mesh checks. All eight original viewport-operation cases pass, including
+complete rectangular cap fillet and chamfer on XY, XZ and YZ, individual
+chamfer on those planes, cancellation and the section overlay.
+
+Finite polygon and circular To Face extrusion pass the five selected original
+PlainCAD cases, including face pockets and component placement. The bridge
+uses the actual bounded planar support, tracks it through owner edits, and
+rejects lost, uncovered or zero-depth targets. The pinned 31-case run passes
+30 and exposes an exact tangent pocket in the earlier edge-treatment chain.
+That boundary is now split and sewn. The deterministic native cases and the
+first two combined browser runs pass the long chain.
+
+Grouped longitudinal fillet and chamfer geometry is committed as `4f51147`.
+The final browser run passes PlainCAD's existing multi-edge edit and repeated
+XZ edge-draft cases and the prior 24 regressions. All 26 existing cases, both
+TypeScript checks and the supplemental grouped chamfer probe pass with zero
+skips or flaky results. Groups resolve up to four parallel original edges on
+qualified rectangular stock, with a single publication after validation.
+Complete circular rims and sharp rectangular cap perimeters now have native
+constructors. General nonparallel and intersecting treatments remain open.
+
+The imported analytic edge chain is committed as `4916667`. Its browser
+checkpoint passed PlainCAD's existing fillet, chamfer, Hole, pocket and boss workflow,
+including edits, downstream failure recovery, save/reopen and STL. The adjacent
+edge-treatment recovery case and the previous 22 cases pass as well. All 24
+existing cases, both TypeScript checks, and the supplemental WASM probe pass with
+zero skips or flaky results. The bridge supports individual cap edges and a
+single disjoint through bore, rectangular through pocket and upper boss on the
+qualified rectangular stock. Broader edge treatments and cuts on modified stock
+remain open. See [PlainCAD readiness](PLAINCAD_READINESS.md) for the evidence.
+
+The Go WebAssembly adapter implements scoped Hole operations with indexed
+center/target errors and atomic publication. Analytic cylinder walls and planar
+floors support blind and through cuts from qualified convex stock. Cutter sets
+combine proper overlaps, duplicates and contained circles; unequal depths now
+use exact axial layers with crescent and annular floors. Retained recipes are
+bounded to 32 tools. A volume-only overlap query supports successive Hole
+features on already-bored stock without fabricating intersection geometry.
+
+The unequal-depth analytic constructor is committed as `302184f`. Independent
+volume, area and centroid oracles, related bore/mesh regressions, bridge race
+checks and geometry review pass. All 22 selected existing browser acceptance
+cases pass unchanged, with zero skips or flaky results. Both TypeScript checks
+and the separate real-WASM unequal-depth/document-roundtrip supplement pass.
+
+PlainCAD has no existing overlap-specific browser case; its guided-hole UI still
+intentionally rejects overlapping placement. New overlap checks are supplemental.
+Opposed-entry blind overlaps now pass exact measures, manifold topology,
+PlainCAD save/reopen, and STL validation. Coincident stop levels qualify
+for the supported circle arrangements. Circular stock also supports one strictly contained eccentric blind or
+through bore, with native STEP readback and STL validation. General internal
+cutters, unresolved contacts, material-island footprints, closed cavities,
+and arbitrary curved targets remain open. Some named interior pocket floors and one-side through
+cuts already have qualified constructors. The full
+replacement remains partial. See source-hashed reports in [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 Current integration evidence is kept on local `codex/reconcile-plaincad`.
 The other worktree's revision stays separate and is merged into that review
@@ -601,6 +944,11 @@ The [gallery retest record](evidence/plaincad-gallery-reconciliation-2026-11-13.
 pins that production build. The isolated
 controlled performance case collected all 25 edits and 11 STL samples, then
 exceeded its 90-second overall deadline; the original test remains failed.
+The subsequent clean compact-mesh snapshot `1e78c8a` passed the unchanged
+original production performance test in 64.7 seconds. The
+[focused performance record](evidence/plaincad-compact-performance-reconciliation-2026-11-13.json)
+preserves the original deadline, WASM identity, and all samples. Full
+production qualification on one final combined revision remains open.
 On `acce666`, stale fabrication ZIP validation/native union and cancellation
 of a pending STEP preview on same-ID project replacement both passed.
 On `e73ed26`, both real-worker stale-result/error ordering cases and the
@@ -613,6 +961,12 @@ backend check passed for all three. The
 [reconciliation report](evidence/plaincad-reconciliation-2026-11-13.json)
 records these as fixture failures, not regressions in zoom refinement or
 stale-preview cancellation.
+The original Hole Edit case then passed with the isolated repair applied
+as `96ab139`: the selected bottom chamfer replays both through holes and the
+counterbore on the qualified bevel, and the browser reaches undo, save, open,
+and STL. Exact complete-edge chain recognition and chamfer also pass the
+original retained joined-edge preview case. The orbit fixture remains open;
+an isolated lower-perimeter chamfer advances it to the raised enclosure join.
 
 Further gates cover planar features and rectangular shelling; exact mixed
 line/arc profiles and partial revolutions; cap-edge treatments followed by
@@ -1249,6 +1603,18 @@ the floor circle and cylindrical seam. These reports preserve the source seam
 mismatch and uncertainty metadata; the STEP importer still rejects this shell.
 
 ## Continuing implementation
+
+The remaining rectangular Hole geometry includes near-contact unequal-radius
+exchange, interacting oblique axes, unequal-radius floors inside their
+intersection, and broader mixed-axis cutter groups. The selectable app
+build passes its unit and browser gates at the pinned provider revision.
+Later geometry increments record their own focused regressions.
+
+The two short-mode exclusions for nested quartic material and transverse
+shell operations passed separately earlier. The opt-in run for
+`TestQualifyNestedQuarticShell` and `TestStraightTubeMassInvestigation`
+also passed in 133.593 seconds. Its JSON log is
+`/tmp/plainsolid-integration-native-two-opt-ins-20261113.jsonl`.
 
 For immediate work, follow the PlainCAD gates above. Within the remaining full
 replacement scope, the critical path is general curved Boolean assembly. The current exact planar

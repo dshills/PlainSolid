@@ -1224,6 +1224,246 @@
       "sourceHashes": 841,
       "plainSolidSourceHashes": 1112,
       "firstFailure": "Authored end-cap edge target is missing after join; no preview or stale-result assertion was reached."
+    },
+    {
+      "sourceIdentity": {
+        "head": "1c591283824087a688489b238006e49344aa9e48",
+        "status": "M e2e/studio.spec.ts\n M specs/working-cad/VALIDATION_LOG.md\n M src/viewer/CadViewer.tsx\n M src/viewer/studioEffectsController.ts\n M src/viewer/studioLighting.ts\n M src/viewer/viewerControls.css",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "673619345f9b5c1e64974bf6d83669e82b7f7d74",
+        "status": "M internal/plaincadbridge/edge_body.go\n?? internal/plaincadbridge/bored_cap_edge_chamfer.go\n?? internal/plaincadbridge/bored_cap_edge_chamfer_test.go",
+        "branch": "codex/hole-edit-chamfer"
+      },
+      "selected": {
+        "testFile": "e2e/hole-edit.spec.ts",
+        "grep": "Edit Hole verifies"
+      },
+      "startedAt": "2026-11-13T17:56:47.788Z",
+      "finishedAt": "2026-11-13T17:58:13.267Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "a30c8f010236607bf4c91978c4ba99ccde6154c917ce16cdbda2418228cba808",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-hole-edit-acceptance-02/backend-results.json",
+          "startTime": "2026-11-13T17:57:19.787Z",
+          "duration": 24146.398999999998,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-hole-edit-acceptance-02/playwright-results.json",
+          "startTime": "2026-11-13T17:57:44.669Z",
+          "duration": 28571.223,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 18073,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "hole-edit.spec.ts",
+          "line": 159,
+          "title": "Edit Hole verifies the operation and downstream chamfer, cancels, rejects no-op downstream cuts, and preserves native geometry/IDs through undo/save/open/STL",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 22422,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-hole-edit-acceptance-02/readiness.json",
+      "fullReportSha256": "e5a0ce4a97d02e0c481f1f024d6b5b2126947053468c61e7d426e79ddcb51fa8",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1130,
+      "candidateCommit": "96ab139"
+    },
+    {
+      "sourceIdentity": {
+        "head": "07668754276c816cf96174056bbc3f109adb289f",
+        "status": "M specs/working-cad/VALIDATION_LOG.md",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "f81028769ac46039e6814a755c7f98b8a1e7fe1d",
+        "status": "M internal/plaincadbridge/edge_body.go\n?? internal/plaincadbridge/planar_chain_clip.go\n?? internal/plaincadbridge/planar_edge_chain.go\n?? internal/plaincadbridge/planar_edge_chain_test.go",
+        "branch": ""
+      },
+      "selected": {
+        "testFile": "e2e/retained-edge-picking.spec.ts",
+        "grep": "retained-edge native preview cannot apply"
+      },
+      "startedAt": "2026-11-13T18:04:00.290Z",
+      "finishedAt": "2026-11-13T18:04:54.612Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "cea1a471aab05c97a55111af8838e0d2b736599b4c72ca6b00bb1a7b45280854",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-chain-browser/backend-results.json",
+          "startTime": "2026-11-13T18:04:32.763Z",
+          "duration": 15233.001,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-chain-browser/playwright-results.json",
+          "startTime": "2026-11-13T18:04:48.428Z",
+          "duration": 6169.738,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 13190,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-edge-picking.spec.ts",
+          "line": 160,
+          "title": "retained-edge native preview cannot apply after same-ID project replacement",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 4268,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-chain-browser/readiness.json",
+      "fullReportSha256": "cc36144c1f1274a0b3faf2768a2cf54835b321d9d851c92063ea007b32153ae6",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1136,
+      "candidateCommit": "98551a0",
+      "notes": [
+        "Browser snapshot predates additional finite input, work-limit and exact-offset guards; same authored span verified in final Go fixture."
+      ]
+    },
+    {
+      "sourceIdentity": {
+        "head": "07668754276c816cf96174056bbc3f109adb289f",
+        "status": "M package-lock.json\n M package.json\n M specs/working-cad/VALIDATION_LOG.md",
+        "branch": "main"
+      },
+      "plainSolidIdentity": {
+        "head": "2309fc069d4eb3bc5f86cdfe348f7e7304eae475",
+        "status": "",
+        "branch": ""
+      },
+      "selected": {
+        "testFile": "e2e/(retained-edge-picking|hole-edit).spec.ts",
+        "grep": "retained-edge native preview cannot apply|Edit Hole verifies"
+      },
+      "startedAt": "2026-11-13T18:09:38.711Z",
+      "finishedAt": "2026-11-13T18:13:46.219Z",
+      "typecheck": "passed",
+      "backendVerified": true,
+      "status": "passed",
+      "wasmSha256": "d03074d6eb255e7ee59e964801ededca296a41ec1b97e5e73e09e60170b2c638",
+      "summaries": [
+        {
+          "path": "/tmp/plainsolid-edge-regression-2309fc0/backend-results.json",
+          "startTime": "2026-11-13T18:12:17.418Z",
+          "duration": 30620.975000000002,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        {
+          "path": "/tmp/plainsolid-edge-regression-2309fc0/playwright-results.json",
+          "startTime": "2026-11-13T18:12:52.613Z",
+          "duration": 53586.726,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      ],
+      "tests": [
+        {
+          "file": "plainsolid-backend.spec.ts",
+          "line": 2,
+          "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 22608,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "hole-edit.spec.ts",
+          "line": 159,
+          "title": "Edit Hole verifies the operation and downstream chamfer, cancels, rejects no-op downstream cuts, and preserves native geometry/IDs through undo/save/open/STL",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 38270,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "file": "retained-edge-picking.spec.ts",
+          "line": 160,
+          "title": "retained-edge native preview cannot apply after same-ID project replacement",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "durationMs": 7449,
+              "errors": []
+            }
+          ]
+        }
+      ],
+      "fullReport": "/tmp/plainsolid-edge-regression-2309fc0/readiness.json",
+      "fullReportSha256": "2c415bc79e1dd7dcb359ce28f2a4a6eacfa7cf56457b87ba7f2fa4cfd38d04a6",
+      "sourceHashes": 841,
+      "plainSolidSourceHashes": 1144
     }
   ]
 }

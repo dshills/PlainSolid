@@ -9,8 +9,8 @@ import (
 )
 
 // ReadAnalyticDiskHoleExtrusions accepts one independently authored full round
-// stock with optional eccentric circular through holes and common-entry blind
-// pockets. It verifies continuous analytic pcurves, shared rim/seam topology,
+// stock with optional eccentric circular through holes and blind pockets from
+// either cap. It verifies continuous analytic pcurves, shared rim/seam topology,
 // disk/floor orientation, and strictly separated native footprints. As with the
 // analytic polygon adapter, geometric comparison uses relative 1e-9 tolerance;
 // the separate canonical ReadDiskHoleExtrusions remains exact-graph based.
@@ -207,7 +207,7 @@ func recoverAnalyticDiskHoles(f *File, id int64) (DiskHoleExtrusionBody, error) 
 		return fail()
 	}
 	common := CircularHoleExtrusionBody{Name: name, Frame: frame, Height: height}
-	if e = collectCircularSourcePockets(g, inner, caps, outerLoops, floors, frame, height, tol, &common); e != nil {
+	if e = collectCircularSourcePockets(g, inner, caps, outerLoops, floors, frame, height, tol, &common, true); e != nil {
 		return fail()
 	}
 	out := DiskHoleExtrusionBody{Name: name, Frame: common.Frame, Height: common.Height, Outer: trimmed.ExtrusionCircle{Radius: wall.radius}, Holes: common.Holes, Blind: common.Blind}

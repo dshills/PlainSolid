@@ -1,0 +1,69 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "ad18288b0560db991bd6b646d53aae5b4c01ad6a0e1082fd0b65ec13eb52df61",
+  "supplemental": {
+    "report": "/tmp/plainsolid-concealed-cutter-browser-5469/browser-results.json",
+    "reportSha256": "1e013e401e5e5c8d1176cc1fbdaaf3e53d98a4215848e3897aa9ba129159f82a",
+    "sourceSha256": "0f57dddc78704e0d1851d805109eb1e919d696eb564b055090a18208c5e263da",
+    "summary": {
+      "startTime": "2026-11-14T11:34:27.166Z",
+      "duration": 15195.958999999999,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "concealedCenterMm": [
+        10,
+        0
+      ],
+      "concealedRadiusMm": 1.75,
+      "concealedDepthMm": 2,
+      "visibleCentersMm": [
+        [
+          8,
+          0
+        ],
+        [
+          12,
+          0
+        ]
+      ],
+      "visibleRadiusMm": 3,
+      "visibleDepthMm": 6,
+      "analyticVolume": 3048.938889186822,
+      "surfaceArea": 1462.8188633887871,
+      "floorStationsMm": [
+        6
+      ],
+      "stlTriangles": 132,
+      "stlTwoUseEdges": 198,
+      "stlSignedVolume": 3049.6984473020775,
+      "stepSha256": "9a00c0d8230646b822a74b6865b6f0cd506ff6e4e923e3b7983b0b3c4e7818a4",
+      "comparisonStepSha256": "9a00c0d8230646b822a74b6865b6f0cd506ff6e4e923e3b7983b0b3c4e7818a4",
+      "stlSha256": "d79a10948effa9008930393c52759cd1b5d9ba3968dcd533853358217a4b0916",
+      "projectSha256": "12cd541f63790bdceb945d6822bc94cb3e70c496f9093e740e26bad821e40cde"
+    }
+  },
+  "focusedRaceSeconds": {
+    "brep/trimmed": 2.722,
+    "internal/plaincadbridge": 38.01,
+    "exchange/step": 118.941
+  },
+  "vet": "passed",
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newConcealedCases": 24,
+    "newBuriedEntryCases": 6,
+    "totalCases": 354,
+    "checks": [
+      "BRep validity",
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  }
+}

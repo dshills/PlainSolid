@@ -330,11 +330,13 @@ func recoverCircularExtrusion(f *File, id int64, diskOut *trimmed.ExtrusionCircl
 			} else if high == height {
 				side = 1
 			}
-			if side < 0 || entry >= 0 && entry != side {
+			if side < 0 || diskOut == nil && entry >= 0 && entry != side {
 				return fail()
 			}
-			entry = side
-			m.Blind = append(m.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: h, Depth: high - low})
+			if entry < 0 {
+				entry = side
+			}
+			m.Blind = append(m.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: h, Depth: high - low, OppositeCap: entry != side})
 		}
 		if len(m.Holes)+len(m.Blind) > 16 {
 			return fail()
