@@ -464,6 +464,21 @@ func WriteMappedPlanarMaterialSource(w io.Writer, source *File) error {
 	if w == nil || source == nil {
 		return mappedPlanarFailure()
 	}
+	raw, e := mappedPlanarSourceBytes(source)
+	if e != nil {
+		return e
+	}
+	if _, e := ReadMappedPlanarMaterial(bytes.NewReader(raw), Limits{}); e != nil {
+		return e
+	}
+	n, e := w.Write(raw)
+	if e == nil && n != len(raw) {
+		return io.ErrShortWrite
+	}
+	return e
+}
+
+func mappedPlanarSourceBytes(source *File) ([]byte, error) {
 	var staged bytes.Buffer
 	staged.WriteString("ISO-10303-21;\nHEADER;\n")
 	identity := map[int64]int64{}
@@ -478,22 +493,14 @@ func WriteMappedPlanarMaterialSource(w io.Writer, source *File) error {
 	for _, id := range source.Order {
 		en, ok := source.Entities[id]
 		if !ok || id <= 0 || seen[id] {
-			return mappedPlanarFailure()
+			return nil, mappedPlanarFailure()
 		}
 		seen[id] = true
 		fmt.Fprintf(&staged, "#%d=%s;\n", id, assemblyEntity(en, identity))
 	}
 	if len(seen) != len(source.Entities) {
-		return mappedPlanarFailure()
+		return nil, mappedPlanarFailure()
 	}
 	staged.WriteString("ENDSEC;END-ISO-10303-21;\n")
-	raw := staged.Bytes()
-	if _, e := ReadMappedPlanarMaterial(bytes.NewReader(raw), Limits{}); e != nil {
-		return e
-	}
-	n, e := w.Write(raw)
-	if e == nil && n != len(raw) {
-		return io.ErrShortWrite
-	}
-	return e
+	return staged.Bytes(), nil
 }
