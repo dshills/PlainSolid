@@ -34,14 +34,33 @@ c++ -std=c++17 -O2 \
  -L/tmp/plainsolid-occt-build/mac64/clang/lib \
  -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
  tools/occtref/torus_cylinder_occurrence.cxx \
- -o /tmp/plainsolid-torus-cylinder-occurrence-oracle \
+ -o /tmp/plainsolid-torus-cylinder-world-distance-oracle \
  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
  -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_TORUS_OCCURRENCE=/tmp/plainsolid-torus-cylinder-occurrence-oracle \
+PLAINSOLID_OCCT_TORUS_OCCURRENCE=/tmp/plainsolid-torus-cylinder-world-distance-oracle \
  GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./brep/placement ./internal/occtcheck \
- -run '^(TestTorusCylinderNormals|TestTorusCylinderOccurrence|TestOCCTTorusCylinderOccurrence)$' -count=1
+ -run '^(TestTorusCylinderNormals|TestTorusCylinderOccurrence|TestTorusCylinderOccurrenceDistance|TestOCCTTorusCylinderOccurrence)$' -count=1
 ```
 
 Qualified local executable SHA-256:
-935983d1944c9ddaaf91c6fa5675f2fe51db984d7b3e03647f2cc97066c6e6fa.
+3a093c5771cc75b312548fe2a27dba2f29c1be65d3aee96ae6bdfdbc3f0fb65a.
 No executable or generated reference data committed.
+
+
+## Placed complete boundary distance
+
+The oracle also measures distance from world(4,1,3/2) to an independently
+assembled compound of all retained Boolean faces, for every operation. The
+Go comparator requests squared-distance width1e-4 and checks OCCT within that
+interval plus 3e-7*max(1,d²) numerical allowance. It does not substitute OCCT's
+filled-solid zero distance for boundary distance.
+
+The placed API executes one original distance proof. Proper rational rigidity
+preserves physical squared units, all original owners and their conservative
+possible/unique status. World upper witnesses retain their radicals exactly:
+T+axis*(heightBase+sign*sqrt(heightRadicand)) plus the rotated original query
+radial vector times sqrt(radialSquared/queryRadialSquared). Axis queries expose
+a complete attained circle using two exact orthonormal world vectors instead
+of division by zero. No upper witness is promoted to an exact closest point.
+Unit tests check unchanged complete source reports, perpendicular/unit world
+basis, attained upper distances, circle families and mutable-output isolation.
