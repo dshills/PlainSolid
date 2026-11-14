@@ -14,7 +14,7 @@ def closure(r,seed):
   if k in seen:continue
   seen.add(k);todo.extend(refs(r[k]))
  return seen
-for product,suffix in [('occt-reentrant-planar-product.step','reentrant'),('occt-holed-planar-product.step','holed')]:
+for product,suffix in [('occt-reentrant-planar-product.step','reentrant'),('occt-holed-planar-product.step','holed'),('occt-affine-pcurve-holed-product.step','affine-pcurve-holed')]:
  raw=(root/product).read_text();new=records(raw);body=next(k for k,v in new.items() if v.startswith('MANIFOLD_SOLID_BREP'));owned=closure(new,[body])
  for base in ['rational-spherical-hierarchy','occt-rational-spherical-hierarchy']:
   text=(root/(base+'.step')).read_text();r=records(text);old=closure(r,[1]);incoming={q for k,v in r.items() if k not in old for q in refs(v) if q in old and q!=1};keep=closure(r,incoming)
