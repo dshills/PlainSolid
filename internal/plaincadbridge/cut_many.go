@@ -84,6 +84,9 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		if result, handled, err := b.cutSideDualDisk(a, inputs); handled {
 			return result, err
 		}
+		if result, handled, err := b.cutSideOpeningPair(a, inputs); handled {
+			return result, err
+		}
 		if result, handled, err := b.cutSideNotchBores(a, inputs); handled {
 			return result, err
 		}

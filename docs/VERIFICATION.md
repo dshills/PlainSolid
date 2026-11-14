@@ -68,6 +68,24 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD intersecting same-side Hole cutters — 2026-11-14
+
+Two transverse circular cutters that open on the same rectangular stock
+side and enter the same cap now form a joined analytic notch. The
+section arrangement retains exact arcs and cylindrical walls at each
+depth, including unequal blind depths, through cuts and mixed depths.
+The overlap query supports successive authored Holes as well as a
+single scoped batch. STEP recovery regenerates and compares the complete
+entity and edge-use graph.
+
+All [13 original PlainCAD Hole and STEP cases](evidence/plaincad-side-opening-pair-browser-2026-11-14.json)
+pass on `50432ed` alongside both TypeScript checks and the real WASM
+probe. [Two same-WASM Chromium probes](evidence/plaincad-side-opening-pair-native-2026-11-14.json)
+verify grouped and successive equal-depth cuts, separate 3 mm and 6 mm
+floors, save/reopen, STEP readback and watertight STL. Independent OCCT
+matches volume, area and centroid across 30 signed-axis/depth cases.
+Focused race checks and Go vet pass.
+
 ## PlainCAD reflected side- and corner-notched stock — 2026-11-13
 
 Signed-coordinate reflections now retain the side or corner notch recipe
