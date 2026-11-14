@@ -5561,6 +5561,14 @@ deflection. Rational placement, forged or missing trims, wrong polarity,
 cancellation and budget rejection are exercised. The integrated focused
 race passed in 20.165 s.
 
+The unbored stock path uses the same private reproof and ownership binder.
+A reindexed, reloaded descending frustum and cylinder each have 160
+triangles and retain all nine edges, 18 coedge occurrences and eight corners.
+Both original caps, Euler characteristic two, a proper rational placement
+and independent ideal volume checks pass. Forged caps, a missing seam,
+cancellation and quota exhaustion fail. The originating combined race
+passed in 27.268 s and the integrated stock race passed in 6.017 s.
+
 ## Native ordered roof-box Fuse (2026-11-14)
 
 The independent weighted-stock Fuse reproduces exact height

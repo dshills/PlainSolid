@@ -131,6 +131,12 @@ func (s Solid) prepareWrappedOpenDisplay(ctx context.Context, o CertifiedWrapped
 	if e != nil {
 		return nil, fmt.Errorf("mesh: %w", e)
 	}
+	return s.bindPreparedWrappedDisplay(ctx, report, []int{source.OuterFaces[0], source.InnerFaces[0]}, validation)
+}
+
+// bindPreparedWrappedDisplay is internal: only complete authenticated source
+// constructors may supply a report. It is not a caller-asserted certificate.
+func (s Solid) bindPreparedWrappedDisplay(ctx context.Context, report CertifiedWrappedFrustumOpenBoreMesh, wallFaces []int, validation placement.ClosedDisplayOptions) (*PreparedWrappedThroughDisplay, error) {
 	if len(report.Mesh.Vertices) > 100000 || report.SourceImageSquaredDistance == nil || report.SourceImageSquaredDistance.Sign() < 0 || report.SourceImageSquaredDistance.Num().BitLen() > 65536 || report.SourceImageSquaredDistance.Denom().BitLen() > 65536 {
 		return nil, geom.ErrConvergence
 	}
@@ -168,7 +174,7 @@ func (s Solid) prepareWrappedOpenDisplay(ctx context.Context, o CertifiedWrapped
 		}
 		return nil
 	}
-	for wall, face := range []int{source.OuterFaces[0], source.InnerFaces[0]} {
+	for wall, face := range wallFaces {
 		grid := report.Walls[wall]
 		u, v := grid.UParameters, grid.VParameters
 		nu := len(u) - 1

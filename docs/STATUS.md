@@ -1973,6 +1973,8 @@ Canonical wrapped frusta now also have original-source display preparation
 for eccentric cylindrical through and blind bores. The mesh retains annular
 cap rims, periodic seams, original curve parameters and coedge directions.
 Blind bores retain the inward floor and distinguish both entry ends.
+Unbored circular frusta and cylinders use the same proved source binding
+and retain both original cap orientations, rim coedges and seam coedges.
 
 `FuseOrderedRoofBoxes` builds the exact native Fuse for matching XY
 footprints when rational roofs have a proved height order and the vertical
