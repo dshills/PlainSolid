@@ -2220,3 +2220,12 @@ reproves both original scales and complete shared station rims. Exact
 sections retain the independently varying scale, curve and original wall
 and crease owners after native reload and reindexing. See the
 [anisotropic station contract](../brep/trimmed/WRAPPED_ANISOTROPIC_STATIONS.md).
+
+### Oblique native prism Booleans
+
+`trimmed.CombineAffineNativePrisms` derives bounded extrusion candidates
+from the original face and edge graph. It proves an exact affine map and
+inverse, verifies every paired cap and side in the canonical chart, and
+maps the native result back to exactly represented model coordinates.
+Original cap IDs, trim-edge parameters and source wall uses survive the
+map. Exact volume includes the affine determinant.

@@ -6017,3 +6017,12 @@ A profile integral, analytic axial factors and generic integration agree
 on volume and centroid. Changed interior weights with the same rim
 corners, invalid scales and forged source geometry reject. The integrated
 geometry race passed in 1.286 s and the combined trimmed race in 32.270 s.
+
+### Oblique native prism qualification
+
+The original fixtures have oblique cap planes and extrusion vectors.
+Common, fuse and cut preserve authored side and cap ancestry. Additional
+cases verify disconnected holed Difference, a reflected determinant-two
+geometry map, competing extrusion directions and bounded or invalid
+sources. The combined oblique, cardinal and arrangement materialization
+race passed in 2.487 s.
