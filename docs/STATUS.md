@@ -396,6 +396,13 @@ all six original browser cases passed, with 841 app and 2,093 kernel source
 blobs verified. The [authored Edit Revolve export](evidence/plaincad-reconciled-673b6d51-supplemental-quarter-annular-step-2026-11-14.json)
 retained byte-identical STEP after reopen and a watertight 3,072-triangle
 STL. Independent OCCT reproduced volume, area and centroid.
+The [fragmented arc-only lens reconciliation](evidence/plaincad-reconciled-9899716f-development-arc-only-lens-holes-step-2026-11-14.json)
+adds the worktree's arc-only lens through `7686c8c8` and full provider evidence
+through `c7acf144` to review `9899716f`. Native checks and all 11 original
+browser cases passed; 841 app and 2,093 kernel source blobs were verified.
+The [authored four-arc lens](evidence/plaincad-reconciled-9899716f-supplemental-arc-only-lens-step-2026-11-14.json)
+produced the same STEP and a separately verified 348-triangle watertight STL.
+Live OCCT reproduced the volume, area, and centroid of the exported solid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

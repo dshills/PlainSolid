@@ -1,0 +1,55 @@
+{
+  "schema": "plaincad-reconciled-supplemental-arc-only-lens-step-v1",
+  "status": "passed",
+  "integrationCommit": "7686c8c8807cfe17a79bd7c62dea396da4d3e6b4",
+  "reviewCommit": "9899716fb644652888d3a03c4584d2f364359e3c",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "157e2556a02e530fb1585a64c6723badd89883b9a929db4e334736bba4384fa7",
+  "fixture": "e2e/plainsolid-arc-only-lens-step-holes.spec.ts",
+  "sourceSha256": "6812b85f7a27b1131e111f99d4688a561b20b35113693e583ce79c71f5c8b504",
+  "runSha256": "6f4e7acb0e17c610134e3d7af71344e8dd92805070d40e66c1bddf03ff53045d",
+  "reportStats": {
+    "startTime": "2026-11-14T15:52:18.004Z",
+    "duration": 15564.066,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "stepSha256": "5c0f1af0a56233a1023fcd16d9c19516f3097cf1f614a801aecac940452bc724",
+  "stlTriangleCount": 348,
+  "stlTwoUseEdges": 522,
+  "stlSha256": "88043960595b2c5db2a4ee89a1d32414952e2b9ad507c5a802153b27fee898ec",
+  "occtStepReadback": {
+    "Area": 856.425297773689,
+    "Volume": 1768.8523659966102,
+    "Centroid": [
+      6.000000000000001,
+      -1.2854304848393877e-16,
+      5.000000000000002
+    ]
+  },
+  "priorWorktreeExport": {
+    "profile": "four original fragments on two radius-12 circular supports",
+    "exactNativeRoundTrip": true,
+    "authoredSegmentsRetained": 4,
+    "stepByteCount": 17602,
+    "stepSha256": "5c0f1af0a56233a1023fcd16d9c19516f3097cf1f614a801aecac940452bc724",
+    "stlTriangles": 348,
+    "stlTwoUseEdges": 522,
+    "stlSha256": "8ee297e667ab45f427e6b21cf626dad0da37a972216f4ac3a26d13eec25c8cd4",
+    "occtStepReadback": {
+      "Area": 856.425297773689,
+      "Volume": 1768.8523659966102,
+      "Centroid": [
+        6.000000000000001,
+        -1.2854304848393877e-16,
+        5.000000000000002
+      ]
+    },
+    "analyticVolume": 1768.8523659966097,
+    "analyticArea": 856.4252977736888
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206"
+}
