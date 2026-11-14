@@ -179,40 +179,112 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 		crossed: &r, obliqueCrossing: &g}, true, nil
 }
 
+// obliqueBoreContainsTool compares exact authored ratios and transverse lines.
+// The caller must prove that the covering cylinder is through the stock.
+func obliqueBoreContainsTool(old, tool *cylinderBody, chart geom.Frame) bool {
+	if tool.radius > old.radius {
+		return false
+	}
+	ratio, sign, ok := obliqueCrossingAxis(chart.ToLocal(old.frame.ZAxis()))
+	otherRatio, otherSign, otherOK := obliqueCrossingAxis(chart.ToLocal(tool.frame.ZAxis()))
+	if !ok || !otherOK || ratio != otherRatio || sign != otherSign {
+		return false
+	}
+	o, t := chart.ToLocal(old.frame.Origin()), chart.ToLocal(tool.frame.Origin())
+	return t.Y == o.Y && obliqueLineZ(t, o.X, ratio, sign).Cmp(new(big.Rat).SetFloat64(o.Z)) == 0
+}
+
+// newGroupedObliqueCrossing retains the two cutters that cover every member
+// of a batch. It qualifies each candidate as a regular finite crossing
+// before using its oblique through span or cardinal stop for containment.
+func newGroupedObliqueCrossing(base brep.Solid, tools []*cylinderBody) (*boreBody, bool, error) {
+	var cardinal, oblique []*cylinderBody
+	for _, tool := range tools {
+		if cardinalFrame(tool.frame) {
+			cardinal = append(cardinal, tool)
+		} else {
+			oblique = append(oblique, tool)
+		}
+	}
+	if len(cardinal) == 0 || len(oblique) == 0 {
+		return nil, false, nil
+	}
+	// A qualified crossing has just two axis lines and a common radius.
+	firstCardinal, firstOblique := cardinal[0], oblique[0]
+	chart, _, _, ok := obliqueCrossingChart(firstCardinal.frame.ZAxis(), firstOblique.frame.ZAxis())
+	if !ok {
+		return nil, false, nil
+	}
+	for _, tool := range cardinal[1:] {
+		if !sameCardinalBoreLine(firstCardinal, tool) {
+			return nil, false, nil
+		}
+		if tool.radius > firstCardinal.radius {
+			firstCardinal = tool
+		}
+	}
+	for _, tool := range oblique[1:] {
+		if tool.radius > firstOblique.radius {
+			firstOblique = tool
+		}
+	}
+	if firstCardinal.radius != firstOblique.radius {
+		return nil, false, nil
+	}
+	for _, tool := range oblique {
+		if !obliqueBoreContainsTool(firstOblique, tool, chart) {
+			return nil, false, nil
+		}
+	}
+
+	// Pick an oblique tool that actually spans both stock openings. A
+	// shorter duplicate can share the same line and radius.
+	var through *cylinderBody
+	for _, tool := range oblique {
+		if tool.radius != firstOblique.radius {
+			continue
+		}
+		if _, handled, err := newObliqueThroughBore(base, tool); handled && err == nil {
+			through = tool
+			break
+		}
+	}
+	if through == nil {
+		return nil, false, nil
+	}
+	// Check the cardinal span before constructing the crossing, so the knot
+	// and tessellation work is done only once even with repeated cutters.
+	for _, candidate := range cardinal {
+		if candidate.radius != firstCardinal.radius {
+			continue
+		}
+		_, _, _, err := boreSpan(base, candidate, true)
+		blind := err != nil
+		covered := true
+		for _, tool := range cardinal {
+			if !cardinalBoreContainsTool(candidate, blind, tool) {
+				covered = false
+				break
+			}
+		}
+		if covered {
+			body, handled, err := newObliqueCrossedBore(base, []*cylinderBody{candidate, through})
+			if handled && err == nil {
+				return body, true, nil
+			}
+		}
+	}
+	return nil, false, nil
+}
+
 func overlapObliqueCrossedBore(a stored, tool *cylinderBody) (float64, bool, error) {
-	fail := func(err error) (float64, bool, error) { return 0, true, err }
-	if a.bore.obliqueCrossing != nil {
+	if g := a.bore.obliqueCrossing; g != nil {
 		for i, old := range a.bore.cylinders {
-			if cardinalBoreContainsTool(old, a.bore.blind[i], tool) {
+			if cardinalBoreContainsTool(old, a.bore.blind[i], tool) || obliqueBoreContainsTool(old, tool, g.frame) {
 				return 0, true, nil
 			}
 		}
-		// Compare the unrounded authored lines to recognize covered tools.
-		g := a.bore.obliqueCrossing
-		chart, err := geom.NewFrame(geom.Vec3{}, g.frame.XAxis(), g.frame.ZAxis())
-		if err != nil {
-			return fail(err)
-		}
-		ratio, sign, ok := obliqueCrossingAxis(chart.ToLocal(tool.frame.ZAxis()))
-		if ok && ratio == g.axisRatio && sign == 1 && tool.radius <= g.radius {
-			o := chart.ToLocal(tool.frame.Origin())
-			for _, old := range a.bore.cylinders {
-				if cardinalFrame(old.frame) {
-					continue
-				}
-				b := chart.ToLocal(old.frame.Origin())
-				if o.Y == b.Y && obliqueLineZ(o, b.X, ratio, sign).Cmp(new(big.Rat).SetFloat64(b.Z)) == 0 {
-					return 0, true, nil
-				}
-			}
-		}
-
-		// A coaxial tool advancing the retained cardinal floor replaces it
-		// only if its stock span contains the entire previous blind bore.
-		if tools, ok := deepenObliqueCrossedFloor(a.bore, tool); ok {
-			return overlapAfterObliqueCrossing(a, tools)
-		}
-		return 0, false, nil
+		return overlapAfterObliqueCrossing(a, append(append([]*cylinderBody(nil), a.bore.cylinders...), tool))
 	}
 	if len(a.bore.cylinders) != 1 {
 		return 0, false, nil
@@ -222,7 +294,14 @@ func overlapObliqueCrossedBore(a stored, tool *cylinderBody) (float64, bool, err
 
 func overlapAfterObliqueCrossing(a stored, tools []*cylinderBody) (float64, bool, error) {
 	fail := func(err error) (float64, bool, error) { return 0, true, err }
-	result, handled, err := newObliqueCrossedBore(a.bore.base, tools)
+	var result *boreBody
+	var handled bool
+	var err error
+	if len(tools) == 2 {
+		result, handled, err = newObliqueCrossedBore(a.bore.base, tools)
+	} else {
+		result, handled, err = newGroupedObliqueCrossing(a.bore.base, tools)
+	}
 	if !handled {
 		return 0, false, nil
 	}
@@ -305,36 +384,4 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 		return nil, geom.ErrUnrepresentable
 	}
 	return g, nil
-}
-
-// deepenObliqueCrossedFloor recognizes the same cardinal cylinder with a
-// larger entry-open span. The oblique through tool remains untouched.
-func deepenObliqueCrossedFloor(body *boreBody, tool *cylinderBody) ([]*cylinderBody, bool) {
-	if body.obliqueCrossing == nil || body.obliqueCrossing.blindDepth == 0 {
-		return nil, false
-	}
-	for i, cutter := range body.cylinders {
-		if !body.blind[i] || tool.radius != cutter.radius || !sameCardinalBoreLine(cutter, tool) {
-			continue
-		}
-		cut, _, _, err := boreSpan(body.base, tool, false)
-		if err != nil {
-			return nil, false
-		}
-		start := tool.frame.Origin()
-		end := start.Add(tool.frame.ZAxis().Scale(tool.height))
-		entry := cut.Entry
-		if cutter.frame.ZAxis() != tool.frame.ZAxis() {
-			entry, start, end = cut.Exit, end, start
-		}
-		side, err := capSide(body.base, entry, start)
-		floor := cutter.frame.Origin().Add(cutter.frame.ZAxis().Scale(cutter.height))
-		if err != nil || side > 0 || exactDotDifference(end, floor, cutter.frame.ZAxis()) <= 0 {
-			return nil, false
-		}
-		tools := append([]*cylinderBody(nil), body.cylinders...)
-		tools[i] = tool
-		return tools, true
-	}
-	return nil, false
 }

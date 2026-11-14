@@ -144,6 +144,11 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 			return body, err
 		}
 	}
+	if len(cylinders) > 2 && len(cylinders) <= 32 {
+		if body, handled, err := newGroupedObliqueCrossing(base, cylinders); handled {
+			return body, err
+		}
+	}
 	if len(cylinders) >= 2 && len(cylinders) <= 3 {
 		if body, handled, err := newDisjointObliqueBore(base, cylinders); handled {
 			return body, err
@@ -478,13 +483,7 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		cylinders = a.bore.sourceCylinders()
 	}
 	if op == "cut" {
-		tools := append(append([]*cylinderBody(nil), cylinders...), c.cylinder)
-		if a.bore != nil {
-			if deeper, ok := deepenObliqueCrossedFloor(a.bore, c.cylinder); ok {
-				tools = deeper
-			}
-		}
-		body, err := newBore(base, tools)
+		body, err := newBore(base, append(append([]*cylinderBody(nil), cylinders...), c.cylinder))
 		if err != nil {
 			return nil, err
 		}

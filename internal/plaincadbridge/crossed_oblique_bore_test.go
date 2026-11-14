@@ -244,3 +244,57 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 		}
 	}
 }
+
+func TestConcealedCrossedObliqueBoreSTEPCanonical(t *testing.T) {
+	for _, depth := range []float64{28, 40} {
+		b := New()
+		stock := box(t, b, vector{}, vector{20, 16, 40})
+		cardinal := circle(t, b, vector{10, 8, 0}, vector{0, 0, 1}, 2, depth)
+		oblique := circle(t, b, vector{-4, 8, 9.5}, vector{4, 0, 3}, 2, 35)
+		hidden := circle(t, b, vector{12, 8, 21.5}, vector{-4, 0, -3}, 1, 8)
+		short := circle(t, b, vector{0, 8, 12.5}, vector{4, 0, 3}, 2, 7)
+		hiddenCardinal := circle(t, b, vector{10, 8, 4}, vector{0, 0, 1}, 1, 4)
+		want, err := b.cutMany(stock.Handle, []string{cardinal.Handle, oblique.Handle})
+		if err != nil {
+			t.Fatal(depth, err)
+		}
+		wantFile, err := b.exportSTEP([]string{want.Handle})
+		if err != nil {
+			t.Fatal(depth, err)
+		}
+		for _, batch := range [][]string{
+			{hidden.Handle, short.Handle, cardinal.Handle, hiddenCardinal.Handle, oblique.Handle},
+			{oblique.Handle, hiddenCardinal.Handle, hidden.Handle, cardinal.Handle, short.Handle, oblique.Handle},
+		} {
+			got, err := b.cutMany(stock.Handle, batch)
+			if err != nil || got.GeometryAssertions != want.GeometryAssertions {
+				t.Fatal(depth, got, err)
+			}
+			raw, err := b.exportSTEP([]string{got.Handle})
+			if err != nil || raw.Base64 != wantFile.Base64 {
+				t.Fatal("concealed cutter changed canonical STEP", depth, err)
+			}
+			bytes, err := base64.StdEncoding.DecodeString(raw.Base64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			imported, err := b.importSTEP(string(bytes))
+			if err != nil || imported.GeometryAssertions != want.GeometryAssertions {
+				t.Fatal(depth, imported, err)
+			}
+			for _, cutter := range []Shape{hidden, short, hiddenCardinal} {
+				near(t, overlapMeasure(t, b, imported.Handle, cutter.Handle), 0)
+			}
+			if _, err := b.cutMany(imported.Handle, []string{hidden.Handle, short.Handle}); err == nil {
+				t.Fatal("redundant cutters unexpectedly removed material", depth)
+			}
+		}
+		offLine := circle(t, b, vector{-4, 8.25, 9.5}, vector{4, 0, 3}, 2, 35)
+		protruding := circle(t, b, vector{12, 8.125, 21.5}, vector{4, 0, 3}, 2, 4)
+		for _, cutter := range []Shape{offLine, protruding} {
+			if _, err := b.cutMany(stock.Handle, []string{cardinal.Handle, oblique.Handle, cutter.Handle}); err == nil {
+				t.Fatal("off-axis cutter was treated as concealed", depth)
+			}
+		}
+	}
+}
