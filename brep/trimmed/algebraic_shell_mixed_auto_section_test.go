@@ -62,12 +62,36 @@ func TestDiscoverMixedRationalWallPair(t *testing.T) {
 		t.Fatal("exhausted discovery cannot publish a partial recipe", i, f, c, p, chain, err)
 	}
 	t.Log("exact cuts and automatically discovered boxes", cuts, pieces)
-	section, err := DiscoverSplineShellsMixedAlgebraic(ctx, a, b, o, MixedRationalIsoDiscoveryOptions{})
+	section, coverage, err := DiscoverSplineShellsMixedAlgebraicWithCoverage(ctx, a, b, o, MixedRationalIsoDiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(section.Wires()) != 2 || len(section.Branches()) != 12 || len(section.proposals) != 1 || section.proposals[0].Faces != [2]int{5, 3} || section.proposals[0].SourceOperand != 1 {
 		t.Fatal("the complete original wire ledger must retain exactly one discovered wall branch", section.Wires(), section.proposals)
+	}
+	if len(coverage) != 36 || len(section.PairCoverage()) != len(coverage) {
+		t.Fatal("missing original face-pair accounting", len(coverage))
+	}
+	seen := make([]bool, len(section.source.branches))
+	for i, row := range coverage {
+		if row.Faces != [2]int{i / 6, i % 6} || row.Disposition == ShellPairUnproved || (row.Disposition == ShellPairRestrictedIsoCoverage) != (row.Faces == [2]int{5, 3}) {
+			t.Fatal("incorrect coverage attribution", i, row)
+		}
+		for k := row.FirstBranch; k < row.FirstBranch+row.Branches; k++ {
+			if k < 0 || k >= len(seen) || seen[k] || section.source.branches[k].Faces != row.Faces {
+				t.Fatal("branch is missing or has more than one owner", row, k)
+			}
+			seen[k] = true
+		}
+	}
+	for k, ok := range seen {
+		if !ok {
+			t.Fatal("branch not in face-pair ledger", k)
+		}
+	}
+	coverage[0].Faces = [2]int{-1, -1}
+	if section.PairCoverage()[0].Faces != [2]int{0, 0} {
+		t.Fatal("caller mutation changed the immutable section ledger")
 	}
 	for i, wire := range section.Wires() {
 		bounds, err := section.EncloseWire(ctx, i, MixedSectionWireBoundsOptions{})
@@ -106,6 +130,12 @@ func TestDiscoverMixedRationalWallPair(t *testing.T) {
 	reload, err := ReadMixedAlgebraicShellSectionJSON(ctx, &saved, JSONLimits{}, o)
 	if err != nil || len(reload.Wires()) != 2 || len(reload.proposals) != 1 || len(reload.proposals[0].Cuts) != len(cuts) || reload.proposals[0].Cuts[len(cuts)-1].Cmp(big.NewRat(11, 15)) != 0 {
 		t.Fatal("generated recipes must retain the exact source domain through reload", err)
+	}
+	if got := reload.PairCoverage(); len(got) != 36 || got[5*6+3].Disposition != ShellPairRestrictedIsoCoverage {
+		t.Fatal("reload failed to reconstruct source coverage", got)
+	}
+	if partial, diagnostic, err := DiscoverSplineShellsMixedAlgebraicWithCoverage(ctx, a, b, o, MixedRationalIsoDiscoveryOptions{MaxAttempts: 1}); partial != nil || !errors.Is(err, geom.ErrConvergence) || len(diagnostic) != 36 || diagnostic[5*6+3].Disposition != ShellPairUnproved {
+		t.Fatal("exhausted attempt must retain an unproved pair but no section", partial, diagnostic, err)
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()

@@ -44,11 +44,33 @@ type AlgebraicShellSectionWireUse struct {
 	Reversed bool
 }
 
+// AlgebraicShellPairDisposition records how a pair of original face charts
+// was accounted for. A pair never examined, or interrupted before proof,
+// remains unproved. Global wire incidence is separate from pair coverage.
+type AlgebraicShellPairDisposition uint8
+
+const (
+	ShellPairUnproved AlgebraicShellPairDisposition = iota
+	ShellPairSeparated
+	ShellPairTubeCoverage
+	ShellPairRestrictedIsoCoverage
+)
+
+// AlgebraicShellPairCoverage records one original face pair and the range
+// [FirstBranch, FirstBranch+Branches) in the section's ordered branch list.
+// The range is empty for separated, unproved, and covered no-contact pairs.
+type AlgebraicShellPairCoverage struct {
+	Faces                 [2]int
+	Disposition           AlgebraicShellPairDisposition
+	FirstBranch, Branches int
+}
+
 type AlgebraicShellSectionResult struct {
 	Pairs    [][2]int
 	Sections []AlgebraicSplinePairSection
 	Branches []AlgebraicShellSectionBranch
 	Wires    [][]AlgebraicShellSectionWireUse
+	Coverage []AlgebraicShellPairCoverage
 	Complete bool
 	source   *algebraicShellSectionSource
 }
@@ -60,6 +82,7 @@ type algebraicShellSectionSource struct {
 	sections []AlgebraicSplinePairSection
 	branches []AlgebraicShellSectionBranch
 	wires    [][]AlgebraicShellSectionWireUse
+	coverage []AlgebraicShellPairCoverage
 }
 
 // SectionSplineShellsAlgebraic isolates a section graph of two independently
@@ -118,16 +141,23 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 	if len(faces[0]) > 0 && len(faces[1]) > o.MaxFacePairs/len(faces[0]) {
 		return out, geom.ErrConvergence
 	}
+	for i := range faces[0] {
+		for j := range faces[1] {
+			out.Coverage = append(out.Coverage, AlgebraicShellPairCoverage{Faces: [2]int{i, j}})
+		}
+	}
 	for i, p := range faces[0] {
 		for j, q := range faces[1] {
 			if e := ctx.Err(); e != nil {
 				return out, e
 			}
 			ids := [2]int{i, j}
+			coverage := &out.Coverage[i*len(faces[1])+j]
 			seed := provided[ids]
 			if seed == nil && (mixed == nil || mixed.proposals[ids] == nil) {
 				e := proveSplinePatchPairDisjoint(ctx, p.patch, q.patch, o.Shells.Separation)
 				if e == nil {
+					coverage.Disposition = ShellPairSeparated
 					continue
 				}
 				if !isUnresolvedOpenSpline(e) {
@@ -155,6 +185,7 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 				}
 				out.Pairs = append(out.Pairs, ids)
 				out.Sections = append(out.Sections, AlgebraicSplinePairSection{})
+				coverage.Disposition, coverage.FirstBranch, coverage.Branches = ShellPairRestrictedIsoCoverage, len(out.Branches), 1
 				out.Branches = append(out.Branches, z)
 				continue
 			}
@@ -193,6 +224,7 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 					}
 					out.Pairs = append(out.Pairs, ids)
 					out.Sections = append(out.Sections, AlgebraicSplinePairSection{})
+					coverage.Disposition, coverage.FirstBranch, coverage.Branches = ShellPairRestrictedIsoCoverage, len(out.Branches), 1
 					out.Branches = append(out.Branches, z)
 					continue
 				}
@@ -205,6 +237,7 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 			if !r.Complete {
 				return out, geom.ErrConvergence
 			}
+			firstBranch := len(out.Branches)
 			open := 0
 			for k, h := range r.Trace.BranchGraph.Branches {
 				if len(out.Branches) >= o.MaxBranches {
@@ -225,6 +258,7 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 				}
 				out.Branches = append(out.Branches, z)
 			}
+			coverage.Disposition, coverage.FirstBranch, coverage.Branches = ShellPairTubeCoverage, firstBranch, len(out.Branches)-firstBranch
 		}
 	}
 	var e error
@@ -233,7 +267,7 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 		return out, e
 	}
 	out.Complete = true
-	source := &algebraicShellSectionSource{a: a, b: b, pairs: append([][2]int(nil), out.Pairs...)}
+	source := &algebraicShellSectionSource{a: a, b: b, pairs: append([][2]int(nil), out.Pairs...), coverage: append([]AlgebraicShellPairCoverage(nil), out.Coverage...)}
 	for i, row := range faces {
 		if len(row) != 0 {
 			source.bounds[i] = splineShellPatchBounds(row)
