@@ -50,3 +50,39 @@ volume54,area126,centroid(85/18,91/9,31/18).
 Enable TestOCCTMappedPlanarDocument with PLAINSOLID_OCCT_DISK_BOUND_MASS. Regressions
 cover forged native geometry, changed transforms/body IDs/map order/names/units,
 node/depth/geometry limits, independent source-plane linkage and native reload.
+
+## Authoring edited mapped placements
+
+`State.WriteEditedMappedPlanarMaterialsSTEP` takes the separately retained source
+and authors changed collection/occurrence names and proper signed-cardinal
+occurrence transforms after native save/reload. It preserves the original shared
+local products and exact model/pcurve geometry. This is a new mapped graph, not a
+NAUO exporter or unchanged source write-back. Its lower-level counterpart is
+`step.WriteEditedMappedPlanarMaterials`.
+
+The bounded scope keeps the original two-to-eight map definitions and up to
+sixteen occurrence identities. The document must retain the imported flat root
+and child layout, exact local vertex/edge/face arrays, asset associations and
+length unit. Changed local geometry, unit, hierarchy, membership, reflection or
+scale is rejected atomically. Historical labels are not proof inputs. Asset and
+face labels are not exported as newly authored product metadata. Local product
+names and all other source metadata remain unchanged; only the collection name
+and mapped occurrence names are editable by this API.
+
+Each new operator receives private point/direction records. Existing source
+datums, including any shared with local geometry, are never modified. Orphaned
+old operator dependencies are removed by a validated root closure, while all
+still-owned geometry remains. The complete staged output is re-read under caller
+limits before writing. Exact binary translations are written as finite exact
+decimals, including values whose short decimal spelling would change the source
+rational value. The input source graph is unmodified and may still be exported
+separately with the source-only API.
+
+The independently OCCT-authored two-box fixture is imported, saved natively,
+reloaded and edited by adding 2.5 to each occurrence's X translation. New mapped
+output passes pinned OCCT TransferRoots and BRepCheck: three solids,18faces,
+volume54,area126,centroid(65/9,91/9,31/18). Its rotated occurrence retains its
+nonidentity signed frame. `TestOCCTEditedMappedPlanarDocument` uses the existing
+`PLAINSOLID_OCCT_DISK_BOUND_MASS` helper. Tests also bind source map/item identity,
+reject stale native geometry and invalid membership, verify immutable source and
+deterministic bytes, enforce limits, and propagate short writes.

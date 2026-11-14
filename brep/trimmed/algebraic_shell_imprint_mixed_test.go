@@ -137,6 +137,15 @@ func TestAlgebraicShellImprintOpenCutAndClosedLoopOnSameFace(t *testing.T) {
 	if e != nil || back.Topology != common.Topology {
 		t.Fatal("native reload did not reprove mixed incidence", back.Topology, e)
 	}
+	for _, boundary := range []AlgebraicShellBoolean{common, cut, union} {
+		native, e := boundary.NativeRepresentable(ctx, 1e-7, NativeAlgebraicBooleanOptions{})
+		if e == nil {
+			t.Fatal("circle segment uses nonrepresentable intermediate junctions; no promotion allowed", native.Topology())
+		}
+		if !errors.Is(e, geom.ErrUnrepresentable) || len(native.Faces()) != 0 {
+			t.Fatal("expected exact representability guard", e)
+		}
+	}
 	limited := bc.Imprint
 	limited.Exact.MaxOperations = 1
 	if bad, e := r.ImprintOriginalShells(ctx, limited); !errors.Is(e, geom.ErrConvergence) || len(bad[0].Faces)+len(bad[1].Faces) != 0 {

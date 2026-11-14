@@ -82,6 +82,10 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTrimmedGeneratrixCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzPlanarSplineAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCylinderMaterialAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDiskHoleAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDiskHoleBoundEncoding$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzMappedPlanarMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzMultipleMappedPlanarMaterials$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRevolutionSurfaces$ -fuzztime=10s -parallel=2
@@ -105,6 +109,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedCircularMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBlindCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzThroughCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedBoredMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadSurfaces -fuzztime=10s -parallel=2
