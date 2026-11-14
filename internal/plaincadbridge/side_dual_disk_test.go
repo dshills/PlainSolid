@@ -302,3 +302,37 @@ func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 		}
 	}
 }
+
+func TestPlainCADUnequalCenterSideOpenDualDisk(t *testing.T) {
+	for i, depth := range []float64{3, 6} {
+		b := New()
+		stock := box(t, b, vector{}, vector{60, 10, 6})
+		a := circle(t, b, vector{7, -3, 0}, vector{0, 0, 1}, 5, depth)
+		c := circle(t, b, vector{30, -20, depth}, vector{0, 0, -1}, 29, depth)
+		first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": a.Handle})
+		wantV := []float64{2786.5355714934303, 1973.0711429868713}[i]
+		wantA := []float64{2056.2212253330799, 1530.1328316617905}[i]
+		near(t, overlapMeasure(t, b, first.Handle, c.Handle), first.GeometryAssertions.Volume-wantV)
+		for _, req := range []map[string]any{
+			{"op": "cutMany", "a": stock.Handle, "tools": []string{c.Handle, a.Handle}},
+			{"op": "cut", "a": first.Handle, "b": c.Handle},
+		} {
+			s := shape(t, b, req)
+			if s.Bounds != stock.Bounds || !b.shapes[s.Handle].analytic.sideDualDisk.differentCenterY() {
+				t.Fatal("different source ordinates or stock bounds were lost", s.Bounds)
+			}
+			near(t, s.GeometryAssertions.Volume, wantV)
+			near(t, s.GeometryAssertions.SurfaceArea, wantA)
+			near(t, overlapMeasure(t, b, s.Handle, c.Handle), 0)
+			data, e := writeSTEPBody(b.shapes[s.Handle])
+			if e != nil || !bytes.Contains(data, []byte("PRODUCT('side-cut-unequal-centers'")) {
+				t.Fatal("export did not retain its verified different-center class", e)
+			}
+			read, e := b.importSTEP(string(data))
+			if e != nil || read.Bounds != stock.Bounds || !b.shapes[read.Handle].analytic.sideDualDisk.differentCenterY() {
+				t.Fatal("native different-center STEP readback", read.Bounds, e)
+			}
+			near(t, read.GeometryAssertions.Volume, wantV)
+		}
+	}
+}

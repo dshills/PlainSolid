@@ -23,6 +23,42 @@ func (p sideDualDiskRecipe) offsetCenters() bool {
 	return p.discs[0].Center.Y == p.discs[1].Center.Y && p.discs[0].Center.Y < p.min.Y
 }
 
+func (p sideDualDiskRecipe) differentCenterY() bool {
+	return p.discs[0].Center.Y != p.discs[1].Center.Y && p.discs[0].Center.Y < p.min.Y && p.discs[1].Center.Y < p.min.Y
+}
+
+// The squared half-chord is rational. Only a lossless rational square root
+// proposes a join, and the native section then verifies both circle equations,
+// side intercepts, the excluded crossing, and original wall ownership.
+func (p sideDualDiskRecipe) unequalCenterJoin() ([2]*big.Rat, error) {
+	var out [2]*big.Rat
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	square := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	a, b := p.discs[0], p.discs[1]
+	dx, dy := new(big.Rat).Sub(q(b.Center.X), q(a.Center.X)), new(big.Rat).Sub(q(b.Center.Y), q(a.Center.Y))
+	norm := new(big.Rat).Add(square(dx), square(dy))
+	if norm.Sign() == 0 {
+		return out, geom.ErrDomain
+	}
+	a2, b2 := square(q(a.Radius)), square(q(b.Radius))
+	projection := new(big.Rat).Quo(new(big.Rat).Add(norm, new(big.Rat).Sub(a2, b2)), new(big.Rat).Mul(big.NewRat(2, 1), norm))
+	perpendicular2 := new(big.Rat).Sub(new(big.Rat).Quo(a2, norm), square(projection))
+	if perpendicular2.Sign() <= 0 {
+		return out, geom.ErrDomain
+	}
+	n, d := new(big.Int).Sqrt(perpendicular2.Num()), new(big.Int).Sqrt(perpendicular2.Denom())
+	if new(big.Int).Mul(n, n).Cmp(perpendicular2.Num()) != 0 || new(big.Int).Mul(d, d).Cmp(perpendicular2.Denom()) != 0 {
+		return out, geom.ErrUnrepresentable
+	}
+	perpendicular := new(big.Rat).SetFrac(n, d)
+	if dx.Sign() < 0 {
+		perpendicular.Neg(perpendicular)
+	}
+	out[0] = new(big.Rat).Add(q(a.Center.X), new(big.Rat).Sub(new(big.Rat).Mul(projection, dx), new(big.Rat).Mul(perpendicular, dy)))
+	out[1] = new(big.Rat).Add(q(a.Center.Y), new(big.Rat).Add(new(big.Rat).Mul(projection, dy), new(big.Rat).Mul(perpendicular, dx)))
+	return out, nil
+}
+
 func (p sideDualDiskRecipe) externalRadical() bool {
 	x0, x1 := p.discs[0].Center.X, p.discs[1].Center.X
 	left, right := p.discs[0].Radius, p.discs[1].Radius
@@ -111,6 +147,18 @@ func (p *sideDualDiskBody) analytic() *analyticBody {
 
 func (p sideDualDiskRecipe) solid() (*sideDualDiskBody, error) {
 	ctx := context.Background()
+	if p.differentCenterY() {
+		join, e := p.unequalCenterJoin()
+		if e != nil {
+			return nil, e
+		}
+		cut, e := trimmed.CutUnequalCenterSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, join, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		if e != nil {
+			return nil, e
+		}
+		m, e := cut.Measures()
+		return &sideDualDiskBody{sideDualDiskRecipe: p, boundary: cut.Solid, walls: cut.WallFaces, measures: m}, e
+	}
 	if p.offsetCenters() {
 		cut, e := trimmed.CutOffsetSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 		if e != nil {
@@ -201,7 +249,7 @@ func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecip
 	}
 	second, low, high, ok := sideNotchBore(p, c)
 	first := trimmed.ExtrusionCircle{Radius: p.Radius}
-	if !ok || second.Center.Y != 0 || p.Inset < 0 && second.Radius == first.Radius || second.Center.X == 0 || low != 0 || high != p.Depth ||
+	if !ok || p.Inset == 0 && second.Center.Y != 0 || p.Inset < 0 && (second.Center.Y >= -p.Inset || second.Radius == first.Radius) || second.Center.X == 0 || low != 0 || high != p.Depth ||
 		compareCircularFootprints(first, second, false) >= 0 || compareCircularFootprints(first, second, true) <= 0 ||
 		compareCircularFootprints(second, first, true) <= 0 {
 		return out, false
@@ -260,7 +308,7 @@ func overlapSideDualDisk(a, c stored) (float64, bool, error) {
 		d, lo, hi, ok := circularStockSpan(step.DiskHoleExtrusionBody{Frame: p.frame, Height: p.height}, c.cylinder)
 		if ok && (d == p.discs[0] || d == p.discs[1]) {
 			// A repeated cutter misses the removed prefix. Above its blind
-			// floor the original stock still fills the cutter's half disk.
+			// floor the original stock still fills its exposed section.
 			area, _ := sideCylinderSection(d.Center.Y-p.min.Y, d.Radius)
 			return area * max(0, hi-max(lo, p.depth)), true, nil
 		}
@@ -272,7 +320,7 @@ func overlapSideDualDisk(a, c stored) (float64, bool, error) {
 	if !ok {
 		return 0, false, nil
 	}
-	if p.offsetCenters() {
+	if p.offsetCenters() || p.differentCenterY() {
 		cut, e := p.solid()
 		if e != nil {
 			return 0, true, e

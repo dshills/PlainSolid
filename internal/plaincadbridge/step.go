@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 
 	"plainsolid/brep"
@@ -180,6 +181,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 			}
 			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, false)
 		}
+		if m, e := step.ReadUnequalCenterSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
+			p, e := m.Native.Measures()
+			if e != nil {
+				return Shape{}, e
+			}
+			return putSideDualDiskSTEPProduct(b, m.Descriptor.SideOpenDualDiskDescriptor, m.Native.Solid, m.Native.WallFaces, p, false)
+		}
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
@@ -348,7 +356,13 @@ func writeSTEPBody(s stored) ([]byte, error) {
 			Name: "PlainSolid", Frame: p.frame, Min: p.min, Max: p.max, Discs: p.discs,
 			Height: p.height, Depth: p.depth, LengthUnit: .001, Tolerance: 1e-9,
 		}
-		if p.offsetCenters() {
+		if p.differentCenterY() {
+			var join [2]*big.Rat
+			join, e = p.unequalCenterJoin()
+			if e == nil {
+				e = step.WriteUnequalCenterSideOpenDualDiskProduct(context.Background(), &out, step.UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: join})
+			}
+		} else if p.offsetCenters() {
 			e = step.WriteOffsetSideOpenDualDiskProduct(context.Background(), &out, step.OffsetSideOpenDualDiskDescriptor(d))
 		} else if p.exactWalls {
 			e = step.WriteExactWallSideOpenDualDiskProduct(context.Background(), &out, step.ExactWallSideOpenDualDiskDescriptor(d))
