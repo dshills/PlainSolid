@@ -131,6 +131,14 @@ stock proofs cover closed certified display, finite line events including
 isolated shared supports, nearest original owners, and mass properties
 through rational rigid placement.
 
+The qualified mixed wall branch no longer requires a caller to name the
+face pair, isoparameter, rational cuts, or tube boxes. Automatic discovery
+proves a single transverse iso, clips its full original domain to the
+opposing embedded chart, finds the restricted tubes, and re-proves their
+exact endpoints and complete shell wire joins. This is a bounded fallback
+for regular iso/trapezoid contacts. Multiple spans, coincident intervals,
+and unresolved original pairs still fail closed.
+
 The PlainCAD gates above determine immediate implementation order. The following
 work remains required for the phase exits above. Each result should
 record what was proved and what remained unresolved; a successful example
