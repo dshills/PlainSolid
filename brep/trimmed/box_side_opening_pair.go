@@ -16,78 +16,96 @@ type SideOpeningCut struct {
 	OppositeCap bool
 }
 
-type SideOpeningPairResult struct {
+type SideOpeningCutsResult struct {
 	Solid                           Solid
 	RemovedVolume, SurfaceAreaDelta float64
 }
+
+type SideOpeningPairResult = SideOpeningCutsResult
 
 // BoxSideOpeningPair removes two transversely intersecting disks. Each disk
 // crosses one stock side and clears the other three. Stock is [0,width] ×
 // [0,back] × [0,length] in frame. Depth equal to length cuts through.
 func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, length float64, cuts [2]SideOpeningCut, tolerance float64) (SideOpeningPairResult, error) {
-	var out SideOpeningPairResult
-	if ctx == nil || !finite(length) || !finite(tolerance) || tolerance <= 0 || length <= 8*tolerance {
+	return BoxSideOpeningCuts(ctx, frame, width, back, length, cuts[:], tolerance)
+}
+
+// MaxSideOpeningCuts bounds the size of the circle arrangement and B-rep.
+const MaxSideOpeningCuts = 16
+
+// BoxSideOpeningCuts removes a group of finite circular cutters with parallel
+// axes and at least one transverse footprint intersection. Every footprint
+// crosses exactly one rectangular side. Each interval opens at an end cap.
+func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, length float64, cuts []SideOpeningCut, tolerance float64) (SideOpeningCutsResult, error) {
+	var out SideOpeningCutsResult
+	if ctx == nil || len(cuts) < 2 || len(cuts) > MaxSideOpeningCuts || !finite(width) || !finite(back) ||
+		width <= 0 || back <= 0 || !finite(length) || !finite(tolerance) || tolerance <= 0 || length <= 8*tolerance {
 		return out, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
 		return out, err
 	}
 	for _, cut := range cuts {
-		if !finite(cut.Depth) || cut.Depth <= 8*tolerance || cut.Depth > length || cut.Depth < length && length-cut.Depth <= 8*tolerance {
+		side, _ := sideOpeningSide(width, back, cut.ExtrusionCircle, tolerance)
+		if side < 0 || !finite(cut.Depth) || cut.Depth <= 8*tolerance || cut.Depth > length || cut.Depth < length && length-cut.Depth <= 8*tolerance {
 			return out, geom.ErrDomain
 		}
 	}
-	if sideCutLess(cuts[1].ExtrusionCircle, cuts[0].ExtrusionCircle) {
-		cuts[0], cuts[1] = cuts[1], cuts[0]
+	cuts = removeContainedSideOpeningCuts(cuts, length, tolerance)
+	sort.Slice(cuts, func(i, j int) bool { return sideCutLess(cuts[i].ExtrusionCircle, cuts[j].ExtrusionCircle) })
+	circles := make([]ExtrusionCircle, len(cuts))
+	for i, cut := range cuts {
+		circles[i] = cut.ExtrusionCircle
 	}
-	points, edges, err := sidePairArrangement(frame, width, back, [2]ExtrusionCircle{cuts[0].ExtrusionCircle, cuts[1].ExtrusionCircle}, tolerance)
+	points, edges, transverse, err := sideOpeningArrangement(frame, width, back, circles, tolerance)
 	if err != nil {
 		return out, err
 	}
-	builder := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
-	material := func(mask, active uint8) bool { return mask&sidePairStock != 0 && mask&active == 0 }
-	cap := func(z float64, keep func(uint8) bool, reversed bool) error {
-		return buildSidePairCap(&builder, points, edges, z, keep, reversed)
+	if !transverse {
+		return out, geom.ErrDomain
 	}
-	var spans [2][2]float64
+	builder := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
+	material := func(mask, active uint32) bool { return mask&sideOpeningStock != 0 && mask&active == 0 }
+	cap := func(z float64, keep func(uint32) bool, reversed bool) error {
+		return buildSideOpeningCap(&builder, points, edges, z, keep, reversed, tolerance)
+	}
+	spans := make([][2]float64, len(cuts))
 	levels := []float64{0, length}
 	for i, cut := range cuts {
-		spans[i] = sideOpeningSpan(length, cut)
-		levels = append(levels, spans[i][0], spans[i][1])
-	}
-	// A common opposed floor puts both transverse wall junctions at the
-	// same axial level, where the current slab proof cannot separate them.
-	if spans[0][1] == spans[1][0] || spans[1][1] == spans[0][0] {
-		return out, geom.ErrUnrepresentable
+		span := sideOpeningSpan(length, cut)
+		// A common opposed floor puts two junctions at the same axial
+		// level. A contact where both footprints overlap is unresolved.
+		for j, prior := range spans[:i] {
+			if span[0] == prior[1] || span[1] == prior[0] {
+				a, b := cut.ExtrusionCircle, cuts[j].ExtrusionCircle
+				if circleRelation(unionDisk{center: a.Center, radius: a.Radius}, unionDisk{center: b.Center, radius: b.Radius}, true) < 0 {
+					return out, geom.ErrUnrepresentable
+				}
+			}
+		}
+		spans[i] = span
+		levels = append(levels, span[0], span[1])
 	}
 	sort.Float64s(levels)
 	levels = slices.Compact(levels)
-	activeIn := func(bottom, top float64) uint8 {
-		var active uint8
-		for i, span := range spans {
-			if span[0] <= bottom && top <= span[1] {
-				active |= 1 << i
-			}
-		}
-		return active
-	}
+	activeIn := func(bottom, top float64) uint32 { return sideOpeningActive(spans, bottom, top) }
 	bottomActive := activeIn(0, levels[1])
-	if err := cap(0, func(mask uint8) bool { return material(mask, bottomActive) }, true); err != nil {
+	if err := cap(0, func(mask uint32) bool { return material(mask, bottomActive) }, true); err != nil {
 		return out, err
 	}
 	topActive := activeIn(levels[len(levels)-2], length)
-	if err := cap(length, func(mask uint8) bool { return material(mask, topActive) }, false); err != nil {
+	if err := cap(length, func(mask uint32) bool { return material(mask, topActive) }, false); err != nil {
 		return out, err
 	}
-	out.SurfaceAreaDelta = -sidePairRemovedArea(points, edges, bottomActive) - sidePairRemovedArea(points, edges, topActive)
+	out.SurfaceAreaDelta = -sideOpeningRemovedArea(points, edges, bottomActive) - sideOpeningRemovedArea(points, edges, topActive)
 	for i, top := range levels[1:] {
 		bottom := levels[i]
 		active := activeIn(bottom, top)
 		thickness := top - bottom
 		if thickness <= 8*tolerance {
-			return SideOpeningPairResult{}, geom.ErrDomain
+			return SideOpeningCutsResult{}, geom.ErrDomain
 		}
-		out.RemovedVolume += sidePairRemovedArea(points, edges, active) * thickness
+		out.RemovedVolume += sideOpeningRemovedArea(points, edges, active) * thickness
 		out.SurfaceAreaDelta -= 2 * (width + back) * thickness
 		for _, edge := range edges {
 			left, right := material(edge.left, active), material(edge.right, active)
@@ -97,31 +115,31 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 			if !left {
 				edge = edge.reversed()
 			}
-			if err := buildSidePairWall(&builder, points, edge, bottom, top); err != nil {
-				return SideOpeningPairResult{}, err
+			if err := buildSideOpeningWall(&builder, points, edge, bottom, top); err != nil {
+				return SideOpeningCutsResult{}, err
 			}
 			out.SurfaceAreaDelta += edge.length(points) * thickness
 		}
 		if top < length {
 			next := activeIn(top, levels[i+2])
-			floors := func(mask uint8) bool { return material(mask, next) && !material(mask, active) }
-			ceilings := func(mask uint8) bool { return material(mask, active) && !material(mask, next) }
+			floors := func(mask uint32) bool { return material(mask, next) && !material(mask, active) }
+			ceilings := func(mask uint32) bool { return material(mask, active) && !material(mask, next) }
 			if err := cap(top, floors, true); err != nil {
-				return SideOpeningPairResult{}, err
+				return SideOpeningCutsResult{}, err
 			}
 			if err := cap(top, ceilings, false); err != nil {
-				return SideOpeningPairResult{}, err
+				return SideOpeningCutsResult{}, err
 			}
-			out.SurfaceAreaDelta += 2*sidePairRemovedArea(points, edges, active|next) -
-				sidePairRemovedArea(points, edges, active) - sidePairRemovedArea(points, edges, next)
+			out.SurfaceAreaDelta += 2*sideOpeningRemovedArea(points, edges, active|next) -
+				sideOpeningRemovedArea(points, edges, active) - sideOpeningRemovedArea(points, edges, next)
 		}
 	}
 	out.Solid, err = NewSolidContext(ctx, builder.vertices, builder.edges, builder.faces, tolerance)
 	if err != nil {
-		return SideOpeningPairResult{}, err
+		return SideOpeningCutsResult{}, err
 	}
 	if len(out.Solid.Topology().Shells) != 1 {
-		return SideOpeningPairResult{}, geom.ErrUnrepresentable
+		return SideOpeningCutsResult{}, geom.ErrUnrepresentable
 	}
 	return out, nil
 }
@@ -133,23 +151,60 @@ func sideOpeningSpan(length float64, cut SideOpeningCut) [2]float64 {
 	return [2]float64{0, cut.Depth}
 }
 
-const sidePairStock = 4
+func removeContainedSideOpeningCuts(cuts []SideOpeningCut, length, tolerance float64) []SideOpeningCut {
+	filtered := make([]SideOpeningCut, 0, len(cuts))
+	for i, cut := range cuts {
+		span := sideOpeningSpan(length, cut)
+		covered := false
+		for j, other := range cuts {
+			if i == j || other.Radius <= cut.Radius {
+				continue
+			}
+			otherSpan := sideOpeningSpan(length, other)
+			if span[0] < otherSpan[0] || span[1] > otherSpan[1] {
+				continue
+			}
+			distance := math.Hypot(other.Center.X-cut.Center.X, other.Center.Y-cut.Center.Y)
+			if other.Radius-cut.Radius-distance > 8*tolerance &&
+				circleRelation(unionDisk{center: cut.Center, radius: cut.Radius}, unionDisk{center: other.Center, radius: other.Radius}, false) < 0 {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			filtered = append(filtered, cut)
+		}
+	}
+	return filtered
+}
 
-type sidePairEdge struct {
+func sideOpeningActive(spans [][2]float64, bottom, top float64) uint32 {
+	var active uint32
+	for i, span := range spans {
+		if span[0] <= bottom && top <= span[1] {
+			active |= 1 << i
+		}
+	}
+	return active
+}
+
+const sideOpeningStock uint32 = 1 << 31
+
+type sideOpeningEdge struct {
 	start, end  int
-	left, right uint8
+	left, right uint32
 	circle      ExtrusionCircle
 	from, to    float64
 }
 
-func (e sidePairEdge) reversed() sidePairEdge {
+func (e sideOpeningEdge) reversed() sideOpeningEdge {
 	e.start, e.end = e.end, e.start
 	e.from, e.to = e.to, e.from
 	e.left, e.right = e.right, e.left
 	return e
 }
 
-func (e sidePairEdge) length(points []geom.Vec2) float64 {
+func (e sideOpeningEdge) length(points []geom.Vec2) float64 {
 	if e.circle.Radius != 0 {
 		return e.circle.Radius * math.Abs(e.to-e.from)
 	}
@@ -157,25 +212,32 @@ func (e sidePairEdge) length(points []geom.Vec2) float64 {
 	return math.Hypot(q.X-p.X, q.Y-p.Y)
 }
 
-func sidePairRemovedArea(points []geom.Vec2, edges []sidePairEdge, active uint8) float64 {
-	removed := func(mask uint8) bool { return mask&sidePairStock != 0 && mask&active != 0 }
+func sideOpeningRemovedArea(points []geom.Vec2, edges []sideOpeningEdge, active uint32) float64 {
+	return sideOpeningArea(points, edges, func(mask uint32) bool { return mask&sideOpeningStock != 0 && mask&active != 0 })
+}
+
+func sideOpeningArea(points []geom.Vec2, edges []sideOpeningEdge, keep func(uint32) bool) float64 {
 	area := 0.
 	for _, edge := range edges {
-		left, right := removed(edge.left), removed(edge.right)
+		left, right := keep(edge.left), keep(edge.right)
 		if left == right {
 			continue
 		}
 		if !left {
 			edge = edge.reversed()
 		}
-		p, q := points[edge.start], points[edge.end]
-		if c := edge.circle; c.Radius != 0 {
-			area += (c.Center.X*(q.Y-p.Y) - c.Center.Y*(q.X-p.X) + c.Radius*c.Radius*(edge.to-edge.from)) / 2
-		} else {
-			area += (p.X*q.Y - p.Y*q.X) / 2
-		}
+		area += edge.area(points, geom.Vec2{})
 	}
 	return area
+}
+
+func (e sideOpeningEdge) area(points []geom.Vec2, origin geom.Vec2) float64 {
+	p, q := sub2(points[e.start], origin), sub2(points[e.end], origin)
+	if c := e.circle; c.Radius != 0 {
+		center := sub2(c.Center, origin)
+		return (center.X*(q.Y-p.Y) - center.Y*(q.X-p.X) + c.Radius*c.Radius*(e.to-e.from)) / 2
+	}
+	return (p.X*q.Y - p.Y*q.X) / 2
 }
 
 func sideCutLess(a, b ExtrusionCircle) bool {
@@ -188,77 +250,98 @@ func sideCutLess(a, b ExtrusionCircle) bool {
 	return a.Radius < b.Radius
 }
 
-func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]ExtrusionCircle, tol float64) ([]geom.Vec2, []sidePairEdge, error) {
-	if !finite(width) || !finite(back) || width <= 0 || back <= 0 {
-		return nil, nil, geom.ErrInvalid
-	}
-	fail := func() ([]geom.Vec2, []sidePairEdge, error) { return nil, nil, geom.ErrDomain }
+func sideOpeningDistances(width, back float64, p geom.Vec2) [4]float64 {
+	return [4]float64{p.Y, width - p.X, back - p.Y, p.X}
+}
+
+func sideOpeningSide(width, back float64, c ExtrusionCircle, tol float64) (int, float64) {
 	pad := 8 * tol
-	distances := func(p geom.Vec2) [4]float64 {
-		return [4]float64{p.Y, width - p.X, back - p.Y, p.X}
+	if !uvFinite(c.Center) || !finite(c.Radius) || c.Radius <= pad {
+		return -1, 0
 	}
-	var opening [2]int
-	var sideOffsets [2]float64
+	opening, offset := -1, 0.
+	for side, distance := range sideOpeningDistances(width, back, c.Center) {
+		if distance-c.Radius > pad {
+			continue
+		}
+		if opening >= 0 || c.Radius-math.Abs(distance) <= pad {
+			return -1, 0
+		}
+		opening, offset = side, distance
+	}
+	return opening, offset
+}
+
+func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []ExtrusionCircle, tol float64) ([]geom.Vec2, []sideOpeningEdge, bool, error) {
+	if !finite(width) || !finite(back) || width <= 0 || back <= 0 {
+		return nil, nil, false, geom.ErrInvalid
+	}
+	fail := func() ([]geom.Vec2, []sideOpeningEdge, bool, error) { return nil, nil, false, geom.ErrDomain }
+	pad := 8 * tol
+	opening := make([]int, len(circles))
+	sideOffsets := make([]float64, len(circles))
 	for i, c := range circles {
-		if !uvFinite(c.Center) || !finite(c.Radius) || c.Radius <= pad {
+		opening[i], sideOffsets[i] = sideOpeningSide(width, back, c, tol)
+		if opening[i] < 0 {
 			return fail()
 		}
-		count := 0
-		for j, distance := range distances(c.Center) {
-			if distance-c.Radius > pad {
-				continue
-			}
-			if c.Radius-math.Abs(distance) <= pad {
-				return fail()
-			}
-			opening[i], sideOffsets[i] = j, distance
-			count++
-		}
-		if count != 1 {
-			return fail()
-		}
-	}
-	first, second := circles[0], circles[1]
-	a := unionDisk{center: first.Center, radius: first.Radius}
-	b := unionDisk{center: second.Center, radius: second.Radius}
-	if circleRelation(a, b, true) >= 0 || circleRelation(a, b, false) <= 0 {
-		return fail()
-	}
-	dx, dy := second.Center.X-first.Center.X, second.Center.Y-first.Center.Y
-	d := math.Hypot(dx, dy)
-	r, s := first.Radius, second.Radius
-	if min(r+s-d, d-math.Abs(r-s)) <= pad {
-		return fail()
-	}
-	cosine := (d + (r-s)*(r+s)/d) / (2 * r)
-	along, cross := r*cosine, r*math.Sqrt((1-cosine)*(1+cosine))
-	if !finite(cross) || cross <= pad {
-		return fail()
 	}
 	points := []geom.Vec2{{}, {X: width}, {X: width, Y: back}, {Y: back}}
 	type event struct {
 		id    int
 		angle float64
 	}
-	var events [2][]event
+	events := make([][]event, len(circles))
 	add := func(i, id int) {
 		c, p := circles[i], points[id]
 		events[i] = append(events[i], event{id, math.Atan2(p.Y-c.Center.Y, p.X-c.Center.X)})
 	}
-	for _, sign := range []float64{-1, 1} {
-		p := geom.Vec2{X: first.Center.X + (along*dx-sign*cross*dy)/d, Y: first.Center.Y + (along*dy+sign*cross*dx)/d}
-		if !uvFinite(p) {
-			return fail()
-		}
-		for _, distance := range distances(p) {
-			if math.Abs(distance) <= pad {
+	transverse := false
+	for i, first := range circles {
+		a := unionDisk{center: first.Center, radius: first.Radius}
+		for j := i + 1; j < len(circles); j++ {
+			second := circles[j]
+			b := unionDisk{center: second.Center, radius: second.Radius}
+			outer, inner := circleRelation(a, b, true), circleRelation(a, b, false)
+			dx, dy := second.Center.X-first.Center.X, second.Center.Y-first.Center.Y
+			d := math.Hypot(dx, dy)
+			r, s := first.Radius, second.Radius
+			if !finite(d) || math.Abs(r+s-d) <= pad || math.Abs(d-math.Abs(r-s)) <= pad {
 				return fail()
 			}
+			if outer > 0 || inner < 0 {
+				continue
+			}
+			if outer == 0 || inner == 0 {
+				return fail()
+			}
+			cosine := (d + (r-s)*(r+s)/d) / (2 * r)
+			along, cross := r*cosine, r*math.Sqrt((1-cosine)*(1+cosine))
+			if !finite(cross) || cross <= pad {
+				return fail()
+			}
+			transverse = true
+			for _, sign := range []float64{-1, 1} {
+				p := geom.Vec2{X: first.Center.X + (along*dx-sign*cross*dy)/d, Y: first.Center.Y + (along*dy+sign*cross*dx)/d}
+				if !uvFinite(p) {
+					return fail()
+				}
+				for _, distance := range sideOpeningDistances(width, back, p) {
+					if math.Abs(distance) <= pad {
+						return fail()
+					}
+				}
+				for k, circle := range circles {
+					if k != i && k != j && math.Abs(math.Hypot(p.X-circle.Center.X, p.Y-circle.Center.Y)-circle.Radius) <= pad {
+						return fail()
+					}
+				}
+				id := len(points)
+				points = append(points, p)
+				add(i, id)
+				add(j, id)
+			}
 		}
-		id := len(points)
-		points = append(points, p)
-		add(0, id)
-		add(1, id)
 	}
 	sides := [4][]int{{0, 1}, {1, 2}, {2, 3}, {3, 0}}
 	for i, c := range circles {
@@ -286,10 +369,10 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 		distance := math.Hypot(p.X-circle.Center.X, p.Y-circle.Center.Y)
 		return distance < circle.Radius, math.Abs(distance-circle.Radius) > tol
 	}
-	var edges []sidePairEdge
+	var edges []sideOpeningEdge
 	for j, side := range sides {
 		if len(side) == 2 {
-			edges = append(edges, sidePairEdge{start: side[0], end: side[1], left: sidePairStock})
+			edges = append(edges, sideOpeningEdge{start: side[0], end: side[1], left: sideOpeningStock})
 			continue
 		}
 		origin, finish := points[side[0]], points[side[1]]
@@ -316,7 +399,7 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 				return fail()
 			}
 			mid := geom.Vec2{X: p.X + (q.X-p.X)/2, Y: p.Y + (q.Y-p.Y)/2}
-			mask := uint8(sidePairStock)
+			mask := uint32(sideOpeningStock)
 			for k, circle := range circles {
 				inside, clear := classify(mid, circle)
 				if !clear {
@@ -326,7 +409,7 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 					mask |= 1 << k
 				}
 			}
-			edges = append(edges, sidePairEdge{start: start, end: end, left: mask})
+			edges = append(edges, sideOpeningEdge{start: start, end: end, left: mask})
 		}
 	}
 	for i, ev := range events {
@@ -342,7 +425,7 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 				return fail()
 			}
 			mid := arcLoopPoint(ExtrusionSegment{Center: c.Center, Radius: c.Radius}, start.angle+sweep/2)
-			inward := distances(mid)
+			inward := sideOpeningDistances(width, back, mid)
 			distance := min(inward[0], inward[1], inward[2], inward[3])
 			if math.Abs(distance) <= tol {
 				return fail()
@@ -350,13 +433,18 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 			if distance < 0 {
 				continue
 			}
-			mask := uint8(sidePairStock)
-			inside, clear := classify(mid, circles[1-i])
-			if !clear {
-				return fail()
-			}
-			if inside {
-				mask |= 1 << (1 - i)
+			mask := uint32(sideOpeningStock)
+			for k, other := range circles {
+				if i == k {
+					continue
+				}
+				inside, clear := classify(mid, other)
+				if !clear {
+					return fail()
+				}
+				if inside {
+					mask |= 1 << k
+				}
 			}
 			n := int(math.Ceil(sweep / (math.Pi / 4)))
 			current := start.id
@@ -367,7 +455,7 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 					next = len(points)
 					points = append(points, arcLoopPoint(ExtrusionSegment{Center: c.Center, Radius: c.Radius}, to))
 				}
-				edges = append(edges, sidePairEdge{current, next, mask | 1<<i, mask, c, from, to})
+				edges = append(edges, sideOpeningEdge{current, next, mask | 1<<i, mask, c, from, to})
 				current = next
 			}
 		}
@@ -375,15 +463,15 @@ func sidePairArrangement(frame geom.Frame, width, back float64, circles [2]Extru
 	for i, p := range points {
 		q := frame.ToLocal(frame.ToWorld(geom.Vec3{X: p.X, Y: p.Y}))
 		if q.Z != 0 || math.Hypot(q.X-p.X, q.Y-p.Y) > tol/8 {
-			return nil, nil, geom.ErrUnrepresentable
+			return nil, nil, false, geom.ErrUnrepresentable
 		}
 		points[i] = geom.Vec2{X: q.X, Y: q.Y}
 	}
-	return points, edges, nil
+	return points, edges, transverse, nil
 }
 
-func buildSidePairCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []sidePairEdge, z float64, keep func(uint8) bool, reversed bool) error {
-	next := make(map[int]sidePairEdge)
+func buildSideOpeningCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []sideOpeningEdge, z float64, keep func(uint32) bool, reversed bool, tolerance float64) error {
+	next := make(map[int]sideOpeningEdge)
 	var starts []int
 	for _, edge := range edges {
 		left, right := keep(edge.left), keep(edge.right)
@@ -407,6 +495,12 @@ func buildSidePairCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []side
 	if err != nil {
 		return err
 	}
+	type loop struct {
+		use   []Use
+		area  float64
+		holes [][]Use
+	}
+	var outer, inner []loop
 	for _, start := range starts {
 		if _, exists := next[start]; !exists {
 			continue
@@ -414,6 +508,7 @@ func buildSidePairCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []side
 		var world []geom.Vec3
 		var uv []geom.Vec2
 		curves := make(map[int]PCurve)
+		area := 0.
 		id := start
 		for {
 			edge, exists := next[id]
@@ -422,6 +517,7 @@ func buildSidePairCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []side
 			}
 			delete(next, id)
 			p, q := points[edge.start], points[edge.end]
+			area += edge.area(points, points[start])
 			if c := edge.circle; c.Radius != 0 {
 				curves[len(uv)] = unionArcUV{
 					EllipseUV: EllipseUV{Center: c.Center, Cos: geom.Vec2{X: c.Radius}, Sin: geom.Vec2{Y: c.Radius}, From: edge.from, To: edge.to},
@@ -435,17 +531,63 @@ func buildSidePairCap(b *cornerCylinderBuilder, points []geom.Vec2, edges []side
 				break
 			}
 		}
-		if len(uv) < 3 {
+		if len(uv) < 3 || !finite(area) || math.Abs(area) <= tolerance*tolerance {
 			return geom.ErrUnrepresentable
 		}
-		if err := b.face(surface, world, uv, curves, reversed); err != nil {
+		wire, err := b.wire(surface, world, uv, curves)
+		if err != nil {
 			return err
 		}
+		if area > 0 {
+			outer = append(outer, loop{use: wire, area: area})
+		} else {
+			inner = append(inner, loop{use: wire, area: area})
+		}
+	}
+	for _, hole := range inner {
+		owner := -1
+		for i, region := range outer {
+			if owner >= 0 && region.area >= outer[owner].area {
+				continue
+			}
+			inside, err := sideOpeningLoopContains(region.use, hole.use[0].UVStart, tolerance)
+			if err != nil {
+				return err
+			}
+			if inside {
+				owner = i
+			}
+		}
+		if owner < 0 {
+			return geom.ErrUnrepresentable
+		}
+		outer[owner].holes = append(outer[owner].holes, hole.use)
+	}
+	for _, region := range outer {
+		b.faces = append(b.faces, Face{Surface: surface, Reversed: reversed, Outer: region.use, Holes: region.holes})
 	}
 	return nil
 }
 
-func buildSidePairWall(b *cornerCylinderBuilder, points []geom.Vec2, edge sidePairEdge, bottom, top float64) error {
+func sideOpeningLoopContains(loop []Use, point geom.Vec2, tolerance float64) (bool, error) {
+	winding := 0
+	for _, use := range loop {
+		if arc, ok := use.Curve.(unionArcUV); ok {
+			use.Curve = arc.EllipseUV
+		}
+		crossings, near, err := trimCrossing(use, point, 1, 1, tolerance)
+		if err != nil {
+			return false, err
+		}
+		if near {
+			return false, geom.ErrUnrepresentable
+		}
+		winding += crossings
+	}
+	return winding == 1, nil
+}
+
+func buildSideOpeningWall(b *cornerCylinderBuilder, points []geom.Vec2, edge sideOpeningEdge, bottom, top float64) error {
 	p, q := points[edge.start], points[edge.end]
 	circle := edge.circle
 	if circle.Radius == 0 {
@@ -472,18 +614,59 @@ func buildSidePairWall(b *cornerCylinderBuilder, points []geom.Vec2, edge sidePa
 // BoxSideOpeningPairOverlap measures the remaining stock in a tool's
 // footprint and finite axial interval after a previous side-opening cut.
 func BoxSideOpeningPairOverlap(frame geom.Frame, width, back, length float64, old SideOpeningCut, tool ExtrusionCircle, low, high, tolerance float64) (float64, error) {
-	if !finite(tolerance) || tolerance <= 0 || !finite(length) || !finite(old.Depth) || old.Depth <= 0 || old.Depth > length ||
+	return BoxSideOpeningCutsOverlap(frame, width, back, length, []SideOpeningCut{old}, tool, low, high, tolerance)
+}
+
+// BoxSideOpeningCutsOverlap measures material still present in the tool
+// footprint over [low, high]. The tool may extend a previously cut footprint.
+func BoxSideOpeningCutsOverlap(frame geom.Frame, width, back, length float64, old []SideOpeningCut, tool ExtrusionCircle, low, high, tolerance float64) (float64, error) {
+	if !finite(tolerance) || tolerance <= 0 || !finite(width) || !finite(back) || width <= 0 || back <= 0 ||
+		!finite(length) || len(old) == 0 || len(old) > MaxSideOpeningCuts ||
 		!finite(low) || !finite(high) || low < 0 || high <= low || high > length {
 		return 0, geom.ErrInvalid
 	}
-	points, edges, err := sidePairArrangement(frame, width, back, [2]ExtrusionCircle{old.ExtrusionCircle, tool}, tolerance)
+	for _, cut := range old {
+		side, _ := sideOpeningSide(width, back, cut.ExtrusionCircle, tolerance)
+		if side < 0 || !finite(cut.Depth) || cut.Depth <= 0 || cut.Depth > length {
+			return 0, geom.ErrInvalid
+		}
+	}
+	old = removeContainedSideOpeningCuts(old, length, tolerance)
+	circles := make([]ExtrusionCircle, 0, len(old)+1)
+	spans := make([][2]float64, 0, len(old))
+	levels := []float64{low, high}
+	var toolMask uint32
+	for i, cut := range old {
+		circles = append(circles, cut.ExtrusionCircle)
+		if cut.ExtrusionCircle == tool {
+			toolMask = 1 << i
+		}
+		span := sideOpeningSpan(length, cut)
+		spans = append(spans, span)
+		for _, level := range span {
+			if low < level && level < high {
+				levels = append(levels, level)
+			}
+		}
+	}
+	if toolMask == 0 {
+		toolMask = 1 << len(circles)
+		circles = append(circles, tool)
+	}
+	points, edges, _, err := sideOpeningArrangement(frame, width, back, circles, tolerance)
 	if err != nil {
 		return 0, err
 	}
-	oldArea := sidePairRemovedArea(points, edges, 1)
-	toolArea := sidePairRemovedArea(points, edges, 2)
-	unionArea := sidePairRemovedArea(points, edges, 3)
-	span := sideOpeningSpan(length, old)
-	shared := max(0, min(span[1], high)-max(span[0], low))
-	return max(0, toolArea*(high-low)-(oldArea+toolArea-unionArea)*shared), nil
+	sort.Float64s(levels)
+	levels = slices.Compact(levels)
+	volume := 0.
+	for i, top := range levels[1:] {
+		bottom := levels[i]
+		active := sideOpeningActive(spans, bottom, top)
+		area := sideOpeningArea(points, edges, func(mask uint32) bool {
+			return mask&sideOpeningStock != 0 && mask&toolMask != 0 && mask&active == 0
+		})
+		volume += area * (top - bottom)
+	}
+	return max(0, volume), nil
 }

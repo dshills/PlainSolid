@@ -3,6 +3,7 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+	"slices"
 	"sort"
 
 	"plainsolid/brep/trimmed"
@@ -10,27 +11,27 @@ import (
 	"plainsolid/geom"
 )
 
-func pairFromSideNotch(p step.SideNotchBody) (step.SideOpeningPairBody, bool) {
+func sideOpeningStockFromNotch(p step.SideNotchBody) (step.SideOpeningCutsBody, bool) {
 	if p.Left <= 0 || len(p.Through)+len(p.Blind) != 0 {
-		return step.SideOpeningPairBody{}, false
+		return step.SideOpeningCutsBody{}, false
 	}
 	f, err := geom.NewFrame(p.Frame.ToWorld(geom.Vec3{X: -p.Left, Y: -p.Inset}), p.Frame.XAxis(), p.Frame.ZAxis())
 	if err != nil {
-		return step.SideOpeningPairBody{}, false
+		return step.SideOpeningCutsBody{}, false
 	}
-	return step.SideOpeningPairBody{
+	return step.SideOpeningCutsBody{
 		Name: p.Name, Frame: f, Width: p.Left + p.Right, Back: p.Back + p.Inset, Length: p.Length,
-		Cuts: [2]trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{
+		Cuts: []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{
 			Center: geom.Vec2{X: p.Left, Y: p.Inset}, Radius: p.Radius,
 		}, Depth: p.Depth}},
 	}, true
 }
 
-func pairCylinderSpan(p step.SideOpeningPairBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
+func sideOpeningCylinderSpan(p step.SideOpeningCutsBody, tool *cylinderBody) (trimmed.ExtrusionCircle, float64, float64, bool) {
 	return circularStockSpan(step.DiskHoleExtrusionBody{Frame: p.Frame, Height: p.Length}, tool)
 }
 
-func crossesPairSide(p step.SideOpeningPairBody, c trimmed.ExtrusionCircle) bool {
+func crossesOneStockSide(p step.SideOpeningCutsBody, c trimmed.ExtrusionCircle) bool {
 	crossings := 0
 	for _, distance := range [...]float64{c.Center.Y, p.Width - c.Center.X, p.Back - c.Center.Y, c.Center.X} {
 		if distance > c.Radius {
@@ -44,17 +45,16 @@ func crossesPairSide(p step.SideOpeningPairBody, c trimmed.ExtrusionCircle) bool
 	return crossings == 1
 }
 
-func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, error) {
-	var p step.SideOpeningPairBody
+func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, error) {
+	var p step.SideOpeningCutsBody
 	var skip *cylinderBody
-	n := 1
 	switch {
-	case a.analytic != nil && a.analytic.sideOpeningPair != nil:
-		p = *a.analytic.sideOpeningPair
-		n = 2
+	case a.analytic != nil && a.analytic.sideOpeningCuts != nil:
+		p = *a.analytic.sideOpeningCuts
+		p.Cuts = slices.Clone(p.Cuts)
 	case a.analytic != nil && a.analytic.sideNotch != nil:
 		var ok bool
-		p, ok = pairFromSideNotch(*a.analytic.sideNotch)
+		p, ok = sideOpeningStockFromNotch(*a.analytic.sideNotch)
 		if !ok {
 			return Shape{}, false, nil
 		}
@@ -62,12 +62,12 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 		for _, input := range tools {
 			c := input.cylinder
 			if f, box, ok := sideCylinderBlindRecipe(a.solid, c); ok {
-				p, _ = pairFromSideNotch(sideNotchRecipe(f, box, c.radius, c.height))
+				p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, c.height))
 				skip = c
 				break
 			}
 			if f, box, ok := sideCylinderThroughRecipe(a.solid, c); ok {
-				p, _ = pairFromSideNotch(sideNotchRecipe(f, box, c.radius, box.Max.Z))
+				p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, box.Max.Z))
 				skip = c
 				break
 			}
@@ -78,8 +78,8 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 	default:
 		return Shape{}, false, nil
 	}
-	var spans [2][][2]float64
-	for i, cut := range p.Cuts[:n] {
+	spans := make([][][2]float64, len(p.Cuts))
+	for i, cut := range p.Cuts {
 		if cut.OppositeCap {
 			spans[i] = append(spans[i], [2]float64{p.Length - cut.Depth, p.Length})
 		} else {
@@ -94,12 +94,12 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 		if c == skip || boundsSeparated(a.result.Bounds, input.result.Bounds) {
 			continue
 		}
-		circle, low, high, ok := pairCylinderSpan(p, c)
-		if !ok || high <= low || !crossesPairSide(p, circle) {
+		circle, low, high, ok := sideOpeningCylinderSpan(p, c)
+		if !ok || high <= low || !crossesOneStockSide(p, circle) {
 			return Shape{}, false, nil
 		}
 		matched := false
-		for i := range p.Cuts[:n] {
+		for i := range p.Cuts {
 			if p.Cuts[i].ExtrusionCircle == circle {
 				spans[i] = append(spans[i], [2]float64{low, high})
 				matched = true
@@ -109,17 +109,16 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 		if matched {
 			continue
 		}
-		if n == 2 {
-			return Shape{}, true, unsupportedEdge("side-opening cut supports two distinct intersecting footprints")
+		if len(p.Cuts) == trimmed.MaxSideOpeningCuts {
+			return Shape{}, true, &failureError{"LIMIT", "Too many distinct side-opening Hole cutters"}
 		}
-		if compareCircularFootprints(p.Cuts[0].ExtrusionCircle, circle, false) >= 0 {
-			return Shape{}, false, nil
-		}
-		p.Cuts[n].ExtrusionCircle = circle
-		spans[n] = append(spans[n], [2]float64{low, high})
-		n++
+		p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: circle})
+		spans = append(spans, [][2]float64{{low, high}})
 	}
-	if n < 2 {
+	if len(p.Cuts) < 2 {
+		return Shape{}, false, nil
+	}
+	if len(p.Cuts) == 2 && compareCircularFootprints(p.Cuts[0].ExtrusionCircle, p.Cuts[1].ExtrusionCircle, false) >= 0 {
 		return Shape{}, false, nil
 	}
 	for i, site := range spans {
@@ -139,7 +138,7 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 		}
 		p.Cuts[i].Depth, p.Cuts[i].OppositeCap = high-low, low != 0
 	}
-	body, err := sideOpeningPairBody(p)
+	body, err := sideOpeningCutsBody(p)
 	if err != nil {
 		return Shape{}, true, err
 	}
@@ -150,8 +149,8 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 	return out, true, err
 }
 
-func sideOpeningPairBody(p step.SideOpeningPairBody) (*analyticBody, error) {
-	result, err := trimmed.BoxSideOpeningPair(context.Background(), p.Frame, p.Width, p.Back, p.Length, p.Cuts, 1e-9)
+func sideOpeningCutsBody(p step.SideOpeningCutsBody) (*analyticBody, error) {
+	result, err := trimmed.BoxSideOpeningCuts(context.Background(), p.Frame, p.Width, p.Back, p.Length, p.Cuts, 1e-9)
 	if err != nil {
 		return nil, err
 	}
@@ -163,54 +162,37 @@ func sideOpeningPairBody(p step.SideOpeningPairBody) (*analyticBody, error) {
 			}
 		}
 	}
-	return &analyticBody{solid: result.Solid, sideOpeningPair: &p, polygonExtrema: corners,
+	return &analyticBody{solid: result.Solid, sideOpeningCuts: &p, polygonExtrema: corners,
 		volume: p.Width*p.Back*p.Length - result.RemovedVolume,
 		area:   2*(p.Width*p.Back+(p.Width+p.Back)*p.Length) + result.SurfaceAreaDelta}, nil
 }
 
-func overlapSideOpeningPair(a, tool stored) (float64, bool, error) {
+func overlapSideOpeningCuts(a, tool stored) (float64, bool, error) {
 	if a.analytic == nil || tool.cylinder == nil {
 		return 0, false, nil
 	}
-	var p step.SideOpeningPairBody
-	var prior trimmed.SideOpeningCut
-	if a.analytic.sideOpeningPair != nil {
-		p = *a.analytic.sideOpeningPair
+	var p step.SideOpeningCutsBody
+	if a.analytic.sideOpeningCuts != nil {
+		p = *a.analytic.sideOpeningCuts
 	} else if a.analytic.sideNotch != nil {
 		var ok bool
-		p, ok = pairFromSideNotch(*a.analytic.sideNotch)
+		p, ok = sideOpeningStockFromNotch(*a.analytic.sideNotch)
 		if !ok {
 			return 0, false, nil
 		}
-		prior = p.Cuts[0]
 	} else {
 		return 0, false, nil
 	}
-	c, low, high, ok := pairCylinderSpan(p, tool.cylinder)
-	if !ok || high <= low || !crossesPairSide(p, c) {
+	c, low, high, ok := sideOpeningCylinderSpan(p, tool.cylinder)
+	if !ok || high <= low || !crossesOneStockSide(p, c) {
 		return 0, false, nil
 	}
-	if a.analytic.sideOpeningPair != nil {
-		var matched trimmed.SideOpeningCut
-		switch c {
-		case p.Cuts[0].ExtrusionCircle:
-			matched, prior = p.Cuts[0], p.Cuts[1]
-		case p.Cuts[1].ExtrusionCircle:
-			matched, prior = p.Cuts[1], p.Cuts[0]
-		default:
+	if a.analytic.sideOpeningCuts == nil {
+		prior := p.Cuts[0].ExtrusionCircle
+		if c == prior || compareCircularFootprints(prior, c, false) >= 0 {
 			return 0, false, nil
 		}
-		if matched.OppositeCap {
-			high = min(high, p.Length-matched.Depth)
-		} else {
-			low = max(low, matched.Depth)
-		}
-		if high <= low {
-			return 0, true, nil
-		}
-	} else if c == prior.ExtrusionCircle || compareCircularFootprints(prior.ExtrusionCircle, c, false) >= 0 {
-		return 0, false, nil
 	}
-	v, err := trimmed.BoxSideOpeningPairOverlap(p.Frame, p.Width, p.Back, p.Length, prior, c, low, high, 1e-9)
-	return v, true, err
+	volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, p.Cuts, c, low, high, 1e-9)
+	return volume, true, err
 }

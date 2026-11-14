@@ -51,7 +51,7 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		return result(removed)
 	}
 
-	if volume, handled, err := overlapSideOpeningPair(a, c); handled {
+	if volume, handled, err := overlapSideOpeningCuts(a, c); handled {
 		if err != nil {
 			return nil, err
 		}

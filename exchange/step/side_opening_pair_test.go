@@ -3,7 +3,9 @@ package step
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -87,6 +89,10 @@ func TestSideOpeningPairSTEP(t *testing.T) {
 // Reimport the exact canonical file with the independent kernel, comparing
 // integrated native measures rather than repeating recipe formulas.
 func checkSideOpeningPairOCCT(t *testing.T, p SideOpeningPairBody, data []byte) {
+	t.Helper()
+	checkSideOpeningCutsOCCT(t, p.cutsBody(), data)
+}
+func checkSideOpeningCutsOCCT(t *testing.T, p SideOpeningCutsBody, data []byte) {
 	t.Helper()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		return
@@ -185,4 +191,216 @@ func TestSideOpeningPairSTEPRejectsOppositeThroughSplit(t *testing.T) {
 	if e := WriteSideOpeningPair(&out, SideOpeningPairModel{Body: p, LengthUnit: .001}); e == nil || out.Len() != 0 {
 		t.Fatal("published unsupported split stock", e)
 	}
+}
+
+func TestSideOpeningCutsSTEP(t *testing.T) {
+	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
+	for _, family := range []struct {
+		name        string
+		width, back float64
+		centers     []geom.Vec2
+		depths      []float64
+	}{
+		{"three-chain", 26, 20, []geom.Vec2{{X: 6}, {X: 10}, {X: 14}}, []float64{3, 6, 4}},
+		{"four-chain", 26, 20, []geom.Vec2{{X: 6}, {X: 10}, {X: 14}, {X: 18}}, []float64{3, 6, 4, 8}},
+		{"three-adjacent", 20, 20, []geom.Vec2{{Y: 3.5}, {X: 3.5}, {X: 7.5}}, []float64{6, 3, 4}},
+	} {
+		for ni, n := range normals {
+			for _, opposed := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/%d/%t", family.name, ni, opposed), func(t *testing.T) {
+					frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
+					if e != nil {
+						t.Fatal(e)
+					}
+					p := SideOpeningCutsBody{Name: "multiple side openings", Frame: frame, Width: family.width, Back: family.back, Length: 8}
+					for i, c := range family.centers {
+						p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: c, Radius: 3}, Depth: family.depths[i], OppositeCap: opposed && i == 1})
+					}
+					model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+					var out bytes.Buffer
+					if e := WriteSideOpeningCuts(&out, model); e != nil {
+						t.Fatal(e)
+					}
+					got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+					if e != nil || !reflect.DeepEqual(got, model) {
+						t.Fatal(got, e)
+					}
+					reordered := model
+					reordered.Body.Cuts = append([]trimmed.SideOpeningCut(nil), p.Cuts...)
+					for i, j := 0, len(p.Cuts)-1; i < j; i, j = i+1, j-1 {
+						reordered.Body.Cuts[i], reordered.Body.Cuts[j] = reordered.Body.Cuts[j], reordered.Body.Cuts[i]
+					}
+					var reverse bytes.Buffer
+					if e := WriteSideOpeningCuts(&reverse, reordered); e != nil || !bytes.Equal(out.Bytes(), reverse.Bytes()) {
+						t.Fatal("reordered source changed canonical STEP", e)
+					}
+					if _, e := ReadSideOpeningPair(bytes.NewReader(out.Bytes()), Limits{}); e == nil {
+						t.Fatal("pair reader accepted multiple sites")
+					}
+					if _, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{MaxFaces: 2}); e == nil {
+						t.Fatal("ignored caller face budget")
+					}
+					checkSideOpeningCutsOCCT(t, p, out.Bytes())
+				})
+			}
+		}
+	}
+}
+
+func TestSideOpeningPairLegacySTEPBytes(t *testing.T) {
+	f, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	p := SideOpeningPairBody{Name: "overlapping side openings", Frame: f, Width: 40, Back: 30, Length: 20, Cuts: [2]trimmed.SideOpeningCut{
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 14, Y: 1}, Radius: 3}, Depth: 4},
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 18, Y: 1}, Radius: 3}, Depth: 4},
+	}}
+	var out bytes.Buffer
+	if e := WriteSideOpeningPair(&out, SideOpeningPairModel{Body: p, LengthUnit: .001}); e != nil {
+		t.Fatal(e)
+	}
+	// Captured before generalizing the two-cutter constructor and codec.
+	if got := fmt.Sprintf("%x", sha256.Sum256(out.Bytes())); got != "b820225c711afbc6ac313b51619d954d120b5a62dadf75992116024ff368dd44" {
+		t.Fatal("legacy STEP bytes changed", got)
+	}
+	if _, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{}); e != nil {
+		t.Fatal(e)
+	}
+}
+
+func TestSideOpeningCutsSTEPRejectsOverBudget(t *testing.T) {
+	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := SideOpeningCutsBody{Name: "too many sites", Frame: frame, Width: 100, Back: 20, Length: 8}
+	for i := 0; i <= trimmed.MaxSideOpeningCuts; i++ {
+		p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6 + 4*float64(i)}, Radius: 3}, Depth: 4})
+	}
+	var out bytes.Buffer
+	if e := WriteSideOpeningCuts(&out, SideOpeningCutsModel{Body: p, LengthUnit: .001}); e == nil || out.Len() != 0 {
+		t.Fatal("published over-budget site set", e)
+	}
+}
+
+func TestSideOpeningCutsSTEPInteriorOnlySite(t *testing.T) {
+	for _, opposite := range []bool{false, true} {
+		frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+		p := SideOpeningCutsBody{Name: "interior-only cylindrical support", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
+			{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 5.5}, Radius: 1}, Depth: 6, OppositeCap: opposite},
+			{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6}, Radius: 3}, Depth: 3, OppositeCap: opposite},
+			{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 3}, Depth: 3, OppositeCap: opposite},
+		}}
+		model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+		var out bytes.Buffer
+		if e := WriteSideOpeningCuts(&out, model); e != nil {
+			t.Fatal(opposite, e)
+		}
+		got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+		if e != nil || !reflect.DeepEqual(got, model) {
+			t.Fatal(opposite, got, e)
+		}
+		checkSideOpeningCutsOCCT(t, p, out.Bytes())
+	}
+}
+
+func TestSideOpeningCutsSTEPAtLimit(t *testing.T) {
+	frame, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
+	p := SideOpeningCutsBody{Name: "sixteen side opening cutters", Frame: frame, Width: 72, Back: 20, Length: 8}
+	for i := 0; i < trimmed.MaxSideOpeningCuts; i++ {
+		p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6 + 4*float64(i)}, Radius: 3}, Depth: 4})
+	}
+	native, e := p.Solid(context.Background())
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(native.Faces()) <= 64 {
+		t.Fatal("fixture no longer exercises extended graph budget", len(native.Faces()))
+	}
+	model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+	var out bytes.Buffer
+	if e := WriteSideOpeningCuts(&out, model); e != nil {
+		t.Fatal(e)
+	}
+	got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+	if e != nil || !reflect.DeepEqual(got, model) {
+		t.Fatal(got, e)
+	}
+	if _, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{MaxFaces: 64}); e == nil {
+		t.Fatal("ignored explicit smaller face budget")
+	}
+	checkSideOpeningCutsOCCT(t, p, out.Bytes())
+}
+
+func TestSideOpeningCutsSTEPThroughSiteBuriedAtBothCaps(t *testing.T) {
+	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := SideOpeningCutsBody{Name: "buried through site", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 5.5}, Radius: 1}, Depth: 8},
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6}, Radius: 3}, Depth: 3},
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 7}, Radius: 3}, Depth: 3, OppositeCap: true},
+	}}
+	model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+	var out bytes.Buffer
+	if e := WriteSideOpeningCuts(&out, model); e != nil {
+		t.Fatal(e)
+	}
+	got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+	if e != nil || !reflect.DeepEqual(got, model) {
+		t.Fatal(got, e)
+	}
+	checkSideOpeningCutsOCCT(t, p, out.Bytes())
+}
+
+func TestSideOpeningCutsSTEPNestedBlindFloor(t *testing.T) {
+	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := SideOpeningCutsBody{Name: "connected material with nested blind floor", Frame: frame, Width: 12, Back: 10, Length: 8}
+	for _, center := range []geom.Vec2{{X: 4.75, Y: 1}, {X: 4.75, Y: 9}, {X: 10.5, Y: 5}} {
+		p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: center, Radius: 4.2}, Depth: 4})
+	}
+	native, e := p.Solid(context.Background())
+	if e != nil {
+		t.Fatal(e)
+	}
+	innerWire := false
+	for _, f := range native.Faces() {
+		innerWire = innerWire || len(f.Holes) > 0
+	}
+	if !innerWire {
+		t.Fatal("fixture did not retain nested floor wire")
+	}
+	model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+	var out bytes.Buffer
+	if e := WriteSideOpeningCuts(&out, model); e != nil {
+		t.Fatal(e)
+	}
+	got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+	if e != nil || !reflect.DeepEqual(got, model) {
+		t.Fatal(got, e)
+	}
+	checkSideOpeningCutsOCCT(t, p, out.Bytes())
+}
+
+func TestSideOpeningCutsSTEPRedundantSiteCanonicalBytes(t *testing.T) {
+	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	p := SideOpeningCutsBody{Name: "canonical redundant site", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6}, Radius: 3}, Depth: 3},
+		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 3}, Depth: 3},
+	}}
+	model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+	var expected bytes.Buffer
+	if e := WriteSideOpeningCuts(&expected, model); e != nil {
+		t.Fatal(e)
+	}
+	redundant := model
+	redundant.Body.Cuts = append([]trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 5.5}, Radius: 1}, Depth: 2}}, p.Cuts...)
+	var actual bytes.Buffer
+	if e := WriteSideOpeningCuts(&actual, redundant); e != nil {
+		t.Fatal(e)
+	}
+	if !bytes.Equal(actual.Bytes(), expected.Bytes()) {
+		t.Fatal("redundant site changed canonical STEP graph")
+	}
+	got, e := ReadSideOpeningCuts(bytes.NewReader(actual.Bytes()), Limits{})
+	if e != nil || !reflect.DeepEqual(got, model) {
+		t.Fatal(got, e)
+	}
+	checkSideOpeningCutsOCCT(t, p, actual.Bytes())
 }

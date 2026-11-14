@@ -118,8 +118,8 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(layeredCircularBody(s, p, h))
 	}
-	if m, e := step.ReadSideOpeningPair(r(), stepLimits()); e == nil {
-		body, err := sideOpeningPairBody(m.Body)
+	if m, e := step.ReadSideOpeningCuts(r(), stepLimits()); e == nil {
+		body, err := sideOpeningCutsBody(m.Body)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -315,8 +315,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.sideNotch != nil:
 		e = step.WriteSideNotch(&out, step.SideNotchModel{Body: *s.analytic.sideNotch, LengthUnit: .001})
-	case s.analytic != nil && s.analytic.sideOpeningPair != nil:
-		e = step.WriteSideOpeningPair(&out, step.SideOpeningPairModel{Body: *s.analytic.sideOpeningPair, LengthUnit: .001})
+	case s.analytic != nil && s.analytic.sideOpeningCuts != nil:
+		e = step.WriteSideOpeningCuts(&out, step.SideOpeningCutsModel{Body: *s.analytic.sideOpeningCuts, LengthUnit: .001})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():

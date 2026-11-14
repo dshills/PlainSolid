@@ -28,6 +28,9 @@ func circularSourceFailure() error {
 	return fmt.Errorf("step: unsupported or inconsistent analytic circular extrusion")
 }
 func readCircularSourceFace(f *File, id int64) (circularSourceFace, error) {
+	return readCircularSourceFaceBounded(f, id, 17, 64)
+}
+func readCircularSourceFaceBounded(f *File, id int64, maxBounds, maxUses int) (circularSourceFace, error) {
 	out := circularSourceFace{id: id}
 	r, e := simple(f, id, "ADVANCED_FACE", 4)
 	if e != nil {
@@ -56,7 +59,7 @@ func readCircularSourceFace(f *File, id int64) (circularSourceFace, error) {
 		return out, circularSourceFailure()
 	}
 	out.bounds, e = listRefs(r.Args[1], 1)
-	if e != nil || len(out.bounds) > 17 {
+	if e != nil || len(out.bounds) > maxBounds {
 		return out, circularSourceFailure()
 	}
 	for _, bid := range out.bounds {
@@ -81,7 +84,7 @@ func readCircularSourceFace(f *File, id int64) (circularSourceFace, error) {
 			return out, e
 		}
 		ids, e := listRefs(loop.Args[1], 1)
-		if e != nil || len(ids) > 64 {
+		if e != nil || len(ids) > maxUses {
 			return out, circularSourceFailure()
 		}
 		uses := make([]analyticUse, len(ids))
@@ -327,6 +330,9 @@ func readCircularSourceGraph(f *File, body int64) (circularSourceGraph, error) {
 }
 
 func readCircularGraph(f *File, body int64, allowReversed bool) (circularSourceGraph, error) {
+	return readCircularGraphBounded(f, body, allowReversed, 98, 17, 64)
+}
+func readCircularGraphBounded(f *File, body int64, allowReversed bool, maxFaces, maxBounds, maxUses int) (circularSourceGraph, error) {
 	out := circularSourceGraph{edges: map[int64]circularSourceEdge{}, owners: map[int64][]int{}}
 	b, e := simple(f, body, "MANIFOLD_SOLID_BREP", 2)
 	if e != nil {
@@ -341,14 +347,14 @@ func readCircularGraph(f *File, body int64, allowReversed bool) (circularSourceG
 		return out, e
 	}
 	ids, e := listRefs(s.Args[1], 3)
-	if e != nil || len(ids) > 98 {
+	if e != nil || len(ids) > maxFaces {
 		return out, circularSourceFailure()
 	}
 	owned := map[int64]bool{}
 	surfaces := map[int64]int{}
 	uses := map[int64][]bool{}
 	for _, id := range ids {
-		face, e := readCircularSourceFace(f, id)
+		face, e := readCircularSourceFaceBounded(f, id, maxBounds, maxUses)
 		if e != nil {
 			return out, e
 		}
