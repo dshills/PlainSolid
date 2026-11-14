@@ -25,6 +25,7 @@ type CrossedBoreBody struct {
 	XBlindDepth          float64
 	XOppositeCap         bool
 	ClippedFloor         bool
+	Additional           []trimmed.CardinalThroughBore
 }
 
 type CrossedBoreModel struct {
@@ -55,6 +56,16 @@ func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 	var result trimmed.BoxCrossedBoresResult
 	var err error
 	switch {
+	case len(p.Additional) != 0:
+		if p.BlindDepth != 0 || p.XBlindDepth != 0 || p.OppositeCap || p.XOppositeCap || p.ClippedFloor {
+			return geom.ErrDomain
+		}
+		result, err = trimmed.BoxCrossedBoresWithDisjoint(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.Additional, 1e-9)
+		if err != nil {
+			return err
+		}
+		limits := nativeLongEdgeLimits{86, 288, 176, 19, 8}
+		return writeNativeLongEdgeTopologyOptions(w, m.LengthUnit, p.Name, result.Solid, limits, true, 0)
 	case p.ClippedFloor:
 		if p.XBlindDepth != 0 || p.XOppositeCap || p.OppositeCap {
 			return geom.ErrDomain
@@ -127,6 +138,7 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		return fail()
 	}
 	var clippedFloorID int
+	var additional bool
 	zStart, xStart := 6, 14
 	switch len(faces) {
 	case 16:
@@ -136,15 +148,31 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		zStart, xStart = 7, 15
 	case 24:
 		zStart, xStart = 7, 16
-	case 26:
-		clippedFloorID = trimmed.BeforeCrossedBoreFloorFirst
-	case 34:
-		xStart = 18
-		clippedFloorID = trimmed.ClippedCrossedBoreFloorFirst
 	default:
-		return fail()
+		// Counts 26 and 34 can also be one or three companion bores.
+		// A companion graph keeps the crossed pair's X wall at face 14
+		// and ends with a cylinder. A clipped graph ends with a floor.
+		last, err := readCircularSourceFace(f, faces[len(faces)-1])
+		if err != nil {
+			return fail()
+		}
+		switch {
+		case len(faces) == 26 && last.kind == "PLANE":
+			clippedFloorID = trimmed.BeforeCrossedBoreFloorFirst
+		case len(faces) == 34 && last.kind == "PLANE":
+			xStart = 18
+			clippedFloorID = trimmed.ClippedCrossedBoreFloorFirst
+		case len(faces) > 22 && len(faces) <= 22+4*trimmed.MaxCrossedDisjointBores && (len(faces)-22)%4 == 0 && last.kind == "CYLINDER":
+			additional = true
+		default:
+			return fail()
+		}
 	}
-	lower, err := readCircularSourceFace(f, faces[0])
+	maxBounds := 17
+	if additional {
+		maxBounds = 2 + trimmed.MaxCrossedDisjointBores
+	}
+	lower, err := readCircularSourceFaceBounded(f, faces[0], maxBounds, 64)
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
@@ -166,7 +194,7 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 	}
 	var vertices []geom.Vec3
 	for _, id := range faces[:6] {
-		face, err := readCircularSourceFace(f, id)
+		face, err := readCircularSourceFaceBounded(f, id, maxBounds, 64)
 		if err != nil || face.kind != "PLANE" || !face.sense || len(face.loops[0]) != 4 {
 			return fail()
 		}
@@ -213,6 +241,34 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		}
 		p.BlindDepth = frame.ToLocal(floor.frame.Origin()).Z
 		p.ClippedFloor = true
+	}
+	if additional {
+		for i := 22; i < len(faces); i += 4 {
+			wall, err := readCircularSourceFace(f, faces[i])
+			if err != nil || wall.kind != "CYLINDER" || wall.sense {
+				return fail()
+			}
+			axis := -1
+			for j, v := range []geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()} {
+				if v == wall.frame.ZAxis() {
+					axis = j
+					break
+				}
+			}
+			if axis < 0 {
+				return fail()
+			}
+			center := frame.ToLocal(wall.frame.Origin())
+			switch axis {
+			case 0:
+				center.X = 0
+			case 1:
+				center.Y = 0
+			case 2:
+				center.Z = 0
+			}
+			p.Additional = append(p.Additional, trimmed.CardinalThroughBore{Axis: axis, Center: center, Radius: wall.radius})
+		}
 	}
 	return p, nil
 }

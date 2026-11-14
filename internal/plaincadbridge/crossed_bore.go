@@ -25,6 +25,10 @@ func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error)
 }
 
 func finiteCrossedBoreFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opposite [2]bool, unit float64) (*boreBody, error) {
+	return crossedBoreToolsFromSTEP(p, blindDepth, opposite, nil, unit)
+}
+
+func crossedBoreToolsFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opposite [2]bool, additional []trimmed.CardinalThroughBore, unit float64) (*boreBody, error) {
 	frame, dimensions, crossing := p.frame, p.dimensions, p.crossing
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 || !cardinalFrame(frame) {
@@ -74,6 +78,28 @@ func finiteCrossedBoreFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opp
 			return nil, err
 		}
 		tools = append(tools, tool)
+	}
+	for _, site := range additional {
+		if site.Axis < 0 || site.Axis > 2 {
+			return nil, geom.ErrDomain
+		}
+		axis := [3]geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()}[site.Axis]
+		component := [3]float64{dimensions.X, dimensions.Y, dimensions.Z}[site.Axis]
+		last := site.Center.Add(disjointBoreAxes[site.Axis].Scale(component))
+		start, finish := frame.ToWorld(site.Center).Scale(scale), frame.ToWorld(last).Scale(scale)
+		length := finish.Sub(start).Dot(axis)
+		if start.Add(axis.Scale(length)) != finish {
+			return nil, geom.ErrUnrepresentable
+		}
+		f, err := geom.FrameFromNormal(start, axis)
+		if err != nil {
+			return nil, err
+		}
+		c, err := newCylinder(f, site.Radius*scale, length)
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, c)
 	}
 	return newBore(base, tools)
 }

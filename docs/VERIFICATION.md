@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD crossed Holes with disjoint companion bores — 2026-11-14
+
+An equal-radius perpendicular through pair can retain additional cardinal
+through bores. The padded cutter envelopes prove each companion is
+separate from both crossing cylinders and from other companions. Native
+sewing preserves the original stock faces and saddle edge identities.
+The canonical STEP graph orders the companion wall groups by their
+geometric sites and recovers all exact holes on reimport.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-crossed-companion-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-crossed-companion-step-native-2026-11-14.json)
+pass on the same WASM. The authored model reimports and reopens the
+55,240-byte STEP and verifies all three clear passages in watertight
+STL. Native signed poses, a 16-site limit case, and four independent
+OCCT STEP imports pass. Focused race and Go vet pass.
+
 ## PlainCAD unequal-radius perpendicular blind Holes — 2026-11-14
 
 Either unequal cutter can stop beyond the full cylinder intersection.
