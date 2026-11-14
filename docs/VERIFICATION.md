@@ -1,5 +1,35 @@
 # Verification record
 
+## PlainCAD full coaxially bored Revolve STEP exchange — 2026-11-14
+
+The complete tube uses two periodic cylindrical faces and two annular
+plane caps. The strict analytic reader restores the concentric native
+recipe before the generic disk-hole reader. An independently authored
+tube and centimeter source units pass. Widening the bore after import
+gives the same STEP as cutting a fresh cylinder.
+
+[Seven original Revolve, Hole, outline and STEP cases plus provider preflight](evidence/plaincad-full-tube-step-browser-2026-11-14.json)
+and the [authored full-sweep Edit Revolve extension](evidence/plaincad-full-tube-step-native-2026-11-14.json)
+pass on the same WASM. The 6,670-byte STEP reexports byte-identically
+after project reopen. The 8,192-triangle STL is watertight. OCCT agrees
+with analytic volume and area. The existing native and independent tube
+exchange tests, focused race checks, and Go vet pass.
+
+## PlainCAD cylindrical Revolve sector STEP exchange — 2026-11-14
+
+Simple solid cylindrical sectors use the existing five-face analytic
+STEP format. The bridge recognizes the validated sector returned by the
+strict reader and retains the partial angle for subsequent coaxial cuts.
+A negative sweep past the half-turn, an independent STEP fixture, and
+centimeter source normalization pass native round-trip checks.
+
+[Seven original Revolve and STEP cases plus provider preflight](evidence/plaincad-cylinder-sector-step-browser-2026-11-14.json)
+and the [authored solid quarter sweep](evidence/plaincad-cylinder-sector-step-native-2026-11-14.json)
+pass on the same WASM. The 9,144-byte STEP is byte-identical after
+import and project reopen. Its 2,528-triangle STL has two uses per edge.
+OCCT agrees with the authored volume and area, and the existing
+independent sector fixtures, malformed-graph tests, race checks and vet pass.
+
 ## PlainCAD fragmented arc-only lens STEP exchange — 2026-11-14
 
 Adjacent fragments with the same exact circle center and radius are
