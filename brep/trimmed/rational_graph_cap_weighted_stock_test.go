@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"os"
 	"os/exec"
@@ -93,6 +94,23 @@ func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
 		t.Fatal("exact original curve parameter", r, e)
 	}
 
+	meshOptions := AlgebraicGraphStockFillOptions{Deflection: .15}
+	meshOptions.Boundary.Section = o
+	meshOptions.Boundary.Exact = opts
+	meshOptions.Boundary.Display.Deflection = .003
+	meshOptions.Boundary.EndpointTolerance = 1e-12
+	display, e := pair.TessellateAffineProjectedStockCertified(ctx, meshOptions)
+	if e != nil || display.SignedVolume == nil || display.MaximumFillError > meshOptions.Deflection ||
+		len(display.Mesh.Triangles) != len(display.IndexedFaces) || display.Boundary.Indexed.EulerCharacteristic != 2 {
+		t.Fatal("weighted original display must certify closed fill and original triangle ownership", display.MaximumFillError, e)
+	}
+	if v, _ := display.SignedVolume.Float64(); math.Abs(v-.7179226785061876) > .03 {
+		t.Fatal("render mesh volume must follow independent stock", v)
+	}
+	meshOptions.Deflection = .0005
+	if bad, e := pair.TessellateAffineProjectedStockCertified(ctx, meshOptions); !errors.Is(e, geom.ErrConvergence) || len(bad.Mesh.Triangles) != 0 {
+		t.Fatal("fixed shared chord network cannot claim a tighter whole-shell fill", e)
+	}
 	mass, e := pair.BoundVerticalCentroid(ctx, q(1, 1<<15), o, opts)
 	if e != nil || mass.Volume.Lower.Sign() <= 0 {
 		t.Fatal("weighted original mass and centroid", e)
