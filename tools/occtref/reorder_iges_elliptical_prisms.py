@@ -1,12 +1,26 @@
 # Independent pointer-aware reversal of all directory records; no Go helpers.
 from pathlib import Path
 import sys
-reorder_edges = "--edges" in sys.argv
+reorder_loops = "--loops" in sys.argv
+reorder_vertices = "--vertices" in sys.argv or reorder_loops
+reorder_edges = "--edges" in sys.argv or reorder_vertices
 reorder_faces = "--faces" in sys.argv or reorder_edges
 for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','placed-elliptical-prism-topology','placed-elliptical-annular-prism-topology'):
  lines=Path('exchange/iges/testdata/'+name+'.igs').read_text().splitlines();ds=[x for x in lines if x[72]=='D'];ps=[x for x in lines if x[72]=='P'];records=[]
  for i in range(0,len(ds),2):
   a,b=ds[i],ds[i+1];start=int(a[8:16]);n=int(b[24:32]);v=''.join(x[:64] for x in ps[start-1:start-1+n]).strip().rstrip(';').split(',');records.append((i+1,a,b,[x.strip() for x in v]))
+ if reorder_vertices:
+  vertex_count=next(int(v[1]) for _,_,_,v in records if int(v[0])==502)
+  for _,_,_,v in records:
+   if int(v[0])==502:
+    entries=[v[j:j+3] for j in range(2,len(v),3)];v[2:]=sum(entries[::-1],[])
+   if int(v[0])==504:
+    for j in range(2,len(v),5):
+     v[j+2]=str(vertex_count+1-int(v[j+2]));v[j+4]=str(vertex_count+1-int(v[j+4]))
+ if reorder_loops:
+  for _,_,_,v in records:
+   if int(v[0])==508 and int(v[1])==4:
+    entries=[v[j:j+5] for j in range(2,len(v),5)];v[2:]=sum(entries[1:]+entries[:1],[])
  edge_count=next(int(v[1]) for _,_,_,v in records if int(v[0])==504)
  if reorder_edges:
   for _,_,_,v in records:
@@ -43,4 +57,4 @@ for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','pl
   emit(a,'D',2*i+1);emit(b,'D',2*i+2)
  for i,(s,owner) in enumerate(params):emit(f'{s:<64}{owner:8d}','P',i+1)
  emit(f'S{1:7d}G{len(g):7d}D{2*len(records):7d}P{len(params):7d}','T',1)
- Path('exchange/iges/testdata/'+('edge-order-' if reorder_edges else 'face-order-' if reorder_faces else 'reindexed-')+name+'.igs').write_text('\n'.join(out)+'\n')
+ Path('exchange/iges/testdata/'+('loop-start-' if reorder_loops else 'vertex-order-' if reorder_vertices else 'edge-order-' if reorder_edges else 'face-order-' if reorder_faces else 'reindexed-')+name+'.igs').write_text('\n'.join(out)+'\n')

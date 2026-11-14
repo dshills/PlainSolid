@@ -5,7 +5,7 @@ import (
 	"plainsolid/geom"
 )
 
-// Vertex ordinals remain strict. Their actual coordinates and every model
+// Vertex ordinals have been normalized from exact endpoint roles. Their coordinates and every model
 // curve are checked by canonical reproof after this incidence normalization.
 func ellipseEdgeListOrder(records map[int]topologyRecord, annular bool) error {
 	count := 3
