@@ -314,9 +314,9 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 	if len(seeds.Attempts) > o.MaxCandidateTests {
 		return nil, geom.ErrConvergence
 	}
-	for _, s := range seeds.Attempts {
+	for index, s := range seeds.Attempts {
 		if used >= maximum {
-			return nil, geom.ErrConvergence
+			return nil, fmt.Errorf("radial transfer cell %d/%d: cumulative operation cap %d: %w", index+1, len(seeds.Attempts), maximum, geom.ErrConvergence)
 		}
 		opts := o.Cell
 		bits := q.Proof.MaxCoefficientBits
@@ -342,10 +342,11 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 		result, e := cache.CertifyCell(ctx, box, available, opts)
 		used += result.ExactOperations
 		if e != nil {
-			return nil, fmt.Errorf("radial transfer: %w", e)
+			return nil, fmt.Errorf("radial transfer cell %d/%d: %d original tubes, %d visited cells, %d partition pieces, %d/%d cell operations and %d/%d total: %w",
+				index+1, len(seeds.Attempts), len(available), result.VisitedCells, result.PartitionPieces, result.ExactOperations, opts.MaxOperations, used, maximum, e)
 		}
 		if !result.Covered {
-			return nil, ErrUnresolved
+			return nil, fmt.Errorf("radial transfer cell %d/%d: %d original tubes, %d unresolved pieces: %w", index+1, len(seeds.Attempts), len(available), len(result.Unresolved)+len(result.Pending), ErrUnresolved)
 		}
 	}
 	if e := ctx.Err(); e != nil {

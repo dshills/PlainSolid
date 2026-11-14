@@ -38,6 +38,13 @@ type RationalSphericalHierarchy struct {
 	Relationships []ExactNAUOOccurrence
 	Instances     []RationalHierarchyInstance
 	proof         IndependentSphericalHierarchy
+	tolerance     float64
+}
+
+// Tolerance returns the original local geometry admission tolerance carried
+// by the independently verified hierarchy.
+func (m RationalSphericalHierarchy) Tolerance() float64 {
+	return m.tolerance
 }
 
 func rationalHierarchyFrameBound(b mappedRationalBasis) error {
@@ -209,7 +216,7 @@ func readRationalSphericalHierarchy(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return RationalSphericalHierarchy{}, e
 	}
-	out := RationalSphericalHierarchy{Source: source, LengthUnit: proof.Assembly.LengthUnit, Definitions: append([]AssemblyProduct(nil), proof.Assembly.Products...), Roots: append([]int64(nil), proof.Assembly.Roots...), Products: map[int64]IndependentExactMaterial{}, proof: proof}
+	out := RationalSphericalHierarchy{Source: source, LengthUnit: proof.Assembly.LengthUnit, Definitions: append([]AssemblyProduct(nil), proof.Assembly.Products...), Roots: append([]int64(nil), proof.Assembly.Roots...), Products: map[int64]IndependentExactMaterial{}, proof: proof, tolerance: tol}
 	for id, p := range proof.Products {
 		c, e := nauoClosure(source, []int64{p.SourceRepresentationID}, l.MaxDepth)
 		if e != nil {

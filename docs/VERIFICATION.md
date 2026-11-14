@@ -805,6 +805,13 @@ these labels on the shared asset definitions rather than duplicating them
 on each occurrence. The original transfer, document reopen and live OCCT
 edit regression passed under the race detector.
 
+The read-only rational hierarchy document keeps exact oblique occurrence
+matrices separate from local geometry. Both convention fixtures retain seven
+paths to four shared assets. The tests verify caller mutation isolation,
+canonical source and byte-stable native round trips, separation of the
+two native tags, exact world bounds, symbolic volume, and point and line
+queries. The focused document race tests passed.
+
 Document planar face history now propagates authored box roles through
 the same geometry evaluation that builds each planar Boolean. The
 regeneration test covers fragment ownership after subtraction, cutter
@@ -5172,6 +5179,15 @@ original stock plane spans [-1/8,9/8] while the roof spans [0,1]. An initial run
 without that option was deliberately stopped after original section coverage;
 it was not a mesh qualification and its log is retained separately. No identity
 chart assumption or proof gate was weakened.
+
+Setting both `PLAINSOLID_TRIPLE_RADIAL_MESH=1` and
+`PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE=1` separately exercises the newer
+radial-cover strategy in both original section construction and native mesh
+reproof. The first full attempt reached 228 original proposals and exhausted
+local transfer proof work before section completion in 664.23 seconds. The
+generic affine-chart flagship above remains independently qualified. The compact
+affine radial strategy passes; no triple radial transfer or mesh claim is made
+for the new strategy until its own full run finishes.
 
 The corrected original-source flagship passed on commit
 `72682d7a63a351bf6793da48214e1a470d2c47ea` with the explicit environment gate:

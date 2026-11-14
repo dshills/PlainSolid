@@ -24,12 +24,15 @@ const (
 // BoundaryRoles identifies analytic supports (wall, lower-cap, upper-cap), not
 // a guessed source coedge or periodic parameter branch.
 type RationalHierarchyPointLeaf struct {
-	ProductID, SourceProductID, SourceBodyID int64
-	Path, SourceFaceIDs                      []int64
-	Family                                   string
-	Location                                 AnalyticPointLocation
-	BoundaryRoles                            []string
-	local                                    [3]*big.Rat
+	ProductID, SourceProductID, SourceBodyID         int64
+	Path, SourceFaceIDs                              []int64
+	Family                                           string
+	Location                                         AnalyticPointLocation
+	BoundaryRoles                                    []string
+	local                                            [3]*big.Rat
+	ContactFaceIDs, ContactEdgeIDs, ContactVertexIDs []int64
+	UnsupportedReason                                string
+	product                                          [3]*big.Rat
 }
 
 // AnalyticCoordinates returns owned exact coordinates in the analytic support
@@ -41,11 +44,13 @@ func (p RationalHierarchyPointLeaf) AnalyticCoordinates() [3]*big.Rat {
 // RationalHierarchyPointLocations has no union or first-hit interpretation.
 // Coincident or overlapping occurrences remain separate, in source path order.
 type RationalHierarchyPointLocations struct {
-	Leaves     []RationalHierarchyPointLeaf
-	LengthUnit float64
+	Leaves      []RationalHierarchyPointLeaf
+	LengthUnit  float64
+	PlanarTests int
 }
 type RationalHierarchyPointOptions struct {
 	MaxCoefficientBits int
+	MaxPlanarTests     int
 	Source             Limits
 }
 
@@ -89,7 +94,7 @@ func (a *hierarchyPointArithmetic) inverse(p [3]*big.Rat, origin [3]*big.Rat, ax
 	}
 	return
 }
-func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions, vendor bool) (RationalHierarchyPointLocations, error) {
+func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions, vendor bool, planarMode ...bool) (RationalHierarchyPointLocations, error) {
 	bad := func(e error) (RationalHierarchyPointLocations, error) { return RationalHierarchyPointLocations{}, e }
 	if ctx == nil {
 		return bad(geom.ErrInvalid)
@@ -129,7 +134,23 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 	if !reflect.DeepEqual(actual, expected) || !reflect.DeepEqual(c, d) {
 		return bad(geom.ErrInvalid)
 	}
+	includePlanar := len(planarMode) > 0 && planarMode[0]
+	if o.MaxPlanarTests == 0 {
+		o.MaxPlanarTests = 65536
+	}
+	if o.MaxPlanarTests < 1 || o.MaxPlanarTests > 1048576 {
+		return bad(geom.ErrInvalid)
+	}
+	prepared := map[int64]*hierarchyConvexPlanarProof{}
+	reasons := map[int64]string{}
 	out := RationalHierarchyPointLocations{LengthUnit: proof.LengthUnit}
+	tick := func() error {
+		out.PlanarTests++
+		if out.PlanarTests > o.MaxPlanarTests {
+			return geom.ErrConvergence
+		}
+		return ctx.Err()
+	}
 	for _, u := range proof.Instances {
 		if e = ctx.Err(); e != nil {
 			return bad(e)
@@ -167,6 +188,36 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 			major = new(big.Rat).SetFloat64(p.Torus.MajorRadius)
 		case p.Planar != nil:
 			v.Family = "planar"
+			if includePlanar {
+				cert, ok := prepared[u.ProductID]
+				if !ok {
+					var reason string
+					cert, reason, e = prepareHierarchyConvexPlanar(ctx, p, v.SourceFaceIDs, &a, tick)
+					if e != nil {
+						return bad(e)
+					}
+					prepared[u.ProductID] = cert
+					reasons[u.ProductID] = reason
+				}
+				v.UnsupportedReason = reasons[u.ProductID]
+				if cert != nil {
+					v.product = a.inverse(point, u.pose.Origin, [3][3]*big.Rat{u.pose.X, u.pose.Y, u.pose.Z})
+					if a.err != nil {
+						return bad(a.err)
+					}
+					v.Location, e = cert.classify(v.product, &a, tick)
+					if e != nil {
+						return bad(e)
+					}
+					if v.Location == AnalyticPointBoundary {
+						v.ContactFaceIDs, v.ContactEdgeIDs, v.ContactVertexIDs, e = cert.contacts(v.product, &a, tick)
+						if e != nil {
+							return bad(e)
+						}
+						v.BoundaryRoles = []string{"planar-face"}
+					}
+				}
+			}
 			out.Leaves = append(out.Leaves, v)
 			continue
 		default:
@@ -221,4 +272,20 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 		out.Leaves = append(out.Leaves, v)
 	}
 	return out, nil
+}
+
+// ProductCoordinates returns owned source-local coordinates for a qualified
+// planar leaf. AnalyticCoordinates keeps its existing analytic-frame meaning.
+func (p RationalHierarchyPointLeaf) ProductCoordinates() [3]*big.Rat {
+	return copyHierarchyRats(p.product)
+}
+
+// LocateRationalHierarchyPoint additionally admits independently proved convex,
+// hole-free planar leaves. Nonconvex leaves are explicitly unsupported. It is
+// still an occurrence classification, not an assembly-union location.
+func LocateRationalHierarchyPoint(ctx context.Context, m RationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
+	return locateHierarchyAnalyticPoint(ctx, m, point, o, false, true)
+}
+func LocateOCCTRationalHierarchyPoint(ctx context.Context, m OCCTRationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
+	return locateHierarchyAnalyticPoint(ctx, RationalSphericalHierarchy(m), point, o, true, true)
 }

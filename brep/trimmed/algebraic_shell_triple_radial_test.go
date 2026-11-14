@@ -83,11 +83,21 @@ func TestAlgebraicShellTripleRadialMaterialComponents(t *testing.T) {
 	t.Log("original proposal tubes", len(seeds.Attempts))
 	o := AlgebraicShellSectionOptions{Trace: nestedTubeSectionOptions().Trace, Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: seeds}}}
 	o.Trace.Coverage.OverlappingAffineXYFallback = true
+	if os.Getenv("PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE") == "1" {
+		o.Trace.Coverage.RadialOverlap = tripleRadialAffineCoverage()
+	}
 	section, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if e != nil || !section.Complete || len(section.Wires) != 3 {
 		t.Fatal("complete original three-loop section", len(section.Wires), e)
 	}
 	t.Log("complete original section")
+	if o.Trace.Coverage.RadialOverlap != nil {
+		if len(section.Sections) != 1 || section.Sections[0].Trace.Coverage.RadialOverlap == nil {
+			t.Fatal("original section did not use the selected affine radial proof")
+		}
+		p := section.Sections[0].Trace.Coverage.RadialOverlap
+		t.Log("original affine radial coverage", p.Transferred, "overlapping cells", p.ExactOperations, "exact operations")
+	}
 	options := AlgebraicShellBooleanOptions{}
 	options.Imprint.Exact.MaxOperations = 512000000
 	common, e := section.CombineAlgebraic(ctx, parametric.Intersection, options)

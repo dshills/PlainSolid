@@ -1,0 +1,129 @@
+{
+  "schema": "plaincad-reconciled-supplemental-double-blind-oblique-step-v1",
+  "status": "passed",
+  "integrationCommit": "988ddd4d2230ef1817a9e786669298fead7868ca",
+  "reviewCommit": "23613ca23762946618a082a74a0b64fec85ec45d",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "d9b4facfd805dc4004084033ee54b08492db3bf86a72ed6ddad886a6b686ad2d",
+  "fixture": "e2e/plainsolid-double-blind-oblique-step-holes.spec.ts",
+  "sourceSha256": "4d9d1020e851545c16c41f4c14484dcc6fecd4e08974ddc56b8b763a04169c77",
+  "runSha256": "22a5cc5f5ab15167d04e9666b107912f3e3686db4bc50571fe87e2f2f85514a3",
+  "reportStats": {
+    "startTime": "2026-11-14T17:20:24.345Z",
+    "duration": 19145.488,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "cases": [
+    {
+      "profile": "double-blind-oblique-lower",
+      "case": {
+        "axisRatio": [
+          4,
+          3
+        ],
+        "stockMM": [
+          20,
+          16,
+          40
+        ],
+        "radiusMM": 2,
+        "cardinalBlindDepthMM": 28,
+        "obliqueAuthoredDepthMM": 26.25,
+        "obliqueFloorStationMM": 6.25,
+        "exactEllipses": 12,
+        "stepByteCount": 44314,
+        "stepSha256": "b437e600328e4739a58158765d120f0409d1cae3bbe7d6002e5dd68330be69dd",
+        "stlTriangles": 396,
+        "stlTwoUseEdges": 594,
+        "stlSha256": "5dc704703cf5a00472a2d8d888cc588412de1ffa0d3b8175f255541fee63fdfd",
+        "occtStepReadback": {
+          "Area": 4024.33623311166,
+          "Volume": 12265.855507370996,
+          "Centroid": [
+            10.047792931286603,
+            8.000000000000002,
+            19.864689144779206
+          ]
+        },
+        "occtDirectBoolean": {
+          "Volume": 12265.855507096257,
+          "Area": 4024.3362335925485,
+          "Centroid": [
+            10.047792931266333,
+            8.000000000000291,
+            19.864689144762654
+          ]
+        },
+        "directOracleSourceSha256": "f2b67bfb404fe282d1668f409ab6f5c2794a357fdd04ad5add28df57368ccc3f"
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 4024.33623311166,
+        "Volume": 12265.855507370996,
+        "Centroid": [
+          10.047792931286603,
+          8.000000000000002,
+          19.864689144779206
+        ]
+      }
+    },
+    {
+      "profile": "double-blind-oblique-upper",
+      "case": {
+        "axisRatio": [
+          4,
+          3
+        ],
+        "stockMM": [
+          20,
+          16,
+          40
+        ],
+        "radiusMM": 2,
+        "cardinalBlindDepthMM": 28,
+        "obliqueAuthoredDepthMM": 26.25,
+        "obliqueFloorStationMM": -6.25,
+        "exactEllipses": 12,
+        "stepByteCount": 44318,
+        "stepSha256": "75260cf6fc91f5bfaac8b387da9cff116503d5cc52550b952fd11afc7109097e",
+        "stlTriangles": 396,
+        "stlTwoUseEdges": 594,
+        "stlSha256": "5c69088a8823c7141d331a814e01109de1c5076d4d8640830acdfa629b28694b",
+        "occtStepReadback": {
+          "Area": 4024.33623311166,
+          "Volume": 12265.855507461145,
+          "Centroid": [
+            9.952207068738682,
+            7.999999999999996,
+            19.79107881007507
+          ]
+        },
+        "occtDirectBoolean": {
+          "Volume": 12265.855507095228,
+          "Area": 4024.3362335925494,
+          "Centroid": [
+            9.952207068732854,
+            7.999999999999755,
+            19.7910788101111
+          ]
+        },
+        "directOracleSourceSha256": "f2b67bfb404fe282d1668f409ab6f5c2794a357fdd04ad5add28df57368ccc3f"
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 4024.33623311166,
+        "Volume": 12265.855507461145,
+        "Centroid": [
+          9.952207068738682,
+          7.999999999999996,
+          19.79107881007507
+        ]
+      }
+    }
+  ]
+}

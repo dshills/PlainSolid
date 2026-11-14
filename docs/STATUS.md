@@ -821,6 +821,12 @@ original browser cases and native STEP and bridge race checks. The
 [authored lower and upper floor cases](evidence/plaincad-reconciled-ade2dfc1-supplemental-oblique-own-floor-step-2026-11-14.json)
 reproduced the worktree STEP and watertight STL files. Independent OCCT
 transfer matched direct construction for both floors.
+The [double-blind oblique reconciliation](evidence/plaincad-reconciled-23613ca2-development-double-blind-oblique-holes-step-2026-11-14.json)
+adds worktree revision `988ddd4d` to review `23613ca2`. It passed all
+17 original browser cases and the focused native race suite. The
+[authored lower and upper cases](evidence/plaincad-reconciled-23613ca2-supplemental-double-blind-oblique-step-2026-11-14.json)
+preserve both floors and reproduce the worktree STEP and watertight STL.
+Independent OCCT transfer and direct construction agree in both cases.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
