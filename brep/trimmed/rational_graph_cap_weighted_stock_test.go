@@ -94,6 +94,31 @@ func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
 		t.Fatal("exact original curve parameter", r, e)
 	}
 
+	wantArea := 11.940081106438639
+	areaOptions := opts
+	areaOptions.MaxOperations = 100000000
+	areaOptions.MaxSubdivisions = 30000
+	area, e := model.BoundSurfaceArea(ctx, q(1, 20), areaOptions)
+	if e != nil {
+		t.Fatal("exact curved stock boundary area", e)
+	}
+	al, _ := area.Interval.Lower.Float64()
+	ah, _ := area.Interval.Upper.Float64()
+	if al > wantArea || ah < wantArea || ah-al > .05 || area.Walls.Lower.Sign() <= 0 {
+		t.Fatal("curved area must contain independent OCCT surface integration", al, ah, wantArea)
+	}
+	ownedLo, ownedHi := new(big.Rat), new(big.Rat)
+	for _, w := range area.OriginalWalls {
+		owner := model.caps[model.lower].wires[w.Wire][w.Use]
+		if owner.Source.Face != w.Face || owner.Seam >= 0 {
+			t.Fatal("original contributing wall owner", w, owner.Source)
+		}
+		ownedLo.Add(ownedLo, w.Area.Lower)
+		ownedHi.Add(ownedHi, w.Area.Upper)
+	}
+	if ownedLo.Cmp(area.Walls.Lower) != 0 || ownedHi.Cmp(area.Walls.Upper) != 0 {
+		t.Fatal("wall ancestry ledger and total disagree")
+	}
 	meshOptions := AlgebraicGraphStockFillOptions{Deflection: .15}
 	meshOptions.Boundary.Section = o
 	meshOptions.Boundary.Exact = opts

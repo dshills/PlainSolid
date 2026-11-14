@@ -2,8 +2,12 @@ package trimmed
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
+	"os"
+	"os/exec"
 	"testing"
 
 	"plainsolid/brep/trimvalidate"
@@ -110,6 +114,38 @@ func TestAlgebraicGraphPlanarStockCertified(t *testing.T) {
 	}
 	if d, e := pair.NearestPlanarStockRational(ctx, origin, RationalGraphShellSectionOptions{}, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(e, geom.ErrConvergence) || d.SquaredDistance != nil {
 		t.Fatal("nearest query must fail atomically on proof limits", d, e)
+	}
+
+	limits := geom.ExactCurvePlaneEventOptions{}
+	width := q(1, 1<<25)
+	area, e := pair.BoundPlanarSurfaceArea(ctx, width, RationalGraphShellSectionOptions{}, limits)
+	if e != nil || len(area.Faces) != len(out.Boundary.Indexed.Faces) || new(big.Rat).Sub(area.Interval.Upper, area.Interval.Lower).Cmp(width) > 0 {
+		t.Fatal("closed planar shell and per-face certified area", e)
+	}
+	// Bottom area is 4: the retained half of the 3x3 sleeve has
+	// plan area 9/2−1/2. Vertical walls add 15/16 and the upper
+	// cap contributes 4*sqrt(1+(1/8)^2) = sqrt(65)/2.
+	fixed := q(79, 16)
+	a, b := new(big.Rat).Sub(area.Interval.Lower, fixed), new(big.Rat).Sub(area.Interval.Upper, fixed)
+	ref := q(65, 4)
+	if a.Sign() <= 0 || a.Mul(a, a).Cmp(ref) > 0 || b.Mul(b, b).Cmp(ref) < 0 {
+		t.Fatal("area does not enclose independent planar stock result", area.Interval)
+	}
+
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ALGEBRAIC_CAP_STOCK"); oracle != "" {
+		raw, e := exec.CommandContext(ctx, oracle, "sleeve").Output()
+		var sample [8]float64
+		if e != nil || json.Unmarshal(raw, &sample) != nil {
+			t.Fatal("pinned independent OCCT planar area", e)
+		}
+		lo, _ := area.Interval.Lower.Float64()
+		hi, _ := area.Interval.Upper.Float64()
+		if math.Abs(sample[1]-(lo+hi)/2) > 2e-10 {
+			t.Fatal("area differs from independent OCCT", lo, hi, sample[1])
+		}
+	}
+	if partial, e := pair.BoundPlanarSurfaceArea(ctx, width, RationalGraphShellSectionOptions{}, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(e, geom.ErrConvergence) || partial.Interval.Lower != nil {
+		t.Fatal("surface area cannot publish a partial face ledger", e)
 	}
 
 }

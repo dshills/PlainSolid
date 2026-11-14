@@ -113,6 +113,13 @@ func (o AlgebraicGraphStockOccurrence) BoundVolume(ctx context.Context, width *b
 	return o.pair.BoundVerticalVolume(ctx, width, options, roots)
 }
 
+// BoundSurfaceArea returns the same exact source area for a proper rational
+// rigid occurrence. No model curve is rebuilt in world coordinates.
+func (o AlgebraicGraphStockOccurrence) BoundSurfaceArea(ctx context.Context, width *big.Rat,
+	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalArea, error) {
+	return o.model.BoundSurfaceArea(ctx, width, options)
+}
+
 // CertifiedAlgebraicGraphStockOccurrenceMesh has world-space mesh and
 // error bounds. Source is the independent local certificate and supplies the
 // original face/edge ancestry. World vertices keep the same shared indices.
