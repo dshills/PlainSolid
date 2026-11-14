@@ -150,6 +150,7 @@ func TestExactCircularLoopExtrusionSTEPLive(t *testing.T) {
 		return q
 	}
 	run("read", "testdata/occt-exact-rounded-triangle-extrusion.step")
+	run("read", "testdata/occt-model-only-rounded-triangle-extrusion.step")
 	for _, negative := range []bool{false, true} {
 		mode := "write"
 		if negative {
@@ -160,6 +161,14 @@ func TestExactCircularLoopExtrusionSTEPLive(t *testing.T) {
 		run("read", source)
 		var out bytes.Buffer
 		if e := WriteExactCircularLoopExtrusion(ctx, &out, exactLoopSTEPFixture(t, negative)); e != nil {
+			t.Fatal(e)
+		}
+		decoded, e := ReadExactCircularLoopExtrusion(ctx, bytes.NewReader(out.Bytes()), Limits{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		out.Reset()
+		if e = WriteExactCircularLoopExtrusion(ctx, &out, decoded.Descriptor); e != nil {
 			t.Fatal(e)
 		}
 		path := filepath.Join(t.TempDir(), "native.step")

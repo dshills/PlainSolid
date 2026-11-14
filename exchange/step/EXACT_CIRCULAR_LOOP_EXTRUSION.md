@@ -60,3 +60,44 @@ PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP=/tmp/plainsolid-exact-circular-loop-extrusio
 Tests also cover exact native reload, incomplete/contradictory endpoints,
 wrong radius, canceled construction, invalid units, output atomicity and short
 writes. No new external modules or changes to general native/STEP acceptance.
+
+## Strict canonical readback
+
+`ReadExactCircularLoopExtrusion` is a separate bounded reader for the exact
+rooted model-only writer grammar. It recovers the signed height from the two
+cap stations and original wall origins, and recovers each original segment
+from the lower rim's model support and endpoints. It reconstructs the exact
+native material and compares the entire generated entity graph, including
+shared references, raw exact numeric values, direction ratios, all face/bound/
+edge senses, units and registered product metadata. This prevents an apparent
+circle or plane match from hiding inconsistent endpoints, complements or
+ownership. Detached entities and unsupported topology fail atomically.
+
+The result retains original body/shell, low/high cap, ordered wall, both rim,
+vertical-edge and both vertex role IDs. `Native` is local to the exact recovered
+`Descriptor.Frame`; it is not silently baked. Numbering/record order and exact
+equivalent numeric spellings may differ; source role order and topology may
+not. Limits cap source bytes/entities/values/depth, and context cancellation is
+checked before reconstruction and return. Native reload and signed source →
+read → write → conventional OCCT transfer are qualified.
+
+## Official OCCT model-only probe
+
+The same independent author now supports `write-model-only output.step` using
+`DESTEP_Parameters.WriteSurfaceCurMode=false`. Pinned OCCT documents that member
+as controlling parametric curves; it is the parameter equivalent of
+`write.surfacecurve.mode=0`. The retained
+`testdata/occt-model-only-rounded-triangle-extrusion.step` has 242 entities,
+no PCURVE or SURFACE_CURVE, and passes ordinary TransferRoots with the same
+analytic measures and topology. It was authored directly from the independent
+OCCT geometry, not normalized from our output.
+
+This original is **not yet accepted by the canonical reader**: it has wall-first
+faces, FACE_BOUND records, differing original face/bound senses, normalized
+oblique direction ratios and standard OCCT product/representation metadata.
+There is no demonstrated numeric impossibility here: (-0.8,0.6,0) is the exact
+3:4:5 direction ratio, and the decimal cap frame origin remains on the same
+exact plane. Those equivalences require a separate source-topology proof;
+rejection is a grammar limit, not an approximation claim. Existing generic
+readers are unchanged. Live tests retain both original vendor variants and
+compare the strictly reconstructed canonical output against OCCT geometry.
