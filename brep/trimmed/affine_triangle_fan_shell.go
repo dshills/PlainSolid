@@ -79,6 +79,26 @@ func buildAffineTriangleFan(ctx context.Context, mates []*geom.SurfaceAffineTria
 		return nil, geom.ErrInvalid
 	}
 
+	checks := make([]AffineTriangleVertexPair, len(opposite))
+	for i, p := range opposite {
+		checks[i] = AffineTriangleVertexPair{Faces: [2]int{i, i + 2}, Proof: p}
+	}
+	return buildAffineTriangleFanChecked(ctx, mates, checks, o)
+}
+func buildAffineTriangleFanChecked(ctx context.Context, mates []*geom.SurfaceAffineTriangleMate, checks []AffineTriangleVertexPair, o AffineTriangleShellOptions) (*AffineTriangleFanShell, error) {
+	n := len(mates)
+	if n < 3 || n > 8 || len(checks) != n*(n-3)/2 {
+		return nil, geom.ErrInvalid
+	}
+	seenPairs := map[[2]int]bool{}
+	for _, check := range checks {
+		a, b := check.Faces[0], check.Faces[1]
+		if a < 0 || b >= n || a >= b || b == a+1 || a == 0 && b == n-1 || check.Proof == nil || seenPairs[check.Faces] {
+			return nil, geom.ErrInvalid
+		}
+		seenPairs[check.Faces] = true
+	}
+
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -135,15 +155,16 @@ func buildAffineTriangleFan(ctx context.Context, mates []*geom.SurfaceAffineTria
 			seen[found] = true
 		}
 	}
-	// Bind both opposite certificates to the exact full original triangles,
+	// Bind every nonadjacent certificate to the exact full original triangles,
 	// not merely to coincident numerical central points.
-	var oppositeVertices [2][2]int
-	for i, p := range opposite {
+	oppositeVertices := make([][2]int, len(checks))
+	for i, check := range checks {
+		p := check.Proof
 		if p == nil {
 			return nil, geom.ErrInvalid
 		}
 		for owner := 0; owner < 2; owner++ {
-			face := i + 2*owner
+			face := check.Faces[owner]
 			source, t, e := p.Source(owner)
 			if e != nil || source != patches[face] {
 				return nil, geom.ErrDomain
@@ -255,9 +276,9 @@ func buildAffineTriangleFan(ctx context.Context, mates []*geom.SurfaceAffineTria
 	if out.center < 0 {
 		return nil, geom.ErrDomain
 	}
-	for i := range opposite {
+	for i, check := range checks {
 		for owner := 0; owner < 2; owner++ {
-			if vm[i+2*owner][oppositeVertices[i][owner]] != out.center {
+			if vm[check.Faces[owner]][oppositeVertices[i][owner]] != out.center {
 				return nil, geom.ErrDomain
 			}
 		}

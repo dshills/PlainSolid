@@ -72,20 +72,35 @@ func comparePolynomialTrimUse(ctx context.Context, model parametric.Edge, surfac
 	if e != nil {
 		return false, e
 	}
-	source, sourceMap := parametric.SurfaceMapping(m.surface)
-	target, targetMap := parametric.SurfaceMapping(surface)
-	if !supportsExactSplinePatch(source) || !supportsExactSplinePatch(target) || sourceMap != targetMap {
+	return compareTrimCompositionsOnPlacedSplineSupports(ctx, m.surface, a, surface, b, o)
+}
+
+// Compare composed curves in world space by applying each represented map to
+// its homogeneous support exactly. Endpoints alone do not prove agreement.
+func compareTrimCompositionsOnPlacedSplineSupports(ctx context.Context, a geom.Surface, uvA *geom.ExactSplineCurve,
+	b geom.Surface, uvB *geom.ExactSplineCurve, o edgecheck.Options) (bool, error) {
+	baseA, mapA := parametric.SurfaceMapping(a)
+	baseB, mapB := parametric.SurfaceMapping(b)
+	if !supportsExactSplinePatch(baseA) || !supportsExactSplinePatch(baseB) {
 		return false, nil
 	}
-	ap, e := exactSplineSupportPatch(source, limits)
+	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
+	patch := func(base geom.Surface, m geom.Affine) (*geom.SurfacePatch, error) {
+		p, e := exactSplineSupportPatch(base, limits)
+		if e != nil || m == geom.Identity() {
+			return p, e
+		}
+		return p.Transformed(m)
+	}
+	p, e := patch(baseA, mapA)
 	if e != nil {
 		return false, e
 	}
-	bp, e := exactSplineSupportPatch(target, limits)
+	q, e := patch(baseB, mapB)
 	if e != nil {
 		return false, e
 	}
-	r, e := geom.CompareSurfaceCurveCompositions(ctx, ap, a, bp, b, geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: limits, MaxEvents: o.MaxIntervals})
+	r, e := geom.CompareSurfaceCurveCompositions(ctx, p, uvA, q, uvB, geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: limits, MaxEvents: o.MaxIntervals})
 	return r.Complete && r.Equal, e
 }
 func compareSewPolynomialTrims(ctx context.Context, a, b parametric.Edge, reverse bool, o edgecheck.Options) (bool, error) {
