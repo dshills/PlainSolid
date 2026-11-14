@@ -1,0 +1,8 @@
+#include <STEPControl_Reader.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <TopExp_Explorer.hxx>
+#include <iostream>
+#include <iomanip>
+int main(int argc,char**argv){if(argc!=2)return 2;STEPControl_Reader r;if(r.ReadFile(argv[1])!=IFSelect_RetDone||!r.TransferRoots())return 3;auto s=r.OneShape();if(s.IsNull()||!BRepCheck_Analyzer(s).IsValid())return 4;GProp_GProps v,a;BRepGProp::VolumeProperties(s,v,1e-12);BRepGProp::SurfaceProperties(s,a,1e-12);int faces=0,solids=0;for(TopExp_Explorer e(s,TopAbs_FACE);e.More();e.Next())faces++;for(TopExp_Explorer e(s,TopAbs_SOLID);e.More();e.Next())solids++;std::cout<<std::setprecision(17)<<"{\"Faces\":"<<faces<<",\"Solids\":"<<solids<<",\"Volume\":"<<v.Mass()<<",\"Area\":"<<a.Mass()<<",\"Center\":["<<v.CentreOfMass().X()<<","<<v.CentreOfMass().Y()<<","<<v.CentreOfMass().Z()<<"]}\n";}
