@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD cardinal/oblique Hole crossings on placed axes — 2026-11-14
+
+The bridge chooses a signed coordinate chart from the authored cardinal
+and oblique tool axes. The existing 4:3 and 3:4 ellipse proof applies
+locally. STEP reconstructs the stock chart from the two cylinder supports
+and the six stock faces, then verifies the entire graph. Sixteen native
+placements cover X and Y cardinal axes, both transverse axes, and both
+slope signs. Existing Z-axis cases remain covered.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-placed-oblique-crossing-step-browser-2026-11-14.json)
+and the [authored YZ stock workflow](evidence/plaincad-placed-oblique-crossing-step-native-2026-11-14.json)
+pass. Its 42,187-byte STEP has 16 exact ellipses and reimports after a
+project reopen. The 404-triangle STL is watertight. OCCT readback agrees
+with the independent Boolean measures under the same coordinate cycle.
+Focused race, vet, and the existing OCCT exchange cases pass.
+
 ## PlainCAD near-floor skew Hole tessellation — 2026-11-14
 
 A narrower valid gap between a skew intersection and its retained floor

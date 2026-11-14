@@ -111,7 +111,9 @@ scoped Cut, retains the stock face IDs, and generates watertight STL.
 Its STEP exchange preserves both analytic ellipses and the cylinder support.
 An equal-radius cardinal bore and a concurrent oblique bore in local
 4:3 or 3:4 axis ratio retain their exact crossing ellipses and all four
-full stock openings through STEP and STL.
+full stock openings through STEP and STL. The cardinal axis may lie
+along X, Y, or Z. Both slope signs and transverse coordinate directions
+retain the same exchange proof.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its
