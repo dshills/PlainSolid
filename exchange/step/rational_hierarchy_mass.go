@@ -64,6 +64,7 @@ type RationalHierarchyMass struct {
 	Sum                   SymbolicMaterialMoments
 	LengthUnit            float64
 	Triangles             int
+	PlanarTests           int
 }
 type RationalHierarchyMassOptions struct {
 	MaxTriangles, MaxCoefficientBits int
@@ -168,7 +169,7 @@ func MeasureRationalSphericalHierarchy(ctx context.Context, m RationalSphericalH
 func MeasureOCCTRationalSphericalHierarchy(ctx context.Context, m OCCTRationalSphericalHierarchy, o RationalHierarchyMassOptions) (RationalHierarchyMass, error) {
 	return measureRationalHierarchy(ctx, RationalSphericalHierarchy(m), o, true)
 }
-func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy, o RationalHierarchyMassOptions, vendor bool) (RationalHierarchyMass, error) {
+func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy, o RationalHierarchyMassOptions, vendor bool, general ...int) (RationalHierarchyMass, error) {
 	bad := func(e error) (RationalHierarchyMass, error) { return RationalHierarchyMass{}, e }
 	if ctx == nil {
 		return bad(geom.ErrInvalid)
@@ -229,35 +230,42 @@ func measureRationalHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 		var mass SymbolicMaterialMoments
 		if p.Planar != nil {
 			v.Family = "planar"
-			mesh := p.Planar.Solid.Tessellate()
-			out.Triangles += len(mesh.Triangles)
-			if out.Triangles > o.MaxTriangles {
-				return bad(geom.ErrConvergence)
-			}
-			for _, t := range mesh.Triangles {
-				if e = ctx.Err(); e != nil {
+			if len(general) != 0 {
+				mass, e = integrateGeneralHierarchyPlanar(ctx, p, v.SourceFaceIDs, &a, &out, o.MaxTriangles, general[0])
+				if e != nil {
 					return bad(e)
 				}
-				x := [3][3]*big.Rat{mappedRatVec(mesh.Vertices[t[0]]), mappedRatVec(mesh.Vertices[t[1]]), mappedRatVec(mesh.Vertices[t[2]])}
-				det := new(big.Rat)
-				for i := 0; i < 3; i++ {
-					z := new(big.Rat).Sub(new(big.Rat).Mul(x[1][(i+1)%3], x[2][(i+2)%3]), new(big.Rat).Mul(x[1][(i+2)%3], x[2][(i+1)%3]))
-					det.Add(det, a.check(new(big.Rat).Mul(x[0][i], z)))
+			} else {
+				mesh := p.Planar.Solid.Tessellate()
+				out.Triangles += len(mesh.Triangles)
+				if out.Triangles > o.MaxTriangles {
+					return bad(geom.ErrConvergence)
 				}
-				vol := a.scalar(new(big.Rat).Quo(det, big.NewRat(6, 1)), 0)
-				mass.v = a.add(mass.v, vol)
-				var s [3]*big.Rat
-				for i := 0; i < 3; i++ {
-					s[i] = a.check(new(big.Rat).Add(new(big.Rat).Add(x[0][i], x[1][i]), x[2][i]))
-					mass.f[i] = a.add(mass.f[i], a.scale(vol, new(big.Rat).Quo(s[i], big.NewRat(4, 1))))
-				}
-				for i := 0; i < 3; i++ {
-					for j := 0; j < 3; j++ {
-						z := a.check(new(big.Rat).Mul(s[i], s[j]))
-						for k := 0; k < 3; k++ {
-							z.Add(z, a.check(new(big.Rat).Mul(x[k][i], x[k][j])))
+				for _, t := range mesh.Triangles {
+					if e = ctx.Err(); e != nil {
+						return bad(e)
+					}
+					x := [3][3]*big.Rat{mappedRatVec(mesh.Vertices[t[0]]), mappedRatVec(mesh.Vertices[t[1]]), mappedRatVec(mesh.Vertices[t[2]])}
+					det := new(big.Rat)
+					for i := 0; i < 3; i++ {
+						z := new(big.Rat).Sub(new(big.Rat).Mul(x[1][(i+1)%3], x[2][(i+2)%3]), new(big.Rat).Mul(x[1][(i+2)%3], x[2][(i+1)%3]))
+						det.Add(det, a.check(new(big.Rat).Mul(x[0][i], z)))
+					}
+					vol := a.scalar(new(big.Rat).Quo(det, big.NewRat(6, 1)), 0)
+					mass.v = a.add(mass.v, vol)
+					var s [3]*big.Rat
+					for i := 0; i < 3; i++ {
+						s[i] = a.check(new(big.Rat).Add(new(big.Rat).Add(x[0][i], x[1][i]), x[2][i]))
+						mass.f[i] = a.add(mass.f[i], a.scale(vol, new(big.Rat).Quo(s[i], big.NewRat(4, 1))))
+					}
+					for i := 0; i < 3; i++ {
+						for j := 0; j < 3; j++ {
+							z := a.check(new(big.Rat).Mul(s[i], s[j]))
+							for k := 0; k < 3; k++ {
+								z.Add(z, a.check(new(big.Rat).Mul(x[k][i], x[k][j])))
+							}
+							mass.q[i][j] = a.add(mass.q[i][j], a.scale(vol, a.check(new(big.Rat).Quo(z, big.NewRat(20, 1)))))
 						}
-						mass.q[i][j] = a.add(mass.q[i][j], a.scale(vol, a.check(new(big.Rat).Quo(z, big.NewRat(20, 1)))))
 					}
 				}
 			}
