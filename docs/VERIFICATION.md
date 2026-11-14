@@ -6133,3 +6133,11 @@ Off-center volume and centroid match independent integration. Results retain
 separate outward and inward shell graphs, including a triangular cavity in
 signed-axis nonconvex stock. Touching or unsupported shells fail before
 publication. The integrated prism shoulder and cavity race passed in 1.684 s.
+
+### Exact nonhorizontal anisotropic band line qualification
+
+Finite nonhorizontal lines confined to one band reduce to weighted
+quartic sectors. Original model parameters and wall IDs survive exact
+and isolated nonexact hits. Generators, ambiguous brackets and exhausted
+budgets reject. The integrated horizontal and nonhorizontal race passed
+in 33.471 s.

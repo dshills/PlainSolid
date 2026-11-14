@@ -129,3 +129,23 @@ candidate events and divides the point-work allowance over exact gap queries;
 each gap reproof has its separately documented source allowance. Outputs are
 owned and failures return no partial ledger. This adds no general oblique or
 coincident-line claim.
+
+## Exact isolated lines confined to one band
+
+`ClipWrappedAnisotropicStationBandLineRational` additionally accepts nonhorizontal
+finite lines when both exact endpoint heights are strictly inside the same
+original station interval. Affine height keeps the complete finite line in that
+band. With positive scales `sx(t),sy(t)`, it forms `U=(x-cx)sy`, `V=(y-cy)sx`
+and `R=sx sy`. Each original weighted-quadrant equation is the quartic
+`w0*w2*(U+V-R)^2 - 4*w1²*(R-U)*(R-V)`. Exact algebraic signs of `R-U`, `R-V`
+and `U+V-R` retain only the original quadrant arc; roots of the other conic branch
+are not contacts. The parameter is never normalized.
+
+One geometric operation ledger includes source proof, polynomial construction,
+root isolation and exact sign filtering. Work is structurally bounded by four
+quartics, at most sixteen roots and three sign proofs per root. Subdivision caps
+apply independently to each quartic and each sign proof. Native event and gap
+quotas remain as above. Identically zero candidate polynomials (including real
+wall generators), ambiguous nonexact root-bracket overlap, station crossings and
+boundary-plane endpoints fail atomically. This does not claim a multi-band or
+coincident-line solver. The earlier horizontal API is unchanged.
