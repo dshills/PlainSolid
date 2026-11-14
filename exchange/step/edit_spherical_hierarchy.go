@@ -143,10 +143,16 @@ func editSphericalHierarchyFrame(f *File, trID, parentRep int64, pose geom.Affin
 	if alternate, err := independentTorusAssemblyPose(composeMappedPose(inverseMappedPose(from), target)); err != nil || alternate != pose {
 		return geom.ErrUnrepresentable
 	}
+	return setSphericalHierarchyTarget(f, trID, parentRep, target)
+}
+
+func setSphericalHierarchyTarget(f *File, trID, parentRep int64, target mappedRationalBasis) error {
+	tr := f.Entities[trID].Records[0]
 	toID := tr.Args[3].Ref
 	frame := f.Entities[toID].Records[0]
 	children := [3]int64{frame.Args[1].Ref, frame.Args[2].Ref, frame.Args[3].Ref}
 	var incoming [4]int
+	owners := map[int64]int{}
 	var maxID int64
 	for id, en := range f.Entities {
 		maxID = max(maxID, id)
@@ -156,6 +162,9 @@ func editSphericalHierarchyFrame(f *File, trID, parentRep int64, pose geom.Affin
 				for i, q := range [4]int64{toID, children[0], children[1], children[2]} {
 					if v.Ref == q {
 						incoming[i]++
+						if i == 0 {
+							owners[id]++
+						}
 					}
 				}
 			}
@@ -169,7 +178,7 @@ func editSphericalHierarchyFrame(f *File, trID, parentRep int64, pose geom.Affin
 			}
 		}
 	}
-	private := incoming == [4]int{2, 1, 1, 1}
+	private := incoming == [4]int{2, 1, 1, 1} && owners[trID] == 1 && owners[parentRep] == 1
 	if !private && maxID > math.MaxInt64-4 {
 		return geom.ErrUnrepresentable
 	}
