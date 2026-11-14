@@ -55,6 +55,13 @@ func (c partialSkewTrim) raw(t float64) (geom.Vec2, error) {
 	}
 	return geom.Vec2{X: math.Atan2(p.X, c.d-p.Y), Y: p.Z}, nil
 }
+
+// PartialSkewAngularInterval exposes the shared regular angular parameter
+// used by both cylinder trims for conservative finite-span interpolation.
+func (c partialSkewTrim) PartialSkewAngularInterval() (float64, float64) {
+	return c.from, c.to
+}
+
 func (c partialSkewTrim) EvalUV(t float64) (geom.Vec2, error) {
 	if t == 0 {
 		return c.start, nil

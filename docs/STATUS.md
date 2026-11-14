@@ -181,8 +181,9 @@ the larger radius covers the smaller bore across the whole transverse
 width. Partial transverse overlap now retains a single analytic trim
 loop for equal or unequal radii and passes native STL. STEP exchanges
 the single loop through compact Hermite splines, retaining the analytic
-supports and recovering the native B-rep on readback. Tighter near-contact
-convergence and general oblique cutter intersections remain open. A blind Hole
+supports and recovering the native B-rep on readback. Adaptive STEP spans qualify the 2 mm and 2.5 mm offsets for 5 mm and
+4 mm radii. Smaller clearances and general oblique cutter intersections
+remain open. A blind Hole
 can intersect an equal-radius perpendicular through Hole when the floor
 lies beyond the complete intersection. Both entry caps, retained face
 references, exact elliptical STEP trims and watertight STL pass. Two
