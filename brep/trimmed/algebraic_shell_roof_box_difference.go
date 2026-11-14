@@ -14,7 +14,7 @@ import (
 // instead leaves an inward cavity. A disjoint footprint retains the stock.
 // The original face ancestry follows the output face order; retained
 // cutter faces reverse.
-// A cutter covering the stock footprint can retain genuine roof creases.
+// Full-footprint cuts and enclosed cavities can retain genuine roof creases.
 // Pinches and unresolved height order fail closed.
 func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxDifferenceHistory, error) {
 	var zero RoofBoxDifferenceHistory
@@ -41,9 +41,6 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 		return unchangedOrderedRoofBox(ctx, stock, &w)
 	}
 	if intersectRectangles(d, b.domain) != d {
-		if len(a.roofSpans) != 0 || len(b.roofSpans) != 0 {
-			return Solid{}, zero, geom.ErrUnrepresentable
-		}
 		return subtractEnclosedOrderedRoofBox(ctx, stock, cutter, q.box, &w)
 	}
 	if len(a.roofSpans) != 0 || len(b.roofSpans) != 0 {
@@ -108,21 +105,24 @@ func subtractEnclosedOrderedRoofBox(ctx context.Context, stock, cutter Solid, bo
 	if d.UMin <= a.domain.UMin || d.UMax >= a.domain.UMax || d.VMin <= a.domain.VMin || d.VMax >= a.domain.VMax || b.floor.Cmp(a.floor) <= 0 {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
-	xy := [2]geom.ExactParameterInterval{
-		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
-		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
-	}
-	cache := make(roofOrderCache)
-	order, err := cache.order(boxes, xy, w)
-	if err != nil {
-		return Solid{}, zero, err
-	}
-	sign, strict, err := orderedRoofPowerSign(ctx, cache[boxes].power, order, w)
-	if err != nil {
-		return Solid{}, zero, err
-	}
-	if sign != 1 || !strict {
-		return Solid{}, zero, geom.ErrUnrepresentable
+	cuts := roofEnvelopeKnotCuts(boxes, d)
+	for i := 0; i < len(cuts[0])-1; i++ {
+		for j := 0; j < len(cuts[1])-1; j++ {
+			if err := ctx.Err(); err != nil {
+				return Solid{}, zero, err
+			}
+			_, xy, roofs, err := roofEnvelopeCell(boxes, cuts, i, j)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			sign, strict, err := orderedRoofBoxOrderDetail(ctx, roofs, xy, w)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			if sign != 1 || !strict {
+				return Solid{}, zero, geom.ErrUnrepresentable
+			}
+		}
 	}
 	inward, err := reverseMaterialShell(ctx, cutter)
 	if err != nil {

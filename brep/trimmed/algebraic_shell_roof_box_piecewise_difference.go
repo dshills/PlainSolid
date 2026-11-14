@@ -143,12 +143,7 @@ func certifyPiecewiseRoofCutCell(ctx context.Context, boxes, roofs [2]*mixedRoof
 			return 0, geom.ErrUnrepresentable
 		}
 	}
-	cache := make(roofOrderCache)
-	difference, err := cache.order(roofs, xy, w)
-	if err != nil {
-		return 0, err
-	}
-	sign, strict, err := orderedRoofPowerSign(ctx, cache[roofs].power, difference, w)
+	sign, strict, err := orderedRoofBoxOrderDetail(ctx, roofs, xy, w)
 	if err != nil || sign <= 0 {
 		return mode, err
 	}

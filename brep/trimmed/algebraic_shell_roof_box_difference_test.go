@@ -173,6 +173,53 @@ func TestOrderedRoofBoxDifferenceEnclosedCavity(t *testing.T) {
 	}
 }
 
+func TestOrderedRoofBoxDifferenceEnclosedCreasedCavity(t *testing.T) {
+	ctx := context.Background()
+	creased := weightedIdentityRoofStockMode(t, false, 2, false, true)
+	inner, _ := makeOpenSplineBox(t, [3]float64{.25, .25, .5}, [3]float64{.75, .75, 1.5}, 0)
+	outer, _ := makeOpenSplineBox(t, [3]float64{-.25, -.25, -.5}, [3]float64{1.25, 1.25, 3}, 0)
+	for _, tc := range []struct {
+		name, oracle  string
+		stock, cutter Solid
+		volume        float64
+	}{
+		{"cavity inside original creased stock", "piecewise-enclosed-stock", creased, inner, 2},
+		{"original creased cavity", "piecewise-enclosed-cutter", outer, creased, 45. / 8},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, h, err := SubtractOrderedRoofBoxes(ctx, tc.stock, tc.cutter, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+			top := out.Topology()
+			if err != nil || len(top.Shells) != 2 || top.EulerCharacteristic != 4 || top.Faces != 12 || len(h.Faces) != 12 {
+				t.Fatal("keep both original shells and the creased support", top, h, err)
+			}
+			for i, face := range h.Faces {
+				owner := [2]Solid{tc.stock, tc.cutter}[i/6].faces[i%6]
+				if face != (MixedRoofFaceOwner{i / 6, i % 6}) || h.Reversed[i] != (i >= 6) || out.faces[i].Surface != owner.Surface {
+					t.Fatal("incorrect original shell ancestry", i, h, face)
+				}
+			}
+			mass, err := out.MassProperties(ctx, parametric.IntegrationOptions{})
+			if err != nil || math.Abs(mass.Volume-tc.volume) > 1e-11 {
+				t.Fatal("independent stock minus cavity volume", mass, tc.volume, err)
+			}
+			if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+				data, err := exec.CommandContext(ctx, oracle, tc.oracle).Output()
+				var ref struct {
+					Volume, Area  float64
+					Solids, Euler int
+				}
+				if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 4 || math.Abs(ref.Volume-mass.Volume) > 1e-8 || math.Abs(ref.Area-mass.Area) > 1e-8 {
+					t.Fatal("pinned OCCT enclosed creased cut", mass, ref, err, string(data))
+				}
+			}
+		})
+	}
+	touch, _ := makeOpenSplineBox(t, [3]float64{.25, .25, .5}, [3]float64{.75, .75, 2.25}, 0)
+	if out, h, err := SubtractOrderedRoofBoxes(ctx, creased, touch, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("contact at the cavity boundary requires a separate topology proof", out.Topology(), h, err)
+	}
+}
+
 func TestOrderedRoofBoxDifferenceFloatingCutter(t *testing.T) {
 	ctx := context.Background()
 	stock, _ := makeOpenSplineBox(t, [3]float64{0, 0, -1}, [3]float64{1, 1, 4}, 0)

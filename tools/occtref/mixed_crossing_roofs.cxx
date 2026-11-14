@@ -347,6 +347,18 @@ int main(int argc, char** argv) {
       report(argv[1],split?BRepAlgoAPI_Cut(box,creased).Shape():BRepAlgoAPI_Cut(creased,box).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && (std::string(argv[1])=="piecewise-enclosed-stock" ||
+                    std::string(argv[1])=="piecewise-enclosed-cutter")) {
+      const auto creased=BRepAlgoAPI_Fuse(creasedHalf(false),creasedHalf(true)).Shape();
+      if(std::string(argv[1])=="piecewise-enclosed-stock") {
+        const auto inner=BRepPrimAPI_MakeBox(gp_Pnt(.25,.25,.5),gp_Pnt(.75,.75,1.5)).Shape();
+        report(argv[1],BRepAlgoAPI_Cut(creased,inner).Shape(),1e-12);
+      } else {
+        const auto outer=BRepPrimAPI_MakeBox(gp_Pnt(-.25,-.25,-.5),gp_Pnt(1.25,1.25,3)).Shape();
+        report(argv[1],BRepAlgoAPI_Cut(outer,creased).Shape(),1e-12);
+      }
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="iso-crossing-ordered-common") {
       const auto curved=graphStock(true,true);
       const auto plane=BRepPrimAPI_MakeBox(gp_Pnt(0,-.125,0),gp_Pnt(1,1.125,17./16)).Shape();

@@ -157,16 +157,20 @@ func certifyRoofStrictlyAboveFloor(ctx context.Context, roof *geom.SurfacePatch,
 // A positive sign means the first roof is the higher one; zero denotes
 // identical graphs. An unresolved mixed sign is never reported as equality.
 func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
+	sign, _, err := orderedRoofBoxOrderDetail(ctx, boxes, xy, w)
+	return sign, err
+}
+
+func orderedRoofBoxOrderDetail(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, bool, error) {
 	power, err := orderedRoofHeightDifference(boxes, xy, w)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	difference, err := mixedRoofPowerRange(power, orderedRoofUnitIntervals(), w)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
-	sign, _, err := orderedRoofPowerSign(ctx, power, difference, w)
-	return sign, err
+	return orderedRoofPowerSign(ctx, power, difference, w)
 }
 
 func orderedRoofHeightDifference(boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (roofPowerGrid, error) {
