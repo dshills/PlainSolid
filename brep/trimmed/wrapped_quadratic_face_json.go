@@ -233,10 +233,21 @@ func checkWrappedRecipeJSON(ctx context.Context, raw []byte) error {
 }
 
 func decodeWrappedQuadraticFaceRecipe(ctx context.Context, n wrappedQuadraticFaceRecipe, o WrappedQuadraticFaceJSONOptions) (*WrappedQuadraticFace, error) {
+	return decodeWrappedQuadraticFaceRecipeMode(ctx, n, o, false)
+}
+
+func decodeWrappedQuadraticFaceRecipeMode(ctx context.Context, n wrappedQuadraticFaceRecipe, o WrappedQuadraticFaceJSONOptions, algebraic bool) (*WrappedQuadraticFace, error) {
+	kind := "wrapped-quadratic-open-face"
+	if algebraic {
+		kind = "wrapped-algebraic-quadratic-open-face"
+		if o.Face.MaxPieces > 8192 {
+			return nil, geom.ErrInvalid
+		}
+	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	if n.Version != 1 || n.Kind != "wrapped-quadratic-open-face" || len(n.Loops) < 1 || len(n.Loops) > 10 || len(n.ProjectionAxes) != 2 || n.ContinuityOrder < 0 || n.ContinuityOrder > 1 || !n.WrapU && !n.WrapV {
+	if n.Version != 1 || n.Kind != kind || len(n.Loops) < 1 || len(n.Loops) > 10 || len(n.ProjectionAxes) != 2 || n.ContinuityOrder < 0 || n.ContinuityOrder > 1 || !n.WrapU && !n.WrapV {
 		return nil, geom.ErrInvalid
 	}
 	d := n.Surface
@@ -335,7 +346,7 @@ func decodeWrappedQuadraticFaceRecipe(ctx context.Context, n wrappedQuadraticFac
 	if options.ProjectionAxes == ([2]int{}) {
 		options.ProjectionAxes = [2]int{n.ProjectionAxes[0], n.ProjectionAxes[1]}
 	}
-	face, e := NewWrappedQuadraticFace(ctx, wrapped, loops[0], loops[1:], options)
+	face, e := newWrappedQuadraticFace(ctx, wrapped, loops[0], loops[1:], options, algebraic)
 	if e != nil {
 		return nil, e
 	}
