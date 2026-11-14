@@ -36,7 +36,11 @@ type FilletedFrustumNearestRimParameters struct {
 // range. No azimuth-derived or rounded parameter is substituted. Algebraic
 // unrecovered, multiple-per-edge or constant preimages fail atomically.
 // An unsupported/nonexact nearest witness retains only the baseline.
-func (q FilletedFrustumMaterial) LocateNearestFilletRimRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumRimParameterOptions) (out FilletedFrustumNearestRimParameters, err error) {
+func (q FilletedFrustumMaterial) LocateNearestFilletRimRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumRimParameterOptions) (FilletedFrustumNearestRimParameters, error) {
+	return q.locateNearestNativeRimRational(ctx, p, o, false)
+}
+
+func (q FilletedFrustumMaterial) locateNearestNativeRimRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumRimParameterOptions, bore bool) (out FilletedFrustumNearestRimParameters, err error) {
 	defer func() {
 		if err != nil {
 			out = FilletedFrustumNearestRimParameters{}
@@ -63,12 +67,27 @@ func (q FilletedFrustumMaterial) LocateNearestFilletRimRational(ctx context.Cont
 		return out, nil
 	}
 	var edges []int
-	for end := 0; end < 2; end++ {
-		for role, other := range []int{q.fillets.Caps[end], q.fillets.Lateral} {
-			a, b := base.WitnessFaces[0], base.WitnessFaces[1]
-			blend := q.fillets.Blends[end]
-			if (a == blend && b == other) || (b == blend && a == other) {
-				edges = append(edges, q.fillets.Rims[end][role][:]...)
+	if bore {
+		for _, cut := range q.cuts {
+			for end := 0; end < 2; end++ {
+				other := cut.floor
+				if cut.open[end] {
+					other = q.fillets.Caps[end]
+				}
+				a, b := base.WitnessFaces[0], base.WitnessFaces[1]
+				if (a == cut.wall && b == other) || (b == cut.wall && a == other) {
+					edges = append(edges, q.solid.filletedSharedRimEdges(cut.wall, other)...)
+				}
+			}
+		}
+	} else {
+		for end := 0; end < 2; end++ {
+			for role, other := range []int{q.fillets.Caps[end], q.fillets.Lateral} {
+				a, b := base.WitnessFaces[0], base.WitnessFaces[1]
+				blend := q.fillets.Blends[end]
+				if (a == blend && b == other) || (b == blend && a == other) {
+					edges = append(edges, q.fillets.Rims[end][role][:]...)
+				}
 			}
 		}
 	}
