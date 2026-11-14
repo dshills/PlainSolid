@@ -10,6 +10,9 @@ import (
 )
 
 func crossingFootprintRoofShell(t *testing.T, second bool) (Solid, *geom.BSplineSurface) {
+	return crossingFootprintRoofShellShape(t, second, false)
+}
+func crossingFootprintRoofShellShape(t *testing.T, second, bubble bool) (Solid, *geom.BSplineSurface) {
 	t.Helper()
 	xlo, xhi, ylo, yhi, floor := -.125, 1.125, 0., 1., -1.
 	if second {
@@ -18,6 +21,9 @@ func crossingFootprintRoofShell(t *testing.T, second bool) (Solid, *geom.BSpline
 	xs, ys := [3]float64{xlo, (xlo + xhi) / 2, xhi}, [3]float64{ylo, (ylo + yhi) / 2, yhi}
 	z := func(i, j int) float64 {
 		v := xs[i] * ys[j] / 64
+		if bubble {
+			v = []float64{xlo - xlo*xlo, (xlo+xhi)/2 - xlo*xhi, xhi - xhi*xhi}[i] * []float64{ylo - ylo*ylo, (ylo+yhi)/2 - ylo*yhi, yhi - yhi*yhi}[j] / 64
+		}
 		if second {
 			v += []float64{3.0 / 16, -5.0 / 16, 3.0 / 16}[i] + []float64{ylo - ylo*ylo, (ylo+yhi)/2 - ylo*yhi, yhi - yhi*yhi}[j]/64
 		}
@@ -161,8 +167,82 @@ func TestAutomaticOverlappingRoofShellContinuation(t *testing.T) {
 	if !errors.Is(e, intersect.ErrUnresolved) || result.Complete || len(result.Wires) != 0 {
 		t.Fatal("unproved global continuation", e)
 	}
-	if len(result.Pairs) == 0 || result.Pairs[len(result.Pairs)-1] != [2]int{4, 2} {
+	if len(result.Pairs) == 0 || result.Pairs[len(result.Pairs)-1] != [2]int{5, 1} {
 		t.Fatal("unexpected frontier", result.Pairs, e)
 	}
 	t.Log("exact iso neighbor complete; remaining planar-wall frontier", result.Pairs[len(result.Pairs)-1])
+}
+
+func TestAutomaticOverlappingBubbleRoofShell(t *testing.T) {
+	ctx := context.Background()
+	a, _ := crossingFootprintRoofShellShape(t, false, true)
+	b, _ := crossingFootprintRoofShellShape(t, true, true)
+	o := AlgebraicShellSectionOptions{}
+	o.Trace.UniformOverlapGraphFallback = intersect.UniformGraphDiscoveryOptions{GridDivisions: 16, AxisDivisions: [2]int{8, 16}}
+	o.Trace.UniformOverlapGraphFallback.Enabled = true
+	o.Trace.UniformOverlapGraphFallback.Plane.Arcs.ResolveSubdivisionCorners = true
+	o.Trace.UniformOverlapGraphFallback.MaxArcs = 1024
+	o.Trace.UniformOverlapGraphFallback.MaxTubes = 1024
+	o.Trace.Coverage.Isolation.ParameterTolerance = .125
+	o.Trace.Coverage.Cell.MaxOperations = 16000000
+	o.Trace.Branches.PruneSeparatedEndpoints = true
+	o.Trace.Branches.MaxComparisons = 4096
+	o.Trace.MaxTopologyPairs = 1000000
+	o.Trace.Coverage.MaxCandidateTests = 4096
+	o.Trace.Coverage.IsoPlaneFallback = true
+	o.Trace.PlaneFallback.Enabled = true
+	o.Trace.PlaneFallback.Plane.Arcs.ResolveSubdivisionCorners = true
+
+	r, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
+	if e != nil || !r.Complete || len(r.Wires) != 2 || len(r.Branches) != 12 {
+		t.Fatal("bubble shell", r.Complete, len(r.Branches), r.Wires, r.Pairs, e)
+	}
+	seen := map[int]bool{}
+	for _, wire := range r.Wires {
+		if len(wire) != 4 && len(wire) != 8 {
+			t.Fatal("unexpected cycle size", len(wire))
+		}
+		for i, use := range wire {
+			if seen[use.Branch] {
+				t.Fatal("duplicate branch incidence")
+			}
+			seen[use.Branch] = true
+			branch := r.Branches[use.Branch]
+			if branch.Closed || branch.EdgeParameters[0] == nil || branch.EdgeParameters[1] == nil {
+				t.Fatal("lost original edge roots")
+			}
+			end := 1
+			if use.Reversed {
+				end = 0
+			}
+			nextUse := wire[(i+1)%len(wire)]
+			next := r.Branches[nextUse.Branch]
+			start := 0
+			if nextUse.Reversed {
+				start = 1
+			}
+			equal, _, e := branch.Ends[end].Certificate.ModelEvent.CompareModelPoint(ctx, next.Ends[start].Certificate.ModelEvent, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || !equal {
+				t.Fatal("unmatched original model junction", e)
+			}
+		}
+	}
+	if len(seen) != len(r.Branches) {
+		t.Fatal("omitted branch")
+	}
+	for i, pair := range r.Pairs {
+		if pair == [2]int{4, 2} {
+			seeds := r.Sections[i].Trace.Seeds
+			seeds.Attempts = seeds.Attempts[:len(seeds.Attempts)-1]
+			ap, _ := exactFaceSupportPatch(a.faces[4], geom.SurfacePatchOptions{})
+			bp, _ := exactFaceSupportPatch(b.faces[2], geom.SurfacePatchOptions{})
+			pa, _ := algebraicShellTracePatch(a.faces[4], ap.Domain())
+			pb, _ := algebraicShellTracePatch(b.faces[2], bp.Domain())
+			bad, e := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, pa, pb, seeds, intersect.IsoPlaneTubeCoverageOptions{})
+			if e == nil || bad.Covered {
+				t.Fatal("omitted nonbinary terminal tube", e)
+			}
+		}
+	}
+	t.Log("two complete original-owner wires", len(r.Wires[0]), len(r.Wires[1]))
 }

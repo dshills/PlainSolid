@@ -81,18 +81,16 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 				}
 				return r, e
 			}
-			if len(clipped.Contacts) > 0 {
+			if !clipped.Complete || len(clipped.Contacts) > 0 || len(clipped.CoincidentBoundary) > 0 {
 				supported = false
 				break
 			}
 			for _, span := range clipped.Spans {
-				start, e := geom.RepresentedExactScalar(span.Start.Parameter)
-				end, other := geom.RepresentedExactScalar(span.End.Parameter)
-				if e != nil || other != nil || span.Start.TangentBoundary || span.End.TangentBoundary {
+				if span.Start.TangentBoundary || span.End.TangentBoundary {
 					supported = false
 					break
 				}
-				tubes, e := geom.DiscoverSurfaceIsoPlaneTubes(ctx, source, plane, section.axis, section.fixed, start, end, o.Tubes)
+				tubes, e := geom.DiscoverSurfaceIsoPlaneRationalTubes(ctx, source, plane, section.axis, section.fixed, span.Start.Parameter, span.End.Parameter, o.Tubes)
 				if e != nil {
 					if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) || errors.Is(e, geom.ErrDegenerate) {
 						supported = false
