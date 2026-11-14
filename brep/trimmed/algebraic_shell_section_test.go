@@ -218,6 +218,37 @@ func TestAlgebraicShellSectionAcrossOriginalEdges(t *testing.T) {
 	if e != nil || p.Volume < .1249999 || p.Volume > .1250001 {
 		t.Fatal(p.Volume, e)
 	}
+	indexed, e := back.CombineAlgebraic(ctx, parametric.Intersection, AlgebraicShellBooleanOptions{})
+	if e != nil {
+		t.Fatal("exact algebraic source boundary", e)
+	}
+	indexed.Edges[0].Start = -1 // Mutable diagnostics cannot alter native reconstruction.
+	indexed.Faces[0].Outer[0].Edge = -1
+	if bad, e := indexed.NativeRepresentable(ctx, 1e-8, NativeAlgebraicBooleanOptions{MaxEdges: 1}); !errors.Is(e, geom.ErrConvergence) || len(bad.faces) != 0 {
+		t.Fatal("native conversion work cap leaked partial topology", e)
+	}
+	converted, e := indexed.NativeRepresentable(ctx, 1e-8, NativeAlgebraicBooleanOptions{})
+	if e != nil || converted.Topology().EulerCharacteristic != 2 || len(converted.faces) != len(indexed.faces) || len(converted.edges) != len(indexed.index) {
+		t.Fatal("reconstructed closed native source", converted.Topology(), e)
+	}
+	for i, f := range converted.faces {
+		original, e := indexed.OriginalFace(i)
+		if e != nil || f.Surface != original.Surface {
+			t.Fatal("lost original face chart", i, e)
+		}
+	}
+	var nativeBoundary bytes.Buffer
+	if e := WriteJSON(&nativeBoundary, converted); e != nil {
+		t.Fatal("ordinary native boundary persistence", e)
+	}
+	reloaded, e := ReadJSONContext(ctx, &nativeBoundary, JSONLimits{})
+	if e != nil || reloaded.Topology().EulerCharacteristic != 2 {
+		t.Fatal("ordinary native reload", reloaded.Topology(), e)
+	}
+	if mass, e := reloaded.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-5}); e != nil ||
+		mass.Volume < .1249999 || mass.Volume > .1250001 {
+		t.Fatal("native reload changed independent mass", mass.Volume, e)
+	}
 	var malformed nativeAlgebraicShellSection
 	if e := json.Unmarshal(native.Bytes(), &malformed); e != nil {
 		t.Fatal(e)
