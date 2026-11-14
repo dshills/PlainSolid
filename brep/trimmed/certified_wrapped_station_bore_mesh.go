@@ -35,10 +35,16 @@ type CertifiedWrappedStationBoreMesh struct {
 // Options share triangle/sample budgets across families and retry passes;
 // source validation and contact checks retain their separately bounded budgets.
 func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o CertifiedWrappedStationMeshOptions) (out CertifiedWrappedStationBoreMesh, err error) {
-	return s.tessellateWrappedStationBoreBoundaries(ctx, o, nil)
+	return s.tessellateWrappedProfileStationBore(ctx, o, nil, true)
 }
 
-func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o CertifiedWrappedStationMeshOptions, capture *[]wrappedDisplayBand) (out CertifiedWrappedStationBoreMesh, err error) {
+// TessellateWrappedRationalStationBoreCertified certifies the two original
+// noncircular wall families and their exact annular cap charts.
+func (s Solid) TessellateWrappedRationalStationBoreCertified(ctx context.Context, o CertifiedWrappedStationMeshOptions) (CertifiedWrappedStationBoreMesh, error) {
+	return s.tessellateWrappedProfileStationBore(ctx, o, nil, false)
+}
+
+func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o CertifiedWrappedStationMeshOptions, capture *[]wrappedDisplayBand, circular bool) (out CertifiedWrappedStationBoreMesh, err error) {
 	if capture != nil {
 		*capture = nil
 		defer func() {
@@ -70,7 +76,7 @@ func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o Cer
 	if o.Band.MaxTriangles < 1 || o.Band.MaxTriangles > 8000000 || o.Band.Patch.MaxTriangleChecks < 1 || o.MaxStationSamples < 1 || o.MaxStationSamples > 1000000 || o.Band.Patch.MaxSubdivisions < 1 || o.Band.Patch.MaxSubdivisions > 128 || o.Band.Patch.MaxSubdivisions&(o.Band.Patch.MaxSubdivisions-1) != 0 || !finite(o.Band.Patch.Deflection) || o.Band.Patch.Deflection <= 0 {
 		return out, geom.ErrInvalid
 	}
-	proof, e := s.ValidateWrappedCircularStationBore(ctx, o.Band.Embedding)
+	proof, e := s.validateWrappedProfileStationBore(ctx, o.Band.Embedding, circular)
 	if e != nil {
 		return out, e
 	}
@@ -79,6 +85,10 @@ func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o Cer
 	}
 	var families [2]Solid
 	var bands [2][]*geom.WrappedSurfacePatch
+	build := NewWrappedRationalStationLoft
+	if circular {
+		build = NewWrappedCircularStationLoft
+	}
 	originals := [2][]int{proof.OuterWalls, proof.InnerWalls}
 	for wall, ids := range originals {
 		for _, id := range ids {
@@ -91,7 +101,7 @@ func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o Cer
 			}
 			bands[wall] = append(bands[wall], w)
 		}
-		families[wall], _, e = NewWrappedCircularStationLoft(ctx, bands[wall], s.tolerance, o.Band.Embedding)
+		families[wall], _, e = build(ctx, bands[wall], s.tolerance, o.Band.Embedding)
 		if e != nil {
 			return out, e
 		}
@@ -171,7 +181,7 @@ func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o Cer
 			if capture != nil {
 				record = &localBands[wall]
 			}
-			local[wall], e = families[wall].tessellateWrappedStationLoftBoundaries(ctx, opts, minimum, record)
+			local[wall], e = families[wall].tessellateWrappedProfileStationLoft(ctx, opts, minimum, record, circular)
 			if e != nil {
 				return out, e
 			}

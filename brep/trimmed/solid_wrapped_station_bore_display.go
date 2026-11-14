@@ -9,7 +9,7 @@ import (
 )
 
 // PreparedWrappedStationBoreDisplay authenticates independently partitioned
-// outer and inward inner circular station walls with two annular caps. All
+// outer and inward inner station walls with two annular caps. All
 // returned face/edge/use IDs refer to the original native material, not to
 // reconstructed capped shells used privately by its source certificate.
 type PreparedWrappedStationBoreDisplay struct {
@@ -72,6 +72,16 @@ func (p *PreparedWrappedStationBoreDisplay) Caps() [2]int {
 // Existing cumulative triangle/station budgets and separately bounded source,
 // local and final contact proofs remain in force. No volume-error bound is claimed.
 func (s Solid) PrepareWrappedStationBoreDisplay(ctx context.Context, o CertifiedWrappedStationMeshOptions, validation placement.ClosedDisplayOptions) (*PreparedWrappedStationBoreDisplay, error) {
+	return s.prepareWrappedProfileStationBoreDisplay(ctx, o, validation, true)
+}
+
+// PrepareWrappedRationalStationBoreDisplay binds a certified noncircular
+// annular mesh to the original native faces, uses and shared station rims.
+func (s Solid) PrepareWrappedRationalStationBoreDisplay(ctx context.Context, o CertifiedWrappedStationMeshOptions, validation placement.ClosedDisplayOptions) (*PreparedWrappedStationBoreDisplay, error) {
+	return s.prepareWrappedProfileStationBoreDisplay(ctx, o, validation, false)
+}
+
+func (s Solid) prepareWrappedProfileStationBoreDisplay(ctx context.Context, o CertifiedWrappedStationMeshOptions, validation placement.ClosedDisplayOptions, circular bool) (*PreparedWrappedStationBoreDisplay, error) {
 	n := len(s.faces) - 2
 	if ctx == nil || n < 2 || n > 16 || len(s.edges) != 5*n+8 || len(s.vertices) != 4*(n+2) {
 		return nil, geom.ErrInvalid
@@ -99,7 +109,7 @@ func (s Solid) PrepareWrappedStationBoreDisplay(ctx context.Context, o Certified
 		o.Band.MaxTriangles = 100000
 	}
 	var boundary []wrappedDisplayBand
-	report, e := s.tessellateWrappedStationBoreBoundaries(ctx, o, &boundary)
+	report, e := s.tessellateWrappedProfileStationBore(ctx, o, &boundary, circular)
 	if e != nil {
 		return nil, e
 	}
