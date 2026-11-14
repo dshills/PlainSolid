@@ -850,10 +850,15 @@ Both runs verified 841 pinned app files and 2,200 kernel source blobs, with
 unchanged original acceptance configurations.
 The second agent's worktree through `e2e9a253` was integrated into `main` by
 merge `8f76f16b`, preserving both histories. The full development run on
-review `f87dd4f3` separately hit two drawing import-readiness failures.
+review `f87dd4f3` passed 340 of 344 cases. Two original cases require the
+default local port and two drawing cases failed during import or setup.
 [The targeted controls](evidence/plaincad-f87dd4f3-drawing-targeted-controls-2026-11-14.json)
 passed all three unchanged drawing cases on both PlainSolid and the app's
 OCCT backend; the original failure runs remain distinct.
+The [exact merged-kernel report](evidence/plaincad-kernel-main-8f76f16-2026-11-14.json)
+separately records original and controlled production runs, all 15
+cross-browser cases and focused native verification. A clean full
+development run remains an open qualification gate.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
@@ -2005,3 +2010,5 @@ facade supports the verified neutral, vendor and affine-pcurve conventions.
 The separate `IndependentFrustumHierarchy` exchanges exact wrapped
 circular frustum solids with existing planar, spherical, cylindrical and
 toroidal products under proper signed-coordinate occurrence placement.
+Its native envelope re-proves the original STEP graph, local topology,
+original support IDs and exact placement paths before returning geometry.

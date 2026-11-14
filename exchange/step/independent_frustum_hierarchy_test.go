@@ -15,8 +15,8 @@ import (
 	"testing"
 )
 
-func TestIndependentFrustumHierarchy(t *testing.T) {
-	ctx := context.Background()
+func frustumHierarchyModel(t testing.TB) IndependentTorusAssemblyModel {
+	t.Helper()
 	m := IndependentTorusAssemblyModel(sphericalHierarchyModel(t))
 	raw, e := os.ReadFile("testdata/wrapped-circular-frustum.step")
 	if e != nil {
@@ -37,6 +37,15 @@ func TestIndependentFrustumHierarchy(t *testing.T) {
 			pose = geom.Affine{{0, 0, 1, x}, {0, 1, 0, 20}, {-1, 0, 0, 0}}
 		}
 		m.Occurrences = append(m.Occurrences, AssemblyInstance{ID: id, Parent: "root", Child: "frustum", Transform: pose})
+	}
+	return m
+}
+func TestIndependentFrustumHierarchy(t *testing.T) {
+	ctx := context.Background()
+	m := frustumHierarchyModel(t)
+	raw, e := os.ReadFile("testdata/wrapped-circular-frustum.step")
+	if e != nil {
+		t.Fatal(e)
 	}
 	var out bytes.Buffer
 	if e = WriteIndependentFrustumHierarchy(ctx, &out, IndependentFrustumHierarchyModel(m), Limits{}, 1e-9); e != nil {

@@ -35,7 +35,8 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 	cylinder := len(cylinderMode) >= 1 && cylinderMode[0]
 	dag := cylinder && len(cylinderMode) >= 2 && cylinderMode[1]
 	hierarchy := dag && len(cylinderMode) >= 3 && cylinderMode[2]
-	sphere := hierarchy && len(cylinderMode) == 4 && cylinderMode[3]
+	sphere := hierarchy && len(cylinderMode) >= 4 && cylinderMode[3]
+	frustum := sphere && len(cylinderMode) == 5 && cylinderMode[4]
 	products := 3
 	if cylinder {
 		products = 4
@@ -57,10 +58,17 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 	}
 	if sphere {
 		locals = len(m.Products)
-		if locals < 3 || locals > 4 {
+		maxLocals := 4
+		if frustum {
+			maxLocals = 5
+		}
+		if locals < 3 || locals > maxLocals {
 			return q, nil, geom.ErrInvalid
 		}
 		q.Format = independentSphericalHierarchyClaimsFormat
+		if frustum {
+			q.Format = independentFrustumHierarchyClaimsFormat
+		}
 	}
 	var trustedClaims []IndependentExactMaterial
 	if len(m.Products) != locals || len(m.Assembly.Products) != products || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < products || (!hierarchy && len(m.Assembly.Occurrences) > 16) || len(m.Assembly.Occurrences) > 64 {
@@ -96,11 +104,19 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 		if p.Planar != nil {
 			q.Tolerance = tol
 		}
-		claims, native, e := independentMaterialClaims(p, cylinder, sphere, true)
+		var claims IndependentExactMaterial
+		var native json.RawMessage
+		var e error
+		var frustumCanonical string
+		if frustum && p.Frustum != nil {
+			claims, native, frustumCanonical, e = independentFrustumClaims(p)
+		} else {
+			claims, native, e = independentMaterialClaims(p, cylinder, sphere, true)
+		}
 		if e != nil {
 			return q, nil, e
 		}
-		if p.Torus == nil && p.Planar == nil && !(cylinder && p.Cylinder != nil) && !(sphere && p.Sphere != nil) {
+		if p.Torus == nil && p.Planar == nil && !(cylinder && p.Cylinder != nil) && !(sphere && p.Sphere != nil) && !(frustum && p.Frustum != nil) {
 			return q, nil, geom.ErrInvalid
 		}
 		b, e := json.Marshal(claims)
@@ -126,6 +142,16 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 				Material    IndependentExactMaterial
 				SphereFrame geom.Affine
 			}{claims, frameTransform(p.Sphere.Frame)})
+			if e != nil {
+				return q, nil, e
+			}
+		}
+
+		if p.Frustum != nil {
+			member.Claims, e = json.Marshal(struct {
+				Material             IndependentExactMaterial
+				CanonicalFrustumSTEP string
+			}{claims, frustumCanonical})
 			if e != nil {
 				return q, nil, e
 			}

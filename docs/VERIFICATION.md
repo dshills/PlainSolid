@@ -5618,6 +5618,13 @@ emission. Old hierarchy readers and native tags retain their limits.
 The integrated focused race including legacy torus and aggregate distance
 regressions passed in 16.291 s.
 
+The distinct source-bound frustum hierarchy envelope round-trips
+canonically through native and source STEP. It rejects forged local native
+geometry, support provenance, definition IDs, roles, pose paths, source
+bytes, tag and version. Native-to-STEP transfer remains valid in the live
+OCCT assembly oracle. The integrated native/frustum/legacy-torus race
+passed in 21.393 s; the originating bounded fuzz run exercised 40 inputs.
+
 The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
 finished with 340 passes and four failures. The original two focused
 constraint repair assertions seed storage at port 5279, whereas the first
