@@ -21,3 +21,11 @@ local torus and stock axes distinct: their world axes are respectively
 (24/25,0,-7/25) and (4/5,0,3/5). The native prepared-query test compares
 this actual transformed original geometry, including an axial circle family
 and quarter-chart vertex ownership after native JSON reload.
+
+With final arguments `oblique witness`, the oracle additionally emits the
+world XYZ point of one numerical nearest face solution. The enclosure test
+checks unique rational and irrational-azimuth feet, and verifies the returned
+point lies inside the complete certified circle-family bounds when the nearest
+point is nonunique. XYZ comparisons allow1e-7 oracle error. Independently, a
+Sturm-isolated sqrt(2) root verifies all three exact transformed irrational
+witness coordinates; no OCCT point is used to establish ownership or proof.
