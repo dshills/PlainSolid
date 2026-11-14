@@ -6073,3 +6073,11 @@ single-class fixtures still pass. The full draft race passed in 8.196 s.
 Fixtures cover staggered, contained and tied caps, rational clipped wall
 fractions, a disconnected nonconvex profile intersection, and separate
 axial or footprint contact cases. The integrated race passed in 1.563 s.
+
+### Convex erosion through topology changes
+
+The full convex entry reconstructs the native box after a diagonal
+support disappears. The fixtures cover both an irrational support
+beyond extinction and a Pythagorean support at exact extinction. Native
+volume, exact volume and original support maps agree. A collapsed height
+regularizes to an empty solid. The full draft race passed in 9.166 s.

@@ -45,7 +45,7 @@ type EuclideanInsetResult struct {
 // A topology change, unresolved arithmetic or invalid rounded result fails
 // atomically. The ideal erosion and rounded Solid have separate coordinates.
 func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options) (EuclideanInsetResult, error) {
-	result, err := insetStableEuclidean(ctx, s, distance, o, 1)
+	result, err := insetConvexEuclidean(ctx, s, distance, o, 1, true)
 	if err != nil {
 		return EuclideanInsetResult{}, err
 	}
@@ -101,7 +101,21 @@ type AlgebraicEuclideanInsetResult struct {
 // tracks each basis coefficient. Outward rational bounds decide the signs of
 // sums with more than two terms within the configured work and bit limits.
 func InsetStableEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options) (AlgebraicEuclideanInsetResult, error) {
-	result, err := insetStableEuclidean(ctx, s, distance, o, 4)
+	return insetEuclideanAlgebraic(ctx, s, distance, o, true)
+}
+
+// InsetConvexEuclideanAlgebraic erodes a convex planar solid by a Euclidean
+// ball and reconstructs every feasible displaced halfspace facet. Supports
+// can disappear and vertices can change incidence. Lower-dimensional and
+// empty results produce an empty regularized solid with exact zero volume.
+// At most four independent normal classes and the native conversion limits
+// of InsetStableEuclideanAlgebraic apply.
+func InsetConvexEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options) (AlgebraicEuclideanInsetResult, error) {
+	return insetEuclideanAlgebraic(ctx, s, distance, o, false)
+}
+
+func insetEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options, stable bool) (AlgebraicEuclideanInsetResult, error) {
+	result, err := insetConvexEuclidean(ctx, s, distance, o, 4, stable)
 	if err != nil {
 		return AlgebraicEuclideanInsetResult{}, err
 	}
@@ -127,7 +141,7 @@ func InsetStableEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance f
 		OldToNew: result.base.OldToNew, MaxSquaredDisplacement: result.displacement}, nil
 }
 
-type insetStableResult struct {
+type insetEuclideanResult struct {
 	solid        brep.Solid
 	base         Result
 	radicals     []*big.Rat
@@ -137,8 +151,8 @@ type insetStableResult struct {
 	displacement *big.Rat
 }
 
-func insetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options, maxGenerators int) (insetStableResult, error) {
-	var empty insetStableResult
+func insetConvexEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options, maxGenerators int, stable bool) (insetEuclideanResult, error) {
+	var empty insetEuclideanResult
 	if ctx == nil || math.IsInf(distance, 0) || math.IsNaN(distance) || distance < 0 {
 		return empty, ErrInvalid
 	}
@@ -150,6 +164,9 @@ func insetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if err != nil {
 		return empty, err
 	}
+	if !stable && len(base.FacePlanes) == 0 && len(s.Faces()) == 0 {
+		return insetEuclideanResult{base: base, radicals: []*big.Rat{big.NewRat(1, 1)}, displacement: new(big.Rat)}, nil
+	}
 	if len(base.FacePlanes) < 4 || len(base.ExactVertices) < 4 {
 		return empty, ErrUnsupported
 	}
@@ -158,11 +175,34 @@ func insetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if err != nil {
 		return empty, err
 	}
-	points, err := insetStableAlgebraicVertices(base, planes, &field)
-	if err != nil {
-		return empty, err
+	var boundary insetAlgebraicBoundary
+	if stable {
+		points, err := insetStableAlgebraicVertices(base, planes, &field)
+		if err != nil {
+			return empty, err
+		}
+		boundary = insetAlgebraicBoundary{points: points, edges: base.Solid.Edges(), faces: base.Solid.Faces(), planes: planes}
+	} else {
+		boundary, err = insetConvexAlgebraicBoundary(planes, &field)
+		if err != nil {
+			return empty, err
+		}
+		for i := range base.OldToNew {
+			base.OldToNew[i] = -1
+		}
+		sources := make([][]int, len(boundary.planes))
+		for i, p := range boundary.sources {
+			sources[i] = base.FaceSources[p]
+			for _, id := range sources[i] {
+				base.OldToNew[id] = i
+			}
+		}
+		base.FaceSources = sources
+		if len(boundary.points) == 0 {
+			return insetEuclideanResult{base: base, radicals: field.radicals, displacement: new(big.Rat)}, nil
+		}
 	}
-	volume := insetStableVolume(base.Solid, points, &field)
+	volume := insetVolume(boundary, &field)
 	volumeSign := field.sign(volume)
 	if field.work.err != nil {
 		return empty, field.work.err
@@ -170,19 +210,19 @@ func insetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if volumeSign <= 0 {
 		return empty, ErrUnsupported
 	}
-	nativePoints, displacement, err := insetAlgebraicNativeVertices(points, &field)
+	nativePoints, displacement, err := insetAlgebraicNativeVertices(boundary.points, &field)
 	if err != nil {
 		return empty, err
 	}
-	native, err := brep.NewSolid(nativePoints, base.Solid.Edges(), base.Solid.Faces())
+	native, err := brep.NewSolid(nativePoints, boundary.edges, boundary.faces)
 	if err != nil {
 		return empty, fmt.Errorf("%w: %v", ErrPrecision, err)
 	}
 	if err = validate(ctx, native, o); err != nil {
 		return empty, err
 	}
-	return insetStableResult{solid: native, base: base, radicals: field.radicals, vertices: points,
-		volume: volume, planes: planes, displacement: displacement}, nil
+	return insetEuclideanResult{solid: native, base: base, radicals: field.radicals, vertices: boundary.points,
+		volume: volume, planes: boundary.planes, displacement: displacement}, nil
 }
 
 type insetRadicalPlane struct {
@@ -229,54 +269,20 @@ func insetStableAlgebraicVertices(base Result, planes []insetRadicalPlane, f *in
 	}
 	points := make([][3]insetAlgebraic, len(base.ExactVertices))
 	matched := 0
-	for i, a := range planes {
+	for i := range planes {
 		for j := i + 1; j < len(planes); j++ {
 			for k := j + 1; k < len(planes); k++ {
-				if !f.work.tick() {
-					return nil, f.work.err
+				triple := [3]int{i, j, k}
+				id, original := active[triple]
+				candidate, err := insetPlaneIntersection(planes, triple, f)
+				if err != nil {
+					return nil, err
 				}
-				b, c := planes[j], planes[k]
-				t := [3]int{i, j, k}
-				id, original := active[t]
-				cofactors := [3]point{cross(b.Normal, c.Normal), cross(c.Normal, a.Normal), cross(a.Normal, b.Normal)}
-				det := dot(a.Normal, cofactors[0])
-				f.work.check(det)
-				if det.Sign() == 0 {
-					continue
-				}
-				var vertex [3]insetAlgebraic
-				for axis := range vertex {
-					vertex[axis] = f.scaled(a.Offset, div(cofactors[0][axis], det))
-					vertex[axis] = f.plus(vertex[axis], f.scaled(b.Offset, div(cofactors[1][axis], det)))
-					vertex[axis] = f.plus(vertex[axis], f.scaled(c.Offset, div(cofactors[2][axis], det)))
-				}
-				feasible, strict := true, true
-				for l, p := range planes {
-					if l == i || l == j || l == k {
-						continue
-					}
-					if !f.work.tick() {
-						return nil, f.work.err
-					}
-					value := f.scaled(vertex[0], p.Normal[0])
-					for axis := 1; axis < 3; axis++ {
-						value = f.plus(value, f.scaled(vertex[axis], p.Normal[axis]))
-					}
-					sign := f.sign(f.minus(value, p.Offset))
-					if f.work.err != nil {
-						return nil, f.work.err
-					}
-					if sign > 0 {
-						feasible = false
-						break
-					}
-					strict = strict && sign < 0
-				}
-				if original != feasible || (feasible && !strict) {
-					return nil, fmt.Errorf("%w: Euclidean inset changes vertex incidence at %v", ErrUnsupported, t)
+				if original != (candidate != nil) || (candidate != nil && len(candidate.supports) != 3) {
+					return nil, fmt.Errorf("%w: Euclidean inset changes vertex incidence at %v", ErrUnsupported, triple)
 				}
 				if original {
-					points[id] = vertex
+					points[id] = candidate.point
 					matched++
 				}
 			}
@@ -288,25 +294,24 @@ func insetStableAlgebraicVertices(base Result, planes []insetRadicalPlane, f *in
 	return points, f.work.err
 }
 
-func insetStableVolume(s brep.Solid, points [][3]insetAlgebraic, f *insetRadicalField) insetAlgebraic {
+func insetVolume(boundary insetAlgebraicBoundary, f *insetRadicalField) insetAlgebraic {
 	var total insetAlgebraic
-	edges := s.Edges()
-	for _, face := range s.Faces() {
+	for _, face := range boundary.faces {
 		var ids []int
 		for _, use := range face.Boundary {
-			e := edges[use.Edge]
+			e := boundary.edges[use.Edge]
 			id := e.Start
 			if use.Reversed {
 				id = e.End
 			}
 			ids = append(ids, id)
 		}
-		a := points[ids[0]]
+		a := boundary.points[ids[0]]
 		for k := 1; k+1 < len(ids); k++ {
 			if !f.work.tick() {
 				return total
 			}
-			b, c := points[ids[k]], points[ids[k+1]]
+			b, c := boundary.points[ids[k]], boundary.points[ids[k+1]]
 			for i := 0; i < 3; i++ {
 				j, l := (i+1)%3, (i+2)%3
 				cofactor := f.minus(f.product(b[j], c[l]), f.product(b[l], c[j]))

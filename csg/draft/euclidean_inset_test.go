@@ -184,3 +184,79 @@ func TestInsetRadicalFieldDetectsDependentRoots(t *testing.T) {
 		t.Fatal("incorrect sign isolation or exact symbolic cancellation")
 	}
 }
+
+func TestConvexEuclideanInsetRemovesSupport(t *testing.T) {
+	ctx := context.Background()
+	for _, test := range []struct {
+		name                   string
+		clipA, clipB, distance float64
+		want                   *big.Rat
+	}{
+		{"irrational diagonal already redundant", 3.75, 3.75, .5, big.NewRat(18, 1)},
+		{"Pythagorean diagonal at exact extinction", 3.8125, 3.75, .375, big.NewRat(1521, 64)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			profile := []geom.Vec3{{}, {X: 4}, {X: 4, Y: test.clipA}, {X: test.clipB, Y: 4}, {Y: 4}}
+			source, err := brep.Prism(profile, geom.Vec3{Z: 3})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := InsetStableEuclideanAlgebraic(ctx, source, test.distance, Options{}); !errors.Is(err, ErrUnsupported) {
+				t.Fatal("stable incidence reader must detect the vanished face", err)
+			}
+			out, err := InsetConvexEuclideanAlgebraic(ctx, source, test.distance, Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(out.ExactVertices) != 8 || len(out.FacePlanes) != 6 || out.ExactVolume.Coefficients[0].Cmp(test.want) != 0 {
+				t.Fatal("incorrect exact topology after inset", out.ExactVolume, out.Solid.Topology())
+			}
+			for _, coefficient := range out.ExactVolume.Coefficients[1:] {
+				if coefficient.Sign() != 0 {
+					t.Fatal("vanished support still affects exact volume", out.ExactVolume)
+				}
+			}
+			vanished := 0
+			for i, mapped := range out.OldToNew {
+				if mapped < 0 {
+					vanished++
+					plane, err := source.FacePlane(i)
+					if err != nil || plane.Normal().X <= 0 || plane.Normal().Y <= 0 {
+						t.Fatal("lost incorrect support", i, plane, err)
+					}
+					continue
+				}
+				if len(out.FaceSources[mapped]) != 1 || out.FaceSources[mapped][0] != i {
+					t.Fatal("retained support history mismatch", i, mapped)
+				}
+			}
+			if vanished != 1 {
+				t.Fatal("expected exactly the vanished chamfer", out.OldToNew)
+			}
+			mass, err := out.Solid.MassProperties()
+			want, _ := test.want.Float64()
+			if err != nil || math.Abs(mass.Volume-want) > 1e-12 {
+				t.Fatal("native box volume changed after face extinction", mass, want, err)
+			}
+		})
+	}
+}
+
+func TestConvexEuclideanInsetRegularizedEmpty(t *testing.T) {
+	ctx := context.Background()
+	source := insetTriangleFixture(t)
+	for _, test := range []struct {
+		solid    brep.Solid
+		distance float64
+	}{{source, 1}, {source, 2}, {brep.Solid{}, .125}} {
+		out, err := InsetConvexEuclideanAlgebraic(ctx, test.solid, test.distance, Options{})
+		if err != nil || len(out.Solid.Faces())+len(out.ExactVertices)+len(out.FacePlanes) != 0 || out.ExactVolume.Coefficients[0].Sign() != 0 || out.MaxSquaredDisplacement.Sign() != 0 {
+			t.Fatal("collapsed or empty inset must have exact zero volume", out, err)
+		}
+		for _, mapped := range out.OldToNew {
+			if mapped != -1 {
+				t.Fatal("empty inset retained a face", out.OldToNew)
+			}
+		}
+	}
+}

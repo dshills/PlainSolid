@@ -190,3 +190,9 @@ normal classes. Exact square-ratio tests reuse existing generators and
 their products. A common radical basis describes the ideal vertices,
 planes and volume. Outward rational bounds certify signs with several
 terms and bound the resulting native coordinates.
+
+`InsetConvexEuclideanAlgebraic` also reconstructs changed incidence.
+It builds each surviving facet from the exact feasible vertices on its
+shifted support. Original face mappings record vanished facets. A
+lower-dimensional or empty erosion returns exact zero volume and an
+empty boundary. The same algebraic and native conversion limits apply.
