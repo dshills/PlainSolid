@@ -169,6 +169,32 @@ func TestGeneralPlanarFiniteHoles(t *testing.T) {
 			t.Fatal(c, where, fs, e)
 		}
 	}
+
+	// The transverse line crosses both cap-hole walls without filling the hole.
+	zero := func() *big.Rat { return new(big.Rat) }
+	u := RationalHierarchyInstance{pose: mappedRationalBasis{Origin: [3]*big.Rat{zero(), zero(), zero()}, X: [3]*big.Rat{big.NewRat(1, 1), zero(), zero()}, Y: [3]*big.Rat{zero(), big.NewRat(1, 1), zero()}, Z: [3]*big.Rat{zero(), zero(), big.NewRat(1, 1)}}}
+	ledger := RationalHierarchyLine{}
+	opts := func() (geom.ExactCurvePlaneEventOptions, error) {
+		return geom.ExactCurvePlaneEventOptions{MaxOperations: 2000000 - ledger.Operations, MaxCoefficientBits: 4096, MaxSubdivisions: 4096}, nil
+	}
+	add := func(root *geom.ExactAlgebraicRoot, owner HierarchyLineOwner) error {
+		ledger.Hits = append(ledger.Hits, HierarchyLineHit{Parameter: root, Owners: []HierarchyLineOwner{owner}})
+		return nil
+	}
+	leaf, e := clipHierarchyGeneralPlanar(ctx, HierarchyLineLeaf{Owner: HierarchyLineOwner{SourceFaceIDs: faces}}, proof, u, [3]*big.Rat{big.NewRat(-11, 1), big.NewRat(-2, 1), zero()}, [3]*big.Rat{big.NewRat(1, 1), zero(), zero()}, zero(), big.NewRat(6, 1), &a, &ledger, 65536, 256, opts, add)
+	if e != nil || !leaf.Supported || len(leaf.Spans) != 2 || len(ledger.Hits) != 4 {
+		t.Fatal("holed line", leaf, e)
+	}
+	for i, span := range leaf.Spans {
+		for j, root := range []*geom.ExactAlgebraicRoot{span.Lower, span.Upper} {
+			want := [][2]int64{{1, 2}, {4, 5}}[i][j]
+			expected, _, _ := geom.NewExactRationalRoot(ctx, big.NewRat(want, 1), geom.ExactCurvePlaneEventOptions{})
+			order, e := root.Compare(ctx, expected, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || !order.Proven || order.Order != 0 {
+				t.Fatal("holed interval", want, e)
+			}
+		}
+	}
 	// The signed source inner-loop use cannot be reversed independently.
 	face, _ := simple(f, faces[0], "ADVANCED_FACE", 4)
 	bounds, _ := listRefs(face.Args[1], 1)
