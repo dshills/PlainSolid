@@ -36,10 +36,13 @@ source error bound below 0.143 model units. Its complement proof clips
 query cells to the opposing chart before testing height. All three mesh
 operations now run end to end on the two original shells without caller
 face assignments or rational wall seeds.
-On proved original roof boxes, exact rational point and vertical-line
-queries preserve original floor and roof owners, including simultaneous
-contacts and a retained difference span below binary64 resolution. Line
-parameters remain exact with either direction and at distant origins.
+On proved original roof boxes, exact rational point and line queries
+preserve original floor, side, and roof owners, including simultaneous
+contacts and a retained difference span below binary64 resolution.
+The arbitrary-direction line sweep isolates up to quartic restrictions,
+distinguishes repeated roots from crossings, and reports exposed
+coincident spans separately from the interior. It qualifies both the
+mixed restricted-wall Boolean and the independently curved bubble roofs.
 The native tube adapter also assembles the original triple radial
 intersection as separate disk and annular solids with four original
 faces, 228 retained edges, and two inner wires. Whole original ring
@@ -518,6 +521,13 @@ adds worktree commit `37eee35d` to review revision `e0dc2756`. It passed
 the native OCCT checks and all 17 original browser cases, verifying
 841 app and 1,982 kernel source files. The [authored two-floor case](evidence/plaincad-reconciled-e0dc2756-supplemental-disjoint-finite-step-2026-11-14.json)
 also passed on the same WASM, and live OCCT confirmed the exported STEP.
+The [far-tangent blind floor reconciliation](evidence/plaincad-reconciled-eda273e2-development-far-crossed-holes-step-2026-11-14.json)
+adds worktree commit `1963370e` to review revision `eda273e2`. The native
+and live STEP tests and all 17 original browser cases passed, with
+841 app and 1,986 kernel source hashes verified. The [authored far-floor
+case](evidence/plaincad-reconciled-eda273e2-supplemental-far-crossed-step-2026-11-14.json)
+passed on that WASM and produced matching STEP and STL bytes; OCCT
+independently reproduced the expected mass properties.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

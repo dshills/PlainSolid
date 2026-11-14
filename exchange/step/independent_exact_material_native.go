@@ -38,7 +38,7 @@ func independentCompact(b []byte) (json.RawMessage, error) {
 
 // Strip only native state after checking all duplicate payload solids agree.
 // The remaining public/private metadata can then be compared structurally.
-func independentMaterialClaims(m IndependentExactMaterial) (IndependentExactMaterial, json.RawMessage, error) {
+func independentMaterialClaims(m IndependentExactMaterial, cylinderMode ...bool) (IndependentExactMaterial, json.RawMessage, error) {
 	bad := func() (IndependentExactMaterial, json.RawMessage, error) {
 		return IndependentExactMaterial{}, nil, geom.ErrInvalid
 	}
@@ -61,7 +61,17 @@ func independentMaterialClaims(m IndependentExactMaterial) (IndependentExactMate
 		v, e := independentCompact(b)
 		return e == nil && bytes.Equal(native, v)
 	}
-	if (m.Planar == nil) == (m.Elliptical == nil) {
+	countFamilies := 0
+	if m.Planar != nil {
+		countFamilies++
+	}
+	if m.Elliptical != nil {
+		countFamilies++
+	}
+	if m.Cylinder != nil {
+		countFamilies++
+	}
+	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) == 1 && cylinderMode[0])) {
 		return bad()
 	}
 	if m.Planar != nil {
@@ -175,8 +185,11 @@ func independentMaterialClaims(m IndependentExactMaterial) (IndependentExactMate
 	m.Solid = trimmed.Solid{}
 	return m, native, nil
 }
-func independentCollectionEnvelope(ctx context.Context, m IndependentExactMaterialCollection, source []byte) (independentMaterialEnvelope, []IndependentExactMaterial, error) {
+func independentCollectionEnvelope(ctx context.Context, m IndependentExactMaterialCollection, source []byte, cylinderMode ...bool) (independentMaterialEnvelope, []IndependentExactMaterial, error) {
 	q := independentMaterialEnvelope{Format: "plainsolid-step-independent-exact-materials", Version: 1, Source: string(source), Tolerance: m.tolerance, LengthUnit: m.LengthUnit}
+	if len(cylinderMode) == 1 && cylinderMode[0] {
+		q.Format = independentCylinderNativeFormat
+	}
 	claims := []IndependentExactMaterial{}
 	if !finiteNumber(m.tolerance) || m.tolerance <= 0 || len(m.Members) < 1 || len(m.Members) > 16 {
 		return q, nil, geom.ErrInvalid
@@ -185,7 +198,7 @@ func independentCollectionEnvelope(ctx context.Context, m IndependentExactMateri
 		if e := ctx.Err(); e != nil {
 			return q, nil, e
 		}
-		c, n, e := independentMaterialClaims(member)
+		c, n, e := independentMaterialClaims(member, cylinderMode...)
 		if e != nil {
 			return q, nil, e
 		}
@@ -202,6 +215,9 @@ func independentCollectionEnvelope(ctx context.Context, m IndependentExactMateri
 // WriteIndependentExactMaterialsJSON re-proves the complete shared source once,
 // verifies all native and source ancestry claims, and stages an atomic envelope.
 func WriteIndependentExactMaterialsJSON(ctx context.Context, w io.Writer, m IndependentExactMaterialCollection) error {
+	return writeIndependentMaterialsJSON(ctx, w, m, false)
+}
+func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m IndependentExactMaterialCollection, cylinder bool) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
@@ -215,15 +231,19 @@ func WriteIndependentExactMaterialsJSON(ctx context.Context, w io.Writer, m Inde
 	if e != nil {
 		return e
 	}
-	proof, e := ReadIndependentExactMaterials(ctx, bytes.NewReader(source), Limits{}, m.tolerance)
+	read := ReadIndependentExactMaterials
+	if cylinder {
+		read = ReadIndependentCylinderMaterials
+	}
+	proof, e := read(ctx, bytes.NewReader(source), Limits{}, m.tolerance)
 	if e != nil {
 		return e
 	}
-	actual, claims, e := independentCollectionEnvelope(ctx, m, source)
+	actual, claims, e := independentCollectionEnvelope(ctx, m, source, cylinder)
 	if e != nil {
 		return e
 	}
-	expected, proved, e := independentCollectionEnvelope(ctx, proof, source)
+	expected, proved, e := independentCollectionEnvelope(ctx, proof, source, cylinder)
 	if e != nil {
 		return e
 	}
@@ -251,6 +271,9 @@ func WriteIndependentExactMaterialsJSON(ctx context.Context, w io.Writer, m Inde
 // ReadIndependentExactMaterialsJSON reconstructs only from the original STEP
 // graph, then verifies all envelope claims. Native bytes are never trusted as input geometry.
 func ReadIndependentExactMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (IndependentExactMaterialCollection, error) {
+	return readIndependentMaterialsJSON(ctx, r, l, false)
+}
+func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, cylinder bool) (IndependentExactMaterialCollection, error) {
 	bad := func() (IndependentExactMaterialCollection, error) {
 		return IndependentExactMaterialCollection{}, geom.ErrInvalid
 	}
@@ -276,21 +299,27 @@ func ReadIndependentExactMaterialsJSON(ctx context.Context, r io.Reader, l Indep
 	if int64(len(b)) > l.MaxBytes {
 		return bad()
 	}
+	format := "plainsolid-step-independent-exact-materials"
+	read := ReadIndependentExactMaterials
+	if cylinder {
+		format = independentCylinderNativeFormat
+		read = ReadIndependentCylinderMaterials
+	}
 	var q independentMaterialEnvelope
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
-	if d.Decode(&q) != nil || q.Format != "plainsolid-step-independent-exact-materials" || q.Version != 1 || len(q.Members) < 1 || len(q.Members) > 16 {
+	if d.Decode(&q) != nil || q.Format != format || q.Version != 1 || len(q.Members) < 1 || len(q.Members) > 16 {
 		return bad()
 	}
 	var extra any
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	m, e := ReadIndependentExactMaterials(ctx, bytes.NewReader([]byte(q.Source)), l.Source, q.Tolerance)
+	m, e := read(ctx, bytes.NewReader([]byte(q.Source)), l.Source, q.Tolerance)
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}
-	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source))
+	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source), cylinder)
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}

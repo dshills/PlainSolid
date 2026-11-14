@@ -138,7 +138,7 @@ func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, 
 		a.lower.Cmp(b.upper) <= 0 && b.lower.Cmp(a.upper) <= 0 {
 		return zero, geom.ErrUnrepresentable
 	}
-	op := q.source.boundary.op
+	op := q.op
 	type sectionState struct {
 		where, before, after parametric.Location
 		point, afterPoint    [2]parametric.Location

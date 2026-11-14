@@ -13,9 +13,9 @@ import (
 // in the original XY chart units. Both operands satisfy the six-face graph-box
 // proof.
 type MixedRoofMaterialQuery struct {
-	source *MixedAlgebraicShellBoolean
-	box    [2]*mixedRoofBox
-	work   int
+	op   parametric.BooleanOp
+	box  [2]*mixedRoofBox
+	work int
 }
 
 // MixedRoofQueryOptions bounds preparation separately from later evaluations.
@@ -26,7 +26,17 @@ type MixedRoofQueryOptions struct{ MaxPreparationOperations int }
 // each operand, then proves that each original shell is an embedded roof box.
 // It uses the original immutable Boolean and requires no caller face IDs.
 func (s *MixedAlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o MixedRoofQueryOptions) (*MixedRoofMaterialQuery, error) {
-	if s == nil || s.section == nil || s.boundary.source == nil || ctx == nil || o.MaxPreparationOperations < 0 || o.MaxPreparationOperations > 16000000 {
+	if s == nil || s.section == nil {
+		return nil, geom.ErrInvalid
+	}
+	return s.boundary.PrepareRoofMaterialQuery(ctx, o)
+}
+
+// PrepareRoofMaterialQuery detects and proves both original graph boxes of
+// the complete regular Boolean. Public diagnostic face and edge tables
+// are not used as proof inputs.
+func (s AlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o MixedRoofQueryOptions) (*MixedRoofMaterialQuery, error) {
+	if s.source == nil || ctx == nil || o.MaxPreparationOperations < 0 || o.MaxPreparationOperations > 16000000 {
 		return nil, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -35,8 +45,8 @@ func (s *MixedAlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Contex
 	if o.MaxPreparationOperations == 0 {
 		o.MaxPreparationOperations = 2000000
 	}
-	q := &MixedRoofMaterialQuery{source: s}
-	for k, body := range [2]Solid{s.boundary.source.a, s.boundary.source.b} {
+	q := &MixedRoofMaterialQuery{op: s.op}
+	for k, body := range [2]Solid{s.source.a, s.source.b} {
 		if len(body.faces) != 6 {
 			return nil, geom.ErrUnrepresentable
 		}
@@ -136,7 +146,7 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 	if err := ctx.Err(); err != nil {
 		return z, err
 	}
-	out.Location, err = mixedRoofBooleanLocation(q.source.boundary.op, out.Operands)
+	out.Location, err = mixedRoofBooleanLocation(q.op, out.Operands)
 	if err != nil {
 		return z, err
 	}
@@ -144,7 +154,7 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 }
 
 func (q *MixedRoofMaterialQuery) evaluationOptions(ctx context.Context, o geom.SurfacePatchEvaluationOptions, inputs ...*big.Rat) (geom.SurfacePatchEvaluationOptions, error) {
-	if ctx == nil || q == nil || q.source == nil || q.box[0] == nil || q.box[1] == nil || o.MaxOperations < 0 || o.MaxOperations > 16000000 || o.MaxCoefficientBits < 0 || o.MaxCoefficientBits > 16384 || o.MaxCoefficientBits > 0 && o.MaxCoefficientBits < 64 {
+	if ctx == nil || q == nil || q.box[0] == nil || q.box[1] == nil || o.MaxOperations < 0 || o.MaxOperations > 16000000 || o.MaxCoefficientBits < 0 || o.MaxCoefficientBits > 16384 || o.MaxCoefficientBits > 0 && o.MaxCoefficientBits < 64 {
 		return o, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {

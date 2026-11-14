@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
 
@@ -116,6 +117,29 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		}
 		hasWallOracle = true
 	}
+	var lineRefs [3][]float64
+	hasLineOracle := false
+	if oracle := os.Getenv("PLAINSOLID_OCCT_CROSSING_ROOF_LINES"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "oblique-line").Output()
+		if err != nil {
+			t.Fatal("OCCT oblique line reference", err)
+		}
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		for i, name := range []string{"intersection", "union", "difference"} {
+			var row struct {
+				Name     string
+				Stations []float64
+			}
+			if err := decoder.Decode(&row); err != nil || row.Name != name || len(row.Stations) != [3]int{2, 0, 2}[i] {
+				t.Fatal("invalid OCCT oblique line reference", row, err)
+			}
+			lineRefs[i] = row.Stations
+		}
+		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+			t.Fatal("trailing OCCT line reference", err)
+		}
+		hasLineOracle = true
+	}
 
 	contains := func(v geom.ExactParameterInterval, want float64) bool {
 		q := new(big.Rat).SetFloat64(want)
@@ -181,6 +205,28 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			}
 		}
 		checkMixedOriginalVerticalSection(t, ctx, roof, i, delta)
+		checkMixedOriginalAlgebraicLines(t, ctx, roof, i)
+		checkPlacedOriginalRoofQueries(t, ctx, roof, i, delta)
+		if hasLineOracle {
+			origin := [3]*big.Rat{new(big.Rat), big.NewRat(1, 4), new(big.Rat)}
+			direction := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 4), new(big.Rat)}
+			result, err := roof.IntersectLineRational(ctx, origin, direction, big.NewRat(1, 16), big.NewRat(15, 16), MixedRoofLineOptions{})
+			if err != nil || len(result.Events) != len(lineRefs[i]) {
+				t.Fatal("exact oblique hit count disagrees with OCCT", name, result, lineRefs[i], err)
+			}
+			for j, event := range result.Events {
+				interval, err := event.Parameter.Enclose(ctx, big.NewRat(1, 1000000000000), geom.ExactCurvePlaneEventOptions{})
+				if err != nil {
+					t.Fatal("failed to refine exact oblique station", name, j, err)
+				}
+				low, _ := interval.Interval.Lower.Float64()
+				high, _ := interval.Interval.Upper.Float64()
+				ref := lineRefs[i][j]
+				if !finite(ref) || ref < low-1e-8 || ref > high+1e-8 {
+					t.Fatal("exact oblique station disagrees with OCCT", name, j, low, high, ref)
+				}
+			}
+		}
 		if hasWallOracle {
 			for j, p := range [7][2]int64{{2, -12}, {2, -4}, {2, 1}, {2, 4}, {0, -12}, {0, -4}, {0, 1}} {
 				tmid := big.NewRat(p[1], 16)
@@ -316,6 +362,148 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
 		t.Fatal("cancellation may not expose partial material measure", partial, err)
+	}
+}
+
+func checkPlacedOriginalRoofQueries(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int, delta *big.Rat) {
+	t.Helper()
+	r := big.NewRat
+	distant := new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), 120))
+	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{r(3, 5), r(0, 1), r(4, 5), distant},
+		{r(0, 1), r(1, 1), r(0, 1), r(2, 7)},
+		{r(-4, 5), r(0, 1), r(3, 5), r(-1, 3)},
+	}, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q, err := roof.Place(pose)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := geom.SurfacePatchEvaluationOptions{}
+	p := [3]*big.Rat{r(1, 2), r(1, 2), new(big.Rat).Add(r(-7, 128), delta)}
+	world, err := pose.TransformPoint(ctx, p, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hit, err := q.LocateRational(ctx, world, o)
+	if err != nil || hit.Location != [3]parametric.Location{parametric.Outside, parametric.Inside, parametric.Inside}[op] ||
+		hit.Operands != [2]parametric.Location{parametric.Inside, parametric.Outside} {
+		t.Fatal("placed point lost exact offset above the original roof", op, hit, err)
+	}
+	orig, dir := [3]*big.Rat{r(0, 1), r(1, 4), r(0, 1)}, [3]*big.Rat{r(1, 1), r(1, 4), r(0, 1)}
+	world, err = pose.TransformPoint(ctx, orig, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worldDirection, err := pose.TransformVector(ctx, dir, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rangeStart, rangeEnd := r(1, 16), r(15, 16)
+	moved, err := q.IntersectLineRational(ctx, world, worldDirection, rangeStart, rangeEnd, MixedRoofLineOptions{})
+	if err != nil {
+		t.Fatal("placed exact line", op, err)
+	}
+	local, err := roof.IntersectLineRational(ctx, orig, dir, rangeStart, rangeEnd, MixedRoofLineOptions{})
+	if err != nil || len(local.Events) != len(moved.Events) || len(local.Spans) != len(moved.Spans) ||
+		local.Start != moved.Start || local.End != moved.End || moved.ExactOperations-local.ExactOperations != roofPosePointOperations+roofPoseVectorOperations {
+		t.Fatal("placement changed exact line states or budget", op, moved, local, err)
+	}
+	for i, event := range moved.Events {
+		ref := local.Events[i]
+		order, err := event.Parameter.Compare(ctx, ref.Parameter, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || !order.Proven || order.Order != 0 || event.Before != ref.Before || event.After != ref.After ||
+			len(event.Owners) != 1 || event.Owners[0] != ref.Owners[0] {
+			t.Fatal("placement changed original station or face", op, i, event, order, err)
+		}
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if partial, err := q.IntersectLineRational(cancelled, world, worldDirection, rangeStart, rangeEnd, MixedRoofLineOptions{}); !errors.Is(err, context.Canceled) || partial.Events != nil || partial.Spans != nil {
+		t.Fatal("placed line cancellation leaked results", partial, err)
+	}
+	if _, err := roof.Place(placement.RationalRigid{}); err == nil {
+		t.Fatal("unproved zero pose")
+	}
+}
+
+func checkMixedOriginalAlgebraicLines(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int) {
+	t.Helper()
+	r := big.NewRat
+	v := func(x, y, z *big.Rat) [3]*big.Rat { return [3]*big.Rat{x, y, z} }
+	opts := MixedRoofLineOptions{}
+	lo, hi := r(1, 16), r(15, 16)
+	// Z=0 at Y=1/2. The original tool roof along X=t is
+	// t²-127t/128+49/256, whose two roots are irrational.
+	p := v(r(0, 1), r(1, 2), r(0, 1))
+	d := v(r(1, 1), r(0, 1), r(0, 1))
+	section, err := roof.IntersectLineRational(ctx, p, d, lo, hi, opts)
+	if err != nil || len(section.Events) != [3]int{2, 0, 2}[op] || len(section.Spans) != [3]int{2, 1, 1}[op] {
+		t.Fatal("wrong algebraic roof sweep", op, section, err)
+	}
+	points := []*big.Rat{r(49, 256), r(-127, 128), r(1, 1)}
+	before := [3]parametric.Location{parametric.Inside, parametric.Inside, parametric.Outside}[op]
+	after := [3]parametric.Location{parametric.Outside, parametric.Inside, parametric.Inside}[op]
+	for i, e := range section.Events {
+		zero, err := e.Parameter.SignPolynomial(ctx, points, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || zero.Sign != 0 || len(e.Owners) != 1 || e.Owners[0] != (MixedRoofFaceOwner{1, 1}) ||
+			e.Before != [2]parametric.Location{before, after}[i] || e.After != [2]parametric.Location{after, before}[i] {
+			t.Fatal("irrational roof station order, sign or ownership", op, i, e, err)
+		}
+		k, err := e.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || k.Kind != geom.ExactRootKindIrrational {
+			t.Fatal("tool roof station is not proven irrational", k, err)
+		}
+	}
+	reversed, err := roof.IntersectLineRational(ctx, v(r(1, 1), r(1, 2), r(0, 1)), v(r(-1, 1), r(0, 1), r(0, 1)), lo, hi, opts)
+	if err != nil || len(reversed.Events) != len(section.Events) {
+		t.Fatal("line reversal changed exact topology", op, reversed, err)
+	}
+	for i, e := range reversed.Events {
+		orig := section.Events[len(section.Events)-1-i]
+		inverse, _, err := e.Parameter.AffineMap(ctx, r(1, 1), r(-1, 1), geom.ExactCurvePlaneEventOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ord, err := inverse.Compare(ctx, orig.Parameter, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || !ord.Proven || ord.Order != 0 || e.Before != orig.After || e.After != orig.Before {
+			t.Fatal("reversal must preserve exact identity and swap incident states", op, e, ord, err)
+		}
+	}
+	// Put the line exactly at the minimum of the quadratic. The repeated
+	// root touches the exposed tool roof without flipping either sign.
+	p[2] = r(-3585, 65536)
+	tan, err := roof.IntersectLineRational(ctx, p, d, lo, hi, opts)
+	if err != nil || len(tan.Events) != [3]int{1, 0, 1}[op] || len(tan.Spans) != [3]int{2, 1, 0}[op] {
+		t.Fatal("wrong repeated-root contact", op, tan, err)
+	}
+	if len(tan.Events) != 0 {
+		e := tan.Events[0]
+		id, err := e.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || id.Kind != geom.ExactRootKindRational || id.Rational.Cmp(r(127, 256)) != 0 || e.Before != before || e.After != before {
+			t.Fatal("wrong repeated-root witness or regularized states", op, e, id, err)
+		}
+	}
+	// An entire line segment on the original floor is exposed on two
+	// operations and interior to the union. Clip ends must not be hits.
+	p[2] = r(-1, 2)
+	floor, err := roof.IntersectLineRational(ctx, p, d, lo, hi, opts)
+	if err != nil || len(floor.Events) != 0 || len(floor.Spans) != 1 || (floor.Start == parametric.Boundary) != (op != 1) ||
+		floor.Start != floor.End || floor.Start != floor.Spans[0].Location || len(floor.Spans[0].Owners) != [3]int{1, 0, 1}[op] {
+		t.Fatal("coincident floor was lost or made a discrete contact", op, floor, err)
+	}
+	// Two distinct original roofs give one exact event at the same point.
+	tie := r(855, 131072)
+	group, err := roof.IntersectLineRational(ctx, v(r(95, 128), r(9, 16), r(0, 1)), v(r(0, 1), r(0, 1), r(1, 1)), tie, tie, opts)
+	if err != nil || group.Start != parametric.Boundary || group.End != parametric.Boundary ||
+		len(group.Events) != 1 || len(group.Spans) != 0 || len(group.Events[0].Owners) != 2 ||
+		group.Events[0].Owners[0] != (MixedRoofFaceOwner{0, 1}) || group.Events[0].Owners[1] != (MixedRoofFaceOwner{1, 1}) {
+		t.Fatal("shared exact clip station lost a roof witness", op, group, err)
+	}
+	if partial, err := roof.IntersectLineRational(ctx, p, d, lo, hi, MixedRoofLineOptions{SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 1}}); !errors.Is(err, geom.ErrConvergence) || partial.Events != nil || partial.Spans != nil {
+		t.Fatal("unproved algebraic line result escaped budget", op, partial, err)
 	}
 }
 

@@ -1,0 +1,69 @@
+{
+  "schema": "plaincad-reconciled-supplemental-far-crossed-step-v1",
+  "status": "passed",
+  "integrationCommit": "1963370ec59a8e2657bdbcf042a668cab90a17f3",
+  "reviewCommit": "eda273e2426fd484af974aef0a184a3a8da3a03d",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "8ccca3e47f99bbb9c32b49432a62ad02f66e76a3797d81ae5c07db0230104b5c",
+  "fixture": "e2e/plainsolid-far-crossed-step-holes.spec.ts",
+  "sourceSha256": "283790b1c23dcef8546599aee998baccab9c1b2563a194b76c052c4e0488cb4d",
+  "runSha256": "5b03a5e918a02322a35d8c5054d325c7a64574697437714285c39e8292fb410a",
+  "reportStats": {
+    "startTime": "2026-11-14T13:55:44.771Z",
+    "duration": 7690.32,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      20,
+      16,
+      12
+    ],
+    "crossingMm": [
+      10,
+      8,
+      6
+    ],
+    "radiusMm": 2,
+    "topEntryDepthMm": 8,
+    "floorZMm": 4,
+    "stepByteCount": 42668,
+    "stepSha256": "f3bd4da51841e961591af14b0c7e8e8a005a0f9a3565581214b644debbc6d6c4",
+    "stlTriangles": 396,
+    "stlTwoUseEdges": 594,
+    "stlSha256": "8bf3462131d8bf33c6074c04fbb6574b3e3bbaf9abd6c6300c9b692d751aecfc",
+    "occtStepReadback": {
+      "Area": 1766.7256356085063,
+      "Volume": 3530.808289707832,
+      "Centroid": [
+        10.000000000000005,
+        8,
+        5.94305498531004
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 3530.8082894646077,
+      "Area": 1766.72563597334,
+      "Centroid": [
+        9.999999999999995,
+        8,
+        5.943054985333072
+      ]
+    },
+    "directOracleSourceSha256": "dcc0bacaa8b9f7a892ddf25c66ae5f6391a7a61ac20e7483a13d74e397b4c077"
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 1766.7256356085063,
+    "Volume": 3530.808289707832,
+    "Centroid": [
+      10.000000000000005,
+      8,
+      5.94305498531004
+    ]
+  }
+}
