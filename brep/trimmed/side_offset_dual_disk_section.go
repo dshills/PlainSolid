@@ -39,6 +39,9 @@ func CertifyOffsetSideOpenDualDiskSection(ctx context.Context, min, max geom.Vec
 			return zero, geom.ErrDomain
 		}
 	}
+	if discs[0].Radius == discs[1].Radius {
+		return zero, geom.ErrDomain
+	}
 	order := [2]int{0, 1}
 	if discs[0].Center.X > discs[1].Center.X {
 		order = [2]int{1, 0}
