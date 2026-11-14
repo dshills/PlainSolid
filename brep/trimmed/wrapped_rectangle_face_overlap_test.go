@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func wrappedOverlapSupport(t *testing.T) *geom.WrappedSurfacePatch {
+func wrappedOverlapSupport(t testing.TB) *geom.WrappedSurfacePatch {
 	t.Helper()
 	profile := []geom.Vec2{{X: 2}, {X: 2, Y: 2}, {Y: 2}, {X: -2, Y: 2}, {X: -2}, {X: -2, Y: -2}, {Y: -2}, {X: 2, Y: -2}, {X: 2}}
 	var poles []geom.Vec3

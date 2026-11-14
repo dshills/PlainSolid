@@ -157,3 +157,49 @@ func TestWrappedQuadraticFaceJSONHoleLift(t *testing.T) {
 		t.Fatal("reloaded original hole", hit, e)
 	}
 }
+
+func FuzzWrappedQuadraticFaceJSON(f *testing.F) {
+	ctx := context.Background()
+	support := wrappedOverlapSupport(f)
+	o := WrappedQuadraticFaceJSONOptions{
+		MaxBytes:         32 << 10,
+		MaxControlPoints: 64,
+		Face: WrappedQuadraticFaceOptions{
+			SurfaceInjectivityOptions: geom.SurfaceInjectivityOptions{
+				ProjectionAxes: [2]int{1, 2}, MaxOperations: 500000, MaxCoefficientBits: 512,
+			},
+			MaxEdges:  8,
+			MaxPieces: 24,
+		},
+	}
+	face, e := NewWrappedQuadraticFace(ctx, support, wrappedQuadraticLoop(f), nil, o.Face)
+	if e != nil {
+		f.Fatal(e)
+	}
+	var out bytes.Buffer
+	if e := WriteWrappedQuadraticFaceJSON(ctx, &out, face, o); e != nil {
+		f.Fatal(e)
+	}
+	f.Add(out.Bytes())
+	f.Add([]byte(`{"version":1}`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		if int64(len(data)) > o.MaxBytes {
+			return
+		}
+		got, e := ReadWrappedQuadraticFaceJSON(ctx, bytes.NewReader(data), o)
+		if e != nil {
+			if got != nil {
+				t.Fatal("unproved face exposed after a parse error")
+			}
+			return
+		}
+		native := got.NativeFace()
+		if len(native.Face.Outer) < 3 || len(native.Edges) < len(native.Face.Outer) || got.ExactOperations() > o.Face.MaxOperations {
+			t.Fatal("successful parse lacks complete bounded native geometry")
+		}
+		var encoded bytes.Buffer
+		if e := WriteWrappedQuadraticFaceJSON(ctx, &encoded, got, o); e != nil {
+			t.Fatal("certified face could not be encoded again", e)
+		}
+	})
+}
