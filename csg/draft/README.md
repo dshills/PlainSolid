@@ -184,3 +184,9 @@ checks all remaining support inequalities exactly. The same simple vertex
 incidence must survive every displaced support. Coplanar original faces
 can share a retained support and ancestry. Topology change or several
 independent irrational normal classes fall outside this entry point.
+
+`InsetStableEuclideanAlgebraic` accepts up to four independent irrational
+normal classes. Exact square-ratio tests reuse existing generators and
+their products. A common radical basis describes the ideal vertices,
+planes and volume. Outward rational bounds certify signs with several
+terms and bound the resulting native coordinates.

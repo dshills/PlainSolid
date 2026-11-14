@@ -45,7 +45,100 @@ type EuclideanInsetResult struct {
 // A topology change, unresolved arithmetic or invalid rounded result fails
 // atomically. The ideal erosion and rounded Solid have separate coordinates.
 func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options) (EuclideanInsetResult, error) {
-	var empty EuclideanInsetResult
+	result, err := insetStableEuclidean(ctx, s, distance, o, 1)
+	if err != nil {
+		return EuclideanInsetResult{}, err
+	}
+	radical := big.NewRat(1, 1)
+	if len(result.radicals) > 1 {
+		radical = new(big.Rat).Set(result.radicals[1])
+	}
+	convert := func(value insetAlgebraic) QuadraticInsetScalar {
+		return QuadraticInsetScalar{value.coefficient(0), value.coefficient(1)}
+	}
+	vertices := make([][3]QuadraticInsetScalar, len(result.vertices))
+	for i, v := range result.vertices {
+		for j, coordinate := range v {
+			vertices[i][j] = convert(coordinate)
+		}
+	}
+	planes := make([]QuadraticInsetPlane, len(result.planes))
+	for i, plane := range result.planes {
+		planes[i] = QuadraticInsetPlane{Normal: plane.Normal, Offset: convert(plane.Offset)}
+	}
+	return EuclideanInsetResult{Solid: result.solid, Radicand: radical, ExactVertices: vertices,
+		ExactVolume: convert(result.volume), FacePlanes: planes, FaceSources: result.base.FaceSources,
+		OldToNew: result.base.OldToNew, MaxSquaredDisplacement: result.displacement}, nil
+}
+
+// AlgebraicInsetScalar denotes the sum of Coefficients[i]*sqrt(Radicands[i]).
+// The basis belongs to the corresponding AlgebraicEuclideanInsetResult.
+type AlgebraicInsetScalar struct{ Coefficients []*big.Rat }
+
+// AlgebraicInsetPlane is an original support moved by its exact normal length.
+type AlgebraicInsetPlane struct {
+	Normal [3]*big.Rat
+	Offset AlgebraicInsetScalar
+}
+
+// AlgebraicEuclideanInsetResult records the ideal erosion and a validated
+// rounded native realization. Radicands[0] is 1. The other radicands have
+// distinct rational square classes. The output coefficients are caller-owned.
+type AlgebraicEuclideanInsetResult struct {
+	Solid                  brep.Solid
+	Radicands              []*big.Rat
+	ExactVertices          [][3]AlgebraicInsetScalar
+	ExactVolume            AlgebraicInsetScalar
+	FacePlanes             []AlgebraicInsetPlane
+	FaceSources            [][]int
+	OldToNew               []int
+	MaxSquaredDisplacement *big.Rat
+}
+
+// InsetStableEuclideanAlgebraic erodes a simple convex planar solid by a
+// Euclidean ball while preserving proved vertex incidence. It admits up to four
+// independent irrational normal classes and their products. Exact arithmetic
+// tracks each basis coefficient. Outward rational bounds decide the signs of
+// sums with more than two terms within the configured work and bit limits.
+func InsetStableEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options) (AlgebraicEuclideanInsetResult, error) {
+	result, err := insetStableEuclidean(ctx, s, distance, o, 4)
+	if err != nil {
+		return AlgebraicEuclideanInsetResult{}, err
+	}
+	convert := func(value insetAlgebraic) AlgebraicInsetScalar {
+		coefficients := make([]*big.Rat, len(result.radicals))
+		for i := range coefficients {
+			coefficients[i] = value.coefficient(i)
+		}
+		return AlgebraicInsetScalar{coefficients}
+	}
+	vertices := make([][3]AlgebraicInsetScalar, len(result.vertices))
+	for i, v := range result.vertices {
+		for j, coordinate := range v {
+			vertices[i][j] = convert(coordinate)
+		}
+	}
+	planes := make([]AlgebraicInsetPlane, len(result.planes))
+	for i, plane := range result.planes {
+		planes[i] = AlgebraicInsetPlane{Normal: plane.Normal, Offset: convert(plane.Offset)}
+	}
+	return AlgebraicEuclideanInsetResult{Solid: result.solid, Radicands: result.radicals, ExactVertices: vertices,
+		ExactVolume: convert(result.volume), FacePlanes: planes, FaceSources: result.base.FaceSources,
+		OldToNew: result.base.OldToNew, MaxSquaredDisplacement: result.displacement}, nil
+}
+
+type insetStableResult struct {
+	solid        brep.Solid
+	base         Result
+	radicals     []*big.Rat
+	vertices     [][3]insetAlgebraic
+	volume       insetAlgebraic
+	planes       []insetRadicalPlane
+	displacement *big.Rat
+}
+
+func insetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options, maxGenerators int) (insetStableResult, error) {
+	var empty insetStableResult
 	if ctx == nil || math.IsInf(distance, 0) || math.IsNaN(distance) || distance < 0 {
 		return empty, ErrInvalid
 	}
@@ -60,19 +153,16 @@ func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if len(base.FacePlanes) < 4 || len(base.ExactVertices) < 4 {
 		return empty, ErrUnsupported
 	}
-	field := insetQuadraticField{work: &budget{ctx: ctx, o: o}}
-	planes, err := insetEuclideanPlanes(base.FacePlanes, num(distance), &field)
+	field := insetRadicalField{work: &budget{ctx: ctx, o: o}, radicals: []*big.Rat{big.NewRat(1, 1)}}
+	planes, err := insetEuclideanPlanes(base.FacePlanes, num(distance), &field, maxGenerators)
 	if err != nil {
 		return empty, err
 	}
-	points, err := insetStableQuadraticVertices(base, planes, &field)
+	points, err := insetStableAlgebraicVertices(base, planes, &field)
 	if err != nil {
 		return empty, err
 	}
 	volume := insetStableVolume(base.Solid, points, &field)
-	if field.work.err != nil {
-		return empty, field.work.err
-	}
 	volumeSign := field.sign(volume)
 	if field.work.err != nil {
 		return empty, field.work.err
@@ -80,7 +170,7 @@ func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if volumeSign <= 0 {
 		return empty, ErrUnsupported
 	}
-	nativePoints, displacement, err := insetQuadraticNativeVertices(points, &field)
+	nativePoints, displacement, err := insetAlgebraicNativeVertices(points, &field)
 	if err != nil {
 		return empty, err
 	}
@@ -91,90 +181,36 @@ func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if err = validate(ctx, native, o); err != nil {
 		return empty, err
 	}
-	return EuclideanInsetResult{Solid: native, Radicand: field.radical, ExactVertices: points,
-		ExactVolume: volume, FacePlanes: planes, FaceSources: base.FaceSources,
-		OldToNew: base.OldToNew, MaxSquaredDisplacement: displacement}, nil
+	return insetStableResult{solid: native, base: base, radicals: field.radicals, vertices: points,
+		volume: volume, planes: planes, displacement: displacement}, nil
 }
 
-type insetQuadraticField struct {
-	radical *big.Rat
-	work    *budget
+type insetRadicalPlane struct {
+	Normal [3]*big.Rat
+	Offset insetAlgebraic
 }
 
-func (f *insetQuadraticField) pair(a, b *big.Rat) QuadraticInsetScalar {
-	f.work.check(a)
-	f.work.check(b)
-	return QuadraticInsetScalar{a, b}
-}
-
-func (f *insetQuadraticField) plus(a, b QuadraticInsetScalar) QuadraticInsetScalar {
-	return f.pair(add(a.Rational, b.Rational), add(a.Coefficient, b.Coefficient))
-}
-
-func (f *insetQuadraticField) minus(a, b QuadraticInsetScalar) QuadraticInsetScalar {
-	return f.pair(sub(a.Rational, b.Rational), sub(a.Coefficient, b.Coefficient))
-}
-
-func (f *insetQuadraticField) scaled(a QuadraticInsetScalar, s *big.Rat) QuadraticInsetScalar {
-	return f.pair(mul(a.Rational, s), mul(a.Coefficient, s))
-}
-
-func (f *insetQuadraticField) product(a, b QuadraticInsetScalar) QuadraticInsetScalar {
-	constant := add(mul(a.Rational, b.Rational), mul(mul(a.Coefficient, b.Coefficient), f.radical))
-	coefficient := add(mul(a.Rational, b.Coefficient), mul(a.Coefficient, b.Rational))
-	return f.pair(constant, coefficient)
-}
-
-func (f *insetQuadraticField) sign(a QuadraticInsetScalar) int {
-	sx, sy := a.Rational.Sign(), a.Coefficient.Sign()
-	if sx == 0 {
-		return sy
-	}
-	if sy == 0 || sx == sy {
-		return sx
-	}
-	x := mul(a.Rational, a.Rational)
-	y := mul(mul(a.Coefficient, a.Coefficient), f.radical)
-	f.work.check(x)
-	f.work.check(y)
-	return sx * x.Cmp(y)
-}
-
-func insetEuclideanPlanes(source []Halfspace, distance *big.Rat, f *insetQuadraticField) ([]QuadraticInsetPlane, error) {
-	var planes []QuadraticInsetPlane
+func insetEuclideanPlanes(source []Halfspace, distance *big.Rat, f *insetRadicalField, maxGenerators int) ([]insetRadicalPlane, error) {
+	var planes []insetRadicalPlane
 	for i, h := range source {
 		if !f.work.tick() {
 			return nil, f.work.err
 		}
-		constant := new(big.Rat).Set(h.Offset)
-		coefficient := new(big.Rat)
+		var offset insetAlgebraic
+		f.addTerm(&offset, 0, h.Offset)
 		if distance.Sign() != 0 {
-			squared := dot(h.Normal, h.Normal)
-			f.work.check(squared)
-			if exact, ok := rationalSqrt(squared); ok {
-				constant.Sub(constant, mul(distance, exact))
-			} else {
-				if f.radical == nil {
-					f.radical = squared
-				}
-				ratio := div(squared, f.radical)
-				f.work.check(ratio)
-				scale, ok := rationalSqrt(ratio)
-				if !ok {
-					return nil, fmt.Errorf("%w: support %d has a different irrational normal class", ErrUnsupported, i)
-				}
-				coefficient.Neg(mul(distance, scale))
+			idx, scale, err := f.includeRoot(dot(h.Normal, h.Normal), maxGenerators)
+			if err != nil {
+				return nil, fmt.Errorf("inset support %d: %w", i, err)
 			}
+			f.addTerm(&offset, idx, new(big.Rat).Neg(mul(distance, scale)))
 		}
-		planes = append(planes, QuadraticInsetPlane{Normal: h.Normal, Offset: f.pair(constant, coefficient)})
-	}
-	if f.radical == nil {
-		f.radical = big.NewRat(1, 1)
+		planes = append(planes, insetRadicalPlane{Normal: h.Normal, Offset: offset})
 	}
 	return planes, f.work.err
 }
 
-func insetStableQuadraticVertices(base Result, planes []QuadraticInsetPlane, f *insetQuadraticField) ([][3]QuadraticInsetScalar, error) {
+func insetStableAlgebraicVertices(base Result, planes []insetRadicalPlane, f *insetRadicalField) ([][3]insetAlgebraic, error) {
 	active := make(map[[3]int]int, len(base.ExactVertices))
 	for i, v := range base.ExactVertices {
 		var incident []int
@@ -191,7 +227,7 @@ func insetStableQuadraticVertices(base Result, planes []QuadraticInsetPlane, f *
 		}
 		active[[3]int(incident)] = i
 	}
-	points := make([][3]QuadraticInsetScalar, len(base.ExactVertices))
+	points := make([][3]insetAlgebraic, len(base.ExactVertices))
 	matched := 0
 	for i, a := range planes {
 		for j := i + 1; j < len(planes); j++ {
@@ -208,7 +244,7 @@ func insetStableQuadraticVertices(base Result, planes []QuadraticInsetPlane, f *
 				if det.Sign() == 0 {
 					continue
 				}
-				var vertex [3]QuadraticInsetScalar
+				var vertex [3]insetAlgebraic
 				for axis := range vertex {
 					vertex[axis] = f.scaled(a.Offset, div(cofactors[0][axis], det))
 					vertex[axis] = f.plus(vertex[axis], f.scaled(b.Offset, div(cofactors[1][axis], det)))
@@ -252,8 +288,8 @@ func insetStableQuadraticVertices(base Result, planes []QuadraticInsetPlane, f *
 	return points, f.work.err
 }
 
-func insetStableVolume(s brep.Solid, points [][3]QuadraticInsetScalar, f *insetQuadraticField) QuadraticInsetScalar {
-	total := QuadraticInsetScalar{new(big.Rat), new(big.Rat)}
+func insetStableVolume(s brep.Solid, points [][3]insetAlgebraic, f *insetRadicalField) insetAlgebraic {
+	var total insetAlgebraic
 	edges := s.Edges()
 	for _, face := range s.Faces() {
 		var ids []int
@@ -281,13 +317,8 @@ func insetStableVolume(s brep.Solid, points [][3]QuadraticInsetScalar, f *insetQ
 	return f.scaled(total, big.NewRat(1, 6))
 }
 
-func insetQuadraticNativeVertices(points [][3]QuadraticInsetScalar, f *insetQuadraticField) ([]geom.Vec3, *big.Rat, error) {
+func insetAlgebraicNativeVertices(points [][3]insetAlgebraic, f *insetRadicalField) ([]geom.Vec3, *big.Rat, error) {
 	precision := min(512, max(64, f.work.o.MaxBits/8))
-	den := new(big.Int).Lsh(big.NewInt(1), uint(precision))
-	n := new(big.Int).Lsh(f.radical.Num(), uint(2*precision))
-	n.Quo(n, f.radical.Denom()).Sqrt(n)
-	lower := new(big.Rat).SetFrac(n, den)
-	upper := new(big.Rat).SetFrac(new(big.Int).Add(n, big.NewInt(1)), den)
 	maxError := num(f.work.o.MaxCoordinateError)
 	maxError.Mul(maxError, maxError)
 	var out []geom.Vec3
@@ -300,11 +331,7 @@ func insetQuadraticNativeVertices(points [][3]QuadraticInsetScalar, f *insetQuad
 		var coords [3]float64
 		squared := new(big.Rat)
 		for i, v := range point {
-			lo := add(v.Rational, mul(v.Coefficient, lower))
-			hi := add(v.Rational, mul(v.Coefficient, upper))
-			if lo.Cmp(hi) > 0 {
-				lo, hi = hi, lo
-			}
+			lo, hi := f.bounds(v, precision)
 			value, _ := div(add(lo, hi), big.NewRat(2, 1)).Float64()
 			if math.IsInf(value, 0) {
 				return nil, nil, ErrPrecision

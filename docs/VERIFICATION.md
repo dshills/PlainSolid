@@ -6059,3 +6059,11 @@ boundary parameters separately. Tests cover disconnected holed Difference,
 oblique area scale, independently reordered source rings, output mutation,
 cancellation and exact work limits. The integrated native prism race passed
 in 2.973 s.
+
+### Convex inset with independent irrational supports
+
+An independently integrated pentagonal prism has supports involving √2
+and √5. Its ten ideal algebraic coordinates and native volume match the
+intersection of five independently shifted lines. Exact √6 and √24 loads
+reuse the √2 and √3 generators and verify symbolic cancellation. The
+single-class fixtures still pass. The full draft race passed in 8.196 s.

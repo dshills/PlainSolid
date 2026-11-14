@@ -101,3 +101,86 @@ func TestStableEuclideanInsetMultipleRadicals(t *testing.T) {
 		t.Fatal("independent irrational normal classes must remain unresolved", err)
 	}
 }
+
+func TestStableEuclideanInsetAlgebraicTwoIndependentNormals(t *testing.T) {
+	ctx := context.Background()
+	profile := []geom.Vec3{{}, {X: 4}, {X: 3, Y: 1}, {X: 1, Y: 2}, {Y: 2}}
+	source, err := brep.Prism(profile, geom.Vec3{Z: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const distance = .125
+	out, err := InsetStableEuclideanAlgebraic(ctx, source, distance, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Radicands) != 4 || len(out.ExactVertices) != 10 || len(out.FacePlanes) != 7 || out.MaxSquaredDisplacement.Sign() <= 0 {
+		t.Fatal("missing independent basis or ideal geometry", out.Radicands, len(out.ExactVertices), len(out.FacePlanes))
+	}
+	eval := func(q AlgebraicInsetScalar) float64 {
+		t.Helper()
+		var value float64
+		for i, coefficient := range q.Coefficients {
+			a, _ := coefficient.Float64()
+			d, _ := out.Radicands[i].Float64()
+			value += a * math.Sqrt(d)
+		}
+		return value
+	}
+	// Independent formula for the five intersections of the inset support lines.
+	p, q := 4-distance*math.Sqrt2, 5-distance*math.Sqrt(5)
+	upper := 2 - distance
+	corners := [5][2]float64{{distance, distance}, {p - distance, distance}, {2*p - q, q - p}, {q - 2*upper, upper}, {distance, upper}}
+	var doubleArea float64
+	for i, a := range corners {
+		b := corners[(i+1)%len(corners)]
+		doubleArea += a[0]*b[1] - a[1]*b[0]
+	}
+	want := doubleArea * (1 - distance)
+	native, err := out.Solid.MassProperties()
+	if err != nil || math.Abs(native.Volume-want) > 1e-12 || math.Abs(eval(out.ExactVolume)-want) > 1e-12 {
+		t.Fatal("ideal or realized volume disagrees with independent support intersections", eval(out.ExactVolume), native, want, err)
+	}
+	for _, vertex := range out.ExactVertices {
+		x, y, z := eval(vertex[0]), eval(vertex[1]), eval(vertex[2])
+		found := false
+		for _, corner := range corners {
+			found = found || math.Hypot(x-corner[0], y-corner[1]) < 2e-15
+		}
+		if !found || (z != distance && z != 2-distance) {
+			t.Fatal("algebraic offset vertex disagrees with independent supports", x, y, z)
+		}
+	}
+	old, err := InsetStableEuclidean(ctx, insetTriangleFixture(t), .25, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	same, err := InsetStableEuclideanAlgebraic(ctx, insetTriangleFixture(t), .25, Options{})
+	if err != nil || len(same.Radicands) != 2 || same.ExactVolume.Coefficients[0].Cmp(old.ExactVolume.Rational) != 0 ||
+		same.ExactVolume.Coefficients[1].Cmp(old.ExactVolume.Coefficient) != 0 {
+		t.Fatal("one-generator result changed", err)
+	}
+}
+
+func TestInsetRadicalFieldDetectsDependentRoots(t *testing.T) {
+	f := insetRadicalField{work: &budget{ctx: context.Background(), o: Options{MaxWork: 10000, MaxBits: 4096}}, radicals: []*big.Rat{big.NewRat(1, 1)}}
+	for _, d := range []int64{2, 3, 6, 24} {
+		idx, coefficient, err := f.includeRoot(big.NewRat(d, 1), 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if (d == 6 && (idx != 3 || coefficient.Cmp(big.NewRat(1, 1)) != 0)) || (d == 24 && (idx != 3 || coefficient.Cmp(big.NewRat(2, 1)) != 0)) {
+			t.Fatal("failed to share a rational square class", d, idx, coefficient)
+		}
+	}
+	if len(f.radicals) != 4 {
+		t.Fatal("dependent generators enlarged the field")
+	}
+	var a insetAlgebraic
+	f.addTerm(&a, 0, big.NewRat(-3, 1))
+	f.addTerm(&a, 1, big.NewRat(1, 1))
+	f.addTerm(&a, 2, big.NewRat(1, 1))
+	if f.sign(a) != 1 || f.sign(f.scaled(a, big.NewRat(-1, 1))) != -1 || f.sign(f.minus(a, a)) != 0 {
+		t.Fatal("incorrect sign isolation or exact symbolic cancellation")
+	}
+}
