@@ -71,7 +71,13 @@ func TestDocumentSideOpenDualDiskUnequalRecipe(t *testing.T) {
 	if _, e := step.ReadSideOpenDualDiskProduct(ctx, bytes.NewReader(b.Bytes()), step.Limits{}, 1e-9); e == nil {
 		t.Fatal("unequal feature selected the equal exchange dialect")
 	}
-	if !bytes.Contains(b.Bytes(), []byte("CYLINDRICAL_SURFACE")) || !bytes.Contains(b.Bytes(), []byte("13.")) || !bytes.Contains(b.Bytes(), []byte("15.")) {
-		t.Fatal("unequal cut lost its native circular surfaces")
+	p, e := step.ReadUnequalSideOpenDualDiskProduct(ctx, &b, step.Limits{}, 1e-9)
+	if e != nil || p.Descriptor.Discs[0].Radius != 13 || p.Descriptor.Discs[1].Radius != 15 || p.SourceWallFaces[0] == p.SourceWallFaces[1] || p.SourceFloorFace != 0 {
+		t.Fatal("unequal cut lost its two owned native circular supports", p.Descriptor, e)
+	}
+	m, e := p.Native.Measures()
+	opening := 84 + (169*(math.Pi/2+math.Asin(5./13))+225*(math.Pi/2+math.Asin(.6)))/2
+	if e != nil || math.Abs(m.Volume-(7920-6*opening)) > 1e-7 {
+		t.Fatal("wrong native readback volume", m, e)
 	}
 }
