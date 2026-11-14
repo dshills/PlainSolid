@@ -12,6 +12,11 @@ bounded STEP dispatch (`96ccfff0`). Proper rational placements preserve
 fillet distance witnesses even for irrational azimuths (`4f1e9580`).
 These additions do not qualify arbitrary curved Boolean inputs, arbitrary
 STEP assemblies, or general offset/fillet topology.
+The weighted stock case subsequently gained a closed certified fill
+(`e594887`) and exact original-wall distance under placement (`952e9a4`).
+Exact IGES model-curve exchange now covers independent full and directed
+quarter ellipses (`1d82f07`, `3fe7325`). This is curve exchange; IGES
+ellipse-face and solid ownership still require additional work.
 
 ## Immediate priority: PlainCAD compatibility
 
