@@ -62,6 +62,37 @@ func (o AlgebraicGraphStockOccurrence) ClassifyRational(ctx context.Context, p [
 // Its exact line parameter, finite window and original trim owner are unchanged.
 func (o AlgebraicGraphStockOccurrence) IntersectCapLineRational(ctx context.Context, cap int, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
+	return o.intersectCapLineRational(ctx, cap, origin, direction, extent, options, false)
+}
+
+// IntersectCapLineRationalWithJunctions retains both directed source uses
+// of exact cap trim junctions on the placed cap.
+func (o AlgebraicGraphStockOccurrence) IntersectCapLineRationalWithJunctions(ctx context.Context, cap int,
+	origin, direction [3]*big.Rat, extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
+	return o.intersectCapLineRational(ctx, cap, origin, direction, extent, options, true)
+}
+
+// IntersectCapBoundaryRunsRational clips all coincident original cap uses
+// under this occurrence's exact placement.
+func (o AlgebraicGraphStockOccurrence) IntersectCapBoundaryRunsRational(ctx context.Context, cap int,
+	origin, direction [3]*big.Rat, extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapBoundaryRuns, error) {
+	var zero AlgebraicGraphCapBoundaryRuns
+	if cap < 0 || cap > 1 {
+		return zero, geom.ErrInvalid
+	}
+	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	return o.pair.caps[cap].IntersectRationalBoundaryRuns(ctx, a, d, extent, options)
+}
+
+func (o AlgebraicGraphStockOccurrence) intersectCapLineRational(ctx context.Context, cap int, origin, direction [3]*big.Rat,
+	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions, includeJunctions bool) (AlgebraicGraphCapLine, error) {
 	var zero AlgebraicGraphCapLine
 	if cap < 0 || cap > 1 {
 		return zero, geom.ErrInvalid
@@ -73,6 +104,9 @@ func (o AlgebraicGraphStockOccurrence) IntersectCapLineRational(ctx context.Cont
 	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
 	if e != nil {
 		return zero, e
+	}
+	if includeJunctions {
+		return o.pair.caps[cap].IntersectRationalLineWithJunctions(ctx, a, d, extent, options)
 	}
 	return o.pair.caps[cap].IntersectRationalLine(ctx, a, d, extent, options)
 }

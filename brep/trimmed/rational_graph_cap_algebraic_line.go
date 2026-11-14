@@ -115,7 +115,6 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 	type vertexKey struct{ wire, before int }
 	type vertexGerm struct {
 		contact AlgebraicGraphCapLineContact
-		owner   *geom.ExactComposedCurveEvent
 		sign    int
 	}
 	junctions := map[vertexKey][2]vertexGerm{}
@@ -167,7 +166,7 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 						side = 1
 					}
 					pair := junctions[k]
-					if pair[side].owner != nil {
+					if pair[side].contact.Parameter != nil {
 						return zero, geom.ErrConvergence
 					}
 					germ := p.SideSigns[0]
@@ -177,7 +176,7 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 					if germ == 0 {
 						return zero, geom.ErrConvergence
 					}
-					pair[side] = vertexGerm{AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, OtherUse: -1}, candidate, germ}
+					pair[side] = vertexGerm{AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, OtherUse: -1}, germ}
 					junctions[k] = pair
 					continue
 				}
@@ -186,36 +185,6 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 				entry := (p.SideSigns[0] > 0) != u.Reversed
 				events = append(events, AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, Entry: !touch && entry, Touch: touch, OtherUse: -1})
 			}
-		}
-	}
-	// Traverse original wire order, independent of map iteration.
-	for wi, w := range c.wires {
-		for ui := range w {
-			pair, ok := junctions[vertexKey{wi, ui}]
-			if !ok {
-				continue
-			}
-			a, z := pair[0], pair[1]
-			if a.owner == nil || z.owner == nil {
-				return zero, geom.ErrConvergence
-			}
-			proven, used, e := a.owner.CompareModelPoint(ctx, z.owner, b.limits())
-			if e != nil {
-				return zero, e
-			}
-			if e = b.charge(used, 0); e != nil {
-				return zero, e
-			}
-			if !proven {
-				return zero, geom.ErrConvergence
-			}
-			ev := a.contact
-			ev.Junction = true
-			ev.OtherUse = z.contact.Use
-			ev.OtherCurveParameter = z.contact.CurveParameter
-			ev.Touch = a.sign == z.sign
-			ev.Entry = !ev.Touch && a.sign > 0
-			events = append(events, ev)
 		}
 	}
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {
@@ -230,6 +199,36 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 			return 0, geom.ErrConvergence
 		}
 		return q.Order, nil
+	}
+	// Traverse original wire order, independent of map iteration.
+	for wi, w := range c.wires {
+		for ui := range w {
+			pair, ok := junctions[vertexKey{wi, ui}]
+			if !ok {
+				continue
+			}
+			a, z := pair[0], pair[1]
+			if a.contact.Parameter == nil || z.contact.Parameter == nil {
+				return zero, geom.ErrConvergence
+			}
+			// Both curve events lie on this exact line, and its
+			// nonzero axis component is injective. Equality of their
+			// line parameters independently proves model identity.
+			order, e := cmp(a.contact.Parameter, z.contact.Parameter)
+			if e != nil {
+				return zero, e
+			}
+			if order != 0 {
+				return zero, geom.ErrConvergence
+			}
+			ev := a.contact
+			ev.Junction = true
+			ev.OtherUse = z.contact.Use
+			ev.OtherCurveParameter = z.contact.CurveParameter
+			ev.Touch = a.sign == z.sign
+			ev.Entry = !ev.Touch && a.sign > 0
+			events = append(events, ev)
+		}
 	}
 	sort.SliceStable(events, func(i, j int) bool {
 		return events[i].Parameter.Interval().Lower.Cmp(events[j].Parameter.Interval().Lower) < 0
