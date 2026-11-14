@@ -18,9 +18,9 @@ complete directed loop checks prove the outer/hole orientation of both caps.
 This reuses the circular product proof by factoring the original shell into two
 positive cylindrical support proofs. In a private parsed graph, FACE_BOUND
 orientation is applied to its whole ordered loop; inner material loops are
-complemented, and each annular cap contributes its corresponding rim. No source
-point, direction, radius, model curve or pcurve coefficient is changed by this
-factoring. Both full analytic pcurve lifts must equal the same model circle.
+complemented, and each annular cap contributes its corresponding rim. Source points, directions, radii and pcurve coefficients stay unchanged.
+A positive model LINE magnitude may be privately reparameterized to one under
+the explicit exact relation described below; its geometry stays unchanged. Both full analytic pcurve lifts must equal the same model circle.
 Association order can therefore be normalized for that support calculation,
 while `RimMasterPCurveIDs` records the original selected master. In particular,
 the genuine OCCT inner rims select the planar pcurve first. This calculation
@@ -72,3 +72,33 @@ center, height, excessive source gap, cross-product support sharing, extra
 faces and undersized/oversized tolerance. Exact original cylinder and planar
 family APIs remain unchanged. Normal/race/Go 1.23/vet and bounded
 `FuzzRepairCircularTubeNAUO -fuzztime=100x` cover this isolated family.
+
+## Original centimeter source and explicit LINE parameter scale
+
+The author helper accepts `CM` and optional `scaled`. With `CM scaled`, OCCT
+constructs an R30/R10/H50 millimetre tube and exports its original R3/R1/H5
+centimetre coordinates, exact `.CENTI.` unit contexts, and a 0.1 model LINE
+vector magnitude. Cylindrical pcurve V is still measured in source length units;
+its LINE magnitude remains one. This is genuine exported source, not edited
+millimetre data. The retained `occt-circular-tube-nauo-cm-scaled.step` passes at
+1e-10 centimetres. OCCT returns millimetre measures: source volume
+`48+40000π`/area `104+5600π`, reconstructed tube volume `40000π`/area `5600π`
+and local centroid `(0,0,25)`.
+
+The opt-in tube repair now retains each original positive `ModelSeamMagnitude`
+`m` and declares a repaired `ModelSeamParameterEnd=height/m`. It proves the
+exact affine relation `s=m*t` between the source model LINE and the physical
+axial coordinate. It does not claim equal model/pcurve parameters or authored
+endpoint trim values. The same constant seam displacement bound applies over
+`t∈[0,height/m]`, corresponding to `s∈[0,height]`. The LINE and VECTOR must each
+have exactly one original user before private reparameterization. Nonpositive
+magnitudes and shared vectors fail; source numeric bit/exponent limits apply.
+No physical length scaling or unit rewrite occurs inside reconstruction.
+
+The same unscaled R3/R1/H5 millimetre tube exported to centimeters is retained
+as `occt-circular-tube-nauo-cm.step` and explicitly **rejected**: its exact decimal
+support radii 0.3 and 0.1 cannot be represented losslessly as binary64. A legitimate
+external STEP file can thus remain outside this native subset. Mixed SI length
+contexts, prefixed angular radians and undersized tolerance are also negative
+fixtures. Existing exact/default cylinder APIs are unchanged; this parameter
+variation is confined to the explicit tube reconstruction.

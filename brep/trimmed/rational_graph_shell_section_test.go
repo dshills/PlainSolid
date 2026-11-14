@@ -148,6 +148,29 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 
 func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	ctx := context.Background()
+	s := makeSquareRationalGraphTube(t)
+	domain := geom.ParameterRectangle{UMax: 1, VMax: 1}
+	k := []float64{0, 0, 1, 1}
+	z := .5
+	p := [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}
+	r, e := s.SectionRationalGraphSplineShell(ctx, p, RationalGraphShellSectionOptions{Regions: &RationalGraphShellRegionOptions{}})
+	if e != nil || !r.Complete || len(r.Wires) != 2 || len(r.Regions.Material) != 1 {
+		t.Fatal("section of the square tube", r, e)
+	}
+	m := r.Regions.Material[0]
+	if len(m.Holes) != 1 || len(r.Wires[m.Outer]) != 12 || len(r.Wires[m.Holes[0]]) != 4 || r.Regions.Rings[m.Holes[0]].Parent != m.Outer {
+		t.Fatal("square-tube void was not retained as a hole", r.Regions)
+	}
+	a, e := r.Regions.BoundArea(ctx, big.NewRat(1, 1<<20))
+	if e != nil || a.ModelScaleSquared.Cmp(big.NewRat(1, 1)) != 0 || a.Projection.Lower.Cmp(big.NewRat(8, 1)) != 0 || a.Projection.Upper.Cmp(a.Projection.Lower) != 0 {
+		t.Fatal("exact square-ring area", a, e)
+	}
+	checkSquareRationalGraphTubeSection(t, s, r, k, domain, p, z)
+}
+
+func makeSquareRationalGraphTube(t *testing.T) Solid {
+	t.Helper()
+	ctx := context.Background()
 	var surfaces []*geom.BSplineSurface
 	var domains []geom.ParameterRectangle
 	domain := geom.ParameterRectangle{UMax: 1, VMax: 1}
@@ -189,20 +212,12 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	z := .5
-	p := [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}
-	r, e := s.SectionRationalGraphSplineShell(ctx, p, RationalGraphShellSectionOptions{Regions: &RationalGraphShellRegionOptions{}})
-	if e != nil || !r.Complete || len(r.Wires) != 2 || len(r.Regions.Material) != 1 {
-		t.Fatal("section of the square tube", r, e)
-	}
-	m := r.Regions.Material[0]
-	if len(m.Holes) != 1 || len(r.Wires[m.Outer]) != 12 || len(r.Wires[m.Holes[0]]) != 4 || r.Regions.Rings[m.Holes[0]].Parent != m.Outer {
-		t.Fatal("square-tube void was not retained as a hole", r.Regions)
-	}
-	a, e := r.Regions.BoundArea(ctx, big.NewRat(1, 1<<20))
-	if e != nil || a.ModelScaleSquared.Cmp(big.NewRat(1, 1)) != 0 || a.Projection.Lower.Cmp(big.NewRat(8, 1)) != 0 || a.Projection.Upper.Cmp(a.Projection.Lower) != 0 {
-		t.Fatal("exact square-ring area", a, e)
-	}
+	return s
+}
+
+func checkSquareRationalGraphTubeSection(t *testing.T, s Solid, r RationalGraphShellSection, k []float64, domain geom.ParameterRectangle, p [3]geom.Vec3, z float64) {
+	t.Helper()
+	ctx := context.Background()
 	for _, tt := range []struct {
 		x, y float64
 		want trimvalidate.Location

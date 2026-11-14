@@ -56,3 +56,27 @@ func TestRationalGraphCapHalfspace(t *testing.T) {
 		t.Fatal("vertex touch cannot certify two regular interior crossings", out, cuts, e)
 	}
 }
+
+func TestRationalGraphCapQuadraticRoot(t *testing.T) {
+	ctx := context.Background()
+	stock, _ := quadraticClipStock(t)
+	const z = 3. / 16
+	sec, e := stock.SectionRationalGraphSplineShell(ctx, [3]geom.Vec3{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z}}, RationalGraphShellSectionOptions{Regions: &RationalGraphShellRegionOptions{}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	// y=19/36, specified through the exact integral plane covector
+	// y normal normalized to 1. It meets y=3/4−x²/2 at x=2/3.
+	p := polynomialPlaneEquation{axes: [2]int{2, 0}, dropped: 1, orientation: 1,
+		normal: [3]*big.Rat{new(big.Rat), big.NewRat(1, 1), new(big.Rat)}, offset: big.NewRat(19, 36)}
+	_, intersections, e := sec.Regions.intersectCapHalfspace(ctx, p, -1, RationalGraphShellRegionOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, cut := range intersections {
+		if cut.Source.Face == 4 && cut.Point[0].Cmp(big.NewRat(2, 3)) == 0 && cut.Point[1].Cmp(big.NewRat(19, 36)) == 0 {
+			return
+		}
+	}
+	t.Fatal("the section must retain its exact nonbinary quadratic root", intersections)
+}

@@ -2,7 +2,7 @@
 
 `ReadRepairedCircularNAUOAssembly` is a separate opt-in family. It requires both
 exact cardinal-planar local products and explicitly reconstructed canonical
-cylinder products. Classification comes from each complete original shell's
+cylinder or concentric through-tube products. Classification comes from each complete original shell's
 support graph, never a product name or marker. Other wires, open surfaces,
 splines, sectors, cones and unknown product items are rejected atomically.
 
@@ -79,3 +79,50 @@ unsupported families/wires, cross-product ownership, exact pose violations,
 orphan bodies, cumulative limits and unchanged exact-reader rejection.
 Normal, race, Go 1.23, vet and fixed-work
 `FuzzRepairedCircularNAUOAssembly -fuzztime=100x` qualify the bounded import.
+
+## Separate through-tube evidence and native version 2
+
+`RepairedNAUOTube` adds the independently qualified four-face tube graph as a
+distinct local family. `TubeRepairs` contains one complete
+`RepairedCircularTubeNAUO` per tube product, with both original wall reports,
+cap roles, selected master pcurve IDs and model seam parameter scales. The
+existing cylinder `Repairs` table and cylinder fields keep their meanings.
+Classification counts the complete support graph, then invokes the independent
+strict tube repair; it never treats a tube as a cylinder or tries unknown shapes
+until a tolerance-based decoder accepts. Cumulative native limits count all
+sixteen tube patches/vertices and sixty-four uses.
+
+New `document.ReadRepairedCircularNAUOSTEPWithEvidence` and
+`ReadRepairedCircularNAUODocumentWithEvidence` return separate `Cylinders` and
+`Tubes` tables in `RepairedNAUOEvidence`. Both tables are removed before the
+immutable native document is retained. Reload re-proves and regenerates them;
+no report is serialized or trusted. The original cylinder-only entry points
+reject any tube-bearing source/payload, rather than silently discarding reports.
+Tube-bearing payloads use version 2; cylinder-only payloads remain version 1.
+Forging either version against the actual source family rejects atomically.
+
+Each tube stays one parametric local asset shared by all exact occurrence paths.
+`Parts` retains its distinct tube descriptor and original product/body identity.
+Exact world bounds use the tube's outer cylindrical extrema; the existing
+rational square-root gate still rejects unrepresentable exact projected bounds.
+No floating occurrence nodes are fabricated. `WriteOriginalSTEP` retains its
+explicit source-only meaning. This milestone does not add a general repaired
+mixed assembly authoring codec.
+
+The independent `author_repaired_tube_nauo_dag.cxx` uses a real OCCT cylinder
+Boolean cut alongside an independent cylinder and box. Its 772-entity retained
+`occt-tube-nauo-dag.step` has three local materials: four box uses, one cylinder
+use and three tube uses through reused intermediate groups. Pinned OCCT ordinary
+TransferRoots/BRepCheck returns eight solids, thirty-nine faces, volume
+`96+140π` ≈ 535.822971502571, area `208+196π` ≈ 823.752160103600,
+centroid ≈ (64.1069563124328,53.9353241155802,18.7184054266645), and bounds
+(0,-8,-3)–(202,112,72). Independently summing actual native geometry over exact
+paths after save/reload agrees with those world aggregates. The separate local
+tube source/new-output transfer remains qualified by the tube milestone.
+
+Tests retain original cylinder cases and add mixed family identity, repeated
+tube asset counts, report mutation isolation, native byte stability, exact bounds,
+version/tolerance/stale-geometry/serialized-evidence rejection, cross-family
+pcurve ownership, wrong material sense/support and cumulative budgets. The mixed
+fixed-work fuzz target includes this new positive source under sufficient native
+limits; normal, race, Go 1.23 and vet remain required.

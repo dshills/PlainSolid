@@ -44,8 +44,16 @@ func TestWrappedRoundedCylinderCompleteOffset(t *testing.T) {
 	if e != nil || math.Abs(mass.Volume-want) > 1e-7 {
 		t.Fatal(mass, want, e)
 	}
-	if _, _, e := WrappedRoundedCylinder(ctx, out, -.25, o); !errors.Is(e, geom.ErrDomain) {
-		t.Fatal("topology-changing offset should be rejected", e)
+	restored, restoredHistory, e := WrappedRoundedCylinder(ctx, out, -.25, o)
+	if e != nil || restoredHistory.ResultBlends != [2]int{-1, -1} {
+		t.Fatal("exact dilation/erosion inverse", restoredHistory, e)
+	}
+	_, restoredProof, e := restored.ValidateCanonicalWrappedCylinder(ctx, o)
+	if e != nil || restoredProof.Radius.Cmp(big.NewRat(3, 1)) != 0 || restoredProof.LowerZ.Sign() != 0 || restoredProof.UpperZ.Cmp(big.NewRat(5, 1)) != 0 {
+		t.Fatal("restored original cylinder", restoredProof, e)
+	}
+	if _, _, e := WrappedRoundedCylinder(ctx, out, math.Nextafter(-.25, math.Inf(-1)), o); !errors.Is(e, geom.ErrDomain) {
+		t.Fatal("negative blend continuation should be rejected", e)
 	}
 	sharp, hs, e := WrappedRoundedCylinder(ctx, stock, -.25, o)
 	if e != nil || hs.ResultBlends != [2]int{-1, -1} {

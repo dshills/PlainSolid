@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"testing"
@@ -116,5 +117,131 @@ func TestClipCrossingRationalGraphSplineShell(t *testing.T) {
 			t.Fatal("curved taper reload", e)
 		}
 		cuts[0], cuts[1] = cuts[1], cuts[0]
+	}
+	for _, c := range []struct {
+		above  bool
+		volume float64
+	}{
+		// The upper envelope subtracts the gap integrated over x≥1/2
+		// from z≥3/16; the lower envelope subtracts the gap over x≤1/2
+		// from z≤3/16. Those gaps are 233/61440 and 337/61440.
+		{true, 406369. / 430080},
+		{false, 19721. / 430080},
+	} {
+		for i := range cuts {
+			cuts[i].KeepPositive = c.above
+		}
+		r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(c.above, e)
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(m.Volume-c.volume) > 1e-9 || len(r.SourceFaces[4]) != 1 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("crossing graph envelope volume/topology", c.above, m, r.SourceFaces, e)
+		}
+		var boundaryPieces int
+		for _, u := range r.Solid.faces[r.SourceFaces[4][0]].Outer {
+			if u.Curve != nil {
+				boundaryPieces++
+			}
+		}
+		if boundaryPieces != 2 {
+			t.Fatal("both graph pieces must survive in the curved stock envelope", c.above, boundaryPieces)
+		}
+	}
+}
+
+func TestClipCrossingRationalGraphNonbinaryVertices(t *testing.T) {
+	ctx := context.Background()
+	stock, _ := quadraticClipStock(t)
+	var cuts [2]RationalGraphHalfspace
+	for i, slope := range []float64{0, 3. / 32} {
+		h := (3. - float64(i)) / 16
+		tool, e := slabTool(t, true, h, 0).Transformed(geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {slope, 0, 1, 0}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		cuts[i] = RationalGraphHalfspace{Points: [3]geom.Vec3{{Z: h}, {X: 1, Z: h + slope}, {Y: 1, Z: h}}, KeepPositive: i == 0,
+			Cap: tool.faces[4].Surface, CapDomain: geom.ParameterRectangle{UMin: -1, VMin: -1, UMax: 2, VMax: 2}}
+	}
+	if out, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{}); e == nil || len(out.Solid.faces) != 0 {
+		t.Fatal("default mode must reject nonbinary junctions atomically", e)
+	}
+	o := RationalGraphSeparatedBandOptions{Caps: RationalGraphSectionCapOptions{RationalEndpoints: true}}
+	r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, p := range r.CapIntersection.Points {
+		if p[0].Cmp(big.NewRat(2, 3)) != 0 || p[2].Cmp(big.NewRat(3, 16)) != 0 || p[1].Sign() != 0 && p[1].Cmp(big.NewRat(19, 36)) != 0 {
+			t.Fatal("nonbinary exact model endpoint", p)
+		}
+	}
+	var data bytes.Buffer
+	if e = WriteJSON(&data, r.Solid); e != nil {
+		t.Fatal(e)
+	}
+	back, e := ReadJSONContext(ctx, &data, JSONLimits{})
+	if e != nil {
+		t.Fatal("reload", e)
+	}
+	exact, e := back.RationalVertices(ctx)
+	if e != nil {
+		t.Fatal("reload exact endpoints", e)
+	}
+	start, end := back.edges[r.CapIntersection.Edge].Start, back.edges[r.CapIntersection.Edge].End
+	count := 0
+	for _, v := range exact {
+		if v.Vertex == start && rationalGraphSamePoint(v.Point, r.CapIntersection.Points[0]) || v.Vertex == end && rationalGraphSamePoint(v.Point, r.CapIntersection.Points[1]) {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Fatal("both exact seam vertices must reload", count, exact)
+	}
+}
+
+func TestClipCrossingRationalGraphThroughHole(t *testing.T) {
+	ctx := context.Background()
+	stock := makeSquareRationalGraphTube(t)
+	makeCut := func(h, slope float64, positive bool) RationalGraphHalfspace {
+		t.Helper()
+		const lo, hi = -1., 4.
+		k := []float64{lo, lo, hi, hi}
+		p := func(x, y float64) geom.Vec3 { return geom.Vec3{X: x, Y: y, Z: h + slope*x} }
+		s, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{p(lo, lo), p(lo, hi), p(hi, lo), p(hi, hi)}, k, k, nil)
+		if e != nil {
+			t.Fatal(e)
+		}
+		return RationalGraphHalfspace{Points: [3]geom.Vec3{p(0, 0), p(1, 0), p(0, 1)}, KeepPositive: positive,
+			Cap: s, CapDomain: geom.ParameterRectangle{UMin: lo, VMin: lo, UMax: hi, VMax: hi}}
+	}
+	for _, fixture := range []struct {
+		x, volume float64
+		holes     int
+	}{{.5, 67. / 64, 1}, {2.5, 3. / 64, 0}} {
+		cuts := [2]RationalGraphHalfspace{makeCut(.25, 0, true), makeCut(.25-fixture.x/8, .125, false)}
+		if fixture.x == 2.5 {
+			// Shift both planes to keep each original section wholly within
+			// the wall height. The thickness is unchanged.
+			cuts = [2]RationalGraphHalfspace{makeCut(.5, 0, true), makeCut(.5-fixture.x/8, .125, false)}
+		}
+		r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(fixture, e)
+		}
+		for _, id := range r.CapIntersection.Faces {
+			if len(r.Solid.faces[id].Holes) != fixture.holes {
+				t.Fatal("wrong cap hole ancestry", fixture, id)
+			}
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(m.Volume-fixture.volume) > 1e-11 || r.Solid.Topology().EulerCharacteristic != 2-2*fixture.holes {
+			t.Fatal("square sleeve exact volume/genus", fixture, m, r.Solid.Topology(), e)
+		}
+	}
+	cuts := [2]RationalGraphHalfspace{makeCut(.5, 0, true), makeCut(.3125, .125, false)}
+	if r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{}); !errors.Is(e, geom.ErrConvergence) || len(r.Solid.faces) != 0 {
+		t.Fatal("a plane crossing the inner loop must reject atomically", e)
 	}
 }

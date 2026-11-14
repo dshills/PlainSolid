@@ -246,6 +246,10 @@ import/export cases with the no-OCCT Go/WASM preflight, no retries or skips,
 and checks of all 841 original source files. The
 [development STEP record](evidence/plaincad-reconciled-0bdb699-development-step-2026-11-13.json)
 covers lifecycle and placed native geometry on that exact build.
+The [reconciled modeling run](evidence/plaincad-reconciled-ff15d87-development-modeling-2026-11-14.json)
+adds three original passing cases for edge treatment edits, revolve with cut
+and join, and the long feature chain through recovery, save/open and STL.
+It verified the same 841 original source files and no-OCCT browser preflight.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
@@ -1075,9 +1079,14 @@ surfaces must keep their geometry through the operation. Continue with:
    transverse cuts across one simple original section each. It isolates all
    cap-boundary contacts and shares one exact native cap edge. Both cap ends
    can land on planar stock, or one can land directly on a cubic stock face
-   with two retained exact graph trims. Original vertices on the opposite
-   plane, nonrepresentable junctions, holes and multiple retained runs are
-   still outside this crossing path.
+   with two retained exact graph trims. An opt-in quadratic path persists
+   nonbinary rational vertices without promoting their rounded display points
+   to topology. Original vertices on the opposite plane, irrational junctions,
+   intersections with inner wires, and multiple retained runs remain open.
+   A complete inner wire strictly to either side is retained or omitted with
+   its original faces and cap coedges. A crossing can select the upper or
+   lower envelope of two same-direction graphs, joining both original trims
+   at the proved cap endpoint.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

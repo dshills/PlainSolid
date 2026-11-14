@@ -107,7 +107,7 @@ func TestRepairedCircularNAUOAssemblyReject(t *testing.T) {
 	}
 }
 func FuzzRepairedCircularNAUOAssembly(f *testing.F) {
-	for _, name := range []string{"occt-circular-nauo.step", "occt-circular-nauo-dag.step"} {
+	for _, name := range []string{"occt-circular-nauo.step", "occt-circular-nauo-dag.step", "occt-tube-nauo-dag.step"} {
 		b, e := os.ReadFile("testdata/" + name)
 		if e != nil {
 			f.Fatal(e)
@@ -118,6 +118,9 @@ func FuzzRepairedCircularNAUOAssembly(f *testing.F) {
 		if len(b) > 1<<20 {
 			t.Skip()
 		}
-		_, _ = ReadRepairedCircularNAUOAssembly(bytes.NewReader(b), Limits{MaxBytes: 1 << 20, MaxEntities: 1000, MaxFaces: 16, MaxVertices: 32, MaxEdgeUses: 128}, CircularNAUORepairOptions{MaxDistance: 1e-9})
+		a, e := ReadRepairedCircularNAUOAssembly(bytes.NewReader(b), Limits{MaxBytes: 1 << 20, MaxEntities: 1000, MaxFaces: 40, MaxVertices: 40, MaxEdgeUses: 160}, CircularNAUORepairOptions{MaxDistance: 1e-9})
+		if e != nil && (a.Source != nil || len(a.Parts) != 0 || len(a.Repairs) != 0 || len(a.TubeRepairs) != 0) {
+			t.Fatal("partial mixed proof")
+		}
 	})
 }
