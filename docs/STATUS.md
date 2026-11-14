@@ -33,7 +33,9 @@ cutter faces. The matching union has a certified closed mesh with 2,076
 triangles for all 17 original fragments. It includes the roof with an
 enclosed hole, uses the shared original boundary samples, and has a
 source error bound below 0.143 model units. Its complement proof clips
-query cells to the opposing chart before testing height.
+query cells to the opposing chart before testing height. All three mesh
+operations now run end to end on the two original shells without caller
+face assignments or rational wall seeds.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
