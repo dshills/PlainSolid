@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
 
 	"plainsolid/geom"
 )
@@ -20,6 +21,9 @@ type AlgebraicGraphShellEdge struct {
 	CapSeam     int // paired cap-to-cap seam, or -1
 	Cap         int // cap-side attachment, or -1
 	CapBoundary AlgebraicGraphCapSeamOwner
+	// StockParameters are the original model edge's normalized increasing
+	// interval, nil for generated edges. Values are owned by the report.
+	StockParameters [2]*big.Rat
 }
 type AlgebraicGraphShellFace struct {
 	StockFace int // -1 for a generated cap boundary group
@@ -98,7 +102,8 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 				if !ok {
 					found = len(out.Edges)
 					perimeterIDs[k] = found
-					out.Edges = append(out.Edges, AlgebraicGraphShellEdge{StockEdge: side.OriginalEdge, CapSeam: -1, Cap: -1})
+					out.Edges = append(out.Edges, AlgebraicGraphShellEdge{StockEdge: side.OriginalEdge, CapSeam: -1, Cap: -1,
+						StockParameters: [2]*big.Rat{new(big.Rat).Set(side.PerimeterParameters[0]), new(big.Rat).Set(side.PerimeterParameters[1])}})
 				}
 				id, reverse = found, side.PerimeterReversed != face.Reversed
 			} else {

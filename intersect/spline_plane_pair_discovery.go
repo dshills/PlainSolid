@@ -9,15 +9,18 @@ import (
 )
 
 // SplinePlanePairDiscoveryOptions bounds an automatic transverse branch
-// fallback for one affine spline plane and one spline patch. Arc endpoints
+// fallback for one affine spline plane and one spline patch; the opt-in
+// trapezoid route uses a proved rational inverse for complete iso sections. Arc endpoints
 // must have represented free coordinates. A later independent tube covering
 // still validates the branch set against both original charts.
 type SplinePlanePairDiscoveryOptions struct {
-	Enabled  bool // lets TraceSplinePair try this fallback after general discovery
-	Plane    geom.SurfaceTraceOptions
-	Tubes    geom.SurfaceArcTubeDiscoveryOptions
-	MaxArcs  int
-	MaxTubes int
+	// TrapezoidCharts enables the exact rational inverse iso fallback for planar nonlinear charts.
+	TrapezoidCharts bool
+	Enabled         bool // lets TraceSplinePair try this fallback after general discovery
+	Plane           geom.SurfaceTraceOptions
+	Tubes           geom.SurfaceArcTubeDiscoveryOptions
+	MaxArcs         int
+	MaxTubes        int
 	// UCuts/VCuts optionally add exact proof-only knot lines on the
 	// nonplanar chart before tracing. Tubes still use the original inputs.
 	UCuts, VCuts []float64
@@ -28,6 +31,10 @@ type SplinePlanePairDiscoveryOptions struct {
 // exact determinant coefficients; unit-normal rounding is not used. The result
 // is a candidate report for CertifySplinePairBranches.
 func DiscoverSplinePlanePairTubes(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, o SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+	if o.TrapezoidCharts {
+		var open SplineOpenPlaneDiscovery
+		return discoverSplinePlanePairTubes(ctx, a, b, p, o, &open, false)
+	}
 	return discoverSplinePlanePairTubes(ctx, a, b, p, o, nil, false)
 }
 

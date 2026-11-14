@@ -10,8 +10,26 @@ import (
 // finishFilletedLineLedger orders immutable exact roots and classifies only
 // proved open cells. It never infers equality from overlapping enclosures.
 func finishFilletedLineLedger(ctx context.Context, out FilletedAxialLine, lo, hi *geom.ExactAlgebraicRoot, o geom.ExactCurvePlaneEventOptions, classify func(*big.Rat) (FilletedFrustumMaterialPoint, error)) (FilletedAxialLine, error) {
+	return finishFilletedLineLedgerBudget(ctx, out, lo, hi, o, classify, nil)
+}
+func finishFilletedLineLedgerBudget(ctx context.Context, out FilletedAxialLine, lo, hi *geom.ExactAlgebraicRoot, o geom.ExactCurvePlaneEventOptions, classify func(*big.Rat) (FilletedFrustumMaterialPoint, error), remaining *int) (FilletedAxialLine, error) {
+	compareProof := func(a, b *geom.ExactAlgebraicRoot) (geom.ExactCurveEventOrder, error) {
+		options := o
+		if remaining != nil {
+			if *remaining < 1 {
+				return geom.ExactCurveEventOrder{}, geom.ErrConvergence
+			}
+			options.MaxOperations = *remaining
+		}
+		v, e := a.Compare(ctx, b, options)
+		if remaining != nil {
+			*remaining -= v.Operations
+		}
+		return v, e
+	}
+
 	compare := func(a, b *geom.ExactAlgebraicRoot) (int, error) {
-		v, e := a.Compare(ctx, b, o)
+		v, e := compareProof(a, b)
 		if e != nil {
 			return 0, e
 		}
@@ -49,7 +67,7 @@ func finishFilletedLineLedger(ctx context.Context, out FilletedAxialLine, lo, hi
 	}
 	out.Hits = merged
 	between := func(a, b *geom.ExactAlgebraicRoot) (geom.BorePointLocation, error) {
-		r, e := a.Compare(ctx, b, o)
+		r, e := compareProof(a, b)
 		if e != nil {
 			return geom.BoreOutside, e
 		}

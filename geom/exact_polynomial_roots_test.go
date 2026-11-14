@@ -109,3 +109,17 @@ func TestExactQuarticToroidBranchAndTrimSigns(t *testing.T) {
 		t.Fatal(bad, e)
 	}
 }
+
+func TestExactPolynomialSignTrailingZero(t *testing.T) {
+	ctx := context.Background()
+	root, _, e := NewExactRationalRoot(ctx, big.NewRat(1, 1), ExactCurvePlaneEventOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, n := range []int64{-1, 0, 1} {
+		s, e := root.SignPolynomial(ctx, []*big.Rat{big.NewRat(n, 1), new(big.Rat), new(big.Rat)}, ExactCurvePlaneEventOptions{})
+		if e != nil || s.Sign != int(n) {
+			t.Fatal(n, s, e)
+		}
+	}
+}

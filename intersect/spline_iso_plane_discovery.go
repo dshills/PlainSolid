@@ -13,7 +13,18 @@ import (
 func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o SplinePlanePairDiscoveryOptions) (r SplineOpenPlaneDiscovery, err error) {
 	for swapped, pair := range [2][2]*geom.SurfacePatch{{a, b}, {b, a}} {
 		source, plane := pair[0], pair[1]
-		pl, e := exactAffineSplineRawPlane(ctx, plane, o)
+		var chart *geom.AffineSurfaceChart
+		var trapezoid *geom.TrapezoidSurfaceChart
+		var pl geom.RawSupportPlane
+		var e error
+		if o.TrapezoidCharts {
+			trapezoid, e = geom.NewTrapezoidSurfaceChart(ctx, plane, geom.AffineSurfaceChartOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+			if e == nil {
+				pl, e = trapezoid.RawSupportPlane(geom.SurfacePatchOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+			}
+		} else {
+			pl, e = exactAffineSplineRawPlane(ctx, plane, o)
+		}
 		if e != nil {
 			if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDegenerate) || errors.Is(e, geom.ErrUnrepresentable) {
 				continue
@@ -30,7 +41,9 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 		if !trace.Complete || len(trace.Isolation.Arcs) == 0 || len(trace.Isolation.Coplanar) > 0 || len(trace.Isolation.Tangencies) > 0 {
 			continue
 		}
-		chart, e := geom.NewAffineSurfaceChart(ctx, plane, geom.AffineSurfaceChartOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+		if !o.TrapezoidCharts {
+			chart, e = geom.NewAffineSurfaceChart(ctx, plane, geom.AffineSurfaceChartOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+		}
 		if e != nil {
 			return r, e
 		}
@@ -73,7 +86,12 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 			if e != nil {
 				return r, e
 			}
-			clipped, e := geom.ClipIsoCurveToAffineChart(ctx, curve, chart, geom.SplinePlaneOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+			var clipped geom.AffineChartCurveClip
+			if o.TrapezoidCharts {
+				clipped, e = geom.ClipIsoCurveToTrapezoidChart(ctx, curve, trapezoid, geom.SplinePlaneOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+			} else {
+				clipped, e = geom.ClipIsoCurveToAffineChart(ctx, curve, chart, geom.SplinePlaneOptions{MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+			}
 			if e != nil {
 				if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) {
 					supported = false
@@ -90,7 +108,12 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 					supported = false
 					break
 				}
-				tubes, e := geom.DiscoverSurfaceIsoPlaneRationalTubes(ctx, source, plane, section.axis, section.fixed, span.Start.Parameter, span.End.Parameter, o.Tubes)
+				var tubes geom.SurfaceArcTubeDiscovery
+				if o.TrapezoidCharts {
+					tubes, e = geom.DiscoverSurfaceIsoTrapezoidTubes(ctx, source, plane, section.axis, section.fixed, span.Start.Parameter, span.End.Parameter, o.Tubes)
+				} else {
+					tubes, e = geom.DiscoverSurfaceIsoPlaneRationalTubes(ctx, source, plane, section.axis, section.fixed, span.Start.Parameter, span.End.Parameter, o.Tubes)
+				}
 				if e != nil {
 					if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) || errors.Is(e, geom.ErrDegenerate) {
 						supported = false
@@ -118,11 +141,30 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 						return r, e
 					}
 					proof, e := geom.CertifySurfacePairTube(pa, pb, geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+					var anchor *TubeBoundaryAnchor
+					if t.Boundary != nil {
+						option := *t.Boundary
+						option.FreeAxis = axis
+						if swapped == 1 {
+							option.Anchor = [4]*big.Rat{option.Anchor[2], option.Anchor[3], option.Anchor[0], option.Anchor[1]}
+						}
+						proof, e = geom.CertifyBoundaryAnchoredSurfacePairTube(ctx, pa, pb, option)
+						if e != nil {
+							return r, e
+						}
+						anchor = &TubeBoundaryAnchor{AtUpper: option.AtUpper}
+						for j, q := range option.Anchor {
+							anchor.Parameters[j], e = geom.RepresentedExactScalar(q)
+							if e != nil {
+								return r, e
+							}
+						}
+					}
 					if e != nil || !proof.ProvenBranch {
 						supported = false
 						break
 					}
-					local.Seeds.Attempts = append(local.Seeds.Attempts, SplineSeedCell{Cell: cell, Tube: &proof})
+					local.Seeds.Attempts = append(local.Seeds.Attempts, SplineSeedCell{Cell: cell, Tube: &proof, BoundaryAnchor: anchor})
 				}
 				if !supported {
 					break
@@ -186,6 +228,13 @@ func certifyIsoDiscoveryTerminal(ctx context.Context, a, b *geom.SurfacePatch, s
 			return SplineOpenPlaneTerminal{}, e
 		}
 		tube, e := geom.NewVerifiedSurfaceTube(pa, pb, geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
+		if seed.BoundaryAnchor != nil {
+			var anchor [4]*big.Rat
+			for j, q := range seed.BoundaryAnchor.Parameters {
+				anchor[j] = new(big.Rat).SetFloat64(q)
+			}
+			tube, e = geom.NewBoundaryAnchoredSurfaceTube(ctx, pa, pb, geom.SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits}, AtUpper: seed.BoundaryAnchor.AtUpper, Anchor: anchor})
+		}
 		if e != nil {
 			return SplineOpenPlaneTerminal{}, e
 		}

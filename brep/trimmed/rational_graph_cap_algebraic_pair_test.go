@@ -184,6 +184,65 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 			t.Fatal("independent OCCT volume or closed topology", data, mid)
 		}
 	}
+	evaluated, curves, e := restored.ExactModelBoundary(ctx, section, opts)
+	if e != nil || len(curves) != len(topology.Edges) || !reflect.DeepEqual(evaluated, topology) {
+		t.Fatal("canonical model geometry for every indexed edge", len(curves), e)
+	}
+	meet := make(map[int]*geom.ExactComposedCurveEvent)
+	for i, curve := range curves {
+		for j, vertex := range [...]int{topology.Edges[i].Start, topology.Edges[i].End} {
+			canonical := j
+			if curve.Reversed {
+				canonical ^= 1
+			}
+			cell := curve.Cells.Cells[canonical*(len(curve.Cells.Cells)-1)]
+			root, e := cell.EndpointRoot(canonical)
+			if e != nil {
+				t.Fatal(e)
+			}
+			event, e := cell.BindRoot(ctx, root, opts)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if old := meet[vertex]; old != nil {
+				equal, _, e := old.CompareModelPoint(ctx, event, opts)
+				if e != nil || !equal {
+					t.Fatal("indexed model vertices must be exactly coincident", vertex, i, e)
+				}
+			} else {
+				meet[vertex] = event
+			}
+		}
+	}
+	display := AlgebraicGraphStockBoundaryOptions{Section: section}
+	display.Display.Deflection = .003
+	network, e := restored.TessellateStockBoundaryCertified(ctx, display)
+	if e != nil || len(network.Edges) != len(topology.Edges) || network.PairChecks <= 0 ||
+		network.MaximumBoundaryError <= 0 || network.MaximumBoundaryError > display.Display.Deflection {
+		t.Fatal("complete shared stock display", network.MaximumBoundaryError, network.PairChecks, e)
+	}
+	for i, path := range network.Edges {
+		if path[0] != topology.Edges[i].Start || path[len(path)-1] != topology.Edges[i].End || !network.Curves[i].Complete {
+			t.Fatal("shared chord ledger lost original indexed vertex", i)
+		}
+	}
+	display.MaxPairs = 1
+	if result, e := restored.TessellateStockBoundaryCertified(ctx, display); !errors.Is(e, geom.ErrConvergence) || len(result.Edges) != 0 {
+		t.Fatal("display contact budget must fail atomically", e)
+	}
+	fill := AlgebraicGraphStockFillOptions{Deflection: .09}
+	fill.Boundary.Section = section
+	fill.Boundary.Display.Deflection = .003
+	fill.Boundary.EndpointTolerance = 1e-12
+	mesh, e := restored.TessellateAffineProjectedStockCertified(ctx, fill)
+	if e != nil || mesh.SignedVolume == nil || len(mesh.Mesh.Triangles) != len(mesh.IndexedFaces) ||
+		mesh.MaximumFillError <= 0 || mesh.MaximumFillError > fill.Deflection {
+		t.Fatal("closed curved stock source-fill certificate", mesh.MaximumFillError, e)
+	}
+	mv, _ := mesh.SignedVolume.Float64()
+	if math.Abs(mv-(697./960-3*math.Sqrt(3)/640)) > .025 {
+		t.Fatal("independent display material volume", mv)
+	}
 	for _, probe := range []struct {
 		p    geom.Vec3
 		want parametric.Location

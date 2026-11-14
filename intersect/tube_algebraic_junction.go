@@ -25,6 +25,22 @@ func algebraicGraphTubeJunction(ctx context.Context, left, right geom.VerifiedSu
 		}
 		q, e := tube.DiscoverAlgebraicGraphEndpoint(ctx, upper, geom.TubeAlgebraicGraphEndpointOptions{SurfaceCurveAgreementOptions: geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: maxBits}}})
 		operations += q.ExactOperations
+		if e != nil && (errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) || errors.Is(e, geom.ErrDegenerate)) {
+			remaining = maxOperations - operations
+			if remaining < 1 {
+				return false, operations, geom.ErrConvergence
+			}
+			_, domain, de := tube.ExactFreeDomain()
+			if de != nil {
+				return false, operations, de
+			}
+			free := domain.Lower
+			if upper {
+				free = domain.Upper
+			}
+			q, e = tube.EvaluateRationalPlane(ctx, free, geom.TubeAlgebraicGraphEndpointOptions{SurfaceCurveAgreementOptions: geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: maxBits}}})
+			operations += q.ExactOperations
+		}
 		if e != nil {
 			if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDomain) || errors.Is(e, geom.ErrDegenerate) {
 				return false, operations, nil

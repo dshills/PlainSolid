@@ -311,6 +311,19 @@ func discoverExactTubeSectionEndpoint(ctx context.Context, s intersect.TubeSegme
 			return r, e
 		}
 	}
+	child := o
+	child.MaxOperations = limit - used
+	if child.MaxOperations < 1 {
+		return r, geom.ErrConvergence
+	}
+	planar, pe := s.EvaluateRationalPlane(ctx, fixed, child)
+	used += planar.ExactOperations
+	if pe == nil && planar.Proven {
+		return planar, nil
+	}
+	if pe != nil && !errors.Is(pe, geom.ErrConvergence) && !errors.Is(pe, geom.ErrDegenerate) && !errors.Is(pe, geom.ErrDomain) {
+		return r, pe
+	}
 	p, e := s.Evaluate(float64(end))
 	if e != nil {
 		return r, e
