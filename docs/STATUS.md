@@ -137,6 +137,8 @@ Revolve sectors with the axis intact likewise retain their partial angle
 and planar radial faces through STEP and accept a subsequent coaxial cut.
 Full concentric tubes use the periodic two-wall STEP graph and retain
 the coaxial cut recipe after import, including independent and metric files.
+Circular rim fillets about the world Z axis exchange their exact rational
+quarter-torus bands and preserve the native single- or dual-rim geometry.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

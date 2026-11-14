@@ -1,0 +1,51 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "079b66c6c055c1d88bc83ca81946a99e3eea0de9887dc26129fb74835822ba80",
+  "supplemental": {
+    "report": "/tmp/plainsolid-rim-fillet-authored-5595/rim-fillet-browser.json",
+    "reportSha256": "33d24b17afa6b84e0bb1d27987bd59da2cadf6ee80c1742e748c08c01035b40a",
+    "sourceSha256": "5b17bdf00137b0f4a509c1252d3550fddf49f2d777156e0831c830743720bfbe",
+    "summary": {
+      "startTime": "2026-11-14T15:54:35.185Z",
+      "duration": 23991.801,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "profile": "radius 10, height 10, one radius-1 circular rim fillet about Z",
+      "exactNativeRoundTrip": true,
+      "byteIdenticalReexport": true,
+      "stepByteCount": 11584,
+      "stepSha256": "2d1b0e5d40a11617c2c32273923848fb3ae68c16a9872d624abd57698c8c6471",
+      "stlTriangles": 7040,
+      "stlTwoUseEdges": 10560,
+      "stlSha256": "c185e082cc3ce990bf4c3db0f04bc2ceb34295eabee6f2ece8125aa292f9f629",
+      "occtStepReadback": {
+        "Area": 1229.224572848038,
+        "Volume": 3128.4100075728975,
+        "Centroid": [
+          8.213646425416698e-10,
+          1.3684331569684279e-16,
+          4.979880911319576
+        ]
+      },
+      "analyticVolume": 3128.410008078882,
+      "analyticArea": 1229.224572862899,
+      "occtAbsoluteErrors": {
+        "volume": 5.059846444055438e-07,
+        "area": 1.4861143426969647e-08
+      }
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 0
+  },
+  "vet": "passed",
+  "existingIndependentWrappedRimFilletExchangeRerun": true,
+  "race": "passed"
+}

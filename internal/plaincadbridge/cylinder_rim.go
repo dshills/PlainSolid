@@ -49,6 +49,9 @@ func (b *Bridge) treatCylinderRims(s stored, q request) (Shape, error) {
 		return Shape{}, err
 	}
 	body.rimPatches = true
+	if !chamfer {
+		body.rimFillet = &cylinderRimFillet{frame: c.frame, radius: c.radius, height: c.height, lower: lower, upper: upper}
+	}
 	return b.putAnalyticBody(body)
 }
 

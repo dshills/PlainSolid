@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD circular rim fillet STEP exchange — 2026-11-14
+
+A cylinder about signed world Z retains the one- or two-rim recipe and
+exchanges the exact rational quarter-torus bands. The strict wrapped
+reader validates the shared rims and surface charts before the bridge
+reconstructs its original analytic fillet and display patches.
+
+[Seven original edge and STEP regressions plus provider preflight](evidence/plaincad-rim-fillet-step-browser-2026-11-14.json)
+and the [extended original XY grouped circular perimeter workflow](evidence/plaincad-rim-fillet-step-native-2026-11-14.json)
+pass on the same WASM. Its 11,584-byte STEP reexports byte-identically
+after project reopen. Its 7,040-triangle STL is watertight. OCCT
+volume agrees within 0.000001 mm³ and area within 0.000001 mm².
+Existing independent wrapped fillet tests, focused race checks and Go
+vet pass. Rim exchange on the other working planes remains open.
+
 ## PlainCAD full coaxially bored Revolve STEP exchange — 2026-11-14
 
 The complete tube uses two periodic cylindrical faces and two annular
