@@ -44,3 +44,32 @@ func TestOCCTFrustumErosion(t *testing.T) {
 		compare(t, ref[[]string{"frustum-wall-rising", "frustum-wall-falling"}[i]], m.Area, m.Volume, m.Centroid)
 	}
 }
+
+func TestOCCTFrustumOpenWall(t *testing.T) {
+	ref := runOracle(t, "frustum-open-wall")
+	ctx := context.Background()
+	o := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: -1, Y: 2, Z: 3}, 2, 4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i, taper := range []string{"rising", "falling"} {
+		d := [2]float64{}
+		d[1-i] = 3
+		outer, _, e := geom.DraftWrappedFrustum(ctx, base, d[0], d[1], o)
+		if e != nil {
+			t.Fatal(e)
+		}
+		for j, end := range []string{"lower", "upper"} {
+			s, _, e := offset.WrappedCircularFrustumOpenWall(ctx, outer, .5, 1e-9, j == 1, o)
+			if e != nil || len(s.Topology().Shells) != 1 || s.Topology().InnerWires != 1 {
+				t.Fatal(s.Topology(), e)
+			}
+			p, e := s.MassProperties(ctx, parametric.IntegrationOptions{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			compare(t, ref["frustum-open-wall-"+taper+"-"+end], p.Area, p.Volume, p.Centroid)
+		}
+	}
+}

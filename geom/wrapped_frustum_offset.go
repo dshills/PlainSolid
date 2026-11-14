@@ -22,6 +22,22 @@ type WrappedFrustumNormalOffset struct {
 // supported. A pole or vanishing closed solid returns a domain error.
 func ErodeWrappedCircularFrustum(ctx context.Context, w *WrappedSurfacePatch, distance float64,
 	o SurfacePatchOptions) (*WrappedSurfacePatch, WrappedFrustumEmbedding, error) {
+	return trimOffsetWrappedCircularFrustum(ctx, w, distance, [2]bool{}, o)
+}
+
+// InsetWrappedCircularFrustumAtCap constructs the frustum to remove for
+// a one-ended shell. The selected end keeps the original cap height; the
+// opposite cap and lateral support move inward by the Euclidean thickness.
+func InsetWrappedCircularFrustumAtCap(ctx context.Context, w *WrappedSurfacePatch, thickness float64, openUpper bool,
+	o SurfacePatchOptions) (*WrappedSurfacePatch, WrappedFrustumEmbedding, error) {
+	if !(thickness > 0) {
+		return nil, WrappedFrustumEmbedding{}, ErrInvalid
+	}
+	return trimOffsetWrappedCircularFrustum(ctx, w, thickness, [2]bool{!openUpper, openUpper}, o)
+}
+
+func trimOffsetWrappedCircularFrustum(ctx context.Context, w *WrappedSurfacePatch, distance float64,
+	open [2]bool, o SurfacePatchOptions) (*WrappedSurfacePatch, WrappedFrustumEmbedding, error) {
 	var empty WrappedFrustumEmbedding
 	if ctx == nil || !finite(distance) || distance < 0 {
 		return nil, empty, ErrInvalid
@@ -39,8 +55,13 @@ func ErodeWrappedCircularFrustum(ctx context.Context, w *WrappedSurfacePatch, di
 	o, _ = patchOptions(o)
 	b := &polynomialBudget{operations: proof.ExactOperations, maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	d := new(big.Rat).SetFloat64(distance)
-	lo := new(big.Rat).Add(proof.LowerZ, d)
-	hi := new(big.Rat).Sub(proof.UpperZ, d)
+	lo, hi := new(big.Rat).Set(proof.LowerZ), new(big.Rat).Set(proof.UpperZ)
+	if !open[0] {
+		lo.Add(lo, d)
+	}
+	if !open[1] {
+		hi.Sub(hi, d)
+	}
 	if lo.Cmp(hi) >= 0 {
 		return nil, empty, ErrDomain
 	}
@@ -51,11 +72,11 @@ func ErodeWrappedCircularFrustum(ctx context.Context, w *WrappedSurfacePatch, di
 	}
 	move := new(big.Rat).Mul(d, length)
 	// r(z) <= r0 + s(z−z0) becomes r(z) <= r0 + s(z−z0) − d√(1+s²).
-	// Intersecting these offset supporting halfspaces over all azimuths
-	// and the two translated cap halfspaces is exactly ball erosion.
+	// Intersect these offset supporting halfspaces over all azimuths,
+	// translating each cap inward except at an authored opening.
 	radii := [2]*big.Rat{
-		new(big.Rat).Sub(new(big.Rat).Add(proof.LowerRadius, new(big.Rat).Mul(slope, d)), move),
-		new(big.Rat).Sub(new(big.Rat).Sub(proof.UpperRadius, new(big.Rat).Mul(slope, d)), move),
+		new(big.Rat).Sub(new(big.Rat).Add(proof.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(lo, proof.LowerZ))), move),
+		new(big.Rat).Sub(new(big.Rat).Sub(proof.UpperRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(proof.UpperZ, hi))), move),
 	}
 	if radii[0].Sign() <= 0 || radii[1].Sign() <= 0 {
 		return nil, empty, ErrDomain

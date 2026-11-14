@@ -32,6 +32,18 @@ func WrappedCircularFrustumWall(ctx context.Context, support *geom.WrappedSurfac
 		trimmed.SplineShellBooleanOptions{Embedding: trimmed.SplineRectangleEmbeddingOptions{Patches: o}})
 }
 
+// WrappedCircularFrustumOpenWall removes one cap and offsets the remaining
+// supports inward by thickness. The opening is the original cap plane and
+// retains its annular shoulder; the opposite end has a closed inner floor.
+func WrappedCircularFrustumOpenWall(ctx context.Context, support *geom.WrappedSurfacePatch, thickness, tolerance float64,
+	openUpper bool, o geom.SurfacePatchOptions) (trimmed.Solid, trimmed.WrappedCylinderTubeHistory, error) {
+	inner, _, e := geom.InsetWrappedCircularFrustumAtCap(ctx, support, thickness, openUpper, o)
+	if e != nil {
+		return trimmed.Solid{}, trimmed.WrappedCylinderTubeHistory{}, e
+	}
+	return trimmed.NewWrappedCircularFrustumBore(ctx, support, inner, tolerance, o)
+}
+
 // ErodeWrappedCircularFrustum builds the capped exact ball erosion of the
 // canonical circular frustum. Its native vertices must be representable.
 func ErodeWrappedCircularFrustum(ctx context.Context, support *geom.WrappedSurfacePatch, distance, tolerance float64,

@@ -32,9 +32,11 @@ type CertifiedAlgebraicTubeFootprint struct {
 // distances, including hole and outer boundary points. This is a planar
 // footprint certificate only: it is neither a curved face mesh nor a material
 // volume certificate. It does not require biquadratic surface supports.
+// Original float spline and exact homogeneous Bézier owner charts are retained
+// without conversion of their control points.
 func (r AlgebraicTubeRegions) TessellateFootprintCertified(ctx context.Context, region int, o AlgebraicTubeFootprintMeshOptions) (CertifiedAlgebraicTubeFootprint, error) {
 	var empty CertifiedAlgebraicTubeFootprint
-	if ctx == nil || r.section.partitionSource == nil || region < 0 || region >= len(r.regions) {
+	if ctx == nil || r.section.runSource() == nil || region < 0 || region >= len(r.regions) {
 		return empty, geom.ErrInvalid
 	}
 	network, e := r.TessellateBoundaryCertified(ctx, o.Boundary)

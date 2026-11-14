@@ -16,6 +16,7 @@ type MixedTopologyFamily string
 const (
 	MixedTopologyTetrahedron MixedTopologyFamily = "tetrahedron"
 	MixedTopologyRoof        MixedTopologyFamily = "parabolic-roof"
+	MixedTopologyHexahedron  MixedTopologyFamily = "hexahedron"
 )
 
 type MixedTopologyBody struct {
@@ -25,6 +26,7 @@ type MixedTopologyBody struct {
 	// All nested decoded source IDs use the local proof graph explicitly.
 	LocalToSource map[int]int
 	Tetrahedron   *TetrahedronSolid
+	Hexahedron    *HexahedronSolid
 	Roof          *MappedParabolicRoofSolid
 }
 type MixedTopologySolids struct {
@@ -32,9 +34,10 @@ type MixedTopologySolids struct {
 	LengthUnit float64
 }
 type MixedTopologyInput struct {
-	Family   MixedTopologyFamily
-	Vertices [4]geom.Vec3
-	Roof     ParabolicRoofDescriptor
+	Family      MixedTopologyFamily
+	Vertices    [4]geom.Vec3
+	HexVertices [8]geom.Vec3
+	Roof        ParabolicRoofDescriptor
 }
 
 func mixedTopologyFailure() error {
@@ -176,7 +179,8 @@ func mixedTopologyDirectory(raw []byte) error {
 }
 
 // ReadMixedTopologySolids accepts two to eight independently rooted materials
-// containing both tetrahedral and original parabolic spline families. Every
+// containing at least two of the tetrahedral, affine hexahedral and original
+// parabolic spline families. Every
 // source entity belongs to exactly one root; no sharing or orphan data is lost.
 // This is a collection of solids, not an assembly or a Boolean union.
 func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedTopologySolids, error) {
@@ -245,7 +249,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 	}
 	owners := map[int]int{}
 	out := MixedTopologySolids{LengthUnit: doc.unit}
-	nt, nr := 0, 0
+	nt, nr, nh := 0, 0, 0
 	for _, root := range roots {
 		if e = ctx.Err(); e != nil {
 			return MixedTopologySolids{}, e
@@ -297,6 +301,14 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 			body.Family = MixedTopologyTetrahedron
 			body.Tetrahedron = &v
 			nt++
+		} else if mixedTopologyBilinear(selected) {
+			v, e := ReadHexahedronSolid(bytes.NewReader(raw), Limits{})
+			if e != nil {
+				return fail()
+			}
+			body.Family = MixedTopologyHexahedron
+			body.Hexahedron = &v
+			nh++
 		} else {
 			v, e := ReadMappedParabolicRoofSolid(ctx, bytes.NewReader(raw), Limits{})
 			if e != nil {
@@ -308,7 +320,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 		}
 		out.Bodies = append(out.Bodies, body)
 	}
-	if len(owners) != len(records) || nt == 0 || nr == 0 {
+	if len(owners) != len(records) || mixedTopologyFamilyCount(nt, nr, nh) < 2 {
 		return fail()
 	}
 	return out, nil
@@ -322,7 +334,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 	}
 	var all []topologyRecord
 	to := map[int]int{}
-	nt, nr := 0, 0
+	nt, nr, nh := 0, 0, 0
 	for _, b := range bodies {
 		if e := ctx.Err(); e != nil {
 			return e
@@ -331,13 +343,19 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 		var e error
 		switch b.Family {
 		case MixedTopologyTetrahedron:
-			if b.Roof != (ParabolicRoofDescriptor{}) {
+			if b.Roof != (ParabolicRoofDescriptor{}) || b.HexVertices != ([8]geom.Vec3{}) {
 				return mixedTopologyFailure()
 			}
 			e = WriteTetrahedronSolid(&raw, b.Vertices, unit)
 			nt++
+		case MixedTopologyHexahedron:
+			if b.Vertices != ([4]geom.Vec3{}) || b.Roof != (ParabolicRoofDescriptor{}) {
+				return mixedTopologyFailure()
+			}
+			e = WriteHexahedronSolid(&raw, b.HexVertices, unit)
+			nh++
 		case MixedTopologyRoof:
-			if b.Vertices != ([4]geom.Vec3{}) {
+			if b.Vertices != ([4]geom.Vec3{}) || b.HexVertices != ([8]geom.Vec3{}) {
 				return mixedTopologyFailure()
 			}
 			e = WriteParabolicRoofSolid(ctx, &raw, b.Roof, unit)
@@ -371,7 +389,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 			all = append(all, rec)
 		}
 	}
-	if nt == 0 || nr == 0 {
+	if mixedTopologyFamilyCount(nt, nr, nh) < 2 {
 		return mixedTopologyFailure()
 	}
 	raw, e := remapTopologyRecords(all, to, unit)
@@ -386,4 +404,36 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 		return io.ErrShortWrite
 	}
 	return e
+}
+
+func mixedTopologyFamilyCount(counts ...int) int {
+	n := 0
+	for _, v := range counts {
+		if v > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// A syntactic family discriminator, never an acceptance certificate. A warped
+// bilinear net still has to pass every exact affine/convex hexahedron proof.
+func mixedTopologyBilinear(records []topologyRecord) bool {
+	n := 0
+	for _, r := range records {
+		if r.kind != 128 {
+			continue
+		}
+		n++
+		if len(r.values) < 5 {
+			return false
+		}
+		for i := 1; i <= 4; i++ {
+			v, e := intValue(r.values[i])
+			if e != nil || v != 1 {
+				return false
+			}
+		}
+	}
+	return n == 6
 }

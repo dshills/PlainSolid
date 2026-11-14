@@ -127,3 +127,87 @@ func TestErodeWrappedCircularFrustumAgainstMeridianHalfspaces(t *testing.T) {
 		t.Fatal("irrational normal length was rounded", e)
 	}
 }
+
+func TestOpenWrappedCircularFrustumWall(t *testing.T) {
+	ctx := context.Background()
+	o := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: -1, Y: 2, Z: 3}, 2, 4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, change := range [][2]float64{{0, 3}, {3, 0}} {
+		outer, _, e := geom.DraftWrappedFrustum(ctx, base, change[0], change[1], o)
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, openUpper := range []bool{false, true} {
+			inner, proof, e := geom.InsetWrappedCircularFrustumAtCap(ctx, outer, .5, openUpper, o)
+			if e != nil {
+				t.Fatal(e)
+			}
+			z, radii := [2]float64{3, 6.5}, [2]float64{11.0 / 8, 4}
+			if openUpper {
+				z, radii = [2]float64{3.5, 7}, [2]float64{1.75, 35.0 / 8}
+			}
+			if change[0] > change[1] {
+				radii = [2]float64{35.0 / 8, 1.75}
+				if openUpper {
+					radii = [2]float64{4, 11.0 / 8}
+				}
+			}
+			for i, q := range [2]*big.Rat{proof.LowerZ, proof.UpperZ} {
+				if q.Cmp(new(big.Rat).SetFloat64(z[i])) != 0 ||
+					[2]*big.Rat{proof.LowerRadius, proof.UpperRadius}[i].Cmp(new(big.Rat).SetFloat64(radii[i])) != 0 {
+					t.Fatal("offset support and authored cap plane", openUpper, proof, radii)
+				}
+			}
+			body, h, e := WrappedCircularFrustumOpenWall(ctx, outer, .5, 1e-8, openUpper, o)
+			if e != nil || len(body.Faces()) != 5 || len(body.Topology().Shells) != 1 ||
+				body.Topology().InnerWires != 1 || body.Topology().EulerCharacteristic != 2 {
+				t.Fatal("open cup topology", body.Topology(), e)
+			}
+			cap, floor := 1, 2
+			if openUpper {
+				cap, floor = 2, 1
+			}
+			if h.InnerFaces[cap] != h.OuterFaces[cap] || h.InnerFaces[floor] == h.OuterFaces[floor] {
+				t.Fatal("opening and floor ancestry", h)
+			}
+			f := body.Faces()
+			if f[0].Surface != outer || !f[3].Reversed || len(f[cap].Holes) != 1 {
+				t.Fatal("original surface and annular cap use")
+			}
+			q, _, e := trimmed.NewWrappedCircularFrustumBore(ctx, outer, inner, 1e-8, o)
+			if e != nil || q.Faces()[3].Surface != inner {
+				t.Fatal("direct bore retains original tool support", e)
+			}
+			open, bottom := 0, 1
+			if openUpper {
+				open, bottom = 1, 0
+			}
+			for _, p := range []struct {
+				z, radial float64
+				want      parametric.Location
+			}{{z[open], 0, parametric.Outside}, {z[open], radii[open], parametric.Boundary},
+				{z[open], radii[open] + .25, parametric.Boundary}, {z[bottom], 0, parametric.Boundary},
+				{(z[0] + z[1]) / 2, 0, parametric.Outside}, {(z[0] + z[1]) / 2, (radii[0] + radii[1] + .5) / 2, parametric.Inside}} {
+				loc, e := trimmed.LocateWrappedCircularFrustumBore(ctx, outer, inner, geom.Vec3{X: -1 + p.radial, Y: 2, Z: p.z}, o)
+				if e != nil || loc != p.want {
+					t.Fatal("independent material classification", p, loc, e)
+				}
+			}
+			coeff := func(a, b float64) float64 { return (a*a + a*b + b*b) / 3 }
+			want := math.Pi * (52 - (z[1]-z[0])*coeff(radii[0], radii[1]))
+			mass, e := body.MassProperties(ctx, parametric.IntegrationOptions{})
+			if e != nil || math.Abs(mass.Volume-want) > 1e-8 {
+				t.Fatal("independent volume", mass, want, e)
+			}
+		}
+	}
+	if body, _, e := WrappedCircularFrustumOpenWall(ctx, base, 2, 1e-8, true, o); !errors.Is(e, geom.ErrDomain) || len(body.Faces()) != 0 {
+		t.Fatal("vanishing inner radius returned a partial wall", e)
+	}
+	if body, _, e := trimmed.NewWrappedCircularFrustumBore(ctx, base, base, 1e-8, o); !errors.Is(e, geom.ErrConvergence) || len(body.Faces()) != 0 {
+		t.Fatal("radial contact returned a partial native wall", e)
+	}
+}

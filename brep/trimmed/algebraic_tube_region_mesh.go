@@ -34,9 +34,11 @@ type CertifiedAlgebraicTubeRegionMesh struct {
 // and exact absence of display contacts are mandatory. Failures are atomic.
 // Degree>2 requires explicit Surface.Span.MaxDegree (maximum6); this is a
 // boundary-image distance certificate, not a certified material/volume error.
+// Original float spline and exact homogeneous Bézier owner charts are retained
+// without conversion of their control points.
 func (r AlgebraicTubeRegions) TessellateRegionClosedCertified(ctx context.Context, region int, o AlgebraicTubeRegionMeshOptions) (CertifiedAlgebraicTubeRegionMesh, error) {
 	var empty CertifiedAlgebraicTubeRegionMesh
-	if ctx == nil || r.section.partitionSource == nil || region < 0 || region >= len(r.regions) {
+	if ctx == nil || r.section.runSource() == nil || region < 0 || region >= len(r.regions) {
 		return empty, geom.ErrInvalid
 	}
 	work, e := newTubeLensSpanWork(o.Surface)

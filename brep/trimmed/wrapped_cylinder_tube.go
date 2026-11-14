@@ -62,6 +62,52 @@ func newWrappedCylinderBore(ctx context.Context, outer, inner *geom.WrappedSurfa
 		}
 		return Solid{}, history, e
 	}
+	return assembleWrappedFrustumBore(ctx, a, b, lowOpen, highOpen, tolerance, o)
+}
+
+// NewWrappedCircularFrustumBore subtracts an exactly contained coaxial
+// circular frustum. Its radii must be strictly smaller than the outer radii
+// everywhere in the inner height interval. A shared cap plane opens the
+// corresponding end; strict heights keep the inner cap as a bore floor.
+// Both original lateral supports and the original retained rims are kept.
+func NewWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, tolerance float64,
+	o geom.SurfacePatchOptions) (Solid, WrappedCylinderTubeHistory, error) {
+	var empty WrappedCylinderTubeHistory
+	stock, a, e := NewWrappedFrustum(ctx, outer, tolerance, o)
+	if e != nil {
+		return Solid{}, empty, e
+	}
+	tool, b, e := NewWrappedFrustum(ctx, inner, tolerance, o)
+	if e != nil {
+		return Solid{}, empty, e
+	}
+	if !strictWrappedCircularFrustumBore(a, b) {
+		return Solid{}, empty, geom.ErrConvergence
+	}
+	return assembleWrappedFrustumBore(ctx, stock, tool, a.LowerZ.Cmp(b.LowerZ) == 0, a.UpperZ.Cmp(b.UpperZ) == 0, tolerance, o)
+}
+
+func strictWrappedCircularFrustumBore(a, b geom.WrappedFrustumEmbedding) bool {
+	if !a.Circular || !b.Circular || a.CenterX.Cmp(b.CenterX) != 0 || a.CenterY.Cmp(b.CenterY) != 0 ||
+		a.LowerZ.Cmp(b.LowerZ) > 0 || a.UpperZ.Cmp(b.UpperZ) < 0 {
+		return false
+	}
+	span := new(big.Rat).Sub(a.UpperZ, a.LowerZ)
+	slope := new(big.Rat).Quo(new(big.Rat).Sub(a.UpperRadius, a.LowerRadius), span)
+	for i, z := range [2]*big.Rat{b.LowerZ, b.UpperZ} {
+		r := new(big.Rat).Add(a.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, a.LowerZ)))
+		if r.Cmp([2]*big.Rat{b.LowerRadius, b.UpperRadius}[i]) <= 0 {
+			return false
+		}
+	}
+	// The radial clearance is affine in height. Strict separation at
+	// both endpoints certifies it throughout the tool interval.
+	return true
+}
+
+func assembleWrappedFrustumBore(ctx context.Context, a, b Solid, lowOpen, highOpen bool, tolerance float64,
+	o geom.SurfacePatchOptions) (Solid, WrappedCylinderTubeHistory, error) {
+	var history WrappedCylinderTubeHistory
 	vertices := append(a.Vertices(), b.vertices...)
 	edges := a.Edges()
 	for _, edge := range b.edges {

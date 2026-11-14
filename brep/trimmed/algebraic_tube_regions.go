@@ -528,6 +528,11 @@ func capPositiveBudget(limit, remaining int) int {
 
 func tubeLoopContainment(ctx context.Context, support *geom.SurfacePatch, outer, inner []AlgebraicTubeFaceCutPiece,
 	o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
+	return tubeLoopContainmentOnChart(ctx, 0, support, outer, inner, o)
+}
+
+func tubeLoopContainmentOnChart(ctx context.Context, chart int, support *geom.SurfacePatch, outer, inner []AlgebraicTubeFaceCutPiece,
+	o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
 	for _, c := range inner {
 		if e := ctx.Err(); e != nil {
 			return false, operations, e
@@ -567,7 +572,7 @@ func tubeLoopContainment(ctx context.Context, support *geom.SurfacePatch, outer,
 			if p.MaxOperations < 1 {
 				return false, operations, geom.ErrConvergence
 			}
-			r, e := ev.Parameters[1].Classify(ctx, p)
+			r, e := ev.Parameters[2*chart+1].Classify(ctx, p)
 			operations += r.Operations
 			if e != nil {
 				return false, operations, e
@@ -579,7 +584,7 @@ func tubeLoopContainment(ctx context.Context, support *geom.SurfacePatch, outer,
 			if p.MaxOperations < 1 {
 				return false, operations, geom.ErrConvergence
 			}
-			b, used, e := insideClosedTubeAtRoot(ctx, 0, support, outer, ev.Parameters[0], r.Rational, p)
+			b, used, e := insideClosedTubeAtRoot(ctx, chart, support, outer, ev.Parameters[2*chart], r.Rational, p)
 			operations += used
 			if errors.Is(e, geom.ErrConvergence) {
 				continue
