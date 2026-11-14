@@ -11,13 +11,13 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
+	if s.bore.obliqueCrossing != nil {
+		return s.bore.solid.TessellateCrossedBores345(ctx, o)
+	}
 	if s.bore.tripleCrossed != nil {
 		return s.bore.solid.TessellateTripleCrossedBores(ctx, o)
 	}
-	if p := s.bore.crossedCompanions; p != nil {
-		if p.radii[0] != p.radii[1] {
-			return s.bore.solid.TessellateSkewCrossedWithDisjoint(ctx, o)
-		}
+	if s.bore.crossedCompanions != nil {
 		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
 	}
 	if p := s.bore.blindCrossed; p != nil {

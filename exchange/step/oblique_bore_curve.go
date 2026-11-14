@@ -15,12 +15,16 @@ func obliqueBoreEdgeCurve(a, b geom.Vec3, owners []longEdgeOwner, surfaces []lon
 		plane, wall = wall, plane
 	}
 	cap, cyl := surfaces[plane.face].frame, surfaces[wall.face]
-	arc, valid := wall.use.Curve.(trimmed.EllipseUV)
+	curve, valid := wall.use.Curve.(interface{ EllipseParameters() trimmed.EllipseUV })
+	if !valid {
+		return longEdgeCurve{}, geom.ErrDomain
+	}
+	arc := curve.EllipseParameters()
 	if !valid || arc.Linear != (geom.Vec2{X: 1}) || arc.Center.X != 0 ||
 		arc.Cos.X != 0 || arc.Sin.X != 0 {
 		return longEdgeCurve{}, geom.ErrDomain
 	}
-	if _, valid := plane.use.Curve.(trimmed.EllipseUV); !valid {
+	if _, valid := plane.use.Curve.(interface{ EllipseParameters() trimmed.EllipseUV }); !valid {
 		return longEdgeCurve{}, geom.ErrDomain
 	}
 	axis, normal := cyl.frame.ZAxis(), cap.ZAxis()
