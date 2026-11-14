@@ -13,6 +13,8 @@ import (
 // coverage and endpoint graph checks. MaxTopologyPairs bounds the proof of
 // non-overlapping interiors; zero selects 32768 comparisons.
 type SplinePairTraceOptions struct {
+	// AffineChartFallback proposes exact lattice-guided original chart paths.
+	AffineChartFallback AffineChartDiscoveryOptions
 	DyadicGraphFallback DyadicGraphDiscoveryOptions
 	// UniformGraphFallback proposes exact dyadic cuts without sampled zero witnesses.
 	UniformGraphFallback UniformGraphDiscoveryOptions
@@ -128,7 +130,9 @@ func TraceSplinePair(ctx context.Context, a, b Patch, o SplinePairTraceOptions) 
 	for _, fallback := range []struct {
 		options  SplinePlanePairDiscoveryOptions
 		discover func(context.Context, Patch, Patch, geom.SurfacePatchOptions, SplinePlanePairDiscoveryOptions) (SplineSeedReport, error)
-	}{{o.PlaneFallback, DiscoverSplinePlanePairTubes}, {o.GraphFallback, DiscoverCommonXYGraphPairTubes}, {o.AffineGraphFallback, DiscoverAffineXYGraphPairTubes}, {o.RadialGraphFallback, DiscoverRadialGraphPairTubes}, {o.ConcentricEllipseFallback, DiscoverConcentricEllipseGraphPairTubes}, {o.DyadicGraphFallback.SplinePlanePairDiscoveryOptions, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+	}{{SplinePlanePairDiscoveryOptions{Enabled: o.AffineChartFallback.Enabled}, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, _ SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+		return DiscoverAffineChartPairTubes(ctx, a, b, p, o.AffineChartFallback)
+	}}, {o.PlaneFallback, DiscoverSplinePlanePairTubes}, {o.GraphFallback, DiscoverCommonXYGraphPairTubes}, {o.AffineGraphFallback, DiscoverAffineXYGraphPairTubes}, {o.RadialGraphFallback, DiscoverRadialGraphPairTubes}, {o.ConcentricEllipseFallback, DiscoverConcentricEllipseGraphPairTubes}, {o.DyadicGraphFallback.SplinePlanePairDiscoveryOptions, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
 		q := o.DyadicGraphFallback
 		q.SplinePlanePairDiscoveryOptions = d
 		return DiscoverDyadicGraphPairTubes(ctx, a, b, p, q)

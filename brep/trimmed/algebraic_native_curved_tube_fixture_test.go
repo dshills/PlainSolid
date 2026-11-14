@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"plainsolid/geom"
-	"plainsolid/intersect"
 	"testing"
 )
 
@@ -52,87 +51,4 @@ func makeNativeCurvedTubeBox(t *testing.T, lo, hi [3]float64) Solid {
 		t.Fatal(e)
 	}
 	return result
-}
-
-func curvedNativeBoxSeeds(t *testing.T, a, b Solid) []AlgebraicShellSectionSeed {
-	t.Helper()
-	var out []AlgebraicShellSectionSeed
-	lows := [2][3]float64{{0, 0, 0}, {.5, .5, -.5}}
-	highs := [2][3]float64{{1, 1, 1}, {1.5, 1.5, .5}}
-	for ai := 0; ai < 6; ai++ {
-		for bi := 0; bi < 6; bi++ {
-			ax, bx := ai/2, bi/2
-			if ax == bx {
-				continue
-			}
-			af := lows[0][ax]
-			if ai%2 == 1 {
-				af = highs[0][ax]
-			}
-			bf := lows[1][bx]
-			if bi%2 == 1 {
-				bf = highs[1][bx]
-			}
-			if af <= lows[1][ax] || af >= highs[1][ax] || bf <= lows[0][bx] || bf >= highs[0][bx] {
-				continue
-			}
-			free := 3 - ax - bx
-			lo, hi := max(lows[0][free], lows[1][free]), min(highs[0][free], highs[1][free])
-			seed := AlgebraicShellSectionSeed{Faces: [2]int{ai, bi}}
-			for piece := 0; piece < 4; piece++ {
-				l, h := lo+(hi-lo)*float64(piece)/4, lo+(hi-lo)*float64(piece+1)/4
-				owner := 0
-				if piece < 2 && lo == lows[1][free] || piece >= 2 && hi == highs[1][free] {
-					owner = 1
-				}
-				var domains [2]geom.ParameterRectangle
-				axis := 0
-				for operand, face := range []int{ai, bi} {
-					fixedAxis := face / 2
-					bounds := [2][2]float64{}
-					for uv := 0; uv < 2; uv++ {
-						coord := (fixedAxis + 1 + uv) % 3
-						minV, maxV := l, h
-						if coord != free {
-							v := af
-							if operand == 0 {
-								v = bf
-							}
-							minV, maxV = v-1.0/16, v+1.0/16
-						} else if operand == owner {
-							axis = 2*operand + uv
-						} else {
-							minV -= 1.0 / 32
-							maxV += 1.0 / 32
-						}
-						bounds[uv] = [2]float64{max(minV, lows[operand][coord]), min(maxV, highs[operand][coord])}
-					}
-					domains[operand] = geom.ParameterRectangle{UMin: bounds[0][0], UMax: bounds[0][1], VMin: bounds[1][0], VMax: bounds[1][1]}
-				}
-				pa, e := exactFaceSupportPatch(a.faces[ai], geom.SurfacePatchOptions{})
-				if e != nil {
-					t.Fatal(e)
-				}
-				pb, e := exactFaceSupportPatch(b.faces[bi], geom.SurfacePatchOptions{})
-				if e != nil {
-					t.Fatal(e)
-				}
-				pa, e = pa.Trim(domains[0])
-				if e != nil {
-					t.Fatal(e)
-				}
-				pb, e = pb.Trim(domains[1])
-				if e != nil {
-					t.Fatal(e)
-				}
-				proof, e := geom.CertifySurfacePairTube(pa, pb, geom.SurfacePairTubeOptions{FreeAxis: axis})
-				if e != nil || !proof.ProvenBranch {
-					t.Fatal(ai, bi, piece, proof, e)
-				}
-				seed.Tubes.Attempts = append(seed.Tubes.Attempts, intersect.SplineSeedCell{Cell: geom.SurfaceSurfaceCell{DomainA: domains[0], DomainB: domains[1]}, Tube: &proof})
-			}
-			out = append(out, seed)
-		}
-	}
-	return out
 }

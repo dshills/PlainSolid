@@ -75,7 +75,7 @@ func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 	o.Trace.Coverage.Isolation.SeparatingProjections = true
 	o.Trace.Coverage.Isolation.ParameterTolerance = .25
 	o.Trace.Coverage.Cell.MaxOperations = 16000000
-	o.Seeds = curvedNativeBoxSeeds(t, a, b)
+	o.Trace.AffineChartFallback.Enabled = true
 	section, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if e != nil || !section.Complete {
 		t.Fatal("section", section.Pairs, e)
