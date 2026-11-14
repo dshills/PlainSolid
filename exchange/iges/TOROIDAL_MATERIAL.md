@@ -81,3 +81,30 @@ Go-authored output as one valid face/solid with volume 8π², area 16π² and th
 correct volume centroid. Native exact continuous edge checks and source/native
 reload agree. Focused race, Go 1.23, vet and 100-execution placed fuzz checks
 cover the separate entry point. Entity reordering remains unsupported here.
+
+## Semantic record and incidence reordering
+
+`ReadReindexedToroidalMaterial` is a separate entry point for the same exact
+unplaced or placed family. It accepts directory reindexing, the two type 504
+edge-list entries in either order, and a cyclic start change of the four type
+508 uses. Reversal remains unsupported. Major/minor seam roles are identified
+by the shared/distinct transform ancestry of their original type 100 circles
+and type 198 support, then independently checked by the unchanged canonical
+geometry and placed-composition proofs. Numeric entity ordering is not used as
+geometry evidence.
+
+A bounded root traversal establishes a bijection for every original record,
+including both distinct transforms in placed sources. Detached records,
+conflicting/shared owner roles, recursive transforms and altered edge ordinals
+fail closed. `SourceForCanonical`, `SourceEdgeOrdinals`,
+`SourceVertexOrdinals`, and `SourceUseOrdinals` retain the original identities;
+the sixteen native faces retain their original single source face and both
+seam-curve IDs. Source-bound JSON repeats the entire proof and regenerates those
+maps; source writing rejects changed maps before emitting any bytes.
+
+The independent pointer-aware Python fixture generator reverses all directory
+records, reverses the edge list, updates every owning ordinal, and rotates the
+loop start. Both placed and unplaced originals transfer through pinned OCCT as
+valid one-face/one-solid tori and retain native volume, area and centroid.
+Focused race, Go 1.23, previous family regression and bounded fuzz qualify this
+additive path under the same source limits and a 512-step graph traversal cap.
