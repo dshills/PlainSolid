@@ -5937,3 +5937,13 @@ orientation and detached faces. Pinned OCCT reads the asymmetric two-band
 export with volume 28.0579957962 and axial centroid 1.314814814753. The
 integrated weighted and circular loft and bore race passed in 152.864 s
 using an oracle built with the station source-authoring modes.
+
+### Weighted station inertia qualification
+
+Native JSON reload, independent Green integrals over the original weighted
+profile and independent axial quadrature check all raw moments and tensor
+entries for an asymmetric filled loft and a bore with distinct station
+partitions. The filled case retains its signed coupled entries and gives
+identical bounds after an exact large translation. Both fixtures meet
+per-entry widths of 1/20 and 1/10 respectively. The combined inertia,
+boundary area and mass race passed in 25.650 s.

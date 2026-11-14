@@ -2151,3 +2151,11 @@ The strict filled-loft writer retains original weighted wall supports, exact
 rim and seam p-curves, and a single topological edge at every shared station
 rim. Its paired reader re-authenticates each original wall and both terminal
 caps before returning native geometry. See the [weighted loft STEP contract](../exchange/step/WRAPPED_RATIONAL_STATION_LOFTS.md).
+
+### Certified weighted station inertia
+
+Filled lofts and strictly nested through-bores return a unit-density
+centroidal inertia tensor in the original model axes. Exact rational
+profile polygons enclose the area and first and second moments. The
+through-bore subtracts correlated axial factors before propagating the
+intervals. Source wall and terminal face IDs accompany the bounds.

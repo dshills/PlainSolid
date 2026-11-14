@@ -107,6 +107,9 @@ func (b *stationMassBudget) plus(a, c WrappedStationMassInterval) WrappedStation
 	return WrappedStationMassInterval{b.add(a.Lower, c.Lower), b.add(a.Upper, c.Upper)}
 }
 func (b *stationMassBudget) quotient(a, c WrappedStationMassInterval) WrappedStationMassInterval {
+	if b.err != nil {
+		return WrappedStationMassInterval{new(big.Rat), new(big.Rat)}
+	}
 	if c.Lower.Sign() <= 0 {
 		b.err = geom.ErrDomain
 		return WrappedStationMassInterval{new(big.Rat), new(big.Rat)}
@@ -215,12 +218,7 @@ func boundWrappedStationProfileMass(ctx context.Context, proof WrappedStationLof
 	if err != nil {
 		return empty, err
 	}
-	symmetric := true
-	for i := 0; i < 5; i++ {
-		if b.mul(weights[i], weights[4]).Cmp(b.mul(weights[i+4], weights[0])) != 0 {
-			symmetric = false
-		}
-	}
+	symmetric := stationProfileCentrallySymmetric(weights, b)
 	vFactor, cFactor, zFactor := wrappedStationAxialMassFactors(proof, b)
 	if inner != nil {
 		v, c, z := wrappedStationAxialMassFactors(*inner, b)
@@ -299,25 +297,23 @@ func stationProfileSegments(band *geom.WrappedSurfacePatch, b *stationMassBudget
 	return segments, weights, b.err
 }
 
+func stationProfileCentrallySymmetric(weights [9]*big.Rat, b *stationMassBudget) bool {
+	for i := 0; i < 5; i++ {
+		if b.mul(weights[i], weights[4]).Cmp(b.mul(weights[i+4], weights[0])) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func stationProfileEnclosure(segments []stationMassSegment, includeMoments bool, b *stationMassBudget) (WrappedStationMassInterval, [2]WrappedStationMassInterval, error) {
 	area := WrappedStationMassInterval{new(big.Rat), new(big.Rat)}
 	moments := [2]WrappedStationMassInterval{{new(big.Rat), new(big.Rat)}, {new(big.Rat), new(big.Rat)}}
 	for _, segment := range segments {
-		var p [3][2]*big.Rat
-		for i := 0; i < 3; i++ {
-			p[i] = [2]*big.Rat{b.div(segment[i][0], segment[i][2]), b.div(segment[i][1], segment[i][2])}
+		p, lower, gap, err := stationProfileTriangle(segment, b)
+		if err != nil {
+			return area, moments, err
 		}
-		x := [2]*big.Rat{b.sub(p[1][0], p[0][0]), b.sub(p[1][1], p[0][1])}
-		y := [2]*big.Rat{b.sub(p[2][0], p[0][0]), b.sub(p[2][1], p[0][1])}
-		chord, turn := b.cross(p[0], p[2]), b.cross(x, y)
-		first, last := b.cross(p[0], p[1]), b.cross(p[1], p[2])
-		if b.err != nil {
-			return area, moments, b.err
-		}
-		if chord.Sign() <= 0 || turn.Sign() <= 0 || first.Sign() <= 0 || last.Sign() <= 0 {
-			return area, moments, geom.ErrConvergence
-		}
-		lower, gap := b.div(chord, big.NewRat(2, 1)), b.div(turn, big.NewRat(2, 1))
 		area.Lower = b.add(area.Lower, lower)
 		area.Upper = b.add(area.Upper, b.add(lower, gap))
 		if !includeMoments {
@@ -342,6 +338,24 @@ func stationProfileEnclosure(segments []stationMassSegment, includeMoments bool,
 		}
 	}
 	return area, moments, b.err
+}
+
+func stationProfileTriangle(segment stationMassSegment, b *stationMassBudget) (p [3][2]*big.Rat, lower, gap *big.Rat, err error) {
+	for i := 0; i < 3; i++ {
+		p[i] = [2]*big.Rat{b.div(segment[i][0], segment[i][2]), b.div(segment[i][1], segment[i][2])}
+	}
+	x := [2]*big.Rat{b.sub(p[1][0], p[0][0]), b.sub(p[1][1], p[0][1])}
+	y := [2]*big.Rat{b.sub(p[2][0], p[0][0]), b.sub(p[2][1], p[0][1])}
+	chord, turn := b.cross(p[0], p[2]), b.cross(x, y)
+	first, last := b.cross(p[0], p[1]), b.cross(p[1], p[2])
+	if b.err != nil {
+		return p, nil, nil, b.err
+	}
+	if chord.Sign() <= 0 || turn.Sign() <= 0 || first.Sign() <= 0 || last.Sign() <= 0 {
+		return p, nil, nil, geom.ErrConvergence
+	}
+	lower, gap = b.div(chord, big.NewRat(2, 1)), b.div(turn, big.NewRat(2, 1))
+	return p, lower, gap, b.err
 }
 
 func splitStationProfileSegments(segments []stationMassSegment, b *stationMassBudget) []stationMassSegment {
