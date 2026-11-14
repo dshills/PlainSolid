@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/big"
 
-
 	"plainsolid/geom"
 )
 
