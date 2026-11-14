@@ -122,7 +122,10 @@ models reopen and export watertight STL.
 The driven arc-and-chord workflow retains its solved near-semicircular
 angle through STEP. The reader matches the axial seam parameters and
 complete represented graph. Qualified minor and major segments keep the
-circular support and chord.
+circular support and chord. Equal-circle and unequal circle/arc lens
+extrusions also retain both analytic cylindrical walls and their shared
+vertical seams. Both original XY workflows exchange exact solids and
+reopen with watertight STL.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

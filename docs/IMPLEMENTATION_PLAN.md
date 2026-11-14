@@ -110,8 +110,10 @@ modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.
 Arc Extend quarter-sector and Circle Trim half-disk extrusions round-trip
 their exact cylindrical walls through STEP. The driven arc-and-chord
-workflow also exchanges the original solved angle. Next qualify the
-two-circle lens produced by the existing sketch fragmentation workflow.
+workflow also exchanges the original solved angle. Equal-circle and
+unequal circle/arc lens extrusions retain both cylindrical walls through
+STEP and STL. Next connect the existing torus exchange to the original
+construction-axis Revolve workflow.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `65441a2d` passes 345 development, 66 production and 15 cross-browser

@@ -1,5 +1,23 @@
 # Verification record
 
+## PlainCAD circular lens STEP exchange — 2026-11-14
+
+Exact disk and circular-arc intersections extrude two cylindrical walls
+with shared axial seams and planar caps. The public importer checks the
+represented endpoints and seam angles on both supports and regenerates
+the complete STEP graph. The qualified profile has two convex minor arcs
+in a signed coordinate frame.
+
+[Eight original sketch and STEP cases plus provider preflight](evidence/plaincad-circular-lens-step-browser-2026-11-14.json)
+pass with the same WASM as the authored [equal-circle](evidence/plaincad-circular-lens-equal-step-native-2026-11-14.json)
+and [unequal circle/arc](evidence/plaincad-circular-lens-unequal-step-native-2026-11-14.json)
+extensions. Both extensions export STEP, import, save and reopen, and
+export watertight STL. The equal lens writes 17,602 bytes and 356 STL
+triangles. The unequal lens writes 17,404 bytes and 308 STL triangles.
+Independent OCCT agrees with the analytic volume and area of the two
+app files and thirteen signed-placement native cases. Focused race and
+vet checks pass.
+
 ## PlainCAD driven arc-and-chord STEP exchange — 2026-11-14
 
 STEP for a bounded circular segment recovers the represented angles from
