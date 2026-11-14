@@ -90,6 +90,11 @@ extent. Editing an original shared torus relationship moves both expanded
 paths. Its shared reference datum remains untouched and the writer adds
 one private target frame. A single inconsistent edit to one path of that
 relationship fails without writing any exchange data.
+The editable snapshot also persists per-native-face labels referencing the
+original STEP face entities. Both STEP and source-bound native import recover
+these labels on the shared asset definitions rather than duplicating them
+on each occurrence. The original transfer, document reopen and live OCCT
+edit regression passed under the race detector.
 
 Document planar face history now propagates authored box roles through
 the same geometry evaluation that builds each planar Boolean. The

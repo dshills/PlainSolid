@@ -3,6 +3,8 @@ package step
 import (
 	"context"
 	"io"
+
+	"plainsolid/geom"
 )
 
 // IndependentSphericalHierarchy adds an optional exact sphere local product to
@@ -13,6 +15,53 @@ type IndependentSphericalHierarchy IndependentAnalyticDAGAssembly
 // IndependentSphericalHierarchyModel accepts authenticated local source graphs
 // and nil Source for assembly nodes; geometry is never borrowed between products.
 type IndependentSphericalHierarchyModel IndependentTorusAssemblyModel
+
+// SphericalHierarchyNativeFaceSources returns an owned index-to-entity map
+// for one already authenticated material. Multiple canonical native faces may
+// realize a single original analytic STEP face. The body's local geometry and
+// entity graph must come from the same hierarchy read.
+func SphericalHierarchyNativeFaceSources(body IndependentExactMaterial) ([]int64, error) {
+	var ids []int64
+	n := len(body.Solid.Faces())
+	switch {
+	case body.Planar != nil:
+		if body.Source == nil {
+			return nil, geom.ErrInvalid
+		}
+		manifold, e := simple(body.Source, body.SourceBodyID, "MANIFOLD_SOLID_BREP", 2)
+		if e != nil {
+			return nil, e
+		}
+		shell, e := simple(body.Source, manifold.Args[1].Ref, "CLOSED_SHELL", 2)
+		if e != nil {
+			return nil, e
+		}
+		// The advanced planar decoder constructs faces in the shell's
+		// ordered reference list. The native index is retained verbatim.
+		ids, e = listRefs(shell.Args[1], 1)
+		if e != nil {
+			return nil, e
+		}
+		n = len(body.Planar.Solid.Faces())
+	case body.Cylinder != nil:
+		ids = body.Cylinder.NativeFaceSourceIDs[:]
+	case body.Torus != nil:
+		ids = body.Torus.NativeFaceSourceIDs
+	case body.Sphere != nil:
+		ids = body.Sphere.NativeFaceSourceIDs
+	default:
+		return nil, geom.ErrUnrepresentable
+	}
+	if n == 0 || n != len(ids) {
+		return nil, geom.ErrUnrepresentable
+	}
+	for _, id := range ids {
+		if id <= 0 {
+			return nil, geom.ErrUnrepresentable
+		}
+	}
+	return append([]int64(nil), ids...), nil
+}
 
 // ReadIndependentSphericalHierarchy retains the existing limits (depth8,
 // 64 expanded uses, 16 products) with zero or one original exact sphere leaf.

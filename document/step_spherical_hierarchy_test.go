@@ -58,6 +58,39 @@ func TestSphericalHierarchyDocument(t *testing.T) {
 		if len(s.Planar) != 1 || len(s.Trimmed) != 3 || len(s.Assets) != 0 || s.LengthUnit != .001 {
 			t.Fatal("shared exact assets and units", len(s.Planar), len(s.Trimmed), s.LengthUnit)
 		}
+		for id, body := range proof.Products {
+			key := "step-product-" + strconv.FormatInt(id, 10)
+			sourceIDs, err := step.SphericalHierarchyNativeFaceSources(body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for index, original := range sourceIDs {
+				entityID, faceIndex := strconv.FormatInt(original, 10), strconv.Itoa(index)
+				f := s.Labels["source-face:"+key+":"+entityID+":"+faceIndex]
+				if f.Face == nil || *f.Face != index || f.Parent != "source:"+key || f.Target != FaceLabel || f.TargetID != key || f.Attributes["step.source.face"].Integer != original {
+					t.Fatal("lost original face label after materialization or reload", id, index, original, f)
+				}
+			}
+			if body.Sphere != nil {
+				for _, original := range sourceIDs {
+					if original != body.Sphere.SourceFaceID {
+						t.Fatal("sphere chart has wrong original source face", original, body.Sphere.SourceFaceID)
+					}
+				}
+			}
+			if body.Torus != nil {
+				for _, original := range sourceIDs {
+					if original != body.Torus.SourceFaceID {
+						t.Fatal("torus chart has wrong original source face", original, body.Torus.SourceFaceID)
+					}
+				}
+			}
+			if body.Cylinder != nil {
+				if !reflect.DeepEqual(sourceIDs, body.Cylinder.NativeFaceSourceIDs[:]) {
+					t.Fatal("cylinder source faces must retain native cap and wall order", sourceIDs)
+				}
+			}
+		}
 		uses := map[string]int{}
 		for id, n := range s.Nodes {
 			if n.Asset == "" {
