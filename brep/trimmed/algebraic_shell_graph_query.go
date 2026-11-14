@@ -27,15 +27,16 @@ type graphMaterialRegion struct {
 // fragments of a graph-only common. It never treats an unselected nested band
 // as material. No display mesh or rounded model point participates in proof.
 type AlgebraicGraphMaterialQuery struct {
-	axes       [2]int
-	residual   int
-	graphs     [2]*geom.AffineProjectedGraph
-	patches    [2]*geom.SurfacePatch
-	faces      [2]Face
-	loops      [][]AlgebraicTubeFaceCutPiece
-	edges      [][]int
-	regions    []graphMaterialRegion
-	operations int
+	axes            [2]int
+	residual        int
+	graphs          [2]*geom.AffineProjectedGraph
+	patches         [2]*geom.SurfacePatch
+	faces           [2]Face
+	loops           [][]AlgebraicTubeFaceCutPiece
+	edges           [][]int
+	regions         []graphMaterialRegion
+	operations      int
+	windowTubeBoxes [][][]geom.ParameterRectangle // Immutable full-segment covering boxes.
 }
 
 func (q *AlgebraicGraphMaterialQuery) ProjectionAxes() [2]int {
