@@ -105,10 +105,12 @@ func (q FilletedFrustumMaterial) ClassifyNestedTorusBoreFacesRational(ctx contex
 				}
 				// The whole candidate attempt is bounded; advancing precision cannot
 				// change either exact source geometry or the unchanged baseline ledger.
+				terminal := false
 				accepted := func() bool {
 					rl, rh := fdSqrt(S, bits)
 					al, ah := fdSub(rl, circle.Center[0]), fdSub(rh, circle.Center[0])
 					if al.Sign() <= 0 {
+						terminal = ah.Sign() <= 0 // Entire enclosure is outside the strict outer branch.
 						return false
 					}
 					dl, _ := fdSqrt(fdAdd(fdSquare(al), fdSquare(b)), bits)
@@ -123,6 +125,7 @@ func (q FilletedFrustumMaterial) ClassifyNestedTorusBoreFacesRational(ctx contex
 					zl.Add(zl, circle.Center[1])
 					zh.Add(zh, circle.Center[1])
 					if zl.Cmp(z0) <= 0 || zh.Cmp(z1) >= 0 {
+						terminal = zh.Cmp(z0) <= 0 || zl.Cmp(z1) >= 0 // No higher precision can make this strict interior.
 						return false
 					}
 					torusLo, torusHi := fdSquareRange(fdSub(dl, circle.Radius), fdSub(dh, circle.Radius))
@@ -136,6 +139,9 @@ func (q FilletedFrustumMaterial) ClassifyNestedTorusBoreFacesRational(ctx contex
 						comparison = 1
 						lo, hi = boreLo, boreHi
 					} else {
+						// Equal singleton intervals prove equality, which this strict-order
+						// API deliberately leaves unresolved. Refinement cannot separate it.
+						terminal = torusLo.Cmp(torusHi) == 0 && boreLo.Cmp(boreHi) == 0
 						return false
 					}
 					face := q.fillets.Blends[end]
@@ -177,7 +183,7 @@ func (q FilletedFrustumMaterial) ClassifyNestedTorusBoreFacesRational(ctx contex
 				if accepted {
 					return out, nil
 				}
-				if bits == 256 {
+				if terminal || bits == 256 {
 					break
 				}
 				bits *= 2
