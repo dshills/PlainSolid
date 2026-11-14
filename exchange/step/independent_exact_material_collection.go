@@ -23,6 +23,7 @@ type IndependentExactMaterial struct {
 	SourceBodyID                                                              int64
 	SourceRootID, SourceProductID, SourceDefinitionID, SourceRepresentationID int64
 	ProductName                                                               string
+	Cylinder                                                                  *IndependentCylinderMaterial
 }
 
 // IndependentExactMaterialCollection is a multi-root file, not an inferred assembly.
@@ -38,7 +39,7 @@ type IndependentExactMaterialCollection struct {
 func ReadIndependentExactMaterials(ctx context.Context, r io.Reader, l Limits, tol float64) (IndependentExactMaterialCollection, error) {
 	return readIndependentExactMaterialCollection(ctx, r, l, tol, 1, 16, true)
 }
-func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l Limits, tol float64, minRoots, maxRoots int, allowPlanar bool) (IndependentExactMaterialCollection, error) {
+func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l Limits, tol float64, minRoots, maxRoots int, allowPlanar bool, cylinderMode ...bool) (IndependentExactMaterialCollection, error) {
 	bad := func() (IndependentExactMaterialCollection, error) {
 		return IndependentExactMaterialCollection{}, fmt.Errorf("step: unsupported independent exact material collection")
 	}
@@ -231,7 +232,7 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 		leaf.MaxFaces -= faces
 		leaf.MaxVertices -= vertices
 		leaf.MaxEdgeUses -= uses
-		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar)
+		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) == 1 && cylinderMode[0])
 		if e != nil {
 			return IndependentExactMaterialCollection{}, e
 		}
@@ -266,14 +267,18 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 	return out, nil
 }
 
-func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool) (IndependentExactMaterial, error) {
+func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool, allowCylinder bool) (IndependentExactMaterial, error) {
 	bad := func() (IndependentExactMaterial, error) { return IndependentExactMaterial{}, geom.ErrInvalid }
 	ids := []int64{}
 	elliptical := false
+	cylindrical := false
 	for _, id := range f.Order {
 		for _, r := range f.Entities[id].Records {
 			if r.Type == "MANIFOLD_SOLID_BREP" {
 				ids = append(ids, id)
+			}
+			if r.Type == "CYLINDRICAL_SURFACE" {
+				cylindrical = true
 			}
 			if r.Type == "SURFACE_OF_LINEAR_EXTRUSION" {
 				elliptical = true
@@ -282,6 +287,12 @@ func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol fl
 	}
 	if len(ids) != 1 {
 		return bad()
+	}
+	if cylindrical {
+		if !allowCylinder || elliptical {
+			return bad()
+		}
+		return readIndependentCylinderProduct(ctx, f, ids[0], l, tol)
 	}
 	if elliptical || !allowPlanar {
 		m, e := readExactEllipticalPrismFamilyFile(ctx, f, l, tol)
@@ -321,7 +332,7 @@ func WriteIndependentExactMaterials(ctx context.Context, w io.Writer, sources []
 	return writeIndependentExactMaterialCollection(ctx, w, sources, l, tol, 1, 16)
 }
 
-func writeIndependentExactMaterialCollection(ctx context.Context, w io.Writer, sources []*File, l Limits, tol float64, minRoots, maxRoots int) error {
+func writeIndependentExactMaterialCollection(ctx context.Context, w io.Writer, sources []*File, l Limits, tol float64, minRoots, maxRoots int, cylinderMode ...bool) error {
 	if ctx == nil || w == nil || len(sources) < minRoots || len(sources) > maxRoots {
 		return geom.ErrInvalid
 	}
@@ -336,7 +347,7 @@ func writeIndependentExactMaterialCollection(ctx context.Context, w io.Writer, s
 		if e != nil {
 			return e
 		}
-		if _, e = ReadIndependentExactMaterials(ctx, bytes.NewReader(raw), l, tol); e != nil {
+		if _, e = readIndependentExactMaterialCollection(ctx, bytes.NewReader(raw), l, tol, 1, 16, true, cylinderMode...); e != nil {
 			return e
 		}
 		ids := map[int64]int64{}
@@ -349,7 +360,7 @@ func writeIndependentExactMaterialCollection(ctx context.Context, w io.Writer, s
 		}
 	}
 	fmt.Fprintln(&out, "ENDSEC;END-ISO-10303-21;")
-	if _, e := readIndependentExactMaterialCollection(ctx, bytes.NewReader(out.Bytes()), l, tol, minRoots, maxRoots, true); e != nil {
+	if _, e := readIndependentExactMaterialCollection(ctx, bytes.NewReader(out.Bytes()), l, tol, minRoots, maxRoots, true, cylinderMode...); e != nil {
 		return e
 	}
 	if e := ctx.Err(); e != nil {
