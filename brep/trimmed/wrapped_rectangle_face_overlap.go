@@ -12,6 +12,9 @@ import (
 // Only identical original parameter domains are compared; phase is an integer
 // lifted occurrence, not an inferred rotation of the model.
 type WrappedRectangleFaceOverlapOptions struct {
+	// AllowSeamCrossing uses one global lifted injectivity proof across original
+	// fundamental restrictions. False preserves the single fundamental hull gate.
+	AllowSeamCrossing                 bool
 	MaxOperations, MaxCoefficientBits int
 	ProjectionAxes                    [2]int
 	MaxCells, MaxDepth                int
@@ -36,9 +39,12 @@ type WrappedFaceRegionFragment struct {
 // Model vertices and continuous original model-edge mates are independently
 // checked. All returned exact numbers are caller-owned.
 type WrappedFaceRegionOverlap struct {
-	Complete            bool
-	FaceReversed        [2]bool
-	Embedding           geom.EmbeddedWrappedRectangleArrangement
+	Complete     bool
+	FaceReversed [2]bool
+	Embedding    geom.EmbeddedWrappedRectangleArrangement
+	// LiftedEmbedding is populated instead of Embedding when AllowSeamCrossing
+	// is selected. It retains each exact original fundamental restriction.
+	LiftedEmbedding     *geom.LiftedWrappedRectangleArrangement
 	Union, Intersection []WrappedFaceRegionFragment
 	ExactOperations     int
 }
@@ -48,8 +54,9 @@ type WrappedFaceRegionOverlap struct {
 // represented vertices. Each edge must be an affine parameter line on that
 // same support with exactly the original use parameters (including reversal).
 // Arbitrary mapped supports, other model-curve representations, approximate
-// vertices and seam-straddling embedding hulls remain unsupported. This proves
-// finite region ancestry, not the topology of either surrounding shell.
+// vertices remain unsupported. Seam-straddling hulls require the explicit
+// AllowSeamCrossing proof. The result certifies finite region ancestry, not
+// the topology of either surrounding shell.
 func CertifyWrappedRectangleFaceOverlap(ctx context.Context, a, b SewFace, o WrappedRectangleFaceOverlapOptions) (WrappedFaceRegionOverlap, error) {
 	var zero WrappedFaceRegionOverlap
 	if ctx == nil {
@@ -189,11 +196,26 @@ func CertifyWrappedRectangleFaceOverlap(ctx context.Context, a, b SewFace, o Wra
 	if relation == nil || !proof.Complete || !proof.Equal || used >= o.MaxOperations {
 		return zero, geom.ErrConvergence
 	}
-	embedding, e := relation.CertifyEmbeddedRectangleArrangement(ctx, rects[0], rects[1], geom.WrappedRectangleEmbeddingOptions{Arrangement: geom.WrappedRectangleOverlapOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits}, ProjectionAxes: o.ProjectionAxes, MaxCells: o.MaxCells, MaxDepth: o.MaxDepth})
-	if e != nil {
-		return zero, e
+	options := geom.WrappedRectangleEmbeddingOptions{Arrangement: geom.WrappedRectangleOverlapOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits}, ProjectionAxes: o.ProjectionAxes, MaxCells: o.MaxCells, MaxDepth: o.MaxDepth}
+	var embedding geom.EmbeddedWrappedRectangleArrangement
+	var lifted *geom.LiftedWrappedRectangleArrangement
+	var arrangement geom.WrappedRectangleArrangement
+	if o.AllowSeamCrossing {
+		proof, err := relation.CertifyLiftedRectangleArrangement(ctx, rects[0], rects[1], options)
+		if err != nil {
+			return zero, err
+		}
+		lifted = &proof
+		arrangement = proof.Arrangement
+		used += proof.ExactOperations
+	} else {
+		embedding, e = relation.CertifyEmbeddedRectangleArrangement(ctx, rects[0], rects[1], options)
+		if e != nil {
+			return zero, e
+		}
+		arrangement = embedding.Arrangement
+		used += embedding.ExactOperations
 	}
-	used += embedding.ExactOperations
 	build := func(edges []geom.WrappedRectangleEdge) ([]WrappedFaceRegionFragment, error) {
 		out := make([]WrappedFaceRegionFragment, 0, len(edges))
 		for _, edge := range edges {
@@ -264,16 +286,16 @@ func CertifyWrappedRectangleFaceOverlap(ctx context.Context, a, b SewFace, o Wra
 		}
 		return out, nil
 	}
-	union, e := build(embedding.Arrangement.Union)
+	union, e := build(arrangement.Union)
 	if e != nil {
 		return zero, e
 	}
-	intersection, e := build(embedding.Arrangement.Intersection)
+	intersection, e := build(arrangement.Intersection)
 	if e != nil {
 		return zero, e
 	}
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
-	return WrappedFaceRegionOverlap{Complete: true, FaceReversed: [2]bool{a.Face.Reversed, b.Face.Reversed}, Embedding: embedding, Union: union, Intersection: intersection, ExactOperations: used}, nil
+	return WrappedFaceRegionOverlap{Complete: true, FaceReversed: [2]bool{a.Face.Reversed, b.Face.Reversed}, Embedding: embedding, LiftedEmbedding: lifted, Union: union, Intersection: intersection, ExactOperations: used}, nil
 }

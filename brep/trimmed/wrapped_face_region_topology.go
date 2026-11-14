@@ -142,8 +142,8 @@ func (r *WrappedFaceRegionTopology) EdgeAncestry() [][]WrappedFaceFragmentOwner 
 // Difference is directed A minus B, retaining the closure of its 2D cells.
 // It supports a connected disk or disk with one hole; disconnected or pinched
 // results remain unresolved. Empty() distinguishes a proved empty Difference.
-// The embedding guard still rejects hulls crossing a fundamental seam;
-// different whole-period lifted owner charts remain supported.
+// Fundamental-seam crossing requires the explicit AllowSeamCrossing global
+// lifted proof. Different whole-period owner charts retain original coordinates.
 func NewWrappedFaceRegionTopology(ctx context.Context, a, b SewFace, selection WrappedFaceRegionSelection, o WrappedRectangleFaceOverlapOptions) (*WrappedFaceRegionTopology, error) {
 	if selection != WrappedFaceRegionUnion && selection != WrappedFaceRegionIntersection && selection != WrappedFaceRegionDifference {
 		return nil, geom.ErrInvalid

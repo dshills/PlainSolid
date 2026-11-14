@@ -57,6 +57,10 @@ func MaterializeWrappedRectangleFaceCells(ctx context.Context, a, b SewFace, o W
 		o.MaxCoefficientBits = 16384
 	}
 	used := proof.ExactOperations
+	arrangement := proof.Embedding.Arrangement
+	if proof.LiftedEmbedding != nil {
+		arrangement = proof.LiftedEmbedding.Arrangement
+	}
 	check := func(q *big.Rat) error {
 		used++
 		if used > o.MaxOperations || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
@@ -70,13 +74,13 @@ func MaterializeWrappedRectangleFaceCells(ctx context.Context, a, b SewFace, o W
 	for axis, p := range target.Periods() {
 		shift[axis] = new(big.Rat)
 		if p != nil {
-			shift[axis].Mul(new(big.Rat).SetInt(proof.Embedding.Arrangement.TargetPeriodShift[axis]), p)
+			shift[axis].Mul(new(big.Rat).SetInt(arrangement.TargetPeriodShift[axis]), p)
 		}
 		if e := check(shift[axis]); e != nil {
 			return zero, e
 		}
 	}
-	grid := proof.Embedding.Arrangement.Cells
+	grid := arrangement.Cells
 	if len(grid) < 1 || len(grid) > 9 {
 		return zero, geom.ErrConvergence
 	}
