@@ -4,7 +4,7 @@
 `WriteUnequalSideOpenDualDiskProduct` are a separate writer API for the native
 `trimmed.CutUnequalSideOpenDualDisks` domain. They do not broaden the equal-radius
 writer, reader or its optional encoding equivalences. Equal radii must use the
-equal API. No unequal reader is included in this milestone.
+equal API. The separate reader described below re-proves this exact unequal domain.
 
 The two unequal positive-radius disks open the same lower rectangular side and
 start at local z=0, with a common depth not exceeding stock height. Their upper
@@ -35,3 +35,30 @@ Set `PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS` to the existing standalone helper
 built with `unequal-side`, `unequal-through` and `read` modes for these optional
 tests. Native exactness is established by the constructor and emitter checks;
 OCCT's floating numerical measures are independent qualification evidence.
+
+## Strict unequal re-import
+
+`ReadUnequalSideOpenDualDiskProduct` recovers each exact source cylinder center
+and its own radius, normalizes the stock-local origin, sorts the paired disk
+records together by local X, rebuilds with the unequal native constructor, and
+compares the complete rooted entity graph. It returns the unequal native result;
+it never exposes equal-radius analytical methods on unequal geometry.
+`SourceWallFaces` maps each normalized disk to its original source face ID, and
+`SourceFloorFace` identifies the stopped cut floor (zero for through).
+Original caller disk ordering cannot be inferred from this geometry dialect.
+
+`ReadUnequalSideOpenDualDiskProductWithOptions` supports the same explicit
+orientation options as the equal reader. Each exact line segment, directed
+circle arc and reflected planar support is separately proved, then the entire
+source graph—including radii, centers, native ownership, cap geometry, names,
+units and dependency sharing—is compared. The options do not permit substituting
+one circle/cylinder for its neighbor or importing rounded vendor pcurves.
+
+Both readers retain disjoint domain gates: unequal import rejects equal radii,
+and equal import rejects unequal radii with any option combination. Tests cover
+reversed input order, signed placement, source lineage, unchanged coordinates
+under source-unit declarations, malformed units, swapped radius owners and
+wrong circular-edge ownership. Optional live tests compare the re-imported
+native solid and its regenerated STEP in OCCT and retain rejection of independently
+generated OCCT unequal-cut source files. Bounds, cancellation and all-or-none
+reader behavior are inherited from the shared strict graph reconstruction path.
