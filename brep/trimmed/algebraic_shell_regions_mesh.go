@@ -25,6 +25,7 @@ type AlgebraicShellRegionsMeshOptions struct {
 }
 
 type CertifiedAlgebraicShellRegionsMesh struct {
+	ProjectionAxes [2]int // Original model projection; all returned points are world-space.
 	CertifiedAlgebraicTubeRegionsMesh
 	TriangleFaces      []int // Original Boolean face IDs, not merely source chart IDs.
 	ComponentBranches  []int
@@ -36,7 +37,7 @@ type CertifiedAlgebraicShellRegionsMesh struct {
 
 // TessellateDisjointLensesCertified fills an intersection whose complete
 // boundary consists of hole-free, mutually disjoint lenses between the same
-// two original affine-XY spline graph faces. Full original domains are
+// two original spline graph faces in model XY or cyclic YZ projection. Full original domains are
 // requalified together; no face truncation or omitted branch is permitted.
 // Exact source recipes, whole edge intervals and physical face orientation
 // bind the existing region fill proof to native Boolean IDs. Every component
@@ -178,7 +179,7 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 		return empty, e
 	}
 	source := section.runSource()
-	if source == nil || len(source.segments) != n || source.projection != [2]int{0, 1} {
+	if source == nil || len(source.segments) != n || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	for i, b := range source.segments {
@@ -194,7 +195,16 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 	if o.Regions.MaxLoops == 0 || o.Regions.MaxLoops > o.MaxComponents {
 		o.Regions.MaxLoops = o.MaxComponents
 	}
-	regions, e := section.SealAlgebraicTubeRegions(ctx, o.Regions)
+	var regions AlgebraicTubeRegions
+	if source.projection == [2]int{1, 2} {
+		branches := make([]int, n)
+		for i := range branches {
+			branches[i] = i
+		}
+		regions, e = projectedBooleanRegionsView(ctx, section, branches, false, o.Regions)
+	} else {
+		regions, e = section.SealAlgebraicTubeRegions(ctx, o.Regions)
+	}
 	if e != nil {
 		return empty, e
 	}
@@ -218,11 +228,16 @@ func (s AlgebraicShellBoolean) TessellateDisjointLensesCertified(ctx context.Con
 			}
 		}
 	}
-	display, e := regions.TessellateDisjointClosedCertified(ctx, o.Mesh)
+	var display CertifiedAlgebraicTubeRegionsMesh
+	if source.projection == [2]int{1, 2} {
+		display, e = tessellateProjectedDisjointBooleanRegions(ctx, regions, o.Mesh)
+	} else {
+		display, e = regions.TessellateDisjointClosedCertified(ctx, o.Mesh)
+	}
 	if e != nil {
 		return empty, e
 	}
-	result := CertifiedAlgebraicShellRegionsMesh{CertifiedAlgebraicTubeRegionsMesh: display, ComponentBranches: branches, TopologyVertices: make([]int, len(s.vertices)), BoundaryEdges: map[int][]int{}}
+	result := CertifiedAlgebraicShellRegionsMesh{ProjectionAxes: source.projection, CertifiedAlgebraicTubeRegionsMesh: display, ComponentBranches: branches, TopologyVertices: make([]int, len(s.vertices)), BoundaryEdges: map[int][]int{}}
 	result.ContactPairs = display.Collision.BroadPhasePairs
 	for _, component := range display.Components {
 		result.ContactPairs += component.Collision.BroadPhasePairs

@@ -8,10 +8,23 @@ import (
 )
 
 // This scratch view is justified only by an immutable Boolean's independently
-// proved nested face loops, after the caller rebinds every whole source tube.
+// proved face loops and their nesting/disjointness, after the caller rebinds every whole source tube.
 // It is never returned as a sealed original-world AlgebraicTubeRegions value.
 func projectedBooleanAnnulusView(ctx context.Context, section AlgebraicTrimmedPairSection, branches [2]int, o AlgebraicTubeRegionOptions) (AlgebraicTubeRegions, error) {
+	return projectedBooleanRegionsView(ctx, section, branches[:], true, o)
+}
+
+func projectedBooleanRegionsView(ctx context.Context, section AlgebraicTrimmedPairSection, branches []int, nested bool, o AlgebraicTubeRegionOptions) (AlgebraicTubeRegions, error) {
 	var empty AlgebraicTubeRegions
+	if o.MaxLoops < 0 || o.MaxLoops > 64 {
+		return empty, geom.ErrInvalid
+	}
+	if o.MaxLoops == 0 {
+		o.MaxLoops = 16
+	}
+	if len(branches) < 1 || len(branches) > o.MaxLoops {
+		return empty, geom.ErrConvergence
+	}
 	if section.runSource() == nil || (section.runSource().projection != [2]int{1, 2} && section.runSource().projection != [2]int{0, 2}) {
 		return empty, geom.ErrConvergence
 	}
@@ -43,16 +56,25 @@ func projectedBooleanAnnulusView(ctx context.Context, section AlgebraicTrimmedPa
 		r.loops = append(r.loops, AlgebraicTubeRegionLoop{Branch: branch, Parent: -1, Winding: [2]int{q.Faces[0].CutWinding, q.Faces[1].CutWinding}, InteriorHeightSign: sign})
 		r.partitions = append(r.partitions, q)
 	}
-	if r.loops[0].InteriorHeightSign != -r.loops[1].InteriorHeightSign {
+
+	if len(r.loops) == 0 {
 		return empty, geom.ErrConvergence
 	}
-	// Original Boolean outer/inner ownership, not a sampled containment decision.
-	r.loops[1].Parent = 0
-	upper := 0
-	if r.loops[0].InteriorHeightSign < 0 {
-		upper = 1
+	for i, l := range r.loops {
+		upper := 0
+		if l.InteriorHeightSign < 0 {
+			upper = 1
+		}
+		r.regions = append(r.regions, AlgebraicTubeRegion{Outer: i, UpperChart: upper})
 	}
-	r.regions = []AlgebraicTubeRegion{{Outer: 0, Holes: []int{1}, UpperChart: upper}, {Outer: 1, UpperChart: 1 - upper}}
+	if nested {
+		if len(r.loops) != 2 || r.loops[0].InteriorHeightSign != -r.loops[1].InteriorHeightSign {
+			return empty, geom.ErrConvergence
+		}
+		// Original Boolean outer/inner ownership, not sampled containment.
+		r.loops[1].Parent = 0
+		r.regions[0].Holes = []int{1}
+	}
 	for chart := 0; chart < 2; chart++ {
 		p := o.Graph
 		p.MaxOperations = capPositiveBudget(p.MaxOperations, o.Exact.MaxOperations-r.ExactOperations)

@@ -33,10 +33,16 @@ type CertifiedAlgebraicTubeRegionsMesh struct {
 // once before filling; components never regenerate or coordinate-weld them.
 // Each face image and each closed component retain their existing certificate,
 // followed by an exact contact check across the entire display collection.
-// Degree<=2 piecewise rational supports are required by the residual proof.
+// Piecewise rational supports use the explicitly bounded residual degree.
 // Regions with holes or nested parents reject before meshing; this entry point
 // does not promote a quartic annular section certificate to a fill certificate.
 func (r AlgebraicTubeRegions) TessellateDisjointClosedCertified(ctx context.Context, o AlgebraicTubeRegionsMeshOptions) (CertifiedAlgebraicTubeRegionsMesh, error) {
+	return r.tessellateDisjointClosedCertified(ctx, o, nil)
+}
+
+// prescribed is private, freshly certified against the same original source,
+// and may differ only by the exact model isometry of its scratch graph view.
+func (r AlgebraicTubeRegions) tessellateDisjointClosedCertified(ctx context.Context, o AlgebraicTubeRegionsMeshOptions, prescribed *CertifiedAlgebraicTubeRegionsBoundary) (CertifiedAlgebraicTubeRegionsMesh, error) {
 	var empty CertifiedAlgebraicTubeRegionsMesh
 	if ctx == nil || r.section.runSource() == nil || len(r.regions) == 0 || o.MaxResidualOperations < 0 || o.MaxResidualOperations > 1000000000 {
 		return empty, geom.ErrInvalid
@@ -82,9 +88,15 @@ func (r AlgebraicTubeRegions) TessellateDisjointClosedCertified(ctx context.Cont
 			o.Boundary.Loop.Run.Display.Point.Tolerance = tol
 		}
 	}
-	network, e := r.TessellateBoundaryCertified(ctx, o.Boundary)
-	if e != nil {
-		return empty, e
+	var network CertifiedAlgebraicTubeRegionsBoundary
+	if prescribed != nil {
+		network = *prescribed
+	} else {
+		var e error
+		network, e = r.TessellateBoundaryCertified(ctx, o.Boundary)
+		if e != nil {
+			return empty, e
+		}
 	}
 	out := CertifiedAlgebraicTubeRegionsMesh{Boundary: network, SourceImageSquaredDistance: new(big.Rat), SignedDisplayVolume: new(big.Rat)}
 	out.Mesh.Vertices = append([]geom.Vec3(nil), network.Vertices...)
