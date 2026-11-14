@@ -279,7 +279,14 @@ func compareTriangleNativeUse(ctx context.Context, edge parametric.Edge, surface
 		return [2]*big.Rat{new(big.Rat).SetFloat64(v.X), new(big.Rat).SetFloat64(v.Y)}
 	}
 	remaining := o.MaxWork
-	opts := geom.SurfaceAffineCurveOptions{MaxPieces: 4096, TubeAffineLineOptions: geom.TubeAffineLineOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxBits}}
+	limit := o.MaxIntervals
+	if limit == 0 {
+		limit = 4096
+	}
+	if limit < 1 {
+		return false, geom.ErrInvalid
+	}
+	opts := geom.SurfaceAffineCurveOptions{MaxPieces: limit, TubeAffineLineOptions: geom.TubeAffineLineOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxBits}}
 	x, e := a.ExactPatch().AffineParameterCurvePieces(ctx, rat(model.a), rat(model.b), opts)
 	if e != nil {
 		return false, e
@@ -297,6 +304,6 @@ func compareTriangleNativeUse(ctx context.Context, edge parametric.Edge, surface
 	if remaining < 1 {
 		return false, geom.ErrConvergence
 	}
-	r, e := geom.CompareAffineParameterCurvePieces(ctx, x, y, geom.ExactCurveComparisonOptions{ReverseB: use.Reversed, MaxOperations: remaining, MaxCoefficientBits: o.MaxBits})
+	r, e := geom.CompareAffineParameterCurvePieces(ctx, x, y, geom.ExactCurveComparisonOptions{ReverseB: use.Reversed, MaxSpans: limit, MaxOperations: remaining, MaxCoefficientBits: o.MaxBits})
 	return r.Complete && r.Equal, e
 }
