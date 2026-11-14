@@ -49,10 +49,23 @@ func BoundPointWrappedCircularFrustumDistance(ctx context.Context, w *WrappedSur
 // the complete closed-frustum query.
 func BoundPointWrappedCircularFrustumPartsDistance(ctx context.Context, w *WrappedSurfacePatch, query Vec3,
 	parts CylinderBoundaryPart, o FrustumDistanceOptions) (FrustumDistanceBounds, error) {
+	if !query.IsFinite() {
+		return FrustumDistanceBounds{}, ErrInvalid
+	}
+	return BoundPointWrappedCircularFrustumPartsDistanceRational(ctx, w, rationalLineVec3(query), parts, o)
+}
+
+// BoundPointWrappedCircularFrustumPartsDistanceRational preserves exact
+// model query coordinates in the meridian and source-owned witness.
+func BoundPointWrappedCircularFrustumPartsDistanceRational(ctx context.Context, w *WrappedSurfacePatch, query [3]*big.Rat,
+	parts CylinderBoundaryPart, o FrustumDistanceOptions) (FrustumDistanceBounds, error) {
 	empty := FrustumDistanceBounds{}
-	if ctx == nil || !query.IsFinite() || !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 ||
-		parts == 0 || parts & ^(CylinderLateral|CylinderLowerCap|CylinderUpperCap) != 0 {
+	if parts == 0 || parts & ^(CylinderLateral|CylinderLowerCap|CylinderUpperCap) != 0 {
 		return empty, ErrInvalid
+	}
+	opts, e := validateFrustumRationalDistance(ctx, query, o)
+	if e != nil {
+		return empty, e
 	}
 	if o.MaxBisections == 0 {
 		o.MaxBisections = 256
@@ -67,9 +80,8 @@ func BoundPointWrappedCircularFrustumPartsDistance(ctx context.Context, w *Wrapp
 	if !p.Circular {
 		return empty, ErrConvergence
 	}
-	opts, _ := patchOptions(o.Surface)
 	budget := &polynomialBudget{operations: p.ExactOperations, maxOperations: opts.MaxOperations, maxBits: opts.MaxCoefficientBits}
-	x, y, z := new(big.Rat).Sub(new(big.Rat).SetFloat64(query.X), p.CenterX), new(big.Rat).Sub(new(big.Rat).SetFloat64(query.Y), p.CenterY), new(big.Rat).SetFloat64(query.Z)
+	x, y, z := new(big.Rat).Sub(query[0], p.CenterX), new(big.Rat).Sub(query[1], p.CenterY), query[2]
 	q := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
 	lo, hi := frustumSqrtBounds(q)
 	for _, v := range []*big.Rat{x, y, z, q, lo, hi} {
@@ -153,11 +165,24 @@ func BoundPointWrappedCircularFrustumPartsDistance(ctx context.Context, w *Wrapp
 // and lies on the selected original horizontal part.
 func BoundCircularRadialBoundaryDistance(ctx context.Context, center [2]*big.Rat, radius, height *big.Rat,
 	query Vec3, axisInterior bool, part CylinderBoundaryPart, o FrustumDistanceOptions) (FrustumDistanceBounds, error) {
+	if !query.IsFinite() {
+		return FrustumDistanceBounds{}, ErrInvalid
+	}
+	return BoundCircularRadialBoundaryDistanceRational(ctx, center, radius, height, rationalLineVec3(query), axisInterior, part, o)
+}
+
+// BoundCircularRadialBoundaryDistanceRational preserves the exact XYZ query
+// and clips its projection to the specified original disk or circular rim.
+func BoundCircularRadialBoundaryDistanceRational(ctx context.Context, center [2]*big.Rat, radius, height *big.Rat,
+	query [3]*big.Rat, axisInterior bool, part CylinderBoundaryPart, o FrustumDistanceOptions) (FrustumDistanceBounds, error) {
 	var empty FrustumDistanceBounds
-	if ctx == nil || center[0] == nil || center[1] == nil || radius == nil || radius.Sign() <= 0 || height == nil ||
-		!query.IsFinite() || !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 ||
+	if center[0] == nil || center[1] == nil || radius == nil || radius.Sign() <= 0 || height == nil ||
 		(part != CylinderLowerCap && part != CylinderUpperCap) {
 		return empty, ErrInvalid
+	}
+	opt, e := validateFrustumRationalDistance(ctx, query, o)
+	if e != nil {
+		return empty, e
 	}
 	if o.MaxBisections == 0 {
 		o.MaxBisections = 256
@@ -165,21 +190,17 @@ func BoundCircularRadialBoundaryDistance(ctx context.Context, center [2]*big.Rat
 	if o.MaxBisections < 1 || o.MaxBisections > 4096 {
 		return empty, ErrInvalid
 	}
-	opt, e := patchOptions(o.Surface)
-	if e != nil {
-		return empty, e
-	}
 	b := &polynomialBudget{maxOperations: opt.MaxOperations, maxBits: opt.MaxCoefficientBits}
 	for _, q := range []*big.Rat{center[0], center[1], radius, height} {
 		if e := b.check(q); e != nil {
 			return empty, e
 		}
 	}
-	x := new(big.Rat).Sub(new(big.Rat).SetFloat64(query.X), center[0])
-	y := new(big.Rat).Sub(new(big.Rat).SetFloat64(query.Y), center[1])
+	x := new(big.Rat).Sub(query[0], center[0])
+	y := new(big.Rat).Sub(query[1], center[1])
 	q := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
 	r2 := new(big.Rat).Mul(radius, radius)
-	dz := new(big.Rat).Sub(new(big.Rat).SetFloat64(query.Z), height)
+	dz := new(big.Rat).Sub(query[2], height)
 	dz.Mul(dz, dz)
 	for _, c := range []*big.Rat{q, r2, dz} {
 		if e := b.check(c); e != nil {
@@ -198,8 +219,8 @@ func BoundCircularRadialBoundaryDistance(ctx context.Context, center [2]*big.Rat
 	if inside {
 		// A centered exact witness expresses the represented query XY
 		// without introducing its irrational radial coordinate.
-		w.CenterX.SetFloat64(query.X)
-		w.CenterY.SetFloat64(query.Y)
+		w.CenterX.Set(query[0])
+		w.CenterY.Set(query[1])
 		w.Radius.SetInt64(0)
 		if e := ctx.Err(); e != nil {
 			return empty, e
@@ -248,6 +269,28 @@ func BoundCircularRadialBoundaryDistance(ctx context.Context, center [2]*big.Rat
 		}
 	}
 	return empty, ErrConvergence
+}
+
+func validateFrustumRationalDistance(ctx context.Context, query [3]*big.Rat, o FrustumDistanceOptions) (SurfacePatchOptions, error) {
+	if ctx == nil || !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 || o.MaxBisections < 0 || o.MaxBisections > 4096 {
+		return o.Surface, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return o.Surface, e
+	}
+	opt, e := patchOptions(o.Surface)
+	if e != nil {
+		return opt, e
+	}
+	for _, v := range query {
+		if v == nil {
+			return opt, ErrInvalid
+		}
+		if v.Num().BitLen() > opt.MaxCoefficientBits || v.Denom().BitLen() > opt.MaxCoefficientBits {
+			return opt, ErrConvergence
+		}
+	}
+	return opt, nil
 }
 
 func frustumSqrtBounds(q *big.Rat) (lo, hi *big.Rat) {
