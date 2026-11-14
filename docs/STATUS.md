@@ -64,7 +64,9 @@ kept its exact roof hit, quotient normal and floor distance, and an
 independently sewn OCCT rational model gave the same line parameter.
 Separate original bicubic and biquartic roofs retain their different sixth-
 and eighth-degree line roots. The specialized polynomial mesh proof keeps
-its existing scope.
+its existing scope. Exact knot refinements also qualify when every original
+span reduces to the same homogeneous polynomial on the whole chart. Genuine
+piecewise heights still require separate line-event ownership at the knots.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -681,6 +683,12 @@ all eight original browser cases passed, with 841 app and 2,080 kernel source
 blobs verified. Both [authored lens exports](evidence/plaincad-reconciled-2154f73d-supplemental-circular-lens-step-2026-11-14.json)
 produced identical STEP and watertight STL in both checkouts. Independent
 OCCT reproduced the volume, area, and centroid of the equal and unequal lenses.
+The [construction-axis torus reconciliation](evidence/plaincad-reconciled-f947e588-development-torus-sweep-holes-step-2026-11-14.json)
+adds worktree revision `ff55e0f6` to review `f947e588`. Native checks and all
+five original browser cases passed, with 841 app and 2,085 kernel blobs verified.
+The [authored quarter torus](evidence/plaincad-reconciled-f947e588-supplemental-torus-sweep-step-2026-11-14.json)
+retains byte-identical STEP after reimport and reopen and a watertight
+24,448-triangle STL. Independent OCCT confirmed volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

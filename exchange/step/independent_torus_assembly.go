@@ -18,7 +18,8 @@ type IndependentTorusAssembly struct {
 }
 
 // IndependentTorusAssemblyPart supplies a previously authenticated independent
-// product source. The assembly root alone has nil Source.
+// product source. Assembly-only nodes have nil Source; each model API determines
+// its permitted node topology.
 type IndependentTorusAssemblyPart struct {
 	ID, Name string
 	Source   *File
@@ -40,7 +41,8 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if cylinder {
 		products = 4
 	}
-	dag := cylinder && len(dagMode) == 1 && dagMode[0]
+	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
+	hierarchy := dag && len(dagMode) == 2 && dagMode[1]
 	if dag {
 		products = 5
 	}
@@ -65,7 +67,13 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if e != nil {
 		return IndependentTorusAssembly{}, e
 	}
-	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < products || len(a.Occurrences) > 16 {
+	if hierarchy {
+		products = len(a.Products)
+		if products < 4 || products > 16 || len(a.Occurrences) > 64 {
+			return bad()
+		}
+	}
+	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < products || (!hierarchy && len(a.Occurrences) > 16) {
 		return bad()
 	}
 	f := a.Source
@@ -300,7 +308,11 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if e != nil || len(all) != len(f.Entities) {
 		return bad()
 	}
-	if dag {
+	if hierarchy {
+		if _, e = independentAnalyticHierarchyPaths(ctx, out); e != nil {
+			return IndependentTorusAssembly{}, e
+		}
+	} else if dag {
 		if _, e = independentAnalyticDAGPaths(out); e != nil {
 			return bad()
 		}
@@ -318,11 +330,18 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	if cylinder {
 		products = 4
 	}
-	dag := cylinder && len(dagMode) == 1 && dagMode[0]
+	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
+	hierarchy := dag && len(dagMode) == 2 && dagMode[1]
 	if dag {
 		products = 5
 	}
-	if ctx == nil || w == nil || len(m.Products) != products || len(m.Occurrences) > 16 {
+	if hierarchy {
+		products = len(m.Products)
+		if products < 4 || products > 16 || len(m.Occurrences) > 64 {
+			return geom.ErrInvalid
+		}
+	}
+	if ctx == nil || w == nil || len(m.Products) != products || (!hierarchy && len(m.Occurrences) > 16) {
 		return geom.ErrInvalid
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
@@ -362,7 +381,7 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder, dag); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder, dag, hierarchy); e != nil {
 		return e
 	}
 	n, e := w.Write(b.Bytes())
@@ -395,7 +414,8 @@ func WriteIndependentTorusAssemblySource(ctx context.Context, w io.Writer, sourc
 	return writeIndependentTorusAssemblySource(ctx, w, source, l, tol, false)
 }
 func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, cylinder bool, dagMode ...bool) error {
-	dag := cylinder && len(dagMode) == 1 && dagMode[0]
+	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
+	hierarchy := dag && len(dagMode) == 2 && dagMode[1]
 	if ctx == nil || w == nil || !independentNativeSourceBound(source, 4096) {
 		return geom.ErrInvalid
 	}
@@ -403,7 +423,7 @@ func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, sourc
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder, dag); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder, dag, hierarchy); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

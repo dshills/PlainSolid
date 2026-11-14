@@ -19,17 +19,23 @@ type independentAnalyticDAGEnvelope struct {
 	Instances []IndependentAnalyticDAGInstance
 }
 
-func independentAnalyticDAGEnvelopeFor(ctx context.Context, m IndependentAnalyticDAGAssembly, source []byte) (independentAnalyticDAGEnvelope, []IndependentExactMaterial, error) {
+func independentAnalyticDAGEnvelopeFor(ctx context.Context, m IndependentAnalyticDAGAssembly, source []byte, hierarchyMode ...bool) (independentAnalyticDAGEnvelope, []IndependentExactMaterial, error) {
 	q := independentAnalyticDAGEnvelope{Format: independentAnalyticDAGNativeFormat, Version: 1, Instances: m.Instances}
-	if len(m.Instances) != 5 {
+	hierarchy := len(hierarchyMode) == 1 && hierarchyMode[0]
+	maxDepth := 2
+	if hierarchy {
+		maxDepth = 8
+		q.Format = independentAnalyticHierarchyNativeFormat
+	}
+	if (!hierarchy && len(m.Instances) != 5) || len(m.Instances) < 1 || len(m.Instances) > 64 {
 		return q, nil, geom.ErrInvalid
 	}
 	for _, u := range m.Instances {
-		if len(u.Path) < 1 || len(u.Path) > 2 || !planarSplineRigid(u.Transform) {
+		if len(u.Path) < 1 || len(u.Path) > maxDepth || !planarSplineRigid(u.Transform) {
 			return q, nil, geom.ErrInvalid
 		}
 	}
-	p, c, e := makeIndependentTorusAssemblyEnvelope(ctx, IndependentTorusAssembly{Assembly: m.Assembly, Products: m.Products}, source, true, true)
+	p, c, e := makeIndependentTorusAssemblyEnvelope(ctx, IndependentTorusAssembly{Assembly: m.Assembly, Products: m.Products}, source, true, true, hierarchy)
 	q.Proof = p
 	return q, c, e
 }
@@ -39,6 +45,9 @@ func independentAnalyticDAGEnvelopeFor(ctx context.Context, m IndependentAnalyti
 // One source proof checks all claims before any output; older native tags retain
 // their flat-only meaning.
 func WriteIndependentAnalyticDAGAssemblyJSON(ctx context.Context, w io.Writer, m IndependentAnalyticDAGAssembly) error {
+	return writeIndependentAnalyticDAGJSON(ctx, w, m, false)
+}
+func writeIndependentAnalyticDAGJSON(ctx context.Context, w io.Writer, m IndependentAnalyticDAGAssembly, hierarchy bool) error {
 	if ctx == nil || w == nil || !independentNativeSourceBound(m.Assembly.Source, 4096) {
 		return geom.ErrInvalid
 	}
@@ -49,15 +58,15 @@ func WriteIndependentAnalyticDAGAssemblyJSON(ctx context.Context, w io.Writer, m
 	if e != nil {
 		return e
 	}
-	actual, c, e := independentAnalyticDAGEnvelopeFor(ctx, m, source)
+	actual, c, e := independentAnalyticDAGEnvelopeFor(ctx, m, source, hierarchy)
 	if e != nil {
 		return e
 	}
-	proof, e := ReadIndependentAnalyticDAGAssembly(ctx, bytes.NewReader(source), Limits{}, actual.Proof.Tolerance)
+	proof, e := readIndependentAnalyticPathProof(ctx, bytes.NewReader(source), Limits{}, actual.Proof.Tolerance, hierarchy)
 	if e != nil {
 		return e
 	}
-	expected, d, e := independentAnalyticDAGEnvelopeFor(ctx, proof, source)
+	expected, d, e := independentAnalyticDAGEnvelopeFor(ctx, proof, source, hierarchy)
 	if e != nil {
 		return e
 	}
@@ -86,6 +95,14 @@ func WriteIndependentAnalyticDAGAssemblyJSON(ctx context.Context, w io.Writer, m
 // materials exclusively from the original STEP, then compares path ancestry,
 // composed poses and canonical native encodings with the stored claims.
 func ReadIndependentAnalyticDAGAssemblyJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (IndependentAnalyticDAGAssembly, error) {
+	return readIndependentAnalyticDAGJSON(ctx, r, l, false)
+}
+func readIndependentAnalyticDAGJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, hierarchy bool) (IndependentAnalyticDAGAssembly, error) {
+	format, claims := independentAnalyticDAGNativeFormat, independentAnalyticDAGClaimsFormat
+	if hierarchy {
+		format = independentAnalyticHierarchyNativeFormat
+		claims = independentAnalyticHierarchyClaimsFormat
+	}
 	bad := func() (IndependentAnalyticDAGAssembly, error) {
 		return IndependentAnalyticDAGAssembly{}, geom.ErrInvalid
 	}
@@ -114,18 +131,18 @@ func ReadIndependentAnalyticDAGAssemblyJSON(ctx context.Context, r io.Reader, l 
 	var q independentAnalyticDAGEnvelope
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
-	if d.Decode(&q) != nil || q.Format != independentAnalyticDAGNativeFormat || q.Version != 1 || q.Proof.Format != independentAnalyticDAGClaimsFormat || q.Proof.Version != 1 || q.Proof.Assembly.Source != nil || len(q.Proof.Members) != 3 || len(q.Instances) != 5 {
+	if d.Decode(&q) != nil || q.Format != format || q.Version != 1 || q.Proof.Format != claims || q.Proof.Version != 1 || q.Proof.Assembly.Source != nil || len(q.Proof.Members) != 3 || (!hierarchy && len(q.Instances) != 5) || len(q.Instances) < 1 || len(q.Instances) > 64 {
 		return bad()
 	}
 	var extra any
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	proof, e := ReadIndependentAnalyticDAGAssembly(ctx, bytes.NewReader([]byte(q.Proof.Source)), l.Source, q.Proof.Tolerance)
+	proof, e := readIndependentAnalyticPathProof(ctx, bytes.NewReader([]byte(q.Proof.Source)), l.Source, q.Proof.Tolerance, hierarchy)
 	if e != nil {
 		return IndependentAnalyticDAGAssembly{}, e
 	}
-	expected, _, e := independentAnalyticDAGEnvelopeFor(ctx, proof, []byte(q.Proof.Source))
+	expected, _, e := independentAnalyticDAGEnvelopeFor(ctx, proof, []byte(q.Proof.Source), hierarchy)
 	if e != nil {
 		return IndependentAnalyticDAGAssembly{}, e
 	}
