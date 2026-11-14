@@ -2621,3 +2621,26 @@ race run with ownership and mutation checks passed in 589.60 s.
 32.09 s under the race detector. Both ran together on isolated `84b54eac`'s
 test tree in 623.161 s. Independent integration of the original height field
 gives volume π·421875/2147483648; this test qualifies native topology.
+
+## Complete affine triple-region qualification (2026-11-14)
+
+The integrated affine strategy at `ca88d4ad` passed the full original
+`TestAlgebraicShellTripleRadialMaterialComponents` in 1,339.65 s (package
+1,339.900 s). The 248 independently covered overlap cells transferred to
+228 original tubes with 47,917,325 exact operations. Native assembly retained
+four original faces and two components. The exact volume coefficient was
+63333935546875/864691128455135232 times π, and the exact centroid Z was
+106610222140625/232841378390867968.
+
+The certified degree-eight native display retained 10,066 vertices and
+20,128 triangles, checked 5,204,760 collision candidates with zero collisions,
+and spent 59,134,086 exact residual operations. Display volume was
+0.0002195165898933681 against analytic 0.00023010462359255695. This qualifies the
+same retained material as the earlier generic run, which took 2,376.98 s.
+
+```sh
+PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE=1 PLAINSOLID_TRIPLE_RADIAL_MESH=1 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestAlgebraicShellTripleRadialMaterialComponents$' -count=1 -timeout 75m -v
+```
+
+Local log: `/tmp/plainsolid-affine-triple-physical-full-2026-11-14.log`, SHA-256
+`7ca811e33294fab9574071ff8340960268a93604b9d8ddf1ca3b12ca98b8053a`.

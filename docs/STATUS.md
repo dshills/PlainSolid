@@ -1534,9 +1534,10 @@ cell at 205,780 operations, not arithmetic exhaustion) without weakening the
 generic proof. `RadialOverlapCoverage.TransferMode` identifies the selected
 proof; `TransferStrata` and `TransferTests` report its bounded arrangement work.
 The generic original-cell union remains available on the non-affine strategy.
-The opt-in direct original triple-pair test passed for all 228 original tubes,
-using 248 overlapping cover cells. Native assembly and mesh qualification with
-this strategy are tracked separately.
+The opt-in complete affine triple-region test passed on the original fixture:
+248 overlap cells certify 228 retained edges, two native components, exact
+original material moments, and a collision-free 20,128-triangle certified
+display. The generic transfer remains separately qualified on this fixture.
 
 ## Direct regularized measures for coincident roof boxes (2026-11-14)
 
