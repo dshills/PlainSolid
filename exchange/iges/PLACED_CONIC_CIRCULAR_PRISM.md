@@ -42,3 +42,29 @@ original file and metadata. Tests also exercise a proper signed frame reversing
 the local cylinder axis, reject missing leaf placement, incorrect terminal,
 reflected/rounded frames, nonrepresentable translation and forged persisted
 placement. The two-source fuzz target is `FuzzPlacedConicCircularPrism`.
+
+## Reindexed placed source
+
+`ReadReindexedPlacedConicCircularPrismMaterial` accepts the independently proved
+record/shell-face/edge/vertex permutations and cyclic lateral-loop starts for
+both placed circular families. It locates the unique124 without relying on its
+record position, authenticates every leaf's transform ownership, and exactly
+inverse-maps world502/122 coordinates to establish local circular invariants.
+Only the conic C coefficient is normalized in the retained world graph. The
+existing placed/reindexed role proof validates the complete geometry and
+incidence, after which the dedicated circular reader reconstructs actual world
+circular material.
+
+The result separates canonical `Material` from original entity, vertex, use,
+face and rim maps. The original transform ID is
+`SourceForCanonical[Material.SourceTransformID]`. Source writing and separate
+version1 native persistence re-prove both geometry and provenance, preserving
+original file bytes. Native envelope cap is1MiB; source limits are unchanged.
+No canonical or unplaced reader is widened.
+
+Independent `--loops --placed-circles` fixtures combine all supported ordering
+variations with the qualified rotated/translated placement. Pinned OCCT reads
+the original/re-exported material with unchanged world area, volume and centroid.
+Tests reject invalid matrix, altered world terminal, foreign vertex ordinal,
+noncircular104 and stale source identity, alongside limit checks. The seeded
+bounded target is `FuzzReindexedPlacedConicCircularPrism`.
