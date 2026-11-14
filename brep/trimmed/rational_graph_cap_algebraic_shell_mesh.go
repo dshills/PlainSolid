@@ -10,10 +10,11 @@ import (
 // AlgebraicGraphStockBoundaryOptions bounds the shared exact-curve
 // approximation and independent display edge contact test.
 type AlgebraicGraphStockBoundaryOptions struct {
-	Section  RationalGraphShellSectionOptions
-	Exact    geom.ExactCurvePlaneEventOptions
-	Display  geom.ComposedCollectionPolylineOptions
-	MaxPairs int
+	Section           RationalGraphShellSectionOptions
+	Exact             geom.ExactCurvePlaneEventOptions
+	Display           geom.ComposedCollectionPolylineOptions
+	EndpointTolerance float64
+	MaxPairs          int
 }
 
 // CertifiedAlgebraicGraphStockBoundary provides one represented network for
@@ -54,6 +55,16 @@ func (c AlgebraicGraphCapPair) TessellateStockBoundaryCertified(ctx context.Cont
 	if d.Deflection <= 0 || math.IsInf(d.Deflection, 0) || math.IsNaN(d.Deflection) ||
 		d.MaxOperations < 1 || d.MaxSegments < 1 || d.MaxEndpointSubdivisions < 1 || o.MaxPairs < 1 || o.MaxPairs > 16000000 {
 		return zero, geom.ErrInvalid
+	}
+	tolerance := d.Deflection / 64
+	if o.EndpointTolerance != 0 {
+		if !finite(o.EndpointTolerance) || o.EndpointTolerance < 0 {
+			return zero, geom.ErrInvalid
+		}
+		tolerance = min(tolerance, o.EndpointTolerance)
+	}
+	if tolerance <= 0 {
+		return zero, geom.ErrUnrepresentable
 	}
 	topology, curves, e := c.ExactModelBoundary(ctx, o.Section, o.Exact)
 	if e != nil {

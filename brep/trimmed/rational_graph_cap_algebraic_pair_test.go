@@ -230,6 +230,19 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	if result, e := restored.TessellateStockBoundaryCertified(ctx, display); !errors.Is(e, geom.ErrConvergence) || len(result.Edges) != 0 {
 		t.Fatal("display contact budget must fail atomically", e)
 	}
+	fill := AlgebraicGraphStockFillOptions{Deflection: .09}
+	fill.Boundary.Section = section
+	fill.Boundary.Display.Deflection = .003
+	fill.Boundary.EndpointTolerance = 1e-12
+	mesh, e := restored.TessellateAffineProjectedStockCertified(ctx, fill)
+	if e != nil || mesh.SignedVolume == nil || len(mesh.Mesh.Triangles) != len(mesh.IndexedFaces) ||
+		mesh.MaximumFillError <= 0 || mesh.MaximumFillError > fill.Deflection {
+		t.Fatal("closed curved stock source-fill certificate", mesh.MaximumFillError, e)
+	}
+	mv, _ := mesh.SignedVolume.Float64()
+	if math.Abs(mv-(697./960-3*math.Sqrt(3)/640)) > .025 {
+		t.Fatal("independent display material volume", mv)
+	}
 	for _, probe := range []struct {
 		p    geom.Vec3
 		want parametric.Location
