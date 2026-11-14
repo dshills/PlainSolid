@@ -2014,6 +2014,8 @@ original patch owners; it does not require or emit a transverse tube.
 injective chart, with two regular germs and exact rational boundary exits.
 `CertifySplinePairCuspSection` exposes those germs and their terminal
 ownership on the original finite surface pair, with exact rational samples.
+`CertifyProjectedGraphSemicubicalCusp` also proves independently scaled
+and signed charts and preserves each original terminal parameter.
 
 Exact hierarchy queries now find the nearest original retained boundary
 across the planar, sphere, cylinder and torus occurrence families. All

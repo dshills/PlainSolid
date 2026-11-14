@@ -5711,3 +5711,7 @@ The immutable intersect-level cusp section independently evaluates both
 supports for rational samples on both labeled germs. It distinguishes
 the shared cusp from each finite boundary terminal and preserves original
 owner identity. The integrated focused race passed in 1.209 s.
+The projected cusp proof maps original UMax terminals to VMin on an
+independent XZ chart, and verifies both owners' original coordinates.
+Changing projection or exceeding the shared quota fails atomically.
+The integrated focused race passed in 1.245 s.
