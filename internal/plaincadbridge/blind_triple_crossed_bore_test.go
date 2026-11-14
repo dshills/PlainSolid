@@ -142,5 +142,43 @@ func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 		for _, tool := range tools {
 			near(t, overlapMeasure(t, b, got.Handle, tool), 0)
 		}
+		if count != 3 {
+			continue
+		}
+		deeper := circle(t, b, vector{0, 20, 20}, vector{1, 0, 0}, 3, 34)
+		near(t, overlapMeasure(t, b, got.Handle, deeper.Handle), 5.5*9*math.Pi)
+		extended := shape(t, b, map[string]any{"op": "cut", "a": got.Handle, "b": deeper.Handle})
+		near(t, extended.GeometryAssertions.Volume, wantVolume-5.5*9*math.Pi)
+		near(t, extended.GeometryAssertions.SurfaceArea, wantArea+5.5*6*math.Pi)
+		for _, p := range []struct {
+			origin, normal geom.Vec3
+			id             int
+		}{
+			{geom.Vec3{X: 20, Y: 20, Z: 32}, geom.Vec3{Z: -1}, 6},
+			{geom.Vec3{X: 34, Y: 20, Z: 20}, geom.Vec3{X: -1}, 7},
+			{geom.Vec3{X: 20, Y: 10, Z: 20}, geom.Vec3{Y: 1}, 8},
+		} {
+			face, err := b.shapes[extended.Handle].bore.planarFace(p.origin, p.normal)
+			if err != nil || face.Face != p.id {
+				t.Fatal(p, face, err)
+			}
+		}
+		through := circle(t, b, vector{40, 20, 20}, vector{-1, 0, 0}, 3, 40)
+		near(t, overlapMeasure(t, b, extended.Handle, through.Handle), 6*9*math.Pi)
+		opened := shape(t, b, map[string]any{"op": "cut", "a": extended.Handle, "b": through.Handle})
+		near(t, opened.GeometryAssertions.Volume, wantVolume-11.5*9*math.Pi)
+		near(t, opened.GeometryAssertions.SurfaceArea, wantArea+11.5*6*math.Pi-18*math.Pi)
+		want, err := b.cutMany(stock.Handle, []string{through.Handle, tools[1], tools[2]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		gotSTEP, err := b.exportSTEP([]string{opened.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantSTEP, err := b.exportSTEP([]string{want.Handle})
+		if err != nil || gotSTEP.Base64 != wantSTEP.Base64 {
+			t.Fatal("through recut differs from fresh STEP", err)
+		}
 	}
 }

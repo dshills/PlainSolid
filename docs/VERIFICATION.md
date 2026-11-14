@@ -16,6 +16,13 @@ Ray checks identify all three retained floor positions in a watertight
 translated decimal-depth round-trips, grouped and successive native
 cuts, focused race tests, and Go vet pass.
 
+The [recut follow-up](evidence/plaincad-multi-floor-recut-2026-11-14.json)
+reopens that STEP in PlainCAD, extends the X blind Hole from 30.5 mm to
+34 mm, and exports the new STEP. The 588-triangle STL retains the new
+and both unmodified floors. Native coverage also opens X through the
+opposite cap and compares STEP byte-for-byte with a fresh cut. Independent
+OCCT measures and the focused race tests pass.
+
 ## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
 
 The selected PlainSolid provider at PlainCAD app revision `9779044`

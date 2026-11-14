@@ -101,8 +101,9 @@ companion through bores. Cardinal and concurrent 4:3 or 3:4 oblique pairs
 keep exact intersection ellipses. Two or three disjoint through bores
 can combine oblique and cardinal axes and exchange their complete rims.
 Common angular strips extend tessellation to steeper and three-component
-axes. Next verify coaxial depth edits and retained floors after STEP
-reimport of multi-floor crossings.
+axes. A STEP-reimported three-floor crossing can deepen a bore without
+moving the other floors. A subsequent coaxial through cut produces the
+same STEP as a fresh cut with that passage already open.
 A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
