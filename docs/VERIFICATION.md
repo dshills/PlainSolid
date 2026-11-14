@@ -2698,3 +2698,19 @@ to a flat roof at X=1/2 retains exactly the unit box; live OCCT agrees. A real
 crossing, face-only contact, and exhausted arithmetic distinguish unsupported,
 regularized empty, and atomic budget results respectively. Focused live race
 passed in 4.946 s.
+
+## Exact nonradial projected tube coverage (2026-11-14)
+
+The checked common XY chart reduces contact to the zero set of a rational
+height numerator. `CertifyCommonXYGraphCellInTubes` verifies every original
+uniform target. An exact partition checks uncovered closed vertices, open
+edges and open rectangles separately; weak Bernstein sign plus one strict
+coefficient excludes zeros in the relative interior. It never heals a target
+or treats a boundary zero as harmless.
+
+Two original curved branches used 12 target tubes and 342,743 operations,
+covering 663 strata (353 uncovered tests); the generic proof also passed
+with 385,617 operations and exhausted the lower quota. Removing either
+branch, forging a tube, changing the XY projection or exceeding the budget
+fails closed. The integrated focused race passed in 6.838 s. This is the
+direct projected proof; the section driver is separately qualified.
