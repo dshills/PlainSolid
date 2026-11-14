@@ -249,6 +249,34 @@ func TestAlgebraicShellSectionAcrossOriginalEdges(t *testing.T) {
 		mass.Volume < .1249999 || mass.Volume > .1250001 {
 		t.Fatal("native reload changed independent mass", mass.Volume, e)
 	}
+	viaDispatch, ancestry, e := CombineSplineShells(ctx, a, b, parametric.Intersection, SplineShellCombineOptions{
+		Algebraic: &SplineShellAlgebraicNativeOptions{Section: o},
+	})
+	if e != nil || ancestry.Method != "algebraic-native" || len(ancestry.SectionEdges) == 0 ||
+		viaDispatch.Topology().EulerCharacteristic != converted.Topology().EulerCharacteristic {
+		t.Fatal("opt-in native algebraic dispatch", ancestry, viaDispatch.Topology(), e)
+	}
+	counts := make([]int, len(viaDispatch.edges))
+	for _, i := range ancestry.SectionEdges {
+		counts[i]++
+	}
+	for _, owner := range [][][]int{ancestry.EdgesA, ancestry.EdgesB} {
+		for _, children := range owner {
+			for _, i := range children {
+				counts[i]++
+			}
+		}
+	}
+	for i, n := range counts {
+		if n != 1 {
+			t.Fatal("one exhaustive original or generated edge owner required", i, n)
+		}
+	}
+	if s, h, e := CombineSplineShells(ctx, a, b, parametric.Intersection, SplineShellCombineOptions{
+		Algebraic: &SplineShellAlgebraicNativeOptions{Section: o}, Sections: []SplineShellSection{{}},
+	}); !errors.Is(e, geom.ErrInvalid) || len(s.faces) != 0 || h.Method != "" {
+		t.Fatal("ambiguous explicit section policies", h, e)
+	}
 	var malformed nativeAlgebraicShellSection
 	if e := json.Unmarshal(native.Bytes(), &malformed); e != nil {
 		t.Fatal(e)

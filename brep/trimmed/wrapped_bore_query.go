@@ -38,6 +38,34 @@ func locateWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.Wr
 	if !point.IsFinite() {
 		return parametric.Outside, geom.ErrInvalid
 	}
+	return locateWrappedCircularFrustumBoreRational(ctx, outer, inner, [3]*big.Rat{ratInset(point.X), ratInset(point.Y), ratInset(point.Z)}, o, coaxial)
+}
+
+// LocateWrappedEccentricCircularFrustumBoreRational classifies an exact
+// model point in the retained native material. Its rational coordinates may
+// lie closer to a rim, cap or wall than binary64 can distinguish.
+func LocateWrappedEccentricCircularFrustumBoreRational(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	point [3]*big.Rat, o geom.SurfacePatchOptions) (parametric.Location, error) {
+	return locateWrappedCircularFrustumBoreRational(ctx, outer, inner, point, o, false)
+}
+
+func locateWrappedCircularFrustumBoreRational(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	point [3]*big.Rat, o geom.SurfacePatchOptions, coaxial bool) (parametric.Location, error) {
+	bits := o.MaxCoefficientBits
+	if bits == 0 {
+		bits = 16384
+	}
+	if ctx == nil || bits < 64 {
+		return parametric.Outside, geom.ErrInvalid
+	}
+	for _, q := range point {
+		if q == nil {
+			return parametric.Outside, geom.ErrInvalid
+		}
+		if q.Num().BitLen() > bits || q.Denom().BitLen() > bits {
+			return parametric.Outside, geom.ErrConvergence
+		}
+	}
 	a, e := geom.CertifyWrappedFrustumEmbedding(ctx, outer, o)
 	if e != nil {
 		return parametric.Outside, e
@@ -49,9 +77,9 @@ func locateWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.Wr
 	if !strictWrappedParallelFrustumBore(a, b, coaxial) {
 		return parametric.Outside, geom.ErrConvergence
 	}
-	z := ratInset(point.Z)
+	z := point[2]
 	radialSign := func(p geom.WrappedFrustumEmbedding) int {
-		u, v := new(big.Rat).Sub(ratInset(point.X), p.CenterX), new(big.Rat).Sub(ratInset(point.Y), p.CenterY)
+		u, v := new(big.Rat).Sub(point[0], p.CenterX), new(big.Rat).Sub(point[1], p.CenterY)
 		r2 := new(big.Rat).Add(u.Mul(u, u), v.Mul(v, v))
 		f := new(big.Rat).Quo(new(big.Rat).Sub(z, p.LowerZ), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
 		r := new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(f, new(big.Rat).Sub(p.UpperRadius, p.LowerRadius)))

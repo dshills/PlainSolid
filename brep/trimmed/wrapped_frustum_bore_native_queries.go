@@ -14,8 +14,11 @@ import (
 // its retained disk fills that curve unless the corresponding end is open.
 // Face IDs are in the receiver's native indexing. Absent owners are -1.
 type WrappedFrustumBoreSection struct {
-	Outer, Inner                  geom.WrappedFrustumSection
-	Height                        *big.Rat
+	Outer, Inner geom.WrappedFrustumSection
+	Height       *big.Rat
+	// AreaPi is the exact area of retained planar material divided by π.
+	// A retained cavity floor fills its disk on the plane itself.
+	AreaPi                        *big.Rat
 	OuterFace, InnerFace, CapFace int
 	MaterialPresent, HasHole      bool
 }
@@ -24,15 +27,32 @@ type WrappedFrustumBoreSection struct {
 // circular-frustum bore with a represented model Z plane. It returns exact
 // original U curves, including at a nonbinary original V.
 func (s Solid) SectionCanonicalWrappedFrustumBore(ctx context.Context, height float64, o geom.SurfacePatchOptions) (WrappedFrustumBoreSection, error) {
-	var empty WrappedFrustumBoreSection
 	if !finite(height) {
+		return WrappedFrustumBoreSection{}, geom.ErrInvalid
+	}
+	return s.SectionCanonicalWrappedFrustumBoreRational(ctx, ratInset(height), o)
+}
+
+// SectionCanonicalWrappedFrustumBoreRational retains exact chart and material
+// section data at any bounded rational height. No modeled height or radius is
+// rounded to produce a witness.
+func (s Solid) SectionCanonicalWrappedFrustumBoreRational(ctx context.Context, height *big.Rat, o geom.SurfacePatchOptions) (WrappedFrustumBoreSection, error) {
+	var empty WrappedFrustumBoreSection
+	if height == nil || o.MaxCoefficientBits < 0 {
 		return empty, geom.ErrInvalid
+	}
+	bits := o.MaxCoefficientBits
+	if bits == 0 {
+		bits = 16384
+	}
+	if height.Num().BitLen() > bits || height.Denom().BitLen() > bits {
+		return empty, geom.ErrConvergence
 	}
 	p, e := s.ValidateCanonicalWrappedFrustumBore(ctx, o)
 	if e != nil {
 		return empty, e
 	}
-	z := ratInset(height)
+	z := new(big.Rat).Set(height)
 	a, e := geom.CertifyWrappedFrustumEmbedding(ctx, p.Outer, o)
 	if e != nil {
 		return empty, e
@@ -41,15 +61,16 @@ func (s Solid) SectionCanonicalWrappedFrustumBore(ctx context.Context, height fl
 	if e != nil {
 		return empty, e
 	}
-	r := WrappedFrustumBoreSection{Height: z, OuterFace: -1, InnerFace: -1, CapFace: -1}
+	r := WrappedFrustumBoreSection{Height: z, AreaPi: new(big.Rat), OuterFace: -1, InnerFace: -1, CapFace: -1}
 	if z.Cmp(a.LowerZ) < 0 || z.Cmp(a.UpperZ) > 0 {
 		return r, nil
 	}
-	r.Outer, e = geom.SectionWrappedFrustum(ctx, p.Outer, height, o)
+	r.Outer, e = geom.SectionWrappedFrustumRational(ctx, p.Outer, z, o)
 	if e != nil {
 		return empty, e
 	}
 	r.MaterialPresent, r.OuterFace = true, p.OuterFaces[0]
+	r.AreaPi.Mul(r.Outer.Radius, r.Outer.Radius)
 	if z.Cmp(a.LowerZ) == 0 {
 		r.CapFace = p.OuterFaces[1]
 	}
@@ -60,7 +81,7 @@ func (s Solid) SectionCanonicalWrappedFrustumBore(ctx context.Context, height fl
 	if lo < 0 || hi > 0 {
 		return r, nil
 	}
-	r.Inner, e = geom.SectionWrappedFrustum(ctx, p.Inner, height, o)
+	r.Inner, e = geom.SectionWrappedFrustumRational(ctx, p.Inner, z, o)
 	if e != nil {
 		return empty, e
 	}
@@ -74,17 +95,30 @@ func (s Solid) SectionCanonicalWrappedFrustumBore(ctx context.Context, height fl
 		r.CapFace = p.InnerFaces[i]
 		r.HasHole = p.InnerFaces[i] == p.OuterFaces[i]
 	}
+	if r.HasHole {
+		r.AreaPi.Sub(r.AreaPi, new(big.Rat).Mul(r.Inner.Radius, r.Inner.Radius))
+	}
 	return r, nil
 }
 
 // LocateCanonicalWrappedFrustumBore locates material on an independently
 // validated native circular frustum bore, using the original two axes.
 func (s Solid) LocateCanonicalWrappedFrustumBore(ctx context.Context, point geom.Vec3, o geom.SurfacePatchOptions) (parametric.Location, error) {
+	if !point.IsFinite() {
+		return parametric.Outside, geom.ErrInvalid
+	}
+	return s.LocateCanonicalWrappedFrustumBoreRational(ctx, [3]*big.Rat{ratInset(point.X), ratInset(point.Y), ratInset(point.Z)}, o)
+}
+
+// LocateCanonicalWrappedFrustumBoreRational classifies a nonrounded model
+// point against the independently reconstructed native material boundary.
+func (s Solid) LocateCanonicalWrappedFrustumBoreRational(ctx context.Context, point [3]*big.Rat,
+	o geom.SurfacePatchOptions) (parametric.Location, error) {
 	p, e := s.ValidateCanonicalWrappedFrustumBore(ctx, o)
 	if e != nil {
 		return parametric.Outside, e
 	}
-	return LocateWrappedEccentricCircularFrustumBore(ctx, p.Outer, p.Inner, point, o)
+	return LocateWrappedEccentricCircularFrustumBoreRational(ctx, p.Outer, p.Inner, point, o)
 }
 
 // IntersectCanonicalWrappedFrustumOpenBoreLine preserves the receiver's

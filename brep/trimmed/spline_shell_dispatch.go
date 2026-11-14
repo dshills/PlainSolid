@@ -32,6 +32,10 @@ type SplineShellCombineOptions struct {
 	// EnableGeneralTubeDiscovery tries bounded automatic pair tracing when
 	// the specialized plane path cannot propose the full wire.
 	EnableGeneralTubeDiscovery bool
+	// Algebraic optionally selects exact original section discovery, imprint,
+	// and reconstruction when all resulting vertices/ranges are representable.
+	// A nonrepresentable result can instead be consumed through SectionSplineShellsAlgebraic.
+	Algebraic *SplineShellAlgebraicNativeOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
 	// independent original-support tube proofs are required before use.
@@ -39,6 +43,15 @@ type SplineShellCombineOptions struct {
 	// DiscoverVerticalQuadraticWarp derives and tests a common warp
 	// coefficient when no explicit VerticalQuadraticWarp is supplied.
 	DiscoverVerticalQuadraticWarp bool
+}
+
+// SplineShellAlgebraicNativeOptions configures the opt-in algebraic path to
+// the ordinary native Solid. A zero tolerance uses the larger operand tolerance.
+type SplineShellAlgebraicNativeOptions struct {
+	Section   AlgebraicShellSectionOptions
+	Boolean   AlgebraicShellBooleanOptions
+	Native    NativeAlgebraicBooleanOptions
+	Tolerance float64
 }
 
 // SplineShellCombineHistory provides retained faces for either operand and
@@ -67,6 +80,12 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 	}
 	if e := ctx.Err(); e != nil {
 		return Solid{}, r, e
+	}
+	if o.Algebraic != nil {
+		if len(o.Sections) != 0 || len(o.OpenSections) != 0 {
+			return Solid{}, r, geom.ErrInvalid
+		}
+		return combineSplineShellsAlgebraicNative(ctx, a, b, op, *o.Algebraic)
 	}
 	if len(o.Sections) != 0 {
 		if len(o.OpenSections) != 0 {

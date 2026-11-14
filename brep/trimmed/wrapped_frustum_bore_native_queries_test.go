@@ -76,6 +76,30 @@ func TestNativeWrappedFrustumOpenBoreReloadAndQueries(t *testing.T) {
 		station.Inner.Radius.Cmp(big.NewRat(23, 8)) != 0 {
 		t.Fatal("exact nonbinary original chart station", station, e)
 	}
+	height := big.NewRat(7, 3)
+	rat, e := back.SectionCanonicalWrappedFrustumBoreRational(ctx, height, opts)
+	if e != nil || !rat.HasHole || rat.Outer.ParameterV.Cmp(big.NewRat(7, 12)) != 0 ||
+		rat.Inner.ParameterV.Cmp(big.NewRat(11, 21)) != 0 || rat.Outer.Radius.Cmp(big.NewRat(15, 4)) != 0 ||
+		rat.Inner.Radius.Cmp(big.NewRat(25, 8)) != 0 || rat.AreaPi.Cmp(big.NewRat(275, 64)) != 0 {
+		t.Fatal("exact nonbinary height and annular material area", rat, e)
+	}
+	height.SetInt64(0)
+	if rat.Height.Cmp(big.NewRat(7, 3)) != 0 || rat.Outer.Height.Cmp(rat.Height) != 0 || floor.AreaPi.Cmp(big.NewRat(361, 64)) != 0 {
+		t.Fatal("section did not retain its exact height or filled floor", rat.Height, floor.AreaPi)
+	}
+	epsilon := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	for _, row := range []struct {
+		x    *big.Rat
+		want parametric.Location
+	}{{new(big.Rat).Sub(big.NewRat(27, 8), epsilon), parametric.Outside},
+		{big.NewRat(27, 8), parametric.Boundary},
+		{new(big.Rat).Add(big.NewRat(27, 8), epsilon), parametric.Inside}} {
+		q := [3]*big.Rat{row.x, big.NewRat(1, 4), big.NewRat(7, 3)}
+		where, e := back.LocateCanonicalWrappedFrustumBoreRational(ctx, q, opts)
+		if e != nil || where != row.want {
+			t.Fatal("exact rational probes at one original wall", q, where, row.want, e)
+		}
+	}
 	if beyond, e := back.SectionCanonicalWrappedFrustumBore(ctx, 5, opts); e != nil || beyond.MaterialPresent || beyond.OuterFace != -1 {
 		t.Fatal("outside section must be empty", beyond, e)
 	}

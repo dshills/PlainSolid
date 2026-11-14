@@ -20,6 +20,48 @@ type NativeAlgebraicBooleanOptions struct {
 	MaxEdges int
 }
 
+func combineSplineShellsAlgebraicNative(ctx context.Context, a, b Solid, op parametric.BooleanOp,
+	o SplineShellAlgebraicNativeOptions) (Solid, SplineShellCombineHistory, error) {
+	var empty SplineShellCombineHistory
+	if !finite(o.Tolerance) || o.Tolerance < 0 {
+		return Solid{}, empty, geom.ErrInvalid
+	}
+	if o.Tolerance == 0 {
+		o.Tolerance = max(a.tolerance, b.tolerance)
+		if o.Tolerance == 0 {
+			o.Tolerance = 1e-8
+		}
+	}
+	r, e := SectionSplineShellsAlgebraic(ctx, a, b, o.Section)
+	if e != nil {
+		return Solid{}, empty, e
+	}
+	s, e := r.CombineAlgebraic(ctx, op, o.Boolean)
+	if e != nil {
+		return Solid{}, empty, e
+	}
+	native, e := s.NativeRepresentable(ctx, o.Tolerance, o.Native)
+	if e != nil {
+		return Solid{}, empty, e
+	}
+	h := SplineShellCombineHistory{Method: "algebraic-native", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces)),
+		EdgesA: make([][]int, len(a.edges)), EdgesB: make([][]int, len(b.edges))}
+	for i, f := range s.faces {
+		row := [2][][]int{h.FacesA, h.FacesB}[f.Operand]
+		row[f.Original] = append(row[f.Original], i)
+	}
+	for i, x := range s.index {
+		if x.SectionPiece >= 0 {
+			h.SectionEdges = append(h.SectionEdges, i)
+			continue
+		}
+		row := [2][][]int{h.EdgesA, h.EdgesB}[x.Operand]
+		source := s.parts[x.Operand].Subdivision.edges[x.OriginalSubdivisionEdge].Original
+		row[source] = append(row[source], i)
+	}
+	return native, h, nil
+}
+
 // NativeRepresentable converts the exact Boolean graph to the ordinary native
 // Solid when all stored vertex and chart coordinates and retained source
 // curve limits are exactly representable. Face, edge and vertex indices
