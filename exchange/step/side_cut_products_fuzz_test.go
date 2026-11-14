@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"math/big"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 	"testing"
@@ -13,6 +14,8 @@ import (
 // Resource bounds are deliberately smaller than the public defaults. Each fuzz
 // input selects one actual typed reader and can perform only one accepted-output
 // write and one readback. No retry, mesh, integration or external oracle is used.
+const sideCutFuzzKinds = 6
+
 var sideCutFuzzLimits = Limits{MaxBytes: 64 << 10, MaxEntities: 768, MaxValues: 8192, MaxDepth: 16, MaxVertices: 64, MaxFaces: 24, MaxSolids: 1, MaxEdgeUses: 256}
 
 func sideCutFuzzSeed(t testing.TB, kind byte, through bool) []byte {
@@ -25,6 +28,7 @@ func sideCutFuzzSeed(t testing.TB, kind byte, through bool) []byte {
 	if through {
 		d.Depth = 6
 	}
+	var join [2]string
 	switch kind {
 	case 0:
 		d.Min = geom.Vec2{Y: 4}
@@ -42,16 +46,27 @@ func sideCutFuzzSeed(t testing.TB, kind byte, through bool) []byte {
 	case 4:
 		d.Max = geom.Vec2{X: 40, Y: 10}
 		d.Discs = [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 12.5, Y: -7.5}, Radius: 65. / 8}, {Center: geom.Vec2{X: 22, Y: -7.5}, Radius: 87. / 8}}
+	case 5:
+		d.Max = geom.Vec2{X: 60, Y: 10}
+		d.Discs = [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 7, Y: -3}, Radius: 5}, {Center: geom.Vec2{X: 30, Y: -20}, Radius: 29}}
+		join = [2]string{"10", "1"}
 	default:
 		t.Fatal("invalid seed kind")
 	}
 	var b bytes.Buffer
-	if e = sideCutFuzzWrite(context.Background(), &b, kind, d); e != nil {
+	if e = sideCutFuzzWrite(context.Background(), &b, kind, sideCutFuzzRecipe{d, join}); e != nil {
 		t.Fatal(e)
 	}
 	return b.Bytes()
 }
-func sideCutFuzzWrite(ctx context.Context, b *bytes.Buffer, kind byte, d SideOpenDualDiskDescriptor) error {
+
+type sideCutFuzzRecipe struct {
+	Descriptor SideOpenDualDiskDescriptor
+	Join       [2]string
+}
+
+func sideCutFuzzWrite(ctx context.Context, b *bytes.Buffer, kind byte, recipe sideCutFuzzRecipe) error {
+	d := recipe.Descriptor
 	switch kind {
 	case 0:
 		return WriteSideOpenDualDiskProduct(ctx, b, d)
@@ -61,11 +76,21 @@ func sideCutFuzzWrite(ctx context.Context, b *bytes.Buffer, kind byte, d SideOpe
 		return WriteExactWallSideOpenDualDiskProduct(ctx, b, ExactWallSideOpenDualDiskDescriptor(d))
 	case 4:
 		return WriteOffsetSideOpenDualDiskProduct(ctx, b, OffsetSideOpenDualDiskDescriptor(d))
+	case 5:
+		var join [2]*big.Rat
+		for i, text := range recipe.Join {
+			q, ok := new(big.Rat).SetString(text)
+			if !ok {
+				return geom.ErrInvalid
+			}
+			join[i] = q
+		}
+		return WriteUnequalCenterSideOpenDualDiskProduct(ctx, b, UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: join})
 	default:
 		return WriteGeneralSideOpenDualDiskProduct(ctx, b, GeneralSideOpenDualDiskDescriptor(d))
 	}
 }
-func sideCutFuzzRead(t testing.TB, ctx context.Context, kind byte, raw []byte) (SideOpenDualDiskDescriptor, error) {
+func sideCutFuzzRead(t testing.TB, ctx context.Context, kind byte, raw []byte) (sideCutFuzzRecipe, error) {
 	t.Helper()
 	switch kind {
 	case 0:
@@ -74,65 +99,77 @@ func sideCutFuzzRead(t testing.TB, ctx context.Context, kind byte, raw []byte) (
 			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 {
 				t.Fatal("partial equal result")
 			}
-			return SideOpenDualDiskDescriptor{}, e
+			return sideCutFuzzRecipe{}, e
 		}
 		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 {
 			t.Fatal("incomplete equal result")
 		}
-		return r.Descriptor, nil
+		return sideCutFuzzRecipe{Descriptor: r.Descriptor}, nil
 	case 1:
 		r, e := ReadUnequalSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
 		if e != nil {
 			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 {
 				t.Fatal("partial unequal result")
 			}
-			return SideOpenDualDiskDescriptor{}, e
+			return sideCutFuzzRecipe{}, e
 		}
 		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.SourceWallFaces[0] <= 0 || r.SourceWallFaces[1] <= 0 {
 			t.Fatal("incomplete unequal result")
 		}
-		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+		return sideCutFuzzRecipe{Descriptor: SideOpenDualDiskDescriptor(r.Descriptor)}, nil
 	case 3:
 		r, e := ReadExactWallSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
 		if e != nil {
 			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 || r.RadicalJoin[0] != nil {
 				t.Fatal("partial ExactWall result")
 			}
-			return SideOpenDualDiskDescriptor{}, e
+			return sideCutFuzzRecipe{}, e
 		}
 		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.RadicalJoin[0] == nil || r.RadicalJoin[1] == nil || r.SourceWallFaces[0] <= 0 || r.SourceWallFaces[1] <= 0 {
 			t.Fatal("incomplete ExactWall result")
 		}
-		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+		return sideCutFuzzRecipe{Descriptor: SideOpenDualDiskDescriptor(r.Descriptor)}, nil
 	case 4:
 		r, e := ReadOffsetSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
 		if e != nil {
 			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 || r.RadicalJoin[0] != nil {
 				t.Fatal("partial Offset result")
 			}
-			return SideOpenDualDiskDescriptor{}, e
+			return sideCutFuzzRecipe{}, e
 		}
 		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.RadicalJoin[0] == nil || r.RadicalJoin[1] == nil || r.SourceWallFaces[0] <= 0 || r.SourceWallFaces[1] <= 0 {
 			t.Fatal("incomplete Offset result")
 		}
-		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+		return sideCutFuzzRecipe{Descriptor: SideOpenDualDiskDescriptor(r.Descriptor)}, nil
+	case 5:
+		r, e := ReadUnequalCenterSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
+		if e != nil {
+			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 || r.RadicalJoin[0] != nil {
+				t.Fatal("partial different-center result")
+			}
+			return sideCutFuzzRecipe{}, e
+		}
+		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.RadicalJoin[0] == nil || r.RadicalJoin[1] == nil || r.SourceWallFaces[0] <= 0 || r.SourceWallFaces[1] <= 0 || r.SourceWallFaces[0] == r.SourceWallFaces[1] {
+			t.Fatal("incomplete different-center result")
+		}
+		return sideCutFuzzRecipe{r.Descriptor.SideOpenDualDiskDescriptor, [2]string{r.RadicalJoin[0].RatString(), r.RadicalJoin[1].RatString()}}, nil
 	default:
 		r, e := ReadGeneralSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
 		if e != nil {
 			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 || r.RadicalJoin[0] != nil {
 				t.Fatal("partial general result")
 			}
-			return SideOpenDualDiskDescriptor{}, e
+			return sideCutFuzzRecipe{}, e
 		}
 		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.RadicalJoin[0] == nil || r.RadicalJoin[1] == nil || (r.RadicalSide != ExternalRadicalLeft && r.RadicalSide != ExternalRadicalRight) {
 			t.Fatal("incomplete general result")
 		}
-		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+		return sideCutFuzzRecipe{Descriptor: SideOpenDualDiskDescriptor(r.Descriptor)}, nil
 	}
 }
 
 func TestSideCutFuzzSeedsUnderWorkLimits(t *testing.T) {
-	for kind := byte(0); kind < 5; kind++ {
+	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		for _, through := range []bool{false, true} {
 			raw := sideCutFuzzSeed(t, kind, through)
 			if len(raw) > int(sideCutFuzzLimits.MaxBytes) {
@@ -141,7 +178,7 @@ func TestSideCutFuzzSeedsUnderWorkLimits(t *testing.T) {
 			if _, e := sideCutFuzzRead(t, context.Background(), kind, raw); e != nil {
 				t.Fatal(kind, through, e)
 			}
-			for other := byte(0); other < 5; other++ {
+			for other := byte(0); other < sideCutFuzzKinds; other++ {
 				if other != kind {
 					if _, e := sideCutFuzzRead(t, context.Background(), other, raw); e == nil {
 						t.Fatal("source category crossed", kind, other)
@@ -153,14 +190,14 @@ func TestSideCutFuzzSeedsUnderWorkLimits(t *testing.T) {
 }
 
 func FuzzReadSideCutProducts(f *testing.F) {
-	for kind := byte(0); kind < 5; kind++ {
+	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		for _, through := range []bool{false, true} {
 			raw := sideCutFuzzSeed(f, kind, through)
 			f.Add(kind, raw)
 			for _, bad := range sideCutFuzzSemanticSeeds(f, raw) {
 				f.Add(kind, bad)
 			}
-			f.Add((kind+1)%5, raw)
+			f.Add((kind+1)%sideCutFuzzKinds, raw)
 			f.Add(kind, raw[:len(raw)/2])
 			f.Add(kind, append([]byte("unexpected-prefix\x00"), raw...))
 			f.Add(kind, append(append([]byte(nil), raw...), []byte("#999999=CARTESIAN_POINT('',(0.,0.,0.));")...))
@@ -173,7 +210,7 @@ func FuzzReadSideCutProducts(f *testing.F) {
 		if len(raw) > int(sideCutFuzzLimits.MaxBytes) {
 			t.Skip()
 		}
-		kind := selector % 5
+		kind := selector % sideCutFuzzKinds
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		descriptor, e := sideCutFuzzRead(t, ctx, kind, raw)
@@ -204,7 +241,7 @@ func FuzzReadSideCutProducts(f *testing.F) {
 }
 
 func TestSideCutFuzzOuterPayloadsReject(t *testing.T) {
-	for kind := byte(0); kind < 5; kind++ {
+	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		raw := sideCutFuzzSeed(t, kind, false)
 		bad := [][]byte{raw[:len(raw)/2], append([]byte("unexpected-prefix\x00"), raw...), append(append([]byte(nil), raw...), []byte("#999999=CARTESIAN_POINT('',(0.,0.,0.));")...), bytes.Replace(raw, []byte("END-ISO-10303-21;"), []byte("END-ISO-10303-21;\x00"), 1)}
 		for i, payload := range bad {
@@ -259,7 +296,7 @@ func sideCutFuzzSemanticSeeds(t testing.TB, raw []byte) [][]byte {
 	return out
 }
 func TestSideCutFuzzSemanticOwnersReject(t *testing.T) {
-	for kind := byte(0); kind < 5; kind++ {
+	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		for _, through := range []bool{false, true} {
 			raw := sideCutFuzzSeed(t, kind, through)
 			for i, bad := range sideCutFuzzSemanticSeeds(t, raw) {
