@@ -59,7 +59,8 @@ type AlgebraicShellImprint struct {
 // rectangular spline shells. It supports proper open cuts, with distinct
 // transverse anchors, and closed sections wholly inside an original face.
 // Multiple closed loops on one face require disjoint conservative chart
-// boxes. Nested loops and faces carrying both kinds of cut remain unresolved.
+// boxes or independently proved nesting on a common affine XY face pair.
+// Faces carrying both open and closed cuts remain unresolved.
 // Every section segment is shared by corresponding source fragments. Both
 // results are returned only after closed incidence and vertex links pass.
 func (r AlgebraicShellSectionResult) ImprintOriginalShells(ctx context.Context,
@@ -517,18 +518,31 @@ func (w *shellImprintWork) arrangeClosedFacePaths(face, op int, original Algebra
 			box.Min.X, box.Min.Y = min(box.Min.X, q.Min.X), min(box.Min.Y, q.Min.Y)
 			box.Max.X, box.Max.Y = max(box.Max.X, q.Max.X), max(box.Max.Y, q.Max.Y)
 		}
-		// Every bounded Jordan interior is contained in its wire's exact
-		// conservative box. Strictly separated closed boxes therefore
-		// exclude touching loops and nesting without sampled classification.
-		for _, other := range boxes {
-			if box.Min.X <= other.Max.X && other.Min.X <= box.Max.X && box.Min.Y <= other.Max.Y && other.Min.Y <= box.Max.Y {
-				return nil, geom.ErrConvergence
-			}
-		}
 		boxes = append(boxes, box)
 	}
-	out := make([]AlgebraicShellImprintFace, 1, len(paths)+1)
-	for _, p := range paths {
+	parents := make([]int, len(paths))
+	for i := range parents {
+		parents[i] = -1
+	}
+	// A strict gap between conservative boxes excludes nesting. Where
+	// the boxes overlap, classify the exact closed loops instead.
+	needContainment := false
+	for i, box := range boxes {
+		for _, other := range boxes[:i] {
+			needContainment = needContainment ||
+				(box.Min.X <= other.Max.X && other.Min.X <= box.Max.X && box.Min.Y <= other.Max.Y && other.Min.Y <= box.Max.Y)
+		}
+	}
+	if needContainment {
+		var e error
+		parents, e = w.closedPathParents(face, op, s, paths)
+		if e != nil {
+			return nil, e
+		}
+	}
+	out := make([]AlgebraicShellImprintFace, len(paths)+1)
+	out[0] = original
+	for i, p := range paths {
 		winding, e := w.closedPathWinding(face, op, p, s)
 		if e != nil {
 			return nil, e
@@ -537,10 +551,12 @@ func (w *shellImprintWork) arrangeClosedFacePaths(face, op int, original Algebra
 		if winding < 0 {
 			outer, inner = inner, outer
 		}
-		original.Holes = append(original.Holes, inner)
-		out = append(out, AlgebraicShellImprintFace{Original: face, Fragment: len(out), Reversed: original.Reversed, Outer: outer})
+		parent := &out[parents[i]+1]
+		parent.Holes = append(parent.Holes, inner)
+		// Earlier children may already have added holes to this fragment.
+		f := &out[i+1]
+		f.Original, f.Fragment, f.Reversed, f.Outer = face, i+1, original.Reversed, outer
 	}
-	out[0] = original
 	return out, nil
 }
 

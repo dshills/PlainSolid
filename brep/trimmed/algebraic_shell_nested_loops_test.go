@@ -1,0 +1,150 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"math"
+	"testing"
+
+	"plainsolid/brep/edgecheck"
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+	"plainsolid/intersect"
+)
+
+func TestAlgebraicShellImprintNestedLoops(t *testing.T) {
+	if testing.Short() {
+		t.Skip("independent complete quartic shell section")
+	}
+	ctx := context.Background()
+	a, _ := makeOpenSplineBox(t, [3]float64{-.125, -.125, 0}, [3]float64{1.125, 1.125, 1}, 0)
+	b := nestedQuarticRoofSolid(t)
+	x, e := algebraicShellTracePatch(a.faces[4], geom.ParameterRectangle{UMin: 0, UMax: 1, VMin: 0, VMax: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	y, e := algebraicShellTracePatch(b.faces[1], geom.ParameterRectangle{UMin: 0, UMax: 1, VMin: 0, VMax: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	h, e := intersect.DiscoverRadialGraphPairTubes(ctx, x, y, geom.SurfacePatchOptions{}, intersect.SplinePlanePairDiscoveryOptions{MaxTubes: 128})
+	if e != nil {
+		t.Fatal("nested loop proposals", e)
+	}
+	o := AlgebraicShellSectionOptions{Trace: nestedTubeSectionOptions().Trace, Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: h}}}
+	o.Trace.Coverage.OverlappingAffineXYFallback = true
+	section, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
+	if e != nil || !section.Complete || len(section.Wires) != 2 {
+		t.Fatal("complete nested original shell section", section.Complete, len(section.Wires), e)
+	}
+	measure := AlgebraicShellBooleanOptions{}
+	measure.Imprint.Exact.MaxOperations = 512000000
+	imprint, e := section.ImprintOriginalShells(ctx, measure.Imprint)
+	if e != nil {
+		t.Fatal("nested imprint", e)
+	}
+	for i, s := range imprint {
+		if s.Topology.EulerCharacteristic != 2 || len(s.Faces) != 8 || s.Topology.InnerWires != 2 {
+			t.Fatal("imprint must preserve original topological sphere", i, s.Topology)
+		}
+		count := [3]int{}
+		for _, f := range s.Faces {
+			if f.Original == [2]int{4, 1}[i] {
+				count[f.Fragment] = len(f.Holes)
+			}
+		}
+		if count[0] != 1 || count[1]+count[2] != 1 {
+			t.Fatal("expected original exterior, an annulus and an inner disk", count)
+		}
+	}
+	common, e := section.CombineAlgebraic(ctx, parametric.Intersection, measure)
+	if e != nil || len(common.faces) != 2 || common.Topology.InnerWires != 2 || common.Topology.EulerCharacteristic != 0 {
+		t.Fatal("common retains one annular material region", common.Topology, e)
+	}
+	cut, e := section.CombineAlgebraic(ctx, parametric.Difference, measure)
+	if e != nil || cut.Topology.EulerCharacteristic != 2 || len(cut.faces) != 8 || cut.Topology.InnerWires != 2 {
+		t.Fatal("stock difference follows both nested rims", cut.Topology, e)
+	}
+	exported, e := common.NativeTubeAnnulus(ctx, 1e-7, edgecheck.Options{})
+	if e != nil || len(exported.Faces()) != 2 || exported.Topology().EulerCharacteristic != 0 || exported.Topology().InnerWires != 2 {
+		t.Fatal("native annular boundary", exported.Topology(), e)
+	}
+	for i, f := range exported.Faces() {
+		source, e := common.OriginalFace(i)
+		if e != nil || f.Surface != source.Surface || len(f.Holes) != 1 {
+			t.Fatal("native output must retain original face charts", i, e)
+		}
+	}
+	if bad, e := cut.NativeTubeAnnulus(ctx, 1e-7, edgecheck.Options{}); !errors.Is(e, geom.ErrConvergence) || len(bad.Faces()) != 0 {
+		t.Fatal("rejected out-of-scope retained source edges", e)
+	}
+	dr := 25.0/256 - 25.0/1024
+	want := math.Pi * (9.0 / 16) * dr * dr * dr / 6
+	v, e := common.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 7})
+	if e != nil {
+		t.Fatal("nested common volume", e)
+	}
+	lo, _ := v.Volume.Lower.Float64()
+	hi, _ := v.Volume.Upper.Float64()
+	if lo > want || hi < want || hi <= 0 {
+		t.Fatal("common volume excludes analytic annulus", v.Volume, want)
+	}
+	var native bytes.Buffer
+	if e := WriteAlgebraicShellBooleanJSON(&native, common); e != nil {
+		t.Fatal(e)
+	}
+	back, e := ReadAlgebraicShellBooleanJSON(ctx, &native, JSONLimits{}, o, measure)
+	if e != nil || back.Topology != common.Topology || len(back.faces) != 2 {
+		t.Fatal("native reload did not reprove the nested common", back.Topology, e)
+	}
+}
+
+func nestedQuarticRoofSolid(t *testing.T) Solid {
+	t.Helper()
+	x2 := [5]float64{3, 0, -1, 0, 3}
+	x4 := [5]float64{1, -1, 1, -1, 1}
+	const ri, ro = 25.0 / 1024, 25.0 / 256
+	height := func(i, j int) float64 {
+		return (9*(x4[i]+x4[j]) + 2*x2[i]*x2[j] - 12*(ri+ro)*(x2[i]+x2[j]) + 144*ri*ro) / 256
+	}
+	knots := func(n int) []float64 {
+		k := make([]float64, 2*n)
+		for i := n; i < len(k); i++ {
+			k[i] = 1
+		}
+		return k
+	}
+	var supports []*geom.BSplineSurface
+	var reversed []bool
+	add := func(nu, nv int, rev bool, at func(int, int) geom.Vec3) {
+		var p []geom.Vec3
+		for i := range nu {
+			for j := range nv {
+				p = append(p, at(i, j))
+			}
+		}
+		s, e := geom.NewBSplineSurface(nu-1, nv-1, nu, nv, p, knots(nu), knots(nv), nil)
+		if e != nil {
+			t.Fatal(e)
+		}
+		supports, reversed = append(supports, s), append(reversed, rev)
+	}
+	add(2, 2, true, func(i, j int) geom.Vec3 { return geom.Vec3{X: float64(i), Y: float64(j), Z: -1} })
+	add(5, 5, false, func(i, j int) geom.Vec3 { return geom.Vec3{X: float64(i) / 4, Y: float64(j) / 4, Z: -height(i, j)} })
+	for _, edge := range []int{0, 4} {
+		add(5, 2, edge == 0, func(i, j int) geom.Vec3 {
+			return geom.Vec3{X: float64(edge) / 4, Y: float64(i) / 4, Z: [2]float64{-1, -height(edge, i)}[j]}
+		})
+	}
+	for _, edge := range []int{0, 4} {
+		add(5, 2, edge != 0, func(i, j int) geom.Vec3 {
+			return geom.Vec3{X: float64(i) / 4, Y: float64(edge) / 4, Z: [2]float64{-1, -height(i, edge)}[j]}
+		})
+	}
+	s, _, e := SewSplineRectangles(context.Background(), supports, make([]geom.ParameterRectangle, len(supports)), reversed, SewOptions{Tolerance: 1e-9})
+	if e != nil {
+		t.Fatal(e)
+	}
+	return s
+}

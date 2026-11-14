@@ -80,15 +80,11 @@ func (s AlgebraicShellBoolean) NativeTubeLensComponents(ctx context.Context, tol
 
 func (s AlgebraicShellBoolean) nativeTubeLensComponent(ctx context.Context, branch int, ids [2]int, tolerance float64, o edgecheck.Options) (Solid, error) {
 	b := s.source.branches[branch]
-	n := len(b.Segments)
-	if !b.Closed || n < 3 || n > 128 {
-		return Solid{}, geom.ErrConvergence
-	}
 	var f [2]Face
-	var ring tubeRegionSolidRing
+	var uses [2][]AlgebraicShellBooleanUse
 	for i, id := range ids {
 		src := s.faces[id]
-		if src.Operand != i || src.Original != b.Faces[i] || len(src.Outer) != n || len(src.Holes) != 0 {
+		if src.Operand != i || src.Original != b.Faces[i] || len(src.Holes) != 0 {
 			return Solid{}, geom.ErrConvergence
 		}
 		orig, e := s.OriginalFace(id)
@@ -96,13 +92,83 @@ func (s AlgebraicShellBoolean) nativeTubeLensComponent(ctx context.Context, bran
 			return Solid{}, e
 		}
 		f[i] = Face{Surface: orig.Surface, Reversed: src.Reversed}
-		reverse := src.Outer[0].Reversed
+		uses[i] = src.Outer
+	}
+	ring, e := s.nativeWholeTubeRing(ctx, branch, uses)
+	if e != nil {
+		return Solid{}, e
+	}
+	return assembleTubeRegionSolid(ctx, f, []tubeRegionSolidRing{ring}, tolerance, o)
+}
+
+// NativeTubeAnnulus converts a Boolean bounded by exactly two original faces
+// with one common outer and one common inner complete section. It preserves
+// original charts and paired implicit coedges and proves native incidence.
+// The Boolean remains authoritative for the exact root coordinates.
+func (s AlgebraicShellBoolean) NativeTubeAnnulus(ctx context.Context, tolerance float64, o edgecheck.Options) (Solid, error) {
+	if ctx == nil || s.source == nil || tolerance <= 0 || !finite(tolerance) {
+		return Solid{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return Solid{}, e
+	}
+	if len(s.faces) != 2 {
+		return Solid{}, geom.ErrConvergence
+	}
+	var pair [2]int
+	var faces [2]Face
+	var loops [2][2][]AlgebraicShellBooleanUse // loop, operand
+	for i, f := range s.faces {
+		if f.Operand != i || len(f.Holes) != 1 {
+			return Solid{}, geom.ErrConvergence
+		}
+		p, e := s.OriginalFace(i)
+		if e != nil {
+			return Solid{}, e
+		}
+		pair[i] = f.Original
+		faces[i] = Face{Surface: p.Surface, Reversed: f.Reversed}
+		loops[0][i], loops[1][i] = f.Outer, f.Holes[0]
+	}
+	var rings [2]tubeRegionSolidRing
+	branches := [2]int{-1, -1}
+	for i, loop := range loops {
+		if len(loop[0]) < 3 {
+			return Solid{}, geom.ErrConvergence
+		}
+		edge := s.index[loop[0][0].Edge]
+		if edge.OriginalSubdivisionEdge >= 0 || edge.SectionPiece < 0 {
+			return Solid{}, geom.ErrConvergence
+		}
+		branch := s.parts[0].Section[edge.SectionPiece].Branch
+		if s.source.branches[branch].Faces != pair || (i == 1 && branch == branches[0]) {
+			return Solid{}, geom.ErrConvergence
+		}
+		var e error
+		rings[i], e = s.nativeWholeTubeRing(ctx, branch, loop)
+		if e != nil {
+			return Solid{}, e
+		}
+		branches[i] = branch
+	}
+	return assembleTubeRegionSolid(ctx, faces, rings[:], tolerance, o)
+}
+
+func (s AlgebraicShellBoolean) nativeWholeTubeRing(ctx context.Context, branch int, uses [2][]AlgebraicShellBooleanUse) (tubeRegionSolidRing, error) {
+	var ring tubeRegionSolidRing
+	b := s.source.branches[branch]
+	n := len(b.Segments)
+	if !b.Closed || n < 3 || n > 128 || len(uses[0]) != n || len(uses[1]) != n {
+		return ring, geom.ErrConvergence
+	}
+	for i, row := range uses {
+		reverse := row[0].Reversed
 		ring.reversed[i] = reverse
 		first := -1
-		for j, u := range src.Outer {
+		for j, u := range row {
 			edge := s.index[u.Edge]
 			if edge.OriginalSubdivisionEdge >= 0 || edge.SectionPiece < 0 || u.Reversed != reverse {
-				return Solid{}, geom.ErrConvergence
+				return tubeRegionSolidRing{}, geom.ErrConvergence
 			}
 			piece := s.parts[0].Section[edge.SectionPiece]
 			if j == 0 {
@@ -113,17 +179,17 @@ func (s AlgebraicShellBoolean) nativeTubeLensComponent(ctx context.Context, bran
 				want = (first + n - j) % n
 			}
 			if piece.Branch != branch || piece.Reversed || piece.Index != want {
-				return Solid{}, geom.ErrConvergence
+				return tubeRegionSolidRing{}, geom.ErrConvergence
 			}
 		}
 	}
 	for i, piece := range b.Segments {
 		if e := ctx.Err(); e != nil {
-			return Solid{}, e
+			return tubeRegionSolidRing{}, e
 		}
 		_, limit, reverse, e := piece.ExactFreeDomain()
 		if e != nil {
-			return Solid{}, e
+			return tubeRegionSolidRing{}, e
 		}
 		// The entire canonical section edge is retained. Bind exact roots
 		// at its original endpoints before invoking the shared lens builder.
@@ -136,10 +202,10 @@ func (s AlgebraicShellBoolean) nativeTubeLensComponent(ctx context.Context, bran
 		for j, end := range endpoints {
 			*roots[j], _, e = geom.NewExactRationalRoot(ctx, end, geom.ExactCurvePlaneEventOptions{})
 			if e != nil {
-				return Solid{}, fmt.Errorf("trimmed: section segment %d endpoint %d: %w", i, j, e)
+				return tubeRegionSolidRing{}, fmt.Errorf("trimmed: section segment %d endpoint %d: %w", i, j, e)
 			}
 		}
 		ring.cut = append(ring.cut, x)
 	}
-	return assembleTubeRegionSolid(ctx, f, []tubeRegionSolidRing{ring}, tolerance, o)
+	return ring, nil
 }
