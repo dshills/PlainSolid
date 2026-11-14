@@ -1,0 +1,68 @@
+{
+  "schema": "plaincad-reconciled-supplemental-triple-crossed-step-v1",
+  "status": "passed",
+  "integrationCommit": "bcda2835a9006e6d6498e19fee959b73e9813b18",
+  "reviewCommit": "f12fd14ac381450de092c159b57ed5d5cff75979",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "4626aa316baa186747f7e82f300e70c191886a6b39ae34c83fe541e801bff273",
+  "fixture": "e2e/plainsolid-triple-crossed-step-holes.spec.ts",
+  "sourceSha256": "3fba9e5029b34f0b200e95191128b100955c15cdf87ba126a4f35f935e9f8c72",
+  "runSha256": "459961ff542e6be3c992c2a64a94bf07f0cf257cbc51c2563bc4d9b13e021d25",
+  "reportStats": {
+    "startTime": "2026-11-14T14:06:31.865Z",
+    "duration": 8800.452,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      40,
+      40,
+      40
+    ],
+    "crossingMm": [
+      20,
+      20,
+      20
+    ],
+    "radiusMm": 3,
+    "tripleVertices": 8,
+    "stepByteCount": 114830,
+    "stepSha256": "fad2da22d7f4a280627689a970a67d2fae9cd9281e25d1f2ccb92c30025d1deb",
+    "stlTriangles": 600,
+    "stlTwoUseEdges": 900,
+    "stlSha256": "28f2e653c0f2e62cfda47afd55ca992f641ba0eb41311cc573f6eb30d6b1e86d",
+    "occtStepReadback": {
+      "Area": 11386.830577601604,
+      "Volume": 60912.55006381232,
+      "Centroid": [
+        20.00000000000003,
+        20.00000000000002,
+        20.00000000000002
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 60912.55006346024,
+      "Area": 11386.830577953586,
+      "Centroid": [
+        20.000000000000004,
+        20,
+        19.999999999999996
+      ]
+    },
+    "directOracleSourceSha256": "5f67db799269daffc2750cf5311ae46e1b365d533a67307d34204dc39f3df2d6"
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 11386.830577601604,
+    "Volume": 60912.55006381232,
+    "Centroid": [
+      20.00000000000003,
+      20.00000000000002,
+      20.00000000000002
+    ]
+  }
+}

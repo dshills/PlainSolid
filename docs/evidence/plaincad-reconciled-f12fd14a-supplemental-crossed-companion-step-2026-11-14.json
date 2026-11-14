@@ -1,0 +1,62 @@
+{
+  "schema": "plaincad-reconciled-supplemental-crossed-companion-step-v1",
+  "status": "passed",
+  "integrationCommit": "42d13a60cb4760860fd45bd90394eab3045581b5",
+  "reviewCommit": "f12fd14ac381450de092c159b57ed5d5cff75979",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "4626aa316baa186747f7e82f300e70c191886a6b39ae34c83fe541e801bff273",
+  "fixture": "e2e/plainsolid-crossed-companion-step-holes.spec.ts",
+  "sourceSha256": "46693a07d06ef24285277894aeeeed84bb7e20bf2eb9740c8235aaade368a4e0",
+  "runSha256": "bc167170acb815879ebbf0642213bfcef20fab75cf3b477de4b8f5fa89f8e14d",
+  "reportStats": {
+    "startTime": "2026-11-14T14:06:40.984Z",
+    "duration": 8519.175,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      40,
+      40,
+      40
+    ],
+    "crossingMm": [
+      20,
+      20,
+      20
+    ],
+    "crossedRadiusMm": 3,
+    "companionYCenterXZMm": [
+      32,
+      8
+    ],
+    "companionRadiusMm": 2,
+    "stepByteCount": 55240,
+    "stepSha256": "3cabaa79987cdfd50b3f8c3f344482bba9571bd73eb27ee207bda22cd4bb7647",
+    "stlTriangles": 536,
+    "stlTwoUseEdges": 804,
+    "stlSha256": "b1289a1b52c3669dba65bd3cb082c90113383e8e769998f0b97d09729f36d4b7",
+    "occtStepReadback": {
+      "Area": 11328.38922071866,
+      "Volume": 61379.398465661856,
+      "Centroid": [
+        19.90172829895756,
+        19.999999999999996,
+        20.09827170104243
+      ]
+    }
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 11328.38922071866,
+    "Volume": 61379.398465661856,
+    "Centroid": [
+      19.90172829895756,
+      19.999999999999996,
+      20.09827170104243
+    ]
+  }
+}

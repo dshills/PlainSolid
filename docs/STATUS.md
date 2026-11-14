@@ -540,6 +540,13 @@ adds worktree commit `d3f6fbd7` to review revision `6f2d43e1`. The native
 and live STEP tests and all 17 original browser cases passed, verifying
 841 app and 1,994 kernel source blobs. The [authored unequal-floor case](evidence/plaincad-reconciled-6f2d43e1-supplemental-unequal-finite-step-2026-11-14.json)
 passed on the same WASM, and live OCCT confirmed the generated STEP.
+The [triple and companion bore reconciliation](evidence/plaincad-reconciled-f12fd14a-development-triple-crossed-holes-step-2026-11-14.json)
+adds worktree commits `42d13a60` and `bcda2835` to review revision
+`f12fd14a`. Native and live STEP tests and the original 17 browser cases
+passed; the verifier checked 841 app and 2,002 kernel blobs. Both authored
+projects ([triple crossing](evidence/plaincad-reconciled-f12fd14a-supplemental-triple-crossed-step-2026-11-14.json),
+[disjoint companion](evidence/plaincad-reconciled-f12fd14a-supplemental-crossed-companion-step-2026-11-14.json))
+preserved their STEP and STL outputs on that WASM and passed live OCCT readback.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

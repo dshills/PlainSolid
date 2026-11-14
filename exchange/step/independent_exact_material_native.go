@@ -71,7 +71,10 @@ func independentMaterialClaims(m IndependentExactMaterial, cylinderMode ...bool)
 	if m.Cylinder != nil {
 		countFamilies++
 	}
-	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) == 1 && cylinderMode[0])) {
+	if m.Sphere != nil {
+		countFamilies++
+	}
+	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) >= 1 && cylinderMode[0])) || (m.Sphere != nil && !(len(cylinderMode) == 2 && cylinderMode[1])) {
 		return bad()
 	}
 	if m.Planar != nil {
@@ -187,8 +190,11 @@ func independentMaterialClaims(m IndependentExactMaterial, cylinderMode ...bool)
 }
 func independentCollectionEnvelope(ctx context.Context, m IndependentExactMaterialCollection, source []byte, cylinderMode ...bool) (independentMaterialEnvelope, []IndependentExactMaterial, error) {
 	q := independentMaterialEnvelope{Format: "plainsolid-step-independent-exact-materials", Version: 1, Source: string(source), Tolerance: m.tolerance, LengthUnit: m.LengthUnit}
-	if len(cylinderMode) == 1 && cylinderMode[0] {
+	if len(cylinderMode) >= 1 && cylinderMode[0] {
 		q.Format = independentCylinderNativeFormat
+	}
+	if len(cylinderMode) == 2 && cylinderMode[1] {
+		q.Format = independentSphereNativeFormat
 	}
 	claims := []IndependentExactMaterial{}
 	if !finiteNumber(m.tolerance) || m.tolerance <= 0 || len(m.Members) < 1 || len(m.Members) > 16 {
@@ -217,7 +223,7 @@ func independentCollectionEnvelope(ctx context.Context, m IndependentExactMateri
 func WriteIndependentExactMaterialsJSON(ctx context.Context, w io.Writer, m IndependentExactMaterialCollection) error {
 	return writeIndependentMaterialsJSON(ctx, w, m, false)
 }
-func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m IndependentExactMaterialCollection, cylinder bool) error {
+func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m IndependentExactMaterialCollection, cylinder bool, sphereMode ...bool) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
@@ -235,15 +241,19 @@ func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m Independe
 	if cylinder {
 		read = ReadIndependentCylinderMaterials
 	}
+	sphere := len(sphereMode) == 1 && sphereMode[0]
+	if sphere {
+		read = ReadIndependentSphereMaterials
+	}
 	proof, e := read(ctx, bytes.NewReader(source), Limits{}, m.tolerance)
 	if e != nil {
 		return e
 	}
-	actual, claims, e := independentCollectionEnvelope(ctx, m, source, cylinder)
+	actual, claims, e := independentCollectionEnvelope(ctx, m, source, cylinder, sphere)
 	if e != nil {
 		return e
 	}
-	expected, proved, e := independentCollectionEnvelope(ctx, proof, source, cylinder)
+	expected, proved, e := independentCollectionEnvelope(ctx, proof, source, cylinder, sphere)
 	if e != nil {
 		return e
 	}
@@ -273,7 +283,7 @@ func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m Independe
 func ReadIndependentExactMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (IndependentExactMaterialCollection, error) {
 	return readIndependentMaterialsJSON(ctx, r, l, false)
 }
-func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, cylinder bool) (IndependentExactMaterialCollection, error) {
+func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, cylinder bool, sphereMode ...bool) (IndependentExactMaterialCollection, error) {
 	bad := func() (IndependentExactMaterialCollection, error) {
 		return IndependentExactMaterialCollection{}, geom.ErrInvalid
 	}
@@ -305,6 +315,11 @@ func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l Independen
 		format = independentCylinderNativeFormat
 		read = ReadIndependentCylinderMaterials
 	}
+	sphere := len(sphereMode) == 1 && sphereMode[0]
+	if sphere {
+		format = independentSphereNativeFormat
+		read = ReadIndependentSphereMaterials
+	}
 	var q independentMaterialEnvelope
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
@@ -319,7 +334,7 @@ func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l Independen
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}
-	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source), cylinder)
+	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source), cylinder, sphere)
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}
