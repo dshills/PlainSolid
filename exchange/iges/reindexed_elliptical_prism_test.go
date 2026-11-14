@@ -18,11 +18,14 @@ import (
 func reindexedFixtureNames() []string {
 	return []string{"elliptical-prism-topology", "elliptical-annular-prism-topology", "placed-elliptical-prism-topology", "placed-elliptical-annular-prism-topology"}
 }
-func TestReindexedEllipticalPrism(t *testing.T) {
+func TestReindexedEllipticalPrism(t *testing.T) { testReindexedEllipsePrefix(t, "reindexed-") }
+func TestEllipticalEdgeListOrder(t *testing.T)  { testReindexedEllipsePrefix(t, "edge-order-") }
+func TestEllipticalShellFaceOrder(t *testing.T) { testReindexedEllipsePrefix(t, "face-order-") }
+func testReindexedEllipsePrefix(t *testing.T, prefix string) {
 	ctx := context.Background()
 	for _, name := range reindexedFixtureNames() {
 		t.Run(name, func(t *testing.T) {
-			raw, e := os.ReadFile("testdata/reindexed-" + name + ".igs")
+			raw, e := os.ReadFile("testdata/" + prefix + name + ".igs")
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -113,6 +116,37 @@ func TestReindexedEllipticalPrism(t *testing.T) {
 					t.Fatal("aliased wall owner")
 				}
 			}
+			// A face permutation must preserve its own shell orientation.
+			badSense := append([]byte(nil), raw...)
+			for _, line := range bytes.Split(badSense, []byte("\n")) {
+				if len(line) == 80 && line[72] == 'P' && bytes.HasPrefix(line, []byte("514,")) {
+					v := strings.Split(strings.TrimSuffix(strings.TrimSpace(string(line[:64])), ";"), ",")
+					if v[3] == "0" {
+						v[3] = "1"
+					} else {
+						v[3] = "0"
+					}
+					text := strings.Join(v, ",") + ";"
+					copy(line[:64], text+strings.Repeat(" ", 64-len(text)))
+				}
+			}
+			if _, e = ReadReindexedEllipticalPrismMaterial(ctx, bytes.NewReader(badSense), Limits{}, 1e-9); e == nil {
+				t.Fatal("wrong shell face orientation")
+			}
+			badEdge := append([]byte(nil), raw...)
+			for _, line := range bytes.Split(badEdge, []byte("\n")) {
+				if len(line) == 80 && line[72] == 'P' && bytes.HasPrefix(line, []byte("508,")) {
+					v := strings.Split(strings.TrimSpace(string(line[:64])), ",")
+					v[4] = "999"
+					text := strings.Join(v, ",")
+					if len(text) <= 64 {
+						copy(line[:64], text+strings.Repeat(" ", 64-len(text)))
+					}
+				}
+			}
+			if _, e = ReadReindexedEllipticalPrismMaterial(ctx, bytes.NewReader(badEdge), Limits{}, 1e-9); e == nil {
+				t.Fatal("foreign edge ordinal")
+			}
 			var env reindexedEllipseEnvelope
 			if json.Unmarshal(native.Bytes(), &env) != nil {
 				t.Fatal("json")
@@ -156,6 +190,16 @@ func FuzzReindexedEllipticalPrism(f *testing.F) {
 			f.Fatal(e)
 		}
 		f.Add(b)
+		c, e := os.ReadFile("testdata/face-order-" + name + ".igs")
+		if e != nil {
+			f.Fatal(e)
+		}
+		f.Add(c)
+		d, e := os.ReadFile("testdata/edge-order-" + name + ".igs")
+		if e != nil {
+			f.Fatal(e)
+		}
+		f.Add(d)
 	}
 	f.Fuzz(func(t *testing.T, b []byte) {
 		if len(b) > 32768 {

@@ -1,9 +1,19 @@
 # Independent pointer-aware reversal of all directory records; no Go helpers.
 from pathlib import Path
+import sys
+reorder_edges = "--edges" in sys.argv
+reorder_faces = "--faces" in sys.argv or reorder_edges
 for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','placed-elliptical-prism-topology','placed-elliptical-annular-prism-topology'):
  lines=Path('exchange/iges/testdata/'+name+'.igs').read_text().splitlines();ds=[x for x in lines if x[72]=='D'];ps=[x for x in lines if x[72]=='P'];records=[]
  for i in range(0,len(ds),2):
   a,b=ds[i],ds[i+1];start=int(a[8:16]);n=int(b[24:32]);v=''.join(x[:64] for x in ps[start-1:start-1+n]).strip().rstrip(';').split(',');records.append((i+1,a,b,[x.strip() for x in v]))
+ edge_count=next(int(v[1]) for _,_,_,v in records if int(v[0])==504)
+ if reorder_edges:
+  for _,_,_,v in records:
+   if int(v[0])==504:
+    entries=[v[j:j+5] for j in range(2,len(v),5)];v[2:]=sum(entries[::-1],[])
+   if int(v[0])==508:
+    for j in range(2,len(v),5):v[j+2]=str(edge_count+1-int(v[j+2]))
  records.reverse();mapping={old:2*i+1 for i,(old,a,b,v) in enumerate(records)};out=[];params=[];g=[x[:72] for x in lines if x[72]=='G']
  def emit(s,k,n):out.append(f'{s:<72}{k}{n:7d}')
  emit('Independent semantic record permutation of exact ellipse material','S',1)
@@ -20,6 +30,9 @@ for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','pl
    for j in range(int(v[1])):
     slots.append(pos+1);n=int(v[pos+4]);slots += [pos+6+2*k for k in range(n)];pos+=5+2*n
   for j in slots:v[j]=str(mapping[int(v[j])])
+  if kind==514 and reorder_faces:
+   pairs=[v[j:j+2] for j in range(2,len(v),2)]
+   v=v[:2]+sum(pairs[::-1],[])
   text=','.join(v)+';';chunks=[]
   while len(text)>64:
    cut=text.rfind(',',0,64)+1;chunks.append(text[:cut]);text=text[cut:]
@@ -30,4 +43,4 @@ for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','pl
   emit(a,'D',2*i+1);emit(b,'D',2*i+2)
  for i,(s,owner) in enumerate(params):emit(f'{s:<64}{owner:8d}','P',i+1)
  emit(f'S{1:7d}G{len(g):7d}D{2*len(records):7d}P{len(params):7d}','T',1)
- Path('exchange/iges/testdata/reindexed-'+name+'.igs').write_text('\n'.join(out)+'\n')
+ Path('exchange/iges/testdata/'+('edge-order-' if reorder_edges else 'face-order-' if reorder_faces else 'reindexed-')+name+'.igs').write_text('\n'.join(out)+'\n')

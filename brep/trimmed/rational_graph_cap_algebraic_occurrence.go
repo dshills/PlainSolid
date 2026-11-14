@@ -91,6 +91,25 @@ func (o AlgebraicGraphStockOccurrence) IntersectCapBoundaryRunsRational(ctx cont
 	return o.pair.caps[cap].IntersectRationalBoundaryRuns(ctx, a, d, extent, options)
 }
 
+// CoverCapLineRational partitions the finite world line into the placed
+// cap's interior spans, coincident runs and trim contacts.
+func (o AlgebraicGraphStockOccurrence) CoverCapLineRational(ctx context.Context, cap int,
+	origin, direction [3]*big.Rat, extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapCoverage, error) {
+	var zero AlgebraicGraphCapCoverage
+	if cap < 0 || cap > 1 {
+		return zero, geom.ErrInvalid
+	}
+	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	return o.pair.caps[cap].CoverRationalLine(ctx, a, d, extent, options)
+}
+
 func (o AlgebraicGraphStockOccurrence) intersectCapLineRational(ctx context.Context, cap int, origin, direction [3]*big.Rat,
 	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions, includeJunctions bool) (AlgebraicGraphCapLine, error) {
 	var zero AlgebraicGraphCapLine

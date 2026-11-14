@@ -75,7 +75,11 @@ func fdSqrt(x *big.Rat, bits int) (*big.Rat, *big.Rat) {
 // exact retained-material classifier, never from an untrimmed projection.
 // Rational cap/bore and cone/fillet rim projections retain all exact native
 // owners. An exact cap/blend joint provides a fallback witness. Errors are atomic.
-func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumDistanceOptions) (out FilletedFrustumDistance, err error) {
+func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumDistanceOptions) (FilletedFrustumDistance, error) {
+	return q.boundBoundaryDistanceRational(ctx, p, o, nil)
+}
+
+func (q FilletedFrustumMaterial) boundBoundaryDistanceRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumDistanceOptions, observe func([3]*big.Rat, []int, *big.Rat) error) (out FilletedFrustumDistance, err error) {
 	defer func() {
 		if err != nil {
 			out = FilletedFrustumDistance{}
@@ -148,6 +152,11 @@ func (q FilletedFrustumMaterial) BoundBoundaryDistanceRational(ctx context.Conte
 		dist := new(big.Rat)
 		for i := range p {
 			dist.Add(dist, fdSquare(fdSub(p[i], v[i])))
+		}
+		if observe != nil {
+			if e := observe(v, check.Faces, dist); e != nil {
+				return e
+			}
 		}
 		if out.Upper == nil || dist.Cmp(out.Upper) < 0 {
 			out.Upper = dist
