@@ -848,6 +848,12 @@ production cases](evidence/plaincad-reconciled-f87dd4f3-production-2026-11-14.js
 and all [15 cross-browser cases](evidence/plaincad-reconciled-f87dd4f3-cross-browser-2026-11-14.json).
 Both runs verified 841 pinned app files and 2,200 kernel source blobs, with
 unchanged original acceptance configurations.
+The second agent's worktree through `e2e9a253` was integrated into `main` by
+merge `8f76f16b`, preserving both histories. The full development run on
+review `f87dd4f3` separately hit two drawing import-readiness failures.
+[The targeted controls](evidence/plaincad-f87dd4f3-drawing-targeted-controls-2026-11-14.json)
+passed all three unchanged drawing cases on both PlainSolid and the app's
+OCCT backend; the original failure runs remain distinct.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).

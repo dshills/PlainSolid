@@ -1,0 +1,50 @@
+{
+  "schema": "plaincad-drawing-targeted-control-v1",
+  "status": "passed",
+  "worktreeCommit": "e2e9a253c1963c472b7ccf176945fb71df50b023",
+  "browserReviewCommit": "f87dd4f36b0887b5051b0c83112f6c5910fc5314",
+  "mainMergeCommit": "8f76f16ba78b6d41be732697dadad9174e931399",
+  "appCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "fixtureHashes": {
+    "e2e/shop-drawing.spec.ts": "47825e641ff3e3051600203cb6c56e5e721419541f7f956486c6d89e80b77010",
+    "e2e/stepExportHelpers.ts": "8c01e58bbfbe9ed2ea962d4f9ce87ffe78fdadbac4fca6452002bcf89fb03286",
+    "e2e/aiAcceptanceHelpers.ts": "c54381c7596f3b3cb2b1df4fb54f74123f574e52843d6eac94ddc2638aa262b2"
+  },
+  "targetedRuns": {
+    "PlainSolid": {
+      "stats": {
+        "startTime": "2026-11-14T18:30:27.499Z",
+        "duration": 39932.019,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "sha256": "47b23659b1d5d7e6deaa21ad65534437bb8f33a207293ce37c07b4b3764c1050",
+      "originalTestFile": "e2e/shop-drawing.spec.ts"
+    },
+    "OCCT": {
+      "stats": {
+        "startTime": "2026-11-14T18:28:56.797Z",
+        "duration": 37532.098,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "sha256": "4133dae171fe83bb179a95fb7a7aaff27dfdd747c7e4988e634432917a89237a",
+      "originalTestFile": "e2e/shop-drawing.spec.ts"
+    }
+  },
+  "fullRunDrawingFailures": [
+    {
+      "test": "shop-drawing-native-drawin-95d2c-rate-on-edits-and-save-open",
+      "traceSha256": "ea40f2428847e4b9d29fb5ceaa23691964fded9ffcee8575ee8087f7c8516e15"
+    },
+    {
+      "test": "shop-drawing-placed-assemb-8c7a6-and-the-actual-two-body-BOM",
+      "traceSha256": "96a69d0a4162ee90846e1211003c64f8f88cf9070bc25ae40e9d788a364a33f8"
+    }
+  ],
+  "scope": "Both backends passed targeted original drawing tests. The full development run exposed two drawing failures consistent with reading pre-import state. Targeted results do not alter that run."
+}
