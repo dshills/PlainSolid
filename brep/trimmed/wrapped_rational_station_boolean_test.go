@@ -149,6 +149,59 @@ func TestCoaxialNoncircularStationLoftThroughBore(t *testing.T) {
 			t.Fatal("exact annular material location and original owners", tc, loc, err)
 		}
 	}
+	lineOptions := WrappedRationalStationLineOptions{Geometry: geom.ToroidLineOptions{ParameterTolerance: 1e-9}}
+	horizontal, err := restored.ClipWrappedRationalStationBoreLineRational(ctx,
+		[3]*big.Rat{r(1, 4), r(-1, 2), r(1, 1)}, [3]*big.Rat{r(1, 1), r(0, 1), r(0, 1)}, r(-3, 1), r(3, 1), lineOptions)
+	if err != nil || len(horizontal.Hits) != 4 || len(horizontal.Interior) != 2 {
+		t.Fatal("horizontal bore line must cross two material spans", horizontal, err)
+	}
+	for i, hit := range horizontal.Hits {
+		want := []int64{-2, -1, 1, 2}[i]
+		faces := []int{inner}
+		if i == 0 || i == 3 {
+			faces = proof.OuterWalls
+		}
+		if hit.Parameter.Min.Cmp(r(want, 1)) != 0 || hit.Parameter.Max.Cmp(r(want, 1)) != 0 || !slices.Equal(hit.Faces, faces) {
+			t.Fatal("exact contact parameter and original bore owners", hit, want, faces)
+		}
+	}
+	for _, x := range []int64{1, 5, 7} {
+		vertical, err := restored.ClipWrappedRationalStationBoreLineRational(ctx,
+			[3]*big.Rat{r(x, 4), r(-1, 2), r(-1, 1)}, [3]*big.Rat{r(0, 1), r(0, 1), r(1, 1)}, r(0, 1), r(5, 1), lineOptions)
+		if x == 1 && (err != nil || len(vertical.Hits)+len(vertical.Interior) != 0) {
+			t.Fatal("axial line through bore opening must miss material and caps", vertical, err)
+		}
+		if x == 5 && (!errors.Is(err, geom.ErrConvergence) || len(vertical.Hits)+len(vertical.Interior) != 0) {
+			t.Fatal("inner wall generator requires a coincidence query", vertical, err)
+		}
+		if x == 7 && (err != nil || len(vertical.Hits) != 2 || len(vertical.Interior) != 1 ||
+			!slices.Equal(vertical.Hits[0].Faces, []int{h.ResultCaps[0]}) || !slices.Equal(vertical.Hits[1].Faces, []int{h.ResultCaps[1]}) ||
+			vertical.Hits[0].Parameter.Min.Cmp(r(1, 1)) != 0 || vertical.Hits[1].Parameter.Min.Cmp(r(4, 1)) != 0) {
+			t.Fatal("vertical annular material line must enter and exit through exposed caps", vertical, err)
+		}
+	}
+	capOrigin := [3]*big.Rat{r(1, 4), r(-1, 2), r(0, 1)}
+	capDirection := [3]*big.Rat{r(1, 1), r(0, 1), r(0, 1)}
+	annulus, err := restored.ClipWrappedRationalStationBoreCapLineRational(ctx, capOrigin, capDirection, r(-4, 1), r(4, 1), lineOptions)
+	if err != nil || len(annulus.Boundary) != 2 || len(annulus.Hits) != 4 {
+		t.Fatal("two boundary intervals separated by the cap aperture", annulus, err)
+	}
+	for i, span := range annulus.Boundary {
+		cap := h.ResultCaps[0]
+		start, end := [2]int64{-3, 1}[i], [2]int64{-1, 3}[i]
+		walls := [2]int{proof.OuterWalls[0], inner}
+		first, last := []int{cap, walls[i]}, []int{cap, walls[1-i]}
+		slices.Sort(first)
+		slices.Sort(last)
+		if span.Start.Min.Cmp(r(start, 1)) != 0 || span.End.Max.Cmp(r(end, 1)) != 0 ||
+			!slices.Equal(span.Faces, []int{cap}) || !slices.Equal(span.StartFaces, first) || !slices.Equal(span.EndFaces, last) {
+			t.Fatal("annular cap spans must retain both distinct exact rim owners", span)
+		}
+	}
+	aperture, err := restored.ClipWrappedRationalStationBoreCapLineRational(ctx, capOrigin, capDirection, r(-1, 2), r(1, 2), lineOptions)
+	if err != nil || len(aperture.Boundary)+len(aperture.Hits) != 0 {
+		t.Fatal("a clip inside the opening has no cap", aperture, err)
+	}
 	mass, err := restored.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
 	want := 3.1748736333785317 * 16
 	if err != nil || math.Abs(mass.Volume-want) > 1e-5 {
