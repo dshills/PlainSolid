@@ -22,11 +22,26 @@ type WrappedStationLoftSplitHistory struct {
 // results get exact caps and an independently valid closed shell.
 func (s Solid) SplitWrappedCircularStationLoftAtZ(ctx context.Context, z float64,
 	o geom.SurfacePatchOptions) (Solid, Solid, WrappedStationLoftSplitHistory, error) {
+	return s.splitWrappedStationLoftAtZ(ctx, z, o, true)
+}
+
+// SplitWrappedRationalStationLoftAtZ splits at an exactly represented model
+// height. Unsplit walls retain their original charts, and an interior band is
+// restricted on its exact weighted profile. Native results require the new
+// cut rim vertices to be exactly representable, and both shells are validated
+// before either is returned.
+func (s Solid) SplitWrappedRationalStationLoftAtZ(ctx context.Context, z float64,
+	o geom.SurfacePatchOptions) (Solid, Solid, WrappedStationLoftSplitHistory, error) {
+	return s.splitWrappedStationLoftAtZ(ctx, z, o, false)
+}
+
+func (s Solid) splitWrappedStationLoftAtZ(ctx context.Context, z float64,
+	o geom.SurfacePatchOptions, circular bool) (Solid, Solid, WrappedStationLoftSplitHistory, error) {
 	bad := WrappedStationLoftSplitHistory{LowerCut: -1, UpperCut: -1}
 	if ctx == nil || !finite(z) {
 		return Solid{}, Solid{}, bad, geom.ErrInvalid
 	}
-	p, bands, e := s.validateWrappedCircularStationLoft(ctx, o)
+	p, bands, e := s.validateWrappedProfileStationLoft(ctx, o, circular)
 	if e != nil {
 		return Solid{}, Solid{}, bad, e
 	}
@@ -34,11 +49,15 @@ func (s Solid) SplitWrappedCircularStationLoftAtZ(ctx context.Context, z float64
 	if e != nil {
 		return Solid{}, Solid{}, bad, e
 	}
-	lower, a, e := NewWrappedCircularStationLoft(ctx, lo, s.tolerance, o)
+	build := NewWrappedRationalStationLoft
+	if circular {
+		build = NewWrappedCircularStationLoft
+	}
+	lower, a, e := build(ctx, lo, s.tolerance, o)
 	if e != nil {
 		return Solid{}, Solid{}, bad, e
 	}
-	upper, b, e := NewWrappedCircularStationLoft(ctx, hi, s.tolerance, o)
+	upper, b, e := build(ctx, hi, s.tolerance, o)
 	if e != nil {
 		return Solid{}, Solid{}, bad, e
 	}
