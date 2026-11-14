@@ -1,5 +1,34 @@
 # Verification record
 
+## Native qualification and piecewise reconstruction (2026-11-14)
+
+The 65-minute pure-Go short run at `3a488eb5` completed every package except
+`brep/trimmed`. The package timeout interrupted the selected tube collection
+test 51 seconds into that case. The immutable branch proof is now reused
+for the original XY projection, with the new point and event proof still
+charged to the caller's exact arithmetic allowance. Focused original and
+permuted projection race checks passed in 1.489 seconds.
+
+Ordered Common of a genuinely creased original roof retains two distinct
+roof fragments and their one-sided slopes. The 10-face solid has one shell
+and Euler characteristic two. Analytic area and volume agree with live
+pinned OCCT, and native reload rechecks the boundary. A second fixture
+switches original roof owner exactly at the knot. Interior switching fails
+atomically. The focused live race suite passed in 20.727 seconds.
+
+Exact native source-use restriction preserves quadratic and cubic controls,
+outer and hole ownership, and orientation under nonbinary restriction.
+The integrated focused race passed in 1.343 seconds. Original cusp recipes
+reload exact terminals `5/72` and `59/72` and re-prove both original supports.
+The integrated cusp persistence and sampling races passed in 1.357 seconds.
+
+The noncircular rational station loft preserves the original three-station
+crease and exact shared rims after native reload. An independent weighted
+profile integral gives material volume 28.5738627004. The 288-triangle
+display has volume 27.8423645320 at deflection 0.2. Changing only interior
+rim weights rejects the loft even when station corners agree. The focused
+integrated race passed in 8.156 seconds.
+
 ## PlainCAD acceptance on the main merge 8f76f16b — 2026-11-14
 
 PlainSolid merge `8f76f16b` combines the committed main snapshot

@@ -6,13 +6,23 @@ and general-purpose production use remain unqualified.
 
 The two PlainCAD integration branches are in `main` through the implementation
 merge `8f76f16b` and the final verification merge `012096ee`. The next release
-checks are a clean full PlainCAD development run and completion of native Go
-qualification, including the expensive trimmed-solid cases. The previous
-30-minute trimmed aggregate timed out; its in-flight original mixed mesh case
-passed on an isolated retest. The 65-minute pure-Go short suite began from
-the immutable `3a488eb5` snapshot and has not yet qualified newer milestones.
+checks are a clean full PlainCAD run and completion of native Go
+qualification, including the expensive trimmed-solid cases. The 65-minute
+pure-Go short run at `3a488eb5` passed every package outside `brep/trimmed`
+and reached `TestCertifiedSelectedTubeRegionCollection` before its package
+timeout. A separate full normal and race qualification is running from
+`18204a56` in three deterministic trimmed-solid groups and the remaining
+packages. The PlainCAD release runs use the same kernel snapshot and the
+original app provider configuration at `efae4d2`.
 General curved Boolean splitting, advanced surface modeling and broader CAD
 exchange remain separate implementation work against the specification.
+
+Ordered roof Common now retains genuine original spline creases. It can
+change the selected roof across an existing exact knot, with no interior
+wall or rounded edge weld. A switching roof inside a knot interval still
+needs a new imprint. Native algebraic reconstruction can also retain
+original quadratic and cubic source p-curves on both outer and hole loops
+when the native endpoint and model range requirements are met.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume
