@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
 	"plainsolid/brep/trimvalidate"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -23,6 +24,10 @@ type SideOpenDualDiskRecipe struct {
 }
 
 func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe) (trimmed.Solid, error) {
+	return defineSideOpenDualDisk(ctx, stock, p, nil)
+}
+
+func defineSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe, out *step.SideOpenDualDiskDescriptor) (trimmed.Solid, error) {
 	if p == nil || len(stock.Vertices()) != 8 || len(stock.Edges()) != 12 || len(stock.Faces()) != 6 || p.Through && p.Depth != 0 {
 		return trimmed.Solid{}, fmt.Errorf("exact dual disk cut needs rectangular stock and an authored cap recipe")
 	}
@@ -113,6 +118,24 @@ func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpen
 	if tolerance == 0 {
 		tolerance = 1e-9
 	}
-	cut, e := trimmed.CutSideOpenDualDisks(ctx, f, geom.Vec2{X: l.X, Y: l.Y}, geom.Vec2{X: h.X, Y: h.Y}, p.Discs, h.Z, depth, tolerance, trimvalidate.Options{})
-	return cut.Solid, e
+	d := step.SideOpenDualDiskDescriptor{Frame: f, Min: geom.Vec2{X: l.X, Y: l.Y}, Max: geom.Vec2{X: h.X, Y: h.Y},
+		Discs: p.Discs, Height: h.Z, Depth: depth, Tolerance: tolerance}
+	var solid trimmed.Solid
+	if d.Discs[0].Radius == d.Discs[1].Radius {
+		cut, e := trimmed.CutSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+		if e != nil {
+			return trimmed.Solid{}, e
+		}
+		solid = cut.Solid
+	} else {
+		cut, e := trimmed.CutUnequalSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+		if e != nil {
+			return trimmed.Solid{}, e
+		}
+		solid = cut.Solid
+	}
+	if out != nil {
+		*out = d
+	}
+	return solid, nil
 }
