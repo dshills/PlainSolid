@@ -16,7 +16,8 @@ type UnequalSideOpenDualDiskDescriptor SideOpenDualDiskDescriptor
 // WriteUnequalSideOpenDualDiskProduct certifies the unequal native construction
 // and emits its retained model-only STEP topology with original cylinder radii
 // and ownership. Equal radii belong to WriteSideOpenDualDiskProduct. The equal
-// reader is not widened; this writer alone does not provide unequal import.
+// reader is not widened; use the separate ReadUnequalSideOpenDualDiskProduct
+// for exact unequal-domain re-import.
 func WriteUnequalSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d UnequalSideOpenDualDiskDescriptor) error {
 	if d.Discs[0].Radius == d.Discs[1].Radius {
 		return geom.ErrDomain

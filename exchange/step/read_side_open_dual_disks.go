@@ -47,26 +47,36 @@ func ReadSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 // ReadSideOpenDualDiskProductWithOptions adds only the explicitly selected,
 // independently verified equivalent encodings to the canonical reader.
 func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions) (SideOpenDualDiskProduct, error) {
-	fail := func() (SideOpenDualDiskProduct, error) {
-		return SideOpenDualDiskProduct{}, fmt.Errorf("step: unsupported exact side-open dual-disk product")
+	result, err := readSideOpenDualDiskProduct(ctx, r, l, tolerance, options, false)
+	return result.SideOpenDualDiskProduct, err
+}
+
+type sideDiskReadResult struct {
+	SideOpenDualDiskProduct
+	unequalNative trimmed.UnequalSideOpenDualDiskCut
+}
+
+func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions, unequal bool) (sideDiskReadResult, error) {
+	fail := func() (sideDiskReadResult, error) {
+		return sideDiskReadResult{}, fmt.Errorf("step: unsupported exact side-open dual-disk product")
 	}
 	if ctx == nil || r == nil || math.IsNaN(tolerance) || math.IsInf(tolerance, 0) || tolerance <= 0 {
 		return fail()
 	}
 	if err := ctx.Err(); err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
 	// Bound resource use even when the caller supplies permissive parser limits.
 	raw, err := io.ReadAll(io.LimitReader(r, (1<<20)+1))
 	if err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
 	if len(raw) > 1<<20 {
 		return fail()
 	}
 	f, _, unit, bodies, err := parseCanonicalCircularExtrusions(bytes.NewReader(raw), l)
 	if err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
 	if len(bodies) != 1 || len(f.Entities) > 2048 {
 		return fail()
@@ -131,7 +141,7 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 			return fail()
 		}
 	}
-	if len(frames) != 2 || frames[0].XAxis() != frames[1].XAxis() || frames[0].ZAxis() != frames[1].ZAxis() || radii[0] != radii[1] {
+	if len(frames) != 2 || frames[0].XAxis() != frames[1].XAxis() || frames[0].ZAxis() != frames[1].ZAxis() || (radii[0] != radii[1]) != unequal {
 		return fail()
 	}
 	// Use one cylinder's exact signed frame for projection. Only exact rational
@@ -227,8 +237,13 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 		d.Discs[0], d.Discs[1] = d.Discs[1], d.Discs[0]
 	}
 	var expected bytes.Buffer
-	if err = WriteSideOpenDualDiskProduct(ctx, &expected, d); err != nil {
-		return SideOpenDualDiskProduct{}, err
+	if unequal {
+		err = WriteUnequalSideOpenDualDiskProduct(ctx, &expected, UnequalSideOpenDualDiskDescriptor(d))
+	} else {
+		err = WriteSideOpenDualDiskProduct(ctx, &expected, d)
+	}
+	if err != nil {
+		return sideDiskReadResult{}, err
 	}
 	ef, err := Parse(&expected, Limits{})
 	if err != nil {
@@ -238,34 +253,40 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 	if options.AllowReversedModelLines {
 		reversedLines, err = sideDiskNormalizeReversedLines(f)
 		if err != nil {
-			return SideOpenDualDiskProduct{}, err
+			return sideDiskReadResult{}, err
 		}
 	}
 	var rephasedCircles, oppositeCircles []int64
 	if options.AllowRephasedModelCircles || options.AllowOppositeModelCircleNormals {
 		rephasedCircles, oppositeCircles, err = sideDiskNormalizeEquivalentCircles(f, d.Frame, options)
 		if err != nil {
-			return SideOpenDualDiskProduct{}, err
+			return sideDiskReadResult{}, err
 		}
 	}
 	var oppositePlanes []int64
 	if options.AllowOppositePlaneNormals {
 		oppositePlanes, err = sideDiskNormalizeOppositePlanes(f, ef, faces)
 		if err != nil {
-			return SideOpenDualDiskProduct{}, err
+			return sideDiskReadResult{}, err
 		}
 	}
 	if err = sideDiskMatchWholeGraph(f, ef); err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
-	native, err := trimmed.CutSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+	var native trimmed.SideOpenDualDiskCut
+	var unequalNative trimmed.UnequalSideOpenDualDiskCut
+	if unequal {
+		unequalNative, err = trimmed.CutUnequalSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+	} else {
+		native, err = trimmed.CutSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+	}
 	if err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
 	if err = ctx.Err(); err != nil {
-		return SideOpenDualDiskProduct{}, err
+		return sideDiskReadResult{}, err
 	}
-	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}, nil
+	return sideDiskReadResult{unequalNative: unequalNative, SideOpenDualDiskProduct: SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)
