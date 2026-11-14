@@ -657,6 +657,14 @@ one close-up pick/display regression), one independent Go/WASM backend
 probe, both typechecks, and 841 source hash comparisons. The seven
 supplemental cases took 199 seconds with zero retries, skips or failures.
 The focused native bridge and STEP suite also passed with CGO disabled.
+The [grouped-opening reconciliation](evidence/plaincad-reconciled-d52a3af3-development-holes-step-2026-11-14.json)
+passed ten unchanged Hole and STEP cases in 81.3 seconds on clean `d52a3af3`
+with no retries, skips, or failures. The report verifies 841 original
+PlainCAD sources and 1,745 kernel and harness source files against their
+Git blobs, including the unchanged browser configuration. A separate
+focused native regression confirms the exact two-cut body can continue
+into a three-cut grouped body, preserve measures, and reload from STEP.
+
 The [original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
 on `bf37aa5` recorded 1,653 passes and 36 failures out of 1,689, with no
 pending tests. All 841 pinned files and both runner setup hashes were

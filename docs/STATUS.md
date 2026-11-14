@@ -65,6 +65,12 @@ also incorporates the independently developed stock-side dispatch at
 `cc1c41f`. Seven supplemental cases passed through Go/WASM, including
 rebuild, reopening, STL and STEP for overlapping side holes. These are
 separate from the original application acceptance counts.
+The next [reconciled Hole and STEP run](evidence/plaincad-reconciled-d52a3af3-development-holes-step-2026-11-14.json)
+passed all ten original scenarios on `d52a3af3`, incorporating grouped side
+openings from worktree commit `852f3e08`. Exact two-hole stock can feed the
+grouped path for a third cut. The combined bridge, STEP, and native focused
+tests passed, as did the no-OCCT browser preflight. Both the pinned application
+sources and the full Go/WASM source inventory were independently verified.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
