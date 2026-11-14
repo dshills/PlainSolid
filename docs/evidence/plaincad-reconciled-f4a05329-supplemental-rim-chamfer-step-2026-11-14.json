@@ -1,0 +1,143 @@
+{
+  "schema": "plaincad-reconciled-supplemental-rim-chamfer-step-v1",
+  "status": "passed",
+  "integrationCommit": "5dba4625c0b7bea9ae0ed97407c007a50dbbb9a0",
+  "reviewCommit": "f4a053296a36f82115df482c4efefb6cf811023a",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "74b500b40916d947f8d1f0f89857560a3900bc39c9d0848aa2250a7e52dee168",
+  "fixture": "e2e/plainsolid-rim-chamfer-step-holes.spec.ts",
+  "sourceSha256": "84e0452f636b980e15da361431d8f1f9d32637accb4ea9fcec0e28ee917cbb77",
+  "runSha256": "a79070301d41f5f09d2f3e6b674e85c1f4d00aef9184b747ace00f3f57f0ad5f",
+  "reportStats": {
+    "startTime": "2026-11-14T16:13:03.854Z",
+    "duration": 92116.52399999999,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "cases": [
+    {
+      "plane": "XY",
+      "case": {
+        "profile": "radius 10 and height 10 with an equal 1 mm circular rim setback",
+        "exactNativeRoundTrip": true,
+        "byteIdenticalReexport": true,
+        "stepByteCount": 11072,
+        "stepSha256": "a31a61385256a2414a48e3004a592091c50fdc7b79d35e60e475853ef9956543",
+        "stlTriangles": 3968,
+        "stlTwoUseEdges": 5952,
+        "stlSha256": "72e1154d3efdef1667fe82cfeaa11766f7e4f7080258c6304d0b94b564d98b41",
+        "occtStepReadback": {
+          "Area": 1218.5297237563036,
+          "Volume": 3111.223924100802,
+          "Centroid": [
+            8.149633398143847e-10,
+            1.0048740025191281e-16,
+            4.954476607132431
+          ]
+        },
+        "plane": "XY",
+        "originalAxis": [
+          0,
+          0,
+          1
+        ],
+        "analyticVolume": 3111.2239246050917,
+        "analyticArea": 1218.5297237709242
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 1218.5297237563036,
+        "Volume": 3111.223924100802,
+        "Centroid": [
+          8.149633398143847e-10,
+          1.0048740025191281e-16,
+          4.954476607132431
+        ]
+      }
+    },
+    {
+      "plane": "XZ",
+      "case": {
+        "profile": "radius 10 and height 10 with an equal 1 mm circular rim setback",
+        "exactNativeRoundTrip": true,
+        "byteIdenticalReexport": true,
+        "stepByteCount": 11123,
+        "stepSha256": "4c1c0a73f17846dd5b54e6c2f1a876b29297b2aec14dab0ce895ed333fd42958",
+        "stlTriangles": 3968,
+        "stlTwoUseEdges": 5952,
+        "stlSha256": "fe6c3c1e69ecc0ed1cbd84fce63d676f93d46e218f5f69c612fb3cdaa2f1cf8a",
+        "occtStepReadback": {
+          "Area": 1218.5297237563038,
+          "Volume": 3111.223924100802,
+          "Centroid": [
+            1.0505500935427249e-16,
+            -4.954476607132431,
+            8.149630474874022e-10
+          ]
+        },
+        "plane": "XZ",
+        "originalAxis": [
+          0,
+          -1,
+          0
+        ],
+        "analyticVolume": 3111.2239246050917,
+        "analyticArea": 1218.5297237709242
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 1218.5297237563038,
+        "Volume": 3111.223924100802,
+        "Centroid": [
+          1.0505500935427249e-16,
+          -4.954476607132431,
+          8.149630474874022e-10
+        ]
+      }
+    },
+    {
+      "plane": "YZ",
+      "case": {
+        "profile": "radius 10 and height 10 with an equal 1 mm circular rim setback",
+        "exactNativeRoundTrip": true,
+        "byteIdenticalReexport": true,
+        "stepByteCount": 11072,
+        "stepSha256": "7cc96396b8bd9b5fb20ac297e0b8b9301e4df53a2328c015b95e01241b92bdab",
+        "stlTriangles": 3968,
+        "stlTwoUseEdges": 5952,
+        "stlSha256": "7b4d5c433edecf5c917abbbd7738c4cc62e014f616e802d99ed987b2335e552f",
+        "occtStepReadback": {
+          "Area": 1218.5297237563036,
+          "Volume": 3111.223924100802,
+          "Centroid": [
+            4.954476607132431,
+            8.149633398143847e-10,
+            -6.85141365353951e-18
+          ]
+        },
+        "plane": "YZ",
+        "originalAxis": [
+          1,
+          0,
+          0
+        ],
+        "analyticVolume": 3111.2239246050917,
+        "analyticArea": 1218.5297237709242
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 1218.5297237563036,
+        "Volume": 3111.223924100802,
+        "Centroid": [
+          4.954476607132431,
+          8.149633398143847e-10,
+          -6.85141365353951e-18
+        ]
+      }
+    }
+  ]
+}
