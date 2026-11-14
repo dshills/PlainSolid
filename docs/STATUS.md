@@ -256,6 +256,16 @@ The [reconciled modeling run](evidence/plaincad-reconciled-ff15d87-development-m
 adds three original passing cases for edge treatment edits, revolve with cut
 and join, and the long feature chain through recovery, save/open and STL.
 It verified the same 841 original source files and no-OCCT browser preflight.
+The [next reconciled run](evidence/plaincad-reconciled-89f244c-development-holes-step-2026-11-14.json)
+passed ten original Hole and STEP export tests after merging the separate
+worktree's same-side and opposite-cap opening commits. In the review branch,
+the existing exact dual-disc recipe runs first; if it cannot represent a
+crossing, the independent analytic opening-pair recipe may certify it.
+The [different-side reconciliation](evidence/plaincad-reconciled-586dcd3-development-side-holes-2026-11-14.json)
+also incorporates the independently developed stock-side dispatch at
+`cc1c41f`. Seven supplemental cases passed through Go/WASM, including
+rebuild, reopening, STL and STEP for overlapping side holes. These are
+separate from the original application acceptance counts.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
@@ -1110,7 +1120,14 @@ surfaces must keep their geometry through the operation. Continue with:
    faces from the same original curved stock chart. A quadratic floor fixture
    retains two such faces in one solid without subdividing the source chart.
    A lens-shaped cap with two equal endpoint pairs can now be subdivided on
-   the original retained piece before both sides sew. Irrational terminals,
+   the original retained piece before both sides sew. A cap section can now
+   keep irrational contacts with exact original parameters, projected roots,
+   and ordered material intervals. Exact clipping now joins their retained
+   original curve intervals and line seams into closed world-space cap
+   boundaries, with separate occurrences and original parameter ownership.
+   A stock-backed native recipe reloads and re-proves the cut and its
+   original owners, and exact point queries preserve the gap across a void.
+   Native sewing of those irrational roots,
    stock faces bounded solely by two unsubdivided edges, and general mixed-axis
    trim arrangements remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,

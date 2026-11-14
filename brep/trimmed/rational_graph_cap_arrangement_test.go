@@ -23,6 +23,22 @@ func TestRationalGraphPolygonalCapCutThroughHole(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
+		algebraic, e := sec.Regions.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(algebraic.Contacts) != 4 || len(algebraic.Material) != 2 {
+			t.Fatal("algebraic order must exclude the same through-void interval", algebraic, e)
+		}
+		clipped, e := sec.Regions.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(clipped.Wires) != 1 || len(clipped.Section.Material) != 2 {
+			t.Fatal("rejoin both original rings into one notched wire", clipped, e)
+		}
+		counts := map[int]int{}
+		for _, use := range clipped.Wires[0] {
+			counts[use.InputWire]++
+		}
+		if counts[-1] != 2 || counts[0] < 3 || counts[1] < 3 {
+			t.Fatal("notch must include both original loops connected by two seams", counts)
+		}
+		checkAlgebraicGraphCapClosure(t, clipped)
 		if len(r.Cuts) != 4 || len(r.Seams) != 2 || len(r.Regions.Material) != 1 || len(r.Regions.Material[0].Holes) != 0 {
 			t.Fatal("inner loop must become a notch with two disjoint cap seams", r)
 		}
@@ -165,6 +181,73 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 			t.Fatal("tangent and irrational contacts must reject atomically", y, e)
 		}
 	}
+	for _, keep := range []bool{false, true} {
+		a, e := base.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		if e != nil || len(a.Material) != 1 || len(a.Contacts) != 2 || a.Material[0] != (RationalGraphCapSeam{0, 1}) {
+			t.Fatal("irrational interval must remain exact and complete", a, e)
+		}
+		for _, c := range a.Contacts {
+			if c.Source.Branch != 2 {
+				t.Fatal("lost original parameter owner", c.Source)
+			}
+			q, e := c.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || q.Kind != geom.ExactRootKindIrrational {
+				t.Fatal("parameter root must retain irrational identity", q, e)
+			}
+			q, e = c.CoordinateRoots[1].Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || q.Kind != geom.ExactRootKindRational || q.Rational.Cmp(big.NewRat(3, 2)) != 0 {
+				t.Fatal("the other coordinate lies exactly on the cut", q, e)
+			}
+		}
+		lo, hi := a.Contacts[0].CoordinateRoots[0], a.Contacts[1].CoordinateRoots[0]
+		order, e := lo.Compare(ctx, hi, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || !order.Proven || order.Order != map[bool]int{true: -1, false: 1}[keep] {
+			t.Fatal("clip orientation must reverse the proved algebraic order", keep, order, e)
+		}
+		if a.ExactOperations <= 0 || a.Subdivisions <= 0 {
+			t.Fatal("algebraic cuts must record charged work", a)
+		}
+		clip, e := base.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, RationalGraphShellRegionOptions{})
+		wantUses := 6 // the original four sides, one split original, and the seam
+		if keep {
+			wantUses = 2 // just the middle interval of the original arc and the new seam
+		}
+		if e != nil || len(clip.Wires) != 1 || len(clip.Wires[0]) != wantUses {
+			t.Fatal("incorrect kept runs", keep, clip, e)
+		}
+		checkAlgebraicGraphCapClosure(t, clip)
+		var sourceUses, seams int
+		for _, u := range clip.Wires[0] {
+			if u.Seam >= 0 {
+				seams++
+			}
+			if u.InputPiece == 2 {
+				sourceUses++
+				for j, id := range u.EndpointContacts {
+					if id >= 0 {
+						p, e := u.SourceParameters[j].Compare(ctx, a.Contacts[id].Parameter, geom.ExactCurvePlaneEventOptions{})
+						if e != nil || !p.Proven || p.Order != 0 {
+							t.Fatal("cut changed the exact original parameter", p, e)
+						}
+					}
+				}
+			}
+		}
+		if seams != 1 || sourceUses != map[bool]int{true: 1, false: 2}[keep] {
+			t.Fatal("must retain the original curved piece on all local intervals", sourceUses, seams)
+		}
+		clippingLimit := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: clip.ExactOperations}}
+		if partial, e := base.ClipAlgebraicHalfspace(ctx, cut(1.5), keep, clippingLimit); !errors.Is(e, geom.ErrConvergence) || len(partial.Wires)+len(partial.Section.Contacts) != 0 {
+			t.Fatal("a completed section alone must not publish incomplete clipping", partial, e)
+		}
+		limit := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: a.ExactOperations - 1}}
+		if bad, e := base.SectionAlgebraicHalfspace(ctx, cut(1.5), keep, limit); !errors.Is(e, geom.ErrConvergence) || len(bad.Contacts) != 0 {
+			t.Fatal("exhausted algebraic cut must reject atomically", bad, e)
+		}
+	}
+	if out, e := base.SectionAlgebraicHalfspace(ctx, cut(2), true, RationalGraphShellRegionOptions{}); !errors.Is(e, geom.ErrConvergence) || len(out.Contacts)+len(out.Material) != 0 {
+		t.Fatal("tangent algebraic cut must not publish contacts", e)
+	}
 	// Clip the already restricted cap again. Its parabolic owner has a
 	// local root at 1/4; the original graph root must be reported as 3/8.
 	second := [3]geom.Vec3{{X: 2.5}, {X: 2.5, Y: 1}, {X: 2.5, Z: 1}}
@@ -193,4 +276,39 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 		}
 	}
 	t.Fatal("missing original curved owner after repeated clipping", s.Cuts)
+}
+
+// Compare true endpoint images, including seam and original continuations
+// with different parameters. An overlapping enclosure is not sufficient.
+func checkAlgebraicGraphCapClosure(t *testing.T, clip AlgebraicGraphCapClip) {
+	t.Helper()
+	ctx := context.Background()
+	o := geom.ExactCurvePlaneEventOptions{}
+	for _, wire := range clip.Wires {
+		event := func(u AlgebraicGraphCapUse, side int) *geom.ExactComposedCurveEvent {
+			t.Helper()
+			if u.Reversed {
+				side = 1 - side
+			}
+			p, e := u.Cell.EndpointRoot(side)
+			if e != nil {
+				t.Fatal(e)
+			}
+			x, e := u.Cell.BindRoot(ctx, p, o)
+			if e != nil {
+				t.Fatal(e)
+			}
+			return x
+		}
+		for i, u := range wire {
+			v := wire[(i+1)%len(wire)]
+			if u.EndpointContacts[1] != v.EndpointContacts[0] {
+				t.Fatal("boundary contact incidence", u, v)
+			}
+			equal, _, e := event(u, 1).CompareModelPoint(ctx, event(v, 0), o)
+			if e != nil || !equal {
+				t.Fatal("oriented wire endpoints must be the identical model point", i, e)
+			}
+		}
+	}
 }

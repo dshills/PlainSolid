@@ -21,5 +21,5 @@ type WrappedFrustumRimFilletHistory = WrappedFrustumLowerFilletHistory
 // the original height interval. Other domain/work/representation restrictions
 // match FilletWrappedFrustumLowerRim. No reflected or rounded source is used.
 func FilletWrappedFrustumUpperRim(ctx context.Context, s Solid, radius float64, o geom.SurfacePatchOptions) (Solid, WrappedFrustumRimFilletHistory, error) {
-	return filletWrappedFrustumEndRim(ctx, s, radius, true, o)
+	return filletWrappedFrustumEndRim(ctx, s, radius, true, false, o)
 }

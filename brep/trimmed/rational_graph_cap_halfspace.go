@@ -116,8 +116,15 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 			if e != nil {
 				return nil, cuts, e
 			}
-			cell, e := geom.NewExactComposedBezierCell(ctx, curve, limits)
+			if e = charge(curve.ExactOperations()); e != nil {
+				return nil, cuts, e
+			}
+			limits.MaxOperations = work
+			cell, used, e := geom.NewExactComposedBezierCellWithWork(ctx, curve, limits)
 			if e != nil {
+				return nil, cuts, e
+			}
+			if e = charge(used); e != nil {
 				return nil, cuts, e
 			}
 			raw := [4]*big.Rat{form[0], form[1], nil, form[2]}
@@ -501,9 +508,18 @@ func certifyRationalCapCurveCrossings(ctx context.Context, h [][3]*big.Rat, form
 	if e != nil {
 		return nil, e
 	}
-	cell, e := geom.NewExactComposedBezierCell(ctx, curve, limits)
+	opts.MaxWork -= curve.ExactOperations()
+	if opts.MaxWork < 1 {
+		return nil, geom.ErrConvergence
+	}
+	limits.MaxOperations = opts.MaxWork
+	cell, used, e := geom.NewExactComposedBezierCellWithWork(ctx, curve, limits)
 	if e != nil {
 		return nil, e
+	}
+	opts.MaxWork -= used
+	if opts.MaxWork < 1 {
+		return nil, geom.ErrConvergence
 	}
 	rootOptions := func() geom.ExactCurvePlaneEventOptions {
 		return geom.ExactCurvePlaneEventOptions{MaxOperations: opts.MaxWork, MaxCoefficientBits: opts.MaxBits, MaxSubdivisions: opts.MaxSubdivisions}

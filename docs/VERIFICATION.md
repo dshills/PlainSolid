@@ -1752,6 +1752,31 @@ With both cuts keeping the lower side, the same original support has two
 graph owner changes. An exact interior split in the curved lens boundary
 appears identically on cap and stock; the native result reloads and matches
 the independent envelope volume 221/30720.
+Algebraic cap section tests preserve two irrational roots on the same original
+quadratic edge, exactly reverse their order with the cutting orientation,
+and exclude the through-void gap when four contacts are present. Tangency
+and insufficient cumulative work return no partial section. Constructive
+cap clipping joins one retained parabolic interval to an exact restricted
+line and handles the opposite side's two pieces on the original arc. The
+holed fixture joins its two original rings into one notch with two seams.
+Tests prove equality of every neighboring world-space endpoint across the
+original and seam parameterizations and reject exhausted clipping without
+publishing the earlier section. A stock-backed JSON reload of the sheared
+tube at Y=11/8 independently confirms the X=√3 root on the original void
+edge. It restores the same owner and exact joins after mutation of the
+diagnostic report. Exact seam, void, inside and discarded points agree
+before and after reload. Focused normal, race and Go 1.23 passed.
+Simultaneous conical fillets (`105312d`) keep five native faces, unchanged
+original end caps and circular bases, and exact original cone ownership.
+Both slope directions and equal/unequal radii match independent volume and
+area integrals and reload. Touching or overlapping runouts fail atomically.
+The eccentric through-bore on this filleted stock (`c207731`) retains all
+stock vertex, edge and face IDs, proves exact clearance, and matches
+independent differences −6π in volume and +10π in area after reload.
+The genuine OCCT STEP elliptical disk face (`e58145b`) retains its full model
+and planar trim curves, verifies their original owners and matching
+parameterizations, and native-reloads. Pinned OCCT confirms one face with
+area 8π, centroid (1,2,3), and outward normal +Y on both source and re-export.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
@@ -2166,6 +2191,19 @@ PlainCAD tests in 25.488 seconds, with zero retries, skips, or failures.
 The separate real Go/WASM browser probe passed in 5.317 seconds. Evidence
 records typechecking, all 841 original source checks, and hashes of the test
 outputs for that reconciled revision.
+Reconciliation `89f244c` combines the `1466e87` PlainCAD integration history
+with the current main kernel. Ten original development Hole and STEP export
+tests, the browser backend probe, both typechecks and 841 source comparisons
+passed without retries or skips. A separate focused regression keeps the
+strict nonbinary recipe rejection and proves the independently reconstructed
+analytic result's volume, STEP readback and closed display mesh.
+Reconciliation `586dcd3` combines `cc1c41f` and the integrated narrow
+exact-first dispatch. Its [supplemental record](evidence/plaincad-reconciled-586dcd3-development-side-holes-2026-11-14.json)
+contains seven Chromium cases (six blind or through overlap workflows, and
+one close-up pick/display regression), one independent Go/WASM backend
+probe, both typechecks, and 841 source hash comparisons. The seven
+supplemental cases took 199 seconds with zero retries, skips or failures.
+The focused native bridge and STEP suite also passed with CGO disabled.
 The rational frustum section (`b894c4b`) keeps the original V parameters
 7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
 sides of the original wall differ by 2^-120. The exact line path (`30d8254`)

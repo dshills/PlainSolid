@@ -153,37 +153,45 @@ func (c *ExactComposedCurveCell) BindRoot(ctx context.Context, root *ExactAlgebr
 // quadratics (X/Y with Z=0) without manufacturing a tensor support. Positive
 // Bernstein weights prove the denominator positive throughout the full domain.
 func NewExactComposedBezierCell(ctx context.Context, curve *ExactSplineCurve, o SurfacePatchOptions) (*ExactComposedCurveCell, error) {
+	result, _, e := NewExactComposedBezierCellWithWork(ctx, curve, o)
+	return result, e
+}
+
+// NewExactComposedBezierCellWithWork is NewExactComposedBezierCell with
+// the exact Bernstein-to-power operation count, including on failure.
+func NewExactComposedBezierCellWithWork(ctx context.Context, curve *ExactSplineCurve, o SurfacePatchOptions) (_ *ExactComposedCurveCell, work int, err error) {
 	if ctx == nil || curve == nil || curve.patch == nil {
-		return nil, ErrInvalid
+		return nil, 0, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	o, e := patchOptions(o)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	p := curve.patch
 	lo, hi := curve.Domain()
 	if lo != 0 || hi != 1 || p.countU != p.degreeU+1 || p.degreeU > 64 || len(p.net) > o.MaxPoles {
-		return nil, ErrConvergence
+		return nil, 0, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	defer func() { work = b.operations }()
 	result := &ExactComposedCurveCell{}
 	for axis := 0; axis < 4; axis++ {
 		values := make([]*big.Rat, p.countU)
 		for i := range values {
 			h := p.net[i*p.countV]
 			if h[3].Sign() <= 0 {
-				return nil, ErrInvalid
+				return nil, 0, ErrInvalid
 			}
 			values[i] = h[axis]
 		}
 		result.power[axis], e = bernsteinToPower(values, b)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	result.endpoints = [2]*ExactGraphLineRoot{{polynomial: rationalPolynomial{new(big.Rat), big.NewRat(1, 1)}, bounds: [2]*big.Rat{new(big.Rat), new(big.Rat)}}, {polynomial: rationalPolynomial{big.NewRat(-1, 1), big.NewRat(1, 1)}, bounds: [2]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1)}}}
-	return result, nil
+	return result, 0, nil
 }

@@ -24,6 +24,8 @@ type SurfaceArcTubeDiscoveryOptions struct {
 // beyond the source arc cell, so this is a valid branch proposal, not a claim
 // that the entire tube image lies inside that cell.
 type SurfaceArcDiscoveredTube struct {
+	// ExactSourceSpan is populated by rational iso discovery; Span is then only an enclosure.
+	ExactSourceSpan [2]*big.Rat
 	// Boundary is an exact represented anchor proposal, independently re-proved on rebuild.
 	Boundary *SurfaceTubeBoundaryOptions
 	FreeAxis int
