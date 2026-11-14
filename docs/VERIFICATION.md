@@ -5919,3 +5919,12 @@ The filled and hollow enclosures meet total width requests of 1/64 and 1/20
 respectively at 256 spans. Cancellation, limited source proof and one-short
 integration budgets return empty results. The combined area, mass, bore
 and rigid occurrence race run passed in 67.058 s.
+
+### Shared-edge arrangement qualification
+
+The general affine tests cover whole and partial shared edges, T-junctions,
+coincident polygons, independently reversed charts, filled holes and
+isolated corner contact. They compare proper crossing results with the
+strict API, preserve all original directed uses and exercise result mutation
+and exact or one-short budgets. The integrated affine polygon and patch
+race passed in 1.919 s.

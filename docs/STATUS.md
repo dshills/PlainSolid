@@ -2134,3 +2134,13 @@ method integrates the height direction analytically. A bounded Bernstein
 integral encloses the remaining weighted profile derivative on a shared exact
 subdivision. End caps use the authenticated profile area. Annular caps apply
 the exact difference of squared scales before multiplying the profile interval.
+
+### Shared-edge and endpoint polygon arrangements
+
+`intersect.ArrangeGeneralAffinePolygons` includes exact collinear overlaps,
+shared endpoints and endpoint-on-edge events. It partitions every source
+side and evaluates symbolic infinitesimal winding on both sides. Retained
+coincident area edges carry every original use and its exact parameter
+interval. Closed common boundary spans report intersection material on
+both sides. Isolated common points are returned separately. Point-connected
+branching area boundaries remain unresolved.
