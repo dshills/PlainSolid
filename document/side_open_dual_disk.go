@@ -11,6 +11,7 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/scene"
 )
 
 // SideOpenDualDiskRecipe defines two authored circles in a right-handed
@@ -34,45 +35,50 @@ type SideOpenDualDiskRecipe struct {
 }
 
 func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe) (trimmed.Solid, error) {
+	s, _, e := buildAuthoredSideOpenDualDisk(ctx, stock, p)
+	return s, e
+}
+
+func buildAuthoredSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe) (trimmed.Solid, scene.SideOpenDualDiskNormalBoundary, error) {
 	d, e := authoredSideOpenDualDiskDescriptor(stock, p)
 	if e != nil {
-		return trimmed.Solid{}, e
+		return trimmed.Solid{}, nil, e
 	}
 	f, tolerance := d.Frame, d.Tolerance
 	if p.UnequalCenterJoin != nil {
 		join, e := p.exactJoin()
 		if e != nil {
-			return trimmed.Solid{}, e
+			return trimmed.Solid{}, nil, e
 		}
 		c, e := trimmed.CutUnequalCenterSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, join, d.Height, d.Depth, tolerance, trimvalidate.Options{})
-		return c.Solid, e
+		return c.Solid, c, e
 	}
 	if p.OffsetCenters {
 		if d.Discs[0].Radius == d.Discs[1].Radius {
-			return trimmed.Solid{}, geom.ErrDomain
+			return trimmed.Solid{}, nil, geom.ErrDomain
 		}
 		c, e := trimmed.CutOffsetSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
-		return c.Solid, e
+		return c.Solid, c, e
 	}
 	if d.Discs[0].Radius == d.Discs[1].Radius {
 		if p.ExactWalls {
-			return trimmed.Solid{}, geom.ErrDomain
+			return trimmed.Solid{}, nil, geom.ErrDomain
 		}
 		c, e := trimmed.CutSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
-		return c.Solid, e
+		return c.Solid, c, e
 	}
 	if externalSideDiskRadical(d) {
 		c, e := trimmed.CutGeneralSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 		if p.ExactWalls && errors.Is(e, geom.ErrUnrepresentable) {
 			c, e = trimmed.CutGeneralSideOpenDualDisksWithExactWalls(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 		}
-		return c.Solid, e
+		return c.Solid, c, e
 	}
 	if p.ExactWalls {
-		return trimmed.Solid{}, geom.ErrDomain
+		return trimmed.Solid{}, nil, geom.ErrDomain
 	}
 	c, e := trimmed.CutUnequalSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
-	return c.Solid, e
+	return c.Solid, c, e
 }
 
 func authoredSideOpenDualDiskDescriptor(stock brep.Solid, p *SideOpenDualDiskRecipe) (step.SideOpenDualDiskDescriptor, error) {

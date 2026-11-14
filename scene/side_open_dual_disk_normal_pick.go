@@ -8,8 +8,8 @@ import (
 	"plainsolid/geom"
 )
 
-// SideOpenDualDiskNormalBoundary is satisfied by the native equal, unequal,
-// and external-radical cuts. It returns separate original support normals.
+// SideOpenDualDiskNormalBoundary is satisfied by the native side-opening disk
+// cuts, including offset and unequal centers. It returns normals per owner.
 type SideOpenDualDiskNormalBoundary interface {
 	FirstBoundaryHit(context.Context, [3]*big.Rat, [3]*big.Rat, *big.Rat, *big.Rat, geom.ToroidLineOptions) (geom.BoxDualCircleFirstHit, error)
 }

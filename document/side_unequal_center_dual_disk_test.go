@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/scene"
 )
 
 func TestDocumentUnequalCenterDualDiskJoin(t *testing.T) {
@@ -45,6 +46,14 @@ func TestDocumentUnequalCenterDualDiskJoin(t *testing.T) {
 	p, e := step.ReadUnequalCenterSideOpenDualDiskProduct(ctx, &data, step.Limits{}, 1e-9)
 	if e != nil || p.SourceFloorFace == 0 || p.SourceWallFaces[0] == p.SourceWallFaces[1] || p.RadicalJoin[0].RatString() != "50" || p.RadicalJoin[1].RatString() != "1" {
 		t.Fatal("reflected native STEP recipe lost the actual wall join", p.RadicalJoin, e)
+	}
+	cam, e := scene.Orthographic(geom.Vec3{X: 50, Y: 3, Z: -3}, geom.Vec3{X: 50, Y: 3}, geom.Vec3{Y: 1}, 10, 10, 1, 20)
+	if e != nil {
+		t.Fatal(e)
+	}
+	h, ok, e := s.PickAuthoredSideOpenDualDiskNormals(ctx, cam, geom.Vec2{}, []string{"cut"}, geom.ToroidLineOptions{})
+	if e != nil || !ok || h.ID != "cut" || h.Hit.Support != geom.BoxDualCircleStockZ|geom.BoxDualCircleFirstWall|geom.BoxDualCircleSecondWall || len(h.Hit.Normals) != 3 || h.Hit.PointBounds[2].Lower.RatString() != "1" {
+		t.Fatal("exact pick lost the entry cap or either wall owner at the transformed join", h, ok, e)
 	}
 	edit := d.Begin()
 	edit.State.Features["cut"].SideOpenDualDisk.UnequalCenterJoin[1] = "100000000000000001/100000000000000000"
