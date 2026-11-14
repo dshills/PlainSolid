@@ -44,3 +44,30 @@ void-like face orientation, invalid clearance, stale ancestry, parser limits
 and forged native payload. Focused race, Go1.23, vet, existing cone/annulus and
 STEP ellipse regressions, and 100 bounded fuzz executions pass. This is a
 qualified original analytic material family, not a generic IGES BRep parser.
+
+## Proper signed-axis placement
+
+The separate `ReadPlacedConical45CylinderThroughMaterial` and
+`WritePlacedConical45CylinderThrough` APIs admit one shared type124 proper
+signed-coordinate rigid transform. It attaches to both original surface types,
+both planes, four circles and two seam lines. The type502 vertices are already
+world coordinates; source point/direction records remain local support data.
+Every attachment and exact inverse-mapped vertex is checked before the original
+canonical proof runs. A missing attachment, changed bore axis, general affine
+matrix, reflection or nonrepresentable coordinate sum is rejected. This does
+not enable record reordering or change the unplaced reader.
+
+World native quarter controls are rebuilt using exact rational placement
+arithmetic, never rounded transformed floats. Both cap and all four rim roles
+are retained: original circles are [outer lower23/upper19, inner lower29/upper25],
+with separate native quarter edge IDs. Source/native JSON reproof authenticates
+that ancestry and the original placement. All continuous edge discrepancies
+remain zero after placement and native reload.
+
+The independent author's `--placed` fixture uses (x,y,z)→(10+z,−3+y,5−x).
+Pinned OCCT accepts its original and Go output as valid four-face one-solid
+material with unchanged area/volume and centroid (10+48/19,−3,5). A second
+proper signed frame reverses the axial direction. Focused tests also reject
+wrong bore axis, detached bore/cap/rim placement, forged pose/ancestry and
+source limits. Live OCCT, race, Go1.23, vet and 100 fuzz executions qualify
+this separate placement scope.
