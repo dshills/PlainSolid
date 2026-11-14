@@ -3,6 +3,7 @@ package step
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -164,6 +165,19 @@ func TestBlindCrossedObliqueBoreSTEP(t *testing.T) {
 }
 
 func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
+	for _, floor := range []float64{0, 28} {
+		for _, opposite := range []bool{false, true} {
+			if floor == 0 && opposite {
+				continue
+			}
+			t.Run(fmt.Sprintf("%.0f_%t", floor, opposite), func(t *testing.T) {
+				verifyObliqueFloorCrossedBoreSTEP(t, floor, opposite)
+			})
+		}
+	}
+}
+
+func verifyObliqueFloorCrossedBoreSTEP(t *testing.T, cardinalDepth float64, opposite bool) {
 	for _, n := range []geom.Vec3{{Z: 1}, {Y: -1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {
@@ -172,7 +186,7 @@ func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
 		for _, station := range []float64{5, -5, 6.25, -6.25} {
 			m := CrossedObliqueBoreModel{LengthUnit: .001, Body: CrossedObliqueBoreBody{Name: "cardinal through and oblique blind",
 				Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 40}, Crossing: geom.Vec3{X: 10, Y: 8, Z: 20},
-				Radius: 2, ObliqueFloor: station}}
+				Radius: 2, ObliqueFloor: station, BlindDepth: cardinalDepth, OppositeCap: opposite}}
 			var out bytes.Buffer
 			if err := WriteCrossedObliqueBore(&out, m); err != nil {
 				t.Fatal(n, station, err)
@@ -181,7 +195,7 @@ func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
 				t.Fatal(n, station, "unexpected conic representation")
 			}
 			got, err := ReadCrossedObliqueBore(bytes.NewReader(out.Bytes()), Limits{})
-			if err != nil || math.Abs(got.Body.ObliqueFloor-station) > 1e-10 || got.Body.BlindDepth != 0 {
+			if err != nil || math.Abs(got.Body.ObliqueFloor-station) > 1e-10 || got.Body.BlindDepth != cardinalDepth || got.Body.OppositeCap != opposite {
 				t.Fatal(n, station, got, err)
 			}
 			var again bytes.Buffer
@@ -218,6 +232,16 @@ func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
 			s := math.Copysign(1, station)
 			moment := cd.Scale(s * 4 * math.Pi * ((12.5*12.5-station*station)/2 + .75*.75/2)).
 				Add(rd.Scale(s * .75 * 4 * math.Pi))
+			if cardinalDepth > 0 {
+				uncut := 40 - cardinalDepth
+				v += 4 * math.Pi * uncut
+				a += 8*math.Pi - 4*math.Pi*uncut
+				delta := 20 - uncut/2
+				if opposite {
+					delta = -delta
+				}
+				moment.Z += 4 * math.Pi * uncut * delta
+			}
 			center := f.ToWorld(m.Body.Crossing.Add(moment.Scale(1 / v)))
 			if math.Abs(measures.Volume-v) > 1e-8*v || math.Abs(measures.Area-a) > 1e-8*a ||
 				center.Distance(geom.Vec3{X: measures.Centroid[0], Y: measures.Centroid[1], Z: measures.Centroid[2]}) > 1e-6 {

@@ -180,10 +180,11 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 		}
 	}
 	var r trimmed.BoxCrossedBoresResult
-	if g.obliqueFloor != 0 {
-		if g.blindDepth != 0 {
-			return nil, false, nil
-		}
+	if g.obliqueFloor != 0 && g.blindDepth > 0 {
+		var ids [2]int
+		r, ids, err = trimmed.BoxDoubleBlindCrossedObliqueBores(context.Background(), f, dims, local, ratio, g.radius, g.blindDepth, g.oppositeCap, g.obliqueFloor, 1e-9)
+		floors[cardinalSlot], floors[obliqueSlot] = ids[0], ids[1]
+	} else if g.obliqueFloor != 0 {
 		r, floors[obliqueSlot], err = trimmed.BoxObliqueFloorCrossedBores(context.Background(), f, dims, local, ratio, g.radius, g.obliqueFloor, g.obliqueFloor < 0, 1e-9)
 	} else if g.blindDepth > 0 {
 		r, floors[cardinalSlot], err = trimmed.BoxBlindCrossedObliqueBores(context.Background(), f, dims, local, ratio, g.radius, g.blindDepth, g.oppositeCap, 1e-9)
@@ -453,11 +454,18 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 			return nil, geom.ErrUnrepresentable
 		}
 		if p.ObliqueFloor != g.obliqueCrossing.obliqueFloor {
-			out, floor, err := trimmed.BoxObliqueFloorCrossedBores(context.Background(), f, d, c, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+			var out trimmed.BoxCrossedBoresResult
+			if p.BlindDepth != 0 {
+				var floors [2]int
+				out, floors, err = trimmed.BoxDoubleBlindCrossedObliqueBores(context.Background(), f, d, c, ratio, p.Radius, p.BlindDepth, p.OppositeCap, p.ObliqueFloor, 1e-9)
+				g.floors[0], g.floors[1] = floors[0], floors[1]
+			} else {
+				out, g.floors[1], err = trimmed.BoxObliqueFloorCrossedBores(context.Background(), f, d, c, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+			}
 			if err != nil {
 				return nil, err
 			}
-			g.solid, g.crossed, g.floors[1] = out.Solid, &out, floor
+			g.solid, g.crossed = out.Solid, &out
 			g.obliqueCrossing.obliqueFloor = p.ObliqueFloor
 		}
 	}

@@ -14,13 +14,13 @@ failures. Short-mode exclusions and full qualification remain open.
 The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in
 the app and its workers. It builds a fingerprinted WASM file and checks its
 manifest against the source revision and matching Go runtime. The pinned
-app build at `9779044` passes 345 development cases, 66 production cases
-and 15 cross-browser cases on kernel `e60f34e7`, with zero browser skips,
+app build at `efae4d2` passes 345 development cases, 66 production cases
+and 15 cross-browser cases on kernel `fa857e59`, with zero browser skips,
 retries or flaky results. It also passes 1,691 ordinary unit and component
 cases and four dedicated actual-WASM contracts. PlainSolid is selected
 explicitly in the app build. Later kernel milestones have focused browser
 and exchange evidence.
-[Full provider qualification](evidence/plaincad-provider-kernel-e60f34e7-2026-11-14.json).
+[Full provider qualification](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json).
 
 A finite blind Hole crossing one rectangular stock side now retains a
 watertight analytic notch and circular-segment floor. Seven original
@@ -125,7 +125,8 @@ Grouped oblique crossings discard fully covered coaxial tools after
 proving the retained spans. Their STEP matches the visible-only pair.
 The oblique Hole itself can carry a circular blind floor after the
 complete crossing. Both entry directions and a later deeper Hole
-retain canonical STEP.
+retain canonical STEP. Both equal-radius tools can be blind in the same
+part when their floors remain beyond the entire crossing.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its

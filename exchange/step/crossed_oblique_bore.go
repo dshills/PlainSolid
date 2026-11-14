@@ -61,15 +61,16 @@ func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	var r trimmed.BoxCrossedBoresResult
 	var err error
 	if p.ObliqueFloor != 0 {
-		if p.BlindDepth != 0 {
-			return geom.ErrDomain
-		}
 		var e error
 		p.ObliqueFloor, e = trimmed.RepresentedObliqueFloorStation(p.Frame, p.Crossing, ratio, p.ObliqueFloor, 1e-9/8)
 		if e != nil {
 			return e
 		}
-		r, _, err = trimmed.BoxObliqueFloorCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+		if p.BlindDepth == 0 {
+			r, _, err = trimmed.BoxObliqueFloorCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+		} else {
+			r, _, err = trimmed.BoxDoubleBlindCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.BlindDepth, p.OppositeCap, p.ObliqueFloor, 1e-9)
+		}
 	} else if p.BlindDepth == 0 {
 		r, err = trimmed.BoxCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, 1e-9)
 	} else {
@@ -78,7 +79,7 @@ func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	if err != nil {
 		return err
 	}
-	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{23, 96, 64, 2, 4}, false, 0, nil, false, true)
+	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{24, 96, 64, 2, 4}, false, 0, nil, false, true)
 }
 
 func ReadCrossedObliqueBore(r io.Reader, l Limits) (CrossedObliqueBoreModel, error) {
@@ -120,7 +121,7 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		return fail()
 	}
 	ids, err := listRefs(shell.Args[1], 22)
-	if err != nil || len(ids) != 22 && len(ids) != 23 {
+	if err != nil || len(ids) > 24 {
 		return fail()
 	}
 	z, err := readCircularSourceFaceBounded(f, ids[6], 1, 4)
@@ -174,27 +175,24 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		return fail()
 	}
 	out := CrossedObliqueBoreBody{Name: name, Frame: placed, Dimensions: bounds.Max.Sub(bounds.Min), Crossing: placed.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}
-	if len(ids) == 23 {
-		floor, err := readCircularSourceFaceBounded(f, ids[22], 1, 4)
+	for _, id := range ids[22:] {
+		floor, err := readCircularSourceFaceBounded(f, id, 1, 4)
 		if err != nil || floor.kind != "PLANE" || len(floor.loops[0]) != 4 {
 			return fail()
 		}
 		level := placed.ToLocal(floor.frame.Origin()).Z
-		switch floor.frame.ZAxis() {
-		case axis:
+		switch normal := floor.frame.ZAxis(); {
+		case normal == axis && out.BlindDepth == 0 && !floor.sense && level > 0:
 			out.BlindDepth = level
-		case axis.Scale(-1):
+		case normal == axis.Scale(-1) && out.BlindDepth == 0 && !floor.sense && level < out.Dimensions.Z:
 			out.BlindDepth, out.OppositeCap = out.Dimensions.Z-level, true
-		case b.frame.ZAxis():
+		case normal == b.frame.ZAxis() && out.ObliqueFloor == 0:
 			loc := b.frame.ToLocal(floor.frame.Origin())
-			if math.Hypot(loc.X, loc.Y) > 1e-9/8 || loc.Z == 0 {
+			if math.Hypot(loc.X, loc.Y) > 1e-9/8 || loc.Z == 0 || floor.sense != (loc.Z < 0) {
 				return fail()
 			}
 			out.ObliqueFloor = loc.Z
 		default:
-			return fail()
-		}
-		if out.ObliqueFloor == 0 && out.BlindDepth <= 0 {
 			return fail()
 		}
 	}
