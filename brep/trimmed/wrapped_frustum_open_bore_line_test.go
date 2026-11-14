@@ -89,3 +89,49 @@ func TestWrappedFrustumOpenBoreLine(t *testing.T) {
 		t.Fatal("failure published partial line results", e)
 	}
 }
+
+func TestEccentricWrappedFrustumOpenBoreLine(t *testing.T) {
+	ctx := context.Background()
+	o := geom.SurfacePatchOptions{}
+	outer, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	outer, _, e = geom.DraftWrappedFrustum(ctx, outer, 0, 3, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, _, e := geom.InsetWrappedCircularFrustumAtCap(ctx, outer, .5, true, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	pose := geom.Identity()
+	pose[0][3], pose[1][3] = .25, .25
+	tool, _, e = tool.Transformed(ctx, pose, geom.WrappedSurfaceOptions{WrapU: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	limits := geom.ToroidLineOptions{ParameterTolerance: 1e-9}
+	// An inner tangent at Y=1/4+35/8 lies within the outer circle.
+	// Its double root is centered at X=1/4, not at the outer axis.
+	origin := geom.Vec3{X: -6, Y: 37.0 / 8, Z: 4}
+	direction := geom.Vec3{X: 1}
+	r, e := IntersectWrappedEccentricCircularFrustumOpenBoreLine(ctx, outer, tool, origin, direction, 0, 12, limits)
+	if e != nil || len(r.Hits) != 3 || len(r.Overlaps) != 1 || r.Hits[1].Parameter.Multiplicity != 2 ||
+		r.Hits[1].Parameter.Min.Cmp(big.NewRat(25, 4)) != 0 || r.Hits[1].Parameter.Max.Cmp(big.NewRat(25, 4)) != 0 ||
+		!slices.Equal(r.Hits[1].Faces, []int{2, 3}) {
+		t.Fatal("eccentric tangent must not split the annular overlap", r, e)
+	}
+	if r.Overlaps[0].Start.Min.Cmp(r.Hits[0].Parameter.Min) != 0 ||
+		r.Overlaps[0].End.Max.Cmp(r.Hits[2].Parameter.Max) != 0 {
+		t.Fatal("overlap misses original outer rim", r)
+	}
+	// The original tilted wall contributes only one event when the
+	// line meets the inner rim; the second cap candidate is the same point.
+	r, e = IntersectWrappedEccentricCircularFrustumOpenBoreLine(ctx, outer, tool,
+		geom.Vec3{X: 37.0 / 8, Y: .25, Z: 5}, geom.Vec3{Z: -1}, 0, 3, limits)
+	if e != nil || len(r.Hits) != 2 || r.Hits[0].Parameter.Min.Cmp(big.NewRat(1, 1)) != 0 ||
+		!slices.Equal(r.Hits[0].Faces, []int{2, 3}) || !slices.Equal(r.Hits[1].Faces, []int{0}) {
+		t.Fatal("eccentric rim and original outer wall", r, e)
+	}
+}

@@ -17,35 +17,44 @@ type AffineProjectedGraph struct {
 }
 
 func NewAffineProjectedGraph(ctx context.Context, p *SurfacePatch, axes [2]int, o SurfacePatchOptions) (*AffineProjectedGraph, error) {
+	g, _, e := NewAffineProjectedGraphWithWork(ctx, p, axes, o)
+	return g, e
+}
+
+// NewAffineProjectedGraphWithWork accounts for exact work even when the
+// requested projection cannot be proved.
+func NewAffineProjectedGraphWithWork(ctx context.Context, p *SurfacePatch, axes [2]int, o SurfacePatchOptions) (_ *AffineProjectedGraph, work int, err error) {
 	if ctx == nil || p == nil {
-		return nil, ErrInvalid
+		return nil, 0, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	order, e := modelProjectionPermutation(axes)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	options, e := patchOptions(o)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
+	defer func() { work = min(budget.operations, budget.maxOperations) }()
 	projected, e := permuteGraphPatch(p, order, budget)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	child := options
 	child.MaxOperations -= budget.operations
 	if child.MaxOperations < 1 {
-		return nil, ErrConvergence
+		return nil, 0, ErrConvergence
 	}
-	graph, e := NewAffineXYGraph(ctx, projected, child)
+	graph, used, e := newAffineXYGraphWithWork(ctx, projected, child)
+	budget.operations += used
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
-	return &AffineProjectedGraph{source: p, graph: graph, axes: axes, order: order, operations: budget.operations + graph.ExactOperations()}, nil
+	return &AffineProjectedGraph{source: p, graph: graph, axes: axes, order: order, operations: budget.operations}, budget.operations, nil
 }
 func (g *AffineProjectedGraph) Axes() ([2]int, error) {
 	if g == nil || g.graph == nil {

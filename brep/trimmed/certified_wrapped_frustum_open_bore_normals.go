@@ -21,11 +21,23 @@ type CertifiedWrappedFrustumOpenBoreNormals struct {
 // If the distance-driven grid cannot satisfy it, the call fails atomically.
 func TessellateWrappedFrustumOpenBoreNormalsCertified(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
 	angle float64, o CertifiedWrappedFrustumMeshOptions) (CertifiedWrappedFrustumOpenBoreNormals, error) {
+	return tessellateParallelFrustumOpenBoreNormals(ctx, outer, inner, angle, o, true)
+}
+
+// TessellateWrappedEccentricFrustumOpenBoreNormalsCertified uses the original
+// axis and taper of each separately certified circular wall.
+func TessellateWrappedEccentricFrustumOpenBoreNormalsCertified(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	angle float64, o CertifiedWrappedFrustumMeshOptions) (CertifiedWrappedFrustumOpenBoreNormals, error) {
+	return tessellateParallelFrustumOpenBoreNormals(ctx, outer, inner, angle, o, false)
+}
+
+func tessellateParallelFrustumOpenBoreNormals(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	angle float64, o CertifiedWrappedFrustumMeshOptions, coaxial bool) (CertifiedWrappedFrustumOpenBoreNormals, error) {
 	var empty CertifiedWrappedFrustumOpenBoreNormals
 	if ctx == nil || !finite(angle) || angle <= 0 || angle > 1 {
 		return empty, geom.ErrInvalid
 	}
-	m, e := TessellateWrappedFrustumOpenBoreCertified(ctx, outer, inner, o)
+	m, e := tessellateParallelFrustumOpenBore(ctx, outer, inner, o, coaxial)
 	if e != nil {
 		return empty, e
 	}

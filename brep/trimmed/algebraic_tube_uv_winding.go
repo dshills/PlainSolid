@@ -96,8 +96,8 @@ func insideClosedTubeAtRoot(ctx context.Context, chart int, support *geom.Surfac
 
 func insideClosedTubeAtAxisRoot(ctx context.Context, chart int, support *geom.SurfacePatch,
 	cut []AlgebraicTubeFaceCutPiece, u *geom.ExactAlgebraicRoot, v *big.Rat, vary int,
-	o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
-	contacts, used, e := tubeRayCrossingsAxis(ctx, chart, support, cut, v, vary, o)
+	o geom.ExactCurvePlaneEventOptions, projection ...[2]int) (inside bool, operations int, err error) {
+	contacts, used, e := tubeRayCrossingsAxis(ctx, chart, support, cut, v, vary, o, projection...)
 	operations += used
 	if e != nil {
 		return false, operations, e

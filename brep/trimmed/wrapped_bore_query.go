@@ -22,6 +22,19 @@ func LocateWrappedCylinderBore(ctx context.Context, outer, inner *geom.WrappedSu
 // interior is open to the exterior; its rim belongs to the annular boundary.
 func LocateWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, point geom.Vec3,
 	o geom.SurfacePatchOptions) (parametric.Location, error) {
+	return locateWrappedCircularFrustumBore(ctx, outer, inner, point, o, true)
+}
+
+// LocateWrappedEccentricCircularFrustumBore classifies the contained material
+// using each circular wall's original axis. The two axes must be parallel
+// with certified positive radial clearance.
+func LocateWrappedEccentricCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, point geom.Vec3,
+	o geom.SurfacePatchOptions) (parametric.Location, error) {
+	return locateWrappedCircularFrustumBore(ctx, outer, inner, point, o, false)
+}
+
+func locateWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, point geom.Vec3,
+	o geom.SurfacePatchOptions, coaxial bool) (parametric.Location, error) {
 	if !point.IsFinite() {
 		return parametric.Outside, geom.ErrInvalid
 	}
@@ -33,14 +46,13 @@ func LocateWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.Wr
 	if e != nil {
 		return parametric.Outside, e
 	}
-	if !strictWrappedCircularFrustumBore(a, b) {
+	if !strictWrappedParallelFrustumBore(a, b, coaxial) {
 		return parametric.Outside, geom.ErrConvergence
 	}
 	z := ratInset(point.Z)
-	u := new(big.Rat).Sub(ratInset(point.X), a.CenterX)
-	v := new(big.Rat).Sub(ratInset(point.Y), a.CenterY)
-	r2 := new(big.Rat).Add(new(big.Rat).Mul(u, u), new(big.Rat).Mul(v, v))
 	radialSign := func(p geom.WrappedFrustumEmbedding) int {
+		u, v := new(big.Rat).Sub(ratInset(point.X), p.CenterX), new(big.Rat).Sub(ratInset(point.Y), p.CenterY)
+		r2 := new(big.Rat).Add(u.Mul(u, u), v.Mul(v, v))
 		f := new(big.Rat).Quo(new(big.Rat).Sub(z, p.LowerZ), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
 		r := new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(f, new(big.Rat).Sub(p.UpperRadius, p.LowerRadius)))
 		return r2.Cmp(r.Mul(r, r))

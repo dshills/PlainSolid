@@ -16,16 +16,22 @@ type AffineXYGraph struct {
 }
 
 func NewAffineXYGraph(ctx context.Context, p *SurfacePatch, o SurfacePatchOptions) (*AffineXYGraph, error) {
+	g, _, e := newAffineXYGraphWithWork(ctx, p, o)
+	return g, e
+}
+
+func newAffineXYGraphWithWork(ctx context.Context, p *SurfacePatch, o SurfacePatchOptions) (_ *AffineXYGraph, work int, err error) {
 	options, e := patchOptions(o)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
+	defer func() { work = min(b.operations, b.maxOperations) }()
 	_, inverse, e := normalizeAffineXYGraph(ctx, p, b)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
-	return &AffineXYGraph{source: p, inverse: inverse, operations: b.operations}, nil
+	return &AffineXYGraph{source: p, inverse: inverse, operations: b.operations}, b.operations, nil
 }
 
 // Orientation is the exact sign of the model XY Jacobian, or zero for an invalid proof.

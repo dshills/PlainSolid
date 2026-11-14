@@ -213,6 +213,12 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if (argc == 3 && mode == "isolated-tangent-shells") {
+      std::ofstream out(argv[1]);
+      out.exceptions(std::ios::failbit | std::ios::badbit);
+      tangentSplineShellRecords(out);
+      return 0;
+    }
     if (argc == 3 && mode == "frustum-open-wall") {
       std::ofstream out(argv[1]);
       out.exceptions(std::ios::failbit | std::ios::badbit);
@@ -232,6 +238,9 @@ int main(int argc, char** argv) {
           record(out, name.c_str(), BRepAlgoAPI_Cut(stock, tool).Shape(), 1e-11);
         }
       }
+      const auto stock = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)), 2, 5, 4).Shape();
+      const auto tool = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-0.75, 2.25, 3.5), gp_Dir(0, 0, 1)), 1.75, 4.75, 4).Shape();
+      record(out, "frustum-open-wall-eccentric-upper", BRepAlgoAPI_Cut(stock, tool).Shape(), 1e-11);
       return 0;
     }
     if (argc == 3 && mode == "frustum-erosion") {

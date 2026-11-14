@@ -17,6 +17,7 @@ const (
 	MixedTopologyTetrahedron MixedTopologyFamily = "tetrahedron"
 	MixedTopologyRoof        MixedTopologyFamily = "parabolic-roof"
 	MixedTopologyHexahedron  MixedTopologyFamily = "hexahedron"
+	MixedTopologyCylinder    MixedTopologyFamily = "circular-cylinder"
 )
 
 type MixedTopologyBody struct {
@@ -27,6 +28,7 @@ type MixedTopologyBody struct {
 	LocalToSource map[int]int
 	Tetrahedron   *TetrahedronSolid
 	Hexahedron    *HexahedronSolid
+	Cylinder      *CircularCylinderSolid
 	Roof          *MappedParabolicRoofSolid
 }
 type MixedTopologySolids struct {
@@ -37,6 +39,7 @@ type MixedTopologyInput struct {
 	Family      MixedTopologyFamily
 	Vertices    [4]geom.Vec3
 	HexVertices [8]geom.Vec3
+	Cylinder    CircularCylinderDescriptor
 	Roof        ParabolicRoofDescriptor
 }
 
@@ -49,15 +52,58 @@ func mixedTopologyFailure() error {
 func topologyReferenceSlots(r topologyRecord) ([]int, error) {
 	fail := func() ([]int, error) { return nil, mixedTopologyFailure() }
 	switch r.kind {
-	case 126, 128, 502:
+	case 100, 110, 116, 123, 126, 128, 502:
 		return nil, nil
+	case 190:
+		if _, e := topologyInts(r, 4); e != nil {
+			return fail()
+		}
+		return []int{1, 2, 3}, nil
+	case 192:
+		if len(r.values) != 5 {
+			return fail()
+		}
+		for _, i := range []int{0, 1, 2, 4} {
+			if _, e := intValue(r.values[i]); e != nil {
+				return fail()
+			}
+		}
+		return []int{1, 2, 4}, nil
+	case 508:
+		if len(r.values) < 2 {
+			return fail()
+		}
+		n, e := intValue(r.values[1])
+		if e != nil || n < 1 || n > 64 {
+			return fail()
+		}
+		pos := 2
+		var slots []int
+		for j := 0; j < n; j++ {
+			if len(r.values) < pos+5 {
+				return fail()
+			}
+			count, e := intValue(r.values[pos+4])
+			if e != nil || count < 0 || count > 1 || len(r.values) < pos+5+2*count {
+				return fail()
+			}
+			slots = append(slots, pos+1)
+			if count == 1 {
+				slots = append(slots, pos+6)
+			}
+			pos += 5 + 2*count
+		}
+		if _, e = topologyInts(r, pos); e != nil {
+			return fail()
+		}
+		return slots, nil
 	case 186:
 		v, e := topologyInts(r, 4)
 		if e != nil || v[3] != 0 {
 			return fail()
 		}
 		return []int{1}, nil
-	case 504, 508, 510, 514:
+	case 504, 510, 514:
 		if len(r.values) < 2 {
 			return fail()
 		}
@@ -76,8 +122,6 @@ func topologyReferenceSlots(r topologyRecord) ([]int, error) {
 		switch r.kind {
 		case 504:
 			size += 5 * n
-		case 508:
-			size += 7 * n
 		case 510:
 			size = 4 + n
 		case 514:
@@ -91,10 +135,6 @@ func topologyReferenceSlots(r topologyRecord) ([]int, error) {
 		case 504:
 			for j := 0; j < n; j++ {
 				slots = append(slots, 2+5*j, 3+5*j, 5+5*j)
-			}
-		case 508:
-			for j := 0; j < n; j++ {
-				slots = append(slots, 3+7*j, 8+7*j)
 			}
 		case 510:
 			slots = append(slots, 1)
@@ -133,7 +173,7 @@ func remapTopologyRecords(records []topologyRecord, to map[int]int, unit float64
 			v[i] = fmt.Sprint(to[id])
 		}
 		form := 0
-		if r.kind >= 500 {
+		if r.kind >= 500 || r.kind == 190 || r.kind == 192 {
 			form = 1
 		}
 		a.records = append(a.records, nativeTopologyRecord{kind: r.kind, form: form, label: r.label, subscript: r.subscript, data: strings.Join(v, ",") + ";"})
@@ -179,8 +219,8 @@ func mixedTopologyDirectory(raw []byte) error {
 }
 
 // ReadMixedTopologySolids accepts two to eight independently rooted materials
-// containing at least two of the tetrahedral, affine hexahedral and original
-// parabolic spline families. Every
+// containing at least two of the tetrahedral, affine hexahedral, canonical circular
+// cylinder and original parabolic spline families. Every
 // source entity belongs to exactly one root; no sharing or orphan data is lost.
 // This is a collection of solids, not an assembly or a Boolean union.
 func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedTopologySolids, error) {
@@ -200,7 +240,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 	l.MaxEntities = min(l.MaxEntities, 464)
 	l.MaxValues = min(l.MaxValues, 32768)
 	l.MaxControlPoints = min(l.MaxControlPoints, 832)
-	doc, e := readTopologySource(r, l, true)
+	doc, e := readPlacedTopologyRecords(r, l, true, false, false, false, false, false, false, true)
 	if e != nil {
 		return MixedTopologySolids{}, e
 	}
@@ -249,7 +289,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 	}
 	owners := map[int]int{}
 	out := MixedTopologySolids{LengthUnit: doc.unit}
-	nt, nr, nh := 0, 0, 0
+	nt, nr, nh, nc := 0, 0, 0, 0
 	for _, root := range roots {
 		if e = ctx.Err(); e != nil {
 			return MixedTopologySolids{}, e
@@ -272,7 +312,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 			owners[id] = root
 			todo = append(todo, refs[id]...)
 		}
-		if len(visited) != 34 && len(visited) != 58 {
+		if len(visited) != 24 && len(visited) != 34 && len(visited) != 58 {
 			return fail()
 		}
 		ids := make([]int, 0, len(visited))
@@ -293,7 +333,15 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 			return fail()
 		}
 		body := MixedTopologyBody{SourceSolidID: root, LocalToSource: localToSource}
-		if len(visited) == 34 {
+		if len(visited) == 24 {
+			v, e := ReadCircularCylinderSolid(ctx, bytes.NewReader(raw), Limits{})
+			if e != nil {
+				return fail()
+			}
+			body.Family = MixedTopologyCylinder
+			body.Cylinder = &v
+			nc++
+		} else if len(visited) == 34 {
 			v, e := ReadTetrahedronSolid(bytes.NewReader(raw), Limits{})
 			if e != nil {
 				return fail()
@@ -320,7 +368,7 @@ func ReadMixedTopologySolids(ctx context.Context, r io.Reader, l Limits) (MixedT
 		}
 		out.Bodies = append(out.Bodies, body)
 	}
-	if len(owners) != len(records) || mixedTopologyFamilyCount(nt, nr, nh) < 2 {
+	if len(owners) != len(records) || mixedTopologyFamilyCount(nt, nr, nh, nc) < 2 {
 		return fail()
 	}
 	return out, nil
@@ -334,14 +382,23 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 	}
 	var all []topologyRecord
 	to := map[int]int{}
-	nt, nr, nh := 0, 0, 0
+	nt, nr, nh, nc := 0, 0, 0, 0
 	for _, b := range bodies {
 		if e := ctx.Err(); e != nil {
 			return e
 		}
 		var raw bytes.Buffer
 		var e error
+		if b.Family != MixedTopologyCylinder && b.Cylinder != (CircularCylinderDescriptor{}) {
+			return mixedTopologyFailure()
+		}
 		switch b.Family {
+		case MixedTopologyCylinder:
+			if b.Vertices != ([4]geom.Vec3{}) || b.HexVertices != ([8]geom.Vec3{}) || b.Roof != (ParabolicRoofDescriptor{}) {
+				return mixedTopologyFailure()
+			}
+			e = WriteCircularCylinderSolid(ctx, &raw, b.Cylinder, unit)
+			nc++
 		case MixedTopologyTetrahedron:
 			if b.Roof != (ParabolicRoofDescriptor{}) || b.HexVertices != ([8]geom.Vec3{}) {
 				return mixedTopologyFailure()
@@ -366,7 +423,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 		if e != nil {
 			return e
 		}
-		d, e := readTopologySource(bytes.NewReader(raw.Bytes()), Limits{}, true)
+		d, e := readPlacedTopologyRecords(bytes.NewReader(raw.Bytes()), Limits{}, true, false, false, false, false, false, false, true)
 		if e != nil {
 			return e
 		}
@@ -389,7 +446,7 @@ func WriteMixedTopologySolids(ctx context.Context, w io.Writer, bodies []MixedTo
 			all = append(all, rec)
 		}
 	}
-	if mixedTopologyFamilyCount(nt, nr, nh) < 2 {
+	if mixedTopologyFamilyCount(nt, nr, nh, nc) < 2 {
 		return mixedTopologyFailure()
 	}
 	raw, e := remapTopologyRecords(all, to, unit)

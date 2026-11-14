@@ -528,11 +528,11 @@ func capPositiveBudget(limit, remaining int) int {
 
 func tubeLoopContainment(ctx context.Context, support *geom.SurfacePatch, outer, inner []AlgebraicTubeFaceCutPiece,
 	o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
-	return tubeLoopContainmentOnChart(ctx, 0, support, outer, inner, o)
+	return tubeLoopContainmentOnChart(ctx, 0, support, outer, inner, [2]int{0, 1}, o)
 }
 
 func tubeLoopContainmentOnChart(ctx context.Context, chart int, support *geom.SurfacePatch, outer, inner []AlgebraicTubeFaceCutPiece,
-	o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
+	projection [2]int, o geom.ExactCurvePlaneEventOptions) (inside bool, operations int, err error) {
 	for _, c := range inner {
 		if e := ctx.Err(); e != nil {
 			return false, operations, e
@@ -554,10 +554,16 @@ func tubeLoopContainmentOnChart(ctx context.Context, chart int, support *geom.Su
 				return false, operations, geom.ErrConvergence
 			}
 			t := new(big.Rat).Add(d.Lower, new(big.Rat).Mul(width, big.NewRat(q[0], q[1])))
-			ev, e := c.Segment.EvaluateRationalGraph(ctx, t, geom.TubeAlgebraicGraphEndpointOptions{
+			o := geom.TubeAlgebraicGraphEndpointOptions{
 				SurfaceCurveAgreementOptions: geom.SurfaceCurveAgreementOptions{
 					SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: p.MaxOperations, MaxCoefficientBits: p.MaxCoefficientBits},
-					MaxSubdivisions:     p.MaxSubdivisions}})
+					MaxSubdivisions:     p.MaxSubdivisions}}
+			var ev geom.TubeAlgebraicGraphPointCertificate
+			if projection == [2]int{0, 1} {
+				ev, e = c.Segment.EvaluateRationalGraph(ctx, t, o)
+			} else {
+				ev, e = c.Segment.EvaluateRationalProjectedGraph(ctx, t, projection, o)
+			}
 			operations += ev.ExactOperations
 			if errors.Is(e, geom.ErrConvergence) {
 				continue
@@ -584,7 +590,7 @@ func tubeLoopContainmentOnChart(ctx context.Context, chart int, support *geom.Su
 			if p.MaxOperations < 1 {
 				return false, operations, geom.ErrConvergence
 			}
-			b, used, e := insideClosedTubeAtRoot(ctx, chart, support, outer, ev.Parameters[2*chart], r.Rational, p)
+			b, used, e := insideClosedTubeAtAxisRoot(ctx, chart, support, outer, ev.Parameters[2*chart], r.Rational, 0, p, projection)
 			operations += used
 			if errors.Is(e, geom.ErrConvergence) {
 				continue

@@ -13,13 +13,20 @@ import (
 type AlgebraicVerticalFiberOptions struct {
 	geom.SurfacePatchOptions
 	MaxEvents, MaxSubdivisions, MaxRefinements int
+	// AllowBoundaryIntervals accepts only degree-elevated affine trim spans.
+	AllowBoundaryIntervals bool
 }
 
 // AlgebraicVerticalTrimSource binds an original normalized trim parameter to
 // its exact U-level event. Event coordinates are UV, not model XYZ.
+// Parameter always retains the original normalized trim parameter. For an
+// opt-in coincident span endpoint, Coincident is true and Event may be nil
+// when finite clipping creates an endpoint in the source edge interior.
 type AlgebraicVerticalTrimSource struct {
 	Loop, Edge int
 	Event      *geom.ExactComposedPlaneEvent
+	Parameter  *geom.ExactAlgebraicRoot
+	Coincident bool
 }
 
 // AlgebraicVerticalFiberEvent retains exact line units and original chart V.
@@ -37,6 +44,21 @@ type AlgebraicVerticalFiberInterval struct {
 	// Probe is strictly between the endpoint roots, proved Inside.
 	Probe *big.Rat
 }
+
+// AlgebraicVerticalBoundarySource keeps source parameters in increasing line-t
+// order; the source edge may run oppositely. Loop zero is outer, others holes.
+type AlgebraicVerticalBoundarySource struct {
+	Loop, Edge int
+	Parameters [2]*geom.ExactAlgebraicRoot
+}
+
+// AlgebraicVerticalBoundaryInterval is a positive line-length boundary cell,
+// with zero face-interior area. It is not a strict material-interior interval.
+type AlgebraicVerticalBoundaryInterval struct {
+	Start, End            *geom.ExactAlgebraicRoot
+	FirstEvent, LastEvent int
+	Sources               []AlgebraicVerticalBoundarySource
+}
 type AlgebraicVerticalFiberClassification struct {
 	Complete          bool
 	SuppliedU, FaceU  *big.Rat
@@ -44,6 +66,7 @@ type AlgebraicVerticalFiberClassification struct {
 	Origin, Direction [3]*big.Rat
 	Events            []AlgebraicVerticalFiberEvent
 	Intervals         []AlgebraicVerticalFiberInterval
+	BoundaryIntervals []AlgebraicVerticalBoundaryInterval
 	ExactOperations   int
 }
 
@@ -51,7 +74,8 @@ type AlgebraicVerticalFiberClassification struct {
 // finite vertical line. Positive-weight rational quadratic trim roots and
 // their exact coordinate images are retained, never rounded. Global quotient
 // uniqueness and complete root enumeration precede every rational interval
-// probe. Coincident trim spans remain unsupported; failure is atomic.
+// probe. Coincident trim spans require an opt-in affine source map proof;
+// nonlinear coincident speed remains unsupported. Failure is atomic.
 func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Context, origin, direction geom.Vec3, u *big.Rat, limits [2]*big.Rat, o AlgebraicVerticalFiberOptions) (AlgebraicVerticalFiberClassification, error) {
 	var zero AlgebraicVerticalFiberClassification
 	if ctx == nil || r == nil || len(r.loops) == 0 || u == nil || limits[0] == nil || limits[1] == nil || !origin.IsFinite() || !direction.IsFinite() || direction.X != 0 || direction.Y != 0 || direction.Z == 0 || limits[0].Cmp(limits[1]) > 0 {
@@ -284,6 +308,12 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 			return zero, e
 		}
 	}
+	type affineSpan struct {
+		loop, edge int
+		t0, t1     *big.Rat
+		lo, hi     *geom.ExactAlgebraicRoot
+	}
+	var spans []affineSpan
 	for li, loop := range r.loops {
 		for ei, q := range loop {
 			curve, e := q.modelParameterCurve(ctx, patchOpts())
@@ -304,8 +334,80 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 			if e != nil {
 				return zero, e
 			}
-			if !contacts.Complete || contacts.Coincident {
+			if !contacts.Complete {
 				return zero, geom.ErrConvergence
+			}
+			if contacts.Coincident {
+				if !o.AllowBoundaryIntervals || q.control[0][2].Cmp(q.control[1][2]) != 0 || q.control[0][2].Cmp(q.control[2][2]) != 0 || new(big.Rat).Mul(big.NewRat(2, 1), q.control[1][1]).Cmp(new(big.Rat).Add(q.control[0][1], q.control[2][1])) != 0 {
+					return zero, geom.ErrConvergence
+				}
+				var ts [2]*big.Rat
+				for j, ci := range []int{0, 2} {
+					v := new(big.Rat).Quo(q.control[ci][1], q.control[ci][2])
+					ts[j] = new(big.Rat).Add(offset, new(big.Rat).Mul(scale, v))
+					if e := check(v); e != nil {
+						return zero, e
+					}
+					if e := check(ts[j]); e != nil {
+						return zero, e
+					}
+				}
+				if ts[0].Cmp(ts[1]) == 0 {
+					return zero, geom.ErrConvergence
+				}
+				low, high := ts[0], ts[1]
+				if low.Cmp(high) > 0 {
+					low, high = high, low
+				}
+				if low.Cmp(lo) < 0 {
+					low = lo
+				}
+				if high.Cmp(hi) > 0 {
+					high = hi
+				}
+				if low.Cmp(high) <= 0 {
+					lowRoot, e := rational(low)
+					if e != nil {
+						return zero, e
+					}
+					highRoot, e := rational(high)
+					if e != nil {
+						return zero, e
+					}
+					spans = append(spans, affineSpan{li, ei, ts[0], ts[1], lowRoot, highRoot})
+					for j, t := range []*big.Rat{low, high} {
+						if j == 1 && low.Cmp(high) == 0 {
+							continue
+						}
+						tr := lowRoot
+						if j == 1 {
+							tr = highRoot
+						}
+						s := new(big.Rat).Quo(new(big.Rat).Sub(t, ts[0]), new(big.Rat).Sub(ts[1], ts[0]))
+						if e := check(s); e != nil {
+							return zero, e
+						}
+						sr, e := rational(s)
+						if e != nil {
+							return zero, e
+						}
+						vr, n, e := tr.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(offset), scale), new(big.Rat).Inv(scale), opts())
+						used += n
+						if e != nil {
+							return zero, e
+						}
+						source := AlgebraicVerticalTrimSource{Loop: li, Edge: ei, Parameter: sr, Coincident: true}
+						if s.Sign() == 0 {
+							source.Event = contacts.Boundary[0]
+						} else if s.Cmp(big.NewRat(1, 1)) == 0 {
+							source.Event = contacts.Boundary[1]
+						}
+						if e := add(AlgebraicVerticalFiberEvent{Parameter: tr, V: vr, Location: trimvalidate.Boundary, Sources: []AlgebraicVerticalTrimSource{source}}); e != nil {
+							return zero, e
+						}
+					}
+				}
+				continue
 			}
 			for _, event := range contacts.Events {
 				v, n, e := event.CoordinateRoot(ctx, 1, opts())
@@ -318,7 +420,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 				if e != nil {
 					return zero, e
 				}
-				if e := add(AlgebraicVerticalFiberEvent{Parameter: t, V: v, Location: trimvalidate.Boundary, Sources: []AlgebraicVerticalTrimSource{{Loop: li, Edge: ei, Event: event}}}); e != nil {
+				if e := add(AlgebraicVerticalFiberEvent{Parameter: t, V: v, Location: trimvalidate.Boundary, Sources: []AlgebraicVerticalTrimSource{{Loop: li, Edge: ei, Event: event, Parameter: event.Root()}}}); e != nil {
 					return zero, e
 				}
 			}
@@ -362,6 +464,39 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 			}
 			out.Intervals = append(out.Intervals, AlgebraicVerticalFiberInterval{Start: a, End: b, FirstEvent: i, LastEvent: i + 1, Probe: probe})
 		case trimvalidate.Outside:
+		case trimvalidate.Boundary:
+			interval := AlgebraicVerticalBoundaryInterval{Start: a, End: b, FirstEvent: i, LastEvent: i + 1}
+			for _, span := range spans {
+				c, e := compare(a, span.lo)
+				if e != nil {
+					return zero, e
+				}
+				if c < 0 {
+					continue
+				}
+				c, e = compare(b, span.hi)
+				if e != nil {
+					return zero, e
+				}
+				if c > 0 {
+					continue
+				}
+				source := AlgebraicVerticalBoundarySource{Loop: span.loop, Edge: span.edge}
+				delta := new(big.Rat).Sub(span.t1, span.t0)
+				for j, t := range []*geom.ExactAlgebraicRoot{a, b} {
+					root, n, e := t.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(span.t0), delta), new(big.Rat).Inv(delta), opts())
+					used += n
+					if e != nil {
+						return zero, e
+					}
+					source.Parameters[j] = root
+				}
+				interval.Sources = append(interval.Sources, source)
+			}
+			if len(interval.Sources) == 0 || out.Events[i].Location != trimvalidate.Boundary || out.Events[i+1].Location != trimvalidate.Boundary {
+				return zero, geom.ErrConvergence
+			}
+			out.BoundaryIntervals = append(out.BoundaryIntervals, interval)
 		default:
 			return zero, geom.ErrConvergence
 		}

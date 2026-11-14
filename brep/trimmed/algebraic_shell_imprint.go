@@ -59,7 +59,7 @@ type AlgebraicShellImprint struct {
 // rectangular spline shells. It supports proper open cuts, with distinct
 // transverse anchors, and closed sections wholly inside an original face.
 // Multiple closed loops on one face require disjoint conservative chart
-// boxes or independently proved nesting on a common affine XY face pair.
+// boxes or independently proved nesting on a common affine graph projection.
 // Faces carrying both open and closed cuts remain unresolved.
 // Every section segment is shared by corresponding source fragments. Both
 // results are returned only after closed incidence and vertex links pass.

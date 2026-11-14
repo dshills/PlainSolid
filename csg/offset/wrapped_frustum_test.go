@@ -211,3 +211,66 @@ func TestOpenWrappedCircularFrustumWall(t *testing.T) {
 		t.Fatal("radial contact returned a partial native wall", e)
 	}
 }
+
+func TestEccentricOpenWrappedCircularFrustumBore(t *testing.T) {
+	ctx := context.Background()
+	o := geom.SurfacePatchOptions{}
+	outer, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: -1, Y: 2, Z: 3}, 2, 4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	outer, _, e = geom.DraftWrappedFrustum(ctx, outer, 0, 3, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	local, _, e := geom.InsetWrappedCircularFrustumAtCap(ctx, outer, .5, true, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	translate := func(x, y float64) *geom.WrappedSurfacePatch {
+		t.Helper()
+		d := geom.Identity()
+		d[0][3], d[1][3] = x, y
+		tool, _, e := local.Transformed(ctx, d, geom.WrappedSurfaceOptions{WrapU: true})
+		if e != nil {
+			t.Fatal(e)
+		}
+		return tool
+	}
+	// The offset distance is sqrt(2)/4. The exact radial gap at
+	// either tool endpoint is 5/8, so no square root is needed.
+	tool := translate(.25, .25)
+	body, history, e := trimmed.NewWrappedEccentricCircularFrustumBore(ctx, outer, tool, 1e-8, o)
+	if e != nil || len(body.Faces()) != 5 || body.Topology().EulerCharacteristic != 2 || len(body.Topology().Shells) != 1 ||
+		body.Topology().InnerWires != 1 || history.OuterFaces[2] != history.InnerFaces[2] {
+		t.Fatal("eccentric opening shape and cap ancestry", body.Topology(), history, e)
+	}
+	if f := body.Faces(); f[0].Surface != outer || f[3].Surface != tool || !f[3].Reversed {
+		t.Fatal("original eccentric tool chart lost")
+	}
+	for _, p := range []struct {
+		point geom.Vec3
+		want  parametric.Location
+	}{
+		{geom.Vec3{X: -.75, Y: 2.25, Z: 7}, parametric.Outside},
+		{geom.Vec3{X: 29.0 / 8, Y: 2.25, Z: 7}, parametric.Boundary},
+		{geom.Vec3{X: -.75, Y: 2.25, Z: 3.5}, parametric.Boundary},
+		{geom.Vec3{X: -.75, Y: 2.25, Z: 3.25}, parametric.Inside},
+	} {
+		where, e := trimmed.LocateWrappedEccentricCircularFrustumBore(ctx, outer, tool, p.point, o)
+		if e != nil || where != p.want {
+			t.Fatal("original-axis location", p, where, e)
+		}
+	}
+	mass, e := body.MassProperties(ctx, parametric.IntegrationOptions{})
+	toolCoeff := 3.5 * (1.75*1.75 + 1.75*4.375 + 4.375*4.375) / 3
+	wantVolume := (52 - toolCoeff) * math.Pi
+	wantX := (-52 + .75*toolCoeff) / (52 - toolCoeff)
+	wantY := (104 - 2.25*toolCoeff) / (52 - toolCoeff)
+	if e != nil || math.Abs(mass.Volume-wantVolume) > 1e-8 || math.Abs(mass.Centroid.X-wantX) > 1e-8 || math.Abs(mass.Centroid.Y-wantY) > 1e-8 {
+		t.Fatal("independent eccentric volume and first moment", mass, wantVolume, wantX, wantY, e)
+	}
+	if bad, _, e := trimmed.NewWrappedEccentricCircularFrustumBore(ctx, outer, translate(.625, 0), 1e-8, o); !errors.Is(e, geom.ErrConvergence) || len(bad.Faces()) != 0 {
+		t.Fatal("radial tangency must reject without a body", e)
+	}
+}

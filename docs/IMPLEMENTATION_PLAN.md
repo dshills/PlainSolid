@@ -228,9 +228,13 @@ Separate affine XY lenses on one source pair now also produce a unified
 display with original topology IDs and an exact contact check across
 components. Two nested closed rims on one affine XY source pair form an
 annular Boolean common, including native reload and a certified display.
-Extend these proofs to other graph projections, mixed open and closed
-arrangements, and different original source pairs before using them as
-a general shell mesh.
+The annular display also qualifies a signed YZ projection. Extend these
+proofs to the remaining projection parity, mixed open and closed
+arrangements, and distinct original source pairs before using them as a
+general shell mesh. A sole exterior definite graph contact can now produce
+an empty common and an unchanged cut after exhaustive pair separation.
+Tangential returns, several isolated contacts, and coincident surface
+patches still require separate classification and trim proofs.
 The verified cylindrical quotient handles exact two-image intersections and
 annular union, including original charts on both seam occurrences. Native
 curved face trims also handle bounded rational quadratic pieces crossing a
