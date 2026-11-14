@@ -120,7 +120,13 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.C
 	}
 	f := n.source.boundary.faces[face]
 	difference := collar != nil && collar.difference
-	if difference {
+	union := collar != nil && collar.union
+	if union {
+		if difference || n.source.boundary.op != parametric.Union || f.Reversed {
+			return nil, geom.ErrInvalid
+		}
+		collar.outside = true
+	} else if difference {
 		if n.source.boundary.op != parametric.Difference || f.Reversed != (f.Operand == 1) {
 			return nil, geom.ErrInvalid
 		}
@@ -133,7 +139,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.C
 			return nil, geom.ErrUnrepresentable
 		}
 	}
-	if len(f.Holes) > 0 {
+	if len(f.Holes) > 0 && !union {
 		return nil, geom.ErrUnrepresentable
 	}
 	count := 0
@@ -187,71 +193,106 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.C
 		return nil, e
 	}
 	r := &CertifiedMixedRoofInterior{network: n, face: face, operations: host.operations + other.operations, geometry: mesh.Mesh{Vertices: n.Vertices()}}
-	ring := []int{}
-	for _, u := range f.Outer {
-		path := n.network.Edges[u.Edge]
-		for j := range path {
-			k := j
-			if u.Reversed {
-				k = len(path) - 1 - j
+	var ring []int
+	seed := CertifiedAffineQuadraticTrimMesh{}
+	display := map[int]geom.Vec3{}
+	proof := partitionFillProof{ctx: ctx, limit: o.Proof.MaxPredicates}
+	if union {
+		remaining := o.Proof.MaxOperations - r.operations
+		if remaining <= 0 {
+			return nil, geom.ErrConvergence
+		}
+		region, err := n.ProjectFaceRegionCertified(ctx, face, [2]int{0, 1}, MixedProjectedRegionOptions{MaxVertices: o.Proof.MaxVertices, MaxTriangles: o.Interior.MaxTriangles, MaxOperations: remaining, MaxPredicates: o.Proof.MaxPredicates})
+		if err != nil {
+			return nil, err
+		}
+		r.operations += region.operations
+		proof.work = region.predicates
+		ids := map[int]int{}
+		for _, loop := range region.loops {
+			var local []int
+			for _, id := range loop {
+				ids[id] = len(ring)
+				local = append(local, len(ring))
+				ring = append(ring, id)
 			}
-			v := path[k]
-			if j == 0 && len(ring) > 0 {
-				if ring[len(ring)-1] != v {
-					return nil, geom.ErrInvalid
+			seed.BoundaryLoops = append(seed.BoundaryLoops, local)
+		}
+		for i, id := range ring {
+			v := n.network.Vertices[id]
+			seed.ExactUV = append(seed.ExactUV, region.points[id])
+			seed.Mesh.Vertices = append(seed.Mesh.Vertices, geom.Vec3{X: v.X, Y: v.Y})
+			display[i] = v
+		}
+		for _, tri := range region.triangles {
+			seed.Mesh.Triangles = append(seed.Mesh.Triangles, [3]int{ids[tri[0]], ids[tri[1]], ids[tri[2]]})
+		}
+		seed.Region.FillSquaredDistance = new(big.Rat).Set(region.bound)
+		proof.points = seed.ExactUV
+	} else {
+		for _, u := range f.Outer {
+			path := n.network.Edges[u.Edge]
+			for j := range path {
+				k := j
+				if u.Reversed {
+					k = len(path) - 1 - j
 				}
-				continue
-			}
-			ring = append(ring, v)
-			if len(ring) > o.Proof.MaxVertices+1 {
-				return nil, geom.ErrConvergence
+				v := path[k]
+				if j == 0 && len(ring) > 0 {
+					if ring[len(ring)-1] != v {
+						return nil, geom.ErrInvalid
+					}
+					continue
+				}
+				ring = append(ring, v)
+				if len(ring) > o.Proof.MaxVertices+1 {
+					return nil, geom.ErrConvergence
+				}
 			}
 		}
-	}
-	if len(ring) < 4 || ring[0] != ring[len(ring)-1] {
-		return nil, geom.ErrInvalid
-	}
-	ring = ring[:len(ring)-1]
-	seed := CertifiedAffineQuadraticTrimMesh{}
-	local := make([]int, len(ring))
-	display := map[int]geom.Vec3{}
-	for i, id := range ring {
-		v := n.network.Vertices[id]
-		local[i] = i
-		seed.ExactUV = append(seed.ExactUV, [2]*big.Rat{ratInset(v.X), ratInset(v.Y)})
-		seed.Mesh.Vertices = append(seed.Mesh.Vertices, geom.Vec3{X: v.X, Y: v.Y})
-		display[i] = v
-	}
-	seed.BoundaryLoops = [][]int{local}
-	seed.Region.FillSquaredDistance = new(big.Rat).Mul(ratInset(n.deflection), ratInset(n.deflection))
-	proof := partitionFillProof{ctx: ctx, points: seed.ExactUV, limit: o.Proof.MaxPredicates}
-	if e := proof.simple(local); e != nil {
-		return nil, e
-	}
-	if proof.area(local).Sign() <= 0 {
-		return nil, geom.ErrInvalid
-	}
-	seed.Mesh.Triangles, e = proof.triangulate(local)
-	if e != nil {
-		return nil, e
-	}
-	chain := map[[2]int]int{}
-	area := new(big.Rat)
-	for _, tri := range seed.Mesh.Triangles {
-		a := proof.area(tri[:])
-		if a.Sign() <= 0 {
+		if len(ring) < 4 || ring[0] != ring[len(ring)-1] {
 			return nil, geom.ErrInvalid
 		}
-		area.Add(area, a)
-		for j := 0; j < 3; j++ {
-			partitionChainAdd(chain, tri[j], tri[(j+1)%3], 1)
+		ring = ring[:len(ring)-1]
+		local := make([]int, len(ring))
+		for i, id := range ring {
+			v := n.network.Vertices[id]
+			local[i] = i
+			seed.ExactUV = append(seed.ExactUV, [2]*big.Rat{ratInset(v.X), ratInset(v.Y)})
+			seed.Mesh.Vertices = append(seed.Mesh.Vertices, geom.Vec3{X: v.X, Y: v.Y})
+			display[i] = v
 		}
-	}
-	for j, v := range local {
-		partitionChainAdd(chain, v, local[(j+1)%len(local)], -1)
-	}
-	if len(chain) != 0 || area.Cmp(proof.area(local)) != 0 {
-		return nil, geom.ErrConvergence
+		seed.BoundaryLoops = [][]int{local}
+		seed.Region.FillSquaredDistance = new(big.Rat).Mul(ratInset(n.deflection), ratInset(n.deflection))
+		proof.points = seed.ExactUV
+		if e := proof.simple(local); e != nil {
+			return nil, e
+		}
+		if proof.area(local).Sign() <= 0 {
+			return nil, geom.ErrInvalid
+		}
+		seed.Mesh.Triangles, e = proof.triangulate(local)
+		if e != nil {
+			return nil, e
+		}
+		chain := map[[2]int]int{}
+		area := new(big.Rat)
+		for _, tri := range seed.Mesh.Triangles {
+			a := proof.area(tri[:])
+			if a.Sign() <= 0 {
+				return nil, geom.ErrInvalid
+			}
+			area.Add(area, a)
+			for j := 0; j < 3; j++ {
+				partitionChainAdd(chain, tri[j], tri[(j+1)%3], 1)
+			}
+		}
+		for j, v := range local {
+			partitionChainAdd(chain, v, local[(j+1)%len(local)], -1)
+		}
+		if len(chain) != 0 || area.Cmp(proof.area(local)) != 0 {
+			return nil, geom.ErrConvergence
+		}
 	}
 	l2, _, ok := quadraticPatchLipschitz(host.roof)
 	if !ok {

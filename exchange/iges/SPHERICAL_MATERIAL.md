@@ -59,3 +59,60 @@ Focused ordinary/live, race, Go 1.23, vet and bounded 100-execution fuzz cover t
 new parser mode and previous torus modes. Mutation tests cover support radius,
 meridian transform/endpoints, pole ordinal, seam use, shell sense, malformed
 native payload and input limits.
+
+## Separate proper signed-axis placement
+
+`ReadPlacedSphericalMaterial` and `WritePlacedSpherical` authenticate a separate
+17-record family. The original type 196 support has one proper signed-coordinate
+type 124 placement. The meridian's distinct type 124 must be its exact composition
+with the local XZ circle frame. Both type 502 poles are explicitly in world space
+and must invert exactly to the original ±R poles. All four degree-based type 110
+pcurves remain untransformed source UV; attaching a world transform to one is
+rejected. No transform is inherited from a face, shell or solid.
+
+The native analytic sphere is placed in that same signed frame. Its world pole
+vertices and all six cardinal radius witnesses must be losslessly representable;
+large translations that lose equator coordinates reject even when the source
+poles survive. The existing numerical angular convention still applies between
+those witnesses. Native continuous agreement is bounded at the caller's stated
+tolerance, without repeatedly inflating tolerance during persistence rebuild.
+The placed native recipe retains the common pose, original world poles and
+source metadata and repeats source/geometry validation on reload. Plain trimmed
+JSON reload is qualified as well.
+
+The independently authored `--placed` fixture maps the axis to +X and centers the
+sphere at (10,-3,5). Pinned OCCT source and Go output are valid one-face solids
+with volume 32π/3, area 16π and that centroid. Tests separately check numerical
+coincident seams and radius, exact pole positions, source/native persistence,
+invalid or disagreeing transforms, forbidden pcurve placement, metadata tamper,
+lossy translations and limits. Normal/live, race, Go 1.23, vet and bounded fuzz
+cover the additive mode. Original unplaced acceptance remains unchanged.
+
+## Reordered original sphere topology
+
+`ReadReindexedSphericalMaterial` separately accepts directory reindexing, a
+permutation of the two pole vertices, and a cyclic start change of the four
+original uses. Pole roles follow exact world coordinates inverted through the
+original support placement. Both 504 terminal ordinals and the degenerate 508
+vertex ordinals are remapped consistently. The unique shared meridian remains
+one model edge; all four distinct degree pcurves retain their original IDs.
+A bounded bijective traversal follows the root, support, vertices, curve and
+transform references, then the original strict canonical reader repeats the
+complete geometry, senses and degree-space proof. No loop reversal is inferred.
+
+`SourceForCanonical`, `SourceVertexOrdinals`, `SourceEdgeOrdinals`,
+`SourceUseOrdinals` and `SourceDegreeCurveIDs` retain the original identities.
+The native face points back to its original source face; source-bound native
+reload regenerates every map. Changed public ancestry maps reject before source
+writing. Duplicate/foreign ownership, transform recursion, transformed degree
+pcurves, reversed inconsistent uses, changed poles and changed degree coordinates
+fail closed. The existing 32 KiB/512-record/2048-value limits apply, with at most
+17 entities and 512 graph traversal steps.
+
+`reorder_iges_spherical_material.py` independently reverses directory records and
+pole order, updates every affected pointer/ordinal, and rotates the loop start.
+Both unplaced and placed sources remain valid one-face/one-solid spheres in
+pinned OCCT and survive source/native reload without changing original bytes.
+Focused ordinary/live, race, Go 1.23, vet, prior sphere/torus regression and
+bounded fuzz qualify the separate reader. Native angular evaluation limitations
+are unchanged from the canonical material codec above.

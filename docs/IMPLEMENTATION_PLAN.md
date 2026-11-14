@@ -168,12 +168,22 @@ charts. The three curved roofs use strict signed material cells and
 explicit original trim collars. Final exact contact tests verify the
 assembled closed mesh. The original difference also has a complete
 certified mesh; it retains both components, checks complement signs,
-and reverses cutter faces after source validation. Extend these proofs
-to union, including holed retained fragments. General curved and singular family coverage
-remains a release requirement. Separate exact weighted
+and reverses cutter faces after source validation. The matching union
+passes all 17 original fragments, including an enclosed roof hole. Its
+complement proof intersects each cell with the other chart before
+evaluating the height difference. General curved and singular family
+coverage remains a release requirement. Separate exact weighted
 stock proofs cover closed certified display, finite line events including
 isolated shared supports, nearest original owners, and mass properties
 through rational rigid placement.
+
+The qualified mixed wall branch no longer requires a caller to name the
+face pair, isoparameter, rational cuts, or tube boxes. Automatic discovery
+proves a single transverse iso, clips its full original domain to the
+opposing embedded chart, finds the restricted tubes, and re-proves their
+exact endpoints and complete shell wire joins. This is a bounded fallback
+for regular iso/trapezoid contacts. Multiple spans, coincident intervals,
+and unresolved original pairs still fail closed.
 
 The PlainCAD gates above determine immediate implementation order. The following
 work remains required for the phase exits above. Each result should

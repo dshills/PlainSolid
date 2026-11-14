@@ -29,7 +29,11 @@ triangles preserve the exact boundary source and have a source error
 bound below 0.098 model units. The matching difference also has a closed
 certified mesh for all 14 fragments and two independently oriented
 components. Its 2,018 triangles retain the original charts and reversed
-cutter faces. A complete union mesh remains a separate requirement.
+cutter faces. The matching union has a certified closed mesh with 2,076
+triangles for all 17 original fragments. It includes the roof with an
+enclosed hole, uses the shared original boundary samples, and has a
+source error bound below 0.143 model units. Its complement proof clips
+query cells to the opposing chart before testing height.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -38,6 +42,11 @@ wall owners across isolated contacts, coincident runs, and common line
 intervals between two placed stock bodies. Directional separation and
 nearest owner tests distinguish exact ties from overlapping numerical
 enclosures below binary64 precision.
+Exact ring torus IGES material now covers canonical and signed-axis placed
+sources, including authenticated reordered records. The analytic sphere
+reader qualifies exact IGES pole and seam graphs, including proper signed-axis
+placements; the promoted native sphere uses its established numerical angular
+evaluation and does not claim rational patch sewing.
 
 ## Immediate priority: PlainCAD compatibility
 
@@ -368,6 +377,13 @@ All 17 original Hole and STEP browser tests and the Go/WASM preflight
 passed with no skips or retries. Both crossed and disjoint native STEP
 regressions passed against live OCCT. The verifier checked all 841
 application and 1,885 kernel source hashes.
+The [unequal crossing reconciliation](evidence/plaincad-reconciled-6c990c74-development-unequal-bore-holes-step-2026-11-14.json)
+adds worktree commit `144afff1` to review revision `6c990c74`. The shared
+adaptive mesher retains the existing helical allocation switch. All 17
+original browser cases and the Go/WASM preflight passed without skips or
+retries. Three unequal-radius solids matched live OCCT volume, area, and
+centroid within `10⁻⁶`. All 841 application and 1,894 kernel source hashes
+were verified. STEP for the unequal trim itself was outside this revision.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
