@@ -269,6 +269,15 @@ mode also preserves affine coincident intervals in the same ordered proof.
 The sole external spline shell touch (`25d9d47`) qualifies an interior
 quadratic contact in XY and YZ. Normal, race and OCCT tests verify empty
 common and unchanged cut; native union fails on the nonmanifold point join.
+The unequal-rectangle variant (`ec71388`) first clips both original
+affine chart domains to their exact physical overlap and proves the contact
+there. The analytic world point and both original owner UV coordinates
+survive; normal and focused race checks passed.
+The placed circular IGES material (`02cd1c4`) puts the same proper signed
+type 124 placement on all six support/model leaves. It preserves local
+analytic charts and verifies authored world vertices. OCCT source and output
+agree on one solid, three faces, volume 12π, area 20π, and centroid
+(8.5, -4, 2).
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
