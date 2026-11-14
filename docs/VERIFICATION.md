@@ -45,6 +45,14 @@ fixture agrees with the independent OCCT surface area, while a transverse
 crossing rejects this whole-face proof. Rigid placement preserves the
 rational enclosure; exhaustion and cancellation expose no partial ledger.
 
+The signed-axis spherical STEP hierarchy materializes as an editable native
+document with one planar and three curved assets. Its seven material
+occurrences retain their proved world poses and original relationship paths;
+both sphere instances share the same local asset. STEP and source-bound native
+imports produce the same document nodes and provenance labels. Reopening the
+editable document is byte stable, and moving one sphere leaves the other
+unchanged; Undo restores the original path placement.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall
