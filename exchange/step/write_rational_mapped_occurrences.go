@@ -41,6 +41,9 @@ func mappedTerminatingDecimal(q *big.Rat) (string, error) {
 // once. Local geometry, names, units and membership are preserved; no lossy
 // rational-to-binary conversion is used. Output is staged and fully revalidated.
 func WriteRationalMappedPlanarPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits) error {
+	return writeRationalMappedPlacements(w, source, placements, l, false)
+}
+func writeRationalMappedPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits, nested bool) error {
 	if w == nil || source == nil || len(placements) > 16 {
 		return mappedPlanarFailure()
 	}
@@ -48,17 +51,29 @@ func WriteRationalMappedPlanarPlacements(w io.Writer, source *File, placements [
 	if e != nil {
 		return e
 	}
-	a, e := ReadRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
-	if e != nil {
-		return e
-	}
-	if len(placements) != len(a.Occurrences) {
-		return mappedPlanarFailure()
-	}
-	f := a.Source
+	var f *File
 	known := map[int64]bool{}
-	for _, u := range a.Occurrences {
-		known[u.ItemID] = true
+	if nested {
+		a, err := ReadNestedRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+		if err != nil {
+			return err
+		}
+		f = a.Source
+		for _, u := range a.Occurrences {
+			known[u.Path[0].ItemID] = true
+		}
+	} else {
+		a, err := ReadRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+		if err != nil {
+			return err
+		}
+		f = a.Source
+		for _, u := range a.Occurrences {
+			known[u.ItemID] = true
+		}
+	}
+	if len(placements) != len(known) {
+		return mappedPlanarFailure()
 	}
 	var next, rootID int64
 	for _, id := range f.Order {
@@ -66,8 +81,8 @@ func WriteRationalMappedPlanarPlacements(w io.Writer, source *File, placements [
 			next = id
 		}
 		en := f.Entities[id]
-		if len(en.Records) == 1 && en.Records[0].Type == "SHAPE_REPRESENTATION" {
-			rootID = id
+		if len(en.Records) == 1 && en.Records[0].Type == "SHAPE_DEFINITION_REPRESENTATION" {
+			rootID = en.Records[0].Args[1].Ref
 		}
 	}
 	if next > 1<<60 {
@@ -149,7 +164,12 @@ func WriteRationalMappedPlanarPlacements(w io.Writer, source *File, placements [
 	if e != nil {
 		return e
 	}
-	if _, e = ReadRationalMappedPlanarMaterials(bytes.NewReader(raw), l); e != nil {
+	if nested {
+		_, e = ReadNestedRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+	} else {
+		_, e = ReadRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+	}
+	if e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

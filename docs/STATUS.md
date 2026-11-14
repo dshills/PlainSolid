@@ -241,6 +241,11 @@ production cases on the same 841 pinned sources. The
 [production record](evidence/plaincad-reconciled-967e3c3-production-2026-11-13.json)
 includes the verified no-OCCT backend preflight, production build and exact
 test selection. The remaining full unit and release gates still require work.
+The next reconciled build `0bdb699` passed the five original development STEP
+import/export cases with the no-OCCT Go/WASM preflight, no retries or skips,
+and checks of all 841 original source files. The
+[development STEP record](evidence/plaincad-reconciled-0bdb699-development-step-2026-11-13.json)
+covers lifecycle and placed native geometry on that exact build.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.

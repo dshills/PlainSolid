@@ -46,3 +46,29 @@ independent bound check (`PLAINSOLID_OCCT_MAPPED_BOUNDS`). Tests cover source pa
 preservation, shared local assets, exact composed coordinates, represented-only
 baking, flat-format rejection, cycles, duplicate uses, context mismatch, ignored
 orphans, operator scale and cumulative limits.
+
+## Editing outer group poses
+
+`WriteNestedRationalMappedOuterPlacements` separately authors exact poses for
+all outer group uses. Inner uses and their complete referenced geometry/context
+closure remain byte-for-byte equivalent at original entity IDs. The editor
+requires each original outer item once, so a leaf item cannot be mistaken for a
+group use. New operator/datum records are private to each edited outer item;
+item/map/name identity stays stable, while ancestry correctly reports the new
+target IDs in the newly authored source. The old source is unmodified and can
+still be exported independently. Unreferenced old operator datums are removed;
+any datum still owned by the inner closure remains.
+
+`RationalMappedPlanarDocument.WithOuterPlacements` returns a new separately
+validated document and verifies unchanged native local asset bytes. It does not
+mutate the receiver or retain caller-owned rational values. The separately tagged
+nested version1 envelope and flat API restrictions stay unchanged.
+
+A retained-source edit raises the first group by5 in Z and moves the second
+rational group to Xtranslation200. Exact native bounds are(−10,−8,0) to(206,22,9).
+After native write/reload and STEP regeneration, pinned OCCT independently
+confirms these bounds and valid material. Tests verify unchanged inner dependency
+records and old source, stable leaf ancestry, new outer target ancestry, shared
+local assets, copied input rationals, invalid leaf/missing/duplicate selection,
+irrational frames, budgets and atomic rejection. Enable
+`TestOCCTEditedNestedMappedNative` with `PLAINSOLID_OCCT_MAPPED_BOUNDS`.

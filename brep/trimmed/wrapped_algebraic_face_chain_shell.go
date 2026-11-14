@@ -85,6 +85,28 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 	if ctx == nil || p == nil || len(p.pairs) < 1 || len(p.pairs) > 7 || len(p.boundary) < 3 {
 		return nil, geom.ErrInvalid
 	}
+	out, e := materializeWrappedPairChain(ctx, p.pairs, p.boundary, o)
+	if e != nil {
+		return nil, e
+	}
+	out.embedding = p
+	return out, nil
+}
+
+// Geometry-independent indexed construction. Callers supply a complete global
+// separation certificate; this helper proves native ownership and manifold links.
+func materializeWrappedPairChain(ctx context.Context, pairs []*WrappedAlgebraicOpenShell, expectedBoundary []WrappedChainBoundaryEdge, o edgecheck.Options) (*WrappedAlgebraicFaceChainShell, error) {
+	if ctx == nil || len(pairs) < 1 || len(pairs) > 7 {
+		return nil, geom.ErrInvalid
+	}
+	for i, pair := range pairs {
+		if pair == nil {
+			return nil, geom.ErrInvalid
+		}
+		if i > 0 && pairs[i-1].sources[1] != pair.sources[0] {
+			return nil, geom.ErrInvalid
+		}
+	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
@@ -100,7 +122,7 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 	if o.MaxWork < 1 || o.MaxBits < 64 || o.MaxIntervals < 1 {
 		return nil, geom.ErrInvalid
 	}
-	for _, pair := range p.pairs {
+	for _, pair := range pairs {
 		if pair == nil || pair.sources[0] == nil || pair.sources[1] == nil {
 			return nil, geom.ErrInvalid
 		}
@@ -108,9 +130,9 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 			return nil, e
 		}
 	}
-	source := make([]SewFace, len(p.pairs)+1)
-	source[0] = p.pairs[0].sources[0].NativeFace()
-	for i, pair := range p.pairs {
+	source := make([]SewFace, len(pairs)+1)
+	source[0] = pairs[0].sources[0].NativeFace()
+	for i, pair := range pairs {
 		source[i+1] = pair.sources[1].NativeFace()
 	}
 	offsets := make([]int, len(source))
@@ -134,7 +156,7 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 	}
 	// Mate identities are expressed in each original source, not pair-local
 	// reindexed vertices. The shared middle face is inserted exactly once.
-	for pi, pair := range p.pairs {
+	for pi, pair := range pairs {
 		for side := 0; side < 2; side++ {
 			_, v, e := pair.pair.Endpoint(side)
 			if e != nil {
@@ -147,7 +169,7 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 			parent[b] = a
 		}
 	}
-	out := &WrappedAlgebraicFaceChainShell{embedding: p}
+	out := &WrappedAlgebraicFaceChainShell{}
 	ids := map[int]int{}
 	vertexMap := make([][]int, len(source))
 	for fi, f := range source {
@@ -176,11 +198,11 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 			id := -1
 			rev := false
 			if fi > 0 {
-				left, _ := p.pairs[fi-1].pair.Owner(0)
-				right, _ := p.pairs[fi-1].pair.Owner(1)
+				left, _ := pairs[fi-1].pair.Owner(0)
+				right, _ := pairs[fi-1].pair.Owner(1)
 				if ei == right.NativeEdge {
 					id = edgeMap[fi-1][left.NativeEdge]
-					rev = true
+					rev = pairs[fi-1].pair.ReversedParameter()
 				}
 			}
 			if id < 0 {
@@ -228,17 +250,17 @@ func NewWrappedAlgebraicFaceChainShell(ctx context.Context, p *WrappedAlgebraicF
 	}
 	// Match the certified global exterior to the native graph, including source
 	// owner labels; reversed face normals reverse the whole physical traversal.
-	for i := range p.boundary {
+	for i := range expectedBoundary {
 		at := i
 		if out.faces[0].Reversed {
-			at = len(p.boundary) - 1 - i
+			at = len(expectedBoundary) - 1 - i
 		}
-		expected := p.boundary[at]
+		expected := expectedBoundary[at]
 		if i >= len(boundary) || boundary[i].Face != expected.Face || boundary[i].LocalEdge != expected.LocalEdge {
 			return nil, geom.ErrDomain
 		}
 	}
-	if len(boundary) != len(p.boundary) {
+	if expectedBoundary != nil && len(boundary) != len(expectedBoundary) {
 		return nil, geom.ErrDomain
 	}
 	out.boundary = boundary
