@@ -430,7 +430,11 @@ func insideConvexTubeFace(f Face, uv [2]*big.Rat) bool {
 }
 
 func pointOnTubeLoop(ctx context.Context, cut []AlgebraicTubeFaceCutPiece,
-	uv [2][2]*big.Rat, o geom.ExactCurvePlaneEventOptions) (bool, int, error) {
+	uv [2][2]*big.Rat, o geom.ExactCurvePlaneEventOptions, projection ...[2]int) (bool, int, error) {
+	axes := [2]int{0, 1}
+	if len(projection) > 0 {
+		axes = projection[0]
+	}
 	used := 0
 	exact := func() geom.ExactCurvePlaneEventOptions {
 		p := o
@@ -493,7 +497,7 @@ func pointOnTubeLoop(ctx context.Context, cut []AlgebraicTubeFaceCutPiece,
 		if x.MaxOperations < 1 {
 			return false, used, geom.ErrConvergence
 		}
-		r, e := p.Segment.EvaluateRationalGraph(ctx, uv[axis/2][axis%2], geom.TubeAlgebraicGraphEndpointOptions{
+		r, e := p.Segment.EvaluateRationalProjectedGraph(ctx, uv[axis/2][axis%2], axes, geom.TubeAlgebraicGraphEndpointOptions{
 			SurfaceCurveAgreementOptions: geom.SurfaceCurveAgreementOptions{
 				SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: x.MaxOperations, MaxCoefficientBits: x.MaxCoefficientBits},
 				MaxSubdivisions:     x.MaxSubdivisions}})
