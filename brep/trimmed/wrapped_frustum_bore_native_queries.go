@@ -138,6 +138,23 @@ func (s Solid) IntersectCanonicalWrappedFrustumBoreLine(ctx context.Context, ori
 
 func (s Solid) intersectCanonicalFrustumBoreLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64,
 	o geom.ToroidLineOptions, oneOpening bool) (WrappedLoftLineIntersections, error) {
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
+		return WrappedLoftLineIntersections{}, geom.ErrInvalid
+	}
+	return s.intersectCanonicalFrustumBoreLineRational(ctx,
+		[3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		[3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}, ratInset(minT), ratInset(maxT), o, oneOpening)
+}
+
+// IntersectCanonicalWrappedFrustumBoreLineRational preserves exact line
+// coefficients, parameter bounds, and native face ownership.
+func (s Solid) IntersectCanonicalWrappedFrustumBoreLineRational(ctx context.Context, origin, direction [3]*big.Rat,
+	minT, maxT *big.Rat, o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
+	return s.intersectCanonicalFrustumBoreLineRational(ctx, origin, direction, minT, maxT, o, false)
+}
+
+func (s Solid) intersectCanonicalFrustumBoreLineRational(ctx context.Context, origin, direction [3]*big.Rat,
+	minT, maxT *big.Rat, o geom.ToroidLineOptions, oneOpening bool) (WrappedLoftLineIntersections, error) {
 	var empty WrappedLoftLineIntersections
 	p, e := s.ValidateCanonicalWrappedFrustumBore(ctx, o.Surface)
 	if e != nil {
@@ -146,7 +163,7 @@ func (s Solid) intersectCanonicalFrustumBoreLine(ctx context.Context, origin, di
 	if oneOpening && p.Kind != "blind-bore" {
 		return empty, geom.ErrConvergence
 	}
-	r, e := IntersectWrappedEccentricCircularFrustumBoreLine(ctx, p.Outer, p.Inner, origin, direction, minT, maxT, o)
+	r, e := IntersectWrappedEccentricCircularFrustumBoreLineRational(ctx, p.Outer, p.Inner, origin, direction, minT, maxT, o)
 	if e != nil {
 		return empty, e
 	}

@@ -217,3 +217,123 @@ func TestNativeWrappedFrustumBoreLineThroughAndCavity(t *testing.T) {
 		})
 	}
 }
+
+func TestNativeWrappedFrustumBoreRationalLineNearTangent(t *testing.T) {
+	ctx := context.Background()
+	patchOptions := geom.SurfacePatchOptions{}
+	stock, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, patchOptions)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, cavity := range []bool{false, true} {
+		name, z, h := "through", 0.0, 4.0
+		if cavity {
+			name, z, h = "cavity", .5, 3
+		}
+		t.Run(name, func(t *testing.T) {
+			tool, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: .25, Y: .25, Z: z}, 1, h, patchOptions)
+			if e != nil {
+				t.Fatal(e)
+			}
+			body, _, e := NewWrappedEccentricCircularFrustumBore(ctx, stock, tool, 1e-8, patchOptions)
+			if e != nil {
+				t.Fatal(e)
+			}
+			var saved bytes.Buffer
+			if e = WriteJSON(&saved, body); e != nil {
+				t.Fatal(e)
+			}
+			body, e = ReadJSONContext(ctx, &saved, JSONLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			faces := body.Faces()
+			slices.Reverse(faces)
+			body, e = NewSolidContext(ctx, body.Vertices(), body.Edges(), faces, 1e-8)
+			if e != nil {
+				t.Fatal(e)
+			}
+			proof, e := body.ValidateCanonicalWrappedFrustumBore(ctx, patchOptions)
+			if e != nil {
+				t.Fatal(e)
+			}
+			o := geom.ToroidLineOptions{ParameterTolerance: 1e-23}
+			zero := new(big.Rat)
+			if cavity {
+				p := [3]*big.Rat{big.NewRat(1, 3), big.NewRat(1, 5), big.NewRat(-1, 3)}
+				d := [3]*big.Rat{zero, zero, big.NewRat(2, 3)}
+				r, e := body.IntersectCanonicalWrappedFrustumBoreLineRational(ctx, p, d, big.NewRat(1, 7), big.NewRat(7, 1), o)
+				if e != nil || len(r.Hits) != 4 || len(r.Overlaps) != 0 {
+					t.Fatal("four original disk contacts expected", r, e)
+				}
+				want := [4]*big.Rat{big.NewRat(1, 2), big.NewRat(5, 4), big.NewRat(23, 4), big.NewRat(13, 2)}
+				owners := [4]int{proof.OuterFaces[1], proof.InnerFaces[1], proof.InnerFaces[2], proof.OuterFaces[2]}
+				for i, hit := range r.Hits {
+					if hit.Parameter.Min.Cmp(want[i]) != 0 || hit.Parameter.Max.Cmp(want[i]) != 0 || !slices.Equal(hit.Faces, []int{owners[i]}) {
+						t.Fatal("nonbinary retained cap contact", i, hit, want[i])
+					}
+				}
+				return
+			}
+			middle := big.NewRat(55, 36)
+			lo, hi := new(big.Rat).Sub(middle, big.NewRat(1, 7)), new(big.Rat).Add(middle, big.NewRat(1, 9))
+			owners := []int{proof.OuterFaces[2], proof.InnerFaces[0]}
+			slices.Sort(owners)
+			d := [3]*big.Rat{big.NewRat(3, 5), zero, zero}
+			for sign := -1; sign <= 1; sign++ {
+				dy := new(big.Rat).SetFrac(big.NewInt(int64(sign)), new(big.Int).Lsh(big.NewInt(1), 120))
+				p := [3]*big.Rat{big.NewRat(-2, 3), new(big.Rat).Add(big.NewRat(5, 4), dy), big.NewRat(4, 1)}
+				r, e := body.IntersectCanonicalWrappedFrustumBoreLineRational(ctx, p, d, lo, hi, o)
+				spans := 1
+				if sign < 0 {
+					spans++
+				}
+				if e != nil || len(r.Hits) != 1-sign || len(r.Overlaps) != spans {
+					t.Fatal("sub-ULP annular tangent classification", sign, r, e)
+				}
+				for _, hit := range r.Hits {
+					if !slices.Equal(hit.Faces, owners) {
+						t.Fatal("original reindexed annular rim owners lost", hit.Faces, owners)
+					}
+				}
+				if sign == 0 && (r.Hits[0].Parameter.Multiplicity != 2 || r.Hits[0].Parameter.Min.Cmp(middle) != 0 || r.Hits[0].Parameter.Max.Cmp(middle) != 0) {
+					t.Fatal("the exact rational tangent was rounded", r)
+				}
+				if sign < 0 && (r.Hits[0].Parameter.Max.Cmp(middle) >= 0 || r.Hits[1].Parameter.Min.Cmp(middle) <= 0) {
+					t.Fatal("the two inner rims must separate across the tangent", r)
+				}
+				for _, overlap := range r.Overlaps {
+					if overlap.Face != proof.OuterFaces[2] {
+						t.Fatal("incorrect original annular overlap owner", overlap)
+					}
+				}
+				limited := o
+				limited.Surface.MaxCoefficientBits = 64
+				if sign != 0 {
+					if r, e := body.IntersectCanonicalWrappedFrustumBoreLineRational(ctx, p, d, lo, hi, limited); !errors.Is(e, geom.ErrConvergence) || len(r.Hits)+len(r.Overlaps) != 0 {
+						t.Fatal("excess input precision must be rejected atomically", r, e)
+					}
+				}
+			}
+			// A shallow oblique line hits the outer lower rim, then leaves
+			// the outer wall only ~2^-118 later. These are separate events
+			// even with a requested root width larger than their separation.
+			eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+			p := [3]*big.Rat{big.NewRat(2, 1), zero, zero}
+			d = [3]*big.Rat{new(big.Rat).Neg(eps), big.NewRat(1, 1), big.NewRat(1, 1)}
+			r, e := body.IntersectCanonicalWrappedFrustumBoreLineRational(ctx, p, d, zero, big.NewRat(1, 7), o)
+			if e != nil || len(r.Hits) != 2 || len(r.Overlaps) != 0 {
+				t.Fatal("nearby cap and wall contacts must separate", r, e)
+			}
+			owners = []int{proof.OuterFaces[0], proof.OuterFaces[1]}
+			slices.Sort(owners)
+			want := new(big.Rat).Quo(new(big.Rat).Mul(big.NewRat(4, 1), eps), new(big.Rat).Add(big.NewRat(1, 1), new(big.Rat).Mul(eps, eps)))
+			if r.Hits[0].Parameter.Min.Sign() != 0 || r.Hits[0].Parameter.Max.Sign() != 0 || !slices.Equal(r.Hits[0].Faces, owners) ||
+				r.Hits[1].Parameter.Min.Sign() <= 0 || r.Hits[1].Parameter.Min.Cmp(want) > 0 || r.Hits[1].Parameter.Max.Cmp(want) < 0 ||
+				!slices.Equal(r.Hits[1].Faces, []int{proof.OuterFaces[0]}) {
+				t.Fatal("rim or near-wall event is missing its original ownership", r, want)
+			}
+
+		})
+	}
+}
