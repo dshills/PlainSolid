@@ -2014,3 +2014,5 @@ circular frustum solids with existing planar, spherical, cylindrical and
 toroidal products under proper signed-coordinate occurrence placement.
 Its native envelope re-proves the original STEP graph, local topology,
 original support IDs and exact placement paths before returning geometry.
+It also returns tight rational world bounds for every original use and
+their aggregate, including noncircular wrapped frustum profiles.

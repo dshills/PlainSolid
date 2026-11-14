@@ -5629,6 +5629,11 @@ geometry, support provenance, definition IDs, roles, pose paths, source
 bytes, tag and version. Native-to-STEP transfer remains valid in the live
 OCCT assembly oracle. The integrated native/frustum/legacy-torus race
 passed in 21.393 s; the originating bounded fuzz run exercised 40 inputs.
+World bounds remain exact after signed-axis placement and native reload.
+Circular and noncircular frusta use attained support extrema and retain
+every original occurrence path. The aggregate agrees with pinned OCCT;
+forged paths and exhausted source limits fail. The integrated live race
+passed in 14.041 s.
 
 The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
 finished with 340 passes and four failures. The original two focused

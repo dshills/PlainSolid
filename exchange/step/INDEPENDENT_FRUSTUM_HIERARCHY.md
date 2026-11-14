@@ -58,3 +58,21 @@ Bounded mutation campaign: `go test ./exchange/step -run '^$' -fuzz
 '^FuzzIndependentFrustumHierarchyNative$' -fuzztime=40x -parallel=2` completed
 40 executions with valid native and malformed-envelope seeds. Input is capped
 at 1 MiB in the fuzz target; parser and material quotas remain active.
+
+## Exact signed-pose world bounds
+
+`BoundIndependentFrustumHierarchy` re-proves source, native local assets and
+occurrence paths before returning exact rational AABBs for all five families.
+For the tapered rational profile, positive weights keep each quadrant in its
+control square, while the cardinal endpoints attain its axis extrema. The
+common positive endpoint radius varies linearly with height, so its maximum is
+attained at a cap. This proof applies to the accepted noncircular profiles too.
+Signed-coordinate rigid occurrences preserve these extrema exactly. All axis
+padding is zero; no rounded vertex baking or sampled extremum is used.
+
+Returned leaf records identify the original product, body, source faces and
+complete occurrence path. Their boxes describe whole bodies, not individual
+trimmed faces. Rational coordinate accessors copy their values. Separate source,
+point-evaluation and coefficient budgets fail atomically. Independent OCCT world
+bounds match the translated and rotated nine-occurrence fixture after native
+reload; a noncircular original-support regression uses the same exact extrema.

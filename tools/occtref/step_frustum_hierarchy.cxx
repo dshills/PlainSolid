@@ -3,6 +3,8 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
 #include <TopExp_Explorer.hxx>
 #include <iostream>
 #include <iomanip>
@@ -20,5 +22,6 @@ int main(int argc,char**argv){
  double ve=BRepGProp::VolumeProperties(s,volume,1e-12,true,false);
  double ae=BRepGProp::SurfaceProperties(s,area,1e-12,false);
  if(!std::isfinite(ve)||!std::isfinite(ae)||!std::isfinite(volume.Mass())||!std::isfinite(area.Mass()))return 7;
- std::cout<<std::setprecision(17)<<"{\"Area\":"<<area.Mass()<<",\"Volume\":"<<volume.Mass()<<",\"Faces\":"<<faces<<",\"Solids\":"<<solids<<",\"AreaError\":"<<ae<<",\"VolumeError\":"<<ve<<"}\n";
+ Bnd_Box box;BRepBndLib::AddOptimal(s,box,false,false);double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
+ std::cout<<std::setprecision(17)<<"{\"Area\":"<<area.Mass()<<",\"Volume\":"<<volume.Mass()<<",\"Faces\":"<<faces<<",\"Solids\":"<<solids<<",\"AreaError\":"<<ae<<",\"VolumeError\":"<<ve<<",\"Bounds\":["<<x0<<","<<y0<<","<<z0<<","<<x1<<","<<y1<<","<<z1<<"]}\n";
 }
