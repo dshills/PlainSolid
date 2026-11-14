@@ -1,0 +1,110 @@
+{
+  "schema": "plainsolid-native-full-trimmed-v1",
+  "status": "passed",
+  "revision": "139c431ee81b31cbcb9ac3c3dd6e3d3dfb32c8d4",
+  "source": "clean committed Git archive",
+  "mode": "full",
+  "cgoEnabled": false,
+  "goVersion": "go version go1.27.4 darwin/arm64",
+  "testListSha256": "5bf96a46f8e051b9b95fb9a143232637fcf9391c144f687e8bb6ca63bf7fe348",
+  "shards": [
+    {
+      "index": 0,
+      "expectedTopLevel": 192,
+      "topLevel": {
+        "pass": 190,
+        "skip": 2
+      },
+      "testEvents": {
+        "pass": 225,
+        "skip": 2
+      },
+      "elapsedSeconds": 2218.079,
+      "firstEvent": "2026-11-14T04:16:06.532222-06:00",
+      "lastEvent": "2026-11-14T04:53:04.598931-06:00",
+      "selectionSha256": "d0af4c80df98f178291687e9abff93168367c8bbb31b2cdb68b326c63f039b48",
+      "rawJSONLinesSha256": "e6230ecaf742a5f3cac7b83c20d02d1c19147e4854023d5ab58c9fdc12c70adc",
+      "skipped": [
+        "TestExactSameSideDualDiskAgainstOCCT",
+        "TestOCCTExternallyTangentSeparableSplineShells"
+      ]
+    },
+    {
+      "index": 1,
+      "expectedTopLevel": 191,
+      "topLevel": {
+        "pass": 188,
+        "skip": 3
+      },
+      "testEvents": {
+        "pass": 202,
+        "skip": 3
+      },
+      "elapsedSeconds": 631.91,
+      "firstEvent": "2026-11-14T04:16:06.54979-06:00",
+      "lastEvent": "2026-11-14T04:26:38.456461-06:00",
+      "selectionSha256": "82ae0919633458bae75be28ed8122acb4036955745be40086ba3243e6f031895",
+      "rawJSONLinesSha256": "f1549ff5d64edb46eb627635381c7c4d3e23ffc16610e213f51b52712f81826f",
+      "skipped": [
+        "TestGeneralSideOpenDualDiskAgainstOCCT",
+        "TestOCCTExternallyTangentSplineShellsMultipleKnotContacts",
+        "TestStraightTubeMassInvestigation"
+      ]
+    },
+    {
+      "index": 2,
+      "expectedTopLevel": 191,
+      "topLevel": {
+        "pass": 188,
+        "skip": 3
+      },
+      "testEvents": {
+        "pass": 228,
+        "skip": 3
+      },
+      "elapsedSeconds": 2020.426,
+      "firstEvent": "2026-11-14T04:16:06.554467-06:00",
+      "lastEvent": "2026-11-14T04:49:46.969182-06:00",
+      "selectionSha256": "b8a91404d0a7da732ed4b40e77ee13c1e9d64cc12dfece699d42d21a2445e868",
+      "rawJSONLinesSha256": "997cd47ae029ca21e7a58aeb11461fa5b1d190938cee677bef22dcb71766d077",
+      "skipped": [
+        "TestOCCTExternallyTangentSplineShells",
+        "TestOCCTExternallyTangentSplineShellsDistinctPairs",
+        "TestOCCTWrappedFrustumBoreMass"
+      ]
+    },
+    {
+      "index": 3,
+      "expectedTopLevel": 191,
+      "topLevel": {
+        "pass": 186,
+        "skip": 5
+      },
+      "testEvents": {
+        "pass": 231,
+        "skip": 5
+      },
+      "elapsedSeconds": 1224.23,
+      "firstEvent": "2026-11-14T04:16:06.548376-06:00",
+      "lastEvent": "2026-11-14T04:36:30.773008-06:00",
+      "selectionSha256": "b031bb75c5ece66cdfccc124b61a41bdf656ab765b7372e346ede2dd87f1e9d0",
+      "rawJSONLinesSha256": "c49842af77b8a194115c177f464112f211f0b6525d67735ab42fd1323b5cd7c2",
+      "skipped": [
+        "TestQualifyNestedQuarticShell",
+        "TestUnequalSideOpenDualDiskAgainstOCCT",
+        "TestSplineMultiPlaneCutsOCCT",
+        "TestOCCTExternallyTangentQuarticSplineShells",
+        "TestOCCTWrappedFrustumBoreBoundaryDistance"
+      ]
+    }
+  ],
+  "topLevel": {
+    "pass": 752,
+    "skip": 13
+  },
+  "testEvents": {
+    "pass": 886,
+    "skip": 13
+  },
+  "shardCommand": "go test -json ./brep/trimmed -run <pinned disjoint shard> -count=1 -timeout=65m"
+}

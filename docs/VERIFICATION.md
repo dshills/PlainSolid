@@ -6,11 +6,25 @@ three packages have no tests. Go reported 4,414 passing test events and
 381 skips, including opt-in external comparators. The previously short-only
 trimmed cases are tracked separately. The exact Go module list contains
 only PlainSolid.
+The [entire trimmed suite in full mode](evidence/native-full-trimmed-139c431-2026-11-14.json)
+passed on a separate clean `139c431` archive with CGO disabled. Four
+disjoint shards accounted for all 765 top-level tests: 752 passed and 13
+skipped. Counting subtests, Go reported 886 passing events. The longest
+shard took 2,218 seconds. The evidence names each skip and records the
+command, selection hashes, and raw report hashes for all four shards.
 The [selected trimmed full-mode run](evidence/native-full-selected-trimmed-2026-11-14.json)
 passed all 14 top-level cases and their eight nested test events, including
 the expensive nested exact annulus meshes and closed transverse Boolean
 operations. It was a working-checkout diagnostic; the pinned entire trimmed
-suite is tracked separately.
+suite is recorded above.
+
+The [current cross-browser reconciliation](evidence/plaincad-reconciled-56b4633-cross-browser-2026-11-14.json)
+passed all 15 original cases on PlainCAD `50432ed` and clean review
+revision `56b4633`: five each on Chromium, Firefox, and WebKit, with no
+skips or retries. The verifier checked all 841 app source blobs and all
+1,795 kernel and harness source blobs. The original Playwright config
+was byte identical, and the separate backend preflight confirmed Go WASM
+without OCCT requests.
 
 
 Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
