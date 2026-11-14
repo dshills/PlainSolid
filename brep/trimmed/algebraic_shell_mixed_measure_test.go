@@ -247,6 +247,7 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		checkMixedOriginalAlgebraicLines(t, ctx, roof, i)
 		checkPlacedOriginalRoofQueries(t, ctx, roof, i, delta)
 		checkOriginalRoofDistance(t, ctx, roof, i)
+		checkOriginalRoofNormals(t, ctx, roof, i)
 		if len(distanceRefs[i]) != 0 {
 			r := big.NewRat
 			points := [4][3]*big.Rat{{r(1, 2), r(1, 2), r(-5, 8)}, {r(1, 2), r(1, 2), r(-9, 8)},
@@ -449,6 +450,67 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
 		t.Fatal("cancellation may not expose partial material measure", partial, err)
+	}
+}
+
+func checkOriginalRoofNormals(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int) {
+	t.Helper()
+	r := big.NewRat
+	opt := geom.SurfacePatchEvaluationOptions{}
+	check := func(got MixedRoofNormal, owner MixedRoofFaceOwner, want [3]*big.Rat) {
+		if got.Owner != owner {
+			t.Fatal("wrong original normal owner", op, got.Owner, owner)
+		}
+		for i, x := range want {
+			if got.Direction[i].Cmp(x) != 0 {
+				t.Fatal("wrong exact outward normal", op, owner, i, got.Direction[i], x)
+			}
+		}
+	}
+	p := [3]*big.Rat{r(1, 2), r(1, 2), r(-7, 128)}
+	got, err := roof.BoundaryNormalsRational(ctx, p, opt)
+	if err != nil || got.Location != [3]parametric.Location{parametric.Boundary, parametric.Inside, parametric.Boundary}[op] ||
+		len(got.Normals) != [3]int{1, 0, 1}[op] {
+		t.Fatal("buried tool roof leaked a normal", op, got, err)
+	}
+	if op != 1 {
+		sign := int64(1 - op)
+		check(got.Normals[0], MixedRoofFaceOwner{1, 1}, [3]*big.Rat{r(-sign, 128), r(-sign, 128), r(sign, 1)})
+	}
+	p = [3]*big.Rat{r(0, 1), r(1, 2), r(0, 1)}
+	got, err = roof.BoundaryNormalsRational(ctx, p, opt)
+	if err != nil || got.Location != parametric.Boundary || len(got.Normals) != 2 {
+		t.Fatal("original roof/side seam normals missing", op, got, err)
+	}
+	check(got.Normals[0], MixedRoofFaceOwner{0, 1}, [3]*big.Rat{r(-1, 128), r(0, 1), r(1, 1)})
+	side := [3]*big.Rat{r(-1, 1), r(0, 1), r(0, 1)}
+	if op == 2 {
+		side[0].Neg(side[0])
+	}
+	check(got.Normals[1], MixedRoofFaceOwner{1, 2}, side)
+	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{r(3, 5), r(0, 1), r(4, 5), r(7, 3)},
+		{r(0, 1), r(1, 1), r(0, 1), r(2, 7)},
+		{r(-4, 5), r(0, 1), r(3, 5), r(-1, 3)},
+	}, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	placed, err := roof.Place(pose)
+	if err != nil {
+		t.Fatal(err)
+	}
+	world, err := pose.TransformPoint(ctx, p, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = placed.BoundaryNormalsRational(ctx, world, opt)
+	if err != nil || len(got.Normals) != 2 {
+		t.Fatal("placed source seam lost normals", op, got, err)
+	}
+	check(got.Normals[0], MixedRoofFaceOwner{0, 1}, [3]*big.Rat{r(509, 640), r(0, 1), r(97, 160)})
+	if p, err := placed.BoundaryNormalsRational(ctx, world, geom.SurfacePatchEvaluationOptions{MaxOperations: got.ExactOperations - 1}); !errors.Is(err, geom.ErrConvergence) || p.Normals != nil {
+		t.Fatal("normal budget failure was not atomic", p, err)
 	}
 }
 

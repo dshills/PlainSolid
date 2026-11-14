@@ -149,6 +149,12 @@ jobs:
           done
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzIndependentExactMaterials$ -fuzztime=100x -parallel=1 -timeout=120s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzIndependentExactMaterialsNative$ -fuzztime=100x -parallel=1 -timeout=120s
+      - name: Bounded fuzzing for independent STEP products and units
+        shell: bash
+        run: |
+          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative; do
+            GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzHexahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBiquadraticSolid$ -fuzztime=100x -parallel=1 -timeout=90s

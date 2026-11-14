@@ -32,13 +32,22 @@ type NormalizedIndependentRoundMaterials struct {
 // Every new geometric scalar must remain binary64-exact. Uncertainty metadata
 // remains exact decimal. Numeric work is capped at 256 bits/64 decimal places.
 func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, target RoundMaterialSIUnit, l Limits, tol float64) (NormalizedIndependentRoundMaterials, error) {
+	return readNormalizedIndependentUnits(ctx, r, target, l, tol, false)
+}
+func readNormalizedIndependentUnits(ctx context.Context, r io.Reader, target RoundMaterialSIUnit, l Limits, tol float64, planar bool) (NormalizedIndependentRoundMaterials, error) {
 	bad := func() (NormalizedIndependentRoundMaterials, error) {
 		return NormalizedIndependentRoundMaterials{}, geom.ErrInvalid
 	}
 	if target != RoundMetre && target != RoundMillimetre {
 		return bad()
 	}
-	original, e := readIndependentMaterialSelection(ctx, r, l, tol, 1, 16, true, nil, true, true, true)
+	var original IndependentExactMaterialCollection
+	var e error
+	if planar {
+		original, e = planarUnitSourceProof(ctx, r, l, tol)
+	} else {
+		original, e = readIndependentMaterialSelection(ctx, r, l, tol, 1, 16, true, nil, true, true, true)
+	}
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}
@@ -53,7 +62,7 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 	result := NormalizedIndependentRoundMaterials{OriginalSource: original.Source, TargetUnit: target, tolerance: tol}
 	changed := map[int64]bool{}
 	for _, member := range original.Members {
-		if member.Cylinder == nil && member.Sphere == nil {
+		if (planar && member.Planar == nil) || (!planar && member.Cylinder == nil && member.Sphere == nil) {
 			return bad()
 		}
 		unitID := int64(0)
@@ -98,8 +107,8 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 			if v.Kind != Number || len(v.Text) > 128 {
 				return geom.ErrInvalid
 			}
-			q, ok := new(big.Rat).SetString(v.Text)
-			if !ok || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
+			q, err := liftSourceRat(*v)
+			if err != nil || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
 				return geom.ErrInvalid
 			}
 			q.Mul(q, ratio)
@@ -129,7 +138,7 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 				rec := &en.Records[j]
 				switch rec.Type {
 				case "CARTESIAN_POINT":
-					if len(rec.Args) != 2 || rec.Args[1].Kind != Aggregate || len(rec.Args[1].Items) != 3 {
+					if len(rec.Args) != 2 || rec.Args[1].Kind != Aggregate || (len(rec.Args[1].Items) != 3 && !(planar && len(rec.Args[1].Items) == 2)) {
 						return bad()
 					}
 					for k := range rec.Args[1].Items {
@@ -141,7 +150,7 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 					if len(rec.Args) != 3 {
 						return bad()
 					}
-					if e = scale(&rec.Args[2], true); e != nil {
+					if e = scale(&rec.Args[2], !(planar && rec.Type == "VECTOR")); e != nil {
 						return NormalizedIndependentRoundMaterials{}, e
 					}
 				case "UNCERTAINTY_MEASURE_WITH_UNIT":
@@ -168,7 +177,12 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 	if e != nil {
 		return bad()
 	}
-	proof, e := readIndependentExactMaterialCollection(ctx, bytes.NewReader(raw), l, tol, 1, 16, true, true, true)
+	var proof IndependentExactMaterialCollection
+	if planar {
+		proof, e = planarUnitSourceProof(ctx, bytes.NewReader(raw), l, tol)
+	} else {
+		proof, e = readIndependentExactMaterialCollection(ctx, bytes.NewReader(raw), l, tol, 1, 16, true, true, true)
+	}
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}

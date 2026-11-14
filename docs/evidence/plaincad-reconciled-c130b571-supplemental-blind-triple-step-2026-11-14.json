@@ -1,0 +1,69 @@
+{
+  "schema": "plaincad-reconciled-supplemental-blind-triple-step-v1",
+  "status": "passed",
+  "integrationCommit": "65441a2d9b8d3032f0dc963f8524c548ed0250f2",
+  "reviewCommit": "c130b571b432535f30ac1fc39121d6ce08fb6081",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "aab44d138f5963941dcb96adcded64706a6fd9f467684818edc7dc5e4b0976be",
+  "fixture": "e2e/plainsolid-blind-triple-step-holes.spec.ts",
+  "sourceSha256": "084a55a30571926e93b24f6cc902a291dbeba3925c69d1e97fabddd3e6441a85",
+  "runSha256": "47dd04b28af0b23bc6d20dee5496c5a0fde4637ab5b48dcf1dc2107a2d88d8f3",
+  "reportStats": {
+    "startTime": "2026-11-14T14:16:42.471Z",
+    "duration": 8821.027,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      40,
+      40,
+      40
+    ],
+    "crossingMm": [
+      20,
+      20,
+      20
+    ],
+    "radiusMm": 3,
+    "topEntryDepthMm": 29.5,
+    "floorZMm": 10.5,
+    "stepByteCount": 115054,
+    "stepSha256": "74f1de31cd694fed6c4fa8b152febf5b720ee836875c1580925eda16874548b3",
+    "stlTriangles": 596,
+    "stlTwoUseEdges": 894,
+    "stlSha256": "164121d815b1531e559c398f1d182ae349a61a6305907c15d0ae5ead68685872",
+    "occtStepReadback": {
+      "Area": 11245.458908190065,
+      "Volume": 61209.43056957646,
+      "Centroid": [
+        20.00000000000001,
+        20.000000000000007,
+        19.92845894138738
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 61209.430569224474,
+      "Area": 11245.458908542045,
+      "Centroid": [
+        19.999999999999996,
+        20,
+        19.928458941386985
+      ]
+    },
+    "directOracleSourceSha256": "5b7a98e497251f6c95586d4f7df73cecd2ca8f485a9b78b3ac111b9a92502b4e"
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 11245.458908190065,
+    "Volume": 61209.43056957646,
+    "Centroid": [
+      20.00000000000001,
+      20.000000000000007,
+      19.92845894138738
+    ]
+  }
+}

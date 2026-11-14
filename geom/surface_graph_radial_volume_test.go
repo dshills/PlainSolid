@@ -120,6 +120,10 @@ func TestRadialVolumeRejectsVariableDenominator(t *testing.T) {
 	if r, e := proof.BoundVolumeBands(ctx, []int{0, 2}, geom.RadialGraphVolumeOptions{}); e == nil || r.Volume.Lower != nil {
 		t.Fatal("numerator mistaken for height", e)
 	}
+	if r, e := proof.PlanarMomentsBands(ctx, []int{0, 2}, geom.RadialGraphMomentOptions{}); e == nil || r.Total.VolumePiCoefficient != nil || len(r.Bands) != 0 {
+		t.Fatal("moments require actual radial height", e)
+	}
+
 }
 
 func TestTripleRadialVolumeOCCT(t *testing.T) {
