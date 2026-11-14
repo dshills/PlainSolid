@@ -58,6 +58,21 @@ func sewExactEllipticalPrism(ctx context.Context, frame geom.Frame, a, b, height
 			}
 		}
 	}
+	caps := [2]geom.Frame{}
+	for k, z := range []float64{0, height} {
+		origin, e := point(0, 0, z)
+		if e != nil {
+			return failure(e)
+		}
+		caps[k], e = geom.NewFrame(origin, frame.XAxis(), frame.ZAxis())
+		if e != nil {
+			return failure(e)
+		}
+	}
+	return sewEllipticalPrismControls(ctx, uvPoles, worldPoles, caps, tolerance)
+}
+func sewEllipticalPrismControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][]geom.Vec3, caps [2]geom.Frame, tolerance float64) (trimmed.Solid, [2][4]int, error) {
+	failure := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
 	knots := []float64{0, 0, 0, 1, 1, 1}
 	weights := []float64{1, 1, 2}
 	parts := make([]trimmed.SewFace, 0, 6)
@@ -76,15 +91,7 @@ func sewExactEllipticalPrism(ctx context.Context, frame geom.Frame, a, b, height
 		}
 		parts = append(parts, part)
 	}
-	for k, z := range []float64{0, height} {
-		origin, e := point(0, 0, z)
-		if e != nil {
-			return failure(e)
-		}
-		f, e := geom.NewFrame(origin, frame.XAxis(), frame.ZAxis())
-		if e != nil {
-			return failure(e)
-		}
+	for k, f := range caps {
 		plane, e := geom.NewPlaneSurface(f)
 		if e != nil {
 			return failure(e)

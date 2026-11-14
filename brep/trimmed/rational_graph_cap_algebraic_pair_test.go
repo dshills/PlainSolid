@@ -243,6 +243,49 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	if math.Abs(mv-(697./960-3*math.Sqrt(3)/640)) > .025 {
 		t.Fatal("independent display material volume", mv)
 	}
+	lineAnchor := [3]*big.Rat{new(big.Rat), big.NewRat(89, 64), big.NewRat(1, 2)}
+	lineDirection := [3]*big.Rat{big.NewRat(1, 1), new(big.Rat), new(big.Rat)}
+	window := [2]*big.Rat{big.NewRat(-1, 1), big.NewRat(4, 1)}
+	line, e := restored.Caps[0].IntersectRationalLine(ctx, lineAnchor, lineDirection, window, opts)
+	if e != nil || len(line.Contacts) != 4 || len(line.Material) != 2 {
+		t.Fatal("in-plane line must preserve both material intervals and the void gap", len(line.Contacts), line.Material, e)
+	}
+	// Along y=89/64 the sheared void exits at x=5√2/4; the
+	// other three original contacts are x=0, x=1 and x=3.
+	for i, hit := range line.Contacts {
+		q, e := hit.Parameter.Classify(ctx, opts)
+		if e != nil || hit.Entry != (i%2 == 0) || hit.CurveParameter == nil {
+			t.Fatal("wrong exact contact, owner parameter or material transition", i, hit, q, e)
+		}
+		if i == 2 {
+			if q.Kind != geom.ExactRootKindIrrational {
+				t.Fatal("lost the original irrational void intersection", q)
+			}
+			sign, e := hit.Parameter.SignPolynomial(ctx, []*big.Rat{big.NewRat(-25, 8), new(big.Rat), big.NewRat(1, 1)}, opts)
+			if e != nil || sign.Sign != 0 {
+				t.Fatal("void root must satisfy x²=25/8 exactly", sign, e)
+			}
+		} else if q.Kind != geom.ExactRootKindRational || q.Rational.Cmp(big.NewRat(int64(i), 1)) != 0 {
+			t.Fatal("wrong rational side contact", i, q)
+		}
+	}
+	coincident := [3]*big.Rat{new(big.Rat), big.NewRat(11, 8), big.NewRat(1, 2)}
+	if partial, e := restored.Caps[0].IntersectRationalLine(ctx, coincident, lineDirection, window, opts); !errors.Is(e, geom.ErrConvergence) || len(partial.Contacts)+len(partial.Material) != 0 {
+		t.Fatal("line coincident with true cap seams must not publish isolated events", partial, e)
+	}
+	lineDirection[0] = big.NewRat(-1, 1)
+	lineAnchor[0] = big.NewRat(3, 1)
+	window = [2]*big.Rat{big.NewRat(1, 4), big.NewRat(1, 2)}
+	short, e := restored.Caps[0].IntersectRationalLine(ctx, lineAnchor, lineDirection, window, opts)
+	if e != nil || len(short.Contacts) != 0 || len(short.Material) != 1 {
+		t.Fatal("finite window entirely inside material", short, e)
+	}
+	for i, r := range short.Material[0] {
+		q, e := r.Classify(ctx, opts)
+		if e != nil || q.Kind != geom.ExactRootKindRational || q.Rational.Cmp(window[i]) != 0 {
+			t.Fatal("material interval must preserve caller's exact bounds", i, q, e)
+		}
+	}
 	fiberModel, e := restored.PrepareVerticalMaterial(ctx, section, opts)
 	if e != nil {
 		t.Fatal("vertical material proof", e)

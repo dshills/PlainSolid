@@ -2271,6 +2271,12 @@ The current development STEP subset (`0bdb699`) passed five original tests
 in 23.226 seconds and the independent Go/WASM browser probe in 5.464 seconds.
 All 841 tested source hashes match pinned PlainCAD `50432ed`. The archived
 record includes the six exact titles and result hashes.
+The [latest full original production record](evidence/plaincad-reconciled-7b037e2d-production-2026-11-14.json)
+passes all 66 cases in 239.9 seconds with no retries, skips or failures.
+The original controlled rebuild and validated STL performance test
+completed in about 23 seconds. Separate Go/WASM/no-OCCT preflight,
+both typechecks, clean production build, original Playwright config,
+and all 841 pinned files were verified on that reconciliation revision.
 The [full original development record](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
 on review revision `178df69` passed 344 cases in 2,632 seconds with no
 retries, skips, or failures, plus separate Go/WASM preflight and typechecks.
