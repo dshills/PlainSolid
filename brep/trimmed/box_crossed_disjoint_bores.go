@@ -33,6 +33,17 @@ func BoxCrossedBoresWithDisjoint(ctx context.Context, frame geom.Frame, dimensio
 	if e != nil {
 		return fail(e)
 	}
+	core := []CardinalThroughBore{{Axis: 0, Center: geom.Vec3{Y: crossing.Y, Z: crossing.Z}, Radius: radius}, {Axis: 2, Center: geom.Vec3{X: crossing.X, Y: crossing.Y}, Radius: radius}}
+	return appendCrossedDisjointBores(ctx, stock, frame, dimensions, core, additional, tolerance)
+}
+
+// appendCrossedDisjointBores merges independent through donors onto a freshly
+// constructed crossed core. Its first six faces are the original stock planes.
+// Core envelopes conservatively cover the entire projected crossing tools,
+// including when the retained core is blind. No curved intersections are added.
+func appendCrossedDisjointBores(ctx context.Context, stock BoxCrossedBoresResult, frame geom.Frame, dimensions geom.Vec3, core []CardinalThroughBore, additional []CardinalThroughBore, tolerance float64) (BoxCrossedBoresResult, error) {
+	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
+	var e error
 	sites := append([]CardinalThroughBore(nil), additional...)
 	component := func(p geom.Vec3, i int) float64 { return []float64{p.X, p.Y, p.Z}[i] }
 	set := func(p *geom.Vec3, i int, v float64) {
@@ -69,7 +80,7 @@ func BoxCrossedBoresWithDisjoint(ctx context.Context, frame geom.Frame, dimensio
 		}
 		return box, nil
 	}
-	core := []CardinalThroughBore{{Axis: 0, Center: geom.Vec3{Y: crossing.Y, Z: crossing.Z}, Radius: radius}, {Axis: 2, Center: geom.Vec3{X: crossing.X, Y: crossing.Y}, Radius: radius}}
+
 	var bounds []geom.Box
 	for _, c := range core {
 		b, e := envelope(c)
