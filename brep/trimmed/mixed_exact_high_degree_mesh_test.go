@@ -172,8 +172,8 @@ func TestExactCubicMixedCurvedHole(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if q, e := TessellateMixedExactMultiSpanRegionCertified(ctx, refined, outer, [][]PCurve{hole}, o); e == nil || len(q.Mesh.Vertices) != 0 {
-		t.Fatal("higher-degree multispan accepted")
+	if q, e := TessellateMixedExactMultiSpanRegionCertified(ctx, refined, outer, [][]PCurve{hole}, o); e != nil || len(q.Mesh.Vertices) == 0 {
+		t.Fatal("exact removable knot rejected", e)
 	}
 	low := o
 	low.MaxResidualOperations = 1
