@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"plainsolid/brep/trimmed"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
@@ -53,10 +54,12 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 
 type sideDiskReadResult struct {
 	SideOpenDualDiskProduct
-	unequalNative   trimmed.UnequalSideOpenDualDiskCut
-	generalNative   trimmed.GeneralSideOpenDualDiskCut
-	exactWallNative trimmed.GeneralSideOpenDualDiskCut
-	offsetNative    trimmed.OffsetSideOpenDualDiskCut
+	unequalNative       trimmed.UnequalSideOpenDualDiskCut
+	generalNative       trimmed.GeneralSideOpenDualDiskCut
+	exactWallNative     trimmed.GeneralSideOpenDualDiskCut
+	offsetNative        trimmed.OffsetSideOpenDualDiskCut
+	unequalCenterNative trimmed.UnequalCenterSideOpenDualDiskCut
+	unequalCenterJoin   [2]*big.Rat
 }
 
 func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions, kind sideDiskConstruction) (sideDiskReadResult, error) {
@@ -240,7 +243,14 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 		d.Discs[0], d.Discs[1] = d.Discs[1], d.Discs[0]
 	}
 	var expected bytes.Buffer
-	if kind == sideDiskOffset {
+	var unequalCenterJoin [2]*big.Rat
+	if kind == sideDiskUnequalCenter {
+		unequalCenterJoin, err = sideDiskReadOwnedJoin(f, faces, d)
+		if err != nil {
+			return sideDiskReadResult{}, err
+		}
+		err = WriteUnequalCenterSideOpenDualDiskProduct(ctx, &expected, UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: unequalCenterJoin})
+	} else if kind == sideDiskOffset {
 		err = WriteOffsetSideOpenDualDiskProduct(ctx, &expected, OffsetSideOpenDualDiskDescriptor(d))
 	} else if kind == sideDiskExactWalls {
 		err = WriteExactWallSideOpenDualDiskProduct(ctx, &expected, ExactWallSideOpenDualDiskDescriptor(d))
@@ -287,7 +297,10 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	var generalNative trimmed.GeneralSideOpenDualDiskCut
 	var exactWallNative trimmed.GeneralSideOpenDualDiskCut
 	var offsetNative trimmed.OffsetSideOpenDualDiskCut
-	if kind == sideDiskOffset {
+	var unequalCenterNative trimmed.UnequalCenterSideOpenDualDiskCut
+	if kind == sideDiskUnequalCenter {
+		unequalCenterNative, err = trimmed.CutUnequalCenterSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, unequalCenterJoin, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+	} else if kind == sideDiskOffset {
 		offsetNative, err = trimmed.CutOffsetSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 	} else if kind == sideDiskExactWalls {
 		exactWallNative, err = trimmed.CutGeneralSideOpenDualDisksWithExactWalls(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
@@ -304,7 +317,7 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	if err = ctx.Err(); err != nil {
 		return sideDiskReadResult{}, err
 	}
-	return sideDiskReadResult{offsetNative: offsetNative, unequalNative: unequalNative, generalNative: generalNative, exactWallNative: exactWallNative, SideOpenDualDiskProduct: SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}}, nil
+	return sideDiskReadResult{unequalCenterNative: unequalCenterNative, unequalCenterJoin: unequalCenterJoin, offsetNative: offsetNative, unequalNative: unequalNative, generalNative: generalNative, exactWallNative: exactWallNative, SideOpenDualDiskProduct: SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)

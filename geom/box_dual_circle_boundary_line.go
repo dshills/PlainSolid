@@ -49,10 +49,10 @@ type BoxDualCircleBoundaryLine struct {
 // exact ordering; errors and exhaustion publish no partial classification.
 func IntersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, stopZ *big.Rat,
 	origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryLine, error) {
-	return intersectBoxDualCircleBoundaryRational(ctx, min, max, xs, radii, min[1], stopZ, origin, direction, minT, maxT, o)
+	return intersectBoxDualCircleBoundaryRational(ctx, min, max, xs, radii, [2]*big.Rat{min[1], min[1]}, stopZ, origin, direction, minT, maxT, o)
 }
 
-func intersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryLine, error) {
+func intersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY [2]*big.Rat, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryLine, error) {
 	var empty BoxDualCircleBoundaryLine
 	if ctx == nil || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || minT == nil || maxT == nil || stopZ == nil {
 		return empty, ErrInvalid
@@ -73,7 +73,7 @@ func intersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*bi
 	b := &polynomialBudget{maxOperations: offset.MaxOperations, maxBits: offset.MaxCoefficientBits}
 	limits := ExactCurvePlaneEventOptions{MaxOperations: offset.MaxOperations, MaxCoefficientBits: offset.MaxCoefficientBits, MaxSubdivisions: o.MaxSubdivisions}
 	for _, v := range []*big.Rat{min[0], min[1], min[2], max[0], max[1], max[2], xs[0], xs[1], radii[0], radii[1],
-		origin[0], origin[1], origin[2], direction[0], direction[1], direction[2], centerY, stopZ, minT, maxT} {
+		origin[0], origin[1], origin[2], direction[0], direction[1], direction[2], centerY[0], centerY[1], stopZ, minT, maxT} {
 		if v == nil {
 			return empty, ErrInvalid
 		}
@@ -92,19 +92,28 @@ func intersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*bi
 	if min[2].Cmp(stopZ) >= 0 || stopZ.Cmp(max[2]) > 0 {
 		return empty, ErrDomain
 	}
-	if centerY.Cmp(min[1]) > 0 {
+	if centerY[0].Cmp(min[1]) > 0 || centerY[1].Cmp(min[1]) > 0 {
 		return empty, ErrDomain
 	}
 	for i, r := range radii {
 		if r.Sign() <= 0 || new(big.Rat).Sub(xs[i], r).Cmp(min[0]) <= 0 || new(big.Rat).Add(xs[i], r).Cmp(max[0]) >= 0 ||
-			new(big.Rat).Add(centerY, r).Cmp(max[1]) >= 0 || new(big.Rat).Add(centerY, r).Cmp(min[1]) <= 0 {
+			new(big.Rat).Add(centerY[i], r).Cmp(max[1]) >= 0 || new(big.Rat).Add(centerY[i], r).Cmp(min[1]) <= 0 {
 			return empty, ErrDomain
 		}
 	}
 	// Keep the same transverse overlapping domain as the BRep query. In
 	// particular, opposite tangent circle normals cannot hide a union seam.
-	distance := new(big.Rat).Abs(new(big.Rat).Sub(xs[0], xs[1]))
-	if distance.Cmp(new(big.Rat).Add(radii[0], radii[1])) >= 0 || distance.Cmp(new(big.Rat).Abs(new(big.Rat).Sub(radii[0], radii[1]))) <= 0 {
+	dx, dy := new(big.Rat).Sub(xs[0], xs[1]), new(big.Rat).Sub(centerY[0], centerY[1])
+	distance2 := new(big.Rat).Add(new(big.Rat).Mul(dx, dx), new(big.Rat).Mul(dy, dy))
+	sum, diff := new(big.Rat).Add(radii[0], radii[1]), new(big.Rat).Sub(radii[0], radii[1])
+	sum.Mul(sum, sum)
+	diff.Mul(diff, diff)
+	for _, q := range []*big.Rat{distance2, sum, diff} {
+		if e := b.check(q); e != nil {
+			return empty, e
+		}
+	}
+	if distance2.Cmp(sum) >= 0 || distance2.Cmp(diff) <= 0 {
 		return empty, ErrDomain
 	}
 	polynomials := make([]rationalPolynomial, 9)
@@ -115,7 +124,7 @@ func intersectBoxDualCircleBoundaryRational(ctx context.Context, min, max [3]*bi
 	polynomials[8] = trimPolynomial(rationalPolynomial{new(big.Rat).Sub(origin[2], stopZ), direction[2]})
 	for i, x := range xs {
 		sq := rationalPolynomial{new(big.Rat).Neg(new(big.Rat).Mul(radii[i], radii[i])), new(big.Rat), new(big.Rat)}
-		for axis, center := range [2]*big.Rat{x, centerY} {
+		for axis, center := range [2]*big.Rat{x, centerY[i]} {
 			term := rationalPolynomial{new(big.Rat).Sub(origin[axis], center), direction[axis]}
 			v, e := polynomialProduct(term, term, b)
 			if e != nil {

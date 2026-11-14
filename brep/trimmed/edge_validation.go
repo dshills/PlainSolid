@@ -54,6 +54,14 @@ func (s Solid) ValidateEdgeAgreement(ctx context.Context, o edgecheck.Options) (
 				model := s.edges[u.Edge]
 				m, modelSupported := modelBezier(model)
 				identical := sameCertifiedSection(model, f.Surface, u) || sameSplineTrim(model, f.Surface, u) || sameAnalyticEdgeUse(model, f.Surface, u)
+				if !identical {
+					var e error
+					identical, e = compareWrappedEdgeUse(ctx, model, f.Surface, u, o)
+					if e != nil && !errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrInvalid) && !errors.Is(e, geom.ErrConvergence) {
+						r.Complete = false
+						return r, e
+					}
+				}
 				var poleError *big.Rat
 				if model.Curve == nil {
 					poleError = analyticPoleSquaredError(f.Surface, u, s.vertices[model.Start])

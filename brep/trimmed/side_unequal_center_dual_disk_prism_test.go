@@ -51,6 +51,10 @@ func TestUnequalCenterSideOpenDualDiskNative(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
+			analytic, err := cut.Measures()
+			if err != nil || math.Abs(m.Volume-analytic.Volume) > 1e-4 || math.Abs(m.Area-analytic.Area) > 1e-4 || m.Centroid.Sub(analytic.Centroid).Length() > 1e-6 {
+				t.Fatal("unequal-center moments", m, analytic, err)
+			}
 			wantV := 3600 - depth*removed
 			wantA := 2040 + (arc-48)*depth
 			if depth == 6 {

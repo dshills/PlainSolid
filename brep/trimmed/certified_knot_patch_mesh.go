@@ -57,6 +57,7 @@ func tessellateCertifiedKnotGridFrom(ctx context.Context, p *geom.SurfacePatch, 
 	tolerance.Mul(tolerance, tolerance)
 	uCuts, vCuts := p.KnotBreaks()
 	checks := 0
+	var rectangleMemo triangleRectangleMemo
 	for n := minimum; n <= o.MaxSubdivisions; n *= 2 {
 		nu, nv := n*(len(uCuts)-1), n*(len(vCuts)-1)
 		if wrap[0] && nu < 4 || wrap[1] && nv < 4 {
@@ -140,7 +141,7 @@ func tessellateCertifiedKnotGridFrom(ctx context.Context, p *geom.SurfacePatch, 
 						index[k] = ids[a*(nv+1)+b]
 						model[k] = result.Mesh.Vertices[index[k]]
 					}
-					bound, e := BoundSplineTriangleDeviation(ctx, p, uv, model)
+					bound, e := boundSplineTriangleDeviationPrepared(ctx, p, uv, model, &rectangleMemo)
 					checks++
 					result.BothDirections = result.BothDirections && bound.BothDirections
 					if e != nil {

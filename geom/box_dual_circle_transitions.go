@@ -39,10 +39,10 @@ type BoxDualCircleBoundaryTransitions struct {
 // and three sign tests per quadratic constraint/event. Arithmetic limits apply
 // to the additional germ work cumulatively; failure returns an empty report.
 func IntersectBoxDualCircleBoundaryTransitionsRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryTransitions, error) {
-	return intersectBoxDualCircleBoundaryTransitionsRational(ctx, min, max, xs, radii, min[1], stopZ, origin, direction, minT, maxT, o)
+	return intersectBoxDualCircleBoundaryTransitionsRational(ctx, min, max, xs, radii, [2]*big.Rat{min[1], min[1]}, stopZ, origin, direction, minT, maxT, o)
 }
 
-func intersectBoxDualCircleBoundaryTransitionsRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryTransitions, error) {
+func intersectBoxDualCircleBoundaryTransitionsRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY [2]*big.Rat, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleBoundaryTransitions, error) {
 	var zero BoxDualCircleBoundaryTransitions
 	line, e := intersectBoxDualCircleBoundaryRational(ctx, min, max, xs, radii, centerY, stopZ, origin, direction, minT, maxT, o)
 	if e != nil {
@@ -103,7 +103,7 @@ func intersectBoxDualCircleBoundaryTransitionsRational(ctx context.Context, min,
 	polys[8] = trimPolynomial(rationalPolynomial{new(big.Rat).Sub(origin[2], stopZ), new(big.Rat).Set(direction[2])})
 	for i := 0; i < 2; i++ {
 		p := rationalPolynomial{new(big.Rat).Neg(new(big.Rat).Mul(radii[i], radii[i])), new(big.Rat), new(big.Rat)}
-		for j, c := range [2]*big.Rat{xs[i], centerY} {
+		for j, c := range [2]*big.Rat{xs[i], centerY[i]} {
 			t := rationalPolynomial{new(big.Rat).Sub(origin[j], c), direction[j]}
 			prod, e := polynomialProduct(t, t, budget)
 			if e != nil {

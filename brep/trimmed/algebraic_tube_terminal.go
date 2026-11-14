@@ -127,15 +127,8 @@ func CertifyAlgebraicSplineBranch(ctx context.Context, segments []intersect.Tube
 		return empty, geom.ErrInvalid
 	}
 	for _, s := range segments {
-		for i, p := range [2]intersect.Patch{a, b} {
-			model, ok := p.Surface.(*geom.BSplineSurface)
-			trim := s.TrimA()
-			if i == 1 {
-				trim = s.TrimB()
-			}
-			if !ok || !geom.SameSplineSurface(model, trim.Support()) {
-				return empty, geom.ErrInvalid
-			}
+		if e := checkAlgebraicTerminalCharts(s, a, b); e != nil {
+			return empty, e
 		}
 	}
 	out := AlgebraicSplineBranchEvidence{}
@@ -218,12 +211,11 @@ func CertifyAlgebraicSplineTerminal(ctx context.Context, segment intersect.TubeS
 
 func checkAlgebraicTerminalCharts(segment intersect.TubeSegment, a, b intersect.Patch) error {
 	for i, p := range [2]intersect.Patch{a, b} {
-		s, ok := p.Surface.(*geom.BSplineSurface)
 		trim := segment.TrimA()
 		if i == 1 {
 			trim = segment.TrimB()
 		}
-		if !ok || !geom.SameSplineSurface(s, trim.Support()) || !uvFinite(p.Min) || !uvFinite(p.Max) || p.Min.X >= p.Max.X || p.Min.Y >= p.Max.Y {
+		if !trim.HasSourceSurface(p.Surface) || !uvFinite(p.Min) || !uvFinite(p.Max) || p.Min.X >= p.Max.X || p.Min.Y >= p.Max.Y {
 			return geom.ErrInvalid
 		}
 	}

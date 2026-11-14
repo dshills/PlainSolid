@@ -19,8 +19,11 @@ type OffsetDualDiskPoint struct {
 // rational stock, cap and circle equations. A blind floor is retained boundary;
 // the through-cut footprint is absent even on either original axial cap.
 func (c OffsetSideOpenDualDiskCut) ClassifyRational(ctx context.Context, point [3]*big.Rat) (OffsetDualDiskPoint, error) {
+	return classifyOffsetDualDiskPoint(ctx, c.source, point)
+}
+
+func classifyOffsetDualDiskPoint(ctx context.Context, s *sideOpenDualDiskSource, point [3]*big.Rat) (OffsetDualDiskPoint, error) {
 	zero := OffsetDualDiskPoint{Location: parametric.Outside}
-	s := c.source
 	if ctx == nil || s == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -112,14 +115,23 @@ func (c OffsetSideOpenDualDiskCut) Measures() (SideOpenDualDiskMeasures, error) 
 	}
 	d := right.Center.X - left.Center.X
 	join := (d*d + left.Radius*left.Radius - right.Radius*right.Radius) / (2 * d)
+	return measureDualDiskUpperSection(s, left, right, join)
+}
+
+func measureDualDiskUpperSection(s *sideOpenDualDiskSource, left, right ExtrusionCircle, join float64) (SideOpenDualDiskMeasures, error) {
+	var zero SideOpenDualDiskMeasures
+	d := right.Center.X - left.Center.X
 	offset := left.Center.Y - s.min.Y
+	rightOffset := right.Center.Y - s.min.Y
+
 	l := math.Sqrt(left.Radius*left.Radius - offset*offset)
-	r := math.Sqrt(right.Radius*right.Radius - offset*offset)
+	r := math.Sqrt(right.Radius*right.Radius - rightOffset*rightOffset)
 	var removed, mx, my, arc float64
 	for _, seg := range []struct {
 		disk ExtrusionCircle
 		a, b float64
 	}{{left, -l, join}, {right, join - d, r}} {
+		offset := seg.disk.Center.Y - s.min.Y
 		radius := seg.disk.Radius
 		a, b := seg.a, seg.b
 		ha, hb := math.Sqrt(radius*radius-a*a), math.Sqrt(radius*radius-b*b)
