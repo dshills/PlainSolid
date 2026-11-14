@@ -18,10 +18,6 @@ type DisjointBore struct {
 	Radius float64
 }
 
-// DisjointBoresBody supports 2..32 sites using at least two different local
-// axes in a signed-cardinal stock Frame. The native constructor requires
-// strictly separated padded bore AABBs, a conservative disjointness proof.
-// Dimensions define [0,Dimensions]; all circular openings must be interior.
 // DisjointBlindBore retains a finite entry-open bore. Bore.Center remains on
 // the lower stock cap; OppositeCap selects entry from the upper cap.
 type DisjointBlindBore struct {
@@ -29,6 +25,11 @@ type DisjointBlindBore struct {
 	Depth       float64
 	OppositeCap bool
 }
+
+// DisjointBoresBody supports 2..32 sites using at least two different local
+// axes in a signed-cardinal stock frame. Each pair must pass the padded
+// bounds or exact cardinal radial separation proof. Dimensions define
+// [0,Dimensions], with every circular opening strictly interior.
 type DisjointBoresBody struct {
 	Name       string
 	Frame      geom.Frame

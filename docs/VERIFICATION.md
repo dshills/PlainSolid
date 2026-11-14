@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD disjoint finite Hole cylinders with overlapping bounds — 2026-11-14
+
+The independent finite-hole path can prove strict clearance when padded
+cylinder boxes overlap. The proof expands the finite axial intervals and
+radii, then compares squared distances between the surviving radial
+sections using exact rational arithmetic. The geometry and exchange
+format retain the existing analytic walls, opening arcs and blind floors.
+Explicit tangent and insufficient-clearance fixtures still reject.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-radial-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-disjoint-radial-step-native-2026-11-14.json)
+pass on the same WASM. The authored project reimports STEP, reopens,
+and checks both retained floors in watertight STL. Twelve independent
+OCCT STEP comparisons and prior byte-preservation checks pass.
+
 ## PlainCAD disjoint blind Holes with crossing projections — 2026-11-14
 
 Two or more independent finite cutters can have intersecting through-axis
