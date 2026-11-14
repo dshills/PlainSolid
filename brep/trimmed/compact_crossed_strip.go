@@ -6,10 +6,10 @@ import (
 	"sort"
 )
 
-// compactCrossedStrip recognizes a quarter-cylinder chart with one cosine rim
-// and one constant-height rim. The quarter domain makes the rim monotone.
+// compactCrossedStrip recognizes cylinder charts that can share angular
+// columns across their two rims, including curved and split rims.
 func compactCrossedStrip(f Face) bool {
-	if compactCosineBand(f) {
+	if compactCosineBand(f) || compactObliqueBand(f) {
 		return true
 	}
 	if compactSplitAxialRectangle(f) || compactTangentCrossedTriangle(f) {

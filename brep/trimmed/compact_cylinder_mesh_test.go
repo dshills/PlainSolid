@@ -87,13 +87,6 @@ func TestCompactCylinderMeshDeclinesUnsupportedDomains(t *testing.T) {
 	if _, ok, _ := planar.compactCylinderMesh(context.Background(), opts); ok {
 		t.Fatal("pure planar domain claimed")
 	}
-	oblique, _, err := BoreCylinderAlong(base, 0, 1, geom.Vec3{X: 1, Y: 2}, geom.Vec3{X: 1, Z: 3}, .35, 1e-10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok, _ := oblique.compactCylinderMesh(context.Background(), opts); ok {
-		t.Fatal("oblique curved wall trims claimed")
-	}
 }
 
 func TestCompactCylinderMeshFineBoundaryFallsBack(t *testing.T) {

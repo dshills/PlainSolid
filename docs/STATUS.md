@@ -186,9 +186,9 @@ stock openings through STEP and STL.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its
-cylinder axis. The verified shallow oblique pair passes project reopen
-and watertight STL. Some steeper and three-component axes still reach
-the adaptive mesh budget.
+cylinder axis. Matched angular strips preserve the exact elliptical rims
+and bound the mesh work for steeper and three-component axes. The authored
+2:3 pair reopens through STEP and exports a watertight 276-triangle STL.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

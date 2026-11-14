@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD bounded oblique Hole tessellation — 2026-11-14
+
+Paired elliptical wall rims share angular samples. The analytic gap
+bound qualifies every generator between the rims, including cases with
+both sine and cosine coefficients. The existing model-edge deflection
+and facet normal checks continue to apply.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-compact-oblique-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-compact-oblique-step-native-2026-11-14.json)
+pass on the same WASM. The 2:3 model reopens through its 29,656-byte exact
+STEP, matches independent OCCT measures, and exports watertight
+276-triangle STL. Four native directions, including a three-component
+axis and reversed entry, pass float32 closure and remain below a
+400-triangle budget. An interior-crossing trim rejects even with
+positive endpoint gaps. Focused race and Go vet pass.
+
 ## PlainCAD separate cardinal and oblique through Holes — 2026-11-14
 
 Two or three through cutters with separated wall bounds retain their
