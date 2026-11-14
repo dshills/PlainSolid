@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
@@ -14,6 +15,14 @@ import (
 // Non-cardinal frame coefficients are qualified against the common analytic
 // conic coefficients within the existing sewing tolerance.
 func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, tolerance float64) (BoxCrossedBoresResult, error) {
+	return BoxCrossedObliqueBores(ctx, frame, dimensions, crossing, geom.Vec2{X: 4, Y: 3}, radius, tolerance)
+}
+
+// BoxCrossedObliqueBores removes equal-radius concurrent Z and oblique through
+// cylinders in signed stock coordinates. AxisRatio contains the positive X and
+// Z ratios. The accepted ratios are 4:3 and 3:4. Both oblique X-cap ellipses
+// must be fully inside the stock faces.
+func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, axisRatio geom.Vec2, radius, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
@@ -35,6 +44,15 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 			return fail(geom.ErrDomain)
 		}
 	}
+	var sin, cos, slope, stretch, positive, negative float64
+	switch axisRatio {
+	case geom.Vec2{X: 4, Y: 3}:
+		sin, cos, slope, stretch, positive, negative = .8, .6, .75, 1.25, 2, -.5
+	case geom.Vec2{X: 3, Y: 4}:
+		sin, cos, slope, stretch, positive, negative = .6, .8, 4./3, 5./3, 3, -1./3
+	default:
+		return fail(geom.ErrDomain)
+	}
 	// Reserve arithmetic error when comparing represented conic coefficients.
 	// Very large translated coordinates cannot consume the sewing allowance.
 	origin := frame.Origin()
@@ -43,12 +61,12 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 		return fail(geom.ErrUnrepresentable)
 	}
 	pad := max(8*tolerance, 1024*0x1p-52*max(dimensions.X, dimensions.Y, dimensions.Z, radius))
-	if crossing.X-radius <= pad || dimensions.X-crossing.X-radius <= pad || crossing.Y-radius <= pad || dimensions.Y-crossing.Y-radius <= pad || crossing.Z-2*radius <= pad || dimensions.Z-crossing.Z-2*radius <= pad {
+	if crossing.X-radius <= pad || dimensions.X-crossing.X-radius <= pad || crossing.Y-radius <= pad || dimensions.Y-crossing.Y-radius <= pad || crossing.Z-positive*radius <= pad || dimensions.Z-crossing.Z-positive*radius <= pad {
 		return fail(geom.ErrDomain)
 	}
 	for _, x := range []float64{0, dimensions.X} {
-		z := crossing.Z + .75*(x-crossing.X)
-		if z-1.25*radius <= pad || dimensions.Z-z-1.25*radius <= pad {
+		z := crossing.Z + slope*(x-crossing.X)
+		if z-stretch*radius <= pad || dimensions.Z-z-stretch*radius <= pad {
 			return fail(geom.ErrDomain)
 		}
 	}
@@ -75,10 +93,10 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 		low, high := -crossing.Z, dimensions.Z-crossing.Z
 		capCos := 0.
 		if axis == 1 {
-			radialX, radialY, direction = geom.Vec3{X: -.6, Z: .8}, geom.Vec3{Y: -1}, geom.Vec3{X: .8, Z: .6}
+			radialX, radialY, direction = geom.Vec3{X: -cos, Z: sin}, geom.Vec3{Y: -1}, geom.Vec3{X: sin, Z: cos}
 			caps = [2]int{5, 3}
-			low, high = -1.25*crossing.X, 1.25*(dimensions.X-crossing.X)
-			capCos = .75 * radius
+			low, high = -stretch*crossing.X, stretch*(dimensions.X-crossing.X)
+			capCos = slope * radius
 		}
 		cf, e := geom.NewFrame(frame.ToWorld(crossing), vector(radialX), vector(direction))
 		if e != nil {
@@ -95,23 +113,23 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 			return crossing.Add(radialX.Scale(rx[i])).Add(radialY.Scale(ry[i])).Add(direction.Scale(h))
 		}
 		rimPoint := func(i int, upper bool) geom.Vec3 {
-			coeff := -.5
+			coeff := negative
 			if upper {
-				coeff = 2
+				coeff = positive
 			}
 			if rx[i] < 0 {
-				coeff = 2
+				coeff = positive
 				if upper {
-					coeff = -.5
+					coeff = negative
 				}
 			}
 			if axis == 0 {
 				return crossing.Add(geom.Vec3{X: rx[i], Y: ry[i], Z: coeff * rx[i]})
 			}
-			if coeff == 2 {
-				return crossing.Add(geom.Vec3{X: rx[i], Y: -ry[i], Z: 2 * rx[i]})
+			if coeff == positive {
+				return crossing.Add(geom.Vec3{X: rx[i], Y: -ry[i], Z: positive * rx[i]})
 			}
-			return crossing.Add(geom.Vec3{X: -rx[i], Y: -ry[i], Z: .5 * rx[i]})
+			return crossing.Add(geom.Vec3{X: -rx[i], Y: -ry[i], Z: -negative * rx[i]})
 		}
 		for k, id := range caps {
 			level := low
@@ -126,9 +144,9 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 				if k == 1 {
 					x = dimensions.X
 				}
-				center = geom.Vec3{X: x, Y: crossing.Y, Z: crossing.Z + .75*(x-crossing.X)}
-				capRadialX, capRadialY = geom.Vec3{Z: 1.25}, geom.Vec3{Y: -1}
-				capPoint = func(i int) geom.Vec3 { return center.Add(geom.Vec3{Y: -ry[i], Z: 1.25 * rx[i]}) }
+				center = geom.Vec3{X: x, Y: crossing.Y, Z: crossing.Z + slope*(x-crossing.X)}
+				capRadialX, capRadialY = geom.Vec3{Z: stretch}, geom.Vec3{Y: -1}
+				capPoint = func(i int) geom.Vec3 { return center.Add(geom.Vec3{Y: -ry[i], Z: stretch * rx[i]}) }
 			}
 			// The constant/cosine/sine coefficient residual bounds every point on the
 			// common cap conic, not just its sampled endpoints.
@@ -144,11 +162,11 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 			}
 		}
 		if axis == 1 {
-			for _, coeff := range []float64{2., -.5} {
+			for _, coeff := range []float64{positive, negative} {
 				actualCos := cf.XAxis().Scale(radius).Add(cf.ZAxis().Scale(coeff * radius))
-				want := vector(geom.Vec3{X: radius, Z: 2 * radius})
-				if coeff == -.5 {
-					want = vector(geom.Vec3{X: -radius, Z: .5 * radius})
+				want := vector(geom.Vec3{X: radius, Z: positive * radius})
+				if coeff == negative {
+					want = vector(geom.Vec3{X: -radius, Z: -negative * radius})
 				}
 				if actualCos.Distance(want)+cf.YAxis().Scale(radius).Distance(vector(geom.Vec3{Y: -radius}))+arithmeticReserve > tolerance/8 {
 					return fail(geom.ErrUnrepresentable)
@@ -162,17 +180,9 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 				sign = -1
 			}
 			for _, upper := range []bool{false, true} {
-				coeff := 0. // Use exact dyadic coefficients for this fixed angle.
-				if sign == 1 {
-					coeff = -.5 * radius
-					if upper {
-						coeff = 2 * radius
-					}
-				} else {
-					coeff = 2 * radius
-					if upper {
-						coeff = -.5 * radius
-					}
+				coeff := negative * radius
+				if upper == (sign > 0) {
+					coeff = positive * radius
 				}
 				capHeight := low
 				if upper {
@@ -201,7 +211,7 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 						x = dimensions.X
 					}
 					cp := func(j int) geom.Vec3 {
-						return geom.Vec3{X: x, Y: crossing.Y - ry[j], Z: crossing.Z + .75*(x-crossing.X) + 1.25*rx[j]}
+						return geom.Vec3{X: x, Y: crossing.Y - ry[j], Z: crossing.Z + slope*(x-crossing.X) + stretch*rx[j]}
 					}
 					if upper {
 						points[2], points[3] = cp(i+1), cp(i)
@@ -252,9 +262,10 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 	if e != nil {
 		return fail(e)
 	}
-	span := dimensions.Z + 1.25*dimensions.X
-	removed := math.Pi*radius*radius*span - 20*radius*radius*radius/3
-	delta := 2*math.Pi*radius*span - 20*radius*radius - 4.5*math.Pi*radius*radius
+	span := dimensions.Z + stretch*dimensions.X
+	intersection := 16 * stretch
+	removed := math.Pi*radius*radius*span - intersection*radius*radius*radius/3
+	delta := 2*math.Pi*radius*span - intersection*radius*radius - 2*(1+stretch)*math.Pi*radius*radius
 	if !finite(removed) || !finite(delta) {
 		return fail(geom.ErrInvalid)
 	}
@@ -262,6 +273,11 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 }
 
 func (s Solid) TessellateCrossedBores345(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	return s.TessellateCrossedObliqueBores(ctx, o)
+}
+
+// TessellateCrossedObliqueBores tessellates either supported exact crossing.
+func (s Solid) TessellateCrossedObliqueBores(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
 	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi || o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
 		return mesh.Mesh{}, geom.ErrInvalid
 	}

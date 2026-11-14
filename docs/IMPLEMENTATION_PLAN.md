@@ -97,11 +97,11 @@ crossings within the app import limit. Partial-skew crossings also
 retain finite stops beyond the complete intersection. In a concurrent
 same-radius triple crossing, one cutter can also retain a floor beyond
 the crossing. Unequal covered-width pairs also support disjoint
-companion through bores. A cardinal and concurrent 4:3 oblique pair
-keeps exact intersection ellipses. Two or three disjoint through bores
+companion through bores. Cardinal and concurrent 4:3 or 3:4 oblique pairs
+keep exact intersection ellipses. Two or three disjoint through bores
 can combine oblique and cardinal axes and exchange their complete rims.
 Common angular strips extend tessellation to steeper and three-component
-axes. Next extend exact crossed-bore angle and placement coverage.
+axes. Next retain multiple finite floors beyond a three-axis crossing.
 A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges

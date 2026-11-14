@@ -419,7 +419,7 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 			f.Area -= math.Pi * h.radius * h.radius
 		}
 		if f.Face == 3 || f.Face == 5 {
-			f.Area -= 1.25 * math.Pi * h.radius * h.radius
+			f.Area -= (5 / h.axisRatio.X) * math.Pi * h.radius * h.radius
 		}
 	} else {
 		for i, c := range body.cylinders {

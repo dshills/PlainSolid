@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"errors"
 	"math"
 	"math/big"
 
@@ -15,33 +16,28 @@ type obliqueCrossedGeometry struct {
 	frame                geom.Frame
 	dimensions, crossing geom.Vec3
 	radius               float64
+	axisRatio            geom.Vec2
 }
 
-// The only supported oblique direction has exact authored slope 3/4 in
-// the XZ chart. Compare its represented direction and use the rational
-// slope to qualify the common point.
-func obliqueCrossingAxis(direction geom.Vec3) (float64, bool) {
+// Use the exact authored ratio for intersection and coaxiality predicates.
+// The input direction is the normalized binary representation of that ratio.
+func obliqueCrossingAxis(direction geom.Vec3) (geom.Vec2, float64, bool) {
 	if direction.X == 0 || direction.Y != 0 || direction.Z == 0 {
-		return 0, false
+		return geom.Vec2{}, 0, false
 	}
 	ax, az := math.Abs(direction.X), math.Abs(direction.Z)
-	canonical, err := (geom.Vec3{X: 4, Z: 3}).Unit()
-	if err != nil || math.Abs(ax-canonical.X) > 8*0x1p-52 || math.Abs(az-canonical.Z) > 8*0x1p-52 {
-		return 0, false
+	for _, ratio := range [2]geom.Vec2{{X: 4, Y: 3}, {X: 3, Y: 4}} {
+		if math.Abs(ax-ratio.X/5) <= 8*0x1p-52 && math.Abs(az-ratio.Y/5) <= 8*0x1p-52 {
+			return ratio, math.Copysign(1, direction.X*direction.Z), true
+		}
 	}
-	return math.Copysign(1, direction.X*direction.Z), true
+	return geom.Vec2{}, 0, false
 }
 
-func obliqueCrossingPoint(cardinal, oblique *cylinderBody, sign float64) (geom.Vec3, bool) {
-	a, b := cardinal.frame.Origin(), oblique.frame.Origin()
-	if a.Y != b.Y {
-		return geom.Vec3{}, false
-	}
+func obliqueLineZ(origin geom.Vec3, x float64, ratio geom.Vec2, slopeSign float64) *big.Rat {
 	rat := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
-	x := new(big.Rat).Sub(rat(a.X), rat(b.X))
-	z := new(big.Rat).Add(rat(b.Z), x.Mul(x, big.NewRat(3*int64(sign), 4)))
-	h, _ := z.Float64()
-	return geom.Vec3{X: a.X, Y: a.Y, Z: h}, finite(h)
+	dx := new(big.Rat).Sub(rat(x), rat(origin.X))
+	return new(big.Rat).Add(rat(origin.Z), dx.Mul(dx, big.NewRat(int64(slopeSign*ratio.Y), int64(ratio.X))))
 }
 
 func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, bool, error) {
@@ -52,14 +48,19 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 	if !cardinalFrame(cardinal.frame) || math.Abs(cardinal.frame.ZAxis().Z) != 1 || cardinal.radius != oblique.radius {
 		return nil, false, nil
 	}
-	pattern, ok := obliqueCrossingAxis(oblique.frame.ZAxis())
+	ratio, pattern, ok := obliqueCrossingAxis(oblique.frame.ZAxis())
 	if !ok {
 		return nil, false, nil
 	}
-	center, ok := obliqueCrossingPoint(cardinal, oblique, pattern)
-	if !ok {
+	a, b := cardinal.frame.Origin(), oblique.frame.Origin()
+	if a.Y != b.Y {
 		return nil, false, nil
 	}
+	z, _ := obliqueLineZ(b, a.X, ratio, pattern).Float64()
+	if !finite(z) {
+		return nil, false, nil
+	}
+	center := geom.Vec3{X: a.X, Y: a.Y, Z: z}
 	identity, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if err != nil {
 		return nil, true, err
@@ -102,13 +103,16 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 			}
 			for _, face := range []int{single.cuts[0].Entry, single.cuts[0].Exit} {
 				support, err := base.FacePlane(face)
-				if err != nil || math.Abs(support.Normal().X) != 1 {
-					return nil, true, geom.ErrDomain
+				if err != nil {
+					return nil, true, err
+				}
+				if math.Abs(support.Normal().X) != 1 {
+					return nil, false, nil
 				}
 				axis := tool.frame.ZAxis()
 				projected := (support.Origin().X - tool.frame.Origin().X) / axis.X
 				world := tool.frame.Origin().Add(axis.Scale(projected))
-				want := center.Z + pattern*.75*(support.Origin().X-center.X)
+				want := center.Z + pattern*(ratio.Y/ratio.X)*(support.Origin().X-center.X)
 				if math.Abs(world.Z-want) > 1e-9/16 {
 					return nil, true, geom.ErrUnrepresentable
 				}
@@ -116,8 +120,11 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 			cuts[i], spans[i] = single.cuts[0], single.spans[0]
 		}
 	}
-	g := obliqueCrossedGeometry{f, dims, local, cardinal.radius}
-	r, err := trimmed.BoxCrossedBores345(context.Background(), f, dims, local, g.radius, 1e-9)
+	g := obliqueCrossedGeometry{f, dims, local, cardinal.radius, ratio}
+	r, err := trimmed.BoxCrossedObliqueBores(context.Background(), f, dims, local, ratio, g.radius, 1e-9)
+	if errors.Is(err, geom.ErrDomain) {
+		return nil, false, nil
+	}
 	if err != nil {
 		return nil, true, err
 	}
@@ -133,17 +140,17 @@ func overlapObliqueCrossedBore(a stored, tool *cylinderBody) (float64, bool, err
 				return 0, true, nil
 			}
 		}
-		// The retained oblique through wall covers all in-stock generators of
-		// a coaxial tool. Compare the qualified opening centers at both caps.
-		slope, ok := obliqueCrossingAxis(tool.frame.ZAxis())
-		if ok && tool.radius <= a.bore.obliqueCrossing.radius {
-			g := a.bore.obliqueCrossing
-			center := g.frame.ToWorld(g.crossing)
-			if slope == g.frame.ZAxis().Z && tool.frame.Origin().Y == center.Y {
-				rat := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
-				dx := new(big.Rat).Sub(rat(center.X), rat(tool.frame.Origin().X))
-				z := new(big.Rat).Add(rat(tool.frame.Origin().Z), dx.Mul(dx, big.NewRat(3*int64(slope), 4)))
-				if z.Cmp(rat(center.Z)) == 0 {
+		// Compare the unrounded authored lines to recognize covered tools.
+		ratio, sign, ok := obliqueCrossingAxis(tool.frame.ZAxis())
+		g := a.bore.obliqueCrossing
+		if ok && ratio == g.axisRatio && sign == g.frame.ZAxis().Z && tool.radius <= g.radius {
+			o := tool.frame.Origin()
+			for _, old := range a.bore.cylinders {
+				if cardinalFrame(old.frame) {
+					continue
+				}
+				b := old.frame.Origin()
+				if o.Y == b.Y && obliqueLineZ(o, b.X, ratio, sign).Cmp(new(big.Rat).SetFloat64(b.Z)) == 0 {
 					return 0, true, nil
 				}
 			}
@@ -192,8 +199,12 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 	d := p.Dimensions
 	c := p.Crossing
 	center := f.ToWorld(c)
-	declared := f.XAxis().Scale(4).Add(f.ZAxis().Scale(3))
-	// Exact binary offsets along the authored 4:3 direction preserve its
+	ratio := p.AxisRatio
+	if ratio == (geom.Vec2{}) {
+		ratio = geom.Vec2{X: 4, Y: 3}
+	}
+	declared := f.XAxis().Scale(ratio.X).Add(f.ZAxis().Scale(ratio.Y))
+	// Exact binary offsets along the authored direction preserve its
 	// intersection point. This finite replacement clears every generator.
 	extent := 4 * math.Max(d.X, p.Radius)
 	e := math.Exp2(math.Ceil(math.Log2(extent)))
