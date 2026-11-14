@@ -147,6 +147,9 @@ func ReadEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol 
 	return readEllipticalAnnularPrism(ctx, r, l, tol, false)
 }
 func readEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol float64, nonhomothetic bool) (EllipticalAnnularPrism, error) {
+	return readOrientedEllipticalAnnularPrism(ctx, r, l, tol, nonhomothetic, false)
+}
+func readOrientedEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol float64, nonhomothetic, orthogonal bool) (EllipticalAnnularPrism, error) {
 	fail := func() (EllipticalAnnularPrism, error) {
 		return EllipticalAnnularPrism{}, fmt.Errorf("step: unsupported exact elliptical annular prism")
 	}
@@ -220,12 +223,27 @@ func readEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol 
 		height.Add(height, new(big.Rat).Mul(new(big.Rat).Sub(top[i], basis.Origin[i]), basis.Z[i]))
 	}
 	h, exact := height.Float64()
-	if !exact || !selectedAnnularDimensions(dims[0], dims[1], dims[2], dims[3], h, nonhomothetic) {
+	if !exact || !orientedAnnularDimensions(dims[0], dims[1], dims[2], dims[3], h, nonhomothetic, orthogonal) {
 		return fail()
 	}
 	ref, _ := simple(f, roles[50], "DIRECTION", 2)
 	if e = fillAnnularPrism(want, basis, ref.Args[1], dims[0], dims[1], dims[2], dims[3], h); e != nil {
 		return EllipticalAnnularPrism{}, e
+	}
+	if orthogonal {
+		inner, e := mappedRationalFrame(f, roles[83])
+		if e != nil {
+			return fail()
+		}
+		for i := 0; i < 3; i++ {
+			if inner.X[i].Cmp(basis.Y[i]) != 0 {
+				return fail()
+			}
+		}
+		ir, _ := simple(f, roles[86], "DIRECTION", 2)
+		if e = fillOrthogonalAnnularPrism(want, basis, ir.Args[1], dims[2], h); e != nil {
+			return EllipticalAnnularPrism{}, e
+		}
 	}
 	proved, ok := ellipseFaceGraph(want, f, roots)
 	if !ok {
@@ -240,7 +258,7 @@ func readEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol 
 	if e != nil || unit != .001 {
 		return fail()
 	}
-	s, e := sewEllipticalAnnularPrism(ctx, basis, dims[0], dims[1], dims[2], dims[3], h, tol)
+	s, e := sewOrientedEllipticalAnnularPrism(ctx, basis, dims[0], dims[1], dims[2], dims[3], h, tol, orthogonal)
 	if e != nil {
 		return EllipticalAnnularPrism{}, e
 	}
@@ -262,7 +280,10 @@ func WriteEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d Ellipti
 	return writeEllipticalAnnularPrismSTEP(ctx, w, d, tol, false)
 }
 func writeEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d EllipticalAnnularPrismDefinition, tol float64, nonhomothetic bool) error {
-	if ctx == nil || w == nil || !d.Reference.IsFinite() || !d.Axis.IsFinite() || !utf8.ValidString(d.Name) || len(d.Name) > 1024 || !selectedAnnularDimensions(d.MajorRadius, d.MinorRadius, d.InnerMajorRadius, d.InnerMinorRadius, d.Height, nonhomothetic) {
+	return writeOrientedEllipticalAnnularPrismSTEP(ctx, w, d, tol, nonhomothetic, false)
+}
+func writeOrientedEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d EllipticalAnnularPrismDefinition, tol float64, nonhomothetic, orthogonal bool) error {
+	if ctx == nil || w == nil || !d.Reference.IsFinite() || !d.Axis.IsFinite() || !utf8.ValidString(d.Name) || len(d.Name) > 1024 || !orientedAnnularDimensions(d.MajorRadius, d.MinorRadius, d.InnerMajorRadius, d.InnerMinorRadius, d.Height, nonhomothetic, orthogonal) {
 		return geom.ErrInvalid
 	}
 	for _, c := range d.Name {
@@ -305,6 +326,19 @@ func writeEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d Ellipti
 	if e = fillAnnularPrism(f, b, ref, d.MajorRadius, d.MinorRadius, d.InnerMajorRadius, d.InnerMinorRadius, d.Height); e != nil {
 		return e
 	}
+	if orthogonal {
+		ir := Value{Kind: Aggregate}
+		for _, q := range b.Y {
+			v, e := mappedTerminatingDecimal(q)
+			if e != nil {
+				return e
+			}
+			ir.Items = append(ir.Items, Value{Kind: Number, Text: v})
+		}
+		if e = fillOrthogonalAnnularPrism(f, b, ir, d.InnerMajorRadius, d.Height); e != nil {
+			return e
+		}
+	}
 	name := d.Name
 	if name == "" {
 		name = "Elliptical annular prism"
@@ -323,7 +357,7 @@ func writeEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d Ellipti
 		fmt.Fprintf(&out, "#%d=%s;\n", id, assemblyEntity(f.Entities[id], ids))
 	}
 	fmt.Fprintln(&out, "ENDSEC;END-ISO-10303-21;")
-	if _, e = readEllipticalAnnularPrism(ctx, bytes.NewReader(out.Bytes()), Limits{}, tol, nonhomothetic); e != nil {
+	if _, e = readOrientedEllipticalAnnularPrism(ctx, bytes.NewReader(out.Bytes()), Limits{}, tol, nonhomothetic, orthogonal); e != nil {
 		return e
 	}
 	if e = ctx.Err(); e != nil {

@@ -8,16 +8,26 @@ import (
 )
 
 func sewEllipticalAnnularPrism(ctx context.Context, b mappedRationalBasis, a, r, ia, ir, h, tol float64) (trimmed.Solid, error) {
+	return sewOrientedEllipticalAnnularPrism(ctx, b, a, r, ia, ir, h, tol, false)
+}
+func sewOrientedEllipticalAnnularPrism(ctx context.Context, b mappedRationalBasis, a, r, ia, ir, h, tol float64, orthogonal bool) (trimmed.Solid, error) {
 	bad := func(e error) (trimmed.Solid, error) { return trimmed.Solid{}, e }
 	outer, e := exactControlEllipticalPrismParts(ctx, b, a, r, h, tol)
 	if e != nil {
 		return bad(e)
 	}
-	inner, e := exactControlEllipticalPrismParts(ctx, b, ia, ir, h, tol)
+	innerBasis := b
+	if orthogonal {
+		innerBasis = orthogonalAnnularBasis(b)
+	}
+	inner, e := exactControlEllipticalPrismParts(ctx, innerBasis, ia, ir, h, tol)
 	if e != nil {
 		return bad(e)
 	}
 	ratios := [2]*big.Rat{new(big.Rat).Quo(new(big.Rat).SetFloat64(ia), new(big.Rat).SetFloat64(a)), new(big.Rat).Quo(new(big.Rat).SetFloat64(ir), new(big.Rat).SetFloat64(r))}
+	if orthogonal {
+		ratios = [2]*big.Rat{new(big.Rat).Neg(new(big.Rat).Quo(new(big.Rat).SetFloat64(ir), new(big.Rat).SetFloat64(a))), new(big.Rat).Quo(new(big.Rat).SetFloat64(ia), new(big.Rat).SetFloat64(r))}
+	}
 	for k := 0; k < 2; k++ {
 		curves := []trimmed.ExactQuadraticUV{}
 		for q := 3; q >= 0; q-- {
@@ -28,7 +38,11 @@ func sewEllipticalAnnularPrism(ctx context.Context, b mappedRationalBasis, a, r,
 				control[i][2] = new(big.Rat).Set(w)
 				for j := 0; j < 2; j++ {
 					half := new(big.Rat).Quo(w, big.NewRat(2, 1))
-					control[i][j] = new(big.Rat).Add(half, new(big.Rat).Mul(ratios[j], new(big.Rat).Sub(old[2-i][j], half)))
+					axis := j
+					if orthogonal {
+						axis = 1 - j
+					}
+					control[i][j] = new(big.Rat).Add(half, new(big.Rat).Mul(ratios[j], new(big.Rat).Sub(old[2-i][axis], half)))
 				}
 			}
 			c, e := trimmed.NewRationalEndpointQuadraticUV(control)
