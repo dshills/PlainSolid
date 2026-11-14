@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -101,14 +102,6 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 	if err != nil || len(ids) != 22 {
 		return fail()
 	}
-	lo, err := readCircularSourceFaceBounded(f, ids[0], 2, 4)
-	if err != nil || lo.kind != "PLANE" {
-		return fail()
-	}
-	right, err := readCircularSourceFaceBounded(f, ids[3], 2, 4)
-	if err != nil || right.kind != "PLANE" {
-		return fail()
-	}
 	z, err := readCircularSourceFaceBounded(f, ids[6], 1, 4)
 	if err != nil || z.kind != "CYLINDER" || z.sense {
 		return fail()
@@ -117,18 +110,23 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 	if err != nil || b.kind != "CYLINDER" || b.sense || b.radius != z.radius || b.frame.Origin() != z.frame.Origin() {
 		return fail()
 	}
-	frame, err := geom.NewFrame(lo.frame.Origin(), right.frame.ZAxis(), z.frame.ZAxis())
-	if err != nil {
+	y := z.frame.YAxis()
+	if math.Abs(y.Dot(b.frame.ZAxis())) > 8*0x1p-52 {
 		return fail()
 	}
-	basis := frame.XAxis().Scale(.8).Add(frame.ZAxis().Scale(.6))
+	x, axis := z.frame.XAxis(), z.frame.ZAxis()
+	basis := x.Scale(.8).Add(axis.Scale(.6))
 	ratio := geom.Vec2{}
 	if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
-		basis = frame.XAxis().Scale(.6).Add(frame.ZAxis().Scale(.8))
+		basis = x.Scale(.6).Add(axis.Scale(.8))
 		if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
 			return fail()
 		}
 		ratio = geom.Vec2{X: 3, Y: 4}
+	}
+	frame, err := geom.NewFrame(geom.Vec3{}, x, axis)
+	if err != nil {
+		return fail()
 	}
 	var vertices []geom.Vec3
 	for _, faceID := range ids[:6] {
@@ -149,8 +147,12 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		}
 	}
 	bounds, err := geom.Bounds(vertices)
-	if err != nil || bounds.Min != (geom.Vec3{}) {
+	if err != nil {
 		return fail()
 	}
-	return CrossedObliqueBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}, nil
+	placed, err := geom.NewFrame(frame.ToWorld(bounds.Min), x, axis)
+	if err != nil {
+		return fail()
+	}
+	return CrossedObliqueBoreBody{Name: name, Frame: placed, Dimensions: bounds.Max.Sub(bounds.Min), Crossing: placed.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}, nil
 }

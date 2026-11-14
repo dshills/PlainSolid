@@ -40,19 +40,44 @@ func obliqueLineZ(origin geom.Vec3, x float64, ratio geom.Vec2, slopeSign float6
 	return new(big.Rat).Add(rat(origin.Z), dx.Mul(dx, big.NewRat(int64(slopeSign*ratio.Y), int64(ratio.X))))
 }
 
+// Select a right-handed world-coordinate chart from the two cutter axes.
+// The cardinal direction is normalized to a positive world coordinate so
+// reversing an authored tool preserves the same STEP recipe.
+func obliqueCrossingChart(cardinal, oblique geom.Vec3) (geom.Frame, geom.Vec2, float64, bool) {
+	var x, z geom.Vec3
+	basis := [3]geom.Vec3{{X: 1}, {Y: 1}, {Z: 1}}
+	for _, v := range basis {
+		if math.Abs(cardinal.Dot(v)) == 1 {
+			z = v
+		} else if oblique.Dot(v) != 0 {
+			if x != (geom.Vec3{}) {
+				return geom.Frame{}, geom.Vec2{}, 0, false
+			}
+			x = v
+		}
+	}
+	f, err := geom.NewFrame(geom.Vec3{}, x, z)
+	if err != nil {
+		return geom.Frame{}, geom.Vec2{}, 0, false
+	}
+	ratio, sign, ok := obliqueCrossingAxis(f.ToLocal(oblique))
+	return f, ratio, sign, ok
+}
+
 func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, bool, error) {
 	cardinal, oblique := tools[0], tools[1]
 	if !cardinalFrame(cardinal.frame) {
 		cardinal, oblique = oblique, cardinal
 	}
-	if !cardinalFrame(cardinal.frame) || math.Abs(cardinal.frame.ZAxis().Z) != 1 || cardinal.radius != oblique.radius {
+	if !cardinalFrame(cardinal.frame) || cardinalFrame(oblique.frame) || cardinal.radius != oblique.radius {
 		return nil, false, nil
 	}
-	ratio, pattern, ok := obliqueCrossingAxis(oblique.frame.ZAxis())
+	chart, ratio, pattern, ok := obliqueCrossingChart(cardinal.frame.ZAxis(), oblique.frame.ZAxis())
 	if !ok {
 		return nil, false, nil
 	}
-	a, b := cardinal.frame.Origin(), oblique.frame.Origin()
+	a := chart.ToLocal(cardinal.frame.Origin())
+	b := chart.ToLocal(oblique.frame.Origin())
 	if a.Y != b.Y {
 		return nil, false, nil
 	}
@@ -61,12 +86,8 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 		return nil, false, nil
 	}
 	center := geom.Vec3{X: a.X, Y: a.Y, Z: z}
-	identity, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
-	if err != nil {
-		return nil, true, err
-	}
-	bounds, ok := orthogonalPrism(base, identity)
-	if !ok || !rectangularFaces(base, identity, bounds.Min, bounds.Max) {
+	bounds, ok := orthogonalPrism(base, chart)
+	if !ok {
 		return nil, false, nil
 	}
 	origin, far := bounds.Min, bounds.Max
@@ -74,13 +95,14 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 		origin = geom.Vec3{X: bounds.Min.X, Y: bounds.Max.Y, Z: bounds.Max.Z}
 		far = geom.Vec3{X: bounds.Max.X, Y: bounds.Min.Y, Z: bounds.Min.Z}
 	}
-	f, err := geom.NewFrame(origin, geom.Vec3{X: 1}, geom.Vec3{Z: pattern})
+	f, err := geom.NewFrame(chart.ToWorld(origin), chart.XAxis(), chart.ZAxis().Scale(pattern))
 	if err != nil {
 		return nil, true, err
 	}
 	dims := bounds.Max.Sub(bounds.Min)
-	local := f.ToLocal(center)
-	if f.ToWorld(local) != center || f.ToWorld(dims) != far {
+	worldCenter := chart.ToWorld(center)
+	local := f.ToLocal(worldCenter)
+	if f.ToWorld(local) != worldCenter || f.ToWorld(dims) != chart.ToWorld(far) {
 		return nil, false, nil
 	}
 	// Both finite tools must cover their entire intended stock openings.
@@ -106,14 +128,15 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 				if err != nil {
 					return nil, true, err
 				}
-				if math.Abs(support.Normal().X) != 1 {
+				if math.Abs(support.Normal().Dot(chart.XAxis())) != 1 {
 					return nil, false, nil
 				}
-				axis := tool.frame.ZAxis()
-				projected := (support.Origin().X - tool.frame.Origin().X) / axis.X
-				world := tool.frame.Origin().Add(axis.Scale(projected))
-				want := center.Z + pattern*(ratio.Y/ratio.X)*(support.Origin().X-center.X)
-				if math.Abs(world.Z-want) > 1e-9/16 {
+				axis := chart.ToLocal(tool.frame.ZAxis())
+				cap := chart.ToLocal(support.Origin())
+				projected := (cap.X - b.X) / axis.X
+				capPoint := b.Add(axis.Scale(projected))
+				want := center.Z + pattern*(ratio.Y/ratio.X)*(cap.X-center.X)
+				if math.Abs(capPoint.Z-want) > 1e-9/16 {
 					return nil, true, geom.ErrUnrepresentable
 				}
 			}
@@ -141,20 +164,25 @@ func overlapObliqueCrossedBore(a stored, tool *cylinderBody) (float64, bool, err
 			}
 		}
 		// Compare the unrounded authored lines to recognize covered tools.
-		ratio, sign, ok := obliqueCrossingAxis(tool.frame.ZAxis())
 		g := a.bore.obliqueCrossing
-		if ok && ratio == g.axisRatio && sign == g.frame.ZAxis().Z && tool.radius <= g.radius {
-			o := tool.frame.Origin()
+		chart, err := geom.NewFrame(geom.Vec3{}, g.frame.XAxis(), g.frame.ZAxis())
+		if err != nil {
+			return fail(err)
+		}
+		ratio, sign, ok := obliqueCrossingAxis(chart.ToLocal(tool.frame.ZAxis()))
+		if ok && ratio == g.axisRatio && sign == 1 && tool.radius <= g.radius {
+			o := chart.ToLocal(tool.frame.Origin())
 			for _, old := range a.bore.cylinders {
 				if cardinalFrame(old.frame) {
 					continue
 				}
-				b := old.frame.Origin()
+				b := chart.ToLocal(old.frame.Origin())
 				if o.Y == b.Y && obliqueLineZ(o, b.X, ratio, sign).Cmp(new(big.Rat).SetFloat64(b.Z)) == 0 {
 					return 0, true, nil
 				}
 			}
 		}
+
 		return 0, false, nil
 	}
 	if len(a.bore.cylinders) != 1 {

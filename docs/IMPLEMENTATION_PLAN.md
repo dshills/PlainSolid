@@ -125,8 +125,9 @@ STEP bands. The original metric and inch fastener blanks preserve their
 stepped shafts and hex sockets through STEP. Finite skew Hole floors can
 now stop beyond the actual transverse crossing even within the previous
 full-radius bound. Bounded tessellation handles the first tighter
-case within the existing worker deadline. Extend the equal-radius
-cardinal/oblique crossing to additional signed coordinate placements.
+case within the existing worker deadline. The equal-radius cardinal and
+oblique crossing now exchanges on all three cardinal axes. Continue
+with additional Pythagorean oblique ratios or trimmed crossing floors.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser
