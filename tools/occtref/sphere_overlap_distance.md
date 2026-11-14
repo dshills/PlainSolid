@@ -82,3 +82,26 @@ functional on each entire retained cap, with explicit signed cap inequality,
 original owner and two-owner boundary circle. No guessed representative is
 returned for non-singleton families. Default and `--algebraic` modes remain
 unchanged; rebuild the binary before running all three modes.
+
+## Arbitrary original axis and irrational circle radius
+
+Optional `--transverse` constructs radius-5 spheres at (0,0,0) and (2,2,1).
+The original center axis is not a coordinate axis. Their common circle has
+center (1,1,1/2), radius squared91/4 and plane normal(2,2,1). Queries:
+
+| Operation | Query | Exact squared minimum | Feature |
+|---|---|---|---|
+| Union | (2,0,1/2) | 99/4−2√(91/2) | circle |
+| Common | (5,−3,1/2) | 219/4−2√728 | circle |
+| Difference | (6,−2,1) | 57−2√728 | circle |
+| Union | (5,−3,1/2) | 237/4−10√(137/4) | retained spheres |
+| Common | (2,0,1/2) | 117/4−10√(17/4) | retained spheres |
+| Difference | (2,0,1/2) | 117/4−10√(17/4) | retained cutter |
+
+An additional radius-2 centers±1 union at query(0,1,1) has exact distance
+squared5−2√6 and an isolated foot on its irrational-radius circle. This case
+also binds the native adapter; arbitrary center directions remain geometric
+queries because the existing native constructor still accepts coordinate axes
+only. `TestOCCTSphereTransverseNearest` compares all seven independent OCCT
+results with the prior finite-precision allowances, including isolated feet.
+Other three oracle modes remain unchanged.
