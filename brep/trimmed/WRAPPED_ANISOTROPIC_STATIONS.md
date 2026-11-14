@@ -350,3 +350,34 @@ No circular normal or volume-error claim is made. Matching terminal U knot bases
 and proportional original weights are required; mismatched bases reject instead
 of using rounded positional welding. Prior circular station APIs retain their
 original source proof and behavior through the shared post-proof assembly core.
+
+## Exact through-material line sections
+
+`ClipWrappedAnisotropicStationBoreLineRational` reauthenticates both source grids
+and returns original model-line parameter events, open volume-interior intervals,
+and closed boundary spans with actual native face/edge/rim/vertex ownership.
+It accepts finite positive-length rational lines, including horizontal sections
+at original creases and terminal annular caps. A cap-contained line returns only
+the annular material intervals; the inner disk is an opening, not a cap or a
+volume interval. Tangencies and exact simultaneous cap/rim/crease events retain
+all owners. Reversing the line preserves the authored parameter transform.
+
+Each original band supplies its own certified conic/quartic roots. Distinct
+brackets must be strictly ordered; only identical rational events are merged.
+An ambiguous overlap fails without numerical merging. The complete event ledger
+justifies exact rational classification in each root-free interval. Original
+strict nesting proves the retained lateral roots are exposed. Source coedges
+are mapped by the already authenticated exact UV/model incidence, not proximity.
+
+Nonhorizontal wall coincidence is accepted only when both normalized profile
+coordinates are proven constant by affine identities over the complete band.
+An exact profile classification then proves either no wall contact or a full
+boundary generator. Other identically zero conic polynomials remain unsupported.
+An unrelated station on the opposite wall does not create a generator event.
+
+All root proofs, affine arithmetic and prepared point queries on both sources
+share the requested cumulative operation/bit limits. Source authentication keeps
+its bounded per-pass limits. The event limit covers premerge contacts and output
+spans. Any uncertain source, root order, ownership or budget failure returns an
+empty result. Nonexact parameters are isolating intervals; no exact irrational
+parameter identity is invented.
