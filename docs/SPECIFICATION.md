@@ -98,6 +98,11 @@ In particular:
   rational endpoint identity independently of the stored display vertices.
   Version 6 adds positive-weight cubic and quartic Bézier trims with exactly
   representable endpoints and verifies continuous edge agreement again on load.
+  Version 7 additionally persists bounded exact homogeneous Bézier surfaces
+  and rechecks the complete affected support/coedge identifications. The
+  numerical surface adapter evaluates the retained rational chart; it never
+  reconstructs rounded poles. Positivity, version, coefficient and work
+  budgets remain explicit. This does not qualify arbitrary rational shells.
   STEP and IGES report unsupported graph/entity combinations; the
   [pinned reference harness](../tools/occtref/README.md) exercises selected
   cross-kernel exchange cases.
