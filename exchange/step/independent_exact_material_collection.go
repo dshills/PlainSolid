@@ -41,6 +41,9 @@ func ReadIndependentExactMaterials(ctx context.Context, r io.Reader, l Limits, t
 	return readIndependentExactMaterialCollection(ctx, r, l, tol, 1, 16, true)
 }
 func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l Limits, tol float64, minRoots, maxRoots int, allowPlanar bool, cylinderMode ...bool) (IndependentExactMaterialCollection, error) {
+	return readIndependentMaterialSelection(ctx, r, l, tol, minRoots, maxRoots, allowPlanar, nil, cylinderMode...)
+}
+func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits, tol float64, minRoots, maxRoots int, allowPlanar bool, selected map[int64]bool, cylinderMode ...bool) (IndependentExactMaterialCollection, error) {
 	bad := func() (IndependentExactMaterialCollection, error) {
 		return IndependentExactMaterialCollection{}, fmt.Errorf("step: unsupported independent exact material collection")
 	}
@@ -80,11 +83,22 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 	if len(roots) < minRoots || len(roots) > maxRoots || len(roots) > l.MaxSolids || len(apds) != len(roots) || len(categories) != len(roots) {
 		return bad()
 	}
-	out := IndependentExactMaterialCollection{Source: f, Members: make([]IndependentExactMaterial, len(roots)), tolerance: tol}
+	if selected != nil {
+		found := 0
+		for _, root := range roots {
+			if selected[root] {
+				found++
+			}
+		}
+		if found != len(selected) || found == 0 {
+			return bad()
+		}
+	}
+	out := IndependentExactMaterialCollection{Source: f, tolerance: tol}
 	claimed := map[int64]bool{}
 	sharedFrames := map[int64]bool{}
 	faces, vertices, uses := 0, 0, 0
-	for member, root := range roots {
+	for _, root := range roots {
 		allowed := map[int64]bool{}
 		sdr, e := simple(f, root, "SHAPE_DEFINITION_REPRESENTATION", 2)
 		if e != nil || sdr.Args[1].Kind != Reference {
@@ -96,6 +110,10 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 		}
 		items, e := listRefs(rep.Args[1], 2)
 		if e != nil || len(items) != 2 {
+			return bad()
+		}
+		itemBody := f.Entities[items[1]]
+		if len(itemBody.Records) != 1 || (itemBody.Records[0].Type != "MANIFOLD_SOLID_BREP" && itemBody.Records[0].Type != "BREP_WITH_VOIDS") {
 			return bad()
 		}
 		neutral, e := simple(f, items[0], "AXIS2_PLACEMENT_3D", 4)
@@ -229,6 +247,13 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 			view.Entities[id] = f.Entities[id]
 			view.Order = append(view.Order, id)
 		}
+		productID, definitionID, productName, e := independentMaterialProduct(view, root)
+		if e != nil {
+			return bad()
+		}
+		if selected != nil && !selected[root] {
+			continue
+		}
 		leaf := l
 		leaf.MaxFaces -= faces
 		leaf.MaxVertices -= vertices
@@ -239,10 +264,7 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 		}
 		m.SourceRootID = root
 		m.SourceRepresentationID = sdr.Args[1].Ref
-		m.SourceProductID, m.SourceDefinitionID, m.ProductName, e = independentMaterialProduct(view, root)
-		if e != nil {
-			return bad()
-		}
+		m.SourceProductID, m.SourceDefinitionID, m.ProductName = productID, definitionID, productName
 
 		faces += len(m.Solid.Faces())
 		vertices += len(m.Solid.Vertices())
@@ -255,12 +277,12 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 		if faces > l.MaxFaces || vertices > l.MaxVertices || uses > l.MaxEdgeUses {
 			return bad()
 		}
-		if member == 0 {
+		if len(out.Members) == 0 {
 			out.LengthUnit = m.LengthUnit
 		} else if m.LengthUnit != out.LengthUnit {
 			return bad()
 		}
-		out.Members[member] = m
+		out.Members = append(out.Members, m)
 	}
 	if len(claimed) != len(f.Entities) {
 		return bad()
