@@ -14,6 +14,17 @@ import (
 // projected area interval has width at most projectedWidth. World area is
 // the projected area times the positive square root of ModelScaleSquared.
 func (c AlgebraicGraphCapClip) BoundPolynomialArea(ctx context.Context, projectedWidth *big.Rat, o RationalGraphShellRegionOptions) (RationalGraphSectionArea, error) {
+	return c.boundArea(ctx, projectedWidth, o, false)
+}
+
+// BoundArea measures the clipped cap with polynomial or rational trim curves.
+// Rational curve integrals use interval quadrature certified with exact
+// arithmetic; polynomial curves retain the exact antiderivative path.
+func (c AlgebraicGraphCapClip) BoundArea(ctx context.Context, projectedWidth *big.Rat, o RationalGraphShellRegionOptions) (RationalGraphSectionArea, error) {
+	return c.boundArea(ctx, projectedWidth, o, true)
+}
+
+func (c AlgebraicGraphCapClip) boundArea(ctx context.Context, projectedWidth *big.Rat, o RationalGraphShellRegionOptions, rational bool) (RationalGraphSectionArea, error) {
 	var zero RationalGraphSectionArea
 	if ctx == nil || c.regions == nil || projectedWidth == nil || projectedWidth.Sign() <= 0 {
 		return zero, geom.ErrInvalid
@@ -47,7 +58,11 @@ func (c AlgebraicGraphCapClip) BoundPolynomialArea(ctx context.Context, projecte
 	}
 	for _, wire := range c.wires {
 		for _, use := range wire {
-			p, e := use.Cell.BoundPolynomialProjectedGreen(ctx, axes, width, b.limits())
+			bound := use.Cell.BoundPolynomialProjectedGreen
+			if rational {
+				bound = use.Cell.BoundProjectedGreen
+			}
+			p, e := bound(ctx, axes, width, b.limits())
 			if e != nil {
 				return zero, e
 			}
