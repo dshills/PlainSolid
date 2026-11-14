@@ -130,3 +130,22 @@ Non-cardinal reference directions and rounded pcurves remain unsupported.
 Independent OCCT read/validity/measure tests cover all three reference changes
 for blind and through shapes. Native tests also exercise signed coordinate axis
 permutations and composition with the separate reversed-line option.
+
+### Opt-in opposite circle normal with paired sense
+
+`AllowOppositeModelCircleNormals` permits the exact negative of the canonical
+normal only when the source `EDGE_CURVE.same_sense` is also inverted. The normal
+reversal changes the circle's orientation; the paired sense reversal restores
+the same model-space traversal. The proof converts the source sense into the
+canonical normal orientation and requires its sign to agree with the exact
+endpoint radial cross product. It therefore selects the same strict minor arc,
+not its complementary arc. The center, radius, endpoint plane equations,
+reference frame and complete reconstructed graph remain independently checked.
+The normal direction, like the placement and reference, must be singly owned.
+
+`OppositeNormalModelCircles` records the normalized source edge IDs. A changed
+reference axis still requires `AllowRephasedModelCircles`; neither circle option
+enables the line option. Zero options preserve the original reader contract.
+Tests reject unpaired normal/sense changes, shared normals and altered supports.
+Independent OCCT validation and analytic measures cover the opposite-normal
+encoding at all four cardinal phases for blind and through cuts.

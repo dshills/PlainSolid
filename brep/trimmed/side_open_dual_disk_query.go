@@ -14,6 +14,8 @@ type sideOpenDualDiskSource struct {
 	min, max      geom.Vec2
 	discs         [2]ExtrusionCircle
 	height, depth float64
+	outer         []ExactQuadraticUV
+	owners        []int
 }
 
 // Locate classifies a represented world point in the material of the
