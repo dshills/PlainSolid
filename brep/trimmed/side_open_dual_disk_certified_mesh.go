@@ -99,26 +99,46 @@ func (w dualDiskWallProof) radial(ctx context.Context, u *big.Rat) ([3]*big.Rat,
 	return r, nil
 }
 
-// Reconstructing with NewRationalCylindricalSpan independently proves the whole
+// Reconstructing exact homogeneous controls independently proves the whole
 // circle equation, nonzero angular derivative, and open-halfplane arc bound.
 // Metadata is never accepted as evidence of circularity.
 func proveDualDiskWall(ctx context.Context, f Face) (dualDiskWallProof, error) {
 	var out dualDiskWallProof
-	s, ok := f.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return out, geom.ErrDomain
-	}
-	d := s.Data()
-	if d.DegreeU != 2 || d.DegreeV != 1 || d.CountU != 3 || d.CountV != 2 || len(f.Holes) != 0 || len(f.Outer) != 4 {
-		return out, geom.ErrDomain
-	}
-	p, e := geom.NewSurfacePatch(s, geom.SurfacePatchOptions{})
+	p, e := exactFaceSupportPatch(f, geom.SurfacePatchOptions{})
 	if e != nil {
 		return out, e
 	}
+	recipe, e := p.ExportExactBezierRecipe()
+	if e != nil {
+		return out, e
+	}
+	if recipe.DegreeU != 2 || recipe.DegreeV != 1 || len(recipe.Controls) != 6 || recipe.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || len(f.Holes) != 0 || len(f.Outer) != 4 {
+		return out, geom.ErrDomain
+	}
 	poles := [6][3]*big.Rat{}
-	for i := range poles {
-		poles[i] = exactBoundPoint(d.Poles[i])
+	weights := [6]*big.Rat{}
+	for i, row := range recipe.Controls {
+		var h [4]*big.Rat
+		for k, text := range row {
+			if len(text) > 8192 {
+				return out, geom.ErrConvergence
+			}
+			q, ok := new(big.Rat).SetString(text)
+			if !ok {
+				return out, geom.ErrInvalid
+			}
+			if q.Num().BitLen() > 4096 || q.Denom().BitLen() > 4096 {
+				return out, geom.ErrConvergence
+			}
+			h[k] = q
+		}
+		if h[3].Sign() <= 0 {
+			return out, geom.ErrInvalid
+		}
+		weights[i] = h[3]
+		for k := range poles[i] {
+			poles[i][k] = new(big.Rat).Quo(h[k], h[3])
+		}
 	}
 	delta := ddSub(poles[1], poles[0])
 	axis := -1
@@ -134,7 +154,7 @@ func proveDualDiskWall(ctx context.Context, f Face) (dualDiskWallProof, error) {
 		return out, geom.ErrDomain
 	}
 	for i := 0; i < 3; i++ {
-		if d.Weights[2*i] != d.Weights[2*i+1] {
+		if weights[2*i].Cmp(weights[2*i+1]) != 0 {
 			return out, geom.ErrDomain
 		}
 		q := ddSub(poles[2*i+1], poles[2*i])
@@ -213,16 +233,25 @@ func proveDualDiskWall(ctx context.Context, f Face) (dualDiskWallProof, error) {
 	}
 	var arc [3][3]*big.Rat
 	for i := range arc {
-		w := ratInset(d.Weights[2*i])
+		w := weights[2*i]
 		arc[i] = [3]*big.Rat{new(big.Rat).Mul(w, poles[2*i][xaxis]), new(big.Rat).Mul(new(big.Rat).Mul(w, poles[2*i][yaxis]), big.NewRat(int64(sign), 1)), w}
 	}
 	z0, z1 := new(big.Rat).Mul(poles[0][axis], big.NewRat(int64(sign), 1)), new(big.Rat).Mul(poles[1][axis], big.NewRat(int64(sign), 1))
-	rebuilt, e := geom.NewRationalCylindricalSpan(ctx, frame, center, radius, z0, z1, arc)
+	rebuilt, e := geom.NewExactRationalCylindricalSpanPatch(ctx, frame, center, radius, z0, z1, arc)
 	if e != nil {
 		return out, e
 	}
-	if !geom.SameSplineSurface(s, rebuilt) {
+	rebuiltRecipe, e := rebuilt.ExportExactBezierRecipe()
+	if e != nil {
+		return out, e
+	}
+	if rebuiltRecipe.Domain != recipe.Domain || len(rebuiltRecipe.Controls) != len(recipe.Controls) {
 		return out, geom.ErrDomain
+	}
+	for i, h := range recipe.Controls {
+		if h != rebuiltRecipe.Controls[i] {
+			return out, geom.ErrDomain
+		}
 	}
 	out = dualDiskWallProof{patch: p, axis: axis, center: [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}}
 	out.center[xaxis] = center[0]
@@ -288,11 +317,7 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 		if _, ok := walls[fi]; ok {
 			continue
 		}
-		source, ok := f.Surface.(*geom.BSplineSurface)
-		if !ok {
-			return empty, geom.ErrDomain
-		}
-		p, e := geom.NewSurfacePatch(source, geom.SurfacePatchOptions{})
+		p, e := exactFaceSupportPatch(f, geom.SurfacePatchOptions{})
 		if e != nil {
 			return empty, e
 		}

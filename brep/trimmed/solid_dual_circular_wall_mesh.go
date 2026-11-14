@@ -23,11 +23,7 @@ func (s Solid) TessellateDualCircularWallCertified(ctx context.Context, o SideOp
 		if e := ctx.Err(); e != nil {
 			return empty, e
 		}
-		source, ok := f.Surface.(*geom.BSplineSurface)
-		if !ok {
-			return empty, geom.ErrDomain
-		}
-		p, e := geom.NewSurfacePatch(source, geom.SurfacePatchOptions{})
+		p, e := exactFaceSupportPatch(f, geom.SurfacePatchOptions{})
 		if e != nil {
 			return empty, e
 		}
