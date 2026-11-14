@@ -42,6 +42,9 @@ func TestOCCTTorusCylinderOccurrence(t *testing.T) {
 		var ref struct {
 			Operation       int
 			SquaredDistance float64
+			Volume          float64
+			Center          [3]float64
+			Inertia         [9]float64
 			Normal, Point   [3]float64
 			Parameters      []float64
 		}
@@ -61,6 +64,40 @@ func TestOCCTTorusCylinderOccurrence(t *testing.T) {
 		occ, e := placement.PlaceTorusCylinder(ctx, source, pose)
 		if e != nil {
 			t.Fatal(e)
+		}
+		moments, err := occ.BoundMoments(ctx, placement.TorusCylinderOccurrenceMomentOptions{Source: geom.TorusCylinderMomentOptions{VolumeTolerance: r(1, 100), SecondMomentTolerance: r(1, 10), CentroidTolerance: r(1, 1000), InertiaTolerance: r(1, 5)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkMass := func(bounds [2]*big.Rat, x float64) {
+			t.Helper()
+			lo, _ := bounds[0].Float64()
+			hi, _ := bounds[1].Float64()
+			if math.IsNaN(x) || x < lo-1e-5 || x > hi+1e-5 {
+				t.Fatal("world mass tensor", x, lo, hi)
+			}
+		}
+		checkMass(moments.Volume, ref.Volume)
+		trace := (ref.Inertia[0] + ref.Inertia[4] + ref.Inertia[8]) / 2
+		centerNorm := 0.0
+		for _, x := range ref.Center {
+			centerNorm += x * x
+		}
+		for i := 0; i < 3; i++ {
+			checkMass(moments.First[i], ref.Volume*ref.Center[i])
+			checkMass(moments.Centroid[i], ref.Center[i])
+			for j := 0; j < 3; j++ {
+				I := ref.Inertia[3*i+j]
+				Q := -I + ref.Volume*ref.Center[i]*ref.Center[j]
+				origin := I - ref.Volume*ref.Center[i]*ref.Center[j]
+				if i == j {
+					Q += trace
+					origin += ref.Volume * centerNorm
+				}
+				checkMass(moments.Second[i][j], Q)
+				checkMass(moments.InertiaCentroid[i][j], I)
+				checkMass(moments.InertiaOrigin[i][j], origin)
+			}
 		}
 		query, _ := pose.TransformPoint(ctx, [3]*big.Rat{r(4, 1), r(1, 1), r(3, 2)}, false, 4096)
 		nearest, err := occ.BoundBoundaryDistance(ctx, query, geom.TorusCylinderDistanceOptions{SquaredTolerance: r(1, 10000)})
