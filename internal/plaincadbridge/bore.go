@@ -15,20 +15,22 @@ import (
 // The ordinary path uses perpendicular opening planes. The single oblique
 // through path retains its separate elliptical opening and wall measures.
 type boreBody struct {
-	inputCylinders []*cylinderBody // exact pre-canonicalization tool lineage
-	solid          trimmed.Solid
-	base           brep.Solid
-	cylinders      []*cylinderBody
-	cuts           []trimmed.CylinderCut
-	spans          []float64
-	blind          []bool
-	floors         []int
-	union          *trimmed.CylinderUnionHistory
-	layered        *trimmed.LayeredBoreHistory
-	crossed        *trimmed.BoxCrossedBoresResult
-	oblique        *obliqueBore
-	partialSkew    bool
-	blindCrossed   *blindCrossedGeometry
+	inputCylinders    []*cylinderBody // exact pre-canonicalization tool lineage
+	solid             trimmed.Solid
+	base              brep.Solid
+	cylinders         []*cylinderBody
+	cuts              []trimmed.CylinderCut
+	spans             []float64
+	blind             []bool
+	floors            []int
+	union             *trimmed.CylinderUnionHistory
+	layered           *trimmed.LayeredBoreHistory
+	crossed           *trimmed.BoxCrossedBoresResult
+	partialSkew       bool
+	blindCrossed      *blindCrossedGeometry
+	crossedCompanions *crossedCompanionGeometry
+	tripleCrossed     *crossedBoreGeometry
+	oblique           *obliqueBore
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -218,7 +220,7 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
-		pair, pairCuts, pairSpans, pairBlind := retainedCrossedToolPair(cylinders, cuts, spans, blind)
+		pair, pairCuts, pairSpans, pairBlind := retainedCrossedTools(cylinders, cuts, spans, blind)
 		depths := make([]float64, len(cylinders))
 		hasBlind := false
 		for i := range blind {
@@ -242,6 +244,12 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 		}
 		if result, handled, err := newCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, err
+		}
+		if result, handled := newTripleCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
+			return result, nil
+		}
+		if result, handled := newCrossedCompanionBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
+			return result, nil
 		}
 		return newUnionBore(base, cylinders, cuts, blind)
 	}

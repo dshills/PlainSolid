@@ -18,17 +18,15 @@ func cardinalBoreContainsTool(old *cylinderBody, blind bool, tool *cylinderBody)
 	return exactDotDifference(start, floor, axis) <= 0 && exactDotDifference(end, floor, axis) <= 0
 }
 
-// retainedCrossedToolPair removes only cutters covered by another cutter in
-// the batch. Other bore families receive their original inputs when the two
-// retained cutters do not form a qualified crossed pair.
-func retainedCrossedToolPair(tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (
+// retainedCrossedTools removes only cutters covered by another cutter in
+// the batch. Other bore families receive their original tool set.
+func retainedCrossedTools(tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (
 	[]*cylinderBody, []trimmed.CylinderCut, []float64, []bool,
 ) {
 	if len(tools) <= 2 {
 		return tools, cuts, spans, blind
 	}
-	var kept [2]int
-	count := 0
+	kept := make([]int, 0, len(tools))
 	for i, tool := range tools {
 		covered := false
 		for j, other := range tools {
@@ -42,17 +40,21 @@ func retainedCrossedToolPair(tools []*cylinderBody, cuts []trimmed.CylinderCut, 
 			}
 		}
 		if !covered {
-			if count == len(kept) {
-				return tools, cuts, spans, blind
-			}
-			kept[count] = i
-			count++
+			kept = append(kept, i)
 		}
 	}
-	if count != len(kept) {
+	if len(kept) == len(tools) {
 		return tools, cuts, spans, blind
 	}
-	i, j := kept[0], kept[1]
-	return []*cylinderBody{tools[i], tools[j]}, []trimmed.CylinderCut{cuts[i], cuts[j]},
-		[]float64{spans[i], spans[j]}, []bool{blind[i], blind[j]}
+	result := make([]*cylinderBody, 0, len(kept))
+	resultCuts := make([]trimmed.CylinderCut, 0, len(kept))
+	resultSpans := make([]float64, 0, len(kept))
+	resultBlind := make([]bool, 0, len(kept))
+	for _, i := range kept {
+		result = append(result, tools[i])
+		resultCuts = append(resultCuts, cuts[i])
+		resultSpans = append(resultSpans, spans[i])
+		resultBlind = append(resultBlind, blind[i])
+	}
+	return result, resultCuts, resultSpans, resultBlind
 }

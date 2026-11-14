@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"plainsolid/geom"
@@ -25,7 +26,7 @@ func TestFarTangentCrossedBoreSTEP(t *testing.T) {
 			t.Fatal(n, err)
 		}
 		got, err := ReadCrossedBore(bytes.NewReader(out.Bytes()), Limits{})
-		if err != nil || got != m {
+		if err != nil || !reflect.DeepEqual(got, m) {
 			t.Fatal(n, got, err)
 		}
 		p.BlindDepth = 4
