@@ -119,8 +119,9 @@ retains a recipe for subsequent coaxial cuts. The original arc-only lens
 exchanges both cylindrical supports with its four sketch fragments still
 editable. Simple cylindrical Revolve sectors now use the existing
 analytic STEP writer. Full concentric tubes from coaxial cuts use the
-existing periodic STEP graph and retain their edit recipe. Next connect
-exact STEP exchange to PlainCAD’s grouped circular rim fillets.
+existing periodic STEP graph and retain their edit recipe. Signed world-Z
+circular rim fillets now use the exact rational STEP bands. Next extend
+the rim exchange to the original XZ and YZ working planes.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser

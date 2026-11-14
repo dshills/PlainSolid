@@ -22,6 +22,7 @@ type analyticBody struct {
 	solid           trimmed.Solid
 	patches         *parametric.Solid
 	rimPatches      bool
+	rimFillet       *cylinderRimFillet
 	sector          *radialSector
 	torus           *torusSweep
 	shaft           *trimmed.SteppedShaft
@@ -309,6 +310,13 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			r.frame = f
 			out.sector = &r
 		}
+	}
+	if a.rimFillet != nil {
+		p, err := a.rimFillet.transformed(m)
+		if err != nil {
+			return nil, err
+		}
+		out.rimFillet = p
 	}
 	if a.torus != nil {
 		p, err := a.torus.transformed(m)
