@@ -503,6 +503,12 @@ PlainCAD tests in 25.488 seconds, with zero retries, skips, or failures.
 The separate real Go/WASM browser probe passed in 5.317 seconds. Evidence
 records typechecking, all 841 original source checks, and hashes of the test
 outputs for that reconciled revision.
+Reconciliation `89f244c` combines the `1466e87` PlainCAD integration history
+with the current main kernel. Ten original development Hole and STEP export
+tests, the browser backend probe, both typechecks and 841 source comparisons
+passed without retries or skips. A separate focused regression keeps the
+strict nonbinary recipe rejection and proves the independently reconstructed
+analytic result's volume, STEP readback and closed display mesh.
 The rational frustum section (`b894c4b`) keeps the original V parameters
 7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
 sides of the original wall differ by 2^-120. The exact line path (`30d8254`)

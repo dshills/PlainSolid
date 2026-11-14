@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "backend": "plainsolid-go-wasm",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "89f244cd13b903ad7f73ba32f824b3cb9aaa3909",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "integrationCommit": "1466e870596fde1511328aa4cf367ae291cdfcfb",
+  "wasmSha256": "9520982d7c3d8ec7905f3168bde7fec589baa9ab25167a6ceb7cdd085d59f227",
+  "readinessSha256": "17f460478e329c4f1e81723222f0f19f72919941eb66364833c1e35c58e60df7",
+  "backendResultSha256": "94ee0389833de86dcf33c58f427940045cbf2083e84bef3a8379a69d45d4fd65",
+  "resultSha256": "e3f2a5eae8b274e1cb6f1757a44d984e2ee0402687a9fe23400a641194ad9176",
+  "originalSourceVerification": {
+    "verified": 841
+  },
+  "selection": {
+    "suite": "development",
+    "testFile": "(guided-hole|multi-body-holes|step-export)\\.spec\\.ts$",
+    "grep": "guided (through-all|blind) face holes|explicit multi-body hole patterns|public STEP body selection",
+    "acceptancePort": "5279",
+    "preflightPort": "5279"
+  },
+  "typecheck": "passed",
+  "backendVerified": true,
+  "startedAt": "2026-11-14T07:50:42.827Z",
+  "finishedAt": "2026-11-14T07:52:21.596Z",
+  "backendStats": {
+    "startTime": "2026-11-14T07:51:00.674Z",
+    "duration": 5795.893,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "stats": {
+    "startTime": "2026-11-14T07:51:06.788Z",
+    "duration": 74800.49399999999,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "plainsolid-backend.spec.ts",
+      "line": 2,
+      "title": "PlainSolid backend: real Go WASM dispatcher and no OCCT requests",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4464,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XY: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 7206,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XY: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6351,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XZ: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5753,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XZ: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5697,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "YZ: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6283,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "YZ: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5648,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "XY: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9889,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "XZ: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10007,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "YZ: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9804,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-export.spec.ts",
+      "line": 23,
+      "title": "public STEP body selection exports analytic posed solids with actual native reader volume and world bounds through edits and save/open",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6283,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

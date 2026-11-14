@@ -46,6 +46,11 @@ The [reconciled modeling run](evidence/plaincad-reconciled-ff15d87-development-m
 adds three original passing cases for edge treatment edits, revolve with cut
 and join, and the long feature chain through recovery, save/open and STL.
 It verified the same 841 original source files and no-OCCT browser preflight.
+The [next reconciled run](evidence/plaincad-reconciled-89f244c-development-holes-step-2026-11-14.json)
+passed ten original Hole and STEP export tests after merging the separate
+worktree's same-side and opposite-cap opening commits. In the review branch,
+the existing exact dual-disc recipe runs first; if it cannot represent a
+crossing, the independent analytic opening-pair recipe may certify it.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
