@@ -9,6 +9,7 @@ names = ('elliptical-prism-topology','elliptical-annular-prism-topology','placed
 if "--circle" in sys.argv:names=("conic-circular-prism-topology",)
 if "--circle-annular" in sys.argv:names=("conic-circular-annular-prism-topology",)
 if "--placed-circles" in sys.argv:names=("placed-conic-circular-prism-topology","placed-conic-circular-annular-prism-topology")
+if "--cones" in sys.argv:names=("conical45-frustum","placed-conical45-frustum")
 for name in names:
  lines=Path('exchange/iges/testdata/'+name+'.igs').read_text().splitlines();ds=[x for x in lines if x[72]=='D'];ps=[x for x in lines if x[72]=='P'];records=[]
  for i in range(0,len(ds),2):
@@ -40,6 +41,7 @@ for name in names:
   kind=int(v[0]);slots=[]
   if kind in (122,186):slots=[1]
   elif kind==190:slots=[1,2,3]
+  elif kind==194:slots=[1,2,5]
   elif kind==514:slots=[2+2*j for j in range(int(v[1]))]
   elif kind==510:slots=[1]+list(range(4,4+int(v[2])))
   elif kind==504:slots=sum(([2+5*j,3+5*j,5+5*j] for j in range(int(v[1]))),[])

@@ -8,6 +8,9 @@ import (
 // Vertex ordinals have been normalized from exact endpoint roles. Their coordinates and every model
 // curve are checked by canonical reproof after this incidence normalization.
 func ellipseEdgeListOrder(records map[int]topologyRecord, annular bool) error {
+	return conicEdgeListOrder(records, annular, 104)
+}
+func conicEdgeListOrder(records map[int]topologyRecord, annular bool, curveKind int) error {
 	count := 3
 	if annular {
 		count = 6
@@ -70,11 +73,11 @@ func ellipseEdgeListOrder(records map[int]topologyRecord, annular bool) error {
 			for wall := 0; wall < count/3; wall++ {
 				top, bottom := 1+2*wall, 2+2*wall
 				switch {
-				case c.kind == 104 && start == top && end == top:
+				case c.kind == curveKind && start == top && end == top:
 					role = 1 + 3*wall
 				case c.kind == 110 && start == bottom && end == top:
 					role = 2 + 3*wall
-				case c.kind == 104 && start == bottom && end == bottom:
+				case c.kind == curveKind && start == bottom && end == bottom:
 					role = 3 + 3*wall
 				}
 			}

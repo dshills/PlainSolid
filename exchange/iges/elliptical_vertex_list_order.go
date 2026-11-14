@@ -111,6 +111,10 @@ func ellipseVertexListOrder(records map[int]topologyRecord, annular bool) (map[i
 			return nil, e
 		}
 	}
+	return conicMatchVertices(records, vertices, expected)
+}
+func conicMatchVertices(records map[int]topologyRecord, vertices topologyRecord, expected [][3]*big.Rat) (map[int]int, error) {
+	count := len(expected)
 	canonicalToSource, sourceToCanonical := map[int]int{}, map[int]int{}
 	out := append([]parameter(nil), vertices.values...)
 	for old := 1; old <= count; old++ {

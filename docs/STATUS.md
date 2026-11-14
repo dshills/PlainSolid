@@ -30,9 +30,14 @@ bound below 0.098 model units. The matching difference also has a closed
 certified mesh for all 14 fragments and two independently oriented
 components. Its 2,018 triangles retain the original charts and reversed
 cutter faces. A complete union mesh remains a separate requirement.
-Exact stock line queries also
-resolve isolated shared wall and cap events without duplicating or losing
-their original face owners (`dda46a5`, `22ef5ba`).
+The same IGES exchange now qualifies exact filled and hollow circular
+prisms and exact 45° conical frusta, with source-bound reload, proper
+signed-axis placement, and authenticated record, vertex, edge, and
+cyclic-use ordering. Exact stock line queries preserve original cap and
+wall owners across isolated contacts, coincident runs, and common line
+intervals between two placed stock bodies. Directional separation and
+nearest owner tests distinguish exact ties from overlapping numerical
+enclosures below binary64 precision.
 
 ## Immediate priority: PlainCAD compatibility
 
