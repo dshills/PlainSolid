@@ -189,6 +189,7 @@ func Preflight(r io.Reader, l Limits) (GraphPreflight, error) {
 	}
 	if features["mapped-material"] {
 		hints["ReadMappedPlanarMaterial"] = true
+		hints["ReadMappedPlanarMaterials"] = true
 	}
 	if features["assembly"] {
 		hints["ReadAssembly"] = true
