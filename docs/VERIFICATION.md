@@ -2334,3 +2334,8 @@ It first rebuilds the original source/material and mass tensor, then independent
 requalifies the pair and complete retained native boundary during mesh binding.
 The environment gate preserves the existing ordinary test cost. Whole-mesh
 success must be recorded separately from the focused degree-eight tests.
+The flagship explicitly enables the existing affine-chart transport because the
+original stock plane spans [-1/8,9/8] while the roof spans [0,1]. An initial run
+without that option was deliberately stopped after original section coverage;
+it was not a mesh qualification and its log is retained separately. No identity
+chart assumption or proof gate was weakened.
