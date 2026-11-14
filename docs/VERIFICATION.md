@@ -9,6 +9,19 @@ for the original XY projection, with the new point and event proof still
 charged to the caller's exact arithmetic allowance. Focused original and
 permuted projection race checks passed in 1.489 seconds.
 
+The full pure-Go `18204a56` run is recorded in the
+[native run checkpoint](evidence/native-main-18204a56-2026-11-14.json).
+The two completed full trimmed normal groups took 4,245.252 and
+3,907.519 seconds. The normal run outside trimmed passed all 50
+packages with tests. The selected tube region collection passed in
+122.88 seconds under the concurrent qualification load. The selected
+disk and annulus fixture passed in 974.48 seconds and produced 20,128
+triangles on 10,066 vertices. Shard 2 reported a stale assertion
+checking degree seven as invalid when the production ceiling was
+eight. Commit `313dfb62` uses degree nine. On the pinned source with
+only that test correction, the fixture passed both normal and race.
+The original result remains in the log.
+
 Ordered Common of a genuinely creased original roof retains two distinct
 roof fragments and their one-sided slopes. The 10-face solid has one shell
 and Euler characteristic two. Analytic area and volume agree with live
@@ -90,6 +103,28 @@ OCCT XCAF. The integrated occurrence race passed in 2.253 seconds.
 The source-backed native appearance envelope revalidates original
 geometry, poses, styles and contextual record ancestry on reload. Its
 integrated live race passed in 2.489 seconds.
+
+Independent weighted loft tests cover exact crossing Common and Fuse,
+strict through-bore Cut, split across different inner and outer knot
+grids, and exact annular lines preserving both cap-rim ownership sets.
+Tests distinguish cap-plane boundary intervals from exposed material
+interior. Weighted bore display and the prior circular display passed
+the integrated race in 73.863 seconds. Proper rational placements also
+preserve exact squared distance, original owner IDs and certified mass
+intervals.
+
+The flat AP242 override writer can create a contextual style, edit it
+without changing unrelated entity records, and remove it to restore
+the original product color. The source-to-native-to-STEP sequence
+preserves exact source ownership and has independent OCCT XCAF
+readback. The final create/edit/remove integrated race passed in
+4.588 seconds, and removal completed 40 bounded fuzz iterations.
+
+Original affine patch fixtures exercise full coplanar overlap, tangent
+point and segment contacts and noncoplanar transverse intersections.
+The source patch contact API re-evaluates each published vertex on both
+original charts and returns original side masks. The focused integrated
+race passed in 1.169 seconds.
 
 ## PlainCAD qualification on kernel 18204a56 (2026-11-14)
 

@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "kernelRevision": "18204a56b93dbc4cd493246cfb436f174fae01e9",
+  "selection": "all packages, with the trimmed package split into three nonoverlapping deterministic lanes; no -short",
+  "trimmedTopLevelSelection": [
+    346,
+    345,
+    345
+  ],
+  "platform": "darwin/arm64",
+  "go": "1.27.4",
+  "normal": {
+    "CGO_ENABLED": 0,
+    "timeoutMinutes": 120,
+    "GOMAXPROCS": 2
+  },
+  "race": {
+    "CGO_ENABLED": 1,
+    "timeoutMinutes": 145,
+    "GOMAXPROCS": 2
+  },
+  "status": "running",
+  "lanes": {
+    "packages-normal": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-normal.jsonl",
+      "sha256AtCheckpoint": "25b4b4a3aaad744a46cbaec35a2474685a619670ef93c42d8bbee1771db98373",
+      "bytesAtCheckpoint": 5304324,
+      "packageOutcomes": {
+        "pass": 50,
+        "skip": 5
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 6312,
+        "skip": 411
+      },
+      "topLevelTestOutcomes": {
+        "pass": 3418,
+        "skip": 401
+      },
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": []
+    },
+    "packages-race": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-race.jsonl",
+      "sha256AtCheckpoint": "3efa975891f1e175fd0dec62dcb467ace72529e88346e91d17e9551f78a3abb8",
+      "bytesAtCheckpoint": 5298997,
+      "packageOutcomes": {
+        "pass": 49,
+        "skip": 5
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 6303,
+        "skip": 410
+      },
+      "topLevelTestOutcomes": {
+        "pass": 3412,
+        "skip": 400
+      },
+      "activeTopLevelTestsAtCheckpoint": {
+        "plainsolid/intersect": "TestAnisotropicQuarticAutomaticCover"
+      },
+      "failures": []
+    },
+    "trimmed-0-normal": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-normal.jsonl",
+      "sha256AtCheckpoint": "5491ff996c9fd568425182bc00337fac81958113ad49ca233176edc2811acc12",
+      "bytesAtCheckpoint": 350023,
+      "packageOutcomes": {
+        "pass": 1
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 413,
+        "skip": 4
+      },
+      "topLevelTestOutcomes": {
+        "pass": 342,
+        "skip": 4
+      },
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": []
+    },
+    "trimmed-0-race": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-race.jsonl",
+      "sha256AtCheckpoint": "cab4ac5bf04275bf7276430a921c47f60c3300ecd2723e45a1eb144999abde6a",
+      "bytesAtCheckpoint": 15428,
+      "packageOutcomes": {},
+      "testOutcomesIncludingSubtests": {
+        "pass": 16
+      },
+      "topLevelTestOutcomes": {
+        "pass": 14
+      },
+      "activeTopLevelTestsAtCheckpoint": {
+        "plainsolid/brep/trimmed": "TestProjectedLensQueriesUseOriginalExactRoof"
+      },
+      "failures": []
+    },
+    "trimmed-1-normal": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-normal.jsonl",
+      "sha256AtCheckpoint": "6d09d4dfdf4a5724a25628edaa7d6394bd57a50492e421b3aec3adf2d646381d",
+      "bytesAtCheckpoint": 330789,
+      "packageOutcomes": {
+        "pass": 1
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 388,
+        "skip": 4
+      },
+      "topLevelTestOutcomes": {
+        "pass": 341,
+        "skip": 4
+      },
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": []
+    },
+    "trimmed-1-race": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-race.jsonl",
+      "sha256AtCheckpoint": "5c243acd13d04d574a97ca30589776b4afb4390d8a3ceb16b34fd80b37ecc733",
+      "bytesAtCheckpoint": 14768,
+      "packageOutcomes": {},
+      "testOutcomesIncludingSubtests": {
+        "pass": 16
+      },
+      "topLevelTestOutcomes": {
+        "pass": 13
+      },
+      "activeTopLevelTestsAtCheckpoint": {
+        "plainsolid/brep/trimmed": "TestSectionTwoCurvedBranchesProjectedCoverage"
+      },
+      "failures": []
+    },
+    "trimmed-2-normal": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-normal.jsonl",
+      "sha256AtCheckpoint": "46a1dea8b8560cd6e33d0dc8b0968a1cb377d619d6e46985ba7078c75e5de5ec",
+      "bytesAtCheckpoint": 315323,
+      "packageOutcomes": {},
+      "testOutcomesIncludingSubtests": {
+        "pass": 369,
+        "skip": 5,
+        "fail": 1
+      },
+      "topLevelTestOutcomes": {
+        "pass": 315,
+        "skip": 5,
+        "fail": 1
+      },
+      "activeTopLevelTestsAtCheckpoint": {
+        "plainsolid/brep/trimmed": "TestExactFilletedFrustumMaterial"
+      },
+      "failures": [
+        {
+          "package": "plainsolid/brep/trimmed",
+          "test": "TestExactCubicMixedCurvedHole"
+        }
+      ]
+    }
+  },
+  "degreeCeilingCorrection": {
+    "commit": "313dfb62",
+    "productionSourceChanges": false,
+    "normal": {
+      "path": "/tmp/plainsolid-18204a56-degree-ceiling.5D0Nk0/normal.jsonl",
+      "sha256AtCheckpoint": "38b3420b6115811e3feea8e58320ad586c230f6fc9f02fc986a4fbc494023067",
+      "bytesAtCheckpoint": 1209,
+      "packageOutcomes": {
+        "pass": 1
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 1
+      },
+      "topLevelTestOutcomes": {
+        "pass": 1
+      },
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": []
+    },
+    "race": {
+      "path": "/tmp/plainsolid-18204a56-degree-ceiling.5D0Nk0/race.jsonl",
+      "sha256AtCheckpoint": "731895d7b3a13fb80ef096b88fb5b5a37cad12ee74920b47331e080228c4aa1d",
+      "bytesAtCheckpoint": 1209,
+      "packageOutcomes": {
+        "pass": 1
+      },
+      "testOutcomesIncludingSubtests": {
+        "pass": 1
+      },
+      "topLevelTestOutcomes": {
+        "pass": 1
+      },
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": []
+    }
+  }
+}

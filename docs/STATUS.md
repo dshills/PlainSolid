@@ -14,10 +14,14 @@ timeout. A separate full normal and race qualification is running from
 `18204a56` in three deterministic trimmed-solid groups and the remaining
 packages. The PlainCAD release runs use the same kernel snapshot and the
 original app provider configuration at `efae4d2`.
-The normal run outside `brep/trimmed` completed on that snapshot. It
-records 50 passing packages, five without tests and no failed packages.
-The external-oracle and optional large-fixture skips are explicit in the
-log. The trimmed groups and race qualification are still running.
+The [native run checkpoint](evidence/native-main-18204a56-2026-11-14.json)
+records 50 passing normal packages outside `brep/trimmed` and five
+without tests. Two full trimmed groups finished normally. The third
+exposed a stale regression assertion that used degree seven to check
+a ceiling of eight. The same pinned source with only the assertion
+corrected passed that fixture in normal and race mode. Full race
+qualification remains in progress. The raw results preserve skips and
+the original failure.
 General curved Boolean splitting, advanced surface modeling and broader CAD
 exchange remain separate implementation work against the specification.
 
@@ -32,14 +36,20 @@ are affine, including curved model paths. The bounded automatic path
 proposer now certifies the original curved fixture without supplied seeds.
 Ordered roof Cut retains creases
 in full-footprint bands and strictly enclosed cavities. The noncircular
-rational station loft has exact point classification, isolated line events,
-coincident cap and selected wall spans, exact horizontal sections, and
-certified volume and centroid bounds.
+rational station loft has exact point classification, isolated line
+events, coincident cap and selected wall spans, exact sections, and
+certified volume, centroid and boundary-distance bounds. Proper
+rational placements preserve measures, contacts and original owners.
+Coaxial loft Common, Fuse and strict through-bore Cut preserve a shared
+original weighted profile. The resulting bore supports exact annular
+sections and splits, isolated lines and cap coincidences, and certified
+closed display with original rim ancestry.
 
 The STEP reader now qualifies standard named product colors on an
 independently authored AP242 assembly, including repeated product use.
 The flat contextual occurrence reader authenticates whole-body override
-ownership and can independently preserve the original STEP source.
+ownership. Native persistence re-proves the original STEP. Creating,
+editing and removing overrides retains unrelated shape and pose records.
 Nested and face-specific occurrence styles remain open. Wrapped
 spline p-curves require exact original pole and knot coordinates before
 normalization.
