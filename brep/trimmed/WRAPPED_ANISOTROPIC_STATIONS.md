@@ -109,3 +109,23 @@ and cardinal vertex incidence, rotated coedge loops, reversed face ordering and
 native reload. A weighted profile interior point outside the corresponding
 ellipse explicitly rejects circular substitution. The exact reported allowance
 succeeds while one fewer query operation fails atomically.
+
+## Exact horizontal isolated line clipping
+
+`Solid.ClipWrappedAnisotropicStationHorizontalLineRational` reports original
+wall-face owners, isolated algebraic parameter brackets and open material
+intervals for finite rational horizontal lines strictly between station planes.
+The independent exact X/Y inverse maps to the original weighted conic; the
+caller’s unnormalized parameter is unchanged. This is not an ellipse substitute.
+Terminal-cap planes, internal-station planes, nonhorizontal lines and coincident
+boundary intervals fail explicitly. An empty result outside the height range is
+proved empty. Tangencies do not create material intervals, and ambiguous touching
+root enclosures fail rather than being merged numerically.
+
+The original source is authenticated before selection. Geometric source proof,
+normalization and all four conic stages share one operation allowance; root
+subdivision is bounded per quadrant. `WrappedRationalStationLineOptions` bounds
+candidate events and divides the point-work allowance over exact gap queries;
+each gap reproof has its separately documented source allowance. Outputs are
+owned and failures return no partial ledger. This adds no general oblique or
+coincident-line claim.

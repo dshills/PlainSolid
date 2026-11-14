@@ -45,6 +45,13 @@ func intersectFrustumProfileLineRational(ctx context.Context, w *WrappedSurfaceP
 	y := rationalPolynomial{new(big.Rat).Sub(origin[1], p.CenterY), direction[1]}
 	slope := new(big.Rat).Quo(new(big.Rat).Sub(p.UpperRadius, p.LowerRadius), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
 	radius := rationalPolynomial{new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, p.LowerZ))), new(big.Rat).Mul(slope, direction[2])}
+	return intersectWeightedProfileConicLine(ctx, w, x, y, radius, minT, maxT, capPart, budget, o)
+}
+
+// The caller proves the original profile, supplies exact normalized affine
+// coordinates and carries its existing operation ledger into root isolation.
+func intersectWeightedProfileConicLine(ctx context.Context, w *WrappedSurfacePatch, x, y, radius rationalPolynomial, minT, maxT *big.Rat, capPart CylinderBoundaryPart, budget *polynomialBudget, o ToroidLineOptions) (CylinderLineIntersections, error) {
+	empty := CylinderLineIntersections{}
 	lo, hi := new(big.Rat).Set(minT), new(big.Rat).Set(maxT)
 	tol := new(big.Rat).SetFloat64(o.ParameterTolerance)
 	negate := func(a rationalPolynomial) rationalPolynomial {

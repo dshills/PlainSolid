@@ -6111,3 +6111,11 @@ Both entry directions, exact volume, centroid and closed topology pass.
 A nonconvex stock and slanted triangular tool preserve the original wall
 sources. Touching profiles and unsupported axial trims reject atomically.
 The integrated race passed in 1.529 s.
+
+### Exact horizontal anisotropic line qualification
+
+Horizontal clips in one original band preserve weighted algebraic line
+parameters, open material intervals and original wall IDs. Independent
+weighted diagonal, scaled secant, tangent, clipped and sub-ULP exterior
+fixtures pass. The combined anisotropic and homothetic line race passed
+in 40.723 s for the trimmed package.
