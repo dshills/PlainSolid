@@ -68,8 +68,11 @@ supports and recovering the native B-rep on readback. Tighter near-contact
 convergence and oblique cutter intersections remain open. A blind Hole
 can intersect an equal-radius perpendicular through Hole when the floor
 lies beyond the complete intersection. Both entry caps, retained face
-references, exact elliptical STEP trims and watertight STL pass. Floors
-inside the intersection and broader blind Hole combinations remain open. A single oblique through cutter in rectangular stock now
+references, exact elliptical STEP trims and watertight STL pass. Two
+intersecting equal-radius perpendicular blind Holes also retain both
+complete planar floors and round-trip STEP when both floors lie beyond
+the intersection. Floors inside the intersection and broader blind Hole
+combinations remain open. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
@@ -612,12 +615,11 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 
 ## Continuing implementation
 
-The remaining rectangular Hole geometry work includes expanding unequal-
-radius STEP beyond the bounded spline budget, partially overlapping skew
-bores, oblique cutter axes, and nonparallel blind cuts.
-The full unit gate still has 36 repeat failures after focused retests.
-The recorded controls identify the OCCT-private bindings and fixtures
-that depend on an uninitialized kernel.
+The remaining rectangular Hole geometry includes near-contact unequal-radius
+exchange, interacting oblique axes, blind floors inside perpendicular
+intersections, and broader mixed-axis cutter groups. The selectable app
+build passes its unit and browser gates at the pinned provider revision.
+Later geometry increments record their own focused regressions.
 
 The two short-mode exclusions for nested quartic material and transverse
 shell operations passed separately earlier. The opt-in run for

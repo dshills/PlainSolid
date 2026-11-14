@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD STEP for two intersecting blind Holes — 2026-11-14
+
+Both equal-radius perpendicular cutters can stop beyond their complete
+intersection. Each retains its own circular floor face and opening cap.
+The analytic STEP reader recovers both finite spans before verifying the
+generated closed boundary. Grouped and successive cuts preserve the same
+measures and both floor references, including decimal depths.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-double-crossed-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-double-crossed-step-native-2026-11-14.json)
+pass on the same WASM. The authored project reimports and reopens the
+44,829-byte STEP and confirms both floor positions in watertight STL.
+Twenty-four signed native entry combinations and twelve independent OCCT
+STEP imports pass, including inch units. The authored direct Boolean and
+STEP readback agree on volume and surface area within 0.000001 in model
+units. Focused race tests and Go vet pass.
+
 ## PlainCAD STEP for a blind Hole crossing a through Hole — 2026-11-14
 
 Equal-radius perpendicular Holes on rectangular stock preserve the
