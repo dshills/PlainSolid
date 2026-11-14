@@ -9,6 +9,7 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <Geom_BezierSurface.hxx>
+#include <GProp.hxx>
 #include <GProp_GProps.hxx>
 #include <NCollection_Array2.hxx>
 #include <NCollection_IndexedMap.hxx>
@@ -19,6 +20,7 @@
 #include <TopoDS_Solid.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
 #include <Standard_Failure.hxx>
+#include <gp_Mat.hxx>
 
 #include <functional>
 #include <iomanip>
@@ -95,9 +97,17 @@ void report(const std::string& name, const TopoDS_Shape& shape) {
   BRepGProp::VolumeProperties(shape,mass);
   BRepGProp::SurfaceProperties(shape,area);
   const auto c=mass.CentreOfMass();
+  gp_Mat shift;
+  GProp::HOperator(c,gp_Pnt(0,0,0),mass.Mass(),shift);
+  const auto inertia=mass.MatrixOfInertia()+shift;
   std::cout << "{\"name\":\"" << name << "\",\"volume\":" << mass.Mass()
     << ",\"area\":" << area.Mass() << ",\"centroid\":[" << c.X() << "," << c.Y() << "," << c.Z()
-    << "],\"faces\":" << faces.Extent() << ",\"solids\":" << solids.Extent()
+    << "],\"inertia\":[";
+  for (int i=1; i<=3; ++i) {
+    if (i>1) std::cout << ',';
+    std::cout << '[' << inertia.Value(i,1) << ',' << inertia.Value(i,2) << ',' << inertia.Value(i,3) << ']';
+  }
+  std::cout << "],\"faces\":" << faces.Extent() << ",\"solids\":" << solids.Extent()
     << ",\"euler\":" << vertices.Extent()-edges.Extent()+faces.Extent()-holes << "}\n";
 }
 
