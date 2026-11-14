@@ -29,6 +29,10 @@ type SideOpenDualDiskDescriptor struct {
 // exporting its actual sewn topology with direct analytic model curves. No
 // rounded angular pcurves, sampled inference or approximate source import is used.
 func WriteSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor) error {
+	return writeSideOpenDualDiskProduct(ctx, w, d, false)
+}
+
+func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, unequal bool) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 1024 {
 		return geom.ErrInvalid
 	}
@@ -44,16 +48,28 @@ func WriteSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 	if !si {
 		return geom.ErrDomain
 	}
-	built, e := trimmed.CutSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
-	if e != nil {
-		return e
+	var solid trimmed.Solid
+	var wallFaces [2][]int
+	var e error
+	if unequal {
+		built, err := trimmed.CutUnequalSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
+		if err != nil {
+			return err
+		}
+		solid, wallFaces = built.Solid, built.WallFaces
+	} else {
+		built, err := trimmed.CutSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
+		if err != nil {
+			return err
+		}
+		solid, wallFaces = built.Solid, built.WallFaces
 	}
-	vertices, edges, faces := built.Solid.Vertices(), built.Solid.Edges(), built.Solid.Faces()
+	vertices, edges, faces := solid.Vertices(), solid.Edges(), solid.Faces()
 	if len(vertices) > 128 || len(edges) > 128 || len(faces) > 32 {
 		return geom.ErrDomain
 	}
 	ownerByFace := map[int]int{}
-	for owner, ids := range built.WallFaces {
+	for owner, ids := range wallFaces {
 		if len(ids) != 1 {
 			return geom.ErrDomain
 		}
