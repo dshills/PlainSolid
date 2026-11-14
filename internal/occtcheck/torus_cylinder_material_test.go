@@ -36,8 +36,10 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 	for {
 		var ref struct {
 			Difference bool
+			Union      bool
+			Axis       bool
 			Sign       int
-			Parameters [4]float64
+			Parameters []float64
 		}
 		e := dec.Decode(&ref)
 		if e == io.EOF {
@@ -52,6 +54,16 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 			op = geom.TorusCylinderDifference
 			k = 1
 		}
+		if ref.Union {
+			op = geom.TorusCylinderUnion
+			k = 2
+		}
+		if ref.Axis {
+			if !ref.Union {
+				t.Fatal("axis operation")
+			}
+			k = 3
+		}
 		key := [2]int{k, ref.Sign}
 		if seen[key] || (ref.Sign != 1 && ref.Sign != -1) {
 			t.Fatal("record")
@@ -61,11 +73,29 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		line, e := s.ClipRationalLine(ctx, [3]*big.Rat{r(0, 1), r(0, 1), r(0, 1)}, [3]*big.Rat{r(int64(ref.Sign), 1), r(0, 1), r(int64(ref.Sign), 10)}, r(-8, 1), r(8, 1), geom.ToroidLineOptions{ParameterTolerance: 1e-10})
-		if e != nil || len(line.Intervals) != 2 || len(line.Points) != 0 {
+		direction := [3]*big.Rat{r(int64(ref.Sign), 1), r(0, 1), r(int64(ref.Sign), 10)}
+		if ref.Axis {
+			direction = [3]*big.Rat{r(0, 1), r(0, 1), r(int64(ref.Sign), 1)}
+		}
+		line, e := s.ClipRationalLine(ctx, [3]*big.Rat{r(0, 1), r(0, 1), r(0, 1)}, direction, r(-8, 1), r(8, 1), geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+		if e != nil || len(line.Intervals) != map[bool]int{false: 2, true: 1}[ref.Union] || len(line.Points) != 0 {
 			t.Fatal(line, e)
 		}
 		masks := [4]geom.BoreBoundaryMask{2, 1, 1, 2}
+		if ref.Union {
+			masks = [4]geom.BoreBoundaryMask{1, 1}
+			if ref.Axis {
+				masks = [4]geom.BoreBoundaryMask{4, 8}
+				if ref.Sign < 0 {
+					masks = [4]geom.BoreBoundaryMask{8, 4}
+				}
+			}
+			if len(ref.Parameters) != 2 {
+				t.Fatal("union roots", ref)
+			}
+		} else if len(ref.Parameters) != 4 {
+			t.Fatal("roots", ref)
+		}
 		if ref.Difference {
 			masks = [4]geom.BoreBoundaryMask{1, 2, 2, 1}
 		}
@@ -84,7 +114,7 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 			}
 		}
 	}
-	if len(seen) != 4 {
+	if len(seen) != 8 {
 		t.Fatal("records", len(seen))
 	}
 }
