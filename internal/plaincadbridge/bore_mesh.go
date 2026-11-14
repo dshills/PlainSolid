@@ -11,6 +11,9 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
+	if s.bore.partialSkew {
+		return s.bore.solid.TessellatePartialSkewBores(ctx, o)
+	}
 	if body := s.bore; body.crossed != nil && body.cylinders[0].radius != body.cylinders[1].radius {
 		return body.solid.TessellateUnequalCrossedBores(ctx, o)
 	}

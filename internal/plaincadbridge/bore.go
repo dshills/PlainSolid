@@ -27,6 +27,7 @@ type boreBody struct {
 	layered        *trimmed.LayeredBoreHistory
 	crossed        *trimmed.BoxCrossedBoresResult
 	oblique        *obliqueBore
+	partialSkew    bool
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {

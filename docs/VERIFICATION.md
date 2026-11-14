@@ -109,6 +109,45 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD partial transverse overlap on perpendicular axes — 2026-11-14
+
+Two offset full-through bores can overlap across only part of their
+transverse widths. Both cylinder charts retain the same closed intersection
+loop. The factored analytic parameter removes singular derivatives at the
+two turning points. The native topology uses six box faces and four
+cylindrical faces, and the bounded adaptive mesh keeps the shared trims
+conforming. This applies to equal and unequal radii.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-partial-skew-native-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-partial-skew-native-2026-11-14.json)
+pass on the same WASM. The authored model uses a 5 mm offset with radii
+5 mm and 4 mm. Reopen retains the two Holes, and the STL has both passages.
+Native tests measure two radius orders, signed and decimal offsets, and
+float32 embedding. Independent OCCT Boolean fixtures and focused race
+and vet checks pass. Very thin near-contact cases can exceed the bounded
+integration or tessellation budget. STEP exchange for this trim family
+is the next gate.
+
+## Selectable PlainSolid app build — 2026-11-14
+
+The separate PlainCAD app worktree has a selectable Go WASM provider and
+the matching worker imports. A release build verifies the pinned source
+revision and hashes, emits a fingerprinted WASM asset and checks that no
+OCCT assets load while PlainSolid is selected. Its existing browser
+assertions still require the selected native provider. The default unit
+fixtures preserve their OCCT and fallback conditions.
+
+The [app qualification evidence](evidence/plaincad-provider-integration-2026-11-14.json)
+pins PlainCAD integration commit `9779044` and PlainSolid `f571a964`. It
+records 345 development cases, including the new asynchronous-open race
+regression, 66 production cases, and 15 cross-browser cases across Chromium,
+Firefox and WebKit. All three browser runs complete with zero skips or
+retries. The ordinary unit/component suite passes all 1,691 cases using
+the app's earlier documented local worker and retry settings. Four
+provider-specific contracts exercise actual PlainSolid WASM. Type checks
+and the production bundle budget also pass. Later geometry commits have
+separately pinned qualification reports.
+
 ## PlainCAD STEP for a single oblique through Hole — 2026-11-14
 
 The retained cylinder and rectangular stock exchange as analytic surfaces.
