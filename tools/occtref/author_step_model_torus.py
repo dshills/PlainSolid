@@ -2,6 +2,7 @@
 Not a repair of the retained OCCT rounded-pcurve source; no Go writer is used.
 """
 from pathlib import Path
+import sys
 r=[]
 def emit(x):r.append(x);return len(r)
 def p(x,y,z):return emit(f"CARTESIAN_POINT('',({x}.,{y}.,{z}.))")
@@ -16,8 +17,10 @@ edges=[emit(f"EDGE_CURVE('',#{vertex},#{vertex},#{c},.T.)") for c in (major,mino
 uses=[emit(f"ORIENTED_EDGE('',*,*,#{edges[i%2]},.{sense}.)") for i,sense in enumerate(('F','F','T','T'))]
 loop=emit("EDGE_LOOP('',("+','.join('#'+str(i) for i in uses)+"))")
 bound=emit(f"FACE_BOUND('',#{loop},.T.)");face=emit(f"ADVANCED_FACE('',(#{bound}),#{surface},.T.)");shell=emit(f"CLOSED_SHELL('',(#{face}))");body=emit(f"MANIFOLD_SOLID_BREP('exact model torus',#{shell})")
-unit=emit('(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.))');angle=emit('(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))');context=emit(f"(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#{unit},#{angle})) REPRESENTATION_CONTEXT('',''))")
+prefix='$' if '--metre' in sys.argv else '.MILLI.'
+unit=emit(f'(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT({prefix},.METRE.))');angle=emit('(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))');context=emit(f"(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#{unit},#{angle})) REPRESENTATION_CONTEXT('',''))")
 zero=p(0,0,0);neutral=emit(f"AXIS2_PLACEMENT_3D('',#{zero},#{z},#{x})");rep=emit(f"ADVANCED_BREP_SHAPE_REPRESENTATION('',(#{neutral},#{body}),#{context})")
 app=emit("APPLICATION_CONTEXT('core data for automotive mechanical design processes')");emit(f"APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2000,#{app})");pc=emit(f"PRODUCT_CONTEXT('',#{app},'mechanical')");dc=emit(f"PRODUCT_DEFINITION_CONTEXT('part definition',#{app},'design')");product=emit(f"PRODUCT('torus','torus','',(#{pc}))");formation=emit(f"PRODUCT_DEFINITION_FORMATION('','',#{product})");definition=emit(f"PRODUCT_DEFINITION('design','',#{formation},#{dc})");shape=emit(f"PRODUCT_DEFINITION_SHAPE('','',#{definition})");emit(f"SHAPE_DEFINITION_REPRESENTATION(#{shape},#{rep})");emit(f"PRODUCT_RELATED_PRODUCT_CATEGORY('part',$,(#{product}))")
 text="ISO-10303-21;HEADER;FILE_DESCRIPTION(('independent model torus'),'2;1');FILE_NAME('','',(''),(''),'','','');FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));ENDSEC;DATA;\n"+'\n'.join(f'#{i+1}={v};' for i,v in enumerate(r))+"\nENDSEC;END-ISO-10303-21;\n"
-Path('exchange/step/testdata/independent-model-torus.step').write_text(text)
+name='independent-model-metre-torus.step' if '--metre' in sys.argv else 'independent-model-torus.step'
+Path('exchange/step/testdata/'+name).write_text(text)

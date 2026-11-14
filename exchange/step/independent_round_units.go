@@ -41,11 +41,16 @@ func readNormalizedIndependentUnits(ctx context.Context, r io.Reader, target Rou
 	if target != RoundMetre && target != RoundMillimetre {
 		return bad()
 	}
-	mixed := len(heterogeneous) == 1 && heterogeneous[0]
+	mixed := len(heterogeneous) >= 1 && heterogeneous[0]
+	torus := mixed && len(heterogeneous) == 2 && heterogeneous[1]
+	modes := []bool{true, true, true, true}
+	if torus {
+		modes = append(modes, true)
+	}
 	var original IndependentExactMaterialCollection
 	var e error
 	if mixed {
-		original, e = readIndependentMaterialSelection(ctx, r, l, tol, 1, 16, true, nil, true, true, true, true)
+		original, e = readIndependentMaterialSelection(ctx, r, l, tol, 1, 16, true, nil, modes...)
 	} else if planar {
 		original, e = planarUnitSourceProof(ctx, r, l, tol)
 	} else {
@@ -66,7 +71,7 @@ func readNormalizedIndependentUnits(ctx context.Context, r io.Reader, target Rou
 	changed := map[int64]bool{}
 	for _, member := range original.Members {
 		memberPlanar := planar || (mixed && member.Planar != nil)
-		if (memberPlanar && member.Planar == nil) || (!memberPlanar && member.Cylinder == nil && member.Sphere == nil) {
+		if (memberPlanar && member.Planar == nil) || (!memberPlanar && member.Cylinder == nil && member.Sphere == nil && (!torus || member.Torus == nil)) {
 			return bad()
 		}
 		unitID := int64(0)
@@ -157,6 +162,15 @@ func readNormalizedIndependentUnits(ctx context.Context, r io.Reader, target Rou
 					if e = scale(&rec.Args[2], !(memberPlanar && rec.Type == "VECTOR")); e != nil {
 						return NormalizedIndependentRoundMaterials{}, e
 					}
+				case "TOROIDAL_SURFACE":
+					if !torus || len(rec.Args) != 4 {
+						return bad()
+					}
+					for k := 2; k < 4; k++ {
+						if e = scale(&rec.Args[k], true); e != nil {
+							return NormalizedIndependentRoundMaterials{}, e
+						}
+					}
 				case "UNCERTAINTY_MEASURE_WITH_UNIT":
 					if len(rec.Args) != 4 || rec.Args[0].Kind != Typed || rec.Args[0].Text != "LENGTH_MEASURE" || len(rec.Args[0].Items) != 1 || rec.Args[1].Kind != Reference || rec.Args[1].Ref != unitID {
 						return bad()
@@ -183,7 +197,7 @@ func readNormalizedIndependentUnits(ctx context.Context, r io.Reader, target Rou
 	}
 	var proof IndependentExactMaterialCollection
 	if mixed {
-		proof, e = readIndependentMaterialSelection(ctx, bytes.NewReader(raw), l, tol, 1, 16, true, nil, true, true, true, true)
+		proof, e = readIndependentMaterialSelection(ctx, bytes.NewReader(raw), l, tol, 1, 16, true, nil, modes...)
 	} else if planar {
 		proof, e = planarUnitSourceProof(ctx, bytes.NewReader(raw), l, tol)
 	} else {
