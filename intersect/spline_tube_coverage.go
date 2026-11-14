@@ -12,6 +12,10 @@ import (
 // that every remaining contact belongs to at least one supplied local tube.
 // MaxCandidateTests defaults to 512; each cell also has its own proof limits.
 type SplineTubeCoverageOptions struct {
+	// CommonXYProjected is an opt-in local proof strategy on the generic
+	// isolation path. The independent RadialOverlap strategy takes precedence.
+	CommonXYProjected *CommonXYProjectedCoverageOptions
+
 	// RadialOverlap explicitly selects exact radial coverage and independent local
 	// transfer into supplied tubes. Nil preserves the generic isolation strategy.
 	RadialOverlap *RadialOverlapCoverageOptions
@@ -44,6 +48,8 @@ type SplineTubeCoverageOptions struct {
 // candidate tubes may overlap in their interiors, contain duplicate branch
 // segments, or be arranged in an ambiguous endpoint graph.
 type SplineTubeCoverageReport struct {
+	CommonXYProjected *CommonXYProjectedCoverage
+
 	RadialOverlap *RadialOverlapCoverage
 
 	// IsoPlane retains the independent full original-domain coverage proof.
@@ -73,6 +79,17 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 	}
 	if e := ctx.Err(); e != nil {
 		return r, e
+	}
+	projectedLimit := 0
+	if o.CommonXYProjected != nil {
+		projectedLimit = o.CommonXYProjected.MaxOperations
+		if projectedLimit == 0 {
+			projectedLimit = 64000000
+		}
+		if projectedLimit < 1 || projectedLimit > 512000000 {
+			return r, geom.ErrInvalid
+		}
+		r.CommonXYProjected = &CommonXYProjectedCoverage{}
 	}
 	if o.IsoPlaneFallback {
 		var e error
@@ -137,6 +154,12 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			}
 			return r, e
 		}
+		if r.CommonXYProjected != nil && r.CommonXYProjected.ExactOperations >= projectedLimit {
+			for j := i; j < len(r.Isolation.Candidates); j++ {
+				r.Unchecked = append(r.Unchecked, j)
+			}
+			return r, ErrUnresolved
+		}
 		if i >= o.MaxCandidateTests {
 			r.Unchecked = append(r.Unchecked, i)
 			continue
@@ -148,7 +171,49 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			}
 		}
 		candidate := geom.SurfacePairParameterBox{A: c.DomainA, B: c.DomainB}
-		p, e := cache.CertifyCell(ctx, candidate, available, o.Cell)
+		cellWork := 0
+		run := func(fn func(geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error)) (geom.SurfaceTubeUnionCoverage, error) {
+			limits := o.Cell
+			if r.CommonXYProjected != nil {
+				if limits.MaxOperations == 0 {
+					limits.MaxOperations = 4000000
+				}
+				limits.MaxOperations = min(limits.MaxOperations-cellWork, projectedLimit-r.CommonXYProjected.ExactOperations)
+				if limits.MaxOperations < 1 {
+					return geom.SurfaceTubeUnionCoverage{Pending: []geom.SurfacePairParameterBox{candidate}}, geom.ErrConvergence
+				}
+			}
+			proof, err := fn(limits)
+			if r.CommonXYProjected != nil {
+				cellWork += proof.ExactOperations
+				r.CommonXYProjected.ExactOperations += proof.ExactOperations
+			}
+			return proof, err
+		}
+		var p geom.SurfaceTubeUnionCoverage
+		var e error
+		if r.CommonXYProjected != nil {
+			p, e = run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return geom.CertifyCommonXYGraphCellInTubes(ctx, pa, pb, candidate, available, limits)
+			})
+			if p.Covered && e == nil {
+				r.CommonXYProjected.Projected = append(r.CommonXYProjected.Projected, i)
+			}
+			if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrInvalid) && !errors.Is(e, geom.ErrUnrepresentable) && !errors.Is(e, geom.ErrDegenerate) {
+				for j := i; j < len(r.Isolation.Candidates); j++ {
+					r.Unchecked = append(r.Unchecked, j)
+				}
+				return r, e
+			}
+		}
+		if !p.Covered {
+			if r.CommonXYProjected != nil {
+				r.CommonXYProjected.GenericFallback = append(r.CommonXYProjected.GenericFallback, i)
+			}
+			p, e = run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return cache.CertifyCell(ctx, candidate, available, limits)
+			})
+		}
 		r.TubeReuse = cache.Stats()
 		if e != nil && !errors.Is(e, geom.ErrConvergence) {
 			for j := i; j < len(r.Isolation.Candidates); j++ {
@@ -157,7 +222,9 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			return r, e
 		}
 		if !p.Covered && o.AffineXYFallback {
-			mapped, me := geom.CertifyAffineXYSurfacePairCellInTubes(ctx, pa, pb, candidate, available, o.Cell)
+			mapped, me := run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return geom.CertifyAffineXYSurfacePairCellInTubes(ctx, pa, pb, candidate, available, limits)
+			})
 			if me == nil && mapped.Covered {
 				p = mapped
 			}
@@ -166,7 +233,9 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			}
 		}
 		if !p.Covered && o.ProjectedAffineFallback {
-			mapped, me := geom.CertifyProjectedAffineSurfacePairCellInTubes(ctx, pa, pb, candidate, available, o.ProjectionAxes, o.Cell)
+			mapped, me := run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return geom.CertifyProjectedAffineSurfacePairCellInTubes(ctx, pa, pb, candidate, available, o.ProjectionAxes, limits)
+			})
 			if me == nil && mapped.Covered {
 				p = mapped
 			}
@@ -176,7 +245,9 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 		}
 
 		if !p.Covered && o.OverlappingAffineXYFallback {
-			mapped, me := certifyOverlapCell(ctx, pa, pb, candidate, available, o.Cell)
+			mapped, me := run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return certifyOverlapCell(ctx, pa, pb, candidate, available, limits)
+			})
 			if me == nil && mapped.Covered {
 				p = mapped
 			}
@@ -185,7 +256,9 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 			}
 		}
 		if !p.Covered && o.OverlappingProjectedFallback {
-			mapped, me := certifyProjectedOverlapCell(ctx, pa, pb, candidate, available, o.ProjectionAxes, o.Cell)
+			mapped, me := run(func(limits geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+				return certifyProjectedOverlapCell(ctx, pa, pb, candidate, available, o.ProjectionAxes, limits)
+			})
 			if me == nil && mapped.Covered {
 				p = mapped
 			}

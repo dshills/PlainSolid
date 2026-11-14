@@ -5497,3 +5497,14 @@ area agrees with the independent OCCT Boolean. A fully covering cutter
 returns empty; floor-only contact retains the original stock. The fixed
 one-band constructor rejects an unresolved or multi-band difference. The
 focused live race run for Common and Cut passed in 27.850 s.
+
+`SplineTubeCoverageOptions.CommonXYProjected` now opts into the fresh
+projected proof before generic coverage. Both strategies share the bounded
+local work allowance, including unsuccessful attempts, and both still require
+independent branch topology. The full native section on intersecting original
+footprints found two curved branches and four original boundary terminals.
+It used 128 projected candidates, 22 generic fallbacks and 1,141,823 local
+operations. Omitting one branch or allowing one fewer operation failed;
+unsupported projections still use the generic route and duplicate tube
+topology fails. The originating focused race passed in 404.491 s, and the
+integrated non-race rerun passed in 25.557 s.
