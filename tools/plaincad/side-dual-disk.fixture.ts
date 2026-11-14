@@ -29,6 +29,7 @@ function fixture(depth: number) {
 
 interface Snapshot {
   session: number;
+  document: { id: string; features: Array<{ id: string; type: string; stepSource?: string }> };
   rebuild: { native: boolean; bodies: Array<{ id: string; bounds: typeof bounds;
     assertions: { valid: boolean; solidCount: number; volume: number; surfaceArea: number } }> };
 }
@@ -108,7 +109,21 @@ for (const depth of [3, 6]) {
     const apply = importDialog.getByRole("button", { name: "Add STEP solid", exact: true });
     await expect(apply).toBeEnabled();
     await apply.click();
-    await check();
+    await expect(importDialog).toBeHidden();
+    // Immediately after Apply, the command can still see the prior empty
+    // rebuild for the same project ID. Observe the imported feature and its
+    // own native body together before asking for the independent snapshot.
+    let importedBody = "";
+    await expect.poll(async () => {
+      const state = await stepCommand(page, { command: "runtime.snapshot" });
+      if (!state.ok) throw new Error(state.error.message);
+      const snapshot = state.value as unknown as Snapshot;
+      const feature = snapshot.document.features.find(f => f.type === "stepImport" && f.stepSource === source);
+      if (!feature || !snapshot.rebuild.native) return false;
+      importedBody = `body:${feature.id}`;
+      return snapshot.rebuild.bodies.some(body => body.id === importedBody);
+    }).toBe(true);
+    await check(importedBody);
     expect(forbidden).toEqual([]);
   });
 }

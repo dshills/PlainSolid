@@ -55,6 +55,28 @@ func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
 			near(t, read.GeometryAssertions.Volume, volume)
 		}
 		out := shape(t, bridge, map[string]any{"op": "cut", "a": first.Handle, "b": right.Handle})
+		display, err := bridge.shapes[out.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatal("default browser tessellation", err)
+		}
+		if err := display.ValidateSolid(); err != nil || len(display.Triangles) > 4000 {
+			t.Fatal("default browser mesh is open or excessively large", len(display.Triangles), err)
+		}
+		bodyAt := bridge.shapes[out.Handle].analytic
+		entryNormal := geom.Vec3{Z: 1}
+		if _, err := bodyAt.planarFace(geom.Vec3{X: 5, Y: 5, Z: 6}, entryNormal); err == nil {
+			t.Fatal("the missing part of an entry cap became a selectable face")
+		}
+		if depth == 3 {
+			floor, err := bodyAt.planarFace(geom.Vec3{X: 5, Y: 5, Z: 3}, entryNormal)
+			if err != nil || floor.Normal != (vector{0, 0, 1}) || math.Abs(floor.Area-opening) > 1e-4 {
+				t.Fatal("wrong finite blind floor", floor, err)
+			}
+			_, err = bodyAt.planarFace(geom.Vec3{X: 10, Y: 8, Z: 3}, geom.Vec3{X: 1})
+			if err == nil {
+				t.Fatal("shared stock partition must not select an arbitrary face")
+			}
+		}
 		control := box(t, bridge, vector{20, 1, 2}, vector{22, 4, 6})
 		published := len(bridge.shapes)
 		stepExport, err := bridge.exportSTEP([]string{out.Handle, control.Handle})

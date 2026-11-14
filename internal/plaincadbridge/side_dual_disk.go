@@ -18,6 +18,75 @@ type sideDualDiskRecipe struct {
 	height, depth float64
 }
 
+type sideDualDiskBody struct {
+	sideDualDiskRecipe
+	cut trimmed.SideOpenDualDiskCut
+}
+
+// planarFace resolves a finite face from the actual rational trim. Several
+// stock walls share a support at the blind floor split; the query point must
+// belong to exactly one of them. A point in an opening cannot select the wall.
+func (b *sideDualDiskBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	n, e := normal.Unit()
+	if e != nil || !origin.IsFinite() {
+		return PlanarFace{}, geom.ErrInvalid
+	}
+	ctx := context.Background()
+	rat := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	point := [3]*big.Rat{rat(origin.X), rat(origin.Y), rat(origin.Z)}
+	var chosen *trimmed.AffineSplineFaceQuery
+	var out PlanarFace
+	for id, f := range b.cut.Solid.Faces() {
+		if id == b.cut.WallFaces[0][0] || id == b.cut.WallFaces[1][0] {
+			continue
+		}
+		q, e := trimmed.NewAffineSplineFaceQuery(ctx, f, trimmed.AffineSplineFaceQueryOptions{})
+		if e != nil {
+			return PlanarFace{}, e
+		}
+		plane := q.Plane()
+		// Constructor-owned stock/floor planes are signed coordinate planes.
+		// Normalize the rational normal before conversion to avoid overflow.
+		var xyz [3]float64
+		terms := 0
+		for axis, c := range plane[:3] {
+			if c.Sign() != 0 {
+				terms++
+				xyz[axis] = float64(c.Sign())
+			}
+		}
+		faceNormal := geom.Vec3{X: xyz[0], Y: xyz[1], Z: xyz[2]}
+		if terms != 1 || math.Abs(faceNormal.Dot(n)) < 1-1e-9 {
+			continue
+		}
+		location, e := q.ClassifyRationalPoint(ctx, point, geom.AffineChartInverseOptions{})
+		if e != nil {
+			return PlanarFace{}, e
+		}
+		if location.Location != trimvalidate.Inside && location.Location != trimvalidate.Boundary {
+			continue
+		}
+		if chosen != nil {
+			return PlanarFace{}, unsupportedEdge("planar face reference is ambiguous at a retained stock seam")
+		}
+		out = PlanarFace{Face: id, Origin: coordinates(origin), Normal: coordinates(faceNormal)}
+		chosen = q
+	}
+	if chosen == nil {
+		return PlanarFace{}, unsupportedEdge("planar face reference no longer exists in the trimmed material")
+	}
+	a, e := chosen.AreaBounds(ctx, big.NewRat(1, 10000), 0)
+	if e != nil {
+		return PlanarFace{}, e
+	}
+	out.Area, _ = new(big.Rat).Quo(new(big.Rat).Add(a.ModelArea.Lower, a.ModelArea.Upper), big.NewRat(2, 1)).Float64()
+	return out, nil
+}
+
+func (p sideDualDiskRecipe) analytic(cut trimmed.SideOpenDualDiskCut, m trimmed.SideOpenDualDiskMeasures) *analyticBody {
+	return &analyticBody{solid: cut.Solid, sideDualDisk: &sideDualDiskBody{p, cut}, volume: m.Volume, area: m.Area}
+}
+
 func (p sideDualDiskRecipe) solid() (trimmed.SideOpenDualDiskCut, error) {
 	return trimmed.CutSideOpenDualDisks(context.Background(), p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 }
@@ -69,7 +138,7 @@ func putSideDualDiskSTEPProduct(b *Bridge, product step.SideOpenDualDiskProduct)
 	if e != nil {
 		return Shape{}, e
 	}
-	return b.putAnalyticBody(&analyticBody{solid: cut.Solid, sideDualDisk: &p, volume: m.Volume, area: m.Area})
+	return b.putAnalyticBody(p.analytic(cut, m))
 }
 
 func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecipe, bool) {
@@ -128,7 +197,7 @@ func (b *Bridge) cutSideDualDisk(a stored, tools []stored) (Shape, bool, error) 
 	if !removesMaterial(a.result.GeometryAssertions.Volume, m.Volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
 	}
-	out, e := b.putNotchedAnalytic(&analyticBody{solid: cut.Solid, sideDualDisk: &p, volume: m.Volume, area: m.Area}, a.result.Bounds)
+	out, e := b.putNotchedAnalytic(p.analytic(cut, m), a.result.Bounds)
 	return out, true, e
 }
 

@@ -31,7 +31,7 @@ type analyticBody struct {
 	stepRounded    *step.RoundedRectangleExtrusionBody
 	stepDisk       *step.DiskHoleExtrusionBody
 	sideNotch      *step.SideNotchBody
-	sideDualDisk   *sideDualDiskRecipe
+	sideDualDisk   *sideDualDiskBody
 	layeredDisk    bool
 	pockets        *pocketStock
 	coaxial        *coaxialBody
@@ -83,6 +83,13 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.sideDualDisk != nil {
+		result, err := a.sideDualDisk.cut.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
+			Deflection: o.Deflection, AngularTurn: min(2*o.Angle, 1),
+			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
+		})
+		return result.Mesh, err
+	}
 	if a.coaxial != nil {
 		return a.coaxial.tessellate(o)
 	}
@@ -232,7 +239,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			if e != nil {
 				return nil, e
 			}
-			out.solid, out.sideDualDisk = cut.Solid, &p
+			out.solid, out.sideDualDisk = cut.Solid, &sideDualDiskBody{p, cut}
 			return &out, nil
 		}
 	}
@@ -298,6 +305,9 @@ func reflectedNotchCenter(p step.SideNotchBody, center geom.Vec2) geom.Vec2 {
 }
 
 func (a *analyticBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
+	if a.sideDualDisk != nil {
+		return a.sideDualDisk.planarFace(origin, normal)
+	}
 	n, err := normal.Unit()
 	if err != nil || !origin.IsFinite() {
 		return PlanarFace{}, errors.New("invalid planar reference")
