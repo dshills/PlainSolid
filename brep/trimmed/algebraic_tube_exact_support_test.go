@@ -136,6 +136,28 @@ func TestAlgebraicSectionRetainsNonbinarySupports(t *testing.T) {
 			t.Fatal("wrong retained interval count", inside)
 		}
 	}
+	// Give both charts the same U limits so the shared cut terminates
+	// transversely on original coedges of both source faces.
+	faces[1].Outer = sectionRectangle(.25, .875, .25, .75)
+	section, e := SectionTrimmedSplinePair(ctx, ps, faces, &seeds, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	parts, e := section.PartitionBothFacesByTubeRun(ctx, 0, 0, AlgebraicTubeFacePartitionOptions{})
+	if e != nil {
+		t.Fatal("exact nonbinary fragment partition", e)
+	}
+	for i, part := range parts.Faces {
+		if part.SourceSurface != faces[i].Surface || part.Support != nil || len(part.Cut) != 1 || part.Fragments[0].CutReversed == part.Fragments[1].CutReversed {
+			t.Fatal("partition changed its original support or cut ownership", i)
+		}
+		for _, terminal := range part.Terminals {
+			x, e := terminal.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || x.Kind != geom.ExactRootKindRational || x.Rational.Cmp(big.NewRat(1, 2)) != 0 {
+				t.Fatal("terminal did not preserve its coedge's original normalized split", x, e)
+			}
+		}
+	}
 }
 
 func makeFlatExactNet(in [][4]*big.Rat) [][4]*big.Rat {

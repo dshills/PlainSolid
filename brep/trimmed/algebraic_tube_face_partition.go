@@ -45,12 +45,15 @@ type AlgebraicTubeFaceFragment struct {
 type AlgebraicTubeFacePartition struct {
 	Chart, Branch, Run int
 	Support            *geom.BSplineSurface
-	FaceReversed       bool
-	Terminals          [2]SplineTubeTrimContact
-	Cut                []AlgebraicTubeFaceCutPiece
-	CutClosed          bool
-	CutWinding         int // original run winding in chart UV, zero for open cuts
-	Fragments          [2]AlgebraicTubeFaceFragment
+	// SourceSurface retains the original chart for both support types. Support
+	// is also set when the original chart is a float B-spline.
+	SourceSurface geom.Surface
+	FaceReversed  bool
+	Terminals     [2]SplineTubeTrimContact
+	Cut           []AlgebraicTubeFaceCutPiece
+	CutClosed     bool
+	CutWinding    int // original run winding in chart UV, zero for open cuts
+	Fragments     [2]AlgebraicTubeFaceFragment
 	// FragmentHeightSigns are signs of this support minus the other
 	// support along ResidualAxis at common projected coordinates. Zero means the
 	// oriented residual was not proved. This does not classify a solid.
@@ -188,6 +191,9 @@ func (r AlgebraicTrimmedPairSection) PartitionFaceByTubeRun(ctx context.Context,
 		}
 	}()
 	s := r.partitionSource
+	if s == nil {
+		s = r.exactPartitionSource
+	}
 	if ctx == nil || s == nil || chart < 0 || chart > 1 || branch < 0 || branch >= len(s.branches) ||
 		run < 0 || run >= len(s.branches[branch].Runs) {
 		return p, geom.ErrInvalid
@@ -213,7 +219,8 @@ func (r AlgebraicTrimmedPairSection) PartitionFaceByTubeRun(ctx context.Context,
 	p.Chart, p.Branch, p.Run, p.FaceReversed = chart, branch, run, f.Reversed
 	p.ProjectionAxes = s.projection
 	p.ResidualAxis = 3 - s.projection[0] - s.projection[1]
-	p.Support = f.Surface.(*geom.BSplineSurface)
+	p.SourceSurface = f.Surface
+	p.Support, _ = f.Surface.(*geom.BSplineSurface)
 	limits := o.Patches
 	if limits.MaxOperations == 0 || limits.MaxOperations > o.MaxOperations {
 		limits.MaxOperations = o.MaxOperations
@@ -221,7 +228,13 @@ func (r AlgebraicTrimmedPairSection) PartitionFaceByTubeRun(ctx context.Context,
 	if limits.MaxCoefficientBits == 0 || limits.MaxCoefficientBits > o.MaxCoefficientBits {
 		limits.MaxCoefficientBits = o.MaxCoefficientBits
 	}
-	support, e := geom.NewSurfacePatch(p.Support, limits)
+	makePatch := func(s geom.Surface, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+		if q, ok := s.(*geom.ExactBezierSurface); ok {
+			return q.ExactPatch().WithLimits(o)
+		}
+		return exactSplineSupportPatch(s, o)
+	}
+	support, e := makePatch(p.SourceSurface, limits)
 	if e != nil {
 		return p, e
 	}
@@ -257,7 +270,7 @@ func (r AlgebraicTrimmedPairSection) PartitionFaceByTubeRun(ctx context.Context,
 	if otherLimits.MaxOperations < 1 {
 		return p, geom.ErrConvergence
 	}
-	other, e := geom.NewSurfacePatch(facespline(s.faces[chart^1]), otherLimits)
+	other, e := makePatch(s.faces[chart^1].Surface, otherLimits)
 	if e != nil {
 		return p, e
 	}
