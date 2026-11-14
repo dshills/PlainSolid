@@ -1,5 +1,13 @@
 # Verification record
 
+The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
+accounted for all 796 top-level cases on clean `b7e62101`, with CGO
+disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall
+limit while running the offset dual-disk mass case. That case passed in
+isolation on the same archive, and four disjoint continuation shards
+passed every remaining case that was runnable. The evidence preserves
+the original timeout as well as the bounded continuations.
+
 The [updated full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-c7a5af46-2026-11-14.json)
 passed 49 tested packages on a clean `c7a5af46` archive with CGO
 disabled. Four packages have no tests. Go recorded 4,495 passing test

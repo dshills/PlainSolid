@@ -168,6 +168,10 @@ distance uncertainty. Focused native agreement, bridge, and live OCCT
 readback tests passed. All 17 original browser cases and the separate
 Go/WASM preflight passed with no skips or retries. The verifier checked
 all 841 application and 1,907 kernel source hashes.
+The [separate authored unequal STEP workflow](evidence/plaincad-reconciled-f8f37eee-supplemental-unequal-step-2026-11-14.json)
+also passed on the same reconciled WASM. It exports and imports the
+unequal boundary, reopens the saved source, and verifies both open
+passages in the STL. Pinned OCCT independently read the emitted STEP.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
