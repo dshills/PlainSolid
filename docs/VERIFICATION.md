@@ -1,5 +1,29 @@
 # Verification record
 
+## PlainCAD 5–12–13 oblique Hole crossings — 2026-11-14
+
+The equal-radius cardinal/oblique intersection retains its exact
+ellipses for local ratios 12:5 and 5:12. The analytic planar reference
+area accounts for the same projected opening used in STEP. Sixteen
+new signed coordinate placements pass canonical re-export and retained
+face area checks. Four new signed STEP placements pass OCCT readback.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-pythagorean-oblique-step-browser-2026-11-14.json)
+and the authored [12:5](evidence/plaincad-pythagorean-oblique-shallow-step-native-2026-11-14.json)
+and [5:12](evidence/plaincad-pythagorean-oblique-steep-step-native-2026-11-14.json)
+fixtures pass on the same WASM. Both exports contain 16 exact ellipses
+and reopen in PlainCAD. Their 404-triangle STLs are watertight. OCCT
+STEP readback and independent Boolean agree within 0.000001 mm³ and
+0.000001 mm². Focused native, race and vet checks pass.
+
+## Integration native short suite on 981161dd — 2026-11-14
+
+The [native aggregate](evidence/plainsolid-native-981161dd-short-2026-11-14.json)
+completed with no failures within a 60-minute package budget. The
+trimmed package completed in 1,714.188 seconds. Go reported 3,893 passing
+and 197 skipped test and subtest events. Four packages contain no tests.
+This run closes the earlier aggregate timeout at this integration checkpoint.
+
 ## PlainCAD cardinal/oblique Hole crossings on placed axes — 2026-11-14
 
 The bridge chooses a signed coordinate chart from the authored cardinal

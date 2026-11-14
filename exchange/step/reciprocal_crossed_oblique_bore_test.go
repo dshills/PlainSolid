@@ -13,13 +13,29 @@ import (
 )
 
 func TestReciprocalCrossedObliqueBoreSTEP(t *testing.T) {
-	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+	for _, tc := range []struct {
+		axis   geom.Vec3
+		ratio  geom.Vec2
+		height float64
+	}{
+		{geom.Vec3{Z: 1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{Z: -1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{X: 1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{X: -1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{Y: 1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{Y: -1}, geom.Vec2{X: 3, Y: 4}, 40},
+		{geom.Vec3{Z: 1}, geom.Vec2{X: 12, Y: 5}, 70},
+		{geom.Vec3{Y: -1}, geom.Vec2{X: 12, Y: 5}, 70},
+		{geom.Vec3{Z: 1}, geom.Vec2{X: 5, Y: 12}, 70},
+		{geom.Vec3{X: -1}, geom.Vec2{X: 5, Y: 12}, 70},
+	} {
+		n := tc.axis
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {
 			t.Fatal(err)
 		}
-		p := CrossedObliqueBoreBody{Name: "cardinal and oblique crossed bores", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 40},
-			Crossing: geom.Vec3{X: 10, Y: 8, Z: 20}, Radius: 2, AxisRatio: geom.Vec2{X: 3, Y: 4}}
+		p := CrossedObliqueBoreBody{Name: "cardinal and oblique crossed bores", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: tc.height},
+			Crossing: geom.Vec3{X: 10, Y: 8, Z: tc.height / 2}, Radius: 2, AxisRatio: tc.ratio}
 		m := CrossedObliqueBoreModel{Body: p, LengthUnit: .001}
 		var out bytes.Buffer
 		if err := WriteCrossedObliqueBore(&out, m); err != nil {
@@ -56,7 +72,10 @@ func TestReciprocalCrossedObliqueBoreSTEP(t *testing.T) {
 		if err := json.Unmarshal(raw, &o); err != nil {
 			t.Fatal(err)
 		}
-		v, a := 12800-(880./3)*math.Pi+640./9, 3520+272*math.Pi-320./3
+		stretch := math.Hypot(tc.ratio.X, tc.ratio.Y) / tc.ratio.X
+		wallArea := 4 * math.Pi * (tc.height + 20*stretch)
+		v := 320*tc.height - wallArea + 128*stretch/3
+		a := 2*(320+36*tc.height) + wallArea - 64*stretch - 8*math.Pi*(1+stretch)
 		if math.Abs(o.Volume-v) > 1e-8*v || math.Abs(o.Area-a) > 1e-8*a ||
 			f.ToWorld(p.Crossing).Distance(geom.Vec3{X: o.Centroid[0], Y: o.Centroid[1], Z: o.Centroid[2]}) > 1e-6 {
 			t.Fatal(n, o, v, a)

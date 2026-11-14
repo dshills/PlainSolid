@@ -97,7 +97,7 @@ crossings within the app import limit. Partial-skew crossings also
 retain finite stops beyond the complete intersection. In a concurrent
 same-radius triple crossing, one, two or three cutters can retain floors
 beyond the crossing. Unequal covered-width pairs also support disjoint
-companion through bores. Cardinal and concurrent 4:3 or 3:4 oblique pairs
+companion through bores. Cardinal and concurrent 4:3, 3:4, 12:5 or 5:12 oblique pairs
 keep exact intersection ellipses. Two or three disjoint through bores
 can combine oblique and cardinal axes and exchange their complete rims.
 Common angular strips extend tessellation to steeper and three-component
@@ -127,7 +127,7 @@ now stop beyond the actual transverse crossing even within the previous
 full-radius bound. Bounded tessellation handles the first tighter
 case within the existing worker deadline. The equal-radius cardinal and
 oblique crossing now exchanges on all three cardinal axes. Continue
-with additional Pythagorean oblique ratios or trimmed crossing floors.
+with trimmed floors and other concrete cutter placements.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser

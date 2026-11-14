@@ -20,7 +20,7 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 
 // BoxCrossedObliqueBores removes equal-radius concurrent Z and oblique through
 // cylinders in signed stock coordinates. AxisRatio contains the positive X and
-// Z ratios. The accepted ratios are 4:3 and 3:4. Both oblique X-cap ellipses
+// Z ratios. The accepted ratios are 4:3, 3:4, 12:5 and 5:12. Both oblique X-cap ellipses
 // must be fully inside the stock faces.
 func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, axisRatio geom.Vec2, radius, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
@@ -44,15 +44,13 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			return fail(geom.ErrDomain)
 		}
 	}
-	var sin, cos, slope, stretch, positive, negative float64
-	switch axisRatio {
-	case geom.Vec2{X: 4, Y: 3}:
-		sin, cos, slope, stretch, positive, negative = .8, .6, .75, 1.25, 2, -.5
-	case geom.Vec2{X: 3, Y: 4}:
-		sin, cos, slope, stretch, positive, negative = .6, .8, 4./3, 5./3, 3, -1./3
-	default:
+	coefficients, ok := CrossedObliqueCoefficients(axisRatio)
+	if !ok {
 		return fail(geom.ErrDomain)
 	}
+	sin, cos, slope, stretch := coefficients.Sin, coefficients.Cos, coefficients.Slope, coefficients.Stretch
+	positive, negative := coefficients.Positive, coefficients.Negative
+
 	// Reserve arithmetic error when comparing represented conic coefficients.
 	// Very large translated coordinates cannot consume the sewing allowance.
 	origin := frame.Origin()
@@ -276,7 +274,7 @@ func (s Solid) TessellateCrossedBores345(ctx context.Context, o parametric.Tesse
 	return s.TessellateCrossedObliqueBores(ctx, o)
 }
 
-// TessellateCrossedObliqueBores tessellates either supported exact crossing.
+// TessellateCrossedObliqueBores tessellates a supported exact crossing.
 func (s Solid) TessellateCrossedObliqueBores(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
 	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi || o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
 		return mesh.Mesh{}, geom.ErrInvalid
