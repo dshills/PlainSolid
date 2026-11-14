@@ -790,6 +790,13 @@ all 17 original browser cases passed; 841 app and 2,163 kernel source
 blobs were verified. The two [authored shallow and steep cases](evidence/plaincad-reconciled-27fa07c2-supplemental-pythagorean-oblique-step-2026-11-14.json)
 reproduced the worktree's STEP and watertight STL byte for byte, with
 independent OCCT transfer and direct geometry agreement.
+The [oblique blind-floor reconciliation](evidence/plaincad-reconciled-cc2030ea-development-blind-oblique-holes-step-2026-11-14.json)
+adds worktree revision `8a9f5d22` to review `cc2030ea`. Focused STEP
+and bridge race checks, including a further cut after import, and all 17
+original browser cases passed with 841 app and 2,167 kernel source blobs
+verified. Both [authored blind-floor cases](evidence/plaincad-reconciled-cc2030ea-supplemental-blind-oblique-step-2026-11-14.json)
+reproduced the worktree's STEP and watertight STL. Independent OCCT
+transfer and direct construction agreed on their physical properties.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

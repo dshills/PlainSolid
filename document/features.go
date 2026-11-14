@@ -153,7 +153,8 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 
 type featureFaceObserver struct {
 	needsHistory func(Feature) bool
-	record       func(string, Feature, State, []poly.Source) error
+	needsEdges   func(Feature) bool
+	record       func(string, Feature, State, poly.TopologyHistory) error
 }
 
 func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserver) (State, error) {
@@ -241,7 +242,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 			var q parametric.Solid
 			var r trimmed.Solid
 			var e error
-			var faceSources []poly.Source
+			var topology poly.TopologyHistory
 			curved, uv := false, false
 			switch f.Kind {
 			case BoxFeature:
@@ -353,12 +354,13 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				if !ok || !hasTool {
 					return State{}, fmt.Errorf("document: feature %q requires two planar assets", name)
 				}
-				if observe == nil || !observe.needsHistory(f) {
+				switch {
+				case observe != nil && observe.needsEdges != nil && observe.needsEdges(f):
+					p, topology, e = poly.CombineWithTopologyHistory(ctx, a, b, f.Operation, poly.Options{})
+				case observe != nil && observe.needsHistory != nil && observe.needsHistory(f):
+					p, topology.History, e = poly.CombineWithHistory(ctx, a, b, f.Operation, poly.Options{})
+				default:
 					p, e = poly.Combine(ctx, a, b, f.Operation, poly.Options{})
-				} else {
-					var h poly.History
-					p, h, e = poly.CombineWithHistory(ctx, a, b, f.Operation, poly.Options{})
-					faceSources = h.Faces
 				}
 			case CylinderBoreFeature:
 				uv = true
@@ -409,7 +411,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				result.Planar[name] = p
 			}
 			if observe != nil {
-				if e = observe.record(name, f, result, faceSources); e != nil {
+				if e = observe.record(name, f, result, topology); e != nil {
 					return State{}, e
 				}
 			}
