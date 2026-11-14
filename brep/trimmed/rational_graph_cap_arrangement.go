@@ -198,6 +198,29 @@ func (r *RationalGraphShellRegions) intersectGeneralCap(ctx context.Context, oth
 	count := 0
 	rings := make([]trimvalidate.Loop, len(wires))
 	for i, wire := range wires {
+		// A two-curve lens on a stock face and its two-edge cap rings
+		// need a common subdivision of the original support curve. Do
+		// it here, before the cap and stock consume independent controls.
+		if !polygonal && len(wire) == 2 {
+			var split []projectedGraphSectionPiece
+			for _, p := range wire {
+				if p.source.Branch < 0 {
+					split = append(split, p)
+					continue
+				}
+				a, b := p, p
+				mid := big.NewRat(1, 2)
+				left, right, e := splitCapBezier(p.control, mid, opts.MaxBits)
+				if e != nil {
+					return zero, e
+				}
+				a.control, b.control = left, right
+				a.span[1] = graphCapOriginalParameter(p.span, mid)
+				b.span[0] = a.span[1]
+				split = append(split, a, b)
+			}
+			wire, wires[i] = split, split
+		}
 		for _, piece := range wire {
 			count++
 			if count > opts.MaxEdges {

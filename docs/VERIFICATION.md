@@ -85,6 +85,10 @@ The two-run floor fixture retains two disjoint fragments on one quadratic
 stock support and reloads one exterior shell. Independent volume is
 461/61440; pinned OCCT agrees with all topology counts and differs in volume
 by about 3.1e-8. Both original cutter orders reproduce the same result.
+With both cuts keeping the lower side, the same original support has two
+graph owner changes. An exact interior split in the curved lens boundary
+appears identically on cap and stock; the native result reloads and matches
+the independent envelope volume 221/30720.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
