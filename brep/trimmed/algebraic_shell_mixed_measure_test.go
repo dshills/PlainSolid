@@ -96,6 +96,22 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			t.Fatal("OCCT area outside native original-support interval", name, area, err)
 		}
 		if i == 0 {
+			trim, err := body.BoundTrimmedGeometry(ctx, selection)
+			if err != nil || trim.Empty || trim.VisitedCells == 0 {
+				t.Fatal("retained trim bounds must complete", trim, err)
+			}
+			box, _, err := body.boundary.Bounds()
+			if err != nil || !box.Contains(trim.Box.Min) || !box.Contains(trim.Box.Max) {
+				t.Fatal("trim refinement may never widen the conservative operand box", box, trim, err)
+			}
+			for _, p := range []geom.Vec3{{X: .1, Y: .5, Z: -.25}, {X: .9, Y: .5, Z: -.25}} {
+				if where, err := body.LocateMaterial(ctx, p, SplineShellBooleanOptions{}); err != nil || where != parametric.Inside || !trim.Box.Contains(p) {
+					t.Fatal("known retained point omitted from original hull", p, where, trim, err)
+				}
+			}
+			if small, err := body.BoundTrimmedGeometry(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); !errors.Is(err, geom.ErrConvergence) || small.VisitedCells != 0 {
+				t.Fatal("partial trim enclosure escaped an exhausted budget", small, err)
+			}
 			mass, err := body.BoundMassProperties(ctx, AlgebraicShellMeasureOptions{MaxDepth: 6, TubeSubdivisions: 8})
 			if err != nil || !contains(mass.Volume, ref.Volume) || mass.Volume.Lower.Sign() <= 0 {
 				t.Fatal("OCCT volume outside native mass interval", name, mass, err)

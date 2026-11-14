@@ -32,3 +32,10 @@ floating-point integration only. The native intervals use original trimmed
 supports and their conservative chart covers; no triangle mass estimate is
 substituted. The independent evaluator does not prove a general Boolean
 capability or exact equality between either engine's reported area values.
+
+`BoundTrimmedGeometry` is a separate native enclosure query. It intersects
+the operation's operand box with the outward hull of all retained and
+unresolved source cells, using the same chart cover as the area and mass
+queries. Its test checks independently classified retained points and atomic
+failure on exhaustion. The result is a conservative box, not a claim of exact
+coordinate extrema.

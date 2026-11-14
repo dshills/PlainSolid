@@ -79,3 +79,27 @@ The pinned source archive SHA256 is
 The local fresh reference executable SHA256 was
 `010345be3df3e1c3672239663305c155f08ac7f0060fc3b3ce7ac5bc4660cb70`;
 executables are local verification artifacts, not committed dependencies.
+
+## Independent cone/bore competition
+
+`--bore-cone` independently cuts an OCCT radius-1 cylinder centered at
+`(6,0)`, spanning z[-1,7], from the same original rounded cone. It emits the
+stock and pierced solid plus boundary distances at `(65/8,1/8,3/2)`,
+`(65/8,1/8,49/32)` and `(65/8,0,3/2)`. These are cone-nearest, bore-nearest
+and an exact two-point tie, respectively. The Go test reloads its native
+recipe and requires a complete original-owner classification. It compares
+against independent analytic feet and values, and checks OCCT's one solid,
+one shell, Euler zero, removed volume `6*pi` and added net area `10*pi`.
+The earlier modes and record counts remain unchanged.
+
+`TestOCCTConicalBoreConeNearest` uses the same `3e-7*max(1,D)` squared-distance
+allowance and OCCT extrema deflection 1e-10 as above. Measured squared distances
+were `1.264327332677972`, `1.2739034085183991` and exactly `1.265625`.
+OCCT returned two representatives at the tie; its solution count is still
+not treated as proof of exhaustive nearest-owner multiplicity. The exact Go
+report independently proves the two original owners and excludes the rest.
+
+The fresh executable built against the same pinned archive had SHA256
+`48fe56ab65df799ba3332d277b00d17c9cff641bed37e71fc9fdb0e5870f5b85`.
+Run with `PLAINSOLID_OCCT_CONICAL_FILLET` pointing to this rebuilt standalone
+oracle; no executable or generated output is committed.
