@@ -191,4 +191,8 @@ func TestExactSewDistinguishesTouchingVertexFans(t *testing.T) {
 	if top := out.Topology(); len(top.Shells) != 2 || top.Vertices != 16 || top.Edges != 24 {
 		t.Fatal("coincident independent vertex fans must retain separate identities", top)
 	}
+	split, report, err := SewExactStraightSubdivisions(ctx, vertices, edges, faces, ExactStraightSewOptions{})
+	if err != nil || report.InsertedVertices != 0 || len(split.Topology().Shells) != 2 || split.Topology().Vertices != 16 {
+		t.Fatal("straight subdivision changed pure point contact", split.Topology(), report.InsertedVertices, err)
+	}
 }

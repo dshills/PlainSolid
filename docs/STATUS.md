@@ -2379,3 +2379,12 @@ layers. Fuse keeps the original outer end caps and builds a Union in the
 middle. Cut keeps stock at both ends and builds Difference in the middle.
 Both exposed cutter floors and clipped walls retain original support and
 edge intervals. The dispatcher reports the selected construction.
+
+### Exact straight border subdivision during sewing
+
+`SewExactStraightSubdivisions` accepts independently indexed faces whose
+single-use straight borders have different subdivisions. It identifies
+positive-length collinear overlap, records exact original parameter
+ranges, and re-proves the original and split coedges before joining the
+closed graph. UV and model endpoints must fit binary64 exactly. Point
+contacts leave disconnected vertex links distinct.

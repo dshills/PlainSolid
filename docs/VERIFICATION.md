@@ -6280,3 +6280,12 @@ orderings and on reflected placement. Independent volume and centroid,
 closed incidence, original cap and wall orientation, holed profiles, and
 atomic rejection of nonbinary native coordinates were checked. The focused
 native and sewing race run passed in 6.008 seconds.
+
+### Exact nonconforming straight border sewing
+
+A box with intentionally different edge partitions and a reversed
+original coedge sews at exact fraction 1/3. Original surfaces, endpoint
+ancestry, signed volume, native reload, and continuous edge agreement
+were checked. One-short work limits, one-ULP drift, cancellation, and an
+independent point contact were also exercised. The straight and original
+sewing race tests passed in 3.939 seconds.

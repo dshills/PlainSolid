@@ -50,7 +50,15 @@ type ExactSewReport struct {
 // Global shell embedding and inward/outward cavity classification are separate
 // from this topology operation. A failure returns no solid or partial mapping.
 func SewExactTopology(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, o ExactSewOptions) (Solid, ExactSewReport, error) {
-	var empty ExactSewReport
+	input := Solid{vertices: vertices, edges: edges, faces: faces}
+	o, err := exactSewSource(ctx, input, o)
+	if err != nil {
+		return Solid{}, ExactSewReport{}, err
+	}
+	return finishExactSew(ctx, input, o)
+}
+
+func exactSewSource(ctx context.Context, s Solid, o ExactSewOptions) (ExactSewOptions, error) {
 	if o.MaxEdges == 0 {
 		o.MaxEdges = 4096
 	}
@@ -65,20 +73,21 @@ func SewExactTopology(ctx context.Context, vertices []geom.Vec3, edges []paramet
 	}
 	if ctx == nil || o.MaxEdges < 1 || o.MaxEdges > 16384 || o.MaxFaces < 1 || o.MaxFaces > 4096 ||
 		o.MaxComparisons < 1 || o.MaxComparisons > 262144 || !finite(o.DisplayTolerance) || o.DisplayTolerance <= 0 ||
-		len(edges) == 0 || len(faces) == 0 || len(vertices) == 0 {
-		return Solid{}, empty, geom.ErrInvalid
+		len(s.edges) == 0 || len(s.faces) == 0 || len(s.vertices) == 0 {
+		return o, geom.ErrInvalid
 	}
-	if len(edges) > o.MaxEdges || len(faces) > o.MaxFaces || len(vertices) > 2*len(edges) {
-		return Solid{}, empty, geom.ErrConvergence
+	if len(s.edges) > o.MaxEdges || len(s.faces) > o.MaxFaces || len(s.vertices) > 2*len(s.edges) {
+		return o, geom.ErrConvergence
 	}
 	if err := ctx.Err(); err != nil {
-		return Solid{}, empty, err
+		return o, err
 	}
-	input := Solid{vertices: vertices, edges: edges, faces: faces}
-	if err := validateExactSewSource(ctx, input, o); err != nil {
-		return Solid{}, empty, err
-	}
-	result, report, err := sewExactModelEdges(ctx, vertices, edges, faces, o)
+	return o, validateExactSewSource(ctx, s, o)
+}
+
+func finishExactSew(ctx context.Context, s Solid, o ExactSewOptions) (Solid, ExactSewReport, error) {
+	var empty ExactSewReport
+	result, report, err := sewExactModelEdges(ctx, s.vertices, s.edges, s.faces, o)
 	if err != nil {
 		return Solid{}, empty, err
 	}
