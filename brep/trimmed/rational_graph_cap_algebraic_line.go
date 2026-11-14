@@ -52,7 +52,9 @@ func (c AlgebraicGraphCapClip) IntersectRationalLineWithTouches(ctx context.Cont
 // IntersectRationalLineWithJunctions additionally handles a line through
 // a shared trim vertex. Both incident curve germs are matched on their
 // original wire; their exact available signs determine a crossing or
-// touch. Coincident runs and singular germs remain unsupported.
+// touch. Regular odd-order interior contacts likewise cross, even if the
+// curve is tangent to the line. Coincident runs and singular germs remain
+// unsupported.
 func (c AlgebraicGraphCapClip) IntersectRationalLineWithJunctions(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
 	return c.intersectRationalLine(ctx, origin, direction, extent, options, true, true)
@@ -140,8 +142,9 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 				}
 				touch := includeTouches && p.Tangent && p.Touching
 				endpoint := p.EndpointMask != 0
+				crossing := p.Crossing && (p.Transverse || includeJunctions && !p.Singular)
 				if !p.Proven || endpoint && (!includeJunctions || p.Singular || p.EndpointMask > 2) ||
-					!endpoint && !touch && (!p.Crossing || !p.Transverse) {
+					!endpoint && !touch && !crossing {
 					return zero, geom.ErrConvergence
 				}
 				a, used, steps, e := candidate.CoordinateRootWithWork(ctx, axis, b.limits())
