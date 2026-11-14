@@ -139,6 +139,23 @@ func TestOrderedRoofBoxFuseOriginalFootprintContainment(t *testing.T) {
 	}
 }
 
+func TestOrderedRoofBoxFuseOnlyOverlapSeparated(t *testing.T) {
+	ctx := context.Background()
+	low := orderedRoofTangentSource(t) // whole roof reaches 1.25
+	high, _ := makeOpenSplineBox(t, [3]float64{.375, 0, 1.125}, [3]float64{.625, 1.25, 2}, 0)
+	// The high body's footprint crosses the original Y boundary, and its
+	// floor is below the low body's global roof maximum. On their actual
+	// shared footprint the low roof never exceeds 1+1/64, proving a gap.
+	s, h, err := FuseOrderedRoofBoxes(ctx, low, high, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(s.Topology().Shells) != 2 || len(h.Faces) != 12 || s.Topology().EulerCharacteristic != 4 {
+		t.Fatal("the exact overlap rather than the global height hull separates original shells", s.Topology(), h, err)
+	}
+	near, _ := makeOpenSplineBox(t, [3]float64{.375, 0, 1.015625}, [3]float64{.625, 1.25, 2}, 0)
+	if s, h, err := FuseOrderedRoofBoxes(ctx, low, near, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("touching over the projected edge must not pass strict separation", s.Topology(), h, err)
+	}
+}
+
 func TestOrderedRoofBoxFuseStackedPartialCap(t *testing.T) {
 	ctx := context.Background()
 	high := orderedRoofParabolaSource(t, 1, .5)

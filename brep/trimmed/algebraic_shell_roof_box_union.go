@@ -125,6 +125,11 @@ func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixe
 		lo = 1
 	}
 	low := boxes[lo]
+	if separated, err := strictlySeparateOnOverlap(ctx, low, boxes[1-lo], d, w); err != nil {
+		return Solid{}, zero, err
+	} else if separated {
+		return fuseSeparateOrderedRoofBoxes(ctx, a, b, w)
+	}
 	xy := [2]geom.ExactParameterInterval{
 		{Lower: ratInset(low.domain.UMin), Upper: ratInset(low.domain.UMax)},
 		{Lower: ratInset(low.domain.VMin), Upper: ratInset(low.domain.VMax)},
@@ -166,6 +171,19 @@ func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixe
 		}
 	}
 	return out, r, nil
+}
+
+func strictlySeparateOnOverlap(ctx context.Context, low, high *mixedRoofBox, d geom.ParameterRectangle, w *mixedRoofLineWork) (bool, error) {
+	xy := [2]geom.ExactParameterInterval{
+		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
+		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
+	}
+	sign, strict, err := orderedRoofAgainstFloorDetail(ctx, low, xy, high.floor, w)
+	// An unresolved sign does not disqualify separate subsequent proofs.
+	if errors.Is(err, geom.ErrUnrepresentable) {
+		return false, nil
+	}
+	return sign < 0 && strict, err
 }
 
 func footprintStrictlyDisjoint(a, b geom.ParameterRectangle) bool {

@@ -5632,6 +5632,9 @@ The partially shared stacked cap removes just the interior interface and
 retains each original exposed fragment under both operand orders. The
 single solid has Euler characteristic two. Its analytic volume and live
 OCCT mass, centroid and area qualified in the focused 5.849 s race run.
+Disjoint curved stocks also qualify when only their overlapping projected
+rectangle proves the strict vertical gap. A neighboring exact edge touch
+fails the strict proof and returns no topology.
 The fully enclosed weighted cutter produces an inward cavity with original
 edge and face geometry. Its exact volume difference, area and centroid
 match the pinned OCCT cavity. A cutter touching the stock floor is rejected
