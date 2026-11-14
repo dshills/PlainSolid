@@ -22,7 +22,8 @@ boundary. An externally tangent subtraction keeps only the stock owner.
 Coincident Union/Common retains both original owners of the same full support,
 which maps to one native face. Transverse shared rims retain both owners through
 the separate transverse proof. Internally tangent cavities are not single-sphere
-reductions and remain rejected by this nearest path. Empty regularized results
+reductions; the unified query uses a separate analytical Touching report for
+them, while native manifold assembly remains rejected. Empty regularized results
 return no nearest witness.
 
 ```sh
