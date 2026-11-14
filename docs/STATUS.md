@@ -211,13 +211,23 @@ round trip through their own reader, with exact wall and floor lineage.
 Vendor-rounded partial-cylinder pcurves remain rejected. Unequal disks with a
 common center Y below the opening side now have a separate exact section and
 native blind/through construction, exact point and line boundary queries,
-and an independently checked model-only STEP writer. Other transverse center
-placements and arcs extending past a semicircle have no qualification here.
+and an independently checked model-only STEP round trip. A separate
+different-center construction verifies an explicit rational join and its
+excluded lower intersection. It supports native queries, certified display,
+authored document regeneration, and registered analytic STEP readback.
+Arcs extending past a semicircle and general cutter arrangements remain open.
+Both common-offset PlainCAD workflow fixtures passed on candidate `2851e23`.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.
 The display mesher certifies affine faces with a bounded chain of adjacent
 cubic or quartic graph trims, including C0 joins and shared sample indices.
+Nonbinary exact supports participate in complete certified transverse section
+traces and standalone algebraic section persistence, including original
+trim clipping. Independently refined wrapped charts now sew constant
+whole-period UV line shifts. A bounded partial coincidence and arrangement API
+retains exact original lifted intervals; general curved Boolean assembly is
+still open.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and

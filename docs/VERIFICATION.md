@@ -7,7 +7,11 @@ This record validates the current supported subsets, not full OCCT replacement.
 On 2026-11-13, the CGO-disabled run pinned to `f8b543f` passed all 49
 packages with tests other than `brep/trimmed`; the three remaining packages
 had no tests. The run reported 3,540 passing and 293 skipped test events,
-including subtests. The native `brep/trimmed` qualification runs separately.
+including subtests. The separate short-mode `brep/trimmed` run at `245b07a`
+passed in the three CI shards (542 passing and seven skipped test events,
+including subtests; 554, 393 and 473 seconds elapsed). A prior unsharded run
+hit the default ten-minute package timeout. The wrapped bore test also passed
+in isolation; that timeout does not establish an individual test failure.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -25,6 +29,33 @@ Pinned PlainCAD Chromium candidate `57f40ad` passed the supplemental zoom
 test (19.330 seconds for the entire test), with 841 original application
 sources, the unchanged test hash, and a passed Go/WASM preflight. The display
 certificate's distance, normal angle, and collision guards all remain active.
+The same pinned build also passed both supplemental blind and through save,
+reopen, STL and STEP workflows without retries or skips.
+Chromium candidate `2851e23` separately passed the larger offset blind and
+through workflows (40.285 and 49.604 seconds), including the same public STL
+volume check and native STEP readback. Public fabrication uses the accepted
+model mesh, so tightening only the direct kernel STL writer did not satisfy
+the workflow. The narrower circular-wall angle applies to that model family.
+
+Different-center cuts prove the retained join and the other intersection
+below the stock before sewing. Live OCCT comparisons verify signed placements
+and both depths (`c09769b`, `660ca95`, `454b2f3`). Their native STEP reader
+derives the join from the one axial edge shared by the two cylindrical walls,
+and rejects altered owners and vendor-rounded graphs. Certified meshes repeat
+after reload, with exact collision and independent volume segment bounds.
+
+For broader curved contacts, `aa2f953` and `c1f0aca` preserve nonbinary source
+charts through certified transverse branch coverage and independent algebraic
+section reload. The curved fixture retains original coordinates 1/3 and 2/3.
+An independently refined periodic toroid sews with exact chart correspondence
+(`b0ff31f`), and nonconstant or fractional wrap shifts reject. Exact periodic
+overlaps and bounded chart arrangements retain original owner UV intervals;
+the arrangement independently cancels shared interior edges (`a0d72b1`). The optional
+circular wrapped cylinder/frustum mesher (`2ab2135`) additionally bounds the
+continuous facet normal deviation, including taper. Bore meshing adds material
+normals on each inner/outer wall and the two caps. Lossless signed-axis rigid
+placement transfers the proof to the world mesh (`8450183`, `d62e758`); mesh
+translations requiring coordinate rounding reject.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
