@@ -20,8 +20,9 @@ type SHUOSurfaceColor struct {
 // SHUOOccurrenceColoredAssembly is the selected two-level path-specific style
 // subset. It is distinct from an override on a shared internal NAUO.
 type SHUOOccurrenceColoredAssembly struct {
-	model  NestedOccurrenceColoredAssembly
-	claims []SHUOSurfaceColor
+	model    NestedOccurrenceColoredAssembly
+	claims   []SHUOSurfaceColor
+	ordinary []OccurrenceSurfaceColor
 }
 
 func (m SHUOOccurrenceColoredAssembly) Paths() []NestedColoredPath { return m.model.Paths() }
@@ -34,6 +35,10 @@ func (m SHUOOccurrenceColoredAssembly) Overrides() []SHUOSurfaceColor {
 // overrides, additional or recursive SHUOs, group
 // colors and deeper graphs are unsupported. No source geometry is repaired.
 func ReadSHUOOccurrenceColoredAssembly(ctx context.Context, r io.Reader, l Limits) (SHUOOccurrenceColoredAssembly, error) {
+	return readSHUOOccurrenceColoredAssembly(ctx, r, l, false)
+}
+
+func readSHUOOccurrenceColoredAssembly(ctx context.Context, r io.Reader, l Limits, combined bool) (SHUOOccurrenceColoredAssembly, error) {
 	var zero SHUOOccurrenceColoredAssembly
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
@@ -222,7 +227,14 @@ func ReadSHUOOccurrenceColoredAssembly(ctx context.Context, r io.Reader, l Limit
 				found = q
 			}
 		}
-		if found == nil || c.ProductShapeID != found.innerPDS || c.OccurrenceID != found.claim.Path[1] {
+		if found == nil {
+			if !combined {
+				return zero, geom.ErrInvalid
+			}
+			out.ordinary = append(out.ordinary, c)
+			continue
+		}
+		if c.ProductShapeID != found.innerPDS || c.OccurrenceID != found.claim.Path[1] {
 			return zero, geom.ErrInvalid
 		}
 		q := found.claim
@@ -250,13 +262,42 @@ func ReadSHUOOccurrenceColoredAssembly(ctx context.Context, r io.Reader, l Limit
 		}
 		out.claims = append(out.claims, q)
 	}
+	if combined && len(out.ordinary) == 0 {
+		return zero, geom.ErrInvalid
+	}
+	for _, c := range out.ordinary {
+		for _, q := range out.claims {
+			if c.OccurrenceID == q.Path[1] {
+				return zero, geom.ErrInvalid
+			}
+		}
+		matches := 0
+		for i := range out.model.paths {
+			p := &out.model.paths[i]
+			if p.Path[1] == c.OccurrenceID {
+				if p.BodyID != c.BodyID {
+					return zero, geom.ErrInvalid
+				}
+				p.Color = c.Color
+				p.Overridden = true
+				matches++
+			}
+		}
+		if matches < 2 {
+			return zero, geom.ErrInvalid
+		}
+	}
 	if len(used) != len(routes) {
 		return zero, geom.ErrInvalid
 	}
 	out.model.model.Assembly.Assembly.Source = f
 	// Keep source context ancestry, not the private proof-view PDS substitution.
 	for i := range out.model.model.Overrides {
-		out.model.model.Overrides[i] = out.claims[i].Context
+		for _, q := range out.claims {
+			if q.Context.DefinitionRepresentationID == out.model.model.Overrides[i].DefinitionRepresentationID {
+				out.model.model.Overrides[i] = q.Context
+			}
+		}
 	}
 	if e = ctx.Err(); e != nil {
 		return zero, e

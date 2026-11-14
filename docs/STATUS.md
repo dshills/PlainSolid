@@ -51,9 +51,10 @@ independently authored AP242 assembly, including repeated product use.
 The flat contextual occurrence reader authenticates whole-body override
 ownership. Native persistence re-proves the original STEP. Creating,
 editing and removing overrides retains unrelated shape and pose records.
-Nested and face-specific occurrence styles remain open. Wrapped
-spline p-curves require exact original pole and knot coordinates before
-normalization.
+Bounded nested ordinary and SHUO overrides now support shared and
+path-specific whole-body appearance. Face-specific occurrence styles
+remain open. Wrapped spline p-curves require exact original pole and
+knot coordinates before normalization.
 
 The [current PlainCAD runs](evidence/plaincad-main-18204a56-2026-11-14.json)
 use kernel `18204a56`. All 15 Chromium, Firefox and WebKit cases, four

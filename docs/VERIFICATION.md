@@ -6141,3 +6141,14 @@ quartic sectors. Original model parameters and wall IDs survive exact
 and isolated nonexact hits. Generators, ambiguous brackets and exhausted
 budgets reject. The integrated horizontal and nonhorizontal race passed
 in 33.471 s.
+
+### Disjoint ordinary and SHUO appearance qualification
+
+A genuine OCCT assembly retains two shared cyan paths and one path-specific
+blue override. Six exact poses, volume 108 and area 252 survive source-native
+reload and fresh STEP observation. Retargeting the SHUO preserves the two
+ordinary paths. Overlapping ownership rejects even when colors agree. The
+combined appearance race passed in 9.942 s. Current public XCAF authoring
+calls rejected both attempted face-local occurrence authoring paths. The
+[combined appearance contract](../exchange/step/COMBINED_OCCURRENCE_COLORS.md)
+includes a reproducible probe for that fixture limitation.
