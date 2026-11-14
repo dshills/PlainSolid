@@ -150,6 +150,10 @@ func writeNativeFiniteUnequalBoreTopology(w io.Writer, unit float64, name string
 }
 
 func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite bool) error {
+	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, false)
+}
+
+func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -207,6 +211,28 @@ func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, 
 			return geom.ErrDomain
 		}
 		a, b := vertices[edge.Start], vertices[edge.End]
+		if crossedOblique {
+			var conic longEdgeCurve
+			var err error
+			curved := false
+			if os[0].use.Curve != nil && os[1].use.Curve != nil {
+				first, second := surfaces[os[0].face], surfaces[os[1].face]
+				if first.kind == "CYLINDRICAL_SURFACE" && second.kind == "CYLINDRICAL_SURFACE" {
+					conic, err = crossedObliqueBoreEdge(a, b, os, surfaces)
+					curved = true
+				} else if first.kind != second.kind {
+					conic, err = obliqueBoreEdgeCurve(a, b, os, surfaces)
+					curved = true
+				}
+			}
+			if err != nil {
+				return err
+			}
+			if curved {
+				curves[i] = conic
+				continue
+			}
+		}
 		if obliqueDirection != nil && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
 			curve, err := obliqueBoreEdgeCurve(a, b, os, surfaces)
 			if err != nil {

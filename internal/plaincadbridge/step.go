@@ -168,6 +168,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putBore(body)
 	}
+	if m, e := step.ReadCrossedObliqueBore(r(), stepLimits()); e == nil {
+		body, err := crossedObliqueFromSTEP(m.Body, m.LengthUnit)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putBore(body)
+	}
 	if m, e := step.ReadObliqueBore(r(), stepLimits()); e == nil {
 		body, err := obliqueBoreFromSTEP(m.Body, m.LengthUnit)
 		if err != nil {
@@ -427,6 +434,10 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 		body := step.CrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], Additional: p.additional}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: body, LengthUnit: .001})
+	case s.bore != nil && s.bore.obliqueCrossing != nil:
+		p := s.bore.obliqueCrossing
+		body := step.CrossedObliqueBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radius}
+		e = step.WriteCrossedObliqueBore(&out, step.CrossedObliqueBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossed != nil:
 		recipe, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)
 		if !ok {

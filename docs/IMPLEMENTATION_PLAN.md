@@ -97,8 +97,9 @@ crossings within the app import limit. Partial-skew crossings also
 retain finite stops beyond the complete intersection. In a concurrent
 same-radius triple crossing, one cutter can also retain a floor beyond
 the crossing. Unequal covered-width pairs also support disjoint
-companion through bores. Next qualify a crossing between cardinal and
-oblique cylinders and disjoint oblique combinations. A single oblique through Hole with
+companion through bores. A cardinal and concurrent 4:3 oblique pair
+keeps exact intersection ellipses. Next qualify disjoint oblique
+combinations and extend angle and placement coverage. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

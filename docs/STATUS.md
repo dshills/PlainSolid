@@ -151,7 +151,7 @@ width. Partial transverse overlap now retains a single analytic trim
 loop for equal or unequal radii and passes native STL. STEP exchanges
 the single loop through compact Hermite splines, retaining the analytic
 supports and recovering the native B-rep on readback. Tighter near-contact
-convergence and oblique cutter intersections remain open. A blind Hole
+convergence and general oblique cutter intersections remain open. A blind Hole
 can intersect an equal-radius perpendicular through Hole when the floor
 lies beyond the complete intersection. Both entry caps, retained face
 references, exact elliptical STEP trims and watertight STL pass. Two
@@ -180,6 +180,9 @@ retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
 Its STEP exchange preserves both analytic ellipses and the cylinder support.
+An equal-radius cardinal bore and a concurrent oblique bore in the local
+4:3 axis ratio now retain their exact crossing ellipses and all four full
+stock openings through STEP and STL.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

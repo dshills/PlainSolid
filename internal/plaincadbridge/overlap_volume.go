@@ -227,6 +227,15 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			return result(body.oblique.removedVolume)
 		}
 	}
+	if a.bore != nil && (a.bore.oblique != nil || a.bore.obliqueCrossing != nil || !cardinalFrame(c.cylinder.frame)) {
+		v, handled, err := overlapObliqueCrossedBore(a, c.cylinder)
+		if handled {
+			if err != nil {
+				return nil, err
+			}
+			return result(v)
+		}
+	}
 	cut, start, end, err := boreSpan(base, c.cylinder, false)
 	if err != nil {
 		return nil, err

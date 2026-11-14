@@ -31,6 +31,7 @@ type boreBody struct {
 	crossedCompanions *crossedCompanionGeometry
 	tripleCrossed     *tripleCrossedGeometry
 	oblique           *obliqueBore
+	obliqueCrossing   *obliqueCrossedGeometry
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -134,6 +135,11 @@ func sameCardinalBoreLine(a, b *cylinderBody) bool {
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	if len(cylinders) == 1 {
 		if body, handled, err := newObliqueThroughBore(base, cylinders[0]); handled || err != nil {
+			return body, err
+		}
+	}
+	if len(cylinders) == 2 {
+		if body, handled, err := newObliqueCrossedBore(base, cylinders); handled {
 			return body, err
 		}
 	}
@@ -423,6 +429,13 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		}
 		if body.cuts[0].Exit == baseFace {
 			f.Area -= h.openingAreas[1]
+		}
+	} else if h := body.obliqueCrossing; h != nil {
+		if f.Face == 0 || f.Face == 1 {
+			f.Area -= math.Pi * h.radius * h.radius
+		}
+		if f.Face == 3 || f.Face == 5 {
+			f.Area -= 1.25 * math.Pi * h.radius * h.radius
 		}
 	} else {
 		for i, c := range body.cylinders {

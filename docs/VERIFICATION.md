@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD exact cardinal–oblique Hole crossing — 2026-11-14
+
+A cardinal cylinder and a concurrent equal-radius oblique cylinder at a
+4:3 local axis ratio retain analytic ellipse arcs on the two angle
+bisectors. Strict stock bounds keep both circular and both elliptical
+openings interior. Bounded coefficient checks qualify all points of the
+shared conics. STEP stores the exact ellipses and cylinder supports.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-crossed-oblique-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-crossed-oblique-step-native-2026-11-14.json)
+pass on the same WASM. The project uses a guide face to set the oblique
+axis, exports the machined body, reimports, reopens and exports
+watertight STL. Twelve signed native cases, three independent OCCT STEP
+comparisons and the authored direct Boolean pass. Focused race, Go vet
+and the corrected existing adjacent-opening native regression pass.
+
 ## PlainCAD unequal crossed Holes with disjoint companions — 2026-11-14
 
 An unequal-radius centered or covered-width skew pair accepts one or two

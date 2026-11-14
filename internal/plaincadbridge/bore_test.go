@@ -84,12 +84,12 @@ func TestFiniteCylinderCoverageAndPartialCommon(t *testing.T) {
 			t.Fatal(empty)
 		}
 	}
-	// An axis that crosses side faces cannot be treated as a perpendicular bore.
+	// The oblique path accepts full elliptical openings across adjacent
+	// faces. The stock clips the cylinder over an axial span of 2√2.
 	skew := circle(t, b, vector{0, 0, -2}, vector{1, 0, 1}, 1, 20)
-	reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + skew.Handle + `"}`)
-	if !strings.Contains(reply, `"ok":false`) {
-		t.Fatal(reply)
-	}
+	skewCut := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": skew.Handle})
+	near(t, skewCut.GeometryAssertions.Volume, 512-2*math.Sqrt2*math.Pi)
+	near(t, skewCut.GeometryAssertions.SurfaceArea, 384+2*math.Sqrt2*math.Pi)
 	// Tangential tools remain unsupported. Transverse one-side crossings are
 	// covered by TestPlacedSideCrossingCircularCut with exact segment measures.
 	for _, x := range []float64{3} {
