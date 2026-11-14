@@ -128,7 +128,10 @@ vertical seams. Both original XY workflows exchange exact solids and
 reopen with watertight STL. The construction-axis Revolve workflow
 round-trips the exact toroidal surface and planar caps of its quarter
 sweep. Full rings and larger signed sweeps also pass the native STEP
-gate, including reflection and non-millimeter readback.
+gate, including reflection and non-millimeter readback. The Edit Revolve
+quarter sweep with a coaxial through cut preserves both cylinders, the
+planar caps and the radial walls. A STEP-reimported part can enlarge
+the bore and reproduce the canonical output of a fresh cut.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

@@ -269,6 +269,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(s, m.LengthUnit)
 	}
+	if m, e := step.ReadQuarterAnnularExtrusion(r(), stepLimits()); e == nil {
+		return b.putQuarterAnnularSTEP(m)
+	}
 	if m, e := step.ReadQuarterSectorExtrusion(r(), stepLimits()); e == nil {
 		return b.putQuarterSectorSTEP(m)
 	}
@@ -483,6 +486,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
+		if s.analytic.sector != nil {
+			if p, ok := s.analytic.sector.quarterAnnularSTEP(); ok {
+				e = step.WriteQuarterAnnularExtrusion(&out, step.QuarterAnnularExtrusionModel{Body: p, LengthUnit: .001})
+				break
+			}
+		}
 		if s.analytic.segment != nil {
 			if p, ok := s.analytic.segment.semicircleSTEP(); ok {
 				e = step.WriteSemicircleExtrusion(&out, step.SemicircleExtrusionModel{Body: p, LengthUnit: .001})

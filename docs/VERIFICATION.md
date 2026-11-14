@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD Edit Revolve quarter-bore STEP exchange — 2026-11-14
+
+The coaxially bored quarter sweep retains two opposed cylindrical
+supports, two planar annular-sector caps and two radial walls. Import
+checks the full regenerated STEP graph and restores the native annular
+sector. A wider coaxial cut after import gives the same STEP as a
+fresh cut. Signed coordinate placements and centimeter source units
+are covered by six independent OCCT checks.
+
+[Six original Revolve and STEP cases plus provider preflight](evidence/plaincad-quarter-annular-step-browser-2026-11-14.json)
+and the [extended Edit Revolve case](evidence/plaincad-quarter-annular-step-native-2026-11-14.json)
+pass on the same WASM. The 11,556-byte STEP reexports byte-identically
+after project reopen. The 3,072-triangle STL has two uses per edge.
+Independent OCCT agrees with the analytic volume and surface area.
+Focused race and vet checks pass.
+
 ## PlainCAD construction-axis Revolve STEP exchange — 2026-11-14
 
 Circular Revolve retains the recipe for a complete ring torus or bounded

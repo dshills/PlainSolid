@@ -113,8 +113,10 @@ their exact cylindrical walls through STEP. The driven arc-and-chord
 workflow also exchanges the original solved angle. Equal-circle and
 unequal circle/arc lens extrusions retain both cylindrical walls through
 STEP and STL. The original construction-axis Revolve now exchanges
-toroidal rings and bounded elbows. Next qualify the quarter-sweep
-annular cylinder from the existing Revolve Edit workflow.
+toroidal rings and bounded elbows. The quarter-sweep annular cylinder
+from the existing Edit Revolve workflow now round-trips STEP and
+retains a recipe for subsequent coaxial cuts. Next qualify the
+existing arc-only lens workflow and exact cylindrical sector exchange.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `65441a2d` passes 345 development, 66 production and 15 cross-browser
