@@ -121,6 +121,32 @@ func TestAlgebraicStockCompleteLineCoverage(t *testing.T) {
 		t.Fatal("proper placement must retain the exact wall and cap owners", world, err)
 	}
 	assertPiece(world.Spans[0], q(2, 1), q(5, 2), 0, 1)
+	down := [3]*big.Rat{q(0, 1), q(0, 1), q(-2, 1)}
+	for _, tc := range []struct {
+		x, y           *big.Rat
+		spans, points  int
+		walls, ownerHi int
+	}{
+		{q(5, 2), q(1, 2), 1, 2, 0, 1},
+		{q(5, 2), q(0, 1), 1, 2, 1, 1},
+		{q(3, 2), q(1, 2), 0, 1, 0, 0},
+		{q(0, 1), q(0, 1), 0, 0, 0, 0},
+	} {
+		v, err := m.CoverRationalLine(ctx, [3]*big.Rat{tc.x, tc.y, q(1, 1)}, down, extent, opts)
+		if err != nil || len(v.Spans) != tc.spans || len(v.Points) != tc.points {
+			t.Fatal("vertical material along the exact stock axis", tc, v, err)
+		}
+		if tc.spans == 1 {
+			assertPiece(v.Spans[0], q(3, 16), q(1, 4), 0, tc.walls)
+			assertPiece(v.Points[0], q(3, 16), q(3, 16), 1, tc.walls)
+			assertPiece(v.Points[1], q(1, 4), q(1, 4), 1, tc.walls)
+			if v.Points[0].Caps[0] != tc.ownerHi {
+				t.Fatal("negative direction reversed the cap order", v)
+			}
+		} else if tc.points == 1 {
+			assertPiece(v.Points[0], q(1, 4), q(1, 4), 2, 0)
+		}
+	}
 
 	bad, err := m.CoverRationalLine(ctx, origin, d, extent, geom.ExactCurvePlaneEventOptions{MaxOperations: 1})
 	if !errors.Is(err, geom.ErrConvergence) || len(bad.Spans)+len(bad.Points) != 0 {

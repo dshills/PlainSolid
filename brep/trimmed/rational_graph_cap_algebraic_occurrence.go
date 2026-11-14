@@ -169,7 +169,7 @@ func (o AlgebraicGraphStockOccurrence) IntersectVerticalBoundaryRational(ctx con
 }
 
 // CoverLineRational returns the placed stock's complete material coverage
-// along a line with a nonzero direction transverse to its original Z axis.
+// for any finite exact line covered by the original stock proof.
 func (o AlgebraicGraphStockOccurrence) CoverLineRational(ctx context.Context, origin, direction [3]*big.Rat,
 	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphStockLineCoverage, error) {
 	var zero AlgebraicGraphStockLineCoverage

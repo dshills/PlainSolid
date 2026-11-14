@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"slices"
 
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
 
@@ -26,11 +27,10 @@ type AlgebraicGraphStockLineCoverage struct {
 	ExactOperations, Subdivisions int
 }
 
-// CoverRationalLine proves the exact finite material for a nonvertical
-// line. It clips the exact projected cap coverage by both affine cap
-// halfspaces. Lines coincident with a cap or vertical wall and singular
-// projected contacts are allowed. Use the vertical fiber queries for a
-// line with zero horizontal direction.
+// CoverRationalLine proves the exact finite material along a line. It
+// clips projected cap coverage by both affine cap halfspaces. Lines
+// coincident with a cap or wall, vertical fibers, and singular projected
+// contacts are allowed.
 func (m AlgebraicGraphVerticalMaterial) CoverRationalLine(ctx context.Context, origin, direction [3]*big.Rat,
 	extent [2]*big.Rat, opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphStockLineCoverage, error) {
 	var zero AlgebraicGraphStockLineCoverage
@@ -62,7 +62,15 @@ func (m AlgebraicGraphVerticalMaterial) CoverRationalLine(ctx context.Context, o
 		return zero, geom.ErrDomain
 	}
 	if direction[0].Sign() == 0 && direction[1].Sign() == 0 {
-		return zero, geom.ErrUnrepresentable
+		if direction[2].Sign() == 0 {
+			return zero, geom.ErrDegenerate
+		}
+		out, err := m.coverVerticalLine(origin, direction, extent, &b)
+		if err != nil {
+			return zero, err
+		}
+		out.ExactOperations, out.Subdivisions = work-b.work, splits-b.subdiv
+		return out, nil
 	}
 	var residual [2][]*big.Rat
 	for i, c := range m.caps {
@@ -286,4 +294,67 @@ func (m AlgebraicGraphVerticalMaterial) CoverRationalLine(ctx context.Context, o
 func sortedUniqueStockOwners(owners []int) []int {
 	slices.Sort(owners)
 	return slices.Compact(owners)
+}
+
+func (m AlgebraicGraphVerticalMaterial) coverVerticalLine(origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	b *capClipBudget) (AlgebraicGraphStockLineCoverage, error) {
+	var out AlgebraicGraphStockLineCoverage
+	times, caps, where, err := m.verticalLineStation(origin, direction, b)
+	if err != nil || where == trimvalidate.Outside {
+		return out, err
+	}
+	if times[0].Cmp(extent[1]) > 0 || times[1].Cmp(extent[0]) < 0 {
+		return out, nil
+	}
+	a, z := times[0], times[1]
+	var walls []int
+	if where == trimvalidate.Boundary {
+		found, err := m.exactVerticalBoundaryOwners([2]*big.Rat{origin[0], origin[1]}, a.Cmp(z) == 0, b)
+		if err != nil {
+			return out, err
+		}
+		for _, face := range found {
+			if face >= 0 {
+				walls = append(walls, face)
+			}
+		}
+	}
+	if a.Cmp(extent[0]) < 0 {
+		a = extent[0]
+	}
+	if z.Cmp(extent[1]) > 0 {
+		z = extent[1]
+	}
+	bounds := [2]*geom.ExactAlgebraicRoot{}
+	for i, t := range [2]*big.Rat{a, z} {
+		r, work, err := geom.NewExactRationalRoot(b.ctx, t, b.limits())
+		if err != nil {
+			return AlgebraicGraphStockLineCoverage{}, err
+		}
+		if err = b.charge(work, 0); err != nil {
+			return AlgebraicGraphStockLineCoverage{}, err
+		}
+		bounds[i] = r
+	}
+	if a.Cmp(z) < 0 {
+		out.Spans = []AlgebraicGraphStockLinePiece{{Extent: bounds, BoundaryOnly: len(walls) != 0, StockFaces: slices.Clone(walls)}}
+	}
+	for i, t := range [2]*big.Rat{a, z} {
+		p := AlgebraicGraphStockLinePiece{Extent: [2]*geom.ExactAlgebraicRoot{bounds[i], bounds[i]}, BoundaryOnly: true}
+		for j, h := range times {
+			if h.Cmp(t) == 0 {
+				p.Caps = append(p.Caps, caps[j])
+			}
+		}
+		// A finite clip on an already covered wall is not an original
+		// vertex. Only cap endpoints or a singleton require a point.
+		if len(p.Caps) > 0 || a.Cmp(z) == 0 {
+			p.StockFaces = slices.Clone(walls)
+			out.Points = append(out.Points, p)
+		}
+		if a.Cmp(z) == 0 {
+			break
+		}
+	}
+	return out, b.ctx.Err()
 }

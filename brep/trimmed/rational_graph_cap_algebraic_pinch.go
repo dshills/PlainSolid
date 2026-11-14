@@ -65,44 +65,18 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalVerticalBoundary(ctx co
 	if direction[2].Sign() == 0 {
 		return zero, geom.ErrDegenerate
 	}
-	var times [2]*big.Rat
-	var loc [2]trimvalidate.Location
-	for i, cap := range m.caps {
-		if err := b.charge(25, 0); err != nil {
-			return zero, err
-		}
-		p := origin
-		eq := cap.regions.plane
-		p[2] = new(big.Rat).Sub(origin[2], new(big.Rat).Sub(eq.dot(origin), eq.offset))
-		var err error
-		loc[i], err = cap.locateRationalBudget(p, &b)
-		if err != nil {
-			return zero, err
-		}
-		times[i] = new(big.Rat).Quo(new(big.Rat).Sub(p[2], origin[2]), direction[2])
-		if x := times[i]; max(x.Num().BitLen(), x.Denom().BitLen()) > b.bits {
-			return zero, geom.ErrConvergence
-		}
+	times, ownerOrder, loc, err := m.verticalLineStation(origin, direction, &b)
+	if err != nil {
+		return zero, err
 	}
-	if loc[0] != loc[1] {
-		return zero, geom.ErrConvergence
-	}
-	if loc[0] != trimvalidate.Boundary {
+	if loc != trimvalidate.Boundary {
 		return zero, nil
 	}
-	order := times[m.lower].Cmp(times[m.lower^1])
-	if order*direction[2].Sign() > 0 {
-		return zero, geom.ErrConvergence
-	}
-	ownerOrder := [2]int{m.lower, m.lower ^ 1}
-	if direction[2].Sign() < 0 {
-		ownerOrder[0], ownerOrder[1] = ownerOrder[1], ownerOrder[0]
-	}
-	a, z := times[ownerOrder[0]], times[ownerOrder[1]]
+	a, z := times[0], times[1]
 	if a.Cmp(extent[1]) > 0 || z.Cmp(extent[0]) < 0 {
 		return zero, nil
 	}
-	owners, err := m.exactVerticalBoundaryOwners([2]*big.Rat{origin[0], origin[1]}, order == 0, &b)
+	owners, err := m.exactVerticalBoundaryOwners([2]*big.Rat{origin[0], origin[1]}, a.Cmp(z) == 0, &b)
 	if err != nil {
 		return zero, err
 	}
@@ -117,6 +91,38 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalVerticalBoundary(ctx co
 	}
 	return AlgebraicGraphVerticalBoundaryRun{Found: true, Extent: [2]*big.Rat{new(big.Rat).Set(a), new(big.Rat).Set(z)},
 		Caps: ownerOrder, StockFaces: owners, ExactOperations: opts.MaxOperations - b.work, Subdivisions: opts.MaxSubdivisions - b.subdiv}, nil
+}
+
+func (m AlgebraicGraphVerticalMaterial) verticalLineStation(origin, direction [3]*big.Rat,
+	b *capClipBudget) ([2]*big.Rat, [2]int, trimvalidate.Location, error) {
+	var times [2]*big.Rat
+	owners := [2]int{m.lower, m.lower ^ 1}
+	if direction[2].Sign() < 0 {
+		owners[0], owners[1] = owners[1], owners[0]
+	}
+	var loc [2]trimvalidate.Location
+	for i, owner := range owners {
+		if err := b.charge(25, 0); err != nil {
+			return times, owners, trimvalidate.Unknown, err
+		}
+		p := origin
+		cap := m.caps[owner]
+		eq := cap.regions.plane
+		p[2] = new(big.Rat).Sub(origin[2], new(big.Rat).Sub(eq.dot(origin), eq.offset))
+		var err error
+		loc[i], err = cap.locateRationalBudget(p, b)
+		if err != nil {
+			return times, owners, trimvalidate.Unknown, err
+		}
+		times[i] = new(big.Rat).Quo(new(big.Rat).Sub(p[2], origin[2]), direction[2])
+		if x := times[i]; max(x.Num().BitLen(), x.Denom().BitLen()) > b.bits {
+			return times, owners, trimvalidate.Unknown, geom.ErrConvergence
+		}
+	}
+	if loc[0] != loc[1] || loc[0] != trimvalidate.Outside && times[0].Cmp(times[1]) > 0 {
+		return times, owners, trimvalidate.Unknown, geom.ErrConvergence
+	}
+	return times, owners, loc[0], nil
 }
 
 // exactVerticalBoundaryOwners finds the original wall occurrences at the
