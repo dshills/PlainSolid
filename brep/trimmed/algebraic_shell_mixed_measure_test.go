@@ -158,6 +158,27 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		}
 		hasPlacedOracle = true
 	}
+	var distanceRefs [3][]float64
+	if oracle := os.Getenv("PLAINSOLID_OCCT_CROSSING_ROOF_DISTANCE"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "boundary-distance").Output()
+		if err != nil {
+			t.Fatal("OCCT boundary distance reference", err)
+		}
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		for i, name := range []string{"intersection", "union", "difference"} {
+			var row struct {
+				Name    string
+				Squared []float64
+			}
+			if err := decoder.Decode(&row); err != nil || row.Name != name || len(row.Squared) != 4 {
+				t.Fatal("invalid OCCT boundary distance reference", row, err)
+			}
+			distanceRefs[i] = row.Squared
+		}
+		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+			t.Fatal("trailing OCCT distance reference", err)
+		}
+	}
 
 	contains := func(v geom.ExactParameterInterval, want float64) bool {
 		q := new(big.Rat).SetFloat64(want)
@@ -225,6 +246,26 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		checkMixedOriginalVerticalSection(t, ctx, roof, i, delta)
 		checkMixedOriginalAlgebraicLines(t, ctx, roof, i)
 		checkPlacedOriginalRoofQueries(t, ctx, roof, i, delta)
+		checkOriginalRoofDistance(t, ctx, roof, i)
+		if len(distanceRefs[i]) != 0 {
+			r := big.NewRat
+			points := [4][3]*big.Rat{{r(1, 2), r(1, 2), r(-5, 8)}, {r(1, 2), r(1, 2), r(-9, 8)},
+				{r(1, 2), r(1, 2), r(1, 4)}, {r(1, 40), r(1, 2), r(1, 40)}}
+			for j, p := range points {
+				rangeProof, err := roof.BoundBoundaryDistanceRational(ctx, p, MixedRoofDistanceOptions{
+					SquaredGap: r(1, 2000), SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 4000000},
+				})
+				if err != nil || !rangeProof.Converged {
+					t.Fatal("missing curved boundary distance proof", name, j, rangeProof, err)
+				}
+				lo, _ := rangeProof.Squared.Lower.Float64()
+				hi, _ := rangeProof.Squared.Upper.Float64()
+				ref := distanceRefs[i][j]
+				if !finite(ref) || ref < lo-1e-8 || ref > hi+1e-8 {
+					t.Fatal("OCCT curved boundary distance outside exact interval", name, j, lo, hi, ref)
+				}
+			}
+		}
 		if hasLineOracle {
 			origin := [3]*big.Rat{new(big.Rat), big.NewRat(1, 4), new(big.Rat)}
 			direction := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 4), new(big.Rat)}
@@ -411,6 +452,40 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 	}
 }
 
+func checkOriginalRoofDistance(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int) {
+	t.Helper()
+	r := big.NewRat
+	// At this XY location the intersection's tool floor and the two
+	// operations' stock floor are exact nearest points. In the difference
+	// the tool floor above the query is a retained cavity boundary.
+	z := [3]*big.Rat{r(-5, 8), r(-9, 8), r(-5, 8)}[op]
+	p := [3]*big.Rat{r(1, 2), r(1, 2), z}
+	near, err := roof.BoundBoundaryDistanceRational(ctx, p, MixedRoofDistanceOptions{SquaredGap: r(1, 2000)})
+	want := r(1, 64)
+	owner := [3]MixedRoofFaceOwner{{1, 0}, {0, 0}, {1, 0}}[op]
+	if err != nil || !near.Converged || near.Squared.Lower.Cmp(want) > 0 || near.Squared.Upper.Cmp(want) != 0 ||
+		len(near.Owners) != 1 || near.Owners[0] != owner {
+		t.Fatal("wrong exact material boundary distance or source owner", op, near, err)
+	}
+	if got, err := roof.LocateRational(ctx, near.Witness, geom.SurfacePatchEvaluationOptions{}); err != nil || got.Location != parametric.Boundary {
+		t.Fatal("distance upper bound is not an exposed witness", op, near, got, err)
+	}
+	// The stock roof touching the tool side is a source seam, not the
+	// distance to a hidden infinite support. All three operations expose it.
+	p = [3]*big.Rat{r(0, 1), r(1, 2), r(0, 1)}
+	seam, err := roof.BoundBoundaryDistanceRational(ctx, p, MixedRoofDistanceOptions{SquaredGap: r(1, 10000)})
+	if err != nil || !seam.Converged || seam.Squared.Lower.Sign() != 0 || seam.Squared.Upper.Sign() != 0 ||
+		len(seam.Owners) != 2 || seam.Owners[0] != (MixedRoofFaceOwner{0, 1}) || seam.Owners[1] != (MixedRoofFaceOwner{1, 2}) ||
+		seam.Witness[0] == p[0] {
+		t.Fatal("did not enclose original seam contact", op, seam, err)
+	}
+	limited, err := roof.BoundBoundaryDistanceRational(ctx, [3]*big.Rat{r(1, 3), r(1, 7), r(1, 20)},
+		MixedRoofDistanceOptions{MaxCells: 1, SquaredGap: r(1, 1000000)})
+	if !errors.Is(err, geom.ErrConvergence) || limited.Converged || limited.Squared.Lower == nil || limited.VisitedCells != 1 {
+		t.Fatal("exhaustion lost the valid global lower bound", op, limited, err)
+	}
+}
+
 func checkPlacedOriginalRoofQueries(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int, delta *big.Rat) {
 	t.Helper()
 	r := big.NewRat
@@ -472,6 +547,21 @@ func checkPlacedOriginalRoofQueries(t *testing.T, ctx context.Context, roof *Mix
 	}
 	if _, err := roof.Place(placement.RationalRigid{}); err == nil {
 		t.Fatal("unproved zero pose")
+	}
+	z := [3]*big.Rat{r(-5, 8), r(-9, 8), r(-5, 8)}[op]
+	original := [3]*big.Rat{r(1, 2), r(1, 2), z}
+	world, err = pose.TransformPoint(ctx, original, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	distance, err := q.BoundBoundaryDistanceRational(ctx, world, MixedRoofDistanceOptions{SquaredGap: r(1, 2000)})
+	if err != nil || !distance.Converged || distance.Squared.Upper.Cmp(r(1, 64)) != 0 || distance.Squared.Lower.Cmp(r(1, 64)) > 0 ||
+		len(distance.Owners) != 1 || distance.Owners[0] != [3]MixedRoofFaceOwner{{1, 0}, {0, 0}, {1, 0}}[op] {
+		t.Fatal("placed distance lost exact length or original owner", op, distance, err)
+	}
+	where, err := q.LocateRational(ctx, distance.Witness, o)
+	if err != nil || where.Location != parametric.Boundary {
+		t.Fatal("placed distance witness is not on the world boundary", op, where, err)
 	}
 }
 

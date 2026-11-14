@@ -47,6 +47,14 @@ The native tube adapter also assembles the original triple radial
 intersection as separate disk and annular solids with four original
 faces, 228 retained edges, and two inner wires. Whole original ring
 ownership is required; general algebraic fragment materialization remains open.
+The original disk and annular regions now bind the exact radial band
+integral to their complete wires and outward supports. The total volume
+divided by π is exactly `63333935546875/864691128455135232`; the
+outward volume interval is positive and narrower than `2^-80`.
+For the mixed roof solids, bounded nearest queries search the original
+exposed trims and provide exact rational witnesses, including shared
+seam owners. The distance bounds, rotated centroid, first moments, and
+inertia have separate original OCCT comparisons.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -551,6 +559,12 @@ passed; the verifier checked 841 app and 2,002 kernel blobs. Both authored
 projects ([triple crossing](evidence/plaincad-reconciled-f12fd14a-supplemental-triple-crossed-step-2026-11-14.json),
 [disjoint companion](evidence/plaincad-reconciled-f12fd14a-supplemental-crossed-companion-step-2026-11-14.json))
 preserved their STEP and STL outputs on that WASM and passed live OCCT readback.
+The [compact and partially overlapping finite-bore review](evidence/plaincad-reconciled-329fe4a3-development-partial-finite-holes-step-2026-11-14.json)
+adds `b18f3b75` and `9a0f757a` to review revision `329fe4a3`. The
+original 17 browser tests and focused live STEP checks passed; 841 app
+and 2,008 kernel source hashes matched. In the [authored floor case](evidence/plaincad-reconciled-329fe4a3-supplemental-partial-finite-step-2026-11-14.json),
+the browser preserved the blind floor through STEP and STL, and OCCT
+independently reproduced the STEP's mass properties.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

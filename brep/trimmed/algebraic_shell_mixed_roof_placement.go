@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/brep/placement"
@@ -30,6 +31,42 @@ func (q *MixedRoofMaterialQuery) Place(pose placement.RationalRigid) (PlacedRoof
 
 const roofPosePointOperations = 21 // three translations, nine products, nine sums.
 const roofPoseVectorOperations = 18
+
+// BoundBoundaryDistanceRational encloses the original material's world
+// distance under a proper rigid placement. A returned rational witness is
+// mapped to world coordinates; source owner IDs stay in the original shells.
+func (q PlacedRoofMaterialQuery) BoundBoundaryDistanceRational(ctx context.Context, world [3]*big.Rat, o MixedRoofDistanceOptions) (MixedRoofDistance, error) {
+	var zero MixedRoofDistance
+	var err error
+	o.SurfacePatchEvaluationOptions, err = q.source.evaluationOptions(ctx, o.SurfacePatchEvaluationOptions, world[:]...)
+	if err != nil {
+		return zero, err
+	}
+	const cost = 2 * roofPosePointOperations
+	o.MaxOperations -= cost
+	if o.MaxOperations < 1 {
+		return zero, geom.ErrConvergence
+	}
+	p, err := q.pose.TransformPoint(ctx, world, true, o.MaxCoefficientBits)
+	if err != nil {
+		return zero, err
+	}
+	out, queryErr := q.source.BoundBoundaryDistanceRational(ctx, p, o)
+	if queryErr != nil && !errors.Is(queryErr, geom.ErrConvergence) {
+		return zero, queryErr
+	}
+	if out.Witness[0] != nil {
+		out.Witness, err = q.pose.TransformPoint(ctx, out.Witness, false, o.MaxCoefficientBits)
+		if err != nil {
+			return zero, err
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	out.ExactOperations += cost
+	return out, queryErr
+}
 
 // LocateRational classifies an exact world-space point. Work includes a fixed
 // charge for inverse placement plus the original graph evaluation.

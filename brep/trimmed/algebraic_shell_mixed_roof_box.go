@@ -12,6 +12,8 @@ import (
 // the region floor <= Z <= roof(X,Y) over the stated rectangle.
 type mixedRoofBox struct {
 	roof       *geom.SurfacePatch
+	patches    [6]*geom.SurfacePatch
+	power      [3][3]*big.Rat
 	floor      *big.Rat
 	domain     geom.ParameterRectangle
 	roofFace   int
@@ -51,7 +53,7 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 		return nil, geom.ErrUnrepresentable
 	}
 	r := &mixedRoofBox{}
-	patches := make([]*geom.SurfacePatch, 6)
+	patches := r.patches[:]
 	remaining := func() (int, error) {
 		n := limit - r.operations
 		if n < 1 {
@@ -97,8 +99,9 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 	r.roof = patches[roof]
 	r.roofFace = roof
 	r.domain = r.roof.Domain()
-	if _, e := mixedRoofPower(r.roof); e != nil {
-		return nil, e
+	var err error
+	if r.power, err = mixedRoofPower(r.roof); err != nil {
+		return nil, err
 	}
 	floor := -1
 	for i, p := range patches {
