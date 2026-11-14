@@ -71,6 +71,48 @@ func TestPointLocationCubeAndRayDegeneracy(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestMeshPointLocatorProvesCavityNesting(t *testing.T) {
+	ctx := context.Background()
+	outer := dbox(t, geom.Vec3{}, geom.Vec3{X: 4, Y: 4, Z: 4}).Tessellate()
+	inner := dbox(t, geom.Vec3{X: 1, Y: 1, Z: 1}, geom.Vec3{X: 3, Y: 3, Z: 3}).Tessellate()
+	base := len(outer.Vertices)
+	outer.Vertices = append(outer.Vertices, inner.Vertices...)
+	var faces []int
+	for range outer.Triangles {
+		faces = append(faces, 17)
+	}
+	firstInner := len(outer.Triangles)
+	for _, tri := range inner.Triangles {
+		outer.Triangles = append(outer.Triangles, [3]int{base + tri[0], base + tri[2], base + tri[1]})
+		faces = append(faces, 42)
+	}
+	l, e := NewMeshPointLocator(ctx, outer, faces, LocationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	shells := l.Shells()
+	if len(shells) != 2 || shells[0].Parent != -1 || shells[1].Parent != 0 || shells[1].Depth != 1 ||
+		shells[0].SignedVolume.RatString() != "64" || shells[1].SignedVolume.RatString() != "-8" || !l.BoundaryCollision().Complete {
+		t.Fatal("exact nesting and volumes", shells, l.BoundaryCollision())
+	}
+	faces[firstInner] = -1
+	outer.Vertices[base] = geom.Vec3{}
+	expectLocation(t, l, geom.Vec3{X: 2, Y: 2, Z: 2}, Outside)
+	if r := expectLocation(t, l, geom.Vec3{X: 1, Y: 1, Z: 1}, OnBoundary); r.Face != 42 {
+		t.Fatal("locator did not retain an owned snapshot", r)
+	}
+	outer.Vertices[base] = inner.Vertices[0]
+	for i := firstInner; i < len(outer.Triangles); i++ {
+		outer.Triangles[i][1], outer.Triangles[i][2] = outer.Triangles[i][2], outer.Triangles[i][1]
+	}
+	if bad, e := NewMeshPointLocator(ctx, outer, nil, LocationOptions{}); !errors.Is(e, ErrInvalid) || bad != nil {
+		t.Fatal("outward inner shell was accepted as a cavity", e)
+	}
+	if bad, e := NewMeshPointLocator(ctx, outer, faces[:firstInner], LocationOptions{}); !errors.Is(e, ErrInvalid) || bad != nil {
+		t.Fatal("incomplete source mapping was accepted", e)
+	}
+}
 func locationJoin(t *testing.T, ss ...brep.Solid) brep.Solid {
 	t.Helper()
 	var vs []geom.Vec3
