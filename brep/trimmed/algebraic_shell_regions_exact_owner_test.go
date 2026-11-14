@@ -8,6 +8,9 @@ import (
 )
 
 func exactPlaneOwnerForRegions(t *testing.T, s Solid) Solid {
+	return exactPlaneOwnerWithControl(t, s, big.NewRat(1, 3))
+}
+func exactPlaneOwnerWithControl(t *testing.T, s Solid, expected *big.Rat) Solid {
 	t.Helper()
 	ctx := context.Background()
 	var faces []SewFace
@@ -52,7 +55,7 @@ func exactPlaneOwnerForRegions(t *testing.T, s Solid) Solid {
 			data.Controls = controls
 		}
 		nonbinary := false
-		third := false
+		foundControl := false
 		for _, h := range data.Controls {
 			w, _ := new(big.Rat).SetString(h[3])
 			for _, value := range h[:3] {
@@ -60,11 +63,11 @@ func exactPlaneOwnerForRegions(t *testing.T, s Solid) Solid {
 				q.Quo(q, w)
 				_, binary := q.Float64()
 				nonbinary = nonbinary || !binary
-				third = third || q.Cmp(big.NewRat(1, 3)) == 0
+				foundControl = foundControl || q.Cmp(expected) == 0
 			}
 		}
-		if !nonbinary || !third {
-			t.Fatal("plane does not contain exact nonbinary1/3")
+		if !nonbinary || !foundControl {
+			t.Fatal("plane does not contain expected nonbinary control", expected)
 		}
 		patch, e = geom.ImportExactBezierSurfaceRecipe(ctx, data, geom.SurfacePatchOptions{})
 		if e != nil {
