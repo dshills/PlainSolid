@@ -96,6 +96,13 @@ these labels on the shared asset definitions rather than duplicating them
 on each occurrence. The original transfer, document reopen and live OCCT
 edit regression passed under the race detector.
 
+The read-only rational hierarchy document keeps exact oblique occurrence
+matrices separate from local geometry. Both convention fixtures retain seven
+paths to four shared assets. The tests verify caller mutation isolation,
+canonical source and byte-stable native round trips, separation of the
+two native tags, exact world bounds, symbolic volume, and point and line
+queries. The focused document race tests passed.
+
 Document planar face history now propagates authored box roles through
 the same geometry evaluation that builds each planar Boolean. The
 regeneration test covers fragment ownership after subtraction, cutter
