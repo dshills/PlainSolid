@@ -89,18 +89,6 @@ func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, leng
 	cap := func(z float64, keep func(uint32) bool, reversed bool) error {
 		return buildSideOpeningCap(&builder, points, edges, z, keep, reversed, tolerance)
 	}
-	for i, span := range spans {
-		// A common opposed floor puts two junctions at the same axial
-		// level. A contact where both footprints overlap is unresolved.
-		for j, prior := range spans[:i] {
-			if span[0] == prior[1] || span[1] == prior[0] {
-				a, b := cuts[i].ExtrusionCircle, cuts[j].ExtrusionCircle
-				if circleRelation(unionDisk{center: a.Center, radius: a.Radius}, unionDisk{center: b.Center, radius: b.Radius}, true) < 0 {
-					return out, geom.ErrUnrepresentable
-				}
-			}
-		}
-	}
 	activeIn := func(bottom, top float64) uint32 { return sideOpeningActive(spans, bottom, top) }
 	bottomActive := activeIn(0, levels[1])
 	if err := cap(0, func(mask uint32) bool { return material(mask, bottomActive) }, true); err != nil {

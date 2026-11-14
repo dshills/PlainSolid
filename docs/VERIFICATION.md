@@ -100,6 +100,20 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD opposite Hole floors meeting at one depth — 2026-11-14
+
+The section arrangement retains separate, oppositely oriented floor
+regions at the shared level. The overlapping footprint leaves an open
+passage between the two blind holes. It contributes no floor sheet.
+
+[Sixteen original PlainCAD Hole and STEP cases](evidence/plaincad-meeting-floor-browser-2026-11-14.json)
+and [a supplemental Chromium probe on the same WASM](evidence/plaincad-meeting-floor-native-2026-11-14.json)
+pass on `50432ed`. The supplemental case verifies opposing 3 mm and 5 mm
+cuts through STEP reimport, project reopen and watertight STL. Forty-eight
+new independent OCCT checks cover same-side, adjacent-side, opposite-side
+and corner openings across six signed placements. The full focused STEP
+corpus passes all 402 comparisons with race detection, and Go vet passes.
+
 ## PlainCAD STEP for fully concealed Hole cutters — 2026-11-14
 
 The rectangular-stock boundary builder checks which cutter disks cover
