@@ -462,6 +462,28 @@ baking rejects rounding. Pinned OCCT reads the bounded nested source and
 re-export as six solids with 36 faces, volume 108, area 252 and bounds
 (-10,-8,0)–(106,22,4). Focused normal, race, Go 1.23 and 100-case mapped fuzz
 passed, including graph-cycle and stale-native-asset rejection.
+Mixed STEP groups (`232bf59`, `0cb6011`, `3011537`) preserve two or more
+original mapping steps and independently validate all expanded leaf paths.
+Pinned OCCT reads the two-level fixture as 12 solids and 72 faces with volume
+216 and area 504, and the mixed graph as 11 solids and 66 faces with volume
+192 and area 452. The explicit shared-pose edit re-exports exact bounds
+(-10,-10,0)–(204,156/5,104); unrelated paths and local assets stay unchanged.
+Both formats pass native reload, live OCCT, normal/race and bounded fuzz.
+Exact wrapped model-line queries (`802b3f1`, `8e9ddea`) keep rational
+finite parameters, both original seam occurrences, oriented crossings,
+trim-hole exclusion, and two irrational vertical trim events. The vertical
+probe rejects an XY offset of 2^-120. Different-support chains (`ef79bc9`,
+`57c3dc2`, `ab39904`) test exact nonadjacent gaps for 2, 5 and 8 supports;
+the separate three-face envelope re-proves each mate and indexed owner.
+Graph inertia (`50458f6`) matches all six independent signed-XZ tensor
+entries and encloses the two-lobe centroidal result. Retained surface area
+(`49cbefb`) proves exact horizontal area and conservative curved area using
+positive rational support derivatives, including zero area for a proved
+hole. Whole measurements (`cd28630`) derive the exact support window and
+share one certified partition for area and volume. The oblique line
+(`c9b4f7f`) proves two distinct retained intervals, rejects a buried cap
+crossing, and encloses all four irrational contacts using refined full rim
+covers. Normal, targeted race, and focused compatibility checks passed.
 Distinct original spline contact pairs (`753c316`) agree with live OCCT on
 empty common and unchanged cut, with 58 other pairs proved separated. A
 missing pair and exhausted shared budget reject atomically. Normal and
