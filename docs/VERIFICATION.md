@@ -432,6 +432,36 @@ tests in 242.4 seconds, without skips, retries or failures. All 841 original
 sources matched the pinned `50432ed` archive; the separate browser preflight
 confirmed the Go/WASM backend and no OCCT requests. Both TypeScript checks
 and the original controlled rebuild/STL timing case passed.
+The current development STEP subset (`0bdb699`) passed five original tests
+in 23.226 seconds and the independent Go/WASM browser probe in 5.464 seconds.
+All 841 tested source hashes match pinned PlainCAD `50432ed`. The archived
+record includes the six exact titles and result hashes.
+The rational frustum section (`b894c4b`) keeps the original V parameters
+7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
+sides of the original wall differ by 2^-120. The exact line path (`30d8254`)
+keeps an original cap-plane inner-rim tangent distinct from those sub-ULP
+offsets, isolates a separate wall hit just beyond a known cap rim, and
+returns all four exact cavity cap contacts after native reload and reindex.
+The retained graph distance (`020cdd6`) proves squared distance exactly 1 to
+an original cap and includes analytic 49/4096 between separated lobes without
+using the buried support plane. An exhausted budget preserves a conservative
+interval. Both query paths passed focused normal, race and Go 1.23.
+The graph common window (`955f335`, `38b98c3`, `d98a1db`) excludes original
+unselected trim and integrates an exact retained polynomial cell to
+1171747/48000000000000. Signed XZ first moments and the exact local centroid
+match direct integration, while the two-lobe centroid stays enclosed with an
+unresolved rim remainder. New wrapping proofs (`5835de5`, `2fd4220`,
+`a0e132c`, `62b9455`) retain original maps and exact indexed seam ancestry
+through cyclic fans and separately parameterized shells. Exact certified
+separators reject extra contacts, and native reload re-proves the recipe.
+Pythagorean planar local charts (`d0d87b7`) match independent OCCT volume
+6006 and area 2622. The exact mapped occurrence and document paths
+(`f541219`, `0b0f467`, `269b659`) retain 3/5 and 4/5 rotation coefficients,
+10^-40 translation and shared original assets after native reload. Native
+baking rejects rounding. Pinned OCCT reads the bounded nested source and
+re-export as six solids with 36 faces, volume 108, area 252 and bounds
+(-10,-8,0)–(106,22,4). Focused normal, race, Go 1.23 and 100-case mapped fuzz
+passed, including graph-cycle and stale-native-asset rejection.
 Distinct original spline contact pairs (`753c316`) agree with live OCCT on
 empty common and unchanged cut, with 58 other pairs proved separated. A
 missing pair and exhausted shared budget reject atomically. Normal and
