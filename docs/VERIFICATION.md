@@ -468,6 +468,11 @@ The current development STEP subset (`0bdb699`) passed five original tests
 in 23.226 seconds and the independent Go/WASM browser probe in 5.464 seconds.
 All 841 tested source hashes match pinned PlainCAD `50432ed`. The archived
 record includes the six exact titles and result hashes.
+The development modeling selection on `ff15d87` passed three original
+PlainCAD tests in 25.488 seconds, with zero retries, skips, or failures.
+The separate real Go/WASM browser probe passed in 5.317 seconds. Evidence
+records typechecking, all 841 original source checks, and hashes of the test
+outputs for that reconciled revision.
 The rational frustum section (`b894c4b`) keeps the original V parameters
 7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
 sides of the original wall differ by 2^-120. The exact line path (`30d8254`)
