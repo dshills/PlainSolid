@@ -316,6 +316,7 @@ func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 		t.Fatal("buried rational roof must leave an exact polynomial integral", proven, err)
 	}
 	checkWeightedRoofColumnMass(t, ctx, q, contained)
+	checkWeightedRoofStrictSurfaceArea(t, ctx, q, contained)
 	if program := os.Getenv("PLAINSOLID_OCCT_WEIGHTED_ROOF_MASS"); program != "" {
 		out, err := exec.CommandContext(ctx, program, "weighted-mass").Output()
 		if err != nil {

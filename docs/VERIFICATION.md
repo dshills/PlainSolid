@@ -555,6 +555,15 @@ knot and footprint edges give 12 polynomial cells and no unresolved
 integration. Independent rational integration matches all ten native raw
 moments exactly; numerical OCCT agrees within `1e-12`.
 
+Strict nested roof boxes retain complete original faces. The direct area
+proof preserves a 12-entry original face ledger for Common and Cut,
+including zero for deleted faces and reversed orientation for the cutter
+shell. It integrates the floor and wall domains in model coordinates and
+bounds the graph area using rational quotient derivatives. The weighted
+fixture agrees with the independent OCCT surface area, while a transverse
+crossing rejects this whole-face proof. Rigid placement preserves the
+rational enclosure; exhaustion and cancellation expose no partial ledger.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall
