@@ -33,6 +33,7 @@ type AlgebraicGraphCapClip struct {
 	Section                       AlgebraicGraphCapSection
 	Wires                         [][]AlgebraicGraphCapUse
 	ExactOperations, Subdivisions int
+	wires                         [][]AlgebraicGraphCapUse
 	regions                       *RationalGraphShellRegions
 	cut                           polynomialPlaneEquation
 	keepSign                      int
@@ -200,6 +201,10 @@ func (r *RationalGraphShellRegions) ClipAlgebraicHalfspace(ctx context.Context, 
 	}
 	if e := ctx.Err(); e != nil {
 		return zero, e
+	}
+	out.wires = make([][]AlgebraicGraphCapUse, len(out.Wires))
+	for i, wire := range out.Wires {
+		out.wires[i] = append([]AlgebraicGraphCapUse(nil), wire...)
 	}
 	out.ExactOperations, out.Subdivisions = options.MaxWork-b.work, options.MaxSubdivisions-b.subdiv
 	return out, nil

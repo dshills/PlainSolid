@@ -1770,6 +1770,20 @@ Simultaneous conical fillets (`105312d`) keep five native faces, unchanged
 original end caps and circular bases, and exact original cone ownership.
 Both slope directions and equal/unequal radii match independent volume and
 area integrals and reload. Touching or overlapping runouts fail atomically.
+The polynomial cap area proof measures Green integrals on exact
+algebraic intervals with no chord sampling. Both signs of a parabolic cut
+enclose 2√2/3 and its complement; after native reload, the sheared
+through-hole clip encloses 14/3 + √3/4 at a width of 2⁻²⁴. Mutated
+diagnostic wires cannot affect the area. Normal, race, vet and Go 1.23 pass.
+The rational extension bounds the original weighted conic segment above
+Y=1/2 in a circular quadrant. Its area encloses π/6 − √3/8 to width 2⁻²⁰;
+reduced work fails without an interval. No weight is discarded.
+The crossed-roof Boolean (`21fac2a`) independently proves coincidence on
+original planar supports with nonlinear parameterization, assembles
+intersection, union and difference, and retains topology and original
+owners. Intersection reloads as an exact algebraic boundary. Broad
+positive volume bounds enclose all three independent integrals; conversion
+to an ordinary representable solid still rejects unsupported endpoints.
 The eccentric through-bore on this filleted stock (`c207731`) retains all
 stock vertex, edge and face IDs, proves exact clearance, and matches
 independent differences −6π in volume and +10π in area after reload.
@@ -1777,6 +1791,20 @@ The genuine OCCT STEP elliptical disk face (`e58145b`) retains its full model
 and planar trim curves, verifies their original owners and matching
 parameterizations, and native-reloads. Pinned OCCT confirms one face with
 area 8π, centroid (1,2,3), and outward normal +Y on both source and re-export.
+The genuine elliptical STEP annulus (`9015c45`) preserves its independent
+inner curve and reversed bound; pinned OCCT verifies one face, two edges,
+area 6π and the same oriented plane after native reload. Mixed bores
+(`a28448c`) verify a through bore and two opposed blind bores with the same
+radial centre and strictly separated floors. Their volume loss is 11π/4
+and total area gain 21π/2; axial or radial contacts reject atomically.
+Exact conical material queries (`eee0af8`) retain the native owners on both
+toroidal bands and blind floors, and distinguish offsets of 2⁻¹⁰⁰ with
+identical binary64 representations. The band display certificate verifies
+two-sided deflection at 0.1 (512 and 4,096 triangles), exact original rim
+parameters, and shared seam indices; full closed tessellation is separate.
+The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
+original outer ellipse and preserves both owners. Pinned OCCT confirms
+native reload, two original edges, and area 38π.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
@@ -2186,6 +2214,11 @@ The current development STEP subset (`0bdb699`) passed five original tests
 in 23.226 seconds and the independent Go/WASM browser probe in 5.464 seconds.
 All 841 tested source hashes match pinned PlainCAD `50432ed`. The archived
 record includes the six exact titles and result hashes.
+The [full original development record](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
+on review revision `178df69` passed 344 cases in 2,632 seconds with no
+retries, skips, or failures, plus separate Go/WASM preflight and typechecks.
+All 841 pinned source hashes, the original Playwright config and both
+result hashes were checked independently.
 The development modeling selection on `ff15d87` passed three original
 PlainCAD tests in 25.488 seconds, with zero retries, skips, or failures.
 The separate real Go/WASM browser probe passed in 5.317 seconds. Evidence
@@ -2204,6 +2237,12 @@ one close-up pick/display regression), one independent Go/WASM backend
 probe, both typechecks, and 841 source hash comparisons. The seven
 supplemental cases took 199 seconds with zero retries, skips or failures.
 The focused native bridge and STEP suite also passed with CGO disabled.
+The [original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
+on `bf37aa5` recorded 1,653 passes and 36 failures out of 1,689, with no
+pending tests. All 841 pinned files and both runner setup hashes were
+verified. Six prior failures passed and no new failures appeared. The
+remaining failures and their first diagnostics are listed in the report;
+they are not counted as passes.
 The rational frustum section (`b894c4b`) keeps the original V parameters
 7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
 sides of the original wall differ by 2^-120. The exact line path (`30d8254`)

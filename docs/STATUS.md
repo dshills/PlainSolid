@@ -244,9 +244,15 @@ verified the same original backend and both unchanged supplemental opening
 workflows with no retries or skips.
 The reconciled production build `967e3c3` passed all 66 original PlainCAD
 production cases on the same 841 pinned sources. The
+[full original development run](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
+passed all 344 cases on review revision `178df69`, with no skips or retries.
+Its application source and original test config were independently checked
+against the pinned revision. The
 [production record](evidence/plaincad-reconciled-967e3c3-production-2026-11-13.json)
 includes the verified no-OCCT backend preflight, production build and exact
-test selection. The remaining full unit and release gates still require work.
+test selection. The [reconciled original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
+passed 1,653 of 1,689 on `bf37aa5`. All 36 failures also occurred in the
+earlier one-worker run. The unit and release gates remain open.
 The next reconciled build `0bdb699` passed the five original development STEP
 import/export cases with the no-OCCT Go/WASM preflight, no retries or skips,
 and checks of all 841 original source files. The
@@ -1126,7 +1132,9 @@ surfaces must keep their geometry through the operation. Continue with:
    original curve intervals and line seams into closed world-space cap
    boundaries, with separate occurrences and original parameter ownership.
    A stock-backed native recipe reloads and re-proves the cut and its
-   original owners, and exact point queries preserve the gap across a void.
+   original owners, and exact point queries preserve the gap across a void. Polynomial
+   boundaries expose area bounds at the true algebraic endpoints. An
+   additive rational quadrature path also accepts varying weights.
    Native sewing of those irrational roots,
    stock faces bounded solely by two unsubdivided edges, and general mixed-axis
    trim arrangements remain open.

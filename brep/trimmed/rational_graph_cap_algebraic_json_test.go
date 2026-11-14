@@ -68,6 +68,20 @@ func TestAlgebraicGraphCapStockReload(t *testing.T) {
 		}
 	}
 	for _, cap := range []AlgebraicGraphCapClip{q, back} {
+		width := big.NewRat(1, 1<<24)
+		area, e := cap.BoundPolynomialArea(ctx, width, RationalGraphShellRegionOptions{})
+		if e != nil || new(big.Rat).Sub(area.Projection.Upper, area.Projection.Lower).Cmp(width) > 0 {
+			t.Fatal("private clipped boundary must remain measurable", area, e)
+		}
+		// Integrate the sheared outer band and subtract the portions
+		// of the hole above the cut. The result is 14/3 + sqrt(3)/4.
+		q := func(a *big.Rat) *big.Rat {
+			return new(big.Rat).Sub(a, big.NewRat(14, 3))
+		}
+		lo, hi := q(area.Projection.Lower), q(area.Projection.Upper)
+		if lo.Sign() <= 0 || new(big.Rat).Mul(lo, lo).Cmp(big.NewRat(3, 16)) > 0 || new(big.Rat).Mul(hi, hi).Cmp(big.NewRat(3, 16)) < 0 {
+			t.Fatal("clipped area does not enclose the independent sheared integral", area)
+		}
 		testLocate(cap, big.NewRat(1, 2), big.NewRat(11, 8), trimvalidate.Boundary)
 		testLocate(cap, big.NewRat(3, 2), big.NewRat(11, 8), trimvalidate.Outside)
 		testLocate(cap, big.NewRat(7, 4), big.NewRat(11, 8), trimvalidate.Boundary)
