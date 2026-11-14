@@ -437,6 +437,19 @@ switch. Native oblique, crossed and skew regressions passed, as did all 17
 original Hole and STEP browser cases and the separate Go/WASM preflight.
 That snapshot covers oblique modeling and display; oblique STEP is the
 next independent review. All 841 app and 1,921 kernel source hashes matched.
+The [oblique STEP reconciliation](evidence/plaincad-reconciled-dbab5434-development-oblique-step-holes-step-2026-11-14.json)
+adds worktree commit `98c1f0d4` to review revision `dbab5434`. All 17
+original browser cases and the Go/WASM preflight passed, and native
+regressions passed with the pinned STEP oracle. The [authored oblique
+STEP case](evidence/plaincad-reconciled-dbab5434-supplemental-oblique-step-2026-11-14.json)
+exercised exact elliptical STEP exchange and STL on the same WASM;
+pinned OCCT independently read the downloaded solid. All 841 original
+app and 1,929 kernel source hashes matched.
+The [partial transverse bore reconciliation](evidence/plaincad-reconciled-3d787ab9-development-partial-skew-holes-step-2026-11-14.json)
+adds worktree commit `650934f5` at review revision `3d787ab9`. Native and
+bridge tests passed, as did all 17 original browser cases and the Go/WASM
+preflight without skips or retries. The scope was the native partially
+overlapping geometry. The verifier checked 841 app and 1,932 kernel files.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
