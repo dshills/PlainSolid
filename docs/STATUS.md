@@ -51,7 +51,12 @@ canonical graph before recovering the analytic recipe. Perpendicular
 skew axes also retain two radical trim rings and round-trip STEP when
 the larger radius covers the smaller bore across the whole transverse
 width. Partial transverse overlap, wider STEP radius and coordinate
-ranges, oblique intersections, and intersecting blind cutters remain open.
+ranges, oblique cutter intersections, and intersecting blind cutters
+remain open. A single oblique through cutter in rectangular stock now
+retains two complete elliptical apertures on opposite or adjacent faces.
+The native bridge verifies the finite tool covers both openings before
+scoped Cut, retains the stock face IDs, and generates watertight STL.
+STEP for this oblique bore remains a separate exchange gate.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

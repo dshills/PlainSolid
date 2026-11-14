@@ -12,8 +12,8 @@ import (
 
 // boreBody preserves the planar source and each exact analytic cylindrical tool.
 // The specialized constructor proves strict radial containment and convex stock.
-// It accepts only parallel stock caps perpendicular to the cylinder axis,
-// with through cuts or finite entry-open blind pockets.
+// The ordinary path uses perpendicular opening planes. The single oblique
+// through path retains its separate elliptical opening and wall measures.
 type boreBody struct {
 	solid     trimmed.Solid
 	base      brep.Solid
@@ -25,6 +25,7 @@ type boreBody struct {
 	union     *trimmed.CylinderUnionHistory
 	layered   *trimmed.LayeredBoreHistory
 	crossed   *trimmed.BoxCrossedBoresResult
+	oblique   *obliqueBore
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -126,6 +127,11 @@ func sameCardinalBoreLine(a, b *cylinderBody) bool {
 }
 
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
+	if len(cylinders) == 1 {
+		if body, handled, err := newObliqueThroughBore(base, cylinders[0]); handled || err != nil {
+			return body, err
+		}
+	}
 	if len(cylinders) > 32 {
 		return nil, &failureError{"LIMIT", "at most 32 cylindrical tools may be retained"}
 	}
@@ -217,6 +223,14 @@ func (body *boreBody) measures() (float64, float64, error) {
 		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
+	if h := body.oblique; h != nil {
+		volume -= h.removedVolume
+		area += h.wallArea - h.openingAreas[0] - h.openingAreas[1]
+		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
+			return 0, 0, errors.New("invalid oblique through-bore material measures")
+		}
+		return volume, area, nil
+	}
 	if h := body.crossed; h != nil {
 		return volume - h.RemovedVolume, area + h.SurfaceAreaDelta, nil
 	}
@@ -338,9 +352,18 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	if _, ok := body.solid.Faces()[f.Face].Surface.(geom.PlaneSurface); !ok {
 		return PlanarFace{}, errors.New("retained planar support mismatch")
 	}
-	for i, c := range body.cylinders {
-		if body.cuts[i].Entry == baseFace || (!body.blind[i] && body.cuts[i].Exit == baseFace) {
-			f.Area -= math.Pi * c.radius * c.radius
+	if h := body.oblique; h != nil {
+		if body.cuts[0].Entry == baseFace {
+			f.Area -= h.openingAreas[0]
+		}
+		if body.cuts[0].Exit == baseFace {
+			f.Area -= h.openingAreas[1]
+		}
+	} else {
+		for i, c := range body.cylinders {
+			if body.cuts[i].Entry == baseFace || (!body.blind[i] && body.cuts[i].Exit == baseFace) {
+				f.Area -= math.Pi * c.radius * c.radius
+			}
 		}
 	}
 	if f.Area <= 1e-14 {

@@ -72,7 +72,10 @@ reads its own canonical files back to the native recipe. Radius and
 scale envelopes bound the approximation work. Two skew perpendicular
 through axes use the same topology and STEP exchange when the larger
 bore covers the smaller bore's full transverse width. Partial width
-requires a different trim arrangement.
+requires a different trim arrangement. A single oblique through Hole with
+strictly interior apertures on adjacent or opposed faces passes native
+modeling, project reopen and STL. Qualify its exact ellipse STEP exchange
+separately.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

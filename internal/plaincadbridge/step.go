@@ -337,6 +337,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: p, LengthUnit: .001})
 		}
 	case s.bore != nil:
+		if s.bore.oblique != nil {
+			return nil, unsupportedEdge("STEP export for elliptical oblique through-bore openings is unsupported")
+		}
 		var p step.CircularHoleExtrusionBody
 		p, e = boreSTEPRecipe(s.bore)
 		if e == nil {
