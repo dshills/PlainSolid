@@ -136,6 +136,13 @@ func (q *AlgebraicGraphMaterialQuery) BoundWindowSurfaceArea(ctx context.Context
 // the exact inverse chart Jacobian to dH/dU,dH/dV yields graph slopes; hence the
 // world area multiplier is sqrt(1+hx²+hy²), including nonunit/reversed charts.
 func (q *AlgebraicGraphMaterialQuery) graphCellAreaDensity(ctx context.Context, owner int, w AlgebraicGraphProjectionWindow, limit, bits, rootBits int) ([2]*big.Rat, error) {
+	return q.graphCellAffineAreaDensity(ctx, owner, w, limit, bits, rootBits, nil)
+}
+
+// A nil cofactor preserves the original graph-area path. Otherwise transform
+// the area vector in original world axes; projection parity is a common sign
+// and therefore has no effect on its norm.
+func (q *AlgebraicGraphMaterialQuery) graphCellAffineAreaDensity(ctx context.Context, owner int, w AlgebraicGraphProjectionWindow, limit, bits, rootBits int, cofactor *[3][3]*big.Rat) ([2]*big.Rat, error) {
 	if limit < 20480 {
 		return [2]*big.Rat{}, geom.ErrConvergence
 	}
@@ -310,9 +317,27 @@ func (q *AlgebraicGraphMaterialQuery) graphCellAreaDensity(ctx context.Context, 
 		derivative[axis] = divide(divide(num, denominator), constant(widths[axis]))
 	}
 	norm := constant(big.NewRat(1, 1))
+	var slopes [2]interval
 	for projection := 0; projection < 2; projection++ {
-		slope := add(multiply(derivative[0], constant(inverse[0][projection])), multiply(derivative[1], constant(inverse[1][projection])))
-		norm = add(norm, square(slope))
+		slopes[projection] = add(multiply(derivative[0], constant(inverse[0][projection])), multiply(derivative[1], constant(inverse[1][projection])))
+		if cofactor == nil {
+			norm = add(norm, square(slopes[projection]))
+		}
+	}
+	if cofactor != nil {
+		var normal [3]interval
+		normal[q.residual] = constant(big.NewRat(1, 1))
+		for i, axis := range q.axes {
+			normal[axis] = subtract(constant(new(big.Rat)), slopes[i])
+		}
+		norm = constant(new(big.Rat))
+		for i := 0; i < 3; i++ {
+			component := constant(new(big.Rat))
+			for j := 0; j < 3; j++ {
+				component = add(component, multiply(constant(cofactor[i][j]), normal[j]))
+			}
+			norm = add(norm, square(component))
+		}
 	}
 	if failure != nil {
 		return [2]*big.Rat{}, failure
