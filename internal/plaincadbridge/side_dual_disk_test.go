@@ -260,3 +260,37 @@ func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
 		}
 	}
 }
+
+func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
+	for i, depth := range []float64{3, 6} {
+		b := New()
+		stock := box(t, b, vector{}, vector{40, 10, 6})
+		a := circle(t, b, vector{12.5, -7.5, 0}, vector{0, 0, 1}, 65.0/8, depth)
+		c := circle(t, b, vector{22, -7.5, depth}, vector{0, 0, -1}, 87.0/8, depth)
+		first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": a.Handle})
+		wantV := []float64{2282.902744168073, 2165.805488336147}[i]
+		wantA := []float64{1405.432569688520, 1332.800302155755}[i]
+		near(t, overlapMeasure(t, b, first.Handle, c.Handle), first.GeometryAssertions.Volume-wantV)
+		for _, req := range []map[string]any{
+			{"op": "cutMany", "a": stock.Handle, "tools": []string{c.Handle, a.Handle}},
+			{"op": "cut", "a": first.Handle, "b": c.Handle},
+		} {
+			s := shape(t, b, req)
+			if s.Bounds != stock.Bounds || !b.shapes[s.Handle].analytic.sideDualDisk.offsetCenters() {
+				t.Fatal("cutters' Y offset or stock bounds not retained", s.Bounds)
+			}
+			near(t, s.GeometryAssertions.Volume, wantV)
+			near(t, s.GeometryAssertions.SurfaceArea, wantA)
+			near(t, overlapMeasure(t, b, s.Handle, c.Handle), 0)
+			data, e := writeSTEPBody(b.shapes[s.Handle])
+			if e != nil || !bytes.Contains(data, []byte("PRODUCT('side-cut-offset-disks'")) {
+				t.Fatal("offset export did not register its product class", e)
+			}
+			read, e := b.importSTEP(string(data))
+			if e != nil || read.Bounds != stock.Bounds || !b.shapes[read.Handle].analytic.sideDualDisk.offsetCenters() {
+				t.Fatal("native offset readback", read.Bounds, e)
+			}
+			near(t, read.GeometryAssertions.Volume, wantV)
+		}
+	}
+}

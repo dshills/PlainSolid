@@ -19,6 +19,10 @@ type sideDualDiskRecipe struct {
 	height, depth float64
 }
 
+func (p sideDualDiskRecipe) offsetCenters() bool {
+	return p.discs[0].Center.Y == p.discs[1].Center.Y && p.discs[0].Center.Y < p.min.Y
+}
+
 func (p sideDualDiskRecipe) externalRadical() bool {
 	x0, x1 := p.discs[0].Center.X, p.discs[1].Center.X
 	left, right := p.discs[0].Radius, p.discs[1].Radius
@@ -107,6 +111,14 @@ func (p *sideDualDiskBody) analytic() *analyticBody {
 
 func (p sideDualDiskRecipe) solid() (*sideDualDiskBody, error) {
 	ctx := context.Background()
+	if p.offsetCenters() {
+		cut, e := trimmed.CutOffsetSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		if e != nil {
+			return nil, e
+		}
+		m, e := cut.Measures()
+		return &sideDualDiskBody{sideDualDiskRecipe: p, boundary: cut.Solid, walls: cut.WallFaces, measures: m}, e
+	}
 	if p.discs[0].Radius == p.discs[1].Radius {
 		cut, e := trimmed.CutSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 		if e != nil {
@@ -184,17 +196,17 @@ func putSideDualDiskSTEPProduct(b *Bridge, d step.SideOpenDualDiskDescriptor, na
 
 func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecipe, bool) {
 	var out sideDualDiskRecipe
-	if c == nil || p.Left <= 0 || p.Inset != 0 || len(p.Through) != 0 || len(p.Blind) != 0 || !cardinalFrame(p.Frame) {
+	if c == nil || p.Left <= 0 || p.Inset > 0 || len(p.Through) != 0 || len(p.Blind) != 0 || !cardinalFrame(p.Frame) {
 		return out, false
 	}
 	second, low, high, ok := sideNotchBore(p, c)
 	first := trimmed.ExtrusionCircle{Radius: p.Radius}
-	if !ok || second.Center.Y != 0 || second.Center.X == 0 || low != 0 || high != p.Depth ||
+	if !ok || second.Center.Y != 0 || p.Inset < 0 && second.Radius == first.Radius || second.Center.X == 0 || low != 0 || high != p.Depth ||
 		compareCircularFootprints(first, second, false) >= 0 || compareCircularFootprints(first, second, true) <= 0 ||
 		compareCircularFootprints(second, first, true) <= 0 {
 		return out, false
 	}
-	return sideDualDiskRecipe{p.Frame, geom.Vec2{X: -p.Left}, geom.Vec2{X: p.Right, Y: p.Back}, [2]trimmed.ExtrusionCircle{first, second}, p.Length, p.Depth}, true
+	return sideDualDiskRecipe{p.Frame, geom.Vec2{X: -p.Left, Y: -p.Inset}, geom.Vec2{X: p.Right, Y: p.Back}, [2]trimmed.ExtrusionCircle{first, second}, p.Length, p.Depth}, true
 }
 
 // dualDiskCutRecipe recognizes the original planar stock and both cutters,
@@ -214,10 +226,10 @@ func dualDiskCutRecipe(a stored, tools []stored) (sideDualDiskRecipe, bool) {
 }
 
 func dualDiskFromStock(a stored, first, second *cylinderBody) (sideDualDiskRecipe, bool) {
-	if f, box, ok := sideCylinderBlindRecipe(a.solid, first); ok && box.Min.Y == 0 {
+	if f, box, ok := sideCylinderBlindRecipe(a.solid, first); ok && box.Min.Y >= 0 {
 		return dualDiskFromNotch(sideNotchRecipe(f, box, first.radius, first.height), second)
 	}
-	if f, box, ok := sideCylinderThroughRecipe(a.solid, first); ok && box.Min.Y == 0 {
+	if f, box, ok := sideCylinderThroughRecipe(a.solid, first); ok && box.Min.Y >= 0 {
 		return dualDiskFromNotch(sideNotchRecipe(f, box, first.radius, box.Max.Z), second)
 	}
 	return sideDualDiskRecipe{}, false
@@ -249,7 +261,8 @@ func overlapSideDualDisk(a, c stored) (float64, bool, error) {
 		if ok && (d == p.discs[0] || d == p.discs[1]) {
 			// A repeated cutter misses the removed prefix. Above its blind
 			// floor the original stock still fills the cutter's half disk.
-			return math.Pi / 2 * d.Radius * d.Radius * max(0, hi-max(lo, p.depth)), true, nil
+			area, _ := sideCylinderSection(d.Center.Y-p.min.Y, d.Radius)
+			return area * max(0, hi-max(lo, p.depth)), true, nil
 		}
 	}
 	if a.analytic == nil || a.analytic.sideNotch == nil {
@@ -258,6 +271,17 @@ func overlapSideDualDisk(a, c stored) (float64, bool, error) {
 	p, ok := dualDiskFromNotch(*a.analytic.sideNotch, c.cylinder)
 	if !ok {
 		return 0, false, nil
+	}
+	if p.offsetCenters() {
+		cut, e := p.solid()
+		if e != nil {
+			return 0, true, e
+		}
+		v := a.result.GeometryAssertions.Volume - cut.measures.Volume
+		if !finite(v) || v <= 0 {
+			return 0, true, geom.ErrUnrepresentable
+		}
+		return v, true, nil
 	}
 	// Verify cutter clearance from the pristine side walls in exact input
 	// arithmetic; capture is a measure-only query and need not build trims.

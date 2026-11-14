@@ -173,6 +173,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 			}
 			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, true)
 		}
+		if m, e := step.ReadOffsetSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
+			p, e := m.Native.Measures()
+			if e != nil {
+				return Shape{}, e
+			}
+			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, false)
+		}
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
@@ -341,7 +348,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 			Name: "PlainSolid", Frame: p.frame, Min: p.min, Max: p.max, Discs: p.discs,
 			Height: p.height, Depth: p.depth, LengthUnit: .001, Tolerance: 1e-9,
 		}
-		if p.exactWalls {
+		if p.offsetCenters() {
+			e = step.WriteOffsetSideOpenDualDiskProduct(context.Background(), &out, step.OffsetSideOpenDualDiskDescriptor(d))
+		} else if p.exactWalls {
 			e = step.WriteExactWallSideOpenDualDiskProduct(context.Background(), &out, step.ExactWallSideOpenDualDiskDescriptor(d))
 		} else if d.Discs[0].Radius == d.Discs[1].Radius {
 			e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, d)
