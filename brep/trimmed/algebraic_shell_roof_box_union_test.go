@@ -125,6 +125,12 @@ func TestOrderedRoofBoxFuseImprintsIsoCrossings(t *testing.T) {
 	if err != nil || len(h.Faces) != 10 || s.Topology().EulerCharacteristic != 2 || h.Faces[0][0] != (MixedRoofFaceOwner{0, 1}) || h.Faces[5][0] != (MixedRoofFaceOwner{0, 1}) {
 		t.Fatal("a genuine crease retains its two distinct original fragments", s.Topology(), h, err)
 	}
+	flat, _ = makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 2.25}, 0)
+	s, h, err = FuseOrderedRoofBoxes(ctx, creased, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 18 || s.Topology().EulerCharacteristic != 2 || len(s.Topology().Shells) != 1 {
+		t.Fatal("the original crease and both new intersections must be sewn", s.Topology(), h, err)
+	}
+	checkOrderedRoofCreaseCrossingMass(t, ctx, s, "piecewise-crossing-ordered-fuse", 37./16)
 }
 
 func TestOrderedRoofBoxFuseStrictlySeparateBands(t *testing.T) {

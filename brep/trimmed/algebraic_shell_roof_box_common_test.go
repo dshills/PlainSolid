@@ -206,8 +206,23 @@ func TestOrderedRoofBoxPiecewiseCommon(t *testing.T) {
 		t.Fatal("native piecewise roof must revalidate on read", err)
 	}
 	flatCrossing, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 2.25}, 0)
-	if s, h, err := IntersectOrderedRoofBoxes(ctx, creased, flatCrossing, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
-		t.Fatal("roof crossings inside span interiors need an imprint", s.Topology(), h, err)
+	crossed, crossing, err := IntersectOrderedRoofBoxes(ctx, creased, flatCrossing, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(crossing.Faces) != 18 || crossed.Topology().EulerCharacteristic != 2 || len(crossed.Topology().Shells) != 1 {
+		t.Fatal("sew both new interior crossings and the original knot", crossed.Topology(), crossing, err)
+	}
+	for i, face := range []int{0, 5, 9, 13} {
+		want := owner
+		if i == 1 || i == 2 {
+			want = MixedRoofFaceOwner{Operand: 1, Face: 5}
+		}
+		if crossing.Faces[face] != want {
+			t.Fatal("unexpected original roof owner", face, want, crossing.Faces)
+		}
+	}
+	checkOrderedRoofCreaseCrossingMass(t, ctx, crossed, "piecewise-crossing-ordered-common", 35./16)
+	badCrossing := orderedRoofParabolaSourceControls(t, [3]float64{1.375, 2.375, 3.375})
+	if s, h, err := IntersectOrderedRoofBoxes(ctx, creased, badCrossing, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("nonrepresentable world crossing must fail atomically", s.Topology(), h, err)
 	}
 	tilted := orderedRoofParabolaSourceControls(t, [3]float64{1.5, 2.5, 3.5})
 	switched, h, err := IntersectOrderedRoofBoxes(ctx, creased, tilted, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
@@ -218,6 +233,24 @@ func TestOrderedRoofBoxPiecewiseCommon(t *testing.T) {
 	// Integrate 1.5+2X on the left half (1) and 3-X on the right (9/8).
 	if err != nil || math.Abs(mass.Volume-17./8) > 1e-12 {
 		t.Fatal("distinct roof owners must meet at the original knot without an interior wall", mass, err)
+	}
+}
+
+func checkOrderedRoofCreaseCrossingMass(t *testing.T, ctx context.Context, part Solid, mode string, volume float64) {
+	t.Helper()
+	mass, err := part.MassProperties(ctx, parametric.IntegrationOptions{})
+	if err != nil || math.Abs(mass.Volume-volume) > 1e-12 {
+		t.Fatal("independent piecewise envelope integral", mass, volume, err)
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, mode).Output()
+		var ref struct {
+			Volume, Area float64
+			Solids       int
+		}
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || math.Abs(ref.Volume-mass.Volume) > 1e-9 || math.Abs(ref.Area-mass.Area) > 1e-9 {
+			t.Fatal("pinned OCCT creased envelope", ref, err, string(data))
+		}
 	}
 }
 func orderedRoofTangentSource(t *testing.T) Solid {

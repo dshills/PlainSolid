@@ -20,10 +20,10 @@ type RoofBoxUnionHistory struct {
 
 // FuseOrderedRoofBoxes builds the regularized union of two proved roof boxes.
 // Disjoint footprints retain both original shells. For contained or identical
-// footprints, single-function ordered roofs also qualify: a fully contained box
-// keeps just its original container; matching bands can merge, or a strictly
-// separating floor keeps both. Partial overlaps and unresolved height orders
-// fail closed.
+// footprints, a fully contained box can keep its original container.
+// Bands with matching footprints can merge along an exact knot or
+// representable isoparametric crossing. Single-span roofs can also keep
+// two strictly separated bands. Unresolved height orders fail closed.
 func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxUnionHistory, error) {
 	var zero RoofBoxUnionHistory
 	q, err := prepareDirectRoofBoxMeasure(ctx, a, b, parametric.Union, proof)

@@ -329,6 +329,16 @@ int main(int argc, char** argv) {
       report("piecewise-ordered-common",BRepAlgoAPI_Common(stock,limit).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && (std::string(argv[1])=="piecewise-crossing-ordered-common" ||
+                    std::string(argv[1])=="piecewise-crossing-ordered-fuse")) {
+      const auto stock=BRepAlgoAPI_Fuse(creasedHalf(false),creasedHalf(true)).Shape();
+      const auto limit=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,2.25)).Shape();
+      const auto shape=std::string(argv[1])=="piecewise-crossing-ordered-common"
+        ? BRepAlgoAPI_Common(stock,limit).Shape()
+        : BRepAlgoAPI_Fuse(stock,limit).Shape();
+      report(argv[1],shape,1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="iso-crossing-ordered-common") {
       const auto curved=graphStock(true,true);
       const auto plane=BRepPrimAPI_MakeBox(gp_Pnt(0,-.125,0),gp_Pnt(1,1.125,17./16)).Shape();

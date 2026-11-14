@@ -50,8 +50,14 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 	}
 	for i := range cuts {
 		cuts[i] = append(cuts[i], inset[i]...)
-		slices.Sort(cuts[i])
-		cuts[i] = slices.Compact(cuts[i])
+	}
+	cuts = sortRoofEnvelopeCuts(cuts)
+	if len(q.box[0].roofSpans) != 0 || len(q.box[1].roofSpans) != 0 {
+		var err error
+		cuts, err = refineRoofEnvelopeCuts(ctx, q.box, cuts, w)
+		if err != nil {
+			return Solid{}, nil, err
+		}
 	}
 	nu, nv := len(cuts[0])-1, len(cuts[1])-1
 	// Keep the result within Sew's 128-face limit before spending proof work.
@@ -66,27 +72,9 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 			if err := ctx.Err(); err != nil {
 				return Solid{}, nil, err
 			}
-			cell := geom.ParameterRectangle{UMin: cuts[0][i], UMax: cuts[0][i+1], VMin: cuts[1][j], VMax: cuts[1][j+1]}
-			xy := [2]geom.ExactParameterInterval{
-				{Lower: ratInset(cell.UMin), Upper: ratInset(cell.UMax)},
-				{Lower: ratInset(cell.VMin), Upper: ratInset(cell.VMax)},
-			}
-			var roofs [2]*mixedRoofBox
-			for k, box := range q.box {
-				roofs[k] = box
-				if len(box.roofSpans) == 0 {
-					continue
-				}
-				roofs[k] = nil
-				for _, span := range box.roofSpans {
-					if intersectRectangles(cell, span.domain) == cell {
-						roofs[k] = span
-						break
-					}
-				}
-				if roofs[k] == nil {
-					return Solid{}, nil, geom.ErrUnrepresentable
-				}
+			cell, xy, roofs, err := roofEnvelopeCell(q.box, cuts, i, j)
+			if err != nil {
+				return Solid{}, nil, err
 			}
 			order, err := orderedRoofBoxOrder(ctx, roofs, xy, w)
 			if err != nil {
@@ -153,6 +141,77 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 		return Solid{}, nil, fmt.Errorf("sew ordered piecewise roof envelope: %w", err)
 	}
 	return result, owners, nil
+}
+
+func sortRoofEnvelopeCuts(cuts [2][]float64) [2][]float64 {
+	for i := range cuts {
+		slices.Sort(cuts[i])
+		cuts[i] = slices.Compact(cuts[i])
+	}
+	return cuts
+}
+
+// Discover crossings on each original knot rectangle. Extend each proved
+// coordinate cut across the grid so all neighboring cap tiles and perimeter
+// walls use the same edges, including when an adjacent cell keeps one roof.
+func refineRoofEnvelopeCuts(ctx context.Context, boxes [2]*mixedRoofBox, cuts [2][]float64, w *mixedRoofLineWork) ([2][]float64, error) {
+	nu, nv := len(cuts[0])-1, len(cuts[1])-1
+	if 2*(nu*nv+nu+nv) > 128 {
+		return [2][]float64{}, geom.ErrUnrepresentable
+	}
+	var additional [2][]float64
+	for i := 0; i < nu; i++ {
+		for j := 0; j < nv; j++ {
+			if err := ctx.Err(); err != nil {
+				return [2][]float64{}, err
+			}
+			_, xy, roofs, err := roofEnvelopeCell(boxes, cuts, i, j)
+			if err != nil {
+				return [2][]float64{}, err
+			}
+			if _, err = orderedRoofBoxOrder(ctx, roofs, xy, w); err == nil {
+				continue
+			} else if err != geom.ErrUnrepresentable {
+				return [2][]float64{}, err
+			}
+			inset, err := orderedRoofCrossingCuts(ctx, roofs, xy, w)
+			if err != nil {
+				return [2][]float64{}, err
+			}
+			for axis := range cuts {
+				additional[axis] = append(additional[axis], inset[axis]...)
+			}
+		}
+	}
+	for axis := range cuts {
+		cuts[axis] = append(cuts[axis], additional[axis]...)
+	}
+	return sortRoofEnvelopeCuts(cuts), nil
+}
+
+func roofEnvelopeCell(boxes [2]*mixedRoofBox, cuts [2][]float64, i, j int) (geom.ParameterRectangle, [2]geom.ExactParameterInterval, [2]*mixedRoofBox, error) {
+	cell := geom.ParameterRectangle{UMin: cuts[0][i], UMax: cuts[0][i+1], VMin: cuts[1][j], VMax: cuts[1][j+1]}
+	xy := [2]geom.ExactParameterInterval{
+		{Lower: ratInset(cell.UMin), Upper: ratInset(cell.UMax)},
+		{Lower: ratInset(cell.VMin), Upper: ratInset(cell.VMax)},
+	}
+	roofs := boxes
+	for k, box := range boxes {
+		if len(box.roofSpans) == 0 {
+			continue
+		}
+		roofs[k] = nil
+		for _, span := range box.roofSpans {
+			if intersectRectangles(cell, span.domain) == cell {
+				roofs[k] = span
+				break
+			}
+		}
+		if roofs[k] == nil {
+			return cell, xy, roofs, geom.ErrUnrepresentable
+		}
+	}
+	return cell, xy, roofs, nil
 }
 
 // A univariate homogeneous height difference makes every sign-changing
