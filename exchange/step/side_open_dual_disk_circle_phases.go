@@ -6,11 +6,14 @@ import (
 	"plainsolid/geom"
 )
 
-// Rephasing a complete oriented circle changes its angular origin only. Source
-// vertex endpoints plus same_sense still select the same directed minor arc.
+// Rephasing changes the angular origin; paired normal/sense reversal restores
+// the same orientation. Exact source endpoints and the normalized sense must
+// still select the same directed minor arc.
 // No rounded angular parameters or tolerance-based circle comparisons occur.
-func sideDiskNormalizeRephasedCircles(f *File, canonical geom.Frame) ([]int64, error) {
-	fail := func() ([]int64, error) { return nil, fmt.Errorf("step: unsupported side-disk circle rephase") }
+func sideDiskNormalizeEquivalentCircles(f *File, canonical geom.Frame, options SideOpenDualDiskReadOptions) ([]int64, []int64, error) {
+	fail := func() ([]int64, []int64, error) {
+		return nil, nil, fmt.Errorf("step: unsupported side-disk circle rephase")
+	}
 	counts := map[int64]int{}
 	for _, en := range f.Entities {
 		var values []Value
@@ -26,7 +29,7 @@ func sideDiskNormalizeRephasedCircles(f *File, canonical geom.Frame) ([]int64, e
 			values = append(values, v.Items...)
 		}
 	}
-	var normalized []int64
+	var normalized, oppositeNormals []int64
 	for _, id := range f.Order {
 		en := f.Entities[id]
 		if len(en.Records) != 1 || en.Records[0].Type != "EDGE_CURVE" {
@@ -53,13 +56,21 @@ func sideDiskNormalizeRephasedCircles(f *File, canonical geom.Frame) ([]int64, e
 			return fail()
 		}
 		frame, e := sideDiskReadFrame(f, pid)
-		if e != nil || frame.ZAxis() != canonical.ZAxis() {
+		if e != nil {
 			return fail()
 		}
-		if frame.XAxis() == canonical.XAxis() {
+		opposite := frame.ZAxis() == canonical.ZAxis().Scale(-1)
+		if frame.ZAxis() != canonical.ZAxis() && (!opposite || !options.AllowOppositeModelCircleNormals) {
+			return fail()
+		}
+		rephased := frame.XAxis() != canonical.XAxis()
+		if rephased && !options.AllowRephasedModelCircles {
+			return fail()
+		}
+		if !opposite && !rephased {
 			continue
 		}
-		if len(normalized) >= 4 {
+		if len(normalized) >= 4 || len(oppositeNormals) >= 4 {
 			return fail()
 		}
 		radius, e := cylinderSupportNumber(circle.Args[2])
@@ -106,6 +117,9 @@ func sideDiskNormalizeRephasedCircles(f *File, canonical geom.Frame) ([]int64, e
 		}
 		cross := new(big.Rat).Sub(new(big.Rat).Mul(radial[0][0], radial[1][1]), new(big.Rat).Mul(radial[0][1], radial[1][0]))
 		same, e := boolean(edge.Args[4])
+		if opposite {
+			same = !same
+		}
 		if e != nil || cross.Sign() == 0 || same != (cross.Sign() > 0) {
 			return fail()
 		}
@@ -128,7 +142,26 @@ func sideDiskNormalizeRephasedCircles(f *File, canonical geom.Frame) ([]int64, e
 		}
 		a := canonical.XAxis()
 		direction.Args[1].Items = []Value{{Kind: Number, Text: real(a.X)}, {Kind: Number, Text: real(a.Y)}, {Kind: Number, Text: real(a.Z)}}
-		normalized = append(normalized, id)
+		if rephased {
+			normalized = append(normalized, id)
+		}
+		if opposite {
+			normalID, e := ref(placement.Args[2])
+			if e != nil || counts[normalID] != 1 {
+				return fail()
+			}
+			normal, e := simple(f, normalID, "DIRECTION", 2)
+			if e != nil {
+				return fail()
+			}
+			z := canonical.ZAxis()
+			normal.Args[1].Items = []Value{{Kind: Number, Text: real(z.X)}, {Kind: Number, Text: real(z.Y)}, {Kind: Number, Text: real(z.Z)}}
+			edge.Args[4] = Value{Kind: Enumeration, Text: "F"}
+			if same {
+				edge.Args[4].Text = "T"
+			}
+			oppositeNormals = append(oppositeNormals, id)
+		}
 	}
-	return normalized, nil
+	return normalized, oppositeNormals, nil
 }

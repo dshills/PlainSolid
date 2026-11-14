@@ -19,6 +19,10 @@ type SideOpenDualDiskReadOptions struct {
 	// direction on the same oriented supporting circle. Exact endpoints and the
 	// directed minor arc are proved; normals and edge senses are not flipped.
 	AllowRephasedModelCircles bool
+	// AllowOppositeModelCircleNormals permits the exact opposite circle normal
+	// paired with inverted EDGE_CURVE.same_sense. The same directed minor arc
+	// must be proved. A changed reference axis still requires the rephase option.
+	AllowOppositeModelCircleNormals bool
 }
 
 // f is the reader's private parsed graph. Only successfully proved source line

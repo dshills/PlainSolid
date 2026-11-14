@@ -27,6 +27,9 @@ type SideOpenDualDiskProduct struct {
 	// RephasedModelCircles lists source EDGE_CURVE IDs with a proved equivalent
 	// cardinal circle reference axis normalized by the opt-in reader.
 	RephasedModelCircles []int64
+	// OppositeNormalModelCircles lists source circle EDGE_CURVE IDs whose
+	// paired normal/sense reversal was exactly proved and normalized.
+	OppositeNormalModelCircles []int64
 }
 
 // ReadSideOpenDualDiskProduct accepts only the rooted model-only dialect emitted
@@ -235,9 +238,9 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 			return SideOpenDualDiskProduct{}, err
 		}
 	}
-	var rephasedCircles []int64
-	if options.AllowRephasedModelCircles {
-		rephasedCircles, err = sideDiskNormalizeRephasedCircles(f, d.Frame)
+	var rephasedCircles, oppositeCircles []int64
+	if options.AllowRephasedModelCircles || options.AllowOppositeModelCircleNormals {
+		rephasedCircles, oppositeCircles, err = sideDiskNormalizeEquivalentCircles(f, d.Frame, options)
 		if err != nil {
 			return SideOpenDualDiskProduct{}, err
 		}
@@ -252,7 +255,7 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 	if err = ctx.Err(); err != nil {
 		return SideOpenDualDiskProduct{}, err
 	}
-	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles}, nil
+	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)
