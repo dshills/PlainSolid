@@ -142,7 +142,7 @@ func (b *mixedRoofBox) roofHeightRange(uv [2]geom.ExactParameterInterval, w *mix
 
 func mixedRoofPowerRange(power [][]*big.Rat, uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
 	out := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
-	var powers [2][4][2]*big.Rat
+	var powers [2][mixedRoofMaxDegree + 1][2]*big.Rat
 	for i, s := range uv {
 		a, c := s.Lower, s.Upper
 		powers[i][0] = [2]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1)}
