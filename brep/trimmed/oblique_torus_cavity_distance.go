@@ -8,11 +8,12 @@ import (
 
 // PreparedObliqueTorusCavity binds an immutable original body to its independently
 // proved analytic source. Preparation authenticates actual supports, topology,
-// orientations and canonical IDs once; subsequent queries do not re-sew it.
+// orientations and canonical IDs once; subsequent distance and line queries do not re-sew it.
 type PreparedObliqueTorusCavity struct {
-	body   Solid
-	source geom.ObliqueCylinderTorusCavityMaterial
-	major  *big.Rat
+	body       Solid
+	source     geom.ObliqueCylinderTorusCavityMaterial
+	major      *big.Rat
+	dimensions [5]float64
 }
 
 func PrepareObliqueTorusCavity(ctx context.Context, s Solid, R, r, c, lower, upper float64, pose [3][4]*big.Rat, o geom.SurfacePatchOptions) (*PreparedObliqueTorusCavity, error) {
@@ -20,7 +21,7 @@ func PrepareObliqueTorusCavity(ctx context.Context, s Solid, R, r, c, lower, upp
 	if e != nil {
 		return nil, e
 	}
-	return &PreparedObliqueTorusCavity{s, q, ratInset(R)}, nil
+	return &PreparedObliqueTorusCavity{body: s, source: q, major: ratInset(R), dimensions: [5]float64{R, r, c, lower, upper}}, nil
 }
 
 // NativeObliqueTorusCavityDistance retains original support masks and exact
