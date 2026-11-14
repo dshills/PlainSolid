@@ -209,7 +209,8 @@ func (l AlgebraicProjectedTubeLens) Solid(ctx context.Context, tolerance float64
 }
 
 // BoundMassProperties certifies mass on the common projection of the two
-// original rectangular graph charts, including exact homogeneous supports.
+// original affine graph charts with convex straight trims, including exact
+// homogeneous supports. The underlying rectangles must permit chart alignment.
 // It returns rational volume, centroid and inertia bounds in model coordinates.
 func (l AlgebraicProjectedTubeLens) BoundMassProperties(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (AlgebraicTubeLensMassBounds, error) {
 	if l.graphs[0] == nil {
