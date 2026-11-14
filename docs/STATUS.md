@@ -51,6 +51,11 @@ passed ten original Hole and STEP export tests after merging the separate
 worktree's same-side and opposite-cap opening commits. In the review branch,
 the existing exact dual-disc recipe runs first; if it cannot represent a
 crossing, the independent analytic opening-pair recipe may certify it.
+The [different-side reconciliation](evidence/plaincad-reconciled-586dcd3-development-side-holes-2026-11-14.json)
+also incorporates the independently developed stock-side dispatch at
+`cc1c41f`. Seven supplemental cases passed through Go/WASM, including
+rebuild, reopening, STL and STEP for overlapping side holes. These are
+separate from the original application acceptance counts.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.

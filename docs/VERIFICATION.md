@@ -513,6 +513,13 @@ tests, the browser backend probe, both typechecks and 841 source comparisons
 passed without retries or skips. A separate focused regression keeps the
 strict nonbinary recipe rejection and proves the independently reconstructed
 analytic result's volume, STEP readback and closed display mesh.
+Reconciliation `586dcd3` combines `cc1c41f` and the integrated narrow
+exact-first dispatch. Its [supplemental record](evidence/plaincad-reconciled-586dcd3-development-side-holes-2026-11-14.json)
+contains seven Chromium cases (six blind or through overlap workflows, and
+one close-up pick/display regression), one independent Go/WASM backend
+probe, both typechecks, and 841 source hash comparisons. The seven
+supplemental cases took 199 seconds with zero retries, skips or failures.
+The focused native bridge and STEP suite also passed with CGO disabled.
 The rational frustum section (`b894c4b`) keeps the original V parameters
 7/12 and 11/21 at Z=7/3 and returns exact area (275/64)π. Point probes on both
 sides of the original wall differ by 2^-120. The exact line path (`30d8254`)
