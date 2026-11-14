@@ -21,7 +21,7 @@ func qualifyTripleRadialNativeMesh(t *testing.T, s AlgebraicShellBoolean) {
 			Boundary: AlgebraicTubeRegionsBoundaryOptions{MaxOperations: 512000000, Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .03, MaxOperations: 64000000}, MaxPieces: 512}, MaxOwnerOperations: 64000000}},
 			Polygon:  trimvalidate.Options{MaxEdges: 2048, MaxWork: 8000000},
 		},
-		Surface: MultiSpanTubeLensMeshOptions{MaxResidualOperations: 512000000, Closed: AlgebraicTubeLensMeshOptions{Collision: collision.Options{MaxPairs: 32000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .001}}, Span: MultiSpanTriangleBoundOptions{MaxDegree: 8, MaxResidualOperations: 16000000}},
+		Surface: MultiSpanTubeLensMeshOptions{AffineCharts: true, MaxResidualOperations: 512000000, Closed: AlgebraicTubeLensMeshOptions{Collision: collision.Options{MaxPairs: 32000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .001}}, Span: MultiSpanTriangleBoundOptions{MaxDegree: 8, MaxResidualOperations: 16000000}},
 	}
 	o.Mesh.Component.Footprint.Boundary.Loop.Run.Partition.MaxOperations = 64000000
 	t.Log("starting complete original degree8 native collection reproof and fill")

@@ -1,0 +1,52 @@
+{
+  "schema": "plaincad-reconciled-supplemental-quarter-annular-step-v1",
+  "status": "passed",
+  "integrationCommit": "f5b7e7607f72724fb62250c18b97260a1e33b377",
+  "reviewCommit": "673b6d515b310c4f7cfb97892a80a6b2b7859ab5",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "ade351a2c6d3c041443e1538cfbfe2d7e626ff881f6f3a6c9e9b39533a2126f7",
+  "fixture": "e2e/plainsolid-quarter-annular-step-holes.spec.ts",
+  "sourceSha256": "9085e9b5aa936fd6760f18a7429ccfbc104f7ea30bb51b18345a99e33300ebc7",
+  "runSha256": "34aa04fb7815e81bce3ab8c07a974eec9dd9f4dec090148f9122bdc23ad66079",
+  "reportStats": {
+    "startTime": "2026-11-14T15:46:47.479Z",
+    "duration": 35977.847,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "profile": "revolved quarter cylinder with coaxial cut, radii 2 and 5 and height 10",
+    "exactNativeRoundTrip": true,
+    "byteIdenticalReexport": true,
+    "continuationCut": "radius grows 2 to 3, canonical bytes identical to a fresh cut",
+    "stepByteCount": 11556,
+    "stepSha256": "a87d8b4ab48f5bbcef394e3ebf653770bd140098c3d6ef21c093b5e7235d1a42",
+    "stlTriangles": 3072,
+    "stlTwoUseEdges": 4608,
+    "stlSha256": "617015d0478d76d299d3a1de9528214adf1ee11b1c33ec9a98779031f7c607f5",
+    "occtStepReadback": {
+      "Area": 202.94246573833559,
+      "Volume": 164.93361431346418,
+      "Centroid": [
+        2.364587725936732,
+        5,
+        -2.3645877259367314
+      ]
+    },
+    "analyticVolume": 164.93361431346415,
+    "analyticArea": 202.94246573833559
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 202.94246573833559,
+    "Volume": 164.93361431346418,
+    "Centroid": [
+      2.364587725936732,
+      5,
+      -2.3645877259367314
+    ]
+  }
+}
