@@ -23,6 +23,7 @@ type analyticBody struct {
 	patches         *parametric.Solid
 	rimPatches      bool
 	sector          *radialSector
+	torus           *torusSweep
 	shaft           *trimmed.SteppedShaft
 	segment         *circularSegmentSweep
 	arcLoop         *arcLoopSupport
@@ -308,6 +309,13 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			r.frame = f
 			out.sector = &r
 		}
+	}
+	if a.torus != nil {
+		p, err := a.torus.transformed(m)
+		if err != nil {
+			return nil, err
+		}
+		out.torus = p
 	}
 	var err error
 	if a.helical {
