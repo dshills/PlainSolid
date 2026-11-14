@@ -269,15 +269,16 @@ func (d *RationalSphericalHierarchyDocument) Bounds(ctx context.Context, o step.
 	return step.BoundRationalSphericalHierarchy(ctx, d.model, o)
 }
 
-// Locate classifies each supported material occurrence independently.
+// Locate classifies each supported material occurrence independently, including
+// authenticated reentrant planar boundaries.
 func (d *RationalSphericalHierarchyDocument) Locate(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyPointOptions) (step.RationalHierarchyPointLocations, error) {
 	if d == nil {
 		return step.RationalHierarchyPointLocations{}, geom.ErrInvalid
 	}
 	if d.vendor {
-		return step.LocateOCCTRationalHierarchyPoint(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+		return step.LocateGeneralOCCTRationalHierarchyPoint(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
 	}
-	return step.LocateRationalHierarchyPoint(ctx, d.model, point, o)
+	return step.LocateGeneralRationalHierarchyPoint(ctx, d.model, point, o)
 }
 
 // ClipLine retains original line parameters and every exact occurrence owner.
@@ -289,6 +290,19 @@ func (d *RationalSphericalHierarchyDocument) ClipLine(ctx context.Context, origi
 		return step.ClipOCCTRationalHierarchyAnalyticLine(ctx, step.OCCTRationalSphericalHierarchy(d.model), origin, direction, lower, upper, o)
 	}
 	return step.ClipRationalHierarchyAnalyticLine(ctx, d.model, origin, direction, lower, upper, o)
+}
+
+// ClipGeneralLine adds transverse clipping of authenticated nonconvex planar
+// occurrences. A planar occurrence is unsupported when the line lies in one
+// of its supporting planes; use ClipLine for coplanar convex occurrences.
+func (d *RationalSphericalHierarchyDocument) ClipGeneralLine(ctx context.Context, origin, direction [3]*big.Rat, lower, upper *big.Rat, o step.RationalHierarchyLineOptions) (step.RationalHierarchyLine, error) {
+	if d == nil {
+		return step.RationalHierarchyLine{}, geom.ErrInvalid
+	}
+	if d.vendor {
+		return step.ClipGeneralOCCTRationalHierarchyLine(ctx, step.OCCTRationalSphericalHierarchy(d.model), origin, direction, lower, upper, o)
+	}
+	return step.ClipGeneralRationalHierarchyLine(ctx, d.model, origin, direction, lower, upper, o)
 }
 
 // Mass returns exact symbolic unit-density moments summed across occurrences.
