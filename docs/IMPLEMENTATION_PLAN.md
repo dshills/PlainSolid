@@ -121,7 +121,7 @@ editable. Next connect the exact writer for simple cylindrical Revolve
 sectors and full concentric tubes.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
-`65441a2d` passes 345 development, 66 production and 15 cross-browser
+`e60f34e7` passes 345 development, 66 production and 15 cross-browser
 cases. Both TypeScript checks, the bundle budget, 1,691 ordinary unit and
 component cases, and four actual-WASM contracts pass. Later geometry
 milestones use focused application runs and independent STEP checks.
