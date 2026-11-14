@@ -7,8 +7,9 @@ import (
 	"plainsolid/intersect"
 )
 
-// AlgebraicShellImprintPiece refers to one original, paired tube segment.
-// Reversed changes the walk direction without changing its native parameters.
+// AlgebraicShellImprintPiece refers to one original paired section piece.
+// Legacy imprints contain tubes; mixed imprints resolve through their tagged
+// SectionPiece accessor. Reversed changes only the walk direction.
 type AlgebraicShellImprintPiece struct {
 	Branch, Index int
 	Reversed      bool
@@ -66,6 +67,9 @@ type AlgebraicShellImprint struct {
 // results are returned only after closed incidence and vertex links pass.
 func (r AlgebraicShellSectionResult) ImprintOriginalShells(ctx context.Context,
 	o AlgebraicShellImprintOptions) (out [2]AlgebraicShellImprint, err error) {
+	return imprintAlgebraicShells(ctx, r, o, false)
+}
+func imprintAlgebraicShells(ctx context.Context, r AlgebraicShellSectionResult, o AlgebraicShellImprintOptions, allowRestricted bool) (out [2]AlgebraicShellImprint, err error) {
 	if ctx == nil || r.source == nil || o.MaxPieces < 0 || o.MaxPieces > 4096 || o.Exact.MaxOperations < 0 ||
 		o.Exact.MaxCoefficientBits != 0 && o.Exact.MaxCoefficientBits < 64 || o.Exact.MaxSubdivisions < 0 {
 		return out, geom.ErrInvalid
@@ -90,11 +94,11 @@ func (r AlgebraicShellSectionResult) ImprintOriginalShells(ctx context.Context,
 	var offsets []int
 	var pieces []AlgebraicShellImprintPiece
 	for i, b := range src.branches {
-		if len(b.Segments) == 0 || len(b.Segments) > o.MaxPieces-len(pieces) {
+		if b.rational != nil && !allowRestricted || shellSectionPieceCount(b) == 0 || shellSectionPieceCount(b) > o.MaxPieces-len(pieces) {
 			return out, geom.ErrConvergence
 		}
 		offsets = append(offsets, len(pieces))
-		for j := range b.Segments {
+		for j := 0; j < shellSectionPieceCount(b); j++ {
 			pieces = append(pieces, AlgebraicShellImprintPiece{Branch: i, Index: j})
 		}
 	}
@@ -135,7 +139,11 @@ func (w *shellImprintWork) modelVertices() ([][2]shellImprintPoint, error) {
 			return nil, e
 		}
 		var start shellImprintPoint
-		for j, s := range b.Segments {
+		for j := 0; j < shellSectionPieceCount(b); j++ {
+			var s intersect.TubeSegment
+			if b.rational == nil {
+				s = b.Segments[j]
+			}
 			if j == 0 {
 				v, e := w.modelPoint(i, j, 0, s)
 				if e != nil {
@@ -144,7 +152,7 @@ func (w *shellImprintWork) modelVertices() ([][2]shellImprintPoint, error) {
 				start = shellImprintPoint{event: v, branch: i, end: 0, vertex: next}
 				next++
 			}
-			last := j == len(b.Segments)-1
+			last := j == shellSectionPieceCount(b)-1
 			var finish shellImprintPoint
 			if b.Closed && last {
 				finish = out[w.offsets[i]][0]
@@ -182,7 +190,7 @@ func (w *shellImprintWork) modelVertices() ([][2]shellImprintPoint, error) {
 			at := func(x int, end int) *shellImprintPoint {
 				j := w.offsets[x]
 				if end == 1 {
-					j += len(w.source.branches[x].Segments) - 1
+					j += shellSectionPieceCount(w.source.branches[x]) - 1
 				}
 				return &out[j][end]
 			}
@@ -196,6 +204,16 @@ func (w *shellImprintWork) modelVertices() ([][2]shellImprintPoint, error) {
 
 func (w *shellImprintWork) modelPoint(branch, piece, end int, s intersect.TubeSegment) (*geom.ExactComposedCurveEvent, error) {
 	b := w.source.branches[branch]
+	if b.rational != nil {
+		d, e := b.rational.Piece(piece)
+		if e != nil {
+			return nil, e
+		}
+		if end < 0 || end > 1 {
+			return nil, geom.ErrInvalid
+		}
+		return d.Endpoints[end].ModelEvent, nil
+	}
 	if !b.Closed && (piece == 0 && end == 0 || piece == len(b.Segments)-1 && end == 1) {
 		p := b.Ends[end].Certificate.ModelEvent
 		if p == nil {
@@ -355,10 +373,10 @@ func (w *shellImprintWork) facePaths(op int, out AlgebraicShellImprint) (map[int
 			if face != b.Faces[op] {
 				return nil, geom.ErrConvergence
 			}
-			for k := range b.Segments {
+			for k := 0; k < shellSectionPieceCount(b); k++ {
 				index := k
 				if x.Reversed {
-					index = len(b.Segments) - 1 - k
+					index = shellSectionPieceCount(b) - 1 - k
 				}
 				id := w.offsets[x.Branch] + index
 				use := AlgebraicShellImprintUse{OriginalEdge: -1, SectionPiece: id, Reversed: x.Reversed}
@@ -431,6 +449,20 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 	if len(paths) == 0 {
 		return []AlgebraicShellImprintFace{original}, nil
 	}
+	// Geometric closed-loop winding and open/closed nesting currently
+	// require legacy tube derivatives. Do not route a restricted open piece
+	// through those helpers merely because its sibling closed path is regular.
+	hasClosed, hasRestricted := false, false
+	for _, p := range paths {
+		hasClosed = hasClosed || p.closed
+		for _, u := range p.uses {
+			hasRestricted = hasRestricted || w.source.branches[s.Section[u.SectionPiece].Branch].rational != nil
+		}
+	}
+	if hasClosed && hasRestricted {
+		return nil, geom.ErrConvergence
+	}
+
 	var open, closed []shellImprintPath
 	for _, p := range paths {
 		if p.closed {
@@ -609,4 +641,11 @@ func (s *AlgebraicShellImprint) validateIncidence(ctx context.Context, preserveE
 	}
 	s.Topology = t
 	return nil
+}
+
+func shellSectionPieceCount(b AlgebraicShellSectionBranch) int {
+	if b.rational != nil {
+		return b.rational.PieceCount()
+	}
+	return len(b.Segments)
 }
