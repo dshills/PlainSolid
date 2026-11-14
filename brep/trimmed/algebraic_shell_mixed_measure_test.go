@@ -249,6 +249,18 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			t.Fatal("simultaneous original roof contact missing", i, events)
 		}
 	}
+	// With a distant origin, the positive roof hit is less than one binary64
+	// step beyond T=2^47. It must stay outside a closed range ending exactly
+	// there, even though its outward presentation interval starts at 2^47.
+	line.Line.MinParameter, line.Line.MaxParameter = 0, 1<<47
+	ev, err := bodies[1].IntersectMaterialLineEvents(ctx, geom.Vec3{X: .5, Y: .5, Z: -(1 << 47)}, geom.Vec3{Z: 1}, line)
+	if err != nil || len(ev) != 1 || ev[0].ExactParameter == nil || ev[0].ExactParameter.Cmp(big.NewRat(1<<47-1, 1)) != 0 || !ev[0].After {
+		t.Fatal("clamped exact material event order at distant origin", ev, err)
+	}
+	ev, err = bodies[1].IntersectMaterialLineEvents(ctx, geom.Vec3{X: .5, Y: .5, Z: 1 << 47}, geom.Vec3{Z: -2}, line)
+	if err != nil || len(ev) != 1 || ev[0].ExactParameter == nil || ev[0].ExactParameter.Cmp(new(big.Rat).Sub(big.NewRat(1<<47, 1), big.NewRat(1, 256))) != 0 || !ev[0].After {
+		t.Fatal("recentered sweep must preserve negative directions and exact hit units", ev, err)
+	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {

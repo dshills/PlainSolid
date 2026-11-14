@@ -76,6 +76,34 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 	}
 	minT, maxT := o.Line.MinParameter, o.Line.MaxParameter
 	sources := [2]Solid{s.source.a, s.source.b}
+	shift := new(big.Rat)
+	// For a cardinal direction, replace the axial origin with an exactly
+	// represented component of the source box. Candidate parameters are
+	// translated back in rationals. This avoids large parameter magnitudes
+	// in the original chart isolation without moving the actual line.
+	d := line.Direction()
+	if axis := algebraicCardinalAxis(d); axis >= 0 {
+		directionUnit := [3]float64{d.X, d.Y, d.Z}[axis]
+		x := [3]float64{origin.X, origin.Y, origin.Z}
+		for i, operand := range sources {
+			if len(operand.faces) == 0 {
+				continue
+			}
+			b := s.source.bounds[i]
+			lo, hi := [3]float64{b.Min.X, b.Min.Y, b.Min.Z}[axis], [3]float64{b.Max.X, b.Max.Y, b.Max.Z}[axis]
+			if math.Abs(x[axis]-lo) > 16*max(1, hi-lo) {
+				shift.Quo(shift.Sub(ratInset(lo), ratInset(x[axis])), ratInset(directionUnit))
+				x[axis] = lo
+				origin = geom.Vec3{X: x[0], Y: x[1], Z: x[2]}
+				line, e = geom.NewLine(origin, direction)
+				if e != nil {
+					return nil, e
+				}
+				o.Line.MinParameter, o.Line.MaxParameter = 0, 1
+			}
+			break
+		}
+	}
 	for i, operand := range sources {
 		if len(operand.faces) == 0 {
 			continue
@@ -88,7 +116,8 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 	}
 	type candidate struct {
 		AlgebraicShellLineHit
-		parameter *big.Rat
+		parameter    *big.Rat
+		lower, upper *big.Rat
 	}
 	var candidates []candidate
 	for i, operand := range sources {
@@ -107,10 +136,29 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 			if e != nil {
 				return nil, e
 			}
-			candidates = append(candidates, candidate{AlgebraicShellLineHit{Operand: i, SplineRayHit: r}, at})
+			lo, hi := algebraicLineOrderBound(at, r.ParameterMin), algebraicLineOrderBound(at, r.ParameterMax)
+			if shift.Sign() != 0 {
+				lo, hi = new(big.Rat).Add(lo, shift), new(big.Rat).Add(hi, shift)
+				if at != nil {
+					at = lo
+				}
+				l, e := geom.RationalOutwardRange(lo)
+				if e != nil {
+					return nil, e
+				}
+				u, e := geom.RationalOutwardRange(hi)
+				if e != nil {
+					return nil, e
+				}
+				r.ParameterMin, r.ParameterMax = l.Min, u.Max
+			}
+			candidates = append(candidates, candidate{
+				AlgebraicShellLineHit: AlgebraicShellLineHit{Operand: i, SplineRayHit: r}, parameter: at,
+				lower: lo, upper: hi,
+			})
 		}
 	}
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].ParameterMin < candidates[j].ParameterMin })
+	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].lower.Cmp(candidates[j].lower) < 0 })
 	var state [2]bool
 	material := func() bool {
 		switch s.op {
@@ -123,7 +171,8 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 		}
 	}
 	var out []AlgebraicShellLineEvent
-	last := o.Line.MinParameter
+	last, far := new(big.Rat).Add(ratInset(o.Line.MinParameter), shift), new(big.Rat).Add(ratInset(o.Line.MaxParameter), shift)
+	requestedLow, requestedHigh := ratInset(minT), ratInset(maxT)
 	for i := 0; i < len(candidates); {
 		if e := ctx.Err(); e != nil {
 			return nil, e
@@ -138,10 +187,11 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 				i++
 			}
 		}
-		if h.ParameterMin <= last || h.ParameterMax >= o.Line.MaxParameter {
-			return nil, fmt.Errorf("%w: overlapping or unbounded material crossing of operand %d face %d on [%g,%g], previous %g", geom.ErrConvergence, h.Operand, h.Face, h.ParameterMin, h.ParameterMax, last)
+		lo, hi := h.lower, h.upper
+		if lo.Cmp(last) <= 0 || hi.Cmp(far) >= 0 {
+			return nil, fmt.Errorf("%w: overlapping or unbounded material crossing of operand %d face %d on [%g,%g], previous %s", geom.ErrConvergence, h.Operand, h.Face, h.ParameterMin, h.ParameterMax, last.RatString())
 		}
-		last = h.ParameterMax
+		last = hi
 		before := material()
 		for _, x := range group {
 			if x.Direction == 0 || (x.Direction > 0) != state[x.Operand] {
@@ -150,10 +200,10 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 			state[x.Operand] = !state[x.Operand]
 		}
 		after := material()
-		if before == after && len(group) == 1 || h.ParameterMax < minT || h.ParameterMin > maxT {
+		if before == after && len(group) == 1 || hi.Cmp(requestedLow) < 0 || lo.Cmp(requestedHigh) > 0 {
 			continue
 		}
-		if h.ParameterMin < minT || h.ParameterMax > maxT {
+		if lo.Cmp(requestedLow) < 0 || hi.Cmp(requestedHigh) > 0 {
 			return nil, fmt.Errorf("%w: crossing enclosure straddles requested range", geom.ErrConvergence)
 		}
 		event := AlgebraicShellLineEvent{ParameterMin: h.ParameterMin, ParameterMax: h.ParameterMax, ExactParameter: h.parameter,
@@ -170,6 +220,28 @@ func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin
 	return out, nil
 }
 
+// A proved rational parameter is stronger than its outward presentation
+// bounds. Unproved roots still use their conservative enclosing endpoints.
+func algebraicLineOrderBound(q *big.Rat, b float64) *big.Rat {
+	if q != nil {
+		return q
+	}
+	return ratInset(b)
+}
+
+func algebraicCardinalAxis(v geom.Vec3) int {
+	switch {
+	case v.X != 0 && v.Y == 0 && v.Z == 0:
+		return 0
+	case v.X == 0 && v.Y != 0 && v.Z == 0:
+		return 1
+	case v.X == 0 && v.Y == 0 && v.Z != 0:
+		return 2
+	default:
+		return -1
+	}
+}
+
 // A Krawczyk enclosure may be broader than nearby hits on another shell.
 // Where the whole original support graph has two affine projected coordinates,
 // a cardinal line determines its exact UV directly. Use that proof only to
@@ -178,17 +250,9 @@ func tightenCardinalBooleanLineHit(ctx context.Context, f Face, line geom.Line, 
 	direction, origin := line.Direction(), line.Origin()
 	d := [3]float64{direction.X, direction.Y, direction.Z}
 	x := [3]float64{origin.X, origin.Y, origin.Z}
-	axis := -1
-	for i, v := range d {
-		if v != 0 {
-			if axis >= 0 {
-				return hit, nil, nil
-			}
-			axis = i
-		}
-	}
+	axis := algebraicCardinalAxis(direction)
 	if axis < 0 {
-		return hit, nil, geom.ErrInvalid
+		return hit, nil, nil
 	}
 	axes := [2]int{(axis + 1) % 3, (axis + 2) % 3}
 	p, e := exactFaceSupportPatch(f, o)
