@@ -132,6 +132,14 @@ func readEllipseConic(r io.Reader, l Limits, quarter *int) (EllipseConicModel, e
 			}
 		}
 	}
+	return decodeEllipseConicRecords(doc, quarter)
+}
+
+func decodeEllipseConicRecords(doc topologySource, quarter *int) (EllipseConicModel, error) {
+	bad := func() (EllipseConicModel, error) {
+		return EllipseConicModel{}, fmt.Errorf("iges: unsupported exact ellipse conic")
+	}
+	var e error
 	var curve, tr *topologyRecord
 	for i := range doc.entities {
 		x := &doc.entities[i]

@@ -150,14 +150,15 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 		// material codec. The distinct three-flag mode admits only full ellipse104
 		// and its owned124; existing caller modes retain their entity gates.
 		conicalMaterial := len(circularMode) == 2 && circularMode[0] && circularMode[1] && lens && !placed && !cones && !planes && !cylinders && !spheres && !tori
-		ellipseConic := len(circularMode) == 3 && !circularMode[0] && !circularMode[1] && circularMode[2]
+		ellipseRing := len(circularMode) == 4 && !circularMode[0] && !circularMode[1] && circularMode[2] && circularMode[3]
+		ellipseConic := ellipseRing || len(circularMode) == 3 && !circularMode[0] && !circularMode[1] && circularMode[2]
 		circular := len(circularMode) == 1 && circularMode[0] || conicalMaterial
 		supported := (conicalMaterial && kind == 194) || (circular && (kind == 100 || kind == 110 || kind == 116 || kind == 123 || kind == 190 || kind == 192)) || (placed && kind == 124) || kind == 126 || kind == 128 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514 || (lens && kind == 186)
 		if cylinders || planes || spheres || tori || cones {
 			supported = kind == 116 || kind == 123 || (cylinders && kind == 192) || (planes && kind == 190) || (spheres && kind == 196) || (tori && kind == 198) || (cones && kind == 194)
 		}
 		if ellipseConic {
-			supported = kind == 104 || kind == 124
+			supported = kind == 104 || kind == 124 || ellipseRing && kind == 102
 		}
 		if !supported {
 			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
