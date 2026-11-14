@@ -17,3 +17,17 @@ Existing native Torus takes geom.Frame with floating normalization; importing
 that as exact3/5–4/5 source would silently replace the authored orientation.
 A source-preserving rational analytic surface adapter is a separate prerequisite.
 Perpendicular/coaxial native APIs and STEP dialects remain unchanged.
+
+Exact raw mass coefficients are now independently qualified by the same oracle's
+complete central tensor output. TestObliqueCylinderTorusCavityMoments compares
+volume, centroid and all nine central inertia entries at1e-6. Torus raw tensor
+is Qtorus=Qradial*I+(Qaxis-Qradial)*n*n^T+Vtorus*center*center^T before removal;
+this independently yields retained Qxz coefficient+333/25*pi² for the fixture.
+Full first moment centralization follows subtraction. Coefficients are exact;
+pi and quotient-dependent centroidal values have rational outward intervals.
+The world occurrence tensor uses full exact rotation/translation composition;
+TestObliqueCavityWorldMoments qualifies translated cross terms and invariant
+central inertia, including atomic mapping budget. BoundAffineRange reuses only
+the original outer cylinder support, valid because strict containment excludes
+the torus from all extrema; irrational sheared support is explicitly enclosed.
+No native floating-frame oblique BRep is claimed by these measures.

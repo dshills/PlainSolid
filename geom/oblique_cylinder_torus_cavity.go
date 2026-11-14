@@ -247,3 +247,13 @@ func (s ObliqueCylinderTorusCavityMaterial) ClipRationalLine(ctx context.Context
 	}
 	return TorusCylinderLine{out.Intervals, out.Hits}, nil
 }
+
+// BoundAffineRange certifies original material extrema under any nonsingular
+// rational affine map. The strictly internal independently tilted torus cannot
+// attain an extreme; the original cylinder support proof is reused unchanged.
+func (s ObliqueCylinderTorusCavityMaterial) BoundAffineRange(ctx context.Context, m [3][4]*big.Rat, bits int, o SurfacePatchOptions) (CylinderTorusCavityBounds, error) {
+	if s.source.R == nil {
+		return CylinderTorusCavityBounds{}, ErrInvalid
+	}
+	return (CylinderTorusCavityMaterial{source: s.source}).BoundAffineRange(ctx, m, bits, o)
+}
