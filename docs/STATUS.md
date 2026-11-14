@@ -227,7 +227,7 @@ The display mesher certifies affine faces with a bounded chain of adjacent
 cubic or quartic graph trims, including C0 joins and shared sample indices.
 Nonbinary exact supports participate in complete certified transverse section
 traces and standalone algebraic section persistence, including original
-trim clipping. A closed two-face shell intersection preserves its nonbinary
+trim clipping. A closed two-face shell intersection preserves its exact Bézier
 roof through imprint, original-face selection, volume bounds and native
 reconstruction. Exact support queries cover face membership, bounded line
 contacts, distance, regularity, and material location on rectangular shells.

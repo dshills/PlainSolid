@@ -22,12 +22,45 @@ type AlgebraicShellLineHit struct {
 	SplineRayHit
 }
 
+// AlgebraicShellLineEvent retains one crossing or an exact simultaneous
+// contact. Before and After describe material on the two open half-lines
+// immediately next to the event. A simultaneous contact can have the same
+// material state on both sides despite lying on the result boundary.
+type AlgebraicShellLineEvent struct {
+	ParameterMin, ParameterMax float64
+	ExactParameter             *big.Rat // set when proved by a projected original chart
+	Before, After              bool
+	Hits                       []AlgebraicShellLineHit
+}
+
 // IntersectMaterialLine reports all proved material transitions on a finite
 // interval of the normalized model line. It verifies a sweep starting and
 // ending outside both operand enclosures. Buried operand crossings are omitted.
 // Unresolved face contacts or overlapped root enclosures, including simultaneous
 // contacts on the generated section, return an error and no partial list.
 func (s AlgebraicShellBoolean) IntersectMaterialLine(ctx context.Context, origin, direction geom.Vec3, o SplineRayOptions) ([]AlgebraicShellLineHit, error) {
+	events, e := s.intersectMaterialLine(ctx, origin, direction, o, false)
+	if e != nil {
+		return nil, e
+	}
+	var hits []AlgebraicShellLineHit
+	for _, event := range events {
+		hits = append(hits, event.Hits[0])
+	}
+	return hits, nil
+}
+
+// IntersectMaterialLineEvents additionally reports simultaneous crossings
+// whose exact rational parameters coincide on the two original operands.
+// The qualified section is transverse between operand surfaces. Therefore
+// a simultaneous crossing lies on the Boolean boundary even when neither
+// line side contains material. Nearby overlapping but unequal enclosures
+// still fail without publishing a partial list.
+func (s AlgebraicShellBoolean) IntersectMaterialLineEvents(ctx context.Context, origin, direction geom.Vec3, o SplineRayOptions) ([]AlgebraicShellLineEvent, error) {
+	return s.intersectMaterialLine(ctx, origin, direction, o, true)
+}
+
+func (s AlgebraicShellBoolean) intersectMaterialLine(ctx context.Context, origin, direction geom.Vec3, o SplineRayOptions, simultaneous bool) ([]AlgebraicShellLineEvent, error) {
 	if ctx == nil || s.source == nil || !finite(o.Line.MinParameter) || !finite(o.Line.MaxParameter) || o.Line.MinParameter >= o.Line.MaxParameter {
 		return nil, geom.ErrInvalid
 	}
@@ -53,7 +86,11 @@ func (s AlgebraicShellBoolean) IntersectMaterialLine(ctx context.Context, origin
 		}
 		o.Line.MinParameter, o.Line.MaxParameter = min(o.Line.MinParameter, lo), max(o.Line.MaxParameter, hi)
 	}
-	var candidates []AlgebraicShellLineHit
+	type candidate struct {
+		AlgebraicShellLineHit
+		parameter *big.Rat
+	}
+	var candidates []candidate
 	for i, operand := range sources {
 		if len(operand.faces) == 0 {
 			continue
@@ -66,12 +103,11 @@ func (s AlgebraicShellBoolean) IntersectMaterialLine(ctx context.Context, origin
 			return nil, geom.ErrConvergence
 		}
 		for _, h := range q.Hits {
-			if r, proved, e := tightenCardinalBooleanLineHit(ctx, operand.faces[h.Face], line, h, o.Patch); e != nil {
+			r, at, e := tightenCardinalBooleanLineHit(ctx, operand.faces[h.Face], line, h, o.Patch)
+			if e != nil {
 				return nil, e
-			} else if proved {
-				h = r
 			}
-			candidates = append(candidates, AlgebraicShellLineHit{Operand: i, SplineRayHit: h})
+			candidates = append(candidates, candidate{AlgebraicShellLineHit{Operand: i, SplineRayHit: r}, at})
 		}
 	}
 	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].ParameterMin < candidates[j].ParameterMin })
@@ -86,30 +122,47 @@ func (s AlgebraicShellBoolean) IntersectMaterialLine(ctx context.Context, origin
 			return state[0] && !state[1]
 		}
 	}
-	var out []AlgebraicShellLineHit
+	var out []AlgebraicShellLineEvent
 	last := o.Line.MinParameter
-	for _, h := range candidates {
+	for i := 0; i < len(candidates); {
 		if e := ctx.Err(); e != nil {
 			return nil, e
+		}
+		h := candidates[i]
+		group := []candidate{h}
+		i++
+		if simultaneous && h.parameter != nil && i < len(candidates) {
+			next := candidates[i]
+			if next.parameter != nil && next.parameter.Cmp(h.parameter) == 0 && next.Operand != h.Operand {
+				group = append(group, next)
+				i++
+			}
 		}
 		if h.ParameterMin <= last || h.ParameterMax >= o.Line.MaxParameter {
 			return nil, fmt.Errorf("%w: overlapping or unbounded material crossing of operand %d face %d on [%g,%g], previous %g", geom.ErrConvergence, h.Operand, h.Face, h.ParameterMin, h.ParameterMax, last)
 		}
-		if h.Direction == 0 || (h.Direction > 0) != state[h.Operand] {
-			return nil, fmt.Errorf("%w: uncertified material crossing of operand %d face %d on [%g,%g], previous %g, orientation %d", geom.ErrConvergence, h.Operand, h.Face, h.ParameterMin, h.ParameterMax, last, h.Direction)
-		}
 		last = h.ParameterMax
 		before := material()
-		state[h.Operand] = !state[h.Operand]
+		for _, x := range group {
+			if x.Direction == 0 || (x.Direction > 0) != state[x.Operand] {
+				return nil, fmt.Errorf("%w: uncertified material crossing of operand %d face %d on [%g,%g], orientation %d", geom.ErrConvergence, x.Operand, x.Face, x.ParameterMin, x.ParameterMax, x.Direction)
+			}
+			state[x.Operand] = !state[x.Operand]
+		}
 		after := material()
-		if before == after || h.ParameterMax < minT || h.ParameterMin > maxT {
+		if before == after && len(group) == 1 || h.ParameterMax < minT || h.ParameterMin > maxT {
 			continue
 		}
 		if h.ParameterMin < minT || h.ParameterMax > maxT {
 			return nil, fmt.Errorf("%w: crossing enclosure straddles requested range", geom.ErrConvergence)
 		}
-		h.Entering = after
-		out = append(out, h)
+		event := AlgebraicShellLineEvent{ParameterMin: h.ParameterMin, ParameterMax: h.ParameterMax, ExactParameter: h.parameter,
+			Before: before, After: after}
+		for _, x := range group {
+			x.Entering = !before && after
+			event.Hits = append(event.Hits, x.AlgebraicShellLineHit)
+		}
+		out = append(out, event)
 	}
 	if state != ([2]bool{}) {
 		return nil, geom.ErrConvergence
@@ -121,7 +174,7 @@ func (s AlgebraicShellBoolean) IntersectMaterialLine(ctx context.Context, origin
 // Where the whole original support graph has two affine projected coordinates,
 // a cardinal line determines its exact UV directly. Use that proof only to
 // tighten already-certified roots, never to skip unresolved support contacts.
-func tightenCardinalBooleanLineHit(ctx context.Context, f Face, line geom.Line, hit SplineRayHit, o geom.SurfacePatchOptions) (SplineRayHit, bool, error) {
+func tightenCardinalBooleanLineHit(ctx context.Context, f Face, line geom.Line, hit SplineRayHit, o geom.SurfacePatchOptions) (SplineRayHit, *big.Rat, error) {
 	direction, origin := line.Direction(), line.Origin()
 	d := [3]float64{direction.X, direction.Y, direction.Z}
 	x := [3]float64{origin.X, origin.Y, origin.Z}
@@ -129,50 +182,50 @@ func tightenCardinalBooleanLineHit(ctx context.Context, f Face, line geom.Line, 
 	for i, v := range d {
 		if v != 0 {
 			if axis >= 0 {
-				return hit, false, nil
+				return hit, nil, nil
 			}
 			axis = i
 		}
 	}
 	if axis < 0 {
-		return hit, false, geom.ErrInvalid
+		return hit, nil, geom.ErrInvalid
 	}
 	axes := [2]int{(axis + 1) % 3, (axis + 2) % 3}
 	p, e := exactFaceSupportPatch(f, o)
 	if e != nil {
-		return hit, false, e
+		return hit, nil, e
 	}
 	p, e = p.Trim(hit.Cell)
 	if e != nil {
-		return hit, false, e
+		return hit, nil, e
 	}
 	g, e := geom.NewAffineProjectedGraph(ctx, p, axes, o)
 	if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDegenerate) {
-		return hit, false, nil
+		return hit, nil, nil
 	}
 	if e != nil {
-		return hit, false, e
+		return hit, nil, e
 	}
 	opt := geom.SurfacePatchEvaluationOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
 	uv, e := g.InvertRational(ctx, [2]*big.Rat{ratInset(x[axes[0]]), ratInset(x[axes[1]])}, opt)
 	if e != nil || !uv.Inside {
-		return hit, false, e
+		return hit, nil, e
 	}
 	j, e := g.EvaluateRational(ctx, uv.UV, opt)
 	if e != nil {
-		return hit, false, e
+		return hit, nil, e
 	}
 	t := new(big.Rat).Quo(new(big.Rat).Sub(j.Point[axis], ratInset(x[axis])), ratInset(d[axis]))
 	if t.Cmp(ratInset(hit.ParameterMin)) < 0 || t.Cmp(ratInset(hit.ParameterMax)) > 0 {
-		return hit, false, geom.ErrConvergence
+		return hit, nil, geom.ErrConvergence
 	}
 	bound, e := geom.RationalOutwardRange(t)
 	if e != nil {
-		return hit, false, e
+		return hit, nil, e
 	}
 	hit.ParameterMin, hit.ParameterMax = bound.Min, bound.Max
 	hit.UV, hit.Bounds = rationalUVBounds(uv.UV[0], uv.UV[1]), rationalPointBounds(j.Point)
-	return hit, true, nil
+	return hit, t, nil
 }
 
 func outsideBooleanLineBounds(line geom.Line, b geom.Box) (float64, float64, error) {

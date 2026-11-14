@@ -15,7 +15,7 @@ import (
 	"plainsolid/geom"
 )
 
-func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
+func TestAlgebraicShellSectionOnExactBezierRoof(t *testing.T) {
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	parts := make([]SewFace, 6)
@@ -31,9 +31,9 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			// Elevate the original quadratic U basis exactly. The new global
-			// Bernstein control coefficients include thirds; the circle
-			// intersection and original side curves remain exactly the same.
+			// Elevate the original quadratic U basis exactly. The parameter
+			// width 3/4 cancels the thirds in these particular controls.
+			// The circle intersection and original side curves are unchanged.
 			controls := make([][4]string, 12)
 			for u := 0; u < 4; u++ {
 				for v := 0; v < 3; v++ {
@@ -167,6 +167,26 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 	lineOptions.Line.MinParameter, lineOptions.Line.MaxParameter = -1, 2
 	if hits, e := common.IntersectMaterialLine(ctx, geom.Vec3{X: 13.0 / 16, Y: .5}, lineDir, lineOptions); !errors.Is(e, geom.ErrConvergence) || len(hits) != 0 {
 		t.Fatal("simultaneous contact at the exact rim returned an incomplete sweep", hits, e)
+	}
+	for i, model := range []AlgebraicShellBoolean{common, union, difference} {
+		events, e := model.IntersectMaterialLineEvents(ctx, geom.Vec3{X: 13.0 / 16, Y: .5}, lineDir, lineOptions)
+		if e != nil {
+			t.Fatal("exact grouped material contact", i, e)
+		}
+		count := 0
+		for _, event := range events {
+			if len(event.Hits) != 2 {
+				continue
+			}
+			count++
+			if event.ExactParameter == nil || event.ExactParameter.Sign() != 0 || event.Hits[0].Operand == event.Hits[1].Operand ||
+				event.Before != (i == 1) || event.After != (i != 0) {
+				t.Fatal("exact rim and adjacent material states", i, event)
+			}
+		}
+		if count != 1 {
+			t.Fatal("missing exact grouped rim", i, events)
+		}
 	}
 	copyOfViews := common
 	copyOfViews.Edges, copyOfViews.Faces, copyOfViews.Vertices = nil, nil, nil

@@ -74,8 +74,8 @@ face orientation. Focused race checks cover guarded topology failures and
 immutable accessors. The exact directed G1 STEP codec (`66c15f5`) retains
 joins with unequal speeds. The independently transferred OCCT model has one
 wire, two edges, and length 3.0259717630258898; the C1 codec rejects that input.
-The exact roof shell regression uses a degree-elevated homogeneous chart with
-nonbinary controls. It proves a closed section and a two-face common volume
+The exact roof shell regression uses a degree-elevated homogeneous chart. It
+proves a closed section and a two-face common volume
 on the original roof, then reconstructs both from native JSON. A modified
 recipe chart fails to bind to the original face. The rational volume enclosure
 narrows on refinement and contains an independent bracket of π(5/16)^4/2.
