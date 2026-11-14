@@ -213,6 +213,27 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if (argc == 3 && mode == "frustum-open-wall") {
+      std::ofstream out(argv[1]);
+      out.exceptions(std::ios::failbit | std::ios::badbit);
+      for (bool rising : {false, true}) {
+        const double start = rising ? 2 : 5;
+        const double finish = rising ? 5 : 2;
+        const double slope = (finish - start) / 4;
+        const auto stock = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)), start, finish, 4).Shape();
+        for (bool upper : {false, true}) {
+          // The tool extends beyond the open cap. Its plane at the
+          // other end is independently placed at the floor thickness.
+          const double lo = upper ? 3.5 : 2.5;
+          const double hi = upper ? 7.5 : 6.5;
+          const auto tool = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, lo), gp_Dir(0, 0, 1)),
+              start + slope * (lo - 3) - 0.625, start + slope * (hi - 3) - 0.625, hi - lo).Shape();
+          const std::string name = std::string("frustum-open-wall-") + (rising ? "rising-" : "falling-") + (upper ? "upper" : "lower");
+          record(out, name.c_str(), BRepAlgoAPI_Cut(stock, tool).Shape(), 1e-11);
+        }
+      }
+      return 0;
+    }
     if (argc == 3 && mode == "frustum-erosion") {
       std::ofstream out(argv[1]);
       out.exceptions(std::ios::failbit | std::ios::badbit);
