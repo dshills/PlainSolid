@@ -1969,3 +1969,10 @@ face, edge, and vertex identities after sewing and reload. Proper rational
 placement, including composed placement, must preserve a proved clearance
 between the original boundary shells after accounting for display error.
 The current clearance test is sufficient and may reject close curved shells.
+
+`FuseOrderedRoofBoxes` builds the exact native Fuse for matching XY
+footprints when rational roofs have a proved height order and the vertical
+bands meet across the whole rectangle. It keeps the higher original roof,
+lower original floor, and the two original contributors to each merged
+wall. The opt-in dispatcher falls back for unsupported geometry. Height
+order changes and open inter-band gaps remain outside this constructor.

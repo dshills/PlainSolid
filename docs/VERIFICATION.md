@@ -5520,3 +5520,16 @@ placement that passes generic mesh embedding. Too-close original boundaries,
 wrong cavity polarity and insufficient face-pair, triangle or intersection
 allowance fail atomically. The originating focused race passed in 62.647 s;
 the integrated non-race rerun passed in 3.308 s.
+
+## Native ordered roof-box Fuse (2026-11-14)
+
+The independent weighted-stock Fuse reproduces exact height
+`(2 + X²)/(1 + X)` on its original roof and analytic volume `3 log 2 + 1/2`.
+Pinned OCCT adaptive integration agrees on volume, area and centroid. OCCT
+retains subdivisions of the walls; both kernels return one solid and Euler
+characteristic two. Operand swap verifies original roof/floor ownership
+and both contributors to every merged wall. A parabolic roof meets the
+other floor tangentially on an interior line, which vanishes from the
+regularized output. Crossing order, footprint mismatch, a real inter-band
+gap and insufficient arithmetic return no topology. The combined live
+Common/Cut/Fuse race suite passed in 7.492 s.

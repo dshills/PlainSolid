@@ -122,7 +122,8 @@ func TestOrderedRoofBoxCommonNativeWeighted(t *testing.T) {
 		t.Fatal("native exact recipe changed weighted volume", reloaded, err)
 	}
 }
-func TestOrderedRoofBoxCommonNativeTangent(t *testing.T) {
+func orderedRoofTangentSource(t *testing.T) Solid {
+	t.Helper()
 	ctx := context.Background()
 	x := [3]float64{0, .5, 1}
 	y := [2]float64{-.125, 1.125}
@@ -162,6 +163,12 @@ func TestOrderedRoofBoxCommonNativeTangent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return curved
+}
+
+func TestOrderedRoofBoxCommonNativeTangent(t *testing.T) {
+	ctx := context.Background()
+	curved := orderedRoofTangentSource(t)
 	plane, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	s, h, err := IntersectOrderedRoofBoxes(ctx, curved, plane, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
 	if err != nil || len(h.Faces) != 6 || h.Faces[0].Operand != 1 {

@@ -171,7 +171,7 @@ TopoDS_Solid creasedHalf(bool right) {
   return solid;
 }
 
-void report(const std::string& name, const TopoDS_Shape& shape) {
+void report(const std::string& name, const TopoDS_Shape& shape, double relativeError = 0) {
   if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid())
     throw std::runtime_error("invalid " + name + " result");
   using Map = NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>;
@@ -187,8 +187,13 @@ void report(const std::string& name, const TopoDS_Shape& shape) {
     holes += wires-1;
   }
   GProp_GProps mass, area;
-  BRepGProp::VolumeProperties(shape,mass);
-  BRepGProp::SurfaceProperties(shape,area);
+  if (relativeError > 0) {
+    BRepGProp::VolumeProperties(shape,mass,relativeError);
+    BRepGProp::SurfaceProperties(shape,area,relativeError);
+  } else {
+    BRepGProp::VolumeProperties(shape,mass);
+    BRepGProp::SurfaceProperties(shape,area);
+  }
   const auto c=mass.CentreOfMass();
   gp_Mat shift;
   GProp::HOperator(c,gp_Pnt(0,0,0),mass.Mass(),shift);
@@ -321,6 +326,11 @@ int main(int argc, char** argv) {
     if (argc==2 && std::string(argv[1])=="weighted-ordered-difference") {
       const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,4)).Shape();
       report("weighted-ordered-difference",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="weighted-ordered-union") {
+      const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,-1),gp_Pnt(1,1,1)).Shape();
+      report("weighted-ordered-union",BRepAlgoAPI_Fuse(stock,weightedGraphStock(false)).Shape(),1e-12);
       return 0;
     }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {

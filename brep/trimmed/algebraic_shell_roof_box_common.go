@@ -73,27 +73,13 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	if len(left.roofSpans) != 0 || len(right.roofSpans) != 0 {
 		return empty, zero, geom.ErrUnrepresentable
 	}
-	cache := make(roofOrderCache)
-	order, err := cache.order(q.box, xy, &work)
+	order, err := orderedRoofBoxOrder(ctx, q.box, xy, &work)
 	if err != nil {
 		return empty, zero, err
 	}
 	roofIndex := 0
-	if order.Upper.Sign() > 0 {
-		sign := 1
-		if order.Lower.Sign() < 0 {
-			var err error
-			sign, err = proveRoofBoxPowerOrder(ctx, cache[q.box].power, &work)
-			if err != nil {
-				return empty, zero, err
-			}
-		}
-		if sign == 0 {
-			return empty, zero, geom.ErrUnrepresentable
-		}
-		if sign > 0 {
-			roofIndex = 1
-		}
+	if order > 0 {
+		roofIndex = 1
 	}
 	roof := q.box[roofIndex]
 	raw, err := roofBoxRestrictedPatch(roof.roof, d, &work)
@@ -124,10 +110,7 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	if gap.HalfspaceSign != 1 || gap.SideMask != 0 || gap.CornerMask != 0 {
 		return empty, zero, geom.ErrUnrepresentable
 	}
-	bottom, err := roofBoxConstructionPatch(ctx, d, 1, 1, [][4]*big.Rat{
-		{xy[0].Lower, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Lower, xy[1].Upper, floor, big.NewRat(1, 1)},
-		{xy[0].Upper, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Upper, xy[1].Upper, floor, big.NewRat(1, 1)},
-	}, &work)
+	bottom, err := orderedRoofFlatFloor(ctx, d, xy, floor, &work)
 	if err != nil {
 		return empty, zero, err
 	}
@@ -145,6 +128,39 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	}
 	history.ExactOperations = work.operations
 	return out, history, nil
+}
+
+// A positive sign means the first roof is the higher one; zero denotes
+// identical graphs. An unresolved mixed sign is never reported as equality.
+func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
+	cache := make(roofOrderCache)
+	difference, err := cache.order(boxes, xy, w)
+	if err != nil {
+		return 0, err
+	}
+	return orderedRoofPowerSign(ctx, cache[boxes].power, difference, w)
+}
+
+func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
+	if difference.Upper.Sign() <= 0 {
+		return difference.Lower.Sign(), nil
+	}
+	if difference.Lower.Sign() >= 0 {
+		return 1, nil
+	}
+	sign, err := proveRoofBoxPowerOrder(ctx, power, w)
+	if err == nil && sign == 0 {
+		err = geom.ErrUnrepresentable
+	}
+	return sign, err
+}
+
+func orderedRoofFlatFloor(ctx context.Context, d geom.ParameterRectangle, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {
+	one := big.NewRat(1, 1)
+	return roofBoxConstructionPatch(ctx, d, 1, 1, [][4]*big.Rat{
+		{xy[0].Lower, xy[1].Lower, floor, one}, {xy[0].Lower, xy[1].Upper, floor, one},
+		{xy[0].Upper, xy[1].Lower, floor, one}, {xy[0].Upper, xy[1].Upper, floor, one},
+	}, w)
 }
 
 // Both complete graphs must project identically and be strictly separated

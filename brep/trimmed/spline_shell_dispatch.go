@@ -40,6 +40,9 @@ type SplineShellCombineOptions struct {
 	// before general section discovery. A proof outside its supported domain
 	// continues through the other certified paths.
 	OrderedRoofCommon *SplineShellRoofCommonOptions
+	// OrderedRoofFuse optionally tries the single-band ordered roof-box Fuse
+	// before general section discovery. Unsupported geometry retains fallback.
+	OrderedRoofFuse *SplineShellRoofOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
 	// independent original-support tube proofs are required before use.
@@ -49,12 +52,15 @@ type SplineShellCombineOptions struct {
 	DiscoverVerticalQuadraticWarp bool
 }
 
-// SplineShellRoofCommonOptions bounds source and construction proofs for the
-// optional ordered roof-box Common dispatch.
+// SplineShellRoofCommonOptions configures the ordered roof-box Common dispatch.
 type SplineShellRoofCommonOptions struct {
 	Source       MixedRoofQueryOptions
 	Construction geom.SurfacePatchEvaluationOptions
 }
+
+// SplineShellRoofOptions bounds the source and construction proofs for an
+// optional ordered roof-box Boolean dispatch.
+type SplineShellRoofOptions = SplineShellRoofCommonOptions
 
 // SplineShellAlgebraicNativeOptions configures the opt-in algebraic path to
 // the ordinary native Solid. A zero tolerance uses the larger operand tolerance.
@@ -123,6 +129,23 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 			for resultFace, source := range h.Faces {
 				row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
 				row[source.Face] = append(row[source.Face], resultFace)
+			}
+			return s, r, nil
+		}
+		if !errors.Is(e, geom.ErrUnrepresentable) {
+			return Solid{}, r, e
+		}
+	}
+	if o.OrderedRoofFuse != nil && op == parametric.Union {
+		proof := o.OrderedRoofFuse
+		s, h, e := FuseOrderedRoofBoxes(ctx, a, b, proof.Source, proof.Construction)
+		if e == nil {
+			r = SplineShellCombineHistory{Method: "ordered-roof-fuse", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces))}
+			for resultFace, sources := range h.Faces {
+				for _, source := range sources {
+					row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
+					row[source.Face] = append(row[source.Face], resultFace)
+				}
 			}
 			return s, r, nil
 		}
