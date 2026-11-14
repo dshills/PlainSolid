@@ -426,6 +426,21 @@ func (d *RationalSphericalHierarchyDocument) CylinderDistance(ctx context.Contex
 	return step.DistanceRationalHierarchyCylinders(ctx, d.model, point, o)
 }
 
+// TorusDistance returns exact algebraic distances and complete nearest point
+// or circle witnesses for each authenticated ring-torus occurrence.
+func (d *RationalSphericalHierarchyDocument) TorusDistance(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyTorusDistanceOptions) (step.RationalHierarchyTorusDistance, error) {
+	if d == nil {
+		return step.RationalHierarchyTorusDistance{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.TorusDistance(ctx, point, o)
+	}
+	if d.vendor {
+		return step.DistanceOCCTRationalHierarchyTori(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.DistanceRationalHierarchyTori(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.

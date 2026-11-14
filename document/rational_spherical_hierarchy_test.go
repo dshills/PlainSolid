@@ -128,12 +128,19 @@ func TestRationalSphericalHierarchyDocument(t *testing.T) {
 			if err != nil || len(cylinderDistances.Leaves) != len(uses) {
 				t.Fatal("retained occurrence cylinder distances", cylinderDistances, err)
 			}
+			torusDistances, err := d.TorusDistance(ctx, origin, step.RationalHierarchyTorusDistanceOptions{})
+			if err != nil || len(torusDistances.Leaves) != len(uses) {
+				t.Fatal("retained occurrence torus distances", torusDistances, err)
+			}
 			for i, u := range uses {
 				if distances.Leaves[i].Supported != (u.Family == "sphere") || !reflect.DeepEqual(distances.Leaves[i].Path, u.Path) {
 					t.Fatal("sphere distance changed existing original occurrence ownership", distances.Leaves[i], u)
 				}
 				if cylinderDistances.Leaves[i].Supported != (u.Family == "cylinder") || !reflect.DeepEqual(cylinderDistances.Leaves[i].Path, u.Path) {
 					t.Fatal("cylinder distance changed existing original occurrence ownership", cylinderDistances.Leaves[i], u)
+				}
+				if torusDistances.Leaves[i].Supported != (u.Family == "torus") || !reflect.DeepEqual(torusDistances.Leaves[i].Path, u.Path) {
+					t.Fatal("torus distance changed original occurrence ownership", torusDistances.Leaves[i], u)
 				}
 			}
 		})
