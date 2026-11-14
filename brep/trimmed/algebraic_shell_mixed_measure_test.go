@@ -32,13 +32,17 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		Name          string
 		Area, Volume  float64
 		Centroid      [3]float64
+		Inertia       [3][3]float64
 		Faces, Solids int
 		Euler         int
 	}
 	refs := map[string]reference{
-		"intersection": {"intersection", 3.992955181787411, .4843585758058463, [3]float64{.5013441310737613, .501344131991718, -.2572354549737378}, 8, 1, 2},
-		"union":        {"union", 8.487908279091027, 1.4287883967133232, [3]float64{.5010038760434279, .5010038758984265, -.456827455506804}, 17, 1, 2},
-		"difference":   {"difference", 8.057158869984429, .7705242365509349, [3]float64{.500805327529843, .5002112334163255, -.6494104133380204}, 14, 2, 4},
+		"intersection": {"intersection", 3.992955181787411, .4843585758058463, [3]float64{.5013441310737613, .501344131991718, -.2572354549737378},
+			[3][3]float64{{.20371521469941042, -.1218491924154663, .062295538924379001}, {-.1218491924154663, .2051525087128116, .062306767791234563}, {.062295538924379001, .062306767791234563, .32555985558140593}}, 8, 1, 2},
+		"union": {"union", 8.487908279091027, 1.4287883967133232, [3]float64{.5010038760434279, .5010038758984265, -.456827455506804},
+			[3][3]float64{{.93573132257433334, -.35894677387277751, .32627225601126225}, {-.35894677387277751, .9694698816565811, .32630695666364889}, {.32627225601126225, .32630695666364889, 1.0504004945985486}}, 17, 1, 2},
+		"difference": {"difference", 8.057158869984429, .7705242365509349, [3]float64{.500805327529843, .5002112334163255, -.6494104133380204},
+			[3][3]float64{{.63205965232888095, -.19312612228535442, .2501881691341945}, {-.19312612228535442, .68990275364416731, .25017872840440297}, {.2501881691341945, .25017872840440297, .57193668591631075}}, 14, 2, 4},
 	}
 	if oracle := os.Getenv("PLAINSOLID_OCCT_CROSSING_ROOFS"); oracle != "" {
 		cmd := exec.CommandContext(ctx, oracle)
@@ -65,6 +69,16 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 				if v.Faces != baseline.Faces || v.Solids != baseline.Solids || v.Euler != baseline.Euler ||
 					math.Abs(v.Volume-baseline.Volume) > 1e-8 || math.Abs(v.Area-baseline.Area) > 1e-7 {
 					t.Fatal("independent OCCT repeat changed", v, baseline)
+				}
+				for i, want := range baseline.Centroid {
+					if !finite(v.Centroid[i]) || math.Abs(v.Centroid[i]-want) > 1e-8 {
+						t.Fatal("independent OCCT centroid repeat changed", v, baseline)
+					}
+					for j, want := range baseline.Inertia[i] {
+						if !finite(v.Inertia[i][j]) || math.Abs(v.Inertia[i][j]-want) > 1e-7 {
+							t.Fatal("independent OCCT inertia repeat changed", v, baseline)
+						}
+					}
 				}
 				refs[v.Name] = v
 			}
@@ -112,17 +126,20 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			if small, err := body.BoundTrimmedGeometry(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); !errors.Is(err, geom.ErrConvergence) || small.VisitedCells != 0 {
 				t.Fatal("partial trim enclosure escaped an exhausted budget", small, err)
 			}
-			mass, err := body.BoundMassProperties(ctx, AlgebraicShellMeasureOptions{MaxDepth: 6, TubeSubdivisions: 8})
-			if err != nil || !contains(mass.Volume, ref.Volume) || mass.Volume.Lower.Sign() <= 0 {
-				t.Fatal("OCCT volume outside native mass interval", name, mass, err)
+		}
+		mass, err := body.BoundMassProperties(ctx, AlgebraicShellMeasureOptions{MaxDepth: 6, TubeSubdivisions: 8})
+		if err != nil || !contains(mass.Volume, ref.Volume) || mass.Volume.Lower.Sign() <= 0 {
+			t.Fatal("OCCT volume outside native mass interval", name, mass.Volume, err)
+		}
+		for j := range mass.Centroid {
+			if !contains(mass.Centroid[j], ref.Centroid[j]) || !contains(mass.FirstMoment[j], ref.Volume*ref.Centroid[j]) {
+				t.Fatal("OCCT centroid or first moment outside native interval", name, j, ref.Centroid[j])
 			}
-			for j := range mass.Centroid {
-				if !contains(mass.Centroid[j], ref.Centroid[j]) {
-					t.Fatal("OCCT centroid outside native original-support interval", j, ref.Centroid[j], mass.Centroid[j])
+			for k := range mass.Inertia[j] {
+				a, b := mass.Inertia[j][k], mass.Inertia[k][j]
+				if !contains(a, ref.Inertia[j][k]) || a.Lower.Cmp(b.Lower) != 0 || a.Upper.Cmp(b.Upper) != 0 {
+					t.Fatal("OCCT world inertia outside native symmetric interval", name, j, k, ref.Inertia[j][k], a)
 				}
-			}
-			if mass.Inertia[0][1].Lower.Cmp(mass.Inertia[1][0].Lower) != 0 {
-				t.Fatal("native inertia bounds must be symmetric", mass.Inertia)
 			}
 		}
 	}

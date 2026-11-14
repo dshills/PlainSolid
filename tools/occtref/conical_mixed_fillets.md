@@ -103,3 +103,24 @@ The fresh executable built against the same pinned archive had SHA256
 `48fe56ab65df799ba3332d277b00d17c9cff641bed37e71fc9fdb0e5870f5b85`.
 Run with `PLAINSOLID_OCCT_CONICAL_FILLET` pointing to this rebuilt standalone
 oracle; no executable or generated output is committed.
+
+## Retained rolling torus versus independent bore
+
+`--torus-bore` uses the identical independently constructed pierced stock, but
+queries `(77/10,0,69/100)`, `(77/10,0,71/100)`, and
+`(991/128,0,3/4)`. These select the retained lower torus, the bore, and a
+proved two-owner tie. The last query has distinct exact feet
+`(159/20,0,3/80)` and `(7,0,3/4)` with squared distance `9025/16384`.
+`TestOCCTConicalTorusBoreNearest` reloads the Go native recipe and verifies its
+complete owner report, the same topology/measure invariants, independently
+computed meridional/cylinder feet, and the same finite-precision allowance.
+Decimal input fractions are represented as binary64 in this differential
+case; the exact sub-float transition is independently tested in the native
+rational query regression, not asserted from OCCT's numeric output.
+
+Fresh OCCT squared distances were `0.47566477087951503`,
+`0.49000000000000027`, and `0.55084228515625`. The tie returned two OCCT
+representatives; exact owner completeness comes from the Go proof, not that
+count. Fresh executable SHA256:
+`20364ae8852620afe85e98f1069aa7a9d4c7aaf82a8ceab23c2429a54a47f494`.
+The pinned OCCT source archive and original modes remain unchanged.

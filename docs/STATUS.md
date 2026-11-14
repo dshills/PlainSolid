@@ -360,6 +360,12 @@ comparison of the analytic crossed-bore STEP file. All 16 original
 browser cases and the Go/WASM preflight passed with no skips or retries.
 The verifier checked 841 application and 1,875 kernel source hashes and
 confirmed that only the local port changed in the Playwright configuration.
+The [disjoint-bore reconciliation](evidence/plaincad-reconciled-6d900753-development-disjoint-bore-holes-step-2026-11-14.json)
+adds worktree commit `e5ee180a` to clean review revision `6d900753`.
+All 17 original Hole and STEP browser tests and the Go/WASM preflight
+passed with no skips or retries. Both crossed and disjoint native STEP
+regressions passed against live OCCT. The verifier checked all 841
+application and 1,885 kernel source hashes.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

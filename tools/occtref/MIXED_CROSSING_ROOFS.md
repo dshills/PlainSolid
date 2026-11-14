@@ -5,7 +5,8 @@ independent Bézier patches each, using the analytic roof equations in the
 source. It does not read a PlainSolid curve, mesh, placement, or solid.
 It sews each OCCT shell, checks validity, and runs OCCT intersection,
 union, and difference. It then reports original topology, area, volume,
-and volume centroid as JSON lines.
+volume centroid, and inertia about the world origin as JSON lines. OCCT
+translates its centroidal inertia tensor using `GProp::HOperator`.
 
 Build against the OCCT revision in [the reference README](README.md):
 
@@ -18,7 +19,7 @@ PLAINSOLID_OCCT_CROSSING_ROOFS=/tmp/occt-crossing-roofs \
 The live run used OCCT `4dbfdcc448c0b3e565488afcd626c84483172db9`.
 Archive SHA-256: `32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7`.
 Observed executable SHA-256:
-`296486052cdfa30bf5b0d6e2a4dbf4e537d9fb3c459cb312a55053ebe0a69c9a`.
+`99e06b00164bac004cb08580c507194c34ae681111c6576ff77a6fbe702cb7df`.
 
 | Operation | Faces | Solids | Euler characteristic | Volume | Surface area |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -29,8 +30,9 @@ Observed executable SHA-256:
 The Go test also supports the retained numerical reference values without a
 local OCCT executable. Live tolerances describe reproducibility of OCCT
 floating-point integration only. The native intervals use original trimmed
-supports and their conservative chart covers; no triangle mass estimate is
-substituted. The independent evaluator does not prove a general Boolean
+supports and their conservative chart covers. All three Boolean results
+check containment of the OCCT volume, centroid, first moments and full
+world inertia tensor. The independent evaluator does not prove a general Boolean
 capability or exact equality between either engine's reported area values.
 
 `BoundTrimmedGeometry` is a separate native enclosure query. It intersects
