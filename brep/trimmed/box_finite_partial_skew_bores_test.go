@@ -95,3 +95,31 @@ func TestFinitePartialSkewBoresMeshAndLimits(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestFinitePartialSkewBoreBeyondActualIntersection(t *testing.T) {
+	ctx := context.Background()
+	f, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dims, c := geom.Vec3{X: 40, Y: 40, Z: 40}, geom.Vec3{X: 20, Y: 16, Z: 20}
+	for _, offset := range []float64{5, -5} {
+		for _, opposite := range []bool{false, true} {
+			out, err := BoxFinitePartialSkewBores(ctx, f, dims, c, 5, 2, offset, 0, 24.5, false, opposite, 1e-9)
+			if err != nil || out.ZFloorFace != 10 {
+				t.Fatal(offset, opposite, out.ZFloorFace, err)
+			}
+			floor := 24.5
+			if opposite {
+				floor = dims.Z - floor
+			}
+			support := out.Solid.Faces()[out.ZFloorFace].Surface.(geom.PlaneSurface)
+			if support.Frame().Origin().Z != floor {
+				t.Fatal("wrong floor", support.Frame().Origin())
+			}
+			if _, err := BoxFinitePartialSkewBores(ctx, f, dims, c, 5, 2, offset, 0, 23.75, false, opposite, 1e-9); err == nil {
+				t.Fatal("accepted a floor that intersects the other bore")
+			}
+		}
+	}
+}
