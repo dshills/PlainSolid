@@ -125,6 +125,23 @@ func (c AlgebraicGraphCapClip) TessellateCertified(ctx context.Context, o Algebr
 			out.Regions[parent].Holes = append(out.Regions[parent].Holes, i)
 		}
 	}
+	exactRegions, e := c.MaterialRegions(ctx, geom.ExactCurvePlaneEventOptions{})
+	if e != nil || len(exactRegions) != len(out.Regions) {
+		if e == nil {
+			e = geom.ErrConvergence
+		}
+		return zero, e
+	}
+	for i, region := range exactRegions {
+		if region.Outer != out.Regions[i].Outer || len(region.Holes) != len(out.Regions[i].Holes) {
+			return zero, geom.ErrConvergence
+		}
+		for j, hole := range region.Holes {
+			if hole != out.Regions[i].Holes[j] {
+				return zero, geom.ErrConvergence
+			}
+		}
+	}
 	for _, region := range out.Regions {
 		loops := [][]int{ids[region.Outer]}
 		for _, i := range region.Holes {
