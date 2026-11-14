@@ -2,14 +2,16 @@
 
 `ReadMixedTopologySolids` and `WriteMixedTopologySolids` support a collection of
 2–8 type186 solids containing at least two of the exact tetrahedral, convex
-affine-hexahedral, and original parabolic spline-roof families. Repeated roots
+affine-hexahedral, canonical circular-cylinder, and original parabolic spline-roof
+families. Repeated roots
 of any supported family are allowed within the same cumulative caps. Every root retains its native material
 proof; there is no faceting of the roof or generic approximate surface fitting.
 This is a multi-solid file, not IGES assembly placement, instance sharing, or a
 Boolean union. Bodies may overlap; inter-body noninterference is not claimed.
 
 The reader traverses only declared topology references in
-186→514→510→508→504/502 plus the original type126/128 geometry. Each source entity
+186→514→510→508→504/502 plus the original type126/128 geometry or the canonical cylinder
+100/110 curves and 190/192/116/123 supports/datums. Each source entity
 must belong to exactly one root. Cross-root topology/curve/support sharing,
 orphans, missing targets, unsupported entities and invalid topology fields fail.
 A component is reindexed in source directory order solely to invoke its existing
@@ -20,7 +22,8 @@ geometry, labels and subscripts are preserved with that map. Raw directory
 style/status/transform conditions are checked before reindexing, so proof staging
 cannot erase unsupported metadata. All global units are shared and preserved.
 
-Component structure chooses one decoder, never a best-effort fallback. A
+Component structure chooses one decoder, never a best-effort fallback. A 24-entity component must pass the complete canonical circular-cylinder
+scalar, support, full-chart and material proof. A
 34-entity component must pass the complete tetrahedron topology, continuous
 curve/UV, convex halfspace and closed-material proof. A 58-entity component whose six original support bases are all bilinear must
 pass the complete exact affine-hexahedron geometry and convex outward halfspace
@@ -89,3 +92,30 @@ source IDs, not shared occurrences. Root order and every provenance map are
 deterministic. Tests tighten the aggregate cap one below the exact control and
 entity counts, preserve old two-family input, and reject a bilinear support
 whose altered corner breaks the full affine/material proof.
+
+
+## Canonical circular material in the collection
+
+`MixedTopologyCylinder` and its `Cylinder` payload add the separately verified
+24-entity analytic family without widening that family. Directory order is
+normalized only by removing other roots' records; the local graph must still
+match the canonical circular-cylinder codec exactly. Typed reference rebasing
+now includes 190/192 support datums and 508 loops with zero or one pcurve per use.
+It never interprets coordinate values or curve parameters as references.
+The datum graph has no transform; full circular type100 rims and exact
+0–360-degree side coverage remain mandatory. Vendor-rounded variants still fail.
+
+`author_iges_mixed_circular_material.py` combines independent tetrahedral and
+original mapped-roof source with a canonical circular cylinder translated by
+(8,0,0). The retained 116-entity fixture has 156 spline controls; the analytic
+cylinder has no B-spline control net. Both source and Go output pass pinned OCCT
+TransferRoots/BRepCheck as 3 solids and 13 faces. With `V=8/3+12*pi`, the expected
+centroid is `((7/4+96*pi)/V,(-4/3)/V,(28/5+18*pi)/V)`; expected area is the
+original two-body area plus 20*pi. Bounds remain cumulative across every root.
+
+Repeated cylinder roots have separate decoded parameter and source-ID maps;
+tests mutate one result and verify the other is unchanged. Additional negative
+fixtures redirect a cylinder rim into another body's geometry, invalidate a
+cap's declared pcurve count, change radius or chart period, and tighten aggregate
+limits. Independent root collections still do not imply shared occurrences,
+Boolean union or inter-body noninterference.
