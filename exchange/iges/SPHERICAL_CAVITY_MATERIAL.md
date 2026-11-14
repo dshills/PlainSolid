@@ -71,3 +71,29 @@ UV curves and forged native placement also reject. The source cap is 32 entities
 all other limits remain unchanged. Focused normal/live, race, Go 1.23, vet,
 previous sphere variants and bounded fuzz qualify this separate placement path.
 Record reordering is not included.
+
+## Independently reordered cavity shells
+
+`ReadReindexedSphericalCavityMaterial` separately admits directory reindexing,
+each shell's own pole-list permutation and each four-use loop's cyclic start.
+The material root still determines which shell is exterior and which is the
+negative void. Each original face selects its own support, loop, vertex list
+and meridian list; those ownership sets must be distinct. Exact pole geometry
+under the support's placement determines each local pole role. A bounded root
+bijection then authenticates every datum, pcurve and transform and rejects
+cross-shell sharing or detached records. The canonical cavity proof is repeated
+after normalization, including strict concentric nesting and void direction.
+
+Original vertex-ordinal maps are keyed by their source pole-list IDs; use maps
+are keyed by source loop IDs. Both source faces, both meridians and all eight
+degree-pcurve IDs remain available through source role/ancestry fields. Native
+reload regenerates those identities from the retained original bytes; altered
+maps fail source export atomically. An inverted void direction, reused shell,
+shared support or shared pcurve is explicitly rejected.
+
+An independent Python transformer reverses the entire directory sequence,
+reverses both pole lists and rotates both loops while updating references and
+ordinals. Pinned OCCT accepts both placed and unplaced originals as valid
+cavities with the same independent mass/center measurements. Normal/live, race,
+Go 1.23, vet, previous sphere/cavity regression and bounded fuzz qualify the
+separate path. Graph traversal remains capped at 512 steps and 32 entities.
