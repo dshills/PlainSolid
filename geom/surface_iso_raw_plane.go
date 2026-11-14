@@ -42,6 +42,31 @@ func (c *SurfaceIsoCurve) IntersectRawPlane(ctx context.Context, a, b, d Vec3, o
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
+	var origin, x, y, normal [3]*big.Rat
+	for i := 0; i < 3; i++ {
+		origin[i] = new(big.Rat).SetFloat64(coordinate(a, i))
+		x[i] = new(big.Rat).Sub(new(big.Rat).SetFloat64(coordinate(b, i)), origin[i])
+		y[i] = new(big.Rat).Sub(new(big.Rat).SetFloat64(coordinate(d, i)), origin[i])
+	}
+	for i := range normal {
+		j, k := (i+1)%3, (i+2)%3
+		normal[i] = new(big.Rat).Sub(new(big.Rat).Mul(x[j], y[k]), new(big.Rat).Mul(x[k], y[j]))
+	}
+	return c.IntersectRationalPlane(ctx, origin, normal, o)
+}
+
+// IntersectRationalPlane intersects the original iso curve with
+// normal·(p−origin)=0. It uses exact rational plane coefficients without
+// normalizing them or constructing rounded points. The result and limits
+// follow IntersectRawPlane.
+func (c *SurfaceIsoCurve) IntersectRationalPlane(ctx context.Context, origin, normal [3]*big.Rat,
+	o SplinePlaneOptions) (r ExactCurvePlaneIntersection, err error) {
+	if ctx == nil || c == nil || c.patch == nil {
+		return r, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return r, e
+	}
 	if o.ParameterTolerance == 0 {
 		o.ParameterTolerance = 1e-10
 	}
@@ -77,18 +102,15 @@ func (c *SurfaceIsoCurve) IntersectRawPlane(ctx context.Context, a, b, d Vec3, o
 			return cmp < 0
 		})
 	}()
-	var origin, x, y, normal [3]*big.Rat
-	for i := 0; i < 3; i++ {
-		origin[i] = new(big.Rat).SetFloat64(coordinate(a, i))
-		x[i] = new(big.Rat).Sub(new(big.Rat).SetFloat64(coordinate(b, i)), origin[i])
-		y[i] = new(big.Rat).Sub(new(big.Rat).SetFloat64(coordinate(d, i)), origin[i])
-	}
 	nonzero := false
-	for i := 0; i < 3; i++ {
-		j, k := (i+1)%3, (i+2)%3
-		normal[i] = new(big.Rat).Sub(new(big.Rat).Mul(x[j], y[k]), new(big.Rat).Mul(x[k], y[j]))
-		if e := budget.check(normal[i]); e != nil {
-			return r, e
+	for i := range normal {
+		if origin[i] == nil || normal[i] == nil {
+			return r, ErrInvalid
+		}
+		for _, q := range []*big.Rat{origin[i], normal[i]} {
+			if e := budget.check(q); e != nil {
+				return r, e
+			}
 		}
 		nonzero = nonzero || normal[i].Sign() != 0
 	}

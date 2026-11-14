@@ -20,3 +20,12 @@ import (
 func (r *WrappedQuadraticFace) IntersectInclinedLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat, o geom.SurfacePatchOptions) (WrappedCylinderFaceLineIntersection, error) {
 	return r.intersectCylinderLine(ctx, origin, direction, limits, o, true)
 }
+
+// IntersectInclinedLineRational applies the same complete source and trim
+// tests to an exact rational line. Original line and UV parameters are never
+// converted to binary64. Vertical and non-simple shadow contacts remain
+// outside this query's supported scope.
+func (r *WrappedQuadraticFace) IntersectInclinedLineRational(ctx context.Context, origin, direction [3]*big.Rat,
+	limits [2]*big.Rat, o geom.SurfacePatchOptions) (WrappedCylinderFaceLineIntersection, error) {
+	return r.intersectCylinderLineRational(ctx, origin, direction, limits, o, true)
+}

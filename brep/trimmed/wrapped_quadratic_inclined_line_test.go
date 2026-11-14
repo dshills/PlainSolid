@@ -2,9 +2,11 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
-	"plainsolid/geom"
 	"testing"
+
+	"plainsolid/geom"
 )
 
 func TestWrappedQuadraticInclinedLine(t *testing.T) {
@@ -126,5 +128,59 @@ func TestWrappedQuadraticInclinedOriginalLift(t *testing.T) {
 	r, e := face.IntersectInclinedLine(ctx, geom.Vec3{}, geom.Vec3{X: 3, Z: .5}, [2]*big.Rat{new(big.Rat), big.NewRat(1, 1)}, geom.SurfacePatchOptions{})
 	if e != nil || len(r.Hits) != 1 || r.Hits[0].UV[0].Cmp(big.NewRat(4, 1)) != 0 || r.Hits[0].UV[1].Cmp(big.NewRat(1, 3)) != 0 || len(r.Hits[0].SourceU) != 2 {
 		t.Fatal("inclined original lifted occurrence", r, e)
+	}
+}
+
+func TestWrappedQuadraticInclinedLineRationalModel(t *testing.T) {
+	ctx := context.Background()
+	w := wrappedOverlapSupport(t)
+	outer := wrappedQuadraticLoop(t)
+	// A rational height through the seam lies in this unrounded inner trim.
+	points := [][2]*big.Rat{{big.NewRat(-1, 16), big.NewRat(-1, 2)}, {big.NewRat(-1, 16), big.NewRat(-1, 4)}, {big.NewRat(1, 16), big.NewRat(-1, 4)}, {big.NewRat(1, 16), big.NewRat(-1, 2)}}
+	var hole []ExactQuadraticUV
+	for i, xy := range points {
+		edge, e := quadraticLine(xy, points[(i+1)%len(points)])
+		if e != nil {
+			t.Fatal(e)
+		}
+		hole = append(hole, edge)
+	}
+	zero := new(big.Rat)
+	origin := [3]*big.Rat{big.NewRat(1, 3), zero, big.NewRat(-4, 7)}
+	direction := [3]*big.Rat{big.NewRat(5, 7), zero, big.NewRat(1, 11)}
+	limits := [2]*big.Rat{big.NewRat(1, 9), big.NewRat(7, 3)}
+	height := big.NewRat(-83, 231) // −4/7 + (7/3)/11.
+	for _, holed := range []bool{false, true} {
+		var holes [][]ExactQuadraticUV
+		if holed {
+			holes = [][]ExactQuadraticUV{hole}
+		}
+		face, e := NewWrappedQuadraticFace(ctx, w, outer, holes, WrappedQuadraticFaceOptions{SurfaceInjectivityOptions: geom.SurfaceInjectivityOptions{ProjectionAxes: [2]int{1, 2}}, Reversed: true})
+		if e != nil {
+			t.Fatal(e)
+		}
+		r, e := face.IntersectInclinedLineRational(ctx, origin, direction, limits, geom.SurfacePatchOptions{})
+		if e != nil || !r.Complete {
+			t.Fatal(r, e)
+		}
+		if holed {
+			if len(r.Hits) != 0 || r.ExcludedByTrim != 1 {
+				t.Fatal("original hole must exclude the nonbinary seam contact", r)
+			}
+			continue
+		}
+		if len(r.Hits) != 1 {
+			t.Fatal("expected a single finite retained contact", r)
+		}
+		h := r.Hits[0]
+		if h.Parameter.Cmp(limits[1]) != 0 || h.UV[0].Sign() != 0 || h.UV[1].Cmp(height) != 0 ||
+			h.Point[2].Cmp(height) != 0 || h.Point[0].Cmp(big.NewRat(2, 1)) != 0 || h.CrossingSign != -1 || h.BoundaryMask != 2 || len(h.SourceU) != 2 {
+			t.Fatal("rational model line lost original seam, analytic location or endpoint ownership", h)
+		}
+		bad := direction
+		bad[0] = nil
+		if r, e := face.IntersectInclinedLineRational(ctx, origin, bad, limits, geom.SurfacePatchOptions{}); !errors.Is(e, geom.ErrInvalid) || r.Complete || len(r.Hits) != 0 {
+			t.Fatal("malformed rational line must reject atomically", r, e)
+		}
 	}
 }

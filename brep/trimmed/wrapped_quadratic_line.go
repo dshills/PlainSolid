@@ -34,8 +34,8 @@ type WrappedCylinderFaceLineIntersection struct {
 // must be exactly representable for original spline iso extraction. Full
 // supporting-line roots must all be rational and simple; grazing, coincident
 // and unrecovered algebraic contacts reject atomically, even outside limits.
-// Raw plane construction also must be lossless. Only exact XYZ corroboration,
-// exact periodic identity and exact trim location admit hits; no display sample
+// Only exact XYZ corroboration, exact periodic identity and exact trim
+// location admit hits; no display sample
 // or rounded inverse is used. Options bound shared work and source data.
 func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat, o geom.SurfacePatchOptions) (WrappedCylinderFaceLineIntersection, error) {
 	if direction.Z != 0 {
@@ -45,9 +45,22 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 }
 
 func (r *WrappedQuadraticFace) intersectCylinderLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat, o geom.SurfacePatchOptions, inclined bool) (WrappedCylinderFaceLineIntersection, error) {
+	if !origin.IsFinite() || !direction.IsFinite() {
+		return WrappedCylinderFaceLineIntersection{}, geom.ErrInvalid
+	}
+	return r.intersectCylinderLineRational(ctx,
+		[3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		[3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}, limits, o, inclined)
+}
+
+func (r *WrappedQuadraticFace) intersectCylinderLineRational(ctx context.Context, ori, dir [3]*big.Rat,
+	limits [2]*big.Rat, o geom.SurfacePatchOptions, inclined bool) (WrappedCylinderFaceLineIntersection, error) {
 	var zero WrappedCylinderFaceLineIntersection
-	if ctx == nil || r == nil || len(r.loops) == 0 || !origin.IsFinite() || !direction.IsFinite() || direction.X == 0 && direction.Y == 0 || limits[0] == nil || limits[1] == nil || limits[0].Cmp(limits[1]) > 0 {
+	if ctx == nil || r == nil || len(r.loops) == 0 || limits[0] == nil || limits[1] == nil {
 		return zero, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return zero, e
 	}
 	w, ok := r.native.Face.Surface.(*geom.WrappedSurfacePatch)
 	if !ok {
@@ -67,20 +80,24 @@ func (r *WrappedQuadraticFace) intersectCylinderLine(ctx context.Context, origin
 	}
 	used := 0
 	check := func(q *big.Rat) error {
+		if q == nil {
+			return geom.ErrInvalid
+		}
 		used++
 		if used > o.MaxOperations || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
 			return geom.ErrConvergence
 		}
 		return ctx.Err()
 	}
-	ori := [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)}
-	dir := [3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}
 	for _, list := range [][]*big.Rat{ori[:], dir[:], limits[:]} {
 		for _, q := range list {
 			if e := check(q); e != nil {
 				return zero, e
 			}
 		}
+	}
+	if dir[0].Sign() == 0 && dir[1].Sign() == 0 || limits[0].Cmp(limits[1]) > 0 {
+		return zero, geom.ErrInvalid
 	}
 	if used >= o.MaxOperations {
 		return zero, geom.ErrConvergence
@@ -123,29 +140,14 @@ func (r *WrappedQuadraticFace) intersectCylinderLine(ctx context.Context, origin
 		return zero, e
 	}
 	used += iso.ExactOperations()
-	var bx [3]*big.Rat
-	for axis := 0; axis < 3; axis++ {
-		bx[axis] = new(big.Rat).Add(ori[axis], dir[axis])
-		if inclined && axis == 2 {
-			bx[axis] = new(big.Rat).Set(ori[axis])
-		}
-		if e := check(bx[axis]); e != nil {
-			return zero, e
-		}
-	}
-	b, e := geom.RepresentedExactPoint(bx)
-	if e != nil {
-		return zero, e
-	}
-	cx := [3]*big.Rat{new(big.Rat).Set(ori[0]), new(big.Rat).Set(ori[1]), new(big.Rat).Add(ori[2], big.NewRat(1, 1))}
-	c, e := geom.RepresentedExactPoint(cx)
-	if e != nil {
-		return zero, e
-	}
+	// The vertical plane through the original line always has normal
+	// (dirY,-dirX,0), including for a horizontal line. No auxiliary
+	// point needs to fit binary64 to construct this exact plane.
+	normal := [3]*big.Rat{dir[1], new(big.Rat).Neg(dir[0]), new(big.Rat)}
 	if used >= o.MaxOperations {
 		return zero, geom.ErrConvergence
 	}
-	roots, e := iso.IntersectRawPlane(ctx, origin, b, c, geom.SplinePlaneOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits, MaxControlPoints: o.MaxPoles})
+	roots, e := iso.IntersectRationalPlane(ctx, ori, normal, geom.SplinePlaneOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits, MaxControlPoints: o.MaxPoles})
 	if e != nil {
 		return zero, e
 	}
