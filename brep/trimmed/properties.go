@@ -56,6 +56,12 @@ func (s Solid) MassProperties(ctx context.Context, o parametric.IntegrationOptio
 		uKnots, vKnots := massSplineKnotLines(f.Surface)
 		w, _ := wrappedSurfaceModel(f.Surface)
 		f.Surface = numericalWrappedSupport(f.Surface)
+		if w == nil {
+			base, placement := parametric.SurfaceMapping(f.Surface)
+			if exact, ok := base.(*geom.ExactBezierSurface); ok {
+				f.Surface = parametric.MapSurface(exact.NumericalSurface(), placement)
+			}
+		}
 		if d, ok := straightFullWrappedRectangle(w, f); ok {
 			// The original UV rectangle needs no Duffy map or trim strips.
 			// Split directly at spline knots so quadrature never straddles
