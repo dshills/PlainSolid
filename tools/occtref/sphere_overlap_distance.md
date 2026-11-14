@@ -61,3 +61,24 @@ finite-precision allowances apply. Run
 a freshly built binary. The default original six records remain unchanged.
 The additive exact query permits irrational query norms; it still requires a
 rational intersection-circle radius and rejects axis/center minimizer families.
+
+## Exact axis minimizer families
+
+Optional `--axis` compares numerical distances only for complete symbolic
+families. On the same R=5, centers±3 sources: union at either source center has
+squared distance25 and a whole retained cap (including its two-owner rim);
+union at the midpoint has squared distance16 and the whole circle; union at
+x=-10 has squared distance4 and a single pole. Common at the midpoint has two
+isolated poles at squared distance4. Common at x=-3 has the other sphere's pole
+at squared distance1. Difference at cutter center x=3 has a whole inward-facing
+retained cutter cap at squared distance25; at stock center x=-3 its nearest pole
+has squared distance1. A separate union of R=2 spheres at centers±1 has a whole
+radius-√3 circle at midpoint, exact squared distance3.
+
+`TestOCCTSphereOverlapAxisFamilies` compares those nine independently built
+OCCT results. OCCT representative points and solution counts do **not** prove
+complete families. The exact Go proof uses a constant or monotone axial linear
+functional on each entire retained cap, with explicit signed cap inequality,
+original owner and two-owner boundary circle. No guessed representative is
+returned for non-singleton families. Default and `--algebraic` modes remain
+unchanged; rebuild the binary before running all three modes.
