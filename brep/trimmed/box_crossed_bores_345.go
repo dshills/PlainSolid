@@ -270,6 +270,37 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 	return BoxCrossedBoresResult{Solid: solid, RemovedVolume: removed, SurfaceAreaDelta: delta}, nil
 }
 
+// BoxBlindCrossedObliqueBores retains a cardinal floor beyond the complete
+// crossing. Depth is measured inward from the lower or upper cardinal cap.
+// The oblique cylinder still opens through both X faces.
+func BoxBlindCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, ratio geom.Vec2, radius, depth float64, opposite bool, tolerance float64) (BoxCrossedBoresResult, int, error) {
+	fail := func(e error) (BoxCrossedBoresResult, int, error) { return BoxCrossedBoresResult{}, -1, e }
+	k, ok := CrossedObliqueCoefficients(ratio)
+	if !ok || ctx == nil || !finite(depth) || depth <= 0 || !finite(tolerance) || tolerance <= 0 {
+		return fail(geom.ErrInvalid)
+	}
+	cap, direction, advance := 1, frame.ZAxis(), depth-crossing.Z
+	if opposite {
+		cap, direction, advance = 0, frame.ZAxis().Scale(-1), depth-(dimensions.Z-crossing.Z)
+	}
+	pad := max(8*tolerance, 1024*0x1p-52*max(dimensions.Z, radius))
+	if depth >= dimensions.Z-pad || advance <= k.Positive*radius+pad {
+		return fail(geom.ErrDomain)
+	}
+	out, err := BoxCrossedObliqueBores(ctx, frame, dimensions, crossing, ratio, radius, tolerance)
+	if err != nil {
+		return fail(err)
+	}
+	remaining := dimensions.Z - depth
+	out.Solid, cap, err = stopCrossedBoreCap(out.Solid, cap, direction.Scale(-remaining))
+	if err != nil {
+		return fail(err)
+	}
+	out.RemovedVolume -= math.Pi * radius * radius * remaining
+	out.SurfaceAreaDelta += 2 * math.Pi * radius * (radius - remaining)
+	return out, cap, nil
+}
+
 func (s Solid) TessellateCrossedBores345(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
 	return s.TessellateCrossedObliqueBores(ctx, o)
 }
@@ -291,7 +322,7 @@ func (s Solid) TessellateCrossedObliqueBores(ctx context.Context, o parametric.T
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
-	if len(s.faces) != 22 {
+	if len(s.faces) != 22 && len(s.faces) != 23 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	found := false

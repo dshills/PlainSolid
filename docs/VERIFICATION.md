@@ -1,5 +1,23 @@
 # Verification record
 
+## PlainCAD cardinal blind floors on oblique Hole crossings — 2026-11-14
+
+For equal-radius crossings, the cardinal Hole can stop beyond the
+entire intersection. Shortening its far wall leaves an exact circular
+floor, preserves all crossing ellipses, and restores the uncut far
+stock face. Import recovers the entry side and depth and verifies the
+complete STEP graph. The imported shape can deepen the floor or open
+it with an equal-diameter coaxial Hole. The resulting STEP matches
+the corresponding fresh cut byte for byte.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-blind-oblique-step-browser-2026-11-14.json)
+and the authored [12:5](evidence/plaincad-blind-oblique-shallow-step-native-2026-11-14.json)
+and [5:12](evidence/plaincad-blind-oblique-steep-step-native-2026-11-14.json)
+fixtures pass. Each authored STEP preserves the 48 mm blind Hole,
+reopens as one solid, and exports 400 watertight triangles. Independent
+OCCT checks both authored files and 16 native signed entry cases.
+Focused race and vet checks pass.
+
 ## PlainCAD 5–12–13 oblique Hole crossings — 2026-11-14
 
 The equal-radius cardinal/oblique intersection retains its exact

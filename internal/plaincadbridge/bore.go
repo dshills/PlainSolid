@@ -415,7 +415,7 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 			f.Area -= h.openingAreas[1]
 		}
 	} else if h := body.obliqueCrossing; h != nil {
-		if f.Face == 0 || f.Face == 1 {
+		if (f.Face == 0 && (h.blindDepth == 0 || !h.oppositeCap)) || (f.Face == 1 && (h.blindDepth == 0 || h.oppositeCap)) {
 			f.Area -= math.Pi * h.radius * h.radius
 		}
 		if f.Face == 3 || f.Face == 5 {
@@ -451,7 +451,13 @@ func (b *Bridge) curvedBoolean(a, c stored, op string) (any, error) {
 		cylinders = a.bore.cylinders
 	}
 	if op == "cut" {
-		body, err := newBore(base, append(append([]*cylinderBody(nil), cylinders...), c.cylinder))
+		tools := append(append([]*cylinderBody(nil), cylinders...), c.cylinder)
+		if a.bore != nil {
+			if deeper, ok := deepenObliqueCrossedFloor(a.bore, c.cylinder); ok {
+				tools = deeper
+			}
+		}
+		body, err := newBore(base, tools)
 		if err != nil {
 			return nil, err
 		}
