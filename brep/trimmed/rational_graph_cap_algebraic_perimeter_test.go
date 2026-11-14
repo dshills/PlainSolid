@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
 
@@ -93,6 +94,34 @@ func TestAlgebraicStockFootprintPerimeter(t *testing.T) {
 	interval(clipped.Second[0], q(265, 12))
 	interval(clipped.Second[1], q(111, 8))
 	interval(clipped.Second[2], q(37, 3))
+	centroid, err := model.BoundFootprintCentroid(ctx, q(1, 2048), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	local := [3]*big.Rat{q(37, 16), q(3, 2), q(0, 1)}
+	for i, value := range centroid.Coordinates {
+		interval(value, local[i])
+	}
+	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{q(3, 5), q(0, 1), q(4, 5), q(1, 7)},
+		{q(0, 1), q(1, 1), q(0, 1), q(-1, 3)},
+		{q(-4, 5), q(0, 1), q(3, 5), q(1, 11)},
+	}, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	placed := AlgebraicGraphStockOccurrence{p, model, pose}
+	world, err := placed.BoundFootprintCentroid(ctx, q(1, 2048), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := pose.TransformPoint(ctx, local, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, value := range world.Coordinates {
+		interval(value, want[i])
+	}
 	seams := 0
 	for _, use := range r.Uses {
 		if use.Seam >= 0 {
