@@ -417,6 +417,13 @@ source blobs verified. The [authored XY](evidence/plaincad-reconciled-830e4932-s
 and [authored XZ/YZ](evidence/plaincad-reconciled-830e4932-supplemental-placed-rim-fillet-step-2026-11-14.json)
 cases each reproduced the source worktree's STEP and watertight STL.
 Independent OCCT confirmed volume, area and the placed centroids.
+The [circular rim chamfer reconciliation](evidence/plaincad-reconciled-f4a05329-development-rim-chamfer-holes-step-2026-11-14.json)
+adds worktree revision `5dba4625` to review `f4a05329`. Native checks and all
+eight original browser tests passed; 841 app and 2,124 kernel source blobs
+were verified. All three [authored plane cases](evidence/plaincad-reconciled-f4a05329-supplemental-rim-chamfer-step-2026-11-14.json)
+reproduced the worktree's STEP and STL byte for byte. The STL edges closed
+in opposite directions and independent OCCT confirmed volume, area and
+centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
