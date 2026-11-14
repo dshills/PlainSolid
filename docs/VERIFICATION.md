@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD unequal-radius perpendicular blind Holes — 2026-11-14
+
+Either unequal cutter can stop beyond the full cylinder intersection.
+The exact original cylinder supports and radical trim curves remain. The
+native constructor moves only the cap rim and straight axial edges, adds
+a planar floor, and retains the other face indices. STEP recovers the
+represented floor supports and uses the existing bounded spline fit at
+the cylinder intersection.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-unequal-finite-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-unequal-finite-step-native-2026-11-14.json)
+pass on the same WASM. The 480,631-byte authored STEP reimports in PlainCAD,
+reopens and preserves the blind floor in watertight STL. One hundred
+forty-four native combinations and nine independent OCCT STEP comparisons
+include signed placements, both cutter assignments and nested skew.
+The authored direct Boolean agrees with STEP readback. Focused race and
+Go vet pass. The app's 512 KiB limit still excludes some close-radius
+and skew exported files.
+
 ## PlainCAD exact far-tangent blind Hole floor — 2026-11-14
 
 The blind floor can stop at the far tangent plane of a perpendicular
