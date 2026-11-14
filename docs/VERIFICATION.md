@@ -6119,3 +6119,10 @@ parameters, open material intervals and original wall IDs. Independent
 weighted diagonal, scaled secant, tangent, clipped and sub-ULP exterior
 fixtures pass. The combined anisotropic and homothetic line race passed
 in 40.723 s for the trimmed package.
+
+### Native prism boss qualification
+
+Both entry directions, an oblique profile side and a triangular boss on
+nonconvex stock preserve native closure, independent volume and centroid,
+and original support ownership. The integrated prism shoulder and cavity
+race passed in 1.684 s.

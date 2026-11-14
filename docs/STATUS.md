@@ -2296,3 +2296,10 @@ and a tool entering exactly one stock cap. It sews the opened cap, unused
 stock cap, original stock walls, internal floor and reversed clipped tool
 walls. The result retains original cap and wall ancestry and exact axial
 fractions on the tool walls.
+
+### Nested-profile native prism boss Fuse
+
+`trimmed.FuseContainedNativePrismBoss` authenticates a contained profile
+with a tool crossing one stock cap. It retains the exact shoulder, terminal
+cap and original stock and tool walls. The new wall history records the
+surviving fraction of each original extrusion interval.
