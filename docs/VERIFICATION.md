@@ -5973,3 +5973,12 @@ original area and enclose all world tensor entries within 1/15. The test
 compares against an independently integrated and rotated tensor, changes
 the translation exactly, and checks independent intervals and atomic
 transform exhaustion. The integrated focused race passed in 7.667 s.
+
+### Independently authored weighted station STEP qualification
+
+Pinned OCCT authors the filled solid and a through-bore Cut from original
+dyadic weighted B-spline supports. Both readers accept the exported files
+and revalidate native rim ownership and original support data. Canonical
+re-export and OCCT transfer preserve mass and every centroid coordinate.
+The integrated live race passed in 35.131 s. The independent author and
+reproduction commands are [in the oracle notes](../tools/occtref/weighted_station_author.md).
