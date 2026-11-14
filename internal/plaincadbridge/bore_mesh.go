@@ -11,6 +11,9 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
+	if s.bore.tripleCrossed != nil {
+		return s.bore.solid.TessellateTripleCrossedBores(ctx, o)
+	}
 	if s.bore.crossedCompanions != nil {
 		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
 	}

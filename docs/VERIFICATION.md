@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD three intersecting cardinal through Holes — 2026-11-14
+
+Equal-radius X, Y and Z cutters with one common crossing retain the
+original six stock faces and eight three-surface junction vertices.
+The exact intersection arcs are planar ellipses. Signed native charts
+retain the same geometry, and canonical STEP verifies every surface,
+edge and orientation on readback.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-triple-crossed-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-triple-crossed-step-native-2026-11-14.json)
+pass on the same WASM. The authored browser case reimports and reopens
+the STEP and finds all three open passages in watertight STL. Native
+signed vertex links, twelve independent OCCT STEP comparisons, and an
+independent authored Boolean pass. Focused race and Go vet pass.
+
 ## PlainCAD crossed Holes with disjoint companion bores — 2026-11-14
 
 An equal-radius perpendicular through pair can retain additional cardinal

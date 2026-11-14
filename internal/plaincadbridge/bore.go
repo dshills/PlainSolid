@@ -28,6 +28,7 @@ type boreBody struct {
 	partialSkew       bool
 	blindCrossed      *blindCrossedGeometry
 	crossedCompanions *crossedCompanionGeometry
+	tripleCrossed     *crossedBoreGeometry
 	oblique           *obliqueBore
 }
 
@@ -229,6 +230,9 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 		}
 		if result, handled, err := newCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, err
+		}
+		if result, handled := newTripleCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
+			return result, nil
 		}
 		if result, handled := newCrossedCompanionBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, nil

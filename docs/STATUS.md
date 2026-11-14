@@ -53,7 +53,9 @@ intersect inside a rectangular block retain exact cylindrical walls and
 elliptical intersection edges. Grouped and successive cuts, overlap
 queries, STEP and STL pass. An equal-radius crossed through pair can
 retain up to 16 strictly separated cardinal companion bores in the same
-analytic solid and STEP graph. Disjoint through cutters on two or three
+analytic solid and STEP graph. Three concurrent equal-radius through
+Holes along X, Y and Z retain eight exact triple junction vertices and
+exchange their elliptical intersection arcs through STEP. Disjoint through cutters on two or three
 cardinal axes now retain canonical STEP, including unequal radii and
 non-millimeter import. When the full projected footprints are separated,
 disjoint mixed-axis blind bores can also exchange their finite floors and
