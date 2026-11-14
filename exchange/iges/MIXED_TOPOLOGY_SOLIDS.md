@@ -1,8 +1,9 @@
 # Independently owned mixed IGES material roots
 
 `ReadMixedTopologySolids` and `WriteMixedTopologySolids` support a collection of
-2–8 type186 solids containing both the exact tetrahedral planar family and the
-original parabolic spline-roof family. Every root retains its native material
+2–8 type186 solids containing at least two of the exact tetrahedral, convex
+affine-hexahedral, and original parabolic spline-roof families. Repeated roots
+of any supported family are allowed within the same cumulative caps. Every root retains its native material
 proof; there is no faceting of the roof or generic approximate surface fitting.
 This is a multi-solid file, not IGES assembly placement, instance sharing, or a
 Boolean union. Bodies may overlap; inter-body noninterference is not claimed.
@@ -21,9 +22,11 @@ cannot erase unsupported metadata. All global units are shared and preserved.
 
 Component structure chooses one decoder, never a best-effort fallback. A
 34-entity component must pass the complete tetrahedron topology, continuous
-curve/UV, convex halfspace and closed-material proof. A 58-entity component must
-pass the role-independent original roof topology, exact continuous composition,
-source-weight and complete global spline embedding proof. Neither entity count
+curve/UV, convex halfspace and closed-material proof. A 58-entity component whose six original support bases are all bilinear must
+pass the complete exact affine-hexahedron geometry and convex outward halfspace
+proof. Other 58-entity components must pass the role-independent original roof
+topology, exact continuous composition, source-weight and complete global spline
+embedding proof. There is no trial-decoder fallback from a failed hexahedron. Neither entity count
 alone is evidence of a valid shape. Arbitrary shells, voids, leaf/root transforms,
 other spline families and disconnected subgraphs within a body remain unsupported.
 Existing single-body APIs remain strict and reject these mixed files.
@@ -64,3 +67,25 @@ mathematical equality between a decimal semi-angle and a rational slope. Such a
 representation needs an explicit supported numeric/error contract rather than
 silently treating altered cap-radius relationships as exact. Existing cone APIs
 and their documented behavior are unchanged.
+
+
+## Three families and repeated independent roots
+
+`MixedTopologyHexahedron` adds the existing exact convex six-quad family via
+`HexVertices`. The returned `Hexahedron` payload uses the same explicit local-to-
+source ID convention. The writer rejects irrelevant fields for every tag.
+An all-bilinear support basis only selects the hexahedral validator: non-affine
+nets, invalid whole-edge ownership or nonconvex/inward material still fail.
+
+`author_iges_three_family_topology.py` independently authors two tetrahedra,
+the second translated by (10,0,0), an oblique reflected affine hexahedron with
+origin (3,4,5) and vectors (-2,-1,0),(0,3,1),(1,0,2), and the mapped curved roof.
+The retained `three-family-topology-solids.igs` contains 184 entities and 304
+controls. Pinned OCCT validates input and output as 4 solids and 20 faces, with
+volume 17 and centroid (193/68,193/51,2723/510). Area is
+`2*(6+2*sqrt(3))+20/3+sqrt(5)/2+asinh(2)/4+2*(sqrt(41)+sqrt(46)+sqrt(21))`.
+Repeated material definitions are deliberately separate roots with disjoint
+source IDs, not shared occurrences. Root order and every provenance map are
+deterministic. Tests tighten the aggregate cap one below the exact control and
+entity counts, preserve old two-family input, and reject a bilinear support
+whose altered corner breaks the full affine/material proof.
