@@ -246,6 +246,29 @@ original face supports and the full degree-based periodic side schedule.
 OCCT accepts the independent exact source and Go output as one three-face
 solid of volume 12π and area 20π. The retained OCCT vendor output with
 rounded seam coordinates is intentionally an unsupported fixture.
+The mixed IGES circular material extension (`cd76083`) retains independent
+planar, curved spline and circular bodies, with explicit source owner IDs
+for each. The source and Go output transfer in OCCT as three solids and
+13 faces, with volume 8/3+12π.
+The shared nested Boolean imprint (`4108844`) avoids rebuilding the same
+proof for common and cut. A focused race run of the original nested section,
+joint operation, and native annular conversion passed; the complete normal
+fixture also checks exact volume and native recipe reload.
+The signed YZ annular display (`9faca14`, `96f8114`) preserves the original
+world shell, both native rings and source vertex IDs through its exact
+projection. It produces 13,416 triangles, no unintended contacts, and
+display volume 0.00011209655 against the same analytic 0.00011571911.
+The eccentric frustum bore (`d6f9165`, `35e207d`) retains both original
+axis locations and checks exact strictly positive clearance. Independent
+OCCT mass, race checks of the material and line queries, and a closed
+display with original wall normals passed. An eccentric inner tangent
+does not split the cap overlap intervals.
+The algebraic periodic fiber (`e40f27a`, `34e3160`) carries exact irrational
+point roots, original owner trims and original line parameters. An opt-in
+mode also preserves affine coincident intervals in the same ordered proof.
+The sole external spline shell touch (`25d9d47`) qualifies an interior
+quadratic contact in XY and YZ. Normal, race and OCCT tests verify empty
+common and unchanged cut; native union fails on the nonmanifold point join.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
