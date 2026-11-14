@@ -7,7 +7,7 @@ finite closed rational interval. Direction need not be unit length. Returned
 algebraic parameters retain the original t, including negative values; no
 normalization, numerical root fitting, or world geometry baking occurs.
 
-This slice supports sphere and ring-torus leaves. Planar and cylinder leaves
+This slice supports sphere, ring-torus and finite-cylinder leaves. Planar leaves
 remain present with `Supported=false`; no assembly-wide first-hit or union claim
 is made. Within the supported subset, hits are globally ordered using exact
 algebraic comparison. Identical parameters retain all original occurrence owners
@@ -23,7 +23,7 @@ contacts remain hits even when no interior span exists. Span endpoints are close
 by material continuity, including clip ends that lie inside the material.
 
 The additive `geom.IsolateExactPolynomialRoots` wraps existing exact isolation
-and immutable algebraic identities for degree at most four. It excludes a
+and immutable algebraic identities for bounded polynomial degree (the query uses at most four). It excludes a
 previous endpoint root from any non-singleton closed root certificate, validates
 unique roots and retains original multiplicities. Source associations are proved
 by the caller, not by this general numeric wrapper.
@@ -44,3 +44,28 @@ standard assemblies and intersects actual transferred sphere/torus solids.
 Set `PLAINSOLID_OCCT_RATIONAL_HIERARCHY_LINE` to the standalone helper to compare
 all multi-hit source parameters under both occurrence conventions. The oracle's
 numerical tolerance does not enter the Go proof.
+
+## Finite cylinders
+
+Finite cylinders are now supported by exact axial slab clipping followed by
+radial quadratic isolation. Endpoint signs are material signs: negative inside,
+zero boundary, positive outside. All cap/wall root comparisons share the query's
+cumulative root budgets. A transverse rim hit retains both support roles once
+for that occurrence. `Supports` records each support multiplicity; zero denotes
+a line coincident with that support. `Multiplicity` remains the single support's
+multiplicity, or zero when several supports meet (no fictitious product root).
+
+`Spans` still means strictly material-interior open intervals with included
+endpoints. `BoundarySpans` separately represents nonzero closed intervals lying
+on a cap or the cylinder wall. Their Roles identify those supports. Arbitrary
+clip ends of a coincident span are not invented discrete hits; real cap/rim
+intersections remain hits. Tangent singleton contacts have no nonzero span.
+Planar leaves remain explicitly unsupported. Source face IDs still name the
+complete shell, not a guessed split-cylinder periodic cell.
+
+Pinned OCCT independently checks transverse, axial and simultaneous rim stations
+for both exact rational hierarchy conventions. Coincident wall/cap intervals,
+clipped boundary-only lines, reversed axial direction, tangent points and singleton
+cap clips are tested analytically with exact endpoint comparison. The query uses
+main's existing degree-eight polynomial wrapper; no replacement geometry API is
+required.
