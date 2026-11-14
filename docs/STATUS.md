@@ -1286,5 +1286,16 @@ currently requires one complete model-XY graph pair with whole section loops.
 Its focused native qualification is a single original lens; the nested
 collection qualification uses an independently authored exact degree-six roof.
 The original nominal degree-eight triple-roof native mesh remains a separate
-unsupported degree gate. Image-distance bounds do not certify volume error or
+flagship qualification. Image-distance bounds do not certify volume error or
 general source embedding; displayed and analytic volumes remain distinct.
+
+### Explicit degree-eight exact residuals
+
+The positive-weight homogeneous coefficient/Jacobian and multispan triangular
+residual paths now accept explicit degree limits through eight per axis. Existing
+defaults and requests through six retain their original degree gates. Exact
+nonzero-coefficient total degree controls residual storage; genuine denominator
+products through total degree seventeen are retained. Existing operation/bit
+limits are unchanged. The original native triple-roof mesh qualification is
+explicitly enabled with `PLAINSOLID_TRIPLE_RADIAL_MESH=1`; a passing small
+residual proof does not itself claim that whole native mesh has qualified.

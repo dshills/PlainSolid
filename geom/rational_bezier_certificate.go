@@ -5,7 +5,7 @@ import "math/big"
 // RationalBezierCoefficients returns owned exact homogeneous power coefficients
 // on normalized local [0,1]^2, with dimensions (DegreeU+1)x(DegreeV+1). The
 // positive minimum control weight bounds the denominator over that square.
-// Single-span degrees up to maxDegree<=6 are supported. Arithmetic uses the
+// Single-span degrees up to maxDegree<=8 are supported. Arithmetic uses the
 // immutable patch's operation/bit limits; false means unsupported or exhausted.
 func (p *SurfacePatch) RationalBezierCoefficients(maxDegree int) (coefficients [][][4]*big.Rat, minimumWeight *big.Rat, ok bool) {
 	coefficients, minimumWeight, _, ok = p.RationalBezierCoefficientsWithWork(maxDegree)
@@ -16,7 +16,7 @@ func (p *SurfacePatch) RationalBezierCoefficients(maxDegree int) (coefficients [
 // operation accounting, including exhausted conversions. One optional
 // allowance further restricts the existing patch budget for this conversion.
 func (p *SurfacePatch) RationalBezierCoefficientsWithWork(maxDegree int, allowance ...int) (coefficients [][][4]*big.Rat, minimumWeight *big.Rat, work int, ok bool) {
-	if p == nil || maxDegree < 1 || maxDegree > 6 || p.degreeU > maxDegree || p.degreeV > maxDegree || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 || len(p.net) == 0 {
+	if p == nil || maxDegree < 1 || maxDegree > 8 || p.degreeU > maxDegree || p.degreeV > maxDegree || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 || len(p.net) == 0 {
 		return nil, nil, 0, false
 	}
 	options, e := patchOptions(p.options)
@@ -89,7 +89,7 @@ func (p *SurfacePatch) RationalBezierCoefficientsWithWork(maxDegree int, allowan
 // Lipschitz constant on the convex rectangle. No normalized-UV scaling is
 // implicit. False means degree/representation/resource limits prevent a proof.
 func (p *SurfacePatch) RationalBezierDerivativeBounds(maxDegree int) (squaredFrobeniusUpper, sumAbsoluteJacobianUpper *big.Rat, ok bool) {
-	if p == nil || maxDegree < 1 || maxDegree > 6 || p.degreeU > maxDegree || p.degreeV > maxDegree || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 {
+	if p == nil || maxDegree < 1 || maxDegree > 8 || p.degreeU > maxDegree || p.degreeV > maxDegree || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 {
 		return nil, nil, false
 	}
 	options, e := patchOptions(p.options)

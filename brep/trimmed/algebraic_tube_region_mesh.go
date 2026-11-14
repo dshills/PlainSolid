@@ -32,7 +32,7 @@ type CertifiedAlgebraicTubeRegionMesh struct {
 // and synchronized interior triangulation are preserved. Positive represented
 // interior height, closed opposite incidence, manifold links, positive volume,
 // and exact absence of display contacts are mandatory. Failures are atomic.
-// Degree>2 requires explicit Surface.Span.MaxDegree (maximum6); this is a
+// Degree>2 requires explicit Surface.Span.MaxDegree (maximum8); this is a
 // boundary-image distance certificate, not a certified material/volume error.
 // Original float spline and exact homogeneous Bézier owner charts are retained
 // without conversion of their control points.

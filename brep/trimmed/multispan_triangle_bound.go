@@ -54,7 +54,7 @@ func BoundMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.SurfaceP
 // knot rectangle in exact rational arithmetic, restricts the spline exactly to
 // that span, and applies its rational biquadratic Bernstein residual. Supports
 // default to degree<=2; MaxDegree explicitly enables exact residuals through
-// degree6 with an additional per-triangle arithmetic limit. C0 joins follow the
+// degree8 with an additional per-triangle arithmetic limit. C0 joins follow the
 // SurfacePatch contract. Intersections and target interpolation are never
 // rounded to binary64. All failures return no partial certificate.
 func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.SurfacePatch, uv [3][2]*big.Rat, model [3]geom.Vec3, o MultiSpanTriangleBoundOptions) (MultiSpanTriangleDeviation, error) {
@@ -71,7 +71,7 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 	if o.MaxResidualOperations == 0 {
 		o.MaxResidualOperations = 2000000
 	}
-	if o.MaxDegree < 1 || o.MaxDegree > 6 || o.MaxResidualOperations < 1 || o.MaxResidualOperations > 100000000 {
+	if o.MaxDegree < 1 || o.MaxDegree > 8 || o.MaxResidualOperations < 1 || o.MaxResidualOperations > 100000000 {
 		return empty, geom.ErrInvalid
 	}
 	if o.MaxCells == 0 {

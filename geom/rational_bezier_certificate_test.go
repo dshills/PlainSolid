@@ -52,7 +52,7 @@ func TestRationalBezierCoefficientAndDerivativeCertificate(t *testing.T) {
 	if !ok || again[0][0][0].Cmp(coeff[0][0][0]) == 0 {
 		t.Fatal("alias")
 	}
-	if _, _, ok := p.RationalBezierCoefficients(7); ok {
+	if _, _, ok := p.RationalBezierCoefficients(9); ok {
 		t.Fatal("cap")
 	}
 	if _, _, ok := p.RationalBezierDerivativeBounds(0); ok {

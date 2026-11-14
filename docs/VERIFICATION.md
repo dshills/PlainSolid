@@ -2315,3 +2315,22 @@ The focused native and disjoint collection race run passed in 711.632 seconds
 has 630 vertices/1256 triangles and retains 320 exact endpoint operations;
 the disjoint collection has 1172 vertices/2336 triangles and 273494 cumulative
 collision pairs. The long nested qualification is a normal run, not a race run.
+
+### Explicit degree-eight residual admission
+
+`TestExactOcticBezierCertificates` independently checks X=u,Y=v,Z=u^8 v^8,
+including exact derivative norm bounds 130 and 18 and owned coefficient copies.
+`TestExactOcticTriangleResidual` checks the independent triangular squared bounds
+`1/12870^2` for the polynomial and `2/24310^2` for homogeneous coordinates
+(u,v,u^8 v^8,1+u^8 v^8), whose affine-target residual truly has degree seventeen.
+The tests cover original multispan dispatch, default/lower-degree rejection,
+upper degree rejection, and cumulative arithmetic exhaustion. Focused normal
+and race tests pass (geom race 1.227s, trimmed race 4.068s), together with prior
+quartic rational/knot and sextic exact-degree regressions.
+
+The separate long original-source mesh command is:
+`PLAINSOLID_TRIPLE_RADIAL_MESH=1 go test ./brep/trimmed -run '^TestAlgebraicShellTripleRadialMaterialComponents$' -count=1 -timeout 75m -v`.
+It first rebuilds the original source/material and mass tensor, then independently
+requalifies the pair and complete retained native boundary during mesh binding.
+The environment gate preserves the existing ordinary test cost. Whole-mesh
+success must be recorded separately from the focused degree-eight tests.
