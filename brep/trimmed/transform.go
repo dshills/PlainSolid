@@ -62,7 +62,18 @@ func FromPlanar(s brep.Solid, tolerance float64) (Solid, error) {
 // Transformed maps the original curves and surfaces, retaining topology and
 // parameter-space trims. A reflection reverses all face orientations.
 func (s Solid) Transformed(m geom.Affine) (Solid, error) {
-	return s.transformed(context.Background(), m, true)
+	return s.TransformedContext(context.Background(), m)
+}
+
+// TransformedContext maps a trimmed solid with cooperative cancellation.
+func (s Solid) TransformedContext(ctx context.Context, m geom.Affine) (Solid, error) {
+	if ctx == nil {
+		return Solid{}, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return Solid{}, err
+	}
+	return s.transformed(ctx, m, true)
 }
 
 // TransformedHelical uses the conforming helical mesh to validate a mapped

@@ -6152,3 +6152,12 @@ combined appearance race passed in 9.942 s. Current public XCAF authoring
 calls rejected both attempted face-local occurrence authoring paths. The
 [combined appearance contract](../exchange/step/COMBINED_OCCURRENCE_COLORS.md)
 includes a reproducible probe for that fixture limitation.
+
+### Convex Euclidean footprint offset qualification
+
+The 3-4-5 triangle verifies the exact diagonal support shift, original
+corner centers and Steiner volume `27 + (25/32)π` for both height signs
+and original winding orders. Both placed analytic results survive native
+reload. The exact point tests include a two-owner tangent junction and
+rational inside and outside probes below binary64 resolution. Nonconvex and
+unrepresentable profiles reject. The full offset race passed in 170.800 s.

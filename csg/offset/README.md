@@ -129,3 +129,18 @@ rational normal length: the wall equations are evaluated exactly at the new
 ends. Positive end radii and exact squared endpoint clearance prove the complete
 new annular interval. Original cap/wall ancestry survives; apex/contact,
 nonrepresentable geometry and unsupported source topology fail atomically.
+
+### Euclidean dilation of a convex prism footprint
+
+`DilateConvexPrismFootprint` shifts straight supporting edges by an exact
+Euclidean disk radius and closes the corners with circular arcs centered at
+the original vertices. It retains original edge or vertex ownership for
+each ideal piece and reports exact Steiner area and volume coefficients.
+The prism's cap heights are fixed. Positive and negative authored heights
+and proper signed coordinate placements qualify.
+
+The original side lengths must be rational for positive dilation. Shifted
+line and arc endpoints must fit binary64 exactly in the section chart.
+The native analytic realization uses the existing bounded angular anchoring
+and supports ordinary native persistence. `LocateRational` queries the ideal
+section and preserves both original owners at a tangent line-arc join.
