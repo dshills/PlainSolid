@@ -88,8 +88,9 @@ manufacturing exchange. Finite disjoint bores with crossing full-through
 projections pass with separated finite bounds or a strict finite radial
 clearance proof. The exact far-tangent floor has a closed analytic boundary.
 The near tangent limit rejects because the material pinches along a
-diameter. Next qualify unequal-radius finite crossed Holes and crossed
-pairs with disjoint companion Holes. A single oblique through Hole with
+diameter. Unequal-radius crossed Holes support finite floors beyond the
+complete crossing. Next qualify compact finite STEP, partial-skew floors
+and crossed pairs with disjoint companion Holes. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

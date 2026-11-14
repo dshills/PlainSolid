@@ -160,7 +160,8 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	if m, e := step.ReadUnequalBore(r(), stepLimits()); e == nil {
 		p := m.Body
-		body, err := crossedBoreFromSTEP(crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.XRadius, p.ZRadius}, offset: p.Offset}, m.LengthUnit)
+		g := crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.XRadius, p.ZRadius}, offset: p.Offset}
+		body, err := finiteCrossedBoreFromSTEP(g, [2]float64{p.XBlindDepth, p.ZBlindDepth}, [2]bool{p.XOppositeCap, p.ZOppositeCap}, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -385,6 +386,13 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.blindCrossed != nil:
 		recipe := s.bore.blindCrossed
+		if recipe.radii[0] != recipe.radii[1] {
+			p := step.UnequalBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing,
+				XRadius: recipe.radii[0], ZRadius: recipe.radii[1], Offset: recipe.offset,
+				XBlindDepth: recipe.depth[0], ZBlindDepth: recipe.depth[1], XOppositeCap: recipe.oppositeCap[0], ZOppositeCap: recipe.oppositeCap[1]}
+			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: p, LengthUnit: .001})
+			break
+		}
 		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0], BlindDepth: recipe.depth[1], OppositeCap: recipe.oppositeCap[1], XBlindDepth: recipe.depth[0], XOppositeCap: recipe.oppositeCap[0], ClippedFloor: recipe.clippedFloor}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossed != nil:

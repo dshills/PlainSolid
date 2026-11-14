@@ -145,7 +145,10 @@ bore. STEP and STL preserve both segments on either side of the crossing
 axis. A blind stop exactly at the crossing axis retains the wall
 intersection and consumes the entire planar floor. The exact far-tangent
 stop retains a full floor and passes manifold STEP and STL. The
-near-tangent limit forms a nonmanifold contact diameter and rejects. A single oblique through cutter in rectangular stock now
+near-tangent limit forms a nonmanifold contact diameter and rejects.
+Unequal-radius perpendicular Holes with one or both floors beyond their
+complete intersection now retain those floors through STEP and STL.
+The existing spline budget still limits close-radius and skew exchange. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
@@ -1279,8 +1282,8 @@ mismatch and uncertainty metadata; the STEP importer still rejects this shell.
 ## Continuing implementation
 
 The remaining rectangular Hole geometry includes near-contact unequal-radius
-exchange, interacting oblique axes, unequal-radius blind intersections,
-and broader mixed-axis cutter groups. The selectable app
+exchange, interacting oblique axes, unequal-radius floors inside their
+intersection, and broader mixed-axis cutter groups. The selectable app
 build passes its unit and browser gates at the pinned provider revision.
 Later geometry increments record their own focused regressions.
 

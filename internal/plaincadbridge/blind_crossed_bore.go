@@ -18,14 +18,14 @@ type blindCrossedGeometry struct {
 
 func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64, blind []bool) (blindCrossedGeometry, bool) {
 	var p blindCrossedGeometry
-	if len(tools) != 2 || !blind[0] && !blind[1] || tools[0].radius != tools[1].radius {
+	if len(tools) != 2 || !blind[0] && !blind[1] {
 		return p, false
 	}
 	crossed, ok := crossedBoreRecipe(base, tools, []bool{false, false})
-	if !ok || crossed.offset != 0 {
+	if !ok || crossed.partialSkew() || crossed.radii[0] == crossed.radii[1] && crossed.offset != 0 {
 		return p, false
 	}
-	if blind[0] != blind[1] {
+	if crossed.radii[0] == crossed.radii[1] && blind[0] != blind[1] {
 		tool := tools[0]
 		if blind[1] {
 			tool = tools[1]
@@ -69,13 +69,14 @@ func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64,
 			floor.X = level
 		} else {
 			floor.Z = level
+			floor.Y += p.offset
 		}
 		authoredFloor := tool.frame.Origin().Add(axis.Scale(tool.height))
 		if authoredFloor != p.frame.ToWorld(floor) {
 			return blindCrossedGeometry{}, false
 		}
 	}
-	if p.depth[0] == 0 {
+	if p.depth[0] == 0 && p.radii[0] == p.radii[1] {
 		distance := p.depth[1] - p.crossing.Z
 		if p.oppositeCap[1] {
 			distance = p.depth[1] - (p.dimensions.Z - p.crossing.Z)
@@ -104,7 +105,13 @@ func newBlindCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
+	xFloor, zFloor := trimmed.DoubleBlindCrossedBoreXFloorFace, trimmed.BlindCrossedBoreFloorFace
 	switch {
+	case p.radii[0] != p.radii[1]:
+		var finite trimmed.FiniteSkewCrossedBoresResult
+		finite, err = trimmed.BoxFiniteSkewCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset,
+			p.depth[0], p.depth[1], p.oppositeCap[0], p.oppositeCap[1], 1e-9)
+		result, xFloor, zFloor = finite.BoxCrossedBoresResult, finite.XFloorFace, finite.ZFloorFace
 	case p.clippedFloor:
 		switch {
 		case p.depth[1] < p.crossing.Z:
@@ -131,9 +138,9 @@ func newBlindCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.
 		if !blind[i] {
 			continue
 		}
-		floors[i] = trimmed.BlindCrossedBoreFloorFace
+		floors[i] = zFloor
 		if tools[i].frame.ZAxis().Dot(p.frame.XAxis()) != 0 {
-			floors[i] = trimmed.DoubleBlindCrossedBoreXFloorFace
+			floors[i] = xFloor
 		}
 	}
 	return &boreBody{
