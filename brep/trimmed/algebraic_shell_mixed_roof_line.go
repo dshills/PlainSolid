@@ -75,7 +75,11 @@ func mixedRoofEmptyPoly() (p mixedRoofLinePoly) {
 
 func (w *mixedRoofLineWork) value(p mixedRoofLinePoly, t *big.Rat) (int, error) {
 	z := new(big.Rat)
-	for i := len(p) - 1; i >= 0; i-- {
+	degree := len(p) - 1
+	for degree > 0 && p[degree].Sign() == 0 {
+		degree--
+	}
+	for i := degree; i >= 0; i-- {
 		if _, err := w.rat(z.Mul(z, t)); err != nil {
 			return 0, err
 		}
