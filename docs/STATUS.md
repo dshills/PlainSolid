@@ -831,8 +831,12 @@ surfaces must keep their geometry through the operation. Continue with:
    UV intersections preserve surviving source faces and edge intervals.
    The same native assembly accepts nonparallel planes when their exact convex
    caps are disjoint. A bounded transverse crossing now retains one cap-cap
-   edge with both original UV intervals. Tangency, coincidence, and more
-   complex cap arrangements remain unresolved.
+   edge with both original UV intervals. Three through eight independently
+   proved affine cutters can now share exact cap junctions in the native solid.
+   The clipped stock and cap faces keep their original charts; all result
+   edges have an original stock, stock/cap, or cap/cap owner. An uncut curved
+   face can be retained intact. Arbitrary curved crossings and coincidence
+   still require a separate proof.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
