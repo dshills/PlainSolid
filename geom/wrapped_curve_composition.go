@@ -177,6 +177,8 @@ func (w *WrappedSurfacePatch) ComposeParameterCurvePieces(ctx context.Context, c
 		if e != nil {
 			return zero, e
 		}
+		// A full-range restriction may alias net. Shift only a private array copy.
+		local = append([]exactHomogeneous(nil), local...)
 		mid := new(big.Rat).Quo(new(big.Rat).Add(start, end), big.NewRat(2, 1))
 		point, e := exactCurveRationalPoint(c, mid, budget)
 		if e != nil {

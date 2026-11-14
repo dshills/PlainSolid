@@ -74,6 +74,18 @@ func TestWrappedQuadraticComposition(t *testing.T) {
 			}
 		}
 	}
+	lift, e := NewExactHomogeneousBezier(ctx, [][4]*big.Rat{{big.NewRat(33, 8), new(big.Rat), new(big.Rat), big.NewRat(1, 1)}, {big.NewRat(17, 4), big.NewRat(1, 2), new(big.Rat), big.NewRat(1, 1)}}, SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	lifted, e := w.ComposeParameterCurvePieces(ctx, lift, SurfaceCurveCompositionOptions{})
+	if e != nil || len(lifted.Pieces) != 1 {
+		t.Fatal("full-range lift", e)
+	}
+	point, e := lifted.Pieces[0].UV.patch.EvaluateRational(ctx, new(big.Rat), new(big.Rat), SurfacePatchEvaluationOptions{})
+	if e != nil || point.Point[0].Cmp(big.NewRat(33, 8)) != 0 {
+		t.Fatal("full-range restriction lost original lift", e)
+	}
 	irrational, e := NewExactHomogeneousBezier(ctx, [][4]*big.Rat{{big.NewRat(-1, 8), new(big.Rat), new(big.Rat), big.NewRat(1, 1)}, {big.NewRat(-1, 8), big.NewRat(1, 2), new(big.Rat), big.NewRat(1, 1)}, {big.NewRat(1, 8), new(big.Rat), new(big.Rat), big.NewRat(1, 1)}}, SurfacePatchOptions{})
 	if e != nil {
 		t.Fatal(e)
