@@ -452,6 +452,14 @@ adds worktree commit `650934f5` at review revision `3d787ab9`. Native and
 bridge tests passed, as did all 17 original browser cases and the Go/WASM
 preflight without skips or retries. The scope was the native partially
 overlapping geometry. The verifier checked 841 app and 1,932 kernel files.
+The [partial overlap STEP reconciliation](evidence/plaincad-reconciled-4a9619a5-development-partial-step-holes-step-2026-11-14.json)
+adds `a3259fb7` at review revision `4a9619a5`. All 17 original browser
+cases and the Go/WASM preflight passed without skips or retries, and the
+native STEP and bridge tests passed with the live oracle. The [separate
+authored case](evidence/plaincad-reconciled-4a9619a5-supplemental-partial-step-2026-11-14.json)
+verified the shared opening through STEP export, import, and STL. Pinned
+OCCT independently read the emitted file. All 841 app and 1,940 kernel
+source hashes matched.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

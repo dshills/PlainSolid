@@ -23,8 +23,10 @@ static void nearest(std::ostream& out,const char* name,const TopoDS_Shape& bound
  auto w=d.PointOnShape2(1);out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"SquaredDistance\":"<<d.Value()*d.Value()<<",\"Point\":["<<w.X()<<','<<w.Y()<<','<<w.Z()<<"],\"Solutions\":"<<d.NbSolution()<<"}\n";
 }
 int main(int argc,char**argv){try{
- if(argc!=2&&argc!=3)throw std::runtime_error("usage: sphere_overlap_distance OUTPUT_JSONL [--algebraic]");
- bool algebraic=argc==3; if(algebraic&&std::string(argv[2])!="--algebraic")throw std::runtime_error("unknown mode");
+ if(argc!=2&&argc!=3)throw std::runtime_error("usage: sphere_overlap_distance OUTPUT_JSONL [--algebraic|--axis]");
+ bool algebraic=argc==3&&std::string(argv[2])=="--algebraic";
+ bool axis=argc==3&&std::string(argv[2])=="--axis";
+ if(argc==3&&!algebraic&&!axis)throw std::runtime_error("unknown mode");
  std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
  auto a=BRepPrimAPI_MakeSphere(gp_Pnt(-3,0,0),5).Shape();
  auto b=BRepPrimAPI_MakeSphere(gp_Pnt(3,0,0),5).Shape();
@@ -38,10 +40,22 @@ int main(int argc,char**argv){try{
  if(solids!=1)throw std::runtime_error("expected one solid");
  BRep_Builder builder;TopoDS_Compound boundary;builder.MakeCompound(boundary);
  for(TopExp_Explorer f(bodies[i],TopAbs_FACE);f.More();f.Next())builder.Add(boundary,f.Current());
+ if(axis){
+ if(i==0){nearest(out,"unionCapA",boundary,gp_Pnt(-3,0,0));nearest(out,"unionCapB",boundary,gp_Pnt(3,0,0));nearest(out,"unionCircle",boundary,gp_Pnt(0,0,0));nearest(out,"unionPole",boundary,gp_Pnt(-10,0,0));}
+ if(i==1){nearest(out,"commonPoles",boundary,gp_Pnt(0,0,0));nearest(out,"commonCenter",boundary,gp_Pnt(-3,0,0));}
+ if(i==2){nearest(out,"cutCap",boundary,gp_Pnt(3,0,0));nearest(out,"cutCenter",boundary,gp_Pnt(-3,0,0));}
+ continue;
+ }
  nearest(out,names[i],boundary,points[i]);
  if(i==0)nearest(out,"unionFaces",boundary,algebraic?gp_Pnt(0,7,1):gp_Pnt(0,7.2,0));
  if(i==1)nearest(out,"commonFaces",boundary,algebraic?gp_Pnt(0,2,1):gp_Pnt(0,2.25,0));
  if(i==2)nearest(out,"cutFace",boundary,algebraic?gp_Pnt(0,2,1):gp_Pnt(0,2.25,0));
+ }
+ if(axis){
+ auto u=BRepAlgoAPI_Fuse(BRepPrimAPI_MakeSphere(gp_Pnt(-1,0,0),2).Shape(),BRepPrimAPI_MakeSphere(gp_Pnt(1,0,0),2).Shape()).Shape();
+ if(!BRepCheck_Analyzer(u).IsValid())throw std::runtime_error("invalid irrational circle union");
+ BRep_Builder builder;TopoDS_Compound boundary;builder.MakeCompound(boundary);for(TopExp_Explorer f(u,TopAbs_FACE);f.More();f.Next())builder.Add(boundary,f.Current());
+ nearest(out,"irrationalCircle",boundary,gp_Pnt(0,0,0));
  }
  return 0;
 }catch(const Standard_Failure&e){std::cerr<<e.what()<<'\n';return 1;}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

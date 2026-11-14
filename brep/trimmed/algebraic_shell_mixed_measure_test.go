@@ -104,6 +104,41 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if err != nil || len(body.Faces()) != ref.Faces || top.EulerCharacteristic != ref.Euler {
 			t.Fatal("original topology differs from independently sewn OCCT", name, top, err)
 		}
+		history, err := body.History()
+		if err != nil || len(history.Faces) != 12 || len(history.Edges) != len(body.Edges()) {
+			t.Fatal("incomplete original ancestry for retained material", name, history, err)
+		}
+		seenFaces := make(map[int]bool)
+		for _, row := range history.Faces {
+			for _, id := range row.ResultFaces {
+				f := body.boundary.faces[id]
+				if seenFaces[id] || row.Operand != f.Operand || row.OriginalFace != f.Original {
+					t.Fatal("fragment ownership duplicates or changes source", name, row, f)
+				}
+				seenFaces[id] = true
+			}
+		}
+		if len(seenFaces) != ref.Faces || name == "intersection" && (len(history.Faces[0].ResultFaces) != 0 || len(history.Faces[6].ResultFaces) != 1) {
+			t.Fatal("wrong retained or deleted floor ancestry", name, history.Faces)
+		}
+		generated, split := 0, 0
+		for _, row := range history.Edges {
+			if row.Operand < 0 {
+				p, err := body.SectionPiece(row.ResultEdge)
+				if err != nil || p.Faces != row.Faces || p.Index != row.Piece || row.Branch < 0 {
+					t.Fatal("generated edge lost one of its chart owners", name, row, err)
+				}
+				generated++
+			} else if row.Lower != nil || row.Upper != nil {
+				if row.OriginalEdge < 0 || row.Branch != -1 {
+					t.Fatal("original split remapped its ancestry", name, row)
+				}
+				split++
+			}
+		}
+		if generated == 0 || split == 0 {
+			t.Fatal("expected both generated and split edges", name, generated, split)
+		}
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
 		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
