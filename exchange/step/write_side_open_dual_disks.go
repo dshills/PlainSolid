@@ -40,9 +40,10 @@ const (
 	sideDiskGeneral
 	sideDiskExactWalls
 	sideDiskOffset
+	sideDiskUnequalCenter
 )
 
-func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, kind sideDiskConstruction) error {
+func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, kind sideDiskConstruction, proposedJoin ...[2]*big.Rat) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 1024 {
 		return geom.ErrInvalid
 	}
@@ -61,7 +62,16 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 	var solid trimmed.Solid
 	var wallFaces [2][]int
 	var e error
-	if kind == sideDiskOffset {
+	if kind == sideDiskUnequalCenter {
+		if len(proposedJoin) != 1 {
+			return geom.ErrInvalid
+		}
+		built, err := trimmed.CutUnequalCenterSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, proposedJoin[0], d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
+		if err != nil {
+			return err
+		}
+		solid, wallFaces = built.Solid, built.WallFaces
+	} else if kind == sideDiskOffset {
 		built, err := trimmed.CutOffsetSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
 		if err != nil {
 			return err
@@ -126,7 +136,7 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 			if e != nil {
 				return e
 			}
-			if kind == sideDiskExactWalls || kind == sideDiskOffset {
+			if kind == sideDiskExactWalls || kind == sideDiskOffset || kind == sideDiskUnequalCenter {
 				if _, ok := face.Surface.(*geom.ExactBezierSurface); !ok {
 					return geom.ErrDomain
 				}
@@ -328,6 +338,8 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 		productID = exactWallSideDiskProductID
 	} else if kind == sideDiskOffset {
 		productID = offsetSideDiskProductID
+	} else if kind == sideDiskUnequalCenter {
+		productID = unequalCenterSideDiskProductID
 	}
 	data := bytes.Replace(raw.Bytes(), marker, []byte("PRODUCT("+quote(productID)+","+quote(d.Name)+",'',"), 1)
 	if _, e = Parse(bytes.NewReader(data), Limits{MaxBytes: 1 << 20, MaxEntities: 2048, MaxValues: 32768, MaxDepth: 32}); e != nil {
