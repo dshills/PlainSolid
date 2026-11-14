@@ -71,6 +71,10 @@ func TestOrderedRoofBoxCommonNative(t *testing.T) {
 			t.Fatal("direct original proof and assembled geometry differ", bound, err)
 		}
 	}
+	dispatched, ledger, err := CombineSplineShells(ctx, curved, plane, parametric.Intersection, SplineShellCombineOptions{OrderedRoofCommon: &SplineShellRoofCommonOptions{}})
+	if err != nil || ledger.Method != "ordered-roof-common" || dispatched.Topology().Faces != 6 || len(ledger.FacesA[1]) != 1 || ledger.FacesA[1][0] != 0 {
+		t.Fatal("opt-in dispatcher preserves original curved face ancestry", ledger, err)
+	}
 	cross, _ := crossingFootprintRoofShell(t, true)
 	if out, h, err := IntersectOrderedRoofBoxes(ctx, curved, cross, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || out.Topology().Faces != 0 || len(h.Faces) != 0 {
 		t.Fatal("crossing roofs must fail this sufficient proof atomically", out.Topology(), h, err)

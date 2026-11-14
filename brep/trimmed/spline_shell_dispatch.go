@@ -36,6 +36,10 @@ type SplineShellCombineOptions struct {
 	// and reconstruction when all resulting vertices/ranges are representable.
 	// A nonrepresentable result can instead be consumed through SectionSplineShellsAlgebraic.
 	Algebraic *SplineShellAlgebraicNativeOptions
+	// OrderedRoofCommon optionally tries the original-chart roof-box Common
+	// before general section discovery. A proof outside its supported domain
+	// continues through the other certified paths.
+	OrderedRoofCommon *SplineShellRoofCommonOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
 	// independent original-support tube proofs are required before use.
@@ -43,6 +47,13 @@ type SplineShellCombineOptions struct {
 	// DiscoverVerticalQuadraticWarp derives and tests a common warp
 	// coefficient when no explicit VerticalQuadraticWarp is supplied.
 	DiscoverVerticalQuadraticWarp bool
+}
+
+// SplineShellRoofCommonOptions bounds source and construction proofs for the
+// optional ordered roof-box Common dispatch.
+type SplineShellRoofCommonOptions struct {
+	Source       MixedRoofQueryOptions
+	Construction geom.SurfacePatchEvaluationOptions
 }
 
 // SplineShellAlgebraicNativeOptions configures the opt-in algebraic path to
@@ -103,6 +114,21 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 			r = splineSectionCombineHistory(h, "open-wire")
 		}
 		return s, r, e
+	}
+	if o.OrderedRoofCommon != nil && op == parametric.Intersection {
+		proof := o.OrderedRoofCommon
+		s, h, e := IntersectOrderedRoofBoxes(ctx, a, b, proof.Source, proof.Construction)
+		if e == nil {
+			r = SplineShellCombineHistory{Method: "ordered-roof-common", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces))}
+			for resultFace, source := range h.Faces {
+				row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
+				row[source.Face] = append(row[source.Face], resultFace)
+			}
+			return s, r, nil
+		}
+		if !errors.Is(e, geom.ErrUnrepresentable) {
+			return Solid{}, r, e
+		}
 	}
 	if hasCanonicalWrappedCylinderShape(a) && hasCanonicalWrappedCylinderShape(b) {
 		s, h, e := CombineAxialWrappedCylinders(ctx, a, b, op, o.Transverse.Shells.Embedding.Patches)
