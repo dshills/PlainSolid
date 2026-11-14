@@ -252,7 +252,14 @@ both bodies are read back independently before returning their original
 measures and bounds. The [two original STEP browser regressions](evidence/plaincad-rooted-step-210386c-2026-11-13.json)
 pass on clean combined `210386c` with both type checks and the separate
 Go WASM probe. The new overlap-specific viewer and exchange exercise is
-supplemental and tracked separately.
+supplemental. [Both overlap browser cases](evidence/plaincad-side-dual-disk-645607c-2026-11-13.json)
+passed on clean `645607c` using PlainCAD `50432ed`. They independently check
+blind and through analytic measures, visible native display, save and reopen,
+oriented STL, STEP worker before/after proofs, and import of the downloaded
+STEP into a new native document. No original app fixture was changed. The
+same report retains the exploratory immediate-after-Apply readiness failure;
+the final probe waits for the imported feature and its corresponding body.
+Close-up display at the application's tighter tolerance is a separate gate.
 
 ## Earlier overlapping Hole cutter checkpoint — 2026-11-13
 
