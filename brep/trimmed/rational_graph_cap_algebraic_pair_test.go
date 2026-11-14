@@ -61,6 +61,37 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 			}
 		}
 	}
+	attachments := 0
+	for _, cap := range r.Caps {
+		for wi, wire := range cap.Wires {
+			for ui, edge := range wire {
+				att, e := cap.OriginalStockAttachment(ctx, wi, ui, geom.SurfaceCurveAgreementOptions{}, opts)
+				if edge.Seam >= 0 {
+					if !errors.Is(e, geom.ErrInvalid) || att.Model != nil {
+						t.Fatal("a generated seam has no source stock attachment", e)
+					}
+					continue
+				}
+				if e != nil || att.Source != edge.Source || att.StockReversed == edge.Reversed || att.ExactOperations <= 0 {
+					t.Fatal("retained cap edge must bind to its exact original stock chart", wi, ui, att, e)
+				}
+				// Model and UV restrictions must keep the actual cap root,
+				// which is irrational on the inner through-void terminal.
+				for j := 0; j < 2; j++ {
+					capRoot, _ := edge.Cell.EndpointRoot(j)
+					uvRoot, _ := att.UV.EndpointRoot(j)
+					order, e := capRoot.Compare(ctx, uvRoot, opts)
+					if e != nil || !order.Proven || order.Order != 0 {
+						t.Fatal("original stock parameter restriction lost its root", e)
+					}
+				}
+				attachments++
+			}
+		}
+	}
+	if attachments < 12 {
+		t.Fatal("missing retained stock owners", attachments)
+	}
 	if count != 1 {
 		t.Fatal("expected exactly one irrational shared vertex", count)
 	}

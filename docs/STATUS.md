@@ -903,7 +903,9 @@ surfaces must keep their geometry through the operation. Continue with:
    additive rational quadrature path also accepts varying weights.
    Opposite caps independently recover and pair each whole exact seam,
    including distinct chart parameters at a shared irrational endpoint.
-   Sewing those caps to the retained stock faces, stock faces bounded solely
+   Each retained cap interval now also binds to the original stock UV trim,
+   with exact model equality across the entire interval. Closing the retained
+   stock face loops around those coedges, stock faces bounded solely
    by two unsubdivided edges, and general mixed-axis trim arrangements
    remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
