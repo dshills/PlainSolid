@@ -2114,3 +2114,14 @@ relative to owner A. Nested holes, islands and disconnected regions are covered;
 crossing, touching and coincident boundaries remain unresolved rather than
 receiving an inferred arrangement. Exact trim validation is shared with
 transverse line contacts.
+
+### Proper-crossing coplanar polygon arrangements
+
+`intersect.ArrangeTransverseAffinePolygons` constructs complete planar Boolean
+cycles for coplanar polygon and hole trims with proper cross-owner intersections.
+It verifies model coordinates on both original charts, then partitions every
+edge at exact rational contact parameters. It retains each selected piece's
+original owner, ring, edge, UV endpoints and directed parameter interval.
+Closed-cycle assembly verifies exactly one incoming and outgoing edge at every
+node. Noncontacting rings also qualify. Vertex touches, endpoint-on-edge events
+and coincident spans remain outside this entry point.

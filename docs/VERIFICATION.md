@@ -5898,3 +5898,13 @@ crossing and collinear-contact rejection, exact model evaluation, detached resul
 mutation, cancellation and exact/one-short work bounds are independently checked.
 The extracted shared trim validator retains the transverse hole regressions.
 The integrated original-affine, convex, transverse-hole and coplanar-ring race passed in 1.424 s.
+
+### Proper-crossing arrangement qualification
+
+Fixtures verify signed exact intersection, union and difference areas of
+15/64, 223/256 and 83/256 on overlapping squares with distinct holes. A
+cutter crossing an original hole gives 5/32, 7/8 and 19/32 respectively
+and preserves exact half-edge source parameters. Tests re-evaluate original
+UV and model endpoints and exercise cycle indexing, reversed charts, result
+mutation, exact and one-short budgets, cancellation and unsupported contact
+rejection. The integrated affine polygon and patch race passed in 1.542 s.
