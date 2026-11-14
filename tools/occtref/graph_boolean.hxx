@@ -162,30 +162,32 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
 
-static void tangentSplineShellRecords(std::ostream& out, bool quartic = false) {
+static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
   const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
-  const int degree = quartic ? 4 : 2;
+  const int degree[3]{quartic || separable ? 4 : 2, quartic ? 4 : 2, 1};
   for (int fixed = 0; fixed < 3; ++fixed) for (int side = 0; side < 2; ++side) {
     const int u = (fixed + 1) % 3, v = (fixed + 2) % 3;
-    const int du = u == 2 ? 1 : degree, dv = v == 2 ? 1 : degree;
+    const int du = degree[u], dv = degree[v];
     NCollection_Array2<gp_Pnt> poles(1,du+1,1,dv+1);
     for (int i = 0; i <= du; ++i) for (int j = 0; j <= dv; ++j) {
       int p[3]{};
-      p[fixed] = side * (fixed == 2 ? 1 : degree);
+      p[fixed] = side * degree[fixed];
       p[u] = i;
       p[v] = j;
-      const double z = p[2] == 0 ? -1 : quartic ?
+      const double z = p[2] == 0 ? -1 : separable ? -q4[p[0]]/16 - sq[p[1]] : quartic ?
         -(9*(q4[p[0]]+q4[p[1]])+2*q2[p[0]]*q2[p[1]])/256 :
         -sq[p[0]] - sq[p[1]];
-      poles.SetValue(i+1,j+1,gp_Pnt(double(p[0])/degree,double(p[1])/degree,z));
+      poles.SetValue(i+1,j+1,gp_Pnt(double(p[0])/degree[0],double(p[1])/degree[1],z));
     }
     NCollection_Array1<double> k(1,2);
     k.SetValue(1,0); k.SetValue(2,1);
     NCollection_Array1<int> mu(1,2),mv(1,2);
     mu.Init(du+1); mv.Init(dv+1);
     occ::handle<Geom_BSplineSurface> support = new Geom_BSplineSurface(poles,k,k,mu,mv,du,dv);
+    if (separable && u == 0) support->InsertUKnot(.5, 4, 0);
+    if (separable && v == 0) support->InsertVKnot(.5, 4, 0);
     auto face = BRepBuilderAPI_MakeFace(support,1e-9).Face();
     if (side == 0) face.Reverse();
     sewing.Add(face);
@@ -200,5 +202,40 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false) {
   auto common = BRepAlgoAPI_Common(stock,tool);
   if (!common.IsDone() || TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
     throw std::runtime_error("isolated tangency produced common material");
+  record(out,"isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
+}
+
+static void multipleKnotTangentSplineShellRecords(std::ostream& out) {
+  // A bilinear roof constructed directly in OCCT from exact dyadic
+  // coordinates has two isolated contacts at its own knot vertices.
+  const std::vector<double> stations[3]{{0,.25,.5,.75,1},{0,.5,1},{0,1}};
+  const double xGap[5]{.125,0,.125,0,.125}, yGap[3]{.125,0,.125};
+  BRepBuilderAPI_Sewing sewing(1e-9);
+  for (int axis=0;axis<3;++axis) for (int side=0;side<2;++side) {
+    const int u=(axis+1)%3,v=(axis+2)%3;
+    const int nu=int(stations[u].size()),nv=int(stations[v].size());
+    NCollection_Array2<gp_Pnt> poles(1,nu,1,nv);
+    for (int i=0;i<nu;++i) for (int j=0;j<nv;++j) {
+      int p[3]{};p[u]=i;p[v]=j;p[axis]=side*int(stations[axis].size()-1);
+      const double z=p[2] ? -xGap[p[0]]-yGap[p[1]] : -1;
+      poles.SetValue(i+1,j+1,gp_Pnt(stations[0][p[0]],stations[1][p[1]],z));
+    }
+    NCollection_Array1<double> ku(1,nu),kv(1,nv);
+    NCollection_Array1<int> mu(1,nu),mv(1,nv);
+    for(int i=1;i<=nu;++i){ku.SetValue(i,stations[u][i-1]);mu.SetValue(i,i==1||i==nu?2:1);}
+    for(int j=1;j<=nv;++j){kv.SetValue(j,stations[v][j-1]);mv.SetValue(j,j==1||j==nv?2:1);}
+    occ::handle<Geom_BSplineSurface> support=new Geom_BSplineSurface(poles,ku,kv,mu,mv,1,1);
+    auto f=BRepBuilderAPI_MakeFace(support,1e-9).Face();if(side==0)f.Reverse();sewing.Add(f);
+  }
+  sewing.Perform();
+  TopExp_Explorer ex(sewing.SewedShape(),TopAbs_SHELL);
+  if(!ex.More())throw std::runtime_error("missing two-contact tool shell");
+  auto tool=BRepBuilderAPI_MakeSolid(TopoDS::Shell(ex.Current())).Solid();
+  ex.Next();
+  if(ex.More()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid two-contact tool shell");
+  auto stock=BRepPrimAPI_MakeBox(1,1,1).Shape();
+  auto common=BRepAlgoAPI_Common(stock,tool);
+  if(!common.IsDone()||TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
+    throw std::runtime_error("two isolated contacts produced common material");
   record(out,"isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
 }
