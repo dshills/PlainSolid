@@ -14,7 +14,10 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 	if s.bore.tripleCrossed != nil {
 		return s.bore.solid.TessellateTripleCrossedBores(ctx, o)
 	}
-	if s.bore.crossedCompanions != nil {
+	if p := s.bore.crossedCompanions; p != nil {
+		if p.radii[0] != p.radii[1] {
+			return s.bore.solid.TessellateSkewCrossedWithDisjoint(ctx, o)
+		}
 		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
 	}
 	if p := s.bore.blindCrossed; p != nil {

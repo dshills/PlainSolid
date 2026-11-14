@@ -177,7 +177,7 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	if m, e := step.ReadUnequalBore(r(), stepLimits()); e == nil {
 		p := m.Body
 		g := crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.XRadius, p.ZRadius}, offset: p.Offset}
-		body, err := finiteCrossedBoreFromSTEP(g, [2]float64{p.XBlindDepth, p.ZBlindDepth}, [2]bool{p.XOppositeCap, p.ZOppositeCap}, m.LengthUnit)
+		body, err := crossedBoreToolsFromSTEP(g, [2]float64{p.XBlindDepth, p.ZBlindDepth}, [2]bool{p.XOppositeCap, p.ZOppositeCap}, p.Additional, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -373,6 +373,13 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteTripleCrossedBore(&out, step.TripleCrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossedCompanions != nil:
 		p := s.bore.crossedCompanions
+		if p.radii[0] != p.radii[1] {
+			body := step.UnequalBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing,
+				XRadius: p.radii[0], ZRadius: p.radii[1], Offset: p.offset, XBlindDepth: p.depth[0], ZBlindDepth: p.depth[1],
+				XOppositeCap: p.oppositeCap[0], ZOppositeCap: p.oppositeCap[1], Additional: p.additional}
+			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: body, LengthUnit: .001})
+			break
+		}
 		body := step.CrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], Additional: p.additional}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossed != nil:

@@ -23,6 +23,7 @@ type UnequalBoreBody struct {
 	ZBlindDepth          float64
 	XOppositeCap         bool
 	ZOppositeCap         bool
+	Additional           []trimmed.CardinalThroughBore
 }
 
 type UnequalBoreModel struct {
@@ -65,6 +66,10 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 	p := m.Body
 	partial := math.Abs(p.Offset) > math.Abs(p.XRadius-p.ZRadius)
 	hasFloor := p.XBlindDepth != 0 || p.ZBlindDepth != 0
+	hasCompanions := len(p.Additional) != 0
+	if hasCompanions && (partial || len(p.Additional) > trimmed.MaxSkewCrossedDisjointBores) {
+		return geom.ErrDomain
+	}
 	if p.XBlindDepth == 0 && p.XOppositeCap || p.ZBlindDepth == 0 && p.ZOppositeCap ||
 		!finiteNumber(p.XBlindDepth) || !finiteNumber(p.ZBlindDepth) || p.XBlindDepth < 0 || p.ZBlindDepth < 0 {
 		return geom.ErrDomain
@@ -72,11 +77,36 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 	// Resolve the same represented support origins that the canonical reader
 	// uses. In particular a decimal offset need not survive translating a
 	// signed stock frame unless this recipe is normalized before spline fitting.
-	if p.Offset != 0 || hasFloor {
+	if p.Offset != 0 || hasFloor || hasCompanions {
 		if !partial && p.ZRadius > p.XRadius {
 			frame, err := geom.NewFrame(p.Frame.ToWorld(geom.Vec3{Y: p.Dimensions.Y}), p.Frame.ZAxis(), p.Frame.XAxis())
 			if err != nil {
 				return err
+			}
+			if hasCompanions {
+				companions := make([]trimmed.CardinalThroughBore, 0, len(p.Additional))
+				for _, site := range p.Additional {
+					c := [3]float64{site.Center.X, site.Center.Y, site.Center.Z}
+					if site.Axis < 0 || site.Axis > 2 || !site.Center.IsFinite() || c[site.Axis] != 0 {
+						return geom.ErrDomain
+					}
+					switch site.Axis {
+					case 0:
+						site.Axis = 2
+					case 2:
+						site.Axis = 0
+					case 1:
+					default:
+						return geom.ErrDomain
+					}
+					center := frame.ToLocal(p.Frame.ToWorld(site.Center))
+					if site.Axis == 1 {
+						center.Y = 0
+					}
+					site.Center = center
+					companions = append(companions, site)
+				}
+				p.Additional = companions
 			}
 			p.Frame = frame
 			p.Crossing = geom.Vec3{X: p.Crossing.Z, Y: p.Dimensions.Y - (p.Crossing.Y + p.Offset), Z: p.Crossing.X}
@@ -124,7 +154,14 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
-	if hasFloor && partial {
+	if hasCompanions && hasFloor {
+		var finite trimmed.FiniteSkewCrossedBoresResult
+		finite, err = trimmed.BoxFiniteSkewCrossedBoresWithDisjoint(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset,
+			p.XBlindDepth, p.ZBlindDepth, p.XOppositeCap, p.ZOppositeCap, p.Additional, 1e-9)
+		result = finite.BoxCrossedBoresResult
+	} else if hasCompanions {
+		result, err = trimmed.BoxSkewCrossedBoresWithDisjoint(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, p.Additional, 1e-9)
+	} else if hasFloor && partial {
 		var finite trimmed.FiniteSkewCrossedBoresResult
 		finite, err = trimmed.BoxFinitePartialSkewBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset,
 			p.XBlindDepth, p.ZBlindDepth, p.XOppositeCap, p.ZOppositeCap, 1e-9)
@@ -143,7 +180,7 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 		return err
 	}
 	tolerance := UnequalBoreSTEPAccuracyMillimeters * .001 / m.LengthUnit
-	if hasFloor && compactFinite {
+	if hasCompanions || hasFloor && compactFinite {
 		return writeNativeFiniteUnequalBoreTopology(w, m.LengthUnit, p.Name, result.Solid, tolerance)
 	}
 	return writeNativeLongEdgeTopologyOptions(w, m.LengthUnit, p.Name, result.Solid, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, tolerance)
@@ -203,7 +240,7 @@ func ReadUnequalBore(r io.Reader, limits Limits) (UnequalBoreModel, error) {
 	if err := verifyCanonicalCircularExtrusionGraph(f, rep, &out); err != nil {
 		// Accept only the earlier, independently regenerated finite representation.
 		// Through families retain their single existing canonical graph.
-		if p.XBlindDepth == 0 && p.ZBlindDepth == 0 {
+		if len(p.Additional) != 0 || p.XBlindDepth == 0 && p.ZBlindDepth == 0 {
 			return UnequalBoreModel{}, err
 		}
 		var legacy bytes.Buffer
@@ -236,7 +273,7 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 		return fail()
 	}
 	faces, err := listRefs(shell.Args[1], 10)
-	if err != nil || (len(faces) < 10 || len(faces) > 12) && (len(faces) < 16 || len(faces) > 18) {
+	if err != nil || (len(faces) < 10 || len(faces) > 12) && (len(faces) < 16 || len(faces) > 18+4*trimmed.MaxSkewCrossedDisjointBores) {
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
@@ -296,8 +333,12 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 	if partial {
 		floorStart, rimUses = 10, 6
 	}
-	for _, id := range faces[floorStart:] {
-		floor, err := readCircularSourceFace(f, id)
+	for floorStart < len(faces) {
+		floor, err := readCircularSourceFace(f, faces[floorStart])
+		if err == nil && floor.kind == "CYLINDER" && !partial {
+			break
+		}
+		floorStart++
 		if err != nil || floor.kind != "PLANE" || floor.sense || len(floor.loops) != 1 || len(floor.loops[0]) != rimUses {
 			return fail()
 		}
@@ -314,6 +355,31 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 			p.ZBlindDepth, p.ZOppositeCap = bounds.Max.Z-l.Z, true
 		default:
 			return fail()
+		}
+	}
+	if remaining := len(faces) - floorStart; remaining != 0 {
+		if remaining%4 != 0 || remaining > 4*trimmed.MaxSkewCrossedDisjointBores {
+			return fail()
+		}
+		for i := floorStart; i < len(faces); i += 4 {
+			wall, err := readCircularSourceFace(f, faces[i])
+			if err != nil || wall.kind != "CYLINDER" || wall.sense {
+				return fail()
+			}
+			center := frame.ToLocal(wall.frame.Origin())
+			axis := -1
+			switch wall.frame.ZAxis() {
+			case frame.XAxis():
+				axis, center.X = 0, 0
+			case frame.YAxis():
+				axis, center.Y = 1, 0
+			case frame.ZAxis():
+				axis, center.Z = 2, 0
+			}
+			if axis < 0 {
+				return fail()
+			}
+			p.Additional = append(p.Additional, trimmed.CardinalThroughBore{Axis: axis, Center: center, Radius: wall.radius})
 		}
 	}
 	return p, nil

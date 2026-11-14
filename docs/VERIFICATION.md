@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD unequal crossed Holes with disjoint companions — 2026-11-14
+
+An unequal-radius centered or covered-width skew pair accepts one or two
+separate cardinal through bores. Complete projected envelopes prove
+clearance. The original radical trims, stock faces and finite floors
+keep their indices. STEP appends canonical companion wall groups and
+retains the bounded compact fit at the crossing.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-skew-companion-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-skew-companion-step-native-2026-11-14.json)
+pass on the same WASM. The 454,657-byte authored STEP reimports and
+reopens, and its watertight STL verifies both finite floors and the
+separate passage. Thirty-two native mass and ownership cases, eight
+float32 mesh checks and three independent OCCT STEP imports pass.
+Focused race and Go vet pass. Other placements can exhaust the existing
+adaptive triangle budget.
+
 ## PlainCAD finite floor in a three-Hole intersection — 2026-11-14
 
 One cutter in a concurrent equal-radius three-axis group can stop beyond
