@@ -95,6 +95,9 @@ func (c EllipseConic) Geometry() (geom.Ellipse, error) {
 // Source scalars must be lossless binary64 decimals. Unsupported partial arcs,
 // rotated local equations, affine scaling/reflection and ignored records fail.
 func ReadEllipseConic(r io.Reader, l Limits) (EllipseConicModel, error) {
+	return readEllipseConic(r, l, nil)
+}
+func readEllipseConic(r io.Reader, l Limits, quarter *int) (EllipseConicModel, error) {
 	bad := func() (EllipseConicModel, error) {
 		return EllipseConicModel{}, fmt.Errorf("iges: unsupported exact full ellipse conic")
 	}
@@ -167,16 +170,35 @@ func ReadEllipseConic(r io.Reader, l Limits) (EllipseConicModel, error) {
 	if e != nil {
 		return bad()
 	}
-	a, _, e := ellipseConicRadii(c)
+	a, b, e := ellipseConicRadii(c)
 	if e != nil {
 		return EllipseConicModel{}, e
 	}
-	for i, want := range []float64{a, 0, a, 0} {
-		v, e := realValue(curve.values[8+i])
-		if e != nil || v != want {
+	ends := [4]float64{}
+	for i := range ends {
+		ends[i], e = realValue(curve.values[8+i])
+		if e != nil {
 			return bad()
 		}
 	}
+	if quarter == nil {
+		if ends != [4]float64{a, 0, a, 0} {
+			return bad()
+		}
+	} else {
+		points := [4][2]float64{{a, 0}, {0, b}, {-a, 0}, {0, -b}}
+		q := -1
+		for i, p := range points {
+			if ends[0] == p[0] && ends[1] == p[1] && ends[2] == points[(i+1)%4][0] && ends[3] == points[(i+1)%4][1] {
+				q = i
+			}
+		}
+		if q < 0 {
+			return bad()
+		}
+		*quarter = q
+	}
+
 	tid := 0
 	if curve.transform == 0 {
 		if tr != nil {
@@ -210,13 +232,16 @@ func ReadEllipseConic(r io.Reader, l Limits) (EllipseConicModel, error) {
 // WriteEllipseConic retains raw coefficient scaling and declared placement.
 // It re-reads the complete result before any output; failure is atomic.
 func WriteEllipseConic(w io.Writer, m EllipseConicModel) error {
+	return writeEllipseConic(w, m, -1)
+}
+func writeEllipseConic(w io.Writer, m EllipseConicModel, quarter int) error {
 	if w == nil || !finite(m.LengthUnit) || m.LengthUnit <= 0 {
 		return geom.ErrInvalid
 	}
 	if _, e := m.Curve.Geometry(); e != nil {
 		return e
 	}
-	a, _, e := ellipseConicRadii(m.Curve)
+	a, b, e := ellipseConicRadii(m.Curve)
 	if e != nil {
 		return e
 	}
@@ -225,7 +250,16 @@ func WriteEllipseConic(w io.Writer, m EllipseConicModel) error {
 	for _, v := range m.Curve.Coefficients {
 		nums = append(nums, number(v))
 	}
-	for _, v := range []float64{m.Curve.Z, a, 0, a, 0} {
+	ends := [4]float64{a, 0, a, 0}
+	if quarter >= 0 {
+		if quarter > 3 {
+			return geom.ErrInvalid
+		}
+		points := [4][2]float64{{a, 0}, {0, b}, {-a, 0}, {0, -b}}
+		p, q := points[quarter], points[(quarter+1)%4]
+		ends = [4]float64{p[0], p[1], q[0], q[1]}
+	}
+	for _, v := range []float64{m.Curve.Z, ends[0], ends[1], ends[2], ends[3]} {
 		nums = append(nums, number(v))
 	}
 	author.add(104, 1, strings.Join(nums, ",")+";")
@@ -264,7 +298,11 @@ func WriteEllipseConic(w io.Writer, m EllipseConicModel) error {
 		}
 	}
 	raw = bytes.Join(lines, []byte("\n"))
-	if _, e = ReadEllipseConic(bytes.NewReader(raw), Limits{}); e != nil {
+	var selected *int
+	if quarter >= 0 {
+		selected = new(int)
+	}
+	if _, e = readEllipseConic(bytes.NewReader(raw), Limits{}, selected); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)
