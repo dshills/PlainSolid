@@ -23,6 +23,27 @@ type CertifiedObliqueTorusCavityArea struct {
 // area arithmetic is a separate single ledger. Existing JSON remains unchanged.
 func BoundObliqueTorusCavityArea(ctx context.Context, s Solid, R, r, c, lower, upper float64, pose [3][4]*big.Rat, o geom.TorusCylinderAreaOptions) (CertifiedObliqueTorusCavityArea, error) {
 	var zero CertifiedObliqueTorusCavityArea
+	q, e := bindObliqueTorusCavitySource(ctx, s, R, r, c, lower, upper, pose, o.Arithmetic)
+	if e != nil {
+		return zero, e
+	}
+	area, e := q.BoundArea(ctx, o)
+	if e != nil {
+		return zero, e
+	}
+	out := CertifiedObliqueTorusCavityArea{TorusCylinderArea: area}
+	out.SupportFaces[1] = []int{0}
+	out.SupportFaces[2] = []int{1}
+	out.SupportFaces[3] = []int{2}
+	for i := 3; i < 19; i++ {
+		out.SupportFaces[0] = append(out.SupportFaces[0], i)
+	}
+	return out, nil
+}
+
+// Shared stored-identity gate; public helpers never trust mutable face labels.
+func bindObliqueTorusCavitySource(ctx context.Context, s Solid, R, r, c, lower, upper float64, pose [3][4]*big.Rat, o geom.SurfacePatchOptions) (geom.ObliqueCylinderTorusCavityMaterial, error) {
+	var zero geom.ObliqueCylinderTorusCavityMaterial
 	if len(s.faces) != 19 || len(s.vertices) > 100 || len(s.edges) > 100 {
 		return zero, geom.ErrDomain
 	}
@@ -44,7 +65,7 @@ func BoundObliqueTorusCavityArea(ctx context.Context, s Solid, R, r, c, lower, u
 			return zero, geom.ErrDomain
 		}
 	}
-	expected, q, e := ObliqueTorusCavity(ctx, R, r, c, lower, upper, pose, s.tolerance, o.Arithmetic)
+	expected, q, e := ObliqueTorusCavity(ctx, R, r, c, lower, upper, pose, s.tolerance, o)
 	if e != nil {
 		return zero, e
 	}
@@ -58,16 +79,5 @@ func BoundObliqueTorusCavityArea(ctx context.Context, s Solid, R, r, c, lower, u
 	if !bytes.Equal(a.Bytes(), b.Bytes()) {
 		return zero, geom.ErrDomain
 	}
-	area, e := q.BoundArea(ctx, o)
-	if e != nil {
-		return zero, e
-	}
-	out := CertifiedObliqueTorusCavityArea{TorusCylinderArea: area}
-	out.SupportFaces[1] = []int{0}
-	out.SupportFaces[2] = []int{1}
-	out.SupportFaces[3] = []int{2}
-	for i := 3; i < 19; i++ {
-		out.SupportFaces[0] = append(out.SupportFaces[0], i)
-	}
-	return out, nil
+	return q, nil
 }
