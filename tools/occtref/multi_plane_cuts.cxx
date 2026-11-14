@@ -35,11 +35,15 @@ static TopoDS_Shape cubicStock() {
 }
 
 int main(int argc, char** argv) {
-  if (argc > 2 || (argc == 2 && std::string_view(argv[1]) != "curved-band")) return 3;
+  if (argc > 2) return 3;
+  const std::string_view mode = argc == 2 ? argv[1] : "";
+  if (!mode.empty() && mode != "curved-band" && mode != "crossing-band") return 3;
   const bool curved = argc == 2;
+  const bool crossing = mode == "crossing-band";
   TopoDS_Shape stock = curved ? cubicStock() : BRepPrimAPI_MakeBox(1, 1, 1).Shape();
   if (!BRepCheck_Analyzer(stock).IsValid()) return 4;
-  const gp_Pnt inside = curved ? gp_Pnt(.5, .125, .203125) : gp_Pnt(.875, .125, .6875);
+  const gp_Pnt inside = crossing ? gp_Pnt(.75, .125, .1953125) :
+                        curved ? gp_Pnt(.5, .125, .203125) : gp_Pnt(.875, .125, .6875);
   const gp_Pln wedgePlanes[] = {
     gp_Pln(gp_Pnt(0, 0, .375), gp_Dir(-.25, -.25, 1)),
     gp_Pln(gp_Pnt(0, 0, .75), gp_Dir(0, 0, 1)),
@@ -47,7 +51,8 @@ int main(int argc, char** argv) {
   };
   const gp_Pln bandPlanes[] = {
     gp_Pln(gp_Pnt(0, 0, .1875), gp_Dir(0, 0, 1)),
-    gp_Pln(gp_Pnt(0, 0, .21875), gp_Dir(-1./128, 0, 1)),
+    crossing ? gp_Pln(gp_Pnt(0, 0, .15625), gp_Dir(-1./16, 0, 1)) :
+               gp_Pln(gp_Pnt(0, 0, .21875), gp_Dir(-1./128, 0, 1)),
   };
   for (int i = 0; i < (curved ? 2 : 3); ++i) {
     const auto face = BRepBuilderAPI_MakeFace(curved ? bandPlanes[i] : wedgePlanes[i]).Face();

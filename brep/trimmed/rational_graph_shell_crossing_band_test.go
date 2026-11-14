@@ -1,0 +1,120 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"math"
+	"os"
+	"os/exec"
+	"testing"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+func TestClipCrossingRationalGraphSplineShell(t *testing.T) {
+	ctx := context.Background()
+	makeCut := func(h, slope float64, positive bool) RationalGraphHalfspace {
+		t.Helper()
+		s, e := slabTool(t, true, h, 0).Transformed(geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {slope, 0, 1, 0}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		return RationalGraphHalfspace{
+			Points: [3]geom.Vec3{{Z: h}, {X: 1, Z: h + slope}, {Y: 1, Z: h}}, KeepPositive: positive,
+			Cap: s.faces[4].Surface, CapDomain: geom.ParameterRectangle{UMin: -1, VMin: -1, UMax: 2, VMax: 2},
+		}
+	}
+	// Use an independently authored box for the first end-to-end crossing
+	// case: the two chord endpoints lie strictly inside affine stock faces.
+	stock, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, .125)
+	cuts := [2]RationalGraphHalfspace{makeCut(3./8, .25, true), makeCut(.5, 0, false)}
+	for trial := 0; trial < 2; trial++ {
+		r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		got, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(got.Volume-1./32) > 1e-12 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("exact taper volume and shell topology", got, e)
+		}
+		if len(r.CapEdges[0]) != 3 || len(r.CapEdges[1]) != 3 || r.CapIntersection.Edge < 0 {
+			t.Fatal("one cap seam must be separate from all stock/cap edges", r.CapEdges, r.CapIntersection)
+		}
+		for i, p := range r.CapIntersection.Points {
+			if p[0].Cmp(ratInset(.5)) != 0 || p[2].Cmp(ratInset(.5)) != 0 || p[1].Cmp(ratInset(0)) != 0 && p[1].Cmp(ratInset(1)) != 0 {
+				t.Fatal("wrong exact chord endpoint", i, p)
+			}
+		}
+		for i, f := range r.CapIntersection.Faces {
+			if r.Solid.faces[f].Surface != cuts[i].Cap {
+				t.Fatal("lost source cap chart", i, f)
+			}
+		}
+		var data bytes.Buffer
+		if e = WriteJSON(&data, r.Solid); e != nil {
+			t.Fatal(e)
+		}
+		reload, e := ReadJSONContext(ctx, &data, JSONLimits{})
+		if e != nil || reload.Topology().Edges != r.Solid.Topology().Edges {
+			t.Fatal("native crossing-cap reload", e)
+		}
+		cuts[0], cuts[1] = cuts[1], cuts[0]
+	}
+	tangent := [2]RationalGraphHalfspace{makeCut(3./8, .25, true), makeCut(5./8, 0, false)}
+	if r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, tangent, RationalGraphSeparatedBandOptions{}); !errors.Is(e, geom.ErrConvergence) || len(r.Solid.faces) != 0 || r.Sections[0].Complete {
+		t.Fatal("coincident original section terminal rejects atomically", e)
+	}
+	stock, _ = polynomialClipStock(t)
+	// The lower plane, z=3/16, and the upper plane z=5/32+x/16
+	// both cross the cubic floor; their line runs across that floor and
+	// the y=0 side. The retained material is on the x≥1/2 end.
+	cuts = [2]RationalGraphHalfspace{makeCut(3./16, 0, true), makeCut(5./32, 1./16, false)}
+	for trial := 0; trial < 2; trial++ {
+		r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if len(r.SourceFaces[4]) != 1 || r.Solid.faces[r.SourceFaces[4][0]].Surface != stock.faces[4].Surface {
+			t.Fatal("curved stock must retain its original surface", r.SourceFaces[4])
+		}
+		mass, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		// Integrate 4*z−x³/2 over x∈[.5,1] between the two cuts.
+		if e != nil || math.Abs(mass.Volume-233./61440) > 1e-10 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("independent curved taper integral", mass, e)
+		}
+		if path := os.Getenv("PLAINSOLID_OCCT_MULTI_PLANE_CUTS"); trial == 0 && path != "" {
+			data, e := exec.CommandContext(ctx, path, "crossing-band").Output()
+			if e != nil {
+				t.Fatal(e)
+			}
+			var oracle []float64
+			if e = json.Unmarshal(data, &oracle); e != nil || len(oracle) != 8 {
+				t.Fatalf("invalid OCCT result %s: %v", data, e)
+			}
+			p := r.Solid.Topology()
+			got := []float64{mass.Volume, mass.Area, mass.Centroid.X, mass.Centroid.Y, mass.Centroid.Z, float64(p.Vertices), float64(p.Edges), float64(p.Faces)}
+			for i, tol := range []float64{4e-8, 4e-6, 3e-6, 3e-6, 3e-6, 0, 0, 0} {
+				if math.Abs(got[i]-oracle[i]) > tol || math.IsNaN(got[i]) {
+					t.Fatalf("measure %d: PlainSolid %.16g, OCCT %.16g", i, got[i], oracle[i])
+				}
+			}
+		}
+		for _, p := range r.CapIntersection.Points {
+			if p[0].Cmp(ratInset(.5)) != 0 || p[2].Cmp(ratInset(3./16)) != 0 || p[1].Cmp(ratInset(0)) != 0 && p[1].Cmp(ratInset(11./16)) != 0 {
+				t.Fatal("cap chord must end at the exact cubic floor", p)
+			}
+		}
+		var data bytes.Buffer
+		if e = WriteJSON(&data, r.Solid); e != nil {
+			t.Fatal(e)
+		}
+		back, e := ReadJSONContext(ctx, &data, JSONLimits{})
+		if e != nil || back.Topology().Faces != r.Solid.Topology().Faces {
+			t.Fatal("curved taper reload", e)
+		}
+		cuts[0], cuts[1] = cuts[1], cuts[0]
+	}
+}

@@ -111,12 +111,7 @@ func (r *RationalGraphShellRegions) proveStrictCapHalfspace(ctx context.Context,
 	if r == nil || r.certificate == nil || len(r.material) == 0 {
 		return geom.ErrConvergence
 	}
-	axes := orientedRationalGraphProjection(r.plane)
-	outer := other.normal[r.plane.dropped]
-	form := [3]*big.Rat{nil, nil, new(big.Rat).Sub(new(big.Rat).Mul(outer, r.plane.offset), other.offset)}
-	for i, a := range axes {
-		form[i] = new(big.Rat).Sub(other.normal[a], new(big.Rat).Mul(outer, r.plane.normal[a]))
-	}
+	form := r.capHalfspaceForm(other)
 	valid := func(x *big.Rat) bool {
 		return x.Num().BitLen() <= r.maxBits && x.Denom().BitLen() <= r.maxBits
 	}
@@ -149,4 +144,13 @@ func (r *RationalGraphShellRegions) proveStrictCapHalfspace(ctx context.Context,
 		}
 	}
 	return nil
+}
+
+func (r *RationalGraphShellRegions) capHalfspaceForm(other polynomialPlaneEquation) [3]*big.Rat {
+	outer := other.normal[r.plane.dropped]
+	form := [3]*big.Rat{nil, nil, new(big.Rat).Sub(new(big.Rat).Mul(outer, r.plane.offset), other.offset)}
+	for i, a := range orientedRationalGraphProjection(r.plane) {
+		form[i] = new(big.Rat).Sub(other.normal[a], new(big.Rat).Mul(outer, r.plane.normal[a]))
+	}
+	return form
 }

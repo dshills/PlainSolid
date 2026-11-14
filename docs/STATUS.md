@@ -841,7 +841,13 @@ surfaces must keep their geometry through the operation. Continue with:
    where both exact sections remain strictly in the other retained halfspace.
    It sews continuous original graph trims against independently placed cap
    charts. A cubic fixture retains both trims through native reload. The
-   path rejects intersecting or touching caps.
+   path rejects intersecting or touching caps. A second path handles two
+   transverse cuts across one simple original section each. It isolates all
+   cap-boundary contacts and shares one exact native cap edge. Both cap ends
+   can land on planar stock, or one can land directly on a cubic stock face
+   with two retained exact graph trims. Original vertices on the opposite
+   plane, nonrepresentable junctions, holes and multiple retained runs are
+   still outside this crossing path.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

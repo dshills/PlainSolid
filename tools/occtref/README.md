@@ -207,3 +207,6 @@ The same binary's `curved-band` mode independently sweeps an exact cubic
 floor and applies two finite-height-separating, nonparallel halfspaces.
 `TestClipSeparatedRationalGraphSplineShell` compares its measure and topology
 with the native cubic band, also checked against independent integrals.
+`crossing-band` mode intersects the two caps inside the swept stock, with
+one end of their seam on the original cubic floor. The differential is
+`TestClipCrossingRationalGraphSplineShell`.

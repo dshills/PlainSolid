@@ -123,6 +123,10 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 			}
 		}
 	}
+	return certifyProjectedRationalGraphRegions(ctx, wires, rings, plane, opts)
+}
+
+func certifyProjectedRationalGraphRegions(ctx context.Context, wires [][]projectedGraphSectionPiece, rings []trimvalidate.Loop, plane polynomialPlaneEquation, opts trimvalidate.Options) (*RationalGraphShellRegions, error) {
 	certificate, placements, proof, e := trimvalidate.CertifyRingForest(ctx, rings, opts)
 	if e != nil {
 		return nil, e
@@ -130,7 +134,7 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 	if proof.Status != trimvalidate.Certified {
 		return nil, geom.ErrConvergence
 	}
-	out := &RationalGraphShellRegions{ProjectionAxes: axes, Rings: placements, certificate: certificate, plane: plane, maxBits: opts.MaxBits, wires: wires}
+	out := &RationalGraphShellRegions{ProjectionAxes: orientedRationalGraphProjection(plane), Rings: placements, certificate: certificate, plane: plane, maxBits: opts.MaxBits, wires: wires}
 	byOuter := make(map[int]int, len(placements))
 	for i, r := range placements {
 		if r.Depth%2 == 0 {
