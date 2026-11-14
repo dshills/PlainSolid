@@ -86,3 +86,26 @@ nonidentity signed frame. `TestOCCTEditedMappedPlanarDocument` uses the existing
 `PLAINSOLID_OCCT_DISK_BOUND_MASS` helper. Tests also bind source map/item identity,
 reject stale native geometry and invalid membership, verify immutable source and
 deterministic bytes, enforce limits, and propagate short writes.
+
+## Native documents without imported sources
+
+`State.WriteNativeMappedPlanarSTEP` creates a new mapped representation directly
+from native planar assets. It requires one asset-free identity root and a flat
+set of direct placed children, two to eight local planar assets and at most
+sixteen uses. Every asset must be used. Asset IDs supply local product names;
+root/node names supply the collection and mapped-use names. Deterministic sorted
+asset/node IDs determine entity generation order. Original STEP source graphs
+or provenance labels are unnecessary, so edited native local geometry is
+accepted when it passes the cardinal planar writer's complete proof.
+
+Units remain explicit. Nonplanar assets, unevaluated features, nested hierarchy,
+nonidentity root placement, orphan assets and unsupported placement frames fail
+before publication. Labels are not transferred as STEP metadata. The existing
+NAUO writer and source-bound edit writer remain separate APIs.
+
+An independently authored native two-box document is saved and reloaded before
+export. The pinned OCCT ordinary TransferRoots/BRepCheck and AddOptimal world
+bound check confirms minimum(−10,0,0),maximum(12,22,4), including the rotated reuse.
+`TestOCCTNativeMappedDocumentBounds` uses `PLAINSOLID_OCCT_MAPPED_BOUNDS`; build its
+standalone helper with `tools/occtref/build_mapped_planar_bounds.sh`. The helper
+uses the same pinned OCCT revision as the native mapped writer qualification.

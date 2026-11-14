@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"plainsolid/brep/edgecheck"
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"reflect"
 )
@@ -78,31 +79,39 @@ func wrappedShellNativeWitness(s *WrappedAlgebraicOpenShell) (wrappedShellWitnes
 	if s == nil || len(s.vertexSources) != len(s.vertices) || len(s.edgeSources) != len(s.edges) || len(s.faces) != 2 {
 		return out, geom.ErrInvalid
 	}
-	for i, p := range s.vertices {
+	return wrappedIndexedShellWitness(s.vertices, s.edges, s.faces, s.vertexSources, s.edgeSources, s.boundary)
+}
+
+func wrappedIndexedShellWitness(vertices []geom.Vec3, edges []parametric.Edge, faces []Face, vertexSources [][]WrappedOpenVertexSource, edgeSources [][]WrappedOpenEdgeSource, boundary []WrappedOpenBoundaryUse) (wrappedShellWitness, error) {
+	var out wrappedShellWitness
+	if len(vertices) != len(vertexSources) || len(edges) != len(edgeSources) {
+		return out, geom.ErrInvalid
+	}
+	for i, p := range vertices {
 		if !p.IsFinite() {
 			return out, geom.ErrInvalid
 		}
 		v := wrappedShellVertexWitness{Point: []string{ratInset(p.X).RatString(), ratInset(p.Y).RatString(), ratInset(p.Z).RatString()}}
-		for _, source := range s.vertexSources[i] {
+		for _, source := range vertexSources[i] {
 			v.Sources = append(v.Sources, []int{source.Face, source.Vertex})
 		}
 		out.Vertices = append(out.Vertices, v)
 	}
-	for i, e := range s.edges {
+	for i, e := range edges {
 		w := wrappedShellEdgeWitness{Vertices: []int{e.Start, e.End}, Range: []string{ratInset(e.Range.Min).RatString(), ratInset(e.Range.Max).RatString()}}
-		for _, source := range s.edgeSources[i] {
+		for _, source := range edgeSources[i] {
 			w.Sources = append(w.Sources, []int{source.Face, source.Edge, source.Loop, source.LocalEdge, wrappedBool(source.Reversed)})
 		}
 		out.Edges = append(out.Edges, w)
 	}
-	for _, face := range s.faces {
+	for _, face := range faces {
 		var uses [][]int
 		for _, u := range face.Outer {
 			uses = append(uses, []int{u.Edge, wrappedBool(u.Reversed)})
 		}
 		out.FaceUses = append(out.FaceUses, uses)
 	}
-	for _, u := range s.boundary {
+	for _, u := range boundary {
 		out.Boundary = append(out.Boundary, []int{u.Face, u.LocalEdge, u.Use.Edge, wrappedBool(u.Use.Reversed), wrappedBool(u.ReversedTraversal), u.Start, u.End})
 	}
 	return out, nil

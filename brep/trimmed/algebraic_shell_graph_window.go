@@ -17,7 +17,7 @@ type AlgebraicGraphProjectionWindow struct{ Min, Max [2]*big.Rat }
 // MaxCells separately bounds immutable recipe decoding and exclusion checks.
 type AlgebraicGraphWindowOptions struct {
 	Exact    geom.ExactCurvePlaneEventOptions
-	MaxCells int // Decoded recipe cells plus tested tubes; default8192, maximum65536.
+	MaxCells int // Decoded recipe cells plus tested covering boxes; default8192, maximum65536.
 }
 
 // AlgebraicGraphWindowDepth is a uniform enclosure, not an extrema witness.
@@ -38,7 +38,7 @@ type AlgebraicGraphWindowDepth struct {
 // BoundWindowDepth proves that an entire closed projected rectangle lies in
 // one retained fragment or in its excluded footprint. It requires the window
 // inside both original convex charts and strict separation from every verified
-// native tube cell. Touching/crossing or overly broad tube boxes fail closed.
+// native tube covering box (original cells unless refined during preparation). Touching/crossing or overly broad tube boxes fail closed.
 // Connectedness and complete native loop coverage then transport the exact
 // center classification throughout the window; corners alone never establish
 // material inclusion. Exact source restrictions on outward-rounded UV hulls
@@ -133,42 +133,64 @@ func (q *AlgebraicGraphMaterialQuery) BoundWindowDepth(ctx context.Context, w Al
 	// A TubeSegment owns a reverified immutable recipe and its cell index.
 	// RebuildTubeCurves trims the original supports to precisely these domains
 	// before verifying its branch. Raw caller recipes cannot enter this query.
-	cache := map[intersect.TubeRecipe]intersect.TubeRecipeData{}
-	for _, loop := range q.loops {
-		for _, piece := range loop {
-			if e := ctx.Err(); e != nil {
-				return out, e
+	if q.windowTubeBoxes != nil {
+		for _, loop := range q.windowTubeBoxes {
+			for _, piece := range loop {
+				for _, cell := range piece {
+					if e := ctx.Err(); e != nil {
+						return out, e
+					}
+					if out.TubeTests >= o.MaxCells || o.Exact.MaxOperations-out.ExactOperations < 4 {
+						return out, geom.ErrConvergence
+					}
+					out.TubeTests++
+					out.ExactOperations += 4
+					b := uvBounds[0]
+					if !(b[0][1].Cmp(ratInset(cell.UMin)) < 0 || b[0][0].Cmp(ratInset(cell.UMax)) > 0 || b[1][1].Cmp(ratInset(cell.VMin)) < 0 || b[1][0].Cmp(ratInset(cell.VMax)) > 0) {
+						return out, geom.ErrConvergence
+					}
+				}
 			}
-			if out.RecipeCells+out.TubeTests >= o.MaxCells {
-				return out, geom.ErrConvergence
-			}
-			recipe, index, second := piece.Segment.TrimA().Recipe()
-			if second {
-				return out, geom.ErrConvergence
-			}
-			data, ok := cache[recipe]
-			if !ok {
-				data = recipe.Data()
-				out.RecipeCells += len(data.Cells)
+		}
+	} else {
+		cache := map[intersect.TubeRecipe]intersect.TubeRecipeData{}
+		for _, loop := range q.loops {
+			for _, piece := range loop {
+				if e := ctx.Err(); e != nil {
+					return out, e
+				}
 				if out.RecipeCells+out.TubeTests >= o.MaxCells {
 					return out, geom.ErrConvergence
 				}
-				cache[recipe] = data
-			}
-			if index < 0 || index >= len(data.Cells) {
-				return out, geom.ErrConvergence
-			}
-			out.TubeTests++
-			if o.Exact.MaxOperations-out.ExactOperations < 4 {
-				return out, geom.ErrConvergence
-			}
-			out.ExactOperations += 4
-			cell := data.Cells[index].DomainA
-			b := uvBounds[0]
-			if !(b[0][1].Cmp(ratInset(cell.UMin)) < 0 || b[0][0].Cmp(ratInset(cell.UMax)) > 0 || b[1][1].Cmp(ratInset(cell.VMin)) < 0 || b[1][0].Cmp(ratInset(cell.VMax)) > 0) {
-				return out, geom.ErrConvergence
+				recipe, index, second := piece.Segment.TrimA().Recipe()
+				if second {
+					return out, geom.ErrConvergence
+				}
+				data, ok := cache[recipe]
+				if !ok {
+					data = recipe.Data()
+					out.RecipeCells += len(data.Cells)
+					if out.RecipeCells+out.TubeTests >= o.MaxCells {
+						return out, geom.ErrConvergence
+					}
+					cache[recipe] = data
+				}
+				if index < 0 || index >= len(data.Cells) {
+					return out, geom.ErrConvergence
+				}
+				out.TubeTests++
+				if o.Exact.MaxOperations-out.ExactOperations < 4 {
+					return out, geom.ErrConvergence
+				}
+				out.ExactOperations += 4
+				cell := data.Cells[index].DomainA
+				b := uvBounds[0]
+				if !(b[0][1].Cmp(ratInset(cell.UMin)) < 0 || b[0][0].Cmp(ratInset(cell.UMax)) > 0 || b[1][1].Cmp(ratInset(cell.VMin)) < 0 || b[1][0].Cmp(ratInset(cell.VMax)) > 0) {
+					return out, geom.ErrConvergence
+				}
 			}
 		}
+
 	}
 	center := [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}
 	for i, axis := range q.axes {
