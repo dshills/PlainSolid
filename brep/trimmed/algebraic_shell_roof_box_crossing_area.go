@@ -27,7 +27,7 @@ func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o
 // The first operand owns any shared portion that remains exposed. The
 // operation does not construct or imply a closed native Boolean topology.
 func BoundRoofBoxSurfaceArea(ctx context.Context, a, b Solid, op parametric.BooleanOp, proof MixedRoofQueryOptions, o MixedRoofAreaOptions) (MixedRoofArea, error) {
-	q, err := prepareRoofMaterialQuery(ctx, [2]Solid{a, b}, op, proof)
+	q, err := prepareDirectRoofBoxMeasure(ctx, a, b, op, proof)
 	if err != nil {
 		return MixedRoofArea{}, err
 	}

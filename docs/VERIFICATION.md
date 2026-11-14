@@ -2587,3 +2587,14 @@ implementation at `0c2b241`. It verified 228 original tubes and 248 overlapping
 cover cells, with 47,917,293 exact operations, 15,124 partition strata and
 7,240 uncovered-stratum checks. This qualifies the original coverage transfer;
 native assembly and meshing with this strategy have their own end-to-end test.
+
+## Direct coincident roof-box volume and mass (2026-11-14)
+
+`TestCoincidentRoofBoxMaterialMoments` compares direct rational volume, first
+moments, centroid and world inertia intervals with independent pinned OCCT
+construction and `GProp` evaluation for nine Common, Fuse and Cut results.
+The fixtures include a face-only intersection, overlapping boxes with shared
+walls, floor and roof, and equal boxes. Tests check exact rational values and
+atomic cancellation and fail-closed source rejection. The live focused race
+run (`PLAINSOLID_OCCT_COINCIDENT_ROOF_AREA` with `mass` mode) passed; the separate
+surface area regression passed in the same run.

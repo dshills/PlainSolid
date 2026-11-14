@@ -5,6 +5,7 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <GProp.hxx>
 #include <GProp_GProps.hxx>
 #include <TopoDS_Shape.hxx>
 #include <gp_Pnt.hxx>
@@ -12,8 +13,13 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 
-int main() {
+int main(int argc, char** argv) {
+  const bool mass = argc == 2 && std::string_view(argv[1]) == "mass";
+  if (argc != 1 && !mass) {
+    return 3;
+  }
   const auto box = [](double x, double y, double z) {
     return BRepPrimAPI_MakeBox(gp_Pnt(x, y, z), 2., 2., 2.).Shape();
   };
@@ -36,8 +42,24 @@ int main() {
         return 2;
       }
       GProp_GProps prop;
-      BRepGProp::SurfaceProperties(result, prop);
-      std::cout << (j ? "," : "") << prop.Mass();
+      std::cout << (j ? "," : "");
+      if (!mass) {
+        BRepGProp::SurfaceProperties(result, prop);
+        std::cout << prop.Mass();
+        continue;
+      }
+      BRepGProp::VolumeProperties(result, prop);
+      const auto c = prop.CentreOfMass();
+      gp_Mat shift;
+      GProp::HOperator(c, gp_Pnt(0, 0, 0), prop.Mass(), shift);
+      const auto inertia = prop.MatrixOfInertia() + shift;
+      std::cout << "{\"Volume\":" << prop.Mass() << ",\"Centroid\":["
+                << c.X() << ',' << c.Y() << ',' << c.Z() << "],\"Inertia\":[";
+      for (int r = 1; r <= 3; ++r) {
+        std::cout << (r == 1 ? "[" : ",[") << inertia.Value(r, 1) << ','
+                  << inertia.Value(r, 2) << ',' << inertia.Value(r, 3) << ']';
+      }
+      std::cout << "]}";
     }
     std::cout << ']';
   }
