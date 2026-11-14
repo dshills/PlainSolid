@@ -38,7 +38,8 @@ at test time; no OCCT source, binaries, or test fixtures are vendored.
 
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test
-checks volume, area and centroid for rising and falling taper.
+checks volume, area and centroid for rising and falling taper, then checks
+the closed walls against the corresponding OCCT subtractions.
 
 Run all optional exchange checks with:
 

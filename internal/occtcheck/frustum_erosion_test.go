@@ -33,5 +33,14 @@ func TestOCCTFrustumErosion(t *testing.T) {
 			t.Fatal(s.Topology(), e)
 		}
 		compare(t, ref[name], p.Area, p.Volume, p.Centroid)
+		wall, _, e := offset.WrappedCircularFrustumWall(ctx, w, .5, 1e-9, o)
+		if e != nil || len(wall.Topology().Shells) != 2 {
+			t.Fatal(wall.Topology(), e)
+		}
+		m, e := wall.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		compare(t, ref[[]string{"frustum-wall-rising", "frustum-wall-falling"}[i]], m.Area, m.Volume, m.Centroid)
 	}
 }

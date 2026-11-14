@@ -225,8 +225,11 @@ int main(int argc, char** argv) {
         const double finish = sense > 0 ? 5 : 2;
         const auto wall = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)),
                                               start - 0.625, finish - 0.625, 4).Shape();
-        record(out, sense > 0 ? "frustum-erosion-rising" : "frustum-erosion-falling",
-               BRepAlgoAPI_Common(wall, caps).Shape(), 1e-11);
+        const auto core = BRepAlgoAPI_Common(wall, caps).Shape();
+        record(out, sense > 0 ? "frustum-erosion-rising" : "frustum-erosion-falling", core, 1e-11);
+        const auto stock = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)), start, finish, 4).Shape();
+        record(out, sense > 0 ? "frustum-wall-rising" : "frustum-wall-falling",
+               BRepAlgoAPI_Cut(stock, core).Shape(), 1e-11);
       }
       return 0;
     }

@@ -127,6 +127,9 @@ without losing the exact complex.
 The capped circular frustum erosion matched independent pinned OCCT
 intersections of the shifted analytic cone and cap slab for both taper
 directions. Native mass, continuous rim agreement and race checks passed.
+Closed frustum walls also match the independently subtracted OCCT cavities.
+Exact parallel-axis containment admits an eccentric interior frustum with an
+irrational axis distance and rejects equality at the lateral contact.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

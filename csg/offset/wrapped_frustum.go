@@ -3,9 +3,34 @@ package offset
 import (
 	"context"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
+
+// WrappedCircularFrustumWall retains the material within thickness of the
+// original capped boundary. The closed inward shell is its exact ball
+// erosion. A collapsed or unrepresentable inner shell is rejected.
+func WrappedCircularFrustumWall(ctx context.Context, support *geom.WrappedSurfacePatch, thickness, tolerance float64,
+	o geom.SurfacePatchOptions) (trimmed.Solid, trimmed.SplineShellCombineHistory, error) {
+	var empty trimmed.SplineShellCombineHistory
+	if !(thickness > 0) {
+		return trimmed.Solid{}, empty, geom.ErrInvalid
+	}
+	outer, proof, e := trimmed.NewWrappedFrustum(ctx, support, tolerance, o)
+	if e != nil || !proof.Circular {
+		if e == nil {
+			e = geom.ErrConvergence
+		}
+		return trimmed.Solid{}, empty, e
+	}
+	inner, _, e := ErodeWrappedCircularFrustum(ctx, support, thickness, tolerance, o)
+	if e != nil {
+		return trimmed.Solid{}, empty, e
+	}
+	return trimmed.CombineNestedSplineComponents(ctx, outer, inner, parametric.Difference,
+		trimmed.SplineShellBooleanOptions{Embedding: trimmed.SplineRectangleEmbeddingOptions{Patches: o}})
+}
 
 // ErodeWrappedCircularFrustum builds the capped exact ball erosion of the
 // canonical circular frustum. Its native vertices must be representable.

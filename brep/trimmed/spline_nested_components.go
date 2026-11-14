@@ -28,8 +28,8 @@ type certifiedSplineMaterialShell struct {
 // boundaries, including cavities and islands inside cavities. Supported
 // shell families are certified spline rectangles and canonical wrapped
 // toroids/frusta. Overlapping conservative boxes require a further proof:
-// strict containment of compatible coaxial profiles, strict box enclosure
-// inside a circular frustum, or complete separation and witness
+// strict containment of compatible coaxial profiles, nested circular frusta
+// with parallel axes, strict box enclosure inside a circular frustum, or complete separation and witness
 // classification between two rectangular spline shells.
 func (s Solid) ValidateNestedSplineComponents(ctx context.Context, o SplineShellBooleanOptions) ([]SplineShellMaterialProof, error) {
 	shells, e := gatherCertifiedSplineMaterial(ctx, s, o)
@@ -123,9 +123,9 @@ func splineMaterialContainment(ctx context.Context, shells []certifiedSplineMate
 			if e != nil {
 				return nil, e
 			}
-			if contains > 0 || toroidStrictlyContains(a.Toroid, b.Toroid) || frustumStrictlyContainsBox(a.SplineComponentProof, b.Bounds) {
+			if contains > 0 || circularFrustumStrictlyContains(a.SplineComponentProof, b.SplineComponentProof) || toroidStrictlyContains(a.Toroid, b.Toroid) || frustumStrictlyContainsBox(a.SplineComponentProof, b.Bounds) {
 				m[i][j] = true
-			} else if contains < 0 || toroidStrictlyContains(b.Toroid, a.Toroid) || frustumStrictlyContainsBox(b.SplineComponentProof, a.Bounds) {
+			} else if contains < 0 || circularFrustumStrictlyContains(b.SplineComponentProof, a.SplineComponentProof) || toroidStrictlyContains(b.Toroid, a.Toroid) || frustumStrictlyContainsBox(b.SplineComponentProof, a.Bounds) {
 				m[j][i] = true
 			} else if a.Rectangle != nil && b.Rectangle != nil {
 				// The independently certified ray result identifies which
@@ -189,15 +189,53 @@ func exactCoaxialShellContainment(ctx context.Context, a, b certifiedSplineMater
 	return sign, nil
 }
 
-func frustumStrictlyContainsBox(p SplineComponentProof, b geom.Box) bool {
-	var cx, cy, low, high, r0, r1 *big.Rat
+func circularFrustumParameters(p SplineComponentProof) (cx, cy, low, high, r0, r1 *big.Rat) {
 	if p.Cylinder != nil && p.Cylinder.Circular {
 		x := p.Cylinder
-		cx, cy, low, high, r0, r1 = x.CenterX, x.CenterY, x.LowerZ, x.UpperZ, x.Radius, x.Radius
-	} else if p.Frustum != nil && p.Frustum.Circular {
+		return x.CenterX, x.CenterY, x.LowerZ, x.UpperZ, x.Radius, x.Radius
+	}
+	if p.Frustum != nil && p.Frustum.Circular {
 		x := p.Frustum
-		cx, cy, low, high, r0, r1 = x.CenterX, x.CenterY, x.LowerZ, x.UpperZ, x.LowerRadius, x.UpperRadius
-	} else {
+		return x.CenterX, x.CenterY, x.LowerZ, x.UpperZ, x.LowerRadius, x.UpperRadius
+	}
+	return nil, nil, nil, nil, nil, nil
+}
+
+func circularFrustumRadiusAt(z, lo, hi, a, b *big.Rat) *big.Rat {
+	t := new(big.Rat).Quo(new(big.Rat).Sub(z, lo), new(big.Rat).Sub(hi, lo))
+	return new(big.Rat).Add(a, new(big.Rat).Mul(t, new(big.Rat).Sub(b, a)))
+}
+
+func circularFrustumStrictlyContains(a, b SplineComponentProof) bool {
+	// Cylinder-cylinder cases already have the separate original profile
+	// proof. Require at least one actual tapered ancestor in this path.
+	if a.Frustum == nil && b.Frustum == nil {
+		return false
+	}
+	ax, ay, lo, hi, r0, r1 := circularFrustumParameters(a)
+	bx, by, bl, bh, s0, s1 := circularFrustumParameters(b)
+	if ax == nil || bx == nil || bl.Cmp(lo) <= 0 || bh.Cmp(hi) >= 0 {
+		return false
+	}
+	x, y := new(big.Rat).Sub(ax, bx), new(big.Rat).Sub(ay, by)
+	d2 := new(big.Rat).Add(x.Mul(x, x), y.Mul(y, y))
+	// Nested circular disks require radial clearance greater than the
+	// axis distance. Both radii vary affinely, so test the two endpoints
+	// of B's height interval. Rational squared comparisons also handle
+	// eccentric axes without evaluating an irrational square root.
+	for i, z := range [2]*big.Rat{bl, bh} {
+		gap := circularFrustumRadiusAt(z, lo, hi, r0, r1)
+		gap.Sub(gap, [2]*big.Rat{s0, s1}[i])
+		if gap.Sign() <= 0 || gap.Mul(gap, gap).Cmp(d2) <= 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func frustumStrictlyContainsBox(p SplineComponentProof, b geom.Box) bool {
+	cx, cy, low, high, r0, r1 := circularFrustumParameters(p)
+	if cx == nil {
 		return false
 	}
 	l, h := ratInset(b.Min.Z), ratInset(b.Max.Z)
@@ -207,8 +245,7 @@ func frustumStrictlyContainsBox(p SplineComponentProof, b geom.Box) bool {
 	// A circular frustum is convex: strict inclusion of all corners
 	// proves strict inclusion of the complete enclosing box.
 	for _, z := range []*big.Rat{l, h} {
-		t := new(big.Rat).Quo(new(big.Rat).Sub(z, low), new(big.Rat).Sub(high, low))
-		r := new(big.Rat).Add(r0, new(big.Rat).Mul(t, new(big.Rat).Sub(r1, r0)))
+		r := circularFrustumRadiusAt(z, low, high, r0, r1)
 		r.Mul(r, r)
 		for _, x := range []float64{b.Min.X, b.Max.X} {
 			for _, y := range []float64{b.Min.Y, b.Max.Y} {
