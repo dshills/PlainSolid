@@ -12,10 +12,13 @@ import (
 // bores from rectangular stock. Stock faces0..5 stay fixed; the next three
 // groups of16cylinder patches follow local Z,X,Y order.
 func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, tolerance float64) (BoxCrossedBoresResult, error) {
-	return boxFiniteTripleCrossedBores(ctx, frame, dimensions, crossing, radius, dimensions.Z, false, false, tolerance)
+	return BoxFiniteTripleCrossedBores(ctx, frame, dimensions, crossing, radius, [3]float64{}, [3]bool{}, tolerance)
 }
 
-func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, tolerance float64) (BoxCrossedBoresResult, error) {
+// BoxFiniteTripleCrossedBores retains any subset of the three blind floors
+// once their stops clear the complete intersection. Depths and opposite
+// entries use local X/Y/Z order. A zero depth denotes a through bore.
+func BoxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius float64, depths [3]float64, opposite [3]bool, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
@@ -37,33 +40,53 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 			return fail(geom.ErrDomain)
 		}
 	}
-	for i, d := range []float64{dimensions.X, dimensions.Y, dimensions.Z} {
-		c := []float64{crossing.X, crossing.Y, crossing.Z}[i]
-		if c-radius <= 8*tolerance || d-c-radius <= 8*tolerance {
+	var floors [3]float64
+	span := 0.
+	floorCount := 0
+	for axis, dimension := range [3]float64{dimensions.X, dimensions.Y, dimensions.Z} {
+		unit := [3]geom.Vec3{{X: 1}, {Y: 1}, {Z: 1}}[axis]
+		center := crossing.Dot(unit)
+		if center-radius <= 8*tolerance || dimension-center-radius <= 8*tolerance {
 			return fail(geom.ErrDomain)
 		}
-	}
-	floor := depth
-	if blind {
-		if !finite(depth) || depth <= 0 || depth >= dimensions.Z-8*tolerance {
+		depth := depths[axis]
+		if depth == 0 && !opposite[axis] {
+			span += dimension
+			continue
+		}
+		if !finite(depth) || depth <= 0 || depth >= dimension-8*tolerance {
 			return fail(geom.ErrDomain)
 		}
-		if oppositeCap {
-			floor = dimensions.Z - depth
+		floor := depth
+		if opposite[axis] {
+			floor = dimension - depth
 		}
-		p := geom.Vec3{X: crossing.X, Y: crossing.Y, Z: floor}
+		p := crossing
+		// Set the coordinate directly so non-dyadic depths retain the same
+		// rounding as the through/single-floor native representation.
+		switch axis {
+		case 0:
+			p.X = floor
+		case 1:
+			p.Y = floor
+		case 2:
+			p.Z = floor
+		}
 		represented := frame.ToLocal(frame.ToWorld(p))
 		if !represented.IsFinite() || represented.Distance(p) > tolerance/8 || frame.ToLocal(frame.ToWorld(represented)) != represented {
 			return fail(geom.ErrUnrepresentable)
 		}
-		floor = represented.Z
-		depth = floor
-		if oppositeCap {
-			depth = dimensions.Z - floor
-		}
-		if (!oppositeCap && floor <= crossing.Z+radius+8*tolerance) || (oppositeCap && floor >= crossing.Z-radius-8*tolerance) {
+		floor = represented.Dot(unit)
+		if (!opposite[axis] && floor <= center+radius+8*tolerance) || (opposite[axis] && floor >= center-radius-8*tolerance) {
 			return fail(geom.ErrDomain)
 		}
+		depths[axis] = floor
+		if opposite[axis] {
+			depths[axis] = dimension - floor
+		}
+		floors[axis] = floor
+		span += depths[axis]
+		floorCount++
 	}
 	b, e := crossedStockBuilder(ctx, frame, dimensions)
 	if e != nil {
@@ -86,6 +109,14 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 	vector := func(v geom.Vec3) geom.Vec3 {
 		return frame.XAxis().Scale(v.X).Add(frame.YAxis().Scale(v.Y)).Add(frame.ZAxis().Scale(v.Z))
 	}
+	// Reserve all floor IDs before creating any cylindrical wall group.
+	var floorIDs [3]int
+	for _, axis := range [3]int{2, 0, 1} {
+		if depths[axis] != 0 {
+			floorIDs[axis] = len(b.faces)
+			b.faces = append(b.faces, Face{})
+		}
+	}
 	for axis := 0; axis < 3; axis++ {
 		radialX, radialY, direction := geom.Vec3{X: 1}, geom.Vec3{Y: 1}, geom.Vec3{Z: 1}
 		low, high := -crossing.Z, dimensions.Z-crossing.Z
@@ -100,11 +131,13 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 			low, high = -crossing.Y, dimensions.Y-crossing.Y
 			caps = [2]int{2, 4}
 		}
-		if blind && axis == 0 {
-			if oppositeCap {
-				low = floor - crossing.Z
+		localAxis := [3]int{2, 0, 1}[axis]
+		if floorIDs[localAxis] != 0 {
+			floor := floors[localAxis] - crossing.Dot(direction)
+			if opposite[localAxis] {
+				low = floor
 			} else {
-				high = floor - crossing.Z
+				high = floor
 			}
 		}
 		cf, e := geom.NewFrame(frame.ToWorld(crossing), vector(radialX), vector(direction))
@@ -123,13 +156,13 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 			if k == 1 {
 				level = high
 			}
-			isFloor := blind && axis == 0 && ((!oppositeCap && k == 1) || (oppositeCap && k == 0))
+			isFloor := floorIDs[localAxis] != 0 && opposite[localAxis] == (k == 0)
 			if isFloor {
-				normal := frame.ZAxis().Scale(-1)
-				if oppositeCap {
-					normal = frame.ZAxis()
+				normal := vector(direction).Scale(-1)
+				if opposite[localAxis] {
+					normal = vector(direction)
 				}
-				ff, err := geom.NewFrame(frame.ToWorld(crossing.Add(direction.Scale(level))), frame.XAxis(), normal)
+				ff, err := geom.NewFrame(frame.ToWorld(crossing.Add(direction.Scale(level))), vector(radialX), normal)
 				if err != nil {
 					return fail(err)
 				}
@@ -137,8 +170,8 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 				if err != nil {
 					return fail(err)
 				}
-				id = len(b.faces)
-				b.faces = append(b.faces, Face{Surface: plane})
+				id = floorIDs[localAxis]
+				b.faces[id] = Face{Surface: plane}
 			}
 			if e = b.crossedCapWire(frame, frame.ToWorld(crossing.Add(direction.Scale(level))), vector(radialX), vector(radialY), radius, id, k == 1, angles, func(i int) geom.Vec3 { return point(i, level) }, normalize); e != nil {
 				return fail(e)
@@ -205,15 +238,9 @@ func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensio
 	if e != nil {
 		return fail(e)
 	}
-	span := dimensions.X + dimensions.Y + dimensions.Z
-	if blind {
-		span = dimensions.X + dimensions.Y + depth
-	}
 	removed := math.Pi*radius*radius*span - 8*math.Sqrt2*radius*radius*radius
 	delta := 2*math.Pi*radius*span - 24*math.Sqrt2*radius*radius - 6*math.Pi*radius*radius
-	if blind {
-		delta += 2 * math.Pi * radius * radius
-	}
+	delta += float64(floorCount) * 2 * math.Pi * radius * radius
 	if !finite(removed) || !finite(delta) {
 		return fail(geom.ErrInvalid)
 	}
@@ -236,7 +263,7 @@ func (s Solid) TessellateTripleCrossedBores(ctx context.Context, o parametric.Te
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
-	if len(s.faces) != 54 && len(s.faces) != 55 {
+	if len(s.faces) < 54 || len(s.faces) > 57 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	found := false

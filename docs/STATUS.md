@@ -78,14 +78,14 @@ evaluation and does not claim rational patch sewing.
 ## Immediate priority: PlainCAD compatibility
 
 The [selectable PlainSolid provider qualification](evidence/plaincad-provider-integration-verified-2026-11-14.json)
-pins the PlainCAD app implementation at `9779044` and PlainSolid at
-`f571a964`. Its selected build passed 345 development, 66 production and
-15 cross-browser cases with no skips or retries. The ordinary app suite
-passed all 1,691 cases with its documented worker and retry settings;
-four separate contracts exercised actual PlainSolid WASM. The report,
-WASM asset, and stamped Go runtime hashes were independently checked.
-This opt-in app build has separate evidence from the later kernel worktree
-reconciliations below.
+pins the PlainCAD app at `9779044` and its initial verified PlainSolid build
+at `f571a964`. The [full provider rerun](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json)
+on kernel `65441a2d` also passed 345 development, 66 production and 15
+cross-browser cases with no skips, retries, or flaky results. The ordinary
+app suite passed 1,691 cases and four actual-WASM contracts. The isolated
+PlainCAD provider branch selects PlainSolid in the app and its workers,
+with a fingerprinted WASM file and the matching Go runtime. Later kernel
+milestones have focused browser and exchange evidence.
 
 Development now prioritizes the operations exercised by PlainCAD's existing
 acceptance tests before expanding unrelated OCCT domains. The full specification
@@ -130,9 +130,9 @@ queries, STEP and STL pass. An equal-radius crossed through pair can
 retain up to 16 strictly separated cardinal companion bores in the same
 analytic solid and STEP graph. Three concurrent equal-radius through
 Holes along X, Y and Z retain eight exact triple junction vertices and
-exchange their elliptical intersection arcs through STEP. One of those
-three Holes can stop beyond the full intersection, retaining its planar
-floor from either entry side of any cardinal axis. Disjoint through cutters on two or three
+exchange their elliptical intersection arcs through STEP. One, two or all
+three Holes can stop beyond the full intersection and retain their planar
+floors from either entry side of each cardinal axis. Disjoint through cutters on two or three
 cardinal axes now retain canonical STEP, including unequal radii and
 non-millimeter import. When the full projected footprints are separated,
 disjoint mixed-axis blind bores can also exchange their finite floors and

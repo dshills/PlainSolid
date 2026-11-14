@@ -1,5 +1,38 @@
 # Verification record
 
+## PlainCAD multiple finite floors in a three-Hole crossing — 2026-11-14
+
+Two or three concurrent cardinal cutters can retain their complete blind
+floors beyond the overlap. Both entry directions remain available on
+each axis. STEP recovers floor order and axes from the missing stock
+openings and floor planes. Prior through and single-floor exports are
+byte-identical.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-multi-floor-triple-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-multi-floor-triple-step-native-2026-11-14.json)
+pass on the same WASM. The 115,577-byte STEP reimports and reopens.
+Ray checks identify all three retained floor positions in a watertight
+588-triangle STL. Thirty-two independent OCCT STEP comparisons, four
+translated decimal-depth round-trips, grouped and successive native
+cuts, focused race tests, and Go vet pass.
+
+## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
+
+The selected PlainSolid provider at PlainCAD app revision `9779044`
+passes 345 development, 66 production and 15 cross-browser cases with
+zero skips, retries and flaky results. The full development run takes
+36.4 minutes. Development and production performance cases take 17.6
+and 20.3 seconds. Both verify 25 edits and 11 STL downloads.
+
+Both TypeScript checks, four actual-WASM contracts, and the 72-bundle
+production budget pass. The largest JavaScript bundle is 496.50 kB of
+the 500 kB limit. The built WASM matches the SHA-256 in the kernel
+manifest. All 1,691 ordinary unit and component cases pass with one
+worker, up to two retries and a 15-second timeout. The release stages
+were executed individually on the same pin. Later geometry milestones
+have focused browser and exchange coverage.
+[Reports and build hashes](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json).
+
 ## PlainCAD reciprocal cardinal–oblique Hole crossing — 2026-11-14
 
 The exact equal-radius crossing also accepts a 3:4 local axis ratio when

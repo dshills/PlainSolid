@@ -19,12 +19,13 @@ The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in
 the app and its workers. It builds a fingerprinted WASM file and checks its
 manifest against the source revision and matching Go runtime. The pinned
 app build at `9779044` passes 345 development cases, 66 production cases
-and 15 cross-browser cases. It also passes the 1,691 ordinary unit/component
-cases and four dedicated actual-WASM contracts. The application remains an
-opt-in PlainSolid build. The qualification pins through-Hole commit
-`f571a964`, and subsequent kernel increments have their own browser and
+and 15 Chromium, Firefox and WebKit cases on kernel `65441a2d`. The
+browser suites have zero skips, retries or flaky results. Both TypeScript
+checks, the production bundle budget, 1,691 ordinary unit and component
+cases, and four actual-WASM contracts pass. PlainSolid is selected
+explicitly in the app build. Later increments have focused browser and
 exchange evidence.
-[App integration evidence](evidence/plaincad-provider-integration-2026-11-14.json).
+[Full provider qualification](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json).
 
 The [latest full production run](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
 passes all 66 originals on integration commit `254c83b`. The original
