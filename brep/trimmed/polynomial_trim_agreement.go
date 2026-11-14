@@ -74,19 +74,14 @@ func comparePolynomialTrimUse(ctx context.Context, model parametric.Edge, surfac
 	}
 	source, sourceMap := parametric.SurfaceMapping(m.surface)
 	target, targetMap := parametric.SurfaceMapping(surface)
-	sa, ok := source.(*geom.BSplineSurface)
-	if !ok {
+	if !supportsExactSplinePatch(source) || !supportsExactSplinePatch(target) || sourceMap != targetMap {
 		return false, nil
 	}
-	sb, ok := target.(*geom.BSplineSurface)
-	if !ok || sourceMap != targetMap {
-		return false, nil
-	}
-	ap, e := geom.NewSurfacePatch(sa, limits)
+	ap, e := exactSplineSupportPatch(source, limits)
 	if e != nil {
 		return false, e
 	}
-	bp, e := geom.NewSurfacePatch(sb, limits)
+	bp, e := exactSplineSupportPatch(target, limits)
 	if e != nil {
 		return false, e
 	}

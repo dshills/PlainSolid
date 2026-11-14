@@ -268,7 +268,8 @@ func WriteJSON(w io.Writer, s Solid) error {
 		}
 		d.Version, d.Tubes = 3, t.tubes
 	}
-	if t.exactQuadratic || t.exactBezier {
+	usesExactSurface := hasNativeExactSplineSupport(s)
+	if t.exactQuadratic || t.exactBezier || usesExactSurface {
 		if e := validateNativeExactQuadratics(context.Background(), s); e != nil {
 			return e
 		}
@@ -279,6 +280,9 @@ func WriteJSON(w io.Writer, s Solid) error {
 	}
 	if t.exactBezier {
 		d.Version = 6
+	}
+	if usesExactSurface {
+		d.Version = 7
 	}
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -523,7 +527,7 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 	if err = d.Decode(&extra); err != io.EOF {
 		return Solid{}, fmt.Errorf("trimmed: trailing data")
 	}
-	if n.Version < 1 || n.Version > 6 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
+	if n.Version < 1 || n.Version > 7 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
 		n.Version < 3 && len(n.Tubes) > 0 {
 		return Solid{}, fmt.Errorf("trimmed: unsupported schema")
 	}
@@ -651,8 +655,15 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 		faces[i] = face
 	}
 	solid, e := NewSolidContext(ctx, n.Vertices, edges, faces, n.Tolerance)
-	if e != nil || n.Version < 4 {
+	if e != nil {
 		return solid, e
+	}
+	usesExactSurface := hasNativeExactSplineSupport(solid)
+	if usesExactSurface != (n.Version == 7) {
+		return Solid{}, fmt.Errorf("trimmed: exact Bézier support requires native version 7")
+	}
+	if n.Version < 4 {
+		return solid, nil
 	}
 	// Version 4's exact trim coefficients carry no proof flags. Rederive
 	// topology and continuous agreement for every affected owner on reload.
@@ -660,6 +671,30 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 		return Solid{}, e
 	}
 	return solid, nil
+}
+
+func isNativeExactSplineSupport(s geom.Surface) bool {
+	base, _ := parametric.SurfaceMapping(s)
+	_, ok := base.(*geom.ExactBezierSurface)
+	return ok
+}
+
+func hasNativeExactSplineSupport(s Solid) bool {
+	for _, f := range s.faces {
+		if isNativeExactSplineSupport(f.Surface) {
+			return true
+		}
+	}
+	for _, e := range s.edges {
+		base, _ := parametric.CurveMapping(e.Curve)
+		if c, ok := base.(surfaceTrimCurve); ok && isNativeExactSplineSupport(c.surface) {
+			return true
+		}
+		if support, _, _, ok := parametric.IsoCurveParameters(e.Curve); ok && isNativeExactSplineSupport(support) {
+			return true
+		}
+	}
+	return false
 }
 
 func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
@@ -679,9 +714,19 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 		return false
 	}
 	affected := make(map[int]bool)
+	supportEdges := make(map[int]bool)
 	for i, m := range solid.edges {
-		if c, ok := m.Curve.(surfaceTrimCurve); ok && containsExact(c.curve) {
-			affected[i] = true
+		base, _ := parametric.CurveMapping(m.Curve)
+		if c, ok := base.(surfaceTrimCurve); ok {
+			if containsExact(c.curve) || isNativeExactSplineSupport(c.surface) {
+				affected[i] = true
+			}
+			if isNativeExactSplineSupport(c.surface) {
+				supportEdges[i] = true
+			}
+		}
+		if support, _, _, ok := parametric.IsoCurveParameters(m.Curve); ok && isNativeExactSplineSupport(support) {
+			affected[i], supportEdges[i] = true, true
 		}
 	}
 	for _, f := range solid.faces {
@@ -689,6 +734,9 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 			for _, u := range loop {
 				if containsExact(u.Curve) {
 					affected[u.Edge] = true
+				}
+				if isNativeExactSplineSupport(f.Surface) {
+					affected[u.Edge], supportEdges[u.Edge] = true, true
 				}
 				if q, ok := u.Curve.(ExactQuadraticUV); ok && q.rationalEndpoints {
 					m, ok := solid.edges[u.Edge].Curve.(surfaceTrimCurve)
@@ -716,7 +764,13 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 				if e := ctx.Err(); e != nil {
 					return e
 				}
-				proven, e := compareSplineRationalTrimUse(ctx, solid.edges[u.Edge], f.Surface, u, edgecheck.Options{})
+				var proven bool
+				var e error
+				if supportEdges[u.Edge] && u.Curve == nil {
+					proven, e = compareSplineEdgeUse(ctx, solid.edges[u.Edge], f.Surface, u, edgecheck.Options{})
+				} else {
+					proven, e = compareSplineRationalTrimUse(ctx, solid.edges[u.Edge], f.Surface, u, edgecheck.Options{})
+				}
 				if e != nil {
 					return e
 				}

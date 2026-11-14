@@ -55,11 +55,10 @@ func exactTrimIsoWithOptions(surface geom.Surface, a, b geom.Vec2, trim PCurve, 
 		return nil, false, nil
 	}
 	base, placement := parametric.SurfaceMapping(surface)
-	s, ok := base.(*geom.BSplineSurface)
-	if !ok {
+	if !supportsExactSplinePatch(base) {
 		return nil, false, nil
 	}
-	p, e := geom.NewSurfacePatch(s, o)
+	p, e := exactSplineSupportPatch(base, o)
 	if e != nil {
 		return nil, false, e
 	}
@@ -158,7 +157,7 @@ func compareSplineEdgeUse(ctx context.Context, model parametric.Edge, surface ge
 		}
 		return compareSplineDescriptors(ctx, x, y, rx != ry, o)
 	}
-	if _, ok := base.(*geom.BSplineSurface); !ok {
+	if !supportsExactSplinePatch(base) {
 		return false, nil
 	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
@@ -190,12 +189,11 @@ func compareSplineAffineTrimPieces(ctx context.Context, m surfaceTrimCurve, span
 	for i, x := range [2]trim{{m.surface, m.a, m.b, span},
 		{surface, use.UVStart, use.UVEnd, parametric.Interval{Max: 1}}} {
 		s, place := parametric.SurfaceMapping(x.surface)
-		b, ok := s.(*geom.BSplineSurface)
-		if !ok {
+		if !supportsExactSplinePatch(s) {
 			return false, nil
 		}
 		limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
-		p, e := geom.NewSurfacePatch(b, limits)
+		p, e := exactSplineSupportPatch(s, limits)
 		if e == nil && place != geom.Identity() {
 			p, e = p.Transformed(place)
 		}
@@ -350,20 +348,15 @@ func compareSplineRationalTrimUse(ctx context.Context, model parametric.Edge, su
 	}
 	sourceBase, sourceMap := parametric.SurfaceMapping(m.surface)
 	targetBase, targetMap := parametric.SurfaceMapping(surface)
-	a, ok := sourceBase.(*geom.BSplineSurface)
-	if !ok {
-		return false, nil
-	}
-	b, ok := targetBase.(*geom.BSplineSurface)
-	if !ok || sourceMap != targetMap {
+	if !supportsExactSplinePatch(sourceBase) || !supportsExactSplinePatch(targetBase) || sourceMap != targetMap {
 		return false, nil
 	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
-	ap, e := geom.NewSurfacePatch(a, limits)
+	ap, e := exactSplineSupportPatch(sourceBase, limits)
 	if e != nil {
 		return false, e
 	}
-	bp, e := geom.NewSurfacePatch(b, limits)
+	bp, e := exactSplineSupportPatch(targetBase, limits)
 	if e != nil {
 		return false, e
 	}
