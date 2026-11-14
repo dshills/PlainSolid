@@ -12,6 +12,9 @@ passed in the three CI shards (542 passing and seven skipped test events,
 including subtests; 554, 393 and 473 seconds elapsed). A prior unsharded run
 hit the default ten-minute package timeout. The wrapped bore test also passed
 in isolation; that timeout does not establish an individual test failure.
+The subsequent CGO-disabled run at `0309862` again passed all 49 tested
+packages outside `brep/trimmed`, with three packages reporting no tests;
+it recorded 3,672 passing and 301 skipped test events, including subtests.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -43,6 +46,13 @@ and both depths (`c09769b`, `660ca95`, `454b2f3`). Their native STEP reader
 derives the join from the one axial edge shared by the two cylindrical walls,
 and rejects altered owners and vendor-rounded graphs. Certified meshes repeat
 after reload, with exact collision and independent volume segment bounds.
+The PlainCAD review branch records the passing blind workflow at `50dd15f`
+and the passing through rerun at `1c1c70d` (43.304 seconds for the test).
+Both runs used the same 841 pinned application source files and identical
+supplemental assertions. The through rerun retained the original eight-second
+worker inactivity watchdog. On the native quarter-arc fixture, the optional
+bounded rim schedule reduced 1,040 triangles to 784 at the same distance,
+angle and collision gates. The independent volume-error bound was below 0.205.
 
 For broader curved contacts, `aa2f953` and `c1f0aca` preserve nonbinary source
 charts through certified transverse branch coverage and independent algebraic
@@ -56,6 +66,19 @@ continuous facet normal deviation, including taper. Bore meshing adds material
 normals on each inner/outer wall and the two caps. Lossless signed-axis rigid
 placement transfers the proof to the world mesh (`8450183`, `d62e758`); mesh
 translations requiring coordinate rounding reject.
+
+`3c72c14` builds original-support wrapped face cells for the qualified overlap;
+`bce61a1` connects the cells in an immutable open union/intersection graph.
+Certified shared edges have opposing uses and the exterior follows the first
+face orientation. Focused race checks cover guarded topology failures and
+immutable accessors. The exact directed G1 STEP codec (`66c15f5`) retains
+joins with unequal speeds. The independently transferred OCCT model has one
+wire, two edges, and length 3.0259717630258898; the C1 codec rejects that input.
+The exact roof shell regression uses a degree-elevated homogeneous chart with
+nonbinary controls. It proves a closed section and a two-face common volume
+on the original roof, then reconstructs both from native JSON. A modified
+recipe chart fails to bind to the original face. The rational volume enclosure
+narrows on refinement and contains an independent bracket of π(5/16)^4/2.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

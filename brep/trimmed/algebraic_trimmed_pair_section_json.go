@@ -190,7 +190,7 @@ func ReadTrimmedSplinePairSectionJSON(ctx context.Context, reader io.Reader, l J
 		}
 	}
 	l.MaxEntities -= entities
-	charts, seeds, e := rebuildAlgebraicTubeSeedsWithExactSupport(ctx, n.Charts, n.Tubes, l, o.Trace, true)
+	charts, seeds, e := rebuildAlgebraicTubeSeeds(ctx, n.Charts, n.Tubes, l, o.Trace)
 	if e != nil {
 		return r, e
 	}

@@ -217,6 +217,9 @@ excluded lower intersection. It supports native queries, certified display,
 authored document regeneration, and registered analytic STEP readback.
 Arcs extending past a semicircle and general cutter arrangements remain open.
 Both common-offset PlainCAD workflow fixtures passed on candidate `2851e23`.
+The different-center blind workflow passed at `50dd15f`; the through workflow
+passed at `1c1c70d`, retaining the same eight-second inactivity watchdog after
+the certified mesher gained an intermediate rational rim sampling count.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.
@@ -224,10 +227,13 @@ The display mesher certifies affine faces with a bounded chain of adjacent
 cubic or quartic graph trims, including C0 joins and shared sample indices.
 Nonbinary exact supports participate in complete certified transverse section
 traces and standalone algebraic section persistence, including original
-trim clipping. Independently refined wrapped charts now sew constant
+trim clipping. A closed two-face shell intersection preserves its nonbinary
+roof through imprint, original-face selection, volume bounds and native
+reconstruction. Independently refined wrapped charts now sew constant
 whole-period UV line shifts. A bounded partial coincidence and arrangement API
-retains exact original lifted intervals; general curved Boolean assembly is
-still open.
+retains exact original lifted intervals, materializes original-support faces,
+and proves an immutable open union or intersection with original edge ancestry.
+General periodic Boolean assembly remains open.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and

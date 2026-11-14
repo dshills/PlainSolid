@@ -19,7 +19,7 @@ func ExactSplineFaceRectangle(ctx context.Context, s *geom.ExactBezierSurface, d
 	if e := ctx.Err(); e != nil {
 		return SewFace{}, e
 	}
-	p, e := rectangleSplineSupport(s, o)
+	p, e := exactSplineSupportPatch(s, o)
 	if e != nil {
 		return SewFace{}, e
 	}
@@ -42,13 +42,6 @@ func ExactSplineFaceRectangle(ctx context.Context, s *geom.ExactBezierSurface, d
 		seen[point] = true
 	}
 	return f, nil
-}
-
-func rectangleSplineSupport(s geom.Surface, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
-	if x, ok := s.(*geom.ExactBezierSurface); ok {
-		return x.ExactPatch().WithLimits(o)
-	}
-	return exactSplineSupportPatch(s, o)
 }
 
 // RectangularSplineFace makes a standalone full-domain spline face with

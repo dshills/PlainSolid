@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"math/big"
+
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/intersect"
@@ -80,7 +81,7 @@ func ReadAlgebraicSplineSectionJSON(ctx context.Context, r io.Reader, l JSONLimi
 		return empty, e
 	}
 	first := f.Tubes[0]
-	charts, seeds, e := rebuildAlgebraicTubeSeedsWithExactSupport(ctx, [2]nativeTubePatch{first.A, first.B}, f.Tubes, l, trace, true)
+	charts, seeds, e := rebuildAlgebraicTubeSeeds(ctx, [2]nativeTubePatch{first.A, first.B}, f.Tubes, l, trace)
 	if e != nil {
 		return empty, e
 	}
@@ -89,29 +90,16 @@ func ReadAlgebraicSplineSectionJSON(ctx context.Context, r io.Reader, l JSONLimi
 
 func rebuildAlgebraicTubeSeeds(ctx context.Context, input [2]nativeTubePatch, tubes []nativeTubeRecipe, l JSONLimits,
 	trace intersect.SplinePairTraceOptions) (charts [2]intersect.Patch, seeds intersect.SplineSeedReport, err error) {
-	return rebuildAlgebraicTubeSeedsWithExactSupport(ctx, input, tubes, l, trace, false)
-}
-
-func rebuildAlgebraicTubeSeedsWithExactSupport(ctx context.Context, input [2]nativeTubePatch, tubes []nativeTubeRecipe, l JSONLimits,
-	trace intersect.SplinePairTraceOptions, allowExact bool) (charts [2]intersect.Patch, seeds intersect.SplineSeedReport, err error) {
 	var patches [2]*geom.SurfacePatch
 	for i, p := range input {
 		s, e := parametric.DecodeSurface(p.Surface, l.MaxControlPoints)
 		if e != nil {
 			return charts, seeds, e
 		}
-		var support *geom.SurfacePatch
-		switch a := s.(type) {
-		case *geom.BSplineSurface:
-			support, e = geom.NewSurfacePatch(a, trace.Seeds.Patches)
-		case *geom.ExactBezierSurface:
-			if !allowExact {
-				return charts, seeds, geom.ErrInvalid
-			}
-			support, e = a.ExactPatch().WithLimits(trace.Seeds.Patches)
-		default:
+		if !supportsExactSplinePatch(s) {
 			return charts, seeds, geom.ErrInvalid
 		}
+		support, e := exactSplineSupportPatch(s, trace.Seeds.Patches)
 		if e != nil {
 			return charts, seeds, e
 		}
@@ -132,7 +120,7 @@ func rebuildAlgebraicTubeSeedsWithExactSupport(ctx context.Context, input [2]nat
 		if len(tube.ExactEndpoints) > 0 {
 			return charts, seeds, geom.ErrConvergence
 		}
-		if _, e := tube.rebuildWithExactSupport(ctx, l.MaxControlPoints, allowExact); e != nil {
+		if _, e := tube.rebuildWithExactSupport(ctx, l.MaxControlPoints, true); e != nil {
 			return charts, seeds, e
 		}
 		for i, c := range tube.Cells {

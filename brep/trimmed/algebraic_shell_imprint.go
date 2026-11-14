@@ -207,7 +207,7 @@ func (w *shellImprintWork) modelPoint(branch, piece, end int, s intersect.TubeSe
 		if e != nil {
 			return nil, e
 		}
-		faces[i], e = intersectSplineFace(f, d)
+		faces[i], e = algebraicShellTracePatch(f, d)
 		if e != nil {
 			return nil, e
 		}

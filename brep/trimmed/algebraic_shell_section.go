@@ -56,8 +56,9 @@ type algebraicShellSectionSource struct {
 }
 
 // SectionSplineShellsAlgebraic isolates a section graph of two independently
-// embedded rectangular spline shells. Every retained pair has independent
-// coverage. Exact cross-chart model point equality joins open terminals;
+// embedded rectangular spline shells, including original exact homogeneous
+// supports. Every retained pair has independent coverage. Exact cross-chart
+// model point equality joins open terminals;
 // original edge identity is required on the terminal owner. It does not
 // classify material, split either shell, or resolve simultaneous edge events.
 func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicShellSectionOptions) (AlgebraicShellSectionResult, error) {
@@ -117,11 +118,11 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 					return out, e
 				}
 			}
-			x, e := intersectSplineFace(a.faces[i], p.patch.Domain())
+			x, e := algebraicShellTracePatch(a.faces[i], p.patch.Domain())
 			if e != nil {
 				return out, e
 			}
-			y, e := intersectSplineFace(b.faces[j], q.patch.Domain())
+			y, e := algebraicShellTracePatch(b.faces[j], q.patch.Domain())
 			if e != nil {
 				return out, e
 			}
@@ -346,4 +347,11 @@ func joinAlgebraicShellSectionBranches(ctx context.Context, branches []Algebraic
 		out = append(out, wire)
 	}
 	return out, nil
+}
+
+func algebraicShellTracePatch(f Face, d geom.ParameterRectangle) (intersect.Patch, error) {
+	if _, ok := f.Surface.(*geom.ExactBezierSurface); ok {
+		return intersect.Patch{Surface: f.Surface, Min: geom.Vec2{X: d.UMin, Y: d.VMin}, Max: geom.Vec2{X: d.UMax, Y: d.VMax}}, nil
+	}
+	return intersectSplineFace(f, d)
 }

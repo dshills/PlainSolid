@@ -274,7 +274,7 @@ func (s Solid) splineEmbeddingFace(ctx context.Context, f Face, o SplineRectangl
 	corners := [4]geom.Vec2{{X: d.UMin, Y: d.VMin}, {X: d.UMax, Y: d.VMin},
 		{X: d.UMax, Y: d.VMax}, {X: d.UMin, Y: d.VMax}}
 	base, m := parametric.SurfaceMapping(f.Surface)
-	p, e := rectangleSplineSupport(base, o.Patches)
+	p, e := exactSplineSupportPatch(base, o.Patches)
 	if e != nil {
 		return x, proof, e
 	}

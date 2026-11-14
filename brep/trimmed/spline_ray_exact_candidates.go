@@ -142,12 +142,7 @@ func exactSplineSupportPatch(s geom.Surface, o geom.SurfacePatchOptions) (*geom.
 		}
 	case *geom.ExactBezierSurface:
 		if b != nil && b.ExactPatch() != nil {
-			p := b.ExactPatch()
-			u, v := p.ControlShape()
-			if o.MaxPoles < 0 || o.MaxPoles > 0 && u*v > o.MaxPoles {
-				return nil, geom.ErrConvergence
-			}
-			return p, nil
+			return b.ExactPatch().WithLimits(o)
 		}
 	}
 	return nil, geom.ErrConvergence
