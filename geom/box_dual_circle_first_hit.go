@@ -32,10 +32,10 @@ type BoxDualCircleFirstHit struct {
 // bounded by one complete intersection pass, at most thirteen root comparisons,
 // and nine support sign tests, each using the supplied arithmetic limits.
 func FirstBoxDualCircleBoundaryHitRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleFirstHit, error) {
-	return firstBoxDualCircleBoundaryHitRational(ctx, min, max, xs, radii, min[1], stopZ, origin, direction, minT, maxT, o)
+	return firstBoxDualCircleBoundaryHitRational(ctx, min, max, xs, radii, [2]*big.Rat{min[1], min[1]}, stopZ, origin, direction, minT, maxT, o)
 }
 
-func firstBoxDualCircleBoundaryHitRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleFirstHit, error) {
+func firstBoxDualCircleBoundaryHitRational(ctx context.Context, min, max [3]*big.Rat, xs, radii [2]*big.Rat, centerY [2]*big.Rat, stopZ *big.Rat, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (BoxDualCircleFirstHit, error) {
 	var zero BoxDualCircleFirstHit
 	line, e := intersectBoxDualCircleBoundaryRational(ctx, min, max, xs, radii, centerY, stopZ, origin, direction, minT, maxT, o)
 	if e != nil {
@@ -141,7 +141,7 @@ func firstBoxDualCircleBoundaryHitRational(ctx context.Context, min, max [3]*big
 			if source == BoxDualCircleSecondWall {
 				owner = 1
 			}
-			for j, c := range [2]*big.Rat{xs[owner], centerY} {
+			for j, c := range [2]*big.Rat{xs[owner], centerY[owner]} {
 				n.Constant[j].Sub(c, origin[j])
 				n.Linear[j].Neg(direction[j])
 			}

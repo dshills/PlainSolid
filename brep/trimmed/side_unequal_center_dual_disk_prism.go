@@ -13,6 +13,8 @@ type UnequalCenterSideOpenDualDiskCut struct {
 	Solid     Solid
 	WallFaces [2][]int
 	FloorFace int
+	source    *sideOpenDualDiskSource
+	join      [2]*big.Rat
 }
 
 // CutUnequalCenterSideOpenDualDisks builds the verified explicit-join section's
@@ -33,5 +35,5 @@ func CutUnequalCenterSideOpenDualDisks(ctx context.Context, frame geom.Frame, mi
 	if e != nil {
 		return zero, e
 	}
-	return UnequalCenterSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace}, nil
+	return UnequalCenterSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: r.source, join: [2]*big.Rat{new(big.Rat).Set(s.Join[0]), new(big.Rat).Set(s.Join[1])}}, nil
 }
