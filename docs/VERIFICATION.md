@@ -5645,3 +5645,10 @@ on the actual finite patch pair, returns copied exact coordinates and
 the two original owners, and exposes no partial point on error. XY/XZ,
 operand reversal, clipped charts and a one-less work limit are covered.
 The integrated focused race passed in 1.220 s.
+
+The finite semicubical cusp certificate verifies the full original
+height numerator, both regular germs, the one singular point, and both
+exact terminal witnesses without sampling the interiors to claim
+completeness. Nonbinary coefficients, operand reversal, source
+perturbations and exact budget failures are checked. The integrated
+focused race passed in 1.311 s.

@@ -2001,6 +2001,8 @@ signed, swapped and scaled rectangular charts with equal physical
 footprints, retaining both original UV witnesses and world tangents.
 The intersect package now exposes the complete isolated point with both
 original patch owners; it does not require or emit a transverse tube.
+`CertifyGraphSemicubicalCusp` proves a complete cusp section in a common
+injective chart, with two regular germs and exact rational boundary exits.
 
 Exact hierarchy queries now find the nearest original retained boundary
 across the planar, sphere, cylinder and torus occurrence families. All
