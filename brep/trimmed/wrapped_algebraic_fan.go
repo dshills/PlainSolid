@@ -432,7 +432,7 @@ func validateWrappedFanIncidence(ctx context.Context, g *WrappedAlgebraicFaceCha
 	}
 	n := len(g.faces)
 	nv := len(g.vertices)
-	if (n != 3 && n != 4) || center < 0 || center >= nv || nv-len(g.edges)+n != 1 || len(g.vertexSources) != nv || len(g.edgeSources) != len(g.edges) || nv > 128 || len(g.edges) > 128 {
+	if (n < 3 || n > 8) || center < 0 || center >= nv || nv-len(g.edges)+n != 1 || len(g.vertexSources) != nv || len(g.edgeSources) != len(g.edges) || nv > 128 || len(g.edges) > 128 {
 		return nil, geom.ErrDomain
 	}
 	incidence := make([][]WrappedOpenBoundaryUse, len(g.edges))
