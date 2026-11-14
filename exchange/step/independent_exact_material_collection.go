@@ -24,6 +24,7 @@ type IndependentExactMaterial struct {
 	SourceRootID, SourceProductID, SourceDefinitionID, SourceRepresentationID int64
 	ProductName                                                               string
 	Cylinder                                                                  *IndependentCylinderMaterial
+	Sphere                                                                    *IndependentSphereMaterial `json:",omitempty"`
 }
 
 // IndependentExactMaterialCollection is a multi-root file, not an inferred assembly.
@@ -232,7 +233,7 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 		leaf.MaxFaces -= faces
 		leaf.MaxVertices -= vertices
 		leaf.MaxEdgeUses -= uses
-		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) == 1 && cylinderMode[0])
+		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) == 2 && cylinderMode[1])
 		if e != nil {
 			return IndependentExactMaterialCollection{}, e
 		}
@@ -267,15 +268,19 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 	return out, nil
 }
 
-func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool, allowCylinder bool) (IndependentExactMaterial, error) {
+func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool, allowCylinder bool, allowSphere bool) (IndependentExactMaterial, error) {
 	bad := func() (IndependentExactMaterial, error) { return IndependentExactMaterial{}, geom.ErrInvalid }
 	ids := []int64{}
 	elliptical := false
 	cylindrical := false
+	spherical := false
 	for _, id := range f.Order {
 		for _, r := range f.Entities[id].Records {
 			if r.Type == "MANIFOLD_SOLID_BREP" {
 				ids = append(ids, id)
+			}
+			if r.Type == "SPHERICAL_SURFACE" {
+				spherical = true
 			}
 			if r.Type == "CYLINDRICAL_SURFACE" {
 				cylindrical = true
@@ -287,6 +292,12 @@ func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol fl
 	}
 	if len(ids) != 1 {
 		return bad()
+	}
+	if spherical {
+		if !allowSphere || cylindrical || elliptical {
+			return bad()
+		}
+		return readIndependentSphereProduct(ctx, f, ids[0], l, tol)
 	}
 	if cylindrical {
 		if !allowCylinder || elliptical {
