@@ -40,7 +40,10 @@ Its application source and original test config were independently checked
 against the pinned revision. The
 [production record](evidence/plaincad-reconciled-967e3c3-production-2026-11-13.json)
 includes the verified no-OCCT backend preflight, production build and exact
-test selection. The [reconciled original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
+test selection. The [latest reconciled production run](evidence/plaincad-reconciled-7b037e2d-production-2026-11-14.json)
+also passed all 66 original cases on `7b037e2d`, which includes the separate
+integration worktree through `cc1c41f`. It passed the original performance
+fixture and preserved every original source assertion. The [reconciled original unit run](evidence/plaincad-reconciled-bf37aa5-original-units-2026-11-14.json)
 passed 1,653 of 1,689 on `bf37aa5`. All 36 failures also occurred in the
 earlier one-worker run. The unit and release gates remain open.
 The next reconciled build `0bdb699` passed the five original development STEP
@@ -911,7 +914,8 @@ surfaces must keep their geometry through the operation. Continue with:
    sheared sleeves rebuild after native reload, preserve either an intact
    through-void or a notch, and have certified material queries. The
    notch fixture has certified volume and a watertight affine-projection
-   display mesh. Ordinary solid conversion and general mixed-axis trim
+   display mesh. Exact cap-line queries and vertical fibers preserve
+   nonbinary and irrational parameters through rational rigid placement. Ordinary solid conversion and general mixed-axis trim
    arrangements remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
