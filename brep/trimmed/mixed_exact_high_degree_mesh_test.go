@@ -181,7 +181,7 @@ func TestExactCubicMixedCurvedHole(t *testing.T) {
 		t.Fatal("partial residual budget")
 	}
 	low = o
-	low.Span.MaxDegree = 7
+	low.Span.MaxDegree = 9
 	if _, e := TessellateMixedExactMultiSpanRegionCertified(ctx, support.ExactPatch(), outer, [][]PCurve{hole}, low); e == nil {
 		t.Fatal("unsupported degree")
 	}
