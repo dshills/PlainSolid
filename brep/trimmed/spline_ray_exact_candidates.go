@@ -127,13 +127,38 @@ func (s Solid) VerifySplineLineCandidates(ctx context.Context, origin, direction
 
 func exactFaceSupportPatch(f Face, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
 	base, m := parametric.SurfaceMapping(f.Surface)
-	bs, ok := base.(*geom.BSplineSurface)
-	if !ok || bs == nil {
-		return nil, geom.ErrConvergence
-	}
-	p, e := geom.NewSurfacePatch(bs, o)
+	p, e := exactSplineSupportPatch(base, o)
 	if e == nil && m != geom.Identity() {
 		p, e = p.Transformed(m)
 	}
 	return p, e
+}
+
+func exactSplineSupportPatch(s geom.Surface, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	switch b := s.(type) {
+	case *geom.BSplineSurface:
+		if b != nil {
+			return geom.NewSurfacePatch(b, o)
+		}
+	case *geom.ExactBezierSurface:
+		if b != nil && b.ExactPatch() != nil {
+			p := b.ExactPatch()
+			u, v := p.ControlShape()
+			if o.MaxPoles < 0 || o.MaxPoles > 0 && u*v > o.MaxPoles {
+				return nil, geom.ErrConvergence
+			}
+			return p, nil
+		}
+	}
+	return nil, geom.ErrConvergence
+}
+
+func supportsExactSplinePatch(s geom.Surface) bool {
+	switch s := s.(type) {
+	case *geom.BSplineSurface:
+		return s != nil
+	case *geom.ExactBezierSurface:
+		return s != nil && s.ExactPatch() != nil
+	}
+	return false
 }

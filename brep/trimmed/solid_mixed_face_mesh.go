@@ -51,20 +51,9 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 		return empty, e
 	}
 	f := s.faces[face]
-	base, placement := parametric.SurfaceMapping(f.Surface)
-	source, ok := base.(*geom.BSplineSurface)
-	if !ok {
-		return empty, geom.ErrConvergence
-	}
-	patch, e := geom.NewSurfacePatch(source, o.Face.Face.Boundary.Composition.SurfacePatchOptions)
+	patch, e := exactFaceSupportPatch(f, o.Face.Face.Boundary.Composition.SurfacePatchOptions)
 	if e != nil {
 		return empty, e
-	}
-	if placement != geom.Identity() {
-		patch, e = patch.Transformed(placement)
-		if e != nil {
-			return empty, e
-		}
 	}
 	uses := append([][]Use{f.Outer}, f.Holes...)
 	if len(uses) > 65 {

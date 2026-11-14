@@ -200,6 +200,12 @@ source boundary indices and bound the two directed image distances on a
 single positive rational biquadratic patch. General intersection curves
 still require complete contact discovery, exact trim arrangements, and
 global material classification.
+Version 7 retains exact positive-weight Bézier support controls for source
+charts that are not representable as binary64 poles. The first native use
+sews nonbinary cylindrical side cuts after independent full-edge equality
+proofs. Expand surface adapters, closure, embedding and exchange one supported
+family at a time; distinguish this exact representation from a whole-shell
+geometric proof.
 Continuous edge agreement handles distinct algebraic knot events using ordered
 root identities and polynomial composition. A dedicated native algebraic
 subdivision format persists an irrational split as a bounded root recipe and

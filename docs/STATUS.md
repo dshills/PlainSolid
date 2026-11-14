@@ -402,20 +402,22 @@ separate original-edge versus section-edge ancestry.
 Two parallel cuts can also form a band directly on the same curved stock,
 including square-tube caps with holes and faces crossed by both planes.
 
-Two same-side overlapping circular cutters now have a native rectangular
-stock constructor for equal radii, exact crossing coordinates, common
-blind depth or through length, and a signed coordinate frame. Two rational
-spline wall charts retain the exact circles and raw weights. OCCT mass
-comparison and native reload qualify this geometry. Exact point location
-separates exposed seams from buried cutter boundaries, and closed-form
-measures avoid reintegrating the faces. A boundary-preserving rectangular
-grid certifies an embedded, watertight display on the blind and through
-fixtures at 0.1 distance. The sampled display path still exhausts its budget
-on these shapes. Smooth-wall angular bounds and application viewer acceptance
-are separate gates. The strict model-only STEP writer and reader preserve the
-complete canonical AP203 product; OCCT reads those exports independently.
-OCCT-produced rounded cutter pcurves remain unsuitable for strict exact
-import. The bounded PlainCAD adapter is on the review branch, not this checkout.
+Two same-side overlapping circular cutters have native rectangular-stock
+constructors for equal or distinct radii, qualified rational crossings,
+common depth, and signed coordinate frames. Separate exact off-center and
+nonbinary-wall gates retain the original circle charts. Native version 7
+reproves continuous edges with the actual stored homogeneous supports;
+the old float spline path retains its lossless storage gate. Exact point,
+axial section, line and first-hit queries distinguish exposed and hidden
+supports, including both normals at the circle seam. Native documents
+regenerate the stock and cuts; headless picking follows exact boundary events.
+The bounded display path proves distance, smooth-wall normal angles, and
+closed embedding. The default PlainCAD viewer, STL and STEP workflow passed
+its supplemental equal-radius fixture on the local review branch. The close-up
+browser worker still reaches its 20-second deadline despite native speedups.
+Canonical model-only AP203 codecs cover the three lossless float-support
+classes. Vendor-rounded partial-cylinder pcurves remain rejected, and the
+new nonbinary support exchange gate is separately tracked.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

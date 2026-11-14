@@ -141,3 +141,38 @@ func TestExactBezierSurfaceRecipeRejects(t *testing.T) {
 		t.Fatal(q, e)
 	}
 }
+
+func TestExactRationalCylindricalSpanNonbinaryPole(t *testing.T) {
+	ctx := context.Background()
+	f, e := NewFrame(Vec3{}, Vec3{X: 1}, Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	q := func(x int64) *big.Rat { return big.NewRat(x, 1) }
+	a := [3][3]*big.Rat{{q(7), q(0), q(1)}, {q(7), big.NewRat(26, 3), q(1)}, {big.NewRat(65, 3), big.NewRat(52, 3), big.NewRat(13, 9)}}
+	center := [2]*big.Rat{q(20), q(0)}
+	p, e := NewExactRationalCylindricalSpanPatch(ctx, f, center, q(13), q(0), q(3), a)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if s, e := NewRationalCylindricalSpan(ctx, f, center, q(13), q(0), q(3), a); !errors.Is(e, ErrUnrepresentable) || s != nil {
+		t.Fatal("existing binary64 constructor accepted a rounded pole", s, e)
+	}
+	if _, e = p.ToBSplineSurface(); !errors.Is(e, ErrUnrepresentable) {
+		t.Fatal("float export accepted nonbinary pole", e)
+	}
+	u, v := big.NewRat(2, 3), big.NewRat(3, 7)
+	jet, e := p.EvaluateRational(ctx, u, v, SurfacePatchEvaluationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	x := new(big.Rat).Sub(jet.Point[0], q(20))
+	y := jet.Point[1]
+	if new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y)).Cmp(q(169)) != 0 || jet.Point[2].Cmp(big.NewRat(9, 7)) != 0 {
+		t.Fatal("nonbinary wall lost the exact circle or axial parameter", jet.Point)
+	}
+	a[1][0] = big.NewRat(22, 3)
+	if p, e = NewExactRationalCylindricalSpanPatch(ctx, f, center, q(13), q(0), q(3), a); e == nil || p != nil {
+		t.Fatal("altered circle support accepted", e)
+	}
+}

@@ -30,6 +30,10 @@ func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 }
 
 func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, unequal, general bool) (SideOpenDualDiskCut, error) {
+	return cutSideOpenDualDisksWithSupport(ctx, frame, min, max, discs, height, depth, tolerance, topology, unequal, general, false)
+}
+
+func cutSideOpenDualDisksWithSupport(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, unequal, general, exactWallSupport bool) (SideOpenDualDiskCut, error) {
 	var zero SideOpenDualDiskCut
 	if ctx == nil || !finite(height) || !finite(depth) || !finite(tolerance) || tolerance <= 0 || depth <= 0 || depth > height {
 		return zero, geom.ErrInvalid
@@ -76,8 +80,8 @@ func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 	s.Outer, s.Owner = chain, owners
 	var parts []SewFace
 	out := SideOpenDualDiskCut{FloorFace: -1}
-	appendFace := func(s *geom.BSplineSurface, loop []ExactQuadraticUV, reverse bool) error {
-		p, e := geom.NewSurfacePatch(s, geom.SurfacePatchOptions{})
+	appendFace := func(s geom.Surface, loop []ExactQuadraticUV, reverse bool) error {
+		p, e := exactSplineSupportPatch(s, geom.SurfacePatchOptions{})
 		if e != nil {
 			return e
 		}
@@ -116,10 +120,19 @@ func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 	}
 	for i, q := range s.Outer {
 		p, _ := q.Endpoints()
-		var wall *geom.BSplineSurface
+		var wall geom.Surface
 		if owner := s.Owner[i]; owner >= 0 {
 			c := discs[owner]
-			wall, e = geom.NewRationalCylindricalSpan(ctx, frame, [2]*big.Rat{ratInset(c.Center.X), ratInset(c.Center.Y)}, ratInset(c.Radius), new(big.Rat), ratInset(depth), q.HomogeneousControls())
+			center := [2]*big.Rat{ratInset(c.Center.X), ratInset(c.Center.Y)}
+			if exactWallSupport {
+				p, err := geom.NewExactRationalCylindricalSpanPatch(ctx, frame, center, ratInset(c.Radius), new(big.Rat), ratInset(depth), q.HomogeneousControls())
+				if err != nil {
+					return zero, err
+				}
+				wall, e = geom.NewExactBezierSurface(p)
+			} else {
+				wall, e = geom.NewRationalCylindricalSpan(ctx, frame, center, ratInset(c.Radius), new(big.Rat), ratInset(depth), q.HomogeneousControls())
+			}
 			out.WallFaces[owner] = append(out.WallFaces[owner], len(parts))
 		} else {
 			wall, e = dualDiskWallChart(frame, p, 0, depth)

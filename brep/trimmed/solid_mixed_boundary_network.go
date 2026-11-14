@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"math/big"
-	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"sort"
 )
@@ -277,16 +276,7 @@ func (s Solid) TessellateMixedBoundaryNetworkCertified(ctx context.Context, opti
 func (s Solid) recertifyMixedNetworkFace(ctx context.Context, fi int, old CertifiedSolidMixedFaceMesh, o SolidMixedFaceMeshOptions, display map[int]geom.Vec3) (CertifiedCurvedQuadraticTrimMesh, error) {
 	var empty CertifiedCurvedQuadraticTrimMesh
 	f := s.faces[fi]
-	base, mapping := parametric.SurfaceMapping(f.Surface)
-	bs, ok := base.(*geom.BSplineSurface)
-	if !ok {
-		return empty, geom.ErrConvergence
-	}
-	p, e := geom.NewSurfacePatch(bs, o.Face.Face.Boundary.Composition.SurfacePatchOptions)
-	if e != nil {
-		return empty, e
-	}
-	p, e = p.Transformed(mapping)
+	p, e := exactFaceSupportPatch(f, o.Face.Face.Boundary.Composition.SurfacePatchOptions)
 	if e != nil {
 		return empty, e
 	}

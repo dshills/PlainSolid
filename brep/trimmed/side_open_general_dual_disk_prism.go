@@ -25,3 +25,15 @@ func CutGeneralSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max
 	}
 	return GeneralSideOpenDualDiskCut{UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: r.source}}, nil
 }
+
+// CutGeneralSideOpenDualDisksWithExactWalls stores the original homogeneous
+// cylindrical controls without binary64 pole/weight restrictions. The section,
+// placement and model vertices retain the existing exact represented endpoint
+// gates. The normal float-spline constructor remains available separately.
+func CutGeneralSideOpenDualDisksWithExactWalls(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, o trimvalidate.Options) (GeneralSideOpenDualDiskCut, error) {
+	r, e := cutSideOpenDualDisksWithSupport(ctx, frame, min, max, discs, height, depth, tolerance, o, true, true, true)
+	if e != nil {
+		return GeneralSideOpenDualDiskCut{}, e
+	}
+	return GeneralSideOpenDualDiskCut{UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: r.source}}, nil
+}
