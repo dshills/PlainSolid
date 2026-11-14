@@ -41,14 +41,24 @@ func (r *RoofBoxPointQuery) LocateRational(ctx context.Context, p [3]*big.Rat, o
 	if err != nil {
 		return zero, err
 	}
+	w := mixedRoofLineWork{o: MixedRoofLineOptions{SurfacePatchEvaluationOptions: o}, operations: out.ExactOperations}
+	return q.regularizePoint(ctx, p, out, active, &w)
+}
+
+func (q *MixedRoofMaterialQuery) regularizePoint(ctx context.Context, p [3]*big.Rat, out MixedRoofMaterialPoint, active [2]int, w *mixedRoofLineWork) (MixedRoofMaterialPoint, error) {
+	var zero MixedRoofMaterialPoint
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	out.ExactOperations = w.operations
 	if out.Operands[0] != parametric.Boundary || out.Operands[1] != parametric.Boundary {
-		out.Location, err = mixedRoofBooleanLocation(q.op, out.Operands)
+		location, err := mixedRoofBooleanLocation(q.op, out.Operands)
 		if err != nil {
 			return zero, err
 		}
+		out.Location = location
 		return out, nil
 	}
-	w := mixedRoofLineWork{o: MixedRoofLineOptions{SurfacePatchEvaluationOptions: o}, operations: out.ExactOperations}
 	var certain, possible uint8
 	for _, sx := range [...]int{-1, 1} {
 		for _, sy := range [...]int{-1, 1} {
@@ -80,7 +90,7 @@ func (r *RoofBoxPointQuery) LocateRational(ctx context.Context, p [3]*big.Rat, o
 			if (byOrder[0]|byOrder[1])&^certain == 0 || active[0] == 1 && active[1] == 1 {
 				continue
 			}
-			proved, may, err := q.roofIncidentOrder(p, dir, active, &w)
+			proved, may, err := q.roofIncidentOrder(p, dir, active, w)
 			if err != nil {
 				return zero, err
 			}

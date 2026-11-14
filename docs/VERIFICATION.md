@@ -2607,6 +2607,10 @@ roofs. The tangent regression uses `(Y-X)^2-X^3`, where diagonal cancellation
 is necessary to see both signs. Work exhaustion and cancellation return no
 location result. The focused live race run passed in 4.533 s, including the
 shared boundary measures and independent creased-roof check.
+`TestCoincidentRoofBoxVerticalPartition` also passed under race with the live
+point oracle enabled. It checks a reversed nonunit line, all six exact
+stations, opposite use of the shared wall under Common/Fuse/Cut, a singleton
+clip through two cancelled roofs, and atomic operation exhaustion.
 
 ## Original non-unit native annulus (2026-11-14)
 

@@ -1553,6 +1553,9 @@ coincident supports. It uses local occupied layers to distinguish an internal
 union seam, a face-only intersection, and a genuinely exposed contact. Exact
 one-sided polynomial proofs include shared rational roofs and piecewise roof
 creases. A harder tangential order that affects the location fails closed.
+Its exact vertical partition covers the complete clipped row with exterior,
+interior and boundary intervals and retains original source height incidences
+even on a face removed by regularization.
 
 ## Non-unit native radial annulus qualification (2026-11-14)
 
