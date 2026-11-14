@@ -204,10 +204,11 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
-		if result, handled, err := newBlindCrossedBore(base, cylinders, cuts, spans, blind); handled {
+		pair, pairCuts, pairSpans, pairBlind := retainedCrossedToolPair(cylinders, cuts, spans, blind)
+		if result, handled, err := newBlindCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, err
 		}
-		if result, handled, err := newCrossedBore(base, cylinders, cuts, spans, blind); handled {
+		if result, handled, err := newCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, err
 		}
 		return newUnionBore(base, cylinders, cuts, blind)

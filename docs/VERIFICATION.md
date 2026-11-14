@@ -1,5 +1,18 @@
 # Verification record
 
+## PlainCAD repeated and deepened crossed Holes — 2026-11-14
+
+A crossed Hole batch can contain coaxial cutters proved covered by another
+member. The exact cardinal line, radius and finite floor are checked before
+discarding a covered tool. Deepening retains the extended floor, and
+continuing through the other cap produces the same canonical STEP as an
+authored through Hole. A wholly redundant batch reports zero material
+removal. Other bore families keep their original tool sets.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-contained-crossed-browser-2026-11-14.json)
+pass. Focused native tests verify grouped duplicates, shorter and narrower
+cutters, incremental overlap, deepening and final opening. Race and Go vet pass.
+
 ## PlainCAD STEP for two intersecting blind Holes — 2026-11-14
 
 Both equal-radius perpendicular cutters can stop beyond their complete
