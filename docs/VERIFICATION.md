@@ -6328,3 +6328,14 @@ ownership, physical volume, native reload, and exact work limits.
 A curve with the same endpoint anchors and a different interior was
 rejected. Combined spline, straight, and original sewing race tests
 passed in 4.355 seconds.
+
+### Guided planar tolerance repair qualification
+
+A cuboid's shifted and reversed top trim was repaired against its
+original adjacent planes. The four vertex displacements and volume
+were verified exactly. A subdivided two-plane edge retained its
+projected midpoint, with both source displacements exactly at the
+limit. Native reload and continuous agreement passed. Inconsistent
+planes, duplicate seams, orientation defects without repair, and
+collision or displacement quota exhaustion were verified. The combined
+planar repair and abutting prism race tests passed in 4.871 seconds.

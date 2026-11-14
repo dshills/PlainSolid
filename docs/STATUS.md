@@ -2410,3 +2410,13 @@ and both original wall bands retain their full source intervals.
 on supported single-span spline borders with affine UV coedges. It
 proves equality over the full common interval before subdividing.
 The result retains original supports and exact source parameter ranges.
+
+### Planar tolerance repair with fixed supports
+
+`SewPlanarWithinTolerance` repairs explicitly paired linear trim borders
+while preserving every original plane. Corner positions are exact
+intersections of the incident original planes. Two-plane junctions use
+the exact projection of the original samples' mean. The report records
+each original vertex displacement, the shared edges, any repaired face
+orientation, and exact volume. Publication requires a closed embedded
+shell and displacement within the requested bound.
