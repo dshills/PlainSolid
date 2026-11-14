@@ -1650,6 +1650,11 @@ passed all 49 tested packages outside `brep/trimmed` with 3,997 passing and
 342 skipped test events. All three trimmed shards passed with 777 passing
 and 22 skipped test events (650, 586, and 846 seconds). The run includes
 subtests and short-mode skips; newer milestones have focused checks below.
+The [CGO-disabled run at `e35945b`](evidence/native-short-e35945b-2026-11-14.json)
+passed all 49 tested packages outside `brep/trimmed` (4,149 passing and 354
+skipped test events; three packages without tests). The three trimmed shards
+passed with 818 passing and 23 skipped test events, including subtests
+(395, 498, and 383 seconds).
 On 2026-11-14, the exact multi-cap wedge (`a0aa095`) matched a pinned live
 OCCT halfspace common in volume, area, centroid, and its 6 vertices, 9
 edges and 5 faces. The exact volume is 19/1536; the three generated seam
@@ -1659,6 +1664,11 @@ with volume 35/48. A nonparallel cubic band passes native reload, both cap
 orders and chart orientation reversal, the independent volume 2969/122880,
 and an independent area integral. OCCT agrees on all topology counts; its
 volume and area differ by about 5.5e-8 and 2.7e-6 respectively.
+A crossing cubic band sews a cap chord between exact points
+`(1/2,0,3/16)` and `(1/2,11/16,3/16)` on the unchanged supports. Its
+independent volume is 233/61440. Both operand orders reload natively;
+pinned OCCT agrees on topology and differs from the analytic volume by
+about 1.65e-8. Touching an original section vertex returns no partial solid.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

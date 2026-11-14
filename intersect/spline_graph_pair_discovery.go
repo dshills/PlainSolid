@@ -83,19 +83,19 @@ func discoverGraphPairTubes(ctx context.Context, a, b Patch, p geom.SurfacePatch
 	for _, contour := range trace.Contours {
 		for _, ref := range contour.Arcs {
 			arc := trace.Isolation.Arcs[ref.Index]
-			x, e := arc.ExactEndpoint(0, geom.ArcExactEndpointOptions{})
+			x, e := arc.ExactFreeEndpoint(0, geom.ArcExactEndpointOptions{})
 			if e != nil {
 				return out, ErrUnresolved
 			}
-			y, e := arc.ExactEndpoint(1, geom.ArcExactEndpointOptions{})
+			y, e := arc.ExactFreeEndpoint(1, geom.ArcExactEndpointOptions{})
 			if e != nil {
 				return out, ErrUnresolved
 			}
-			start, e := geom.RepresentedExactScalar(x.FreeParameter)
+			start, e := geom.RepresentedExactScalar(x)
 			if e != nil {
 				return out, ErrUnresolved
 			}
-			end, e := geom.RepresentedExactScalar(y.FreeParameter)
+			end, e := geom.RepresentedExactScalar(y)
 			if e != nil || start == end {
 				return out, ErrUnresolved
 			}

@@ -14,6 +14,8 @@ import (
 // non-overlapping interiors; zero selects 32768 comparisons.
 type SplinePairTraceOptions struct {
 	DyadicGraphFallback DyadicGraphDiscoveryOptions
+	// UniformGraphFallback proposes exact dyadic cuts without sampled zero witnesses.
+	UniformGraphFallback UniformGraphDiscoveryOptions
 	// ConcentricEllipseFallback recognizes an exact diagonal quartic factor pair.
 	ConcentricEllipseFallback SplinePlanePairDiscoveryOptions
 	// ProjectedGraphFallback discovers in an explicitly chosen model plane.
@@ -128,6 +130,10 @@ func TraceSplinePair(ctx context.Context, a, b Patch, o SplinePairTraceOptions) 
 		q := o.DyadicGraphFallback
 		q.SplinePlanePairDiscoveryOptions = d
 		return DiscoverDyadicGraphPairTubes(ctx, a, b, p, q)
+	}}, {o.UniformGraphFallback.SplinePlanePairDiscoveryOptions, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+		q := o.UniformGraphFallback
+		q.SplinePlanePairDiscoveryOptions = d
+		return DiscoverUniformGraphPairTubes(ctx, a, b, p, q)
 	}}, {o.ProjectedGraphFallback, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
 		return DiscoverProjectedAffineGraphPairTubes(ctx, a, b, p, o.GraphProjectionAxes, d)
 	}}} {

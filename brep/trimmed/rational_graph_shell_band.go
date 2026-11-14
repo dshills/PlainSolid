@@ -153,32 +153,10 @@ func (s Solid) assembleRationalGraphBand(ctx context.Context, sections [2]Ration
 func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch, planes [2]polynomialPlaneEquation, keep [2]int, o SplineRectangleEmbeddingOptions, rationalEndpoints bool) (SewFace, error) {
 	var uv [][2]*big.Rat
 	if branches[0].freeAxis < 0 && branches[1].freeAxis < 0 {
-		uv = slabFaceUV(face)
-		for i, p := range planes {
-			var clipped [][2]*big.Rat
-			var h []*big.Rat
-			for _, x := range uv {
-				j, e := patch.EvaluateRational(ctx, x[0], x[1], geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits})
-				if e != nil {
-					return SewFace{}, e
-				}
-				h = append(h, new(big.Rat).Sub(p.dot(j.Point), p.offset))
-			}
-			for j, a := range uv {
-				k := (j + 1) % len(uv)
-				if h[j].Sign()*p.orientation == keep[i] {
-					clipped = append(clipped, a)
-				}
-				if h[j].Sign()*h[k].Sign() < 0 {
-					t := new(big.Rat).Quo(h[j], new(big.Rat).Sub(h[j], h[k]))
-					var z [2]*big.Rat
-					for axis := range z {
-						z[axis] = new(big.Rat).Add(a[axis], new(big.Rat).Mul(t, new(big.Rat).Sub(uv[k][axis], a[axis])))
-					}
-					clipped = append(clipped, z)
-				}
-			}
-			uv = clipped
+		var e error
+		uv, e = rationalGraphAffineBandPolygon(ctx, face, patch, planes, keep, o)
+		if e != nil {
+			return SewFace{}, e
 		}
 	} else {
 		free := branches[0].freeAxis
@@ -238,4 +216,35 @@ func rationalGraphBandFace(ctx context.Context, face Face, patch *geom.SurfacePa
 		return SewFace{}, e
 	}
 	return part, nil
+}
+
+func rationalGraphAffineBandPolygon(ctx context.Context, face Face, patch *geom.SurfacePatch, planes [2]polynomialPlaneEquation, keep [2]int, o SplineRectangleEmbeddingOptions) ([][2]*big.Rat, error) {
+	uv := slabFaceUV(face)
+	for i, p := range planes {
+		var clipped [][2]*big.Rat
+		var h []*big.Rat
+		for _, x := range uv {
+			j, e := patch.EvaluateRational(ctx, x[0], x[1], geom.SurfacePatchEvaluationOptions{MaxOperations: o.Patches.MaxOperations, MaxCoefficientBits: o.Patches.MaxCoefficientBits})
+			if e != nil {
+				return nil, e
+			}
+			h = append(h, new(big.Rat).Sub(p.dot(j.Point), p.offset))
+		}
+		for j, a := range uv {
+			k := (j + 1) % len(uv)
+			if h[j].Sign()*p.orientation*keep[i] >= 0 {
+				clipped = append(clipped, a)
+			}
+			if h[j].Sign()*h[k].Sign() < 0 {
+				t := new(big.Rat).Quo(h[j], new(big.Rat).Sub(h[j], h[k]))
+				var z [2]*big.Rat
+				for axis := range z {
+					z[axis] = new(big.Rat).Add(a[axis], new(big.Rat).Mul(t, new(big.Rat).Sub(uv[k][axis], a[axis])))
+				}
+				clipped = append(clipped, z)
+			}
+		}
+		uv = clipped
+	}
+	return uv, nil
 }
