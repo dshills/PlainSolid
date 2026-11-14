@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "class": "supplemental-side-cut-default-workflows-after-closeup-change",
+  "backend": "plainsolid-go-wasm",
+  "workspace": "/tmp/plainsolid-reconciled-dual-workflow-57f40ad-5448",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "57f40ad0a802ccf84df79780c90523642fce1852",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "wasmSha256": "bc25e35ed4e35eb2d9f1a2888414b4c1b0d4ee0820dcbf8fcdca9a34293f48e4",
+  "readinessSha256": "29cbab99402eaab06994946961c495af8620b49f2fdba56990469721d7256889",
+  "selected": {
+    "suite": "development",
+    "testFile": "e2e/plainsolid-side-dual-disk.spec.ts",
+    "grep": "Go WASM overlap",
+    "acceptancePort": "5448",
+    "preflightPort": "5448"
+  },
+  "supplementalFixture": {
+    "file": "e2e/plainsolid-side-dual-disk.spec.ts",
+    "sha256": "7962515a5c81ca7bb439d26d1fe300a262483dabe98e69f482fb8c23eb71d685"
+  },
+  "sourceFileCount": 841,
+  "backendVerified": true,
+  "typecheck": "passed",
+  "summaries": [
+    {
+      "path": "/tmp/plainsolid-reconciled-dual-workflow-57f40ad-5448/backend-results.json",
+      "startTime": "2026-11-14T00:52:29.573Z",
+      "duration": 7145.582,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "path": "/tmp/plainsolid-reconciled-dual-workflow-57f40ad-5448/playwright-results.json",
+      "startTime": "2026-11-14T00:52:37.124Z",
+      "duration": 42865.337,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  ],
+  "tests": [
+    {
+      "title": "Go WASM overlap of two side-opening circles: blind rebuild, reopen, STL and STEP",
+      "status": "passed",
+      "durationMs": 20230
+    },
+    {
+      "title": "Go WASM overlap of two side-opening circles: through rebuild, reopen, STL and STEP",
+      "status": "passed",
+      "durationMs": 20022
+    }
+  ]
+}
