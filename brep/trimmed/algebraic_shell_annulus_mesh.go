@@ -19,6 +19,9 @@ type AlgebraicShellAnnulusMeshOptions struct {
 }
 
 type CertifiedAlgebraicShellAnnulusMesh struct {
+	// Footprint.Mesh uses these two model axes; all boundary/model points remain world-space.
+	// Region is -1 for projected scratch fills (there is no standalone region ID).
+	ProjectionAxes [2]int
 	CertifiedAlgebraicTubeRegionMesh
 	TriangleFaces      []int  // Original immutable Boolean face IDs.
 	LoopBranches       [2]int // Outer, then inner original section branch.
@@ -28,7 +31,7 @@ type CertifiedAlgebraicShellAnnulusMesh struct {
 }
 
 // TessellateAnnulusCertified fills a common bounded by two original affine-XY
-// graph faces, each retaining one outer and one inner whole section loop.
+// graph faces in model XY or cyclic YZ projection, each retaining one outer and one inner whole section loop.
 // Original domains and complete pair coverage are independently requalified;
 // exact recipes and intervals bind every displayed boundary to native IDs.
 // The returned closed manifold has positive displayed volume and no exact
@@ -167,7 +170,7 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 		return empty, e
 	}
 	source := section.runSource()
-	if source == nil || len(source.segments) != 2 || source.projection != [2]int{0, 1} {
+	if source == nil || len(source.segments) != 2 || (source.projection != [2]int{0, 1} && source.projection != [2]int{1, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	for i, b := range source.segments {
@@ -184,7 +187,12 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 	if o.Regions.MaxLoops == 0 || o.Regions.MaxLoops > 2 {
 		o.Regions.MaxLoops = 2
 	}
-	regions, e := section.SealAlgebraicTubeRegions(ctx, o.Regions)
+	var regions AlgebraicTubeRegions
+	if source.projection == [2]int{1, 2} {
+		regions, e = projectedBooleanAnnulusView(ctx, section, loopBranches, o.Regions)
+	} else {
+		regions, e = section.SealAlgebraicTubeRegions(ctx, o.Regions)
+	}
 	if e != nil {
 		return empty, e
 	}
@@ -212,11 +220,16 @@ func (s AlgebraicShellBoolean) TessellateAnnulusCertified(ctx context.Context, o
 			return empty, geom.ErrConvergence
 		}
 	}
-	display, e := regions.TessellateRegionClosedCertified(ctx, selected, o.Mesh)
+	var display CertifiedAlgebraicTubeRegionMesh
+	if source.projection == [2]int{1, 2} {
+		display, e = tessellateProjectedBooleanAnnulus(ctx, regions, o.Mesh)
+	} else {
+		display, e = regions.TessellateRegionClosedCertified(ctx, selected, o.Mesh)
+	}
 	if e != nil {
 		return empty, e
 	}
-	result := CertifiedAlgebraicShellAnnulusMesh{CertifiedAlgebraicTubeRegionMesh: display, LoopBranches: loopBranches, TopologyVertices: make([]int, len(s.vertices)), BoundaryEdges: map[int][]int{}}
+	result := CertifiedAlgebraicShellAnnulusMesh{ProjectionAxes: source.projection, CertifiedAlgebraicTubeRegionMesh: display, LoopBranches: loopBranches, TopologyVertices: make([]int, len(s.vertices)), BoundaryEdges: map[int][]int{}}
 	for i := range result.TopologyVertices {
 		result.TopologyVertices[i] = -1
 	}

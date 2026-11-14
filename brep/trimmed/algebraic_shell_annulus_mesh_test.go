@@ -12,7 +12,9 @@ import (
 	"testing"
 )
 
-func TestCertifiedBooleanAnnulusFill(t *testing.T) {
+func TestCertifiedBooleanAnnulusFill(t *testing.T)   { checkCertifiedBooleanAnnulusFill(t, false) }
+func TestCertifiedYZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, true) }
+func checkCertifiedBooleanAnnulusFill(t *testing.T, rotated bool) {
 	if testing.Short() {
 		t.Skip("complete nested Boolean section and certified annulus")
 	}
@@ -33,6 +35,43 @@ func TestCertifiedBooleanAnnulusFill(t *testing.T) {
 	}
 	o := AlgebraicShellSectionOptions{Trace: nestedTubeSectionOptions().Trace, Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: h}}}
 	o.Trace.Coverage.OverlappingAffineXYFallback = true
+	axes := [2]int{0, 1}
+	if rotated {
+		rotate := func(s Solid) Solid {
+			var faces []SewFace
+			for _, f := range s.Faces() {
+				d := f.Surface.(*geom.BSplineSurface).Data()
+				for i, p := range d.Poles {
+					d.Poles[i] = geom.Vec3{X: -p.Z, Y: -p.X, Z: p.Y}
+				}
+				support, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
+				if e != nil {
+					t.Fatal(e)
+				}
+				face, e := RectangularSplineFace(support, f.Reversed)
+				if e != nil {
+					t.Fatal(e)
+				}
+				faces = append(faces, face)
+			}
+			out, _, e := Sew(ctx, faces, SewOptions{Tolerance: 1e-9})
+			if e != nil {
+				t.Fatal(e)
+			}
+			return out
+		}
+		a, b = rotate(a), rotate(b)
+		// These unchanged UV cells/free axes are proposals only. The original
+		// signed rotated supports must independently reprove every tube/coverage.
+		for i := range h.Attempts {
+			h.Attempts[i].Sample = nil
+			h.Attempts[i].Section = nil
+		}
+		axes = [2]int{1, 2}
+		o.Trace.GraphProjectionAxes = axes
+		o.Seeds = []AlgebraicShellSectionSeed{{Faces: [2]int{4, 1}, Tubes: h}}
+	}
+
 	section, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if e != nil || !section.Complete || len(section.Wires) != 2 {
 		t.Fatal("complete nested original shell section", section.Complete, len(section.Wires), e)
@@ -46,6 +85,8 @@ func TestCertifiedBooleanAnnulusFill(t *testing.T) {
 
 	options := AlgebraicShellAnnulusMeshOptions{Section: nestedTubeSectionOptions(), Regions: nestedTubeRegionOptions()}
 	options.Section.Trace.Coverage.OverlappingAffineXYFallback = true
+	options.Section.Trace.GraphProjectionAxes = axes
+	options.Section.Clip.Projection = &axes
 	options.Mesh = AlgebraicTubeRegionMeshOptions{Footprint: AlgebraicTubeFootprintMeshOptions{Boundary: AlgebraicTubeRegionsBoundaryOptions{MaxOperations: 256000000, Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .03, MaxOperations: 64000000}, MaxPieces: 512}, MaxOwnerOperations: 64000000}}, Polygon: trimvalidate.Options{MaxEdges: 1024, MaxWork: 2000000}}, Surface: MultiSpanTubeLensMeshOptions{AffineCharts: true, Closed: AlgebraicTubeLensMeshOptions{Collision: collision.Options{MaxPairs: 16000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .001}}, Span: MultiSpanTriangleBoundOptions{MaxDegree: 4}}}
 	options.Mesh.Footprint.Boundary.Loop.Run.Partition.MaxOperations = 64000000
 	common.Faces = nil
@@ -55,6 +96,30 @@ func TestCertifiedBooleanAnnulusFill(t *testing.T) {
 	if e != nil {
 		t.Fatal("Boolean annular fill", e)
 	}
+	if display.ProjectionAxes != axes {
+		t.Fatal("projection identity")
+	}
+	if rotated && (display.Region != -1 || display.Footprint.Region != -1) {
+		t.Fatal("scratch region exposed as original")
+	}
+	if rotated {
+		minX := 0.0
+		for _, p := range display.Mesh.Vertices {
+			minX = math.Min(minX, p.X)
+			if p.X > 1e-7 || p.Y >= 0 || p.Z <= 0 {
+				t.Fatal("signed world restoration", p)
+			}
+		}
+		if minX >= -1e-5 {
+			t.Fatal("lost nonplanar retained roof")
+		}
+		for _, p := range display.Footprint.Mesh.Vertices {
+			if p.Z != 0 || p.X >= 0 || p.Y <= 0 {
+				t.Fatal("YZ footprint coordinates", p)
+			}
+		}
+	}
+
 	if e := display.Mesh.ValidateSolid(); e != nil {
 		t.Fatal(e)
 	}

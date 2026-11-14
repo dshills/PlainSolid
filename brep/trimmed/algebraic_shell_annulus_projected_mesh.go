@@ -1,0 +1,143 @@
+package trimmed
+
+import (
+	"context"
+	"math/big"
+	"plainsolid/geom"
+	"plainsolid/mesh"
+)
+
+// This scratch view is justified only by an immutable Boolean's independently
+// proved nested face loops, after the caller rebinds every whole source tube.
+// It is never returned as a sealed original-world AlgebraicTubeRegions value.
+func projectedBooleanAnnulusView(ctx context.Context, section AlgebraicTrimmedPairSection, branches [2]int, o AlgebraicTubeRegionOptions) (AlgebraicTubeRegions, error) {
+	var empty AlgebraicTubeRegions
+	if section.runSource() == nil || section.runSource().projection != [2]int{1, 2} {
+		return empty, geom.ErrConvergence
+	}
+	if o.Exact.MaxOperations == 0 {
+		o.Exact.MaxOperations = 128000000
+	}
+	if o.Exact.MaxCoefficientBits == 0 {
+		o.Exact.MaxCoefficientBits = 16384
+	}
+	if o.Exact.MaxOperations < 1 || o.Exact.MaxCoefficientBits < 64 || o.Exact.MaxSubdivisions < 0 {
+		return empty, geom.ErrInvalid
+	}
+	r := AlgebraicTubeRegions{section: section}
+	for _, branch := range branches {
+		p := o.Partition
+		p.MaxOperations = capPositiveBudget(p.MaxOperations, o.Exact.MaxOperations-r.ExactOperations)
+		if p.MaxOperations < 1 {
+			return empty, geom.ErrConvergence
+		}
+		q, e := section.PartitionBothFacesByTubeRun(ctx, branch, 0, p)
+		r.ExactOperations += q.ExactOperations
+		if e != nil {
+			return empty, e
+		}
+		sign := q.Faces[0].FragmentHeightSigns[0]
+		if sign == 0 || sign != -q.Faces[1].FragmentHeightSigns[0] {
+			return empty, geom.ErrConvergence
+		}
+		r.loops = append(r.loops, AlgebraicTubeRegionLoop{Branch: branch, Parent: -1, Winding: [2]int{q.Faces[0].CutWinding, q.Faces[1].CutWinding}, InteriorHeightSign: sign})
+		r.partitions = append(r.partitions, q)
+	}
+	if r.loops[0].InteriorHeightSign != -r.loops[1].InteriorHeightSign {
+		return empty, geom.ErrConvergence
+	}
+	// Original Boolean outer/inner ownership, not a sampled containment decision.
+	r.loops[1].Parent = 0
+	upper := 0
+	if r.loops[0].InteriorHeightSign < 0 {
+		upper = 1
+	}
+	r.regions = []AlgebraicTubeRegion{{Outer: 0, Holes: []int{1}, UpperChart: upper}, {Outer: 1, UpperChart: 1 - upper}}
+	for chart := 0; chart < 2; chart++ {
+		p := o.Graph
+		p.MaxOperations = capPositiveBudget(p.MaxOperations, o.Exact.MaxOperations-r.ExactOperations)
+		if p.MaxOperations < 1 {
+			return empty, geom.ErrConvergence
+		}
+		support, patch, e := permuteTubeLensSupport(r.partitions[0].Faces[chart], [3]int{1, 2, 0}, p)
+		if e != nil {
+			return empty, e
+		}
+		r.ExactOperations += patch.ExactOperations()
+		p.MaxOperations = capPositiveBudget(o.Graph.MaxOperations, o.Exact.MaxOperations-r.ExactOperations)
+		if p.MaxOperations < 1 {
+			return empty, geom.ErrConvergence
+		}
+		r.graphs[chart], e = geom.NewAffineXYGraph(ctx, patch, p)
+		if e != nil {
+			return empty, e
+		}
+		r.ExactOperations += r.graphs[chart].ExactOperations()
+		for i := range r.partitions {
+			r.partitions[i].Faces[chart].SourceSurface = support
+			r.partitions[i].Faces[chart].Support, _ = support.(*geom.BSplineSurface)
+		}
+	}
+	if r.ExactOperations > o.Exact.MaxOperations {
+		return empty, geom.ErrConvergence
+	}
+	return r, nil
+}
+
+func tessellateProjectedBooleanAnnulus(ctx context.Context, r AlgebraicTubeRegions, o AlgebraicTubeRegionMeshOptions) (CertifiedAlgebraicTubeRegionMesh, error) {
+	var empty CertifiedAlgebraicTubeRegionMesh
+	work, e := newTubeLensSpanWork(o.Surface)
+	if e != nil {
+		return empty, e
+	}
+	if o.Footprint.Boundary.Loop.Run.Display.Point.Tolerance == 0 {
+		o.Footprint.Boundary.Loop.Run.Display.Point.Tolerance = o.Footprint.Boundary.Loop.Run.Display.Deflection * 1e-6
+	}
+	original, e := r.TessellateBoundaryCertified(ctx, o.Footprint.Boundary)
+	if e != nil {
+		return empty, e
+	}
+	forward := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Y, Y: p.Z, Z: p.X} }
+	inverse := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Z, Y: p.X, Z: p.Y} }
+	projected := original
+	projected.Vertices = append([]geom.Vec3(nil), original.Vertices...)
+	for i, p := range projected.Vertices {
+		projected.Vertices[i] = forward(p)
+	}
+	projected.Loops = append([]CertifiedAlgebraicTubeLensBoundary(nil), original.Loops...)
+	for i := range projected.Loops {
+		projected.Loops[i].Run.Vertices = append([]geom.Vec3(nil), original.Loops[i].Run.Vertices...)
+		for j, p := range projected.Loops[i].Run.Vertices {
+			projected.Loops[i].Run.Vertices[j] = forward(p)
+		}
+	}
+	footprint, e := triangulateTubeFootprintNetwork(ctx, projected, []int{0, 1}, o.Footprint)
+	if e != nil {
+		return empty, e
+	}
+	footprint.Boundary = original
+	footprint.Region = -1
+	fill := tubeRegionFillSeed{seed: CertifiedAffineQuadraticTrimMesh{Region: AffineQuadraticTrimRegionArea{FillSquaredDistance: new(big.Rat)}, Mesh: mesh.Mesh{Triangles: footprint.Mesh.Triangles}, BoundaryLoops: footprint.BoundaryLoops}, squared: footprint.SourceFillSquaredDistance, predicates: footprint.Predicates}
+	for i, p := range footprint.Mesh.Vertices {
+		fill.seed.ExactUV = append(fill.seed.ExactUV, [2]*big.Rat{ratInset(p.X), ratInset(p.Y)})
+		fill.vertices = append(fill.vertices, projected.Vertices[footprint.GlobalBoundaryVertices[i]])
+	}
+	view := AlgebraicTubeLens{faces: r.partitions[0].Faces, graphs: r.graphs, upper: r.regions[0].UpperChart}
+	options := o.Surface.Closed
+	options.Boundary = o.Footprint.Boundary.Loop
+	shell, e := view.tessellateClosedTubeLens(ctx, options, &work, true, nil, &fill)
+	if e != nil {
+		return empty, e
+	}
+	for i, p := range shell.Mesh.Vertices {
+		shell.Mesh.Vertices[i] = inverse(p)
+	}
+	if e := shell.Mesh.ValidateSolid(); e != nil {
+		return empty, e
+	}
+	out := CertifiedAlgebraicTubeRegionMesh{Footprint: footprint, Mesh: shell.Mesh, Region: -1, OriginalChart: shell.OriginalFace, GlobalBoundaryVertices: map[int]int{}, FaceResidualSquared: shell.FaceResidualSquared, FaceRefinementPasses: shell.FaceRefinementPasses, SourceImageSquaredDistance: shell.SourceImageSquaredDistance, SignedDisplayVolume: shell.SignedDisplayVolume, Collision: shell.Collision, TriangleChecks: shell.TriangleChecks, Predicates: shell.Predicates, SpanCellChecks: work.cells, SpanPieceChecks: work.pieces, ResidualOperations: work.operations}
+	for seed, index := range shell.BoundaryVertices {
+		out.GlobalBoundaryVertices[footprint.GlobalBoundaryVertices[seed]] = index
+	}
+	return out, nil
+}
