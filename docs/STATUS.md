@@ -1969,6 +1969,10 @@ face, edge, and vertex identities after sewing and reload. Proper rational
 placement, including composed placement, must preserve a proved clearance
 between the original boundary shells after accounting for display error.
 The current clearance test is sufficient and may reject close curved shells.
+Canonical wrapped frusta now also have original-source display preparation
+for eccentric cylindrical through and blind bores. The mesh retains annular
+cap rims, periodic seams, original curve parameters and coedge directions.
+Blind bores retain the inward floor and distinguish both entry ends.
 
 `FuseOrderedRoofBoxes` builds the exact native Fuse for matching XY
 footprints when rational roofs have a proved height order and the vertical

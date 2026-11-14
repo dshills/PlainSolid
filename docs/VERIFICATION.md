@@ -5549,6 +5549,18 @@ wrong cavity polarity and insufficient face-pair, triangle or intersection
 allowance fail atomically. The originating focused race passed in 62.647 s;
 the integrated non-race rerun passed in 3.308 s.
 
+## Source-bound through and blind frustum bore displays (2026-11-14)
+
+Reindexed and reloaded tapered eccentric stock retains all 18 original
+edges, 36 coedge occurrences and 16 corners for the through and blind
+variants. The through case remains genus one; both blind entry directions
+retain the original reversed floor and opposite floor normals. Each mesh
+has 320 triangles. Independent ideal volumes and exact boundary error
+checks are separate; the display volumes differ at the prescribed 0.5
+deflection. Rational placement, forged or missing trims, wrong polarity,
+cancellation and budget rejection are exercised. The integrated focused
+race passed in 20.165 s.
+
 ## Native ordered roof-box Fuse (2026-11-14)
 
 The independent weighted-stock Fuse reproduces exact height
