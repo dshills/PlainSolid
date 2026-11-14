@@ -100,6 +100,22 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD intersecting perpendicular through Holes — 2026-11-14
+
+Two equal-radius through Holes on intersecting perpendicular axes in
+rectangular stock retain analytic cylindrical walls and elliptical
+intersection edges. Grouped and successive cuts share the same result.
+The finite crossing must lie more than one radius from each stock face.
+
+[Sixteen original PlainCAD Hole and STEP tests](evidence/plaincad-crossed-bore-browser-2026-11-14.json)
+and [a supplemental Chromium probe on the same WASM](evidence/plaincad-crossed-bore-native-2026-11-14.json)
+pass on `50432ed`. The supplemental case verifies both open passages,
+exact measures, STEP reimport, project reopen and watertight STL.
+Independent OCCT comparisons pass for 12 placed STEP models. Native
+volume, surface area and centroid also match closed forms, and the STL
+vertices pass watertightness and self-intersection checks after rounding
+to float32.
+
 ## PlainCAD opposite Hole floors meeting at one depth — 2026-11-14
 
 The section arrangement retains separate, oppositely oriented floor

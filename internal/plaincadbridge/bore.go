@@ -25,6 +25,7 @@ type boreBody struct {
 	floors         []int
 	union          *trimmed.CylinderUnionHistory
 	layered        *trimmed.LayeredBoreHistory
+	crossed        *trimmed.BoxCrossedBoresResult
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -198,6 +199,9 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
+		if result, handled, err := newCrossedBore(base, cylinders, cuts, spans, blind); handled {
+			return result, err
+		}
 		return newUnionBore(base, cylinders, cuts, blind)
 	}
 	for i := range cylinders {
@@ -208,7 +212,7 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 			}
 		}
 	}
-	return &boreBody{nil, s, base, append([]*cylinderBody(nil), cylinders...), cuts, spans, blind, floors, nil, nil}, nil
+	return &boreBody{solid: s, base: base, cylinders: append([]*cylinderBody(nil), cylinders...), cuts: cuts, spans: spans, blind: blind, floors: floors}, nil
 }
 func (body *boreBody) measures() (float64, float64, error) {
 	p, err := body.base.MassProperties()
@@ -216,6 +220,9 @@ func (body *boreBody) measures() (float64, float64, error) {
 		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
+	if h := body.crossed; h != nil {
+		return volume - h.RemovedVolume, area + h.SurfaceAreaDelta, nil
+	}
 	if h := body.layered; h != nil {
 		volume -= h.RemovedVolume
 		area += h.SurfaceAreaDelta
@@ -328,11 +335,27 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	if err != nil {
 		return PlanarFace{}, err
 	}
+	baseFace := f.Face
+	if body.crossed != nil {
+		// The crossed constructor orders the box faces in its own frame.
+		found := false
+		for i, face := range body.solid.Faces() {
+			plane, ok := face.Surface.(geom.PlaneSurface)
+			if ok && math.Abs(plane.Frame().ZAxis().Dot(n)) == 1 &&
+				math.Abs(origin.Sub(plane.Frame().Origin()).Dot(n)) <= 1e-7 {
+				f.Face, found = i, true
+				break
+			}
+		}
+		if !found {
+			return PlanarFace{}, errors.New("retained planar support mismatch")
+		}
+	}
 	if _, ok := body.solid.Faces()[f.Face].Surface.(geom.PlaneSurface); !ok {
 		return PlanarFace{}, errors.New("retained planar support mismatch")
 	}
 	for i, c := range body.cylinders {
-		if body.cuts[i].Entry == f.Face || (!body.blind[i] && body.cuts[i].Exit == f.Face) {
+		if body.cuts[i].Entry == baseFace || (!body.blind[i] && body.cuts[i].Exit == baseFace) {
 			f.Area -= math.Pi * c.radius * c.radius
 		}
 	}

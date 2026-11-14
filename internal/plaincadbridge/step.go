@@ -129,6 +129,16 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(body)
 	}
+	if m, e := step.ReadCrossedBore(r(), stepLimits()); e == nil {
+		if m.LengthUnit != .001 {
+			return Shape{}, unsupportedEdge("Crossed bore STEP requires millimeter model coordinates")
+		}
+		body, err := crossedBoreFromSTEP(m.Body)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putBore(body)
+	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
 		unit := m.LengthUnit
@@ -346,6 +356,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
+	case s.bore != nil && s.bore.crossed != nil:
+		p, err := crossedBoreSTEPRecipe(s.bore)
+		if err != nil {
+			return nil, err
+		}
+		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil:
 		var p step.CircularHoleExtrusionBody
 		p, e = boreSTEPRecipe(s.bore)

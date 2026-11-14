@@ -77,6 +77,8 @@ type longEdgeOwner struct {
 type longEdgeCurve struct {
 	same              bool
 	circle            bool
+	ellipse           bool
+	minorRadius       float64
 	frame             geom.Frame
 	radius            float64
 	origin, direction geom.Vec3
@@ -127,6 +129,14 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
 }
 func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false)
+}
+
+func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true)
+}
+
+func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -184,6 +194,14 @@ func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, 
 			return geom.ErrDomain
 		}
 		a, b := vertices[edge.Start], vertices[edge.End]
+		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
+			curve, err := crossedBoreEdgeCurve(a, b, os, surfaces)
+			if err != nil {
+				return err
+			}
+			curves[i] = curve
+			continue
+		}
 		direction, e := b.Sub(a).Unit()
 		if e != nil {
 			return e
@@ -245,6 +263,9 @@ func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, 
 	// Preflight every owner representation before any bytes are written.
 	for i, os := range owners {
 		curve := curves[i]
+		if curve.ellipse {
+			continue
+		}
 		for _, owner := range os {
 			surface := surfaces[owner.face]
 			u := owner.use
@@ -305,6 +326,16 @@ func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, 
 		for i, edge := range edges {
 			curve := curves[i]
 			var model int64
+			if curve.ellipse {
+				p := place(curve.frame)
+				model = emit(fmt.Sprintf("ELLIPSE('',#%d,%s,%s)", p, real(curve.radius), real(curve.minorRadius)))
+				sense := ".T."
+				if !curve.same {
+					sense = ".F."
+				}
+				edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,%s)", vertexIDs[edge.Start], vertexIDs[edge.End], model, sense))
+				continue
+			}
 			if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))

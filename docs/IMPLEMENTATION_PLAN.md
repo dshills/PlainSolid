@@ -60,7 +60,9 @@ solid, and blind floors with inner wires. Exact contacts at stock vertices
 preserve the actual shared vertices and analytic trims. STEP preserves
 the same boundary when a cutter is fully concealed by the other cuts.
 Overlapping opposed floors can meet exactly with the shared footprint
-open through the common level. Intersecting nonparallel axes remain open.
+open through the common level. Equal-radius perpendicular through Holes
+intersecting inside rectangular stock retain elliptical trim edges
+through STEP. Broader nonparallel cuts remain open.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD
