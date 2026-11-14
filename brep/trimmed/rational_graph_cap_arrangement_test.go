@@ -216,6 +216,26 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 			t.Fatal("incorrect kept runs", keep, clip, e)
 		}
 		checkAlgebraicGraphCapClosure(t, clip)
+		width := big.NewRat(1, 1<<28)
+		p, e := clip.BoundPolynomialArea(ctx, width, RationalGraphShellRegionOptions{})
+		if e != nil || p.Projection.Lower.Sign() <= 0 || p.ModelScaleSquared.Cmp(big.NewRat(1, 1)) != 0 ||
+			new(big.Rat).Sub(p.Projection.Upper, p.Projection.Lower).Cmp(width) > 0 {
+			t.Fatal("certified projected area", p, e)
+		}
+		// At x=2±sqrt(2) the parabola meets y=3/2. The positive
+		// segment has area 2sqrt(2)/3. The original material area is 20/3.
+		areaLo, areaHi := p.Projection.Lower, p.Projection.Upper
+		if !keep {
+			areaLo, areaHi = new(big.Rat).Sub(big.NewRat(20, 3), areaHi), new(big.Rat).Sub(big.NewRat(20, 3), areaLo)
+		}
+		square := func(q *big.Rat) *big.Rat { return new(big.Rat).Mul(q, q) }
+		if areaLo.Sign() <= 0 || square(areaLo).Cmp(big.NewRat(8, 9)) > 0 || square(areaHi).Cmp(big.NewRat(8, 9)) < 0 {
+			t.Fatal("analytic parabolic segment not enclosed", areaLo, areaHi)
+		}
+		budget := RationalGraphShellRegionOptions{Topology: trimvalidate.Options{MaxWork: 1}}
+		if none, e := clip.BoundPolynomialArea(ctx, width, budget); !errors.Is(e, geom.ErrConvergence) || none.Projection.Lower != nil {
+			t.Fatal("area budget must not publish partial data", e)
+		}
 		var sourceUses, seams int
 		for _, u := range clip.Wires[0] {
 			if u.Seam >= 0 {
