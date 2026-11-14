@@ -64,9 +64,13 @@ func TestAlgebraicShellBooleanSharedBoundary(t *testing.T) {
 	solid.Edges = nil
 	solid.Faces = nil
 	solid.Topology = AlgebraicSubdivisionTopology{}
-	again, e := solid.TessellateBoundaryCertified(ctx, options)
-	if e != nil || !reflect.DeepEqual(network, again) {
+	embedded, e := solid.TessellateEmbeddedBoundaryCertified(ctx, AlgebraicShellBoundaryEmbeddingOptions{Boundary: options})
+	if e != nil || !reflect.DeepEqual(network, embedded.Boundary) || embedded.PairChecks != network.Segments*(network.Segments-1)/2 {
 		t.Fatal("public diagnostics changed immutable proof", e)
+	}
+	limitedEmbedding, err := solid.TessellateEmbeddedBoundaryCertified(ctx, AlgebraicShellBoundaryEmbeddingOptions{Boundary: options, MaxPairs: 1})
+	if !errors.Is(err, geom.ErrConvergence) || len(limitedEmbedding.Boundary.Vertices) != 0 || limitedEmbedding.PairChecks != 0 {
+		t.Fatal("partial embedding certificate", err)
 	}
 	options.MaxSegments = 1
 	bad, e := solid.TessellateBoundaryCertified(ctx, options)
