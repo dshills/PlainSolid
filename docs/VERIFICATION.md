@@ -1,5 +1,33 @@
 # Verification record
 
+## PlainCAD acceptance on the main merge 8f76f16b — 2026-11-14
+
+PlainSolid merge `8f76f16b` combines the committed main snapshot
+`d1e9a5dd` with the verified reconciliation `f87dd4f3`, including
+integration work through `e2e9a253`. The isolated PlainCAD copy at
+`efae4d2` selected PlainSolid explicitly. The browser build used the
+matching Go runtime and a stripped WASM. All ten standard WebAssembly
+sections match the ordinary build byte for byte.
+
+[The merged-kernel report](evidence/plaincad-kernel-main-8f76f16-2026-11-14.json)
+records 23 passing original modeling cases, including multi-edge
+Fillet/Chamfer, the long feature chain, guided and grouped Hole work,
+and STEP import and export. All 15 Chromium, Firefox and WebKit cases
+pass. Targeted native race checks with the independent OCCT reader
+also pass. The original production suite passed 63 of 66 tests.
+The unchanged PNG export and performance cases passed on focused
+reruns, with the performance case taking 43.5 seconds. The original
+CSP case exceeded Chromium's response capture buffer. The unchanged
+assertions passed after increasing that buffer in a temporary local
+harness. The ordinary harness result and the diagnostic control are
+preserved separately. The full production rerun with only the local
+Chromium capture buffer enlarged passed all 66 tests with no skips or
+retries. Its benchmark finished in 26.3 seconds and checked all 25
+edits and 11 STL downloads. The full ordinary unit and component suite
+passed 1,691 tests. All four WASM provider contracts passed with the
+original timeout after test contention subsided. The full development
+run is still in progress.
+
 ## PlainCAD tighter covered-width Hole STEP — 2026-11-14
 
 Local interpolation bounds also qualify the 5 mm and 4 mm radius
