@@ -75,6 +75,26 @@ func TestGraphObliqueLineRetainedDisjoint(t *testing.T) {
 			hit.Before != r.Hits[i].Before || hit.After != r.Hits[i].After {
 			t.Fatal("irrational event ownership or certified squared radius", i, hit, r2)
 		}
+		left, right := "0", "1"
+		if i%2 != 0 {
+			left, right = "-1", "0"
+		}
+		// Compare the stored original line root to an independently
+		// composed polynomial identity, not just its numeric bracket.
+		radius, e := geom.ImportExactRoot(ctx, geom.ExactRootRecipe{Version: 1, Coefficients: []string{"-25", "0", "8192"}, Lower: left, Upper: right}, geom.ExactRootCodecOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		mid := new(big.Rat).Quo(new(big.Rat).Sub(big.NewRat(2, 1), center), big.NewRat(3, 5))
+		wantRoot, _, e := radius.AffineMap(ctx, mid, big.NewRat(-5, 3), geom.ExactCurvePlaneEventOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		relation, e := hit.Root.Compare(ctx, wantRoot, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || !relation.Proven || relation.Order != 0 {
+			t.Fatal("lost exact root identity in original line units", i, relation, e)
+		}
+
 	}
 	if bad, e := q.IntersectObliqueLineRational(ctx, irrational, direction, limits, o); !errors.Is(e, geom.ErrConvergence) || bad.Complete || len(bad.Hits)+len(bad.Intervals) != 0 {
 		t.Fatal("exact point API must reject the nonrational request atomically", bad, e)
@@ -94,13 +114,89 @@ func TestGraphObliqueLineRetainedDisjoint(t *testing.T) {
 	if e != nil || !miss.Complete || len(miss.Hits)+len(miss.Intervals) != 0 {
 		t.Fatal("spurious original cap contact between lobes", miss, e)
 	}
-	// A perpendicular line and a curve that lives in the cap plane use
-	// different contracts. This isolated-root query must not claim either.
+	// The line in the original cap plane retains two face intervals.
+	// Four exact rim sections delimit it; neither buried space nor a
+	// candidate on the untrimmed support can create an overlap.
 	coincident := origin
 	coincident[1] = big.NewRat(-3, 1)
-	if bad, e := q.IntersectObliqueLineRational(ctx, coincident, direction, limits, o); !errors.Is(e, geom.ErrConvergence) || bad.Complete || len(bad.Hits)+len(bad.Intervals) != 0 {
-		t.Fatal("unresolved coincidence leaked a partial path", bad, e)
+	overlaps, e := q.IntersectObliqueLineRational(ctx, coincident, direction, [2]*big.Rat{big.NewRat(1, 7), big.NewRat(7, 5)}, o)
+	if e != nil || !overlaps.Complete || len(overlaps.Intervals) != 2 || len(overlaps.Hits) != 4 || len(overlaps.BoundarySpans) != 2 {
+		t.Fatal("original retained cap-plane intervals", overlaps, e)
 	}
+	capRoots := [4]*big.Rat{big.NewRat(25, 64), big.NewRat(125, 192), big.NewRat(65, 64), big.NewRat(245, 192)}
+	for i, hit := range overlaps.Hits {
+		if hit.Parameter.Cmp(capRoots[i]) != 0 || hit.Before != (i%2 != 0) || hit.After != (i%2 == 0) || len(hit.Faces) != 2 || len(hit.RimEdges) == 0 {
+			t.Fatal("shared original cap/roof rim contact", i, hit, capRoots[i])
+		}
+		for _, edge := range hit.RimEdges {
+			if _, _, e := s.SectionSegment(edge); e != nil {
+				t.Fatal(e)
+			}
+		}
+	}
+	for i, span := range overlaps.BoundarySpans {
+		f, e := s.OriginalFace(span.Face)
+		if e != nil || f.Surface != q.faces[0].Surface || span.Start.Lower.Cmp(capRoots[2*i]) != 0 || span.End.Upper.Cmp(capRoots[2*i+1]) != 0 {
+			t.Fatal("correct retained cap owner/effective range", span, e)
+		}
+	}
+	clipOverlap, e := q.IntersectObliqueLineRational(ctx, coincident, direction, clip, o)
+	if e != nil || !clipOverlap.Complete || len(clipOverlap.Hits) != 0 || len(clipOverlap.BoundarySpans) != 1 || len(clipOverlap.Intervals) != 1 {
+		t.Fatal("finite clipping cannot invent rim hits", clipOverlap, e)
+	}
+
+	// Offset the projected axis by 1/32 in the cap plane: retained
+	// crossings are irrational with model radius sqrt(21)/64.
+	obliqueCap := coincident
+	obliqueCap[2] = big.NewRat(145, 32)
+	capAlgebraic, e := refined.BoundObliqueLineRational(ctx, obliqueCap, direction, [2]*big.Rat{big.NewRat(1, 7), big.NewRat(7, 5)}, o)
+	if e != nil || !capAlgebraic.Complete || len(capAlgebraic.Hits) != 4 || len(capAlgebraic.BoundarySpans) != 2 {
+		t.Fatal("irrational shared cap/roof rims", capAlgebraic, e)
+	}
+	for i, h := range capAlgebraic.Hits {
+		if h.Root == nil || h.Point[0] != nil || h.Parameter.Lower.Cmp(h.Parameter.Upper) >= 0 || len(h.Faces) != 2 || len(h.RimEdges) != 1 || h.Before != (i%2 != 0) || h.After != (i%2 == 0) {
+			t.Fatal("original irrational rim ownership", i, h)
+		}
+		if _, _, e := s.SectionSegment(h.RimEdges[0]); e != nil {
+			t.Fatal(e)
+		}
+		center := [2]*big.Rat{big.NewRat(27, 16), big.NewRat(21, 16)}[i/2]
+		for j, x := range []*big.Rat{h.PointBounds[0].Lower, h.PointBounds[0].Upper} {
+			d := new(big.Rat).Sub(x, center)
+			cmp := d.Mul(d, d).Cmp(big.NewRat(21, 4096))
+			if (i+j)%2 == 0 && cmp > 0 || (i+j)%2 != 0 && cmp < 0 {
+				t.Fatal("irrational rim bracket misses the independent radius", i, h)
+			}
+		}
+
+	}
+
+	// At peak height each quadratic contributes an isolated tangent
+	// point in the closed boundary with no material on either side.
+	peak := origin
+	peak[1] = big.NewRat(-12263, 4096)
+	peaks, e := q.IntersectObliqueLineRational(ctx, peak, direction, limits, o)
+	if e != nil || !peaks.Complete || len(peaks.Hits) != 2 || len(peaks.Intervals) != 2 || len(peaks.BoundarySpans) != 0 {
+		t.Fatal("two isolated regularized roof tangencies", peaks, e)
+	}
+	for i, h := range peaks.Hits {
+		want := [2]*big.Rat{big.NewRat(25, 48), big.NewRat(55, 48)}[i]
+		if h.Before || h.After || h.Parameter.Cmp(want) != 0 || peaks.Intervals[i].Lower.Cmp(want) != 0 || peaks.Intervals[i].Upper.Cmp(want) != 0 {
+			t.Fatal(h, peaks.Intervals[i])
+		}
+	}
+
+	// Distinct roots can be far closer than the requested tolerance
+	// on either side of an exact tangent. They must never be merged.
+	epsilon2 := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 199))
+	nearPeak := peak
+	nearPeak[1] = new(big.Rat).Sub(peak[1], epsilon2)
+	closeRoots, e := refined.BoundObliqueLineRational(ctx, nearPeak, direction, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(3, 5)}, o)
+	if e != nil || !closeRoots.Complete || len(closeRoots.Hits) != 2 || len(closeRoots.Intervals) != 1 ||
+		closeRoots.Hits[0].Parameter.Upper.Cmp(closeRoots.Hits[1].Parameter.Lower) >= 0 {
+		t.Fatal("distinct roots separated by less than one ULP", closeRoots, e)
+	}
+
 	limited := o
 	limited.Surface.MaxOperations = 20
 	if bad, e := q.IntersectObliqueLineRational(ctx, origin, direction, limits, limited); !errors.Is(e, geom.ErrConvergence) || bad.Complete || len(bad.Hits)+len(bad.Intervals) != 0 {

@@ -18,6 +18,7 @@ type AlgebraicGraphLineMaterial struct {
 	Complete        bool
 	Intervals       []geom.ExactParameterInterval
 	Hits            []AlgebraicGraphFiberHit
+	BoundarySpans   []AlgebraicGraphLineFaceSpan
 	ExactOperations int
 }
 
@@ -25,12 +26,13 @@ type AlgebraicGraphLineMaterial struct {
 // against an exact prepared graph common. It proves roots on both original
 // graphs, discards buried support contacts using native loop membership, and
 // classifies intervals only after all their possible endpoints are accounted
-// for. Nonrational support roots and boundary coincidence currently fail
-// atomically; use IntersectNormalLineRational for a fixed projected point.
+// for. Retained face overlaps are explicit. Nonrational support roots and
+// coincidence with a shared rim fail atomically here; use the bounded API
+// for isolated algebraic contacts or the normal API for fixed projection.
 func (q *AlgebraicGraphMaterialQuery) IntersectObliqueLineRational(ctx context.Context, origin, direction [3]*big.Rat,
 	limits [2]*big.Rat, o geom.ToroidLineOptions) (out AlgebraicGraphLineMaterial, err error) {
 	bounded, e := q.intersectObliqueLineBounds(ctx, origin, direction, limits, o, false)
-	out.ExactOperations, out.Complete = bounded.ExactOperations, bounded.Complete
+	out.ExactOperations, out.Complete, out.BoundarySpans = bounded.ExactOperations, bounded.Complete, bounded.BoundarySpans
 	if e != nil {
 		return out, e
 	}
@@ -49,6 +51,7 @@ func (q *AlgebraicGraphMaterialQuery) IntersectObliqueLineRational(ctx context.C
 // otherwise has a closed rational enclosure in PointBounds.
 type AlgebraicGraphLineBoundary struct {
 	Parameter       geom.ExactParameterInterval
+	Root            *geom.ExactAlgebraicRoot // original t, present for nonsingleton contacts
 	Point           [3]*big.Rat
 	PointBounds     [3]geom.ExactParameterInterval
 	Faces, RimEdges []int
@@ -59,17 +62,27 @@ type AlgebraicGraphLineBoundary struct {
 // is certified material; uncertainty in one endpoint stays inside its bound.
 type AlgebraicGraphLineSpan struct{ Start, End geom.ExactParameterInterval }
 
+// AlgebraicGraphLineFaceSpan is a positive-length boundary overlap on one
+// retained original face. Its open interior does not lie on a shared rim.
+type AlgebraicGraphLineFaceSpan struct {
+	AlgebraicGraphLineSpan
+	Face int
+}
+
 type AlgebraicGraphLineBounds struct {
 	Complete        bool
 	Intervals       []AlgebraicGraphLineSpan
 	Hits            []AlgebraicGraphLineBoundary
+	BoundarySpans   []AlgebraicGraphLineFaceSpan
 	ExactOperations int
 }
 
 // BoundObliqueLineRational additionally certifies isolated algebraic contacts
 // when their brackets are pairwise disjoint and clear of complete rim covers.
-// At a bracket touching a possible rim, an unresolved contact, or nonisolated
-// coincidence it fails atomically. Before and After use the requested range.
+// A candidate on a possible rim is accepted only when an exact coincident
+// face interval approaches it and one original rim edge can own it.
+// Other unresolved contacts fail atomically. Before and After are closed material
+// membership of the adjoining open intervals within the requested range.
 func (q *AlgebraicGraphMaterialQuery) BoundObliqueLineRational(ctx context.Context, origin, direction [3]*big.Rat,
 	limits [2]*big.Rat, o geom.ToroidLineOptions) (AlgebraicGraphLineBounds, error) {
 	return q.intersectObliqueLineBounds(ctx, origin, direction, limits, o, true)
@@ -149,12 +162,14 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 	}
 	type lineEvent struct {
 		t     geom.ExactParameterInterval
+		root  *geom.ExactAlgebraicRoot
 		chart int // chart support for a nonsingleton event
 	}
 	single := func(t *big.Rat) lineEvent {
 		return lineEvent{t: geom.ExactParameterInterval{Lower: new(big.Rat).Set(t), Upper: new(big.Rat).Set(t)}, chart: -1}
 	}
 	var knots []lineEvent
+	var coincidence [2][]geom.ExactParameterInterval
 	for chart, g := range q.graphs {
 		coef, e := g.InverseCoefficients()
 		if e != nil {
@@ -267,8 +282,21 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 		if e != nil {
 			return out, e
 		}
-		if len(roots.Coincident) != 0 {
-			return out, geom.ErrConvergence
+		mapParameter := func(p *big.Rat) (*big.Rat, error) {
+			t := new(big.Rat).Add(lo, new(big.Rat).Mul(width, p))
+			return t, check(t)
+		}
+		for _, span := range roots.Coincident {
+			a, e := mapParameter(span.Lower)
+			if e != nil {
+				return out, e
+			}
+			b, e := mapParameter(span.Upper)
+			if e != nil {
+				return out, e
+			}
+			coincidence[chart] = append(coincidence[chart], geom.ExactParameterInterval{Lower: a, Upper: b})
+			knots = append(knots, single(a), single(b))
 		}
 		for _, hit := range roots.Hits {
 			if !allowBrackets && hit.Parameter.Min.Cmp(hit.Parameter.Max) != 0 {
@@ -276,8 +304,8 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 			}
 			r := lineEvent{chart: chart}
 			for i, p := range []*big.Rat{hit.Parameter.Min, hit.Parameter.Max} {
-				t := new(big.Rat).Add(lo, new(big.Rat).Mul(width, p))
-				if e := check(t); e != nil {
+				t, e := mapParameter(p)
+				if e != nil {
 					return out, e
 				}
 				if i == 0 {
@@ -286,11 +314,69 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 					r.t.Upper = t
 				}
 			}
+			if r.t.Lower.Cmp(r.t.Upper) != 0 {
+				options := exact
+				options.MaxOperations = remaining()
+				if options.MaxOperations < 1 || hit.Root == nil {
+					return out, geom.ErrConvergence
+				}
+				mapped, used, e := hit.Root.AffineMap(ctx, lo, width, options)
+				out.ExactOperations += used
+				if e != nil {
+					return out, e
+				}
+				r.root = mapped
+			}
 			knots = append(knots, r)
 		}
 	}
 	knots = append(knots, single(limits[0]), single(limits[1]))
-	sort.Slice(knots, func(i, j int) bool { return knots[i].t.Lower.Cmp(knots[j].t.Lower) < 0 })
+	order := func() { sort.Slice(knots, func(i, j int) bool { return knots[i].t.Lower.Cmp(knots[j].t.Lower) < 0 }) }
+	order()
+	// The two supports can isolate distinct roots in initially overlapping
+	// tolerance brackets. Narrow the original identities instead of merging
+	// them or selecting a numerical order.
+	for attempt := 0; allowBrackets && attempt < 24; attempt++ {
+		narrowed := false
+		for i := 1; i < len(knots); i++ {
+			a, b := &knots[i-1], &knots[i]
+			if a.t.Upper.Cmp(b.t.Lower) < 0 || a.root == nil && b.root == nil {
+				continue
+			}
+			for _, k := range []*lineEvent{a, b} {
+				if k.root == nil {
+					continue
+				}
+				width := new(big.Rat).Sub(k.t.Upper, k.t.Lower)
+				if width.Sign() == 0 {
+					continue
+				}
+				width.Quo(width, big.NewRat(16, 1))
+				if e := check(width); e != nil {
+					return out, e
+				}
+				opts := exact
+				opts.MaxOperations, opts.MaxSubdivisions = remaining(), o.MaxSubdivisions
+				if opts.MaxOperations < 1 {
+					return out, geom.ErrConvergence
+				}
+				n, e := k.root.Enclose(ctx, width, opts)
+				out.ExactOperations += n.Operations
+				if e != nil {
+					return out, e
+				}
+				if !n.Converged {
+					return out, geom.ErrConvergence
+				}
+				k.t = n.Interval
+				narrowed = true
+			}
+		}
+		if !narrowed {
+			break
+		}
+		order()
+	}
 	unique := knots[:0]
 	for _, t := range knots {
 		if len(unique) > 0 {
@@ -305,6 +391,7 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 		unique = append(unique, t)
 	}
 	inside := make([]bool, len(unique)+1)
+	spanFace := make([]int, len(inside)) // native cap face + 1; zero means no coincident cell
 	for i := 1; i < len(unique); i++ {
 		mid := new(big.Rat).Quo(new(big.Rat).Add(unique[i-1].t.Upper, unique[i].t.Lower), big.NewRat(2, 1))
 		if e := check(mid); e != nil {
@@ -315,14 +402,35 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 			return out, e
 		}
 		if loc.Location == parametric.Boundary {
-			return out, geom.ErrConvergence
+			if len(loc.BoundaryFaces) != 1 || len(loc.RimEdges) != 0 {
+				return out, geom.ErrConvergence
+			}
+			face := loc.BoundaryFaces[0]
+			certified := false
+			for chart, spans := range coincidence {
+				if loc.Faces[chart] != face {
+					continue
+				}
+				for _, span := range spans {
+					if span.Lower.Cmp(unique[i-1].t.Upper) <= 0 && span.Upper.Cmp(unique[i].t.Lower) >= 0 {
+						certified = true
+						break
+					}
+				}
+			}
+			if !certified {
+				return out, geom.ErrConvergence
+			}
+			spanFace[i] = face + 1
+			start, end := unique[i-1].t, unique[i].t
+			out.BoundarySpans = append(out.BoundarySpans, AlgebraicGraphLineFaceSpan{AlgebraicGraphLineSpan{start, end}, face})
 		}
-		inside[i] = loc.Location == parametric.Inside
+		inside[i] = loc.Location != parametric.Outside
 	}
 	for i, k := range unique {
 		t := k.t
 		before, after := inside[i], inside[i+1]
-		h := AlgebraicGraphLineBoundary{Parameter: t, Before: before, After: after}
+		h := AlgebraicGraphLineBoundary{Parameter: t, Root: k.root, Before: before, After: after}
 		var location parametric.Location
 		if t.Lower.Cmp(t.Upper) == 0 {
 			p, loc, e := locate(t.Lower)
@@ -330,6 +438,17 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 				return out, e
 			}
 			location, h.Point, h.Faces, h.RimEdges = loc.Location, p, loc.BoundaryFaces, loc.RimEdges
+			// Artificial finite endpoints in the interior of a retained
+			// face overlap are represented by the span, not isolated hits.
+			if location == parametric.Boundary && len(h.RimEdges) == 0 && (i == 0 || i == len(unique)-1) {
+				for _, span := range out.BoundarySpans {
+					if span.Start.Lower.Cmp(t.Lower) == 0 || span.End.Upper.Cmp(t.Upper) == 0 {
+						location = parametric.Inside
+						break
+					}
+				}
+			}
+
 			for j, v := range p {
 				h.PointBounds[j] = geom.ExactParameterInterval{Lower: new(big.Rat).Set(v), Upper: new(big.Rat).Set(v)}
 			}
@@ -349,35 +468,68 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 				}
 				h.PointBounds[j] = geom.ExactParameterInterval{Lower: a, Upper: b}
 			}
-			// The two supports group heights by the projected fiber. If no
-			// retained rim crosses the bracket, the exact midpoint fiber
-			// names its retained original face, regardless of residual Z.
-			if e := q.proveObliqueBracketClearOfRim(ctx, lo, hi, check); e != nil {
-				return out, fmt.Errorf("graph line bracket may touch a retained rim: %w", e)
-			}
-			m := new(big.Rat).Quo(new(big.Rat).Add(t.Lower, t.Upper), big.NewRat(2, 1))
-			if e := check(m); e != nil {
-				return out, e
-			}
-			point, e := pointAt(m)
+			// Coincidence against the other support can yield a shared
+			// irrational rim. Require a retained open incident interval
+			// and unambiguous original native section-edge ancestry.
+			var rimCandidates []int
+			rimCandidates, e = q.obliqueBracketPossibleRims(ctx, lo, hi, check)
 			if e != nil {
 				return out, e
 			}
-			opts := exact
-			opts.MaxOperations = remaining()
-			if opts.MaxOperations < 1 {
-				return out, geom.ErrConvergence
-			}
-			fiber, e := q.locateRationalGraphMaterial(ctx, point, opts, true)
-			out.ExactOperations += fiber.ExactOperations
-			if e != nil {
-				return out, e
-			}
-			if !fiber.Complete {
-				return out, geom.ErrConvergence
-			}
-			if fiber.Faces[k.chart] >= 0 {
-				location, h.Faces = parametric.Boundary, []int{fiber.Faces[k.chart]}
+			if len(rimCandidates) != 0 {
+				if len(rimCandidates) != 1 || spanFace[i] == 0 && spanFace[i+1] == 0 ||
+					spanFace[i] != 0 && spanFace[i+1] != 0 && spanFace[i] != spanFace[i+1] {
+					return out, fmt.Errorf("graph line bracket lacks a unique retained rim owner: %w", geom.ErrConvergence)
+				}
+				other := k.chart ^ 1
+				coincident := false
+				for _, span := range coincidence[other] {
+					if span.Lower.Cmp(t.Lower) <= 0 && span.Upper.Cmp(t.Upper) >= 0 {
+						coincident = true
+						break
+					}
+				}
+				if !coincident {
+					return out, geom.ErrConvergence
+				}
+				face := max(spanFace[i], spanFace[i+1]) - 1
+				for _, region := range q.regions {
+					if region.faces[other] == face {
+						h.Faces = []int{region.faces[0], region.faces[1]}
+						break
+					}
+				}
+				if len(h.Faces) != 2 {
+					return out, geom.ErrConvergence
+				}
+				location, h.RimEdges = parametric.Boundary, rimCandidates
+			} else {
+				// With the complete rim excluded, projected loop membership
+				// is constant across this exact graph contact bracket.
+				m := new(big.Rat).Quo(new(big.Rat).Add(t.Lower, t.Upper), big.NewRat(2, 1))
+				if e := check(m); e != nil {
+					return out, e
+				}
+				point, e := pointAt(m)
+				if e != nil {
+					return out, e
+				}
+				opts := exact
+				opts.MaxOperations = remaining()
+				if opts.MaxOperations < 1 {
+					return out, geom.ErrConvergence
+				}
+				fiber, e := q.locateRationalGraphMaterial(ctx, point, opts, true)
+				out.ExactOperations += fiber.ExactOperations
+				if e != nil {
+					return out, e
+				}
+				if !fiber.Complete {
+					return out, geom.ErrConvergence
+				}
+				if fiber.Faces[k.chart] >= 0 {
+					location, h.Faces = parametric.Boundary, []int{fiber.Faces[k.chart]}
+				}
 			}
 		}
 		if location == parametric.Boundary {
@@ -404,10 +556,10 @@ func (q *AlgebraicGraphMaterialQuery) intersectObliqueLineBounds(ctx context.Con
 
 // Projection is exactly affine in chart 0. The parameter box between its two
 // mapped endpoints contains the full projected bracket, regardless of slope.
-func (q *AlgebraicGraphMaterialQuery) proveObliqueBracketClearOfRim(ctx context.Context, endpoints0, endpoints1 [3]*big.Rat, check func(*big.Rat) error) error {
+func (q *AlgebraicGraphMaterialQuery) obliqueBracketPossibleRims(ctx context.Context, endpoints0, endpoints1 [3]*big.Rat, check func(*big.Rat) error) ([]int, error) {
 	coeff, e := q.graphs[0].InverseCoefficients()
 	if e != nil {
-		return e
+		return nil, e
 	}
 	var bounds [2][2]*big.Rat
 	for i, end := range [2][3]*big.Rat{endpoints0, endpoints1} {
@@ -416,7 +568,7 @@ func (q *AlgebraicGraphMaterialQuery) proveObliqueBracketClearOfRim(ctx context.
 			for k, axis := range q.axes {
 				x.Add(x, new(big.Rat).Mul(c[k], end[axis]))
 				if e := check(x); e != nil {
-					return e
+					return nil, e
 				}
 			}
 			bounds[j][i] = x
@@ -427,39 +579,46 @@ func (q *AlgebraicGraphMaterialQuery) proveObliqueBracketClearOfRim(ctx context.
 			bounds[j][0], bounds[j][1] = b[1], b[0]
 		}
 	}
-	separated := func(cell geom.ParameterRectangle) error {
+	mayTouch := func(cell geom.ParameterRectangle) (bool, error) {
 		if e := ctx.Err(); e != nil {
-			return e
+			return false, e
 		}
 		for _, v := range []*big.Rat{bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]} {
 			if e := check(v); e != nil {
-				return e
+				return false, e
 			}
 		}
-		if bounds[0][1].Cmp(ratInset(cell.UMin)) < 0 || bounds[0][0].Cmp(ratInset(cell.UMax)) > 0 ||
-			bounds[1][1].Cmp(ratInset(cell.VMin)) < 0 || bounds[1][0].Cmp(ratInset(cell.VMax)) > 0 {
-			return nil
-		}
-		return geom.ErrConvergence
+		return !(bounds[0][1].Cmp(ratInset(cell.UMin)) < 0 || bounds[0][0].Cmp(ratInset(cell.UMax)) > 0 ||
+			bounds[1][1].Cmp(ratInset(cell.VMin)) < 0 || bounds[1][0].Cmp(ratInset(cell.VMax)) > 0), nil
 	}
+	var candidates []int
 	for i, loop := range q.loops {
 		for j, piece := range loop {
 			if len(q.windowTubeBoxes) != 0 {
-				for _, box := range q.windowTubeBoxes[i][j] {
-					if e := separated(box); e != nil {
-						return e
+				for _, cell := range q.windowTubeBoxes[i][j] {
+					found, e := mayTouch(cell)
+					if e != nil {
+						return nil, e
+					}
+					if found {
+						candidates = append(candidates, q.edges[i][j])
+						break
 					}
 				}
 				continue
 			}
 			b, e := piece.Segment.TrimA().BoundsUV()
 			if e != nil {
-				return e
+				return nil, e
 			}
-			if e := separated(geom.ParameterRectangle{UMin: b.Min.X, UMax: b.Max.X, VMin: b.Min.Y, VMax: b.Max.Y}); e != nil {
-				return e
+			found, e := mayTouch(geom.ParameterRectangle{UMin: b.Min.X, UMax: b.Max.X, VMin: b.Min.Y, VMax: b.Max.Y})
+			if e != nil {
+				return nil, e
+			}
+			if found {
+				candidates = append(candidates, q.edges[i][j])
 			}
 		}
 	}
-	return nil
+	return candidates, nil
 }
