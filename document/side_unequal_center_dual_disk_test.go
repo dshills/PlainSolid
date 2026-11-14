@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -40,6 +41,10 @@ func TestDocumentUnequalCenterDualDiskJoin(t *testing.T) {
 	}
 	if e = s.WriteSideOpenDualDiskSTEP(ctx, &data, "cut"); e != nil || !bytes.Contains(data.Bytes(), []byte("PRODUCT('side-cut-unequal-centers'")) {
 		t.Fatal("the reflected occurrence lost its certified source join", e)
+	}
+	p, e := step.ReadUnequalCenterSideOpenDualDiskProduct(ctx, &data, step.Limits{}, 1e-9)
+	if e != nil || p.SourceFloorFace == 0 || p.SourceWallFaces[0] == p.SourceWallFaces[1] || p.RadicalJoin[0].RatString() != "50" || p.RadicalJoin[1].RatString() != "1" {
+		t.Fatal("reflected native STEP recipe lost the actual wall join", p.RadicalJoin, e)
 	}
 	edit := d.Begin()
 	edit.State.Features["cut"].SideOpenDualDisk.UnequalCenterJoin[1] = "100000000000000001/100000000000000000"
