@@ -5,10 +5,12 @@
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepClass3d_SolidClassifier.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepGProp.hxx>
 #include <Geom_BezierSurface.hxx>
 #include <GProp.hxx>
@@ -32,6 +34,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -166,6 +169,26 @@ void reportObliqueLine(const char* name, const TopoDS_Shape& shape) {
   std::cout << "]}\n";
 }
 
+void reportDistance(const char* name, const TopoDS_Shape& shape) {
+  const gp_Pnt points[]={{.5,.5,-.625},{.5,.5,-1.125},
+                         {.5,.5,.25},{.025,.5,.025}};
+  std::cout << "{\"name\":\"" << name << "\",\"squared\":[";
+  for (unsigned i=0;i<sizeof(points)/sizeof(*points);++i) {
+    const auto probe=BRepBuilderAPI_MakeVertex(points[i]).Vertex();
+    double best=std::numeric_limits<double>::infinity();
+    // Measure the exposed boundary surfaces even for points in material.
+    for (TopExp_Explorer it(shape,TopAbs_FACE);it.More();it.Next()) {
+      BRepExtrema_DistShapeShape distance(probe,it.Current());
+      if (!distance.IsDone() || distance.NbSolution()<1)
+        throw std::runtime_error("incomplete boundary distance");
+      const double d=distance.Value();
+      best=std::min(best,d*d);
+    }
+    std::cout << (i ? "," : "") << best;
+  }
+  std::cout << "]}\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -190,6 +213,12 @@ int main(int argc, char** argv) {
       report("intersection",BRepBuilderAPI_Transform(BRepAlgoAPI_Common(a,b).Shape(),pose,true).Shape());
       report("union",BRepBuilderAPI_Transform(BRepAlgoAPI_Fuse(a,b).Shape(),pose,true).Shape());
       report("difference",BRepBuilderAPI_Transform(BRepAlgoAPI_Cut(a,b).Shape(),pose,true).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="boundary-distance") {
+      reportDistance("intersection", BRepAlgoAPI_Common(a,b).Shape());
+      reportDistance("union", BRepAlgoAPI_Fuse(a,b).Shape());
+      reportDistance("difference", BRepAlgoAPI_Cut(a,b).Shape());
       return 0;
     }
     if (argc!=1) throw std::runtime_error("unknown probe");

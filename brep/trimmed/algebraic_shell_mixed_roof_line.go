@@ -132,13 +132,9 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		return out, err
 	}
 	out[4][1].Set(direction[2])
-	c, err := mixedRoofPower(b.roof)
-	if err != nil {
-		return out, err
-	}
 	out[5][0].Neg(origin[2])
 	out[5][1].Neg(direction[2])
-	for a, row := range c {
+	for a, row := range b.power {
 		for b, coeff := range row {
 			if coeff.Sign() == 0 {
 				continue
