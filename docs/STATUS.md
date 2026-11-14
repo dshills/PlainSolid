@@ -782,7 +782,12 @@ surfaces must keep their geometry through the operation. Continue with:
    multiple native graph regions after rechecking coverage on the original
    supports. Extend complete transverse arrangements beyond rectangular input
    supports and handle curved edge-edge crossings, tangencies and coincident
-   intervals. Exact Bernstein signs now certify isolated corner contacts
+   intervals. The algebraic imprint now assigns closed loops to the exact
+   fragments of proper open cuts on the same original face. This uses strict
+   separation from conservative tube boxes and an exact winding proof, then
+   independently checks both original shell incidences. It retains the input
+   charts through common, union, cut and reload. Exact Bernstein signs also
+   certify isolated corner contacts
    of supported affine graph pairs; use that evidence for source vertex
    ownership before accepting transverse vertex fans in assembly. A complete
    bounded fixture now proves all original face pairs and an oriented section

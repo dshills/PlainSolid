@@ -369,6 +369,32 @@ Reconciled PlainCAD candidate `754ae8e` passed the real backend probe with no
 OCCT request and both different-center openings in Chromium (38.5 and 46.6
 seconds), on the same 841 pinned application source files and unchanged
 supplemental fixture. Both cases rebuild, reopen and export STL and STEP.
+The algebraic mixed arrangement (`fa11c4c`) puts a full closed loop and a
+proper open cut on the same original stock face. In independent left- and
+right-wall examples it preserves one full and one half lobe. Common has
+Euler characteristic 4, cut has 2, and union has 0. The independent pinned
+OCCT right-wall fixture agrees on topology and mass, and the exact native
+enclosures contain the analytic volume of each operation. Both fixtures
+passed focused race; the left-wall Boolean also reloads with the same owners.
+The expanded shell contact certificate (`b8ef72d`) verifies a separable
+fourth-/second-order contact at an original knot and two distinct isolated
+knot contacts on one original face pair. All remaining pairs are separated.
+Native and live OCCT confirm empty common and unchanged cut; the zero-side
+negative and focused race passed.
+Exact graph normal-line clipping (`15d91a6`) preserves caller `t`, real rim
+contacts, and original faces under signed nonbinary line scale. The window
+depth query (`77c05e9`) independently proves uniform depth on nonbinary
+annular windows and signed XZ placements; nested hole windows prove empty,
+and crossing windows reject. Focused normal and race passed.
+The mapped STEP collection (`5bdb9a6`) retains two independent maps and
+three rigid occurrences. Native document conversion (`ea3ae75`) preserves
+shared local assets, actual transformed bounds and all 12 original local
+face bindings across reload. Pinned OCCT source and export transfer as
+three solids and 18 faces, with volume 54 and area 126. Normal, race and
+Go 1.23 passed. Wrapped shell reload (`0d05fd5`) re-proves original mating
+through the irrational seam. Global embedding certificates (`972e7a6`,
+`f137d9f`) qualify the adjacent two- and three-face common chart families;
+overlapping nonadjacent owners reject, with focused normal and race passed.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the

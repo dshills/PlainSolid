@@ -198,19 +198,30 @@ Separate affine XY lenses on one source pair now also produce a unified
 display with original topology IDs and an exact contact check across
 components. Two nested closed rims on one affine XY source pair form an
 annular Boolean common, including native reload and a certified display.
-The annular display also qualifies a signed YZ projection. Extend these
-proofs to the remaining projection parity, mixed open and closed
-arrangements, and distinct original source pairs before using them as a
-general shell mesh. A sole exterior definite graph contact can now produce
-an empty common and an unchanged cut after exhaustive pair separation.
-Tangential returns, several isolated contacts, and coincident surface
-patches still require separate classification and trim proofs.
+The annular and separated displays qualify signed YZ and XZ projections.
+The algebraic arrangement now proves nesting of closed loops among proper
+open cuts of the same original face, including a half-lobe and full lobe in
+the same shell operation. Conversion to the ordinary native solid remains
+bounded by exact representability of the junctions. General certified display
+of mixed arrangements and distinct original source pairs remains required.
+Exterior definite, separable and coupled higher-order graph contacts can
+produce an empty common and unchanged cut after exhaustive pair separation.
+Several isolated interior knot contacts on one original chart pair now have
+the same proof. Extend this to multiple interacting face pairs, singular
+branch crossings, tangential returns and general coincident surface patches.
 The verified cylindrical quotient handles exact two-image intersections and
 annular union, including original charts on both seam occurrences. Native
 curved face trims also handle bounded rational quadratic pieces crossing a
 seam at a represented rational parameter. General periodic assemblies need
 interior curve events, mixed nested arrangements and certified continuation
 where the split parameter is not rational.
+The opt-in wrapped algebraic open faces now retain exact continuous owner
+cells across irrational interior seam events with represented outer vertices.
+Paired native faces can share such an edge, reload their original chart
+data, and prove global embedding on a bounded same-chart family. Three-face
+chains with explicit mates can also prove global separation across the chain.
+General periodic shell assembly still needs closed manifold incidence,
+nonrepresentable topology vertices and additional chart pairings.
 Independent edge-to-face isolation already provides regular terminal hints
 to the tube verifier. Integrate exact algebraic terminal identities and
 prove complete continuation before assembling the resulting material.
