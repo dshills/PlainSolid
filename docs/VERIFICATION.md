@@ -20,6 +20,10 @@ tested packages, with three reporting no tests. It recorded 3,751 passing
 and 310 skipped test events. The three CGO-disabled short-mode trimmed
 shards at the same revision all passed: 613 passing test events, seven
 skipped, and no duplicate test events across shards (507, 620 and 477 seconds).
+The CGO-disabled short run at `551df78` passed all 49 tested packages outside
+`brep/trimmed`, with three packages reporting no tests. It recorded 3,782
+passing and 316 skipped test events. The trimmed shards for this revision
+are a separate run.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -207,6 +211,22 @@ The mixed IGES material collection (`92f76f0`) reuses independent full
 tetrahedron and curved roof proofs and preserves each source owner's entity
 IDs. The live pinned OCCT oracle transfers source and Go re-export as two
 solids, ten faces, volume 8/3 and centroid (21/32, -1/2, 21/10).
+The three-family fixture (`5edb394`) adds two independent tetrahedron roots,
+one oblique affine hexahedron and one original curved roof in a single file.
+OCCT qualifies four solids, 20 faces and volume 17; the Go reader checks
+unique source ownership and deterministic provenance across all roots.
+The nested spline Boolean (`7e8283e`) proves the arrangement of two
+closed original section rims, native annular closure, and JSON reload
+from the original sources. An analytic volume integral independently verifies
+the annular common; the subtraction retains both cut rims.
+The annular display with a nonbinary original owner (`eab4c3a`) passes
+normal qualification: 13,416 triangles, genus one, exact contact exclusion
+and display volume 0.00044855648 against 0.00046287642 analytically. Its
+full race invocation hit the 600-second test timeout; it is not a race pass.
+The open frustum wall and point classification (`170c638`) retain an
+annular shoulder on either original cap and an inward floor. Four independent
+pinned OCCT cuts agree in area, volume and centroid for both taper directions
+and both openings. Focused normal and race tests pass.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
