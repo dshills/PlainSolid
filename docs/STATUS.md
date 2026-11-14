@@ -2168,3 +2168,11 @@ containment groups holes by component. A native wall retains all original
 arrangement pieces through collinear simplification. The extrusion checks
 that final base and top coordinates are exactly representable and verifies
 its native topology and exact volume.
+
+### Weighted station through-bore STEP exchange
+
+The strict weighted bore reader and writer retain both original wall
+families, including independent station grids, both annular caps and
+original rim and vertex identities. Native reload re-authenticates
+strict containment and inward tool orientation. See the
+[weighted bore STEP contract](../exchange/step/WRAPPED_RATIONAL_STATION_BORES.md).

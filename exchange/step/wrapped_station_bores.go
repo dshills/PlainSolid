@@ -72,6 +72,10 @@ func ReadWrappedStationBore(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 	return readWrappedAxialBore(r, l, o, false)
 }
 func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single bool) (WrappedStationBoreBody, error) {
+	return readWrappedProfileBore(r, l, o, single, false)
+}
+
+func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single, rational bool) (WrappedStationBoreBody, error) {
 	fail := func() (WrappedStationBoreBody, error) {
 		return WrappedStationBoreBody{}, fmt.Errorf("step: unsupported wrapped axial bore graph")
 	}
@@ -149,11 +153,15 @@ func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single
 		return fail()
 	}
 	minFaces := 5
-	if single {
+	if single || rational {
 		minFaces = 4
 	}
+	maxFaces, maxBands := 130, 64
+	if rational {
+		maxFaces, maxBands = 34, 16
+	}
 	faces, e := listRefs(shell.Args[1], minFaces)
-	if e != nil || len(faces) > 130 || len(faces) > l.MaxFaces {
+	if e != nil || len(faces) > maxFaces || len(faces) > l.MaxFaces {
 		return fail()
 	}
 	if len(faces)-2 > o.MaxSurfaces {
@@ -265,7 +273,7 @@ func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single
 			return WrappedStationBoreBody{}, e
 		}
 	}
-	if len(caps) != 2 || len(walls[0]) < 1 || len(walls[1]) < 1 || (!single && len(walls[0])+len(walls[1]) < 3) || (single && (len(walls[0]) != 1 || len(walls[1]) != 1)) || len(walls[0]) > 64 || len(walls[1]) > 64 {
+	if len(caps) != 2 || len(walls[0]) < 1 || len(walls[1]) < 1 || (!single && !rational && len(walls[0])+len(walls[1]) < 3) || (single && (len(walls[0]) != 1 || len(walls[1]) != 1)) || len(walls[0]) > maxBands || len(walls[1]) > maxBands {
 		return fail()
 	}
 	capFaces := [2][]int64{}
@@ -426,7 +434,9 @@ func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single
 		}
 		internal := l
 		internal.MaxBytes = max(l.MaxBytes, int64(raw.Len()))
-		if len(walls[side]) == 1 {
+		if rational {
+			local[side], e = readWrappedStationLoft(&raw, internal, o, false)
+		} else if len(walls[side]) == 1 {
 			var model WrappedFrustumModel
 			model, e = ReadWrappedFrusta(&raw, internal, o)
 			if e == nil {
@@ -467,11 +477,19 @@ func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single
 		return fail()
 	}
 	options := geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
-	solid, _, e := trimmed.CombineCoaxialWrappedStationLofts(context.Background(), local[0].Solid, local[1].Solid, parametric.Difference, options)
+	combine := trimmed.CombineCoaxialWrappedStationLofts
+	if rational {
+		combine = trimmed.CombineCoaxialWrappedRationalStationLofts
+	}
+	solid, _, e := combine(context.Background(), local[0].Solid, local[1].Solid, parametric.Difference, options)
 	if e != nil {
 		return WrappedStationBoreBody{}, e
 	}
-	proof, e := solid.ValidateWrappedCircularStationBore(context.Background(), options)
+	validate := solid.ValidateWrappedCircularStationBore
+	if rational {
+		validate = solid.ValidateWrappedRationalStationBore
+	}
+	proof, e := validate(context.Background(), options)
 	if e != nil || !proof.Complete {
 		if e != nil {
 			return WrappedStationBoreBody{}, e

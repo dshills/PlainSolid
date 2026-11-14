@@ -5956,3 +5956,12 @@ A separate holed Difference yields two components and one inner wire with
 total volume 83/128. Native reconstruction, oblique and signed offsets,
 original side ledger coverage and atomic representability failures are
 checked. The integrated race passed in 1.694 s.
+
+### Weighted station bore STEP qualification
+
+Canonical one- and two-band weighted bores round-trip with original
+supports and face orientation. The two-band reference retains distinct
+outer and inner partitions. Pinned OCCT reads volume 24.3558991065 and
+axial centroid 1.276666666394, agreeing with independent profile and
+axial integrals. Focused main race covers deterministic re-export, native
+reload and source mutation rejection.

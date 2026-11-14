@@ -14,7 +14,14 @@ func WriteWrappedStationBore(w io.Writer, m WrappedStationBoreBody) error {
 	return writeWrappedAxialBore(w, m, false)
 }
 func writeWrappedAxialBore(w io.Writer, m WrappedStationBoreBody, single bool) error {
-	if w == nil || len(m.Outer.Stations) < 2 || len(m.Inner.Stations) < 2 || (!single && len(m.Outer.Stations)+len(m.Inner.Stations) < 5) || (single && (len(m.Outer.Stations) != 2 || len(m.Inner.Stations) != 2 || !wrappedAxialBoreTapered(m))) {
+	return writeWrappedProfileBore(w, m, single, false)
+}
+
+func writeWrappedProfileBore(w io.Writer, m WrappedStationBoreBody, single, rational bool) error {
+	if w == nil {
+		return geom.ErrInvalid
+	}
+	if !rational && (len(m.Outer.Stations) < 2 || len(m.Inner.Stations) < 2 || (!single && len(m.Outer.Stations)+len(m.Inner.Stations) < 5) || (single && (len(m.Outer.Stations) != 2 || len(m.Inner.Stations) != 2 || !wrappedAxialBoreTapered(m)))) {
 		return geom.ErrInvalid
 	}
 	sources := [2]*File{}
@@ -24,8 +31,14 @@ func writeWrappedAxialBore(w io.Writer, m WrappedStationBoreBody, single bool) e
 		b.Name = m.Name
 		b.CapNames = m.CapNames
 		var raw bytes.Buffer
-		if e := writeStationBoreLoft(&raw, b); e != nil {
-			return e
+		var err error
+		if rational {
+			err = WriteWrappedRationalStationLoft(&raw, WrappedRationalStationLoftBody{Name: b.Name, Walls: b.Walls, CapNames: b.CapNames, LengthUnit: b.LengthUnit})
+		} else {
+			err = writeStationBoreLoft(&raw, b)
+		}
+		if err != nil {
+			return err
 		}
 		f, e := Parse(&raw, Limits{})
 		if e != nil {
@@ -160,7 +173,7 @@ func writeWrappedAxialBore(w io.Writer, m WrappedStationBoreBody, single bool) e
 	if e != nil {
 		return e
 	}
-	if _, e = readWrappedAxialBore(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, single); e != nil {
+	if _, e = readWrappedProfileBore(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, single, rational); e != nil {
 		return e
 	}
 	n, e := w.Write(out.Bytes())
