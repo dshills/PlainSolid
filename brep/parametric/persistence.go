@@ -18,6 +18,11 @@ type JSONLimits struct {
 	MaxEntities, MaxControlPoints int
 }
 
+type torusCylinderChartData struct {
+	Major, Minor, Radius float64
+	Outer, Wall          bool
+}
+
 type frameData struct{ Origin, X, Z geom.Vec3 }
 
 func frameToData(f geom.Frame) *frameData { return &frameData{f.Origin(), f.XAxis(), f.ZAxis()} }
@@ -29,6 +34,7 @@ func (f *frameData) decode() (geom.Frame, error) {
 }
 
 type surfaceData struct {
+	TorusCylinder    *torusCylinderChartData `json:",omitempty"`
 	ExactBezier      *exactBezierSurfaceData `json:",omitempty"`
 	ObliqueSplit     *obliqueSplitData       `json:",omitempty"`
 	SplitCylinderCut *splitCylinderCutData   `json:",omitempty"`
@@ -262,6 +268,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 		return surfaceData{Kind: "offset-sphere-double-common", Frame: frameToData(x.frame), DoubleCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
 	case offsetSameSideCommon:
 		return surfaceData{Kind: "offset-sphere-same-side-common", Frame: frameToData(x.frame), SameSideCommon: &offsetDoubleData{offsetCommonData{x.R, x.r, x.d, x.lower, x.upper, x.kind}, x.clipped}}, nil
+	case torusCylinderChart:
+		f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		return surfaceData{Kind: "torus-cylinder-band", Frame: frameToData(f), TorusCylinder: &torusCylinderChartData{x.R, x.r, x.c, x.outer, x.wall}}, nil
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
@@ -739,6 +748,12 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		}
 		s.kind, s.clipped = x.Chart, x.Clipped
 		return s, nil
+	case "torus-cylinder-band":
+		if d.TorusCylinder == nil || f.Origin() != (geom.Vec3{}) || f.XAxis() != (geom.Vec3{X: 1}) || f.ZAxis() != (geom.Vec3{Z: 1}) {
+			return nil, geom.ErrInvalid
+		}
+		x := d.TorusCylinder
+		return newTorusCylinderChart(x.Major, x.Minor, x.Radius, x.Outer, x.Wall)
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)
 	case "arc-fan":

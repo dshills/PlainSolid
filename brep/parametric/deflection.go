@@ -217,6 +217,8 @@ func derivativeBounds(s geom.Surface, v Interval) (uu, uv, vv float64, ok bool) 
 	case geom.SphereSurface:
 		_, r := x.Parameters()
 		return r, r, r, true
+	case torusCylinderChart:
+		return x.secondBounds()
 	case geom.TorusSurface:
 		_, a, b := x.Parameters()
 		return a + b, b, b, true
