@@ -69,7 +69,7 @@ func TestFilletedFrustumClosestDispatcher(t *testing.T) {
 		{[3]*big.Rat{fdMul(rho, r(3, 5)), fdMul(rho, r(4, 5)), r(3, 16)}, FilletedFrustumClosestToroid, true},
 		{[3]*big.Rat{r(8, 1), r(1, 1), r(3, 16)}, FilletedFrustumClosestNestedToroid, true},
 		{[3]*big.Rat{r(10, 1), r(1, 1), r(3, 2)}, FilletedFrustumClosestCone, true},
-		{[3]*big.Rat{r(-19, 10), r(1, 10), r(3, 1)}, FilletedFrustumClosestRim, false},
+		{[3]*big.Rat{r(-19, 10), r(1, 10), r(3, 1)}, FilletedFrustumClosestBore, true},
 	}
 	for _, tc := range cases {
 		got, e := q.ClosestBoundaryRational(ctx, tc.p, opts)
@@ -79,7 +79,7 @@ func TestFilletedFrustumClosestDispatcher(t *testing.T) {
 		if got.Kind != tc.kind || got.NearestProven != tc.nearest || len(got.Faces) == 0 {
 			t.Fatalf("kind=%v expected=%v nearest=%v", got.Kind, tc.kind, got.NearestProven)
 		}
-		direct, e := q.BoundBoundaryConeDistanceRational(ctx, tc.p, opts)
+		direct, e := q.BoundBoundaryBoreDistanceRational(ctx, tc.p, FilletedFrustumBoreDistanceOptions{Original: opts})
 		if e != nil {
 			t.Fatal(e)
 		}
