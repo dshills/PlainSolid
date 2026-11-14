@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD intersecting Hole cutters on different stock sides — 2026-11-14
+
+The rectangular stock arrangement now supports two intersecting circular
+Hole footprints opening on adjacent or opposite lateral sides. A cut may
+split an entry-cap face into separate patches while the stock remains one
+solid. Canonical STEP derives the full stock height from actual boundary
+vertices and verifies the regenerated graph, including those cap patches.
+Cuts that split the stock into separate solids are rejected atomically.
+
+[Thirteen original PlainCAD Hole and STEP cases](evidence/plaincad-lateral-side-opening-pair-browser-2026-11-14.json)
+and [two same-WASM Chromium probes](evidence/plaincad-lateral-side-opening-pair-native-2026-11-14.json)
+pass on `50432ed`. The authored probes exercise adjacent sides with one
+entry cap and opposite sides with opposed entry caps. Both retain the
+expected measures, blind floor levels and bounds through STEP readback
+and project reopen, and both export watertight STL. Native grouped and
+successive cuts pass in both orders. Independent OCCT validates 90 STEP
+round-trips by topology, volume, area and centroid, including 48 new
+different-side cases. Focused race checks and Go vet pass.
+
 ## PlainCAD intersecting side openings from opposite caps — 2026-11-14
 
 The same rectangular stock side can retain two intersecting circular Hole

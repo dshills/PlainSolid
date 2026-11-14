@@ -23,11 +23,14 @@ Contained coaxial cutters on the same body merge independently of batch
 order, including through cutters that join two opposed blind spans.
 Separated blind spans at the same interior site preserve the material web
 and both cap openings through STEP.
-Two transversely intersecting Hole cutters opening on the same stock side
-retain exact cylindrical walls and blind floors on rectangular stock.
-Grouped and successive cuts, unequal depths, through cuts, and canonical
-STEP round-trip pass verification. The cutters can enter from either cap,
-including opposed blind spans that overlap or leave a material web.
+Two transversely intersecting Hole cutters retain exact cylindrical walls
+and blind floors on rectangular stock. Their footprints can open on the
+same, adjacent or opposite sides. Grouped and successive cuts, unequal
+depths, through cuts that leave one solid, and canonical STEP round-trip
+pass verification. The cutters can enter from either cap, including
+opposed blind spans that overlap or leave a material web. The next open
+cases include three distinct side-opening footprints, a pair including a
+corner-opening cutter, and coincident opposed floors.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

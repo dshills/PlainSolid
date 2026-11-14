@@ -91,3 +91,55 @@ func TestSideOpeningPairOpposedScopes(t *testing.T) {
 		}
 	}
 }
+
+func TestSideOpeningPairDifferentStockSides(t *testing.T) {
+	for _, tc := range []struct {
+		name                   string
+		stockSize, first, next vector
+		axis                   vector
+		overlap, firstOffset   float64
+	}{
+		{"adjacent", vector{20, 20, 8}, vector{3.5, 0, 0}, vector{0, 3.5, 0}, vector{0, 0, 1}, 5, 0},
+		{"opposite", vector{20, 8, 8}, vector{8, 1.5, 0}, vector{9, 6.5, 8}, vector{0, 0, -1}, 3, 1.5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const radius = 3
+			distance := math.Hypot(tc.next[0]-tc.first[0], tc.next[1]-tc.first[1])
+			lens := 2*radius*radius*math.Acos(distance/(2*radius)) - distance*math.Sqrt(radius*radius-distance*distance/4)
+			chord := math.Sqrt(radius*radius - tc.firstOffset*tc.firstOffset)
+			segment := radius*radius*(math.Pi/2+math.Asin(tc.firstOffset/radius)) + tc.firstOffset*chord
+			want := tc.stockSize[0]*tc.stockSize[1]*tc.stockSize[2] - 11*segment + tc.overlap*lens
+			b := New()
+			stock := box(t, b, vector{}, tc.stockSize)
+			first := circle(t, b, tc.first, vector{0, 0, 1}, radius, 5)
+			next := circle(t, b, tc.next, tc.axis, radius, 6)
+			for _, pair := range [][2]Shape{{first, next}, {next, first}} {
+				single := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": pair[0].Handle})
+				near(t, overlapMeasure(t, b, single.Handle, pair[1].Handle), single.GeometryAssertions.Volume-want)
+				for _, cases := range []struct {
+					base  Shape
+					tools []string
+				}{
+					{stock, []string{pair[0].Handle, pair[1].Handle}},
+					{single, []string{pair[1].Handle}},
+				} {
+					out, err := b.cutMany(cases.base.Handle, cases.tools)
+					if err != nil {
+						t.Fatal(err)
+					}
+					near(t, out.GeometryAssertions.Volume, want)
+					if out.Bounds != stock.Bounds {
+						t.Fatal(out.Bounds, stock.Bounds)
+					}
+					m, err := b.shapes[out.Handle].tessellate(request{})
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err := m.ValidateSolid(); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+		})
+	}
+}
