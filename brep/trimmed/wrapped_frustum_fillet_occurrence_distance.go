@@ -92,6 +92,17 @@ func (q FilletedFrustumOccurrence) BoundBoundaryRimDistanceRational(ctx context.
 	if e != nil {
 		return out, e
 	}
+	return q.transformFilletedRimDistance(ctx, original)
+}
+
+// Consume an already-computed source result; do not repeat support proofs.
+func (q FilletedFrustumOccurrence) transformFilletedRimDistance(ctx context.Context, original FilletedFrustumRimDistance) (out FilletedFrustumOccurrenceRimDistance, err error) {
+	defer func() {
+		if err != nil {
+			out = FilletedFrustumOccurrenceRimDistance{}
+		}
+	}()
+	var e error
 	out.Original = original
 	out.Lower = new(big.Rat).Set(original.Lower)
 	out.Upper = new(big.Rat).Set(original.Upper)
