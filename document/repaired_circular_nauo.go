@@ -35,10 +35,10 @@ type repairedCircularNAUOEnvelope struct {
 	Local       json.RawMessage `json:"local"`
 }
 
-// ReadRepairedCircularNAUOSTEP requires explicit repair options and returns one
+// ReadRepairedCircularNAUOSTEPWithEvidence requires explicit repair options and returns one
 // source-bound displacement report per repaired local asset. Occurrences do not
 // trigger independent repairs or duplicate native local geometry.
-func ReadRepairedCircularNAUOSTEP(r io.Reader, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, []step.RepairedCircularNAUO, error) {
+func ReadRepairedCircularNAUOSTEPWithEvidence(r io.Reader, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, *RepairedNAUOEvidence, error) {
 	if r == nil {
 		return nil, nil, rationalMappedDocumentError()
 	}
@@ -53,7 +53,7 @@ func ReadRepairedCircularNAUOSTEP(r io.Reader, l step.Limits, o step.CircularNAU
 		switch p.Family {
 		case step.RepairedNAUOExactPlanar:
 			s.Planar[key] = p.Planar.Solid
-		case step.RepairedNAUOCircular:
+		case step.RepairedNAUOCircular, step.RepairedNAUOTube:
 			s.Parametric[key] = p.Circular
 		default:
 			return nil, nil, rationalMappedDocumentError()
@@ -69,7 +69,8 @@ func ReadRepairedCircularNAUOSTEP(r io.Reader, l step.Limits, o step.CircularNAU
 		return nil, nil, e
 	}
 	state, _ := local.Snapshot()
-	reports := a.Repairs
+	reports := &RepairedNAUOEvidence{Cylinders: a.Repairs, Tubes: a.TubeRepairs}
+	a.TubeRepairs = nil
 	a.Repairs = nil // evidence is deliberately outside the stored native model
 	return &RepairedCircularNAUODocument{model: a, source: append([]byte(nil), original.Bytes()...), native: native.Bytes(), local: state, options: o}, reports, nil
 }
@@ -187,7 +188,10 @@ func (d *RepairedCircularNAUODocument) ExactWorldBounds() (b RationalWorldBounds
 			}
 			continue
 		}
-		if part.Family != step.RepairedNAUOCircular {
+		if part.Family == step.RepairedNAUOTube {
+			part.Cylinder = step.CylinderBody{Name: part.Tube.Name, Frame: part.Tube.Frame, Radius: part.Tube.OuterRadius, Height: part.Tube.Height}
+		}
+		if part.Family != step.RepairedNAUOCircular && part.Family != step.RepairedNAUOTube {
 			return RationalWorldBounds{}, rationalMappedDocumentError()
 		}
 		c, e := u.ApplyExact(part.Cylinder.Frame.Origin())
@@ -233,7 +237,7 @@ func (d *RepairedCircularNAUODocument) Write(w io.Writer) error {
 	if d == nil || w == nil || len(d.source) == 0 {
 		return rationalMappedDocumentError()
 	}
-	raw, e := json.Marshal(repairedCircularNAUOEnvelope{Format: "plainsolid-repaired-circular-nauo", Version: 1, MaxDistance: d.options.MaxDistance, Source: string(d.source), Local: d.native})
+	raw, e := json.Marshal(repairedCircularNAUOEnvelope{Format: "plainsolid-repaired-circular-nauo", Version: d.nativeVersion(), MaxDistance: d.options.MaxDistance, Source: string(d.source), Local: d.native})
 	if e != nil {
 		return e
 	}
@@ -258,10 +262,10 @@ func (d *RepairedCircularNAUODocument) WriteOriginalSTEP(w io.Writer) error {
 	return e
 }
 
-// ReadRepairedCircularNAUODocument requires the same caller repair tolerance as
+// ReadRepairedCircularNAUODocumentWithEvidence requires the same caller repair tolerance as
 // the saved declaration, re-proves all source/asset bindings, and returns fresh
 // repair evidence separately. Serialized reports are neither accepted nor used.
-func ReadRepairedCircularNAUODocument(r io.Reader, maxBytes int64, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, []step.RepairedCircularNAUO, error) {
+func ReadRepairedCircularNAUODocumentWithEvidence(r io.Reader, maxBytes int64, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, *RepairedNAUOEvidence, error) {
 	if r == nil || maxBytes <= 0 || maxBytes > 1<<30 {
 		return nil, nil, rationalMappedDocumentError()
 	}
@@ -279,12 +283,15 @@ func ReadRepairedCircularNAUODocument(r io.Reader, maxBytes int64, l step.Limits
 		return nil, nil, e
 	}
 	var extra any
-	if e = dec.Decode(&extra); e != io.EOF || env.Format != "plainsolid-repaired-circular-nauo" || env.Version != 1 || env.MaxDistance != o.MaxDistance {
+	if e = dec.Decode(&extra); e != io.EOF || env.Format != "plainsolid-repaired-circular-nauo" || (env.Version != 1 && env.Version != 2) || env.MaxDistance != o.MaxDistance {
 		return nil, nil, rationalMappedDocumentError()
 	}
-	fresh, reports, e := ReadRepairedCircularNAUOSTEP(bytes.NewReader([]byte(env.Source)), l, o)
+	fresh, reports, e := ReadRepairedCircularNAUOSTEPWithEvidence(bytes.NewReader([]byte(env.Source)), l, o)
 	if e != nil {
 		return nil, nil, e
+	}
+	if env.Version != fresh.nativeVersion() {
+		return nil, nil, rationalMappedDocumentError()
 	}
 	local, e := Read(bytes.NewReader(env.Local), maxBytes, 0)
 	if e != nil {
@@ -298,4 +305,46 @@ func ReadRepairedCircularNAUODocument(r io.Reader, maxBytes int64, l step.Limits
 		return nil, nil, rationalMappedDocumentError()
 	}
 	return fresh, reports, nil
+}
+
+// RepairedNAUOEvidence keeps independently reconstructed local families separate.
+// Tables contain one entry per product, never per occurrence; native reload
+// regenerates them rather than accepting serialized evidence.
+type RepairedNAUOEvidence struct {
+	Cylinders []step.RepairedCircularNAUO
+	Tubes     []step.RepairedCircularTubeNAUO
+}
+
+func (d *RepairedCircularNAUODocument) nativeVersion() int {
+	for _, p := range d.model.Parts {
+		if p.Family == step.RepairedNAUOTube {
+			return 2
+		}
+	}
+	return 1
+}
+
+// ReadRepairedCircularNAUOSTEP retains the cylinder-only reporting contract.
+// Tube-bearing sources require the explicit WithEvidence API.
+func ReadRepairedCircularNAUOSTEP(r io.Reader, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, []step.RepairedCircularNAUO, error) {
+	d, evidence, e := ReadRepairedCircularNAUOSTEPWithEvidence(r, l, o)
+	if e != nil {
+		return nil, nil, e
+	}
+	if len(evidence.Tubes) != 0 {
+		return nil, nil, rationalMappedDocumentError()
+	}
+	return d, evidence.Cylinders, nil
+}
+
+// ReadRepairedCircularNAUODocument retains version-1 cylinder-only evidence.
+func ReadRepairedCircularNAUODocument(r io.Reader, maxBytes int64, l step.Limits, o step.CircularNAUORepairOptions) (*RepairedCircularNAUODocument, []step.RepairedCircularNAUO, error) {
+	d, evidence, e := ReadRepairedCircularNAUODocumentWithEvidence(r, maxBytes, l, o)
+	if e != nil {
+		return nil, nil, e
+	}
+	if len(evidence.Tubes) != 0 {
+		return nil, nil, rationalMappedDocumentError()
+	}
+	return d, evidence.Cylinders, nil
 }

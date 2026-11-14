@@ -14,6 +14,7 @@ type RepairedNAUOFamily string
 const (
 	RepairedNAUOExactPlanar RepairedNAUOFamily = "exact-planar"
 	RepairedNAUOCircular    RepairedNAUOFamily = "repaired-circular"
+	RepairedNAUOTube        RepairedNAUOFamily = "repaired-circular-tube"
 )
 
 type RepairedNAUOProduct struct {
@@ -22,6 +23,7 @@ type RepairedNAUOProduct struct {
 	Family       RepairedNAUOFamily
 	Planar       Body
 	Cylinder     CylinderBody
+	Tube         TubeBody
 	Circular     parametric.Solid
 }
 
@@ -36,11 +38,12 @@ type RepairedCircularNAUOAssembly struct {
 	Relationships []ExactNAUOOccurrence
 	Occurrences   []ExactDAGNAUOOccurrence
 	Repairs       []RepairedCircularNAUO
+	TubeRepairs   []RepairedCircularTubeNAUO
 }
 
 // ReadRepairedCircularNAUOAssembly is an opt-in mixed import. It requires at least
-// one exact cardinal planar and one explicitly repaired canonical cylinder
-// product. Flat and bounded DAG ownership are preserved; unsupported families
+// one exact cardinal planar and one explicitly repaired canonical cylinder or
+// through-tube product. Flat and bounded DAG ownership are preserved; unsupported families
 // fail atomically. Repairs are returned once per local circular product, never
 // once per expanded occurrence. No exact source-equivalence is claimed.
 func ReadRepairedCircularNAUOAssembly(r io.Reader, l Limits, o CircularNAUORepairOptions) (RepairedCircularNAUOAssembly, error) {
@@ -152,7 +155,10 @@ func ReadRepairedCircularNAUOAssembly(r io.Reader, l Limits, o CircularNAUORepai
 		}
 		family, e := planarSplineBodyFamily(f, ids[0], true)
 		if e != nil {
-			return fail()
+			if !repairedNAUOTubeFamily(f, ids[0]) {
+				return fail()
+			}
+			family = PlanarSplineFamily("repaired-tube")
 		}
 		product := RepairedNAUOProduct{Product: p, SourceBodyID: ids[0]}
 		switch family {
@@ -193,6 +199,19 @@ func ReadRepairedCircularNAUOAssembly(r io.Reader, l Limits, o CircularNAUORepai
 			product.Cylinder = repaired.Body
 			product.Circular = repaired.Solid
 			out.Repairs = append(out.Repairs, repaired)
+			circularCount++
+		case PlanarSplineFamily("repaired-tube"):
+			repaired, e := RepairCircularTubeNAUOProduct(bytes.NewReader(raw), l, p.DefinitionID, o)
+			if e != nil || repaired.SourceBodyID != ids[0] {
+				return fail()
+			}
+			nv += len(repaired.Solid.Vertices())
+			nf += len(repaired.Solid.Faces())
+			nu += 4 * len(repaired.Solid.Faces())
+			product.Family = RepairedNAUOTube
+			product.Tube = repaired.Body
+			product.Circular = repaired.Solid
+			out.TubeRepairs = append(out.TubeRepairs, repaired)
 			circularCount++
 		default:
 			return fail()
@@ -350,4 +369,41 @@ func ReadRepairedCircularNAUOAssembly(r io.Reader, l Limits, o CircularNAUORepai
 		return fail()
 	}
 	return out, nil
+}
+
+// Structural discriminator only; the separate tube repair re-proves every
+// support, owner, material sense and displacement before accepting this family.
+func repairedNAUOTubeFamily(f *File, id int64) bool {
+	b, e := simple(f, id, "MANIFOLD_SOLID_BREP", 2)
+	if e != nil {
+		return false
+	}
+	sh, e := simple(f, b.Args[1].Ref, "CLOSED_SHELL", 2)
+	if e != nil {
+		return false
+	}
+	fs, e := listRefs(sh.Args[1], 4)
+	if e != nil || len(fs) != 4 {
+		return false
+	}
+	p, c := 0, 0
+	for _, id := range fs {
+		face, e := simple(f, id, "ADVANCED_FACE", 4)
+		if e != nil {
+			return false
+		}
+		ent := f.Entities[face.Args[2].Ref]
+		if len(ent.Records) != 1 {
+			return false
+		}
+		switch ent.Records[0].Type {
+		case "PLANE":
+			p++
+		case "CYLINDRICAL_SURFACE":
+			c++
+		default:
+			return false
+		}
+	}
+	return p == 2 && c == 2
 }
