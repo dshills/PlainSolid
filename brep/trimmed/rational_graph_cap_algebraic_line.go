@@ -15,6 +15,9 @@ type AlgebraicGraphCapLineContact struct {
 	Wire, Use                 int
 	Entry                     bool
 	Touch                     bool // tangency with no change in material
+	Junction                  bool // contact at the shared endpoint of two uses
+	OtherUse                  int  // outgoing use when Junction, otherwise -1
+	OtherCurveParameter       *geom.ExactAlgebraicRoot
 }
 
 // AlgebraicGraphCapLine reports the ordered boundary events and clipped
@@ -34,7 +37,7 @@ type AlgebraicGraphCapLine struct {
 // tangencies, and coincident runs. Direction is not normalized.
 func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
-	return c.intersectRationalLine(ctx, origin, direction, extent, options, false)
+	return c.intersectRationalLine(ctx, origin, direction, extent, options, false, false)
 }
 
 // IntersectRationalLineWithTouches additionally reports regular isolated
@@ -42,11 +45,20 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 // vertices and higher odd-order crossings remain outside this method.
 func (c AlgebraicGraphCapClip) IntersectRationalLineWithTouches(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
-	return c.intersectRationalLine(ctx, origin, direction, extent, options, true)
+	return c.intersectRationalLine(ctx, origin, direction, extent, options, true, false)
+}
+
+// IntersectRationalLineWithJunctions additionally handles a line through
+// a shared trim vertex. Both incident curve germs are matched on their
+// original wire; their exact available signs determine a crossing or
+// touch. Coincident runs and singular germs remain unsupported.
+func (c AlgebraicGraphCapClip) IntersectRationalLineWithJunctions(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
+	return c.intersectRationalLine(ctx, origin, direction, extent, options, true, true)
 }
 
 func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
-	options geom.ExactCurvePlaneEventOptions, includeTouches bool) (AlgebraicGraphCapLine, error) {
+	options geom.ExactCurvePlaneEventOptions, includeTouches, includeJunctions bool) (AlgebraicGraphCapLine, error) {
 	var zero AlgebraicGraphCapLine
 	if ctx == nil || c.regions == nil || options.MaxOperations < 0 || options.MaxCoefficientBits < 0 || options.MaxSubdivisions < 0 {
 		return zero, geom.ErrInvalid
@@ -99,6 +111,13 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 	scale := new(big.Rat).Inv(direction[axis])
 	offset := new(big.Rat).Neg(new(big.Rat).Mul(scale, origin[axis]))
 	var events []AlgebraicGraphCapLineContact
+	type vertexKey struct{ wire, before int }
+	type vertexGerm struct {
+		contact AlgebraicGraphCapLineContact
+		owner   *geom.ExactComposedCurveEvent
+		sign    int
+	}
+	junctions := map[vertexKey][2]vertexGerm{}
 	for wi, wire := range c.wires {
 		for ui, u := range wire {
 			intersection, e := u.Cell.IntersectRawPlane(ctx, plane, b.limits())
@@ -120,7 +139,9 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 					return zero, e
 				}
 				touch := includeTouches && p.Tangent && p.Touching
-				if !p.Proven || p.EndpointMask != 0 || (!touch && (!p.Crossing || !p.Transverse)) {
+				endpoint := p.EndpointMask != 0
+				if !p.Proven || endpoint && (!includeJunctions || p.Singular || p.EndpointMask > 2) ||
+					!endpoint && !touch && (!p.Crossing || !p.Transverse) {
 					return zero, geom.ErrConvergence
 				}
 				a, used, e := candidate.CoordinateRoot(ctx, axis, b.limits())
@@ -134,11 +155,66 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 				if e != nil {
 					return zero, e
 				}
+				if endpoint {
+					wireSide := p.EndpointMask == 2
+					if u.Reversed {
+						wireSide = !wireSide
+					}
+					k, side := vertexKey{wi, ui}, 0
+					if !wireSide {
+						k.before = (ui + len(wire) - 1) % len(wire)
+						side = 1
+					}
+					pair := junctions[k]
+					if pair[side].owner != nil {
+						return zero, geom.ErrConvergence
+					}
+					germ := p.SideSigns[0]
+					if p.EndpointMask == 1 {
+						germ = p.SideSigns[1]
+					}
+					if germ == 0 {
+						return zero, geom.ErrConvergence
+					}
+					pair[side] = vertexGerm{AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, OtherUse: -1}, candidate, germ}
+					junctions[k] = pair
+					continue
+				}
 				// Material is on the left of an oriented wire. A wire
 				// crossing the line from left to right therefore enters.
 				entry := (p.SideSigns[0] > 0) != u.Reversed
-				events = append(events, AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, Entry: !touch && entry, Touch: touch})
+				events = append(events, AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, Entry: !touch && entry, Touch: touch, OtherUse: -1})
 			}
+		}
+	}
+	// Traverse original wire order, independent of map iteration.
+	for wi, w := range c.wires {
+		for ui := range w {
+			pair, ok := junctions[vertexKey{wi, ui}]
+			if !ok {
+				continue
+			}
+			a, z := pair[0], pair[1]
+			if a.owner == nil || z.owner == nil {
+				return zero, geom.ErrConvergence
+			}
+			proven, used, e := a.owner.CompareModelPoint(ctx, z.owner, b.limits())
+			if e != nil {
+				return zero, e
+			}
+			if e = b.charge(used, 0); e != nil {
+				return zero, e
+			}
+			if !proven {
+				return zero, geom.ErrConvergence
+			}
+			ev := a.contact
+			ev.Junction = true
+			ev.OtherUse = z.contact.Use
+			ev.OtherCurveParameter = z.contact.CurveParameter
+			ev.Touch = a.sign == z.sign
+			ev.Entry = !ev.Touch && a.sign > 0
+			events = append(events, ev)
 		}
 	}
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {

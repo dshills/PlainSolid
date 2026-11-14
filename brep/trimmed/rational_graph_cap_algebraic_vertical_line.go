@@ -172,7 +172,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		if lo == nil || hi == nil {
 			return zero, geom.ErrConvergence
 		}
-		h, e := cap.intersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits(), includeTouches)
+		h, e := cap.intersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits(), includeTouches, false)
 		if e != nil {
 			return zero, e
 		}
