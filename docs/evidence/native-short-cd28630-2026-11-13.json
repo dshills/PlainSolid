@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "revision": "cd286308457a1477f2db1367211ebf9083b833f6",
+  "toolchain": "go version go1.27.4 darwin/arm64",
+  "cgoEnabled": false,
+  "short": true,
+  "packageTimeout": "45m",
+  "shardCount": 3,
+  "results": [
+    {
+      "kind": "nontrimmed",
+      "logSha256": "5c93c79c9054d4b9a30a687482481b87cf71483621b119e5ce19e69d0fdd7611",
+      "packagesPassed": 49,
+      "packagesWithNoTests": 3,
+      "testsPassed": 3997,
+      "testsSkipped": 342,
+      "maxPackageSeconds": 232.232
+    },
+    {
+      "kind": "trimmed-0",
+      "logSha256": "61c08269802b14847a78b994c8dfe23c58fe61df75197e1ef46f70c9f5baada4",
+      "packagesPassed": 1,
+      "packagesWithNoTests": 0,
+      "testsPassed": 245,
+      "testsSkipped": 10,
+      "maxPackageSeconds": 649.802
+    },
+    {
+      "kind": "trimmed-1",
+      "logSha256": "7cb777d321a91e6a03e4f4e70f828bd753845ead594cddada99afcdd8c881960",
+      "packagesPassed": 1,
+      "packagesWithNoTests": 0,
+      "testsPassed": 247,
+      "testsSkipped": 8,
+      "maxPackageSeconds": 586.424
+    },
+    {
+      "kind": "trimmed-2",
+      "logSha256": "e147b64ea5d2fbcd4411819cb5f4358ec353e73753d9e348f71dce212d384cdd",
+      "packagesPassed": 1,
+      "packagesWithNoTests": 0,
+      "testsPassed": 285,
+      "testsSkipped": 4,
+      "maxPackageSeconds": 846.115
+    }
+  ]
+}

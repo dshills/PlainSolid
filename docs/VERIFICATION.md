@@ -35,6 +35,11 @@ packages with tests and reports 3,873 passing and 332 skipped test events;
 three packages have no tests. The three trimmed shards at the same revision
 also passed, with 696 passing and 19 skipped test events (659, 650 and 782
 seconds). These are short-mode counts, including subtests.
+The [CGO-disabled snapshot at `cd28630`](evidence/native-short-cd28630-2026-11-13.json)
+passed all 49 tested packages outside `brep/trimmed` with 3,997 passing and
+342 skipped test events. All three trimmed shards passed with 777 passing
+and 22 skipped test events (650, 586, and 846 seconds). The run includes
+subtests and short-mode skips; newer milestones have focused checks below.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -484,6 +489,22 @@ share one certified partition for area and volume. The oblique line
 (`c9b4f7f`) proves two distinct retained intervals, rejects a buried cap
 crossing, and encloses all four irrational contacts using refined full rim
 covers. Normal, targeted race, and focused compatibility checks passed.
+Exact rim overlaps (`7d85451`) produce two cap spans and four exact rim
+owners; algebraic rim and roof contacts retain original polynomial root
+identity. Near-tangent roots closer than the requested tolerance separate
+strictly. Bore distance (`f57b6cd`) distinguishes correct nearest owners
+on either side of an open rim by exact squared difference 2^-240.
+Oblique wrap mates and chain persistence (`817a6e3`, `726e6ca`, `b2352d1`)
+prove complete face separation with rational covectors and preserve the
+original indexed seam. The bivariate finite triangle path (`6fdf645`)
+matches diagonal seams across original knot partitions. Whole graph mass
+and refinement (`d1c0b4e`, `7813f69`) reuse one pass for area/volume/moments
+and intersect separate bounded multi-resolution proofs where requested.
+Original OCCT XCAF NAUO products (`65492d2`, `8522043`) preserve exact
+relationship and product ownership after native reload and STEP export.
+Pinned OCCT reads the single-product fixture as two solids and the two
+independent products as three solids with volume 54, area 126, centroid
+(85/18,86/9,5/2) and bounds (-10,-5,0)–(12,22,10).
 Distinct original spline contact pairs (`753c316`) agree with live OCCT on
 empty common and unchanged cut, with 58 other pairs proved separated. A
 missing pair and exhausted shared budget reject atomically. Normal and
