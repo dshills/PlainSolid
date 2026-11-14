@@ -1135,9 +1135,13 @@ surfaces must keep their geometry through the operation. Continue with:
    original owners, and exact point queries preserve the gap across a void. Polynomial
    boundaries expose area bounds at the true algebraic endpoints. An
    additive rational quadrature path also accepts varying weights.
-   Native sewing of those irrational roots,
-   stock faces bounded solely by two unsubdivided edges, and general mixed-axis
-   trim arrangements remain open.
+   Opposite caps independently recover and pair each whole exact seam,
+   including distinct chart parameters at a shared irrational endpoint.
+   Each retained cap interval now also binds to the original stock UV trim,
+   with exact model equality across the entire interval. Closing the retained
+   stock face loops around those coedges, stock faces bounded solely
+   by two unsubdivided edges, and general mixed-axis trim arrangements
+   remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

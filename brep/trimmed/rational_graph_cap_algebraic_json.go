@@ -17,6 +17,7 @@ type algebraicGraphCapRecipe struct {
 	cut      [3]geom.Vec3
 	positive bool
 	compose  bool
+	branches []RationalGraphShellBranch
 }
 
 type nativeAlgebraicGraphCapClip struct {
@@ -46,7 +47,7 @@ func (s Solid) ClipAlgebraicGraphCap(ctx context.Context, section, cut [3]geom.V
 	if e != nil {
 		return zero, e
 	}
-	out.recipe = &algebraicGraphCapRecipe{s, section, cut, keepPositive, o.ComposeSectionCurves}
+	out.recipe = &algebraicGraphCapRecipe{s, section, cut, keepPositive, o.ComposeSectionCurves, q.Branches}
 	return out, nil
 }
 

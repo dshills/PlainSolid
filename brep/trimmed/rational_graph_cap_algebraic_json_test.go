@@ -60,6 +60,24 @@ func TestAlgebraicGraphCapStockReload(t *testing.T) {
 		t.Fatal("reload changed the original exact root/owner", comparison, e)
 	}
 	checkAlgebraicGraphCapClosure(t, back)
+	for i, u := range back.Wires[0] {
+		if u.Seam < 0 {
+			opt := geom.ExactCurvePlaneEventOptions{}
+			ref, e := q.OriginalStockAttachment(ctx, 0, i, geom.SurfaceCurveAgreementOptions{}, opt)
+			if e != nil {
+				t.Fatal("diagnostic edits must not alter a stock attachment", i, e)
+			}
+			restored, e := back.OriginalStockAttachment(ctx, 0, i, geom.SurfaceCurveAgreementOptions{}, opt)
+			if e != nil || restored.Source != ref.Source {
+				t.Fatal("reload must reprove the exact stock owner", i, e)
+			}
+			match, e := ref.UV.CompareSameParameter(ctx, restored.UV, opt)
+			if e != nil || !match.Equal {
+				t.Fatal("reload changed the algebraic stock UV domain", i, e)
+			}
+			break
+		}
+	}
 	testLocate := func(c AlgebraicGraphCapClip, x, y *big.Rat, loc trimvalidate.Location) {
 		t.Helper()
 		got, e := c.LocateRational(ctx, [3]*big.Rat{x, y, big.NewRat(1, 2)})

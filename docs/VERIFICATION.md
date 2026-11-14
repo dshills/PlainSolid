@@ -1804,12 +1804,26 @@ two-sided deflection at 0.1 (512 and 4,096 triangles), exact original rim
 parameters, and shared seam indices. A separate certified closed result
 uses 2,112 triangles at deflection 0.2 on the unbored two-fillet frustum,
 shares original rim indices, and proves no unintended triangle contacts.
+The eccentric through-bore display (`238a439`) uses 2,160 triangles at
+the same deflection. Its two annular caps and inward bore wall share
+original rim indices and pass genus-one closure and global contact checks.
 The exact clipped planar cap mesh triangulates the original coplanar
 boundary samples with the void open or intact. It proves chord ownership,
 display ring topology, oriented coverage and a two-sided fill error.
+The two-cap algebraic pairing fixture independently recovers both
+seams of the sheared sleeve on opposing planar charts, including the
+shared X=√3 junction. It proves opposite traversal and exact model
+endpoint agreement and excludes the gap through the original void.
+Normal, race and Go 1.23 pass. Independently composed stock coedges recover
+the exact original UV restriction and prove equality by homogeneous
+cross-multiplication over the whole shared domain. Reload rechecks the
+same owner and domain. The stock face loops are not yet closed.
 The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
 original outer ellipse and preserves both owners. Pinned OCCT confirms
-native reload, two original edges, and area 38π.
+native reload, two original edges, and area 38π. The two-hole STEP face
+(`07988e3`) likewise reimports one face and three original edges with
+area 56π; exact separation of the independently owned inner trims is
+at least 3 model units.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
