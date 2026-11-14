@@ -47,6 +47,18 @@ func certifyRationalGraphPlaneFaceSection(ctx context.Context, s Solid, face int
 	if e != nil {
 		return nil, e
 	}
+	return proveRationalGraphPlaneFaceSection(ctx, proof, pieces, plane, o)
+}
+
+func certifyComposedGraphPlaneFaceSection(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o PolynomialPlaneSpanOptions) (*SplineGraphPlaneSection, error) {
+	proof, pieces, e := certifyPiecewiseGraphPlaneFaceSectionWithTrim(ctx, s, face, plane, freeAxis, o, composedGraphPlaneTrim)
+	if e != nil {
+		return nil, e
+	}
+	return proveRationalGraphPlaneFaceSection(ctx, proof, pieces, plane, o)
+}
+
+func proveRationalGraphPlaneFaceSection(ctx context.Context, proof *PiecewisePolynomialPlaneFaceSection, pieces []PCurve, plane polynomialPlaneEquation, o PolynomialPlaneSpanOptions) (*SplineGraphPlaneSection, error) {
 	// Complete exact composition proves coplanarity again on the retained
 	// original charts, including the source knot boundaries.
 	for _, piece := range pieces {
@@ -87,8 +99,8 @@ func (p *SplineGraphPlaneSection) Domains() []geom.ParameterRectangle {
 // original dependent coordinate increases across the section.
 func (p *SplineGraphPlaneSection) PlaneSideSign() int { return p.proof.sign * p.plane.orientation }
 
-// ProjectionAxes gives the two world coordinates independently proved
-// affine on each original knot cell.
+// ProjectionAxes gives the two nondropped world coordinates of the plane.
+// The standalone constructor proves them affine on each original knot cell.
 func (p *SplineGraphPlaneSection) ProjectionAxes() [2]int { return p.plane.axes }
 
 // Pieces returns a caller-owned slice of immutable original-chart curves.

@@ -1091,8 +1091,12 @@ surfaces must keep their geometry through the operation. Continue with:
    through inner wires and multiple material intervals on the same line.
    A cut square sleeve opens its void into a notch, leaving two independent
    cap/cap edges. The native result retains its original surfaces and reloads.
-   Intersected higher-degree inner wires and multi-fragment stock faces remain
-   outside that path.
+   The rational arrangement also classifies curved inner wires without a
+   polygonal approximation. Exact plane residuals and composed model curves
+   handle selected stock with nonaffine projections. A quadratically sheared
+   sleeve retains the actual parabolic boundary of its void on both caps,
+   with two exact seam edges, volume 13/32, and native reload. Irrational
+   terminal persistence and multi-fragment stock faces remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

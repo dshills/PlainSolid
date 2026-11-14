@@ -19,6 +19,22 @@ type UniformGraphDiscoveryOptions struct {
 	AxisDivisions [2]int
 }
 
+func validateUniformGraphOptions(o UniformGraphDiscoveryOptions) error {
+	n := o.GridDivisions
+	if n == 0 {
+		n = 16
+	}
+	if n < 2 || n > 32 || n&(n-1) != 0 || len(o.UCuts)+len(o.VCuts) > 64 || o.MaxArcs < 0 || o.MaxArcs > 4096 || o.MaxTubes < 0 || o.MaxTubes > 4096 || o.Tubes.MaxOperations < 0 || (o.Tubes.MaxCoefficientBits != 0 && o.Tubes.MaxCoefficientBits < 64) {
+		return geom.ErrInvalid
+	}
+	for _, x := range o.AxisDivisions {
+		if x != 0 && (x < 1 || x > 32 || x&(x-1) != 0) {
+			return geom.ErrInvalid
+		}
+	}
+	return nil
+}
+
 // DiscoverUniformGraphPairTubes proposes all traced regular components on two
 // common-XY graphs. Grid lines are exact original-domain coordinates, not
 // sampled geometry. Success still requires independent CertifySplinePairBranches
@@ -29,6 +45,9 @@ func DiscoverUniformGraphPairTubes(ctx context.Context, a, b Patch, p geom.Surfa
 		return SplineSeedReport{}, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
+		return SplineSeedReport{}, e
+	}
+	if e := validateUniformGraphOptions(o); e != nil {
 		return SplineSeedReport{}, e
 	}
 	n := o.GridDivisions

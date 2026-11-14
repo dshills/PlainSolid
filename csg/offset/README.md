@@ -108,3 +108,24 @@ throughout because the two radii and their difference are affine in height.
 History retains the original face IDs and exact endpoint clearance witnesses.
 Blind/cavity/eccentric inputs, contacting walls, collapsed intervals and
 nonrepresentable native results are rejected without a partial result.
+
+`InsetWrappedEccentricCircularFrustumTube` additionally permits distinct parallel
+wall axes. It retains both authored centers and applies the same exact normal
+setbacks. For each endpoint, a positive radius difference `g` must satisfy
+`g*g > dx*dx+dy*dy`; this avoids rounding even when the axis distance is
+irrational. The affine radius difference then exceeds the fixed axis distance
+throughout the interval. Exact tangency and crossings fail. The existing coaxial
+entry point remains restricted to coincident axes. In eccentric history,
+`RadialClearance` is the radius difference, not the shortest physical wall gap.
+
+### Source-preserving axial tube resizing
+
+`ResizeWrappedCircularFrustumTube` trims or extends a validated circular
+through-bore to two authored model-Z cap heights. Both original affine radius
+functions, centers and circular parameterizations are retained, including for
+eccentric parallel axes. This is cap relocation, not wall offset or a claim that
+an extended result remains inside the original body. It does not require a
+rational normal length: the wall equations are evaluated exactly at the new
+ends. Positive end radii and exact squared endpoint clearance prove the complete
+new annular interval. Original cap/wall ancestry survives; apex/contact,
+nonrepresentable geometry and unsupported source topology fail atomically.

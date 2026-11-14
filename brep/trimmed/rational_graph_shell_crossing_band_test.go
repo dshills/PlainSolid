@@ -86,6 +86,16 @@ func TestClipCrossingRationalGraphSplineShell(t *testing.T) {
 		if e != nil || math.Abs(mass.Volume-233./61440) > 1e-10 || r.Solid.Topology().EulerCharacteristic != 2 {
 			t.Fatal("independent curved taper integral", mass, e)
 		}
+		if trial == 0 {
+			many, e := stock.ClipIntersectingRationalGraphCaps(ctx, cuts, RationalGraphSeparatedBandOptions{})
+			if e != nil || len(many.CapIntersections) != 1 || many.Solid.Topology().Edges != r.Solid.Topology().Edges {
+				t.Fatal("rational arrangement must retain the same certified cubic solid", len(many.CapIntersections), e)
+			}
+			m, e := many.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+			if e != nil || math.Abs(m.Volume-233./61440) > 1e-10 {
+				t.Fatal("curved arrangement altered material", m, e)
+			}
+		}
 		if path := os.Getenv("PLAINSOLID_OCCT_MULTI_PLANE_CUTS"); trial == 0 && path != "" {
 			data, e := exec.CommandContext(ctx, path, "crossing-band").Output()
 			if e != nil {

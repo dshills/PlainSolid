@@ -165,6 +165,14 @@ func (s Solid) validateSplineRectangleEmbedding(ctx context.Context, o SplineRec
 						r.Pairs = append(r.Pairs, SplineRectanglePairProof{i, j, -1, a.edge[ai], -1})
 						continue
 					}
+					if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrUnrepresentable) {
+						separated, alternateErr := proveSplineCyclicQuadricAdjacency(ctx, a.patch, b.patch, ai, bi, o.Adjacency)
+						e = alternateErr
+						if separated {
+							r.Pairs = append(r.Pairs, SplineRectanglePairProof{i, j, -1, a.edge[ai], -1})
+							continue
+						}
+					}
 				}
 				if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrUnrepresentable) {
 					return r, e
@@ -261,6 +269,43 @@ func (s Solid) validateSplineRectangleEmbedding(ctx context.Context, o SplineRec
 		}
 	}
 	return r, fmt.Errorf("%w: no global supporting face proved shell orientation", geom.ErrConvergence)
+}
+
+// The quadric search uses Z as its dependent coordinate. Exact proper axis
+// permutations provide two other search directions while leaving every UV
+// coordinate, curve parameter and incidence unchanged. The proof depends on
+// exact equivalence under the permutation, not on a candidate face normal.
+func proveSplineCyclicQuadricAdjacency(ctx context.Context, a, b *geom.SurfacePatch, ai, bi geom.SurfaceEdge, o geom.SurfaceAdjacencyOptions) (bool, error) {
+	for _, m := range []geom.Affine{{{0, 1, 0, 0}, {0, 0, 1, 0}, {1, 0, 0, 0}}, {{0, 0, 1, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}}} {
+		if e := ctx.Err(); e != nil {
+			return false, e
+		}
+		limits := geom.SurfacePatchOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+		x, e := a.WithLimits(limits)
+		if e != nil {
+			return false, e
+		}
+		x, e = x.Transformed(m)
+		if e != nil {
+			return false, e
+		}
+		y, e := b.WithLimits(limits)
+		if e != nil {
+			return false, e
+		}
+		y, e = y.Transformed(m)
+		if e != nil {
+			return false, e
+		}
+		r, e := geom.CertifyQuadricAdjacentSurfaceSeparation(ctx, x, y, ai, bi, o)
+		if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrUnrepresentable) {
+			return false, e
+		}
+		if r.Complete && r.Separated {
+			return true, nil
+		}
+	}
+	return false, geom.ErrConvergence
 }
 
 func (s Solid) splineEmbeddingFace(ctx context.Context, f Face, o SplineRectangleEmbeddingOptions) (x splineEmbeddingFace, proof geom.SurfaceInjectivity, err error) {

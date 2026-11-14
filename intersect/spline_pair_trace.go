@@ -16,6 +16,8 @@ type SplinePairTraceOptions struct {
 	DyadicGraphFallback DyadicGraphDiscoveryOptions
 	// UniformGraphFallback proposes exact dyadic cuts without sampled zero witnesses.
 	UniformGraphFallback UniformGraphDiscoveryOptions
+	// UniformOverlapGraphFallback retains original coverage after exact XY clipping.
+	UniformOverlapGraphFallback UniformGraphDiscoveryOptions
 	// ConcentricEllipseFallback recognizes an exact diagonal quartic factor pair.
 	ConcentricEllipseFallback SplinePlanePairDiscoveryOptions
 	// ProjectedGraphFallback discovers in an explicitly chosen model plane.
@@ -134,6 +136,11 @@ func TraceSplinePair(ctx context.Context, a, b Patch, o SplinePairTraceOptions) 
 		q := o.UniformGraphFallback
 		q.SplinePlanePairDiscoveryOptions = d
 		return DiscoverUniformGraphPairTubes(ctx, a, b, p, q)
+	}}, {o.UniformOverlapGraphFallback.SplinePlanePairDiscoveryOptions, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+		q := o.UniformOverlapGraphFallback
+		q.SplinePlanePairDiscoveryOptions = d
+		result, e := DiscoverUniformOverlappingGraphPairTubes(ctx, a, b, p, q)
+		return result.Seeds, e
 	}}, {o.ProjectedGraphFallback, func(ctx context.Context, a, b Patch, p geom.SurfacePatchOptions, d SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
 		return DiscoverProjectedAffineGraphPairTubes(ctx, a, b, p, o.GraphProjectionAxes, d)
 	}}} {
@@ -196,6 +203,10 @@ func certifySuppliedSplinePairBranches(ctx context.Context, a, b Patch, r Spline
 		return r, e
 	}
 	coverageOptions := o.Coverage
+	if o.UniformOverlapGraphFallback.Enabled {
+		o.Coverage.OverlappingProjectedFallback = true
+		o.Coverage.ProjectionAxes = [2]int{0, 1}
+	}
 	if o.AffineGraphFallback.Enabled {
 		coverageOptions.AffineXYFallback = true
 	}

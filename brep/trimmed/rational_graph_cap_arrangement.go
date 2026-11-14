@@ -39,6 +39,19 @@ type RationalGraphCapArrangement struct {
 // probe in every gap before closing the retained boundary runs. Coincident
 // intervals and contacts at original vertices fail atomically.
 func (r *RationalGraphShellRegions) IntersectPolygonalHalfspace(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions) (RationalGraphCapArrangement, error) {
+	return r.intersectCapArrangement(ctx, points, keepPositive, o, true)
+}
+
+// IntersectRationalHalfspace clips a certified planar section with rational
+// Bezier boundary pieces. Every original contact must be regular, interior
+// to a piece, rational, and the only contact of that piece. Result regions,
+// notches and seams retain their exact source curve geometry. Irregular or
+// unresolved contacts return no arrangement.
+func (r *RationalGraphShellRegions) IntersectRationalHalfspace(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions) (RationalGraphCapArrangement, error) {
+	return r.intersectCapArrangement(ctx, points, keepPositive, o, false)
+}
+
+func (r *RationalGraphShellRegions) intersectCapArrangement(ctx context.Context, points [3]geom.Vec3, keepPositive bool, o RationalGraphShellRegionOptions, polygonal bool) (RationalGraphCapArrangement, error) {
 	var zero RationalGraphCapArrangement
 	if ctx == nil || r == nil || r.certificate == nil {
 		return zero, geom.ErrInvalid
@@ -59,10 +72,10 @@ func (r *RationalGraphShellRegions) IntersectPolygonalHalfspace(ctx context.Cont
 	if keepPositive {
 		keep = 1
 	}
-	return r.intersectPolygonalCap(ctx, other, keep, o)
+	return r.intersectGeneralCap(ctx, other, keep, o, polygonal)
 }
 
-func (r *RationalGraphShellRegions) intersectPolygonalCap(ctx context.Context, other polynomialPlaneEquation, keep int, o RationalGraphShellRegionOptions) (RationalGraphCapArrangement, error) {
+func (r *RationalGraphShellRegions) intersectGeneralCap(ctx context.Context, other polynomialPlaneEquation, keep int, o RationalGraphShellRegionOptions, polygonal bool) (RationalGraphCapArrangement, error) {
 	var zero RationalGraphCapArrangement
 	opts, e := o.Topology.WithDefaults()
 	if e != nil {
@@ -71,7 +84,7 @@ func (r *RationalGraphShellRegions) intersectPolygonalCap(ctx context.Context, o
 	if opts.MaxEdges > 4096 {
 		return zero, geom.ErrInvalid
 	}
-	runs, cuts, e := r.capBoundarySections(ctx, other, keep, &opts)
+	runs, cuts, e := r.capBoundarySections(ctx, other, keep, &opts, polygonal)
 	if e != nil {
 		return zero, e
 	}

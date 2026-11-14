@@ -23,6 +23,11 @@ type RationalGraphShellSectionOptions struct {
 	// Regions additionally certifies all projected rings and classifies
 	// their nesting with one global topology budget.
 	Regions *RationalGraphShellRegionOptions
+	// ComposeSectionCurves allows nonaffine world projections when the
+	// complete plane residual is still linear in a dependent chart axis.
+	// Projected exact model controls are composed on the original knot
+	// cells instead of recovered from an affine projection.
+	ComposeSectionCurves bool
 }
 
 // RationalGraphShellTerminal retains an original edge, its model-curve
@@ -44,6 +49,7 @@ type RationalGraphShellBranch struct {
 	freeAxis int  // -1 for an affine chart section
 	positive int  // oriented plane sign as the dependent coordinate increases
 	reversed bool // relative to increasing original free coordinate
+	compose  bool // projection requires exact curve composition
 }
 
 // RationalGraphShellSection contains the entire certified section, in
@@ -117,7 +123,7 @@ func (s Solid) discoverRationalGraphShellSection(ctx context.Context, points [3]
 		if !errors.Is(e, geom.ErrConvergence) {
 			return zero, nil, e
 		}
-		b, e := s.rationalGraphShellFaceBranch(ctx, id, f, plane, o.Spans)
+		b, e := s.rationalGraphShellFaceBranch(ctx, id, f, plane, o.Spans, o.ComposeSectionCurves)
 		if e != nil {
 			return zero, nil, fmt.Errorf("trimmed: section face %d: %w", id, e)
 		}
@@ -162,7 +168,7 @@ func (s Solid) verifyRationalGraphShellModelEdges(ctx context.Context, branches 
 	return nil
 }
 
-func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splineEmbeddingFace, plane polynomialPlaneEquation, o PolynomialPlaneSpanOptions) (RationalGraphShellBranch, error) {
+func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splineEmbeddingFace, plane polynomialPlaneEquation, o PolynomialPlaneSpanOptions, compose bool) (RationalGraphShellBranch, error) {
 	chart, e := geom.NewAffineSurfaceChart(ctx, f.patch, geom.AffineSurfaceChartOptions{
 		MaxOperations: o.Faces.Patches.MaxOperations, MaxCoefficientBits: o.Faces.Patches.MaxCoefficientBits,
 	})
@@ -173,8 +179,13 @@ func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splin
 		return RationalGraphShellBranch{}, e
 	}
 	var p *SplineGraphPlaneSection
+	composed := false
 	for axis := range 2 {
 		p, e = certifyRationalGraphPlaneFaceSection(ctx, s, id, plane, axis, o)
+		if compose && errors.Is(e, geom.ErrConvergence) {
+			p, e = certifyComposedGraphPlaneFaceSection(ctx, s, id, plane, axis, o)
+			composed = e == nil
+		}
 		if e == nil {
 			break
 		}
@@ -185,7 +196,7 @@ func (s Solid) rationalGraphShellFaceBranch(ctx context.Context, id int, f splin
 	if e != nil {
 		return RationalGraphShellBranch{}, e
 	}
-	b := RationalGraphShellBranch{Face: id, Pieces: p.Pieces(), freeAxis: p.FreeAxis(), positive: p.PlaneSideSign()}
+	b := RationalGraphShellBranch{Face: id, Pieces: p.Pieces(), freeAxis: p.FreeAxis(), positive: p.PlaneSideSign(), compose: composed}
 	edges, parameters := p.Edges(), p.Parameters()
 	for i := range b.Ends {
 		piece := b.Pieces[0]

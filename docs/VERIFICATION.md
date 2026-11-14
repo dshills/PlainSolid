@@ -1677,6 +1677,11 @@ arrangement now also cuts through the inner wire. Its two native cap seams
 exclude the gap across the through-void; volume is 13/32. Native reload and
 both cutter orders preserve topology and exact seam ownership. A pinned
 OCCT cut verifies volume, area, centroid, and Euler characteristic.
+An independently specified shear `Y = y + x²/8` preserves sleeve volume
+and moves both inner/outer cap boundaries to parabolas. The opt-in composed
+section proof retains noncollinear exact controls and two seams in the
+native result; the original affine-projection mode rejects the same input.
+An independent section fixture encloses its exact retained area 341/48.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
