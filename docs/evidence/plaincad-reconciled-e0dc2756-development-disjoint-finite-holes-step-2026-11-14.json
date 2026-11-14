@@ -1,0 +1,1604 @@
+{
+  "schema": "plaincad-reconciled-development-disjoint-finite-holes-step-v2",
+  "status": "passed",
+  "startedAt": "2026-11-14T13:47:15.161Z",
+  "finishedAt": "2026-11-14T13:49:35.030Z",
+  "backend": "plainsolid-go-wasm",
+  "backendVerified": true,
+  "backendStats": {
+    "startTime": "2026-11-14T13:47:39.917Z",
+    "duration": 7910.848,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "backendResultSha256": "ce8bdd191b37abfda9392165d356b970594448cacb89b134d401272ad2d16c6a",
+  "resultSha256": "6e693705bffa2c2ec15fc2608e0fa089db148c9aa6b6cb1a1ced8c0078632dba",
+  "readinessSha256": "12f52f23cf32f07183253127d8eb3ed9285529d5efd83d7a110fc864aa36fc37",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "e0dc2756c150d92b228b998c8fd85fea2656a61d",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "integrationCommit": "37eee35d6a270454f33b026e808a3fbfeeffef75",
+  "selection": {
+    "suite": "development",
+    "testFile": "e2e/(guided-hole|multi-body-holes|hole-edit|step-export|step-import).spec.ts",
+    "grep": ".*",
+    "acceptancePort": "5673",
+    "preflightPort": "5673"
+  },
+  "stats": {
+    "startTime": "2026-11-14T13:47:48.182Z",
+    "duration": 106840.126,
+    "expected": 17,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XY: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6904,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XY: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5874,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XZ: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5563,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "XZ: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6126,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "YZ: guided blind face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5687,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 202,
+      "title": "YZ: guided through-all face holes preserve inward depth, IDs and native geometry through editing/undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 7737,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "guided-hole.spec.ts",
+      "line": 361,
+      "title": "guided holes reject outside-face centers, preserve typing/cancellation, and reject previews after selection or document-session changes",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6403,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "hole-edit.spec.ts",
+      "line": 159,
+      "title": "Edit Hole verifies the operation and downstream chamfer, cancels, rejects no-op downstream cuts, and preserves native geometry/IDs through undo/save/open/STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 8379,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "hole-edit.spec.ts",
+      "line": 266,
+      "title": "failed Hole references can be repaired against the native upstream stage; same-ID replacement rejects a pending edit",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3645,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "XY: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9798,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "XZ: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9590,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "multi-body-holes.spec.ts",
+      "line": 125,
+      "title": "YZ: explicit multi-body hole patterns validate all centers/targets, roll back failures and persist native geometry",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10108,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-export.spec.ts",
+      "line": 23,
+      "title": "public STEP body selection exports analytic posed solids with actual native reader volume and world bounds through edits and save/open",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6440,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-export.spec.ts",
+      "line": 87,
+      "title": "STEP cancellation and running/prepared same-ID stale results never download or retain a usable proof",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3884,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-export.spec.ts",
+      "line": 138,
+      "title": "a real STEP worker load failure is actionable, cannot download, and can be retried successfully",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2676,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 4,
+      "title": "STEP UI and JSON import preserve placed native geometry, cancel, undo, save/open and STL",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4181,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "step-import.spec.ts",
+      "line": 8,
+      "title": "same-ID project replacement aborts the pending native STEP preview and forbids Apply",
+      "project": "",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1821,
+          "errors": []
+        }
+      ]
+    }
+  ],
+  "typecheck": "passed",
+  "wasmSha256": "854616f9bec8adc1c7937cc0c4f9134c825486803c2a8f3300f7ec75cb1773c8",
+  "originalSourceVerification": {
+    "pinnedGitBlobs": 841,
+    "pinnedKernelSourceBlobs": 1982,
+    "untouchedStagedFiles": 628,
+    "providerLabelAdaptations": [
+      {
+        "file": "src/ai/selectionTarget.ts",
+        "count": 1,
+        "beforeSha256": "e50a6e0feba902ac3508019912efb5fdb63c03978d5e18d375fac83755ab36c0",
+        "afterSha256": "ccf0e9547c3f3f4fd02ae82e4cd796d29f57a5a83f020de9155fcd2b89aff799"
+      },
+      {
+        "file": "src/cad/features/assemblyCollisions.ts",
+        "count": 2,
+        "beforeSha256": "dd289590bcf200bb6cc1f96c44ac3d4a0f1c7d1e2e4e8e0584fa1381b43750e1",
+        "afterSha256": "f90220d5f77e1e6dd0f978e23d9fbdfb2ea777a34f4a3dba4b9fae067cd4d1f0"
+      },
+      {
+        "file": "src/cad/features/componentPlacement.ts",
+        "count": 1,
+        "beforeSha256": "c8b7e6dad5127fc7c703e400eba62d002218b7272b158e34fdd48a9b3421d357",
+        "afterSha256": "df9718a8d0e603b6e5890e0ea1317b56a5556c7f656abef8691732d41f690c52"
+      },
+      {
+        "file": "src/cad/features/displayEdges.ts",
+        "count": 1,
+        "beforeSha256": "47bf12e47a90406300e06958db9b5e5f753d044a146177be5b5c4c82d07fd295",
+        "afterSha256": "aacfcc4cccf90e4a897e60e75978f229e4bcf800e552dc8f275d8958f62e1ee1"
+      },
+      {
+        "file": "src/cad/features/facePocket.ts",
+        "count": 1,
+        "beforeSha256": "0d25fb6972922a8ae6ffc5b8ae51abd62f17befc50b006413b4e69b246b7025d",
+        "afterSha256": "6550bab903166a3286b29de7eec80eb3d7f01ab513ebab8c3ef751bb84c472fe"
+      },
+      {
+        "file": "src/cad/features/fittedPart.ts",
+        "count": 1,
+        "beforeSha256": "e8ead88fd99fced4ba953c05b9a1bec8db046b8795f063d164c419dec8b39132",
+        "afterSha256": "4a64483b81a056010348aaa7232575e2fffb503199bf4d57047328fddde1ce4c"
+      },
+      {
+        "file": "src/cad/features/nativeEdgeTargets.ts",
+        "count": 1,
+        "beforeSha256": "ba24559a0200af9e6d39451069296c5163d3b4017b6db203d5baeeeb44cc92a2",
+        "afterSha256": "78cf86ad9d32253c55274784f7d0ef92267522e5e73ec19163a3bbc6b74066ce"
+      },
+      {
+        "file": "src/cad/features/nativeFeatureCache.ts",
+        "count": 1,
+        "beforeSha256": "c700af5c99c4ad96cb3f0910344bcc0848579d0e202f4c5a70c43127e1dca5dd",
+        "afterSha256": "a235fd442245528adcee5e6d5cc0ebc23a61b76b9004ef601870bf9132826e2b"
+      },
+      {
+        "file": "src/cad/features/rebuildGraph.ts",
+        "count": 2,
+        "beforeSha256": "a90d7c36f234ba8f04fdbb5bd98d8f6d97e76366331a2709bc744aebbf9131bb",
+        "afterSha256": "0d12476e27bec686f0cde64527912883d2e3b13d8fbcdcb5a2fe925762561d32"
+      },
+      {
+        "file": "src/cad/inspection/componentAlignment.ts",
+        "count": 1,
+        "beforeSha256": "f897133f16d4b990dc37af8cf7b9218f0dfcfb59d1352e68571b1b3c68e557e2",
+        "afterSha256": "7025b2aed6fe0c17ef51c299f66d0c62ea0936d27d9d19e5e5bbdd89a0f35123"
+      },
+      {
+        "file": "src/cad/inspection/manufacturingCoach.ts",
+        "count": 1,
+        "beforeSha256": "e8603700be0b0ff0f49cee78eca4efc824d8ab1389a087f1b3d862483bad25c7",
+        "afterSha256": "dcc13ca7bc2335b94e43fe9b16ccab74d66ccee79a741d252b01639e100cda3f"
+      },
+      {
+        "file": "src/cad/inspection/modelMeasurements.ts",
+        "count": 1,
+        "beforeSha256": "70294fd08646e902af92bc0b1d619f08c604294a7923ad66c9b718b2b8e13349",
+        "afterSha256": "2ce3785bbe044c020469e6c4cd78464f84c527938533c30bb1e6744e7895c81b"
+      },
+      {
+        "file": "src/cad/inspection/shopDrawing.ts",
+        "count": 1,
+        "beforeSha256": "576f59cc0788dd7d88a406bdad17b4571dab386b8b2ace343f07dbfa7cae87c8",
+        "afterSha256": "e24cd0be15a91bd73977f9beb87f4e38ae036e3bd2921f52b4ecc97a1c3a829e"
+      },
+      {
+        "file": "src/cad/inspection/solidDimensions.ts",
+        "count": 1,
+        "beforeSha256": "2c5bcaf352505d7a3d4fe247a6ee9da2b692b8eb1f97a70a20ffc3c81a7071ab",
+        "afterSha256": "6a634afc2d7a4cf7dc4b9cc5da826d857fb7b44238bc844d2ca7dabe5795da85"
+      },
+      {
+        "file": "src/cad/kernel/KernelAdapter.ts",
+        "count": 1,
+        "beforeSha256": "f654ca42d1a32b455f9cfc091ec1a37d1f901fca54d47eb7b93bfbd9743279b1",
+        "afterSha256": "d675ec85a634e03c7296bb7ad49ba7ae827f32e620f980c1bf8ac13e39eab499"
+      },
+      {
+        "file": "src/cad/kernel/OpenCascadeKernel.ts",
+        "count": 1,
+        "beforeSha256": "d2bdde78841e5b31e7f1be9921a608a5280efe41b8f23ff4e0510ae1a075081f",
+        "afterSha256": "3a0140ececf5bd3c6c339751f4d66c2c0cf08dd31392d659fa8ef63583c1e2af"
+      },
+      {
+        "file": "src/cad/kernel/displayMesh.ts",
+        "count": 2,
+        "beforeSha256": "3e8ab434b62ff4d41ac8b7546883455f8014859b53efbc5767d8d140a825723e",
+        "afterSha256": "40d2eee3767efa882ac5151ea9f107eca7a702cfc0a2db0deb100b63b332b2dd"
+      },
+      {
+        "file": "src/cad/sketch/planePicking.ts",
+        "count": 1,
+        "beforeSha256": "c4aae4c1c2bb515ccc26a1d2dd9f7b6f7df2861acb01e67c1adff64faea40ff5",
+        "afterSha256": "8f9ca8c4ed1d1c7abcf9d53e22f30d94f65d80b3756d2804380dbaa8d8518c28"
+      },
+      {
+        "file": "src/commands/applicationCommands.ts",
+        "count": 2,
+        "beforeSha256": "4a6ce45e986389b8758de7e3905354693f7e839303efc02351551b241a6ba931",
+        "afterSha256": "d6e83ca199d5d53e5700ceda8b742011e578851851238fa6631c4b8f29d84238"
+      },
+      {
+        "file": "src/commands/commandPlans.ts",
+        "count": 2,
+        "beforeSha256": "ab8d7f2f72270a792c504466c9450717b5feefe1b0d4c4629753f91eed488c53",
+        "afterSha256": "eb235efd72039be8a8a299493601cbd0b1d349fa3a1709175793da9482e7e270"
+      },
+      {
+        "file": "src/commands/nativeCommandFaces.ts",
+        "count": 1,
+        "beforeSha256": "2116b8cdc81c924cc40fbae5f4142a8b02a6f05f3dce4fd1a1c3b892ff680af3",
+        "afterSha256": "ac24228c028f38a5cd7907a31dba07189af170c8537ecc814df54d04bd293380"
+      },
+      {
+        "file": "src/fabrication/configurationPackage.ts",
+        "count": 1,
+        "beforeSha256": "37be68a6fc38a00863a3a5c6da7d02c93f65f4e754fc701052ea6b7a0a2771f2",
+        "afterSha256": "f9c5e7d177472ae1db4fc8b6c612cfc9c1d9f9d4316be177a317876f363491f8"
+      },
+      {
+        "file": "src/fabrication/exportPlan.ts",
+        "count": 1,
+        "beforeSha256": "e744666d5c68bec4e22234ec806f3f9db9fa0b8144ec2f62afccac9b701827ab",
+        "afterSha256": "40e5c3f016746f3a1d106028f3a94d85dfbd5965a95ed3439c9f8dde4248fc17"
+      },
+      {
+        "file": "src/persistence/partLibraryThumbnail.ts",
+        "count": 1,
+        "beforeSha256": "038e4129140499d5faf84dcf6e05990ae145fdb70a4316f3a30276cc5fa4e822",
+        "afterSha256": "a32039b7d55dc8ef02617a236b1b5dedb3d5f7a1df3c0432520aab7a8c33f3fa"
+      },
+      {
+        "file": "src/state/aiCanvasPreview.ts",
+        "count": 2,
+        "beforeSha256": "e71a31f5d98e9c1bbefa366c73075372f0d894c8480abba3c9451fa33b31a192",
+        "afterSha256": "73e38a91e7a0afb10afe284f5d647d2ca2bdcbe6ff2f50e9e496db42da271564"
+      },
+      {
+        "file": "src/state/aiFacePicking.ts",
+        "count": 1,
+        "beforeSha256": "a891c0098ec6ca791d371aa0a47561611151d59e1ebadf6970a682bd70c31c1c",
+        "afterSha256": "82ed7350a55984b80ddb314d9eb8d8077ccdb5672219d131a4a6be59622eba7d"
+      },
+      {
+        "file": "src/state/shellDraftState.ts",
+        "count": 1,
+        "beforeSha256": "3316329e67f5cd9312e239146ec7c047c6f749adde4d06d5fdb3f6cbe8b583ce",
+        "afterSha256": "44582469825ed7b3d57fdfe63359115035d61fb073ec667ee5ff07c504a23a8a"
+      },
+      {
+        "file": "src/tests/aiCanvasPreview.test.ts",
+        "count": 1,
+        "beforeSha256": "f48b3d5f26ff8c46dbf1955a592974c0e48695df0d3e45df3cb3630b06488374",
+        "afterSha256": "9470307187160575a048cc84d2e2ad21ab1d79a5baa5080036da7f8c81824d14"
+      },
+      {
+        "file": "src/tests/aiSelectionTarget.test.ts",
+        "count": 1,
+        "beforeSha256": "f66cb04aae651be8e19951b6aecb84261e3ad613550150c0da13e47074792d26",
+        "afterSha256": "9cef4ac820d112217f75c5b7657c120a572849d7f4bf26c9b008d75bdd920823"
+      },
+      {
+        "file": "src/tests/assemblyJoints.test.ts",
+        "count": 2,
+        "beforeSha256": "2ebbec67e7823f921b3d54985d2dfba7bbcaec1095cf180e073a1bff1487a880",
+        "afterSha256": "3ff888041d5937e6b08b301b84fa67fe849f8120b738599611c75984144d9acb"
+      },
+      {
+        "file": "src/tests/assemblyMotionCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "2be7bc61bd1a6c5df97a4413524e861e8efda62f41521d4ec4011f1035d0077d",
+        "afterSha256": "52ccaac105df9184a5875e4158732f7fbcb07d9e6e06b8d32c0df5835c0e306a"
+      },
+      {
+        "file": "src/tests/canvasSelectionActions.test.tsx",
+        "count": 1,
+        "beforeSha256": "66f0befd370c0dc89fa7f92dc274ab8269ab5b15bff6a147bd829fea3e680b8c",
+        "afterSha256": "916b4d2169bf8c367eec2e8ab5b2aefcc2a355956abb298c38503f9916bf73a6"
+      },
+      {
+        "file": "src/tests/commandPlans.test.ts",
+        "count": 1,
+        "beforeSha256": "89ee1b1700f6bfd99e4e954751d284152f969094cffcef9323bc129f330b36a3",
+        "afterSha256": "755675a2a8396b178f8e9a7211eff8ae1088e885c298884cc19374150f2bf952"
+      },
+      {
+        "file": "src/tests/componentAlignment.test.ts",
+        "count": 1,
+        "beforeSha256": "811f7f6e62cacb8084303df68cd0af993b51acdfb52d2da3ab5fe2f6b45e2b56",
+        "afterSha256": "f9ee24dddb63993c7c38fe55977f8611ff034348088e04f2229ce332033a2ef2"
+      },
+      {
+        "file": "src/tests/componentPlacement.test.ts",
+        "count": 2,
+        "beforeSha256": "9d8b8ce7c2b0e9aae839aa906841938bd241e289290a0c9515a1789cf1e83f8f",
+        "afterSha256": "2265771af1b0a523e72f4b4e685aec8a984cdabb85e1dd78383dc23a1dfc481f"
+      },
+      {
+        "file": "src/tests/componentPlacementCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "0091b12bf09d8ddcd9ba6b83440dda3f99b465e43e5823ca941141bfa22b7f07",
+        "afterSha256": "de8893a761bc0e5d4d4235be48e4a885b3bda5d06c5a7221ef00c2f0febc729a"
+      },
+      {
+        "file": "src/tests/componentPlacementPanel.test.tsx",
+        "count": 1,
+        "beforeSha256": "73fdc230d30b26e2ca13407244bd16cfe3a729d4897a9d9b2a73bc294dd70e11",
+        "afterSha256": "55ba52f45212e3978402e9a15272087a841230294e85167f5d5b164c0ad10fbd"
+      },
+      {
+        "file": "src/tests/configurationPackage.test.ts",
+        "count": 1,
+        "beforeSha256": "05ca8c424234afb3dfb19d0ef56cfb87f20808785094de119c8c66e4d1e92733",
+        "afterSha256": "822ff24c6f2c2df72ccf6953e53d7ec15a1ff328ace861f2a75f914759465da7"
+      },
+      {
+        "file": "src/tests/displayMeshRefinement.test.ts",
+        "count": 1,
+        "beforeSha256": "2c6e8bd142ab2d0cef2b451dfbe24afe04a617f24e806474bc2358e50f2c102a",
+        "afterSha256": "89090d7e72e6cadd6154a05ff9459afaf37fd322701c8d752903a77d09d538e6"
+      },
+      {
+        "file": "src/tests/edgeDraftControls.test.tsx",
+        "count": 1,
+        "beforeSha256": "41a04bff1e47d2c5cef708a23ed8931b92577679615e3b5fe876326c2e4f9f09",
+        "afterSha256": "46eecefdf4c8dc744706111afb8e10476830b9e2d78729060ec4c960e7520f9b"
+      },
+      {
+        "file": "src/tests/exportHub.test.tsx",
+        "count": 1,
+        "beforeSha256": "56cd876903bca0972e2d0e659f6311c7e0ea8b8b13ad69e79c86f20648e7b156",
+        "afterSha256": "ac793113e60db6f759cce73975914e9d7a012de3f1368be076f00df87dc555c5"
+      },
+      {
+        "file": "src/tests/extrudeDialog.test.tsx",
+        "count": 1,
+        "beforeSha256": "70584d2b83ba54fef37411d71dde47eab100a9f80edbea1a22c141dac923ffe9",
+        "afterSha256": "cca75a68154714be74e596cd745c0ea789fe8b96a410abd61b7606ccc4a2eb32"
+      },
+      {
+        "file": "src/tests/facePocket.test.tsx",
+        "count": 1,
+        "beforeSha256": "9d0aaf0cd84c4ea07328ba96d8145d683c8dd1ab471421d0c3c8c8165db0a880",
+        "afterSha256": "74dddf90ada1ad319db5f64f57c9892fe3f4a5b527928ca061ebd9c46267075c"
+      },
+      {
+        "file": "src/tests/featurePattern.test.ts",
+        "count": 1,
+        "beforeSha256": "70977801e37bab6b02abf932e0fa07486bf6337ee05881abc48f956a4e4245e0",
+        "afterSha256": "9c24cd8ec0a668f6f9d8fa78b3c07401c06896dd53fd5ef9239b0fd18529ca59"
+      },
+      {
+        "file": "src/tests/featurePatternPanel.test.tsx",
+        "count": 1,
+        "beforeSha256": "6114242f64c4de45a8f49c14e57a8e53ef186f128d777111bf011eece39537f4",
+        "afterSha256": "ea6feab6b533b82e9832ec3b4cf09c099bdcaaf7899e9cc20049cc8b89da44ae"
+      },
+      {
+        "file": "src/tests/featureStage.test.ts",
+        "count": 1,
+        "beforeSha256": "e0d6737ac0cbdf2099897f8101c1a437830d3ca66b1101b7d4e13fed00fb28ba",
+        "afterSha256": "fb1aabe09ac939e92dbcbeb065d7ecebf63c961bf381bf1d5c022b9abeb19083"
+      },
+      {
+        "file": "src/tests/fittedPartCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "54fb96f3bcb972a780df2dd60b00168f642eefb3bbcbb06806c544b5efad0328",
+        "afterSha256": "6680fe1e99c7563dffc168c764fa8c9f5fe3e8b2eb723b106b0bb6e05e74f0b3"
+      },
+      {
+        "file": "src/tests/guidedHoleCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "6e554a03e67857cbc6b7400fb31527f3cbaa1c98020918b3de561449b9eea1c0",
+        "afterSha256": "55ff51b45e48f093fd2fb94d4e662c8ee86865aa39a79b86ff798817b52f3c54"
+      },
+      {
+        "file": "src/tests/holeCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "773ad38e8518df9acfb957e4c1124b018dd7f1e9945a2d347fdae1682fb4c38a",
+        "afterSha256": "247799b269ae0ef3ee4d6bada721a88fb488a0bbe2373b546408787add365af1"
+      },
+      {
+        "file": "src/tests/holeDirection.test.ts",
+        "count": 3,
+        "beforeSha256": "42dbb244e5bccbb3478e60cd982ba8377b9e8ebc46a24b0e2131572225654eb9",
+        "afterSha256": "d52c0f293d939883e3eed23c98f30d3580d8f61df9d31a20ccf0d7e0af9c2270"
+      },
+      {
+        "file": "src/tests/holeEditCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "afe33e86a9b31a1006cecf48ae1f3bb57e0bb8cf5659f7d279cd13f00acbabd8",
+        "afterSha256": "a69d476e122ea8a7d027e1f23440ea0ab06967abe9f4e49110b4019743900585"
+      },
+      {
+        "file": "src/tests/interactionDraftGuards.test.ts",
+        "count": 1,
+        "beforeSha256": "70ac219987ea20f3fa933568473894e68b626eefd103af98b70fb3710c87359c",
+        "afterSha256": "d73bf6adfc5e0ba674c02401367c782c3c543199fcfd2ffd62a23127b9f26844"
+      },
+      {
+        "file": "src/tests/linkedSketchCommand.test.tsx",
+        "count": 1,
+        "beforeSha256": "18b432399df8d6f62377f4e5a7e7107e1e85e3c33e7f4019579df92a20b1cd4f",
+        "afterSha256": "c3b2602a355bafddf1879cd8f0dc841801c3c7ca715c80f4dc8bba68c7f96155"
+      },
+      {
+        "file": "src/tests/manufacturingCoach.test.ts",
+        "count": 1,
+        "beforeSha256": "a58de045d6700b0e32ef45d27a1170b770f786b0f3b82f0fa647f20fb6b37118",
+        "afterSha256": "d259cdea15191653cd9769b68889c74a8295cb404e982e7fc085fcbd31c80d93"
+      },
+      {
+        "file": "src/tests/manufacturingCoachCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "349b41293e06327186e6d77f6648ce7d3bea17d29737ecb0fa9b8573fd6490c9",
+        "afterSha256": "0d635adf42dd8ce927e9e0d459f2500d2f95a5efc531b710e9de7294c9085027"
+      },
+      {
+        "file": "src/tests/modelMeasurements.test.ts",
+        "count": 1,
+        "beforeSha256": "bb371ede4d968e0b84f09aa83cfd53472a3b4dc4b33ccee54b081926beb4d286",
+        "afterSha256": "884d21ec15ecdbdd123879c5e4531cc476fc41d60ac844b91457abdf04c8a5b4"
+      },
+      {
+        "file": "src/tests/modelUpdateFeedback.test.tsx",
+        "count": 1,
+        "beforeSha256": "ab3c84f2e61302f111c7bb24b0f5aa883af4aeb34532ded5b2486417013703cd",
+        "afterSha256": "de07129dca3d65532cb95cd976e8a95f92f3e02d6882b02f5f8d6ea8c2240daf"
+      },
+      {
+        "file": "src/tests/modelingDraft.test.tsx",
+        "count": 1,
+        "beforeSha256": "8b450984b352113723b6ff294e459b7bc1b4962390e9b1f0f0c3df485144ade4",
+        "afterSha256": "3c6bb2024bc8a7c55bc1d5c7dd8026b9adafa85e3872b3c09d45665e2bff5bc8"
+      },
+      {
+        "file": "src/tests/modelingEdit.test.ts",
+        "count": 1,
+        "beforeSha256": "6f0744f13f08cd6d6cfa9e5bcc2581604cbdcab927097537192d2504c816a89b",
+        "afterSha256": "271626acd72ac8c66d14dc29847e4cfdc16c8b1401f8cf522a32c5db4bfa296a"
+      },
+      {
+        "file": "src/tests/modelingGeometry.test.ts",
+        "count": 5,
+        "beforeSha256": "8eaf6993b1255ce910b45ff4fb457dcf95379cb1cf0279112f7a86fb04b72666",
+        "afterSha256": "7b7ae99749b6c65dfd55c18144f34cc20f9f1cef31ee6cb0e0fc169508aad788"
+      },
+      {
+        "file": "src/tests/modelingReadiness.test.tsx",
+        "count": 1,
+        "beforeSha256": "dd27a2a5d3add9e53efc31e1e6639458a9edcf1ce8dd3ec16adbc814f98d9696",
+        "afterSha256": "135ee3d10cc245c0acf0863bd38b15edc72190db2c1afc5a8a7a5c9545fd49a6"
+      },
+      {
+        "file": "src/tests/modelingTask.test.tsx",
+        "count": 1,
+        "beforeSha256": "7be06a4ac7c6165a86ec3d731e7f1af670f39d1abf9c5c1cb48c8ae02f796243",
+        "afterSha256": "534c85327ff1601dda44c10300cfab260a6a98df7f4dbf602f84fc3ee06d2811"
+      },
+      {
+        "file": "src/tests/nativeFeatureCache.test.ts",
+        "count": 1,
+        "beforeSha256": "49d5db0acda7eec52fd27c3024fef82765687d9dc067d408956a0fdb3f865202",
+        "afterSha256": "975d39e17f26eb161d789355234cff4f834f0e8554306a9c27b629807340c843"
+      },
+      {
+        "file": "src/tests/operationDrop.test.tsx",
+        "count": 1,
+        "beforeSha256": "b3a272eebf3d9f88ec367041aaf9492175a9f6d65bbc787744603af9b235ff86",
+        "afterSha256": "4641148b5ab860ffe3ed20c3a3a685a1e95f274d733f47ae1bf7944f644e373c"
+      },
+      {
+        "file": "src/tests/partLibraryCommand.test.ts",
+        "count": 2,
+        "beforeSha256": "fe48a9d7dab89c6f387ec0cced818d3aa5668689b22066bfd70a635be13072bf",
+        "afterSha256": "a186ea5ecb6c4d275e7966f7387dee4a8c624cfc5a998284dc3b735b1d5f7721"
+      },
+      {
+        "file": "src/tests/partLibraryThumbnail.test.ts",
+        "count": 2,
+        "beforeSha256": "b47c6f622158fb0cffa91f99539a7fb27a07c50e50c90c087ecec28661cbb7a2",
+        "afterSha256": "c74e564d93448dd695461403ada0fa4da794f08f756b365a4695d9a7530819e0"
+      },
+      {
+        "file": "src/tests/planePicking.test.ts",
+        "count": 3,
+        "beforeSha256": "54e889b373a655796d60cee62a2ef781c3f8339bdf9103bf01c96a7d2e1fa9ee",
+        "afterSha256": "ccadfac8974352b6c467402ea4ed2c4a5c595ef3fedcffa10e77f8aa48f792e7"
+      },
+      {
+        "file": "src/tests/productFamilyCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "31aa36f68355332b175a69bc2cd8794b1004092e4b9d71535ab30adcc154b929",
+        "afterSha256": "f70ebd43c9307687bf3f138da2c532eae339c90bb24a724eacba0611a5de3253"
+      },
+      {
+        "file": "src/tests/projectGallery.test.tsx",
+        "count": 3,
+        "beforeSha256": "cce9b8442119ca49dbcd96db6aa7dc13d8cb84d05c15c0b2a8cbd82eff9787bc",
+        "afterSha256": "e9d928841cefce71a07bbe89d974742112bf63d5c911d5983fb9abde2a43e153"
+      },
+      {
+        "file": "src/tests/shellCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "4d2343f5b668794f7bee482f7b4bbb15ea7a4282677ea03fab8767a537de6894",
+        "afterSha256": "8d978d8a4c283af7c5b91b7fb8b9192fb36f2498ef3948350ae9f65f2dbd5e8c"
+      },
+      {
+        "file": "src/tests/shopDrawing.test.ts",
+        "count": 1,
+        "beforeSha256": "613fd17df6980d108ae751267d1cee3d0e3c4b48af29a99f4a1c3ba04139c43f",
+        "afterSha256": "6e614648b915793449dcce821a93c5252797fdee90aa875351c01f4249a009f1"
+      },
+      {
+        "file": "src/tests/shopDrawingCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "bccab44ca106de58a6d385cbcb65bf6bb14aadb38d27ac6db4b027198c4910fc",
+        "afterSha256": "1a39742534adee73c9a12eec39447f5853dccedfca38ef6a3205aa481e2f4b17"
+      },
+      {
+        "file": "src/tests/sketchProjectionCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "b4c24907379b6b73f261954931e4765f5848306245e1c0f1497e5fd48a7e45aa",
+        "afterSha256": "50313c371acd2eb9ccc9521b816f57bbf3a1c8379e2d23ee81d38505083d9a29"
+      },
+      {
+        "file": "src/tests/solidDimensionEdit.test.ts",
+        "count": 1,
+        "beforeSha256": "dab54acc0df5b121761906ac0f0b236b7b1cb275932aa8cf5b95fbd1249a2332",
+        "afterSha256": "9c470856ecedea4fb95953dfd578c6a7f0930d1f5a91461b33705535e630e56a"
+      },
+      {
+        "file": "src/tests/solidDimensionEditor.test.tsx",
+        "count": 1,
+        "beforeSha256": "fbca39a0a014c27ad672328601e0ab3fc016540d51089d234b635cd73a520175",
+        "afterSha256": "fdf05d212aa4f90b524688a8768368ab87cc41de395cd273c4adde8a1b99b134"
+      },
+      {
+        "file": "src/tests/solidDimensions.test.ts",
+        "count": 1,
+        "beforeSha256": "5dbc0a5b36f44f22c0e465aede84a48b2fbb6eebc595eb357b176fcab014c4e4",
+        "afterSha256": "5bd96f477174f087726727cb21ec4dd354ae27e276a06c8dc6e681a98649ae06"
+      },
+      {
+        "file": "src/tests/stepExportCommand.test.tsx",
+        "count": 1,
+        "beforeSha256": "213dd5de054ea82b4353c64081d73943cfe88da0d20de3759b6adc69ec809c24",
+        "afterSha256": "eecdea1f82b612cad50b5adc4ea07d872f5fb849d5660f09a4574fca94f6851b"
+      },
+      {
+        "file": "src/tests/stepImportCommand.test.ts",
+        "count": 1,
+        "beforeSha256": "b05900b943efecab17672aff55d4c5c3582333be84bf19358e8dc5733a1d30b9",
+        "afterSha256": "d8fb9a712717826840bff766599c6bf12e54fedea97681d76f0dc3d6189d5501"
+      },
+      {
+        "file": "src/tests/timelineStory.test.ts",
+        "count": 1,
+        "beforeSha256": "c65694adf520e82a1908795e0feaed94cd015b03b96e8a86c83b54c322c6d493",
+        "afterSha256": "24acdcd336e0c4f99a39e47b625dd563c1102e4e7449fefdbea305d8405788b5"
+      },
+      {
+        "file": "src/ui/commands/canvasActionTarget.ts",
+        "count": 1,
+        "beforeSha256": "9e92393e622b8d25e5b44017423e18d436085a80c34c62258bc64d58e204c244",
+        "afterSha256": "685921683affab8929926a00406c190b5c22c8047b7eae0a2f75288918aff2d1"
+      },
+      {
+        "file": "src/ui/commands/commandRegistry.ts",
+        "count": 2,
+        "beforeSha256": "4053e79ad7541afc6d44063f0ba13102066a70a3dad4ea25bbc3348124a67f34",
+        "afterSha256": "76392e89e90a76382275a1e8609736c01807e71ee8315dca2b163fbebb54e548"
+      },
+      {
+        "file": "src/ui/commands/componentPlacementCommand.ts",
+        "count": 2,
+        "beforeSha256": "7e82348602484815328cab39f4e473a8a820f329e7b903c15cad9048b0432810",
+        "afterSha256": "0d05d280fd86b0d9d66c97eb8c5b5cd93c3d559fc2ac583e44db7ec61c668a8e"
+      },
+      {
+        "file": "src/ui/commands/exportHubCommand.ts",
+        "count": 1,
+        "beforeSha256": "e4fb12bb672a34ac6c2540320b2211ef07019327123cf8486fbd37d6facf723f",
+        "afterSha256": "e3880d896def832d0492bb8f6be4386b932938ef55bdf38a37ac258d4e9fab71"
+      },
+      {
+        "file": "src/ui/commands/extrudeCommand.ts",
+        "count": 3,
+        "beforeSha256": "2803608f48de5f6a8350fcff9aa0cef0ad047d523bb6e2223d2604172cdf9dbc",
+        "afterSha256": "02b2ed4c38a327c9ed245b556358a4ebd6ccd33d73ae0f9077db99c751ae2f26"
+      },
+      {
+        "file": "src/ui/commands/facePocketCommand.ts",
+        "count": 1,
+        "beforeSha256": "fc762fb235e90d660ba6ae034a7ab409487e4bebfe6a5f2d8915f3448a75c8ae",
+        "afterSha256": "540c2026bebaf7b0b3cb6902a995096761626e7737dc99268c5c5a53c44ad7b9"
+      },
+      {
+        "file": "src/ui/commands/featurePatternCommand.ts",
+        "count": 1,
+        "beforeSha256": "677c922836d459d17a732224e6bd76db39d69f978163afa6062ecb53ff7d7120",
+        "afterSha256": "97e83f3b659d894d40d834a231eccfcb1b6afeb15c9fa6d029c6a6ede580f100"
+      },
+      {
+        "file": "src/ui/commands/fittedPartCommand.ts",
+        "count": 1,
+        "beforeSha256": "6b41b5f9c621f8f4c2f8d5f96cb784ca9ca63823ba266bf5c98c37d45daaec69",
+        "afterSha256": "1d501b7cce20ced64d431e25c2497fa33755ac7795bae9a97813b301fc858f48"
+      },
+      {
+        "file": "src/ui/commands/holeCommand.ts",
+        "count": 4,
+        "beforeSha256": "42b7895589e5738fbd645623dfe72844ded99c4fc4bb33b2f3f94388333883f9",
+        "afterSha256": "fc506456fb3c20a288a18ce0051a5ce6b04bdfefbd7509fda279a4380899d222"
+      },
+      {
+        "file": "src/ui/commands/linkedSketchCommand.ts",
+        "count": 1,
+        "beforeSha256": "baecaf1a68dc6277bfb162e3ecc7c5caebbed631167d6aa7ec5c0853e182e4e5",
+        "afterSha256": "14a645fcb7f55b0a9b6193e62845b9737b4780a985efdf4ac6be32e32442fcac"
+      },
+      {
+        "file": "src/ui/commands/manufacturingCoachCommand.ts",
+        "count": 3,
+        "beforeSha256": "a146f71510d0f26c36b585b24585495732ae66eee535f8462264f006dc834fa8",
+        "afterSha256": "dfdae8ebf38bea42f1e51abe7dba12f1ed788148328735d23489658813a58d29"
+      },
+      {
+        "file": "src/ui/commands/modelingDraftCommand.ts",
+        "count": 2,
+        "beforeSha256": "f80d1f0ed8ec7362c0c5da206fc189f7529b2d19306dfab31dc2537126ee9d37",
+        "afterSha256": "cf8d7a04e9d166c2c6bc6ccb4a9fd9453290c7a17522c9170698a435b5e11c72"
+      },
+      {
+        "file": "src/ui/commands/nativeTaskAvailability.ts",
+        "count": 1,
+        "beforeSha256": "28fd86f0d2e443e384ddb8c3487b3475b3a6a49889c171e00542ea1664505bba",
+        "afterSha256": "e2f12b39e3f6c07f1331fadc3fddbfb065711f71c8220f2927da16cbdf96c4bb"
+      },
+      {
+        "file": "src/ui/commands/operationDropCommand.ts",
+        "count": 2,
+        "beforeSha256": "3402d13983bea7086f094ce81a4d292c164708b47be242240b48f1e078e467b7",
+        "afterSha256": "5862ed515fa8bf496d91a537496a9b56373071c7dcd714fc4504bd8d1d9199ee"
+      },
+      {
+        "file": "src/ui/commands/partLibraryCommand.ts",
+        "count": 1,
+        "beforeSha256": "ade4ae7f14f4df2d836cc1afeb601db1439f433755aa37e01a7e3c54696029a0",
+        "afterSha256": "aa4ce008e74b811c3440f2fad4cdcd5ed4f2f7aaba78cb2ead89d162cae6ef59"
+      },
+      {
+        "file": "src/ui/commands/sketchSolidHandoffCommand.ts",
+        "count": 1,
+        "beforeSha256": "da975decc7bd838983b4ee6e5a0649bff18eca77a232d5da64401f1e4eb3d17e",
+        "afterSha256": "03a4f2d31a499a1e2db3ba49ea2c00069ef106f5e6824e1a4be5e30b4ee5065e"
+      },
+      {
+        "file": "src/ui/commands/stepExportCommand.ts",
+        "count": 1,
+        "beforeSha256": "933fb583425a79443d7b840af3a8afd092f0dd16778fce4bf60f5596821fa2c4",
+        "afterSha256": "508ab9105bcfb7f1c63b9ec67b82194d01f29ab2b1bd4bda62590d18f588af20"
+      },
+      {
+        "file": "src/ui/commands/stepImportState.ts",
+        "count": 1,
+        "beforeSha256": "f73ad3f97ccc52434b623b36c4c9795ec98be2ea209ff4c1255e9b5bd971e3e0",
+        "afterSha256": "b2c3c5de5869feab9b4e0db916cffb560545e61d0a7db27c3932c1db51b21bfb"
+      },
+      {
+        "file": "src/ui/panels/EdgeDraftControls.tsx",
+        "count": 1,
+        "beforeSha256": "47b8c3dd22051785445b5c8a4bb00f5e41162c7f1d9560c07986663798e393e4",
+        "afterSha256": "cbeb7cb08673d17daddfaea2898f05aaffdf201fbf8cc4eca24c8b04e19d89bb"
+      },
+      {
+        "file": "src/ui/panels/useFeatureDraftContext.ts",
+        "count": 1,
+        "beforeSha256": "808141a9a6af5dfc89a9f2f49638a62de85715bbb336614974f7b8ed0ec27638",
+        "afterSha256": "9c049707353ec4bec4d885ae18f0f60215b2bddb2a99e7852376fe6cbc2f3a4d"
+      },
+      {
+        "file": "src/ui/timeline/timelineStoryProof.ts",
+        "count": 1,
+        "beforeSha256": "bf97fd1b0ebdb701b071f5c4a024705ee71c251e33a4c8cd9be4f299258c820e",
+        "afterSha256": "4d865873b52929a5d9c70cb53d7b282e987f6ec8e7e9361fc32a2b88a7838d5f"
+      },
+      {
+        "file": "src/ui/workspace/ModelUpdateFeedback.tsx",
+        "count": 1,
+        "beforeSha256": "2ddc5826e89c804af76a25cd9e0e7e76b5426a7e5c59e6c1bca68337464772f7",
+        "afterSha256": "f751c93d6113c5cb6de7c744ea9858c63a3f954fbdedf2458c79a9536b93a3ba"
+      },
+      {
+        "file": "src/ui/workspace/modelingReadiness.ts",
+        "count": 1,
+        "beforeSha256": "5cdc838369906b4400be6235619f50ed5735d44d7b17f65784bcfd9ed56df945",
+        "afterSha256": "32dadf73e2cb004f91bc72d8961c2a2cb30ed5eb7a294053603219cf97e55547"
+      },
+      {
+        "file": "src/viewer/aiFacePicking.ts",
+        "count": 1,
+        "beforeSha256": "392354ff4291d9a28023f9bc6a395b43ff51a1609833870fafa662fa76b6985a",
+        "afterSha256": "2a66d232b755a56166d9ea5edf187e14ce7e419aa194334c4ef43788918786df"
+      },
+      {
+        "file": "src/viewer/displayMeshRefinement.ts",
+        "count": 1,
+        "beforeSha256": "268d955b6254016c0807a1cfda75c0b7c6a025647040d5bfc3520eaf8e682a7c",
+        "afterSha256": "9128615ea73b7a9c08421002c5ea2fa7702e78b46b71531a1bc0aa5a989d9d22"
+      },
+      {
+        "file": "src/viewer/galleryPreview.ts",
+        "count": 1,
+        "beforeSha256": "bb311a265f5ed40afd84b24357b2efc7f1a6403c33e76fd272fe4df8470ef068",
+        "afterSha256": "32b547869c0e978861b4a15881d6cb3f2875283987e0e7f2149de6166dc7806f"
+      },
+      {
+        "file": "src/viewer/modelMeshes.ts",
+        "count": 2,
+        "beforeSha256": "12698e03dca34b8acd9b1ccc489a4a70898271b9778140a413e69f55d9c2dab7",
+        "afterSha256": "d3c6fdbae96327a9bb1920a6bb8a0ff17ee3a67080dfb7969799df378e66dff7"
+      },
+      {
+        "file": "e2e/ai-canvas-conversation.spec.ts",
+        "count": 2,
+        "beforeSha256": "8bec4517abd96629d2f586aaae4a31d5685a766e72e9d0335a0897316514cfbc",
+        "afterSha256": "b0c6bc256323d7dd33f86f4689420c7251f011ffc3411fa104bbffc345471420"
+      },
+      {
+        "file": "e2e/ai-canvas-history.spec.ts",
+        "count": 1,
+        "beforeSha256": "9826e6620851dcc173ac9867b117bc564f142b8a1eedf026ad522860ad528113",
+        "afterSha256": "524c0f3a8c7b68b218bdf142f2787685d5cec6fe840b035923da7cf41bc620f9"
+      },
+      {
+        "file": "e2e/ai-canvas-preview.spec.ts",
+        "count": 1,
+        "beforeSha256": "234b6306e2edda174ed35bb781d64bef69ecd25976ab868f9d6cb9cd06b201b5",
+        "afterSha256": "3cbbedfde9f834f4168cb31772b56e50ab8c0809221d9e24f0dc0528f8cab022"
+      },
+      {
+        "file": "e2e/ai-canvas-shell.spec.ts",
+        "count": 2,
+        "beforeSha256": "5db1adcabc3c59f01617a204976e0dfc5a73514541aa79bb83cb32ffc1ae91a9",
+        "afterSha256": "63660fe1018dde0d859b5f80b345f18f7a395ae06923bcea54c4c2e21fdef84a"
+      },
+      {
+        "file": "e2e/ai-drawer.spec.ts",
+        "count": 4,
+        "beforeSha256": "d698758225df72e34d4707649bc71d90d40e0f4df955938e50a8cbb39c3ffe1a",
+        "afterSha256": "eec7ee815ded44935f41226eb8bd1d8108055010a45216707a36dce804c5dd48"
+      },
+      {
+        "file": "e2e/ai-feature-addition.spec.ts",
+        "count": 1,
+        "beforeSha256": "a8c0c134f489578000e744c0eb7372c94b7af6a7a9c3da5f95f3e8e371947dc1",
+        "afterSha256": "08929f0c101bcd21c8bd4454791d373699470284d526a6f307903bb2cf4ca569"
+      },
+      {
+        "file": "e2e/ai-selection-target.spec.ts",
+        "count": 1,
+        "beforeSha256": "1eb44c4692cf24079e77c9c63064d98391589b1c19b070ac05fb009cb1ac6097",
+        "afterSha256": "f25176e6021fab94cb02e1a985fe4f5507a831e1e080b117be5502103068206d"
+      },
+      {
+        "file": "e2e/ai-sketch-canvas.spec.ts",
+        "count": 1,
+        "beforeSha256": "874ad83e4da73c6db814ab43f345c91d5ff1499aff16a4e77e5c28af8f04ed22",
+        "afterSha256": "79d312f42a4735e01d3a381d7e46b212bd935f6eac4ae190da944071a88c016c"
+      },
+      {
+        "file": "e2e/ai-target-highlights.spec.ts",
+        "count": 1,
+        "beforeSha256": "7587e2784bcd6628d0fe2ed659dd5414877c350026b1fe3b4824ccf0e2b5ccb4",
+        "afterSha256": "d417a2e3851efdd8350e10a6585d55e7015721b5e3860bfc3f08e582de813134"
+      },
+      {
+        "file": "e2e/aiAcceptanceHelpers.ts",
+        "count": 1,
+        "beforeSha256": "c54381c7596f3b3cb2b1df4fb54f74123f574e52843d6eac94ddc2638aa262b2",
+        "afterSha256": "27bbab49ca7bc2395bae8507671645c009fd6c79ab3470890d72149d687eab2a"
+      },
+      {
+        "file": "e2e/assembly-joints.spec.ts",
+        "count": 1,
+        "beforeSha256": "8f92d4fc51dea661a70f68045dd0ca878ba5d0bb2c948134a13c4f585bbffd80",
+        "afterSha256": "2cb2418aea50fc849c857e80bc41beb48fb107b58192b5ee4aade297e10ce289"
+      },
+      {
+        "file": "e2e/body-visibility.spec.ts",
+        "count": 1,
+        "beforeSha256": "9703ace6e4bfae14749673ca89dc4600fbeb3ad4d60747a549580712f06d16a6",
+        "afterSha256": "2ade687b8c5aa5aa78320f730e01808ebd0c35383fdd954c6f89e99f45c7d362"
+      },
+      {
+        "file": "e2e/canvas-actions.spec.ts",
+        "count": 1,
+        "beforeSha256": "99b73ad7f46bd56dd59d5e64dcb026d8930555b96a0703076488e41058b05314",
+        "afterSha256": "8f78f3ec807c230f8636d63a3d726cf52f392c30a227f90c93332d5314195e15"
+      },
+      {
+        "file": "e2e/click-measure.spec.ts",
+        "count": 1,
+        "beforeSha256": "397adad11c22863858fc9be38b1578d9ea4df9f6fd74c082f9461df107f3c830",
+        "afterSha256": "8b86e590d740d35ac276fbfad89e84f9fdb58399f87cf75f75558e0eb59b629d"
+      },
+      {
+        "file": "e2e/component-alignment.spec.ts",
+        "count": 1,
+        "beforeSha256": "8cf8472d815d8cf55fc1bfa8f35d3a0ed45ee523c809b65aa6c165a6e0405ec9",
+        "afterSha256": "5d7cf1d3deb7491d237b6498234ef95f81e9612338c41feadd7bd4a30430d4af"
+      },
+      {
+        "file": "e2e/component-navigation.spec.ts",
+        "count": 1,
+        "beforeSha256": "82b8db205ab8f228b30c9766fe34b9e425e78a0fcde48f447ba37064f674fdd8",
+        "afterSha256": "689f91837f6b8ec2d0c158f1d8e34938b9c8890c7c7d54a7b899d3e5261731ee"
+      },
+      {
+        "file": "e2e/component-placement.spec.ts",
+        "count": 1,
+        "beforeSha256": "7b551f879dec7d4fc4e4fba2f5e3193f28ea0193a86de12cd3fe2adbc399be36",
+        "afterSha256": "6168a2013eb75025fd081347079dc4c30f30442e0a5c9ed257cf8b1911f431ad"
+      },
+      {
+        "file": "e2e/contextual-ai.spec.ts",
+        "count": 1,
+        "beforeSha256": "ae1e932ea0dc33527de9d635476a1bfbc7a53fa88eae19cc5b4ef56b5f9629d8",
+        "afterSha256": "68214332a4ad261ae8e104ba0030b30ddf18bab3d4781f09ac17019891dcd504"
+      },
+      {
+        "file": "e2e/contextual-constraints.spec.ts",
+        "count": 1,
+        "beforeSha256": "bcd404f0c8dac61c70d27284e823822c8cd8315e39b758ba9ddcf34a157cebca",
+        "afterSha256": "e171d684a0cb88c81b1ba0d926e00096dbbef82f63e2e9476f745cabcb6388ac"
+      },
+      {
+        "file": "e2e/durability-fabrication.spec.ts",
+        "count": 1,
+        "beforeSha256": "7ae15a96ce282f6317fbd8efd05f9e5a55361e6543b639509767616161269f58",
+        "afterSha256": "75c5ba111a6f8fe2fee7e7ff304f05eeec22caf95595154a6c12c612d60aa098"
+      },
+      {
+        "file": "e2e/edge-edit.spec.ts",
+        "count": 1,
+        "beforeSha256": "59564b4bbe71a1cbb35a21c58f0da82a06e88b7badc0bb858e7ff566b8a75e10",
+        "afterSha256": "82c82d1a018a2d5d5b2e3a146f246fd66e0291972482bd94382e9931753481f1"
+      },
+      {
+        "file": "e2e/edge-proof-performance.spec.ts",
+        "count": 1,
+        "beforeSha256": "0230424cfcccd3266d20babbd3d339042d0c6733b055d2d57a7d451e44db1732",
+        "afterSha256": "1c6f82ef2335cc903780b9d97d3f9d72807608a9999e303de946272e9ae6c7bb"
+      },
+      {
+        "file": "e2e/export-hub.spec.ts",
+        "count": 1,
+        "beforeSha256": "f1b7d8e8668e1827204869689283c28a5b138cc8494da793a13e0eb672ed6318",
+        "afterSha256": "e2559990b8840c8a8dbbcd4ac73ce1694d87b56f18255e71d467d8f479a9df2e"
+      },
+      {
+        "file": "e2e/extrude-dialog.spec.ts",
+        "count": 1,
+        "beforeSha256": "a8e6d50d8f9de3b70192ac4f7fcdc795a36ec223fb3b0b0f9cfac9bd5c477fc2",
+        "afterSha256": "d6e44a469f7bcb31bdf4eddc73a72e1231346169d6b0adbf0881213afaaa3233"
+      },
+      {
+        "file": "e2e/extrude-edit.spec.ts",
+        "count": 1,
+        "beforeSha256": "b9bdae2f90a16e6a01f006db395c49828aea28170126d2e5d82681619df0f674",
+        "afterSha256": "f63d826367766ea3f034ab8096150095f1236681fb1f4d0e34f431038a8f7e24"
+      },
+      {
+        "file": "e2e/extrude-handles.spec.ts",
+        "count": 1,
+        "beforeSha256": "724ff74b28a356ee3ba187ff5f52fc3b45f1b7c6a390b7da97a15665c0ed610a",
+        "afterSha256": "2fc833e89d80c29bfaeb7a0b8e3e827c42dc006ea13f6334718a70b50a85a903"
+      },
+      {
+        "file": "e2e/extrusion-hole.spec.ts",
+        "count": 1,
+        "beforeSha256": "44988204d13cb46605e28076e87daeada3e28750dd4032efbc08a6a098753f5a",
+        "afterSha256": "ada2fb4b154ea115508f76fbc2751e149f9b10964193bba0462bd302963b816f"
+      },
+      {
+        "file": "e2e/face-pocket.spec.ts",
+        "count": 1,
+        "beforeSha256": "4eb8078e4c1014a2cbd8cb0a5553b320abfeb14a9e00cfcc84528f1358c642d2",
+        "afterSha256": "063eb8fee3310d2a5fc7a115081608e241e2ed09412c38c38fbdc0c60ab1c7be"
+      },
+      {
+        "file": "e2e/feature-patterns.spec.ts",
+        "count": 1,
+        "beforeSha256": "e80d05e0ada0b77513dd5ae0c18bbf01fc6674f7248ff04db614ad6542e0143b",
+        "afterSha256": "7e4a43f1e49a61fc2cf1603aa2283022fee5e6263acdc4db702f683c8fabd201"
+      },
+      {
+        "file": "e2e/feature-repair.spec.ts",
+        "count": 1,
+        "beforeSha256": "bc25dfbb9723fb318ecc2913893b24b0caf4d1247328bcac6225e6d940a83e56",
+        "afterSha256": "f240aff23704d2678e0a7638d81f81a2ad18d99e37749b384d49bceab5f2b724"
+      },
+      {
+        "file": "e2e/first-part.spec.ts",
+        "count": 1,
+        "beforeSha256": "138853b8c23988059d993cdc8f3392b29af1ebb975eaf2a2804bbb8257bcbbbc",
+        "afterSha256": "9d36daf593ed425ded8c30075e88c52fc7ff771b24a7069900d4d26593788a02"
+      },
+      {
+        "file": "e2e/fitted-part.spec.ts",
+        "count": 1,
+        "beforeSha256": "636ec2c54d22b6fbdbe37ca1ab9d8339ebcb4276e89a041d63da5723205214dd",
+        "afterSha256": "1bd26080c6498da7bec276417a383bc830ff0edd1341f669128e0885d72a33ff"
+      },
+      {
+        "file": "e2e/focused-workspace.spec.ts",
+        "count": 1,
+        "beforeSha256": "e456fd396030c668a4398b7ebb81718e4016297d7e3cefbb24d84dff58ecf013",
+        "afterSha256": "8705086bd78b6717eec7d3c69c84634e2350fe1cfcebe25b60150f0e962808a0"
+      },
+      {
+        "file": "e2e/guided-constraint-repair.spec.ts",
+        "count": 1,
+        "beforeSha256": "b2d9bae51d13884f8cab8e9ca64efdb77413368a726d62de8a2856d2d3bffac9",
+        "afterSha256": "1027dfc20a160a3690f43f94a8b21ac8e422044fb836cc5bf210e49df79aea00"
+      },
+      {
+        "file": "e2e/guided-export.spec.ts",
+        "count": 1,
+        "beforeSha256": "5be5f503ee0e597c97fe6438386ee29871de6dd5ba409ae19116dda7f637f8ee",
+        "afterSha256": "3afc9522de8598e5b4541451eb2c9f059275fe115ef1ccdd6cbef6e72b470921"
+      },
+      {
+        "file": "e2e/guided-hole.spec.ts",
+        "count": 1,
+        "beforeSha256": "640c0cddc9dcf233ece8161aa95d13cec8bc8a2cfc3faeebe6e463e8c979e81a",
+        "afterSha256": "c0cb47b7366141dba1392aeb933bb4d787d265a6844471734b8cc70981c5d8c5"
+      },
+      {
+        "file": "e2e/guided-repair.spec.ts",
+        "count": 1,
+        "beforeSha256": "9865c73377eb11aa262be9308e85e5bf4ab3c1434e7476d77c69132b3e699bee",
+        "afterSha256": "0e5f757d669dcb346e21a65a20f14094d2dc781eff5f72db95c4be3fd09f189e"
+      },
+      {
+        "file": "e2e/hole-edit.spec.ts",
+        "count": 1,
+        "beforeSha256": "39963c7aade1cf8c709c028ec9eae501172f9c0bfe346c2a0eff68e0f0cf7a74",
+        "afterSha256": "b291993cb4bf48472c8f7b75652ee2d5fbb4e39bb918c5dec997a47b887cc803"
+      },
+      {
+        "file": "e2e/incremental-native.spec.ts",
+        "count": 1,
+        "beforeSha256": "32be7ff1aeb45f2f23693750469dcfd74aae980e7d602d4b59558140c68a94fd",
+        "afterSha256": "fc9ad578db2fd7478503818ca5b7b53bd707e13f9fa45afdb2cd868b64c5d34d"
+      },
+      {
+        "file": "e2e/linked-sketch-usability.spec.ts",
+        "count": 1,
+        "beforeSha256": "259f3ebf10e6372f8868a909544254a31f0ae8a01bd07d63ce8803484d8e9864",
+        "afterSha256": "31a0db913b21c28197a8c756959dd3200a05408fc74ad3af63dff8e22f5cf6fa"
+      },
+      {
+        "file": "e2e/local-task-previews.spec.ts",
+        "count": 1,
+        "beforeSha256": "2f37df7c0825443cf088a0b4e95a2eaa3989a0bbb97951c010ff9d9dce566a86",
+        "afterSha256": "9553ffd7a26ca1ddc40300779dde8f0283bb115b97976e22be41960af53b8ee7"
+      },
+      {
+        "file": "e2e/manufacturing-coach.spec.ts",
+        "count": 1,
+        "beforeSha256": "5b10f5600cd151cb994c697b23065f2e20d686b7832ede52201fa8c34d396fd7",
+        "afterSha256": "c02b90d99d43f804ce58b822fef11be1acf0ab1db11f9326b116971f245e1e49"
+      },
+      {
+        "file": "e2e/measurements.spec.ts",
+        "count": 1,
+        "beforeSha256": "460f01a5ed7c167beb36c3044de4fd6a1d82c396c33a2ca4fea16f8dfa366ff3",
+        "afterSha256": "a88a310e8ca1217a46de10bbb2ae9dce00e9ef1f014af4d1f44eff0f2e308dc6"
+      },
+      {
+        "file": "e2e/modeling-operations.spec.ts",
+        "count": 1,
+        "beforeSha256": "7e8553a56fd0391dc8a502f71372108f04c161cfeba13fb0b6af8c0b9d70971d",
+        "afterSha256": "9470621c39a874b6f67323b159fd5ac54319b362b2c9d819b77cb9e3df20d058"
+      },
+      {
+        "file": "e2e/modeling.spec.ts",
+        "count": 1,
+        "beforeSha256": "1192ffc1b6d5cc2b0061a4cc796bc5addba8ebcb6f68444a05812286128cf3e3",
+        "afterSha256": "0619e134151d8d3c472c5511bd84a38683f1855bd74ca36f2268ffb792b0c36a"
+      },
+      {
+        "file": "e2e/multi-body-cuts.spec.ts",
+        "count": 1,
+        "beforeSha256": "d8d6b964ee75923a1dbcdf648bc746f69007b259ac708de9135d0ae1bf1b484d",
+        "afterSha256": "d8892ff79a8bd7348e49d7b0bc8da0b1fd939d1f2cd7cf4651511b6880a37a48"
+      },
+      {
+        "file": "e2e/multi-body-holes.spec.ts",
+        "count": 1,
+        "beforeSha256": "996ba4239405025e5f439d44eecd9888a274765e297329b3c33fc4a45878feb9",
+        "afterSha256": "fbcb0b7162aa16d5a853e313ad767c1beecbdb4787cadd96f08ad7ceecb15864"
+      },
+      {
+        "file": "e2e/multi-body-joins.spec.ts",
+        "count": 2,
+        "beforeSha256": "5e50d6b5e56559b79481b6736684e413d8514ca8049f59b26bf20ff881f9bd7d",
+        "afterSha256": "0029f30b21e2c81a9640f7dea3a2feb3c47ce779510a4ab88696f34050e7d3d4"
+      },
+      {
+        "file": "e2e/offset-creation.spec.ts",
+        "count": 2,
+        "beforeSha256": "693dd5cca2a637566fe3a11dc3dbd242de7ecffa5a06575eb5021924695a6083",
+        "afterSha256": "150bd04c17a99157977e3e7a3db4756cbc15a22c81347af0f6b13bb2c2fde800"
+      },
+      {
+        "file": "e2e/operation-drops.spec.ts",
+        "count": 1,
+        "beforeSha256": "6662a0225cd6430b8cdb4e76e35cafe338171eeb005fe48b88c6ae2d5c2363a3",
+        "afterSha256": "3cad7e04c31c8fee5cfa6f0216b8356b04ab0d6c7a590521bb6fd1f13bda4655"
+      },
+      {
+        "file": "e2e/parameter-renames.spec.ts",
+        "count": 1,
+        "beforeSha256": "06e05ed44ba7066201606c0e26b46c47a908168e2f59534f5b427c1cfd45603d",
+        "afterSha256": "0ac101ee8c4f73872221ea98a9f48c03f5f8e7640fce1fa35c8e2a50c021ec74"
+      },
+      {
+        "file": "e2e/parameter-units.spec.ts",
+        "count": 1,
+        "beforeSha256": "47ec41d576e679f6e77f149836ffc07b7a4820a2fc6f8b53a3407f7cd234a014",
+        "afterSha256": "81decfbfae8f1df81f27c441e1c209c4203019890052ab6982c246a52555a639"
+      },
+      {
+        "file": "e2e/part-library-transfer.spec.ts",
+        "count": 1,
+        "beforeSha256": "f6a1fd97ce7654d882b80b443ec8c1ab9c30758bead2fe854438354fa97be920",
+        "afterSha256": "7d8392ed980a23530e91699b8adccbd5f5a62ea65f6cfd67f7bf5c47c30e8740"
+      },
+      {
+        "file": "e2e/part-library.spec.ts",
+        "count": 3,
+        "beforeSha256": "3c972eb1d5fd51e00a5922393297aac4abc0adb409a7927e4a92cac6cfe7f687",
+        "afterSha256": "a4eedc5ba81d13b43467c9bfd8ae911174cf9827fea0d8e49cb96543b766fab2"
+      },
+      {
+        "file": "e2e/parts-browser.spec.ts",
+        "count": 1,
+        "beforeSha256": "24b21e7c39e932a1fcba02df41eb3ba0eece9fa6d6371848b36c365f8f8340cb",
+        "afterSha256": "a2a202a294de7f6afd0c06ca9ce9946f4507e56fb4e20f0d465c9a35eebe8e76"
+      },
+      {
+        "file": "e2e/pattern-controls.spec.ts",
+        "count": 1,
+        "beforeSha256": "7d78f6184d240da355855e496815eef4a5526bc11227dbef93fe3147322866b9",
+        "afterSha256": "94b3ec2a9fd8aea3bdf5cbf8bb98df8ec58177572ce50b11abe8e1f2cfd53ae1"
+      },
+      {
+        "file": "e2e/performance.spec.ts",
+        "count": 1,
+        "beforeSha256": "7878e4a230df65f1ddef0009fb642dcc65cbc026b6c78e021285220c32461048",
+        "afterSha256": "2935d315f0e85c78568a59497c726850a5df7e5d5e6fb4f30b902e65b6051c18"
+      },
+      {
+        "file": "e2e/placed-projection.spec.ts",
+        "count": 1,
+        "beforeSha256": "0c547e7ed4b86f6e210464edd35c72f022d04156826aba3f56d01488fada6d43",
+        "afterSha256": "c4860f6c8e64318bd6d8e428ce85dd069b49f0d4605ed0167f7dcfbda32afb90"
+      },
+      {
+        "file": "e2e/plane-picking.spec.ts",
+        "count": 1,
+        "beforeSha256": "d08ffaa52bbf51bfa07814cde11c16533d699bdc9ff7e01c21dd3c523d3d8ecd",
+        "afterSha256": "6ea8ad98fd4b3e644bd3d425070f53501acb2e8030fe7af55e9a59bd600be8b9"
+      },
+      {
+        "file": "e2e/png-export.spec.ts",
+        "count": 2,
+        "beforeSha256": "1deef51eb2dc0159b3330fd5c0ee07063ded079adec7cfbb20617410b2118b0e",
+        "afterSha256": "b072685142e6a8066cc20f70e9ecdb4020897570de4e8f7278b1b3a1754fcdac"
+      },
+      {
+        "file": "e2e/product-family.spec.ts",
+        "count": 1,
+        "beforeSha256": "bd3af7da3ee2077b38c283aa0d52aa7e3054181ffea44e2be466b21f0fe29b09",
+        "afterSha256": "40a2e352625de814c5a09e2275891c154a4b7b76da5342cfdda7b8f5378b2314"
+      },
+      {
+        "file": "e2e/project-components.spec.ts",
+        "count": 1,
+        "beforeSha256": "5ae3a14c7f5cfb8266682dd3b049f2e09cdf4523ec840f6b37bf74f4e55a4ab3",
+        "afterSha256": "b094bc73ba8f3a16358e9a4f62ca90e3f6e0f423a378595bb07d9a9b0fe2fcfc"
+      },
+      {
+        "file": "e2e/project-file-drop.spec.ts",
+        "count": 1,
+        "beforeSha256": "f491032273cda1f47388abd8f69cefe2aa0ee8ca2c0ec0dd76324df3bef07d33",
+        "afterSha256": "f087de4288625d9f8b4954c67bf6667c5a03eb851ffbc201fdaf0327b3fd4a9d"
+      },
+      {
+        "file": "e2e/provider-sketch-refinement.spec.ts",
+        "count": 2,
+        "beforeSha256": "a5067afbc9958d441701c40b0224918c542c7eb94309ec747100001f64b5ad3f",
+        "afterSha256": "a8659f33f9e7ed987e29db72ad2f0d5bc7ad8c8cb247db6a7dd9dd226b8a87bd"
+      },
+      {
+        "file": "e2e/render-view.spec.ts",
+        "count": 2,
+        "beforeSha256": "dcd7f0eda55851f932488dbc838b8c732d53c3a5e56c4248e70f8ab134a49f9f",
+        "afterSha256": "ac51ab49dc66ed421dce7862e23da2402c2f2a5392ea6b56125a5608a5e2b261"
+      },
+      {
+        "file": "e2e/retained-edge-picking.spec.ts",
+        "count": 1,
+        "beforeSha256": "2cc96f72d9b422ffdc7e9f12238a3f2fb8b0527f6a95cc03fd66f5f12b9aaf47",
+        "afterSha256": "4b3da8d11d34213eefe88ea06a98be079ab2d5edcf5b2e5b5c56fc9bf0794e7c"
+      },
+      {
+        "file": "e2e/retained-references.spec.ts",
+        "count": 1,
+        "beforeSha256": "03f256cf8460f49d1d4a876e77ec5fab3f3a74057c5cb8eb9a2120c2f2743e33",
+        "afterSha256": "d893f7024408fc2b4f57b172477edb4bf3438b1aacb55b613adf575c9dcf92c1"
+      },
+      {
+        "file": "e2e/reusable-parts.spec.ts",
+        "count": 2,
+        "beforeSha256": "ac6d839bcc431ad943e5329dca133e589db152b34ebe39dc94b0be2376e9e3a6",
+        "afterSha256": "1a0c4b6d76f3235b7be00e6e4b06207763893568693196d4d9839b489158b2b2"
+      },
+      {
+        "file": "e2e/revolve-dialog.spec.ts",
+        "count": 1,
+        "beforeSha256": "8deb17e024a0c242232ed0753f5b77a10e67eabfbf39eca744632c070055f873",
+        "afterSha256": "d598e8cf076193320f64a828529346f675bdbab70db081b5932dc43ba3051dd3"
+      },
+      {
+        "file": "e2e/revolve-edit.spec.ts",
+        "count": 1,
+        "beforeSha256": "f275156d117bac0124fc3627e94b9e27eb9612f4fa408329544078ebce1a7870",
+        "afterSha256": "0ea5a11d75a9d11e8a71f6a3705e3fef454e7cb0bf08418c2a3c93fa47b8d819"
+      },
+      {
+        "file": "e2e/saturnIdentity.spec.ts",
+        "count": 1,
+        "beforeSha256": "d2da78e96f6b27d5f53e6f89d64af6def0e69056dfd6d53ac850759134045d78",
+        "afterSha256": "b530e2956b4a02b1c9f9ba6939553220a8c072f95f4277a1a48172568dea3e84"
+      },
+      {
+        "file": "e2e/signed-extrusion.spec.ts",
+        "count": 1,
+        "beforeSha256": "abcbde39762bff6a2a3cc23979d563879845506ad1aa362e3613d9b7af206874",
+        "afterSha256": "7d918667c434fe8839f4c1eb933540c82fc154d579430a9a033d1c17fe89ee82"
+      },
+      {
+        "file": "e2e/sketch-canvas.spec.ts",
+        "count": 1,
+        "beforeSha256": "82d3458a01c956b18e9483e12f6edbb623461a8aa44626863ee2838d100aac86",
+        "afterSha256": "444f390348367ea5ba1710dd5db80d12354a95cb2fcef4fce9c7f9c917802c79"
+      },
+      {
+        "file": "e2e/sketch-deformation.spec.ts",
+        "count": 1,
+        "beforeSha256": "6b90285785ac5ca3ec91a941d303ed78e6e58be5f610c49a664916275ceaf6b1",
+        "afterSha256": "6d54f52784947c8edeec139c9d195db95445ade64ae54009496f55d3732ee00e"
+      },
+      {
+        "file": "e2e/sketch-foundations.spec.ts",
+        "count": 2,
+        "beforeSha256": "9c3989d971bd7340251a9c365eb826f99388ae3d9756a9eb42effd1e6ba99e7f",
+        "afterSha256": "c0e723cb8ffce6b4b6d7d92ff5b86b20d31b00dd8e4d4286e4a40c8b0d84f29d"
+      },
+      {
+        "file": "e2e/sketch-mouse.spec.ts",
+        "count": 1,
+        "beforeSha256": "5bc677426fe3aef6fb35da655596122f24ec4c6b2b704537cd578b4d534ac8cf",
+        "afterSha256": "52f367f42cd96278d2d1fd331f035e7ce606f6a75cdb5373a2078b61c7d444c9"
+      },
+      {
+        "file": "e2e/sketch-outline-offset.spec.ts",
+        "count": 1,
+        "beforeSha256": "eb3eb83da900e88430e16278d4a6b7f6da29e9357abbfae37f08c7f2fa85b194",
+        "afterSha256": "0effd8775a1161a2c1cbe1be5e1f8929fdd834c06433bd41eaeb940ece6cc370"
+      },
+      {
+        "file": "e2e/sketch-projection.spec.ts",
+        "count": 1,
+        "beforeSha256": "287bc4de7fc4eb3c302545c64c64b64286e824e31c1956847b3d94472da50d8b",
+        "afterSha256": "9a789dd023823cd93ce067d99e7801db4a9d39c976d1c5929dc82478aba63671"
+      },
+      {
+        "file": "e2e/sketch-refinement.spec.ts",
+        "count": 2,
+        "beforeSha256": "5ff77984ea12042cf1787c4567cb4ef8c0d672e56adcb8ab38718e46a179fda8",
+        "afterSha256": "75059363448fd40befcf0af69451293e3a0c87d149c35612f3b9a85df6120e35"
+      },
+      {
+        "file": "e2e/sketch-replication.spec.ts",
+        "count": 1,
+        "beforeSha256": "5070c9e157d7860646108386a0b3419b11d591b66cfa78e889ce31242c93ed87",
+        "afterSha256": "a13aba221123589d396b2569d04bbab774df494f9a4c50641febb88948470dad"
+      },
+      {
+        "file": "e2e/sketch-selection.spec.ts",
+        "count": 1,
+        "beforeSha256": "af10b472c2f9c8bdd4437f3c8ea59e32e1b6f175f4d3543b2538c84561329494",
+        "afterSha256": "a0d0b863fe8c6be902a23c791cd2653fb9db800685da95d490997b5b95305ca1"
+      },
+      {
+        "file": "e2e/sketch-snapping.spec.ts",
+        "count": 1,
+        "beforeSha256": "0426dce7903c2af5ec4659d30ee273d486f032c54d725c7190a10cbd10d049db",
+        "afterSha256": "251935e01e0530d758f048079e5a0f65437d92cd4a8a0eb4ec726162a00bef98"
+      },
+      {
+        "file": "e2e/sketch-solid-handoff.spec.ts",
+        "count": 1,
+        "beforeSha256": "d85e305960432092e58e38a637c2a180c8060a6e21036fa8ea61df8e6411fb47",
+        "afterSha256": "a976351e4dfefc4fef171a31bd192eef6c261e56384649d726cae7bfa58192c1"
+      },
+      {
+        "file": "e2e/sketch-tool-simplification.spec.ts",
+        "count": 1,
+        "beforeSha256": "dd4d1d1862b24bba1cc5ba9df6329d14d864d2c6eaee8689b165a05584c107cd",
+        "afterSha256": "73f1f91ed7ee8644d007dfd88ed10c2fa2b0234b96f60b4fa3af71e64376378d"
+      },
+      {
+        "file": "e2e/sketch-trim-extend-curves.spec.ts",
+        "count": 2,
+        "beforeSha256": "17478c5727fec8cae0a2cc2bb01f5de285577478c577154ef59c7b272d865987",
+        "afterSha256": "f26a07179af6db5f9bd779c2d41ebc5a4a512ea4b43692a84f7ca8f9055ec565"
+      },
+      {
+        "file": "e2e/sketch-trim-extend.spec.ts",
+        "count": 1,
+        "beforeSha256": "edd933aa0fb26452a7ebd3b44790fb79b83ea7fed99313f0e3ea832263fd3104",
+        "afterSha256": "cc2a5ffa9e909b31095c1e9e7f7b2b24901782b829dd3221b0d321fa80197748"
+      },
+      {
+        "file": "e2e/sketch-visibility.spec.ts",
+        "count": 1,
+        "beforeSha256": "db2fe656322dea309b49a0ef33ed8ab3b5933498a37dab6f66314e1a4c182915",
+        "afterSha256": "a7f9df2fb21cb94b7a02cbce756978fa65e018c406e503d3501d4240b2ba6a08"
+      },
+      {
+        "file": "e2e/solid-dimension-inline.spec.ts",
+        "count": 1,
+        "beforeSha256": "41c07aaa9b2411531b6aea87b4b6f3b154194471f7d5dc6ce572f9ccf548ebbd",
+        "afterSha256": "6c5ca634c3f107f73268b9e2235bfee9e546a26203cc058f3f6f62969070a6c0"
+      },
+      {
+        "file": "e2e/solid-dimensions.spec.ts",
+        "count": 1,
+        "beforeSha256": "fcb2db9f1618215f69becabd21d0377dc94e22c93fbb15ad7abfc34a474880cc",
+        "afterSha256": "f0f74475da0e07b55f2b9d89a997519c6276052d31ef67782ababf1c6024beae"
+      },
+      {
+        "file": "e2e/stale-results.spec.ts",
+        "count": 1,
+        "beforeSha256": "78e39f90f4957c67be2be40564c05d1153b8d5ba74e84f34b9b39f7f9238016f",
+        "afterSha256": "fbfcf07f099c8379a90b789d899c92c64d012eb885a4bdb13e16226bac66a605"
+      },
+      {
+        "file": "e2e/status-feedback.spec.ts",
+        "count": 1,
+        "beforeSha256": "9bd8971b4dc48163cc4156ce7b414c8263bca911a6e8bc2a107d08879afd3eca",
+        "afterSha256": "53f6e66b30d0d40acd8f741f2927f56955cc2fb54ab144f5eb50e4b7bb557e03"
+      },
+      {
+        "file": "e2e/step-export.spec.ts",
+        "count": 1,
+        "beforeSha256": "81144a18399d0cb3711ea8e78c012221257cf6580e0709bae701b53c3c8833dc",
+        "afterSha256": "4c9345514aaf09acbf0ad4434bf57015d296d2e1781efc03d8050da85d4dd612"
+      },
+      {
+        "file": "e2e/studio.spec.ts",
+        "count": 1,
+        "beforeSha256": "28cab226a0c3210c7239c120e7997cd114f36c65e9a011dab8379420ccc38ff0",
+        "afterSha256": "3e498c2e2d4bfcab8214c705ac6305ba19fb870dfe5feefb7ccb9a0085cd45b4"
+      },
+      {
+        "file": "e2e/target-scope-capture.spec.ts",
+        "count": 1,
+        "beforeSha256": "e9dcc3803f5a0d88c9028a67c90a1fde2fe018837585c4b6951e065d3928d7ba",
+        "afterSha256": "755322d34e2457110356e263611c04a2c57c9a3847946074e667842b50ce78ca"
+      },
+      {
+        "file": "e2e/themes.spec.ts",
+        "count": 1,
+        "beforeSha256": "d6c4fdd6cb50d193cf914c9e31ea9786e52d847af34c76202d8efb4b14e1242a",
+        "afterSha256": "80a60de0b645e78cd560bd1d926fb3904f410382d6a632be7784e75607f5295f"
+      },
+      {
+        "file": "e2e/timeline-story.spec.ts",
+        "count": 1,
+        "beforeSha256": "ec14660928b70a3bc977ca98ac6a688c69abc9de5c90d144242a200b55525c40",
+        "afterSha256": "6e96f4bcc422e22fbc4668593cb0f810baca4611dadf21ca97867dee01a65b26"
+      },
+      {
+        "file": "e2e/viewer-demand.spec.ts",
+        "count": 1,
+        "beforeSha256": "31e1d671abb61c686824c86911106fed84b42f1cae255c05bd23af2459c76fba",
+        "afterSha256": "7d4284e7df2fdd1ecd5e056160dc9b23e7d7106c3694d47655ab96ece8084b3a"
+      },
+      {
+        "file": "e2e/viewer-performance.spec.ts",
+        "count": 1,
+        "beforeSha256": "6bf1b5005c15bf89cfeb5353f562a79a3bb864529e21828b1a703a891c0455e2",
+        "afterSha256": "f903c810c1da797b23693ee91fb792406c4fd5db7d67ac76999299b18d3dd796"
+      },
+      {
+        "file": "e2e/viewport-fit.spec.ts",
+        "count": 1,
+        "beforeSha256": "b44df81f5b6fb3d59c32b1971270361097bce2041f1249cb83feda44053998f7",
+        "afterSha256": "c0290245930f4d9959d17aa8cc1b2ab67c9517d392d93bbe8a8c0ab0249a2435"
+      },
+      {
+        "file": "e2e/views.spec.ts",
+        "count": 1,
+        "beforeSha256": "5b8187a65f0969973204c1e667e59ad06eb8a1b3cba729b21c7d0777961631fd",
+        "afterSha256": "3ffd7e50b31b4a7ec63b6eba639684a858b5008817adc19d2e0a2649ffc4e13c"
+      },
+      {
+        "file": "e2e/workbench-motion.spec.ts",
+        "count": 1,
+        "beforeSha256": "ae2b6e131d7790c52df02fa82d250401f2b5e014597f38f86005d3758140e410",
+        "afterSha256": "9340fadf4d84f04d74ea2a05184082bf15c37d32ecfe81f7e304790880a33bcf"
+      },
+      {
+        "file": "e2e/workbench-readiness.spec.ts",
+        "count": 1,
+        "beforeSha256": "e531ad70723a495d00a565d40ca82c89b44ae150199b05a8854862f385634ee4",
+        "afterSha256": "2164ba99b74fd14d5d07e62fc1df8f279d27644e70b116a2a7c408009b71d600"
+      },
+      {
+        "file": "e2e/workbench.spec.ts",
+        "count": 1,
+        "beforeSha256": "f0fd50f6808735226b7c45b5efe8ca4d51e457408c27395b1d72ab052009b310",
+        "afterSha256": "96f7aa0b04f915c15487523376bf78e960c13a986988dfb2138c814a79fc6016"
+      }
+    ],
+    "runtimeAdaptations": [
+      {
+        "file": "src/cad/features/rebuildGraph.ts",
+        "purpose": "Report existing native-worker progress at each executed feature.",
+        "beforeSha256": "0d12476e27bec686f0cde64527912883d2e3b13d8fbcdcb5a2fe925762561d32",
+        "afterSha256": "5de4ae9be5ddbce63138b9ecd6a1e7be5708c3e085b202e77206e708e6f65452"
+      },
+      {
+        "file": "src/ui/commands/commandRegistry.ts",
+        "purpose": "Keep the readiness state owned by the newest pending project open.",
+        "beforeSha256": "76392e89e90a76382275a1e8609736c01807e71ee8315dca2b163fbebb54e548",
+        "afterSha256": "10b4cddedc5a4360c2ca576217f672001471c9139f4bf381b2ce8db6d7123872"
+      },
+      {
+        "file": "src/ui/commands/commandRegistry.ts",
+        "purpose": "Track the pending project-open state without discarding the previous drawable model.",
+        "beforeSha256": "10b4cddedc5a4360c2ca576217f672001471c9139f4bf381b2ce8db6d7123872",
+        "afterSha256": "13560de84a4647ee731fa6c485e50e33fb1fdaccfb0ed41e73fa79575e89b83b"
+      },
+      {
+        "file": "src/ui/commands/commandRegistry.ts",
+        "purpose": "Restore the preceding readiness status when opening is canceled or rejected.",
+        "beforeSha256": "13560de84a4647ee731fa6c485e50e33fb1fdaccfb0ed41e73fa79575e89b83b",
+        "afterSha256": "2c062b53e74a6a6ff87feb55326609ec38ac79bca4f5744036fbad934a8c49ae"
+      },
+      {
+        "file": "src/viewer/CadViewer.tsx",
+        "purpose": "Advance camera damping on elapsed time without drawing missed frames.",
+        "beforeSha256": "8f81762da4fb8c08675e57cd9393b2aa8d19472ecad9a94b79e56b4095732d67",
+        "afterSha256": "d303443cf85085b37c494ffd73865f4b61883d51e240d810de37914b0e923242"
+      },
+      {
+        "file": "src/cad/worker/displayMeshClient.ts",
+        "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+        "beforeSha256": "a38366457cc22d78492f740bb0e8faba553839a8cc633614883c626a626e14da",
+        "afterSha256": "043354164a6a9676e82eb99e3b890cb6e232861a33649b342afb9c8bb3263876"
+      },
+      {
+        "file": "src/state/useCadStore.ts",
+        "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+        "beforeSha256": "8d6ef433dff777daaad7683d76ef1c3944f093a00565a6a8dc3d1fe708865448",
+        "afterSha256": "6cfff87201b67d016572ad156fa5108617a8b560a83d0fb2c66f7d365d0ac0db"
+      },
+      {
+        "file": "src/cad/worker/geometryWorker.ts",
+        "purpose": "Tessellate detail from the accepted geometry worker's native feature cache.",
+        "beforeSha256": "334561e0fbed785a6160c34702fb5c4e6db5b5839b0109bd67bc72a3e8206eb9",
+        "afterSha256": "d1e0c48cd4f62f6c0051f9c045599451a39620b56d6732a3f79dc7f2f6d8487a"
+      }
+    ],
+    "replacementAdapterSha256": "79e45b4212e4afba50c7935951d1101c755b7680c3df3f9d6abbdc5e067d3047",
+    "originalPlaywrightConfigSha256": "4ca2d1b7038eaffbf0b5a0f5b33178e4ad93ab5635b62565f47d973cc4bd85fa",
+    "derivedPlaywrightConfigSha256": "d9ee563310a5c8741a451ea06bc44124c863050e177eba79c99e35c1c9d66b7c",
+    "configDelta": "localhost port 5279 to 5673 only"
+  }
+}

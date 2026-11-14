@@ -251,6 +251,11 @@ browser scenarios, verifying 841 app and 1,977 kernel source hashes.
 Both [authored browser cases](evidence/plaincad-reconciled-1de8d6fa-supplemental-before-crossed-step-2026-11-14.json)
 passed on that same WASM, and the independent OCCT reads reproduced
 each browser STEP's reference mass properties.
+The [disjoint finite Hole reconciliation](evidence/plaincad-reconciled-e0dc2756-development-disjoint-finite-holes-step-2026-11-14.json)
+adds worktree commit `37eee35d` to review revision `e0dc2756`. It passed
+the native OCCT checks and all 17 original browser cases, verifying
+841 app and 1,982 kernel source files. The [authored two-floor case](evidence/plaincad-reconciled-e0dc2756-supplemental-disjoint-finite-step-2026-11-14.json)
+also passed on the same WASM, and live OCCT confirmed the exported STEP.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

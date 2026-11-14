@@ -1,0 +1,63 @@
+{
+  "schema": "plaincad-reconciled-supplemental-disjoint-finite-step-v1",
+  "status": "passed",
+  "integrationCommit": "37eee35d6a270454f33b026e808a3fbfeeffef75",
+  "reviewCommit": "e0dc2756c150d92b228b998c8fd85fea2656a61d",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "854616f9bec8adc1c7937cc0c4f9134c825486803c2a8f3300f7ec75cb1773c8",
+  "fixture": "e2e/plainsolid-disjoint-finite-step-holes.spec.ts",
+  "sourceSha256": "d75fa419e2ed99569923a541fd6eccc0597587a58c8b4b88005b3d251bd78f7d",
+  "runSha256": "e33363e17bddc1a2a11a8f011b1375f1868bd3dc720714a63b540b72d2aff9b4",
+  "reportStats": {
+    "startTime": "2026-11-14T13:50:44.599Z",
+    "duration": 7608.143,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      20,
+      24,
+      18
+    ],
+    "radiiMm": [
+      1,
+      1
+    ],
+    "depthsMm": [
+      4,
+      4
+    ],
+    "floorXZMm": [
+      4,
+      14
+    ],
+    "stepByteCount": 32659,
+    "stepSha256": "44fd3cd5ab77a57c63676bfbbe31963f6d4bd6b0ca2e57645291157deed97197",
+    "stlTriangles": 268,
+    "stlTwoUseEdges": 402,
+    "stlSha256": "3f8d5775cc08c81b0ab20b65f5506b3aee9dba899758cb0e0eb4ff8737ed237c",
+    "occtStepReadback": {
+      "Area": 2594.2654824574383,
+      "Volume": 8614.86725877128,
+      "Centroid": [
+        10.011669473468963,
+        12,
+        8.98978921071466
+      ]
+    }
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 2594.2654824574383,
+    "Volume": 8614.86725877128,
+    "Centroid": [
+      10.011669473468963,
+      12,
+      8.98978921071466
+    ]
+  }
+}
