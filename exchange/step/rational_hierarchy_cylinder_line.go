@@ -102,10 +102,10 @@ func clipHierarchyCylinder(ctx context.Context, leaf HierarchyLineLeaf, x, d [3]
 	emit := func(q *geom.ExactAlgebraicRoot, wallMultiplicity int, wall bool) error {
 		own := leaf.Owner
 		for _, role := range coincident {
-			own.Supports = append(own.Supports, HierarchyLineSupport{role, 0})
+			own.Supports = append(own.Supports, HierarchyLineSupport{Role: role, Multiplicity: 0})
 		}
 		if wall && !wallCoincident {
-			own.Supports = append(own.Supports, HierarchyLineSupport{"wall", wallMultiplicity})
+			own.Supports = append(own.Supports, HierarchyLineSupport{Role: "wall", Multiplicity: wallMultiplicity})
 		}
 		for i, t := range capT {
 			if t == nil || t.Cmp(lower) < 0 || t.Cmp(upper) > 0 {
@@ -124,7 +124,7 @@ func clipHierarchyCylinder(ctx context.Context, leaf HierarchyLineLeaf, x, d [3]
 				if i == 1 {
 					role = "upper-cap"
 				}
-				own.Supports = append(own.Supports, HierarchyLineSupport{role, 1})
+				own.Supports = append(own.Supports, HierarchyLineSupport{Role: role, Multiplicity: 1})
 			}
 		}
 		if len(own.Supports) == 1 {
@@ -170,7 +170,7 @@ func clipHierarchyCylinder(ctx context.Context, leaf HierarchyLineLeaf, x, d [3]
 	}
 	appendSpan := func(l, u *geom.ExactAlgebraicRoot) {
 		if len(coincident) > 0 {
-			leaf.BoundarySpans = append(leaf.BoundarySpans, HierarchyLineBoundarySpan{l, u, append([]string(nil), coincident...)})
+			leaf.BoundarySpans = append(leaf.BoundarySpans, HierarchyLineBoundarySpan{Lower: l, Upper: u, Roles: append([]string(nil), coincident...)})
 		} else {
 			leaf.Spans = append(leaf.Spans, HierarchyLineSpan{l, u})
 		}

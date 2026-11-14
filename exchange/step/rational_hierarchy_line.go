@@ -8,29 +8,33 @@ import (
 
 // RationalHierarchyLineOptions bounds all root isolation/comparison work together.
 // Defaults are 2,000,000 operations, 4096 coefficient bits, 4096 subdivisions.
-// Source reproof is independently bounded. Sphere, ring-torus and finite cylinder leaves
-// are clipped; planar occurrences are returned explicitly as unsupported.
+// Source reproof is independently bounded. Analytic and proved convex hole-free
+// planar leaves are clipped; other planar leaves are explicitly unsupported.
 type RationalHierarchyLineOptions struct {
 	MaxOperations, MaxCoefficientBits, MaxSubdivisions int
+	MaxPlanarTests                                     int
 	Source                                             Limits
 }
 type HierarchyLineOwner struct {
-	ProductID, SourceProductID, SourceBodyID int64
-	Path, SourceFaceIDs                      []int64
-	Family                                   string
-	Multiplicity                             int
-	Supports                                 []HierarchyLineSupport
+	ProductID, SourceProductID, SourceBodyID         int64
+	Path, SourceFaceIDs                              []int64
+	Family                                           string
+	Multiplicity                                     int
+	Supports                                         []HierarchyLineSupport
+	ContactFaceIDs, ContactEdgeIDs, ContactVertexIDs []int64
 }
 
 // HierarchyLineSupport records a support root multiplicity; zero means the
 // complete line lies on that support. A multi-support owner has Multiplicity=0.
 type HierarchyLineSupport struct {
+	SourceFaceID int64
 	Role         string
 	Multiplicity int
 }
 type HierarchyLineBoundarySpan struct {
-	Lower, Upper *geom.ExactAlgebraicRoot
-	Roles        []string
+	Lower, Upper                 *geom.ExactAlgebraicRoot
+	Roles                        []string
+	SourceFaceIDs, SourceEdgeIDs []int64
 }
 
 // HierarchyLineHit retains every exactly simultaneous occurrence owner.
@@ -46,6 +50,7 @@ type HierarchyLineSpan struct{ Lower, Upper *geom.ExactAlgebraicRoot }
 type HierarchyLineLeaf struct {
 	Owner                HierarchyLineOwner
 	Supported            bool
+	UnsupportedReason    string
 	LowerSign, UpperSign int
 	Spans                []HierarchyLineSpan
 	BoundarySpans        []HierarchyLineBoundarySpan
@@ -55,6 +60,7 @@ type RationalHierarchyLine struct {
 	Hits                     []HierarchyLineHit
 	LengthUnit               float64
 	Operations, Subdivisions int
+	PlanarTests              int
 }
 
 func ClipRationalHierarchyAnalyticLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions) (RationalHierarchyLine, error) {
@@ -78,6 +84,12 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 		o.MaxSubdivisions = 4096
 	}
 	if o.MaxOperations < 1 || o.MaxOperations > 20000000 || o.MaxCoefficientBits < 256 || o.MaxCoefficientBits > 8192 || o.MaxSubdivisions < 1 || o.MaxSubdivisions > 65536 {
+		return bad(geom.ErrInvalid)
+	}
+	if o.MaxPlanarTests == 0 {
+		o.MaxPlanarTests = 65536
+	}
+	if o.MaxPlanarTests < 1 || o.MaxPlanarTests > 1048576 {
 		return bad(geom.ErrInvalid)
 	}
 	a := hierarchyPointArithmetic{bits: o.MaxCoefficientBits}
@@ -180,6 +192,14 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 		}
 		owner := HierarchyLineOwner{ProductID: location.ProductID, SourceProductID: location.SourceProductID, SourceBodyID: location.SourceBodyID, Path: append([]int64(nil), location.Path...), SourceFaceIDs: append([]int64(nil), location.SourceFaceIDs...), Family: location.Family}
 		leaf := HierarchyLineLeaf{Owner: owner}
+		if location.Family == "planar" {
+			leaf, e = clipHierarchyPlanar(ctx, leaf, m.Products[location.ProductID], m.Instances[k], origin, direction, lower, upper, &a, &out, o.MaxPlanarTests, opts, addHit)
+			if e != nil {
+				return bad(e)
+			}
+			out.Leaves = append(out.Leaves, leaf)
+			continue
+		}
 		if location.Family != "sphere" && location.Family != "torus" && location.Family != "cylinder" {
 			out.Leaves = append(out.Leaves, leaf)
 			continue
