@@ -2311,3 +2311,10 @@ surviving fraction of each original extrusion interval.
 clearance of a complete cutter. It retains the stock boundary and reverses
 only the original cutter faces. Both shell graphs keep original face, edge
 and vertex ancestry. The exact volume subtracts the entire nested prism.
+
+### Contained native prism through Cut
+
+A separately authenticated contained tool can span both stock caps.
+`trimmed.CutContainedNativePrismThrough` opens both original caps and
+sews reversed original tool walls with exact clipped height intervals.
+Original cap, wall and edge ancestry remains available.

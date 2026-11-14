@@ -6161,3 +6161,10 @@ and original winding orders. Both placed analytic results survive native
 reload. The exact point tests include a two-owner tangent junction and
 rational inside and outside probes below binary64 resolution. Nonconvex and
 unrepresentable profiles reject. The full offset race passed in 170.800 s.
+
+### Native prism through-cut qualification
+
+Tests cover covering spans, exact cap ties, a nonconvex stock with a
+contained triangular profile, rational source-corner reconstruction and
+unsupported contact rejection. The combined blind, boss, cavity and
+through race passed in 1.942 s.
