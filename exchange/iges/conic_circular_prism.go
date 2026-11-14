@@ -190,10 +190,13 @@ func normalizeCircularPrismSource(doc *topologySource) (map[int][]float64, error
 		case 122:
 			zero = []int{3}
 		case 502:
-			if len(rec.values) != 8 {
+			if len(rec.values) != 8 && len(rec.values) != 14 {
 				return nil, geom.ErrInvalid
 			}
 			zero = []int{3, 6}
+			if len(rec.values) == 14 {
+				zero = append(zero, 9, 12)
+			}
 		case 190, 186, 504, 508, 510, 514:
 		default:
 			return nil, geom.ErrInvalid
