@@ -23,7 +23,22 @@ func BoxCrossedBores345(ctx context.Context, frame geom.Frame, dimensions, cross
 // Z ratios. The accepted ratios are 4:3, 3:4, 12:5 and 5:12. Both oblique X-cap ellipses
 // must be fully inside the stock faces.
 func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, axisRatio geom.Vec2, radius, tolerance float64) (BoxCrossedBoresResult, error) {
-	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
+	out, _, err := boxCrossedObliqueBores(ctx, frame, dimensions, crossing, axisRatio, radius, 0, false, tolerance)
+	return out, err
+}
+
+// BoxObliqueFloorCrossedBores retains a planar stop at station measured
+// along the positive oblique axis from the intersection. The entry is the
+// lower X cap unless opposite is set. The cardinal bore remains through.
+func BoxObliqueFloorCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, ratio geom.Vec2, radius, station float64, opposite bool, tolerance float64) (BoxCrossedBoresResult, int, error) {
+	if !finite(station) || (!opposite && station <= 0) || (opposite && station >= 0) {
+		return BoxCrossedBoresResult{}, -1, geom.ErrDomain
+	}
+	return boxCrossedObliqueBores(ctx, frame, dimensions, crossing, ratio, radius, station, opposite, tolerance)
+}
+
+func boxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, axisRatio geom.Vec2, radius, station float64, opposite bool, tolerance float64) (BoxCrossedBoresResult, int, error) {
+	fail := func(e error) (BoxCrossedBoresResult, int, error) { return BoxCrossedBoresResult{}, -1, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
 	}
@@ -68,6 +83,17 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			return fail(geom.ErrDomain)
 		}
 	}
+	remaining := 0.
+	if station != 0 {
+		advance, exit := station, stretch*(dimensions.X-crossing.X)
+		if opposite {
+			advance, exit = -station, stretch*crossing.X
+		}
+		remaining = exit - advance
+		if advance <= positive*radius+pad || remaining <= slope*radius+pad {
+			return fail(geom.ErrDomain)
+		}
+	}
 	b, e := crossedStockBuilder(ctx, frame, dimensions)
 	if e != nil {
 		return fail(e)
@@ -85,6 +111,7 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 	vector := func(v geom.Vec3) geom.Vec3 {
 		return frame.XAxis().Scale(v.X).Add(frame.YAxis().Scale(v.Y)).Add(frame.ZAxis().Scale(v.Z))
 	}
+	var floor *Face
 	for axis := 0; axis < 2; axis++ {
 		radialX, radialY, direction := geom.Vec3{X: 1}, geom.Vec3{Y: 1}, geom.Vec3{Z: 1}
 		caps := [2]int{0, 1}
@@ -130,6 +157,22 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			return crossing.Add(geom.Vec3{X: -rx[i], Y: -ry[i], Z: -negative * rx[i]})
 		}
 		for k, id := range caps {
+			atFloor := axis == 1 && station != 0 && (k == 0) == opposite
+			if atFloor {
+				// Author the common circular rim in a temporary planar face.
+				// Append its reversed loop after all walls so through and
+				// finite models preserve the same wall identifiers.
+				f, e := geom.NewFrame(cf.ToWorld(geom.Vec3{Z: station}), cf.XAxis(), cf.ZAxis())
+				if e != nil {
+					return fail(e)
+				}
+				plane, e := geom.NewPlaneSurface(f)
+				if e != nil {
+					return fail(e)
+				}
+				id = len(b.faces)
+				b.faces = append(b.faces, Face{Surface: plane})
+			}
 			level := low
 			if k == 1 {
 				level = high
@@ -137,7 +180,11 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			center := crossing.Add(direction.Scale(level))
 			capRadialX, capRadialY := radialX, radialY
 			capPoint := func(i int) geom.Vec3 { return point(i, level) }
-			if axis == 1 {
+			rimCos := capCos
+			if atFloor {
+				level, center, rimCos = station, crossing.Add(direction.Scale(station)), 0
+				capPoint = func(i int) geom.Vec3 { return point(i, station) }
+			} else if axis == 1 {
 				x := 0.
 				if k == 1 {
 					x = dimensions.X
@@ -149,7 +196,7 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			// The constant/cosine/sine coefficient residual bounds every point on the
 			// common cap conic, not just its sampled endpoints.
 			actualCenter := cf.Origin().Add(cf.ZAxis().Scale(level))
-			actualCos := cf.XAxis().Scale(radius).Add(cf.ZAxis().Scale(capCos))
+			actualCos := cf.XAxis().Scale(radius).Add(cf.ZAxis().Scale(rimCos))
 			actualSin := cf.YAxis().Scale(radius)
 			residual := actualCenter.Distance(frame.ToWorld(center)) + actualCos.Distance(vector(capRadialX).Scale(radius)) + actualSin.Distance(vector(capRadialY).Scale(radius))
 			if residual+arithmeticReserve > tolerance/8 {
@@ -157,6 +204,15 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			}
 			if e = b.crossedCapWire(frame, frame.ToWorld(center), vector(capRadialX), vector(capRadialY), radius, id, k == 1, angles, capPoint, normalize); e != nil {
 				return fail(e)
+			}
+			if atFloor {
+				f := b.faces[id]
+				f.Outer, f.Holes, f.Reversed = f.Holes[0], nil, !opposite
+				if !opposite {
+					f.Outer = reverseUnionLoop(f.Outer)
+				}
+				floor = &f
+				b.faces = b.faces[:id]
 			}
 		}
 		if axis == 1 {
@@ -186,7 +242,12 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 				if upper {
 					capHeight = high
 				}
-				ca, cc := capHeight+capCos*[]float64{1, 0, -1, 0, 1}[i], capHeight+capCos*[]float64{1, 0, -1, 0, 1}[i+1]
+				atFloor := axis == 1 && station != 0 && upper != opposite
+				rimCos := capCos
+				if atFloor {
+					capHeight, rimCos = station, 0
+				}
+				ca, cc := capHeight+rimCos*[]float64{1, 0, -1, 0, 1}[i], capHeight+rimCos*[]float64{1, 0, -1, 0, 1}[i+1]
 				ra, rc := coeff*[]float64{1, 0, -1, 0, 1}[i], coeff*[]float64{1, 0, -1, 0, 1}[i+1]
 				lo0, lo1, hi0, hi1 := ca, cc, ra, rc
 				if upper {
@@ -203,7 +264,7 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 					points[0], points[1] = rimPoint(i, upper), rimPoint(i+1, upper)
 				}
 				// Anchor cap vertices to their exact supporting stock plane.
-				if axis == 1 {
+				if axis == 1 && !atFloor {
 					x := 0.
 					if upper {
 						x = dimensions.X
@@ -223,8 +284,8 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 					rim.From, rim.To = a, c
 				}
 				curves[edge] = rim
-				if axis == 1 {
-					cap := EllipseUV{Center: geom.Vec2{Y: capHeight}, Linear: geom.Vec2{X: 1}, Cos: geom.Vec2{Y: capCos}, From: a, To: c}
+				if axis == 1 && !atFloor {
+					cap := EllipseUV{Center: geom.Vec2{Y: capHeight}, Linear: geom.Vec2{X: 1}, Cos: geom.Vec2{Y: rimCos}, From: a, To: c}
 					if upper {
 						cap.From, cap.To = c, a
 					}
@@ -256,6 +317,11 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 			}
 		}
 	}
+	floorID := -1
+	if floor != nil {
+		floorID = len(b.faces)
+		b.faces = append(b.faces, *floor)
+	}
 	solid, e := NewSolid(b.vertices, b.edges, b.faces, tolerance)
 	if e != nil {
 		return fail(e)
@@ -264,10 +330,14 @@ func BoxCrossedObliqueBores(ctx context.Context, frame geom.Frame, dimensions, c
 	intersection := 16 * stretch
 	removed := math.Pi*radius*radius*span - intersection*radius*radius*radius/3
 	delta := 2*math.Pi*radius*span - intersection*radius*radius - 2*(1+stretch)*math.Pi*radius*radius
+	if floor != nil {
+		removed -= math.Pi * radius * radius * remaining
+		delta += math.Pi*radius*radius*(1+stretch) - 2*math.Pi*radius*remaining
+	}
 	if !finite(removed) || !finite(delta) {
 		return fail(geom.ErrInvalid)
 	}
-	return BoxCrossedBoresResult{Solid: solid, RemovedVolume: removed, SurfaceAreaDelta: delta}, nil
+	return BoxCrossedBoresResult{Solid: solid, RemovedVolume: removed, SurfaceAreaDelta: delta}, floorID, nil
 }
 
 // BoxBlindCrossedObliqueBores retains a cardinal floor beyond the complete

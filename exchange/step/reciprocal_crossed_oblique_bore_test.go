@@ -162,3 +162,67 @@ func TestBlindCrossedObliqueBoreSTEP(t *testing.T) {
 		}
 	}
 }
+
+func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
+	for _, n := range []geom.Vec3{{Z: 1}, {Y: -1}} {
+		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, station := range []float64{5, -5, 6.25, -6.25} {
+			m := CrossedObliqueBoreModel{LengthUnit: .001, Body: CrossedObliqueBoreBody{Name: "cardinal through and oblique blind",
+				Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 40}, Crossing: geom.Vec3{X: 10, Y: 8, Z: 20},
+				Radius: 2, ObliqueFloor: station}}
+			var out bytes.Buffer
+			if err := WriteCrossedObliqueBore(&out, m); err != nil {
+				t.Fatal(n, station, err)
+			}
+			if strings.Count(out.String(), "ELLIPSE(") != 12 || strings.Contains(out.String(), "B_SPLINE_CURVE_WITH_KNOTS") {
+				t.Fatal(n, station, "unexpected conic representation")
+			}
+			got, err := ReadCrossedObliqueBore(bytes.NewReader(out.Bytes()), Limits{})
+			if err != nil || math.Abs(got.Body.ObliqueFloor-station) > 1e-10 || got.Body.BlindDepth != 0 {
+				t.Fatal(n, station, got, err)
+			}
+			var again bytes.Buffer
+			if err := WriteCrossedObliqueBore(&again, got); err != nil || !bytes.Equal(out.Bytes(), again.Bytes()) {
+				t.Fatal(n, station, err)
+			}
+			if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
+				continue
+			}
+			dir := t.TempDir()
+			src, dest := filepath.Join(dir, "oblique-floor.step"), filepath.Join(dir, "mass.json")
+			if err := os.WriteFile(src, out.Bytes(), 0600); err != nil {
+				t.Fatal(err)
+			}
+			stepOracle(t, dest, "step-mass-precise", src)
+			raw, err := os.ReadFile(dest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var measures struct {
+				Volume, Area float64
+				Centroid     [3]float64
+			}
+			if err := json.Unmarshal(raw, &measures); err != nil {
+				t.Fatal(err)
+			}
+			remaining := 12.5 - math.Abs(station)
+			v := 12800 - 260*math.Pi + 160./3 + 4*math.Pi*remaining
+			a := 3520 + 251*math.Pi - 80 - 4*math.Pi*remaining
+			// Relative to the through part, the retained exit wedge
+			// has a circular section whose upper height varies linearly.
+			cd := geom.Vec3{X: .8, Z: .6}
+			rd := geom.Vec3{X: -.6, Z: .8}
+			s := math.Copysign(1, station)
+			moment := cd.Scale(s * 4 * math.Pi * ((12.5*12.5-station*station)/2 + .75*.75/2)).
+				Add(rd.Scale(s * .75 * 4 * math.Pi))
+			center := f.ToWorld(m.Body.Crossing.Add(moment.Scale(1 / v)))
+			if math.Abs(measures.Volume-v) > 1e-8*v || math.Abs(measures.Area-a) > 1e-8*a ||
+				center.Distance(geom.Vec3{X: measures.Centroid[0], Y: measures.Centroid[1], Z: measures.Centroid[2]}) > 1e-6 {
+				t.Fatal(n, station, measures, v, a, center)
+			}
+		}
+	}
+}

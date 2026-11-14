@@ -128,8 +128,9 @@ full-radius bound. Bounded tessellation handles the first tighter
 case within the existing worker deadline. The equal-radius cardinal and
 oblique crossing now exchanges on all three cardinal axes. The cardinal
 Hole may retain a blind floor beyond the complete oblique crossing and
-accept a later coaxial cut after STEP import. Continue with floors that
-intersect the cylinder crossing and other concrete cutter placements.
+accept a later coaxial cut after STEP import. The oblique Hole can also
+retain a floor beyond its complete crossing, from either entry. Continue
+with floors that intersect the crossing and other concrete placements.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser

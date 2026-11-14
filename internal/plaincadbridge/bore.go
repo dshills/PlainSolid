@@ -423,7 +423,7 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		if (f.Face == 0 && (h.blindDepth == 0 || !h.oppositeCap)) || (f.Face == 1 && (h.blindDepth == 0 || h.oppositeCap)) {
 			f.Area -= math.Pi * h.radius * h.radius
 		}
-		if f.Face == 3 || f.Face == 5 {
+		if (f.Face == 3 && h.obliqueFloor <= 0) || (f.Face == 5 && h.obliqueFloor >= 0) {
 			coefficients, _ := trimmed.CrossedObliqueCoefficients(h.axisRatio)
 			f.Area -= coefficients.Stretch * math.Pi * h.radius * h.radius
 		}

@@ -18,70 +18,76 @@ type obliqueBore struct {
 // rectangular stock. The slab intersections locate the actual opening faces.
 // BoreCylinderAlong then proves both full ellipses are strictly interior to
 // those faces and constructs the closed analytic boundary.
+type obliqueStockSpan struct {
+	cut         trimmed.CylinderCut
+	entry, exit geom.Plane
+	axis        geom.Vec3
+	start, end  float64
+}
+
 func newObliqueThroughBore(base brep.Solid, tool *cylinderBody) (*boreBody, bool, error) {
+	span, handled, err := findObliqueStockSpan(base, tool)
+	if !handled || err != nil {
+		return nil, handled, err
+	}
+	if !toolCapClearsOpening(tool, span.entry, 0) || !toolCapClearsOpening(tool, span.exit, tool.height) {
+		return nil, true, unsupportedEdge("finite oblique cylinder does not cover both entire stock openings")
+	}
+	body, err := buildObliqueThroughBore(base, tool, span.cut, span.axis, span.entry, span.exit, span.end-span.start)
+	return body, true, err
+}
+
+func findObliqueStockSpan(base brep.Solid, tool *cylinderBody) (obliqueStockSpan, bool, error) {
 	if tool == nil {
-		return nil, false, nil
+		return obliqueStockSpan{}, false, nil
 	}
 	direction := tool.frame.ZAxis()
-	nonzero := 0
-	for _, component := range coordinates(direction) {
-		if component != 0 {
-			nonzero++
-		}
-	}
-	if nonzero < 2 {
-		return nil, false, nil
+	if direction.X == 0 && direction.Y == 0 || direction.X == 0 && direction.Z == 0 || direction.Y == 0 && direction.Z == 0 {
+		return obliqueStockSpan{}, false, nil
 	}
 	frame, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if err != nil {
-		return nil, false, err
+		return obliqueStockSpan{}, false, err
 	}
 	if _, ok := orthogonalPrism(base, frame); !ok {
-		return nil, false, nil
+		return obliqueStockSpan{}, false, nil
 	}
-	fail := func(message string) (*boreBody, bool, error) {
-		return nil, true, &failureError{"UNSUPPORTED", message}
+	fail := func(message string) (obliqueStockSpan, bool, error) {
+		return obliqueStockSpan{}, true, unsupportedEdge(message)
 	}
-
 	axis, err := direction.Unit()
 	if err != nil {
-		return nil, true, err
+		return obliqueStockSpan{}, true, err
 	}
-	var entry, exit geom.Plane
-	cut := trimmed.CylinderCut{Entry: -1, Exit: -1, AxisPoint: tool.frame.Origin(), Direction: direction, Radius: tool.radius}
-	start, end := math.Inf(-1), math.Inf(1)
+	span := obliqueStockSpan{axis: axis, start: math.Inf(-1), end: math.Inf(1),
+		cut: trimmed.CylinderCut{Entry: -1, Exit: -1, AxisPoint: tool.frame.Origin(), Direction: direction, Radius: tool.radius}}
 	for i := range base.Faces() {
 		plane, err := base.FacePlane(i)
 		if err != nil {
-			return nil, true, err
+			return obliqueStockSpan{}, true, err
 		}
 		denominator := plane.Normal().Dot(axis)
 		if denominator == 0 {
-			if plane.SignedDistance(cut.AxisPoint) >= 0 {
+			if plane.SignedDistance(span.cut.AxisPoint) >= 0 {
 				return fail("oblique cylinder axis does not cross the stock interior")
 			}
 			continue
 		}
-		t := -plane.SignedDistance(cut.AxisPoint) / denominator
+		t := -plane.SignedDistance(span.cut.AxisPoint) / denominator
 		if !finite(t) {
 			return fail("oblique cylinder support intersection exceeds numeric range")
 		}
-		if denominator < 0 && t > start {
-			cut.Entry, entry, start = i, plane, t
-		} else if denominator > 0 && t < end {
-			cut.Exit, exit, end = i, plane, t
+		if denominator < 0 && t > span.start {
+			span.cut.Entry, span.entry, span.start = i, plane, t
+		} else if denominator > 0 && t < span.end {
+			span.cut.Exit, span.exit, span.end = i, plane, t
 		}
 	}
-
-	length := end - start
-	if cut.Entry < 0 || cut.Exit < 0 || !finite(length) || length <= 0 {
+	length := span.end - span.start
+	if span.cut.Entry < 0 || span.cut.Exit < 0 || !finite(length) || length <= 0 {
 		return fail("oblique cylinder axis does not cross the stock interior")
 	}
-	if !toolCapClearsOpening(tool, entry, 0) || !toolCapClearsOpening(tool, exit, tool.height) {
-		return fail("finite oblique cylinder does not cover both entire stock openings")
-	}
-	body, err := buildObliqueThroughBore(base, tool, cut, axis, entry, exit, length)
-	return body, true, err
+	return span, true, nil
 }
 
 func buildObliqueThroughBore(base brep.Solid, tool *cylinderBody, cut trimmed.CylinderCut, axis geom.Vec3, entry, exit geom.Plane, length float64) (*boreBody, error) {

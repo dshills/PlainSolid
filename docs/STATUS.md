@@ -123,6 +123,9 @@ beyond the complete crossing. Both entry directions exchange exact STEP,
 and a subsequent coaxial cut can deepen or open the imported floor.
 Grouped oblique crossings discard fully covered coaxial tools after
 proving the retained spans. Their STEP matches the visible-only pair.
+The oblique Hole itself can carry a circular blind floor after the
+complete crossing. Both entry directions and a later deeper Hole
+retain canonical STEP.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its
