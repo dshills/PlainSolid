@@ -12,7 +12,8 @@ import (
 )
 
 // SideOpeningPairBody retains two overlapping finite cylindrical openings on
-// the front side of a rectangular stock. Each cut enters its selected cap;
+// rectangular stock. Each disk crosses exactly one side, which may differ
+// between cuts, and each cut enters its selected end cap;
 // Depth=Length opens both caps. Dimensions and centers are in Frame coordinates.
 type SideOpeningPairBody struct {
 	Name                string
@@ -78,14 +79,10 @@ func ReadSideOpeningPair(r io.Reader, limits Limits) (SideOpeningPairModel, erro
 func recoverSideOpeningPair(f *File, id int64) (SideOpeningPairBody, error) {
 	fail := func() (SideOpeningPairBody, error) { return SideOpeningPairBody{}, circularSourceFailure() }
 	g, err := readCircularGraph(f, id, true)
-	if err != nil || len(g.faces) < 8 || len(g.faces) > 128 || g.faces[0].kind != "PLANE" || g.faces[1].kind != "PLANE" {
+	if err != nil || len(g.faces) < 8 || len(g.faces) > 128 || g.faces[0].kind != "PLANE" {
 		return fail()
 	}
 	frame := g.faces[0].frame
-	end := frame.ToLocal(g.faces[1].frame.Origin())
-	if end.X != 0 || end.Y != 0 || end.Z <= 0 {
-		return fail()
-	}
 	var vertices []geom.Vec3
 	for _, edge := range g.edges {
 		for _, vertex := range []int64{edge.a, edge.b} {
@@ -97,7 +94,20 @@ func recoverSideOpeningPair(f *File, id int64) (SideOpeningPairBody, error) {
 		}
 	}
 	bounds, err := geom.Bounds(vertices)
-	if err != nil || bounds.Min != (geom.Vec3{}) || bounds.Max.X <= 0 || bounds.Max.Y <= 0 || bounds.Max.Z != end.Z {
+	if err != nil || bounds.Min != (geom.Vec3{}) || bounds.Max.X <= 0 || bounds.Max.Y <= 0 || bounds.Max.Z <= 0 {
+		return fail()
+	}
+	// One cap may contain multiple disconnected planar patches even when
+	// material reconnects behind a blind floor. Recover axial extent from all
+	// model vertices, and require the canonical upper support before complete
+	// graph regeneration verifies cap patch ownership and ordering.
+	upper := false
+	for _, face := range g.faces {
+		if face.kind == "PLANE" && face.frame.XAxis() == frame.XAxis() && face.frame.ZAxis() == frame.ZAxis() && frame.ToLocal(face.frame.Origin()) == (geom.Vec3{Z: bounds.Max.Z}) {
+			upper = true
+		}
+	}
+	if !upper {
 		return fail()
 	}
 	body, err := simple(f, id, "MANIFOLD_SOLID_BREP", 2)

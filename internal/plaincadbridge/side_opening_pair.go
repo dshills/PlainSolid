@@ -32,8 +32,17 @@ func pairCylinderSpan(p step.SideOpeningPairBody, tool *cylinderBody) (trimmed.E
 }
 
 func crossesPairSide(p step.SideOpeningPairBody, c trimmed.ExtrusionCircle) bool {
-	return math.Abs(c.Center.Y) < c.Radius && c.Center.X-c.Radius > 0 &&
-		c.Center.X+c.Radius < p.Width && c.Center.Y+c.Radius < p.Back
+	crossings := 0
+	for _, distance := range [...]float64{c.Center.Y, p.Width - c.Center.X, p.Back - c.Center.Y, c.Center.X} {
+		if distance > c.Radius {
+			continue
+		}
+		if math.Abs(distance) >= c.Radius {
+			return false
+		}
+		crossings++
+	}
+	return crossings == 1
 }
 
 // Keep the precise equal-depth family when it can represent the exact

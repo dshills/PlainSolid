@@ -1,0 +1,77 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "b12b456b7d9330c8cd402fb611a787bd20ad28793cf22d372d3a634282d2105b",
+  "supplemental": {
+    "report": "/tmp/plainsolid-lateral-pair-browser-5451/browser-results.json",
+    "reportSha256": "59b382e11ef1d9de7aa5af05fa495298803371960911086bce0796d33fd3017a",
+    "sourceSha256": "610a2c1fcd6d645f4d3f5cad946e6e409c2788d07949a72acc6801525448312f",
+    "summary": {
+      "startTime": "2026-11-14T07:48:50.668Z",
+      "duration": 15286.680999999999,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "cases": [
+      {
+        "stockSides": "adjacent",
+        "entryCaps": "same",
+        "depthsMm": [
+          5,
+          6
+        ],
+        "floorStationsMm": [
+          5,
+          6
+        ],
+        "analyticVolume": 3056.5878116786,
+        "surfaceArea": 1441.6324416616094,
+        "stlTriangles": 180,
+        "stlTwoUseEdges": 270,
+        "stlSignedVolume": 3057.210025773124,
+        "stepSha256": "413038842342da6efa7776bf17723e5671605526b7594d71ff8b952384425c94",
+        "stlSha256": "5a9d982ad3588e83a68bb4a365f04fd3d7c51eaaa7a34829c77219e84366b1fe"
+      },
+      {
+        "stockSides": "opposite",
+        "entryCaps": "opposed",
+        "depthsMm": [
+          5,
+          6
+        ],
+        "floorStationsMm": [
+          2,
+          5
+        ],
+        "analyticVolume": 1035.5763971789147,
+        "surfaceArea": 825.2281915406863,
+        "stlTriangles": 300,
+        "stlTwoUseEdges": 450,
+        "stlSignedVolume": 1036.5622294869872,
+        "stepSha256": "75f39e380699174b53bcc35f58eb758b92601a7eb12084153395963183deecb0",
+        "stlSha256": "b2f3a15940ed02db2150074c70c2608d3a5266da46714fc2e6c5281a0a437d16"
+      }
+    ]
+  },
+  "focusedRaceSeconds": {
+    "brep/trimmed": 1.703,
+    "exchange/step": 31.274,
+    "internal/plaincadbridge": 7.212
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "placements": 6,
+    "newCases": 48,
+    "totalCases": 90,
+    "checks": [
+      "BRep validity",
+      "volume",
+      "surface area",
+      "centroid"
+    ]
+  },
+  "vet": "passed"
+}
