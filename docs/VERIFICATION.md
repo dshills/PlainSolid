@@ -5644,6 +5644,9 @@ For one-coordinate height differences, exact real-root isolation now
 distinguishes genuine crossings from even-multiplicity contacts anywhere
 in the original footprint. The authored `X=1/3` tangency retains the flat
 Common and does not qualify a strictly separated Cut band.
+The ordered Cut dispatcher also carries the reversed output face IDs into
+its ancestry report, verified for the two-band case in the live 6.587 s
+Cut race run.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

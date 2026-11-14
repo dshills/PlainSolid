@@ -87,7 +87,11 @@ type SplineShellCombineHistory struct {
 	// PlanarEdges is exhaustive edge provenance for the planar fallback.
 	// It records exact input/output overlap intervals and owning faces.
 	PlanarEdges []poly.EdgeAncestry
-	Method      string
+	// ReversedFaces indexes retained output faces whose orientation is
+	// reversed from their single original face. The ordered roof Cut fills
+	// this ledger; other paths may leave it nil.
+	ReversedFaces []int
+	Method        string
 }
 
 // CombineSplineShells selects a certified Boolean path for rectangular
@@ -164,6 +168,9 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 			for resultFace, source := range h.Faces {
 				row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
 				row[source.Face] = append(row[source.Face], resultFace)
+				if h.Reversed[resultFace] {
+					r.ReversedFaces = append(r.ReversedFaces, resultFace)
+				}
 			}
 			return s, r, nil
 		}

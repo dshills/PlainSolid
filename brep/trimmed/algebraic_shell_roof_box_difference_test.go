@@ -127,7 +127,7 @@ func TestOrderedRoofBoxDifferenceFloatingCutter(t *testing.T) {
 		}
 	}
 	_, ledger, err := CombineSplineShells(ctx, stock, cutter, parametric.Difference, SplineShellCombineOptions{OrderedRoofCut: &SplineShellRoofOptions{}})
-	if err != nil || ledger.Method != "ordered-roof-cut" || len(ledger.FacesA[0]) != 2 || len(ledger.FacesB[0]) != 1 || ledger.FacesB[0][0] != 0 || len(ledger.FacesB[1]) != 1 || ledger.FacesB[1][0] != 7 {
+	if err != nil || ledger.Method != "ordered-roof-cut" || len(ledger.FacesA[0]) != 2 || len(ledger.FacesB[0]) != 1 || ledger.FacesB[0][0] != 0 || len(ledger.FacesB[1]) != 1 || ledger.FacesB[1][0] != 7 || len(ledger.ReversedFaces) != 2 || ledger.ReversedFaces[0] != 0 || ledger.ReversedFaces[1] != 7 {
 		t.Fatal("split ancestry survives opt-in dispatcher", ledger, err)
 	}
 	if s, h, err := SubtractOrderedRoofBoxes(ctx, stock, cutter, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{MaxOperations: 1}); !errors.Is(err, geom.ErrConvergence) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
