@@ -26,15 +26,23 @@ type SideOpenDualDiskCut struct {
 // Only the exact section/float-control domain is accepted; no faceted
 // fallback or supported-footprint expansion occurs.
 func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options) (SideOpenDualDiskCut, error) {
-	return cutSideOpenDualDisks(ctx, frame, min, max, discs, height, depth, tolerance, topology, false)
+	return cutSideOpenDualDisks(ctx, frame, min, max, discs, height, depth, tolerance, topology, false, false)
 }
 
-func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, unequal bool) (SideOpenDualDiskCut, error) {
+func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, unequal, general bool) (SideOpenDualDiskCut, error) {
 	var zero SideOpenDualDiskCut
 	if ctx == nil || !finite(height) || !finite(depth) || !finite(tolerance) || tolerance <= 0 || depth <= 0 || depth > height {
 		return zero, geom.ErrInvalid
 	}
-	s, e := certifySideOpenDualDiskSection(ctx, min, max, discs, topology, unequal)
+	var s SideOpenDualDiskSection
+	var e error
+	if general {
+		g, err := CertifyGeneralSideOpenDualDiskSection(ctx, min, max, discs, topology)
+		e = err
+		s = SideOpenDualDiskSection{Outer: g.Outer, Owner: g.Owner, Join: g.Join, XIntervals: g.XIntervals}
+	} else {
+		s, e = certifySideOpenDualDiskSection(ctx, min, max, discs, topology, unequal)
+	}
 	if e != nil {
 		return zero, e
 	}
@@ -47,17 +55,21 @@ func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 		o := s.Owner[i]
 		q := s.Outer[i]
 		if o >= 0 {
-			if i+1 >= len(s.Outer) || s.Owner[i+1] != o {
+			last := i
+			for last+1 < len(s.Outer) && s.Owner[last+1] == o {
+				last++
+			}
+			if !general && last != i+1 {
 				return zero, geom.ErrConvergence
 			}
 			a, _ := q.Endpoints()
-			z, _ := s.Outer[i+1].Endpoints()
+			z, _ := s.Outer[last].Endpoints()
 			d := discs[o]
 			q, e = shortRationalCircleArc(a[0], z[1], [2]*big.Rat{ratInset(d.Center.X), ratInset(d.Center.Y)}, ratInset(d.Radius))
 			if e != nil {
 				return zero, e
 			}
-			i++
+			i = last
 		}
 		chain, owners = append(chain, q), append(owners, o)
 	}

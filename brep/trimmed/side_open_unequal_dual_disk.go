@@ -36,7 +36,7 @@ type UnequalSideOpenDualDiskCut struct {
 // and original cap placement gates match the equal-radius constructor; no
 // approximation is substituted if a control or endpoint is unrepresentable.
 func CutUnequalSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, o trimvalidate.Options) (UnequalSideOpenDualDiskCut, error) {
-	r, e := cutSideOpenDualDisks(ctx, frame, min, max, discs, height, depth, tolerance, o, true)
+	r, e := cutSideOpenDualDisks(ctx, frame, min, max, discs, height, depth, tolerance, o, true, false)
 	if e != nil {
 		return UnequalSideOpenDualDiskCut{}, e
 	}
