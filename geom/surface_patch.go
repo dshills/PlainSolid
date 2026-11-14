@@ -297,43 +297,58 @@ func (p *SurfacePatch) SplitV(t float64) (*SurfacePatch, *SurfacePatch, error) {
 // Positive rational weights make its refined control hull an enclosure; no
 // sampling or unverified geometric epsilon is used to form the returned box.
 func (p *SurfacePatch) Trim(rectangle ParameterRectangle) (*SurfacePatch, error) {
-	if p == nil || len(p.net) == 0 || !rectangle.Valid() {
+	if p == nil {
 		return nil, ErrInvalid
+	}
+	out, _, e := p.TrimWithWorkLimit(rectangle, p.options.MaxOperations)
+	return out, e
+}
+
+// TrimWithWorkLimit exactly restricts a patch like Trim, with an explicit
+// operation limit for this call. It reports the work charged even on failure
+// and preserves the patch's original limits for subsequent calls.
+func (p *SurfacePatch) TrimWithWorkLimit(rectangle ParameterRectangle, maxOperations int) (_ *SurfacePatch, work int, err error) {
+	if p == nil || len(p.net) == 0 || !rectangle.Valid() {
+		return nil, 0, ErrInvalid
+	}
+	if maxOperations < 1 {
+		return nil, 0, ErrInvalid
 	}
 	domain := p.Domain()
 	if rectangle.UMin < domain.UMin || rectangle.UMax > domain.UMax || rectangle.VMin < domain.VMin || rectangle.VMax > domain.VMax {
-		return nil, ErrDomain
+		return nil, 0, ErrDomain
 	}
-	budget := &polynomialBudget{maxOperations: p.options.MaxOperations, maxBits: p.options.MaxCoefficientBits}
+	budget := &polynomialBudget{maxOperations: maxOperations, maxBits: p.options.MaxCoefficientBits}
+	defer func() { work = min(budget.operations, budget.maxOperations) }()
 	current := p
 	var e error
 	if rectangle.UMin > domain.UMin {
 		_, current, e = current.split(rectangle.UMin, true, budget)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	if rectangle.UMax < domain.UMax {
 		current, _, e = current.split(rectangle.UMax, true, budget)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	if rectangle.VMin > domain.VMin {
 		_, current, e = current.split(rectangle.VMin, false, budget)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	if rectangle.VMax < domain.VMax {
 		current, _, e = current.split(rectangle.VMax, false, budget)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	result := *current
 	result.operations = budget.operations
-	return &result, nil
+	return &result, budget.operations, nil
 }
 
 type PlanePatchRelation uint8

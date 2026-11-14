@@ -45,19 +45,31 @@ func (a *AffineXYChartAlignment) MapCoefficients() ([2][3]*big.Rat, error) {
 // ErrUnrepresentable rather than rounding the chart. All control values remain
 // rational, including nonbinary diagonal scales and reversals.
 func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o SurfacePatchOptions) (*AffineXYChartAlignment, error) {
+	a, _, e := AlignAffineXYChartsWithWork(ctx, source, target, o)
+	return a, e
+}
+
+// AlignAffineXYChartsWithWork also returns the exact work charged on failure.
+// This lets callers account for an unsuccessful proof before trying a
+// different construction under the same budget.
+func AlignAffineXYChartsWithWork(ctx context.Context, source, target *SurfacePatch, o SurfacePatchOptions) (_ *AffineXYChartAlignment, work int, err error) {
 	options, e := patchOptions(o)
 	if e != nil {
-		return nil, e
+		return nil, 0, e
 	}
-	if ctx == nil {
-		return nil, ErrInvalid
+	if ctx == nil || source == nil || target == nil {
+		return nil, 0, ErrInvalid
+	}
+	if len(source.net) > options.MaxPoles || len(target.net) > options.MaxPoles {
+		return nil, 0, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
+	defer func() { work = min(b.operations, b.maxOperations) }()
 	var inverse [2][2][3]*big.Rat
 	for i, p := range []*SurfacePatch{source, target} {
 		_, inverse[i], e = normalizeAffineXYGraph(ctx, p, b)
 		if e != nil {
-			return nil, e
+			return nil, 0, e
 		}
 	}
 	// Invert source inverse XY map, then compose with target inverse.
@@ -79,7 +91,7 @@ func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o Su
 				q.Add(q, inverse[1][i][2])
 			}
 			if e = b.check(q); e != nil {
-				return nil, e
+				return nil, 0, e
 			}
 			result.mapping[i][j] = q
 		}
@@ -87,17 +99,17 @@ func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o Su
 		for j := 0; j < 2; j++ {
 			if result.mapping[i][j].Sign() != 0 {
 				if axes[i] >= 0 {
-					return nil, ErrConvergence
+					return nil, 0, ErrConvergence
 				}
 				axes[i] = j
 			}
 		}
 		if axes[i] < 0 {
-			return nil, ErrDegenerate
+			return nil, 0, ErrDegenerate
 		}
 	}
 	if axes[0] == axes[1] {
-		return nil, ErrDegenerate
+		return nil, 0, ErrDegenerate
 	}
 	sd, td := source.Domain(), target.Domain()
 	sr := [2][2]float64{{sd.UMin, sd.UMax}, {sd.VMin, sd.VMax}}
@@ -110,16 +122,13 @@ func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o Su
 				ts = 1 - side
 			}
 			if q.Cmp(new(big.Rat).SetFloat64(tr[i][ts])) != 0 {
-				return nil, ErrDomain
+				return nil, 0, ErrDomain
 			}
 		}
 	}
 	p := *target
 	p.options = options
 	p.net = make([]exactHomogeneous, len(target.net))
-	if len(p.net) > options.MaxPoles {
-		return nil, ErrConvergence
-	}
 	degrees := [2]int{target.degreeU, target.degreeV}
 	counts := [2]int{target.countU, target.countV}
 	knots := [2][]float64{target.knotsU, target.knotsV}
@@ -132,11 +141,11 @@ func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o Su
 		for k, v := range knots[i] {
 			q := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(v), result.mapping[i][2]), result.mapping[i][j])
 			if e = b.check(q); e != nil {
-				return nil, e
+				return nil, 0, e
 			}
 			f, e := RepresentedExactScalar(q)
 			if e != nil {
-				return nil, e
+				return nil, 0, e
 			}
 			index := k
 			if result.mapping[i][j].Sign() < 0 {
@@ -162,12 +171,12 @@ func AlignAffineXYCharts(ctx context.Context, source, target *SurfacePatch, o Su
 		}
 	}
 	if e = p.computeBounds(b); e != nil {
-		return nil, e
+		return nil, 0, e
 	}
 	p.operations = b.operations
 	result.target = &p
 	result.operations = b.operations
-	return result, nil
+	return result, b.operations, nil
 }
 
 // AlignedGraphHeightRange bounds source Z minus target Z throughout the common

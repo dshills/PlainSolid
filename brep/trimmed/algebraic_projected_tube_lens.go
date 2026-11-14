@@ -208,8 +208,9 @@ func (l AlgebraicProjectedTubeLens) Solid(ctx context.Context, tolerance float64
 	return assembleTubeRegionSolid(ctx, faces, []tubeRegionSolidRing{r}, tolerance, o)
 }
 
-// BoundMassProperties reports exact rational volume, centroid and inertia
-// intervals in original model coordinates for matched rectangular charts.
+// BoundMassProperties certifies mass on the common projection of the two
+// original rectangular graph charts, including exact homogeneous supports.
+// It returns rational volume, centroid and inertia bounds in model coordinates.
 func (l AlgebraicProjectedTubeLens) BoundMassProperties(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (AlgebraicTubeLensMassBounds, error) {
 	if l.graphs[0] == nil {
 		return AlgebraicTubeLensMassBounds{}, geom.ErrInvalid
