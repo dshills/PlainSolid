@@ -120,6 +120,10 @@ func TestAlgebraicShellSectionOnExactBezierRoof(t *testing.T) {
 	if kept != 1 {
 		t.Fatal("Boolean selected a surrogate for its original exact roof", kept)
 	}
+	bounds, empty, e := common.BoundRetainedGeometry(ctx, geom.SurfacePatchOptions{})
+	if e != nil || empty || bounds.Min.Z != 0 || !bounds.Contains(geom.Vec3{X: .5, Y: .5, Z: 25.0 / 256}) {
+		t.Fatal("conservative retained-face bounds", bounds, empty, e)
+	}
 	union, e := r.CombineAlgebraic(ctx, parametric.Union, AlgebraicShellBooleanOptions{})
 	if e != nil {
 		t.Fatal(e)

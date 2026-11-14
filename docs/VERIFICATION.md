@@ -15,6 +15,10 @@ in isolation; that timeout does not establish an individual test failure.
 The subsequent CGO-disabled run at `0309862` again passed all 49 tested
 packages outside `brep/trimmed`, with three packages reporting no tests;
 it recorded 3,672 passing and 301 skipped test events, including subtests.
+The later CGO-disabled non-trimmed qualification at `61faf72` passed all 49
+tested packages, with three reporting no tests. It recorded 3,751 passing
+and 310 skipped test events. The corresponding three short trimmed shards
+are recorded separately when their runners finish.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -138,6 +142,12 @@ continuous native edge correspondence. The grouped line-event API (`7020ef7`)
 retains both original rim hits and verifies the different adjacent material
 states for common, union and cut; the simpler transition API still fails
 on simultaneous contacts.
+The placed-shell regression (`66b2456`) passed race on a reflected and
+translated original spline shell, including native reload and changed-recipe
+placement rejection. The certified degree-five mesh fixture (`c5bff88`)
+uses an original homogeneous X control of 11/40 and retains its source
+through section, Boolean, and closed tessellation. Its 1,520 triangles
+meet a two-sided distance bound of 0.097164 and pass exact contact checks.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

@@ -23,6 +23,13 @@ func TestAlgebraicShellSectionSeparated(t *testing.T) {
 	if e != nil || !r.Complete || len(r.Wires) != 0 || len(r.Pairs) != 0 {
 		t.Fatal(r, e)
 	}
+	common, e := r.CombineAlgebraic(ctx, parametric.Intersection, AlgebraicShellBooleanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if b, empty, e := common.Bounds(); e != nil || !empty || b != (geom.Box{}) {
+		t.Fatal("a disjoint result must report proved empty bounds", b, empty, e)
+	}
 	if _, e := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{MaxFacePairs: 1}); !errors.Is(e, geom.ErrConvergence) {
 		t.Fatal(e)
 	}
