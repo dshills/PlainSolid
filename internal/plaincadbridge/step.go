@@ -168,6 +168,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putBore(body)
 	}
+	if m, e := step.ReadDisjointObliqueBores(r(), stepLimits()); e == nil {
+		body, err := disjointObliqueFromSTEP(m)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putBore(body)
+	}
 	if m, e := step.ReadCrossedObliqueBore(r(), stepLimits()); e == nil {
 		body, err := crossedObliqueFromSTEP(m.Body, m.LengthUnit)
 		if err != nil {
@@ -434,6 +441,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 		body := step.CrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], Additional: p.additional}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: body, LengthUnit: .001})
+	case s.bore != nil && s.bore.disjointOblique != nil:
+		m, err := disjointObliqueSTEPRecipe(s.bore)
+		if err != nil {
+			return nil, err
+		}
+		e = step.WriteDisjointObliqueBores(&out, m)
 	case s.bore != nil && s.bore.obliqueCrossing != nil:
 		p := s.bore.obliqueCrossing
 		body := step.CrossedObliqueBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radius}

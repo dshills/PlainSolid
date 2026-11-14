@@ -154,6 +154,10 @@ func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, 
 }
 
 func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool) error {
+	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, crossedOblique, nil)
+}
+
+func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool, directions map[int]geom.Vec3) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -233,7 +237,7 @@ func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s
 				continue
 			}
 		}
-		if obliqueDirection != nil && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
+		if (obliqueDirection != nil || directions != nil) && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
 			curve, err := obliqueBoreEdgeCurve(a, b, os, surfaces)
 			if err != nil {
 				return err
@@ -369,6 +373,9 @@ func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s
 			normal := surface.frame.ZAxis()
 			if obliqueDirection != nil && surface.kind == "CYLINDRICAL_SURFACE" {
 				normal = *obliqueDirection
+			}
+			if d, ok := directions[i]; ok {
+				normal = d
 			}
 			p := placeDirection(surface.frame, normal)
 			if surface.kind == "PLANE" {

@@ -183,6 +183,12 @@ Its STEP exchange preserves both analytic ellipses and the cylinder support.
 An equal-radius cardinal bore and a concurrent oblique bore in the local
 4:3 axis ratio now retain their exact crossing ellipses and all four full
 stock openings through STEP and STL.
+Two or three separate through Holes can now combine oblique and cardinal
+axes in one rectangular stock body. Native sewing preserves the stock
+faces, and STEP preserves each circular or elliptical opening and its
+cylinder axis. The verified shallow oblique pair passes project reopen
+and watertight STL. Some steeper and three-component axes still reach
+the adaptive mesh budget.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

@@ -11,6 +11,9 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
+	if s.bore.disjointOblique != nil {
+		return s.bore.solid.TessellateDisjointObliqueBores(ctx, o)
+	}
 	if s.bore.obliqueCrossing != nil {
 		return s.bore.solid.TessellateCrossedBores345(ctx, o)
 	}
