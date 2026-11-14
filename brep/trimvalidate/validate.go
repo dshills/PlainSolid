@@ -297,6 +297,13 @@ func interval(c curve, axis point) (q, q) {
 // to the one prescribed common endpoint. Closed half-plane intersections on a
 // separator are themselves reduced to exact one-dimensional intervals.
 func hullSeparated(a, b curve, allowed *point) bool {
+	if coordinateHullSeparated(a, b) {
+		return true
+	}
+	return hullSeparatedAxes(a, b, allowed)
+}
+
+func hullSeparatedAxes(a, b curve, allowed *point) bool {
 	for _, axis := range append(axes(a), axes(b)...) {
 		alo, ahi := interval(a, axis)
 		blo, bhi := interval(b, axis)
