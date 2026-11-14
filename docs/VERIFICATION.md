@@ -2373,3 +2373,20 @@ original stock plane spans [-1/8,9/8] while the roof spans [0,1]. An initial run
 without that option was deliberately stopped after original section coverage;
 it was not a mesh qualification and its log is retained separately. No identity
 chart assumption or proof gate was weakened.
+
+The corrected original-source flagship passed on commit
+`72682d7a63a351bf6793da48214e1a470d2c47ea` with the explicit environment gate:
+2376.98 seconds for the complete test (2377.206 seconds package total), under
+`GOMAXPROCS=2`. The original nominal-degree-eight surfaces produced the same
+10,066-vertex/20,128-triangle disk-and-annulus display as the independent
+exact-degree-six fixture. All four native face owners and all 228 original
+edge/vertex bindings were retained, with closed component Euler characteristics
+2 and 0 and a complete global exact no-contact report. Counters were 59,134,086
+residual operations, 5,204,760 collision pairs, and 2280 endpoint operations.
+The residual work is lower than the earlier independent degree-six run's
+106,185,142 operations; this is not a controlled wall-time benchmark.
+Display volume remains 0.0002195165898933681 against independent analytic
+0.00023010462359255695, without claiming a certified volume-error bound.
+The same run independently rechecked original section coverage, native
+component construction, the tight exact volume enclosure and full mass tensor.
+Full log: `/tmp/plainsolid-original-triple-native-mesh.log`.

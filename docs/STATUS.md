@@ -1358,3 +1358,12 @@ products through total degree seventeen are retained. Existing operation/bit
 limits are unchanged. The original native triple-roof mesh qualification is
 explicitly enabled with `PLAINSOLID_TRIPLE_RADIAL_MESH=1`; a passing small
 residual proof does not itself claim that whole native mesh has qualified.
+
+The explicitly gated original nominal-degree-eight native flagship is now
+qualified: complete original source section and material, two native components,
+exact source mass properties, and a shared-boundary closed display of the disk
+plus annulus. Its 10,066 vertices/20,128 triangles retain all four source faces
+and 228 original edge/vertex bindings. Global exact display nonintersection and
+per-component topology pass. This is an expensive proof-oriented qualification;
+it does not establish interactive latency, general multi-pair mesh assembly,
+native recipe persistence of all enlarged rings, or certified volume error.
