@@ -55,16 +55,22 @@ func (s Solid) WrappedRationalStationBoundaryNormalsRational(ctx context.Context
 	if e := ctx.Err(); e != nil {
 		return empty, e
 	}
-	loc, e := s.LocateWrappedRationalStationLoftRational(ctx, p, WrappedRationalStationPointOptions{Source: o.Source, MaxPointOperations: o.MaxPointOperations, MaxCoefficientBits: o.MaxCoefficientBits})
+	p, pointOptions, e := prepareWrappedRationalStationPointQuery(ctx, p, WrappedRationalStationPointOptions{
+		Source: o.Source, MaxPointOperations: o.MaxPointOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+	})
+	if e != nil {
+		return empty, e
+	}
+	proof, bands, e := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
+	if e != nil {
+		return empty, e
+	}
+	loc, e := locateWrappedRationalStationPoint(ctx, proof, bands, p, pointOptions)
 	if e != nil {
 		return empty, e
 	}
 	if loc.Location != parametric.Boundary || len(loc.Faces) == 0 {
 		return empty, geom.ErrDomain
-	}
-	proof, bands, e := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
-	if e != nil {
-		return empty, e
 	}
 	// Reuse the bounded rational ledger: exact support evaluations below debit
 	// this same operation count, rather than resetting it at a station crease.

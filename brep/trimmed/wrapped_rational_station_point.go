@@ -35,7 +35,19 @@ type WrappedRationalStationPoint struct {
 // from the artificial cap of a local band. Whole-rim source identity proves
 // the same predicate applies to both owners at a station crease.
 func (s Solid) LocateWrappedRationalStationLoftRational(ctx context.Context, point [3]*big.Rat, o WrappedRationalStationPointOptions) (WrappedRationalStationPoint, error) {
-	empty := WrappedRationalStationPoint{}
+	query, o, err := prepareWrappedRationalStationPointQuery(ctx, point, o)
+	if err != nil {
+		return WrappedRationalStationPoint{}, err
+	}
+	p, bands, err := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
+	if err != nil {
+		return WrappedRationalStationPoint{}, err
+	}
+	return locateWrappedRationalStationPoint(ctx, p, bands, query, o)
+}
+
+func prepareWrappedRationalStationPointQuery(ctx context.Context, point [3]*big.Rat, o WrappedRationalStationPointOptions) ([3]*big.Rat, WrappedRationalStationPointOptions, error) {
+	var query [3]*big.Rat
 	if o.MaxPointOperations == 0 {
 		o.MaxPointOperations = 4096
 	}
@@ -43,30 +55,34 @@ func (s Solid) LocateWrappedRationalStationLoftRational(ctx context.Context, poi
 		o.MaxCoefficientBits = 16384
 	}
 	if ctx == nil || o.MaxPointOperations < 1 || o.MaxPointOperations > 1000000 || o.MaxCoefficientBits < 64 || o.MaxCoefficientBits > 65536 {
-		return empty, geom.ErrInvalid
+		return query, o, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
-		return empty, e
+		return query, o, e
 	}
-	check := func(q *big.Rat) error {
-		if q == nil {
-			return geom.ErrInvalid
-		}
-		if q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
-			return geom.ErrConvergence
-		}
-		return nil
-	}
-	var query [3]*big.Rat
 	for i, q := range point {
-		if e := check(q); e != nil {
-			return empty, e
+		if e := checkWrappedRationalStationPointCoefficient(q, o); e != nil {
+			return [3]*big.Rat{}, o, e
 		}
 		query[i] = new(big.Rat).Set(q)
 	}
-	p, bands, e := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
-	if e != nil {
-		return empty, e
+	return query, o, nil
+}
+
+func checkWrappedRationalStationPointCoefficient(q *big.Rat, o WrappedRationalStationPointOptions) error {
+	if q == nil {
+		return geom.ErrInvalid
+	}
+	if q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
+		return geom.ErrConvergence
+	}
+	return nil
+}
+
+func locateWrappedRationalStationPoint(ctx context.Context, p WrappedStationLoftProof, bands []*geom.WrappedSurfacePatch, query [3]*big.Rat, o WrappedRationalStationPointOptions) (WrappedRationalStationPoint, error) {
+	empty := WrappedRationalStationPoint{}
+	check := func(q *big.Rat) error {
+		return checkWrappedRationalStationPointCoefficient(q, o)
 	}
 	used := 0
 	take := func() error {
