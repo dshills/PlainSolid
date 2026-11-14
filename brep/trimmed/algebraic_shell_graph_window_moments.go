@@ -103,7 +103,7 @@ func (q *AlgebraicGraphMaterialQuery) IntegrateWindowMoments(ctx context.Context
 				return out, geom.ErrConvergence
 			}
 			out.MomentQuotaCharged += o.MomentCellOperations
-			value, e := q.integrateGraphPolynomialCellMode(ctx, leaf, o.MomentCellOperations, exact.MaxCoefficientBits, true)
+			value, e := q.integrateGraphPolynomialCellMode(ctx, leaf, o.MomentCellOperations, exact.MaxCoefficientBits, 1)
 			if e != nil {
 				return out, e
 			}

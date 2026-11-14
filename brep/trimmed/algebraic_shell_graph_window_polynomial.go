@@ -96,16 +96,21 @@ func graphPolynomialBits(x *big.Rat, bits int) bool {
 	return x != nil && x.Num().BitLen() <= bits && x.Denom().BitLen() <= bits
 }
 func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.Context, leaf AlgebraicGraphWindowLeaf, limit, bits int) (*big.Rat, error) {
-	r, e := q.integrateGraphPolynomialCellMode(ctx, leaf, limit, bits, false)
+	r, e := q.integrateGraphPolynomialCellMode(ctx, leaf, limit, bits, 0)
 	return r[0], e
 }
-func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx context.Context, leaf AlgebraicGraphWindowLeaf, limit, bits int, firstMoments bool) ([4]*big.Rat, error) {
+func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx context.Context, leaf AlgebraicGraphWindowLeaf, limit, bits int, mode int) ([10]*big.Rat, error) {
+	firstMoments := mode > 0
+	secondMoments := mode > 1
 	reserve := 4096
 	if firstMoments {
 		reserve = 65536
 	}
+	if secondMoments {
+		reserve = 262144
+	}
 	if limit < reserve+4096 {
-		return [4]*big.Rat{}, geom.ErrConvergence
+		return [10]*big.Rat{}, geom.ErrConvergence
 	}
 	step := (limit - reserve) / 6
 	var failure error
@@ -141,13 +146,14 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 	}
 	heights := [2]*big.Rat{}
 	var chartMoments [2][3]*big.Rat
+	var chartSecond [2][6]*big.Rat
 	for chart, p := range q.patches {
 		if e := ctx.Err(); e != nil {
-			return [4]*big.Rat{}, e
+			return [10]*big.Rat{}, e
 		}
 		inv, e := q.graphs[chart].InverseCoefficients()
 		if e != nil {
-			return [4]*big.Rat{}, e
+			return [10]*big.Rat{}, e
 		}
 		var ranges [2][2]*big.Rat
 		seen := [2]bool{}
@@ -158,13 +164,13 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 			for i := 0; i < 2; i++ {
 				if row[i].Sign() != 0 {
 					if column >= 0 {
-						return [4]*big.Rat{}, geom.ErrConvergence
+						return [10]*big.Rat{}, geom.ErrConvergence
 					}
 					column = i
 				}
 			}
 			if column < 0 || seen[column] {
-				return [4]*big.Rat{}, geom.ErrConvergence
+				return [10]*big.Rat{}, geom.ErrConvergence
 			}
 			seen[column] = true
 			columns[axis] = column
@@ -175,12 +181,12 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 			}
 		}
 		if failure != nil {
-			return [4]*big.Rat{}, failure
+			return [10]*big.Rat{}, failure
 		}
 		jac.Abs(jac)
 		u, v := p.KnotBreaks()
 		if len(u) > 256 || len(v) > 256 {
-			return [4]*big.Rat{}, geom.ErrConvergence
+			return [10]*big.Rat{}, geom.ErrConvergence
 		}
 		var span [2][2]float64
 		for axis, knots := range [][]float64{u, v} {
@@ -193,36 +199,42 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 				}
 			}
 			if !found {
-				return [4]*big.Rat{}, geom.ErrConvergence
+				return [10]*big.Rat{}, geom.ErrConvergence
 			}
 		}
 		limited, e := p.WithLimits(geom.SurfacePatchOptions{MaxOperations: step, MaxCoefficientBits: bits})
 		if e != nil {
-			return [4]*big.Rat{}, e
+			return [10]*big.Rat{}, e
 		}
 		patch, _, e := limited.TrimWithWorkLimit(geom.ParameterRectangle{UMin: span[0][0], UMax: span[0][1], VMin: span[1][0], VMax: span[1][1]}, step)
 		if e != nil {
-			return [4]*big.Rat{}, e
+			return [10]*big.Rat{}, e
 		}
-		coeff, _, ok := patch.RationalBezierCoefficients(6)
+		degreeLimit := 6
+		if secondMoments {
+			degreeLimit = 3
+		}
+		coeff, _, ok := patch.RationalBezierCoefficients(degreeLimit)
 		if !ok {
-			return [4]*big.Rat{}, geom.ErrConvergence
+			return [10]*big.Rat{}, geom.ErrConvergence
 		}
 		weight := coeff[0][0][3]
 		if weight.Sign() <= 0 {
-			return [4]*big.Rat{}, geom.ErrConvergence
+			return [10]*big.Rat{}, geom.ErrConvergence
 		}
 		for i, row := range coeff {
 			for j, c := range row {
 				if (i != 0 || j != 0) && c[3].Sign() != 0 {
-					return [4]*big.Rat{}, geom.ErrConvergence
+					return [10]*big.Rat{}, geom.ErrConvergence
 				}
 			}
 		}
 		moments := [2][]*big.Rat{}
 		scale := big.NewRat(1, 1)
 		for axis, n := range []int{len(coeff), len(coeff[0])} {
-			if firstMoments {
+			if secondMoments {
+				n = 3*n - 2
+			} else if firstMoments {
 				n = 2*n - 1
 			}
 			width := calc('-', ratInset(span[axis][1]), ratInset(span[axis][0]))
@@ -285,8 +297,97 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 			chartMoments[chart][q.residual] = calc('/', calc('*', squared, scale), calc('*', big.NewRat(2, 1), calc('*', calc('*', weight, weight), jac)))
 		}
 
+		if secondMoments {
+			var offsets, slopes [2]*big.Rat
+			var uvForColumn [2]int
+			for axis, column := range columns {
+				uvForColumn[column] = axis
+				offsets[axis] = calc('/', calc('-', ratInset(span[axis][0]), inv[axis][2]), inv[axis][column])
+				slopes[axis] = calc('/', calc('-', ratInset(span[axis][1]), ratInset(span[axis][0])), inv[axis][column])
+			}
+			weighted := func(axis, power, count int) *big.Rat {
+				m := moments[axis]
+				a, b := offsets[axis], slopes[axis]
+				switch count {
+				case 0:
+					return m[power]
+				case 1:
+					return calc('+', calc('*', a, m[power]), calc('*', b, m[power+1]))
+				default:
+					return calc('+', calc('+', calc('*', calc('*', a, a), m[power]), calc('*', calc('*', big.NewRat(2, 1), calc('*', a, b)), m[power+1])), calc('*', calc('*', b, b), m[power+2]))
+				}
+			}
+			for first := 0; first < 2; first++ {
+				for second := first; second < 2; second++ {
+					counts := [2]int{}
+					counts[uvForColumn[first]]++
+					counts[uvForColumn[second]]++
+					sum := new(big.Rat)
+					for i, row := range coeff {
+						for j, c := range row {
+							if c[q.residual].Sign() == 0 {
+								continue
+							}
+							term := calc('*', calc('*', c[q.residual], weighted(0, i, counts[0])), weighted(1, j, counts[1]))
+							sum = calc('+', sum, term)
+						}
+					}
+					chartSecond[chart][graphSecondIndex(q.axes[first], q.axes[second])] = calc('/', calc('*', sum, scale), calc('*', weight, jac))
+				}
+			}
+			squared := make([][]*big.Rat, 2*len(coeff)-1)
+			for i := range squared {
+				squared[i] = make([]*big.Rat, 2*len(coeff[0])-1)
+				for j := range squared[i] {
+					squared[i][j] = new(big.Rat)
+				}
+			}
+			for i, row := range coeff {
+				for j, a := range row {
+					if a[q.residual].Sign() == 0 {
+						continue
+					}
+					for k, other := range coeff {
+						for l, b := range other {
+							if b[q.residual].Sign() != 0 {
+								squared[i+k][j+l] = calc('+', squared[i+k][j+l], calc('*', a[q.residual], b[q.residual]))
+							}
+						}
+					}
+				}
+			}
+			for column := 0; column < 2; column++ {
+				counts := [2]int{}
+				counts[uvForColumn[column]] = 1
+				sum := new(big.Rat)
+				for i, row := range squared {
+					for j, c := range row {
+						if c.Sign() != 0 {
+							sum = calc('+', sum, calc('*', calc('*', c, weighted(0, i, counts[0])), weighted(1, j, counts[1])))
+						}
+					}
+				}
+				chartSecond[chart][graphSecondIndex(q.axes[column], q.residual)] = calc('/', calc('*', sum, scale), calc('*', big.NewRat(2, 1), calc('*', calc('*', weight, weight), jac)))
+			}
+			cubed := new(big.Rat)
+			for i, row := range squared {
+				for j, a := range row {
+					if a.Sign() == 0 {
+						continue
+					}
+					for k, other := range coeff {
+						for l, b := range other {
+							if b[q.residual].Sign() != 0 {
+								cubed = calc('+', cubed, calc('*', calc('*', calc('*', a, b[q.residual]), moments[0][i+k]), moments[1][j+l]))
+							}
+						}
+					}
+				}
+			}
+			chartSecond[chart][graphSecondIndex(q.residual, q.residual)] = calc('/', calc('*', cubed, scale), calc('*', big.NewRat(3, 1), calc('*', calc('*', calc('*', weight, weight), weight), jac)))
+		}
 		if failure != nil {
-			return [4]*big.Rat{}, failure
+			return [10]*big.Rat{}, failure
 		}
 	}
 	upper := -1
@@ -297,20 +398,39 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx conte
 		}
 	}
 	if upper < 0 {
-		return [4]*big.Rat{}, geom.ErrConvergence
+		return [10]*big.Rat{}, geom.ErrConvergence
 	}
 	value := calc('-', heights[upper], heights[upper^1])
 	if failure != nil {
-		return [4]*big.Rat{}, failure
+		return [10]*big.Rat{}, failure
 	}
-	result := [4]*big.Rat{value}
+	result := [10]*big.Rat{value}
 	if firstMoments {
 		for axis := 0; axis < 3; axis++ {
 			result[axis+1] = calc('-', chartMoments[upper][axis], chartMoments[upper^1][axis])
 		}
 	}
+	if secondMoments {
+		for i := 0; i < 6; i++ {
+			result[i+4] = calc('-', chartSecond[upper][i], chartSecond[upper^1][i])
+		}
+	}
 	if failure != nil {
-		return [4]*big.Rat{}, failure
+		return [10]*big.Rat{}, failure
 	}
 	return result, nil
+}
+
+// Packed symmetric tensor order is XX, XY, XZ, YY, YZ, ZZ.
+func graphSecondIndex(a, b int) int {
+	if a > b {
+		a, b = b, a
+	}
+	if a == 0 {
+		return b
+	}
+	if a == 1 {
+		return b + 2
+	}
+	return 5
 }
