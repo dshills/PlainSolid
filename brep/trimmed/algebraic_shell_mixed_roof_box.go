@@ -14,6 +14,7 @@ const mixedRoofMaxDegree = geom.ExactPolynomialMaxDegree / 2
 // the region floor <= Z <= roof(X,Y) over the stated rectangle.
 type mixedRoofBox struct {
 	roof       *geom.SurfacePatch
+	roofSpans  []*mixedRoofBox // nonempty only for a genuine piecewise height
 	patches    [6]*geom.SurfacePatch
 	power      [3][3]*big.Rat
 	linePower  [][]*big.Rat
@@ -121,41 +122,20 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		}
 		coeff, minWeight, work, err := mixedRoofWholePower(ctx, r.roof, r.domain, n)
 		r.operations += work
-		if err != nil {
+		if err == errMixedRoofPiecewise {
+			n, e := remaining()
+			if e != nil {
+				return nil, e
+			}
+			r.roofSpans, work, e = mixedRoofSpans(ctx, r.roof, n)
+			r.operations += work
+			if e != nil {
+				return nil, e
+			}
+		} else if err != nil {
 			return nil, err
-		}
-		r.linePower = make([][]*big.Rat, len(coeff))
-		r.weight = make([][]*big.Rat, len(coeff))
-		r.minWeight = minWeight
-		constant := true
-		for a, row := range coeff {
-			r.linePower[a] = make([]*big.Rat, len(row))
-			r.weight[a] = make([]*big.Rat, len(row))
-			for b, c := range row {
-				// The identity projection gives Hx=X*W and Hy=Y*W.
-				// Each axis of W is one degree lower than its corresponding
-				// homogeneous model coordinate, by the proved identity map.
-				if (a >= len(coeff)-1 || b >= len(row)-1) && c[3].Sign() != 0 {
-					return nil, geom.ErrUnrepresentable
-				}
-				r.linePower[a][b], r.weight[a][b] = c[2], c[3]
-				if a+b != 0 && c[3].Sign() != 0 {
-					constant = false
-				}
-			}
-		}
-		if constant {
-			w := r.weight[0][0]
-			for _, row := range r.linePower {
-				for _, c := range row {
-					c.Quo(c, w)
-					r.operations++
-					if r.operations > limit || !mixedRoofFits(c, 4096) {
-						return nil, geom.ErrConvergence
-					}
-				}
-			}
-			r.weight, r.minWeight = nil, nil
+		} else if err := r.setRoofPower(coeff, minWeight, limit); err != nil {
+			return nil, err
 		}
 	}
 	floor := -1
@@ -170,7 +150,7 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		c, w, work, conversionErr := mixedRoofWholePower(ctx, p, p.Domain(), n)
 		r.operations += work
 		if conversionErr != nil {
-			if conversionErr != geom.ErrUnrepresentable {
+			if conversionErr != geom.ErrUnrepresentable && conversionErr != errMixedRoofPiecewise {
 				return nil, conversionErr
 			}
 			continue
@@ -212,6 +192,9 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		return nil, geom.ErrUnrepresentable
 	}
 	r.floorFace = floor
+	for _, span := range r.roofSpans {
+		span.floor = r.floor
+	}
 	height, exact := r.floor.Float64()
 	if !exact {
 		return nil, geom.ErrUnrepresentable
@@ -278,6 +261,42 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		}
 	}
 	return r, nil
+}
+
+func (r *mixedRoofBox) setRoofPower(coeff [][][4]*big.Rat, minWeight *big.Rat, limit int) error {
+	r.linePower = make([][]*big.Rat, len(coeff))
+	r.weight = make([][]*big.Rat, len(coeff))
+	r.minWeight = minWeight
+	constant := true
+	for a, row := range coeff {
+		r.linePower[a] = make([]*big.Rat, len(row))
+		r.weight[a] = make([]*big.Rat, len(row))
+		for b, c := range row {
+			// The identity projection gives Hx=X*W and Hy=Y*W, so each
+			// axis of W is one degree lower than that model coordinate.
+			if (a >= len(coeff)-1 || b >= len(row)-1) && c[3].Sign() != 0 {
+				return geom.ErrUnrepresentable
+			}
+			r.linePower[a][b], r.weight[a][b] = c[2], c[3]
+			if a+b != 0 && c[3].Sign() != 0 {
+				constant = false
+			}
+		}
+	}
+	if constant {
+		w := r.weight[0][0]
+		for _, row := range r.linePower {
+			for _, c := range row {
+				c.Quo(c, w)
+				r.operations++
+				if r.operations > limit || !mixedRoofFits(c, 4096) {
+					return geom.ErrConvergence
+				}
+			}
+		}
+		r.weight, r.minWeight = nil, nil
+	}
+	return nil
 }
 
 // Polynomial positive constant homogeneous weight only; no rational weight is

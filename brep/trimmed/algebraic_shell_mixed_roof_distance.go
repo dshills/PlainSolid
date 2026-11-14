@@ -113,6 +113,55 @@ func (b *mixedRoofBox) roofBoxLocation(box mixedRoofBoundBox, w *mixedRoofLineWo
 // Coordinates are in [0,1]. Bound every positive monomial by its two
 // endpoint products, using signed interval sums for the original polynomial.
 func (b *mixedRoofBox) roofHeightRange(uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
+	if len(b.roofSpans) != 0 {
+		var xy [2]geom.ExactParameterInterval
+		for i, d := range [2][2]float64{{b.domain.UMin, b.domain.UMax}, {b.domain.VMin, b.domain.VMax}} {
+			a := ratInset(d[0])
+			scale, err := w.rat(new(big.Rat).Sub(ratInset(d[1]), a))
+			if err != nil {
+				return geom.ExactParameterInterval{}, err
+			}
+			for z, t := range []*big.Rat{uv[i].Lower, uv[i].Upper} {
+				v, err := w.rat(new(big.Rat).Mul(scale, t))
+				if err != nil {
+					return geom.ExactParameterInterval{}, err
+				}
+				if _, err = w.rat(v.Add(v, a)); err != nil {
+					return geom.ExactParameterInterval{}, err
+				}
+				if z == 0 {
+					xy[i].Lower = v
+				} else {
+					xy[i].Upper = v
+				}
+			}
+		}
+		var out geom.ExactParameterInterval
+		for _, s := range b.roofSpans {
+			d := s.domain
+			x := [2]geom.ExactParameterInterval{
+				{Lower: maxRat(xy[0].Lower, ratInset(d.UMin)), Upper: minRat(xy[0].Upper, ratInset(d.UMax))},
+				{Lower: maxRat(xy[1].Lower, ratInset(d.VMin)), Upper: minRat(xy[1].Upper, ratInset(d.VMax))},
+			}
+			if x[0].Lower.Cmp(x[0].Upper) > 0 || x[1].Lower.Cmp(x[1].Upper) > 0 {
+				continue
+			}
+			local, err := s.volumeRoofDomain(x, w)
+			if err != nil {
+				return geom.ExactParameterInterval{}, err
+			}
+			y, err := s.roofHeightRange(local, w)
+			if err != nil {
+				return geom.ExactParameterInterval{}, err
+			}
+			mixedRoofInclude(&out, y.Lower)
+			mixedRoofInclude(&out, y.Upper)
+		}
+		if out.Lower == nil {
+			return geom.ExactParameterInterval{}, geom.ErrConvergence
+		}
+		return out, nil
+	}
 	num, err := mixedRoofPowerRange(b.linePower, uv, w)
 	if err != nil || b.minWeight == nil {
 		return num, err

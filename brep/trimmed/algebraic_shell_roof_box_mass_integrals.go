@@ -214,12 +214,12 @@ func roofWeightedAxisIntegrals(norm geom.ExactParameterInterval, a, length *big.
 	return powers, nil
 }
 
-func (q *MixedRoofMaterialQuery) exactRoofCellMoments(xy [2]geom.ExactParameterInterval, uv [2][2]geom.ExactParameterInterval, roof, floor [2]int, powers *[2][3]roofPowerGrid, w *mixedRoofLineWork) ([10]geom.ExactParameterInterval, error) {
+func (q *MixedRoofMaterialQuery) exactRoofCellMoments(xy [2]geom.ExactParameterInterval, supports [2]*mixedRoofBox, uv [2][2]geom.ExactParameterInterval, roof, floor [2]int, powers map[*mixedRoofBox][3]roofPowerGrid, w *mixedRoofLineWork) ([10]geom.ExactParameterInterval, error) {
 	var out [10]geom.ExactParameterInterval
 	for m := range out {
 		out[m] = mixedRoofZeroInterval()
 	}
-	for i, b := range q.box {
+	for i, source := range q.box {
 		if floor[i] != 0 {
 			var axes [3][3]*big.Rat
 			for n := range 3 {
@@ -228,7 +228,7 @@ func (q *MixedRoofMaterialQuery) exactRoofCellMoments(xy [2]geom.ExactParameterI
 					if a < 2 {
 						axes[a][n], err = roofMonomialIntegral(xy[a].Lower, xy[a].Upper, n, w)
 					} else {
-						axes[a][n], err = roofMonomialIntegral(new(big.Rat), b.floor, n, w)
+						axes[a][n], err = roofMonomialIntegral(new(big.Rat), source.floor, n, w)
 					}
 					if err != nil {
 						return out, err
@@ -251,7 +251,8 @@ func (q *MixedRoofMaterialQuery) exactRoofCellMoments(xy [2]geom.ExactParameterI
 		if roof[i] == 0 {
 			continue
 		}
-		p := &powers[i]
+		b := supports[i]
+		p := powers[b]
 		if p[0] == nil {
 			p[0] = b.linePower
 			for a := 1; a <= 2; a++ {
@@ -261,6 +262,7 @@ func (q *MixedRoofMaterialQuery) exactRoofCellMoments(xy [2]geom.ExactParameterI
 					return out, err
 				}
 			}
+			powers[b] = p
 		}
 		var axes [2][3][]*big.Rat
 		for a, g := range [2][2]float64{{b.domain.UMin, b.domain.UMax}, {b.domain.VMin, b.domain.VMax}} {

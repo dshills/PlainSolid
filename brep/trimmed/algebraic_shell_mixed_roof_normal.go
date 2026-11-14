@@ -11,7 +11,8 @@ import (
 // MixedRoofNormal is one original support's outward normal at a proved
 // material boundary point, with cutter supports reversed for Difference.
 // Direction is an exact nonzero vector; it is not normalized. Multiple
-// original normals describe separate incident supports at seams or corners.
+// original normals describe incident supports at seams or corners. At a
+// piecewise crease the same owner may have distinct one-sided normals.
 type MixedRoofNormal struct {
 	Owner     MixedRoofFaceOwner
 	Direction [3]*big.Rat
@@ -70,7 +71,37 @@ func (q *MixedRoofMaterialQuery) BoundaryNormalsRational(ctx context.Context, p 
 			add(b.floorFace, new(big.Rat), new(big.Rat), big.NewRat(-1, 1))
 		}
 		if p[2].Cmp(j.Point[2]) == 0 {
-			add(b.roofFace, j.Du[2].Neg(j.Du[2]), j.Dv[2].Neg(j.Dv[2]), big.NewRat(1, 1))
+			if len(b.roofSpans) == 0 {
+				add(b.roofFace, new(big.Rat).Neg(j.Du[2]), new(big.Rat).Neg(j.Dv[2]), big.NewRat(1, 1))
+			} else {
+				var slopes [][2]*big.Rat
+				for _, span := range b.roofSpans {
+					if span.footprint([2]*big.Rat{p[0], p[1]}) == parametric.Outside {
+						continue
+					}
+					opt := o
+					opt.MaxOperations -= out.ExactOperations
+					if opt.MaxOperations < 1 {
+						return zero, geom.ErrConvergence
+					}
+					v, err := span.roof.EvaluateRational(ctx, p[0], p[1], opt)
+					if err != nil {
+						return zero, err
+					}
+					out.ExactOperations += v.ExactOperations
+					if v.Point[2].Cmp(p[2]) != 0 {
+						return zero, geom.ErrUnrepresentable
+					}
+					same := false
+					for _, d := range slopes {
+						same = same || v.Du[2].Cmp(d[0]) == 0 && v.Dv[2].Cmp(d[1]) == 0
+					}
+					if !same {
+						slopes = append(slopes, [2]*big.Rat{v.Du[2], v.Dv[2]})
+						add(b.roofFace, new(big.Rat).Neg(v.Du[2]), new(big.Rat).Neg(v.Dv[2]), big.NewRat(1, 1))
+					}
+				}
+			}
 		}
 		for k, face := range b.sideFaces {
 			if sides&(1<<k) == 0 {

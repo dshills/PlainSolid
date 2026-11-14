@@ -60,7 +60,7 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 		sum[i] = mixedRoofZeroInterval()
 	}
 	var out MixedRoofMass
-	var roofPowers [2][3]roofPowerGrid
+	roofPowers := make(map[*mixedRoofBox][3]roofPowerGrid)
 	stack := mixedRoofVolumeFootprint(q)
 	for len(stack) > 0 {
 		if err := ctx.Err(); err != nil {
@@ -75,10 +75,10 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 		var uv [2][2]geom.ExactParameterInterval
 		var h [2]geom.ExactParameterInterval
 		var floor [2]*big.Rat
-		for i, b := range q.box {
-			floor[i] = b.floor
-			h[i] = geom.ExactParameterInterval{Lower: b.floor, Upper: b.floor}
-			if !c.chart[i] {
+		for i, b := range c.roof {
+			floor[i] = q.box[i].floor
+			h[i] = geom.ExactParameterInterval{Lower: floor[i], Upper: floor[i]}
+			if b == nil {
 				continue
 			}
 			uv[i], err = b.volumeRoofDomain(c.xy, &w)
@@ -93,13 +93,14 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 		}
 		roof, base, proved := q.fixedColumnPrimitives(c.chart, h)
 		for i, coefficient := range roof {
-			if coefficient != 0 && q.box[i].weight != nil {
+			b := c.roof[i]
+			if coefficient != 0 && (b == nil || b.weight != nil || len(b.roofSpans) != 0) {
 				proved = false
 			}
 		}
 		var measure [10]geom.ExactParameterInterval
 		if proved {
-			measure, err = q.exactRoofCellMoments(c.xy, uv, roof, base, &roofPowers, &w)
+			measure, err = q.exactRoofCellMoments(c.xy, c.roof, uv, roof, base, roofPowers, &w)
 		} else if c.depth < o.MaxDepth {
 			axis := c.depth % 2
 			m, e := w.rat(new(big.Rat).Add(c.xy[axis].Lower, c.xy[axis].Upper))

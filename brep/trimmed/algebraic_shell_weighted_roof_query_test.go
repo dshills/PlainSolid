@@ -26,6 +26,10 @@ func weightedIdentityRoofStock(t *testing.T, tool bool, degree int) Solid {
 }
 
 func weightedIdentityRoofStockWithKnots(t *testing.T, tool bool, degree int, insertKnots bool) Solid {
+	return weightedIdentityRoofStockMode(t, tool, degree, insertKnots, false)
+}
+
+func weightedIdentityRoofStockMode(t *testing.T, tool bool, degree int, insertKnots, crease bool) Solid {
 	t.Helper()
 	ctx := context.Background()
 	r := big.NewRat
@@ -34,6 +38,9 @@ func weightedIdentityRoofStockWithKnots(t *testing.T, tool bool, degree int, ins
 		x0, x1, y0, y1, floor = .125, .875, .125, .875, .25
 	}
 	h := func(x float64) *big.Rat {
+		if crease && !tool {
+			return r(2, 1) // original roof edge at x=0 or x=1
+		}
 		if tool {
 			return new(big.Rat).Add(r(7, 8), new(big.Rat).Quo(ratInset(x), r(4, 1)))
 		}
@@ -41,7 +48,7 @@ func weightedIdentityRoofStockWithKnots(t *testing.T, tool bool, degree int, ins
 		return new(big.Rat).Add(r(2, 1), new(big.Rat).Mul(z, z))
 	}
 	weight := func(x float64) *big.Rat {
-		if tool {
+		if tool || crease {
 			return r(1, 1)
 		}
 		return new(big.Rat).Add(r(1, 1), ratInset(x))
@@ -131,6 +138,33 @@ func weightedIdentityRoofStockWithKnots(t *testing.T, tool bool, degree int, ins
 			s, err = geom.NewExactTensorSurface(ctx, p, geom.SurfacePatchOptions{})
 		} else {
 			s, err = geom.NewExactBezierSurface(p)
+		}
+		if crease && !tool && len(parts) != 0 {
+			// The horizontal roof slopes +1 then -1 at x=1/2. Only
+			// the roof and the two y-side top curves need a knot.
+			id := len(parts)
+			if id == 1 || id >= 4 {
+				var poles []geom.Vec3
+				for i, x := range []float64{0, .5, 1} {
+					for j := range 2 {
+						z := []float64{2, 2.5, 2}[i]
+						v := geom.Vec3{X: x, Y: float64(j), Z: z}
+						if id >= 4 {
+							v.Y, v.Z = float64(id-4), float64(j)*z
+						}
+						poles = append(poles, v)
+					}
+				}
+				bs, e := geom.NewBSplineSurface(1, 1, 3, 2, poles, []float64{0, 0, .5, 1, 1}, []float64{0, 0, 1, 1}, nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				p, e = geom.NewSurfacePatch(bs, geom.SurfacePatchOptions{})
+				if e != nil {
+					t.Fatal(e)
+				}
+				s = bs
+			}
 		}
 		if err != nil {
 			t.Fatal(err)
