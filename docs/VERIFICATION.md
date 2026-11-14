@@ -5597,6 +5597,10 @@ nearby strictly separated variant. The former qualifies Common while
 Cut correctly rejects the pinch. The latter produces a positive Cut
 band with independently integrated volume. The full focused live roof
 race passed in 10.621 s.
+The complementary top Cut retains the reversed original cutter floor as
+the new roof. The remaining unit-footprint prism has volume 1/2 and area
+4, matching pinned OCCT. A roof-only touch keeps the original stock;
+crossing the cutter floor through the roof fails atomically.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

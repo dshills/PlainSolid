@@ -11,9 +11,10 @@ import (
 // SubtractOrderedRoofBoxes handles the case where the cutter covers the
 // stock's entire XY rectangle. When the cutter starts at or below the
 // stock floor, its top must be proved entirely below, entirely above, or
-// strictly between the stock's floor and roof. A cutter strictly above the
-// floor and below the roof yields two disjoint bands with reversed cutter
-// floor and roof. The original face ancestry follows the output face order.
+// strictly between the stock's floor and roof. A cutter with its floor
+// strictly inside the stock may remove the whole top or leave an upper
+// band as a second component. The original face ancestry follows the
+// output face order; a retained cutter floor or roof reverses.
 // Each participating roof must be a single rational Bézier span on the
 // stock rectangle. Pinches and unresolved height order fail closed.
 func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxDifferenceHistory, error) {
@@ -105,6 +106,17 @@ func unchangedOrderedRoofBox(ctx context.Context, stock Solid, w *mixedRoofLineW
 
 func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, stockRoof, cutterRoof *geom.SurfacePatch, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {
 	var zero RoofBoxDifferenceHistory
+	a, b := boxes[0], boxes[1]
+	floorSide, err := orderedRoofAgainstFloor(ctx, a, xy, b.floor, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if floorSide <= 0 {
+		return unchangedOrderedRoofBox(ctx, stock, w)
+	}
+	if err := certifyRoofStrictlyAboveFloor(ctx, stockRoof, b.floor, w); err != nil {
+		return Solid{}, zero, err
+	}
 	cache := make(roofOrderCache)
 	order, err := cache.order(boxes, xy, w)
 	if err != nil {
@@ -114,10 +126,9 @@ func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	if sign != 1 || !strict {
+	if sign > 0 && !strict {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
-	a, b := boxes[0], boxes[1]
 	stockFloor, err := orderedRoofFlatFloor(ctx, a.domain, xy, a.floor, w)
 	if err != nil {
 		return Solid{}, zero, err
@@ -127,13 +138,25 @@ func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]
 		return Solid{}, zero, err
 	}
 	tolerance := max(stock.tolerance, cutter.tolerance)
-	// Both gaps adjacent to the removed tool are full-dimensional. The
-	// re-proved positive thickness of the cutter separates their closed
-	// supports, so assembling the two closed material shells needs no weld.
 	below, err := assembleOrderedRoofBox(ctx, cutterFloor, stockFloor, a.domain, tolerance, w)
 	if err != nil {
 		return Solid{}, zero, fmt.Errorf("lower roof band: %w", err)
 	}
+	h := RoofBoxDifferenceHistory{}
+	appendBand := func(upper, lower MixedRoofFaceOwner, upperReversed, lowerReversed bool) {
+		h.Faces = append(h.Faces, upper, lower)
+		h.Reversed = append(h.Reversed, upperReversed, lowerReversed)
+		for _, face := range a.sideFaces {
+			h.Faces = append(h.Faces, MixedRoofFaceOwner{0, face})
+			h.Reversed = append(h.Reversed, false)
+		}
+	}
+	appendBand(MixedRoofFaceOwner{1, b.floorFace}, MixedRoofFaceOwner{0, a.floorFace}, true, false)
+	if sign <= 0 {
+		h.ExactOperations = w.operations
+		return below, h, nil
+	}
+	// The original cutter's positive thickness separates the closed bands.
 	above, err := assembleOrderedRoofBox(ctx, stockRoof, cutterRoof, a.domain, tolerance, w)
 	if err != nil {
 		return Solid{}, zero, fmt.Errorf("upper roof band: %w", err)
@@ -143,14 +166,7 @@ func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	h := RoofBoxDifferenceHistory{ExactOperations: w.operations}
-	for i, caps := range [2][2]MixedRoofFaceOwner{{{1, b.floorFace}, {0, a.floorFace}}, {{0, a.roofFace}, {1, b.roofFace}}} {
-		h.Faces = append(h.Faces, caps[:]...)
-		h.Reversed = append(h.Reversed, i == 0, i == 1)
-		for _, face := range a.sideFaces {
-			h.Faces = append(h.Faces, MixedRoofFaceOwner{0, face})
-			h.Reversed = append(h.Reversed, false)
-		}
-	}
+	appendBand(MixedRoofFaceOwner{0, a.roofFace}, MixedRoofFaceOwner{1, b.roofFace}, false, true)
+	h.ExactOperations = w.operations
 	return out, h, nil
 }

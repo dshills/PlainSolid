@@ -338,6 +338,11 @@ int main(int argc, char** argv) {
       report("weighted-ordered-split",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="weighted-ordered-top-removal") {
+      const auto tool=BRepPrimAPI_MakeBox(gp_Pnt(-1,-1,.5),gp_Pnt(2,2,3)).Shape();
+      report("weighted-ordered-top-removal",BRepAlgoAPI_Cut(weightedGraphStock(false),tool).Shape(),1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());

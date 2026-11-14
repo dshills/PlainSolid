@@ -97,3 +97,38 @@ func TestOrderedRoofBoxDifferenceFloatingCutter(t *testing.T) {
 		t.Fatal("failure never returns half of the split", s.Topology(), h, err)
 	}
 }
+
+func TestOrderedRoofBoxDifferenceTopRemoval(t *testing.T) {
+	ctx := context.Background()
+	stock := weightedIdentityRoofStock(t, false, 2)
+	cut, _ := makeOpenSplineBox(t, [3]float64{-1, -1, .5}, [3]float64{2, 2, 3}, 0)
+	out, h, err := SubtractOrderedRoofBoxes(ctx, stock, cut, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || out.Topology().Faces != 6 || out.Topology().EulerCharacteristic != 2 || len(h.Faces) != 6 || h.Faces[0] != (MixedRoofFaceOwner{1, 4}) || !h.Reversed[0] {
+		t.Fatal("upper cut leaves the original cutter floor as the reversed roof", out.Topology(), h, err)
+	}
+	mass, err := out.MassProperties(ctx, parametric.IntegrationOptions{})
+	if err != nil || math.Abs(mass.Volume-.5) > 1e-12 || math.Abs(mass.Area-4) > 1e-12 {
+		t.Fatal("independent remaining unit-footprint prism", mass, err)
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "weighted-ordered-top-removal").Output()
+		var ref struct {
+			Volume, Area  float64
+			Solids, Euler int
+		}
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 2 || math.Abs(ref.Volume-mass.Volume) > 1e-8 || math.Abs(ref.Area-mass.Area) > 1e-8 {
+			t.Fatal("independent pinned OCCT top removal", mass, ref, err, string(data))
+		}
+	}
+	above, _ := makeOpenSplineBox(t, [3]float64{0, 0, 2}, [3]float64{1, 1, 3}, 0)
+	unchanged, h, err := SubtractOrderedRoofBoxes(ctx, stock, above, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 6 || unchanged.faces[1].Surface != stock.faces[1].Surface {
+		t.Fatal("a cutter touching only the stock roof retains original stock", h, err)
+	}
+	// The cutter floor crosses inside the footprint; a constant upper
+	// plane cannot represent this result without imprint and trim.
+	partial, _ := makeOpenSplineBox(t, [3]float64{0, 0, 1.5625}, [3]float64{1, 1, 3}, 0)
+	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, partial, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("crossing cutter floor remains bounded and atomic", out.Topology(), h, err)
+	}
+}
