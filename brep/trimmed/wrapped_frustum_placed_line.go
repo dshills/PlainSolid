@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
@@ -84,4 +85,28 @@ func (s Solid) IntersectPlacedWrappedFrustumLineRational(ctx context.Context, po
 		out.Overlaps = append(out.Overlaps, WrappedLoftLineOverlap{Start: h.Start, End: h.End, Face: face, Part: h.Part})
 	}
 	return out, nil
+}
+
+// LocatePlacedWrappedFrustumRational classifies the complete original capped
+// profile after an exact proper world occurrence placement.
+func (s Solid) LocatePlacedWrappedFrustumRational(ctx context.Context, pose placement.RationalRigid, world [3]*big.Rat, o geom.SurfacePatchOptions) (parametric.Location, error) {
+	p, e := pose.TransformPoint(ctx, world, true, o.MaxCoefficientBits)
+	if e != nil {
+		return parametric.Outside, e
+	}
+	w, _, e := s.ValidateCanonicalWrappedFrustum(ctx, o)
+	if e != nil {
+		return parametric.Outside, e
+	}
+	x, e := geom.LocateWrappedFrustumRational(ctx, w, p, o)
+	if e != nil {
+		return parametric.Outside, e
+	}
+	switch x {
+	case geom.CylinderInside:
+		return parametric.Inside, nil
+	case geom.CylinderBoundary:
+		return parametric.Boundary, nil
+	}
+	return parametric.Outside, nil
 }

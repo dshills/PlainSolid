@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
@@ -53,4 +54,19 @@ func TestPlacedWeightedFrustumGenerator(t *testing.T) {
 	if span.Face != 2 || span.Start.Min.Sign() != 0 || span.End.Max.Cmp(q(5, 2)) != 0 {
 		t.Fatal("missing original curved face overlap", span)
 	}
+	// At nonbinary local Z=1/3, the midpoint-profile boundary has
+	// x=y=(5/7)(37/15)=37/21.
+	// Pull back two distinct exact world points a sub-ULP radial step apart.
+	epsilon := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	for _, sign := range []int64{-1, 0, 1} {
+		x := new(big.Rat).Add(q(37, 21), new(big.Rat).Mul(q(sign, 1), epsilon))
+		y := new(big.Rat).Set(x)
+		world := [3]*big.Rat{new(big.Rat).Add(q(43, 105), new(big.Rat).Mul(q(3, 5), x)), new(big.Rat).Sub(y, q(2, 7)), new(big.Rat).Sub(q(18, 65), new(big.Rat).Mul(q(4, 5), x))}
+		loc, e := s.LocatePlacedWrappedFrustumRational(ctx, pose, world, patch)
+		want := [3]parametric.Location{parametric.Inside, parametric.Boundary, parametric.Outside}[sign+1]
+		if e != nil || loc != want {
+			t.Fatal("exact noncircular meridian classification", sign, loc, e)
+		}
+	}
+
 }

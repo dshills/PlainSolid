@@ -12,13 +12,22 @@ func LocateWrappedFrustum(ctx context.Context, w *WrappedSurfacePatch, point Vec
 	if !point.IsFinite() {
 		return CylinderUnknown, ErrInvalid
 	}
+	return LocateWrappedFrustumRational(ctx, w, rationalLineVec3(point), o)
+}
+
+// LocateWrappedFrustumRational classifies an exact nonbinary model point
+// against the capped original support, including noncircular conics.
+func LocateWrappedFrustumRational(ctx context.Context, w *WrappedSurfacePatch, point [3]*big.Rat, o SurfacePatchOptions) (CylinderLocation, error) {
+	options, e := validateRationalPoint(ctx, point, o)
+	if e != nil {
+		return CylinderUnknown, e
+	}
 	p, e := CertifyWrappedFrustumEmbedding(ctx, w, o)
 	if e != nil {
 		return CylinderUnknown, e
 	}
-	options, _ := patchOptions(o)
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits, operations: p.ExactOperations}
-	z := new(big.Rat).SetFloat64(point.Z)
+	z := point[2]
 	if z.Cmp(p.LowerZ) < 0 || z.Cmp(p.UpperZ) > 0 {
 		return CylinderOutside, nil
 	}
@@ -27,8 +36,8 @@ func LocateWrappedFrustum(ctx context.Context, w *WrappedSurfacePatch, point Vec
 	if e := budget.check(radius); e != nil {
 		return CylinderUnknown, e
 	}
-	u := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(point.X), p.CenterX), radius)
-	v := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(point.Y), p.CenterY), radius)
+	u := new(big.Rat).Quo(new(big.Rat).Sub(point[0], p.CenterX), radius)
+	v := new(big.Rat).Quo(new(big.Rat).Sub(point[1], p.CenterY), radius)
 	for _, n := range []*big.Rat{z, u, v} {
 		if e := budget.check(n); e != nil {
 			return CylinderUnknown, e
