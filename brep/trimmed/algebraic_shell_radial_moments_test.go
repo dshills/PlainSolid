@@ -69,5 +69,25 @@ func TestNativeRadialTubeRegionPlanarMoments(t *testing.T) {
 	if x, e := s.RadialTubeRegionPlanarMoments(cancelled, center, radii, geom.RadialGraphMomentOptions{}); e != context.Canceled || len(x.Components) != 0 {
 		t.Fatal("cancellation", e)
 	}
+	mass, e := s.RadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !reflect.DeepEqual(mass.Components, volume.Components) || mass.Moments.Height.CentroidZ.Cmp(big.NewRat(25, 768)) != 0 || mass.Moments.Planar.Total.CentroidXY[0].Cmp(center[0]) != 0 || mass.Moments.Planar.Total.CentroidXY[1].Cmp(center[1]) != 0 {
+		t.Fatal("original material XYZ centroid", mass)
+	}
+	if x, e := s.RadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: mass.Moments.ExactOperations - 1}); e == nil || x.Moments.Height.CentroidZ != nil || len(x.Components) != 0 {
+		t.Fatal("atomic centroid quota", e)
+	}
+	if _, e := s.RadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: mass.Moments.ExactOperations}); e != nil {
+		t.Fatal("exact centroid quota", e)
+	}
+	if x, e := bad.RadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{}); e == nil || len(x.Components) != 0 {
+		t.Fatal("wrong original centroid owner side", e)
+	}
+	if x, e := s.RadialTubeRegionMassMoments(cancelled, center, radii, geom.RadialGraphMomentOptions{}); e != context.Canceled || len(x.Components) != 0 {
+		t.Fatal("centroid cancellation", e)
+	}
+	t.Log("native original height moment work", mass.Moments.ExactOperations)
 	t.Log("native source moments total work", work)
 }
