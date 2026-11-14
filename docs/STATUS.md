@@ -112,9 +112,11 @@ The [exact-vertex reconciliation](evidence/plaincad-reconciled-d6bfd4e-developme
 adds the worktree's `8df00f2` milestone to `d6bfd4e`. The same 16
 original browser cases and the separate no-OCCT WASM preflight passed.
 The native corner, side-opening, and STEP regression set passed on the
-combined revision. This confirms the tested stock-vertex cases; fully
-concealed cutters can still leave partitions outside canonical STEP
-reconstruction.
+combined revision. On the later [concealed-cutter reconciliation](evidence/plaincad-reconciled-dc2ad4e-development-concealed-holes-step-2026-11-14.json),
+all 16 originals and the Go/WASM preflight also passed. That revision
+includes worktree commit `c51d2762` for canonical STEP export of the
+qualified fully concealed cutters. Native bridge and STEP tests separately
+check round-trip measures and removal of redundant wall partitions.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
