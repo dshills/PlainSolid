@@ -8,6 +8,10 @@ import (
 
 func boundarySiteCurvedPair(t *testing.T, bent bool) (Patch, Patch) {
 	t.Helper()
+	return boundarySiteCurvedPairWithTilt(t, bent, false)
+}
+func boundarySiteCurvedPairWithTilt(t *testing.T, bent, tilted bool) (Patch, Patch) {
+	t.Helper()
 	var pair [2]Patch
 	for owner := 0; owner < 2; owner++ {
 		lo, hi := 0., 1.
@@ -26,6 +30,9 @@ func boundarySiteCurvedPair(t *testing.T, bent bool) (Patch, Patch) {
 					if bent && i == 1 {
 						y += 1. / 64
 					}
+				}
+				if tilted {
+					y += x/2 + z/4
 				}
 				poles = append(poles, geom.Vec3{X: x, Y: y, Z: z})
 			}
@@ -75,5 +82,35 @@ func TestAutomaticAffineChartBoundarySites(t *testing.T) {
 	a, b = boundarySiteCurvedPair(t, false)
 	if r, e := DiscoverAffineChartPairTubes(ctx, a, b, geom.SurfacePatchOptions{}, AffineChartDiscoveryOptions{BoundaryPlaneSites: true, MaxOperations: 100}); e == nil || len(r.Attempts) != 0 {
 		t.Fatal("partial budget result")
+	}
+}
+
+func TestAutomaticAffineChartObliqueBoundarySites(t *testing.T) {
+	ctx := context.Background()
+	a, b := boundarySiteCurvedPairWithTilt(t, false, true)
+	if r, e := DiscoverAffineChartPairTubes(ctx, a, b, geom.SurfacePatchOptions{}, AffineChartDiscoveryOptions{LatticeDivisions: 8}); e == nil || len(r.Attempts) != 0 {
+		t.Fatal("lattice accepted off-grid roots")
+	}
+	for _, reverse := range []bool{false, true} {
+		x, y := a, b
+		if reverse {
+			x, y = y, x
+		}
+		seeds, e := DiscoverAffineChartPairTubes(ctx, x, y, geom.SurfacePatchOptions{}, AffineChartDiscoveryOptions{BoundaryPlaneSites: true})
+		if e != nil {
+			t.Fatal(reverse, e)
+		}
+		o := SplinePairTraceOptions{}
+		o.Coverage.Isolation.ParameterTolerance = .25
+		o.Coverage.Isolation.SeparatingProjections = true
+		o.Coverage.Cell.MaxOperations = 16000000
+		result, e := CertifySplinePairBranches(ctx, x, y, seeds, o)
+		if e != nil || !result.Complete || len(result.Curves) != 1 {
+			t.Fatal(reverse, result.Issues, e)
+		}
+	}
+	a, b = boundarySiteCurvedPairWithTilt(t, true, true)
+	if r, e := DiscoverAffineChartPairTubes(ctx, a, b, geom.SurfacePatchOptions{}, AffineChartDiscoveryOptions{BoundaryPlaneSites: true}); e == nil || len(r.Attempts) != 0 {
+		t.Fatal("three corners proved bent oblique support")
 	}
 }

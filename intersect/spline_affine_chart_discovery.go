@@ -18,7 +18,7 @@ type AffineChartDiscoveryOptions struct {
 	// Nonbinary sites are permitted; native proposal boxes still must be lossless.
 	LatticeDivisions int
 	// BoundaryPlaneSites additionally isolates original iso-boundary contacts
-	// against proved coordinate-plane supports and verifies exact target inverses.
+	// against proved rational-plane supports and verifies exact target inverses.
 	BoundaryPlaneSites bool
 	// ConstantPaddingDivisor controls proposal widths only (default8, power of2).
 	ConstantPaddingDivisor int
