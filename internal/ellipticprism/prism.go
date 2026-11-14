@@ -106,6 +106,9 @@ func SewControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][
 	return sewParts(ctx, parts, tolerance)
 }
 func partsControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][]geom.Vec3, caps [2]geom.Frame, tolerance float64) ([]trimmed.SewFace, error) {
+	return partsEndControls(ctx, [2][4][]geom.Vec3{uvPoles, uvPoles}, worldPoles, caps, tolerance)
+}
+func partsEndControls(ctx context.Context, uvPoles [2][4][]geom.Vec3, worldPoles [2][4][]geom.Vec3, caps [2]geom.Frame, tolerance float64) ([]trimmed.SewFace, error) {
 	failure := func(e error) ([]trimmed.SewFace, error) { return nil, e }
 	knots := []float64{0, 0, 0, 1, 1, 1}
 	weights := []float64{1, 1, 2}
@@ -136,13 +139,13 @@ func partsControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4
 			if e != nil {
 				return failure(e)
 			}
-			uv, e := geom.NewBSpline(2, uvPoles[q], knots, weights)
+			uv, e := geom.NewBSpline(2, uvPoles[k][q], knots, weights)
 			if e != nil {
 				return failure(e)
 			}
 			part.Vertices = append(part.Vertices, worldPoles[k][q][0])
 			part.Edges = append(part.Edges, parametric.Edge{Start: q, End: (q + 1) % 4, Curve: curve, Range: parametric.Interval{Max: 1}})
-			p0, p1 := uvPoles[q][0], uvPoles[q][2]
+			p0, p1 := uvPoles[k][q][0], uvPoles[k][q][2]
 			part.Face.Outer = append(part.Face.Outer, trimmed.Use{Edge: q, UVStart: geom.Vec2{X: p0.X, Y: p0.Y}, UVEnd: geom.Vec2{X: p1.X, Y: p1.Y}, Curve: trimmed.SplineUV{Curve: uv, Range: trimmed.UVInterval{Max: 1}}})
 		}
 		parts = append(parts, part)

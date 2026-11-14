@@ -26,8 +26,11 @@ boundary network (`7e3c670`). The original mixed intersection now has a
 closed certified mesh for all eight fragments, with both strict signed
 roof cells and separate collars bound to original trims. Its 2,004
 triangles preserve the exact boundary source and have a source error
-bound below 0.098 model units. Equivalent complete meshes for union and
-difference remain separate requirements. Exact stock line queries also
+bound below 0.098 model units. The matching difference also has a closed
+certified mesh for all 14 fragments and two independently oriented
+components. Its 2,018 triangles retain the original charts and reversed
+cutter faces. A complete union mesh remains a separate requirement.
+Exact stock line queries also
 resolve isolated shared wall and cap events without duplicating or losing
 their original face owners (`dda46a5`, `22ef5ba`).
 
@@ -329,9 +332,16 @@ The [exact-vertex reconciliation](evidence/plaincad-reconciled-d6bfd4e-developme
 adds the worktree's `8df00f2` milestone to `d6bfd4e`. The same 16
 original browser cases and the separate no-OCCT WASM preflight passed.
 The native corner, side-opening, and STEP regression set passed on the
-combined revision. This confirms the tested stock-vertex cases; fully
-concealed cutters can still leave partitions outside canonical STEP
-reconstruction.
+combined revision. On the later [concealed-cutter reconciliation](evidence/plaincad-reconciled-dc2ad4e-development-concealed-holes-step-2026-11-14.json),
+all 16 originals and the Go/WASM preflight also passed. That revision
+includes worktree commit `c51d2762` for canonical STEP export of the
+qualified fully concealed cutters. Native bridge and STEP tests separately
+check round-trip measures and removal of redundant wall partitions.
+The [shared-floor reconciliation](evidence/plaincad-reconciled-9011e7b-development-shared-floor-holes-step-2026-11-14.json)
+adds worktree commit `8e15addf`. All 16 original cases also passed on
+`9011e7b`, with no skipped tests or retries and a successful Go/WASM
+backend preflight. The verifier confirmed that changing the local port
+was the only edit to the original Playwright configuration.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

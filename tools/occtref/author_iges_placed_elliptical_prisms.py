@@ -1,6 +1,8 @@
 # Independent leaf placement with world122 terminal points and502 vertices.
 from pathlib import Path
-for name in ('elliptical-prism-topology','elliptical-annular-prism-topology'):
+import sys
+names=("conic-circular-prism-topology","conic-circular-annular-prism-topology") if "--circle" in sys.argv else ("elliptical-prism-topology","elliptical-annular-prism-topology")
+for name in names:
  lines=Path('exchange/iges/testdata/'+name+'.igs').read_text().splitlines();ds=[x for x in lines if x[72]=='D'];ps=[x for x in lines if x[72]=='P'];records=[]
  def pose(v):
   x,y,z=map(float,v);return [str(z+7.5),str(x-4.25),str(y+2.125)]

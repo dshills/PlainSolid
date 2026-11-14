@@ -156,7 +156,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) AssembleCompleteMeshCertified(ctx
 		r.work.FragmentContactPairs += pairs
 		r.work.CollarCandidatePairs += collarPairs
 		for _, c := range roof.cells {
-			if c.VerticalClearance.Sign() > 0 {
+			if c.MaterialClearance.Sign() > 0 {
 				r.work.StrictMaterialCells++
 			} else {
 				r.work.BoundaryCollarCells++
