@@ -136,6 +136,9 @@ func (p *PreparedStoredMixedDisplay) Place(ctx context.Context, pose placement.R
 	if e != nil {
 		return nil, e
 	}
+	return p.bindPlacedDisplay(ctx, world)
+}
+func (p *PreparedStoredMixedDisplay) bindPlacedDisplay(ctx context.Context, world *placement.PlacedClosedDisplay) (*PlacedStoredMixedDisplay, error) {
 	r := world.RoundingUpper()
 	if r.Num().BitLen() > 65536 || r.Denom().BitLen() > 65536 {
 		return nil, geom.ErrConvergence

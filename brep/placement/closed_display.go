@@ -164,6 +164,7 @@ func (p *PreparedClosedDisplay) Shells() []collision.ShellInfo {
 // Both endpoint meshes are embedded; no ambient-isotopy or interpolation-path
 // embedding claim is made between them.
 type PlacedClosedDisplay struct {
+	source   *PreparedClosedDisplay
 	world    *PreparedClosedDisplay
 	rounding *big.Rat
 	pose     RationalRigid
@@ -245,5 +246,5 @@ func (p *PreparedClosedDisplay) Place(ctx context.Context, pose RationalRigid, o
 			}
 		}
 	}
-	return &PlacedClosedDisplay{world, image.RoundingUpper, pose}, nil
+	return &PlacedClosedDisplay{source: p, world: world, rounding: image.RoundingUpper, pose: pose}, nil
 }
