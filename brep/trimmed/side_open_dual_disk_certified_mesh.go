@@ -13,12 +13,13 @@ import (
 // total inward normal turn in radians. Every display facet is additionally
 // proved within AngularTurn/2 of its source normals. Both tolerances are
 // required; AngularTurn must be <=1. MaxRimIntervals defaults256 (maximum256),
-// independently of MaxTriangles (default100000). The schedule is dyadic, so a
+// independently of MaxTriangles (default100000). The default schedule is dyadic, so a
 // non-power-of-two interval limit uses its largest smaller power of two.
 // The interval limit also bounds each FINAL shared circular rim partition.
 // Circle reconstruction and each triangle residual use the existing bounded
 // exact geometry proof; total scheduled intervals are less than twice the
-// accepted dyadic count per wall. Face and collision proof budgets retain the
+// accepted dyadic count per wall. An authored RimSchedule instead caps total
+// scheduled intervals at512 per wall. Face and collision proof budgets retain the
 // closed mixed mesher defaults except the explicit Topology defaults below and
 // a2048-vertex/2000000-operation exact cap triangulation allowance. Proof failures
 // are atomic. Boundary sampling reserves Deflection/4 before Lipschitz
@@ -34,6 +35,11 @@ type SideOpenDualDiskMeshOptions struct {
 	Deflection, AngularTurn       float64
 	MaxRimIntervals, MaxTriangles int
 	Collision                     collision.Options
+	// RimSchedule optionally supplies strictly increasing interval counts instead
+	// of dyadic retries. At most9 counts, each<=MaxRimIntervals and total<=512.
+	// Non-power-of-two rational cuts retain all exact angular, positional,
+	// topology and collision checks; an exhausted schedule returns no mesh.
+	RimSchedule []int
 }
 
 type CertifiedSideOpenDualDiskMesh struct {
@@ -293,6 +299,10 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 	if _, e := o.Topology.WithDefaults(); e != nil {
 		return empty, e
 	}
+	schedule, e := dualDiskRimSchedule(o.RimSchedule, o.MaxRimIntervals)
+	if e != nil {
+		return empty, e
+	}
 	walls := map[int]dualDiskWallProof{}
 	rim := map[int]bool{}
 	for _, ids := range s.WallFaces {
@@ -350,8 +360,10 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 	angle2 := new(big.Rat).Mul(ratInset(o.AngularTurn), ratInset(o.AngularTurn))
 	facet2 := new(big.Rat).Quo(angle2, big.NewRat(4, 1))
 	linear2 := new(big.Rat).Quo(new(big.Rat).Mul(ratInset(o.Deflection), ratInset(o.Deflection)), big.NewRat(4, 1))
-	n := 1
-	for ; n <= o.MaxRimIntervals; n *= 2 {
+	n := 0
+	scheduled := false
+	for _, count := range schedule {
+		n = count
 		accepted := true
 		for _, w := range walls {
 			for k := 0; k < n; k++ {
@@ -400,10 +412,11 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 			}
 		}
 		if accepted {
+			scheduled = true
 			break
 		}
 	}
-	if n > o.MaxRimIntervals {
+	if !scheduled {
 		return empty, fmt.Errorf("circular rim schedule: %w", geom.ErrConvergence)
 	}
 	options := make([]SolidMixedFaceMeshOptions, len(s.Solid.faces))

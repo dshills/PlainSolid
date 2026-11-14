@@ -88,15 +88,17 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		// from the boundary and never uses the recipe's radii as evidence.
 		source := trimmed.SideOpenDualDiskCut{Solid: a.sideDualDisk.boundary, WallFaces: a.sideDualDisk.walls}
 		angle := min(2*o.Angle, 1)
+		var rimSchedule []int
 		if a.sideDualDisk.offsetCenters() {
 			// PlainCAD fabricates the accepted model mesh. Curved segment
 			// volume accumulates along the axial wall, so cap its turn here.
 			angle = min(angle, .05)
 		} else if a.sideDualDisk.differentCenterY() {
 			angle = min(angle, .025)
+			rimSchedule = []int{64, 96, 128}
 		}
 		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
-			Deflection: o.Deflection, AngularTurn: angle,
+			Deflection: o.Deflection, AngularTurn: angle, RimSchedule: rimSchedule,
 			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
 		})
 		return result.Mesh, err
