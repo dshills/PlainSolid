@@ -21,8 +21,13 @@ then `trimmed.FromParametric`. It preserves the exact sphere locus/center/radius
 canonicalizes the seam, and records every native face's original source face.
 It does **not** claim exact rational trigonometric evaluation or zero-discrepancy
 rational sewing. The original pole and its graph IDs remain separate ancestry.
-Native trimmed JSON reload is qualified; collection source-bound persistence is
-not widened in this milestone.
+Native trimmed JSON reload is qualified. The separate
+`Write/ReadIndependentSphereMaterialsJSON` API uses the distinct
+`plainsolid-step-independent-sphere-materials` version-one tag. One strict source
+reproof reconstructs all members before native bytes and every product/shape/role
+claim are compared. Envelope allocation and STEP limits remain separate, failure
+is atomic, and older tags are not widened. Original source re-export after native
+reload is independently qualified with OCCT.
 
 `occt-independent-sphere-product.step` is the original pinned OCCT sphere export
 (center 1,2,3; radius 2), retaining its south-pole topology and standard AP214
