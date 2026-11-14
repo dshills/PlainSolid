@@ -96,6 +96,42 @@ func TestAlgebraicStockDirectionalBounds(t *testing.T) {
 	if x.Cap != r.Min.Cap || x.Wire != r.Min.Wire || x.Use != r.Min.Use {
 		t.Fatal("exact placement may not change original owners", r.Min, out.Min)
 	}
+	width := q(1, 256)
+	localBox, err := stockModel.BoundBoxRational(ctx, width, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A second proper tilt leaves world X=(3X-4Y)/5, whose upper
+	// envelope reaches its maximum at X=3. The transformed local
+	// box has an empty corner at X=3,Y=0; using it would give 9/5.
+	tilt, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{q(3, 5), q(-4, 5), q(0, 1), q(1, 7)},
+		{q(4, 5), q(3, 5), q(0, 1), q(-1, 3)},
+		{q(0, 1), q(0, 1), q(1, 1), q(1, 11)},
+	}, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tw, err := p.PlaceVerticalMaterialRigid(ctx, tilt, section, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worldBox, err := tw.BoundBoxRational(ctx, width, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedLo := [3]*big.Rat{q(-12, 5), q(0, 1), q(1, 4)}
+	expectedHi := [3]*big.Rat{q(9, 10), q(39, 8), q(3, 4)}
+	for i := range localBox.Bounds {
+		assertValue(worldBox.Exact[i].Min, new(big.Rat).Add(expectedLo[i], [3]*big.Rat{q(1, 7), q(-1, 3), q(1, 11)}[i]))
+		assertValue(worldBox.Exact[i].Max, new(big.Rat).Add(expectedHi[i], [3]*big.Rat{q(1, 7), q(-1, 3), q(1, 11)}[i]))
+		if localBox.Bounds[i].Lower == nil || worldBox.Bounds[i].Upper == nil {
+			t.Fatal("every axis must have an outward rational bound", localBox, worldBox)
+		}
+	}
+	if bad, err := tw.BoundBoxRational(ctx, width, geom.ExactCurvePlaneEventOptions{MaxOperations: worldBox.Exact[0].ExactOperations + 2}); !errors.Is(err, geom.ErrConvergence) || bad.Exact[0].Min.Value != nil {
+		t.Fatal("all axes share one atomic work budget", bad, err)
+	}
 	if failed, err := world.BoundDirectionRational(ctx, dw, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(err, geom.ErrConvergence) || failed.Min.Value != nil || failed.Max.Value != nil {
 		t.Fatal("bounded failure must be atomic", failed, err)
 	}

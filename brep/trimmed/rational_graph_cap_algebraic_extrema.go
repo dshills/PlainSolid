@@ -38,19 +38,29 @@ func (m AlgebraicGraphVerticalMaterial) BoundDirectionRational(ctx context.Conte
 func (m AlgebraicGraphVerticalMaterial) boundDirectionRational(ctx context.Context, direction [3]*big.Rat,
 	offset *big.Rat, opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphDirectionalBounds, error) {
 	var zero AlgebraicGraphDirectionalBounds
+	b, err := m.extremaBudget(ctx, opts)
+	if err != nil {
+		return zero, err
+	}
+	return m.boundDirectionBudget(direction, offset, &b)
+}
+
+func (m AlgebraicGraphVerticalMaterial) extremaBudget(ctx context.Context, opts geom.ExactCurvePlaneEventOptions) (capClipBudget, error) {
 	if m.caps[0].recipe == nil {
-		return zero, geom.ErrInvalid
+		return capClipBudget{}, geom.ErrInvalid
 	}
 	if !m.lineReady {
-		return zero, geom.ErrUnrepresentable
+		return capClipBudget{}, geom.ErrUnrepresentable
 	}
 	if opts.MaxCoefficientBits == 0 {
 		opts.MaxCoefficientBits = m.maxBits
 	}
-	b, err := newCapClipBudget(ctx, opts)
-	if err != nil {
-		return zero, err
-	}
+	return newCapClipBudget(ctx, opts)
+}
+
+func (m AlgebraicGraphVerticalMaterial) boundDirectionBudget(direction [3]*big.Rat, offset *big.Rat, b *capClipBudget) (AlgebraicGraphDirectionalBounds, error) {
+	var zero AlgebraicGraphDirectionalBounds
+	ctx := b.ctx
 	maxWork, maxSubdiv := b.work, b.subdiv
 	for _, d := range direction {
 		if d == nil {
