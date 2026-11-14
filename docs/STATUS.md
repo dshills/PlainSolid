@@ -196,13 +196,23 @@ the old float spline path retains its lossless storage gate. Exact point,
 axial section, line and first-hit queries distinguish exposed and hidden
 supports, including both normals at the circle seam. Native documents
 regenerate the stock and cuts; headless picking follows exact boundary events.
-The bounded display path proves distance, smooth-wall normal angles, and
-closed embedding. The default PlainCAD viewer, STL and STEP workflow passed
-its supplemental equal-radius fixture on the local review branch. The close-up
-browser worker still reaches its 20-second deadline despite native speedups.
+Picking can also return the original outward seam normals through exact affine
+occurrence placements. The bounded display path proves distance, smooth-wall
+normal angles, and closed embedding for exact homogeneous walls too, including
+native reload and shared document occurrences. The default PlainCAD viewer,
+STL and STEP workflow passed its supplemental equal-radius fixture on the
+local review branch. The supplemental close-up passed on candidate `57f40ad`
+with the original 20-second worker deadline and identical pick geometry.
+The standalone Go/WASM mesh took 6.7–7.3 seconds after the final change,
+compared with 29.1 seconds before both collision and boundary improvements.
 Canonical model-only AP203 codecs cover the three lossless float-support
-classes. Vendor-rounded partial-cylinder pcurves remain rejected, and the
-new nonbinary support exchange gate is separately tracked.
+classes and separately register nonbinary external-radical walls. The latter
+round trip through their own reader, with exact wall and floor lineage.
+Vendor-rounded partial-cylinder pcurves remain rejected. Unequal disks with a
+common center Y below the opening side now have a separate exact section and
+native blind/through construction, exact point and line boundary queries,
+and an independently checked model-only STEP writer. Other transverse center
+placements and arcs extending past a semicircle have no qualification here.
 Exact model spline and surface-composed curve queries order isolated plane
 and finite line events, retain coincident plane spans, and classify matching
 knot-side germs. Strictly affine line coincidences have exact finite clipping.

@@ -4,6 +4,28 @@ Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
 No third-party Go modules are present (`go list -m all` lists only `plainsolid`).
 This record validates the current supported subsets, not full OCCT replacement.
 
+On 2026-11-13, the CGO-disabled run pinned to `f8b543f` passed all 49
+packages with tests other than `brep/trimmed`; the three remaining packages
+had no tests. The run reported 3,540 passing and 293 skipped test events,
+including subtests. The native `brep/trimmed` qualification runs separately.
+The `a2e35e9` signed offset native fixtures independently compare blind and
+through area and volume against closed-form circle segment integrals and
+verify original wall ancestry after native JSON reload. The exact-wall STEP
+writer/reader (`980bdac`, `f2ddecc`) passed live OCCT reimport, race and Go 1.23
+regressions; the older three reader domains still reject that product class.
+The output keeps analytic cylinders and the native reader recovers exact
+homogeneous coefficients including `26/3`. Affine camera picking and document
+round trip tests in `bb9597f` passed under the race detector.
+The offset STEP writer (`f7fff38`) passed eight live OCCT comparisons across
+both signed placements, cutter orders, and depths. Independent blind volume
+and area are 2282.90274417 and 1405.43256969; through results are 2165.80548834
+and 1332.80030216. The native offset line and point tests cover algebraic
+intersections, exposed cutter owners, and rational probes separated by 2^-90.
+Pinned PlainCAD Chromium candidate `57f40ad` passed the supplemental zoom
+test (19.330 seconds for the entire test), with 841 original application
+sources, the unchanged test hash, and a passed Go/WASM preflight. The display
+certificate's distance, normal angle, and collision guards all remain active.
+
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
 exposed circular seam from a buried individual cutter boundary, and resolves
