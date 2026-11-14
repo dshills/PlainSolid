@@ -82,7 +82,7 @@ func SewExactTopology(ctx context.Context, vertices []geom.Vec3, edges []paramet
 	if err != nil {
 		return Solid{}, empty, err
 	}
-	if err = validateExactSewnVertexLinks(result); err != nil {
+	if err = validateExactSewnVertexLinks(ctx, result); err != nil {
 		return Solid{}, empty, err
 	}
 	return result, report, nil
@@ -401,12 +401,15 @@ func sewExactOrientation(faces []Face, mapping []ExactSewnEdge, count int, repai
 	return out, flipped, nil
 }
 
-func validateExactSewnVertexLinks(s Solid) error {
+func validateExactSewnVertexLinks(ctx context.Context, s Solid) error {
 	links := make([]map[int][]int, len(s.vertices))
 	for i := range links {
 		links[i] = make(map[int][]int)
 	}
 	for _, face := range s.faces {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		for _, loop := range append([][]Use{face.Outer}, face.Holes...) {
 			for i, current := range loop {
 				prior := loop[(i+len(loop)-1)%len(loop)]
@@ -422,6 +425,9 @@ func validateExactSewnVertexLinks(s Solid) error {
 		}
 	}
 	for i, adjacent := range links {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		visited := make(map[int]bool, len(adjacent))
 		for first := range adjacent {
 			queue := []int{first}
