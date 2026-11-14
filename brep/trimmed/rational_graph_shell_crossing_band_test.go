@@ -244,4 +244,69 @@ func TestClipCrossingRationalGraphThroughHole(t *testing.T) {
 	if r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{}); !errors.Is(e, geom.ErrConvergence) || len(r.Solid.faces) != 0 {
 		t.Fatal("a plane crossing the inner loop must reject atomically", e)
 	}
+	for trial := 0; trial < 2; trial++ {
+		r, e := stock.ClipIntersectingPolygonalGraphCaps(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		// Full wedge 27/64 minus 1/64 of the original void.
+		if e != nil || math.Abs(m.Volume-13./32) > 1e-11 || r.Solid.Topology().EulerCharacteristic != 2 || len(r.CapIntersections) != 2 {
+			t.Fatal("the cut void opens and produces two exact cap seams", m, r.Solid.Topology(), len(r.CapIntersections), e)
+		}
+		if path := os.Getenv("PLAINSOLID_OCCT_MULTI_PLANE_CUTS"); trial == 0 && path != "" {
+			data, e := exec.CommandContext(ctx, path, "sleeve").Output()
+			if e != nil {
+				t.Fatal(e)
+			}
+			var oracle []float64
+			if e = json.Unmarshal(data, &oracle); e != nil || len(oracle) != 8 {
+				t.Fatalf("invalid OCCT result %s: %v", data, e)
+			}
+			// The Go source has split rectangular charts along the side
+			// walls, so compare material measures and Euler, not raw IDs.
+			for i, got := range []float64{m.Volume, m.Area, m.Centroid.X, m.Centroid.Y, m.Centroid.Z, float64(r.Solid.Topology().EulerCharacteristic)} {
+				want := oracle[i]
+				if i == 5 {
+					want = oracle[5] - oracle[6] + oracle[7]
+				}
+				if math.Abs(got-want) > 1e-11 || math.IsNaN(got) {
+					t.Fatalf("measure %d: PlainSolid %.16g, OCCT %.16g", i, got, want)
+				}
+			}
+		}
+		claimed := make([]int, len(r.Solid.edges))
+		for _, group := range append(append([][]int(nil), r.SourceEdges...), r.CapEdges[:]...) {
+			for _, id := range group {
+				claimed[id]++
+			}
+		}
+		for _, seam := range r.CapIntersections {
+			claimed[seam.Edge]++
+			for _, p := range seam.Points {
+				if p[0].Cmp(ratInset(1.5)) != 0 || p[2].Cmp(ratInset(.5)) != 0 {
+					t.Fatal("unproved exact shared cap endpoint", p)
+				}
+			}
+			for i, f := range seam.Faces {
+				if r.Solid.faces[f].Surface != cuts[i].Cap || len(r.Solid.faces[f].Holes) != 0 {
+					t.Fatal("lost original cap or uncut void", i, f)
+				}
+			}
+		}
+		for i, n := range claimed {
+			if n != 1 {
+				t.Fatal("one complete ownership row per output edge", i, n)
+			}
+		}
+		var native bytes.Buffer
+		if e = WriteJSON(&native, r.Solid); e != nil {
+			t.Fatal(e)
+		}
+		back, e := ReadJSONContext(ctx, &native, JSONLimits{})
+		if e != nil || back.Topology().Edges != r.Solid.Topology().Edges {
+			t.Fatal("multi-seam native roundtrip", e)
+		}
+		cuts[0], cuts[1] = cuts[1], cuts[0]
+	}
 }

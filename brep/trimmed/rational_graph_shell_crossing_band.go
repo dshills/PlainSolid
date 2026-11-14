@@ -28,7 +28,34 @@ type RationalGraphCrossingBand struct {
 // are authored independently on the original supports. Caps.RationalEndpoints
 // admits exact nonbinary junctions when all retained trim pieces are quadratic.
 func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphCrossingBand, error) {
-	var zero RationalGraphCrossingBand
+	result, e := s.clipIntersectingRationalGraphCaps(ctx, cuts, o, false)
+	if e != nil {
+		return RationalGraphCrossingBand{}, e
+	}
+	if len(result.CapIntersections) != 1 {
+		return RationalGraphCrossingBand{}, geom.ErrConvergence
+	}
+	return RationalGraphCrossingBand{result.RationalGraphSeparatedBand, result.CapIntersections[0]}, nil
+}
+
+// RationalGraphMultiSeamBand reports all generated cap edges separately from
+// stock/cap edges. CapIntersections is ordered by result model edge ID.
+type RationalGraphMultiSeamBand struct {
+	RationalGraphSeparatedBand
+	CapIntersections []SplineCapIntersection
+}
+
+// ClipIntersectingPolygonalGraphCaps intersects stock with two halfspaces
+// whose complete original section boundaries are exactly polygonal. Inner
+// loop crossings and multiple cap components are admitted. The exact seams
+// must be proved independently in both cap regions, then sewn to continuous
+// original stock uses. Each original stock face retains at most one fragment.
+func (s Solid) ClipIntersectingPolygonalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphMultiSeamBand, error) {
+	return s.clipIntersectingRationalGraphCaps(ctx, cuts, o, true)
+}
+
+func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions, polygonal bool) (RationalGraphMultiSeamBand, error) {
+	var zero RationalGraphMultiSeamBand
 	rational := o.Caps.RationalEndpoints
 	so := o.Sections
 	if so.MaxPieces == 0 {
@@ -68,11 +95,12 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 	if !proof.Complete {
 		return zero, geom.ErrConvergence
 	}
-	var out RationalGraphCrossingBand
+	var out RationalGraphMultiSeamBand
 	var signs [2][]int
 	var clipped [2]*RationalGraphShellRegions
-	var junctions [2][2]capBoundaryCut
-	var capParts [2]RationalGraphSectionCap
+	var junctions [2][]capBoundaryCut
+	var seamPairs [2][]RationalGraphCapSeam
+	var capParts [2][]RationalGraphSectionCap
 	var arcs [2]map[int][]PCurve
 	for i := range cuts {
 		sec, sides, e := s.discoverRationalGraphShellSection(ctx, cuts[i].Points, planes[i], faces, so)
@@ -80,7 +108,20 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 			return zero, fmt.Errorf("trimmed: crossing band section %d: %w", i, e)
 		}
 		out.Sections[i], signs[i] = sec, sides
-		clipped[i], junctions[i], e = sec.Regions.intersectCapHalfspace(ctx, planes[1-i], keep[1-i], *so.Regions)
+		if polygonal {
+			var arrangement RationalGraphCapArrangement
+			arrangement, e = sec.Regions.intersectPolygonalCap(ctx, planes[1-i], keep[1-i], *so.Regions)
+			clipped[i] = arrangement.Regions
+			seamPairs[i] = arrangement.Seams
+			for _, cut := range arrangement.Cuts {
+				junctions[i] = append(junctions[i], capBoundaryCut(cut))
+			}
+		} else {
+			var j [2]capBoundaryCut
+			clipped[i], j, e = sec.Regions.intersectCapHalfspace(ctx, planes[1-i], keep[1-i], *so.Regions)
+			junctions[i] = j[:]
+			seamPairs[i] = []RationalGraphCapSeam{{0, 1}}
+		}
 		if e != nil {
 			return zero, fmt.Errorf("trimmed: crossing band cap %d: %w", i, e)
 		}
@@ -88,10 +129,10 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		if e != nil {
 			return zero, e
 		}
-		if len(caps) != 1 {
+		if len(caps) == 0 {
 			return zero, geom.ErrConvergence
 		}
-		capParts[i] = caps[0]
+		capParts[i] = caps
 		arcs[i], e = retainedRationalGraphCapArcs(sec, clipped[i], junctions[i], clipped[i].maxBits, rational)
 		if e != nil {
 			return zero, e
@@ -108,9 +149,26 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		}
 		return true
 	}
-	if !(paired(junctions[0][0], junctions[1][0]) && paired(junctions[0][1], junctions[1][1]) ||
-		paired(junctions[0][0], junctions[1][1]) && paired(junctions[0][1], junctions[1][0])) {
+	if len(seamPairs[0]) == 0 || len(seamPairs[0]) != len(seamPairs[1]) {
 		return zero, geom.ErrConvergence
+	}
+	seen := make([]bool, len(seamPairs[1]))
+	for _, a := range seamPairs[0] {
+		match := -1
+		for i, b := range seamPairs[1] {
+			aa, ab := junctions[0][a.From], junctions[0][a.To]
+			ba, bb := junctions[1][b.From], junctions[1][b.To]
+			if paired(aa, ba) && paired(ab, bb) || paired(aa, bb) && paired(ab, ba) {
+				if match >= 0 || seen[i] {
+					return zero, geom.ErrConvergence
+				}
+				match = i
+			}
+		}
+		if match < 0 {
+			return zero, geom.ErrConvergence
+		}
+		seen[match] = true
 	}
 	lookup := [2]map[int]RationalGraphShellBranch{{}, {}}
 	for i, sec := range out.Sections {
@@ -173,13 +231,15 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		out.SourceFaces[id] = []int{len(parts)}
 		parts, edges = append(parts, part), append(edges, old)
 	}
-	for i, capa := range capParts {
-		part := capa.Boundary
-		if keep[i] > 0 {
-			part.Face.Reversed = !part.Face.Reversed
+	for i, row := range capParts {
+		for _, cap := range row {
+			part := cap.Boundary
+			if keep[i] > 0 {
+				part.Face.Reversed = !part.Face.Reversed
+			}
+			out.CapFaces[i] = append(out.CapFaces[i], len(parts))
+			parts = append(parts, part)
 		}
-		out.CapFaces[i] = []int{len(parts)}
-		parts = append(parts, part)
 	}
 	if rational {
 		if e := proveRationalSplitVertexIdentity(ctx, parts); e != nil {
@@ -198,39 +258,38 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		}
 	}
 	var capEd [2][]int
-	common := -1
-	for i, p := range capParts {
-		face := out.CapFaces[i][0]
-		for j, source := range p.Edges {
-			id := h.Edges[face][j]
-			capEd[i] = append(capEd[i], id)
-			if source.Branch >= 0 {
-				out.CapEdges[i] = append(out.CapEdges[i], id)
-				continue
-			}
-			if i == 0 {
-				if common >= 0 {
+	common := make(map[int]*SplineCapIntersection)
+	for i, row := range capParts {
+		for k, p := range row {
+			face := out.CapFaces[i][k]
+			for j, source := range p.Edges {
+				id := h.Edges[face][j]
+				capEd[i] = append(capEd[i], id)
+				if source.Branch >= 0 {
+					out.CapEdges[i] = append(out.CapEdges[i], id)
+					continue
+				}
+				seam := common[id]
+				if i == 0 && seam == nil {
+					seam = &SplineCapIntersection{Edge: id}
+					common[id] = seam
+				}
+				if seam == nil || seam.UV[i][0][0] != nil || j >= len(p.Boundary.Face.Outer) {
 					return zero, geom.ErrConvergence
 				}
-				common = id
-			} else if common != id {
-				return zero, geom.ErrConvergence
+				u := p.Boundary.Face.Outer[j]
+				uv, _, e := graphSectionCapEndpoints(u.Curve, rational)
+				if e != nil {
+					return zero, e
+				}
+				if h.EdgeReversed[face][j] {
+					uv[0], uv[1] = uv[1], uv[0]
+				}
+				seam.UV[i], seam.Faces[i] = uv, face
 			}
-			if j >= len(p.Boundary.Face.Outer) {
-				return zero, geom.ErrConvergence
-			}
-			u := p.Boundary.Face.Outer[j]
-			uv, _, e := graphSectionCapEndpoints(u.Curve, rational)
-			if e != nil {
-				return zero, e
-			}
-			if h.EdgeReversed[face][j] {
-				uv[0], uv[1] = uv[1], uv[0]
-			}
-			out.CapIntersection.UV[i] = uv
 		}
 	}
-	if common < 0 || out.CapIntersection.UV[1][0][0] == nil {
+	if len(common) != len(seamPairs[0]) {
 		return zero, geom.ErrConvergence
 	}
 	var exact map[int][3]*big.Rat
@@ -244,22 +303,36 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 			exact[p.Vertex] = p.Point
 		}
 	}
-	for i, id := range [2]int{result.edges[common].Start, result.edges[common].End} {
-		p := result.vertices[id]
-		point := [3]*big.Rat{ratInset(p.X), ratInset(p.Y), ratInset(p.Z)}
-		if rational {
-			var ok bool
-			if point, ok = exact[id]; !ok {
-				return zero, geom.ErrConvergence
-			}
+	for edge, model := range result.edges {
+		seam := common[edge]
+		if seam == nil {
+			continue
 		}
-		if !(rationalGraphSamePoint(point, junctions[0][0].Point) || rationalGraphSamePoint(point, junctions[0][1].Point)) {
+		if seam.UV[1][0][0] == nil {
 			return zero, geom.ErrConvergence
 		}
-		out.CapIntersection.Points[i] = point
+		for i, id := range [2]int{model.Start, model.End} {
+			p := result.vertices[id]
+			point := [3]*big.Rat{ratInset(p.X), ratInset(p.Y), ratInset(p.Z)}
+			if rational {
+				var ok bool
+				if point, ok = exact[id]; !ok {
+					return zero, geom.ErrConvergence
+				}
+			}
+			seam.Points[i] = point
+		}
+		match := false
+		for _, pair := range seamPairs[0] {
+			a, b := junctions[0][pair.From].Point, junctions[0][pair.To].Point
+			match = match || rationalGraphSamePoint(seam.Points[0], a) && rationalGraphSamePoint(seam.Points[1], b) ||
+				rationalGraphSamePoint(seam.Points[1], a) && rationalGraphSamePoint(seam.Points[0], b)
+		}
+		if !match {
+			return zero, geom.ErrConvergence
+		}
+		out.CapIntersections = append(out.CapIntersections, *seam)
 	}
-	out.CapIntersection.Edge = common
-	out.CapIntersection.Faces = [2]int{out.CapFaces[0][0], out.CapFaces[1][0]}
 	out.SourceEdges, e = classifyRationalGraphSewnEdges(result, h, edges, len(s.edges), capEd[:])
 	if e != nil {
 		return zero, e
@@ -272,7 +345,7 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 }
 
 func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch,
-	pieces [2][]PCurve, keep [2]int, cuts [2]capBoundaryCut, faceID int, o SplineRectangleEmbeddingOptions, rational bool) (SewFace, error) {
+	pieces [2][]PCurve, keep [2]int, cuts []capBoundaryCut, faceID int, o SplineRectangleEmbeddingOptions, rational bool) (SewFace, error) {
 	free := branches[0].freeAxis
 	above := [2]bool{branches[0].positive == keep[0], branches[1].positive == keep[1]}
 	var junctions int
@@ -411,7 +484,7 @@ func rationalGraphSamePoint(a, b [3]*big.Rat) bool {
 	return true
 }
 
-func retainedRationalGraphCapArcs(section RationalGraphShellSection, clipped *RationalGraphShellRegions, cuts [2]capBoundaryCut, bits int, rational bool) (map[int][]PCurve, error) {
+func retainedRationalGraphCapArcs(section RationalGraphShellSection, clipped *RationalGraphShellRegions, cuts []capBoundaryCut, bits int, rational bool) (map[int][]PCurve, error) {
 	retained := map[int][]PCurve{}
 	for _, wire := range clipped.wires {
 		for _, z := range wire {

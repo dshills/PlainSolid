@@ -287,6 +287,144 @@ type capBoundaryCut struct {
 	Point      [3]*big.Rat
 }
 
+// capBoundarySections returns all proved roots on the input region boundaries
+// together with the retained boundary runs. In the polygonal specialization
+// each section piece is an exact affine segment, including its parameter.
+// Joining runs requires a separate exact signed line-order/material proof.
+func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, other polynomialPlaneEquation, keep int, opts *trimvalidate.Options) ([]capBoundaryRun, []capBoundaryCut, error) {
+	form := r.capHalfspaceForm(other)
+	if form[0].Sign() == 0 && form[1].Sign() == 0 {
+		return nil, nil, geom.ErrConvergence
+	}
+	count := 0
+	check := func(x *big.Rat) error {
+		opts.MaxWork--
+		if opts.MaxWork < 1 || x.Num().BitLen() > opts.MaxBits || x.Denom().BitLen() > opts.MaxBits {
+			return geom.ErrConvergence
+		}
+		return ctx.Err()
+	}
+	for _, a := range form {
+		if e := check(a); e != nil {
+			return nil, nil, e
+		}
+	}
+	signed := func(h [3]*big.Rat) (*big.Rat, error) {
+		v := new(big.Rat)
+		for i, a := range form {
+			d := new(big.Rat).Mul(a, h[i])
+			if e := check(d); e != nil {
+				return nil, e
+			}
+			v.Add(v, d)
+			if e := check(v); e != nil {
+				return nil, e
+			}
+		}
+		if keep*other.orientation < 0 {
+			v.Neg(v)
+		}
+		return v, nil
+	}
+	var runs []capBoundaryRun
+	var cuts []capBoundaryCut
+	for _, wire := range r.wires {
+		type segment struct {
+			piece       projectedGraphSectionPiece
+			kept        bool
+			before, end int
+		}
+		row := make([]segment, len(wire))
+		for i, p := range wire {
+			count++
+			if count > opts.MaxEdges || len(p.control) != 3 {
+				return nil, nil, geom.ErrConvergence
+			}
+			a, m, b := p.control[0], p.control[1], p.control[2]
+			// Verify exact linear parameterization with unit weights; a
+			// collinear image with nonlinear parameter is insufficient.
+			for k := range a {
+				d := new(big.Rat).Sub(new(big.Rat).Add(a[k], b[k]), new(big.Rat).Mul(big.NewRat(2, 1), m[k]))
+				if e := check(d); e != nil {
+					return nil, nil, e
+				}
+				if d.Sign() != 0 || k == 2 && (a[k].Cmp(big.NewRat(1, 1)) != 0 || b[k].Cmp(big.NewRat(1, 1)) != 0) {
+					return nil, nil, geom.ErrConvergence
+				}
+			}
+			pa, e := signed(a)
+			if e != nil {
+				return nil, nil, e
+			}
+			pb, e := signed(b)
+			if e != nil {
+				return nil, nil, e
+			}
+			x, y := pa.Sign(), pb.Sign()
+			if x == 0 || y == 0 {
+				return nil, nil, geom.ErrConvergence
+			}
+			row[i] = segment{piece: p, kept: x > 0 || y > 0, before: -1, end: -1}
+			if x != y {
+				t := new(big.Rat).Quo(pa, new(big.Rat).Sub(pa, pb))
+				if e := check(t); e != nil {
+					return nil, nil, e
+				}
+				left, right, e := splitCapBezier(p.control, t, opts.MaxBits)
+				if e != nil {
+					return nil, nil, e
+				}
+				at := len(cuts)
+				cuts = append(cuts, capBoundaryCut{p.source, t, x > 0, r.capPoint(right[0])})
+				if x > 0 {
+					row[i].piece.control, row[i].end = left, at
+				} else {
+					row[i].piece.control, row[i].before = right, at
+				}
+			}
+		}
+		starts := 0
+		for i, s := range row {
+			if s.before < 0 {
+				continue
+			}
+			starts++
+			run := capBoundaryRun{start: s.before, end: -1}
+			for j := 0; j < len(row); j++ {
+				p := row[(i+j)%len(row)]
+				if !p.kept || j > 0 && p.before >= 0 {
+					return nil, nil, geom.ErrConvergence
+				}
+				run.pieces = append(run.pieces, p.piece)
+				if p.end >= 0 {
+					run.end = p.end
+					break
+				}
+			}
+			if run.end < 0 {
+				return nil, nil, geom.ErrConvergence
+			}
+			runs = append(runs, run)
+		}
+		if starts == 0 && row[0].kept {
+			run := capBoundaryRun{start: -1, end: -1}
+			for _, s := range row {
+				if !s.kept || s.end >= 0 {
+					return nil, nil, geom.ErrConvergence
+				}
+				run.pieces = append(run.pieces, s.piece)
+			}
+			runs = append(runs, run)
+		}
+	}
+	return runs, cuts, nil
+}
+
+type capBoundaryRun struct {
+	pieces     []projectedGraphSectionPiece
+	start, end int // -1, -1 identifies an untouched closed run
+}
+
 func (r *RationalGraphShellRegions) capPoint(h [3]*big.Rat) [3]*big.Rat {
 	var p [3]*big.Rat
 	p[r.plane.dropped] = new(big.Rat).Set(r.plane.offset)

@@ -1672,8 +1672,11 @@ about 1.65e-8. Touching an original section vertex returns no partial solid.
 The crossing assembler also preserves exact nonbinary quadratic seam endpoints
 `(2/3,0,3/16)` and `(2/3,19/36,3/16)` through native reload. Two sleeve
 fixtures prove independent volumes 67/64 and 3/64, keeping or dropping a
-complete inner wire with the corresponding genus change. Crossing that wire
-rejects atomically.
+complete inner wire with the corresponding genus change. A polygonal
+arrangement now also cuts through the inner wire. Its two native cap seams
+exclude the gap across the through-void; volume is 13/32. Native reload and
+both cutter orders preserve topology and exact seam ownership. A pinned
+OCCT cut verifies volume, area, centroid, and Euler characteristic.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
