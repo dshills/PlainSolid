@@ -86,73 +86,9 @@ func (q *AlgebraicGraphMaterialQuery) RefineClippedWindowDepth(ctx context.Conte
 			return out, geom.ErrInvalid
 		}
 	}
-	var domains [2]AlgebraicGraphProjectionWindow
-	for chart, g := range q.graphs {
-		d := g.Domain()
-		if !exactFullGraphRectangle(q.faces[chart], d) {
-			return out, geom.ErrConvergence
-		}
-		inverse, e := g.InverseCoefficients()
-		if e != nil {
-			return out, e
-		}
-		seen := [2]bool{}
-		for uv, row := range inverse {
-			for _, x := range row {
-				if e := check(x); e != nil {
-					return out, e
-				}
-			}
-			axis := -1
-			for i := 0; i < 2; i++ {
-				if row[i].Sign() != 0 {
-					if axis != -1 {
-						return out, geom.ErrConvergence
-					}
-					axis = i
-				}
-			}
-			if axis < 0 || seen[axis] {
-				return out, geom.ErrConvergence
-			}
-			seen[axis] = true
-			limits := [2]float64{d.UMin, d.UMax}
-			if uv == 1 {
-				limits = [2]float64{d.VMin, d.VMax}
-			}
-			points := [2]*big.Rat{}
-			for end, f := range limits {
-				v := ratInset(f)
-				if e := check(v); e != nil {
-					return out, e
-				}
-				v.Sub(v, row[2])
-				if e := check(v); e != nil {
-					return out, e
-				}
-				v.Quo(v, row[axis])
-				if e := check(v); e != nil {
-					return out, e
-				}
-				points[end] = v
-			}
-			if points[0].Cmp(points[1]) > 0 {
-				points[0], points[1] = points[1], points[0]
-			}
-			domains[chart].Min[axis], domains[chart].Max[axis] = points[0], points[1]
-		}
-	}
-	common := copyWindow(domains[0])
-	for i := 0; i < 2; i++ {
-		if domains[1].Min[i].Cmp(common.Min[i]) > 0 {
-			common.Min[i].Set(domains[1].Min[i])
-		}
-		if domains[1].Max[i].Cmp(common.Max[i]) < 0 {
-			common.Max[i].Set(domains[1].Max[i])
-		}
-		if common.Min[i].Cmp(common.Max[i]) >= 0 {
-			return out, geom.ErrConvergence
-		}
+	common, e := q.exactCommonGraphRectangle(o.CellOptions.Exact.MaxCoefficientBits)
+	if e != nil {
+		return out, e
 	}
 	out.Requested = copyWindow(w)
 	out.CommonDomain = common
@@ -256,4 +192,92 @@ func exactFullGraphRectangle(f Face, d geom.ParameterRectangle) bool {
 		seen |= 1 << a
 	}
 	return seen == 15
+}
+
+// Both complete original trim rectangles and exact coordinate-permutation
+// inverses are required. The returned rectangle contains the entire native
+// common's retained projection, not an inferred polygon bounding hull.
+func (q *AlgebraicGraphMaterialQuery) exactCommonGraphRectangle(bits int) (AlgebraicGraphProjectionWindow, error) {
+	if q == nil || q.graphs[0] == nil || q.graphs[1] == nil {
+		return AlgebraicGraphProjectionWindow{}, geom.ErrInvalid
+	}
+	check := func(x *big.Rat) error {
+		if !graphPolynomialBits(x, bits) {
+			return geom.ErrConvergence
+		}
+		return nil
+	}
+	copyWindow := func(a AlgebraicGraphProjectionWindow) AlgebraicGraphProjectionWindow {
+		return AlgebraicGraphProjectionWindow{Min: [2]*big.Rat{new(big.Rat).Set(a.Min[0]), new(big.Rat).Set(a.Min[1])}, Max: [2]*big.Rat{new(big.Rat).Set(a.Max[0]), new(big.Rat).Set(a.Max[1])}}
+	}
+	var domains [2]AlgebraicGraphProjectionWindow
+	for chart, g := range q.graphs {
+		d := g.Domain()
+		if !exactFullGraphRectangle(q.faces[chart], d) {
+			return AlgebraicGraphProjectionWindow{}, geom.ErrConvergence
+		}
+		inverse, e := g.InverseCoefficients()
+		if e != nil {
+			return AlgebraicGraphProjectionWindow{}, e
+		}
+		seen := [2]bool{}
+		for uv, row := range inverse {
+			for _, x := range row {
+				if e := check(x); e != nil {
+					return AlgebraicGraphProjectionWindow{}, e
+				}
+			}
+			axis := -1
+			for i := 0; i < 2; i++ {
+				if row[i].Sign() != 0 {
+					if axis != -1 {
+						return AlgebraicGraphProjectionWindow{}, geom.ErrConvergence
+					}
+					axis = i
+				}
+			}
+			if axis < 0 || seen[axis] {
+				return AlgebraicGraphProjectionWindow{}, geom.ErrConvergence
+			}
+			seen[axis] = true
+			limits := [2]float64{d.UMin, d.UMax}
+			if uv == 1 {
+				limits = [2]float64{d.VMin, d.VMax}
+			}
+			points := [2]*big.Rat{}
+			for end, f := range limits {
+				v := ratInset(f)
+				if e := check(v); e != nil {
+					return AlgebraicGraphProjectionWindow{}, e
+				}
+				v.Sub(v, row[2])
+				if e := check(v); e != nil {
+					return AlgebraicGraphProjectionWindow{}, e
+				}
+				v.Quo(v, row[axis])
+				if e := check(v); e != nil {
+					return AlgebraicGraphProjectionWindow{}, e
+				}
+				points[end] = v
+			}
+			if points[0].Cmp(points[1]) > 0 {
+				points[0], points[1] = points[1], points[0]
+			}
+			domains[chart].Min[axis], domains[chart].Max[axis] = points[0], points[1]
+		}
+	}
+	common := copyWindow(domains[0])
+	for i := 0; i < 2; i++ {
+		if domains[1].Min[i].Cmp(common.Min[i]) > 0 {
+			common.Min[i].Set(domains[1].Min[i])
+		}
+		if domains[1].Max[i].Cmp(common.Max[i]) < 0 {
+			common.Max[i].Set(domains[1].Max[i])
+		}
+		if common.Min[i].Cmp(common.Max[i]) >= 0 {
+			return AlgebraicGraphProjectionWindow{}, geom.ErrConvergence
+		}
+	}
+
+	return common, nil
 }
