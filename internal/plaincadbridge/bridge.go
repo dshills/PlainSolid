@@ -383,12 +383,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 
 		if q.Op == "cut" {
-			if a.analytic != nil && a.analytic.sideNotch != nil {
-				if result, handled, err := b.cutSideDualDisk(a, []stored{c}); handled {
-					return result, err
-				}
-			}
-			if result, handled, err := b.cutSideOpeningPair(a, []stored{c}); handled {
+			if result, handled, err := b.cutSideOpeningFamilies(a, []stored{c}); handled {
 				return result, err
 			}
 			if a.analytic != nil && a.analytic.sideNotch != nil {

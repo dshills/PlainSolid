@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"errors"
 	"math"
 	"sort"
 
@@ -33,6 +34,21 @@ func pairCylinderSpan(p step.SideOpeningPairBody, tool *cylinderBody) (trimmed.E
 func crossesPairSide(p step.SideOpeningPairBody, c trimmed.ExtrusionCircle) bool {
 	return math.Abs(c.Center.Y) < c.Radius && c.Center.X-c.Radius > 0 &&
 		c.Center.X+c.Radius < p.Width && c.Center.Y+c.Radius < p.Back
+}
+
+// Keep the precise equal-depth family when it can represent the exact
+// section. Its narrower representability gate can reject an irrational
+// circle intersection which the analytic two-opening path proves directly.
+// Retry only that exact representability failure and publish at most one body.
+func (b *Bridge) cutSideOpeningFamilies(a stored, tools []stored) (Shape, bool, error) {
+	first, handled, err := b.cutSideDualDisk(a, tools)
+	if handled && !errors.Is(err, geom.ErrUnrepresentable) {
+		return first, true, err
+	}
+	if result, ok, second := b.cutSideOpeningPair(a, tools); ok {
+		return result, true, second
+	}
+	return first, handled, err
 }
 
 func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, error) {

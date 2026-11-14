@@ -3,8 +3,8 @@ package plaincadbridge
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math"
-	"strings"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -199,15 +199,34 @@ func requestForSideMesh(deflection, angular optionalNumber) request {
 	return request{LinearDeflection: deflection, AngularDeflection: angular}
 }
 
-func TestPlainCADSideOpenDualDiskRejectsUnprovedCrossing(t *testing.T) {
+func TestPlainCADSideOpeningFallbackAtNonbinaryCrossing(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{0, 4, 0}, vector{10, 10, 6})
 	a := circle(t, b, vector{3.5, 4, 0}, vector{0, 0, 1}, 2.5, 3)
 	c := circle(t, b, vector{6, 4, 0}, vector{0, 0, 1}, 2.5, 3)
 	before := len(b.shapes)
+	tools := []stored{b.shapes[a.Handle], b.shapes[c.Handle]}
+	if out, handled, err := b.cutSideDualDisk(b.shapes[stock.Handle], tools); !handled || !errors.Is(err, geom.ErrUnrepresentable) || out.Handle != "" || len(b.shapes) != before {
+		t.Fatal("strict dual disk must reject without a partial publish", out, err)
+	}
 	out, err := b.cutMany(stock.Handle, []string{a.Handle, c.Handle})
-	if err == nil || out.Handle != "" || len(b.shapes) != before || !strings.Contains(err.Error(), geom.ErrUnrepresentable.Error()) {
-		t.Fatal("irrational crossing must reject without a faceted or partial publish", out, err)
+	if err != nil || len(b.shapes) != before+1 || b.shapes[out.Handle].analytic.sideOpeningPair == nil || out.Bounds != stock.Bounds {
+		t.Fatal("analytic side-opening family must verify the represented topology independently", out, err)
+	}
+	want := 360 - 3*(6.25*(math.Pi-math.Acos(.5))+2.5*math.Sqrt(4.6875)/2)
+	near(t, out.GeometryAssertions.Volume, want)
+	data, err := writeSTEPBody(b.shapes[out.Handle])
+	if err != nil || bytes.Count(data, []byte("CYLINDRICAL_SURFACE(")) < 2 {
+		t.Fatal("analytic cylindrical supports must survive STEP export", err)
+	}
+	reload, err := b.importSTEP(string(data))
+	if err != nil || b.shapes[reload.Handle].analytic.sideOpeningPair == nil || reload.Bounds != stock.Bounds {
+		t.Fatal("STEP readback must recover the original stock and both cutters", reload, err)
+	}
+	near(t, reload.GeometryAssertions.Volume, want)
+	mesh, err := b.shapes[out.Handle].tessellate(request{})
+	if err != nil || mesh.ValidateSolid() != nil {
+		t.Fatal("display of independently accepted analytic stock must close", err)
 	}
 }
 

@@ -67,17 +67,21 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if a.cylinder != nil && c.analytic != nil {
 		dualStock, dualTool = c, a
 	}
-	if volume, handled, err := overlapSideDualDisk(dualStock, dualTool); handled {
-		if err != nil {
-			return nil, err
+	dualVolume, dualHandled, dualErr := overlapSideDualDisk(dualStock, dualTool)
+	if dualHandled && !errors.Is(dualErr, geom.ErrUnrepresentable) {
+		if dualErr != nil {
+			return nil, dualErr
 		}
-		return result(volume)
+		return result(dualVolume)
 	}
 	if volume, handled, err := overlapSideOpeningPair(dualStock, dualTool); handled {
 		if err != nil {
 			return nil, err
 		}
 		return result(volume)
+	}
+	if dualHandled {
+		return nil, dualErr
 	}
 	if volume, handled, err := overlapSideNotchBores(a, c); handled {
 		if err != nil {
