@@ -49,7 +49,14 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		return fuseSeparateOrderedRoofBoxes(ctx, a, b, &w)
 	}
 	if len(boxes[0].roofSpans) != 0 || len(boxes[1].roofSpans) != 0 {
-		return Solid{}, zero, geom.ErrUnrepresentable
+		if d != boxes[1].domain {
+			return Solid{}, zero, geom.ErrUnrepresentable
+		}
+		floorIndex := 0
+		if boxes[1].floor.Cmp(boxes[0].floor) < 0 {
+			floorIndex = 1
+		}
+		return fusePiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, [2][]float64{}, &w)
 	}
 	if d != boxes[1].domain {
 		out, h, err := fuseContainedOrderedRoofBoxes(ctx, [2]Solid{a, b}, boxes, &w)
@@ -82,7 +89,14 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 	}
 	order, err := orderedRoofBoxOrder(ctx, boxes, xy, &w)
 	if err != nil {
-		return Solid{}, zero, err
+		if !errors.Is(err, geom.ErrUnrepresentable) {
+			return Solid{}, zero, err
+		}
+		cuts, err := orderedRoofCrossingCuts(ctx, boxes, xy, &w)
+		if err != nil {
+			return Solid{}, zero, err
+		}
+		return fusePiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, cuts, &w)
 	}
 	if order < 0 {
 		roofIndex = 1
@@ -107,6 +121,22 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		h.Faces = append(h.Faces, []MixedRoofFaceOwner{{0, boxes[0].sideFaces[i]}, {1, boxes[1].sideFaces[i]}})
 	}
 	return out, h, nil
+}
+
+func fusePiecewiseRoofBoxes(ctx context.Context, a, b Solid, q *MixedRoofMaterialQuery, d geom.ParameterRectangle, floorIndex int, inset [2][]float64, w *mixedRoofLineWork) (Solid, RoofBoxUnionHistory, error) {
+	result, owners, err := sewPiecewiseRoofEnvelope(ctx, a, b, q, d, floorIndex, inset, w)
+	if err != nil {
+		return Solid{}, RoofBoxUnionHistory{}, err
+	}
+	h := RoofBoxUnionHistory{Faces: make([][]MixedRoofFaceOwner, len(owners)), ExactOperations: w.operations}
+	for i, face := range owners {
+		if face.side < 0 {
+			h.Faces[i] = []MixedRoofFaceOwner{face.source}
+		} else {
+			h.Faces[i] = []MixedRoofFaceOwner{{0, q.box[0].sideFaces[face.side]}, {1, q.box[1].sideFaces[face.side]}}
+		}
+	}
+	return result, h, nil
 }
 
 // At a proved horizontal interface, the existing overlap assembler removes

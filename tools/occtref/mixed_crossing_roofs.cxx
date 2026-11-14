@@ -329,6 +329,12 @@ int main(int argc, char** argv) {
       report("piecewise-ordered-common",BRepAlgoAPI_Common(stock,limit).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="iso-crossing-ordered-common") {
+      const auto curved=graphStock(true,true);
+      const auto plane=BRepPrimAPI_MakeBox(gp_Pnt(0,-.125,0),gp_Pnt(1,1.125,17./16)).Shape();
+      report("iso-crossing-ordered-common",BRepAlgoAPI_Common(curved,plane).Shape(),1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="weighted-ordered-difference") {
       const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,4)).Shape();
       report("weighted-ordered-difference",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape());

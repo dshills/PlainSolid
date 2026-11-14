@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/brep/edgecheck"
@@ -30,8 +31,9 @@ type RoofBoxDifferenceHistory struct {
 // roofs have a provable height order on each original knot rectangle.
 // Redundant knots can be removed after exact proof. Genuine creases are
 // kept by sewing adjacent roof fragments on their original chart, with no
-// internal walls. Order changes within a knot rectangle, roof/floor pinches,
-// and unrepresentable vertices are unsupported. Disjoint or
+// internal walls. Crossing along a proved exactly representable isoparametric
+// line is imprinted on both original roofs. General crossings, roof/floor
+// pinches, and unrepresentable vertices are unsupported. Disjoint or
 // proved zero-volume results are empty. The exact arithmetic allowance bounds
 // chart restriction/selection and construction. Continuous edge checks spend
 // the remaining allowance independently for each original use.
@@ -71,11 +73,18 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	}
 	floor := q.box[floorIndex].floor
 	if len(left.roofSpans) != 0 || len(right.roofSpans) != 0 {
-		return intersectPiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, &work)
+		return intersectPiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, [2][]float64{}, &work)
 	}
 	order, err := orderedRoofBoxOrder(ctx, q.box, xy, &work)
 	if err != nil {
-		return empty, zero, err
+		if !errors.Is(err, geom.ErrUnrepresentable) {
+			return empty, zero, err
+		}
+		cuts, err := orderedRoofCrossingCuts(ctx, q.box, xy, &work)
+		if err != nil {
+			return empty, zero, err
+		}
+		return intersectPiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, cuts, &work)
 	}
 	roofIndex := 0
 	if order > 0 {
@@ -148,16 +157,7 @@ func certifyRoofStrictlyAboveFloor(ctx context.Context, roof *geom.SurfacePatch,
 // A positive sign means the first roof is the higher one; zero denotes
 // identical graphs. An unresolved mixed sign is never reported as equality.
 func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
-	axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
-	var numerator, weight [2]roofPowerGrid
-	for i, box := range boxes {
-		var err error
-		numerator[i], weight[i], err = box.roofOrderPower(axes, w)
-		if err != nil {
-			return 0, err
-		}
-	}
-	power, err := roofHeightDifference(numerator, weight, w)
+	power, err := orderedRoofHeightDifference(boxes, xy, w)
 	if err != nil {
 		return 0, err
 	}
@@ -167,6 +167,19 @@ func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom
 	}
 	sign, _, err := orderedRoofPowerSign(ctx, power, difference, w)
 	return sign, err
+}
+
+func orderedRoofHeightDifference(boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (roofPowerGrid, error) {
+	axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
+	var numerator, weight [2]roofPowerGrid
+	for i, box := range boxes {
+		var err error
+		numerator[i], weight[i], err = box.roofOrderPower(axes, w)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return roofHeightDifference(numerator, weight, w)
 }
 
 // Compare physical height with a constant after multiplication by the
@@ -222,13 +235,7 @@ func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference g
 }
 
 func exactUnivariateRoofSign(ctx context.Context, power roofPowerGrid, w *mixedRoofLineWork) (int, bool, error) {
-	p := power[0]
-	if len(power) > 1 {
-		p = make([]*big.Rat, len(power))
-		for i, row := range power {
-			p[i] = row[0]
-		}
-	}
+	p, _ := orderedRoofUnivariate(power)
 	left, err := roofBoxConstructionOptions(w)
 	if err != nil {
 		return 0, false, err
@@ -262,6 +269,20 @@ func exactUnivariateRoofSign(ctx context.Context, power roofPowerGrid, w *mixedR
 		}
 	}
 	return sign, len(roots.Roots) == 0, nil
+}
+
+func orderedRoofUnivariate(power roofPowerGrid) ([]*big.Rat, int) {
+	if len(power) == 1 {
+		return power[0], 1
+	}
+	if len(power[0]) != 1 {
+		return nil, -1
+	}
+	p := make([]*big.Rat, len(power))
+	for i, row := range power {
+		p[i] = row[0]
+	}
+	return p, 0
 }
 
 func orderedRoofFlatFloor(ctx context.Context, d geom.ParameterRectangle, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {

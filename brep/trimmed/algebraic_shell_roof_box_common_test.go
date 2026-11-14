@@ -344,6 +344,56 @@ func TestOrderedRoofBoxNonbinaryTangentOrder(t *testing.T) {
 	}
 }
 
+func TestOrderedRoofBoxCommonImprintsIsoCrossings(t *testing.T) {
+	ctx := context.Background()
+	// h=1+(X-1/2)^2 crosses h=17/16 at the exact original stations
+	// X=1/4 and X=3/4. Both separations are proved before sewing.
+	curved := orderedRoofTangentSource(t)
+	upper, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 0}, [3]float64{1, 1.125, 17. / 16}, 0)
+	var ref struct {
+		Volume, Area  float64
+		Centroid      [3]float64
+		Solids, Euler int
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "iso-crossing-ordered-common").Output()
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 2 {
+			t.Fatal("independent OCCT crossing roofs", ref, err, string(data))
+		}
+	}
+	for i, pair := range [][2]Solid{{curved, upper}, {upper, curved}} {
+		s, h, err := IntersectOrderedRoofBoxes(ctx, pair[0], pair[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(h.Faces) != 14 || s.Topology().EulerCharacteristic != 2 || len(s.Topology().Shells) != 1 {
+			t.Fatal("two crossings must form one closed original boundary", s.Topology(), h, err)
+		}
+		for j, resultFace := range []int{0, 5, 9} {
+			owner := 1 - i
+			if j == 1 {
+				owner = i
+			}
+			if h.Faces[resultFace].Operand != owner {
+				t.Fatal("wrong roof owner in a cell", j, h.Faces)
+			}
+		}
+		mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{})
+		// Integrating the two outer flat strips and the middle parabola
+		// gives 25/24 per unit width.
+		if err != nil || math.Abs(mass.Volume-125./96) > 1e-12 {
+			t.Fatal("independent three-strip volume", mass, err)
+		}
+		if ref.Solids != 0 && (math.Abs(mass.Volume-ref.Volume) > 1e-8 || math.Abs(mass.Area-ref.Area) > 1e-7 || mass.Centroid.Sub(geom.Vec3{X: ref.Centroid[0], Y: ref.Centroid[1], Z: ref.Centroid[2]}).Length() > 1e-8) {
+			t.Fatal("imprinted common disagrees with pinned OCCT", mass, ref)
+		}
+	}
+	// 1+(3X-1)/8 changes owner at X=1/3, outside the native binary
+	// cut representation. Neither the input nor the junction is rounded.
+	line := orderedRoofParabolaSourceControls(t, [3]float64{.875, 1.0625, 1.25})
+	flat, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 0}, [3]float64{1, 1.125, 1}, 0)
+	if s, h, err := IntersectOrderedRoofBoxes(ctx, line, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("a nonrepresentable crossing must fail atomically", s.Topology(), h, err)
+	}
+}
+
 func TestOrderedRoofBoxCommonNativeTangent(t *testing.T) {
 	ctx := context.Background()
 	curved := orderedRoofTangentSource(t)

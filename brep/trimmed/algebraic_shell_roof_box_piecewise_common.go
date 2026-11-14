@@ -3,8 +3,10 @@ package trimmed
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"slices"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -13,8 +15,24 @@ import (
 // An edge inside this grid joins two tiles directly on each cap. Source
 // continuity and exact equality of the pointwise minimum on either side
 // give the same geometric edge even when the selected roof changes at a knot.
-func intersectPiecewiseRoofBoxes(ctx context.Context, a, b Solid, q *MixedRoofMaterialQuery, d geom.ParameterRectangle, floorIndex int, w *mixedRoofLineWork) (Solid, RoofBoxCommonHistory, error) {
-	var empty RoofBoxCommonHistory
+func intersectPiecewiseRoofBoxes(ctx context.Context, a, b Solid, q *MixedRoofMaterialQuery, d geom.ParameterRectangle, floorIndex int, inset [2][]float64, w *mixedRoofLineWork) (Solid, RoofBoxCommonHistory, error) {
+	result, faces, err := sewPiecewiseRoofEnvelope(ctx, a, b, q, d, floorIndex, inset, w)
+	if err != nil {
+		return Solid{}, RoofBoxCommonHistory{}, err
+	}
+	h := RoofBoxCommonHistory{ProjectedContact: true, ExactOperations: w.operations}
+	for _, face := range faces {
+		h.Faces = append(h.Faces, face.source)
+	}
+	return result, h, nil
+}
+
+type roofEnvelopeFace struct {
+	source MixedRoofFaceOwner
+	side   int // -1 for a roof or floor
+}
+
+func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMaterialQuery, d geom.ParameterRectangle, floorIndex int, inset [2][]float64, w *mixedRoofLineWork) (Solid, []roofEnvelopeFace, error) {
 	floor := q.box[floorIndex].floor
 	cuts := [2][]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
 	for _, box := range q.box {
@@ -31,21 +49,22 @@ func intersectPiecewiseRoofBoxes(ctx context.Context, a, b Solid, q *MixedRoofMa
 		}
 	}
 	for i := range cuts {
+		cuts[i] = append(cuts[i], inset[i]...)
 		slices.Sort(cuts[i])
 		cuts[i] = slices.Compact(cuts[i])
 	}
 	nu, nv := len(cuts[0])-1, len(cuts[1])-1
 	// Keep the result within Sew's 128-face limit before spending proof work.
 	if 2*(nu*nv+nu+nv) > 128 {
-		return Solid{}, empty, geom.ErrUnrepresentable
+		return Solid{}, nil, geom.ErrUnrepresentable
 	}
-	h := RoofBoxCommonHistory{ProjectedContact: true}
+	var owners []roofEnvelopeFace
 	var parts []SewFace
 	var positiveCells int
 	for i := 0; i < nu; i++ {
 		for j := 0; j < nv; j++ {
 			if err := ctx.Err(); err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			cell := geom.ParameterRectangle{UMin: cuts[0][i], UMax: cuts[0][i+1], VMin: cuts[1][j], VMax: cuts[1][j+1]}
 			xy := [2]geom.ExactParameterInterval{
@@ -66,62 +85,143 @@ func intersectPiecewiseRoofBoxes(ctx context.Context, a, b Solid, q *MixedRoofMa
 					}
 				}
 				if roofs[k] == nil {
-					return Solid{}, empty, geom.ErrUnrepresentable
+					return Solid{}, nil, geom.ErrUnrepresentable
 				}
 			}
 			order, err := orderedRoofBoxOrder(ctx, roofs, xy, w)
 			if err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			owner := 0
-			if order > 0 {
+			if q.op == parametric.Intersection && order > 0 || q.op == parametric.Union && order < 0 {
 				owner = 1
+			}
+			if q.op == parametric.Union && q.box[0].floor.Cmp(q.box[1].floor) != 0 {
+				overlap, err := orderedRoofAgainstFloor(ctx, roofs[floorIndex], xy, q.box[1-floorIndex].floor, w)
+				if err != nil {
+					return Solid{}, nil, err
+				}
+				if overlap < 0 {
+					return Solid{}, nil, geom.ErrUnrepresentable
+				}
 			}
 			gap, err := orderedRoofAgainstFloor(ctx, roofs[owner], xy, floor, w)
 			if err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			if gap <= 0 {
+				if q.op == parametric.Union {
+					return Solid{}, nil, geom.ErrUnrepresentable
+				}
 				continue
 			}
 			positiveCells++
 			upper, err := orderedRoofRestrictedGraph(ctx, roofs[owner], cell, w)
 			if err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			if err := certifyRoofStrictlyAboveFloor(ctx, upper, floor, w); err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			lower, err := orderedRoofFlatFloor(ctx, cell, xy, floor, w)
 			if err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			var walls uint8
-			h.Faces = append(h.Faces, MixedRoofFaceOwner{owner, q.box[owner].roofFace}, MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace})
+			owners = append(owners, roofEnvelopeFace{MixedRoofFaceOwner{owner, q.box[owner].roofFace}, -1}, roofEnvelopeFace{MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace}, -1})
 			for k, boundary := range [4]bool{i == 0, i == nu-1, j == 0, j == nv-1} {
 				if boundary {
 					walls |= 1 << k
-					h.Faces = append(h.Faces, roofCommonWallOwner(q.box, d, k))
+					owners = append(owners, roofEnvelopeFace{roofCommonWallOwner(q.box, d, k), k})
 				}
 			}
 			faces, err := orderedRoofBoxFaces(ctx, upper, lower, cell, walls, w)
 			if err != nil {
-				return Solid{}, empty, err
+				return Solid{}, nil, err
 			}
 			parts = append(parts, faces...)
 		}
 	}
 	if positiveCells == 0 {
-		h.ExactOperations = w.operations
-		return Solid{}, h, ctx.Err()
+		return Solid{}, nil, ctx.Err()
 	}
 	if positiveCells != nu*nv {
-		return Solid{}, empty, geom.ErrUnrepresentable
+		return Solid{}, nil, geom.ErrUnrepresentable
 	}
 	result, err := sewOrderedRoofBoxFaces(ctx, parts, max(a.tolerance, b.tolerance), w)
 	if err != nil {
-		return Solid{}, empty, fmt.Errorf("sew ordered piecewise roof common: %w", err)
+		return Solid{}, nil, fmt.Errorf("sew ordered piecewise roof envelope: %w", err)
 	}
-	h.ExactOperations = w.operations
-	return result, h, nil
+	return result, owners, nil
+}
+
+// A univariate homogeneous height difference makes every sign-changing
+// root a complete projected isoparametric crossing. Exact dyadic cuts can
+// enter the native topology directly. The actual restricted surfaces and
+// their shared model edge are subsequently re-proved by the sewing path.
+func orderedRoofCrossingCuts(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) ([2][]float64, error) {
+	var cuts [2][]float64
+	power, err := orderedRoofHeightDifference(boxes, xy, w)
+	if err != nil {
+		return cuts, err
+	}
+	polynomial, axis := orderedRoofUnivariate(power)
+	if len(polynomial) < 2 {
+		return cuts, geom.ErrUnrepresentable
+	}
+	rootOptions := func() (geom.ExactCurvePlaneEventOptions, error) {
+		left, err := roofBoxConstructionOptions(w)
+		return geom.ExactCurvePlaneEventOptions{MaxOperations: left.MaxOperations, MaxCoefficientBits: left.MaxCoefficientBits}, err
+	}
+	options, err := rootOptions()
+	if err != nil {
+		return cuts, err
+	}
+	zero, one := new(big.Rat), big.NewRat(1, 1)
+	roots, err := geom.IsolateExactPolynomialRoots(ctx, polynomial, zero, one, options)
+	w.operations += roots.Operations
+	if err != nil {
+		return cuts, err
+	}
+	width, err := w.rat(new(big.Rat).Sub(xy[axis].Upper, xy[axis].Lower))
+	if err != nil {
+		return cuts, err
+	}
+	for _, root := range roots.Roots {
+		if root.Multiplicity%2 == 0 {
+			continue
+		}
+		options, err := rootOptions()
+		if err != nil {
+			return cuts, err
+		}
+		kind, err := root.Root.Classify(ctx, options)
+		w.operations += kind.Operations
+		if err != nil {
+			return cuts, err
+		}
+		if kind.Rational == nil {
+			return cuts, geom.ErrUnrepresentable
+		}
+		if kind.Rational.Sign() == 0 || kind.Rational.Cmp(one) == 0 {
+			continue
+		}
+		delta, err := w.rat(new(big.Rat).Mul(kind.Rational, width))
+		if err != nil {
+			return cuts, err
+		}
+		point, err := w.rat(delta.Add(delta, xy[axis].Lower))
+		if err != nil {
+			return cuts, err
+		}
+		cut, err := geom.RepresentedExactScalar(point)
+		if err != nil {
+			return cuts, err
+		}
+		cuts[axis] = append(cuts[axis], cut)
+	}
+	if len(cuts[axis]) == 0 {
+		return cuts, geom.ErrUnrepresentable
+	}
+	return cuts, nil
 }

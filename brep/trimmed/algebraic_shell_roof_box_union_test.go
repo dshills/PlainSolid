@@ -77,7 +77,7 @@ func TestOrderedRoofBoxFuseContactAndGap(t *testing.T) {
 		min, max [3]float64
 	}{
 		{[3]float64{0, -.125, 1.0625}, [3]float64{1, 1.125, 2}}, // gap on a positive-area subregion
-		{[3]float64{0, -.125, 0}, [3]float64{1, 1.125, 1.125}},  // roof order switches
+		{[3]float64{0, -.125, 0}, [3]float64{1, 1.125, 1.125}},  // nonrepresentable roof switches
 		{[3]float64{0, -.125, 0}, [3]float64{2, 1.125, 2}},      // different footprints
 	} {
 		other, _ := makeOpenSplineBox(t, tc.min, tc.max, 0)
@@ -87,6 +87,43 @@ func TestOrderedRoofBoxFuseContactAndGap(t *testing.T) {
 	}
 	if s, h, err := FuseOrderedRoofBoxes(ctx, a, b, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{MaxOperations: 1}); !errors.Is(err, geom.ErrConvergence) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
 		t.Fatal("budget exhaustion leaked topology", s.Topology(), h, err)
+	}
+}
+
+func TestOrderedRoofBoxFuseImprintsIsoCrossings(t *testing.T) {
+	ctx := context.Background()
+	curved := orderedRoofTangentSource(t)
+	flat, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 0}, [3]float64{1, 1.125, 17. / 16}, 0)
+	for i, pair := range [][2]Solid{{curved, flat}, {flat, curved}} {
+		s, h, err := FuseOrderedRoofBoxes(ctx, pair[0], pair[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(h.Faces) != 14 || s.Topology().EulerCharacteristic != 2 || len(s.Topology().Shells) != 1 {
+			t.Fatal("two exact roof switches must retain a single solid", s.Topology(), h, err)
+		}
+		for j, resultFace := range []int{0, 5, 9} {
+			owner := i
+			if j == 1 {
+				owner = 1 - i
+			}
+			if len(h.Faces[resultFace]) != 1 || h.Faces[resultFace][0].Operand != owner {
+				t.Fatal("wrong source on the selected top fragment", j, h.Faces)
+			}
+		}
+		if len(h.Faces[2]) != 2 || h.Faces[2][0].Operand != 0 || h.Faces[2][1].Operand != 1 {
+			t.Fatal("merged wall must carry both original faces", h.Faces[2])
+		}
+		mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{})
+		// Subtract the exact Common from the two source volumes. The
+		// parabolic stock includes an extra half unit below the flat floor.
+		want := 1.25*(1.5+1./12+17./16) - 125./96
+		if err != nil || math.Abs(mass.Volume-want) > 1e-12 {
+			t.Fatal("independent maximum envelope integral", mass, err)
+		}
+	}
+	creased := weightedIdentityRoofStockMode(t, false, 2, false, true)
+	inferior, _ := makeOpenSplineBox(t, [3]float64{0, 0, -.5}, [3]float64{1, 1, 1}, 0)
+	s, h, err := FuseOrderedRoofBoxes(ctx, creased, inferior, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 10 || s.Topology().EulerCharacteristic != 2 || h.Faces[0][0] != (MixedRoofFaceOwner{0, 1}) || h.Faces[5][0] != (MixedRoofFaceOwner{0, 1}) {
+		t.Fatal("a genuine crease retains its two distinct original fragments", s.Topology(), h, err)
 	}
 }
 
