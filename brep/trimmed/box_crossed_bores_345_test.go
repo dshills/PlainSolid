@@ -153,3 +153,44 @@ func assert345VertexLinks(t *testing.T, s Solid) {
 		}
 	}
 }
+
+func TestBoxObliqueFloorCrossedBores(t *testing.T) {
+	frame, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dimensions := geom.Vec3{X: 20, Y: 16, Z: 40}
+	crossing := geom.Vec3{X: 10, Y: 8, Z: 20}
+	ratio := geom.Vec2{X: 4, Y: 3}
+	ctx := context.Background()
+	for _, station := range []float64{5, -5, 6.25, -6.25} {
+		result, floor, err := BoxObliqueFloorCrossedBores(ctx, frame, dimensions, crossing, ratio, 2, station, station < 0, 1e-9)
+		if err != nil || floor != 22 {
+			t.Fatal(station, floor, err)
+		}
+		m, err := result.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+		if err != nil {
+			t.Fatal(station, err)
+		}
+		if math.Abs(m.Volume-(12800-result.RemovedVolume)) > 1e-7 || math.Abs(m.Area-(3520+result.SurfaceAreaDelta)) > 1e-7 {
+			t.Fatal(station, m, result.RemovedVolume, result.SurfaceAreaDelta)
+		}
+		area, err := result.Solid.PlanarFaceArea(floor)
+		if err != nil || math.Abs(area-4*math.Pi) > 1e-8 {
+			t.Fatal(station, area, err)
+		}
+		assert345VertexLinks(t, result.Solid)
+		mesh, err := result.Solid.TessellateCrossedObliqueBores(ctx, parametric.TessellationOptions{Deflection: .5, Angle: .05, MaxTriangles: 100000})
+		if err != nil {
+			t.Fatal(station, err)
+		}
+		if err := mesh.ValidateSolid(); err != nil {
+			t.Fatal(station, err)
+		}
+	}
+	for _, station := range []float64{0, 4, -4, 11, -11, 15} {
+		if _, _, err := BoxObliqueFloorCrossedBores(ctx, frame, dimensions, crossing, ratio, 2, station, station < 0, 1e-9); err == nil {
+			t.Fatal("invalid floor accepted", station)
+		}
+	}
+}

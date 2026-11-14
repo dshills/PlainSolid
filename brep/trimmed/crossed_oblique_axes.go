@@ -44,3 +44,29 @@ func CrossedObliqueAxisRatio(ax, az float64) (geom.Vec2, bool) {
 	}
 	return geom.Vec2{}, false
 }
+
+// RepresentedObliqueFloorStation canonicalizes a floor station through the
+// same signed world chart the STEP reader uses, within its sewing reserve.
+func RepresentedObliqueFloorStation(frame geom.Frame, crossing geom.Vec3, ratio geom.Vec2, station, reserve float64) (float64, error) {
+	k, ok := CrossedObliqueCoefficients(ratio)
+	if !ok || !finite(station) || !finite(reserve) || reserve <= 0 {
+		return 0, geom.ErrInvalid
+	}
+	vector := func(x, z float64) geom.Vec3 { return frame.XAxis().Scale(x).Add(frame.ZAxis().Scale(z)) }
+	cf, err := geom.NewFrame(frame.ToWorld(crossing), vector(-k.Cos, k.Sin), vector(k.Sin, k.Cos))
+	if err != nil {
+		return 0, err
+	}
+	start := station
+	for range 16 {
+		next := cf.ToLocal(cf.ToWorld(geom.Vec3{Z: station})).Z
+		if !finite(next) || math.Abs(next-start) > reserve {
+			break
+		}
+		if next == station {
+			return next, nil
+		}
+		station = next
+	}
+	return 0, geom.ErrUnrepresentable
+}

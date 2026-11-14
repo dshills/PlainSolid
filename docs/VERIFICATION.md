@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD blind floor on an oblique Hole — 2026-11-14
+
+One oblique cutter may terminate inside the rectangular stock beyond
+its complete equal-radius cardinal crossing. Its terminal face is an
+exact circle normal to the tool. Both entry directions preserve the
+elliptical stock opening and crossing edges. Import checks the full
+STEP graph and preserves its represented floor station. The native
+bridge can deepen the imported cut and reproduce the fresh STEP.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-oblique-own-floor-step-browser-2026-11-14.json)
+and the authored [lower](evidence/plaincad-oblique-own-floor-lower-step-native-2026-11-14.json)
+and [upper](evidence/plaincad-oblique-own-floor-upper-step-native-2026-11-14.json)
+entry cases pass in the browser. The exports retain 12 exact ellipses
+and read back to one solid with 400 watertight STL triangles. Independent
+OCCT confirms eight native signed cases and both authored exports.
+Focused race and vet checks pass.
+
 ## PlainCAD concealed cutters in grouped oblique Hole crossings — 2026-11-14
 
 Grouped cuts retain a cardinal and an oblique cutter after proving

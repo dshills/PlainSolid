@@ -19,6 +19,7 @@ type obliqueCrossedGeometry struct {
 	axisRatio            geom.Vec2
 	blindDepth           float64
 	oppositeCap          bool
+	obliqueFloor         float64
 }
 
 // Use the exact authored ratio for intersection and coaxiality predicates.
@@ -107,7 +108,7 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 	spans := make([]float64, 2)
 	blind := make([]bool, 2)
 	floors := make([]int, 2)
-	cardinalSlot := 0
+	cardinalSlot, obliqueSlot := 0, 0
 	g := obliqueCrossedGeometry{frame: f, dimensions: dims, crossing: local, radius: cardinal.radius, axisRatio: ratio}
 	for i, tool := range tools {
 		if tool == cardinal {
@@ -136,18 +137,12 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 				spans[i] = g.blindDepth
 			}
 		} else {
-			single, handled, err := newObliqueThroughBore(base, tool)
-			if err != nil {
-				return nil, true, err
+			obliqueSlot = i
+			span, handled, err := findObliqueStockSpan(base, tool)
+			if err != nil || !handled {
+				return nil, handled, err
 			}
-			if !handled {
-				return nil, false, nil
-			}
-			for _, face := range []int{single.cuts[0].Entry, single.cuts[0].Exit} {
-				support, err := base.FacePlane(face)
-				if err != nil {
-					return nil, true, err
-				}
+			for _, support := range []geom.Plane{span.entry, span.exit} {
 				if math.Abs(support.Normal().Dot(chart.XAxis())) != 1 {
 					return nil, false, nil
 				}
@@ -160,11 +155,37 @@ func newObliqueCrossedBore(base brep.Solid, tools []*cylinderBody) (*boreBody, b
 					return nil, true, geom.ErrUnrepresentable
 				}
 			}
-			cuts[i], spans[i] = single.cuts[0], single.spans[0]
+			if !toolCapClearsOpening(tool, span.entry, 0) {
+				return nil, false, nil
+			}
+			cuts[i], spans[i] = span.cut, span.end-span.start
+			if !toolCapClearsOpening(tool, span.exit, tool.height) {
+				if tool.height <= span.start {
+					return nil, false, nil
+				}
+				k, _ := trimmed.CrossedObliqueCoefficients(ratio)
+				direction := f.XAxis().Scale(k.Sin).Add(f.ZAxis().Scale(k.Cos))
+				finish := tool.frame.Origin().Add(tool.frame.ZAxis().Scale(tool.height))
+				station := finish.Sub(worldCenter).Dot(direction)
+				g.obliqueFloor, err = trimmed.RepresentedObliqueFloorStation(f, local, ratio, station, 1e-9/8)
+				if err != nil {
+					return nil, true, err
+				}
+				if g.obliqueFloor == 0 || (g.obliqueFloor < 0) != (tool.frame.ZAxis().Dot(f.XAxis()) < 0) ||
+					worldCenter.Add(direction.Scale(g.obliqueFloor)).Distance(finish) > 1e-9/8 {
+					return nil, false, nil
+				}
+				blind[i], spans[i] = true, tool.height-span.start
+			}
 		}
 	}
 	var r trimmed.BoxCrossedBoresResult
-	if g.blindDepth > 0 {
+	if g.obliqueFloor != 0 {
+		if g.blindDepth != 0 {
+			return nil, false, nil
+		}
+		r, floors[obliqueSlot], err = trimmed.BoxObliqueFloorCrossedBores(context.Background(), f, dims, local, ratio, g.radius, g.obliqueFloor, g.obliqueFloor < 0, 1e-9)
+	} else if g.blindDepth > 0 {
 		r, floors[cardinalSlot], err = trimmed.BoxBlindCrossedObliqueBores(context.Background(), f, dims, local, ratio, g.radius, g.blindDepth, g.oppositeCap, 1e-9)
 	} else {
 		r, err = trimmed.BoxCrossedObliqueBores(context.Background(), f, dims, local, ratio, g.radius, 1e-9)
@@ -192,6 +213,20 @@ func obliqueBoreContainsTool(old, tool *cylinderBody, chart geom.Frame) bool {
 	}
 	o, t := chart.ToLocal(old.frame.Origin()), chart.ToLocal(tool.frame.Origin())
 	return t.Y == o.Y && obliqueLineZ(t, o.X, ratio, sign).Cmp(new(big.Rat).SetFloat64(o.Z)) == 0
+}
+
+// A finite oblique bore covers a coaxial tool if both tool caps remain
+// on the removed side of the retained floor. Parallel caps have no radial
+// projection along this axis, so the exact signed endpoint test suffices.
+func obliqueBlindBoreContainsTool(old, tool *cylinderBody, chart geom.Frame) bool {
+	if !obliqueBoreContainsTool(old, tool, chart) {
+		return false
+	}
+	axis := old.frame.ZAxis()
+	floor := old.frame.Origin().Add(axis.Scale(old.height))
+	start := tool.frame.Origin()
+	end := start.Add(tool.frame.ZAxis().Scale(tool.height))
+	return exactDotDifference(start, floor, axis) <= 0 && exactDotDifference(end, floor, axis) <= 0
 }
 
 // newGroupedObliqueCrossing retains the two cutters that cover every member
@@ -237,19 +272,31 @@ func newGroupedObliqueCrossing(base brep.Solid, tools []*cylinderBody) (*boreBod
 		}
 	}
 
-	// Pick an oblique tool that actually spans both stock openings. A
-	// shorter duplicate can share the same line and radius.
-	var through *cylinderBody
-	for _, tool := range oblique {
-		if tool.radius != firstOblique.radius {
+	var retainedOblique []*cylinderBody
+	for _, candidate := range oblique {
+		if candidate.radius != firstOblique.radius {
 			continue
 		}
-		if _, handled, err := newObliqueThroughBore(base, tool); handled && err == nil {
-			through = tool
+		span, handled, err := findObliqueStockSpan(base, candidate)
+		if err != nil || !handled || !toolCapClearsOpening(candidate, span.entry, 0) {
+			continue
+		}
+		if toolCapClearsOpening(candidate, span.exit, candidate.height) {
+			retainedOblique = []*cylinderBody{candidate}
 			break
 		}
+		covered := true
+		for _, tool := range oblique {
+			if !obliqueBlindBoreContainsTool(candidate, tool, chart) {
+				covered = false
+				break
+			}
+		}
+		if covered {
+			retainedOblique = append(retainedOblique, candidate)
+		}
 	}
-	if through == nil {
+	if len(retainedOblique) == 0 {
 		return nil, false, nil
 	}
 	// Check the cardinal span before constructing the crossing, so the knot
@@ -267,8 +314,11 @@ func newGroupedObliqueCrossing(base brep.Solid, tools []*cylinderBody) (*boreBod
 				break
 			}
 		}
-		if covered {
-			body, handled, err := newObliqueCrossedBore(base, []*cylinderBody{candidate, through})
+		if !covered {
+			continue
+		}
+		for _, other := range retainedOblique {
+			body, handled, err := newObliqueCrossedBore(base, []*cylinderBody{candidate, other})
 			if handled && err == nil {
 				return body, true, nil
 			}
@@ -280,7 +330,9 @@ func newGroupedObliqueCrossing(base brep.Solid, tools []*cylinderBody) (*boreBod
 func overlapObliqueCrossedBore(a stored, tool *cylinderBody) (float64, bool, error) {
 	if g := a.bore.obliqueCrossing; g != nil {
 		for i, old := range a.bore.cylinders {
-			if cardinalBoreContainsTool(old, a.bore.blind[i], tool) || obliqueBoreContainsTool(old, tool, g.frame) {
+			blind := a.bore.blind[i]
+			if cardinalBoreContainsTool(old, blind, tool) || !blind && obliqueBoreContainsTool(old, tool, g.frame) ||
+				blind && obliqueBlindBoreContainsTool(old, tool, g.frame) {
 				return 0, true, nil
 			}
 		}
@@ -329,6 +381,7 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 	p.Crossing = p.Crossing.Scale(scale)
 	p.Radius *= scale
 	p.BlindDepth *= scale
+	p.ObliqueFloor *= scale
 	f := p.Frame
 	bounds, err := geom.Bounds([]geom.Vec3{f.Origin(), f.ToWorld(p.Dimensions)})
 	if err != nil {
@@ -368,11 +421,23 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 	if err != nil {
 		return nil, err
 	}
-	of, err := geom.FrameFromNormal(center.Sub(declared.Scale(e)), declared)
+	offset := e
+	obliqueOrigin, obliqueNormal := center.Sub(declared.Scale(offset)), declared
+	hypotenuse := math.Hypot(ratio.X, ratio.Y)
+	obliqueLength := 2 * offset * hypotenuse
+	if p.ObliqueFloor != 0 {
+		// Use a short, exact on-axis offset when restoring a finite tool.
+		// The imported recipe retains the represented physical stop.
+		offset = math.Ceil((max(c.X, d.X-c.X) + p.Radius) / ratio.X)
+		sign := math.Copysign(1, p.ObliqueFloor)
+		obliqueOrigin, obliqueNormal = center.Sub(declared.Scale(sign*offset)), declared.Scale(sign)
+		obliqueLength = offset*hypotenuse + math.Abs(p.ObliqueFloor)
+	}
+	of, err := geom.FrameFromNormal(obliqueOrigin, obliqueNormal)
 	if err != nil {
 		return nil, err
 	}
-	oblique, err := newCylinder(of, p.Radius, 2*e*math.Hypot(ratio.X, ratio.Y))
+	oblique, err := newCylinder(of, p.Radius, obliqueLength)
 	if err != nil {
 		return nil, err
 	}
@@ -382,6 +447,19 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 	}
 	if !handled {
 		return nil, geom.ErrUnrepresentable
+	}
+	if p.ObliqueFloor != 0 {
+		if math.Abs(g.obliqueCrossing.obliqueFloor-p.ObliqueFloor) > 1e-9/8 {
+			return nil, geom.ErrUnrepresentable
+		}
+		if p.ObliqueFloor != g.obliqueCrossing.obliqueFloor {
+			out, floor, err := trimmed.BoxObliqueFloorCrossedBores(context.Background(), f, d, c, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+			if err != nil {
+				return nil, err
+			}
+			g.solid, g.crossed, g.floors[1] = out.Solid, &out, floor
+			g.obliqueCrossing.obliqueFloor = p.ObliqueFloor
+		}
 	}
 	return g, nil
 }

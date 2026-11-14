@@ -23,6 +23,9 @@ type CrossedObliqueBoreBody struct {
 	// Positive blind depth stops the cardinal bore beyond the intersection.
 	BlindDepth  float64
 	OppositeCap bool
+	// ObliqueFloor is the signed station from the crossing along the
+	// positive oblique axis. Its sign identifies the entry cap.
+	ObliqueFloor float64
 }
 
 type CrossedObliqueBoreModel struct {
@@ -57,7 +60,17 @@ func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	}
 	var r trimmed.BoxCrossedBoresResult
 	var err error
-	if p.BlindDepth == 0 {
+	if p.ObliqueFloor != 0 {
+		if p.BlindDepth != 0 {
+			return geom.ErrDomain
+		}
+		var e error
+		p.ObliqueFloor, e = trimmed.RepresentedObliqueFloorStation(p.Frame, p.Crossing, ratio, p.ObliqueFloor, 1e-9/8)
+		if e != nil {
+			return e
+		}
+		r, _, err = trimmed.BoxObliqueFloorCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.ObliqueFloor, p.ObliqueFloor < 0, 1e-9)
+	} else if p.BlindDepth == 0 {
 		r, err = trimmed.BoxCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, 1e-9)
 	} else {
 		r, _, err = trimmed.BoxBlindCrossedObliqueBores(ctx, p.Frame, p.Dimensions, p.Crossing, ratio, p.Radius, p.BlindDepth, p.OppositeCap, 1e-9)
@@ -163,7 +176,7 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 	out := CrossedObliqueBoreBody{Name: name, Frame: placed, Dimensions: bounds.Max.Sub(bounds.Min), Crossing: placed.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}
 	if len(ids) == 23 {
 		floor, err := readCircularSourceFaceBounded(f, ids[22], 1, 4)
-		if err != nil || floor.kind != "PLANE" || floor.sense || len(floor.loops[0]) != 4 {
+		if err != nil || floor.kind != "PLANE" || len(floor.loops[0]) != 4 {
 			return fail()
 		}
 		level := placed.ToLocal(floor.frame.Origin()).Z
@@ -172,10 +185,16 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 			out.BlindDepth = level
 		case axis.Scale(-1):
 			out.BlindDepth, out.OppositeCap = out.Dimensions.Z-level, true
+		case b.frame.ZAxis():
+			loc := b.frame.ToLocal(floor.frame.Origin())
+			if math.Hypot(loc.X, loc.Y) > 1e-9/8 || loc.Z == 0 {
+				return fail()
+			}
+			out.ObliqueFloor = loc.Z
 		default:
 			return fail()
 		}
-		if out.BlindDepth <= 0 {
+		if out.ObliqueFloor == 0 && out.BlindDepth <= 0 {
 			return fail()
 		}
 	}

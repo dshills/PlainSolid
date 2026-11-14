@@ -224,7 +224,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 				if first.kind == "CYLINDRICAL_SURFACE" && second.kind == "CYLINDRICAL_SURFACE" {
 					conic, err = crossedObliqueBoreEdge(a, b, os, surfaces)
 					curved = true
-				} else if first.kind != second.kind {
+				} else if first.kind != second.kind && first.frame.ZAxis().Cross(second.frame.ZAxis()) != (geom.Vec3{}) {
 					conic, err = obliqueBoreEdgeCurve(a, b, os, surfaces)
 					curved = true
 				}

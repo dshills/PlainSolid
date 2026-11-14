@@ -502,7 +502,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.bore != nil && s.bore.obliqueCrossing != nil:
 		p := s.bore.obliqueCrossing
 		body := step.CrossedObliqueBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radius,
-			BlindDepth: p.blindDepth, OppositeCap: p.oppositeCap}
+			BlindDepth: p.blindDepth, OppositeCap: p.oppositeCap, ObliqueFloor: p.obliqueFloor}
 		if p.axisRatio != (geom.Vec2{X: 4, Y: 3}) {
 			body.AxisRatio = p.axisRatio
 		}
