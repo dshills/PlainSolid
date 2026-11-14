@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"encoding/base64"
 	"math"
 	"plainsolid/brep/parametric"
 	"testing"
@@ -153,5 +154,23 @@ func TestMixedCircularSegmentRetainsSolverArc(t *testing.T) {
 	}
 	if err := m.ValidateSolid(); err != nil {
 		t.Fatal(err)
+	}
+	exported, err := b.exportSTEP([]string{s.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := base64.StdEncoding.DecodeString(exported.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imported, err := b.importSTEP(string(raw))
+	if err != nil || imported.Bounds != s.Bounds {
+		t.Fatal(imported, err)
+	}
+	near(t, imported.GeometryAssertions.Volume, want)
+	near(t, imported.GeometryAssertions.SurfaceArea, s.GeometryAssertions.SurfaceArea)
+	again, err := b.exportSTEP([]string{imported.Handle})
+	if err != nil || again.Base64 != exported.Base64 {
+		t.Fatal("unstable STEP round trip", err)
 	}
 }

@@ -320,6 +320,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	if m, e := step.ReadSemicircleExtrusion(r(), stepLimits()); e == nil {
 		return b.putSemicircleSTEP(m)
 	}
+	if m, e := step.ReadCircularSegmentExtrusion(r(), stepLimits()); e == nil {
+		return b.putCircularSegmentSTEP(m)
+	}
 
 	if m, err := step.ReadSplitCylinderModel(r(), stepLimits()); err == nil {
 		return b.putSTEPCylinder(m.Frame, m.Radius, m.Height, m.LengthUnit)
@@ -535,6 +538,10 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		if s.analytic.segment != nil {
 			if p, ok := s.analytic.segment.semicircleSTEP(); ok {
 				e = step.WriteSemicircleExtrusion(&out, step.SemicircleExtrusionModel{Body: p, LengthUnit: .001})
+				break
+			}
+			if p, ok := s.analytic.segment.circularSegmentSTEP(); ok {
+				e = step.WriteCircularSegmentExtrusion(&out, step.CircularSegmentExtrusionModel{Body: p, LengthUnit: .001})
 				break
 			}
 		}

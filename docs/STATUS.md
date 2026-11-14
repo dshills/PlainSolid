@@ -194,6 +194,10 @@ The existing PlainCAD Arc Extend workflow now exports and reimports the
 quarter-sector extrusion with its exact cylindrical wall and circular
 edges. Circle Trim also exchanges its half-disk extrusion. Both authored
 models reopen and export watertight STL.
+The driven arc-and-chord workflow retains its solved near-semicircular
+angle through STEP. The reader matches the axial seam parameters and
+complete represented graph. Qualified minor and major segments keep the
+circular support and chord.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
