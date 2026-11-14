@@ -2265,3 +2265,11 @@ Positive material returns native components with original controlling caps
 and clipped original wall fractions. Closed contact and empty intersection
 are explicitly distinguished. Unequal-interval fuse and cut require separate
 shoulder sewing.
+
+### Nested AP242 occurrence appearance
+
+The bounded two-level reader expands repeated shared-group uses and proves
+ordinary whole-body contextual style ownership. An internal override is
+applied to each independently identified use of that context. Exact paths,
+geometry, placements and appearance revalidate on native reload. See the
+[nested occurrence contract](../exchange/step/NESTED_OCCURRENCE_COLORS.md).

@@ -6081,3 +6081,10 @@ support disappears. The fixtures cover both an irrational support
 beyond extinction and a Pythagorean support at exact extinction. Native
 volume, exact volume and original support maps agree. A collapsed height
 regularizes to an empty solid. The full draft race passed in 9.166 s.
+
+### Shared-group occurrence appearance qualification
+
+Independent OCCT authors two group uses with six distinct leaf paths and a
+shared internal override. The original, reloaded and regenerated source
+all retain the six native placements and colors, volume 108 and area 252.
+The combined flat and nested live race passed in 4.696 s.

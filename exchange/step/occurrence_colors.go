@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// OccurrenceSurfaceColor binds a whole-body override to one explicit flat NAUO
+// OccurrenceSurfaceColor binds a whole-body override to one explicit NAUO
 // use. Duplicate equal claims retain their separate original record identities.
 type OccurrenceSurfaceColor struct {
 	OccurrenceID, BodyID, StyledItemID, BaseStyledItemID              int64
@@ -27,6 +27,12 @@ type OccurrenceColoredAssembly struct {
 // representation against the occurrence's PDS/CDSR/IDT and target local body.
 // The older product-local reader deliberately continues rejecting this syntax.
 func ReadOccurrenceColoredAssembly(r io.Reader, l Limits) (OccurrenceColoredAssembly, error) {
+	return readOccurrenceColoredAssembly(r, l, true)
+}
+
+// The non-flat private branch authenticates identical style ownership chains;
+// its caller must independently validate the complete supported hierarchy.
+func readOccurrenceColoredAssembly(r io.Reader, l Limits, flat bool) (OccurrenceColoredAssembly, error) {
 	fail := func() (OccurrenceColoredAssembly, error) {
 		return OccurrenceColoredAssembly{}, errors.New("step: unsupported or inconsistent occurrence surface style")
 	}
@@ -302,7 +308,7 @@ func ReadOccurrenceColoredAssembly(r io.Reader, l Limits) (OccurrenceColoredAsse
 	root := base.Assembly.Roots[0]
 	uses := map[int64]AssemblyOccurrence{}
 	for _, o := range base.Assembly.Occurrences {
-		if o.Parent != root || len(base.ProductBodies[o.Child]) == 0 {
+		if flat && (o.Parent != root || len(base.ProductBodies[o.Child]) == 0) {
 			return fail()
 		}
 		uses[o.ID] = o
