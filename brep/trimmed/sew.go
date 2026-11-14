@@ -130,7 +130,18 @@ func Sew(ctx context.Context, input []SewFace, o SewOptions) (Solid, SewHistory,
 					continue
 				}
 				if e.Start == e.End {
-					if (!isCanonicalAnalyticLoop(e) && !isCanonicalWrappedLoop(e)) || !sameAnalyticEdgeUse(e, f.Surface, *u) {
+					if !isCanonicalAnalyticLoop(e) && !isCanonicalWrappedLoop(e) {
+						return bad("unproved closed edge")
+					}
+					same := sameAnalyticEdgeUse(e, f.Surface, *u)
+					if !same {
+						var err error
+						same, err = compareWrappedEdgeUse(ctx, e, f.Surface, *u, o.Proof)
+						if err != nil {
+							return Solid{}, SewHistory{}, err
+						}
+					}
+					if !same {
 						return bad("unproved closed edge")
 					}
 					matches := closed[e.Start]
