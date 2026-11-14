@@ -12,7 +12,7 @@ import (
 )
 
 // IndependentExactMaterial retains one separately owned original product.
-// Planar and Elliptical are mutually exclusive authenticated payloads.
+// Exactly one family payload is authenticated by the selected public codec.
 type IndependentExactMaterial struct {
 	Name                                                                      string
 	LengthUnit                                                                float64
@@ -25,6 +25,7 @@ type IndependentExactMaterial struct {
 	ProductName                                                               string
 	Cylinder                                                                  *IndependentCylinderMaterial
 	Sphere                                                                    *IndependentSphereMaterial `json:",omitempty"`
+	Torus                                                                     *IndependentTorusMaterial  `json:",omitempty"`
 }
 
 // IndependentExactMaterialCollection is a multi-root file, not an inferred assembly.
@@ -262,7 +263,7 @@ func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits
 		if len(cylinderMode) == 4 && cylinderMode[3] {
 			m, e = readHeterogeneousUnitMaterial(ctx, view, leaf, tol)
 		} else {
-			m, e = readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) >= 2 && cylinderMode[1])
+			m, e = readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) >= 2 && cylinderMode[1], len(cylinderMode) == 5 && cylinderMode[4])
 		}
 		if e != nil {
 			return IndependentExactMaterialCollection{}, e
@@ -299,16 +300,20 @@ func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits
 	return out, nil
 }
 
-func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool, allowCylinder bool, allowSphere bool) (IndependentExactMaterial, error) {
+func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol float64, allowPlanar bool, allowCylinder bool, allowSphere bool, torusMode ...bool) (IndependentExactMaterial, error) {
 	bad := func() (IndependentExactMaterial, error) { return IndependentExactMaterial{}, geom.ErrInvalid }
 	ids := []int64{}
 	elliptical := false
 	cylindrical := false
 	spherical := false
+	toroidal := false
 	for _, id := range f.Order {
 		for _, r := range f.Entities[id].Records {
 			if r.Type == "MANIFOLD_SOLID_BREP" {
 				ids = append(ids, id)
+			}
+			if r.Type == "TOROIDAL_SURFACE" {
+				toroidal = true
 			}
 			if r.Type == "SPHERICAL_SURFACE" {
 				spherical = true
@@ -323,6 +328,12 @@ func readIndependentExactMaterial(ctx context.Context, f *File, l Limits, tol fl
 	}
 	if len(ids) != 1 {
 		return bad()
+	}
+	if toroidal {
+		if len(torusMode) != 1 || !torusMode[0] || spherical || cylindrical || elliptical {
+			return bad()
+		}
+		return readIndependentTorusProduct(ctx, f, ids[0], l, tol)
 	}
 	if spherical {
 		if !allowSphere || cylindrical || elliptical {
