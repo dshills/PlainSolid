@@ -52,6 +52,21 @@ evaluation and does not claim rational patch sewing.
 
 ## Immediate priority: PlainCAD compatibility
 
+The [selectable PlainSolid provider qualification](evidence/plaincad-provider-integration-verified-2026-11-14.json)
+pins the PlainCAD app implementation at `9779044` and PlainSolid at
+`f571a964`. Its selected build passed 345 development, 66 production and
+15 cross-browser cases with no skips or retries. The ordinary app suite
+passed all 1,691 cases with its documented worker and retry settings;
+four separate contracts exercised actual PlainSolid WASM. The report,
+WASM asset, and stamped Go runtime hashes were independently checked.
+This opt-in app build has separate evidence from the later kernel worktree
+reconciliations below.
+
+Development now prioritizes the operations exercised by PlainCAD's existing
+acceptance tests before expanding unrelated OCCT domains. The full specification
+remains the eventual target. See [the prioritized plan](IMPLEMENTATION_PLAN.md)
+and [PlainCAD readiness](PLAINCAD_READINESS.md) for application-specific gates.
+
 A finite blind Hole crossing one rectangular stock side now retains a
 watertight analytic notch and circular-segment floor. Seven original
 browser regressions and an authored rebuild, reload and STL check pass.

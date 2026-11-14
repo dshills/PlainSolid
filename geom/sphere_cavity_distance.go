@@ -132,6 +132,10 @@ func sphereCavityCompare(a, b, s, c, t *big.Rat, budget *polynomialBudget) (int,
 // is attained. One shared arithmetic budget includes containment, witnesses,
 // enclosures and exact two-radical owner comparison. Every failure is atomic.
 func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereCavityDistanceOptions) (out SphereCavityNearest, err error) {
+	return s.nearestFullSphereBoundaryRational(ctx, p, o, true)
+}
+
+func (s SpherePairMaterial) nearestFullSphereBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereCavityDistanceOptions, cavity bool) (out SphereCavityNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SphereCavityNearest{}
@@ -143,7 +147,7 @@ func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
-	if s.op != SphereSetDifference {
+	if cavity && s.op != SphereSetDifference || !cavity && s.op != SphereSetUnion {
 		return out, ErrDomain
 	}
 	if o.SqrtBits == 0 {
@@ -176,7 +180,12 @@ func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p
 		}
 		radii[i] = lo
 	}
-	gap := new(big.Rat).Sub(radii[0], radii[1])
+	gap := new(big.Rat)
+	if cavity {
+		gap.Sub(radii[0], radii[1])
+	} else {
+		gap.Add(radii[0], radii[1])
+	}
 	if e = budget.check(gap); e != nil {
 		return out, e
 	}
@@ -202,7 +211,7 @@ func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p
 			return out, e
 		}
 	}
-	if centerD.Cmp(gap) >= 0 {
+	if cavity && centerD.Cmp(gap) >= 0 || !cavity && centerD.Cmp(gap) < 0 {
 		return out, ErrDomain
 	}
 	var S, loD, hiD [2]*big.Rat
@@ -211,7 +220,7 @@ func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p
 			return out, e
 		}
 		w := SphereCavityDistanceWitness{Radius: new(big.Rat).Set(radii[i]), Owner: 1 << uint(i), MaterialNormalSign: 1}
-		if i == 1 {
+		if cavity && i == 1 {
 			w.MaterialNormalSign = -1
 		}
 		S[i] = new(big.Rat)

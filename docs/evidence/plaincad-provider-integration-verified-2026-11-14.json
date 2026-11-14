@@ -1,0 +1,83 @@
+{
+  "plainCadProviderCommit": "9779044e222a284de9cf5405dd3178102b3070e2",
+  "plainCadBase": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "buildKernel": {
+    "revision": "f571a964789e958a422a9a287d41872094f5eeeb",
+    "go": "go version go1.27.4 darwin/arm64",
+    "wasmSha256": "33a6feeb9b2020be9ecfed52ce2d3f91b135bbc7185b9e775c04b71a3034a1c8",
+    "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "reports": {
+    "dev": {
+      "path": "/tmp/plaincad-final-app-dev.json",
+      "sha256": "3150ce522f67834775d0de42c9af66433d002a407d83aa4834b9a9e8b0a2cfbe",
+      "stats": {
+        "startTime": "2026-11-14T12:12:58.657Z",
+        "duration": 2396370.453,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "production": {
+      "path": "/tmp/plaincad-final-app-production.json",
+      "sha256": "56cb2b9e90dca0bb37856d1574205845e49c74eaa55eb9a400a1a4bf82f8e6b6",
+      "stats": {
+        "startTime": "2026-11-14T12:13:28.347Z",
+        "duration": 310482.162,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "cross-browser": {
+      "path": "/tmp/plaincad-final-app-cross-browser.json",
+      "sha256": "7a03e91a5f42be506768e95da32b2042e2b1c2beef03af0d003da20ee33a97b0",
+      "stats": {
+        "startTime": "2026-11-14T12:26:16.653Z",
+        "duration": 66475.23300000001,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "unit-controlled": {
+      "path": "/tmp/plaincad-final-app-unit-controlled.json",
+      "sha256": "b4f300e35eaafa704369063587c9a4993486fd19a0dcc82898804b5b0987a909",
+      "stats": {
+        "passed": 1691,
+        "maxWorkers": 1,
+        "retryLimit": 2,
+        "testTimeoutMs": 15000
+      }
+    }
+  },
+  "plainSolidProviderContracts": {
+    "status": "passed",
+    "count": 4
+  },
+  "bundleBudget": {
+    "count": 72,
+    "largestKb": 496.5,
+    "limitKb": 500
+  },
+  "performanceSeconds": {
+    "development": 31.2,
+    "production": 43.3
+  },
+  "buildLog": {
+    "path": "/tmp/plaincad-final-selected-build.log",
+    "sha256": "73907a138499f0325914f77be3db3d07d259f861df6f4107e97332572b8c62a3"
+  },
+  "independentVerification": {
+    "pinnedReleaseArchiveHead": "bd65635264ac673b0f63b083405cf90634da5ffd",
+    "onlyPostBuildChange": "specs/working-cad/VALIDATION_LOG.md",
+    "browserAndUnitReportHashesVerified": true,
+    "buildLogHashVerified": true,
+    "wasmBytesMatchStampedManifestAndBuiltAsset": true,
+    "goRuntimeHashVerified": true
+  }
+}
