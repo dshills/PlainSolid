@@ -115,6 +115,17 @@ func boreSpan(base brep.Solid, c *cylinderBody, through bool) (trimmed.CylinderC
 	}
 	return trimmed.CylinderCut{Entry: entry, Exit: exit, AxisPoint: origin, Direction: axis, Radius: c.radius}, start, end, nil
 }
+
+// sameCardinalBoreLine proves equality of both represented transverse coordinates.
+func sameCardinalBoreLine(a, b *cylinderBody) bool {
+	if !cardinalFrame(a.frame) || !cardinalFrame(b.frame) {
+		return false
+	}
+	axis := a.frame.ZAxis()
+	return axis.Cross(b.frame.ZAxis()) == (geom.Vec3{}) &&
+		axis.Cross(a.frame.Origin().Sub(b.frame.Origin())) == (geom.Vec3{})
+}
+
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	if len(cylinders) > 32 {
 		return nil, &failureError{"LIMIT", "at most 32 cylindrical tools may be retained"}

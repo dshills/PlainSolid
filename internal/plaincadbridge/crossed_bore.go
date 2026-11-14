@@ -107,13 +107,10 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 			if blind[i] || !cardinalFrame(tool.frame) {
 				return nil, false, nil
 			}
-			axis, origin := tool.frame.ZAxis(), tool.frame.Origin()
 			matched := false
 			for _, j := range sites[:count] {
 				old := tools[j]
-				delta := old.frame.Origin().Sub(origin)
-				if tool.radius == old.radius && axis.Cross(old.frame.ZAxis()) == (geom.Vec3{}) &&
-					axis.Cross(delta) == (geom.Vec3{}) {
+				if tool.radius == old.radius && sameCardinalBoreLine(old, tool) {
 					matched = true
 					break
 				}

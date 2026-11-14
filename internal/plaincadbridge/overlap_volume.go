@@ -233,6 +233,11 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if hi <= lo {
 		return result(0)
 	}
+	for i, old := range a.bore.cylinders {
+		if !a.bore.blind[i] && old.radius >= c.cylinder.radius && sameCardinalBoreLine(old, c.cylinder) {
+			return result(0)
+		}
+	}
 	tools := append(append([]*cylinderBody(nil), a.bore.cylinders...), c.cylinder)
 	body, err := newBore(base, tools)
 	if err != nil {
