@@ -2353,3 +2353,10 @@ The weighted station assembly reader retains a single authentic noncircular
 NURBS product under repeated proper signed occurrences. The original bands,
 rims, caps and occurrence link ancestry remain available after transfer.
 See the [weighted station assembly contract](../exchange/step/WRAPPED_RATIONAL_STATION_ASSEMBLY.md).
+
+### Native staggered crossing-prism Fuse
+
+A separate exact transition certifies the exposed underside and shoulder,
+then sews one native boundary across the three axial layers. Original
+walls, caps and holes retain exact source ownership. The native conversion
+requires lossless represented output vertices.

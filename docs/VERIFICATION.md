@@ -6256,3 +6256,10 @@ identity, and nonbinary controls survive native persistence. Signed-axis
 placement preserves line parameters, cap and corner ties, singleton hits,
 coincident generators and oblique material intervals. The combined focused
 race passed in 2.729 s.
+
+### Staggered crossing-prism Fuse qualification
+
+Both original operand orders, exposed shoulders, original tool holes,
+independent mass and centroid, exact orientation and atomic conversion
+failure pass. The combined original transition, closed native Fuse and
+anisotropic mesh race passed in 9.184 s.
