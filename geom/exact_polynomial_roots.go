@@ -5,6 +5,11 @@ import (
 	"math/big"
 )
 
+// ExactPolynomialMaxDegree is the maximum for direct bounded root isolation
+// and polynomial sign evaluation. It does not change the separate limits
+// for curve intersection or characteristic-polynomial construction.
+const ExactPolynomialMaxDegree = 8
+
 // ExactPolynomialRoot retains one distinct immutable root and its algebraic
 // multiplicity in the supplied polynomial (ascending coefficients).
 type ExactPolynomialRoot struct {
@@ -24,7 +29,8 @@ type ExactPolynomialRootIsolation struct {
 type ExactPolynomialSign struct{ Sign, Operations, Subdivisions int }
 
 // IsolateExactPolynomialRoots proves the complete finite real-root ledger for
-// a degree<=4 rational polynomial. Identically zero polynomials return
+// a rational polynomial of degree at most ExactPolynomialMaxDegree.
+// Identically zero polynomials return
 // ErrDomain: coincident intervals are not isolated events. All coefficients,
 // root arithmetic and subdivisions share the supplied bounded proof budget.
 // No partial roots are returned on failure; inputs are copied.
@@ -34,7 +40,7 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 			out.Roots = nil
 		}
 	}()
-	if ctx == nil || len(coefficients) == 0 || len(coefficients) > 5 || lower == nil || upper == nil || lower.Cmp(upper) > 0 {
+	if ctx == nil || len(coefficients) == 0 || len(coefficients) > ExactPolynomialMaxDegree+1 || lower == nil || upper == nil || lower.Cmp(upper) > 0 {
 		return out, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -97,11 +103,12 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 	return out, nil
 }
 
-// SignPolynomial proves the exact sign of a degree<=4 rational polynomial at
-// this immutable algebraic root. Shared factors prove exact zero; nonzero signs
+// SignPolynomial proves the exact sign of a rational polynomial of degree at
+// most ExactPolynomialMaxDegree at this immutable root. Shared factors prove
+// exact zero; nonzero signs
 // require outward interval exclusion. No floating root witness is used.
 func (r *ExactAlgebraicRoot) SignPolynomial(ctx context.Context, coefficients []*big.Rat, o ExactCurvePlaneEventOptions) (out ExactPolynomialSign, err error) {
-	if ctx == nil || r == nil || r.root == nil || len(coefficients) == 0 || len(coefficients) > 5 {
+	if ctx == nil || r == nil || r.root == nil || len(coefficients) == 0 || len(coefficients) > ExactPolynomialMaxDegree+1 {
 		return out, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
