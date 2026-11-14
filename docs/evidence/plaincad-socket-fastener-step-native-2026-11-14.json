@@ -1,0 +1,46 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "27904a2c2f3309e4defd318e7b8ce086a18510f22a23c99dd20afed77a709728",
+  "supplemental": {
+    "report": "/tmp/plainsolid-socket-fastener-authored-5601/socket-fastener-browser.json",
+    "reportSha256": "264defe9a011c1c6c84b431f7a6a29233bd1249cff311026a522a9577f7708a1",
+    "sourceSha256": "8d532e9821e6846cd6e9b4e097bff5ac02d74c7cfd2f6b2ae6a2ef53f1b28606",
+    "summary": {
+      "startTime": "2026-11-14T16:11:19.619Z",
+      "duration": 18519.229,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "profile": "original M3 socket-head blank, 12 mm shaft and 2.5 mm across flats hex socket",
+      "exactNativeRoundTrip": true,
+      "byteIdenticalReexport": true,
+      "stepByteCount": 39536,
+      "stepSha256": "c99f534bdb1eb248a4edaa2ed3cdf384a4101f6c5417e628cc41761183c37840",
+      "stlTriangles": 276,
+      "stlTwoUseEdges": 414,
+      "stlSha256": "e0aa0f212a85070f4b47c99630813820f15445ce7a3d4eea9726e64f5c9c9e78",
+      "occtStepReadback": {
+        "Area": 225.44058425589301,
+        "Volume": 147.97889681461785,
+        "Centroid": [
+          -1.320453500736771e-16,
+          0,
+          -2.8402253111604283
+        ]
+      },
+      "analyticVolume": 147.97889681476371,
+      "analyticArea": 225.44058425577634
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 2
+  },
+  "vet": "passed",
+  "race": "passed"
+}

@@ -324,6 +324,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(s, m.LengthUnit)
 	}
+	if m, e := step.ReadSteppedShaft(r(), stepLimits()); e == nil {
+		return b.putSteppedShaftSTEP(m)
+	}
 	if m, e := step.ReadQuarterAnnularExtrusion(r(), stepLimits()); e == nil {
 		return b.putQuarterAnnularSTEP(m)
 	}
@@ -575,6 +578,10 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
+		if p := s.analytic.shaft; p != nil {
+			e = step.WriteSteppedShaft(&out, step.SteppedShaftModel{Name: "PlainSolid", Body: *p, LengthUnit: .001})
+			break
+		}
 		if p := s.analytic.rimTreatment; p != nil {
 			e = p.writeSTEP(&out)
 			break
