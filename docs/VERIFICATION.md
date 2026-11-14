@@ -107,6 +107,17 @@ Simultaneous conical fillets (`105312d`) keep five native faces, unchanged
 original end caps and circular bases, and exact original cone ownership.
 Both slope directions and equal/unequal radii match independent volume and
 area integrals and reload. Touching or overlapping runouts fail atomically.
+The polynomial cap area proof measures Green integrals on exact
+algebraic intervals with no chord sampling. Both signs of a parabolic cut
+enclose 2√2/3 and its complement; after native reload, the sheared
+through-hole clip encloses 14/3 + √3/4 at a width of 2⁻²⁴. Mutated
+diagnostic wires cannot affect the area. Normal, race, vet and Go 1.23 pass.
+The crossed-roof Boolean (`21fac2a`) independently proves coincidence on
+original planar supports with nonlinear parameterization, assembles
+intersection, union and difference, and retains topology and original
+owners. Intersection reloads as an exact algebraic boundary. Broad
+positive volume bounds enclose all three independent integrals; conversion
+to an ordinary representable solid still rejects unsupported endpoints.
 The eccentric through-bore on this filleted stock (`c207731`) retains all
 stock vertex, edge and face IDs, proves exact clearance, and matches
 independent differences −6π in volume and +10π in area after reload.
@@ -114,6 +125,12 @@ The genuine OCCT STEP elliptical disk face (`e58145b`) retains its full model
 and planar trim curves, verifies their original owners and matching
 parameterizations, and native-reloads. Pinned OCCT confirms one face with
 area 8π, centroid (1,2,3), and outward normal +Y on both source and re-export.
+The genuine elliptical STEP annulus (`9015c45`) preserves its independent
+inner curve and reversed bound; pinned OCCT verifies one face, two edges,
+area 6π and the same oriented plane after native reload. Mixed bores
+(`a28448c`) verify a through bore and two opposed blind bores with the same
+radial centre and strictly separated floors. Their volume loss is 11π/4
+and total area gain 21π/2; axial or radial contacts reject atomically.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
@@ -523,6 +540,11 @@ The current development STEP subset (`0bdb699`) passed five original tests
 in 23.226 seconds and the independent Go/WASM browser probe in 5.464 seconds.
 All 841 tested source hashes match pinned PlainCAD `50432ed`. The archived
 record includes the six exact titles and result hashes.
+The [full original development record](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
+on review revision `178df69` passed 344 cases in 2,632 seconds with no
+retries, skips, or failures, plus separate Go/WASM preflight and typechecks.
+All 841 pinned source hashes, the original Playwright config and both
+result hashes were checked independently.
 The development modeling selection on `ff15d87` passed three original
 PlainCAD tests in 25.488 seconds, with zero retries, skips, or failures.
 The separate real Go/WASM browser probe passed in 5.317 seconds. Evidence
