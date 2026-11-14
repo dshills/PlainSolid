@@ -14,7 +14,7 @@ import (
 // WrappedStationBooleanBand records the source wall retained on an open
 // height interval. Two identical source profiles list both original face
 // IDs; otherwise the unused operand's face is -1. ResultWall is a face in
-// the resulting single circular station loft.
+// the resulting single station loft.
 type WrappedStationBooleanBand struct {
 	LowerZ, UpperZ *big.Rat
 	SourceWalls    [2]int
@@ -55,21 +55,54 @@ func hasWrappedStationLoftShape(s Solid) bool {
 // coordinates are outside this operation.
 func CombineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op parametric.BooleanOp,
 	o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
+	return combineCoaxialWrappedStationLofts(ctx, a, b, op, o, true)
+}
+
+// CombineCoaxialWrappedRationalStationLofts builds Common or Fuse of two
+// complete station lofts sharing an exact normalized rational profile, axis
+// and end planes. Each output wall preserves the selected original U basis.
+// Crossing vertices must be exactly representable in native topology.
+func CombineCoaxialWrappedRationalStationLofts(ctx context.Context, a, b Solid, op parametric.BooleanOp,
+	o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
+	if ctx == nil || op > parametric.Difference {
+		return Solid{}, WrappedStationBooleanHistory{}, geom.ErrInvalid
+	}
+	if op == parametric.Difference {
+		return Solid{}, WrappedStationBooleanHistory{}, geom.ErrUnrepresentable
+	}
+	return combineCoaxialWrappedStationLofts(ctx, a, b, op, o, false)
+}
+
+func combineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op parametric.BooleanOp,
+	o geom.SurfacePatchOptions, circular bool) (Solid, WrappedStationBooleanHistory, error) {
 	var h WrappedStationBooleanHistory
 	if ctx == nil || op > parametric.Difference {
 		return Solid{}, h, geom.ErrInvalid
 	}
-	x, xb, e := a.validateWrappedCircularStationLoft(ctx, o)
+	x, xb, e := a.validateWrappedProfileStationLoft(ctx, o, circular)
 	if e != nil {
 		return Solid{}, h, e
 	}
-	y, yb, e := b.validateWrappedCircularStationLoft(ctx, o)
+	y, yb, e := b.validateWrappedProfileStationLoft(ctx, o, circular)
 	if e != nil {
 		return Solid{}, h, e
 	}
 	if x.Center[0].Cmp(y.Center[0]) != 0 || x.Center[1].Cmp(y.Center[1]) != 0 ||
 		x.Heights[0].Cmp(y.Heights[0]) != 0 || x.Heights[len(x.Heights)-1].Cmp(y.Heights[len(y.Heights)-1]) != 0 {
 		return Solid{}, h, geom.ErrConvergence
+	}
+	if !circular {
+		// Each original station proof guarantees one shared profile
+		// within its operand. Compare the first normalized rims in full.
+		p := geom.WrappedCylinderEmbedding{CenterX: x.Center[0], CenterY: x.Center[1], Radius: x.Radii[0]}
+		q := geom.WrappedCylinderEmbedding{CenterX: y.Center[0], CenterY: y.Center[1], Radius: y.Radii[0]}
+		equal, e := sameNormalizedCylinderProfile(ctx, xb[0], yb[0], p, q, o)
+		if e != nil {
+			return Solid{}, h, e
+		}
+		if !equal {
+			return Solid{}, h, geom.ErrUnrepresentable
+		}
 	}
 	levels := append(append([]*big.Rat(nil), x.Heights...), y.Heights...)
 	sort.Slice(levels, func(i, j int) bool { return levels[i].Cmp(levels[j]) < 0 })
@@ -214,8 +247,12 @@ func CombineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op param
 	if e != nil {
 		return Solid{}, WrappedStationBooleanHistory{}, e
 	}
-	s, p, e := NewWrappedCircularStationLoft(ctx, outputSupports, max(a.tolerance, b.tolerance), o)
-	if e == geom.ErrConvergence || e == geom.ErrUnrepresentable {
+	build := NewWrappedRationalStationLoft
+	if circular {
+		build = NewWrappedCircularStationLoft
+	}
+	s, p, e := build(ctx, outputSupports, max(a.tolerance, b.tolerance), o)
+	if circular && (e == geom.ErrConvergence || e == geom.ErrUnrepresentable) {
 		// Both sources were independently proved circular. Different
 		// parameterizations can be rebuilt in one exact common basis.
 		s, p, e = LoftWrappedCircularStations(ctx, geom.Vec2{X: cx, Y: cy}, stations, max(a.tolerance, b.tolerance), o)
