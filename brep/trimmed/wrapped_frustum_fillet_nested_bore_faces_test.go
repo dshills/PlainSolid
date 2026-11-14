@@ -101,7 +101,7 @@ func TestFilletedFrustumNestedTorusBoreOrdering(t *testing.T) {
 		t.Fatal("known tie", e)
 	}
 	no, e := q.ClassifyNestedTorusBoreFacesRational(ctx, tieP, FilletedFrustumNestedBoreOptions{})
-	if e != nil || no.Complete || len(no.Tied) != 0 || no.Nested != nil || no.Bore != nil || no.RefinementChecks > 12 {
+	if e != nil || no.Complete || len(no.Tied) != 0 || no.Nested != nil || no.Bore != nil || no.RefinementChecks != 2 {
 		t.Fatal("false interval tie", no, e)
 	}
 	no, e = q.ClassifyNestedTorusBoreFacesRational(ctx, tieP, FilletedFrustumNestedBoreOptions{MaxPairs: 1})
@@ -120,7 +120,7 @@ func TestFilletedFrustumNestedTorusBoreOrdering(t *testing.T) {
 	}
 	for _, p := range [][3]*big.Rat{{r(123, 16), r(0, 1), r(1, 2)}, {r(63, 8), r(0, 1), r(11, 16)}} {
 		endpoint, e := q.ClassifyNestedTorusBoreFacesRational(ctx, p, FilletedFrustumNestedBoreOptions{})
-		if e != nil || endpoint.Complete || endpoint.Nested != nil || endpoint.Bore != nil {
+		if e != nil || endpoint.Complete || endpoint.Nested != nil || endpoint.Bore != nil || endpoint.RefinementChecks != 2 {
 			t.Fatal("retained endpoint not interior", e)
 		}
 	}

@@ -35,7 +35,7 @@ func (s *MixedAlgebraicShellBoolean) BoundTrimmedGeometry(ctx context.Context,
 	}
 	var out MixedAlgebraicTrimBounds
 	found := false
-	counts, err := s.boundary.visitBooleanSurfaceCells(ctx, opts, func(p *geom.SurfacePatch, _ geom.Vec3, _, _ bool) error {
+	counts, err := s.boundary.visitBooleanSurfaceCells(ctx, opts, func(p *geom.SurfacePatch, _ geom.Vec3, _, _ bool, _, _ int) error {
 		b, err := p.Bounds()
 		if err != nil {
 			return err

@@ -12,14 +12,14 @@ import (
 
 func TestMixedOriginalAutomaticCompleteMesh(t *testing.T) {
 	ctx := context.Background()
-	a, b, proposals, sectionOptions := mixedWallFixture(t)
-	section, err := SectionSplineShellsMixedAlgebraic(ctx, a, b, proposals, sectionOptions)
+	a, b, _, sectionOptions := mixedWallFixture(t)
+	section, err := DiscoverSplineShellsMixedAlgebraic(ctx, a, b, sectionOptions, MixedRationalIsoDiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	booleanOptions := AlgebraicShellBooleanOptions{}
 	booleanOptions.Imprint.Exact.MaxOperations = 128000000
-	bodies, err := section.CombineAlgebraicOperations(ctx, []parametric.BooleanOp{parametric.Intersection, parametric.Difference}, booleanOptions)
+	bodies, err := section.CombineAlgebraicOperations(ctx, []parametric.BooleanOp{parametric.Intersection, parametric.Difference, parametric.Union}, booleanOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +55,26 @@ func TestMixedOriginalAutomaticCompleteMesh(t *testing.T) {
 	if result.SourceMaterial() != diff || len(m.Vertices) != 1013 || len(m.Triangles) != 2018 ||
 		result.SourceImageSquaredDistance().Cmp(big.NewRat(1, 100)) >= 0 {
 		t.Fatal("automatic difference lost original source or signed complement coverage", len(m.Vertices), len(m.Triangles))
+	}
+	if got, err := diff.TessellateUnionMeshCertified(ctx, o); got != nil || !errors.Is(err, geom.ErrUnrepresentable) {
+		t.Fatal("union entry must reject a difference before tessellating", got, err)
+	}
+	union := bodies[2]
+	result, err = union.TessellateUnionMeshCertified(ctx, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.Mesh()
+	if result.SourceMaterial() != union || len(m.Vertices) != 1040 || len(m.Triangles) != 2076 ||
+		result.SourceImageSquaredDistance().Cmp(big.NewRat(21, 1000)) >= 0 {
+		t.Fatal("automatic union lost original source or complementary roof coverage", len(m.Vertices), len(m.Triangles))
+	}
+	byFace := make(map[int]int)
+	for _, id := range result.TriangleFaces() {
+		byFace[id]++
+	}
+	if len(byFace) != len(union.Faces()) || byFace[12] != 606 {
+		t.Fatal("the automatic fill must cover all original fragments including the holed roof", byFace)
 	}
 	o.SupportOperations = 1
 	if got, err := body.TessellateIntersectionMeshCertified(ctx, o); got != nil || !errors.Is(err, geom.ErrConvergence) {

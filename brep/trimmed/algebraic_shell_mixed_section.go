@@ -58,6 +58,15 @@ func (s *MixedAlgebraicShellSection) Pairs() [][2]int {
 	}
 	return append([][2]int(nil), s.source.pairs...)
 }
+
+// PairCoverage returns a fresh complete accounting of original face pairs.
+// Persistence re-proves the entries from the original supports and recipes.
+func (s *MixedAlgebraicShellSection) PairCoverage() []AlgebraicShellPairCoverage {
+	if s == nil || s.source == nil {
+		return nil
+	}
+	return append([]AlgebraicShellPairCoverage(nil), s.source.coverage...)
+}
 func (s *MixedAlgebraicShellSection) Wires() [][]AlgebraicShellSectionWireUse {
 	if s == nil || s.source == nil {
 		return nil
@@ -102,8 +111,17 @@ type MixedRationalIsoDiscoveryOptions struct {
 // It succeeds only when at least one restricted branch was independently
 // established and no original face pair remains unresolved.
 func DiscoverSplineShellsMixedAlgebraic(ctx context.Context, a, b Solid, o MixedAlgebraicShellSectionOptions, d MixedRationalIsoDiscoveryOptions) (*MixedAlgebraicShellSection, error) {
+	s, _, err := DiscoverSplineShellsMixedAlgebraicWithCoverage(ctx, a, b, o, d)
+	return s, err
+}
+
+// DiscoverSplineShellsMixedAlgebraicWithCoverage also returns bounded pair
+// diagnostics. On failure it publishes no section; previously accounted pairs
+// and unproved original pairs can still be distinguished. Pairs are available
+// only after both original embeddings and the pair budget have been checked.
+func DiscoverSplineShellsMixedAlgebraicWithCoverage(ctx context.Context, a, b Solid, o MixedAlgebraicShellSectionOptions, d MixedRationalIsoDiscoveryOptions) (*MixedAlgebraicShellSection, []AlgebraicShellPairCoverage, error) {
 	if ctx == nil || d.MaxAttempts < 0 || d.MaxAttempts > 4096 || o.MaxExactOperations < 0 || o.MaxExactOperations > 256000000 {
-		return nil, geom.ErrInvalid
+		return nil, nil, geom.ErrInvalid
 	}
 	if d.MaxAttempts == 0 {
 		d.MaxAttempts = 128
@@ -114,12 +132,12 @@ func DiscoverSplineShellsMixedAlgebraic(ctx context.Context, a, b Solid, o Mixed
 	m := &mixedShellSectionBuild{options: o.Rational, remaining: o.MaxExactOperations, discovery: &d}
 	r, err := sectionSplineShellsAlgebraic(ctx, a, b, o.Section, m)
 	if err != nil {
-		return nil, err
+		return nil, r.Coverage, err
 	}
 	if !r.Complete || len(m.discovered) == 0 {
-		return nil, geom.ErrUnrepresentable
+		return nil, r.Coverage, geom.ErrUnrepresentable
 	}
-	return &MixedAlgebraicShellSection{source: r.source, proposals: m.discovered}, nil
+	return &MixedAlgebraicShellSection{source: r.source, proposals: m.discovered}, r.Coverage, nil
 }
 
 // SectionSplineShellsMixedAlgebraic exhaustively checks every original face

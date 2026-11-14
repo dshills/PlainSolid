@@ -33,7 +33,7 @@ type booleanSurfaceCellCounts struct{ VisitedCells, AmbiguousCells int }
 // the depth and tube subdivisions can tighten the enclosure.
 func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShellVolumeOptions) (out AlgebraicShellVolumeBounds, err error) {
 	volume := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
-	counts, err := s.visitBooleanSurfaceCells(ctx, o, func(p *geom.SurfacePatch, origin geom.Vec3, partial, reversed bool) error {
+	counts, err := s.visitBooleanSurfaceCells(ctx, o, func(p *geom.SurfacePatch, origin geom.Vec3, partial, reversed bool, _, _ int) error {
 		lo, hi, e := booleanVolumeCellFlux(ctx, p, origin, partial, o.Shells.Embedding.Patches)
 		if e != nil {
 			return e
@@ -53,7 +53,7 @@ func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShell
 }
 
 func (s AlgebraicShellBoolean) visitBooleanSurfaceCells(ctx context.Context, o AlgebraicShellMeasureOptions,
-	visit func(*geom.SurfacePatch, geom.Vec3, bool, bool) error) (out booleanSurfaceCellCounts, err error) {
+	visit func(*geom.SurfacePatch, geom.Vec3, bool, bool, int, int) error) (out booleanSurfaceCellCounts, err error) {
 	if ctx == nil || s.source == nil || o.MaxDepth < 0 || o.MaxDepth > 16 || o.MaxCells < 0 || o.MaxCells > 262144 ||
 		o.TubeSubdivisions < 0 || o.TubeSubdivisions > 128 || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
 		return out, geom.ErrInvalid
@@ -236,7 +236,7 @@ func (s AlgebraicShellBoolean) visitBooleanSurfaceCells(ctx context.Context, o A
 				out.AmbiguousCells++
 			}
 			reversed := sources[op].faces[x.id].Reversed != (s.op == parametric.Difference && op == 1)
-			if e := visit(x.p, origin, x.state == 0, reversed); e != nil {
+			if e := visit(x.p, origin, x.state == 0, reversed, op, x.id); e != nil {
 				return out, e
 			}
 		}

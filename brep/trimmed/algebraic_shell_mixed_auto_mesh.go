@@ -23,6 +23,10 @@ type MixedIntersectionMeshOptions struct {
 // complement and reversed-tool proofs.
 type MixedDifferenceMeshOptions = MixedIntersectionMeshOptions
 
+// MixedUnionMeshOptions applies the same stage limits to the union's
+// complementary roof regions, including any enclosed holes.
+type MixedUnionMeshOptions = MixedIntersectionMeshOptions
+
 // TessellateIntersectionMeshCertified builds the full certified display of
 // a qualified mixed original intersection, with no caller-supplied face
 // roles or plane guesses. Exact support identity supplies candidate roles;
@@ -39,6 +43,14 @@ func (s *MixedAlgebraicShellBoolean) TessellateIntersectionMeshCertified(ctx con
 func (s *MixedAlgebraicShellBoolean) TessellateDifferenceMeshCertified(ctx context.Context,
 	opts MixedDifferenceMeshOptions) (*CertifiedMixedAlgebraicShellMesh, error) {
 	return s.tessellateCompleteMixedMesh(ctx, opts, parametric.Difference)
+}
+
+// TessellateUnionMeshCertified builds a closed display of a qualified mixed
+// union. It discovers original planar supports and both graph roofs, then
+// proves their retained complementary regions on the shared source boundary.
+func (s *MixedAlgebraicShellBoolean) TessellateUnionMeshCertified(ctx context.Context,
+	opts MixedUnionMeshOptions) (*CertifiedMixedAlgebraicShellMesh, error) {
+	return s.tessellateCompleteMixedMesh(ctx, opts, parametric.Union)
 }
 
 func (s *MixedAlgebraicShellBoolean) tessellateCompleteMixedMesh(ctx context.Context,
@@ -128,10 +140,15 @@ func (s *MixedAlgebraicShellBoolean) tessellateCompleteMixedMesh(ctx context.Con
 	for _, id := range roofs {
 		other := roofOwners[s.boundary.faces[id].Operand^1]
 		var r *CertifiedMixedRoofFragment
-		if operation == parametric.Difference {
+		switch operation {
+		case parametric.Difference:
 			r, e = n.TessellateDifferenceRoofFragmentCertified(ctx, id, other, opts.Roof)
-		} else {
+		case parametric.Union:
+			r, e = n.TessellateUnionRoofFragmentCertified(ctx, id, other, opts.Roof)
+		case parametric.Intersection:
 			r, e = n.TessellateRoofFragmentCertified(ctx, id, other, opts.Roof)
+		default:
+			return nil, geom.ErrUnrepresentable
 		}
 		if e != nil {
 			return nil, e
