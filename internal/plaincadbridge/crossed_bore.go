@@ -29,6 +29,12 @@ func finiteCrossedBoreFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opp
 }
 
 func crossedBoreToolsFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opposite [2]bool, additional []trimmed.CardinalThroughBore, unit float64) (*boreBody, error) {
+	depths := [3]float64{blindDepth[0], 0, blindDepth[1]}
+	entries := [3]bool{opposite[0], false, opposite[1]}
+	return crossedSTEPTools(p, depths, entries, additional, false, unit)
+}
+
+func crossedSTEPTools(p crossedBoreGeometry, depths [3]float64, opposite [3]bool, additional []trimmed.CardinalThroughBore, triple bool, unit float64) (*boreBody, error) {
 	frame, dimensions, crossing := p.frame, p.dimensions, p.crossing
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 || !cardinalFrame(frame) {
@@ -43,50 +49,35 @@ func crossedBoreToolsFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, oppo
 	if err != nil {
 		return nil, err
 	}
-	tools := make([]*cylinderBody, 0, 2)
-	for i, site := range []struct {
-		origin, end, axis geom.Vec3
-	}{
-		{geom.Vec3{Y: crossing.Y, Z: crossing.Z}, geom.Vec3{X: dimensions.X, Y: crossing.Y, Z: crossing.Z}, frame.XAxis()},
-		{geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset}, geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset, Z: dimensions.Z}, frame.ZAxis()},
-	} {
-		if blindDepth[i] != 0 {
-			entry, signedDepth := site.origin, blindDepth[i]
-			if opposite[i] {
-				entry, signedDepth = site.end, -signedDepth
-				site.axis = site.axis.Scale(-1)
-			}
-			site.origin = entry
-			site.end = entry
-			if i == 0 {
-				site.end.X += signedDepth
-			} else {
-				site.end.Z += signedDepth
-			}
-		}
-		start, finish := frame.ToWorld(site.origin).Scale(scale), frame.ToWorld(site.end).Scale(scale)
-		length := finish.Sub(start).Dot(site.axis)
-		if start.Add(site.axis.Scale(length)) != finish {
-			return nil, geom.ErrUnrepresentable
-		}
-		f, err := geom.FrameFromNormal(start, site.axis)
-		if err != nil {
-			return nil, err
-		}
-		tool, err := newCylinder(f, p.radii[i]*scale, length)
-		if err != nil {
-			return nil, err
-		}
-		tools = append(tools, tool)
+	tools := make([]*cylinderBody, 0, 2+len(additional))
+	sites := []trimmed.CardinalThroughBore{
+		{Axis: 0, Center: geom.Vec3{Y: crossing.Y, Z: crossing.Z}, Radius: p.radii[0]},
+		{Axis: 2, Center: geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset}, Radius: p.radii[1]},
 	}
-	for _, site := range additional {
+	if triple {
+		sites = append(sites, trimmed.CardinalThroughBore{Axis: 1, Center: geom.Vec3{X: crossing.X, Z: crossing.Z}, Radius: p.radii[0]})
+	}
+	primary := len(sites)
+	sites = append(sites, additional...)
+	axes := [3]geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()}
+	for i, site := range sites {
 		if site.Axis < 0 || site.Axis > 2 {
 			return nil, geom.ErrDomain
 		}
-		axis := [3]geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()}[site.Axis]
-		component := [3]float64{dimensions.X, dimensions.Y, dimensions.Z}[site.Axis]
-		last := site.Center.Add(disjointBoreAxes[site.Axis].Scale(component))
-		start, finish := frame.ToWorld(site.Center).Scale(scale), frame.ToWorld(last).Scale(scale)
+		axis := axes[site.Axis]
+		startLocal, endLocal := coordinates(site.Center), coordinates(site.Center)
+		endLocal[site.Axis] += coordinates(dimensions)[site.Axis]
+		if i < primary && depths[site.Axis] != 0 {
+			depth := depths[site.Axis]
+			if opposite[site.Axis] {
+				startLocal = endLocal
+				depth = -depth
+				axis = axis.Scale(-1)
+			}
+			endLocal = startLocal
+			endLocal[site.Axis] += depth
+		}
+		start, finish := frame.ToWorld(startLocal.vec()).Scale(scale), frame.ToWorld(endLocal.vec()).Scale(scale)
 		length := finish.Sub(start).Dot(axis)
 		if start.Add(axis.Scale(length)) != finish {
 			return nil, geom.ErrUnrepresentable
@@ -95,11 +86,11 @@ func crossedBoreToolsFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, oppo
 		if err != nil {
 			return nil, err
 		}
-		c, err := newCylinder(f, site.Radius*scale, length)
+		tool, err := newCylinder(f, site.Radius*scale, length)
 		if err != nil {
 			return nil, err
 		}
-		tools = append(tools, c)
+		tools = append(tools, tool)
 	}
 	return newBore(base, tools)
 }

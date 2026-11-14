@@ -95,13 +95,14 @@ cardinal cutters retain exact elliptical trim arcs and watertight exchange.
 Finite STEP compaction preserves earlier files and fits more unequal
 crossings within the app import limit. Partial-skew crossings also
 retain finite stops beyond the complete intersection. In a concurrent
-same-radius triple crossing, one cutter can also retain a floor beyond
-the crossing. Unequal covered-width pairs also support disjoint
+same-radius triple crossing, one, two or three cutters can retain floors
+beyond the crossing. Unequal covered-width pairs also support disjoint
 companion through bores. Cardinal and concurrent 4:3 or 3:4 oblique pairs
 keep exact intersection ellipses. Two or three disjoint through bores
 can combine oblique and cardinal axes and exchange their complete rims.
 Common angular strips extend tessellation to steeper and three-component
-axes. Next retain multiple finite floors beyond a three-axis crossing.
+axes. Next verify coaxial depth edits and retained floors after STEP
+reimport of multi-floor crossings.
 A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges

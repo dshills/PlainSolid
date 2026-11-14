@@ -71,3 +71,76 @@ func TestBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 		}
 	}
 }
+
+func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
+	for _, depths := range [][3]float64{{28.5, 30, 0}, {0, 30, 32}, {28.5, 30, 32}} {
+		b := New()
+		stock := box(t, b, vector{}, vector{40, 40, 40})
+		center := vector{20, 20, 20}
+		tools := make([]string, 3)
+		count, span := 0, 0.
+		for axis, stop := range depths {
+			origin, direction := center, vector{}
+			origin[axis], direction[axis] = 0, 1
+			if axis == 1 {
+				origin[axis], direction[axis] = 40, -1
+			}
+			depth := 40.
+			if stop > 0 {
+				depth = stop
+				count++
+			}
+			span += depth
+			tools[axis] = circle(t, b, origin, direction, 3, depth).Handle
+		}
+		out, err := b.cutMany(stock.Handle, tools)
+		if err != nil {
+			t.Fatal(depths, err)
+		}
+		pair := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tools[0]})
+		pair = shape(t, b, map[string]any{"op": "cut", "a": pair.Handle, "b": tools[1]})
+		sequential := shape(t, b, map[string]any{"op": "cut", "a": pair.Handle, "b": tools[2]})
+		if out.GeometryAssertions != sequential.GeometryAssertions {
+			t.Fatal(depths, out, sequential)
+		}
+		wantVolume := 64000 - span*9*math.Pi + 216*math.Sqrt2
+		wantArea := 9600 + (span*6-float64(3-count)*18)*math.Pi - 216*math.Sqrt2
+		near(t, out.GeometryAssertions.Volume, wantVolume)
+		near(t, out.GeometryAssertions.SurfaceArea, wantArea)
+		file, err := b.exportSTEP([]string{out.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := base64.StdEncoding.DecodeString(file.Base64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := b.importSTEP(string(raw))
+		if err != nil || got.Bounds != stock.Bounds {
+			t.Fatal(depths, got, err)
+		}
+		near(t, got.GeometryAssertions.Volume, wantVolume)
+		near(t, got.GeometryAssertions.SurfaceArea, wantArea)
+		index := 6
+		for _, axis := range [3]int{2, 0, 1} {
+			depth := depths[axis]
+			if depth == 0 {
+				continue
+			}
+			p, normal := center, vector{}
+			p[axis], normal[axis] = depth, -1
+			if axis == 1 {
+				p[axis], normal[axis] = 40-depth, 1
+			}
+			face, err := b.shapes[got.Handle].bore.planarFace(p.vec(), normal.vec())
+			if err != nil || face.Face != index || face.Normal != normal {
+				t.Fatal(depths, axis, face, err)
+			}
+			near(t, face.Area, 9*math.Pi)
+			index++
+		}
+		for _, tool := range tools {
+			near(t, overlapMeasure(t, b, got.Handle, tool), 0)
+		}
+	}
+}

@@ -10,8 +10,8 @@ import (
 
 type tripleCrossedGeometry struct {
 	crossedBoreGeometry
-	depth       float64
-	oppositeCap bool
+	depths   [3]float64
+	opposite [3]bool
 }
 
 func newTripleCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (*boreBody, bool) {
@@ -22,16 +22,14 @@ func newTripleCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed
 	for i := range byAxis {
 		byAxis[i] = -1
 	}
-	blindTool := -1
+	blindTool, blindCount := -1, 0
 	for i, tool := range tools {
 		if tool.radius != tools[0].radius || !cardinalFrame(tool.frame) {
 			return nil, false
 		}
 		if blind[i] {
-			if blindTool >= 0 {
-				return nil, false
-			}
 			blindTool = i
+			blindCount++
 		}
 		for axis, world := range disjointBoreAxes {
 			if tool.frame.ZAxis().Dot(world) != 0 {
@@ -42,6 +40,9 @@ func newTripleCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed
 				break
 			}
 		}
+	}
+	if blindCount != 1 {
+		blindTool = -1
 	}
 	x, y, z := byAxis[0], byAxis[1], byAxis[2]
 	if blindTool == x {
@@ -67,32 +68,32 @@ func newTripleCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed
 	if !ok || middle.Axis != 1 || middle.Center != (geom.Vec3{X: p.crossing.X, Z: p.crossing.Z}) {
 		return nil, false
 	}
-	ctx := context.Background()
 	g := tripleCrossedGeometry{crossedBoreGeometry: p}
 	floors := make([]int, 3)
-	var r trimmed.BoxCrossedBoresResult
-	var err error
-	if blindTool < 0 {
-		r, err = trimmed.BoxTripleCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
-	} else {
-		tool := tools[blindTool]
-		dot := tool.frame.ZAxis().Dot(p.frame.ZAxis())
-		if dot != 1 && dot != -1 {
-			return nil, false
+	nextFloor := trimmed.BlindTripleCrossedBoreFloorFace
+	axisByGroup := [3]geom.Vec3{p.frame.XAxis(), p.frame.YAxis(), p.frame.ZAxis()}
+	for _, axis := range [3]int{2, 0, 1} {
+		for i, tool := range tools {
+			dot := tool.frame.ZAxis().Dot(axisByGroup[axis])
+			if !blind[i] || dot == 0 {
+				continue
+			}
+			g.depths[axis], g.opposite[axis] = spans[i], dot == -1
+			floor := coordinates(p.crossing)
+			floor[axis] = g.depths[axis]
+			if g.opposite[axis] {
+				floor[axis] = coordinates(p.dimensions)[axis] - g.depths[axis]
+			}
+			authored := tool.frame.Origin().Add(tool.frame.ZAxis().Scale(tool.height))
+			if p.frame.ToWorld(floor.vec()) != authored {
+				return nil, false
+			}
+			floors[i] = nextFloor
+			nextFloor++
+			break
 		}
-		g.depth, g.oppositeCap = spans[blindTool], dot == -1
-		floor := p.crossing
-		floor.Z = g.depth
-		if g.oppositeCap {
-			floor.Z = p.dimensions.Z - g.depth
-		}
-		authored := tool.frame.Origin().Add(tool.frame.ZAxis().Scale(tool.height))
-		if p.frame.ToWorld(floor) != authored {
-			return nil, false
-		}
-		r, err = trimmed.BoxBlindTripleCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], g.depth, g.oppositeCap, 1e-9)
-		floors[blindTool] = trimmed.BlindTripleCrossedBoreFloorFace
 	}
+	r, err := trimmed.BoxFiniteTripleCrossedBores(context.Background(), p.frame, p.dimensions, p.crossing, p.radii[0], g.depths, g.opposite, 1e-9)
 	if err != nil {
 		return nil, false
 	}

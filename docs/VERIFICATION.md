@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD multiple finite floors in a three-Hole crossing — 2026-11-14
+
+Two or three concurrent cardinal cutters can retain their complete blind
+floors beyond the overlap. Both entry directions remain available on
+each axis. STEP recovers floor order and axes from the missing stock
+openings and floor planes. Prior through and single-floor exports are
+byte-identical.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-multi-floor-triple-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-multi-floor-triple-step-native-2026-11-14.json)
+pass on the same WASM. The 115,577-byte STEP reimports and reopens.
+Ray checks identify all three retained floor positions in a watertight
+588-triangle STL. Thirty-two independent OCCT STEP comparisons, four
+translated decimal-depth round-trips, grouped and successive native
+cuts, focused race tests, and Go vet pass.
+
 ## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
 
 The selected PlainSolid provider at PlainCAD app revision `9779044`

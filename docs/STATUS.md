@@ -55,9 +55,9 @@ queries, STEP and STL pass. An equal-radius crossed through pair can
 retain up to 16 strictly separated cardinal companion bores in the same
 analytic solid and STEP graph. Three concurrent equal-radius through
 Holes along X, Y and Z retain eight exact triple junction vertices and
-exchange their elliptical intersection arcs through STEP. One of those
-three Holes can stop beyond the full intersection, retaining its planar
-floor from either entry side of any cardinal axis. Disjoint through cutters on two or three
+exchange their elliptical intersection arcs through STEP. One, two or all
+three Holes can stop beyond the full intersection and retain their planar
+floors from either entry side of each cardinal axis. Disjoint through cutters on two or three
 cardinal axes now retain canonical STEP, including unequal radii and
 non-millimeter import. When the full projected footprints are separated,
 disjoint mixed-axis blind bores can also exchange their finite floors and
