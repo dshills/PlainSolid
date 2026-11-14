@@ -36,25 +36,18 @@ type AlgebraicGraphStockFaceLoop struct {
 // chart are retained as distinct fragments. A nested stock face hole is
 // outside this operation's domain.
 func (c AlgebraicGraphCapPair) OriginalStockLoops(ctx context.Context, o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) ([]AlgebraicGraphStockFaceLoop, error) {
-	if ctx == nil || c.caps[0].recipe == nil || c.caps[1].recipe == nil || len(c.seams) == 0 {
-		return nil, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
+	b, e := newCapClipBudget(ctx, roots)
+	if e != nil {
 		return nil, e
 	}
-	if roots.MaxOperations == 0 {
-		roots.MaxOperations = 2000000
-	}
-	if roots.MaxCoefficientBits == 0 {
-		roots.MaxCoefficientBits = 16384
-	}
-	if roots.MaxSubdivisions == 0 {
-		roots.MaxSubdivisions = 8192
-	}
-	if roots.MaxOperations < 1 || roots.MaxCoefficientBits < 64 || roots.MaxSubdivisions < 1 {
+	return c.originalStockLoops(o, &b)
+}
+
+func (c AlgebraicGraphCapPair) originalStockLoops(o RationalGraphShellSectionOptions, b *capClipBudget) ([]AlgebraicGraphStockFaceLoop, error) {
+	ctx := b.ctx
+	if c.caps[0].recipe == nil || c.caps[1].recipe == nil || len(c.seams) == 0 {
 		return nil, geom.ErrInvalid
 	}
-	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
 	sc := c.caps[0].recipe.stock
 	buckets := make([][]AlgebraicGraphStockCoedge, len(sc.faces))
 	for i, cap := range c.caps {
@@ -179,7 +172,7 @@ func (c AlgebraicGraphCapPair) OriginalStockLoops(ctx context.Context, o Rationa
 		if len(row) == 0 {
 			continue
 		}
-		w, e := orderAlgebraicStockLoops(row, &b)
+		w, e := orderAlgebraicStockLoops(row, b)
 		if e != nil {
 			return nil, e
 		}

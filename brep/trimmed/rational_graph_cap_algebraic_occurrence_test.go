@@ -126,4 +126,24 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 	if e != nil || a.Lower.Cmp(b.Lower) != 0 || a.Upper.Cmp(b.Upper) != 0 {
 		t.Fatal("proper rational rigid placement must preserve volume bounds", a, b, e)
 	}
+	mass, e := w.BoundCentroid(ctx, q(1, 1<<18), selection, root)
+	if e != nil || mass.Volume.Lower.Sign() <= 0 {
+		t.Fatal("posed centroid proof", e)
+	}
+	// The exact (3/5,4/5) rotation and rational offset map the
+	// independently evaluated original centroid into world space.
+	local := [3]float64{1.7998525281375826, 2.843033752390164, .5917521095243853}
+	expected := [3]float64{3*local[0]/5 + 4*local[2]/5 + 1./7, local[1] - 1./3,
+		(-4*local[0]+3*local[2])/5 + 1./11}
+	for i, want := range expected {
+		lo, hi := mass.Coordinates[i].Lower, mass.Coordinates[i].Upper
+		if lo.Cmp(ratInset(want)) > 0 || hi.Cmp(ratInset(want)) < 0 {
+			t.Fatal("world centroid and signed interval transform", i, lo, hi, want)
+		}
+		v := ratInset(.7179226785061876 * want)
+		if mass.FirstMoments[i].Lower.Cmp(v) > 0 || mass.FirstMoments[i].Upper.Cmp(v) < 0 {
+			t.Fatal("world moment must include translation times volume", i, mass.FirstMoments[i], v)
+		}
+	}
+
 }

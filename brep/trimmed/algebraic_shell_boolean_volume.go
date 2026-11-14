@@ -111,6 +111,16 @@ func (s AlgebraicShellBoolean) visitBooleanSurfaceCells(ctx context.Context, o A
 		}
 	}
 	for _, b := range s.source.branches {
+		if b.rational != nil {
+			boxes, e := rationalShellBranchCover(ctx, b, o.TubeSubdivisions, o.Shells.Embedding.Patches)
+			if e != nil {
+				return out, e
+			}
+			for op, row := range boxes {
+				cover[op][b.Faces[op]] = append(cover[op][b.Faces[op]], row...)
+			}
+			continue
+		}
 		for _, x := range b.Segments {
 			if e := ctx.Err(); e != nil {
 				return out, e

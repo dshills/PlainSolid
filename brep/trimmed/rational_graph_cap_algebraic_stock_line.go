@@ -31,19 +31,11 @@ type AlgebraicGraphStockPlanarLine struct {
 func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	o RationalGraphShellSectionOptions, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphStockPlanarLine, error) {
 	var zero AlgebraicGraphStockPlanarLine
-	if ctx == nil || options.MaxOperations < 0 || options.MaxCoefficientBits < 0 || options.MaxSubdivisions < 0 {
-		return zero, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
+	budget, e := newCapClipBudget(ctx, options)
+	if e != nil {
 		return zero, e
 	}
-	bits := options.MaxCoefficientBits
-	if bits == 0 {
-		bits = 16384
-	}
-	if bits < 64 {
-		return zero, geom.ErrInvalid
-	}
+	bits := budget.bits
 	for _, row := range [][]*big.Rat{origin[:], direction[:], extent[:]} {
 		for _, p := range row {
 			if p == nil {
@@ -60,7 +52,7 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 	if direction[0].Sign() == 0 && direction[1].Sign() == 0 && direction[2].Sign() == 0 {
 		return zero, geom.ErrDegenerate
 	}
-	index, e := c.ExactIndexedBoundary(ctx, o, options)
+	index, e := c.exactIndexedBoundary(o, &budget)
 	if e != nil {
 		return zero, e
 	}
@@ -87,13 +79,40 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 			if e != nil {
 				return zero, e
 			}
+			work, width := o.Spans.Faces.Patches.MaxOperations, o.Spans.Faces.Patches.MaxCoefficientBits
+			if work == 0 || work > budget.work {
+				work = budget.work
+			}
+			if width == 0 || width > bits {
+				width = bits
+			}
 			chart, e = geom.NewAffineSurfaceChart(ctx, p, geom.AffineSurfaceChartOptions{
-				MaxOperations: o.Spans.Faces.Patches.MaxOperations, MaxCoefficientBits: o.Spans.Faces.Patches.MaxCoefficientBits,
+				MaxOperations: work, MaxCoefficientBits: width,
 			})
 			if e != nil {
 				return zero, e
 			}
-			plane, e = exactGraphStockFacePlane(ctx, p, src.Reversed, o.Spans.Faces)
+			if e := budget.charge(chart.ExactOperations(), 0); e != nil {
+				return zero, e
+			}
+			// The affine proof already establishes a single plane. Its
+			// normal follows its two exact chart directions and face sense.
+			domain := chart.Domain()
+			var corners [3]geom.Vec3
+			for i, uv := range [3][2]float64{{domain.UMin, domain.VMin}, {domain.UMax, domain.VMin}, {domain.UMin, domain.VMax}} {
+				p, e := chart.EvalExact(ratInset(uv[0]), ratInset(uv[1]))
+				if e != nil {
+					return zero, e
+				}
+				corners[i], e = geom.RepresentedExactPoint(p)
+				if e != nil {
+					return zero, e
+				}
+			}
+			if src.Reversed {
+				corners[1], corners[2] = corners[2], corners[1]
+			}
+			plane, e = polynomialPlaneFromPoints(corners)
 			if e != nil {
 				return zero, e
 			}
@@ -123,7 +142,7 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 			if face.CapRegion != 0 {
 				return zero, geom.ErrUnrepresentable
 			}
-			where, e := c.caps[face.Cap].LocateRational(ctx, xyz)
+			where, e := c.caps[face.Cap].locateRationalBudget(xyz, &budget)
 			if e != nil {
 				return zero, e
 			}
@@ -134,8 +153,11 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 				return zero, geom.ErrConvergence
 			}
 		} else {
-			uv, e := chart.InvertExactContext(ctx, xyz, geom.AffineChartInverseOptions{MaxCoefficientBits: bits})
+			uv, e := chart.InvertExactContext(ctx, xyz, geom.AffineChartInverseOptions{MaxOperations: budget.work, MaxCoefficientBits: bits})
 			if e != nil {
+				return zero, e
+			}
+			if e := budget.charge(uv.ExactOperations, 0); e != nil {
 				return zero, e
 			}
 			if !uv.OnPlane {

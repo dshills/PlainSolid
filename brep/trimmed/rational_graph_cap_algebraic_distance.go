@@ -75,14 +75,17 @@ func (c AlgebraicGraphCapClip) nearestQuadraticRational(ctx context.Context, poi
 	for i := range projection {
 		projection[i] = new(big.Rat).Sub(point[i], new(big.Rat).Mul(displacement, plane.normal[i]))
 	}
-	where, e := c.LocateRational(ctx, projection)
+	where, e := c.locateRationalBudget(projection, &b)
 	if e != nil {
 		return zero, e
 	}
 	if where == trimvalidate.Inside {
 		exact := new(big.Rat).Mul(delta, displacement)
-		d, _, e := geom.NewExactRationalRoot(ctx, exact, b.limits())
+		d, used, e := geom.NewExactRationalRoot(ctx, exact, b.limits())
 		if e != nil {
+			return zero, e
+		}
+		if e := b.charge(used, 0); e != nil {
 			return zero, e
 		}
 		return AlgebraicGraphCapNearest{SquaredDistance: d, Wire: -1, Use: -1, FaceInterior: true}, nil

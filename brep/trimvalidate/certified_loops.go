@@ -38,6 +38,20 @@ func (c *CertifiedLoops) Locate(ctx context.Context, uv [2]*big.Rat) (Location, 
 	return c.locate(ctx, &p)
 }
 
+// LocateBounded applies additional limits to a single query, without
+// modifying the immutable topology certificate or relaxing its limits.
+// Every argument is a strictly positive explicit limit.
+func (c *CertifiedLoops) LocateBounded(ctx context.Context, uv [2]*big.Rat, work, subdivisions, bits int) (Location, Report, error) {
+	if c == nil || work < 1 || subdivisions < 1 || bits < 64 {
+		return Unknown, emptyLoopReport(), ErrOptions
+	}
+	local := *c
+	local.options.MaxWork = min(local.options.MaxWork, work)
+	local.options.MaxSubdivisions = min(local.options.MaxSubdivisions, subdivisions)
+	local.options.MaxBits = min(local.options.MaxBits, bits)
+	return local.Locate(ctx, uv)
+}
+
 // LocateBox proves a single material location over the entire closed box.
 // An enclosure that may meet a trim boundary returns Unknown.
 func (c *CertifiedLoops) LocateBox(ctx context.Context, lo, hi [2]*big.Rat) (Location, Report, error) {

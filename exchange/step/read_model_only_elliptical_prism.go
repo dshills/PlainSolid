@@ -56,6 +56,14 @@ func ReadModelOnlyEllipticalPrism(ctx context.Context, r io.Reader, l Limits, to
 	if e != nil {
 		return ModelOnlyEllipticalPrism{}, e
 	}
+	return readModelOnlyEllipticalPrismFile(ctx, f, l, tolerance)
+}
+func readModelOnlyEllipticalPrismFile(ctx context.Context, f *File, l Limits, tolerance float64) (ModelOnlyEllipticalPrism, error) {
+	fail := func() (ModelOnlyEllipticalPrism, error) {
+		return ModelOnlyEllipticalPrism{}, fmt.Errorf("step: unsupported exact model-only elliptical prism")
+	}
+	var e error
+
 	if len(f.Entities) != 76 {
 		return fail()
 	}

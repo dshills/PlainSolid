@@ -8,7 +8,7 @@ import (
 
 // The zero-XY-Jacobian theorem suffices for vertical fibers but not for
 // identifying the original wall at an oblique ray hit. Certify a narrower
-// family: a polynomial sweep in Z over a simple projected curve. A strict
+// family: an exact sweep in Z over a simple projected curve. A strict
 // enclosing axial domain for both caps excludes stacked wall charts and makes
 // each interior wall point correspond to an actual lower-cap trim occurrence.
 func (c AlgebraicGraphCapPair) proveVerticalLineWalls(boundary AlgebraicGraphShellBoundary, options RationalGraphShellSectionOptions, b *capClipBudget) (bool, error) {
@@ -31,11 +31,22 @@ func (c AlgebraicGraphCapPair) proveVerticalLineWalls(boundary AlgebraicGraphShe
 		if e != nil {
 			return false, e
 		}
+		patchLimits := options.Spans.Faces.Patches
+		if patchLimits.MaxOperations == 0 || patchLimits.MaxOperations > b.work {
+			patchLimits.MaxOperations = b.work
+		}
+		if patchLimits.MaxCoefficientBits == 0 || patchLimits.MaxCoefficientBits > b.bits {
+			patchLimits.MaxCoefficientBits = b.bits
+		}
+		patch, e = patch.WithLimits(patchLimits)
+		if e != nil {
+			return false, e
+		}
 		h, _, ok := patch.RationalBezierCoefficients(4)
 		if !ok {
 			return false, nil
 		}
-		if e := b.charge(len(h)*len(h[0])*48, 0); e != nil {
+		if e := b.charge(len(h)*len(h[0])*160, 0); e != nil {
 			return false, e
 		}
 		for _, row := range h {
@@ -65,49 +76,78 @@ func spansVerticalGraphPlanes(h [][][4]*big.Rat, swap bool, planes [2]polynomial
 	if n < 2 || m < 2 || at(1, 0)[2].Sign() == 0 || at(0, 0)[3].Sign() <= 0 {
 		return false
 	}
-	for i := range n {
+	// The projective weight may vary with the transverse parameter. The
+	// only axial dependence must be a constant Euclidean rise: Z+=kW*u.
+	rise := new(big.Rat).Quo(at(1, 0)[2], at(0, 0)[3])
+	for i := 1; i < n; i++ {
 		for j := range m {
 			q := at(i, j)
-			if (i != 0 || j != 0) && q[3].Sign() != 0 {
-				return false
+			z := new(big.Rat)
+			if i == 1 {
+				z.Mul(rise, at(0, j)[3])
 			}
-			if i != 0 && (q[0].Sign() != 0 || q[1].Sign() != 0 || (i != 1 || j != 0) && q[2].Sign() != 0) {
+			if q[0].Sign() != 0 || q[1].Sign() != 0 || q[2].Cmp(z) != 0 || q[3].Sign() != 0 {
 				return false
 			}
 		}
 	}
-	// A nonconstant affine coordinate makes the projected parameter unique.
-	affine := [2]bool{at(0, 1)[0].Sign() != 0, at(0, 1)[1].Sign() != 0}
-	for j := 2; j < m; j++ {
-		for k := range affine {
-			affine[k] = affine[k] && at(0, j)[k].Sign() == 0
+	// A strictly monotone projected coordinate prevents self-overlap and
+	// identifies one original transverse parameter at every wall point.
+	injective := false
+	for k := range 2 {
+		d := make([]*big.Rat, 2*m-2)
+		for i := range d {
+			d[i] = new(big.Rat)
 		}
+		for i := 1; i < m; i++ {
+			for j := range m {
+				a, z := at(0, i), at(0, j)
+				x := new(big.Rat).Sub(new(big.Rat).Mul(a[k], z[3]), new(big.Rat).Mul(a[3], z[k]))
+				d[i+j-1].Add(d[i+j-1], new(big.Rat).Mul(x, big.NewRat(int64(i), 1)))
+			}
+		}
+		injective = injective || strictGraphWallBernsteinSign(d) != 0
 	}
-	if !affine[0] && !affine[1] {
+	if !injective {
 		return false
 	}
 	for _, plane := range planes {
-		// Bound W*(plane(P(0,v))) over v in [0,1] using its power
-		// coefficients. The corresponding residual at u=1 only adds
-		// the constant axial derivative. Both caps must lie strictly
-		// between the two endpoints for the whole original chart.
-		v := plane.dot([3]*big.Rat{at(0, 0)[0], at(0, 0)[1], at(0, 0)[2]})
-		v.Sub(v, new(big.Rat).Mul(plane.offset, at(0, 0)[3]))
-		lo, hi := new(big.Rat).Set(v), new(big.Rat).Set(v)
-		for j := 1; j < m; j++ {
-			q := at(0, j)
-			a := plane.dot([3]*big.Rat{q[0], q[1], q[2]})
-			if a.Sign() < 0 {
-				lo.Add(lo, a)
-			} else {
-				hi.Add(hi, a)
-			}
+		// The raw homogeneous residual is (N·P - offset*W).
+		// Prove strict opposite signs across the entire two axial
+		// edges, so every transverse location spans both caps.
+		var end [2][]*big.Rat
+		for i := range end {
+			end[i] = make([]*big.Rat, m)
 		}
-		axial := new(big.Rat).Mul(at(1, 0)[2], plane.normal[2])
-		if !(hi.Sign() < 0 && new(big.Rat).Add(lo, axial).Sign() > 0 ||
-			lo.Sign() > 0 && new(big.Rat).Add(hi, axial).Sign() < 0) {
+		for j := range m {
+			q := at(0, j)
+			v := plane.dot([3]*big.Rat{q[0], q[1], q[2]})
+			v.Sub(v, new(big.Rat).Mul(plane.offset, q[3]))
+			end[0][j] = v
+			end[1][j] = new(big.Rat).Add(v, new(big.Rat).Mul(at(1, j)[2], plane.normal[2]))
+		}
+		a, z := strictGraphWallBernsteinSign(end[0]), strictGraphWallBernsteinSign(end[1])
+		if a == 0 || a != -z {
 			return false
 		}
 	}
 	return true
+}
+
+func strictGraphWallBernsteinSign(power []*big.Rat) int {
+	d := len(power) - 1
+	sign := power[0].Sign()
+	if sign == 0 {
+		return 0
+	}
+	for i := 1; i <= d; i++ {
+		v := new(big.Rat)
+		for j := 0; j <= i; j++ {
+			v.Add(v, new(big.Rat).Mul(power[j], big.NewRat(polynomialChoose(i, j), polynomialChoose(d, j))))
+		}
+		if v.Sign() != sign {
+			return 0
+		}
+	}
+	return sign
 }
