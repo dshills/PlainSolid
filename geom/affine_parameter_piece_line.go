@@ -12,6 +12,9 @@ import (
 type PiecewiseGraphLineHit struct {
 	Parameter ToroidLineRoot
 	Pieces    []int
+	// Root retains the exact algebraic identity when requested by the
+	// rational API. It is immutable and uses the normalized line parameter.
+	Root *ExactAlgebraicRoot
 	// SignBefore/SignAfter are strict signs of graph.Z minus line.Z
 	// on the adjacent root-free side. Zero means the side is outside
 	// the supplied range, or the adjacent piece is coincident.
@@ -174,6 +177,12 @@ func intersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 				if left.Sign() == 0 || right.Sign() == 0 {
 					return false, nil
 				}
+				// Consecutive isolated brackets may initially share the
+				// same subdivision endpoint. The previous bracket stays
+				// valid; refine this bracket until it is strictly separate.
+				if recover && len(r.Hits) != 0 && r.Hits[len(r.Hits)-1].Parameter.Max.Cmp(a) == 0 {
+					return false, nil
+				}
 				before, after = left.Sign(), right.Sign()
 			} else {
 				derivative := equation
@@ -197,9 +206,25 @@ func intersectAffineGraphCurveHeight(ctx context.Context, curves SurfaceAffineCu
 					after = v.Sign()
 				}
 			}
-			r.Hits = append(r.Hits, PiecewiseGraphLineHit{
-				Parameter: ToroidLineRoot{a, z, m}, Pieces: []int{i}, SignBefore: before, SignAfter: after,
-			})
+			hit := PiecewiseGraphLineHit{Parameter: ToroidLineRoot{a, z, m}, Pieces: []int{i}, SignBefore: before, SignAfter: after}
+			if recover && a.Cmp(z) != 0 {
+				// Map the original isolated equation to the shared normalized
+				// parameter, preserving the exact unique root identity.
+				inv := new(big.Rat).Inv(width)
+				offset := new(big.Rat).Neg(new(big.Rat).Mul(inv, x.Start))
+				for _, v := range []*big.Rat{inv, offset, a, z} {
+					if e := b.check(v); e != nil {
+						return false, e
+					}
+				}
+				polynomial, e := composeProjectionPolynomial(equation, rationalPolynomial{offset, inv}, b)
+				if e != nil {
+					return false, e
+				}
+				hit.Root = &ExactAlgebraicRoot{root: &ExactGraphLineRoot{polynomial: polynomial,
+					bounds: [2]*big.Rat{new(big.Rat).Set(a), new(big.Rat).Set(z)}}}
+			}
+			r.Hits = append(r.Hits, hit)
 			return true, nil
 		})
 		if e != nil {
