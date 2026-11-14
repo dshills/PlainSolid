@@ -115,7 +115,7 @@ jobs:
       - name: Bounded fuzzing for exact and repaired STEP ellipses
         shell: bash
         run: |
-          for target in FuzzEllipticalWire FuzzRepairRoundedEllipticalWire FuzzEllipticalDiskFace FuzzEllipticalAnnulusFace FuzzEccentricEllipticalFace FuzzTwoEllipticalHoleFace FuzzRepairEllipseExtrusion FuzzRepairEllipticalPrism FuzzEllipticalPrismMaterialNative FuzzWriteEllipticalPrismMaterialSTEP FuzzReadModelOnlyEllipticalPrism FuzzPythagoreanEllipticalPrism FuzzTiltedEllipticalPrism FuzzEllipticalAnnularPrism FuzzNestedEllipticalAnnularPrism FuzzOrthogonalEllipticalAnnularPrism FuzzExactEllipticalPrismFamily; do
+          for target in FuzzEllipticalWire FuzzRepairRoundedEllipticalWire FuzzEllipticalDiskFace FuzzEllipticalAnnulusFace FuzzEccentricEllipticalFace FuzzTwoEllipticalHoleFace FuzzRepairEllipseExtrusion FuzzRepairEllipticalPrism FuzzEllipticalPrismMaterialNative FuzzWriteEllipticalPrismMaterialSTEP FuzzReadModelOnlyEllipticalPrism FuzzPythagoreanEllipticalPrism FuzzTiltedEllipticalPrism FuzzEllipticalAnnularPrism FuzzNestedEllipticalAnnularPrism FuzzOrthogonalEllipticalAnnularPrism FuzzExactEllipticalPrismFamily FuzzExactEllipticalPrismCompound; do
             GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
           done
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s

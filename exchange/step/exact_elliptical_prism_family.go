@@ -68,6 +68,13 @@ func ReadExactEllipticalPrismFamily(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return ExactEllipticalPrismFamily{}, e
 	}
+	return readExactEllipticalPrismFamilyFile(ctx, f, l, tol)
+}
+func readExactEllipticalPrismFamilyFile(ctx context.Context, f *File, l Limits, tol float64) (ExactEllipticalPrismFamily, error) {
+	bad := func() (ExactEllipticalPrismFamily, error) {
+		return ExactEllipticalPrismFamily{}, fmt.Errorf("step: unsupported exact elliptical prism family")
+	}
+
 	type profile struct {
 		basis mappedRationalBasis
 		a, b  float64
