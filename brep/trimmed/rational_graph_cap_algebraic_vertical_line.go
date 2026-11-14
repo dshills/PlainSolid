@@ -154,8 +154,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		// On an exact vertical line the complete fiber is between the
 		// two cap heights. Here it is a singleton; a positive height
 		// would be a line coincident with a wall, which we still reject.
-		p := point(capTimes[0])
-		owners, e := m.exactVerticalPinchOwners(p, &b)
+		owners, e := m.exactVerticalBoundaryOwners([2]*big.Rat{origin[0], origin[1]}, true, &b)
 		if e != nil {
 			return zero, e
 		}

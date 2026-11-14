@@ -15,7 +15,16 @@ import (
 // Prism constructs the same immutable exact quarter geometry
 // for the independently proved model-only and explicitly repaired dialects.
 func Prism(ctx context.Context, frame geom.Frame, a, b, height, tolerance float64) (trimmed.Solid, [2][4]int, error) {
-	failure := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
+	parts, e := Parts(ctx, frame, a, b, height, tolerance)
+	if e != nil {
+		return trimmed.Solid{}, [2][4]int{}, e
+	}
+	return sewParts(ctx, parts, tolerance)
+}
+
+// Parts returns exact cap/cap/four-wall faces for already proved ellipse data.
+func Parts(ctx context.Context, frame geom.Frame, a, b, height, tolerance float64) ([]trimmed.SewFace, error) {
+	failure := func(e error) ([]trimmed.SewFace, error) { return nil, e }
 	if ctx == nil || !finite(a) || !finite(b) || !finite(height) || !finite(tolerance) || a <= b || b <= 0 || height <= 0 || tolerance <= 0 {
 		return failure(geom.ErrInvalid)
 	}
@@ -71,14 +80,21 @@ func Prism(ctx context.Context, frame geom.Frame, a, b, height, tolerance float6
 			return failure(e)
 		}
 	}
-	return SewControls(ctx, uvPoles, worldPoles, caps, tolerance)
+	return partsControls(ctx, uvPoles, worldPoles, caps, tolerance)
 }
 
 // SewControls requires the caller to prove these complete ellipse quarters and
 // cap frames describe one injective positive-height extrusion. It verifies
 // continuous edge agreement and closes the exact native topology.
 func SewControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][]geom.Vec3, caps [2]geom.Frame, tolerance float64) (trimmed.Solid, [2][4]int, error) {
-	failure := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
+	parts, e := partsControls(ctx, uvPoles, worldPoles, caps, tolerance)
+	if e != nil {
+		return trimmed.Solid{}, [2][4]int{}, e
+	}
+	return sewParts(ctx, parts, tolerance)
+}
+func partsControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][]geom.Vec3, caps [2]geom.Frame, tolerance float64) ([]trimmed.SewFace, error) {
+	failure := func(e error) ([]trimmed.SewFace, error) { return nil, e }
 	knots := []float64{0, 0, 0, 1, 1, 1}
 	weights := []float64{1, 1, 2}
 	parts := make([]trimmed.SewFace, 0, 6)
@@ -120,6 +136,10 @@ func SewControls(ctx context.Context, uvPoles [4][]geom.Vec3, worldPoles [2][4][
 		parts = append(parts, part)
 	}
 	parts = append(append([]trimmed.SewFace{}, parts[4:]...), parts[:4]...)
+	return parts, nil
+}
+func sewParts(ctx context.Context, parts []trimmed.SewFace, tolerance float64) (trimmed.Solid, [2][4]int, error) {
+	failure := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
 	solid, history, e := trimmed.Sew(ctx, parts, trimmed.SewOptions{Tolerance: tolerance, MaxFaces: 6, MaxUses: 24, Proof: edgecheck.Options{}})
 	if e != nil {
 		return failure(fmt.Errorf("native exact ellipse prism sewing: %w", e))

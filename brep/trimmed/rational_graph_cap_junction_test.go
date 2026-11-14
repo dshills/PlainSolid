@@ -73,3 +73,55 @@ func TestAlgebraicCapLineJunctionOwners(t *testing.T) {
 		t.Fatal("the event must retain both generated and inherited coedges", v)
 	}
 }
+
+func TestAlgebraicCapBoundaryRunsRetainIrrationalSeam(t *testing.T) {
+	ctx := context.Background()
+	stock := makeWarpedSquareRationalGraphTube(t, 1./8)
+	const z = .5 - 11./64
+	planes := [2][3]geom.Vec3{
+		{{Z: .5}, {Y: 1, Z: .5}, {X: 1, Z: .5}},
+		{{Z: z}, {X: 1, Z: z}, {Y: 1, Z: z + 1./8}},
+	}
+	pair, err := stock.ClipAlgebraicGraphCapPair(ctx, planes,
+		RationalGraphShellSectionOptions{ComposeSectionCurves: true}, RationalGraphShellRegionOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := big.NewRat
+	dir := [3]*big.Rat{q(-1, 1), q(0, 1), q(0, 1)}
+	point := [3]*big.Rat{q(3, 1), q(11, 8), q(1, 2)}
+	extent := [2]*big.Rat{q(9, 8), q(7, 4)}
+	opts := geom.ExactCurvePlaneEventOptions{}
+	runs, err := pair.caps[0].IntersectRationalBoundaryRuns(ctx, point, dir, extent, opts)
+	if err != nil || len(runs.Runs) != 1 {
+		t.Fatal("negative direction must clip only one true seam", runs, err)
+	}
+	run := runs.Runs[0]
+	// X = sqrt(3) is the original inner-wall intersection, so
+	// t = 3-sqrt(3) is the root in (1,3/2) of t²−6t+6.
+	edge := run.Extent[1]
+	s, err := edge.SignPolynomial(ctx, []*big.Rat{q(6, 1), q(-6, 1), q(1, 1)}, opts)
+	if err != nil || s.Sign != 0 {
+		t.Fatal("expected exact irrational clipped end", s, err)
+	}
+	i, err := edge.Enclose(ctx, q(1, 64), opts)
+	if err != nil || !i.Converged || i.Interval.Lower.Cmp(q(1, 1)) <= 0 || i.Interval.Upper.Cmp(q(3, 2)) >= 0 {
+		t.Fatal("must isolate the correct reflected root", i, err)
+	}
+	lo, err := run.Extent[0].Classify(ctx, opts)
+	if err != nil || lo.Kind != geom.ExactRootKindRational || lo.Rational.Cmp(extent[0]) != 0 {
+		t.Fatal("caller limit must not move", lo, err)
+	}
+	u := pair.caps[0].wires[run.Wire][run.Use]
+	if u.Seam < 0 {
+		t.Fatal("expected generated seam ancestry", run)
+	}
+	sameParameter, err := run.CurveParameters[0].Compare(ctx, run.CurveParameters[1], opts)
+	if err != nil || !sameParameter.Proven || sameParameter.Order == 0 || run.AlongWire != ((sameParameter.Order < 0) != u.Reversed) {
+		t.Fatal("original endpoint order and wire direction were lost", run, sameParameter, err)
+	}
+	bad, err := pair.caps[0].IntersectRationalBoundaryRuns(ctx, point, dir, extent, geom.ExactCurvePlaneEventOptions{MaxOperations: 1})
+	if !errors.Is(err, geom.ErrConvergence) || len(bad.Runs) != 0 {
+		t.Fatal("a partial overlap cannot escape a depleted budget", bad, err)
+	}
+}

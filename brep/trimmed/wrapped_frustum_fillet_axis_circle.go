@@ -10,7 +10,8 @@ import (
 // Center+Radius*(U*cos(theta)+V*sin(theta)) is a globally nearest retained
 // boundary point. U,V are exact orthonormal vectors. This is a full circular
 // subset of minimizers, not necessarily the entire nearest locus: another
-// original face can tie. Face is the original cylindrical wall owner.
+// original face can tie. Face identifies the original periodic support owner;
+// the creating method specifies the support family.
 type FilletedFrustumNearestCircle struct {
 	Center, U, V            [3]*big.Rat
 	Radius, SquaredDistance *big.Rat

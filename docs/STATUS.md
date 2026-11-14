@@ -18,11 +18,13 @@ Exact IGES exchange covers full and directed quarter ellipses, elliptical
 disk and concentric annulus faces, and a strictly authenticated model-only
 elliptical prism topology graph (`a33b4a4`). Pinned OCCT accepts the
 authored prism graph; the independently emitted vendor spline file
-remains outside the exact input domain. The supported exact graph
-can be sewn into a native solid and revalidated on reload. All five planar
-mixed Boolean fragments now have certified
-fills on the shared boundary network (`7e3c670`); the three original
-nonlinear roof fragments are still open. Exact stock line queries also
+remains outside the exact input domain. Filled and concentric hollow
+prisms can be sewn into native solids and revalidated on reload, including
+proper signed-axis placement with exactly stored translation. All five
+planar mixed Boolean fragments have certified fills on the shared
+boundary network (`7e3c670`). A first nonlinear original roof has a
+certified interior with strict signed clearance; its collar and the
+other two roof fragments still need proofs. Exact stock line queries also
 resolve isolated shared wall and cap events without duplicating or losing
 their original face owners (`dda46a5`, `22ef5ba`).
 
@@ -312,6 +314,18 @@ reconciliation](evidence/plaincad-reconciled-56b4633-cross-browser-2026-11-14.js
 passed 15 unchanged cases across Chromium, Firefox, and WebKit on
 `56b4633`. The exact original Playwright config and every source hash
 were independently checked; there were no skipped cases or retries.
+The [corner-opening reconciliation](evidence/plaincad-reconciled-1ca7a88-development-corner-holes-step-2026-11-14.json)
+combines the worktree's across-corner cutters from `9770a5a` with
+the native kernel on `1ca7a88`. All 16 original Hole and STEP
+browser cases passed, with no skips or retries. The focused trimmed,
+STEP, and bridge tests passed on that same review build.
+The [exact-vertex reconciliation](evidence/plaincad-reconciled-d6bfd4e-development-vertex-holes-step-2026-11-14.json)
+adds the worktree's `8df00f2` milestone to `d6bfd4e`. The same 16
+original browser cases and the separate no-OCCT WASM preflight passed.
+The native corner, side-opening, and STEP regression set passed on the
+combined revision. This confirms the tested stock-vertex cases; fully
+concealed cutters can still leave partitions outside canonical STEP
+reconstruction.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
