@@ -54,6 +54,13 @@ func TestWrappedCurveCellsCompareModel(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
+		bounded, e := a.CompareModelBounded(ctx, b, reverse, 0, ExactCurvePlaneEventOptions{})
+		if e != nil || !bounded.Proven || !bounded.Equivalent || bounded.Reversed != reverse {
+			t.Fatal("bounded", bounded, e)
+		}
+		if q, e := a.CompareModelBounded(ctx, b, reverse, 0, ExactCurvePlaneEventOptions{MaxOperations: bounded.ExactOperations - 1}); e == nil || q.Proven {
+			t.Fatal("bounded atomic", q, e)
+		}
 		if a.Len() == b.Len() {
 			t.Fatal("fixture did not refine partitions")
 		}
@@ -78,6 +85,10 @@ func TestWrappedCurveCellsCompareModel(t *testing.T) {
 	c, e := other.BuildParameterCurveCells(ctx, perturbed, WrappedCurveCellsOptions{})
 	if e != nil {
 		t.Fatal(e)
+	}
+	bounded, e := a.CompareModelBounded(ctx, c, false, 0, ExactCurvePlaneEventOptions{})
+	if e != nil || !bounded.Proven || bounded.Equivalent {
+		t.Fatal("bounded false equality", bounded, e)
 	}
 	result, e := a.CompareModel(ctx, c, false, ComposedCollectionAffineParameterOptions{})
 	if e != nil || !result.Proven || result.Equivalent {

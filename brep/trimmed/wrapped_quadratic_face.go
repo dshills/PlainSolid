@@ -25,11 +25,12 @@ type WrappedQuadraticFaceOptions struct {
 // wrapped support. Rational seam/knot events split proof curves, not the native
 // authored edge. This is an embedded open face, not a closed shell or solid.
 type WrappedQuadraticFace struct {
-	native         SewFace
-	loops          [][]ExactQuadraticUV
-	proofs         [][]geom.WrappedCurveComposition
-	operations     int
-	projectionAxes [2]int
+	native          SewFace
+	loops           [][]ExactQuadraticUV
+	proofs          [][]geom.WrappedCurveComposition
+	algebraicProofs [][]*geom.WrappedCurveCells
+	operations      int
+	projectionAxes  [2]int
 }
 
 func (r *WrappedQuadraticFace) NativeFace() SewFace {
@@ -80,6 +81,10 @@ func (r *WrappedQuadraticFace) Composition(loop, edge int) (geom.WrappedCurveCom
 // and UV endpoints are lossless; algebraic seam events remain unsupported and
 // no proof subinterval is replaced by a rounded parameter.
 func NewWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, outer []ExactQuadraticUV, holes [][]ExactQuadraticUV, o WrappedQuadraticFaceOptions) (*WrappedQuadraticFace, error) {
+	return newWrappedQuadraticFace(ctx, w, outer, holes, o, false)
+}
+
+func newWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, outer []ExactQuadraticUV, holes [][]ExactQuadraticUV, o WrappedQuadraticFaceOptions, algebraic bool) (*WrappedQuadraticFace, error) {
 	if ctx == nil || w == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -109,6 +114,9 @@ func NewWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, o
 		n += len(h)
 	}
 	r := &WrappedQuadraticFace{loops: make([][]ExactQuadraticUV, 1+len(holes)), proofs: make([][]geom.WrappedCurveComposition, 1+len(holes))}
+	if algebraic {
+		r.algebraicProofs = make([][]*geom.WrappedCurveCells, len(r.loops))
+	}
 	r.loops[0] = append([]ExactQuadraticUV(nil), outer...)
 	for i, h := range holes {
 		r.loops[i+1] = append([]ExactQuadraticUV(nil), h...)
@@ -189,16 +197,27 @@ func NewWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, o
 			if used >= o.MaxOperations || pieces >= o.MaxPieces {
 				return nil, geom.ErrConvergence
 			}
-			p, e := w.ComposeParameterCurvePieces(ctx, uv, geom.SurfaceCurveCompositionOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits}, MaxPieces: o.MaxPieces - pieces})
-			if e != nil {
-				return nil, e
+			var algebraicProof *geom.WrappedCurveCells
+			if algebraic {
+				algebraicProof, e = w.BuildParameterCurveCells(ctx, uv, geom.WrappedCurveCellsOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits}, MaxEvents: o.MaxPieces - pieces + 1})
+				if e != nil {
+					return nil, e
+				}
+				used += algebraicProof.ExactOperations()
+				pieces += algebraicProof.Len()
+				r.algebraicProofs[li] = append(r.algebraicProofs[li], algebraicProof)
+			} else {
+				p, e := w.ComposeParameterCurvePieces(ctx, uv, geom.SurfaceCurveCompositionOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: o.MaxOperations - used, MaxCoefficientBits: o.MaxCoefficientBits}, MaxPieces: o.MaxPieces - pieces})
+				if e != nil {
+					return nil, e
+				}
+				if !p.Complete || !p.Continuous {
+					return nil, geom.ErrConvergence
+				}
+				used += p.ExactOperations
+				pieces += len(p.Pieces)
+				r.proofs[li] = append(r.proofs[li], p)
 			}
-			if !p.Complete || !p.Continuous {
-				return nil, geom.ErrConvergence
-			}
-			used += p.ExactOperations
-			pieces += len(p.Pieces)
-			r.proofs[li] = append(r.proofs[li], p)
 			exact, _ := q.Endpoints()
 			start, e := saddleRepresentedUV(exact[0])
 			if e != nil {
@@ -223,6 +242,9 @@ func NewWrappedQuadraticFace(ctx context.Context, w *geom.WrappedSurfacePatch, o
 			r.native.Vertices = append(r.native.Vertices, point)
 			id := len(r.native.Edges)
 			edge := parametric.Edge{Start: base + i, End: base + (i+1)%len(l), Curve: surfaceTrimCurve{surface: w, a: start, b: end, curve: q}, Range: parametric.Interval{Max: 1}}
+			if algebraic {
+				edge.Curve = wrappedAlgebraicTrimCurve{surfaceTrimCurve: edge.Curve.(surfaceTrimCurve), proof: algebraicProof}
+			}
 			use := Use{Edge: id, UVStart: start, UVEnd: end, Curve: q}
 			if used >= o.MaxOperations {
 				return nil, geom.ErrConvergence
