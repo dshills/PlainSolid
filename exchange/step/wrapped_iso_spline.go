@@ -70,6 +70,13 @@ func normalizeWrappedIsoSplines(f *File, surface int64, maxPoles int) error {
 		if e != nil || len(pids) > maxPoles {
 			return fail()
 		}
+		// Authenticate authored decimals before the binary geometry view is used.
+		// Otherwise different source knots can collapse to the same float.
+		for _, v := range curve.Args[7].Items {
+			if _, e := wrappedIsoSourceNumber(v); e != nil {
+				return fail()
+			}
+		}
 		knots, e := expandSurfaceKnots(curve.Args[6], curve.Args[7], int(degree), len(pids))
 		if e != nil {
 			return fail()
@@ -81,7 +88,7 @@ func normalizeWrappedIsoSplines(f *File, surface int64, maxPoles int) error {
 				return fail()
 			}
 			for k := 0; k < 2; k++ {
-				points[i][k], e = numeric(p.Args[1].Items[k])
+				points[i][k], e = wrappedIsoSourceNumber(p.Args[1].Items[k])
 				if e != nil {
 					return fail()
 				}
@@ -131,4 +138,23 @@ func normalizeWrappedIsoSplines(f *File, surface int64, maxPoles int) error {
 		f.Entities[cid] = Entity{ID: cid, Records: []Record{{Type: "LINE", Args: []Value{str, refv(pid), refv(vid)}}}}
 	}
 	return nil
+}
+
+// wrappedIsoSourceNumber requires equality of the original decimal and the
+// represented coefficient used by the continuous identity proof. The bounded
+// parser rejects pathological exponents before constructing a rational.
+func wrappedIsoSourceNumber(v Value) (float64, error) {
+	q, e := liftSourceRat(v)
+	if e != nil {
+		return 0, e
+	}
+	x, e := numeric(v)
+	if e != nil {
+		return 0, e
+	}
+	r := new(big.Rat).SetFloat64(x)
+	if r == nil || r.Cmp(q) != 0 {
+		return 0, errors.New("step: unrepresentable exact wrapped pcurve coefficient")
+	}
+	return x, nil
 }
