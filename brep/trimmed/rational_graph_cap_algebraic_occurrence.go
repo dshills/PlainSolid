@@ -82,18 +82,25 @@ func (o AlgebraicGraphStockOccurrence) IntersectCapLineRational(ctx context.Cont
 // owners are invariant under the rigid placement.
 func (o AlgebraicGraphStockOccurrence) IntersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
-	return o.intersectLineRational(ctx, origin, direction, extent, options, false)
+	return o.intersectLineRational(ctx, origin, direction, extent, options, false, false)
 }
 
 // IntersectLineRationalWithTouches also retains isolated regular tangencies
 // on the original swept stock walls, without toggling material.
 func (o AlgebraicGraphStockOccurrence) IntersectLineRationalWithTouches(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
-	return o.intersectLineRational(ctx, origin, direction, extent, options, true)
+	return o.intersectLineRational(ctx, origin, direction, extent, options, true, false)
+}
+
+// IntersectLineRationalWithJunctions also retains all original owners of an
+// isolated shared boundary event. Rigid placement preserves its parameter.
+func (o AlgebraicGraphStockOccurrence) IntersectLineRationalWithJunctions(ctx context.Context, origin, direction [3]*big.Rat,
+	extent [2]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
+	return o.intersectLineRational(ctx, origin, direction, extent, options, true, true)
 }
 
 func (o AlgebraicGraphStockOccurrence) intersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
-	options geom.ExactCurvePlaneEventOptions, includeTouches bool) (AlgebraicGraphVerticalLine, error) {
+	options geom.ExactCurvePlaneEventOptions, includeTouches, includeJunctions bool) (AlgebraicGraphVerticalLine, error) {
 	var zero AlgebraicGraphVerticalLine
 	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
 	if e != nil {
@@ -103,7 +110,7 @@ func (o AlgebraicGraphStockOccurrence) intersectLineRational(ctx context.Context
 	if e != nil {
 		return zero, e
 	}
-	return o.model.intersectRationalLine(ctx, a, d, extent, options, includeTouches)
+	return o.model.intersectRationalLine(ctx, a, d, extent, options, includeTouches, includeJunctions)
 }
 
 // BoundVolume returns the unchanged original certified volume. Only proper

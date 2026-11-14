@@ -18,6 +18,7 @@ type AlgebraicGraphCapLineContact struct {
 	Junction                  bool // contact at the shared endpoint of two uses
 	OtherUse                  int  // outgoing use when Junction, otherwise -1
 	OtherCurveParameter       *geom.ExactAlgebraicRoot
+	insideBefore, insideAfter bool
 }
 
 // AlgebraicGraphCapLine reports the ordered boundary events and clipped
@@ -262,6 +263,11 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 	var out AlgebraicGraphCapLine
 	var start *geom.ExactAlgebraicRoot
 	for _, ev := range events {
+		ev.insideBefore = start != nil
+		ev.insideAfter = ev.insideBefore
+		if !ev.Touch {
+			ev.insideAfter = ev.Entry
+		}
 		lo, e := cmp(limits[0], ev.Parameter)
 		if e != nil {
 			return zero, e
