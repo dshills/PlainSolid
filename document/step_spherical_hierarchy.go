@@ -1,6 +1,7 @@
 package document
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,9 +10,120 @@ import (
 
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
+
+// WriteSphericalHierarchySTEP exports edited occurrence positions and names
+// using the original independently authenticated local STEP material. It
+// preserves shared product relationships. Every expanded use of one original
+// relationship must agree on edits; changed assets and topology are rejected.
+// Both edited and unchanged transfers preserve the original product, geometry
+// and relationship entity numbers.
+func (s State) WriteSphericalHierarchySTEP(ctx context.Context, out io.Writer, original io.Reader, limits STEPAssemblyOptions, tolerance float64) error {
+	if ctx == nil || out == nil || original == nil || len(s.Features) != 0 {
+		return geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	m, err := step.ReadIndependentSphericalHierarchy(ctx, original, limits.Geometry, tolerance)
+	if err != nil {
+		return err
+	}
+	d, err := materializeSphericalHierarchy(ctx, m, limits, 0)
+	if err != nil {
+		return err
+	}
+	baseline, _ := d.Snapshot()
+	if s.LengthUnit != baseline.LengthUnit || len(s.Nodes) != len(baseline.Nodes) || len(s.Planar) != len(baseline.Planar) || len(s.Trimmed) != len(baseline.Trimmed) || len(s.Parametric) != 0 || len(s.Assets) != 0 {
+		return geom.ErrUnrepresentable
+	}
+	for id, before := range baseline.Planar {
+		after, ok := s.Planar[id]
+		if !ok {
+			return geom.ErrUnrepresentable
+		}
+		var a, b bytes.Buffer
+		if err := exchange.WriteBRepJSON(&a, before); err != nil {
+			return err
+		}
+		if err := exchange.WriteBRepJSON(&b, after); err != nil {
+			return err
+		}
+		if !bytes.Equal(a.Bytes(), b.Bytes()) {
+			return geom.ErrUnrepresentable
+		}
+	}
+	for id, before := range baseline.Trimmed {
+		after, ok := s.Trimmed[id]
+		if !ok {
+			return geom.ErrUnrepresentable
+		}
+		var a, b bytes.Buffer
+		if err := trimmed.WriteJSON(&a, before); err != nil {
+			return err
+		}
+		if err := trimmed.WriteJSON(&b, after); err != nil {
+			return err
+		}
+		if !bytes.Equal(a.Bytes(), b.Bytes()) {
+			return geom.ErrUnrepresentable
+		}
+	}
+	type relationshipEdit struct {
+		local geom.Affine
+		name  string
+	}
+	edits := map[int64]relationshipEdit{}
+	renamed := map[int64]bool{}
+	for key, before := range baseline.Nodes {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		after, ok := s.Nodes[key]
+		if !ok || after.Parent != before.Parent || after.Asset != before.Asset {
+			return geom.ErrUnrepresentable
+		}
+		if before.Parent == "" {
+			if after.Transform != geom.Identity() || after.Name != before.Name {
+				return geom.ErrUnrepresentable
+			}
+			continue
+		}
+		label := baseline.Labels["source-node:"+key]
+		id := label.Attributes["step.source.nauo"].Integer
+		if id <= 0 {
+			return geom.ErrUnrepresentable
+		}
+		v := relationshipEdit{local: after.Transform, name: after.Name}
+		if prev, seen := edits[id]; seen && prev != v {
+			return fmt.Errorf("document: inconsistent changes to shared STEP occurrence %d: %w", id, geom.ErrUnrepresentable)
+		}
+		edits[id] = v
+		if after.Name != before.Name {
+			renamed[id] = true
+		}
+	}
+	var changes []step.SphericalHierarchyOccurrenceEdit
+	for _, rel := range m.Assembly.Occurrences {
+		edit, ok := edits[rel.ID]
+		if !ok {
+			return geom.ErrUnrepresentable
+		}
+		if !renamed[rel.ID] {
+			edit.name = rel.Name
+		} else if edit.name == "" {
+			// An empty source label is displayed as the product name on import.
+			return geom.ErrUnrepresentable
+		}
+		if edit.local != rel.Transform || edit.name != rel.Name {
+			changes = append(changes, step.SphericalHierarchyOccurrenceEdit{NAUOID: rel.ID, Name: edit.name, Transform: edit.local})
+		}
+	}
+	return step.WriteIndependentSphericalHierarchyEdits(ctx, out, m.Assembly.Source, changes, limits.Geometry, tolerance)
+}
 
 // ReadSphericalHierarchySTEP materializes an independently proved signed-axis
 // STEP hierarchy as editable document occurrences with shared native assets.

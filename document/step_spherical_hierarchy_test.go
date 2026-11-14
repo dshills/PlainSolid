@@ -3,9 +3,14 @@ package document
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"math"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -105,6 +110,7 @@ func TestSphericalHierarchyDocument(t *testing.T) {
 	if len(sphereNodes) != 2 {
 		t.Fatal(sphereNodes)
 	}
+	sort.Strings(sphereNodes)
 	x, y := sphereNodes[0], sphereNodes[1]
 	beforeX, e := state0.WorldTransform(x)
 	if e != nil {
@@ -117,6 +123,7 @@ func TestSphericalHierarchyDocument(t *testing.T) {
 	tx := d.Begin()
 	n := tx.State.Nodes[x]
 	n.Transform[0][3] += 1
+	n.Name = "moved sphere's placement"
 	tx.State.Nodes[x] = n
 	if e = tx.Commit(); e != nil {
 		t.Fatal(e)
@@ -132,6 +139,79 @@ func TestSphericalHierarchyDocument(t *testing.T) {
 	}
 	if changedX == beforeX || changedY != beforeY || changed.Nodes[x].Asset != changed.Nodes[y].Asset {
 		t.Fatal("editing one occurrence changed a shared product or sibling placement")
+	}
+	var exported bytes.Buffer
+	if e = changed.WriteSphericalHierarchySTEP(ctx, &exported, bytes.NewReader(raw), STEPAssemblyOptions{}, 1e-9); e != nil {
+		t.Fatal("edited analytic STEP", e)
+	}
+	xp, e := step.ReadIndependentSphericalHierarchy(ctx, bytes.NewReader(exported.Bytes()), step.Limits{}, 1e-9)
+	if e != nil || len(xp.Products) != 4 || len(xp.Instances) != 7 {
+		t.Fatal("exported product structure", xp, e)
+	}
+	if !reflect.DeepEqual(proof.Assembly.Products, xp.Assembly.Products) || !reflect.DeepEqual(proof.Assembly.Source.Order, xp.Assembly.Source.Order) {
+		t.Fatal("an exclusive occurrence edit changed its original entity IDs")
+	}
+	for id, p := range proof.Products {
+		q := xp.Products[id]
+		if !reflect.DeepEqual(p.Source, q.Source) {
+			t.Fatal("editing a use changed the original local body graph", id)
+		}
+	}
+	xdoc, e := ReadSphericalHierarchySTEP(ctx, bytes.NewReader(exported.Bytes()), STEPAssemblyOptions{}, 1e-9, 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	xstate, _ := xdoc.Snapshot()
+	if !reflect.DeepEqual(xstate.Nodes, changed.Nodes) {
+		t.Fatal("reimport did not preserve the edited name and pose")
+	}
+	want := map[geom.Affine]bool{changedX: true, changedY: true}
+	for _, v := range xp.Instances {
+		if xp.Products[v.ProductID].Sphere != nil {
+			if !want[v.Transform] {
+				t.Fatal("edited STEP changed the exact sphere transform", v)
+			}
+			delete(want, v.Transform)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatal("edited STEP omitted a sphere", want)
+	}
+	if bin := os.Getenv("PLAINSOLID_OCCT_INDEPENDENT_TORUS_ASSEMBLY"); bin != "" {
+		path := filepath.Join(t.TempDir(), "edited-hierarchy.step")
+		if e := os.WriteFile(path, exported.Bytes(), 0600); e != nil {
+			t.Fatal(e)
+		}
+		data, e := exec.Command(bin, "read", path).CombinedOutput()
+		at := bytes.LastIndexByte(data, '{')
+		var got struct {
+			Volume                  float64
+			Solids, Faces, EdgeUses int
+			Bounds                  [6]float64
+		}
+		if e != nil || at < 0 || json.Unmarshal(data[at:], &got) != nil {
+			t.Fatalf("OCCT readback: %v %s", e, data)
+		}
+		if got.Solids != 7 || got.Faces != 22 || got.EdgeUses != 88 || math.Abs(got.Volume-(24+12*math.Pi*math.Pi+(24+64./3)*math.Pi)) > 1e-7 {
+			t.Fatal("OCCT topology and volume after moving the sphere", got)
+		}
+		for i, v := range [6]float64{-20, -20, -2, 30, 30, 15} {
+			if math.Abs(got.Bounds[i]-v) > 2e-7 {
+				t.Fatal("OCCT bounds after moving the sphere", got.Bounds)
+			}
+		}
+	}
+	stale := d.Begin().State
+	for key, node := range stale.Nodes {
+		if node.Asset != "" && stale.Labels["source:"+node.Asset].Attributes["step.material.family"].Text == "torus" {
+			node.Transform[1][3] += 1
+			stale.Nodes[key] = node
+			break
+		}
+	}
+	var reject bytes.Buffer
+	if e = stale.WriteSphericalHierarchySTEP(ctx, &reject, bytes.NewReader(raw), STEPAssemblyOptions{}, 1e-9); !errors.Is(e, geom.ErrUnrepresentable) || reject.Len() != 0 {
+		t.Fatal("a single expansion of one shared relationship cannot be exported", e, reject.Len())
 	}
 	if e = d.Undo(); e != nil {
 		t.Fatal(e)

@@ -52,6 +52,14 @@ both sphere instances share the same local asset. STEP and source-bound native
 imports produce the same document nodes and provenance labels. Reopening the
 editable document is byte stable, and moving one sphere leaves the other
 unchanged; Undo restores the original path placement.
+Placement and name edits now re-export against the original STEP graph.
+The moved sphere retains its product, local body and relationship numbers;
+the independent OCCT readback sees seven solids, 22 faces and 88 oriented
+edge uses, unchanged volume, and the expected one-unit shift in the left
+extent. Editing an original shared torus relationship moves both expanded
+paths. Its shared reference datum remains untouched and the writer adds
+one private target frame. A single inconsistent edit to one path of that
+relationship fails without writing any exchange data.
 
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
