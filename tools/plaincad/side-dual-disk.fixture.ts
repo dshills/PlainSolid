@@ -4,6 +4,7 @@ import { createEmptyDocument, createExtrudeFeature, upsertFeature, upsertSketch 
 import { addCircleAt, addCornerRectangle, createXySketch } from "../src/cad/sketch/SketchModel";
 import { solveSketch } from "../src/cad/sketch/SketchSolver";
 import { detectProfiles } from "../src/cad/sketch/profileDetection";
+import type { ViewerSnapshot } from "../src/viewer/viewerDiagnostics";
 import { assertAiAcceptanceViewer, stlSignedVolume } from "./aiAcceptanceHelpers";
 import { generatePublicStep, observeStepProofs, stepTranscripts } from "./stepExportHelpers";
 import { openStepImport, stepCommand } from "./stepImportAcceptance";
@@ -26,6 +27,31 @@ function fixture(depth: number) {
   }
   return { document, bodyId: `body:${stock.id}` };
 }
+
+test("side opening close-up: refined display leaves the accepted pick geometry intact", async ({ page }) => {
+  await page.goto("/");
+  const { document } = fixture(3);
+  expect(await stepCommand(page, { command: "file.openProject", arguments: { file: { name: "pocket-closeup.pcaddoc", text: JSON.stringify(document) } } })).toMatchObject({ ok: true });
+  const accepted = await rebuilt(page);
+  await assertAiAcceptanceViewer(page, 1);
+  const view = () => page.evaluate<ViewerSnapshot>(async () => {
+    const path = "/src/viewer/viewerDiagnostics.ts";
+    return (await import(path)).inspectViewer();
+  });
+  const before = await view();
+  await page.getByLabel("3D modeling canvas", { exact: true }).hover();
+  await page.mouse.wheel(0, -1300);
+  await expect.poll(async () => (await view()).displayDetail?.status, { timeout: 25000 }).toBe("ready");
+  await expect.poll(async () => {
+    const frame = await view();
+    return frame.performance?.triangles === frame.displayDetail?.triangles;
+  }).toBe(true);
+  const detail = await view();
+  expect(detail.displayDetail!.triangles).toBeGreaterThan(before.meshes[0].indices.length / 3);
+  expect(detail.meshes[0].geometryId).toBe(before.meshes[0].geometryId);
+  expect(detail.meshes[0].positions).toEqual(before.meshes[0].positions);
+  expect((await rebuilt(page)).rebuild.bodies).toEqual(accepted.rebuild.bodies);
+});
 
 interface Snapshot {
   session: number;
