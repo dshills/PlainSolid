@@ -38,6 +38,7 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 			Difference bool
 			Union      bool
 			Axis       bool
+			Volume     float64
 			Sign       int
 			Parameters []float64
 		}
@@ -72,6 +73,15 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		s, e := geom.NewTorusCylinderMaterial(5, 2, 6, -3, 4, op)
 		if e != nil {
 			t.Fatal(e)
+		}
+		volume, err := s.BoundVolume(ctx, geom.TorusCylinderVolumeOptions{VolumeTolerance: r(1, 100)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		vlo, _ := volume.Lower.Float64()
+		vhi, _ := volume.Upper.Float64()
+		if math.IsNaN(ref.Volume) || ref.Volume < vlo-1e-6 || ref.Volume > vhi+1e-6 {
+			t.Fatal("independent volume", ref.Volume, vlo, vhi)
 		}
 		direction := [3]*big.Rat{r(int64(ref.Sign), 1), r(0, 1), r(int64(ref.Sign), 10)}
 		if ref.Axis {

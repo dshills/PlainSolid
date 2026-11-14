@@ -29,17 +29,37 @@ c++ -std=c++17 -O2 \
  -L/tmp/plainsolid-occt-build/mac64/clang/lib \
  -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
  tools/occtref/torus_cylinder_material.cxx \
- -o /tmp/plainsolid-torus-cylinder-union-oracle \
+ -o /tmp/plainsolid-torus-cylinder-volume-oracle \
  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
  -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-union-oracle \
+PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-volume-oracle \
  GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./internal/occtcheck \
- -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestOCCTTorusCylinderMaterial)$' -count=1
+ -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestTorusCylinderVolume|TestOCCTTorusCylinderMaterial)$' -count=1
 ```
 
 Qualified executable SHA-256:
-`6b3f570beac7117e075c15360a7683f7855f46df1b301d7cff1dc3713594590b`.
+`1e6d2184588b8582a433681c0a2bcea367485ae2e929316d9d2688928b6b0876`.
 No executable or generated reference data is committed. This milestone does
 not add native torus/cylinder Boolean assembly, arbitrary caps, tangency source
 regimes. The exposed original torus/wall/cap supports are distinguished even
 where a line lies continuously on their cylindrical boundary.
+
+
+## Certified volume comparison
+
+OCCT independently integrates actual Boolean mass with BRepGProp. The Go
+comparator requires it inside the certified rational volume interval (requested
+width 0.01), with an additional 1e-6 finite-precision comparison allowance.
+This is not an exactness claim for OCCT's numeric mass.
+
+The kernel integrates cylindrical radial sections, not OCCT data. Writing
+`a=c-R`, common volume is
+`4*pi*(R*integral[-r,a]sqrt(r²-x²) dx - (r²-a²)^(3/2)/3)`.
+Concavity proves trapezoid lower and midpoint upper integral bounds even at
+the singular endpoint. Each sqrt is outward rational; pi is bounded by Machin's
+identity using alternating arctangent remainders. All levels share one arithmetic
+ledger. Difference and Union use rigorous interval subtraction from the full
+torus and finite cylinder volumes. No surface-area certificate is claimed.
+For R5/r2/c6, width0.1 uses256 cells; width0.01 uses1024. Independent closed
+antiderivative numeric checks include c=5 and c=6, all operations. MaxCells,
+precision, work and cancellation failures return a zero report.
