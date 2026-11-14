@@ -243,6 +243,33 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	if math.Abs(mv-(697./960-3*math.Sqrt(3)/640)) > .025 {
 		t.Fatal("independent display material volume", mv)
 	}
+	fiberModel, e := restored.PrepareVerticalMaterial(ctx, section, opts)
+	if e != nil {
+		t.Fatal("vertical material proof", e)
+	}
+	fiber, e := fiberModel.VerticalFiber(ctx, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(7, 4)})
+	if e != nil || !fiber.Found || fiber.BoundaryOnly || fiber.Heights[0].Cmp(big.NewRat(1, 2)) != 0 ||
+		fiber.Heights[1].Cmp(big.NewRat(35, 64)) != 0 {
+		t.Fatal("exact vertical interval between both original caps", fiber, e)
+	}
+	eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	for _, side := range []int64{-1, 0, 1} {
+		p := [3]*big.Rat{big.NewRat(1, 2), big.NewRat(7, 4),
+			new(big.Rat).Add(big.NewRat(35, 64), new(big.Rat).Mul(eps, big.NewRat(side, 1)))}
+		got, e := fiberModel.ClassifyRational(ctx, p)
+		want := map[int64]parametric.Location{-1: parametric.Inside, 0: parametric.Boundary, 1: parametric.Outside}[side]
+		if e != nil || got != want {
+			t.Fatal("exact sub-ULP vertical membership", side, got, want, e)
+		}
+	}
+	seam, e := fiberModel.VerticalFiber(ctx, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(11, 8)})
+	if e != nil || !seam.Found || !seam.BoundaryOnly || seam.Heights[0].Cmp(seam.Heights[1]) != 0 {
+		t.Fatal("closed tip lies on both caps", seam, e)
+	}
+	void, e := fiberModel.VerticalFiber(ctx, [2]*big.Rat{big.NewRat(3, 2), big.NewRat(7, 4)})
+	if e != nil || void.Found {
+		t.Fatal("through-void projection has no material fiber", void, e)
+	}
 	for _, probe := range []struct {
 		p    geom.Vec3
 		want parametric.Location
