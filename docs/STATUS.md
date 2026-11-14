@@ -634,7 +634,10 @@ through subtraction, with original wall and cap ancestry. Circular wrapped
 toroids have exact quartic line queries and Euclidean normal offsets.
 Circular frustum lateral normal offsets are exact when the normal scale is
 rational; the trimmed variant caps the shifted rims. Selected circular
-cylinder end rims have exact toroidal rolling blends. Complete circular
+cylinder end rims have exact toroidal rolling blends. An ascending conical
+lower rim also accepts a rolling ball when the cone normal and torus trim
+parameter can be represented exactly. The original cone and cap support
+ancestry, full-circle tangency and native reload are verified. Complete circular
 cylinder offsets move both caps and the lateral wall in the Euclidean
 metric; supported existing blends remain concentric, and outward offsets
 round sharp rims. Scene picking uses exact capped frustum, circular

@@ -35,6 +35,33 @@ type RationalGraphShellRegions struct {
 	material       []RationalGraphShellRegion
 }
 
+// RationalGraphSectionPiece identifies an exact retained interval on an
+// original section piece. Generated edges have Source.Branch == -1. Its
+// Homogeneous controls are expressed on the section's ProjectionAxes.
+type RationalGraphSectionPiece struct {
+	Source      RationalGraphCapEdgeSource
+	Parameter   [2]*big.Rat
+	Homogeneous [][3]*big.Rat
+}
+
+// SectionWires returns original owners, retained parameter intervals and
+// exact projected controls in boundary order. Every rational is caller-owned.
+func (r *RationalGraphShellRegions) SectionWires() [][]RationalGraphSectionPiece {
+	if r == nil || r.certificate == nil {
+		return nil
+	}
+	out := make([][]RationalGraphSectionPiece, len(r.wires))
+	for i, wire := range r.wires {
+		out[i] = make([]RationalGraphSectionPiece, len(wire))
+		for j, p := range wire {
+			out[i][j] = RationalGraphSectionPiece{p.source, [2]*big.Rat{
+				graphCapOriginalParameter(p.span, new(big.Rat)), graphCapOriginalParameter(p.span, big.NewRat(1, 1)),
+			}, copyHomogeneousUV(p.control)}
+		}
+	}
+	return out
+}
+
 // RationalGraphSectionArea reports exact projected area bounds and the squared
 // model-to-projection area scale. True area is projected area times the
 // positive square root of ModelScaleSquared.
