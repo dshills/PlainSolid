@@ -21,6 +21,7 @@ type RationalMappedPlanarDocument struct {
 	source    []byte
 	paths     [][2]step.MappedSourceStep
 	deepPaths [][3]step.MappedSourceStep
+	dagPaths  [][]step.MappedSourceStep
 }
 
 // RationalWorldBounds contains independently owned exact extrema in model units.
@@ -140,7 +141,7 @@ func (d *RationalMappedPlanarDocument) ExactWorldBounds() (b RationalWorldBounds
 // vertex is represented without rounding. It preserves original edge/face order.
 // Failure returns no partial material. Shared original local assets are unchanged.
 func (d *RationalMappedPlanarDocument) BakeOccurrence(itemID int64) (step.Body, error) {
-	if d == nil || len(d.paths) > 0 || len(d.deepPaths) > 0 {
+	if d == nil || len(d.paths) > 0 || len(d.deepPaths) > 0 || len(d.dagPaths) > 0 {
 		return step.Body{}, rationalMappedDocumentError()
 	}
 	for _, u := range d.model.Occurrences {
@@ -170,6 +171,13 @@ func (d *RationalMappedPlanarDocument) BakeOccurrence(itemID int64) (step.Body, 
 func (d *RationalMappedPlanarDocument) WriteSTEP(w io.Writer, l step.Limits) error {
 	if d == nil || w == nil {
 		return rationalMappedDocumentError()
+	}
+	if len(d.dagPaths) > 0 {
+		a, e := step.ReadDAGRationalMappedPlanarMaterials(bytes.NewReader(d.source), l)
+		if e != nil {
+			return e
+		}
+		return step.WriteDAGRationalMappedPlanarSource(w, a.Source, l)
 	}
 	if len(d.deepPaths) > 0 {
 		a, e := step.ReadTwoLevelRationalMappedPlanarMaterials(bytes.NewReader(d.source), l)
@@ -204,6 +212,9 @@ func (d *RationalMappedPlanarDocument) Write(w io.Writer) error {
 	}
 	if len(d.deepPaths) > 0 {
 		format = "plainsolid-two-level-rational-mapped-planar"
+	}
+	if len(d.dagPaths) > 0 {
+		format = "plainsolid-dag-rational-mapped-planar"
 	}
 	raw, e := json.Marshal(rationalMappedEnvelope{Format: format, Version: 1, Source: string(d.source), Local: d.native})
 	if e != nil {
@@ -251,6 +262,9 @@ func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits
 	if levels == 2 {
 		format = "plainsolid-two-level-rational-mapped-planar"
 	}
+	if levels == 3 {
+		format = "plainsolid-dag-rational-mapped-planar"
+	}
 	if env.Format != format || env.Version != 1 || len(env.Local) == 0 {
 		return nil, rationalMappedDocumentError()
 	}
@@ -264,6 +278,9 @@ func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits
 	}
 	if levels == 2 {
 		read = ReadTwoLevelRationalMappedPlanarSTEP
+	}
+	if levels == 3 {
+		read = ReadDAGRationalMappedPlanarSTEP
 	}
 	fresh, e := read(bytes.NewReader([]byte(env.Source)), l)
 	if e != nil {

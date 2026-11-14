@@ -41,9 +41,9 @@ func mappedTerminatingDecimal(q *big.Rat) (string, error) {
 // once. Local geometry, names, units and membership are preserved; no lossy
 // rational-to-binary conversion is used. Output is staged and fully revalidated.
 func WriteRationalMappedPlanarPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits) error {
-	return writeRationalMappedPlacements(w, source, placements, l, false)
+	return writeRationalMappedPlacements(w, source, placements, l, mappedFlatEdit)
 }
-func writeRationalMappedPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits, nested bool) error {
+func writeRationalMappedPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits, mode mappedPlacementMode) error {
 	if w == nil || source == nil || len(placements) > 16 {
 		return mappedPlanarFailure()
 	}
@@ -53,7 +53,32 @@ func writeRationalMappedPlacements(w io.Writer, source *File, placements []Ratio
 	}
 	var f *File
 	known := map[int64]bool{}
-	if nested {
+	if mode >= mappedDAGRootEdit {
+		a, err := ReadDAGRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+		if err != nil {
+			return err
+		}
+		f = a.Source
+		roots, internal := map[int64]bool{}, map[int64]bool{}
+		for _, u := range a.Occurrences {
+			for i, p := range u.Path {
+				if i == 0 {
+					roots[p.ItemID] = true
+				} else {
+					internal[p.ItemID] = true
+				}
+			}
+		}
+		if mode == mappedDAGRootEdit {
+			for id := range roots {
+				if !internal[id] {
+					known[id] = true
+				}
+			}
+		} else {
+			known = internal
+		}
+	} else if mode == mappedNestedEdit {
 		a, err := ReadNestedRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
 		if err != nil {
 			return err
@@ -72,7 +97,7 @@ func writeRationalMappedPlacements(w io.Writer, source *File, placements []Ratio
 			known[u.ItemID] = true
 		}
 	}
-	if len(placements) != len(known) {
+	if (mode < mappedDAGRootEdit && len(placements) != len(known)) || (mode >= mappedDAGRootEdit && len(placements) == 0) {
 		return mappedPlanarFailure()
 	}
 	var next, rootID int64
@@ -164,7 +189,9 @@ func writeRationalMappedPlacements(w io.Writer, source *File, placements []Ratio
 	if e != nil {
 		return e
 	}
-	if nested {
+	if mode >= mappedDAGRootEdit {
+		_, e = ReadDAGRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
+	} else if mode == mappedNestedEdit {
 		_, e = ReadNestedRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
 	} else {
 		_, e = ReadRationalMappedPlanarMaterials(bytes.NewReader(raw), l)
@@ -197,3 +224,12 @@ func WriteRationalMappedPlanarSource(w io.Writer, source *File, l Limits) error 
 	}
 	return e
 }
+
+type mappedPlacementMode uint8
+
+const (
+	mappedFlatEdit mappedPlacementMode = iota
+	mappedNestedEdit
+	mappedDAGRootEdit
+	mappedDAGSharedEdit
+)

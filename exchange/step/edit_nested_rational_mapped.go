@@ -8,5 +8,5 @@ import "io"
 // stable; returned source ancestry names the new target ID. The input source is
 // never mutated and may be written separately as the original evidence.
 func WriteNestedRationalMappedOuterPlacements(w io.Writer, source *File, placements []RationalMappedPlacement, l Limits) error {
-	return writeRationalMappedPlacements(w, source, placements, l, true)
+	return writeRationalMappedPlacements(w, source, placements, l, mappedNestedEdit)
 }
