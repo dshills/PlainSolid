@@ -18,8 +18,9 @@ Exact IGES exchange covers full and directed quarter ellipses, elliptical
 disk and concentric annulus faces, and a strictly authenticated model-only
 elliptical prism topology graph (`a33b4a4`). Pinned OCCT accepts the
 authored prism graph; the independently emitted vendor spline file
-remains outside the exact input domain. Native solid sewing is a separate
-requirement. All five planar mixed Boolean fragments now have certified
+remains outside the exact input domain. The supported exact graph
+can be sewn into a native solid and revalidated on reload. All five planar
+mixed Boolean fragments now have certified
 fills on the shared boundary network (`7e3c670`); the three original
 nonlinear roof fragments are still open. Exact stock line queries also
 resolve isolated shared wall and cap events without duplicating or losing

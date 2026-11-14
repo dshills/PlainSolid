@@ -21,6 +21,7 @@ type EllipticalPrismDescriptor struct {
 // Three edges: upper complete rim, upward seam, lower complete rim. Side uses
 // (upper−,seam−,lower+,seam+); upper cap+, lower cap reversed by shell ownership.
 type EllipticalPrismTopology struct {
+	source                                                             []byte
 	Descriptor                                                         EllipticalPrismDescriptor
 	LengthUnit                                                         float64
 	SourceSolidID, SourceShellID, SourceVertexListID, SourceEdgeListID int
@@ -160,7 +161,7 @@ func ReadEllipticalPrismTopology(ctx context.Context, r io.Reader, l Limits) (El
 	if e = ctx.Err(); e != nil {
 		return EllipticalPrismTopology{}, e
 	}
-	return EllipticalPrismTopology{Descriptor: d, LengthUnit: doc.unit, SourceSolidID: 39, SourceShellID: 37, SourceVertexListID: 21, SourceEdgeListID: 23, SourceFaceIDs: [3]int{31, 33, 35}, SourceSurfaceIDs: [3]int{15, 17, 19}, Parameters: values, Metadata: metadata}, nil
+	return EllipticalPrismTopology{source: append([]byte(nil), doc.bytes...), Descriptor: d, LengthUnit: doc.unit, SourceSolidID: 39, SourceShellID: 37, SourceVertexListID: 21, SourceEdgeListID: 23, SourceFaceIDs: [3]int{31, 33, 35}, SourceSurfaceIDs: [3]int{15, 17, 19}, Parameters: values, Metadata: metadata}, nil
 }
 func WriteEllipticalPrismTopology(ctx context.Context, w io.Writer, d EllipticalPrismDescriptor, unit float64) error {
 	if ctx == nil || w == nil {
