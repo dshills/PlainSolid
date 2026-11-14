@@ -59,7 +59,7 @@ func ellipseReferenceSlots(r topologyRecord) ([]int, error) {
 // ReadReindexedEllipticalPrismMaterial accepts semantic record permutations of
 // the four bounded filled/hollow/local/placed dialects. It preserves geometric
 // tokens, proves a bijection of owned records, and invokes unchanged exact
-// material readers. It does not reorder face, coedge or edge-list entries.
+// material readers. It accepts uniquely classified shell face order; loop order and vertex ordinals remain strict.
 func ReadReindexedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Limits, tol float64) (ReindexedEllipticalPrismMaterial, error) {
 	bad := func() (ReindexedEllipticalPrismMaterial, error) {
 		return ReindexedEllipticalPrismMaterial{}, fmt.Errorf("iges: unsupported reindexed ellipse material")
@@ -140,6 +140,21 @@ func ReadReindexedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Li
 		}
 	}
 	if sourceRoot == 0 {
+		return bad()
+	}
+	// Classify shell face roles from support type and material orientation,
+	// never from record IDs. Geometry and incidence are independently proved
+	// by the unchanged typed reader after this structural normalization.
+	for id, rec := range actual {
+		if rec.kind == 514 {
+			normalized, err := ellipseShellFaceOrder(rec, actual, annular)
+			if err != nil {
+				return bad()
+			}
+			actual[id] = normalized
+		}
+	}
+	if err := ellipseEdgeListOrder(actual, annular); err != nil {
 		return bad()
 	}
 	forward, reverse := map[int]int{}, map[int]int{}
