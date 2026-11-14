@@ -1976,3 +1976,9 @@ bands meet across the whole rectangle. It keeps the higher original roof,
 lower original floor, and the two original contributors to each merged
 wall. The opt-in dispatcher falls back for unsupported geometry. Height
 order changes and open inter-band gaps remain outside this constructor.
+
+`CertifyQuarticGramGraphPointContact` also certifies a single isolated
+order-four contact of exact graphs when the complete homogeneous height
+difference has a positive definite rational Gram form. Odd mixed terms
+are accepted; the proposed witness and Gram entry are verified on the
+original charts. This proof does not yet assemble a Boolean from the contact.

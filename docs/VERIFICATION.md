@@ -5533,3 +5533,13 @@ other floor tangentially on an interior line, which vanishes from the
 regularized output. Crossing order, footprint mismatch, a real inter-band
 gap and insufficient arithmetic return no topology. The combined live
 Common/Cut/Fuse race suite passed in 7.492 s.
+
+## Isolated quartic graph contact with odd mixed terms (2026-11-14)
+
+The represented spline controls are dyadic but the original contact
+parameters are exactly `(1/3, 2/5)`. Independent sums of fourth powers
+verify the polynomial and Gram minors. Exact tangent jets and both height
+orientations agree, including a positive rational weight variant. Extra
+terms, saddle and semidefinite forms, a folded projection, shifted witness,
+and insufficient allowance fail. The integrated focused race including
+the existing coupled quartic regression passed in 1.899 s. Vet passed.
