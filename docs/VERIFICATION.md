@@ -6051,3 +6051,11 @@ The signed asymmetric fixture checks independent factors 43/6, 37/3,
 integrals over the original profile check each horizontal component.
 Native reload, deterministic refinement and atomic limit failures pass.
 The integrated native and mass race passed in 20.167 s.
+
+### Native cap contribution qualification
+
+All three Boolean operations check exact material contributions and original
+boundary parameters separately. Tests cover disconnected holed Difference,
+oblique area scale, independently reordered source rings, output mutation,
+cancellation and exact work limits. The integrated native prism race passed
+in 2.973 s.

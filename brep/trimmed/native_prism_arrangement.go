@@ -26,11 +26,12 @@ type NativePrismWallUse struct {
 	LowerParameter, UpperParameter                                           [2]*big.Rat
 }
 type NativePrismBoolean struct {
-	material *AffineArrangementPrism
-	owners   [2]brep.Solid
-	axis     int
-	caps     [2][2]int
-	uses     []NativePrismWallUse
+	material  *AffineArrangementPrism
+	owners    [2]brep.Solid
+	axis      int
+	operation intersect.AffineRingOperation
+	caps      [2][2]int
+	uses      []NativePrismWallUse
 }
 
 func (s *NativePrismBoolean) Material() *AffineArrangementPrism {
@@ -74,8 +75,8 @@ func (s *NativePrismBoolean) WallUses() []NativePrismWallUse {
 }
 
 type nativePrismProfileSide struct {
-	wall, lower, upper         int
-	lowerReverse, upperReverse bool
+	wall, lower, upper, lowerRing int
+	lowerReverse, upperReverse    bool
 }
 type nativePrismProfile struct {
 	trim               intersect.AffinePolygonTrim
@@ -216,7 +217,7 @@ func authenticateNativePrism(ctx context.Context, s brep.Solid, axis, maxVertice
 		return out, geom.ErrDomain
 	}
 	type bottomSide struct {
-		edge       int
+		edge, ring int
 		start, end string
 	}
 	bottom := map[string]bottomSide{}
@@ -235,7 +236,7 @@ func authenticateNativePrism(ctx context.Context, s brep.Solid, axis, maxVertice
 			if _, ok := bottom[k]; ok {
 				return out, geom.ErrDomain
 			}
-			bottom[k] = bottomSide{u.Edge, a, b}
+			bottom[k] = bottomSide{u.Edge, ri, a, b}
 		}
 	}
 	wallSeen := map[int]bool{}
@@ -293,7 +294,7 @@ func authenticateNativePrism(ctx context.Context, s brep.Solid, axis, maxVertice
 				return out, geom.ErrDomain
 			}
 			wallSeen[wall] = true
-			sides = append(sides, nativePrismProfileSide{wall: wall, lower: bs.edge, upper: topEdge, lowerReverse: uvkey(edges[bs.edge].Start) != a, upperReverse: uvkey(edges[topEdge].Start) != a})
+			sides = append(sides, nativePrismProfileSide{wall: wall, lower: bs.edge, upper: topEdge, lowerRing: bs.ring, lowerReverse: uvkey(edges[bs.edge].Start) != a, upperReverse: uvkey(edges[topEdge].Start) != a})
 			uv := [2]*big.Rat{}
 			for j, ax := range axes {
 				x := nativePrismCoordinate(vertices[id], ax)
@@ -404,7 +405,7 @@ func CombineMatchingNativePrisms(ctx context.Context, a, c brep.Solid, operation
 	if e != nil {
 		return nil, e
 	}
-	out := &NativePrismBoolean{material: material, owners: [2]brep.Solid{a, c}, axis: axis, caps: [2][2]int{{profiles[0].lowerCap, profiles[0].upperCap}, {profiles[1].lowerCap, profiles[1].upperCap}}}
+	out := &NativePrismBoolean{material: material, owners: [2]brep.Solid{a, c}, axis: axis, operation: operation, caps: [2][2]int{{profiles[0].lowerCap, profiles[0].upperCap}, {profiles[1].lowerCap, profiles[1].upperCap}}}
 	for _, wall := range material.Walls() {
 		for _, use := range wall.Sources {
 			profile := profiles[use.Owner]

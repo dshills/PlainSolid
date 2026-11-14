@@ -2244,3 +2244,12 @@ The exact independent station scale factors transfer one original weighted
 profile enclosure to volume and first moments. Axial centroid is exact.
 Horizontal centroid intervals retain the uncertainty from the original
 profile integration and carry the original source topology.
+
+### Mixed-owner prism cap ancestry
+
+`CapContributions` partitions native prism caps into exact A-only, B-only
+and shared regions with holes. It identifies the original controlling cap
+faces, both original ring orders and the exact stored parameters of boundary
+edges. An oblique prism retains exact original model coordinates and an
+exact squared area scale. The region areas are checked against each output
+component's cap area.
