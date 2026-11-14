@@ -381,3 +381,47 @@ its bounded per-pass limits. The event limit covers premerge contacts and output
 spans. Any uncertain source, root order, ownership or budget failure returns an
 empty result. Nonexact parameters are isolating intervals; no exact irrational
 parameter identity is invented.
+
+## Through-bore exposed boundary area
+
+`BoundWrappedAnisotropicStationBoreArea` returns one enclosure per original
+outward or inward wall and per actual annular cap. Wall orientation does not
+change its positive area. Each family uses its independent original station
+cuts, while all cells share the same certified normalized profile subdivision.
+Caps use the exact positive difference of terminal scale products times the
+common profile-area interval. Removed openings and artificial station disks
+contribute zero.
+
+Both wall families, cap arithmetic, outward square-root/dyadic rounding and
+refinement retries share one cumulative operation ledger. The final cell bound
+also covers both families together. The result's total is the exact sum of its
+per-face intervals and meets the requested total absolute width; source
+reauthentication retains its existing separately bounded passes. Quota or
+cancellation failure returns no partial source or measure result.
+
+## Original-boundary squared distance
+
+`BoundWrappedAnisotropicStationBoreDistanceRational` authenticates the source
+then searches only actual wall patches and exposed annular caps. A cap's exact
+orthogonal projection is accepted only in the annulus. For a projection inside
+the hole its nearest cap point lies on the inner rim; for one outside the outer
+profile it lies on the outer rim. The perpendicular height contribution is
+constant and strict nesting proves this rim choice. No filled cap disk or
+artificial internal station disk can supply an upper witness.
+
+Every face has conservative squared-distance bounds and an attained rational
+witness. The global result meets the requested squared-width tolerance, with
+one stable original owner of its upper witness. It does not claim that witness
+is the exact minimizer or enumerate all tied nearest owners. An exact height
+gap can exclude a wall from further search while leaving that face's individual
+interval wider. All upper-witness distances are recomputed exactly against the
+input point before acceptance.
+
+Surface/rim searches share cumulative cell and arithmetic budgets with result
+arithmetic and annular projection queries. Projection work additionally has its
+own cumulative point limit. Native source proof and at most two original rim
+extractions retain bounded source passes. Failures return no partial result.
+The independent noncircular void fixture uses weight3/4 and scales(1,1/2): its
+normalized homogeneous squared-radius residual is
+`(4w²−2)t²(1−t)² >= 0`, so the minor-axis wall foot independently proves squared
+distance1/4. The cap candidates correctly stay beyond squared distance1.

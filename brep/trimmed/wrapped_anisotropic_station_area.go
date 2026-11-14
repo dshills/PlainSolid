@@ -35,26 +35,10 @@ type WrappedAnisotropicStationAreaBounds struct {
 // contribution are rounded outward to a 96-bit dyadic grid before summation.
 func (s Solid) BoundWrappedAnisotropicStationArea(ctx context.Context, o WrappedAnisotropicStationAreaOptions) (WrappedAnisotropicStationAreaBounds, error) {
 	empty := WrappedAnisotropicStationAreaBounds{}
-	if o.AreaTolerance == nil {
-		o.AreaTolerance = big.NewRat(1, 100)
-	}
-	if o.MaxOperations == 0 {
-		o.MaxOperations = 8000000
-	}
-	if o.MaxCells == 0 {
-		o.MaxCells = 8192
-	}
-	if o.MaxDepth == 0 {
-		o.MaxDepth = 24
-	}
-	if o.MaxProfileSegments == 0 {
-		o.MaxProfileSegments = 1024
-	}
-	if o.MaxCoefficientBits == 0 {
-		o.MaxCoefficientBits = 16384
-	}
-	if ctx == nil || o.AreaTolerance.Sign() <= 0 || o.MaxOperations < 1 || o.MaxOperations > 64000000 || o.MaxCells < 1 || o.MaxCells > 65536 || o.MaxDepth < 1 || o.MaxDepth > 32 || o.MaxProfileSegments < 4 || o.MaxProfileSegments > 16384 || o.MaxCoefficientBits < 64 || o.MaxCoefficientBits > 65536 {
-		return empty, geom.ErrInvalid
+	var e error
+	o, e = normalizeAnisotropicStationAreaOptions(ctx, o)
+	if e != nil {
+		return empty, e
 	}
 	b := &stationMassBudget{ctx: ctx, limit: o.MaxOperations, bits: o.MaxCoefficientBits}
 	tolerance := b.check(o.AreaTolerance)
@@ -134,4 +118,29 @@ func (s Solid) BoundWrappedAnisotropicStationArea(ctx context.Context, o Wrapped
 		}
 		axial *= 2
 	}
+}
+
+func normalizeAnisotropicStationAreaOptions(ctx context.Context, o WrappedAnisotropicStationAreaOptions) (WrappedAnisotropicStationAreaOptions, error) {
+	if o.AreaTolerance == nil {
+		o.AreaTolerance = big.NewRat(1, 100)
+	}
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 8000000
+	}
+	if o.MaxCells == 0 {
+		o.MaxCells = 8192
+	}
+	if o.MaxDepth == 0 {
+		o.MaxDepth = 24
+	}
+	if o.MaxProfileSegments == 0 {
+		o.MaxProfileSegments = 1024
+	}
+	if o.MaxCoefficientBits == 0 {
+		o.MaxCoefficientBits = 16384
+	}
+	if ctx == nil || o.AreaTolerance.Sign() <= 0 || o.MaxOperations < 1 || o.MaxOperations > 64000000 || o.MaxCells < 1 || o.MaxCells > 65536 || o.MaxDepth < 1 || o.MaxDepth > 32 || o.MaxProfileSegments < 4 || o.MaxProfileSegments > 16384 || o.MaxCoefficientBits < 64 || o.MaxCoefficientBits > 65536 {
+		return o, geom.ErrInvalid
+	}
+	return o, nil
 }
