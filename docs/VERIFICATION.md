@@ -4662,3 +4662,13 @@ circle and arc divider cases. It used `db9c484` with current app archive
 `e65f07b`, after the analytic arc merge. The earlier frozen development suite
 still reports its own failures; these selected retests identify the repaired
 cases without altering that original report.
+
+### Exact triangular residual total degree
+
+`TestExactSexticTriangleTotalDegree` independently checks the exact squared
+Bernstein bounds 1 for `u^6+v^6` minus its affine interpolant, and `1/924^2` for
+`u^6*v^6` on the unit right triangle. The latter forces retention of actual total
+degree twelve despite degree-six storage on each axis. Exact accepted operation
+counts are 811 and 1284; one-operation deficits return no certificate. Existing
+rational quartic and knot-crossing residual tests continue to check independent
+exact evaluations and positive denominator handling.

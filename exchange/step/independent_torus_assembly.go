@@ -33,6 +33,13 @@ type IndependentTorusAssemblyModel struct {
 // exclusive local geometry, exact frame declarations, and complete local BReps.
 // Rounded angular pcurves, nested groups and other material families fail.
 func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, tol float64) (IndependentTorusAssembly, error) {
+	return readIndependentTorusAssembly(ctx, r, l, tol, false)
+}
+func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, tol float64, cylinder bool) (IndependentTorusAssembly, error) {
+	products := 3
+	if cylinder {
+		products = 4
+	}
 	bad := func() (IndependentTorusAssembly, error) {
 		return IndependentTorusAssembly{}, geom.ErrInvalid
 	}
@@ -54,7 +61,7 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if e != nil {
 		return IndependentTorusAssembly{}, e
 	}
-	if len(a.Products) != 3 || len(a.Roots) != 1 || len(a.Occurrences) < 3 || len(a.Occurrences) > 16 {
+	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < products || len(a.Occurrences) > 16 {
 		return bad()
 	}
 	f := a.Source
@@ -64,7 +71,7 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	roots := []int64{}
 	var prefix string
 	var havePrefix bool
-	nf, nv, nu, nt, np := 0, 0, 0, 0, 0
+	nf, nv, nu, nt, np, nc := 0, 0, 0, 0, 0, 0
 	for _, p := range a.Products {
 		if e = ctx.Err(); e != nil {
 			return IndependentTorusAssembly{}, e
@@ -123,12 +130,14 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 					view.Entities[id] = f.Entities[id]
 				}
 			}
-			m, e := readIndependentExactMaterial(ctx, view, l, tol, true, false, false, true)
+			m, e := readIndependentExactMaterial(ctx, view, l, tol, true, cylinder, false, true)
 			if e != nil {
-				return bad()
+				return IndependentTorusAssembly{}, fmt.Errorf("step: assembly product %d: %w", p.DefinitionID, e)
 			}
 			if m.Torus != nil {
 				nt++
+			} else if m.Cylinder != nil && cylinder {
+				nc++
 			} else if m.Planar != nil {
 				np++
 			} else {
@@ -182,7 +191,7 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 			}
 		}
 	}
-	if nt != 1 || np != 1 {
+	if nt != 1 || np != 1 || (cylinder && nc != 1) || (!cylinder && nc != 0) {
 		return bad()
 	}
 	uses := map[int64]int{}
@@ -272,7 +281,7 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 			}
 		}
 	}
-	if counts["APPLICATION_PROTOCOL_DEFINITION"] != 1 || counts["SHAPE_DEFINITION_REPRESENTATION"] != 3 || counts["CONTEXT_DEPENDENT_SHAPE_REPRESENTATION"] != len(a.Occurrences) {
+	if counts["APPLICATION_PROTOCOL_DEFINITION"] != 1 || counts["SHAPE_DEFINITION_REPRESENTATION"] != products || counts["CONTEXT_DEPENDENT_SHAPE_REPRESENTATION"] != len(a.Occurrences) {
 		return bad()
 	}
 	all, e := nauoClosure(f, roots, l.MaxDepth)
@@ -285,18 +294,25 @@ func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 // WriteIndependentTorusAssembly stages authenticated independent source bodies
 // into standard NAUO/CDSR products, then re-proves the complete result atomically.
 func WriteIndependentTorusAssembly(ctx context.Context, w io.Writer, m IndependentTorusAssemblyModel, l Limits, tol float64) error {
-	if ctx == nil || w == nil || len(m.Products) != 3 || len(m.Occurrences) > 16 {
+	return writeIndependentTorusAssembly(ctx, w, m, l, tol, false)
+}
+func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m IndependentTorusAssemblyModel, l Limits, tol float64, cylinder bool) error {
+	products := 3
+	if cylinder {
+		products = 4
+	}
+	if ctx == nil || w == nil || len(m.Products) != products || len(m.Occurrences) > 16 {
 		return geom.ErrInvalid
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
-	counts := make([]int, 3)
+	counts := make([]int, products)
 	for _, u := range m.Occurrences {
 		if !planarSplineRigid(u.Transform) {
 			return geom.ErrInvalid
 		}
 	}
-	sources := make([]*File, 3)
-	ids := make([]int64, 3)
+	sources := make([]*File, products)
+	ids := make([]int64, products)
 	for i, p := range m.Products {
 		graph.Products = append(graph.Products, AssemblyPart{ID: p.ID, Name: p.Name})
 		if p.Source == nil {
@@ -313,7 +329,7 @@ func WriteIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 		if e != nil {
 			return fmt.Errorf("stage %s: %w", p.ID, e)
 		}
-		if len(c.Members) != 1 || c.LengthUnit != m.LengthUnit || (c.Members[0].Torus == nil && c.Members[0].Planar == nil) {
+		if len(c.Members) != 1 || c.LengthUnit != m.LengthUnit || (c.Members[0].Torus == nil && c.Members[0].Planar == nil && !(cylinder && c.Members[0].Cylinder != nil)) {
 			return geom.ErrInvalid
 		}
 		sources[i] = c.Source
@@ -325,7 +341,7 @@ func WriteIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	if e != nil {
 		return e
 	}
-	if _, e = ReadIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder); e != nil {
 		return e
 	}
 	n, e := w.Write(b.Bytes())
@@ -355,6 +371,9 @@ func independentTorusAssemblyPose(b mappedRationalBasis) (geom.Affine, error) {
 // WriteIndependentTorusAssemblySource re-proves and re-emits an accepted source
 // graph without remapping its product, occurrence or local seam IDs.
 func WriteIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64) error {
+	return writeIndependentTorusAssemblySource(ctx, w, source, l, tol, false)
+}
+func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, cylinder bool) error {
 	if ctx == nil || w == nil || !independentNativeSourceBound(source, 4096) {
 		return geom.ErrInvalid
 	}
@@ -362,7 +381,7 @@ func WriteIndependentTorusAssemblySource(ctx context.Context, w io.Writer, sourc
 	if e != nil {
 		return e
 	}
-	if _, e = ReadIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

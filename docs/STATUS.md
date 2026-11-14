@@ -636,6 +636,13 @@ blobs verified. The [authored three-floor crossing](evidence/plaincad-reconciled
 produced identical STEP and watertight 588-triangle STL in both checkouts.
 Live OCCT independently confirmed the exported solid's volume, area, and
 centroid.
+The [Arc Extend and Circle Trim reconciliation](evidence/plaincad-reconciled-b88d0aa9-development-arc-circle-holes-step-2026-11-14.json)
+adds worktree revisions through `39a151c6` to review `b88d0aa9`. Native
+round trips and all seven original browser cases passed, with 841 app and
+2,065 kernel source blobs verified. The [authored quarter sector](evidence/plaincad-reconciled-b88d0aa9-supplemental-quarter-sector-step-2026-11-14.json)
+and [authored half disk](evidence/plaincad-reconciled-b88d0aa9-supplemental-semicircle-step-2026-11-14.json)
+produced byte-identical analytic STEP and watertight STL in both checkouts.
+Independent OCCT readback confirmed both solids' volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
@@ -1542,3 +1549,14 @@ surfaces must keep their geometry through the operation. Continue with:
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.
+
+### Exact triangular residual total degree
+
+Rational Bézier triangle error proofs now size their exact polynomial from the
+nonzero homogeneous coefficients, including the denominator times the affine
+display target. This avoids needless nominal tensor-degree elevation for sparse
+polynomial graphs while retaining every genuine mixed term. Original support
+charts, degree admission, positive-weight proof and arithmetic limits are
+unchanged. This is an image-distance calculation, not a surface embedding or
+volume certificate. Higher nominal degree and complete nested-region display
+qualification remain separate work.

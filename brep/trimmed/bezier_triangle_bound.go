@@ -145,8 +145,36 @@ func BoundRationalBezierTriangleDeviation(ctx context.Context, p *geom.SurfacePa
 	if !ok {
 		return out, geom.ErrConvergence
 	}
-	du, dv := len(c)-1, len(c[0])-1
-	n := du + dv + 1
+	// Exact homogeneous support, not the rectangular storage degree, controls
+	// the required total degree after affine UV composition. Include one
+	// extra degree only for W times the affine target. No nonzero term may
+	// be truncated by multiplyTrianglePower's finite triangular storage.
+	du, dv, n := 0, 0, 1
+	for i, row := range c {
+		for j, h := range row {
+			for axis, q := range h {
+				if e := budget.check(q); e != nil {
+					return out, e
+				}
+				if q.Sign() == 0 {
+					continue
+				}
+				if i > du {
+					du = i
+				}
+				if j > dv {
+					dv = j
+				}
+				degree := i + j
+				if axis == 3 {
+					degree++
+				}
+				if degree > n {
+					n = degree
+				}
+			}
+		}
+	}
 	powers := [2][]trianglePower{}
 	for axis, degree := range []int{du, dv} {
 		linear := makeTrianglePower(n)

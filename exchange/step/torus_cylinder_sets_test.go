@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"strconv"
 	"strings"
@@ -142,6 +143,19 @@ func TestOCCTTorusCylinderSTEPOriginalBoolean(t *testing.T) {
 				if e := WriteTorusCylinderSets(&buf, TorusCylinderModel{[]TorusCylinderBody{b}, .001, 1e-8}); e != nil {
 					t.Fatal(e)
 				}
+				imported, err := ReadTorusCylinderSet(bytes.NewReader(buf.Bytes()), Limits{}, 1e-8)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var reexport bytes.Buffer
+				if err = imported.WriteSTEP(&reexport); err != nil || !bytes.Equal(buf.Bytes(), reexport.Bytes()) {
+					t.Fatal("paired reexport", err)
+				}
+				native, err := imported.Solid().MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+				if err != nil {
+					t.Fatal(err)
+				}
+
 				path := filepath.Join(t.TempDir(), "shape.step")
 				if e := os.WriteFile(path, buf.Bytes(), 0600); e != nil {
 					t.Fatal(e)
@@ -176,6 +190,10 @@ func TestOCCTTorusCylinderSTEPOriginalBoolean(t *testing.T) {
 				if got.Solids != 1 || got.Shells != 1 || got.Faces != wantFaces || got.EdgeResidual > 1e-8 || math.Abs(got.Volume-got.ReferenceVolume) > 1e-5 || math.Abs(got.Area-got.ReferenceArea) > 1e-5 || math.Abs(got.CentroidZ-got.ReferenceCentroidZ) > 1e-7 {
 					t.Fatal(b, got)
 				}
+				if math.Abs(native.Volume-got.ReferenceVolume) > 1e-5 || math.Abs(native.Area-got.ReferenceArea) > 1e-5 || math.Abs(native.Centroid.Z-got.ReferenceCentroidZ) > 1e-7 {
+					t.Fatal("native reconstructed vs original OCCT", native, got)
+				}
+
 				t.Log(c, op, caps, got.EdgeResidual)
 			}
 		}

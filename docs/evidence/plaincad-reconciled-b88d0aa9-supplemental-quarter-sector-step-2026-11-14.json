@@ -1,0 +1,56 @@
+{
+  "schema": "plaincad-reconciled-supplemental-quarter-sector-step-v1",
+  "status": "passed",
+  "integrationCommit": "41dda8932db9d42023800d59680969a909a5a0a6",
+  "reviewCommit": "b88d0aa9f7c727e49c0ce59e96836706be53f913",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "87654c8b3708133d653f287c2d68f7b1b048c95bfdc6d3aa17fd246c112229ad",
+  "fixture": "e2e/plainsolid-quarter-sector-step-holes.spec.ts",
+  "sourceSha256": "39ceec96363c251b4e5996d019a55a8910d59acd869608550bb85ea1647717d0",
+  "runSha256": "b866b9bc9c3f223b746d5b7f3dc1ac66874b633142bd63ba86c3a6b10ff4549e",
+  "reportStats": {
+    "startTime": "2026-11-14T15:20:08.651Z",
+    "duration": 53632.473,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "radiusMm": 10,
+    "heightMm": 4,
+    "worldNormal": [
+      1,
+      0,
+      0
+    ],
+    "analyticalVolumeMm3": 314.1592653589793,
+    "analyticalAreaMm2": 299.9114857512855,
+    "originalWorkflow": "Arc Extend on YZ",
+    "stepByteCount": 8992,
+    "stepSha256": "ce446d97ceefe06282e50d1cda6be4c9380185adb24dcac17f8f5e63bb229834",
+    "stlTriangles": 132,
+    "stlTwoUseEdges": 198,
+    "stlSha256": "e586ceae9b6222f77c4f941438104751cf091fadc4f1ccf2b8e72e3c28c76e59",
+    "occtStepReadback": {
+      "Area": 299.9114857512855,
+      "Volume": 314.15926535897927,
+      "Centroid": [
+        2,
+        4.244131815783877,
+        4.244131815783878
+      ]
+    }
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 299.9114857512855,
+    "Volume": 314.15926535897927,
+    "Centroid": [
+      2,
+      4.244131815783877,
+      4.244131815783878
+    ]
+  }
+}
