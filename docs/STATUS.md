@@ -229,11 +229,16 @@ Nonbinary exact supports participate in complete certified transverse section
 traces and standalone algebraic section persistence, including original
 trim clipping. A closed two-face shell intersection preserves its nonbinary
 roof through imprint, original-face selection, volume bounds and native
-reconstruction. Independently refined wrapped charts now sew constant
+reconstruction. Exact support queries cover face membership, bounded line
+contacts, distance, regularity, and material location on rectangular shells.
+Independently refined wrapped charts now sew constant
 whole-period UV line shifts. A bounded partial coincidence and arrangement API
 retains exact original lifted intervals, materializes original-support faces,
-and proves an immutable open union or intersection with original edge ancestry.
-General periodic Boolean assembly remains open.
+and proves immutable open union, intersection and directed difference with
+original edge ancestry and oriented hole cycles. Lifted rectangle injectivity
+can now span a true fundamental seam using one exact global projection proof;
+its integration into wrapped face assembly and general periodic Boolean
+assembly remain open.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and

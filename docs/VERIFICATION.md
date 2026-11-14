@@ -79,6 +79,18 @@ nonbinary controls. It proves a closed section and a two-face common volume
 on the original roof, then reconstructs both from native JSON. A modified
 recipe chart fails to bind to the original face. The rational volume enclosure
 narrows on refinement and contains an independent bracket of π(5/16)^4/2.
+The same exact shell classifies roof, inside and outside points. An independent
+cubic fixture checks exact point membership, a sub-ULP rejection, line
+parameters and the minimum distance, including translated bounds and regularity.
+Wrapped Difference (`2a35e85`) qualifies an annulus with original cut-edge
+ownership, plus an empty result and a partially overlapping lift. A separate
+true seam crossing proof (`d09b8b7`) rejects a fold even though each side
+independently has an injective projection. Mixed-trim display qualifies an
+exact cubic after reload and a multispan model with a true cubic derivative
+crease (`c008e53`, `6573299`). The split cylinder STEP fixtures (`aec0684`,
+`977b2da`) transfer as valid four-face OCCT solids with rational and explicit
+parameter-trimmed rational axial curves; readers retain original parameters
+and senses and reject edits to the represented geometry.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

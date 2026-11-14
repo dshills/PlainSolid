@@ -72,7 +72,7 @@ func (h *splineDistanceQueue) Pop() any {
 }
 
 // BoundSplineBoundaryDistance computes conservative unsigned distance bounds
-// on clamped rational spline faces, including affine placements. It excludes
+// on clamped rational spline or exact Bézier faces, including affine placements. It excludes
 // a cell only after a certified trim classification and derives a lower
 // bound from its exact outward model hull. It supports straight trims and
 // the certified spline, tube, and native exact Bézier trims used by section Booleans.
@@ -161,8 +161,7 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 			return r, e
 		}
 		base, placement := parametric.SurfaceMapping(f.Surface)
-		b, ok := base.(*geom.BSplineSurface)
-		if !ok {
+		if !supportsExactSplinePatch(base) {
 			return r, geom.ErrInvalid
 		}
 		f = cloneFace(f)
@@ -189,7 +188,7 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 				}
 			}
 		}
-		p, e := geom.NewSurfacePatch(b, o.Patches)
+		p, e := exactSplineSupportPatch(base, o.Patches)
 		if e != nil {
 			return r, e
 		}

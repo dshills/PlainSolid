@@ -72,6 +72,15 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	for _, q := range []struct {
+		height float64
+		want   parametric.Location
+	}{{25.0 / 256, parametric.Boundary}, {1.0 / 16, parametric.Inside}, {1.0 / 8, parametric.Outside}} {
+		got, e := b.LocateNestedSplineMaterial(ctx, geom.Vec3{X: .5, Y: .5, Z: q.height}, SplineShellBooleanOptions{})
+		if e != nil || got != q.want {
+			t.Fatal("exact shell material location", q.height, got, q.want, e)
+		}
+	}
 	o := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}
 	o.Trace.Coverage.Isolation.SeparatingProjections = true
 	o.Trace.Coverage.Isolation.ParameterTolerance = .25
