@@ -16,12 +16,13 @@ packages. The PlainCAD release runs use the same kernel snapshot and the
 original app provider configuration at `efae4d2`.
 The [native run checkpoint](evidence/native-main-18204a56-2026-11-14.json)
 records 50 passing normal packages outside `brep/trimmed` and five
-without tests. Two full trimmed groups finished normally. The third
-exposed a stale regression assertion that used degree seven to check
-a ceiling of eight. The same pinned source with only the assertion
-corrected passed that fixture in normal and race mode. Full race
-qualification remains in progress. The raw results preserve skips and
-the original failure.
+without tests. All three normal trimmed groups finished. One stale
+regression assertion used degree seven to check a ceiling of eight.
+The same pinned source with only the assertion corrected passed that
+fixture in normal and race mode. Together the normal trimmed runs
+account for all 1,036 top-level cases, with 1,023 passing and 13
+explicit skips. Full race qualification remains in progress. The
+raw results preserve the test revisions and original failure.
 General curved Boolean splitting, advanced surface modeling and broader CAD
 exchange remain separate implementation work against the specification.
 

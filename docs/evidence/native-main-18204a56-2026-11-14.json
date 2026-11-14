@@ -12,12 +12,20 @@
   "normal": {
     "CGO_ENABLED": 0,
     "timeoutMinutes": 120,
-    "GOMAXPROCS": 2
+    "GOMAXPROCS": 2,
+    "status": "completed; one obsolete test assertion corrected and separately rerun on otherwise identical pinned source",
+    "trimmedTopLevelOutcomeAfterCorrection": {
+      "pass": 1023,
+      "skip": 13,
+      "fail": 0,
+      "mixedTestRevision": true
+    }
   },
   "race": {
     "CGO_ENABLED": 1,
     "timeoutMinutes": 145,
-    "GOMAXPROCS": 2
+    "GOMAXPROCS": 2,
+    "status": "running"
   },
   "status": "running",
   "lanes": {
@@ -42,22 +50,22 @@
     },
     "packages-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-race.jsonl",
-      "sha256AtCheckpoint": "3efa975891f1e175fd0dec62dcb467ace72529e88346e91d17e9551f78a3abb8",
-      "bytesAtCheckpoint": 5298997,
+      "sha256AtCheckpoint": "c6994cfdc6d2b1deccbf75f7b278690dbc9b525af08bc3ea2e18a696c1789226",
+      "bytesAtCheckpoint": 5299748,
       "packageOutcomes": {
         "pass": 49,
         "skip": 5
       },
       "testOutcomesIncludingSubtests": {
-        "pass": 6303,
+        "pass": 6304,
         "skip": 410
       },
       "topLevelTestOutcomes": {
-        "pass": 3412,
+        "pass": 3413,
         "skip": 400
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/intersect": "TestAnisotropicQuarticAutomaticCover"
+        "plainsolid/intersect": "TestTripleRadialOriginalTubeDiscovery"
       },
       "failures": []
     },
@@ -81,17 +89,17 @@
     },
     "trimmed-0-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-race.jsonl",
-      "sha256AtCheckpoint": "cab4ac5bf04275bf7276430a921c47f60c3300ecd2723e45a1eb144999abde6a",
-      "bytesAtCheckpoint": 15428,
+      "sha256AtCheckpoint": "2b91e96b100e9c2183e6fb615d874604bc4dce9ecf1bcece77fb01f0531443ff",
+      "bytesAtCheckpoint": 16966,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 16
+        "pass": 18
       },
       "topLevelTestOutcomes": {
-        "pass": 14
+        "pass": 16
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestProjectedLensQueriesUseOriginalExactRoof"
+        "plainsolid/brep/trimmed": "TestCertifiedExactPlacedXZBooleanAnnulusFill"
       },
       "failures": []
     },
@@ -115,44 +123,63 @@
     },
     "trimmed-1-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-race.jsonl",
-      "sha256AtCheckpoint": "5c243acd13d04d574a97ca30589776b4afb4390d8a3ceb16b34fd80b37ecc733",
-      "bytesAtCheckpoint": 14768,
+      "sha256AtCheckpoint": "e5bddc3c3543207377b1feb7ad6a33b551e0ea958b81b921d361ce738e41cef9",
+      "bytesAtCheckpoint": 17832,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 16
+        "pass": 20
       },
       "topLevelTestOutcomes": {
-        "pass": 13
+        "pass": 17
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestSectionTwoCurvedBranchesProjectedCoverage"
+        "plainsolid/brep/trimmed": "TestBubbleCertifiedSharedBoundary"
       },
       "failures": []
     },
     "trimmed-2-normal": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-normal.jsonl",
-      "sha256AtCheckpoint": "46a1dea8b8560cd6e33d0dc8b0968a1cb377d619d6e46985ba7078c75e5de5ec",
-      "bytesAtCheckpoint": 315323,
-      "packageOutcomes": {},
+      "sha256AtCheckpoint": "81a9ede81f20d7e9817ec1681a163f72b67fc76d6a90de9a54648c3a8f9a03a6",
+      "bytesAtCheckpoint": 335255,
+      "packageOutcomes": {
+        "fail": 1
+      },
       "testOutcomesIncludingSubtests": {
-        "pass": 369,
+        "pass": 396,
         "skip": 5,
         "fail": 1
       },
       "topLevelTestOutcomes": {
-        "pass": 315,
+        "pass": 339,
         "skip": 5,
         "fail": 1
       },
-      "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestExactFilletedFrustumMaterial"
-      },
+      "activeTopLevelTestsAtCheckpoint": {},
       "failures": [
         {
           "package": "plainsolid/brep/trimmed",
           "test": "TestExactCubicMixedCurvedHole"
+        },
+        {
+          "package": "plainsolid/brep/trimmed"
         }
       ]
+    },
+    "trimmed-2-race": {
+      "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-race.jsonl",
+      "sha256AtCheckpoint": "e1cd0571c471302a976b3159e8614f3b285f6295c552837fa41c6b18d3e95d94",
+      "bytesAtCheckpoint": 22072,
+      "packageOutcomes": {},
+      "testOutcomesIncludingSubtests": {
+        "pass": 24
+      },
+      "topLevelTestOutcomes": {
+        "pass": 12
+      },
+      "activeTopLevelTestsAtCheckpoint": {
+        "plainsolid/brep/trimmed": "TestAlgebraicGraphOccurrenceRationalArea"
+      },
+      "failures": []
     }
   },
   "degreeCeilingCorrection": {
