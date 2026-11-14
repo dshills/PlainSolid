@@ -4,6 +4,16 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
+The two PlainCAD integration branches are in `main` through the implementation
+merge `8f76f16b` and the final verification merge `012096ee`. The next release
+checks are a clean full PlainCAD development run and completion of native Go
+qualification, including the expensive trimmed-solid cases. The previous
+30-minute trimmed aggregate timed out; its in-flight original mixed mesh case
+passed on an isolated retest. The 65-minute pure-Go short suite began from
+the immutable `3a488eb5` snapshot and has not yet qualified newer milestones.
+General curved Boolean splitting, advanced surface modeling and broader CAD
+exchange remain separate implementation work against the specification.
+
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume
 bounds (`10a59a3f`), rational weighted stock cut/line/first-moment queries
