@@ -171,7 +171,7 @@ func intersectWrappedAnisotropicBandLine(ctx context.Context, w *WrappedSurfaceP
 			}
 			root := &ExactGraphLineRoot{polynomial: poly, bounds: [2]*big.Rat{lo, hi}}
 			for _, g := range guards {
-				sign, _, e := composedPolynomialRootSign(ctx, root, g, &b.work, o.MaxSubdivisions)
+				sign, _, e := composedPolynomialRootSign(ctx, root, trimPolynomial(g), &b.work, o.MaxSubdivisions)
 				if e != nil {
 					return false, e
 				}

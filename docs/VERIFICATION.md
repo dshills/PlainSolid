@@ -6216,3 +6216,10 @@ A sheared U-profile cutter retains three upper regions and two floor
 regions joined through the lower stock. Independent volume, centroid,
 Euler characteristic and original cap/wall ancestry are checked. The
 integrated crossing prism race passed in 1.942 s.
+
+### Anisotropic terminal cap line qualification
+
+Horizontal terminal-plane clips retain closed cap material spans, tangent
+and singleton contacts, original rim and wall ties, and no volume-interior
+intervals. Exact lower-degree sector guards are normalized before root-sign
+proof. The combined cap and wall line race passed in 37.879 s.

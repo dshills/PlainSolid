@@ -174,3 +174,24 @@ Cardinal contacts at non-dyadic rational parameters are authenticated by the
 original affine equations `x-cx=±sx` or `y-cy=±sy` and exact quartic evaluation
 inside the isolating interval. This proves shared quadrant identity (including
 parameter8/5 in the regression); interval overlap alone is still insufficient.
+
+## Coincident original terminal-cap lines
+
+`ClipWrappedAnisotropicStationCapLineRational` explicitly accepts horizontal
+lines on either exposed original terminal cap. It returns closed `Boundary`
+spans, isolated rim/tangent hits or a singleton clip; it has no volume-interior
+field. Exact root isolation partitions the line, and prepared exact cap
+membership proves each root-free span. Span interior owners are the original cap;
+endpoint owners additionally retain the adjacent original wall and rim incidence.
+For nonexact roots, affine coordinate signs over the entire enclosure prove the
+original rim quadrant. Unresolved quadrant identity fails rather than choosing
+an approximate azimuth. Exact cardinal contacts retain both rim edges and their
+original vertex. Lower-degree sector polynomials are normalized before exact GCD
+sign proofs, including horizontal lines whose quadratic coefficients vanish.
+
+The same cumulative query ledger and separately bounded initial source proof
+apply. MaxEvents bounds hits plus spans, and all errors return an empty result.
+Internal station planes and nonhorizontal lines remain outside this cap API;
+existing isolated-line contracts are unchanged. Tests use independent weighted
+midpoint roots ±5/7, scaled cardinal roots, upper/lower caps, reverse direction,
+finite clipped and singleton intervals, isolated tangency and exact work limits.
