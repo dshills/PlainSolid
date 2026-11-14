@@ -3,6 +3,7 @@ package intersect
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 	"plainsolid/geom"
 	"sort"
@@ -10,11 +11,16 @@ import (
 
 // IsoPlaneTubeCoverageOptions bounds a full original-domain reduction. Zero
 // values select 16M operations, 16384 bits, 4096 tubes and 256 knot/clip cells.
-type IsoPlaneTubeCoverageOptions struct{ MaxOperations, MaxCoefficientBits, MaxTubes, MaxCells int }
+type IsoPlaneTubeCoverageOptions struct {
+	// AllowTrapezoidCharts permits exact rational inversion of proved planar trapezoid supports.
+	AllowTrapezoidCharts                                  bool
+	MaxOperations, MaxCoefficientBits, MaxTubes, MaxCells int
+}
 
 // IsoPlaneTubeCoverage proves every original pair contact lies in a freshly
 // verified tube. The raw plane equation fixes exactly one original source UV
-// coordinate; all retained intervals follow complete exact affine-chart clipping.
+// coordinate; all retained intervals follow complete exact chart clipping.
+// Nonlinear trapezoid charts and boundary anchors require the explicit option.
 // This is coverage only, not a branch graph or shell continuation certificate.
 type IsoPlaneTubeCoverage struct {
 	Covered                  bool
@@ -85,18 +91,11 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 		if e != nil {
 			return empty, e
 		}
-		cap := min(opts.MaxOperations, 1000000)
-		chart, e := geom.NewAffineSurfaceChart(ctx, target, geom.AffineSurfaceChartOptions{MaxCells: o.MaxCells, MaxOperations: cap, MaxCoefficientBits: w.bits})
+		chart, e := newIsoCoverageChart(ctx, target, o, w, true)
 		if e != nil {
 			if errors.Is(e, geom.ErrConvergence) || errors.Is(e, geom.ErrDegenerate) || errors.Is(e, geom.ErrUnrepresentable) {
-				if e = w.charge(cap); e != nil {
-					return empty, e
-				}
 				continue
 			}
-			return empty, e
-		}
-		if e = w.charge(chart.ExactOperations()); e != nil {
 			return empty, e
 		}
 		opts, e = w.patch()
@@ -199,7 +198,7 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 			if e := ctx.Err(); e != nil {
 				return empty, e
 			}
-			if seed.Tube == nil || seed.BoundaryAnchor != nil {
+			if seed.Tube == nil || seed.BoundaryAnchor != nil && !o.AllowTrapezoidCharts {
 				continue
 			}
 			boxes := [2]geom.ParameterRectangle{seed.Cell.DomainA, seed.Cell.DomainB}
@@ -223,6 +222,23 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 				return empty, e
 			}
 			proof, e := geom.CertifySurfacePairTube(restricted[0], restricted[1], geom.SurfacePairTubeOptions{FreeAxis: seed.Tube.FreeAxis, MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits})
+			if seed.BoundaryAnchor != nil {
+				if ce := w.charge(proof.Test.ExactOperations); ce != nil {
+					return empty, ce
+				}
+				opts, e = w.patch()
+				if e != nil {
+					return empty, e
+				}
+				var anchor [4]*big.Rat
+				for j, q := range seed.BoundaryAnchor.Parameters {
+					if math.IsNaN(q) || math.IsInf(q, 0) {
+						return empty, geom.ErrInvalid
+					}
+					anchor[j] = new(big.Rat).SetFloat64(q)
+				}
+				proof, e = geom.CertifyBoundaryAnchoredSurfacePairTube(ctx, restricted[0], restricted[1], geom.SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: geom.SurfacePairTubeOptions{FreeAxis: seed.Tube.FreeAxis, MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits}, AtUpper: seed.BoundaryAnchor.AtUpper, Anchor: anchor})
+			}
 			if e != nil {
 				return empty, e
 			}
@@ -244,11 +260,8 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 			if e != nil {
 				return empty, e
 			}
-			targetChart, e := geom.NewAffineSurfaceChart(ctx, restricted[source^1], geom.AffineSurfaceChartOptions{MaxCells: o.MaxCells, MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits})
+			targetChart, e := newIsoCoverageChart(ctx, restricted[source^1], o, w, false)
 			if e != nil {
-				return empty, e
-			}
-			if e = w.charge(targetChart.ExactOperations()); e != nil {
 				return empty, e
 			}
 			opts, e = w.patch()
@@ -307,12 +320,20 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 	}
 	return empty, ErrUnresolved
 }
-func clipIsoCover(ctx context.Context, curve *geom.SurfaceIsoCurve, chart *geom.AffineSurfaceChart, w *isoCoverWork) (geom.AffineChartCurveClip, error) {
+func clipIsoCover(ctx context.Context, curve *geom.SurfaceIsoCurve, chart isoCoverageChart, w *isoCoverWork) (geom.AffineChartCurveClip, error) {
 	opts, e := w.patch()
 	if e != nil {
 		return geom.AffineChartCurveClip{}, e
 	}
-	r, e := geom.ClipIsoCurveToAffineChart(ctx, curve, chart, geom.SplinePlaneOptions{MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits})
+	var r geom.AffineChartCurveClip
+	switch c := chart.(type) {
+	case *geom.AffineSurfaceChart:
+		r, e = geom.ClipIsoCurveToAffineChart(ctx, curve, c, geom.SplinePlaneOptions{MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits})
+	case *geom.TrapezoidSurfaceChart:
+		r, e = geom.ClipIsoCurveToTrapezoidChart(ctx, curve, c, geom.SplinePlaneOptions{MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits})
+	default:
+		return r, geom.ErrInvalid
+	}
 	if e != nil {
 		return r, e
 	}
@@ -339,4 +360,47 @@ func normalizedIsoPlaneCoverageOptions(o IsoPlaneTubeCoverageOptions) (IsoPlaneT
 		return o, geom.ErrInvalid
 	}
 	return o, nil
+}
+
+// Failed recognition consumes its full reserved cap because these constructors
+// deliberately publish no partial certificate or partial arithmetic report.
+type isoCoverageChart interface {
+	ExactOperations() int
+	RawSupportPlane(geom.SurfacePatchOptions) (geom.RawSupportPlane, error)
+}
+
+func newIsoCoverageChart(ctx context.Context, p *geom.SurfacePatch, o IsoPlaneTubeCoverageOptions, w *isoCoverWork, initial bool) (isoCoverageChart, error) {
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt == 1 && !o.AllowTrapezoidCharts {
+			break
+		}
+		opts, e := w.patch()
+		if e != nil {
+			return nil, e
+		}
+		cap := opts.MaxOperations
+		if initial || o.AllowTrapezoidCharts {
+			cap = min(cap, 1000000)
+		}
+		co := geom.AffineSurfaceChartOptions{MaxCells: o.MaxCells, MaxOperations: cap, MaxCoefficientBits: w.bits}
+		var chart isoCoverageChart
+		if attempt == 0 {
+			chart, e = geom.NewAffineSurfaceChart(ctx, p, co)
+		} else {
+			chart, e = geom.NewTrapezoidSurfaceChart(ctx, p, co)
+		}
+		if e == nil {
+			if e = w.charge(chart.ExactOperations()); e != nil {
+				return nil, e
+			}
+			return chart, nil
+		}
+		if ce := w.charge(cap); ce != nil {
+			return nil, ce
+		}
+		if !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) && !errors.Is(e, geom.ErrUnrepresentable) {
+			return nil, e
+		}
+	}
+	return nil, geom.ErrConvergence
 }

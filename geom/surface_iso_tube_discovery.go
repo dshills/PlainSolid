@@ -18,7 +18,7 @@ func DiscoverSurfaceIsoPlaneTubes(ctx context.Context, a, b *SurfacePatch, fixed
 	if !finite(start) || !finite(end) {
 		return r, ErrInvalid
 	}
-	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, new(big.Rat).SetFloat64(start), new(big.Rat).SetFloat64(end), o, false)
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, new(big.Rat).SetFloat64(start), new(big.Rat).SetFloat64(end), o, false, false)
 }
 
 // DiscoverSurfaceIsoPlaneRationalTubes preserves exact original source endpoints.
@@ -30,9 +30,9 @@ func DiscoverSurfaceIsoPlaneTubes(ctx context.Context, a, b *SurfacePatch, fixed
 // pass exact target-chart clipping; coincident chart-boundary spans fail closed.
 // Errors may retain diagnostic proposals, but never Complete.
 func DiscoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions) (r SurfaceArcTubeDiscovery, err error) {
-	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true)
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, false)
 }
-func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions, requireClip bool) (r SurfaceArcTubeDiscovery, err error) {
+func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions, requireClip, trapezoidMode bool) (r SurfaceArcTubeDiscovery, err error) {
 	if ctx == nil || a == nil || b == nil || fixedAxis < 0 || fixedAxis > 1 || !finite(fixed) || start == nil || end == nil || start.Cmp(end) >= 0 {
 		return r, ErrInvalid
 	}
@@ -86,17 +86,33 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 	if e != nil {
 		return r, e
 	}
-	chart, e := NewAffineSurfaceChart(ctx, b, AffineSurfaceChartOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+	var chart *AffineSurfaceChart
+	var trapezoid *TrapezoidSurfaceChart
+	if trapezoidMode {
+		trapezoid, e = NewTrapezoidSurfaceChart(ctx, b, AffineSurfaceChartOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		if e == nil {
+			budget.operations += trapezoid.ExactOperations()
+		}
+	} else {
+		chart, e = NewAffineSurfaceChart(ctx, b, AffineSurfaceChartOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		if e == nil {
+			budget.operations += chart.operations
+		}
+	}
 	if e != nil {
 		return r, e
 	}
-	budget.operations += chart.operations
 	if requireClip {
 		left, e = remaining()
 		if e != nil {
 			return r, e
 		}
-		clip, e := ClipIsoCurveToAffineChart(ctx, curve, chart, SplinePlaneOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		var clip AffineChartCurveClip
+		if trapezoidMode {
+			clip, e = ClipIsoCurveToTrapezoidChart(ctx, curve, trapezoid, SplinePlaneOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		} else {
+			clip, e = ClipIsoCurveToAffineChart(ctx, curve, chart, SplinePlaneOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		}
 		budget.operations += clip.Operations
 		if e != nil {
 			return r, e
@@ -120,7 +136,18 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 			return r, ErrDomain
 		}
 	}
-	projected, e := projectIsoCurveChart(ctx, curve, chart, budget)
+	var projected *SurfaceIsoCurve
+	if trapezoidMode {
+		left, e = remaining()
+		if e != nil {
+			return r, e
+		}
+		var work int
+		projected, work, e = ProjectIsoCurveToTrapezoidChart(ctx, curve, trapezoid, SurfacePatchOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
+		budget.operations += work
+	} else {
+		projected, e = projectIsoCurveChart(ctx, curve, chart, budget)
+	}
 	if e != nil {
 		return r, e
 	}
@@ -244,13 +271,69 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 				proof, e := CertifySurfacePairTube(pa, pb, SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
 				budget.operations += proof.Test.ExactOperations
 				if errors.Is(e, ErrDomain) || errors.Is(e, ErrDegenerate) {
-					continue
+					e = nil
 				}
 				if e != nil {
 					return r, e
 				}
-				if proof.ProvenBranch {
-					r.Tubes = append(r.Tubes, SurfaceArcDiscoveredTube{FreeAxis: axis, Span: isoRationalEnclosure(n.lo, n.hi), ExactSourceSpan: [2]*big.Rat{new(big.Rat).Set(n.lo), new(big.Rat).Set(n.hi)}, Box: box, Proof: VerifiedSurfaceTube{a: pa, b: pb, axis: axis, tangentSign: proof.FreeTangentSign}})
+				var boundary *SurfaceTubeBoundaryOptions
+				var anchored VerifiedSurfaceTube
+				if !proof.ProvenBranch && trapezoidMode && axis == free {
+					for side, q := range []*big.Rat{n.lo, n.hi} {
+						if side == 0 && q.Cmp(start) != 0 || side == 1 && q.Cmp(end) != 0 {
+							continue
+						}
+						uv := first
+						if side == 1 {
+							uv = last
+						}
+						hit := false
+						for j := 0; j < 2; j++ {
+							for _, bound := range domains[2+j] {
+								if uv[j].Cmp(new(big.Rat).SetFloat64(bound)) == 0 {
+									hit = true
+								}
+							}
+						}
+						if !hit {
+							continue
+						}
+						anchor := [4]*big.Rat{new(big.Rat).SetFloat64(fixed), new(big.Rat).SetFloat64(fixed), uv[0], uv[1]}
+						anchor[free] = q
+						represented := true
+						for _, v := range anchor {
+							if _, ee := RepresentedExactScalar(v); ee != nil {
+								represented = false
+							}
+						}
+						if !represented {
+							continue
+						}
+						left, e = remaining()
+						if e != nil {
+							return r, e
+						}
+						option := SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits}, AtUpper: side == 1, Anchor: anchor}
+						var used int
+						var ee error
+						anchored, ee = newBoundaryAnchoredSurfaceTube(ctx, pa, pb, option, &used)
+						budget.operations += used
+						r.Attempts++
+						if ee == nil {
+							boundary = &option
+							break
+						}
+						if !errors.Is(ee, ErrConvergence) && !errors.Is(ee, ErrDomain) && !errors.Is(ee, ErrDegenerate) {
+							return r, ee
+						}
+					}
+				}
+				if proof.ProvenBranch || boundary != nil {
+					verified := VerifiedSurfaceTube{a: pa, b: pb, axis: axis, tangentSign: proof.FreeTangentSign}
+					if boundary != nil {
+						verified = anchored
+					}
+					r.Tubes = append(r.Tubes, SurfaceArcDiscoveredTube{FreeAxis: axis, Span: isoRationalEnclosure(n.lo, n.hi), ExactSourceSpan: [2]*big.Rat{new(big.Rat).Set(n.lo), new(big.Rat).Set(n.hi)}, Box: box, Proof: verified, Boundary: boundary})
 					success = true
 					break
 				}
@@ -287,4 +370,11 @@ func isoRationalEnclosure(lo, hi *big.Rat) ParameterSpan {
 		h = math.Nextafter(h, math.Inf(1))
 	}
 	return ParameterSpan{Start: l, End: h}
+}
+
+// DiscoverSurfaceIsoTrapezoidTubes is the opt-in rational inverse counterpart
+// for a proved nonlinear planar trapezoid chart. Full original iso clipping,
+// positive denominator and fresh original tube proofs remain mandatory.
+func DiscoverSurfaceIsoTrapezoidTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions) (SurfaceArcTubeDiscovery, error) {
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, true)
 }

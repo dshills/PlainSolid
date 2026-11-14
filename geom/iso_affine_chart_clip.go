@@ -7,6 +7,7 @@ import (
 )
 
 // AffineChartCurveEndpoint owns exact curve, world and original chart values.
+// The same descriptor is used for explicitly certified trapezoid charts.
 // BoundaryMask uses UMin,UMax,VMin,VMax bits 1,2,4,8.
 type AffineChartCurveEndpoint struct {
 	Parameter       *big.Rat
@@ -52,22 +53,28 @@ func ClipIsoCurveToAffineChart(ctx context.Context, c *SurfaceIsoCurve, chart *A
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.Operations = budget.operations }()
+	curve, e := projectIsoCurveChart(ctx, c, chart, budget)
+	if e != nil {
+		return r, e
+	}
+	return clipProjectedIsoChart(ctx, c, curve, chart.Domain(), o, budget)
+}
+
+func clipProjectedIsoChart(ctx context.Context, c, curve *SurfaceIsoCurve, d ParameterRectangle, o SplinePlaneOptions, budget *polynomialBudget) (r AffineChartCurveClip, err error) {
+	defer func() { r.Operations = budget.operations }()
 	remaining := func() (int, error) {
+		if e := ctx.Err(); e != nil {
+			return 0, e
+		}
 		n := o.MaxOperations - budget.operations
 		if n < 1 {
 			return 0, ErrConvergence
 		}
 		return n, nil
 	}
-	curve, e := projectIsoCurveChart(ctx, c, chart, budget)
-	if e != nil {
-		return r, e
-	}
-
 	lo, hi := c.Domain()
 	events := []*big.Rat{new(big.Rat).SetFloat64(lo), new(big.Rat).SetFloat64(hi)}
 	tangent := map[string]bool{}
-	d := chart.Domain()
 	bounds := []float64{d.UMin, d.UMax, d.VMin, d.VMax}
 	for side, bound := range bounds {
 		left, e := remaining()
@@ -112,22 +119,24 @@ func ClipIsoCurveToAffineChart(ctx context.Context, c *SurfaceIsoCurve, chart *A
 		if e != nil {
 			return AffineChartCurveEndpoint{}, false, e
 		}
-		left, e := remaining()
+		uv, e := exactCurveRationalPoint(curve.patch, t, budget)
 		if e != nil {
 			return AffineChartCurveEndpoint{}, false, e
 		}
-		inv, e := chart.InvertExactContext(ctx, point, AffineChartInverseOptions{MaxOperations: left, MaxCoefficientBits: o.MaxCoefficientBits})
-		budget.operations += inv.ExactOperations
-		if e != nil {
-			return AffineChartCurveEndpoint{}, false, e
+		ep := AffineChartCurveEndpoint{Parameter: new(big.Rat).Set(t), Point: point, UV: [2]*big.Rat{uv[0], uv[1]}, TangentBoundary: tangent[t.RatString()]}
+		inside := true
+		for side, bound := range bounds {
+			cmp := ep.UV[side/2].Cmp(new(big.Rat).SetFloat64(bound))
+			if side%2 == 0 && cmp < 0 || side%2 == 1 && cmp > 0 {
+				inside = false
+			}
 		}
-		ep := AffineChartCurveEndpoint{Parameter: new(big.Rat).Set(t), Point: point, UV: [2]*big.Rat{inv.U, inv.V}, TangentBoundary: tangent[t.RatString()]}
 		for side, bound := range bounds {
 			if ep.UV[side/2].Cmp(new(big.Rat).SetFloat64(bound)) == 0 {
 				ep.BoundaryMask |= 1 << uint(side)
 			}
 		}
-		return ep, inv.Inside, nil
+		return ep, inside, nil
 	}
 	endpoints := make([]AffineChartCurveEndpoint, len(events))
 	inside := make([]bool, len(events))
