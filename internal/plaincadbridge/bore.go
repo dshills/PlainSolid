@@ -15,17 +15,18 @@ import (
 // The ordinary path uses perpendicular opening planes. The single oblique
 // through path retains its separate elliptical opening and wall measures.
 type boreBody struct {
-	solid     trimmed.Solid
-	base      brep.Solid
-	cylinders []*cylinderBody
-	cuts      []trimmed.CylinderCut
-	spans     []float64
-	blind     []bool
-	floors    []int
-	union     *trimmed.CylinderUnionHistory
-	layered   *trimmed.LayeredBoreHistory
-	crossed   *trimmed.BoxCrossedBoresResult
-	oblique   *obliqueBore
+	solid       trimmed.Solid
+	base        brep.Solid
+	cylinders   []*cylinderBody
+	cuts        []trimmed.CylinderCut
+	spans       []float64
+	blind       []bool
+	floors      []int
+	union       *trimmed.CylinderUnionHistory
+	layered     *trimmed.LayeredBoreHistory
+	crossed     *trimmed.BoxCrossedBoresResult
+	partialSkew bool
+	oblique     *obliqueBore
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {

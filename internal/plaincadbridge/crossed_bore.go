@@ -16,6 +16,10 @@ type crossedBoreGeometry struct {
 	offset               float64
 }
 
+func (p crossedBoreGeometry) partialSkew() bool {
+	return math.Abs(p.offset) > math.Abs(p.radii[0]-p.radii[1])
+}
+
 func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error) {
 	frame, dimensions, crossing := p.frame, p.dimensions, p.crossing
 	scale := unit / .001
@@ -102,7 +106,7 @@ func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (cr
 	}
 	crossing := geom.Vec3{X: q.X, Y: p.Y, Z: p.Z}
 	offset := q.Y - p.Y
-	if p.Y+offset != q.Y || offset != 0 && min(a.radius, b.radius)+math.Abs(offset) >= max(a.radius, b.radius) {
+	if p.Y+offset != q.Y || math.Abs(offset) >= a.radius+b.radius {
 		return crossedBoreGeometry{}, false
 	}
 	return crossedBoreGeometry{frame: frame, dimensions: size, crossing: crossing, radii: [2]float64{a.radius, b.radius}, offset: offset}, true
@@ -148,7 +152,9 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
-	if p.radii[0] == p.radii[1] {
+	if p.partialSkew() {
+		result, err = trimmed.BoxPartialSkewBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, 1e-9)
+	} else if p.radii[0] == p.radii[1] {
 		result, err = trimmed.BoxCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
 	} else {
 		result, err = trimmed.BoxSkewCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, 1e-9)
@@ -156,5 +162,5 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 	if err != nil {
 		return nil, true, err
 	}
-	return &boreBody{solid: result.Solid, base: base, cylinders: tools, cuts: cuts, spans: spans, blind: blind, crossed: &result}, true, nil
+	return &boreBody{solid: result.Solid, base: base, cylinders: tools, cuts: cuts, spans: spans, blind: blind, crossed: &result, partialSkew: p.partialSkew()}, true, nil
 }

@@ -71,8 +71,9 @@ the nonrational model edge and both UV trims with cubic splines, and
 reads its own canonical files back to the native recipe. Radius and
 scale envelopes bound the approximation work. Two skew perpendicular
 through axes use the same topology and STEP exchange when the larger
-bore covers the smaller bore's full transverse width. Partial width
-requires a different trim arrangement. A single oblique through Hole with
+bore covers the smaller bore's full transverse width. Partial transverse
+overlap now uses one loop with regular radical charts at both turning points,
+with STEP exchange still pending. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD partial transverse overlap on perpendicular axes — 2026-11-14
+
+Two offset full-through bores can overlap across only part of their
+transverse widths. Both cylinder charts retain the same closed intersection
+loop. The factored analytic parameter removes singular derivatives at the
+two turning points. The native topology uses six box faces and four
+cylindrical faces, and the bounded adaptive mesh keeps the shared trims
+conforming. This applies to equal and unequal radii.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-partial-skew-native-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-partial-skew-native-2026-11-14.json)
+pass on the same WASM. The authored model uses a 5 mm offset with radii
+5 mm and 4 mm. Reopen retains the two Holes, and the STL has both passages.
+Native tests measure two radius orders, signed and decimal offsets, and
+float32 embedding. Independent OCCT Boolean fixtures and focused race
+and vet checks pass. Very thin near-contact cases can exceed the bounded
+integration or tessellation budget. STEP exchange for this trim family
+is the next gate.
+
 ## Selectable PlainSolid app build — 2026-11-14
 
 The separate PlainCAD app worktree has a selectable Go WASM provider and

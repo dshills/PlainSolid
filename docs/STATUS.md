@@ -61,9 +61,10 @@ declared 0.0000001 mm uncertainty. The native importer checks the complete
 canonical graph before recovering the analytic recipe. Perpendicular
 skew axes also retain two radical trim rings and round-trip STEP when
 the larger radius covers the smaller bore across the whole transverse
-width. Partial transverse overlap, wider STEP radius and coordinate
-ranges, oblique cutter intersections, and intersecting blind cutters
-remain open. A single oblique through cutter in rectangular stock now
+width. Partial transverse overlap now retains a single analytic trim
+loop for equal or unequal radii and passes native STL. STEP for this
+single-loop family and tighter near-contact convergence remain open,
+along with oblique and blind cutter intersections. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
