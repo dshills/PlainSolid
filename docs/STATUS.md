@@ -2427,3 +2427,12 @@ The general abutting entry handles equal and strictly nested cap
 footprints. It proves complete source-wall coverage across the seam
 and accepts an empty shoulder when the exact Difference is empty.
 Matched annular openings preserve both sets of original hole walls.
+
+### Tied-cap and side-wall prism Fuse
+
+Crossing profiles with one tied terminal plane preserve both original
+cap parents on the exact Common region. The owner-only regions and
+interior shoulder retain their own cap IDs. Side-abutting prisms can
+also fuse over an exact positive-area wall interface. The wall builder
+retains both sets of original caps and records the surviving original
+wall fractions.

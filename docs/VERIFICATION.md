@@ -6347,3 +6347,13 @@ and retained annular passages. Independent volumes are 80 and 44 for
 the filled profiles and 160 and 85 for the holed profiles. Cap areas,
 wall ownership, closed incidence, and rejection of unsupported contacts
 were checked in the integrated 4.871-second race run.
+
+### Tied-cap and side-wall prism Fuse qualification
+
+Both tie directions and operand orders passed independent volume,
+centroid, topology, and contribution checks. The tied Common triangles
+carry both authored cap IDs. The side-wall tests independently check
+the removed shared area and surviving original wall fractions for
+staggered and nested spans. The combined main race run passed in
+42.309 seconds. Lower-dimensional contact and unrepresentable native
+vertices were checked separately.

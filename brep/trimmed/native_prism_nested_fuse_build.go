@@ -55,6 +55,9 @@ func (s *NativeNestedPrismFuse) NativeOperations() int {
 // agree with the original-source certificate before publication. Holed caps have
 // a 96-boundary-vertex limit and all exact arithmetic is cumulatively bounded.
 func (s *NativeNestedPrismFuseTransition) BuildNative(ctx context.Context, o AffineArrangementPrismOptions) (*NativeNestedPrismFuse, error) {
+	return buildNestedPrismFuseMode(ctx, s, o, false)
+}
+func buildNestedPrismFuseMode(ctx context.Context, s *NativeNestedPrismFuseTransition, o AffineArrangementPrismOptions, tied bool) (*NativeNestedPrismFuse, error) {
 	if s == nil || ctx == nil || s.union == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -273,6 +276,9 @@ func (s *NativeNestedPrismFuseTransition) BuildNative(ctx context.Context, o Aff
 		}
 		if owner == s.outer {
 			for end, z := range []*big.Rat{s.levels[0], s.levels[3]} {
+				if tied && ((end == 0 && s.levels[0].Cmp(s.levels[1]) == 0) || (end == 1 && s.levels[2].Cmp(s.levels[3]) == 0)) {
+					continue
+				}
 				loops := [][]int{}
 				for _, ring := range atomRings {
 					if len(ring) < 3 {
@@ -330,6 +336,45 @@ func (s *NativeNestedPrismFuseTransition) BuildNative(ctx context.Context, o Aff
 		}
 	}
 
+	if tied {
+		end, normal := 0, -1
+		z := s.levels[0]
+		if s.levels[0].Cmp(s.levels[1]) != 0 {
+			end, normal = 1, 1
+			z = s.levels[3]
+		}
+		// Inner-only tied cap is already published above. Split the outer cap
+		// into its owner-only region and Common, preserving their internal edges.
+		for region, arr := range s.proofs[s.outer].regions {
+			v, edges := arr.Vertices(), arr.Edges()
+			loops := [][]int{}
+			for _, cycle := range arr.Cycles() {
+				loop := []int{}
+				for _, i := range cycle.Edges {
+					id, e := vertex(v[edges[i].Start].Point, z)
+					if e != nil {
+						return nil, e
+					}
+					loop = append(loop, id)
+				}
+				loops = append(loops, loop)
+			}
+			cap := profiles[s.outer].lowerCap
+			if end == 1 {
+				cap = profiles[s.outer].upperCap
+			}
+			use := NativePrismFuseFaceUse{Operand: s.outer, OriginalFace: cap, Region: s.outer, Edge: -1, Cycle: -1}
+			if region == 1 {
+				use.Operand = -1
+				use.OriginalFace = -1
+				use.Region = 3
+			}
+			if e := triangulateAll(loops, normal, use); e != nil {
+				return nil, e
+			}
+		}
+	}
+
 	wall := func(p [2][3]*big.Rat, lo, hi *big.Rat, use NativePrismIntervalWallUse, region, edge int) error {
 		loop := make([]int, 4)
 		for i, k := range []int{0, 1, 1, 0} {
@@ -355,6 +400,9 @@ func (s *NativeNestedPrismFuseTransition) BuildNative(ctx context.Context, o Aff
 		return budget.err
 	}
 	for _, span := range [][2]*big.Rat{{s.levels[0], s.levels[1]}, {s.levels[2], s.levels[3]}} {
+		if tied && span[0].Cmp(span[1]) == 0 {
+			continue
+		}
 		for _, a := range allAtoms[s.outer] {
 			if e := wall(a.point, span[0], span[1], a.use, s.outer, -1); e != nil {
 				return nil, e

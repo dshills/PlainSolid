@@ -104,6 +104,9 @@ func ImprintNestedCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid, 
 }
 
 func imprintNestedCrossingNativePrismProfiles(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, requiredOuter int) (*NativeNestedPrismFuseTransition, error) {
+	return imprintNestedPrismProfilesMode(ctx, a, b, o, requiredOuter, false)
+}
+func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, requiredOuter int, tied bool) (*NativeNestedPrismFuseTransition, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -148,6 +151,15 @@ func imprintNestedCrossingNativePrismProfiles(ctx context.Context, a, b brep.Sol
 			outer = 0
 		} else if y.lo < x.lo && x.hi < y.hi {
 			outer = 1
+		}
+		if tied {
+			outer = -1
+			if (x.lo == y.lo && y.hi < x.hi) || (x.hi == y.hi && x.lo < y.lo) {
+				outer = 0
+			}
+			if (x.lo == y.lo && x.hi < y.hi) || (x.hi == y.hi && y.lo < x.lo) {
+				outer = 1
+			}
 		}
 		if outer >= 0 && (requiredOuter < 0 || outer == requiredOuter) {
 			profiles = [2]nativePrismProfile{x, y}

@@ -41,6 +41,8 @@ const (
 	NativePrismFamilyNestedCut
 	NativePrismFamilyCoveringCut
 	NativePrismFamilyAbuttingFuse
+	NativePrismFamilyTiedFuse
+	NativePrismFamilySideAbuttingFuse
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
@@ -65,6 +67,8 @@ type NativePrismMaterial struct {
 	nestedCut          *NativeNestedPrismCut
 	coveringCut        *NativePrismCoveringCut
 	abuttingFuse       *NativeAbuttingPrismFuse
+	tiedFuse           *NativeTiedPrismFuse
+	sideAbuttingFuse   *NativeSideAbuttingPrismFuse
 	classificationWork int
 }
 
@@ -177,6 +181,18 @@ func (s *NativePrismMaterial) CoveringCutProof() *NativePrismCoveringCut {
 	}
 	return s.coveringCut
 }
+func (s *NativePrismMaterial) SideAbuttingFuseProof() *NativeSideAbuttingPrismFuse {
+	if s == nil {
+		return nil
+	}
+	return s.sideAbuttingFuse
+}
+func (s *NativePrismMaterial) TiedFuseProof() *NativeTiedPrismFuse {
+	if s == nil {
+		return nil
+	}
+	return s.tiedFuse
+}
 func (s *NativePrismMaterial) AbuttingFuseProof() *NativeAbuttingPrismFuse {
 	if s == nil {
 		return nil
@@ -247,6 +263,9 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 			rank = 2
 		} else if y.lo <= x.lo && x.hi <= y.hi {
 			rank = 3
+		}
+		if operation == intersect.AffineRingUnion && ((x.lo == y.lo && x.hi != y.hi) || (x.hi == y.hi && x.lo != y.lo)) {
+			rank = 1
 		}
 		if operation == intersect.AffineRingUnion && (x.hi == y.lo || y.hi == x.lo) {
 			rank = -1
@@ -341,6 +360,16 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 		return finish()
 	}
 	if common.kind != NativePrismCommonMaterial {
+		if operation == intersect.AffineRingUnion && common.kind == NativePrismCommonContact && common.lo.Cmp(common.hi) < 0 {
+			out.sideAbuttingFuse, e = buildSideAbuttingNativePrisms(ctx, common, o.Publish)
+			if e != nil {
+				return nil, e
+			}
+			out.kind = NativePrismMaterialSolid
+			out.family = NativePrismFamilySideAbuttingFuse
+			out.components = []brep.Solid{out.sideAbuttingFuse.Solid()}
+			return finish()
+		}
 		if operation == intersect.AffineRingUnion && common.kind == NativePrismCommonContact && (x.hi == y.lo || y.hi == x.lo) {
 			q, err := ImprintAbuttingNativePrismFuse(ctx, a, b, o.Construct)
 			if err != nil {
@@ -469,7 +498,13 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 				out.components = []brep.Solid{out.boss.Solid()}
 			}
 		} else {
-			if (x.lo < y.lo && y.hi < x.hi) || (y.lo < x.lo && x.hi < y.hi) {
+			if (x.lo == y.lo && x.hi != y.hi) || (x.hi == y.hi && x.lo != y.lo) {
+				out.tiedFuse, e = fuseTiedCrossingNativePrisms(ctx, a, b, o.Construct, o.Publish)
+				if e == nil {
+					out.family = NativePrismFamilyTiedFuse
+					out.components = []brep.Solid{out.tiedFuse.Solid()}
+				}
+			} else if (x.lo < y.lo && y.hi < x.hi) || (y.lo < x.lo && x.hi < y.hi) {
 				q, err := ImprintNestedCrossingNativePrismFuse(ctx, a, b, o.Construct)
 				e = err
 				if e == nil {
