@@ -9,9 +9,9 @@ import (
 )
 
 // MixedRoofMaterialQuery contains the independently proved original roof boxes
-// used by a mixed Boolean. It supports exact rational point membership at
-// arbitrary scale in the original XY chart units. Surfaces not satisfying the
-// six-face graph-box proof remain outside this preparation path.
+// used by a mixed Boolean. It supports exact rational points and vertical rows
+// in the original XY chart units. Both operands satisfy the six-face graph-box
+// proof.
 type MixedRoofMaterialQuery struct {
 	source *MixedAlgebraicShellBoolean
 	box    [2]*mixedRoofBox
@@ -102,38 +102,15 @@ type MixedRoofMaterialPoint struct {
 // section certificate supplies the transverse boundary condition.
 func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.Rat, o geom.SurfacePatchEvaluationOptions) (MixedRoofMaterialPoint, error) {
 	var z MixedRoofMaterialPoint
-	if ctx == nil || q == nil || q.source == nil || o.MaxOperations < 0 || o.MaxOperations > 16000000 || o.MaxCoefficientBits < 0 || o.MaxCoefficientBits > 16384 || o.MaxCoefficientBits > 0 && o.MaxCoefficientBits < 64 {
-		return z, geom.ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
+	o, err := q.evaluationOptions(ctx, o, p[:]...)
+	if err != nil {
 		return z, err
-	}
-	if o.MaxCoefficientBits == 0 {
-		o.MaxCoefficientBits = 4096
-	}
-	if o.MaxOperations == 0 {
-		o.MaxOperations = 1000000
-	}
-	for _, v := range p {
-		if v == nil {
-			return z, geom.ErrInvalid
-		}
-		if v.Num().BitLen() > o.MaxCoefficientBits || v.Denom().BitLen() > o.MaxCoefficientBits {
-			return z, geom.ErrConvergence
-		}
 	}
 	var out MixedRoofMaterialPoint
 	for i, b := range q.box {
-		d := b.domain
-		a, c := [2]float64{d.UMin, d.VMin}, [2]float64{d.UMax, d.VMax}
-		side, outside := false, false
-		for j := range a {
-			lo, hi := p[j].Cmp(ratInset(a[j])), p[j].Cmp(ratInset(c[j]))
-			outside = outside || lo < 0 || hi > 0
-			side = side || lo == 0 || hi == 0
-		}
+		where := b.footprint([2]*big.Rat{p[0], p[1]})
 		floor := p[2].Cmp(b.floor)
-		if outside || floor < 0 {
+		if where == parametric.Outside || floor < 0 {
 			continue
 		}
 		opt := o
@@ -150,7 +127,7 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 		if roof > 0 {
 			continue
 		}
-		if side || floor == 0 || roof == 0 {
+		if where == parametric.Boundary || floor == 0 || roof == 0 {
 			out.Operands[i] = parametric.Boundary
 		} else {
 			out.Operands[i] = parametric.Inside
@@ -159,31 +136,86 @@ func (q *MixedRoofMaterialQuery) LocateRational(ctx context.Context, p [3]*big.R
 	if err := ctx.Err(); err != nil {
 		return z, err
 	}
-	a, b := out.Operands[0], out.Operands[1]
+	out.Location, err = mixedRoofBooleanLocation(q.source.boundary.op, out.Operands)
+	if err != nil {
+		return z, err
+	}
+	return out, nil
+}
+
+func (q *MixedRoofMaterialQuery) evaluationOptions(ctx context.Context, o geom.SurfacePatchEvaluationOptions, inputs ...*big.Rat) (geom.SurfacePatchEvaluationOptions, error) {
+	if ctx == nil || q == nil || q.source == nil || q.box[0] == nil || q.box[1] == nil || o.MaxOperations < 0 || o.MaxOperations > 16000000 || o.MaxCoefficientBits < 0 || o.MaxCoefficientBits > 16384 || o.MaxCoefficientBits > 0 && o.MaxCoefficientBits < 64 {
+		return o, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return o, err
+	}
+	if o.MaxCoefficientBits == 0 {
+		o.MaxCoefficientBits = 4096
+	}
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 1000000
+	}
+	for _, v := range inputs {
+		if v == nil {
+			return o, geom.ErrInvalid
+		}
+		if !mixedRoofFits(v, o.MaxCoefficientBits) {
+			return o, geom.ErrConvergence
+		}
+	}
+	return o, nil
+}
+
+func mixedRoofFits(v *big.Rat, bits int) bool {
+	return v.Num().BitLen() <= bits && v.Denom().BitLen() <= bits
+}
+
+func (b *mixedRoofBox) footprint(xy [2]*big.Rat) parametric.Location {
+	d := b.domain
+	lo, hi := [2]float64{d.UMin, d.VMin}, [2]float64{d.UMax, d.VMax}
+	where := parametric.Inside
+	for j, v := range xy {
+		a, c := v.Cmp(ratInset(lo[j])), v.Cmp(ratInset(hi[j]))
+		if a < 0 || c > 0 {
+			return parametric.Outside
+		}
+		if a == 0 || c == 0 {
+			where = parametric.Boundary
+		}
+	}
+	return where
+}
+
+// Both original surfaces at a simultaneous contact are part of the complete
+// regular section. The admissible source proof excludes coincident and
+// non-transverse face contacts.
+func mixedRoofBooleanLocation(op parametric.BooleanOp, operands [2]parametric.Location) (parametric.Location, error) {
+	a, b := operands[0], operands[1]
 	inside, boundary := parametric.Inside, parametric.Boundary
-	switch q.source.boundary.op {
+	switch op {
 	case parametric.Union:
 		if a == inside || b == inside {
-			out.Location = inside
+			return inside, nil
 		} else if a == boundary || b == boundary {
-			out.Location = boundary
+			return boundary, nil
 		}
 	case parametric.Difference:
 		if a != parametric.Outside && b != inside {
-			out.Location = inside
 			if a == boundary || b == boundary {
-				out.Location = boundary
+				return boundary, nil
 			}
+			return inside, nil
 		}
 	case parametric.Intersection:
 		if a != parametric.Outside && b != parametric.Outside {
-			out.Location = inside
 			if a == boundary || b == boundary {
-				out.Location = boundary
+				return boundary, nil
 			}
+			return inside, nil
 		}
 	default:
-		return z, geom.ErrInvalid
+		return parametric.Outside, geom.ErrInvalid
 	}
-	return out, nil
+	return parametric.Outside, nil
 }
