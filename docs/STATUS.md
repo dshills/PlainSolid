@@ -499,6 +499,12 @@ browser cases and the focused native race suite passed; 841 app and 2,186
 kernel source blobs were verified. The [authored 0.75 mm offset case](evidence/plaincad-reconciled-8417c286-supplemental-tight-covered-step-2026-11-14.json)
 reproduced the 378,805-byte STEP and watertight 1,672-triangle STL. Independent
 OCCT transfer matched direct construction.
+The refreshed review `f87dd4f3`, which includes the same external revision
+`e2e9a253` and the subsequent native kernel milestones, passed all [66 original
+production cases](evidence/plaincad-reconciled-f87dd4f3-production-2026-11-14.json)
+and all [15 cross-browser cases](evidence/plaincad-reconciled-f87dd4f3-cross-browser-2026-11-14.json).
+Both runs verified 841 pinned app files and 2,200 kernel source blobs, with
+unchanged original acceptance configurations.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
