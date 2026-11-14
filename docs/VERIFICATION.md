@@ -1,5 +1,25 @@
 # Verification record
 
+## PlainCAD Hole cutters through exact stock vertices — 2026-11-14
+
+The section arrangement uses a single vertex when a circular cutter passes
+exactly through a stock corner. The exact squared distance establishes the
+contact before either side attaches to the shared vertex. The arrangement
+also accepts two intersecting cutters that share the corner and endpoint
+tangency when the cutter opens across the adjacent side. Point-only
+external contact removes zero volume.
+
+[Sixteen original PlainCAD Hole and STEP cases](evidence/plaincad-exact-vertex-browser-2026-11-14.json)
+and [three Chromium probes on the same WASM](evidence/plaincad-exact-vertex-native-2026-11-14.json)
+pass on `50432ed`. The probes cover blind, through-all and successive
+overlapping Holes, with exact measurements, STEP reimport, project reopen,
+and watertight STL. They check the affected stock vertex at the remaining
+cap and floor heights. Independent OCCT checks cover all six signed axes,
+including shared vertices and endpoint tangencies. Focused native race
+checks and Go vet pass. A fully concealed cutter can leave face
+partitions that canonical STEP cannot reconstruct from the visible
+cylindrical supports. That export remains outside the qualified path.
+
 ## PlainCAD intersecting Hole cutters across stock corners — 2026-11-14
 
 The rectangular-stock arrangement clips circular cutters against both
