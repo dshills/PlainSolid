@@ -411,6 +411,21 @@ func (d *RationalSphericalHierarchyDocument) SphereDistance(ctx context.Context,
 	return step.DistanceRationalHierarchySpheres(ctx, d.model, point, o)
 }
 
+// CylinderDistance returns exact algebraic distances and all tied nearest
+// point or circle witnesses for each authenticated finite cylinder occurrence.
+func (d *RationalSphericalHierarchyDocument) CylinderDistance(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyCylinderDistanceOptions) (step.RationalHierarchyCylinderDistance, error) {
+	if d == nil {
+		return step.RationalHierarchyCylinderDistance{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.CylinderDistance(ctx, point, o)
+	}
+	if d.vendor {
+		return step.DistanceOCCTRationalHierarchyCylinders(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.DistanceRationalHierarchyCylinders(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.
