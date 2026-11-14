@@ -1,0 +1,78 @@
+{
+  "schema": "plaincad-reconciled-supplemental-compact-oblique-step-v1",
+  "status": "passed",
+  "integrationCommit": "e521a39c18123a0853c6499e4f45f0afdeaa05a8",
+  "reviewCommit": "fab4062f3b6cefd4ba88dd4da805b2830a14a6fa",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "2b10e9f6a4a49e54c1f037b3dff3b4f76aacbbb2332ed76542e57dff95c0a13f",
+  "fixture": "e2e/plainsolid-compact-oblique-step-holes.spec.ts",
+  "sourceSha256": "d025c2ffd9697d579cc60599b27e7c9d87dde32f7bd3ae601ce5b9043e45ce66",
+  "runSha256": "5ef1b17053bc53a6f3c294a4420b8708d2ca9fa7caf53c02f7d9dcad9bffec3d",
+  "reportStats": {
+    "startTime": "2026-11-14T14:49:16.555Z",
+    "duration": 9555.693,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      20,
+      20,
+      20
+    ],
+    "cardinalSiteMm": [
+      16,
+      16,
+      0
+    ],
+    "obliqueEntryMm": [
+      3,
+      4,
+      0
+    ],
+    "obliqueAxisRatio": [
+      2,
+      0,
+      3
+    ],
+    "radiusMm": 1,
+    "analyticEllipses": 8,
+    "stepByteCount": 29656,
+    "stepSha256": "c8059f682c3deb26be25a785590975e282ad70e81cc915fba419ac08959337d1",
+    "stlTriangles": 276,
+    "stlTwoUseEdges": 414,
+    "stlSha256": "4edfe52455d2b47640fdaaf0f085b30ba3b98011ba3ff6f83643212b4281b668",
+    "occtStepReadback": {
+      "Area": 2662.8580505588393,
+      "Volume": 7861.653657600612,
+      "Centroid": [
+        9.955248649057326,
+        10.009679365289928,
+        10.000000000031902
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 7861.653657600606,
+      "Area": 2662.858050558841,
+      "Centroid": [
+        9.955248649032793,
+        10.009679365289927,
+        9.999999999995106
+      ]
+    },
+    "directOracleSourceSha256": "3a9893a632f006a975842eed4329001ecc55b3664d5a2eb9dbcf4ec605bda6b0"
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 2662.8580505588393,
+    "Volume": 7861.653657600612,
+    "Centroid": [
+      9.955248649057326,
+      10.009679365289928,
+      10.000000000031902
+    ]
+  }
+}

@@ -323,6 +323,13 @@ checks and all 17 original browser tests passed, verifying 841 app and
 2,042 kernel source files. The [authored separated-bore STEP](evidence/plaincad-reconciled-c2c00be9-supplemental-disjoint-oblique-step-2026-11-14.json)
 reopened successfully and preserved its watertight STL. Live OCCT readback
 reproduced volume, area, and centroid.
+The [compact oblique bore reconciliation](evidence/plaincad-reconciled-fab4062f-development-compact-oblique-holes-step-2026-11-14.json)
+adds worktree revision `e521a39c` to review `fab4062f`. Native checks and
+all 17 original browser cases passed with 841 app and 2,049 kernel source
+blobs verified. The [authored cardinal and steep bore model](evidence/plaincad-reconciled-fab4062f-supplemental-compact-oblique-step-2026-11-14.json)
+produced byte-identical STEP and watertight STL from both checkouts. Live
+OCCT STEP readback reproduced volume, area, and centroid, and matched the
+independently constructed Boolean's volume and area within `1e-6`.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
