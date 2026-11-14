@@ -50,6 +50,7 @@ type AlgebraicShellSectionResult struct {
 
 type algebraicShellSectionSource struct {
 	a, b     Solid
+	bounds   [2]geom.Box
 	pairs    [][2]int
 	sections []AlgebraicSplinePairSection
 	branches []AlgebraicShellSectionBranch
@@ -193,6 +194,11 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 	}
 	out.Complete = true
 	source := &algebraicShellSectionSource{a: a, b: b, pairs: append([][2]int(nil), out.Pairs...)}
+	for i, row := range faces {
+		if len(row) != 0 {
+			source.bounds[i] = splineShellPatchBounds(row)
+		}
+	}
 	for _, b := range out.Branches {
 		b.Segments = append([]intersect.TubeSegment(nil), b.Segments...)
 		source.branches = append(source.branches, b)

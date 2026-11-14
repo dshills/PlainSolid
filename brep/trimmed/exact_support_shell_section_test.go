@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -118,6 +119,31 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 	if kept != 1 {
 		t.Fatal("Boolean selected a surrogate for its original exact roof", kept)
 	}
+	union, e := r.CombineAlgebraic(ctx, parametric.Union, AlgebraicShellBooleanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	difference, e := r.CombineAlgebraic(ctx, parametric.Difference, AlgebraicShellBooleanOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, q := range []struct {
+		point geom.Vec3
+		want  [3]parametric.Location // common, union, difference
+	}{
+		{geom.Vec3{X: .5, Y: .5, Z: .0625}, [3]parametric.Location{parametric.Inside, parametric.Inside, parametric.Outside}},
+		{geom.Vec3{X: .5, Y: .5, Z: 25.0 / 256}, [3]parametric.Location{parametric.Boundary, parametric.Inside, parametric.Boundary}},
+		{geom.Vec3{X: .5, Y: .5}, [3]parametric.Location{parametric.Boundary, parametric.Inside, parametric.Outside}},
+		{geom.Vec3{X: 13.0 / 16, Y: .5}, [3]parametric.Location{parametric.Boundary, parametric.Boundary, parametric.Boundary}},
+		{geom.Vec3{X: .875, Y: .5}, [3]parametric.Location{parametric.Outside, parametric.Boundary, parametric.Boundary}},
+	} {
+		for i, b := range []AlgebraicShellBoolean{common, union, difference} {
+			got, e := b.LocateMaterial(ctx, q.point, SplineShellBooleanOptions{})
+			if e != nil || got != q.want[i] {
+				t.Fatal("Boolean material location", i, q.point, got, q.want[i], e)
+			}
+		}
+	}
 	copyOfViews := common
 	copyOfViews.Edges, copyOfViews.Faces, copyOfViews.Vertices = nil, nil, nil
 	native, e := copyOfViews.NativeTubeLens(ctx, 1e-8, edgecheck.Options{})
@@ -144,6 +170,25 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 	width := func(x geom.ExactParameterInterval) *big.Rat { return new(big.Rat).Sub(x.Upper, x.Lower) }
 	if volume.Volume.Lower.Cmp(wantLo) >= 0 || volume.Volume.Upper.Cmp(wantHi) <= 0 || width(volume.Volume).Cmp(width(coarse.Volume)) >= 0 {
 		t.Fatal("refinement did not tighten the enclosure of the analytic common volume", coarse.Volume, volume.Volume)
+	}
+	areaCoarse, e := common.BoundSurfaceArea(ctx, AlgebraicShellMeasureOptions{MaxDepth: 4, TubeSubdivisions: 8})
+	if e != nil {
+		t.Fatal(e)
+	}
+	area, e := common.BoundSurfaceArea(ctx, AlgebraicShellMeasureOptions{MaxDepth: 10, TubeSubdivisions: 8})
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Plane disk plus integral of sqrt(1+4ρ²) over the roof disk.
+	radius := 5.0 / 16
+	analyticArea := math.Pi * (radius*radius + (math.Pow(1+4*radius*radius, 1.5)-1)/6)
+	low, high := ratInset(analyticArea-1e-12), ratInset(analyticArea+1e-12)
+	if area.Area.Lower.Sign() <= 0 || area.Area.Lower.Cmp(low) >= 0 || area.Area.Upper.Cmp(high) <= 0 ||
+		width(area.Area).Cmp(width(areaCoarse.Area)) >= 0 {
+		t.Fatal("area enclosure disagrees with the analytic trimmed surfaces", areaCoarse.Area, area.Area)
+	}
+	if x, e := common.BoundSurfaceArea(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); e == nil || x.Area.Lower != nil || x.Area.Upper != nil {
+		t.Fatal("exhausted area proof exposed a partial measure", x, e)
 	}
 	var raw bytes.Buffer
 	if e = WriteAlgebraicShellSectionJSON(&raw, r); e != nil {

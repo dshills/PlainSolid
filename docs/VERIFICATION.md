@@ -99,6 +99,15 @@ then qualifies two independent closures and an analytic total volume bracket
 for its two disjoint circular sections. Independently authored and Go-written
 IGES type 186 fixtures (`23c2931`) both transfer through pinned OCCT as valid
 tetrahedra with four faces, volume 4/3 and centroid (1/2, 1/2, 1/2).
+The reflected oblique IGES hexahedron (`bd81c25`) transfers both ways as one
+valid six-face OCCT solid, with volume 13 and centroid (2.5, 5, 6.5). The
+shared algebraic Boolean display (`9983659`) has 56 model edges and 180
+certified straight display segments at deflection 0.02. Opposite coedges
+share indices, and edits to diagnostic views do not change the proof. The
+two-image cylinder proof (`92a3723`) separately distinguishes two physically
+disjoint intersection components from the connected annular union. The YZ
+shell regression (`6abcc6b`) uses overlapping unequal projected rectangles and
+closes the resulting union on the original sources.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

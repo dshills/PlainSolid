@@ -9,15 +9,21 @@ import (
 	"plainsolid/geom"
 )
 
-type AlgebraicShellVolumeOptions struct {
+// AlgebraicShellMeasureOptions controls conservative subdivision of the
+// original face charts for certified shell Boolean measures.
+type AlgebraicShellMeasureOptions struct {
 	Shells                               SplineShellBooleanOptions
 	MaxDepth, MaxCells, TubeSubdivisions int
 }
+
+type AlgebraicShellVolumeOptions = AlgebraicShellMeasureOptions
 
 type AlgebraicShellVolumeBounds struct {
 	Volume                       geom.ExactParameterInterval
 	VisitedCells, AmbiguousCells int
 }
+
+type booleanSurfaceCellCounts struct{ VisitedCells, AmbiguousCells int }
 
 // BoundVolume encloses the signed volume of the original curved Boolean.
 // Exact tube enclosures cover every potential cut in each UV chart. A cell
@@ -26,15 +32,32 @@ type AlgebraicShellVolumeBounds struct {
 // unclassified cell is charged conservatively, including zero. Increasing
 // the depth and tube subdivisions can tighten the enclosure.
 func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShellVolumeOptions) (out AlgebraicShellVolumeBounds, err error) {
+	volume := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
+	counts, err := s.visitBooleanSurfaceCells(ctx, o, func(p *geom.SurfacePatch, origin geom.Vec3, partial, reversed bool) error {
+		lo, hi, e := booleanVolumeCellFlux(ctx, p, origin, partial, o.Shells.Embedding.Patches)
+		if e != nil {
+			return e
+		}
+		if reversed {
+			lo, hi = hi.Neg(hi), lo.Neg(lo)
+		}
+		volume.Lower.Add(volume.Lower, lo)
+		volume.Upper.Add(volume.Upper, hi)
+		return nil
+	})
+	out.VisitedCells, out.AmbiguousCells = counts.VisitedCells, counts.AmbiguousCells
+	if err == nil {
+		out.Volume = volume
+	}
+	return out, err
+}
+
+func (s AlgebraicShellBoolean) visitBooleanSurfaceCells(ctx context.Context, o AlgebraicShellMeasureOptions,
+	visit func(*geom.SurfacePatch, geom.Vec3, bool, bool) error) (out booleanSurfaceCellCounts, err error) {
 	if ctx == nil || s.source == nil || o.MaxDepth < 0 || o.MaxDepth > 16 || o.MaxCells < 0 || o.MaxCells > 262144 ||
 		o.TubeSubdivisions < 0 || o.TubeSubdivisions > 128 || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
 		return out, geom.ErrInvalid
 	}
-	defer func() {
-		if err != nil {
-			out.Volume = geom.ExactParameterInterval{}
-		}
-	}()
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
@@ -50,7 +73,6 @@ func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShell
 	if o.Shells.MaxRays == 0 {
 		o.Shells.MaxRays = 12
 	}
-	out.Volume = geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
 	if len(s.faces) == 0 {
 		return out, nil
 	}
@@ -97,8 +119,14 @@ func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShell
 			if e != nil {
 				return out, e
 			}
-			lo, _ := domain.Lower.Float64()
-			hi, _ := domain.Upper.Float64()
+			lo, e := geom.RepresentedExactScalar(domain.Lower)
+			if e != nil {
+				return out, e
+			}
+			hi, e := geom.RepresentedExactScalar(domain.Upper)
+			if e != nil {
+				return out, e
+			}
 			a := lo
 			for i := 1; i <= o.TubeSubdivisions; i++ {
 				t := float64(i) / float64(o.TubeSubdivisions)
@@ -194,22 +222,13 @@ func (s AlgebraicShellBoolean) BoundVolume(ctx context.Context, o AlgebraicShell
 				}
 				continue
 			}
-			// The full-cell flux enclosure also bounds the integrand
-			// pointwise (depth zero except exact source knot splits).
-			// Split knots explicitly so a clipped subset of a cell may
-			// independently contribute any measure between zero and full.
-			lo, hi, e := booleanVolumeCellFlux(ctx, x.p, origin, x.state == 0, o.Shells.Embedding.Patches)
-			if e != nil {
-				return out, e
-			}
 			if x.state == 0 {
 				out.AmbiguousCells++
 			}
-			if sources[op].faces[x.id].Reversed != (s.op == parametric.Difference && op == 1) {
-				lo, hi = hi.Neg(hi), lo.Neg(lo)
+			reversed := sources[op].faces[x.id].Reversed != (s.op == parametric.Difference && op == 1)
+			if e := visit(x.p, origin, x.state == 0, reversed); e != nil {
+				return out, e
 			}
-			out.Volume.Lower.Add(out.Volume.Lower, lo)
-			out.Volume.Upper.Add(out.Volume.Upper, hi)
 		}
 	}
 	return out, nil
@@ -250,6 +269,9 @@ func volumeShellWitness(ctx context.Context, p *geom.SurfacePatch, other Solid, 
 
 func booleanVolumeCellFlux(ctx context.Context, p *geom.SurfacePatch, origin geom.Vec3, partial bool,
 	o geom.SurfacePatchOptions) (*big.Rat, *big.Rat, error) {
+	// A depth-zero flux enclosure bounds the integrand pointwise within
+	// each original knot cell. A clipped subset may independently
+	// contribute any measure between zero and the full cell.
 	u, v := p.KnotBreaks()
 	if len(u) < 2 || len(v) < 2 || (len(u)-1)*(len(v)-1) > 4096 {
 		return nil, nil, geom.ErrConvergence

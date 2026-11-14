@@ -245,6 +245,12 @@ when exact chart boxes prove that they do not touch or nest. A two-lobe roof
 has two closed common components and can return two independent native solids
 with continuously certified paired trims. General mixed and nested arrangements
 remain open.
+Qualified shell Booleans now classify represented material points and bound
+both volume and boundary area on the original charts. The certified indexed
+display shares the same vertex between opposing coedges while preserving
+source and section roles. Face fill remains separate. A rotated shell section
+with unequal graph rectangles proves coverage on the full source charts after
+clipping only the seed search.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and
