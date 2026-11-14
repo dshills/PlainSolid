@@ -69,6 +69,8 @@ func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 		}
 	case p.XBlindDepth != 0 || p.XOppositeCap:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.XBlindDepth, p.BlindDepth, p.XOppositeCap, p.OppositeCap, 1e-9)
+	case p.BlindDepth == p.Crossing.Z+p.Radius && !p.OppositeCap:
+		result, err = trimmed.BoxFarTangentCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
 	case p.BlindDepth != 0 || p.OppositeCap:
 		result, err = trimmed.BoxBlindCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, p.OppositeCap, 1e-9)
 	default:

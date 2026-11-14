@@ -115,7 +115,8 @@ non-millimeter import. When the full projected footprints are separated,
 disjoint mixed-axis blind bores can also exchange their finite floors and
 entry faces through STEP. The finite-bore path also handles crossing
 full-through projections when the actual cutter spans have separated
-padded bounds. Intersecting unequal-radius through cutters on
+padded bounds. Exact rational comparisons of finite radial sections can
+also prove disjointness when those bounds overlap. Intersecting unequal-radius through cutters on
 perpendicular axes retain analytic radical trims and pass native rebuild,
 project reopen and watertight STL. STEP preserves the analytic support
 surfaces and exchanges the nonrational trim rings as cubic splines with
@@ -139,8 +140,9 @@ perpendicular bores also retain two circular-segment floor faces when
 the blind stop passes the crossing axis and remains within the through
 bore. STEP and STL preserve both segments on either side of the crossing
 axis. A blind stop exactly at the crossing axis retains the wall
-intersection and consumes the entire planar floor. Near and far tangency
-and broader blind Hole combinations are separate cases. A single oblique through cutter in rectangular stock now
+intersection and consumes the entire planar floor. The exact far-tangent
+stop retains a full floor and passes manifold STEP and STL. The
+near-tangent limit forms a nonmanifold contact diameter and rejects. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.

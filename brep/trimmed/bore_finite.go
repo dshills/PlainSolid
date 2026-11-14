@@ -30,6 +30,7 @@ func BoreFiniteCylinders(s brep.Solid, cuts []CylinderCut, depths []float64, tol
 		return b
 	}
 	var bounds []geom.Box
+	var envelopes []finiteBoreEnvelope
 	var pending []Face
 	floors := make([]int, len(cuts))
 	for i := range floors {
@@ -94,8 +95,10 @@ func BoreFiniteCylinders(s brep.Solid, cuts []CylinderCut, depths []float64, tol
 				}
 			}
 		}
+		padding := 0.
 		pad := func(lo, hi float64) (float64, float64) {
 			m := tolerance + 128*0x1p-52*max(math.Abs(lo), math.Abs(hi))
+			padding = max(padding, math.Nextafter(m, math.Inf(1)))
 			return math.Nextafter(lo-m, math.Inf(-1)), math.Nextafter(hi+m, math.Inf(1))
 		}
 		box.Min.X, box.Max.X = pad(box.Min.X, box.Max.X)
@@ -104,12 +107,14 @@ func BoreFiniteCylinders(s brep.Solid, cuts []CylinderCut, depths []float64, tol
 		if !box.Valid() {
 			return Solid{}, nil, nil, geom.ErrInvalid
 		}
+		envelope := finiteBoreSupport(t.faces[h.WallFaces[0]].Surface, box, padding)
 		for j, b := range bounds {
-			if _, ok := b.Intersect(box); ok {
+			if _, ok := b.Intersect(box); ok && !finiteBoresSeparated(envelopes[j], envelope) {
 				return Solid{}, nil, nil, fmt.Errorf("trimmed: tools %d and %d do not have separated bounds", j, i)
 			}
 		}
 		bounds = append(bounds, box)
+		envelopes = append(envelopes, envelope)
 		edgeOffset, vertexOffset, faceOffset := len(edges)-ne, len(v)-nv, len(faces)-nf
 		remap := func(id int) int {
 			if id >= ne {
