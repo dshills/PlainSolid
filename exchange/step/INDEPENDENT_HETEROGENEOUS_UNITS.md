@@ -36,4 +36,17 @@ transfer as three valid OCCT solids. Physical volume is
 Tests cover native reload, original IDs, exact normalized dimensions, cross-root
 borrowing, wrong support types, shifted pcurves, a nonbinary cylinder line speed,
 cumulative limits, cancellation, prior API rejection, race and bounded fuzz.
-This milestone does not introduce a heterogeneous native envelope tag.
+`WriteNormalizedIndependentMaterialsJSON` and
+`ReadNormalizedIndependentMaterialsJSON` use the distinct
+`plainsolid-step-normalized-independent-materials` version-one envelope. They
+retain the original source/units, normalized source, every root/shape role and
+canonical native bytes. Reload invokes heterogeneous normalization once from
+original source, then compares all stored claims. Planar speed allowances remain
+confined to planar-owned records; an authored nonbinary cylinder speed still
+fails before normalized material is accepted. Older planar, round and
+unnormalized persistence tags remain unchanged and reject this new tag.
+
+Persistence tests cover byte-stable reload, original model/pcurve speed changes,
+projected-edge and pcurve offsets, round-family speed leakage, unit/target/root/
+source/native tampering, limits, cancellation and atomic writer failure. The
+three-product native reload→normalized STEP chain is independently read by OCCT.

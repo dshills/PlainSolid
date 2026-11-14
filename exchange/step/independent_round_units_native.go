@@ -48,9 +48,13 @@ func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMate
 	}
 	claims.Format = "plainsolid-step-normalized-round-material-claims"
 	format := normalizedRoundFormat
-	if len(planarMode) == 1 && planarMode[0] {
+	if len(planarMode) >= 1 && planarMode[0] {
 		format = normalizedPlanarFormat
 		claims.Format = "plainsolid-step-normalized-planar-material-claims"
+	}
+	if len(planarMode) == 2 && planarMode[1] {
+		format = normalizedMixedFormat
+		claims.Format = "plainsolid-step-normalized-heterogeneous-material-claims"
 	}
 	return normalizedRoundEnvelope{format, 1, string(original), m.TargetUnit, append([]RoundMaterialSIUnit(nil), m.OriginalUnits...), claims}, nil
 }
@@ -61,22 +65,23 @@ func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMate
 func WriteNormalizedIndependentRoundMaterialsJSON(ctx context.Context, w io.Writer, m NormalizedIndependentRoundMaterials) error {
 	return writeNormalizedMaterialsJSON(ctx, w, m, false)
 }
-func writeNormalizedMaterialsJSON(ctx context.Context, w io.Writer, m NormalizedIndependentRoundMaterials, planar bool) error {
+func writeNormalizedMaterialsJSON(ctx context.Context, w io.Writer, m NormalizedIndependentRoundMaterials, planar bool, mixedMode ...bool) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return e
 	}
-	actual, e := normalizedRoundClaims(ctx, m, planar)
+	mixed := len(mixedMode) == 1 && mixedMode[0]
+	actual, e := normalizedRoundClaims(ctx, m, planar, mixed)
 	if e != nil {
 		return e
 	}
-	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance, planar)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance, planar, mixed)
 	if e != nil {
 		return e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof, planar)
+	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed)
 	if e != nil {
 		return e
 	}
@@ -108,7 +113,7 @@ func writeNormalizedMaterialsJSON(ctx context.Context, w io.Writer, m Normalized
 func ReadNormalizedIndependentRoundMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits) (NormalizedIndependentRoundMaterials, error) {
 	return readNormalizedMaterialsJSON(ctx, r, l, false)
 }
-func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, planar bool) (NormalizedIndependentRoundMaterials, error) {
+func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, planar bool, mixedMode ...bool) (NormalizedIndependentRoundMaterials, error) {
 	bad := func() (NormalizedIndependentRoundMaterials, error) {
 		return NormalizedIndependentRoundMaterials{}, geom.ErrInvalid
 	}
@@ -139,6 +144,11 @@ func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l Independent
 		format = normalizedPlanarFormat
 		claimsFormat = "plainsolid-step-normalized-planar-material-claims"
 	}
+	mixed := len(mixedMode) == 1 && mixedMode[0]
+	if mixed {
+		format = normalizedMixedFormat
+		claimsFormat = "plainsolid-step-normalized-heterogeneous-material-claims"
+	}
 	var q normalizedRoundEnvelope
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -149,11 +159,11 @@ func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l Independent
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance, planar)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance, planar, mixed)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof, planar)
+	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}

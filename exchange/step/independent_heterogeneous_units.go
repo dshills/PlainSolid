@@ -16,6 +16,7 @@ const (
 )
 
 type NormalizedIndependentMaterials struct {
+	tolerance                        float64
 	OriginalSource, NormalizedSource *File
 	Members                          []IndependentExactMaterial
 	OriginalUnits                    []IndependentMaterialSIUnit
@@ -31,7 +32,7 @@ func ReadNormalizedIndependentMaterials(ctx context.Context, r io.Reader, target
 	if e != nil {
 		return NormalizedIndependentMaterials{}, e
 	}
-	q := NormalizedIndependentMaterials{OriginalSource: m.OriginalSource, NormalizedSource: m.NormalizedSource, Members: m.Members, TargetUnit: target}
+	q := NormalizedIndependentMaterials{OriginalSource: m.OriginalSource, NormalizedSource: m.NormalizedSource, Members: m.Members, TargetUnit: target, tolerance: m.tolerance}
 	for _, u := range m.OriginalUnits {
 		q.OriginalUnits = append(q.OriginalUnits, IndependentMaterialSIUnit(u))
 	}
