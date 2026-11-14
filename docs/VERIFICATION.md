@@ -5488,3 +5488,12 @@ with 385,617 operations and exhausted the lower quota. Removing either
 branch, forging a tube, changing the XY projection or exceeding the budget
 fails closed. The integrated focused race passed in 6.838 s. This is the
 direct projected proof; the section driver is separately qualified.
+
+`SubtractOrderedRoofBoxes` separately qualifies a covered-footprint Cut of
+an exact weighted stock. The original reversed cutter roof becomes the lower
+face, and rational ruled walls share a positive homogeneous denominator and
+both original boundary curves. The result volume is 9/2 − 3 log 2 and the
+area agrees with the independent OCCT Boolean. A fully covering cutter
+returns empty; floor-only contact retains the original stock. The fixed
+one-band constructor rejects an unresolved or multi-band difference. The
+focused live race run for Common and Cut passed in 27.850 s.

@@ -318,6 +318,11 @@ int main(int argc, char** argv) {
       report("tangent-ordered-common",BRepAlgoAPI_Common(curved,plane).Shape());
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="weighted-ordered-difference") {
+      const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,4)).Shape();
+      report("weighted-ordered-difference",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape());
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());

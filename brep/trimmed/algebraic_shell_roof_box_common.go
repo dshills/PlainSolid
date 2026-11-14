@@ -18,6 +18,14 @@ type RoofBoxCommonHistory struct {
 	ExactOperations  int
 }
 
+// RoofBoxDifferenceHistory names original sources for the complete output.
+// The retained cutter roof is reversed when it forms the new lower face.
+type RoofBoxDifferenceHistory struct {
+	Faces           []MixedRoofFaceOwner
+	Reversed        []bool
+	ExactOperations int
+}
+
 // IntersectOrderedRoofBoxes builds a native regularized Common when the two
 // roofs have a provably fixed order over the entire common XY rectangle. Its
 // initial construction lane requires a single rational Bézier span on the
@@ -116,8 +124,34 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	if gap.HalfspaceSign != 1 || gap.SideMask != 0 || gap.CornerMask != 0 {
 		return empty, zero, geom.ErrUnrepresentable
 	}
+	bottom, err := roofBoxConstructionPatch(ctx, d, 1, 1, [][4]*big.Rat{
+		{xy[0].Lower, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Lower, xy[1].Upper, floor, big.NewRat(1, 1)},
+		{xy[0].Upper, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Upper, xy[1].Upper, floor, big.NewRat(1, 1)},
+	}, &work)
+	if err != nil {
+		return empty, zero, err
+	}
+	out, err := assembleOrderedRoofBox(ctx, raw, bottom, d, max(a.tolerance, b.tolerance), &work)
+	if err != nil {
+		return empty, zero, err
+	}
+	history.Faces = append(history.Faces, MixedRoofFaceOwner{roofIndex, roof.roofFace}, MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace})
+	for boundary, fixed := range [4]float64{d.UMin, d.UMax, d.VMin, d.VMax} {
+		owner := 0
+		if fixed != [4]float64{left.domain.UMin, left.domain.UMax, left.domain.VMin, left.domain.VMax}[boundary] {
+			owner = 1
+		}
+		history.Faces = append(history.Faces, MixedRoofFaceOwner{owner, q.box[owner].sideFaces[boundary]})
+	}
+	history.ExactOperations = work.operations
+	return out, history, nil
+}
+
+// Both complete graphs must project identically and be strictly separated
+// over d. Exact rational ruled walls interpolate their physical heights.
+func assembleOrderedRoofBox(ctx context.Context, upper, lower *geom.SurfacePatch, d geom.ParameterRectangle, tolerance float64, w *mixedRoofLineWork) (Solid, error) {
 	parts := make([]SewFace, 0, 6)
-	add := func(patch *geom.SurfacePatch, reversed bool, owner MixedRoofFaceOwner) error {
+	add := func(patch *geom.SurfacePatch, reversed bool) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -125,7 +159,7 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 		if err != nil {
 			return err
 		}
-		opt, err := roofBoxConstructionOptions(&work)
+		opt, err := roofBoxConstructionOptions(w)
 		if err != nil {
 			return err
 		}
@@ -134,76 +168,67 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 			return err
 		}
 		parts = append(parts, part)
-		history.Faces = append(history.Faces, owner)
 		return nil
 	}
-	if err := add(raw, false, MixedRoofFaceOwner{roofIndex, roof.roofFace}); err != nil {
-		return empty, zero, err
+	if err := add(upper, false); err != nil {
+		return Solid{}, err
 	}
-	bottom, err := roofBoxConstructionPatch(ctx, d, 1, 1, [][4]*big.Rat{
-		{xy[0].Lower, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Lower, xy[1].Upper, floor, big.NewRat(1, 1)},
-		{xy[0].Upper, xy[1].Lower, floor, big.NewRat(1, 1)}, {xy[0].Upper, xy[1].Upper, floor, big.NewRat(1, 1)},
-	}, &work)
-	if err != nil {
-		return empty, zero, err
+	if err := add(lower, true); err != nil {
+		return Solid{}, err
 	}
-	if err := add(bottom, true, MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace}); err != nil {
-		return empty, zero, err
-	}
-	data, err := raw.ExportExactBezierRecipe()
-	if err != nil {
-		return empty, zero, err
-	}
-	for boundary, fixed := range [4]float64{d.UMin, d.UMax, d.VMin, d.VMax} {
-		axis, end := boundary/2, boundary%2
-		varying := xy[1-axis]
-		lo, _ := varying.Lower.Float64()
-		hi, _ := varying.Upper.Float64()
-		degree := [2]int{data.DegreeV, data.DegreeU}[axis]
-		var controls [][4]*big.Rat
-		for k := 0; k <= degree; k++ {
-			i, j := data.DegreeU*end, k
-			if axis == 1 {
-				i, j = k, data.DegreeV*end
-			}
-			var top [4]*big.Rat
-			for l, s := range data.Controls[i*(data.DegreeV+1)+j] {
-				top[l], _ = new(big.Rat).SetString(s) // canonical exact recipe generated above
-			}
-			z, err := work.rat(new(big.Rat).Mul(top[3], floor))
-			if err != nil {
-				return empty, zero, err
-			}
-			controls = append(controls, [4]*big.Rat{top[0], top[1], z, top[3]}, top)
-		}
-		p, err := roofBoxConstructionPatch(ctx, geom.ParameterRectangle{UMin: lo, UMax: hi, VMax: 1}, degree, 1, controls, &work)
+	var recipes [2]geom.ExactBezierSurfaceRecipe
+	for i, p := range []*geom.SurfacePatch{lower, upper} {
+		var err error
+		recipes[i], err = p.ExportExactBezierRecipe()
 		if err != nil {
-			return empty, zero, err
-		}
-		owner := 0
-		if fixed != [4]float64{left.domain.UMin, left.domain.UMax, left.domain.VMin, left.domain.VMax}[boundary] {
-			owner = 1
-		}
-		if err := add(p, axis == end, MixedRoofFaceOwner{owner, q.box[owner].sideFaces[boundary]}); err != nil {
-			return empty, zero, err
+			return Solid{}, geom.ErrUnrepresentable
 		}
 	}
-	remaining, err = roofBoxConstructionOptions(&work)
+	for boundary := range 4 {
+		axis, side := boundary/2, boundary%2
+		var borders [2][][4]*big.Rat
+		for i, data := range recipes {
+			degree := [2]int{data.DegreeV, data.DegreeU}[axis]
+			for k := 0; k <= degree; k++ {
+				u, v := data.DegreeU*side, k
+				if axis == 1 {
+					u, v = k, data.DegreeV*side
+				}
+				var pole [4]*big.Rat
+				for a, t := range data.Controls[u*(data.DegreeV+1)+v] {
+					pole[a], _ = new(big.Rat).SetString(t)
+				}
+				borders[i] = append(borders[i], pole)
+			}
+		}
+		controls, err := roofBoxRuledControls(borders, w)
+		if err != nil {
+			return Solid{}, err
+		}
+		domain := geom.ParameterRectangle{UMin: d.VMin, UMax: d.VMax, VMax: 1}
+		if axis == 1 {
+			domain.UMin, domain.UMax = d.UMin, d.UMax
+		}
+		p, err := roofBoxConstructionPatch(ctx, domain, len(controls)/2-1, 1, controls, w)
+		if err != nil {
+			return Solid{}, err
+		}
+		if err := add(p, axis == side); err != nil {
+			return Solid{}, err
+		}
+	}
+	remaining, err := roofBoxConstructionOptions(w)
 	if err != nil {
-		return empty, zero, err
+		return Solid{}, err
 	}
-	out, _, err := Sew(ctx, parts, SewOptions{Tolerance: max(a.tolerance, b.tolerance), Proof: edgecheck.Options{MaxWork: remaining.MaxOperations, MaxBits: remaining.MaxCoefficientBits}})
+	out, _, err := Sew(ctx, parts, SewOptions{Tolerance: tolerance, Proof: edgecheck.Options{MaxWork: remaining.MaxOperations, MaxBits: remaining.MaxCoefficientBits}})
 	if err != nil {
-		return empty, zero, err
+		return Solid{}, err
 	}
-	if err := ctx.Err(); err != nil {
-		return empty, zero, err
+	if err := roofBoxCheckSourceEdges(ctx, out, w); err != nil {
+		return Solid{}, err
 	}
-	if err := roofBoxCheckSourceEdges(ctx, out, &work); err != nil {
-		return empty, zero, err
-	}
-	history.ExactOperations = work.operations
-	return out, history, nil
+	return out, ctx.Err()
 }
 
 func roofBoxCheckSourceEdges(ctx context.Context, s Solid, w *mixedRoofLineWork) error {
@@ -326,4 +351,47 @@ func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLi
 		}
 	}
 	return order, nil
+}
+
+// Both wall rows must use the same weight at every longitudinal parameter.
+// Multiplying each original homogeneous curve by the opposite weight gives
+// the same positive denominator, preserving both original boundary curves.
+func roofBoxRuledControls(curves [2][][4]*big.Rat, w *mixedRoofLineWork) ([][4]*big.Rat, error) {
+	m, n := len(curves[0])-1, len(curves[1])-1
+	if min(m, n) < 1 || m+n > 2*mixedRoofMaxDegree {
+		return nil, geom.ErrUnrepresentable
+	}
+	binom := func(n, i int) *big.Int { return new(big.Int).Binomial(int64(n), int64(i)) }
+	out := make([][4]*big.Rat, 2*(m+n+1))
+	for i := range out {
+		for c := range out[i] {
+			out[i][c] = new(big.Rat)
+		}
+	}
+	for i, lo := range curves[0] {
+		for j, hi := range curves[1] {
+			weight, err := w.rat(new(big.Rat).SetFrac(new(big.Int).Mul(binom(m, i), binom(n, j)), binom(m+n, i+j)))
+			if err != nil {
+				return nil, err
+			}
+			for side, p := range [2][4]*big.Rat{lo, hi} {
+				other := [2]*big.Rat{hi[3], lo[3]}[side]
+				factor, err := w.rat(new(big.Rat).Mul(other, weight))
+				if err != nil {
+					return nil, err
+				}
+				for a, c := range p {
+					x, err := w.rat(new(big.Rat).Mul(c, factor))
+					if err != nil {
+						return nil, err
+					}
+					v := out[2*(i+j)+side][a]
+					if _, err := w.rat(v.Add(v, x)); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+	return out, nil
 }
