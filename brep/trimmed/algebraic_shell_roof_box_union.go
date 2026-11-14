@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -65,29 +64,7 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 	// Equal floors guarantee overlap. Otherwise the lower-floor box's
 	// roof must reach the higher floor everywhere.
 	if boxes[0].floor.Cmp(boxes[1].floor) != 0 {
-		axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
-		numerator, weight, err := boxes[floorIndex].roofOrderPower(axes, &w)
-		if err != nil {
-			return Solid{}, zero, err
-		}
-		// Compare physical height to the other floor after multiplication
-		// by the strictly positive roof denominator. A weak sign suffices:
-		// even an interior tangency to the floor leaves no union gap.
-		gap, err := roofHeightDifference(
-			[2]roofPowerGrid{numerator, {{boxes[1-floorIndex].floor}}},
-			[2]roofPowerGrid{weight, {{big.NewRat(1, 1)}}}, &w)
-		if err != nil {
-			return Solid{}, zero, err
-		}
-		unit := [2]geom.ExactParameterInterval{
-			{Lower: new(big.Rat), Upper: big.NewRat(1, 1)},
-			{Lower: new(big.Rat), Upper: big.NewRat(1, 1)},
-		}
-		bounds, err := mixedRoofPowerRange(gap, unit, &w)
-		if err != nil {
-			return Solid{}, zero, err
-		}
-		sign, err := orderedRoofPowerSign(ctx, gap, bounds, &w)
+		sign, err := orderedRoofAgainstFloor(ctx, boxes[floorIndex], xy, boxes[1-floorIndex].floor, &w)
 		if err != nil {
 			return Solid{}, zero, err
 		}

@@ -52,48 +52,34 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 	if b.floor.Cmp(a.floor) > 0 {
 		return subtractFloatingRoofBox(ctx, stock, cutter, q.box, xy, upper, lower, &w)
 	}
-	level, err := geom.RepresentedExactScalar(a.floor)
+	sign, err := orderedRoofAgainstFloor(ctx, b, xy, a.floor, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	plane := mixedCoordinatePlane(2, level)
-	left, err := roofBoxConstructionOptions(&w)
-	if err != nil {
-		return Solid{}, zero, err
-	}
-	atFloor, err := geom.CertifySurfaceSupportingPlane(ctx, lower, plane[0], plane[1], plane[2], geom.SurfaceSupportingPlaneOptions{MaxOperations: left.MaxOperations, MaxCoefficientBits: left.MaxCoefficientBits})
-	w.operations += atFloor.ExactOperations
-	if err != nil {
-		return Solid{}, zero, err
-	}
-	if !atFloor.Complete {
-		return Solid{}, zero, geom.ErrUnrepresentable
-	}
-	if atFloor.Coincident || atFloor.HalfspaceSign < 0 {
+	if sign <= 0 {
 		// Subtraction can remove only a boundary subset. Regularization
 		// retains the whole authenticated source stock and its native IDs.
-		h := RoofBoxDifferenceHistory{ExactOperations: w.operations}
-		for i := range stock.faces {
-			h.Faces = append(h.Faces, MixedRoofFaceOwner{0, i})
-			h.Reversed = append(h.Reversed, false)
-		}
-		return stock, h, ctx.Err()
-	}
-	if atFloor.HalfspaceSign != 1 || atFloor.SideMask != 0 || atFloor.CornerMask != 0 {
-		return Solid{}, zero, geom.ErrUnrepresentable
+		return unchangedOrderedRoofBox(ctx, stock, &w)
 	}
 	cache := make(roofOrderCache)
 	order, err := cache.order(q.box, xy, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	if order.Upper.Sign() <= 0 {
+	sign, err = orderedRoofPowerSign(ctx, cache[q.box].power, order, &w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if sign <= 0 {
 		return Solid{}, RoofBoxDifferenceHistory{ExactOperations: w.operations}, ctx.Err()
 	}
 	// A strict lower bound is sufficient. Tangencies or mixed coefficients
 	// are not accepted here because a pinched difference is not a manifold.
 	if order.Lower.Sign() <= 0 {
 		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	if err := certifyRoofStrictlyAboveFloor(ctx, lower, a.floor, &w); err != nil {
+		return Solid{}, zero, err
 	}
 	s, err := assembleOrderedRoofBox(ctx, upper, lower, d, max(stock.tolerance, cutter.tolerance), &w)
 	if err != nil {
@@ -105,6 +91,17 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 		h.Reversed = append(h.Reversed, false)
 	}
 	return s, h, nil
+}
+
+func unchangedOrderedRoofBox(ctx context.Context, stock Solid, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {
+	if err := ctx.Err(); err != nil {
+		return Solid{}, RoofBoxDifferenceHistory{}, err
+	}
+	h := RoofBoxDifferenceHistory{Faces: make([]MixedRoofFaceOwner, len(stock.faces)), Reversed: make([]bool, len(stock.faces)), ExactOperations: w.operations}
+	for i := range h.Faces {
+		h.Faces[i] = MixedRoofFaceOwner{0, i}
+	}
+	return stock, h, nil
 }
 
 func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, stockRoof, cutterRoof *geom.SurfacePatch, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {

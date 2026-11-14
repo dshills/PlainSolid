@@ -5580,6 +5580,10 @@ volume `11/2 − 3 log 2` agrees with the analytic height integral, and
 independent pinned OCCT agrees on area and centroid as well. The two
 cutter caps reverse and each stock wall maps to two fragments. The live
 split regression passed under race as part of the 16.903 s run.
+An additional interior floor contact fixture distinguishes an empty Common
+and unchanged Cut at tangency from a pinched positive-volume intersection,
+which this constructor rejects. The complete original-order roof suite
+passed under race, with live OCCT, in 10.550 s.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

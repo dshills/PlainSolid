@@ -86,29 +86,16 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	if err != nil {
 		return empty, zero, err
 	}
-	level, err := geom.RepresentedExactScalar(floor)
+	gaps, err := orderedRoofAgainstFloor(ctx, roof, xy, floor, &work)
 	if err != nil {
 		return empty, zero, err
 	}
-	plane := mixedCoordinatePlane(2, level)
-	remaining, err := roofBoxConstructionOptions(&work)
-	if err != nil {
-		return empty, zero, err
-	}
-	gap, err := geom.CertifySurfaceSupportingPlane(ctx, raw, plane[0], plane[1], plane[2], geom.SurfaceSupportingPlaneOptions{MaxOperations: remaining.MaxOperations, MaxCoefficientBits: remaining.MaxCoefficientBits})
-	work.operations += gap.ExactOperations
-	if err != nil {
-		return empty, zero, err
-	}
-	if !gap.Complete {
-		return empty, zero, geom.ErrConvergence
-	}
-	if gap.Coincident || gap.HalfspaceSign < 0 {
+	if gaps <= 0 {
 		history.ExactOperations = work.operations
-		return empty, history, nil
+		return empty, history, ctx.Err()
 	}
-	if gap.HalfspaceSign != 1 || gap.SideMask != 0 || gap.CornerMask != 0 {
-		return empty, zero, geom.ErrUnrepresentable
+	if err := certifyRoofStrictlyAboveFloor(ctx, raw, floor, &work); err != nil {
+		return empty, zero, err
 	}
 	bottom, err := orderedRoofFlatFloor(ctx, d, xy, floor, &work)
 	if err != nil {
@@ -130,6 +117,27 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 	return out, history, nil
 }
 
+func certifyRoofStrictlyAboveFloor(ctx context.Context, roof *geom.SurfacePatch, floor *big.Rat, w *mixedRoofLineWork) error {
+	level, err := geom.RepresentedExactScalar(floor)
+	if err != nil {
+		return err
+	}
+	plane := mixedCoordinatePlane(2, level)
+	remaining, err := roofBoxConstructionOptions(w)
+	if err != nil {
+		return err
+	}
+	gap, err := geom.CertifySurfaceSupportingPlane(ctx, roof, plane[0], plane[1], plane[2], geom.SurfaceSupportingPlaneOptions{MaxOperations: remaining.MaxOperations, MaxCoefficientBits: remaining.MaxCoefficientBits})
+	w.operations += gap.ExactOperations
+	if err != nil {
+		return err
+	}
+	if !gap.Complete || gap.Coincident || gap.HalfspaceSign != 1 || gap.SideMask != 0 || gap.CornerMask != 0 {
+		return geom.ErrUnrepresentable
+	}
+	return nil
+}
+
 // A positive sign means the first roof is the higher one; zero denotes
 // identical graphs. An unresolved mixed sign is never reported as equality.
 func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
@@ -139,6 +147,27 @@ func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom
 		return 0, err
 	}
 	return orderedRoofPowerSign(ctx, cache[boxes].power, difference, w)
+}
+
+// Compare physical height with a constant after multiplication by the
+// strictly positive original denominator. Weak sign includes tangencies.
+func orderedRoofAgainstFloor(ctx context.Context, roof *mixedRoofBox, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (int, error) {
+	axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
+	numerator, weight, err := roof.roofOrderPower(axes, w)
+	if err != nil {
+		return 0, err
+	}
+	one := big.NewRat(1, 1)
+	gap, err := roofHeightDifference([2]roofPowerGrid{numerator, {{floor}}}, [2]roofPowerGrid{weight, {{one}}}, w)
+	if err != nil {
+		return 0, err
+	}
+	unit := [2]geom.ExactParameterInterval{{Lower: new(big.Rat), Upper: one}, {Lower: new(big.Rat), Upper: one}}
+	bounds, err := mixedRoofPowerRange(gap, unit, w)
+	if err != nil {
+		return 0, err
+	}
+	return orderedRoofPowerSign(ctx, gap, bounds, w)
 }
 
 func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {

@@ -124,10 +124,15 @@ func TestOrderedRoofBoxCommonNativeWeighted(t *testing.T) {
 }
 func orderedRoofTangentSource(t *testing.T) Solid {
 	t.Helper()
+	return orderedRoofTangentSourceWithSign(t, 1)
+}
+
+func orderedRoofTangentSourceWithSign(t *testing.T, sign float64) Solid {
+	t.Helper()
 	ctx := context.Background()
 	x := [3]float64{0, .5, 1}
 	y := [2]float64{-.125, 1.125}
-	z := [3]float64{1.25, .75, 1.25} // h=1+(X-1/2)^2
+	z := [3]float64{1 + sign*.25, 1 - sign*.25, 1 + sign*.25} // h=1±(X-1/2)^2
 	floor := -.5
 	var parts []SewFace
 	add := func(du int, d geom.ParameterRectangle, reversed bool, point func(int, int) geom.Vec3) {
@@ -164,6 +169,25 @@ func orderedRoofTangentSource(t *testing.T) Solid {
 		t.Fatal(err)
 	}
 	return curved
+}
+
+func TestOrderedRoofBoxInteriorFloorContact(t *testing.T) {
+	ctx := context.Background()
+	tool := orderedRoofTangentSourceWithSign(t, -1)
+	stock, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 1}, [3]float64{1, 1.125, 2}, 0)
+	if out, h, err := IntersectOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err != nil || !h.ProjectedContact || out.Topology().Faces != 0 {
+		t.Fatal("interior line contact has no regularized common", out.Topology(), h, err)
+	}
+	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err != nil || len(h.Faces) != 6 || out.faces[0].Surface != stock.faces[0].Surface {
+		t.Fatal("contact-only cut must retain the authenticated stock", out.Topology(), h, err)
+	}
+	tool = orderedRoofTangentSourceWithSign(t, 1)
+	if out, h, err := IntersectOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("positive material pinched at the interior line is unresolved", out.Topology(), h, err)
+	}
+	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("changing cut floor contact remains outside the sewn-band proof", out.Topology(), h, err)
+	}
 }
 
 func TestOrderedRoofBoxCommonNativeTangent(t *testing.T) {
