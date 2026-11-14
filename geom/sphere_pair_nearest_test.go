@@ -105,7 +105,7 @@ func TestSpherePairNearestDispatch(t *testing.T) {
 		b  Vec3
 		r  float64
 		op SphereSetOperation
-	}{{Vec3{X: 1}, 1, SphereSetUnion}, {Vec3{}, 5, SphereSetUnion}, {Vec3{X: 10}, 1, SphereSetDifference}, {Vec3{}, 6, SphereSetDifference}, {Vec3{X: 10}, 1, SphereSetIntersection}, {Vec3{X: 1}, 1, SphereSetIntersection}, {Vec3{X: 4}, 1, SphereSetDifference}} {
+	}{{Vec3{}, 6, SphereSetDifference}, {Vec3{X: 10}, 1, SphereSetIntersection}, {Vec3{X: 4}, 1, SphereSetDifference}} {
 		s, _ := NewSpherePairMaterial(Vec3{}, 5, tc.b, tc.r, tc.op)
 		v, e := s.NearestBoundaryRational(ctx, [3]*big.Rat{r(0, 1), r(0, 1), r(0, 1)}, SphereFullBoundaryDistanceOptions{})
 		if !errors.Is(e, ErrDomain) || !reflect.DeepEqual(v, SpherePairNearest{}) {

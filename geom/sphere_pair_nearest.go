@@ -13,6 +13,7 @@ const (
 	SphereNearestCavity
 	SphereNearestTransverseIsolated
 	SphereNearestTransverseAxis
+	SphereNearestSingle
 )
 
 // SpherePairNearest preserves the complete original-owner set and exact
@@ -28,6 +29,7 @@ type SpherePairNearest struct {
 	Cavity       *SphereCavityNearest
 	Isolated     *SphereOverlapAlgebraicNearest
 	Axis         *SphereVectorAxisNearest
+	Single       *SphereSingleNearest
 }
 
 // NearestBoundaryRational selects one exact sphere-pair nearest proof without
@@ -35,8 +37,10 @@ type SpherePairNearest struct {
 // Union (including external tangency), strictly enclosed cavity Difference,
 // and every transverse Union/Intersection/Difference with either isolated feet
 // or complete axis families. Arbitrary represented center directions are valid.
-// Other containment, coincident, empty and redundant single-sphere regimes
-// return ErrDomain. The native assembly contract is independently unchanged.
+// Containment, coincidence and disjoint/tangent subtraction that reduce to one
+// sphere return Single. Coincident Union/Intersection retains both owners;
+// discarded touching supports do not become owners. Empty regularized results
+// and internally tangent cavities return ErrDomain. Native assembly is unchanged.
 // All selection, candidate construction and comparison share one work/bit
 // ledger. Every failure returns a zero result, never a partially proved payload.
 func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SpherePairNearest, err error) {
@@ -78,7 +82,18 @@ func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*b
 	if a.err != nil {
 		return out, a.err
 	}
-	if s.transverse {
+	if s.mode == 3 {
+		return out, ErrDomain
+	}
+	if s.mode == 1 || s.mode == 2 || s.mode == 4 {
+		q, e := s.nearestSingleSphereBoundaryRational(ctx, p, o, budget)
+		if e != nil {
+			return out, e
+		}
+		out.Kind = SphereNearestSingle
+		out.Single = &q
+		out.Lower, out.Upper, out.Owners = q.Lower, q.Upper, q.Owners
+	} else if s.transverse {
 		d, v := [3]*big.Rat{}, [3]*big.Rat{}
 		for j := 0; j < 3; j++ {
 			d[j] = a.sub(s.center[1][j], s.center[0][j])
