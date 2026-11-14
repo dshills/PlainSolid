@@ -113,7 +113,9 @@ queries, STEP and STL pass. Disjoint through cutters on two or three
 cardinal axes now retain canonical STEP, including unequal radii and
 non-millimeter import. When the full projected footprints are separated,
 disjoint mixed-axis blind bores can also exchange their finite floors and
-entry faces through STEP. Intersecting unequal-radius through cutters on
+entry faces through STEP. The finite-bore path also handles crossing
+full-through projections when the actual cutter spans have separated
+padded bounds. Intersecting unequal-radius through cutters on
 perpendicular axes retain analytic radical trims and pass native rebuild,
 project reopen and watertight STL. STEP preserves the analytic support
 surfaces and exchanges the nonrational trim rings as cubic splines with

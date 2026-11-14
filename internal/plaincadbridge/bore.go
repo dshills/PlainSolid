@@ -219,8 +219,26 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
 		pair, pairCuts, pairSpans, pairBlind := retainedCrossedToolPair(cylinders, cuts, spans, blind)
-		if result, handled, err := newBlindCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
-			return result, err
+		depths := make([]float64, len(cylinders))
+		hasBlind := false
+		for i := range blind {
+			if blind[i] {
+				depths[i] = spans[i]
+				hasBlind = true
+			}
+		}
+		crossed, handled, crossedErr := newBlindCrossedBore(base, pair, pairCuts, pairSpans, pairBlind)
+		if handled && crossedErr == nil {
+			return crossed, nil
+		}
+		if hasBlind {
+			boundary, _, finiteFloors, finiteErr := trimmed.BoreFiniteCylinders(base, cuts, depths, 1e-9)
+			if finiteErr == nil {
+				return &boreBody{solid: boundary, base: base, cylinders: cylinders, cuts: cuts, spans: spans, blind: blind, floors: finiteFloors}, nil
+			}
+		}
+		if handled {
+			return nil, crossedErr
 		}
 		if result, handled, err := newCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
 			return result, err

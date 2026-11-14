@@ -84,8 +84,9 @@ STEP and STL. Disjoint mixed-axis blind bores also retain their floor
 planes and entry caps in STEP when their projected through bounds are
 separated. A stop before the crossing axis retains split floor faces.
 At the axis, the through Hole consumes the full floor. Both now pass
-manufacturing exchange. Next qualify finite disjoint bores with crossing
-projections and the far-tangent floor. A single oblique through Hole with
+manufacturing exchange. Finite disjoint bores with crossing full-through
+projections pass when the actual finite bounds are clear. Next qualify
+radial separation with overlapping bounds and the far-tangent floor. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.
