@@ -33,6 +33,10 @@ func (s Solid) IntersectPlacedWrappedFrustumLineRational(ctx context.Context, po
 	if e != nil {
 		return out, e
 	}
+	return placedFrustumLineOwners(r, ids)
+}
+
+func placedFrustumLineOwners(r geom.CylinderLineIntersections, ids [3]int) (out WrappedLoftLineIntersections, err error) {
 	for _, h := range r.Hits {
 		hit := WrappedLoftLineHit{Parameter: h.Parameter, Parts: h.Parts}
 		for i, part := range placedFrustumParts {
@@ -159,4 +163,137 @@ func (s Solid) BoundPointPlacedWrappedFrustumDistanceRational(ctx context.Contex
 		return out, e
 	}
 	return PlacedWeightedFrustumDistance{CylinderDistanceBounds: r, Face: ids[idx]}, nil
+}
+
+// PlacedFrustumMaterialLine preserves native boundary ownership and the
+// original finite parameter intervals occupied by closed material. Repeated
+// isolated contacts may contribute a singleton span. Endpoints inside the
+// material remain distinct from original boundary events.
+type PlacedFrustumMaterialLine struct {
+	Boundary WrappedLoftLineIntersections
+	Spans    [][2]geom.ToroidLineRoot
+}
+
+// ClipPlacedWrappedFrustumLineRational classifies root-free cells from the
+// complete original frustum boundary proof. Generator and cap overlaps
+// remain explicit, and algebraic endpoints keep their original brackets.
+func (s Solid) ClipPlacedWrappedFrustumLineRational(ctx context.Context, pose placement.RationalRigid, origin, direction [3]*big.Rat,
+	minT, maxT *big.Rat, o geom.ToroidLineOptions) (out PlacedFrustumMaterialLine, err error) {
+	defer func() {
+		if err != nil {
+			out = PlacedFrustumMaterialLine{}
+		}
+	}()
+	p, e := pose.TransformPoint(ctx, origin, true, o.Surface.MaxCoefficientBits)
+	if e != nil {
+		return out, e
+	}
+	d, e := pose.TransformVector(ctx, direction, true, o.Surface.MaxCoefficientBits)
+	if e != nil {
+		return out, e
+	}
+	w, ids, e := s.provePlacedWeightedFrustum(ctx, o.Surface)
+	if e != nil {
+		return out, e
+	}
+	roots, e := geom.IntersectWrappedFrustumLineRational(ctx, w, p, d, minT, maxT, o)
+	if e != nil {
+		return out, e
+	}
+	out.Boundary, e = placedFrustumLineOwners(roots, ids)
+	if e != nil {
+		return out, e
+	}
+	type lineMark struct {
+		t        geom.ToroidLineRoot
+		boundary bool
+	}
+	point := func(t *big.Rat) geom.ToroidLineRoot {
+		return geom.ToroidLineRoot{Min: new(big.Rat).Set(t), Max: new(big.Rat).Set(t)}
+	}
+	marks := []lineMark{{point(minT), false}, {point(maxT), false}}
+	for _, h := range roots.Hits {
+		marks = append(marks, lineMark{h.Parameter, true})
+	}
+	for _, o := range roots.Overlaps {
+		marks = append(marks, lineMark{o.Start, true}, lineMark{o.End, true})
+	}
+	sort.Slice(marks, func(i, j int) bool { return marks[i].t.Min.Cmp(marks[j].t.Min) < 0 })
+	unique := marks[:0]
+	for _, m := range marks {
+		if len(unique) > 0 {
+			u := &unique[len(unique)-1]
+			if m.t.Min.Cmp(u.t.Min) == 0 && m.t.Max.Cmp(u.t.Max) == 0 {
+				u.boundary = u.boundary || m.boundary
+				u.t.Multiplicity = max(u.t.Multiplicity, m.t.Multiplicity)
+				continue
+			}
+			if m.t.Min.Cmp(u.t.Max) <= 0 {
+				return out, geom.ErrConvergence
+			}
+		}
+		unique = append(unique, m)
+	}
+	bits := o.Surface.MaxCoefficientBits
+	if bits == 0 {
+		bits = 16384
+	}
+	eval := func(t *big.Rat) (geom.CylinderLocation, error) {
+		if e := ctx.Err(); e != nil {
+			return geom.CylinderUnknown, e
+		}
+		var xyz [3]*big.Rat
+		for i := range xyz {
+			v := new(big.Rat).Mul(t, d[i])
+			if v.Num().BitLen() > bits || v.Denom().BitLen() > bits {
+				return geom.CylinderUnknown, geom.ErrConvergence
+			}
+			xyz[i] = v.Add(v, p[i])
+		}
+		return geom.LocateWrappedFrustumRational(ctx, w, xyz, o.Surface)
+	}
+	inside := make([]bool, len(unique)+1)
+	for i := 1; i < len(unique); i++ {
+		lo, hi := unique[i-1].t.Max, unique[i].t.Min
+		x, e := eval(new(big.Rat).Quo(new(big.Rat).Add(lo, hi), big.NewRat(2, 1)))
+		if e != nil {
+			return out, e
+		}
+		if x == geom.CylinderBoundary {
+			known := false
+			for _, p := range roots.Overlaps {
+				if lo.Cmp(p.Start.Max) >= 0 && hi.Cmp(p.End.Min) <= 0 {
+					known = true
+					break
+				}
+			}
+			if !known {
+				return out, geom.ErrConvergence
+			}
+		}
+		inside[i] = x == geom.CylinderInside || x == geom.CylinderBoundary
+	}
+	for i, m := range unique {
+		if inside[i] {
+			if len(out.Spans) == 0 {
+				return out, geom.ErrConvergence
+			}
+			out.Spans[len(out.Spans)-1][1] = m.t
+			continue
+		}
+		if m.boundary || inside[i+1] {
+			out.Spans = append(out.Spans, [2]geom.ToroidLineRoot{m.t, m.t})
+		}
+	}
+	if len(unique) == 1 && !unique[0].boundary {
+		x, e := eval(minT)
+		if e != nil {
+			return out, e
+		}
+		if x == geom.CylinderInside || x == geom.CylinderBoundary {
+			t := unique[0].t
+			out.Spans = append(out.Spans, [2]geom.ToroidLineRoot{t, t})
+		}
+	}
+	return out, ctx.Err()
 }
