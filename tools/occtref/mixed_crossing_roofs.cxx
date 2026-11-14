@@ -6,6 +6,7 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepGProp.hxx>
@@ -24,6 +25,7 @@
 #include <Standard_Failure.hxx>
 #include <gp_Mat.hxx>
 #include <gp_Lin.hxx>
+#include <gp_Trsf.hxx>
 
 #include <algorithm>
 #include <cmath>
@@ -180,6 +182,14 @@ int main(int argc, char** argv) {
       reportObliqueLine("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportObliqueLine("union", BRepAlgoAPI_Fuse(a,b).Shape());
       reportObliqueLine("difference", BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="placed-mass") {
+      gp_Trsf pose;
+      pose.SetValues(.6,0,.8,7.0/3,0,1,0,2.0/7,-.8,0,.6,-1.0/3);
+      report("intersection",BRepBuilderAPI_Transform(BRepAlgoAPI_Common(a,b).Shape(),pose,true).Shape());
+      report("union",BRepBuilderAPI_Transform(BRepAlgoAPI_Fuse(a,b).Shape(),pose,true).Shape());
+      report("difference",BRepBuilderAPI_Transform(BRepAlgoAPI_Cut(a,b).Shape(),pose,true).Shape());
       return 0;
     }
     if (argc!=1) throw std::runtime_error("unknown probe");

@@ -140,6 +140,24 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		}
 		hasLineOracle = true
 	}
+	var placedRefs [3]reference
+	hasPlacedOracle := false
+	if oracle := os.Getenv("PLAINSOLID_OCCT_CROSSING_ROOF_PLACED"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "placed-mass").Output()
+		if err != nil {
+			t.Fatal("OCCT placed mass reference", err)
+		}
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		for i, name := range []string{"intersection", "union", "difference"} {
+			if err := decoder.Decode(&placedRefs[i]); err != nil || placedRefs[i].Name != name {
+				t.Fatal("invalid OCCT placed mass reference", placedRefs[i], err)
+			}
+		}
+		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+			t.Fatal("trailing OCCT placed mass reference", err)
+		}
+		hasPlacedOracle = true
+	}
 
 	contains := func(v geom.ExactParameterInterval, want float64) bool {
 		q := new(big.Rat).SetFloat64(want)
@@ -295,6 +313,34 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 				a, b := mass.Inertia[j][k], mass.Inertia[k][j]
 				if !contains(a, ref.Inertia[j][k]) || a.Lower.Cmp(b.Lower) != 0 || a.Upper.Cmp(b.Upper) != 0 {
 					t.Fatal("OCCT world inertia outside native symmetric interval", name, j, k, ref.Inertia[j][k], a)
+				}
+			}
+		}
+		if hasPlacedOracle {
+			r := big.NewRat
+			matrix := [3][4]*big.Rat{
+				{r(3, 5), r(0, 1), r(4, 5), r(7, 3)},
+				{r(0, 1), r(1, 1), r(0, 1), r(2, 7)},
+				{r(-4, 5), r(0, 1), r(3, 5), r(-1, 3)},
+			}
+			pose, err := placement.NewRationalRigid(matrix, 4096)
+			if err != nil {
+				t.Fatal(err)
+			}
+			placed, err := body.BoundPlacedMassProperties(ctx, pose, AlgebraicShellMeasureOptions{MaxDepth: 6, TubeSubdivisions: 8})
+			ref := placedRefs[i]
+			if err != nil || !contains(placed.Volume, ref.Volume) {
+				t.Fatal("OCCT placed volume outside native interval", name, placed.Volume, ref.Volume, err)
+			}
+			for j := range placed.Centroid {
+				if !contains(placed.Centroid[j], ref.Centroid[j]) || !contains(placed.FirstMoment[j], ref.Centroid[j]*ref.Volume) {
+					t.Fatal("OCCT placed first moment outside native interval", name, j, ref.Centroid[j])
+				}
+				for k := range placed.Inertia[j] {
+					a, b := placed.Inertia[j][k], placed.Inertia[k][j]
+					if !contains(a, ref.Inertia[j][k]) || a.Lower.Cmp(b.Lower) != 0 || a.Upper.Cmp(b.Upper) != 0 {
+						t.Fatal("OCCT placed origin inertia outside native symmetric interval", name, j, k, ref.Inertia[j][k], a)
+					}
 				}
 			}
 		}
