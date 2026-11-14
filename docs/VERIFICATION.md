@@ -5580,6 +5580,14 @@ the existing public mesher output; analytic volume `9π` independently
 checks the display at the 0.2 deflection setting. Integrated race passed
 in 10.678 s; the originating combined adapter race passed in 37.503 s.
 
+The hollow variant independently re-proves two outer and three inner
+bands, all 66 original coedge uses, inner orientation and both annular
+caps after reindexing and native reload. Twelve original interior quarter
+rims each retain exactly two adjacent wall owners. The 704 triangles
+are unchanged from the existing certified public mesher. The independent
+integral is `627π/32`; the mesh's lower volume at 0.3 deflection is
+recorded separately. Combined integrated station races passed in 51.044 s.
+
 ## Native ordered roof-box Fuse (2026-11-14)
 
 The independent weighted-stock Fuse reproduces exact height

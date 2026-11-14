@@ -1983,6 +1983,8 @@ Unbored circular frusta and cylinders use the same proved source binding
 and retain both original cap orientations, rim coedges and seam coedges.
 Circular station lofts retain exact shared indexed rows through original
 wall creases, caps, and rational display placement.
+Hollow station lofts retain independently partitioned outer and inward
+walls, with their original shared rims and annular cap ownership.
 
 `FuseOrderedRoofBoxes` builds the exact native Fuse for matching XY
 footprints when rational roofs have a proved height order and the vertical

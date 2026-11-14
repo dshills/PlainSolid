@@ -35,6 +35,18 @@ type CertifiedWrappedStationBoreMesh struct {
 // Options share triangle/sample budgets across families and retry passes;
 // source validation and contact checks retain their separately bounded budgets.
 func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o CertifiedWrappedStationMeshOptions) (out CertifiedWrappedStationBoreMesh, err error) {
+	return s.tessellateWrappedStationBoreBoundaries(ctx, o, nil)
+}
+
+func (s Solid) tessellateWrappedStationBoreBoundaries(ctx context.Context, o CertifiedWrappedStationMeshOptions, capture *[]wrappedDisplayBand) (out CertifiedWrappedStationBoreMesh, err error) {
+	if capture != nil {
+		*capture = nil
+		defer func() {
+			if err != nil {
+				*capture = nil
+			}
+		}()
+	}
 	defer func() {
 		if err != nil {
 			out = CertifiedWrappedStationBoreMesh{}
@@ -139,6 +151,7 @@ func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o Cert
 	tolerance.Mul(tolerance, tolerance)
 	for minimum := 1; minimum <= o.Band.Patch.MaxSubdivisions; {
 		var local [2]CertifiedWrappedStationMesh
+		var localBands [2][]wrappedDisplayBand
 		maximum := minimum
 		for wall := 0; wall < 2; wall++ {
 			remaining := o.Band.Patch.MaxTriangleChecks - checks
@@ -154,7 +167,11 @@ func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o Cert
 				}
 				opts.MaxStationSamples = 1
 			}
-			local[wall], e = families[wall].tessellateWrappedStationLoftFrom(ctx, opts, minimum)
+			var record *[]wrappedDisplayBand
+			if capture != nil {
+				record = &localBands[wall]
+			}
+			local[wall], e = families[wall].tessellateWrappedStationLoftBoundaries(ctx, opts, minimum, record)
 			if e != nil {
 				return out, e
 			}
@@ -171,6 +188,7 @@ func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o Cert
 			minimum = maximum
 			continue
 		}
+		var candidateBoundary []wrappedDisplayBand
 		candidate := CertifiedWrappedStationBoreMesh{Source: proof, Subdivisions: maximum, SourceImageSquaredDistance: new(big.Rat)}
 		for wall, m := range local {
 			mapping := make([]int, len(m.Mesh.Vertices))
@@ -206,6 +224,22 @@ func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o Cert
 				candidate.SquaredErrors = append(candidate.SquaredErrors, new(big.Rat).Set(bound))
 				if bound.Cmp(candidate.SourceImageSquaredDistance) > 0 {
 					candidate.SourceImageSquaredDistance.Set(bound)
+				}
+			}
+			if capture != nil {
+				for _, band := range localBands[wall] {
+					face, ok := faceMap[band.face]
+					if !ok {
+						return out, geom.ErrConvergence
+					}
+					ids := make([]int, len(band.indices))
+					for i, id := range band.indices {
+						if id < 0 || id >= len(mapping) || mapping[id] < 0 {
+							return out, geom.ErrConvergence
+						}
+						ids[i] = mapping[id]
+					}
+					candidateBoundary = append(candidateBoundary, wrappedDisplayBand{face, band.u, band.v, ids})
 				}
 			}
 			for _, ring := range m.StationVertices {
@@ -290,6 +324,9 @@ func (s Solid) TessellateWrappedStationBoreCertified(ctx context.Context, o Cert
 			candidate.SignedDisplayVolume, candidate.Collision, e = checkClosedPeriodicMesh(ctx, candidate.Mesh, o.Band.Collision)
 			if e != nil {
 				return out, e
+			}
+			if capture != nil {
+				*capture = candidateBoundary
 			}
 			return candidate, nil
 		}
