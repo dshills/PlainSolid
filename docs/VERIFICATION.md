@@ -1635,6 +1635,11 @@ The CGO-disabled short run at `551df78` passed all 49 tested packages outside
 passing and 316 skipped test events. The trimmed shards for this revision
 also passed separately: 637 passing and seven skipped test events, with
 elapsed package times of 655, 938 and 798 seconds.
+At `d25b642`, all 49 CGO-disabled packages outside `brep/trimmed` passed the
+short run (3,816 passing and 323 skipped test events; three packages without
+tests). All three trimmed shards passed (658 passing and 14 skipped test
+events; 358, 400 and 343 seconds). This verifies the pinned revision; later
+milestones have separate focused qualification below.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -1919,6 +1924,32 @@ original analytic walls, opening rims, degree-based UV ownership and
 the retained floor where present. OCCT transfers the independent source
 and Go results with volumes 34π and 32π, and areas 46π and 48π.
 The rounded vendor copies are documented negative cases for the exact codecs.
+Mixed IGES solids (`4150e8b`) now include both analytic bore types with a
+tetrahedron in an independent three-solid file. Pinned OCCT transfers 13
+faces, volume 4/3 + 66π and area 6 + 2√3 + 94π, with the independent centroid.
+Go 1.23, race, bounded fuzz and cross-root ownership guards passed.
+The STEP disk-hole assembly (`8b9d11d`) retains two local definitions and
+three placed occurrences, including a reused definition. Pinned OCCT
+transfers the independent XCAF fixture and Go output as three solids and
+14 faces, with volume 100π, area 140π and centroid (0.9, 6.8, 1.34).
+The independent vendor file remains a negative case for the strict canonical
+body reader. Focused Go 1.23, normal, race and bounded fuzz passed.
+Native open wrapped algebraic faces (`23c2218`, `019f243`) preserve authored
+boundary edges and exact model cells across irrational interior seams. Their
+standalone bounded JSON re-proves composition, edge/vertex ownership and
+embedding on reload. Altered interiors with identical endpoints, malformed
+witness data and nonrepresentable boundary vertices reject. Focused normal
+and race passed; the legacy face recipe remains strict.
+The XZ disjoint Boolean display (`529dc1e`) preserves both component and
+global winding and original owner traversal under a signed translation.
+The full fixture verifies 3,392 triangles and 473,718 component and collection
+collision pairs. The signed XZ exact-owner annulus (`5b962ca`) retains the
+original `41/24` homogeneous control, world normals and 13,416 triangles;
+full normal and bounded placement/guard race passed.
+Reindexed native frustum bores (`9c3fa87`, `43126f1`) re-prove face ownership
+after JSON reload. Horizontal section retains the exact original `V=3/7`;
+axis, annular and cavity line tests distinguish both opening disks from both
+retained inner caps and preserve original face IDs. Normal and race passed.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the

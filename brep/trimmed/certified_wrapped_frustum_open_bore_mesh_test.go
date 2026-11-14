@@ -5,12 +5,177 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"slices"
 	"testing"
 
 	"plainsolid/brep/placement"
 	"plainsolid/collision"
 	"plainsolid/geom"
 )
+
+func TestCertifiedEccentricFrustumThroughBoreMesh(t *testing.T) {
+	ctx := context.Background()
+	embedding := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	stock, _, e := geom.DraftWrappedFrustum(ctx, base, 0, 3, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: .25, Y: .25}, 1, 4, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, source, e := NewWrappedEccentricCircularFrustumBore(ctx, stock, tool, 1e-8, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	faces := body.Faces()
+	slices.Reverse(faces)
+	body, e = NewSolidContext(ctx, body.Vertices(), body.Edges(), faces, 1e-8)
+	if e != nil {
+		t.Fatal(e)
+	}
+	o := CertifiedWrappedFrustumMeshOptions{Patch: CertifiedPatchMeshOptions{Deflection: .15}}
+	m, e := body.TessellateCanonicalWrappedFrustumThroughBoreNormalsCertified(ctx, .4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !m.Collision.Complete || len(m.Collision.Contacts) != 0 || len(m.OriginalFace) != len(m.Mesh.Triangles) ||
+		len(m.SquaredErrors) != len(m.Mesh.Triangles) ||
+		m.SourceImageSquaredDistance.Cmp(new(big.Rat).Mul(ratInset(.15), ratInset(.15))) > 0 ||
+		m.SquaredNormalTangent.Sign() <= 0 || m.SquaredNormalTangent.Cmp(new(big.Rat).Mul(ratInset(.4), ratInset(.4))) > 0 {
+		t.Fatal("incomplete through-bore certificate")
+	}
+	id := func(i int) int { return len(faces) - 1 - i }
+	endOwners := [2]int{id(source.OuterFaces[1]), id(source.OuterFaces[2])}
+	counts := [4]int{}
+	allEdges := make(map[[2]int]bool)
+	capEdges := [2]map[[2]int]int{make(map[[2]int]int), make(map[[2]int]int)}
+	for i, tri := range m.Mesh.Triangles {
+		owner := m.OriginalFace[i]
+		counts[owner]++
+		end := slices.Index(endOwners[:], owner)
+		if end >= 0 {
+			a, b, c := m.Mesh.Vertices[tri[0]], m.Mesh.Vertices[tri[1]], m.Mesh.Vertices[tri[2]]
+			n := b.Sub(a).Cross(c.Sub(a))
+			if n.X != 0 || n.Y != 0 || n.Z == 0 || (n.Z > 0) != (end == 1) {
+				t.Fatal("annular cap material orientation", end, n)
+			}
+		}
+		for j, a := range tri {
+			b := tri[(j+1)%3]
+			key := [2]int{min(a, b), max(a, b)}
+			allEdges[key] = true
+			if end >= 0 {
+				capEdges[end][key]++
+			}
+		}
+	}
+	if len(m.Mesh.Vertices)-len(allEdges)+len(m.Mesh.Triangles) != 0 ||
+		counts[id(source.OuterFaces[0])] == 0 || counts[id(source.InnerFaces[0])] == 0 {
+		t.Fatal("through bore must have genus one and both native wall owners", counts)
+	}
+	for end, owner := range endOwners {
+		if counts[owner] != 2*len(m.RimVertices[0][end]) {
+			t.Fatal("annulus contains a disk fan or lost a facet", end, counts)
+		}
+		for wall := range 2 {
+			row := m.RimVertices[wall][end]
+			for j, a := range row {
+				b := row[(j+1)%len(row)]
+				if capEdges[end][[2]int{min(a, b), max(a, b)}] != 1 {
+					t.Fatal("annulus did not share an original rim edge", end, wall, j)
+				}
+			}
+		}
+	}
+	volume, _ := m.SignedDisplayVolume.Float64()
+	want := 48 * math.Pi // frustum radii 2 and 5, minus the radius 1 cylinder
+	if math.Abs(volume-want) > .04*want {
+		t.Fatal("display volume differs from the independent analytic volume", volume, want)
+	}
+	o.Patch.MaxTriangleChecks = 1
+	if q, e := body.TessellateCanonicalWrappedFrustumThroughBoreCertified(ctx, o); !errors.Is(e, geom.ErrConvergence) ||
+		len(q.Mesh.Vertices) != 0 || len(q.OriginalFace) != 0 {
+		t.Fatal("through-bore budget published a partial certificate", e)
+	}
+}
+
+func TestCertifiedEccentricFrustumCavityMesh(t *testing.T) {
+	ctx := context.Background()
+	embedding := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	stock, _, e := geom.DraftWrappedFrustum(ctx, base, 0, 3, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: .25, Y: .25, Z: .5}, 1, 3, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, source, e := NewWrappedEccentricCircularFrustumBore(ctx, stock, tool, 1e-8, embedding)
+	if e != nil {
+		t.Fatal(e)
+	}
+	faces := body.Faces()
+	slices.Reverse(faces)
+	body, e = NewSolidContext(ctx, body.Vertices(), body.Edges(), faces, 1e-8)
+	if e != nil {
+		t.Fatal(e)
+	}
+	o := CertifiedWrappedFrustumMeshOptions{Patch: CertifiedPatchMeshOptions{Deflection: .15}}
+	m, e := body.TessellateCanonicalWrappedFrustumCavityNormalsCertified(ctx, .4, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !m.Collision.Complete || len(m.Collision.Contacts) != 0 || len(m.CavityShells) != 2 ||
+		m.CavityShells[0].Depth != 0 || m.CavityShells[1].Parent != 0 || m.CavityShells[1].Depth != 1 ||
+		m.CavityShells[0].SignedVolume.Sign() != 1 || m.CavityShells[1].SignedVolume.Sign() != -1 {
+		t.Fatal("display did not prove strictly nested shells", m.CavityShells, m.Collision)
+	}
+	id := func(i int) int { return len(faces) - 1 - i }
+	for i, shell := range m.CavityShells {
+		from := source.OuterFaces
+		if i == 1 {
+			from = source.InnerFaces
+		}
+		owners := [3]int{id(from[0]), id(from[1]), id(from[2])}
+		var counts [3]int
+		for _, j := range shell.Triangles {
+			owner := slices.Index(owners[:], m.OriginalFace[j])
+			if owner < 0 {
+				t.Fatal("face owner on wrong native shell", j, m.OriginalFace[j], owners)
+			}
+			counts[owner]++
+			if owner == 0 {
+				continue
+			}
+			tri := m.Mesh.Triangles[j]
+			a, b, c := m.Mesh.Vertices[tri[0]], m.Mesh.Vertices[tri[1]], m.Mesh.Vertices[tri[2]]
+			n := b.Sub(a).Cross(c.Sub(a))
+			if n.X != 0 || n.Y != 0 || n.Z == 0 || (n.Z > 0) != ((owner == 2) != (i == 1)) {
+				t.Fatal("native cap material orientation", i, owner, n)
+			}
+		}
+		if counts[0] == 0 || counts[1] == 0 || counts[2] == 0 {
+			t.Fatal("incomplete native material face ownership", counts)
+		}
+	}
+	volume, _ := m.SignedDisplayVolume.Float64()
+	want := 49 * math.Pi
+	if math.Abs(volume-want) > .04*want {
+		t.Fatal("display volume disagrees with the outer frustum minus enclosed cutter", volume, want)
+	}
+	if r, e := body.TessellateCanonicalWrappedFrustumThroughBoreCertified(ctx, o); !errors.Is(e, geom.ErrConvergence) || len(r.Mesh.Vertices) != 0 {
+		t.Fatal("a fully enclosed cavity was mistaken for a through bore", e)
+	}
+}
 
 func TestCertifiedWrappedFrustumOpenBoreMesh(t *testing.T) {
 	ctx := context.Background()

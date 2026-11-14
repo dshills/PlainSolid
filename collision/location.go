@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 	"sort"
 )
 
@@ -82,6 +83,7 @@ type PointLocator struct {
 	triangles []locationTriangle
 	shells    []ShellInfo
 	options   LocationOptions
+	collision Report
 }
 type locationBudget struct {
 	ctx         context.Context
@@ -115,6 +117,25 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 	if ctx == nil {
 		return nil, ErrInvalid
 	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	return newMeshPointLocator(ctx, s.Tessellate(), s.TriangleFaces(), o, false)
+}
+
+// NewMeshPointLocator validates a represented, oriented material boundary and
+// preserves the supplied source face for each triangle. A nil face mapping
+// gives each triangle its own face ID. It uses a spatial index for collision
+// validation and exact ray tests for shell nesting. The returned locator owns
+// its snapshot of the mesh and mapping.
+func NewMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o LocationOptions) (*PointLocator, error) {
+	return newMeshPointLocator(ctx, m, faces, o, true)
+}
+
+func newMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o LocationOptions, indexed bool) (*PointLocator, error) {
+	if ctx == nil {
+		return nil, ErrInvalid
+	}
 	var err error
 	o, err = locationDefaults(o)
 	if err != nil {
@@ -124,18 +145,27 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 	if err = b.tick(1); err != nil {
 		return nil, err
 	}
-	m := s.Tessellate()
 	if len(m.Triangles) > o.MaxTriangles {
 		return nil, ErrLimit
 	}
+	if faces != nil && len(faces) != len(m.Triangles) {
+		return nil, ErrInvalid
+	}
 	loc := &PointLocator{options: o}
 	if len(m.Triangles) == 0 {
+		loc.collision.Complete = true
 		return loc, nil
 	}
 	if err = m.ValidateSolid(); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalid, err)
 	}
-	report, err := SelfIntersections(m, Options{MaxPairs: o.MaxCollisionPairs, MaxContacts: 1})
+	var report Report
+	c := Options{MaxPairs: o.MaxCollisionPairs, MaxContacts: 1}
+	if indexed {
+		report, err = SelfIntersectionsBVHContext(ctx, m, c)
+	} else {
+		report, err = SelfIntersections(m, c)
+	}
 	if len(report.Contacts) > 0 {
 		return nil, fmt.Errorf("%w: boundary self-intersection or shell contact", ErrInvalid)
 	}
@@ -145,10 +175,10 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 	if !report.Complete {
 		return nil, ErrLimit
 	}
+	loc.collision = report
 	if err = b.tick(1); err != nil {
 		return nil, err
 	}
-	faces := s.TriangleFaces()
 	loc.triangles = make([]locationTriangle, len(m.Triangles))
 	adj := make([][]int, len(m.Triangles))
 	edges := map[[2]int]int{}
@@ -156,7 +186,10 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 		if err = b.tick(1); err != nil {
 			return nil, err
 		}
-		t := locationTriangle{face: faces[i]}
+		t := locationTriangle{face: i}
+		if faces != nil {
+			t.face = faces[i]
+		}
 		for j, k := range tr {
 			t.v[j] = exact(m.Vertices[k])
 		}
@@ -246,6 +279,15 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 		}
 	}
 	return loc, nil
+}
+
+// BoundaryCollision returns the completed exact collision report from
+// preparation. A successfully prepared boundary has no reported contacts.
+func (l *PointLocator) BoundaryCollision() Report {
+	if l == nil {
+		return Report{}
+	}
+	return l.collision
 }
 
 type locationCrossing struct {
