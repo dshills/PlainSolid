@@ -77,9 +77,24 @@ type AlgebraicVerticalFiberClassification struct {
 // probe. Coincident trim spans require an opt-in affine source map proof;
 // nonlinear coincident speed remains unsupported. Failure is atomic.
 func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Context, origin, direction geom.Vec3, u *big.Rat, limits [2]*big.Rat, o AlgebraicVerticalFiberOptions) (AlgebraicVerticalFiberClassification, error) {
+	if !origin.IsFinite() || !direction.IsFinite() || direction.X != 0 || direction.Y != 0 {
+		return AlgebraicVerticalFiberClassification{}, geom.ErrInvalid
+	}
+	return r.ClassifyAlgebraicVerticalFiberRational(ctx, [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		ratInset(direction.Z), u, limits, o)
+}
+
+// ClassifyAlgebraicVerticalFiberRational classifies the same exact source
+// trim arrangement for p(t)=(origin.X, origin.Y, origin.Z+t*scale). Model
+// coordinates, parameterization, and all recovered trim events stay exact.
+func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiberRational(ctx context.Context, origin [3]*big.Rat,
+	scale, u *big.Rat, limits [2]*big.Rat, o AlgebraicVerticalFiberOptions) (AlgebraicVerticalFiberClassification, error) {
 	var zero AlgebraicVerticalFiberClassification
-	if ctx == nil || r == nil || len(r.loops) == 0 || u == nil || limits[0] == nil || limits[1] == nil || !origin.IsFinite() || !direction.IsFinite() || direction.X != 0 || direction.Y != 0 || direction.Z == 0 || limits[0].Cmp(limits[1]) > 0 {
+	if ctx == nil || r == nil || len(r.loops) == 0 || u == nil || scale == nil || limits[0] == nil || limits[1] == nil {
 		return zero, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return zero, e
 	}
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 8000000
@@ -104,8 +119,11 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 	}
 	used := 0
 	check := func(q *big.Rat) error {
+		if q == nil {
+			return geom.ErrInvalid
+		}
 		used++
-		if used > o.MaxOperations || q == nil || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
+		if used > o.MaxOperations || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
 			return geom.ErrConvergence
 		}
 		return ctx.Err()
@@ -122,11 +140,17 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 		p.MaxOperations = opts().MaxOperations
 		return p
 	}
-	out := AlgebraicVerticalFiberClassification{SuppliedU: new(big.Rat).Set(u), Origin: [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)}, Direction: [3]*big.Rat{new(big.Rat), new(big.Rat), ratInset(direction.Z)}}
-	for _, x := range []*big.Rat{u, limits[0], limits[1], out.Origin[0], out.Origin[1], out.Origin[2], out.Direction[2]} {
+	for _, x := range []*big.Rat{u, limits[0], limits[1], origin[0], origin[1], origin[2], scale} {
 		if e := check(x); e != nil {
 			return zero, e
 		}
+	}
+	if scale.Sign() == 0 || limits[0].Cmp(limits[1]) > 0 {
+		return zero, geom.ErrInvalid
+	}
+	out := AlgebraicVerticalFiberClassification{SuppliedU: new(big.Rat).Set(u), Direction: [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat).Set(scale)}}
+	for i := range origin {
+		out.Origin[i] = new(big.Rat).Set(origin[i])
 	}
 	finish := func() (AlgebraicVerticalFiberClassification, error) {
 		if e := ctx.Err(); e != nil {
@@ -171,9 +195,9 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 	if !emb.Complete {
 		return zero, geom.ErrConvergence
 	}
-	// t = offset + scale*V, in the original unnormalized line units.
-	scale := new(big.Rat).Quo(new(big.Rat).Sub(emb.UpperZ, emb.LowerZ), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)), out.Direction[2]))
-	offset := new(big.Rat).Sub(new(big.Rat).Quo(new(big.Rat).Sub(emb.LowerZ, out.Origin[2]), out.Direction[2]), new(big.Rat).Mul(scale, ratInset(d.VMin)))
+	// t = offset + tPerV*V, in the original unnormalized line units.
+	tPerV := new(big.Rat).Quo(new(big.Rat).Sub(emb.UpperZ, emb.LowerZ), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)), out.Direction[2]))
+	offset := new(big.Rat).Sub(new(big.Rat).Quo(new(big.Rat).Sub(emb.LowerZ, out.Origin[2]), out.Direction[2]), new(big.Rat).Mul(tPerV, ratInset(d.VMin)))
 	zt := func(z *big.Rat) *big.Rat {
 		return new(big.Rat).Quo(new(big.Rat).Sub(z, out.Origin[2]), out.Direction[2])
 	}
@@ -188,7 +212,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 	if hi.Cmp(limits[1]) > 0 {
 		hi.Set(limits[1])
 	}
-	for _, x := range []*big.Rat{scale, offset, lowerZ, upperZ, lo, hi} {
+	for _, x := range []*big.Rat{tPerV, offset, lowerZ, upperZ, lo, hi} {
 		if e := check(x); e != nil {
 			return zero, e
 		}
@@ -266,7 +290,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 		return nil
 	}
 	locate := func(t *big.Rat) (trimvalidate.Location, error) {
-		v := new(big.Rat).Quo(new(big.Rat).Sub(t, offset), scale)
+		v := new(big.Rat).Quo(new(big.Rat).Sub(t, offset), tPerV)
 		if e := check(v); e != nil {
 			return trimvalidate.Unknown, e
 		}
@@ -282,7 +306,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 		if j == 1 {
 			tr = hr
 		}
-		vr, n, e := tr.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(offset), scale), new(big.Rat).Inv(scale), opts())
+		vr, n, e := tr.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(offset), tPerV), new(big.Rat).Inv(tPerV), opts())
 		used += n
 		if e != nil {
 			return zero, e
@@ -344,7 +368,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 				var ts [2]*big.Rat
 				for j, ci := range []int{0, 2} {
 					v := new(big.Rat).Quo(q.control[ci][1], q.control[ci][2])
-					ts[j] = new(big.Rat).Add(offset, new(big.Rat).Mul(scale, v))
+					ts[j] = new(big.Rat).Add(offset, new(big.Rat).Mul(tPerV, v))
 					if e := check(v); e != nil {
 						return zero, e
 					}
@@ -391,7 +415,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 						if e != nil {
 							return zero, e
 						}
-						vr, n, e := tr.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(offset), scale), new(big.Rat).Inv(scale), opts())
+						vr, n, e := tr.AffineMap(ctx, new(big.Rat).Quo(new(big.Rat).Neg(offset), tPerV), new(big.Rat).Inv(tPerV), opts())
 						used += n
 						if e != nil {
 							return zero, e
@@ -415,7 +439,7 @@ func (r *WrappedQuadraticFace) ClassifyAlgebraicVerticalFiber(ctx context.Contex
 				if e != nil {
 					return zero, e
 				}
-				t, n, e := v.AffineMap(ctx, offset, scale, opts())
+				t, n, e := v.AffineMap(ctx, offset, tPerV, opts())
 				used += n
 				if e != nil {
 					return zero, e

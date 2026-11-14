@@ -76,9 +76,24 @@ type WrappedVerticalFiberClassification struct {
 // that each open cell contains no boundary; this is not sampled parity.
 // Isolated touches are retained as Boundary Events without a material interval.
 func (r *WrappedQuadraticFace) ClassifyVerticalFiber(ctx context.Context, origin, direction geom.Vec3, u *big.Rat, limits [2]*big.Rat, o WrappedVerticalFiberOptions) (WrappedVerticalFiberClassification, error) {
+	if !origin.IsFinite() || !direction.IsFinite() || direction.X != 0 || direction.Y != 0 {
+		return WrappedVerticalFiberClassification{}, geom.ErrInvalid
+	}
+	return r.ClassifyVerticalFiberRational(ctx, [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		ratInset(direction.Z), u, limits, o)
+}
+
+// ClassifyVerticalFiberRational preserves a rational model generator and its
+// original finite parameterization. It requires rational trim events and
+// shares the proof and boundary-interval contract of ClassifyVerticalFiber.
+func (r *WrappedQuadraticFace) ClassifyVerticalFiberRational(ctx context.Context, ori [3]*big.Rat,
+	dz, u *big.Rat, limits [2]*big.Rat, o WrappedVerticalFiberOptions) (WrappedVerticalFiberClassification, error) {
 	var zero WrappedVerticalFiberClassification
-	if ctx == nil || r == nil || len(r.loops) == 0 || u == nil || limits[0] == nil || limits[1] == nil || !origin.IsFinite() || !direction.IsFinite() || direction.X != 0 || direction.Y != 0 || direction.Z == 0 {
+	if ctx == nil || r == nil || len(r.loops) == 0 || u == nil || dz == nil || limits[0] == nil || limits[1] == nil {
 		return zero, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return zero, e
 	}
 	if o.MaxEvents == 0 {
 		o.MaxEvents = 128
@@ -106,14 +121,12 @@ func (r *WrappedQuadraticFace) ClassifyVerticalFiber(ctx context.Context, origin
 		}
 		return ctx.Err()
 	}
-	ori := [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)}
-	dz := ratInset(direction.Z)
 	for _, q := range []*big.Rat{u, limits[0], limits[1], ori[0], ori[1], ori[2], dz} {
 		if e := check(q); e != nil {
 			return zero, e
 		}
 	}
-	if limits[0].Cmp(limits[1]) > 0 {
+	if dz.Sign() == 0 || limits[0].Cmp(limits[1]) > 0 {
 		return zero, geom.ErrInvalid
 	}
 	w, ok := r.native.Face.Surface.(*geom.WrappedSurfacePatch)
