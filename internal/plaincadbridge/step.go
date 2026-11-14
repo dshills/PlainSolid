@@ -137,10 +137,16 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		return b.putBore(body)
 	}
 	if m, e := step.ReadCrossedBore(r(), stepLimits()); e == nil {
-		if m.LengthUnit != .001 {
-			return Shape{}, unsupportedEdge("Crossed bore STEP requires millimeter model coordinates")
+		p := m.Body
+		body, err := crossedBoreFromSTEP(p.Frame, p.Dimensions, p.Crossing, [2]float64{p.Radius, p.Radius}, m.LengthUnit)
+		if err != nil {
+			return Shape{}, err
 		}
-		body, err := crossedBoreFromSTEP(m.Body)
+		return b.putBore(body)
+	}
+	if m, e := step.ReadUnequalBore(r(), stepLimits()); e == nil {
+		p := m.Body
+		body, err := crossedBoreFromSTEP(p.Frame, p.Dimensions, p.Crossing, [2]float64{p.XRadius, p.ZRadius}, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -364,14 +370,17 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.crossed != nil:
-		if s.bore.cylinders[0].radius != s.bore.cylinders[1].radius {
-			return nil, unsupportedEdge("STEP export does not yet support the trim curves of intersecting unequal-diameter Holes.")
+		frame, size, crossing, radii, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)
+		if !ok {
+			return nil, geom.ErrUnrepresentable
 		}
-		p, err := crossedBoreSTEPRecipe(s.bore)
-		if err != nil {
-			return nil, err
+		if radii[0] == radii[1] {
+			p := step.CrossedBoreBody{Name: "PlainSolid", Frame: frame, Dimensions: size, Crossing: crossing, Radius: radii[0]}
+			e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
+		} else {
+			p := step.UnequalBoreBody{Name: "PlainSolid", Frame: frame, Dimensions: size, Crossing: crossing, XRadius: radii[0], ZRadius: radii[1]}
+			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: p, LengthUnit: .001})
 		}
-		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil:
 		var p step.CircularHoleExtrusionBody
 		p, e = boreSTEPRecipe(s.bore)

@@ -1,0 +1,58 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "d27738486a1944c77005107f8dac81fe5f0c6ec796017945ac248dd64d8ecfe7",
+  "supplemental": {
+    "report": "/tmp/plainsolid-unequal-step-authored-5508/browser-results.json",
+    "reportSha256": "8b8a8056d94a398dae6de153cf78ebf9550f63969655df357f47a68816a7f893",
+    "sourceSha256": "7e2d4f7b7984cf6d30ab212cf4ea49a4249a28c59e912ea5e5fee5e89e903f37",
+    "summary": {
+      "startTime": "2026-11-14T12:31:34.720Z",
+      "duration": 37255.588,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        24,
+        18
+      ],
+      "axes": [
+        "X",
+        "Z"
+      ],
+      "radiusMm": [
+        4,
+        2
+      ],
+      "stepByteCount": 480372,
+      "stepSha256": "31fc8a9dcb54687e6e555dcac5419d950e5adb94fadabb6942a5dcfe0e09710c",
+      "stepDistanceUncertaintyMm": 1e-07,
+      "stlTriangles": 1530,
+      "stlTwoUseEdges": 2295,
+      "stlSha256": "d43520e8fef7fc28d4daa366336dfd72989b22906cbc6946bf76f3a2d0c60ac7",
+      "occtStepReadback": {
+        "Area": 3027.265079371979,
+        "Volume": 7505.778239017334,
+        "Centroid": [
+          10.034350098744811,
+          12.000000000000004,
+          9.000000000000004
+        ]
+      }
+    }
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 41.001,
+    "exchange/step": 194.188
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newCases": 12
+  },
+  "vet": "passed"
+}

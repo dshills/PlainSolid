@@ -5,20 +5,15 @@ import (
 
 	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
-	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
-func crossedBoreSTEPRecipe(body *boreBody) (step.CrossedBoreBody, error) {
-	frame, size, crossing, radii, ok := crossedBoreRecipe(body.base, body.cylinders, body.blind)
-	if !ok || radii[0] != radii[1] {
-		return step.CrossedBoreBody{}, geom.ErrUnrepresentable
+func crossedBoreFromSTEP(frame geom.Frame, dimensions, crossing geom.Vec3, radii [2]float64, unit float64) (*boreBody, error) {
+	scale := unit / .001
+	if !finite(scale) || scale <= 0 || !cardinalFrame(frame) {
+		return nil, geom.ErrInvalid
 	}
-	return step.CrossedBoreBody{Name: "PlainSolid", Frame: frame, Dimensions: size, Crossing: crossing, Radius: radii[0]}, nil
-}
-
-func crossedBoreFromSTEP(p step.CrossedBoreBody) (*boreBody, error) {
-	origin, end := p.Frame.Origin(), p.Frame.ToWorld(p.Dimensions)
+	origin, end := frame.Origin().Scale(scale), frame.ToWorld(dimensions).Scale(scale)
 	bounds, err := geom.Bounds([]geom.Vec3{origin, end})
 	if err != nil {
 		return nil, err
@@ -27,19 +22,23 @@ func crossedBoreFromSTEP(p step.CrossedBoreBody) (*boreBody, error) {
 	if err != nil {
 		return nil, err
 	}
-	var tools []*cylinderBody
-	for _, site := range []struct {
-		origin, axis geom.Vec3
-		length       float64
+	tools := make([]*cylinderBody, 0, 2)
+	for i, site := range []struct {
+		origin, end, axis geom.Vec3
 	}{
-		{geom.Vec3{Y: p.Crossing.Y, Z: p.Crossing.Z}, p.Frame.XAxis(), p.Dimensions.X},
-		{geom.Vec3{X: p.Crossing.X, Y: p.Crossing.Y}, p.Frame.ZAxis(), p.Dimensions.Z},
+		{geom.Vec3{Y: crossing.Y, Z: crossing.Z}, geom.Vec3{X: dimensions.X, Y: crossing.Y, Z: crossing.Z}, frame.XAxis()},
+		{geom.Vec3{X: crossing.X, Y: crossing.Y}, geom.Vec3{X: crossing.X, Y: crossing.Y, Z: dimensions.Z}, frame.ZAxis()},
 	} {
-		frame, err := geom.FrameFromNormal(p.Frame.ToWorld(site.origin), site.axis)
+		start, finish := frame.ToWorld(site.origin).Scale(scale), frame.ToWorld(site.end).Scale(scale)
+		length := finish.Sub(start).Dot(site.axis)
+		if start.Add(site.axis.Scale(length)) != finish {
+			return nil, geom.ErrUnrepresentable
+		}
+		f, err := geom.FrameFromNormal(start, site.axis)
 		if err != nil {
 			return nil, err
 		}
-		tool, err := newCylinder(frame, p.Radius, site.length)
+		tool, err := newCylinder(f, radii[i]*scale, length)
 		if err != nil {
 			return nil, err
 		}

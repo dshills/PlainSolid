@@ -66,8 +66,10 @@ through STEP. Disjoint interior through Holes on multiple cardinal axes
 now also round-trip STEP. The domain requires strict tool bounds separation
 and complete circular openings. Unequal-radius intersecting perpendicular
 through Holes retain two analytic radical trim rings for native modeling
-and STL. Their nonrational trims still require interoperable STEP
-representation and independent validation.
+and STL. STEP retains the cylindrical and planar supports, approximates
+the nonrational model edge and both UV trims with cubic splines, and
+reads its own canonical files back to the native recipe. Radius and
+scale envelopes bound the approximation work.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

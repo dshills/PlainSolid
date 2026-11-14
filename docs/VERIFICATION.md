@@ -101,6 +101,26 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD STEP for unequal-radius crossing Holes — 2026-11-14
+
+STEP preserves the analytic cylindrical and planar supports. Each
+nonrational model edge and both owner trims use cubic Hermite splines
+with shared parameters and knots. The interpolation chooses its span
+count using a fourth-derivative bound and a separate numerical reserve.
+The file declares 0.0000001 mm distance uncertainty. The importer checks
+the complete emitted graph before regenerating the native analytic
+intersection. Near-equal radii and large coordinates can exceed this
+exchange budget and are rejected.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-unequal-step-browser-2026-11-14.json)
+pass on `50432ed`. The [authored browser probe](evidence/plaincad-unequal-step-native-2026-11-14.json)
+uses the same WASM to export, reimport, reopen and tessellate the verified
+model. Independent OCCT imports match the native volume, area and centroid
+in 12 signed and swapped configurations and on the browser's downloaded
+STEP. Additional tests reject altered curve controls or uncertainty and
+measure agreement between both parameter curves and the model spline.
+Focused race and Go vet checks pass.
+
 ## PlainCAD unequal-radius intersecting perpendicular through Holes — 2026-11-14
 
 Two unequal-radius cylinders with intersecting perpendicular axes now retain
