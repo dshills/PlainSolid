@@ -10,11 +10,11 @@ import (
 )
 
 func crossedBoreSTEPRecipe(body *boreBody) (step.CrossedBoreBody, error) {
-	frame, size, crossing, ok := crossedBoreRecipe(body.base, body.cylinders, body.blind)
-	if !ok {
+	frame, size, crossing, radii, ok := crossedBoreRecipe(body.base, body.cylinders, body.blind)
+	if !ok || radii[0] != radii[1] {
 		return step.CrossedBoreBody{}, geom.ErrUnrepresentable
 	}
-	return step.CrossedBoreBody{Name: "PlainSolid", Frame: frame, Dimensions: size, Crossing: crossing, Radius: body.cylinders[0].radius}, nil
+	return step.CrossedBoreBody{Name: "PlainSolid", Frame: frame, Dimensions: size, Crossing: crossing, Radius: radii[0]}, nil
 }
 
 func crossedBoreFromSTEP(p step.CrossedBoreBody) (*boreBody, error) {
@@ -48,9 +48,9 @@ func crossedBoreFromSTEP(p step.CrossedBoreBody) (*boreBody, error) {
 	return newBore(base, tools)
 }
 
-func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (geom.Frame, geom.Vec3, geom.Vec3, bool) {
-	fail := func() (geom.Frame, geom.Vec3, geom.Vec3, bool) {
-		return geom.Frame{}, geom.Vec3{}, geom.Vec3{}, false
+func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (geom.Frame, geom.Vec3, geom.Vec3, [2]float64, bool) {
+	fail := func() (geom.Frame, geom.Vec3, geom.Vec3, [2]float64, bool) {
+		return geom.Frame{}, geom.Vec3{}, geom.Vec3{}, [2]float64{}, false
 	}
 	vertices := base.Vertices()
 	if len(tools) != 2 || blind[0] || blind[1] || len(vertices) != 8 ||
@@ -58,7 +58,7 @@ func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (ge
 		return fail()
 	}
 	a, b := tools[0], tools[1]
-	if a.radius != b.radius || !cardinalFrame(a.frame) || !cardinalFrame(b.frame) ||
+	if !cardinalFrame(a.frame) || !cardinalFrame(b.frame) ||
 		a.frame.ZAxis().Dot(b.frame.ZAxis()) != 0 {
 		return fail()
 	}
@@ -96,7 +96,7 @@ func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (ge
 		return fail()
 	}
 	crossing := geom.Vec3{X: q.X, Y: p.Y, Z: p.Z}
-	return frame, size, crossing, true
+	return frame, size, crossing, [2]float64{a.radius, b.radius}, true
 }
 
 func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (*boreBody, bool, error) {
@@ -132,11 +132,18 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 		spans = []float64{spans[i], spans[j]}
 		blind = []bool{false, false}
 	}
-	frame, size, crossing, ok := crossedBoreRecipe(base, tools, blind)
+	frame, size, crossing, radii, ok := crossedBoreRecipe(base, tools, blind)
 	if !ok {
 		return nil, false, nil
 	}
-	result, err := trimmed.BoxCrossedBores(context.Background(), frame, size, crossing, tools[0].radius, 1e-9)
+	ctx := context.Background()
+	var result trimmed.BoxCrossedBoresResult
+	var err error
+	if radii[0] == radii[1] {
+		result, err = trimmed.BoxCrossedBores(ctx, frame, size, crossing, radii[0], 1e-9)
+	} else {
+		result, err = trimmed.BoxUnequalCrossedBores(ctx, frame, size, crossing, radii[0], radii[1], 1e-9)
+	}
 	if err != nil {
 		return nil, true, err
 	}

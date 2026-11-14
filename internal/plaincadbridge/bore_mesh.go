@@ -11,6 +11,9 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
+	if body := s.bore; body.crossed != nil && body.cylinders[0].radius != body.cylinders[1].radius {
+		return body.solid.TessellateUnequalCrossedBores(ctx, o)
+	}
 	// Keep the established single-rim refinement when a coarser mesh
 	// would lose more than the material-volume budget after STL rounding.
 	fine := o
