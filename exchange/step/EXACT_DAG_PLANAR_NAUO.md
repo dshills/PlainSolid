@@ -57,3 +57,46 @@ expanded complete source relationship graph is accepted for one added root use
 and rejected when expansion exceeds 64 while direct relationships remain below
 32. `FuzzExactDAGPlanarNAUO` bounds input to 1 MiB / 1000 entities, with a fixed
 100x campaign. Normal, race, Go 1.23, vet and live OCCT checks qualify this slice.
+
+## Source-retaining root pose edits
+
+`WriteExactDAGNAUORootPlacements` takes a nonempty selected subset of
+`ExactNAUOPlacement` records keyed by original NAUO ID. The origin and raw X/Z
+ratios describe the desired child-to-parent proper rigid pose. Inputs are copied;
+perpendicular ratios must have exactly rational normalizations. The new target
+frame is **desired pose composed with the original from frame**, rather than an
+assumption that the from frame is identity.
+
+This operation preserves every entity ID, header, ordering, geometry record,
+product and relationship record, including both from/to datum IDs. It changes
+only the target datum's point, Z direction and X direction values. Those three
+records must each have one incoming reference, from that datum. The target datum
+must have exactly two incoming references: one from its root representation and
+one from the selected item-defined transformation. Shared/geometry-linked targets
+fail explicitly; the writer does not clone, detach, or silently edit other uses.
+Internal relationship edits are not accepted by this API.
+
+Origins must have exact terminating STEP decimal representations within 128
+characters; nonterminating translations (such as 1/3) fail. Directions are emitted
+as exact common-denominator integer ratios, so a rational 3/5,4/5 rotation can be
+represented by source direction (3,4,0). Input rational numerator/denominator
+limits are 4096 bits. The writer stages and re-reads the complete DAG and verifies
+the requested exact relative poses before writing any bytes. Tests compare every
+unselected source record, and verify that a changed root→A occurrence moves only
+its paths while root→B→A remains unchanged.
+
+`ExactDAGPlanarNAUODocument.WithRootPlacements` returns a new source-bound native
+envelope. The original document and shared local assets remain unchanged. Native
+save/reload then source re-export retains the edited paths and all ancestry.
+Independent pinned OCCT verifies both translation and 3:4:5 rotation edits:
+
+- Translating root→A by another +100 X gives bounds (0,-5,0)–(212,112,72),
+  centroid (3793/38,1129/19,1119/38).
+- Setting its pose to origin (200,0,0), X=(3/5,4/5,0), Z=(0,0,1) gives bounds
+  (0,-11,0)–(1036/5,112,72), centroid (953/10,297/5,1119/38).
+
+Both retain 7 valid solids, 42 faces, volume 114 and area 274. Adversaries include
+internal/unknown/duplicate use IDs, shared targets, nonterminating/oversized
+translations, irrational/nonorthogonal axes and reduced parser limits. A
+nonidentity original from datum is explicitly tested. The fixed-work writer fuzz
+target `FuzzExactDAGNAUORootEdit` verifies atomic failure and re-readable successes.
