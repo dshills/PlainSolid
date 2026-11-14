@@ -404,7 +404,14 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 				continue
 			}
 			if curve.unequal != nil {
-				model = emitUnequalBoreSpline(emit, curve.unequal.model, curve.unequal.smooth, point3)
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, curve.unequal.smooth, curve.unequal.knots, point3)
+				if len(curve.unequal.knots) != 0 {
+					// The standard model-space curve defines the trim. The
+					// canonical reader independently reproves the matching
+					// native trim graph from the exact cylinder supports.
+					edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[edge.Start], vertexIDs[edge.End], model))
+					continue
+				}
 			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
@@ -419,7 +426,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 				u := owner.use
 				var geometry int64
 				if curve.unequal != nil {
-					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], curve.unequal.smooth, func(p geom.Vec3) int64 {
+					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], curve.unequal.smooth, curve.unequal.knots, func(p geom.Vec3) int64 {
 						return point2(geom.Vec2{X: p.X, Y: p.Y})
 					})
 				} else if surface.kind == "PLANE" {

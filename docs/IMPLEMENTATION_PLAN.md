@@ -130,8 +130,10 @@ oblique crossing now exchanges on all three cardinal axes. The cardinal
 Hole may retain a blind floor beyond the complete oblique crossing and
 accept a later coaxial cut after STEP import. The oblique Hole can also
 retain a floor beyond its complete crossing, from either entry, including
-a pair with two blind floors. Continue with floors that intersect the
-crossing and other concrete placements.
+a pair with two blind floors. Tighter partial perpendicular overlap
+uses certified local interpolation bounds and a compact STEP trim.
+Continue with smaller supported clearances and floors that intersect
+the crossing.
 
 The full selected-provider gate on PlainCAD `efae4d2` and PlainSolid
 `fa857e59` passes 345 development, 66 production and 15 cross-browser

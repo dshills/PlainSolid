@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD tighter partial-overlap Hole STEP — 2026-11-14
+
+The uniform fourth-derivative bound previously rejected the tighter
+valid crossing. The fallback partitions the angular interval and uses
+a local lower radicand bound in each block. A shared model-space spline
+trims each pair of cylinders within the existing 0.0000001 mm STEP
+uncertainty. The canonical reader reconstructs the analytic intersection
+and verifies the entire exported graph. Existing successful uniform
+files keep their paired parameter curves.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-tight-partial-step-browser-2026-11-14.json)
+and the [authored 2 mm offset case](evidence/plaincad-tight-partial-step-native-2026-11-14.json)
+pass on the same WASM. Its 258,205-byte file fits the existing PlainCAD
+import limit and the reopened project exports 1,294 watertight STL
+triangles. OCCT agrees with the direct Boolean and independently
+verifies the two native tighter-offset cases. Focused race and vet pass.
+
 ## Full PlainCAD provider rerun on kernel fa857e59 — 2026-11-14
 
 The [pinned production build and complete run](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json)

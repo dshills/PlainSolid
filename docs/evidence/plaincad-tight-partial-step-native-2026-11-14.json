@@ -1,0 +1,60 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "6efdc752a76bcb39af50f71ec95873832b230722284b194b0c553ff9e583c6a4",
+  "supplemental": {
+    "report": "/tmp/plainsolid-tight-partial-authored-5621/tight-partial-browser.json",
+    "reportSha256": "114edd1abb5c41e7b264197c2c0fba6f2aaa4f6b226f959afd895e5a66d084dc",
+    "sourceSha256": "6dacd6d50b019c8bed81481f235e60d886a2b689544fced8ba8763ae1b8d97d3",
+    "summary": {
+      "startTime": "2026-11-14T17:20:25.707Z",
+      "duration": 24873.874,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMM": [
+        40,
+        40,
+        40
+      ],
+      "xRadiusMM": 5,
+      "zRadiusMM": 4,
+      "offsetMM": 2,
+      "boundedSplineEdges": 8,
+      "stepImportLimitBytes": 524288,
+      "stepByteCount": 258205,
+      "stepSha256": "9c8578e37b9c3f7e6f5bc44cc9c46b4ddd91a49b7fd9f4ae4f703755e76d2a38",
+      "stlTriangles": 1294,
+      "stlTwoUseEdges": 1941,
+      "stlSha256": "a82d04d6705e673d4cf436db02643b5d01c4c401473bf14ba56f32736d60628e",
+      "occtStepReadback": {
+        "Area": 11311.323700567305,
+        "Volume": 59239.82493888357,
+        "Centroid": [
+          20.000000000000014,
+          20.26262399103866,
+          20.00000000000002
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 59239.824938987425,
+        "Area": 11311.323700495592,
+        "Centroid": [
+          19.999999999999613,
+          20.2626239910356,
+          19.99999999999839
+        ]
+      },
+      "directOracleSourceSha256": "c0263375713cccd2c713ba40211bcb4fc00db0e21240a0cd4a61afe03f042bae"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 2
+  },
+  "vet": "passed"
+}
