@@ -194,9 +194,16 @@ Disjoint interior loops on the same rectangular source face now produce
 separate native lens components, with conservative total measures. A bounded
 projected graph lens can produce a closed display whose model edge ancestry,
 continuous deflection, orientation and non-incidence checks are preserved.
+Separate affine XY lenses on one source pair now also produce a unified
+display with original topology IDs and an exact contact check across
+components. Extend it to the remaining graph projections, nested regions,
+and different original source pairs before using it as a general shell mesh.
 The verified cylindrical quotient handles exact two-image intersections and
-annular union, including original charts on both seam occurrences. Extend
-that work to nonrectangular periodic trims and general periodic assemblies.
+annular union, including original charts on both seam occurrences. Native
+curved face trims also handle bounded rational quadratic pieces crossing a
+seam at a represented rational parameter. General periodic assemblies need
+interior curve events, mixed nested arrangements and certified continuation
+where the split parameter is not rational.
 Independent edge-to-face isolation already provides regular terminal hints
 to the tube verifier. Integrate exact algebraic terminal identities and
 prove complete continuation before assembling the resulting material.

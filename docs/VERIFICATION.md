@@ -17,8 +17,9 @@ packages outside `brep/trimmed`, with three packages reporting no tests;
 it recorded 3,672 passing and 301 skipped test events, including subtests.
 The later CGO-disabled non-trimmed qualification at `61faf72` passed all 49
 tested packages, with three reporting no tests. It recorded 3,751 passing
-and 310 skipped test events. The corresponding three short trimmed shards
-are recorded separately when their runners finish.
+and 310 skipped test events. The three CGO-disabled short-mode trimmed
+shards at the same revision all passed: 613 passing test events, seven
+skipped, and no duplicate test events across shards (507, 620 and 477 seconds).
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -148,6 +149,23 @@ placement rejection. The certified degree-five mesh fixture (`c5bff88`)
 uses an original homogeneous X control of 11/40 and retains its source
 through section, Boolean, and closed tessellation. Its 1,520 triangles
 meet a two-sided distance bound of 0.097164 and pass exact contact checks.
+The full exact roof line-event regression also passed race, including both
+source hits at simultaneous contacts and the adjacent Boolean material states.
+The wrapped quadratic native face (`0d6a13e`) splits a curved owner at exact
+parameter 2/3, retains the original lifted chart across the seam, and
+proves continuous model agreement with independently refined reversed edges.
+A changed curve with identical endpoints, an irrational seam parameter and
+exhausted proof limits reject without producing a face or an edge agreement.
+The leaf-placed IGES roof (`64c3792`) keeps original local model and UV curves
+and returns a separately proved world solid. Pinned OCCT reads both the
+independently authored source and Go output as one valid six-face solid,
+with volume 4/3 and the posed centroid (10.7, -3.1875, 0.5). It ignores a
+root-only transform on the comparison fixture; the Go reader rejects it.
+The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
+edge and vertex indices for 3,392 triangles in two closed components. Its
+two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
+whole display. The fixture passes under race and checks display volume
+against the independent total analytic volume of the two lobes.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
