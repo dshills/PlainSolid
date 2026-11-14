@@ -1,0 +1,46 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "b6d79e1fab81925faaf460aebbd56b01e2195bbd63a3f426e74ab015a6cdee84",
+  "supplemental": {
+    "report": "/tmp/plainsolid-circular-lens-authored-5576/circular-lens-browser.json",
+    "reportSha256": "bd8ceabf87313c3559f29c944f74d01e9aefcd0778d2965a331ce21d3315dd4f",
+    "sourceSha256": "9a0bdb963552c4ec21a081c720459d22132b0af0ada2099d1abba94d1794e138",
+    "summary": {
+      "startTime": "2026-11-14T15:24:00.586Z",
+      "duration": 60113.246,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "profile": "circle and arc, radii 12 and 6 with center spacing 12",
+      "originalPlainCadCase": "XY circle/arc crossings",
+      "exactNativeRoundTrip": true,
+      "stepByteCount": 17404,
+      "stepSha256": "98aa736895da66fb9d54f5caf0364d124df119a50f92fac96e85ce311a2478ac",
+      "stlTriangles": 308,
+      "stlTwoUseEdges": 462,
+      "stlSha256": "67945f48323486d2b8920cb42b393077df65877cff0c4fd29bda812e908ed406",
+      "occtStepReadback": {
+        "Area": 380.4812347239091,
+        "Volume": 505.10391828686585,
+        "Centroid": [
+          -1.4067258440005975e-15,
+          9.203167423112514,
+          4.999999999999999
+        ]
+      },
+      "analyticVolume": 505.103918286866,
+      "analyticArea": 380.48123472390915
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 13
+  },
+  "vet": "passed",
+  "race": "passed"
+}
