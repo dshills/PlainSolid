@@ -2,6 +2,8 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
+
 	"plainsolid/geom"
 )
 
@@ -11,6 +13,14 @@ import (
 // trims, holes, reversed faces, placements and edited seam partitions reject.
 // Projection data is algebraic, with explicit nonunique axis/centerline cases.
 func (s Solid) ProjectCanonicalCircularToroid(ctx context.Context, q geom.Vec3, o geom.FrustumDistanceOptions) (geom.ToroidProjection, error) {
+	if !q.IsFinite() {
+		return geom.ToroidProjection{}, geom.ErrInvalid
+	}
+	return s.ProjectCanonicalCircularToroidRational(ctx, [3]*big.Rat{ratInset(q.X), ratInset(q.Y), ratInset(q.Z)}, o)
+}
+
+// ProjectCanonicalCircularToroidRational retains the native support and exact point.
+func (s Solid) ProjectCanonicalCircularToroidRational(ctx context.Context, q [3]*big.Rat, o geom.FrustumDistanceOptions) (geom.ToroidProjection, error) {
 	empty := geom.ToroidProjection{}
 	if ctx == nil {
 		return empty, geom.ErrInvalid
@@ -32,5 +42,5 @@ func (s Solid) ProjectCanonicalCircularToroid(ctx context.Context, q geom.Vec3, 
 			return empty, geom.ErrConvergence
 		}
 	}
-	return geom.ProjectWrappedCircularToroid(ctx, w, q, o)
+	return geom.ProjectWrappedCircularToroidRational(ctx, w, q, o)
 }

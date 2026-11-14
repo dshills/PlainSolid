@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -40,6 +41,14 @@ func (s Solid) IntersectCanonicalWrappedCylinderLine(ctx context.Context, origin
 // circular-profile wrapped toroid. The input line need not be normalized.
 // Result brackets use its original parameter and retain exact multiplicity.
 func (s Solid) IntersectCanonicalWrappedToroidLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions) ([]geom.ToroidLineRoot, error) {
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
+		return nil, geom.ErrInvalid
+	}
+	return s.IntersectCanonicalWrappedToroidLineRational(ctx, [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)}, [3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}, ratInset(minT), ratInset(maxT), o)
+}
+
+// IntersectCanonicalWrappedToroidLineRational retains exact native model coordinates.
+func (s Solid) IntersectCanonicalWrappedToroidLineRational(ctx context.Context, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o geom.ToroidLineOptions) ([]geom.ToroidLineRoot, error) {
 	p, e := s.ValidateDisjointSplineComponents(ctx, SplineRectangleEmbeddingOptions{Patches: o.Surface, MaxFaces: 1})
 	if e != nil {
 		return nil, e
@@ -48,7 +57,7 @@ func (s Solid) IntersectCanonicalWrappedToroidLine(ctx context.Context, origin, 
 		return nil, geom.ErrConvergence
 	}
 	w := s.faces[0].Surface.(*geom.WrappedSurfacePatch)
-	return geom.IntersectWrappedCircularToroidLine(ctx, w, origin, direction, minT, maxT, o)
+	return geom.IntersectWrappedCircularToroidLineRational(ctx, w, origin, direction, minT, maxT, o)
 }
 
 // LocateCanonicalWrappedFrustum classifies an exact point against a

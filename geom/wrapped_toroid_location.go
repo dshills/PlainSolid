@@ -114,11 +114,17 @@ func LocateWrappedCircularToroid(ctx context.Context, w *WrappedSurfacePatch, po
 	if !point.IsFinite() {
 		return ToroidMeridianUnknown, ErrInvalid
 	}
-	proof, e := CertifyWrappedToroidEmbedding(ctx, w, o)
+	return LocateWrappedCircularToroidRational(ctx, w, rationalLineVec3(point), o)
+}
+
+// LocateWrappedCircularToroidRational uses exact nonbinary model coordinates
+// against the original wrapped circular-profile support.
+func LocateWrappedCircularToroidRational(ctx context.Context, w *WrappedSurfacePatch, point [3]*big.Rat, o SurfacePatchOptions) (ToroidMeridianLocation, error) {
+	options, e := validateRationalPoint(ctx, point, o)
 	if e != nil {
 		return ToroidMeridianUnknown, e
 	}
-	options, e := patchOptions(o)
+	proof, e := CertifyWrappedToroidEmbedding(ctx, w, o)
 	if e != nil {
 		return ToroidMeridianUnknown, e
 	}
@@ -137,9 +143,9 @@ func LocateWrappedCircularToroid(ctx context.Context, w *WrappedSurfacePatch, po
 			}
 		}
 	}
-	x := new(big.Rat).Sub(new(big.Rat).SetFloat64(point.X), proof.Center[0])
-	y := new(big.Rat).Sub(new(big.Rat).SetFloat64(point.Y), proof.Center[1])
-	z := new(big.Rat).Sub(new(big.Rat).SetFloat64(point.Z), proof.Center[2])
+	x := new(big.Rat).Sub(point[0], proof.Center[0])
+	y := new(big.Rat).Sub(point[1], proof.Center[1])
+	z := new(big.Rat).Sub(point[2], proof.Center[2])
 	q := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
 	major2 := new(big.Rat).Mul(proof.MajorRadius, proof.MajorRadius)
 	minor2 := new(big.Rat).Mul(proof.RadialMinorRadius, proof.RadialMinorRadius)
