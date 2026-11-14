@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -143,6 +144,29 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 				t.Fatal("Boolean material location", i, q.point, got, q.want[i], e)
 			}
 		}
+	}
+	lineOptions := SplineRayOptions{Line: geom.LineSplineSurfaceOptions{MinParameter: -1, MaxParameter: 2}}
+	lineOrigin := geom.Vec3{X: .375, Y: .5625}
+	lineDir := geom.Vec3{Z: 1}
+	for i, model := range []AlgebraicShellBoolean{common, union, difference} {
+		want := [][2]float64{{0, 5.0 / 64}, {-.5, 1}, {5.0 / 64, 1}}[i]
+		contacts, e := model.IntersectMaterialLine(ctx, lineOrigin, lineDir, lineOptions)
+		if e != nil || len(contacts) != 2 || !contacts[0].Entering || contacts[1].Entering {
+			t.Fatal("Boolean material line did not isolate two directed crossings", i, contacts, e)
+		}
+		for j, x := range contacts {
+			if x.ParameterMin > want[j] || x.ParameterMax < want[j] {
+				t.Fatal("material transition skipped the analytic hit", i, j, x, want[j])
+			}
+		}
+	}
+	lineOptions.Line.MinParameter, lineOptions.Line.MaxParameter = .01, .5
+	if hits, e := common.IntersectMaterialLine(ctx, lineOrigin, lineDir, lineOptions); e != nil || len(hits) != 1 || hits[0].Entering {
+		t.Fatal("finite range starting inside lost the exiting crossing", hits, e)
+	}
+	lineOptions.Line.MinParameter, lineOptions.Line.MaxParameter = -1, 2
+	if hits, e := common.IntersectMaterialLine(ctx, geom.Vec3{X: 13.0 / 16, Y: .5}, lineDir, lineOptions); !errors.Is(e, geom.ErrConvergence) || len(hits) != 0 {
+		t.Fatal("simultaneous contact at the exact rim returned an incomplete sweep", hits, e)
 	}
 	copyOfViews := common
 	copyOfViews.Edges, copyOfViews.Faces, copyOfViews.Vertices = nil, nil, nil
