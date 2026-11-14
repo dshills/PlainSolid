@@ -172,6 +172,12 @@ The [separate authored unequal STEP workflow](evidence/plaincad-reconciled-f8f37
 also passed on the same reconciled WASM. It exports and imports the
 unequal boundary, reopens the saved source, and verifies both open
 passages in the STL. Pinned OCCT independently read the emitted STEP.
+The [skew-bore STEP reconciliation](evidence/plaincad-reconciled-b56d3035-development-skew-step-holes-step-2026-11-14.json)
+adds worktree commit `de3aa141` at review revision `b56d3035`.
+Focused native geometry, STEP readback against live OCCT, and bridge tests
+passed. All 17 original Hole and STEP browser cases and the separate Go/WASM
+preflight passed without skips or retries. All 841 app and 1,912 kernel
+source hashes were checked.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
