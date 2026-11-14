@@ -42,7 +42,8 @@ func (l AlgebraicProjectedTubeLens) SectionProjectionPlane(ctx context.Context, 
 func (l tubeLensQuery) sectionProjectionPlane(ctx context.Context, origin, direction [2]*big.Rat, limits [2]*big.Rat,
 	interval func(context.Context, [2]*big.Rat, geom.ExactCurvePlaneEventOptions) (AlgebraicTubeLensVerticalInterval, error),
 	o AlgebraicLensLineOptions) (out AlgebraicTubeLensPlaneSection, err error) {
-	if ctx == nil || l.section.partitionSource == nil || origin[0] == nil || origin[1] == nil || direction[0] == nil || direction[1] == nil ||
+	source := l.section.runSource()
+	if ctx == nil || source == nil || origin[0] == nil || origin[1] == nil || direction[0] == nil || direction[1] == nil ||
 		direction[0].Sign() == 0 && direction[1].Sign() == 0 || limits[0] == nil || limits[1] == nil ||
 		limits[0].Cmp(limits[1]) > 0 || o.MaxEvents < 0 || o.MaxEvents > 4096 {
 		return out, geom.ErrInvalid
@@ -108,7 +109,7 @@ func (l tubeLensQuery) sectionProjectionPlane(ctx context.Context, origin, direc
 	}
 	var uv, duv [2][2]*big.Rat
 	lo, hi := new(big.Rat).Set(limits[0]), new(big.Rat).Set(limits[1])
-	for i, f := range l.section.partitionSource.faces {
+	for i, f := range source.faces {
 		m, e := l.graphs[i].InverseCoefficients()
 		if e != nil {
 			return out, e
@@ -156,16 +157,17 @@ func (l tubeLensQuery) sectionProjectionPlane(ctx context.Context, origin, direc
 		return out, e
 	}
 	var support [2]*geom.SurfacePatch
-	for i, f := range l.faces {
+	for i, f := range source.faces {
 		p := patch()
 		if p.MaxOperations < 1 {
 			return out, geom.ErrConvergence
 		}
-		support[i], e = geom.NewSurfacePatch(f.Support, p)
+		var used int
+		support[i], used, e = exactLensQueryPatch(f, p)
+		out.ExactOperations += used
 		if e != nil {
 			return out, e
 		}
-		out.ExactOperations += support[i].ExactOperations()
 	}
 	build := func(chart int, a, b *geom.ExactAlgebraicRoot) (geom.SurfaceCurveCompositionCells, error) {
 		p := o.Composition
@@ -180,7 +182,7 @@ func (l tubeLensQuery) sectionProjectionPlane(ctx context.Context, origin, direc
 		}
 		return r, e
 	}
-	source, e := build(0, start, end)
+	section, e := build(0, start, end)
 	if e != nil {
 		return out, e
 	}
@@ -189,7 +191,7 @@ func (l tubeLensQuery) sectionProjectionPlane(ctx context.Context, origin, direc
 		rim bool
 	}
 	nodes := []node{{start, false}, {end, false}}
-	for _, c := range source.Cells {
+	for _, c := range section.Cells {
 		p := o.Composition
 		p.SurfacePatchOptions = patch()
 		if p.MaxOperations < 1 {

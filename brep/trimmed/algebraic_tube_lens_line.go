@@ -64,7 +64,8 @@ func (l AlgebraicProjectedTubeLens) ClipMaterialLine(ctx context.Context, origin
 
 func (l tubeLensQuery) clipMaterialLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat,
 	o AlgebraicLensLineOptions) (r AlgebraicTubeLensLineSection, err error) {
-	if ctx == nil || l.section.partitionSource == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (geom.Vec3{}) ||
+	source := l.section.runSource()
+	if ctx == nil || source == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (geom.Vec3{}) ||
 		limits[0] == nil || limits[1] == nil || limits[0].Cmp(limits[1]) > 0 ||
 		o.MaxEvents < 0 || o.MaxEvents > 4096 {
 		return r, geom.ErrInvalid
@@ -72,6 +73,12 @@ func (l tubeLensQuery) clipMaterialLine(ctx context.Context, origin, direction g
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
+	defer func() {
+		if err != nil {
+			r.Intervals, r.Isolated = nil, nil
+			r.Complete = false
+		}
+	}()
 	if o.Roots.MaxOperations == 0 {
 		o.Roots.MaxOperations = 32000000
 	}
@@ -139,7 +146,7 @@ func (l tubeLensQuery) clipMaterialLine(ctx context.Context, origin, direction g
 	// linear inequalities in original line units. The entire lens
 	// lies in their projected intersection.
 	lo, hi := new(big.Rat).Set(limits[0]), new(big.Rat).Set(limits[1])
-	for chart, f := range l.section.partitionSource.faces {
+	for chart, f := range source.faces {
 		m, e := l.graphs[chart].InverseCoefficients()
 		if e != nil {
 			return r, e
@@ -249,17 +256,17 @@ func (l tubeLensQuery) clipMaterialLine(ctx context.Context, origin, direction g
 		return r, e
 	}
 	width := new(big.Rat).Sub(hi, lo)
-	for chart, f := range l.faces {
+	for chart, f := range source.faces {
 		options := o.Composition
 		options.SurfacePatchOptions = surface()
 		if options.MaxOperations < 1 {
 			return r, geom.ErrConvergence
 		}
-		s, e := geom.NewSurfacePatch(f.Support, options.SurfacePatchOptions)
+		s, used, e := exactLensQueryPatch(f, options.SurfacePatchOptions)
+		r.ExactOperations += used
 		if e != nil {
 			return r, e
 		}
-		r.ExactOperations += s.ExactOperations()
 		options.SurfacePatchOptions = surface()
 		if options.MaxOperations < 1 {
 			return r, geom.ErrConvergence

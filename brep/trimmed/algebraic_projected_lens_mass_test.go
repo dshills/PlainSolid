@@ -21,6 +21,52 @@ func TestProjectedLensMassOnConvexTrims(t *testing.T) {
 func checkProjectedLensMass(t *testing.T, convex bool) {
 	t.Helper()
 	ctx := context.Background()
+	l := projectedExactRoofLens(t, convex)
+	m, e := l.BoundMassProperties(ctx, AlgebraicTubeLensVolumeOptions{MaxDepth: 8})
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Integrate z from 0 to R²-r² over the disk. The exact volume is
+	// πR⁴/2, the centroid height is R²/3, and symmetry sets X and Y.
+	// 333/106 and 355/113 give a rational enclosure of π.
+	scale := big.NewRat(625, 131072)
+	low := new(big.Rat).Mul(scale, big.NewRat(333, 106))
+	high := new(big.Rat).Mul(scale, big.NewRat(355, 113))
+	if m.Volume.Lower.Sign() <= 0 || m.Volume.Lower.Cmp(low) > 0 || m.Volume.Upper.Cmp(high) < 0 ||
+		new(big.Rat).Sub(m.Volume.Upper, m.Volume.Lower).Cmp(high) >= 0 {
+		t.Fatal("independent disk integral", m.Volume, low, high)
+	}
+	for i, want := range [3]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2), big.NewRat(25, 768)} {
+		if v := m.Centroid[i]; v.Lower == nil || v.Upper == nil || v.Lower.Cmp(want) > 0 || v.Upper.Cmp(want) < 0 {
+			t.Fatal("independent centroid", i, v, want)
+		}
+	}
+	// Ixy/V=-1/4 by centered disk symmetry. Izz/V is 1/2 from
+	// translation plus R²/3 from the radial second moment.
+	for _, q := range []struct {
+		interval geom.ExactParameterInterval
+		ratio    *big.Rat
+	}{{m.Inertia[0][1], big.NewRat(-1, 4)}, {m.Inertia[2][2], big.NewRat(409, 768)}} {
+		a, b := new(big.Rat).Mul(low, q.ratio), new(big.Rat).Mul(high, q.ratio)
+		if a.Cmp(b) > 0 {
+			a, b = b, a
+		}
+		if q.interval.Lower.Cmp(a) > 0 || q.interval.Upper.Cmp(b) < 0 {
+			t.Fatal("independent inertia integral", q.interval, a, b)
+		}
+	}
+	var limited geom.SurfacePatchOptions
+	limited.MaxOperations = 512
+	m, e = l.BoundMassProperties(ctx, AlgebraicTubeLensVolumeOptions{Patch: limited})
+	if !errors.Is(e, geom.ErrConvergence) || m.ExactOperations > limited.MaxOperations ||
+		m.Volume.Lower != nil || m.Centroid[0].Lower != nil || m.Inertia[0][0].Lower != nil {
+		t.Fatal("budget failure exposed partial mass properties", m, e)
+	}
+}
+
+func projectedExactRoofLens(t *testing.T, convex bool) AlgebraicProjectedTubeLens {
+	t.Helper()
+	ctx := context.Background()
 	a, b, seeds := transverseSplineCaps(t)
 	b = exactRoofForLensMesh(t, b)
 	faces := [2]Face{a.Faces()[0], b.Faces()[1]}
@@ -89,44 +135,5 @@ func checkProjectedLensMass(t *testing.T, convex bool) {
 	if e != nil || l.Topology().EulerCharacteristic != 2 || l.Faces()[1].SourceSurface != faces[1].Surface {
 		t.Fatal(l.Topology(), e)
 	}
-	m, e := l.BoundMassProperties(ctx, AlgebraicTubeLensVolumeOptions{MaxDepth: 8})
-	if e != nil {
-		t.Fatal(e)
-	}
-	// Integrate z from 0 to R²-r² over the disk. The exact volume is
-	// πR⁴/2, the centroid height is R²/3, and symmetry sets X and Y.
-	// 333/106 and 355/113 give a rational enclosure of π.
-	scale := big.NewRat(625, 131072)
-	low := new(big.Rat).Mul(scale, big.NewRat(333, 106))
-	high := new(big.Rat).Mul(scale, big.NewRat(355, 113))
-	if m.Volume.Lower.Sign() <= 0 || m.Volume.Lower.Cmp(low) > 0 || m.Volume.Upper.Cmp(high) < 0 ||
-		new(big.Rat).Sub(m.Volume.Upper, m.Volume.Lower).Cmp(high) >= 0 {
-		t.Fatal("independent disk integral", m.Volume, low, high)
-	}
-	for i, want := range [3]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2), big.NewRat(25, 768)} {
-		if v := m.Centroid[i]; v.Lower == nil || v.Upper == nil || v.Lower.Cmp(want) > 0 || v.Upper.Cmp(want) < 0 {
-			t.Fatal("independent centroid", i, v, want)
-		}
-	}
-	// Ixy/V=-1/4 by centered disk symmetry. Izz/V is 1/2 from
-	// translation plus R²/3 from the radial second moment.
-	for _, q := range []struct {
-		interval geom.ExactParameterInterval
-		ratio    *big.Rat
-	}{{m.Inertia[0][1], big.NewRat(-1, 4)}, {m.Inertia[2][2], big.NewRat(409, 768)}} {
-		a, b := new(big.Rat).Mul(low, q.ratio), new(big.Rat).Mul(high, q.ratio)
-		if a.Cmp(b) > 0 {
-			a, b = b, a
-		}
-		if q.interval.Lower.Cmp(a) > 0 || q.interval.Upper.Cmp(b) < 0 {
-			t.Fatal("independent inertia integral", q.interval, a, b)
-		}
-	}
-	var limited geom.SurfacePatchOptions
-	limited.MaxOperations = 512
-	m, e = l.BoundMassProperties(ctx, AlgebraicTubeLensVolumeOptions{Patch: limited})
-	if !errors.Is(e, geom.ErrConvergence) || m.ExactOperations > limited.MaxOperations ||
-		m.Volume.Lower != nil || m.Centroid[0].Lower != nil || m.Inertia[0][0].Lower != nil {
-		t.Fatal("budget failure exposed partial mass properties", m, e)
-	}
+	return l
 }
