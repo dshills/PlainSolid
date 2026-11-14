@@ -80,14 +80,24 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		if op != geom.TorusCylinderUnion {
+		{
 			props, ok := native[op]
 			if !ok {
-				body, err := parametric.NewTorusCylinderSet(ctx, 5, 2, 6, -3, 4, op, 1e-9)
+				var solid parametric.Solid
+				var err error
+				if op == geom.TorusCylinderUnion {
+					var body parametric.TorusCylinderUnionSet
+					body, err = parametric.NewTorusCylinderUnionSet(ctx, 5, 2, 6, -3, 4, 1e-9)
+					solid = body.Solid()
+				} else {
+					var body parametric.TorusCylinderSet
+					body, err = parametric.NewTorusCylinderSet(ctx, 5, 2, 6, -3, 4, op, 1e-9)
+					solid = body.Solid()
+				}
 				if err != nil {
 					t.Fatal(err)
 				}
-				props, err = body.Solid().MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+				props, err = solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
 				if err != nil {
 					t.Fatal(err)
 				}

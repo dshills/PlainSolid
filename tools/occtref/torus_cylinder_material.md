@@ -132,3 +132,19 @@ at requested0.5 analytic deflection with no nonincident triangle contacts.
 The solid is not a mesh substitution. Native Union and arbitrary clipped caps
 are still unsupported by this first native constructor; analytic queries retain
 their wider existing all-operation domain.
+
+The native comparison also covers `NewTorusCylinderUnionSet`: the original
+outer torus band joins two distinct cylinder bands and the original lower and
+upper planar disks. Cylinder-band payloads retain the original radii and cap
+coordinate, rederiving the irrational rim on load; rounded rim heights are not
+serialized as new source geometry. Original source ownership is torus face 0,
+wall faces 1/2, and cap faces 3/4. The independently authored OCCT Fuse above is
+compared with native integrated area, volume and centroid using the same
+numerical comparison thresholds. Kernel tests separately check canonical
+reload, cap-domain tampering, the reflected unequal-cap first moment, exact
+rim polynomial, and a 2,528-triangle positive closed display with Euler 2 and
+zero exact nonincident contacts at deflection 0.5. The two collapsed polar
+edges in native topology are chart degeneracies, not geometric shell edges.
+The existing real-arithmetic deflection certificate does not include evaluator
+roundoff. This constructor does not widen the strict transverse radial or
+clear finite cap source domain.
