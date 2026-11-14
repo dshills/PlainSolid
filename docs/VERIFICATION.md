@@ -1789,6 +1789,10 @@ intersection, union and difference, and retains topology and original
 owners. Intersection reloads as an exact algebraic boundary. Broad
 positive volume bounds enclose all three independent integrals; conversion
 to an ordinary representable solid still rejects unsupported endpoints.
+Mixed original charts now yield the full shared boundary (`1950d1b`):
+98 exact edges and 602 certified segments at deflection 0.02. All 180,901
+display segment pairs pass exact contact checks, and the filled curved
+faces require a separate proof.
 The eccentric through-bore on this filleted stock (`c207731`) retains all
 stock vertex, edge and face IDs, proves exact clearance, and matches
 independent differences −6π in volume and +10π in area after reload.
@@ -1822,13 +1826,22 @@ endpoint agreement and excludes the gap through the original void.
 Normal, race and Go 1.23 pass. Independently composed stock coedges recover
 the exact original UV restriction and prove equality by homogeneous
 cross-multiplication over the whole shared domain. Reload rechecks the
-same owner and domain. The stock face loops are not yet closed.
+same owner and domain. The stock loops close into one oriented shell
+(`709144a`), 24 vertices, 36 edges and 14 faces. The two-plane native
+recipe (`5739ea0`) preserves the original root IDs and material queries.
+Exact flux encloses 697/960 − 3√3/640 to width 2⁻³⁰. Pinned OCCT
+independently gives 0.71792267910286089, within 6×10⁻¹⁰ of the analytic
+value, and Euler characteristic 2 on its coarser face partition.
 The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
 original outer ellipse and preserves both owners. Pinned OCCT confirms
 native reload, two original edges, and area 38π. The two-hole STEP face
 (`07988e3`) likewise reimports one face and three original edges with
 area 56π; exact separation of the independently owned inner trims is
-at least 3 model units.
+at least 3 model units. The bounded STEP ellipse extrusion repair
+(`c2c6b7b`) changes only the rounded period and re-proves both original
+seam uses. The closed prism shell extension authenticates the two shared
+rims and three original faces. Pinned OCCT measures volume 24π;
+native solid promotion is tracked separately.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

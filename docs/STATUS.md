@@ -1138,10 +1138,12 @@ surfaces must keep their geometry through the operation. Continue with:
    Opposite caps independently recover and pair each whole exact seam,
    including distinct chart parameters at a shared irrational endpoint.
    Each retained cap interval now also binds to the original stock UV trim,
-   with exact model equality across the entire interval. Closing the retained
-   stock face loops around those coedges, stock faces bounded solely
-   by two unsubdivided edges, and general mixed-axis trim arrangements
-   remain open.
+   with exact model equality across the entire interval. The retained
+   single-loop stock faces now close into an indexed algebraic boundary;
+   all edges have opposed uses and every vertex link is a cycle. The
+   sheared sleeve rebuilds after native reload and has a certified volume.
+   Ordinary solid conversion, general mixed-axis trim arrangements and
+   several retained components on one original chart remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

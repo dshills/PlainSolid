@@ -93,15 +93,8 @@ func WriteAlgebraicGraphCapJSON(w io.Writer, c AlgebraicGraphCapClip) error {
 	if e := WriteJSON(&stock, recipe.stock); e != nil {
 		return e
 	}
-	points := func(q [3]geom.Vec3) [][]*float64 {
-		out := make([][]*float64, 3)
-		for i, p := range q {
-			out[i] = []*float64{&p.X, &p.Y, &p.Z}
-		}
-		return out
-	}
 	f := nativeAlgebraicGraphCapClip{Version: 1, Kind: "trimmed-algebraic-graph-cap",
-		Stock: stock.Bytes(), Section: points(recipe.section), Cut: points(recipe.cut),
+		Stock: stock.Bytes(), Section: graphCapEncodePlane(recipe.section), Cut: graphCapEncodePlane(recipe.cut),
 		Positive: &recipe.positive, Compose: recipe.compose}
 	b, e := json.Marshal(f)
 	if e != nil {
@@ -146,20 +139,13 @@ func ReadAlgebraicGraphCapJSON(ctx context.Context, r io.Reader, l JSONLimits, o
 	if e = d.Decode(new(any)); e != io.EOF || f.Version != 1 || f.Kind != "trimmed-algebraic-graph-cap" || f.Positive == nil {
 		return zero, geom.ErrInvalid
 	}
-	var section, cut [3]geom.Vec3
-	for _, q := range []struct {
-		raw [][]*float64
-		dst *[3]geom.Vec3
-	}{{f.Section, &section}, {f.Cut, &cut}} {
-		if len(q.raw) != len(*q.dst) {
-			return zero, geom.ErrInvalid
-		}
-		for i, p := range q.raw {
-			if len(p) != 3 || p[0] == nil || p[1] == nil || p[2] == nil {
-				return zero, geom.ErrInvalid
-			}
-			q.dst[i] = geom.Vec3{X: *p[0], Y: *p[1], Z: *p[2]}
-		}
+	section, e := graphCapDecodePlane(f.Section)
+	if e != nil {
+		return zero, e
+	}
+	cut, e := graphCapDecodePlane(f.Cut)
+	if e != nil {
+		return zero, e
 	}
 	stock, e := ReadJSONContext(ctx, bytes.NewReader(f.Stock), l)
 	if e != nil {
@@ -167,4 +153,26 @@ func ReadAlgebraicGraphCapJSON(ctx context.Context, r io.Reader, l JSONLimits, o
 	}
 	o.ComposeSectionCurves = f.Compose
 	return stock.ClipAlgebraicGraphCap(ctx, section, cut, *f.Positive, o, clip)
+}
+
+func graphCapEncodePlane(q [3]geom.Vec3) [][]*float64 {
+	out := make([][]*float64, 3)
+	for i, p := range q {
+		out[i] = []*float64{&p.X, &p.Y, &p.Z}
+	}
+	return out
+}
+
+func graphCapDecodePlane(raw [][]*float64) ([3]geom.Vec3, error) {
+	var dst [3]geom.Vec3
+	if len(raw) != len(dst) {
+		return dst, geom.ErrInvalid
+	}
+	for i, p := range raw {
+		if len(p) != 3 || p[0] == nil || p[1] == nil || p[2] == nil {
+			return [3]geom.Vec3{}, geom.ErrInvalid
+		}
+		dst[i] = geom.Vec3{X: *p[0], Y: *p[1], Z: *p[2]}
+	}
+	return dst, nil
 }

@@ -1,11 +1,18 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
+	"os"
+	"os/exec"
+	"reflect"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 )
@@ -123,6 +130,74 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	rechecked, e := diag.ExactIndexedBoundary(ctx, section, opts)
 	if e != nil || rechecked.Vertices != indexed.Vertices || rechecked.EulerCharacteristic != indexed.EulerCharacteristic {
 		t.Fatal("diagnostic edits changed the exact shell", e)
+	}
+	var data bytes.Buffer
+	if e := WriteAlgebraicGraphStockJSON(&data, diag); e != nil {
+		t.Fatal(e)
+	}
+	raw := append([]byte(nil), data.Bytes()...)
+	restored, topology, e := ReadAlgebraicGraphStockJSON(ctx, bytes.NewReader(raw), JSONLimits{},
+		RationalGraphShellSectionOptions{}, RationalGraphShellRegionOptions{}, opts)
+	if e != nil || !reflect.DeepEqual(topology, indexed) || len(restored.Seams) != 2 {
+		t.Fatal("native reload must re-prove the exact closed indexed stock shell", e)
+	}
+	for i, cap := range r.Caps {
+		for j, root := range cap.Section.Contacts {
+			other := restored.Caps[i].Section.Contacts[j]
+			order, e := root.Parameter.Compare(ctx, other.Parameter, opts)
+			if e != nil || !order.Proven || order.Order != 0 || root.Source != other.Source {
+				t.Fatal("saved stock recipe changed the exact junction", i, j, e)
+			}
+		}
+	}
+	if pair, boundary, e := ReadAlgebraicGraphStockJSON(ctx, bytes.NewReader(raw), JSONLimits{MaxBytes: 32},
+		section, RationalGraphShellRegionOptions{}, opts); !errors.Is(e, geom.ErrConvergence) || len(pair.Seams)+len(boundary.Edges) != 0 {
+		t.Fatal("bounded reader must fail before publishing", e)
+	}
+	// Independently integrate (Y−11/8)/8 over the sheared stock footprint
+	// above the cut, then subtract the sheared void. Its lower edge turns
+	// on at x=√3. This gives 697/960 − 3√3/640.
+	width := big.NewRat(1, 1<<30)
+	volume, e := restored.BoundVerticalPolynomialVolume(ctx, width, section, opts)
+	ref := big.NewRat(697, 960)
+	if e != nil || new(big.Rat).Sub(volume.Upper, volume.Lower).Cmp(width) > 0 {
+		t.Fatal("clipped sheared shell volume proof", volume, e)
+	}
+	a, b := new(big.Rat).Sub(ref, volume.Upper), new(big.Rat).Sub(ref, volume.Lower)
+	wantSquared := big.NewRat(27, 409600)
+	if a.Sign() <= 0 || a.Mul(a, a).Cmp(wantSquared) > 0 || b.Mul(b, b).Cmp(wantSquared) < 0 {
+		t.Fatal("certified volume must contain the independent irrational answer", volume)
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ALGEBRAIC_CAP_STOCK"); oracle != "" {
+		output, e := exec.CommandContext(ctx, oracle, "sheared-sleeve").Output()
+		if e != nil {
+			t.Fatal("pinned OCCT sheared sleeve", e)
+		}
+		var data [8]float64
+		if e := json.Unmarshal(output, &data); e != nil {
+			t.Fatal(e)
+		}
+		mid, _ := new(big.Rat).Quo(new(big.Rat).Add(volume.Lower, volume.Upper), big.NewRat(2, 1)).Float64()
+		// OCCT keeps the prismatic faces whole; PlainSolid keeps the
+		// original rectangular chart partitions. Their Euler number agrees.
+		if math.Abs(data[0]-mid) > 2e-8 || int(data[5]-data[6]+data[7]) != topology.EulerCharacteristic {
+			t.Fatal("independent OCCT volume or closed topology", data, mid)
+		}
+	}
+	for _, probe := range []struct {
+		p    geom.Vec3
+		want parametric.Location
+	}{
+		{geom.Vec3{X: .5, Y: 1.75, Z: .52}, parametric.Inside},
+		{geom.Vec3{X: 1.5, Y: 1.75, Z: .52}, parametric.Outside},
+		{geom.Vec3{X: .5, Y: 1.4, Z: .48}, parametric.Outside},
+		{geom.Vec3{X: .5, Y: 11. / 8, Z: .5}, parametric.Boundary},
+		{geom.Vec3{X: 1.5, Y: 11. / 8, Z: .5}, parametric.Outside},
+	} {
+		got, e := restored.LocateMaterial(ctx, probe.p, SplineShellBooleanOptions{})
+		if e != nil || got != probe.want {
+			t.Fatal("exact source material and both halfspaces", probe, got, e)
+		}
 	}
 	if len(owners) != attachments {
 		t.Fatal("each retained cap side must appear once on a closed stock loop", len(owners), attachments)
