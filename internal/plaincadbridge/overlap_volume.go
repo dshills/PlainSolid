@@ -200,6 +200,15 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			return result(v)
 		}
 	}
+	if a.bore != nil {
+		v, handled, err := overlapDisjointObliqueBore(a, c.cylinder)
+		if handled {
+			if err != nil {
+				return nil, err
+			}
+			return result(v)
+		}
+	}
 	cut, start, end, err := boreSpan(base, c.cylinder, false)
 	if err != nil {
 		return nil, err

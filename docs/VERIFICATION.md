@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD separate cardinal and oblique through Holes — 2026-11-14
+
+Two or three through cutters with separated wall bounds retain their
+complete circular and elliptical openings in one rectangular stock
+body. Grouped and successive cuts keep exact measures. Canonical STEP
+recovers the individual cylinder axes and stock cap ownership.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-oblique-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-disjoint-oblique-step-native-2026-11-14.json)
+pass on the same WASM. The 29,347-byte STEP reimports, reopens and
+matches independent OCCT Boolean volume, area and centroid. Watertight
+STL has 1,372 triangles. Five canonical STEP variants, native race tests
+and Go vet pass. Steeper or three-component axes can exhaust adaptive
+tessellation at the existing mesh budget.
+
 ## PlainCAD exact cardinal–oblique Hole crossing — 2026-11-14
 
 A cardinal cylinder and a concurrent equal-radius oblique cylinder at a

@@ -31,6 +31,7 @@ type boreBody struct {
 	tripleCrossed     *tripleCrossedGeometry
 	oblique           *obliqueBore
 	obliqueCrossing   *obliqueCrossedGeometry
+	disjointOblique   *disjointObliqueGeometry
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -139,6 +140,11 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	if len(cylinders) == 2 {
 		if body, handled, err := newObliqueCrossedBore(base, cylinders); handled {
+			return body, err
+		}
+	}
+	if len(cylinders) >= 2 && len(cylinders) <= 3 {
+		if body, handled, err := newDisjointObliqueBore(base, cylinders); handled {
 			return body, err
 		}
 	}
@@ -269,6 +275,9 @@ func (body *boreBody) measures() (float64, float64, error) {
 		}
 		return volume, area, nil
 	}
+	if h := body.disjointOblique; h != nil {
+		return volume - h.removed, area + h.areaDelta, nil
+	}
 	if h := body.crossed; h != nil {
 		return volume - h.RemovedVolume, area + h.SurfaceAreaDelta, nil
 	}
@@ -396,7 +405,9 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 	if _, ok := body.solid.Faces()[f.Face].Surface.(geom.PlaneSurface); !ok {
 		return PlanarFace{}, errors.New("retained planar support mismatch")
 	}
-	if h := body.oblique; h != nil {
+	if h := body.disjointOblique; h != nil {
+		f.Area -= h.openings[baseFace]
+	} else if h := body.oblique; h != nil {
 		if body.cuts[0].Entry == baseFace {
 			f.Area -= h.openingAreas[0]
 		}

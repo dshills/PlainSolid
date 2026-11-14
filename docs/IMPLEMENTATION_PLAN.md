@@ -98,8 +98,10 @@ retain finite stops beyond the complete intersection. In a concurrent
 same-radius triple crossing, one cutter can also retain a floor beyond
 the crossing. Unequal covered-width pairs also support disjoint
 companion through bores. A cardinal and concurrent 4:3 oblique pair
-keeps exact intersection ellipses. Next qualify disjoint oblique
-combinations and extend angle and placement coverage. A single oblique through Hole with
+keeps exact intersection ellipses. Two or three disjoint through bores
+can combine oblique and cardinal axes and exchange their complete rims.
+Next qualify cylinder strip tessellation for steeper and three-component
+axes, then extend angle and placement coverage. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.
