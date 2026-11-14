@@ -58,23 +58,9 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 			out = CertifiedWrappedStationBoreMesh{}
 		}
 	}()
-	if ctx == nil {
-		return out, geom.ErrInvalid
-	}
-	if o.Band.MaxTriangles == 0 {
-		o.Band.MaxTriangles = 1000000
-	}
-	if o.Band.Patch.MaxTriangleChecks == 0 {
-		o.Band.Patch.MaxTriangleChecks = 100000
-	}
-	if o.Band.Patch.MaxSubdivisions == 0 {
-		o.Band.Patch.MaxSubdivisions = 32
-	}
-	if o.MaxStationSamples == 0 {
-		o.MaxStationSamples = 65536
-	}
-	if o.Band.MaxTriangles < 1 || o.Band.MaxTriangles > 8000000 || o.Band.Patch.MaxTriangleChecks < 1 || o.MaxStationSamples < 1 || o.MaxStationSamples > 1000000 || o.Band.Patch.MaxSubdivisions < 1 || o.Band.Patch.MaxSubdivisions > 128 || o.Band.Patch.MaxSubdivisions&(o.Band.Patch.MaxSubdivisions-1) != 0 || !finite(o.Band.Patch.Deflection) || o.Band.Patch.Deflection <= 0 {
-		return out, geom.ErrInvalid
+	o, err = normalizeWrappedStationBoreMeshOptions(ctx, o)
+	if err != nil {
+		return out, err
 	}
 	proof, e := s.validateWrappedProfileStationBore(ctx, o.Band.Embedding, circular)
 	if e != nil {
@@ -84,10 +70,11 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 		return out, geom.ErrConvergence
 	}
 	var families [2]Solid
+	var histories [2]WrappedLoftHistory
 	var bands [2][]*geom.WrappedSurfacePatch
-	build := NewWrappedRationalStationLoft
+	construct := NewWrappedRationalStationLoft
 	if circular {
-		build = NewWrappedCircularStationLoft
+		construct = NewWrappedCircularStationLoft
 	}
 	originals := [2][]int{proof.OuterWalls, proof.InnerWalls}
 	for wall, ids := range originals {
@@ -101,11 +88,38 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 			}
 			bands[wall] = append(bands[wall], w)
 		}
-		families[wall], _, e = build(ctx, bands[wall], s.tolerance, o.Band.Embedding)
+		families[wall], histories[wall], e = construct(ctx, bands[wall], s.tolerance, o.Band.Embedding)
 		if e != nil {
 			return out, e
 		}
 	}
+	build := func(wall int, opts CertifiedWrappedStationMeshOptions, minimum int, record *[]wrappedDisplayBand) (CertifiedWrappedStationMesh, error) {
+		return families[wall].tessellateWrappedProfileStationLoft(ctx, opts, minimum, record, circular)
+	}
+	out, err = tessellateProvedWrappedStationBore(ctx, o, capture, bands, histories, originals, proof.Caps, build)
+	if err == nil {
+		out.Source = proof
+	}
+	return out, err
+}
+
+// Shared post-proof assembly. Wrappers authenticate both original walls and
+// strict nesting of their corresponding profiles before calling this function.
+func tessellateProvedWrappedStationBore(ctx context.Context, o CertifiedWrappedStationMeshOptions, capture *[]wrappedDisplayBand, bands [2][]*geom.WrappedSurfacePatch, histories [2]WrappedLoftHistory, originals [2][]int, capIDs [2]int, build func(int, CertifiedWrappedStationMeshOptions, int, *[]wrappedDisplayBand) (CertifiedWrappedStationMesh, error)) (out CertifiedWrappedStationBoreMesh, err error) {
+	if capture != nil {
+		*capture = nil
+		defer func() {
+			if err != nil {
+				*capture = nil
+			}
+		}()
+	}
+	defer func() {
+		if err != nil {
+			out = CertifiedWrappedStationBoreMesh{}
+		}
+	}()
+	var e error
 	var caps [2]*geom.SurfacePatch
 	var capCuts [2][]float64
 	weight := func(d geom.BSplineSurfaceData, i int) *big.Rat {
@@ -181,7 +195,7 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 			if capture != nil {
 				record = &localBands[wall]
 			}
-			local[wall], e = families[wall].tessellateWrappedProfileStationLoft(ctx, opts, minimum, record, circular)
+			local[wall], e = build(wall, opts, minimum, record)
 			if e != nil {
 				return out, e
 			}
@@ -199,14 +213,14 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 			continue
 		}
 		var candidateBoundary []wrappedDisplayBand
-		candidate := CertifiedWrappedStationBoreMesh{Source: proof, Subdivisions: maximum, SourceImageSquaredDistance: new(big.Rat)}
+		candidate := CertifiedWrappedStationBoreMesh{Subdivisions: maximum, SourceImageSquaredDistance: new(big.Rat)}
 		for wall, m := range local {
 			mapping := make([]int, len(m.Mesh.Vertices))
 			for i := range mapping {
 				mapping[i] = -1
 			}
 			faceMap := map[int]int{}
-			for i, id := range m.Source.History.WallFaces {
+			for i, id := range histories[wall].WallFaces {
 				faceMap[id] = originals[wall][i]
 			}
 			for i, tri := range m.Mesh.Triangles {
@@ -324,7 +338,7 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 						candidate.SourceImageSquaredDistance.Set(bound.SquaredDistance)
 					}
 					candidate.Mesh.Triangles = append(candidate.Mesh.Triangles, q)
-					candidate.OriginalFace = append(candidate.OriginalFace, proof.Caps[cap])
+					candidate.OriginalFace = append(candidate.OriginalFace, capIDs[cap])
 					candidate.SquaredErrors = append(candidate.SquaredErrors, new(big.Rat).Set(bound.SquaredDistance))
 				}
 			}
@@ -343,4 +357,28 @@ func (s Solid) tessellateWrappedProfileStationBore(ctx context.Context, o Certif
 		minimum = maximum * 2
 	}
 	return out, geom.ErrConvergence
+}
+
+func normalizeWrappedStationBoreMeshOptions(ctx context.Context, o CertifiedWrappedStationMeshOptions) (CertifiedWrappedStationMeshOptions, error) {
+	if ctx == nil {
+		return o, geom.ErrInvalid
+	}
+	if o.Band.MaxTriangles == 0 {
+		o.Band.MaxTriangles = 1000000
+	}
+	if o.Band.Patch.MaxTriangleChecks == 0 {
+		o.Band.Patch.MaxTriangleChecks = 100000
+	}
+	if o.Band.Patch.MaxSubdivisions == 0 {
+		o.Band.Patch.MaxSubdivisions = 32
+	}
+	if o.MaxStationSamples == 0 {
+		o.MaxStationSamples = 65536
+	}
+	n := o.Band.Patch.MaxSubdivisions
+	if o.Band.MaxTriangles < 1 || o.Band.MaxTriangles > 8000000 || o.Band.Patch.MaxTriangleChecks < 1 || o.MaxStationSamples < 1 || o.MaxStationSamples > 1000000 ||
+		n < 1 || n > 128 || n&(n-1) != 0 || !finite(o.Band.Patch.Deflection) || o.Band.Patch.Deflection <= 0 {
+		return o, geom.ErrInvalid
+	}
+	return o, nil
 }

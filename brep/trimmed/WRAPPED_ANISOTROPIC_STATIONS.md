@@ -323,3 +323,30 @@ A crease on only one source wall does not invent a crease on the other. At eithe
 terminal plane the section is the actual annulus; its central opening is not
 material. Native reauthentication binds every original model edge and coedge
 before the section's rim identities are resolved.
+
+## Certified through-bore display
+
+`TessellateWrappedAnisotropicStationBoreCertified` authenticates both original
+wall families and their exact strict nesting. It reuses the certified station
+band residuals and globally synchronizes the original U subdivisions. Different
+height grids remain separate; their terminal rings alone join the annular caps.
+The result identifies actual source faces and four original rim edges per
+station, along with the common indexed display vertices.
+
+Cap construction interpolates matching weighted profile parameters, not
+model-space rays (anisotropic inner/outer profiles need not have equal radial
+angles). Positive affine X/Y scales increase strictly from inner to outer.
+On each quadrant, the original weighted profile's first coordinate decreases
+and second increases; hence the cap Jacobian has a fixed nonzero sign. The
+coordinatewise contraction proof gives strictly nested intermediate profiles,
+so these charts cover precisely the original annuli. Exact patch/triangle
+residuals then bound source-to-display and display-to-source distance.
+
+The existing triangle, sample, subdivision and contact budgets remain in force.
+All walls and caps use one global refinement level, with checks/samples charged
+across retries. The final mesh must have closed oriented manifold incidence,
+positive signed volume and no nonincident contacts under the exact checker.
+No circular normal or volume-error claim is made. Matching terminal U knot bases
+and proportional original weights are required; mismatched bases reject instead
+of using rounded positional welding. Prior circular station APIs retain their
+original source proof and behavior through the shared post-proof assembly core.

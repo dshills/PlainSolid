@@ -39,19 +39,20 @@ func (s Solid) TessellateWrappedAnisotropicStationLoftCertified(ctx context.Cont
 	if !proof.Complete || len(bands) == 0 {
 		return empty, geom.ErrConvergence
 	}
-	build := func(ctx context.Context, w *geom.WrappedSurfacePatch, o CertifiedWrappedFrustumMeshOptions, minimum int) (CertifiedWrappedFrustumMesh, error) {
-		p, e := geom.CertifyWrappedAnisotropicEmbedding(ctx, w, o.Embedding)
-		if e != nil {
-			return CertifiedWrappedFrustumMesh{}, e
-		}
-		if !p.Complete {
-			return CertifiedWrappedFrustumMesh{}, geom.ErrConvergence
-		}
-		return tessellateProvedWrappedStarBandFrom(ctx, w, o, minimum, p.Center, [2]*big.Rat{p.LowerZ, p.UpperZ})
-	}
-	q, e := tessellateProvedWrappedStationBands(ctx, o, 1, nil, bands, proof.History, build)
+	q, e := tessellateProvedWrappedStationBands(ctx, o, 1, nil, bands, proof.History, tessellateWrappedAnisotropicBandFrom)
 	if e != nil {
 		return empty, e
 	}
 	return CertifiedWrappedAnisotropicStationMesh{q.Mesh, proof, q.OriginalFace, q.StationVertices, q.SquaredErrors, q.SourceImageSquaredDistance, q.SignedDisplayVolume, q.Collision, q.Subdivisions, q.TriangleChecks, q.StationSamples}, nil
+}
+
+func tessellateWrappedAnisotropicBandFrom(ctx context.Context, w *geom.WrappedSurfacePatch, o CertifiedWrappedFrustumMeshOptions, minimum int) (CertifiedWrappedFrustumMesh, error) {
+	p, e := geom.CertifyWrappedAnisotropicEmbedding(ctx, w, o.Embedding)
+	if e != nil {
+		return CertifiedWrappedFrustumMesh{}, e
+	}
+	if !p.Complete {
+		return CertifiedWrappedFrustumMesh{}, geom.ErrConvergence
+	}
+	return tessellateProvedWrappedStarBandFrom(ctx, w, o, minimum, p.Center, [2]*big.Rat{p.LowerZ, p.UpperZ})
 }
