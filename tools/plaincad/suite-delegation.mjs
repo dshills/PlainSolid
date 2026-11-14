@@ -6,6 +6,10 @@ export function suitePorts(suite, port, preflightPort) {
  if(suite==='development'&&acceptance!==preflight)throw Error('Development preflight and acceptance share one port');
  return {acceptance,preflight};
 }
+export function requireDevelopmentOrigin(port, file, source) {
+ if(port!=='5279'&&/https?:\/\/(?:127\.0\.0\.1|localhost):5279\b/.test(source))
+  throw Error(`Fixed-origin fixture requires original port 5279: ${file}`);
+}
 export function reportCases(result) {
  const tests=[];
  const visit=s=>{for(const spec of s.specs??[])for(const test of spec.tests??[])tests.push({file:spec.file,line:spec.line,title:spec.title,project:test.projectName,status:test.status,results:test.results.map(r=>({status:r.status,durationMs:r.duration,errors:r.errors}))});for(const child of s.suites??[])visit(child)};

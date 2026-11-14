@@ -1,12 +1,23 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
 const script=resolve('tools/plaincad/development.mjs'),hash=x=>createHash('sha256').update(x).digest('hex');
 test('usage and unknown flags reject without launching',()=>{assert.equal(spawnSync(process.execPath,[script,'--help']).status,0);assert.notEqual(spawnSync(process.execPath,[script,'--wat']).status,0)});
+test('initial staging refuses a fixed-origin development fixture on a custom port',()=>{
+ const root=mkdtempSync(join(tmpdir(),'development-staging-'));try{
+  const source=join(root,'source'),work=join(root,'staged');
+  mkdirSync(join(source,'e2e'),{recursive:true});
+  writeFileSync(join(source,'e2e/guided.spec.ts'),'focusedWorkspaceStorageState("http://127.0.0.1:5279")');
+  const result=spawnSync(process.execPath,[resolve('tools/plaincad/run.mjs'),'--source',source,'--work',work,'--test','e2e','--port','5753'],{encoding:'utf8'});
+  assert.notEqual(result.status,0);
+  assert.match(result.stderr,/Fixed-origin fixture requires original port 5279: e2e\/guided\.spec\.ts/);
+  assert.equal(existsSync(work),false);
+ }finally{rmSync(root,{recursive:true,force:true})}
+});
 test('check validates staged provenance and rejects changed/unrecorded tests',()=>{
  const root=mkdtempSync(join(tmpdir(),'development-harness-'));try{
  const source=join(root,'source'),work=join(root,'work');mkdirSync(source);mkdirSync(work);

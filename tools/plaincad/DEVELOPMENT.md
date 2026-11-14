@@ -10,8 +10,8 @@ node tools/plaincad/development.mjs --work /tmp/staged-app --run
 
 Default port 5279 preserves fixture-local storage origins. The runner obtains
 the original Playwright config from the pinned app revision and changes only
-its port when explicitly requested. It refuses a custom port for selected
-fixed-origin fixtures. `--test` is a file regular expression; `--grep` selects
+its port when explicitly requested. Both stages refuse a custom port for
+selected fixed-origin fixtures. `--test` is a file regular expression; `--grep` selects
 test titles. All original `.spec`/`.test` files are selected by default; the
 extra generated backend probe is excluded. Original assertions, timeouts,
 worker count and retry policy are preserved. Run expensive qualification jobs

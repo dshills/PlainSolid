@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import {suitePorts,passedProbe,verifyDelegatedReport} from "./suite-delegation.mjs";
+import {suitePorts,passedProbe,verifyDelegatedReport,requireDevelopmentOrigin} from "./suite-delegation.mjs";
 import { installDisplayRuntime } from "./display-runtime.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -72,6 +72,16 @@ async function files(directory) {
     else if (entry.isFile()) paths.push(name);
   }
   return paths;
+}
+// Playwright treats its file selector as a regular expression against the
+// absolute test path. Refuse the wrong origin before copying/building the app.
+if (suite === "development" && port !== "5279") {
+  const selector = new RegExp(testFile);
+  for (const file of await files(join(source, "e2e"))) {
+    if (/\.(?:spec|test)\.[cm]?[jt]sx?$/.test(file) && selector.test(file)) {
+      requireDevelopmentOrigin(port, relative(source, file), await readFile(file, "utf8"));
+    }
+  }
 }
 async function runOriginalUnitTests() {
   const fixture = "src/tests/plainSolidRuntimeSetup.ts";

@@ -5,6 +5,7 @@ import {resolve,join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
 import {originalSources,replayDisplay,displayFiles,verifyProviderLabels} from './production-provenance.mjs';
+import {requireDevelopmentOrigin} from './suite-delegation.mjs';
 
 const usage='Usage: node tools/plaincad/development.mjs --work /staged/workspace [--port 5279] [--test e2e/file.spec.ts] [--grep expression] [--check | --run]\nDefault --check verifies inputs without running tests. --run runs the selected originals (all development tests by default).';
 const args=process.argv.slice(2), options={};
@@ -46,7 +47,7 @@ for(const [file,before] of Object.entries(r.sourceHashes??{})){
   if(rt.beforeSha256!==prior||rt.afterSha256!==hash(content)||content.split(boundary+insertion).length!==2||!content.includes('onNativeProgress?:')||hash(content.replace(boundary+insertion,boundary))!==prior)throw Error('Invalid heartbeat adaptation');
   runtime.delete(file);
  }else if(hash(content)!==prior)throw Error(`Staged source changed: ${file}`);
- if(port!=='5279'&&file.startsWith('e2e/')&&/https?:\/\/(?:127\.0\.0\.1|localhost):5279\b/.test(content)&&(!options['--test']||new RegExp(options['--test']).test(file)))throw Error(`Fixed-origin fixture requires original port 5279: ${file}`);
+ if(file.startsWith('e2e/')&&(!options['--test']||new RegExp(options['--test']).test(file)))requireDevelopmentOrigin(port,file,content);
  checked++;if(file.startsWith('e2e/'))development++;
 }
 if(runtime.size)throw Error('Unbound runtime adaptation');
