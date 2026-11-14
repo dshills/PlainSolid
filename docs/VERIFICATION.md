@@ -6185,3 +6185,9 @@ Retargeting the middle or outer link moves the single colored path. The
 exact native reproof retains the original graph and refuses competing
 continuations or wrong terminal ownership. The combined appearance race
 passed in 11.562 s.
+
+### Crossing prism transition qualification
+
+Both entry directions verify exact retained and exposed regions, original
+source intervals, paired interface directions and independent area and
+volume. The integrated transition and sewing race passed in 4.174 s.

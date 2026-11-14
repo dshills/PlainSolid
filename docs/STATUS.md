@@ -2331,3 +2331,10 @@ three original assembly use links and the original prefix-anchored style
 context. It preserves all twelve expanded leaf paths and applies appearance
 to exactly one. The distinct native format re-proves the original STEP.
 See the [depth-three format contract](../exchange/step/DEEP_SHUO_COLORS.md).
+
+### Crossing native prism Cut transition
+
+`trimmed.ImprintCrossingNativePrismCut` proves retained cap and exposed
+floor regions when the tool crosses the stock footprint. It preserves
+original cap and clipped wall ancestry. Shared interface pieces pair by
+exact directed parameter intervals and account for every stock edge.
