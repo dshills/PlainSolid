@@ -129,6 +129,14 @@ func newAlgebraicShellSeamConstraint(ctx context.Context, f Face, p *geom.Surfac
 	if !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) {
 		return out, e
 	}
+	plane, e = exactPlanarShellConstraint(ctx, p, o)
+	if e == nil {
+		out.plane = plane
+		return out, nil
+	}
+	if !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) {
+		return out, e
+	}
 	for _, axes := range [][2]int{{0, 1}, {0, 2}, {1, 2}} {
 		_, e := geom.NewAffineProjectedGraph(ctx, p, axes, o.SurfacePatchOptions)
 		if e == nil {
