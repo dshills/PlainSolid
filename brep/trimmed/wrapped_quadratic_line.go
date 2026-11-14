@@ -24,9 +24,9 @@ type WrappedCylinderFaceLineHit struct {
 	CrossingSign  int
 }
 type WrappedCylinderFaceLineIntersection struct {
-	Complete                        bool
-	Hits                            []WrappedCylinderFaceLineHit
-	ExcludedByTrim, ExactOperations int
+	Complete                                          bool
+	Hits                                              []WrappedCylinderFaceLineHit
+	ExcludedByTrim, ExcludedByHeight, ExactOperations int
 }
 
 // IntersectHorizontalLine proves complete finite hits for a represented
@@ -38,8 +38,15 @@ type WrappedCylinderFaceLineIntersection struct {
 // exact periodic identity and exact trim location admit hits; no display sample
 // or rounded inverse is used. Options bound shared work and source data.
 func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat, o geom.SurfacePatchOptions) (WrappedCylinderFaceLineIntersection, error) {
+	if direction.Z != 0 {
+		return WrappedCylinderFaceLineIntersection{}, geom.ErrInvalid
+	}
+	return r.intersectCylinderLine(ctx, origin, direction, limits, o, false)
+}
+
+func (r *WrappedQuadraticFace) intersectCylinderLine(ctx context.Context, origin, direction geom.Vec3, limits [2]*big.Rat, o geom.SurfacePatchOptions, inclined bool) (WrappedCylinderFaceLineIntersection, error) {
 	var zero WrappedCylinderFaceLineIntersection
-	if ctx == nil || r == nil || len(r.loops) == 0 || !origin.IsFinite() || !direction.IsFinite() || direction.Z != 0 || direction.X == 0 && direction.Y == 0 || limits[0] == nil || limits[1] == nil || limits[0].Cmp(limits[1]) > 0 {
+	if ctx == nil || r == nil || len(r.loops) == 0 || !origin.IsFinite() || !direction.IsFinite() || direction.X == 0 && direction.Y == 0 || limits[0] == nil || limits[1] == nil || limits[0].Cmp(limits[1]) > 0 {
 		return zero, geom.ErrInvalid
 	}
 	w, ok := r.native.Face.Surface.(*geom.WrappedSurfacePatch)
@@ -67,7 +74,7 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 		return ctx.Err()
 	}
 	ori := [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)}
-	dir := [3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), new(big.Rat)}
+	dir := [3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}
 	for _, list := range [][]*big.Rat{ori[:], dir[:], limits[:]} {
 		for _, q := range list {
 			if e := check(q); e != nil {
@@ -88,14 +95,17 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 		return zero, geom.ErrConvergence
 	}
 	used += embedding.ExactOperations
-	if ori[2].Cmp(embedding.LowerZ) < 0 || ori[2].Cmp(embedding.UpperZ) > 0 {
+	if !inclined && (ori[2].Cmp(embedding.LowerZ) < 0 || ori[2].Cmp(embedding.UpperZ) > 0) {
 		if e := ctx.Err(); e != nil {
 			return zero, e
 		}
 		return WrappedCylinderFaceLineIntersection{Complete: true, ExactOperations: used}, nil
 	}
 	d := w.Domain()
-	v := new(big.Rat).Add(ratInset(d.VMin), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)), new(big.Rat).Quo(new(big.Rat).Sub(ori[2], embedding.LowerZ), new(big.Rat).Sub(embedding.UpperZ, embedding.LowerZ))))
+	v := ratInset(d.VMin)
+	if !inclined {
+		v = new(big.Rat).Add(ratInset(d.VMin), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)), new(big.Rat).Quo(new(big.Rat).Sub(ori[2], embedding.LowerZ), new(big.Rat).Sub(embedding.UpperZ, embedding.LowerZ))))
+	}
 	if e := check(v); e != nil {
 		return zero, e
 	}
@@ -116,6 +126,9 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 	var bx [3]*big.Rat
 	for axis := 0; axis < 3; axis++ {
 		bx[axis] = new(big.Rat).Add(ori[axis], dir[axis])
+		if inclined && axis == 2 {
+			bx[axis] = new(big.Rat).Set(ori[axis])
+		}
 		if e := check(bx[axis]); e != nil {
 			return zero, e
 		}
@@ -160,10 +173,15 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 		if e := check(t); e != nil {
 			return zero, e
 		}
+		actualPoint := h.Point
 		for axis := 0; axis < 3; axis++ {
 			p := new(big.Rat).Add(ori[axis], new(big.Rat).Mul(t, dir[axis]))
 			if e := check(p); e != nil {
 				return zero, e
+			}
+			if inclined && axis == 2 {
+				actualPoint[axis] = p
+				continue
 			}
 			if p.Cmp(h.Point[axis]) != 0 {
 				return zero, geom.ErrConvergence
@@ -184,7 +202,7 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 					return zero, geom.ErrConvergence
 				}
 				for axis := 0; axis < 3; axis++ {
-					if p.point[axis].Cmp(h.Point[axis]) != 0 {
+					if p.point[axis].Cmp(actualPoint[axis]) != 0 {
 						return zero, geom.ErrConvergence
 					}
 				}
@@ -193,7 +211,7 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 			}
 		}
 		if found < 0 {
-			candidates = append(candidates, candidate{u: u, t: t, point: h.Point})
+			candidates = append(candidates, candidate{u: u, t: t, point: actualPoint})
 			found = len(candidates) - 1
 		}
 		p := &candidates[found]
@@ -217,7 +235,22 @@ func (r *WrappedQuadraticFace) IntersectHorizontalLine(ctx context.Context, orig
 		}
 		child = o
 		child.MaxOperations -= used
-		location, e := r.ClassifyCylinderRationalPoint(ctx, p.point, [2]*big.Rat{p.u, v}, child)
+		hitV := v
+		if inclined {
+			if p.point[2].Cmp(embedding.LowerZ) < 0 || p.point[2].Cmp(embedding.UpperZ) > 0 {
+				result.ExcludedByHeight++
+				continue
+			}
+			hitV = new(big.Rat).Add(ratInset(d.VMin), new(big.Rat).Mul(new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)), new(big.Rat).Quo(new(big.Rat).Sub(p.point[2], embedding.LowerZ), new(big.Rat).Sub(embedding.UpperZ, embedding.LowerZ))))
+			if e := check(hitV); e != nil {
+				return zero, e
+			}
+			child.MaxOperations = o.MaxOperations - used
+			if child.MaxOperations < 1 {
+				return zero, geom.ErrConvergence
+			}
+		}
+		location, e := r.ClassifyCylinderRationalPoint(ctx, p.point, [2]*big.Rat{p.u, hitV}, child)
 		if e != nil {
 			return zero, e
 		}

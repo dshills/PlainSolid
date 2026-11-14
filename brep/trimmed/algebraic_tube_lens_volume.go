@@ -30,7 +30,8 @@ type AlgebraicTubeLensMassBounds struct {
 }
 
 // BoundVolume integrates the positive part of the signed height difference
-// over the common projection of rectangular faces. Complete section coverage and
+// over the common projection of convex straight-trimmed faces with compatible
+// affine graph charts. Complete section coverage and
 // the single interior loop identify that positive part with the lens.
 // Positive homogeneous weights bound each cell, and an exact projected
 // Jacobian converts UV area to model area. Returned intervals include all
@@ -41,7 +42,7 @@ func (l AlgebraicTubeLens) BoundVolume(ctx context.Context, o AlgebraicTubeLensV
 }
 
 // BoundMassProperties encloses volume, first moments and centroid without
-// meshing or quadrature. It has the same rectangular-chart scope as
+// meshing or quadrature. It has the same affine-chart scope as
 // BoundVolume. A zero lower volume leaves Centroid unavailable.
 func (l AlgebraicTubeLens) BoundMassProperties(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (AlgebraicTubeLensMassBounds, error) {
 	return l.boundLensMass(ctx, o, true)
@@ -95,6 +96,19 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 		p.MaxOperations -= r.ExactOperations
 		return p
 	}
+	check := func(q *big.Rat) error {
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		if r.ExactOperations >= o.Patch.MaxOperations {
+			return geom.ErrConvergence
+		}
+		r.ExactOperations++
+		if q.Num().BitLen() > o.Patch.MaxCoefficientBits || q.Denom().BitLen() > o.Patch.MaxCoefficientBits {
+			return geom.ErrConvergence
+		}
+		return nil
+	}
 	transform := func(s *geom.SurfacePatch, placement geom.Affine) (*geom.SurfacePatch, error) {
 		remaining := child().MaxOperations
 		if remaining < 1 {
@@ -117,15 +131,14 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 		return out, e
 	}
 	var patches [2]*geom.SurfacePatch
+	masked := false
 	order := [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}
 	for i, f := range source.faces {
 		d, e := faceUVBounds(f)
 		if e != nil {
 			return r, e
 		}
-		if !splineDistanceRectangle(f, d) {
-			return r, geom.ErrConvergence
-		}
+		masked = masked || !splineDistanceRectangle(f, d)
 		p := child()
 		if p.MaxOperations < 1 {
 			return r, geom.ErrConvergence
@@ -199,6 +212,24 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 	if e != nil {
 		return r, e
 	}
+	var polygon lensUVPolygon
+	if masked {
+		mapping, e := alignment.MapCoefficients()
+		if e != nil {
+			return r, e
+		}
+		polygon, e = commonLensMassPolygon(source.faces, mapping, check)
+		if e != nil {
+			return r, e
+		}
+		area, e := polygon.area(check)
+		if e != nil {
+			return r, e
+		}
+		if area.Sign() == 0 {
+			return r, geom.ErrConvergence
+		}
+	}
 	p := child()
 	if p.MaxOperations < 1 {
 		return r, geom.ErrConvergence
@@ -214,6 +245,7 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 	type cell struct {
 		p          *geom.SurfacePatch
 		s          [2]*geom.SurfacePatch
+		mask       lensUVPolygon
 		depth      int
 		lo, hi     *big.Rat
 		coordinate [3]geom.ExactParameterInterval
@@ -228,7 +260,7 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 			}
 		}
 	}
-	queue := []cell{{p: d, s: [2]*geom.SurfacePatch{patches[0], alignment.TargetOnSource()}}}
+	queue := []cell{{p: d, s: [2]*geom.SurfacePatch{patches[0], alignment.TargetOnSource()}, mask: polygon}}
 	for len(queue) > 0 {
 		if e := ctx.Err(); e != nil {
 			return r, e
@@ -293,22 +325,41 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 		}
 		if x.depth < o.MaxDepth && lo.Cmp(hi) != 0 {
 			left, right := box, box
+			m := box.UMin/2 + box.UMax/2
+			axis := 0
 			if box.UMax-box.UMin >= box.VMax-box.VMin {
-				m := box.UMin/2 + box.UMax/2
 				left.UMax, right.UMin = m, m
 			} else {
-				m := box.VMin/2 + box.VMax/2
+				axis = 1
+				m = box.VMin/2 + box.VMax/2
 				left.VMax, right.VMin = m, m
 			}
 			if !left.Valid() || !right.Valid() {
 				return r, geom.ErrConvergence
 			}
-			for _, b := range [2]geom.ParameterRectangle{right, left} {
+			for i, b := range [2]geom.ParameterRectangle{right, left} {
+				var piece lensUVPolygon
+				if masked {
+					row := [3]*big.Rat{new(big.Rat), new(big.Rat), ratInset(m)}
+					if i == 0 {
+						row[axis].SetInt64(1)
+						row[2].Neg(row[2])
+					} else {
+						row[axis].SetInt64(-1)
+					}
+					piece, e = x.mask.clip(row, check)
+					if e != nil {
+						return r, e
+					}
+					if len(piece) < 3 {
+						continue
+					}
+				}
 				p, e := trim(x.p, b)
 				if e != nil {
 					return r, e
 				}
-				next := cell{p: p, depth: x.depth + 1, lo: lo, hi: hi, coordinate: coordinates, height: heights}
+				next := cell{p: p, depth: x.depth + 1, lo: lo, hi: hi, coordinate: coordinates, height: heights, mask: piece}
 				if moments {
 					for i, s := range x.s {
 						q, e := trim(s, b)
@@ -322,9 +373,18 @@ func boundTubeLensMass(ctx context.Context, section AlgebraicTrimmedPairSection,
 			}
 			continue
 		}
-		width := new(big.Rat).Sub(ratInset(box.UMax), ratInset(box.UMin))
-		height := new(big.Rat).Sub(ratInset(box.VMax), ratInset(box.VMin))
-		area := new(big.Rat).Mul(new(big.Rat).Mul(width, height), jacobian)
+		var area *big.Rat
+		if masked {
+			area, e = x.mask.area(check)
+			if e != nil {
+				return r, e
+			}
+		} else {
+			width := new(big.Rat).Sub(ratInset(box.UMax), ratInset(box.UMin))
+			height := new(big.Rat).Sub(ratInset(box.VMax), ratInset(box.VMin))
+			area = new(big.Rat).Mul(width, height)
+		}
+		area.Mul(area, jacobian)
 		v := geom.ExactParameterInterval{Lower: new(big.Rat).Mul(area, lo), Upper: new(big.Rat).Mul(area, hi)}
 		r.Volume.Lower.Add(r.Volume.Lower, v.Lower)
 		r.Volume.Upper.Add(r.Volume.Upper, v.Upper)

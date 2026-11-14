@@ -11,10 +11,56 @@ import (
 )
 
 func TestProjectedLensMassOnUnequalExactRectangles(t *testing.T) {
+	checkProjectedLensMass(t, false)
+}
+
+func TestProjectedLensMassOnConvexTrims(t *testing.T) {
+	checkProjectedLensMass(t, true)
+}
+
+func checkProjectedLensMass(t *testing.T, convex bool) {
+	t.Helper()
 	ctx := context.Background()
 	a, b, seeds := transverseSplineCaps(t)
 	b = exactRoofForLensMesh(t, b)
 	faces := [2]Face{a.Faces()[0], b.Faces()[1]}
+	if convex {
+		// A's oblique trim x+4y≥1 and B's x+y≥1/2 meet at a
+		// nonbinary corner (1/3,1/6). Neither cuts the retained disk.
+		poly := [2][]geom.Vec2{
+			{{X: 1}, {X: 1, Y: 1}, {Y: 1}, {Y: .25}},
+			{{X: .375, Y: .125}, {X: .625, Y: .125}, {X: .875, Y: .375}, {X: .875, Y: .625},
+				{X: .625, Y: .875}, {X: .375, Y: .875}, {X: .125, Y: .625}, {X: .125, Y: .375}},
+		}
+		for i, points := range poly {
+			faces[i].Outer = make([]Use, len(points))
+			for j, p := range points {
+				faces[i].Outer[j] = Use{Edge: j, UVStart: p, UVEnd: points[(j+1)%len(points)]}
+			}
+		}
+		id := [2][3]*big.Rat{
+			{big.NewRat(1, 1), new(big.Rat), new(big.Rat)},
+			{new(big.Rat), big.NewRat(1, 1), new(big.Rat)},
+		}
+		check := func(*big.Rat) error { return nil }
+		footprint, e := commonLensMassPolygon(faces, id, check)
+		if e != nil {
+			t.Fatal(e)
+		}
+		area, e := footprint.area(check)
+		// From the target octagon's area 7/16, subtract the small
+		// clipped triangle with base 1/8 and height 1/24.
+		if e != nil || area.Cmp(big.NewRat(167, 384)) != 0 {
+			t.Fatal("exact projected trim footprint", area, e)
+		}
+		found := false
+		for _, p := range footprint {
+			found = found || p[0].Cmp(big.NewRat(1, 3)) == 0 && p[1].Cmp(big.NewRat(1, 6)) == 0
+		}
+		if !found {
+			t.Fatal("lost the nonbinary corner of the common trim")
+		}
+	}
 	var patches [2]intersect.Patch
 	for i, f := range faces {
 		d, e := faceUVBounds(f)

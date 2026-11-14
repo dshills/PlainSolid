@@ -18,6 +18,39 @@ func TestOverlappingGraphDisjointRegions(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	aPatch, e := geom.NewSurfacePatch(a, geom.SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	data, e := aPatch.ExportExactBezierRecipe()
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Degree elevation in U keeps the bilinear graph unchanged and
+	// introduces genuinely nonbinary homogeneous coefficients.
+	net := make([][4]string, 8)
+	for i := int64(0); i <= 3; i++ {
+		for j := range 2 {
+			for c := range 4 {
+				l, _ := new(big.Rat).SetString(data.Controls[j][c])
+				h, _ := new(big.Rat).SetString(data.Controls[j+2][c])
+				q := new(big.Rat).Add(new(big.Rat).Mul(l, big.NewRat(3-i, 3)), new(big.Rat).Mul(h, big.NewRat(i, 3)))
+				net[int(i)*2+j][c] = q.RatString()
+			}
+		}
+	}
+	if net[2][0] != "1/3" {
+		t.Fatal("missing nonbinary control")
+	}
+	data.DegreeU, data.Controls = 3, net
+	aPatch, e = geom.ImportExactBezierSurfaceRecipe(ctx, data, geom.SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	aExact, e := geom.NewExactBezierSurface(aPatch)
+	if e != nil {
+		t.Fatal(e)
+	}
 	xs := []float64{.0625, .28125, .5, .71875, .9375}
 	ys := []float64{.25, .5, .75}
 	var poles []geom.Vec3
@@ -91,14 +124,36 @@ func TestOverlappingGraphDisjointRegions(t *testing.T) {
 	if e != nil || !q.Complete || q.Present {
 		t.Fatal("between components", q, e)
 	}
-	var data bytes.Buffer
-	if e = WriteAlgebraicTubeRegionsJSON(&data, regions); e != nil {
+	var native bytes.Buffer
+	if e = WriteAlgebraicTubeRegionsJSON(&native, regions); e != nil {
 		t.Fatal(e)
 	}
 	section.Trace.Coverage.OverlappingAffineXYFallback = true
-	reload, e := ReadAlgebraicTubeRegionsJSON(ctx, &data, JSONLimits{}, section, AlgebraicTubeRegionOptions{})
+	reload, e := ReadAlgebraicTubeRegionsJSON(ctx, &native, JSONLimits{}, section, AlgebraicTubeRegionOptions{})
 	if e != nil || len(reload.Regions()) != 2 {
 		t.Fatal("native reload", e)
+	}
+	// Keep the original unequal rectangles and substitute the exact
+	// owner. Full coverage and loop nesting must be re-proved.
+	patches[0].Surface, faces[0].Surface = aExact, aExact
+	exact, e := SealOverlappingAffineGraphRegions(ctx, patches, faces, o.Discovery, section, AlgebraicTubeRegionOptions{})
+	if e != nil {
+		t.Fatal("exact source reproof", e)
+	}
+	v, e := exact.BoundVolumes(ctx, AlgebraicTubeLensVolumeOptions{MaxDepth: 9})
+	if e != nil || len(v.Regions) != 2 {
+		t.Fatal("exact region bounds", v, e)
+	}
+	// Each paraboloid has radius 5/32, with volume πR⁴/2.
+	low := new(big.Rat).Mul(big.NewRat(625, 2*1024*1024), big.NewRat(333, 106))
+	high := new(big.Rat).Mul(big.NewRat(625, 2*1024*1024), big.NewRat(355, 113))
+	for i, q := range v.Regions {
+		if q.Lower.Sign() <= 0 || q.Lower.Cmp(low) > 0 || q.Upper.Cmp(high) < 0 {
+			t.Fatal("independent lobe volume", i, q, low, high)
+		}
+	}
+	if partial, e := exact.BoundVolumes(ctx, AlgebraicTubeLensVolumeOptions{MaxCells: 1}); e == nil || len(partial.Regions) != 0 {
+		t.Fatal("cell budget leaked partial region values", partial, e)
 	}
 	limited, e := SealOverlappingAffineGraphRegions(ctx, patches, faces, o.Discovery, section, AlgebraicTubeRegionOptions{MaxLoops: 1})
 	if e == nil || len(limited.Regions()) != 0 {
