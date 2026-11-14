@@ -6,6 +6,17 @@ OCCT compatibility qualification is claimed.
 
 ## Immediate priority: PlainCAD compatibility
 
+The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in
+the app and its workers. It builds a fingerprinted WASM file and checks its
+manifest against the source revision and matching Go runtime. The pinned
+app build at `9779044` passes 345 development cases, 66 production cases
+and 15 cross-browser cases. It also passes the 1,691 ordinary unit/component
+cases and four dedicated actual-WASM contracts. The application remains an
+opt-in PlainSolid build. The qualification pins through-Hole commit
+`f571a964`, and subsequent kernel increments have their own browser and
+exchange evidence.
+[App integration evidence](evidence/plaincad-provider-integration-2026-11-14.json).
+
 A finite blind Hole crossing one rectangular stock side now retains a
 watertight analytic notch and circular-segment floor. Seven original
 browser regressions and an authored rebuild, reload and STL check pass.

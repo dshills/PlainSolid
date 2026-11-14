@@ -1,5 +1,25 @@
 # Verification record
 
+## Selectable PlainSolid app build — 2026-11-14
+
+The separate PlainCAD app worktree has a selectable Go WASM provider and
+the matching worker imports. A release build verifies the pinned source
+revision and hashes, emits a fingerprinted WASM asset and checks that no
+OCCT assets load while PlainSolid is selected. Its existing browser
+assertions still require the selected native provider. The default unit
+fixtures preserve their OCCT and fallback conditions.
+
+The [app qualification evidence](evidence/plaincad-provider-integration-2026-11-14.json)
+pins PlainCAD integration commit `9779044` and PlainSolid `f571a964`. It
+records 345 development cases, including the new asynchronous-open race
+regression, 66 production cases, and 15 cross-browser cases across Chromium,
+Firefox and WebKit. All three browser runs complete with zero skips or
+retries. The ordinary unit/component suite passes all 1,691 cases using
+the app's earlier documented local worker and retry settings. Four
+provider-specific contracts exercise actual PlainSolid WASM. Type checks
+and the production bundle budget also pass. Later geometry commits have
+separately pinned qualification reports.
+
 ## PlainCAD STEP for a single oblique through Hole — 2026-11-14
 
 The retained cylinder and rectangular stock exchange as analytic surfaces.
