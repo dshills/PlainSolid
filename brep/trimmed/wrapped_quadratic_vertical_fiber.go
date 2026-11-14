@@ -11,6 +11,8 @@ import (
 type WrappedVerticalFiberOptions struct {
 	geom.SurfacePatchOptions
 	MaxEvents int
+	// AllowBoundaryIntervals accepts only degree-elevated affine trim spans.
+	AllowBoundaryIntervals bool
 }
 
 // WrappedVerticalTrimSource retains original loop/edge and its exact normalized
@@ -38,20 +40,38 @@ type WrappedVerticalFiberInterval struct {
 	Start, End            *big.Rat
 	FirstEvent, LastEvent int
 }
+
+// WrappedVerticalBoundarySource retains parameters in increasing line-t order;
+// they decrease when the source edge runs against the line. Loop zero is the
+// outer boundary; subsequent loops are holes with their original orientation.
+type WrappedVerticalBoundarySource struct {
+	Loop, Edge int
+	Parameters [2]*big.Rat
+}
+
+// WrappedVerticalBoundaryInterval lies on the trim, not in the face interior.
+// These positive line-length cells have zero two-dimensional material measure.
+type WrappedVerticalBoundaryInterval struct {
+	Start, End            *big.Rat
+	FirstEvent, LastEvent int
+	Sources               []WrappedVerticalBoundarySource
+}
 type WrappedVerticalFiberClassification struct {
-	Complete         bool
-	SuppliedU, FaceU *big.Rat
-	PeriodShift      *big.Int
-	Events           []WrappedVerticalFiberEvent
-	Intervals        []WrappedVerticalFiberInterval
-	ExactOperations  int
+	Complete          bool
+	SuppliedU, FaceU  *big.Rat
+	PeriodShift       *big.Int
+	Events            []WrappedVerticalFiberEvent
+	Intervals         []WrappedVerticalFiberInterval
+	BoundaryIntervals []WrappedVerticalBoundaryInterval
+	ExactOperations   int
 }
 
 // ClassifyVerticalFiber proves the closed face's intersection with a finite
 // vertical model line using an explicit original rational U witness. Physical
 // XY is corroborated exactly; global cylinder embedding excludes other lifts.
 // Every quadratic trim event must have rational parameter. Coincident trim
-// spans or unrecovered algebraic roots reject atomically. Exact interval
+// spans reject unless AllowBoundaryIntervals proves an affine source map;
+// unrecovered algebraic roots always reject atomically. Exact interval
 // witnesses are used only after complete polynomial root enumeration proves
 // that each open cell contains no boundary; this is not sampled parity.
 // Isolated touches are retained as Boundary Events without a material interval.
@@ -192,6 +212,11 @@ func (r *WrappedQuadraticFace) ClassifyVerticalFiber(ctx context.Context, origin
 	if tlo.Cmp(thi) > 0 {
 		return finish()
 	}
+	type coincident struct {
+		loop, edge     int
+		t0, t1, lo, hi *big.Rat
+	}
+	var spans []coincident
 	events := map[string]*WrappedVerticalFiberEvent{}
 	add := func(t *big.Rat, source *WrappedVerticalTrimSource) error {
 		if t.Cmp(tlo) < 0 || t.Cmp(thi) > 0 {
@@ -238,7 +263,48 @@ func (r *WrappedQuadraticFace) ClassifyVerticalFiber(ctx context.Context, origin
 			if p2.Sign() == 0 {
 				if p1.Sign() == 0 {
 					if p0.Sign() == 0 {
-						return zero, geom.ErrConvergence
+						if !o.AllowBoundaryIntervals || q.control[0][2].Cmp(q.control[1][2]) != 0 || q.control[0][2].Cmp(q.control[2][2]) != 0 || new(big.Rat).Mul(big.NewRat(2, 1), q.control[1][1]).Cmp(new(big.Rat).Add(q.control[0][1], q.control[2][1])) != 0 {
+							return zero, geom.ErrConvergence
+						}
+						var ts [2]*big.Rat
+						for j, ci := range []int{0, 2} {
+							v := new(big.Rat).Quo(q.control[ci][1], q.control[ci][2])
+							z := new(big.Rat).Add(embedding.LowerZ, new(big.Rat).Mul(new(big.Rat).Sub(embedding.UpperZ, embedding.LowerZ), new(big.Rat).Quo(new(big.Rat).Sub(v, ratInset(d.VMin)), new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin)))))
+							ts[j] = zToT(z)
+							for _, x := range []*big.Rat{v, z, ts[j]} {
+								if e := check(x); e != nil {
+									return zero, e
+								}
+							}
+						}
+						if ts[0].Cmp(ts[1]) == 0 {
+							return zero, geom.ErrConvergence
+						}
+						lo, hi := ts[0], ts[1]
+						if lo.Cmp(hi) > 0 {
+							lo, hi = hi, lo
+						}
+						if lo.Cmp(tlo) < 0 {
+							lo = tlo
+						}
+						if hi.Cmp(thi) > 0 {
+							hi = thi
+						}
+						if lo.Cmp(hi) <= 0 {
+							spans = append(spans, coincident{li, ei, ts[0], ts[1], lo, hi})
+							for j, t := range []*big.Rat{lo, hi} {
+								if j == 1 && lo.Cmp(hi) == 0 {
+									continue
+								}
+								s := new(big.Rat).Quo(new(big.Rat).Sub(t, ts[0]), new(big.Rat).Sub(ts[1], ts[0]))
+								if e := check(s); e != nil {
+									return zero, e
+								}
+								if e := add(t, &WrappedVerticalTrimSource{Loop: li, Edge: ei, Parameter: s}); e != nil {
+									return zero, e
+								}
+							}
+						}
 					}
 					continue
 				}
@@ -364,6 +430,25 @@ func (r *WrappedQuadraticFace) ClassifyVerticalFiber(ctx context.Context, origin
 			}
 			result.Intervals = append(result.Intervals, WrappedVerticalFiberInterval{Start: new(big.Rat).Set(a), End: new(big.Rat).Set(b), FirstEvent: i, LastEvent: i + 1})
 		case trimvalidate.Outside:
+		case trimvalidate.Boundary:
+			interval := WrappedVerticalBoundaryInterval{Start: new(big.Rat).Set(a), End: new(big.Rat).Set(b), FirstEvent: i, LastEvent: i + 1}
+			for _, span := range spans {
+				if a.Cmp(span.lo) < 0 || b.Cmp(span.hi) > 0 {
+					continue
+				}
+				source := WrappedVerticalBoundarySource{Loop: span.loop, Edge: span.edge}
+				for j, t := range []*big.Rat{a, b} {
+					source.Parameters[j] = new(big.Rat).Quo(new(big.Rat).Sub(t, span.t0), new(big.Rat).Sub(span.t1, span.t0))
+					if e := check(source.Parameters[j]); e != nil {
+						return zero, e
+					}
+				}
+				interval.Sources = append(interval.Sources, source)
+			}
+			if len(interval.Sources) == 0 || result.Events[i].Location != trimvalidate.Boundary || result.Events[i+1].Location != trimvalidate.Boundary {
+				return zero, geom.ErrConvergence
+			}
+			result.BoundaryIntervals = append(result.BoundaryIntervals, interval)
 		default:
 			return zero, geom.ErrConvergence
 		}
