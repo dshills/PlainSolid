@@ -22,5 +22,5 @@ func WriteUnequalSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d Une
 	if d.Discs[0].Radius == d.Discs[1].Radius {
 		return geom.ErrDomain
 	}
-	return writeSideOpenDualDiskProduct(ctx, w, SideOpenDualDiskDescriptor(d), true)
+	return writeSideOpenDualDiskProduct(ctx, w, SideOpenDualDiskDescriptor(d), sideDiskUnequal)
 }
