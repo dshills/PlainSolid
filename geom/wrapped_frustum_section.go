@@ -8,11 +8,12 @@ import (
 
 // WrappedFrustumSection is the exact closed profile at a rational height.
 // Curve keeps rational homogeneous controls and original circumferential knots;
-// ParameterV and Radius are exact rationals, even when not binary representable.
+// The center, ParameterV, and Radius are exact rationals, even when not binary representable.
 // Cap is zero for an interior section, otherwise the coincident cap identity.
 type WrappedFrustumSection struct {
 	Curve                      *ExactSplineCurve
 	ParameterV, Radius, Height *big.Rat
+	CenterX, CenterY           *big.Rat
 	Cap                        CylinderBoundaryPart
 	ExactOperations            int
 }
@@ -88,5 +89,9 @@ func SectionWrappedFrustumRational(ctx context.Context, w *WrappedSurfacePatch, 
 	if z.Cmp(proof.UpperZ) == 0 {
 		cap = CylinderUpperCap
 	}
-	return WrappedFrustumSection{&SurfaceIsoCurve{patch: p, fixedAxis: -1, fixedParameter: math.NaN(), operations: budget.operations}, v, radius, z, cap, budget.operations}, nil
+	return WrappedFrustumSection{
+		Curve:      &SurfaceIsoCurve{patch: p, fixedAxis: -1, fixedParameter: math.NaN(), operations: budget.operations},
+		ParameterV: v, Radius: radius, Height: z, CenterX: new(big.Rat).Set(proof.CenterX), CenterY: new(big.Rat).Set(proof.CenterY),
+		Cap: cap, ExactOperations: budget.operations,
+	}, nil
 }
