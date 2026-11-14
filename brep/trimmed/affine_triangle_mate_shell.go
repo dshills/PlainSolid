@@ -75,7 +75,7 @@ func (s *AffineTriangleMateShell) ExactOperations() int {
 	return s.operations
 }
 
-// NewAffineTriangleMateShell accepts only exact single-cell original supports
+// NewAffineTriangleMateShell accepts exact connected tensor original supports
 // and exactly representable authored UV/model vertices. Internal model curves
 // retain exact supports; no poles or endpoints are snapped. Each entire source
 // chart is independently proved projected-injective. Contact's strict affine
@@ -104,7 +104,7 @@ func NewAffineTriangleMateShell(ctx context.Context, contact *geom.SurfaceAffine
 	out := &AffineTriangleMateShell{contact: contact, graph: graph}
 	var uv [2][3]geom.Vec2
 	var points [2][3][3]*big.Rat
-	var surfaces [2]*geom.ExactBezierSurface
+	var surfaces [2]*geom.ExactTensorSurface
 	var positive [2]bool
 	for owner := 0; owner < 2; owner++ {
 		if e := ctx.Err(); e != nil {
@@ -114,10 +114,14 @@ func NewAffineTriangleMateShell(ctx context.Context, contact *geom.SurfaceAffine
 		if e != nil {
 			return nil, e
 		}
-		surfaces[owner], e = geom.NewExactBezierSurface(p)
+		if out.operations >= o.MaxWork {
+			return nil, geom.ErrConvergence
+		}
+		surfaces[owner], e = geom.NewExactTensorSurface(ctx, p, geom.SurfacePatchOptions{MaxOperations: o.MaxWork - out.operations, MaxCoefficientBits: o.Proof.MaxBits})
 		if e != nil {
 			return nil, e
 		}
+		out.operations += surfaces[owner].ExactOperations()
 		projection := o.Projection[owner]
 		if projection.MaxOperations == 0 {
 			projection.MaxOperations = 2000000
@@ -261,11 +265,11 @@ func compareTriangleNativeUse(ctx context.Context, edge parametric.Edge, surface
 	if !ok || model.curve != nil || use.Curve != nil || edge.Range.Min != 0 || edge.Range.Max != 1 {
 		return false, geom.ErrInvalid
 	}
-	a, ok := model.surface.(*geom.ExactBezierSurface)
+	a, ok := model.surface.(*geom.ExactTensorSurface)
 	if !ok {
 		return false, geom.ErrInvalid
 	}
-	b, ok := surface.(*geom.ExactBezierSurface)
+	b, ok := surface.(*geom.ExactTensorSurface)
 	if !ok {
 		return false, geom.ErrInvalid
 	}
@@ -273,7 +277,7 @@ func compareTriangleNativeUse(ctx context.Context, edge parametric.Edge, surface
 		return [2]*big.Rat{new(big.Rat).SetFloat64(v.X), new(big.Rat).SetFloat64(v.Y)}
 	}
 	remaining := o.MaxWork
-	opts := geom.SurfaceAffineCurveOptions{MaxPieces: 1, TubeAffineLineOptions: geom.TubeAffineLineOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxBits}}
+	opts := geom.SurfaceAffineCurveOptions{MaxPieces: 4096, TubeAffineLineOptions: geom.TubeAffineLineOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxBits}}
 	x, e := a.ExactPatch().AffineParameterCurvePieces(ctx, rat(model.a), rat(model.b), opts)
 	if e != nil {
 		return false, e
