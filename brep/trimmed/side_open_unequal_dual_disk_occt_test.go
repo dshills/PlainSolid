@@ -57,4 +57,9 @@ func TestUnequalSideOpenDualDiskAgainstOCCT(t *testing.T) {
 	if math.Abs(got.Volume-want.Volume) > 1e-4 || math.Abs(got.Area-want.Area) > 1e-4 || got.Centroid.Sub(center).Length() > 1e-6 {
 		t.Fatal("Go exact circular chart vs OCCT solid", got, want)
 	}
+	analytic, e := r.Measures()
+	if e != nil || math.Abs(analytic.Volume-want.Volume) > 1e-7 || math.Abs(analytic.Area-want.Area) > 1e-7 || analytic.Centroid.Sub(center).Length() > 1e-8 {
+		t.Fatal("independent unequal moments", analytic, want, e)
+	}
+
 }

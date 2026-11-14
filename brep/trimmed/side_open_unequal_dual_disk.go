@@ -23,9 +23,9 @@ func CertifyUnequalSideOpenDualDiskSection(ctx context.Context, min, max geom.Ve
 }
 
 // UnequalSideOpenDualDiskCut exposes only the native solid and original source
-// face ancestry. In particular it does not inherit equal-radius analytic Measures
-// or point-query formulas. Solid's general native queries remain available.
+// face ancestry, together with immutable geometry for its generalized queries.
 type UnequalSideOpenDualDiskCut struct {
+	source    *sideOpenDualDiskSource
 	Solid     Solid
 	WallFaces [2][]int
 	FloorFace int
@@ -40,5 +40,5 @@ func CutUnequalSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max
 	if e != nil {
 		return UnequalSideOpenDualDiskCut{}, e
 	}
-	return UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace}, nil
+	return UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth}}, nil
 }

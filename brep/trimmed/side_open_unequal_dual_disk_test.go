@@ -65,6 +65,10 @@ func TestUnequalSideOpenDualDiskNative(t *testing.T) {
 			if depth == 6 {
 				wantA -= 2 * removed
 			}
+			analytic, e := cut.Measures()
+			if e != nil || math.Abs(analytic.Volume-measures.Volume) > 1e-4 || math.Abs(analytic.Area-measures.Area) > 1e-4 || analytic.Centroid.Sub(measures.Centroid).Length() > 1e-6 {
+				t.Fatal("asymmetric analytic moments", analytic, measures, e)
+			}
 			if math.Abs(measures.Volume-wantV) > 1e-4 || math.Abs(measures.Area-wantA) > 1e-4 {
 				t.Fatal(measures, wantV, wantA)
 			}
