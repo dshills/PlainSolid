@@ -142,7 +142,7 @@ func roofEnvelopeWalls(i, j, nu, nv int) uint8 {
 func roofEnvelopeKnotCuts(boxes [2]*mixedRoofBox, d geom.ParameterRectangle) [2][]float64 {
 	cuts := [2][]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
 	for _, box := range boxes {
-		if len(box.roofSpans) == 0 {
+		if box == nil || len(box.roofSpans) == 0 {
 			continue
 		}
 		u, v := box.roof.KnotBreaks()
@@ -211,7 +211,7 @@ func roofEnvelopeCell(boxes [2]*mixedRoofBox, cuts [2][]float64, i, j int) (geom
 	}
 	roofs := boxes
 	for k, box := range boxes {
-		if len(box.roofSpans) == 0 {
+		if box == nil || len(box.roofSpans) == 0 {
 			continue
 		}
 		roofs[k] = nil

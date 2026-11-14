@@ -182,6 +182,51 @@ func TestOrderedRoofBoxFuseOriginalFootprintContainment(t *testing.T) {
 	}
 }
 
+func TestOrderedRoofBoxFuseCreasedContainmentAndSeparation(t *testing.T) {
+	ctx := context.Background()
+	creased := weightedIdentityRoofStockMode(t, false, 2, false, true)
+	inside, _ := makeOpenSplineBox(t, [3]float64{.25, .25, .5}, [3]float64{.75, .75, 2.25}, 0)
+	high, _ := makeOpenSplineBox(t, [3]float64{0, 0, 2.75}, [3]float64{1, 1, 3.75}, 0)
+	overlapHigh, _ := makeOpenSplineBox(t, [3]float64{.125, .25, 2.25}, [3]float64{.1875, 1.25, 3}, 0)
+	for _, tc := range []struct {
+		name   string
+		other  Solid
+		shells int
+		volume float64
+	}{
+		{"contained", inside, 1, 2.25},
+		{"full footprint separation", high, 2, 3.25},
+		{"separation localized to one side of the crease", overlapHigh, 2, 2.25 + .75/16},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for i, sources := range [][2]Solid{{creased, tc.other}, {tc.other, creased}} {
+				out, h, err := FuseOrderedRoofBoxes(ctx, sources[0], sources[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+				top := out.Topology()
+				if err != nil || len(top.Shells) != tc.shells || top.EulerCharacteristic != 2*tc.shells || len(h.Faces) != 6*tc.shells {
+					t.Fatal("retain full original crease supports", top, h, err)
+				}
+				for face, owners := range h.Faces {
+					want := MixedRoofFaceOwner{face / 6, face % 6}
+					if tc.shells == 1 {
+						want.Operand = i
+					}
+					if len(owners) != 1 || owners[0] != want || out.faces[face].Surface != sources[want.Operand].faces[want.Face].Surface {
+						t.Fatal("full original ancestry", h)
+					}
+				}
+				mass, err := out.MassProperties(ctx, parametric.IntegrationOptions{})
+				if err != nil || math.Abs(mass.Volume-tc.volume) > 1e-11 {
+					t.Fatal("independent contained/separated volume", mass, tc.volume, err)
+				}
+			}
+		})
+	}
+	touch, _ := makeOpenSplineBox(t, [3]float64{0, 0, 2.5}, [3]float64{1, 1, 3.75}, 0)
+	if out, h, err := FuseOrderedRoofBoxes(ctx, creased, touch, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("crease contact must not be promoted to separate volume or a manifold merge", out.Topology(), h, err)
+	}
+}
+
 func TestOrderedRoofBoxFuseOnlyOverlapSeparated(t *testing.T) {
 	ctx := context.Background()
 	low := orderedRoofTangentSource(t) // whole roof reaches 1.25

@@ -48,22 +48,28 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 	if footprintStrictlyDisjoint(d, boxes[1].domain) {
 		return fuseSeparateOrderedRoofBoxes(ctx, a, b, &w)
 	}
-	if len(boxes[0].roofSpans) != 0 || len(boxes[1].roofSpans) != 0 {
-		if d != boxes[1].domain {
-			return Solid{}, zero, geom.ErrUnrepresentable
-		}
-		floorIndex := 0
-		if boxes[1].floor.Cmp(boxes[0].floor) < 0 {
-			floorIndex = 1
-		}
-		return fusePiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, [2][]float64{}, &w)
-	}
 	if d != boxes[1].domain {
 		out, h, err := fuseContainedOrderedRoofBoxes(ctx, [2]Solid{a, b}, boxes, &w)
 		if !errors.Is(err, geom.ErrUnrepresentable) {
 			return out, h, err
 		}
 		return fuseStackedOrderedRoofBoxes(ctx, a, b, boxes, &w)
+	}
+	if len(boxes[0].roofSpans) != 0 || len(boxes[1].roofSpans) != 0 {
+		floorIndex := 0
+		if boxes[1].floor.Cmp(boxes[0].floor) < 0 {
+			floorIndex = 1
+		}
+		if boxes[0].floor.Cmp(boxes[1].floor) != 0 {
+			separate, err := strictlySeparateOnOverlap(ctx, boxes[floorIndex], boxes[1-floorIndex], d, &w)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			if separate {
+				return fuseSeparateOrderedRoofBoxes(ctx, a, b, &w)
+			}
+		}
+		return fusePiecewiseRoofBoxes(ctx, a, b, q, d, floorIndex, [2][]float64{}, &w)
 	}
 	xy := [2]geom.ExactParameterInterval{
 		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
@@ -160,6 +166,10 @@ func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixe
 	} else if separated {
 		return fuseSeparateOrderedRoofBoxes(ctx, a, b, w)
 	}
+	// The existing cap assembler needs a single complete planar low roof.
+	if len(low.roofSpans) != 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
 	xy := [2]geom.ExactParameterInterval{
 		{Lower: ratInset(low.domain.UMin), Upper: ratInset(low.domain.UMax)},
 		{Lower: ratInset(low.domain.VMin), Upper: ratInset(low.domain.VMax)},
@@ -204,16 +214,25 @@ func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixe
 }
 
 func strictlySeparateOnOverlap(ctx context.Context, low, high *mixedRoofBox, d geom.ParameterRectangle, w *mixedRoofLineWork) (bool, error) {
-	xy := [2]geom.ExactParameterInterval{
-		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
-		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
+	boxes := [2]*mixedRoofBox{low, nil}
+	cuts := roofEnvelopeKnotCuts(boxes, d)
+	for i := 0; i < len(cuts[0])-1; i++ {
+		for j := 0; j < len(cuts[1])-1; j++ {
+			_, xy, roofs, err := roofEnvelopeCell(boxes, cuts, i, j)
+			if err != nil {
+				return false, err
+			}
+			sign, strict, err := orderedRoofAgainstFloorDetail(ctx, roofs[0], xy, high.floor, w)
+			// A failed strict separation does not preclude another proof.
+			if errors.Is(err, geom.ErrUnrepresentable) {
+				return false, nil
+			}
+			if err != nil || sign >= 0 || !strict {
+				return false, err
+			}
+		}
 	}
-	sign, strict, err := orderedRoofAgainstFloorDetail(ctx, low, xy, high.floor, w)
-	// An unresolved sign does not disqualify separate subsequent proofs.
-	if errors.Is(err, geom.ErrUnrepresentable) {
-		return false, nil
-	}
-	return sign < 0 && strict, err
+	return true, nil
 }
 
 func footprintStrictlyDisjoint(a, b geom.ParameterRectangle) bool {
@@ -246,16 +265,22 @@ func fuseContainedOrderedRoofBoxes(ctx context.Context, solids [2]Solid, boxes [
 	if d != boxes[inner].domain || boxes[outer].floor.Cmp(boxes[inner].floor) > 0 {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
-	xy := [2]geom.ExactParameterInterval{
-		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
-		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
-	}
-	sign, err := orderedRoofBoxOrder(ctx, [2]*mixedRoofBox{boxes[outer], boxes[inner]}, xy, w)
-	if err != nil {
-		return Solid{}, zero, err
-	}
-	if sign < 0 {
-		return Solid{}, zero, geom.ErrUnrepresentable
+	ordered := [2]*mixedRoofBox{boxes[outer], boxes[inner]}
+	cuts := roofEnvelopeKnotCuts(ordered, d)
+	for i := 0; i < len(cuts[0])-1; i++ {
+		for j := 0; j < len(cuts[1])-1; j++ {
+			_, xy, roofs, err := roofEnvelopeCell(ordered, cuts, i, j)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			sign, err := orderedRoofBoxOrder(ctx, roofs, xy, w)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			if sign < 0 {
+				return Solid{}, zero, geom.ErrUnrepresentable
+			}
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return Solid{}, zero, err
