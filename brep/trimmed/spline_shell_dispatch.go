@@ -205,6 +205,19 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 	}
 	if len(unresolved) == 1 {
 		f := unresolved[0]
+		if op != parametric.Union {
+			for _, axes := range [3][2]int{{0, 1}, {1, 2}, {0, 2}} {
+				s, h, _, e := combineTangentSplineShellPair(ctx, [2]Solid{a, b}, [2][]splineEmbeddingFace{ap, bp}, op,
+					SplineShellTangencyOptions{Faces: f, Projection: axes, Shells: o.Transverse.Shells}, true)
+				if e == nil {
+					return s, h, nil
+				}
+				if !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) &&
+					!errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrUnrepresentable) {
+					return Solid{}, r, e
+				}
+			}
+		}
 		s, h, e := CombineTransverseSplineShells(ctx, a, b, f[0], f[1], op, o.Transverse)
 		if e == nil {
 			return s, SplineShellCombineHistory{FacesA: h.FacesA, FacesB: h.FacesB, SectionEdges: h.SectionEdges, Method: "closed-contours"}, nil

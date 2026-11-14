@@ -103,8 +103,13 @@ func TestExternallyTangentSplineShells(t *testing.T) {
 			}
 		}
 		out, h, _, e = CombineExternallyTangentSplineShells(ctx, stock, tool, parametric.Difference, o)
-		if e != nil || len(out.Faces()) != len(stock.Faces()) || len(h.FacesA) != 6 || len(h.FacesB[1]) != 0 || out.faces[4].Surface != stock.faces[4].Surface {
+		if e != nil || len(out.Faces()) != len(stock.Faces()) || len(h.FacesA) != 6 || len(h.FacesB[1]) != 0 ||
+			out.faces[4].Surface != stock.faces[4].Surface || len(h.EdgesA) != len(stock.edges) || h.EdgesA[0][0] != 0 {
 			t.Fatal("cut by externally tangent tool altered stock", e, h)
+		}
+		out, h, e = CombineSplineShells(ctx, stock, tool, parametric.Intersection, SplineShellCombineOptions{})
+		if e != nil || len(out.faces) != 0 || h.Method != "isolated-graph-tangency" {
+			t.Fatal("native shell dispatcher did not select the complete sole-contact proof", h.Method, e)
 		}
 		if out, _, _, e := CombineExternallyTangentSplineShells(ctx, stock, tool, parametric.Union, o); !errors.Is(e, geom.ErrConvergence) || len(out.Faces()) != 0 {
 			t.Fatal("point-only union should not emit a manifold", e)

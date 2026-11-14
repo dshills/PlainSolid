@@ -48,9 +48,28 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 		o.Contact.MaxOperations < 0 || o.Contact.MaxCoefficientBits != 0 && o.Contact.MaxCoefficientBits < 64 {
 		return Solid{}, history, empty, geom.ErrInvalid
 	}
+	solids := [2]Solid{a, b}
+	var all [2][]splineEmbeddingFace
 	if op == parametric.Union {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
+	for i, s := range solids {
+		if o.Faces[i] < 0 || o.Faces[i] >= len(s.faces) {
+			return Solid{}, history, empty, geom.ErrInvalid
+		}
+		if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
+			return Solid{}, history, empty, e
+		}
+	}
+	return combineTangentSplineShellPair(ctx, solids, all, op, o, false)
+}
+
+// separated is true only if the caller has already proved every unselected
+// face pair disjoint on the exact original embedding patches.
+func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace,
+	op parametric.BooleanOp, o SplineShellTangencyOptions, separated bool) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
+	var history SplineShellCombineHistory
+	var empty SplineShellTangency
 	axes := o.Projection
 	if axes == [2]int{} {
 		axes = [2]int{0, 1}
@@ -61,18 +80,11 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 	if o.Shells.MaxRays == 0 {
 		o.Shells.MaxRays = 12
 	}
+	if o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
+		return Solid{}, history, empty, geom.ErrInvalid
+	}
 	if o.Contact.MaxOperations == 0 {
 		o.Contact.MaxOperations = 8000000
-	}
-	solids := [2]Solid{a, b}
-	var all [2][]splineEmbeddingFace
-	for i, s := range solids {
-		if o.Faces[i] < 0 || o.Faces[i] >= len(s.faces) {
-			return Solid{}, history, empty, geom.ErrInvalid
-		}
-		if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
-			return Solid{}, history, empty, e
-		}
 	}
 	if len(all[0])*len(all[1]) > 256 {
 		return Solid{}, history, empty, geom.ErrConvergence
@@ -183,8 +195,10 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 			if i == o.Faces[0] && j == o.Faces[1] {
 				continue
 			}
-			if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
-				return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+			if !separated {
+				if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
+					return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+				}
 			}
 			proof.SeparatedPairs++
 		}
@@ -216,7 +230,13 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 		}
 	}
 	proof.StrictOrder = c.Side
-	native, history := regularizedTouchResult(a, b, op)
+	native, history := regularizedTouchResult(solids[0], solids[1], op)
 	history.Method = "isolated-graph-tangency"
+	history.EdgesA, history.EdgesB = make([][]int, len(solids[0].edges)), make([][]int, len(solids[1].edges))
+	if op == parametric.Difference {
+		for i := range history.EdgesA {
+			history.EdgesA[i] = []int{i}
+		}
+	}
 	return native, history, proof, nil
 }
