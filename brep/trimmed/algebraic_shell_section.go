@@ -182,6 +182,21 @@ func sectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 					return out, e2
 				}
 			}
+			if e != nil && seed == nil && mixed != nil && mixed.discovery != nil && (isUnresolvedOpenSpline(e) || errors.Is(e, geom.ErrDomain)) {
+				z, found, err := mixed.discover(ctx, ids, [2]*geom.SurfacePatch{p.patch, q.patch}, [2]intersect.Patch{x, y}, [2]Solid{a, b}, faces, o)
+				if err != nil {
+					return out, err
+				}
+				if found {
+					if len(out.Branches) >= o.MaxBranches {
+						return out, geom.ErrConvergence
+					}
+					out.Pairs = append(out.Pairs, ids)
+					out.Sections = append(out.Sections, AlgebraicSplinePairSection{})
+					out.Branches = append(out.Branches, z)
+					continue
+				}
+			}
 			out.Pairs = append(out.Pairs, ids)
 			out.Sections = append(out.Sections, r)
 			if e != nil {

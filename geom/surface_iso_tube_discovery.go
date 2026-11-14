@@ -18,7 +18,7 @@ func DiscoverSurfaceIsoPlaneTubes(ctx context.Context, a, b *SurfacePatch, fixed
 	if !finite(start) || !finite(end) {
 		return r, ErrInvalid
 	}
-	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, new(big.Rat).SetFloat64(start), new(big.Rat).SetFloat64(end), o, false, false)
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, new(big.Rat).SetFloat64(start), new(big.Rat).SetFloat64(end), o, false, false, false)
 }
 
 // DiscoverSurfaceIsoPlaneRationalTubes preserves exact original source endpoints.
@@ -30,9 +30,9 @@ func DiscoverSurfaceIsoPlaneTubes(ctx context.Context, a, b *SurfacePatch, fixed
 // pass exact target-chart clipping; coincident chart-boundary spans fail closed.
 // Errors may retain diagnostic proposals, but never Complete.
 func DiscoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions) (r SurfaceArcTubeDiscovery, err error) {
-	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, false)
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, false, false)
 }
-func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions, requireClip, trapezoidMode bool) (r SurfaceArcTubeDiscovery, err error) {
+func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions, requireClip, trapezoidMode, restricted bool) (r SurfaceArcTubeDiscovery, err error) {
 	if ctx == nil || a == nil || b == nil || fixedAxis < 0 || fixedAxis > 1 || !finite(fixed) || start == nil || end == nil || start.Cmp(end) >= 0 {
 		return r, ErrInvalid
 	}
@@ -188,7 +188,9 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 			continue
 		}
 		candidates := []int{}
-		if _, e := exactRepresentableFloat(n.lo); e == nil {
+		if restricted {
+			candidates = append(candidates, free)
+		} else if _, e := exactRepresentableFloat(n.lo); e == nil {
 			if _, e := exactRepresentableFloat(n.hi); e == nil {
 				candidates = append(candidates, free)
 			}
@@ -220,18 +222,27 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 			if !positive && !negative {
 				continue
 			}
-			l, e := exactRepresentableFloat(first[axis])
-			if e != nil {
-				continue
+			lower, upper := first[axis], last[axis]
+			if lower.Cmp(upper) > 0 {
+				lower, upper = upper, lower
 			}
-			h, e := exactRepresentableFloat(last[axis])
-			if e != nil {
-				continue
+			if restricted {
+				q := isoRationalEnclosure(lower, upper)
+				if q.Start < domains[axis+2][0] || q.End > domains[axis+2][1] {
+					continue
+				}
+				intervals[axis+2] = [2]float64{q.Start, q.End}
+			} else {
+				l, e := exactRepresentableFloat(lower)
+				if e != nil {
+					continue
+				}
+				h, e := exactRepresentableFloat(upper)
+				if e != nil {
+					continue
+				}
+				intervals[axis+2] = [2]float64{l, h}
 			}
-			if h < l {
-				l, h = h, l
-			}
-			intervals[axis+2] = [2]float64{l, h}
 			candidates = append(candidates, axis+2)
 		}
 		success := false
@@ -250,6 +261,17 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 						padding = min((domains[i][1]-domains[i][0])/16, max((base[i][1]-base[i][0])/4, (window.End-window.Start)/4))
 					}
 					proposal[i] = [2]float64{max(domains[i][0], base[i][0]-scale*padding), min(domains[i][1], base[i][1]+scale*padding)}
+				}
+				if restricted {
+					strict := true
+					for i := range proposal {
+						if i != axis {
+							strict = strict && proposal[i][0] < base[i][0] && proposal[i][1] > base[i][1]
+						}
+					}
+					if !strict {
+						continue
+					}
 				}
 				box := rangesParameterPair(proposal)
 				if !box.A.Valid() || !box.B.Valid() {
@@ -278,7 +300,7 @@ func discoverSurfaceIsoPlaneRationalTubes(ctx context.Context, a, b *SurfacePatc
 				}
 				var boundary *SurfaceTubeBoundaryOptions
 				var anchored VerifiedSurfaceTube
-				if !proof.ProvenBranch && trapezoidMode && axis == free {
+				if !proof.ProvenBranch && trapezoidMode && !restricted && axis == free {
 					for side, q := range []*big.Rat{n.lo, n.hi} {
 						if side == 0 && q.Cmp(start) != 0 || side == 1 && q.Cmp(end) != 0 {
 							continue
@@ -376,5 +398,5 @@ func isoRationalEnclosure(lo, hi *big.Rat) ParameterSpan {
 // for a proved nonlinear planar trapezoid chart. Full original iso clipping,
 // positive denominator and fresh original tube proofs remain mandatory.
 func DiscoverSurfaceIsoTrapezoidTubes(ctx context.Context, a, b *SurfacePatch, fixedAxis int, fixed float64, start, end *big.Rat, o SurfaceArcTubeDiscoveryOptions) (SurfaceArcTubeDiscovery, error) {
-	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, true)
+	return discoverSurfaceIsoPlaneRationalTubes(ctx, a, b, fixedAxis, fixed, start, end, o, true, true, false)
 }

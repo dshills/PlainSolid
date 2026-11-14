@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/geom"
@@ -82,6 +83,43 @@ type mixedShellSectionBuild struct {
 	proposals       map[[2]int]*RationalIsoShellPairProposal
 	options         geom.RationalIsoTubeChainOptions
 	remaining, used int
+	discovery       *MixedRationalIsoDiscoveryOptions
+	discoveryTries  int
+	discovered      []RationalIsoShellPairProposal
+}
+
+// MixedRationalIsoDiscoveryOptions bounds automatic wall-pair discovery.
+// MaxAttempts defaults to 128 oriented candidate pairs (maximum 4096).
+// Search applies to each attempt and never provides coverage by itself.
+type MixedRationalIsoDiscoveryOptions struct {
+	Search      geom.SurfaceArcTubeDiscoveryOptions
+	MaxAttempts int
+}
+
+// DiscoverSplineShellsMixedAlgebraic automatically finds restricted
+// rational iso-wall branches on eligible original face pairs. All other
+// pair coverage and wire joins use the ordinary exact section pipeline.
+// It succeeds only when at least one restricted branch was independently
+// established and no original face pair remains unresolved.
+func DiscoverSplineShellsMixedAlgebraic(ctx context.Context, a, b Solid, o MixedAlgebraicShellSectionOptions, d MixedRationalIsoDiscoveryOptions) (*MixedAlgebraicShellSection, error) {
+	if ctx == nil || d.MaxAttempts < 0 || d.MaxAttempts > 4096 || o.MaxExactOperations < 0 || o.MaxExactOperations > 256000000 {
+		return nil, geom.ErrInvalid
+	}
+	if d.MaxAttempts == 0 {
+		d.MaxAttempts = 128
+	}
+	if o.MaxExactOperations == 0 {
+		o.MaxExactOperations = 16000000
+	}
+	m := &mixedShellSectionBuild{options: o.Rational, remaining: o.MaxExactOperations, discovery: &d}
+	r, err := sectionSplineShellsAlgebraic(ctx, a, b, o.Section, m)
+	if err != nil {
+		return nil, err
+	}
+	if !r.Complete || len(m.discovered) == 0 {
+		return nil, geom.ErrUnrepresentable
+	}
+	return &MixedAlgebraicShellSection{source: r.source, proposals: m.discovered}, nil
 }
 
 // SectionSplineShellsMixedAlgebraic exhaustively checks every original face
@@ -130,7 +168,6 @@ func SectionSplineShellsMixedAlgebraic(ctx context.Context, a, b Solid, proposal
 func (m *mixedShellSectionBuild) branch(ctx context.Context, ids [2]int, patches [2]*geom.SurfacePatch, charts [2]intersect.Patch, shells [2]Solid, faces [2][]splineEmbeddingFace, o AlgebraicShellSectionOptions) (AlgebraicShellSectionBranch, error) {
 	var z AlgebraicShellSectionBranch
 	p := m.proposals[ids]
-	source := p.SourceOperand
 	if m.remaining <= 0 {
 		return z, geom.ErrConvergence
 	}
@@ -138,12 +175,48 @@ func (m *mixedShellSectionBuild) branch(ctx context.Context, ids [2]int, patches
 	if opts.MaxOperations == 0 || opts.MaxOperations > m.remaining {
 		opts.MaxOperations = m.remaining
 	}
-	c, err := geom.CertifyRationalIsoTubeChain(ctx, patches[source], patches[1-source], p.FixedAxis, p.Fixed, p.Cuts, p.Pieces, opts)
+	c, err := geom.CertifyRationalIsoTubeChain(ctx, patches[p.SourceOperand], patches[1-p.SourceOperand], p.FixedAxis, p.Fixed, p.Cuts, p.Pieces, opts)
 	if err != nil {
 		return z, err
 	}
 	m.remaining -= c.ExactOperations()
 	m.used++
+	return mixedRestrictedShellBranch(ctx, ids, p.SourceOperand, c, charts, shells, faces, o)
+}
+
+func (m *mixedShellSectionBuild) discover(ctx context.Context, ids [2]int, patches [2]*geom.SurfacePatch, charts [2]intersect.Patch,
+	shells [2]Solid, faces [2][]splineEmbeddingFace, o AlgebraicShellSectionOptions) (AlgebraicShellSectionBranch, bool, error) {
+	var zero AlgebraicShellSectionBranch
+	for source := 0; source < 2; source++ {
+		if m.discoveryTries >= m.discovery.MaxAttempts || m.remaining <= 0 || len(m.discovered) >= 64 {
+			return zero, false, geom.ErrConvergence
+		}
+		m.discoveryTries++
+		opts := geom.RationalIsoTubeDiscoveryOptions{Search: m.discovery.Search, Proof: m.options}
+		if opts.Proof.MaxOperations == 0 || opts.Proof.MaxOperations > m.remaining {
+			opts.Proof.MaxOperations = m.remaining
+		}
+		axis, fixed, cuts, pieces, chain, err := geom.DiscoverRationalIsoTubeChain(ctx, patches[source], patches[1-source], opts)
+		if err != nil {
+			if errors.Is(err, geom.ErrUnrepresentable) || errors.Is(err, geom.ErrDegenerate) || errors.Is(err, geom.ErrConvergence) || errors.Is(err, geom.ErrDomain) {
+				continue
+			}
+			return zero, false, err
+		}
+		branch, err := mixedRestrictedShellBranch(ctx, ids, source, chain, charts, shells, faces, o)
+		if err != nil {
+			return zero, false, err
+		}
+		m.remaining -= chain.ExactOperations()
+		m.discovered = append(m.discovered, RationalIsoShellPairProposal{Faces: ids, SourceOperand: source, FixedAxis: axis, Fixed: fixed, Cuts: cuts, Pieces: pieces})
+		return branch, true, nil
+	}
+	return zero, false, nil
+}
+
+func mixedRestrictedShellBranch(ctx context.Context, ids [2]int, source int, c *geom.RationalIsoTubeChain,
+	charts [2]intersect.Patch, shells [2]Solid, faces [2][]splineEmbeddingFace, o AlgebraicShellSectionOptions) (AlgebraicShellSectionBranch, error) {
+	var z AlgebraicShellSectionBranch
 	z.Faces = ids
 	z.rational = c
 	z.rationalSource = source
