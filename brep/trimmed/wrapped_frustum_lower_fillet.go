@@ -38,10 +38,10 @@ type WrappedFrustumLowerFilletHistory struct {
 // The upper cap and cone equation are retained. Supplied work limits apply to
 // each bounded construction/proof call, as for the cylinder rim operation.
 func FilletWrappedFrustumLowerRim(ctx context.Context, s Solid, radius float64, o geom.SurfacePatchOptions) (Solid, WrappedFrustumLowerFilletHistory, error) {
-	return filletWrappedFrustumEndRim(ctx, s, radius, false, o)
+	return filletWrappedFrustumEndRim(ctx, s, radius, false, false, o)
 }
 
-func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, upper bool, o geom.SurfacePatchOptions) (Solid, WrappedFrustumLowerFilletHistory, error) {
+func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, upper, obtuse bool, o geom.SurfacePatchOptions) (Solid, WrappedFrustumLowerFilletHistory, error) {
 	h := WrappedFrustumLowerFilletHistory{WrappedCylinderRimFilletHistory: WrappedCylinderRimFilletHistory{Blends: [2]int{-1, -1}}}
 	if ctx == nil || !finite(radius) || radius <= 0 {
 		return Solid{}, WrappedFrustumLowerFilletHistory{}, geom.ErrInvalid
@@ -64,7 +64,11 @@ func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, up
 	r := [2]*big.Rat{new(big.Rat), new(big.Rat)}
 	r[selected] = ratInset(radius)
 	slope := new(big.Rat).Quo(new(big.Rat).Sub(p.UpperRadius, p.LowerRadius), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
-	if (!upper && slope.Sign() <= 0) || (upper && slope.Sign() >= 0) {
+	validSlope := (!upper && slope.Sign() > 0) || (upper && slope.Sign() < 0)
+	if obtuse {
+		validSlope = (!upper && slope.Sign() < 0) || (upper && slope.Sign() > 0)
+	}
+	if !validSlope {
 		return Solid{}, WrappedFrustumLowerFilletHistory{}, geom.ErrDomain
 	}
 	lengthSquared := new(big.Rat).Add(big.NewRat(1, 1), new(big.Rat).Mul(slope, slope))
@@ -92,6 +96,13 @@ func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, up
 	// First-quadrant x=(1-t²)/(1+t²), y=2t/(1+t²) has t=y/(1+x).
 	if upper {
 		parameter.Quo(new(big.Rat).Neg(slope), new(big.Rat).Add(length, big.NewRat(1, 1)))
+	}
+	if obtuse {
+		if upper {
+			parameter.Add(big.NewRat(1, 1), new(big.Rat).Quo(big.NewRat(2, 1), new(big.Rat).Add(big.NewRat(1, 1), new(big.Rat).Add(length, slope))))
+		} else {
+			parameter.Add(big.NewRat(2, 1), new(big.Rat).Quo(new(big.Rat).Neg(slope), new(big.Rat).Add(length, big.NewRat(1, 1))))
+		}
 	}
 	sideV, e := geom.RepresentedExactScalar(parameter)
 	if e != nil {
@@ -162,6 +173,12 @@ func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, up
 		if e != nil {
 			return Solid{}, WrappedFrustumLowerFilletHistory{}, e
 		}
+		if obtuse {
+			torus, e = halfTurnFilletMeridian(ctx, torus, o)
+			if e != nil {
+				return Solid{}, WrappedFrustumLowerFilletHistory{}, e
+			}
+		}
 		td := torus.Domain()
 		if end == 0 {
 			td.VMin = 3
@@ -169,6 +186,15 @@ func filletWrappedFrustumEndRim(ctx context.Context, s Solid, radius float64, up
 		} else {
 			td.VMin = sideV
 			td.VMax = 1
+		}
+		if obtuse {
+			if end == 0 {
+				td.VMin = 1
+				td.VMax = sideV
+			} else {
+				td.VMin = sideV
+				td.VMax = 3
+			}
 		}
 		q, e := torus.FundamentalPatch().Trim(td)
 		if e != nil {
