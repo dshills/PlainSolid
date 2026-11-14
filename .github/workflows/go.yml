@@ -99,7 +99,7 @@ jobs:
       - name: Bounded fuzzing for analytic IGES solids and cavities
         shell: bash
         run: |
-          targets=$(go test ./exchange/iges -list '^Fuzz' | awk '/^Fuzz((Placed|Reindexed)?(Toroidal|Spherical|SphericalCavity|Conical45Cavity|Conical45CylinderThrough|CylinderSphereCavity)(Material)?|AnalyticMaterialDispatch)$/ { print }')
+          targets=$(go test ./exchange/iges -list '^Fuzz' | awk '/^Fuzz((Placed|Reindexed)?(Toroidal|Spherical|SphericalCavity|Conical45Cavity|Conical45CylinderThrough|CylinderSphereCavity)(Material)?|AnalyticMaterial(Dispatch|Native))$/ { print }')
           test -n "$targets"
           for target in $targets; do
             GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
@@ -152,7 +152,7 @@ jobs:
       - name: Bounded fuzzing for independent STEP products and units
         shell: bash
         run: |
-          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative; do
+          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative FuzzIndependentPlanarUnits FuzzIndependentPlanarUnitsNative; do
             GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
           done
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
