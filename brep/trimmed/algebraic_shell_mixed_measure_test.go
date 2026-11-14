@@ -139,6 +139,23 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if generated == 0 || split == 0 {
 			t.Fatal("expected both generated and split edges", name, generated, split)
 		}
+		roof, err := body.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+		if err != nil || roof.PreparationOperations() <= 0 {
+			t.Fatal("original roof query preparation", name, err)
+		}
+		delta := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 100))
+		height := big.NewRat(-7, 128) // tool roof at x=y=1/2
+		for j, want := range [3][3]parametric.Location{
+			{parametric.Inside, parametric.Boundary, parametric.Outside},
+			{parametric.Inside, parametric.Inside, parametric.Inside},
+			{parametric.Outside, parametric.Boundary, parametric.Inside},
+		}[i] {
+			z := new(big.Rat).Add(height, new(big.Rat).Mul(big.NewRat(int64(j-1), 1), delta))
+			got, err := roof.LocateRational(ctx, [3]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2), z}, geom.SurfacePatchEvaluationOptions{})
+			if err != nil || got.Location != want || got.Operands[0] != parametric.Inside || got.Operands[1] != [3]parametric.Location{parametric.Inside, parametric.Boundary, parametric.Outside}[j] {
+				t.Fatal("sub-binary roof classification", name, j, got, want, err)
+			}
+		}
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
 		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
@@ -248,6 +265,18 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if grouped != 1 {
 			t.Fatal("simultaneous original roof contact missing", i, events)
 		}
+	}
+	// With a distant origin, the positive roof hit is less than one binary64
+	// step beyond T=2^47. It must stay outside a closed range ending exactly
+	// there, even though its outward presentation interval starts at 2^47.
+	line.Line.MinParameter, line.Line.MaxParameter = 0, 1<<47
+	ev, err := bodies[1].IntersectMaterialLineEvents(ctx, geom.Vec3{X: .5, Y: .5, Z: -(1 << 47)}, geom.Vec3{Z: 1}, line)
+	if err != nil || len(ev) != 1 || ev[0].ExactParameter == nil || ev[0].ExactParameter.Cmp(big.NewRat(1<<47-1, 1)) != 0 || !ev[0].After {
+		t.Fatal("clamped exact material event order at distant origin", ev, err)
+	}
+	ev, err = bodies[1].IntersectMaterialLineEvents(ctx, geom.Vec3{X: .5, Y: .5, Z: 1 << 47}, geom.Vec3{Z: -2}, line)
+	if err != nil || len(ev) != 1 || ev[0].ExactParameter == nil || ev[0].ExactParameter.Cmp(new(big.Rat).Sub(big.NewRat(1<<47, 1), big.NewRat(1, 256))) != 0 || !ev[0].After {
+		t.Fatal("recentered sweep must preserve negative directions and exact hit units", ev, err)
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()

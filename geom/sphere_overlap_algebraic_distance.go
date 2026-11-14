@@ -41,6 +41,10 @@ type SphereOverlapAlgebraicNearest struct {
 // unique off-axis. Thus the returned owner set is complete in this subset.
 // One work/bit budget covers source checks, witnesses, bounds and ordering.
 func (s SpherePairMaterial) NearestOverlapAlgebraicBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SphereOverlapAlgebraicNearest, err error) {
+	return s.nearestOverlapAlgebraicBoundaryRational(ctx, p, o, false)
+}
+
+func (s SpherePairMaterial) nearestOverlapAlgebraicBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions, general bool) (out SphereOverlapAlgebraicNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SphereOverlapAlgebraicNearest{}
@@ -78,7 +82,7 @@ func (s SpherePairMaterial) NearestOverlapAlgebraicBoundaryRational(ctx context.
 			a.check(s.center[i][j])
 		}
 		if s.center[0][j].Cmp(s.center[1][j]) != 0 {
-			if axis >= 0 {
+			if axis >= 0 && !general {
 				return out, ErrDomain
 			}
 			axis = j
@@ -90,21 +94,52 @@ func (s SpherePairMaterial) NearestOverlapAlgebraicBoundaryRational(ctx context.
 	for _, v := range s.radius2 {
 		a.check(v)
 	}
-	d := a.sub(s.center[1][axis], s.center[0][axis])
-	t := a.div(a.add(a.sub(s.radius2[0], s.radius2[1]), a.mul(d, d)), a.mul(big.NewRat(2, 1), d))
-	h2 := a.sub(s.radius2[0], a.mul(t, t))
-	h := a.sqrt(h2)
-	center := [3]*big.Rat{}
+
+	var h2, h, axial2 *big.Rat
+	center, radial := [3]*big.Rat{}, [3]*big.Rat{}
 	rho2 := new(big.Rat)
-	for j := 0; j < 3; j++ {
-		center[j] = new(big.Rat).Set(s.center[0][j])
-		if j == axis {
-			center[j] = a.add(center[j], t)
-		} else {
-			v := a.sub(p[j], center[j])
-			rho2 = a.add(rho2, a.mul(v, v))
+	if general {
+		axisVector := [3]*big.Rat{}
+		D2 := a.distance(s.center[0], s.center[1])
+		fraction := a.div(a.add(a.sub(s.radius2[0], s.radius2[1]), D2), a.mul(big.NewRat(2, 1), D2))
+		h2 = a.sub(s.radius2[0], a.mul(a.mul(fraction, fraction), D2))
+		dot := new(big.Rat)
+		for j := 0; j < 3; j++ {
+			axisVector[j] = a.sub(s.center[1][j], s.center[0][j])
+			center[j] = a.add(s.center[0][j], a.mul(fraction, axisVector[j]))
+			dot = a.add(dot, a.mul(a.sub(p[j], center[j]), axisVector[j]))
+		}
+		projection := a.div(dot, D2)
+		axial2 = a.div(a.mul(dot, dot), D2)
+		orthogonal := new(big.Rat)
+		for j := 0; j < 3; j++ {
+			radial[j] = a.sub(a.sub(p[j], center[j]), a.mul(projection, axisVector[j]))
+			rho2 = a.add(rho2, a.mul(radial[j], radial[j]))
+			orthogonal = a.add(orthogonal, a.mul(radial[j], axisVector[j]))
+		}
+		if a.err != nil {
+			return out, a.err
+		}
+		if h2.Sign() <= 0 || orthogonal.Sign() != 0 {
+			return out, ErrDomain
+		}
+	} else {
+		d := a.sub(s.center[1][axis], s.center[0][axis])
+		t := a.div(a.add(a.sub(s.radius2[0], s.radius2[1]), a.mul(d, d)), a.mul(big.NewRat(2, 1), d))
+		h2 = a.sub(s.radius2[0], a.mul(t, t))
+		h = a.sqrt(h2)
+
+		for j := 0; j < 3; j++ {
+			center[j] = new(big.Rat).Set(s.center[0][j])
+			if j == axis {
+				center[j] = a.add(center[j], t)
+			} else {
+				v := a.sub(p[j], center[j])
+				rho2 = a.add(rho2, a.mul(v, v))
+			}
 		}
 	}
+
 	if a.err != nil {
 		return out, a.err
 	}
@@ -161,15 +196,26 @@ func (s SpherePairMaterial) NearestOverlapAlgebraicBoundaryRational(ctx context.
 		}
 		out.Candidates[i] = w
 	}
-	axial := a.sub(p[axis], center[axis])
-	rim := SphereOverlapAlgebraicCandidate{Radicand: rho2, Constant: a.add(a.add(a.mul(axial, axial), rho2), h2), Coefficient: a.mul(big.NewRat(2, 1), h), Owners: 3, Retained: true}
-	for j := 0; j < 3; j++ {
-		rim.Center[j] = new(big.Rat).Set(center[j])
-		rim.Numerator[j] = new(big.Rat)
-		if j != axis {
-			rim.Numerator[j] = a.mul(h, a.sub(p[j], center[j]))
+
+	var rim SphereOverlapAlgebraicCandidate
+	if general {
+		rim = SphereOverlapAlgebraicCandidate{Radicand: a.mul(h2, rho2), Constant: a.add(a.add(axial2, rho2), h2), Coefficient: big.NewRat(2, 1), Owners: 3, Retained: true}
+		for j := 0; j < 3; j++ {
+			rim.Center[j] = new(big.Rat).Set(center[j])
+			rim.Numerator[j] = a.mul(h2, radial[j])
+		}
+	} else {
+		axial := a.sub(p[axis], center[axis])
+		rim = SphereOverlapAlgebraicCandidate{Radicand: rho2, Constant: a.add(a.add(a.mul(axial, axial), rho2), h2), Coefficient: a.mul(big.NewRat(2, 1), h), Owners: 3, Retained: true}
+		for j := 0; j < 3; j++ {
+			rim.Center[j] = new(big.Rat).Set(center[j])
+			rim.Numerator[j] = new(big.Rat)
+			if j != axis {
+				rim.Numerator[j] = a.mul(h, a.sub(p[j], center[j]))
+			}
 		}
 	}
+
 	out.Candidates[2] = rim
 	if a.err != nil {
 		return out, a.err

@@ -463,6 +463,13 @@ authored case](evidence/plaincad-reconciled-4a9619a5-supplemental-partial-step-2
 verified the shared opening through STEP export, import, and STL. Pinned
 OCCT independently read the emitted file. All 841 app and 1,940 kernel
 source hashes matched.
+The [blind crossed STEP reconciliation](evidence/plaincad-reconciled-0066dae8-development-blind-crossed-holes-step-2026-11-14.json)
+adds worktree commit `c2456d0e` to review revision `0066dae8`. Native and
+live STEP checks passed, along with 17 original browser cases and the
+Go/WASM preflight. The [authored browser case](evidence/plaincad-reconciled-0066dae8-supplemental-blind-crossed-step-2026-11-14.json)
+checks the retained blind floor through export, import and STL. Pinned
+OCCT independently read the exported solid. All 841 app and 1,950 kernel
+source hashes matched.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

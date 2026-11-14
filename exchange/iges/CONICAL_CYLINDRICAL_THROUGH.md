@@ -71,3 +71,32 @@ proper signed frame reverses the axial direction. Focused tests also reject
 wrong bore axis, detached bore/cap/rim placement, forged pose/ancestry and
 source limits. Live OCCT, race, Go1.23, vet and 100 fuzz executions qualify
 this separate placement scope.
+
+## Reordered aperture topology
+
+`ReadReindexedConical45CylinderThroughMaterial` accepts the independently
+qualified placed/unplaced family with arbitrary DE order/addresses, vertex-list
+permutations, six-edge list permutations, four-face shell permutations and
+cyclic starts of each four-use wall loop. Exact local support dimensions locate
+the four distinct source vertices; directed endpoint incidences identify the
+four circular and two line edges. Support kind plus shell sense distinguishes
+outward cone, inward cylinder and the two caps. A bounded bijection then
+reconstructs and rechecks the complete original canonical graph. No face or
+edge role comes from sorted record IDs.
+
+Annular face outer-first loop ordering is retained: exchanging outer and hole
+lists is not a harmless permutation in this dialect. Reversing one wall use,
+flipping the inner shell sense, cross-owner rewiring, ambiguous vertices,
+unsupported transforms and missing/detached records fail closed. A source-only
+writer and versioned JSON reproof preserve original IDs and list/use ordinals,
+including the native face mapping and all four source circle IDs. The positive
+finite tolerance argument applies to the placed rebuild; the unplaced typed
+codec retains its original fixed native tolerance of 1e−9.
+
+The independent Python reordering tool reverses DE, vertex, edge and face
+lists and rotates each wall loop of both retained source files. Pinned OCCT
+transfers these original reordered files and unchanged source re-exports as
+one valid four-face solid with the same analytic measures and posed centroid.
+Exact native continuous joins, prior canonical rejection, reversed inner sense,
+wrong cap order, reversed use, cross-ownership, stale ancestry and limits are
+covered by tests. Focused live/race, Go1.23, vet and 100 fuzz executions pass.
