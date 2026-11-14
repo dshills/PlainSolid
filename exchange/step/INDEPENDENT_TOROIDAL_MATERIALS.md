@@ -41,3 +41,17 @@ Tests cover horn/spindle rejection, reversed face/coedge/edge sense, wrong verte
 circle and minor frame, pcurve substitution, original vendor rejection, native
 reload/mass, source-preserving roundtrip, cumulative roots, cancellation, legacy
 rejection, race and bounded fuzz.
+
+## Source-bound native persistence
+
+`WriteIndependentToroidalMaterialsJSON` /
+`ReadIndependentToroidalMaterialsJSON` use the distinct
+`plainsolid-step-independent-toroidal-materials` version-one tag. The original
+source is re-proved once before comparison of canonical native geometry, product
+and shape ancestry, both seam edge/circle roles and the common vertex. No stored
+native payload substitutes for source proof. Rounded vendor source fails even
+when embedded under this tag. Older envelope tags remain unchanged.
+
+Tests cover the single torus and an eight-product native roundtrip, original root
+IDs, seam/vertex/face metadata tampering, malformed source and native payloads,
+limits, cancellation, atomic stale writes, and live native→STEP→OCCT readback.
