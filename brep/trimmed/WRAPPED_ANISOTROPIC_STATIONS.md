@@ -217,3 +217,27 @@ ledger covers identities, clipping and prepared classifications; initial native
 authentication has separately bounded Source quotas. Tests reindex faces, rotate
 coedge loops and reload before checking lower/upper generators, periodic seam,
 reverse parameter direction, exact work bounds, wrong walls and nongenerators.
+
+## Certified closed native display
+
+`TessellateWrappedAnisotropicStationLoftCertified` authenticates the complete
+original native loft and reuses the existing exact knot-grid residual, radial
+cap fan and station assembly proofs. Independent positive X/Y scales preserve
+the original star profile and its orientation. Every adjacent source rim is
+evaluated rationally on both original charts before assigning a shared index;
+represented vertex equality is checked as well. Interior artificial caps are
+omitted. The final display must have closed manifold incidence, positive exact
+signed volume and no nonincident triangle contacts. All existing station sample,
+triangle-check, cap predicate and contact work gates remain active.
+
+Returned per-triangle squared bounds are two-sided source/display bounds,
+including rounding. The display volume is a diagnostic, not a certified
+source-volume error bound; no angular-normal guarantee is added. Cap centers
+must remain exactly representable. The old circular and homothetic wrappers
+retain their source gates and certificate types. Their private post-proof
+assemblers are shared; no synthetic circular source certificate is exposed.
+The positive two-band fixture changes aspect ratio from (3,1) to (1,2) to (2,1),
+retains a genuine crease and checks all exact source/chord midpoint witnesses.
+At deflection 0.12 it has 146 vertices/288 triangles; independent profile integration
+gives source volume 22.7532610392 versus display 22.1707717570. Failure tests cover
+triangle/sample limits, cancellation and forged inward original wall ownership.

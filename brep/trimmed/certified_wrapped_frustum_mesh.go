@@ -75,6 +75,37 @@ func tessellateWrappedFrustumFrom(ctx context.Context, w *geom.WrappedSurfacePat
 	if !proof.Complete {
 		return out, geom.ErrConvergence
 	}
+	out, err = tessellateProvedWrappedStarBandFrom(ctx, w, o, minimum, [2]*big.Rat{proof.CenterX, proof.CenterY}, [2]*big.Rat{proof.LowerZ, proof.UpperZ})
+	if err == nil {
+		out.Embedding = proof
+	}
+	return out, err
+}
+
+// Callers independently prove the complete original star-shaped wrapped band.
+// Only its exact center and terminal heights enter the shared fan construction;
+// all lateral residuals and embedding checks still use the original patch.
+func tessellateProvedWrappedStarBandFrom(ctx context.Context, w *geom.WrappedSurfacePatch, o CertifiedWrappedFrustumMeshOptions, minimum int, sourceCenter [2]*big.Rat, heights [2]*big.Rat) (out CertifiedWrappedFrustumMesh, err error) {
+	defer func() {
+		if err != nil {
+			out = CertifiedWrappedFrustumMesh{}
+		}
+	}()
+	if ctx == nil {
+		return out, geom.ErrInvalid
+	}
+	if o.MaxTriangles == 0 {
+		o.MaxTriangles = 1000000
+	}
+	if o.MaxPredicates == 0 {
+		o.MaxPredicates = 1000000
+	}
+	if o.MaxTriangles < 1 || o.MaxTriangles > 8000000 || o.MaxPredicates < 1 || o.MaxPredicates > 100000000 {
+		return out, geom.ErrInvalid
+	}
+	if o.MaxTriangles < 16 {
+		return out, geom.ErrConvergence
+	}
 	side, e := tessellateCertifiedKnotGridFrom(ctx, w.FundamentalPatch(), [2]bool{true, false}, o.Patch, minimum)
 	if e != nil {
 		return out, e
@@ -86,7 +117,7 @@ func tessellateWrappedFrustumFrom(ctx context.Context, w *geom.WrappedSurfacePat
 	if nu < 4 || nv < 1 || len(side.Mesh.Vertices) != nu*(nv+1) || len(side.Mesh.Triangles)+2*nu > o.MaxTriangles {
 		return out, geom.ErrConvergence
 	}
-	out.Embedding, out.Lateral = proof, side
+	out.Lateral = side
 	out.Mesh.Vertices = append([]geom.Vec3(nil), side.Mesh.Vertices...)
 	out.Mesh.Triangles = append([][3]int(nil), side.Mesh.Triangles...)
 	out.SourceImageSquaredDistance = new(big.Rat)
@@ -104,11 +135,11 @@ func tessellateWrappedFrustumFrom(ctx context.Context, w *geom.WrappedSurfacePat
 		if e := ctx.Err(); e != nil {
 			return out, e
 		}
-		z := proof.LowerZ
+		z := heights[0]
 		if cap == 1 {
-			z = proof.UpperZ
+			z = heights[1]
 		}
-		exact := [3]*big.Rat{proof.CenterX, proof.CenterY, z}
+		exact := [3]*big.Rat{sourceCenter[0], sourceCenter[1], z}
 		var xyz [3]float64
 		for i, r := range exact {
 			xyz[i], _ = r.Float64()
@@ -129,7 +160,7 @@ func tessellateWrappedFrustumFrom(ctx context.Context, w *geom.WrappedSurfacePat
 			ring[i] = i
 			points[i] = [2]*big.Rat{ratInset(p.X), ratInset(p.Y)}
 		}
-		points[nu] = [2]*big.Rat{new(big.Rat).Set(proof.CenterX), new(big.Rat).Set(proof.CenterY)}
+		points[nu] = [2]*big.Rat{new(big.Rat).Set(sourceCenter[0]), new(big.Rat).Set(sourceCenter[1])}
 		budget := partitionFillProof{ctx: ctx, limit: o.MaxPredicates - out.Predicates, points: points}
 		if budget.limit < 1 {
 			return out, geom.ErrConvergence

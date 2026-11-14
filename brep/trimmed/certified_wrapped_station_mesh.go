@@ -96,6 +96,54 @@ func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o Certif
 	if !proof.Complete || len(bands) == 0 {
 		return out, geom.ErrConvergence
 	}
+	out, err = tessellateProvedWrappedStationBands(ctx, o, first, capture, bands, proof.History, tessellateWrappedFrustumFrom)
+	if err == nil {
+		out.Source = proof
+	}
+	return out, err
+}
+
+// This shared post-proof assembler never manufactures a source certificate.
+// Its private result's Source is assigned only by the authenticating wrapper.
+func tessellateProvedWrappedStationBands(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int, capture *[]wrappedDisplayBand, bands []*geom.WrappedSurfacePatch, history WrappedLoftHistory, build func(context.Context, *geom.WrappedSurfacePatch, CertifiedWrappedFrustumMeshOptions, int) (CertifiedWrappedFrustumMesh, error)) (out CertifiedWrappedStationMesh, err error) {
+	if capture != nil {
+		*capture = nil
+		defer func() {
+			if err != nil {
+				*capture = nil
+			}
+		}()
+	}
+	defer func() {
+		if err != nil {
+			out = CertifiedWrappedStationMesh{}
+		}
+	}()
+	if ctx == nil {
+		return out, geom.ErrInvalid
+	}
+	if o.MaxStationSamples == 0 {
+		o.MaxStationSamples = 65536
+	}
+	if o.MaxStationSamples < 1 || o.MaxStationSamples > 1000000 {
+		return out, geom.ErrInvalid
+	}
+	if o.Band.Patch.MaxTriangleChecks == 0 {
+		o.Band.Patch.MaxTriangleChecks = 100000
+	}
+	if o.Band.Patch.MaxTriangleChecks < 1 {
+		return out, geom.ErrInvalid
+	}
+	if o.Band.Patch.MaxSubdivisions == 0 {
+		o.Band.Patch.MaxSubdivisions = 32
+	}
+	if o.Band.MaxTriangles == 0 {
+		o.Band.MaxTriangles = 1000000
+	}
+	if o.Band.MaxTriangles < 1 || o.Band.MaxTriangles > 8000000 {
+		return out, geom.ErrInvalid
+	}
+	var e error
 	checks, minimum := 0, first
 	var local []CertifiedWrappedFrustumMesh
 	for {
@@ -109,7 +157,7 @@ func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o Certif
 			}
 			opts := o.Band
 			opts.Patch.MaxTriangleChecks = remaining
-			m, e := tessellateWrappedFrustumFrom(ctx, w, opts, minimum)
+			m, e := build(ctx, w, opts, minimum)
 			if e != nil {
 				return out, e
 			}
@@ -128,7 +176,6 @@ func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o Certif
 		}
 		minimum = maximum
 	}
-	out.Source = proof
 	out.Subdivisions = minimum
 	out.TriangleChecks = checks
 	out.SourceImageSquaredDistance = new(big.Rat)
@@ -185,9 +232,9 @@ func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o Certif
 				}
 				q[j] = mapping[id]
 			}
-			original := proof.History.WallFaces[band]
+			original := history.WallFaces[band]
 			if face > 0 {
-				original = proof.History.CapFaces[face-1]
+				original = history.CapFaces[face-1]
 			}
 			out.Mesh.Triangles = append(out.Mesh.Triangles, q)
 			out.OriginalFace = append(out.OriginalFace, original)
@@ -204,7 +251,7 @@ func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o Certif
 					return out, geom.ErrConvergence
 				}
 			}
-			*capture = append(*capture, wrappedDisplayBand{proof.History.WallFaces[band], append([]float64(nil), m.Lateral.UParameters...), append([]float64(nil), m.Lateral.VParameters...), ids})
+			*capture = append(*capture, wrappedDisplayBand{history.WallFaces[band], append([]float64(nil), m.Lateral.UParameters...), append([]float64(nil), m.Lateral.VParameters...), ids})
 		}
 		if band == 0 {
 			for _, id := range m.RimVertices[0] {
