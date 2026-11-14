@@ -67,3 +67,50 @@ func (s Solid) ProjectPlacedCircularToroidRational(ctx context.Context, pose pla
 	}
 	return out, ctx.Err()
 }
+
+// PlacedToroidAxialSection describes exact circles on an occurrence plane.
+// Center and Axes map the local exact radii to world geometry. Face is the
+// single original face owner, or -1 when the plane misses material.
+type PlacedToroidAxialSection struct {
+	Local  geom.CircularToroidAxialSection
+	Center [3]*big.Rat
+	Axes   [3][3]*big.Rat
+	Face   int
+}
+
+// SectionPlacedCircularToroidRational takes a plane perpendicular to the
+// exact transformed toroid axis at the specified original local height.
+func (s Solid) SectionPlacedCircularToroidRational(ctx context.Context, pose placement.RationalRigid, height *big.Rat, o geom.SurfacePatchOptions) (out PlacedToroidAxialSection, err error) {
+	out.Face = -1
+	defer func() {
+		if err != nil {
+			out = PlacedToroidAxialSection{Face: -1}
+		}
+	}()
+	w, e := s.canonicalToroidSupport(ctx)
+	if e != nil {
+		return out, e
+	}
+	out.Local, err = geom.SectionWrappedCircularToroidRational(ctx, w, height, o)
+	if err != nil {
+		return out, err
+	}
+	bits := o.MaxCoefficientBits
+	out.Center, err = pose.TransformPoint(ctx, out.Local.Center, false, bits)
+	if err != nil {
+		return out, err
+	}
+	z, one := new(big.Rat), big.NewRat(1, 1)
+	for i := range out.Axes {
+		basis := [3]*big.Rat{z, z, z}
+		basis[i] = one
+		out.Axes[i], err = pose.TransformVector(ctx, basis, false, bits)
+		if err != nil {
+			return out, err
+		}
+	}
+	if out.Local.Present {
+		out.Face = 0
+	}
+	return out, ctx.Err()
+}

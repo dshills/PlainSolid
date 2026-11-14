@@ -102,4 +102,24 @@ func TestPlacedWrappedToroidRationalLine(t *testing.T) {
 		}
 	}
 
+	offPlane, e := s.SectionPlacedCircularToroidRational(ctx, pose, q(1, 3), geom.SurfacePatchOptions{})
+	if e != nil || !offPlane.Local.Present || offPlane.Local.SingleCircle || offPlane.Face != 0 ||
+		offPlane.Local.MajorRadius.Cmp(q(2, 1)) != 0 || offPlane.Local.RadialOffsetSquared.Cmp(q(5, 36)) != 0 ||
+		offPlane.Local.AreaPiSqrtCoefficient.Cmp(q(8, 1)) != 0 {
+		t.Fatal("exact nonbinary annular section", offPlane, e)
+	}
+	for i, p := range [3]*big.Rat{q(43, 105), q(1, 11), q(23, 65)} {
+		if offPlane.Center[i].Cmp(p) != 0 {
+			t.Fatal("original world annulus center", i, offPlane.Center)
+		}
+	}
+	pole, e := s.SectionPlacedCircularToroidRational(ctx, pose, q(1, 2), geom.SurfacePatchOptions{})
+	if e != nil || !pole.Local.Present || !pole.Local.SingleCircle || pole.Local.RadialOffsetSquared.Sign() != 0 {
+		t.Fatal("outer section is a single exact circle", pole, e)
+	}
+	empty, e := s.SectionPlacedCircularToroidRational(ctx, pose, new(big.Rat).Add(q(1, 2), delta), geom.SurfacePatchOptions{})
+	if e != nil || empty.Local.Present || empty.Face != -1 {
+		t.Fatal("sub-ULP axial miss", empty, e)
+	}
+
 }
