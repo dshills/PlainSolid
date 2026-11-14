@@ -22,7 +22,7 @@ type MixedRoofMaterialQuery struct {
 // MaxPreparationOperations defaults to 2M (maximum 16M).
 type MixedRoofQueryOptions struct{ MaxPreparationOperations int }
 
-// PrepareRoofMaterialQuery detects the unique nonplanar original support of
+// PrepareRoofMaterialQuery detects the unique upward original graph support of
 // each operand, then proves that each original shell is an embedded roof box.
 // It uses the original immutable Boolean and requires no caller face IDs.
 func (s *MixedAlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o MixedRoofQueryOptions) (*MixedRoofMaterialQuery, error) {
@@ -52,8 +52,13 @@ func (s AlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o M
 		}
 		roof := -1
 		left := o.MaxPreparationOperations - q.work
+		// Among outward faces only the roof can have identity model XY:
+		// the floor is reversed and every side has a constant X or Y.
 		for i, f := range body.faces {
-			if left <= 0 {
+			if f.Reversed {
+				continue
+			}
+			if left < 1 {
 				return nil, geom.ErrConvergence
 			}
 			p, err := exactFaceSupportPatch(f, geom.SurfacePatchOptions{MaxOperations: left, MaxCoefficientBits: 4096})
@@ -61,25 +66,37 @@ func (s AlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o M
 				return nil, err
 			}
 			left -= p.ExactOperations()
-			_, yes, err := mixedExactPlaneProposal(ctx, p, i, &left)
-			if err != nil {
-				return nil, err
+			matched := true
+			for axis := 0; axis < 2; axis++ {
+				if left < 1 {
+					return nil, geom.ErrConvergence
+				}
+				proof, err := geom.CertifySurfaceAffineCoordinate(ctx, p, axis, axis, big.NewRat(1, 1), new(big.Rat),
+					geom.SurfaceAffineCoordinateOptions{SurfacePatchOptions: geom.SurfacePatchOptions{MaxOperations: left, MaxCoefficientBits: 4096}})
+				if err != nil {
+					return nil, err
+				}
+				left -= proof.ExactOperations
+				if !proof.Proven {
+					matched = false
+					break
+				}
 			}
-			if !yes {
+			if matched {
 				if roof >= 0 {
 					return nil, geom.ErrUnrepresentable
 				}
 				roof = i
 			}
 		}
-		if roof < 0 {
-			return nil, geom.ErrUnrepresentable
-		}
 		if left <= 0 {
 			return nil, geom.ErrConvergence
 		}
+		if roof < 0 {
+			return nil, geom.ErrUnrepresentable
+		}
 		var err error
-		q.box[k], err = proveMixedRoofBox(ctx, body, roof, left)
+		q.box[k], err = proveMixedRoofBoxMode(ctx, body, roof, left, true)
 		if err != nil {
 			return nil, err
 		}

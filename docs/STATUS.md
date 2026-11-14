@@ -55,6 +55,12 @@ For the mixed roof solids, bounded nearest queries search the original
 exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
 inertia have separate original OCCT comparisons.
+Prepared roof queries also admit original single-span positive rational
+weights whose cleared line equation stays at degree four or below. The
+weighted cavity kept its exact roof hit, quotient normal and floor
+distance, and an independently sewn OCCT rational model gave the same
+line parameter. The specialized polynomial mesh proof keeps its
+existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and

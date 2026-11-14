@@ -132,24 +132,45 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		return out, err
 	}
 	out[4][1].Set(direction[2])
-	out[5][0].Neg(origin[2])
-	out[5][1].Neg(direction[2])
+	if b.minWeight == nil {
+		out[5][0].Neg(origin[2])
+		out[5][1].Neg(direction[2])
+	}
 	for a, row := range b.power {
-		for b, coeff := range row {
-			if coeff.Sign() == 0 {
+		for k, coeff := range row {
+			weight := b.weight[a][k]
+			if coeff.Sign() == 0 && (weight == nil || weight.Sign() == 0) {
 				continue
 			}
 			for i, x := range powers[0][a] {
-				for j, y := range powers[1][b] {
+				for j, y := range powers[1][k] {
 					v, err := w.rat(new(big.Rat).Mul(x, y))
 					if err != nil {
 						return out, err
 					}
-					if _, err := w.rat(v.Mul(v, coeff)); err != nil {
-						return out, err
+					if coeff.Sign() != 0 {
+						z, err := w.rat(new(big.Rat).Mul(v, coeff))
+						if err != nil {
+							return out, err
+						}
+						if _, err := w.rat(out[5][i+j].Add(out[5][i+j], z)); err != nil {
+							return out, err
+						}
 					}
-					if _, err := w.rat(out[5][i+j].Add(out[5][i+j], v)); err != nil {
-						return out, err
+					if weight != nil && weight.Sign() != 0 {
+						f, err := w.rat(new(big.Rat).Mul(v, weight))
+						if err != nil {
+							return out, err
+						}
+						for shift, z := range [2]*big.Rat{origin[2], direction[2]} {
+							product, err := w.rat(new(big.Rat).Mul(f, z))
+							if err != nil {
+								return out, err
+							}
+							if _, err := w.rat(out[5][i+j+shift].Sub(out[5][i+j+shift], product)); err != nil {
+								return out, err
+							}
+						}
 					}
 				}
 			}
