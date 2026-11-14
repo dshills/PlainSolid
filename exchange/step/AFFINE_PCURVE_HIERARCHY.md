@@ -60,6 +60,11 @@ Its volume is 48 and its boundary area is 120, independently from elementary
 box subtraction (outer surface 96, removed cap area 8, inner wall area 32).
 The native tests check the exact hole/cap stations 1,2,4,5 and source ownership,
 canonical native reload and tamper rejection in both frame conventions.
+`WriteEditedSTEP` transactionally changes finite-decimal local placement on
+the authored source graph. It validates every original pcurve again and
+retains its original evidence. The `document` adapters expose the edited
+source and exact original-loop mass and boundary area; the hole prism keeps
+volume 48 and boundary area 120 after the rigid move.
 Set `PLAINSOLID_OCCT_RATIONAL_HIERARCHY_LINE` to the pinned independent line
 oracle to compare original source and emitted proof-view STEP transfer.
 
