@@ -125,8 +125,9 @@ func (c *ExactComposedCurveCell) quadraticDistanceCandidates(ctx context.Context
 		if work < 1 || splits < 1 {
 			return r, ErrConvergence
 		}
-		q, used, e := distance.CoordinateRoot(ctx, p, 0, ExactCurvePlaneEventOptions{MaxOperations: work, MaxCoefficientBits: b.maxBits, MaxSubdivisions: splits})
+		q, used, steps, e := distance.CoordinateRootWithWork(ctx, p, 0, ExactCurvePlaneEventOptions{MaxOperations: work, MaxCoefficientBits: b.maxBits, MaxSubdivisions: splits})
 		b.operations += used
+		r.Subdivisions += steps
 		if e != nil {
 			return r, e
 		}

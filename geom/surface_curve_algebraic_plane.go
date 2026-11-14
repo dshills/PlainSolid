@@ -67,6 +67,15 @@ func (e *ExactComposedPlaneEvent) CoordinateRoot(ctx context.Context, axis int, 
 	return e.cell.CoordinateRoot(ctx, e.Root(), axis, o)
 }
 
+// CoordinateRootWithWork also reports the root isolation subdivisions used
+// to prove this event's coordinate, for callers with one shared budget.
+func (e *ExactComposedPlaneEvent) CoordinateRootWithWork(ctx context.Context, axis int, o ExactCurvePlaneEventOptions) (*ExactAlgebraicRoot, int, int, error) {
+	if e == nil || e.cell == nil || e.root == nil {
+		return nil, 0, 0, ErrInvalid
+	}
+	return e.cell.CoordinateRootWithWork(ctx, e.Root(), axis, o)
+}
+
 // CompareModelPoint proves equality or separation of two original algebraic
 // event images, independently of their parameterizations and root brackets.
 // Coordinate images must satisfy the bounded CoordinateRoot domain.
@@ -80,25 +89,27 @@ func (e *ExactComposedPlaneEvent) CompareModelPoint(ctx context.Context, other *
 		return false, 0, err
 	}
 	for axis := 0; axis < 3; axis++ {
-		if o.MaxOperations < 1 {
+		if o.MaxOperations < 1 || o.MaxSubdivisions < 1 {
 			return false, operations, ErrConvergence
 		}
-		a, n, err := e.CoordinateRoot(ctx, axis, o)
+		a, n, steps, err := e.CoordinateRootWithWork(ctx, axis, o)
 		operations += n
 		o.MaxOperations -= n
+		o.MaxSubdivisions -= steps
 		if err != nil {
 			return false, operations, err
 		}
-		if o.MaxOperations < 1 {
+		if o.MaxOperations < 1 || o.MaxSubdivisions < 1 {
 			return false, operations, ErrConvergence
 		}
-		b, n, err := other.CoordinateRoot(ctx, axis, o)
+		b, n, steps, err := other.CoordinateRootWithWork(ctx, axis, o)
 		operations += n
 		o.MaxOperations -= n
+		o.MaxSubdivisions -= steps
 		if err != nil {
 			return false, operations, err
 		}
-		if o.MaxOperations < 1 {
+		if o.MaxOperations < 1 || o.MaxSubdivisions < 1 {
 			return false, operations, ErrConvergence
 		}
 		q, err := a.Compare(ctx, b, o)

@@ -91,9 +91,12 @@ func TestComposedCoordinateRootQuarticConjugateBinding(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	rationalImage, _, e := fraction.CoordinateRoot(ctx, root, 0, ExactCurvePlaneEventOptions{})
+	rationalImage, work, subdivisions, e := fraction.CoordinateRootWithWork(ctx, root, 0, ExactCurvePlaneEventOptions{})
 	if e != nil {
 		t.Fatal(e)
+	}
+	if work == 0 || subdivisions == 0 {
+		t.Fatal("quartic image isolation must report consumed arithmetic and subdivisions", work, subdivisions)
 	}
 	// x=t/(1+t): 2x^4=(1-x)^4. Other conjugate images must not be selected.
 	expectedImage, e := ImportExactRoot(ctx, ExactRootRecipe{Version: 1, Coefficients: []string{"-1", "4", "-6", "4", "1"}, Lower: "2/5", Upper: "1/2"}, ExactRootCodecOptions{})
@@ -103,6 +106,23 @@ func TestComposedCoordinateRootQuarticConjugateBinding(t *testing.T) {
 	order, e = rationalImage.Compare(ctx, expectedImage, ExactCurvePlaneEventOptions{})
 	if e != nil || !order.Proven || order.Order != 0 {
 		t.Fatal(order, e)
+	}
+	// Use a wide, still single-root isolator and a rational coordinate
+	// with a denominator zero at the isolator's lower rational bound.
+	// Image selection then needs several subdivisions.
+	wide, e := ImportExactRoot(ctx, ExactRootRecipe{Version: 1, Coefficients: []string{"-1/2", "0", "0", "0", "1"}, Lower: "0", Upper: "1"}, ExactRootCodecOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	nearPole := *fraction
+	nearPole.power[0] = rationalPolynomial{big.NewRat(1, 1)}
+	nearPole.power[3] = rationalPolynomial{big.NewRat(-4, 5), big.NewRat(1, 1)}
+	frame, w, s, e := nearPole.CoordinateRootWithWork(ctx, wide, 0, ExactCurvePlaneEventOptions{})
+	if e != nil || frame == nil || w == 0 || s < 2 {
+		t.Fatal("expected genuine subdivision during characteristic image selection", frame, w, s, e)
+	}
+	if incomplete, _, _, err := nearPole.CoordinateRootWithWork(ctx, wide, 0, ExactCurvePlaneEventOptions{MaxSubdivisions: s - 1}); !errors.Is(err, ErrConvergence) || incomplete != nil {
+		t.Fatal("an exhausted subdivision budget cannot publish an image", incomplete, err)
 	}
 	limited, _, e := fraction.CoordinateRoot(ctx, root, 0, ExactCurvePlaneEventOptions{MaxOperations: 20})
 	if !errors.Is(e, ErrConvergence) || limited != nil {

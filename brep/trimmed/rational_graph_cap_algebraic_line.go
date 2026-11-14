@@ -144,11 +144,11 @@ func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin
 					!endpoint && !touch && (!p.Crossing || !p.Transverse) {
 					return zero, geom.ErrConvergence
 				}
-				a, used, e := candidate.CoordinateRoot(ctx, axis, b.limits())
+				a, used, steps, e := candidate.CoordinateRootWithWork(ctx, axis, b.limits())
 				if e != nil {
 					return zero, e
 				}
-				if e := b.charge(used, 0); e != nil {
+				if e := b.charge(used, steps); e != nil {
 					return zero, e
 				}
 				a, e = b.mapRoot(a, offset, scale)

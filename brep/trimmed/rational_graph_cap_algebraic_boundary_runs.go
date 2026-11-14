@@ -98,11 +98,11 @@ func (c AlgebraicGraphCapClip) IntersectRationalBoundaryRuns(ctx context.Context
 				return zero, geom.ErrConvergence
 			}
 			image := func(ev *geom.ExactComposedPlaneEvent) (*geom.ExactAlgebraicRoot, error) {
-				root, work, e := ev.CoordinateRoot(ctx, axis, b.limits())
+				root, work, steps, e := ev.CoordinateRootWithWork(ctx, axis, b.limits())
 				if e != nil {
 					return nil, e
 				}
-				if e = b.charge(work, 0); e != nil {
+				if e = b.charge(work, steps); e != nil {
 					return nil, e
 				}
 				return b.mapRoot(root, offset, scale)

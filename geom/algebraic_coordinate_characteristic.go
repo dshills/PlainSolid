@@ -154,52 +154,51 @@ func rationalCoordinateCharacteristic(p, numerator, denominator rationalPolynomi
 	return result, e
 }
 
-func coordinateRootCharacteristic(ctx context.Context, source *ExactGraphLineRoot, p, n, w rationalPolynomial, b *polynomialBudget, maxSubdivisions int) (*ExactGraphLineRoot, error) {
+func coordinateRootCharacteristic(ctx context.Context, source *ExactGraphLineRoot, p, n, w rationalPolynomial, b *polynomialBudget, maxSubdivisions int) (root *ExactGraphLineRoot, steps int, err error) {
 	characteristic, e := rationalCoordinateCharacteristic(p, n, w, b)
 	if e != nil {
-		return nil, e
+		return nil, steps, e
 	}
 	bounds := [2]*big.Rat{new(big.Rat).Set(source.bounds[0]), new(big.Rat).Set(source.bounds[1])}
-	steps := 0
 	for {
 		if e := ctx.Err(); e != nil {
-			return nil, e
+			return nil, steps, e
 		}
 		if steps >= maxSubdivisions {
-			return nil, ErrConvergence
+			return nil, steps, ErrConvergence
 		}
 		interval := exactInterval{lo: bounds[0], hi: bounds[1]}
 		denominator, e := polynomialInterval(w, interval, b)
 		if e != nil {
-			return nil, e
+			return nil, steps, e
 		}
 		if denominator.lo.Sign() > 0 || denominator.hi.Sign() < 0 {
 			numerator, e := polynomialInterval(n, interval, b)
 			if e != nil {
-				return nil, e
+				return nil, steps, e
 			}
 			image, e := intervalDivide(numerator, denominator, b)
 			if e != nil {
-				return nil, e
+				return nil, steps, e
 			}
 			count := 0
 			used, e := isolatePolynomialRoots(characteristic, image.lo, image.hi, b, maxSubdivisions-steps, func(_, _ *big.Rat, _ int) (bool, error) { count++; return true, ctx.Err() })
 			steps += used
 			if e != nil {
-				return nil, e
+				return nil, steps, e
 			}
 			if count == 1 {
-				return &ExactGraphLineRoot{polynomial: characteristic, bounds: [2]*big.Rat{image.lo, image.hi}}, nil
+				return &ExactGraphLineRoot{polynomial: characteristic, bounds: [2]*big.Rat{image.lo, image.hi}}, steps, nil
 			}
 			if count == 0 {
-				return nil, ErrConvergence
+				return nil, steps, ErrConvergence
 			} // contradicts exact image identity
 		}
 		if bounds[0].Cmp(bounds[1]) == 0 {
-			return nil, ErrConvergence
+			return nil, steps, ErrConvergence
 		}
 		if steps >= maxSubdivisions {
-			return nil, ErrConvergence
+			return nil, steps, ErrConvergence
 		}
 		target := new(big.Rat).Quo(new(big.Rat).Sub(bounds[1], bounds[0]), big.NewRat(2, 1))
 		var next [2]*big.Rat
@@ -212,10 +211,10 @@ func coordinateRootCharacteristic(ctx context.Context, source *ExactGraphLineRoo
 		})
 		steps += used
 		if e != nil {
-			return nil, e
+			return nil, steps, e
 		}
 		if next[0] == nil {
-			return nil, ErrConvergence
+			return nil, steps, ErrConvergence
 		}
 		bounds = next
 	}
