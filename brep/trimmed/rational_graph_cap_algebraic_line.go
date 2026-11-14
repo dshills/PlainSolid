@@ -8,16 +8,19 @@ import (
 	"plainsolid/geom"
 )
 
-// AlgebraicGraphCapLineContact binds an exact parameter on origin+t*direction
+// AlgebraicGraphCapLineContact binds an exact event on origin+t*direction
 // to the retained cap wire and use, including its exact curve parameter.
 type AlgebraicGraphCapLineContact struct {
 	Parameter, CurveParameter *geom.ExactAlgebraicRoot
 	Wire, Use                 int
 	Entry                     bool
+	Touch                     bool // tangency with no change in material
 }
 
-// AlgebraicGraphCapLine reports the ordered transverse events and clipped
-// material intervals within the requested finite line range. Endpoints are
+// AlgebraicGraphCapLine reports the ordered boundary events and clipped
+// material intervals within the requested finite line range. Isolated
+// touches of an otherwise exterior line are contacts, not material spans.
+// Endpoints are
 // immutable exact roots, including station endpoints when already inside.
 type AlgebraicGraphCapLine struct {
 	Contacts                      []AlgebraicGraphCapLineContact
@@ -31,6 +34,19 @@ type AlgebraicGraphCapLine struct {
 // tangencies, and coincident runs. Direction is not normalized.
 func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
+	return c.intersectRationalLine(ctx, origin, direction, extent, options, false)
+}
+
+// IntersectRationalLineWithTouches additionally reports regular isolated
+// even-order tangencies without toggling interior. Coincidence, trim
+// vertices and higher odd-order crossings remain outside this method.
+func (c AlgebraicGraphCapClip) IntersectRationalLineWithTouches(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapLine, error) {
+	return c.intersectRationalLine(ctx, origin, direction, extent, options, true)
+}
+
+func (c AlgebraicGraphCapClip) intersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	options geom.ExactCurvePlaneEventOptions, includeTouches bool) (AlgebraicGraphCapLine, error) {
 	var zero AlgebraicGraphCapLine
 	if ctx == nil || c.regions == nil || options.MaxOperations < 0 || options.MaxCoefficientBits < 0 || options.MaxSubdivisions < 0 {
 		return zero, geom.ErrInvalid
@@ -103,7 +119,8 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 				if e := b.charge(p.Operations, p.Subdivisions); e != nil {
 					return zero, e
 				}
-				if !p.Proven || !p.Crossing || !p.Transverse || p.EndpointMask != 0 {
+				touch := includeTouches && p.Tangent && p.Touching
+				if !p.Proven || p.EndpointMask != 0 || (!touch && (!p.Crossing || !p.Transverse)) {
 					return zero, geom.ErrConvergence
 				}
 				a, used, e := candidate.CoordinateRoot(ctx, axis, b.limits())
@@ -120,7 +137,7 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 				// Material is on the left of an oriented wire. A wire
 				// crossing the line from left to right therefore enters.
 				entry := (p.SideSigns[0] > 0) != u.Reversed
-				events = append(events, AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, Entry: entry})
+				events = append(events, AlgebraicGraphCapLineContact{Parameter: a, CurveParameter: candidate.Root(), Wire: wi, Use: ui, Entry: !touch && entry, Touch: touch})
 			}
 		}
 	}
@@ -155,9 +172,6 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 			events[j-1], events[j] = events[j], events[j-1]
 		}
 	}
-	if len(events)%2 != 0 {
-		return zero, geom.ErrConvergence
-	}
 	var limits [2]*geom.ExactAlgebraicRoot
 	for i, z := range extent {
 		a, used, e := geom.NewExactRationalRoot(ctx, z, b.limits())
@@ -170,30 +184,42 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 		limits[i] = a
 	}
 	var out AlgebraicGraphCapLine
-	for i := 0; i < len(events); i += 2 {
-		a, z := events[i], events[i+1]
-		if !a.Entry || z.Entry {
+	var start *geom.ExactAlgebraicRoot
+	for _, ev := range events {
+		lo, e := cmp(limits[0], ev.Parameter)
+		if e != nil {
+			return zero, e
+		}
+		hi, e := cmp(ev.Parameter, limits[1])
+		if e != nil {
+			return zero, e
+		}
+		if lo <= 0 && hi <= 0 {
+			out.Contacts = append(out.Contacts, ev)
+		}
+		if ev.Touch {
+			continue
+		}
+		if ev.Entry {
+			if start != nil {
+				return zero, geom.ErrConvergence
+			}
+			start = ev.Parameter
+			continue
+		}
+		if start == nil {
 			return zero, geom.ErrConvergence
 		}
-		span := [2]*geom.ExactAlgebraicRoot{a.Parameter, z.Parameter}
-		for k, event := range [2]AlgebraicGraphCapLineContact{a, z} {
-			lo, e := cmp(limits[0], event.Parameter)
-			if e != nil {
-				return zero, e
-			}
-			hi, e := cmp(event.Parameter, limits[1])
-			if e != nil {
-				return zero, e
-			}
-			if lo <= 0 && hi <= 0 {
-				out.Contacts = append(out.Contacts, event)
-			}
-			if k == 0 && lo > 0 {
-				span[0] = limits[0]
-			}
-			if k == 1 && hi > 0 {
-				span[1] = limits[1]
-			}
+		span := [2]*geom.ExactAlgebraicRoot{start, ev.Parameter}
+		before, e := cmp(span[0], limits[0])
+		if e != nil {
+			return zero, e
+		}
+		if before < 0 {
+			span[0] = limits[0]
+		}
+		if hi > 0 {
+			span[1] = limits[1]
 		}
 		ordered, e := cmp(span[0], span[1])
 		if e != nil {
@@ -202,6 +228,10 @@ func (c AlgebraicGraphCapClip) IntersectRationalLine(ctx context.Context, origin
 		if ordered <= 0 {
 			out.Material = append(out.Material, span)
 		}
+		start = nil
+	}
+	if start != nil {
+		return zero, geom.ErrConvergence
 	}
 	out.ExactOperations, out.Subdivisions = options.MaxOperations-b.work, options.MaxSubdivisions-b.subdiv
 	if e := ctx.Err(); e != nil {

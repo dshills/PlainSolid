@@ -9,13 +9,15 @@ import (
 	"plainsolid/geom"
 )
 
-// AlgebraicGraphVerticalLineContact is an exact transverse event. One owner
+// AlgebraicGraphVerticalLineContact is an exact wall or cap event. One owner
 // is present: Cap indexes the original cap role or StockFace the original
 // vertical stock support. The fields are -1 when absent.
 type AlgebraicGraphVerticalLineContact struct {
 	Parameter      *geom.ExactAlgebraicRoot
 	Cap, StockFace int
 	Entry          bool
+	// Touch is true for an isolated tangency without a transition.
+	Touch bool
 }
 
 type AlgebraicGraphVerticalLine struct {
@@ -32,6 +34,18 @@ type AlgebraicGraphVerticalLine struct {
 // Tangencies, vertices and coincident intervals remain unsupported.
 func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
+	return m.intersectRationalLine(ctx, origin, direction, extent, opts, false)
+}
+
+// IntersectRationalLineWithTouches additionally retains regular isolated
+// wall tangencies. These leave both open material sides unchanged.
+func (m AlgebraicGraphVerticalMaterial) IntersectRationalLineWithTouches(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
+	return m.intersectRationalLine(ctx, origin, direction, extent, opts, true)
+}
+
+func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	opts geom.ExactCurvePlaneEventOptions, includeTouches bool) (AlgebraicGraphVerticalLine, error) {
 	var zero AlgebraicGraphVerticalLine
 	if ctx == nil || m.caps[0].recipe == nil || opts.MaxOperations < 0 || opts.MaxCoefficientBits < 0 || opts.MaxSubdivisions < 0 {
 		return zero, geom.ErrInvalid
@@ -114,7 +128,7 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		if e != nil {
 			return zero, e
 		}
-		events = append(events, AlgebraicGraphVerticalLineContact{h, i, -1, slope.Sign()*plane.orientation < 0})
+		events = append(events, AlgebraicGraphVerticalLineContact{Parameter: h, Cap: i, StockFace: -1, Entry: slope.Sign()*plane.orientation < 0})
 	}
 	if direction[0].Sign() != 0 || direction[1].Sign() != 0 {
 		cap := m.caps[m.lower]
@@ -138,8 +152,14 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		for _, w := range cap.regions.wires {
 			for _, e := range w {
 				for _, h := range e.control {
+					if e := b.charge(4, 0); e != nil {
+						return zero, e
+					}
 					x := new(big.Rat).Quo(h[k], h[2])
 					t := new(big.Rat).Quo(new(big.Rat).Sub(x, a[axis]), d[axis])
+					if max(t.Num().BitLen(), t.Denom().BitLen()) > b.bits {
+						return zero, geom.ErrConvergence
+					}
 					if lo == nil || t.Cmp(lo) < 0 {
 						lo = t
 					}
@@ -152,7 +172,7 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		if lo == nil || hi == nil {
 			return zero, geom.ErrConvergence
 		}
-		h, e := cap.IntersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits())
+		h, e := cap.intersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits(), includeTouches)
 		if e != nil {
 			return zero, e
 		}
@@ -178,7 +198,7 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 			if signs[0] == 0 || signs[1] == 0 || u.Seam >= 0 || u.Source.Face < 0 {
 				return zero, geom.ErrConvergence
 			}
-			events = append(events, AlgebraicGraphVerticalLineContact{hit.Parameter, -1, u.Source.Face, hit.Entry})
+			events = append(events, AlgebraicGraphVerticalLineContact{Parameter: hit.Parameter, Cap: -1, StockFace: u.Source.Face, Entry: hit.Entry, Touch: hit.Touch})
 		}
 	}
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {
@@ -221,33 +241,42 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		limit[i] = a
 	}
 	var out AlgebraicGraphVerticalLine
-	if len(events)%2 != 0 {
-		return zero, geom.ErrConvergence
-	}
-	for i := 0; i < len(events); i += 2 {
-		row := [2]AlgebraicGraphVerticalLineContact{events[i], events[i+1]}
-		if !row[0].Entry || row[1].Entry {
+	var start *geom.ExactAlgebraicRoot
+	for _, event := range events {
+		lo, e := cmp(limit[0], event.Parameter)
+		if e != nil {
+			return zero, e
+		}
+		hi, e := cmp(event.Parameter, limit[1])
+		if e != nil {
+			return zero, e
+		}
+		if lo <= 0 && hi <= 0 {
+			out.Contacts = append(out.Contacts, event)
+		}
+		if event.Touch {
+			continue
+		}
+		if event.Entry {
+			if start != nil {
+				return zero, geom.ErrConvergence
+			}
+			start = event.Parameter
+			continue
+		}
+		if start == nil {
 			return zero, geom.ErrConvergence
 		}
-		span := [2]*geom.ExactAlgebraicRoot{row[0].Parameter, row[1].Parameter}
-		for side, hit := range row {
-			lo, e := cmp(limit[0], hit.Parameter)
-			if e != nil {
-				return zero, e
-			}
-			hi, e := cmp(hit.Parameter, limit[1])
-			if e != nil {
-				return zero, e
-			}
-			if lo <= 0 && hi <= 0 {
-				out.Contacts = append(out.Contacts, hit)
-			}
-			if side == 0 && lo > 0 {
-				span[0] = limit[0]
-			}
-			if side == 1 && hi > 0 {
-				span[1] = limit[1]
-			}
+		span := [2]*geom.ExactAlgebraicRoot{start, event.Parameter}
+		before, e := cmp(span[0], limit[0])
+		if e != nil {
+			return zero, e
+		}
+		if before < 0 {
+			span[0] = limit[0]
+		}
+		if hi > 0 {
+			span[1] = limit[1]
 		}
 		order, e := cmp(span[0], span[1])
 		if e != nil {
@@ -256,6 +285,10 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		if order <= 0 {
 			out.Material = append(out.Material, span)
 		}
+		start = nil
+	}
+	if start != nil {
+		return zero, geom.ErrConvergence
 	}
 	out.ExactOperations, out.Subdivisions = opts.MaxOperations-b.work, opts.MaxSubdivisions-b.subdiv
 	if e := ctx.Err(); e != nil {

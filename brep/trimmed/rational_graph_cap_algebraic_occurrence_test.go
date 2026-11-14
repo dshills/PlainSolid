@@ -108,6 +108,23 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 	if e != nil || !same.Proven || same.Order != 0 {
 		t.Fatal("world line changed its exact algebraic parameter", same, e)
 	}
+	touchOrigin, e := pose.TransformPoint(ctx, [3]*big.Rat{q(0, 1), q(79, 128), q(1025, 2048)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	touchDirection, e := pose.TransformVector(ctx, [3]*big.Rat{q(1, 1), q(7, 16), q(0, 1)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	touch, e := w.IntersectLineRationalWithTouches(ctx, touchOrigin, touchDirection, [2]*big.Rat{q(-1, 1), q(4, 1)}, root)
+	if e != nil || len(touch.Contacts) != 3 || len(touch.Material) != 1 || !touch.Contacts[1].Touch ||
+		touch.Contacts[1].StockFace < 0 {
+		t.Fatal("world tangent and native wall owner", touch, e)
+	}
+	at, e := touch.Contacts[1].Parameter.SignPolynomial(ctx, []*big.Rat{q(-7, 4), q(1, 1)}, root)
+	if e != nil || at.Sign != 0 {
+		t.Fatal("proper pose changed exact tangency station", at, e)
+	}
 	options := AlgebraicGraphStockFillOptions{Deflection: .12}
 	options.Boundary.Section = selection
 	options.Boundary.Display.Deflection = .003
