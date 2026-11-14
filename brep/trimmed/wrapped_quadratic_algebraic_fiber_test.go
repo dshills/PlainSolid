@@ -2,10 +2,12 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
+	"testing"
+
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
-	"testing"
 )
 
 func algebraicFiberFace(t *testing.T) *WrappedQuadraticFace {
@@ -160,5 +162,46 @@ func TestWrappedAlgebraicVerticalFiberHoleAndTouch(t *testing.T) {
 	q, e := original.ClassifyAlgebraicVerticalFiber(ctx, geom.Vec3{X: 15.0 / 8, Y: -7.0 / 8}, geom.Vec3{Z: 1}, big.NewRat(-1, 4), limits, AlgebraicVerticalFiberOptions{})
 	if e == nil || q.Complete || len(q.Events) != 0 {
 		t.Fatal("coincidence admitted", q, e)
+	}
+}
+
+func TestWrappedAlgebraicVerticalFiberRationalModel(t *testing.T) {
+	ctx := context.Background()
+	face := algebraicFiberFace(t)
+	// On the first support span x=2−2u², y=4u−2u². The outer
+	// curve has u=5/16−3v²/16, so u=1/5 meets v²=3/5.
+	x, y := big.NewRat(48, 25), big.NewRat(18, 25)
+	origin := [3]*big.Rat{x, y, big.NewRat(1, 7)}
+	scale, u := big.NewRat(-5, 11), big.NewRat(21, 5)
+	limits := [2]*big.Rat{big.NewRat(-2, 1), big.NewRat(3, 1)}
+	r, e := face.ClassifyAlgebraicVerticalFiberRational(ctx, origin, scale, u, limits, AlgebraicVerticalFiberOptions{})
+	if e != nil || !r.Complete || len(r.Intervals) != 1 || r.PeriodShift.Cmp(big.NewInt(-1)) != 0 || r.FaceU.Cmp(big.NewRat(1, 5)) != 0 {
+		t.Fatal("original nonbinary model generator", r, e)
+	}
+	for i, index := range []int{r.Intervals[0].FirstEvent, r.Intervals[0].LastEvent} {
+		h := r.Events[index]
+		bounds := [2]string{"0", "1"}
+		if i == 1 {
+			bounds = [2]string{"-1", "0"}
+		}
+		v, e := geom.ImportExactRoot(ctx, geom.ExactRootRecipe{Version: 1, Coefficients: []string{"-3", "0", "5"}, Lower: bounds[0], Upper: bounds[1]}, geom.ExactRootCodecOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		want, _, e := v.AffineMap(ctx, big.NewRat(11, 35), big.NewRat(-11, 5), geom.ExactCurvePlaneEventOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		c, e := h.Parameter.Compare(ctx, want, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || !c.Proven || c.Order != 0 || h.Location != trimvalidate.Boundary || len(h.Sources) != 1 || h.Sources[0].Edge != 1 {
+			t.Fatal("original algebraic trim or signed line parameter lost", i, h, c, e)
+		}
+	}
+	x.Add(x, new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120)))
+	if bad, e := face.ClassifyAlgebraicVerticalFiberRational(ctx, origin, scale, u, limits, AlgebraicVerticalFiberOptions{}); !errors.Is(e, geom.ErrDomain) || bad.Complete || len(bad.Events) != 0 {
+		t.Fatal("rounded model XY would wrongly accept a separate generator", bad, e)
+	}
+	if r.Origin[0].Cmp(big.NewRat(48, 25)) != 0 {
+		t.Fatal("results must independently own their model coordinates")
 	}
 }

@@ -16,10 +16,11 @@ import (
 // poses outside ordinary State.Nodes. No rounded or identity stand-in transforms
 // are installed in an ordinary document. This is an immutable versioned envelope.
 type RationalMappedPlanarDocument struct {
-	model  step.RationalMappedPlanarMaterials
-	native []byte
-	source []byte
-	paths  [][2]step.MappedSourceStep
+	model     step.RationalMappedPlanarMaterials
+	native    []byte
+	source    []byte
+	paths     [][2]step.MappedSourceStep
+	deepPaths [][3]step.MappedSourceStep
 }
 
 // RationalWorldBounds contains independently owned exact extrema in model units.
@@ -139,7 +140,7 @@ func (d *RationalMappedPlanarDocument) ExactWorldBounds() (b RationalWorldBounds
 // vertex is represented without rounding. It preserves original edge/face order.
 // Failure returns no partial material. Shared original local assets are unchanged.
 func (d *RationalMappedPlanarDocument) BakeOccurrence(itemID int64) (step.Body, error) {
-	if d == nil || len(d.paths) > 0 {
+	if d == nil || len(d.paths) > 0 || len(d.deepPaths) > 0 {
 		return step.Body{}, rationalMappedDocumentError()
 	}
 	for _, u := range d.model.Occurrences {
@@ -170,6 +171,13 @@ func (d *RationalMappedPlanarDocument) WriteSTEP(w io.Writer, l step.Limits) err
 	if d == nil || w == nil {
 		return rationalMappedDocumentError()
 	}
+	if len(d.deepPaths) > 0 {
+		a, e := step.ReadTwoLevelRationalMappedPlanarMaterials(bytes.NewReader(d.source), l)
+		if e != nil {
+			return e
+		}
+		return step.WriteTwoLevelRationalMappedPlanarSource(w, a.Source, l)
+	}
 	if len(d.paths) > 0 {
 		a, e := step.ReadNestedRationalMappedPlanarMaterials(bytes.NewReader(d.source), l)
 		if e != nil {
@@ -194,6 +202,9 @@ func (d *RationalMappedPlanarDocument) Write(w io.Writer) error {
 	if len(d.paths) > 0 {
 		format = "plainsolid-nested-rational-mapped-planar"
 	}
+	if len(d.deepPaths) > 0 {
+		format = "plainsolid-two-level-rational-mapped-planar"
+	}
 	raw, e := json.Marshal(rationalMappedEnvelope{Format: format, Version: 1, Source: string(d.source), Local: d.native})
 	if e != nil {
 		return e
@@ -210,9 +221,9 @@ func (d *RationalMappedPlanarDocument) Write(w io.Writer) error {
 // both native assets and exact STEP evidence, and rejects stale geometry/metadata.
 // maxBytes must be positive; STEP limits independently bound source reconstruction.
 func ReadRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits) (*RationalMappedPlanarDocument, error) {
-	return readRationalMappedPlanarDocument(r, maxBytes, l, false)
+	return readRationalMappedPlanarDocument(r, maxBytes, l, 0)
 }
-func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits, nested bool) (*RationalMappedPlanarDocument, error) {
+func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits, levels int) (*RationalMappedPlanarDocument, error) {
 	if r == nil || maxBytes <= 0 || maxBytes > 1<<30 {
 		return nil, rationalMappedDocumentError()
 	}
@@ -234,8 +245,11 @@ func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits
 		return nil, rationalMappedDocumentError()
 	}
 	format := "plainsolid-rational-mapped-planar"
-	if nested {
+	if levels == 1 {
 		format = "plainsolid-nested-rational-mapped-planar"
+	}
+	if levels == 2 {
+		format = "plainsolid-two-level-rational-mapped-planar"
 	}
 	if env.Format != format || env.Version != 1 || len(env.Local) == 0 {
 		return nil, rationalMappedDocumentError()
@@ -245,8 +259,11 @@ func readRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits
 		return nil, e
 	}
 	read := ReadRationalMappedPlanarSTEP
-	if nested {
+	if levels == 1 {
 		read = ReadNestedRationalMappedPlanarSTEP
+	}
+	if levels == 2 {
+		read = ReadTwoLevelRationalMappedPlanarSTEP
 	}
 	fresh, e := read(bytes.NewReader([]byte(env.Source)), l)
 	if e != nil {

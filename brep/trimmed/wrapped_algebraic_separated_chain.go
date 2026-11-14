@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"math/big"
-	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
@@ -86,59 +85,13 @@ func (s *WrappedAlgebraicSeparatedChain) ExactOperations() int {
 // on the pair objects; only declared indexed mates are merged.
 // MaxOperations covers both full separator proofs and every exported edge use.
 func NewWrappedAlgebraicSeparatedChain(ctx context.Context, ab, bc *WrappedAlgebraicOpenShell, separators [2]WrappedCoordinateSeparator, o geom.SurfaceAffineCoordinateOptions) (*WrappedAlgebraicSeparatedChain, error) {
-	if ctx == nil || ab == nil || bc == nil || ab.sources[1] == nil || ab.sources[1] != bc.sources[0] || separators[0].Axis != separators[1].Axis {
-		return nil, geom.ErrInvalid
-	}
-	if o.MaxOperations == 0 {
-		o.MaxOperations = 64000000
-	}
-	if o.MaxCoefficientBits == 0 {
-		o.MaxCoefficientBits = 16384
-	}
-	if o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
-		return nil, geom.ErrInvalid
-	}
-	out := &WrappedAlgebraicSeparatedChain{}
-	for i, pair := range []*WrappedAlgebraicOpenShell{ab, bc} {
-		if out.operations >= o.MaxOperations {
-			return nil, geom.ErrConvergence
-		}
-		opts := o
-		opts.MaxOperations -= out.operations
-		p, e := CertifyWrappedAlgebraicSeparatedPair(ctx, pair, separators[i], opts)
-		if e != nil {
-			return nil, e
-		}
-		out.operations += p.ExactOperations()
-		out.adjacent[i] = p
-	}
-	first, last := out.adjacent[0], out.adjacent[1]
-	difference := new(big.Rat).Sub(last.separator.Level, first.separator.Level)
-	out.operations++
-	if out.operations > o.MaxOperations || difference.Num().BitLen() > o.MaxCoefficientBits || difference.Denom().BitLen() > o.MaxCoefficientBits {
-		return nil, geom.ErrConvergence
-	}
-	if first.sides[0] != last.sides[0] || difference.Sign() != -first.sides[0] {
-		return nil, geom.ErrConvergence
-	}
-	out.gap = new(big.Rat).Abs(difference)
-	a, _ := ab.pair.Owner(1)
-	b, _ := bc.pair.Owner(0)
-	for _, x := range a.Vertices {
-		for _, y := range b.Vertices {
-			if x == y {
-				return nil, geom.ErrDomain
-			}
-		}
-	}
-	if out.operations >= o.MaxOperations {
-		return nil, geom.ErrConvergence
-	}
-	graph, e := materializeWrappedPairChain(ctx, []*WrappedAlgebraicOpenShell{ab, bc}, nil, edgecheck.Options{MaxWork: o.MaxOperations - out.operations, MaxBits: o.MaxCoefficientBits, MaxIntervals: 8192})
+	result, e := NewWrappedAlgebraicSeparatedSeries(ctx, []*WrappedAlgebraicOpenShell{ab, bc}, separators[:], o)
 	if e != nil {
 		return nil, e
 	}
-	out.operations += graph.ExactOperations()
-	out.graph = graph
-	return out, nil
+	gap, e := result.NonadjacentGap(0, 2)
+	if e != nil {
+		return nil, e
+	}
+	return &WrappedAlgebraicSeparatedChain{adjacent: [2]*WrappedAlgebraicSeparatedPair{result.adjacent[0], result.adjacent[1]}, graph: result.graph, gap: gap, operations: result.operations}, nil
 }
