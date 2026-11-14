@@ -1267,3 +1267,24 @@ charts, degree admission, positive-weight proof and arithmetic limits are
 unchanged. This is an image-distance calculation, not a surface embedding or
 volume certificate. Higher nominal degree and complete nested-region display
 qualification remain separate work.
+
+### Selected original graph region display collections
+
+`AlgebraicTubeRegions.TessellateSelectedRegionsClosedCertified` accepts up to
+eight nonadjacent complete regions from one proved XY graph pair. One certified
+boundary network serves disks and annuli, including a disk nested inside a
+separate annulus hole. Exact represented display rings must reproduce the
+original containment forest; selected regions sharing a rim reject. Polygon,
+residual, triangle and collision limits are cumulative. Every component and the
+combined display must pass closed manifold and exact nonintersection checks.
+The output preserves source region/chart indices without coordinate welding.
+
+`AlgebraicShellBoolean.TessellateTubeRegionComponentsCertified` independently
+rebuilds source coverage/containment and binds selected regions to original
+native face orientations, edge parameters and indexed vertices. This adapter
+currently requires one complete model-XY graph pair with whole section loops.
+Its focused native qualification is a single original lens; the nested
+collection qualification uses an independently authored exact degree-six roof.
+The original nominal degree-eight triple-roof native mesh remains a separate
+unsupported degree gate. Image-distance bounds do not certify volume error or
+general source embedding; displayed and analytic volumes remain distinct.

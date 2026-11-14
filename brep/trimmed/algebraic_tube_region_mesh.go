@@ -55,6 +55,14 @@ func (r AlgebraicTubeRegions) TessellateRegionClosedCertified(ctx context.Contex
 	if e != nil {
 		return empty, e
 	}
+	return r.tessellateRegionFootprint(ctx, region, o, footprint, &work)
+}
+
+// Only an independently rederived original network/footprint reaches this
+// private helper. It never accepts a caller-supplied public display certificate.
+func (r AlgebraicTubeRegions) tessellateRegionFootprint(ctx context.Context, region int, o AlgebraicTubeRegionMeshOptions, footprint CertifiedAlgebraicTubeFootprint, work *multiSpanMeshWork) (CertifiedAlgebraicTubeRegionMesh, error) {
+	var empty CertifiedAlgebraicTubeRegionMesh
+	cellsBefore, piecesBefore, operationsBefore := work.cells, work.pieces, work.operations
 	fill := tubeRegionFillSeed{seed: CertifiedAffineQuadraticTrimMesh{Region: AffineQuadraticTrimRegionArea{FillSquaredDistance: new(big.Rat)}, Mesh: mesh.Mesh{Triangles: footprint.Mesh.Triangles}, BoundaryLoops: footprint.BoundaryLoops}, squared: footprint.SourceFillSquaredDistance, predicates: footprint.Predicates}
 	for i, p := range footprint.Mesh.Vertices {
 		fill.seed.ExactUV = append(fill.seed.ExactUV, [2]*big.Rat{ratInset(p.X), ratInset(p.Y)})
@@ -64,11 +72,11 @@ func (r AlgebraicTubeRegions) TessellateRegionClosedCertified(ctx context.Contex
 	view := AlgebraicTubeLens{section: r.section, faces: r.partitions[x.Outer].Faces, graphs: r.graphs, upper: x.UpperChart, branch: r.loops[x.Outer].Branch}
 	options := o.Surface.Closed
 	options.Boundary = o.Footprint.Boundary.Loop
-	shell, e := view.tessellateClosedTubeLens(ctx, options, &work, o.Surface.AffineCharts, nil, &fill)
+	shell, e := view.tessellateClosedTubeLens(ctx, options, work, o.Surface.AffineCharts, nil, &fill)
 	if e != nil {
 		return empty, e
 	}
-	result := CertifiedAlgebraicTubeRegionMesh{Footprint: footprint, Mesh: shell.Mesh, Region: region, OriginalChart: shell.OriginalFace, GlobalBoundaryVertices: map[int]int{}, FaceResidualSquared: shell.FaceResidualSquared, FaceRefinementPasses: shell.FaceRefinementPasses, SourceImageSquaredDistance: shell.SourceImageSquaredDistance, SignedDisplayVolume: shell.SignedDisplayVolume, Collision: shell.Collision, TriangleChecks: shell.TriangleChecks, Predicates: shell.Predicates, SpanCellChecks: work.cells, SpanPieceChecks: work.pieces, ResidualOperations: work.operations}
+	result := CertifiedAlgebraicTubeRegionMesh{Footprint: footprint, Mesh: shell.Mesh, Region: region, OriginalChart: shell.OriginalFace, GlobalBoundaryVertices: map[int]int{}, FaceResidualSquared: shell.FaceResidualSquared, FaceRefinementPasses: shell.FaceRefinementPasses, SourceImageSquaredDistance: shell.SourceImageSquaredDistance, SignedDisplayVolume: shell.SignedDisplayVolume, Collision: shell.Collision, TriangleChecks: shell.TriangleChecks, Predicates: shell.Predicates, SpanCellChecks: work.cells - cellsBefore, SpanPieceChecks: work.pieces - piecesBefore, ResidualOperations: work.operations - operationsBefore}
 	for seed, index := range shell.BoundaryVertices {
 		result.GlobalBoundaryVertices[footprint.GlobalBoundaryVertices[seed]] = index
 	}
