@@ -5675,7 +5675,11 @@ run used port 5753. Two original shop-drawing cases failed in document
 or fixture readiness and passed separate unchanged PlainSolid and OCCT
 controls. The full run remains failed; its source and WASM were checked
 against the recorded revisions and its backend probe passed. A clean
-original-port run is tracked separately.
+original-port [targeted rerun](evidence/plaincad-f87dd4f3-default-origin-controls-2026-11-14.json)
+passed both original constraint fixtures and all three drawing fixtures
+on the same WASM, with the pinned original Playwright configuration.
+The original assertions are preserved; only the declared provider label
+substitutions apply. The full run's four failures remain recorded.
 
 The projected Gram variant uses a complete common XZ footprint of two
 differently signed, scaled, and ordered charts. It verifies a nonbinary
