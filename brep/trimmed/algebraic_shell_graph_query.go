@@ -308,6 +308,12 @@ func (s AlgebraicShellBoolean) PrepareGraphMaterialQuery(ctx context.Context, o 
 // the point to float64. Query work is cumulative and separate from preparation.
 // Errors publish no classification, fiber, or partial ancestry.
 func (q *AlgebraicGraphMaterialQuery) LocateRational(ctx context.Context, point [3]*big.Rat, o geom.ExactCurvePlaneEventOptions) (out AlgebraicGraphMaterialPoint, err error) {
+	return q.locateRationalGraphMaterial(ctx, point, o, false)
+}
+
+// fiberOnly requests the closed residual fiber, independently of the supplied
+// residual point coordinate; its internal Location is not a point result.
+func (q *AlgebraicGraphMaterialQuery) locateRationalGraphMaterial(ctx context.Context, point [3]*big.Rat, o geom.ExactCurvePlaneEventOptions, fiberOnly bool) (out AlgebraicGraphMaterialPoint, err error) {
 	out.Faces = [2]int{-1, -1}
 	defer func() {
 		if err != nil {
@@ -370,7 +376,7 @@ func (q *AlgebraicGraphMaterialQuery) LocateRational(ctx context.Context, point 
 	z := [2]*big.Rat{h.SourcePoint[q.residual], h.TargetPoint[q.residual]}
 	selected := -1
 	if h.Sign == 0 {
-		if point[q.residual].Cmp(z[0]) != 0 {
+		if !fiberOnly && point[q.residual].Cmp(z[0]) != 0 {
 			out.Complete = true
 			return out, nil
 		}
@@ -477,6 +483,11 @@ func (q *AlgebraicGraphMaterialQuery) LocateRational(ctx context.Context, point 
 	out.Faces = r.faces
 	out.Lower = new(big.Rat).Set(z[r.upper^1])
 	out.Upper = new(big.Rat).Set(z[r.upper])
+	if fiberOnly {
+		out.BoundaryFaces = []int{r.faces[r.upper^1], r.faces[r.upper]}
+		out.Complete = true
+		return out, nil
+	}
 	low, high := point[q.residual].Cmp(out.Lower), point[q.residual].Cmp(out.Upper)
 	if low >= 0 && high <= 0 {
 		out.Location = parametric.Inside
