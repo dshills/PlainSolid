@@ -22,7 +22,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mode=="write"||mode=="write-closed"||mode=="write-tangent"||mode=="write-tangent-closed"){
+int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mode=="write"||mode=="write-closed"||mode=="write-tangent"||mode=="write-tangent-closed"||mode=="write-geometric-tangent"){
  bool closed=mode.find("closed")!=std::string::npos;bool tangent=mode.find("tangent")!=std::string::npos;std::ostringstream s;
  s<<"ISO-10303-21;HEADER;FILE_DESCRIPTION(('independent composite'),'2;1');FILE_NAME('','',(''),(''),'OCCT fixture','','');FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));ENDSEC;DATA;\n"
  "#1=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));\n"
@@ -44,6 +44,7 @@ int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mo
  "#34=PRODUCT('1','composite product','',(#32));#35=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE('','',#34,.NOT_KNOWN.);\n"
  "#36=PRODUCT_DEFINITION('design','',#35,#33);#37=PRODUCT_DEFINITION_SHAPE('','',#36);#38=SHAPE_DEFINITION_REPRESENTATION(#37,#26);ENDSEC;END-ISO-10303-21;\n";
  std::string source=s.str();if(tangent){auto replace=[&](const std::string&a,const std::string&b){std::size_t at=0;while((at=source.find(a,at))!=std::string::npos){source.replace(at,a.size(),b);at+=b.size();}};replace("(1.,0.,0.)","(1.5,0.,0.)");replace("(2.,0.,0.)","(2.5,0.,0.)");replace("(2.,1.,0.)","(2.5,1.,0.)");replace("#21=COMPOSITE_CURVE_SEGMENT(.CONTINUOUS.","#21=COMPOSITE_CURVE_SEGMENT(.CONT_SAME_GRADIENT.");}
+ if(mode=="write-geometric-tangent"){auto at=source.find("(1.,0.75,1.)");source.replace(at,std::string("(1.,0.75,1.)").size(),"(1.,0.5,1.)");}
  std::istringstream input(source);STEPControl_Reader reader;if(reader.ReadStream("independent composite",input)!=IFSelect_RetDone)return 3;STEPControl_Writer writer(reader.WS(),false);return writer.Write(argv[2])==IFSelect_RetDone?0:4;
  }
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone||reader.TransferRoots()!=1)return 5;auto shape=reader.OneShape();if(shape.IsNull()||!BRepCheck_Analyzer(shape).IsValid())return 6;

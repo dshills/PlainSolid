@@ -94,7 +94,7 @@ func validateCompositeCurve(c CompositeSplineCurve) error {
 func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 	return readCompositeCurves(r, l, nil)
 }
-func readCompositeCurves(r io.Reader, l Limits, tangents *[][]bool) (CompositeCurveModel, error) {
+func readCompositeCurves(r io.Reader, l Limits, tangents *[][]bool, geometric ...bool) (CompositeCurveModel, error) {
 	fail := func() (CompositeCurveModel, error) { return CompositeCurveModel{}, compositeFailure() }
 	l, e := l.defaults()
 	if e != nil {
@@ -369,7 +369,7 @@ func readCompositeCurves(r io.Reader, l Limits, tangents *[][]bool) (CompositeCu
 			return fail()
 		}
 		if tangents != nil {
-			if e = validateCompositeTangents(c, flags); e != nil {
+			if e = validateCompositeTangents(c, flags, geometric...); e != nil {
 				return fail()
 			}
 			allTangents = append(allTangents, flags)
@@ -390,7 +390,7 @@ func readCompositeCurves(r io.Reader, l Limits, tangents *[][]bool) (CompositeCu
 func WriteCompositeCurves(w io.Writer, m CompositeCurveModel) error {
 	return writeCompositeCurves(w, m, nil)
 }
-func writeCompositeCurves(w io.Writer, m CompositeCurveModel, tangents [][]bool) error {
+func writeCompositeCurves(w io.Writer, m CompositeCurveModel, tangents [][]bool, geometric ...bool) error {
 	if w == nil || len(m.Curves) < 1 || len(m.Curves) > 64 {
 		return compositeFailure()
 	}
@@ -423,7 +423,7 @@ func writeCompositeCurves(w io.Writer, m CompositeCurveModel, tangents [][]bool)
 	}
 	if tangents != nil {
 		for i, c := range m.Curves {
-			if e := validateCompositeTangents(c, tangents[i]); e != nil {
+			if e := validateCompositeTangents(c, tangents[i], geometric...); e != nil {
 				return e
 			}
 		}
@@ -524,7 +524,7 @@ func writeCompositeCurves(w io.Writer, m CompositeCurveModel, tangents [][]bool)
 	if tangents != nil {
 		ptr = &decoded
 	}
-	if _, e = readCompositeCurves(bytes.NewReader(raw), Limits{}, ptr); e != nil {
+	if _, e = readCompositeCurves(bytes.NewReader(raw), Limits{}, ptr, geometric...); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

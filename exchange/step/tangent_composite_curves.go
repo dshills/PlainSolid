@@ -79,7 +79,7 @@ func compositeEndpointDerivative(s CompositeSplineSegment, end bool) ([3]*big.Ra
 	}
 	return out, nil
 }
-func validateCompositeTangents(c CompositeSplineCurve, flags []bool) error {
+func validateCompositeTangents(c CompositeSplineCurve, flags []bool, geometric ...bool) error {
 	if e := validateCompositeCurve(c); e != nil {
 		return e
 	}
@@ -104,6 +104,12 @@ func validateCompositeTangents(c CompositeSplineCurve, flags []bool) error {
 		b, e := compositeEndpointDerivative(c.Segments[next], false)
 		if e != nil {
 			return e
+		}
+		if len(geometric) != 0 && geometric[0] {
+			if !positiveProportionalCompositeTangents(a, b) {
+				return compositeFailure()
+			}
+			continue
 		}
 		for j := range a {
 			if a[j].Cmp(b[j]) != 0 {

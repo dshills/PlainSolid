@@ -62,3 +62,7 @@ Qualified against OCCT revision `4dbfdcc448c0b3e565488afcd626c84483172db9`.
 Focused old/new codec, preflight and live transfer tests pass; the focused race
 suite, Go 1.23 compatibility run, STEP package vet and fixed 100-execution fuzz
 campaign also pass. These checks do not extend the explicitly bounded C1 subset.
+
+A separate [geometric tangent mode](GEOMETRIC_TANGENT_COMPOSITE_CURVES.md)
+accepts exact positive proportional derivatives with unequal parameter speeds.
+It does not change this API's equal-derivative requirement.
