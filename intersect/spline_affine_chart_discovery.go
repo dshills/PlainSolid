@@ -287,21 +287,7 @@ func discoverAffineChartPairTubes(ctx context.Context, a, b Patch, p geom.Surfac
 			return empty, geom.ErrConvergence
 		}
 		opts := geom.SurfacePairTubeOptions{FreeAxis: free, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}
-		proof, e := geom.CertifySurfacePairTube(cell[0], cell[1], opts)
-		remaining -= proof.Test.ExactOperations
-		if e != nil {
-			return empty, e
-		}
-		if !proof.ProvenBranch {
-			return empty, fmt.Errorf("affine chart discovery: unproved uniform slab: %w", ErrUnresolved)
-		}
-		// The immutable constructor repeats the same deterministic proof. Reserve
-		// and charge that work explicitly rather than trusting the public report.
-		if remaining < proof.Test.ExactOperations {
-			return empty, geom.ErrConvergence
-		}
-		opts.MaxOperations = remaining
-		tube, e := geom.NewVerifiedSurfaceTube(cell[0], cell[1], opts)
+		tube, proof, e := geom.NewVerifiedSurfaceTubeWithCertificate(cell[0], cell[1], opts)
 		remaining -= proof.Test.ExactOperations
 		if e != nil {
 			return empty, e

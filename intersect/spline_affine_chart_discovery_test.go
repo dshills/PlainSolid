@@ -137,3 +137,33 @@ func TestAutomaticAffineChartQuarterLattice(t *testing.T) {
 		}
 	}
 }
+
+func TestAffineChartSingleProofAccounting(t *testing.T) {
+	ctx := context.Background()
+	a, b := affineChartCurvedPair(t)
+	options := AffineChartDiscoveryOptions{Divisions: 32}
+	spent := 0
+	seeds, e := discoverAffineChartPairTubes(ctx, a, b, geom.SurfacePatchOptions{}, options, &spent)
+	if e != nil {
+		t.Fatal(e)
+	}
+	avoided := 0
+	for _, attempt := range seeds.Attempts {
+		avoided += attempt.Tube.Test.ExactOperations
+	}
+	if avoided <= 0 || spent <= avoided {
+		t.Fatal("missing charged identity/evaluation work", spent, avoided)
+	}
+	t.Logf("proposal arithmetic=%d, redundant uniform proof work avoided=%d", spent, avoided)
+	for _, limit := range []int{spent, spent - 1} {
+		options.MaxOperations = limit
+		got, e := DiscoverAffineChartPairTubes(ctx, a, b, geom.SurfacePatchOptions{}, options)
+		if limit == spent {
+			if e != nil || len(got.Attempts) != len(seeds.Attempts) {
+				t.Fatal(limit, e)
+			}
+		} else if e == nil || len(got.Attempts) != 0 {
+			t.Fatal("partial seeds on work exhaustion")
+		}
+	}
+}

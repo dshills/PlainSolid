@@ -50,14 +50,8 @@ type VerifiedSurfaceTube struct {
 
 // NewVerifiedSurfaceTube proves a regular uniform branch in the two boxes.
 func NewVerifiedSurfaceTube(a, b *SurfacePatch, o SurfacePairTubeOptions) (VerifiedSurfaceTube, error) {
-	r, e := CertifySurfacePairTube(a, b, o)
-	if e != nil {
-		return VerifiedSurfaceTube{}, e
-	}
-	if !r.ProvenBranch {
-		return VerifiedSurfaceTube{}, ErrConvergence
-	}
-	return VerifiedSurfaceTube{a: a, b: b, axis: o.FreeAxis, tangentSign: r.FreeTangentSign}, nil
+	tube, _, e := NewVerifiedSurfaceTubeWithCertificate(a, b, o)
+	return tube, e
 }
 
 // FreeTangentSign is the certified canonical tangent sign in the tube's
