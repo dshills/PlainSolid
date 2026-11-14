@@ -2,10 +2,13 @@ package trimmed
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"plainsolid/geom"
 )
+
+var errMixedRoofPiecewise = fmt.Errorf("distinct homogeneous roof spans: %w", geom.ErrUnrepresentable)
 
 // Recover one global homogeneous polynomial from an exactly knot-refined
 // tensor patch. Each independent span is pulled back to whole-chart units
@@ -65,7 +68,7 @@ func mixedRoofWholePower(ctx context.Context, p *geom.SurfacePatch, d geom.Param
 				for j, c := range row {
 					for axis, x := range c {
 						if x.Cmp(first[i][j][axis]) != 0 {
-							return nil, nil, w.operations, geom.ErrUnrepresentable
+							return nil, nil, w.operations, errMixedRoofPiecewise
 						}
 					}
 				}
@@ -73,6 +76,47 @@ func mixedRoofWholePower(ctx context.Context, p *geom.SurfacePatch, d geom.Param
 		}
 	}
 	return first, minimum, w.operations, nil
+}
+
+func mixedRoofSpans(ctx context.Context, p *geom.SurfacePatch, limit int) ([]*mixedRoofBox, int, error) {
+	u, v := p.KnotBreaks()
+	var spans []*mixedRoofBox
+	work := 0
+	for a := 1; a < len(u); a++ {
+		for b := 1; b < len(v); b++ {
+			if err := ctx.Err(); err != nil {
+				return nil, work, err
+			}
+			if work >= limit {
+				return nil, work, geom.ErrConvergence
+			}
+			d := geom.ParameterRectangle{UMin: u[a-1], UMax: u[a], VMin: v[b-1], VMax: v[b]}
+			cell, n, err := p.TrimWithWorkLimit(d, limit-work)
+			work += n
+			if err != nil {
+				return nil, work, err
+			}
+			if work >= limit {
+				return nil, work, geom.ErrConvergence
+			}
+			coeff, w, n, ok := cell.RationalBezierCoefficientsWithWork(mixedRoofMaxDegree, limit-work)
+			work += n
+			if !ok {
+				if work >= limit {
+					return nil, work, geom.ErrConvergence
+				}
+				return nil, work, geom.ErrUnrepresentable
+			}
+			span := &mixedRoofBox{domain: d, roof: cell}
+			err = span.setRoofPower(coeff, w, limit-work)
+			work += span.operations
+			if err != nil {
+				return nil, work, err
+			}
+			spans = append(spans, span)
+		}
+	}
+	return spans, work, nil
 }
 
 func mixedRoofGlobalPower(poly [][][4]*big.Rat, local, whole geom.ParameterRectangle, w *mixedRoofLineWork) ([][][4]*big.Rat, error) {

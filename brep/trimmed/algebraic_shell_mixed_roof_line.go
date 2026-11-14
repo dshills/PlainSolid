@@ -106,6 +106,9 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		}
 		out[2*i][1].Set(direction[i])
 		out[2*i+1][1].Neg(direction[i])
+		if b.linePower == nil {
+			continue
+		}
 		width, err := w.rat(new(big.Rat).Sub(ratInset(hi[i]), ratInset(lo[i])))
 		if err != nil {
 			return out, err
@@ -146,6 +149,9 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		return out, err
 	}
 	out[4][1].Set(direction[2])
+	if b.linePower == nil {
+		return out, nil // genuine pieces supply their roof events separately
+	}
 	if b.minWeight == nil {
 		out[5][0].Neg(origin[2])
 		out[5][1].Neg(direction[2])
@@ -199,6 +205,8 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 type mixedRoofCrossing struct {
 	source    int
 	direction int // Sign immediately after the root.
+	at        int // Sign at the station (usually zero).
+	event     bool
 }
 
 type mixedRoofLineStation struct {
@@ -241,8 +249,9 @@ func (w *mixedRoofLineWork) compare(ctx context.Context, a, b *geom.ExactAlgebra
 // IntersectLineRational sweeps the exact finite line origin+direction*t through
 // the two original graph boxes. It composes six inward inequalities per box
 // directly with the rational line and isolates the complete degree <=8
-// station ledger. Coincident individual support polynomials are retained
-// as side, floor, or roof spans; no root is selected by a float tolerance.
+// station ledger. Genuine spline spans are selected by exact knot cuts and
+// retain the original support on both sides. Coincident support polynomials
+// give boundary spans; no root is selected by a float tolerance.
 func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o MixedRoofLineOptions) (MixedRoofLineSection, error) {
 	var zero MixedRoofLineSection
 	var err error
@@ -317,8 +326,16 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 				if r.Multiplicity%2 != 0 {
 					after = -after
 				}
-				stations = append(stations, mixedRoofLineStation{root: r.Root, where: []mixedRoofCrossing{{s, after}}})
+				stations = append(stations, mixedRoofLineStation{root: r.Root, where: []mixedRoofCrossing{{source: s, direction: after, event: true}}})
 			}
+		}
+		if len(b.roofSpans) != 0 {
+			left, extra, err := b.piecewiseRoofStations(ctx, operand*6+5, origin, direction, minT, maxT, &w)
+			if err != nil {
+				return zero, err
+			}
+			signs[operand*6+5] = left
+			stations = append(stations, extra...)
 		}
 	}
 	// Each operand contributes five affine polynomials and one bounded
@@ -406,7 +423,7 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 		}
 		at := signs
 		for _, hit := range s.where {
-			at[hit.source] = 0
+			at[hit.source] = hit.at
 		}
 		point, err := classify(at)
 		if err != nil {
@@ -429,7 +446,7 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 		if point.loc == parametric.Boundary {
 			for _, hit := range s.where {
 				for _, owner := range point.owners {
-					event = event || owner == faces[hit.source]
+					event = event || hit.event && owner == faces[hit.source]
 				}
 			}
 		}
@@ -451,13 +468,17 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 // leftSign uses the leading nonzero Taylor coefficient at t. Differentiating
 // the local coefficient array preserves its exact sign.
 func (w *mixedRoofLineWork) leftSign(p mixedRoofLinePoly, degree int, t *big.Rat) (int, error) {
+	return w.sideSign(p, degree, t, true)
+}
+
+func (w *mixedRoofLineWork) sideSign(p mixedRoofLinePoly, degree int, t *big.Rat, left bool) (int, error) {
 	for order := 0; order <= degree; order++ {
 		s, err := w.value(p, t)
 		if err != nil {
 			return 0, err
 		}
 		if s != 0 {
-			if order%2 != 0 {
+			if left && order%2 != 0 {
 				s = -s
 			}
 			return s, nil

@@ -69,6 +69,16 @@ when a coordinate crosses zero. The crossing test checks volume, centroid and
 the full inertia tensor for each operation. The weighted Common checks exact
 local and placed tensors, and the weighted Cut checks live OCCT containment.
 
+The creased-roof fixture is genuinely piecewise: the original stock roof is
+`2+x` to the left of `x=1/2` and `3-x` to the right. An independently
+authored OCCT fuse joins two sloped source halves before cutting the same
+buried tool; no PlainSolid boundary is imported. The Go test retains the
+single original roof owner across both spans, distinguishes the isolated
+crease contact from an unchanged interior crossing, reports both one-sided
+normals, and encloses the independently verified volume `117/64`, centroid
+and full inertia tensor. Run it with `PLAINSOLID_OCCT_CREASED_ROOF` pointing
+at the executable built above.
+
 `BoundTrimmedGeometry` is a separate native enclosure query. It intersects
 the operation's operand box with the outward hull of all retained and
 unresolved source cells, using the same chart cover as the area and mass

@@ -242,6 +242,9 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 	out := MixedRoofVolume{VisitedCells: len(footprint)}
 	var activeAxis [2]bool
 	for _, b := range q.box {
+		if len(b.roofSpans) != 0 {
+			activeAxis = [2]bool{true, true}
+		}
 		for _, grid := range [][][]*big.Rat{b.linePower, b.weight} {
 			for a, row := range grid {
 				for c, value := range row {

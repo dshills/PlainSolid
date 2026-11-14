@@ -27,6 +27,12 @@ tighten under refinement and contain the independent OCCT mass properties.
 The same raw second moments transport through a proper rigid occurrence.
 Cell and arithmetic limits and cancellation return no partial tensor.
 
+The original creased roof-box cavity preserves a single original roof ID
+over two distinct spline spans. Exact line checks cover both directions,
+clips at the crease, and a coincident run; the crest exposes two one-sided
+normals. Separate OCCT stock halves and a buried cutter verify volume
+`117/64`, centroid, and all inertia entries against the native bounds.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall

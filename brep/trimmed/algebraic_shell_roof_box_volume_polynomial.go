@@ -16,7 +16,7 @@ func (q *MixedRoofMaterialQuery) exactPolynomialColumnAverage(chart [2]bool, uv 
 		return nil, nil
 	}
 	for i, c := range roof {
-		if c != 0 && q.box[i].weight != nil {
+		if c != 0 && (q.box[i].weight != nil || len(q.box[i].roofSpans) != 0) {
 			return nil, nil
 		}
 	}

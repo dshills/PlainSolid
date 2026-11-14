@@ -137,6 +137,33 @@ TopoDS_Solid weightedGraphStock(bool tool) {
   return solid;
 }
 
+TopoDS_Solid creasedHalf(bool right) {
+  const double x[2]={right?.5:0, right?1:.5};
+  const double z[2]={right?2.5:2, right?2:2.5};
+  BRepBuilderAPI_Sewing sew(1e-10);
+  auto add=[&](bool reverse,const std::function<gp_Pnt(int,int)>& point) {
+    NCollection_Array2<gp_Pnt> points(1,2,1,2);
+    for(int i=0;i<2;++i) for(int j=0;j<2;++j) points.SetValue(i+1,j+1,point(i,j));
+    occ::handle<Geom_BezierSurface> s=new Geom_BezierSurface(points);
+    auto f=BRepBuilderAPI_MakeFace(s,1e-10).Face();
+    if(reverse) f.Reverse();
+    sew.Add(f);
+  };
+  add(true,[&](int i,int j){return gp_Pnt(x[i],j,0);});
+  add(false,[&](int i,int j){return gp_Pnt(x[i],j,z[i]);});
+  for(int k:{0,1}) {
+    add(k==0,[&](int i,int j){return gp_Pnt(x[k],i,j*z[k]);});
+    add(k==1,[&](int i,int j){return gp_Pnt(x[i],k,j*z[i]);});
+  }
+  sew.Perform();
+  TopExp_Explorer shells(sew.SewedShape(),TopAbs_SHELL);
+  if(!shells.More()) throw std::runtime_error("missing roof half shell");
+  const auto solid=BRepBuilderAPI_MakeSolid(TopoDS::Shell(shells.Current())).Solid();
+  shells.Next();
+  if(shells.More() || !BRepCheck_Analyzer(solid).IsValid()) throw std::runtime_error("invalid roof half");
+  return solid;
+}
+
 void report(const std::string& name, const TopoDS_Shape& shape) {
   if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid())
     throw std::runtime_error("invalid " + name + " result");
@@ -264,6 +291,12 @@ int main(int argc, char** argv) {
       report("intersection", BRepAlgoAPI_Common(a,b).Shape());
       report("union", BRepAlgoAPI_Fuse(a,b).Shape());
       report("difference", BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="creased-mass") {
+      const auto a=BRepAlgoAPI_Fuse(creasedHalf(false),creasedHalf(true)).Shape();
+      const auto b=weightedGraphStock(true);
+      report("difference",BRepAlgoAPI_Cut(a,b).Shape());
       return 0;
     }
     const auto a=graphStock(false), b=graphStock(true);

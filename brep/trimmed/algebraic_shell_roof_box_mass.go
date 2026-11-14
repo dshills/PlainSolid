@@ -93,7 +93,7 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 		}
 		roof, base, proved := q.fixedColumnPrimitives(c.chart, h)
 		for i, coefficient := range roof {
-			if coefficient != 0 && q.box[i].weight != nil {
+			if coefficient != 0 && (q.box[i].weight != nil || len(q.box[i].roofSpans) != 0) {
 				proved = false
 			}
 		}
