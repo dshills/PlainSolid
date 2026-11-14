@@ -5,7 +5,7 @@ are an explicit separate exchange domain for unequal same-side circular cuts
 whose upper transverse radical join lies strictly outside the interval between
 the two centers. A join between or exactly at the centers is rejected here;
 existing equal and qualified unequal writers/readers retain their prior gates.
-No general-domain reader is provided by this writer milestone.
+The distinct reader below preserves the same external-domain gate.
 
 The new native `CutGeneralSideOpenDualDisks` certifies the exact circular
 envelope, losslessly represented single-wall charts and closed sewn boundary.
@@ -31,3 +31,29 @@ contained, irrational-crossing and unsupported-unit inputs reject without output
 All existing equal and unequal readers continue to reject the external-radical
 output. The optional helper uses `general-side`, `general-through` and `read`
 modes under `PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS`.
+
+## Separate exact external-domain reader
+
+`ReadGeneralSideOpenDualDiskProduct` reconstructs only the explicit external-
+radical domain and compares the complete rooted source graph to its qualified
+native re-emission. Both original circle radii and centers remain paired through
+normalization; source wall and floor IDs map to their recovered native roles.
+`RadicalSide` is `ExternalRadicalLeft` or `ExternalRadicalRight`, relative to the
+two sorted local centers. `RadicalJoin` contains caller-owned exact rationals.
+Both coordinates must also be exactly representable as binary64: neither reader
+nor writer rounds a rational or irrational endpoint into this dialect.
+
+`ReadGeneralSideOpenDualDiskProductWithOptions` reuses only the separately proved
+model-line, circle-reference, circle-normal and planar-normal equivalences. Each
+proof checks exact geometry and directed ownership before full graph matching.
+No option crosses the equal / between-center unequal / external-radical domain
+gates. Coordinates, units, product names, source sharing and adjacency still
+must match; caller tolerance is not an inferred source uncertainty.
+
+Tests cover left and right joins, signed poses, both cutter orders, normalized
+source lineage, altered radius and circle ownership, unsupported units,
+category rejection and all supported orientation proofs composed together.
+Optional independent OCCT tests compare native re-imported material with emitted
+STEP and retain rejection of vendor-rounded source files. Future broader native
+rational storage does not automatically widen this lossless represented-coordinate
+STEP subset.

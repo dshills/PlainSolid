@@ -33,7 +33,7 @@ func ReadUnequalSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limi
 // line/circle/plane encoding proofs. Each source circle retains its own radius,
 // center and native owner; the complete reconstructed graph is still compared.
 func ReadUnequalSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions) (UnequalSideOpenDualDiskProduct, error) {
-	result, err := readSideOpenDualDiskProduct(ctx, r, l, tolerance, options, true)
+	result, err := readSideOpenDualDiskProduct(ctx, r, l, tolerance, options, sideDiskUnequal)
 	if err != nil {
 		return UnequalSideOpenDualDiskProduct{}, err
 	}
