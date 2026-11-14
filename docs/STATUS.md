@@ -1976,6 +1976,9 @@ bands meet across the whole rectangle. It keeps the higher original roof,
 lower original floor, and the two original contributors to each merged
 wall. The opt-in dispatcher falls back for unsupported geometry. Height
 order changes and open inter-band gaps remain outside this constructor.
+An exact full-footprint Cut with a cutter wholly between the stock floor
+and roof returns two closed solids. Each retains one of the two cutter
+caps, reversed, and all remaining stock wall fragments keep their sources.
 
 `CertifyQuarticGramGraphPointContact` also certifies a single isolated
 order-four contact of exact graphs when the complete homogeneous height

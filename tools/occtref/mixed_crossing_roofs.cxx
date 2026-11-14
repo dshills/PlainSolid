@@ -333,6 +333,11 @@ int main(int argc, char** argv) {
       report("weighted-ordered-union",BRepAlgoAPI_Fuse(stock,weightedGraphStock(false)).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="weighted-ordered-split") {
+      const auto stock=BRepPrimAPI_MakeBox(gp_Pnt(0,0,-1),gp_Pnt(1,1,4)).Shape();
+      report("weighted-ordered-split",BRepAlgoAPI_Cut(stock,weightedGraphStock(false)).Shape(),1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());

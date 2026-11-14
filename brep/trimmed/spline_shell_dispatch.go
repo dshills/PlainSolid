@@ -43,6 +43,9 @@ type SplineShellCombineOptions struct {
 	// OrderedRoofFuse optionally tries the single-band ordered roof-box Fuse
 	// before general section discovery. Unsupported geometry retains fallback.
 	OrderedRoofFuse *SplineShellRoofOptions
+	// OrderedRoofCut optionally tries the exact one- or two-band Cut before
+	// general section discovery. Unsupported geometry retains fallback.
+	OrderedRoofCut *SplineShellRoofOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
 	// independent original-support tube proofs are required before use.
@@ -146,6 +149,21 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 					row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
 					row[source.Face] = append(row[source.Face], resultFace)
 				}
+			}
+			return s, r, nil
+		}
+		if !errors.Is(e, geom.ErrUnrepresentable) {
+			return Solid{}, r, e
+		}
+	}
+	if o.OrderedRoofCut != nil && op == parametric.Difference {
+		proof := o.OrderedRoofCut
+		s, h, e := SubtractOrderedRoofBoxes(ctx, a, b, proof.Source, proof.Construction)
+		if e == nil {
+			r = SplineShellCombineHistory{Method: "ordered-roof-cut", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces))}
+			for resultFace, source := range h.Faces {
+				row := [2][][]int{r.FacesA, r.FacesB}[source.Operand]
+				row[source.Face] = append(row[source.Face], resultFace)
 			}
 			return s, r, nil
 		}

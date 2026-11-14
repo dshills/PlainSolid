@@ -5534,6 +5534,13 @@ regularized output. Crossing order, footprint mismatch, a real inter-band
 gap and insufficient arithmetic return no topology. The combined live
 Common/Cut/Fuse race suite passed in 7.492 s.
 
+The subsequent full-footprint Cut with a suspended weighted cutter retains
+two components, each with six faces and Euler characteristic two. Its
+volume `11/2 − 3 log 2` agrees with the analytic height integral, and
+independent pinned OCCT agrees on area and centroid as well. The two
+cutter caps reverse and each stock wall maps to two fragments. The live
+split regression passed under race as part of the 16.903 s run.
+
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 
 The represented spline controls are dyadic but the original contact
