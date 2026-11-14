@@ -52,3 +52,27 @@ func certifyOverlapCell(ctx context.Context, a, b *geom.SurfacePatch, cell geom.
 	}
 	return geom.CertifyAffineXYSurfacePairCellInTubes(ctx, a, b, geom.SurfacePairParameterBox{A: ca, B: cb}, tubes, o)
 }
+
+func certifyProjectedOverlapCell(ctx context.Context, a, b *geom.SurfacePatch, cell geom.SurfacePairParameterBox,
+	tubes []geom.SurfacePairTubeRegion, axes [2]int, o geom.SurfaceTubeUnionCoverageOptions) (geom.SurfaceTubeUnionCoverage, error) {
+	if axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1] {
+		return geom.SurfaceTubeUnionCoverage{}, geom.ErrInvalid
+	}
+	if axes != ([2]int{0, 1}) {
+		var m geom.Affine
+		m[0][axes[0]], m[1][axes[1]], m[2][3-axes[0]-axes[1]] = 1, 1, 1
+		var e error
+		a, e = a.Transformed(m)
+		if e != nil {
+			return geom.SurfaceTubeUnionCoverage{}, e
+		}
+		b, e = b.Transformed(m)
+		if e != nil {
+			return geom.SurfaceTubeUnionCoverage{}, e
+		}
+	}
+	// A permutation preserves equality of the original XYZ supports. Tube
+	// domains and candidate chart coordinates are unchanged, and the proof
+	// revalidates each tube after that exact coordinate change.
+	return certifyOverlapCell(ctx, a, b, cell, tubes, o)
+}

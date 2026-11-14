@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/geom"
@@ -79,6 +80,11 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 		return out, e
 	}
 	provided := map[[2]int]*intersect.SplineSeedReport{}
+	trace := o.Trace
+	if trace.ProjectedGraphFallback.Enabled {
+		trace.Coverage.OverlappingProjectedFallback = true
+		trace.Coverage.ProjectionAxes = trace.GraphProjectionAxes
+	}
 	if len(o.Seeds) > o.MaxFacePairs {
 		return out, geom.ErrConvergence
 	}
@@ -126,13 +132,25 @@ func SectionSplineShellsAlgebraic(ctx context.Context, a, b Solid, o AlgebraicSh
 			if e != nil {
 				return out, e
 			}
-			r, e := SectionSplinePairAlgebraic(ctx, x, y, seed, o.Trace, o.Endpoints)
+			r, e := SectionSplinePairAlgebraic(ctx, x, y, seed, trace, o.Endpoints)
+			if e != nil && seed == nil && trace.ProjectedGraphFallback.Enabled && (isUnresolvedOpenSpline(e) || errors.Is(e, geom.ErrDomain)) {
+				// The first discovery path expects equal projected face
+				// rectangles. Clip only the proposal geometry, then reprove
+				// every tube and coverage on the full original pair.
+				p, e2 := intersect.DiscoverOverlappingProjectedGraphPairTubes(ctx, x, y, trace.GraphProjectionAxes, trace.Seeds.Patches, trace.ProjectedGraphFallback)
+				if e2 == nil && !p.Disjoint {
+					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, trace, o.Endpoints)
+				}
+				if e2 != nil && !isUnresolvedOpenSpline(e2) && !errors.Is(e2, geom.ErrDomain) {
+					return out, e2
+				}
+			}
 			if e != nil && seed == nil && o.Trace.PlaneFallback.Enabled && isUnresolvedOpenSpline(e) {
 				d := o.Trace.PlaneFallback
 				d.Plane.Arcs.ResolveSubdivisionCorners = true
 				p, e2 := intersect.DiscoverSplinePlanePairSections(ctx, x, y, o.Trace.Seeds.Patches, d)
 				if e2 == nil {
-					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, o.Trace, o.Endpoints)
+					r, e = SectionSplinePairAlgebraic(ctx, x, y, &p.Seeds, trace, o.Endpoints)
 				}
 				if e2 != nil && !isUnresolvedOpenSpline(e2) {
 					return out, e2
