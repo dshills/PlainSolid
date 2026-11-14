@@ -259,6 +259,13 @@ adds worktree commit `37eee35d` to review revision `e0dc2756`. It passed
 the native OCCT checks and all 17 original browser cases, verifying
 841 app and 1,982 kernel source files. The [authored two-floor case](evidence/plaincad-reconciled-e0dc2756-supplemental-disjoint-finite-step-2026-11-14.json)
 also passed on the same WASM, and live OCCT confirmed the exported STEP.
+The [far-tangent blind floor reconciliation](evidence/plaincad-reconciled-eda273e2-development-far-crossed-holes-step-2026-11-14.json)
+adds worktree commit `1963370e` to review revision `eda273e2`. The native
+and live STEP tests and all 17 original browser cases passed, with
+841 app and 1,986 kernel source hashes verified. The [authored far-floor
+case](evidence/plaincad-reconciled-eda273e2-supplemental-far-crossed-step-2026-11-14.json)
+passed on that WASM and produced matching STEP and STL bytes; OCCT
+independently reproduced the expected mass properties.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
