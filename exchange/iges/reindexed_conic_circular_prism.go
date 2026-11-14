@@ -41,36 +41,7 @@ func ReadReindexedConicCircularPrismMaterial(ctx context.Context, r io.Reader, l
 	l.MaxRecords = min(l.MaxRecords, 512)
 	l.MaxEntities = min(l.MaxEntities, 20)
 	l.MaxValues = min(l.MaxValues, 2048)
-	doc, e := readPlacedTopologyRecords(r, l, true, false, false, false, false, false, false, false, false, true, true, true, true, true)
-	if e != nil || len(doc.entities) != 20 || mixedTopologyDirectory(doc.bytes) != nil {
-		return bad()
-	}
-	source := append([]byte(nil), doc.bytes...)
-	if _, e = normalizeCircularPrismSource(&doc); e != nil {
-		return bad()
-	}
-	normalized, e := mixedRoofFile(doc)
-	if e != nil {
-		return bad()
-	}
-	proof, e := ReadReindexedEllipticalPrismMaterial(ctx, bytes.NewReader(normalized), l, tol)
-	if e != nil || proof.Kind != "filled" || proof.Filled == nil {
-		return bad()
-	}
-	// Invert only the exact temporary conic normalization, on the now-proved
-	// canonical graph. No coordinate or reference is inferred or rounded.
-	canonical, e := readPlacedTopologyRecords(bytes.NewReader(proof.Filled.Topology.source), l, true, false, false, false, false, false, false, false, false, true, true, true, true, true)
-	if e != nil {
-		return bad()
-	}
-	for i, rec := range canonical.entities {
-		if rec.kind == 104 {
-			v := append([]parameter(nil), rec.values...)
-			v[3] = v[1]
-			canonical.entities[i].values = v
-		}
-	}
-	originalCircle, e := mixedRoofFile(canonical)
+	proof, originalCircle, source, e := reindexedCircularSource(ctx, r, l, tol, false)
 	if e != nil {
 		return bad()
 	}
@@ -187,4 +158,59 @@ func ReadReindexedConicCircularPrismMaterialJSON(ctx context.Context, r io.Reade
 		return bad()
 	}
 	return m, nil
+}
+
+// Shares only source normalization and proven graph mapping; each caller still
+// invokes its own strict circular material proof before returning any geometry.
+func reindexedCircularSource(ctx context.Context, r io.Reader, l Limits, tol float64, annular bool) (ReindexedEllipticalPrismMaterial, []byte, []byte, error) {
+	count, kind := 20, "filled"
+	if annular {
+		count, kind = 28, "annular"
+	}
+	doc, e := readPlacedTopologyRecords(r, l, true, false, false, false, false, false, false, false, false, true, true, true, true, true)
+	if e != nil || len(doc.entities) != count || mixedTopologyDirectory(doc.bytes) != nil {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	source := append([]byte(nil), doc.bytes...)
+	if _, e = normalizeCircularPrismSource(&doc); e != nil {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	normalized, e := mixedRoofFile(doc)
+	if e != nil {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	proof, e := ReadReindexedEllipticalPrismMaterial(ctx, bytes.NewReader(normalized), l, tol)
+	if e != nil || proof.Kind != kind {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	// Invert only the exact temporary conic normalization, on the now-proved
+	// canonical graph. No coordinate or reference is inferred or rounded.
+	var canonicalSource []byte
+	if annular {
+		if proof.Annular == nil {
+			return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+		}
+		canonicalSource = proof.Annular.Topology.source
+	} else {
+		if proof.Filled == nil {
+			return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+		}
+		canonicalSource = proof.Filled.Topology.source
+	}
+	canonical, e := readPlacedTopologyRecords(bytes.NewReader(canonicalSource), l, true, false, false, false, false, false, false, false, false, true, true, true, true, true)
+	if e != nil {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	for i, rec := range canonical.entities {
+		if rec.kind == 104 {
+			v := append([]parameter(nil), rec.values...)
+			v[3] = v[1]
+			canonical.entities[i].values = v
+		}
+	}
+	originalCircle, e := mixedRoofFile(canonical)
+	if e != nil {
+		return ReindexedEllipticalPrismMaterial{}, nil, nil, geom.ErrInvalid
+	}
+	return proof, originalCircle, source, nil
 }

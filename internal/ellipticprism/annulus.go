@@ -10,15 +10,23 @@ import (
 // Annulus constructs a strictly nested concentric aligned elliptical extrusion.
 // Returned rim IDs are [outer/inner][lower/upper][quarter].
 func Annulus(ctx context.Context, frame geom.Frame, a, b, ia, ib, height, tol float64) (trimmed.Solid, [2][2][4]int, error) {
+	return annulus(ctx, frame, a, b, ia, ib, height, tol, false)
+}
+
+// CircularAnnulus constructs strictly nested concentric circular walls and exact annular caps.
+func CircularAnnulus(ctx context.Context, frame geom.Frame, outer, inner, height, tol float64) (trimmed.Solid, [2][2][4]int, error) {
+	return annulus(ctx, frame, outer, outer, inner, inner, height, tol, true)
+}
+func annulus(ctx context.Context, frame geom.Frame, a, b, ia, ib, height, tol float64, circular bool) (trimmed.Solid, [2][2][4]int, error) {
 	bad := func(e error) (trimmed.Solid, [2][2][4]int, error) { return trimmed.Solid{}, [2][2][4]int{}, e }
-	if !finite(ia) || !finite(ib) || ia <= ib || ib <= 0 || ia >= a || ib >= b {
+	if !finite(ia) || !finite(ib) || (!circular && ia <= ib) || (circular && ia != ib) || ib <= 0 || ia >= a || ib >= b {
 		return bad(geom.ErrInvalid)
 	}
-	outer, e := Parts(ctx, frame, a, b, height, tol)
+	outer, e := parts(ctx, frame, a, b, height, tol, circular)
 	if e != nil {
 		return bad(e)
 	}
-	inner, e := Parts(ctx, frame, ia, ib, height, tol)
+	inner, e := parts(ctx, frame, ia, ib, height, tol, circular)
 	if e != nil {
 		return bad(e)
 	}
