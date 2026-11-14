@@ -19,7 +19,7 @@ func checkWeightedRoofColumnMass(t *testing.T, ctx context.Context, cut, common 
 	t.Helper()
 	r := big.NewRat
 	m, err := common.BoundMass(ctx, MixedRoofMassOptions{MaxCells: 3})
-	if err != nil || m.VisitedCells != 3 || m.EnclosedCells != 0 || m.Volume.Lower.Cmp(r(27, 64)) != 0 || m.Volume.Upper.Cmp(r(27, 64)) != 0 {
+	if err != nil || m.VisitedCells != 1 || m.EnclosedCells != 0 || m.Volume.Lower.Cmp(r(27, 64)) != 0 || m.Volume.Upper.Cmp(r(27, 64)) != 0 {
 		t.Fatal("exact weighted Common material column", m, err)
 	}
 	// For the tool, x,y range from 1/8 to 7/8; z ranges from 1/4

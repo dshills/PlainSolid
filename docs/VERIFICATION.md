@@ -648,6 +648,15 @@ the quotient derivatives. The live OCCT and Go race checks passed. Source
 floors and parallel wall planes must be distinct; the complete regular
 Boolean proof excludes coincident boundary areas.
 
+When separate height ranges overlap, the area, volume and raw mass proofs
+can now compare the two roofs on a common exact chart. Subtracting the
+homogeneous height products cancels shared terms before testing order.
+A shifted source chart with a positive nonconstant weight selects the
+correct original polynomial roof and integrates its exact volume
+`57/32` and centroid in one cell. The original weighted Common likewise
+uses one cell instead of three with identical moments. Live crossing,
+weighted, and creased OCCT regressions passed under the race detector.
+
 The signed-axis spherical STEP hierarchy materializes as an editable native
 document with one planar and three curved assets. Its seven material
 occurrences retain their proved world poses and original relationship paths;
@@ -5028,3 +5037,24 @@ Display volume remains 0.0002195165898933681 against independent analytic
 The same run independently rechecked original section coverage, native
 component construction, the tight exact volume enclosure and full mass tensor.
 Full log: `/tmp/plainsolid-original-triple-native-mesh.log`.
+
+## Exact radial tube coverage (2026-11-14)
+
+Focused normal tests prove a 32-tube original circle cover with 542420 exact
+operations and 1024 neighbor tests. Tests reject a partial cover, endpoint-only
+joins, changed radius/source, and missing circles on a genuine two-radius
+quartic source; two unrelated-radius arc neighborhoods cannot stand in for
+coverage. Reordered occurrences remain valid. Result slices are owned; canceled
+work and insufficient tube, operation or neighbor limits publish no certificate.
+Exact reported operation and neighbor budgets succeed, one less fails.
+
+Commands (isolated `codex/exact-radial-coverage` checkout):
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom -run '^TestExactRadialTubeCoverage' -count=1 -v
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom -run '^TestExactRadialTubeCoverage' -count=1
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom
+```
+
+This independently qualifies exact coverage only, not a new native topology or
+an enlargement of the full replacement claim.

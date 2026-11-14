@@ -191,7 +191,12 @@ func (b *mixedRoofBox) roofHeightRange(uv [2]geom.ExactParameterInterval, w *mix
 
 func mixedRoofPowerRange(power [][]*big.Rat, uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
 	out := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
-	var powers [2][mixedRoofMaxDegree + 1][2]*big.Rat
+	// A single support has degree up to mixedRoofMaxDegree. A homogeneous
+	// difference of two supports can have twice that degree on each axis.
+	var powers [2][2*mixedRoofMaxDegree + 1][2]*big.Rat
+	if len(power) == 0 || len(power) > len(powers[0]) || len(power[0]) == 0 || len(power[0]) > len(powers[0]) {
+		return out, geom.ErrUnrepresentable
+	}
 	for i, s := range uv {
 		a, c := s.Lower, s.Upper
 		powers[i][0] = [2]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1)}

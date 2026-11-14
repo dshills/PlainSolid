@@ -761,6 +761,13 @@ reproduced the source worktree STEP and watertight STL byte for byte. OCCT
 transfer and the independent construction agreed on volume, area and
 centroid. This fixture uses the actual crossing extent, which leaves a
 valid blind floor where the old full-radius bound rejects.
+The [tight-floor tessellation reconciliation](evidence/plaincad-reconciled-2b087b72-development-close-floor-mesh-holes-step-2026-11-14.json)
+adds worktree revision `fa857e59` to review `2b087b72`. Focused native
+race checks and 17 original browser tests passed, with 841 app and 2,150
+kernel source blobs verified. The [authored tight-floor case](evidence/plaincad-reconciled-2b087b72-supplemental-close-floor-mesh-step-2026-11-14.json)
+completed within the rebuild deadline that the baseline missed and
+reproduced the original STEP and watertight 1,106-triangle STL. OCCT
+transfer and direct construction also agreed.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
@@ -1719,3 +1726,20 @@ and 228 original edge/vertex bindings. Global exact display nonintersection and
 per-component topology pass. This is an expensive proof-oriented qualification;
 it does not establish interactive latency, general multi-pair mesh assembly,
 native recipe persistence of all enlarged rings, or certified volume error.
+
+## Exact radial tube coverage (2026-11-14)
+
+Added an independent `SplineGraphRadialContours.CertifyTubeCoverage` proof for
+original identity-XY support charts. Every tube support is exact-compared with
+the original support on the identical UV rectangle; both endpoint model roots
+must satisfy the selected exact radius equation. Coverage requires all four
+original endpoint UV roots strictly inside another same-radius tube. Uniform
+uniqueness establishes incidence, and the finite nonempty open/closed circle
+cover establishes completeness. No sampled endpoints or overlapping boxes are
+accepted as membership evidence.
+
+The proof permits redundant arcs and does not publish branch order or native
+topology. Anchored tubes, endpoint-only joins and changed chart correspondence
+remain outside this sufficient method. Next integration must independently
+certify overlapping free intervals: the existing abutting radial proposals do
+not automatically satisfy this stronger coverage criterion.

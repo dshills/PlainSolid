@@ -1,0 +1,81 @@
+{
+  "schema": "plaincad-reconciled-supplemental-close-floor-mesh-step-v1",
+  "status": "passed",
+  "integrationCommit": "fa857e59099b66f89a66424d833168baf12e3d1f",
+  "reviewCommit": "2b087b72262f142ffc7b65fee964d36c77956efe",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "cdd62ad9702303b7bb1bad3d921c3a369ceea4edd84a2fddc9707fb9f8934bb8",
+  "fixture": "e2e/plainsolid-close-floor-mesh-step-holes.spec.ts",
+  "sourceSha256": "96ef1d047560905d071f74458c5fe82c8d6dc0ca3085844b0198e4d63d7ce9d4",
+  "runSha256": "8cb3f96af47a21cefc7edd0cc7fc792dfbb368336870d419410a7188a5ebe1ee",
+  "reportStats": {
+    "startTime": "2026-11-14T16:38:54.566Z",
+    "duration": 25124.721,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "cases": [
+    {
+      "profile": "close-floor-mesh",
+      "case": {
+        "stockMm": [
+          40,
+          40,
+          40
+        ],
+        "crossingMm": [
+          20,
+          16,
+          20
+        ],
+        "axisOffsetMm": 5,
+        "radiiMm": [
+          5,
+          2
+        ],
+        "topEntryDepthMm": 24.5,
+        "floorZMm": 15.5,
+        "rebuildDeadlineMs": 8000,
+        "baselineRebuild": "worker timed out",
+        "stepByteCount": 303147,
+        "stepSha256": "5f72985a201ce16433884328050665adb6d555c47bc0fdee9fcbf99eec8e4012",
+        "stlTriangles": 1106,
+        "stlTwoUseEdges": 1659,
+        "stlSha256": "fab24ee659dc0121eb2cb3c1b86848d1ce09eb648460569854b1ee72cf059cce",
+        "occtStepReadback": {
+          "Area": 10935.633366881517,
+          "Volume": 60582.975542695516,
+          "Centroid": [
+            20.000000000000004,
+            20.202327072355757,
+            19.960615344508508
+          ]
+        },
+        "occtDirectBoolean": {
+          "Volume": 60582.9755426907,
+          "Area": 10935.633366918792,
+          "Centroid": [
+            20.00000000000019,
+            20.202327072356027,
+            19.96061534450855
+          ]
+        },
+        "directOracleSourceSha256": "1d626bbbcfec249c69d4c891faf1dc2f7cf57324503689f23f5ce577546b176c"
+      },
+      "watertightSTLEdgesVerified": true,
+      "occtStepReadback": {
+        "Area": 10935.633366881517,
+        "Volume": 60582.975542695516,
+        "Centroid": [
+          20.000000000000004,
+          20.202327072355757,
+          19.960615344508508
+        ]
+      }
+    }
+  ]
+}

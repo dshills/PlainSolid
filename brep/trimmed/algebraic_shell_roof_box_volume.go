@@ -164,6 +164,7 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 	w := mixedRoofLineWork{o: MixedRoofLineOptions{SurfacePatchEvaluationOptions: o.SurfacePatchEvaluationOptions}}
 	qh := mixedRoofVolumeHeap{}
 	total := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
+	order := make(roofOrderCache)
 	calculate := func(c mixedRoofVolumeCell) (mixedRoofVolumeCell, error) {
 		if err := ctx.Err(); err != nil {
 			return c, err
@@ -193,7 +194,7 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 			return c, err
 		}
 		if v.Lower.Cmp(v.Upper) != 0 {
-			avg, err := q.exactPolynomialColumnAverage(c.chart, c.roof, uv, heights, &w)
+			avg, err := q.exactPolynomialColumnAverage(c, uv, heights, order, &w)
 			if err != nil {
 				return c, err
 			}

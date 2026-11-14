@@ -11,6 +11,10 @@ import (
 // antiderivatives at the two original roofs and floors. All coefficients are
 // -1, 0 or +1; zero may cancel a buried roof or an internal floor.
 func (q *MixedRoofMaterialQuery) fixedColumnPrimitives(chart [2]bool, height [2]geom.ExactParameterInterval) (roof, floor [2]int, proven bool) {
+	return q.columnPrimitivesWithOrder(chart, height, geom.ExactParameterInterval{})
+}
+
+func (q *MixedRoofMaterialQuery) columnPrimitivesWithOrder(chart [2]bool, height [2]geom.ExactParameterInterval, order geom.ExactParameterInterval) (roof, floor [2]int, proven bool) {
 	if chart[0] && q.op != parametric.Intersection {
 		roof[0], floor[0] = 1, -1
 	}
@@ -28,9 +32,9 @@ func (q *MixedRoofMaterialQuery) fixedColumnPrimitives(chart [2]bool, height [2]
 				return roof, floor, false
 			}
 			lower := 0
-			if height[1].Upper.Cmp(height[0].Lower) <= 0 {
+			if height[1].Upper.Cmp(height[0].Lower) <= 0 || order.Lower != nil && order.Lower.Sign() >= 0 {
 				lower = 1
-			} else if height[0].Upper.Cmp(height[1].Lower) > 0 {
+			} else if height[0].Upper.Cmp(height[1].Lower) > 0 && (order.Upper == nil || order.Upper.Sign() > 0) {
 				return roof, floor, false
 			}
 			m := -1
@@ -42,6 +46,26 @@ func (q *MixedRoofMaterialQuery) fixedColumnPrimitives(chart [2]bool, height [2]
 		}
 	}
 	return roof, floor, true
+}
+
+// Try the exact relative difference only when the absolute ranges are too
+// broad to order two roofs above the higher floor. This also lets a rational
+// support cancel before deciding whether a cell has polynomial primitives.
+func (q *MixedRoofMaterialQuery) correlatedColumnPrimitives(c mixedRoofVolumeCell, height [2]geom.ExactParameterInterval, cache roofOrderCache, w *mixedRoofLineWork) (roof, floor [2]int, proven bool, err error) {
+	roof, floor, proven = q.fixedColumnPrimitives(c.chart, height)
+	if proven || !c.chart[0] || !c.chart[1] {
+		return
+	}
+	top := maxRat(q.box[0].floor, q.box[1].floor)
+	if height[0].Lower.Cmp(top) < 0 || height[1].Lower.Cmp(top) < 0 {
+		return
+	}
+	order, err := cache.order(c.roof, c.xy, w)
+	if err != nil {
+		return roof, floor, false, err
+	}
+	roof, floor, proven = q.columnPrimitivesWithOrder(c.chart, height, order)
+	return
 }
 
 // A lower column uses the lowest allowed roofs of the selected sources and
