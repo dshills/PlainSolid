@@ -5947,3 +5947,12 @@ partitions. The filled case retains its signed coupled entries and gives
 identical bounds after an exact large translation. Both fixtures meet
 per-entry widths of 1/20 and 1/10 respectively. The combined inertia,
 boundary area and mass race passed in 25.650 s.
+
+### Native arrangement prism qualification
+
+Intersection, union and difference match analytic volumes 1/2, 7/4 and 5/8,
+and the existing exact BSP path agrees on the overlapping box fixture.
+A separate holed Difference yields two components and one inner wire with
+total volume 83/128. Native reconstruction, oblique and signed offsets,
+original side ledger coverage and atomic representability failures are
+checked. The integrated race passed in 1.694 s.

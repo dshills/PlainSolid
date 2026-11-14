@@ -2159,3 +2159,12 @@ centroidal inertia tensor in the original model axes. Exact rational
 profile polygons enclose the area and first and second moments. The
 through-bore subtracts correlated axial factors before propagating the
 intervals. Source wall and terminal face IDs accompany the bounds.
+
+### Native straight extrusions of exact polygon arrangements
+
+`trimmed.ExtrudeAffineArrangement` builds native prism components from
+regularized planar cycles with a common straight extrusion offset. Exact
+containment groups holes by component. A native wall retains all original
+arrangement pieces through collinear simplification. The extrusion checks
+that final base and top coordinates are exactly representable and verifies
+its native topology and exact volume.
