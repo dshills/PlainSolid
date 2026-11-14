@@ -10,12 +10,14 @@ import (
 )
 
 // AnalyticSupport contains exactly one independent complete support definition.
-// Type194 is deliberately excluded: its exact STEP parameter mapping differs.
+// Cone45 is available through the explicit IGES-only read and write mode.
+// Its generatrix parameter does not match the STEP cone contract.
 type AnalyticSupport struct {
 	Plane    *PlanarSupport
 	Cylinder *CylindricalSurface
 	Sphere   *SphericalSupport
 	Torus    *ToroidalSupport
+	Cone45   *Conical45Support
 }
 type AnalyticSupportModel struct {
 	LengthUnit float64
@@ -28,6 +30,8 @@ func analyticIGESReferenceIndices(kind int) []int {
 		return []int{1, 2, 3}
 	case 192:
 		return []int{1, 2, 4}
+	case 194:
+		return []int{1, 2, 5}
 	case 196:
 		return []int{1, 3, 4}
 	case 198:
@@ -86,6 +90,16 @@ func analyticIGESAuthor() topologyAuthor {
 // unique116/123 ownership. It stages unchanged exact source numeric tokens
 // through the specialized strict codecs after whole-file graph partitioning.
 func ReadAnalyticSupports(r io.Reader, l Limits) (AnalyticSupportModel, error) {
+	return readAnalyticSupports(r, l, false)
+}
+
+// ReadAnalyticSupportsWithCones additionally admits original type194 form1
+// supports with the strict 45-degree generatrix parameterization.
+func ReadAnalyticSupportsWithCones(r io.Reader, l Limits) (AnalyticSupportModel, error) {
+	return readAnalyticSupports(r, l, true)
+}
+
+func readAnalyticSupports(r io.Reader, l Limits, cones bool) (AnalyticSupportModel, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return AnalyticSupportModel{}, e
@@ -94,7 +108,7 @@ func ReadAnalyticSupports(r io.Reader, l Limits) (AnalyticSupportModel, error) {
 	l.MaxRecords = min(l.MaxRecords, 1024)
 	l.MaxEntities = min(l.MaxEntities, 256)
 	l.MaxValues = min(l.MaxValues, 8192)
-	d, e := readRingSupportRecords(r, l, false, true, true, true, true)
+	d, e := readConeSupportRecords(r, l, false, true, true, true, true, cones)
 	if e != nil {
 		return AnalyticSupportModel{}, e
 	}
@@ -167,6 +181,12 @@ func ReadAnalyticSupports(r io.Reader, l Limits) (AnalyticSupportModel, error) {
 				return fail()
 			}
 			s.Cylinder = &m.Surfaces[0]
+		case 194:
+			m, e := ReadConical45Supports(bytes.NewReader(b), Limits{})
+			if e != nil || len(m.Surfaces) != 1 {
+				return fail()
+			}
+			s.Cone45 = &m.Surfaces[0]
 		case 196:
 			m, e := ReadSphericalSupports(bytes.NewReader(b), Limits{})
 			if e != nil || len(m.Surfaces) != 1 {
@@ -188,18 +208,28 @@ func ReadAnalyticSupports(r io.Reader, l Limits) (AnalyticSupportModel, error) {
 // WriteAnalyticSupports stages every specialized support and merges only its
 // uniquely owned graph. Whole-file validation completes before caller I/O.
 func WriteAnalyticSupports(w io.Writer, m AnalyticSupportModel) error {
+	return writeAnalyticSupports(w, m, false)
+}
+
+// WriteAnalyticSupportsWithCones stages and re-proves mixed IGES supports,
+// including the strict native type194 form1 45-degree cone.
+func WriteAnalyticSupportsWithCones(w io.Writer, m AnalyticSupportModel) error {
+	return writeAnalyticSupports(w, m, true)
+}
+
+func writeAnalyticSupports(w io.Writer, m AnalyticSupportModel, cones bool) error {
 	if w == nil || len(m.Surfaces) < 1 || len(m.Surfaces) > 64 {
 		return geom.ErrDomain
 	}
 	a := analyticIGESAuthor()
 	for _, s := range m.Surfaces {
 		n := 0
-		for _, v := range []bool{s.Plane != nil, s.Cylinder != nil, s.Sphere != nil, s.Torus != nil} {
+		for _, v := range []bool{s.Plane != nil, s.Cylinder != nil, s.Sphere != nil, s.Torus != nil, s.Cone45 != nil} {
 			if v {
 				n++
 			}
 		}
-		if n != 1 {
+		if n != 1 || s.Cone45 != nil && !cones {
 			return geom.ErrDomain
 		}
 		var b bytes.Buffer
@@ -209,6 +239,8 @@ func WriteAnalyticSupports(w io.Writer, m AnalyticSupportModel) error {
 			e = WritePlanarSupports(&b, PlanarSupportModel{LengthUnit: m.LengthUnit, Surfaces: []PlanarSupport{*s.Plane}})
 		case s.Cylinder != nil:
 			e = WriteCylindricalSurfaces(&b, CylindricalSurfaceModel{LengthUnit: m.LengthUnit, Surfaces: []CylindricalSurface{*s.Cylinder}})
+		case s.Cone45 != nil:
+			e = WriteConical45Supports(&b, Conical45SupportModel{LengthUnit: m.LengthUnit, Surfaces: []Conical45Support{*s.Cone45}})
 		case s.Sphere != nil:
 			e = WriteSphericalSupports(&b, SphericalSupportModel{LengthUnit: m.LengthUnit, Surfaces: []SphericalSupport{*s.Sphere}})
 		case s.Torus != nil:
@@ -217,7 +249,7 @@ func WriteAnalyticSupports(w io.Writer, m AnalyticSupportModel) error {
 		if e != nil {
 			return e
 		}
-		d, e := readRingSupportRecords(&b, Limits{}, false, true, true, true, true)
+		d, e := readConeSupportRecords(&b, Limits{}, false, true, true, true, true, cones)
 		if e != nil {
 			return e
 		}
@@ -233,7 +265,7 @@ func WriteAnalyticSupports(w io.Writer, m AnalyticSupportModel) error {
 	if e != nil {
 		return e
 	}
-	if _, e = ReadAnalyticSupports(bytes.NewReader(b), Limits{}); e != nil {
+	if _, e = readAnalyticSupports(bytes.NewReader(b), Limits{}, cones); e != nil {
 		return e
 	}
 	n, e := w.Write(b)

@@ -96,4 +96,9 @@ func TestAnalyticBridgeIndexedAtomicFailure(t *testing.T) {
 	if len(got.Surfaces) != 0 || !errors.As(e, &indexed) || indexed.Support != 3 {
 		t.Fatal(e)
 	}
+	m = fixture(t)
+	m.Surfaces[3].Cone45 = &iges.Conical45Support{}
+	if out, e = FromIGES(m); len(out.Surfaces) != 0 || !errors.As(e, &indexed) || indexed.Support != 3 {
+		t.Fatal("unsupported cone cannot be dropped from a mixed variant", out, e)
+	}
 }

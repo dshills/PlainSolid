@@ -52,6 +52,9 @@ func FromIGES(m iges.AnalyticSupportModel) (step.AnalyticSupportModel, error) {
 	}
 	out := step.AnalyticSupportModel{LengthUnit: m.LengthUnit}
 	for i, s := range m.Surfaces {
+		if s.Cone45 != nil {
+			return step.AnalyticSupportModel{}, failure(i, errors.New("IGES cone uses a different generatrix parameter"))
+		}
 		if count(s.Plane != nil, s.Cylinder != nil, s.Sphere != nil, s.Torus != nil) != 1 {
 			return step.AnalyticSupportModel{}, failure(i, errors.New("exactly one variant required"))
 		}
