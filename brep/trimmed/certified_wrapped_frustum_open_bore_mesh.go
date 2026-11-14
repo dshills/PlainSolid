@@ -32,6 +32,21 @@ type CertifiedWrappedFrustumOpenBoreMesh struct {
 // a separate orientation, manifold and contact certificate.
 func TessellateWrappedFrustumOpenBoreCertified(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
 	o CertifiedWrappedFrustumMeshOptions) (out CertifiedWrappedFrustumOpenBoreMesh, err error) {
+	return tessellateParallelFrustumOpenBore(ctx, outer, inner, o, true)
+}
+
+// TessellateWrappedEccentricFrustumOpenBoreCertified supports parallel
+// noncoaxial walls when the matched angular cap chart remains an injective
+// parameterization of the entire eccentric annulus. At each angle its radial
+// segment interpolates a family of strictly nested circles from the original
+// inner circle to the original outer circle.
+func TessellateWrappedEccentricFrustumOpenBoreCertified(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	o CertifiedWrappedFrustumMeshOptions) (CertifiedWrappedFrustumOpenBoreMesh, error) {
+	return tessellateParallelFrustumOpenBore(ctx, outer, inner, o, false)
+}
+
+func tessellateParallelFrustumOpenBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	o CertifiedWrappedFrustumMeshOptions, coaxial bool) (out CertifiedWrappedFrustumOpenBoreMesh, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedWrappedFrustumOpenBoreMesh{}
@@ -67,7 +82,7 @@ func TessellateWrappedFrustumOpenBoreCertified(ctx context.Context, outer, inner
 		}
 		data[i] = s.Data()
 	}
-	if !strictWrappedCircularFrustumBore(proof[0], proof[1]) || !slices.Equal(data[0].KnotsU, data[1].KnotsU) {
+	if !strictWrappedParallelFrustumBore(proof[0], proof[1], coaxial) || !slices.Equal(data[0].KnotsU, data[1].KnotsU) {
 		return out, geom.ErrConvergence
 	}
 	lowOpen := proof[0].LowerZ.Cmp(proof[1].LowerZ) == 0

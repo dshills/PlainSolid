@@ -147,3 +147,46 @@ func TestCertifiedPlacedFrustumOpenBore(t *testing.T) {
 		t.Fatal("failed placement exposed partial mesh", e)
 	}
 }
+
+func TestCertifiedEccentricFrustumOpenBore(t *testing.T) {
+	ctx := context.Background()
+	opts := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	stock, _, e := geom.DraftWrappedFrustum(ctx, base, 0, 3, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool, _, e := geom.InsetWrappedCircularFrustumAtCap(ctx, stock, .5, true, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	pose := geom.Identity()
+	pose[0][3], pose[1][3] = .25, .25
+	tool, _, e = tool.Transformed(ctx, pose, geom.WrappedSurfaceOptions{WrapU: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	o := CertifiedWrappedFrustumMeshOptions{Patch: CertifiedPatchMeshOptions{Deflection: .15}}
+	m, e := TessellateWrappedEccentricFrustumOpenBoreNormalsCertified(ctx, stock, tool, .4, o)
+	if e != nil || !m.Collision.Complete || len(m.Collision.Contacts) != 0 || m.Mesh.ValidateSolid() != nil {
+		t.Fatal("eccentric complete display", e)
+	}
+	// The original seam points on the two circles are retained independently.
+	witness := [2]geom.Vec3{{X: 5, Z: 4}, {X: 37.0 / 8, Y: .25, Z: 4}}
+	for i, p := range witness {
+		if m.Mesh.Vertices[m.RimVertices[i][1][0]] != p {
+			t.Fatal("eccentric capacity shifted a source rim", i, m.Mesh.Vertices[m.RimVertices[i][1][0]], p)
+		}
+	}
+	want := math.Pi * (52 - 3.5*(1.75*1.75+1.75*4.375+4.375*4.375)/3)
+	v, _ := m.SignedDisplayVolume.Float64()
+	if math.Abs(v-want) > .04*want {
+		t.Fatal("eccentric cup volume", v, want)
+	}
+	if bad, e := TessellateWrappedFrustumOpenBoreCertified(ctx, stock, tool, o); !errors.Is(e, geom.ErrConvergence) || len(bad.Mesh.Vertices) != 0 {
+		t.Fatal("legacy coaxial scope must stay strict", e)
+	}
+}
