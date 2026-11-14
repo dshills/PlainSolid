@@ -2338,3 +2338,11 @@ See the [depth-three format contract](../exchange/step/DEEP_SHUO_COLORS.md).
 floor regions when the tool crosses the stock footprint. It preserves
 original cap and clipped wall ancestry. Shared interface pieces pair by
 exact directed parameter intervals and account for every stock edge.
+
+### Closed crossing native prism Cut
+
+The transition certificate now builds a complete native Cut. Exact cap
+triangles and wall quads share all boundary atoms across the internal
+floor and retained profiles. Multiple retained and floor regions qualify
+when each cycle is simple and hole-free. Original support and clipping
+history survive the conforming subdivision.

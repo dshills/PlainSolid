@@ -6208,3 +6208,11 @@ jobs, with the remaining tests split across six deterministic groups. A local
 inventory comparison covered 1,123 top-level tests, examples and fuzz seed
 entries exactly once. The three original complete-group selectors still
 produce the same combined inventory. Hosted jobs are unverified until run.
+
+### Closed crossing native prism qualification
+
+Single and multiple positive cycles close under both axial entry signs.
+A sheared U-profile cutter retains three upper regions and two floor
+regions joined through the lower stock. Independent volume, centroid,
+Euler characteristic and original cap/wall ancestry are checked. The
+integrated crossing prism race passed in 1.942 s.
