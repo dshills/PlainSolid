@@ -305,6 +305,18 @@ func (d *RationalSphericalHierarchyDocument) ClipGeneralLine(ctx context.Context
 	return step.ClipGeneralRationalHierarchyLine(ctx, d.model, origin, direction, lower, upper, o)
 }
 
+// ClipCoplanarGeneralLine includes exact boundary spans on finite nonconvex
+// and holed planar faces. All parameters retain the supplied line's scale.
+func (d *RationalSphericalHierarchyDocument) ClipCoplanarGeneralLine(ctx context.Context, origin, direction [3]*big.Rat, lower, upper *big.Rat, o step.RationalHierarchyLineOptions) (step.RationalHierarchyLine, error) {
+	if d == nil {
+		return step.RationalHierarchyLine{}, geom.ErrInvalid
+	}
+	if d.vendor {
+		return step.ClipCoplanarGeneralOCCTRationalHierarchyLine(ctx, step.OCCTRationalSphericalHierarchy(d.model), origin, direction, lower, upper, o)
+	}
+	return step.ClipCoplanarGeneralRationalHierarchyLine(ctx, d.model, origin, direction, lower, upper, o)
+}
+
 // Mass returns exact symbolic unit-density moments summed across occurrences.
 func (d *RationalSphericalHierarchyDocument) Mass(ctx context.Context, o step.RationalHierarchyMassOptions) (step.RationalHierarchyMass, error) {
 	if d == nil {

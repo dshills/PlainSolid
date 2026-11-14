@@ -183,7 +183,21 @@ func TestRationalSphericalHierarchyDocumentReentrantQueries(t *testing.T) {
 				}
 			}
 		}
-		return
+		origin[2].SetInt64(-2)
+		cap, err := d.ClipCoplanarGeneralLine(ctx, origin, direction, new(big.Rat), big.NewRat(6, 1), step.RationalHierarchyLineOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, capLeaf := range cap.Leaves {
+			if capLeaf.Owner.SourceBodyID != leaf.Owner.SourceBodyID {
+				continue
+			}
+			if len(capLeaf.BoundarySpans) != 2 || len(capLeaf.Spans) != 0 || len(capLeaf.BoundarySpans[0].SourceFaceIDs) != 1 || len(capLeaf.BoundarySpans[1].SourceFaceIDs) != 1 || capLeaf.BoundarySpans[0].SourceFaceIDs[0] != capLeaf.BoundarySpans[1].SourceFaceIDs[0] {
+				t.Fatal("original reentrant cap ownership", capLeaf)
+			}
+			return
+		}
+		t.Fatal("missing reentrant coplanar line occurrence")
 	}
 	t.Fatal("missing reentrant planar line occurrence")
 }
