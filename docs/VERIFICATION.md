@@ -5886,3 +5886,15 @@ The projected cusp proof maps original UMax terminals to VMin on an
 independent XZ chart, and verifies both owners' original coordinates.
 Changing projection or exceeding the shared quota fails atomically.
 The integrated focused race passed in 1.245 s.
+
+### Coplanar polygon/hole ring qualification
+
+`TestNoncontactingAffineRings*` checks a refined oblique support against a reversed
+independent chart with rational nested outer/hole loops. Intersection retains the
+inner outer ring plus original hole, union suppresses the covered hole, and
+Difference reverses the tool boundary. A smaller island inside the stock hole
+has empty intersection and three union rings. Disjoint domains, shared-point,
+crossing and collinear-contact rejection, exact model evaluation, detached result
+mutation, cancellation and exact/one-short work bounds are independently checked.
+The extracted shared trim validator retains the transverse hole regressions.
+The integrated original-affine, convex, transverse-hole and coplanar-ring race passed in 1.424 s.

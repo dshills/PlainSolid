@@ -2101,3 +2101,16 @@ Exact circular frusta also support symbolic volume, centroid and full
 inertia for each original occurrence and their occurrence sum.
 The exact circular point classifier retains original caps, walls, rim and
 seam edges, and vertex incidences for each placed occurrence.
+
+### Coplanar noncontacting polygon ring selection
+
+`intersect.SelectNoncontactingAffinePolygonRings` provides complete planar
+intersection, union and directed difference boundary cycles for validated
+polygon/hole trims whose cross-owner boundaries are globally disjoint. Every
+original edge pair is checked exactly in a common original affine chart before
+whole-ring membership is used. Retained cycles preserve authored owner/ring,
+vertex order, rational UV/model coordinates and explicit traversal direction
+relative to owner A. Nested holes, islands and disconnected regions are covered;
+crossing, touching and coincident boundaries remain unresolved rather than
+receiving an inferred arrangement. Exact trim validation is shared with
+transverse line contacts.

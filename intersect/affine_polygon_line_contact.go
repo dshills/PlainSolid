@@ -115,74 +115,9 @@ func IntersectPolygonAffinePatches(ctx context.Context, a, c Patch, trims [2]Aff
 	}
 	b := &affineTrimBudget{ctx: ctx, max: o.MaxOperations, bits: o.MaxCoefficientBits}
 	owners := [2]Patch{a, c}
-	rings := [2][][][2]*big.Rat{}
-	for owner, trim := range trims {
-		if !owners[owner].valid() {
-			return nil, geom.ErrInvalid
-		}
-		if len(trim.Holes) > o.MaxEdges/3 {
-			return nil, geom.ErrInvalid
-		}
-		rings[owner] = append([][][2]*big.Rat{trim.Outer}, trim.Holes...)
-		total := 0
-		proof := []trimvalidate.Loop{}
-		for _, ring := range rings[owner] {
-			total += len(ring)
-			if len(ring) < 3 || total > o.MaxEdges {
-				return nil, geom.ErrInvalid
-			}
-			loop := trimvalidate.Loop{}
-			for _, v := range ring {
-				for axis, q := range v {
-					b.check(q)
-					if b.err != nil {
-						return nil, b.err
-					}
-					lo, hi := owners[owner].Min.X, owners[owner].Max.X
-					if axis == 1 {
-						lo, hi = owners[owner].Min.Y, owners[owner].Max.Y
-					}
-					if q.Cmp(new(big.Rat).SetFloat64(lo)) < 0 || q.Cmp(new(big.Rat).SetFloat64(hi)) > 0 {
-						return nil, geom.ErrDomain
-					}
-				}
-			}
-			for i, v := range ring {
-				w := ring[(i+1)%len(ring)]
-				h := [3][3]*big.Rat{}
-				for axis := 0; axis < 2; axis++ {
-					h[0][axis] = v[axis]
-					h[1][axis] = b.op('/', b.op('+', v[axis], w[axis]), big.NewRat(2, 1))
-					h[2][axis] = w[axis]
-				}
-				for j := 0; j < 3; j++ {
-					h[j][2] = big.NewRat(1, 1)
-				}
-				if b.err != nil {
-					return nil, b.err
-				}
-				edge, e := trimvalidate.ExactQuadratic(h)
-				if e != nil {
-					return nil, e
-				}
-				loop = append(loop, edge)
-			}
-			proof = append(proof, loop)
-		}
-		if b.work >= b.max {
-			return nil, geom.ErrConvergence
-		}
-		_, report, e := trimvalidate.CertifyLoops(ctx, proof[0], proof[1:], trimvalidate.Options{MaxEdges: o.MaxEdges, MaxWork: b.max - b.work, MaxBits: b.bits})
-		b.work += report.Work
-		if e != nil {
-			return nil, e
-		}
-		if report.Status == trimvalidate.Unresolved {
-			return nil, ErrUnresolved
-		}
-		if report.Status != trimvalidate.Certified {
-			return nil, geom.ErrDomain
-		}
+	rings, e := validateAffinePolygonTrims(ctx, owners, trims, o, b)
+	if e != nil {
+		return nil, e
 	}
 	if b.work >= b.max {
 		return nil, geom.ErrConvergence
@@ -372,4 +307,77 @@ func IntersectPolygonAffinePatches(ctx context.Context, a, c Patch, trims [2]Aff
 	}
 	out.work = b.work
 	return out, nil
+}
+
+func validateAffinePolygonTrims(ctx context.Context, owners [2]Patch, trims [2]AffinePolygonTrim, o AffinePolygonContactOptions, b *affineTrimBudget) (*[2][][][2]*big.Rat, error) {
+	rings := [2][][][2]*big.Rat{}
+	for owner, trim := range trims {
+		if !owners[owner].valid() {
+			return nil, geom.ErrInvalid
+		}
+		if len(trim.Holes) > o.MaxEdges/3 {
+			return nil, geom.ErrInvalid
+		}
+		rings[owner] = append([][][2]*big.Rat{trim.Outer}, trim.Holes...)
+		total := 0
+		proof := []trimvalidate.Loop{}
+		for _, ring := range rings[owner] {
+			total += len(ring)
+			if len(ring) < 3 || total > o.MaxEdges {
+				return nil, geom.ErrInvalid
+			}
+			loop := trimvalidate.Loop{}
+			for _, v := range ring {
+				for axis, q := range v {
+					b.check(q)
+					if b.err != nil {
+						return nil, b.err
+					}
+					lo, hi := owners[owner].Min.X, owners[owner].Max.X
+					if axis == 1 {
+						lo, hi = owners[owner].Min.Y, owners[owner].Max.Y
+					}
+					if q.Cmp(new(big.Rat).SetFloat64(lo)) < 0 || q.Cmp(new(big.Rat).SetFloat64(hi)) > 0 {
+						return nil, geom.ErrDomain
+					}
+				}
+			}
+			for i, v := range ring {
+				w := ring[(i+1)%len(ring)]
+				h := [3][3]*big.Rat{}
+				for axis := 0; axis < 2; axis++ {
+					h[0][axis] = v[axis]
+					h[1][axis] = b.op('/', b.op('+', v[axis], w[axis]), big.NewRat(2, 1))
+					h[2][axis] = w[axis]
+				}
+				for j := 0; j < 3; j++ {
+					h[j][2] = big.NewRat(1, 1)
+				}
+				if b.err != nil {
+					return nil, b.err
+				}
+				edge, e := trimvalidate.ExactQuadratic(h)
+				if e != nil {
+					return nil, e
+				}
+				loop = append(loop, edge)
+			}
+			proof = append(proof, loop)
+		}
+		if b.work >= b.max {
+			return nil, geom.ErrConvergence
+		}
+		_, report, e := trimvalidate.CertifyLoops(ctx, proof[0], proof[1:], trimvalidate.Options{MaxEdges: o.MaxEdges, MaxWork: b.max - b.work, MaxBits: b.bits})
+		b.work += report.Work
+		if e != nil {
+			return nil, e
+		}
+		if report.Status == trimvalidate.Unresolved {
+			return nil, ErrUnresolved
+		}
+		if report.Status != trimvalidate.Certified {
+			return nil, geom.ErrDomain
+		}
+	}
+	return &rings, nil
 }
