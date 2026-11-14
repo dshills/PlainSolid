@@ -77,3 +77,33 @@ frame, shifted sphere datum, world transforms on either degree-pcurve family,
 forged native pose and resource limits. Focused normal/live, race, Go 1.23, vet,
 earlier mixed/spherical cases and bounded fuzz qualify the separate placement
 path. No record reordering is included.
+
+## Independently reordered source graphs
+
+`ReadReindexedCylinderSphereCavityMaterial` additionally authenticates arbitrary
+DE addresses/order, per-shell vertex/edge/face-list permutations, and cyclic
+starts of the four-use cylindrical and spherical loops. Roles come from exact
+support geometry and directed incidence, never sorted source IDs. A bounded
+bijection restores the canonical proof, including every original degree pcurve
+and transform; the canonical readers remain unchanged. Cross-shell geometry
+sharing, cycles, inconsistent void direction, changed uses, and UV transforms
+are rejected. Only the previously qualified proper signed-axis placement is
+admitted.
+
+The result retains original record IDs, vertex/edge/face ordinals, cyclic use
+ordinals, native face source IDs, model curves and both degree-pcurve families.
+Source export and the versioned JSON envelope reprove these identities before
+writing; JSON reload reconstructs the maps from the original source bytes.
+Cylinder continuity remains exact; the spherical native angular evaluation has
+the same documented bounded discrepancy as the canonical codec. Reordering
+adds no general IGES acceptance or new geometric approximation.
+
+`tools/occtref/reorder_iges_cylinder_sphere_cavity.py` independently reverses DE,
+vertex, edge and face lists and rotates the four-use loops in the hand-authored
+placed/unplaced fixtures. Pinned OCCT 4dbfdcc448c0b3e565488afcd626c84483172db9
+loads both as valid one-solid/four-face materials: volume 185π/3, area 64π,
+centroid (0,0,189/370), or (10+189/370,−3,5) after placement. The qualifying
+comparator is `tools/occtref/iges_topology_solid.cxx`, selected by
+`PLAINSOLID_OCCT_IGES_SOLID`; this is a material transfer check, not merely a
+surface import. Focused normal/live/race, Go 1.23, vet and a bounded 100-execution
+fuzz campaign cover this additive API.
