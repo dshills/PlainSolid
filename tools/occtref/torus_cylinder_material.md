@@ -108,3 +108,27 @@ centroid0.001 and inertia0.2. The source domain is unchanged. Unit tests use
 c=R with an independent closed antiderivative, both cap ranges[-3,4] and[-4,3],
 all operations, and measured one-operation-short/cell/cancellation failure.
 No mixed-coordinate placement or radial containment extension is included.
+
+
+## Native Common/Difference boundary qualification
+
+The same independent OCCT references now also check actual parametric native
+Common/Difference surface mass and area (1e-5 numerical allowance). The native
+constructor uses two periodic analytic bands, explicit opposite rim incidence,
+and distinct chart seams: V2/E4/F2, Euler0. Its torus meridian is a rational
+circle parameterization with exact original coefficient K and algebraic sqrt(K),
+not an acos-authored floating trim. Both rim heights retain immutable exact roots
+of z²-[r²-(c-R)²], including the fixture's irrational ±sqrt(3). Source owners and
+lower/upper rim edge IDs are exposed separately.
+
+The exact original support/meridian identities and abstract topology are
+separate from numerical native Eval and tolerance sewing. JSON stores original
+radii and chart roles and reconstructs derived values; tests reject a tangent
+radius tamper and compare canonical reload. Bounds and real-arithmetic derivative
+interpolation bounds are registered; numerical evaluation roundoff remains outside
+that deflection contract, as for the existing analytic parametric mesher.
+Independent native tests qualify positive-volume, closed 1024-triangle displays
+at requested0.5 analytic deflection with no nonincident triangle contacts.
+The solid is not a mesh substitution. Native Union and arbitrary clipped caps
+are still unsupported by this first native constructor; analytic queries retain
+their wider existing all-operation domain.
