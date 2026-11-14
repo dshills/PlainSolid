@@ -11,14 +11,17 @@ type TorusCylinderOperation uint8
 const (
 	TorusCylinderCommon TorusCylinderOperation = iota + 1
 	TorusCylinderDifference
+	TorusCylinderUnion
 )
 const (
-	TorusCylinderTorus BoreBoundaryMask = 1
-	TorusCylinderWall  BoreBoundaryMask = 2
+	TorusCylinderTorus    BoreBoundaryMask = 1
+	TorusCylinderWall     BoreBoundaryMask = 2
+	TorusCylinderLowerCap BoreBoundaryMask = 4
+	TorusCylinderUpperCap BoreBoundaryMask = 8
 )
 
 // TorusCylinderMaterial is an immutable origin-centered Z-axis circular ring
-// torus (major R, minor r) intersected with, or minus, a coaxial finite cylinder.
+// torus (major R, minor r) combined with a coaxial finite cylinder.
 // It is an analytic query, not a native BRep or manifold certificate.
 type TorusCylinderMaterial struct {
 	R, r, c, lower, upper *big.Rat
@@ -30,7 +33,7 @@ type TorusCylinderMaterial struct {
 // neither cylinder cap meets the torus. Tangencies and cap cuts fail closed.
 func NewTorusCylinderMaterial(R, r, c, lower, upper float64, op TorusCylinderOperation) (TorusCylinderMaterial, error) {
 	var z TorusCylinderMaterial
-	if !finite(R) || !finite(r) || !finite(c) || !finite(lower) || !finite(upper) || r <= 0 || R <= r || c <= 0 || (op != TorusCylinderCommon && op != TorusCylinderDifference) {
+	if !finite(R) || !finite(r) || !finite(c) || !finite(lower) || !finite(upper) || r <= 0 || R <= r || c <= 0 || (op != TorusCylinderCommon && op != TorusCylinderDifference && op != TorusCylinderUnion) {
 		return z, ErrInvalid
 	}
 	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
@@ -41,6 +44,28 @@ func NewTorusCylinderMaterial(R, r, c, lower, upper float64, op TorusCylinderOpe
 	return s, nil
 }
 func (s TorusCylinderMaterial) location(v []int) (BorePointLocation, BoreBoundaryMask) {
+	if s.op == TorusCylinderUnion {
+		cylinderClosed := v[1] <= 0 && v[2] <= 0 && v[3] <= 0
+		cylinderInside := v[1] < 0 && v[2] < 0 && v[3] < 0
+		if v[0] < 0 || cylinderInside {
+			return BoreInside, 0
+		}
+		if v[0] > 0 && !cylinderClosed {
+			return BoreOutside, 0
+		}
+		var m BoreBoundaryMask
+		if v[0] == 0 {
+			m |= TorusCylinderTorus
+		}
+		if cylinderClosed {
+			for i, mask := range []BoreBoundaryMask{TorusCylinderWall, TorusCylinderLowerCap, TorusCylinderUpperCap} {
+				if v[i+1] == 0 {
+					m |= mask
+				}
+			}
+		}
+		return BoreBoundary, m
+	}
 	wall := v[1]
 	if s.op == TorusCylinderDifference {
 		wall = -wall
@@ -116,7 +141,14 @@ func (s TorusCylinderMaterial) polynomials(ctx context.Context, p, d [3]*big.Rat
 	if a.err != nil {
 		return nil, a.err
 	}
-	return []rationalPolynomial{trimPolynomial(torus), trimPolynomial(radial)}, nil
+	out := []rationalPolynomial{trimPolynomial(torus), trimPolynomial(radial)}
+	if s.op == TorusCylinderUnion {
+		out = append(out, trimPolynomial(rationalPolynomial{a.sub(s.lower, p[2]), a.sub(new(big.Rat), d[2])}), trimPolynomial(rationalPolynomial{a.sub(p[2], s.upper), a.add(new(big.Rat), d[2])}))
+	}
+	if a.err != nil {
+		return nil, a.err
+	}
+	return out, nil
 }
 
 // ClassifyRational preserves sub-float probes and exact two-owner rim ties.
@@ -141,7 +173,7 @@ func (s TorusCylinderMaterial) ClassifyRational(ctx context.Context, p [3]*big.R
 	if e != nil {
 		return BoreOutside, 0, e
 	}
-	v := make([]int, 2)
+	v := make([]int, len(ps))
 	for i := range ps {
 		q, e := polynomialValue(ps[i], new(big.Rat), b)
 		if e != nil {
@@ -166,8 +198,9 @@ type TorusCylinderLine struct {
 // ClipRationalLine preserves raw rational t and exact quartic/quadratic owners,
 // including tangencies and continuous cylindrical generator contact. Arithmetic
 // building/isolation/signs share Surface's work budget. Root ordering/codec and
-// enclosure helpers have the same per-proof limits: at most eight distinct
-// events, 28 insertion comparisons and 14*MaxSubdivisions enclosure calls.
+// enclosure helpers have the same per-proof limits: at most ten distinct
+// events, 45 insertion comparisons and 18*MaxSubdivisions enclosure calls
+// for Union (eight/28/14 for Common and Difference).
 // ParameterTolerance affects brackets only. Every failure returns no result.
 func (s TorusCylinderMaterial) ClipRationalLine(ctx context.Context, p, d [3]*big.Rat, min, max *big.Rat, o ToroidLineOptions) (TorusCylinderLine, error) {
 	var z TorusCylinderLine
