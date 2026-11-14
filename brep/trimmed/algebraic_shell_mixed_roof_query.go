@@ -172,19 +172,30 @@ func mixedRoofFits(v *big.Rat, bits int) bool {
 }
 
 func (b *mixedRoofBox) footprint(xy [2]*big.Rat) parametric.Location {
+	where, _ := b.footprintSides(xy)
+	return where
+}
+
+func (b *mixedRoofBox) footprintSides(xy [2]*big.Rat) (parametric.Location, uint8) {
 	d := b.domain
 	lo, hi := [2]float64{d.UMin, d.VMin}, [2]float64{d.UMax, d.VMax}
 	where := parametric.Inside
+	var sides uint8
 	for j, v := range xy {
 		a, c := v.Cmp(ratInset(lo[j])), v.Cmp(ratInset(hi[j]))
 		if a < 0 || c > 0 {
-			return parametric.Outside
+			return parametric.Outside, 0
 		}
-		if a == 0 || c == 0 {
+		if a == 0 {
+			sides |= 1 << (2 * j)
+			where = parametric.Boundary
+		}
+		if c == 0 {
+			sides |= 1 << (2*j + 1)
 			where = parametric.Boundary
 		}
 	}
-	return where
+	return where, sides
 }
 
 // Both original surfaces at a simultaneous contact are part of the complete

@@ -16,6 +16,7 @@ type mixedRoofBox struct {
 	domain     geom.ParameterRectangle
 	roofFace   int
 	floorFace  int
+	sideFaces  [4]int // X min, X max, Y min, Y max.
 	operations int
 }
 
@@ -176,6 +177,7 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 			return nil, geom.ErrUnrepresentable
 		}
 		seen[matched] = true
+		r.sideFaces[matched] = i
 		n, e := remaining()
 		if e != nil {
 			return nil, e
