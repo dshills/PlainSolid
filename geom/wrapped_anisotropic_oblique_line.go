@@ -15,6 +15,29 @@ import (
 // apply independently to each quartic and each of its three root-sign proofs.
 // Identically zero quartics and unresolved distinct-root ordering fail closed.
 func IntersectWrappedAnisotropicBandLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (CylinderLineIntersections, error) {
+	return intersectWrappedAnisotropicBandLine(ctx, w, origin, direction, minT, maxT, o, false, nil)
+}
+
+// WrappedAnisotropicBandLineReport supplies charged work for collection queries.
+// Only original lateral contacts are reported; endpoint-plane disks are not caps.
+type WrappedAnisotropicBandLineReport struct {
+	Intersections   CylinderLineIntersections
+	ExactOperations int
+}
+
+// IntersectWrappedAnisotropicClosedBandLineRational admits endpoint heights on
+// either station plane, retaining exact lateral contacts there. It does not
+// classify the station disk or assert that it is exposed in a surrounding loft.
+func IntersectWrappedAnisotropicClosedBandLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (WrappedAnisotropicBandLineReport, error) {
+	var work int
+	q, e := intersectWrappedAnisotropicBandLine(ctx, w, origin, direction, minT, maxT, o, true, &work)
+	if e != nil {
+		return WrappedAnisotropicBandLineReport{}, e
+	}
+	return WrappedAnisotropicBandLineReport{q, work}, nil
+}
+
+func intersectWrappedAnisotropicBandLine(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions, closed bool, charged *int) (CylinderLineIntersections, error) {
 	empty := CylinderLineIntersections{}
 	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
 	if e != nil {
@@ -31,12 +54,15 @@ func IntersectWrappedAnisotropicBandLineRational(ctx context.Context, w *Wrapped
 		return empty, e
 	}
 	b := &wrappedAnisotropicBudget{ctx: ctx, work: polynomialBudget{operations: p.ExactOperations, maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}}
+	if charged != nil {
+		defer func() { *charged = b.work.operations }()
+	}
 	for _, t := range []*big.Rat{minT, maxT} {
 		z := b.add(origin[2], b.mul(direction[2], t))
 		if b.err != nil {
 			return empty, b.err
 		}
-		if z.Cmp(p.LowerZ) <= 0 || z.Cmp(p.UpperZ) >= 0 {
+		if z.Cmp(p.LowerZ) < 0 || z.Cmp(p.UpperZ) > 0 || (!closed && (z.Cmp(p.LowerZ) == 0 || z.Cmp(p.UpperZ) == 0)) {
 			return empty, ErrInvalid
 		}
 	}
@@ -44,6 +70,22 @@ func IntersectWrappedAnisotropicBandLineRational(ctx context.Context, w *Wrapped
 	for a := 0; a < 2; a++ {
 		slope := b.div(b.sub(p.UpperScale[a], p.LowerScale[a]), b.sub(p.UpperZ, p.LowerZ))
 		scales[a] = rationalPolynomial{b.add(p.LowerScale[a], b.mul(slope, b.sub(origin[2], p.LowerZ))), b.mul(slope, direction[2])}
+	}
+	if b.err != nil {
+		return empty, b.err
+	}
+	// Cardinal contacts have an original affine coordinate equation even
+	// when their rational parameter is not dyadic. Retain exact candidates
+	// for subsequent polynomial identity checks, never interval-only welding.
+	var cardinal []*big.Rat
+	for axis := 0; axis < 2; axis++ {
+		for _, sign := range []int64{-1, 1} {
+			a := b.sub(b.sub(origin[axis], p.Center[axis]), b.mul(big.NewRat(sign, 1), scales[axis][0]))
+			c := b.sub(direction[axis], b.mul(big.NewRat(sign, 1), scales[axis][1]))
+			if c.Sign() != 0 {
+				cardinal = append(cardinal, b.div(b.sub(new(big.Rat), a), c))
+			}
+		}
 	}
 	if b.err != nil {
 		return empty, b.err
@@ -135,6 +177,19 @@ func IntersectWrappedAnisotropicBandLineRational(ctx context.Context, w *Wrapped
 				}
 				if sign < 0 {
 					return true, nil
+				}
+			}
+			for _, t := range cardinal {
+				if t.Cmp(lo) < 0 || t.Cmp(hi) > 0 {
+					continue
+				}
+				v, e := polynomialValue(poly, t, &b.work)
+				if e != nil {
+					return false, e
+				}
+				if v.Sign() == 0 {
+					lo, hi = t, t
+					break
 				}
 			}
 			if len(result.Hits) >= 16 {

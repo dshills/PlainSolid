@@ -6168,3 +6168,12 @@ Tests cover covering spans, exact cap ties, a nonconvex stock with a
 contained triangular profile, rational source-corner reconstruction and
 unsupported contact rejection. The combined blind, boss, cavity and
 through race passed in 1.942 s.
+
+### Multiband anisotropic line qualification
+
+The line sweep preserves original parameters across both terminal planes
+and internal station creases. An exact cardinal root shared between sectors
+rejoins only after an affine parameter and quartic identity proof. Both
+original crease faces and shared rim vertices survive ownership recovery.
+One-short cumulative query limits reject. The combined line race passed in
+33.650 s.

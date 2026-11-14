@@ -24,6 +24,10 @@ type WrappedAnisotropicStationPoint struct {
 // MaxPointOperations; native source proof has the separately documented Source
 // quotas. Artificial internal band disks are material interior, not caps.
 func (s Solid) LocateWrappedAnisotropicStationRational(ctx context.Context, point [3]*big.Rat, o WrappedRationalStationPointOptions) (WrappedAnisotropicStationPoint, error) {
+	return s.locatePreparedAnisotropicStationRational(ctx, point, o, nil, nil)
+}
+
+func (s Solid) locatePreparedAnisotropicStationRational(ctx context.Context, point [3]*big.Rat, o WrappedRationalStationPointOptions, prepared *WrappedAnisotropicStationProof, bands []*geom.WrappedSurfacePatch) (WrappedAnisotropicStationPoint, error) {
 	empty := WrappedAnisotropicStationPoint{}
 	if o.MaxPointOperations == 0 {
 		o.MaxPointOperations = 4096
@@ -46,9 +50,15 @@ func (s Solid) LocateWrappedAnisotropicStationRational(ctx context.Context, poin
 		}
 		q[i] = new(big.Rat).Set(v)
 	}
-	proof, bands, e := s.validateWrappedAnisotropicStationLoft(ctx, o.Source)
-	if e != nil {
-		return empty, e
+	var proof WrappedAnisotropicStationProof
+	if prepared == nil {
+		var e error
+		proof, bands, e = s.validateWrappedAnisotropicStationLoft(ctx, o.Source)
+		if e != nil {
+			return empty, e
+		}
+	} else {
+		proof = *prepared
 	}
 	band, station := -1, -1
 	for i, z := range proof.Heights {

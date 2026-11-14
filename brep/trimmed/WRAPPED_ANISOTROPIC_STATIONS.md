@@ -149,3 +149,28 @@ quotas remain as above. Identically zero candidate polynomials (including real
 wall generators), ambiguous nonexact root-bracket overlap, station crossings and
 boundary-plane endpoints fail atomically. This does not claim a multi-band or
 coincident-line solver. The earlier horizontal API is unchanged.
+
+## Complete nonhorizontal multi-band lines
+
+`ClipWrappedAnisotropicStationLineRational` clips a finite rational line to every
+original band at exact station parameters and merges only proved equal rational
+events. It retains both incident wall faces at a crease, actual rim edges and
+cardinal vertices at station contacts, and both exposed terminal-cap events.
+Internal station disks remain material interior. Nonexact overlapping brackets
+are not guessed equal. The horizontal and strict single-band APIs remain unchanged;
+this collection API rejects horizontal lines and coincident wall polynomials.
+
+`WrappedAnisotropicMultiBandLineOptions.MaxOperations` is a cumulative query
+ledger for parameter clipping, all closed-band geometric source/root/sign proofs,
+station classifications and gap classifications. Prepared point classification
+reuses the authenticated original source. Initial native topology authentication
+retains the existing separate per-pass `Geometry.Surface` limits and sixteen-band
+source cap. Root subdivisions remain bounded per quartic and per sign proof.
+The exact charged operation count is returned only on success. Event limits are
+charged before merging; all failures are atomic. Independent tests cover both
+terminal caps, a waist crease touch with both owners, a cap/rim tie, opposite
+parameter direction, two wall contacts in different bands, and exact N/N−1 work.
+Cardinal contacts at non-dyadic rational parameters are authenticated by the
+original affine equations `x-cx=±sx` or `y-cy=±sy` and exact quartic evaluation
+inside the isolating interval. This proves shared quadrant identity (including
+parameter8/5 in the regression); interval overlap alone is still insufficient.
