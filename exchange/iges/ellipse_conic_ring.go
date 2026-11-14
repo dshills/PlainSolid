@@ -34,6 +34,14 @@ func ReadEllipseConicRing(r io.Reader, l Limits) (EllipseConicRing, error) {
 	if e != nil {
 		return EllipseConicRing{}, e
 	}
+	return decodeEllipseConicRing(d, false)
+}
+
+func decodeEllipseConicRing(d topologySource, dependent bool) (EllipseConicRing, error) {
+	bad := func() (EllipseConicRing, error) {
+		return EllipseConicRing{}, fmt.Errorf("iges: unsupported exact ellipse ring")
+	}
+	var e error
 	var root, tr *topologyRecord
 	leaves := map[int]topologyRecord{}
 	for i := range d.entities {
@@ -71,7 +79,7 @@ func ReadEllipseConicRing(r io.Reader, l Limits) (EllipseConicRing, error) {
 			indices = []int{3, 4}
 			status, err := field(string(line[64:72]))
 			want := 0
-			if _, ok := leaves[id]; ok {
+			if _, ok := leaves[id]; ok || dependent && id == root.id {
 				want = 10000
 			}
 			if err != nil || status != want {
