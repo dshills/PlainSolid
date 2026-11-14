@@ -54,6 +54,22 @@ func TestPlacedWeightedFrustumGenerator(t *testing.T) {
 	if span.Face != 2 || span.Start.Min.Sign() != 0 || span.End.Max.Cmp(q(5, 2)) != 0 {
 		t.Fatal("missing original curved face overlap", span)
 	}
+	material, e := s.ClipPlacedWrappedFrustumLineRational(ctx, pose, origin, direction, q(-1, 7), q(3, 1), geom.ToroidLineOptions{ParameterTolerance: 1e-11})
+	if e != nil || len(material.Spans) != 1 || len(material.Boundary.Hits) != 2 || len(material.Boundary.Overlaps) != 1 || material.Spans[0][0].Min.Sign() != 0 || material.Spans[0][1].Max.Cmp(q(5, 2)) != 0 {
+		t.Fatal("full closed generator is one material span", material, e)
+	}
+	// Exact world copy of the local axial line (0,0,-3)+(0,0,2/3)t.
+	axisOrigin := [3]*big.Rat{q(-79, 35), q(-2, 7), q(-112, 65)}
+	axisDir := [3]*big.Rat{q(8, 15), z, q(2, 5)}
+	material, e = s.ClipPlacedWrappedFrustumLineRational(ctx, pose, axisOrigin, axisDir, q(1, 9), q(10, 1), geom.ToroidLineOptions{ParameterTolerance: 1e-11})
+	if e != nil || len(material.Spans) != 1 || len(material.Boundary.Hits) != 2 || material.Spans[0][0].Min.Cmp(q(3, 2)) != 0 || material.Spans[0][1].Max.Cmp(q(9, 1)) != 0 {
+		t.Fatal("solid axial clip between exact original caps", material, e)
+	}
+	clipped, e := s.ClipPlacedWrappedFrustumLineRational(ctx, pose, axisOrigin, axisDir, q(2, 1), q(3, 1), geom.ToroidLineOptions{ParameterTolerance: 1e-11})
+	if e != nil || len(clipped.Spans) != 1 || len(clipped.Boundary.Hits) != 0 || clipped.Spans[0][0].Min.Cmp(q(2, 1)) != 0 || clipped.Spans[0][1].Max.Cmp(q(3, 1)) != 0 {
+		t.Fatal("interior finite clip must not create boundary hits", clipped, e)
+	}
+
 	// At nonbinary local Z=1/3, the midpoint-profile boundary has
 	// x=y=(5/7)(37/15)=37/21.
 	// Pull back two distinct exact world points a sub-ULP radial step apart.

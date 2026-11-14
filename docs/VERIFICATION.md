@@ -2115,6 +2115,32 @@ relationship and product ownership after native reload and STEP export.
 Pinned OCCT reads the single-product fixture as two solids and the two
 independent products as three solids with volume 54, area 126, centroid
 (85/18,86/9,5/2) and bounds (-10,-5,0)–(12,22,10).
+The nested original XCAF source (`4f20b6e`) re-exports six solids and 36
+faces with volume 108, area 252, and bounds (0,-5,-5)–(112,112,22).
+The independent shared-group source (`9c48832`) re-exports seven solids and
+42 faces with volume 114, area 274, and bounds (0,-5,0)–(112,112,72).
+Distinct root/shared pose edits (`8288785`, `d157cfa`) preserve source IDs
+and unselected records. Live OCCT confirms the edited rational root pose
+and all affected shared paths; the latter moves the upper bounds to
+(122,122,72). Each path has focused normal, race, Go 1.23 and fuzz evidence.
+Exact noncardinal rational occurrences (`dd2e2b7`, `d45e1b7`, `ea16cfe`,
+`e1cbf3a`, `357f244`, `f5b2344`, `ce80740`, `98334c6`) preserve original
+caps, full generator and toroid material spans, exact signed squared
+distances, fourfold tangent multiplicity, analytic annular section radicals,
+and world centroid/inertia. An independent weighted-frustum cap probe
+projects exactly at squared distance 1/81. A generic surface probe keeps
+a squared distance 2^-240 that would round to zero in input binary64.
+The exact tensor adapter and open shell recipes (`a2ce204`, `013f645`,
+`e921692`, `b6c2e40`, `ced4616`, `6507324`) retain original multiknot charts,
+lossless nonbinary controls, and re-proved indexed diagonal seams and
+vertex fans. The verified three-face chain retains all nine original edge
+uses; native reload rejects stale individually valid face recipes.
+Affine graph measures (`a5dbdb1`, `5fa8fbd`, `0b6ff26`, `1ee0d1e`, `ff68870`)
+use exact convex exclusion and scaling or per-cell transformed normals,
+with one original material partition for requested volume, centroid, raw
+moments, inertia and surface area. Independent two-lobe covariance and
+curved density checks pass. This does not reconstruct oblique Boolean
+faces in world space.
 Distinct original spline contact pairs (`753c316`) agree with live OCCT on
 empty common and unchanged cut, with 58 other pairs proved separated. A
 missing pair and exhausted shared budget reject atomically. Normal and

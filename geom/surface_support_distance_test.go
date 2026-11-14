@@ -98,3 +98,19 @@ func TestPointSurfaceSupportLimitsAndContact(t *testing.T) {
 		t.Fatal(bounds, e)
 	}
 }
+
+func TestPointSurfaceSupportNonbinaryRationalCovector(t *testing.T) {
+	ctx := context.Background()
+	p := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{(1 - u) * (1 - v), v, u * (1 - v)} })
+	// This point is just behind the plane X+Y+Z=1. Its normal
+	// projection is (1/3,1/3,1/3), which this exact patch attains.
+	eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	component := new(big.Rat).Sub(big.NewRat(1, 3), eps)
+	point := [3]*big.Rat{component, component, component}
+	d := big.NewRat(-3, 7)
+	r, e := BoundPointSurfaceSupportRational(ctx, point, p, [][3]*big.Rat{{d, d, d}}, PointSurfaceSupportOptions{})
+	want := new(big.Rat).Mul(big.NewRat(3, 1), new(big.Rat).Mul(eps, eps))
+	if e != nil || !r.HasBound || !r.Complete || r.SquaredLower.Cmp(want) != 0 || r.Direction[0].Cmp(big.NewRat(3, 7)) != 0 {
+		t.Fatal("nonbinary control-hull separation must attain the independently known bound", r, e, want)
+	}
+}

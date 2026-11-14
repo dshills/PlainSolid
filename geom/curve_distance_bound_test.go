@@ -1,8 +1,10 @@
 package geom
 
 import (
+	"context"
 	"errors"
 	"math"
+	"math/big"
 	"testing"
 )
 
@@ -37,5 +39,21 @@ func TestCertifiedCurveDistanceFailureBounds(t *testing.T) {
 	c, _ = NewBSpline(1, []Vec3{{}, {X: 1}, {X: 2}, {X: 3}}, []float64{0, 0, .5, .5, 1, 1}, nil)
 	if _, e = BoundPointCurveDistance(Vec3{}, c, CurveDistanceOptions{}); !errors.Is(e, ErrInvalid) {
 		t.Fatal(e)
+	}
+}
+
+func TestExactRationalCurveDistanceUnrounded(t *testing.T) {
+	ctx := context.Background()
+	p := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
+	iso, e := p.IsoCurve(1, 0, SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	query := [3]*big.Rat{new(big.Rat).Add(big.NewRat(1, 1), eps), new(big.Rat), new(big.Rat)}
+	r, e := BoundPointExactCurveDistanceRational(ctx, query, iso, CurveDistanceOptions{SquaredTolerance: 1e-90})
+	want := new(big.Rat).Mul(eps, eps)
+	if e != nil || !r.Complete || !r.HasWitness || r.Parameter != 1 || r.Squared.Lower.Cmp(want) != 0 || r.Squared.Upper.Cmp(want) != 0 || r.Witness[0].Cmp(big.NewRat(1, 1)) != 0 || r.Witness[1].Sign() != 0 {
+		t.Fatal("exact rational endpoint distance to original iso curve", r, e, want)
 	}
 }

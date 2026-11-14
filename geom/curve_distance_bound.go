@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math"
+	"math/big"
 )
 
 // CurveDistanceOptions bounds certified global squared distance. Zero values
@@ -30,17 +31,37 @@ type CurveDistanceBounds struct {
 // on an immutable exact spline descriptor, including a surface iso-curve.
 // No control point conversion or weight renormalization is performed.
 func BoundPointExactCurveDistance(ctx context.Context, query Vec3, curve *ExactSplineCurve, o CurveDistanceOptions) (r CurveDistanceBounds, err error) {
+	if !query.IsFinite() {
+		return CurveDistanceBounds{SquaredDistanceMax: math.Inf(1)}, ErrInvalid
+	}
+	out, e := BoundPointExactCurveDistanceRational(ctx, rationalLineVec3(query), curve, o)
+	return out.CurveDistanceBounds, e
+}
+
+// RationalCurveDistanceBounds retains the exact squared-distance interval and
+// owned rational model point corresponding to the reported parameter.
+type RationalCurveDistanceBounds struct {
+	CurveDistanceBounds
+	Squared ExactParameterInterval
+	Witness [3]*big.Rat
+}
+
+// BoundPointExactCurveDistanceRational bounds distance for a rational model
+// point against the original immutable exact spline. If the resource limit
+// is reached, any returned bounds and witness remain valid.
+func BoundPointExactCurveDistanceRational(ctx context.Context, query [3]*big.Rat, curve *ExactSplineCurve, o CurveDistanceOptions) (r RationalCurveDistanceBounds, err error) {
 	r.SquaredDistanceMax = math.Inf(1)
-	if ctx == nil || curve == nil || curve.patch == nil || !query.IsFinite() {
+	if ctx == nil || curve == nil || curve.patch == nil {
 		return r, ErrInvalid
 	}
-	q, e := boundPointSurfaceDistanceContext(ctx, query, curve.patch, SurfaceDistanceOptions{
-		SquaredTolerance: o.SquaredTolerance, MaxDepth: o.MaxDepth, MaxCells: o.MaxCells,
-		MaxQueuedPoles: o.MaxQueuedPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+	q, e := boundPointSurfaceDistanceRational(ctx, query, curve.patch, SurfaceDistanceOptions{
+		SquaredTolerance: o.SquaredTolerance, MaxDepth: o.MaxDepth, MaxCells: o.MaxCells, MaxQueuedPoles: o.MaxQueuedPoles,
+		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
 	}, true)
 	r.SquaredDistanceMin, r.SquaredDistanceMax, r.Parameter = q.SquaredDistanceMin, q.SquaredDistanceMax, q.UpperUV.X
 	r.PointBounds, r.HasWitness, r.Complete = q.UpperPoint, q.HasUpperPoint, q.Complete
 	r.VisitedCells, r.ExactOperations = q.VisitedCells, q.ExactOperations
+	r.Squared, r.Witness = q.Squared, q.Witness
 	return r, e
 }
 

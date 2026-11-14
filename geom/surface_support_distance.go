@@ -33,7 +33,27 @@ type PointSurfaceSupportBound struct {
 // convex-hull witness updates; every resulting support inequality is rechecked
 // against every rational control point. No floating nearest-hull solver is trusted.
 func BoundPointSurfaceSupport(ctx context.Context, query Vec3, p *SurfacePatch, o PointSurfaceSupportOptions) (r PointSurfaceSupportBound, err error) {
-	if ctx == nil || p == nil || len(p.net) == 0 || !query.IsFinite() {
+	if !query.IsFinite() || len(o.Directions) > 256 {
+		return r, ErrInvalid
+	}
+	dirs := make([][3]*big.Rat, len(o.Directions))
+	for i, d := range o.Directions {
+		if !d.IsFinite() {
+			return r, ErrInvalid
+		}
+		dirs[i] = rationalLineVec3(d)
+	}
+	o.Directions = nil
+	return BoundPointSurfaceSupportRational(ctx, rationalLineVec3(query), p, dirs, o)
+}
+
+// BoundPointSurfaceSupportRational accepts exact model coordinates and
+// exact unnormalized covectors. Options.Directions must be empty; the
+// supplied directions slice takes its place. The returned lower bound
+// remains valid on cancellation or exhaustion once HasBound is true.
+func BoundPointSurfaceSupportRational(ctx context.Context, query [3]*big.Rat, p *SurfacePatch,
+	directions [][3]*big.Rat, o PointSurfaceSupportOptions) (r PointSurfaceSupportBound, err error) {
+	if ctx == nil || p == nil || len(p.net) == 0 || len(o.Directions) != 0 || len(directions) > 256 {
 		return r, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -51,12 +71,24 @@ func BoundPointSurfaceSupport(ctx context.Context, query Vec3, p *SurfacePatch, 
 	if o.MaxIterations < 1 || o.MaxIterations > 64 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || len(o.Directions) > 256 {
 		return r, ErrInvalid
 	}
-	for _, d := range o.Directions {
-		if !d.IsFinite() || (d.X == 0 && d.Y == 0 && d.Z == 0) {
+	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	inputs := [][3]*big.Rat{query}
+	inputs = append(inputs, directions...)
+	for i, v := range inputs {
+		zero := true
+		for _, q := range v {
+			if q == nil {
+				return r, ErrInvalid
+			}
+			if q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
+				return r, ErrConvergence
+			}
+			zero = zero && q.Sign() == 0
+		}
+		if i > 0 && zero {
 			return r, ErrInvalid
 		}
 	}
-	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	r.SquaredLower = new(big.Rat)
 	r.HasBound = true
 	defer func() {
@@ -64,8 +96,8 @@ func BoundPointSurfaceSupport(ctx context.Context, query Vec3, p *SurfacePatch, 
 		r.SquaredLowerBound = rationalFloatBound(r.SquaredLower, true)
 		r.LowerBound = outwardSqrtRat(r.SquaredLower, true)
 	}()
-	q := [3]*big.Rat{new(big.Rat).SetFloat64(query.X), new(big.Rat).SetFloat64(query.Y), new(big.Rat).SetFloat64(query.Z)}
-	lower, e := exactPointBoxDistance(query, p.bounds, budget)
+	q := query
+	lower, e := exactRationalPointBoxDistance(query, p.bounds, budget)
 	if e != nil {
 		return r, e
 	}
@@ -151,8 +183,8 @@ func BoundPointSurfaceSupport(ctx context.Context, query Vec3, p *SurfacePatch, 
 		}
 		return lowest, nil
 	}
-	for _, d := range o.Directions {
-		if _, e := evaluate([3]*big.Rat{new(big.Rat).SetFloat64(d.X), new(big.Rat).SetFloat64(d.Y), new(big.Rat).SetFloat64(d.Z)}); e != nil {
+	for _, d := range directions {
+		if _, e := evaluate(d); e != nil {
 			return r, e
 		}
 	}
