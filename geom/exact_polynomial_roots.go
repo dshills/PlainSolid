@@ -128,6 +128,6 @@ func (r *ExactAlgebraicRoot) SignPolynomial(ctx context.Context, coefficients []
 			return out, e
 		}
 	}
-	out.Sign, out.Subdivisions, e = composedPolynomialRootSign(ctx, r.root, p, b, o.MaxSubdivisions)
+	out.Sign, out.Subdivisions, e = composedPolynomialRootSign(ctx, r.root, trimPolynomial(p), b, o.MaxSubdivisions)
 	return out, e
 }
