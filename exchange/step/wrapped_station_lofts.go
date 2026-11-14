@@ -24,7 +24,14 @@ type WrappedStationLoftBody struct {
 }
 
 func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (WrappedStationLoftBody, error) {
+	return readWrappedStationLoft(r, l, o, true)
+}
+
+func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circular bool) (WrappedStationLoftBody, error) {
 	fail := func() (WrappedStationLoftBody, error) {
+		if !circular {
+			return WrappedStationLoftBody{}, errors.New("step: unsupported wrapped rational station loft")
+		}
 		return WrappedStationLoftBody{}, errors.New("step: unsupported wrapped circular station loft")
 	}
 	var e error
@@ -92,8 +99,12 @@ func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 	if e != nil {
 		return fail()
 	}
-	faces, e := listRefs(shell.Args[1], 4)
-	if e != nil || len(faces) > 66 || len(faces) > l.MaxFaces || 4*(len(faces)-2)+2 > l.MaxEdgeUses || len(faces)-2 > o.MaxSurfaces {
+	minFaces, maxFaces := 4, 66
+	if !circular {
+		minFaces, maxFaces = 3, 18
+	}
+	faces, e := listRefs(shell.Args[1], minFaces)
+	if e != nil || len(faces) > maxFaces || len(faces) > l.MaxFaces || 4*(len(faces)-2)+2 > l.MaxEdgeUses || len(faces)-2 > o.MaxSurfaces {
 		return fail()
 	}
 	o.MaxOperations /= len(faces)
@@ -186,7 +197,7 @@ func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 			return WrappedStationLoftBody{}, e
 		}
 		proof, e := geom.CertifyWrappedFrustumEmbedding(context.Background(), decoded.Geometry, geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
-		if e != nil || !proof.Complete || !proof.Circular {
+		if e != nil || !proof.Complete || circular && !proof.Circular {
 			return fail()
 		}
 		recipe, e := decoded.Geometry.ExportRecipe()
@@ -199,7 +210,7 @@ func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 		}
 		bands = append(bands, band{decoded, proof, sid})
 	}
-	if len(bands) < 2 || len(capIDs) != 2 {
+	if len(bands) < minFaces-2 || len(capIDs) != 2 {
 		return fail()
 	}
 	sort.Slice(bands, func(i, j int) bool { return bands[i].proof.LowerZ.Cmp(bands[j].proof.LowerZ) < 0 })
@@ -327,7 +338,16 @@ func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 			}
 		}
 	}
-	out.Solid, _, e = trimmed.LoftWrappedCircularStations(context.Background(), out.Center, out.Stations, 1e-10, geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
+	options := geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+	if circular {
+		out.Solid, _, e = trimmed.LoftWrappedCircularStations(context.Background(), out.Center, out.Stations, 1e-10, options)
+	} else {
+		supports := make([]*geom.WrappedSurfacePatch, len(bands))
+		for i := range bands {
+			supports[i] = bands[i].face.Geometry
+		}
+		out.Solid, _, e = trimmed.NewWrappedRationalStationLoft(context.Background(), supports, 1e-10, options)
+	}
 	if e != nil {
 		return WrappedStationLoftBody{}, e
 	}

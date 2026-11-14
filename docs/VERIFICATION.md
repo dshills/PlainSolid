@@ -5928,3 +5928,12 @@ isolated corner contact. They compare proper crossing results with the
 strict API, preserve all original directed uses and exercise result mutation
 and exact or one-short budgets. The integrated affine polygon and patch
 race passed in 1.919 s.
+
+### Weighted station loft STEP qualification
+
+The filled-loft suite checks one and two bands, preserves original poles,
+weights, nonuniform knots and shared rim IDs, and rejects edited p-curves,
+orientation and detached faces. Pinned OCCT reads the asymmetric two-band
+export with volume 28.0579957962 and axial centroid 1.314814814753. The
+integrated weighted and circular loft and bore race passed in 152.864 s
+using an oracle built with the station source-authoring modes.

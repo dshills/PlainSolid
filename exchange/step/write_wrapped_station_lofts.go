@@ -44,6 +44,11 @@ func WriteWrappedStationLoft(w io.Writer, m WrappedStationLoftBody) error {
 		}
 		parts.Bodies = append(parts.Bodies, WrappedFrustumBody{Face: WrappedSplineFace{Name: name, Geometry: support}, CapNames: m.CapNames})
 	}
+	return writeWrappedStationGraph(w, m.Name, parts, true)
+}
+
+func writeWrappedStationGraph(w io.Writer, name string, parts WrappedFrustumModel, circular bool) error {
+	var e error
 	var raw bytes.Buffer
 	if e = WriteWrappedFrusta(&raw, parts); e != nil {
 		return e
@@ -149,15 +154,15 @@ func WriteWrappedStationLoft(w io.Writer, m WrappedStationLoftBody) error {
 	}
 	kept = append(kept, sourceFaces[0][1], sourceFaces[len(sourceFaces)-1][2])
 	var out bytes.Buffer
-	e = writeStandalone(&out, m.LengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	e = writeStandalone(&out, parts.LengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		ids := copySplineGeometry(emit, f, kept)
 		shell := emit("CLOSED_SHELL(''," + references(ids) + ")")
-		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(m.Name), shell))}
+		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(name), shell))}
 	})
 	if e != nil {
 		return e
 	}
-	if _, e = ReadWrappedStationLoft(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}); e != nil {
+	if _, e = readWrappedStationLoft(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, circular); e != nil {
 		return e
 	}
 	n, e := w.Write(out.Bytes())

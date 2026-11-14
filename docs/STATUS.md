@@ -2144,3 +2144,10 @@ coincident area edges carry every original use and its exact parameter
 interval. Closed common boundary spans report intersection material on
 both sides. Isolated common points are returned separately. Point-connected
 branching area boundaries remain unresolved.
+
+### Weighted station loft STEP exchange
+
+The strict filled-loft writer retains original weighted wall supports, exact
+rim and seam p-curves, and a single topological edge at every shared station
+rim. Its paired reader re-authenticates each original wall and both terminal
+caps before returning native geometry. See the [weighted loft STEP contract](../exchange/step/WRAPPED_RATIONAL_STATION_LOFTS.md).
