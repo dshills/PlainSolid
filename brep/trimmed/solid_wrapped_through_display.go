@@ -137,6 +137,37 @@ func (s Solid) prepareWrappedOpenDisplay(ctx context.Context, o CertifiedWrapped
 // bindPreparedWrappedDisplay is internal: only complete authenticated source
 // constructors may supply a report. It is not a caller-asserted certificate.
 func (s Solid) bindPreparedWrappedDisplay(ctx context.Context, report CertifiedWrappedFrustumOpenBoreMesh, wallFaces []int, validation placement.ClosedDisplayOptions) (*PreparedWrappedThroughDisplay, error) {
+	bands := make([]wrappedDisplayBand, len(wallFaces))
+	for wall, face := range wallFaces {
+		grid := report.Walls[wall]
+		if len(report.RimVertices[wall][0]) == 0 {
+			return nil, geom.ErrDomain
+		}
+		base := report.RimVertices[wall][0][0]
+		ids := make([]int, len(grid.Mesh.Vertices))
+		for i, point := range grid.Mesh.Vertices {
+			id := base + i
+			if id < 0 || id >= len(report.Mesh.Vertices) || report.Mesh.Vertices[id] != point {
+				return nil, geom.ErrDomain
+			}
+			ids[i] = id
+		}
+		bands[wall] = wrappedDisplayBand{face, grid.UParameters, grid.VParameters, ids}
+	}
+	return s.bindPreparedWrappedBands(ctx, report, bands, validation)
+}
+
+// wrappedDisplayBand retains the certified periodic grid's explicit original
+// face and global vertex indices. Grid order is U-major, with unique periodic
+// columns; V includes both ends. No nearest-position lookup is used.
+type wrappedDisplayBand struct {
+	face    int
+	u, v    []float64
+	indices []int
+}
+
+func (s Solid) bindPreparedWrappedBands(ctx context.Context, report CertifiedWrappedFrustumOpenBoreMesh, bands []wrappedDisplayBand, validation placement.ClosedDisplayOptions) (*PreparedWrappedThroughDisplay, error) {
+
 	if len(report.Mesh.Vertices) > 100000 || report.SourceImageSquaredDistance == nil || report.SourceImageSquaredDistance.Sign() < 0 || report.SourceImageSquaredDistance.Num().BitLen() > 65536 || report.SourceImageSquaredDistance.Denom().BitLen() > 65536 {
 		return nil, geom.ErrConvergence
 	}
@@ -174,11 +205,11 @@ func (s Solid) bindPreparedWrappedDisplay(ctx context.Context, report CertifiedW
 		}
 		return nil
 	}
-	for wall, face := range wallFaces {
-		grid := report.Walls[wall]
-		u, v := grid.UParameters, grid.VParameters
+	for _, band := range bands {
+		face := band.face
+		u, v := band.u, band.v
 		nu := len(u) - 1
-		if nu < 4 || len(v) < 2 || len(report.RimVertices[wall][0]) != nu || len(report.RimVertices[wall][1]) != nu {
+		if nu < 4 || len(v) < 2 || len(band.indices) != nu*len(v) {
 			return nil, geom.ErrDomain
 		}
 		for _, use := range s.faces[face].Outer {
@@ -204,7 +235,7 @@ func (s Solid) bindPreparedWrappedDisplay(ctx context.Context, report CertifiedW
 				}
 				for i, x := range u {
 					if x >= lo && x <= hi {
-						ids = append(ids, report.RimVertices[wall][end][i%nu])
+						ids = append(ids, band.indices[(i%nu)*len(v)+end*(len(v)-1)])
 						params = append(params, ratInset(x))
 					}
 				}
@@ -212,10 +243,9 @@ func (s Solid) bindPreparedWrappedDisplay(ctx context.Context, report CertifiedW
 					return nil, geom.ErrConvergence
 				}
 			} else if use.UVStart.X == use.UVEnd.X && (use.UVStart.X == u[0] || use.UVStart.X == u[nu]) {
-				base := report.RimVertices[wall][0][0]
 				for j, y := range v {
-					id := base + j
-					if id < 0 || id >= len(report.Mesh.Vertices) || j >= len(grid.Mesh.Vertices) || report.Mesh.Vertices[id] != grid.Mesh.Vertices[j] {
+					id := band.indices[j]
+					if id < 0 || id >= len(report.Mesh.Vertices) {
 						return nil, geom.ErrDomain
 					}
 					ids = append(ids, id)

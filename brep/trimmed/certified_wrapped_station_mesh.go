@@ -44,6 +44,18 @@ func (s Solid) TessellateWrappedStationLoftCertified(ctx context.Context, o Cert
 	return s.tessellateWrappedStationLoftFrom(ctx, o, 1)
 }
 func (s Solid) tessellateWrappedStationLoftFrom(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int) (out CertifiedWrappedStationMesh, err error) {
+	return s.tessellateWrappedStationLoftBoundaries(ctx, o, first, nil)
+}
+
+func (s Solid) tessellateWrappedStationLoftBoundaries(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int, capture *[]wrappedDisplayBand) (out CertifiedWrappedStationMesh, err error) {
+	if capture != nil {
+		*capture = nil
+		defer func() {
+			if err != nil {
+				*capture = nil
+			}
+		}()
+	}
 	defer func() {
 		if err != nil {
 			out = CertifiedWrappedStationMesh{}
@@ -180,6 +192,15 @@ func (s Solid) tessellateWrappedStationLoftFrom(ctx context.Context, o Certified
 			if bound.Cmp(out.SourceImageSquaredDistance) > 0 {
 				out.SourceImageSquaredDistance.Set(bound)
 			}
+		}
+		if capture != nil {
+			ids := append([]int(nil), mapping[:len(m.Lateral.Mesh.Vertices)]...)
+			for _, id := range ids {
+				if id < 0 {
+					return out, geom.ErrConvergence
+				}
+			}
+			*capture = append(*capture, wrappedDisplayBand{proof.History.WallFaces[band], append([]float64(nil), m.Lateral.UParameters...), append([]float64(nil), m.Lateral.VParameters...), ids})
 		}
 		if band == 0 {
 			for _, id := range m.RimVertices[0] {

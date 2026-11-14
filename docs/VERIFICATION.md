@@ -5571,6 +5571,15 @@ and independent ideal volume checks pass. Forged caps, a missing seam,
 cancellation and quota exhaustion fail. The originating combined race
 passed in 27.268 s and the integrated stock race passed in 6.017 s.
 
+The circular station loft display re-proves both sides of an original
+reentrant waist with radii 3, 1, and 2. It shares all junction indices
+only after comparing original samples exactly. Original quarter edges,
+28 coedge occurrences, 12 corners and the sign change of adjacent wall
+normals survive reindexing and native reload. The 288 triangles match
+the existing public mesher output; analytic volume `9π` independently
+checks the display at the 0.2 deflection setting. Integrated race passed
+in 10.678 s; the originating combined adapter race passed in 37.503 s.
+
 ## Native ordered roof-box Fuse (2026-11-14)
 
 The independent weighted-stock Fuse reproduces exact height
