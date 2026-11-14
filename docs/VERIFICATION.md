@@ -1,5 +1,11 @@
 # Verification record
 
+The [updated full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-c7a5af46-2026-11-14.json)
+passed 49 tested packages on a clean `c7a5af46` archive with CGO
+disabled. Four packages have no tests. Go recorded 4,495 passing test
+events and 386 skips, including opt-in comparators. The module list
+contains only PlainSolid.
+
 The [full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-d6fe29e4-2026-11-14.json)
 passed 49 tested packages on a clean `d6fe29e4` archive with CGO disabled;
 three packages have no tests. Go reported 4,414 passing test events and
