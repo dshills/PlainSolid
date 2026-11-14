@@ -26,10 +26,12 @@ rebuild, reopen, STL, and STEP, on all 841 pinned PlainCAD source files.
 The [reconciled acceptance record](evidence/plaincad-reconciled-bc7f9c3-side-openings-2026-11-13.json)
 identifies the actual browser build. These application checks do not establish
 a general OCCT replacement.
-Review head `4b8fcab` combines that same worktree revision with the later
+Review candidate `754ae8e` combines that same worktree revision with the later
 native query, exact-owner mesh, algebraic persistence and exchange milestones.
-All packages compiled with CGO disabled on this candidate. The browser evidence
-above remains tied to the earlier pinned build.
+All packages compiled with CGO disabled. The
+[second pinned Chromium run](evidence/plaincad-reconciled-754ae8e-side-openings-2026-11-13.json)
+verified the same original backend and both unchanged supplemental opening
+workflows with no retries or skips.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.

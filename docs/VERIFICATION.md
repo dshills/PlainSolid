@@ -340,6 +340,35 @@ Reindexed native frustum bores (`9c3fa87`, `43126f1`) re-prove face ownership
 after JSON reload. Horizontal section retains the exact original `V=3/7`;
 axis, annular and cavity line tests distinguish both opening disks from both
 retained inner caps and preserve original face IDs. Normal and race passed.
+The through-bore and enclosed eccentric frustum displays (`9f7124c`) preserve
+shared annular rim indices, all native face IDs and continuous wall and cap
+normals. The cavity has a separately proved strict shell parent and inward
+orientation. Both display volumes agree within the analytic fixture bounds.
+The through, blind, placed and eccentric normal mesh regression ran under
+race (188.5 seconds); the nested cavity and mesh locator passed focused race.
+The paired wrapped algebraic edge (`cbdece9`) rechecks both original p-curves,
+exact endpoint ownership and opposing incidence across an irrational event.
+The bounded two-face shell (`449035b`) retains six vertices, seven edges and
+the six-use exterior. Normal and race tests verify independent refinements,
+reversal, undeclared contacts, and witness and work guards. It does not
+establish global embedding of two arbitrary supports.
+Prepared graph Boolean queries (`26aa008`) distinguish exact rational probes
+separated by `2^-200` and retain native bracketing faces, exact fiber heights
+and rim owners in annular and signed XZ disjoint material. Full fixture runs
+and concurrent reuse with caller result mutation passed race.
+The opt-in STEP reader for alternate disk-hole bounds (`e58b59e`) admits a
+fully reversed source loop and coedge order together with a negative bound
+sense. A pinned OCCT representation and canonical re-export match one solid,
+six faces, volume 94π and area 100π. Partial reversals and rounded vendor
+geometry reject. Native mapped planar STEP (`12cc319`) independently imports
+an OCCT-authored box with two exact rigid mapped uses. Source and write-back
+transfer as two solids and 12 faces with volume 48, area 104 and centroid
+(6.5, 11.25, 1.75). Model/p-curve mutation, ownership, normal, race and bounded
+fuzz checks passed. The mapped writer validates and re-emits the source graph.
+Reconciled PlainCAD candidate `754ae8e` passed the real backend probe with no
+OCCT request and both different-center openings in Chromium (38.5 and 46.6
+seconds), on the same 841 pinned application source files and unchanged
+supplemental fixture. Both cases rebuild, reopen and export STL and STEP.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
