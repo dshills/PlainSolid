@@ -19,12 +19,22 @@ type RadialOverlapCoverageOptions struct {
 	Proof        geom.RadialTubeCoverageOptions
 }
 
+// RadialTransferMode identifies the independently checked transfer proof.
+type RadialTransferMode string
+
+const (
+	RadialTransferGeneric  RadialTransferMode = "original-cell-union"
+	RadialTransferPhysical RadialTransferMode = "exact-physical-circle-strata"
+)
+
 // RadialOverlapCoverage retains complete radial coverage and the separately
 // proved transfer to the caller's original tubes. It makes no topology claim.
 type RadialOverlapCoverage struct {
-	Cover           *geom.RadialTubeCoverage
-	ExactOperations int
-	Transferred     int
+	TransferMode                  RadialTransferMode
+	TransferStrata, TransferTests int
+	Cover                         *geom.RadialTubeCoverage
+	ExactOperations               int
+	Transferred                   int
 }
 
 // DiscoverOverlappingRadialGraphContourTubes returns a separate proposal lane.
@@ -314,6 +324,11 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 	if len(seeds.Attempts) > o.MaxCandidateTests {
 		return nil, geom.ErrConvergence
 	}
+	mode := RadialTransferGeneric
+	strata, tests := 0, 0
+	if transport != nil {
+		mode = RadialTransferPhysical
+	}
 	for index, s := range seeds.Attempts {
 		if used >= maximum {
 			return nil, fmt.Errorf("radial transfer cell %d/%d: cumulative operation cap %d: %w", index+1, len(seeds.Attempts), maximum, geom.ErrConvergence)
@@ -339,7 +354,14 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 				available = append(available, target)
 			}
 		}
-		result, e := cache.CertifyCell(ctx, box, available, opts)
+		var result geom.SurfaceTubeUnionCoverage
+		if transport != nil {
+			result, e = transport.CertifyCellInTubes(ctx, box, available, opts)
+		} else {
+			result, e = cache.CertifyCell(ctx, box, available, opts)
+		}
+		strata += result.PartitionPieces
+		tests += result.VisitedCells
 		used += result.ExactOperations
 		if e != nil {
 			return nil, fmt.Errorf("radial transfer cell %d/%d: %d original tubes, %d visited cells, %d partition pieces, %d/%d cell operations and %d/%d total: %w",
@@ -355,5 +377,5 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 	if used > maximum {
 		return nil, geom.ErrConvergence
 	}
-	return &RadialOverlapCoverage{Cover: cover, ExactOperations: used, Transferred: len(seeds.Attempts)}, nil
+	return &RadialOverlapCoverage{Cover: cover, ExactOperations: used, Transferred: len(seeds.Attempts), TransferMode: mode, TransferStrata: strata, TransferTests: tests}, nil
 }

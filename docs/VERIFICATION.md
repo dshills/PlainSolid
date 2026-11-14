@@ -2563,3 +2563,27 @@ route now charges997027 operations after removing redundant canonical reproof.
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestAffineRadialOriginalTransport|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
 ```
+
+## Exact radial transfer strata (2026-11-14)
+
+Focused geometry tests independently exercise an uncovered tangent on an open
+edge, a vertex-only tangent, a covered boundary-only contact, and an uncovered
+radius-one arc inside a rectangle of half-width 2^-40. Public original-support
+checks reject the corresponding tangent/tiny-arc candidates without targets,
+freshly prove a valid uniform target, reject a forged broad target, and enforce
+cancellation and exact/one-less operation quotas. Focused race passed for the
+strata, original target certificates, and non-unit pair integration. The
+physical rectangle pair uses 36 cover cells and 1,104,858 exact operations on
+the integrated revision, including fresh target proofs.
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./intersect -run '^(TestRadialTransferClosedStrata|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom -run '^TestRadialTransferOriginalCertificate$' -count=1
+PLAINSOLID_RADIAL_TRANSFER_TRIPLE=1 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./intersect -run '^TestTripleRadialPhysicalTransferCoverage$' -count=1 -v -timeout 15m
+```
+
+The opt-in direct original triple test passed in 75.60 s on the isolated
+implementation at `0c2b241`. It verified 228 original tubes and 248 overlapping
+cover cells, with 47,917,293 exact operations, 15,124 partition strata and
+7,240 uncovered-stratum checks. This qualifies the original coverage transfer;
+native assembly and meshing with this strategy have their own end-to-end test.

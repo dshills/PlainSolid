@@ -1503,3 +1503,24 @@ can be nonbinary rationals. Existing unit-domain radial mass APIs retain their
 strict public contract; the generalized coefficient variant is private to the
 affine coverage certificate. No new native solid or mass formula is inferred
 from a normalized proof chart.
+
+## Exact physical radial transfer (2026-11-14)
+
+The explicit affine radial strategy now transfers coverage by an exact physical
+XY arrangement, through `AffineRadialContours.CertifyCellInTubes`. Every target
+is freshly verified as a uniform tube on the original supports. Exact affine
+source identities map both closed original UV domains to rational physical
+rectangles; their intersection gives precisely the possible contact locations.
+A bounded partition includes vertices, open edges and open cells. Uncovered
+strata are excluded by exact circle-distance extrema with endpoint
+attainability, retaining isolated tangent contacts and tiny arcs. Midpoints
+select constant rectangle membership only; they never sample curve incidence.
+
+This resolves a concrete generic 4D quartic exclusion limitation (one unresolved
+cell at 205,780 operations, not arithmetic exhaustion) without weakening the
+generic proof. `RadialOverlapCoverage.TransferMode` identifies the selected
+proof; `TransferStrata` and `TransferTests` report its bounded arrangement work.
+The generic original-cell union remains available on the non-affine strategy.
+The opt-in direct original triple-pair test passed for all 228 original tubes,
+using 248 overlapping cover cells. Native assembly and mesh qualification with
+this strategy are tracked separately.
