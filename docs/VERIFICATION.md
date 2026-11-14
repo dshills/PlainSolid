@@ -2685,3 +2685,16 @@ native annulus at `54dfd84` confirmed automatic material band selection and
 exact XZ/YZ/ZZ in 77.74 s, including quota and source mutation negatives.
 The existing source degree, product degree, and integrand degree bounds stay
 in force. The test did not repeat mesh qualification.
+
+## Native ordered roof-box Common (2026-11-14)
+
+Tests verify six output faces, twelve shared edges, Euler characteristic two,
+zero continuous edge disagreement and deterministic owners for Common with
+coincident supports. A curved clipped result has exact volume 193/512 and
+matches independent pinned OCCT volume, boundary area and centroid. An
+identical weighted pair retains exact height (2+x²)/(1+x), analytic volume
+3 log 2 − 1/2, and stable volume after native reload. A parabolic roof tangent
+to a flat roof at X=1/2 retains exactly the unit box; live OCCT agrees. A real
+crossing, face-only contact, and exhausted arithmetic distinguish unsupported,
+regularized empty, and atomic budget results respectively. Focused live race
+passed in 4.946 s.

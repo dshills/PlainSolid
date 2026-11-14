@@ -1582,3 +1582,11 @@ physical bands from the original immutable Boolean, then re-proves source
 support identity and branch orientation. The non-unit annulus selects band 1
 with exact volume/π 421875/2147483648, area/π 75/1024 and centroid
 (3, 1/2, 3375/2097152). The point and moment methods retain independent limits.
+
+`IntersectOrderedRoofBoxes` now builds the native Common when roof order is
+proved on the entire shared footprint and the selected roof is a single
+positive-weight rational Bézier graph strictly above the retained floor.
+Exact homogeneous restriction and ruled walls keep the original geometry
+and a face ownership map, including equal roofs. A bounded Bernstein sign
+proof handles selected non-switching tangencies. Changing order and pinched
+material remain outside this constructor.

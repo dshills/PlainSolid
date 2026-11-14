@@ -12,6 +12,7 @@
 #include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepGProp.hxx>
+#include <BRepPrimAPI_MakeBox.hxx>
 #include <Geom_BezierSurface.hxx>
 #include <GProp.hxx>
 #include <GProp_GProps.hxx>
@@ -54,13 +55,19 @@ double roofControl(double x, double y, int i, int j, bool tool) {
   return x * y / 64.0 + xQuadratic[i] + yQuadratic[j] / 64.0;
 }
 
-TopoDS_Solid graphStock(bool tool) {
+TopoDS_Solid graphStock(bool tool, bool tangent = false) {
   const double x0 = tool ? 0 : -1.0/8, x1 = tool ? 1 : 9.0/8;
   const double y0 = tool ? -1.0/8 : 0, y1 = tool ? 9.0/8 : 1;
   const double z0 = tool ? -0.5 : -1;
   const double x[] = {x0, (x0+x1)/2, x1};
   const double y[] = {y0, (y0+y1)/2, y1};
-  const auto roof = [&](int i, int j) { return roofControl(x[i], y[j], i, j, tool); };
+  const auto roof = [&](int i, int j) {
+    if (tangent) {
+      const double xSquare[] = {.25, -.25, .25};
+      return 1.0 + xSquare[i];
+    }
+    return roofControl(x[i], y[j], i, j, tool);
+  };
 
   BRepBuilderAPI_Sewing sewing(1e-10);
   auto face = [&](int u, int v, bool reverse, const std::function<gp_Pnt(int,int)>& point) {
@@ -300,6 +307,17 @@ int main(int argc, char** argv) {
       return 0;
     }
     const auto a=graphStock(false), b=graphStock(true);
+    if (argc==2 && std::string(argv[1])=="ordered-common") {
+      const auto box=BRepPrimAPI_MakeBox(gp_Pnt(.25,0,-.75),gp_Pnt(.75,1,1)).Shape();
+      report("ordered-common",BRepAlgoAPI_Common(a,box).Shape());
+      return 0;
+    }
+    if (argc==2 && std::string(argv[1])=="tangent-ordered-common") {
+      const auto curved=graphStock(true,true);
+      const auto plane=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(1,1,1)).Shape();
+      report("tangent-ordered-common",BRepAlgoAPI_Common(curved,plane).Shape());
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());
