@@ -2402,3 +2402,24 @@ Display volume remains 0.0002195165898933681 against independent analytic
 The same run independently rechecked original section coverage, native
 component construction, the tight exact volume enclosure and full mass tensor.
 Full log: `/tmp/plainsolid-original-triple-native-mesh.log`.
+
+## Exact radial tube coverage (2026-11-14)
+
+Focused normal tests prove a 32-tube original circle cover with 542420 exact
+operations and 1024 neighbor tests. Tests reject a partial cover, endpoint-only
+joins, changed radius/source, and missing circles on a genuine two-radius
+quartic source; two unrelated-radius arc neighborhoods cannot stand in for
+coverage. Reordered occurrences remain valid. Result slices are owned; canceled
+work and insufficient tube, operation or neighbor limits publish no certificate.
+Exact reported operation and neighbor budgets succeed, one less fails.
+
+Commands (isolated `codex/exact-radial-coverage` checkout):
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom -run '^TestExactRadialTubeCoverage' -count=1 -v
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom -run '^TestExactRadialTubeCoverage' -count=1
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom
+```
+
+This independently qualifies exact coverage only, not a new native topology or
+an enlargement of the full replacement claim.
