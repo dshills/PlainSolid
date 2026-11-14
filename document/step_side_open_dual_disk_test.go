@@ -133,6 +133,10 @@ func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 			if !bytes.Contains(out.Bytes(), []byte("PRODUCT('side-cut-exact-walls'")) {
 				t.Fatal("exact wall occurrence did not use the registered STEP product")
 			}
+			p, e := step.ReadExactWallSideOpenDualDiskProduct(ctx, bytes.NewReader(out.Bytes()), step.Limits{}, 1e-9)
+			if e != nil || p.RadicalSide != step.ExternalRadicalLeft || p.SourceWallFaces[0] == 0 || p.SourceWallFaces[1] == 0 || p.SourceFloorFace == 0 {
+				t.Fatal("exact wall occurrence did not round trip with original support lineage", p.RadicalSide, p.SourceWallFaces, p.SourceFloorFace, e)
+			}
 			if _, e = step.ReadGeneralSideOpenDualDiskProduct(ctx, bytes.NewReader(out.Bytes()), step.Limits{}, 1e-9); e == nil {
 				t.Fatal("ordinary float-wall reader admitted the exact-wall dialect")
 			}
