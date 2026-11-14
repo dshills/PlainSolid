@@ -175,6 +175,12 @@ func ReadPlacedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Limit
 	return out, nil
 }
 func writePlacedEllipse(ctx context.Context, w io.Writer, a topologyAuthor, m geom.Affine, unit float64, tol float64) error {
+	return writePlacedConic(ctx, w, a, m, unit, tol, func(raw []byte) error {
+		_, e := ReadPlacedEllipticalPrismMaterial(ctx, bytes.NewReader(raw), Limits{}, tol)
+		return e
+	})
+}
+func writePlacedConic(ctx context.Context, w io.Writer, a topologyAuthor, m geom.Affine, unit, tol float64, validate func([]byte) error) error {
 	if ctx == nil || w == nil || !roofRigid(m) {
 		return geom.ErrInvalid
 	}
@@ -243,7 +249,7 @@ func writePlacedEllipse(ctx context.Context, w io.Writer, a topologyAuthor, m ge
 			copy(line[48:56], fmt.Sprintf("%8d", tid))
 		}
 	}
-	if _, e = ReadPlacedEllipticalPrismMaterial(ctx, bytes.NewReader(raw), Limits{}, tol); e != nil {
+	if e = validate(raw); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)
