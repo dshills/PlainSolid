@@ -35,6 +35,32 @@ check containment of the OCCT volume, centroid, first moments and full
 world inertia tensor. The independent evaluator does not prove a general Boolean
 capability or exact equality between either engine's reported area values.
 
+`MixedRoofMaterialQuery.BoundVolume` integrates through the original XY
+footprints. It integrates polynomial column thickness exactly wherever the
+roof order is proved. It retains enclosing contributions on crossing cells
+and on cells with active nonconstant weights. Its separate bounds for the
+three crossing operations contain the OCCT volumes above within enclosures
+of width at most `1/1000`.
+
+The same executable's `weighted-mass` mode sews rational surfaces for the
+stock roof `(2+x²)/(1+x)` and a strictly enclosed tilted tool. The OCCT
+Common volume is exactly recorded as `0.421875`; Fuse and Cut report
+`1.5794415416886896` and `1.1575665416886896`. The Go test also checks the
+independently integrated `3 ln(2) - 1/2` stock volume and the exact `27/64`
+tool volume. To run both the station and mass comparisons:
+
+```sh
+PLAINSOLID_OCCT_WEIGHTED_ROOF=/tmp/occt-crossing-roofs \
+PLAINSOLID_OCCT_WEIGHTED_ROOF_MASS=/tmp/occt-crossing-roofs \
+  go test ./brep/trimmed -run '^TestOriginalWeightedRoofMaterialQueries$' -count=1
+```
+
+The single-span biquartic fixture keeps the same original edge curves while
+adding two interior homogeneous terms to the stock's roof. The diagonal
+line event is checked by exact substitution into the independently expanded
+degree-eight polynomial, with a nonzero sign in the previous sextic. This
+covers higher-order line roots without changing the native Boolean proof.
+
 `BoundTrimmedGeometry` is a separate native enclosure query. It intersects
 the operation's operand box with the outward hull of all retained and
 unresolved source cells, using the same chart cover as the area and mass

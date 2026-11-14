@@ -259,6 +259,13 @@ int main(int argc, char** argv) {
       reportWeightedLine();
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="weighted-mass") {
+      const auto a=weightedGraphStock(false), b=weightedGraphStock(true);
+      report("intersection", BRepAlgoAPI_Common(a,b).Shape());
+      report("union", BRepAlgoAPI_Fuse(a,b).Shape());
+      report("difference", BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
     const auto a=graphStock(false), b=graphStock(true);
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());

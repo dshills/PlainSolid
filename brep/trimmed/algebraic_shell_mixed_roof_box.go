@@ -6,6 +6,8 @@ import (
 	"plainsolid/geom"
 )
 
+const mixedRoofMaxDegree = geom.ExactPolynomialMaxDegree / 2
+
 // Used only with the independently validated immutable input shells of a mixed
 // Boolean. Complete rectangular faces, positive projected injectivity, original
 // continuous edge agreement and the six supporting surfaces identify exactly
@@ -117,7 +119,7 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		if err != nil {
 			return nil, err
 		}
-		coeff, minWeight, work, ok := r.roof.RationalBezierCoefficientsWithWork(3, n)
+		coeff, minWeight, work, ok := r.roof.RationalBezierCoefficientsWithWork(mixedRoofMaxDegree, n)
 		r.operations += work
 		if !ok {
 			if work != 0 && r.operations >= limit {
@@ -134,8 +136,9 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 			r.weight[a] = make([]*big.Rat, len(row))
 			for b, c := range row {
 				// The identity projection gives Hx=X*W and Hy=Y*W.
-				// A bicubic graph's denominator is at most biquadratic.
-				if (a > 2 || b > 2) && c[3].Sign() != 0 {
+				// Each axis of W is one degree lower than its corresponding
+				// homogeneous model coordinate, by the proved identity map.
+				if (a >= len(coeff)-1 || b >= len(row)-1) && c[3].Sign() != 0 {
 					return nil, geom.ErrUnrepresentable
 				}
 				r.linePower[a][b], r.weight[a][b] = c[2], c[3]

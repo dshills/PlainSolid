@@ -111,22 +111,22 @@ func mixedRoofVolumeBound(chart [2]bool, op parametric.BooleanOp, a, b geom.Exac
 	return out, nil
 }
 
-func (b *mixedRoofBox) volumeRoofHeight(xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
+func (b *mixedRoofBox) volumeRoofDomain(xy [2]geom.ExactParameterInterval, w *mixedRoofLineWork) ([2]geom.ExactParameterInterval, error) {
 	var u [2]geom.ExactParameterInterval
 	d := b.domain
 	for i, x := range [2][2]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}} {
 		a, c := ratInset(x[0]), ratInset(x[1])
 		delta, err := w.rat(new(big.Rat).Sub(c, a))
 		if err != nil {
-			return geom.ExactParameterInterval{}, err
+			return u, err
 		}
 		for j, p := range [2]*big.Rat{xy[i].Lower, xy[i].Upper} {
 			q, err := w.rat(new(big.Rat).Sub(p, a))
 			if err != nil {
-				return geom.ExactParameterInterval{}, err
+				return u, err
 			}
 			if _, err = w.rat(q.Quo(q, delta)); err != nil {
-				return geom.ExactParameterInterval{}, err
+				return u, err
 			}
 			if j == 0 {
 				u[i].Lower = q
@@ -135,13 +135,7 @@ func (b *mixedRoofBox) volumeRoofHeight(xy [2]geom.ExactParameterInterval, w *mi
 			}
 		}
 	}
-	total, err := b.roofHeightRange(u, w)
-	if err != nil {
-		return geom.ExactParameterInterval{}, err
-	}
-	// Strict roof-above-floor was independently proved at preparation.
-	total.Lower = maxRat(total.Lower, b.floor)
-	return total, nil
+	return u, nil
 }
 
 // BoundVolume integrates the material thickness over the original XY
@@ -174,20 +168,37 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 			return c, err
 		}
 		heights := [2]geom.ExactParameterInterval{}
+		var uv [2][2]geom.ExactParameterInterval
 		for i, b := range q.box {
 			heights[i] = geom.ExactParameterInterval{Lower: b.floor, Upper: b.floor}
 			if !c.chart[i] {
 				continue
 			}
-			v, err := b.volumeRoofHeight(c.xy, &w)
+			var err error
+			uv[i], err = b.volumeRoofDomain(c.xy, &w)
 			if err != nil {
 				return c, err
 			}
+			v, err := b.roofHeightRange(uv[i], &w)
+			if err != nil {
+				return c, err
+			}
+			// Strict roof-above-floor was independently proved at preparation.
+			v.Lower = maxRat(v.Lower, b.floor)
 			heights[i] = v
 		}
 		v, err := mixedRoofVolumeBound(c.chart, q.op, heights[0], heights[1], q.box[0].floor, q.box[1].floor, &w)
 		if err != nil {
 			return c, err
+		}
+		if v.Lower.Cmp(v.Upper) != 0 {
+			avg, err := q.exactPolynomialColumnAverage(c.chart, uv, heights, &w)
+			if err != nil {
+				return c, err
+			}
+			if avg != nil {
+				v = geom.ExactParameterInterval{Lower: avg, Upper: new(big.Rat).Set(avg)}
+			}
 		}
 		area := big.NewRat(1, 1)
 		for _, a := range c.xy {

@@ -230,7 +230,7 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if err != nil || roof.PreparationOperations() <= 0 {
 			t.Fatal("original roof query preparation", name, err)
 		}
-		volumeOptions := MixedRoofVolumeOptions{AbsoluteGap: big.NewRat(1, 20),
+		volumeOptions := MixedRoofVolumeOptions{AbsoluteGap: big.NewRat(1, 1000),
 			SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 4000000}}
 		volume, err := roof.BoundVolume(ctx, volumeOptions)
 		if err != nil || !volume.Converged || !contains(volume.Volume, ref.Volume) {

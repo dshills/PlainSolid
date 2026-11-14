@@ -11,10 +11,13 @@ verifies the component topology and volume within `1e-10`.
 
 Direct volume bounds over the original XY footprints contain the independent
 OCCT Common, Fuse, and Cut volumes for the crossing-roof shells. Each
-enclosure is at most `1/20` cubic model units wide. The weighted cavity
+enclosure is at most `1/1000` cubic model units wide after exactly integrating
+the cells with proved polynomial thickness. The weighted cavity
 contains its independent logarithmic integral within `1/100`, preserves
 the bounds under a proper rigid placement, and returns a conservative
-enclosure when refinement is limited. Cancellation returns no bounds.
+enclosure when refinement is limited. Its `27/64` Common is exact, and the
+separately sewn weighted OCCT Common, Fuse, and Cut all agree. Cancellation
+returns no bounds.
 
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO

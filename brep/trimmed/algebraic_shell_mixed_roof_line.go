@@ -64,7 +64,7 @@ func (w *mixedRoofLineWork) rootOptions() (geom.ExactCurvePlaneEventOptions, err
 	return geom.ExactCurvePlaneEventOptions{MaxOperations: a, MaxSubdivisions: b, MaxCoefficientBits: w.o.MaxCoefficientBits}, nil
 }
 
-type mixedRoofLinePoly [7]*big.Rat
+type mixedRoofLinePoly [geom.ExactPolynomialMaxDegree + 1]*big.Rat
 
 func mixedRoofEmptyPoly() (p mixedRoofLinePoly) {
 	for i := range p {
@@ -96,7 +96,7 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 	}
 	d := b.domain
 	lo, hi := [2]float64{d.UMin, d.VMin}, [2]float64{d.UMax, d.VMax}
-	var powers [2][4][]*big.Rat
+	var powers [2][mixedRoofMaxDegree + 1][]*big.Rat
 	for i := range powers {
 		if out[2*i][0], err = w.rat(new(big.Rat).Sub(origin[i], ratInset(lo[i]))); err != nil {
 			return out, err
@@ -240,7 +240,7 @@ func (w *mixedRoofLineWork) compare(ctx context.Context, a, b *geom.ExactAlgebra
 
 // IntersectLineRational sweeps the exact finite line origin+direction*t through
 // the two original graph boxes. It composes six inward inequalities per box
-// directly with the rational line and isolates the complete degree <=6
+// directly with the rational line and isolates the complete degree <=8
 // station ledger. Coincident individual support polynomials are retained
 // as side, floor, or roof spans; no root is selected by a float tolerance.
 func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o MixedRoofLineOptions) (MixedRoofLineSection, error) {
@@ -448,8 +448,8 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 	return out, nil
 }
 
-// leftSign uses the leading nonzero Taylor coefficient at t. The degree
-// never exceeds six; differentiating in place preserves that exact sign.
+// leftSign uses the leading nonzero Taylor coefficient at t. Differentiating
+// the local coefficient array preserves its exact sign.
 func (w *mixedRoofLineWork) leftSign(p mixedRoofLinePoly, degree int, t *big.Rat) (int, error) {
 	for order := 0; order <= degree; order++ {
 		s, err := w.value(p, t)
@@ -462,14 +462,14 @@ func (w *mixedRoofLineWork) leftSign(p mixedRoofLinePoly, degree int, t *big.Rat
 			}
 			return s, nil
 		}
-		for i := 0; i < len(p)-1; i++ {
+		for i := 0; i < degree-order; i++ {
 			v, err := w.rat(new(big.Rat).Mul(p[i+1], big.NewRat(int64(i+1), 1)))
 			if err != nil {
 				return 0, err
 			}
 			p[i] = v
 		}
-		p[len(p)-1] = new(big.Rat)
+		p[degree-order] = new(big.Rat)
 	}
 	return 0, geom.ErrConvergence
 }

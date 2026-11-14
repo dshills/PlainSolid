@@ -1,9 +1,11 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -19,7 +21,7 @@ import (
 // rational weights. The first roof is (2+x²)/(1+x); the second is below
 // it and fully inside the first box, so their retained boundaries are known
 // without an approximate intersection curve.
-func weightedIdentityRoofStock(t *testing.T, tool, cubic bool) Solid {
+func weightedIdentityRoofStock(t *testing.T, tool bool, degree int) Solid {
 	t.Helper()
 	ctx := context.Background()
 	r := big.NewRat
@@ -49,7 +51,7 @@ func weightedIdentityRoofStock(t *testing.T, tool, cubic bool) Solid {
 			}
 		}
 		degreeU, degreeV := 2, 1
-		if cubic {
+		if degree >= 3 {
 			// Exact degree elevation preserves the original rational
 			// walls and floor while allowing an independent bicubic roof.
 			raised := make([][4]*big.Rat, 16)
@@ -76,6 +78,33 @@ func weightedIdentityRoofStock(t *testing.T, tool, cubic bool) Solid {
 			}
 			controls = raised
 			degreeU, degreeV = 3, 3
+		}
+		if degree == 4 && len(parts) == 1 && !tool {
+			raised := make([][4]*big.Rat, 25)
+			for i := 0; i < 5; i++ {
+				for j := 0; j < 5; j++ {
+					for v := 0; v < 4; v++ {
+						z := new(big.Rat)
+						for a := max(0, i-1); a <= min(3, i); a++ {
+							for b := max(0, j-1); b <= min(3, j); b++ {
+								// Cubic-to-quartic Bernstein degree elevation in each axis.
+								wu, wv := 4-i, 4-j
+								if a != i {
+									wu = i
+								}
+								if b != j {
+									wv = j
+								}
+								z.Add(z, new(big.Rat).Mul(r(int64(wu*wv), 16), controls[a*4+b][v]))
+							}
+						}
+						raised[i*5+j][v] = z
+					}
+				}
+			}
+			// Add u³(1-u)v³(1-v)/256 without changing the four sewn edges.
+			raised[3*5+3][2].Add(raised[3*5+3][2], r(1, 4096))
+			controls, degreeU, degreeV = raised, 4, 4
 		}
 		p, err := geom.NewExactHomogeneousBezierSurface(ctx, degreeU, degreeV, controls, geom.SurfacePatchOptions{})
 		if err != nil {
@@ -161,7 +190,7 @@ func weightedIdentityRoofStock(t *testing.T, tool, cubic bool) Solid {
 
 func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 	ctx := context.Background()
-	a, b := weightedIdentityRoofStock(t, false, false), weightedIdentityRoofStock(t, true, false)
+	a, b := weightedIdentityRoofStock(t, false, 2), weightedIdentityRoofStock(t, true, 2)
 	// Test the complete original section and regularized result; a caller
 	// cannot construct a query by asserting its own solid envelopes.
 	sec, err := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
@@ -223,6 +252,60 @@ func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 	if err != nil || !volume.Converged || volume.Volume.Lower.Cmp(want) > 0 || volume.Volume.Upper.Cmp(want) < 0 {
 		t.Fatal("weighted cavity analytic volume", volume, want, err)
 	}
+	common, err := sec.CombineAlgebraic(ctx, parametric.Intersection, AlgebraicShellBooleanOptions{})
+	if err != nil {
+		t.Fatal("weighted contained Common", err)
+	}
+	contained, err := common.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proven, err := contained.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 1000000000000), MaxCells: 3})
+	if err != nil || !proven.Converged || proven.Volume.Lower.Cmp(r(27, 64)) != 0 || proven.Volume.Upper.Cmp(r(27, 64)) != 0 {
+		t.Fatal("buried rational roof must leave an exact polynomial integral", proven, err)
+	}
+	if program := os.Getenv("PLAINSOLID_OCCT_WEIGHTED_ROOF_MASS"); program != "" {
+		out, err := exec.CommandContext(ctx, program, "weighted-mass").Output()
+		if err != nil {
+			t.Fatal("independent weighted mass oracle", err)
+		}
+		rows := json.NewDecoder(bytes.NewReader(out))
+		for _, name := range []string{"intersection", "union", "difference"} {
+			var ref struct {
+				Name   string
+				Volume float64
+			}
+			if err := rows.Decode(&ref); err != nil || ref.Name != name || !finite(ref.Volume) {
+				t.Fatal("invalid weighted mass oracle result", ref, err)
+			}
+			bound := volume.Volume
+			switch name {
+			case "intersection":
+				bound = proven.Volume
+			case "union":
+				fused, err := sec.CombineAlgebraic(ctx, parametric.Union, AlgebraicShellBooleanOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				fusedQuery, err := fused.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				fusedVolume, err := fusedQuery.BoundVolume(ctx, MixedRoofVolumeOptions{})
+				if err != nil || !fusedVolume.Converged {
+					t.Fatal("weighted Fuse enclosure", fusedVolume, err)
+				}
+				bound = fusedVolume.Volume
+			}
+			value := new(big.Rat).SetFloat64(ref.Volume)
+			if bound.Lower.Cmp(value) > 0 || bound.Upper.Cmp(value) < 0 {
+				t.Fatal("weighted volume from separately sewn OCCT originals is outside bounds", name, value, bound)
+			}
+		}
+		if err := rows.Decode(new(any)); !errors.Is(err, io.EOF) {
+			t.Fatal("trailing weighted mass result", err)
+		}
+	}
 	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
 		{r(0, 1), r(0, 1), r(-1, 1), r(7, 1)}, {r(0, 1), r(1, 1), r(0, 1), r(8, 1)}, {r(1, 1), r(0, 1), r(0, 1), r(9, 1)},
 	}, 256)
@@ -254,7 +337,7 @@ func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 
 func TestOriginalBicubicWeightedRoofMaterialLine(t *testing.T) {
 	ctx := context.Background()
-	a, b := weightedIdentityRoofStock(t, false, true), weightedIdentityRoofStock(t, true, true)
+	a, b := weightedIdentityRoofStock(t, false, 3), weightedIdentityRoofStock(t, true, 3)
 	sec, err := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
 	if err != nil || !sec.Complete {
 		t.Fatal("complete bicubic source section", sec.Coverage, err)
@@ -291,5 +374,43 @@ func TestOriginalBicubicWeightedRoofMaterialLine(t *testing.T) {
 	order, err := section.Events[0].Parameter.Compare(ctx, old, geom.ExactCurvePlaneEventOptions{})
 	if err != nil || !order.Proven || order.Order != 1 {
 		t.Fatal("bicubic contact rounded into old quadratic", order, err)
+	}
+}
+
+func TestOriginalBiquarticWeightedRoofMaterialLine(t *testing.T) {
+	ctx := context.Background()
+	a, b := weightedIdentityRoofStock(t, false, 4), weightedIdentityRoofStock(t, true, 2)
+	sec, err := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
+	if err != nil || !sec.Complete {
+		t.Fatal("complete biquartic original section", sec.Coverage, err)
+	}
+	m, err := sec.CombineAlgebraic(ctx, parametric.Difference, AlgebraicShellBooleanOptions{})
+	if err != nil {
+		t.Fatal("biquartic original cavity", err)
+	}
+	q, err := m.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+	if err != nil {
+		t.Fatal("prepare biquartic material", err)
+	}
+	r := big.NewRat
+	origin, direction := [3]*big.Rat{r(0, 1), r(0, 1), r(3, 2)}, [3]*big.Rat{r(1, 1), r(1, 1), r(1, 4)}
+	line, err := q.IntersectLineRational(ctx, origin, direction, r(1, 8), r(7, 8), MixedRoofLineOptions{})
+	if err != nil || len(line.Events) != 1 || len(line.Spans) != 1 || line.Events[0].Before != parametric.Inside || line.Events[0].After != parametric.Outside ||
+		len(line.Events[0].Owners) != 1 || line.Events[0].Owners[0] != (MixedRoofFaceOwner{0, 1}) {
+		t.Fatal("original biquartic line", line, err)
+	}
+	// Multiplication by 256(1+t) gives four times the sextic plus t⁶(1-t)².
+	coeff := []*big.Rat{r(128, 1), r(-448, 1), r(192, 1), r(0, 1), r(4, 1), r(-8, 1), r(5, 1), r(-2, 1), r(1, 1)}
+	sign, err := line.Events[0].Parameter.SignPolynomial(ctx, coeff, geom.ExactCurvePlaneEventOptions{})
+	if err != nil || sign.Sign != 0 {
+		t.Fatal("degree-eight roof station lost the original identity", sign, err)
+	}
+	old, err := line.Events[0].Parameter.SignPolynomial(ctx, []*big.Rat{r(32, 1), r(-112, 1), r(48, 1), r(0, 1), r(1, 1), r(-2, 1), r(1, 1)}, geom.ExactCurvePlaneEventOptions{})
+	if err != nil || old.Sign != -1 {
+		t.Fatal("degree-eight contact rounded to the former sextic", old, err)
+	}
+	volume, err := q.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 20)})
+	if err != nil || !volume.Converged || volume.Volume.Lower.Cmp(r(115, 100)) > 0 || volume.Volume.Upper.Cmp(r(116, 100)) < 0 {
+		t.Fatal("biquartic volume did not cover the independently bracketed cavity", volume, err)
 	}
 }
