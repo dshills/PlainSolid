@@ -19,6 +19,10 @@ func BoxBlindCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cro
 }
 
 func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, tolerance float64) (BoxCrossedBoresResult, error) {
+	return boxFiniteCrossedPair(ctx, frame, dimensions, crossing, radius, depth, oppositeCap, blind, dimensions.X, false, false, tolerance)
+}
+
+func boxFiniteCrossedPair(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, xDepth float64, xOpposite, xBlind bool, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
@@ -46,6 +50,47 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 			return fail(geom.ErrDomain)
 		}
 	}
+	// Resolve only the new double-blind floor representatives in the stock
+	// frame. Signed translated frames can round decimal local coordinates.
+	if xBlind {
+		normalize := func(value float64, axis int, op bool) (float64, error) {
+			size := dimensions.Z
+			if axis == 0 {
+				size = dimensions.X
+			}
+			h := value
+			if op {
+				h = size - value
+			}
+			p := crossing
+			if axis == 0 {
+				p.X = h
+			} else {
+				p.Z = h
+			}
+			q := frame.ToLocal(frame.ToWorld(p))
+			if !q.IsFinite() || q.Distance(p) > tolerance/8 || frame.ToLocal(frame.ToWorld(q)) != q {
+				return 0, geom.ErrUnrepresentable
+			}
+			h = q.Z
+			if axis == 0 {
+				h = q.X
+			}
+			if op {
+				h = size - h
+			}
+			return h, nil
+		}
+		var err error
+		depth, err = normalize(depth, 2, oppositeCap)
+		if err != nil {
+			return fail(err)
+		}
+		xDepth, err = normalize(xDepth, 0, xOpposite)
+		if err != nil {
+			return fail(err)
+		}
+	}
 	if blind && (!finite(depth) || depth <= 0 || depth >= dimensions.Z-8*tolerance) {
 		return fail(geom.ErrDomain)
 	}
@@ -57,6 +102,16 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 		floor = dimensions.Z - depth
 	}
 	if blind && ((!oppositeCap && floor <= crossing.Z+radius+8*tolerance) || (oppositeCap && floor >= crossing.Z-radius-8*tolerance)) {
+		return fail(geom.ErrDomain)
+	}
+	if xBlind && (!finite(xDepth) || xDepth <= 0 || xDepth >= dimensions.X-8*tolerance) {
+		return fail(geom.ErrDomain)
+	}
+	xFloor := xDepth
+	if xOpposite {
+		xFloor = dimensions.X - xDepth
+	}
+	if xBlind && ((!xOpposite && xFloor <= crossing.X+radius+8*tolerance) || (xOpposite && xFloor >= crossing.X-radius-8*tolerance)) {
 		return fail(geom.ErrDomain)
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, verticesByPoint: map[geom.Vec3]int{}, edgesByEnds: map[[2]int]int{}}
@@ -109,6 +164,17 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 			low, high = -crossing.X, x-crossing.X
 			caps = [2]int{5, 3}
 		}
+		axisBlind, axisOpposite := blind, oppositeCap
+		if axis == 1 {
+			axisBlind, axisOpposite = xBlind, xOpposite
+			if xBlind {
+				if xOpposite {
+					low = xFloor - crossing.X
+				} else {
+					high = xFloor - crossing.X
+				}
+			}
+		}
 		worldVector := func(v geom.Vec3) geom.Vec3 {
 			return frame.XAxis().Scale(v.X).Add(frame.YAxis().Scale(v.Y)).Add(frame.ZAxis().Scale(v.Z))
 		}
@@ -124,11 +190,11 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 			return crossing.Add(radialX.Scale(radius * cos[i])).Add(radialY.Scale(radius * sin[i])).Add(direction.Scale(h))
 		}
 		for k, h := range []float64{low, high} {
-			isFloor := blind && axis == 0 && ((!oppositeCap && k == 1) || (oppositeCap && k == 0))
+			isFloor := axisBlind && ((!axisOpposite && k == 1) || (axisOpposite && k == 0))
 			cap := &b.faces[caps[k]]
 			if isFloor {
 				normal := worldVector(direction)
-				if !oppositeCap {
+				if !axisOpposite {
 					normal = normal.Scale(-1)
 				}
 				ff, err := geom.NewFrame(frame.ToWorld(crossing.Add(direction.Scale(h))), worldVector(radialX), normal)
@@ -232,9 +298,12 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 	if e != nil {
 		return fail(e)
 	}
-	removed := math.Pi*radius*radius*(x+depth) - 16*radius*radius*radius/3
-	delta := 2*math.Pi*radius*(x+depth) - 16*radius*radius - 4*math.Pi*radius*radius
+	removed := math.Pi*radius*radius*(xDepth+depth) - 16*radius*radius*radius/3
+	delta := 2*math.Pi*radius*(xDepth+depth) - 16*radius*radius - 4*math.Pi*radius*radius
 	if blind {
+		delta += 2 * math.Pi * radius * radius
+	}
+	if xBlind {
 		delta += 2 * math.Pi * radius * radius
 	}
 	if !finite(removed) || !finite(delta) {
@@ -260,7 +329,7 @@ func (s Solid) TessellateBlindCrossedBores(ctx context.Context, o parametric.Tes
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
-	if len(s.faces) != 23 {
+	if len(s.faces) != 23 && len(s.faces) != 24 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	found := false

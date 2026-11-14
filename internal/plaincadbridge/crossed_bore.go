@@ -21,6 +21,10 @@ func (p crossedBoreGeometry) partialSkew() bool {
 }
 
 func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error) {
+	return finiteCrossedBoreFromSTEP(p, [2]float64{}, [2]bool{}, unit)
+}
+
+func finiteCrossedBoreFromSTEP(p crossedBoreGeometry, blindDepth [2]float64, opposite [2]bool, unit float64) (*boreBody, error) {
 	frame, dimensions, crossing := p.frame, p.dimensions, p.crossing
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 || !cardinalFrame(frame) {
@@ -42,6 +46,20 @@ func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error)
 		{geom.Vec3{Y: crossing.Y, Z: crossing.Z}, geom.Vec3{X: dimensions.X, Y: crossing.Y, Z: crossing.Z}, frame.XAxis()},
 		{geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset}, geom.Vec3{X: crossing.X, Y: crossing.Y + p.offset, Z: dimensions.Z}, frame.ZAxis()},
 	} {
+		if blindDepth[i] != 0 {
+			entry, signedDepth := site.origin, blindDepth[i]
+			if opposite[i] {
+				entry, signedDepth = site.end, -signedDepth
+				site.axis = site.axis.Scale(-1)
+			}
+			site.origin = entry
+			site.end = entry
+			if i == 0 {
+				site.end.X += signedDepth
+			} else {
+				site.end.Z += signedDepth
+			}
+		}
 		start, finish := frame.ToWorld(site.origin).Scale(scale), frame.ToWorld(site.end).Scale(scale)
 		length := finish.Sub(start).Dot(site.axis)
 		if start.Add(site.axis.Scale(length)) != finish {
