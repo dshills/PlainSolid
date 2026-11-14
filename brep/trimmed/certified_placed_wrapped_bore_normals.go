@@ -2,7 +2,6 @@ package trimmed
 
 import (
 	"context"
-	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
 	"plainsolid/mesh"
@@ -45,29 +44,9 @@ func TessellatePlacedWrappedCircularBoreNormalsCertified(ctx context.Context, ou
 	if e != nil {
 		return out, e
 	}
-	world := mesh.Mesh{Vertices: make([]geom.Vec3, len(local.Mesh.Vertices)), Triangles: append([][3]int(nil), local.Mesh.Triangles...)}
-	for i, p := range local.Mesh.Vertices {
-		if e := ctx.Err(); e != nil {
-			return out, e
-		}
-		in := [3]float64{p.X, p.Y, p.Z}
-		var xyz [3]float64
-		for row := 0; row < 3; row++ {
-			q := ratInset(matrix[row][3])
-			for column := 0; column < 3; column++ {
-				if matrix[row][column] != 0 {
-					q.Add(q, new(big.Rat).Mul(ratInset(in[column]), ratInset(matrix[row][column])))
-				}
-			}
-			xyz[row], e = geom.RepresentedExactScalar(q)
-			if e != nil || !finite(xyz[row]) {
-				if e != nil {
-					return out, e
-				}
-				return out, geom.ErrConvergence
-			}
-		}
-		world.Vertices[i] = geom.Vec3{X: xyz[0], Y: xyz[1], Z: xyz[2]}
+	world, e := placeCertifiedMeshExactly(ctx, local.Mesh, matrix)
+	if e != nil {
+		return out, e
 	}
 	return CertifiedPlacedWrappedBoreNormals{Local: local, Mesh: world, Placement: matrix}, nil
 }
