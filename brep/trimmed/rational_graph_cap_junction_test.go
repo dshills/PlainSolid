@@ -120,6 +120,15 @@ func TestAlgebraicCapBoundaryRunsRetainIrrationalSeam(t *testing.T) {
 	if err != nil || !sameParameter.Proven || sameParameter.Order == 0 || run.AlongWire != ((sameParameter.Order < 0) != u.Reversed) {
 		t.Fatal("original endpoint order and wire direction were lost", run, sameParameter, err)
 	}
+	complete, err := pair.caps[0].CoverRationalLine(ctx, point, dir, extent, opts)
+	if err != nil || len(complete.Boundary) != 1 || len(complete.Interior) != 0 || len(complete.Points) != 2 ||
+		len(complete.Points[0].Owners) != 1 || len(complete.Points[1].Owners) != 2 {
+		t.Fatal("the irrational endpoint must have both original trim owners", complete, err)
+	}
+	j, err := complete.Points[1].Parameter.Compare(ctx, edge, opts)
+	if err != nil || !j.Proven || j.Order != 0 {
+		t.Fatal("coincident and isolated exact root identities must agree", j, err)
+	}
 	bad, err := pair.caps[0].IntersectRationalBoundaryRuns(ctx, point, dir, extent, geom.ExactCurvePlaneEventOptions{MaxOperations: 1})
 	if !errors.Is(err, geom.ErrConvergence) || len(bad.Runs) != 0 {
 		t.Fatal("a partial overlap cannot escape a depleted budget", bad, err)
@@ -183,5 +192,70 @@ func TestAlgebraicCapLineRegularOddTangency(t *testing.T) {
 			}
 		}
 		a[0], d[0] = q(1, 1), q(-1, 1)
+	}
+}
+
+func TestAlgebraicCapCompleteLineCoverage(t *testing.T) {
+	ctx := context.Background()
+	q := big.NewRat
+	// A polygon has one boundary run on y=0 and another disjoint
+	// component contributes a transverse interior span. The caller
+	// clips both from the same finite line.
+	var wires [][]projectedGraphSectionPiece
+	var rings []trimvalidate.Loop
+	for _, box := range [][4]int64{{0, 2, 0, 2}, {3, 5, -1, 1}} {
+		p := func(x, y int64) [3]*big.Rat { return [3]*big.Rat{q(x, 1), q(y, 1), q(1, 1)} }
+		corners := [4][3]*big.Rat{p(box[0], box[2]), p(box[1], box[2]), p(box[1], box[3]), p(box[0], box[3])}
+		var wire []projectedGraphSectionPiece
+		var ring trimvalidate.Loop
+		for i, a := range corners {
+			z := corners[(i+1)%4]
+			mean := func(k int) *big.Rat { return new(big.Rat).Quo(new(big.Rat).Add(a[k], z[k]), q(2, 1)) }
+			h := [3][3]*big.Rat{a, {mean(0), mean(1), q(1, 1)}, z}
+			segment, err := trimvalidate.ExactQuadratic(h)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ring = append(ring, segment)
+			wire = append(wire, projectedGraphSectionPiece{control: h[:], source: RationalGraphCapEdgeSource{Piece: i}})
+		}
+		rings, wires = append(rings, ring), append(wires, wire)
+	}
+	o := RationalGraphShellRegionOptions{}
+	topo, _ := o.Topology.WithDefaults()
+	regions, err := certifyProjectedRationalGraphRegions(ctx, wires, rings, horizontalPolynomialPlane(q(0, 1)), topo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cap, err := regions.ClipAlgebraicHalfspace(ctx, [3]geom.Vec3{{X: .5}, {X: .5, Y: 1}, {X: .5, Z: 1}}, true, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, d := [3]*big.Rat{q(0, 1), q(0, 1), q(0, 1)}, [3]*big.Rat{q(1, 1), q(0, 1), q(0, 1)}
+	extent := [2]*big.Rat{q(1, 1), q(4, 1)}
+	opts := geom.ExactCurvePlaneEventOptions{}
+	got, err := cap.CoverRationalLine(ctx, a, d, extent, opts)
+	if err != nil || len(got.Interior) != 1 || len(got.Boundary) != 1 || len(got.Points) != 3 {
+		t.Fatal("complete line must separate coincident and open interior spans", got, err)
+	}
+	root := func(r *geom.ExactAlgebraicRoot, want int64) {
+		t.Helper()
+		v, err := r.Classify(ctx, opts)
+		if err != nil || v.Kind != geom.ExactRootKindRational || v.Rational.Cmp(q(want, 1)) != 0 {
+			t.Fatal("exact endpoint", v, want, err)
+		}
+	}
+	root(got.Boundary[0].Extent[0], 1)
+	root(got.Boundary[0].Extent[1], 2)
+	root(got.Interior[0][0], 3)
+	root(got.Interior[0][1], 4)
+	for i, count := range []int{1, 2, 1} {
+		root(got.Points[i].Parameter, int64(i+1))
+		if len(got.Points[i].Owners) != count {
+			t.Fatal("original coincident and crossing owners lost", got.Points[i], count)
+		}
+	}
+	if r, err := cap.CoverRationalLine(ctx, a, d, extent, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(err, geom.ErrConvergence) || len(r.Points)+len(r.Boundary)+len(r.Interior) != 0 {
+		t.Fatal("incomplete line must fail atomically", r, err)
 	}
 }
