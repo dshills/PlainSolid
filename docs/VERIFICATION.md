@@ -80,6 +80,25 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD intersecting Hole cutters across stock corners — 2026-11-14
+
+The rectangular-stock arrangement clips circular cutters against both
+finite sides adjacent to a corner. Centered and offset corner footprints
+can intersect other corner or side footprints. Blind floors and through
+openings retain cylindrical walls. The qualified result keeps one solid
+and retains all six stock extents. Exact contact at a stock vertex is
+outside this boundary proof.
+
+[Sixteen original PlainCAD Hole and STEP cases](evidence/plaincad-corner-opening-browser-2026-11-14.json)
+and [three Chromium probes on the same WASM](evidence/plaincad-corner-opening-native-2026-11-14.json)
+pass on `50432ed`. The probes check grouped and successive centered
+corner cuts, plus successive offset corner cuts, with exact volume and
+area, STEP reimport, project reopen and watertight STL. Native tests also
+cover opposed cuts, further drilling after STEP import, and retention of
+a connected blind corner island. Independent OCCT checks include signed
+axes, blind and through openings, and stock with all four original
+corners removed. Focused race checks and Go vet pass.
+
 ## PlainCAD intersecting groups of side-opening Hole cutters — 2026-11-14
 
 The rectangular-stock arrangement accepts up to 16 circular cutters with

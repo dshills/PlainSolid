@@ -404,3 +404,120 @@ func TestSideOpeningCutsSTEPRedundantSiteCanonicalBytes(t *testing.T) {
 	}
 	checkSideOpeningCutsOCCT(t, p, actual.Bytes())
 }
+
+func checkCornerSideOpeningSTEP(t *testing.T, p SideOpeningCutsBody) {
+	t.Helper()
+	model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+	var out bytes.Buffer
+	if e := WriteSideOpeningCuts(&out, model); e != nil {
+		t.Fatal(e)
+	}
+	got, e := ReadSideOpeningCuts(bytes.NewReader(out.Bytes()), Limits{})
+	if e != nil || !reflect.DeepEqual(got, model) {
+		t.Fatal(got, e)
+	}
+	reordered := model
+	reordered.Body.Cuts = append([]trimmed.SideOpeningCut(nil), p.Cuts...)
+	for i, j := 0, len(p.Cuts)-1; i < j; i, j = i+1, j-1 {
+		reordered.Body.Cuts[i], reordered.Body.Cuts[j] = reordered.Body.Cuts[j], reordered.Body.Cuts[i]
+	}
+	var reverse bytes.Buffer
+	if e := WriteSideOpeningCuts(&reverse, reordered); e != nil || !bytes.Equal(out.Bytes(), reverse.Bytes()) {
+		t.Fatal("noncanonical corner cutter order", e)
+	}
+	if len(p.Cuts) == 1 {
+		if _, e := ReadSideOpeningPair(bytes.NewReader(out.Bytes()), Limits{}); e == nil {
+			t.Fatal("legacy pair reader accepted single support")
+		}
+	}
+	checkSideOpeningCutsOCCT(t, p, out.Bytes())
+}
+
+func TestCornerSideOpeningCutsSTEP(t *testing.T) {
+	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
+	for ni, n := range normals {
+		frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, family := range []struct {
+			name   string
+			second geom.Vec2
+			radius float64
+		}{
+			{"corner-side", geom.Vec2{X: 5}, 3}, {"two-offset-corners", geom.Vec2{X: 1, Y: 1}, 3},
+		} {
+			for _, span := range []struct {
+				name    string
+				depths  [2]float64
+				opposed bool
+			}{
+				{"equal-blind", [2]float64{4, 4}, false}, {"unequal-blind", [2]float64{3, 6}, false},
+				{"through", [2]float64{8, 8}, false}, {"through-blind", [2]float64{8, 5}, false}, {"opposed", [2]float64{6, 5}, true},
+			} {
+				t.Run(fmt.Sprintf("%s/%s/%d", family.name, span.name, ni), func(t *testing.T) {
+					p := SideOpeningCutsBody{Name: "corner and side openings", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{
+						{ExtrusionCircle: trimmed.ExtrusionCircle{Radius: 4}, Depth: span.depths[0]},
+						{ExtrusionCircle: trimmed.ExtrusionCircle{Center: family.second, Radius: family.radius}, Depth: span.depths[1], OppositeCap: span.opposed},
+					}}
+					checkCornerSideOpeningSTEP(t, p)
+				})
+			}
+		}
+		t.Run(fmt.Sprintf("equal-radius-offset-corners/%d", ni), func(t *testing.T) {
+			p := SideOpeningCutsBody{Name: "buried corner opening", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Radius: 4}, Depth: 6},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 1, Y: 1}, Radius: 4}, Depth: 3},
+			}}
+			checkCornerSideOpeningSTEP(t, p)
+		})
+		for _, single := range []struct {
+			name          string
+			center        geom.Vec2
+			radius, depth float64
+			opposite      bool
+		}{
+			{"blind", geom.Vec2{X: 1, Y: 1}, 4, 3, false}, {"opposite-blind", geom.Vec2{X: 1, Y: 1}, 4, 3, true},
+			{"through", geom.Vec2{X: 1, Y: 1}, 4, 8, false}, {"small-external-clip", geom.Vec2{X: -2, Y: -2}, 3, 8, false},
+		} {
+			t.Run(fmt.Sprintf("single/%s/%d", single.name, ni), func(t *testing.T) {
+				p := SideOpeningCutsBody{Name: "single offset corner", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: single.center, Radius: single.radius}, Depth: single.depth, OppositeCap: single.opposite}}}
+				checkCornerSideOpeningSTEP(t, p)
+			})
+		}
+		t.Run(fmt.Sprintf("no-original-corner-vertices/%d", ni), func(t *testing.T) {
+			p := SideOpeningCutsBody{Name: "all original corners removed", Frame: frame, Width: 20, Back: 20, Length: 8}
+			for i, c := range []geom.Vec2{{}, {Y: 20}, {X: 5}, {X: 20}, {X: 20, Y: 20}} {
+				r := 3.
+				if i == 0 {
+					r = 4
+				}
+				p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: c, Radius: r}, Depth: 8})
+			}
+			native, e := p.Solid(context.Background())
+			if e != nil {
+				t.Fatal(e)
+			}
+			for _, v := range native.Vertices() {
+				q := frame.ToLocal(v)
+				if (q.X == 0 || q.X == 20) && (q.Y == 0 || q.Y == 20) {
+					t.Fatal("original corner survived", q)
+				}
+			}
+			checkCornerSideOpeningSTEP(t, p)
+		})
+	}
+}
+
+func TestSideOpeningPairWriterRejectsSingleRecoveredSupport(t *testing.T) {
+	frame, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cut := trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 1, Y: 1}, Radius: 4}, Depth: 3}
+	model := SideOpeningPairModel{Body: SideOpeningPairBody{Name: "duplicate corner cutters", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: [2]trimmed.SideOpeningCut{cut, cut}}, LengthUnit: .001}
+	var out bytes.Buffer
+	if err := WriteSideOpeningPair(&out, model); err == nil || out.Len() != 0 {
+		t.Fatal("pair writer published a single recovered support", err, out.Len())
+	}
+}

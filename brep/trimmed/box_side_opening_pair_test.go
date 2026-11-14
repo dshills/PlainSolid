@@ -170,3 +170,51 @@ func TestBoxSideOpeningCutsRetainIslandAndItsFloor(t *testing.T) {
 		t.Fatal("accepted disconnected through-cut stock")
 	}
 }
+
+func TestBoxSideOpeningCornerClipKeepsBlindCornerIsland(t *testing.T) {
+	ctx := context.Background()
+	f, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The circle intersects both side segments, but the original corner
+	// lies outside the circle and stays connected below a blind floor.
+	circle := ExtrusionCircle{Center: geom.Vec2{X: 2, Y: 2}, Radius: 2.5}
+	if n := BoxSideOpeningCount(20, 20, circle, 1e-9); n != 2 {
+		t.Fatal(n)
+	}
+	cut := SideOpeningCut{ExtrusionCircle: circle, Depth: 3}
+	result, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	segment := 6.25*math.Acos(.8) - 3
+	want := 3 * (6.25*math.Pi - 2*segment)
+	if math.Abs(result.RemovedVolume-want) > 1e-8 {
+		t.Fatal(result.RemovedVolume, want)
+	}
+	cut.Depth = 8
+	if _, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9); err == nil {
+		t.Fatal("accepted a through-cut that detached the stock corner")
+	}
+	// Contact exactly at a stock vertex has a different topology.
+	cut.ExtrusionCircle = ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}
+	if _, err := BoxSideOpeningCuts(ctx, f, 20, 20, 8, []SideOpeningCut{cut}, 1e-9); err == nil {
+		t.Fatal("accepted exact circle contact at a stock vertex")
+	}
+}
+
+func TestBoxSideOpeningCutsRequireRetainedStockExtents(t *testing.T) {
+	f, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cuts := []SideOpeningCut{
+		{ExtrusionCircle: ExtrusionCircle{Radius: 4}, Depth: 8},
+		{ExtrusionCircle: ExtrusionCircle{Center: geom.Vec2{X: 5}, Radius: 4}, Depth: 8},
+		{ExtrusionCircle: ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 4}, Depth: 8},
+	}
+	if _, err := BoxSideOpeningCuts(context.Background(), f, 10, 20, 8, cuts, 1e-9); err == nil {
+		t.Fatal("accepted a through pattern that erased an entire stock side")
+	}
+}

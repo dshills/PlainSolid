@@ -193,6 +193,14 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 			r := c.cylinder.radius
 			return result(math.Pi * r * r * c.cylinder.height / 4)
 		}
+		if p, ok := cornerOpeningStock(a.solid, c.cylinder); ok {
+			circle, low, high, _ := sideOpeningCylinderSpan(p, c.cylinder)
+			volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, nil, circle, low, high, sideOpeningTolerance)
+			if err != nil {
+				return nil, err
+			}
+			return result(volume)
+		}
 	}
 	if a.treated != nil || c.treated != nil {
 		volume, err := treatedOverlap(a, c)

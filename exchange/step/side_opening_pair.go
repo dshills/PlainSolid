@@ -12,7 +12,7 @@ import (
 )
 
 // SideOpeningCutsBody retains bounded finite cylindrical side openings on
-// rectangular stock. Each disk crosses exactly one side, which may differ
+// rectangular stock. Each disk crosses one side or two adjacent sides, which may differ
 // between cuts, and each cut enters its selected end cap;
 // Depth=Length opens both caps. Dimensions and centers are in Frame coordinates.
 // Buried wall endpoints use adjacent floor orientation to recover a canonical
@@ -83,7 +83,7 @@ func recoverSideOpeningCuts(f *File, id int64) (SideOpeningCutsBody, error) {
 	fail := func() (SideOpeningCutsBody, error) { return SideOpeningCutsBody{}, circularSourceFailure() }
 	limit := sideOpeningTopologyLimits()
 	g, err := readCircularGraphBounded(f, id, true, limit.faces, limit.loops, limit.uses)
-	if err != nil || len(g.faces) < 8 || len(g.faces) > limit.faces || g.faces[0].kind != "PLANE" {
+	if err != nil || len(g.faces) < 7 || len(g.faces) > limit.faces || g.faces[0].kind != "PLANE" {
 		return fail()
 	}
 	frame := g.faces[0].frame
@@ -166,7 +166,7 @@ func recoverSideOpeningCuts(f *File, id int64) (SideOpeningCutsBody, error) {
 		lows[i] = min(lows[i], low)
 		highs[i] = max(highs[i], high)
 	}
-	if len(index) < 2 {
+	if len(index) < 1 {
 		return fail()
 	}
 	for i := range result.Cuts {
@@ -274,8 +274,20 @@ func (p SideOpeningPairBody) Solid(ctx context.Context) (trimmed.Solid, error) {
 	return p.cutsBody().Solid(ctx)
 }
 func WriteSideOpeningPair(w io.Writer, m SideOpeningPairModel) error {
-	return WriteSideOpeningCuts(w, SideOpeningCutsModel{Body: m.Body.cutsBody(), LengthUnit: m.LengthUnit})
+	if w == nil {
+		return geom.ErrInvalid
+	}
+	var out bytes.Buffer
+	if e := writeSideOpeningCutsBody(&out, SideOpeningCutsModel{Body: m.Body.cutsBody(), LengthUnit: m.LengthUnit}); e != nil {
+		return e
+	}
+	if _, e := ReadSideOpeningPair(bytes.NewReader(out.Bytes()), Limits{}); e != nil {
+		return e
+	}
+	_, e := io.Copy(w, &out)
+	return e
 }
+
 func ReadSideOpeningPair(r io.Reader, limits Limits) (SideOpeningPairModel, error) {
 	m, e := ReadSideOpeningCuts(r, limits)
 	if e != nil {
