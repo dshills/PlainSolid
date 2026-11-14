@@ -134,20 +134,8 @@ func tessellateProjectedBooleanAnnulus(ctx context.Context, r AlgebraicTubeRegio
 	// return owners in physical world traversal while retaining exact UV/model
 	// sample identities. Reversal changes no point-correspondence certificate.
 	if projectedAxisParity(axes) < 0 {
-		for li := range original.Loops {
-			for chart := range original.Loops[li].Owners {
-				for i := range original.Loops[li].Owners[chart] {
-					owner := &original.Loops[li].Owners[chart][i]
-					owner.Reversed = !owner.Reversed
-					for a, b := 0, len(owner.Vertices)-1; a < b; a, b = a+1, b-1 {
-						owner.Vertices[a], owner.Vertices[b] = owner.Vertices[b], owner.Vertices[a]
-						owner.UV[a], owner.UV[b] = owner.UV[b], owner.UV[a]
-					}
-				}
-			}
-		}
+		reverseProjectedBoundaryOwners(&original)
 	}
-
 	projected := original
 	projected.Vertices = append([]geom.Vec3(nil), original.Vertices...)
 	for i, p := range projected.Vertices {
@@ -195,4 +183,21 @@ func tessellateProjectedBooleanAnnulus(ctx context.Context, r AlgebraicTubeRegio
 		out.GlobalBoundaryVertices[footprint.GlobalBoundaryVertices[seed]] = index
 	}
 	return out, nil
+}
+
+// reverseProjectedBoundaryOwners changes only oriented traversal of fresh
+// certified samples; each exact UV/model identity remains paired.
+func reverseProjectedBoundaryOwners(boundary *CertifiedAlgebraicTubeRegionsBoundary) {
+	for li := range boundary.Loops {
+		for chart := range boundary.Loops[li].Owners {
+			for i := range boundary.Loops[li].Owners[chart] {
+				owner := &boundary.Loops[li].Owners[chart][i]
+				owner.Reversed = !owner.Reversed
+				for a, b := 0, len(owner.Vertices)-1; a < b; a, b = a+1, b-1 {
+					owner.Vertices[a], owner.Vertices[b] = owner.Vertices[b], owner.Vertices[a]
+					owner.UV[a], owner.UV[b] = owner.UV[b], owner.UV[a]
+				}
+			}
+		}
+	}
 }
