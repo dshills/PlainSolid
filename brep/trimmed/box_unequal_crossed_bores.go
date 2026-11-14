@@ -447,5 +447,5 @@ func (s Solid) TessellateUnequalCrossedBores(ctx context.Context, o parametric.T
 	if !radical {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
-	return s.tessellateAnalyticAdaptive(ctx, o, true)
+	return s.tessellateAnalyticAdaptive(ctx, o)
 }

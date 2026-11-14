@@ -218,6 +218,14 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	base := a.solid
 	if a.bore != nil {
 		base = a.bore.base
+	} else if a.planar() {
+		body, handled, err := newObliqueThroughBore(base, c.cylinder)
+		if err != nil {
+			return nil, err
+		}
+		if handled {
+			return result(body.oblique.removedVolume)
+		}
 	}
 	cut, start, end, err := boreSpan(base, c.cylinder, false)
 	if err != nil {

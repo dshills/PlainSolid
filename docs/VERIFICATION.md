@@ -109,6 +109,25 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD single oblique through Hole — 2026-11-14
+
+A rectangular body accepts one oblique cylindrical through Hole when
+the finite tool covers both complete opening ellipses on opposite or
+adjacent faces. Exact rational halfspace checks qualify the finite tool
+caps. The native boundary builder checks each aperture against every
+other stock face and preserves the original planar IDs. The same proof
+drives scoped overlap, additive history and Cut. Partial openings reject
+without changing handles or material.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-oblique-hole-native-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-oblique-hole-native-2026-11-14.json)
+pass on the same WASM. The supplemental case uses a separate sloped
+guide face and a signed offset to place the Hole start. The scoped Hole
+rebuilds, preserves both bodies on project reopen, and exports watertight
+STL. Independent OCCT Boolean checks cover the opposite and adjacent
+apertures. Focused race and Go vet checks pass. This milestone leaves
+oblique-bore STEP exchange for the next gate.
+
 ## PlainCAD skew perpendicular through Holes — 2026-11-14
 
 Two perpendicular through bores may have different transverse centers.
