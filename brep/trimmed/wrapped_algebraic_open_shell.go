@@ -37,6 +37,7 @@ type WrappedAlgebraicOpenShell struct {
 	edgeSources   [][]WrappedOpenEdgeSource
 	boundary      []WrappedOpenBoundaryUse
 	pair          *WrappedAlgebraicEdgePair
+	sources       [2]*WrappedAlgebraicQuadraticFace
 	operations    int
 }
 
@@ -121,7 +122,7 @@ func NewWrappedAlgebraicOpenShell(ctx context.Context, a, b *WrappedAlgebraicQua
 	}
 	used := pair.ExactOperations()
 	source := [2]SewFace{a.NativeFace(), b.NativeFace()}
-	out := &WrappedAlgebraicOpenShell{pair: pair}
+	out := &WrappedAlgebraicOpenShell{pair: pair, sources: [2]*WrappedAlgebraicQuadraticFace{a, b}}
 	for _, f := range source {
 		if len(f.Edges) < 3 || len(f.Edges) > 32 || len(f.Vertices) != len(f.Edges) || len(f.Face.Outer) != len(f.Edges) || len(f.Face.Holes) != 0 {
 			return nil, geom.ErrConvergence
