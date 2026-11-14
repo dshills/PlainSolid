@@ -107,7 +107,11 @@ func classifyRationalGraphShellRegions(ctx context.Context, section RationalGrap
 				if count > opts.MaxEdges {
 					return nil, geom.ErrConvergence
 				}
-				h, e := projectedRationalGraphSectionControls(ctx, faces[b.Face].patch, piece, axes, limits)
+				project := projectedRationalGraphSectionControls
+				if b.compose {
+					project = composeProjectedGraphSectionControls
+				}
+				h, e := project(ctx, faces[b.Face].patch, piece, axes, limits)
 				if e != nil {
 					return nil, e
 				}

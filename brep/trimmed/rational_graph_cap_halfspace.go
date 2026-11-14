@@ -291,7 +291,7 @@ type capBoundaryCut struct {
 // together with the retained boundary runs. In the polygonal specialization
 // each section piece is an exact affine segment, including its parameter.
 // Joining runs requires a separate exact signed line-order/material proof.
-func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, other polynomialPlaneEquation, keep int, opts *trimvalidate.Options) ([]capBoundaryRun, []capBoundaryCut, error) {
+func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, other polynomialPlaneEquation, keep int, opts *trimvalidate.Options, polygonal bool) ([]capBoundaryRun, []capBoundaryCut, error) {
 	form := r.capHalfspaceForm(other)
 	if form[0].Sign() == 0 && form[1].Sign() == 0 {
 		return nil, nil, geom.ErrConvergence
@@ -337,19 +337,23 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 		row := make([]segment, len(wire))
 		for i, p := range wire {
 			count++
-			if count > opts.MaxEdges || len(p.control) != 3 {
+			n := len(p.control)
+			if count > opts.MaxEdges || n < 2 || n > 5 || polygonal && n != 3 {
 				return nil, nil, geom.ErrConvergence
 			}
-			a, m, b := p.control[0], p.control[1], p.control[2]
+			a, b := p.control[0], p.control[n-1]
 			// Verify exact linear parameterization with unit weights; a
 			// collinear image with nonlinear parameter is insufficient.
-			for k := range a {
-				d := new(big.Rat).Sub(new(big.Rat).Add(a[k], b[k]), new(big.Rat).Mul(big.NewRat(2, 1), m[k]))
-				if e := check(d); e != nil {
-					return nil, nil, e
-				}
-				if d.Sign() != 0 || k == 2 && (a[k].Cmp(big.NewRat(1, 1)) != 0 || b[k].Cmp(big.NewRat(1, 1)) != 0) {
-					return nil, nil, geom.ErrConvergence
+			if polygonal {
+				m := p.control[1]
+				for k := range a {
+					d := new(big.Rat).Sub(new(big.Rat).Add(a[k], b[k]), new(big.Rat).Mul(big.NewRat(2, 1), m[k]))
+					if e := check(d); e != nil {
+						return nil, nil, e
+					}
+					if d.Sign() != 0 || k == 2 && (a[k].Cmp(big.NewRat(1, 1)) != 0 || b[k].Cmp(big.NewRat(1, 1)) != 0) {
+						return nil, nil, geom.ErrConvergence
+					}
 				}
 			}
 			pa, e := signed(a)
@@ -364,15 +368,41 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 			if x == 0 || y == 0 {
 				return nil, nil, geom.ErrConvergence
 			}
+			var t *big.Rat
+			if !polygonal {
+				hull := x == y
+				for j := 1; j < n-1 && hull; j++ {
+					a, e := signed(p.control[j])
+					if e != nil {
+						return nil, nil, e
+					}
+					hull = a.Sign() == x
+				}
+				if !hull {
+					t, e = certifyRationalCapCurveCrossing(ctx, p.control, form, x != y, opts)
+					if e != nil {
+						return nil, nil, e
+					}
+				}
+			}
 			row[i] = segment{piece: p, kept: x > 0 || y > 0, before: -1, end: -1}
 			if x != y {
-				t := new(big.Rat).Quo(pa, new(big.Rat).Sub(pa, pb))
+				if polygonal {
+					t = new(big.Rat).Quo(pa, new(big.Rat).Sub(pa, pb))
+				}
 				if e := check(t); e != nil {
 					return nil, nil, e
 				}
 				left, right, e := splitCapBezier(p.control, t, opts.MaxBits)
 				if e != nil {
 					return nil, nil, e
+				}
+				v, e := signed(right[0])
+				if e != nil {
+					return nil, nil, e
+				}
+				if v.Sign() != 0 {
+					return nil, nil, geom.ErrConvergence
 				}
 				at := len(cuts)
 				cuts = append(cuts, capBoundaryCut{p.source, t, x > 0, r.capPoint(right[0])})
@@ -418,6 +448,51 @@ func (r *RationalGraphShellRegions) capBoundarySections(ctx context.Context, oth
 		}
 	}
 	return runs, cuts, nil
+}
+
+func certifyRationalCapCurveCrossing(ctx context.Context, h [][3]*big.Rat, form [3]*big.Rat, crossing bool, opts *trimvalidate.Options) (*big.Rat, error) {
+	controls := make([][4]*big.Rat, len(h))
+	for j, p := range h {
+		controls[j] = [4]*big.Rat{p[0], p[1], new(big.Rat), p[2]}
+	}
+	limits := geom.SurfacePatchOptions{MaxOperations: opts.MaxWork, MaxCoefficientBits: opts.MaxBits}
+	curve, e := geom.NewExactHomogeneousBezier(ctx, controls, limits)
+	if e != nil {
+		return nil, e
+	}
+	cell, e := geom.NewExactComposedBezierCell(ctx, curve, limits)
+	if e != nil {
+		return nil, e
+	}
+	rootOptions := func() geom.ExactCurvePlaneEventOptions {
+		return geom.ExactCurvePlaneEventOptions{MaxOperations: opts.MaxWork, MaxCoefficientBits: opts.MaxBits, MaxSubdivisions: opts.MaxSubdivisions}
+	}
+	charge := func(n int) error {
+		opts.MaxWork -= n
+		if opts.MaxWork < 1 || opts.MaxSubdivisions < 1 {
+			return geom.ErrConvergence
+		}
+		return ctx.Err()
+	}
+	hits, e := cell.IntersectRawPlane(ctx, [4]*big.Rat{form[0], form[1], nil, form[2]}, rootOptions())
+	if e != nil {
+		return nil, e
+	}
+	opts.MaxSubdivisions -= hits.Subdivisions
+	if e = charge(hits.Operations); e != nil {
+		return nil, e
+	}
+	if !hits.Complete || hits.Coincident || !crossing && len(hits.Events) != 0 || crossing && len(hits.Events) != 1 {
+		return nil, geom.ErrConvergence
+	}
+	if !crossing {
+		return nil, nil
+	}
+	hit := hits.Events[0]
+	if hit.EndpointMask() != 0 || hit.Multiplicity() != 1 {
+		return nil, geom.ErrConvergence
+	}
+	return rationalCapIntersectionParameter(ctx, hit, rootOptions(), &opts.MaxSubdivisions, charge)
 }
 
 type capBoundaryRun struct {

@@ -17,6 +17,14 @@ type RationalGraphCrossingBand struct {
 	CapIntersection SplineCapIntersection
 }
 
+type graphCapArrangementMode uint8
+
+const (
+	graphCapSingleSeam graphCapArrangementMode = iota
+	graphCapPolygonal
+	graphCapRational
+)
+
 // ClipCrossingRationalGraphSplineShell retains the intersection with two
 // nonparallel halfspaces. Each complete section has one simple outer wire;
 // the other plane crosses it twice at strictly interior edge points. Any
@@ -28,7 +36,7 @@ type RationalGraphCrossingBand struct {
 // are authored independently on the original supports. Caps.RationalEndpoints
 // admits exact nonbinary junctions when all retained trim pieces are quadratic.
 func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphCrossingBand, error) {
-	result, e := s.clipIntersectingRationalGraphCaps(ctx, cuts, o, false)
+	result, e := s.clipIntersectingRationalGraphCaps(ctx, cuts, o, graphCapSingleSeam)
 	if e != nil {
 		return RationalGraphCrossingBand{}, e
 	}
@@ -51,10 +59,18 @@ type RationalGraphMultiSeamBand struct {
 // must be proved independently in both cap regions, then sewn to continuous
 // original stock uses. Each original stock face retains at most one fragment.
 func (s Solid) ClipIntersectingPolygonalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphMultiSeamBand, error) {
-	return s.clipIntersectingRationalGraphCaps(ctx, cuts, o, true)
+	return s.clipIntersectingRationalGraphCaps(ctx, cuts, o, graphCapPolygonal)
 }
 
-func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions, polygonal bool) (RationalGraphMultiSeamBand, error) {
+// ClipIntersectingRationalGraphCaps is the curved counterpart to
+// ClipIntersectingPolygonalGraphCaps. All cap contacts must have unique,
+// regular rational parameters in their original boundary pieces. Each
+// original stock chart still retains at most one connected fragment.
+func (s Solid) ClipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphMultiSeamBand, error) {
+	return s.clipIntersectingRationalGraphCaps(ctx, cuts, o, graphCapRational)
+}
+
+func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions, arrangementMode graphCapArrangementMode) (RationalGraphMultiSeamBand, error) {
 	var zero RationalGraphMultiSeamBand
 	rational := o.Caps.RationalEndpoints
 	so := o.Sections
@@ -108,9 +124,9 @@ func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]Ra
 			return zero, fmt.Errorf("trimmed: crossing band section %d: %w", i, e)
 		}
 		out.Sections[i], signs[i] = sec, sides
-		if polygonal {
+		if arrangementMode != graphCapSingleSeam {
 			var arrangement RationalGraphCapArrangement
-			arrangement, e = sec.Regions.intersectPolygonalCap(ctx, planes[1-i], keep[1-i], *so.Regions)
+			arrangement, e = sec.Regions.intersectGeneralCap(ctx, planes[1-i], keep[1-i], *so.Regions, arrangementMode == graphCapPolygonal)
 			clipped[i] = arrangement.Regions
 			seamPairs[i] = arrangement.Seams
 			for _, cut := range arrangement.Cuts {
@@ -192,6 +208,7 @@ func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]Ra
 		var part SewFace
 		var old []int
 		var err error
+		a0, a1 := arcs[0][id], arcs[1][id]
 		switch {
 		case !c0 && !c1:
 			part, old = s.splineSewFaceMapped(face, nil)
@@ -203,6 +220,13 @@ func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]Ra
 			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b0, planes[0], keep[0], so.Spans.Faces, rational)
 		case !c0:
 			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b1, planes[1], keep[1], so.Spans.Faces, rational)
+		case len(a0) == 0 && len(a1) == 0:
+			// Two transverse branches cross this rectangular face, but the
+			// complete cap arrangement retains neither. Their intersection
+			// cannot contain material in the face interior: otherwise the
+			// boundary of that proper retained subset contains a branch or
+			// (for an uncut whole face) contradicts both original crossings.
+			continue
 		case b0.freeAxis < 0 && b1.freeAxis < 0:
 			var uv [][2]*big.Rat
 			uv, err = rationalGraphAffineBandPolygon(ctx, face, f.patch, planes, keep, so.Spans.Faces)
@@ -210,12 +234,12 @@ func (s Solid) clipIntersectingRationalGraphCaps(ctx context.Context, cuts [2]Ra
 				continue
 			}
 			if err == nil {
-				pieces := append(append([]PCurve(nil), arcs[0][id]...), arcs[1][id]...)
+				pieces := append(append([]PCurve(nil), a0...), a1...)
 				part, err = rationalGraphCrossingSewFace(ctx, face, f.patch, uv, pieces, so.Spans.Faces, rational)
 			}
 		case b0.freeAxis >= 0 && b0.freeAxis == b1.freeAxis:
 			part, err = rationalGraphCrossingFace(ctx, face, f.patch, [2]RationalGraphShellBranch{b0, b1},
-				[2][]PCurve{arcs[0][id], arcs[1][id]}, keep, junctions[0], id, so.Spans.Faces, rational)
+				[2][]PCurve{a0, a1}, keep, junctions[0], id, so.Spans.Faces, rational)
 		default:
 			err = geom.ErrConvergence
 		}

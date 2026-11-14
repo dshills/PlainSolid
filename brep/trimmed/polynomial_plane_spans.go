@@ -88,6 +88,13 @@ func certifyPiecewisePolynomialPlaneFaceSection(ctx context.Context, s Solid, fa
 }
 
 func certifyPiecewiseGraphPlaneFaceSection(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o PolynomialPlaneSpanOptions, rationalGraph bool) (*PiecewisePolynomialPlaneFaceSection, []PCurve, error) {
+	return certifyPiecewiseGraphPlaneFaceSectionWithTrim(ctx, s, face, plane, freeAxis, o, func(p *geom.SurfacePatch, q polynomialPlaneEquation, axis int) (PCurve, int, error) {
+		return graphPlaneTrimEquation(p, q, axis, rationalGraph)
+	})
+}
+
+func certifyPiecewiseGraphPlaneFaceSectionWithTrim(ctx context.Context, s Solid, face int, plane polynomialPlaneEquation, freeAxis int, o PolynomialPlaneSpanOptions,
+	trimOn func(*geom.SurfacePatch, polynomialPlaneEquation, int) (PCurve, int, error)) (*PiecewisePolynomialPlaneFaceSection, []PCurve, error) {
 	if ctx == nil || face < 0 || face >= len(s.faces) || freeAxis < 0 || freeAxis > 1 {
 		return nil, nil, geom.ErrInvalid
 	}
@@ -129,7 +136,7 @@ func certifyPiecewiseGraphPlaneFaceSection(ctx context.Context, s Solid, face in
 		if e != nil {
 			return nil, nil, e
 		}
-		trim, sign, e := graphPlaneTrimEquation(cell, plane, freeAxis, rationalGraph)
+		trim, sign, e := trimOn(cell, plane, freeAxis)
 		if e != nil {
 			return nil, nil, e
 		}

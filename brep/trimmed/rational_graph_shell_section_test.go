@@ -169,6 +169,10 @@ func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
 }
 
 func makeSquareRationalGraphTube(t *testing.T) Solid {
+	return makeWarpedSquareRationalGraphTube(t, 0)
+}
+
+func makeWarpedSquareRationalGraphTube(t *testing.T, warp float64) Solid {
 	t.Helper()
 	ctx := context.Background()
 	var surfaces []*geom.BSplineSurface
@@ -177,7 +181,25 @@ func makeSquareRationalGraphTube(t *testing.T) Solid {
 	k := []float64{0, 0, 1, 1}
 	rect := func(p, u, v geom.Vec3) {
 		t.Helper()
-		s, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{p, p.Add(v), p.Add(u), p.Add(u).Add(v)}, k, k, nil)
+		degree, count, knots := 1, 2, k
+		controls := []geom.Vec3{p, p.Add(v), p.Add(u), p.Add(u).Add(v)}
+		if warp != 0 {
+			degree, count, knots = 2, 3, []float64{0, 0, 0, 1, 1, 1}
+			controls = nil
+			// Apply the exact shear Y <- Y + warp*X² to every
+			// chart by converting the quadratic to Bernstein controls.
+			// The tube fixture never has both U and V changing X.
+			for i := 0; i < count; i++ {
+				for j := 0; j < count; j++ {
+					a, b := float64(i)/2, float64(j)/2
+					q := p.Add(u.Scale(a)).Add(v.Scale(b))
+					qx2 := p.X*p.X + 2*p.X*(u.X*a+v.X*b) + u.X*u.X*math.Floor(a) + v.X*v.X*math.Floor(b)
+					q.Y += warp * qx2
+					controls = append(controls, q)
+				}
+			}
+		}
+		s, e := geom.NewBSplineSurface(degree, degree, count, count, controls, knots, knots, nil)
 		if e != nil {
 			t.Fatal(e)
 		}
