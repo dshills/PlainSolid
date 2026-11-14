@@ -196,3 +196,9 @@ It builds each surviving facet from the exact feasible vertices on its
 shifted support. Original face mappings record vanished facets. A
 lower-dimensional or empty erosion returns exact zero volume and an
 empty boundary. The same algebraic and native conversion limits apply.
+
+`OffsetConvexEuclideanSupportsAlgebraic` assigns each selected original
+support its own signed distance along the outward unit normal. For example,
+the walls of a convex prism can move inward while the cap planes stay fixed.
+Outward moves meet at mitered intersections of the shifted planes. Coplanar
+subfaces require equal shifts and retain their shared original ancestry.

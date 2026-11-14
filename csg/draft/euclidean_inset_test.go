@@ -260,3 +260,104 @@ func TestConvexEuclideanInsetRegularizedEmpty(t *testing.T) {
 		}
 	}
 }
+
+func TestConvexEuclideanIndependentSupportOffsets(t *testing.T) {
+	ctx := context.Background()
+	source := insetTriangleFixture(t)
+	diagonal, lowerY := -1, -1
+	for i := range source.Faces() {
+		p, err := source.FacePlane(i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := p.Normal()
+		if n.X > 0 && n.Y > 0 {
+			diagonal = i
+		}
+		if n == (geom.Vec3{Y: -1}) {
+			lowerY = i
+		}
+	}
+	if diagonal < 0 || lowerY < 0 {
+		t.Fatal("missing independent original supports", diagonal, lowerY)
+	}
+	got, err := OffsetConvexEuclideanSupportsAlgebraic(ctx, source, []FaceNormalOffset{{lowerY, .5}, {diagonal, -.25}}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Radicands) != 2 || got.Radicands[1].Cmp(big.NewRat(2, 1)) != 0 || len(got.ExactVertices) != 6 ||
+		got.ExactVolume.Coefficients[0].Cmp(big.NewRat(163, 8)) != 0 || got.ExactVolume.Coefficients[1].Cmp(big.NewRat(-9, 4)) != 0 {
+		t.Fatal("independently shifted irrational triangle has an incorrect exact volume", got.ExactVolume, got.Radicands)
+	}
+	if moved := got.FacePlanes[got.OldToNew[lowerY]].Offset.Coefficients; moved[0].Cmp(big.NewRat(1, 2)) != 0 || moved[1].Sign() != 0 {
+		t.Fatal("outward shift of original lower Y face did not survive", moved)
+	}
+	if moved := got.FacePlanes[got.OldToNew[diagonal]].Offset.Coefficients; moved[0].Cmp(big.NewRat(4, 1)) != 0 || moved[1].Cmp(big.NewRat(-1, 4)) != 0 {
+		t.Fatal("diagonal inward shift did not use its unit normal", moved)
+	}
+	for i, v := range got.ExactVertices {
+		if z := v[2].Coefficients; z[1].Sign() != 0 || z[0].Sign() != 0 && z[0].Cmp(big.NewRat(2, 1)) != 0 {
+			t.Fatal("a fixed original cap moved", i, z)
+		}
+	}
+	for i, mapped := range got.OldToNew {
+		if mapped < 0 || len(got.FaceSources[mapped]) != 1 || got.FaceSources[mapped][0] != i {
+			t.Fatal("offset broke original face ancestry", got.OldToNew, got.FaceSources)
+		}
+	}
+	mass, err := got.Solid.MassProperties()
+	want := math.Pow(4.5-.25*math.Sqrt2, 2)
+	if err != nil || math.Abs(mass.Volume-want) > 1e-12 {
+		t.Fatal("native solid volume disagrees with independent footprint calculation", mass, want, err)
+	}
+	collapsed, err := OffsetConvexEuclideanSupportsAlgebraic(ctx, source, []FaceNormalOffset{{lowerY, -4}}, Options{})
+	if err != nil || len(collapsed.Solid.Faces()) != 0 || collapsed.ExactVolume.Coefficients[0].Sign() != 0 {
+		t.Fatal("touching supports must give a regularized empty solid", collapsed, err)
+	}
+	for _, face := range collapsed.OldToNew {
+		if face != -1 {
+			t.Fatal("collapsed boundary retained an original support", collapsed.OldToNew)
+		}
+	}
+}
+
+func TestConvexEuclideanSupportOffsetsCoplanarAndAtomic(t *testing.T) {
+	ctx := context.Background()
+	box := triangulatedSolidFixture(t, cube(t))
+	var top []int
+	for i := range box.Faces() {
+		p, err := box.FacePlane(i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.Normal() == (geom.Vec3{Z: 1}) {
+			top = append(top, i)
+		}
+	}
+	if len(top) != 2 {
+		t.Fatal("incorrect coplanar source fixture", top)
+	}
+	got, err := OffsetConvexEuclideanSupportsAlgebraic(ctx, box, []FaceNormalOffset{{top[0], .25}, {top[1], .25}}, Options{})
+	if err != nil || len(got.FaceSources) != 6 || got.OldToNew[top[0]] != got.OldToNew[top[1]] || got.ExactVolume.Coefficients[0].Cmp(big.NewRat(5, 4)) != 0 {
+		t.Fatal("congruent coplanar offsets should retain both source faces", got, err)
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	for _, test := range []struct {
+		ctx     context.Context
+		offsets []FaceNormalOffset
+		want    error
+	}{
+		{ctx, []FaceNormalOffset{{top[0], .25}}, ErrUnsupported},
+		{ctx, []FaceNormalOffset{{top[0], .25}, {top[1], .125}}, ErrUnsupported},
+		{ctx, []FaceNormalOffset{{top[0], .25}, {top[0], .25}}, ErrInvalid},
+		{ctx, []FaceNormalOffset{{-1, .25}}, ErrInvalid},
+		{ctx, []FaceNormalOffset{{top[0], math.Inf(1)}}, ErrInvalid},
+		{cancelled, []FaceNormalOffset{{top[0], .25}}, context.Canceled},
+	} {
+		failed, err := OffsetConvexEuclideanSupportsAlgebraic(test.ctx, box, test.offsets, Options{})
+		if !errors.Is(err, test.want) || len(failed.Radicands)+len(failed.ExactVertices)+len(failed.Solid.Faces()) != 0 {
+			t.Fatal("failed offset returned partial geometry", failed, err, test.want)
+		}
+	}
+}

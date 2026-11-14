@@ -120,8 +120,9 @@ func TestHollowThroughRejectsUnprovedOpenings(t *testing.T) {
 		t.Fatal("cancel", e)
 	}
 }
-func TestHollowThroughRejectsPartialSupportingFace(t *testing.T) {
-	m := cube(t).Tessellate()
+func triangulatedSolidFixture(t *testing.T, solid brep.Solid) brep.Solid {
+	t.Helper()
+	m := solid.Tessellate()
 	var edges []brep.Edge
 	var faces []brep.Face
 	lookup := map[[2]int]int{}
@@ -144,12 +145,17 @@ func TestHollowThroughRejectsPartialSupportingFace(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	th := make([]float64, len(faces))
+	return s
+}
+
+func TestHollowThroughRejectsPartialSupportingFace(t *testing.T) {
+	s := triangulatedSolidFixture(t, cube(t))
+	th := make([]float64, len(s.Faces()))
 	for i := range th {
 		th[i] = .125
 	}
 	th[0], th[2] = 0, 0
-	if _, e = HollowThrough(context.Background(), s, th, ThroughHollowOptions{OpenFaces: [2]int{0, 2}}); !errors.Is(e, ErrUnsupported) {
+	if _, e := HollowThrough(context.Background(), s, th, ThroughHollowOptions{OpenFaces: [2]int{0, 2}}); !errors.Is(e, ErrUnsupported) {
 		t.Fatal("partial coplanar support", e)
 	}
 }

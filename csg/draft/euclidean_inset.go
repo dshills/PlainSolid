@@ -45,7 +45,7 @@ type EuclideanInsetResult struct {
 // A topology change, unresolved arithmetic or invalid rounded result fails
 // atomically. The ideal erosion and rounded Solid have separate coordinates.
 func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options) (EuclideanInsetResult, error) {
-	result, err := insetConvexEuclidean(ctx, s, distance, o, 1, true)
+	result, err := insetConvexEuclidean(ctx, s, distance, nil, o, 1, true)
 	if err != nil {
 		return EuclideanInsetResult{}, err
 	}
@@ -75,13 +75,13 @@ func InsetStableEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 // The basis belongs to the corresponding AlgebraicEuclideanInsetResult.
 type AlgebraicInsetScalar struct{ Coefficients []*big.Rat }
 
-// AlgebraicInsetPlane is an original support moved by its exact normal length.
+// AlgebraicInsetPlane is an original support with an exact normal offset.
 type AlgebraicInsetPlane struct {
 	Normal [3]*big.Rat
 	Offset AlgebraicInsetScalar
 }
 
-// AlgebraicEuclideanInsetResult records the ideal erosion and a validated
+// AlgebraicEuclideanInsetResult records the ideal shifted halfspaces and a validated
 // rounded native realization. Radicands[0] is 1. The other radicands have
 // distinct rational square classes. The output coefficients are caller-owned.
 type AlgebraicEuclideanInsetResult struct {
@@ -101,7 +101,7 @@ type AlgebraicEuclideanInsetResult struct {
 // tracks each basis coefficient. Outward rational bounds decide the signs of
 // sums with more than two terms within the configured work and bit limits.
 func InsetStableEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options) (AlgebraicEuclideanInsetResult, error) {
-	return insetEuclideanAlgebraic(ctx, s, distance, o, true)
+	return insetEuclideanAlgebraic(ctx, s, distance, nil, o, true)
 }
 
 // InsetConvexEuclideanAlgebraic erodes a convex planar solid by a Euclidean
@@ -111,11 +111,30 @@ func InsetStableEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance f
 // At most four independent normal classes and the native conversion limits
 // of InsetStableEuclideanAlgebraic apply.
 func InsetConvexEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options) (AlgebraicEuclideanInsetResult, error) {
-	return insetEuclideanAlgebraic(ctx, s, distance, o, false)
+	return insetEuclideanAlgebraic(ctx, s, distance, nil, o, false)
 }
 
-func insetEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, o Options, stable bool) (AlgebraicEuclideanInsetResult, error) {
-	result, err := insetConvexEuclidean(ctx, s, distance, o, 4, stable)
+// FaceNormalOffset moves one original convex support by Distance measured
+// along its unit outward normal. Negative distances move inward.
+type FaceNormalOffset struct {
+	Face     int
+	Distance float64
+}
+
+// OffsetConvexEuclideanSupportsAlgebraic reconstructs a convex solid from
+// individually shifted original support planes. Unselected supports keep
+// their original positions. All subfaces of one coplanar support must have
+// the same shift. The exact result may change which faces and vertices exist.
+// Parallel inward offsets of all footprint walls can shrink its section with
+// both original caps fixed. Outward offsets use mitered support intersections.
+// Arithmetic, conversion, empty output, and ancestry follow the same contract
+// as InsetConvexEuclideanAlgebraic.
+func OffsetConvexEuclideanSupportsAlgebraic(ctx context.Context, s brep.Solid, offsets []FaceNormalOffset, o Options) (AlgebraicEuclideanInsetResult, error) {
+	return insetEuclideanAlgebraic(ctx, s, 0, offsets, o, false)
+}
+
+func insetEuclideanAlgebraic(ctx context.Context, s brep.Solid, distance float64, offsets []FaceNormalOffset, o Options, stable bool) (AlgebraicEuclideanInsetResult, error) {
+	result, err := insetConvexEuclidean(ctx, s, distance, offsets, o, 4, stable)
 	if err != nil {
 		return AlgebraicEuclideanInsetResult{}, err
 	}
@@ -151,7 +170,7 @@ type insetEuclideanResult struct {
 	displacement *big.Rat
 }
 
-func insetConvexEuclidean(ctx context.Context, s brep.Solid, distance float64, o Options, maxGenerators int, stable bool) (insetEuclideanResult, error) {
+func insetConvexEuclidean(ctx context.Context, s brep.Solid, distance float64, offsets []FaceNormalOffset, o Options, maxGenerators int, stable bool) (insetEuclideanResult, error) {
 	var empty insetEuclideanResult
 	if ctx == nil || math.IsInf(distance, 0) || math.IsNaN(distance) || distance < 0 {
 		return empty, ErrInvalid
@@ -160,9 +179,22 @@ func insetConvexEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 	if err != nil {
 		return empty, err
 	}
+	if len(offsets) > o.MaxFaces {
+		return empty, ErrLimit
+	}
 	base, err := Apply(ctx, s, nil, o)
 	if err != nil {
 		return empty, err
+	}
+	shifts := make(map[int]float64, len(offsets))
+	for _, offset := range offsets {
+		if offset.Face < 0 || offset.Face >= len(base.OldToNew) || math.IsInf(offset.Distance, 0) || math.IsNaN(offset.Distance) {
+			return empty, ErrInvalid
+		}
+		if _, duplicate := shifts[offset.Face]; duplicate {
+			return empty, ErrInvalid
+		}
+		shifts[offset.Face] = offset.Distance
 	}
 	if !stable && len(base.FacePlanes) == 0 && len(s.Faces()) == 0 {
 		return insetEuclideanResult{base: base, radicals: []*big.Rat{big.NewRat(1, 1)}, displacement: new(big.Rat)}, nil
@@ -171,7 +203,7 @@ func insetConvexEuclidean(ctx context.Context, s brep.Solid, distance float64, o
 		return empty, ErrUnsupported
 	}
 	field := insetRadicalField{work: &budget{ctx: ctx, o: o}, radicals: []*big.Rat{big.NewRat(1, 1)}}
-	planes, err := insetEuclideanPlanes(base.FacePlanes, num(distance), &field, maxGenerators)
+	planes, err := insetEuclideanPlanes(base, distance, shifts, &field, maxGenerators)
 	if err != nil {
 		return empty, err
 	}
@@ -230,20 +262,30 @@ type insetRadicalPlane struct {
 	Offset insetAlgebraic
 }
 
-func insetEuclideanPlanes(source []Halfspace, distance *big.Rat, f *insetRadicalField, maxGenerators int) ([]insetRadicalPlane, error) {
+func insetEuclideanPlanes(base Result, distance float64, shifts map[int]float64, f *insetRadicalField, maxGenerators int) ([]insetRadicalPlane, error) {
 	var planes []insetRadicalPlane
-	for i, h := range source {
+	for i, h := range base.FacePlanes {
 		if !f.work.tick() {
 			return nil, f.work.err
 		}
+		shift := -distance
+		if len(shifts) > 0 {
+			sources := base.FaceSources[i]
+			shift = shifts[sources[0]]
+			for _, face := range sources[1:] {
+				if shifts[face] != shift {
+					return nil, fmt.Errorf("%w: differing normal offsets on one coplanar support", ErrUnsupported)
+				}
+			}
+		}
 		var offset insetAlgebraic
 		f.addTerm(&offset, 0, h.Offset)
-		if distance.Sign() != 0 {
+		if shift != 0 {
 			idx, scale, err := f.includeRoot(dot(h.Normal, h.Normal), maxGenerators)
 			if err != nil {
 				return nil, fmt.Errorf("inset support %d: %w", i, err)
 			}
-			f.addTerm(&offset, idx, new(big.Rat).Neg(mul(distance, scale)))
+			f.addTerm(&offset, idx, mul(num(shift), scale))
 		}
 		planes = append(planes, insetRadicalPlane{Normal: h.Normal, Offset: offset})
 	}
