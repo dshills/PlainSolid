@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD reciprocal cardinal–oblique Hole crossing — 2026-11-14
+
+The exact equal-radius crossing also accepts a 3:4 local axis ratio when
+both elliptical openings stay on opposite X faces. The conic coefficients
+are checked across their full intervals. The existing 4:3 STEP fixture
+remains byte-identical. Separated same-ratio bores on the Z caps continue
+through the disjoint path.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-reciprocal-oblique-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-reciprocal-oblique-step-native-2026-11-14.json)
+pass on the same WASM. The 42,187-byte file contains 16 analytic ellipses
+and reopens through STEP. The STL has 404 watertight triangles. Both
+signed slopes, grouped and successive cuts, covered tool overlap, six
+independent OCCT STEP checks, and the authored direct Boolean pass.
+Focused race and Go vet pass.
+
 ## PlainCAD bounded oblique Hole tessellation — 2026-11-14
 
 Paired elliptical wall rims share angular samples. The analytic gap

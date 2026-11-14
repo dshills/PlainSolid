@@ -180,9 +180,9 @@ retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
 Its STEP exchange preserves both analytic ellipses and the cylinder support.
-An equal-radius cardinal bore and a concurrent oblique bore in the local
-4:3 axis ratio now retain their exact crossing ellipses and all four full
-stock openings through STEP and STL.
+An equal-radius cardinal bore and a concurrent oblique bore in local
+4:3 or 3:4 axis ratio retain their exact crossing ellipses and all four
+full stock openings through STEP and STL.
 Two or three separate through Holes can now combine oblique and cardinal
 axes in one rectangular stock body. Native sewing preserves the stock
 faces, and STEP preserves each circular or elliptical opening and its

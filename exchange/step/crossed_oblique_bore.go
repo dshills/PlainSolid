@@ -16,6 +16,9 @@ type CrossedObliqueBoreBody struct {
 	Frame                geom.Frame
 	Dimensions, Crossing geom.Vec3
 	Radius               float64
+	// AxisRatio zero preserves the legacy 4:3 file representation.
+	// The additional supported ratio is (3,4).
+	AxisRatio geom.Vec2
 }
 
 type CrossedObliqueBoreModel struct {
@@ -40,7 +43,16 @@ func WriteCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 
 func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	p := m.Body
-	r, err := trimmed.BoxCrossedBores345(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	var r trimmed.BoxCrossedBoresResult
+	var err error
+	switch p.AxisRatio {
+	case geom.Vec2{}:
+		r, err = trimmed.BoxCrossedBores345(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	case geom.Vec2{X: 3, Y: 4}:
+		r, err = trimmed.BoxCrossedObliqueBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.AxisRatio, p.Radius, 1e-9)
+	default:
+		return geom.ErrDomain
+	}
 	if err != nil {
 		return err
 	}
@@ -110,8 +122,13 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		return fail()
 	}
 	basis := frame.XAxis().Scale(.8).Add(frame.ZAxis().Scale(.6))
+	ratio := geom.Vec2{}
 	if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
-		return fail()
+		basis = frame.XAxis().Scale(.6).Add(frame.ZAxis().Scale(.8))
+		if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
+			return fail()
+		}
+		ratio = geom.Vec2{X: 3, Y: 4}
 	}
 	var vertices []geom.Vec3
 	for _, faceID := range ids[:6] {
@@ -135,5 +152,5 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 	if err != nil || bounds.Min != (geom.Vec3{}) {
 		return fail()
 	}
-	return CrossedObliqueBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(z.frame.Origin()), Radius: z.radius}, nil
+	return CrossedObliqueBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(z.frame.Origin()), Radius: z.radius, AxisRatio: ratio}, nil
 }

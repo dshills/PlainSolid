@@ -450,6 +450,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.bore != nil && s.bore.obliqueCrossing != nil:
 		p := s.bore.obliqueCrossing
 		body := step.CrossedObliqueBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radius}
+		if p.axisRatio == (geom.Vec2{X: 3, Y: 4}) {
+			body.AxisRatio = p.axisRatio
+		}
 		e = step.WriteCrossedObliqueBore(&out, step.CrossedObliqueBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossed != nil:
 		recipe, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)
