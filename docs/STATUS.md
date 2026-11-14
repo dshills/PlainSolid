@@ -72,8 +72,11 @@ references, exact elliptical STEP trims and watertight STL pass. Two
 intersecting equal-radius perpendicular blind Holes also retain both
 complete planar floors and round-trip STEP when both floors lie beyond
 the intersection. Repeated covered cutters can be grouped, and a
-successive coaxial cutter can deepen or open the blind floor. Floors
-inside the intersection and broader blind Hole combinations remain open. A single oblique through cutter in rectangular stock now
+successive coaxial cutter can deepen or open the blind floor. Equal-radius
+perpendicular bores also retain two circular-segment floor faces when
+the blind stop passes the crossing axis and remains within the through
+bore. STEP and STL preserve both segments. Stops before or at the crossing
+axis and broader blind Hole combinations remain open. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.

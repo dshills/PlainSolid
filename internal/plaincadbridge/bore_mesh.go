@@ -12,6 +12,9 @@ import (
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
 	if s.bore.blindCrossed != nil {
+		if s.bore.blindCrossed.clippedFloor {
+			return s.bore.solid.TessellateClippedCrossedBores(ctx, o)
+		}
 		return s.bore.solid.TessellateBlindCrossedBores(ctx, o)
 	}
 	if s.bore.partialSkew {

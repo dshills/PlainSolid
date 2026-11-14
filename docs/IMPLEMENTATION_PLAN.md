@@ -78,8 +78,10 @@ import budget. A blind Hole crossing an equal-radius perpendicular
 through Hole preserves its complete planar floor when it stops beyond
 the crossing. Two perpendicular blind Holes can also retain both complete
 floors beyond their intersection. Their exact conic STEP and fabrication
-meshes pass. Next handle floors inside the shared cylinder region and
-disjoint mixed-axis blind Holes in STEP. A single oblique through Hole with
+meshes pass. A blind floor beyond the crossing axis and inside the
+perpendicular through Hole retains two circular segment faces through
+STEP and STL. Next handle stops before or at that axis and disjoint
+mixed-axis blind Holes in STEP. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

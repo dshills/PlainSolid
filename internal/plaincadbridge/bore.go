@@ -319,7 +319,7 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		p := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
 		axis := c.frame.ZAxis()
 		if math.Abs(math.Abs(axis.Dot(n))-1) <= 1e-9 && math.Abs(p.Sub(origin).Dot(axis)) <= 1e-7 {
-			if floor != nil {
+			if floor != nil || body.blindCrossed != nil && body.blindCrossed.clippedFloor {
 				return PlanarFace{}, errors.New("planar face reference is ambiguous")
 			}
 			f := PlanarFace{body.floors[i], coordinates(p), coordinates(axis.Scale(-1)), math.Pi * c.radius * c.radius}

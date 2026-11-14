@@ -11,8 +11,9 @@ import (
 
 type blindCrossedGeometry struct {
 	crossedBoreGeometry
-	depth       [2]float64
-	oppositeCap [2]bool
+	depth        [2]float64
+	oppositeCap  [2]bool
+	clippedFloor bool
 }
 
 func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64, blind []bool) (blindCrossedGeometry, bool) {
@@ -74,6 +75,24 @@ func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64,
 			return blindCrossedGeometry{}, false
 		}
 	}
+	if p.depth[0] == 0 {
+		distance := p.depth[1] - p.crossing.Z
+		if p.oppositeCap[1] {
+			distance = p.depth[1] - (p.dimensions.Z - p.crossing.Z)
+		}
+		if distance > 0 && distance < p.radii[0] {
+			p.clippedFloor = true
+			if p.oppositeCap[1] {
+				old := p.frame
+				frame, err := geom.NewFrame(old.ToWorld(geom.Vec3{X: p.dimensions.X, Z: p.dimensions.Z}), old.XAxis().Scale(-1), old.ZAxis().Scale(-1))
+				if err != nil {
+					return blindCrossedGeometry{}, false
+				}
+				p.frame, p.crossing = frame, frame.ToLocal(old.ToWorld(p.crossing))
+				p.oppositeCap[1] = false
+			}
+		}
+	}
 	return p, true
 }
 
@@ -85,10 +104,13 @@ func newBlindCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
-	if p.depth[0] != 0 {
+	switch {
+	case p.clippedFloor:
+		result, err = trimmed.BoxClippedCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.depth[1], 1e-9)
+	case p.depth[0] != 0:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0],
 			p.depth[0], p.depth[1], p.oppositeCap[0], p.oppositeCap[1], 1e-9)
-	} else {
+	default:
 		result, err = trimmed.BoxBlindCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0],
 			p.depth[1], p.oppositeCap[1], 1e-9)
 	}

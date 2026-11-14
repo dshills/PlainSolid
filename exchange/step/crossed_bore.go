@@ -24,6 +24,7 @@ type CrossedBoreBody struct {
 	OppositeCap          bool
 	XBlindDepth          float64
 	XOppositeCap         bool
+	ClippedFloor         bool
 }
 
 type CrossedBoreModel struct {
@@ -54,6 +55,11 @@ func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 	var result trimmed.BoxCrossedBoresResult
 	var err error
 	switch {
+	case p.ClippedFloor:
+		if p.XBlindDepth != 0 || p.XOppositeCap || p.OppositeCap {
+			return geom.ErrDomain
+		}
+		result, err = trimmed.BoxClippedCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, 1e-9)
 	case p.XBlindDepth != 0 || p.XOppositeCap:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.XBlindDepth, p.BlindDepth, p.XOppositeCap, p.OppositeCap, 1e-9)
 	case p.BlindDepth != 0 || p.OppositeCap:
@@ -108,14 +114,15 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		return fail()
 	}
 	faces, err := listRefs(shell.Args[1], 22)
-	if err != nil || len(faces) > 24 {
+	if err != nil || len(faces) > 24 && len(faces) != 34 {
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
-	zBlind, xBlind := len(faces) >= 23, len(faces) == 24
+	clipped := len(faces) == 34
+	zBlind, xBlind := len(faces) == 23 || len(faces) == 24, len(faces) == 24
 	zStart, xStart := 6, 14
 	if zBlind {
 		zStart++
@@ -123,6 +130,9 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 	}
 	if xBlind {
 		xStart++
+	}
+	if clipped {
+		xStart = 18
 	}
 	var supports [2]circularSourceFace
 	for i, id := range []int64{faces[zStart], faces[xStart]} {
@@ -177,6 +187,14 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		if !ok {
 			return fail()
 		}
+	}
+	if clipped {
+		floor, err := readCircularSourceFace(f, faces[trimmed.ClippedCrossedBoreFloorFirst])
+		if err != nil || floor.kind != "PLANE" || len(floor.loops) != 1 || len(floor.loops[0]) != 3 {
+			return fail()
+		}
+		p.BlindDepth = frame.ToLocal(floor.frame.Origin()).Z
+		p.ClippedFloor = true
 	}
 	return p, nil
 }
