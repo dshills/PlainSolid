@@ -101,3 +101,27 @@ symbolic coefficient accessors copy their rational values. The pinned adaptive
 OCCT mass comparator verifies original emitted STEP after native reload,
 including off-diagonal and centroidal inertia. The canonical local circular
 frustum test has V=35π/3, Fz=−5π/12, Qxx=Qyy=31π/4, Qzz=65π/3.
+
+## Exact circular-frustum point location
+
+`LocateIndependentCircularFrustumHierarchyPoint` classifies each retained body
+separately, including all four previous families. It does not classify a
+regularized union or merge coincident occurrence identities. Noncircular
+frusta fail atomically in this explicit circular query.
+
+For source-local coordinates x,y measured from the certified axis and z measured
+from the lower cap, h²(x²+y²) is compared exactly with
+(r0*h+(r1-r0)*z)², together with 0≤z≤h. No square root, angular parameter,
+float tolerance or rounded profile is used. The original wall and cap face IDs
+are recovered from their authenticated supports/stations, not list order.
+Boundary results preserve both faces at each rim, original rim/seam edge IDs,
+and original vertex IDs where a seam meets a rim. The positive local-X ray
+identifies the canonical physical shared seam; no arbitrary pcurve branch is
+invented. `ProductCoordinates` copies original local coordinates;
+`AnalyticCoordinates` copies axis-centered coordinates relative to the lower cap.
+
+Independent OCCT source classification covers inside/outside, wall, caps,
+rims/seam/endpoints, including an exact nonbinary 7/5 seam coordinate and a
+rotated occurrence after native reload. Additional exact ±2^-120 radial tests
+are deliberately not compared to OCCT's tolerance classifier. Original source,
+coefficient, planar proof/ray budgets and cancellation remain enforced.

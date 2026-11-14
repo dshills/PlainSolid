@@ -5687,6 +5687,11 @@ OCCT oracle agrees on volume, centroid and all entries of both inertia
 tensors. Local analytic coefficients, native reload and rejection of a
 forged or noncircular support were checked. The integrated frustum and
 legacy rational hierarchy mass races passed in 16.734 s.
+The circular frustum point query independently validates both signed-axis
+poses against live OCCT, retaining cap and wall at the same rim, seams,
+and original vertices. The nonbinary seam and ±2^-120 side tests use
+exact comparison; tolerance-based OCCT is used for separated controls.
+The integrated point race passed in 29.065 s.
 
 The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
 finished with 340 passes and four failures. The original two focused

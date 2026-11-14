@@ -2035,3 +2035,5 @@ It also returns tight rational world bounds for every original use and
 their aggregate, including noncircular wrapped frustum profiles.
 Exact circular frusta also support symbolic volume, centroid and full
 inertia for each original occurrence and their occurrence sum.
+The exact circular point classifier retains original caps, walls, rim and
+seam edges, and vertex incidences for each placed occurrence.

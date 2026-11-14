@@ -136,6 +136,24 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 	if !reflect.DeepEqual(actual, expected) || !reflect.DeepEqual(c, d) {
 		return bad(geom.ErrInvalid)
 	}
+	return locateAuthenticatedHierarchyPoint(ctx, proof.Source, proof.Products, proof.Instances, proof.LengthUnit, point, o, planarMode...)
+}
+
+// Internal only: callers must authenticate the entire source/native/pose graph.
+func locateAuthenticatedHierarchyPoint(ctx context.Context, source *File, products map[int64]IndependentExactMaterial, instances []RationalHierarchyInstance, unit float64, point [3]*big.Rat, o RationalHierarchyPointOptions, planarMode ...bool) (RationalHierarchyPointLocations, error) {
+	bad := func(e error) (RationalHierarchyPointLocations, error) { return RationalHierarchyPointLocations{}, e }
+	var e error
+	a := hierarchyPointArithmetic{bits: o.MaxCoefficientBits}
+	for _, q := range point {
+		if q == nil {
+			return bad(geom.ErrInvalid)
+		}
+		a.check(q)
+	}
+	if a.err != nil {
+		return bad(a.err)
+	}
+	point = copyHierarchyRats(point)
 	generalPlanar := len(planarMode) > 1 && planarMode[1]
 	if o.MaxRayDirections == 0 {
 		o.MaxRayDirections = 64
@@ -153,7 +171,7 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 	}
 	prepared := map[int64]*hierarchyConvexPlanarProof{}
 	reasons := map[int64]string{}
-	out := RationalHierarchyPointLocations{LengthUnit: proof.LengthUnit}
+	out := RationalHierarchyPointLocations{LengthUnit: unit}
 	tick := func() error {
 		out.PlanarTests++
 		if out.PlanarTests > o.MaxPlanarTests {
@@ -161,17 +179,17 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 		}
 		return ctx.Err()
 	}
-	for _, u := range proof.Instances {
+	for _, u := range instances {
 		if e = ctx.Err(); e != nil {
 			return bad(e)
 		}
-		p := proof.Products[u.ProductID]
+		p := products[u.ProductID]
 		v := RationalHierarchyPointLeaf{ProductID: u.ProductID, SourceProductID: p.SourceProductID, SourceBodyID: p.SourceBodyID, Path: append([]int64(nil), u.Path...), Location: AnalyticPointUnsupported}
-		body, e := simple(proof.Source, p.SourceBodyID, "MANIFOLD_SOLID_BREP", 2)
+		body, e := simple(source, p.SourceBodyID, "MANIFOLD_SOLID_BREP", 2)
 		if e != nil {
 			return bad(e)
 		}
-		shell, e := simple(proof.Source, body.Args[1].Ref, "CLOSED_SHELL", 2)
+		shell, e := simple(source, body.Args[1].Ref, "CLOSED_SHELL", 2)
 		if e != nil {
 			return bad(e)
 		}
@@ -182,6 +200,18 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 		var frame geom.Frame
 		var radius, height, major *big.Rat
 		switch {
+		case p.Frustum != nil:
+			v.Family = "circular-frustum"
+			v.product = a.inverse(point, u.pose.Origin, [3][3]*big.Rat{u.pose.X, u.pose.Y, u.pose.Z})
+			if a.err != nil {
+				return bad(a.err)
+			}
+			v, e = locateAuthenticatedCircularFrustum(source, p, v, &a)
+			if e != nil {
+				return bad(e)
+			}
+			out.Leaves = append(out.Leaves, v)
+			continue
 		case p.Cylinder != nil:
 			v.Family = "cylinder"
 			frame = p.Cylinder.Frame
@@ -310,7 +340,8 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 }
 
 // ProductCoordinates returns owned source-local coordinates for a qualified
-// planar leaf. AnalyticCoordinates keeps its existing analytic-frame meaning.
+// planar or circular-frustum leaf. AnalyticCoordinates keeps its existing
+// analytic-frame meaning; a frustum uses its lower axial station as Z zero.
 func (p RationalHierarchyPointLeaf) ProductCoordinates() [3]*big.Rat {
 	return copyHierarchyRats(p.product)
 }
