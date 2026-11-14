@@ -128,3 +128,26 @@ PLAINSOLID_OCCT_TORUS_CYLINDER_PLACED_STEP=/tmp/plainsolid-torus-cylinder-placed
 
 The placed-reader binary SHA256 was
 `4a3dbba030e2f22c44ab64ad6dfcd7b2d00fcd842fd55bc84d86e7ad4e02969c`.
+
+## Paired placed import
+
+`ReadTorusCylinderOccurrence` recovers T, X and Z from the actual torus
+`AXIS2_PLACEMENT_3D` using bounded decimal rationals, derives Y=Z×X, and requires
+an exact proper orthonormal matrix. It does not convert those numbers to
+binary64 or normalize approximate/nonunit direction ratios. It inversely maps
+all model points and directions, verifies the complete unchanged canonical
+support/pcurve/adjacency graph, then regenerates and verifies the entire world
+graph. Original cap provenance and algebraic rim tokens survive reconstruction.
+
+Tests cover signed-axis and non-axis placements, both short/long torus bands,
+all operations, asymmetric retained caps, equivalent decimal exponent lexemes,
+bijective entity renumbering, immutable poses and deterministic re-export.
+Scaled/skew axes, absent references, full improper reflections, sub-float world
+vertex changes, changed model circles/pcurves and face senses fail atomically.
+Caller limits, cancellation and the 512-entity/4096-bit transform bounds remain
+in force. Canonical and placed import entry points stay separate. General
+OCCT-authored/healed/rounded STEP is still not accepted by this paired dialect.
+
+The independent placed OCCT test now transfers the imported/re-exported file
+and compares the reconstructed original native invariants and exact world
+query moments against the independently authored world analytic Boolean.
