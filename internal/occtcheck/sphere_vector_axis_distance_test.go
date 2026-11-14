@@ -77,6 +77,10 @@ func TestOCCTSphereVectorAxisFamilies(t *testing.T) {
 			t.Fatal(e)
 		}
 		p := [3]*big.Rat{big.NewRat(tc.x, 1), big.NewRat(tc.x, 1), big.NewRat(tc.x, 1)}
+		unified, ue := s.NearestBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
+		if ue != nil || unified.Kind != geom.SphereNearestTransverseAxis {
+			t.Fatal("unified domain", unified, ue)
+		}
 		g, e := s.NearestTransverseAxisBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
 		if e != nil || g.Families[tc.slot].Kind != tc.kind || !g.Families[tc.slot].Nearest {
 			t.Fatal(tc.name, g, e)
@@ -84,6 +88,9 @@ func TestOCCTSphereVectorAxisFamilies(t *testing.T) {
 		expected := tc.constant - tc.coefficient*math.Sqrt(tc.root)
 		ref, ok := refs[tc.name]
 		tol := 3e-7 * math.Max(1, expected)
+		if unified.Owners != g.Owners || unified.Lower.Cmp(g.Lower) != 0 || unified.Upper.Cmp(g.Upper) != 0 {
+			t.Fatal("unified independent proof")
+		}
 		lo, _ := g.Lower.Float64()
 		hi, _ := g.Upper.Float64()
 		if !ok || ref.Solutions < 1 || math.Abs(ref.SquaredDistance-expected) > tol || ref.SquaredDistance < lo-tol || ref.SquaredDistance > hi+tol {

@@ -79,6 +79,10 @@ func TestOCCTSphereTransverseNearest(t *testing.T) {
 		for j := range p {
 			p[j] = new(big.Rat).SetFloat64(tc.p[j])
 		}
+		unified, ue := s.NearestBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
+		if ue != nil || unified.Kind != geom.SphereNearestTransverseIsolated {
+			t.Fatal("unified domain", unified, ue)
+		}
 		g, e := s.NearestTransverseBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
 		if e != nil || g.Owners != tc.owners || g.Candidates[2].Nearest != tc.rim {
 			t.Fatal(tc.name, g, e)
@@ -86,6 +90,9 @@ func TestOCCTSphereTransverseNearest(t *testing.T) {
 		expected := tc.constant - tc.coefficient*math.Sqrt(tc.root)
 		ref, ok := refs[tc.name]
 		tol := 3e-7 * math.Max(1, expected)
+		if unified.Owners != g.Owners || unified.Lower.Cmp(g.Lower) != 0 || unified.Upper.Cmp(g.Upper) != 0 {
+			t.Fatal("unified independent proof")
+		}
 		lo, _ := g.Lower.Float64()
 		hi, _ := g.Upper.Float64()
 		if !ok || ref.Solutions < 1 || math.Abs(ref.SquaredDistance-expected) > tol || ref.SquaredDistance < lo-tol || ref.SquaredDistance > hi+tol {

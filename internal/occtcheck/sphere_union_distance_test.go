@@ -73,6 +73,10 @@ func TestOCCTSphereSeparatedUnionNearest(t *testing.T) {
 		for j := range p {
 			p[j] = new(big.Rat).SetFloat64(tc.p[j])
 		}
+		unified, ue := s.NearestBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
+		if ue != nil || unified.Geometry.Kind != geom.SphereNearestSeparatedUnion || unified.Geometry.Owners != tc.owners {
+			t.Fatal("unified original owner proof", unified, ue)
+		}
 		got, e := s.NearestSeparatedUnionBoundaryRational(ctx, p, geom.SphereFullBoundaryDistanceOptions{})
 		if e != nil || got.Geometry.Owners != tc.owners {
 			t.Fatal(tc.name, got, e)
@@ -81,6 +85,9 @@ func TestOCCTSphereSeparatedUnionNearest(t *testing.T) {
 		ref, ok := refs[tc.name]
 		if !ok || ref.Solutions < 1 {
 			t.Fatal("missing reference")
+		}
+		if unified.Geometry.Lower.Cmp(got.Geometry.Lower) != 0 || unified.Geometry.Upper.Cmp(got.Geometry.Upper) != 0 {
+			t.Fatal("unified independent distance")
 		}
 		lo, _ := got.Geometry.Lower.Float64()
 		hi, _ := got.Geometry.Upper.Float64()
