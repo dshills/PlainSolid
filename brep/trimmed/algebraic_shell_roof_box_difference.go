@@ -14,8 +14,8 @@ import (
 // instead leaves an inward cavity. A disjoint footprint retains the stock.
 // The original face ancestry follows the output face order; retained
 // cutter faces reverse.
-// Each participating roof must be a single rational Bézier span on the
-// stock rectangle. Pinches and unresolved height order fail closed.
+// A cutter covering the stock footprint can retain genuine roof creases.
+// Pinches and unresolved height order fail closed.
 func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxDifferenceHistory, error) {
 	var zero RoofBoxDifferenceHistory
 	q, err := prepareDirectRoofBoxMeasure(ctx, stock, cutter, parametric.Difference, proof)
@@ -40,11 +40,14 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 	if footprintStrictlyDisjoint(d, b.domain) {
 		return unchangedOrderedRoofBox(ctx, stock, &w)
 	}
-	if len(a.roofSpans) > 0 || len(b.roofSpans) > 0 {
-		return Solid{}, zero, geom.ErrUnrepresentable
-	}
 	if intersectRectangles(d, b.domain) != d {
+		if len(a.roofSpans) != 0 || len(b.roofSpans) != 0 {
+			return Solid{}, zero, geom.ErrUnrepresentable
+		}
 		return subtractEnclosedOrderedRoofBox(ctx, stock, cutter, q.box, &w)
+	}
+	if len(a.roofSpans) != 0 || len(b.roofSpans) != 0 {
+		return subtractPiecewiseOrderedRoofBoxes(ctx, stock, cutter, q.box, &w)
 	}
 	upper, err := orderedRoofRestrictedGraph(ctx, a, d, &w)
 	if err != nil {

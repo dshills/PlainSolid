@@ -1,6 +1,7 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,84 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
+
+func TestOrderedRoofBoxDifferenceRetainsOriginalCreases(t *testing.T) {
+	ctx := context.Background()
+	creased := weightedIdentityRoofStockMode(t, false, 2, false, true)
+	flat := func(floor, roof float64) Solid {
+		s, _ := makeOpenSplineBox(t, [3]float64{0, 0, floor}, [3]float64{1, 1, roof}, 0)
+		return s
+	}
+	for _, tc := range []struct {
+		name, oracle string
+		stock, tool  Solid
+		volume       float64
+		shells       int
+		cutterFaces  int
+	}{
+		{"creased stock above through tool", "piecewise-ordered-cut-upper", creased, flat(-1, 1.5), .75, 1, 2},
+		{"creased floating cutter", "piecewise-ordered-cut-split", flat(-1, 4), creased, 2.75, 2, 4},
+		{"tool above stock", "", creased, flat(3, 4), 2.25, 1, 0},
+		{"stock covered", "", creased, flat(-1, 4), 0, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			part, h, err := SubtractOrderedRoofBoxes(ctx, tc.stock, tc.tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+			top := part.Topology()
+			if err != nil || len(top.Shells) != tc.shells || top.EulerCharacteristic != 2*tc.shells || len(h.Faces) != top.Faces || len(h.Reversed) != top.Faces {
+				t.Fatal("incorrect retained band topology or face ledger", top, h, err)
+			}
+			polarity := 0
+			for i, face := range h.Faces {
+				if h.Reversed[i] != (face.Operand == 1) {
+					t.Fatal("only original cutter faces reverse", i, h)
+				}
+				if h.Reversed[i] {
+					polarity++
+				}
+			}
+			if polarity != tc.cutterFaces {
+				t.Fatal("incorrect number of retained reversed cutter fragments", polarity, h)
+			}
+			if tc.shells == 0 {
+				return
+			}
+			if tc.cutterFaces == 0 {
+				if top.Faces != len(tc.stock.Faces()) {
+					t.Fatal("disjoint cutter must retain the original native faces", top)
+				}
+				return
+			}
+			if top.Faces != 10*tc.shells {
+				t.Fatal("original knot may split caps and side walls without adding interior walls", top)
+			}
+			mass, err := part.MassProperties(ctx, parametric.IntegrationOptions{})
+			if err != nil || math.Abs(mass.Volume-tc.volume) > 1e-12 {
+				t.Fatal("independent piecewise band integral", tc.volume, mass, err)
+			}
+			if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+				data, err := exec.CommandContext(ctx, oracle, tc.oracle).Output()
+				var ref struct {
+					Volume, Area  float64
+					Solids, Euler int
+				}
+				if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != tc.shells || ref.Euler != 2*tc.shells || math.Abs(ref.Volume-mass.Volume) > 1e-8 || math.Abs(ref.Area-mass.Area) > 1e-8 {
+					t.Fatal("pinned OCCT creased cut", mass, ref, err, string(data))
+				}
+			}
+			var native bytes.Buffer
+			if err := WriteJSON(&native, part); err != nil {
+				t.Fatal(err)
+			}
+			if restored, err := ReadJSONContext(ctx, &native, JSONLimits{}); err != nil || restored.Topology().Faces != top.Faces {
+				t.Fatal("native reload must validate the sewn knot edges", restored.Topology(), err)
+			}
+		})
+	}
+	part, h, err := SubtractOrderedRoofBoxes(ctx, creased, flat(-1, 2.25), MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if !errors.Is(err, geom.ErrUnrepresentable) || part.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("a terminating band must require its own topology proof", part.Topology(), h, err)
+	}
+}
 
 func TestOrderedRoofBoxDifferenceNative(t *testing.T) {
 	ctx := context.Background()

@@ -34,20 +34,7 @@ type roofEnvelopeFace struct {
 
 func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMaterialQuery, d geom.ParameterRectangle, floorIndex int, inset [2][]float64, w *mixedRoofLineWork) (Solid, []roofEnvelopeFace, error) {
 	floor := q.box[floorIndex].floor
-	cuts := [2][]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
-	for _, box := range q.box {
-		if len(box.roofSpans) == 0 {
-			continue
-		}
-		u, v := box.roof.KnotBreaks()
-		for axis, breaks := range [2][]float64{u, v} {
-			for _, x := range breaks {
-				if x > cuts[axis][0] && x < cuts[axis][1] {
-					cuts[axis] = append(cuts[axis], x)
-				}
-			}
-		}
-	}
+	cuts := roofEnvelopeKnotCuts(q.box, d)
 	for i := range cuts {
 		cuts[i] = append(cuts[i], inset[i]...)
 	}
@@ -115,11 +102,10 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 			if err != nil {
 				return Solid{}, nil, err
 			}
-			var walls uint8
 			owners = append(owners, roofEnvelopeFace{MixedRoofFaceOwner{owner, q.box[owner].roofFace}, -1}, roofEnvelopeFace{MixedRoofFaceOwner{floorIndex, q.box[floorIndex].floorFace}, -1})
-			for k, boundary := range [4]bool{i == 0, i == nu-1, j == 0, j == nv-1} {
-				if boundary {
-					walls |= 1 << k
+			walls := roofEnvelopeWalls(i, j, nu, nv)
+			for k := range 4 {
+				if walls&(1<<k) != 0 {
 					owners = append(owners, roofEnvelopeFace{roofCommonWallOwner(q.box, d, k), k})
 				}
 			}
@@ -141,6 +127,34 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 		return Solid{}, nil, fmt.Errorf("sew ordered piecewise roof envelope: %w", err)
 	}
 	return result, owners, nil
+}
+
+func roofEnvelopeWalls(i, j, nu, nv int) uint8 {
+	var walls uint8
+	for axis, outer := range [4]bool{i == 0, i == nu-1, j == 0, j == nv-1} {
+		if outer {
+			walls |= 1 << axis
+		}
+	}
+	return walls
+}
+
+func roofEnvelopeKnotCuts(boxes [2]*mixedRoofBox, d geom.ParameterRectangle) [2][]float64 {
+	cuts := [2][]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
+	for _, box := range boxes {
+		if len(box.roofSpans) == 0 {
+			continue
+		}
+		u, v := box.roof.KnotBreaks()
+		for axis, breaks := range [2][]float64{u, v} {
+			for _, x := range breaks {
+				if x > cuts[axis][0] && x < cuts[axis][1] {
+					cuts[axis] = append(cuts[axis], x)
+				}
+			}
+		}
+	}
+	return sortRoofEnvelopeCuts(cuts)
 }
 
 func sortRoofEnvelopeCuts(cuts [2][]float64) [2][]float64 {
