@@ -20,7 +20,9 @@ type sideDualDiskRecipe struct {
 
 type sideDualDiskBody struct {
 	sideDualDiskRecipe
-	cut trimmed.SideOpenDualDiskCut
+	boundary trimmed.Solid
+	walls    [2][]int
+	measures trimmed.SideOpenDualDiskMeasures
 }
 
 // planarFace resolves a finite face from the actual rational trim. Several
@@ -36,8 +38,8 @@ func (b *sideDualDiskBody) planarFace(origin, normal geom.Vec3) (PlanarFace, err
 	point := [3]*big.Rat{rat(origin.X), rat(origin.Y), rat(origin.Z)}
 	var chosen *trimmed.AffineSplineFaceQuery
 	var out PlanarFace
-	for id, f := range b.cut.Solid.Faces() {
-		if id == b.cut.WallFaces[0][0] || id == b.cut.WallFaces[1][0] {
+	for id, f := range b.boundary.Faces() {
+		if id == b.walls[0][0] || id == b.walls[1][0] {
 			continue
 		}
 		q, e := trimmed.NewAffineSplineFaceQuery(ctx, f, trimmed.AffineSplineFaceQueryOptions{})
@@ -83,18 +85,31 @@ func (b *sideDualDiskBody) planarFace(origin, normal geom.Vec3) (PlanarFace, err
 	return out, nil
 }
 
-func (p sideDualDiskRecipe) analytic(cut trimmed.SideOpenDualDiskCut, m trimmed.SideOpenDualDiskMeasures) *analyticBody {
-	return &analyticBody{solid: cut.Solid, sideDualDisk: &sideDualDiskBody{p, cut}, volume: m.Volume, area: m.Area}
+func (p *sideDualDiskBody) analytic() *analyticBody {
+	return &analyticBody{solid: p.boundary, sideDualDisk: p, volume: p.measures.Volume, area: p.measures.Area}
 }
 
-func (p sideDualDiskRecipe) solid() (trimmed.SideOpenDualDiskCut, error) {
-	return trimmed.CutSideOpenDualDisks(context.Background(), p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+func (p sideDualDiskRecipe) solid() (*sideDualDiskBody, error) {
+	ctx := context.Background()
+	if p.discs[0].Radius == p.discs[1].Radius {
+		cut, e := trimmed.CutSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		if e != nil {
+			return nil, e
+		}
+		m, e := cut.Measures()
+		return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
+	}
+	cut, e := trimmed.CutUnequalSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+	if e != nil {
+		return nil, e
+	}
+	m, e := cut.Measures()
+	return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
 }
 
-func putSideDualDiskSTEPProduct(b *Bridge, product step.SideOpenDualDiskProduct) (Shape, error) {
-	d := product.Descriptor
+func putSideDualDiskSTEPProduct(b *Bridge, d step.SideOpenDualDiskDescriptor, native trimmed.Solid, walls [2][]int, measures trimmed.SideOpenDualDiskMeasures) (Shape, error) {
 	p := sideDualDiskRecipe{d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth}
-	cut := product.Native
+	cut := &sideDualDiskBody{p, native, walls, measures}
 	if d.LengthUnit != .001 {
 		// This reader proves a supported SI prefix. Identify that prefix
 		// before multiplying, since the floats for 10^n are not generally exact.
@@ -134,11 +149,7 @@ func putSideDualDiskSTEPProduct(b *Bridge, product step.SideOpenDualDiskProduct)
 			return Shape{}, e
 		}
 	}
-	m, e := cut.Measures()
-	if e != nil {
-		return Shape{}, e
-	}
-	return b.putAnalyticBody(p.analytic(cut, m))
+	return b.putAnalyticBody(cut.analytic())
 }
 
 func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecipe, bool) {
@@ -148,8 +159,9 @@ func dualDiskFromNotch(p step.SideNotchBody, c *cylinderBody) (sideDualDiskRecip
 	}
 	second, low, high, ok := sideNotchBore(p, c)
 	first := trimmed.ExtrusionCircle{Radius: p.Radius}
-	if !ok || second.Radius != p.Radius || second.Center.Y != 0 || second.Center.X == 0 || low != 0 || high != p.Depth ||
-		compareCircularFootprints(first, second, false) >= 0 {
+	if !ok || second.Center.Y != 0 || second.Center.X == 0 || low != 0 || high != p.Depth ||
+		compareCircularFootprints(first, second, false) >= 0 || compareCircularFootprints(first, second, true) <= 0 ||
+		compareCircularFootprints(second, first, true) <= 0 {
 		return out, false
 	}
 	return sideDualDiskRecipe{p.Frame, geom.Vec2{X: -p.Left}, geom.Vec2{X: p.Right, Y: p.Back}, [2]trimmed.ExtrusionCircle{first, second}, p.Length, p.Depth}, true
@@ -190,14 +202,10 @@ func (b *Bridge) cutSideDualDisk(a stored, tools []stored) (Shape, bool, error) 
 	if e != nil {
 		return Shape{}, true, e
 	}
-	m, e := cut.Measures()
-	if e != nil {
-		return Shape{}, true, e
-	}
-	if !removesMaterial(a.result.GeometryAssertions.Volume, m.Volume) {
+	if !removesMaterial(a.result.GeometryAssertions.Volume, cut.measures.Volume) {
 		return Shape{}, true, unsupportedEdge("Boolean cut removed no volume")
 	}
-	out, e := b.putNotchedAnalytic(p.analytic(cut, m), a.result.Bounds)
+	out, e := b.putNotchedAnalytic(cut.analytic(), a.result.Bounds)
 	return out, true, e
 }
 
@@ -225,15 +233,30 @@ func overlapSideDualDisk(a, c stored) (float64, bool, error) {
 	// arithmetic; capture is a measure-only query and need not build trims.
 	rat := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
 	x, radius := rat(p.discs[1].Center.X), rat(p.discs[1].Radius)
-	if new(big.Rat).Sub(x, radius).Cmp(rat(p.min.X)) <= 0 || new(big.Rat).Add(x, radius).Cmp(rat(p.max.X)) >= 0 {
+	if new(big.Rat).Sub(x, radius).Cmp(rat(p.min.X)) <= 0 || new(big.Rat).Add(x, radius).Cmp(rat(p.max.X)) >= 0 || radius.Cmp(rat(p.max.Y)) >= 0 {
 		return 0, true, unsupportedEdge("additional side opening reaches another stock wall")
 	}
-	alpha, _ := new(big.Rat).Quo(new(big.Rat).Abs(x), new(big.Rat).Mul(radius, big.NewRat(2, 1))).Float64()
-	r := p.discs[1].Radius
-	// The part of the new half disk outside the old one is half the
-	// total exclusive area of the two unbounded full disks.
-	h := math.Sqrt((1 - alpha) * (1 + alpha))
-	return r * (r * ((math.Atan2(alpha, h) + alpha*h) * p.depth)), true, nil
+	r0 := rat(p.discs[0].Radius)
+	d := new(big.Rat).Abs(x)
+	r02, r12 := new(big.Rat).Mul(r0, r0), new(big.Rat).Mul(radius, radius)
+	firstOffset := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).Add(new(big.Rat).Mul(d, d), r02), r12), new(big.Rat).Mul(d, big.NewRat(2, 1)))
+	secondOffset := new(big.Rat).Sub(d, firstOffset)
+	h2 := new(big.Rat).Sub(r02, new(big.Rat).Mul(firstOffset, firstOffset))
+	af, _ := firstOffset.Float64()
+	bf, _ := secondOffset.Float64()
+	hf, _ := h2.Float64()
+	df, _ := d.Float64()
+	h := math.Sqrt(hf)
+	// Circle/sweep integration gives the exposed part of the second half
+	// disk after the first has already been removed. Signed offsets permit
+	// the radical crossing to lie on either side of a cutter center.
+	l, r := p.discs[0].Radius, p.discs[1].Radius
+	area := (r*r*math.Atan2(h, -bf) - l*l*math.Atan2(h, af) + df*h) / 2
+	volume := area * p.depth
+	if !finite(volume) || volume <= 0 {
+		return 0, true, geom.ErrUnrepresentable
+	}
+	return volume, true, nil
 }
 
 func (p sideDualDiskRecipe) bounds() (geom.Box, error) {

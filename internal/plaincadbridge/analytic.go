@@ -84,7 +84,10 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	if a.sideDualDisk != nil {
-		result, err := a.sideDualDisk.cut.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
+		// The exact mesher re-proves cylinder and affine support identities
+		// from the boundary and never uses the recipe's radii as evidence.
+		source := trimmed.SideOpenDualDiskCut{Solid: a.sideDualDisk.boundary, WallFaces: a.sideDualDisk.walls}
+		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
 			Deflection: o.Deflection, AngularTurn: min(2*o.Angle, 1),
 			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
 		})
@@ -239,7 +242,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			if e != nil {
 				return nil, e
 			}
-			out.solid, out.sideDualDisk = cut.Solid, &sideDualDiskBody{p, cut}
+			out.solid, out.sideDualDisk = cut.boundary, cut
 			return &out, nil
 		}
 	}

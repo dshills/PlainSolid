@@ -146,7 +146,18 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	}
 	if strings.Contains(source, "CYLINDRICAL_SURFACE") && strings.Contains(source, "SHAPE_DEFINITION_REPRESENTATION") {
 		if m, e := step.ReadSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			return putSideDualDiskSTEPProduct(b, m)
+			p, e := m.Native.Measures()
+			if e != nil {
+				return Shape{}, e
+			}
+			return putSideDualDiskSTEPProduct(b, m.Descriptor, m.Native.Solid, m.Native.WallFaces, p)
+		}
+		if m, e := step.ReadUnequalSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
+			p, e := m.Native.Measures()
+			if e != nil {
+				return Shape{}, e
+			}
+			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p)
 		}
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
@@ -312,10 +323,15 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteSideNotch(&out, step.SideNotchModel{Body: *s.analytic.sideNotch, LengthUnit: .001})
 	case s.analytic != nil && s.analytic.sideDualDisk != nil:
 		p := s.analytic.sideDualDisk
-		e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, step.SideOpenDualDiskDescriptor{
+		d := step.SideOpenDualDiskDescriptor{
 			Name: "PlainSolid", Frame: p.frame, Min: p.min, Max: p.max, Discs: p.discs,
 			Height: p.height, Depth: p.depth, LengthUnit: .001, Tolerance: 1e-9,
-		})
+		}
+		if d.Discs[0].Radius == d.Discs[1].Radius {
+			e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, d)
+		} else {
+			e = step.WriteUnequalSideOpenDualDiskProduct(context.Background(), &out, step.UnequalSideOpenDualDiskDescriptor(d))
+		}
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():

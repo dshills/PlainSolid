@@ -120,6 +120,47 @@ func TestPlainCADSideOpenDualDiskSTEPUnits(t *testing.T) {
 	near(t, s.GeometryAssertions.SurfaceArea, 100*(312+3*(5*(math.Pi-math.Acos(.6))-8)))
 }
 
+func TestPlainCADUnequalSideOpenDualDiskCuts(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{60, 22, 6})
+	left := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 13, 3)
+	right := circle(t, b, vector{34, 0, 3}, vector{0, 0, -1}, 15, 3)
+	first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": left.Handle})
+	angleL, angleR := math.Pi/2+math.Asin(5./13), math.Pi/2+math.Asin(.6)
+	opening := 84 + (169*angleL+225*angleR)/2
+	volume, area := 7920-3*opening, 3624+3*(13*angleL+15*angleR-42)
+	near(t, overlapMeasure(t, b, first.Handle, right.Handle), 3*(opening-169*math.Pi/2))
+	for _, request := range []map[string]any{
+		{"op": "cutMany", "a": stock.Handle, "tools": []string{left.Handle, right.Handle}},
+		{"op": "cutMany", "a": stock.Handle, "tools": []string{right.Handle, left.Handle}},
+		{"op": "cut", "a": first.Handle, "b": right.Handle},
+	} {
+		out := shape(t, b, request)
+		near(t, out.GeometryAssertions.Volume, volume)
+		near(t, out.GeometryAssertions.SurfaceArea, area)
+		near(t, overlapMeasure(t, b, out.Handle, left.Handle), 0)
+		if out.Bounds != stock.Bounds {
+			t.Fatal("unequal cut lost its stock extrema", out.Bounds)
+		}
+		x, err := b.exportSTEP([]string{out.Handle})
+		if err != nil || len(x.After) != 1 || x.After[0].Bounds != out.Bounds {
+			t.Fatal("unequal exact export failed real readback", x.After, err)
+		}
+		near(t, x.After[0].Volume, volume)
+	}
+	final := shape(t, b, map[string]any{"op": "cut", "a": first.Handle, "b": right.Handle})
+	var d, a optionalNumber
+	d.set, d.value = true, .5
+	a.set, a.value = true, .2
+	m, err := b.shapes[final.Handle].tessellate(request{LinearDeflection: d, AngularDeflection: a})
+	if err != nil {
+		t.Fatal("unequal display", err)
+	}
+	if err := m.ValidateSolid(); err != nil {
+		t.Fatal("unequal display lost manifold", err)
+	}
+}
+
 func TestPlainCADSideOpenDualDiskRejectsUnprovedCrossing(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{0, 4, 0}, vector{10, 10, 6})
