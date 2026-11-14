@@ -447,6 +447,13 @@ kernel source blobs verified. The [authored tight-floor case](evidence/plaincad-
 completed within the rebuild deadline that the baseline missed and
 reproduced the original STEP and watertight 1,106-triangle STL. OCCT
 transfer and direct construction also agreed.
+The [all-axis oblique hole reconciliation](evidence/plaincad-reconciled-9b93d85d-development-placed-oblique-crossing-holes-step-2026-11-14.json)
+adds worktree revision `6ee8a176` to review `9b93d85d`. Native race
+checks covered 16 placements, and all 17 original browser cases passed.
+The run verified 841 app and 2,155 kernel source blobs. The
+[authored oblique crossing](evidence/plaincad-reconciled-9b93d85d-supplemental-placed-oblique-crossing-step-2026-11-14.json)
+reproduced the original STEP and watertight 404-triangle STL;
+OCCT transfer and direct construction agreed.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
