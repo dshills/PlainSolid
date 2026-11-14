@@ -50,3 +50,35 @@ interior profile with unchanged corners, source drift, collapsed scale, unequal
 V weights, missing height interval, altered native wall, quotas and cancellation.
 No certified display, general loft Boolean or arbitrary frame acceptance is
 claimed by this milestone.
+
+## Certified volume and centroid
+
+`BoundWrappedAnisotropicStationMass` reuses the existing exact normalized-profile
+area/first-moment enclosure after full anisotropic native authentication. One
+integration work ledger covers all bands, adaptive profile subdivisions and
+returned interval arithmetic. The existing `WrappedRationalStationMassOptions`
+controls volume width and resource limits; source authentication has its own
+per-pass limits. No separate centroid-width tolerance is promised.
+
+For normalized profile area A and first moments Mx,My, the exact transfers are
+
+- V = A ∫sx sy dz;
+- firstX = cx V + Mx ∫sx² sy dz;
+- firstY = cy V + My ∫sx sy² dz;
+- firstZ = A ∫z sx sy dz.
+
+Products of the original affine station factors are integrated as exact rational
+polynomials. Signed interval arithmetic carries profile uncertainty; the shared
+area factor is cancelled analytically in the exact Z centroid. Exact central
+symmetry is used only after the original weight ratios prove it. The shared full
+rim certificate ensures every band represents the same normalized profile,
+even when the two physical station scales change independently.
+
+For the qualification above, factors are V/A=43/6, firstX's profile factor=37/3,
+firstY's profile factor=32/3 and firstZ/A=10. An asymmetric first-quadrant weight
+1/2 (other weights3/4) gives genuinely distinct horizontal centroid offsets.
+An independently translated case at (−2,3,−4) checks negative X/Z and positive Y
+first moments, with exact Cz=−112/43. Independent Green quadrature checks the
+nontrivial profile values, tighter refinement gives nested volume intervals,
+and segment/work/bit/cancellation failures are atomic. No numerical quadrature
+is used by the certified API itself.

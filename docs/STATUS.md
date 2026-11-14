@@ -2237,3 +2237,10 @@ with stable simple incidence. A support may have an irrational normal
 length in the common quadratic field. Every displaced plane triple is
 classified exactly, and native conversion returns a proved displacement
 bound alongside algebraic vertices, volume and original face ancestry.
+
+### Certified anisotropic station mass
+
+The exact independent station scale factors transfer one original weighted
+profile enclosure to volume and first moments. Axial centroid is exact.
+Horizontal centroid intervals retain the uncertainty from the original
+profile integration and carry the original source topology.

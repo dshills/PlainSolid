@@ -6043,3 +6043,11 @@ records, appearance, placement and affine proof fields reject. The three
 independent OCCT chains preserve volume, area, centroids and occurrence
 colors after native reload and STEP transfer. The integrated live race
 passed in 14.234 s. See the [native envelope contract](../exchange/step/NURBS_PLANAR_ASSEMBLY_NATIVE.md).
+
+### Independent weighted station mass qualification
+
+The signed asymmetric fixture checks independent factors 43/6, 37/3,
+32/3 and 10 and exact axial centroid −112/43 after translation. Green
+integrals over the original profile check each horizontal component.
+Native reload, deterministic refinement and atomic limit failures pass.
+The integrated native and mass race passed in 20.167 s.
