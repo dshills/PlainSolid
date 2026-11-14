@@ -58,3 +58,15 @@ this convex core reproduces the original two-rounded-rim body, including a sharp
 core rim when its new radius is zero. Subtracting the ball in the convex support
 inequalities therefore gives exactly the core. Existing geometric limits remain
 in force; extinction with an originally sharp opposite rim is still rejected.
+
+`ErodeWrappedRoundedCylinderPastBlend` is an explicit continuation for two
+unequal positive original rim radii, with inward depth strictly between them.
+It composes exact extinction with a sharp/rounded-core erosion; the erosion
+semigroup proves the result equals erosion of the original body. All stage
+coordinates must remain exactly representable. The surviving opposite blend
+keeps its original face ancestor. `SharpRim` reports the original lateral, cap
+and extinct blend IDs, exact resulting radius/height, and the shared result rim
+edges in cap traversal order. The extinct blend is contact history only, not a
+surviving face ancestor. The second extinction and deeper offsets remain outside
+this entry point. Work limits apply per source proof and per each of two fixed
+stages; failures expose no intermediate body or history.
