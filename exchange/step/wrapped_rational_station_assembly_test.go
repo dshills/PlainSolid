@@ -175,6 +175,14 @@ func TestWrappedRationalStationAssemblyLive(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	var envelope bytes.Buffer
+	if e = WriteWrappedRationalStationAssemblyJSON(ctx, &envelope, m); e != nil {
+		t.Fatal(e)
+	}
+	m, e = ReadWrappedRationalStationAssemblyJSON(ctx, &envelope, IndependentMaterialJSONLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
 	var generated, source, native bytes.Buffer
 	if e = trimmed.WriteJSON(&native, m.Body.Solid); e != nil {
 		t.Fatal(e)

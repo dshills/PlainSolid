@@ -99,3 +99,22 @@ limits, cancellation, short writes and atomic rejected output. Original spline
 coefficient arrays are compared against independently constructed native data,
 and the source-role test reverses all record order. Fuzz smoke uses 40 executions,
 64 KiB input, 512 entities and a million-operation local proof ceiling.
+
+## Source-bound native persistence
+
+`WriteWrappedRationalStationAssemblyJSON` and
+`ReadWrappedRationalStationAssemblyJSON` use the distinct version-one
+`plainsolid-step-wrapped-rational-station-assembly` envelope. It stores one
+local native solid, the original STEP source, original tensor support bases,
+edge/vertex/face roles, product metadata, and each exact occurrence matrix.
+Reload performs one complete STEP assembly/local-material reproof and compares
+all stored claims; it never constructs geometry from the native claim alone.
+Writer validation finishes before output, and failed reads return no partial
+assembly. Byte and source parsing limits and cancellation remain enforced.
+This format supports the filled family only; it does not change older native
+formats or promote unrelated through-bore/assembly graphs.
+
+The optional pinned XCAF test includes source → native envelope → reload →
+source/generated STEP and checks shared identity, both poses, volume, area and
+centroid. Mutation tests cover support weights, original owner IDs, source
+units, occurrence matrices, native geometry and envelope versions.
