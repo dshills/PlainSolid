@@ -30,6 +30,9 @@ type SideOpenDualDiskProduct struct {
 	// OppositeNormalModelCircles lists source circle EDGE_CURVE IDs whose
 	// paired normal/sense reversal was exactly proved and normalized.
 	OppositeNormalModelCircles []int64
+	// OppositeNormalPlanes lists source ADVANCED_FACE IDs whose exact paired
+	// plane-normal/face-sense reversal was verified and normalized.
+	OppositeNormalPlanes []int64
 }
 
 // ReadSideOpenDualDiskProduct accepts only the rooted model-only dialect emitted
@@ -245,6 +248,13 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 			return SideOpenDualDiskProduct{}, err
 		}
 	}
+	var oppositePlanes []int64
+	if options.AllowOppositePlaneNormals {
+		oppositePlanes, err = sideDiskNormalizeOppositePlanes(f, ef, faces)
+		if err != nil {
+			return SideOpenDualDiskProduct{}, err
+		}
+	}
 	if err = sideDiskMatchWholeGraph(f, ef); err != nil {
 		return SideOpenDualDiskProduct{}, err
 	}
@@ -255,7 +265,7 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 	if err = ctx.Err(); err != nil {
 		return SideOpenDualDiskProduct{}, err
 	}
-	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles}, nil
+	return SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)

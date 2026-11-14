@@ -149,3 +149,26 @@ enables the line option. Zero options preserve the original reader contract.
 Tests reject unpaired normal/sense changes, shared normals and altered supports.
 Independent OCCT validation and analytic measures cover the opposite-normal
 encoding at all four cardinal phases for blind and through cuts.
+
+### Opt-in paired planar normal and face sense
+
+`AllowOppositePlaneNormals` permits a retained planar face to reverse its exact
+plane normal and `ADVANCED_FACE.same_sense` together. The plane origin and X
+reference must equal the independently reconstructed canonical support. Its
+right-handed Y direction is then exactly negated, giving the complete support
+identity `P_source(u,v) = P_canonical(u,-v)`. Inverting the face sense restores
+the same material normal. This is an identity of evaluated affine surfaces, not
+a sample-based test.
+
+Model-space boundary uses and their ownership remain unchanged. The original
+face-bound orientation and all coedge adjacency are verified by the complete
+canonical graph comparison after normalization. No pcurves are present in this
+dialect; UV trims are never silently reflected. Plane, placement, normal and
+face ownership are checked before normalization. `OppositeNormalPlanes` contains
+the proved source `ADVANCED_FACE` IDs.
+
+Default reading remains unchanged. Origin/reference changes, unpaired flags,
+changed bound orientation and shared normals reject. Independent OCCT checks
+accept blind and through bodies with all planar faces reversed in this paired
+form, both alone and composed with the independent line and circle options,
+with unchanged analytic area and volume.

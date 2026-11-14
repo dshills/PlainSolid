@@ -29,6 +29,10 @@ type SideOpenDualDiskSection struct {
 // Tangency, overlap with another stock side, unequal radii, coincident disks,
 // and unsupported endpoints reject atomically.
 func CertifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, discs [2]ExtrusionCircle, o trimvalidate.Options) (SideOpenDualDiskSection, error) {
+	return certifySideOpenDualDiskSection(ctx, min, max, discs, o, false)
+}
+
+func certifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, discs [2]ExtrusionCircle, o trimvalidate.Options, unequal bool) (SideOpenDualDiskSection, error) {
 	var zero SideOpenDualDiskSection
 	if ctx == nil || !uvFinite(min) || !uvFinite(max) || min.X >= max.X || min.Y >= max.Y {
 		return zero, geom.ErrInvalid
@@ -44,7 +48,7 @@ func CertifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, dis
 			return zero, geom.ErrDomain
 		}
 	}
-	if discs[0].Radius != discs[1].Radius || discs[0].Center.X == discs[1].Center.X {
+	if (!unequal && discs[0].Radius != discs[1].Radius) || discs[0].Center.X == discs[1].Center.X {
 		return zero, geom.ErrDomain
 	}
 	order := [2]int{0, 1}
@@ -52,14 +56,18 @@ func CertifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, dis
 		order = [2]int{1, 0}
 	}
 	left, right := ratInset(discs[order[0]].Center.X), ratInset(discs[order[1]].Center.X)
-	centerY, r := ratInset(min.Y), ratInset(discs[0].Radius)
-	start, end := new(big.Rat).Sub(left, r), new(big.Rat).Add(right, r)
+	centerY, r := ratInset(min.Y), ratInset(discs[order[0]].Radius)
+	rr := ratInset(discs[order[1]].Radius)
+	start, end := new(big.Rat).Sub(left, r), new(big.Rat).Add(right, rr)
 	top := new(big.Rat).Add(centerY, r)
-	if start.Cmp(ratInset(min.X)) <= 0 || end.Cmp(ratInset(max.X)) >= 0 || top.Cmp(ratInset(max.Y)) >= 0 {
+	rightTop := new(big.Rat).Add(centerY, rr)
+	if start.Cmp(ratInset(min.X)) <= 0 || end.Cmp(ratInset(max.X)) >= 0 || top.Cmp(ratInset(max.Y)) >= 0 || rightTop.Cmp(ratInset(max.Y)) >= 0 {
 		return zero, geom.ErrDomain
 	}
-	half := new(big.Rat).Quo(new(big.Rat).Sub(right, left), big.NewRat(2, 1))
-	if half.Cmp(r) >= 0 {
+	distance := new(big.Rat).Sub(right, left)
+	half := new(big.Rat).Quo(new(big.Rat).Add(new(big.Rat).Mul(distance, distance), new(big.Rat).Sub(new(big.Rat).Mul(r, r), new(big.Rat).Mul(rr, rr))), new(big.Rat).Mul(big.NewRat(2, 1), distance))
+	// This bounded envelope requires the crossing strictly between both centers.
+	if half.Sign() <= 0 || half.Cmp(distance) >= 0 || half.Cmp(r) >= 0 {
 		return zero, geom.ErrDomain
 	}
 	height2 := new(big.Rat).Sub(new(big.Rat).Mul(r, r), new(big.Rat).Mul(half, half))
@@ -68,7 +76,7 @@ func CertifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, dis
 		return zero, geom.ErrUnrepresentable
 	}
 	join := [2]*big.Rat{new(big.Rat).Add(left, half), new(big.Rat).Add(centerY, new(big.Rat).SetFrac(n, d))}
-	p := [][2]*big.Rat{{ratInset(min.X), centerY}, {start, centerY}, {left, top}, join, {right, top}, {end, centerY},
+	p := [][2]*big.Rat{{ratInset(min.X), centerY}, {start, centerY}, {left, top}, join, {right, rightTop}, {end, centerY},
 		{ratInset(max.X), centerY}, {ratInset(max.X), ratInset(max.Y)}, {ratInset(min.X), ratInset(max.Y)}}
 	owners := []int{-1, order[0], order[0], order[1], order[1], -1, -1, -1, -1}
 	out := SideOpenDualDiskSection{Owner: owners, Join: join, XIntervals: [2][2]*big.Rat{{start, join[0]}, {join[0], end}}}
@@ -81,7 +89,7 @@ func CertifySideOpenDualDiskSection(ctx context.Context, min, max geom.Vec2, dis
 			q, e = quadraticLine(a, z)
 		} else {
 			c := [2]*big.Rat{ratInset(discs[owners[i]].Center.X), centerY}
-			q, e = shortRationalCircleArc(a, z, c, r)
+			q, e = shortRationalCircleArc(a, z, c, ratInset(discs[owners[i]].Radius))
 		}
 		if e != nil {
 			return zero, e

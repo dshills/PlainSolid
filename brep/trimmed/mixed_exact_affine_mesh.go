@@ -12,11 +12,15 @@ import (
 // input trims; chart evaluation limits apply per point. At most256 trims and64
 // holes are accepted. Display segments default4096 and are capped at4096.
 type MixedExactAffineMeshOptions struct {
-	Chart        geom.AffineSurfaceChartOptions
-	Composition  geom.SurfaceCurveAgreementOptions
-	Display      geom.ComposedCollectionPolylineOptions
-	Topology     trimvalidate.Options
-	MaxTriangles int
+	// MaxBoundaryVertices opts into bounded exact triangulation above the
+	// legacy256-vertex proposal limit (maximum2048). Zero preserves that limit.
+	// MaxTriangulationWork bounds exact orientation/bridge work, default2000000.
+	MaxBoundaryVertices, MaxTriangulationWork int
+	Chart                                     geom.AffineSurfaceChartOptions
+	Composition                               geom.SurfaceCurveAgreementOptions
+	Display                                   geom.ComposedCollectionPolylineOptions
+	Topology                                  trimvalidate.Options
+	MaxTriangles                              int
 }
 
 // MixedExactTrimSamples retains original loop/trim ownership and normalized
@@ -306,7 +310,7 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 		return empty, geom.ErrConvergence
 	}
 	region.PolygonProof = polygonProof
-	filled, e := triangulateCertifiedAffineTrimRegion(ctx, region, len(holes), o.MaxTriangles)
+	filled, e := triangulateCertifiedAffineTrimRegionBounded(ctx, region, len(holes), o.MaxTriangles, o.MaxBoundaryVertices, o.MaxTriangulationWork)
 	if e != nil {
 		return empty, e
 	}

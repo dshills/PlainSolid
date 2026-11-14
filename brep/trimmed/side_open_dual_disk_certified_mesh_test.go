@@ -90,3 +90,37 @@ func TestSideOpenDualDiskCertifiedDisplay(t *testing.T) {
 		}
 	}
 }
+
+func TestSideOpenDualDiskApplicationTolerances(t *testing.T) {
+	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 3.5, Y: 4}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5, Y: 4}, Radius: 2.5}}
+	for _, depth := range []float64{3, 6} {
+		s, e := CutSideOpenDualDisks(context.Background(), frame, geom.Vec2{Y: 4}, geom.Vec2{X: 10, Y: 10}, discs, 6, depth, 1e-10, trimvalidate.Options{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, o := range []SideOpenDualDiskMeshOptions{{Deflection: .0035, AngularTurn: .08}, {Deflection: .1, AngularTurn: .05}} {
+			start := time.Now()
+			r, e := s.TessellateCertified(context.Background(), o)
+			if e != nil {
+				t.Fatal(depth, o, e)
+			}
+			if depth == 3 && o.Deflection == .0035 {
+				region := r.Network.Faces[0].UVRegion.Region
+				if _, e := triangulateCertifiedAffineTrimRegion(context.Background(), region, 0, 100000); e == nil {
+					t.Fatal("legacy256 boundary gate changed")
+				}
+				if bad, e := triangulateCertifiedAffineTrimRegionBounded(context.Background(), region, 0, 100000, 2048, 1); e == nil || len(bad.Mesh.Vertices) != 0 {
+					t.Fatal("triangulation work limit", e)
+				}
+			}
+			t.Log(depth, o, "intervals", r.RimIntervals, "triangles", len(r.Mesh.Triangles), "time", time.Since(start), "pairs", r.DisplayCollision.BroadPhasePairs)
+			d, _ := r.SquaredDistance.Float64()
+			a, _ := r.SquaredTurnTangent.Float64()
+			f, _ := r.SquaredFacetTangent.Float64()
+			if d > o.Deflection*o.Deflection || a > o.AngularTurn*o.AngularTurn || f > o.AngularTurn*o.AngularTurn/4 {
+				t.Fatal(d, a, f)
+			}
+		}
+	}
+}

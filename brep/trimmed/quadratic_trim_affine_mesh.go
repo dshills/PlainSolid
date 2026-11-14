@@ -62,13 +62,26 @@ func TessellateAffineQuadraticTrimRegionCertified(ctx context.Context, patch *ge
 }
 
 func triangulateCertifiedAffineTrimRegion(ctx context.Context, region AffineQuadraticTrimRegionArea, holes, maximum int) (CertifiedAffineQuadraticTrimMesh, error) {
+	return triangulateCertifiedAffineTrimRegionBounded(ctx, region, holes, maximum, 0, 0)
+}
+
+func triangulateCertifiedAffineTrimRegionBounded(ctx context.Context, region AffineQuadraticTrimRegionArea, holes, maximum, boundaryLimit, workLimit int) (CertifiedAffineQuadraticTrimMesh, error) {
 	empty := CertifiedAffineQuadraticTrimMesh{}
 	o := AffineQuadraticTrimMeshOptions{MaxTriangles: maximum}
+	if boundaryLimit == 0 {
+		boundaryLimit = brep.MaxHoledFaceVertices
+	}
+	if workLimit == 0 {
+		workLimit = 2000000
+	}
+	if boundaryLimit < 1 || boundaryLimit > 2048 || workLimit < 1 {
+		return empty, geom.ErrInvalid
+	}
 	count := 0
 	for _, loop := range region.Loops {
 		count += len(loop.Boundary.Points)
 	}
-	if count > brep.MaxHoledFaceVertices || count+2*holes-2 > o.MaxTriangles {
+	if count > boundaryLimit || count+2*holes-2 > o.MaxTriangles {
 		return empty, geom.ErrConvergence
 	}
 	result := CertifiedAffineQuadraticTrimMesh{Region: region, DisplaySquaredDistance: new(big.Rat)}
@@ -113,9 +126,27 @@ func triangulateCertifiedAffineTrimRegion(ctx context.Context, region AffineQuad
 		result.BoundaryLoops = append(result.BoundaryLoops, boundary)
 		proposedLoops = append(proposedLoops, proposal)
 	}
-	proposed, e := triangulateUV(proposedLoops)
-	if e != nil {
-		return empty, e
+	var proposed [][3]geom.Vec2
+	if count <= brep.MaxHoledFaceVertices {
+		var e error
+		proposed, e = triangulateUV(proposedLoops)
+		if e != nil {
+			return empty, e
+		}
+	} else {
+		exact, _, e := exactHoledFootprintTriangulation(ctx, result.ExactUV, result.BoundaryLoops, workLimit)
+		if e != nil {
+			return empty, e
+		}
+		for _, tri := range exact {
+			var q [3]geom.Vec2
+			for j, id := range tri {
+				x, _ := result.ExactUV[id][0].Float64()
+				y, _ := result.ExactUV[id][1].Float64()
+				q[j] = geom.Vec2{X: x, Y: y}
+			}
+			proposed = append(proposed, q)
+		}
 	}
 	if len(proposed) > o.MaxTriangles {
 		return empty, geom.ErrConvergence

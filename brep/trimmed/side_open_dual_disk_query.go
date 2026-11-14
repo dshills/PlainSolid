@@ -30,7 +30,10 @@ func (c SideOpenDualDiskCut) Locate(ctx context.Context, point geom.Vec3) (param
 
 // LocateRational is Locate with an exact rational world point.
 func (c SideOpenDualDiskCut) LocateRational(ctx context.Context, point [3]*big.Rat) (parametric.Location, error) {
-	s := c.source
+	return locateSideOpenDualDisk(ctx, c.source, point)
+}
+
+func locateSideOpenDualDisk(ctx context.Context, s *sideOpenDualDiskSource, point [3]*big.Rat) (parametric.Location, error) {
 	if ctx == nil || s == nil || point[0] == nil || point[1] == nil || point[2] == nil {
 		return parametric.Outside, geom.ErrInvalid
 	}
@@ -61,9 +64,9 @@ func (c SideOpenDualDiskCut) LocateRational(ctx context.Context, point [3]*big.R
 		union := 1
 		dy := new(big.Rat).Sub(local[1], ratInset(s.min.Y))
 		dy2 := new(big.Rat).Mul(dy, dy)
-		r := ratInset(s.discs[0].Radius)
-		r.Mul(r, r)
 		for _, d := range s.discs {
+			r := ratInset(d.Radius)
+			r.Mul(r, r)
 			dx := new(big.Rat).Sub(local[0], ratInset(d.Center.X))
 			d2 := dx.Mul(dx, dx).Add(dx, dy2)
 			union = min(union, d2.Cmp(r))

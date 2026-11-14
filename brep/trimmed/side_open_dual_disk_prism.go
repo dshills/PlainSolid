@@ -26,11 +26,15 @@ type SideOpenDualDiskCut struct {
 // Only the exact section/float-control domain is accepted; no faceted
 // fallback or supported-footprint expansion occurs.
 func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options) (SideOpenDualDiskCut, error) {
+	return cutSideOpenDualDisks(ctx, frame, min, max, discs, height, depth, tolerance, topology, false)
+}
+
+func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.Vec2, discs [2]ExtrusionCircle, height, depth, tolerance float64, topology trimvalidate.Options, unequal bool) (SideOpenDualDiskCut, error) {
 	var zero SideOpenDualDiskCut
 	if ctx == nil || !finite(height) || !finite(depth) || !finite(tolerance) || tolerance <= 0 || depth <= 0 || depth > height {
 		return zero, geom.ErrInvalid
 	}
-	s, e := CertifySideOpenDualDiskSection(ctx, min, max, discs, topology)
+	s, e := certifySideOpenDualDiskSection(ctx, min, max, discs, topology, unequal)
 	if e != nil {
 		return zero, e
 	}
@@ -179,8 +183,10 @@ func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 		return zero, geom.ErrConvergence
 	}
 	out.Solid = solid
-	out.source = &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth,
-		outer: s.Outer, owners: s.Owner}
+	if !unequal {
+		out.source = &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth,
+			outer: s.Outer, owners: s.Owner}
+	}
 	return out, nil
 }
 
