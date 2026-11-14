@@ -337,6 +337,13 @@ all 17 original browser cases passed on a clean archive, with 841 app and
 produced byte-identical STEP and 404-triangle watertight STL from both
 checkouts. Live OCCT readback confirmed the exported solid's volume,
 area, and centroid.
+The [multiple blind floors reconciliation](evidence/plaincad-reconciled-ef8179f7-development-multi-floor-triple-holes-step-2026-11-14.json)
+adds worktree revision `e60f34e7` to review `ef8179f7`. Native tests and
+all 17 original browser cases passed, with 841 app and 2,056 kernel source
+blobs verified. The [authored three-floor crossing](evidence/plaincad-reconciled-ef8179f7-supplemental-multi-floor-triple-step-2026-11-14.json)
+produced identical STEP and watertight 588-triangle STL in both checkouts.
+Live OCCT independently confirmed the exported solid's volume, area, and
+centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
