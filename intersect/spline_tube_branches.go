@@ -57,22 +57,11 @@ func JoinSplineTubeBranches(ctx context.Context, a, b Patch, seeds SplineSeedRep
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
-	patch := func(p Patch) (*geom.SurfacePatch, error) {
-		s, ok := p.Surface.(*geom.BSplineSurface)
-		if !ok {
-			return nil, geom.ErrInvalid
-		}
-		q, e := geom.NewSurfacePatch(s, o.Curves.Patches)
-		if e != nil {
-			return nil, e
-		}
-		return q.Trim(geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y})
-	}
-	pa, e := patch(a)
+	pa, e := exactSplinePatch(a, o.Curves.Patches)
 	if e != nil {
 		return out, e
 	}
-	pb, e := patch(b)
+	pb, e := exactSplinePatch(b, o.Curves.Patches)
 	if e != nil {
 		return out, e
 	}

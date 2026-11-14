@@ -31,11 +31,11 @@ func DiscoverOverlappingAffineXYGraphPairTubes(ctx context.Context, a, b Patch, 
 	if _, e := retainedGraphCuts(o, a); e != nil {
 		return fail(e)
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return fail(e)
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return fail(e)
 	}

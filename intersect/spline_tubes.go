@@ -56,27 +56,11 @@ func FindSplineTubeOverlaps(ctx context.Context, a, b Patch, seeds SplineSeedRep
 	if ctx == nil || !a.valid() || !b.valid() || o.MaxJunctions < 1 || len(seeds.Attempts) > 32768 {
 		return nil, false, geom.ErrInvalid
 	}
-	sa, ok := a.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return nil, false, geom.ErrInvalid
-	}
-	sb, ok := b.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return nil, false, geom.ErrInvalid
-	}
-	pa, e := geom.NewSurfacePatch(sa, o.Patches)
+	pa, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return nil, false, e
 	}
-	pb, e := geom.NewSurfacePatch(sb, o.Patches)
-	if e != nil {
-		return nil, false, e
-	}
-	pa, e = pa.Trim(geom.ParameterRectangle{UMin: a.Min.X, UMax: a.Max.X, VMin: a.Min.Y, VMax: a.Max.Y})
-	if e != nil {
-		return nil, false, e
-	}
-	pb, e = pb.Trim(geom.ParameterRectangle{UMin: b.Min.X, UMax: b.Max.X, VMin: b.Min.Y, VMax: b.Max.Y})
+	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return nil, false, e
 	}
@@ -162,30 +146,14 @@ func JoinSplineTubes(ctx context.Context, a, b Patch, seeds SplineSeedReport, o 
 	if ctx == nil || !a.valid() || !b.valid() || o.MaxJunctions < 1 || len(seeds.Attempts) > 32768 {
 		return out, geom.ErrInvalid
 	}
-	as, aok := a.Surface.(*geom.BSplineSurface)
-	bs, bok := b.Surface.(*geom.BSplineSurface)
-	if !aok || !bok {
-		return out, geom.ErrInvalid
-	}
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
-	pa, e := geom.NewSurfacePatch(as, o.Patches)
+	pa, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return out, e
 	}
-	pb, e := geom.NewSurfacePatch(bs, o.Patches)
-	if e != nil {
-		return out, e
-	}
-	domain := func(p Patch) geom.ParameterRectangle {
-		return geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y}
-	}
-	pa, e = pa.Trim(domain(a))
-	if e != nil {
-		return out, e
-	}
-	pb, e = pb.Trim(domain(b))
+	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return out, e
 	}

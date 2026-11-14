@@ -50,11 +50,11 @@ func DiscoverDyadicGraphPairTubes(ctx context.Context, a, b Patch, p geom.Surfac
 	if maximum < 1 || bits < 64 {
 		return out, geom.ErrInvalid
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return out, e
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return out, e
 	}

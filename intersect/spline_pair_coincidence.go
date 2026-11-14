@@ -37,11 +37,11 @@ func FindSplineCoincidence(ctx context.Context, a, b Patch, o SplineCoincidenceO
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	pa, e := exactCoincidencePatch(a, o.Patches)
+	pa, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return r, e
 	}
-	pb, e := exactCoincidencePatch(b, o.Patches)
+	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return r, e
 	}
@@ -115,14 +115,44 @@ func FindExactSplineCoincidence(ctx context.Context, pa, pb *geom.SurfacePatch, 
 	return r, nil
 }
 
-func exactCoincidencePatch(p Patch, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
-	s, ok := p.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return nil, geom.ErrInvalid
-	}
-	x, e := geom.NewSurfacePatch(s, o)
+func exactSplinePatch(p Patch, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	x, e := exactSplineSupport(p.Surface, o)
 	if e != nil {
 		return nil, e
 	}
 	return x.Trim(geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y})
+}
+
+func exactSplineSupport(surface geom.Surface, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	switch s := surface.(type) {
+	case *geom.BSplineSurface:
+		return geom.NewSurfacePatch(s, o)
+	case *geom.ExactBezierSurface:
+		return s.ExactPatch().WithLimits(o)
+	default:
+		return nil, geom.ErrInvalid
+	}
+}
+
+func permuteSplineSupport(surface geom.Surface, order [3]int, o geom.SurfacePatchOptions) (geom.Surface, error) {
+	if s, ok := surface.(*geom.BSplineSurface); ok {
+		return s.PermutedModelAxes(order)
+	}
+	var m geom.Affine
+	var seen [3]bool
+	for i, axis := range order {
+		if axis < 0 || axis > 2 || seen[axis] {
+			return nil, geom.ErrInvalid
+		}
+		seen[axis], m[i][axis] = true, 1
+	}
+	p, e := exactSplineSupport(surface, o)
+	if e != nil {
+		return nil, e
+	}
+	p, e = p.Transformed(m)
+	if e != nil {
+		return nil, e
+	}
+	return geom.NewExactBezierSurface(p)
 }

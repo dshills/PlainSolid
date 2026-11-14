@@ -53,21 +53,17 @@ func CertifyOverlappingProjectedGraphPair(ctx context.Context, a, b Patch, axes 
 	}
 	mapped := [2]Patch{a, b}
 	for i := range mapped {
-		surface, ok := mapped[i].Surface.(*geom.BSplineSurface)
-		if !ok {
-			return fail(geom.ErrInvalid)
-		}
-		permuted, e := surface.PermutedModelAxes([3]int{axes[0], axes[1], 3 - axes[0] - axes[1]})
+		permuted, e := permuteSplineSupport(mapped[i].Surface, [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}, o.Surface)
 		if e != nil {
 			return fail(e)
 		}
 		mapped[i].Surface = permuted
 	}
-	pa, e := exactCoincidencePatch(mapped[0], o.Surface)
+	pa, e := exactSplinePatch(mapped[0], o.Surface)
 	if e != nil {
 		return fail(e)
 	}
-	pb, e := exactCoincidencePatch(mapped[1], o.Surface)
+	pb, e := exactSplinePatch(mapped[1], o.Surface)
 	if e != nil {
 		return fail(e)
 	}

@@ -58,22 +58,11 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	exact := func(p Patch) (*geom.SurfacePatch, error) {
-		s, ok := p.Surface.(*geom.BSplineSurface)
-		if !ok {
-			return nil, geom.ErrInvalid
-		}
-		x, e := geom.NewSurfacePatch(s, o.Patches)
-		if e != nil {
-			return nil, e
-		}
-		return x.Trim(geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y})
-	}
-	pa, e := exact(a)
+	pa, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return r, e
 	}
-	pb, e := exact(b)
+	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return r, e
 	}

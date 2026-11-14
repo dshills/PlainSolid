@@ -3,7 +3,6 @@ package intersect
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 
 	"plainsolid/geom"
@@ -89,27 +88,11 @@ func FindSplineSeeds(ctx context.Context, a, b Patch, o SplineSeedOptions) (Spli
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	as, aok := a.Surface.(*geom.BSplineSurface)
-	bs, bok := b.Surface.(*geom.BSplineSurface)
-	if !aok || !bok {
-		return r, fmt.Errorf("intersect: expected two rational spline surfaces")
-	}
-	domain := func(p Patch) geom.ParameterRectangle {
-		return geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y}
-	}
-	ap, e := geom.NewSurfacePatch(as, o.Patches)
+	ap, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return r, e
 	}
-	ap, e = ap.Trim(domain(a))
-	if e != nil {
-		return r, e
-	}
-	bp, e := geom.NewSurfacePatch(bs, o.Patches)
-	if e != nil {
-		return r, e
-	}
-	bp, e = bp.Trim(domain(b))
+	bp, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return r, e
 	}

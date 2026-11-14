@@ -88,6 +88,39 @@ func NewSurfacePatch(surface *BSplineSurface, options SurfacePatchOptions) (*Sur
 	return patch, nil
 }
 
+// WithLimits returns the same immutable geometry with new work limits. Existing
+// controls must fit those limits before the patch can be used or subdivided.
+func (p *SurfacePatch) WithLimits(options SurfacePatchOptions) (*SurfacePatch, error) {
+	o, e := patchOptions(options)
+	if e != nil {
+		return nil, e
+	}
+	if p == nil || len(p.net) == 0 {
+		return nil, ErrInvalid
+	}
+	if len(p.net) > o.MaxPoles {
+		return nil, ErrConvergence
+	}
+	if p.options == o {
+		return p, nil
+	}
+	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	for _, h := range p.net {
+		for _, c := range h {
+			if e := b.check(c); e != nil {
+				return nil, e
+			}
+		}
+	}
+	out := *p
+	out.options = o
+	if e = out.computeBounds(b); e != nil {
+		return nil, e
+	}
+	out.operations = b.operations
+	return &out, nil
+}
+
 // Domain returns NaNs for a nil or zero-value patch.
 func (p *SurfacePatch) Domain() ParameterRectangle {
 	if p == nil || len(p.net) == 0 {

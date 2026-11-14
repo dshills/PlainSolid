@@ -45,11 +45,11 @@ func discoverSplinePlanePairTubes(ctx context.Context, a, b Patch, p geom.Surfac
 	if e := ctx.Err(); e != nil {
 		return out, e
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return out, e
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return out, e
 	}
