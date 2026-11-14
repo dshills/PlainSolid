@@ -109,7 +109,9 @@ unit suite passed 1,691 tests in 220 files once its legacy OCCT fixture
 assets were accessible in a local dependency stage. The four selected
 Go WASM contracts passed separately. Both TypeScript checks and all
 72 JavaScript bundle budgets passed. The corrected full development
-run is still in progress.
+run passed all 345 original fixtures in 35.1 minutes with zero skips,
+retries or flakes. A newer build at `1d938079` separately passed the
+three original XY/XZ/YZ modeling cases and four selected WASM contracts.
 
 ## PlainCAD acceptance on the main merge 8f76f16b — 2026-11-14
 

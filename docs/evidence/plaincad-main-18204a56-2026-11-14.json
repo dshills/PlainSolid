@@ -62,7 +62,21 @@
         }
       ]
     },
-    "development-local-dependencies": null,
+    "development-local-dependencies": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/development.json",
+      "sha256": "b7a776f7db4f8c181e778a06f399df7ebb4a7496ece89138e82b6544f3cc2c1a",
+      "stats": {
+        "startTime": "2026-11-14T20:46:48.670Z",
+        "duration": 2106155.066,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": []
+    },
     "development-original-modeling-control": {
       "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/modeling-font-control.json",
       "sha256": "2cc3f0a69dfcb7860b43318a42dd1ef9bf6f6556b032a76eb978fd433829bc2f",
@@ -193,7 +207,33 @@
   "notes": [
     "Original development stage used symlinked node_modules. Vite denied the Inter font requests; the three original modeling cases passed in a physically copied dependency stage.",
     "The original production case failed when Chromium evicted the captured response. The enlarged-buffer rerun preserved original fixtures, app code, port, and WASM.",
-    "Ordinary units cover existing legacy-provider contracts. Selected Go WASM tests cover the separate provider suite.",
-    "A null report denotes a suite still running."
-  ]
+    "Ordinary units cover existing legacy-provider contracts. Selected Go WASM tests cover the separate provider suite."
+  ],
+  "newerSnapshotControl": {
+    "kernel": {
+      "revision": "1d938079da2b172263a7b705ae1e6a3fb69ca1e1",
+      "go": "go version go1.27.4 darwin/arm64",
+      "wasmSha256": "c60fa0ef8525c54243eba79c3b773ea0768aed3bd3e3bb775f839ec42bad627c",
+      "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+    },
+    "originalModeling": {
+      "path": "/tmp/plainsolid-main-browser-current.EP6jG4/current-modeling.json",
+      "sha256": "4a3346d5eb2f1b82feac6775f3c5775a523160ba13ff10b8b6df693d721d5618",
+      "stats": {
+        "startTime": "2026-11-14T21:11:25.222Z",
+        "duration": 38557.973,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "localPort": 5789
+    },
+    "selectedContracts": {
+      "path": "/tmp/plainsolid-main-browser-current.EP6jG4/selected-kernel.json",
+      "sha256": "cfe989504dd570a73898315f41387767f337deac2b3881d9eb25225e44bf41ea",
+      "passed": 4,
+      "failed": 0
+    }
+  }
 }

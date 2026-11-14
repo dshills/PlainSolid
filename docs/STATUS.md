@@ -52,8 +52,10 @@ the local Chromium response capture buffer recovered the failed CSP
 case and all 66 passed in the full rerun. Vite denied fonts through the
 original dependency symlink, causing three development failures. All
 three passed when the same dependencies were placed inside the isolated
-app. The corrected full development run uses the original fixtures,
-configuration and port.
+app. The corrected full development run passed all 345 with the original
+fixtures, configuration and port. On newer kernel `1d938079`, the same
+PlainCAD app separately passed the three modeling cases and four WASM
+contracts.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume
