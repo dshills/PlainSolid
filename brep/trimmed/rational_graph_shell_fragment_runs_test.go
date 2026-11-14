@@ -80,6 +80,43 @@ func TestRationalGraphTwoRetainedRunsOnOneStockFace(t *testing.T) {
 		}
 		cuts[0], cuts[1] = cuts[1], cuts[0]
 	}
+	// On the same convex-up floor, keeping both negative sides leaves
+	// the middle of its lower envelope on one cap and the two exterior
+	// runs on the other. The middle curved arc shares both endpoints
+	// with the planar cap seam and must be subdivided on both owners.
+	cuts = [2]RationalGraphHalfspace{makeCut(5./128, 0, false), makeCut(9./128, -.0625, false)}
+	r, e := stock.ClipIntersectingRationalGraphCaps(ctx, cuts, RationalGraphSeparatedBandOptions{Sections: RationalGraphShellSectionOptions{ComposeSectionCurves: true}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(r.SourceFaces[4]) != 1 || len(r.CapIntersections) != 1 || r.Solid.Topology().EulerCharacteristic != 2 {
+		t.Fatal("paired exact subdivisions must sew the cap and curved envelope", r.SourceFaces, r.Solid.Topology())
+	}
+	count := 0
+	for _, u := range r.Solid.faces[r.SourceFaces[4][0]].Outer {
+		if u.Curve != nil {
+			count++
+		}
+	}
+	if count != 4 {
+		t.Fatal("three active original graph runs need four shared trim pieces", count)
+	}
+	// Below the horizontal plane alone the volume is
+	// ∫₀¹ 8*(5/128-f)^2 dx = 223/30720. For x∈[1/4,3/4]
+	// the oblique plane removes half the triangular extension in Y,
+	// of volume ∫₁/₄³/₄ 4*(1/128-f)^2 dx = 1/15360.
+	m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+	if e != nil || math.Abs(m.Volume-221./30720) > 1e-12 {
+		t.Fatal("independent lower envelope volume", m, e)
+	}
+	var data bytes.Buffer
+	if e = WriteJSON(&data, r.Solid); e != nil {
+		t.Fatal(e)
+	}
+	back, e := ReadJSONContext(ctx, &data, JSONLimits{})
+	if e != nil || back.Topology().Edges != r.Solid.Topology().Edges {
+		t.Fatal("curved lens-shaped cap reload", e)
+	}
 }
 
 func makeGraphDisconnectedStripStock(t *testing.T) Solid {
