@@ -366,6 +366,21 @@ func (d *RationalSphericalHierarchyDocument) BoundaryArea(ctx context.Context, o
 	return step.MeasureRationalHierarchyBoundaryArea(ctx, d.model, o)
 }
 
+// BoundaryNormals returns exact outward rational rays for every incident
+// original face at a world point, preserving the occurrence and seam owners.
+func (d *RationalSphericalHierarchyDocument) BoundaryNormals(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyNormalOptions) (step.RationalHierarchyNormals, error) {
+	if d == nil {
+		return step.RationalHierarchyNormals{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.BoundaryNormals(ctx, point, o)
+	}
+	if d.vendor {
+		return step.BoundaryNormalsOCCTRationalHierarchy(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.BoundaryNormalsRationalHierarchy(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.

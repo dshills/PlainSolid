@@ -129,7 +129,36 @@ func TestAffinePCurveHierarchyDocumentRetainsAuthoring(t *testing.T) {
 					if c := p.Moments.Volume().Coefficients()[0]; c.Cmp(big.NewRat(48, 1)) != 0 || len(p.SourceFaceIDs) != 10 {
 						t.Fatal("signed original loop moment and native faces", c, p.SourceFaceIDs)
 					}
-					return
+					for _, use := range edited.Occurrences() {
+						if use.SourceBodyID != p.SourceBodyID {
+							continue
+						}
+						// Local (-9,-2,0) is on the open planar hole wall.
+						var point [3]*big.Rat
+						for i, row := range use.World {
+							point[i] = new(big.Rat).Add(row[3], new(big.Rat).Mul(row[0], big.NewRat(-9, 1)))
+							point[i].Add(point[i], new(big.Rat).Mul(row[1], big.NewRat(-2, 1)))
+						}
+						out, err := edited.BoundaryNormals(ctx, point, step.RationalHierarchyNormalOptions{})
+						if err != nil {
+							t.Fatal(err)
+						}
+						for _, leaf := range out.Leaves {
+							if !reflect.DeepEqual(leaf.Path, use.Path) {
+								continue
+							}
+							if len(leaf.Normals) != 1 || leaf.Location != step.AnalyticPointBoundary || leaf.Normals[0].SourceFaceID == 0 {
+								t.Fatal("moved hole wall must retain its exact original face normal", leaf)
+							}
+							for i, v := range leaf.Normals[0].Vector() {
+								if v.Cmp(use.World[i][0]) != 0 {
+									t.Fatal("wrong outward world normal into the hole", v)
+								}
+							}
+							return
+						}
+					}
+					t.Fatal("missing moved hole use")
 				}
 			}
 			t.Fatal("missing affine planar product")
