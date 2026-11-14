@@ -6289,3 +6289,16 @@ ancestry, signed volume, native reload, and continuous edge agreement
 were checked. One-short work limits, one-ULP drift, cancellation, and an
 independent point contact were also exercised. The straight and original
 sewing race tests passed in 3.939 seconds.
+
+### Full pure-Go and PlainCAD runs on the same pinned kernel
+
+Commit 6c4ab7c40724f26fc721c26d1e2c8a4417537898 passed the complete
+pure-Go suite without `-short`. All 51 packages with tests passed.
+The 1,081 enumerated trimmed B-rep cases appeared exactly once across
+the three shards. The full run recorded 4,567 top-level passes and 421
+optional skips. The independent PlainCAD app snapshot passed development,
+cross-browser, unit, and selected actual-WASM contracts. Production
+passed all 66 tests after increasing only Chromium's DevTools network
+capture buffers in the copied test dependency. The unadjusted 65/66
+production result is also recorded. This evidence is bound to the pinned
+Go and app revisions. See the [combined evidence](evidence/main-6c4ab7c4-qualification-2026-11-14.json).

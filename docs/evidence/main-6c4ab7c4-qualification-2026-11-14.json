@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "kernelRevision": "6c4ab7c40724f26fc721c26d1e2c8a4417537898",
-  "checkpointAt": "2026-11-14T16:48:27-06:00",
+  "checkpointAt": "2026-11-14T17:25:38.538861-06:00",
   "goNormal": {
-    "status": "running",
+    "status": "passed",
     "CGO_ENABLED": 0,
     "Go": "1.27.4",
     "GOMAXPROCS": 2,
@@ -12,12 +12,14 @@
     "lanes": {
       "packages": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/packages.jsonl",
-        "sha256AtCheckpoint": "f5d7a4c43e1edc8a84b6173677106f109faf086bd305b5b112bb1a2512320ca9",
-        "bytesAtCheckpoint": 5449012,
+        "sha256": "f5d7a4c43e1edc8a84b6173677106f109faf086bd305b5b112bb1a2512320ca9",
+        "bytes": 5449012,
+        "exitCode": 0,
         "packageOutcomes": {
           "pass": 50,
           "skip": 5
         },
+        "cumulativePackageSeconds": 2727.844,
         "testOutcomesIncludingSubtests": {
           "pass": 6485,
           "skip": 418
@@ -26,59 +28,103 @@
           "pass": 3499,
           "skip": 408
         },
-        "activeTopLevelTestsAtCheckpoint": {},
         "failures": []
       },
       "trimmed-0": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-0.jsonl",
-        "sha256AtCheckpoint": "470c0b7a0dbb17b751c53d93588b0e94d6d8bb288d9fd2a25b0d9858895f54aa",
-        "bytesAtCheckpoint": 71654,
-        "packageOutcomes": {},
+        "sha256": "78fb6d3907af0c43254f77f76de03996b8f655321ce1550e4c98cf331325bf22",
+        "bytes": 385518,
+        "exitCode": 0,
+        "packageOutcomes": {
+          "pass": 1
+        },
+        "cumulativePackageSeconds": 4908.114,
         "testOutcomesIncludingSubtests": {
-          "pass": 74
+          "pass": 449,
+          "skip": 4
         },
         "topLevelTestOutcomes": {
-          "pass": 60
+          "pass": 357,
+          "skip": 4
         },
-        "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestCertifiedDisjointTubeRegionNetwork"
-        },
-        "failures": []
+        "failures": [],
+        "optionalSkippedTopLevelTests": [
+          "TestUnequalSideOpenDualDiskAgainstOCCT",
+          "TestOCCTExternallyTangentQuarticSplineShells",
+          "TestOCCTExternallyTangentSplineShellsDistinctPairs",
+          "TestOCCTWrappedFrustumBoreMass"
+        ]
       },
       "trimmed-1": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-1.jsonl",
-        "sha256AtCheckpoint": "07769e4a475e21d51f19d36cc728cd09522d2a78275909eaa0294841f8201ef4",
-        "bytesAtCheckpoint": 72151,
-        "packageOutcomes": {},
+        "sha256": "16ac1bd54a28fdb59e3ffb16c54a51ce6c926e5fd2c2d49e815d8b65c18caa74",
+        "bytes": 384206,
+        "exitCode": 0,
+        "packageOutcomes": {
+          "pass": 1
+        },
+        "cumulativePackageSeconds": 5300.126,
         "testOutcomesIncludingSubtests": {
-          "pass": 75
+          "pass": 452,
+          "skip": 4
         },
         "topLevelTestOutcomes": {
-          "pass": 63
+          "pass": 356,
+          "skip": 4
         },
-        "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
-        },
-        "failures": []
+        "failures": [],
+        "optionalSkippedTopLevelTests": [
+          "TestGeneralSideOpenDualDiskAgainstOCCT",
+          "TestSplineMultiPlaneCutsOCCT",
+          "TestOCCTExternallyTangentSeparableSplineShells",
+          "TestOCCTExternallyTangentSplineShellsMultipleKnotContacts"
+        ]
       },
       "trimmed-2": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-2.jsonl",
-        "sha256AtCheckpoint": "f35a7aa1ce586c02e6a7a33fff6f57518665f32174468da46bae56c77293594b",
-        "bytesAtCheckpoint": 68463,
-        "packageOutcomes": {},
+        "sha256": "e55bd646c66062062c50087b81e5c1aabe56cd5c31a8ee455bb6af1342e05351",
+        "bytes": 325192,
+        "exitCode": 0,
+        "packageOutcomes": {
+          "pass": 1
+        },
+        "cumulativePackageSeconds": 4918.701,
         "testOutcomesIncludingSubtests": {
-          "pass": 74
+          "pass": 389,
+          "skip": 5
         },
         "topLevelTestOutcomes": {
-          "pass": 70
+          "pass": 355,
+          "skip": 5
         },
-        "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestNestedQuarticTubeMaterial"
-        },
-        "failures": []
+        "failures": [],
+        "optionalSkippedTopLevelTests": [
+          "TestQualifyNestedQuarticShell",
+          "TestExactSameSideDualDiskAgainstOCCT",
+          "TestOCCTExternallyTangentSplineShells",
+          "TestStraightTubeMassInvestigation",
+          "TestOCCTWrappedFrustumBoreBoundaryDistance"
+        ]
       }
     },
-    "packagesCompletedExitCode": 0
+    "startedAt": "2026-11-14T15:56:59.846203-06:00",
+    "finishedAt": "2026-11-14T17:25:38.538861-06:00",
+    "uniquePackagesPassed": 51,
+    "packagesWithoutTests": 5,
+    "passedTestEventsIncludingSubtests": 7775,
+    "topLevelTestsPassed": 4567,
+    "topLevelTestsSkipped": 421,
+    "trimmedInventoryCoverage": {
+      "enumerated": 1081,
+      "missing": 0,
+      "duplicates": 0,
+      "sha256": "924b44a20e4270c6f4d585a44b4b94361a7dcc5f08e28f0cd70bb7099f262561"
+    },
+    "archive": {
+      "path": "/tmp/plainsolid-main-6c4ab7c4-normal-go-qualification-2026-11-14.tar.gz",
+      "sha256": "332eef56fde25dd98819c6efcbcd72b78c7e58a327f8f16fb162b979063dfa68",
+      "bytes": 519756
+    }
   },
   "plainCad": {
     "status": "completed; production qualified with isolated Chromium capture-buffer adjustment",
