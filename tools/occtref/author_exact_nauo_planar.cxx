@@ -1,0 +1,7 @@
+#include <STEPCAFControl_Writer.hxx>
+#include <TDocStd_Document.hxx>
+#include <TDataStd_Name.hxx>
+#include <XCAFDoc_DocumentTool.hxx>
+#include <XCAFDoc_ShapeTool.hxx>
+#include <BRepPrimAPI_MakeBox.hxx>
+int main(int argc,char**argv){if(argc!=2)return 2;occ::handle<TDocStd_Document>d=new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));auto t=XCAFDoc_DocumentTool::ShapeTool(d->Main());auto part=t->AddShape(BRepPrimAPI_MakeBox(2,3,4).Shape(),false);auto root=t->NewShape();TDataStd_Name::Set(part,TCollection_ExtendedString("Exact planar part"));TDataStd_Name::Set(root,TCollection_ExtendedString("Two-use NAUO assembly"));gp_Trsf a;a.SetTranslation(gp_Vec(10,0,0));auto first=t->AddComponent(root,part,TopLoc_Location(a));TDataStd_Name::Set(first,TCollection_ExtendedString("Translated use"));gp_Trsf b;b.SetValues(0,0,1,0,1,0,0,20,0,1,0,0);auto second=t->AddComponent(root,part,TopLoc_Location(b));TDataStd_Name::Set(second,TCollection_ExtendedString("Cyclic use"));t->UpdateAssemblies();STEPCAFControl_Writer w;if(!w.Transfer(d)||w.Write(argv[1])!=IFSelect_RetDone)return 3;}
