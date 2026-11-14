@@ -98,6 +98,8 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGPlanarNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGNAUORootEdit$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGNAUOSharedEdit$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzInspectCircularNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairCircularNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRevolutionSurfaces$ -fuzztime=10s -parallel=2
