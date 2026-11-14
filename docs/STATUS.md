@@ -2303,3 +2303,10 @@ fractions on the tool walls.
 with a tool crossing one stock cap. It retains the exact shoulder, terminal
 cap and original stock and tool walls. The new wall history records the
 surviving fraction of each original extrusion interval.
+
+### Strictly nested native prism cavities
+
+`trimmed.CutContainedNativePrismCavity` proves positive footprint and axial
+clearance of a complete cutter. It retains the stock boundary and reverses
+only the original cutter faces. Both shell graphs keep original face, edge
+and vertex ancestry. The exact volume subtracts the entire nested prism.

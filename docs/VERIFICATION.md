@@ -6126,3 +6126,10 @@ Both entry directions, an oblique profile side and a triangular boss on
 nonconvex stock preserve native closure, independent volume and centroid,
 and original support ownership. The integrated prism shoulder and cavity
 race passed in 1.684 s.
+
+### Native prism cavity qualification
+
+Off-center volume and centroid match independent integration. Results retain
+separate outward and inward shell graphs, including a triangular cavity in
+signed-axis nonconvex stock. Touching or unsupported shells fail before
+publication. The integrated prism shoulder and cavity race passed in 1.684 s.
