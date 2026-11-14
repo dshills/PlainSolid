@@ -109,6 +109,23 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD STEP for partially overlapping perpendicular Holes — 2026-11-14
+
+The single radical trim loop exchanges as paired cubic Hermite splines
+with the two native cylinder supports. Double interior knots remove
+redundant join controls after an explicit convex-hull displacement
+check. Fourth-derivative bounds and a separate numerical allowance
+govern the fit. The file declares 0.0000001 mm distance uncertainty,
+and the canonical reader checks the complete graph before rebuilding
+the analytic trim loop.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-partial-skew-step-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-partial-skew-step-native-2026-11-14.json)
+use the same WASM. The authored model exports in 367,338 bytes, reimports
+within the 512 KiB app limit, reopens and exports watertight STL. Four
+independent OCCT STEP imports cover both radius orders, equal radii,
+signed placements and a decimal offset. Focused race and Go vet pass.
+
 ## PlainCAD partial transverse overlap on perpendicular axes — 2026-11-14
 
 Two offset full-through bores can overlap across only part of their

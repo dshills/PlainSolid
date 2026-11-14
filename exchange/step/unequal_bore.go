@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -54,11 +55,12 @@ func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
 		return geom.ErrInvalid
 	}
 	p := m.Body
+	partial := math.Abs(p.Offset) > math.Abs(p.XRadius-p.ZRadius)
 	// Resolve the same represented support origins that the canonical reader
 	// uses. In particular a decimal offset need not survive translating a
 	// signed stock frame unless this recipe is normalized before spline fitting.
 	if p.Offset != 0 {
-		if p.ZRadius > p.XRadius {
+		if !partial && p.ZRadius > p.XRadius {
 			frame, err := geom.NewFrame(p.Frame.ToWorld(geom.Vec3{Y: p.Dimensions.Y}), p.Frame.ZAxis(), p.Frame.XAxis())
 			if err != nil {
 				return err
@@ -67,6 +69,15 @@ func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
 			p.Crossing = geom.Vec3{X: p.Crossing.Z, Y: p.Dimensions.Y - (p.Crossing.Y + p.Offset), Z: p.Crossing.X}
 			p.Dimensions = geom.Vec3{X: p.Dimensions.Z, Y: p.Dimensions.Y, Z: p.Dimensions.X}
 			p.XRadius, p.ZRadius = p.ZRadius, p.XRadius
+		}
+		if partial && p.Offset < 0 {
+			frame, err := geom.NewFrame(p.Frame.ToWorld(geom.Vec3{Y: p.Dimensions.Y, Z: p.Dimensions.Z}), p.Frame.XAxis(), p.Frame.ZAxis().Scale(-1))
+			if err != nil {
+				return err
+			}
+			p.Frame = frame
+			p.Crossing = geom.Vec3{X: p.Crossing.X, Y: p.Dimensions.Y - p.Crossing.Y, Z: p.Dimensions.Z - p.Crossing.Z}
+			p.Offset = -p.Offset
 		}
 		small := p.Crossing.Add(geom.Vec3{Y: p.Offset})
 		largeWorld, smallWorld := p.Frame.ToWorld(p.Crossing), p.Frame.ToWorld(small)
@@ -78,7 +89,14 @@ func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
 		}
 		p.Crossing, p.Offset = largeLocal, offset
 	}
-	result, err := trimmed.BoxSkewCrossedBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, 1e-9)
+	ctx := context.Background()
+	var result trimmed.BoxCrossedBoresResult
+	var err error
+	if partial {
+		result, err = trimmed.BoxPartialSkewBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, 1e-9)
+	} else {
+		result, err = trimmed.BoxSkewCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, 1e-9)
+	}
 	if err != nil {
 		return err
 	}
@@ -89,7 +107,8 @@ func writeUnequalBore(w io.Writer, m UnequalBoreModel) error {
 // ReadUnequalBore accepts the canonical emitted approximations and recovers
 // the original native material recipe. It checks the full graph against a
 // deterministic reconstruction before replacing the approximating trims.
-// It canonicalizes the larger bore to local X, preserving the world geometry.
+// For two separate trim loops it canonicalizes the larger bore to local X.
+// Partial overlap uses its single trim loop and a positive local Y offset.
 func ReadUnequalBore(r io.Reader, limits Limits) (UnequalBoreModel, error) {
 	f, rep, unit, ids, err := parseCanonicalCircularExtrusions(r, limits)
 	if err != nil || len(ids) != 1 {
@@ -128,26 +147,31 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 	if err != nil {
 		return fail()
 	}
-	faces, err := listRefs(shell.Args[1], 16)
-	if err != nil || len(faces) != 16 {
+	faces, err := listRefs(shell.Args[1], 10)
+	if err != nil || len(faces) != 16 && len(faces) != 10 {
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
+	partial := len(faces) == 10
+	xID, zID := faces[6], faces[8]
+	if !partial {
+		xID, zID = faces[14], faces[6]
+	}
 	var supports [2]circularSourceFace
-	for i, id := range []int64{faces[6], faces[14]} {
+	for i, id := range []int64{xID, zID} {
 		supports[i], err = readCircularSourceFace(f, id)
 		if err != nil || supports[i].kind != "CYLINDER" || supports[i].sense {
 			return fail()
 		}
 	}
-	small, large := supports[0], supports[1]
-	if small.radius >= large.radius {
+	x, z := supports[0], supports[1]
+	if !partial && z.radius >= x.radius {
 		return fail()
 	}
-	frame, err := geom.NewFrame(lower.frame.Origin(), large.frame.ZAxis(), small.frame.ZAxis())
+	frame, err := geom.NewFrame(lower.frame.Origin(), x.frame.ZAxis(), z.frame.ZAxis())
 	if err != nil {
 		return fail()
 	}
@@ -173,11 +197,11 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 	if err != nil || bounds.Min != (geom.Vec3{}) {
 		return fail()
 	}
-	crossing := frame.ToLocal(large.frame.Origin())
-	other := frame.ToLocal(small.frame.Origin())
+	crossing := frame.ToLocal(x.frame.Origin())
+	other := frame.ToLocal(z.frame.Origin())
 	offset := other.Y - crossing.Y
 	if other.X != crossing.X || other.Z != crossing.Z || crossing.Y+offset != other.Y {
 		return fail()
 	}
-	return UnequalBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: crossing, XRadius: large.radius, ZRadius: small.radius, Offset: offset}, nil
+	return UnequalBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: crossing, XRadius: x.radius, ZRadius: z.radius, Offset: offset}, nil
 }

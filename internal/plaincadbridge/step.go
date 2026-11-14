@@ -376,14 +376,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
-	case s.bore != nil && s.bore.partialSkew:
-		return nil, unsupportedEdge("STEP export does not yet support partially overlapping perpendicular Hole rims.")
 	case s.bore != nil && s.bore.crossed != nil:
 		recipe, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)
 		if !ok {
 			return nil, geom.ErrUnrepresentable
 		}
-		if recipe.radii[0] == recipe.radii[1] {
+		if recipe.radii[0] == recipe.radii[1] && !recipe.partialSkew() {
 			p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0]}
 			e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 		} else {
