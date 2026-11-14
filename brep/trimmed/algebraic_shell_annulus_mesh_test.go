@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
@@ -16,6 +17,9 @@ func TestCertifiedBooleanAnnulusFill(t *testing.T)   { checkCertifiedBooleanAnnu
 func TestCertifiedYZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 1) }
 func TestCertifiedXZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 2) }
 func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
+	checkCertifiedBooleanAnnulusOwnerFill(t, projection, false)
+}
+func checkCertifiedBooleanAnnulusOwnerFill(t *testing.T, projection int, exact bool) {
 	rotated := projection != 0
 	if testing.Short() {
 		t.Skip("complete nested Boolean section and certified annulus")
@@ -23,6 +27,11 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{-.125, -.125, 0}, [3]float64{1.125, 1.125, 1}, 0)
 	b := nestedQuarticRoofSolid(t)
+	shift := geom.Vec3{}
+	if exact {
+		a = exactPlaneOwnerWithControl(t, a, big.NewRat(7, 24))
+		shift = geom.Vec3{X: 2, Y: -3, Z: 4}
+	}
 	x, e := algebraicShellTracePatch(a.faces[4], geom.ParameterRectangle{UMin: 0, UMax: 1, VMin: 0, VMax: 1})
 	if e != nil {
 		t.Fatal(e)
@@ -39,32 +48,7 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 	o.Trace.Coverage.OverlappingAffineXYFallback = true
 	axes := [2]int{0, 1}
 	if rotated {
-		rotate := func(s Solid) Solid {
-			var faces []SewFace
-			for _, f := range s.Faces() {
-				d := f.Surface.(*geom.BSplineSurface).Data()
-				for i, p := range d.Poles {
-					d.Poles[i] = geom.Vec3{X: -p.Z, Y: -p.X, Z: p.Y}
-					if projection == 2 {
-						d.Poles[i] = geom.Vec3{X: -p.X, Y: p.Z, Z: p.Y}
-					}
-				}
-				support, e := geom.NewBSplineSurface(d.DegreeU, d.DegreeV, d.CountU, d.CountV, d.Poles, d.KnotsU, d.KnotsV, d.Weights)
-				if e != nil {
-					t.Fatal(e)
-				}
-				face, e := RectangularSplineFace(support, f.Reversed)
-				if e != nil {
-					t.Fatal(e)
-				}
-				faces = append(faces, face)
-			}
-			out, _, e := Sew(ctx, faces, SewOptions{Tolerance: 1e-9})
-			if e != nil {
-				t.Fatal(e)
-			}
-			return out
-		}
+		rotate := func(s Solid) Solid { return placeAnnulusTestSolid(t, s, projection, shift) }
 		a, b = rotate(a), rotate(b)
 		// These unchanged UV cells/free axes are proposals only. The original
 		// signed rotated supports must independently reprove every tube/coverage.
@@ -91,6 +75,24 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 		t.Fatal("common retains one annular material region", common.Topology, e)
 	}
 
+	if exact {
+		retained := 0
+		for i := range common.faces {
+			f, err := common.OriginalFace(i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := f.Surface.(*geom.ExactBezierSurface); ok {
+				retained++
+				if f.Surface != a.faces[4].Surface {
+					t.Fatal("exact native owner replaced")
+				}
+			}
+		}
+		if retained != 1 {
+			t.Fatal("missing original nonbinary owner")
+		}
+	}
 	options := AlgebraicShellAnnulusMeshOptions{Section: nestedTubeSectionOptions(), Regions: nestedTubeRegionOptions()}
 	options.Section.Trace.Coverage.OverlappingAffineXYFallback = true
 	options.Section.Trace.GraphProjectionAxes = axes
@@ -114,6 +116,7 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 	if rotated {
 		extreme := 0.0
 		for _, p := range display.Mesh.Vertices {
+			p = p.Sub(shift)
 			if projection == 1 {
 				extreme = math.Min(extreme, p.X)
 				if p.X > 1e-7 || p.Y >= 0 || p.Z <= 0 {
@@ -130,6 +133,9 @@ func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 			t.Fatal("lost nonplanar retained roof")
 		}
 		for _, p := range display.Footprint.Mesh.Vertices {
+			coords := [3]float64{shift.X, shift.Y, shift.Z}
+			p.X -= coords[axes[0]]
+			p.Y -= coords[axes[1]]
 			if p.Z != 0 || p.X >= 0 || p.Y <= 0 {
 				t.Fatal("projected footprint coordinates", p)
 			}

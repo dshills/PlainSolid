@@ -95,3 +95,101 @@ func TestNativeWrappedFrustumOpenBoreReloadAndQueries(t *testing.T) {
 		t.Fatal("a changed opening was accepted", p, e)
 	}
 }
+
+func TestNativeWrappedFrustumBoreLineThroughAndCavity(t *testing.T) {
+	ctx := context.Background()
+	opts := geom.SurfacePatchOptions{}
+	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	stock, _, e := geom.DraftWrappedFrustum(ctx, base, 0, 3, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	lineOptions := geom.ToroidLineOptions{ParameterTolerance: 1e-9}
+	checkRoot := func(t *testing.T, r geom.ToroidLineRoot, n, d int64, exact bool) {
+		t.Helper()
+		q := big.NewRat(n, d)
+		if r.Min == nil || r.Max == nil || r.Min.Cmp(q) > 0 || r.Max.Cmp(q) < 0 ||
+			new(big.Rat).Sub(r.Max, r.Min).Cmp(ratInset(lineOptions.ParameterTolerance)) > 0 ||
+			(exact && r.Min.Cmp(r.Max) != 0) {
+			t.Fatal("invalid certified line enclosure", r, q)
+		}
+	}
+	for _, tc := range []struct {
+		name           string
+		bottom, height float64
+	}{
+		{"through", 0, 4},
+		{"cavity", .5, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tool, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: .25, Y: .25, Z: tc.bottom}, 1, tc.height, opts)
+			if e != nil {
+				t.Fatal(e)
+			}
+			body, saved, e := NewWrappedEccentricCircularFrustumBore(ctx, stock, tool, 1e-8, opts)
+			if e != nil {
+				t.Fatal(e)
+			}
+			faces := body.Faces()
+			slices.Reverse(faces)
+			body, e = NewSolidContext(ctx, body.Vertices(), body.Edges(), faces, 1e-8)
+			if e != nil {
+				t.Fatal(e)
+			}
+			id := func(i int) int { return len(faces) - 1 - i }
+			axis, d := geom.Vec3{X: .25, Y: .25, Z: -1}, geom.Vec3{Z: 1}
+			q, e := body.IntersectCanonicalWrappedFrustumBoreLine(ctx, axis, d, 0, 6, lineOptions)
+			if e != nil || len(q.Overlaps) != 0 {
+				t.Fatal("native axial query", q, e)
+			}
+			if _, e = body.IntersectCanonicalWrappedFrustumOpenBoreLine(ctx, axis, d, 0, 6, lineOptions); !errors.Is(e, geom.ErrConvergence) {
+				t.Fatal("blind-only API must preserve its original contract", e)
+			}
+			if tc.name == "cavity" {
+				if len(q.Hits) != 4 {
+					t.Fatal("the cavity keeps both inner disks", q)
+				}
+				wantIDs := [4]int{saved.OuterFaces[1], saved.InnerFaces[1], saved.InnerFaces[2], saved.OuterFaces[2]}
+				wantT := [4][2]int64{{1, 1}, {3, 2}, {9, 2}, {5, 1}}
+				for i, h := range q.Hits {
+					checkRoot(t, h.Parameter, wantT[i][0], wantT[i][1], true)
+					if !slices.Equal(h.Faces, []int{id(wantIDs[i])}) {
+						t.Fatal("reindexed retained cap", i, h.Faces)
+					}
+				}
+				return
+			}
+			if len(q.Hits) != 0 {
+				t.Fatal("the open axial line must miss both end planes", q)
+			}
+			for i, z := range []float64{0, 4} {
+				q, e = body.IntersectCanonicalWrappedFrustumBoreLine(ctx, geom.Vec3{X: -7, Y: .25, Z: z}, geom.Vec3{X: 1}, 0, 14, lineOptions)
+				if e != nil || len(q.Hits) != 4 || len(q.Overlaps) != 2 {
+					t.Fatal("annular query on either end", z, q, e)
+				}
+				checkRoot(t, q.Hits[1].Parameter, 25, 4, false)
+				checkRoot(t, q.Hits[2].Parameter, 33, 4, false)
+				capID := id(saved.OuterFaces[i+1])
+				for j, h := range q.Hits {
+					wallID := id(saved.OuterFaces[0])
+					if j == 1 || j == 2 {
+						wallID = id(saved.InnerFaces[0])
+					}
+					owners := []int{capID, wallID}
+					slices.Sort(owners)
+					if !slices.Equal(h.Faces, owners) {
+						t.Fatal("annular rim must retain both native owners", z, h, owners)
+					}
+				}
+				for _, span := range q.Overlaps {
+					if span.Face != capID {
+						t.Fatal("annular overlap must retain its native cap", z, span)
+					}
+				}
+			}
+		})
+	}
+}
