@@ -71,6 +71,18 @@ func TestTubeAlgebraicGraphEndpoint(t *testing.T) {
 	if e != nil || !section.Proven {
 		t.Fatal(section, e)
 	}
+	projected, e := tube.EvaluateRationalProjectedGraph(ctx, big.NewRat(7, 30), [2]int{0, 1}, TubeAlgebraicGraphEndpointOptions{
+		SurfaceCurveAgreementOptions: SurfaceCurveAgreementOptions{SurfacePatchOptions: SurfacePatchOptions{MaxOperations: section.ExactOperations}},
+	})
+	if e != nil || !projected.Proven || projected.ExactOperations != section.ExactOperations || projected.PointBounds != section.PointBounds {
+		t.Fatal("reuse the original branch within the new proof's exact work allowance", projected, e)
+	}
+	for i, want := range section.Parameters {
+		match, e := projected.Parameters[i].Compare(ctx, want, ExactCurvePlaneEventOptions{})
+		if e != nil || !match.Proven || match.Order != 0 {
+			t.Fatal("identity projection changes original chart root", i, match, e)
+		}
+	}
 	expectedSection := importTestRoot(t, big.NewRat(-401, 900), true, "5/8", "11/16")
 	order, e := section.Parameters[1].Compare(ctx, expectedSection, ExactCurvePlaneEventOptions{})
 	if e != nil || order.Order != 0 {

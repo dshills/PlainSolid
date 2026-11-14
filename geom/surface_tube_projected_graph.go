@@ -43,6 +43,12 @@ func (t VerifiedSurfaceTube) projectedGraphTube(ctx context.Context, axes [2]int
 	if e != nil {
 		return zero, order, 0, e
 	}
+	// In the original axis order, the immutable tube already proves the
+	// same branch, free coordinate, and exact endpoint anchor. The caller's
+	// work allowance applies to the new event or section proof below.
+	if order == [3]int{0, 1, 2} && t.tangentSign != 0 {
+		return t, order, 0, nil
+	}
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
 	a, e := permuteGraphPatch(t.a, order, budget)
 	if e != nil {
