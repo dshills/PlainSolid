@@ -122,8 +122,10 @@ analytic STEP writer. Full concentric tubes from coaxial cuts use the
 existing periodic STEP graph and retain their edit recipe. Circular rim
 fillets and equal-setback chamfers on XY, XZ and YZ use exact rational
 STEP bands. The original metric and inch fastener blanks preserve their
-stepped shafts and hex sockets through STEP. Return to finite unequal
-Hole crossings, starting with the axial stop inside the intersection.
+stepped shafts and hex sockets through STEP. Finite skew Hole floors can
+now stop beyond the actual transverse crossing even within the previous
+full-radius bound. Reduce tessellation work for tighter valid clearances
+before extending stops that cut through the intersection.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser

@@ -1,5 +1,23 @@
 # Verification record
 
+## PlainCAD close blind floors on skew Hole crossings — 2026-11-14
+
+A finite skew Hole checks the squared axial and transverse clearance
+with exact rational arithmetic. A floor can stop beyond the actual
+intersection while lying inside the full radius of the other cutter.
+Native tests cover both entry caps and signed offsets and reject floors
+that intersect the other bore.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-partial-near-floor-step-browser-2026-11-14.json)
+and the [authored closer-floor case](evidence/plaincad-partial-near-floor-step-native-2026-11-14.json)
+pass. The 224,892-byte STEP and 1,220-triangle watertight STL retain
+the through passage and a floor at Z=16.25 mm. The earlier full-radius
+bound was Z=15 mm. Independent OCCT STEP readback agrees with its direct
+Boolean. Five native OCCT STEP examples, including two closer floors,
+pass. The 5 mm offset and 5/2 mm radii case with a 24.5 mm blind depth
+passes native STEP and times out in the browser rebuild worker. Focused
+race and Go vet checks pass.
+
 ## PlainCAD inch socket-head fastener STEP exchange — 2026-11-14
 
 The original 4-40 UNC blank with a 0.5-inch shaft completes the same

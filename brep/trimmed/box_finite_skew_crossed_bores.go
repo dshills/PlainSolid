@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
@@ -18,7 +19,7 @@ type FiniteSkewCrossedBoresResult struct {
 // BoxFiniteSkewCrossedBores stops either unequal perpendicular bore beyond the
 // entire intersection. Zero depth means through. Positive depths run inward
 // from the lower cap, or from the upper cap when the corresponding flag is set.
-// The conservative intersection bound uses the other cylinder's full radius.
+// The axial stop is proved outside the actual transverse intersection.
 func BoxFiniteSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, offset, xDepth, zDepth float64, xOpposite, zOpposite bool, tolerance float64) (FiniteSkewCrossedBoresResult, error) {
 	return boxFiniteRadicalCrossedBores(ctx, frame, dims, crossing, xRadius, zRadius, offset,
 		xDepth, zDepth, xOpposite, zOpposite, tolerance, BoxSkewCrossedBores)
@@ -52,7 +53,11 @@ func boxFiniteRadicalCrossedBores(ctx context.Context, frame geom.Frame, dims, c
 		if op {
 			floor = size - depth
 		}
-		if depth >= size-margin || (!op && floor <= c+other+margin) || (op && floor >= c-other-margin) {
+		if depth >= size-margin {
+			return fail(geom.ErrDomain)
+		}
+		afterFullRadius := !op && floor > c+other+margin || op && floor < c-other-margin
+		if !afterFullRadius && !floorBeyondSkewIntersection(c, floor, margin, radius, other, offset, op) {
 			return fail(geom.ErrDomain)
 		}
 		capNormal := axis
@@ -85,6 +90,26 @@ func boxFiniteRadicalCrossedBores(ctx context.Context, frame geom.Frame, dims, c
 		out.SurfaceAreaDelta += -2*math.Pi*radius*(size-depth) + 2*math.Pi*radius*radius
 	}
 	return out, nil
+}
+
+// The other cylinder reaches its largest axial displacement at the
+// transverse ordinate nearest its center that still belongs to this bore.
+// Compare squared distances exactly, keeping the floor clearance in the
+// same represented arithmetic as the input.
+func floorBeyondSkewIntersection(c, floor, margin, ownRadius, otherRadius, offset float64, opposite bool) bool {
+	advance := new(big.Rat).Sub(ratInset(floor), ratInset(c))
+	if opposite {
+		advance.Neg(advance)
+	}
+	advance.Sub(advance, ratInset(margin))
+	side := new(big.Rat).Sub(ratInset(math.Abs(offset)), ratInset(ownRadius))
+	if advance.Sign() <= 0 || side.Sign() <= 0 {
+		return false
+	}
+	squared := advance.Mul(advance, advance)
+	squared.Add(squared, side.Mul(side, side))
+	r := ratInset(otherRadius)
+	return squared.Cmp(r.Mul(r, r)) > 0
 }
 
 // stopCrossedBoreCap acts only on a freshly constructed, fully qualified

@@ -193,7 +193,11 @@ Compact finite STEP brings the verified closer-radius and covered-skew
 cases below PlainCAD's import limit. The existing spline span guard still
 limits some smaller clearances and near-contact geometry. Partial skew
 intersections also retain finite floors beyond both tools' axial overlap,
-with compact STEP and watertight STL. A covered-width unequal crossed
+with compact STEP and watertight STL. A floor may now stop within the
+other cutter’s full-radius bound if exact transverse clearance proves
+it is beyond the actual crossing. One closer-floor model passes the
+full PlainCAD workflow. Another passes native STEP and hits the browser
+worker deadline during tessellation. A covered-width unequal crossed
 pair, including finite stops beyond the crossing, can retain up to two
 disjoint cardinal through companions. Some placements reach the existing
 adaptive mesh budget. A single oblique through cutter in rectangular stock now

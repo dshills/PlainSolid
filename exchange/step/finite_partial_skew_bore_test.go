@@ -16,16 +16,21 @@ import (
 )
 
 func TestFinitePartialSkewBoreSTEP(t *testing.T) {
-	for i, q := range [][3]float64{{5, 4, 5}, {4, 5, -5}, {3, 3, 3}} {
+	for i, q := range [][3]float64{{5, 4, 5}, {4, 5, -5}, {3, 3, 3}, {5, 2, 5}, {5, 4, 8}} {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: -32, Z: 48}, []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}}[i])
+			f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: -32, Z: 48}, []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}, {Z: -1}, {Z: 1}}[i])
 			if err != nil {
 				t.Fatal(err)
 			}
 			p := UnequalBoreBody{Name: "finite partial-skew crossed bores", Frame: f, Dimensions: geom.Vec3{X: 40, Y: 40, Z: 40},
 				Crossing: geom.Vec3{X: 20, Y: 16, Z: 20}, XRadius: q[0], ZRadius: q[1], Offset: q[2], ZBlindDepth: 29.5, ZOppositeCap: i != 0}
-			if i > 0 {
+			switch i {
+			case 1, 2:
 				p.XBlindDepth, p.XOppositeCap = 28.75, i == 1
+			case 3:
+				p.ZBlindDepth = 24.5
+			case 4:
+				p.ZBlindDepth = 23.75
 			}
 			m := UnequalBoreModel{Body: p, LengthUnit: .001}
 			var out bytes.Buffer
