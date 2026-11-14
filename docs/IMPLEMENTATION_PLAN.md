@@ -62,7 +62,9 @@ the same boundary when a cutter is fully concealed by the other cuts.
 Overlapping opposed floors can meet exactly with the shared footprint
 open through the common level. Equal-radius perpendicular through Holes
 intersecting inside rectangular stock retain elliptical trim edges
-through STEP. Broader nonparallel cuts remain open.
+through STEP. Disjoint interior through Holes on multiple cardinal axes
+now also round-trip STEP. The domain requires strict tool bounds separation
+and complete circular openings.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

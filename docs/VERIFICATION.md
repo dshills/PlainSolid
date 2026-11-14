@@ -1,5 +1,23 @@
 # Verification record
 
+## PlainCAD disjoint nonparallel through Holes — 2026-11-14
+
+Canonical STEP preserves rectangular stock with up to 32 disjoint interior
+through Holes on two or three cardinal axes. The native constructor requires
+strict separation of padded tool bounds. Export sorts sites independently of
+cut order, and import proves the complete graph before retaining the bore
+recipes. Coaxial tools covered by a retained through Hole measure zero
+remaining material on the same axis.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-bore-browser-2026-11-14.json)
+pass on `50432ed`. A [supplemental Chromium probe on the same WASM](evidence/plaincad-disjoint-bore-native-2026-11-14.json)
+checks three authored through Holes of distinct diameters, STEP export and
+reimport, project reopen, exact measures, open passages and watertight STL.
+Thirteen independent OCCT comparisons include six signed placements with
+two and three axes and a 32-site model. Native bridge tests cover grouped
+and successive cuts, non-millimeter scaling, and material queries after
+import. Focused race tests and Go vet pass.
+
 ## PlainCAD intersecting perpendicular through Holes — 2026-11-14
 
 Two equal-radius through Holes on intersecting perpendicular axes in

@@ -40,8 +40,10 @@ can now meet exactly and retain an open passage through the shared
 footprint. Two equal-radius through cutters whose perpendicular axes
 intersect inside a rectangular block retain exact cylindrical walls and
 elliptical intersection edges. Grouped and successive cuts, overlap
-queries, STEP and STL pass. Unequal radii, skew or oblique axes and
-intersecting blind cutters remain open.
+queries, STEP and STL pass. Disjoint through cutters on two or three
+cardinal axes now retain canonical STEP, including unequal radii and
+non-millimeter import. Intersecting unequal-radius cutters, skew or oblique
+intersections and intersecting blind cutters remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

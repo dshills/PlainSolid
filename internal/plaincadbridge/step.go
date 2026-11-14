@@ -128,6 +128,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putAnalyticBody(body)
 	}
+	if m, e := step.ReadDisjointBores(r(), stepLimits()); e == nil {
+		body, err := disjointBoresFromSTEP(m.Body, m.LengthUnit)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putBore(body)
+	}
 	if m, e := step.ReadCrossedBore(r(), stepLimits()); e == nil {
 		if m.LengthUnit != .001 {
 			return Shape{}, unsupportedEdge("Crossed bore STEP requires millimeter model coordinates")
@@ -322,6 +329,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		p, e = boreSTEPRecipe(s.bore)
 		if e == nil {
 			e = step.WriteCircularHoleExtrusions(&out, step.CircularHoleExtrusionModel{LengthUnit: .001, Bodies: []step.CircularHoleExtrusionBody{p}})
+		} else if mixed, ok := disjointBoreSTEPRecipe(s.bore); ok {
+			e = step.WriteDisjointBores(&out, step.DisjointBoresModel{Body: mixed, LengthUnit: .001})
 		}
 	case s.treated != nil:
 		e = writeLongEdgeSTEP(&out, s.treated)
