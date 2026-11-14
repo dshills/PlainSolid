@@ -57,6 +57,13 @@ func (m EllipseDiskFace) NativeFace() (trimmed.Face, geom.Ellipse, error) {
 }
 
 func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
+	return readEllipseDiskFace(r, l, nil)
+}
+func readEllipseDiskFace(r io.Reader, l Limits, hole *ellipseFaceHole) (EllipseDiskFace, error) {
+	count, innerCount := 8, 0
+	if hole != nil {
+		count, innerCount = 11, 1
+	}
 	bad := func() (EllipseDiskFace, error) {
 		return EllipseDiskFace{}, fmt.Errorf("iges: unsupported exact ellipse disk face")
 	}
@@ -66,13 +73,13 @@ func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
 	}
 	l.MaxBytes = min(l.MaxBytes, 32768)
 	l.MaxRecords = min(l.MaxRecords, 256)
-	l.MaxEntities = min(l.MaxEntities, 8)
+	l.MaxEntities = min(l.MaxEntities, count)
 	l.MaxValues = min(l.MaxValues, 1024)
 	d, e := readPlacedTopologyRecords(r, l, false, false, false, false, false, false, false, false, false, true, true, true, true)
 	if e != nil {
 		return EllipseDiskFace{}, e
 	}
-	if len(d.entities) != 8 {
+	if len(d.entities) != count {
 		return bad()
 	}
 	by := map[int]topologyRecord{}
@@ -110,8 +117,8 @@ func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
 		return v
 	}
 	meta := func(x topologyRecord) CylinderDatumMetadata { return CylinderDatumMetadata{x.label, x.subscript} }
-	face, ok := get(root, 144, 5)
-	if !ok || integer(face, 2) != 1 || integer(face, 3) != 0 {
+	face, ok := get(root, 144, 5+innerCount)
+	if !ok || integer(face, 2) != 1 || integer(face, 3) != innerCount {
 		return bad()
 	}
 	plane, ok := get(integer(face, 1), 190, 4)
@@ -139,7 +146,7 @@ func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
 		return bad()
 	}
 	ref, ok := get(integer(plane, 3), 123, 4)
-	if !ok || len(seen) != 8 {
+	if !ok {
 		return bad()
 	}
 	mcurve, e := decodeEllipseConicRecords(topologySource{unit: d.unit, entities: []topologyRecord{model}}, nil)
@@ -148,6 +155,34 @@ func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
 	}
 	pcurve, e := decodeEllipseConicRecords(topologySource{unit: d.unit, entities: []topologyRecord{uv}}, nil)
 	if e != nil || pcurve.Curve.Z != 0 || pcurve.Curve.Coefficients != mcurve.Curve.Coefficients {
+		return bad()
+	}
+
+	var decodedHole ellipseFaceHole
+	if hole != nil {
+		hcos, ok := get(integer(face, 5), 142, 6)
+		if !ok || integer(hcos, 1) != 0 || integer(hcos, 2) != plane.id || integer(hcos, 5) != 3 {
+			return bad()
+		}
+		huv, ok := get(integer(hcos, 3), 104, 12)
+		if !ok {
+			return bad()
+		}
+		hm, ok := get(integer(hcos, 4), 104, 12)
+		if !ok {
+			return bad()
+		}
+		hmodel, err := decodeEllipseConicRecords(topologySource{unit: d.unit, entities: []topologyRecord{hm}}, nil)
+		if err != nil {
+			return bad()
+		}
+		huvmodel, err := decodeEllipseConicRecords(topologySource{unit: d.unit, entities: []topologyRecord{huv}}, nil)
+		if err != nil || huvmodel.Curve.Z != 0 || huvmodel.Curve.Coefficients != hmodel.Curve.Coefficients || hmodel.Curve.Z != mcurve.Curve.Z {
+			return bad()
+		}
+		decodedHole = ellipseFaceHole{Model: hmodel, ParameterMetadata: meta(huv), BoundaryMetadata: meta(hcos), SourceBoundaryID: hcos.id, SourceParameterID: huv.id}
+	}
+	if len(seen) != count {
 		return bad()
 	}
 	for _, want := range []struct {
@@ -199,10 +234,20 @@ func ReadEllipseDiskFace(r io.Reader, l Limits) (EllipseDiskFace, error) {
 	if _, _, e = out.NativeFace(); e != nil {
 		return bad()
 	}
+	if hole != nil {
+		test := EllipseAnnulusFace{Outer: out, Inner: decodedHole}
+		if _, _, _, e = test.NativeFace(); e != nil {
+			return bad()
+		}
+		*hole = decodedHole
+	}
 	return out, nil
 }
 
 func WriteEllipseDiskFace(w io.Writer, m EllipseDiskFace) error {
+	return writeEllipseDiskFace(w, m, nil)
+}
+func writeEllipseDiskFace(w io.Writer, m EllipseDiskFace, hole *ellipseFaceHole) error {
 	if w == nil {
 		return geom.ErrInvalid
 	}
@@ -210,7 +255,11 @@ func WriteEllipseDiskFace(w io.Writer, m EllipseDiskFace) error {
 		return e
 	}
 	a := topologyAuthor{}
-	a.add(144, 0, "144,3,1,0,11;")
+	if hole == nil {
+		a.add(144, 0, "144,3,1,0,11;")
+	} else {
+		a.add(144, 0, "144,3,1,1,11,17;")
+	}
 	a.add(190, 1, "190,5,7,9;")
 	a.add(116, 0, "116,0,0,"+number(m.Model.Curve.Z)+",0;")
 	a.add(123, 0, "123,0,0,1;")
@@ -229,6 +278,23 @@ func WriteEllipseDiskFace(w io.Writer, m EllipseDiskFace) error {
 		a.add(104, 1, strings.Join(v, ",")+";")
 	}
 	metadata := []CylinderDatumMetadata{m.Metadata, m.PlaneMetadata, m.PointMetadata, m.NormalMetadata, m.ReferenceMetadata, m.BoundaryMetadata, m.ParameterMetadata, m.Model.Curve.Metadata}
+
+	if hole != nil {
+		a.add(142, 0, "142,0,3,19,21,3;")
+		major, _, err := ellipseConicRadii(hole.Model.Curve)
+		if err != nil {
+			return err
+		}
+		for _, z := range []float64{0, hole.Model.Curve.Z} {
+			v := []string{"104"}
+			for _, n := range hole.Model.Curve.Coefficients {
+				v = append(v, number(n))
+			}
+			v = append(v, number(z), number(major), "0", number(major), "0")
+			a.add(104, 1, strings.Join(v, ",")+";")
+		}
+		metadata = append(metadata, hole.BoundaryMetadata, hole.ParameterMetadata, hole.Model.Curve.Metadata)
+	}
 	for i, x := range metadata {
 		a.records[i].label = x.Label
 		a.records[i].subscript = x.Subscript
@@ -238,6 +304,9 @@ func WriteEllipseDiskFace(w io.Writer, m EllipseDiskFace) error {
 		return e
 	}
 	status := []int{0, 10000, 10400, 10200, 10200, 10500, 10000, 10000}
+	if hole != nil {
+		status = append(status, 10500, 10000, 10000)
+	}
 	for _, line := range bytes.Split(raw, []byte("\n")) {
 		if len(line) != 80 || line[72] != 'D' {
 			continue
@@ -247,7 +316,11 @@ func WriteEllipseDiskFace(w io.Writer, m EllipseDiskFace) error {
 			copy(line[64:72], fmt.Sprintf("%08d", status[id/2]))
 		}
 	}
-	if _, e = ReadEllipseDiskFace(bytes.NewReader(raw), Limits{}); e != nil {
+	var check *ellipseFaceHole
+	if hole != nil {
+		check = &ellipseFaceHole{}
+	}
+	if _, e = readEllipseDiskFace(bytes.NewReader(raw), Limits{}, check); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)
