@@ -25,8 +25,10 @@ type WrappedRoundedCylinderHistory struct {
 // negative distance. The cap planes and lateral wall move by the same signed
 // distance; existing rolling-circle centers stay fixed. Positive distance
 // rounds a sharp rim; negative distance retains an originally sharp rim.
-// Offset distances that eliminate an existing blend, the cylindrical
-// middle, or the positive-radius canonical toroidal family are rejected.
+// When both source rims are rounded, exact extinction of the smaller blend
+// is accepted: its face disappears and ResultBlends records -1. Negative
+// blend radii, loss of the cylindrical middle, and other family transitions
+// are rejected.
 func WrappedRoundedCylinder(ctx context.Context, solid trimmed.Solid, distance float64,
 	o geom.SurfacePatchOptions) (trimmed.Solid, WrappedRoundedCylinderHistory, error) {
 	empty := WrappedRoundedCylinderHistory{ResultLateral: -1, ResultCaps: [2]int{-1, -1}, ResultBlends: [2]int{-1, -1}}
@@ -94,7 +96,12 @@ func WrappedRoundedCylinder(ctx context.Context, solid trimmed.Solid, distance f
 			continue
 		}
 		q := new(big.Rat).Add(r, d)
-		if q.Sign() <= 0 {
+		// At exact extinction the convex result C has the same rolling-circle
+		// centers and straight band. With both original rims rounded, C plus
+		// the erosion-radius ball is exactly the source; convex support
+		// functions therefore prove that erosion returns C, including sharp
+		// zero-radius rims. Do not extrapolate this proof to negative radii.
+		if q.Sign() < 0 || q.Sign() == 0 && (p.Fillets[0].Sign() == 0 || p.Fillets[1].Sign() == 0) {
 			return trimmed.Solid{}, empty, geom.ErrDomain
 		}
 		radii[i], e = geom.RepresentedExactScalar(q)

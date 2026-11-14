@@ -41,3 +41,20 @@ Tests include analytic notch/hole closure, erosion splitting a connecting neck,
 complete disappearance, overlapping-cross morphology, exact decimal-offset
 area, topology-preserving float conversion, rejection of collapsed coordinates
 and point contacts, promotion, and budget/cancellation failures.
+
+### Exact rounded-cylinder blend extinction
+
+`WrappedRoundedCylinder` also accepts inward offsets that exactly reduce the
+smaller of two positive original rim-fillet radii to zero. The surviving radius,
+cap planes and cylindrical radius remain exact represented values. The extinct
+blend has no result face (`ResultBlends[end] == -1`); surviving faces retain their
+original source-face IDs. No negative-radius continuation is accepted.
+
+This is a convex erosion identity, not tolerance-based removal of a small face.
+For inward distance `t`, the core has radius `R-t`, cap interval
+`[zLower+t,zUpper-t]`, and rim radii `rLower-t,rUpper-t`. Its straight cylindrical
+band and rolling-circle centers remain unchanged. Adding a radius-`t` ball to
+this convex core reproduces the original two-rounded-rim body, including a sharp
+core rim when its new radius is zero. Subtracting the ball in the convex support
+inequalities therefore gives exactly the core. Existing geometric limits remain
+in force; extinction with an originally sharp opposite rim is still rejected.
