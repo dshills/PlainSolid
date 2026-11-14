@@ -22,9 +22,12 @@ remains outside the exact input domain. Filled and concentric hollow
 prisms can be sewn into native solids and revalidated on reload, including
 proper signed-axis placement with exactly stored translation. All five
 planar mixed Boolean fragments have certified fills on the shared
-boundary network (`7e3c670`). A first nonlinear original roof has a
-certified interior with strict signed clearance; its collar and the
-other two roof fragments still need proofs. Exact stock line queries also
+boundary network (`7e3c670`). The original mixed intersection now has a
+closed certified mesh for all eight fragments, with both strict signed
+roof cells and separate collars bound to original trims. Its 2,004
+triangles preserve the exact boundary source and have a source error
+bound below 0.098 model units. Equivalent complete meshes for union and
+difference remain separate requirements. Exact stock line queries also
 resolve isolated shared wall and cap events without duplicating or losing
 their original face owners (`dda46a5`, `22ef5ba`).
 
