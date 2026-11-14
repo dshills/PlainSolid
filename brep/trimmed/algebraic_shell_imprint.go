@@ -60,7 +60,8 @@ type AlgebraicShellImprint struct {
 // transverse anchors, and closed sections wholly inside an original face.
 // Multiple closed loops on one face require disjoint conservative chart
 // boxes or independently proved nesting on a common affine graph projection.
-// Faces carrying both open and closed cuts remain unresolved.
+// A face carrying both kinds of cut requires a separate strict chart
+// containment proof assigning each enclosed loop to one open-cut fragment.
 // Every section segment is shared by corresponding source fragments. Both
 // results are returned only after closed incidence and vertex links pass.
 func (r AlgebraicShellSectionResult) ImprintOriginalShells(ctx context.Context,
@@ -430,11 +431,26 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 	if len(paths) == 0 {
 		return []AlgebraicShellImprintFace{original}, nil
 	}
+	var open, closed []shellImprintPath
 	for _, p := range paths {
 		if p.closed {
-			return w.arrangeClosedFacePaths(face, op, original, s, paths)
+			closed = append(closed, p)
+		} else {
+			open = append(open, p)
 		}
 	}
+	if len(open) == 0 {
+		return w.arrangeClosedFacePaths(face, op, original, s, closed)
+	}
+	result, e := w.arrangeOpenFacePaths(original, s, open)
+	if e != nil || len(closed) == 0 {
+		return result, e
+	}
+	return w.arrangeMixedFacePaths(face, op, original, s, result, closed)
+}
+
+func (w *shellImprintWork) arrangeOpenFacePaths(original AlgebraicShellImprintFace, s AlgebraicShellImprint,
+	paths []shellImprintPath) ([]AlgebraicShellImprintFace, error) {
 	indices := map[int]int{}
 	for i, u := range original.Outer {
 		a, _ := s.edgeEnds(u)
@@ -459,7 +475,7 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 		if used[i] {
 			continue
 		}
-		r := AlgebraicShellImprintFace{Original: face, Fragment: len(out), Reversed: f.Reversed}
+		r := AlgebraicShellImprintFace{Original: original.Original, Fragment: len(out), Reversed: original.Reversed}
 		for j := i; ; {
 			used[j] = true
 			r.Outer = append(r.Outer, original.Outer[j])
@@ -485,60 +501,9 @@ func (w *shellImprintWork) arrangeFace(face, op int, f AlgebraicSubdivisionFace,
 
 func (w *shellImprintWork) arrangeClosedFacePaths(face, op int, original AlgebraicShellImprintFace,
 	s AlgebraicShellImprint, paths []shellImprintPath) ([]AlgebraicShellImprintFace, error) {
-	var boxes []geom.UVBox
-	if len(paths) > 128 {
-		return nil, geom.ErrConvergence
-	}
-	for _, p := range paths {
-		if e := w.ctx.Err(); e != nil {
-			return nil, e
-		}
-		if !p.closed {
-			return nil, geom.ErrConvergence
-		}
-		if len(paths) == 1 {
-			continue
-		}
-		var box geom.UVBox
-		for i, use := range p.uses {
-			x := s.Section[use.SectionPiece]
-			b := w.source.branches[x.Branch]
-			if b.Faces[op] != face {
-				return nil, geom.ErrConvergence
-			}
-			seg := b.Segments[x.Index]
-			q, e := [2]intersect.TubeTrim{seg.TrimA(), seg.TrimB()}[op].BoundsUV()
-			if e != nil {
-				return nil, e
-			}
-			if i == 0 {
-				box = q
-				continue
-			}
-			box.Min.X, box.Min.Y = min(box.Min.X, q.Min.X), min(box.Min.Y, q.Min.Y)
-			box.Max.X, box.Max.Y = max(box.Max.X, q.Max.X), max(box.Max.Y, q.Max.Y)
-		}
-		boxes = append(boxes, box)
-	}
-	parents := make([]int, len(paths))
-	for i := range parents {
-		parents[i] = -1
-	}
-	// A strict gap between conservative boxes excludes nesting. Where
-	// the boxes overlap, classify the exact closed loops instead.
-	needContainment := false
-	for i, box := range boxes {
-		for _, other := range boxes[:i] {
-			needContainment = needContainment ||
-				(box.Min.X <= other.Max.X && other.Min.X <= box.Max.X && box.Min.Y <= other.Max.Y && other.Min.Y <= box.Max.Y)
-		}
-	}
-	if needContainment {
-		var e error
-		parents, e = w.closedPathParents(face, op, s, paths)
-		if e != nil {
-			return nil, e
-		}
+	parents, e := w.closedFacePathParents(face, op, s, paths)
+	if e != nil {
+		return nil, e
 	}
 	out := make([]AlgebraicShellImprintFace, len(paths)+1)
 	out[0] = original

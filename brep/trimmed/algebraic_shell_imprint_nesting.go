@@ -7,6 +7,60 @@ import (
 	"plainsolid/geom"
 )
 
+func (w *shellImprintWork) closedFacePathParents(face, op int, s AlgebraicShellImprint, paths []shellImprintPath) ([]int, error) {
+	if len(paths) > 128 {
+		return nil, geom.ErrConvergence
+	}
+	parents := make([]int, len(paths))
+	boxes := make([]geom.UVBox, 0, len(paths))
+	needContainment := false
+	for i, p := range paths {
+		if e := w.ctx.Err(); e != nil {
+			return nil, e
+		}
+		if !p.closed || len(p.uses) == 0 {
+			return nil, geom.ErrConvergence
+		}
+		parents[i] = -1
+		if len(paths) == 1 {
+			continue
+		}
+		var box geom.UVBox
+		for j, use := range p.uses {
+			x := s.Section[use.SectionPiece]
+			b := w.source.branches[x.Branch]
+			if b.Faces[op] != face {
+				return nil, geom.ErrConvergence
+			}
+			seg := b.Segments[x.Index]
+			trim := seg.TrimA()
+			if op == 1 {
+				trim = seg.TrimB()
+			}
+			q, e := trim.BoundsUV()
+			if e != nil {
+				return nil, e
+			}
+			if j == 0 {
+				box = q
+				continue
+			}
+			box.Min.X, box.Min.Y = min(box.Min.X, q.Min.X), min(box.Min.Y, q.Min.Y)
+			box.Max.X, box.Max.Y = max(box.Max.X, q.Max.X), max(box.Max.Y, q.Max.Y)
+		}
+		for _, other := range boxes {
+			needContainment = needContainment || !imprintBoxesDisjoint(box, other)
+		}
+		boxes = append(boxes, box)
+	}
+	// A strict gap between conservative boxes excludes nesting. Where boxes
+	// overlap, classify the exact closed loops instead.
+	if needContainment {
+		return w.closedPathParents(face, op, s, paths)
+	}
+	return parents, nil
+}
+
 // Existing shell coverage already proves disjoint regular wires. For nested
 // imprint, keep one common original affine graph projection and classify exact
 // points on each wire against all the others in their original UV chart.
