@@ -59,8 +59,8 @@ Grouped and successive operations retain unequal blind floors, through cuts that
 solid, and blind floors with inner wires. Exact contacts at stock vertices
 preserve the actual shared vertices and analytic trims. STEP preserves
 the same boundary when a cutter is fully concealed by the other cuts.
-Nonparallel axes and overlapping opposed floors that meet exactly
-remain open.
+Overlapping opposed floors can meet exactly with the shared footprint
+open through the common level. Intersecting nonparallel axes remain open.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

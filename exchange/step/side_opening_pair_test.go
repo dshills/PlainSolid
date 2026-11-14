@@ -654,3 +654,33 @@ func TestSideOpeningCutsSTEPOneCapBuriedThrough(t *testing.T) {
 		})
 	}
 }
+
+func TestSideOpeningCutsSTEPMeetingOppositeFloors(t *testing.T) {
+	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, fixture := range []struct {
+			name    string
+			back    float64
+			centers [2]geom.Vec2
+			radii   [2]float64
+		}{
+			{"same-side", 20, [2]geom.Vec2{{X: 6}, {X: 10}}, [2]float64{3, 3}},
+			{"adjacent-sides", 20, [2]geom.Vec2{{Y: 3.5}, {X: 3.5}}, [2]float64{3, 3}},
+			{"opposite-sides", 8, [2]geom.Vec2{{X: 8, Y: 1.5}, {X: 9, Y: 6.5}}, [2]float64{3, 3}},
+			{"corner-side", 20, [2]geom.Vec2{{}, {X: 5}}, [2]float64{4, 3}},
+		} {
+			for _, depth := range []float64{3, 4} {
+				t.Run(fmt.Sprintf("%s/%g/%d", fixture.name, depth, ni), func(t *testing.T) {
+					p := SideOpeningCutsBody{Name: "meeting opposite blind floors", Frame: frame, Width: 20, Back: fixture.back, Length: 8, Cuts: []trimmed.SideOpeningCut{
+						{ExtrusionCircle: trimmed.ExtrusionCircle{Center: fixture.centers[0], Radius: fixture.radii[0]}, Depth: depth},
+						{ExtrusionCircle: trimmed.ExtrusionCircle{Center: fixture.centers[1], Radius: fixture.radii[1]}, Depth: 8 - depth, OppositeCap: true},
+					}}
+					checkCornerSideOpeningSTEP(t, p)
+				})
+			}
+		}
+	}
+}

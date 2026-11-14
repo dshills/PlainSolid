@@ -63,12 +63,6 @@ func TestBoxSideOpeningPairOpposedCaps(t *testing.T) {
 			{ExtrusionCircle: ExtrusionCircle{Center: geom.Vec2{X: 12}, Radius: 3}, Depth: depths[1], OppositeCap: true},
 		}
 		result, err := BoxSideOpeningPair(ctx, f, 20, 20, 8, cuts, 1e-9)
-		if depths[0]+depths[1] == 8 {
-			if err == nil {
-				t.Fatal("accepted a zero-thickness contact between opposed floors")
-			}
-			continue
-		}
 		if err != nil {
 			t.Fatal(depths, err)
 		}
@@ -77,6 +71,20 @@ func TestBoxSideOpeningPairOpposedCaps(t *testing.T) {
 		if err != nil || math.Abs(result.RemovedVolume-want) > 1e-7 || math.Abs(props.Volume-(3200-want)) > 1e-7 ||
 			math.Abs(props.Area-(1440+result.SurfaceAreaDelta)) > 1e-7 {
 			t.Fatal(depths, result.RemovedVolume, props, err)
+		}
+		if depths[0]+depths[1] == 8 {
+			// The two blind floors retain only their nonoverlapping crescents.
+			wantArea := 1440 + 8*(3*math.Pi-6) - 2*shared
+			if math.Abs(props.Area-wantArea) > 1e-7 {
+				t.Fatal("coincident floor area", props.Area, wantArea)
+			}
+			m, err := result.Solid.Tessellate(ctx, parametric.TessellationOptions{Deflection: .1, Angle: .2, MaxSubdivisions: 128, MaxTriangles: 50000})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := m.ValidateSolid(); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 }
