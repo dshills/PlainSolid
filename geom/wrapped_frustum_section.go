@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-// WrappedFrustumSection is the exact closed profile at a represented height.
+// WrappedFrustumSection is the exact closed profile at a rational height.
 // Curve keeps rational homogeneous controls and original circumferential knots;
 // ParameterV and Radius are exact rationals, even when not binary representable.
 // Cap is zero for an interior section, otherwise the coincident cap identity.
@@ -22,8 +22,17 @@ type WrappedFrustumSection struct {
 // closed range return ErrDomain. No conventional float pole reconstruction is
 // used. The section descriptor can be bounded by BoundExactCurveLengthContext.
 func SectionWrappedFrustum(ctx context.Context, w *WrappedSurfacePatch, height float64, o SurfacePatchOptions) (WrappedFrustumSection, error) {
-	empty := WrappedFrustumSection{}
 	if !finite(height) {
+		return WrappedFrustumSection{}, ErrInvalid
+	}
+	return SectionWrappedFrustumRational(ctx, w, new(big.Rat).SetFloat64(height), o)
+}
+
+// SectionWrappedFrustumRational extracts an original chart profile at an
+// exact height, including heights with no binary64 representation.
+func SectionWrappedFrustumRational(ctx context.Context, w *WrappedSurfacePatch, height *big.Rat, o SurfacePatchOptions) (WrappedFrustumSection, error) {
+	empty := WrappedFrustumSection{}
+	if ctx == nil || height == nil {
 		return empty, ErrInvalid
 	}
 	proof, e := CertifyWrappedFrustumEmbedding(ctx, w, o)
@@ -34,11 +43,14 @@ func SectionWrappedFrustum(ctx context.Context, w *WrappedSurfacePatch, height f
 	if e != nil {
 		return empty, e
 	}
-	z := new(big.Rat).SetFloat64(height)
+	z := new(big.Rat).Set(height)
+	budget := &polynomialBudget{operations: proof.ExactOperations, maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
+	if e := budget.check(z); e != nil {
+		return empty, e
+	}
 	if z.Cmp(proof.LowerZ) < 0 || z.Cmp(proof.UpperZ) > 0 {
 		return empty, ErrDomain
 	}
-	budget := &polynomialBudget{operations: proof.ExactOperations, maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
 	t := new(big.Rat).Quo(new(big.Rat).Sub(z, proof.LowerZ), new(big.Rat).Sub(proof.UpperZ, proof.LowerZ))
 	one := new(big.Rat).Sub(big.NewRat(1, 1), t)
 	source := w.patch
