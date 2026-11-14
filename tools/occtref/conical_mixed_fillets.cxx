@@ -51,10 +51,20 @@ static void nearest(std::ostream& out,const char* name,const TopoDS_Shape& bound
  out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"SquaredDistance\":"<<d*d<<",\"Point\":["<<p.X()<<','<<p.Y()<<','<<p.Z()<<"],\"Solutions\":"<<distance.NbSolution()<<"}\n";
 }
 int main(int argc,char**argv){try{
- if(argc!=2 && (argc!=3 || std::string(argv[2])!="--nearest"))throw std::runtime_error("usage: conical_mixed_fillets OUTPUT_JSONL [--nearest]");std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
+ if(argc!=2 && (argc!=3 || (std::string(argv[2])!="--nearest" && std::string(argv[2])!="--bore-cone")))throw std::runtime_error("usage: conical_mixed_fillets OUTPUT_JSONL [--nearest|--bore-cone]");std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
  auto cone=BRepPrimAPI_MakeCone(8,16,6).Shape();BRepFilletAPI_MakeFillet fillets(cone);ShapeMap edges;TopExp::MapShapes(cone,TopAbs_EDGE,edges);int selected=0;
  for(int i=1;i<=edges.Extent();++i){auto edge=TopoDS::Edge(edges(i));BRepAdaptor_Curve curve(edge);if(curve.GetType()!=GeomAbs_Circle)continue;const double z=curve.Circle().Location().Z();if(std::abs(z)<1e-12){fillets.Add(15./16,edge);++selected;}else if(std::abs(z-6)<1e-12){fillets.Add(15./8,edge);++selected;}}
  if(selected!=2)throw std::runtime_error("missing independent conical rims");fillets.Build();if(!fillets.IsDone())throw std::runtime_error("OCCT conical rolling fillets failed");auto stock=fillets.Shape();record(out,"stock",stock);
+ if(argc==3 && std::string(argv[2])=="--bore-cone"){
+  auto cutter=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(6,0,-1),gp_Dir(0,0,1)),1,8).Shape();
+  auto pierced=BRepAlgoAPI_Cut(stock,cutter).Shape();record(out,"bore-cone",pierced);
+  BRep_Builder builder;TopoDS_Compound boundary;builder.MakeCompound(boundary);
+  for(TopExp_Explorer f(pierced,TopAbs_FACE);f.More();f.Next())builder.Add(boundary,f.Current());
+  nearest(out,"pair-cone",boundary,gp_Pnt(65./8,1./8,3./2));
+  nearest(out,"pair-bore",boundary,gp_Pnt(65./8,1./8,49./32));
+  nearest(out,"pair-tie",boundary,gp_Pnt(65./8,0,3./2));
+  return 0;
+ }
  auto tool=[](double x,double z,double height){return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(x,0,z),gp_Dir(0,0,1)),.5,height).Shape();};
  auto body=BRepAlgoAPI_Cut(stock,tool(-2,-1,8)).Shape();body=BRepAlgoAPI_Cut(body,tool(2,0,1)).Shape();body=BRepAlgoAPI_Cut(body,tool(2,2,4)).Shape();record(out,"mixed",body);
  line(out,"oblique",body,gp_Pnt(837./104,0,15./208),gp_Vec(1,1,1),-1,8);
