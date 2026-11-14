@@ -18,8 +18,14 @@ branch after each coherent milestone. The current committed PlainCAD revision
 worktree independently qualified all 15 current cross-browser cases and all
 344 original development cases on its pinned build with staged project-open
 handling. The full unit result still contains failures, with separately
-recorded isolated retests and provider-specific fixture gaps. These application
-checks do not establish a general OCCT replacement.
+recorded isolated retests and provider-specific fixture gaps. Review candidate
+`bc7f9c3` combines the other worktree's committed `db05a77` revision with
+the newer kernel. The original Go/WASM backend preflight and both supplemental
+different-center side openings passed without retries in Chromium, including
+rebuild, reopen, STL, and STEP, on all 841 pinned PlainCAD source files.
+The [reconciled acceptance record](evidence/plaincad-reconciled-bc7f9c3-side-openings-2026-11-13.json)
+identifies the actual browser build. These application checks do not establish
+a general OCCT replacement.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
