@@ -42,6 +42,9 @@ func TestBorePreservesRoundedCylinderSupports(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	if result.FloorFace != -1 || result.FloorZ != nil {
+		t.Fatal("through bore acquired floor", result)
+	}
 	out := result.Solid
 	if out.Topology().Faces != source.Topology().Faces+1 || out.Topology().EulerCharacteristic != 0 {
 		t.Fatal(out.Topology())

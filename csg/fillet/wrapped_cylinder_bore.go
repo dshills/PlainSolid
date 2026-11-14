@@ -18,6 +18,8 @@ type WrappedRoundedCylinderBore struct {
 	Solid                    trimmed.Solid
 	SourceFaces              [][]int
 	BoreFace                 int
+	FloorFace                int      // -1 for a through-bore; generated support has no original face ancestor
+	FloorZ                   *big.Rat // nil for a through-bore; owned exact floor height
 	BoreRims                 [2][]int
 	SourceCaps, SourceBlends [2]int
 }
@@ -34,6 +36,10 @@ type WrappedRoundedCylinderBore struct {
 // be representable. Source/construction proofs each use supplied patch limits;
 // final trim and edge proofs use their bounded defaults. Failure is atomic.
 func BoreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, center geom.Vec2, radius float64, o geom.SurfacePatchOptions) (WrappedRoundedCylinderBore, error) {
+	return boreWrappedRoundedCylinder(ctx, source, center, radius, 0, false, false, o)
+}
+
+func boreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, center geom.Vec2, radius, depth float64, fromUpper, blind bool, o geom.SurfacePatchOptions) (WrappedRoundedCylinderBore, error) {
 	fail := func(e error) (WrappedRoundedCylinderBore, error) { return WrappedRoundedCylinderBore{}, e }
 	if ctx == nil {
 		return fail(geom.ErrInvalid)
@@ -72,7 +78,35 @@ func BoreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, cente
 	if e != nil {
 		return fail(e)
 	}
-	inner, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: center.X, Y: center.Y, Z: f[2]}, radius, f[4], o)
+	innerZ, innerHeight := f[2], f[4]
+	open := [2]bool{true, true}
+	var floorZ *big.Rat
+	floorEnd := 0
+	if blind {
+		d := new(big.Rat).SetFloat64(depth)
+		if d == nil || d.Sign() <= 0 {
+			return fail(geom.ErrInvalid)
+		}
+		floorZ = new(big.Rat).Add(p.LowerZ, d)
+		open = [2]bool{true, false}
+		floorEnd = 1
+		if fromUpper {
+			floorZ.Sub(p.UpperZ, d)
+			open = [2]bool{false, true}
+			floorEnd = 0
+		}
+		if floorZ.Cmp(new(big.Rat).Add(p.LowerZ, p.Fillets[0])) <= 0 || floorZ.Cmp(new(big.Rat).Sub(p.UpperZ, p.Fillets[1])) >= 0 {
+			return fail(geom.ErrDomain)
+		}
+		innerHeight = depth
+		if fromUpper {
+			innerZ, e = geom.RepresentedExactScalar(floorZ)
+			if e != nil {
+				return fail(e)
+			}
+		}
+	}
+	inner, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: center.X, Y: center.Y, Z: innerZ}, radius, innerHeight, o)
 	if e != nil {
 		return fail(e)
 	}
@@ -84,6 +118,9 @@ func BoreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, cente
 	dv, de, df := donor.Vertices(), donor.Edges(), donor.Faces()
 	wall := df[h.InnerFaces[0]]
 	for end, cap := range p.Caps {
+		if !open[end] {
+			continue
+		}
 		a, ok := faces[cap].Surface.(geom.PlaneSurface)
 		if !ok {
 			return fail(geom.ErrConvergence)
@@ -128,11 +165,14 @@ func BoreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, cente
 		}
 		return out, nil
 	}
-	result := WrappedRoundedCylinderBore{SourceCaps: p.Caps, SourceBlends: p.Blends, BoreFace: len(faces), SourceFaces: make([][]int, len(faces)+1)}
+	result := WrappedRoundedCylinderBore{FloorFace: -1, FloorZ: floorZ, SourceCaps: p.Caps, SourceBlends: p.Blends, BoreFace: len(faces), SourceFaces: make([][]int, len(faces)+1)}
 	for i := range faces {
 		result.SourceFaces[i] = []int{i}
 	}
 	for end, cap := range p.Caps {
+		if !open[end] {
+			continue
+		}
 		hole, e := remap(df[h.OuterFaces[end+1]].Holes[0])
 		if e != nil {
 			return fail(e)
@@ -154,6 +194,19 @@ func BoreWrappedRoundedCylinder(ctx context.Context, source trimmed.Solid, cente
 		return fail(e)
 	}
 	faces = append(faces, wall)
+	if blind {
+		floor := df[h.InnerFaces[floorEnd+1]]
+		floor.Outer, e = remap(floor.Outer)
+		if e != nil {
+			return fail(e)
+		}
+		result.FloorFace = len(faces)
+		for _, u := range floor.Outer {
+			result.BoreRims[floorEnd] = append(result.BoreRims[floorEnd], u.Edge)
+		}
+		faces = append(faces, floor)
+		result.SourceFaces = append(result.SourceFaces, nil)
+	}
 	result.Solid, e = trimmed.NewSolidContext(ctx, vertices, edges, faces, source.Tolerance())
 	if e != nil {
 		return fail(e)

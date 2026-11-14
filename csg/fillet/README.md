@@ -76,3 +76,12 @@ and model-edge agreement gate construction. History separates surviving original
 faces from the generated bore wall. Tangency, unsupported source topology,
 nonrepresentable native geometry and exhausted proofs fail atomically. This is a
 local through-removal subset, not a general Boolean against filleted stock.
+
+`BlindBoreWrappedRoundedCylinder` uses the same strict radial clearance and
+source-preserving graft for a single cap entry. Its exact floor must lie strictly
+inside the straight outer wall's axial band, leaving positive stock beyond the
+floor and excluding shoulder/through transitions. Native donor face roles supply
+the inward floor support and orientation. `FloorFace`/`FloorZ` identify the new
+floor (no original face ancestor); `BoreRims` retain lower/upper axial ordering.
+The opposite original cap is untouched. For the through API, `FloorFace` is -1
+and `FloorZ` is nil. Both modes retain every original topology ID.
