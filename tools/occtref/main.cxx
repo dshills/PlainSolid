@@ -219,10 +219,10 @@ int main(int argc, char** argv) {
       tangentSplineShellRecords(out, mode == "isolated-quartic-tangent-shells", mode == "isolated-separable-tangent-shells");
       return 0;
     }
-    if (argc == 3 && mode == "multiple-knot-tangent-shells") {
+    if (argc == 3 && (mode == "multiple-knot-tangent-shells" || mode == "distinct-tangent-face-pairs")) {
       std::ofstream out(argv[1]);
       out.exceptions(std::ios::failbit | std::ios::badbit);
-      multipleKnotTangentSplineShellRecords(out);
+      multipleKnotTangentSplineShellRecords(out, mode == "distinct-tangent-face-pairs");
       return 0;
     }
     if (argc == 3 && mode == "frustum-open-wall") {

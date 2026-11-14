@@ -139,6 +139,10 @@ func TestOCCTExternallyTangentSplineShellsMultipleKnotContacts(t *testing.T) {
 	checkOCCTExternalSplineTangency(t, "multiple-knot-tangent-shells")
 }
 
+func TestOCCTExternallyTangentSplineShellsDistinctPairs(t *testing.T) {
+	checkOCCTExternalSplineTangency(t, "distinct-tangent-face-pairs")
+}
+
 func checkOCCTExternalSplineTangency(t *testing.T, mode string) {
 	t.Helper()
 	program := os.Getenv("PLAINSOLID_OCCT_ORACLE")
@@ -278,6 +282,81 @@ func multipleKnotTangencyShell(t *testing.T, x, heightX []float64) Solid {
 		t.Fatal(e)
 	}
 	return s
+}
+
+func TestExternallyTangentSplineShellsDistinctPairs(t *testing.T) {
+	ctx := context.Background()
+	stock, af := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
+	var source []*geom.BSplineSurface
+	var domains []geom.ParameterRectangle
+	var reversed []bool
+	keep := func(s *geom.BSplineSurface, r bool) {
+		source = append(source, s)
+		domains = append(domains, geom.ParameterRectangle{})
+		reversed = append(reversed, r)
+	}
+	for i, f := range af {
+		if f.u != 0 && f.v != 0 {
+			keep(f.surface, i%2 == 0)
+			continue
+		}
+		p, e := geom.NewSurfacePatch(f.surface, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		var x, y *geom.SurfacePatch
+		if f.u == 0 {
+			x, y, e = p.SplitU(.5)
+		} else {
+			x, y, e = p.SplitV(.5)
+		}
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, q := range [2]*geom.SurfacePatch{x, y} {
+			s, e := q.ToBSplineSurface()
+			if e != nil {
+				t.Fatal(e)
+			}
+			keep(s, i%2 == 0)
+		}
+	}
+	stock, _, e := SewSplineRectangles(ctx, source, domains, reversed, SewOptions{Tolerance: 1e-9})
+	if e != nil {
+		t.Fatal(e)
+	}
+	tool := multipleKnotTangencyShell(t, []float64{0, .25, .5, .75, 1}, []float64{.125, 0, .125, 0, .125})
+	pairs := []SplineShellTangencyPair{{Faces: [2]int{6, 5}}, {Faces: [2]int{7, 5}}}
+	o := SplineShellTangencyOptions{}
+	for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Difference} {
+		s, h, p, e := CombineExternallyTangentSplineShellPairs(ctx, stock, tool, op, pairs, o)
+		if e != nil || len(p.Pairs) != 2 || p.SeparatedPairs != 58 || h.Method != "isolated-graph-tangency" {
+			t.Fatal("all original contacts and all strict separations", h.Method, p, e)
+		}
+		if op == parametric.Intersection && len(s.faces) != 0 || op == parametric.Difference &&
+			(len(s.faces) != len(stock.faces) || s.faces[7].Surface != stock.faces[7].Surface) {
+			t.Fatal("point contacts contributed material", op, s.Topology())
+		}
+		for i, q := range p.Pairs {
+			if q.Faces != pairs[i].Faces || q.Point[0].Cmp(big.NewRat(int64(1+2*i), 4)) != 0 || q.Point[2].Sign() != 0 {
+				t.Fatal("exact original face pair ownership", i, q)
+			}
+		}
+	}
+	if s, h, e := CombineSplineShells(ctx, stock, tool, parametric.Intersection, SplineShellCombineOptions{}); e != nil ||
+		len(s.faces) != 0 || h.Method != "isolated-graph-tangency" {
+		t.Fatal("native dispatch did not identify both original pairs", h.Method, e)
+	}
+	budget := o
+	budget.Contact.MaxOperations = 1
+	if s, _, p, e := CombineExternallyTangentSplineShellPairs(ctx, stock, tool, parametric.Intersection, pairs, budget); !errors.Is(e, geom.ErrConvergence) ||
+		len(s.faces) != 0 || p.Pairs != nil {
+		t.Fatal("budget exhaustion returned partial geometry or proof", p, e)
+	}
+	bad := []SplineShellTangencyPair{pairs[0], {Faces: [2]int{8, 5}}}
+	if s, _, p, e := CombineExternallyTangentSplineShellPairs(ctx, stock, tool, parametric.Intersection, bad, o); e == nil || len(s.faces) != 0 || p.Pairs != nil {
+		t.Fatal("omitting one original contact treated it as separated", p, e)
+	}
 }
 
 func separableTangencyShell(t *testing.T) Solid {

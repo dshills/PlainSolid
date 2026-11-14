@@ -78,6 +78,19 @@ func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op pa
 // face pair disjoint on the exact original embedding patches.
 func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace,
 	op parametric.BooleanOp, o SplineShellTangencyOptions, separated bool) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
+	return combineTangentSplineShellPairWithProof(ctx, solids, all, op, o, separated, false)
+}
+
+// pairOnly proves the complete contact of just the selected original pair.
+// Its caller must establish all other pairs and both shell witnesses before
+// using any result as a volume Boolean.
+func combineTangentSplineShellPairWithProof(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace,
+	op parametric.BooleanOp, o SplineShellTangencyOptions, separated, pairOnly bool) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
+	return combineTangentSplineShellPairWithWork(ctx, solids, all, op, o, separated, pairOnly, nil)
+}
+
+func combineTangentSplineShellPairWithWork(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace,
+	op parametric.BooleanOp, o SplineShellTangencyOptions, separated, pairOnly bool, used *int) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
 	var history SplineShellCombineHistory
 	var empty SplineShellTangency
 	axes := o.Projection
@@ -100,6 +113,9 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
 	proof := SplineShellTangency{Faces: o.Faces, Projection: axes}
+	if used != nil {
+		defer func() { *used = proof.ExactOperations }()
+	}
 	limit := func() geom.SurfacePatchOptions {
 		return geom.SurfacePatchOptions{MaxOperations: o.Contact.MaxOperations - proof.ExactOperations, MaxCoefficientBits: o.Contact.MaxCoefficientBits}
 	}
@@ -263,28 +279,23 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 	if side != -sign[0] {
 		return Solid{}, history, empty, geom.ErrConvergence
 	}
-	for i, f := range all[0] {
-		for j, g := range all[1] {
-			if i == o.Faces[0] && j == o.Faces[1] {
-				continue
-			}
-			if !separated {
-				if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
-					return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+	if !pairOnly {
+		for i, f := range all[0] {
+			for j, g := range all[1] {
+				if i == o.Faces[0] && j == o.Faces[1] {
+					continue
 				}
+				if !separated {
+					if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
+						return Solid{}, history, empty, fmt.Errorf("trimmed: tangent shell pair %d,%d: %w", i, j, e)
+					}
+				}
+				proof.SeparatedPairs++
 			}
-			proof.SeparatedPairs++
 		}
-	}
-	// At an interior contact the source vertex is always disjoint from
-	// the other boundary. Each connected shell remains outside it.
-	for i, s := range solids {
-		j := i ^ 1
-		inside, e := classifySeparatedSplineWitness(ctx, solids[j], splineShellPatchBounds(all[j]), s.vertices[0], o.Shells)
-		if e != nil || inside {
-			if e == nil {
-				e = geom.ErrConvergence
-			}
+		// At an interior contact the source vertex is always disjoint from
+		// the other boundary. Each connected shell remains outside it.
+		if e := proveExternalSplineShellWitnesses(ctx, solids, all, o.Shells); e != nil {
 			return Solid{}, history, empty, e
 		}
 	}
@@ -313,13 +324,21 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 		}
 	}
 	proof.StrictOrder = side
-	native, history := regularizedTouchResult(solids[0], solids[1], op)
+	if pairOnly {
+		return Solid{}, history, proof, nil
+	}
+	native, history := isolatedGraphTouchResult(solids[0], solids[1], op)
+	return native, history, proof, nil
+}
+
+func isolatedGraphTouchResult(a, b Solid, op parametric.BooleanOp) (Solid, SplineShellCombineHistory) {
+	native, history := regularizedTouchResult(a, b, op)
 	history.Method = "isolated-graph-tangency"
-	history.EdgesA, history.EdgesB = make([][]int, len(solids[0].edges)), make([][]int, len(solids[1].edges))
+	history.EdgesA, history.EdgesB = make([][]int, len(a.edges)), make([][]int, len(b.edges))
 	if op == parametric.Difference {
 		for i := range history.EdgesA {
 			history.EdgesA[i] = []int{i}
 		}
 	}
-	return native, history, proof, nil
+	return native, history
 }
