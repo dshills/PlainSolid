@@ -34,3 +34,18 @@ cylinder radius cannot be represented exactly as binary64 metres and is rejected
 The helper and deterministic fixture combiner live under `tools/occtref` with
 `independent_round_units` in their filenames. Enable the live test with
 `PLAINSOLID_OCCT_INDEPENDENT_ROUND_UNITS`.
+
+## Source-bound native persistence
+
+`WriteNormalizedIndependentRoundMaterialsJSON` and
+`ReadNormalizedIndependentRoundMaterialsJSON` use the separate
+`plainsolid-step-normalized-independent-round-materials` version-one envelope.
+It stores the original source graph, original per-root units, target unit,
+normalized graph, original root/shape roles and canonical native bytes. Reload
+runs the complete normalization pipeline once from the original source; stored
+normalized geometry is never trusted as reconstruction input. Both source graphs
+and all metadata/native claims must match. Envelope and STEP limits are separate,
+cancellation is retained, and writer validation is atomic. Older native formats
+and tags remain unchanged. Tests cover byte-stable reload, unit/target/root/source/
+native tampering, limits, cancellation, bounded fuzz, and live OCCT transfer after
+native reload and normalized STEP re-export.

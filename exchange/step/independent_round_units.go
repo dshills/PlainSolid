@@ -19,6 +19,7 @@ const (
 // NormalizedIndependentRoundMaterials keeps original dimensional evidence apart
 // from the normalized graph. IDs and product ownership remain unchanged.
 type NormalizedIndependentRoundMaterials struct {
+	tolerance                        float64
 	OriginalSource, NormalizedSource *File
 	Members                          []IndependentExactMaterial
 	OriginalUnits                    []RoundMaterialSIUnit
@@ -49,7 +50,7 @@ func ReadNormalizedIndependentRoundMaterials(ctx context.Context, r io.Reader, t
 	if e != nil {
 		return bad()
 	}
-	result := NormalizedIndependentRoundMaterials{OriginalSource: original.Source, TargetUnit: target}
+	result := NormalizedIndependentRoundMaterials{OriginalSource: original.Source, TargetUnit: target, tolerance: tol}
 	changed := map[int64]bool{}
 	for _, member := range original.Members {
 		if member.Cylinder == nil && member.Sphere == nil {
