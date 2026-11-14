@@ -101,3 +101,78 @@ exact plane. Those equivalences require a separate source-topology proof;
 rejection is a grammar limit, not an approximation claim. Existing generic
 readers are unchanged. Live tests retain both original vendor variants and
 compare the strictly reconstructed canonical output against OCCT geometry.
+
+## Independently authored AP214 model-only input
+
+`ReadOCCTExactCircularLoopExtrusion` now supplies the separate positive route
+for the retained original 242-entity OCCT file. It does **not** call the
+canonical whole-file matcher or tolerate rounded geometric discrepancies.
+The first scope is one AP214 product, metre/millimetre SI context, simple
+line/minor-circle profile, unposed model Z extrusion and binary-lossless
+vertices, circle centers and radii. Arbitrary exact decimal plane chart origins
+and proportional line/plane direction ratios are evaluated as rationals.
+The source is normalized to a positive height and a local frame translated to
+the low cap; historical signed extrusion intent is not inferred.
+
+The proof recovers the cap pair from exact plane normals/stations and the CCW
+profile from the low cap's material-oriented cycle. Original FACE_BOUND sense,
+ORIENTED_EDGE direction and EDGE_CURVE direction are distinct checks. Every
+original vertex and edge maps bijectively to a native role; walls are recovered
+from rim incidence. Each face cycle must equal its native material cycle up to
+cyclic rotation. Every shared edge has exactly two opposite source uses.
+Original support equations, circle endpoint membership/minor directed sweep,
+line collinearity, plane containment and outward face normals are checked
+exactly. Native complete trim and continuous shared-edge proof then establish
+material geometry. Original records, shell face order and loop starting index
+may change without losing role IDs.
+
+The genuine file uses **−Z cylindrical support axes** and outward face sense.
+Both ±Z axes have the same outward radial normal (both cylinder parameter
+partials change consistently); the reader proves this separately from the
++Z model circles' directed arcs. It does not infer arc direction from the wall
+axis. Circle reference directions and source EDGE_CURVE same_sense remain
+strict. No authored pcurves, arbitrary poses, holes, unknown geometry, extra
+products or tolerance repair are admitted.
+
+The complete single-product dependency closure and exact SI context are
+validated, with unknown/detached entities rejected. Original product metadata
+and all cap/wall/rim/vertical/vertex IDs remain accessible separately from the
+native topology. `WriteOCCTExactCircularLoopSource` re-proves source before
+re-emitting its original IDs/metadata. Canonical generation remains via
+`WriteExactCircularLoopExtrusion` and produces its own new product graph.
+
+Live qualification covers fresh independent OCCT model-only authoring → strict
+native import → native JSON reload and original/canonical STEP export → OCCT
+TransferRoots, topology and analytic measures. Adversaries cover tiny exact
+line/plane ratio changes, radius and endpoint discrepancies, wrong normals,
+coedge directions, malformed curves, unit declarations and product ownership;
+record/face/cyclic-loop reorder and a nonbinary exact collinear LINE origin
+are positive cases. The earlier canonical reader remains strict and continues
+to reject this vendor grammar.
+
+## Source-bound native persistence
+
+`Write/ReadExactCircularLoopExtrusionJSON` and
+`Write/ReadOCCTExactCircularLoopExtrusionJSON` use distinct version-one tags:
+`plainsolid-step-exact-circular-loop-extrusion` and
+`plainsolid-step-occt-exact-circular-loop-extrusion`. The original STEP remains
+authoritative. One complete mode-specific source reproof checks the stored
+native material, exact recipe/frame, original body/shell, cap/wall/rim/vertical/
+vertex identities and (in vendor mode) original product metadata. All original
+support and metadata records remain in the retained source; native claims
+cannot substitute different geometry or ownership. Canonical signed height
+and placement are retained; vendor positive-height normalization remains
+explicit and does not invent historical intent.
+
+Reload rebuilds from STEP and compares every claim, rejecting wrong tags,
+versions, unknown/trailing JSON, forged poses/units/roles, altered native
+geometry and stale source supports. Source and envelope limits are separate
+(1 MiB source maximum; default/maximum 8 MiB envelope). Cancellation and
+all-or-none reads/prevalidated writes are preserved. Existing native formats
+are unchanged. `WriteExactCircularLoopExtrusionSource` complements the vendor
+source writer; both re-prove before preserving original metadata and IDs.
+
+Tests cover stable native bytes, positive/negative canonical sources, genuine
+vendor source, source/canonical re-export, corruption, source/byte quotas,
+cancellation before/during input, and short writes. Pinned OCCT live tests now
+include native envelope reload before regenerated STEP transfer in both modes.

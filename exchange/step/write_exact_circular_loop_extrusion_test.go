@@ -167,6 +167,14 @@ func TestExactCircularLoopExtrusionSTEPLive(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
+		var envelope bytes.Buffer
+		if e = WriteExactCircularLoopExtrusionJSON(ctx, &envelope, decoded); e != nil {
+			t.Fatal(e)
+		}
+		decoded, e = ReadExactCircularLoopExtrusionJSON(ctx, &envelope, IndependentMaterialJSONLimits{})
+		if e != nil {
+			t.Fatal(e)
+		}
 		out.Reset()
 		if e = WriteExactCircularLoopExtrusion(ctx, &out, decoded.Descriptor); e != nil {
 			t.Fatal(e)
