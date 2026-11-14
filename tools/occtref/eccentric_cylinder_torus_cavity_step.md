@@ -17,3 +17,13 @@ Canonical encounter order is required; this is not general OCCT-healed import.
 Dyadic source offsets and dimensions are bounded by2^20 and exact seam-sum
 representability; strict native clearance exceeds8e-9. Parser caps512entities,
 16384values,2MiB and scalar limits are inherited from the paired primitive.
+
+The separate occurrence dialect recovers the source origin by projecting the
+original torus center onto the cylinder axis in that center's axial plane.
+This preserves eccentric offset rather than conflating it with world pose.
+Exact proper finite-decimal rotations/translations are checked and every world
+model point/direction is pulled back before canonical proof and forward graph
+comparison. No rounded world native solid is claimed. The independent oracle's
+optional `oblique` argument builds both original primitives at X=(3/5,0,-4/5),
+Z=(4/5,0,3/5), translation=(1/10,-2/5,3/8); run
+TestEccentricCylinderTorusCavityObliqueOccurrence with the same environment.
