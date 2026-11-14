@@ -11,7 +11,9 @@ import (
 )
 
 type AlgebraicShellSectionOptions struct {
-	Shells                                    SplineShellBooleanOptions
+	Shells SplineShellBooleanOptions
+	// Trace includes opt-in automatic graph guidance. Every discovered component
+	// still passes original-pair coverage and unique terminal-owner checks.
 	Trace                                     intersect.SplinePairTraceOptions
 	Endpoints                                 geom.TubeAlgebraicGraphEndpointOptions
 	MaxFacePairs, MaxBranches, MaxComparisons int
