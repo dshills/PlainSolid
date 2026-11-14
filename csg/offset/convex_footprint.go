@@ -160,7 +160,8 @@ func DilateConvexPrismFootprint(ctx context.Context, frame geom.Frame, profile [
 	areaPi, length := mul(r, r), num(math.Abs(height))
 	return ConvexFootprintDilation{Native: native, Primitives: primitives, AreaConstant: area, AreaPiCoefficient: areaPi,
 		VolumeConstant: mul(length, area), VolumePiCoefficient: mul(length, areaPi),
-		source: &convexFootprintSource{points, original, edgeIDs, new(big.Rat).Set(areaPi), slices.Clone(primitives)}}, nil
+		source: &convexFootprintSource{points: points, originalVertex: original, originalEdge: edgeIDs, radiusSquared: new(big.Rat).Set(areaPi),
+			primitives: slices.Clone(primitives), placement: placement, z: [2]*big.Rat{num(min(0, height)), num(max(0, height))}}}, nil
 }
 
 func footprintCross(a, b pt) *big.Rat { return sub(mul(a.x, b.y), mul(a.y, b.x)) }
@@ -203,4 +204,26 @@ func footprintPlacement(frame geom.Frame) (geom.Affine, error) {
 		return geom.Affine{}, geom.ErrInvalid
 	}
 	return matrix, nil
+}
+
+// ExactSolid builds the rounded footprint with exact rational circular
+// supports and cap trims. It retains the ideal geometry when arc controls
+// cannot fit binary64, and supports the result's original signed placement.
+func (q ConvexFootprintDilation) ExactSolid(ctx context.Context, options trimmed.ExactCircularLoopOptions) (trimmed.Solid, error) {
+	if ctx == nil || q.source == nil {
+		return trimmed.Solid{}, geom.ErrInvalid
+	}
+	segments := make([]trimmed.ExactCircularLoopSegment, len(q.source.primitives))
+	for i, source := range q.source.primitives {
+		segments[i] = trimmed.ExactCircularLoopSegment{Start: source.Start, End: source.End, Center: source.Center, Radius: source.Radius}
+	}
+	height, _ := q.source.z[1].Float64()
+	if height == 0 {
+		height, _ = q.source.z[0].Float64()
+	}
+	result, err := trimmed.ExtrudeExactCircularLoop(ctx, segments, height, options)
+	if err != nil || q.source.placement == geom.Identity() {
+		return result, err
+	}
+	return result.TransformedContext(ctx, q.source.placement)
 }

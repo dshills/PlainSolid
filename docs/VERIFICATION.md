@@ -6247,3 +6247,12 @@ two placements. Original and generated files retain the shared product,
 eight faces, original spline coefficients, placed volume about 56.115992
 and surface area about 178.858999. The source and regenerated assembly
 live race passed in 24.015 s.
+
+### Exact rounded prism supports and placed line qualification
+
+The exact 3-4-5 footprint extrusion preserves one original wall per side
+or rounded corner. Original rational evaluations satisfy the circle
+identity, and nonbinary controls survive native persistence. Signed-axis
+placement preserves line parameters, cap and corner ties, singleton hits,
+coincident generators and oblique material intervals. The combined focused
+race passed in 2.729 s.

@@ -137,3 +137,66 @@ func TestConvexDilationExactPointOwners(t *testing.T) {
 		t.Fatal("result or caller mutation changed the source proof", again, err)
 	}
 }
+
+func TestConvexDilationExactRationalNativeSolid(t *testing.T) {
+	ctx := context.Background()
+	frame, err := geom.NewFrame(geom.Vec3{X: 1, Y: -2, Z: 3}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	shape, err := DilateConvexPrismFootprint(ctx, frame, []geom.Vec2{{}, {X: 4}, {Y: 3}}, -2, .625, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := shape.ExactSolid(ctx, trimmed.ExactCircularLoopOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if top := body.Topology(); top.EulerCharacteristic != 2 || top.Faces != 8 || top.Edges != 18 {
+		t.Fatal("exact support graph must retain one wall per original primitive", top)
+	}
+	var circularArcs, nonbinary int
+	for i, f := range body.Faces()[2:] {
+		base, _ := parametric.SurfaceMapping(f.Surface)
+		patch, ok := base.(*geom.ExactBezierSurface)
+		if !ok {
+			t.Fatal("no exact circular support on generated wall", f)
+		}
+		recipe, err := patch.ExactPatch().ExportExactBezierRecipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if recipe.DegreeU == 2 {
+			primitive := shape.Primitives[i]
+			for _, u := range []*big.Rat{big.NewRat(1, 3), big.NewRat(5, 7)} {
+				jet, err := patch.ExactPatch().EvaluateRational(ctx, u, big.NewRat(2, 7), geom.SurfacePatchEvaluationOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				x, y := sub(jet.Point[0], num(primitive.Center.X)), sub(jet.Point[1], num(primitive.Center.Y))
+				if add(mul(x, x), mul(y, y)).Cmp(big.NewRat(25, 64)) != 0 {
+					t.Fatal("retained rational patch leaves the exact circle", i, u, jet.Point)
+				}
+			}
+			circularArcs++
+			if _, err := patch.ExactPatch().ToBSplineSurface(); errors.Is(err, geom.ErrUnrepresentable) {
+				nonbinary++
+			}
+		}
+	}
+	if circularArcs != 3 || nonbinary == 0 {
+		t.Fatal("fixture must exercise nonbinary homogeneous circular arc controls", circularArcs, nonbinary)
+	}
+	var raw bytes.Buffer
+	if err := trimmed.WriteJSON(&raw, body); err != nil {
+		t.Fatal(err)
+	}
+	body, err = trimmed.ReadJSONContext(ctx, &raw, trimmed.JSONLimits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mass, err := body.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
+	if err != nil || math.Abs(mass.Volume-(27+25*math.Pi/32)) > 1e-5 {
+		t.Fatal("reloaded exact circle geometry must retain independent Steiner volume", mass, err)
+	}
+}

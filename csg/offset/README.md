@@ -149,3 +149,10 @@ section and preserves both original owners at a tangent line-arc join.
 local chart. Finite shifted sides yield rational events. Circular corner
 roots use exact sector guards and outward rational parameter intervals.
 Straight supporting lines retain their closed coincident edge spans.
+
+`ExactSolid` realizes the same footprint with original rational circular
+supports and cap trims. The stereographic quadratic map stores nonbinary
+homogeneous controls directly and independently certifies every shared
+coedge. `ClipPrismLineRational` clips a model-space line through the placed
+prism, distinguishing axial caps, circular corner generators, coplanar
+boundary spans and open volume intervals.

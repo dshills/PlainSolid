@@ -14,6 +14,8 @@ type convexFootprintSource struct {
 	originalVertex, originalEdge []int
 	radiusSquared                *big.Rat
 	primitives                   []ConvexOffsetPrimitive
+	placement                    geom.Affine
+	z                            [2]*big.Rat
 }
 
 // ConvexFootprintPoint contains exact material membership in the ideal
