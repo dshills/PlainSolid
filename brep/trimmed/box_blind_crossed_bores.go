@@ -23,6 +23,10 @@ func boxFiniteCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 }
 
 func boxFiniteCrossedPair(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, xDepth float64, xOpposite, xBlind bool, tolerance float64) (BoxCrossedBoresResult, error) {
+	return boxFiniteCrossedPairLimit(ctx, frame, dimensions, crossing, radius, depth, oppositeCap, blind, xDepth, xOpposite, xBlind, false, tolerance)
+}
+
+func boxFiniteCrossedPairLimit(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, xDepth float64, xOpposite, xBlind, farTangent bool, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
@@ -101,7 +105,10 @@ func boxFiniteCrossedPair(ctx context.Context, frame geom.Frame, dimensions, cro
 	if oppositeCap {
 		floor = dimensions.Z - depth
 	}
-	if blind && ((!oppositeCap && floor <= crossing.Z+radius+8*tolerance) || (oppositeCap && floor >= crossing.Z-radius-8*tolerance)) {
+	if farTangent && (!blind || oppositeCap || xBlind || floor-crossing.Z != radius) {
+		return fail(geom.ErrDomain)
+	}
+	if blind && !farTangent && ((!oppositeCap && floor <= crossing.Z+radius+8*tolerance) || (oppositeCap && floor >= crossing.Z-radius-8*tolerance)) {
 		return fail(geom.ErrDomain)
 	}
 	if xBlind && (!finite(xDepth) || xDepth <= 0 || xDepth >= dimensions.X-8*tolerance) {
@@ -288,7 +295,20 @@ func boxFiniteCrossedPair(ctx context.Context, frame geom.Frame, dimensions, cro
 						return fail(geom.ErrUnrepresentable)
 					}
 				}
-				if e = b.face(surface, points, uv, map[int]PCurve{edge: unionArcUV{curve, uv[edge], uv[(edge+1)%4]}}, true); e != nil {
+				if farTangent {
+					if points[0] == points[3] {
+						points = points[:3]
+						uv = uv[:3]
+					}
+					if len(points) == 4 && points[1] == points[2] {
+						points = append(points[:2], points[3])
+						uv = append(uv[:2], uv[3])
+						if edge == 2 {
+							edge = 1
+						}
+					}
+				}
+				if e = b.face(surface, points, uv, map[int]PCurve{edge: unionArcUV{curve, uv[edge], uv[(edge+1)%len(uv)]}}, true); e != nil {
 					return fail(e)
 				}
 			}

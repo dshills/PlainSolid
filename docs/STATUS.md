@@ -82,8 +82,9 @@ perpendicular bores also retain two circular-segment floor faces when
 the blind stop passes the crossing axis and remains within the through
 bore. STEP and STL preserve both segments on either side of the crossing
 axis. A blind stop exactly at the crossing axis retains the wall
-intersection and consumes the entire planar floor. Near and far tangency
-and broader blind Hole combinations are separate cases. A single oblique through cutter in rectangular stock now
+intersection and consumes the entire planar floor. The exact far-tangent
+stop retains a full floor and passes manifold STEP and STL. The
+near-tangent limit forms a nonmanifold contact diameter and rejects. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.

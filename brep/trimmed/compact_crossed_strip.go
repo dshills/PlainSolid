@@ -9,7 +9,7 @@ import (
 // compactCrossedStrip recognizes a quarter-cylinder chart with one cosine rim
 // and one constant-height rim. The quarter domain makes the rim monotone.
 func compactCrossedStrip(f Face) bool {
-	if compactSplitAxialRectangle(f) {
+	if compactSplitAxialRectangle(f) || compactTangentCrossedTriangle(f) {
 		return true
 	}
 	if _, ok := f.Surface.(geom.CylinderSurface); !ok || len(f.Outer) != 4 || len(f.Holes) != 0 {
@@ -107,9 +107,9 @@ func compactCrossedStripTriangles(outer [][]geom.Vec2) ([][3]geom.Vec2, error) {
 	if len(columns) < 2 {
 		return nil, geom.ErrDomain
 	}
-	for _, c := range columns {
+	for k, c := range columns {
 		sort.Slice(c, func(i, j int) bool { return c[i].Y < c[j].Y })
-		if len(c) < 2 {
+		if len(c) < 1 || len(c) == 1 && k != 0 && k != len(columns)-1 {
 			return nil, geom.ErrDomain
 		}
 	}
@@ -128,4 +128,46 @@ func compactCrossedStripTriangles(outer [][]geom.Vec2) ([][3]geom.Vec2, error) {
 		}
 	}
 	return tris, nil
+}
+
+// compactTangentCrossedTriangle has one collapsed axial endpoint where the
+// cosine intersection rim meets a constant floor rim tangentially.
+func compactTangentCrossedTriangle(f Face) bool {
+	if _, ok := f.Surface.(geom.CylinderSurface); !ok || len(f.Outer) != 3 || len(f.Holes) != 0 {
+		return false
+	}
+	curved := f.Outer[0]
+	p, ok := curved.Curve.(unionArcUV)
+	if !ok {
+		return false
+	}
+	e := p.EllipseUV
+	if curved.UVStart.X >= curved.UVEnd.X || e.Center != (geom.Vec2{}) || e.Linear != (geom.Vec2{X: 1}) || e.Cos.X != 0 || e.Sin != (geom.Vec2{}) || !finite(e.Cos.Y) || e.From != curved.UVStart.X || e.To != curved.UVEnd.X {
+		return false
+	}
+	q := math.Floor(curved.UVStart.X / (math.Pi / 2))
+	if curved.UVEnd.X > (q+1)*(math.Pi/2) {
+		return false
+	}
+	var top Use
+	found := false
+	for _, u := range f.Outer[1:] {
+		if u.Curve != nil {
+			return false
+		}
+		if u.UVStart.Y == u.UVEnd.Y && u.UVStart.X > u.UVEnd.X {
+			if found {
+				return false
+			}
+			top = u
+			found = true
+		} else if u.UVStart.X != u.UVEnd.X {
+			return false
+		}
+	}
+	if !found || top.UVStart.X != curved.UVEnd.X || top.UVEnd.X != curved.UVStart.X {
+		return false
+	}
+	left, right := top.UVStart.Y-curved.UVStart.Y, top.UVStart.Y-curved.UVEnd.Y
+	return left == 0 && right > 0 || right == 0 && left > 0
 }

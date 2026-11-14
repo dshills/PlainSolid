@@ -80,8 +80,8 @@ func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64,
 		if p.oppositeCap[1] {
 			distance = p.depth[1] - (p.dimensions.Z - p.crossing.Z)
 		}
-		if distance > -p.radii[0] && distance < p.radii[0] {
-			p.clippedFloor = true
+		if distance > -p.radii[0] && distance <= p.radii[0] {
+			p.clippedFloor = distance < p.radii[0]
 			if p.oppositeCap[1] {
 				old := p.frame
 				frame, err := geom.NewFrame(old.ToWorld(geom.Vec3{X: p.dimensions.X, Z: p.dimensions.Z}), old.XAxis().Scale(-1), old.ZAxis().Scale(-1))
@@ -117,6 +117,8 @@ func newBlindCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.
 	case p.depth[0] != 0:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0],
 			p.depth[0], p.depth[1], p.oppositeCap[0], p.oppositeCap[1], 1e-9)
+	case p.depth[1] == p.crossing.Z+p.radii[0] && !p.oppositeCap[1]:
+		result, err = trimmed.BoxFarTangentCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
 	default:
 		result, err = trimmed.BoxBlindCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0],
 			p.depth[1], p.oppositeCap[1], 1e-9)
