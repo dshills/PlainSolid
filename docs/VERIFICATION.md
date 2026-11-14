@@ -2486,3 +2486,29 @@ GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./brep/trimmed -run 
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./intersect -run '^(TestSplineTubeCoverage|TestSplinePairTrace|TestRadialContourDiscoveryAtomicRejections)' -count=1
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./intersect ./brep/trimmed
 ```
+
+## Affine original radial coverage (2026-11-14)
+
+The compact original plane/dome native shell passes affine radial coverage,
+complete native section, Intersection material and a two-face Euler2 native
+component preserving both original surface objects. Stock physical footprint
+[-1/8,9/8]^2 uses original UV[0,1]^2; the roof uses physical/UV[0,1]^2.
+The exact common-footprint restriction therefore requires UV1/10 and9/10,
+which remain rational in the coefficient proof. The complete coverage charges
+998170 operations. Focused affine race passed (geometry 1.235s, native 51.53s),
+and vet passed for geom/intersect/trimmed. Exact total quota succeeds; one less, omitted original
+tubes and use of the old identity-only path reject atomically.
+
+Independent geometry tests compare transported canonical coefficients exactly
+against the original physical plane, test a signed swapped chart and outward
+(nonexact) mapped proposals, reject a clipped common footprint and a height
+perturbation, and verify cancellation/exact arithmetic quotas. No test trusts
+box overlap as incidence. The topology test explicitly re-proves original
+B-free hints rather than rounding a new original free endpoint.
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom -run '^(TestAffineRadialOriginalTransport|TestExactRadialTubeCoverage)' -count=1 -v
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestNativeLensAffineRadialCoverage$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./brep/trimmed -run '^(TestAffineRadialOriginalTransport|TestNativeLensAffineRadialCoverage)$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom ./intersect ./brep/trimmed
+```

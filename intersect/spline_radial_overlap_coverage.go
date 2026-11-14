@@ -2,6 +2,7 @@ package intersect
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/big"
 	"plainsolid/geom"
@@ -11,9 +12,11 @@ import (
 // exact transfer into the supplied original tube union. Hints are re-certified
 // against the original complete supports; they are not asserted coverage.
 type RadialOverlapCoverageOptions struct {
-	Center [2]*big.Rat
-	Radii  []*big.Rat
-	Proof  geom.RadialTubeCoverageOptions
+	// AffineCharts proves exact signed-axis chart transport on a common physical unit square.
+	AffineCharts bool
+	Center       [2]*big.Rat
+	Radii        []*big.Rat
+	Proof        geom.RadialTubeCoverageOptions
 }
 
 // RadialOverlapCoverage retains complete radial coverage and the separately
@@ -36,11 +39,11 @@ func DiscoverOverlappingRadialGraphContourTubes(ctx context.Context, a, b Patch,
 	if e != nil {
 		return SplineSeedReport{}, e
 	}
-	seeds, _, _, _, e := radialOverlapProposals(ctx, pa, pb, center, radii, o)
+	seeds, _, _, _, e := radialOverlapProposals(ctx, pa, pb, center, radii, o, nil)
 	return seeds, e
 }
 
-func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, center [2]*big.Rat, radii []*big.Rat, o geom.RadialTubeCoverageOptions) (SplineSeedReport, []geom.VerifiedSurfaceTube, *geom.SplineGraphRadialContours, int, error) {
+func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, center [2]*big.Rat, radii []*big.Rat, o geom.RadialTubeCoverageOptions, transport *geom.AffineRadialContours) (SplineSeedReport, []geom.VerifiedSurfaceTube, *geom.SplineGraphRadialContours, int, error) {
 	fail := func(e error) (SplineSeedReport, []geom.VerifiedSurfaceTube, *geom.SplineGraphRadialContours, int, error) {
 		return SplineSeedReport{}, nil, nil, 0, e
 	}
@@ -68,7 +71,11 @@ func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, cent
 	if proofMax > 128000000 {
 		proofMax = 128000000
 	}
-	radial, e := geom.CertifySplineGraphRadialContours(ctx, pa, pb, center, radii, geom.GraphPointContactOptions{MaxOperations: proofMax, MaxCoefficientBits: o.MaxCoefficientBits})
+	canonical := [2]*geom.SurfacePatch{pa, pb}
+	if transport != nil {
+		canonical = transport.CanonicalSupports()
+	}
+	radial, e := geom.CertifySplineGraphRadialContours(ctx, canonical[0], canonical[1], center, radii, geom.GraphPointContactOptions{MaxOperations: proofMax, MaxCoefficientBits: o.MaxCoefficientBits})
 	if e != nil {
 		return fail(e)
 	}
@@ -124,6 +131,34 @@ func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, cent
 						db.VMin = c[1] + lo
 						db.VMax = c[1] + hi
 					}
+					freeAxis := axis + 2
+					if transport != nil {
+						for owner := 0; owner < 2; owner++ {
+							box := da
+							if owner == 1 {
+								box = db
+							}
+							remaining := maximum - used
+							if remaining < 1 {
+								return fail(geom.ErrConvergence)
+							}
+							mapped, _, work, err := transport.OriginalBox(ctx, owner, box, geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
+							used += work
+							if err != nil {
+								return fail(err)
+							}
+							if owner == 0 {
+								da = mapped
+							} else {
+								db = mapped
+							}
+						}
+						originalAxis, err := transport.OriginalAxis(1, axis)
+						if err != nil {
+							return fail(err)
+						}
+						freeAxis = originalAxis + 2
+					}
 					xa, e := pa.Trim(da)
 					if e != nil {
 						return fail(e)
@@ -136,7 +171,7 @@ func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, cent
 					if remaining < 1 {
 						return fail(geom.ErrConvergence)
 					}
-					opts := geom.SurfacePairTubeOptions{FreeAxis: axis + 2, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}
+					opts := geom.SurfacePairTubeOptions{FreeAxis: freeAxis, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}
 					cert, e := geom.CertifySurfacePairTube(xa, xb, opts)
 					used += cert.Test.ExactOperations
 					if e != nil || !cert.ProvenBranch {
@@ -175,18 +210,43 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 	if maximum == 0 {
 		maximum = 64000000
 	}
-	seeds, tubes, radial, used, e := radialOverlapProposals(ctx, pa, pb, q.Center, q.Radii, q.Proof)
+	var transport *geom.AffineRadialContours
+	transportWork := 0
+	proposalOptions := q.Proof
+	if q.AffineCharts {
+		cap := maximum
+		if cap > 128000000 {
+			cap = 128000000
+		}
+		var err error
+		transport, err = geom.CertifyAffineRadialGraphContours(ctx, pa, pb, q.Center, q.Radii, geom.GraphPointContactOptions{MaxOperations: cap, MaxCoefficientBits: q.Proof.MaxCoefficientBits})
+		if err != nil {
+			return nil, fmt.Errorf("affine radial transport: %w", err)
+		}
+		transportWork = transport.ExactOperations()
+		if transportWork >= maximum {
+			return nil, geom.ErrConvergence
+		}
+		proposalOptions.MaxOperations = maximum - transportWork
+	}
+	seeds, tubes, radial, used, e := radialOverlapProposals(ctx, pa, pb, q.Center, q.Radii, proposalOptions, transport)
+	used += transportWork
 	if e != nil {
-		return nil, e
+		return nil, fmt.Errorf("radial proposals: %w", e)
 	}
 	if used >= maximum {
 		return nil, geom.ErrConvergence
 	}
 	proofOptions := q.Proof
 	proofOptions.MaxOperations = maximum - used
-	cover, e := radial.CertifyTubeCoverage(ctx, tubes, proofOptions)
+	var cover *geom.RadialTubeCoverage
+	if transport != nil {
+		cover, e = transport.CertifyTubeCoverage(ctx, tubes, proofOptions)
+	} else {
+		cover, e = radial.CertifyTubeCoverage(ctx, tubes, proofOptions)
+	}
 	if e != nil {
-		return nil, e
+		return nil, fmt.Errorf("radial endpoint cover: %w", e)
 	}
 	used += cover.ExactOperations()
 	var targets []geom.SurfacePairTubeRegion
@@ -237,7 +297,7 @@ func certifyRadialOverlapCoverage(ctx context.Context, pa, pb *geom.SurfacePatch
 		result, e := cache.CertifyCell(ctx, box, available, opts)
 		used += result.ExactOperations
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("radial transfer: %w", e)
 		}
 		if !result.Covered {
 			return nil, ErrUnresolved

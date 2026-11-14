@@ -1444,3 +1444,25 @@ charts; it is not an automatic affine-chart fallback. Overlapping proposals
 alone are not ordered topology. No new persistence or flagship qualification is
 claimed. Next work may align independent original charts, then requalify larger
 nested families through the same transfer proof.
+
+## Exact affine transport for radial coverage (2026-11-14)
+
+`geom.CertifyAffineRadialGraphContours` proves signed-axis affine XY maps,
+computes their exact common physical footprint, and restricts original tensor
+controls at rational UV values before proving the complete radial identity.
+The first explicit footprint scope is the physical unit square; larger and
+unequal original projected rectangles are accepted when their intersection is
+exactly that square. Shears, other footprints and multiple spans remain outside
+this API. Original chart scales, reversals and axis permutations are retained.
+
+`RadialOverlapCoverageOptions.AffineCharts` opts into this transport. Outward
+mapped boxes are proposal enclosures only: every uniform tube is re-proved on
+original supports; exact original endpoint roots establish radius and strict
+membership on both original domains. The independent cover is then transferred
+into the original supplied tube union as before. No endpoint identity is inferred
+from a rounded mapped box. The default identity-only route remains strict.
+
+A native plane/dome lens with stock map X=5U/4-1/8,Y=5V/4-1/8 and a unit roof
+qualifies end-to-end. Its exact restriction uses nonbinary original UV1/10 and
+9/10. This is a compact source qualification, not a repeat of the long triple
+flagship or a new persistence claim.
