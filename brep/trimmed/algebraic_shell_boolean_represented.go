@@ -188,11 +188,11 @@ func (s AlgebraicShellBoolean) NativeRepresentable(ctx context.Context, toleranc
 					}
 				} else {
 					originalEdge := s.parts[f.Operand].Subdivision.edges[source.OriginalSubdivisionEdge].Original
-					p, q, err := nativeAlgebraicSourceUV(original, originalEdge, u.Reversed, sourceLimits[u.Edge])
+					retained, err := nativeAlgebraicSourceUse(original, originalEdge, u.Reversed, sourceLimits[u.Edge])
 					if err != nil {
 						return Solid{}, err
 					}
-					x.UVStart, x.UVEnd = p, q
+					x.UVStart, x.UVEnd, x.Curve = retained.UVStart, retained.UVEnd, retained.Curve
 				}
 				uses = append(uses, x)
 			}
