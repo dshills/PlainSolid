@@ -64,6 +64,9 @@ func (s Solid) TessellateObliqueBore(ctx context.Context, o parametric.Tessellat
 	if planes != 6 || openings != 2 || walls != 4 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
+	if m, ok, e := s.compactCylinderMesh(ctx, o); ok {
+		return m, e
+	}
 	return s.tessellateAnalyticAdaptive(ctx, o)
 }
 

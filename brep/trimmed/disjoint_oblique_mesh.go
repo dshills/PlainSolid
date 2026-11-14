@@ -70,6 +70,9 @@ func (s Solid) TessellateDisjointObliqueBores(ctx context.Context, o parametric.
 	if planes != 6 || openings != 2*n || walls != 4*n {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
+	if m, ok, e := s.compactCylinderMesh(ctx, o); ok {
+		return m, e
+	}
 	return s.tessellateAnalyticAdaptive(ctx, o)
 }
 
