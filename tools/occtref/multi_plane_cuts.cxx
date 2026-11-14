@@ -73,12 +73,13 @@ static TopoDS_Shape shearedPrism(double x0, double x1, double y0, double y1, dou
 int main(int argc, char** argv) {
   if (argc > 2) return 3;
   const std::string_view mode = argc == 2 ? argv[1] : "";
-  if (!mode.empty() && mode != "curved-band" && mode != "crossing-band" && mode != "sleeve" && mode != "two-strips" && mode != "sheared-sleeve") return 3;
+  if (!mode.empty() && mode != "curved-band" && mode != "crossing-band" && mode != "sleeve" && mode != "two-strips" && mode != "sheared-sleeve" && mode != "sheared-sleeve-inertia") return 3;
   const bool crossing = mode == "crossing-band";
   const bool twoStrips = mode == "two-strips";
   const bool curved = crossing || mode == "curved-band" || twoStrips;
   const bool sleeve = mode == "sleeve";
-  const bool sheared = mode == "sheared-sleeve";
+  const bool inertiaOnly = mode == "sheared-sleeve-inertia";
+  const bool sheared = mode == "sheared-sleeve" || inertiaOnly;
   TopoDS_Shape stock = twoStrips ? twoStripStock() : curved ? cubicStock() : BRepPrimAPI_MakeBox(1, 1, 1).Shape();
   if (sleeve || sheared) {
     const auto body = sheared ? shearedPrism(0,3,0,3,0,1) : BRepPrimAPI_MakeBox(3,3,1).Shape();
@@ -128,9 +129,20 @@ int main(int argc, char** argv) {
   if (solids.Extent() != 1) return 2;
   GProp_GProps m, a;
   if (curved || sheared) {
-    if (BRepGProp::VolumePropertiesGK(stock, m, 1e-12, true, true, true) < 0.) return 5;
+    if (BRepGProp::VolumePropertiesGK(stock, m, 1e-12, true, true, true, inertiaOnly) < 0.) return 5;
   } else {
     BRepGProp::VolumeProperties(stock, m, 1e-12);
+  }
+  if (inertiaOnly) {
+    const auto inertia = m.MatrixOfInertia();
+    std::cout << std::setprecision(17) << '[';
+    for (int i=1; i<=3; ++i)
+      for (int j=1; j<=3; ++j) {
+        if (i!=1 || j!=1) std::cout << ',';
+        std::cout << inertia.Value(i,j);
+      }
+    std::cout << "]\n";
+    return 0;
   }
   BRepGProp::SurfaceProperties(stock, a, 1e-12);
   const gp_Pnt c = m.CentreOfMass();

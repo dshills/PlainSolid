@@ -1,5 +1,12 @@
 # Verification record
 
+The [full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-d6fe29e4-2026-11-14.json)
+passed 49 tested packages on a clean `d6fe29e4` archive with CGO disabled;
+three packages have no tests. Go reported 4,414 passing test events and
+381 skips, including opt-in external comparators. The previously short-only
+trimmed cases are tracked separately. The exact Go module list contains
+only PlainSolid.
+
 The [latest combined development run](evidence/plaincad-reconciled-development-178df69-2026-11-13.json)
 passed all 344 original tests on PlainCAD `50432ed` with clean combined kernel
 `178df69` and a real Go WASM build. All 841 pinned sources verified. The original
