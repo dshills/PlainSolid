@@ -214,6 +214,22 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 			}
 		}
 	}
+	display := AlgebraicGraphStockBoundaryOptions{Section: section}
+	display.Display.Deflection = .003
+	network, e := restored.TessellateStockBoundaryCertified(ctx, display)
+	if e != nil || len(network.Edges) != len(topology.Edges) || network.PairChecks <= 0 ||
+		network.MaximumBoundaryError <= 0 || network.MaximumBoundaryError > display.Display.Deflection {
+		t.Fatal("complete shared stock display", network.MaximumBoundaryError, network.PairChecks, e)
+	}
+	for i, path := range network.Edges {
+		if path[0] != topology.Edges[i].Start || path[len(path)-1] != topology.Edges[i].End || !network.Curves[i].Complete {
+			t.Fatal("shared chord ledger lost original indexed vertex", i)
+		}
+	}
+	display.MaxPairs = 1
+	if result, e := restored.TessellateStockBoundaryCertified(ctx, display); !errors.Is(e, geom.ErrConvergence) || len(result.Edges) != 0 {
+		t.Fatal("display contact budget must fail atomically", e)
+	}
 	for _, probe := range []struct {
 		p    geom.Vec3
 		want parametric.Location
