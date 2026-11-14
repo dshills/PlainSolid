@@ -6366,3 +6366,12 @@ construction quotas. The pinned OCCT comparator also independently
 verified volume, area, centroid, and topology for both slab configurations
 under two placements. The combined comparator and native prism race
 run passed in 5.971 seconds.
+
+### Automatic planar seam qualification
+
+Automatic discovery recovered every authored cuboid seam after a cap
+trim shift. The repair preserved volume and the exact displacement
+bound. A one-short work budget, missing counterpart, ambiguous near
+edges, and an over-tolerance repair all returned no geometry. The
+combined planar and exact subdivision sewing race run passed in
+13.932 seconds.

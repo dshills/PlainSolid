@@ -2443,3 +2443,11 @@ A cutter that covers the complete stock footprint can remove an
 interior or one-ended axial interval. The retained native slabs
 preserve the stock's holes and original wall ranges. Forming caps
 retain the reversed original cutter-cap provenance.
+
+### Automatic planar seam repair
+
+`SewPlanarAutomaticallyWithinTolerance` proves a unique partner and
+direction for every eligible original border. Discovery uses the
+necessary twice-tolerance separation bound. The fixed-support repair
+checks the requested actual displacement and final embedding, and the
+report retains each inferred pair.

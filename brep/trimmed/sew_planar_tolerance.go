@@ -74,6 +74,21 @@ type PlanarToleranceSewReport struct {
 // return no geometry. No other nearby vertices are merged.
 func SewPlanarWithinTolerance(ctx context.Context, input []PlanarSewFace, seams []PlanarSewSeam, o PlanarToleranceSewOptions) (Solid, PlanarToleranceSewReport, error) {
 	var empty PlanarToleranceSewReport
+	o, err := planarToleranceSewOptions(ctx, len(input), o)
+	if err != nil {
+		return Solid{}, empty, err
+	}
+	if len(seams) > o.MaxUses/2 {
+		return Solid{}, empty, geom.ErrConvergence
+	}
+	charts, rings, vertices, err := planarSewOriginal(ctx, input, o)
+	if err != nil {
+		return Solid{}, empty, err
+	}
+	return sewPreparedPlanarFaces(ctx, input, seams, charts, rings, vertices, o)
+}
+
+func planarToleranceSewOptions(ctx context.Context, count int, o PlanarToleranceSewOptions) (PlanarToleranceSewOptions, error) {
 	if o.MaxFaces == 0 {
 		o.MaxFaces = 256
 	}
@@ -84,20 +99,21 @@ func SewPlanarWithinTolerance(ctx context.Context, input []PlanarSewFace, seams 
 		o.DisplayTolerance = 1e-8
 	}
 	if ctx == nil || !finite(o.Tolerance) || o.Tolerance <= 0 || !finite(o.DisplayTolerance) || o.DisplayTolerance <= 0 ||
-		o.MaxFaces < 4 || o.MaxFaces > 2048 || o.MaxUses < 12 || o.MaxUses > 16384 || len(input) < 4 ||
+		o.MaxFaces < 4 || o.MaxFaces > 2048 || o.MaxUses < 12 || o.MaxUses > 16384 || count < 4 ||
 		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 {
-		return Solid{}, empty, geom.ErrInvalid
+		return o, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
-		return Solid{}, empty, err
+		return o, err
 	}
-	if len(input) > o.MaxFaces || len(seams) > o.MaxUses/2 {
-		return Solid{}, empty, geom.ErrConvergence
+	if count > o.MaxFaces {
+		return o, geom.ErrConvergence
 	}
-	charts, rings, vertices, err := planarSewOriginal(ctx, input, o)
-	if err != nil {
-		return Solid{}, empty, err
-	}
+	return o, nil
+}
+
+func sewPreparedPlanarFaces(ctx context.Context, input []PlanarSewFace, seams []PlanarSewSeam, charts []planarSewChart, rings [][][]int, vertices []planarSewSample, o PlanarToleranceSewOptions) (Solid, PlanarToleranceSewReport, error) {
+	var empty PlanarToleranceSewReport
 	weld, pairs, mapping, err := planarSewPairBorders(ctx, rings, len(vertices), seams)
 	if err != nil {
 		return Solid{}, empty, err
