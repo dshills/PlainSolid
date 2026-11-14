@@ -52,7 +52,7 @@ func TestBoxSideCylinderBlindFloor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, inset := range []float64{-1, 0, 1} {
+	for _, inset := range []float64{-2.75, -1, 0, 1} {
 		const radius, depth = 3, 6
 		s, err := BoxSideCylinderBlind(ctx, f, 10, 10, 19, inset, 20, radius, depth, 1e-9)
 		if err != nil {

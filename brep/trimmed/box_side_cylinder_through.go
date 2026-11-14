@@ -58,6 +58,11 @@ func BoxSideCylinderWithBores(ctx context.Context, frame geom.Frame, left, right
 	root := math.Sqrt((radius - inset) * (radius + inset))
 	start, end := math.Pi+math.Asin(inset/radius), -math.Asin(inset/radius)
 	n := int(math.Ceil((start - end) / (math.Pi / 2)))
+	if depth < length {
+		// The floor's chord and circular rim need at least three coedges.
+		// A shallow opening still gets two arcs even when one would bound it.
+		n = max(n, 2)
+	}
 	p := []geom.Vec2{{X: root, Y: -inset}, {X: right, Y: -inset}, {X: right, Y: back}, {X: -left, Y: back}, {X: -left, Y: -inset}, {X: -root, Y: -inset}}
 	arcs := map[int][2]float64{}
 	for i := 0; i < n; i++ {
