@@ -91,6 +91,14 @@ func discoverConcentricGraphPairTubes(ctx context.Context, a, b Patch, p geom.Su
 			}
 		}
 	}
+	return certifyRadialContourProposals(ctx, pa, pb, center, radii[:], radiiY[:], used, maximum, o)
+}
+
+// certifyRadialContourProposals treats trigonometric values only as box proposals.
+// Every accepted box is re-proved against both original exact supports.
+func certifyRadialContourProposals(ctx context.Context, pa, pb *geom.SurfacePatch, center [2]float64, radii, radiiY []float64, used, maximum int, o SplinePlanePairDiscoveryOptions) (SplineSeedReport, error) {
+	var seeds SplineSeedReport
+	var e error
 	for ellipseIndex, radius := range radii {
 		radiusY := radiiY[ellipseIndex]
 		for _, sx := range []float64{-1, 1} {
