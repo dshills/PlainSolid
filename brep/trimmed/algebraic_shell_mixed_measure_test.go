@@ -105,11 +105,35 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			t.Fatal("original topology differs from independently sewn OCCT", name, top, err)
 		}
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
-		area, err := body.BoundSurfaceArea(ctx, selection)
+		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
 			t.Fatal("OCCT area outside native original-support interval", name, area, err)
 		}
+		if len(area.Faces) != 12 {
+			t.Fatal("original source ownership missing from area ledger", name, area.Faces)
+		}
+		sum := zeroAreaInterval()
+		ambiguous := 0
+		for j, row := range area.Faces {
+			if row.Operand != j/6 || row.OriginalFace != j%6 || row.AmbiguousCells > row.SelectedCells {
+				t.Fatal("invalid source area owner or work counts", name, j, row)
+			}
+			ambiguous += row.AmbiguousCells
+			sum.Lower.Add(sum.Lower, row.Area.Lower)
+			sum.Upper.Add(sum.Upper, row.Area.Upper)
+		}
+		if ambiguous != area.AmbiguousCells || sum.Lower.Cmp(area.Area.Lower) != 0 || sum.Upper.Cmp(area.Area.Upper) != 0 {
+			t.Fatal("per-face contributions must exhaust the aggregate", name, sum, area)
+		}
 		if i == 0 {
+			// The original stock floor is below the tool's full z extent;
+			// the tool floor contributes precisely the overlapped unit square.
+			if area.Faces[0].Area.Upper.Sign() != 0 || !contains(area.Faces[6].Area, 1) || area.Faces[6].Area.Lower.Sign() <= 0 {
+				t.Fatal("incorrect physical attribution of the two original floors", area.Faces[0], area.Faces[6])
+			}
+			if partial, err := body.BoundOriginalFaceAreas(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); !errors.Is(err, geom.ErrConvergence) || partial.Faces != nil || partial.Area.Lower != nil {
+				t.Fatal("cell exhaustion must publish no original area ledger", partial, err)
+			}
 			trim, err := body.BoundTrimmedGeometry(ctx, selection)
 			if err != nil || trim.Empty || trim.VisitedCells == 0 {
 				t.Fatal("retained trim bounds must complete", trim, err)

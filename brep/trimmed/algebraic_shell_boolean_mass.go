@@ -27,7 +27,7 @@ func (s AlgebraicShellBoolean) BoundMassProperties(ctx context.Context, o Algebr
 		flux[i] = geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
 	}
 	var origin geom.Vec3
-	counts, e := s.visitBooleanSurfaceCells(ctx, o, func(p *geom.SurfacePatch, at geom.Vec3, partial, reversed bool) error {
+	counts, e := s.visitBooleanSurfaceCells(ctx, o, func(p *geom.SurfacePatch, at geom.Vec3, partial, reversed bool, _, _ int) error {
 		origin = at
 		for i, axes := range moment {
 			lo, hi, e := booleanCellFlux(ctx, p, origin, partial, axes[0], axes[1], o.Shells.Embedding.Patches)
