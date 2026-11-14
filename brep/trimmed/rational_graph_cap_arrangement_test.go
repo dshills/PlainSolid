@@ -174,6 +174,12 @@ func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
 			x.SetInt64(42)
 		}
 	}
+	for _, row := range r.Regions.SectionWires() {
+		for _, piece := range row {
+			piece.Parameter[0].SetInt64(42)
+			piece.Homogeneous[0][0].SetInt64(42)
+		}
+	}
 	s, e := r.Regions.IntersectRationalHalfspace(ctx, second, true, RationalGraphShellRegionOptions{})
 	if e != nil || len(s.Cuts) != 2 || len(s.Seams) != 1 {
 		t.Fatal("second clip with caller-mutated prior report", s, e)
