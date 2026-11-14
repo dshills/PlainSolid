@@ -3,8 +3,11 @@ package trimmed
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"math/big"
+	"os"
+	"os/exec"
 	"testing"
 
 	"plainsolid/geom"
@@ -63,6 +66,62 @@ func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
 	hit, e := line.Contacts[2].Parameter.SignPolynomial(ctx, []*big.Rat{q(-25, 8), q(0, 1), q(1, 1)}, opts)
 	if e != nil || hit.Sign != 0 {
 		t.Fatal("source weight must not change the exact bore hit", hit, e)
+	}
+
+	mass, e := pair.BoundVerticalCentroid(ctx, q(1, 1<<15), o, opts)
+	if e != nil || mass.Volume.Lower.Sign() <= 0 {
+		t.Fatal("weighted original mass and centroid", e)
+	}
+	// Integrate over vertical slices with y between max(11/8,x²/8)
+	// and 3+x²/8, subtracting the old bore on 1<=x<=2. The bore
+	// interval changes its lower endpoint at x=√3.
+	ref := [4][2]*big.Rat{{q(697, 960), q(3, 640)}, {q(7939, 6144), q(0, 1)},
+		{q(7349, 3584), q(39, 7168)}, {q(184411, 430080), q(327, 143360)}}
+	got := [4]geom.ExactParameterInterval{mass.Volume, mass.FirstMoments[0], mass.FirstMoments[1], mass.FirstMoments[2]}
+	for i, m := range got {
+		v, k := ref[i][0], ref[i][1]
+		if k.Sign() == 0 {
+			if m.Lower.Cmp(v) > 0 || m.Upper.Cmp(v) < 0 {
+				t.Fatal("closed-hand formula for x moment", m)
+			}
+			continue
+		}
+		lo, hi := new(big.Rat).Sub(v, m.Upper), new(big.Rat).Sub(v, m.Lower)
+		want := new(big.Rat).Mul(q(3, 1), new(big.Rat).Mul(k, k))
+		if lo.Sign() <= 0 || lo.Mul(lo, lo).Cmp(want) > 0 || hi.Mul(hi, hi).Cmp(want) < 0 {
+			t.Fatal("moment does not contain its distinct independent algebraic answer", i, m)
+		}
+	}
+	// Independently calculated coordinate checks avoid quotient values
+	// outside the bounding box being hidden by a wide integral interval.
+	for i, want := range [3]float64{1.7998525281375826, 2.843033752390164, .5917521095243853} {
+		c := mass.Coordinates[i]
+		lo, _ := c.Lower.Float64()
+		hi, _ := c.Upper.Float64()
+		if hi-lo > .0002 || want < lo || want > hi {
+			t.Fatal("weighted centroid", i, lo, hi, want)
+		}
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ALGEBRAIC_CAP_STOCK"); oracle != "" {
+		data, e := exec.CommandContext(ctx, oracle, "sheared-sleeve").Output()
+		var answer [8]float64
+		if e != nil || json.Unmarshal(data, &answer) != nil {
+			t.Fatal("independent OCCT centroid", e)
+		}
+		for i, b := range mass.Coordinates {
+			v := ratInset(answer[i+2])
+			if v.Cmp(b.Lower) < 0 || v.Cmp(b.Upper) > 0 {
+				t.Fatal("OCCT centroid outside certified interval", i, answer[i+2])
+			}
+		}
+	}
+	if out, e := pair.BoundVerticalCentroid(ctx, q(1, 1<<15), o, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(e, geom.ErrConvergence) || out.Volume.Lower != nil {
+		t.Fatal("centroid budget must fail atomically", out, e)
+	}
+
+	opts.MaxOperations = mass.ExactOperations
+	if out, e := pair.BoundVerticalCentroid(ctx, q(1, 1<<15), o, opts); !errors.Is(e, geom.ErrConvergence) || out.Volume.Lower != nil {
+		t.Fatal("the reported work exhausts exactly one shared proof ledger", out, e)
 	}
 
 }

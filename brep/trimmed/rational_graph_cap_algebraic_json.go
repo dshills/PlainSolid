@@ -66,17 +66,43 @@ func (c AlgebraicGraphCapClip) LocateRational(ctx context.Context, point [3]*big
 	if report.Status != trimvalidate.Certified {
 		return trimvalidate.Unknown, geom.ErrConvergence
 	}
+	return c.applyClipLocation(point, loc), nil
+}
+
+// locateRationalBudget applies the query ledger to the existing certified
+// topology. The caller already proved that the point is on the cap plane.
+func (c AlgebraicGraphCapClip) locateRationalBudget(p [3]*big.Rat, b *capClipBudget) (trimvalidate.Location, error) {
+	for _, v := range p {
+		if v.Num().BitLen() > b.bits || v.Denom().BitLen() > b.bits {
+			return trimvalidate.Unknown, geom.ErrConvergence
+		}
+	}
+	axes := orientedRationalGraphProjection(c.regions.plane)
+	where, r, e := c.regions.certificate.LocateBounded(b.ctx, [2]*big.Rat{p[axes[0]], p[axes[1]]}, b.work, b.subdiv, b.bits)
+	if e != nil {
+		return trimvalidate.Unknown, e
+	}
+	if e = b.charge(r.Work, r.Subdivisions); e != nil {
+		return trimvalidate.Unknown, e
+	}
+	if r.Status != trimvalidate.Certified {
+		return trimvalidate.Unknown, geom.ErrConvergence
+	}
+	return c.applyClipLocation(p, where), nil
+}
+
+func (c AlgebraicGraphCapClip) applyClipLocation(point [3]*big.Rat, loc trimvalidate.Location) trimvalidate.Location {
 	if loc == trimvalidate.Outside {
-		return loc, nil
+		return loc
 	}
 	sign := new(big.Rat).Sub(c.cut.dot(point), c.cut.offset).Sign() * c.keepSign
 	switch {
 	case sign < 0:
-		return trimvalidate.Outside, nil
+		return trimvalidate.Outside
 	case sign == 0:
-		return trimvalidate.Boundary, nil
+		return trimvalidate.Boundary
 	default:
-		return loc, nil
+		return loc
 	}
 }
 

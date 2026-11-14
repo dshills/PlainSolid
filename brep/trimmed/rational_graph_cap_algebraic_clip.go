@@ -215,6 +215,28 @@ type capClipBudget struct {
 	work, subdiv, bits int
 }
 
+func newCapClipBudget(ctx context.Context, roots geom.ExactCurvePlaneEventOptions) (capClipBudget, error) {
+	if ctx == nil || roots.MaxOperations < 0 || roots.MaxSubdivisions < 0 || roots.MaxCoefficientBits < 0 {
+		return capClipBudget{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return capClipBudget{}, e
+	}
+	if roots.MaxOperations == 0 {
+		roots.MaxOperations = 2000000
+	}
+	if roots.MaxSubdivisions == 0 {
+		roots.MaxSubdivisions = 8192
+	}
+	if roots.MaxCoefficientBits == 0 {
+		roots.MaxCoefficientBits = 16384
+	}
+	if roots.MaxCoefficientBits < 64 {
+		return capClipBudget{}, geom.ErrInvalid
+	}
+	return capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}, nil
+}
+
 func (b *capClipBudget) charge(ops, subdiv int) error {
 	b.work, b.subdiv = b.work-ops, b.subdiv-subdiv
 	if b.work < 1 || b.subdiv < 1 {

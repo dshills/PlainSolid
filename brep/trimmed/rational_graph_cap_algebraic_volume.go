@@ -45,11 +45,11 @@ func (c AlgebraicGraphCapPair) boundVerticalVolume(ctx context.Context, width *b
 	if roots.MaxCoefficientBits < 64 || width.Num().BitLen() > roots.MaxCoefficientBits || width.Denom().BitLen() > roots.MaxCoefficientBits {
 		return zero, geom.ErrInvalid
 	}
-	exact, e := c.ExactIndexedBoundary(ctx, o, roots)
+	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
+	exact, e := c.exactIndexedBoundary(o, &b)
 	if e != nil {
 		return zero, e
 	}
-	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
 	if e := c.proveZeroStockXYFlux(exact, o, &b, rational); e != nil {
 		return zero, e
 	}

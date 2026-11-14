@@ -100,7 +100,7 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 		}
 		t := new(big.Rat).Quo(new(big.Rat).Neg(cst), slope)
 		p := point(t)
-		where, e := cap.LocateRational(ctx, p)
+		where, e := cap.locateRationalBudget(p, &b)
 		if e != nil {
 			return zero, e
 		}
@@ -179,14 +179,6 @@ func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Contex
 				return zero, geom.ErrConvergence
 			}
 			events = append(events, AlgebraicGraphVerticalLineContact{hit.Parameter, -1, u.Source.Face, hit.Entry})
-		}
-	} else {
-		fiber, e := m.VerticalFiber(ctx, [2]*big.Rat{origin[0], origin[1]})
-		if e != nil {
-			return zero, e
-		}
-		if fiber.Found && fiber.BoundaryOnly {
-			return zero, geom.ErrConvergence
 		}
 	}
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {

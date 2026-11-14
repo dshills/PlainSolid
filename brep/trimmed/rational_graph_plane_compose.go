@@ -156,6 +156,14 @@ func composeProjectedGraphSectionControls(ctx context.Context, patch *geom.Surfa
 			for i, c := range span.Control {
 				h[i] = [3]*big.Rat{c[axes[0]], c[axes[1]], c[3]}
 			}
+			if len(h) == 2 {
+				// The trim proof uses a homogeneous quadratic at minimum.
+				var middle [3]*big.Rat
+				for j := range middle {
+					middle[j] = new(big.Rat).Quo(new(big.Rat).Add(h[0][j], h[1][j]), big.NewRat(2, 1))
+				}
+				h = [][3]*big.Rat{h[0], middle, h[1]}
+			}
 			return h, nil
 		}
 	}

@@ -49,22 +49,19 @@ type AlgebraicGraphShellBoundary struct {
 // Exact planar nesting separates material cap islands and assigns void loops
 // to their owning face before calculating EulerCharacteristic.
 func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) (AlgebraicGraphShellBoundary, error) {
+	b, e := newCapClipBudget(ctx, roots)
+	if e != nil {
+		return AlgebraicGraphShellBoundary{}, e
+	}
+	return c.exactIndexedBoundary(o, &b)
+}
+
+func (c AlgebraicGraphCapPair) exactIndexedBoundary(o RationalGraphShellSectionOptions, b *capClipBudget) (AlgebraicGraphShellBoundary, error) {
 	var zero AlgebraicGraphShellBoundary
-	stock, e := c.OriginalStockLoops(ctx, o, roots)
+	stock, e := c.originalStockLoops(o, b)
 	if e != nil {
 		return zero, e
 	}
-	maxWork, maxSplits, maxBits := roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits
-	if maxWork == 0 {
-		maxWork = 2000000
-	}
-	if maxSplits == 0 {
-		maxSplits = 8192
-	}
-	if maxBits == 0 {
-		maxBits = 16384
-	}
-	nest := capClipBudget{ctx, maxWork, maxSplits, maxBits}
 	type capKey struct{ cap, wire, use int }
 	seamID := make(map[capKey]int)
 	var out AlgebraicGraphShellBoundary
@@ -76,7 +73,7 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 	}
 	attachID := make(map[capKey]int)
 	for i, cap := range c.caps {
-		regions, e := cap.materialRegions(&nest)
+		regions, e := cap.materialRegions(b)
 		if e != nil {
 			return zero, e
 		}
@@ -144,7 +141,7 @@ func (c AlgebraicGraphCapPair) ExactIndexedBoundary(ctx context.Context, o Ratio
 		}
 		out.Faces = append(out.Faces, f)
 	}
-	return completeAlgebraicGraphShell(ctx, out)
+	return completeAlgebraicGraphShell(b.ctx, out)
 }
 
 // Complete indexed stitching identifies vertices only by adjacent uses in a

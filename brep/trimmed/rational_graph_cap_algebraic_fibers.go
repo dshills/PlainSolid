@@ -49,7 +49,8 @@ func (c AlgebraicGraphCapPair) PrepareVerticalMaterial(ctx context.Context, o Ra
 	if roots.MaxCoefficientBits < 64 {
 		return zero, geom.ErrInvalid
 	}
-	exact, e := c.ExactIndexedBoundary(ctx, o, roots)
+	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
+	exact, e := c.exactIndexedBoundary(o, &b)
 	if e != nil {
 		return zero, e
 	}
@@ -57,7 +58,6 @@ func (c AlgebraicGraphCapPair) PrepareVerticalMaterial(ctx context.Context, o Ra
 	if a.dropped != 2 || z.dropped != 2 || a.orientation == z.orientation {
 		return zero, geom.ErrUnrepresentable
 	}
-	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
 	if e := c.proveZeroStockXYFlux(exact, o, &b, true); e != nil {
 		return zero, e
 	}
