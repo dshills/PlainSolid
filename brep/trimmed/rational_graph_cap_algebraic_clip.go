@@ -33,6 +33,10 @@ type AlgebraicGraphCapClip struct {
 	Section                       AlgebraicGraphCapSection
 	Wires                         [][]AlgebraicGraphCapUse
 	ExactOperations, Subdivisions int
+	regions                       *RationalGraphShellRegions
+	cut                           polynomialPlaneEquation
+	keepSign                      int
+	recipe                        *algebraicGraphCapRecipe
 }
 
 // ClipAlgebraicHalfspace clips the previously certified cap against the
@@ -50,7 +54,7 @@ func (r *RationalGraphShellRegions) ClipAlgebraicHalfspace(ctx context.Context, 
 	}
 	options, _ := o.Topology.WithDefaults() // already checked by the section proof
 	b := capClipBudget{ctx, options.MaxWork - s.ExactOperations, options.MaxSubdivisions - s.Subdivisions, options.MaxBits}
-	out := AlgebraicGraphCapClip{Section: s}
+	out := AlgebraicGraphCapClip{Section: s, regions: r, cut: proof.cut, keepSign: proof.keepSign}
 	type run struct {
 		uses []AlgebraicGraphCapUse
 		end  int

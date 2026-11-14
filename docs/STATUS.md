@@ -891,6 +891,8 @@ surfaces must keep their geometry through the operation. Continue with:
    and ordered material intervals. Exact clipping now joins their retained
    original curve intervals and line seams into closed world-space cap
    boundaries, with separate occurrences and original parameter ownership.
+   A stock-backed native recipe reloads and re-proves the cut and its
+   original owners, and exact point queries preserve the gap across a void.
    Native sewing of those irrational roots,
    stock faces bounded solely by two unsubdivided edges, and general mixed-axis
    trim arrangements remain open.

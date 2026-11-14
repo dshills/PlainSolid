@@ -98,11 +98,22 @@ line and handles the opposite side's two pieces on the original arc. The
 holed fixture joins its two original rings into one notch with two seams.
 Tests prove equality of every neighboring world-space endpoint across the
 original and seam parameterizations and reject exhausted clipping without
-publishing the earlier section. Focused normal, race and Go 1.23 passed.
+publishing the earlier section. A stock-backed JSON reload of the sheared
+tube at Y=11/8 independently confirms the X=√3 root on the original void
+edge. It restores the same owner and exact joins after mutation of the
+diagnostic report. Exact seam, void, inside and discarded points agree
+before and after reload. Focused normal, race and Go 1.23 passed.
 Simultaneous conical fillets (`105312d`) keep five native faces, unchanged
 original end caps and circular bases, and exact original cone ownership.
 Both slope directions and equal/unequal radii match independent volume and
 area integrals and reload. Touching or overlapping runouts fail atomically.
+The eccentric through-bore on this filleted stock (`c207731`) retains all
+stock vertex, edge and face IDs, proves exact clearance, and matches
+independent differences −6π in volume and +10π in area after reload.
+The genuine OCCT STEP elliptical disk face (`e58145b`) retains its full model
+and planar trim curves, verifies their original owners and matching
+parameterizations, and native-reloads. Pinned OCCT confirms one face with
+area 8π, centroid (1,2,3), and outward normal +Y on both source and re-export.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

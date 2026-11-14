@@ -43,6 +43,7 @@ type algebraicGraphCapPieceProof struct {
 }
 
 type algebraicGraphCapProof struct {
+	cut                       polynomialPlaneEquation
 	form                      [3]*big.Rat
 	axis, direction, keepSign int
 	pieces                    [][]algebraicGraphCapPieceProof
@@ -104,6 +105,7 @@ func (r *RationalGraphShellRegions) sectionAlgebraicHalfspace(ctx context.Contex
 	direction *= other.orientation * keep
 	if proof != nil {
 		proof.form, proof.axis, proof.direction, proof.keepSign = form, axis, direction, other.orientation*keep
+		proof.cut = other
 		proof.pieces = make([][]algebraicGraphCapPieceProof, len(r.wires))
 	}
 	raw := [4]*big.Rat{form[0], form[1], nil, form[2]}
