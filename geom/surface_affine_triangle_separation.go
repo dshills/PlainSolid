@@ -55,6 +55,9 @@ func (p *SurfaceAffineTriangleSeparation) Source(i int) (*SurfacePatch, [3][2]*b
 // extrema complete over each closed triangle, including every boundary edge.
 // Touching hulls are rejected; no nonadjacent chain contact is silently ignored.
 func CertifySurfaceAffineTriangleSeparation(ctx context.Context, a, b *SurfacePatch, triangles [2][3][2]*big.Rat, q SurfaceAffineTriangleSeparator, o SurfaceAffineCoordinateOptions) (*SurfaceAffineTriangleSeparation, error) {
+	return certifySurfaceAffineTriangleSides(ctx, a, b, triangles, q, o, [2]int{-1, -1})
+}
+func certifySurfaceAffineTriangleSides(ctx context.Context, a, b *SurfacePatch, triangles [2][3][2]*big.Rat, q SurfaceAffineTriangleSeparator, o SurfaceAffineCoordinateOptions, zeroVertices [2]int) (*SurfaceAffineTriangleSeparation, error) {
 	if ctx == nil || a == nil || b == nil || q.Level == nil {
 		return nil, ErrInvalid
 	}
@@ -115,6 +118,12 @@ func CertifySurfaceAffineTriangleSeparation(ctx context.Context, a, b *SurfacePa
 				if e = budget.check(value); e != nil {
 					return nil, e
 				}
+			}
+			if i == zeroVertices[owner] {
+				if value.Sign() != 0 {
+					return nil, ErrDomain
+				}
+				continue
 			}
 			sign := value.Sign()
 			if sign == 0 {

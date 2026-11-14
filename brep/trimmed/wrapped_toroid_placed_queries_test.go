@@ -57,6 +57,27 @@ func TestPlacedWrappedToroidRationalLine(t *testing.T) {
 			t.Fatal("four independent meridian contacts in original line units", i, r[i], want)
 		}
 	}
+	material, e := s.ClipPlacedCircularToroidLineRational(ctx, pose, origin, dir, q(-7, 1), q(7, 1), o)
+	if e != nil || len(material.Boundary) != 4 || len(material.Spans) != 2 {
+		t.Fatal("two disjoint finite ring intersections", material, e)
+	}
+	for i, span := range material.Spans {
+		for j, end := range span {
+			w := material.Boundary[2*i+j]
+			if end.Min.Cmp(w.Min) != 0 || end.Max.Cmp(w.Max) != 0 {
+				t.Fatal(span, w)
+			}
+		}
+	}
+	clipped, e := s.ClipPlacedCircularToroidLineRational(ctx, pose, origin, dir, q(4, 1), q(5, 1), o)
+	if e != nil || len(clipped.Boundary) != 0 || len(clipped.Spans) != 1 || clipped.Spans[0][0].Min.Cmp(q(4, 1)) != 0 || clipped.Spans[0][1].Max.Cmp(q(5, 1)) != 0 {
+		t.Fatal("artificial limits are not boundary hits", clipped, e)
+	}
+	point, e := s.ClipPlacedCircularToroidLineRational(ctx, pose, origin, dir, q(4, 1), q(4, 1), o)
+	if e != nil || len(point.Boundary) != 0 || len(point.Spans) != 1 || point.Spans[0][0].Min.Cmp(q(4, 1)) != 0 || point.Spans[0][1].Max.Cmp(q(4, 1)) != 0 {
+		t.Fatal("single interior parameter", point, e)
+	}
+
 	// p is the independently transformed local (2,0,1/2), the exact
 	// top of the torus. Its Y tangent has fourth order contact. Move
 	// by a sub-ULP local radial coordinate and the contact disappears.
@@ -66,6 +87,11 @@ func TestPlacedWrappedToroidRationalLine(t *testing.T) {
 	if e != nil || len(r) != 1 || r[0].Multiplicity != 4 || r[0].Min.Sign() != 0 || r[0].Max.Sign() != 0 {
 		t.Fatal("fourth order exact rational tangent", r, e)
 	}
+	touch, e := s.ClipPlacedCircularToroidLineRational(ctx, pose, tangent, dir, q(-1, 3), q(1, 3), o)
+	if e != nil || len(touch.Spans) != 1 || len(touch.Boundary) != 1 || touch.Spans[0][0].Min.Sign() != 0 || touch.Spans[0][1].Max.Sign() != 0 {
+		t.Fatal("quartic singleton bounds", touch, e)
+	}
+
 	delta := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
 	tangent[0].Add(tangent[0], new(big.Rat).Mul(delta, q(3, 5)))
 	tangent[2].Sub(tangent[2], new(big.Rat).Mul(delta, q(4, 5)))
