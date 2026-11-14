@@ -107,15 +107,13 @@ strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.
 
-The latest completed production run passes all 66 originals, including the
-42.966-second performance case. The full development run on PlainCAD
-`50432ed` passes all 344 originals, including Parts Browser, YZ guarded
-drag, and the camera pan and gesture cases. All seven portable failures
-from the real-WASM unit baseline
-pass focused retests. Keep provider-private OCCT fixtures visible alongside
-portable unit results. Current PlainCAD has committed startup and cross-browser
-test repairs and is being verified from a new pinned archive. See
-[PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open gates.
+The full selected-provider gate on PlainCAD `9779044` and PlainSolid
+`65441a2d` passes 345 development, 66 production and 15 cross-browser
+cases. Both TypeScript checks, the bundle budget, 1,691 ordinary unit and
+component cases, and four actual-WASM contracts pass. Later geometry
+milestones use focused application runs and independent STEP checks.
+See [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open
+geometry coverage.
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions

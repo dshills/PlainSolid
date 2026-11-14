@@ -1,5 +1,22 @@
 # Verification record
 
+## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
+
+The selected PlainSolid provider at PlainCAD app revision `9779044`
+passes 345 development, 66 production and 15 cross-browser cases with
+zero skips, retries and flaky results. The full development run takes
+36.4 minutes. Development and production performance cases take 17.6
+and 20.3 seconds. Both verify 25 edits and 11 STL downloads.
+
+Both TypeScript checks, four actual-WASM contracts, and the 72-bundle
+production budget pass. The largest JavaScript bundle is 496.50 kB of
+the 500 kB limit. The built WASM matches the SHA-256 in the kernel
+manifest. All 1,691 ordinary unit and component cases pass with one
+worker, up to two retries and a 15-second timeout. The release stages
+were executed individually on the same pin. Later geometry milestones
+have focused browser and exchange coverage.
+[Reports and build hashes](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json).
+
 ## PlainCAD reciprocal cardinal–oblique Hole crossing — 2026-11-14
 
 The exact equal-radius crossing also accepts a 3:4 local axis ratio when
