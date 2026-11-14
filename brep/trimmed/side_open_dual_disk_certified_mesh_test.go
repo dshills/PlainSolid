@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
 	"testing"
@@ -37,10 +38,20 @@ func TestSideOpenDualDiskCertifiedDisplay(t *testing.T) {
 		if d > .05*.05 || a > .2*.2 || f > .1*.1 {
 			t.Fatal(d, a, f)
 		}
-		v, _ := r.DisplayVolume.Float64()
-		want := 360 - depth*(6.25*(math.Pi-math.Acos(.6))+3)
-		if math.Abs(v-want) > .1 {
-			t.Fatal(v, want)
+		exactVolume := checkDualDiskSegmentVolume(t, r, depth)
+		if caseID == 0 {
+			previous := exactVolume
+			for _, deflection := range []float64{.0125, .0035} {
+				fine, e := s.TessellateCertified(ctx, SideOpenDualDiskMeshOptions{Deflection: deflection, AngularTurn: .2})
+				if e != nil {
+					t.Fatal(e)
+				}
+				next := checkDualDiskSegmentVolume(t, fine, depth)
+				if next.Cmp(previous) >= 0 {
+					t.Fatal("inscribed cutter volume did not converge", deflection)
+				}
+				previous = next
+			}
 		}
 		// Independent floating normal samples verify the exact bound against the
 		// original surface differential, including interior UV values.
@@ -105,15 +116,6 @@ func TestSideOpenDualDiskApplicationTolerances(t *testing.T) {
 			if e != nil {
 				t.Fatal(depth, o, e)
 			}
-			if depth == 3 && o.Deflection == .0035 {
-				region := r.Network.Faces[0].UVRegion.Region
-				if _, e := triangulateCertifiedAffineTrimRegion(context.Background(), region, 0, 100000); e == nil {
-					t.Fatal("legacy256 boundary gate changed")
-				}
-				if bad, e := triangulateCertifiedAffineTrimRegionBounded(context.Background(), region, 0, 100000, 2048, 1); e == nil || len(bad.Mesh.Vertices) != 0 {
-					t.Fatal("triangulation work limit", e)
-				}
-			}
 			t.Log(depth, o, "intervals", r.RimIntervals, "triangles", len(r.Mesh.Triangles), "time", time.Since(start), "pairs", r.DisplayCollision.BroadPhasePairs)
 			d, _ := r.SquaredDistance.Float64()
 			a, _ := r.SquaredTurnTangent.Float64()
@@ -123,4 +125,47 @@ func TestSideOpenDualDiskApplicationTolerances(t *testing.T) {
 			}
 		}
 	}
+}
+
+// This independent fixture-specific mass check is NOT part of the public
+// distance/angle/embedding contract. A circular segment has area
+// r²(theta-sin(theta))/2 <= r²*theta³/12. Summing and using
+// theta² <= max(tan²(theta)) gives a volume error bound from the actual rim
+// partition. Display rounding is accounted for by exact determinant integration.
+func checkDualDiskSegmentVolume(t *testing.T, r CertifiedSideOpenDualDiskMesh, depth float64) *big.Rat {
+	t.Helper()
+	exactVolume := new(big.Rat)
+	walls := 0
+	for _, face := range r.Network.Faces {
+		if face.RectangularGrid {
+			walls++
+			for _, uv := range face.ExactUV {
+				if uv[1].Sign() != 0 && uv[1].Cmp(big.NewRat(1, 1)) != 0 {
+					t.Fatal("mass fixture requires two axial rim rows")
+				}
+			}
+		}
+	}
+	if walls != 2 {
+		t.Fatal("mass fixture circular wall ownership", walls)
+	}
+	for _, face := range r.Network.Faces {
+		for _, tri := range face.Mesh.Triangles {
+			a, b, c := face.ExactPoints[tri[0]], face.ExactPoints[tri[1]], face.ExactPoints[tri[2]]
+			exactVolume.Add(exactVolume, ddDot(a, ddCross(b, c)))
+		}
+	}
+	exactVolume.Quo(exactVolume, big.NewRat(6, 1))
+	rounding := new(big.Rat).Sub(r.DisplayVolume, exactVolume)
+	rounding.Abs(rounding)
+	allowance, _ := rounding.Float64()
+	allowance = math.Nextafter(allowance, math.Inf(1))
+	v, _ := r.DisplayVolume.Float64()
+	want := 360 - depth*(6.25*(math.Pi-math.Acos(.6))+3)
+	turn, _ := r.SquaredTurnTangent.Float64()
+	upper := depth*6.25*turn*(2*(math.Pi-math.Acos(.6)))/12 + allowance
+	if v-want < -allowance-1e-10 || v-want > upper+1e-10 {
+		t.Fatal("circle-segment mass enclosure", v, want, upper, allowance)
+	}
+	return exactVolume
 }

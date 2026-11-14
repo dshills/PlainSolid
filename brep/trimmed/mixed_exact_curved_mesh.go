@@ -11,6 +11,12 @@ import (
 // and fixed-boundary surface lift. Interior.Deflection is the total requested
 // model-space distance; Boundary.Display.Deflection is derived from that target.
 type MixedExactCurvedMeshOptions struct {
+	// BoundaryModelBudget optionally allocates model-space error to boundary
+	// sampling before division by the certified chart Lipschitz bound. Zero
+	// preserves Deflection/16. Positive values must be <=Deflection/2. The
+	// independent transported-quarter and final total-distance checks remain
+	// mandatory; a coarser schedule never relaxes the requested certificate.
+	BoundaryModelBudget float64
 	// RectangularGrid optionally replaces an exactly rectangular UV polygon
 	// seed when opposite boundary cuts match. It preserves all source boundary
 	// IDs and adds only interior vertices, with fresh exact coverage/roundoff.
@@ -87,7 +93,17 @@ func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch,
 	if l1.Sign() == 0 {
 		return empty, geom.ErrConvergence
 	}
-	tol := new(big.Rat).Quo(ratInset(m.Deflection), new(big.Rat).Mul(big.NewRat(16, 1), l1))
+	budget := new(big.Rat).Quo(ratInset(m.Deflection), big.NewRat(16, 1))
+	if !finite(o.BoundaryModelBudget) || o.BoundaryModelBudget < 0 {
+		return empty, geom.ErrInvalid
+	}
+	if o.BoundaryModelBudget > 0 {
+		budget = ratInset(o.BoundaryModelBudget)
+		if budget.Cmp(new(big.Rat).Quo(ratInset(m.Deflection), big.NewRat(2, 1))) > 0 {
+			return empty, geom.ErrInvalid
+		}
+	}
+	tol := new(big.Rat).Quo(budget, l1)
 	uvError, _ := tol.Float64()
 	if !finite(uvError) || uvError <= 0 {
 		return empty, geom.ErrConvergence
