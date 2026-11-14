@@ -181,6 +181,9 @@ func writePlacedEllipse(ctx context.Context, w io.Writer, a topologyAuthor, m ge
 	})
 }
 func writePlacedConic(ctx context.Context, w io.Writer, a topologyAuthor, m geom.Affine, unit, tol float64, validate func([]byte) error) error {
+	return writePlacedConicLeaves(ctx, w, a, m, unit, tol, ellipsePlacedLeaf, validate)
+}
+func writePlacedConicLeaves(ctx context.Context, w io.Writer, a topologyAuthor, m geom.Affine, unit, tol float64, leaf func(int) bool, validate func([]byte) error) error {
 	if ctx == nil || w == nil || !roofRigid(m) {
 		return geom.ErrInvalid
 	}
@@ -245,7 +248,7 @@ func writePlacedConic(ctx context.Context, w io.Writer, a topologyAuthor, m geom
 			continue
 		}
 		kind, _ := field(string(line[:8]))
-		if ellipsePlacedLeaf(kind) {
+		if leaf(kind) {
 			copy(line[48:56], fmt.Sprintf("%8d", tid))
 		}
 	}

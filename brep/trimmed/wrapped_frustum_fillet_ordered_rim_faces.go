@@ -8,7 +8,7 @@ import (
 )
 
 // FilletedFrustumOrderedRimFaces classifies all original faces when opposing
-// coaxial blind-floor rim minima can be ordered in one exact quadratic field.
+// blind-floor rim minima can be ordered exactly in at most two radicals.
 // Rims contains the two independently attained candidates, ordered lower/upper
 // floor; only Tied attains the global minimum. Comparison is the exact sign of
 // lower-rim distance minus upper-rim distance. Complete requires strict exclusion
@@ -30,6 +30,10 @@ type FilletedFrustumOrderedRimFaces struct {
 // enclosures overlap. Other supports still require strict interval separation.
 // One bounded support query and at most MaxPairs pairs; errors are atomic.
 func (q FilletedFrustumMaterial) ClassifyOrderedBlindRimsRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumOpposingRimOptions) (out FilletedFrustumOrderedRimFaces, err error) {
+	return q.classifyBlindRimFaces(ctx, p, o, false)
+}
+
+func (q FilletedFrustumMaterial) classifyBlindRimFaces(ctx context.Context, p [3]*big.Rat, o FilletedFrustumOpposingRimOptions, independentCenters bool) (out FilletedFrustumOrderedRimFaces, err error) {
 	defer func() {
 		if err != nil {
 			out = FilletedFrustumOrderedRimFaces{}
@@ -72,25 +76,39 @@ func (q FilletedFrustumMaterial) ClassifyOrderedBlindRimsRational(ctx context.Co
 			if !a.open[0] {
 				a, b = b, a
 			}
-			if !a.open[0] || a.open[1] || b.open[0] || !b.open[1] || a.z[1].Cmp(b.z[0]) >= 0 || a.center[0].Cmp(b.center[0]) != 0 || a.center[1].Cmp(b.center[1]) != 0 {
+			if !a.open[0] || a.open[1] || b.open[0] || !b.open[1] || a.z[1].Cmp(b.z[0]) >= 0 || (!independentCenters && (a.center[0].Cmp(b.center[0]) != 0 || a.center[1].Cmp(b.center[1]) != 0)) {
 				continue
 			}
 			if p[2].Cmp(a.z[1]) <= 0 || p[2].Cmp(b.z[0]) >= 0 {
 				continue
 			}
-			dx, dy := fdSub(p[0], a.center[0]), fdSub(p[1], a.center[1])
-			S := fdAdd(fdSquare(dx), fdSquare(dy))
-			if S.Cmp(fdSquare(a.radius)) <= 0 || S.Cmp(fdSquare(b.radius)) <= 0 {
+			azimuth := [2][2]*big.Rat{{fdSub(p[0], a.center[0]), fdSub(p[1], a.center[1])}, {fdSub(p[0], b.center[0]), fdSub(p[1], b.center[1])}}
+			radicands := [2]*big.Rat{fdAdd(fdSquare(azimuth[0][0]), fdSquare(azimuth[0][1])), fdAdd(fdSquare(azimuth[1][0]), fdSquare(azimuth[1][1]))}
+			S, T := radicands[0], radicands[1]
+			if S.Cmp(fdSquare(a.radius)) <= 0 || T.Cmp(fdSquare(b.radius)) <= 0 {
 				continue
 			}
-			lo, hi := fdSqrt(S, bits)
+			var roots [2][2]*big.Rat
+			roots[0][0], roots[0][1] = fdSqrt(S, bits)
+			if S.Cmp(T) == 0 {
+				roots[1] = roots[0]
+			} else {
+				roots[1][0], roots[1][1] = fdSqrt(T, bits)
+			}
 			hA, hB := fdSquare(fdSub(p[2], a.z[1])), fdSquare(fdSub(p[2], b.z[0]))
 			constant := fdSub(fdAdd(fdSquare(a.radius), hA), fdAdd(fdSquare(b.radius), hB))
-			coefficient := fdMul(big.NewRat(2, 1), fdSub(a.radius, b.radius))
-			comparison := fdRadicalSign(constant, coefficient, S)
+			comparison := 0
+			if independentCenters {
+				constant.Add(constant, fdSub(S, T))
+				comparison = fdTwoPositiveRadicalsSign(constant, fdMul(big.NewRat(2, 1), a.radius), S, fdMul(big.NewRat(2, 1), b.radius), T)
+			} else {
+				comparison = fdRadicalSign(constant, fdMul(big.NewRat(2, 1), fdSub(a.radius, b.radius)), S)
+			}
 			radius, h2 := a.radius, hA
+			lo, hi := roots[0][0], roots[0][1]
 			if comparison > 0 {
 				radius, h2 = b.radius, hB
+				lo, hi = roots[1][0], roots[1][1]
 			}
 			lower, upper := fdSquareRange(fdSub(lo, radius), fdSub(hi, radius))
 			lower.Add(lower, h2)
@@ -136,7 +154,7 @@ func (q FilletedFrustumMaterial) ClassifyOrderedBlindRimsRational(ctx context.Co
 				if len(edges) != 4 {
 					return out, geom.ErrConvergence
 				}
-				out.Rims[k] = &FilletedFrustumAlgebraicRimWitness{Center: [2]*big.Rat{new(big.Rat).Set(c.center[0]), new(big.Rat).Set(c.center[1])}, Radius: new(big.Rat).Set(c.radius), Z: new(big.Rat).Set(z), Azimuth: [2]*big.Rat{new(big.Rat).Set(dx), new(big.Rat).Set(dy)}, AzimuthSquared: new(big.Rat).Set(S), AzimuthRoot: [2]*big.Rat{new(big.Rat).Set(lo), new(big.Rat).Set(hi)}, Faces: faces, RimEdges: edges}
+				out.Rims[k] = &FilletedFrustumAlgebraicRimWitness{Center: [2]*big.Rat{new(big.Rat).Set(c.center[0]), new(big.Rat).Set(c.center[1])}, Radius: new(big.Rat).Set(c.radius), Z: new(big.Rat).Set(z), Azimuth: [2]*big.Rat{new(big.Rat).Set(azimuth[k][0]), new(big.Rat).Set(azimuth[k][1])}, AzimuthSquared: new(big.Rat).Set(radicands[k]), AzimuthRoot: [2]*big.Rat{new(big.Rat).Set(roots[k][0]), new(big.Rat).Set(roots[k][1])}, Faces: faces, RimEdges: edges}
 			}
 			out.Lower = lower
 			out.Upper = upper
@@ -173,6 +191,10 @@ type FilletedFrustumOccurrenceOrderedRimFaces struct {
 // ClassifyOrderedBlindRimsRational preserves exact ordered distance and both
 // source owner pairs through proper rational rigid placement; one source query.
 func (q FilletedFrustumOccurrence) ClassifyOrderedBlindRimsRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumOpposingRimOptions) (out FilletedFrustumOccurrenceOrderedRimFaces, err error) {
+	return q.classifyBlindRimFaces(ctx, p, o, false)
+}
+
+func (q FilletedFrustumOccurrence) classifyBlindRimFaces(ctx context.Context, p [3]*big.Rat, o FilletedFrustumOpposingRimOptions, independentCenters bool) (out FilletedFrustumOccurrenceOrderedRimFaces, err error) {
 	defer func() {
 		if err != nil {
 			out = FilletedFrustumOccurrenceOrderedRimFaces{}
@@ -185,7 +207,7 @@ func (q FilletedFrustumOccurrence) ClassifyOrderedBlindRimsRational(ctx context.
 	if e != nil {
 		return out, e
 	}
-	source, e := q.source.ClassifyOrderedBlindRimsRational(ctx, local, o)
+	source, e := q.source.classifyBlindRimFaces(ctx, local, o, independentCenters)
 	if e != nil {
 		return out, e
 	}

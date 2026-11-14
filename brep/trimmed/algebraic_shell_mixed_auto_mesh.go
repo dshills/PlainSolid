@@ -9,7 +9,7 @@ import (
 
 // MixedIntersectionMeshOptions sets independent limits for the original
 // boundary, exact support discovery, planar and roof fill, and final
-// assembly. Planar discovery recognizes exact coordinate planes; other
+// assembly. Planar discovery recognizes represented exact planes; other
 // faces must be parts of one qualified graph roof per operand.
 type MixedIntersectionMeshOptions struct {
 	Boundary          AlgebraicShellBoundaryEmbeddingOptions
@@ -19,6 +19,10 @@ type MixedIntersectionMeshOptions struct {
 	SupportOperations int
 }
 
+// MixedDifferenceMeshOptions uses the same stage limits for the exact
+// complement and reversed-tool proofs.
+type MixedDifferenceMeshOptions = MixedIntersectionMeshOptions
+
 // TessellateIntersectionMeshCertified builds the full certified display of
 // a qualified mixed original intersection, with no caller-supplied face
 // roles or plane guesses. Exact support identity supplies candidate roles;
@@ -26,13 +30,26 @@ type MixedIntersectionMeshOptions struct {
 // proofs still run. Unsupported inputs produce no partial mesh.
 func (s *MixedAlgebraicShellBoolean) TessellateIntersectionMeshCertified(ctx context.Context,
 	opts MixedIntersectionMeshOptions) (*CertifiedMixedAlgebraicShellMesh, error) {
+	return s.tessellateCompleteMixedMesh(ctx, opts, parametric.Intersection)
+}
+
+// TessellateDifferenceMeshCertified automatically recognizes the supports
+// of a qualified mixed difference. Material complement and tool-face
+// orientation are independently proved before assembling all components.
+func (s *MixedAlgebraicShellBoolean) TessellateDifferenceMeshCertified(ctx context.Context,
+	opts MixedDifferenceMeshOptions) (*CertifiedMixedAlgebraicShellMesh, error) {
+	return s.tessellateCompleteMixedMesh(ctx, opts, parametric.Difference)
+}
+
+func (s *MixedAlgebraicShellBoolean) tessellateCompleteMixedMesh(ctx context.Context,
+	opts MixedIntersectionMeshOptions, operation parametric.BooleanOp) (*CertifiedMixedAlgebraicShellMesh, error) {
 	if ctx == nil || s == nil || s.section == nil {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	if s.boundary.op != parametric.Intersection {
+	if s.boundary.op != operation {
 		return nil, geom.ErrUnrepresentable
 	}
 	if opts.SupportOperations == 0 {
@@ -75,7 +92,7 @@ func (s *MixedAlgebraicShellBoolean) TessellateIntersectionMeshCertified(ctx con
 			if budget < 1 {
 				return nil, geom.ErrConvergence
 			}
-			pp, yes, e := mixedAxisPlaneProposal(ctx, patch, id, &budget)
+			pp, yes, e := mixedExactPlaneProposal(ctx, patch, id, &budget)
 			if e != nil {
 				return nil, e
 			}
@@ -109,7 +126,13 @@ func (s *MixedAlgebraicShellBoolean) TessellateIntersectionMeshCertified(ctx con
 	}
 	var fills []*CertifiedMixedRoofFragment
 	for _, id := range roofs {
-		r, e := n.TessellateRoofFragmentCertified(ctx, id, roofOwners[s.boundary.faces[id].Operand^1], opts.Roof)
+		other := roofOwners[s.boundary.faces[id].Operand^1]
+		var r *CertifiedMixedRoofFragment
+		if operation == parametric.Difference {
+			r, e = n.TessellateDifferenceRoofFragmentCertified(ctx, id, other, opts.Roof)
+		} else {
+			r, e = n.TessellateRoofFragmentCertified(ctx, id, other, opts.Roof)
+		}
 		if e != nil {
 			return nil, e
 		}
