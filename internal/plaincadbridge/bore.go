@@ -346,6 +346,12 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		p := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
 		axis := c.frame.ZAxis()
 		if math.Abs(math.Abs(axis.Dot(n))-1) <= 1e-9 && math.Abs(p.Sub(origin).Dot(axis)) <= 1e-7 {
+			if recipe := body.blindCrossed; recipe != nil && recipe.clippedFloor {
+				if recipe.depth[1] == recipe.crossing.Z {
+					return PlanarFace{}, errors.New("blind floor was fully removed by the through bore")
+				}
+				return PlanarFace{}, errors.New("planar face reference is ambiguous")
+			}
 			if floor != nil {
 				return PlanarFace{}, errors.New("planar face reference is ambiguous")
 			}

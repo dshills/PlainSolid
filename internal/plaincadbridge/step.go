@@ -385,7 +385,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.blindCrossed != nil:
 		recipe := s.bore.blindCrossed
-		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0], BlindDepth: recipe.depth[1], OppositeCap: recipe.oppositeCap[1], XBlindDepth: recipe.depth[0], XOppositeCap: recipe.oppositeCap[0]}
+		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0], BlindDepth: recipe.depth[1], OppositeCap: recipe.oppositeCap[1], XBlindDepth: recipe.depth[0], XOppositeCap: recipe.oppositeCap[0], ClippedFloor: recipe.clippedFloor}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossed != nil:
 		recipe, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)

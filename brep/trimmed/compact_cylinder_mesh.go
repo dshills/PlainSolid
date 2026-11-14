@@ -215,7 +215,7 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 		if compactTorus(f) {
 			count = 2 * counts[f.Outer[0].Edge] * counts[f.Outer[1].Edge]
 		}
-		if _, ok := compactAxialStart(f); ok {
+		if _, ok := compactAxialStart(f); ok && !compactCrossedStrip(f) {
 			count = 0
 			for _, u := range f.Outer {
 				if u.UVStart.X != u.UVEnd.X {

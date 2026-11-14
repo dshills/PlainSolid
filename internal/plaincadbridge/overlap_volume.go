@@ -241,8 +241,12 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if hi <= lo {
 		return result(0)
 	}
+	// Independent entry-open walls and finite crossed pairs retain each
+	// tool's exact plane stop. Union and layered histories have their own
+	// footprint and interval proofs.
+	finiteBores := a.bore.union == nil && a.bore.layered == nil
 	for i, old := range a.bore.cylinders {
-		if (!a.bore.blind[i] || a.bore.blindCrossed != nil) && cardinalBoreContainsTool(old, a.bore.blind[i], c.cylinder) {
+		if (!a.bore.blind[i] || finiteBores) && cardinalBoreContainsTool(old, a.bore.blind[i], c.cylinder) {
 			return result(0)
 		}
 	}

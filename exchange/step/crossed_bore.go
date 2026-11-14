@@ -24,6 +24,7 @@ type CrossedBoreBody struct {
 	OppositeCap          bool
 	XBlindDepth          float64
 	XOppositeCap         bool
+	ClippedFloor         bool
 }
 
 type CrossedBoreModel struct {
@@ -54,6 +55,18 @@ func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 	var result trimmed.BoxCrossedBoresResult
 	var err error
 	switch {
+	case p.ClippedFloor:
+		if p.XBlindDepth != 0 || p.XOppositeCap || p.OppositeCap {
+			return geom.ErrDomain
+		}
+		switch {
+		case p.BlindDepth < p.Crossing.Z:
+			result, err = trimmed.BoxBeforeCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, 1e-9)
+		case p.BlindDepth == p.Crossing.Z:
+			result, err = trimmed.BoxCenterCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+		default:
+			result, err = trimmed.BoxClippedCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, 1e-9)
+		}
 	case p.XBlindDepth != 0 || p.XOppositeCap:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.Radius, p.XBlindDepth, p.BlindDepth, p.XOppositeCap, p.OppositeCap, 1e-9)
 	case p.BlindDepth != 0 || p.OppositeCap:
@@ -107,23 +120,33 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 	if err != nil {
 		return fail()
 	}
-	faces, err := listRefs(shell.Args[1], 22)
-	if err != nil || len(faces) > 24 {
+	faces, err := listRefs(shell.Args[1], 16)
+	if err != nil {
+		return fail()
+	}
+	var clippedFloorID int
+	zStart, xStart := 6, 14
+	switch len(faces) {
+	case 16:
+		xStart = 10
+	case 22:
+	case 23:
+		zStart, xStart = 7, 15
+	case 24:
+		zStart, xStart = 7, 16
+	case 26:
+		clippedFloorID = trimmed.BeforeCrossedBoreFloorFirst
+	case 34:
+		xStart = 18
+		clippedFloorID = trimmed.ClippedCrossedBoreFloorFirst
+	default:
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
-	zBlind, xBlind := len(faces) >= 23, len(faces) == 24
-	zStart, xStart := 6, 14
-	if zBlind {
-		zStart++
-		xStart++
-	}
-	if xBlind {
-		xStart++
-	}
+	zBlind, xBlind := len(faces) == 23 || len(faces) == 24, len(faces) == 24
 	var supports [2]circularSourceFace
 	for i, id := range []int64{faces[zStart], faces[xStart]} {
 		supports[i], err = readCircularSourceFace(f, id)
@@ -177,6 +200,17 @@ func recoverCrossedBore(f *File, id int64) (CrossedBoreBody, error) {
 		if !ok {
 			return fail()
 		}
+	}
+	if len(faces) == 16 {
+		p.BlindDepth, p.ClippedFloor = p.Crossing.Z, true
+	}
+	if clippedFloorID != 0 {
+		floor, err := readCircularSourceFace(f, faces[clippedFloorID])
+		if err != nil || floor.kind != "PLANE" || len(floor.loops) != 1 || len(floor.loops[0]) != 3 {
+			return fail()
+		}
+		p.BlindDepth = frame.ToLocal(floor.frame.Origin()).Z
+		p.ClippedFloor = true
 	}
 	return p, nil
 }

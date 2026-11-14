@@ -1,5 +1,55 @@
 # Verification record
 
+## PlainCAD blind stops before and at a perpendicular crossing — 2026-11-14
+
+A blind floor inside the near half of the crossing retains two disconnected
+circular segments. A stop exactly through the crossing axis consumes the
+planar floor and retains the analytic cylinder intersection. A shared stock
+and cap-wire builder preserves the previous far-half STEP bytes.
+
+[Seventeen original PlainCAD Hole and STEP scenarios](evidence/plaincad-before-crossed-step-browser-2026-11-14.json)
+pass on the same WASM as the supplemental
+[near-half stop](evidence/plaincad-before-crossed-step-native-2026-11-14.json)
+and [exact-axis stop](evidence/plaincad-center-crossed-step-native-2026-11-14.json).
+Both authored projects export analytic STEP, reimport, reopen and produce
+watertight STL. Thirty new signed native checks and six independent OCCT
+STEP comparisons cover these cases. The two authored models also match
+direct OCCT Booleans in volume, area and centroid. The focused race checks
+and Go vet pass.
+
+## PlainCAD STEP for disjoint mixed-axis blind Holes — 2026-11-14
+
+Canonical STEP retains up to 32 independent interior bores on two or three
+cardinal axes. Blind bores keep their entry sides and exact planar floors.
+This increment qualifies tools whose conservative full-through bounds are
+separated. The existing through-only STEP bytes are unchanged. Grouped and
+successive cuts, scaled STEP import, retained cutter overlap and meshes pass.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-blind-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-disjoint-blind-step-native-2026-11-14.json)
+pass on the same WASM. The authored project reimports and reopens STEP,
+then extracts both blind floor locations from watertight STL. Twelve
+independent OCCT STEP imports pass on signed, mixed and wholly blind
+fixtures. The focused native race tests and Go vet pass.
+
+## PlainCAD STEP for a split blind Hole floor — 2026-11-14
+
+An equal-radius perpendicular through Hole splits a blind floor into
+two circular segments when the stop passes the crossing axis and
+remains within the through cylinder. Both segments retain their
+planar supports and exact circle arcs. The intersection edges retain
+analytic ellipse arcs. A plane-only face query detects the disconnected
+floor reference as ambiguous.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-clipped-crossed-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-clipped-crossed-step-native-2026-11-14.json)
+pass on the same WASM. The authored project reimports the 69,597-byte
+STEP, reopens, and checks both floor segments and the through passage
+in a watertight STL. Twenty-four signed native cases and three
+independent OCCT STEP imports pass. The authored OCCT Boolean and
+OCCT STEP readback agree within 0.00000004 in volume and area.
+Focused race tests and Go vet pass.
+
 ## PlainCAD repeated and deepened crossed Holes — 2026-11-14
 
 A crossed Hole batch can contain coaxial cutters proved covered by another
