@@ -53,6 +53,17 @@ func (q FilletedFrustumOccurrence) BoundBoundaryNestedDistanceRational(ctx conte
 	if e != nil {
 		return out, e
 	}
+	return q.transformFilletedNestedDistance(ctx, original)
+}
+
+// transformFilletedNestedDistance reuses one completed source proof.
+func (q FilletedFrustumOccurrence) transformFilletedNestedDistance(ctx context.Context, original FilletedFrustumNestedDistance) (out FilletedFrustumOccurrenceNestedDistance, err error) {
+	defer func() {
+		if err != nil {
+			out = FilletedFrustumOccurrenceNestedDistance{}
+		}
+	}()
+	var e error
 	out.Original = original
 	out.Lower = new(big.Rat).Set(original.Lower)
 	out.Upper = new(big.Rat).Set(original.Upper)
