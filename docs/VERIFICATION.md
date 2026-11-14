@@ -6104,3 +6104,10 @@ enabled. The selected path is blue and the other shared leaf use remains
 red. Retargeting the upper use swaps that single override. Exact native
 reproof and STEP transfer retain six placed leaves, volume 108 and area
 252. The combined flat, nested and SHUO live race passed in 7.350 s.
+
+### Blind native prism qualification
+
+Both entry directions, exact volume, centroid and closed topology pass.
+A nonconvex stock and slanted triangular tool preserve the original wall
+sources. Touching profiles and unsupported axial trims reject atomically.
+The integrated race passed in 1.529 s.

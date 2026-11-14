@@ -2288,3 +2288,11 @@ repeated-group structure. It retains both original use identities and
 applies the override only to the selected path. Native reload rechecks
 geometry, placement, exact source ownership and all sibling appearances.
 See the [SHUO exchange contract](../exchange/step/SHUO_OCCURRENCE_COLORS.md).
+
+### Nested-profile blind native prism Cut
+
+`trimmed.CutContainedNativePrismBlind` proves strict profile containment
+and a tool entering exactly one stock cap. It sews the opened cap, unused
+stock cap, original stock walls, internal floor and reversed clipped tool
+walls. The result retains original cap and wall ancestry and exact axial
+fractions on the tool walls.
