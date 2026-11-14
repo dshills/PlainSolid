@@ -8,7 +8,8 @@ import (
 	"testing"
 )
 
-func TestBoundRadialTubeRegionVolume(t *testing.T) {
+func radialMaterialForBounds(t *testing.T) AlgebraicShellBoolean {
+	t.Helper()
 	ctx := context.Background()
 	a, b, hints := transverseSplineCapsDomain(t, true)
 	options := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}
@@ -23,6 +24,12 @@ func TestBoundRadialTubeRegionVolume(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	return result
+}
+
+func TestBoundRadialTubeRegionVolume(t *testing.T) {
+	ctx := context.Background()
+	result := radialMaterialForBounds(t)
 	center := [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}
 	radii := []*big.Rat{big.NewRat(5, 16)}
 	v, e := result.BoundRadialTubeRegionVolume(ctx, center, radii, geom.RadialGraphVolumeOptions{PrecisionBits: 80})

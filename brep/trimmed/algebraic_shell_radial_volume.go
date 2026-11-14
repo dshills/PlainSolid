@@ -31,7 +31,32 @@ type RadialTubeRegionVolumeComponent struct {
 // MaxOperations is cumulative, including original support recovery. No partial
 // result is published. This does not broaden native serialization limits.
 func (s AlgebraicShellBoolean) BoundRadialTubeRegionVolume(ctx context.Context, center [2]*big.Rat, radii []*big.Rat, o geom.RadialGraphVolumeOptions) (RadialTubeRegionVolume, error) {
-	zero := RadialTubeRegionVolume{}
+	bound, e := s.nativeRadialRegions(ctx, center, radii, o)
+	if e != nil {
+		return RadialTubeRegionVolume{}, e
+	}
+	options := bound.options
+	options.MaxOperations -= bound.work
+	volume, e := bound.proof.BoundVolumeBands(ctx, bound.bands, options)
+	if e != nil {
+		return RadialTubeRegionVolume{}, e
+	}
+	volume.ExactOperations += bound.work
+	return RadialTubeRegionVolume{Volume: volume, Components: bound.components}, nil
+}
+
+type nativeRadialRegions struct {
+	proof      *geom.SplineGraphRadialContours
+	bands      []int
+	components []RadialTubeRegionVolumeComponent
+	work       int
+	options    geom.RadialGraphVolumeOptions
+}
+
+// nativeRadialRegions is the sole original-material ownership gate shared by
+// volume and projected moments. Public diagnostic tables are never authority.
+func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [2]*big.Rat, radii []*big.Rat, o geom.RadialGraphVolumeOptions) (nativeRadialRegions, error) {
+	zero := nativeRadialRegions{}
 	if ctx == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -144,7 +169,7 @@ func (s AlgebraicShellBoolean) BoundRadialTubeRegionVolume(ctx context.Context, 
 	// never to infer a crossing or approximate a boundary.
 	used := map[int]bool{}
 	bands := []int{}
-	result := RadialTubeRegionVolume{}
+	result := nativeRadialRegions{}
 	for _, layout := range layouts {
 		if len(layout.Branches) > 2 || s.source.branches[layout.Branches[0]].Faces != pair {
 			return zero, geom.ErrConvergence
@@ -242,18 +267,15 @@ func (s AlgebraicShellBoolean) BoundRadialTubeRegionVolume(ctx context.Context, 
 			return zero, geom.ErrConvergence
 		}
 		bands = append(bands, band)
-		result.Components = append(result.Components, RadialTubeRegionVolumeComponent{OriginalFaces: pair, OuterBranch: layout.Branches[0], InnerBranch: inner, Band: band})
+		result.components = append(result.components, RadialTubeRegionVolumeComponent{OriginalFaces: pair, OuterBranch: layout.Branches[0], InnerBranch: inner, Band: band})
 	}
 	sort.Ints(bands)
 	if work >= o.MaxOperations {
 		return zero, geom.ErrConvergence
 	}
-	vo := o
-	vo.MaxOperations -= work
-	result.Volume, e = proof.BoundVolumeBands(ctx, bands, vo)
-	if e != nil {
-		return zero, e
-	}
-	result.Volume.ExactOperations += work
+	result.proof = proof
+	result.bands = bands
+	result.work = work
+	result.options = o
 	return result, nil
 }
