@@ -151,11 +151,11 @@ func BoundPointWrappedFrustumDistanceRational(ctx context.Context, w *WrappedSur
 		if e != nil {
 			return empty, e
 		}
-		bound, e := boundPointSurfaceDistanceRational(ctx, query, rim.patch, o, true)
+		bound, e := BoundPointExactCurveDistanceRational(ctx, query, rim, CurveDistanceOptions(o))
 		if e != nil {
 			return empty, e
 		}
-		if !bound.Complete || !bound.HasUpperPoint || bound.Squared.Lower == nil {
+		if !bound.Complete || !bound.HasWitness || bound.Squared.Lower == nil {
 			return empty, ErrConvergence
 		}
 		result.VisitedCells += bound.VisitedCells
