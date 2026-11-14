@@ -2661,3 +2661,15 @@ second moments, centroid and first Z moment, including work limits and output
 ownership. The integrated focused geometry race passed in 1.680 s. These
 methods accept explicit radial bands and do not independently select native
 Boolean material.
+
+## Physical radial mass from original native occupancy (2026-11-14)
+
+The native annulus selected band 1 directly from the original two wires and
+charged 12,127 binding and exact integration operations. The regression
+rejects a missing hole, reversed material, unrelated support, wrong circles,
+and one-less quota. Changing public diagnostics and returned band labels does
+not change selection. The original proof also accepts independently decoded
+exactly equivalent support recipes. The qualifying native race at `4613e35`
+passed in 590.20 s; final normal with decoded-support evidence passed in
+86.39 s. A separate original unit-chart regression passed under race in
+36.408 s. No mesh was run for this query.

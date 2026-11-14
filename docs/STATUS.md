@@ -1576,3 +1576,9 @@ Native assembly retains 176 ordered original tube edges, the original UV
 owners and two original support objects. Each edge has two opposed uses;
 there are two inner wires and Euler characteristic zero. Removing an inner
 wire fails atomically. Separate tests cover exact transfer work limits.
+
+`AlgebraicShellBoolean.PhysicalRadialTubeRegionMassMoments` selects the occupied
+physical bands from the original immutable Boolean, then re-proves source
+support identity and branch orientation. The non-unit annulus selects band 1
+with exact volume/π 421875/2147483648, area/π 75/1024 and centroid
+(3, 1/2, 3375/2097152). The point and moment methods retain independent limits.

@@ -46,16 +46,21 @@ func (s AlgebraicShellBoolean) BoundRadialTubeRegionVolume(ctx context.Context, 
 }
 
 type nativeRadialRegions struct {
-	proof      *geom.SplineGraphRadialContours
-	bands      []int
-	components []RadialTubeRegionVolumeComponent
-	work       int
-	options    geom.RadialGraphVolumeOptions
+	proof       *geom.SplineGraphRadialContours
+	affineProof *geom.AffineRadialContours
+	bands       []int
+	components  []RadialTubeRegionVolumeComponent
+	work        int
+	options     geom.RadialGraphVolumeOptions
 }
 
 // nativeRadialRegions is the sole original-material ownership gate shared by
 // volume and projected moments. Public diagnostic tables are never authority.
 func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [2]*big.Rat, radii []*big.Rat, o geom.RadialGraphVolumeOptions) (nativeRadialRegions, error) {
+	return s.nativeRadialRegionsWithCharts(ctx, center, radii, o, false)
+}
+
+func (s AlgebraicShellBoolean) nativeRadialRegionsWithCharts(ctx context.Context, center [2]*big.Rat, radii []*big.Rat, o geom.RadialGraphVolumeOptions, affine bool) (nativeRadialRegions, error) {
 	zero := nativeRadialRegions{}
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -149,12 +154,32 @@ func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [
 	if work >= o.MaxOperations {
 		return zero, geom.ErrConvergence
 	}
-	proof, e := geom.CertifySplineGraphRadialContours(ctx, patches[0], patches[1], center, radii, geom.GraphPointContactOptions{MaxOperations: o.MaxOperations - work, MaxCoefficientBits: o.MaxCoefficientBits})
-	if e != nil {
-		return zero, e
-	}
-	if e = charge(proof.ExactOperations()); e != nil {
-		return zero, e
+	var proof *geom.SplineGraphRadialContours
+	var physical *geom.AffineRadialContours
+	var signs []int
+	orientation := [2]int{1, 1}
+	limits := geom.GraphPointContactOptions{MaxOperations: o.MaxOperations - work, MaxCoefficientBits: o.MaxCoefficientBits}
+	if affine {
+		physical, e = geom.CertifyAffineRadialGraphContours(ctx, patches[0], patches[1], center, radii, limits)
+		if e != nil {
+			return zero, e
+		}
+		if e = charge(physical.ExactOperations()); e != nil {
+			return zero, e
+		}
+		signs = physical.BandSigns()
+		for i := range 2 {
+			orientation[i] = physical.OriginalOrientation(i)
+		}
+	} else {
+		proof, e = geom.CertifySplineGraphRadialContours(ctx, patches[0], patches[1], center, radii, limits)
+		if e != nil {
+			return zero, e
+		}
+		if e = charge(proof.ExactOperations()); e != nil {
+			return zero, e
+		}
+		signs = proof.BandSigns()
 	}
 	squares := make([]*big.Rat, len(radii))
 	for i, r := range radii {
@@ -191,10 +216,24 @@ func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [
 				if box.Min.X < 0 || box.Min.Y < 0 || box.Max.X > 1 || box.Max.Y > 1 {
 					return zero, geom.ErrConvergence
 				}
+				exactBox := [2][2]*big.Rat{{new(big.Rat).SetFloat64(box.Min.X), new(big.Rat).SetFloat64(box.Max.X)}, {new(big.Rat).SetFloat64(box.Min.Y), new(big.Rat).SetFloat64(box.Max.Y)}}
+				if affine {
+					if work >= o.MaxOperations {
+						return zero, geom.ErrConvergence
+					}
+					var n int
+					exactBox, n, e = physical.PhysicalBox(ctx, 1, geom.ParameterRectangle{UMin: box.Min.X, UMax: box.Max.X, VMin: box.Min.Y, VMax: box.Max.Y}, geom.SurfacePatchOptions{MaxOperations: o.MaxOperations - work, MaxCoefficientBits: o.MaxCoefficientBits})
+					if e != nil {
+						return zero, e
+					}
+					if e = charge(n); e != nil {
+						return zero, e
+					}
+				}
 				lo, hi := new(big.Rat), new(big.Rat)
-				for axis, ends := range [][2]float64{{box.Min.X, box.Max.X}, {box.Min.Y, box.Max.Y}} {
-					a := new(big.Rat).SetFloat64(ends[0])
-					b := new(big.Rat).SetFloat64(ends[1])
+				for axis, ends := range exactBox {
+					a := ends[0]
+					b := ends[1]
 					if a == nil || b == nil {
 						return zero, geom.ErrInvalid
 					}
@@ -262,8 +301,8 @@ func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [
 			}
 			inner = layout.Branches[1]
 		}
-		sign := proof.BandSigns()[band]
-		if layout.Faces[0].Reversed != (sign < 0) || layout.Faces[1].Reversed != (sign > 0) {
+		sign := signs[band]
+		if layout.Faces[0].Reversed != (sign*orientation[0] < 0) || layout.Faces[1].Reversed != (sign*orientation[1] > 0) {
 			return zero, geom.ErrConvergence
 		}
 		bands = append(bands, band)
@@ -274,6 +313,7 @@ func (s AlgebraicShellBoolean) nativeRadialRegions(ctx context.Context, center [
 		return zero, geom.ErrConvergence
 	}
 	result.proof = proof
+	result.affineProof = physical
 	result.bands = bands
 	result.work = work
 	result.options = o
