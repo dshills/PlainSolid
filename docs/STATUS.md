@@ -39,7 +39,7 @@ face assignments or rational wall seeds.
 On proved original roof boxes, exact rational point and line queries
 preserve original floor, side, and roof owners, including simultaneous
 contacts and a retained difference span below binary64 resolution.
-The arbitrary-direction line sweep isolates up to quartic restrictions,
+The arbitrary-direction line sweep isolates up to sixth-degree restrictions,
 distinguishes repeated roots from crossings, and reports exposed
 coincident spans separately from the interior. It qualifies both the
 mixed restricted-wall Boolean and the independently curved bubble roofs.
@@ -56,11 +56,11 @@ exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
 inertia have separate original OCCT comparisons.
 Prepared roof queries also admit original single-span positive rational
-weights whose cleared line equation stays at degree four or below. The
-weighted cavity kept its exact roof hit, quotient normal and floor
-distance, and an independently sewn OCCT rational model gave the same
-line parameter. The specialized polynomial mesh proof keeps its
-existing scope.
+surfaces through degree three in each chart axis. The weighted cavity
+kept its exact roof hit, quotient normal and floor distance, and an
+independently sewn OCCT rational model gave the same line parameter.
+A separate original bicubic roof retained its different sixth-degree
+line root. The specialized polynomial mesh proof keeps its existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and

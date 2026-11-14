@@ -18,7 +18,7 @@ import (
 // rational weights. The first roof is (2+x²)/(1+x); the second is below
 // it and fully inside the first box, so their retained boundaries are known
 // without an approximate intersection curve.
-func weightedIdentityRoofStock(t *testing.T, tool bool) Solid {
+func weightedIdentityRoofStock(t *testing.T, tool, cubic bool) Solid {
 	t.Helper()
 	ctx := context.Background()
 	r := big.NewRat
@@ -47,7 +47,36 @@ func weightedIdentityRoofStock(t *testing.T, tool bool) Solid {
 				controls = append(controls, point(i, j))
 			}
 		}
-		p, err := geom.NewExactHomogeneousBezierSurface(ctx, 2, 1, controls, geom.SurfacePatchOptions{})
+		degreeU, degreeV := 2, 1
+		if cubic {
+			// Exact degree elevation preserves the original rational
+			// walls and floor while allowing an independent bicubic roof.
+			raised := make([][4]*big.Rat, 16)
+			for i := 0; i < 4; i++ {
+				for axis := 0; axis < 4; axis++ {
+					l, h := new(big.Rat), new(big.Rat)
+					if i > 0 {
+						l.Mul(r(int64(i), 3), controls[(i-1)*2][axis])
+						h.Mul(r(int64(i), 3), controls[(i-1)*2+1][axis])
+					}
+					if i < 3 {
+						l.Add(l, new(big.Rat).Mul(r(int64(3-i), 3), controls[i*2][axis]))
+						h.Add(h, new(big.Rat).Mul(r(int64(3-i), 3), controls[i*2+1][axis]))
+					}
+					for j := 0; j < 4; j++ {
+						raised[i*4+j][axis] = new(big.Rat).Add(new(big.Rat).Mul(r(int64(3-j), 3), l), new(big.Rat).Mul(r(int64(j), 3), h))
+					}
+				}
+			}
+			// This Bernstein term contributes only in the roof interior:
+			// (1/64)*u²(1-u)*v²(1-v), with no change to the four edges.
+			if len(parts) == 1 && !tool {
+				raised[2*4+2][2].Add(raised[2*4+2][2], r(1, 576))
+			}
+			controls = raised
+			degreeU, degreeV = 3, 3
+		}
+		p, err := geom.NewExactHomogeneousBezierSurface(ctx, degreeU, degreeV, controls, geom.SurfacePatchOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -131,7 +160,7 @@ func weightedIdentityRoofStock(t *testing.T, tool bool) Solid {
 
 func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 	ctx := context.Background()
-	a, b := weightedIdentityRoofStock(t, false), weightedIdentityRoofStock(t, true)
+	a, b := weightedIdentityRoofStock(t, false, false), weightedIdentityRoofStock(t, true, false)
 	// Test the complete original section and regularized result; a caller
 	// cannot construct a query by asserting its own solid envelopes.
 	sec, err := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
@@ -188,5 +217,47 @@ func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 	}
 	if _, err := proveMixedRoofBox(ctx, a, 1, 1000000); !errors.Is(err, geom.ErrUnrepresentable) {
 		t.Fatal("polynomial-only mesh proof accepted rational height", err)
+	}
+}
+
+func TestOriginalBicubicWeightedRoofMaterialLine(t *testing.T) {
+	ctx := context.Background()
+	a, b := weightedIdentityRoofStock(t, false, true), weightedIdentityRoofStock(t, true, true)
+	sec, err := SectionSplineShellsAlgebraic(ctx, a, b, AlgebraicShellSectionOptions{})
+	if err != nil || !sec.Complete {
+		t.Fatal("complete bicubic source section", sec.Coverage, err)
+	}
+	m, err := sec.CombineAlgebraic(ctx, parametric.Difference, AlgebraicShellBooleanOptions{})
+	if err != nil {
+		t.Fatal("bicubic cavity", err)
+	}
+	q, err := m.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+	if err != nil {
+		t.Fatal("prepare bicubic source", err)
+	}
+	if limited, err := m.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{MaxPreparationOperations: q.PreparationOperations() - 1}); !errors.Is(err, geom.ErrConvergence) || limited != nil {
+		t.Fatal("bicubic coefficient conversion escaped the preparation limit", limited, err)
+	}
+	r := big.NewRat
+	origin, direction := [3]*big.Rat{r(0, 1), r(0, 1), r(3, 2)}, [3]*big.Rat{r(1, 1), r(1, 1), r(1, 4)}
+	section, err := q.IntersectLineRational(ctx, origin, direction, r(1, 8), r(7, 8), MixedRoofLineOptions{})
+	if err != nil || len(section.Events) != 1 || len(section.Spans) != 1 || section.Events[0].Before != parametric.Inside || section.Events[0].After != parametric.Outside ||
+		len(section.Events[0].Owners) != 1 || section.Events[0].Owners[0] != (MixedRoofFaceOwner{0, 1}) {
+		t.Fatal("bicubic line sweep", section, err)
+	}
+	// Multiply the actual original rational height equation by 64(1+t).
+	// 32 -112 t +48t² +t⁴-2t⁵+t⁶ = 0.
+	coeff := []*big.Rat{r(32, 1), r(-112, 1), r(48, 1), r(0, 1), r(1, 1), r(-2, 1), r(1, 1)}
+	sign, err := section.Events[0].Parameter.SignPolynomial(ctx, coeff, geom.ExactCurvePlaneEventOptions{})
+	if err != nil || sign.Sign != 0 {
+		t.Fatal("sextic restriction lost its original identity", sign, err)
+	}
+	old, _, err := geom.NewExactRationalRoot(ctx, r(1, 3), geom.ExactCurvePlaneEventOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := section.Events[0].Parameter.Compare(ctx, old, geom.ExactCurvePlaneEventOptions{})
+	if err != nil || !order.Proven || order.Order != 1 {
+		t.Fatal("bicubic contact rounded into old quadratic", order, err)
 	}
 }

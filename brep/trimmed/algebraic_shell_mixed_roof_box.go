@@ -14,7 +14,8 @@ type mixedRoofBox struct {
 	roof       *geom.SurfacePatch
 	patches    [6]*geom.SurfacePatch
 	power      [3][3]*big.Rat
-	weight     [3][3]*big.Rat
+	linePower  [][]*big.Rat
+	weight     [][]*big.Rat
 	minWeight  *big.Rat
 	floor      *big.Rat
 	domain     geom.ParameterRectangle
@@ -106,30 +107,55 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 	r.roofFace = roof
 	r.domain = r.roof.Domain()
 	var err error
-	r.power, err = mixedRoofPower(r.roof)
-	if err != nil {
-		if !rationalHeight || err != geom.ErrUnrepresentable {
+	if !rationalHeight {
+		r.power, err = mixedRoofPower(r.roof)
+		if err != nil {
 			return nil, err
 		}
-		coeff, minWeight, ok := r.roof.RationalBiquadraticCoefficients()
-		// With identity XY, Hx=X*W and Hy=Y*W. A biquadratic
-		// patch can therefore have at most bilinear nonconstant weight.
+	} else {
+		n, err := remaining()
+		if err != nil {
+			return nil, err
+		}
+		coeff, minWeight, work, ok := r.roof.RationalBezierCoefficientsWithWork(3, n)
+		r.operations += work
 		if !ok {
+			if work != 0 && r.operations >= limit {
+				return nil, geom.ErrConvergence
+			}
 			return nil, geom.ErrUnrepresentable
 		}
+		r.linePower = make([][]*big.Rat, len(coeff))
+		r.weight = make([][]*big.Rat, len(coeff))
 		r.minWeight = minWeight
+		constant := true
 		for a, row := range coeff {
+			r.linePower[a] = make([]*big.Rat, len(row))
+			r.weight[a] = make([]*big.Rat, len(row))
 			for b, c := range row {
-				if (a == 2 || b == 2) && c[3].Sign() != 0 {
+				// The identity projection gives Hx=X*W and Hy=Y*W.
+				// A bicubic graph's denominator is at most biquadratic.
+				if (a > 2 || b > 2) && c[3].Sign() != 0 {
 					return nil, geom.ErrUnrepresentable
 				}
-				for _, v := range []*big.Rat{c[2], c[3], minWeight} {
-					if !mixedRoofFits(v, 4096) {
+				r.linePower[a][b], r.weight[a][b] = c[2], c[3]
+				if a+b != 0 && c[3].Sign() != 0 {
+					constant = false
+				}
+			}
+		}
+		if constant {
+			w := r.weight[0][0]
+			for _, row := range r.linePower {
+				for _, c := range row {
+					c.Quo(c, w)
+					r.operations++
+					if r.operations > limit || !mixedRoofFits(c, 4096) {
 						return nil, geom.ErrConvergence
 					}
 				}
-				r.power[a][b], r.weight[a][b] = c[2], c[3]
 			}
+			r.weight, r.minWeight = nil, nil
 		}
 	}
 	floor := -1
@@ -137,15 +163,35 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		if i == roof {
 			continue
 		}
-		c, w, ok := p.RationalBiquadraticCoefficients()
-		if !ok || w.Sign() <= 0 {
+		n, err := remaining()
+		if err != nil {
+			return nil, err
+		}
+		c, w, work, ok := p.RationalBezierCoefficientsWithWork(3, n)
+		r.operations += work
+		if !ok {
+			if work != 0 && r.operations >= limit {
+				return nil, geom.ErrConvergence
+			}
+			continue
+		}
+		if w.Sign() <= 0 {
 			continue
 		}
 		height := new(big.Rat).Quo(c[0][0][2], c[0][0][3])
+		r.operations++
+		if r.operations > limit || !mixedRoofFits(height, 4096) {
+			return nil, geom.ErrConvergence
+		}
 		constant := true
-		for a := 0; a < 3; a++ {
-			for b := 0; b < 3; b++ {
-				if new(big.Rat).Mul(height, c[a][b][3]).Cmp(c[a][b][2]) != 0 {
+		for _, row := range c {
+			for _, h := range row {
+				value := new(big.Rat).Mul(height, h[3])
+				r.operations++
+				if r.operations > limit || !mixedRoofFits(value, 4096) {
+					return nil, geom.ErrConvergence
+				}
+				if value.Cmp(h[2]) != 0 {
 					constant = false
 				}
 			}

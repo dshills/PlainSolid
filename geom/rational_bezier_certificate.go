@@ -8,25 +8,37 @@ import "math/big"
 // Single-span degrees up to maxDegree<=6 are supported. Arithmetic uses the
 // immutable patch's operation/bit limits; false means unsupported or exhausted.
 func (p *SurfacePatch) RationalBezierCoefficients(maxDegree int) (coefficients [][][4]*big.Rat, minimumWeight *big.Rat, ok bool) {
+	coefficients, minimumWeight, _, ok = p.RationalBezierCoefficientsWithWork(maxDegree)
+	return
+}
+
+// RationalBezierCoefficientsWithWork is RationalBezierCoefficients with exact
+// operation accounting, including exhausted conversions. One optional
+// allowance further restricts the existing patch budget for this conversion.
+func (p *SurfacePatch) RationalBezierCoefficientsWithWork(maxDegree int, allowance ...int) (coefficients [][][4]*big.Rat, minimumWeight *big.Rat, work int, ok bool) {
 	if p == nil || maxDegree < 1 || maxDegree > 6 || p.degreeU > maxDegree || p.degreeV > maxDegree || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 || len(p.net) == 0 {
-		return nil, nil, false
+		return nil, nil, 0, false
 	}
 	options, e := patchOptions(p.options)
-	if e != nil {
-		return nil, nil, false
+	if e != nil || len(allowance) > 1 || len(allowance) == 1 && allowance[0] < 1 {
+		return nil, nil, 0, false
+	}
+	if len(allowance) == 1 {
+		options.MaxOperations = min(options.MaxOperations, allowance[0])
 	}
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
+	defer func() { work = min(budget.operations, budget.maxOperations) }()
 	minimumWeight = new(big.Rat).Set(p.net[0][3])
 	for _, h := range p.net {
 		if h[3].Sign() <= 0 {
-			return nil, nil, false
+			return nil, nil, 0, false
 		}
 		if h[3].Cmp(minimumWeight) < 0 {
 			minimumWeight.Set(h[3])
 		}
 		for _, q := range h {
 			if budget.check(q) != nil {
-				return nil, nil, false
+				return nil, nil, 0, false
 			}
 		}
 	}
@@ -48,7 +60,7 @@ func (p *SurfacePatch) RationalBezierCoefficients(maxDegree int) (coefficients [
 			}
 			rows[i], e = bernsteinToPower(values, budget)
 			if e != nil {
-				return nil, nil, false
+				return nil, nil, 0, false
 			}
 		}
 		for j := 0; j < p.countV; j++ {
@@ -61,14 +73,14 @@ func (p *SurfacePatch) RationalBezierCoefficients(maxDegree int) (coefficients [
 			}
 			column, e := bernsteinToPower(values, budget)
 			if e != nil {
-				return nil, nil, false
+				return nil, nil, 0, false
 			}
 			for i, q := range column {
 				coefficients[i][j][coordinate] = new(big.Rat).Set(q)
 			}
 		}
 	}
-	return coefficients, minimumWeight, true
+	return coefficients, minimumWeight, 0, true
 }
 
 // RationalBezierDerivativeBounds bounds the original-parameter 3x2 Jacobian.
