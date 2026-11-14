@@ -57,6 +57,17 @@ func TestPreflightUnknownAndComplex(t *testing.T) {
 		t.Fatal("strict reader accepted malformed geometry")
 	}
 }
+
+func TestPreflightNaturalSphereProductRoute(t *testing.T) {
+	raw, err := os.ReadFile("testdata/occt-independent-sphere-product.step")
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := Preflight(bytes.NewReader(raw), Limits{})
+	if err != nil || len(report.Unclassified) != 0 || !slices.Contains(report.CandidateReaders, "ReadIndependentSphereMaterials") {
+		t.Fatal("natural sphere pole loop was not recognized", report.Unclassified, report.CandidateReaders, err)
+	}
+}
 func TestPreflightMalformedAndBounds(t *testing.T) {
 	for _, raw := range []string{"", preflightFile("#1=UNKNOWN(#2);"), preflightFile("#1=UNKNOWN();#1=UNKNOWN();"), preflightFile("#1=UNKNOWN(1.E999);")} {
 		if _, e := Preflight(strings.NewReader(raw), Limits{}); e == nil {

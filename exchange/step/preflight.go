@@ -39,7 +39,7 @@ var preflightCatalog = func() map[string]string {
 		"surface-trims":     "RECTANGULAR_TRIMMED_SURFACE",
 		"spline-surfaces":   "B_SPLINE_SURFACE B_SPLINE_SURFACE_WITH_KNOTS RATIONAL_B_SPLINE_SURFACE",
 		"pcurves":           "PCURVE SURFACE_CURVE SEAM_CURVE DEFINITIONAL_REPRESENTATION",
-		"face-topology":     "FACE ADVANCED_FACE FACE_SURFACE FACE_BOUND FACE_OUTER_BOUND EDGE_CURVE EDGE_LOOP ORIENTED_EDGE VERTEX_POINT POLY_LOOP",
+		"face-topology":     "FACE ADVANCED_FACE FACE_SURFACE FACE_BOUND FACE_OUTER_BOUND EDGE_CURVE EDGE_LOOP ORIENTED_EDGE VERTEX_POINT VERTEX_LOOP POLY_LOOP",
 		"solid-topology":    "MANIFOLD_SOLID_BREP FACETED_BREP CLOSED_SHELL ADVANCED_BREP_SHAPE_REPRESENTATION FACETED_BREP_SHAPE_REPRESENTATION",
 		"cavities":          "BREP_WITH_VOIDS ORIENTED_CLOSED_SHELL",
 		"surface-models":    "OPEN_SHELL SHELL_BASED_SURFACE_MODEL MANIFOLD_SURFACE_SHAPE_REPRESENTATION GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION GEOMETRIC_SET",
@@ -171,6 +171,12 @@ func Preflight(r io.Reader, l Limits) (GraphPreflight, error) {
 		if features["spline-surfaces"] {
 			hints["ReadSplineShells"] = true
 		}
+	}
+	if len(types["SHAPE_DEFINITION_REPRESENTATION"]) > 0 && len(types["ADVANCED_BREP_SHAPE_REPRESENTATION"]) > 0 &&
+		len(types["SPHERICAL_SURFACE"]) > 0 && len(types["VERTEX_LOOP"]) > 0 && !features["assembly"] {
+		// The pole-only boundary is a declaration-level hint. The
+		// reader must still prove the exact pole and product ownership.
+		hints["ReadIndependentSphereMaterials"] = true
 	}
 	if features["cavities"] {
 		hints["ReadCavities"] = true
