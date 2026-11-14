@@ -84,9 +84,21 @@ func LocateWrappedFrustum(ctx context.Context, w *WrappedSurfacePatch, point Vec
 // Generator-coincident intervals, cap overlaps, tangencies and rim ancestry
 // follow CylinderLineIntersections semantics. No apex or zero radius admitted.
 func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfacePatch, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) (CylinderLineIntersections, error) {
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
+		return CylinderLineIntersections{}, ErrInvalid
+	}
+	return IntersectWrappedCircularFrustumLineRational(ctx, w, rationalLineVec3(origin), rationalLineVec3(direction),
+		new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), o)
+}
+
+// IntersectWrappedCircularFrustumLineRational uses exact line coefficients and
+// bounds and returns contacts in the supplied unnormalized parameter.
+func IntersectWrappedCircularFrustumLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat,
+	minT, maxT *big.Rat, o ToroidLineOptions) (CylinderLineIntersections, error) {
 	empty := CylinderLineIntersections{}
-	if !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || !finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
-		return empty, ErrInvalid
+	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
+	if e != nil {
+		return empty, e
 	}
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 1024
@@ -101,12 +113,11 @@ func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfaceP
 	if !p.Circular {
 		return empty, ErrConvergence
 	}
-	options, _ := patchOptions(o.Surface)
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits, operations: p.ExactOperations}
-	x := new(big.Rat).Sub(new(big.Rat).SetFloat64(origin.X), p.CenterX)
-	y := new(big.Rat).Sub(new(big.Rat).SetFloat64(origin.Y), p.CenterY)
-	dx, dy, dz := new(big.Rat).SetFloat64(direction.X), new(big.Rat).SetFloat64(direction.Y), new(big.Rat).SetFloat64(direction.Z)
-	z := new(big.Rat).SetFloat64(origin.Z)
+	x := new(big.Rat).Sub(origin[0], p.CenterX)
+	y := new(big.Rat).Sub(origin[1], p.CenterY)
+	dx, dy, dz := direction[0], direction[1], direction[2]
+	z := origin[2]
 	slope := new(big.Rat).Quo(new(big.Rat).Sub(p.UpperRadius, p.LowerRadius), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
 	r0 := new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, p.LowerZ)))
 	rd := new(big.Rat).Mul(slope, dz)
@@ -121,24 +132,26 @@ func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfaceP
 		}
 	}
 	poly = trimPolynomial(poly)
-	lo, hi := new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT)
+	lo, hi := new(big.Rat).Set(minT), new(big.Rat).Set(maxT)
 	tol := new(big.Rat).SetFloat64(o.ParameterTolerance)
 	exact := func(t *big.Rat) ToroidLineRoot { return ToroidLineRoot{new(big.Rat).Set(t), new(big.Rat).Set(t), 1} }
-	eval := func(t *big.Rat) *big.Rat {
-		r := new(big.Rat)
-		for i := len(poly) - 1; i >= 0; i-- {
-			r.Mul(r, t)
-			r.Add(r, poly[i])
-		}
-		return r
-	}
 	isolate := func(a, b *big.Rat) ([]ToroidLineRoot, error) {
 		var roots []ToroidLineRoot
-		_, e := isolatePolynomialRoots(poly, a, b, budget, o.MaxSubdivisions, func(l, h *big.Rat, m int) (bool, error) {
+		left, e := polynomialValue(poly, a, budget)
+		if e != nil {
+			return nil, e
+		}
+		right, e := polynomialValue(poly, b, budget)
+		if e != nil {
+			return nil, e
+		}
+		_, e = isolatePolynomialRoots(poly, a, b, budget, o.MaxSubdivisions, func(l, h *big.Rat, m int) (bool, error) {
 			if e := ctx.Err(); e != nil {
 				return false, e
 			}
-			if new(big.Rat).Sub(h, l).Cmp(tol) > 0 {
+			if l.Cmp(h) != 0 && (new(big.Rat).Sub(h, l).Cmp(tol) > 0 ||
+				left.Sign() == 0 && l.Cmp(a) == 0 || right.Sign() == 0 && h.Cmp(b) == 0) {
+				// A distinct root bracket cannot touch a known endpoint root.
 				return false, nil
 			}
 			roots = append(roots, ToroidLineRoot{new(big.Rat).Set(l), new(big.Rat).Set(h), m})
@@ -196,14 +209,23 @@ func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfaceP
 			if e := budget.check(t); e != nil {
 				return empty, e
 			}
-			if t.Cmp(lo) < 0 || t.Cmp(hi) > 0 || eval(t).Sign() > 0 {
+			if t.Cmp(lo) < 0 || t.Cmp(hi) > 0 {
+				continue
+			}
+			v, e := polynomialValue(poly, t, budget)
+			if e != nil {
+				return empty, e
+			}
+			if v.Sign() > 0 {
 				continue
 			}
 			merged := false
-			if eval(t).Sign() == 0 {
+			if v.Sign() == 0 {
 				for j := range result.Hits {
 					r := &result.Hits[j]
-					if r.Parameter.Min.Cmp(t) <= 0 && r.Parameter.Max.Cmp(t) >= 0 {
+					// The cap plane clips the side interval. Its exact root is
+					// already present; a neighboring enclosure is a distinct root.
+					if r.Parameter.Min.Cmp(t) == 0 && r.Parameter.Max.Cmp(t) == 0 {
 						r.Parts |= part
 						multiplicity := r.Parameter.Multiplicity
 						r.Parameter = exact(t)
@@ -214,7 +236,7 @@ func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfaceP
 				}
 			}
 			if !merged {
-				if eval(t).Sign() == 0 {
+				if v.Sign() == 0 {
 					part |= CylinderLateral
 				}
 				result.Hits = append(result.Hits, CylinderLineHit{exact(t), part})
@@ -236,13 +258,21 @@ func IntersectWrappedCircularFrustumLine(ctx context.Context, w *WrappedSurfaceP
 			return empty, e
 		}
 		a, b := exact(lo), exact(hi)
-		if eval(lo).Sign() > 0 {
+		low, e := polynomialValue(poly, lo, budget)
+		if e != nil {
+			return empty, e
+		}
+		high, e := polynomialValue(poly, hi, budget)
+		if e != nil {
+			return empty, e
+		}
+		if low.Sign() > 0 {
 			if len(roots) == 0 {
 				continue
 			}
 			a = roots[0]
 		}
-		if eval(hi).Sign() > 0 {
+		if high.Sign() > 0 {
 			if len(roots) == 0 {
 				continue
 			}

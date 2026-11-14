@@ -34,20 +34,26 @@ func IntersectCircularAnnulusLine(ctx context.Context, center [2]*big.Rat, inner
 // two centers remain independent exact model coordinates.
 func IntersectEccentricCircularAnnulusLine(ctx context.Context, outerCenter, innerCenter [2]*big.Rat, inner, outer *big.Rat,
 	origin, direction Vec2, minT, maxT float64, o ToroidLineOptions) (CircularAnnulusLineIntersections, error) {
+	if !finite(origin.X) || !finite(origin.Y) || !finite(direction.X) || !finite(direction.Y) || !finite(minT) || !finite(maxT) {
+		return CircularAnnulusLineIntersections{}, ErrInvalid
+	}
+	rat := func(f float64) *big.Rat { return new(big.Rat).SetFloat64(f) }
+	return IntersectEccentricCircularAnnulusLineRational(ctx, outerCenter, innerCenter, inner, outer,
+		[2]*big.Rat{rat(origin.X), rat(origin.Y)}, [2]*big.Rat{rat(direction.X), rat(direction.Y)}, rat(minT), rat(maxT), o)
+}
+
+// IntersectEccentricCircularAnnulusLineRational retains exact planar line
+// coefficients while isolating the two independently owned rim curves.
+func IntersectEccentricCircularAnnulusLineRational(ctx context.Context, outerCenter, innerCenter [2]*big.Rat, inner, outer *big.Rat,
+	origin, direction [2]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (CircularAnnulusLineIntersections, error) {
 	var empty CircularAnnulusLineIntersections
-	if ctx == nil || !finite(origin.X) || !finite(origin.Y) || !finite(direction.X) || !finite(direction.Y) || direction == (Vec2{}) ||
-		!finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 ||
-		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 65536 || outerCenter[0] == nil || outerCenter[1] == nil ||
-		innerCenter[0] == nil || innerCenter[1] == nil ||
-		inner == nil || outer == nil || inner.Sign() <= 0 || inner.Cmp(outer) >= 0 {
-		return empty, ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
-		return empty, e
-	}
-	options, e := patchOptions(o.Surface)
+	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
 	if e != nil {
 		return empty, e
+	}
+	if outerCenter[0] == nil || outerCenter[1] == nil || innerCenter[0] == nil || innerCenter[1] == nil ||
+		inner == nil || outer == nil || inner.Sign() <= 0 || inner.Cmp(outer) >= 0 {
+		return empty, ErrInvalid
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
 	for _, q := range []*big.Rat{outerCenter[0], outerCenter[1], innerCenter[0], innerCenter[1], inner, outer} {
@@ -59,18 +65,17 @@ func IntersectEccentricCircularAnnulusLine(ctx context.Context, outerCenter, inn
 	if remaining == 0 {
 		remaining = 1024
 	}
-	rat := func(f float64) *big.Rat { return new(big.Rat).SetFloat64(f) }
 	square := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
-	u, v := rat(direction.X), rat(direction.Y)
+	u, v := direction[0], direction[1]
 	radiusPolynomial := func(center [2]*big.Rat, radius *big.Rat) rationalPolynomial {
-		x, y := new(big.Rat).Sub(rat(origin.X), center[0]), new(big.Rat).Sub(rat(origin.Y), center[1])
+		x, y := new(big.Rat).Sub(origin[0], center[0]), new(big.Rat).Sub(origin[1], center[1])
 		return rationalPolynomial{
 			new(big.Rat).Sub(new(big.Rat).Add(square(x), square(y)), square(radius)),
 			new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Add(new(big.Rat).Mul(x, u), new(big.Rat).Mul(y, v))),
 			new(big.Rat).Add(square(u), square(v)),
 		}
 	}
-	a, z, tol := rat(minT), rat(maxT), rat(o.ParameterTolerance)
+	a, z, tol := new(big.Rat).Set(minT), new(big.Rat).Set(maxT), new(big.Rat).SetFloat64(o.ParameterTolerance)
 	dx, dy := new(big.Rat).Sub(outerCenter[0], innerCenter[0]), new(big.Rat).Sub(outerCenter[1], innerCenter[1])
 	distance := new(big.Rat).Add(square(dx), square(dy))
 	gap := square(new(big.Rat).Sub(outer, inner))

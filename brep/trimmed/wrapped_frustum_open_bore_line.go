@@ -39,9 +39,50 @@ func IntersectWrappedEccentricCircularFrustumBoreLine(ctx context.Context, outer
 func intersectParallelFrustumBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
 	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions, coaxial, oneOpening bool) (WrappedLoftLineIntersections, error) {
 	var empty WrappedLoftLineIntersections
-	if ctx == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (geom.Vec3{}) ||
-		!finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 ||
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
+		return empty, geom.ErrInvalid
+	}
+	return intersectParallelFrustumBoreLineRational(ctx, outer, inner,
+		[3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		[3]*big.Rat{ratInset(direction.X), ratInset(direction.Y), ratInset(direction.Z)}, ratInset(minT), ratInset(maxT), o, coaxial, oneOpening)
+}
+
+// IntersectWrappedEccentricCircularFrustumBoreLineRational queries a finite
+// closed parameter interval with exact rational origin and direction.
+func IntersectWrappedEccentricCircularFrustumBoreLineRational(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	origin, direction [3]*big.Rat, minT, maxT *big.Rat, o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
+	return intersectParallelFrustumBoreLineRational(ctx, outer, inner, origin, direction, minT, maxT, o, false, false)
+}
+
+func intersectParallelFrustumBoreLineRational(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	origin, direction [3]*big.Rat, minT, maxT *big.Rat, o geom.ToroidLineOptions, coaxial, oneOpening bool) (WrappedLoftLineIntersections, error) {
+	var empty WrappedLoftLineIntersections
+	if ctx == nil || o.Surface.MaxCoefficientBits < 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 ||
 		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 65536 {
+		return empty, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return empty, e
+	}
+	bits := o.Surface.MaxCoefficientBits
+	if bits == 0 {
+		bits = 16384
+	}
+	check := func(values ...*big.Rat) error {
+		for _, n := range values {
+			if n == nil {
+				return geom.ErrInvalid
+			}
+			if n.Num().BitLen() > bits || n.Denom().BitLen() > bits {
+				return geom.ErrConvergence
+			}
+		}
+		return nil
+	}
+	if e := check(origin[0], origin[1], origin[2], direction[0], direction[1], direction[2], minT, maxT); e != nil {
+		return empty, e
+	}
+	if direction[0].Sign() == 0 && direction[1].Sign() == 0 && direction[2].Sign() == 0 || minT.Cmp(maxT) > 0 {
 		return empty, geom.ErrInvalid
 	}
 	walls := [2]*geom.WrappedSurfacePatch{outer, inner}
@@ -77,12 +118,12 @@ func intersectParallelFrustumBoreLine(ctx context.Context, outer, inner *geom.Wr
 	}
 	var result WrappedLoftLineIntersections
 	for end, opened := range open {
-		if !opened || direction.Z != 0 || ratInset(origin.Z).Cmp(heights[end]) != 0 {
+		if !opened || direction[2].Sign() != 0 || origin[2].Cmp(heights[end]) != 0 {
 			continue
 		}
-		q, e := geom.IntersectEccentricCircularAnnulusLine(ctx, [2]*big.Rat{proof[0].CenterX, proof[0].CenterY},
+		q, e := geom.IntersectEccentricCircularAnnulusLineRational(ctx, [2]*big.Rat{proof[0].CenterX, proof[0].CenterY},
 			[2]*big.Rat{proof[1].CenterX, proof[1].CenterY}, radii[1][end], radii[0][end],
-			geom.Vec2{X: origin.X, Y: origin.Y}, geom.Vec2{X: direction.X, Y: direction.Y}, minT, maxT, o)
+			[2]*big.Rat{origin[0], origin[1]}, [2]*big.Rat{direction[0], direction[1]}, minT, maxT, o)
 		if e != nil {
 			return empty, e
 		}
@@ -106,17 +147,26 @@ func intersectParallelFrustumBoreLine(ctx context.Context, outer, inner *geom.Wr
 	var openingT [2]*big.Rat
 	var openingSign [2]int
 	for i, opened := range open {
-		if !opened || direction.Z == 0 {
+		if !opened || direction[2].Sign() == 0 {
 			continue
 		}
-		t := new(big.Rat).Quo(new(big.Rat).Sub(heights[i], ratInset(origin.Z)), ratInset(direction.Z))
-		x := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.X), proof[1].CenterX), new(big.Rat).Mul(t, ratInset(direction.X)))
-		y := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.Y), proof[1].CenterY), new(big.Rat).Mul(t, ratInset(direction.Y)))
+		t := new(big.Rat).Quo(new(big.Rat).Sub(heights[i], origin[2]), direction[2])
+		if t.Cmp(minT) < 0 || t.Cmp(maxT) > 0 {
+			continue
+		}
+		if e := check(t); e != nil {
+			return empty, e
+		}
+		x := new(big.Rat).Add(new(big.Rat).Sub(origin[0], proof[1].CenterX), new(big.Rat).Mul(t, direction[0]))
+		y := new(big.Rat).Add(new(big.Rat).Sub(origin[1], proof[1].CenterY), new(big.Rat).Mul(t, direction[1]))
 		r2 := new(big.Rat).Add(x.Mul(x, x), y.Mul(y, y))
+		if e := check(r2); e != nil {
+			return empty, e
+		}
 		openingT[i], openingSign[i] = t, r2.Cmp(new(big.Rat).Mul(radii[1][i], radii[1][i]))
 	}
 	for i, w := range walls {
-		q, e := geom.IntersectWrappedCircularFrustumLine(ctx, w, origin, direction, minT, maxT, o)
+		q, e := geom.IntersectWrappedCircularFrustumLineRational(ctx, w, origin, direction, minT, maxT, o)
 		if e != nil {
 			return empty, e
 		}
