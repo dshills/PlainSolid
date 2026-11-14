@@ -18,7 +18,7 @@ type RoofBoxUnionHistory struct {
 
 // FuseOrderedRoofBoxes builds the regularized union of two proved roof boxes.
 // Disjoint footprints retain both original shells. For contained or identical
-// footprints, single-span ordered roofs also qualify: a fully contained box
+// footprints, single-function ordered roofs also qualify: a fully contained box
 // keeps just its original container; matching bands can merge, or a strictly
 // separating floor keeps both. Partial overlaps and unresolved height orders
 // fail closed.
@@ -81,7 +81,7 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 	if order < 0 {
 		roofIndex = 1
 	}
-	upper, err := roofBoxRestrictedPatch(boxes[roofIndex].roof, d, &w)
+	upper, err := orderedRoofRestrictedGraph(ctx, boxes[roofIndex], d, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}

@@ -1962,7 +1962,8 @@ with exact volume/π 421875/2147483648, area/π 75/1024 and centroid
 
 `IntersectOrderedRoofBoxes` now builds the native Common when roof order is
 proved on the entire shared footprint and the selected roof is a single
-positive-weight rational Bézier graph strictly above the retained floor.
+positive-weight rational graph strictly above the retained floor. Exact
+redundant knots can be removed after recovery of a single global function.
 Exact homogeneous restriction and ruled walls keep the original geometry
 and a face ownership map, including equal roofs. A bounded Bernstein sign
 proof handles selected non-switching tangencies. Changing order and pinched

@@ -122,6 +122,42 @@ func TestOrderedRoofBoxCommonNativeWeighted(t *testing.T) {
 		t.Fatal("native exact recipe changed weighted volume", reloaded, err)
 	}
 }
+
+func TestOrderedRoofBoxRedundantExactKnots(t *testing.T) {
+	ctx := context.Background()
+	stock := weightedIdentityRoofStockWithKnots(t, false, 2, true)
+	flat, _ := makeOpenSplineBox(t, [3]float64{0, 0, -1}, [3]float64{1, 1, 3}, 0)
+	result, ledger, err := IntersectOrderedRoofBoxes(ctx, stock, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(ledger.Faces) != 6 || ledger.Faces[0] != (MixedRoofFaceOwner{0, 1}) || result.Topology().EulerCharacteristic != 2 {
+		t.Fatal("source exact knot refinement is geometrically redundant", result.Topology(), ledger, err)
+	}
+	source, err := exactFaceSupportPatch(stock.faces[1], geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, v := source.KnotBreaks()
+	if len(u) == 2 && len(v) == 2 {
+		t.Fatal("expected a genuinely multispan source")
+	}
+	roof := result.Faces()[0].Surface.(*geom.ExactBezierSurface).ExactPatch()
+	for _, x := range []*big.Rat{big.NewRat(0, 1), big.NewRat(2, 5), big.NewRat(3, 4), big.NewRat(1, 1)} {
+		y := big.NewRat(1, 3)
+		a, err := source.EvaluateRational(ctx, x, y, geom.SurfacePatchEvaluationOptions{})
+		b, err2 := roof.EvaluateRational(ctx, x, y, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || err2 != nil {
+			t.Fatal(err, err2)
+		}
+		for i := range a.Point {
+			if a.Point[i].Cmp(b.Point[i]) != 0 || a.Du[i].Cmp(b.Du[i]) != 0 || a.Dv[i].Cmp(b.Dv[i]) != 0 {
+				t.Fatal("point or derivative changed after exact global recovery", x, i)
+			}
+		}
+	}
+	crease := weightedIdentityRoofStockMode(t, false, 2, true, true)
+	if s, h, err := IntersectOrderedRoofBoxes(ctx, crease, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("a genuine original height crease must not be erased", s.Topology(), h, err)
+	}
+}
 func orderedRoofTangentSource(t *testing.T) Solid {
 	t.Helper()
 	return orderedRoofParabolaSource(t, 1, .5)

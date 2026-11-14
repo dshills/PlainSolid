@@ -5624,6 +5624,10 @@ The fully enclosed weighted cutter produces an inward cavity with original
 edge and face geometry. Its exact volume difference, area and centroid
 match the pinned OCCT cavity. A cutter touching the stock floor is rejected
 by this enclosure path. The integrated live Cut race passed in 7.730 s.
+An exactly knot-refined weighted roof now reduces to the same global
+rational chart for native ordered Booleans. Nonbinary point and derivative
+checks match the original evaluator, while a genuine crease is rejected.
+The complete focused live roof race passed in 15.502 s.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

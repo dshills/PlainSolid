@@ -28,10 +28,10 @@ type RoofBoxDifferenceHistory struct {
 
 // IntersectOrderedRoofBoxes builds a native regularized Common when the two
 // roofs have a provably fixed order over the entire common XY rectangle. Its
-// initial construction lane requires a single rational Bézier span on the
-// selected lower roof. Its geometry is preserved by exact restriction and
-// ruled side faces. A changing order, roof/floor pinches, or
-// unrepresentable model vertices are returned as unsupported. Disjoint or
+// construction lane requires a single rational polynomial on the selected
+// lower roof. Redundant knots can be removed after exact proof. Its geometry
+// is preserved by exact restriction and ruled side faces. Changing order,
+// roof/floor pinches, and unrepresentable vertices are unsupported. Disjoint or
 // proved zero-volume results are empty. The exact arithmetic allowance bounds
 // chart restriction/selection and construction. Continuous edge checks spend
 // the remaining allowance independently for each original use.
@@ -82,7 +82,7 @@ func IntersectOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQ
 		roofIndex = 1
 	}
 	roof := q.box[roofIndex]
-	raw, err := roofBoxRestrictedPatch(roof.roof, d, &work)
+	raw, err := orderedRoofRestrictedGraph(ctx, roof, d, &work)
 	if err != nil {
 		return empty, zero, err
 	}
@@ -320,6 +320,82 @@ func roofBoxRestrictedPatch(p *geom.SurfacePatch, d geom.ParameterRectangle, w *
 	return out, err
 }
 
+// orderedRoofRestrictedGraph eliminates redundant exact knots when the
+// source proof recovered a single global rational function. A genuine crease
+// was already excluded by the caller. Positive Bernstein weights must still
+// be established for the newly represented whole restricted chart.
+func orderedRoofRestrictedGraph(ctx context.Context, box *mixedRoofBox, d geom.ParameterRectangle, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {
+	p, err := roofBoxRestrictedPatch(box.roof, d, w)
+	if err != nil {
+		return nil, err
+	}
+	u, v := p.KnotBreaks()
+	if len(u) == 2 && len(v) == 2 {
+		return p, nil
+	}
+	axes := [2][2]*big.Rat{{ratInset(d.UMin), ratInset(d.UMax)}, {ratInset(d.VMin), ratInset(d.VMax)}}
+	n, weight, err := box.roofOrderPower(axes, w)
+	if err != nil {
+		return nil, err
+	}
+	du, dv := max(len(n)-1, len(weight)), max(len(n[0])-1, len(weight[0]))
+	if max(du, dv) > mixedRoofMaxDegree {
+		return nil, geom.ErrUnrepresentable
+	}
+	zero := new(big.Rat)
+	at := func(g roofPowerGrid, u, v int) *big.Rat {
+		if u >= 0 && v >= 0 && u < len(g) && v < len(g[0]) {
+			return g[u][v]
+		}
+		return zero
+	}
+	spanX, spanY := new(big.Rat).Sub(axes[0][1], axes[0][0]), new(big.Rat).Sub(axes[1][1], axes[1][0])
+	coefficients := make([][][4]*big.Rat, du+1)
+	for i := range coefficients {
+		coefficients[i] = make([][4]*big.Rat, dv+1)
+		for j := range coefficients[i] {
+			wt := at(weight, i, j)
+			var point [4]*big.Rat
+			point[2], point[3] = at(n, i, j), wt
+			for axis, data := range [2][3]*big.Rat{{axes[0][0], spanX, at(weight, i-1, j)}, {axes[1][0], spanY, at(weight, i, j-1)}} {
+				a, err := w.rat(new(big.Rat).Mul(data[0], wt))
+				if err != nil {
+					return nil, err
+				}
+				b, err := w.rat(new(big.Rat).Mul(data[1], data[2]))
+				if err != nil {
+					return nil, err
+				}
+				point[axis], err = w.rat(a.Add(a, b))
+				if err != nil {
+					return nil, err
+				}
+			}
+			coefficients[i][j] = point
+		}
+	}
+	var net [][4]*big.Rat
+	for i := 0; i <= du; i++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		for j := 0; j <= dv; j++ {
+			var pole [4]*big.Rat
+			for axis := range pole {
+				pole[axis], err = orderedRoofBernsteinCoefficient(du, dv, i, j, func(u, v int) *big.Rat { return coefficients[u][v][axis] }, w)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if pole[3].Sign() <= 0 {
+				return nil, geom.ErrUnrepresentable
+			}
+			net = append(net, pole)
+		}
+	}
+	return roofBoxConstructionPatch(ctx, d, du, dv, net, w)
+}
+
 func roofBoxConstructionPatch(ctx context.Context, d geom.ParameterRectangle, du, dv int, net [][4]*big.Rat, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {
 	o, err := roofBoxConstructionOptions(w)
 	if err != nil {
@@ -355,10 +431,6 @@ func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLi
 		}
 	}
 	du, dv := len(p)-1, len(p[0])-1
-	binomial := func(k, n int) *big.Int { return new(big.Int).Binomial(int64(n), int64(k)) }
-	factor := func(index, power, degree int) *big.Rat {
-		return new(big.Rat).SetFrac(binomial(power, index), binomial(power, degree))
-	}
 	type roofSignCell struct {
 		axes  [2][2]*big.Rat
 		depth int
@@ -378,24 +450,9 @@ func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLi
 		positive, negative, allNonzero := false, false, true
 		for a := 0; a <= du; a++ {
 			for b := 0; b <= dv; b++ {
-				s := new(big.Rat)
-				for u := 0; u <= a; u++ {
-					for v := 0; v <= b; v++ {
-						c := cell[u][v][2]
-						if c.Sign() == 0 {
-							continue
-						}
-						x, err := w.rat(new(big.Rat).Mul(c, factor(a, u, du)))
-						if err != nil {
-							return 0, false, err
-						}
-						if _, err := w.rat(x.Mul(x, factor(b, v, dv))); err != nil {
-							return 0, false, err
-						}
-						if _, err := w.rat(s.Add(s, x)); err != nil {
-							return 0, false, err
-						}
-					}
+				s, err := orderedRoofBernsteinCoefficient(du, dv, a, b, func(u, v int) *big.Rat { return cell[u][v][2] }, w)
+				if err != nil {
+					return 0, false, err
 				}
 				positive = positive || s.Sign() > 0
 				negative = negative || s.Sign() < 0
@@ -440,6 +497,35 @@ func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLi
 		strict = strict && allNonzero
 	}
 	return order, strict, nil
+}
+
+func orderedRoofBernsteinFactor(index, power, degree int) *big.Rat {
+	a := new(big.Int).Binomial(int64(index), int64(power))
+	b := new(big.Int).Binomial(int64(degree), int64(power))
+	return new(big.Rat).SetFrac(a, b)
+}
+
+func orderedRoofBernsteinCoefficient(du, dv, a, b int, power func(int, int) *big.Rat, w *mixedRoofLineWork) (*big.Rat, error) {
+	s := new(big.Rat)
+	for u := 0; u <= a; u++ {
+		for v := 0; v <= b; v++ {
+			c := power(u, v)
+			if c.Sign() == 0 {
+				continue
+			}
+			x, err := w.rat(new(big.Rat).Mul(c, orderedRoofBernsteinFactor(a, u, du)))
+			if err != nil {
+				return nil, err
+			}
+			if _, err := w.rat(x.Mul(x, orderedRoofBernsteinFactor(b, v, dv))); err != nil {
+				return nil, err
+			}
+			if _, err := w.rat(s.Add(s, x)); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return s, nil
 }
 
 // Both wall rows must use the same weight at every longitudinal parameter.

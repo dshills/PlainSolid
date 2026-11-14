@@ -40,10 +40,10 @@ type SplineShellCombineOptions struct {
 	// before general section discovery. A proof outside its supported domain
 	// continues through the other certified paths.
 	OrderedRoofCommon *SplineShellRoofCommonOptions
-	// OrderedRoofFuse optionally tries the single-band ordered roof-box Fuse
+	// OrderedRoofFuse optionally tries the ordered roof-box Fuse
 	// before general section discovery. Unsupported geometry retains fallback.
 	OrderedRoofFuse *SplineShellRoofOptions
-	// OrderedRoofCut optionally tries the exact one- or two-band Cut before
+	// OrderedRoofCut optionally tries the exact band or cavity Cut before
 	// general section discovery. Unsupported geometry retains fallback.
 	OrderedRoofCut *SplineShellRoofOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp

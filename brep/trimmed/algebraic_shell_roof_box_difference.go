@@ -46,11 +46,11 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 	if intersectRectangles(d, b.domain) != d {
 		return subtractEnclosedOrderedRoofBox(ctx, stock, cutter, q.box, &w)
 	}
-	upper, err := roofBoxRestrictedPatch(a.roof, d, &w)
+	upper, err := orderedRoofRestrictedGraph(ctx, a, d, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	lower, err := roofBoxRestrictedPatch(b.roof, d, &w)
+	lower, err := orderedRoofRestrictedGraph(ctx, b, d, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
