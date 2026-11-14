@@ -88,7 +88,7 @@ func TestRationalGraphCapCutsCurvedInnerWire(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			wire = append(wire, projectedGraphSectionPiece{RationalGraphCapEdgeSource{Wire: i, Branch: j, Face: j}, h})
+			wire = append(wire, projectedGraphSectionPiece{source: RationalGraphCapEdgeSource{Wire: i, Branch: j, Face: j}, control: h})
 			ring = append(ring, q)
 		}
 		wires, rings = append(wires, wire), append(rings, ring)
@@ -122,4 +122,69 @@ func TestRationalGraphCapCutsCurvedInnerWire(t *testing.T) {
 		}
 	}
 	t.Fatal("missing curved inner terminal", out.Cuts)
+}
+
+func TestRationalGraphCapTwoRootsOnOneEdge(t *testing.T) {
+	ctx := context.Background()
+	p := func(x, y float64) [3]*big.Rat { return [3]*big.Rat{ratInset(x), ratInset(y), big.NewRat(1, 1)} }
+	// CCW outer region, under y=1+4t(1−t), swept from x=4 to x=0.
+	a, b, c, d := p(0, 0), p(4, 0), p(4, 1), p(0, 1)
+	controls := [][][3]*big.Rat{{a, p(2, 0), b}, {b, p(4, .5), c}, {c, p(2, 3), d}, {d, p(0, .5), a}}
+	var wire []projectedGraphSectionPiece
+	var ring trimvalidate.Loop
+	for i, h := range controls {
+		q, e := trimvalidate.ExactBezier(h)
+		if e != nil {
+			t.Fatal(e)
+		}
+		wire = append(wire, projectedGraphSectionPiece{source: RationalGraphCapEdgeSource{Branch: i, Face: i}, control: h})
+		ring = append(ring, q)
+	}
+	opts, _ := (trimvalidate.Options{}).WithDefaults()
+	base, e := certifyProjectedRationalGraphRegions(ctx, [][]projectedGraphSectionPiece{wire}, []trimvalidate.Loop{ring}, horizontalPolynomialPlane(new(big.Rat)), opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	cut := func(y float64) [3]geom.Vec3 { return [3]geom.Vec3{{Y: y}, {Y: y, Z: 1}, {X: 1, Y: y}} }
+	r, e := base.IntersectRationalHalfspace(ctx, cut(1.75), true, RationalGraphShellRegionOptions{})
+	if e != nil || len(r.Cuts) != 2 || len(r.Seams) != 1 {
+		t.Fatal("an edge with equally signed endpoints can cross twice", r, e)
+	}
+	for i, c := range r.Cuts {
+		if c.Source.Branch != 2 || c.Parameter.Cmp(big.NewRat(int64(1+2*i), 4)) != 0 || c.KeepBefore != (i == 1) {
+			t.Fatal("wrong exact retained original interval", i, c)
+		}
+	}
+	area, e := r.Regions.BoundArea(ctx, big.NewRat(1, 4096))
+	want := big.NewRat(1, 3) // integral of 1/4-(x-2)²/4 over [1,3].
+	if e != nil || area.Projection.Lower.Cmp(want) > 0 || area.Projection.Upper.Cmp(want) < 0 {
+		t.Fatal("cut cap should be an exact parabolic segment", want, area, e)
+	}
+	for _, y := range []float64{2, 1.5} {
+		if out, e := base.IntersectRationalHalfspace(ctx, cut(y), true, RationalGraphShellRegionOptions{}); !errors.Is(e, geom.ErrConvergence) || out.Regions != nil {
+			t.Fatal("tangent and irrational contacts must reject atomically", y, e)
+		}
+	}
+	// Clip the already restricted cap again. Its parabolic owner has a
+	// local root at 1/4; the original graph root must be reported as 3/8.
+	second := [3]geom.Vec3{{X: 2.5}, {X: 2.5, Y: 1}, {X: 2.5, Z: 1}}
+	for i := range r.Cuts {
+		r.Cuts[i].Parameter.SetInt64(42)
+		for _, x := range r.Cuts[i].Point {
+			x.SetInt64(42)
+		}
+	}
+	s, e := r.Regions.IntersectRationalHalfspace(ctx, second, true, RationalGraphShellRegionOptions{})
+	if e != nil || len(s.Cuts) != 2 || len(s.Seams) != 1 {
+		t.Fatal("second clip with caller-mutated prior report", s, e)
+	}
+	for _, c := range s.Cuts {
+		if c.Source.Branch == 2 {
+			if c.Parameter.Cmp(big.NewRat(3, 8)) != 0 || c.Point[1].Cmp(big.NewRat(31, 16)) != 0 {
+				t.Fatal("second clip must retain original parameter and model point", c)
+			}
+			return
+		}
+	}
+	t.Fatal("missing original curved owner after repeated clipping", s.Cuts)
 }

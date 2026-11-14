@@ -72,6 +72,14 @@ and moves both inner/outer cap boundaries to parabolas. The opt-in composed
 section proof retains noncollinear exact controls and two seams in the
 native result; the original affine-projection mode rejects the same input.
 An independent section fixture encloses its exact retained area 341/48.
+An additional parabolic segment has contacts at original parameters `1/4`
+and `3/4`, despite its equally signed endpoints; the retained area encloses
+`1/3` exactly. A second clip with mutated diagnostic output re-proves the
+contact at original parameter `3/8` and does not reuse caller-owned data.
+The two-run floor fixture retains two disjoint fragments on one quadratic
+stock support and reloads one exterior shell. Independent volume is
+461/61440; pinned OCCT agrees with all topology counts and differs in volume
+by about 3.1e-8. Both original cutter orders reproduce the same result.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
