@@ -2346,3 +2346,10 @@ triangles and wall quads share all boundary atoms across the internal
 floor and retained profiles. Multiple retained and floor regions qualify
 with holes through bounded exact cap triangulation. Original support and
 clipping history survive the conforming subdivision.
+
+### Shared curved weighted station STEP products
+
+The weighted station assembly reader retains a single authentic noncircular
+NURBS product under repeated proper signed occurrences. The original bands,
+rims, caps and occurrence link ancestry remain available after transfer.
+See the [weighted station assembly contract](../exchange/step/WRAPPED_RATIONAL_STATION_ASSEMBLY.md).

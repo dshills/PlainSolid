@@ -6239,3 +6239,11 @@ coordinates and weighted profile membership. Tests preserve periodic seam,
 cap, crease, rim and vertex ancestry through native reload and reindexing.
 Near but distinct directions reject at sub-ULP separation. The combined
 crossing-prism and generator race passed in 12.595 s.
+
+### Shared weighted station STEP qualification
+
+Pinned OCCT authored and re-read a single two-band weighted product with
+two placements. Original and generated files retain the shared product,
+eight faces, original spline coefficients, placed volume about 56.115992
+and surface area about 178.858999. The source and regenerated assembly
+live race passed in 24.015 s.
