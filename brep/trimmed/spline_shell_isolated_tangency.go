@@ -30,15 +30,25 @@ type SplineShellTangency struct {
 	StrictOrder       int
 	SeparatedPairs    int
 	ExactOperations   int
+	// Additional contains the remaining contacts on the same original face
+	// pair, ordered by the first input's U and V. Every point is isolated.
+	Additional []SplineShellTangencyPoint
 }
 
-// CombineExternallyTangentSplineShells handles a sole isolated quadratic
-// or definite graph contact of two independently embedded rectangular
+// SplineShellTangencyPoint gives each isolated contact on the original
+// supports. The XYZ and UV rationals are owned by the caller.
+type SplineShellTangencyPoint struct {
+	Point [3]*big.Rat
+	UV    [2][2]*big.Rat
+}
+
+// CombineExternallyTangentSplineShells handles isolated definite or
+// higher-order contacts on one graph pair of independently embedded rectangular
 // spline shells. Opposite outward graph normals and strict graph order
 // over the complete common projection prove no local material overlap at
-// the contact. With all other face pairs
+// the contacts. With all other face pairs
 // disjoint and original vertex witnesses outside either shell, common is
-// empty and cut retains the stock. Union at a single point is not a native
+// empty and cut retains the stock. Union at isolated points is not a native
 // manifold and returns ErrConvergence.
 func CombineExternallyTangentSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanOp,
 	o SplineShellTangencyOptions) (Solid, SplineShellCombineHistory, SplineShellTangency, error) {
@@ -185,6 +195,7 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 	proof.ExactOperations += point.ExactOperations
 	var parameters [2]*big.Rat
 	var xyz [3]*big.Rat
+	var knots []splineKnotTangency
 	side := 0
 	if e == nil && point.Contact.Proven && point.Contact.BoundaryMask == 0 {
 		parameters, xyz, side = point.Contact.Parameters, point.Contact.Point, point.Contact.Side
@@ -199,19 +210,51 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 		}
 		q, usedErr := geom.DiscoverCoupledQuarticGraphPointContact(ctx, patches[0], alignment.TargetOnSource(), p)
 		proof.ExactOperations += q.ExactOperations
-		if usedErr != nil {
+		if usedErr == nil && q.Proven {
+			parameters, xyz, side = q.Parameters, q.Point, q.Side
+		} else if errors.Is(usedErr, geom.ErrConvergence) || errors.Is(usedErr, geom.ErrDomain) {
+			// A separable exact height numerator may vanish at different
+			// even orders in the two directions or at a common knot. The
+			// univariate root proofs still establish strict global order.
+			p.MaxOperations = limit().MaxOperations
+			if p.MaxOperations < 1 {
+				return Solid{}, history, empty, geom.ErrConvergence
+			}
+			sep, err := geom.DiscoverSeparableSplineGraphPointContact(ctx, patches[0], alignment.TargetOnSource(), geom.SeparableGraphDiscoveryOptions{
+				SeparableGraphContactOptions: geom.SeparableGraphContactOptions{GraphPointContactOptions: p},
+				MaxCandidates:                o.Contact.MaxCandidates,
+			})
+			proof.ExactOperations += sep.ExactOperations
+			if err == nil && sep.Contact.Proven {
+				parameters, xyz, side = sep.Contact.Parameters, sep.Contact.Point, sep.Contact.Side
+			} else if errors.Is(err, geom.ErrConvergence) || errors.Is(err, geom.ErrDomain) {
+				p.MaxOperations = limit().MaxOperations
+				if p.MaxOperations < 1 {
+					return Solid{}, history, empty, geom.ErrConvergence
+				}
+				var used int
+				knots, side, used, e = isolatedSplineKnotTangencies(ctx, patches[0], alignment.TargetOnSource(), p)
+				proof.ExactOperations += used
+				if e != nil {
+					return Solid{}, history, empty, e
+				}
+				parameters, xyz = knots[0].uv, knots[0].xyz
+			} else if err != nil {
+				return Solid{}, history, empty, err
+			} else {
+				return Solid{}, history, empty, geom.ErrConvergence
+			}
+		} else if usedErr != nil {
 			return Solid{}, history, empty, usedErr
-		}
-		if !q.Proven {
+		} else {
 			return Solid{}, history, empty, geom.ErrConvergence
 		}
 		box := patches[0].Domain()
 		for i, b := range [2][2]float64{{box.UMin, box.UMax}, {box.VMin, box.VMax}} {
-			if q.Parameters[i].Cmp(ratInset(b[0])) <= 0 || q.Parameters[i].Cmp(ratInset(b[1])) >= 0 {
+			if parameters[i].Cmp(ratInset(b[0])) <= 0 || parameters[i].Cmp(ratInset(b[1])) >= 0 {
 				return Solid{}, history, empty, geom.ErrConvergence
 			}
 		}
-		parameters, xyz, side = q.Parameters, q.Point, q.Side
 		e = nil
 	}
 	if e != nil {
@@ -249,14 +292,24 @@ func combineTangentSplineShellPair(ctx context.Context, solids [2]Solid, all [2]
 	if e != nil {
 		return Solid{}, history, empty, e
 	}
-	for i, axis := range order {
-		proof.Point[axis] = new(big.Rat).Set(xyz[i])
+	tangentPoint := func(parameters [2]*big.Rat, xyz [3]*big.Rat) (p SplineShellTangencyPoint) {
+		for i, axis := range order {
+			p.Point[axis] = new(big.Rat).Set(xyz[i])
+		}
+		p.UV[0] = parameters
+		for i, row := range mapping {
+			p.UV[1][i] = new(big.Rat).Set(row[2])
+			for j, q := range parameters {
+				p.UV[1][i].Add(p.UV[1][i], new(big.Rat).Mul(row[j], q))
+			}
+		}
+		return p
 	}
-	proof.UV[0] = parameters
-	for i, row := range mapping {
-		proof.UV[1][i] = new(big.Rat).Set(row[2])
-		for j, q := range parameters {
-			proof.UV[1][i].Add(proof.UV[1][i], new(big.Rat).Mul(row[j], q))
+	p := tangentPoint(parameters, xyz)
+	proof.Point, proof.UV = p.Point, p.UV
+	if len(knots) > 1 {
+		for _, q := range knots[1:] {
+			proof.Additional = append(proof.Additional, tangentPoint(q.uv, q.xyz))
 		}
 	}
 	proof.StrictOrder = side
