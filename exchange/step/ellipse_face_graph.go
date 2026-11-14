@@ -69,8 +69,9 @@ func ellipseFaceGraph(want, f *File, roots [][2]int64) (map[int64]int64, bool) {
 
 // ellipseFaceSourceBound rejects excessive or cyclic caller-owned Value trees
 // before source serialization; parsed files already satisfy parser limits.
-func ellipseFaceSourceBound(f *File) bool {
-	if f == nil || len(f.Entities) != 47 || len(f.Order) != 47 || len(f.Header) > 64 {
+func ellipseFaceSourceBound(f *File) bool { return ellipseOwnedSourceBound(f, 47) }
+func ellipseOwnedSourceBound(f *File, count int) bool {
+	if f == nil || len(f.Entities) != count || len(f.Order) != count || len(f.Header) > 64 {
 		return false
 	}
 	budget, text := 4096, 32768
