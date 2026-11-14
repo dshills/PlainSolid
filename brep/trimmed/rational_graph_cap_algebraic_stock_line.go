@@ -66,53 +66,7 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 		if face.Cap >= 0 {
 			plane = c.caps[face.Cap].regions.plane
 		} else {
-			src := c.caps[0].recipe.stock.faces[face.StockFace]
-			p, e := exactFaceSupportPatch(src, o.Spans.Faces.Patches)
-			if e != nil {
-				return zero, e
-			}
-			d, e := faceUVBounds(src)
-			if e != nil {
-				return zero, e
-			}
-			p, e = p.Trim(d)
-			if e != nil {
-				return zero, e
-			}
-			work, width := o.Spans.Faces.Patches.MaxOperations, o.Spans.Faces.Patches.MaxCoefficientBits
-			if work == 0 || work > budget.work {
-				work = budget.work
-			}
-			if width == 0 || width > bits {
-				width = bits
-			}
-			chart, e = geom.NewAffineSurfaceChart(ctx, p, geom.AffineSurfaceChartOptions{
-				MaxOperations: work, MaxCoefficientBits: width,
-			})
-			if e != nil {
-				return zero, e
-			}
-			if e := budget.charge(chart.ExactOperations(), 0); e != nil {
-				return zero, e
-			}
-			// The affine proof already establishes a single plane. Its
-			// normal follows its two exact chart directions and face sense.
-			domain := chart.Domain()
-			var corners [3]geom.Vec3
-			for i, uv := range [3][2]float64{{domain.UMin, domain.VMin}, {domain.UMax, domain.VMin}, {domain.UMin, domain.VMax}} {
-				p, e := chart.EvalExact(ratInset(uv[0]), ratInset(uv[1]))
-				if e != nil {
-					return zero, e
-				}
-				corners[i], e = geom.RepresentedExactPoint(p)
-				if e != nil {
-					return zero, e
-				}
-			}
-			if src.Reversed {
-				corners[1], corners[2] = corners[2], corners[1]
-			}
-			plane, e = polynomialPlaneFromPoints(corners)
+			chart, plane, e = c.planarStockChart(face.StockFace, o, &budget)
 			if e != nil {
 				return zero, e
 			}
@@ -223,4 +177,60 @@ func (c AlgebraicGraphCapPair) IntersectPlanarStockRationalLine(ctx context.Cont
 		return zero, e
 	}
 	return out, nil
+}
+
+func (c AlgebraicGraphCapPair) planarStockChart(id int, o RationalGraphShellSectionOptions, budget *capClipBudget) (*geom.AffineSurfaceChart, polynomialPlaneEquation, error) {
+	var zero polynomialPlaneEquation
+	ctx := budget.ctx
+	src := c.caps[0].recipe.stock.faces[id]
+	p, e := exactFaceSupportPatch(src, o.Spans.Faces.Patches)
+	if e != nil {
+		return nil, zero, e
+	}
+	d, e := faceUVBounds(src)
+	if e != nil {
+		return nil, zero, e
+	}
+	p, e = p.Trim(d)
+	if e != nil {
+		return nil, zero, e
+	}
+	work, width := o.Spans.Faces.Patches.MaxOperations, o.Spans.Faces.Patches.MaxCoefficientBits
+	if work == 0 || work > budget.work {
+		work = budget.work
+	}
+	if width == 0 || width > budget.bits {
+		width = budget.bits
+	}
+	chart, e := geom.NewAffineSurfaceChart(ctx, p, geom.AffineSurfaceChartOptions{
+		MaxOperations: work, MaxCoefficientBits: width,
+	})
+	if e != nil {
+		return nil, zero, e
+	}
+	if e := budget.charge(chart.ExactOperations(), 0); e != nil {
+		return nil, zero, e
+	}
+	// The affine proof already establishes a single plane. Its
+	// normal follows its two exact chart directions and face sense.
+	domain := chart.Domain()
+	var corners [3]geom.Vec3
+	for i, uv := range [3][2]float64{{domain.UMin, domain.VMin}, {domain.UMax, domain.VMin}, {domain.UMin, domain.VMax}} {
+		p, e := chart.EvalExact(ratInset(uv[0]), ratInset(uv[1]))
+		if e != nil {
+			return nil, zero, e
+		}
+		corners[i], e = geom.RepresentedExactPoint(p)
+		if e != nil {
+			return nil, zero, e
+		}
+	}
+	if src.Reversed {
+		corners[1], corners[2] = corners[2], corners[1]
+	}
+	plane, e := polynomialPlaneFromPoints(corners)
+	if e != nil {
+		return nil, zero, e
+	}
+	return chart, plane, nil
 }

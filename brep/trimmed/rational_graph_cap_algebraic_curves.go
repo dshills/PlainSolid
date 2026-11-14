@@ -21,21 +21,20 @@ type AlgebraicGraphShellCurve struct {
 // cap seams are represented once. Returned diagnostics cannot alter the pair.
 func (c AlgebraicGraphCapPair) ExactModelBoundary(ctx context.Context, o RationalGraphShellSectionOptions,
 	roots geom.ExactCurvePlaneEventOptions) (AlgebraicGraphShellBoundary, []AlgebraicGraphShellCurve, error) {
+	b, e := newCapClipBudget(ctx, roots)
+	if e != nil {
+		return AlgebraicGraphShellBoundary{}, nil, e
+	}
+	return c.exactModelBoundary(o, &b)
+}
+
+func (c AlgebraicGraphCapPair) exactModelBoundary(o RationalGraphShellSectionOptions, b *capClipBudget) (AlgebraicGraphShellBoundary, []AlgebraicGraphShellCurve, error) {
 	var zero AlgebraicGraphShellBoundary
-	index, e := c.ExactIndexedBoundary(ctx, o, roots)
+	index, e := c.exactIndexedBoundary(o, b)
 	if e != nil {
 		return zero, nil, e
 	}
-	if roots.MaxOperations == 0 {
-		roots.MaxOperations = 2000000
-	}
-	if roots.MaxSubdivisions == 0 {
-		roots.MaxSubdivisions = 8192
-	}
-	if roots.MaxCoefficientBits == 0 {
-		roots.MaxCoefficientBits = 16384
-	}
-	b := capClipBudget{ctx, roots.MaxOperations, roots.MaxSubdivisions, roots.MaxCoefficientBits}
+	ctx := b.ctx
 	var curves []AlgebraicGraphShellCurve
 	s := c.caps[0].recipe.stock
 	for _, x := range index.Edges {

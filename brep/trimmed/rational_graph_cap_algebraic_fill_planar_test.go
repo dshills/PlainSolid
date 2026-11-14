@@ -76,4 +76,40 @@ func TestAlgebraicGraphPlanarStockCertified(t *testing.T) {
 			t.Fatal("exact original wall owner", i, hit)
 		}
 	}
+	for _, probe := range []struct {
+		p       [3]*big.Rat
+		squared *big.Rat
+		kind    string
+	}{
+		{[3]*big.Rat{q(5, 2), q(1, 2), q(7, 16)}, q(1, 256), "cap"},
+		{[3]*big.Rat{q(5, 2), q(-1, 8), q(9, 16)}, q(1, 64), "wall"},
+		{[3]*big.Rat{q(1, 1), q(1, 2), q(1, 2)}, q(1, 4), "seam"},
+	} {
+		n, e := pair.NearestPlanarStockRational(ctx, probe.p, RationalGraphShellSectionOptions{}, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || n.SquaredDistance == nil {
+			t.Fatal("complete stock minimum", probe.kind, e)
+		}
+		got, e := n.SquaredDistance.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
+		if e != nil || got.Kind != geom.ExactRootKindRational || got.Rational.Cmp(probe.squared) != 0 {
+			t.Fatal("exact boundary minimum", probe.kind, got, e)
+		}
+		switch probe.kind {
+		case "cap":
+			if n.Edge != -1 || n.Face < 0 || out.Boundary.Indexed.Faces[n.Face].Cap != 0 || n.Point[2].Cmp(q(1, 2)) != 0 {
+				t.Fatal("cap interior owner and exact nearest point", n)
+			}
+		case "wall":
+			if n.Edge != -1 || n.Face < 0 || out.Boundary.Indexed.Faces[n.Face].StockFace < 0 || n.Point[1].Sign() != 0 {
+				t.Fatal("original stock wall owner", n)
+			}
+		case "seam":
+			if n.Face != -1 || n.Edge < 0 || out.Boundary.Indexed.Edges[n.Edge].CapSeam < 0 || n.CurveParameter == nil {
+				t.Fatal("shared cap seam must have one canonical edge owner", n)
+			}
+		}
+	}
+	if d, e := pair.NearestPlanarStockRational(ctx, origin, RationalGraphShellSectionOptions{}, geom.ExactCurvePlaneEventOptions{MaxOperations: 1}); !errors.Is(e, geom.ErrConvergence) || d.SquaredDistance != nil {
+		t.Fatal("nearest query must fail atomically on proof limits", d, e)
+	}
+
 }
