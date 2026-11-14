@@ -41,7 +41,8 @@ type CertifiedAlgebraicShellBoundary struct {
 // TessellateBoundaryCertified approximates every retained original edge and
 // generated section with independently certified chords and shared indexed
 // endpoints. Section support is the rational-free-domain graph-tube subset
-// accepted by TessellateRationalTubeSegmentCertified. Source and section curve
+// accepted by TessellateRationalTubeSegmentCertified, including an explicitly
+// chosen Section.Projection. Source and section curve
 // certificates include display rounding and both directed chord distances.
 // This proves neither face filling nor embedding of source or display. Distinct
 // exact vertices that collapse in binary64 are rejected, never welded. Errors

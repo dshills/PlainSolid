@@ -9,6 +9,13 @@ import (
 )
 
 type RationalTubePolylineOptions struct {
+	// Projection optionally chooses the two affine model coordinates used for
+	// exact graph isolation. Nil preserves the original XY contract. Interval
+	// bounds and displayed samples always remain in original XYZ coordinates.
+	// Projected isolation may use an established HasBounds enclosure when only
+	// its optional refinement limit is reached; the final chord proof still
+	// must meet Deflection. Interval.MaxIterations bounds that refinement.
+	Projection                                         *[2]int
 	Deflection                                         float64
 	MaxSegments, MaxDepth, MaxOperations, MaxInputBits int
 	Point                                              geom.TubeAlgebraicGraphEndpointOptions
@@ -58,10 +65,23 @@ func (s segmentGraphAdapter) EncloseInterval(c context.Context, a, b float64, o 
 // endpoint display error. This conservative first-order bound has no curvature
 // efficiency claim and returns no partial polyline on limits.
 func TessellateRationalTubeGraphCertified(ctx context.Context, tube geom.VerifiedSurfaceTube, start, end *big.Rat, o RationalTubePolylineOptions) (CertifiedRationalTubePolyline, error) {
+	if o.Projection != nil {
+		if !validTubePolylineProjection(*o.Projection) {
+			return CertifiedRationalTubePolyline{}, geom.ErrInvalid
+		}
+		return tessellateRationalTubeGraph(ctx, projectedVerifiedPolylineGraph{tube, *o.Projection}, start, end, o)
+	}
 	return tessellateRationalTubeGraph(ctx, tube, start, end, o)
 }
 func TessellateRationalTubeSegmentCertified(ctx context.Context, tube intersect.TubeSegment, start, end *big.Rat, o RationalTubePolylineOptions) (CertifiedRationalTubePolyline, error) {
-	r, e := tessellateRationalTubeGraph(ctx, segmentGraphAdapter{tube}, start, end, o)
+	var graph rationalTubeGraph = segmentGraphAdapter{tube}
+	if o.Projection != nil {
+		if !validTubePolylineProjection(*o.Projection) {
+			return CertifiedRationalTubePolyline{}, geom.ErrInvalid
+		}
+		graph = projectedSegmentPolylineGraph{segmentGraphAdapter{tube}, *o.Projection}
+	}
+	r, e := tessellateRationalTubeGraph(ctx, graph, start, end, o)
 	if e == nil {
 		_, _, r.TraversalReversed, e = tube.ExactFreeDomain()
 	}
