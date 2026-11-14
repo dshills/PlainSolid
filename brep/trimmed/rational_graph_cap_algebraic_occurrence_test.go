@@ -95,6 +95,19 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 	if e != nil || proof.Sign != 0 {
 		t.Fatal("world transport changed an irrational line parameter", proof, e)
 	}
+	throughWall, e := pose.TransformPoint(ctx, [3]*big.Rat{q(0, 1), q(89, 64), q(513, 1024)}, false, 4096)
+	if e != nil {
+		t.Fatal(e)
+	}
+	solidHits, e := w.IntersectLineRational(ctx, throughWall, direction, [2]*big.Rat{q(-1, 1), q(4, 1)}, root)
+	if e != nil || len(solidHits.Contacts) != 4 || len(solidHits.Material) != 2 ||
+		solidHits.Contacts[2].StockFace != w.pair.caps[0].wires[hits.Contacts[2].Wire][hits.Contacts[2].Use].Source.Face {
+		t.Fatal("world line retains native stock-wall owner and both intervals", solidHits, e)
+	}
+	same, e := solidHits.Contacts[2].Parameter.Compare(ctx, hits.Contacts[2].Parameter, root)
+	if e != nil || !same.Proven || same.Order != 0 {
+		t.Fatal("world line changed its exact algebraic parameter", same, e)
+	}
 	options := AlgebraicGraphStockFillOptions{Deflection: .12}
 	options.Boundary.Section = selection
 	options.Boundary.Display.Deflection = .003

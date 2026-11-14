@@ -54,6 +54,14 @@ func (c *ExactComposedCurveCell) BoundProjectedGreen(ctx context.Context, axes [
 			return r, e
 		}
 	}
+	return c.integrateRationalGreen(ctx, p, den, width, o, b)
+}
+
+// integrateRationalGreen bounds an exact ratio in the original parameter.
+// The denominator must be proven positive; the result includes the fringes
+// between the rational inside interval and the true algebraic endpoints.
+func (c *ExactComposedCurveCell) integrateRationalGreen(ctx context.Context, p, den rationalPolynomial, width *big.Rat,
+	o ExactCurvePlaneEventOptions, b *polynomialBudget) (r ProjectedGreenBounds, err error) {
 	boundDensity := func(a, z *big.Rat) (exactInterval, error) {
 		domain := exactInterval{lo: a, hi: z}
 		pb, e := polynomialBernsteinInterval(p, domain, b)

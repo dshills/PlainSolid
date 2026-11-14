@@ -77,11 +77,28 @@ func (o AlgebraicGraphStockOccurrence) IntersectCapLineRational(ctx context.Cont
 	return o.pair.caps[cap].IntersectRationalLine(ctx, a, d, extent, options)
 }
 
+// IntersectLineRational classifies a finite world line against both caps and
+// all retained vertical stock walls. The exact parameter and original face
+// owners are invariant under the rigid placement.
+func (o AlgebraicGraphStockOccurrence) IntersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
+	options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
+	var zero AlgebraicGraphVerticalLine
+	a, e := o.pose.TransformPoint(ctx, origin, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	d, e := o.pose.TransformVector(ctx, direction, true, 4096)
+	if e != nil {
+		return zero, e
+	}
+	return o.model.IntersectRationalLine(ctx, a, d, extent, options)
+}
+
 // BoundVolume returns the unchanged original certified volume. Only proper
 // rigid poses are admitted, so no numeric determinant estimate is needed.
 func (o AlgebraicGraphStockOccurrence) BoundVolume(ctx context.Context, width *big.Rat,
 	options RationalGraphShellSectionOptions, roots geom.ExactCurvePlaneEventOptions) (geom.ExactParameterInterval, error) {
-	return o.pair.BoundVerticalPolynomialVolume(ctx, width, options, roots)
+	return o.pair.BoundVerticalVolume(ctx, width, options, roots)
 }
 
 // CertifiedAlgebraicGraphStockOccurrenceMesh has world-space mesh and

@@ -58,6 +58,40 @@ func TestAlgebraicGraphCapRationalWeightsArea(t *testing.T) {
 		new(big.Rat).Sub(got.Projection.Upper, got.Projection.Lower).Cmp(width) > 0 || got.Projection.Subdivisions < 1 {
 		t.Fatal("failed certified rational quarter-segment area", got, e)
 	}
+	// A vertical wall has zero z-flux, so the volume between z=0 and
+	// z=a+bx+cy over this footprint reduces to the weighted cap integral.
+	// Independent integrals of X and Y over this clipped quarter disk
+	// are 5/48 and sqrt(3)/8 respectively.
+	q := big.NewRat
+	fluxOptions := geom.ExactCurvePlaneEventOptions{MaxOperations: 4000000, MaxCoefficientBits: 32768}
+	for axis := 1; axis <= 2; axis++ {
+		a := [3]*big.Rat{q(0, 1), q(0, 1), q(0, 1)}
+		a[axis].SetInt64(1)
+		lo, hi := new(big.Rat), new(big.Rat)
+		for _, use := range clip.wires[0] {
+			area, e := use.Cell.BoundProjectedAffineGreen(ctx, [2]int{0, 1}, a, q(1, 4<<20), fluxOptions)
+			if e != nil {
+				t.Fatal("positive-weight projected affine flux", axis, e)
+			}
+			if use.Reversed {
+				lo.Sub(lo, area.Interval.Upper)
+				hi.Sub(hi, area.Interval.Lower)
+			} else {
+				lo.Add(lo, area.Interval.Lower)
+				hi.Add(hi, area.Interval.Upper)
+			}
+		}
+		if lo.Sign() <= 0 || new(big.Rat).Sub(hi, lo).Cmp(width) > 0 {
+			t.Fatal("flux must have the requested width", axis, lo, hi)
+		}
+		if axis == 1 {
+			if lo.Cmp(q(5, 48)) > 0 || hi.Cmp(q(5, 48)) < 0 {
+				t.Fatal("X integral does not enclose 5/48", lo, hi)
+			}
+		} else if lo.Mul(lo, lo).Cmp(q(3, 64)) > 0 || hi.Mul(hi, hi).Cmp(q(3, 64)) < 0 {
+			t.Fatal("Y integral does not enclose sqrt(3)/8", lo, hi)
+		}
+	}
 	// The nearest point to (1,1,0) on the retained quadrant is
 	// (1/√2,1/√2,0), inside the rational arc's true shortened domain.
 	query := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1), new(big.Rat)}
