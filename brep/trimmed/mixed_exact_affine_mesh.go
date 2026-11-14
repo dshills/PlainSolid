@@ -12,6 +12,10 @@ import (
 // input trims; chart evaluation limits apply per point. At most256 trims and64
 // holes are accepted. Display segments default4096 and are capped at4096.
 type MixedExactAffineMeshOptions struct {
+	// DomainSubdivisions/DomainDepth opt into exact homogeneous subdivision
+	// for controls outside the support but curves wholly inside it. Work is
+	// cumulative over all face trims; zero values retain the old hull-only gate.
+	DomainSubdivisions, DomainDepth int
 	// MaxBoundaryVertices opts into bounded exact triangulation above the
 	// legacy256-vertex proposal limit (maximum2048). Zero preserves that limit.
 	// MaxTriangulationWork bounds exact orientation/bridge work, default2000000.
@@ -41,6 +45,7 @@ type MixedExactTrimSamples struct {
 // populated. Source and Samples retain the actual mixed native trim authority.
 // This does not prove cross-face sewing or rounded display embedding.
 type CertifiedMixedExactAffineMesh struct {
+	DomainSubdivisions int
 	CertifiedAffineQuadraticTrimMesh
 	Source                    [][]PCurve
 	Samples                   []MixedExactTrimSamples
@@ -121,6 +126,11 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 		return empty, e
 	}
 	d := p.Domain()
+	domain, e := newFaceDomainBudget(o.DomainSubdivisions, o.DomainDepth)
+	if e != nil {
+		return empty, e
+	}
+	bounds := [2][2]*big.Rat{{ratInset(d.UMin), ratInset(d.UMax)}, {ratInset(d.VMin), ratInset(d.VMax)}}
 	source := make([]trimvalidate.Loop, len(input))
 	owned := make([][]PCurve, len(input))
 	for li, loop := range input {
@@ -131,13 +141,19 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 			if e != nil {
 				return empty, e
 			}
+			outside := false
 			for _, q := range h {
 				if q[0] == nil || q[1] == nil || q[2] == nil || q[2].Sign() <= 0 {
 					return empty, geom.ErrInvalid
 				}
 				u, v := new(big.Rat).Quo(q[0], q[2]), new(big.Rat).Quo(q[1], q[2])
 				if u.Cmp(ratInset(d.UMin)) < 0 || u.Cmp(ratInset(d.UMax)) > 0 || v.Cmp(ratInset(d.VMin)) < 0 || v.Cmp(ratInset(d.VMax)) > 0 {
-					return empty, geom.ErrDomain
+					outside = true
+				}
+			}
+			if outside {
+				if e := domain.prove(ctx, h, bounds, 16384); e != nil {
+					return empty, e
 				}
 			}
 			source[li][j], e = trimvalidate.ExactBezier(h)
@@ -324,7 +340,7 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 			samples[i].Vertices[j] = ids[id]
 		}
 	}
-	return CertifiedMixedExactAffineMesh{CertifiedAffineQuadraticTrimMesh: filled, Source: owned, Samples: samples, SourceProof: proof, PolygonProof: polygonProof}, nil
+	return CertifiedMixedExactAffineMesh{DomainSubdivisions: domain.used, CertifiedAffineQuadraticTrimMesh: filled, Source: owned, Samples: samples, SourceProof: proof, PolygonProof: polygonProof}, nil
 }
 func mixedExactControls(c PCurve) ([][3]*big.Rat, error) {
 	switch q := c.(type) {
