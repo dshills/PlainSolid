@@ -12,7 +12,7 @@ import (
 // It is never returned as a sealed original-world AlgebraicTubeRegions value.
 func projectedBooleanAnnulusView(ctx context.Context, section AlgebraicTrimmedPairSection, branches [2]int, o AlgebraicTubeRegionOptions) (AlgebraicTubeRegions, error) {
 	var empty AlgebraicTubeRegions
-	if section.runSource() == nil || section.runSource().projection != [2]int{1, 2} {
+	if section.runSource() == nil || (section.runSource().projection != [2]int{1, 2} && section.runSource().projection != [2]int{0, 2}) {
 		return empty, geom.ErrConvergence
 	}
 	if o.Exact.MaxOperations == 0 {
@@ -59,7 +59,7 @@ func projectedBooleanAnnulusView(ctx context.Context, section AlgebraicTrimmedPa
 		if p.MaxOperations < 1 {
 			return empty, geom.ErrConvergence
 		}
-		support, patch, e := permuteTubeLensSupport(r.partitions[0].Faces[chart], [3]int{1, 2, 0}, p)
+		support, patch, e := permuteTubeLensSupport(r.partitions[0].Faces[chart], [3]int{section.runSource().projection[0], section.runSource().projection[1], 3 - section.runSource().projection[0] - section.runSource().projection[1]}, p)
 		if e != nil {
 			return empty, e
 		}
@@ -97,8 +97,35 @@ func tessellateProjectedBooleanAnnulus(ctx context.Context, r AlgebraicTubeRegio
 	if e != nil {
 		return empty, e
 	}
-	forward := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Y, Y: p.Z, Z: p.X} }
-	inverse := func(p geom.Vec3) geom.Vec3 { return geom.Vec3{X: p.Z, Y: p.X, Z: p.Y} }
+	axes := r.section.runSource().projection
+	order := [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}
+	forward := func(p geom.Vec3) geom.Vec3 {
+		v := [3]float64{p.X, p.Y, p.Z}
+		return geom.Vec3{X: v[order[0]], Y: v[order[1]], Z: v[order[2]]}
+	}
+	inverse := func(p geom.Vec3) geom.Vec3 {
+		var v [3]float64
+		v[order[0]], v[order[1]], v[order[2]] = p.X, p.Y, p.Z
+		return geom.Vec3{X: v[0], Y: v[1], Z: v[2]}
+	}
+	// The temporary graph view uses canonical orientation. For odd permutation,
+	// return owners in physical world traversal while retaining exact UV/model
+	// sample identities. Reversal changes no point-correspondence certificate.
+	if projectedAxisParity(axes) < 0 {
+		for li := range original.Loops {
+			for chart := range original.Loops[li].Owners {
+				for i := range original.Loops[li].Owners[chart] {
+					owner := &original.Loops[li].Owners[chart][i]
+					owner.Reversed = !owner.Reversed
+					for a, b := 0, len(owner.Vertices)-1; a < b; a, b = a+1, b-1 {
+						owner.Vertices[a], owner.Vertices[b] = owner.Vertices[b], owner.Vertices[a]
+						owner.UV[a], owner.UV[b] = owner.UV[b], owner.UV[a]
+					}
+				}
+			}
+		}
+	}
+
 	projected := original
 	projected.Vertices = append([]geom.Vec3(nil), original.Vertices...)
 	for i, p := range projected.Vertices {
@@ -131,6 +158,12 @@ func tessellateProjectedBooleanAnnulus(ctx context.Context, r AlgebraicTubeRegio
 	}
 	for i, p := range shell.Mesh.Vertices {
 		shell.Mesh.Vertices[i] = inverse(p)
+	}
+	if projectedAxisParity(axes) < 0 {
+		for i := range shell.Mesh.Triangles {
+			t := &shell.Mesh.Triangles[i]
+			t[1], t[2] = t[2], t[1]
+		}
 	}
 	if e := shell.Mesh.ValidateSolid(); e != nil {
 		return empty, e
