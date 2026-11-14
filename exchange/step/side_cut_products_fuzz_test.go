@@ -1,0 +1,184 @@
+package step
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+	"testing"
+	"time"
+)
+
+// Resource bounds are deliberately smaller than the public defaults. Each fuzz
+// input selects one actual typed reader and can perform only one accepted-output
+// write and one readback. No retry, mesh, integration or external oracle is used.
+var sideCutFuzzLimits = Limits{MaxBytes: 64 << 10, MaxEntities: 768, MaxValues: 8192, MaxDepth: 16, MaxVertices: 64, MaxFaces: 24, MaxSolids: 1, MaxEdgeUses: 256}
+
+func sideCutFuzzSeed(t testing.TB, kind byte, through bool) []byte {
+	t.Helper()
+	frame, e := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	d := SideOpenDualDiskDescriptor{Name: "bounded side-cut seed", Frame: frame, Height: 6, Depth: 3, LengthUnit: .001, Tolerance: 1e-9}
+	if through {
+		d.Depth = 6
+	}
+	switch kind {
+	case 0:
+		d.Min = geom.Vec2{Y: 4}
+		d.Max = geom.Vec2{X: 10, Y: 10}
+		d.Discs = [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 3.5, Y: 4}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5, Y: 4}, Radius: 2.5}}
+	case 1:
+		d.Max = geom.Vec2{X: 60, Y: 22}
+		d.Discs = [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: 13}, {Center: geom.Vec2{X: 34}, Radius: 15}}
+	case 2:
+		d.Max = geom.Vec2{X: 50, Y: 12}
+		d.Discs = [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: 5}, {Center: geom.Vec2{X: 24.5}, Radius: 8.5}}
+	default:
+		t.Fatal("invalid seed kind")
+	}
+	var b bytes.Buffer
+	if e = sideCutFuzzWrite(context.Background(), &b, kind, d); e != nil {
+		t.Fatal(e)
+	}
+	return b.Bytes()
+}
+func sideCutFuzzWrite(ctx context.Context, b *bytes.Buffer, kind byte, d SideOpenDualDiskDescriptor) error {
+	switch kind {
+	case 0:
+		return WriteSideOpenDualDiskProduct(ctx, b, d)
+	case 1:
+		return WriteUnequalSideOpenDualDiskProduct(ctx, b, UnequalSideOpenDualDiskDescriptor(d))
+	default:
+		return WriteGeneralSideOpenDualDiskProduct(ctx, b, GeneralSideOpenDualDiskDescriptor(d))
+	}
+}
+func sideCutFuzzRead(t testing.TB, ctx context.Context, kind byte, raw []byte) (SideOpenDualDiskDescriptor, error) {
+	t.Helper()
+	switch kind {
+	case 0:
+		r, e := ReadSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
+		if e != nil {
+			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 {
+				t.Fatal("partial equal result")
+			}
+			return SideOpenDualDiskDescriptor{}, e
+		}
+		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 {
+			t.Fatal("incomplete equal result")
+		}
+		return r.Descriptor, nil
+	case 1:
+		r, e := ReadUnequalSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
+		if e != nil {
+			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 {
+				t.Fatal("partial unequal result")
+			}
+			return SideOpenDualDiskDescriptor{}, e
+		}
+		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.SourceWallFaces[0] <= 0 || r.SourceWallFaces[1] <= 0 {
+			t.Fatal("incomplete unequal result")
+		}
+		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+	default:
+		r, e := ReadGeneralSideOpenDualDiskProduct(ctx, bytes.NewReader(raw), sideCutFuzzLimits, 1e-9)
+		if e != nil {
+			if r.Body != 0 || len(r.Faces) != 0 || len(r.Edges) != 0 || r.RadicalJoin[0] != nil {
+				t.Fatal("partial general result")
+			}
+			return SideOpenDualDiskDescriptor{}, e
+		}
+		if r.Body <= 0 || r.Shell <= 0 || len(r.Native.Solid.Topology().Shells) != 1 || r.RadicalJoin[0] == nil || r.RadicalJoin[1] == nil || (r.RadicalSide != ExternalRadicalLeft && r.RadicalSide != ExternalRadicalRight) {
+			t.Fatal("incomplete general result")
+		}
+		return SideOpenDualDiskDescriptor(r.Descriptor), nil
+	}
+}
+
+func TestSideCutFuzzSeedsUnderWorkLimits(t *testing.T) {
+	for kind := byte(0); kind < 3; kind++ {
+		for _, through := range []bool{false, true} {
+			raw := sideCutFuzzSeed(t, kind, through)
+			if len(raw) > int(sideCutFuzzLimits.MaxBytes) {
+				t.Fatal("seed byte limit")
+			}
+			if _, e := sideCutFuzzRead(t, context.Background(), kind, raw); e != nil {
+				t.Fatal(kind, through, e)
+			}
+			for other := byte(0); other < 3; other++ {
+				if other != kind {
+					if _, e := sideCutFuzzRead(t, context.Background(), other, raw); e == nil {
+						t.Fatal("source category crossed", kind, other)
+					}
+				}
+			}
+		}
+	}
+}
+
+func FuzzReadSideCutProducts(f *testing.F) {
+	for kind := byte(0); kind < 3; kind++ {
+		for _, through := range []bool{false, true} {
+			raw := sideCutFuzzSeed(f, kind, through)
+			f.Add(kind, raw)
+			f.Add((kind+1)%3, raw)
+			f.Add(kind, raw[:len(raw)/2])
+			f.Add(kind, append([]byte("unexpected-prefix\x00"), raw...))
+			f.Add(kind, append(append([]byte(nil), raw...), []byte("#999999=CARTESIAN_POINT('',(0.,0.,0.));")...))
+			f.Add(kind, bytes.Replace(raw, []byte("END-ISO-10303-21;"), []byte("END-ISO-10303-21;\x00"), 1))
+		}
+	}
+	f.Add(byte(0), []byte{})
+	f.Add(byte(1), []byte("ISO-10303-21;HEADER;ENDSEC;DATA;#1=#1;ENDSEC;END-ISO-10303-21;"))
+	f.Fuzz(func(t *testing.T, selector byte, raw []byte) {
+		if len(raw) > int(sideCutFuzzLimits.MaxBytes) {
+			t.Skip()
+		}
+		kind := selector % 3
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		descriptor, e := sideCutFuzzRead(t, ctx, kind, raw)
+		if e != nil {
+			return
+		}
+		var out bytes.Buffer
+		if e = sideCutFuzzWrite(ctx, &out, kind, descriptor); e != nil {
+			if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+				return
+			}
+			t.Fatalf("accepted descriptor cannot re-emit: %v", e)
+		}
+		if out.Len() > int(sideCutFuzzLimits.MaxBytes) {
+			t.Fatal("accepted output exceeds work budget")
+		}
+		rebuilt, e := sideCutFuzzRead(t, ctx, kind, out.Bytes())
+		if e != nil {
+			if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+				return
+			}
+			t.Fatalf("accepted output cannot re-import: %v", e)
+		}
+		if rebuilt != descriptor {
+			t.Fatal("normalized descriptor drift")
+		}
+	})
+}
+
+func TestSideCutFuzzOuterPayloadsReject(t *testing.T) {
+	for kind := byte(0); kind < 3; kind++ {
+		raw := sideCutFuzzSeed(t, kind, false)
+		bad := [][]byte{raw[:len(raw)/2], append([]byte("unexpected-prefix\x00"), raw...), append(append([]byte(nil), raw...), []byte("#999999=CARTESIAN_POINT('',(0.,0.,0.));")...), bytes.Replace(raw, []byte("END-ISO-10303-21;"), []byte("END-ISO-10303-21;\x00"), 1)}
+		for i, payload := range bad {
+			if _, e := sideCutFuzzRead(t, context.Background(), kind, payload); e == nil {
+				t.Fatal("malformed outer payload accepted", kind, i)
+			}
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		if _, e := sideCutFuzzRead(t, ctx, kind, raw); !errors.Is(e, context.Canceled) {
+			t.Fatal("cancellation", kind, e)
+		}
+	}
+}
