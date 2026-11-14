@@ -6272,3 +6272,11 @@ cavity, blind and through Cut, boss Fuse, and exact disjoint and containment
 outcomes. Unsheared boxes exercised axis selection. Contact, publication
 limits, and cancellation checked atomic failure. The combined dispatcher,
 legacy interval, and anisotropic area race run passed in 13.776 seconds.
+
+### Nested crossing prism material
+
+The strict nested Fuse and Cut tests passed on both relevant operand
+orderings and on reflected placement. Independent volume and centroid,
+closed incidence, original cap and wall orientation, holed profiles, and
+atomic rejection of nonbinary native coordinates were checked. The focused
+native and sewing race run passed in 6.008 seconds.

@@ -37,6 +37,8 @@ const (
 	NativePrismFamilyCrossingFuse
 	NativePrismFamilyOriginal
 	NativePrismFamilyEmpty
+	NativePrismFamilyNestedFuse
+	NativePrismFamilyNestedCut
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
@@ -57,6 +59,8 @@ type NativePrismMaterial struct {
 	boss               *NativePrismBossFuse
 	crossingCut        *NativeCrossingPrismCut
 	crossingFuse       *NativeCrossingPrismFuse
+	nestedFuse         *NativeNestedPrismFuse
+	nestedCut          *NativeNestedPrismCut
 	classificationWork int
 }
 
@@ -150,6 +154,18 @@ func (s *NativePrismMaterial) CrossingFuseProof() *NativeCrossingPrismFuse {
 		return nil
 	}
 	return s.crossingFuse
+}
+func (s *NativePrismMaterial) NestedFuseProof() *NativeNestedPrismFuse {
+	if s == nil {
+		return nil
+	}
+	return s.nestedFuse
+}
+func (s *NativePrismMaterial) NestedCutProof() *NativeNestedPrismCut {
+	if s == nil {
+		return nil
+	}
+	return s.nestedCut
 }
 func (s *NativePrismMaterial) ClassificationNativeOperations() int {
 	if s == nil {
@@ -377,13 +393,25 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 				}
 			}
 		} else if !aInsideB {
-			q, err := ImprintCrossingNativePrismCut(ctx, a, b, o.Construct)
-			e = err
-			if e == nil {
-				out.crossingCut, e = q.BuildNative(ctx, o.Publish)
+			if x.lo < y.lo && y.hi < x.hi {
+				q, err := ImprintNestedCrossingNativePrismCut(ctx, a, b, o.Construct)
+				e = err
 				if e == nil {
-					out.family = NativePrismFamilyCrossingCut
-					out.components = []brep.Solid{out.crossingCut.Solid()}
+					out.nestedCut, e = q.BuildNative(ctx, o.Publish)
+					if e == nil {
+						out.family = NativePrismFamilyNestedCut
+						out.components = []brep.Solid{out.nestedCut.Solid()}
+					}
+				}
+			} else {
+				q, err := ImprintCrossingNativePrismCut(ctx, a, b, o.Construct)
+				e = err
+				if e == nil {
+					out.crossingCut, e = q.BuildNative(ctx, o.Publish)
+					if e == nil {
+						out.family = NativePrismFamilyCrossingCut
+						out.components = []brep.Solid{out.crossingCut.Solid()}
+					}
 				}
 			}
 		} else {
@@ -402,13 +430,25 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 				out.components = []brep.Solid{out.boss.Solid()}
 			}
 		} else {
-			q, err := ImprintCrossingNativePrismFuse(ctx, a, b, o.Construct)
-			e = err
-			if e == nil {
-				out.crossingFuse, e = q.BuildNative(ctx, o.Publish)
+			if (x.lo < y.lo && y.hi < x.hi) || (y.lo < x.lo && x.hi < y.hi) {
+				q, err := ImprintNestedCrossingNativePrismFuse(ctx, a, b, o.Construct)
+				e = err
 				if e == nil {
-					out.family = NativePrismFamilyCrossingFuse
-					out.components = []brep.Solid{out.crossingFuse.Solid()}
+					out.nestedFuse, e = q.BuildNative(ctx, o.Publish)
+					if e == nil {
+						out.family = NativePrismFamilyNestedFuse
+						out.components = []brep.Solid{out.nestedFuse.Solid()}
+					}
+				}
+			} else {
+				q, err := ImprintCrossingNativePrismFuse(ctx, a, b, o.Construct)
+				e = err
+				if e == nil {
+					out.crossingFuse, e = q.BuildNative(ctx, o.Publish)
+					if e == nil {
+						out.family = NativePrismFamilyCrossingFuse
+						out.components = []brep.Solid{out.crossingFuse.Solid()}
+					}
 				}
 			}
 		}

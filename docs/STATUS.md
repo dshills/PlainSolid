@@ -2370,3 +2370,12 @@ distinguishes empty and contact-only Common, preserves a stock body for
 zero-volume Cut, and returns both original components for disjoint Fuse.
 Unsupported contact joins return an error. Classification, construction, and
 publication each have resource limits.
+
+### Strictly nested crossing prism Fuse and Cut
+
+When one axial interval is strictly inside another and the footprints
+cross, exact cap and shoulder subdivision closes the three material
+layers. Fuse keeps the original outer end caps and builds a Union in the
+middle. Cut keeps stock at both ends and builds Difference in the middle.
+Both exposed cutter floors and clipped walls retain original support and
+edge intervals. The dispatcher reports the selected construction.
