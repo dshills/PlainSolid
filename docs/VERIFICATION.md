@@ -109,6 +109,23 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD STEP for a single oblique through Hole — 2026-11-14
+
+The retained cylinder and rectangular stock exchange as analytic surfaces.
+Eight conic edges preserve the two planar opening ellipses. Canonical
+readback recovers the axis ratios and entry face from the cylinder and
+opening graph, then verifies the regenerated graph. Tests cover adjacent,
+opposite, three-component and reversed/translated directions, non-millimeter
+units, altered conics and grazing input.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-oblique-step-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-oblique-step-native-2026-11-14.json)
+pass on the same WASM. The authored case exports only the drilled body,
+verifies the native worker's readback, reimports the STEP, reopens the
+project and exports watertight STL. Independent OCCT Boolean and STEP
+reader comparisons match volume and area for opposite and adjacent
+apertures within 0.000000003 in model units. Focused race and Go vet pass.
+
 ## PlainCAD single oblique through Hole — 2026-11-14
 
 A rectangular body accepts one oblique cylindrical through Hole when

@@ -117,7 +117,7 @@ remain open. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
-STEP for this oblique bore remains a separate exchange gate.
+Its STEP exchange preserves both analytic ellipses and the cylinder support.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

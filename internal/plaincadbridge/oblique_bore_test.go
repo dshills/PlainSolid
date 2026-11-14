@@ -82,8 +82,23 @@ func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
 			if err := json.Unmarshal(meshJSON, &rendered); err != nil || len(rendered.Positions) == 0 || rendered.GeometryAssertions != cut.GeometryAssertions {
 				t.Fatalf("oblique bore display: %v", err)
 			}
-			if _, err := bridge.exportSTEP([]string{cut.Handle}); err == nil || !strings.Contains(err.Error(), "elliptical oblique through-bore openings") {
-				t.Fatalf("oblique bore STEP diagnostic: %v", err)
+			stepModel, err := bridge.exportSTEP([]string{cut.Handle})
+			if err != nil || len(stepModel.After) != 1 {
+				t.Fatalf("oblique bore STEP export: %v", err)
+			}
+			data, err := base64.StdEncoding.DecodeString(stepModel.Base64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			imported, err := bridge.importSTEP(string(data))
+			if err != nil || imported.Bounds != cut.Bounds {
+				t.Fatalf("oblique bore STEP import: %v", err)
+			}
+			near(t, imported.GeometryAssertions.Volume, wantVolume)
+			near(t, imported.GeometryAssertions.SurfaceArea, wantArea)
+			again, err := bridge.exportSTEP([]string{imported.Handle})
+			if err != nil || again.Base64 != stepModel.Base64 {
+				t.Fatalf("oblique bore re-export changed the STEP graph: %v", err)
 			}
 			var parsed struct{ Base64 string }
 			out := invoke(t, bridge, map[string]any{"op": "stl", "handle": cut.Handle, "linearDeflection": 0.02, "angularDeflection": 0.2})
