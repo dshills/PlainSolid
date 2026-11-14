@@ -19,7 +19,7 @@ import (
 func TestSideOpeningPairSTEP(t *testing.T) {
 	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 	for ni, n := range normals {
-		for di, depths := range [][2]float64{{4, 4}, {4, 7}, {20, 7}, {7, 20}, {20, 20}} {
+		for di, depths := range [][2]float64{{4, 4}, {4, 7}, {20, 7}, {7, 20}, {20, 20}, {14, 12}, {12, 14}} {
 			frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 			if e != nil {
 				t.Fatal(e)
@@ -28,6 +28,12 @@ func TestSideOpeningPairSTEP(t *testing.T) {
 				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 14, Y: 1}, Radius: 3}, Depth: depths[0]},
 				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 18, Y: 1}, Radius: 3}, Depth: depths[1]},
 			}}
+			if di == 5 {
+				p.Cuts[1].OppositeCap = true
+			}
+			if di == 6 {
+				p.Cuts[0].OppositeCap = true
+			}
 			m := SideOpeningPairModel{Body: p, LengthUnit: .001}
 			var out bytes.Buffer
 			if e := WriteSideOpeningPair(&out, m); e != nil {

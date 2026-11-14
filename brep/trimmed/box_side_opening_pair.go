@@ -9,10 +9,11 @@ import (
 	"plainsolid/geom"
 )
 
-// SideOpeningCut removes a cylindrical footprint from the local Z=0 cap.
+// SideOpeningCut removes a cylindrical footprint from the selected end cap.
 type SideOpeningCut struct {
 	ExtrusionCircle
-	Depth float64
+	Depth       float64
+	OppositeCap bool
 }
 
 type SideOpeningPairResult struct {
@@ -22,7 +23,7 @@ type SideOpeningPairResult struct {
 
 // BoxSideOpeningPair removes two transversely intersecting disks that both
 // cross Y=0 and clear the other three sides. Stock is [0,width] × [0,back] ×
-// [0,length] in frame. Both tools enter Z=0. Depth equal to length cuts through.
+// [0,length] in frame. Depth equal to length cuts through.
 func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, length float64, cuts [2]SideOpeningCut, tolerance float64) (SideOpeningPairResult, error) {
 	var out SideOpeningPairResult
 	if ctx == nil || !finite(length) || !finite(tolerance) || tolerance <= 0 || length <= 8*tolerance {
@@ -36,9 +37,6 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 			return out, geom.ErrDomain
 		}
 	}
-	if cuts[0].Depth != cuts[1].Depth && math.Abs(cuts[0].Depth-cuts[1].Depth) <= 8*tolerance {
-		return out, geom.ErrDomain
-	}
 	if sideCutLess(cuts[1].ExtrusionCircle, cuts[0].ExtrusionCircle) {
 		cuts[0], cuts[1] = cuts[1], cuts[0]
 	}
@@ -51,31 +49,44 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 	cap := func(z float64, keep func(uint8) bool, reversed bool) error {
 		return buildSidePairCap(&builder, points, edges, z, keep, reversed)
 	}
-	const both = 3
-	if err := cap(0, func(mask uint8) bool { return material(mask, both) }, true); err != nil {
-		return out, err
+	var spans [2][2]float64
+	levels := []float64{0, length}
+	for i, cut := range cuts {
+		spans[i] = sideOpeningSpan(length, cut)
+		levels = append(levels, spans[i][0], spans[i][1])
 	}
-	levels := []float64{0, cuts[0].Depth, cuts[1].Depth, length}
+	// A common opposed floor puts both transverse wall junctions at the
+	// same axial level, where the current slab proof cannot separate them.
+	if spans[0][1] == spans[1][0] || spans[1][1] == spans[0][0] {
+		return out, geom.ErrUnrepresentable
+	}
 	sort.Float64s(levels)
 	levels = slices.Compact(levels)
-	activeAt := func(top float64) uint8 {
+	activeIn := func(bottom, top float64) uint8 {
 		var active uint8
-		for i, cut := range cuts {
-			if top <= cut.Depth {
+		for i, span := range spans {
+			if span[0] <= bottom && top <= span[1] {
 				active |= 1 << i
 			}
 		}
 		return active
 	}
-	topActive := activeAt(length)
+	bottomActive := activeIn(0, levels[1])
+	if err := cap(0, func(mask uint8) bool { return material(mask, bottomActive) }, true); err != nil {
+		return out, err
+	}
+	topActive := activeIn(levels[len(levels)-2], length)
 	if err := cap(length, func(mask uint8) bool { return material(mask, topActive) }, false); err != nil {
 		return out, err
 	}
-	out.SurfaceAreaDelta = -sidePairRemovedArea(points, edges, both) - sidePairRemovedArea(points, edges, topActive)
+	out.SurfaceAreaDelta = -sidePairRemovedArea(points, edges, bottomActive) - sidePairRemovedArea(points, edges, topActive)
 	for i, top := range levels[1:] {
 		bottom := levels[i]
-		active := activeAt(top)
+		active := activeIn(bottom, top)
 		thickness := top - bottom
+		if thickness <= 8*tolerance {
+			return SideOpeningPairResult{}, geom.ErrDomain
+		}
 		out.RemovedVolume += sidePairRemovedArea(points, edges, active) * thickness
 		out.SurfaceAreaDelta -= 2 * (width + back) * thickness
 		for _, edge := range edges {
@@ -92,11 +103,17 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 			out.SurfaceAreaDelta += edge.length(points) * thickness
 		}
 		if top < length {
-			next := activeAt(levels[i+2])
-			if err := cap(top, func(mask uint8) bool { return material(mask, next) && !material(mask, active) }, true); err != nil {
+			next := activeIn(top, levels[i+2])
+			floors := func(mask uint8) bool { return material(mask, next) && !material(mask, active) }
+			ceilings := func(mask uint8) bool { return material(mask, active) && !material(mask, next) }
+			if err := cap(top, floors, true); err != nil {
 				return SideOpeningPairResult{}, err
 			}
-			out.SurfaceAreaDelta += sidePairRemovedArea(points, edges, active) - sidePairRemovedArea(points, edges, next)
+			if err := cap(top, ceilings, false); err != nil {
+				return SideOpeningPairResult{}, err
+			}
+			out.SurfaceAreaDelta += 2*sidePairRemovedArea(points, edges, active|next) -
+				sidePairRemovedArea(points, edges, active) - sidePairRemovedArea(points, edges, next)
 		}
 	}
 	out.Solid, err = NewSolidContext(ctx, builder.vertices, builder.edges, builder.faces, tolerance)
@@ -104,6 +121,13 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 		return SideOpeningPairResult{}, err
 	}
 	return out, nil
+}
+
+func sideOpeningSpan(length float64, cut SideOpeningCut) [2]float64 {
+	if cut.OppositeCap {
+		return [2]float64{length - cut.Depth, length}
+	}
+	return [2]float64{0, cut.Depth}
 }
 
 const sidePairStock = 4
@@ -388,17 +412,19 @@ func buildSidePairWall(b *cornerCylinderBuilder, points []geom.Vec2, edge sidePa
 // BoxSideOpeningPairOverlap measures the remaining stock in a tool's
 // footprint and finite axial interval. The other footprint is the previously
 // removed circle at the same side, measured without constructing a result.
-func BoxSideOpeningPairOverlap(frame geom.Frame, width, back float64, old, tool ExtrusionCircle, oldDepth, low, high, tolerance float64) (float64, error) {
-	if !finite(tolerance) || tolerance <= 0 || !finite(oldDepth) || oldDepth <= 0 || !finite(low) || !finite(high) || low < 0 || high <= low {
+func BoxSideOpeningPairOverlap(frame geom.Frame, width, back, length float64, old SideOpeningCut, tool ExtrusionCircle, low, high, tolerance float64) (float64, error) {
+	if !finite(tolerance) || tolerance <= 0 || !finite(length) || !finite(old.Depth) || old.Depth <= 0 || old.Depth > length ||
+		!finite(low) || !finite(high) || low < 0 || high <= low || high > length {
 		return 0, geom.ErrInvalid
 	}
-	points, edges, err := sidePairArrangement(frame, width, back, [2]ExtrusionCircle{old, tool}, tolerance)
+	points, edges, err := sidePairArrangement(frame, width, back, [2]ExtrusionCircle{old.ExtrusionCircle, tool}, tolerance)
 	if err != nil {
 		return 0, err
 	}
 	oldArea := sidePairRemovedArea(points, edges, 1)
 	toolArea := sidePairRemovedArea(points, edges, 2)
 	unionArea := sidePairRemovedArea(points, edges, 3)
-	shared := max(0, min(oldDepth, high)-low)
+	span := sideOpeningSpan(length, old)
+	shared := max(0, min(span[1], high)-max(span[0], low))
 	return max(0, toolArea*(high-low)-(oldArea+toolArea-unionArea)*shared), nil
 }

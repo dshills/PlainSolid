@@ -12,7 +12,7 @@ import (
 )
 
 // SideOpeningPairBody retains two overlapping finite cylindrical openings on
-// the front side of a rectangular stock. Both cuts enter the lower cap;
+// the front side of a rectangular stock. Each cut enters its selected cap;
 // Depth=Length opens both caps. Dimensions and centers are in Frame coordinates.
 type SideOpeningPairBody struct {
 	Name                string
@@ -111,6 +111,7 @@ func recoverSideOpeningPair(f *File, id int64) (SideOpeningPairBody, error) {
 	result := SideOpeningPairBody{Name: name, Frame: frame, Width: bounds.Max.X, Back: bounds.Max.Y, Length: bounds.Max.Z}
 	index := map[trimmed.ExtrusionCircle]int{}
 	lows := [2]float64{math.Inf(1), math.Inf(1)}
+	highs := [2]float64{math.Inf(-1), math.Inf(-1)}
 	for _, face := range g.faces {
 		if face.kind == "PLANE" {
 			continue
@@ -148,10 +149,24 @@ func recoverSideOpeningPair(f *File, id int64) (SideOpeningPairBody, error) {
 			return fail()
 		}
 		lows[i] = min(lows[i], low)
-		result.Cuts[i].Depth = max(result.Cuts[i].Depth, high)
+		highs[i] = max(highs[i], high)
 	}
-	if len(index) != 2 || lows[0] != 0 || lows[1] != 0 {
+	if len(index) != 2 {
 		return fail()
+	}
+	for i := range result.Cuts {
+		switch {
+		case lows[i] == 0:
+			result.Cuts[i].Depth = highs[i]
+		case highs[i] == result.Length:
+			result.Cuts[i].Depth = result.Length - lows[i]
+			result.Cuts[i].OppositeCap = true
+			if result.Length-result.Cuts[i].Depth != lows[i] {
+				return fail()
+			}
+		default:
+			return fail()
+		}
 	}
 	sort.Slice(result.Cuts[:], func(i, j int) bool {
 		a, b := result.Cuts[i], result.Cuts[j]

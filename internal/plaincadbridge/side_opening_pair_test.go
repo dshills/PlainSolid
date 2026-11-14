@@ -61,3 +61,33 @@ func TestSideOpeningPairScopedAndSuccessive(t *testing.T) {
 		}
 	}
 }
+
+func TestSideOpeningPairOpposedScopes(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 8})
+	lower := circle(t, b, vector{8, 0, 0}, vector{0, 0, 1}, 3, 5)
+	upper := circle(t, b, vector{12, 0, 8}, vector{0, 0, -1}, 3, 6)
+	shared := 9*math.Acos(2./3) - math.Sqrt(20)
+	want := 3200 - 4.5*math.Pi*11 + 3*shared
+	for _, pair := range [][2]Shape{{lower, upper}, {upper, lower}} {
+		single := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": pair[0].Handle})
+		near(t, overlapMeasure(t, b, single.Handle, pair[1].Handle), single.GeometryAssertions.Volume-want)
+		for _, tc := range []struct {
+			base  Shape
+			tools []string
+		}{
+			{stock, []string{pair[0].Handle, pair[1].Handle}},
+			{single, []string{pair[1].Handle}},
+		} {
+			out, err := b.cutMany(tc.base.Handle, tc.tools)
+			if err != nil {
+				t.Fatal(err)
+			}
+			near(t, out.GeometryAssertions.Volume, want)
+			near(t, overlapMeasure(t, b, out.Handle, pair[1].Handle), 0)
+			if _, err := b.exportSTEP([]string{out.Handle}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}

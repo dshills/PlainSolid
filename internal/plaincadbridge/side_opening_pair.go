@@ -3,6 +3,7 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+	"sort"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
@@ -68,6 +69,14 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 	default:
 		return Shape{}, false, nil
 	}
+	var spans [2][][2]float64
+	for i, cut := range p.Cuts[:n] {
+		if cut.OppositeCap {
+			spans[i] = append(spans[i], [2]float64{p.Length - cut.Depth, p.Length})
+		} else {
+			spans[i] = append(spans[i], [2]float64{0, cut.Depth})
+		}
+	}
 	for _, input := range tools {
 		c := input.cylinder
 		if c == nil {
@@ -77,13 +86,13 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 			continue
 		}
 		circle, low, high, ok := pairCylinderSpan(p, c)
-		if !ok || low != 0 || high <= 0 || !crossesPairSide(p, circle) {
+		if !ok || high <= low || !crossesPairSide(p, circle) {
 			return Shape{}, false, nil
 		}
 		matched := false
 		for i := range p.Cuts[:n] {
 			if p.Cuts[i].ExtrusionCircle == circle {
-				p.Cuts[i].Depth = max(p.Cuts[i].Depth, high)
+				spans[i] = append(spans[i], [2]float64{low, high})
 				matched = true
 				break
 			}
@@ -97,11 +106,29 @@ func (b *Bridge) cutSideOpeningPair(a stored, tools []stored) (Shape, bool, erro
 		if compareCircularFootprints(p.Cuts[0].ExtrusionCircle, circle, false) >= 0 {
 			return Shape{}, false, nil
 		}
-		p.Cuts[n] = trimmed.SideOpeningCut{ExtrusionCircle: circle, Depth: high}
+		p.Cuts[n].ExtrusionCircle = circle
+		spans[n] = append(spans[n], [2]float64{low, high})
 		n++
 	}
 	if n < 2 {
 		return Shape{}, false, nil
+	}
+	for i, site := range spans {
+		sort.Slice(site, func(a, b int) bool { return site[a][0] < site[b][0] })
+		low, high := site[0][0], site[0][1]
+		for _, span := range site[1:] {
+			if span[0] > high {
+				return Shape{}, true, unsupportedEdge("opposed cuts at a side-opening site must connect")
+			}
+			high = max(high, span[1])
+		}
+		if low != 0 && high != p.Length {
+			return Shape{}, true, unsupportedEdge("side-opening cuts must open on an exterior cap")
+		}
+		if !exactAxisDistance(high, low, high-low) {
+			return Shape{}, true, geom.ErrUnrepresentable
+		}
+		p.Cuts[i].Depth, p.Cuts[i].OppositeCap = high-low, low != 0
 	}
 	body, err := sideOpeningPairBody(p)
 	if err != nil {
@@ -155,13 +182,19 @@ func overlapSideOpeningPair(a, tool stored) (float64, bool, error) {
 		return 0, false, nil
 	}
 	if a.analytic.sideOpeningPair != nil {
+		var matched trimmed.SideOpeningCut
 		switch c {
 		case p.Cuts[0].ExtrusionCircle:
-			low, prior = max(low, p.Cuts[0].Depth), p.Cuts[1]
+			matched, prior = p.Cuts[0], p.Cuts[1]
 		case p.Cuts[1].ExtrusionCircle:
-			low, prior = max(low, p.Cuts[1].Depth), p.Cuts[0]
+			matched, prior = p.Cuts[1], p.Cuts[0]
 		default:
 			return 0, false, nil
+		}
+		if matched.OppositeCap {
+			high = min(high, p.Length-matched.Depth)
+		} else {
+			low = max(low, matched.Depth)
 		}
 		if high <= low {
 			return 0, true, nil
@@ -169,6 +202,6 @@ func overlapSideOpeningPair(a, tool stored) (float64, bool, error) {
 	} else if c == prior.ExtrusionCircle || compareCircularFootprints(prior.ExtrusionCircle, c, false) >= 0 {
 		return 0, false, nil
 	}
-	v, err := trimmed.BoxSideOpeningPairOverlap(p.Frame, p.Width, p.Back, prior.ExtrusionCircle, c, prior.Depth, low, high, 1e-9)
+	v, err := trimmed.BoxSideOpeningPairOverlap(p.Frame, p.Width, p.Back, p.Length, prior, c, low, high, 1e-9)
 	return v, true, err
 }
