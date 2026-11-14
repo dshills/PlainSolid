@@ -6177,3 +6177,11 @@ rejoins only after an affine parameter and quartic identity proof. Both
 original crease faces and shared rim vertices survive ownership recovery.
 One-short cumulative query limits reject. The combined line race passed in
 33.650 s.
+
+### Depth-three AP242 SHUO qualification
+
+Independent OCCT reads twelve placed leaves, volume 216 and area 504.
+Retargeting the middle or outer link moves the single colored path. The
+exact native reproof retains the original graph and refuses competing
+continuations or wrong terminal ownership. The combined appearance race
+passed in 11.562 s.

@@ -2323,3 +2323,11 @@ A separately authenticated contained tool can span both stock caps.
 `trimmed.CutContainedNativePrismThrough` opens both original caps and
 sews reversed original tool walls with exact clipped height intervals.
 Original cap, wall and edge ancestry remains available.
+
+### Depth-three AP242 SHUO appearance
+
+The independent OCCT-specific reader validates a unique two-SHUO chain,
+three original assembly use links and the original prefix-anchored style
+context. It preserves all twelve expanded leaf paths and applies appearance
+to exactly one. The distinct native format re-proves the original STEP.
+See the [depth-three format contract](../exchange/step/DEEP_SHUO_COLORS.md).
