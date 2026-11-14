@@ -741,6 +741,14 @@ were verified. All three [authored plane cases](evidence/plaincad-reconciled-f4a
 reproduced the worktree's STEP and STL byte for byte. The STL edges closed
 in opposite directions and independent OCCT confirmed volume, area and
 centroid.
+The [socket-head fastener reconciliation](evidence/plaincad-reconciled-4c071ff9-development-socket-fastener-holes-step-2026-11-14.json)
+adds worktree revisions through `281f55b0` to review `4c071ff9`. Native
+checks and all six original browser cases passed; 841 app and 2,131 kernel
+source blobs were verified. The [authored M3 and 4-40 UNC round trips](evidence/plaincad-reconciled-4c071ff9-supplemental-socket-fastener-step-2026-11-14.json)
+produced byte-identical local STEP re-exports and watertight 276-triangle
+STLs. Serialization differed from the original worktree run. STEP entity
+type counts and OCCT volume, area and centroid agreed for both cases; M3
+retained the same oriented triangle set, and four inch triangles differed.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
@@ -1690,3 +1698,12 @@ products through total degree seventeen are retained. Existing operation/bit
 limits are unchanged. The original native triple-roof mesh qualification is
 explicitly enabled with `PLAINSOLID_TRIPLE_RADIAL_MESH=1`; a passing small
 residual proof does not itself claim that whole native mesh has qualified.
+
+The explicitly gated original nominal-degree-eight native flagship is now
+qualified: complete original source section and material, two native components,
+exact source mass properties, and a shared-boundary closed display of the disk
+plus annulus. Its 10,066 vertices/20,128 triangles retain all four source faces
+and 228 original edge/vertex bindings. Global exact display nonintersection and
+per-component topology pass. This is an expensive proof-oriented qualification;
+it does not establish interactive latency, general multi-pair mesh assembly,
+native recipe persistence of all enlarged rings, or certified volume error.
