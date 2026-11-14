@@ -124,3 +124,25 @@ representatives; exact owner completeness comes from the Go proof, not that
 count. Fresh executable SHA256:
 `20364ae8852620afe85e98f1069aa7a9d4c7aaf82a8ceab23c2429a54a47f494`.
 The pinned OCCT source archive and original modes remain unchanged.
+
+## Genuinely irrational stock azimuth
+
+`--nested-bore` uses the same independent pierced OCCT stock, with strict
+winner queries `(77/10,1/100,69/100)` and `(77/10,1/100,71/100)`. Both stock
+and eccentric bore azimuth radii are irrational; the torus witness contains a
+nested positive radical. `TestOCCTConicalNestedBoreNearest` reloads the native
+Go recipe, requires complete strict owner reports, and checks the independent
+meridian/cylinder formula, OCCT distance and witness with the existing tolerance.
+Observed squared distances were `0.47566431896779066` and
+`0.49004117697943417`.
+
+The mode also repeats the known exact tie `9025/16384`. The new interval-based
+nested query must leave it unresolved, with no advertised nearest owner or
+candidate. The existing symbolic rational-azimuth method separately proves
+its two original owners. OCCT's two reported representatives never decide
+exact equality in Go. This distinction also holds after rational rigid placement.
+
+Fresh executable SHA256:
+`07b3078b677bea1485aefd9dacb80aeaf493c07918caf9e7db29dd75fa791d55`.
+It is built against the same pinned source archive above. Native rational
+sub-float transition tests remain separate from this finite-precision oracle.
