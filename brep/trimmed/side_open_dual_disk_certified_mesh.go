@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
 )
@@ -14,13 +15,19 @@ import (
 // required; AngularTurn must be <=1. MaxRimIntervals defaults256 (maximum256),
 // independently of MaxTriangles (default100000). The schedule is dyadic, so a
 // non-power-of-two interval limit uses its largest smaller power of two.
+// The interval limit also bounds each FINAL shared circular rim partition.
 // Circle reconstruction and each triangle residual use the existing bounded
 // exact geometry proof; total scheduled intervals are less than twice the
 // accepted dyadic count per wall. Face and collision proof budgets retain the
-// closed mixed mesher defaults. Proof failures are atomic.
+// closed mixed mesher defaults except the explicit Topology defaults below and
+// a2048-vertex/2000000-operation exact cap triangulation allowance. Proof failures
+// are atomic.
 // Only exact signed-coordinate circular extrusions and affine remaining faces
 // are accepted. This is not a generic mesher or a source embedding certificate.
 type SideOpenDualDiskMeshOptions struct {
+	// Topology bounds exact source/chord polygon validation independently.
+	// Zero MaxEdges/MaxWork use2048/2000000; remaining defaults unchanged.
+	Topology                      trimvalidate.Options
 	Deflection, AngularTurn       float64
 	MaxRimIntervals, MaxTriangles int
 	Collision                     collision.Options
@@ -245,6 +252,15 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 	if o.MaxTriangles < len(s.Solid.faces) {
 		return empty, geom.ErrConvergence
 	}
+	if o.Topology.MaxEdges == 0 {
+		o.Topology.MaxEdges = 2048
+	}
+	if o.Topology.MaxWork == 0 {
+		o.Topology.MaxWork = 2000000
+	}
+	if _, e := o.Topology.WithDefaults(); e != nil {
+		return empty, e
+	}
 	walls := map[int]dualDiskWallProof{}
 	rim := map[int]bool{}
 	for _, ids := range s.WallFaces {
@@ -378,11 +394,16 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 				}
 			}
 		}
-		options[fi] = SolidMixedFaceMeshOptions{Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{RectangularGrid: true, Cuts: cuts, Interior: CurvedQuadraticTrimMeshOptions{Deflection: o.Deflection, MaxTriangles: o.MaxTriangles}}}}
+		options[fi] = SolidMixedFaceMeshOptions{Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{RectangularGrid: true, Cuts: cuts, Boundary: MixedExactAffineMeshOptions{Topology: o.Topology, MaxBoundaryVertices: 2048, MaxTriangulationWork: 2000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: o.Deflection, MaxTriangles: o.MaxTriangles}}}}
 	}
 	display, e := s.Solid.TessellateMixedClosedCertified(ctx, StoredMixedClosedMeshOptions{Faces: options, MaxTriangles: o.MaxTriangles, Collision: o.Collision})
 	if e != nil {
 		return empty, fmt.Errorf("closed display at %d rim intervals: %w", n, e)
+	}
+	for edge := range rim {
+		if len(display.Network.EdgeParameters[edge])-1 > o.MaxRimIntervals {
+			return empty, fmt.Errorf("final shared rim interval limit: %w", geom.ErrConvergence)
+		}
 	}
 	result := CertifiedSideOpenDualDiskMesh{CertifiedStoredMixedClosedMesh: display, RimIntervals: n, SquaredTurnTangent: new(big.Rat), SquaredFacetTangent: new(big.Rat)}
 	// The exact dot minimum on a short monotone circular arc with both endpoint
