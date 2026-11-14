@@ -12,7 +12,11 @@ func polynomialProduct(a, c rationalPolynomial, b *polynomialBudget) (rationalPo
 	}
 	for i, x := range a {
 		for j, y := range c {
-			result[i+j].Add(result[i+j], new(big.Rat).Mul(x, y))
+			// Zero terms leave the exact intermediate value unchanged; still
+			// charge/check it below, preserving all legacy proof limits.
+			if x.Sign() != 0 && y.Sign() != 0 {
+				result[i+j].Add(result[i+j], new(big.Rat).Mul(x, y))
+			}
 			if e := b.check(result[i+j]); e != nil {
 				return nil, e
 			}

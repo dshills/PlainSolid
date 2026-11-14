@@ -164,6 +164,14 @@ func bernsteinToPower(coefficients []*big.Rat, b *polynomialBudget) (rationalPol
 	for k := 0; k <= n; k++ {
 		p[k] = new(big.Rat)
 		for i := 0; i <= k; i++ {
+			// Preserve the original intermediate-value proof checkpoint even when
+			// an exact zero term needs no rational multiplication or addition.
+			if coefficients[i].Sign() == 0 {
+				if e := b.check(p[k]); e != nil {
+					return nil, e
+				}
+				continue
+			}
 			factor := new(big.Rat)
 			if n < len(smallBernsteinPowerFactors) {
 				factor.SetInt64(smallBernsteinPowerFactors[n][k][i])
