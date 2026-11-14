@@ -74,12 +74,15 @@ func planarSplineRigid(m geom.Affine) bool {
 // products in one explicit AP214 occurrence graph. This subset uses proper
 // signed-coordinate rigid poses; local geometry and names remain unflattened.
 func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
+	return writePlanarSplineAssembly(w, m, false, nil)
+}
+func writePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel, cylinderMode bool, cylinders map[string][]CylinderBody) error {
 	if w == nil {
 		return planarSplineFailure()
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
 	counts := make([]int, len(m.Products))
-	np, ns := 0, 0
+	np, ns, nc := 0, 0, 0
 	for _, o := range m.Occurrences {
 		if !planarSplineRigid(o.Transform) {
 			return planarSplineFailure()
@@ -87,7 +90,16 @@ func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
 	}
 	for i, p := range m.Products {
 		graph.Products = append(graph.Products, AssemblyPart{ID: p.ID, Name: p.Name})
+		if len(cylinders[p.ID]) > 0 && p.Family != planarSplineCylinder {
+			return planarSplineFailure()
+		}
 		switch p.Family {
+		case planarSplineCylinder:
+			if !cylinderMode || len(cylinders[p.ID]) == 0 || len(p.Planar)+len(p.Splines) != 0 {
+				return planarSplineFailure()
+			}
+			counts[i] = len(cylinders[p.ID])
+			nc++
 		case PlanarSplineNode:
 			if len(p.Planar)+len(p.Splines) != 0 {
 				return planarSplineFailure()
@@ -113,7 +125,7 @@ func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
 			return planarSplineFailure()
 		}
 	}
-	if np == 0 || ns == 0 {
+	if (!cylinderMode && (np == 0 || ns == 0)) || (cylinderMode && (nc == 0 || np+ns == 0)) {
 		return planarSplineFailure()
 	}
 	var staged bytes.Buffer
@@ -123,6 +135,8 @@ func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
 		var e error
 		if p.Family == PlanarSplinePlanar {
 			e = WriteAdvanced(&b, Model{Bodies: p.Planar, LengthUnit: m.LengthUnit})
+		} else if p.Family == planarSplineCylinder {
+			e = WriteCylinders(&b, CylinderModel{Bodies: cylinders[p.ID], LengthUnit: m.LengthUnit})
 		} else {
 			e = WriteSplineShells(&b, SplineShellModel{Bodies: p.Splines, LengthUnit: m.LengthUnit})
 		}
@@ -134,7 +148,7 @@ func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
 	if e != nil {
 		return e
 	}
-	if _, e = ReadPlanarSplineAssembly(bytes.NewReader(staged.Bytes()), Limits{}); e != nil {
+	if _, e = readPlanarSplineAssembly(bytes.NewReader(staged.Bytes()), Limits{}, cylinderMode, make(map[int64][]AnalyticBody)); e != nil {
 		return e
 	}
 	n, e := w.Write(staged.Bytes())
@@ -143,7 +157,7 @@ func WritePlanarSplineAssembly(w io.Writer, m PlanarSplineAssemblyModel) error {
 	}
 	return e
 }
-func planarSplineBodyFamily(f *File, id int64) (PlanarSplineFamily, error) {
+func planarSplineBodyFamily(f *File, id int64, cylinderMode bool) (PlanarSplineFamily, error) {
 	b, e := simple(f, id, "MANIFOLD_SOLID_BREP", 2)
 	if e != nil {
 		return "", e
@@ -160,7 +174,7 @@ func planarSplineBodyFamily(f *File, id int64) (PlanarSplineFamily, error) {
 	if e != nil {
 		return "", e
 	}
-	kind := PlanarSplineFamily("")
+	np, ns, nc := 0, 0, 0
 	for _, fid := range faces {
 		face, e := simple(f, fid, "ADVANCED_FACE", 4)
 		if e != nil {
@@ -170,21 +184,37 @@ func planarSplineBodyFamily(f *File, id int64) (PlanarSplineFamily, error) {
 		if e != nil {
 			return "", e
 		}
-		k := PlanarSplineFamily("")
+		k := ""
 		for _, r := range f.Entities[s].Records {
-			if r.Type == "PLANE" {
-				k = PlanarSplinePlanar
-			}
-			if r.Type == "B_SPLINE_SURFACE_WITH_KNOTS" {
-				k = PlanarSplineSpline
+			switch r.Type {
+			case "PLANE", "B_SPLINE_SURFACE_WITH_KNOTS", "CYLINDRICAL_SURFACE":
+				if k != "" {
+					return "", planarSplineFailure()
+				}
+				k = r.Type
 			}
 		}
-		if k == "" || kind != "" && kind != k {
+		switch k {
+		case "PLANE":
+			np++
+		case "B_SPLINE_SURFACE_WITH_KNOTS":
+			ns++
+		case "CYLINDRICAL_SURFACE":
+			nc++
+		default:
 			return "", planarSplineFailure()
 		}
-		kind = k
 	}
-	return kind, nil
+	if np == len(faces) {
+		return PlanarSplinePlanar, nil
+	}
+	if ns == len(faces) {
+		return PlanarSplineSpline, nil
+	}
+	if cylinderMode && np == 2 && nc == 1 && len(faces) == 3 {
+		return planarSplineCylinder, nil
+	}
+	return "", planarSplineFailure()
 }
 func planarSplineOwnedType(t string) bool {
 	switch t {
@@ -199,6 +229,9 @@ func planarSplineOwnedType(t string) bool {
 // support families inside a body/product, shared geometry across product owners,
 // unowned material entities, noncardinal poses, and cumulative resource overflow.
 func ReadPlanarSplineAssembly(r io.Reader, l Limits) (PlanarSplineAssembly, error) {
+	return readPlanarSplineAssembly(r, l, false, nil)
+}
+func readPlanarSplineAssembly(r io.Reader, l Limits, cylinderMode bool, cylinders map[int64][]AnalyticBody) (PlanarSplineAssembly, error) {
 	fail := func() (PlanarSplineAssembly, error) { return PlanarSplineAssembly{}, planarSplineFailure() }
 	l, e := l.defaults()
 	if e != nil {
@@ -217,7 +250,7 @@ func ReadPlanarSplineAssembly(r io.Reader, l Limits) (PlanarSplineAssembly, erro
 	remaining := l
 	owned := map[int64]int64{}
 	seen := map[int64]bool{}
-	np, ns := 0, 0
+	np, ns, nc := 0, 0, 0
 	for _, p := range a.Products {
 		ids, advanced, e := a.productItems(p.DefinitionID)
 		if e != nil {
@@ -229,7 +262,7 @@ func ReadPlanarSplineAssembly(r io.Reader, l Limits) (PlanarSplineAssembly, erro
 				return fail()
 			}
 			seen[id] = true
-			k, e := planarSplineBodyFamily(a.Source, id)
+			k, e := planarSplineBodyFamily(a.Source, id, cylinderMode)
 			if e != nil {
 				return fail()
 			}
@@ -255,6 +288,16 @@ func ReadPlanarSplineAssembly(r io.Reader, l Limits) (PlanarSplineAssembly, erro
 					}
 				}
 				np++
+			} else if k == planarSplineCylinder {
+				body, e := readAssemblyCylinder(a.Source, id)
+				if e != nil {
+					return PlanarSplineAssembly{}, e
+				}
+				cylinders[p.DefinitionID] = append(cylinders[p.DefinitionID], body)
+				remaining.MaxVertices -= len(body.Solid.Vertices())
+				remaining.MaxFaces -= len(body.Solid.Faces())
+				remaining.MaxEdgeUses -= 4 * len(body.Solid.Faces())
+				nc++
 			} else {
 				b, n, e := decodeSplineShell(a.Source, id, remaining)
 				if e != nil {
@@ -305,7 +348,7 @@ func ReadPlanarSplineAssembly(r io.Reader, l Limits) (PlanarSplineAssembly, erro
 		}
 		out.Products[p.DefinitionID] = product
 	}
-	if np == 0 || ns == 0 {
+	if (!cylinderMode && (np == 0 || ns == 0)) || (cylinderMode && (nc == 0 || np+ns == 0)) {
 		return fail()
 	}
 	for id, ent := range a.Source.Entities {
