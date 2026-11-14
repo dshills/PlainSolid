@@ -74,6 +74,16 @@ func (s Solid) tessellateAnalyticAdaptive(ctx context.Context, o parametric.Tess
 }
 
 func (s Solid) tessellateAnalyticAdaptiveAllocation(ctx context.Context, o parametric.TessellationOptions, preallocate bool) (mesh.Mesh, error) {
+	return s.refineAnalyticMeshAllocation(ctx, o, true, preallocate)
+}
+
+// refineAnalyticMesh can omit the diagonal flips and final cleanup. It always
+// applies the same edge conformity, deflection, orientation and solid checks.
+func (s Solid) refineAnalyticMesh(ctx context.Context, o parametric.TessellationOptions, improve bool) (mesh.Mesh, error) {
+	return s.refineAnalyticMeshAllocation(ctx, o, improve, true)
+}
+
+func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.TessellationOptions, improve, preallocate bool) (mesh.Mesh, error) {
 	m := mesh.Mesh{Vertices: s.Vertices()}
 	initial := s.seedTriangles()
 	var e error
@@ -89,7 +99,7 @@ func (s Solid) tessellateAnalyticAdaptiveAllocation(ctx context.Context, o param
 	if maxRounds < 2 {
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
-	optimize := true
+	optimize := improve
 	lastMarked, lastCount := 0, 0
 	for round := 0; round <= maxRounds; round++ {
 		for fi := range current {
@@ -197,7 +207,7 @@ func (s Solid) tessellateAnalyticAdaptiveAllocation(ctx context.Context, o param
 			// to a periodic trim seam. Finish monotone collapses to a fixed
 			// point; every replacement satisfies the same error/phase checks.
 			for fi := range current {
-				for pass := 0; pass < 32; pass++ {
+				for pass := 0; improve && pass < 32; pass++ {
 					before := len(current[fi])
 					current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole)
 					if e != nil {

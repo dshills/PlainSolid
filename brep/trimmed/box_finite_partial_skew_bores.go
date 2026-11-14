@@ -59,5 +59,17 @@ func (s Solid) TessellateFinitePartialSkewBores(ctx context.Context, o parametri
 	if !found {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
+	// Repeated diagonal flips are expensive between a retained oval and a
+	// nearby floor. Try refinement without those flips and the final cleanup
+	// pass. The mesh still shares edge samples and passes all surface checks.
+	fast := o
+	fast.MaxTriangles = min(fast.MaxTriangles, 80_000)
+	m, err := s.refineAnalyticMesh(ctx, fast, false)
+	if err == nil {
+		return m, nil
+	}
+	if ctx.Err() != nil {
+		return mesh.Mesh{}, ctx.Err()
+	}
 	return s.tessellateAnalyticAdaptive(ctx, o)
 }

@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD near-floor skew Hole tessellation — 2026-11-14
+
+A narrower valid gap between a skew intersection and its retained floor
+can use conforming refinement without the costly diagonal flips and
+final cleanup passes. It keeps the original fallback, deflection and
+orientation checks, and validates the finished mesh as one solid.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-close-floor-mesh-step-browser-2026-11-14.json)
+and the [previously timing-out authored case](evidence/plaincad-close-floor-mesh-step-native-2026-11-14.json)
+pass on the same WASM. The authored case rebuilds within the unchanged
+8-second worker deadline and round-trips STEP, project reopen, and
+watertight STL. Independent OCCT agrees with its direct Boolean on
+volume, area, and centroid. Focused native, race, and vet checks pass.
+
 ## PlainCAD close blind floors on skew Hole crossings — 2026-11-14
 
 A finite skew Hole checks the squared axial and transverse clearance

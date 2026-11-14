@@ -117,6 +117,17 @@ func TestFinitePartialSkewBoreBeyondActualIntersection(t *testing.T) {
 			if support.Frame().Origin().Z != floor {
 				t.Fatal("wrong floor", support.Frame().Origin())
 			}
+			if offset == 5 && opposite {
+				// PlainCAD's detailed display budget reproduced a stall here.
+				opts := parametric.TessellationOptions{Deflection: .014, Angle: .04, MaxSubdivisions: 256, MaxTriangles: 80_000}
+				mesh, err := out.Solid.TessellateFinitePartialSkewBores(ctx, opts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := mesh.ValidateSolid(); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if _, err := BoxFinitePartialSkewBores(ctx, f, dims, c, 5, 2, offset, 0, 23.75, false, opposite, 1e-9); err == nil {
 				t.Fatal("accepted a floor that intersects the other bore")
 			}
