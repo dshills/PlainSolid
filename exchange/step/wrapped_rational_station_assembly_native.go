@@ -34,11 +34,14 @@ type weightedAssemblyNativeEnvelope struct {
 }
 
 func weightedAssemblyNativeClaim(ctx context.Context, m WrappedRationalStationAssembly) (weightedAssemblyNativeEnvelope, error) {
+	return weightedAssemblyNativeClaimBound(ctx, m, 16)
+}
+func weightedAssemblyNativeClaimBound(ctx context.Context, m WrappedRationalStationAssembly, maxWalls int) (weightedAssemblyNativeEnvelope, error) {
 	q := weightedAssemblyNativeEnvelope{Format: weightedAssemblyNativeFormat, Version: 1, Assembly: m.Assembly, Product: m.Product, SourceBodyID: m.SourceBodyID, SourceFaceIDs: m.SourceFaceIDs, SourceWallFaceIDs: m.SourceWallFaceIDs, Name: m.Body.Name, CapNames: m.Body.CapNames, LengthUnit: m.Body.LengthUnit}
 	if e := ctx.Err(); e != nil {
 		return q, e
 	}
-	if !independentNativeSourceRecordBound(m.Assembly.Source, 4096, 8) || len(m.Body.Walls) < 1 || len(m.Body.Walls) > 16 || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 || len(m.Assembly.Products) != 2 || len(m.Assembly.Occurrences) > 16 || len(m.SourceFaceIDs) > 18 || len(m.SourceWallFaceIDs) > 16 {
+	if !independentNativeSourceRecordBound(m.Assembly.Source, 4096, 8) || len(m.Body.Walls) < 1 || len(m.Body.Walls) > maxWalls || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 || len(m.Assembly.Products) != 2 || len(m.Assembly.Occurrences) > 16 || len(m.SourceFaceIDs) > maxWalls+2 || len(m.SourceWallFaceIDs) > maxWalls {
 		return q, geom.ErrInvalid
 	}
 	source, e := mappedPlanarSourceBytes(m.Assembly.Source)
@@ -67,7 +70,7 @@ func weightedAssemblyNativeClaim(ctx context.Context, m WrappedRationalStationAs
 		}
 		q.Walls = append(q.Walls, weightedAssemblyWallClaim{wall.Name, wall.SideEdges, wall.CornerVertices, recipe.Surface.Data(), recipe.Options.WrapU, recipe.Options.WrapV})
 	}
-	if len(m.Body.Solid.Faces()) > 18 || len(m.Body.Solid.Edges()) > 256 || len(m.Body.Solid.Vertices()) > 256 {
+	if len(m.Body.Solid.Faces()) > maxWalls+2 || len(m.Body.Solid.Edges()) > 256 || len(m.Body.Solid.Vertices()) > 256 {
 		return q, geom.ErrInvalid
 	}
 	native, e := prismNativeBytes(m.Body.Solid)

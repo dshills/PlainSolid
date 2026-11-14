@@ -132,9 +132,8 @@ reversed inner walls, and shared exact end annuli. The shared assembly layer
 maps edge identities only after that full orientation proof; false inner
 `FACE_BOUND` senses are not changed in the original source.
 
-The filled reader and filled native tag still reject this family. This slice
-provides local native material reload plus source/generated assembly transfer,
-not a new bore assembly JSON envelope. The independent XCAF author accepts
+The filled reader and filled native tag still reject this family. The STEP slice provides local native material reload plus source/generated
+assembly transfer; the separate native envelope is described below. The independent XCAF author accepts
 `write-bore output.step`, builds two rational lofts independently and cuts the
 inner from the outer before adding two shared product uses. Its retained
 450-entity source and generated output transfer as two solids / twelve face
@@ -142,3 +141,24 @@ uses with the same poses, approximately 48.711798213 volume, and agreeing
 adaptive area and centroid. All values are model-coordinate measures; the
 source unit remains millimetres. Source output preserves IDs, generated output
 creates new IDs. No general XCAF or vendor approximation acceptance is added.
+
+### Through-bore source-bound native envelope
+
+`WriteWrappedRationalStationBoreAssemblyJSON` and
+`ReadWrappedRationalStationBoreAssemblyJSON` now supply the separate
+`plainsolid-step-wrapped-rational-station-bore-assembly` version-one format.
+One complete original STEP reproof authenticates the actual bore material,
+both original support chains, their separately recorded source wall roles,
+annular cap names, product/unit metadata, and every occurrence relationship
+and exact matrix. The returned body's auxiliary filled outer/inner profile
+solids are also bound as derivation claims; they are not extra assembly
+products. The source remains authoritative for all regenerated geometry.
+
+The common claim serializer retains the original filled bounds and format;
+the bore path explicitly allows at most 16 walls per owner / 32 total.
+Envelopes are limited to 16 MiB and source to 1 MiB with caller source limits,
+strict JSON fields, cancellation and all-or-none returns. Corrupt local
+native solids, raw support weights, swapped wall roles, matrices, relationship
+IDs, units and format tags fail reproof. Filled and bore envelopes reject
+each other. The live XCAF chain now includes bore envelope reload before
+source export and generated STEP output.

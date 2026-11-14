@@ -91,6 +91,14 @@ func TestWrappedRationalStationBoreAssemblyLive(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	var native bytes.Buffer
+	if e = WriteWrappedRationalStationBoreAssemblyJSON(ctx, &native, m); e != nil {
+		t.Fatal(e)
+	}
+	m, e = ReadWrappedRationalStationBoreAssemblyJSON(ctx, &native, IndependentMaterialJSONLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
 	var generated, source bytes.Buffer
 	if e = WriteWrappedRationalStationBoreAssembly(ctx, &generated, weightedBoreAssemblyModel(m), Limits{}, WrappedSurfaceOptions{}); e != nil {
 		t.Fatal(e)
