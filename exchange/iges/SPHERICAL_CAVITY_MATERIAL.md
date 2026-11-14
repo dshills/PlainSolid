@@ -41,3 +41,33 @@ reload agree independently. Mutations cover touching radii, void sense, reused
 outer shell, wrong pole ordinal, seam/frame and endpoint changes, forged native
 payload and ancestry, and resource limits. Focused normal/live, race, Go 1.23,
 vet, previous sphere variants and bounded fuzz qualify the additive family.
+
+## Common proper signed-axis placement
+
+`ReadPlacedSphericalCavityMaterial` / `WritePlacedSphericalCavity` add a separate
+32-record family. Both original type 196 supports must refer to the same proper
+signed-coordinate type 124. Each original meridian retains its own distinct
+transform record; both must equal the exact composition of that shared placement
+with the corresponding local XZ meridian frame. Both pole lists are world-space
+records and must invert exactly to their own ±radius poles. All eight degree
+pcurves remain source UV with no world transform.
+
+The common rigid motion preserves strict concentric nesting and orientation.
+The native analytic boundary is transformed, preserving outer/inner face sense,
+then validated at the original caller tolerance. All twelve cardinal radius
+witnesses must map losslessly, and each native pole must reproduce its original
+world source coordinate. The numerical angular-evaluation qualification remains
+unchanged. Source-bound and plain native reload are tested; source writing
+revalidates the common pose, both independently owned meridian transforms and
+all source ancestry before emitting any bytes.
+
+The independent author's `--placed` fixture maps the axis to +X at center
+(10,-3,5). Pinned OCCT imports original and generated output as valid two-face,
+one-solid material with volume 28π/3, area 20π and that center. Native world
+radii, exact poles, continuous bounded agreement, mass and persistence agree.
+Specific negatives shift only the inner meridian, move only its supporting
+center, or alter only an inner pole. Improper/general/lossy poses, transformed
+UV curves and forged native placement also reject. The source cap is 32 entities;
+all other limits remain unchanged. Focused normal/live, race, Go 1.23, vet,
+previous sphere variants and bounded fuzz qualify this separate placement path.
+Record reordering is not included.
