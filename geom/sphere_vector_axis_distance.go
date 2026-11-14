@@ -49,6 +49,10 @@ type SphereVectorAxisNearest struct {
 // rejected atomically. SqrtBits controls enclosures only, not topology/order.
 // One arithmetic budget covers source proof, every family and comparisons.
 func (s SpherePairMaterial) NearestTransverseAxisBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SphereVectorAxisNearest, err error) {
+	return s.nearestTransverseAxisBoundaryRational(ctx, p, o, nil)
+}
+
+func (s SpherePairMaterial) nearestTransverseAxisBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions, shared *polynomialBudget) (out SphereVectorAxisNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SphereVectorAxisNearest{}
@@ -73,7 +77,11 @@ func (s SpherePairMaterial) NearestTransverseAxisBoundaryRational(ctx context.Co
 	if e != nil {
 		return out, e
 	}
-	a := sphereOverlapArithmetic{ctx: ctx, b: &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}}
+	budget := shared
+	if budget == nil {
+		budget = &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	}
+	a := sphereOverlapArithmetic{ctx: ctx, b: budget}
 	for _, v := range p {
 		if v == nil {
 			return out, ErrInvalid

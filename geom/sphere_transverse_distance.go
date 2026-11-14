@@ -19,5 +19,5 @@ import (
 // with exact guarded pair order and exact retained-cap signs. The shared
 // arithmetic budget and original-owner contracts are unchanged.
 func (s SpherePairMaterial) NearestTransverseBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (SphereOverlapAlgebraicNearest, error) {
-	return s.nearestOverlapAlgebraicBoundaryRational(ctx, p, o, true)
+	return s.nearestOverlapAlgebraicBoundaryRational(ctx, p, o, true, nil)
 }

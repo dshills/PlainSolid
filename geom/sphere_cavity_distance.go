@@ -132,10 +132,10 @@ func sphereCavityCompare(a, b, s, c, t *big.Rat, budget *polynomialBudget) (int,
 // is attained. One shared arithmetic budget includes containment, witnesses,
 // enclosures and exact two-radical owner comparison. Every failure is atomic.
 func (s SpherePairMaterial) NearestCavityBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereCavityDistanceOptions) (out SphereCavityNearest, err error) {
-	return s.nearestFullSphereBoundaryRational(ctx, p, o, true)
+	return s.nearestFullSphereBoundaryRational(ctx, p, o, true, nil)
 }
 
-func (s SpherePairMaterial) nearestFullSphereBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereCavityDistanceOptions, cavity bool) (out SphereCavityNearest, err error) {
+func (s SpherePairMaterial) nearestFullSphereBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereCavityDistanceOptions, cavity bool, shared *polynomialBudget) (out SphereCavityNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SphereCavityNearest{}
@@ -160,7 +160,10 @@ func (s SpherePairMaterial) nearestFullSphereBoundaryRational(ctx context.Contex
 	if e != nil {
 		return out, e
 	}
-	budget := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	budget := shared
+	if budget == nil {
+		budget = &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	}
 	for _, v := range p {
 		if v == nil {
 			return out, ErrInvalid

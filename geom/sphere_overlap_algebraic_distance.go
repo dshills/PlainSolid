@@ -41,10 +41,10 @@ type SphereOverlapAlgebraicNearest struct {
 // unique off-axis. Thus the returned owner set is complete in this subset.
 // One work/bit budget covers source checks, witnesses, bounds and ordering.
 func (s SpherePairMaterial) NearestOverlapAlgebraicBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SphereOverlapAlgebraicNearest, err error) {
-	return s.nearestOverlapAlgebraicBoundaryRational(ctx, p, o, false)
+	return s.nearestOverlapAlgebraicBoundaryRational(ctx, p, o, false, nil)
 }
 
-func (s SpherePairMaterial) nearestOverlapAlgebraicBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions, general bool) (out SphereOverlapAlgebraicNearest, err error) {
+func (s SpherePairMaterial) nearestOverlapAlgebraicBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions, general bool, shared *polynomialBudget) (out SphereOverlapAlgebraicNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SphereOverlapAlgebraicNearest{}
@@ -69,7 +69,11 @@ func (s SpherePairMaterial) nearestOverlapAlgebraicBoundaryRational(ctx context.
 	if e != nil {
 		return out, e
 	}
-	a := sphereOverlapArithmetic{ctx: ctx, b: &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}}
+	budget := shared
+	if budget == nil {
+		budget = &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	}
+	a := sphereOverlapArithmetic{ctx: ctx, b: budget}
 	for _, v := range p {
 		if v == nil {
 			return out, ErrInvalid
