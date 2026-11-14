@@ -5543,3 +5543,10 @@ orientations agree, including a positive rational weight variant. Extra
 terms, saddle and semidefinite forms, a folded projection, shifted witness,
 and insufficient allowance fail. The integrated focused race including
 the existing coupled quartic regression passed in 1.899 s. Vet passed.
+
+The integrated exact hierarchy boundary minimum matches independent live
+OCCT on the original seven-solid neutral-child and vendor-frame fixtures.
+The exact reducer distinguishes strict minima and retains rational/algebraic
+ties, including repeated uses. Boundary-zero queries, cancellation and
+insufficient budget have dedicated checks. The integrated exchange and
+document races passed in 4.910 s and 8.889 s respectively.

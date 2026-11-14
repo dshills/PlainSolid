@@ -1982,3 +1982,9 @@ order-four contact of exact graphs when the complete homogeneous height
 difference has a positive definite rational Gram form. Odd mixed terms
 are accepted; the proposed witness and Gram entry are verified on the
 original charts. This proof does not yet assemble a Boolean from the contact.
+
+Exact hierarchy queries now find the nearest original retained boundary
+across the planar, sphere, cylinder and torus occurrence families. All
+exactly tied occurrences and their complete nearest sets remain distinct,
+including internal boundaries of overlapping occurrences. The document
+facade supports the verified neutral, vendor and affine-pcurve conventions.

@@ -132,6 +132,10 @@ func TestRationalSphericalHierarchyDocument(t *testing.T) {
 			if err != nil || len(torusDistances.Leaves) != len(uses) {
 				t.Fatal("retained occurrence torus distances", torusDistances, err)
 			}
+			closest, err := d.ClosestBoundary(ctx, origin, step.RationalHierarchyClosestOptions{})
+			if err != nil || closest.SquaredDistance() == nil || len(closest.Owners) == 0 || closest.LengthUnit != d.LengthUnit() {
+				t.Fatal("source document lost exact aggregate distance", closest, err)
+			}
 			for i, u := range uses {
 				if distances.Leaves[i].Supported != (u.Family == "sphere") || !reflect.DeepEqual(distances.Leaves[i].Path, u.Path) {
 					t.Fatal("sphere distance changed existing original occurrence ownership", distances.Leaves[i], u)

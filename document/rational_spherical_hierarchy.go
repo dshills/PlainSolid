@@ -441,6 +441,22 @@ func (d *RationalSphericalHierarchyDocument) TorusDistance(ctx context.Context, 
 	return step.DistanceRationalHierarchyTori(ctx, d.model, point, o)
 }
 
+// ClosestBoundary returns the exact minimum to the retained occurrence
+// boundaries and all tied uses. Boundaries inside other occurrences remain
+// included, so this is independent of any regularized material union.
+func (d *RationalSphericalHierarchyDocument) ClosestBoundary(ctx context.Context, point [3]*big.Rat, o step.RationalHierarchyClosestOptions) (step.RationalHierarchyClosestBoundary, error) {
+	if d == nil {
+		return step.RationalHierarchyClosestBoundary{}, geom.ErrInvalid
+	}
+	if d.affine != nil {
+		return d.affine.ClosestBoundary(ctx, point, o)
+	}
+	if d.vendor {
+		return step.ClosestOCCTRationalHierarchyBoundary(ctx, step.OCCTRationalSphericalHierarchy(d.model), point, o)
+	}
+	return step.ClosestRationalHierarchyBoundary(ctx, d.model, point, o)
+}
+
 // Relationships returns the proved source uses, including their original frame
 // IDs and immutable exact local matrices. One relationship may expand to more
 // than one material path.
