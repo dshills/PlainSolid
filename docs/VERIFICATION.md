@@ -1,5 +1,18 @@
 # Verification record
 
+## PlainCAD tighter covered-width Hole STEP — 2026-11-14
+
+Local interpolation bounds also qualify the 5 mm and 4 mm radius
+crossing at a 0.75 mm transverse offset, where the wider cylinder
+covers the narrower cylinder across its full transverse width. The
+regular quadratic radicals and original analytic supports remain in
+the kernel. Signed offset cases use the same bounded STEP fallback.
+The [authored case](evidence/plaincad-tight-covered-step-native-2026-11-14.json)
+round-trips the 378,805-byte STEP and exports 1,672 watertight STL
+triangles. Independent OCCT matches the direct Boolean. The
+[17 original PlainCAD cases](evidence/plaincad-tight-covered-step-browser-2026-11-14.json),
+focused race checks, and vet pass.
+
 ## PlainCAD tighter partial-overlap Hole STEP — 2026-11-14
 
 The uniform fourth-derivative bound previously rejected the tighter

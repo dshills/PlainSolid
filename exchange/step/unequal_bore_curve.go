@@ -61,20 +61,7 @@ func approximateUnequalBoreEdgeOptions(start, end geom.Vec3, adjacent []longEdge
 	if d != 0 && !partial {
 		// y=d+a*sin(u), h=sqrt(b²-y²). The offset increases the
 		// derivative envelopes for b²-y² and lowers its minimum.
-		m := a + d
-		q = math.Sqrt((b - m) * (b + m))
-		da, dq := a/q, m/q
-		w1 := 2 * da * dq
-		w2 := 2 * da * (da + dq)
-		w3 := 2 * da * (3*da + dq)
-		w4 := 2 * da * (7*da + dq)
-		heightFourth = q * (w4/2 + w1*w3 + 3*w2*w2/4 + 9*w1*w1*w2/4 + 15*w1*w1*w1*w1/16)
-		// theta'=±a*cos(u)/h. Bound derivatives of 1/h before
-		// applying the product rule three more times.
-		g1 := w1 / 2
-		g2 := w2/2 + 3*w1*w1/4
-		g3 := w3/2 + 9*w1*w2/4 + 15*w1*w1*w1/8
-		angleFourth = da * (1 + 3*g1 + 3*g2 + g3)
+		heightFourth, angleFourth = coveredSkewDerivativeBounds(a, b, a+d)
 	}
 	envelope, arc := max(2*a+heightFourth, a+b*angleFourth), math.Pi/2
 	if partial {
@@ -84,11 +71,12 @@ func approximateUnequalBoreEdgeOptions(start, end geom.Vec3, adjacent []longEdge
 	segments := math.Ceil(arc / stepSize)
 	var knots []float64
 	if !finiteNumber(segments) || segments < 1 || segments > 128 {
-		if !partial {
-			return nil, geom.ErrDomain
-		}
 		var err error
-		knots, err = partialSkewFitKnots(adjacent, a, b, d, tolerance)
+		if partial {
+			knots, err = partialSkewFitKnots(adjacent, a, b, d, tolerance)
+		} else {
+			knots, err = coveredSkewFitKnots(adjacent, a, b, d, tolerance)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +91,7 @@ func approximateUnequalBoreEdgeOptions(start, end geom.Vec3, adjacent []longEdge
 	}
 
 	n := int(segments)
-	result := &unequalBoreSplines{compact: d != 0 || compactFinite, smooth: partial || compactFinite, knots: knots}
+	result := &unequalBoreSplines{compact: d != 0 || compactFinite, smooth: partial || compactFinite || len(knots) != 0, knots: knots}
 	for index, owner := range adjacent {
 		curve, ok := owner.use.Curve.(differentiatedUV)
 		if !ok {
@@ -278,20 +266,76 @@ func partialSkewFitKnots(adjacent []longEdgeOwner, a, b, d, tolerance float64) (
 			return nil, geom.ErrDomain
 		}
 	}
-	const blocks, maximumSpans = 16, 192
 	if min(from, to) < 0 || max(from, to) > math.Pi/2 || from == to {
 		return nil, geom.ErrDomain
 	}
+	return boundedHermiteKnots(from, to, tolerance, 192, func(lo, hi float64) float64 {
+		sin, cos := math.Sin(hi), math.Cos(lo)
+		pad := 128 * 0x1p-52
+		return partialSkewFourthDerivativeBounds(a, b, d, min(1, sin*sin+pad), min(1, cos*cos+pad))
+	})
+}
+
+// Each covered-width edge stays within a single quadrant of the small
+// cylinder. Its transverse coordinate is monotone there. A tighter maximum
+// absolute ordinate gives a safe local lower bound for the larger cylinder's
+// radical, while the original derivative numerators stay bounded by a.
+func coveredSkewFitKnots(adjacent []longEdgeOwner, a, b, d, tolerance float64) ([]float64, error) {
+	var from, to, offset float64
+	for i, owner := range adjacent {
+		arc, ok := owner.use.Curve.(interface {
+			CoveredSkewAngularInterval() (float64, float64, float64)
+		})
+		if !ok {
+			return nil, geom.ErrDomain
+		}
+		x, y, z := arc.CoveredSkewAngularInterval()
+		if owner.use.Reversed {
+			x, y = y, x
+		}
+		if i == 0 {
+			from, to, offset = x, y, z
+		} else if from != x || to != y || offset != z {
+			return nil, geom.ErrDomain
+		}
+	}
+	if math.Abs(offset) != d || min(from, to) < 0 || max(from, to) > 2*math.Pi || math.Abs(from-to) != math.Pi/2 {
+		return nil, geom.ErrDomain
+	}
+	return boundedHermiteKnots(from, to, tolerance, 320, func(lo, hi float64) float64 {
+		m := max(math.Abs(offset+a*math.Sin(lo)), math.Abs(offset+a*math.Sin(hi)))
+		m = min(a+d, m+(a+d)*128*0x1p-52)
+		h, angle := coveredSkewDerivativeBounds(a, b, m)
+		return max(2*a+h, a+b*angle)
+	})
+}
+
+func coveredSkewDerivativeBounds(a, b, maxOrdinate float64) (height, angle float64) {
+	q := math.Sqrt((b - maxOrdinate) * (b + maxOrdinate))
+	da, dq := a/q, maxOrdinate/q
+	w1 := 2 * da * dq
+	w2 := 2 * da * (da + dq)
+	w3 := 2 * da * (3*da + dq)
+	w4 := 2 * da * (7*da + dq)
+	height = q * (w4/2 + w1*w3 + 3*w2*w2/4 + 9*w1*w1*w2/4 + 15*w1*w1*w1*w1/16)
+	// theta'=±a*cos(u)/h. Bound derivatives of 1/h before
+	// applying the product rule three more times.
+	g1 := w1 / 2
+	g2 := w2/2 + 3*w1*w1/4
+	g3 := w3/2 + 9*w1*w2/4 + 15*w1*w1*w1/8
+	angle = da * (1 + 3*g1 + 3*g2 + g3)
+	return height, angle
+}
+
+func boundedHermiteKnots(from, to, tolerance float64, maximumSpans int, envelope func(float64, float64) float64) ([]float64, error) {
+	const blocks = 16
 	knots := []float64{0}
 	for i := range blocks {
 		start := from + (to-from)*float64(i)/blocks
 		end := from + (to-from)*float64(i+1)/blocks
 		lo, hi := min(start, end), max(start, end)
-		sin, cos := math.Sin(hi), math.Cos(lo)
-		pad := 128 * 0x1p-52
-		envelope := partialSkewFourthDerivativeBounds(a, b, d, min(1, sin*sin+pad), min(1, cos*cos+pad))
-		step := math.Pow(384*(tolerance/16)/envelope, .25)
-		n := math.Ceil(math.Abs(end-start) * (1 + pad) / step)
+		step := math.Pow(384*(tolerance/16)/envelope(lo, hi), .25)
+		n := math.Ceil(math.Abs(end-start) * (1 + 128*0x1p-52) / step)
 		if !finiteNumber(n) || n < 1 || n > float64(maximumSpans+1-len(knots)) {
 			return nil, geom.ErrDomain
 		}
