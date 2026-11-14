@@ -2270,3 +2270,13 @@ Asymmetric clear-cap fixtures verify each original raw cap in both union
 orders and in the narrower-cutter difference. Independent extension volume
 and first moments, the pinned OCCT result, canonical recipe reload, and a
 closed mesh all agree while caps that enter the common are still rejected.
+
+### Exact triangular residual total degree
+
+`TestExactSexticTriangleTotalDegree` independently checks the exact squared
+Bernstein bounds 1 for `u^6+v^6` minus its affine interpolant, and `1/924^2` for
+`u^6*v^6` on the unit right triangle. The latter forces retention of actual total
+degree twelve despite degree-six storage on each axis. Exact accepted operation
+counts are 811 and 1284; one-operation deficits return no certificate. Existing
+rational quartic and knot-crossing residual tests continue to check independent
+exact evaluations and positive denominator handling.

@@ -1227,3 +1227,14 @@ surfaces must keep their geometry through the operation. Continue with:
 
 The broader qualification, packaging, and policy requirements in the
 [specification](SPECIFICATION.md) remain in scope.
+
+### Exact triangular residual total degree
+
+Rational Bézier triangle error proofs now size their exact polynomial from the
+nonzero homogeneous coefficients, including the denominator times the affine
+display target. This avoids needless nominal tensor-degree elevation for sparse
+polynomial graphs while retaining every genuine mixed term. Original support
+charts, degree admission, positive-weight proof and arithmetic limits are
+unchanged. This is an image-distance calculation, not a surface embedding or
+volume certificate. Higher nominal degree and complete nested-region display
+qualification remain separate work.
