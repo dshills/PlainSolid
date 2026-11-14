@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD STEP for a blind Hole crossing a through Hole — 2026-11-14
+
+Equal-radius perpendicular Holes on rectangular stock preserve the
+complete crossing and the circular blind floor beyond it. The retained
+face index supports subsequent planar references. Shared angular samples
+join the conic quarter-wall strips into a closed display and STL mesh.
+The exact elliptical STEP trim graph passes canonical readback. The
+existing both-through STEP graph is byte-identical.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-blind-crossed-step-browser-2026-11-14.json)
+and a [supplemental authored case](evidence/plaincad-blind-crossed-step-native-2026-11-14.json)
+pass on the same WASM. The authored project imports the 44,132-byte STEP
+and finds the retained floor at Z=2 mm in its 400-triangle STL. Twelve
+signed native placements and entry sides pass. Six independent OCCT
+STEP imports pass, including inch units. OCCT's direct Boolean and STEP
+readback agree on the authored case within 0.000001 in volume and area.
+The focused race checks, related compact tessellation tests and Go vet pass.
+Next geometry is two blind Holes with both floors beyond the crossing.
+
 ## PlainCAD STEP for partially overlapping perpendicular Holes — 2026-11-14
 
 The single radical trim loop exchanges as paired cubic Hermite splines

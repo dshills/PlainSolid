@@ -74,7 +74,11 @@ through axes use the same topology and STEP exchange when the larger
 bore covers the smaller bore's full transverse width. Partial transverse
 overlap uses one loop with regular radical charts at both turning points.
 Compact cubic STEP trims keep the qualified files within the current app
-import budget. A single oblique through Hole with
+import budget. A blind Hole crossing an equal-radius perpendicular
+through Hole preserves its complete planar floor when it stops beyond
+the crossing. Its exact conic STEP and fabrication meshes pass. Next
+extend the finite recipe to two blind Holes and handle floors that
+terminate inside the shared cylinder region. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

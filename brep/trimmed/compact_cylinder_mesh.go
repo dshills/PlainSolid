@@ -68,7 +68,7 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 				return mesh.Mesh{}, false, nil
 			}
 			for _, u := range f.Outer {
-				if u.UVStart.Y == u.UVEnd.Y {
+				if u.UVStart.X != u.UVEnd.X {
 					curved[u.Edge] = true
 				}
 			}
@@ -218,7 +218,7 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 		if _, ok := compactAxialStart(f); ok {
 			count = 0
 			for _, u := range f.Outer {
-				if u.UVStart.Y == u.UVEnd.Y {
+				if u.UVStart.X != u.UVEnd.X {
 					count += counts[u.Edge]
 				}
 			}
@@ -336,7 +336,11 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 			}
 		} else if cylinder {
 			var err error
-			triangles, err = compactAxialTriangles(outer)
+			if compactCrossedStrip(f) {
+				triangles, err = compactCrossedStripTriangles(outer)
+			} else {
+				triangles, err = compactAxialTriangles(outer)
+			}
 			if err != nil {
 				return mesh.Mesh{}, err
 			}

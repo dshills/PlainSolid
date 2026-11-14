@@ -1,0 +1,73 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "166e61fbd97843aa7b4dbe9dd3a631f4fe4dba98417139d9d1fd80810942b96e",
+  "supplemental": {
+    "report": "/tmp/plainsolid-blind-crossed-authored-5526/blind-crossed-browser.json",
+    "reportSha256": "9ae1febbf4d0fcd165c0370fe9fd972c6fb15488303454bf5571a240ada7f06c",
+    "sourceSha256": "27b9f8a5129b5ae1e1452cd9dc336d2aa71d8aa249f2a65bff1507185623cd69",
+    "summary": {
+      "startTime": "2026-11-14T13:12:41.684Z",
+      "duration": 9986.543,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        24,
+        18
+      ],
+      "crossingMm": [
+        8,
+        9,
+        7
+      ],
+      "radiusMm": 3,
+      "topEntryDepthMm": 16,
+      "blindFloorZMm": 2,
+      "stepByteCount": 44132,
+      "stepSha256": "5fc869a8235a28374ddf41a131a27d32f2b301e5258431337cab7b30eb326b01",
+      "stlTriangles": 400,
+      "stlTwoUseEdges": 600,
+      "stlSha256": "f2aa595c9a962a54c49bed9aeea45d9e0f30411f83221d75580357bd073cabdd",
+      "occtStepReadback": {
+        "Area": 3022.035344589907,
+        "Volume": 7766.123981057781,
+        "Centroid": [
+          10.079419113520137,
+          12.33757226436438,
+          9.050293300985798
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 7766.123980236926,
+        "Area": 3022.035345410758,
+        "Centroid": [
+          10.079419113808086,
+          12.337572264614797,
+          9.050293301287768
+        ]
+      },
+      "directOracleSourceSha256": "dcc0bacaa8b9f7a892ddf25c66ae5f6391a7a61ac20e7483a13d74e397b4c077"
+    }
+  },
+  "native": {
+    "signedEntryCases": 12,
+    "legacySTEPUnchangedSha256": "28c7fe22e948f55f3ce4dbac48b68d220503003fa848263b59601e00c0f42985",
+    "focusedRaceSeconds": {
+      "brep/trimmed": 11.582,
+      "exchange/step": 9.253,
+      "internal/plaincadbridge": 4.708
+    },
+    "relatedTessellationRegressionSeconds": 58.365
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 6
+  },
+  "vet": "passed"
+}
