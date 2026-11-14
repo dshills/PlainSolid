@@ -207,6 +207,21 @@ func TestCoaxialNoncircularStationLoftThroughBore(t *testing.T) {
 	if err != nil || math.Abs(mass.Volume-want) > 1e-5 {
 		t.Fatal("independent weighted outer minus inner integral", mass, want, err)
 	}
+	bounds, err := restored.BoundWrappedRationalStationBoreMass(ctx, WrappedRationalStationMassOptions{VolumeTolerance: r(1, 100)})
+	if err != nil || !bounds.Source.Complete || bounds.Source.Caps != h.ResultCaps ||
+		bounds.AxialVolumeFactor.Cmp(r(16, 1)) != 0 || bounds.AxialCubicFactor.Cmp(r(183, 4)) != 0 ||
+		bounds.AxialFirstZFactor.Cmp(r(101, 4)) != 0 || bounds.Centroid[2].Lower.Cmp(r(101, 64)) != 0 ||
+		bounds.Centroid[2].Upper.Cmp(r(101, 64)) != 0 {
+		t.Fatal("correlated weighted bore volume and exact moments", bounds, err)
+	}
+	lower, _ := bounds.Volume.Lower.Float64()
+	upper, _ := bounds.Volume.Upper.Float64()
+	if lower > want || upper < want || upper-lower > .01 || bounds.Centroid[0].Lower.Cmp(r(1, 4)) != 0 || bounds.Centroid[1].Upper.Cmp(r(-1, 2)) != 0 {
+		t.Fatal("weighted area enclosure or original center", bounds)
+	}
+	if partial, err := restored.BoundWrappedRationalStationBoreMass(ctx, WrappedRationalStationMassOptions{VolumeTolerance: r(1, 100), MaxOperations: 1}); err == nil || partial.Volume.Lower != nil {
+		t.Fatal("mass proof must publish no partial bound on exhausted quota", partial, err)
+	}
 	if out, _, err := CombineCoaxialWrappedRationalStationLofts(ctx, tool, stock, parametric.Difference, o); err != nil || len(out.faces) != 0 {
 		t.Fatal("contained tool-minus-stock should be empty", err)
 	}

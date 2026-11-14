@@ -32,6 +32,16 @@ type WrappedRationalStationMassBounds struct {
 	Segments, ExactOperations                              int
 }
 
+// WrappedRationalStationMeasure contains the certified mathematical bounds
+// shared by filled and hollow homothetic profiles. The axial factors for a
+// bore are integrals of outer minus inner powers of the original scale.
+type WrappedRationalStationMeasure struct {
+	ProfileArea, Volume                                    WrappedStationMassInterval
+	FirstMoments, Centroid                                 [3]WrappedStationMassInterval
+	AxialVolumeFactor, AxialCubicFactor, AxialFirstZFactor *big.Rat
+	Segments, ExactOperations                              int
+}
+
 type stationMassBudget struct {
 	ctx               context.Context
 	limit, bits, used int
@@ -127,6 +137,56 @@ type stationMassSegment [3][3]*big.Rat // exact normalized homogeneous XYW
 // equality. Unsupported exact source exports reject rather than rounding poles.
 func (s Solid) BoundWrappedRationalStationMass(ctx context.Context, o WrappedRationalStationMassOptions) (WrappedRationalStationMassBounds, error) {
 	empty := WrappedRationalStationMassBounds{}
+	o, err := normalizeWrappedStationMassOptions(ctx, o)
+	if err != nil {
+		return empty, err
+	}
+	proof, bands, err := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
+	if err != nil {
+		return empty, err
+	}
+	source := WrappedRationalStationProof{proof.Center, proof.Heights, proof.Radii, proof.History, proof.Complete}
+	result, err := boundWrappedStationProfileMass(ctx, proof, nil, bands[0], o)
+	if err != nil {
+		return empty, err
+	}
+	return WrappedRationalStationMassBounds{
+		Source: source, ProfileArea: result.ProfileArea, Volume: result.Volume,
+		FirstMoments: result.FirstMoments, Centroid: result.Centroid,
+		AxialVolumeFactor: result.AxialVolumeFactor, AxialCubicFactor: result.AxialCubicFactor,
+		AxialFirstZFactor: result.AxialFirstZFactor, Segments: result.Segments, ExactOperations: result.ExactOperations,
+	}, nil
+}
+
+// WrappedRationalStationBoreMassBounds binds the measure to both authenticated
+// original wall families and the two annular caps.
+type WrappedRationalStationBoreMassBounds struct {
+	WrappedRationalStationMeasure
+	Source WrappedStationBoreProof
+}
+
+// BoundWrappedRationalStationBoreMass uses the common profile once. Analytic
+// axial factors subtract the strictly contained inner band integrals before
+// the profile interval is multiplied, retaining their exact correlation.
+func (s Solid) BoundWrappedRationalStationBoreMass(ctx context.Context, o WrappedRationalStationMassOptions) (WrappedRationalStationBoreMassBounds, error) {
+	var empty WrappedRationalStationBoreMassBounds
+	o, err := normalizeWrappedStationMassOptions(ctx, o)
+	if err != nil {
+		return empty, err
+	}
+	proof, err := s.ValidateWrappedRationalStationBore(ctx, o.Source)
+	if err != nil {
+		return empty, err
+	}
+	band := s.faces[proof.OuterWalls[0]].Surface.(*geom.WrappedSurfacePatch)
+	result, err := boundWrappedStationProfileMass(ctx, proof.Outer, &proof.Inner, band, o)
+	if err != nil {
+		return empty, err
+	}
+	return WrappedRationalStationBoreMassBounds{WrappedRationalStationMeasure: result, Source: proof}, nil
+}
+
+func normalizeWrappedStationMassOptions(ctx context.Context, o WrappedRationalStationMassOptions) (WrappedRationalStationMassOptions, error) {
 	if o.MaxSegments == 0 {
 		o.MaxSegments = 1024
 	}
@@ -137,20 +197,21 @@ func (s Solid) BoundWrappedRationalStationMass(ctx context.Context, o WrappedRat
 		o.MaxCoefficientBits = 16384
 	}
 	if ctx == nil || o.VolumeTolerance == nil || o.VolumeTolerance.Sign() <= 0 || o.MaxSegments < 4 || o.MaxSegments > 16384 || o.MaxOperations < 1 || o.MaxOperations > 8000000 || o.MaxCoefficientBits < 64 || o.MaxCoefficientBits > 65536 {
-		return empty, geom.ErrInvalid
+		return o, geom.ErrInvalid
 	}
+	return o, ctx.Err()
+}
+
+func boundWrappedStationProfileMass(ctx context.Context, proof WrappedStationLoftProof, inner *WrappedStationLoftProof,
+	band *geom.WrappedSurfacePatch, o WrappedRationalStationMassOptions) (WrappedRationalStationMeasure, error) {
+	empty := WrappedRationalStationMeasure{}
 	b := &stationMassBudget{ctx: ctx, limit: o.MaxOperations, bits: o.MaxCoefficientBits}
 	tolerance := b.check(o.VolumeTolerance)
 	if b.err != nil {
 		return empty, b.err
 	}
 	tolerance = new(big.Rat).Set(tolerance)
-	proof, bands, e := s.validateWrappedProfileStationLoft(ctx, o.Source, false)
-	if e != nil {
-		return empty, e
-	}
-	source := WrappedRationalStationProof{proof.Center, proof.Heights, proof.Radii, proof.History, proof.Complete}
-	bs, e := bands[0].FundamentalPatch().ToBSplineSurface()
+	bs, e := band.FundamentalPatch().ToBSplineSurface()
 	if e != nil {
 		return empty, e
 	}
@@ -180,21 +241,16 @@ func (s Solid) BoundWrappedRationalStationMass(ctx context.Context, o WrappedRat
 			symmetric = false
 		}
 	}
-	vFactor, cFactor, zFactor := new(big.Rat), new(big.Rat), new(big.Rat)
-	for i := range bands {
-		z0, z1, r0, r1 := proof.Heights[i], proof.Heights[i+1], proof.Radii[i], proof.Radii[i+1]
-		h := b.sub(z1, z0)
-		a, c, d := b.mul(r0, r0), b.mul(r0, r1), b.mul(r1, r1)
-		local := b.div(b.add(b.add(a, c), d), big.NewRat(3, 1))
-		vFactor = b.add(vFactor, b.mul(h, local))
-		cubic := b.add(b.add(b.mul(a, r0), b.mul(a, r1)), b.add(b.mul(d, r0), b.mul(d, r1)))
-		cFactor = b.add(cFactor, b.div(b.mul(h, cubic), big.NewRat(4, 1)))
-		delta := b.sub(r1, r0)
-		tMoment := b.add(b.add(b.div(a, big.NewRat(2, 1)), b.div(b.mul(big.NewRat(2, 1), b.mul(r0, delta)), big.NewRat(3, 1))), b.div(b.mul(delta, delta), big.NewRat(4, 1)))
-		zFactor = b.add(zFactor, b.mul(h, b.add(b.mul(z0, local), b.mul(h, tMoment))))
+	vFactor, cFactor, zFactor := wrappedStationAxialMassFactors(proof, b)
+	if inner != nil {
+		v, c, z := wrappedStationAxialMassFactors(*inner, b)
+		vFactor, cFactor, zFactor = b.sub(vFactor, v), b.sub(cFactor, c), b.sub(zFactor, z)
 	}
 	if b.err != nil {
 		return empty, b.err
+	}
+	if vFactor.Sign() <= 0 || cFactor.Sign() <= 0 {
+		return empty, geom.ErrConvergence
 	}
 	for {
 		area := WrappedStationMassInterval{new(big.Rat), new(big.Rat)}
@@ -241,7 +297,7 @@ func (s Solid) BoundWrappedRationalStationMass(ctx context.Context, o WrappedRat
 			return empty, b.err
 		}
 		if width.Cmp(tolerance) <= 0 {
-			out := WrappedRationalStationMassBounds{Source: source, ProfileArea: area, Volume: volume, AxialVolumeFactor: vFactor, AxialCubicFactor: cFactor, AxialFirstZFactor: zFactor, Segments: len(segments)}
+			out := WrappedRationalStationMeasure{ProfileArea: area, Volume: volume, AxialVolumeFactor: vFactor, AxialCubicFactor: cFactor, AxialFirstZFactor: zFactor, Segments: len(segments)}
 			for axis := 0; axis < 2; axis++ {
 				if symmetric {
 					moments[axis] = WrappedStationMassInterval{new(big.Rat), new(big.Rat)}
@@ -277,4 +333,21 @@ func (s Solid) BoundWrappedRationalStationMass(ctx context.Context, o WrappedRat
 		}
 		segments = next
 	}
+}
+
+func wrappedStationAxialMassFactors(proof WrappedStationLoftProof, b *stationMassBudget) (vFactor, cFactor, zFactor *big.Rat) {
+	vFactor, cFactor, zFactor = new(big.Rat), new(big.Rat), new(big.Rat)
+	for i := 0; i+1 < len(proof.Heights); i++ {
+		z0, z1, r0, r1 := proof.Heights[i], proof.Heights[i+1], proof.Radii[i], proof.Radii[i+1]
+		h := b.sub(z1, z0)
+		a, c, d := b.mul(r0, r0), b.mul(r0, r1), b.mul(r1, r1)
+		local := b.div(b.add(b.add(a, c), d), big.NewRat(3, 1))
+		vFactor = b.add(vFactor, b.mul(h, local))
+		cubic := b.add(b.add(b.mul(a, r0), b.mul(a, r1)), b.add(b.mul(d, r0), b.mul(d, r1)))
+		cFactor = b.add(cFactor, b.div(b.mul(h, cubic), big.NewRat(4, 1)))
+		delta := b.sub(r1, r0)
+		tMoment := b.add(b.add(b.div(a, big.NewRat(2, 1)), b.div(b.mul(big.NewRat(2, 1), b.mul(r0, delta)), big.NewRat(3, 1))), b.div(b.mul(delta, delta), big.NewRat(4, 1)))
+		zFactor = b.add(zFactor, b.mul(h, b.add(b.mul(z0, local), b.mul(h, tMoment))))
+	}
+	return vFactor, cFactor, zFactor
 }
