@@ -427,6 +427,17 @@ The retained frustum bore distance (`40d8e76`) bounds the minimum squared
 distance globally. Live OCCT agrees on five through and cavity probes,
 including an irrational rim distance, a retained annulus and both inward
 floors. Normal and race checks pass, including native reindexing and limits.
+The full reconciled production build `967e3c3` passed all 66 original PlainCAD
+tests in 242.4 seconds, without skips, retries or failures. All 841 original
+sources matched the pinned `50432ed` archive; the separate browser preflight
+confirmed the Go/WASM backend and no OCCT requests. Both TypeScript checks
+and the original controlled rebuild/STL timing case passed.
+Distinct original spline contact pairs (`753c316`) agree with live OCCT on
+empty common and unchanged cut, with 58 other pairs proved separated. A
+missing pair and exhausted shared budget reject atomically. Normal and
+focused race passed. Exact frustum bore mass properties (`e8b53d9`) match
+independent OCCT area, volume, centroid and inertia for an eccentric tube
+and a tapered enclosed cavity; the original cap and wall owners are retained.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the

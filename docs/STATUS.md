@@ -32,6 +32,11 @@ All packages compiled with CGO disabled. The
 [second pinned Chromium run](evidence/plaincad-reconciled-754ae8e-side-openings-2026-11-13.json)
 verified the same original backend and both unchanged supplemental opening
 workflows with no retries or skips.
+The reconciled production build `967e3c3` passed all 66 original PlainCAD
+production cases on the same 841 pinned sources. The
+[production record](evidence/plaincad-reconciled-967e3c3-production-2026-11-13.json)
+includes the verified no-OCCT backend preflight, production build and exact
+test selection. The remaining full unit and release gates still require work.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
