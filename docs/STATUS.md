@@ -473,6 +473,14 @@ Go/WASM preflight. The [authored browser case](evidence/plaincad-reconciled-0066
 checks the retained blind floor through export, import and STL. Pinned
 OCCT independently read the exported solid. All 841 app and 1,950 kernel
 source hashes matched.
+The [two-blind-bore reconciliation](evidence/plaincad-reconciled-3a4a37c8-development-double-blind-holes-step-2026-11-14.json)
+adds worktree commit `7c54cc75` to review revision `3a4a37c8`. All 17 original
+browser scenarios and the Go/WASM preflight passed without skips or retries,
+matching 841 app and 1,959 kernel source hashes. The [unchanged authored
+two-floor case](evidence/plaincad-reconciled-3a4a37c8-supplemental-double-blind-step-2026-11-14.json)
+used that same WASM and retained both floor positions through STEP and
+watertight STL. Live OCCT readback of the browser's STEP reproduced the
+reference volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

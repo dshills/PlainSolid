@@ -50,3 +50,32 @@ re-exports for all seven reordered placed families as valid material solids and
 agrees with native area/volume. Use `PLAINSOLID_OCCT_IGES_SOLID` with the existing
 `iges_topology_solid.cxx` comparator. Focused normal/live/race, Go1.23, vet and
 100 bounded fuzz executions pass.
+
+## Source-bound native envelope
+
+`WriteAnalyticMaterialJSON` and `ReadAnalyticMaterialJSON` use format
+`plainsolid-iges-analytic-material`, version 1. The envelope contains the family,
+original source, native tolerance, meters/model-unit, canonical-to-original
+record roles, native face source IDs, and native JSON bytes. Reload dispatches
+and proves the source exactly once, reconstructs the expected envelope, and
+compares every stored claim. Stored native geometry is never trusted or used
+as a fallback. Native JSON whitespace is insignificant; the native encoded
+values and topology must otherwise match the reconstructed canonical payload.
+
+Writes first reauthenticate the selected source proof and stage the complete
+envelope, then check cancellation before emitting bytes. Envelopes are bounded
+to one MiB (or a smaller caller MaxBytes on read); source bytes remain limited
+by the dispatcher. Read cancellation is checked before/after bounded input,
+during source proof and before returning. A blocking arbitrary io.Reader still
+has the ordinary Go Reader cancellation contract. Unknown fields, trailing JSON,
+wrong versions, invalid geometry and mismatched claims fail with a zero result.
+Original-source export remains unchanged.
+
+All seven families survive native envelope reload with byte-stable repeated
+serialization and identical original source. Mutation tests cover family,
+geometry, unit, source roles, native face ancestry, tolerance, version and source;
+also limits, cancellation during reading, short writes and unknown/trailing
+fields. Signature audit keeps standalone cylinder and through-cylinder families
+outside this dispatcher, and concatenated/multiple-root graphs unsupported.
+Focused native/race, Go1.23, vet and 100 fuzz executions pass, with the existing
+seven-family pinned live source-export comparison rerun.

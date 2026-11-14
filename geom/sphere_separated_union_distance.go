@@ -30,7 +30,7 @@ type SphereSeparatedUnionNearest struct {
 // as exposed. Guarded exact radical order preserves all ties, even when
 // enclosures overlap. All failures are atomic under one shared work/bit budget.
 func (s SpherePairMaterial) NearestSeparatedUnionBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (SphereSeparatedUnionNearest, error) {
-	v, e := s.nearestFullSphereBoundaryRational(ctx, p, o, false)
+	v, e := s.nearestFullSphereBoundaryRational(ctx, p, o, false, nil)
 	if e != nil {
 		return SphereSeparatedUnionNearest{}, e
 	}
