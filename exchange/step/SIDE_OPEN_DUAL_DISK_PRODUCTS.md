@@ -107,3 +107,26 @@ non-cardinal direction is rejected. Circle frames/senses, coedges and faces
 remain canonical; this option does not widen pcurve or vendor import support.
 The optional OCCT test independently validates the alternate directed topology
 and measures for both blind and through bodies.
+
+### Opt-in circle reference changes
+
+`AllowRephasedModelCircles` separately permits a signed cardinal circle reference
+axis rotated by 90°, 180° or 270° about the unchanged normal. This changes only
+the angular origin of the same oriented supporting circle. The reader proves
+both exact source endpoints lie on that circle and in its plane, excludes
+coincident/antipodal endpoints using a nonzero exact radial cross product, and
+requires `same_sense` to select the corresponding directed arc shorter than π.
+The source line option is not implicitly enabled.
+
+The circle, placement and reference direction must be singly owned. The private
+reference direction is then normalized before complete graph reconstruction
+comparison, which additionally binds the exact circle center, normal, radius,
+cylinder support and both coedges. `RephasedModelCircles` returns source edge IDs
+whose reference changes were proved. Changes to the normal or edge sense are
+not normalized: complementary arcs and opposite-normal encodings remain outside
+this option, even if other declarations could make them geometrically equivalent.
+Non-cardinal reference directions and rounded pcurves remain unsupported.
+
+Independent OCCT read/validity/measure tests cover all three reference changes
+for blind and through shapes. Native tests also exercise signed coordinate axis
+permutations and composition with the separate reversed-line option.

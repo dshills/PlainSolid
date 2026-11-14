@@ -12,18 +12,22 @@ type AffineSplineFaceQueryOptions struct {
 	Patch geom.SurfacePatchOptions
 	Chart geom.AffineSurfaceChartOptions
 	Trim  trimvalidate.Options
+	// Both zero preserve strict control-hull containment. Setting either enables
+	// exact dyadic subdivision (defaults: 1024 subdivisions and depth16).
+	MaxDomainSubdivisions, MaxDomainDepth int
 }
 
 // AffineSplineFaceQuery binds an exact affine spline support and certified
 // finite trim region. It does not certify shared model edges or a closed shell.
 // Native positive-weight quadratic/cubic/quartic trims and straight uses are
-// supported when their entire control hull lies in the support rectangle.
+// supported when their complete curve is proved inside the support rectangle.
 type AffineSplineFaceQuery struct {
-	loops *trimvalidate.CertifiedLoops
-	face  Face
-	chart *geom.AffineSurfaceChart
-	plane [4]*big.Rat
-	trim  trimvalidate.Options
+	domainSubdivisions int
+	loops              *trimvalidate.CertifiedLoops
+	face               Face
+	chart              *geom.AffineSurfaceChart
+	plane              [4]*big.Rat
+	trim               trimvalidate.Options
 }
 
 // NewAffineSplineFaceQuery rechecks the stored mapped spline, original trim
@@ -33,6 +37,10 @@ func NewAffineSplineFaceQuery(ctx context.Context, f Face, o AffineSplineFaceQue
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	domainBudget, e := newFaceDomainBudget(o.MaxDomainSubdivisions, o.MaxDomainDepth)
+	if e != nil {
 		return nil, e
 	}
 	opts, e := o.Trim.WithDefaults()
@@ -82,30 +90,8 @@ func NewAffineSplineFaceQuery(ctx context.Context, f Face, o AffineSplineFaceQue
 			default:
 				return nil, geom.ErrConvergence
 			}
-			for _, h := range controls {
-				for _, v := range h {
-					if v == nil {
-						return nil, geom.ErrInvalid
-					}
-					if v.Num().BitLen() > opts.MaxBits || v.Denom().BitLen() > opts.MaxBits {
-						return nil, geom.ErrConvergence
-					}
-				}
-				if h[2].Sign() <= 0 {
-					return nil, geom.ErrInvalid
-				}
-				for axis := 0; axis < 2; axis++ {
-					for side := 0; side < 2; side++ {
-						v := new(big.Rat).Mul(bounds[axis][side], h[2])
-						if v.Num().BitLen() > opts.MaxBits || v.Denom().BitLen() > opts.MaxBits {
-							return nil, geom.ErrConvergence
-						}
-						cmp := h[axis].Cmp(v)
-						if side == 0 && cmp < 0 || side == 1 && cmp > 0 {
-							return nil, geom.ErrDomain
-						}
-					}
-				}
+			if e := domainBudget.prove(ctx, controls, bounds, opts.MaxBits); e != nil {
+				return nil, e
 			}
 		}
 	}
@@ -138,7 +124,7 @@ func NewAffineSplineFaceQuery(ctx context.Context, f Face, o AffineSplineFaceQue
 			}
 		}
 	}
-	return &AffineSplineFaceQuery{face: snapshot, chart: chart, plane: plane, trim: opts, loops: loops}, nil
+	return &AffineSplineFaceQuery{face: snapshot, chart: chart, plane: plane, trim: opts, loops: loops, domainSubdivisions: domainBudget.used}, nil
 }
 
 // Plane returns caller-owned exact coefficients N·XYZ+D=0. N has the face's
