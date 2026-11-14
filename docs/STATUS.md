@@ -1992,6 +1992,8 @@ original charts. This proof does not yet assemble a Boolean from the contact.
 `CertifyProjectedQuarticGramGraphPointContact` qualifies independently
 signed, swapped and scaled rectangular charts with equal physical
 footprints, retaining both original UV witnesses and world tangents.
+The intersect package now exposes the complete isolated point with both
+original patch owners; it does not require or emit a transverse tube.
 
 Exact hierarchy queries now find the nearest original retained boundary
 across the planar, sphere, cylinder and torus occurrence families. All

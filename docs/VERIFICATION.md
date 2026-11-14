@@ -5625,3 +5625,8 @@ witness and maps it back to both original UVs. Wrong axes and witness,
 operand reversal and atomic exact-work exhaustion are independently
 checked. The integrated projected and unprojected quartic races passed
 in 1.989 s.
+`CertifySplinePairQuarticPointSection` separately re-proves that contact
+on the actual finite patch pair, returns copied exact coordinates and
+the two original owners, and exposes no partial point on error. XY/XZ,
+operand reversal, clipped charts and a one-less work limit are covered.
+The integrated focused race passed in 1.220 s.
