@@ -2,8 +2,10 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
@@ -50,7 +52,11 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
 	if d != boxes[1].domain {
-		return fuseContainedOrderedRoofBoxes(ctx, [2]Solid{a, b}, boxes, &w)
+		out, h, err := fuseContainedOrderedRoofBoxes(ctx, [2]Solid{a, b}, boxes, &w)
+		if !errors.Is(err, geom.ErrUnrepresentable) {
+			return out, h, err
+		}
+		return fuseStackedOrderedRoofBoxes(ctx, a, b, boxes, &w)
 	}
 	xy := [2]geom.ExactParameterInterval{
 		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
@@ -101,6 +107,65 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		h.Faces = append(h.Faces, []MixedRoofFaceOwner{{0, boxes[0].sideFaces[i]}, {1, boxes[1].sideFaces[i]}})
 	}
 	return out, h, nil
+}
+
+// At a proved horizontal interface, the existing overlap assembler removes
+// only the common cap area and reconciles every split with the incident
+// original wall. Roof-box occupancy proves the whole low body lies below
+// the plane and the whole high body above it before using that assembler.
+func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixedRoofBox, w *mixedRoofLineWork) (Solid, RoofBoxUnionHistory, error) {
+	var zero RoofBoxUnionHistory
+	d := intersectRectangles(boxes[0].domain, boxes[1].domain)
+	order := boxes[0].floor.Cmp(boxes[1].floor)
+	if !d.Valid() || order == 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	lo := 0
+	if order > 0 {
+		lo = 1
+	}
+	low := boxes[lo]
+	xy := [2]geom.ExactParameterInterval{
+		{Lower: ratInset(low.domain.UMin), Upper: ratInset(low.domain.UMax)},
+		{Lower: ratInset(low.domain.VMin), Upper: ratInset(low.domain.VMax)},
+	}
+	sign, err := orderedRoofAgainstFloor(ctx, low, xy, boxes[1-lo].floor, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if sign != 0 {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	remaining, err := roofBoxConstructionOptions(w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	out, h, err := CombineOverlappingInterfaceSplineShells(ctx, a, b, parametric.Union, SplineShellJoinOptions{
+		Embedding: SplineRectangleEmbeddingOptions{Patches: remaining},
+		Sew:       SewOptions{Tolerance: max(a.tolerance, b.tolerance), Proof: edgecheck.Options{MaxWork: remaining.MaxOperations, MaxBits: remaining.MaxCoefficientBits}},
+	})
+	if err != nil {
+		if errors.Is(err, geom.ErrConvergence) {
+			return Solid{}, zero, fmt.Errorf("%w: stacked roof-box overlap: %w", geom.ErrUnrepresentable, err)
+		}
+		return Solid{}, zero, err
+	}
+	interfaceFaces := [2]int{h.InterfaceA, h.InterfaceB}
+	if interfaceFaces[lo] != low.roofFace || interfaceFaces[1-lo] != boxes[1-lo].floorFace {
+		return Solid{}, zero, geom.ErrUnrepresentable
+	}
+	if err := roofBoxCheckSourceEdges(ctx, out, w); err != nil {
+		return Solid{}, zero, err
+	}
+	r := RoofBoxUnionHistory{Faces: make([][]MixedRoofFaceOwner, len(out.faces)), ExactOperations: w.operations}
+	for operand, rows := range [2][][]int{h.FacesA, h.FacesB} {
+		for face, fragments := range rows {
+			for _, id := range fragments {
+				r.Faces[id] = append(r.Faces[id], MixedRoofFaceOwner{operand, face})
+			}
+		}
+	}
+	return out, r, nil
 }
 
 func footprintStrictlyDisjoint(a, b geom.ParameterRectangle) bool {

@@ -5620,6 +5620,10 @@ Projected footprint containment preserves the original weighted stock and
 its face ownership under operand swap; strict XY separation preserves both
 shells, and partial overlap still fails this path. The focused live Fuse
 race passed in 6.330 s.
+The partially shared stacked cap removes just the interior interface and
+retains each original exposed fragment under both operand orders. The
+single solid has Euler characteristic two. Its analytic volume and live
+OCCT mass, centroid and area qualified in the focused 5.849 s race run.
 The fully enclosed weighted cutter produces an inward cavity with original
 edge and face geometry. Its exact volume difference, area and centroid
 match the pinned OCCT cavity. A cutter touching the stock floor is rejected

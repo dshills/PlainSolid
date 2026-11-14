@@ -1994,6 +1994,8 @@ this constructor. A strict gap across the whole footprint retains both
 original solids with no welding. Strictly separate projected footprints and
 fully contained footprint/height combinations preserve their original solid
 supports without reconstruction.
+Stacked roof boxes that share part of a flat horizontal cap now use the
+proved original interface join, preserving the exposed cap fragments.
 An exact full-footprint Cut with a cutter wholly between the stock floor
 and roof returns two closed solids. Each retains one of the two cutter
 caps, reversed, and all remaining stock wall fragments keep their sources.

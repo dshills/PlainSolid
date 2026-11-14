@@ -138,3 +138,40 @@ func TestOrderedRoofBoxFuseOriginalFootprintContainment(t *testing.T) {
 		t.Fatal("partially overlapping footprints need a different proof", s.Topology(), h, err)
 	}
 }
+
+func TestOrderedRoofBoxFuseStackedPartialCap(t *testing.T) {
+	ctx := context.Background()
+	high := orderedRoofParabolaSource(t, 1, .5)
+	// Move the lower stock's top to the original curved source's floor,
+	// so the upper rectangle reaches past two ends of the shared cap.
+	low, _ := makeOpenSplineBox(t, [3]float64{.125, .1875, -1.5}, [3]float64{.875, .8125, -.5}, 0)
+	var ref struct {
+		Volume, Area  float64
+		Centroid      [3]float64
+		Solids, Euler int
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_ORDERED_ROOF_COMMON"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "ordered-stacked-partial-cap").Output()
+		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Solids != 1 || ref.Euler != 2 {
+			t.Fatal("independent OCCT partial planar cap", ref, err, string(data))
+		}
+	}
+	for i, pair := range [][2]Solid{{low, high}, {high, low}} {
+		s, h, err := FuseOrderedRoofBoxes(ctx, pair[0], pair[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(s.Topology().Shells) != 1 || s.Topology().EulerCharacteristic != 2 || len(h.Faces) != s.Topology().Faces {
+			t.Fatal("certified partial cap removes the interior interface", s.Topology(), h, err)
+		}
+		for _, f := range h.Faces {
+			if len(f) != 1 || f[0] == (MixedRoofFaceOwner{i, 5}) {
+				t.Fatal("consumed lower roof must have no retained fragment", f)
+			}
+		}
+		mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{})
+		if err != nil || math.Abs(mass.Volume-(.75*.625+1.25*(1.5+1./12))) > 1e-9 {
+			t.Fatal("analytic sum of source volumes with zero overlap", mass, err)
+		}
+		if ref.Solids != 0 && (math.Abs(mass.Volume-ref.Volume) > 1e-8 || math.Abs(mass.Area-ref.Area) > 1e-7 || mass.Centroid.Sub(geom.Vec3{X: ref.Centroid[0], Y: ref.Centroid[1], Z: ref.Centroid[2]}).Length() > 1e-8) {
+			t.Fatal("stacked union differs from pinned OCCT", mass, ref)
+		}
+	}
+}

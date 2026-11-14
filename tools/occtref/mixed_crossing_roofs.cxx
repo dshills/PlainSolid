@@ -347,6 +347,11 @@ int main(int argc, char** argv) {
       report("weighted-ordered-enclosed",BRepAlgoAPI_Cut(weightedGraphStock(false),weightedGraphStock(true)).Shape(),1e-12);
       return 0;
     }
+    if (argc==2 && std::string(argv[1])=="ordered-stacked-partial-cap") {
+      const auto lower=BRepPrimAPI_MakeBox(gp_Pnt(.125,.1875,-1.5),gp_Pnt(.875,.8125,-.5)).Shape();
+      report("ordered-stacked-partial-cap",BRepAlgoAPI_Fuse(lower,graphStock(true,true)).Shape(),1e-12);
+      return 0;
+    }
     if (argc==2 && std::string(argv[1])=="vertical-wall") {
       reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
       reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());
