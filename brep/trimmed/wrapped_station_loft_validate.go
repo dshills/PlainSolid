@@ -31,6 +31,10 @@ func (s Solid) ValidateWrappedCircularStationLoft(ctx context.Context, o geom.Su
 }
 
 func (s Solid) validateWrappedCircularStationLoft(ctx context.Context, o geom.SurfacePatchOptions) (p WrappedStationLoftProof, bands []*geom.WrappedSurfacePatch, err error) {
+	return s.validateWrappedProfileStationLoft(ctx, o, true)
+}
+
+func (s Solid) validateWrappedProfileStationLoft(ctx context.Context, o geom.SurfacePatchOptions, circular bool) (p WrappedStationLoftProof, bands []*geom.WrappedSurfacePatch, err error) {
 	if ctx == nil {
 		return p, nil, geom.ErrInvalid
 	}
@@ -38,7 +42,7 @@ func (s Solid) validateWrappedCircularStationLoft(ctx context.Context, o geom.Su
 		return p, nil, e
 	}
 	n := len(s.faces) - 2
-	if n < 1 || n > 127 || len(s.vertices) != 4*(n+1) || len(s.edges) != 5*n+4 {
+	if n < 1 || n > 127 || !circular && n > 16 || len(s.vertices) != 4*(n+1) || len(s.edges) != 5*n+4 {
 		return p, nil, geom.ErrConvergence
 	}
 	type wall struct {
@@ -61,7 +65,7 @@ func (s Solid) validateWrappedCircularStationLoft(ctx context.Context, o geom.Su
 			if e != nil {
 				return p, nil, e
 			}
-			if !d.Circular {
+			if circular && !d.Circular {
 				return p, nil, geom.ErrConvergence
 			}
 			walls = append(walls, wall{id, w, d})

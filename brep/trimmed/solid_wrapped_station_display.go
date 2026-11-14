@@ -8,7 +8,7 @@ import (
 	"plainsolid/geom"
 )
 
-// PreparedWrappedStationDisplay retains one proved circular station loft with
+// PreparedWrappedStationDisplay retains one proved station loft with
 // original lateral crease/rim identities, two caps and exact model parameters.
 // Each internal station uses one shared indexed row certified on both bands.
 type PreparedWrappedStationDisplay struct {
@@ -66,6 +66,10 @@ func (p *PreparedWrappedStationDisplay) Stations() WrappedLoftHistory {
 // mesher. Source/per-band/global contact proofs keep separate quotas. Display
 // size is additionally capped at 100000 vertices/triangles, with atomic failure.
 func (s Solid) PrepareWrappedStationDisplay(ctx context.Context, o CertifiedWrappedStationMeshOptions, validation placement.ClosedDisplayOptions) (*PreparedWrappedStationDisplay, error) {
+	return s.prepareWrappedProfileStationDisplay(ctx, o, validation, true)
+}
+
+func (s Solid) prepareWrappedProfileStationDisplay(ctx context.Context, o CertifiedWrappedStationMeshOptions, validation placement.ClosedDisplayOptions, circular bool) (*PreparedWrappedStationDisplay, error) {
 	n := len(s.faces) - 2
 	if ctx == nil || n < 1 || n > 16 || len(s.edges) != 5*n+4 || len(s.vertices) != 4*(n+1) {
 		return nil, geom.ErrInvalid
@@ -87,7 +91,7 @@ func (s Solid) PrepareWrappedStationDisplay(ctx context.Context, o CertifiedWrap
 		o.Band.MaxTriangles = 100000
 	}
 	var boundary []wrappedDisplayBand
-	report, e := s.tessellateWrappedStationLoftBoundaries(ctx, o, 1, &boundary)
+	report, e := s.tessellateWrappedProfileStationLoft(ctx, o, 1, &boundary, circular)
 	if e != nil {
 		return nil, e
 	}

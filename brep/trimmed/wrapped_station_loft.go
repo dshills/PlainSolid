@@ -88,7 +88,8 @@ func NewWrappedCircularStationLoft(ctx context.Context, bands []*geom.WrappedSur
 	return joinWrappedStationBands(ctx, bands, tolerance, o)
 }
 
-// joinWrappedStationBands assumes exact ordered circular station continuity.
+// joinWrappedStationBands assumes exact ordered full-profile station continuity.
+// Every shared rim is independently checked by complete model/pcurve identity.
 func joinWrappedStationBands(ctx context.Context, bands []*geom.WrappedSurfacePatch, tolerance float64,
 	o geom.SurfacePatchOptions) (Solid, WrappedLoftHistory, error) {
 	h := WrappedLoftHistory{StationRims: make([][4]int, len(bands)+1)}

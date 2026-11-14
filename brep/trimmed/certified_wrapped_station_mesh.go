@@ -48,6 +48,10 @@ func (s Solid) tessellateWrappedStationLoftFrom(ctx context.Context, o Certified
 }
 
 func (s Solid) tessellateWrappedStationLoftBoundaries(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int, capture *[]wrappedDisplayBand) (out CertifiedWrappedStationMesh, err error) {
+	return s.tessellateWrappedProfileStationLoft(ctx, o, first, capture, true)
+}
+
+func (s Solid) tessellateWrappedProfileStationLoft(ctx context.Context, o CertifiedWrappedStationMeshOptions, first int, capture *[]wrappedDisplayBand, circular bool) (out CertifiedWrappedStationMesh, err error) {
 	if capture != nil {
 		*capture = nil
 		defer func() {
@@ -85,7 +89,7 @@ func (s Solid) tessellateWrappedStationLoftBoundaries(ctx context.Context, o Cer
 	if o.Band.MaxTriangles < 1 || o.Band.MaxTriangles > 8000000 {
 		return out, geom.ErrInvalid
 	}
-	proof, bands, e := s.validateWrappedCircularStationLoft(ctx, o.Band.Embedding)
+	proof, bands, e := s.validateWrappedProfileStationLoft(ctx, o.Band.Embedding, circular)
 	if e != nil {
 		return out, e
 	}
