@@ -1,5 +1,21 @@
 # Verification record
 
+## PlainCAD circular rim fillets on XZ and YZ — 2026-11-14
+
+Coordinate placement cycles the three model-space coordinate lexemes
+while retaining the 2D pcurves, knots, rational weights and shared
+topology. Import reverses that placement before running the existing
+whole-surface and graph proof. Native checks cover one or two rim
+fillets on cylinders along all six signed coordinate directions.
+
+[Seven original edge and STEP regressions plus provider preflight](evidence/plaincad-placed-rim-fillet-step-browser-2026-11-14.json)
+pass. The authored [XZ](evidence/plaincad-placed-rim-fillet-xz-step-native-2026-11-14.json)
+and [YZ](evidence/plaincad-placed-rim-fillet-yz-step-native-2026-11-14.json)
+workflows both reexport byte-identically after project reopen and
+generate watertight 7,040-triangle STLs. Three placed native OCCT
+round-trips, independent readback of both authored files, focused
+race checks and Go vet pass.
+
 ## PlainCAD circular rim fillet STEP exchange — 2026-11-14
 
 A cylinder about signed world Z retains the one- or two-rim recipe and

@@ -1,7 +1,7 @@
 package plaincadbridge
 
 import (
-	"math"
+	"io"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/exchange/step"
@@ -14,19 +14,21 @@ type cylinderRimFillet struct {
 	lower, upper   float64
 }
 
-func (p cylinderRimFillet) stepBody() (step.WrappedRimFilletBody, bool) {
-	z := p.frame.ZAxis()
-	if math.Abs(z.Z) != 1 || z.X != 0 || z.Y != 0 {
-		return step.WrappedRimFilletBody{}, false
+func (p cylinderRimFillet) writeSTEP(w io.Writer) error {
+	if !cardinalFrame(p.frame) {
+		return geom.ErrDomain
 	}
+	z := p.frame.ZAxis()
 	center := p.frame.Origin()
 	fillets := [2]float64{p.lower, p.upper}
-	if z.Z < 0 {
-		center.Z -= p.height
+	if z.X < 0 || z.Y < 0 || z.Z < 0 {
+		center = p.frame.ToWorld(geom.Vec3{Z: p.height})
+		z = z.Scale(-1)
 		fillets[0], fillets[1] = fillets[1], fillets[0]
 	}
-	return step.WrappedRimFilletBody{Name: "PlainSolid", Center: center, Radius: p.radius,
-		Height: p.height, Fillets: fillets, LengthUnit: .001}, true
+	body := step.WrappedRimFilletBody{Name: "PlainSolid", Center: center, Radius: p.radius,
+		Height: p.height, Fillets: fillets, LengthUnit: .001}
+	return step.WritePlacedWrappedRimFillet(w, body, z)
 }
 
 func (p cylinderRimFillet) transformed(m geom.Affine) (*cylinderRimFillet, error) {
@@ -38,12 +40,12 @@ func (p cylinderRimFillet) transformed(m geom.Affine) (*cylinderRimFillet, error
 	return &p, nil
 }
 
-func (b *Bridge) putRimFilletSTEP(p step.WrappedRimFilletBody) (Shape, error) {
+func (b *Bridge) putRimFilletSTEP(p step.WrappedRimFilletBody, axis geom.Vec3) (Shape, error) {
 	scale := p.LengthUnit / .001
 	if !finite(scale) || scale <= 0 {
 		return Shape{}, geom.ErrDomain
 	}
-	frame, err := geom.FrameFromNormal(p.Center.Scale(scale), geom.Vec3{Z: 1})
+	frame, err := geom.FrameFromNormal(p.Center.Scale(scale), axis)
 	if err != nil {
 		return Shape{}, err
 	}
