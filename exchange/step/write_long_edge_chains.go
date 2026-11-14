@@ -138,6 +138,10 @@ func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s tr
 }
 
 func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64) error {
+	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, crossed, unequalTolerance, nil)
+}
+
+func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -195,6 +199,14 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 			return geom.ErrDomain
 		}
 		a, b := vertices[edge.Start], vertices[edge.End]
+		if obliqueDirection != nil && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
+			curve, err := obliqueBoreEdgeCurve(a, b, os, surfaces)
+			if err != nil {
+				return err
+			}
+			curves[i] = curve
+			continue
+		}
 		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
 			if unequalTolerance > 0 {
 				fitted, err := approximateUnequalBoreEdge(a, b, os, surfaces, unequalTolerance)
@@ -305,10 +317,11 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 		dir3 := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
-		place := func(f geom.Frame) int64 {
-			p, z, x := point3(f.Origin()), dir3(f.ZAxis()), dir3(f.XAxis())
+		placeDirection := func(f geom.Frame, normal geom.Vec3) int64 {
+			p, z, x := point3(f.Origin()), dir3(normal), dir3(f.XAxis())
 			return emit(fmt.Sprintf("AXIS2_PLACEMENT_3D('',#%d,#%d,#%d)", p, z, x))
 		}
+		place := func(f geom.Frame) int64 { return placeDirection(f, f.ZAxis()) }
 		point2 := func(p geom.Vec2) int64 { return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s))", real(p.X), real(p.Y))) }
 		line2 := func(p, d geom.Vec2) int64 {
 			o := point2(p)
@@ -319,7 +332,11 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 		ctx := emit("(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''))")
 		surfaceIDs := make([]int64, len(faces))
 		for i, surface := range surfaces {
-			p := place(surface.frame)
+			normal := surface.frame.ZAxis()
+			if obliqueDirection != nil && surface.kind == "CYLINDRICAL_SURFACE" {
+				normal = *obliqueDirection
+			}
+			p := placeDirection(surface.frame, normal)
 			if surface.kind == "PLANE" {
 				surfaceIDs[i] = emit(fmt.Sprintf("PLANE('',#%d)", p))
 			} else {
@@ -346,13 +363,7 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				continue
 			}
 			if curve.unequal != nil {
-				splinePoint := point3
-				if curve.unequal.compact {
-					splinePoint = func(p geom.Vec3) int64 {
-						return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", compactUnequalBoreReal(p.X), compactUnequalBoreReal(p.Y), compactUnequalBoreReal(p.Z)))
-					}
-				}
-				model = emitUnequalBoreSpline(emit, curve.unequal.model, splinePoint)
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, point3)
 			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
@@ -368,9 +379,6 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				var geometry int64
 				if curve.unequal != nil {
 					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], func(p geom.Vec3) int64 {
-						if curve.unequal.compact {
-							return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s))", compactUnequalBoreReal(p.X), compactUnequalBoreReal(p.Y)))
-						}
 						return point2(geom.Vec2{X: p.X, Y: p.Y})
 					})
 				} else if surface.kind == "PLANE" {

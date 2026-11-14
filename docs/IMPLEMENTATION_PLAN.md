@@ -74,8 +74,8 @@ through axes use the same topology and STEP exchange when the larger
 bore covers the smaller bore's full transverse width. Partial width
 requires a different trim arrangement. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
-modeling, project reopen and STL. Qualify its exact ellipse STEP exchange
-separately.
+modeling, project reopen and STL. STEP preserves analytic elliptical edges
+and the cylindrical support in the canonical world-coordinate graph.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

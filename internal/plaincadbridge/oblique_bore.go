@@ -80,9 +80,14 @@ func newObliqueThroughBore(base brep.Solid, tool *cylinderBody) (*boreBody, bool
 	if !toolCapClearsOpening(tool, entry, 0) || !toolCapClearsOpening(tool, exit, tool.height) {
 		return fail("finite oblique cylinder does not cover both entire stock openings")
 	}
+	body, err := buildObliqueThroughBore(base, tool, cut, axis, entry, exit, length)
+	return body, true, err
+}
+
+func buildObliqueThroughBore(base brep.Solid, tool *cylinderBody, cut trimmed.CylinderCut, axis geom.Vec3, entry, exit geom.Plane, length float64) (*boreBody, error) {
 	solid, _, err := trimmed.BoreCylinderAlong(base, cut.Entry, cut.Exit, cut.AxisPoint, cut.Direction, cut.Radius, 1e-9)
 	if err != nil {
-		return fail("oblique through bore requires strictly interior elliptical openings: " + err.Error())
+		return nil, unsupportedEdge("oblique through bore requires strictly interior elliptical openings: " + err.Error())
 	}
 
 	diskArea := math.Pi * tool.radius * tool.radius
@@ -96,12 +101,12 @@ func newObliqueThroughBore(base brep.Solid, tool *cylinderBody) (*boreBody, bool
 	}
 	if !finite(proof.removedVolume) || !finite(proof.wallArea) ||
 		!finite(proof.openingAreas[0]) || !finite(proof.openingAreas[1]) {
-		return fail("oblique cylinder measures exceed numeric range")
+		return nil, unsupportedEdge("oblique cylinder measures exceed numeric range")
 	}
 	return &boreBody{
 		solid: solid, base: base, cylinders: []*cylinderBody{tool}, cuts: []trimmed.CylinderCut{cut},
 		spans: []float64{length}, blind: []bool{false}, oblique: proof,
-	}, true, nil
+	}, nil
 }
 
 // toolCapClearsOpening proves the entire finite tool cap lies in the outer

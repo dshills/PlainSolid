@@ -143,6 +143,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putBore(body)
 	}
+	if m, e := step.ReadObliqueBore(r(), stepLimits()); e == nil {
+		body, err := obliqueBoreFromSTEP(m.Body, m.LengthUnit)
+		if err != nil {
+			return Shape{}, err
+		}
+		return b.putBore(body)
+	}
 	if m, e := step.ReadUnequalBore(r(), stepLimits()); e == nil {
 		p := m.Body
 		body, err := crossedBoreFromSTEP(crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.XRadius, p.ZRadius}, offset: p.Offset}, m.LengthUnit)
@@ -338,7 +345,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 	case s.bore != nil:
 		if s.bore.oblique != nil {
-			return nil, unsupportedEdge("STEP export for elliptical oblique through-bore openings is unsupported")
+			p, err := obliqueBoreSTEPRecipe(s.bore)
+			if err != nil {
+				return nil, err
+			}
+			e = step.WriteObliqueBore(&out, step.ObliqueBoreModel{Body: p, LengthUnit: .001})
+			break
 		}
 		var p step.CircularHoleExtrusionBody
 		p, e = boreSTEPRecipe(s.bore)
