@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"context"
+	"errors"
 	"math"
 	"math/big"
 
@@ -34,9 +35,10 @@ func (p sideDualDiskRecipe) externalRadical() bool {
 
 type sideDualDiskBody struct {
 	sideDualDiskRecipe
-	boundary trimmed.Solid
-	walls    [2][]int
-	measures trimmed.SideOpenDualDiskMeasures
+	boundary   trimmed.Solid
+	walls      [2][]int
+	measures   trimmed.SideOpenDualDiskMeasures
+	exactWalls bool
 }
 
 // planarFace resolves a finite face from the actual rational trim. Several
@@ -111,27 +113,33 @@ func (p sideDualDiskRecipe) solid() (*sideDualDiskBody, error) {
 			return nil, e
 		}
 		m, e := cut.Measures()
-		return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
+		return &sideDualDiskBody{sideDualDiskRecipe: p, boundary: cut.Solid, walls: cut.WallFaces, measures: m}, e
 	}
 	if p.externalRadical() {
 		cut, e := trimmed.CutGeneralSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		exactWalls := errors.Is(e, geom.ErrUnrepresentable)
+		if exactWalls {
+			// Both constructors enforce the same exact endpoints and stock proof.
+			// This second attempt allows rational wall controls, without rounding.
+			cut, e = trimmed.CutGeneralSideOpenDualDisksWithExactWalls(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		}
 		if e != nil {
 			return nil, e
 		}
 		m, e := cut.Measures()
-		return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
+		return &sideDualDiskBody{sideDualDiskRecipe: p, boundary: cut.Solid, walls: cut.WallFaces, measures: m, exactWalls: exactWalls}, e
 	}
 	cut, e := trimmed.CutUnequalSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 	if e != nil {
 		return nil, e
 	}
 	m, e := cut.Measures()
-	return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
+	return &sideDualDiskBody{sideDualDiskRecipe: p, boundary: cut.Solid, walls: cut.WallFaces, measures: m}, e
 }
 
-func putSideDualDiskSTEPProduct(b *Bridge, d step.SideOpenDualDiskDescriptor, native trimmed.Solid, walls [2][]int, measures trimmed.SideOpenDualDiskMeasures) (Shape, error) {
+func putSideDualDiskSTEPProduct(b *Bridge, d step.SideOpenDualDiskDescriptor, native trimmed.Solid, walls [2][]int, measures trimmed.SideOpenDualDiskMeasures, exactWalls bool) (Shape, error) {
 	p := sideDualDiskRecipe{d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth}
-	cut := &sideDualDiskBody{p, native, walls, measures}
+	cut := &sideDualDiskBody{sideDualDiskRecipe: p, boundary: native, walls: walls, measures: measures, exactWalls: exactWalls}
 	if d.LengthUnit != .001 {
 		// This reader proves a supported SI prefix. Identify that prefix
 		// before multiplying, since the floats for 10^n are not generally exact.

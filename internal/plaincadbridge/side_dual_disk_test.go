@@ -210,3 +210,53 @@ func TestPlainCADSideOpenDualDiskRejectsUnprovedCrossing(t *testing.T) {
 		t.Fatal("irrational crossing must reject without a faceted or partial publish", out, err)
 	}
 }
+
+func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
+	for _, depth := range []float64{3, 6} {
+		b := New()
+		stock := box(t, b, vector{}, vector{50, 22, 6})
+		a := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 13, depth)
+		c := circle(t, b, vector{24, 0, 0}, vector{0, 0, 1}, 15, depth)
+		prior := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": a.Handle})
+		angleL, angleR := math.Atan2(12, 5), math.Atan2(12, -9)
+		opening := (169*angleL + 225*angleR + 48) / 2
+		for i, req := range []map[string]any{
+			{"op": "cutMany", "a": stock.Handle, "tools": []string{c.Handle, a.Handle}},
+			{"op": "cut", "a": prior.Handle, "b": c.Handle},
+		} {
+			out := shape(t, b, req)
+			want := 6600 - depth*opening
+			near(t, out.GeometryAssertions.Volume, want)
+			body := b.shapes[out.Handle].analytic.sideDualDisk
+			if body == nil || !body.exactWalls || out.Bounds != stock.Bounds {
+				t.Fatal("exact walls did not remain on their original stock", out.Bounds)
+			}
+			if i == 0 {
+				var deflection, angular optionalNumber
+				deflection.set, deflection.value, angular.set, angular.value = true, .5, true, .2
+				m, e := b.shapes[out.Handle].tessellate(requestForSideMesh(deflection, angular))
+				if e != nil || m.ValidateSolid() != nil {
+					t.Fatal("exact wall display", e)
+				}
+			}
+			data, e := writeSTEPBody(b.shapes[out.Handle])
+			if e != nil || !bytes.Contains(data, []byte("PRODUCT('side-cut-exact-walls'")) || bytes.Count(data, []byte("CYLINDRICAL_SURFACE(")) != 2 {
+				t.Fatal("export needs registered original analytic supports", e)
+			}
+			read, e := b.importSTEP(string(data))
+			if e != nil || read.Bounds != stock.Bounds || !b.shapes[read.Handle].analytic.sideDualDisk.exactWalls {
+				t.Fatal("STEP readback failed to restore the exact-wall recipe", e)
+			}
+			near(t, read.GeometryAssertions.Volume, want)
+			if i == 0 {
+				control := box(t, b, vector{60, 5, 0}, vector{62, 8, 4})
+				proof, e := b.exportSTEP([]string{control.Handle, out.Handle})
+				if e != nil || len(proof.After) != 2 || proof.After[1].Bounds != out.Bounds {
+					t.Fatal("mixed export must read both independent products back", proof.After, e)
+				}
+				near(t, proof.After[0].Volume, 24)
+				near(t, proof.After[1].Volume, want)
+			}
+		}
+	}
+}
