@@ -809,7 +809,19 @@ race checks and all 17 original browser cases passed. The run verified
 confirmed that a wholly covered cutter leaves the canonical STEP unchanged.
 The reconciled STEP and watertight STL matched the worktree's files, and
 independent OCCT confirmed the resulting geometry.
-The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
+The [oblique-axis floor reconciliation](evidence/plaincad-reconciled-ade2dfc1-development-oblique-own-floor-holes-step-2026-11-14.json)
+adds worktree revision `b88b4665` to review `ade2dfc1`. It passed 17
+original browser cases and native STEP and bridge race checks. The
+[authored lower and upper floor cases](evidence/plaincad-reconciled-ade2dfc1-supplemental-oblique-own-floor-step-2026-11-14.json)
+reproduced the worktree STEP and watertight STL files. Independent OCCT
+transfer matched direct construction for both floors.
+The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
+passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
+and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
+Both runs verified 841 pinned app files and 2,171 kernel source blobs,
+including unchanged acceptance configurations. The later floor update
+has targeted evidence above.
+The [earlier complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
 directional, line, distance, and exchange proofs. All 841 original
@@ -1824,3 +1836,22 @@ A native plane/dome lens with stock map X=5U/4-1/8,Y=5V/4-1/8 and a unit roof
 qualifies end-to-end. Its exact restriction uses nonbinary original UV1/10 and
 9/10. This is a compact source qualification, not a repeat of the long triple
 flagship or a new persistence claim.
+
+## General rational rectangular radial footprint (2026-11-14)
+
+The affine radial certificate now computes any positive exact common physical
+rectangle, rather than requiring [0,1]^2. Center and radii remain in physical XY.
+The coefficient proof explicitly substitutes X=x0+wx*u and Y=y0+wy*v into every
+circle factor, retaining unequal scales and offsets. It never treats a circle
+in normalized UV as a physical circle. Every full circle must lie strictly
+inside the exact common rectangle; clipped circles and boundary tangencies
+remain unsupported. Original signed-axis chart maps and rational restriction
+values remain immutable. `PhysicalRectangle` returns owned rational bounds.
+
+The public overlapping affine proposal lane accepts this certificate while
+re-proving original tubes and endpoint membership. Proposal centers/radii still
+must be losslessly represented; the coefficient proof and rectangle endpoints
+can be nonbinary rationals. Existing unit-domain radial mass APIs retain their
+strict public contract; the generalized coefficient variant is private to the
+affine coverage certificate. No new native solid or mass formula is inferred
+from a normalized proof chart.

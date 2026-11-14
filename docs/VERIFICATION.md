@@ -773,6 +773,11 @@ extent. Editing an original shared torus relationship moves both expanded
 paths. Its shared reference datum remains untouched and the writer adds
 one private target frame. A single inconsistent edit to one path of that
 relationship fails without writing any exchange data.
+The editable snapshot also persists per-native-face labels referencing the
+original STEP face entities. Both STEP and source-bound native import recover
+these labels on the shared asset definitions rather than duplicating them
+on each occurrence. The original transfer, document reopen and live OCCT
+edit regression passed under the race detector.
 
 Document planar face history now propagates authored box roles through
 the same geometry evaluation that builds each planar Boolean. The
@@ -5229,4 +5234,28 @@ GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom -run '^(TestAffineR
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestNativeLensAffineRadialCoverage$' -count=1 -v -timeout 4m
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./brep/trimmed -run '^(TestAffineRadialOriginalTransport|TestNativeLensAffineRadialCoverage)$' -count=1 -v -timeout 4m
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom ./intersect ./brep/trimmed
+```
+
+## Physical non-unit radial footprint (2026-11-14)
+
+Exact circle coverage qualifies common physical rectangle [2,4] x [-1,2], with
+independent larger original footprint [1,5] x [-2,3], physical center(3,1/2) and
+radius1/4. Original charts have different scales4/5 versus2/3. The independent
+proposal/coverage/transfer lane returns36 arcs; omission of half the original
+occurrences and proposal quota exhaustion reject atomically. Coverage charges
+1095792 exact operations. Focused race passed (geometry 1.414s, intersect 14.103s);
+vet passed for geom/intersect. This is a complete
+pair-coverage qualification, not a claim of new native non-unit solid assembly.
+
+A separate coefficient fixture uses rational rectangle [2,4] x [-1/3,8/3],
+center(3,7/6), unequal physical widths2 and3. It verifies exact owned rectangle
+bounds and rejects both a normalized-UV circle impostor and an actual circle
+of radius5/4 extending beyond the rectangle. Existing unit radial volume,
+centroid, moments, tensor, factor and coverage regressions passed together.
+Both existing native lens routes passed again (35.033s combined); the affine
+route now charges997027 operations after removing redundant canonical reproof.
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./intersect -run '^(TestAffineRadialPhysicalRectangle|TestAffineRadialOriginalTransport|TestRadialPhysicalRectangleCoverage)$' -count=1 -v -timeout 3m
 ```

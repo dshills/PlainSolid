@@ -191,6 +191,18 @@ func materializeSphericalHierarchy(ctx context.Context, m step.IndependentSpheri
 			"step.source.definition": intAttr(id), "step.source.body": intAttr(body.SourceBodyID), "step.source.representation": intAttr(body.SourceRepresentationID),
 			"step.product.identifier": strAttr(p.Identifier), "step.product.name": strAttr(p.Name), "step.material.family": strAttr(kind),
 		}}
+		faceSources, err := step.SphericalHierarchyNativeFaceSources(body)
+		if err != nil {
+			return nil, err
+		}
+		for i, original := range faceSources {
+			face := i
+			s.Labels[fmt.Sprintf("source-face:%s:%d:%d", key, original, i)] = Label{
+				Target: FaceLabel, TargetID: key, Parent: "source:" + key, Face: &face,
+				Name:       fmt.Sprintf("STEP face #%d", original),
+				Attributes: map[string]Attribute{"step.source.face": intAttr(original)},
+			}
+		}
 	}
 	children := map[int64][]step.AssemblyOccurrence{}
 	for _, x := range m.Assembly.Occurrences {

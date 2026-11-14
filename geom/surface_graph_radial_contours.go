@@ -66,6 +66,13 @@ func (r *SplineGraphRadialContours) MarshalJSON() ([]byte, error) { return nil, 
 // Other terms, missing roots, repeated roots, boundaries and exhausted budgets
 // return no certificate. The supplied radii are not treated as discovery proof.
 func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, center [2]*big.Rat, radii []*big.Rat, o GraphPointContactOptions) (*SplineGraphRadialContours, error) {
+	return certifyRadialContoursOnRectangle(ctx, a, c, center, radii, o, [2][2]*big.Rat{{new(big.Rat), big.NewRat(1, 1)}, {new(big.Rat), big.NewRat(1, 1)}})
+}
+
+// Proof charts use unit UV; physical XY retains its exact rectangular scales.
+// This private variant is exposed only through immutable affine coverage proof,
+// not through the unit-domain radial mass APIs.
+func certifyRadialContoursOnRectangle(ctx context.Context, a, c *SurfacePatch, center [2]*big.Rat, radii []*big.Rat, o GraphPointContactOptions, physical [2][2]*big.Rat) (*SplineGraphRadialContours, error) {
 	if ctx == nil || a == nil || c == nil || center[0] == nil || center[1] == nil || len(radii) < 1 || len(radii) > 4 {
 		return nil, ErrInvalid
 	}
@@ -82,6 +89,16 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 		return nil, ErrInvalid
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	for _, limits := range physical {
+		if limits[0] == nil || limits[1] == nil || limits[0].Cmp(limits[1]) >= 0 {
+			return nil, ErrInvalid
+		}
+		for _, q := range limits {
+			if e := b.check(q); e != nil {
+				return nil, e
+			}
+		}
+	}
 	for _, q := range center {
 		if e := b.check(q); e != nil {
 			return nil, e
@@ -97,7 +114,7 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 		if i > 0 && q.Cmp(radii[i-1]) <= 0 {
 			return nil, ErrInvalid
 		}
-		for _, x := range center {
+		for axis, x := range center {
 			lo, hi := new(big.Rat).Sub(x, q), new(big.Rat).Add(x, q)
 			if e := b.check(lo); e != nil {
 				return nil, e
@@ -105,7 +122,7 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 			if e := b.check(hi); e != nil {
 				return nil, e
 			}
-			if lo.Sign() <= 0 || hi.Cmp(big.NewRat(1, 1)) >= 0 {
+			if lo.Cmp(physical[axis][0]) <= 0 || hi.Cmp(physical[axis][1]) >= 0 {
 				return nil, ErrConvergence
 			}
 		}
@@ -127,7 +144,13 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 			for j := 0; j < 3; j++ {
 				want := new(big.Rat)
 				if i == j {
-					want.SetInt64(1)
+					want.Inv(new(big.Rat).Sub(physical[i][1], physical[i][0]))
+				}
+				if j == 2 {
+					want.Quo(new(big.Rat).Neg(physical[i][0]), new(big.Rat).Sub(physical[i][1], physical[i][0]))
+				}
+				if e := b.check(want); e != nil {
+					return nil, e
 				}
 				if g.inverse[i][j].Cmp(want) != 0 {
 					return nil, ErrConvergence
@@ -185,8 +208,15 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 	}
 	expected := map[[2]int]*big.Rat{{0, 0}: big.NewRat(1, 1)}
 	for _, radius := range radii {
-		constant := new(big.Rat).Sub(new(big.Rat).Add(new(big.Rat).Mul(center[0], center[0]), new(big.Rat).Mul(center[1], center[1])), new(big.Rat).Mul(radius, radius))
-		factor := map[[2]int]*big.Rat{{0, 0}: constant, {1, 0}: new(big.Rat).Mul(big.NewRat(-2, 1), center[0]), {0, 1}: new(big.Rat).Mul(big.NewRat(-2, 1), center[1]), {2, 0}: big.NewRat(1, 1), {0, 2}: big.NewRat(1, 1)}
+		delta := [2]*big.Rat{new(big.Rat).Sub(physical[0][0], center[0]), new(big.Rat).Sub(physical[1][0], center[1])}
+		width := [2]*big.Rat{new(big.Rat).Sub(physical[0][1], physical[0][0]), new(big.Rat).Sub(physical[1][1], physical[1][0])}
+		constant := new(big.Rat).Sub(new(big.Rat).Add(new(big.Rat).Mul(delta[0], delta[0]), new(big.Rat).Mul(delta[1], delta[1])), new(big.Rat).Mul(radius, radius))
+		factor := map[[2]int]*big.Rat{{0, 0}: constant, {1, 0}: new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(delta[0], width[0])), {0, 1}: new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(delta[1], width[1])), {2, 0}: new(big.Rat).Mul(width[0], width[0]), {0, 2}: new(big.Rat).Mul(width[1], width[1])}
+		for _, q := range factor {
+			if e := b.check(q); e != nil {
+				return nil, e
+			}
+		}
 		next := map[[2]int]*big.Rat{}
 		for i, x := range expected {
 			for j, y := range factor {
@@ -208,6 +238,10 @@ func CertifySplineGraphRadialContours(ctx context.Context, a, c *SurfacePatch, c
 			}
 		}
 		expected = next
+	}
+	scale = new(big.Rat).Quo(scale, expected[[2]int{2 * len(radii), 0}])
+	if e := b.check(scale); e != nil {
+		return nil, e
 	}
 	for i := 0; i < max(p.countU, 2*len(radii)+1); i++ {
 		for j := 0; j < max(p.countV, 2*len(radii)+1); j++ {

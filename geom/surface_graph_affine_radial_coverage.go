@@ -6,7 +6,7 @@ import (
 )
 
 // AffineRadialContours retains exact original charts and a complete radial
-// identity on their common physical unit square. Original projected rectangles
+// identity on their common positive physical rectangle. Original projected rectangles
 // may differ. Only signed-axis affine maps and single Bezier spans are accepted.
 // Rational clip values are never rounded into surface controls.
 type AffineRadialContours struct {
@@ -15,8 +15,11 @@ type AffineRadialContours struct {
 	inverse    [2][2][3]*big.Rat
 	radial     *SplineGraphRadialContours
 	operations int
+	physical   [2][2]*big.Rat
 }
 
+// CanonicalSupports uses unit UV but retains the original physical XYZ values.
+// Unequal rectangle widths therefore remain unequal model projection scales.
 func (r *AffineRadialContours) CanonicalSupports() [2]*SurfacePatch {
 	if r == nil {
 		return [2]*SurfacePatch{}
@@ -30,17 +33,18 @@ func (r *AffineRadialContours) ExactOperations() int {
 	return r.operations
 }
 
-// OriginalBox returns an outward proposal only. Its subsequent uniform proof
+// OriginalBox maps a rectangle expressed in physical XY to original owner UV.
+// It returns an outward proposal only. Its subsequent uniform proof
 // and exact original endpoint membership are mandatory for coverage.
 func (r *AffineRadialContours) OriginalBox(ctx context.Context, owner int, box ParameterRectangle, o SurfacePatchOptions) (ParameterRectangle, bool, int, error) {
-	if r == nil || owner < 0 || owner > 1 {
+	if r == nil || r.radial == nil || owner < 0 || owner > 1 {
 		return ParameterRectangle{}, false, 0, ErrInvalid
 	}
 	a := &AffineXYChartAlignment{target: r.canonical[owner], mapping: r.inverse[owner]}
 	return a.MapSourceBox(ctx, box, o)
 }
 func (r *AffineRadialContours) OriginalAxis(owner, physicalAxis int) (int, error) {
-	if r == nil || owner < 0 || owner > 1 || physicalAxis < 0 || physicalAxis > 1 {
+	if r == nil || r.radial == nil || owner < 0 || owner > 1 || physicalAxis < 0 || physicalAxis > 1 {
 		return 0, ErrInvalid
 	}
 	for i := 0; i < 2; i++ {
@@ -50,6 +54,10 @@ func (r *AffineRadialContours) OriginalAxis(owner, physicalAxis int) (int, error
 	}
 	return 0, ErrInvalid
 }
+
+// CertifyTubeCoverage verifies original chart endpoints and original supports.
+// Signed-axis affine free coordinates are monotone physical X or Y; the
+// open/closed circle-cover argument therefore survives independent chart scales.
 func (r *AffineRadialContours) CertifyTubeCoverage(ctx context.Context, tubes []VerifiedSurfaceTube, o RadialTubeCoverageOptions) (*RadialTubeCoverage, error) {
 	if r == nil || r.radial == nil {
 		return nil, ErrInvalid
@@ -57,10 +65,12 @@ func (r *AffineRadialContours) CertifyTubeCoverage(ctx context.Context, tubes []
 	return r.radial.certifyTubeCoverageOriginal(ctx, tubes, o, r.original, false)
 }
 
-// CertifyAffineRadialGraphContours proves that the exact intersection of the
-// original projected domains is [0,1]^2, then proves the complete circle family
-// there. Outside that intersection no common model point can exist. This is a
-// bounded footprint scope, not a claim for arbitrary sheared/partial circles.
+// CertifyAffineRadialGraphContours computes the exact positive rectangular
+// intersection of the original projected domains, then proves the complete
+// physical XY circle family there. Each circle must lie strictly inside.
+// Proof UV is normalized independently on each axis: the polynomial factors
+// retain both physical scales, never treating a normalized ellipse as a circle.
+// Outside the projected intersection no common model point can exist.
 func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, center [2]*big.Rat, radii []*big.Rat, o GraphPointContactOptions) (*AffineRadialContours, error) {
 	if ctx == nil || a == nil || c == nil {
 		return nil, ErrInvalid
@@ -123,9 +133,10 @@ func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, c
 		if ranges[1][axis][1].Cmp(hi) < 0 {
 			hi = ranges[1][axis][1]
 		}
-		if lo.Sign() != 0 || hi.Cmp(big.NewRat(1, 1)) != 0 {
+		if lo.Cmp(hi) >= 0 {
 			return nil, ErrDomain
 		}
+		r.physical[axis] = [2]*big.Rat{new(big.Rat).Set(lo), new(big.Rat).Set(hi)}
 	}
 	for owner, p := range r.original {
 		d := p.Domain()
@@ -140,8 +151,8 @@ func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, c
 			}
 			axes[i] = axis
 			reverse[i] = row[axis].Sign() < 0
-			lo := new(big.Rat).Set(row[2])
-			hi := new(big.Rat).Add(row[2], row[axis])
+			lo := new(big.Rat).Add(row[2], new(big.Rat).Mul(row[axis], r.physical[axis][0]))
+			hi := new(big.Rat).Add(row[2], new(big.Rat).Mul(row[axis], r.physical[axis][1]))
 			if lo.Cmp(hi) > 0 {
 				lo, hi = hi, lo
 			}
@@ -194,7 +205,7 @@ func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, c
 	if remaining < 1 {
 		return nil, ErrConvergence
 	}
-	proof, e := CertifySplineGraphRadialContours(ctx, r.canonical[0], r.canonical[1], center, radii, GraphPointContactOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
+	proof, e := certifyRadialContoursOnRectangle(ctx, r.canonical[0], r.canonical[1], center, radii, GraphPointContactOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits}, r.physical)
 	if e != nil {
 		return nil, e
 	}
@@ -202,4 +213,30 @@ func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, c
 	r.radial = proof
 	r.operations = b.operations
 	return r, nil
+}
+
+// PhysicalRectangle returns owned exact bounds in model XY, not normalized UV.
+func (r *AffineRadialContours) PhysicalRectangle() [2][2]*big.Rat {
+	var out [2][2]*big.Rat
+	if r == nil || r.radial == nil {
+		return out
+	}
+	for i := range out {
+		for j := range out[i] {
+			out[i][j] = new(big.Rat).Set(r.physical[i][j])
+		}
+	}
+	return out
+}
+func (r *AffineRadialContours) Center() [2]*big.Rat {
+	if r == nil {
+		return [2]*big.Rat{}
+	}
+	return r.radial.Center()
+}
+func (r *AffineRadialContours) Radii() []*big.Rat {
+	if r == nil {
+		return nil
+	}
+	return r.radial.Radii()
 }

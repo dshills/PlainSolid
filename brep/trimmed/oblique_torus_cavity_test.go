@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
-	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"strings"
 	"testing"
@@ -105,20 +104,16 @@ func TestNativeObliqueTorusCavity(t *testing.T) {
 		if _, e = fmt.Fscan(strings.NewReader(string(data)), &volume, &area); e != nil {
 			t.Fatal(e, string(data))
 		}
-		// All stored loops are complete rectangles, so integrate those exact
-		// authored domains directly rather than triangulating their UV rectangles.
-		var boundary []parametric.Face
-		for _, f := range s.faces {
-			a, b := f.Outer[0].UVStart, f.Outer[2].UVStart
-			boundary = append(boundary, parametric.Face{Surface: f.Surface, U: parametric.Interval{Min: a.X, Max: b.X}, V: parametric.Interval{Min: a.Y, Max: b.Y}, Reversed: f.Reversed})
-		}
-		mass, e := parametric.IntegrateBoundary(ctx, boundary, geom.Vec3{}, parametric.IntegrationOptions{RelativeTolerance: 1e-5, MaxSamples: 200000})
+		measured, e := BoundObliqueTorusCavityArea(ctx, s, 3, 1, 8, -6, 6, pose, geom.TorusCylinderAreaOptions{AreaTolerance: r(1, 1000000000)})
 		if e != nil {
 			t.Fatal(e)
 		}
-		if math.Abs(mass.Volume-volume) > 1e-4 || math.Abs(mass.Area-area) > 1e-4 {
-			t.Fatal("independent OCCT", mass, volume, area)
+		lo, _ := measured.Lower.Float64()
+		hi, _ := measured.Upper.Float64()
+		if area < lo-1e-6 || area > hi+1e-6 || math.Abs(volume-(768*math.Pi-6*math.Pi*math.Pi)) > 1e-6 {
+			t.Fatal("independent OCCT", volume, area, lo, hi)
 		}
+
 	}
 
 }

@@ -12,7 +12,7 @@ import (
 // exact transfer into the supplied original tube union. Hints are re-certified
 // against the original complete supports; they are not asserted coverage.
 type RadialOverlapCoverageOptions struct {
-	// AffineCharts proves exact signed-axis chart transport on a common physical unit square.
+	// AffineCharts proves exact signed-axis chart transport on a common positive physical rectangle.
 	AffineCharts bool
 	Center       [2]*big.Rat
 	Radii        []*big.Rat
@@ -40,6 +40,47 @@ func DiscoverOverlappingRadialGraphContourTubes(ctx context.Context, a, b Patch,
 		return SplineSeedReport{}, e
 	}
 	seeds, _, _, _, e := radialOverlapProposals(ctx, pa, pb, center, radii, o, nil)
+	return seeds, e
+}
+
+// DiscoverOverlappingAffineRadialGraphContourTubes retains the original charts
+// while proposing a cover of physical XY circles on their exact common rectangle.
+// It publishes no branch order. All mapped boxes are independently re-proved.
+func DiscoverOverlappingAffineRadialGraphContourTubes(ctx context.Context, a, b Patch, center [2]*big.Rat, radii []*big.Rat, p geom.SurfacePatchOptions, o geom.RadialTubeCoverageOptions) (SplineSeedReport, error) {
+	if ctx == nil || !a.valid() || !b.valid() {
+		return SplineSeedReport{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return SplineSeedReport{}, e
+	}
+	pa, e := exactSplinePatch(a, p)
+	if e != nil {
+		return SplineSeedReport{}, e
+	}
+	pb, e := exactSplinePatch(b, p)
+	if e != nil {
+		return SplineSeedReport{}, e
+	}
+	maximum := o.MaxOperations
+	if maximum == 0 {
+		maximum = 64000000
+	}
+	if maximum < 1 || maximum > 512000000 {
+		return SplineSeedReport{}, geom.ErrInvalid
+	}
+	proofMax := maximum
+	if proofMax > 128000000 {
+		proofMax = 128000000
+	}
+	transport, e := geom.CertifyAffineRadialGraphContours(ctx, pa, pb, center, radii, geom.GraphPointContactOptions{MaxOperations: proofMax, MaxCoefficientBits: o.MaxCoefficientBits})
+	if e != nil {
+		return SplineSeedReport{}, e
+	}
+	if transport.ExactOperations() >= maximum {
+		return SplineSeedReport{}, geom.ErrConvergence
+	}
+	o.MaxOperations = maximum - transport.ExactOperations()
+	seeds, _, _, _, e := radialOverlapProposals(ctx, pa, pb, center, radii, o, transport)
 	return seeds, e
 }
 
@@ -71,17 +112,21 @@ func radialOverlapProposals(ctx context.Context, pa, pb *geom.SurfacePatch, cent
 	if proofMax > 128000000 {
 		proofMax = 128000000
 	}
-	canonical := [2]*geom.SurfacePatch{pa, pb}
+	var radial *geom.SplineGraphRadialContours
+	var e error
+	used := 0
 	if transport != nil {
-		canonical = transport.CanonicalSupports()
+		center = transport.Center()
+		radii = transport.Radii()
+	} else {
+		radial, e = geom.CertifySplineGraphRadialContours(ctx, pa, pb, center, radii, geom.GraphPointContactOptions{MaxOperations: proofMax, MaxCoefficientBits: o.MaxCoefficientBits})
+		if e != nil {
+			return fail(e)
+		}
+		used = radial.ExactOperations()
+		center = radial.Center()
+		radii = radial.Radii()
 	}
-	radial, e := geom.CertifySplineGraphRadialContours(ctx, canonical[0], canonical[1], center, radii, geom.GraphPointContactOptions{MaxOperations: proofMax, MaxCoefficientBits: o.MaxCoefficientBits})
-	if e != nil {
-		return fail(e)
-	}
-	used := radial.ExactOperations()
-	center = radial.Center()
-	radii = radial.Radii()
 	var c [2]float64
 	for i, q := range center {
 		c[i], e = geom.RepresentedExactScalar(q)

@@ -19,7 +19,13 @@ type EccentricCylinderTorusCavityDistance struct {
 // (or azimuth circles), not necessarily exact minimizers. PossibleOwners is
 // conservative; only strict separation establishes UniqueOwner. Arithmetic,
 // cells and precision use TorusCylinderDistanceOptions with atomic failure.
-func (c EccentricCylinderTorusCavityMaterial) BoundBoundaryDistance(ctx context.Context, p [3]*big.Rat, o TorusCylinderDistanceOptions) (out EccentricCylinderTorusCavityDistance, err error) {
+func (c EccentricCylinderTorusCavityMaterial) BoundBoundaryDistance(ctx context.Context, p [3]*big.Rat, o TorusCylinderDistanceOptions) (EccentricCylinderTorusCavityDistance, error) {
+	return c.boundBoundaryDistance(ctx, p, o, nil, nil)
+}
+
+// Optional independently proper torus frame is admitted only by the immutable
+// oblique source wrapper. Its inverse and all support work share one ledger.
+func (c EccentricCylinderTorusCavityMaterial) boundBoundaryDistance(ctx context.Context, p [3]*big.Rat, o TorusCylinderDistanceOptions, torusPose *[3][4]*big.Rat, torusQuery *[3]*big.Rat) (out EccentricCylinderTorusCavityDistance, err error) {
 	s := c.source
 	defer func() {
 		if err != nil {
@@ -66,6 +72,27 @@ func (c EccentricCylinderTorusCavityMaterial) BoundBoundaryDistance(ctx context.
 		out.ChartOrigins[0][j] = new(big.Rat).Set(c.offset[j])
 	}
 	tx, ty := a.sub(p[0], c.offset[0]), a.sub(p[1], c.offset[1])
+	if torusPose != nil {
+		var local [3]*big.Rat
+		for i := 0; i < 3; i++ {
+			local[i] = new(big.Rat)
+			for j := 0; j < 3; j++ {
+				a.check(torusPose[j][i])
+				a.check(torusPose[j][3])
+				local[i] = a.add(local[i], a.mul(torusPose[j][i], a.sub(p[j], torusPose[j][3])))
+			}
+		}
+		if a.err != nil {
+			return out, a.err
+		}
+		tx, ty, w.z = local[0], local[1], local[2]
+		if torusQuery != nil {
+			for i := range local {
+				torusQuery[i] = new(big.Rat).Set(local[i])
+			}
+		}
+	}
+
 	w.rho2 = a.add(a.mul(tx, tx), a.mul(ty, ty))
 	w.whole = w.rho2.Sign() == 0
 	w.rho, e = w.sqrt(w.rho2)
@@ -181,6 +208,7 @@ func (c EccentricCylinderTorusCavityMaterial) BoundBoundaryDistance(ctx context.
 	// Exact wall projection: include segment endpoints and query z only when
 	// its exact sign and square prove membership in an exposed wall segment.
 	// The cylinder is NOT translated: restore its independent radial chart.
+	w.z = p[2]
 	w.rho2 = a.add(a.mul(p[0], p[0]), a.mul(p[1], p[1]))
 	w.whole = w.rho2.Sign() == 0
 	w.rho, e = w.sqrt(w.rho2)
