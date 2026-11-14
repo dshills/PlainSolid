@@ -2,17 +2,19 @@ package plaincadbridge
 
 import (
 	"context"
-	"math"
 	"slices"
 	"sort"
 
+	"plainsolid/brep"
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
+const sideOpeningTolerance = 1e-9
+
 func sideOpeningStockFromNotch(p step.SideNotchBody) (step.SideOpeningCutsBody, bool) {
-	if p.Left <= 0 || len(p.Through)+len(p.Blind) != 0 {
+	if p.Left < 0 || len(p.Through)+len(p.Blind) != 0 {
 		return step.SideOpeningCutsBody{}, false
 	}
 	f, err := geom.NewFrame(p.Frame.ToWorld(geom.Vec3{X: -p.Left, Y: -p.Inset}), p.Frame.XAxis(), p.Frame.ZAxis())
@@ -31,18 +33,43 @@ func sideOpeningCylinderSpan(p step.SideOpeningCutsBody, tool *cylinderBody) (tr
 	return circularStockSpan(step.DiskHoleExtrusionBody{Frame: p.Frame, Height: p.Length}, tool)
 }
 
-func crossesOneStockSide(p step.SideOpeningCutsBody, c trimmed.ExtrusionCircle) bool {
-	crossings := 0
-	for _, distance := range [...]float64{c.Center.Y, p.Width - c.Center.X, p.Back - c.Center.Y, c.Center.X} {
-		if distance > c.Radius {
-			continue
-		}
-		if math.Abs(distance) >= c.Radius {
-			return false
-		}
-		crossings++
+func cornerOpeningStock(stock brep.Solid, tool *cylinderBody) (step.SideOpeningCutsBody, bool) {
+	var p step.SideOpeningCutsBody
+	vertices := stock.Vertices()
+	if tool == nil || !cardinalFrame(tool.frame) || len(vertices) != 8 ||
+		len(stock.Edges()) != 12 || len(stock.Faces()) != 6 {
+		return p, false
 	}
-	return crossings == 1
+	for i, v := range vertices {
+		vertices[i] = tool.frame.ToLocal(v)
+		if tool.frame.ToWorld(vertices[i]) != v {
+			return p, false
+		}
+	}
+	bounds, err := geom.Bounds(vertices)
+	if err != nil || !rectangularFaces(stock, tool.frame, bounds.Min, bounds.Max) {
+		return p, false
+	}
+	size := bounds.Max.Sub(bounds.Min)
+	origin := tool.frame.ToWorld(bounds.Min)
+	frame, err := geom.NewFrame(origin, tool.frame.XAxis(), tool.frame.ZAxis())
+	if err != nil || tool.frame.ToLocal(origin) != bounds.Min || frame.YAxis() != tool.frame.YAxis() ||
+		frame.ToWorld(size) != tool.frame.ToWorld(bounds.Max) {
+		return p, false
+	}
+	p = step.SideOpeningCutsBody{Name: "PlainSolid", Frame: frame, Width: size.X, Back: size.Y, Length: size.Z}
+	circle, low, high, ok := sideOpeningCylinderSpan(p, tool)
+	if !ok || high <= low || trimmed.BoxSideOpeningCount(p.Width, p.Back, circle, sideOpeningTolerance) != 2 ||
+		!exactAxisDistance(bounds.Max.X, bounds.Min.X, size.X) || !exactAxisDistance(bounds.Max.Y, bounds.Min.Y, size.Y) ||
+		!exactAxisDistance(bounds.Max.Z, bounds.Min.Z, size.Z) {
+		return step.SideOpeningCutsBody{}, false
+	}
+	return p, true
+}
+
+func exactStockCorner(p step.SideOpeningCutsBody, circle trimmed.ExtrusionCircle) bool {
+	x, y := circle.Center.X, circle.Center.Y
+	return (x == 0 || x == p.Width) && (y == 0 || y == p.Back)
 }
 
 func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, error) {
@@ -58,21 +85,31 @@ func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, erro
 		if !ok {
 			return Shape{}, false, nil
 		}
-	case a.planar() && len(tools) >= 2:
-		for _, input := range tools {
-			c := input.cylinder
-			if f, box, ok := sideCylinderBlindRecipe(a.solid, c); ok {
-				p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, c.height))
-				skip = c
-				break
-			}
-			if f, box, ok := sideCylinderThroughRecipe(a.solid, c); ok {
-				p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, box.Max.Z))
-				skip = c
-				break
+	case a.planar():
+		if len(tools) >= 2 {
+			for _, input := range tools {
+				c := input.cylinder
+				if f, box, ok := sideCylinderBlindRecipe(a.solid, c); ok {
+					p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, c.height))
+					skip = c
+					break
+				}
+				if f, box, ok := sideCylinderThroughRecipe(a.solid, c); ok {
+					p, _ = sideOpeningStockFromNotch(sideNotchRecipe(f, box, c.radius, box.Max.Z))
+					skip = c
+					break
+				}
 			}
 		}
-		if skip == nil || p.Length == 0 {
+		if p.Length == 0 {
+			for _, input := range tools {
+				if candidate, ok := cornerOpeningStock(a.solid, input.cylinder); ok {
+					p = candidate
+					break
+				}
+			}
+		}
+		if p.Length == 0 {
 			return Shape{}, false, nil
 		}
 	default:
@@ -95,7 +132,7 @@ func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, erro
 			continue
 		}
 		circle, low, high, ok := sideOpeningCylinderSpan(p, c)
-		if !ok || high <= low || !crossesOneStockSide(p, circle) {
+		if !ok || high <= low || trimmed.BoxSideOpeningCount(p.Width, p.Back, circle, sideOpeningTolerance) == 0 {
 			return Shape{}, false, nil
 		}
 		matched := false
@@ -115,8 +152,16 @@ func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, erro
 		p.Cuts = append(p.Cuts, trimmed.SideOpeningCut{ExtrusionCircle: circle})
 		spans = append(spans, [][2]float64{{low, high}})
 	}
-	if len(p.Cuts) < 2 {
+	if len(p.Cuts) == 0 {
 		return Shape{}, false, nil
+	}
+	if len(p.Cuts) == 1 {
+		circle := p.Cuts[0].ExtrusionCircle
+		if a.analytic != nil && a.analytic.sideNotch != nil ||
+			a.planar() && (skip != nil || exactStockCorner(p, circle)) ||
+			trimmed.BoxSideOpeningCount(p.Width, p.Back, circle, sideOpeningTolerance) != 2 {
+			return Shape{}, false, nil
+		}
 	}
 	if len(p.Cuts) == 2 && compareCircularFootprints(p.Cuts[0].ExtrusionCircle, p.Cuts[1].ExtrusionCircle, false) >= 0 {
 		return Shape{}, false, nil
@@ -150,7 +195,7 @@ func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, erro
 }
 
 func sideOpeningCutsBody(p step.SideOpeningCutsBody) (*analyticBody, error) {
-	result, err := trimmed.BoxSideOpeningCuts(context.Background(), p.Frame, p.Width, p.Back, p.Length, p.Cuts, 1e-9)
+	result, err := trimmed.BoxSideOpeningCuts(context.Background(), p.Frame, p.Width, p.Back, p.Length, p.Cuts, sideOpeningTolerance)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +229,7 @@ func overlapSideOpeningCuts(a, tool stored) (float64, bool, error) {
 		return 0, false, nil
 	}
 	c, low, high, ok := sideOpeningCylinderSpan(p, tool.cylinder)
-	if !ok || high <= low || !crossesOneStockSide(p, c) {
+	if !ok || high <= low || trimmed.BoxSideOpeningCount(p.Width, p.Back, c, sideOpeningTolerance) == 0 {
 		return 0, false, nil
 	}
 	if a.analytic.sideOpeningCuts == nil {
@@ -193,6 +238,6 @@ func overlapSideOpeningCuts(a, tool stored) (float64, bool, error) {
 			return 0, false, nil
 		}
 	}
-	volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, p.Cuts, c, low, high, 1e-9)
+	volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, p.Cuts, c, low, high, sideOpeningTolerance)
 	return volume, true, err
 }

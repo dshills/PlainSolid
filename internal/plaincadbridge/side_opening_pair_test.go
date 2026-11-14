@@ -202,3 +202,65 @@ func TestSideOpeningCutsRetainHistoryAndAcceptFurtherHoles(t *testing.T) {
 		t.Fatal("unsupported cutter published a shape", err)
 	}
 }
+
+func TestIntersectingCornerOpeningHoles(t *testing.T) {
+	shared := 8*math.Acos(.8) + 4.5*math.Acos(.6) - 6
+	for _, tc := range []struct {
+		name                       string
+		corner, next, axis         vector
+		cornerDepth, nextDepth     float64
+		nextRadius, expectedVolume float64
+	}{
+		{"centered corner and side", vector{}, vector{5, 0, 0}, vector{0, 0, 1}, 3, 6, 3, 3200 - 39*math.Pi + 3*shared},
+		{"offset corner and side", vector{1, 1, 0}, vector{6, 0, 0}, vector{0, 0, 1}, 3, 6, 3, 3062.28817353558},
+		{"two corners with opposed entry", vector{}, vector{2, .5, 8}, vector{0, 0, -1}, 8, 5, 3.25, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := New()
+			stock := box(t, b, vector{}, vector{20, 20, 8})
+			corner := circle(t, b, tc.corner, vector{0, 0, 1}, 4, tc.cornerDepth)
+			next := circle(t, b, tc.next, tc.axis, tc.nextRadius, tc.nextDepth)
+			grouped, err := b.cutMany(stock.Handle, []string{corner.Handle, next.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.expectedVolume != 0 {
+				near(t, grouped.GeometryAssertions.Volume, tc.expectedVolume)
+			}
+			for _, order := range [][2]Shape{{corner, next}, {next, corner}} {
+				intermediate := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": order[0].Handle})
+				near(t, overlapMeasure(t, b, stock.Handle, order[0].Handle), 3200-intermediate.GeometryAssertions.Volume)
+				exported, err := b.exportSTEP([]string{intermediate.Handle})
+				if err != nil {
+					t.Fatal(err)
+				}
+				data, err := base64.StdEncoding.DecodeString(exported.Base64)
+				if err != nil {
+					t.Fatal(err)
+				}
+				reloaded, err := b.importSTEP(string(data))
+				if err != nil {
+					t.Fatal(err)
+				}
+				vol := overlapMeasure(t, b, reloaded.Handle, order[1].Handle)
+				out := shape(t, b, map[string]any{"op": "cut", "a": reloaded.Handle, "b": order[1].Handle})
+				near(t, out.GeometryAssertions.Volume, reloaded.GeometryAssertions.Volume-vol)
+				near(t, out.GeometryAssertions.Volume, grouped.GeometryAssertions.Volume)
+				near(t, out.GeometryAssertions.SurfaceArea, grouped.GeometryAssertions.SurfaceArea)
+				if out.Bounds != stock.Bounds {
+					t.Fatal(out.Bounds, stock.Bounds)
+				}
+				mesh, err := b.shapes[out.Handle].tessellate(request{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := mesh.ValidateSolid(); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := b.exportSTEP([]string{out.Handle}); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}

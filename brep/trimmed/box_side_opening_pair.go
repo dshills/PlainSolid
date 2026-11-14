@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"math/bits"
 	"slices"
 	"sort"
 
@@ -24,7 +25,7 @@ type SideOpeningCutsResult struct {
 type SideOpeningPairResult = SideOpeningCutsResult
 
 // BoxSideOpeningPair removes two transversely intersecting disks. Each disk
-// crosses one stock side and clears the other three. Stock is [0,width] ×
+// crosses one stock side or two adjacent sides. Stock is [0,width] ×
 // [0,back] × [0,length] in frame. Depth equal to length cuts through.
 func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, length float64, cuts [2]SideOpeningCut, tolerance float64) (SideOpeningPairResult, error) {
 	return BoxSideOpeningCuts(ctx, frame, width, back, length, cuts[:], tolerance)
@@ -33,12 +34,13 @@ func BoxSideOpeningPair(ctx context.Context, frame geom.Frame, width, back, leng
 // MaxSideOpeningCuts bounds the size of the circle arrangement and B-rep.
 const MaxSideOpeningCuts = 16
 
-// BoxSideOpeningCuts removes a group of finite circular cutters with parallel
-// axes and at least one transverse footprint intersection. Every footprint
-// crosses exactly one rectangular side. Each interval opens at an end cap.
+// BoxSideOpeningCuts removes finite circular cutters with parallel axes.
+// Each footprint crosses one rectangular side or two adjacent sides, and
+// each interval opens at an end cap. Groups require a transverse intersection
+// between cutter circles.
 func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, length float64, cuts []SideOpeningCut, tolerance float64) (SideOpeningCutsResult, error) {
 	var out SideOpeningCutsResult
-	if ctx == nil || len(cuts) < 2 || len(cuts) > MaxSideOpeningCuts || !finite(width) || !finite(back) ||
+	if ctx == nil || len(cuts) == 0 || len(cuts) > MaxSideOpeningCuts || !finite(width) || !finite(back) ||
 		width <= 0 || back <= 0 || !finite(length) || !finite(tolerance) || tolerance <= 0 || length <= 8*tolerance {
 		return out, geom.ErrInvalid
 	}
@@ -46,11 +48,12 @@ func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, leng
 		return out, err
 	}
 	for _, cut := range cuts {
-		side, _ := sideOpeningSide(width, back, cut.ExtrusionCircle, tolerance)
-		if side < 0 || !finite(cut.Depth) || cut.Depth <= 8*tolerance || cut.Depth > length || cut.Depth < length && length-cut.Depth <= 8*tolerance {
+		if sideOpeningSides(width, back, cut.ExtrusionCircle, tolerance) == 0 ||
+			!finite(cut.Depth) || cut.Depth <= 8*tolerance || cut.Depth > length || cut.Depth < length && length-cut.Depth <= 8*tolerance {
 			return out, geom.ErrDomain
 		}
 	}
+	multiple := len(cuts) > 1
 	cuts = removeContainedSideOpeningCuts(cuts, length, tolerance)
 	sort.Slice(cuts, func(i, j int) bool { return sideCutLess(cuts[i].ExtrusionCircle, cuts[j].ExtrusionCircle) })
 	circles := make([]ExtrusionCircle, len(cuts))
@@ -61,7 +64,7 @@ func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, leng
 	if err != nil {
 		return out, err
 	}
-	if !transverse {
+	if multiple && !transverse {
 		return out, geom.ErrDomain
 	}
 	builder := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
@@ -133,6 +136,16 @@ func BoxSideOpeningCuts(ctx context.Context, frame geom.Frame, width, back, leng
 			out.SurfaceAreaDelta += 2*sideOpeningRemovedArea(points, edges, active|next) -
 				sideOpeningRemovedArea(points, edges, active) - sideOpeningRemovedArea(points, edges, next)
 		}
+	}
+	// Retained stock bounds and STEP recovery require evidence for each
+	// rectangular extent. A chain of through cuts can erase a whole side.
+	local := make([]geom.Vec3, len(builder.vertices))
+	for i, point := range builder.vertices {
+		local[i] = frame.ToLocal(point)
+	}
+	bounds, err := geom.Bounds(local)
+	if err != nil || bounds.Min != (geom.Vec3{}) || bounds.Max != (geom.Vec3{X: width, Y: back, Z: length}) {
+		return SideOpeningCutsResult{}, geom.ErrUnrepresentable
 	}
 	out.Solid, err = NewSolidContext(ctx, builder.vertices, builder.edges, builder.faces, tolerance)
 	if err != nil {
@@ -254,22 +267,34 @@ func sideOpeningDistances(width, back float64, p geom.Vec2) [4]float64 {
 	return [4]float64{p.Y, width - p.X, back - p.Y, p.X}
 }
 
-func sideOpeningSide(width, back float64, c ExtrusionCircle, tol float64) (int, float64) {
+// BoxSideOpeningCount returns the number of eligible stock side supports
+// crossed by a footprint, or zero outside the side-opening domain.
+func BoxSideOpeningCount(width, back float64, c ExtrusionCircle, tolerance float64) int {
+	return bits.OnesCount8(sideOpeningSides(width, back, c, tolerance))
+}
+
+func sideOpeningSides(width, back float64, c ExtrusionCircle, tol float64) uint8 {
 	pad := 8 * tol
-	if !uvFinite(c.Center) || !finite(c.Radius) || c.Radius <= pad {
-		return -1, 0
+	if !finite(width) || !finite(back) || width <= 0 || back <= 0 || !finite(tol) || tol < 0 ||
+		!uvFinite(c.Center) || !finite(c.Radius) || c.Radius <= pad {
+		return 0
 	}
-	opening, offset := -1, 0.
+	var openings uint8
 	for side, distance := range sideOpeningDistances(width, back, c.Center) {
 		if distance-c.Radius > pad {
 			continue
 		}
-		if opening >= 0 || c.Radius-math.Abs(distance) <= pad {
-			return -1, 0
+		if c.Radius-math.Abs(distance) <= pad {
+			return 0
 		}
-		opening, offset = side, distance
+		openings |= 1 << side
 	}
-	return opening, offset
+	switch openings {
+	case 1, 2, 4, 8, 3, 6, 12, 9:
+		return openings
+	default:
+		return 0
+	}
 }
 
 func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []ExtrusionCircle, tol float64) ([]geom.Vec2, []sideOpeningEdge, bool, error) {
@@ -278,11 +303,10 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 	}
 	fail := func() ([]geom.Vec2, []sideOpeningEdge, bool, error) { return nil, nil, false, geom.ErrDomain }
 	pad := 8 * tol
-	opening := make([]int, len(circles))
-	sideOffsets := make([]float64, len(circles))
+	openings := make([]uint8, len(circles))
 	for i, c := range circles {
-		opening[i], sideOffsets[i] = sideOpeningSide(width, back, c, tol)
-		if opening[i] < 0 {
+		openings[i] = sideOpeningSides(width, back, c, tol)
+		if openings[i] == 0 {
 			return fail()
 		}
 	}
@@ -345,24 +369,36 @@ func sideOpeningArrangement(frame geom.Frame, width, back float64, circles []Ext
 	}
 	sides := [4][]int{{0, 1}, {1, 2}, {2, 3}, {3, 0}}
 	for i, c := range circles {
-		j, offset := opening[i], sideOffsets[i]
-		root := math.Sqrt((c.Radius - offset) * (c.Radius + offset))
-		for _, delta := range []float64{-root, root} {
-			var p geom.Vec2
-			switch j {
-			case 0:
-				p.X = c.Center.X + delta
-			case 1:
-				p = geom.Vec2{X: width, Y: c.Center.Y + delta}
-			case 2:
-				p = geom.Vec2{X: c.Center.X + delta, Y: back}
-			case 3:
-				p.Y = c.Center.Y + delta
+		for j, offset := range sideOpeningDistances(width, back, c.Center) {
+			if openings[i]&(1<<j) == 0 {
+				continue
 			}
-			id := len(points)
-			points = append(points, p)
-			sides[j] = append(sides[j], id)
-			add(i, id)
+			root := math.Sqrt((c.Radius - offset) * (c.Radius + offset))
+			before := len(events[i])
+			for _, delta := range []float64{-root, root} {
+				var p geom.Vec2
+				var along, limit float64
+				if j%2 == 0 {
+					along, limit = c.Center.X+delta, width
+					p = geom.Vec2{X: along, Y: float64(j/2) * back}
+				} else {
+					along, limit = c.Center.Y+delta, back
+					p = geom.Vec2{X: float64(1-j/2) * width, Y: along}
+				}
+				if math.Abs(along) <= pad || math.Abs(limit-along) <= pad {
+					return fail()
+				}
+				if along < 0 || along > limit {
+					continue
+				}
+				id := len(points)
+				points = append(points, p)
+				sides[j] = append(sides[j], id)
+				add(i, id)
+			}
+			if len(events[i]) == before {
+				return fail()
+			}
 		}
 	}
 	classify := func(p geom.Vec2, circle ExtrusionCircle) (bool, bool) {
@@ -621,13 +657,13 @@ func BoxSideOpeningPairOverlap(frame geom.Frame, width, back, length float64, ol
 // footprint over [low, high]. The tool may extend a previously cut footprint.
 func BoxSideOpeningCutsOverlap(frame geom.Frame, width, back, length float64, old []SideOpeningCut, tool ExtrusionCircle, low, high, tolerance float64) (float64, error) {
 	if !finite(tolerance) || tolerance <= 0 || !finite(width) || !finite(back) || width <= 0 || back <= 0 ||
-		!finite(length) || len(old) == 0 || len(old) > MaxSideOpeningCuts ||
+		!finite(length) || len(old) > MaxSideOpeningCuts ||
 		!finite(low) || !finite(high) || low < 0 || high <= low || high > length {
 		return 0, geom.ErrInvalid
 	}
 	for _, cut := range old {
-		side, _ := sideOpeningSide(width, back, cut.ExtrusionCircle, tolerance)
-		if side < 0 || !finite(cut.Depth) || cut.Depth <= 0 || cut.Depth > length {
+		if sideOpeningSides(width, back, cut.ExtrusionCircle, tolerance) == 0 ||
+			!finite(cut.Depth) || cut.Depth <= 0 || cut.Depth > length {
 			return 0, geom.ErrInvalid
 		}
 	}
