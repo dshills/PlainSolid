@@ -14,8 +14,12 @@ import (
 // the canonical proof graph. Exactly one material pointer is nonnil. Nested
 // material source IDs refer to the proof graph; SourceForCanonical maps them.
 type ReindexedEllipticalPrismMaterial struct {
-	Kind                                            string
-	SourceForCanonical                              map[int]int
+	Kind               string
+	SourceForCanonical map[int]int
+	// SourceUseOrdinals maps source 508 IDs to canonical-to-original use ordinals.
+	SourceUseOrdinals map[int][]int
+	// SourceVertexOrdinals maps canonical endpoint roles to original 502 ordinals.
+	SourceVertexOrdinals                            map[int]int
 	SourceSolidID, SourceShellID, SourceTransformID int
 	NativeFaceSourceIDs                             []int
 	SourceRimCurveIDs                               [2][2]int
@@ -59,7 +63,7 @@ func ellipseReferenceSlots(r topologyRecord) ([]int, error) {
 // ReadReindexedEllipticalPrismMaterial accepts semantic record permutations of
 // the four bounded filled/hollow/local/placed dialects. It preserves geometric
 // tokens, proves a bijection of owned records, and invokes unchanged exact
-// material readers. It accepts uniquely classified shell face order; loop order and vertex ordinals remain strict.
+// material readers. It accepts uniquely classified shell face order; directed loop cycles are preserved; vertices match exact wall endpoints.
 func ReadReindexedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Limits, tol float64) (ReindexedEllipticalPrismMaterial, error) {
 	bad := func() (ReindexedEllipticalPrismMaterial, error) {
 		return ReindexedEllipticalPrismMaterial{}, fmt.Errorf("iges: unsupported reindexed ellipse material")
@@ -154,7 +158,15 @@ func ReadReindexedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Li
 			actual[id] = normalized
 		}
 	}
+	vertexRoles, err := ellipseVertexListOrder(actual, annular)
+	if err != nil {
+		return bad()
+	}
 	if err := ellipseEdgeListOrder(actual, annular); err != nil {
+		return bad()
+	}
+	useRoles, err := ellipseLoopStarts(actual, annular)
+	if err != nil {
 		return bad()
 	}
 	forward, reverse := map[int]int{}, map[int]int{}
@@ -262,7 +274,7 @@ func ReadReindexedEllipticalPrismMaterial(ctx context.Context, r io.Reader, l Li
 			copy(line[48:56], fmt.Sprintf("%8d", want[id].transform))
 		}
 	}
-	out := ReindexedEllipticalPrismMaterial{SourceForCanonical: forward, SourceSolidID: sourceRoot, source: append([]byte(nil), doc.bytes...)}
+	out := ReindexedEllipticalPrismMaterial{SourceUseOrdinals: useRoles, SourceVertexOrdinals: vertexRoles, SourceForCanonical: forward, SourceSolidID: sourceRoot, source: append([]byte(nil), doc.bytes...)}
 	var faceIDs []int
 	var rims [2][2]int
 	if placed {

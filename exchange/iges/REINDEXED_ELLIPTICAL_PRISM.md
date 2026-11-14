@@ -13,7 +13,14 @@ record must belong to this graph. Shell face lists may be permuted: each role is
 support kind and shell sense (positive 122 outer wall, negative 122 inner wall
 for hollow material, positive 190 upper cap, negative 190 lower cap). Missing
 or duplicate roles fail. The existing geometric proof then authenticates all
-supports, heights, trim curves and shared incidence. Loop order and vertex-list ordinals remain strict. Type 504 entries may be
+supports, heights, trim curves and shared incidence. A lateral loop may start at any cyclic use, preserving its complete directed
+cycle. Reversal, changed senses, duplicate uses and pcurve changes remain
+unsupported. Cap outer/inner loop order stays strict because outer-first carries
+format semantics. Vertex-list ordinals may be permuted: each source
+vertex must equal exactly one typed wall endpoint (upper terminal or lower
+directrix start), including an exact rational application of its authored leaf
+transform. Equality is unique and unsnapped; all type 504 endpoint ordinals are
+remapped before edge classification. Type 504 entries may be
 permuted: typed curve kind and directed endpoint incidence must uniquely match
 each rim/seam role, and every type 508 ordinal is remapped before exact geometry
 reproof. Vertex coordinates, model curves, senses and complete incidence must
@@ -26,7 +33,8 @@ incorrectly shared and malformed graphs fail atomically.
 `SourceForCanonical` maps the nested proof object's canonical addresses to the
 original source addresses. `SourceSolidID`, `SourceShellID`,
 `SourceTransformID`, `NativeFaceSourceIDs` and `SourceRimCurveIDs` refer to the
-original file. The nested material carries the established complete geometry
+original file. `SourceVertexOrdinals` maps canonical native endpoint roles to
+original type 502 ordinals, derived anew from the retained source on reload. The nested material carries the established complete geometry
 proof and its canonical role addresses. No rounded spline is promoted to an
 analytic ellipse.
 
@@ -69,3 +77,18 @@ rewrite every loop ordinal (`--edges`). Pinned OCCT transfers these files with
 unchanged area, volume and centroid. Original source bytes preserve original
 edge ordinals; nested proof geometry uses canonical ordinals. Wrong referenced
 ordinals, endpoint roles or aliases cannot be repaired by the remapping.
+
+The `vertex-order-*` fixtures additionally reverse type 502 entries and update
+all type 504 endpoint references, independently authored with `--vertices`.
+Pinned OCCT checks cover all four material variants. Source/native round trips
+retain original bytes and exact ordinal provenance. Incorrect terminal points,
+source coordinates, incidence indices and stale exposed ordinal maps fail. The
+native envelope version is unchanged: source bytes already retain this complete
+information, and the new ordinal map is derived rather than trusted on reload.
+
+`SourceUseOrdinals` maps original type 508 IDs to canonical-to-original use
+ordinals. It is derived from retained source on native reload and revalidated
+before source output. The independent `--loops` fixture rotates lateral uses
+and combines record, face, edge and vertex permutations. All four positives
+transfer in pinned OCCT; focused tests exercise every cyclic start and reject
+reversed cycles, changed senses and duplicate uses.

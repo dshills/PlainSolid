@@ -49,7 +49,7 @@ func reindexedEllipseProofBytes(ctx context.Context, m ReindexedEllipticalPrismM
 	return b.Bytes(), e
 }
 func reindexedEllipseEqual(ctx context.Context, a, b ReindexedEllipticalPrismMaterial) bool {
-	if !reflect.DeepEqual(reindexedEllipseIdentityOf(a), reindexedEllipseIdentityOf(b)) {
+	if !reflect.DeepEqual(a.SourceUseOrdinals, b.SourceUseOrdinals) || !reflect.DeepEqual(a.SourceVertexOrdinals, b.SourceVertexOrdinals) || !reflect.DeepEqual(reindexedEllipseIdentityOf(a), reindexedEllipseIdentityOf(b)) {
 		return false
 	}
 	x, e := reindexedEllipseProofBytes(ctx, a)
