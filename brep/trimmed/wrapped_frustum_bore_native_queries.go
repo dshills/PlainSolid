@@ -91,22 +91,32 @@ func (s Solid) LocateCanonicalWrappedFrustumBore(ctx context.Context, point geom
 // actual face IDs for every contact, even when its topology was reindexed.
 func (s Solid) IntersectCanonicalWrappedFrustumOpenBoreLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64,
 	o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
+	return s.intersectCanonicalFrustumBoreLine(ctx, origin, direction, minT, maxT, o, true)
+}
+
+// IntersectCanonicalWrappedFrustumBoreLine returns the contacts and overlaps
+// with a native blind bore, through bore, or enclosed cavity. The line uses
+// the caller's original parameterization and every owner is a receiver face ID.
+func (s Solid) IntersectCanonicalWrappedFrustumBoreLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64,
+	o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
+	return s.intersectCanonicalFrustumBoreLine(ctx, origin, direction, minT, maxT, o, false)
+}
+
+func (s Solid) intersectCanonicalFrustumBoreLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT float64,
+	o geom.ToroidLineOptions, oneOpening bool) (WrappedLoftLineIntersections, error) {
 	var empty WrappedLoftLineIntersections
 	p, e := s.ValidateCanonicalWrappedFrustumBore(ctx, o.Surface)
 	if e != nil {
 		return empty, e
 	}
-	if p.Kind != "blind-bore" {
+	if oneOpening && p.Kind != "blind-bore" {
 		return empty, geom.ErrConvergence
 	}
-	r, e := IntersectWrappedEccentricCircularFrustumOpenBoreLine(ctx, p.Outer, p.Inner, origin, direction, minT, maxT, o)
+	r, e := IntersectWrappedEccentricCircularFrustumBoreLine(ctx, p.Outer, p.Inner, origin, direction, minT, maxT, o)
 	if e != nil {
 		return empty, e
 	}
-	ids, e := canonicalFrustumBoreFaceIDs(p)
-	if e != nil {
-		return empty, e
-	}
+	ids := canonicalFrustumBoreLineFaceIDs(p)
 	for i := range r.Hits {
 		for j, id := range r.Hits[i].Faces {
 			r.Hits[i].Faces[j] = ids[id]
@@ -117,6 +127,16 @@ func (s Solid) IntersectCanonicalWrappedFrustumOpenBoreLine(ctx context.Context,
 		r.Overlaps[i].Face = ids[r.Overlaps[i].Face]
 	}
 	return r, nil
+}
+
+func canonicalFrustumBoreLineFaceIDs(p WrappedBoreProof) []int {
+	ids := []int{p.OuterFaces[0], p.OuterFaces[1], p.OuterFaces[2], p.InnerFaces[0]}
+	for i := 1; i < 3; i++ {
+		if p.InnerFaces[i] != p.OuterFaces[i] {
+			ids = append(ids, p.InnerFaces[i])
+		}
+	}
+	return ids
 }
 
 // TessellateCanonicalWrappedFrustumOpenBoreCertified returns the certified

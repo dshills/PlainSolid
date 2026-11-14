@@ -16,7 +16,7 @@ import (
 // must separate before the result is accepted.
 func IntersectWrappedCircularFrustumOpenBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
 	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
-	return intersectParallelFrustumOpenBoreLine(ctx, outer, inner, origin, direction, minT, maxT, o, true)
+	return intersectParallelFrustumBoreLine(ctx, outer, inner, origin, direction, minT, maxT, o, true, true)
 }
 
 // IntersectWrappedEccentricCircularFrustumOpenBoreLine also supports an
@@ -24,11 +24,20 @@ func IntersectWrappedCircularFrustumOpenBoreLine(ctx context.Context, outer, inn
 // centers and rim provenance.
 func IntersectWrappedEccentricCircularFrustumOpenBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
 	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
-	return intersectParallelFrustumOpenBoreLine(ctx, outer, inner, origin, direction, minT, maxT, o, false)
+	return intersectParallelFrustumBoreLine(ctx, outer, inner, origin, direction, minT, maxT, o, false, true)
 }
 
-func intersectParallelFrustumOpenBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
-	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions, coaxial bool) (WrappedLoftLineIntersections, error) {
+// IntersectWrappedEccentricCircularFrustumBoreLine handles an independently
+// contained circular frustum with zero, one, or both ends open.
+// Owners are the two original walls, the outer lower/upper ends, and any
+// retained inner caps in canonical lower-to-upper order.
+func IntersectWrappedEccentricCircularFrustumBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions) (WrappedLoftLineIntersections, error) {
+	return intersectParallelFrustumBoreLine(ctx, outer, inner, origin, direction, minT, maxT, o, false, false)
+}
+
+func intersectParallelFrustumBoreLine(ctx context.Context, outer, inner *geom.WrappedSurfacePatch,
+	origin, direction geom.Vec3, minT, maxT float64, o geom.ToroidLineOptions, coaxial, oneOpening bool) (WrappedLoftLineIntersections, error) {
 	var empty WrappedLoftLineIntersections
 	if ctx == nil || !origin.IsFinite() || !direction.IsFinite() || direction == (geom.Vec3{}) ||
 		!finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 ||
@@ -47,55 +56,65 @@ func intersectParallelFrustumOpenBoreLine(ctx context.Context, outer, inner *geo
 	if !strictWrappedParallelFrustumBore(proof[0], proof[1], coaxial) {
 		return empty, geom.ErrConvergence
 	}
-	loOpen := proof[0].LowerZ.Cmp(proof[1].LowerZ) == 0
-	hiOpen := proof[0].UpperZ.Cmp(proof[1].UpperZ) == 0
-	if loOpen == hiOpen {
+	open := [2]bool{proof[0].LowerZ.Cmp(proof[1].LowerZ) == 0, proof[0].UpperZ.Cmp(proof[1].UpperZ) == 0}
+	if oneOpening && open[0] == open[1] {
 		return empty, geom.ErrConvergence
 	}
-	open := 0
-	if hiOpen {
-		open = 1
-	}
 	caps := [2]geom.CylinderBoundaryPart{geom.CylinderLowerCap, geom.CylinderUpperCap}
-	height := [2]*big.Rat{proof[0].LowerZ, proof[0].UpperZ}[open]
-	radii := [2]*big.Rat{
-		[2]*big.Rat{proof[0].LowerRadius, proof[0].UpperRadius}[open],
-		[2]*big.Rat{proof[1].LowerRadius, proof[1].UpperRadius}[open],
+	heights := [2]*big.Rat{proof[0].LowerZ, proof[0].UpperZ}
+	var radii [2][2]*big.Rat // wall, end
+	for i, p := range proof {
+		radii[i] = [2]*big.Rat{p.LowerRadius, p.UpperRadius}
+	}
+	innerCap := [2]int{}
+	next := 4
+	for i, opened := range open {
+		innerCap[i] = i + 1
+		if !opened {
+			innerCap[i] = next
+			next++
+		}
 	}
 	var result WrappedLoftLineIntersections
-	if direction.Z == 0 && ratInset(origin.Z).Cmp(height) == 0 {
+	for end, opened := range open {
+		if !opened || direction.Z != 0 || ratInset(origin.Z).Cmp(heights[end]) != 0 {
+			continue
+		}
 		q, e := geom.IntersectEccentricCircularAnnulusLine(ctx, [2]*big.Rat{proof[0].CenterX, proof[0].CenterY},
-			[2]*big.Rat{proof[1].CenterX, proof[1].CenterY}, radii[1], radii[0],
+			[2]*big.Rat{proof[1].CenterX, proof[1].CenterY}, radii[1][end], radii[0][end],
 			geom.Vec2{X: origin.X, Y: origin.Y}, geom.Vec2{X: direction.X, Y: direction.Y}, minT, maxT, o)
 		if e != nil {
 			return empty, e
 		}
 		for _, h := range q.Rims {
-			ids := []int{0, open + 1}
+			ids := []int{0, end + 1}
 			if h.Inner {
-				ids = []int{open + 1, 3}
+				ids = []int{end + 1, 3}
 			}
-			result.Hits = append(result.Hits, WrappedLoftLineHit{Parameter: h.Parameter, Faces: ids, Parts: caps[open] | geom.CylinderLateral})
+			result.Hits = append(result.Hits, WrappedLoftLineHit{Parameter: h.Parameter, Faces: ids, Parts: caps[end] | geom.CylinderLateral})
 		}
 		if q.Point != nil {
-			result.Hits = append(result.Hits, WrappedLoftLineHit{Parameter: *q.Point, Faces: []int{open + 1}, Parts: caps[open]})
+			result.Hits = append(result.Hits, WrappedLoftLineHit{Parameter: *q.Point, Faces: []int{end + 1}, Parts: caps[end]})
 		}
 		for _, span := range q.Spans {
-			result.Overlaps = append(result.Overlaps, WrappedLoftLineOverlap{Start: span[0], End: span[1], Face: open + 1, Part: caps[open]})
+			result.Overlaps = append(result.Overlaps, WrappedLoftLineOverlap{Start: span[0], End: span[1], Face: end + 1, Part: caps[end]})
 		}
 		return result, nil
 	}
 	// Off the opening plane, both complete frustum surfaces account for
 	// all wall and cap candidates. Only the shared disk interior is removed.
-	var openingT, openingR2 *big.Rat
-	if direction.Z != 0 {
-		openingT = new(big.Rat).Quo(new(big.Rat).Sub(height, ratInset(origin.Z)), ratInset(direction.Z))
-		x := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.X), proof[1].CenterX), new(big.Rat).Mul(openingT, ratInset(direction.X)))
-		y := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.Y), proof[1].CenterY), new(big.Rat).Mul(openingT, ratInset(direction.Y)))
-		openingR2 = new(big.Rat).Add(x.Mul(x, x), y.Mul(y, y))
+	var openingT [2]*big.Rat
+	var openingSign [2]int
+	for i, opened := range open {
+		if !opened || direction.Z == 0 {
+			continue
+		}
+		t := new(big.Rat).Quo(new(big.Rat).Sub(heights[i], ratInset(origin.Z)), ratInset(direction.Z))
+		x := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.X), proof[1].CenterX), new(big.Rat).Mul(t, ratInset(direction.X)))
+		y := new(big.Rat).Add(new(big.Rat).Sub(ratInset(origin.Y), proof[1].CenterY), new(big.Rat).Mul(t, ratInset(direction.Y)))
+		r2 := new(big.Rat).Add(x.Mul(x, x), y.Mul(y, y))
+		openingT[i], openingSign[i] = t, r2.Cmp(new(big.Rat).Mul(radii[1][i], radii[1][i]))
 	}
-	square := func(q *big.Rat) *big.Rat { return new(big.Rat).Mul(q, q) }
-	innerR2 := square(radii[1])
 	for i, w := range walls {
 		q, e := geom.IntersectWrappedCircularFrustumLine(ctx, w, origin, direction, minT, maxT, o)
 		if e != nil {
@@ -105,29 +124,34 @@ func intersectParallelFrustumOpenBoreLine(ctx context.Context, outer, inner *geo
 		owner := func(part geom.CylinderBoundaryPart) int {
 			switch part {
 			case geom.CylinderLowerCap:
-				if i == 0 || open == 0 {
+				if i == 0 {
 					return 1
 				}
+				return innerCap[0]
 			case geom.CylinderUpperCap:
-				if i == 0 || open == 1 {
+				if i == 0 {
 					return 2
 				}
+				return innerCap[1]
 			default:
 				return lateral
 			}
-			return 4
 		}
 		for _, h := range q.Hits {
 			parts := h.Parts
-			if h.Parts&caps[open] != 0 {
-				if openingT == nil || h.Parameter.Min.Cmp(openingT) != 0 || h.Parameter.Max.Cmp(openingT) != 0 {
+			for end, opened := range open {
+				if !opened || h.Parts&caps[end] == 0 {
+					continue
+				}
+				t := openingT[end]
+				if t == nil || h.Parameter.Min.Cmp(t) != 0 || h.Parameter.Max.Cmp(t) != 0 {
 					return empty, geom.ErrConvergence
 				}
-				rim := openingR2.Cmp(innerR2)
+				rim := openingSign[end]
 				if i == 0 && rim <= 0 || i == 1 && rim < 0 {
 					// Only the tool owns the inner rim. Neither input's
 					// face survives over the removed disk interior.
-					parts &^= caps[open]
+					parts &^= caps[end]
 				}
 			}
 			ids := make([]int, 0, 2)
@@ -142,7 +166,7 @@ func intersectParallelFrustumOpenBoreLine(ctx context.Context, outer, inner *geo
 			}
 		}
 		for _, h := range q.Overlaps {
-			if h.Part != caps[open] {
+			if !(open[0] && h.Part == caps[0] || open[1] && h.Part == caps[1]) {
 				result.Overlaps = append(result.Overlaps, WrappedLoftLineOverlap{Start: h.Start, End: h.End, Face: owner(h.Part), Part: h.Part})
 			}
 		}
