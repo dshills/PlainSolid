@@ -241,3 +241,27 @@ retains a genuine crease and checks all exact source/chord midpoint witnesses.
 At deflection 0.12 it has 146 vertices/288 triangles; independent profile integration
 gives source volume 22.7532610392 versus display 22.1707717570. Failure tests cover
 triangle/sample limits, cancellation and forged inward original wall ownership.
+
+## Certified original boundary area
+
+`BoundWrappedAnisotropicStationArea` reports an owned rational enclosure per
+original wall and terminal cap, plus their exact interval sum. It integrates the
+actual independently scaled profile, not an ellipse or a homothetic replacement.
+For homogeneous profile coordinates X,Y,W, let A=X'W-XW' and B=Y'W-YW'. On one
+axial cell of height h and scale changes dx,dy, the surface cross product is
+`(h*sy*B*W, -h*sx*A*W, sx*dy*A*Y-sy*dx*B*X) / W³`.
+Its numerator has Bernstein degree (4,1); all denominator coefficients are
+positive. A positive reciprocal approximation and explicit remainder bound,
+convexity and the reverse triangle inequality enclose the integral. The lower
+bound subtracts the remainder norm; it never assumes signed vector components
+reinforce each other. Square roots and cell contributions are outward dyadic
+bounds. Caps reuse the original exact profile enclosure scaled by sx*sy.
+
+Uniform profile/axial refinement has bounded cells, depth and profile segments;
+one arithmetic ledger includes all failed coarse refinements and the final
+sum. Initial original-topology reproof retains its separate source quotas.
+Tolerance or resource failure returns no partial area. The two-band test tightens
+from [51.9785482,52.6093492] to [52.2846544,52.4366131], containing independent
+original quotient-rule integration 52.38293785. The latter uses 2048 wall cells,
+64 profile segments and 2442503 charged operations. A constant rectangle cell
+is enclosed exactly. These are boundary-area certificates, not mesh measures.
