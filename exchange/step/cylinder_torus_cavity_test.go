@@ -2,9 +2,11 @@ package step
 
 import (
 	"bytes"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -43,7 +45,7 @@ func TestCylinderTorusCavitySTEP(t *testing.T) {
 	if !bytes.Equal(out.Bytes(), again.Bytes()) {
 		t.Fatal("nondeterministic")
 	}
-	for _, c := range []float64{7, 8.5} {
+	for _, c := range []float64{7, 1 << 21} {
 		bad := b
 		bad.CylinderRadius = c
 		var dst bytes.Buffer
@@ -130,5 +132,39 @@ func TestCylinderTorusCavityPairedImport(t *testing.T) {
 	f.Order = append(f.Order, id)
 	if _, e = ReadCylinderTorusCavity(bytes.NewReader(serializeWrappedProofFile(f)), Limits{}); e == nil {
 		t.Fatal("detached")
+	}
+}
+
+func TestCylinderTorusCavityDyadic(t *testing.T) {
+	b := CylinderTorusCavityBody{"dyadic", 5.125, 2.25, 8.5, -3.25, 4.5}
+	var out bytes.Buffer
+	if e := WriteCylinderTorusCavity(&out, b, .001); e != nil {
+		t.Fatal(e)
+	}
+	got, e := ReadCylinderTorusCavity(bytes.NewReader(out.Bytes()), Limits{})
+	if e != nil || got.Source() != b {
+		t.Fatal(got.Source(), e)
+	}
+	var round bytes.Buffer
+	got.WriteSTEP(&round)
+	if !bytes.Equal(round.Bytes(), out.Bytes()) {
+		t.Fatal("canonical")
+	}
+	for _, bad := range []CylinderTorusCavityBody{{"rounded sum", 5, .1, 8, -3, 4}, {"near contact", 5, 2, math.Nextafter(7, 8), -3, 4}, {"rounded height", 5, 2, 8, -3, math.Nextafter(4, 0)}} {
+		var dst bytes.Buffer
+		if e := WriteCylinderTorusCavity(&dst, bad, .001); e == nil || dst.Len() != 0 {
+			t.Fatal("accepted", bad)
+		}
+	}
+	if oracle := os.Getenv("PLAINSOLID_OCCT_CAVITY_STEP"); oracle != "" {
+		path := filepath.Join(t.TempDir(), "dyadic.step")
+		os.WriteFile(path, round.Bytes(), 0600)
+		args := []string{path}
+		for _, v := range []float64{b.MajorRadius, b.MinorRadius, b.CylinderRadius, b.Lower, b.Upper} {
+			args = append(args, strconv.FormatFloat(v, 'g', -1, 64))
+		}
+		if log, e := exec.Command(oracle, args...).CombinedOutput(); e != nil {
+			t.Fatal(e, string(log))
+		}
 	}
 }

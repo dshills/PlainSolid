@@ -5,13 +5,15 @@ import (
 	"context"
 	"io"
 	"math"
+	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"strconv"
 )
 
 // CylinderTorusCavityBody describes cylinder minus an entirely enclosed torus.
-// This first analytic export accepts integral canonical dimensions of magnitude
-// at most 2^20, keeping all authored model coordinates exactly representable.
+// This analytic export accepts represented dyadic canonical dimensions of magnitude
+// at most 2^20, requiring exact represented seam sums and axial differences.
 // Periodic pcurve endpoints use represented 2pi as in the analytic primitives.
 type CylinderTorusCavityBody struct {
 	Name                                                   string
@@ -26,8 +28,15 @@ func WriteCylinderTorusCavity(w io.Writer, b CylinderTorusCavityBody, unit float
 		return geom.ErrInvalid
 	}
 	for _, x := range []float64{b.MajorRadius, b.MinorRadius, b.CylinderRadius, b.Lower, b.Upper} {
-		if math.IsNaN(x) || math.IsInf(x, 0) || math.Abs(x) > 1<<20 || math.Trunc(x) != x {
+		if math.IsNaN(x) || math.IsInf(x, 0) || math.Abs(x) > 1<<20 {
 			return geom.ErrDomain
+		}
+	}
+
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	for _, v := range []*big.Rat{new(big.Rat).Add(q(b.MajorRadius), q(b.MinorRadius)), new(big.Rat).Sub(q(b.Upper), q(b.Lower))} {
+		if _, e := geom.RepresentedExactScalar(v); e != nil {
+			return e
 		}
 	}
 	if _, e := parametric.NewCylinderTorusCavitySet(context.Background(), b.MajorRadius, b.MinorRadius, b.CylinderRadius, b.Lower, b.Upper, 1e-9); e != nil {
@@ -47,6 +56,40 @@ func WriteCylinderTorusCavity(w io.Writer, b CylinderTorusCavityBody, unit float
 		f, e := Parse(bytes.NewReader(raw), Limits{})
 		if e != nil {
 			return e
+		}
+
+		// Primitive writer reals are round-trippable binary64 spellings. Expand
+		// them to the exact dyadic values before graph composition, including
+		// pcurve numbers; this avoids silently perturbing original supports.
+		var expand func(Value) (Value, error)
+		expand = func(v Value) (Value, error) {
+			if v.Kind == Number {
+				x, e := strconv.ParseFloat(v.Text, 64)
+				if e != nil || math.IsInf(x, 0) || math.IsNaN(x) {
+					return Value{}, geom.ErrInvalid
+				}
+				v.Text = torusCylinderSTEPReal(x)
+			}
+			for i, x := range v.Items {
+				y, e := expand(x)
+				if e != nil {
+					return Value{}, e
+				}
+				v.Items[i] = y
+			}
+			return v, nil
+		}
+		for id, en := range f.Entities {
+			for i := range en.Records {
+				for j, v := range en.Records[i].Args {
+					x, e := expand(v)
+					if e != nil {
+						return e
+					}
+					en.Records[i].Args[j] = x
+				}
+			}
+			f.Entities[id] = en
 		}
 		files = append(files, f)
 	}
