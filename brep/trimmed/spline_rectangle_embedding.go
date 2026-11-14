@@ -344,7 +344,7 @@ func (s Solid) splineEmbeddingFace(ctx context.Context, f Face, o SplineRectangl
 				break
 			}
 		}
-		if i < 0 || seen&(1<<i) != 0 || u.Curve != nil || u.Edge < 0 || u.Edge >= len(s.edges) {
+		if i < 0 || seen&(1<<i) != 0 || !exactAffineNativeSourceUse(u) || u.Edge < 0 || u.Edge >= len(s.edges) {
 			return x, proof, geom.ErrConvergence
 		}
 		seen |= 1 << i
