@@ -8,9 +8,9 @@ import (
 	"plainsolid/geom"
 )
 
-// WrappedRationalBoundarySpan is a closed coincident cap interval. Faces owns
+// WrappedRationalBoundarySpan is a closed coincident boundary interval. Faces owns
 // its relative interior; StartFaces/EndFaces additionally include an original
-// wall exactly when that endpoint is on its rim. Algebraic brackets identify
+// adjacent face exactly when that endpoint is on an original rim. Algebraic brackets identify
 // endpoints, not rounded parameters. These spans are never material interior.
 type WrappedRationalBoundarySpan struct {
 	Start, End                  geom.ToroidLineRoot
