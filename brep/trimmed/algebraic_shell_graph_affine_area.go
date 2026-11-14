@@ -34,7 +34,12 @@ type AlgebraicGraphAffineArea struct {
 // per original partition leaf, then encloses their norm with rational square
 // root bounds. Translation has no effect on tangents. No surface-area scaling
 // by the affine determinant is used.
-func (q *AlgebraicGraphMaterialQuery) BoundAffineWholeSurfaceArea(ctx context.Context, m geom.Affine, o AlgebraicGraphAffineAreaOptions) (out AlgebraicGraphAffineArea, err error) {
+func (q *AlgebraicGraphMaterialQuery) BoundAffineWholeSurfaceArea(ctx context.Context, m geom.Affine, o AlgebraicGraphAffineAreaOptions) (AlgebraicGraphAffineArea, error) {
+	return q.boundAffineWholeSurfaceAreaPrepared(ctx, m, o, nil)
+}
+
+// prepared is private same-call original evidence, never caller-supplied proof.
+func (q *AlgebraicGraphMaterialQuery) boundAffineWholeSurfaceAreaPrepared(ctx context.Context, m geom.Affine, o AlgebraicGraphAffineAreaOptions, prepared *AlgebraicGraphWholeMeasures) (out AlgebraicGraphAffineArea, err error) {
 	defer func() {
 		if err != nil {
 			out = AlgebraicGraphAffineArea{ImageCells: out.ImageCells, ImageQuotaCharged: out.ImageQuotaCharged, CofactorQuotaCharged: out.CofactorQuotaCharged}
@@ -123,9 +128,16 @@ func (q *AlgebraicGraphMaterialQuery) BoundAffineWholeSurfaceArea(ctx context.Co
 	if det.Sign() == 0 {
 		return out, geom.ErrConvergence
 	}
-	out.Original, err = q.BoundWholeMeasures(ctx, o.Original)
-	if err != nil {
-		return out, err
+	if prepared == nil {
+		out.Original, err = q.BoundWholeMeasures(ctx, o.Original)
+		if err != nil {
+			return out, err
+		}
+	} else {
+		if !prepared.Boundary.Partition.HasBounds {
+			return out, geom.ErrInvalid
+		}
+		out.Original = *prepared
 	}
 	for owner := 0; owner < 2; owner++ {
 		out.Owners[owner] = AlgebraicGraphOwnerArea{Operand: owner, NativeFaces: append([]int(nil), out.Original.Boundary.Owners[owner].NativeFaces...), Area: [2]*big.Rat{new(big.Rat), new(big.Rat)}}
