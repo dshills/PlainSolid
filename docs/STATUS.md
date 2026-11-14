@@ -317,6 +317,12 @@ passed, verifying 841 app and 2,035 kernel source files. The [authored model](ev
 retained its 16 analytic elliptical trims, reopened through STEP, and
 produced watertight STL. The actual exported STEP matched live OCCT
 reference measures.
+The [disjoint cardinal and oblique reconciliation](evidence/plaincad-reconciled-c2c00be9-development-disjoint-oblique-holes-step-2026-11-14.json)
+adds worktree commit `b284a071` to review `c2c00be9`. Native STEP
+checks and all 17 original browser tests passed, verifying 841 app and
+2,042 kernel source files. The [authored separated-bore STEP](evidence/plaincad-reconciled-c2c00be9-supplemental-disjoint-oblique-step-2026-11-14.json)
+reopened successfully and preserved its watertight STL. Live OCCT readback
+reproduced volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
