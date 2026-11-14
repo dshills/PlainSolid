@@ -59,6 +59,7 @@ func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o
 	work := crossingRoofAreaWork{
 		ctx: ctx, owner: q, arithmetic: &w, options: o, result: &out,
 		charts: map[*mixedRoofBox]crossingRoofAreaDerivatives{},
+		order:  make(roofOrderCache),
 	}
 	var pending crossingRoofAreaHeap
 	for _, cell := range footprint {
@@ -215,6 +216,7 @@ type crossingRoofAreaWork struct {
 	options    MixedRoofAreaOptions
 	result     *MixedRoofArea
 	charts     map[*mixedRoofBox]crossingRoofAreaDerivatives
+	order      roofOrderCache
 }
 
 func (s *crossingRoofAreaWork) replace(index int, old [2]*big.Rat, added geom.ExactParameterInterval) error {
@@ -277,6 +279,17 @@ func (s *crossingRoofAreaWork) calculate(c *crossingRoofAreaCell) error {
 		}
 		strictlyIn := c.footprint[b] != nil && height.Lower.Cmp(floors[b]) > 0 && height.Upper.Cmp(heights[b].Lower) < 0
 		strictlyOut := c.footprint[b] == nil || height.Upper.Cmp(floors[b]) < 0 || height.Lower.Cmp(heights[b].Upper) > 0
+		if !strictlyIn && !strictlyOut && c.kind == crossingAreaRoof && c.footprint[b] != nil {
+			order, err := s.order.order(c.footprint, c.xy, w)
+			if err != nil {
+				return err
+			}
+			if a == 1 {
+				order.Lower, order.Upper = new(big.Rat).Neg(order.Upper), new(big.Rat).Neg(order.Lower)
+			}
+			strictlyOut = order.Lower.Sign() > 0
+			strictlyIn = order.Upper.Sign() < 0 && height.Lower.Cmp(floors[b]) > 0
+		}
 		guaranteed, maybe = strictlyIn, !strictlyOut
 		if !insideWanted {
 			guaranteed, maybe = strictlyOut, !strictlyIn

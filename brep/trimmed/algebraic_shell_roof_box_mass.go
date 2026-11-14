@@ -61,6 +61,7 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 	}
 	var out MixedRoofMass
 	roofPowers := make(map[*mixedRoofBox][3]roofPowerGrid)
+	order := make(roofOrderCache)
 	stack := mixedRoofVolumeFootprint(q)
 	for len(stack) > 0 {
 		if err := ctx.Err(); err != nil {
@@ -91,7 +92,10 @@ func (q *MixedRoofMaterialQuery) BoundMass(ctx context.Context, o MixedRoofMassO
 			}
 			h[i].Lower = maxRat(h[i].Lower, b.floor)
 		}
-		roof, base, proved := q.fixedColumnPrimitives(c.chart, h)
+		roof, base, proved, err := q.correlatedColumnPrimitives(c, h, order, &w)
+		if err != nil {
+			return zero, err
+		}
 		for i, coefficient := range roof {
 			b := c.roof[i]
 			if coefficient != 0 && (b == nil || b.weight != nil || len(b.roofSpans) != 0) {

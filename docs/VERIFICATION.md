@@ -57,6 +57,15 @@ the quotient derivatives. The live OCCT and Go race checks passed. Source
 floors and parallel wall planes must be distinct; the complete regular
 Boolean proof excludes coincident boundary areas.
 
+When separate height ranges overlap, the area, volume and raw mass proofs
+can now compare the two roofs on a common exact chart. Subtracting the
+homogeneous height products cancels shared terms before testing order.
+A shifted source chart with a positive nonconstant weight selects the
+correct original polynomial roof and integrates its exact volume
+`57/32` and centroid in one cell. The original weighted Common likewise
+uses one cell instead of three with identical moments. Live crossing,
+weighted, and creased OCCT regressions passed under the race detector.
+
 The signed-axis spherical STEP hierarchy materializes as an editable native
 document with one planar and three curved assets. Its seven material
 occurrences retain their proved world poses and original relationship paths;
