@@ -68,6 +68,31 @@ func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
 		t.Fatal("source weight must not change the exact bore hit", hit, e)
 	}
 
+	// The void wall y=1+x²/8 has slope 7/16 at x=7/4.
+	// A small exact normal displacement into the void has its unique
+	// minimum on that curved wall between both caps.
+	delta := q(1, 512)
+	probe := [3]*big.Rat{new(big.Rat).Sub(q(7, 4), new(big.Rat).Mul(delta, q(7, 16))),
+		new(big.Rat).Add(q(177, 128), delta), q(1025, 2048)}
+	near, e := model.NearestBoundaryRational(ctx, probe, opts)
+	if e != nil || near.Cap >= 0 || near.Wall < 0 || near.HeightCap != -1 || near.ModelParameter == nil {
+		t.Fatal("original curved interior wall minimum", near, e)
+	}
+	want := q(305, 256*512*512)
+	sq, e := near.SquaredDistance.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(want), q(1, 1)}, opts)
+	if e != nil || sq.Sign != 0 {
+		t.Fatal("independent normal-offset squared distance", sq, e, want, near.SquaredDistance.Interval())
+	}
+	owner := model.caps[model.lower].wires[near.Wire][near.Use]
+	loc, e := owner.Cell.EvaluateRational(ctx, q(3, 5), opts)
+	if e != nil || loc.Point[0].Cmp(q(7, 4)) != 0 {
+		t.Fatal("wrong source chart or projective parameter", loc.Point, e)
+	}
+	r, e := near.ModelParameter.SignPolynomial(ctx, []*big.Rat{q(-3, 5), q(1, 1)}, opts)
+	if e != nil || r.Sign != 0 {
+		t.Fatal("exact original curve parameter", r, e)
+	}
+
 	mass, e := pair.BoundVerticalCentroid(ctx, q(1, 1<<15), o, opts)
 	if e != nil || mass.Volume.Lower.Sign() <= 0 {
 		t.Fatal("weighted original mass and centroid", e)
