@@ -63,31 +63,9 @@ func (r *SplineGraphRadialContours) BoundVolumeBands(ctx context.Context, bands 
 			return zero, e
 		}
 	}
-	poly := rationalPolynomial{new(big.Rat).Set(r.heightScale)}
-	square := make([]*big.Rat, len(r.radii))
-	for i, radius := range r.radii {
-		square[i] = new(big.Rat).Mul(radius, radius)
-		if e := b.check(square[i]); e != nil {
-			return zero, e
-		}
-		next := make(rationalPolynomial, len(poly)+1)
-		for j := range next {
-			next[j] = new(big.Rat)
-		}
-		for j, c := range poly {
-			term := new(big.Rat).Mul(c, square[i])
-			if e := b.check(term); e != nil {
-				return zero, e
-			}
-			next[j].Sub(next[j], term)
-			next[j+1].Add(next[j+1], c)
-			for _, q := range []*big.Rat{next[j], next[j+1]} {
-				if e := b.check(q); e != nil {
-					return zero, e
-				}
-			}
-		}
-		poly = next
+	poly, square, e := radialGraphHeightPolynomial(r, b)
+	if e != nil {
+		return zero, e
 	}
 	// In polar coordinates q=radius^2, dA=pi*dq. Integrate every
 	// coefficient exactly, including cancellation of large signed terms.
@@ -197,4 +175,36 @@ func (r *SplineGraphRadialContours) BoundVolumeBands(ctx context.Context, bands 
 	}
 	out.ExactOperations = b.operations
 	return out, nil
+}
+
+// radialGraphHeightPolynomial recovers the already-proved physical height,
+// not merely a scaled homogeneous numerator.
+func radialGraphHeightPolynomial(r *SplineGraphRadialContours, b *polynomialBudget) (rationalPolynomial, []*big.Rat, error) {
+	poly := rationalPolynomial{new(big.Rat).Set(r.heightScale)}
+	square := make([]*big.Rat, len(r.radii))
+	for i, radius := range r.radii {
+		square[i] = new(big.Rat).Mul(radius, radius)
+		if e := b.check(square[i]); e != nil {
+			return nil, nil, e
+		}
+		next := make(rationalPolynomial, len(poly)+1)
+		for j := range next {
+			next[j] = new(big.Rat)
+		}
+		for j, c := range poly {
+			term := new(big.Rat).Mul(c, square[i])
+			if e := b.check(term); e != nil {
+				return nil, nil, e
+			}
+			next[j].Sub(next[j], term)
+			next[j+1].Add(next[j+1], c)
+			for _, q := range []*big.Rat{next[j], next[j+1]} {
+				if e := b.check(q); e != nil {
+					return nil, nil, e
+				}
+			}
+		}
+		poly = next
+	}
+	return poly, square, nil
 }
