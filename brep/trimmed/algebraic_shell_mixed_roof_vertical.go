@@ -22,6 +22,14 @@ type MixedRoofVerticalEvent struct {
 	Before, After bool
 }
 
+// MixedRoofVerticalBoundarySpan is a clipped portion coincident with one or
+// more original side faces. Its open interior has constant side ownership;
+// events at the ends can also carry original floor or roof owners.
+type MixedRoofVerticalBoundarySpan struct {
+	Parameter geom.ExactParameterInterval
+	Owners    []MixedRoofFaceOwner
+}
+
 // MixedRoofVerticalSection is the exact clipped line section. Spans give the
 // closures of the open interior intervals in line parameter order. Events
 // include isolated boundary contacts but exclude artificial clip endpoints.
@@ -30,6 +38,7 @@ type MixedRoofVerticalEvent struct {
 type MixedRoofVerticalSection struct {
 	Events          []MixedRoofVerticalEvent
 	Spans           []geom.ExactParameterInterval
+	BoundarySpans   []MixedRoofVerticalBoundarySpan
 	Start, End      parametric.Location
 	ExactOperations int
 }
@@ -37,27 +46,36 @@ type MixedRoofVerticalSection struct {
 type mixedRoofLineInterval struct {
 	active       bool
 	lower, upper *big.Rat
+	sides        uint8
 }
 
-func (v mixedRoofLineInterval) at(t *big.Rat) (before, after bool, point parametric.Location) {
+func (v mixedRoofLineInterval) at(t *big.Rat) (before, after, point parametric.Location) {
 	if !v.active {
-		return false, false, parametric.Outside
+		return
 	}
 	l, u := t.Cmp(v.lower), t.Cmp(v.upper)
-	switch {
-	case l < 0 || u > 0:
-		point = parametric.Outside
-	case l == 0 || u == 0:
-		point = parametric.Boundary
-	default:
-		point = parametric.Inside
+	open := parametric.Inside
+	if v.sides != 0 {
+		open = parametric.Boundary
 	}
-	return l > 0 && u <= 0, l >= 0 && u < 0, point
+	if l > 0 && u <= 0 {
+		before = open
+	}
+	if l >= 0 && u < 0 {
+		after = open
+	}
+	if l >= 0 && u <= 0 {
+		point = open
+		if l == 0 || u == 0 {
+			point = parametric.Boundary
+		}
+	}
+	return
 }
 
 // IntersectVerticalRational evaluates the line (x,y,originZ+directionZ*t) for
-// minT <= t <= maxT. A line on any proved footprint edge is unrepresentable:
-// it is coincident with an original side face and requires a side-span proof.
+// minT <= t <= maxT. Lines on a proved footprint edge return exposed
+// coincident spans separately from interior spans and isolated contacts.
 // The operation budget includes a fixed allowance for sweeping the at most
 // four exact stations, plus actual original roof evaluation work.
 func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, xy [2]*big.Rat, originZ, directionZ, minT, maxT *big.Rat, o geom.SurfacePatchEvaluationOptions) (MixedRoofVerticalSection, error) {
@@ -69,7 +87,7 @@ func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, 
 	if directionZ.Sign() == 0 || minT.Cmp(maxT) > 0 {
 		return zero, geom.ErrInvalid
 	}
-	const sweepAllowance = 96
+	const sweepAllowance = 160
 	if o.MaxOperations < sweepAllowance {
 		return zero, geom.ErrConvergence
 	}
@@ -81,11 +99,9 @@ func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, 
 	var intervals [2]mixedRoofLineInterval
 	pending := make([]station, 0, 4)
 	for i, b := range q.box {
-		switch b.footprint(xy) {
-		case parametric.Outside:
+		footprint, sides := b.footprintSides(xy)
+		if footprint == parametric.Outside {
 			continue
-		case parametric.Boundary:
-			return zero, geom.ErrUnrepresentable
 		}
 		opt := o
 		opt.MaxOperations -= out.ExactOperations
@@ -112,30 +128,68 @@ func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, 
 		if directionZ.Sign() < 0 {
 			a, c = c, a
 		}
-		intervals[i] = mixedRoofLineInterval{true, a.t, c.t}
+		intervals[i] = mixedRoofLineInterval{true, a.t, c.t, sides}
 		pending = append(pending, a, c)
 	}
+	// Two overlapping coplanar sides would require local 3D coincidence
+	// classification. The complete regular source proof does not admit such
+	// contacts; retain an explicit guard at the query boundary.
+	if a, b := intervals[0], intervals[1]; a.active && b.active && (a.sides&3 != 0 && b.sides&3 != 0 || a.sides&12 != 0 && b.sides&12 != 0) &&
+		a.lower.Cmp(b.upper) <= 0 && b.lower.Cmp(a.upper) <= 0 {
+		return zero, geom.ErrUnrepresentable
+	}
 	op := q.source.boundary.op
-	state := func(t *big.Rat) (bool, bool, parametric.Location, error) {
+	type sectionState struct {
+		where, before, after parametric.Location
+		point, afterPoint    [2]parametric.Location
+	}
+	state := func(t *big.Rat) (sectionState, error) {
 		ab, aa, a := intervals[0].at(t)
 		bb, ba, b := intervals[1].at(t)
-		where, err := mixedRoofBooleanLocation(op, [2]parametric.Location{a, b})
-		return mixedRoofInterior(op, ab, bb), mixedRoofInterior(op, aa, ba), where, err
+		r := sectionState{point: [2]parametric.Location{a, b}, afterPoint: [2]parametric.Location{aa, ba}}
+		var err error
+		r.where, err = mixedRoofBooleanLocation(op, r.point)
+		if err != nil {
+			return r, err
+		}
+		r.before, _ = mixedRoofBooleanLocation(op, [2]parametric.Location{ab, bb})
+		r.after, _ = mixedRoofBooleanLocation(op, r.afterPoint)
+		return r, nil
+	}
+	sideOwners := func(owners []MixedRoofFaceOwner, locations [2]parametric.Location) []MixedRoofFaceOwner {
+		for i, loc := range locations {
+			if loc != parametric.Boundary {
+				continue
+			}
+			for j, f := range q.box[i].sideFaces {
+				if intervals[i].sides&(1<<j) != 0 {
+					owners = append(owners, MixedRoofFaceOwner{i, f})
+				}
+			}
+		}
+		return owners
 	}
 	sort.SliceStable(pending, func(i, j int) bool { return pending[i].t.Cmp(pending[j].t) < 0 })
-	var inside bool
-	_, inside, out.Start, err = state(minT)
+	current, err := state(minT)
 	if err != nil {
 		return zero, err
 	}
-	_, _, out.End, err = state(maxT)
+	out.Start = current.where
+	last, err := state(maxT)
 	if err != nil {
 		return zero, err
 	}
+	out.End = last.where
 	spanStart := minT
-	addSpan := func(a, b *big.Rat) {
-		if a.Cmp(b) < 0 {
-			out.Spans = append(out.Spans, geom.ExactParameterInterval{Lower: new(big.Rat).Set(a), Upper: new(big.Rat).Set(b)})
+	addSpan := func(end *big.Rat) {
+		if spanStart.Cmp(end) >= 0 || current.after == parametric.Outside {
+			return
+		}
+		span := geom.ExactParameterInterval{Lower: new(big.Rat).Set(spanStart), Upper: new(big.Rat).Set(end)}
+		if current.after == parametric.Inside {
+			out.Spans = append(out.Spans, span)
+		} else {
+			out.BoundarySpans = append(out.BoundarySpans, MixedRoofVerticalBoundarySpan{span, sideOwners(nil, current.afterPoint)})
 		}
 	}
 	for i := 0; i < len(pending); {
@@ -145,42 +199,30 @@ func (q *MixedRoofMaterialQuery) IntersectVerticalRational(ctx context.Context, 
 			j++
 		}
 		if t.Cmp(minT) >= 0 && t.Cmp(maxT) <= 0 {
-			before, after, where, err := state(t)
+			s, err := state(t)
 			if err != nil {
 				return zero, err
 			}
-			if where == parametric.Boundary {
-				e := MixedRoofVerticalEvent{Parameter: new(big.Rat).Set(t), Before: before, After: after}
+			if s.where == parametric.Boundary {
+				e := MixedRoofVerticalEvent{Parameter: new(big.Rat).Set(t), Before: s.before == parametric.Inside, After: s.after == parametric.Inside}
 				for _, p := range pending[i:j] {
 					e.Owners = append(e.Owners, p.owner)
 				}
+				e.Owners = sideOwners(e.Owners, s.point)
+				sort.Slice(e.Owners, func(i, j int) bool {
+					a, b := e.Owners[i], e.Owners[j]
+					return a.Operand < b.Operand || a.Operand == b.Operand && a.Face < b.Face
+				})
 				out.Events = append(out.Events, e)
-				if inside {
-					addSpan(spanStart, t)
-				}
-				spanStart, inside = t, after
+				addSpan(t)
+				spanStart, current = t, s
 			}
 		}
 		i = j
 	}
-	if inside {
-		addSpan(spanStart, maxT)
-	}
+	addSpan(maxT)
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	return out, nil
-}
-
-func mixedRoofInterior(op parametric.BooleanOp, a, b bool) bool {
-	switch op {
-	case parametric.Union:
-		return a || b
-	case parametric.Intersection:
-		return a && b
-	case parametric.Difference:
-		return a && !b
-	default:
-		return false
-	}
 }

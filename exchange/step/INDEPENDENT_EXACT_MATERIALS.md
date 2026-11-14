@@ -58,3 +58,39 @@ conflicting units, unsupported support changes and atomic invalid writer input.
 Focused normal/live/race, Go1.23, vet, prior ellipse collection/compound
 regressions and 100 bounded fuzz executions qualify this scope. No PlainCAD bore
 or bridge path changes are involved.
+
+## Source-bound heterogeneous native persistence
+
+`WriteIndependentExactMaterialsJSON` and `ReadIndependentExactMaterialsJSON`
+use format `plainsolid-step-independent-exact-materials`, version 1. The original
+parsed STEP source, requested native tolerance, units and ordered members are
+retained. Each member carries canonical native bytes and complete claims for its
+root/product/definition/representation/body IDs, local dependency graph and typed
+planar or ellipse ancestry. Reload re-runs the shared strict collection proof
+once, reconstructs all members, and compares the envelope to the reconstructed
+claims. It never trusts serialized native geometry or retries another importer.
+Serialization preserves original source records and IDs, not original whitespace.
+
+Writers similarly reprove the source once, verify all duplicate native payloads,
+including variant-specific solids, and compare the remaining typed metadata.
+They stage output and reject stale ancestry, changed member/source coverage or
+mismatched native bodies without writing partial envelopes. Caller-owned source
+files are bounded before recursive serialization, including cyclic Value.Items,
+record counts, nesting and text. Cancellation is checked before/after input,
+within source proof, between member snapshots and before output.
+
+`IndependentMaterialJSONLimits` separates `MaxBytes` for the envelope (default
+and maximum 16 MiB) from `Source` STEP limits. Unknown/trailing envelope data,
+invalid version/tag/units/tolerance, swapped members, forged native bytes,
+source IDs or dependencies, excessive source limits and canceled operations fail
+with an empty result. Nested native/claim payloads use canonical encoded values;
+whitespace is insignificant, while arbitrary property reordering is not promised.
+Original STEP source-export APIs are unchanged.
+
+The four-product independent fixture survives source→native envelope→reload→STEP
+with byte-stable native serialization, identical normalized source coverage and
+all original product/body ancestry. Pinned OCCT transfers the re-emitted file as
+four valid solids with volume 24+111.25π. Focused normal/live/race, Go 1.23,
+previous collection/compound regressions, vet and 100 bounded fuzz executions
+cover the new persistence path, including cancellation during reading and atomic
+stale-state rejection.

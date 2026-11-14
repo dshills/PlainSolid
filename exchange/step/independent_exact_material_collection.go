@@ -27,6 +27,7 @@ type IndependentExactMaterial struct {
 
 // IndependentExactMaterialCollection is a multi-root file, not an inferred assembly.
 type IndependentExactMaterialCollection struct {
+	tolerance  float64
 	Members    []IndependentExactMaterial
 	Source     *File
 	LengthUnit float64
@@ -77,7 +78,7 @@ func readIndependentExactMaterialCollection(ctx context.Context, r io.Reader, l 
 	if len(roots) < minRoots || len(roots) > maxRoots || len(roots) > l.MaxSolids || len(apds) != len(roots) || len(categories) != len(roots) {
 		return bad()
 	}
-	out := IndependentExactMaterialCollection{Source: f, Members: make([]IndependentExactMaterial, len(roots))}
+	out := IndependentExactMaterialCollection{Source: f, Members: make([]IndependentExactMaterial, len(roots)), tolerance: tol}
 	claimed := map[int64]bool{}
 	sharedFrames := map[int64]bool{}
 	faces, vertices, uses := 0, 0, 0

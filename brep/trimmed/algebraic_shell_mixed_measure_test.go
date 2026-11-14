@@ -1,6 +1,7 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -92,6 +93,29 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			}
 		}
 	}
+	var wallRefs [3][7]parametric.Location
+	hasWallOracle := false
+	if oracle := os.Getenv("PLAINSOLID_OCCT_CROSSING_ROOF_WALLS"); oracle != "" {
+		data, err := exec.CommandContext(ctx, oracle, "vertical-wall").Output()
+		if err != nil {
+			t.Fatal("OCCT vertical wall reference", err)
+		}
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		for i, name := range []string{"intersection", "union", "difference"} {
+			var row struct {
+				Name      string
+				Locations []parametric.Location
+			}
+			if err := decoder.Decode(&row); err != nil || row.Name != name || len(row.Locations) != 7 {
+				t.Fatal("invalid OCCT wall reference", row, err)
+			}
+			copy(wallRefs[i][:], row.Locations)
+		}
+		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+			t.Fatal("trailing OCCT wall reference", err)
+		}
+		hasWallOracle = true
+	}
 
 	contains := func(v geom.ExactParameterInterval, want float64) bool {
 		q := new(big.Rat).SetFloat64(want)
@@ -157,6 +181,15 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 			}
 		}
 		checkMixedOriginalVerticalSection(t, ctx, roof, i, delta)
+		if hasWallOracle {
+			for j, p := range [7][2]int64{{2, -12}, {2, -4}, {2, 1}, {2, 4}, {0, -12}, {0, -4}, {0, 1}} {
+				tmid := big.NewRat(p[1], 16)
+				got, err := roof.IntersectVerticalRational(ctx, [2]*big.Rat{new(big.Rat), big.NewRat(p[0], 4)}, new(big.Rat), big.NewRat(1, 1), tmid, tmid, geom.SurfacePatchEvaluationOptions{})
+				if err != nil || got.Start != wallRefs[i][j] || got.End != wallRefs[i][j] {
+					t.Fatal("exact wall state disagrees with OCCT open sectors", name, j, got, wallRefs[i][j], err)
+				}
+			}
+		}
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
 		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
@@ -374,12 +407,43 @@ func checkMixedOriginalVerticalSection(t *testing.T, ctx context.Context, roof *
 	if err != nil || outside.Start != parametric.Outside || outside.End != parametric.Outside || len(outside.Events)+len(outside.Spans) != 0 {
 		t.Fatal("line outside both footprints published material", op, outside, err)
 	}
+	// A line on the tool's original X-min side is a boundary only where
+	// the Boolean exposes it. The stock roof crosses it at exactly Z=0.
+	wallXY := [2]*big.Rat{r(0, 1), center[1]}
+	wall, err := roof.IntersectVerticalRational(ctx, wallXY, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), o)
+	wallBounds := [3][2]*big.Rat{{r(-1, 2), r(0, 1)}, {r(0, 1), r(49, 256)}, {r(-1, 2), r(0, 1)}}[op]
+	if err != nil || len(wall.BoundarySpans) != 1 || len(wall.Spans) != [3]int{0, 1, 1}[op] {
+		t.Fatal("wrong exposed wall section", op, wall, err)
+	}
+	side := MixedRoofFaceOwner{1, 2}
+	coincident := wall.BoundarySpans[0]
+	if len(coincident.Owners) != 1 || coincident.Owners[0] != side || coincident.Parameter.Lower.Cmp(wallBounds[0]) != 0 || coincident.Parameter.Upper.Cmp(wallBounds[1]) != 0 {
+		t.Fatal("wrong clipped wall or source side owner", op, coincident, wallBounds)
+	}
+	hit := wall.Events[[3]int{1, 1, 2}[op]]
+	if hit.Parameter.Sign() != 0 || len(hit.Owners) != 2 || hit.Owners[0] != (MixedRoofFaceOwner{0, 1}) || hit.Owners[1] != side || hit.Before != (op == 1) || hit.After {
+		t.Fatal("wrong original roof and wall contact", op, hit)
+	}
+	a := new(big.Rat).Quo(new(big.Rat).Add(wallBounds[0], wallBounds[1]), r(2, 1))
+	clipped, err := roof.IntersectVerticalRational(ctx, wallXY, r(0, 1), r(1, 1), a, wallBounds[1], o)
+	if err != nil || len(clipped.BoundarySpans) != 1 || len(clipped.Events) != 1 || len(clipped.Spans) != 0 ||
+		clipped.Start != parametric.Boundary || clipped.End != parametric.Boundary || clipped.BoundarySpans[0].Parameter.Lower.Cmp(a) != 0 {
+		t.Fatal("artificial clip endpoint altered exposed side", op, clipped, err)
+	}
+	corner, err := roof.IntersectVerticalRational(ctx, [2]*big.Rat{r(0, 1), r(0, 1)}, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), o)
+	if err != nil || len(corner.Spans) != 0 || len(corner.BoundarySpans) != [3]int{1, 3, 2}[op] {
+		t.Fatal("incorrect side section at perpendicular original faces", op, corner, err)
+	}
+	both := corner.BoundarySpans[[3]int{0, 1, 1}[op]]
+	if len(both.Owners) != 2 || both.Owners[0] != (MixedRoofFaceOwner{0, 4}) || both.Owners[1] != side ||
+		both.Parameter.Lower.Cmp(r(-1, 2)) != 0 || both.Parameter.Upper.Sign() != 0 {
+		t.Fatal("side intersection lost its two owners", op, both)
+	}
 	for _, tc := range []struct {
 		xy  [2]*big.Rat
 		o   geom.SurfacePatchEvaluationOptions
 		err error
 	}{
-		{[2]*big.Rat{r(0, 1), center[1]}, o, geom.ErrUnrepresentable},
 		{center, geom.SurfacePatchEvaluationOptions{MaxOperations: all.ExactOperations - 1}, geom.ErrConvergence},
 	} {
 		partial, err := roof.IntersectVerticalRational(ctx, tc.xy, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), tc.o)

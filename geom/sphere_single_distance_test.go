@@ -94,11 +94,11 @@ func TestSphereSingleNearestReductions(t *testing.T) {
 		b      Vec3
 		ra, rb float64
 		op     SphereSetOperation
-	}{{Vec3{}, 5, 5, SphereSetDifference}, {Vec3{X: 4}, 2, 2, SphereSetIntersection}, {Vec3{}, 1, 5, SphereSetDifference}, {Vec3{X: 4}, 5, 1, SphereSetDifference}} {
+	}{{Vec3{}, 5, 5, SphereSetDifference}, {Vec3{X: 4}, 2, 2, SphereSetIntersection}, {Vec3{}, 1, 5, SphereSetDifference}} {
 		s, _ := NewSpherePairMaterial(Vec3{}, tc.ra, tc.b, tc.rb, tc.op)
 		v, e := s.NearestBoundaryRational(ctx, [3]*big.Rat{r(0, 1), r(0, 1), r(0, 1)}, SphereFullBoundaryDistanceOptions{})
 		if !errors.Is(e, ErrDomain) || !reflect.DeepEqual(v, SpherePairNearest{}) {
-			t.Fatal("empty or unsupported tangent cavity", tc, v, e)
+			t.Fatal("empty regularized material", tc, v, e)
 		}
 	}
 }

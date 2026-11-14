@@ -7,6 +7,7 @@
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepGProp.hxx>
 #include <Geom_BezierSurface.hxx>
 #include <GProp.hxx>
@@ -111,12 +112,48 @@ void report(const std::string& name, const TopoDS_Shape& shape) {
     << ",\"euler\":" << vertices.Extent()-edges.Extent()+faces.Extent()-holes << "}\n";
 }
 
+void reportVerticalWall(const char* name, const TopoDS_Shape& shape) {
+  // The first four samples cover the tool's X-min wall, through the
+  // stock roof at Z=0. The next three use the perpendicular side pair.
+  const gp_Pnt points[] = {{0,.5,-.75},{0,.5,-.25},{0,.5,.0625},{0,.5,.25},
+                           {0,0,-.75},{0,0,-.25},{0,0,.0625}};
+  std::cout << "{\"name\":\"" << name << "\",\"locations\":[";
+  for (unsigned i=0; i<sizeof(points)/sizeof(*points); ++i) {
+    // Probe open sectors around the wall; direct classifiers on computed
+    // OCCT trims can return the adjacent state within their own tolerance.
+    int inside=0;
+    for (double dx : {-1e-4,1e-4})
+      for (double dy : {-1e-4,1e-4}) {
+        const gp_Pnt probe(points[i].X()+dx,points[i].Y()+dy,points[i].Z());
+        bool contained=false;
+        for (TopExp_Explorer it(shape,TopAbs_SOLID); it.More(); it.Next()) {
+          BRepClass3d_SolidClassifier classifier(it.Current(),probe,1e-8);
+          const auto state=classifier.State();
+          if (state!=TopAbs_IN && state!=TopAbs_OUT)
+            throw std::runtime_error("non-open wall probe");
+          contained=contained || state==TopAbs_IN;
+        }
+        inside+=contained;
+      }
+    const int location=inside==0 ? 0 : inside==4 ? 2 : 1;
+    std::cout << (i ? "," : "") << location;
+  }
+  std::cout << "]}\n";
+}
+
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
   try {
     std::cout << std::setprecision(17);
     const auto a=graphStock(false), b=graphStock(true);
+    if (argc==2 && std::string(argv[1])=="vertical-wall") {
+      reportVerticalWall("intersection", BRepAlgoAPI_Common(a,b).Shape());
+      reportVerticalWall("union", BRepAlgoAPI_Fuse(a,b).Shape());
+      reportVerticalWall("difference", BRepAlgoAPI_Cut(a,b).Shape());
+      return 0;
+    }
+    if (argc!=1) throw std::runtime_error("unknown probe");
     report("stock",a);
     report("tool",b);
     report("intersection", BRepAlgoAPI_Common(a,b).Shape());
