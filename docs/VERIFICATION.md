@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD fragmented arc-only lens STEP exchange — 2026-11-14
+
+Adjacent fragments with the same exact circle center and radius are
+joined only along their shared anchored seam. The signed sweep is
+preserved. PlainCAD keeps all four authored sketch arcs and their
+references through edit and project reopen.
+
+[Eleven original sketch and STEP regressions plus provider preflight](evidence/plaincad-arc-only-lens-step-browser-2026-11-14.json)
+and the [extended arc-only case](evidence/plaincad-arc-only-lens-step-native-2026-11-14.json)
+pass on the same WASM. Before the change, STEP generation left the
+download disabled. Its 17,602-byte file equals the whole-circle lens
+exchange byte for byte. The reimported STL has 348 watertight triangles.
+OCCT readback, the existing independent lens corpus, race checks and Go
+vet pass.
+
 ## PlainCAD Edit Revolve quarter-bore STEP exchange — 2026-11-14
 
 The coaxially bored quarter sweep retains two opposed cylindrical

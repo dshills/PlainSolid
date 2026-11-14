@@ -125,7 +125,8 @@ complete represented graph. Qualified minor and major segments keep the
 circular support and chord. Equal-circle and unequal circle/arc lens
 extrusions also retain both analytic cylindrical walls and their shared
 vertical seams. Both original XY workflows exchange exact solids and
-reopen with watertight STL. The construction-axis Revolve workflow
+reopen with watertight STL. The arc-only lens retains all four original
+sketch fragments and produces the same STEP as the equivalent circle lens. The construction-axis Revolve workflow
 round-trips the exact toroidal surface and planar caps of its quarter
 sweep. Full rings and larger signed sweeps also pass the native STEP
 gate, including reflection and non-millimeter readback. The Edit Revolve

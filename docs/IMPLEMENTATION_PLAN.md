@@ -115,8 +115,10 @@ unequal circle/arc lens extrusions retain both cylindrical walls through
 STEP and STL. The original construction-axis Revolve now exchanges
 toroidal rings and bounded elbows. The quarter-sweep annular cylinder
 from the existing Edit Revolve workflow now round-trips STEP and
-retains a recipe for subsequent coaxial cuts. Next qualify the
-existing arc-only lens workflow and exact cylindrical sector exchange.
+retains a recipe for subsequent coaxial cuts. The original arc-only lens
+exchanges both cylindrical supports with its four sketch fragments still
+editable. Next connect the exact writer for simple cylindrical Revolve
+sectors and full concentric tubes.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `65441a2d` passes 345 development, 66 production and 15 cross-browser
