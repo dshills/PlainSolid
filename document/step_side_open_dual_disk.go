@@ -45,6 +45,9 @@ func (s State) WriteSideOpenDualDiskSTEP(ctx context.Context, w io.Writer, nodeI
 	if d.Name == "" {
 		d.Name = nodeID
 	}
+	if f.SideOpenDualDisk.ExactWalls {
+		return step.WriteExactWallSideOpenDualDiskProduct(ctx, w, step.ExactWallSideOpenDualDiskDescriptor(d))
+	}
 	if d.Discs[0].Radius == d.Discs[1].Radius {
 		return step.WriteSideOpenDualDiskProduct(ctx, w, d)
 	}

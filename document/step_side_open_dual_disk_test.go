@@ -125,17 +125,23 @@ func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 		if exact && walls != 2 || !exact && walls != 0 {
 			t.Fatal("reloaded document changed wall representation", exact, walls)
 		}
+		var out bytes.Buffer
+		if e = ss.WriteSideOpenDualDiskSTEP(ctx, &out, "cut"); e != nil {
+			t.Fatal(e)
+		}
 		if exact {
+			if !bytes.Contains(out.Bytes(), []byte("PRODUCT('side-cut-exact-walls'")) {
+				t.Fatal("exact wall occurrence did not use the registered STEP product")
+			}
+			if _, e = step.ReadGeneralSideOpenDualDiskProduct(ctx, bytes.NewReader(out.Bytes()), step.Limits{}, 1e-9); e == nil {
+				t.Fatal("ordinary float-wall reader admitted the exact-wall dialect")
+			}
 			tx := loaded.Begin()
 			tx.State.Features["cut"].SideOpenDualDisk.ExactWalls = false
 			if e = tx.Commit(); !errors.Is(e, geom.ErrUnrepresentable) {
 				t.Fatal("disabling exact wall must reject nonbinary controls", e)
 			}
 			continue
-		}
-		var out bytes.Buffer
-		if e = ss.WriteSideOpenDualDiskSTEP(ctx, &out, "cut"); e != nil {
-			t.Fatal(e)
 		}
 		p, e := step.ReadGeneralSideOpenDualDiskProduct(ctx, &out, step.Limits{}, 1e-9)
 		if e != nil || p.RadicalSide != step.ExternalRadicalLeft {
