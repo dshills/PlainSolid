@@ -38,7 +38,7 @@ func ReadNestedRationalMappedPlanarSTEP(r io.Reader, l step.Limits) (*RationalMa
 // ReadNestedRationalMappedPlanarDocument reads the separately tagged version1
 // nested envelope. The prior flat native reader deliberately rejects this format.
 func ReadNestedRationalMappedPlanarDocument(r io.Reader, maxBytes int64, l step.Limits) (*RationalMappedPlanarDocument, error) {
-	return readRationalMappedPlanarDocument(r, maxBytes, l, true)
+	return readRationalMappedPlanarDocument(r, maxBytes, l, 1)
 }
 
 // OccurrencePaths returns copied outer/inner source ancestry, aligned with
@@ -59,6 +59,7 @@ func (d *RationalMappedPlanarDocument) BakeOccurrenceIndex(index int) (step.Body
 	}
 	view := *d
 	view.paths = nil
+	view.deepPaths = nil
 	view.model = d.model
 	view.model.Occurrences = []step.ExactMappedOccurrence{d.model.Occurrences[index]}
 	return view.BakeOccurrence(view.model.Occurrences[0].ItemID)
