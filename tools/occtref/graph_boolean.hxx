@@ -205,7 +205,7 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
   record(out,"isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
 }
 
-static void multipleKnotTangentSplineShellRecords(std::ostream& out) {
+static void multipleKnotTangentSplineShellRecords(std::ostream& out, bool splitStock = false) {
   // A bilinear roof constructed directly in OCCT from exact dyadic
   // coordinates has two isolated contacts at its own knot vertices.
   const std::vector<double> stations[3]{{0,.25,.5,.75,1},{0,.5,1},{0,1}};
@@ -233,7 +233,31 @@ static void multipleKnotTangentSplineShellRecords(std::ostream& out) {
   auto tool=BRepBuilderAPI_MakeSolid(TopoDS::Shell(ex.Current())).Solid();
   ex.Next();
   if(ex.More()||!BRepCheck_Analyzer(tool).IsValid())throw std::runtime_error("invalid two-contact tool shell");
-  auto stock=BRepPrimAPI_MakeBox(1,1,1).Shape();
+  TopoDS_Shape stock;
+  if (!splitStock) {
+    stock=BRepPrimAPI_MakeBox(1,1,1).Shape();
+  } else {
+    BRepBuilderAPI_Sewing s(1e-9);
+    for (int axis=0;axis<3;++axis) for (int side=0;side<2;++side) {
+      const int u=(axis+1)%3,v=(axis+2)%3;
+      for(int span=0;span<(axis==0?1:2);++span) {
+        NCollection_Array2<gp_Pnt> poles(1,2,1,2);
+        for(int i=0;i<2;++i)for(int j=0;j<2;++j) {
+          double p[3]{};p[axis]=side;p[u]=i;p[v]=j;
+          if(axis!=0)p[0]=(span+p[0])*.5;
+          poles.SetValue(i+1,j+1,gp_Pnt(p[0],p[1],p[2]));
+        }
+        NCollection_Array1<double> k(1,2);k.SetValue(1,0);k.SetValue(2,1);
+        NCollection_Array1<int> m(1,2);m.Init(2);
+        occ::handle<Geom_BSplineSurface> q=new Geom_BSplineSurface(poles,k,k,m,m,1,1);
+        auto f=BRepBuilderAPI_MakeFace(q,1e-9).Face();if(side==0)f.Reverse();s.Add(f);
+      }
+    }
+    s.Perform();TopExp_Explorer sh(s.SewedShape(),TopAbs_SHELL);
+    if(!sh.More())throw std::runtime_error("missing two-contact stock shell");
+    stock=BRepBuilderAPI_MakeSolid(TopoDS::Shell(sh.Current())).Solid();sh.Next();
+    if(sh.More() || !BRepCheck_Analyzer(stock).IsValid())throw std::runtime_error("invalid two-contact stock shell");
+  }
   auto common=BRepAlgoAPI_Common(stock,tool);
   if(!common.IsDone()||TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
     throw std::runtime_error("two isolated contacts produced common material");

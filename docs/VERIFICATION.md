@@ -1640,6 +1640,9 @@ short run (3,816 passing and 323 skipped test events; three packages without
 tests). All three trimmed shards passed (658 passing and 14 skipped test
 events; 358, 400 and 343 seconds). This verifies the pinned revision; later
 milestones have separate focused qualification below.
+The archived `e1e871c` CGO-disabled non-trimmed snapshot also passes all 49
+packages with tests and reports 3,873 passing and 332 skipped test events;
+three packages have no tests. Its three trimmed shards are tracked separately.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -2005,6 +2008,33 @@ Go 1.23 passed. Wrapped shell reload (`0d05fd5`) re-proves original mating
 through the irrational seam. Global embedding certificates (`972e7a6`,
 `f137d9f`) qualify the adjacent two- and three-face common chart families;
 overlapping nonadjacent owners reject, with focused normal and race passed.
+Representable algebraic solid conversion (`e1e871c`) binds every section
+endpoint on both original charts and retains source edge ranges. The warped
+box reloads in ordinary native JSON with original indexed faces and volume
+1/8. A mixed circular result with nonrepresentable junctions rejects the
+conversion; its algebraic topology remains available. Normal and race passed.
+Mixed projected volume windows (`f0bba49`, `036febd`) preserve certified
+material/empty cells and charge unresolved area to the upper enclosure.
+Contracting all 24 original tubes into 48 verified intervals reduced
+unresolved area from 27/1024 to 99/4096 on the signed XZ fixture without
+changing the spatial budget. Positive race and full focused normal passed.
+Native wrapped chains (`7027b5e`, `a0ba988`, `f7e9c97`) retain globally
+embedded original faces, exact mate edges, continuous agreement and indexed
+ancestry. The dedicated three-face reader re-proves the whole original shell
+and rejects altered lifts and ownership. The 2–8-face constructive chain
+passes independent knot, orientation, overlap and fan tests under race.
+Native mapped STEP writing (`7ecc377`, `97913f8`, `dda5d32`) supports
+edited occurrence placements and cardinals directly from native planar
+assets, including holed material. Rebuilt exact model/p-curve ownership
+and live OCCT validate three occurrences and world bounds from
+(-10, 0, 0) to (12, 22, 4). Source-retaining edit and new native document
+authoring remain separate APIs. Both have focused normal, race and Go 1.23
+coverage. The new STEP and mixed IGES fuzz targets ran 100 cases each in
+their bounded qualification and are registered in CI (`588262b`).
+The retained frustum bore distance (`40d8e76`) bounds the minimum squared
+distance globally. Live OCCT agrees on five through and cavity probes,
+including an irrational rim distance, a retained annulus and both inward
+floors. Normal and race checks pass, including native reindexing and limits.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
