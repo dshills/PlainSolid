@@ -180,6 +180,7 @@ func Preflight(r io.Reader, l Limits) (GraphPreflight, error) {
 	}
 	if features["composite-curves"] {
 		hints["ReadCompositeCurves"] = true
+		hints["ReadTangentCompositeCurves"] = true
 	}
 	if features["curve-models"] {
 		hints["ReadCurves"] = true

@@ -92,6 +92,9 @@ func validateCompositeCurve(c CompositeSplineCurve) error {
 // sharing, gaps, partial trims and stronger transition assertions are rejected.
 // Original geometric decimals and normalization must preserve exact coefficients.
 func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
+	return readCompositeCurves(r, l, nil)
+}
+func readCompositeCurves(r io.Reader, l Limits, tangents *[][]bool) (CompositeCurveModel, error) {
 	fail := func() (CompositeCurveModel, error) { return CompositeCurveModel{}, compositeFailure() }
 	l, e := l.defaults()
 	if e != nil {
@@ -236,6 +239,7 @@ func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 	}
 	out := CompositeCurveModel{Name: name, RepresentationName: repName, SetName: setName, LengthUnit: unit}
 	count := 0
+	var allTangents [][]bool
 	take := func(id int64, kind string, n int) (Record, error) {
 		if used[id] {
 			return Record{}, compositeFailure()
@@ -264,6 +268,7 @@ func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 			return fail()
 		}
 		c := CompositeSplineCurve{Name: cn}
+		flags := make([]bool, len(segments))
 		for i, sid := range segments {
 			seg, e := take(sid, "COMPOSITE_CURVE_SEGMENT", 3)
 			if e != nil {
@@ -272,6 +277,13 @@ func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 			transition := seg.Args[0]
 			if transition.Kind != Enumeration {
 				return fail()
+			}
+			if transition.Text == "CONT_SAME_GRADIENT" {
+				if tangents == nil {
+					return fail()
+				}
+				flags[i] = true
+				transition.Text = "CONTINUOUS"
 			}
 			if i < len(segments)-1 && transition.Text != "CONTINUOUS" {
 				return fail()
@@ -356,10 +368,19 @@ func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 		if e = validateCompositeCurve(c); e != nil {
 			return fail()
 		}
+		if tangents != nil {
+			if e = validateCompositeTangents(c, flags); e != nil {
+				return fail()
+			}
+			allTangents = append(allTangents, flags)
+		}
 		out.Curves = append(out.Curves, c)
 	}
 	if len(used) != len(f.Entities) {
 		return fail()
+	}
+	if tangents != nil {
+		*tangents = allTangents
 	}
 	return out, nil
 }
@@ -367,11 +388,19 @@ func ReadCompositeCurves(r io.Reader, l Limits) (CompositeCurveModel, error) {
 // WriteCompositeCurves stages the rooted graph and exact typed readback before
 // output. Nonrepresentable source decimals fail rather than round the basis.
 func WriteCompositeCurves(w io.Writer, m CompositeCurveModel) error {
+	return writeCompositeCurves(w, m, nil)
+}
+func writeCompositeCurves(w io.Writer, m CompositeCurveModel, tangents [][]bool) error {
 	if w == nil || len(m.Curves) < 1 || len(m.Curves) > 64 {
 		return compositeFailure()
 	}
 	for _, s := range []string{m.Name, m.RepresentationName, m.SetName} {
 		if !utf8.ValidString(s) || len(s) > 1024 {
+			return compositeFailure()
+		}
+	}
+	if tangents != nil {
+		if len(tangents) != len(m.Curves) {
 			return compositeFailure()
 		}
 	}
@@ -391,6 +420,13 @@ func WriteCompositeCurves(w io.Writer, m CompositeCurveModel) error {
 	}
 	if len(flat.Curves) > 4096 {
 		return compositeFailure()
+	}
+	if tangents != nil {
+		for i, c := range m.Curves {
+			if e := validateCompositeTangents(c, tangents[i]); e != nil {
+				return e
+			}
+		}
 	}
 	var initial bytes.Buffer
 	if e := WriteCurves(&initial, flat); e != nil {
@@ -429,12 +465,15 @@ func WriteCompositeCurves(w io.Writer, m CompositeCurveModel) error {
 		f.Order = append(f.Order, max)
 		return max
 	}
-	for _, c := range m.Curves {
+	for ci, c := range m.Curves {
 		var segs []Value
 		for i, s := range c.Segments {
 			tr := "CONTINUOUS"
 			if i == len(c.Segments)-1 && !c.Closed {
 				tr = "DISCONTINUOUS"
+			}
+			if tangents != nil && tangents[ci][i] {
+				tr = "CONT_SAME_GRADIENT"
 			}
 			sense := "F"
 			if s.SameSense {
@@ -480,7 +519,12 @@ func WriteCompositeCurves(w io.Writer, m CompositeCurveModel) error {
 		}
 	}
 	raw := bytes.Replace(splitProductFile(f, nil, nil), []byte("PlainSolid split cylinder product"), []byte("PlainSolid composite spline curves"), 1)
-	if _, e = ReadCompositeCurves(bytes.NewReader(raw), Limits{}); e != nil {
+	var decoded [][]bool
+	var ptr *[][]bool
+	if tangents != nil {
+		ptr = &decoded
+	}
+	if _, e = readCompositeCurves(bytes.NewReader(raw), Limits{}, ptr); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

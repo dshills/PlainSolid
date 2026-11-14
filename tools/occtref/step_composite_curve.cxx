@@ -2,6 +2,11 @@
 // No PlainSolid graph generation or geometry implementation is used.
 #include <STEPControl_Reader.hxx>
 #include <STEPControl_Writer.hxx>
+#include <StepData_StepModel.hxx>
+#include <StepGeom_CompositeCurve.hxx>
+#include <StepGeom_BSplineCurve.hxx>
+#include <StepToGeom.hxx>
+#include <Geom_BSplineCurve.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -17,8 +22,8 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mode=="write"||mode=="write-closed"){
- bool closed=mode=="write-closed";std::ostringstream s;
+int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mode=="write"||mode=="write-closed"||mode=="write-tangent"||mode=="write-tangent-closed"){
+ bool closed=mode.find("closed")!=std::string::npos;bool tangent=mode.find("tangent")!=std::string::npos;std::ostringstream s;
  s<<"ISO-10303-21;HEADER;FILE_DESCRIPTION(('independent composite'),'2;1');FILE_NAME('','',(''),(''),'OCCT fixture','','');FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));ENDSEC;DATA;\n"
  "#1=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));\n"
  "#2=(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.));\n"
@@ -38,10 +43,12 @@ int main(int argc,char**argv){if(argc!=3)return 2;std::string mode=argv[1];if(mo
  "#32=MECHANICAL_CONTEXT('',#30,'mechanical');#33=DESIGN_CONTEXT('',#30,'design');\n"
  "#34=PRODUCT('1','composite product','',(#32));#35=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE('','',#34,.NOT_KNOWN.);\n"
  "#36=PRODUCT_DEFINITION('design','',#35,#33);#37=PRODUCT_DEFINITION_SHAPE('','',#36);#38=SHAPE_DEFINITION_REPRESENTATION(#37,#26);ENDSEC;END-ISO-10303-21;\n";
- std::istringstream input(s.str());STEPControl_Reader reader;if(reader.ReadStream("independent composite",input)!=IFSelect_RetDone)return 3;STEPControl_Writer writer(reader.WS(),false);return writer.Write(argv[2])==IFSelect_RetDone?0:4;
+ std::string source=s.str();if(tangent){auto replace=[&](const std::string&a,const std::string&b){std::size_t at=0;while((at=source.find(a,at))!=std::string::npos){source.replace(at,a.size(),b);at+=b.size();}};replace("(1.,0.,0.)","(1.5,0.,0.)");replace("(2.,0.,0.)","(2.5,0.,0.)");replace("(2.,1.,0.)","(2.5,1.,0.)");replace("#21=COMPOSITE_CURVE_SEGMENT(.CONTINUOUS.","#21=COMPOSITE_CURVE_SEGMENT(.CONT_SAME_GRADIENT.");}
+ std::istringstream input(source);STEPControl_Reader reader;if(reader.ReadStream("independent composite",input)!=IFSelect_RetDone)return 3;STEPControl_Writer writer(reader.WS(),false);return writer.Write(argv[2])==IFSelect_RetDone?0:4;
  }
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone||reader.TransferRoots()!=1)return 5;auto shape=reader.OneShape();if(shape.IsNull()||!BRepCheck_Analyzer(shape).IsValid())return 6;
  int edges=0,wires=0,closed=0;gp_Pnt first,last;for(TopExp_Explorer x(shape,TopAbs_EDGE);x.More();x.Next())++edges;
  for(TopExp_Explorer x(shape,TopAbs_WIRE);x.More();x.Next()){++wires;auto wire=TopoDS::Wire(x.Current());if(wire.Closed())++closed;bool start=true;for(BRepTools_WireExplorer e(wire);e.More();e.Next()){TopoDS_Vertex a,b;TopExp::Vertices(e.Current(),a,b,true);if(start){first=BRep_Tool::Pnt(a);start=false;}last=BRep_Tool::Pnt(b);}}
- GProp_GProps p;BRepGProp::LinearProperties(shape,p);std::cout<<std::setprecision(17)<<"{\"Edges\":"<<edges<<",\"Wires\":"<<wires<<",\"Closed\":"<<closed<<",\"Length\":"<<p.Mass()<<",\"Start\":["<<first.X()<<","<<first.Y()<<","<<first.Z()<<"],\"End\":["<<last.X()<<","<<last.Y()<<","<<last.Z()<<"]}\n";return 0;
+ gp_Vec derivatives[2];auto model=reader.StepModel();for(int i=1;i<=model->NbEntities();++i){auto c=occ::down_cast<StepGeom_CompositeCurve>(model->Entity(i));if(c.IsNull())continue;for(int j=0;j<2;++j){auto segment=c->SegmentsValue(j+1);auto basis=occ::down_cast<StepGeom_BSplineCurve>(segment->ParentCurve());if(basis.IsNull())return 7;auto curve=StepToGeom::MakeBSplineCurve(basis);if(curve.IsNull())return 8;bool end=(j==0)==segment->SameSense();gp_Pnt p;curve->D1(end?curve->LastParameter():curve->FirstParameter(),p,derivatives[j]);if(!segment->SameSense())derivatives[j].Reverse();}}
+ GProp_GProps p;BRepGProp::LinearProperties(shape,p);std::cout<<std::setprecision(17)<<"{\"Edges\":"<<edges<<",\"Wires\":"<<wires<<",\"Closed\":"<<closed<<",\"Length\":"<<p.Mass()<<",\"Start\":["<<first.X()<<","<<first.Y()<<","<<first.Z()<<"],\"End\":["<<last.X()<<","<<last.Y()<<","<<last.Z()<<"],\"DerivativeEnd\":["<<derivatives[0].X()<<","<<derivatives[0].Y()<<","<<derivatives[0].Z()<<"],\"DerivativeStart\":["<<derivatives[1].X()<<","<<derivatives[1].Y()<<","<<derivatives[1].Z()<<"]}\n";return 0;
 }

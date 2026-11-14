@@ -76,3 +76,5 @@ Qualification run: focused live/ordinary/preflight checks passed in 1.583 second
 race in 2.169 seconds, Go 1.23 in 0.274 seconds, and STEP vet passed. A 100-execution
 fuzz smoke passed in 0.279 seconds with one new interesting input and no failure;
 this is a small bounded smoke, not exhaustive robustness evidence.
+
+An additive derivative-qualified API is documented in [TANGENT_COMPOSITE_CURVES.md](TANGENT_COMPOSITE_CURVES.md); the positional codec behavior above is unchanged.
