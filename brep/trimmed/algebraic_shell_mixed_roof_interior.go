@@ -112,14 +112,28 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateUniqueRoofInteriorCerti
 	return n.tessellateMixedRoof(ctx, face, oppositeRoof, o, nil)
 }
 func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.Context, face, oppositeRoof int, o MixedRoofInteriorOptions, collar *mixedRoofCollarWork) (*CertifiedMixedRoofInterior, error) {
-	if ctx == nil || n == nil || n.source == nil || !n.embedded || n.source.boundary.op != parametric.Intersection || face < 0 || face >= len(n.source.boundary.faces) {
+	if ctx == nil || n == nil || n.source == nil || !n.embedded || face < 0 || face >= len(n.source.boundary.faces) {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
 	f := n.source.boundary.faces[face]
-	if f.Reversed || len(f.Holes) > 0 {
+	difference := collar != nil && collar.difference
+	if difference {
+		if n.source.boundary.op != parametric.Difference || f.Reversed != (f.Operand == 1) {
+			return nil, geom.ErrInvalid
+		}
+		collar.outside = f.Operand == 0
+	} else {
+		if n.source.boundary.op != parametric.Intersection {
+			return nil, geom.ErrInvalid
+		}
+		if f.Reversed {
+			return nil, geom.ErrUnrepresentable
+		}
+	}
+	if len(f.Holes) > 0 {
 		return nil, geom.ErrUnrepresentable
 	}
 	count := 0
@@ -336,6 +350,11 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.C
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
+	}
+	if difference && f.Reversed {
+		for i := range r.geometry.Triangles {
+			r.geometry.Triangles[i][1], r.geometry.Triangles[i][2] = r.geometry.Triangles[i][2], r.geometry.Triangles[i][1]
+		}
 	}
 	return r, nil
 }

@@ -20,11 +20,16 @@ type MixedRoofCollarOptions struct {
 }
 
 // MixedRoofClearanceCell covers part of a displayed triangle's exact original
-// UV domain. Positive VerticalClearance proves strict source material. Otherwise
-// NativeEdge/Chord identify an independently certified ORIGINAL trim occurrence
+// UV domain. Positive MaterialClearance proves the indicated material constraint.
+// A zero MaterialClearance instead means NativeEdge/Chord identify an independently certified ORIGINAL trim occurrence
 // whose projected display chord is near the whole cell. This is an explicit
 // collar, not a claim that the chord or cell lies inside the exact source trim.
+// VerticalClearance retains the intersection/inside-other Z margin only; it is
+// zero for complementary witnesses even when MaterialClearance is positive.
 type MixedRoofClearanceCell struct {
+	// MaterialClearance is a positive signed witness; Constraint identifies its units.
+	MaterialClearance                               *big.Rat
+	Constraint                                      MixedRoofMaterialConstraint
 	Triangle                                        int
 	UV                                              [3][2]*big.Rat
 	VerticalClearance                               *big.Rat
@@ -75,6 +80,7 @@ func (r *CertifiedMixedRoofFragment) ClearanceCells() []MixedRoofClearanceCell {
 	out := make([]MixedRoofClearanceCell, len(r.cells))
 	for i, c := range r.cells {
 		out[i] = c
+		out[i].MaterialClearance = new(big.Rat).Set(c.MaterialClearance)
 		out[i].VerticalClearance = new(big.Rat).Set(c.VerticalClearance)
 		for j := 0; j < 3; j++ {
 			for k := 0; k < 2; k++ {
@@ -103,6 +109,9 @@ func (r *CertifiedMixedRoofFragment) MarshalJSON() ([]byte, error) {
 // exhaustive strict-material or original-trim collar cells. Unproved cells
 // reject the entire fragment; the existing strict-interior API is unchanged.
 func (n *CertifiedMixedAlgebraicShellBoundary) TessellateRoofFragmentCertified(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions) (*CertifiedMixedRoofFragment, error) {
+	return n.tessellateRoofFragment(ctx, face, oppositeRoof, o, false)
+}
+func (n *CertifiedMixedAlgebraicShellBoundary) tessellateRoofFragment(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions, difference bool) (*CertifiedMixedRoofFragment, error) {
 	if !finite(o.Width) || o.Width <= 0 {
 		return nil, geom.ErrInvalid
 	}
@@ -121,7 +130,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateRoofFragmentCertified(c
 	if o.MaxDepth < 1 || o.MaxDepth > 24 || o.MaxCells < 1 || o.MaxCells > 1000000 || o.MaxPairs < 1 || o.MaxPairs > 8000000 || o.MaxCandidates < 1 || o.MaxCandidates > 128 {
 		return nil, geom.ErrInvalid
 	}
-	work := &mixedRoofCollarWork{options: o, width2: new(big.Rat).Mul(ratInset(o.Width), ratInset(o.Width))}
+	work := &mixedRoofCollarWork{difference: difference, options: o, width2: new(big.Rat).Mul(ratInset(o.Width), ratInset(o.Width))}
 	base, e := n.tessellateMixedRoof(ctx, face, oppositeRoof, o.Roof, work)
 	if e != nil {
 		return nil, e
@@ -130,6 +139,8 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateRoofFragmentCertified(c
 }
 
 type mixedRoofCollarWork struct {
+	difference     bool
+	outside        bool
 	options        MixedRoofCollarOptions
 	width2         *big.Rat
 	cells          []MixedRoofClearanceCell
@@ -222,11 +233,15 @@ func (w *mixedRoofCollarWork) certifyTriangle(ctx context.Context, triangle int,
 		if w.visited > w.options.MaxCells {
 			return geom.ErrConvergence
 		}
-		margin, e := mixedRoofTriangleClearance(host, other, q)
+		margin, kind, e := mixedRoofMaterialClearance(host, other, q, w.outside)
 		if e != nil {
 			return e
 		}
-		cell := MixedRoofClearanceCell{Triangle: triangle, UV: q, VerticalClearance: margin, NativeEdge: -1, Chord: -1}
+		vertical := new(big.Rat)
+		if kind == MixedRoofInsideOther {
+			vertical.Set(margin)
+		}
+		cell := MixedRoofClearanceCell{Triangle: triangle, UV: q, VerticalClearance: vertical, MaterialClearance: margin, Constraint: kind, NativeEdge: -1, Chord: -1}
 		if margin.Sign() > 0 {
 			w.cells = append(w.cells, cell)
 			sum.Add(sum, roofUVArea(q))
