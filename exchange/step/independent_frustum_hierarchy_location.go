@@ -70,49 +70,11 @@ func locateAuthenticatedCircularFrustum(source *File, p IndependentExactMaterial
 		return bad(geom.ErrDomain)
 	}
 	q := f.Embedding
-	var wall, lower, upper int64
-	// Recover face ownership from the certified original supports, never sorted
-	// IDs or shell-list position. The source codec already proves their trims.
-	for _, id := range v.SourceFaceIDs {
-		face, e := simple(source, id, "ADVANCED_FACE", 4)
-		if e != nil {
-			return bad(e)
-		}
-		sid := face.Args[2].Ref
-		if plane, e := simple(source, sid, "PLANE", 2); e == nil {
-			frame, e := mappedRationalFrame(source, plane.Args[1].Ref)
-			if e != nil {
-				return bad(e)
-			}
-			if frame.Origin[2].Cmp(q.LowerZ) == 0 {
-				if lower != 0 {
-					return bad(geom.ErrInvalid)
-				}
-				lower = id
-			} else if frame.Origin[2].Cmp(q.UpperZ) == 0 {
-				if upper != 0 {
-					return bad(geom.ErrInvalid)
-				}
-				upper = id
-			} else {
-				return bad(geom.ErrInvalid)
-			}
-		} else {
-			found := false
-			for _, r := range source.Entities[sid].Records {
-				if r.Type == "B_SPLINE_SURFACE_WITH_KNOTS" {
-					found = true
-				}
-			}
-			if !found || wall != 0 {
-				return bad(geom.ErrInvalid)
-			}
-			wall = id
-		}
+	roles, e := circularFrustumSourceFaces(source, p, v.SourceFaceIDs)
+	if e != nil {
+		return bad(e)
 	}
-	if wall == 0 || lower == 0 || upper == 0 || len(v.SourceFaceIDs) != 3 {
-		return bad(geom.ErrInvalid)
-	}
+	wall, lower, upper := roles[0], roles[1], roles[2]
 	x, y, z := a.sub(v.product[0], q.CenterX), a.sub(v.product[1], q.CenterY), a.sub(v.product[2], q.LowerZ)
 	v.local = [3]*big.Rat{x, y, z}
 	h := a.sub(q.UpperZ, q.LowerZ)
@@ -166,4 +128,52 @@ func locateAuthenticatedCircularFrustum(source *File, p IndependentExactMaterial
 		return bad(a.err)
 	}
 	return v, nil
+}
+
+func circularFrustumSourceFaces(source *File, p IndependentExactMaterial, faces []int64) ([3]int64, error) {
+	q := p.Frustum.Embedding
+	var wall, lower, upper int64
+	// Recover face ownership from the certified original supports, never sorted
+	// IDs or shell-list position. The source codec already proves their trims.
+	for _, id := range faces {
+		face, e := simple(source, id, "ADVANCED_FACE", 4)
+		if e != nil {
+			return [3]int64{}, e
+		}
+		sid := face.Args[2].Ref
+		if plane, e := simple(source, sid, "PLANE", 2); e == nil {
+			frame, e := mappedRationalFrame(source, plane.Args[1].Ref)
+			if e != nil {
+				return [3]int64{}, e
+			}
+			if frame.Origin[2].Cmp(q.LowerZ) == 0 {
+				if lower != 0 {
+					return [3]int64{}, geom.ErrInvalid
+				}
+				lower = id
+			} else if frame.Origin[2].Cmp(q.UpperZ) == 0 {
+				if upper != 0 {
+					return [3]int64{}, geom.ErrInvalid
+				}
+				upper = id
+			} else {
+				return [3]int64{}, geom.ErrInvalid
+			}
+		} else {
+			found := false
+			for _, r := range source.Entities[sid].Records {
+				if r.Type == "B_SPLINE_SURFACE_WITH_KNOTS" {
+					found = true
+				}
+			}
+			if !found || wall != 0 {
+				return [3]int64{}, geom.ErrInvalid
+			}
+			wall = id
+		}
+	}
+	if wall == 0 || lower == 0 || upper == 0 || len(faces) != 3 {
+		return [3]int64{}, geom.ErrInvalid
+	}
+	return [3]int64{wall, lower, upper}, nil
 }

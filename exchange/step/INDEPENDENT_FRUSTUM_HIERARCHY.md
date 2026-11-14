@@ -125,3 +125,50 @@ rims/seam/endpoints, including an exact nonbinary 7/5 seam coordinate and a
 rotated occurrence after native reload. Additional exact ±2^-120 radial tests
 are deliberately not compared to OCCT's tolerance classifier. Original source,
 coefficient, planar proof/ray budgets and cancellation remain enforced.
+
+## Exact circular-frustum line clipping
+
+`ClipIndependentCircularFrustumHierarchyLine` retains the caller's original
+parameter t in origin+t*direction. It clips every retained body independently
+and coalesces only exactly equal hit parameters, preserving every occurrence
+owner. It does not return a regularized Boolean-union interval.
+
+The circular taper predicate becomes a rational quadratic on the line, clipped
+first to the exact finite axial slab. The bounded polynomial solver handles
+quadratic, linear and constant cases; an identically zero polynomial denotes a
+whole wall generator. Interior open intervals and coplanar-cap/wall boundary
+spans remain distinct. Tangency retains its exact multiplicity. Boundary hits
+and coincident spans identify authenticated original supports; exact polynomial
+signs at algebraic roots attach the original rim/seam/vertex identities without
+rounding an irrational station or guessing a periodic pcurve branch.
+
+Root isolation, exact comparison and ownership sign proofs share cumulative
+operation/subdivision limits. Initial planar point-proof work also counts
+against the line's planar/ray quotas. Cancellation, unsupported noncircular
+profiles, stale provenance or exhausted quotas return no partial result.
+
+Pinned OCCT comparisons cover translated/rotated transverse and axial lines,
+negative-leading and linear taper polynomials, and irrational stations. Exact
+adversaries additionally cover tangent contacts, cap-coincident intervals,
+complete/partially clipped generators, rim endpoint incidence and quota failure.
+Coincident span semantics are tested analytically rather than inferred from a
+finite list of numerical OCCT intersection points.
+
+### Rebuilding the line comparator
+
+The live frustum line tests require the all-solid comparator, not the older
+`/tmp/plainsolid-rational-hierarchy-line` binary that selected only analytic
+sphere/torus/cylinder faces. The originally qualifying executable was
+`/tmp/plainsolid-rational-hierarchy-planar-line`. Rebuild from tracked source:
+
+    sh tools/occtref/build_step_rational_hierarchy_line.sh \
+      /tmp/plainsolid-occt-build/include/opencascade \
+      /tmp/plainsolid-occt-build/mac64/clang/lib \
+      /tmp/plainsolid-rational-hierarchy-all-line
+    PLAINSOLID_OCCT_RATIONAL_HIERARCHY_LINE=/tmp/plainsolid-rational-hierarchy-all-line \
+      go test ./exchange/step -run '^TestIndependentCircularFrustumHierarchyLine$' -count=1
+
+The comparator intersects every transferred solid through OCCT's face
+intersector; it does not filter by surface type. The rebuilt executable passes
+the same retained frustum line tests. Numerical per-solid hit deduplication is
+only oracle behavior, not an exact native acceptance rule.

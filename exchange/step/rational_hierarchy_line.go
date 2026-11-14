@@ -72,6 +72,11 @@ func ClipOCCTRationalHierarchyAnalyticLine(ctx context.Context, m OCCTRationalSp
 	return clipRationalHierarchyLine(ctx, RationalSphericalHierarchy(m), origin, direction, lower, upper, o, true)
 }
 func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions, vendor bool, generalMode ...bool) (RationalHierarchyLine, error) {
+	return clipHierarchyLineWithLocations(ctx, m, origin, direction, lower, upper, o, func(q RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
+		return locateHierarchyAnalyticPoint(ctx, m, origin, q, vendor)
+	}, generalMode...)
+}
+func clipHierarchyLineWithLocations(ctx context.Context, m RationalSphericalHierarchy, origin, direction [3]*big.Rat, lower, upper *big.Rat, o RationalHierarchyLineOptions, locate func(RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error), generalMode ...bool) (RationalHierarchyLine, error) {
 	bad := func(e error) (RationalHierarchyLine, error) { return RationalHierarchyLine{}, e }
 	if ctx == nil || lower == nil || upper == nil || lower.Cmp(upper) >= 0 {
 		return bad(geom.ErrInvalid)
@@ -125,11 +130,11 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 	lower = new(big.Rat).Set(lower)
 	upper = new(big.Rat).Set(upper)
 	// The point query authenticates the whole graph and returns exact local origins.
-	locations, e := locateHierarchyAnalyticPoint(ctx, m, origin, RationalHierarchyPointOptions{MaxCoefficientBits: o.MaxCoefficientBits, Source: o.Source}, vendor)
+	locations, e := locate(RationalHierarchyPointOptions{MaxCoefficientBits: o.MaxCoefficientBits, Source: o.Source, MaxPlanarTests: o.MaxPlanarTests, MaxRayDirections: o.MaxRayDirections})
 	if e != nil {
 		return bad(e)
 	}
-	out := RationalHierarchyLine{LengthUnit: locations.LengthUnit}
+	out := RationalHierarchyLine{LengthUnit: locations.LengthUnit, PlanarTests: locations.PlanarTests, RayDirections: locations.RayDirections}
 	opts := func() (geom.ExactCurvePlaneEventOptions, error) {
 		if out.Operations >= o.MaxOperations || out.Subdivisions >= o.MaxSubdivisions {
 			return geom.ExactCurvePlaneEventOptions{}, geom.ErrConvergence
@@ -234,13 +239,24 @@ func clipRationalHierarchyLine(ctx context.Context, m RationalSphericalHierarchy
 			out.Leaves = append(out.Leaves, leaf)
 			continue
 		}
-		if location.Family != "sphere" && location.Family != "torus" && location.Family != "cylinder" {
+		if location.Family != "sphere" && location.Family != "torus" && location.Family != "cylinder" && location.Family != "circular-frustum" {
 			out.Leaves = append(out.Leaves, leaf)
 			continue
 		}
 		leaf.Supported = true
 		p := m.Products[location.ProductID]
 		u := m.Instances[k]
+
+		if p.Frustum != nil {
+			zero := [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}
+			d := a.inverse(direction, zero, [3][3]*big.Rat{u.pose.X, u.pose.Y, u.pose.Z})
+			leaf, e = clipHierarchyCircularFrustum(ctx, m.Source, p, leaf, location.AnalyticCoordinates(), d, lower, upper, &a, &out, opts, compare, addHit)
+			if e != nil {
+				return bad(e)
+			}
+			out.Leaves = append(out.Leaves, leaf)
+			continue
+		}
 		var frame geom.Frame
 		var radius, major, height *big.Rat
 		if p.Sphere != nil {

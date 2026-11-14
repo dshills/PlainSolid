@@ -7,8 +7,12 @@ import (
 )
 
 func clipHierarchyCylinder(ctx context.Context, leaf HierarchyLineLeaf, x, d [3]*big.Rat, r, h, lower, upper *big.Rat, a *hierarchyPointArithmetic, out *RationalHierarchyLine, opts func() (geom.ExactCurvePlaneEventOptions, error), compare func(*geom.ExactAlgebraicRoot, *geom.ExactAlgebraicRoot) (int, error), addHit func(*geom.ExactAlgebraicRoot, HierarchyLineOwner) error) (HierarchyLineLeaf, error) {
-	fail := func(e error) (HierarchyLineLeaf, error) { return HierarchyLineLeaf{}, e }
 	radial := []*big.Rat{a.sub(a.add(a.mul(x[0], x[0]), a.mul(x[1], x[1])), a.mul(r, r)), a.mul(big.NewRat(2, 1), a.add(a.mul(x[0], d[0]), a.mul(x[1], d[1]))), a.add(a.mul(d[0], d[0]), a.mul(d[1], d[1]))}
+	return clipHierarchyAxialQuadratic(ctx, leaf, x, d, h, lower, upper, radial, a, out, opts, compare, addHit)
+}
+
+func clipHierarchyAxialQuadratic(ctx context.Context, leaf HierarchyLineLeaf, x, d [3]*big.Rat, h, lower, upper *big.Rat, radial []*big.Rat, a *hierarchyPointArithmetic, out *RationalHierarchyLine, opts func() (geom.ExactCurvePlaneEventOptions, error), compare func(*geom.ExactAlgebraicRoot, *geom.ExactAlgebraicRoot) (int, error), addHit func(*geom.ExactAlgebraicRoot, HierarchyLineOwner) error) (HierarchyLineLeaf, error) {
+	fail := func(e error) (HierarchyLineLeaf, error) { return HierarchyLineLeaf{}, e }
 	eval := func(t *big.Rat) *big.Rat { return a.add(radial[0], a.mul(t, a.add(radial[1], a.mul(t, radial[2])))) }
 	classify := func(t *big.Rat) int {
 		z := a.add(x[2], a.mul(t, d[2]))
