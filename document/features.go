@@ -148,6 +148,15 @@ func (f Feature) clone() Feature {
 // IDs. Evaluation is deterministic and atomic. Invalid inputs, cycles, missing
 // dependencies and operation errors return no partially evaluated state.
 func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
+	return s.evaluateFeatures(ctx, nil)
+}
+
+type featureFaceObserver struct {
+	needsHistory func(Feature) bool
+	record       func(string, Feature, State, []poly.Source) error
+}
+
+func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserver) (State, error) {
 	if ctx == nil {
 		return State{}, fmt.Errorf("document: nil evaluation context")
 	}
@@ -232,6 +241,7 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 			var q parametric.Solid
 			var r trimmed.Solid
 			var e error
+			var faceSources []poly.Source
 			curved, uv := false, false
 			switch f.Kind {
 			case BoxFeature:
@@ -343,7 +353,13 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 				if !ok || !hasTool {
 					return State{}, fmt.Errorf("document: feature %q requires two planar assets", name)
 				}
-				p, e = poly.Combine(ctx, a, b, f.Operation, poly.Options{})
+				if observe == nil || !observe.needsHistory(f) {
+					p, e = poly.Combine(ctx, a, b, f.Operation, poly.Options{})
+				} else {
+					var h poly.History
+					p, h, e = poly.CombineWithHistory(ctx, a, b, f.Operation, poly.Options{})
+					faceSources = h.Faces
+				}
 			case CylinderBoreFeature:
 				uv = true
 				a, ok := result.Planar[f.Input]
@@ -391,6 +407,11 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 				result.Parametric[name] = q
 			} else {
 				result.Planar[name] = p
+			}
+			if observe != nil {
+				if e = observe.record(name, f, result, faceSources); e != nil {
+					return State{}, e
+				}
 			}
 			marks[name] = 2
 		}

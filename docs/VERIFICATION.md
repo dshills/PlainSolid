@@ -91,6 +91,14 @@ paths. Its shared reference datum remains untouched and the writer adds
 one private target frame. A single inconsistent edit to one path of that
 relationship fails without writing any exchange data.
 
+Document planar face history now propagates authored box roles through
+the same geometry evaluation that builds each planar Boolean. The
+regeneration test covers fragment ownership after subtraction, cutter
+face reversal, signed reflection, deletion after moving the cutter away,
+and exact re-resolution after Undo and reopening. Unrelated and
+unsupported dependencies return distinct errors. Existing document
+transaction, sketch, label and STEP assembly race regressions passed.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall
