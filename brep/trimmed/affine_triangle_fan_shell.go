@@ -11,7 +11,7 @@ import (
 // central vertex link. Every pair of original supports has its own complete
 // mate/separation certificate. No closed material volume is claimed.
 type AffineTriangleFanShell struct {
-	pairs              [3]*AffineTriangleMateShell
+	pairs              []*AffineTriangleMateShell
 	graph              *WrappedAlgebraicFaceChainShell
 	center, operations int
 }
@@ -71,6 +71,14 @@ func (s *AffineTriangleFanShell) ExactOperations() int {
 // All original charts are independently projected-injective; all actual native
 // model uses and the connected circular vertex link are proved again.
 func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffineTriangleMate, o AffineTriangleShellOptions) (*AffineTriangleFanShell, error) {
+	return buildAffineTriangleFan(ctx, mates[:], nil, o)
+}
+func buildAffineTriangleFan(ctx context.Context, mates []*geom.SurfaceAffineTriangleMate, opposite []*geom.SurfaceAffineTriangleVertexContact, o AffineTriangleShellOptions) (*AffineTriangleFanShell, error) {
+	n := len(mates)
+	if n != 3 && n != 4 || n == 3 && len(opposite) != 0 || n == 4 && len(opposite) != 2 {
+		return nil, geom.ErrInvalid
+	}
+
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -89,21 +97,25 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 	if o.MaxWork < 1 || o.Proof.MaxWork < 1 || o.Proof.MaxBits < 64 {
 		return nil, geom.ErrInvalid
 	}
-	var patches [3]*geom.SurfacePatch
-	var triangles [3][3][2]*big.Rat
+	patches := make([]*geom.SurfacePatch, n)
+	triangles := make([][3][2]*big.Rat, n)
 	for i, p := range mates {
 		if p == nil {
 			return nil, geom.ErrInvalid
 		}
 		patches[i], triangles[i], _ = p.Source(0)
 	}
-	if patches[0] == patches[1] || patches[0] == patches[2] || patches[1] == patches[2] {
-		return nil, geom.ErrDomain
+	for i, p := range patches {
+		for j := 0; j < i; j++ {
+			if p == patches[j] {
+				return nil, geom.ErrDomain
+			}
+		}
 	}
-	var maps [3][3]int
+	maps := make([][3]int, n)
 	for i, p := range mates {
 		source, t, _ := p.Source(1)
-		next := (i + 1) % 3
+		next := (i + 1) % n
 		if source != patches[next] {
 			return nil, geom.ErrDomain
 		}
@@ -123,10 +135,42 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 			seen[found] = true
 		}
 	}
+	// Bind both opposite certificates to the exact full original triangles,
+	// not merely to coincident numerical central points.
+	var oppositeVertices [2][2]int
+	for i, p := range opposite {
+		if p == nil {
+			return nil, geom.ErrInvalid
+		}
+		for owner := 0; owner < 2; owner++ {
+			face := i + 2*owner
+			source, t, e := p.Source(owner)
+			if e != nil || source != patches[face] {
+				return nil, geom.ErrDomain
+			}
+			seen := [3]bool{}
+			mapping := [3]int{}
+			for a, v := range t {
+				found := -1
+				for b, w := range triangles[face] {
+					if v[0].Cmp(w[0]) == 0 && v[1].Cmp(w[1]) == 0 {
+						found = b
+						break
+					}
+				}
+				if found < 0 || seen[found] {
+					return nil, geom.ErrDomain
+				}
+				mapping[a] = found
+				seen[found] = true
+			}
+			oppositeVertices[i][owner] = mapping[p.Vertices()[owner]]
+		}
+	}
 	type ref struct{ face, edge int }
 	declared := map[ref]ref{}
 	for i := range mates {
-		next := (i + 1) % 3
+		next := (i + 1) % n
 		a, b := maps[i][0], maps[i][1]
 		edge := -1
 		for j := 0; j < 3; j++ {
@@ -147,7 +191,7 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 		declared[x] = y
 		declared[y] = x
 	}
-	out := &AffineTriangleFanShell{graph: &WrappedAlgebraicFaceChainShell{}, center: -1}
+	out := &AffineTriangleFanShell{pairs: make([]*AffineTriangleMateShell, n), graph: &WrappedAlgebraicFaceChainShell{}, center: -1}
 	for i, p := range mates {
 		if out.operations >= o.MaxWork {
 			return nil, geom.ErrConvergence
@@ -161,7 +205,10 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 		out.operations += pair.operations
 		out.pairs[i] = pair
 	}
-	parent := [9]int{0, 1, 2, 3, 4, 5, 6, 7, 8}
+	parent := make([]int, 3*n)
+	for i := range parent {
+		parent[i] = i
+	}
 	root := func(i int) int {
 		for parent[i] != i {
 			i = parent[i]
@@ -170,13 +217,13 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 	}
 	for i := range mates {
 		for side := 0; side < 2; side++ {
-			a, b := root(3*i+side), root(3*((i+1)%3)+maps[i][side])
+			a, b := root(3*i+side), root(3*((i+1)%n)+maps[i][side])
 			parent[b] = a
 		}
 	}
 	g := out.graph
 	ids := map[int]int{}
-	var vm [3][3]int
+	vm := make([][3]int, n)
 	for fi, pair := range out.pairs {
 		for vi := 0; vi < 3; vi++ {
 			r := root(3*fi + vi)
@@ -194,11 +241,11 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 			g.vertexSources[id] = append(g.vertexSources[id], WrappedOpenVertexSource{Face: fi, Vertex: vi})
 		}
 	}
-	if len(g.vertices) != 4 {
+	if len(g.vertices) != n+1 {
 		return nil, geom.ErrDomain
 	}
 	for i, v := range g.vertexSources {
-		if len(v) == 3 {
+		if len(v) == n {
 			if out.center >= 0 {
 				return nil, geom.ErrDomain
 			}
@@ -207,6 +254,13 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 	}
 	if out.center < 0 {
 		return nil, geom.ErrDomain
+	}
+	for i := range opposite {
+		for owner := 0; owner < 2; owner++ {
+			if vm[i+2*owner][oppositeVertices[i][owner]] != out.center {
+				return nil, geom.ErrDomain
+			}
+		}
 	}
 	edgeIDs := map[ref]int{}
 	for fi, pair := range out.pairs {
@@ -250,7 +304,7 @@ func NewAffineTriangleFanShell(ctx context.Context, mates [3]*geom.SurfaceAffine
 		}
 		g.faces = append(g.faces, f)
 	}
-	if len(g.edges) != 6 {
+	if len(g.edges) != 2*n {
 		return nil, geom.ErrDomain
 	}
 	for _, f := range g.faces {

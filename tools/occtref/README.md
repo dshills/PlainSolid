@@ -195,3 +195,11 @@ box, selecting opposite vertical edges with radii .25 and .5. The optional
 native differential checks analytic removed profile area, mass, centroid and
 boundary topology. This development oracle additionally links TKFillet; the
 Go library retains no external dependency.
+
+`build_multi_plane_cuts.sh INCLUDE LIB OUTPUT` builds the independent
+three-cap fixture. It intersects the unit box with three OCCT halfspaces,
+checks that the result is one valid solid and reports volume, area, centroid,
+and unique vertex/edge/face counts. Set `PLAINSOLID_OCCT_MULTI_PLANE_CUTS` to
+`OUTPUT` and run `go test ./brep/trimmed -run '^TestSplineMultiPlaneCuts'` to
+compare it against the native result. The ordinary tests also check exact
+three-way seam ancestry and the volume of a body with an uncut curved face.
