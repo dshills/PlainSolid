@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "status": "partial",
+  "backend": "plainsolid-go-wasm",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "cd0b8f5d57f2421507375643953ffad118311bde6bf9ca223a5f72bf28dbc85c"
+  },
+  "plainSolidIdentity": {
+    "head": "bf37aa51b8d9018c1f6733a64ffd33413a3af04d",
+    "status": "",
+    "branch": "codex/reconcile-plaincad"
+  },
+  "wasmSha256": "a21c535707bfa9567a73e1e5d2b07ca6a5d2f475b49b8adbe0eca447c06a4cc9",
+  "unitSetup": {
+    "maxWorkers": 1,
+    "sourceHashes": {
+      "src/tests/plainSolidRuntimeSetup.ts": "6c85c8de8b30a62286b6ac9d672639372560d1f571d7206ef84535ad6b91b705",
+      "vitest.plainsolid.config.ts": "c3b525d4909b2f0492a9d7480c25142bc5896dc7428360574ed907e0b694a8b5"
+    }
+  },
+  "startedAt": "2026-11-14T08:15:41.637Z",
+  "finishedAt": "2026-11-14T08:19:06.734Z",
+  "runnerStatus": "failed",
+  "selection": {
+    "suite": "unit",
+    "testFile": "",
+    "grep": ".*",
+    "acceptancePort": "5279",
+    "preflightPort": "5279"
+  },
+  "originalSourceVerification": {
+    "verified": 841
+  },
+  "readinessSha256": "1c04ba17be8f6804fdd425178f7b88aa06db21447564ac11bb292716af05d1fa",
+  "unitResultSha256": "71acdd74a56ac40416f13c250470a1131cbc5c3c9fc8391ea28c8d2f7da3471d",
+  "unit": {
+    "total": 1689,
+    "passed": 1653,
+    "failed": 36,
+    "pending": 0
+  },
+  "previousOneWorkerRun": {
+    "plainSolidIdentity": {
+      "head": "6e65b5adbe6a2224b3efefb81d027e433000eaf2",
+      "status": "M internal/plaincadbridge/overlap_volume.go\n M internal/plaincadbridge/side_bore_batch.go\n M internal/plaincadbridge/side_cylinder.go\n M internal/plaincadbridge/side_cylinder_test.go\n M tools/plaincad/README.md\n M tools/plaincad/run.mjs",
+      "branch": "codex/plaincad-integration"
+    },
+    "passed": 1647,
+    "failed": 42,
+    "recovered": [
+      "native authored cap pick targets places source boundaries on the correct XY world axes",
+      "native lead screw and nut cuts 2 start(s), left-hand acme threads and verifies coaxial fit",
+      "native modeled thread builds a maximum-length Unified inch thread in a cold rebuild and rejects an oversize request",
+      "native modeling geometry draws native cylinder rims without its periodic seam or tangent fillet boundaries",
+      "offers only explicit visible active-component profiles and untouched native cap groups",
+      "release hardening workflows passes the parametric box edit and rebuild workflow"
+    ],
+    "newFailures": []
+  },
+  "failures": [
+    {
+      "file": "src/tests/featurePattern.test.ts",
+      "title": "associative subtractive feature patterns preserves well-typed lost sources for repair, but rejects malformed pattern imports and downstream sources",
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "src/tests/manufacturingCoach.test.ts",
+      "title": "bounded manufacturing screening does not certify curved or modified laser stock based only on bounding dimensions",
+      "firstError": "AssertionError: expected [ { \u2026(4) } ] to have a length of 3 but got 1"
+    },
+    {
+      "file": "src/tests/nativeEdgeProofCache.test.ts",
+      "title": "bounded native edge proof reuse excludes native handles and unsupported operation inputs from exact signatures",
+      "firstError": "AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string"
+    },
+    {
+      "file": "src/tests/componentPlacementPanel.test.tsx",
+      "title": "changing alignment type and clearing choices preserves a current native free-movement proof",
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "src/tests/componentAlignment.test.ts",
+      "title": "component native-reference alignment never offers fallback meshes or unproven authored sketch entities as native alignment targets",
+      "firstError": "AssertionError: expected [ { \u2026(7) }, { \u2026(6) }, { \u2026(6) }, \u2026(27) ] to deeply equal []"
+    },
+    {
+      "file": "src/tests/aiPlan.test.ts",
+      "title": "creates an editable isolated component, namespaces parameters, preserves the base and round-trips durable intent",
+      "firstError": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "file": "src/tests/modelingReadiness.test.tsx",
+      "title": "current modeling readiness distinguishes selected feature editing, native solids and fallback geometry",
+      "firstError": "AssertionError: expected { state: 'ready-solid', \u2026(4) } to match object { state: 'ready-solid', \u2026(2) }"
+    },
+    {
+      "file": "src/tests/productFamilyCommand.test.ts",
+      "title": "discards a late result after same-ID session replacement and rejects fallback variants",
+      "firstError": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "file": "src/tests/assemblyJoints.test.ts",
+      "title": "durable native assemblies rejects unsafe imports, cycles, duplicate parents, invalid limits and lost faces",
+      "firstError": "AssertionError: expected { documentId: 'fixture-v18', \u2026(20) } to match object { success: false, \u2026(1) }"
+    },
+    {
+      "file": "src/tests/holeEditCommand.test.ts",
+      "title": "edits only a current active Hole, preserves authored units and IDs, and requires separate native operation/downstream proof",
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "src/tests/holeCommand.test.ts",
+      "title": "explicit hole creation guards requires current native analysis, explicit center/target choices and preserves history on stale or invalid submissions",
+      "firstError": "AssertionError: expected { document: { \u2026(14) }, \u2026(4) } to be undefined"
+    },
+    {
+      "file": "src/tests/featureGraph.test.ts",
+      "title": "feature graph rebuild rejects edge treatments without native geometry and blocks dependent treatments",
+      "firstError": "AssertionError: expected [ { \u2026(4) } ] to deeply equal ArrayContaining{\u2026}"
+    },
+    {
+      "file": "src/tests/featureGraph.test.ts",
+      "title": "feature graph rebuild requires OpenCascade handles for join booleans in the fallback kernel path",
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "src/tests/multiBodyHoles.test.ts",
+      "title": "hole scope ownership and durability owns intermediate unions and partial cuts through center paths",
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "src/tests/multiBodyHoles.test.ts",
+      "title": "hole scope ownership and durability owns intermediate unions and partial cuts through success paths",
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "src/tests/multiBodyHoles.test.ts",
+      "title": "hole scope ownership and durability owns intermediate unions and partial cuts through target paths",
+      "firstError": "Error: The property \"unionSolids\" is not defined on the object."
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership bounds native writes before allocating oversized files and rejects native reimport volume changes",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'BRepPrimAPI_MakeBox_1')"
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership imports one placed native STEP solid and converts model units to millimetres",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership reimports curved subtractive solids and separately transferred overlapping placed bodies with exact volumes and world bounds",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership rejects missing native writes and malformed content, restoring FS hooks and disposing export handles on every failure",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'BRepPrimAPI_MakeBox_1')"
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership rejects native STEP parse/transfer failure with source-linked diagnostics and releases filesystem resources",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "src/tests/nativeStep.test.ts",
+      "title": "installed native STEP writer/reader geometry and ownership reports installed STEP reader support for an empty native rebuild and diagnoses missing file bindings",
+      "firstError": "TypeError: Cannot read properties of undefined (reading 'FS')"
+    },
+    {
+      "file": "src/tests/edgeDraftControls.test.tsx",
+      "title": "keeps source controls unavailable when the owner only has fallback geometry",
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "src/tests/partLibraryCommand.test.ts",
+      "title": "library operation ownership and native insertion rejects fallback or invalid native preview geometry and never applies it",
+      "firstError": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "file": "src/tests/sketchProjection.test.ts",
+      "title": "linked complete cap sketch projections checks surviving native boundaries at the sketch timeline and blocks lost references",
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "src/tests/fittedPart.test.ts",
+      "title": "linked fitted parts diagnoses missing, later and same-component sources without pretending fallback geometry works",
+      "firstError": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "file": "src/tests/componentPlacementCommand.test.ts",
+      "title": "native component placement workflow cancels without history and requires an active native solid",
+      "firstError": "AssertionError: expected true to be false // Object.is equality"
+    },
+    {
+      "file": "src/tests/componentPlacementCommand.test.ts",
+      "title": "native component placement workflow rejects native body/volume changes and fallback geometry",
+      "firstError": "Error: expected [Function] to throw error including 'native solid' but got 'Placement changed body identity, soli\u2026'"
+    },
+    {
+      "file": "src/tests/nativeSketchPlanes.test.ts",
+      "title": "native face reference validation scheduling publishes only native-validated surviving faces, excluding failed or absorbed bodies",
+      "firstError": "AssertionError: expected [ Array(2) ] to deep equally contain ObjectContaining{\u2026}"
+    },
+    {
+      "file": "src/tests/modelingEdit.test.ts",
+      "title": "opens the original revolve as a replacement and rejects missing native verification, cancellation and same-ID project replacement",
+      "firstError": "AssertionError: expected { id: 'revolve_edit', \u2026(10) } to be undefined"
+    },
+    {
+      "file": "src/tests/sketchRefinement.test.ts",
+      "title": "rejects a successful preview with missing sketch solve or fallback downstream meshes",
+      "firstError": "AssertionError: expected 'plainsolid' to be 'fallback' // Object.is equality"
+    },
+    {
+      "file": "src/tests/extrudeDialog.test.tsx",
+      "title": "rejects fallback meshes and exposes feature diagnostics",
+      "firstError": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "file": "src/tests/featureStage.test.ts",
+      "title": "requires a current native feature selection and rejects a stale replacement draft with the same project ID",
+      "firstError": "AssertionError: expected { name: 'Box Extrude', \u2026(10) } to be undefined"
+    },
+    {
+      "file": "src/tests/exportHub.test.tsx",
+      "title": "shows five plain output goals and distinguishes unavailable native STEP",
+      "firstError": "Error: expect(element).toBeDisabled()"
+    },
+    {
+      "file": "src/tests/planePicking.test.ts",
+      "title": "supported sketch-plane picking does not offer the original faces after a modifying cut",
+      "firstError": "AssertionError: expected [ { id: 'XY', \u2026(3) }, \u2026(8) ] to have a length of 3 but got 9"
+    },
+    {
+      "file": "src/tests/planePicking.test.ts",
+      "title": "supported sketch-plane picking offers origin planes without claiming fallback bodies have native faces",
+      "firstError": "AssertionError: expected [ 'XY', 'XZ', 'YZ', \u2026(6) ] to deeply equal [ 'XY', 'XZ', 'YZ' ]"
+    }
+  ],
+  "notes": [
+    "Original unit files and assertions retained. The isolated runner initializes the real Go/WASM provider. This does not qualify browser behavior or provider-specific fallback/OCCT fixtures."
+  ]
+}
