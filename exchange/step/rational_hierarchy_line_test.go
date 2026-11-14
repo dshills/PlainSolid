@@ -111,11 +111,22 @@ func TestRationalHierarchyLine(t *testing.T) {
 							if owner.ProductID != u.ProductID || !sameLinePath(owner.Path, u.Path) {
 								continue
 							}
-							c, e := h.Parameter.Classify(ctx, geom.ExactCurvePlaneEventOptions{})
-							if e != nil || c.Rational == nil || !c.Rational.IsInt() {
-								t.Fatal("root", c, e)
+							if len(got) >= len(want) {
+								t.Fatal("unexpected extra root", family, tangent)
 							}
-							got = append(got, c.Rational.Num().Int64())
+							// A rational root need not be an explicit endpoint of
+							// its isolating interval. Prove identity with the
+							// independently derived original line station.
+							station := want[len(got)]
+							rational, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(station, 1), geom.ExactCurvePlaneEventOptions{})
+							if e != nil {
+								t.Fatal(e)
+							}
+							c, e := h.Parameter.Compare(ctx, rational, geom.ExactCurvePlaneEventOptions{})
+							if e != nil || !c.Proven || c.Order != 0 {
+								t.Fatal("exact line station", station, c, e)
+							}
+							got = append(got, station)
 							mult := 1
 							if tangent {
 								mult = 2
