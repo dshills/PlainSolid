@@ -14,6 +14,8 @@ import (
 type WrappedFilletedFrustumBoreHistory struct {
 	Fillets    WrappedFrustumDoubleFilletHistory
 	BoreFace   int
+	FloorFace  int // -1 for through bore
+	FloorZ     *big.Rat
 	BoreRims   [2][]int
 	StockFaces [][]int
 }
@@ -26,6 +28,10 @@ type WrappedFilletedFrustumBoreHistory struct {
 // All original intermediate stock IDs and supports are retained. Unsupported
 // representation, touching clearance and exhausted proof limits fail atomically.
 func FilletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper float64, center geom.Vec2, radius float64, o geom.SurfacePatchOptions) (Solid, WrappedFilletedFrustumBoreHistory, error) {
+	return filletAndBoreWrappedFrustum(ctx, source, lower, upper, center, radius, 0, false, o)
+}
+
+func filletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper float64, center geom.Vec2, radius, depth float64, fromUpper bool, o geom.SurfacePatchOptions) (Solid, WrappedFilletedFrustumBoreHistory, error) {
 	fail := func(e error) (Solid, WrappedFilletedFrustumBoreHistory, error) {
 		return Solid{}, WrappedFilletedFrustumBoreHistory{}, e
 	}
@@ -67,7 +73,35 @@ func FilletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper
 	if e != nil {
 		return fail(e)
 	}
-	inner, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: center.X, Y: center.Y, Z: f[2]}, radius, f[3], o)
+	innerZ, innerHeight := f[2], f[3]
+	open := [2]bool{true, true}
+	floorEnd := 0
+	var floorZ *big.Rat
+	if depth != 0 {
+		d := new(big.Rat).SetFloat64(depth)
+		if d == nil || d.Sign() <= 0 {
+			return fail(geom.ErrInvalid)
+		}
+		floorZ = new(big.Rat).Add(p.LowerZ, d)
+		open = [2]bool{true, false}
+		floorEnd = 1
+		if fromUpper {
+			floorZ.Sub(p.UpperZ, d)
+			open = [2]bool{false, true}
+			floorEnd = 0
+		}
+		if floorZ.Cmp(fh.Circles[0].Tangency[1]) <= 0 || floorZ.Cmp(fh.Circles[1].Tangency[1]) >= 0 {
+			return fail(geom.ErrDomain)
+		}
+		innerHeight = depth
+		if fromUpper {
+			innerZ, e = geom.RepresentedExactScalar(floorZ)
+			if e != nil {
+				return fail(e)
+			}
+		}
+	}
+	inner, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: center.X, Y: center.Y, Z: innerZ}, radius, innerHeight, o)
 	if e != nil {
 		return fail(e)
 	}
@@ -79,6 +113,9 @@ func FilletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper
 	dv, de, df := donor.Vertices(), donor.Edges(), donor.Faces()
 	wall := df[dh.InnerFaces[0]]
 	for end, cap := range fh.Caps {
+		if !open[end] {
+			continue
+		}
 		a, ok := faces[cap].Surface.(geom.PlaneSurface)
 		if !ok {
 			return fail(geom.ErrConvergence)
@@ -123,11 +160,14 @@ func FilletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper
 		}
 		return out, nil
 	}
-	h := WrappedFilletedFrustumBoreHistory{Fillets: fh, BoreFace: len(faces), StockFaces: make([][]int, len(faces)+1)}
+	h := WrappedFilletedFrustumBoreHistory{FloorFace: -1, FloorZ: floorZ, Fillets: fh, BoreFace: len(faces), StockFaces: make([][]int, len(faces)+1)}
 	for i := range faces {
 		h.StockFaces[i] = []int{i}
 	}
 	for end, cap := range fh.Caps {
+		if !open[end] {
+			continue
+		}
 		hole, e := remap(df[dh.OuterFaces[end+1]].Holes[0])
 		if e != nil {
 			return fail(e)
@@ -149,11 +189,28 @@ func FilletAndBoreWrappedFrustum(ctx context.Context, source Solid, lower, upper
 		return fail(e)
 	}
 	faces = append(faces, wall)
+	if floorZ != nil {
+		floor := df[dh.InnerFaces[floorEnd+1]]
+		floor.Outer, e = remap(floor.Outer)
+		if e != nil {
+			return fail(e)
+		}
+		h.FloorFace = len(faces)
+		for _, u := range floor.Outer {
+			h.BoreRims[floorEnd] = append(h.BoreRims[floorEnd], u.Edge)
+		}
+		faces = append(faces, floor)
+		h.StockFaces = append(h.StockFaces, nil)
+	}
+	expectedEuler := 0
+	if floorZ != nil {
+		expectedEuler = 2
+	}
 	out, e := NewSolidContext(ctx, vertices, edges, faces, source.Tolerance())
 	if e != nil {
 		return fail(e)
 	}
-	if out.Topology().EulerCharacteristic != 0 || len(out.Topology().Shells) != 1 {
+	if out.Topology().EulerCharacteristic != expectedEuler || len(out.Topology().Shells) != 1 {
 		return fail(geom.ErrDegenerate)
 	}
 	agreement, e := out.ValidateEdgeAgreement(ctx, edgecheck.Options{MaxWork: o.MaxOperations, MaxBits: o.MaxCoefficientBits})
