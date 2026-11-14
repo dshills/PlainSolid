@@ -31,3 +31,17 @@ torus, rejected nonbinary mm→m torus radii, wrong major/minor and seam radii,
 underflow exponents, rounded vendor graph rejection, old API/tag rejection,
 budgets, cancellation, race and bounded fuzz. Native torus evaluation remains the
 previously qualified analytic representation, not an exact rational patch claim.
+
+`WriteNormalizedIndependentToroidalMaterialsJSON` and
+`ReadNormalizedIndependentToroidalMaterialsJSON` provide source-bound persistence
+under the distinct version-1 tag
+`plainsolid-step-normalized-independent-toroidal-materials`. They retain the
+original STEP, original per-product SI units, normalized graph, original IDs,
+family claims and native material bytes. Reload reconstructs the normalized
+collection through the strict source proof once and compares all stored claims;
+it does not trust the stored native geometry. At least one torus is mandatory.
+The earlier round, planar, heterogeneous and unnormalized envelopes remain
+separate and reject this tag. Byte/source limits, cancellation and atomic writer
+failure apply. Tests mutate the torus radii and seam/vertex ancestry in addition
+to source geometry, units, product roots and native payload, and qualify the
+four-root source and native-reloaded STEP output with pinned OCCT.
