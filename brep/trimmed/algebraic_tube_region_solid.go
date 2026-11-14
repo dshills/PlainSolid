@@ -55,6 +55,13 @@ type tubeRegionSolidRing struct {
 }
 
 func assembleTubeRegionSolid(ctx context.Context, faces [2]Face, rings []tubeRegionSolidRing, tolerance float64, o edgecheck.Options) (Solid, error) {
+	return assembleTubeRegionSolidBounded(ctx, faces, rings, tolerance, o, 128)
+}
+
+func assembleTubeRegionSolidBounded(ctx context.Context, faces [2]Face, rings []tubeRegionSolidRing, tolerance float64, o edgecheck.Options, maxPieces int) (Solid, error) {
+	if maxPieces < 3 || maxPieces > 256 {
+		return Solid{}, geom.ErrInvalid
+	}
 	if ctx == nil || tolerance <= 0 || !finite(tolerance) {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -64,7 +71,7 @@ func assembleTubeRegionSolid(ctx context.Context, faces [2]Face, rings []tubeReg
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	for loop, ring := range rings {
-		if len(ring.cut) < 3 || len(ring.cut) > 128 {
+		if len(ring.cut) < 3 || len(ring.cut) > maxPieces {
 			return Solid{}, geom.ErrConvergence
 		}
 		first := len(vertices)

@@ -14,6 +14,8 @@ type mixedRoofBox struct {
 	roof       *geom.SurfacePatch
 	floor      *big.Rat
 	domain     geom.ParameterRectangle
+	roofFace   int
+	floorFace  int
 	operations int
 }
 
@@ -92,6 +94,7 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 		return nil, e
 	}
 	r.roof = patches[roof]
+	r.roofFace = roof
 	r.domain = r.roof.Domain()
 	if _, e := mixedRoofPower(r.roof); e != nil {
 		return nil, e
@@ -128,6 +131,7 @@ func proveMixedRoofBox(ctx context.Context, s Solid, roof int, limit int) (*mixe
 	if floor < 0 {
 		return nil, geom.ErrUnrepresentable
 	}
+	r.floorFace = floor
 	height, exact := r.floor.Float64()
 	if !exact {
 		return nil, geom.ErrUnrepresentable

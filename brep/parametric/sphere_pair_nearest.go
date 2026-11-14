@@ -25,16 +25,24 @@ func (s SpherePairSet) NearestBoundaryRational(ctx context.Context, p [3]*big.Ra
 		return zero, e
 	}
 	out := SpherePairNativeNearest{Geometry: geometry}
+
 	for owner := 0; owner < 2; owner++ {
-		if len(s.faces[owner]) != 1 {
+		if len(s.faces[owner]) > 1 {
 			return zero, geom.ErrDomain
 		}
 		if geometry.Owners&(1<<uint(owner)) != 0 {
-			out.TiedFaces = append(out.TiedFaces, s.faces[owner][0])
-		} else {
+			if len(s.faces[owner]) != 1 {
+				return zero, geom.ErrDomain
+			}
+			id := s.faces[owner][0]
+			if len(out.TiedFaces) == 0 || out.TiedFaces[0] != id {
+				out.TiedFaces = append(out.TiedFaces, id)
+			}
+		} else if len(s.faces[owner]) == 1 {
 			out.ExcludedFaces = append(out.ExcludedFaces, s.faces[owner][0])
 		}
 	}
+
 	sort.Ints(out.TiedFaces)
 	sort.Ints(out.ExcludedFaces)
 	return out, nil

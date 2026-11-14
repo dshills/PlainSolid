@@ -36,6 +36,14 @@ source error bound below 0.143 model units. Its complement proof clips
 query cells to the opposing chart before testing height. All three mesh
 operations now run end to end on the two original shells without caller
 face assignments or rational wall seeds.
+On proved original roof boxes, exact rational point and vertical-line
+queries preserve original floor and roof owners, including simultaneous
+contacts and a retained difference span below binary64 resolution. Line
+parameters remain exact with either direction and at distant origins.
+The native tube adapter also assembles the original triple radial
+intersection as separate disk and annular solids with four original
+faces, 228 retained edges, and two inner wires. Whole original ring
+ownership is required; general algebraic fragment materialization remains open.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -482,6 +490,11 @@ two-floor case](evidence/plaincad-reconciled-3a4a37c8-supplemental-double-blind-
 used that same WASM and retained both floor positions through STEP and
 watertight STL. Live OCCT readback of the browser's STEP reproduced the
 reference volume, area, and centroid.
+The [covered and deepened Hole reconciliation](evidence/plaincad-reconciled-407cb101-development-contained-crossed-holes-step-2026-11-14.json)
+adds worktree commit `b3899732` to clean review revision `407cb101`.
+Focused bridge tests check exact coverage, overlap and the transition from
+blind to through. The live native tests, Go/WASM preflight and all 17 original
+browser scenarios passed; 841 app and 1,966 kernel source hashes matched.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

@@ -156,6 +156,7 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 				t.Fatal("sub-binary roof classification", name, j, got, want, err)
 			}
 		}
+		checkMixedOriginalVerticalSection(t, ctx, roof, i, delta)
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
 		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
@@ -282,5 +283,108 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
 		t.Fatal("cancellation may not expose partial material measure", partial, err)
+	}
+}
+
+func checkMixedOriginalVerticalSection(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int, delta *big.Rat) {
+	t.Helper()
+	r := big.NewRat
+	center := [2]*big.Rat{r(1, 2), r(1, 2)}
+	o := geom.SurfacePatchEvaluationOptions{}
+	all, err := roof.IntersectVerticalRational(ctx, center, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), o)
+	full := []struct {
+		z []*big.Rat
+		f []MixedRoofFaceOwner
+	}{
+		{[]*big.Rat{r(-1, 2), r(-7, 128)}, []MixedRoofFaceOwner{{1, 0}, {1, 1}}},
+		{[]*big.Rat{r(-1, 1), r(1, 256)}, []MixedRoofFaceOwner{{0, 0}, {0, 1}}},
+		{[]*big.Rat{r(-1, 1), r(-1, 2), r(-7, 128), r(1, 256)}, []MixedRoofFaceOwner{{0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+	}[op]
+	if err != nil || all.Start != parametric.Outside || all.End != parametric.Outside || len(all.Events) != len(full.z) || len(all.Spans)*2 != len(full.z) {
+		t.Fatal("incorrect exact vertical material topology", op, all, err)
+	}
+	for i, e := range all.Events {
+		span := all.Spans[i/2]
+		endpoint := [2]*big.Rat{span.Lower, span.Upper}[i%2]
+		if e.Parameter.Cmp(full.z[i]) != 0 || len(e.Owners) != 1 || e.Owners[0] != full.f[i] ||
+			e.Before != (i%2 == 1) || e.After != (i%2 == 0) || endpoint.Cmp(e.Parameter) != 0 || endpoint == e.Parameter {
+			t.Fatal("wrong exact vertical span or original face", op, i, e, span)
+		}
+	}
+	// The two original roofs meet transversely at this XY station. Move by
+	// 2^-100 to the side where tool is below stock; the narrow difference
+	// band must stay distinct, despite a much larger negative line origin.
+	xy := [2]*big.Rat{new(big.Rat).Sub(r(95, 128), delta), r(9, 16)}
+	stock := new(big.Rat).Quo(new(big.Rat).Mul(xy[0], xy[1]), r(64, 1))
+	dx := new(big.Rat).Sub(xy[0], r(1, 2))
+	tool := new(big.Rat).Add(stock, new(big.Rat).Sub(new(big.Rat).Mul(dx, dx), r(1, 16)))
+	tool.Add(tool, new(big.Rat).Quo(new(big.Rat).Mul(xy[1], new(big.Rat).Sub(r(1, 1), xy[1])), r(64, 1)))
+	if tool.Cmp(stock) >= 0 {
+		t.Fatal("invalid test formula for narrow stock band", tool, stock)
+	}
+	offset := new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), 300))
+	for _, sign := range []int64{1, -1} {
+		direction := r(7*sign, 3)
+		origin := new(big.Rat).Neg(new(big.Rat).Mul(offset, direction))
+		param := func(h *big.Rat) *big.Rat {
+			return new(big.Rat).Quo(new(big.Rat).Sub(h, origin), direction)
+		}
+		want := []*big.Rat{param(tool)}
+		owners := []int{1}
+		if op == 1 {
+			want, owners = []*big.Rat{param(stock)}, []int{0}
+		}
+		if op == 2 {
+			want, owners = []*big.Rat{param(tool), param(stock)}, []int{1, 0}
+			if sign < 0 {
+				want[0], want[1], owners[0], owners[1] = want[1], want[0], owners[1], owners[0]
+			}
+		}
+		a, b := param(tool), param(stock)
+		if sign < 0 {
+			a, b = b, a
+		}
+		narrow, err := roof.IntersectVerticalRational(ctx, xy, origin, direction, a, b, o)
+		if err != nil || len(narrow.Events) != len(want) {
+			t.Fatal("lost unrounded vertical events", op, sign, narrow, err)
+		}
+		for i, e := range narrow.Events {
+			if e.Parameter.Cmp(want[i]) != 0 || len(e.Owners) != 1 || e.Owners[0] != (MixedRoofFaceOwner{owners[i], 1}) {
+				t.Fatal("incorrect rational station or original owner", op, sign, e, want[i])
+			}
+		}
+		if op == 2 && (len(narrow.Spans) != 1 || narrow.Spans[0].Lower.Cmp(a) != 0 || narrow.Spans[0].Upper.Cmp(b) != 0 || narrow.Start != parametric.Boundary || narrow.End != parametric.Boundary) {
+			t.Fatal("sub-binary retained span changed", sign, narrow)
+		}
+	}
+	xy[0] = r(95, 128)
+	tie := r(855, 131072)
+	at, err := roof.IntersectVerticalRational(ctx, xy, r(0, 1), r(1, 1), tie, tie, o)
+	if err != nil || len(at.Events) != 1 || len(at.Spans) != 0 || at.Start != parametric.Boundary || at.End != parametric.Boundary ||
+		len(at.Events[0].Owners) != 2 || at.Events[0].Owners[0] != (MixedRoofFaceOwner{0, 1}) || at.Events[0].Owners[1] != (MixedRoofFaceOwner{1, 1}) ||
+		at.Events[0].Before != (op != 2) || at.Events[0].After {
+		t.Fatal("coincident line stations must retain both faces and exact contact", op, at, err)
+	}
+	inside, err := roof.IntersectVerticalRational(ctx, center, r(0, 1), r(1, 1), r(-5, 16), r(-1, 8), o)
+	if err != nil || len(inside.Events) != 0 || (len(inside.Spans) == 1) != (op != 2) ||
+		(inside.Start == parametric.Inside) != (op != 2) || inside.Start != inside.End {
+		t.Fatal("clip endpoints inside a span must not create events", op, inside, err)
+	}
+	outside, err := roof.IntersectVerticalRational(ctx, [2]*big.Rat{r(2, 1), center[1]}, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), o)
+	if err != nil || outside.Start != parametric.Outside || outside.End != parametric.Outside || len(outside.Events)+len(outside.Spans) != 0 {
+		t.Fatal("line outside both footprints published material", op, outside, err)
+	}
+	for _, tc := range []struct {
+		xy  [2]*big.Rat
+		o   geom.SurfacePatchEvaluationOptions
+		err error
+	}{
+		{[2]*big.Rat{r(0, 1), center[1]}, o, geom.ErrUnrepresentable},
+		{center, geom.SurfacePatchEvaluationOptions{MaxOperations: all.ExactOperations - 1}, geom.ErrConvergence},
+	} {
+		partial, err := roof.IntersectVerticalRational(ctx, tc.xy, r(0, 1), r(1, 1), r(-2, 1), r(2, 1), tc.o)
+		if !errors.Is(err, tc.err) || partial.Events != nil || partial.Spans != nil || partial.ExactOperations != 0 {
+			t.Fatal("unproved vertical result must be atomic", op, partial, err)
+		}
 	}
 }

@@ -155,10 +155,17 @@ func (s AlgebraicShellBoolean) NativeTubeAnnulus(ctx context.Context, tolerance 
 }
 
 func (s AlgebraicShellBoolean) nativeWholeTubeRing(ctx context.Context, branch int, uses [2][]AlgebraicShellBooleanUse) (tubeRegionSolidRing, error) {
+	return s.nativeWholeTubeRingBounded(ctx, branch, uses, 128)
+}
+
+func (s AlgebraicShellBoolean) nativeWholeTubeRingBounded(ctx context.Context, branch int, uses [2][]AlgebraicShellBooleanUse, maxPieces int) (tubeRegionSolidRing, error) {
+	if maxPieces < 3 || maxPieces > 256 {
+		return tubeRegionSolidRing{}, geom.ErrInvalid
+	}
 	var ring tubeRegionSolidRing
 	b := s.source.branches[branch]
 	n := len(b.Segments)
-	if !b.Closed || n < 3 || n > 128 || len(uses[0]) != n || len(uses[1]) != n {
+	if !b.Closed || n < 3 || n > maxPieces || len(uses[0]) != n || len(uses[1]) != n {
 		return ring, geom.ErrConvergence
 	}
 	for i, row := range uses {
