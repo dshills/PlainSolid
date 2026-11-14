@@ -269,11 +269,11 @@ func volumeShellWitness(ctx context.Context, p *geom.SurfacePatch, other Solid, 
 
 func booleanVolumeCellFlux(ctx context.Context, p *geom.SurfacePatch, origin geom.Vec3, partial bool,
 	o geom.SurfacePatchOptions) (*big.Rat, *big.Rat, error) {
-	return booleanCellFlux(ctx, p, origin, partial, -1, o)
+	return booleanCellFlux(ctx, p, origin, partial, -1, -1, o)
 }
 
 func booleanCellFlux(ctx context.Context, p *geom.SurfacePatch, origin geom.Vec3, partial bool,
-	momentAxis int, o geom.SurfacePatchOptions) (*big.Rat, *big.Rat, error) {
+	momentAxis, secondAxis int, o geom.SurfacePatchOptions) (*big.Rat, *big.Rat, error) {
 	// A depth-zero flux enclosure bounds the integrand pointwise within
 	// each original knot cell. A clipped subset may independently
 	// contribute any measure between zero and the full cell.
@@ -290,10 +290,13 @@ func booleanCellFlux(ctx context.Context, p *geom.SurfacePatch, origin geom.Vec3
 			}
 			limit := geom.SurfacePatchEvaluationOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
 			var a, b *big.Rat
-			if momentAxis < 0 {
+			switch {
+			case momentAxis < 0:
 				a, b, e = geom.BoundSurfaceOrientedVolumeFlux(ctx, q, origin, 0, limit)
-			} else {
+			case secondAxis < 0:
 				a, b, e = geom.BoundSurfaceOrientedFirstMomentFlux(ctx, q, origin, 0, momentAxis, limit)
+			default:
+				a, b, e = geom.BoundSurfaceOrientedSecondMomentFlux(ctx, q, origin, 0, momentAxis, secondAxis, limit)
 			}
 			if e != nil {
 				return nil, nil, e

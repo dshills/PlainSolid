@@ -42,7 +42,22 @@ func TestAlgebraicShellMassBoundsSignedTranslation(t *testing.T) {
 			t.Fatal("independent world first moment and centroid", axis, m.FirstMoment[axis], m.Centroid[axis], q)
 		}
 	}
-	if limited, e := u.BoundMassProperties(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); !errors.Is(e, geom.ErrConvergence) || limited.Volume.Lower != nil || limited.FirstMoment[0].Lower != nil {
+	// Product integrals use z=1+t+xy/8 for the slab and independent
+	// Cartesian intervals for the box. Ixx/Iyy combine two raw squares;
+	// negative off-diagonal products test the world translation signs.
+	wantInertia := [3][3]*big.Rat{
+		{big.NewRat(22363, 576), big.NewRat(75, 4), big.NewRat(673, 48)},
+		{big.NewRat(75, 4), big.NewRat(16603, 576), big.NewRat(-281, 16)},
+		{big.NewRat(673, 48), big.NewRat(-281, 16), big.NewRat(40, 1)},
+	}
+	for i, row := range wantInertia {
+		for j, want := range row {
+			if x := m.Inertia[i][j]; !contains(x, want) || x.Lower.Cmp(m.Inertia[j][i].Lower) != 0 || x.Upper.Cmp(m.Inertia[j][i].Upper) != 0 {
+				t.Fatal("independent symmetric inertia value", i, j, x, want)
+			}
+		}
+	}
+	if limited, e := u.BoundMassProperties(ctx, AlgebraicShellMeasureOptions{MaxCells: 1}); !errors.Is(e, geom.ErrConvergence) || limited.Volume.Lower != nil || limited.FirstMoment[0].Lower != nil || limited.Inertia[0][0].Lower != nil {
 		t.Fatal("budget must not publish partial measures", limited, e)
 	}
 }
