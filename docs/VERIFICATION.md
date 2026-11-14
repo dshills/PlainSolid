@@ -129,7 +129,10 @@ to an ordinary representable solid still rejects unsupported endpoints.
 Mixed original charts now yield the full shared boundary (`1950d1b`):
 98 exact edges and 602 certified segments at deflection 0.02. All 180,901
 display segment pairs pass exact contact checks, and the filled curved
-faces require a separate proof.
+faces require a separate proof. Exact trapezoid chart inversion
+(`59615993`) completes the original XY/64 wall/roof pair in both
+operand orders; an omitted tube and a one-ULP false anchor reject.
+That whole-shell fixture still stops at its final wall/wall pair.
 The eccentric through-bore on this filleted stock (`c207731`) retains all
 stock vertex, edge and face IDs, proves exact clearance, and matches
 independent differences −6π in volume and +10π in area after reload.
@@ -153,6 +156,12 @@ shares original rim indices, and proves no unintended triangle contacts.
 The eccentric through-bore display (`238a439`) uses 2,160 triangles at
 the same deflection. Its two annular caps and inward bore wall share
 original rim indices and pass genus-one closure and global contact checks.
+Mixed through/blind display (`a6fd2fb`) closes with 2,256 triangles,
+original cap holes and two distinct blind floors. Exact oblique
+queries (`5b2cd321`) separate retained toroidal quartic roots from the
+inner branch and from trimmed support events under a cumulative budget.
+Prepared material persistence (`d9d6bc15`) re-proves native owners and
+those queries; changed depth/radius and stale source geometry fail.
 The exact clipped planar cap mesh triangulates the original coplanar
 boundary samples with the void open or intact. It proves chord ownership,
 display ring topology, oriented coverage and a two-sided fill error.
@@ -169,6 +178,14 @@ recipe (`5739ea0`) preserves the original root IDs and material queries.
 Exact flux encloses 697/960 − 3√3/640 to width 2⁻³⁰. Pinned OCCT
 independently gives 0.71792267910286089, within 6×10⁻¹⁰ of the analytic
 value, and Euler characteristic 2 on its coarser face partition.
+Every indexed model edge has an exact original domain (`ffe0921`),
+and one shared chord network (`15f7044`) feeds a closed planar or
+affine-projected curved fill (`69bc0d7d`). The latter keeps the original
+surface charts, certifies two-sided source error, and independently
+checks all display triangle contacts. Exact cap nesting (`8b7dc323`)
+preserves both holes in the second sheared-sleeve fixture (Euler 0).
+Two disconnected original floor fragments have separate indexed loops,
+keep their irrational contacts, and reload the same closed topology.
 The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
 original outer ellipse and preserves both owners. Pinned OCCT confirms
 native reload, two original edges, and area 38π. The two-hole STEP face
@@ -178,7 +195,10 @@ at least 3 model units. The bounded STEP ellipse extrusion repair
 (`c2c6b7b`) changes only the rounded period and re-proves both original
 seam uses. The closed prism shell extension authenticates the two shared
 rims and three original faces. Pinned OCCT measures volume 24π;
-native solid promotion is tracked separately.
+the exact promotion (`db873281`) sews four rational tensor walls and
+two caps at zero continuous edge error. The independent native STEP
+writer (`327e0e49`) retains analytic curves and independently reads
+in pinned OCCT at the original and a translated placement.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs

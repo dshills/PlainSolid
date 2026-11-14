@@ -905,11 +905,14 @@ surfaces must keep their geometry through the operation. Continue with:
    including distinct chart parameters at a shared irrational endpoint.
    Each retained cap interval now also binds to the original stock UV trim,
    with exact model equality across the entire interval. The retained
-   single-loop stock faces now close into an indexed algebraic boundary;
-   all edges have opposed uses and every vertex link is a cycle. The
-   sheared sleeve rebuilds after native reload and has a certified volume.
-   Ordinary solid conversion, general mixed-axis trim arrangements and
-   several retained components on one original chart remain open.
+   stock faces now close into an indexed algebraic boundary, including
+   several distinct retained components on a single original stock chart.
+   All edges have opposed uses and every vertex link is a cycle. The
+   sheared sleeves rebuild after native reload, preserve either an intact
+   through-void or a notch, and have certified material queries. The
+   notch fixture has certified volume and a watertight affine-projection
+   display mesh. Ordinary solid conversion and general mixed-axis trim
+   arrangements remain open.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,
