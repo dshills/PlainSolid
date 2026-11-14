@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"slices"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -126,6 +127,26 @@ func TestCoaxialNoncircularStationLoftThroughBore(t *testing.T) {
 			section.Outer.Section.Height.Cmp(z) != 0 || section.Inner.Section.Radius.Cmp(big.NewRat(1, 1)) != 0 ||
 			len(section.Outer.Faces) != 1+i/2 || section.Inner.Faces[0] != inner {
 			t.Fatal("annular section must retain both original weighted loops and cap or crease ownership", z, section, err)
+		}
+	}
+	r := big.NewRat
+	for _, tc := range []struct {
+		point [3]*big.Rat
+		want  parametric.Location
+		faces []int
+	}{
+		{[3]*big.Rat{r(1, 4), r(-1, 2), r(0, 1)}, parametric.Outside, nil},
+		{[3]*big.Rat{r(1, 4), r(-1, 2), r(1, 3)}, parametric.Outside, nil},
+		{[3]*big.Rat{r(27, 28), r(3, 14), r(0, 1)}, parametric.Boundary, []int{h.ResultCaps[0], inner}},
+		{[3]*big.Rat{r(27, 28), r(3, 14), r(1, 3)}, parametric.Boundary, []int{inner}},
+		{[3]*big.Rat{r(7, 4), r(-1, 2), r(0, 1)}, parametric.Boundary, []int{h.ResultCaps[0]}},
+		{[3]*big.Rat{r(7, 4), r(-1, 2), r(1, 1)}, parametric.Inside, nil},
+		{[3]*big.Rat{r(9, 4), r(-1, 2), r(1, 1)}, parametric.Boundary, proof.OuterWalls},
+	} {
+		loc, err := restored.LocateWrappedRationalStationBoreRational(ctx, tc.point, WrappedRationalStationPointOptions{})
+		slices.Sort(tc.faces)
+		if err != nil || loc.Location != tc.want || !slices.Equal(loc.Faces, tc.faces) {
+			t.Fatal("exact annular material location and original owners", tc, loc, err)
 		}
 	}
 	mass, err := restored.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
