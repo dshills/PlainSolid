@@ -60,6 +60,7 @@ func (d *RationalMappedPlanarDocument) BakeOccurrenceIndex(index int) (step.Body
 	view := *d
 	view.paths = nil
 	view.deepPaths = nil
+	view.dagPaths = nil
 	view.model = d.model
 	view.model.Occurrences = []step.ExactMappedOccurrence{d.model.Occurrences[index]}
 	return view.BakeOccurrence(view.model.Occurrences[0].ItemID)
