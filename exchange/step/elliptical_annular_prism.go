@@ -55,7 +55,7 @@ func fillAnnularPrism(f *File, b mappedRationalBasis, ref Value, a, r, ia, ir, h
 	if e := exactPrismBasis(b); e != nil {
 		return e
 	}
-	if !annularDimensions(a, r, ia, ir, h) {
+	if !nestedAnnularDimensions(a, r, ia, ir, h) {
 		return geom.ErrInvalid
 	}
 	zero := new(big.Rat)
@@ -144,6 +144,9 @@ func fillAnnularPrism(f *File, b mappedRationalBasis, ref Value, a, r, ia, ir, h
 // graph. Both ellipse dimensions must be exactly homothetic and strictly nested.
 // No rounded pcurve, offset hole, finite angular trim or tolerance repair enters.
 func ReadEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol float64) (EllipticalAnnularPrism, error) {
+	return readEllipticalAnnularPrism(ctx, r, l, tol, false)
+}
+func readEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol float64, nonhomothetic bool) (EllipticalAnnularPrism, error) {
 	fail := func() (EllipticalAnnularPrism, error) {
 		return EllipticalAnnularPrism{}, fmt.Errorf("step: unsupported exact elliptical annular prism")
 	}
@@ -217,7 +220,7 @@ func ReadEllipticalAnnularPrism(ctx context.Context, r io.Reader, l Limits, tol 
 		height.Add(height, new(big.Rat).Mul(new(big.Rat).Sub(top[i], basis.Origin[i]), basis.Z[i]))
 	}
 	h, exact := height.Float64()
-	if !exact || !annularDimensions(dims[0], dims[1], dims[2], dims[3], h) {
+	if !exact || !selectedAnnularDimensions(dims[0], dims[1], dims[2], dims[3], h, nonhomothetic) {
 		return fail()
 	}
 	ref, _ := simple(f, roles[50], "DIRECTION", 2)
@@ -256,7 +259,10 @@ type EllipticalAnnularPrismDefinition struct {
 }
 
 func WriteEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d EllipticalAnnularPrismDefinition, tol float64) error {
-	if ctx == nil || w == nil || !d.Reference.IsFinite() || !d.Axis.IsFinite() || !utf8.ValidString(d.Name) || len(d.Name) > 1024 || !annularDimensions(d.MajorRadius, d.MinorRadius, d.InnerMajorRadius, d.InnerMinorRadius, d.Height) {
+	return writeEllipticalAnnularPrismSTEP(ctx, w, d, tol, false)
+}
+func writeEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d EllipticalAnnularPrismDefinition, tol float64, nonhomothetic bool) error {
+	if ctx == nil || w == nil || !d.Reference.IsFinite() || !d.Axis.IsFinite() || !utf8.ValidString(d.Name) || len(d.Name) > 1024 || !selectedAnnularDimensions(d.MajorRadius, d.MinorRadius, d.InnerMajorRadius, d.InnerMinorRadius, d.Height, nonhomothetic) {
 		return geom.ErrInvalid
 	}
 	for _, c := range d.Name {
@@ -317,7 +323,7 @@ func WriteEllipticalAnnularPrismSTEP(ctx context.Context, w io.Writer, d Ellipti
 		fmt.Fprintf(&out, "#%d=%s;\n", id, assemblyEntity(f.Entities[id], ids))
 	}
 	fmt.Fprintln(&out, "ENDSEC;END-ISO-10303-21;")
-	if _, e = ReadEllipticalAnnularPrism(ctx, bytes.NewReader(out.Bytes()), Limits{}, tol); e != nil {
+	if _, e = readEllipticalAnnularPrism(ctx, bytes.NewReader(out.Bytes()), Limits{}, tol, nonhomothetic); e != nil {
 		return e
 	}
 	if e = ctx.Err(); e != nil {
