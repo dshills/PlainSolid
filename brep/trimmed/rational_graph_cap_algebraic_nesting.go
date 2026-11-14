@@ -36,6 +36,19 @@ func (c AlgebraicGraphCapClip) MaterialRegions(ctx context.Context, options geom
 }
 
 func (c AlgebraicGraphCapClip) materialRegions(b *capClipBudget) ([]RationalGraphShellRegion, error) {
+	if c.separated {
+		// The retained forest is the entire original certified section.
+		// Its topology and order already match the preserved wires.
+		regions := make([]RationalGraphShellRegion, len(c.regions.material))
+		for i, r := range c.regions.material {
+			if e := b.charge(1+len(r.Holes), 0); e != nil {
+				return nil, e
+			}
+			regions[i] = RationalGraphShellRegion{Outer: r.Outer, Holes: append([]int(nil), r.Holes...)}
+		}
+		return regions, nil
+	}
+
 	axes := orientedRationalGraphProjection(c.regions.plane)
 	seen := make([][]bool, len(c.wires))
 	depth := make([]int, len(c.wires))

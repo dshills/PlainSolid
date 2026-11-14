@@ -20,8 +20,8 @@ type AlgebraicGraphCapLineContact struct {
 // AlgebraicGraphCapLine reports the ordered boundary events and clipped
 // material intervals within the requested finite line range. Isolated
 // touches of an otherwise exterior line are contacts, not material spans.
-// Endpoints are
-// immutable exact roots, including station endpoints when already inside.
+// Endpoints are immutable exact roots, including caller limits when the
+// line is already inside at either end.
 type AlgebraicGraphCapLine struct {
 	Contacts                      []AlgebraicGraphCapLineContact
 	Material                      [][2]*geom.ExactAlgebraicRoot

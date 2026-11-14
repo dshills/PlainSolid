@@ -21,13 +21,14 @@ type algebraicGraphCapRecipe struct {
 }
 
 type nativeAlgebraicGraphCapClip struct {
-	Version  int             `json:"version"`
-	Kind     string          `json:"kind"`
-	Stock    json.RawMessage `json:"stock"`
-	Section  [][]*float64    `json:"section"`
-	Cut      [][]*float64    `json:"cut"`
-	Positive *bool           `json:"keepPositive"`
-	Compose  bool            `json:"compose"`
+	Version   int             `json:"version"`
+	Kind      string          `json:"kind"`
+	Stock     json.RawMessage `json:"stock"`
+	Section   [][]*float64    `json:"section"`
+	Cut       [][]*float64    `json:"cut"`
+	Positive  *bool           `json:"keepPositive"`
+	Compose   bool            `json:"compose"`
+	Separated bool            `json:"separated,omitempty"`
 }
 
 // ClipAlgebraicGraphCap sections an original native graph shell and clips the
@@ -121,7 +122,7 @@ func WriteAlgebraicGraphCapJSON(w io.Writer, c AlgebraicGraphCapClip) error {
 	}
 	f := nativeAlgebraicGraphCapClip{Version: 1, Kind: "trimmed-algebraic-graph-cap",
 		Stock: stock.Bytes(), Section: graphCapEncodePlane(recipe.section), Cut: graphCapEncodePlane(recipe.cut),
-		Positive: &recipe.positive, Compose: recipe.compose}
+		Positive: &recipe.positive, Compose: recipe.compose, Separated: c.separated}
 	b, e := json.Marshal(f)
 	if e != nil {
 		return e
@@ -178,6 +179,12 @@ func ReadAlgebraicGraphCapJSON(ctx context.Context, r io.Reader, l JSONLimits, o
 		return zero, e
 	}
 	o.ComposeSectionCurves = f.Compose
+	if f.Separated {
+		if *f.Positive {
+			return zero, geom.ErrInvalid
+		}
+		return stock.separatedAlgebraicCap(ctx, section, cut, o, clip)
+	}
 	return stock.ClipAlgebraicGraphCap(ctx, section, cut, *f.Positive, o, clip)
 }
 

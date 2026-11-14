@@ -37,6 +37,7 @@ type AlgebraicGraphCapClip struct {
 	regions                       *RationalGraphShellRegions
 	cut                           polynomialPlaneEquation
 	keepSign                      int
+	separated                     bool
 	recipe                        *algebraicGraphCapRecipe
 }
 

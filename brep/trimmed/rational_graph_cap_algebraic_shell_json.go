@@ -10,18 +10,19 @@ import (
 )
 
 type nativeAlgebraicGraphStock struct {
-	Version int             `json:"version"`
-	Kind    string          `json:"kind"`
-	Stock   json.RawMessage `json:"stock"`
-	Planes  [][][]*float64  `json:"planes"`
-	Compose bool            `json:"compose"`
+	Version   int             `json:"version"`
+	Kind      string          `json:"kind"`
+	Stock     json.RawMessage `json:"stock"`
+	Planes    [][][]*float64  `json:"planes"`
+	Compose   bool            `json:"compose"`
+	Separated bool            `json:"separated,omitempty"`
 }
 
 // WriteAlgebraicGraphStockJSON stores one original source stock and two
 // oriented cut planes. The indexed topology, exact roots and ancestry are
 // recomputed on reload rather than encoded as authoritative input.
 func WriteAlgebraicGraphStockJSON(w io.Writer, pair AlgebraicGraphCapPair) error {
-	if w == nil || pair.caps[0].recipe == nil || pair.caps[1].recipe == nil || len(pair.seams) == 0 {
+	if w == nil || pair.caps[0].recipe == nil || pair.caps[1].recipe == nil || len(pair.seams) == 0 && !(pair.caps[0].separated && pair.caps[1].separated) {
 		return geom.ErrInvalid
 	}
 	var b bytes.Buffer
@@ -29,7 +30,7 @@ func WriteAlgebraicGraphStockJSON(w io.Writer, pair AlgebraicGraphCapPair) error
 		return e
 	}
 	doc := nativeAlgebraicGraphStock{Version: 1, Kind: "trimmed-algebraic-graph-stock", Stock: b.Bytes(),
-		Compose: pair.caps[0].recipe.compose}
+		Compose: pair.caps[0].recipe.compose, Separated: pair.caps[0].separated && pair.caps[1].separated}
 	for _, c := range pair.caps {
 		doc.Planes = append(doc.Planes, graphCapEncodePlane(c.recipe.section))
 	}
@@ -89,9 +90,12 @@ func ReadAlgebraicGraphStockJSON(ctx context.Context, r io.Reader, limits JSONLi
 		return noPair, noShell, e
 	}
 	section.ComposeSectionCurves = doc.Compose
-	clipped, e := source.ClipAlgebraicGraphCapPair(ctx, planes, section, cap)
+	clipped, e := source.clipAlgebraicGraphCapPair(ctx, planes, section, cap, doc.Separated)
 	if e != nil {
 		return noPair, noShell, e
+	}
+	if doc.Separated != (clipped.caps[0].separated && clipped.caps[1].separated) {
+		return noPair, noShell, geom.ErrUnrepresentable
 	}
 	indexed, e := clipped.ExactIndexedBoundary(ctx, section, stock)
 	if e != nil {
