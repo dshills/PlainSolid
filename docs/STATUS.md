@@ -493,6 +493,12 @@ app and 2,180 kernel source blobs. The [authored 2 mm offset case](evidence/plai
 reproduced the 258,205-byte STEP and watertight 1,294-triangle STL, including
 eight bounded spline edge records. Independent OCCT transfer matched direct
 construction.
+The [tighter covered-width reconciliation](evidence/plaincad-reconciled-8417c286-development-tight-covered-holes-step-2026-11-14.json)
+adds worktree revision `e2e9a253` to review `8417c286`. All 17 original
+browser cases and the focused native race suite passed; 841 app and 2,186
+kernel source blobs were verified. The [authored 0.75 mm offset case](evidence/plaincad-reconciled-8417c286-supplemental-tight-covered-step-2026-11-14.json)
+reproduced the 378,805-byte STEP and watertight 1,672-triangle STL. Independent
+OCCT transfer matched direct construction.
 The broader `ac27211d` snapshot, through worktree revision `19ca5756`,
 passed all [66 original production cases](evidence/plaincad-reconciled-ac27211d-production-2026-11-14.json)
 and all [15 cross-browser cases](evidence/plaincad-reconciled-ac27211d-cross-browser-2026-11-14.json).
