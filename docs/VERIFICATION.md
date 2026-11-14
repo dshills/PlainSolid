@@ -1713,6 +1713,11 @@ passed all 49 tested packages outside `brep/trimmed` (4,277 passing and 361
 skipped test events, and three packages without tests). All three trimmed
 shards passed with 832 passing and 23 skipped test events, including subtests
 (756, 731, and 928 seconds).
+The [CGO-disabled run at `6e7de12`](evidence/native-short-6e7de12-2026-11-14.json)
+passed all 49 tested packages outside `brep/trimmed` with 4,335 passing
+and 368 skipped events. All three trimmed shards passed, with 850 passing
+and 23 skipped events (441, 597, and 563 seconds). These short-mode
+counts include subtests; later focused results are recorded separately.
 On 2026-11-14, the exact multi-cap wedge (`a0aa095`) matched a pinned live
 OCCT halfspace common in volume, area, centroid, and its 6 vertices, 9
 edges and 5 faces. The exact volume is 19/1536; the three generated seam

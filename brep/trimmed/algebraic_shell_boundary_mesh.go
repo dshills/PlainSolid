@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"plainsolid/geom"
@@ -13,6 +14,12 @@ import (
 // depth/precision options; their deflection, segment and operation limits are
 // replaced by the remaining network budget. No caller endpoint is accepted.
 type AlgebraicShellBoundaryOptions struct {
+	// AutoSectionProjection proves a suitable affine projection of each opposite
+	// original support. It is exclusive with Section.Projection.
+	AutoSectionProjection bool
+	// PlanarSectionFallback permits exact rational point recovery on a proved
+	// planar opposite support with nonlinear chart coordinates. Requires auto selection.
+	PlanarSectionFallback                            bool
 	Proof                                            AlgebraicSeamOptions
 	Deflection                                       float64
 	MaxEdges, MaxCoedges, MaxSegments, MaxOperations int
@@ -28,6 +35,9 @@ type AlgebraicShellBoundaryCoedge struct {
 }
 
 type CertifiedAlgebraicShellBoundary struct {
+	// SectionProjections records axes independently selected for each section edge.
+	SectionProjections        map[int][2]int
+	PlanarSections            []int
 	Vertices                  []geom.Vec3
 	TopologyVertices          []int
 	Edges                     [][]int
@@ -44,6 +54,11 @@ type CertifiedAlgebraicShellBoundary struct {
 // accepted by TessellateRationalTubeSegmentCertified, including an explicitly
 // chosen Section.Projection. Source and section curve
 // certificates include display rounding and both directed chord distances.
+// A face fill additionally needs certified original-chart boundary transport,
+// fixed-boundary triangulation of every retained loop, original-surface
+// triangle residual bounds including endpoint displacement, and independent
+// orientation/incidence and intersection checks. Multiple support patches are
+// not covered by the specialized two-face lens filler.
 // This proves neither face filling nor embedding of source or display. Distinct
 // exact vertices that collapse in binary64 are rejected, never welded. Errors
 // return no partial network. Mutable public Boolean diagnostics are ignored.
@@ -70,6 +85,9 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 	if o.MaxEdges < 1 || o.MaxEdges > 4096 || o.MaxCoedges < 1 || o.MaxCoedges > 8192 || o.MaxSegments < 1 || o.MaxSegments > 65536 || o.MaxOperations < 1 || o.MaxOperations > 1000000000 || o.Source.EndpointPoints != nil || o.Section.EndpointPoints != nil {
 		return empty, geom.ErrInvalid
 	}
+	if o.PlanarSectionFallback && !o.AutoSectionProjection || o.AutoSectionProjection && (o.Section.Projection != nil || o.Section.PlanarPointEvaluation) {
+		return empty, geom.ErrInvalid
+	}
 	if len(s.index) == 0 || len(s.index) > o.MaxEdges || len(s.vertices) == 0 {
 		return empty, geom.ErrConvergence
 	}
@@ -88,6 +106,11 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 		return empty, geom.ErrInvalid
 	}
 	r := CertifiedAlgebraicShellBoundary{Edges: make([][]int, len(s.index)), TopologyVertices: make([]int, len(s.vertices)), Ancestry: append([]AlgebraicShellBooleanEdge(nil), s.index...), SourceCertificates: map[int]geom.CertifiedComposedCollectionPolyline{}, SectionCertificates: map[int]CertifiedRationalTubePolyline{}}
+	projections := map[[2]int][2]int{}
+	planar := map[[2]int]bool{}
+	if o.AutoSectionProjection {
+		r.SectionProjections = map[int][2]int{}
+	}
 	seen := map[geom.Vec3]bool{}
 	add := func(p geom.Vec3) (int, error) {
 		if !p.IsFinite() {
@@ -143,6 +166,9 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 				return empty, e
 			}
 			opt := o.Source
+			if r.ExactOperations >= o.MaxOperations {
+				return empty, geom.ErrConvergence
+			}
 			opt.Deflection = o.Deflection
 			opt.MaxSegments = o.MaxSegments - r.Segments
 			opt.MaxOperations = o.MaxOperations - r.ExactOperations
@@ -160,15 +186,44 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 			r.ExactOperations += line.ExactOperations
 			r.SourceCertificates[ei] = line
 		} else {
-			segment, _, e := s.SectionSegment(ei)
+			segment, pair, e := s.SectionSegment(ei)
 			if e != nil {
 				return empty, e
 			}
-			_, domain, reverse, e := segment.ExactFreeDomain()
+			freeAxis, domain, reverse, e := segment.ExactFreeDomain()
 			if e != nil {
 				return empty, e
 			}
 			opt := o.Section
+			if o.AutoSectionProjection {
+				owner := 1 - freeAxis/2
+				key := [2]int{owner, pair[owner]}
+				axes, ok := projections[key]
+				if !ok && !planar[key] {
+					var used int
+					axes, used, e = s.selectBoundaryGraphProjection(ctx, key, o.MaxOperations-r.ExactOperations, o.Section.Point.MaxCoefficientBits)
+					r.ExactOperations += used
+					if e != nil {
+						if !o.PlanarSectionFallback || !errors.Is(e, geom.ErrConvergence) {
+							return empty, fmt.Errorf("section edge %d projection: %w", ei, e)
+						}
+						planar[key] = true
+					} else {
+						projections[key] = axes
+					}
+				}
+				if planar[key] {
+					opt.PlanarPointEvaluation = true
+					r.PlanarSections = append(r.PlanarSections, ei)
+				} else {
+					r.SectionProjections[ei] = axes
+					opt.Projection = &axes
+				}
+			}
+
+			if r.ExactOperations >= o.MaxOperations {
+				return empty, geom.ErrConvergence
+			}
 			opt.Deflection = o.Deflection
 			opt.MaxSegments = o.MaxSegments - r.Segments
 			opt.MaxOperations = o.MaxOperations - r.ExactOperations

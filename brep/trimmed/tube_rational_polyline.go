@@ -9,6 +9,9 @@ import (
 )
 
 type RationalTubePolylineOptions struct {
+	// PlanarPointEvaluation uses exact rational point recovery on a planar opposite
+	// support whose original chart need not be affine. Exclusive with Projection.
+	PlanarPointEvaluation bool
 	// Projection optionally chooses the two affine model coordinates used for
 	// exact graph isolation. Nil preserves the original XY contract. Interval
 	// bounds and displayed samples always remain in original XYZ coordinates.
@@ -65,6 +68,12 @@ func (s segmentGraphAdapter) EncloseInterval(c context.Context, a, b float64, o 
 // endpoint display error. This conservative first-order bound has no curvature
 // efficiency claim and returns no partial polyline on limits.
 func TessellateRationalTubeGraphCertified(ctx context.Context, tube geom.VerifiedSurfaceTube, start, end *big.Rat, o RationalTubePolylineOptions) (CertifiedRationalTubePolyline, error) {
+	if o.PlanarPointEvaluation && o.Projection != nil {
+		return CertifiedRationalTubePolyline{}, geom.ErrInvalid
+	}
+	if o.PlanarPointEvaluation {
+		return tessellateRationalTubeGraph(ctx, planeVerifiedPolylineGraph{tube}, start, end, o)
+	}
 	if o.Projection != nil {
 		if !validTubePolylineProjection(*o.Projection) {
 			return CertifiedRationalTubePolyline{}, geom.ErrInvalid
@@ -75,6 +84,12 @@ func TessellateRationalTubeGraphCertified(ctx context.Context, tube geom.Verifie
 }
 func TessellateRationalTubeSegmentCertified(ctx context.Context, tube intersect.TubeSegment, start, end *big.Rat, o RationalTubePolylineOptions) (CertifiedRationalTubePolyline, error) {
 	var graph rationalTubeGraph = segmentGraphAdapter{tube}
+	if o.PlanarPointEvaluation && o.Projection != nil {
+		return CertifiedRationalTubePolyline{}, geom.ErrInvalid
+	}
+	if o.PlanarPointEvaluation {
+		graph = planeSegmentPolylineGraph{segmentGraphAdapter{tube}}
+	}
 	if o.Projection != nil {
 		if !validTubePolylineProjection(*o.Projection) {
 			return CertifiedRationalTubePolyline{}, geom.ErrInvalid
@@ -279,4 +294,16 @@ func tessellateRationalTubeGraph(ctx context.Context, tube rationalTubeGraph, st
 		stack = append(stack, item{sample, x.b, x.depth + 1}, item{x.a, sample, x.depth + 1})
 	}
 	return result, nil
+}
+
+type planeVerifiedPolylineGraph struct{ geom.VerifiedSurfaceTube }
+
+func (p planeVerifiedPolylineGraph) EvaluateRationalGraph(ctx context.Context, q *big.Rat, o geom.TubeAlgebraicGraphEndpointOptions) (geom.TubeAlgebraicGraphPointCertificate, error) {
+	return p.EvaluateRationalPlane(ctx, q, o)
+}
+
+type planeSegmentPolylineGraph struct{ segmentGraphAdapter }
+
+func (p planeSegmentPolylineGraph) EvaluateRationalGraph(ctx context.Context, q *big.Rat, o geom.TubeAlgebraicGraphEndpointOptions) (geom.TubeAlgebraicGraphPointCertificate, error) {
+	return p.segment.EvaluateRationalPlane(ctx, q, o)
 }
