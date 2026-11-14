@@ -92,6 +92,41 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 	if attachments < 12 {
 		t.Fatal("missing retained stock owners", attachments)
 	}
+	stockLoops, e := r.OriginalStockLoops(ctx, section, opts)
+	if e != nil || len(stockLoops) < 12 {
+		t.Fatal("retained original chart loops must close without rounding", len(stockLoops), e)
+	}
+	owners := map[[3]int]bool{}
+	for _, w := range stockLoops {
+		if len(w.Uses) < 3 || w.OriginalFace < 0 || w.OriginalFace >= len(stock.faces) {
+			t.Fatal("invalid original face loop", w)
+		}
+		for _, use := range w.Uses {
+			if use.Cap >= 0 {
+				id := [3]int{use.Cap, use.Owner.Wire, use.Owner.Use}
+				if owners[id] || r.Caps[use.Cap].Wires[use.Owner.Wire][use.Owner.Use].Source.Face != w.OriginalFace {
+					t.Fatal("duplicated or transferred original attachment", w.OriginalFace, id)
+				}
+				owners[id] = true
+			}
+		}
+	}
+	indexed, e := r.ExactIndexedBoundary(ctx, section, opts)
+	if e != nil || indexed.BoundaryComponents != 1 || indexed.EulerCharacteristic != 2 ||
+		indexed.Vertices != 24 || len(indexed.Edges) != 36 || len(indexed.Faces) != 14 || len(indexed.Faces) != len(stockLoops)+2 {
+		t.Fatal("the cut opens the through-hole into an exterior notch, leaving one genus-zero shell", indexed.Vertices, len(indexed.Edges), len(indexed.Faces), indexed.EulerCharacteristic, e)
+	}
+	// The representation must ignore abandoned public-facing diagnostics.
+	diag := r
+	diag.Caps = [2]AlgebraicGraphCapClip{}
+	diag.Seams = nil
+	rechecked, e := diag.ExactIndexedBoundary(ctx, section, opts)
+	if e != nil || rechecked.Vertices != indexed.Vertices || rechecked.EulerCharacteristic != indexed.EulerCharacteristic {
+		t.Fatal("diagnostic edits changed the exact shell", e)
+	}
+	if len(owners) != attachments {
+		t.Fatal("each retained cap side must appear once on a closed stock loop", len(owners), attachments)
+	}
 	if count != 1 {
 		t.Fatal("expected exactly one irrational shared vertex", count)
 	}

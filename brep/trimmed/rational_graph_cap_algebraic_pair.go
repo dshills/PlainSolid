@@ -26,6 +26,8 @@ type AlgebraicGraphCapPair struct {
 	Caps                          [2]AlgebraicGraphCapClip
 	Seams                         []AlgebraicGraphCapPairSeam
 	ExactOperations, Subdivisions int
+	caps                          [2]AlgebraicGraphCapClip
+	seams                         []AlgebraicGraphCapPairSeam
 }
 
 // ClipAlgebraicGraphCapPair independently clips both native stock sections
@@ -177,6 +179,8 @@ func (s Solid) ClipAlgebraicGraphCapPair(ctx context.Context, planes [2][3]geom.
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
+	out.caps = out.Caps
+	out.seams = append([]AlgebraicGraphCapPairSeam(nil), out.Seams...)
 	out.ExactOperations, out.Subdivisions = topo.MaxWork-b.work, topo.MaxSubdivisions-b.subdiv
 	return out, nil
 }
