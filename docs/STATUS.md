@@ -2420,3 +2420,10 @@ the exact projection of the original samples' mean. The report records
 each original vertex displacement, the shared edges, any repaired face
 orientation, and exact volume. Publication requires a closed embedded
 shell and displacement within the requested bound.
+
+### Equal and nested abutting prism Fuse
+
+The general abutting entry handles equal and strictly nested cap
+footprints. It proves complete source-wall coverage across the seam
+and accepts an empty shoulder when the exact Difference is empty.
+Matched annular openings preserve both sets of original hole walls.

@@ -220,7 +220,7 @@ func (s *NativeAbuttingPrismFuseTransition) BuildNative(ctx context.Context, o A
 			}
 			return nil
 		}
-		triangles, e := nativePrismHoledCapTriangles(loops, exact, xy, budget)
+		triangles, e := nativePrismCapTrianglesMode(loops, exact, xy, budget, true)
 		if e != nil {
 			return e
 		}

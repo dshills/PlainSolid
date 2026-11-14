@@ -6339,3 +6339,11 @@ limit. Native reload and continuous agreement passed. Inconsistent
 planes, duplicate seams, orientation defects without repair, and
 collision or displacement quota exhaustion were verified. The combined
 planar repair and abutting prism race tests passed in 4.871 seconds.
+
+### Equal and nested abutting prism qualification
+
+Tests passed for both operand orders, equal and nested footprints,
+and retained annular passages. Independent volumes are 80 and 44 for
+the filled profiles and 160 and 85 for the holed profiles. Cap areas,
+wall ownership, closed incidence, and rejection of unsupported contacts
+were checked in the integrated 4.871-second race run.

@@ -249,7 +249,7 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 			rank = 3
 		}
 		if operation == intersect.AffineRingUnion && (x.hi == y.lo || y.hi == x.lo) {
-			rank = 1
+			rank = -1
 		}
 		if rank < best {
 			selected, best = axis, rank
@@ -342,7 +342,7 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 	}
 	if common.kind != NativePrismCommonMaterial {
 		if operation == intersect.AffineRingUnion && common.kind == NativePrismCommonContact && (x.hi == y.lo || y.hi == x.lo) {
-			q, err := ImprintAbuttingCrossingNativePrismFuse(ctx, a, b, o.Construct)
+			q, err := ImprintAbuttingNativePrismFuse(ctx, a, b, o.Construct)
 			if err != nil {
 				return nil, err
 			}

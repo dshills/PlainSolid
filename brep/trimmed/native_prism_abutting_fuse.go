@@ -88,6 +88,17 @@ func (s *NativeAbuttingPrismFuseTransition) Operations() (int, int) {
 // partitions and reversed internal edge pairs are proved without tolerance.
 // Line/point contact, equal/contained profiles and unrelated axial spans reject.
 func ImprintAbuttingCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions) (*NativeAbuttingPrismFuseTransition, error) {
+	return imprintAbuttingNativePrismFuse(ctx, a, b, o, false)
+}
+
+// ImprintAbuttingNativePrismFuse additionally accepts exactly equal footprints
+// and strictly nested material footprints, including holes. Boundary-only
+// contacts or partially coincident perimeters remain unsupported. Both original
+// boundary partitions are checked independently, even when a shoulder is empty.
+func ImprintAbuttingNativePrismFuse(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions) (*NativeAbuttingPrismFuseTransition, error) {
+	return imprintAbuttingNativePrismFuse(ctx, a, b, o, true)
+}
+func imprintAbuttingNativePrismFuse(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, general bool) (*NativeAbuttingPrismFuseTransition, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -170,13 +181,27 @@ func ImprintAbuttingCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid
 		return nil, e
 	}
 	patch := intersect.Patch{Surface: surf, Min: geom.Vec2{X: bounds[0][0], Y: bounds[1][0]}, Max: geom.Vec2{X: bounds[0][1], Y: bounds[1][1]}}
+	var contacts [2]*intersect.AffineGeneralPolygonArrangement
 	arrange := func(owner int, op intersect.AffineRingOperation) (*intersect.AffinePolygonArrangement, error) {
 		limits := o.Arrangement
 		limits.MaxOperations = arrMax - out.arrangementWork
 		if limits.MaxOperations < 1 {
 			return nil, geom.ErrConvergence
 		}
-		q, e := intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+		var q *intersect.AffinePolygonArrangement
+		var e error
+		if general {
+			var g *intersect.AffineGeneralPolygonArrangement
+			g, e = intersect.ArrangeGeneralAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+			if e == nil {
+				q = g.Area()
+				if op == intersect.AffineRingIntersection {
+					contacts[owner] = g
+				}
+			}
+		} else {
+			q, e = intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+		}
 		if e != nil {
 			return nil, e
 		}
@@ -233,7 +258,7 @@ func ImprintAbuttingCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid
 		edges := [2][]intersect.AffineArrangementEdge{q.Region(0).Edges(), q.Region(1).Edges()}
 		for r, arr := range q.regions {
 			regionAreas[owner][r] = area(arr)
-			if regionAreas[owner][r].Sign() <= 0 {
+			if regionAreas[owner][r].Sign() < 0 || (regionAreas[owner][r].Sign() == 0 && (!general || r == 1)) {
 				return nil, geom.ErrDomain
 			}
 			for _, edge := range edges[r] {
@@ -270,7 +295,7 @@ func ImprintAbuttingCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid
 				}
 			}
 		}
-		if !crossed {
+		if !crossed && !general {
 			return nil, geom.ErrDomain
 		}
 		used := make([]bool, len(edges[1]))
@@ -314,29 +339,59 @@ func ImprintAbuttingCrossingNativePrismFuse(ctx context.Context, a, b brep.Solid
 	if common.Cmp(regionAreas[1][1]) != 0 {
 		return nil, geom.ErrInvalid
 	}
-	used := [2][]bool{make([]bool, len(out.proofs[0].Region(0).Edges())), make([]bool, len(out.proofs[1].Region(0).Edges()))}
-	for _, u := range out.union.Edges() {
-		found := -1
-		for j, v := range out.proofs[u.Owner].Region(0).Edges() {
-			budget.check(u.Parameter[0])
-			if v.Owner == 0 && u.Ring == v.Ring && u.Edge == v.Edge && u.Parameter[0].Cmp(v.Parameter[0]) == 0 && u.Parameter[1].Cmp(v.Parameter[1]) == 0 {
-				if found >= 0 || used[u.Owner][j] {
-					return nil, geom.ErrInvalid
-				}
-				found = j
+	// For nontransverse input require either identical material sets, or strict
+	// boundary-disjoint containment. Partial perimeter coincidence is not covered.
+	equal := regionAreas[0][0].Sign() == 0 && regionAreas[1][0].Sign() == 0
+	if general && !equal {
+		for _, g := range contacts {
+			if len(g.SharedBoundarySpans()) != 0 || len(g.IsolatedCommonPoints()) != 0 {
+				return nil, geom.ErrDomain
 			}
 		}
-		if found < 0 {
-			return nil, geom.ErrInvalid
-		}
-		used[u.Owner][found] = true
-		out.uses = append(out.uses, makeUse(u.Owner, u))
 	}
-	for owner, q := range out.proofs {
-		for j, e := range q.Region(0).Edges() {
-			if e.Owner == 0 && !used[owner][j] {
+	if !equal {
+		used := [2][]bool{make([]bool, len(out.proofs[0].Region(0).Edges())), make([]bool, len(out.proofs[1].Region(0).Edges()))}
+		for _, u := range out.union.Edges() {
+			found := -1
+			for j, v := range out.proofs[u.Owner].Region(0).Edges() {
+				budget.check(u.Parameter[0])
+				if v.Owner == 0 && u.Ring == v.Ring && u.Edge == v.Edge && u.Parameter[0].Cmp(v.Parameter[0]) == 0 && u.Parameter[1].Cmp(v.Parameter[1]) == 0 {
+					if found >= 0 || used[u.Owner][j] {
+						return nil, geom.ErrInvalid
+					}
+					found = j
+				}
+			}
+			if found < 0 {
 				return nil, geom.ErrInvalid
 			}
+			used[u.Owner][found] = true
+			out.uses = append(out.uses, makeUse(u.Owner, u))
+		}
+		for owner, q := range out.proofs {
+			for j, e := range q.Region(0).Edges() {
+				if e.Owner == 0 && !used[owner][j] {
+					return nil, geom.ErrInvalid
+				}
+			}
+		}
+	} else {
+		// Every union boundary atom must be an original owner boundary in exactly one
+		// retained partition. In the equal case the common partition owns the seam.
+		for _, u := range out.union.Edges() {
+			found := 0
+			for _, arr := range out.proofs[u.Owner].regions {
+				for _, v := range arr.Edges() {
+					budget.check(u.Parameter[0])
+					if v.Owner == 0 && u.Ring == v.Ring && u.Edge == v.Edge && u.Parameter[0].Cmp(v.Parameter[0]) == 0 && u.Parameter[1].Cmp(v.Parameter[1]) == 0 {
+						found++
+					}
+				}
+			}
+			if found != 1 {
+				return nil, geom.ErrInvalid
+			}
+			out.uses = append(out.uses, makeUse(u.Owner, u))
 		}
 	}
 	unionArea := budget.op('+', budget.op('+', regionAreas[0][0], regionAreas[1][0]), common)

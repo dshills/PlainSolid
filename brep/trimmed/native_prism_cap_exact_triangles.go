@@ -17,6 +17,11 @@ type nativePrismCapTriangle struct {
 // exact total area must equal the signed ring area. The 96-vertex cap supplements
 // the cumulative arithmetic budget; this is deliberately not a generic mesher.
 func nativePrismHoledCapTriangles(rings [][]int, points [][3]*big.Rat, xy [2]int, b *nativePrismAffineBudget) ([]nativePrismCapTriangle, error) {
+	return nativePrismCapTrianglesMode(rings, points, xy, b, false)
+}
+
+// Nested mode is for independently certified disjoint arrangement cycles.
+func nativePrismCapTrianglesMode(rings [][]int, points [][3]*big.Rat, xy [2]int, b *nativePrismAffineBudget, nested bool) ([]nativePrismCapTriangle, error) {
 	type pt [2]*big.Rat
 	p := []pt{}
 	global := []int{}
@@ -212,7 +217,12 @@ func nativePrismHoledCapTriangles(rings [][]int, points [][3]*big.Rat, xy [2]int
 				for i, loop := range loops {
 					if areas[i].Sign() > 0 && location(center, loop) == 1 {
 						if owner >= 0 {
-							return nil, geom.ErrInvalid
+							if !nested || areas[i].Cmp(areas[owner]) == 0 {
+								return nil, geom.ErrInvalid
+							}
+							if areas[i].Cmp(areas[owner]) > 0 {
+								continue
+							}
 						}
 						owner = i
 					}
