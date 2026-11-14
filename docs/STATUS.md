@@ -39,7 +39,7 @@ face assignments or rational wall seeds.
 On proved original roof boxes, exact rational point and line queries
 preserve original floor, side, and roof owners, including simultaneous
 contacts and a retained difference span below binary64 resolution.
-The arbitrary-direction line sweep isolates up to sixth-degree restrictions,
+The arbitrary-direction line sweep isolates up to eighth-degree restrictions,
 distinguishes repeated roots from crossings, and reports exposed
 coincident spans separately from the interior. It qualifies both the
 mixed restricted-wall Boolean and the independently curved bubble roofs.
@@ -54,13 +54,17 @@ outward volume interval is positive and narrower than `2^-80`.
 For the mixed roof solids, bounded nearest queries search the original
 exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
-inertia have separate original OCCT comparisons.
+inertia have separate original OCCT comparisons. Direct column integration
+now encloses the volume to `1/1000` for all three original operations and
+certifies raw second moments, centroid and inertia, including exact transport
+through a proper rigid occurrence.
 Prepared roof queries also admit original single-span positive rational
-surfaces through degree three in each chart axis. The weighted cavity
+surfaces through degree four in each chart axis. The weighted cavity
 kept its exact roof hit, quotient normal and floor distance, and an
 independently sewn OCCT rational model gave the same line parameter.
-A separate original bicubic roof retained its different sixth-degree
-line root. The specialized polynomial mesh proof keeps its existing scope.
+Separate original bicubic and biquartic roofs retain their different sixth-
+and eighth-degree line roots. The specialized polynomial mesh proof keeps
+its existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -74,6 +78,17 @@ sources, including authenticated reordered records. The analytic sphere
 reader qualifies exact IGES pole and seam graphs, including proper signed-axis
 placements; the promoted native sphere uses its established numerical angular
 evaluation and does not claim rational patch sewing.
+
+Transverse coaxial torus-cylinder Common, Cut, and Fuse build native analytic
+solids with algebraically identified rims. Paired STEP read and write preserve
+analytic supports and prove the replacement error for irrational rim heights.
+Fuse retains the actual caps; Common and Cut expose that those cap positions
+cannot be recovered from the retained STEP faces. The writer also preserves
+proper finite-decimal rational placements. Exact planar, finite cylinder and
+ring torus bodies now exchange in a bounded two-level product hierarchy,
+keeping local bodies, original occurrence paths and exact placements through
+source-bound native reload. Both exchange paths have independent live OCCT
+comparisons.
 
 ## Immediate priority: PlainCAD compatibility
 
