@@ -5074,3 +5074,28 @@ GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom
 
 This independently qualifies exact coverage only, not a new native topology or
 an enlargement of the full replacement claim.
+
+## Integrated independent radial cover (2026-11-14)
+
+`TestNativeLensIndependentRadialCoverage` uses radius5/16 on the complete original
+plane/dome unit charts, retains existing abutting topology hints, and builds the
+native Intersection component (two original faces, Euler2). Independent radial
+coverage uses36 overlapping cells and998191 total exact operations, including
+coefficient recognition, proposal verification, immutable re-verification,
+endpoint cover and exact transfer into the original supplied union. Removing
+half the original hints rejects atomically despite a complete independent cover.
+Exact reported work succeeds; one operation less, proposal quota and canceled
+context publish no accepted cover. Generic isolation still succeeds64 candidates.
+
+One normal comparison measured radial coverage0.49s and generic0.77s; these are
+local observations, not a controlled benchmark or flagship estimate. Focused
+intersect coverage/trace/legacy radial rejection regressions and vet passed.
+The complete native regression also passed under the race detector in63.22s.
+Commands:
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestNativeLensIndependentRadialCoverage$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./brep/trimmed -run '^TestNativeLensIndependentRadialCoverage$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./intersect -run '^(TestSplineTubeCoverage|TestSplinePairTrace|TestRadialContourDiscoveryAtomicRejections)' -count=1
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./intersect ./brep/trimmed
+```
