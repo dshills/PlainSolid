@@ -2201,3 +2201,13 @@ entry points cover unit, scaled and supported oblique affine charts. The
 oblique route proves a rational rigid basis per product, restores exact
 original model coordinates, and preserves each occurrence placement.
 See the [oblique STEP contract](../exchange/step/OBLIQUE_NURBS_PLANAR_ASSEMBLY.md).
+
+### Exact trimmed topology sewing
+
+`trimmed.SewExactTopology` reassembles independently indexed faces whose
+original finite model edges admit exact rational descriptions. It checks
+original UV loops and coedge agreement, compares entire edge intervals and
+welds only vertices linked by a proved shared edge. It verifies vertex fans,
+retains input incidence maps and can repair relative face orientation.
+Global embedding, cavity classification and nonconforming edge splitting
+remain separate from this sewing operation.

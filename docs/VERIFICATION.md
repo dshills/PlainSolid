@@ -5998,3 +5998,13 @@ on two oblique products with three original uses. Native material retains
 the original geometry and placement graph. OCCT verifies volume 1750,
 area 1350 and placed centroid (69/14, 66/7, 99/14). The integrated unit,
 scaled and oblique live race passed in 4.092 s.
+
+### Exact trimmed sewing qualification
+
+The source fixture is a weighted two-band loft exploded into independent
+face-local edges, including the periodic chart seam. One original curved
+edge is reversed and reparameterized and one face is flipped. The sewn
+output retains every original chart and p-curve and passes the independent
+loft embedding validation. Missing faces, altered interiors with identical
+endpoints and a one-ULP endpoint shift reject. Two point-touching components
+retain separate vertex fans. The integrated race passed in 4.877 s.
