@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -13,13 +14,15 @@ type AlgebraicTubeRegionVolumeBounds struct {
 	VisitedCells, ExactOperations int
 }
 
-// BoundVolumes encloses each region's volume over exactly aligned
-// rectangular source charts. A cell is assigned only when its whole
+// BoundVolumes encloses each region's volume over the common projection of
+// compatible rectangular source charts, including exact homogeneous charts.
+// A cell is assigned only when its whole
 // rectangle is separated from all possible rim images and its exact
 // center is located. Boundary cells contribute conservative upper
 // bounds to every region with the compatible height sign.
 func (r AlgebraicTubeRegions) BoundVolumes(ctx context.Context, o AlgebraicTubeLensVolumeOptions) (out AlgebraicTubeRegionVolumeBounds, err error) {
-	if ctx == nil || r.graphs[0] == nil || o.MaxDepth < 0 || o.MaxDepth > 18 || o.MaxCells < 0 || o.MaxCells > 262144 {
+	source := r.section.runSource()
+	if ctx == nil || source == nil || r.graphs[0] == nil || o.MaxDepth < 0 || o.MaxDepth > 18 || o.MaxCells < 0 || o.MaxCells > 262144 {
 		return out, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -46,8 +49,20 @@ func (r AlgebraicTubeRegions) BoundVolumes(ctx context.Context, o AlgebraicTubeL
 		return out, geom.ErrInvalid
 	}
 	limits := func() geom.SurfacePatchOptions { p := o.Patch; p.MaxOperations -= out.ExactOperations; return p }
+	trim := func(s *geom.SurfacePatch, d geom.ParameterRectangle) (*geom.SurfacePatch, error) {
+		if s.Domain() == d {
+			return s, nil
+		}
+		p := limits()
+		if p.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		result, used, e := s.TrimWithWorkLimit(d, p.MaxOperations)
+		out.ExactOperations += used
+		return result, e
+	}
 	var ps [2]*geom.SurfacePatch
-	for i, f := range r.section.partitionSource.faces {
+	for i, f := range source.faces {
 		d, e := faceUVBounds(f)
 		if e != nil {
 			return out, e
@@ -59,27 +74,66 @@ func (r AlgebraicTubeRegions) BoundVolumes(ctx context.Context, o AlgebraicTubeL
 		if p.MaxOperations < 1 {
 			return out, geom.ErrConvergence
 		}
-		s, e := geom.NewSurfacePatch(facespline(f), p)
+		base, placement := parametric.SurfaceMapping(f.Surface)
+		s, e := exactSplineSupportPatch(base, p)
 		if e != nil {
 			return out, e
 		}
 		out.ExactOperations += s.ExactOperations()
-		ps[i], e = s.Trim(d)
+		if placement != geom.Identity() {
+			p = limits()
+			if p.MaxOperations < 1 {
+				return out, geom.ErrConvergence
+			}
+			var used int
+			s, used, e = s.TransformedWithWorkLimit(placement, p.MaxOperations)
+			out.ExactOperations += used
+			if e != nil {
+				return out, e
+			}
+		}
+		ps[i], e = trim(s, d)
 		if e != nil {
 			return out, e
 		}
-		out.ExactOperations += ps[i].ExactOperations()
 	}
-	p := limits()
-	if p.MaxOperations < 1 {
-		return out, geom.ErrConvergence
+	align := func() (*geom.AffineXYChartAlignment, error) {
+		p := limits()
+		if p.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		m, used, e := geom.AlignAffineXYChartsWithWork(ctx, ps[0], ps[1], p)
+		out.ExactOperations += used
+		return m, e
 	}
-	m, e := geom.AlignAffineXYCharts(ctx, ps[0], ps[1], p)
-	if e != nil {
+	m, e := align()
+	if errors.Is(e, geom.ErrDomain) {
+		p := limits()
+		if p.MaxOperations < 1 {
+			return out, geom.ErrConvergence
+		}
+		overlap, overlapErr := geom.ClipAffineXYGraphOverlap(ctx, ps[0], ps[1], p)
+		out.ExactOperations += min(overlap.ExactOperations, p.MaxOperations)
+		if overlapErr != nil {
+			return out, overlapErr
+		}
+		if overlap.Disjoint {
+			return out, geom.ErrConvergence
+		}
+		for i, d := range [2]geom.ParameterRectangle{overlap.A, overlap.B} {
+			ps[i], e = trim(ps[i], d)
+			if e != nil {
+				return out, e
+			}
+		}
+		m, e = align()
+		if e != nil {
+			return out, e
+		}
+	} else if e != nil {
 		return out, e
 	}
-	out.ExactOperations += m.ExactOperations()
-	p = limits()
+	p := limits()
 	if p.MaxOperations < 1 {
 		return out, geom.ErrConvergence
 	}
@@ -186,16 +240,9 @@ func (r AlgebraicTubeRegions) BoundVolumes(ctx context.Context, o AlgebraicTubeL
 				l.VMax, h.VMin = t, t
 			}
 			for _, d := range [2]geom.ParameterRectangle{h, l} {
-				if limits().MaxOperations < 1 {
-					return out, geom.ErrConvergence
-				}
-				p, e := x.p.Trim(d)
+				p, e := trim(x.p, d)
 				if e != nil {
 					return out, e
-				}
-				out.ExactOperations += p.ExactOperations()
-				if limits().MaxOperations < 0 {
-					return out, geom.ErrConvergence
 				}
 				queue = append(queue, cell{p, x.depth + 1, x.owner, z})
 			}
