@@ -28,7 +28,7 @@ type boreBody struct {
 	partialSkew       bool
 	blindCrossed      *blindCrossedGeometry
 	crossedCompanions *crossedCompanionGeometry
-	tripleCrossed     *crossedBoreGeometry
+	tripleCrossed     *tripleCrossedGeometry
 	oblique           *obliqueBore
 }
 

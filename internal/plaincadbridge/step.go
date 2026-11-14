@@ -139,7 +139,7 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		p := m.Body
 		g := crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.Radius, p.Radius}}
 		extra := []trimmed.CardinalThroughBore{{Axis: 1, Center: geom.Vec3{X: p.Crossing.X, Z: p.Crossing.Z}, Radius: p.Radius}}
-		body, err := crossedBoreToolsFromSTEP(g, [2]float64{}, [2]bool{}, extra, m.LengthUnit)
+		body, err := crossedBoreToolsFromSTEP(g, [2]float64{0, p.BlindDepth}, [2]bool{false, p.OppositeCap}, extra, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
@@ -369,7 +369,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil && s.bore.tripleCrossed != nil:
 		p := s.bore.tripleCrossed
-		body := step.TripleCrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0]}
+		body := step.TripleCrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], BlindDepth: p.depth, OppositeCap: p.oppositeCap}
 		e = step.WriteTripleCrossedBore(&out, step.TripleCrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossedCompanions != nil:
 		p := s.bore.crossedCompanions
