@@ -66,8 +66,7 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 	partial := math.Abs(p.Offset) > math.Abs(p.XRadius-p.ZRadius)
 	hasFloor := p.XBlindDepth != 0 || p.ZBlindDepth != 0
 	if p.XBlindDepth == 0 && p.XOppositeCap || p.ZBlindDepth == 0 && p.ZOppositeCap ||
-		!finiteNumber(p.XBlindDepth) || !finiteNumber(p.ZBlindDepth) || p.XBlindDepth < 0 || p.ZBlindDepth < 0 ||
-		partial && hasFloor {
+		!finiteNumber(p.XBlindDepth) || !finiteNumber(p.ZBlindDepth) || p.XBlindDepth < 0 || p.ZBlindDepth < 0 {
 		return geom.ErrDomain
 	}
 	// Resolve the same represented support origins that the canonical reader
@@ -94,6 +93,9 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 			p.Frame = frame
 			p.Crossing = geom.Vec3{X: p.Crossing.X, Y: p.Dimensions.Y - p.Crossing.Y, Z: p.Dimensions.Z - p.Crossing.Z}
 			p.Offset = -p.Offset
+			if p.ZBlindDepth != 0 {
+				p.ZOppositeCap = !p.ZOppositeCap
+			}
 		}
 		if p.Offset != 0 {
 			small := p.Crossing.Add(geom.Vec3{Y: p.Offset})
@@ -122,7 +124,12 @@ func writeUnequalBoreOptions(w io.Writer, m UnequalBoreModel, compactFinite bool
 	ctx := context.Background()
 	var result trimmed.BoxCrossedBoresResult
 	var err error
-	if hasFloor {
+	if hasFloor && partial {
+		var finite trimmed.FiniteSkewCrossedBoresResult
+		finite, err = trimmed.BoxFinitePartialSkewBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset,
+			p.XBlindDepth, p.ZBlindDepth, p.XOppositeCap, p.ZOppositeCap, 1e-9)
+		result = finite.BoxCrossedBoresResult
+	} else if hasFloor {
 		var finite trimmed.FiniteSkewCrossedBoresResult
 		finite, err = trimmed.BoxFiniteSkewCrossedBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset,
 			p.XBlindDepth, p.ZBlindDepth, p.XOppositeCap, p.ZOppositeCap, 1e-9)
@@ -229,14 +236,14 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 		return fail()
 	}
 	faces, err := listRefs(shell.Args[1], 10)
-	if err != nil || len(faces) != 10 && (len(faces) < 16 || len(faces) > 18) {
+	if err != nil || (len(faces) < 10 || len(faces) > 12) && (len(faces) < 16 || len(faces) > 18) {
 		return fail()
 	}
 	lower, err := readCircularSourceFace(f, faces[0])
 	if err != nil || lower.kind != "PLANE" {
 		return fail()
 	}
-	partial := len(faces) == 10
+	partial := len(faces) <= 12
 	xID, zID := faces[6], faces[8]
 	if !partial {
 		xID, zID = faces[14], faces[6]
@@ -285,26 +292,28 @@ func recoverUnequalBore(f *File, id int64) (UnequalBoreBody, error) {
 		return fail()
 	}
 	p := UnequalBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: crossing, XRadius: x.radius, ZRadius: z.radius, Offset: offset}
-	if len(faces) > 16 {
-		for _, id := range faces[16:] {
-			floor, err := readCircularSourceFace(f, id)
-			if err != nil || floor.kind != "PLANE" || floor.sense || len(floor.loops) != 1 || len(floor.loops[0]) != 4 {
-				return fail()
-			}
-			l := frame.ToLocal(floor.frame.Origin())
-			normal := floor.frame.ZAxis()
-			switch {
-			case normal == frame.XAxis() && p.XBlindDepth == 0:
-				p.XBlindDepth = l.X
-			case normal == frame.XAxis().Scale(-1) && p.XBlindDepth == 0:
-				p.XBlindDepth, p.XOppositeCap = bounds.Max.X-l.X, true
-			case normal == frame.ZAxis() && p.ZBlindDepth == 0:
-				p.ZBlindDepth = l.Z
-			case normal == frame.ZAxis().Scale(-1) && p.ZBlindDepth == 0:
-				p.ZBlindDepth, p.ZOppositeCap = bounds.Max.Z-l.Z, true
-			default:
-				return fail()
-			}
+	floorStart, rimUses := 16, 4
+	if partial {
+		floorStart, rimUses = 10, 6
+	}
+	for _, id := range faces[floorStart:] {
+		floor, err := readCircularSourceFace(f, id)
+		if err != nil || floor.kind != "PLANE" || floor.sense || len(floor.loops) != 1 || len(floor.loops[0]) != rimUses {
+			return fail()
+		}
+		l := frame.ToLocal(floor.frame.Origin())
+		normal := floor.frame.ZAxis()
+		switch {
+		case normal == frame.XAxis() && p.XBlindDepth == 0:
+			p.XBlindDepth = l.X
+		case normal == frame.XAxis().Scale(-1) && p.XBlindDepth == 0:
+			p.XBlindDepth, p.XOppositeCap = bounds.Max.X-l.X, true
+		case normal == frame.ZAxis() && p.ZBlindDepth == 0:
+			p.ZBlindDepth = l.Z
+		case normal == frame.ZAxis().Scale(-1) && p.ZBlindDepth == 0:
+			p.ZBlindDepth, p.ZOppositeCap = bounds.Max.Z-l.Z, true
+		default:
+			return fail()
 		}
 	}
 	return p, nil

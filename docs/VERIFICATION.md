@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD finite blind floors on partial-skew Hole crossings — 2026-11-14
+
+A partial transverse overlap can retain one or both finite floor planes
+beyond the complete crossing. The shared radical-boundary constructor
+stops the scaled cylinder caps without changing the original trim loop.
+Canonical STEP records the circular floor and its entry direction, then
+regenerates the compact spline graph on import.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-partial-finite-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-partial-finite-step-native-2026-11-14.json)
+pass on the same WASM. The authored 367,577-byte STEP preserves the full
+through passage and a 10 mm floor in watertight STL. Seventy-two native
+mass cases, six closed meshes and three independent OCCT STEP cases
+cover different radii, signed offsets and entry sides. Direct OCCT
+Boolean measures agree with the authored STEP readback. Focused exchange
+and bridge race tests and Go vet pass.
+
 ## PlainCAD compact STEP for unequal finite crossings — 2026-11-14
 
 Finite crossed Hole STEP uses checked interior pole rounding and join

@@ -93,7 +93,9 @@ Unequal-radius perpendicular Holes with one or both floors beyond their
 complete intersection now retain those floors through STEP and STL.
 Compact finite STEP brings the verified closer-radius and covered-skew
 cases below PlainCAD's import limit. The existing spline span guard still
-limits some smaller clearances and near-contact geometry. A single oblique through cutter in rectangular stock now
+limits some smaller clearances and near-contact geometry. Partial skew
+intersections also retain finite floors beyond both tools' axial overlap,
+with compact STEP and watertight STL. A single oblique through cutter in rectangular stock now
 retains two complete elliptical apertures on opposite or adjacent faces.
 The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.

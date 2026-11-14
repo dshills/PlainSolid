@@ -8,7 +8,7 @@ import (
 	"plainsolid/mesh"
 )
 
-// FiniteSkewCrossedBoresResult preserves the original sixteen stock/wall faces.
+// FiniteSkewCrossedBoresResult preserves the original stock/wall faces.
 // Floors are appended in input X, then input Z order; -1 means through.
 type FiniteSkewCrossedBoresResult struct {
 	BoxCrossedBoresResult
@@ -20,11 +20,18 @@ type FiniteSkewCrossedBoresResult struct {
 // from the lower cap, or from the upper cap when the corresponding flag is set.
 // The conservative intersection bound uses the other cylinder's full radius.
 func BoxFiniteSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, offset, xDepth, zDepth float64, xOpposite, zOpposite bool, tolerance float64) (FiniteSkewCrossedBoresResult, error) {
+	return boxFiniteRadicalCrossedBores(ctx, frame, dims, crossing, xRadius, zRadius, offset,
+		xDepth, zDepth, xOpposite, zOpposite, tolerance, BoxSkewCrossedBores)
+}
+
+type radicalCrossedBoreBuilder func(context.Context, geom.Frame, geom.Vec3, geom.Vec3, float64, float64, float64, float64) (BoxCrossedBoresResult, error)
+
+func boxFiniteRadicalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, offset, xDepth, zDepth float64, xOpposite, zOpposite bool, tolerance float64, build radicalCrossedBoreBuilder) (FiniteSkewCrossedBoresResult, error) {
 	fail := func(e error) (FiniteSkewCrossedBoresResult, error) { return FiniteSkewCrossedBoresResult{}, e }
 	if ctx == nil || !finite(xDepth) || !finite(zDepth) || xDepth < 0 || zDepth < 0 {
 		return fail(geom.ErrInvalid)
 	}
-	original, e := BoxSkewCrossedBores(ctx, frame, dims, crossing, xRadius, zRadius, offset, tolerance)
+	original, e := build(ctx, frame, dims, crossing, xRadius, zRadius, offset, tolerance)
 	if e != nil {
 		return fail(e)
 	}
@@ -65,7 +72,7 @@ func BoxFiniteSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, cros
 		}
 		shift := capNormal.Scale(-(size - depth))
 		var floorID int
-		out.Solid, floorID, e = stopUnequalCrossedCap(out.Solid, cap, shift)
+		out.Solid, floorID, e = stopCrossedBoreCap(out.Solid, cap, shift)
 		if e != nil {
 			return fail(e)
 		}
@@ -80,13 +87,13 @@ func BoxFiniteSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, cros
 	return out, nil
 }
 
-// stopUnequalCrossedCap acts only on a freshly constructed, fully qualified
-// unequal crossed-bore cap beyond its intersection. It retains every curve
+// stopCrossedBoreCap acts only on a freshly constructed, fully qualified
+// crossed-bore cap beyond its intersection. It retains every curve
 // exactly; only circular rim supports and straight axial segments are moved.
-func stopUnequalCrossedCap(s Solid, cap int, shift geom.Vec3) (Solid, int, error) {
+func stopCrossedBoreCap(s Solid, cap int, shift geom.Vec3) (Solid, int, error) {
 	fail := func(e error) (Solid, int, error) { return Solid{}, 0, e }
 	vertices, edges, faces := s.Vertices(), s.Edges(), s.Faces()
-	if cap < 0 || cap >= 6 || len(faces[cap].Holes) != 1 || len(faces[cap].Holes[0]) != 4 {
+	if cap < 0 || cap >= 6 || len(faces[cap].Holes) != 1 || (len(faces[cap].Holes[0]) != 4 && len(faces[cap].Holes[0]) != 6) {
 		return fail(geom.ErrDomain)
 	}
 	plane, ok := faces[cap].Surface.(geom.PlaneSurface)

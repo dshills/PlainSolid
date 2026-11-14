@@ -18,6 +18,9 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
 	}
 	if p := s.bore.blindCrossed; p != nil {
+		if p.partialSkew() {
+			return s.bore.solid.TessellateFinitePartialSkewBores(ctx, o)
+		}
 		if p.radii[0] != p.radii[1] {
 			return s.bore.solid.TessellateFiniteSkewCrossedBores(ctx, o)
 		}
