@@ -119,13 +119,10 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		if err != nil {
 			return nil, err
 		}
-		coeff, minWeight, work, ok := r.roof.RationalBezierCoefficientsWithWork(mixedRoofMaxDegree, n)
+		coeff, minWeight, work, err := mixedRoofWholePower(ctx, r.roof, r.domain, n)
 		r.operations += work
-		if !ok {
-			if work != 0 && r.operations >= limit {
-				return nil, geom.ErrConvergence
-			}
-			return nil, geom.ErrUnrepresentable
+		if err != nil {
+			return nil, err
 		}
 		r.linePower = make([][]*big.Rat, len(coeff))
 		r.weight = make([][]*big.Rat, len(coeff))
@@ -170,11 +167,11 @@ func proveMixedRoofBoxMode(ctx context.Context, s Solid, roof int, limit int, ra
 		if err != nil {
 			return nil, err
 		}
-		c, w, work, ok := p.RationalBezierCoefficientsWithWork(3, n)
+		c, w, work, conversionErr := mixedRoofWholePower(ctx, p, p.Domain(), n)
 		r.operations += work
-		if !ok {
-			if work != 0 && r.operations >= limit {
-				return nil, geom.ErrConvergence
+		if conversionErr != nil {
+			if conversionErr != geom.ErrUnrepresentable {
+				return nil, conversionErr
 			}
 			continue
 		}

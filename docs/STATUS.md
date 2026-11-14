@@ -64,7 +64,9 @@ kept its exact roof hit, quotient normal and floor distance, and an
 independently sewn OCCT rational model gave the same line parameter.
 Separate original bicubic and biquartic roofs retain their different sixth-
 and eighth-degree line roots. The specialized polynomial mesh proof keeps
-its existing scope.
+its existing scope. Exact knot refinements also qualify when every original
+span reduces to the same homogeneous polynomial on the whole chart. Genuine
+piecewise heights still require separate line-event ownership at the knots.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and

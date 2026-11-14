@@ -22,6 +22,10 @@ import (
 // it and fully inside the first box, so their retained boundaries are known
 // without an approximate intersection curve.
 func weightedIdentityRoofStock(t *testing.T, tool bool, degree int) Solid {
+	return weightedIdentityRoofStockWithKnots(t, tool, degree, false)
+}
+
+func weightedIdentityRoofStockWithKnots(t *testing.T, tool bool, degree int, insertKnots bool) Solid {
 	t.Helper()
 	ctx := context.Background()
 	r := big.NewRat
@@ -114,7 +118,20 @@ func weightedIdentityRoofStock(t *testing.T, tool bool, degree int) Solid {
 		if err != nil {
 			t.Fatal(err)
 		}
-		s, err := geom.NewExactBezierSurface(p)
+		var s geom.Surface
+		if insertKnots {
+			p, err = p.InsertUKnot(d.UMin+.25*(d.UMax-d.UMin), 1, geom.SurfacePatchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, err = p.InsertVKnot(d.VMin+.75*(d.VMax-d.VMin), 1, geom.SurfacePatchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s, err = geom.NewExactTensorSurface(ctx, p, geom.SurfacePatchOptions{})
+		} else {
+			s, err = geom.NewExactBezierSurface(p)
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

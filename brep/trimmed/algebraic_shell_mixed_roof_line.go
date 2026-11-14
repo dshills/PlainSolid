@@ -260,7 +260,7 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 	w := mixedRoofLineWork{o: o}
 	var faces [12]MixedRoofFaceOwner
 	var signs [12]int
-	stations := make([]mixedRoofLineStation, 0, 24)
+	stations := make([]mixedRoofLineStation, 0, 2*(5+geom.ExactPolynomialMaxDegree)+2)
 	for i, t := range [2]*big.Rat{minT, maxT} {
 		opts, err := w.rootOptions()
 		if err != nil {
@@ -321,8 +321,8 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 			}
 		}
 	}
-	// The maximum is 24 stations (two sets of five affine polynomials
-	// and one sextic, plus clip ends). Insertion orders and coalesces
+	// Each operand contributes five affine polynomials and one bounded
+	// roof polynomial, plus the shared clip ends. Insertion coalesces
 	// using proofs that can report errors instead of hiding them in sort.
 	ordered := make([]mixedRoofLineStation, 0, len(stations))
 	for _, s := range stations {
