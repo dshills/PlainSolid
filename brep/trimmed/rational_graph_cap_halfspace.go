@@ -12,7 +12,8 @@ import (
 // boundary crossings. It retains exact Bezier pieces and inserts one chord.
 // The returned parameters are indexed by original section piece; the caller
 // can split the companion source trim at the same native parameter.
-// Tangencies, contact at an original vertex, holes, and multiple runs fail.
+// Complete holes strictly on one side survive or are omitted as a whole.
+// Tangencies, contacts on a hole or original vertex, and multiple runs fail.
 func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, other polynomialPlaneEquation, keep int, o RationalGraphShellRegionOptions) (_ *RationalGraphShellRegions, out [2]capBoundaryCut, err error) {
 	defer func() {
 		if err != nil {
@@ -23,14 +24,14 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 	if ctx == nil || r == nil || r.certificate == nil || keep != -1 && keep != 1 {
 		return nil, cuts, geom.ErrInvalid
 	}
-	if len(r.wires) != 1 || len(r.material) != 1 || len(r.material[0].Holes) != 0 {
+	if len(r.material) != 1 || len(r.wires) != 1+len(r.material[0].Holes) {
 		return nil, cuts, geom.ErrConvergence
 	}
 	opts, e := o.Topology.WithDefaults()
 	if e != nil {
 		return nil, cuts, e
 	}
-	wire := r.wires[0]
+	wire := r.wires[r.material[0].Outer]
 	if len(wire) >= opts.MaxEdges {
 		return nil, cuts, geom.ErrConvergence
 	}
@@ -64,6 +65,25 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 			v.Add(v, new(big.Rat).Mul(a, h[i]))
 		}
 		return v.Sign() * other.orientation * keep
+	}
+	var holes [][]projectedGraphSectionPiece
+	for _, id := range r.material[0].Holes {
+		hole, side := r.wires[id], 0
+		for _, p := range hole {
+			for _, h := range p.control {
+				if e := charge(1); e != nil {
+					return nil, cuts, e
+				}
+				q := sign(h)
+				if q == 0 || side != 0 && q != side {
+					return nil, cuts, geom.ErrConvergence
+				}
+				side = q
+			}
+		}
+		if side > 0 {
+			holes = append(holes, hole)
+		}
 	}
 	for i, p := range wire {
 		if e := charge(1); e != nil {
@@ -113,28 +133,18 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 				if n == 2 || event.EndpointMask() != 0 || event.Multiplicity() != 1 {
 					return nil, cuts, geom.ErrConvergence
 				}
-				q, e := event.Root().Enclose(ctx, new(big.Rat), rootOptions())
+				entry, e := rationalCapIntersectionParameter(ctx, event, rootOptions(), &subdivisions, charge)
 				if e != nil {
 					return nil, cuts, e
 				}
-				if !q.Converged || q.Interval.Lower.Cmp(q.Interval.Upper) != 0 {
-					return nil, cuts, geom.ErrConvergence
-				}
-				if e = charge(q.Operations); e != nil {
-					return nil, cuts, e
-				}
-				subdivisions -= q.Subdivisions
-				if subdivisions < 0 {
-					return nil, cuts, geom.ErrConvergence
-				}
-				left, right, e := splitCapBezier(p.control, q.Interval.Lower, opts.MaxBits)
+				left, right, e := splitCapBezier(p.control, entry, opts.MaxBits)
 				if e != nil {
 					return nil, cuts, e
 				}
 				if sign(right[0]) != 0 {
 					return nil, cuts, geom.ErrConvergence
 				}
-				cuts[n] = capBoundaryCut{p.source, q.Interval.Lower, a > 0, r.capPoint(right[0])}
+				cuts[n] = capBoundaryCut{p.source, entry, a > 0, r.capPoint(right[0])}
 				n++
 				if a > 0 {
 					p.control = left
@@ -179,23 +189,95 @@ func (r *RationalGraphShellRegions) intersectCapHalfspace(ctx context.Context, o
 		mid[i] = new(big.Rat).Quo(new(big.Rat).Add(h0[i], h1[i]), big.NewRat(2, 1))
 	}
 	path = append(path, projectedGraphSectionPiece{source: RationalGraphCapEdgeSource{Wire: -1, Branch: -1, Piece: -1, Face: -1}, control: [][3]*big.Rat{h0, mid, h1}})
-	var ring trimvalidate.Loop
-	for _, p := range path {
-		q, e := trimvalidate.ExactBezier(p.control)
-		if e != nil {
-			return nil, [2]capBoundaryCut{}, e
+	wires := append([][]projectedGraphSectionPiece{path}, holes...)
+	rings := make([]trimvalidate.Loop, len(wires))
+	for i, wire := range wires {
+		for _, p := range wire {
+			q, e := trimvalidate.ExactBezier(p.control)
+			if e != nil {
+				return nil, [2]capBoundaryCut{}, e
+			}
+			rings[i] = append(rings[i], q)
 		}
-		ring = append(ring, q)
 	}
 	if subdivisions == 0 {
 		return nil, [2]capBoundaryCut{}, geom.ErrConvergence
 	}
 	opts.MaxWork, opts.MaxSubdivisions = work, subdivisions
-	keptRegion, e := certifyProjectedRationalGraphRegions(ctx, [][]projectedGraphSectionPiece{path}, []trimvalidate.Loop{ring}, r.plane, opts)
+	keptRegion, e := certifyProjectedRationalGraphRegions(ctx, wires, rings, r.plane, opts)
 	if e != nil {
 		return nil, [2]capBoundaryCut{}, e
 	}
 	return keptRegion, cuts, nil
+}
+
+func rationalCapIntersectionParameter(ctx context.Context, r *geom.ExactComposedPlaneEvent, o geom.ExactCurvePlaneEventOptions, subdivisions *int, charge func(int) error) (*big.Rat, error) {
+	interval := r.Interval()
+	if interval.Lower.Cmp(interval.Upper) == 0 {
+		return interval.Lower, nil
+	}
+	// Bisection can find dyadic roots, but a linear polynomial also gives
+	// a rational root with any denominator. The original unique-root proof
+	// and later exact homogeneous substitution both recheck that value.
+	recipe, e := r.RootRecipe(ctx, geom.ExactRootCodecOptions{ExactCurvePlaneEventOptions: o, MaxDegree: 4})
+	if e != nil {
+		return nil, e
+	}
+	if len(recipe.Coefficients) == 2 {
+		a, aok := new(big.Rat).SetString(recipe.Coefficients[0])
+		b, bok := new(big.Rat).SetString(recipe.Coefficients[1])
+		if !aok || !bok || b.Sign() == 0 {
+			return nil, geom.ErrConvergence
+		}
+		at := new(big.Rat).Quo(a.Neg(a), b)
+		if at.Cmp(interval.Lower) < 0 || at.Cmp(interval.Upper) > 0 {
+			return nil, geom.ErrConvergence
+		}
+		return at, nil
+	}
+	if len(recipe.Coefficients) == 3 {
+		var p [3]*big.Rat
+		for i, s := range recipe.Coefficients {
+			var ok bool
+			p[i], ok = new(big.Rat).SetString(s)
+			if !ok {
+				return nil, geom.ErrConvergence
+			}
+		}
+		a, b, c := p[2], p[1], p[0]
+		discriminant := new(big.Rat).Sub(new(big.Rat).Mul(b, b), new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Mul(a, c)))
+		if a.Sign() == 0 || discriminant.Sign() <= 0 || discriminant.Num().BitLen() > o.MaxCoefficientBits || discriminant.Denom().BitLen() > o.MaxCoefficientBits {
+			return nil, geom.ErrConvergence
+		}
+		n, d := new(big.Int).Sqrt(discriminant.Num()), new(big.Int).Sqrt(discriminant.Denom())
+		if new(big.Int).Mul(n, n).Cmp(discriminant.Num()) != 0 || new(big.Int).Mul(d, d).Cmp(discriminant.Denom()) != 0 {
+			return nil, geom.ErrConvergence
+		}
+		shift, denom := new(big.Rat).SetFrac(n, d), new(big.Rat).Mul(a, big.NewRat(2, 1))
+		negB := new(big.Rat).Neg(b)
+		for _, shift := range []*big.Rat{shift, new(big.Rat).Neg(shift)} {
+			at := new(big.Rat).Quo(new(big.Rat).Add(negB, shift), denom)
+			if at.Cmp(interval.Lower) >= 0 && at.Cmp(interval.Upper) <= 0 {
+				return at, nil
+			}
+		}
+		return nil, geom.ErrConvergence
+	}
+	q, e := r.Root().Enclose(ctx, new(big.Rat), o)
+	if e != nil {
+		return nil, e
+	}
+	if !q.Converged || q.Interval.Lower.Cmp(q.Interval.Upper) != 0 {
+		return nil, geom.ErrConvergence
+	}
+	if e = charge(q.Operations); e != nil {
+		return nil, e
+	}
+	*subdivisions -= q.Subdivisions
+	if *subdivisions < 0 {
+		return nil, geom.ErrConvergence
+	}
+	return q.Interval.Lower, nil
 }
 
 type capBoundaryCut struct {

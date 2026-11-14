@@ -849,9 +849,12 @@ surfaces must keep their geometry through the operation. Continue with:
    transverse cuts across one simple original section each. It isolates all
    cap-boundary contacts and shares one exact native cap edge. Both cap ends
    can land on planar stock, or one can land directly on a cubic stock face
-   with two retained exact graph trims. Original vertices on the opposite
-   plane, nonrepresentable junctions, holes and multiple retained runs are
-   still outside this crossing path. A crossing can also select the upper or
+   with two retained exact graph trims. An opt-in quadratic path persists
+   nonbinary rational vertices without promoting their rounded display points
+   to topology. Original vertices on the opposite plane, irrational junctions,
+   intersections with inner wires, and multiple retained runs remain open.
+   A complete inner wire strictly to either side is retained or omitted with
+   its original faces and cap coedges. A crossing can select the upper or
    lower envelope of two same-direction graphs, joining both original trims
    at the proved cap endpoint.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,

@@ -19,18 +19,17 @@ type RationalGraphCrossingBand struct {
 
 // ClipCrossingRationalGraphSplineShell retains the intersection with two
 // nonparallel halfspaces. Each complete section has one simple outer wire;
-// the other plane crosses it twice at strictly interior, exactly represented
-// edge points. Each original stock face is either unchanged, wholly omitted,
+// the other plane crosses it twice at strictly interior edge points. Any
+// inner wires must stay strictly to one side. Each stock face is unchanged, omitted,
 // singly split, affine, or bounded by two graph sections in the same chart
 // direction. A crossing between two graphs on one face must be unique. The
 // kept sides can bound a band or select the upper or lower graph envelope.
 // Each must leave one simple region. The two caps and paired stock trims
-// are authored independently on the original supports.
+// are authored independently on the original supports. Caps.RationalEndpoints
+// admits exact nonbinary junctions when all retained trim pieces are quadratic.
 func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphCrossingBand, error) {
 	var zero RationalGraphCrossingBand
-	if o.Caps.RationalEndpoints {
-		return zero, geom.ErrInvalid
-	}
+	rational := o.Caps.RationalEndpoints
 	so := o.Sections
 	if so.MaxPieces == 0 {
 		so.MaxPieces = 128
@@ -93,7 +92,7 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 			return zero, geom.ErrConvergence
 		}
 		capParts[i] = caps[0]
-		arcs[i], e = retainedRationalGraphCapArcs(sec, clipped[i], junctions[i], clipped[i].maxBits)
+		arcs[i], e = retainedRationalGraphCapArcs(sec, clipped[i], junctions[i], clipped[i].maxBits, rational)
 		if e != nil {
 			return zero, e
 		}
@@ -138,10 +137,14 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		switch {
 		case !c0 && !c1:
 			part, old = s.splineSewFaceMapped(face, nil)
+			if rational {
+				part, err = rationalQuadraticSewFace(ctx, face, f.patch, slabFaceUV(face), so.Spans.Faces.Patches)
+				old = nil
+			}
 		case !c1:
-			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b0, planes[0], keep[0], so.Spans.Faces, false)
+			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b0, planes[0], keep[0], so.Spans.Faces, rational)
 		case !c0:
-			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b1, planes[1], keep[1], so.Spans.Faces, false)
+			part, err = splitRationalGraphFaceFragment(ctx, face, f.patch, b1, planes[1], keep[1], so.Spans.Faces, rational)
 		case b0.freeAxis < 0 && b1.freeAxis < 0:
 			var uv [][2]*big.Rat
 			uv, err = rationalGraphAffineBandPolygon(ctx, face, f.patch, planes, keep, so.Spans.Faces)
@@ -149,15 +152,12 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 				continue
 			}
 			if err == nil {
-				part, err = slabSewFace(ctx, face, f.patch, uv, so.Spans.Faces)
-			}
-			if err == nil {
 				pieces := append(append([]PCurve(nil), arcs[0][id]...), arcs[1][id]...)
-				err = installRationalGraphFragmentTrims(ctx, &part, pieces, false)
+				part, err = rationalGraphCrossingSewFace(ctx, face, f.patch, uv, pieces, so.Spans.Faces, rational)
 			}
 		case b0.freeAxis >= 0 && b0.freeAxis == b1.freeAxis:
 			part, err = rationalGraphCrossingFace(ctx, face, f.patch, [2]RationalGraphShellBranch{b0, b1},
-				[2][]PCurve{arcs[0][id], arcs[1][id]}, keep, junctions[0], id, so.Spans.Faces)
+				[2][]PCurve{arcs[0][id], arcs[1][id]}, keep, junctions[0], id, so.Spans.Faces, rational)
 		default:
 			err = geom.ErrConvergence
 		}
@@ -180,6 +180,11 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 		}
 		out.CapFaces[i] = []int{len(parts)}
 		parts = append(parts, part)
+	}
+	if rational {
+		if e := proveRationalSplitVertexIdentity(ctx, parts); e != nil {
+			return zero, e
+		}
 	}
 	result, h, e := Sew(ctx, parts, SewOptions{Tolerance: s.tolerance, MaxFaces: len(parts), Proof: so.Spans.Faces.EdgeAgreement})
 	if e != nil {
@@ -211,20 +216,43 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 			} else if common != id {
 				return zero, geom.ErrConvergence
 			}
-			u := p.Boundary.Face.Outer[j]
-			a, b := u.UVStart, u.UVEnd
-			if h.EdgeReversed[face][j] {
-				a, b = b, a
+			if j >= len(p.Boundary.Face.Outer) {
+				return zero, geom.ErrConvergence
 			}
-			out.CapIntersection.UV[i] = [2][2]*big.Rat{{ratInset(a.X), ratInset(a.Y)}, {ratInset(b.X), ratInset(b.Y)}}
+			u := p.Boundary.Face.Outer[j]
+			uv, _, e := graphSectionCapEndpoints(u.Curve, rational)
+			if e != nil {
+				return zero, e
+			}
+			if h.EdgeReversed[face][j] {
+				uv[0], uv[1] = uv[1], uv[0]
+			}
+			out.CapIntersection.UV[i] = uv
 		}
 	}
 	if common < 0 || out.CapIntersection.UV[1][0][0] == nil {
 		return zero, geom.ErrConvergence
 	}
+	var exact map[int][3]*big.Rat
+	if rational {
+		v, e := result.RationalVertices(ctx)
+		if e != nil {
+			return zero, e
+		}
+		exact = make(map[int][3]*big.Rat, len(v))
+		for _, p := range v {
+			exact[p.Vertex] = p.Point
+		}
+	}
 	for i, id := range [2]int{result.edges[common].Start, result.edges[common].End} {
 		p := result.vertices[id]
 		point := [3]*big.Rat{ratInset(p.X), ratInset(p.Y), ratInset(p.Z)}
+		if rational {
+			var ok bool
+			if point, ok = exact[id]; !ok {
+				return zero, geom.ErrConvergence
+			}
+		}
 		if !(rationalGraphSamePoint(point, junctions[0][0].Point) || rationalGraphSamePoint(point, junctions[0][1].Point)) {
 			return zero, geom.ErrConvergence
 		}
@@ -244,7 +272,7 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 }
 
 func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch,
-	pieces [2][]PCurve, keep [2]int, cuts [2]capBoundaryCut, faceID int, o SplineRectangleEmbeddingOptions) (SewFace, error) {
+	pieces [2][]PCurve, keep [2]int, cuts [2]capBoundaryCut, faceID int, o SplineRectangleEmbeddingOptions, rational bool) (SewFace, error) {
 	free := branches[0].freeAxis
 	above := [2]bool{branches[0].positive == keep[0], branches[1].positive == keep[1]}
 	var junctions int
@@ -262,7 +290,7 @@ func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.Surfa
 			return SewFace{}, geom.ErrConvergence
 		}
 		for j, p := range row {
-			x, _, e := graphSectionCapEndpoints(p, false)
+			x, _, e := graphSectionCapEndpoints(p, rational)
 			if e != nil {
 				return SewFace{}, e
 			}
@@ -287,7 +315,7 @@ func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.Surfa
 		if junctions != 1 {
 			return SewFace{}, geom.ErrConvergence
 		}
-		return rationalGraphCrossingEnvelope(ctx, face, patch, free, above[0], chains, pieces, o)
+		return rationalGraphCrossingEnvelope(ctx, face, patch, free, above[0], chains, pieces, o, rational)
 	}
 	a, b := chains[0], chains[1]
 	if !above[0] {
@@ -318,18 +346,11 @@ func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.Surfa
 	if rationalGraphSameUV(a[0], b[len(b)-1]) {
 		b = b[:len(b)-1]
 	}
-	part, e := slabSewFace(ctx, face, patch, append(a, b...), o)
-	if e != nil {
-		return SewFace{}, e
-	}
-	if e = installRationalGraphFragmentTrims(ctx, &part, append(append([]PCurve(nil), pieces[0]...), pieces[1]...), false); e != nil {
-		return SewFace{}, e
-	}
-	return part, nil
+	return rationalGraphCrossingSewFace(ctx, face, patch, append(a, b...), append(append([]PCurve(nil), pieces[0]...), pieces[1]...), o, rational)
 }
 
 func rationalGraphCrossingEnvelope(ctx context.Context, face Face, patch *geom.SurfacePatch, free int, above bool,
-	chains [2][][2]*big.Rat, pieces [2][]PCurve, o SplineRectangleEmbeddingOptions) (SewFace, error) {
+	chains [2][][2]*big.Rat, pieces [2][]PCurve, o SplineRectangleEmbeddingOptions, rational bool) (SewFace, error) {
 	// Both retained intervals together must run from one original chart
 	// boundary to the other, with exactly the independently proved join.
 	a, b := chains[0], chains[1]
@@ -357,11 +378,21 @@ func rationalGraphCrossingEnvelope(ctx context.Context, face Face, patch *geom.S
 	default:
 		uv = append(chain, hi, [2]*big.Rat{lo[0], hi[1]})
 	}
-	part, e := slabSewFace(ctx, face, patch, uv, o)
+	return rationalGraphCrossingSewFace(ctx, face, patch, uv, append(append([]PCurve(nil), pieces[0]...), pieces[1]...), o, rational)
+}
+
+func rationalGraphCrossingSewFace(ctx context.Context, face Face, patch *geom.SurfacePatch, uv [][2]*big.Rat, pieces []PCurve, o SplineRectangleEmbeddingOptions, rational bool) (SewFace, error) {
+	var part SewFace
+	var e error
+	if rational {
+		part, e = rationalQuadraticSewFace(ctx, face, patch, uv, o.Patches)
+	} else {
+		part, e = slabSewFace(ctx, face, patch, uv, o)
+	}
 	if e != nil {
 		return SewFace{}, e
 	}
-	if e = installRationalGraphFragmentTrims(ctx, &part, append(append([]PCurve(nil), pieces[0]...), pieces[1]...), false); e != nil {
+	if e = installRationalGraphFragmentTrims(ctx, &part, pieces, rational); e != nil {
 		return SewFace{}, e
 	}
 	return part, nil
@@ -380,39 +411,41 @@ func rationalGraphSamePoint(a, b [3]*big.Rat) bool {
 	return true
 }
 
-func retainedRationalGraphCapArcs(section RationalGraphShellSection, clipped *RationalGraphShellRegions, cuts [2]capBoundaryCut, bits int) (map[int][]PCurve, error) {
+func retainedRationalGraphCapArcs(section RationalGraphShellSection, clipped *RationalGraphShellRegions, cuts [2]capBoundaryCut, bits int, rational bool) (map[int][]PCurve, error) {
 	retained := map[int][]PCurve{}
-	for _, z := range clipped.wires[0] {
-		s := z.source
-		if s.Branch < 0 {
-			continue
-		}
-		p := section.Branches[s.Branch].Pieces[s.Piece]
-		for _, c := range cuts {
-			if c.Source != s {
+	for _, wire := range clipped.wires {
+		for _, z := range wire {
+			s := z.source
+			if s.Branch < 0 {
 				continue
 			}
-			h, e := polynomialPlaneControls(p)
-			if e != nil {
-				return nil, e
+			p := section.Branches[s.Branch].Pieces[s.Piece]
+			for _, c := range cuts {
+				if c.Source != s {
+					continue
+				}
+				h, e := polynomialPlaneControls(p)
+				if e != nil {
+					return nil, e
+				}
+				a, b, e := splitCapBezier(h, c.Parameter, bits)
+				if e != nil {
+					return nil, e
+				}
+				if !c.KeepBefore {
+					a = b
+				}
+				if len(a) == 3 {
+					p, e = newExactQuadraticUV([3][3]*big.Rat{a[0], a[1], a[2]}, rational)
+				} else {
+					p, e = NewExactBezierUV(a)
+				}
+				if e != nil {
+					return nil, e
+				}
 			}
-			a, b, e := splitCapBezier(h, c.Parameter, bits)
-			if e != nil {
-				return nil, e
-			}
-			if !c.KeepBefore {
-				a = b
-			}
-			if len(a) == 3 {
-				p, e = NewExactQuadraticUV([3][3]*big.Rat{a[0], a[1], a[2]})
-			} else {
-				p, e = NewExactBezierUV(a)
-			}
-			if e != nil {
-				return nil, e
-			}
+			retained[s.Face] = append(retained[s.Face], p)
 		}
-		retained[s.Face] = append(retained[s.Face], p)
 	}
 	return retained, nil
 }

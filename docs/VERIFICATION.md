@@ -59,6 +59,11 @@ A crossing cubic band sews a cap chord between exact points
 independent volume is 233/61440. Both operand orders reload natively;
 pinned OCCT agrees on topology and differs from the analytic volume by
 about 1.65e-8. Touching an original section vertex returns no partial solid.
+The crossing assembler also preserves exact nonbinary quadratic seam endpoints
+`(2/3,0,3/16)` and `(2/3,19/36,3/16)` through native reload. Two sleeve
+fixtures prove independent volumes 67/64 and 3/64, keeping or dropping a
+complete inner wire with the corresponding genus change. Crossing that wire
+rejects atomically.
 The 3–8 face tensor fan and persistence tests (`0c87cc1`, `075b869`) reject
 missing, misassigned and stale original contacts on reload. Rational graph
 occurrences (`8da0749`, `fc8e3bc`, `6e73660`) retain native face and rim IDs
