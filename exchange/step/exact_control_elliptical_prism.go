@@ -41,8 +41,8 @@ func exactPrismLine(a, b [2]int64) (trimmed.ExactQuadraticUV, error) {
 	}
 	return trimmed.NewRationalEndpointQuadraticUV(h)
 }
-func sewExactControlEllipticalPrism(ctx context.Context, b mappedRationalBasis, a, r, h, tol float64) (trimmed.Solid, [2][4]int, error) {
-	fail := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
+func exactControlEllipticalPrismParts(ctx context.Context, b mappedRationalBasis, a, r, h, tol float64) ([]trimmed.SewFace, error) {
+	fail := func(e error) ([]trimmed.SewFace, error) { return nil, e }
 	if ctx == nil {
 		return fail(geom.ErrInvalid)
 	}
@@ -127,6 +127,15 @@ func sewExactControlEllipticalPrism(ctx context.Context, b mappedRationalBasis, 
 		}
 		parts = append(parts, part)
 	}
+	return parts, nil
+}
+func sewExactControlEllipticalPrism(ctx context.Context, b mappedRationalBasis, a, r, h, tol float64) (trimmed.Solid, [2][4]int, error) {
+	fail := func(e error) (trimmed.Solid, [2][4]int, error) { return trimmed.Solid{}, [2][4]int{}, e }
+	parts, e := exactControlEllipticalPrismParts(ctx, b, a, r, h, tol)
+	if e != nil {
+		return fail(e)
+	}
+
 	solid, history, e := trimmed.SewRationalQuadratic(ctx, parts, trimmed.SewOptions{Tolerance: tol, MaxFaces: 6, MaxUses: 24, Proof: edgecheck.Options{}})
 	if e != nil {
 		return fail(e)
