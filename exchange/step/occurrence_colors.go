@@ -30,19 +30,13 @@ func ReadOccurrenceColoredAssembly(r io.Reader, l Limits) (OccurrenceColoredAsse
 	fail := func() (OccurrenceColoredAssembly, error) {
 		return OccurrenceColoredAssembly{}, errors.New("step: unsupported or inconsistent occurrence surface style")
 	}
-	l, e := l.defaults()
+	l, e := occurrenceColorSourceLimits(l)
 	if e != nil {
 		return OccurrenceColoredAssembly{}, e
 	}
 	if r == nil {
 		return fail()
 	}
-	l.MaxBytes = min(l.MaxBytes, 1<<20)
-	l.MaxEntities = min(l.MaxEntities, 4096)
-	l.MaxValues = min(l.MaxValues, 65536)
-	l.MaxDepth = min(l.MaxDepth, 16)
-	l.MaxEdgeUses = min(l.MaxEdgeUses, 4096)
-	l.MaxSolids = min(l.MaxSolids, 16)
 	f, e := Parse(r, l)
 	if e != nil {
 		return OccurrenceColoredAssembly{}, e
@@ -427,4 +421,18 @@ func occurrenceSurfaceFill(f *File, id int64) (RGB, []int64, error) {
 		return fail()
 	}
 	return c, append(ids, id), nil
+}
+
+func occurrenceColorSourceLimits(l Limits) (Limits, error) {
+	l, e := l.defaults()
+	if e != nil {
+		return Limits{}, e
+	}
+	l.MaxBytes = min(l.MaxBytes, 1<<20)
+	l.MaxEntities = min(l.MaxEntities, 4096)
+	l.MaxValues = min(l.MaxValues, 65536)
+	l.MaxDepth = min(l.MaxDepth, 16)
+	l.MaxEdgeUses = min(l.MaxEdgeUses, 4096)
+	l.MaxSolids = min(l.MaxSolids, 16)
+	return l, nil
 }

@@ -32,6 +32,12 @@ func EditOccurrenceSurfaceColor(ctx context.Context, source *File, occurrenceID 
 	if e = ctx.Err(); e != nil {
 		return zero, e
 	}
+	return editAuthenticatedOccurrenceSurfaceColor(ctx, source, raw, before, occurrenceID, color, l)
+}
+
+// Only called after the complete contextual source proof has succeeded.
+func editAuthenticatedOccurrenceSurfaceColor(ctx context.Context, source *File, raw []byte, before OccurrenceColoredAssembly, occurrenceID int64, color RGB, l Limits) (OccurrenceColoredAssembly, error) {
+	var zero OccurrenceColoredAssembly
 	chain := map[int64]bool{}
 	colors := map[int64]bool{}
 	assignments := map[int64]int64{}
