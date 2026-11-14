@@ -17,11 +17,11 @@ type RoofBoxUnionHistory struct {
 }
 
 // FuseOrderedRoofBoxes builds the regularized union of two roof boxes with
-// identical XY footprints, single-span roofs in a provable global height
-// order, and vertical bands that overlap or meet at every XY point. It
-// preserves the higher roof as one exact chart and sews four merged walls
-// to the lower floor. A footprint mismatch, unresolved order, or vertical
-// gap does not qualify for this single-band construction.
+// identical XY footprints and single-span roofs. When the bands overlap or
+// meet everywhere in a proved roof order, it sews four merged walls to the
+// higher roof and lower floor. A strictly separating floor preserves both
+// original, disconnected shells. Gaps limited to part of the footprint and
+// unresolved height orders fail closed.
 func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryOptions, options geom.SurfacePatchEvaluationOptions) (Solid, RoofBoxUnionHistory, error) {
 	var zero RoofBoxUnionHistory
 	q, err := prepareDirectRoofBoxMeasure(ctx, a, b, parametric.Union, proof)
@@ -50,27 +50,41 @@ func FuseOrderedRoofBoxes(ctx context.Context, a, b Solid, proof MixedRoofQueryO
 		{Lower: ratInset(d.UMin), Upper: ratInset(d.UMax)},
 		{Lower: ratInset(d.VMin), Upper: ratInset(d.VMax)},
 	}
-	order, err := orderedRoofBoxOrder(ctx, boxes, xy, &w)
-	if err != nil {
-		return Solid{}, zero, err
-	}
 	floorIndex, roofIndex := 0, 0
 	if boxes[1].floor.Cmp(boxes[0].floor) < 0 {
 		floorIndex = 1
 	}
-	if order < 0 {
-		roofIndex = 1
-	}
 	// Equal floors guarantee overlap. Otherwise the lower-floor box's
 	// roof must reach the higher floor everywhere.
 	if boxes[0].floor.Cmp(boxes[1].floor) != 0 {
-		sign, err := orderedRoofAgainstFloor(ctx, boxes[floorIndex], xy, boxes[1-floorIndex].floor, &w)
+		sign, strict, err := orderedRoofAgainstFloorDetail(ctx, boxes[floorIndex], xy, boxes[1-floorIndex].floor, &w)
 		if err != nil {
 			return Solid{}, zero, err
 		}
 		if sign < 0 {
-			return Solid{}, zero, geom.ErrUnrepresentable
+			if !strict {
+				return Solid{}, zero, geom.ErrUnrepresentable
+			}
+			identity := geom.Identity()
+			out, err := AssembleShells(ctx, []PlacedSolid{{a, identity}, {b, identity}}, 12)
+			if err != nil {
+				return Solid{}, zero, err
+			}
+			h := RoofBoxUnionHistory{ExactOperations: w.operations}
+			for i, s := range []Solid{a, b} {
+				for face := range s.faces {
+					h.Faces = append(h.Faces, []MixedRoofFaceOwner{{i, face}})
+				}
+			}
+			return out, h, nil
 		}
+	}
+	order, err := orderedRoofBoxOrder(ctx, boxes, xy, &w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if order < 0 {
+		roofIndex = 1
 	}
 	upper, err := roofBoxRestrictedPatch(boxes[roofIndex].roof, d, &w)
 	if err != nil {

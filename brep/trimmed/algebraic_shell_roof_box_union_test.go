@@ -89,3 +89,28 @@ func TestOrderedRoofBoxFuseContactAndGap(t *testing.T) {
 		t.Fatal("budget exhaustion leaked topology", s.Topology(), h, err)
 	}
 }
+
+func TestOrderedRoofBoxFuseStrictlySeparateBands(t *testing.T) {
+	ctx := context.Background()
+	a := weightedIdentityRoofStock(t, false, 2)
+	b, _ := makeOpenSplineBox(t, [3]float64{0, 0, 2.125}, [3]float64{1, 1, 3}, 0)
+	for _, sources := range [][2]Solid{{a, b}, {b, a}} {
+		s, h, err := FuseOrderedRoofBoxes(ctx, sources[0], sources[1], MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(s.Topology().Shells) != 2 || s.Topology().EulerCharacteristic != 4 || len(h.Faces) != 12 {
+			t.Fatal("strict separation retains both original components", s.Topology(), h, err)
+		}
+		for i, owners := range h.Faces {
+			if len(owners) != 1 || owners[0] != (MixedRoofFaceOwner{i / 6, i % 6}) || s.faces[i].Surface != sources[i/6].faces[i%6].Surface {
+				t.Fatal("separate union must carry each original support and face unchanged", i, owners)
+			}
+		}
+		mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{})
+		if err != nil || math.Abs(mass.Volume-(3*math.Log(2)+.375)) > 1e-8 {
+			t.Fatal("independent two-band volume", mass, err)
+		}
+	}
+	touch, _ := makeOpenSplineBox(t, [3]float64{0, 0, 2}, [3]float64{1, 1, 3}, 0)
+	if s, h, err := FuseOrderedRoofBoxes(ctx, a, touch, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || s.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("edge contact cannot be promoted to strictly separate shell material", s.Topology(), h, err)
+	}
+}

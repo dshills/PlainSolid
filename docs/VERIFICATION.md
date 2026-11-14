@@ -5601,6 +5601,10 @@ The complementary top Cut retains the reversed original cutter floor as
 the new roof. The remaining unit-footprint prism has volume 1/2 and area
 4, matching pinned OCCT. A roof-only touch keeps the original stock;
 crossing the cutter floor through the roof fails atomically.
+The strict vertical-gap Fuse preserves both original six-face shells and
+face ancestry under operand reversal, with Euler characteristic four and
+an analytic volume check. Edge-only contact is distinguished from strict
+separation. The focused roof suite passed under race in 12.731 s.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

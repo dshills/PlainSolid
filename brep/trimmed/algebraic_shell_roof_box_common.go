@@ -153,23 +153,27 @@ func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom
 // Compare physical height with a constant after multiplication by the
 // strictly positive original denominator. Weak sign includes tangencies.
 func orderedRoofAgainstFloor(ctx context.Context, roof *mixedRoofBox, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (int, error) {
+	sign, _, err := orderedRoofAgainstFloorDetail(ctx, roof, xy, floor, w)
+	return sign, err
+}
+
+func orderedRoofAgainstFloorDetail(ctx context.Context, roof *mixedRoofBox, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (int, bool, error) {
 	axes := [2][2]*big.Rat{{xy[0].Lower, xy[0].Upper}, {xy[1].Lower, xy[1].Upper}}
 	numerator, weight, err := roof.roofOrderPower(axes, w)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	one := big.NewRat(1, 1)
 	gap, err := roofHeightDifference([2]roofPowerGrid{numerator, {{floor}}}, [2]roofPowerGrid{weight, {{one}}}, w)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	unit := [2]geom.ExactParameterInterval{{Lower: new(big.Rat), Upper: one}, {Lower: new(big.Rat), Upper: one}}
 	bounds, err := mixedRoofPowerRange(gap, unit, w)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
-	sign, _, err := orderedRoofPowerSign(ctx, gap, bounds, w)
-	return sign, err
+	return orderedRoofPowerSign(ctx, gap, bounds, w)
 }
 
 func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (sign int, strict bool, err error) {

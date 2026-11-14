@@ -1986,7 +1986,9 @@ footprints when rational roofs have a proved height order and the vertical
 bands meet across the whole rectangle. It keeps the higher original roof,
 lower original floor, and the two original contributors to each merged
 wall. The opt-in dispatcher falls back for unsupported geometry. Height
-order changes and open inter-band gaps remain outside this constructor.
+order changes and gaps covering only part of the footprint remain outside
+this constructor. A strict gap across the whole footprint retains both
+original solids with no welding.
 An exact full-footprint Cut with a cutter wholly between the stock floor
 and roof returns two closed solids. Each retains one of the two cutter
 caps, reversed, and all remaining stock wall fragments keep their sources.
