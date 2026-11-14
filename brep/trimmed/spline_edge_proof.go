@@ -307,6 +307,12 @@ func compareSplineDescriptors(ctx context.Context, a, b *geom.ExactSplineCurve, 
 // A composed rational trim can be compared continuously across different
 // source support knot partitions without reconstructing a 3D spline.
 func compareSplineRationalTrimUse(ctx context.Context, model parametric.Edge, surface geom.Surface, use Use, o edgecheck.Options) (bool, error) {
+	if base, _ := parametric.SurfaceMapping(surface); base != nil {
+		if _, wrapped := base.(*geom.WrappedSurfacePatch); wrapped {
+			same, _, e := compareWrappedQuadraticUse(ctx, model, surface, use, o)
+			return same, e
+		}
+	}
 	if m, ok := model.Curve.(surfaceTrimCurve); ok {
 		higher := func(c PCurve) bool {
 			switch q := c.(type) {
