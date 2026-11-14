@@ -184,6 +184,36 @@ func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
 			t.Fatal("independent OCCT volume or closed topology", data, mid)
 		}
 	}
+	evaluated, curves, e := restored.ExactModelBoundary(ctx, section, opts)
+	if e != nil || len(curves) != len(topology.Edges) || !reflect.DeepEqual(evaluated, topology) {
+		t.Fatal("canonical model geometry for every indexed edge", len(curves), e)
+	}
+	meet := make(map[int]*geom.ExactComposedCurveEvent)
+	for i, curve := range curves {
+		for j, vertex := range [...]int{topology.Edges[i].Start, topology.Edges[i].End} {
+			canonical := j
+			if curve.Reversed {
+				canonical ^= 1
+			}
+			cell := curve.Cells.Cells[canonical*(len(curve.Cells.Cells)-1)]
+			root, e := cell.EndpointRoot(canonical)
+			if e != nil {
+				t.Fatal(e)
+			}
+			event, e := cell.BindRoot(ctx, root, opts)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if old := meet[vertex]; old != nil {
+				equal, _, e := old.CompareModelPoint(ctx, event, opts)
+				if e != nil || !equal {
+					t.Fatal("indexed model vertices must be exactly coincident", vertex, i, e)
+				}
+			} else {
+				meet[vertex] = event
+			}
+		}
+	}
 	for _, probe := range []struct {
 		p    geom.Vec3
 		want parametric.Location
