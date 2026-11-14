@@ -9,12 +9,16 @@ import (
 )
 
 // TripleCrossedBoreBody retains three equal-radius concurrent cardinal
-// through bores on rectangular stock. Crossing is in stock coordinates.
+// bores on rectangular stock. Crossing is in stock coordinates. BlindDepth
+// optionally stops the Z bore beyond the full overlap; OppositeCap selects
+// its upper entry. Zero depth retains three through bores.
 type TripleCrossedBoreBody struct {
 	Name                 string
 	Frame                geom.Frame
 	Dimensions, Crossing geom.Vec3
 	Radius               float64
+	BlindDepth           float64
+	OppositeCap          bool
 }
 type TripleCrossedBoreModel struct {
 	Body       TripleCrossedBoreBody
@@ -37,7 +41,13 @@ func WriteTripleCrossedBore(w io.Writer, m TripleCrossedBoreModel) error {
 }
 func writeTripleCrossedBore(w io.Writer, m TripleCrossedBoreModel) error {
 	p := m.Body
-	r, e := trimmed.BoxTripleCrossedBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	var r trimmed.BoxCrossedBoresResult
+	var e error
+	if p.BlindDepth != 0 || p.OppositeCap {
+		r, e = trimmed.BoxBlindTripleCrossedBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, p.OppositeCap, 1e-9)
+	} else {
+		r, e = trimmed.BoxTripleCrossedBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+	}
 	if e != nil {
 		return e
 	}
@@ -83,7 +93,7 @@ func recoverTripleCrossedBore(f *File, id int64) (TripleCrossedBoreBody, error) 
 		return fail()
 	}
 	faces, e := listRefs(shell.Args[1], 54)
-	if e != nil || len(faces) != 54 {
+	if e != nil || len(faces) != 54 && len(faces) != 55 {
 		return fail()
 	}
 	lower, e := readCircularSourceFace(f, faces[0])
@@ -91,7 +101,12 @@ func recoverTripleCrossedBore(f *File, id int64) (TripleCrossedBoreBody, error) 
 		return fail()
 	}
 	var supports [3]circularSourceFace
-	for i, fi := range []int{6, 22, 38} {
+	starts := []int{6, 22, 38}
+	blind := len(faces) == 55
+	if blind {
+		starts = []int{7, 23, 39}
+	}
+	for i, fi := range starts {
 		supports[i], e = readCircularSourceFace(f, faces[fi])
 		if e != nil || supports[i].kind != "CYLINDER" || supports[i].sense {
 			return fail()
@@ -106,9 +121,9 @@ func recoverTripleCrossedBore(f *File, id int64) (TripleCrossedBoreBody, error) 
 		return fail()
 	}
 	var vertices []geom.Vec3
-	for _, id := range faces[:6] {
+	for index, id := range faces[:6] {
 		face, e := readCircularSourceFace(f, id)
-		if e != nil || face.kind != "PLANE" || !face.sense || len(face.loops) != 2 || len(face.loops[0]) != 4 || len(face.loops[1]) != 8 {
+		if e != nil || face.kind != "PLANE" || !face.sense || len(face.loops) < 1 || len(face.loops) > 2 || len(face.loops[0]) != 4 || len(face.loops) == 2 && len(face.loops[1]) != 8 || (!blind || index > 1) && len(face.loops) != 2 {
 			return fail()
 		}
 		for _, use := range face.loops[0] {
@@ -127,5 +142,31 @@ func recoverTripleCrossedBore(f *File, id int64) (TripleCrossedBoreBody, error) 
 	if e != nil || bounds.Min != (geom.Vec3{}) {
 		return fail()
 	}
-	return TripleCrossedBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(z.frame.Origin()), Radius: z.radius}, nil
+	p := TripleCrossedBoreBody{Name: name, Frame: frame, Dimensions: bounds.Max, Crossing: frame.ToLocal(z.frame.Origin()), Radius: z.radius}
+	if blind {
+		floor, err := readCircularSourceFace(f, faces[6])
+		if err != nil || floor.kind != "PLANE" || !floor.sense || len(floor.loops) != 1 || len(floor.loops[0]) != 8 {
+			return fail()
+		}
+		low, err := readCircularSourceFace(f, faces[0])
+		if err != nil {
+			return fail()
+		}
+		high, err := readCircularSourceFace(f, faces[1])
+		if err != nil || len(low.loops)+len(high.loops) != 3 {
+			return fail()
+		}
+		level := frame.ToLocal(floor.frame.Origin()).Z
+		p.OppositeCap = len(high.loops) == 2
+		normal := frame.ZAxis().Scale(-1)
+		p.BlindDepth = level
+		if p.OppositeCap {
+			normal = frame.ZAxis()
+			p.BlindDepth = bounds.Max.Z - level
+		}
+		if floor.frame.ZAxis() != normal {
+			return fail()
+		}
+	}
+	return p, nil
 }

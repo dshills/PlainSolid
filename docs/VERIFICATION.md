@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD finite floor in a three-Hole intersection — 2026-11-14
+
+One cutter in a concurrent equal-radius three-axis group can stop beyond
+the complete intersection. Its full planar floor retains its eight
+circular rim arcs and face reference. All saddle arcs and triple vertices
+stay exact. The native bridge accepts either side of any cardinal axis.
+The through-only STEP graph remains byte-identical.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-blind-triple-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-blind-triple-step-native-2026-11-14.json)
+pass on the same WASM. The authored STEP reimports and reopens, and
+watertight STL retains both open passages and the blind floor. Twenty-four
+independent OCCT finite STEP checks and an authored direct Boolean pass.
+Native, exchange and bridge race tests and Go vet pass.
+
 ## PlainCAD finite blind floors on partial-skew Hole crossings — 2026-11-14
 
 A partial transverse overlap can retain one or both finite floor planes

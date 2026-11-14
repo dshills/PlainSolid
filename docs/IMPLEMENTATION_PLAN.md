@@ -94,8 +94,10 @@ companion through bores on any cardinal axis. Three concurrent same-radius
 cardinal cutters retain exact elliptical trim arcs and watertight exchange.
 Finite STEP compaction preserves earlier files and fits more unequal
 crossings within the app import limit. Partial-skew crossings also
-retain finite stops beyond the complete intersection. Next qualify
-finite triple stops and unequal crossed pairs with disjoint companions. A single oblique through Hole with
+retain finite stops beyond the complete intersection. In a concurrent
+same-radius triple crossing, one cutter can also retain a floor beyond
+the crossing. Next qualify unequal crossed pairs with disjoint companions
+and a crossing between cardinal and oblique cylinders. A single oblique through Hole with
 strictly interior apertures on adjacent or opposed faces passes native
 modeling, project reopen and STL. STEP preserves analytic elliptical edges
 and the cylindrical support in the canonical world-coordinate graph.

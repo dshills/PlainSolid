@@ -12,6 +12,10 @@ import (
 // bores from rectangular stock. Stock faces0..5 stay fixed; the next three
 // groups of16cylinder patches follow local Z,X,Y order.
 func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, tolerance float64) (BoxCrossedBoresResult, error) {
+	return boxFiniteTripleCrossedBores(ctx, frame, dimensions, crossing, radius, dimensions.Z, false, false, tolerance)
+}
+
+func boxFiniteTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, crossing geom.Vec3, radius, depth float64, oppositeCap, blind bool, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
 	if ctx == nil || !dimensions.IsFinite() || !crossing.IsFinite() || !finite(radius) || !finite(tolerance) || tolerance <= 0 || radius <= 8*tolerance {
 		return fail(geom.ErrInvalid)
@@ -36,6 +40,28 @@ func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 	for i, d := range []float64{dimensions.X, dimensions.Y, dimensions.Z} {
 		c := []float64{crossing.X, crossing.Y, crossing.Z}[i]
 		if c-radius <= 8*tolerance || d-c-radius <= 8*tolerance {
+			return fail(geom.ErrDomain)
+		}
+	}
+	floor := depth
+	if blind {
+		if !finite(depth) || depth <= 0 || depth >= dimensions.Z-8*tolerance {
+			return fail(geom.ErrDomain)
+		}
+		if oppositeCap {
+			floor = dimensions.Z - depth
+		}
+		p := geom.Vec3{X: crossing.X, Y: crossing.Y, Z: floor}
+		represented := frame.ToLocal(frame.ToWorld(p))
+		if !represented.IsFinite() || represented.Distance(p) > tolerance/8 || frame.ToLocal(frame.ToWorld(represented)) != represented {
+			return fail(geom.ErrUnrepresentable)
+		}
+		floor = represented.Z
+		depth = floor
+		if oppositeCap {
+			depth = dimensions.Z - floor
+		}
+		if (!oppositeCap && floor <= crossing.Z+radius+8*tolerance) || (oppositeCap && floor >= crossing.Z-radius-8*tolerance) {
 			return fail(geom.ErrDomain)
 		}
 	}
@@ -74,6 +100,13 @@ func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 			low, high = -crossing.Y, dimensions.Y-crossing.Y
 			caps = [2]int{2, 4}
 		}
+		if blind && axis == 0 {
+			if oppositeCap {
+				low = floor - crossing.Z
+			} else {
+				high = floor - crossing.Z
+			}
+		}
 		cf, e := geom.NewFrame(frame.ToWorld(crossing), vector(radialX), vector(direction))
 		if e != nil {
 			return fail(e)
@@ -90,9 +123,31 @@ func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 			if k == 1 {
 				level = high
 			}
+			isFloor := blind && axis == 0 && ((!oppositeCap && k == 1) || (oppositeCap && k == 0))
+			if isFloor {
+				normal := frame.ZAxis().Scale(-1)
+				if oppositeCap {
+					normal = frame.ZAxis()
+				}
+				ff, err := geom.NewFrame(frame.ToWorld(crossing.Add(direction.Scale(level))), frame.XAxis(), normal)
+				if err != nil {
+					return fail(err)
+				}
+				plane, err := geom.NewPlaneSurface(ff)
+				if err != nil {
+					return fail(err)
+				}
+				id = len(b.faces)
+				b.faces = append(b.faces, Face{Surface: plane})
+			}
 			if e = b.crossedCapWire(frame, frame.ToWorld(crossing.Add(direction.Scale(level))), vector(radialX), vector(radialY), radius, id, k == 1, angles, func(i int) geom.Vec3 { return point(i, level) }, normalize); e != nil {
 				return fail(e)
 			}
+			if isFloor {
+				b.faces[id].Outer = b.faces[id].Holes[0]
+				b.faces[id].Holes = nil
+			}
+
 		}
 		for i := 0; i < 8; i++ {
 			a, c := angles[i], angles[i+1]
@@ -151,8 +206,14 @@ func BoxTripleCrossedBores(ctx context.Context, frame geom.Frame, dimensions, cr
 		return fail(e)
 	}
 	span := dimensions.X + dimensions.Y + dimensions.Z
+	if blind {
+		span = dimensions.X + dimensions.Y + depth
+	}
 	removed := math.Pi*radius*radius*span - 8*math.Sqrt2*radius*radius*radius
 	delta := 2*math.Pi*radius*span - 24*math.Sqrt2*radius*radius - 6*math.Pi*radius*radius
+	if blind {
+		delta += 2 * math.Pi * radius * radius
+	}
 	if !finite(removed) || !finite(delta) {
 		return fail(geom.ErrInvalid)
 	}
@@ -175,7 +236,7 @@ func (s Solid) TessellateTripleCrossedBores(ctx context.Context, o parametric.Te
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
 	}
-	if len(s.faces) != 54 {
+	if len(s.faces) != 54 && len(s.faces) != 55 {
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	found := false
