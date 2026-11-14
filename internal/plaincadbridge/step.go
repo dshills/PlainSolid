@@ -272,6 +272,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	if m, e := step.ReadQuarterSectorExtrusion(r(), stepLimits()); e == nil {
 		return b.putQuarterSectorSTEP(m)
 	}
+	if m, e := step.ReadSemicircleExtrusion(r(), stepLimits()); e == nil {
+		return b.putSemicircleSTEP(m)
+	}
 
 	if m, err := step.ReadSplitCylinderModel(r(), stepLimits()); err == nil {
 		return b.putSTEPCylinder(m.Frame, m.Radius, m.Height, m.LengthUnit)
@@ -461,6 +464,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		p := s.analytic.pockets
 		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
 	case s.analytic != nil:
+		if s.analytic.segment != nil {
+			if p, ok := s.analytic.segment.semicircleSTEP(); ok {
+				e = step.WriteSemicircleExtrusion(&out, step.SemicircleExtrusionModel{Body: p, LengthUnit: .001})
+				break
+			}
+		}
 		if s.analytic.arcLoop != nil {
 			if p, ok := s.analytic.arcLoop.quarterSectorSTEP(); ok {
 				e = step.WriteQuarterSectorExtrusion(&out, step.QuarterSectorExtrusionModel{Body: p, LengthUnit: .001})

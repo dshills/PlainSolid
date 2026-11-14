@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD Circle Trim half-disk STEP exchange — 2026-11-14
+
+The exact half-disk produced by the original XY Circle Trim workflow
+retains its two circular rim arcs and planar diameter face through STEP.
+The importer verifies the complete native graph before restoring the
+analytic extrusion. Signed height, reflected section placement and a
+representable non-millimeter source pass native bridge checks.
+
+[Seven original curved-sketch and STEP cases](evidence/plaincad-semicircle-step-browser-2026-11-14.json)
+and an [extension of the original Circle Trim workflow](evidence/plaincad-semicircle-step-native-2026-11-14.json)
+pass on the same WASM. The 9,185-byte STEP reimports and reopens. The
+imported STL has 256 watertight triangles. Twelve independent OCCT
+placements, authored STEP measures, malformed-graph rejection,
+focused race tests and Go vet pass.
+
 ## PlainCAD Arc Extend quarter-sector STEP exchange — 2026-11-14
 
 The exact quarter-sector produced by the original YZ Arc Extend workflow

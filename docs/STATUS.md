@@ -117,7 +117,8 @@ and bound the mesh work for steeper and three-component axes. The authored
 
 The existing PlainCAD Arc Extend workflow now exports and reimports the
 quarter-sector extrusion with its exact cylindrical wall and circular
-edges. The authored YZ model reopens and exports watertight STL.
+edges. Circle Trim also exchanges its half-disk extrusion. Both authored
+models reopen and export watertight STL.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its

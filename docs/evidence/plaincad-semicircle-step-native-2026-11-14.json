@@ -1,0 +1,51 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "e83a31c1cf7bbcc1b092f01ac49b7dcf59e52723ac00c1fcc1213c606645e9c2",
+  "supplemental": {
+    "report": "/tmp/plainsolid-semicircle-authored-5572/semicircle-browser.json",
+    "reportSha256": "ab74e1ff48113fdf49d617d92cb773c3ba66467e3b1f603b83d577ac3bf65a87",
+    "sourceSha256": "2113d39506610a039f3c140b9ace53ac054c6e36d0735edcf14083e528ae49b6",
+    "summary": {
+      "startTime": "2026-11-14T15:06:57.779Z",
+      "duration": 32787.962,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "radiusMm": 10,
+      "heightMm": 4,
+      "worldNormal": [
+        0,
+        0,
+        1
+      ],
+      "analyticalVolumeMm3": 628.3185307179587,
+      "analyticalAreaMm2": 519.822971502571,
+      "originalWorkflow": "Circle Trim on XY",
+      "stepByteCount": 9185,
+      "stepSha256": "6fa1c8d9401d8255e68215da1ae2964c7b760eb904dd0a0cb489a00c3c6c0f22",
+      "stlTriangles": 256,
+      "stlTwoUseEdges": 384,
+      "stlSha256": "fc7e933121fc8668b196030aee39164851efd83b47bd8e12c935756199255e97",
+      "occtStepReadback": {
+        "Area": 519.8229715025711,
+        "Volume": 628.3185307179588,
+        "Centroid": [
+          -8.845816557543738e-16,
+          -4.244131815783874,
+          2
+        ]
+      }
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 12
+  },
+  "vet": "passed",
+  "nativeRace": "passed for exchange and bridge"
+}
