@@ -66,6 +66,15 @@ correct original polynomial roof and integrates its exact volume
 uses one cell instead of three with identical moments. Live crossing,
 weighted, and creased OCCT regressions passed under the race detector.
 
+`BoundRoofBoxSurfaceArea` extends the direct measurement to independently
+proved source boxes with shared boundary areas. Coincident floors and roofs
+are counted once or canceled. Shared vertical strips use the material sides
+to distinguish overlap from adjacent solids. Nine independent OCCT cube
+Booleans cover same-side, opposite-side and identical material; all areas
+match the Go intervals' exact endpoints. Identical rational roofs also
+contribute only once. This query measures the regularized boundary without
+constructing a native topology for the coincident operation.
+
 The signed-axis spherical STEP hierarchy materializes as an editable native
 document with one planar and three curved assets. Its seven material
 occurrences retain their proved world poses and original relationship paths;

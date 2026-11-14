@@ -36,7 +36,14 @@ func (s *MixedAlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Contex
 // the complete regular Boolean. Public diagnostic face and edge tables
 // are not used as proof inputs.
 func (s AlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o MixedRoofQueryOptions) (*MixedRoofMaterialQuery, error) {
-	if s.source == nil || ctx == nil || o.MaxPreparationOperations < 0 || o.MaxPreparationOperations > 16000000 {
+	if s.source == nil {
+		return nil, geom.ErrInvalid
+	}
+	return prepareRoofMaterialQuery(ctx, [2]Solid{s.source.a, s.source.b}, s.op, o)
+}
+
+func prepareRoofMaterialQuery(ctx context.Context, bodies [2]Solid, op parametric.BooleanOp, o MixedRoofQueryOptions) (*MixedRoofMaterialQuery, error) {
+	if ctx == nil || o.MaxPreparationOperations < 0 || o.MaxPreparationOperations > 16000000 {
 		return nil, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -45,8 +52,8 @@ func (s AlgebraicShellBoolean) PrepareRoofMaterialQuery(ctx context.Context, o M
 	if o.MaxPreparationOperations == 0 {
 		o.MaxPreparationOperations = 2000000
 	}
-	q := &MixedRoofMaterialQuery{op: s.op}
-	for k, body := range [2]Solid{s.source.a, s.source.b} {
+	q := &MixedRoofMaterialQuery{op: op}
+	for k, body := range bodies {
 		if len(body.faces) != 6 {
 			return nil, geom.ErrUnrepresentable
 		}
