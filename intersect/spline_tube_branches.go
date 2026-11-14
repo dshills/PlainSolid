@@ -38,7 +38,9 @@ type SplineTubeBranch struct {
 type TubeBranchReport struct {
 	Branches    []SplineTubeBranch
 	Comparisons int
-	Truncated   bool
+	// RationalEndpointOperations charges the optional immutable-tube endpoint proof stage.
+	RationalEndpointOperations int
+	Truncated                  bool
 }
 
 // JoinSplineTubeBranches joins tubes that meet at exactly the same endpoint,
@@ -152,8 +154,13 @@ search:
 				continue
 			}
 			axisX, axisY := x.cell.FreeAxis, y.cell.FreeAxis
-			connected, separated := false, false
-			if axisX == axisY && raw(i) != raw(j) {
+			connected, fastWork, fastErr := verifiedSingletonTubeJunction(ctx, x.proof, y.proof, raw(i), raw(j), ex, ey, op)
+			out.RationalEndpointOperations += fastWork
+			if fastErr != nil && !errors.Is(fastErr, geom.ErrConvergence) && !errors.Is(fastErr, geom.ErrDomain) {
+				return out, fastErr
+			}
+			separated := false
+			if !connected && axisX == axisY && raw(i) != raw(j) {
 				p := op
 				p.FreeAxis = axisX
 				c, e := geom.CertifySurfaceTubeJunction(pa, pb, x.da, x.db, y.da, y.db, p)

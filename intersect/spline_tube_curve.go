@@ -2,6 +2,7 @@ package intersect
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -13,7 +14,9 @@ import (
 )
 
 // TubeCurveOptions controls exact tube evaluation and floating representative
-// verification. ResidualTolerance defaults to 1e-7 in model units.
+// verification. ResidualTolerance defaults to 1e-7 in model units. Junction
+// arithmetic limits apply separately to each proof stage, including the optional
+// exact rational endpoint check before the existing uniform/section fallback.
 type TubeCurveOptions struct {
 	Patches           geom.SurfacePatchOptions
 	Evaluation        geom.SurfaceTubeEvaluationOptions
@@ -354,8 +357,11 @@ func RebuildTubeCurves(ctx context.Context, data TubeRecipeData) ([]TubeSegment,
 		if y.reversed {
 			yend = 1
 		}
-		ok := false
-		if x.axis == y.axis && xend != yend {
+		ok, _, fastErr := verifiedSingletonTubeJunction(ctx, x.proof, y.proof, xend, yend, x.ends[1], y.ends[0], o.Junction)
+		if fastErr != nil && !errors.Is(fastErr, geom.ErrConvergence) && !errors.Is(fastErr, geom.ErrDomain) {
+			return fastErr
+		}
+		if !ok && x.axis == y.axis && xend != yend {
 			opt := o.Junction
 			opt.FreeAxis = x.axis
 			proof, e := geom.CertifySurfaceTubeJunction(pa, pb, p.DomainA, p.DomainB, q.DomainA, q.DomainB, opt)
