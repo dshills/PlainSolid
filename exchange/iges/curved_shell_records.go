@@ -147,12 +147,17 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 		}
 		kind := first[0]
 		// The second private flag is reserved for the strict model-only type194
-		// material codec; all existing caller modes retain their entity gates.
+		// material codec. The distinct three-flag mode admits only full ellipse104
+		// and its owned124; existing caller modes retain their entity gates.
 		conicalMaterial := len(circularMode) == 2 && circularMode[0] && circularMode[1] && lens && !placed && !cones && !planes && !cylinders && !spheres && !tori
+		ellipseConic := len(circularMode) == 3 && !circularMode[0] && !circularMode[1] && circularMode[2]
 		circular := len(circularMode) == 1 && circularMode[0] || conicalMaterial
 		supported := (conicalMaterial && kind == 194) || (circular && (kind == 100 || kind == 110 || kind == 116 || kind == 123 || kind == 190 || kind == 192)) || (placed && kind == 124) || kind == 126 || kind == 128 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514 || (lens && kind == 186)
 		if cylinders || planes || spheres || tori || cones {
 			supported = kind == 116 || kind == 123 || (cylinders && kind == 192) || (planes && kind == 190) || (spheres && kind == 196) || (tori && kind == 198) || (cones && kind == 194)
+		}
+		if ellipseConic {
+			supported = kind == 104 || kind == 124
 		}
 		if !supported {
 			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
@@ -191,7 +196,7 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 		if e != nil {
 			return topologySource{}, e
 		}
-		if (first[6] != 0 && !(placed && (kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] == 1)) || ((cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] != 1) {
+		if (first[6] != 0 && !(placed && (ellipseConic && kind == 104 || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((ellipseConic && kind == 104 || cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] == 1)) || ((ellipseConic && kind == 104 || cylinders && kind == 192 || planes && kind == 190 || spheres && kind == 196 || tori && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] != 1) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}
 		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, transform: first[6], values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})

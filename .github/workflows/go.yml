@@ -75,6 +75,7 @@ jobs:
       - run: go test ./exchange -fuzz=FuzzReadGLTF -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzParse -fuzztime=10s -parallel=2
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzReadSideCutProducts$ -fuzztime=128x -parallel=1 -timeout=180s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseConic$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTangentCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzGeometricTangentComposite$ -fuzztime=100x -parallel=1 -timeout=90s
