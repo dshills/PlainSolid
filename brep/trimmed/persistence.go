@@ -784,7 +784,11 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 			}
 		}
 		if needsTrimCheck {
-			r, e := ValidateFaceTrimLoops(ctx, f, trimvalidate.Options{})
+			validationFace, e := nativeExactTubeValidationFace(ctx, solid, f)
+			if e != nil {
+				return e
+			}
+			r, e := ValidateFaceTrimLoops(ctx, validationFace, trimvalidate.Options{})
 			if e != nil {
 				return e
 			}

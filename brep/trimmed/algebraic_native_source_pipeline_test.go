@@ -3,6 +3,8 @@ package trimmed
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"math"
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -106,8 +108,57 @@ func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
 		t.Fatal(mass.Volume, e)
 	}
 	var out bytes.Buffer
-	if e = WriteJSON(&out, native); e == nil || out.Len() != 0 {
-		t.Fatal("mixed tube/exact-trim persistence must remain atomic unsupported", e)
+	if e = WriteJSON(&out, native); e != nil {
+		t.Fatal("write", e)
+	}
+	raw := append([]byte(nil), out.Bytes()...)
+	back, e := ReadJSONContext(ctx, bytes.NewReader(raw), JSONLimits{})
+	if e != nil {
+		t.Fatal("reload", e)
+	}
+	agreement, e := back.ValidateEdgeAgreement(ctx, edgecheck.Options{})
+	if e != nil || !agreement.Complete || back.Topology().EulerCharacteristic != 2 {
+		t.Fatal("reloaded proof", agreement, e)
+	}
+	retained := 0
+	for _, f := range back.faces {
+		for _, u := range f.Outer {
+			if _, ok := u.Curve.(ExactQuadraticUV); ok {
+				retained++
+			}
+		}
+	}
+	if retained != count {
+		t.Fatal("lost persisted source curves", retained, count)
+	}
+	// A one-ULP change can pass numerical endpoint tolerance but cannot pass
+	// the exact mixed-boundary source/vertex corroboration on read or write.
+	var encoded nativeSolid
+	if e = json.Unmarshal(raw, &encoded); e != nil {
+		t.Fatal(e)
+	}
+	tubeEdge := -1
+	for i, x := range material.index {
+		if x.SectionPiece >= 0 {
+			tubeEdge = i
+			break
+		}
+	}
+	if tubeEdge < 0 {
+		t.Fatal("no tube")
+	}
+	id := native.edges[tubeEdge].Start
+	encoded.Vertices[id].X = math.Nextafter(encoded.Vertices[id].X, math.Inf(1))
+	forged, _ := json.Marshal(encoded)
+	if _, e = ReadJSONContext(ctx, bytes.NewReader(forged), JSONLimits{}); e == nil {
+		t.Fatal("rounded tube vertex accepted")
+	}
+	badNative := native
+	badNative.vertices = native.Vertices()
+	badNative.vertices[id] = encoded.Vertices[id]
+	var rejected bytes.Buffer
+	if e = WriteJSON(&rejected, badNative); e == nil || rejected.Len() != 0 {
+		t.Fatal("non-atomic forged write", e)
 	}
 	t.Logf("retained exact source uses=%d faces=%d edges=%d volume=%.12g", count, len(native.faces), len(native.edges), mass.Volume)
 }
