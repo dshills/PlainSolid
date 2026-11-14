@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "kernelRevision": "6c4ab7c40724f26fc721c26d1e2c8a4417537898",
-  "checkpointAt": "2026-11-14T16:20:56-06:00",
+  "checkpointAt": "2026-11-14T16:48:27-06:00",
   "goNormal": {
     "status": "running",
     "CGO_ENABLED": 0,
@@ -12,77 +12,76 @@
     "lanes": {
       "packages": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/packages.jsonl",
-        "sha256AtCheckpoint": "49f76b44f82915f0b475e48490282bb00ef3808f24659d20e4be60bdf8d4bf37",
-        "bytesAtCheckpoint": 5441069,
+        "sha256AtCheckpoint": "f5d7a4c43e1edc8a84b6173677106f109faf086bd305b5b112bb1a2512320ca9",
+        "bytesAtCheckpoint": 5449012,
         "packageOutcomes": {
-          "pass": 49,
+          "pass": 50,
           "skip": 5
         },
         "testOutcomesIncludingSubtests": {
-          "pass": 6477,
-          "skip": 417
+          "pass": 6485,
+          "skip": 418
         },
         "topLevelTestOutcomes": {
-          "pass": 3494,
-          "skip": 407
+          "pass": 3499,
+          "skip": 408
         },
-        "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/intersect": "TestTripleRadialOriginalTubeDiscovery"
-        },
+        "activeTopLevelTestsAtCheckpoint": {},
         "failures": []
       },
       "trimmed-0": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-0.jsonl",
-        "sha256AtCheckpoint": "a1c74c268aba842d7312f9f9cf5ce8f331f548abf8db3425158e1e894df509b2",
-        "bytesAtCheckpoint": 37051,
+        "sha256AtCheckpoint": "470c0b7a0dbb17b751c53d93588b0e94d6d8bb288d9fd2a25b0d9858895f54aa",
+        "bytesAtCheckpoint": 71654,
         "packageOutcomes": {},
         "testOutcomesIncludingSubtests": {
-          "pass": 38
+          "pass": 74
         },
         "topLevelTestOutcomes": {
-          "pass": 33
+          "pass": 60
         },
         "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestMixedUnionProjectedHoleRegion"
+          "plainsolid/brep/trimmed": "TestCertifiedDisjointTubeRegionNetwork"
         },
         "failures": []
       },
       "trimmed-1": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-1.jsonl",
-        "sha256AtCheckpoint": "84317372a49b570bc7328681c7c8cb775632eb6dbb3efcf9155f1a3cd92b362f",
-        "bytesAtCheckpoint": 55674,
+        "sha256AtCheckpoint": "07769e4a475e21d51f19d36cc728cd09522d2a78275909eaa0294841f8201ef4",
+        "bytesAtCheckpoint": 72151,
         "packageOutcomes": {},
         "testOutcomesIncludingSubtests": {
-          "pass": 58
+          "pass": 75
         },
         "topLevelTestOutcomes": {
-          "pass": 46
+          "pass": 63
         },
         "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestNativeTubeRegionCollectionMesh"
+          "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
         },
         "failures": []
       },
       "trimmed-2": {
         "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-2.jsonl",
-        "sha256AtCheckpoint": "24d41c0f9c275e1cd84b59cfd9fe36c22aa5b35ccdf80f5441360b353b331331",
-        "bytesAtCheckpoint": 37043,
+        "sha256AtCheckpoint": "f35a7aa1ce586c02e6a7a33fff6f57518665f32174468da46bae56c77293594b",
+        "bytesAtCheckpoint": 68463,
         "packageOutcomes": {},
         "testOutcomesIncludingSubtests": {
-          "pass": 39
+          "pass": 74
         },
         "topLevelTestOutcomes": {
-          "pass": 37
+          "pass": 70
         },
         "activeTopLevelTestsAtCheckpoint": {
-          "plainsolid/brep/trimmed": "TestMixedDifferenceRoofCollarsAndClosedMesh"
+          "plainsolid/brep/trimmed": "TestNestedQuarticTubeMaterial"
         },
         "failures": []
       }
-    }
+    },
+    "packagesCompletedExitCode": 0
   },
   "plainCad": {
-    "status": "running",
+    "status": "completed; production qualified with isolated Chromium capture-buffer adjustment",
     "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
     "wasm": {
       "revision": "6c4ab7c40724f26fc721c26d1e2c8a4417537898",
@@ -96,16 +95,13 @@
       "wasm": 0,
       "build": 0,
       "types": 0,
-      "selected-kernel": 0
-    },
-    "developmentLive": {
-      "passedLines": 230,
-      "failedLines": 0,
-      "logAtCheckpoint": {
-        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/development.log",
-        "bytes": 35619,
-        "sha256": "59501ccbff4f20b482ec71af9e6681cf7606c15c803e6f081fd33776e924987c"
-      }
+      "selected-kernel": 0,
+      "development": 0,
+      "production": 1,
+      "capture-control": 0,
+      "production-buffered": 0,
+      "cross-browser": 0,
+      "ordinary-units": 0
     },
     "completedLogs": {
       "wasm": {
@@ -128,6 +124,105 @@
         "bytes": 318,
         "sha256": "b1ba8d0f2f7cf552a08b5d8e299a7df010a64ba37409e8cfdb82341ff5133af6"
       }
+    },
+    "testResults": {
+      "development": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/development.json",
+        "bytes": 408691,
+        "sha256": "6ea9ce8f33f314f07ab15feee28ef3d2082a0a4334bf145cfb10ca242f1ac9f3",
+        "summary": {
+          "startTime": "2026-11-14T21:57:59.065Z",
+          "duration": 2168171.015,
+          "expected": 345,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0,
+          "retries": 0
+        }
+      },
+      "production": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/production.json",
+        "bytes": 84089,
+        "sha256": "6822bf0f220b03861c0ab0e20a2c41c32b536b29ccc2ec73d4b768403b0db66e",
+        "summary": {
+          "startTime": "2026-11-14T22:34:07.935Z",
+          "duration": 247338.84,
+          "expected": 65,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0,
+          "retries": 0
+        }
+      },
+      "production-buffered": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/production-buffered.json",
+        "bytes": 78765,
+        "sha256": "76ed5cbac3024fee074c7548d6969b7da18187b3e7500c8a22a1e559450332eb",
+        "summary": {
+          "startTime": "2026-11-14T22:38:16.013Z",
+          "duration": 254346.07200000001,
+          "expected": 66,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0,
+          "retries": 0
+        }
+      },
+      "cross-browser": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/cross-browser.json",
+        "bytes": 456087,
+        "sha256": "220ed90682c5ffe93967007513db3eaa9d4df80ea0d9a046ff37fbc6ba88aaee",
+        "summary": {
+          "startTime": "2026-11-14T22:42:30.787Z",
+          "duration": 52575.136,
+          "expected": 15,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0,
+          "retries": 0
+        }
+      },
+      "ordinary-units": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/ordinary-units.json",
+        "bytes": 653240,
+        "sha256": "57f56b517bb5fc341941ccf2694574105ef15bd23f73325bd0774d95ef6c9370",
+        "summary": {
+          "numTotalTests": 1691,
+          "numPassedTests": 1691,
+          "numFailedTests": 0,
+          "numPendingTests": 0
+        }
+      },
+      "selected-kernel": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/selected-kernel.json",
+        "bytes": 2173,
+        "sha256": "53e9f04f0056352b36589cab0ed2e73423b00f9ad225fbd5a5f1c8e6c06f5f0c",
+        "summary": {
+          "numTotalTests": 4,
+          "numPassedTests": 4,
+          "numFailedTests": 0,
+          "numPendingTests": 0
+        }
+      }
+    },
+    "rawArtifacts": {
+      "path": "/tmp/plainsolid-plaincad-main-6c4ab7c4-2026-11-14.tar.gz",
+      "bytes": 478652,
+      "sha256": "74efe6ba3b4b45f2c496612500b615fde0308fc3d82d66b877b4285b46452ba1"
+    },
+    "productionOriginalFailure": "The CSP assertion could not read the WASM response because Chromium evicted the inspector cache entry.",
+    "productionCaptureAdjustment": {
+      "playwright": "1.63.0",
+      "chromiumNetworkBufferBytes": 134217728,
+      "chromiumResourceBufferBytes": 33554432,
+      "beforeSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+      "afterSha256": "2bad350c6198b7ebdb3875b91afdc1d61c15d1c5c84ccc6f483dddb5bc1e9a39"
+    },
+    "captureBundleRestoredSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+    "nativeWasmAsset": {
+      "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/dist/assets/plainsolid-kernel-jrq3uLbg.wasm",
+      "bytes": 16562883,
+      "sha256": "7e5b451ffce9c66dbf529becb17b9490f8674c34119dd9ae3cf32a25ab110c66"
     }
   }
 }

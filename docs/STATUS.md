@@ -21,7 +21,8 @@ regression assertion used degree seven to check a ceiling of eight.
 The same pinned source with only the assertion corrected passed that
 fixture in normal and race mode. Together the normal trimmed runs
 account for all 1,036 top-level cases, with 1,023 passing and 13
-explicit skips. Full race qualification remains in progress. The
+explicit skips. The full race passed all 50 packages outside `brep/trimmed`,
+with five packages without tests. The three trimmed race lanes remain active. The
 raw results preserve the test revisions and original failure.
 General curved Boolean splitting, advanced surface modeling and broader CAD
 exchange remain separate implementation work against the specification.
@@ -70,7 +71,11 @@ PlainCAD app separately passed the three modeling cases and four WASM
 contracts. The [newer qualification checkpoint](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
 records the full normal Go and PlainCAD reruns on `6c4ab7c4`. The WASM
 build, type checks, JavaScript bundle budget and four selected kernel
-contracts passed. The full browser and native runs are still active.
+contracts passed. All 345 development, 66 buffered production and 15 cross-browser
+cases passed, with four WASM and 1,691 ordinary unit passes. The ordinary
+production run reproduced the inspector capture eviction and passed 65 of
+66. All normal packages outside `brep/trimmed` passed. The refreshed
+three normal trimmed groups remain active.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

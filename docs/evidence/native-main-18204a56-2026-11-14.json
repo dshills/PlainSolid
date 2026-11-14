@@ -30,8 +30,8 @@
     "CGO_ENABLED": 1,
     "timeoutMinutes": 145,
     "GOMAXPROCS": 2,
-    "status": "running",
-    "checkpointAt": "2026-11-14T16:20:56-06:00",
+    "status": "all packages outside brep/trimmed completed; three trimmed lanes running",
+    "checkpointAt": "2026-11-14T16:48:27-06:00",
     "remainingIfInterrupted": {
       "runner": "/tmp/plainsolid-18204a56-race-continuation.py",
       "planAndResults": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
@@ -62,23 +62,21 @@
     },
     "packages-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-race.jsonl",
-      "sha256AtCheckpoint": "63aa7beb22362c71462784a63091b3f417f364423831819170f83e49b2ba5ce8",
-      "bytesAtCheckpoint": 5304145,
+      "sha256AtCheckpoint": "03ce65d13af7526317e3285bb44ea93c4d25bf602d80ba637a11c420822de665",
+      "bytesAtCheckpoint": 5307923,
       "packageOutcomes": {
-        "pass": 49,
+        "pass": 50,
         "skip": 5
       },
       "testOutcomesIncludingSubtests": {
-        "pass": 6309,
-        "skip": 410
+        "pass": 6312,
+        "skip": 411
       },
       "topLevelTestOutcomes": {
-        "pass": 3415,
-        "skip": 400
+        "pass": 3418,
+        "skip": 401
       },
-      "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/intersect": "TestTripleRadialCoverageRejectsOmittedInnerBranch"
-      },
+      "activeTopLevelTestsAtCheckpoint": {},
       "failures": []
     },
     "trimmed-0-normal": {
@@ -101,17 +99,17 @@
     },
     "trimmed-0-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-race.jsonl",
-      "sha256AtCheckpoint": "de58cc5af999991e55d761ff1804b07a8492588700d906156cdb8ce3e28df63c",
-      "bytesAtCheckpoint": 30576,
+      "sha256AtCheckpoint": "33c355f90f73abb82fbeaa05e59dc6c7c0fd082c20ad67ef6388352de893f1b3",
+      "bytesAtCheckpoint": 33581,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 32
+        "pass": 35
       },
       "topLevelTestOutcomes": {
-        "pass": 30
+        "pass": 33
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestGraphWindowNestedDepth"
+        "plainsolid/brep/trimmed": "TestMixedOriginalAutomaticCompleteMesh"
       },
       "failures": []
     },
@@ -179,17 +177,17 @@
     },
     "trimmed-2-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-race.jsonl",
-      "sha256AtCheckpoint": "49fd754fe5f85cbd9f82ec32172a955d0056f4a963ebfbf4259c4f20c926aa7f",
-      "bytesAtCheckpoint": 43135,
+      "sha256AtCheckpoint": "82a529d50d4171baa7c0476869499fbe1272ade542b0036ec35185474beb3766",
+      "bytesAtCheckpoint": 51061,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 45
+        "pass": 52
       },
       "topLevelTestOutcomes": {
-        "pass": 33
+        "pass": 40
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestGraphWindowPolynomialIntegral"
+        "plainsolid/brep/trimmed": "TestMixedOriginalSourceMassAndArea"
       },
       "failures": []
     }
