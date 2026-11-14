@@ -29,16 +29,16 @@ c++ -std=c++17 -O2 \
  -L/tmp/plainsolid-occt-build/mac64/clang/lib \
  -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
  tools/occtref/torus_cylinder_material.cxx \
- -o /tmp/plainsolid-torus-cylinder-volume-oracle \
+ -o /tmp/plainsolid-torus-cylinder-area-oracle \
  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
  -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-volume-oracle \
+PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-area-oracle \
  GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./internal/occtcheck \
- -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestTorusCylinderVolume|TestOCCTTorusCylinderMaterial)$' -count=1
+ -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestTorusCylinderVolume|TestTorusCylinderArea|TestOCCTTorusCylinderMaterial)$' -count=1
 ```
 
 Qualified executable SHA-256:
-`1e6d2184588b8582a433681c0a2bcea367485ae2e929316d9d2688928b6b0876`.
+`f441c1388cb96a58f40e5f9a99e426bec2354acb67069b0b9ee575eb65944e1d`.
 No executable or generated reference data is committed. This milestone does
 not add native torus/cylinder Boolean assembly, arbitrary caps, tangency source
 regimes. The exposed original torus/wall/cap supports are distinguished even
@@ -59,7 +59,27 @@ Concavity proves trapezoid lower and midpoint upper integral bounds even at
 the singular endpoint. Each sqrt is outward rational; pi is bounded by Machin's
 identity using alternating arctangent remainders. All levels share one arithmetic
 ledger. Difference and Union use rigorous interval subtraction from the full
-torus and finite cylinder volumes. No surface-area certificate is claimed.
+torus and finite cylinder volumes. The separate area method below uses a direct meridian-angle proof.
 For R5/r2/c6, width0.1 uses256 cells; width0.01 uses1024. Independent closed
 antiderivative numeric checks include c=5 and c=6, all operations. MaxCells,
 precision, work and cancellation failures return a zero report.
+
+
+## Original-owner retained boundary area
+
+The oracle identifies actual OCCT face supports with BRepAdaptor_Surface:
+toroidal faces, cylindrical faces, and the lower/upper planar cap. It integrates
+each retained face with BRepGProp and sums each owner group independently. Each
+owner sum must lie within the kernel interval requested at width1e-6, allowing
+an additional 1e-6 for OCCT numerical integration.
+
+For a=c-R, h=sqrt(r²-a²), alpha=2*atan((r+a)/h), common toroidal area is
+4*pi*r*(R*alpha-h); common/difference cylinder-wall area is4*pi*c*h.
+Difference retains the complementary torus band with inward wall orientation.
+Union retains that complementary torus band, the finite cylindrical wall minus
+the common wall band, and two full disks. Rational range reduction places each
+arctangent argument inside[-1/2,1/2], with alternating remainder bounds; all
+square roots, pi and final areas are enclosed in exact rational arithmetic.
+Seams have zero area and retain their separate exact query ownership.
+The kernel tests c=3.25,5,6,6.75, all operations, original owner/normal fields,
+independent closed-form evaluations, precision and cumulative operation limits.

@@ -39,6 +39,7 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 			Union      bool
 			Axis       bool
 			Volume     float64
+			Areas      [4]float64
 			Sign       int
 			Parameters []float64
 		}
@@ -73,6 +74,17 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		s, e := geom.NewTorusCylinderMaterial(5, 2, 6, -3, 4, op)
 		if e != nil {
 			t.Fatal(e)
+		}
+		area, err := s.BoundArea(ctx, geom.TorusCylinderAreaOptions{AreaTolerance: r(1, 1000000)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for owner, bounds := range area.BySupport {
+			lo, _ := bounds[0].Float64()
+			hi, _ := bounds[1].Float64()
+			if math.IsNaN(ref.Areas[owner]) || ref.Areas[owner] < lo-1e-6 || ref.Areas[owner] > hi+1e-6 {
+				t.Fatal("independent original-owner area", owner, ref.Areas[owner], lo, hi)
+			}
 		}
 		volume, err := s.BoundVolume(ctx, geom.TorusCylinderVolumeOptions{VolumeTolerance: r(1, 100)})
 		if err != nil {
