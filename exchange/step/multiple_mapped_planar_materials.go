@@ -92,6 +92,9 @@ func mappedPlanarPartition(f *File, rootID int64, items []int64, l Limits) (*Fil
 // ReadMappedPlanarMaterial. Nested maps, geometry shared between local materials,
 // extra geometry, mixed contexts and unsupported target operators fail atomically.
 func ReadMappedPlanarMaterials(r io.Reader, l Limits) (MappedPlanarMaterials, error) {
+	return readMappedPlanarMaterials(r, l, false)
+}
+func readMappedPlanarMaterials(r io.Reader, l Limits, rationalFrames bool) (MappedPlanarMaterials, error) {
 	fail := func() (MappedPlanarMaterials, error) { return MappedPlanarMaterials{}, mappedPlanarFailure() }
 	l, e := l.defaults()
 	if e != nil {
@@ -153,7 +156,7 @@ func ReadMappedPlanarMaterials(r io.Reader, l Limits) (MappedPlanarMaterials, er
 		if e != nil {
 			return fail()
 		}
-		m, e := ReadMappedPlanarMaterial(bytes.NewReader(raw), l)
+		m, e := readMappedPlanarMaterial(bytes.NewReader(raw), l, rationalFrames)
 		if e != nil || m.MapID != mid || bodySeen[m.SourceBodyID] {
 			return fail()
 		}
