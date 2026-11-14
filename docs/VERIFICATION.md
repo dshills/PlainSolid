@@ -6,6 +6,11 @@ three packages have no tests. Go reported 4,414 passing test events and
 381 skips, including opt-in external comparators. The previously short-only
 trimmed cases are tracked separately. The exact Go module list contains
 only PlainSolid.
+The [selected trimmed full-mode run](evidence/native-full-selected-trimmed-2026-11-14.json)
+passed all 14 top-level cases and their eight nested test events, including
+the expensive nested exact annulus meshes and closed transverse Boolean
+operations. It was a working-checkout diagnostic; the pinned entire trimmed
+suite is tracked separately.
 
 
 Local verification on 2026-11-12 used Go 1.27.4 on macOS/arm64 (Apple M4 Pro).
