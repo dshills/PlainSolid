@@ -213,10 +213,10 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
-    if (argc == 3 && mode == "isolated-tangent-shells") {
+    if (argc == 3 && (mode == "isolated-tangent-shells" || mode == "isolated-quartic-tangent-shells")) {
       std::ofstream out(argv[1]);
       out.exceptions(std::ios::failbit | std::ios::badbit);
-      tangentSplineShellRecords(out);
+      tangentSplineShellRecords(out, mode == "isolated-quartic-tangent-shells");
       return 0;
     }
     if (argc == 3 && mode == "frustum-open-wall") {
