@@ -5598,6 +5598,14 @@ ties, including repeated uses. Boundary-zero queries, cancellation and
 insufficient budget have dedicated checks. The integrated exchange and
 document races passed in 4.910 s and 8.889 s respectively.
 
+The five-family frustum STEP fixture keeps nine expanded occurrences,
+including two placements of one independently built rational frustum, and
+re-proves source and local native solid reload. The independent pinned
+OCCT adaptive oracle agrees on assembly volume and area before and after
+emission. Old hierarchy readers and native tags retain their limits.
+The integrated focused race including legacy torus and aggregate distance
+regressions passed in 16.291 s.
+
 The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
 finished with 340 passes and four failures. The original two focused
 constraint repair assertions seed storage at port 5279, whereas the first

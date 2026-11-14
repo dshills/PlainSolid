@@ -43,7 +43,8 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	}
 	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
 	hierarchy := dag && len(dagMode) >= 2 && dagMode[1]
-	sphere := hierarchy && len(dagMode) == 3 && dagMode[2]
+	sphere := hierarchy && len(dagMode) >= 3 && dagMode[2]
+	frustum := sphere && len(dagMode) == 4 && dagMode[3]
 	if dag {
 		products = 5
 	}
@@ -84,7 +85,7 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	roots := []int64{}
 	var prefix string
 	var havePrefix bool
-	nf, nv, nu, nt, np, nc, ns := 0, 0, 0, 0, 0, 0, 0
+	nf, nv, nu, nt, np, nc, ns, nfr := 0, 0, 0, 0, 0, 0, 0, 0
 	for _, p := range a.Products {
 		if e = ctx.Err(); e != nil {
 			return IndependentTorusAssembly{}, e
@@ -149,11 +150,13 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 					view.Entities[id] = f.Entities[id]
 				}
 			}
-			m, e := readIndependentExactMaterial(ctx, view, l, tol, true, cylinder, sphere, true)
+			m, e := readIndependentFrustumOrMaterial(ctx, view, l, tol, cylinder, sphere, frustum)
 			if e != nil {
 				return IndependentTorusAssembly{}, fmt.Errorf("step: assembly product %d: %w", p.DefinitionID, e)
 			}
-			if m.Torus != nil {
+			if m.Frustum != nil && frustum {
+				nfr++
+			} else if m.Torus != nil {
 				nt++
 			} else if m.Cylinder != nil && cylinder {
 				nc++
@@ -212,7 +215,7 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 			}
 		}
 	}
-	if (sphere && len(out.Products) > l.MaxSolids) || nt != 1 || np != 1 || (cylinder && nc != 1) || (!cylinder && nc != 0) || ns > 1 || (!sphere && ns != 0) {
+	if (sphere && len(out.Products) > l.MaxSolids) || nt != 1 || np != 1 || (cylinder && nc != 1) || (!cylinder && nc != 0) || ns > 1 || (!sphere && ns != 0) || (frustum && nfr != 1) || (!frustum && nfr != 0) {
 		return bad()
 	}
 	if !dag {
@@ -312,7 +315,7 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 		return bad()
 	}
 	if hierarchy {
-		if _, e = independentAnalyticHierarchyPaths(ctx, out, sphere); e != nil {
+		if _, e = independentAnalyticHierarchyPaths(ctx, out, sphere, frustum); e != nil {
 			return IndependentTorusAssembly{}, e
 		}
 	} else if dag {
@@ -335,7 +338,8 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	}
 	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
 	hierarchy := dag && len(dagMode) >= 2 && dagMode[1]
-	sphere := hierarchy && len(dagMode) == 3 && dagMode[2]
+	sphere := hierarchy && len(dagMode) >= 3 && dagMode[2]
+	frustum := sphere && len(dagMode) == 4 && dagMode[3]
 	if dag {
 		products = 5
 	}
@@ -362,19 +366,23 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 		if p.Source == nil {
 			continue
 		}
-		if !independentNativeSourceBound(p.Source, 1024) {
+		records := 4
+		if frustum {
+			records = 7
+		}
+		if !independentNativeSourceRecordBound(p.Source, 1024, records) {
 			return geom.ErrInvalid
 		}
 		raw, e := mappedPlanarSourceBytes(p.Source)
 		if e != nil {
 			return e
 		}
-		c, e := readIndependentExactMaterialCollection(ctx, bytes.NewReader(raw), l, tol, 1, 1, true, true, true, false, false, true)
+		c, e := stageIndependentFrustumMaterial(ctx, p.Source, raw, l, tol, frustum)
 		if e != nil {
 			return fmt.Errorf("stage %s: %w", p.ID, e)
 		}
-		if len(c.Members) != 1 || c.LengthUnit != m.LengthUnit || (c.Members[0].Torus == nil && c.Members[0].Planar == nil && !(cylinder && c.Members[0].Cylinder != nil) && !(sphere && c.Members[0].Sphere != nil)) {
-			return geom.ErrInvalid
+		if len(c.Members) != 1 || c.LengthUnit != m.LengthUnit || (c.Members[0].Torus == nil && c.Members[0].Planar == nil && !(cylinder && c.Members[0].Cylinder != nil) && !(sphere && c.Members[0].Sphere != nil) && !(frustum && c.Members[0].Frustum != nil)) {
+			return fmt.Errorf("stage %s: family/unit mismatch", p.ID)
 		}
 		sources[i] = c.Source
 		ids[i] = c.Members[0].SourceBodyID
@@ -385,8 +393,8 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder, dag, hierarchy, sphere); e != nil {
-		return e
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder, dag, hierarchy, sphere, frustum); e != nil {
+		return fmt.Errorf("staged assembly reproof: %w", e)
 	}
 	n, e := w.Write(b.Bytes())
 	if e == nil && n != b.Len() {
@@ -420,15 +428,20 @@ func WriteIndependentTorusAssemblySource(ctx context.Context, w io.Writer, sourc
 func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, cylinder bool, dagMode ...bool) error {
 	dag := cylinder && len(dagMode) >= 1 && dagMode[0]
 	hierarchy := dag && len(dagMode) >= 2 && dagMode[1]
-	sphere := hierarchy && len(dagMode) == 3 && dagMode[2]
-	if ctx == nil || w == nil || !independentNativeSourceBound(source, 4096) {
+	sphere := hierarchy && len(dagMode) >= 3 && dagMode[2]
+	frustum := sphere && len(dagMode) == 4 && dagMode[3]
+	records := 4
+	if frustum {
+		records = 7
+	}
+	if ctx == nil || w == nil || !independentNativeSourceRecordBound(source, 4096, records) {
 		return geom.ErrInvalid
 	}
 	raw, e := mappedPlanarSourceBytes(source)
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder, dag, hierarchy, sphere); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder, dag, hierarchy, sphere, frustum); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)

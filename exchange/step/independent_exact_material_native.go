@@ -77,7 +77,7 @@ func independentMaterialClaims(m IndependentExactMaterial, cylinderMode ...bool)
 	if m.Torus != nil {
 		countFamilies++
 	}
-	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) >= 1 && cylinderMode[0])) || (m.Sphere != nil && !(len(cylinderMode) >= 2 && cylinderMode[1])) || (m.Torus != nil && !(len(cylinderMode) == 3 && cylinderMode[2])) {
+	if m.Frustum != nil || countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) >= 1 && cylinderMode[0])) || (m.Sphere != nil && !(len(cylinderMode) >= 2 && cylinderMode[1])) || (m.Torus != nil && !(len(cylinderMode) == 3 && cylinderMode[2])) {
 		return bad()
 	}
 	if m.Planar != nil {
@@ -375,6 +375,9 @@ func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l Independen
 // Bound caller-owned graphs before recursive serialization, including cyclic
 // Value.Items slices and overlong strings that a parsed source cannot contain.
 func independentNativeSourceBound(f *File, maxEntities int) bool {
+	return independentNativeSourceRecordBound(f, maxEntities, 4)
+}
+func independentNativeSourceRecordBound(f *File, maxEntities, maxRecords int) bool {
 	if f == nil || len(f.Entities) < 1 || len(f.Entities) > maxEntities || len(f.Order) != len(f.Entities) || len(f.Header) > 64 {
 		return false
 	}
@@ -410,7 +413,7 @@ func independentNativeSourceBound(f *File, maxEntities int) bool {
 		}
 	}
 	for id, en := range f.Entities {
-		if id <= 0 || en.ID != id || len(en.Records) < 1 || len(en.Records) > 4 {
+		if id <= 0 || en.ID != id || len(en.Records) < 1 || len(en.Records) > maxRecords {
 			return false
 		}
 		for _, r := range en.Records {

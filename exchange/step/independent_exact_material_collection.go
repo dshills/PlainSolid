@@ -26,6 +26,7 @@ type IndependentExactMaterial struct {
 	Cylinder                                                                  *IndependentCylinderMaterial
 	Sphere                                                                    *IndependentSphereMaterial `json:",omitempty"`
 	Torus                                                                     *IndependentTorusMaterial  `json:",omitempty"`
+	Frustum                                                                   *WrappedFrustumBody        `json:",omitempty"`
 }
 
 // IndependentExactMaterialCollection is a multi-root file, not an inferred assembly.

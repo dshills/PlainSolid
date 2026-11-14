@@ -1998,3 +1998,6 @@ across the planar, sphere, cylinder and torus occurrence families. All
 exactly tied occurrences and their complete nearest sets remain distinct,
 including internal boundaries of overlapping occurrences. The document
 facade supports the verified neutral, vendor and affine-pcurve conventions.
+The separate `IndependentFrustumHierarchy` exchanges exact wrapped
+circular frustum solids with existing planar, spherical, cylindrical and
+toroidal products under proper signed-coordinate occurrence placement.
