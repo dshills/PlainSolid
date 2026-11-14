@@ -753,6 +753,14 @@ produced byte-identical local STEP re-exports and watertight 276-triangle
 STLs. Serialization differed from the original worktree run. STEP entity
 type counts and OCCT volume, area and centroid agreed for both cases; M3
 retained the same oriented triangle set, and four inch triangles differed.
+The [near-floor skew hole reconciliation](evidence/plaincad-reconciled-578e17c5-development-partial-near-floor-holes-step-2026-11-14.json)
+adds worktree revision `1be125f1` to review `578e17c5`. It passed focused
+native tests and all 17 original browser tests; 841 app and 2,144 kernel
+source blobs were verified. The [authored clearance case](evidence/plaincad-reconciled-578e17c5-supplemental-partial-near-floor-step-2026-11-14.json)
+reproduced the source worktree STEP and watertight STL byte for byte. OCCT
+transfer and the independent construction agreed on volume, area and
+centroid. This fixture uses the actual crossing extent, which leaves a
+valid blind floor where the old full-radius bound rejects.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

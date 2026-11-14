@@ -42,6 +42,13 @@ and on cells with active nonconstant weights. Its separate bounds for the
 three crossing operations contain the OCCT volumes above within enclosures
 of width at most `1/1000`.
 
+`MixedRoofMaterialQuery.BoundCrossingSurfaceArea` independently clips
+each original floor, roof and wall in model coordinates. It encloses all
+three reference surface areas in intervals at most `0.1` square model
+units wide and reports each original face's contribution, including reversed
+cutter faces. Use the same `PLAINSOLID_OCCT_CROSSING_ROOFS` program with
+`go test ./brep/trimmed -run '^TestDirectCrossingRoofArea$' -count=1`.
+
 The same executable's `weighted-mass` mode sews rational surfaces for the
 stock roof `(2+x²)/(1+x)` and a strictly enclosed tilted tool. The OCCT
 Common volume is exactly recorded as `0.421875`; Fuse and Cut report

@@ -622,6 +622,18 @@ fixture agrees with the independent OCCT surface area, while a transverse
 crossing rejects this whole-face proof. Rigid placement preserves the
 rational enclosure; exhaustion and cancellation expose no partial ledger.
 
+`BoundCrossingSurfaceArea` separately clips all twelve original faces
+against the opposing graph box. It partitions at both footprints and all
+genuine roof knots, integrates vertical strip heights, and bounds the
+retained graph area with rational derivative and square-root enclosures.
+The independent crossing Common, Fuse, and Cut surface areas are contained
+in intervals of width at most 0.1 square units. Their lower/upper endpoints
+are approximately 3.94383/4.04382, 8.43968/8.53968 and 8.00647/8.10647.
+The Common floor has exact area 1. A separate weighted cavity check exercises
+the quotient derivatives. The live OCCT and Go race checks passed. Source
+floors and parallel wall planes must be distinct; the complete regular
+Boolean proof excludes coincident boundary areas.
+
 The signed-axis spherical STEP hierarchy materializes as an editable native
 document with one planar and three curved assets. Its seven material
 occurrences retain their proved world poses and original relationship paths;
