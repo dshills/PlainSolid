@@ -131,38 +131,6 @@ func crossedBoreRecipe(base brep.Solid, tools []*cylinderBody, blind []bool) (cr
 }
 
 func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (*boreBody, bool, error) {
-	if len(tools) > 2 {
-		var sites [2]int
-		count := 0
-		for i, tool := range tools {
-			if blind[i] || !cardinalFrame(tool.frame) {
-				return nil, false, nil
-			}
-			matched := false
-			for _, j := range sites[:count] {
-				old := tools[j]
-				if tool.radius == old.radius && sameCardinalBoreLine(old, tool) {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				if count == len(sites) {
-					return nil, false, nil
-				}
-				sites[count] = i
-				count++
-			}
-		}
-		if count != len(sites) {
-			return nil, false, nil
-		}
-		i, j := sites[0], sites[1]
-		tools = []*cylinderBody{tools[i], tools[j]}
-		cuts = []trimmed.CylinderCut{cuts[i], cuts[j]}
-		spans = []float64{spans[i], spans[j]}
-		blind = []bool{false, false}
-	}
 	p, ok := crossedBoreRecipe(base, tools, blind)
 	if !ok {
 		return nil, false, nil

@@ -242,22 +242,7 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		return result(0)
 	}
 	for i, old := range a.bore.cylinders {
-		if old.radius < c.cylinder.radius || !sameCardinalBoreLine(old, c.cylinder) {
-			continue
-		}
-		if !a.bore.blind[i] {
-			return result(0)
-		}
-		if a.bore.blindCrossed == nil {
-			continue
-		}
-		// A blind cutter covers stock from its entry to its floor. Both
-		// queried endpoints must lie on the entry side of that floor.
-		axis := old.frame.ZAxis()
-		floor := old.frame.Origin().Add(axis.Scale(old.height))
-		start := c.cylinder.frame.Origin()
-		end := start.Add(c.cylinder.frame.ZAxis().Scale(c.cylinder.height))
-		if exactDotDifference(start, floor, axis) <= 0 && exactDotDifference(end, floor, axis) <= 0 {
+		if (!a.bore.blind[i] || a.bore.blindCrossed != nil) && cardinalBoreContainsTool(old, a.bore.blind[i], c.cylinder) {
 			return result(0)
 		}
 	}
