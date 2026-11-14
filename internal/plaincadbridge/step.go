@@ -327,6 +327,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		if p, axis, e := step.ReadPlacedWrappedRimFillet(r(), stepLimits(), step.WrappedSurfaceOptions{}); e == nil {
 			return b.putRimFilletSTEP(p, axis)
 		}
+		if p, e := step.ReadPlacedWrappedRimChamfer(r(), stepLimits(), step.WrappedSurfaceOptions{}); e == nil {
+			return b.putRimChamferSTEP(p)
+		}
 	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
@@ -504,7 +507,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
-		if p := s.analytic.rimFillet; p != nil {
+		if p := s.analytic.rimTreatment; p != nil {
 			e = p.writeSTEP(&out)
 			break
 		}

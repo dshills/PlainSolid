@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD equal-setback circular rim chamfer STEP exchange — 2026-11-14
+
+A complete station-loft proof validates the exact ruled frustum bands,
+cylindrical middle, and shared rims. Import requires the axial and
+radial setbacks to agree and reconstructs the original native chamfer
+geometry. Both rims, individual rims, and all six signed coordinate
+directions pass native checks.
+
+[Eight original edge and STEP regressions plus provider preflight](evidence/plaincad-rim-chamfer-step-browser-2026-11-14.json)
+pass. The authored [XY](evidence/plaincad-rim-chamfer-xy-step-native-2026-11-14.json),
+[XZ](evidence/plaincad-rim-chamfer-xz-step-native-2026-11-14.json) and
+[YZ](evidence/plaincad-rim-chamfer-yz-step-native-2026-11-14.json)
+cases reexport byte-identically after project reopen and generate
+watertight 3,968-triangle STLs. Independent OCCT validates each authored
+file and three translated dual-rim native files. Focused race tests and
+Go vet pass.
+
 ## PlainCAD circular rim fillets on XZ and YZ — 2026-11-14
 
 Coordinate placement cycles the three model-space coordinate lexemes
