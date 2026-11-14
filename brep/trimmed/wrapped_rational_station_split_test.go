@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -64,5 +65,48 @@ func TestRationalStationNativeSplitAtHeight(t *testing.T) {
 	smallest := 0x1.0000000000001p0
 	if a, b, h, err := body.SplitWrappedRationalStationLoftAtZ(ctx, smallest, o); !errors.Is(err, geom.ErrUnrepresentable) || len(a.faces)+len(b.faces) != 0 || h.LowerCut != -1 || h.UpperCut != -1 {
 		t.Fatal("nonrepresentable cut vertices must reject atomically", h, err)
+	}
+}
+
+func TestRationalStationNativeBoreSplit(t *testing.T) {
+	ctx := context.Background()
+	o := geom.SurfacePatchOptions{}
+	outer, _, err := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{
+		rationalStationBand(t, 0, 1, 3, 2, .75), rationalStationBand(t, 1, 3, 2, 3, .75),
+	}, 1e-8, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner, _, err := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{
+		rationalStationBand(t, 0, 2, 1, 1.5, .75), rationalStationBand(t, 2, 3, 1.5, 1, .75),
+	}, 1e-8, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bore, _, err := CombineCoaxialWrappedRationalStationLofts(ctx, outer, inner, parametric.Difference, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lo, hi, h, err := bore.SplitWrappedRationalStationBoreAtZ(ctx, 1, o)
+	if err != nil || !h.Outer.ExistingStation || h.Inner.ExistingStation {
+		t.Fatal("split should preserve the independent original station grids", h, err)
+	}
+	for i, part := range [2]Solid{lo, hi} {
+		top := part.Topology()
+		if len(top.Shells) != 1 || top.EulerCharacteristic != 0 || top.InnerWires != 2 {
+			t.Fatal("each result must retain a closed annular topology", top)
+		}
+		section, err := part.SectionWrappedRationalStationBoreRational(ctx, big.NewRat(1, 1), o)
+		if err != nil || section.Cap != [2]int{h.LowerCut, h.UpperCut}[i] ||
+			section.Outer.Section.Radius.Cmp(big.NewRat(2, 1)) != 0 ||
+			section.Inner == nil || section.Inner.Section.Radius.Cmp(big.NewRat(5, 4)) != 0 {
+			t.Fatal("both material components must have the shared original section", section, h, err)
+		}
+	}
+	if lo.faces[h.LowerCut].Reversed == hi.faces[h.UpperCut].Reversed {
+		t.Fatal("the exact new cut annuli must have opposing orientation")
+	}
+	if a, b, h, err := bore.SplitWrappedRationalStationBoreAtZ(ctx, 3, o); !errors.Is(err, geom.ErrDomain) || len(a.faces)+len(b.faces) != 0 || h.LowerCut != -1 || h.UpperCut != -1 {
+		t.Fatal("unsupported terminal split leaked native geometry", h, err)
 	}
 }

@@ -114,16 +114,33 @@ type WrappedStationBoreSplitHistory struct {
 // partitions may differ; each is restricted independently.
 func (s Solid) SplitWrappedCircularStationBoreAtZ(ctx context.Context, z float64,
 	o geom.SurfacePatchOptions) (Solid, Solid, WrappedStationBoreSplitHistory, error) {
+	return s.splitWrappedStationBoreAtZ(ctx, z, o, true)
+}
+
+// SplitWrappedRationalStationBoreAtZ splits a strict weighted-profile bore
+// at a represented height, using the original independent station grids.
+// Each native result has an opposed annular cap from the exact section.
+func (s Solid) SplitWrappedRationalStationBoreAtZ(ctx context.Context, z float64,
+	o geom.SurfacePatchOptions) (Solid, Solid, WrappedStationBoreSplitHistory, error) {
+	return s.splitWrappedStationBoreAtZ(ctx, z, o, false)
+}
+
+func (s Solid) splitWrappedStationBoreAtZ(ctx context.Context, z float64,
+	o geom.SurfacePatchOptions, circular bool) (Solid, Solid, WrappedStationBoreSplitHistory, error) {
 	bad := WrappedStationBoreSplitHistory{LowerCut: -1, UpperCut: -1}
 	if ctx == nil || !finite(z) {
 		return Solid{}, Solid{}, bad, geom.ErrInvalid
 	}
-	p, e := s.ValidateWrappedCircularStationBore(ctx, o)
+	p, e := s.validateWrappedProfileStationBore(ctx, o, circular)
 	if e != nil {
 		return Solid{}, Solid{}, bad, e
 	}
 	var capped [2][2]Solid // wall family, lower or upper piece
 	var history [2]WrappedStationLoftSplitHistory
+	build := NewWrappedRationalStationLoft
+	if circular {
+		build = NewWrappedCircularStationLoft
+	}
 	for i, q := range [2]WrappedStationLoftProof{p.Outer, p.Inner} {
 		ids := [2][]int{p.OuterWalls, p.InnerWalls}[i]
 		bands := make([]*geom.WrappedSurfacePatch, len(ids))
@@ -137,7 +154,7 @@ func (s Solid) SplitWrappedCircularStationBoreAtZ(ctx context.Context, z float64
 		h.OriginalWall = append([]int(nil), ids...)
 		history[i] = h
 		for k, w := range [][]*geom.WrappedSurfacePatch{lo, hi} {
-			r, _, e := NewWrappedCircularStationLoft(ctx, w, s.tolerance, o)
+			r, _, e := build(ctx, w, s.tolerance, o)
 			if e != nil {
 				return Solid{}, Solid{}, bad, e
 			}
@@ -147,11 +164,11 @@ func (s Solid) SplitWrappedCircularStationBoreAtZ(ctx context.Context, z float64
 	var out [2]Solid
 	var caps [2]int
 	for k := range out {
-		r, h, e := CombineCoaxialWrappedStationLofts(ctx, capped[0][k], capped[1][k], parametric.Difference, o)
+		r, h, e := combineCoaxialWrappedStationLofts(ctx, capped[0][k], capped[1][k], parametric.Difference, o, circular)
 		if e != nil {
 			return Solid{}, Solid{}, bad, e
 		}
-		p, e := r.ValidateWrappedCircularStationBore(ctx, o)
+		p, e := r.validateWrappedProfileStationBore(ctx, o, circular)
 		if e != nil {
 			return Solid{}, Solid{}, bad, e
 		}
