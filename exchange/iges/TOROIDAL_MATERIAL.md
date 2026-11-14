@@ -55,3 +55,29 @@ forged native payload and input limits. `FuzzToroidalMaterial` retains the
 positive independent fixture. Focused normal/race, Go1.23, vet, bounded100-run
 fuzz and previous analytic support/conical/circular regressions qualify the
 additive private parser mode.
+
+## Proper signed-coordinate placement
+
+`ReadPlacedToroidalMaterial` / `WritePlacedToroidal` add a separate 14-record
+contract. A common type 124 is attached to the original type 198 support and
+major seam. The minor seam's own type 124 must equal the exact composition of
+that common placement with its original XZ frame. The type 502 vertex is stored
+in world coordinates and independently inverted and checked against both seams.
+No transform is inherited from a solid or shell, and nested type 124 records
+are not accepted. Datum entities remain local to their owning support.
+
+Only proper signed-coordinate rotations and exactly represented translations
+are supported. Every transformed native control is calculated with rational
+arithmetic and must convert losslessly to binary64. Reflections, general
+rotations, disagreements between the two transforms, detached transforms,
+rounded vertices, and translations that lose a control coordinate are rejected.
+The unplaced reader remains strict. Source-bound placed JSON retains the common
+placement, original source vertex, source metadata and native seam ancestry;
+reload repeats the complete source and native proof.
+
+The independent author script's `--placed` fixture rotates the torus axis to
++X and moves its center to (10,-3,5). Pinned OCCT imports both that source and
+Go-authored output as one valid face/solid with volume 8π², area 16π² and the
+correct volume centroid. Native exact continuous edge checks and source/native
+reload agree. Focused race, Go 1.23, vet and 100-execution placed fuzz checks
+cover the separate entry point. Entity reordering remains unsupported here.
