@@ -120,3 +120,14 @@ func radialPhysicalHeightPower(ctx context.Context, p radialPower, rectangle [2]
 	}
 	return out, nil
 }
+
+// MassTensorBands returns exact physical XYZ second moments and world-origin
+// inertia for complete bands. It applies the same exact height transport and
+// original polynomial degree/constant-denominator/work gates as MassMomentsBands.
+// Callers must independently prove complete band material ownership.
+func (r *AffineRadialContours) MassTensorBands(ctx context.Context, bands []int, o RadialGraphMomentOptions) (RadialGraphMassTensor, error) {
+	if r == nil || r.radial == nil {
+		return RadialGraphMassTensor{}, ErrInvalid
+	}
+	return r.radial.MassTensorBands(ctx, bands, o)
+}

@@ -51,6 +51,28 @@ func TestNativePhysicalRadialAnnulusMoments(t *testing.T) {
 	eq(out.Moments.Planar.Total.CentroidXY[0], center[0])
 	eq(out.Moments.Planar.Total.CentroidXY[1], center[1])
 	eq(out.Moments.Height.CentroidZ, big.NewRat(3375, 2097152))
+	tensor, e := s.PhysicalRadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(tensor.Components) != 1 || tensor.Components[0] != out.Components[0] || len(tensor.Tensor.Bands) != 1 || tensor.Tensor.Bands[0].Band != 1 {
+		t.Fatal("tensor ownership", tensor.Components)
+	}
+	v := big.NewRat(421875, 2147483648)
+	zc := big.NewRat(3375, 2097152)
+	eq(tensor.Tensor.Total.SecondMomentPiCoefficients[0][2], new(big.Rat).Mul(new(big.Rat).Mul(v, zc), big.NewRat(3, 1)))
+	eq(tensor.Tensor.Total.SecondMomentPiCoefficients[1][2], new(big.Rat).Mul(new(big.Rat).Mul(v, zc), big.NewRat(1, 2)))
+	l2 := new(big.Rat).Mul(big.NewRat(75, 1024), big.NewRat(75, 1024))
+	zz := new(big.Rat).Mul(l2, l2)
+	zz.Mul(zz, big.NewRat(9, 70))
+	zz.Mul(zz, v)
+	eq(tensor.Tensor.Total.SecondMomentPiCoefficients[2][2], zz)
+	if _, e = s.PhysicalRadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: tensor.Tensor.ExactOperations}); e != nil {
+		t.Fatal(e)
+	}
+	if x, e := s.PhysicalRadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: tensor.Tensor.ExactOperations - 1}); e == nil || len(x.Components) != 0 || x.Tensor.Total.SecondMomentPiCoefficients[0][0] != nil {
+		t.Fatal("native tensor quota", e)
+	}
 	work := out.Moments.ExactOperations
 	if _, e = s.PhysicalRadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: work}); e != nil {
 		t.Fatal("exact quota", e)
@@ -71,6 +93,9 @@ func TestNativePhysicalRadialAnnulusMoments(t *testing.T) {
 	eq(again.Moments.Height.CentroidZ, big.NewRat(3375, 2097152))
 	rejects := func(bad AlgebraicShellBoolean) {
 		t.Helper()
+		if x, e := bad.PhysicalRadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{}); e == nil || len(x.Components) != 0 || x.Tensor.Total.SecondMomentPiCoefficients[0][0] != nil {
+			t.Fatal("forged tensor source", e)
+		}
 		x, e := bad.PhysicalRadialTubeRegionMassMoments(ctx, center, radii, geom.RadialGraphMomentOptions{})
 		if e == nil || len(x.Components) != 0 || x.Moments.Height.CentroidZ != nil {
 			t.Fatal("forged native source", e)

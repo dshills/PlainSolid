@@ -2673,3 +2673,15 @@ exactly equivalent support recipes. The qualifying native race at `4613e35`
 passed in 590.20 s; final normal with decoded-support evidence passed in
 86.39 s. A separate original unit-chart regression passed under race in
 36.408 s. No mesh was run for this query.
+
+## Exact physical radial tensor (2026-11-14)
+
+`AffineRadialContours.MassTensorBands` and
+`AlgebraicShellBoolean.PhysicalRadialTubeRegionMassTensor` integrate XZ, YZ and
+ZZ, as well as all planar moments. The tilted annulus checks all nine second
+moments and world-origin inertia against independent angular and beta
+integrals. The integrated geometry race passed in 1.655 s. The original
+native annulus at `54dfd84` confirmed automatic material band selection and
+exact XZ/YZ/ZZ in 77.74 s, including quota and source mutation negatives.
+The existing source degree, product degree, and integrand degree bounds stay
+in force. The test did not repeat mesh qualification.

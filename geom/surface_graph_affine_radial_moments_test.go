@@ -77,6 +77,49 @@ func TestAffineRadialPhysicalAnnulusMoments(t *testing.T) {
 		for k, f := range []*big.Rat{new(big.Rat).Add(big.NewRat(9, 1), big.NewRat(125, 4096)), big.NewRat(3, 2), new(big.Rat).Add(big.NewRat(1, 4), big.NewRat(125, 4096))} {
 			eq("second XY", m.Planar.Total.SecondMomentPiCoefficients[k], new(big.Rat).Mul(vol, f))
 		}
+		tensor, e := proof.MassTensorBands(ctx, []int{1}, geom.RadialGraphMomentOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		// Independent angular/beta integrals. Q=mean(q), E[H]=3L²/5,
+		// E[H²]/3=9L⁴/70 for volume-weighted H.
+		Q := big.NewRat(125, 2048)
+		xz := new(big.Rat).Add(new(big.Rat).Mul(big.NewRat(3, 1), zc), new(big.Rat).Mul(big.NewRat(1, 6), Q))
+		yz := new(big.Rat).Sub(new(big.Rat).Mul(big.NewRat(1, 2), zc), new(big.Rat).Mul(big.NewRat(1, 10), Q))
+		zz := new(big.Rat).Add(big.NewRat(6241, 100), new(big.Rat).Mul(big.NewRat(17, 225), Q))
+		l2 := new(big.Rat).Mul(L, L)
+		zz.Add(zz, new(big.Rat).Mul(big.NewRat(237, 50), l2))
+		zz.Add(zz, new(big.Rat).Mul(big.NewRat(9, 70), new(big.Rat).Mul(l2, l2)))
+		want := [3][3]*big.Rat{}
+		want[0][0] = new(big.Rat).Set(m.Planar.Total.SecondMomentPiCoefficients[0])
+		want[0][1] = new(big.Rat).Set(m.Planar.Total.SecondMomentPiCoefficients[1])
+		want[1][1] = new(big.Rat).Set(m.Planar.Total.SecondMomentPiCoefficients[2])
+		want[0][2] = new(big.Rat).Mul(vol, xz)
+		want[1][2] = new(big.Rat).Mul(vol, yz)
+		want[2][2] = new(big.Rat).Mul(vol, zz)
+		for i := range 3 {
+			for j := 0; j < i; j++ {
+				want[i][j] = new(big.Rat).Set(want[j][i])
+			}
+		}
+		trace := new(big.Rat).Add(want[0][0], want[1][1])
+		trace.Add(trace, want[2][2])
+		for i := range 3 {
+			for j := range 3 {
+				eq("physical tensor", tensor.Total.SecondMomentPiCoefficients[i][j], want[i][j])
+				inertia := new(big.Rat).Neg(want[i][j])
+				if i == j {
+					inertia.Add(inertia, trace)
+				}
+				eq("origin inertia", tensor.Total.OriginInertiaPiCoefficients[i][j], inertia)
+			}
+		}
+		if _, e = proof.MassTensorBands(ctx, []int{1}, geom.RadialGraphMomentOptions{MaxOperations: tensor.ExactOperations}); e != nil {
+			t.Fatal(e)
+		}
+		if bad, e := proof.MassTensorBands(ctx, []int{1}, geom.RadialGraphMomentOptions{MaxOperations: tensor.ExactOperations - 1}); e == nil || len(bad.Bands) != 0 || bad.Total.SecondMomentPiCoefficients[0][0] != nil {
+			t.Fatal("tensor quota", e)
+		}
 		v, e := proof.BoundVolumeBands(ctx, []int{1}, geom.RadialGraphVolumeOptions{})
 		if e != nil {
 			t.Fatal(e)
