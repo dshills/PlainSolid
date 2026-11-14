@@ -232,6 +232,9 @@ int main(int argc, char** argv) {
           record(out, name.c_str(), BRepAlgoAPI_Cut(stock, tool).Shape(), 1e-11);
         }
       }
+      const auto stock = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)), 2, 5, 4).Shape();
+      const auto tool = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-0.75, 2.25, 3.5), gp_Dir(0, 0, 1)), 1.75, 4.75, 4).Shape();
+      record(out, "frustum-open-wall-eccentric-upper", BRepAlgoAPI_Cut(stock, tool).Shape(), 1e-11);
       return 0;
     }
     if (argc == 3 && mode == "frustum-erosion") {

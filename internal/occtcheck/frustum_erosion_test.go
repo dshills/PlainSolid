@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
 	"plainsolid/csg/offset"
 	"plainsolid/geom"
 )
@@ -72,4 +73,27 @@ func TestOCCTFrustumOpenWall(t *testing.T) {
 			compare(t, ref["frustum-open-wall-"+taper+"-"+end], p.Area, p.Volume, p.Centroid)
 		}
 	}
+	stock, _, e := geom.DraftWrappedFrustum(ctx, base, 0, 3, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	local, _, e := geom.InsetWrappedCircularFrustumAtCap(ctx, stock, .5, true, o)
+	if e != nil {
+		t.Fatal(e)
+	}
+	pose := geom.Identity()
+	pose[0][3], pose[1][3] = .25, .25
+	tool, _, e := local.Transformed(ctx, pose, geom.WrappedSurfaceOptions{WrapU: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, _, e := trimmed.NewWrappedEccentricCircularFrustumBore(ctx, stock, tool, 1e-9, o)
+	if e != nil || len(body.Topology().Shells) != 1 {
+		t.Fatal(body.Topology(), e)
+	}
+	p, e := body.MassProperties(ctx, parametric.IntegrationOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	compare(t, ref["frustum-open-wall-eccentric-upper"], p.Area, p.Volume, p.Centroid)
 }

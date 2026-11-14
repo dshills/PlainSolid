@@ -72,6 +72,21 @@ func newWrappedCylinderBore(ctx context.Context, outer, inner *geom.WrappedSurfa
 // Both original lateral supports and the original retained rims are kept.
 func NewWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, tolerance float64,
 	o geom.SurfacePatchOptions) (Solid, WrappedCylinderTubeHistory, error) {
+	return newWrappedParallelFrustumBore(ctx, outer, inner, tolerance, o, true)
+}
+
+// NewWrappedEccentricCircularFrustumBore cuts a strictly contained circular
+// frustum with a parallel axis. The axes may be offset by any represented
+// amount that leaves positive radial clearance at both tool cap heights.
+// Exact squared comparisons exclude tangency even for an irrational offset.
+// At shared end planes the outer cap keeps an eccentric annular opening.
+func NewWrappedEccentricCircularFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, tolerance float64,
+	o geom.SurfacePatchOptions) (Solid, WrappedCylinderTubeHistory, error) {
+	return newWrappedParallelFrustumBore(ctx, outer, inner, tolerance, o, false)
+}
+
+func newWrappedParallelFrustumBore(ctx context.Context, outer, inner *geom.WrappedSurfacePatch, tolerance float64,
+	o geom.SurfacePatchOptions, coaxial bool) (Solid, WrappedCylinderTubeHistory, error) {
 	var empty WrappedCylinderTubeHistory
 	stock, a, e := NewWrappedFrustum(ctx, outer, tolerance, o)
 	if e != nil {
@@ -81,27 +96,36 @@ func NewWrappedCircularFrustumBore(ctx context.Context, outer, inner *geom.Wrapp
 	if e != nil {
 		return Solid{}, empty, e
 	}
-	if !strictWrappedCircularFrustumBore(a, b) {
+	if !strictWrappedParallelFrustumBore(a, b, coaxial) {
 		return Solid{}, empty, geom.ErrConvergence
 	}
 	return assembleWrappedFrustumBore(ctx, stock, tool, a.LowerZ.Cmp(b.LowerZ) == 0, a.UpperZ.Cmp(b.UpperZ) == 0, tolerance, o)
 }
 
 func strictWrappedCircularFrustumBore(a, b geom.WrappedFrustumEmbedding) bool {
-	if !a.Circular || !b.Circular || a.CenterX.Cmp(b.CenterX) != 0 || a.CenterY.Cmp(b.CenterY) != 0 ||
-		a.LowerZ.Cmp(b.LowerZ) > 0 || a.UpperZ.Cmp(b.UpperZ) < 0 {
+	return strictWrappedParallelFrustumBore(a, b, true)
+}
+
+func strictWrappedParallelFrustumBore(a, b geom.WrappedFrustumEmbedding, coaxial bool) bool {
+	if !a.Circular || !b.Circular || a.LowerZ.Cmp(b.LowerZ) > 0 || a.UpperZ.Cmp(b.UpperZ) < 0 {
+		return false
+	}
+	x, y := new(big.Rat).Sub(a.CenterX, b.CenterX), new(big.Rat).Sub(a.CenterY, b.CenterY)
+	separationSquared := new(big.Rat).Add(x.Mul(x, x), y.Mul(y, y))
+	if coaxial && separationSquared.Sign() != 0 {
 		return false
 	}
 	span := new(big.Rat).Sub(a.UpperZ, a.LowerZ)
 	slope := new(big.Rat).Quo(new(big.Rat).Sub(a.UpperRadius, a.LowerRadius), span)
 	for i, z := range [2]*big.Rat{b.LowerZ, b.UpperZ} {
 		r := new(big.Rat).Add(a.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, a.LowerZ)))
-		if r.Cmp([2]*big.Rat{b.LowerRadius, b.UpperRadius}[i]) <= 0 {
+		clearance := r.Sub(r, [2]*big.Rat{b.LowerRadius, b.UpperRadius}[i])
+		if clearance.Sign() <= 0 || clearance.Mul(clearance, clearance).Cmp(separationSquared) <= 0 {
 			return false
 		}
 	}
-	// The radial clearance is affine in height. Strict separation at
-	// both endpoints certifies it throughout the tool interval.
+	// The radial clearance before subtracting center distance is
+	// affine in height. Both endpoints certify the entire tool span.
 	return true
 }
 
