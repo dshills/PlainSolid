@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD disjoint blind Holes with crossing projections — 2026-11-14
+
+Two or more independent finite cutters can have intersecting through-axis
+projections. The kernel stops each blind donor first, proves separation
+of actual padded finite bounds, and transfers the retained analytic walls,
+openings and floors. Contact and overlap fail the independent-boundary
+proof. Earlier disjoint-through and blind STEP graphs retain their bytes.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-disjoint-finite-step-browser-2026-11-14.json)
+and a [supplemental authored project](evidence/plaincad-disjoint-finite-step-native-2026-11-14.json)
+pass on the same WASM. The authored model preserves both floor locations
+in STEP reimport and watertight STL. Twelve independent signed and mixed
+OCCT STEP checks pass. Focused race and Go vet pass.
+
 ## PlainCAD blind stops before and at a perpendicular crossing — 2026-11-14
 
 A blind floor inside the near half of the crossing retains two disconnected

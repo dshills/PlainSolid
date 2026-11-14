@@ -129,6 +129,15 @@ func (p DisjointBoresBody) Solid(ctx context.Context) (trimmed.Solid, error) {
 		return trimmed.Solid{}, geom.ErrDomain
 	}
 	solid, history, e := trimmed.BoreCylinders(base, cuts, 1e-9)
+	finiteStopped := false
+	if e != nil && len(p.Blind) > 0 {
+		depths := make([]float64, len(sites))
+		for i, site := range sites {
+			depths[i] = site.Depth
+		}
+		solid, history, _, e = trimmed.BoreFiniteCylinders(base, cuts, depths, 1e-9)
+		finiteStopped = e == nil
+	}
 	if e != nil {
 		return trimmed.Solid{}, e
 	}
@@ -157,7 +166,7 @@ func (p DisjointBoresBody) Solid(ctx context.Context) (trimmed.Solid, error) {
 		return trimmed.Solid{}, e
 	}
 	for i, site := range sites {
-		if site.Depth != 0 {
+		if site.Depth != 0 && !finiteStopped {
 			length := []float64{p.Dimensions.X, p.Dimensions.Y, p.Dimensions.Z}[site.Bore.Axis]
 			solid, _, e = trimmed.StopPerpendicularBore(solid, history[i], cuts[i].Direction, length-site.Depth)
 			if e != nil {
