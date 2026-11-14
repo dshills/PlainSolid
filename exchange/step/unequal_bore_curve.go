@@ -19,6 +19,7 @@ type unequalBoreSplines struct {
 	model   []geom.Vec3
 	owners  [2][]geom.Vec3
 	compact bool
+	smooth  bool
 }
 
 // approximateUnequalBoreEdge is private to native unequal crossed-bore
@@ -26,7 +27,7 @@ type unequalBoreSplines struct {
 func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, surfaces []longEdgeSurface, tolerance float64) (*unequalBoreSplines, error) {
 	first, second := surfaces[adjacent[0].face], surfaces[adjacent[1].face]
 	a, b := min(first.radius, second.radius), max(first.radius, second.radius)
-	if !(a > 0 && b > a) || first.frame.ZAxis().Dot(second.frame.ZAxis()) != 0 {
+	if !(a > 0 && b >= a) || first.frame.ZAxis().Dot(second.frame.ZAxis()) != 0 {
 		return nil, geom.ErrDomain
 	}
 	small := 0
@@ -38,7 +39,8 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 		return nil, geom.ErrDomain
 	}
 	d := delta.Length()
-	if a+d >= b {
+	partial := a+d > b
+	if d >= a+b || a+d == b {
 		return nil, geom.ErrDomain
 	}
 	// The exact-arithmetic Hermite interpolation error
@@ -49,7 +51,7 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 	k2 := k * k
 	heightFourth := a * k * (4 + k2*(7+k2*(4.5+k2*15/16)))
 	angleFourth := k * (1 + k2*(6.5+k2*(6.75+k2*15/8)))
-	if d != 0 {
+	if d != 0 && !partial {
 		// y=d+a*sin(u), h=sqrt(b²-y²). The offset increases the
 		// derivative envelopes for b²-y² and lowers its minimum.
 		m := a + d
@@ -67,9 +69,12 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 		g3 := w3/2 + 9*w1*w2/4 + 15*w1*w1*w1/8
 		angleFourth = da * (1 + 3*g1 + 3*g2 + g3)
 	}
-	envelope := max(2*a+heightFourth, a+b*angleFourth)
+	envelope, arc := max(2*a+heightFourth, a+b*angleFourth), math.Pi/2
+	if partial {
+		envelope, arc = partialSkewFourthDerivative(a, b, d), math.Pi/4
+	}
 	stepSize := math.Pow(384*(tolerance/16)/envelope, .25)
-	segments := math.Ceil((math.Pi / 2) / stepSize)
+	segments := math.Ceil(arc / stepSize)
 	if !finiteNumber(segments) || segments < 1 || segments > 128 {
 		return nil, geom.ErrDomain
 	}
@@ -82,7 +87,7 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 	}
 
 	n := int(segments)
-	result := &unequalBoreSplines{compact: d != 0}
+	result := &unequalBoreSplines{compact: d != 0, smooth: partial}
 	for index, owner := range adjacent {
 		curve, ok := owner.use.Curve.(differentiatedUV)
 		if !ok {
@@ -179,7 +184,60 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 			result.model = model
 		}
 	}
+	if result.smooth {
+		model, modelOK := compactHermiteJoins(result.model, tolerance/16)
+		var owners [2][]geom.Vec3
+		ok := modelOK
+		for i, owner := range adjacent {
+			poles, valid := compactHermiteJoins(result.owners[i], tolerance/(16*max(surfaces[owner.face].radius, 1)))
+			owners[i], ok = poles, ok && valid
+		}
+		result.smooth = ok
+		if ok {
+			result.model, result.owners = model, owners
+		}
+	}
 	return result, nil
+}
+
+// The partial intersection uses sin(u)*sqrt(L*(2b-L*sin²u)) for
+// one coordinate and its cosine analogue for the other. The derivatives
+// of the radicand have bounds L², 2L², 4L² and 8L². The angle
+// derivative has a single sin or cos factor divided by the same radical.
+func partialSkewFourthDerivative(a, b, d float64) float64 {
+	length := a + b - d
+	component := func(radius float64) (cartesian, angle float64) {
+		q := math.Sqrt(length * (2*radius - length))
+		k := length / q
+		k2 := k * k
+		g0 := math.Sqrt(2 * radius * length)
+		g1 := q * k2 / 2
+		g2 := q * k2 * (1 + k2/4)
+		g3 := q * k2 * (2 + k2*(1.5+3*k2/8))
+		g4 := q * k2 * (4 + k2*(7+k2*(9.0/2+15*k2/16)))
+		return g0 + 4*g1 + 6*g2 + 4*g3 + g4, 2 * k * (1 + k2*(6.5+k2*(6.75+k2*15/8)))
+	}
+	x, zAngle := component(b)
+	z, xAngle := component(a)
+	return max(x+z+8*length, a*xAngle+x, b*zAngle+z)
+}
+
+// A cubic spline with double interior knots recovers the neighboring
+// Bézier join as the midpoint of the two adjacent controls on equal spans.
+// Removing that join is safe only if its reconstructed displacement
+// preserves the fit allowance for every point of the curve.
+func compactHermiteJoins(poles []geom.Vec3, budget float64) ([]geom.Vec3, bool) {
+	out := make([]geom.Vec3, 0, (len(poles)-1)/3*2+2)
+	out = append(out, poles[0])
+	for j := 3; j < len(poles)-1; j += 3 {
+		mid := poles[j-1].Scale(.5).Add(poles[j+1].Scale(.5))
+		if mid.Distance(poles[j]) > budget {
+			return nil, false
+		}
+		out = append(out, poles[j-2], poles[j-1])
+	}
+	last := len(poles) - 1
+	return append(out, poles[last-2], poles[last-1], poles[last]), true
 }
 
 // Keep the endpoints byte-stable. Interior controls can use shorter decimal
@@ -206,15 +264,19 @@ func compactUnequalBoreReal(x float64) string {
 	return s
 }
 
-func emitUnequalBoreSpline(emit func(string) int64, poles []geom.Vec3, point func(geom.Vec3) int64) int64 {
+func emitUnequalBoreSpline(emit func(string) int64, poles []geom.Vec3, smooth bool, point func(geom.Vec3) int64) int64 {
 	ids := make([]int64, len(poles))
 	for i, p := range poles {
 		ids[i] = point(p)
 	}
 	segments := (len(poles) - 1) / 3
+	interior := "3"
+	if smooth {
+		segments, interior = (len(poles)-2)/2, "2"
+	}
 	multiplicities, knots := make([]string, segments+1), make([]string, segments+1)
 	for i := range knots {
-		multiplicities[i] = "3"
+		multiplicities[i] = interior
 		knots[i] = strconv.Itoa(i) + "."
 	}
 	multiplicities[0], multiplicities[segments] = "4", "4"

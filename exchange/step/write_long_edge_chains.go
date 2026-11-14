@@ -363,7 +363,7 @@ func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name st
 				continue
 			}
 			if curve.unequal != nil {
-				model = emitUnequalBoreSpline(emit, curve.unequal.model, point3)
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, curve.unequal.smooth, point3)
 			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
@@ -378,7 +378,7 @@ func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name st
 				u := owner.use
 				var geometry int64
 				if curve.unequal != nil {
-					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], func(p geom.Vec3) int64 {
+					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], curve.unequal.smooth, func(p geom.Vec3) int64 {
 						return point2(geom.Vec2{X: p.X, Y: p.Y})
 					})
 				} else if surface.kind == "PLANE" {

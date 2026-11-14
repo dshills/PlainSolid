@@ -1,12 +1,12 @@
 package plaincadbridge
 
 import (
+	"encoding/base64"
 	"math"
-	"strings"
 	"testing"
 )
 
-func TestPartialSkewBoreScopeAndSTL(t *testing.T) {
+func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
 	for _, radii := range [][2]float64{{5, 4}, {5, 5}} {
 		b := New()
 		stock := box(t, b, vector{}, vector{40, 40, 40})
@@ -35,8 +35,22 @@ func TestPartialSkewBoreScopeAndSTL(t *testing.T) {
 		if err := mesh.ValidateSolid(); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := b.exportSTEP([]string{grouped.Handle}); err == nil || !strings.Contains(err.Error(), "partially overlapping") {
-			t.Fatalf("unexpected STEP result: %v", err)
+		stepOut, err := b.exportSTEP([]string{grouped.Handle})
+		if err != nil {
+			t.Fatal(err)
+		}
+		source, err := base64.StdEncoding.DecodeString(stepOut.Base64)
+		if err != nil || len(source) >= 512*1024 {
+			t.Fatal("STEP source exceeds application limits", len(source), err)
+		}
+		same, err := b.importSTEP(string(source))
+		if err != nil || same.Bounds != stock.Bounds || same.GeometryAssertions != m {
+			t.Fatal(same, err)
+		}
+		near(t, overlapMeasure(t, b, same.Handle, z.Handle), 0)
+		again, err := b.exportSTEP([]string{same.Handle})
+		if err != nil || again.Base64 != stepOut.Base64 {
+			t.Fatal("canonical STEP changed on re-export", err)
 		}
 	}
 }
