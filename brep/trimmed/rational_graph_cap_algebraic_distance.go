@@ -25,6 +25,17 @@ type AlgebraicGraphCapNearest struct {
 // the rational plane distance. Unsupported curve degrees or weights fail
 // atomically when a boundary search is required.
 func (c AlgebraicGraphCapClip) NearestPolynomialRational(ctx context.Context, point [3]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapNearest, error) {
+	return c.nearestQuadraticRational(ctx, point, options, false)
+}
+
+// NearestQuadraticRational additionally admits positive rational quadratic
+// cap curves. It isolates the exact quartic stationary polynomial and
+// compares every resulting squared distance on the true trim intervals.
+func (c AlgebraicGraphCapClip) NearestQuadraticRational(ctx context.Context, point [3]*big.Rat, options geom.ExactCurvePlaneEventOptions) (AlgebraicGraphCapNearest, error) {
+	return c.nearestQuadraticRational(ctx, point, options, true)
+}
+
+func (c AlgebraicGraphCapClip) nearestQuadraticRational(ctx context.Context, point [3]*big.Rat, options geom.ExactCurvePlaneEventOptions, rational bool) (AlgebraicGraphCapNearest, error) {
 	var zero AlgebraicGraphCapNearest
 	if ctx == nil || c.regions == nil || options.MaxOperations < 0 || options.MaxSubdivisions < 0 || options.MaxCoefficientBits < 0 {
 		return zero, geom.ErrInvalid
@@ -79,7 +90,11 @@ func (c AlgebraicGraphCapClip) NearestPolynomialRational(ctx context.Context, po
 	out := AlgebraicGraphCapNearest{Wire: -1, Use: -1}
 	for i, wire := range c.wires {
 		for j, u := range wire {
-			set, e := u.Cell.PolynomialDistanceCandidates(ctx, point, b.limits())
+			candidates := u.Cell.PolynomialDistanceCandidates
+			if rational {
+				candidates = u.Cell.RationalQuadraticDistanceCandidates
+			}
+			set, e := candidates(ctx, point, b.limits())
 			if e != nil {
 				return zero, e
 			}

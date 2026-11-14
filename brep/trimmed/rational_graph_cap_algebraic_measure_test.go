@@ -58,6 +58,23 @@ func TestAlgebraicGraphCapRationalWeightsArea(t *testing.T) {
 		new(big.Rat).Sub(got.Projection.Upper, got.Projection.Lower).Cmp(width) > 0 || got.Projection.Subdivisions < 1 {
 		t.Fatal("failed certified rational quarter-segment area", got, e)
 	}
+	// The nearest point to (1,1,0) on the retained quadrant is
+	// (1/√2,1/√2,0), inside the rational arc's true shortened domain.
+	query := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1), new(big.Rat)}
+	near, e := clip.NearestQuadraticRational(ctx, query, geom.ExactCurvePlaneEventOptions{})
+	if e != nil || near.FaceInterior || near.Wire < 0 || near.Use < 0 || near.CurveParameter == nil ||
+		clip.Wires[near.Wire][near.Use].InputPiece != 1 {
+		t.Fatal("exact rational arc distance and original owner", near, e)
+	}
+	// D=(√2−1)²=3−2√2, so D²−6D+1 vanishes.
+	identity, e := near.SquaredDistance.SignPolynomial(ctx, []*big.Rat{big.NewRat(1, 1), big.NewRat(-6, 1), big.NewRat(1, 1)}, geom.ExactCurvePlaneEventOptions{})
+	if e != nil || identity.Sign != 0 {
+		t.Fatal("weighted stationary root does not satisfy independent distance", identity, e)
+	}
+	square, e := near.SquaredDistance.Enclose(ctx, big.NewRat(1, 64), geom.ExactCurvePlaneEventOptions{})
+	if e != nil || square.Interval.Upper.Cmp(big.NewRat(1, 1)) >= 0 {
+		t.Fatal("weighted stationary distance should be the smaller conjugate", square, e)
+	}
 	piece.Topology.MaxSubdivisions = 1
 	if a, e := clip.BoundArea(ctx, width, piece); !errors.Is(e, geom.ErrConvergence) || a.Projection.Lower != nil {
 		t.Fatal("the exhaustion result must be atomic", a, e)

@@ -20,7 +20,18 @@ type PolynomialCurveDistance struct {
 	Operations, Subdivisions int
 }
 
-func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Context, point [3]*big.Rat, options ExactCurvePlaneEventOptions) (r PolynomialCurveDistance, err error) {
+func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Context, point [3]*big.Rat, options ExactCurvePlaneEventOptions) (PolynomialCurveDistance, error) {
+	return c.quadraticDistanceCandidates(ctx, point, options, false)
+}
+
+// RationalQuadraticDistanceCandidates is the weighted counterpart. Power
+// coefficients of each homogeneous coordinate must have degree at most two;
+// the cancelled stationary polynomial has degree at most four.
+func (c *ExactComposedCurveCell) RationalQuadraticDistanceCandidates(ctx context.Context, point [3]*big.Rat, options ExactCurvePlaneEventOptions) (PolynomialCurveDistance, error) {
+	return c.quadraticDistanceCandidates(ctx, point, options, true)
+}
+
+func (c *ExactComposedCurveCell) quadraticDistanceCandidates(ctx context.Context, point [3]*big.Rat, options ExactCurvePlaneEventOptions, rational bool) (r PolynomialCurveDistance, err error) {
 	defer func() {
 		if err != nil {
 			r.Candidates = nil
@@ -39,7 +50,7 @@ func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Contex
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.Operations = b.operations }()
 	w := trimPolynomial(c.power[3])
-	if len(w) != 1 || w[0].Sign() <= 0 {
+	if len(w) < 1 || len(w) > 3 || !rational && (len(w) != 1 || w[0].Sign() <= 0) {
 		return r, ErrUnrepresentable
 	}
 	var d rationalPolynomial
@@ -54,14 +65,10 @@ func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Contex
 		if len(coords) > 3 {
 			return r, ErrUnrepresentable
 		}
-		diff := make(rationalPolynomial, max(1, len(coords)))
-		for i := range diff {
-			diff[i] = new(big.Rat)
-			if i < len(coords) {
-				diff[i].Quo(coords[i], w[0])
-			}
+		diff, e := subtractScaledPolynomial(coords, w, p, b)
+		if e != nil {
+			return r, e
 		}
-		diff[0].Sub(diff[0], p)
 		s, e := polynomialProduct(diff, diff, b)
 		if e != nil {
 			return r, e
@@ -74,7 +81,27 @@ func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Contex
 	if len(d) == 0 {
 		d = rationalPolynomial{new(big.Rat)}
 	}
-	deriv := polynomialDerivative(d)
+	// For distance d/W², W stays strictly positive on the source cell.
+	// The W' term cancels the degree-five leading coefficient.
+	deriv, e := polynomialProduct(polynomialDerivative(d), w, b)
+	if e != nil {
+		return r, e
+	}
+	correction, e := polynomialProduct(d, polynomialDerivative(w), b)
+	if e != nil {
+		return r, e
+	}
+	deriv, e = subtractScaledPolynomial(deriv, correction, big.NewRat(2, 1), b)
+	if e != nil {
+		return r, e
+	}
+	if len(deriv) > 5 {
+		return r, ErrConvergence
+	}
+	weightSquared, e := polynomialProduct(w, w, b)
+	if e != nil {
+		return r, e
+	}
 	roots := []*ExactAlgebraicRoot{{c.endpoints[0]}, {c.endpoints[1]}}
 	if len(deriv) > 1 {
 		h, e := c.intersectComposedPolynomial(ctx, deriv, o, b)
@@ -92,7 +119,7 @@ func (c *ExactComposedCurveCell) PolynomialDistanceCandidates(ctx context.Contex
 		}
 	}
 	distance := *c
-	distance.power = [4]rationalPolynomial{d, nil, nil, {big.NewRat(1, 1)}}
+	distance.power = [4]rationalPolynomial{d, nil, nil, weightSquared}
 	for _, p := range roots {
 		work, splits := b.maxOperations-b.operations, o.MaxSubdivisions-r.Subdivisions
 		if work < 1 || splits < 1 {
