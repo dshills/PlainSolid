@@ -90,29 +90,54 @@ func (s AlgebraicShellBoolean) SectionSegment(edge int) (intersect.TubeSegment, 
 // section edges sew by exact identity. No geometric samples identify vertices.
 func (r AlgebraicShellSectionResult) CombineAlgebraic(ctx context.Context, op parametric.BooleanOp,
 	o AlgebraicShellBooleanOptions) (AlgebraicShellBoolean, error) {
-	var empty AlgebraicShellBoolean
-	if ctx == nil || r.source == nil || op > parametric.Difference || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
-		return empty, geom.ErrInvalid
+	results, e := r.CombineAlgebraicOperations(ctx, []parametric.BooleanOp{op}, o)
+	if e != nil {
+		return AlgebraicShellBoolean{}, e
+	}
+	return results[0], nil
+}
+
+// CombineAlgebraicOperations computes the requested regularized Booleans
+// in input order. The exact imprint and operand classification are shared;
+// each assembled boundary must independently pass closed incidence. An empty
+// list or repeated operation is invalid. Failure returns no partial results.
+func (r AlgebraicShellSectionResult) CombineAlgebraicOperations(ctx context.Context, operations []parametric.BooleanOp,
+	o AlgebraicShellBooleanOptions) ([]AlgebraicShellBoolean, error) {
+	if ctx == nil || r.source == nil || len(operations) == 0 || len(operations) > 3 || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 {
+		return nil, geom.ErrInvalid
+	}
+	var seen [3]bool
+	for _, op := range operations {
+		if op > parametric.Difference || seen[op] {
+			return nil, geom.ErrInvalid
+		}
+		seen[op] = true
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
 	}
 	if o.Shells.MaxRays == 0 {
 		o.Shells.MaxRays = 12
 	}
 	parts, e := r.ImprintOriginalShells(ctx, o.Imprint)
 	if e != nil {
-		return empty, e
+		return nil, e
 	}
 	var inside [2][]bool
 	for i := range parts {
 		inside[i], e = classifyAlgebraicImprint(ctx, parts[i], parts[i^1].Subdivision.source, o.Shells)
 		if e != nil {
-			return empty, fmt.Errorf("trimmed: classify algebraic shell %d: %w", i, e)
+			return nil, fmt.Errorf("trimmed: classify algebraic shell %d: %w", i, e)
 		}
 	}
-	out, e := sewAlgebraicImprint(ctx, r.source, parts, inside, op)
-	if e != nil {
-		return empty, fmt.Errorf("trimmed: sew algebraic shell Boolean: %w", e)
+	results := make([]AlgebraicShellBoolean, len(operations))
+	for i, op := range operations {
+		results[i], e = sewAlgebraicImprint(ctx, r.source, parts, inside, op)
+		if e != nil {
+			return nil, fmt.Errorf("trimmed: sew algebraic shell Boolean %d: %w", op, e)
+		}
 	}
-	return out, nil
+	return results, nil
 }
 
 func classifyAlgebraicImprint(ctx context.Context, p AlgebraicShellImprint, other Solid, o SplineShellBooleanOptions) ([]bool, error) {
