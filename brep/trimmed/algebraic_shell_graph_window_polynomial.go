@@ -96,10 +96,18 @@ func graphPolynomialBits(x *big.Rat, bits int) bool {
 	return x != nil && x.Num().BitLen() <= bits && x.Denom().BitLen() <= bits
 }
 func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.Context, leaf AlgebraicGraphWindowLeaf, limit, bits int) (*big.Rat, error) {
-	if limit < 8192 {
-		return nil, geom.ErrConvergence
+	r, e := q.integrateGraphPolynomialCellMode(ctx, leaf, limit, bits, false)
+	return r[0], e
+}
+func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCellMode(ctx context.Context, leaf AlgebraicGraphWindowLeaf, limit, bits int, firstMoments bool) ([4]*big.Rat, error) {
+	reserve := 4096
+	if firstMoments {
+		reserve = 65536
 	}
-	step := (limit - 4096) / 6
+	if limit < reserve+4096 {
+		return [4]*big.Rat{}, geom.ErrConvergence
+	}
+	step := (limit - reserve) / 6
 	var failure error
 	operations := 0
 	calc := func(op byte, a, b *big.Rat) *big.Rat {
@@ -108,7 +116,7 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 			return r
 		}
 		operations++
-		if operations > 4096 || !graphPolynomialBits(a, bits) || !graphPolynomialBits(b, bits) {
+		if operations > reserve || !graphPolynomialBits(a, bits) || !graphPolynomialBits(b, bits) {
 			failure = geom.ErrConvergence
 			return r
 		}
@@ -132,31 +140,34 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 		return r
 	}
 	heights := [2]*big.Rat{}
+	var chartMoments [2][3]*big.Rat
 	for chart, p := range q.patches {
 		if e := ctx.Err(); e != nil {
-			return nil, e
+			return [4]*big.Rat{}, e
 		}
 		inv, e := q.graphs[chart].InverseCoefficients()
 		if e != nil {
-			return nil, e
+			return [4]*big.Rat{}, e
 		}
 		var ranges [2][2]*big.Rat
 		seen := [2]bool{}
+		var columns [2]int
 		jac := big.NewRat(1, 1)
 		for axis, row := range inv {
 			column := -1
 			for i := 0; i < 2; i++ {
 				if row[i].Sign() != 0 {
 					if column >= 0 {
-						return nil, geom.ErrConvergence
+						return [4]*big.Rat{}, geom.ErrConvergence
 					}
 					column = i
 				}
 			}
 			if column < 0 || seen[column] {
-				return nil, geom.ErrConvergence
+				return [4]*big.Rat{}, geom.ErrConvergence
 			}
 			seen[column] = true
+			columns[axis] = column
 			jac = calc('*', jac, row[column])
 			ranges[axis] = [2]*big.Rat{calc('+', calc('*', row[column], leaf.Window.Min[column]), row[2]), calc('+', calc('*', row[column], leaf.Window.Max[column]), row[2])}
 			if ranges[axis][0].Cmp(ranges[axis][1]) > 0 {
@@ -164,12 +175,12 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 			}
 		}
 		if failure != nil {
-			return nil, failure
+			return [4]*big.Rat{}, failure
 		}
 		jac.Abs(jac)
 		u, v := p.KnotBreaks()
 		if len(u) > 256 || len(v) > 256 {
-			return nil, geom.ErrConvergence
+			return [4]*big.Rat{}, geom.ErrConvergence
 		}
 		var span [2][2]float64
 		for axis, knots := range [][]float64{u, v} {
@@ -182,35 +193,38 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 				}
 			}
 			if !found {
-				return nil, geom.ErrConvergence
+				return [4]*big.Rat{}, geom.ErrConvergence
 			}
 		}
 		limited, e := p.WithLimits(geom.SurfacePatchOptions{MaxOperations: step, MaxCoefficientBits: bits})
 		if e != nil {
-			return nil, e
+			return [4]*big.Rat{}, e
 		}
 		patch, _, e := limited.TrimWithWorkLimit(geom.ParameterRectangle{UMin: span[0][0], UMax: span[0][1], VMin: span[1][0], VMax: span[1][1]}, step)
 		if e != nil {
-			return nil, e
+			return [4]*big.Rat{}, e
 		}
 		coeff, _, ok := patch.RationalBezierCoefficients(6)
 		if !ok {
-			return nil, geom.ErrConvergence
+			return [4]*big.Rat{}, geom.ErrConvergence
 		}
 		weight := coeff[0][0][3]
 		if weight.Sign() <= 0 {
-			return nil, geom.ErrConvergence
+			return [4]*big.Rat{}, geom.ErrConvergence
 		}
 		for i, row := range coeff {
 			for j, c := range row {
 				if (i != 0 || j != 0) && c[3].Sign() != 0 {
-					return nil, geom.ErrConvergence
+					return [4]*big.Rat{}, geom.ErrConvergence
 				}
 			}
 		}
 		moments := [2][]*big.Rat{}
 		scale := big.NewRat(1, 1)
 		for axis, n := range []int{len(coeff), len(coeff[0])} {
+			if firstMoments {
+				n = 2*n - 1
+			}
 			width := calc('-', ratInset(span[axis][1]), ratInset(span[axis][0]))
 			scale = calc('*', scale, width)
 			lo := calc('/', calc('-', ranges[axis][0], ratInset(span[axis][0])), width)
@@ -230,8 +244,49 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 			}
 		}
 		heights[chart] = calc('/', calc('*', sum, scale), calc('*', weight, jac))
+		if firstMoments {
+			for uvAxis, column := range columns {
+				offset := calc('/', calc('-', ratInset(span[uvAxis][0]), inv[uvAxis][2]), inv[uvAxis][column])
+				slope := calc('/', calc('-', ratInset(span[uvAxis][1]), ratInset(span[uvAxis][0])), inv[uvAxis][column])
+				weighted := new(big.Rat)
+				for i, row := range coeff {
+					for j, c := range row {
+						if c[q.residual].Sign() == 0 {
+							continue
+						}
+						a, b := moments[0][i], moments[1][j]
+						if uvAxis == 0 {
+							a = calc('+', calc('*', offset, a), calc('*', slope, moments[0][i+1]))
+						} else {
+							b = calc('+', calc('*', offset, b), calc('*', slope, moments[1][j+1]))
+						}
+						weighted = calc('+', weighted, calc('*', calc('*', c[q.residual], a), b))
+					}
+				}
+				chartMoments[chart][q.axes[column]] = calc('/', calc('*', weighted, scale), calc('*', weight, jac))
+			}
+			squared := new(big.Rat)
+			for i, row := range coeff {
+				for j, a := range row {
+					if a[q.residual].Sign() == 0 {
+						continue
+					}
+					for k, other := range coeff {
+						for l, b := range other {
+							if b[q.residual].Sign() == 0 {
+								continue
+							}
+							term := calc('*', calc('*', calc('*', a[q.residual], b[q.residual]), moments[0][i+k]), moments[1][j+l])
+							squared = calc('+', squared, term)
+						}
+					}
+				}
+			}
+			chartMoments[chart][q.residual] = calc('/', calc('*', squared, scale), calc('*', big.NewRat(2, 1), calc('*', calc('*', weight, weight), jac)))
+		}
+
 		if failure != nil {
-			return nil, failure
+			return [4]*big.Rat{}, failure
 		}
 	}
 	upper := -1
@@ -242,11 +297,20 @@ func (q *AlgebraicGraphMaterialQuery) integrateGraphPolynomialCell(ctx context.C
 		}
 	}
 	if upper < 0 {
-		return nil, geom.ErrConvergence
+		return [4]*big.Rat{}, geom.ErrConvergence
 	}
 	value := calc('-', heights[upper], heights[upper^1])
 	if failure != nil {
-		return nil, failure
+		return [4]*big.Rat{}, failure
 	}
-	return value, nil
+	result := [4]*big.Rat{value}
+	if firstMoments {
+		for axis := 0; axis < 3; axis++ {
+			result[axis+1] = calc('-', chartMoments[upper][axis], chartMoments[upper^1][axis])
+		}
+	}
+	if failure != nil {
+		return [4]*big.Rat{}, failure
+	}
+	return result, nil
 }
