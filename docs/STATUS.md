@@ -1466,3 +1466,22 @@ A native plane/dome lens with stock map X=5U/4-1/8,Y=5V/4-1/8 and a unit roof
 qualifies end-to-end. Its exact restriction uses nonbinary original UV1/10 and
 9/10. This is a compact source qualification, not a repeat of the long triple
 flagship or a new persistence claim.
+
+## General rational rectangular radial footprint (2026-11-14)
+
+The affine radial certificate now computes any positive exact common physical
+rectangle, rather than requiring [0,1]^2. Center and radii remain in physical XY.
+The coefficient proof explicitly substitutes X=x0+wx*u and Y=y0+wy*v into every
+circle factor, retaining unequal scales and offsets. It never treats a circle
+in normalized UV as a physical circle. Every full circle must lie strictly
+inside the exact common rectangle; clipped circles and boundary tangencies
+remain unsupported. Original signed-axis chart maps and rational restriction
+values remain immutable. `PhysicalRectangle` returns owned rational bounds.
+
+The public overlapping affine proposal lane accepts this certificate while
+re-proving original tubes and endpoint membership. Proposal centers/radii still
+must be losslessly represented; the coefficient proof and rectangle endpoints
+can be nonbinary rationals. Existing unit-domain radial mass APIs retain their
+strict public contract; the generalized coefficient variant is private to the
+affine coverage certificate. No new native solid or mass formula is inferred
+from a normalized proof chart.
