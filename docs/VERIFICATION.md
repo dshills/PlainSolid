@@ -161,6 +161,16 @@ and returns a separately proved world solid. Pinned OCCT reads both the
 independently authored source and Go output as one valid six-face solid,
 with volume 4/3 and the posed centroid (10.7, -3.1875, 0.5). It ignores a
 root-only transform on the comparison fixture; the Go reader rejects it.
+The mixed placed IGES roof (`6f062ea`) retains both baked world-space leaves
+and leaves with an exact placement pointer, keeping unplaced original UV
+curves. Both independent source and Go output again transfer as one valid
+solid with the same world mass properties. The two placement readers have
+separate bounded fuzz checks.
+The unequal projected lens (`b9e7a63`) keeps an exact, degree-five original
+roof and its narrower projected domain. The rational volume, three centroid
+coordinates and selected world inertia terms enclose the independent disk
+integrals. The unequal exact, XZ and independent affine-chart tests all passed
+race; a small budget returned no partial mass values.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
