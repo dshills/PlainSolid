@@ -156,3 +156,12 @@ homogeneous controls directly and independently certifies every shared
 coedge. `ClipPrismLineRational` clips a model-space line through the placed
 prism, distinguishing axial caps, circular corner generators, coplanar
 boundary spans and open volume intervals.
+
+`TessellateCertified` builds a single indexed mesh whose cap fans and wall
+strips share both original rims. Exact minor-arc projection bounds the
+distance to each chord. Exact world-space rounding is included for each
+vertex. Convex radial contraction transfers the bound across each cap.
+The result also bounds the outward facet normal angle using the original
+source normals. Each rim interval retains its source edge or corner and
+exact parameter range. The mesh must pass closed incidence and collision
+checks before publication.
