@@ -179,6 +179,26 @@ func TestAlgebraicShellTripleRadialMaterialComponents(t *testing.T) {
 	lo, _ := volume.Volume.Volume.Lower.Float64()
 	hi, _ := volume.Volume.Volume.Upper.Float64()
 	t.Log("two native components, tight original-source volume enclosure", lo, hi, "exact coefficient", wantCoefficient, "width", width, "work", volume.Volume.ExactOperations)
+	tensor, e := common.RadialTubeRegionMassTensor(ctx, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}, testgraphfixture.TripleRadialRadii(), geom.RadialGraphMomentOptions{})
+	if e != nil {
+		t.Fatal("original native tensor", e)
+	}
+	wantZZ, _ := new(big.Rat).SetString("8952130846239958703517913818359375/401413413573551216547642928907670507107647488")
+	wantZ, _ := new(big.Rat).SetString("106610222140625/232841378390867968")
+	if len(tensor.Components) != len(volume.Components) || tensor.Tensor.Total.SecondMomentPiCoefficients[2][2].Cmp(wantZZ) != 0 || tensor.Tensor.Mass.Height.CentroidZ.Cmp(wantZ) != 0 || tensor.Tensor.Mass.Planar.Total.VolumePiCoefficient.Cmp(wantCoefficient) != 0 {
+		t.Fatal("independent original tensor/centroid", tensor)
+	}
+	for i, c := range tensor.Components {
+		if c != volume.Components[i] {
+			t.Fatal("tensor original owner mismatch", c, volume.Components[i])
+		}
+	}
+	for axis := range 2 {
+		if tensor.Tensor.Total.SecondMomentPiCoefficients[axis][2].Cmp(new(big.Rat).Quo(tensor.Tensor.Mass.Height.FirstZPiCoefficient, big.NewRat(2, 1))) != 0 {
+			t.Fatal("original radial mixed symmetry")
+		}
+	}
+	t.Log("two native original material tensors, exact centroid Z", wantZ, "ZZ/pi", wantZZ, "work", tensor.Tensor.ExactOperations)
 
 }
 

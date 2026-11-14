@@ -133,99 +133,15 @@ func (r *SplineGraphRadialContours) MassMomentsBands(ctx context.Context, bands 
 	return out, nil
 }
 
-// radialAngularHeightSum returns the exact mean of ZA+ZB at squared radius q.
-// For m,n>=0, mean(cos^(2m) sin^(2n)) equals
-// C(2m,m) C(2n,n)/(4^(m+n) C(m+n,m)); all odd centered powers vanish.
+// radialAngularHeightSum retains the original height sum, including nonradial terms.
 func radialAngularHeightSum(ctx context.Context, r *SplineGraphRadialContours, b *polynomialBudget) (rationalPolynomial, error) {
-	mean := make(rationalPolynomial, 9)
-	for i := range mean {
-		mean[i] = new(big.Rat)
+	heights, e := radialHeightPowers(ctx, r, b)
+	if e != nil {
+		return nil, e
 	}
-	var powers [2]rationalPolynomial
-	for axis := range 2 {
-		powers[axis] = make(rationalPolynomial, 9)
-		powers[axis][0] = big.NewRat(1, 1)
-		for i := 1; i < 9; i++ {
-			powers[axis][i] = new(big.Rat).Mul(powers[axis][i-1], r.center[axis])
-			if e := b.check(powers[axis][i]); e != nil {
-				return nil, e
-			}
-		}
+	sum, e := radialPowerAdd(heights[0], heights[1], b)
+	if e != nil {
+		return nil, e
 	}
-	for _, p := range r.supports {
-		if p == nil || p.degreeU > 8 || p.degreeV > 8 || p.countU != p.degreeU+1 || p.countV != p.degreeV+1 {
-			return nil, ErrConvergence
-		}
-		w := p.net[0][3]
-		if w.Sign() <= 0 {
-			return nil, ErrConvergence
-		}
-		rows := make([]rationalPolynomial, p.countU)
-		for i := range rows {
-			if e := ctx.Err(); e != nil {
-				return nil, e
-			}
-			values := make([]*big.Rat, p.countV)
-			for j := range values {
-				h := p.net[i*p.countV+j]
-				if h[3].Cmp(w) != 0 {
-					return nil, ErrConvergence
-				}
-				for _, q := range []*big.Rat{h[2], h[3]} {
-					if e := b.check(q); e != nil {
-						return nil, e
-					}
-				}
-				values[j] = new(big.Rat).Quo(h[2], w)
-				if e := b.check(values[j]); e != nil {
-					return nil, e
-				}
-			}
-			var e error
-			rows[i], e = bernsteinToPower(values, b)
-			if e != nil {
-				return nil, e
-			}
-		}
-		for j := 0; j < p.countV; j++ {
-			values := make([]*big.Rat, p.countU)
-			for i := range values {
-				values[i] = new(big.Rat)
-				if j < len(rows[i]) {
-					values[i].Set(rows[i][j])
-				}
-			}
-			column, e := bernsteinToPower(values, b)
-			if e != nil {
-				return nil, e
-			}
-			for i, c := range column {
-				if c.Sign() == 0 {
-					continue
-				}
-				for a := 0; a <= i; a += 2 {
-					for d := 0; d <= j; d += 2 {
-						if e := ctx.Err(); e != nil {
-							return nil, e
-						}
-						m, n := int64(a/2), int64(d/2)
-						numerator := new(big.Int).Mul(new(big.Int).Binomial(2*m, m), new(big.Int).Binomial(2*n, n))
-						denominator := new(big.Int).Mul(new(big.Int).Lsh(big.NewInt(1), uint(2*(m+n))), new(big.Int).Binomial(m+n, m))
-						term := new(big.Rat).SetFrac(numerator, denominator)
-						for _, factor := range []*big.Rat{c, new(big.Rat).SetInt(new(big.Int).Binomial(int64(i), int64(a))), new(big.Rat).SetInt(new(big.Int).Binomial(int64(j), int64(d))), powers[0][i-a], powers[1][j-d]} {
-							term.Mul(term, factor)
-							if e := b.check(term); e != nil {
-								return nil, e
-							}
-						}
-						mean[(a+d)/2].Add(mean[(a+d)/2], term)
-						if e := b.check(mean[(a+d)/2]); e != nil {
-							return nil, e
-						}
-					}
-				}
-			}
-		}
-	}
-	return trimPolynomial(mean), nil
+	return radialAngularPower(ctx, sum, r.center, b)
 }
