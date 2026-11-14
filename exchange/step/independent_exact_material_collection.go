@@ -258,7 +258,7 @@ func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits
 		leaf.MaxFaces -= faces
 		leaf.MaxVertices -= vertices
 		leaf.MaxEdgeUses -= uses
-		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) == 2 && cylinderMode[1])
+		m, e := readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) >= 2 && cylinderMode[1])
 		if e != nil {
 			return IndependentExactMaterialCollection{}, e
 		}
@@ -280,7 +280,11 @@ func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits
 		if len(out.Members) == 0 {
 			out.LengthUnit = m.LengthUnit
 		} else if m.LengthUnit != out.LengthUnit {
-			return bad()
+			if len(cylinderMode) == 3 && cylinderMode[2] {
+				out.LengthUnit = 0
+			} else {
+				return bad()
+			}
 		}
 		out.Members = append(out.Members, m)
 	}
