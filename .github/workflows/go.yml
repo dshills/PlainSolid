@@ -103,6 +103,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairedCircularNAUOAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairCircularTubeNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzEllipticalWire$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairRoundedEllipticalWire$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRevolutionSurfaces$ -fuzztime=10s -parallel=2
