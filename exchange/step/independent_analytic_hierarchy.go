@@ -44,10 +44,11 @@ func WriteIndependentAnalyticHierarchySource(ctx context.Context, w io.Writer, s
 	return writeIndependentTorusAssemblySource(ctx, w, source, l, tol, true, true, true)
 }
 
-func independentAnalyticHierarchyPaths(ctx context.Context, m IndependentTorusAssembly) ([]IndependentAnalyticDAGInstance, error) {
+func independentAnalyticHierarchyPaths(ctx context.Context, m IndependentTorusAssembly, sphereMode ...bool) ([]IndependentAnalyticDAGInstance, error) {
 	bad := func() ([]IndependentAnalyticDAGInstance, error) { return nil, geom.ErrInvalid }
 	a := m.Assembly
-	if len(a.Products) < 4 || len(a.Products) > 16 || len(a.Roots) != 1 || len(a.Occurrences) > 64 || len(m.Products) != 3 {
+	sphere := len(sphereMode) == 1 && sphereMode[0]
+	if len(a.Products) < 4 || len(a.Products) > 16 || len(a.Roots) != 1 || len(a.Occurrences) > 64 || (len(m.Products) != 3 && !(sphere && len(m.Products) == 4)) {
 		return bad()
 	}
 	nodes := map[int64]bool{}

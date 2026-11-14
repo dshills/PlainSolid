@@ -34,7 +34,8 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 	q.Assembly.Source = nil
 	cylinder := len(cylinderMode) >= 1 && cylinderMode[0]
 	dag := cylinder && len(cylinderMode) >= 2 && cylinderMode[1]
-	hierarchy := dag && len(cylinderMode) == 3 && cylinderMode[2]
+	hierarchy := dag && len(cylinderMode) >= 3 && cylinderMode[2]
+	sphere := hierarchy && len(cylinderMode) == 4 && cylinderMode[3]
 	products := 3
 	if cylinder {
 		products = 4
@@ -53,6 +54,13 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 		if products < 4 || products > 16 {
 			return q, nil, geom.ErrInvalid
 		}
+	}
+	if sphere {
+		locals = len(m.Products)
+		if locals < 3 || locals > 4 {
+			return q, nil, geom.ErrInvalid
+		}
+		q.Format = independentSphericalHierarchyClaimsFormat
 	}
 	var trustedClaims []IndependentExactMaterial
 	if len(m.Products) != locals || len(m.Assembly.Products) != products || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < products || (!hierarchy && len(m.Assembly.Occurrences) > 16) || len(m.Assembly.Occurrences) > 64 {
@@ -88,11 +96,11 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 		if p.Planar != nil {
 			q.Tolerance = tol
 		}
-		claims, native, e := independentMaterialClaims(p, cylinder, false, true)
+		claims, native, e := independentMaterialClaims(p, cylinder, sphere, true)
 		if e != nil {
 			return q, nil, e
 		}
-		if p.Torus == nil && p.Planar == nil && !(cylinder && p.Cylinder != nil) {
+		if p.Torus == nil && p.Planar == nil && !(cylinder && p.Cylinder != nil) && !(sphere && p.Sphere != nil) {
 			return q, nil, geom.ErrInvalid
 		}
 		b, e := json.Marshal(claims)
@@ -109,6 +117,15 @@ func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentToru
 				Material      IndependentExactMaterial
 				CylinderFrame geom.Affine
 			}{Material: claims, CylinderFrame: frameTransform(p.Cylinder.Frame)})
+			if e != nil {
+				return q, nil, e
+			}
+		}
+		if p.Sphere != nil {
+			member.Claims, e = json.Marshal(struct {
+				Material    IndependentExactMaterial
+				SphereFrame geom.Affine
+			}{claims, frameTransform(p.Sphere.Frame)})
 			if e != nil {
 				return q, nil, e
 			}
