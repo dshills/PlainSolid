@@ -269,6 +269,9 @@ func mappedPlanarExactEdges(f *File, bodyID int64) error {
 // targets in the observed AP214 eight-argument operator form. No NAUO assembly,
 // nested mapping, implicit axes, reflection, scaling or mixed units is inferred.
 func ReadMappedPlanarMaterial(r io.Reader, l Limits) (MappedPlanarMaterial, error) {
+	return readMappedPlanarMaterial(r, l, false)
+}
+func readMappedPlanarMaterial(r io.Reader, l Limits, rationalFrames bool) (MappedPlanarMaterial, error) {
 	fail := func() (MappedPlanarMaterial, error) { return MappedPlanarMaterial{}, mappedPlanarFailure() }
 	l, e := l.defaults()
 	if e != nil {
@@ -375,7 +378,11 @@ func ReadMappedPlanarMaterial(r io.Reader, l Limits) (MappedPlanarMaterial, erro
 		m := geom.Affine{{axes[0].X, axes[1].X, axes[2].X, p.X}, {axes[0].Y, axes[1].Y, axes[2].Y, p.Y}, {axes[0].Z, axes[1].Z, axes[2].Z, p.Z}}
 		out.Occurrences = append(out.Occurrences, MappedPlanarOccurrence{Name: name, ItemID: id, TargetID: target, Transform: m})
 	}
-	if e = mappedPlanarExactEdges(f, bodyID); e != nil {
+	proof := mappedPlanarExactEdges
+	if rationalFrames {
+		proof = mappedPythagoreanExactEdges
+	}
+	if e = proof(f, bodyID); e != nil {
 		return fail()
 	}
 	body, e := readBody(f, bodyID, l.MaxVertices, l.MaxFaces, l.MaxEdgeUses, true)

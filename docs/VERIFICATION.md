@@ -1642,7 +1642,9 @@ events; 358, 400 and 343 seconds). This verifies the pinned revision; later
 milestones have separate focused qualification below.
 The archived `e1e871c` CGO-disabled non-trimmed snapshot also passes all 49
 packages with tests and reports 3,873 passing and 332 skipped test events;
-three packages have no tests. Its three trimmed shards are tracked separately.
+three packages have no tests. The three trimmed shards at the same revision
+also passed, with 696 passing and 19 skipped test events (659, 650 and 782
+seconds). These are short-mode counts, including subtests.
 The `a2e35e9` signed offset native fixtures independently compare blind and
 through area and volume against closed-form circle segment integrals and
 verify original wall ancestry after native JSON reload. The exact-wall STEP
@@ -2035,6 +2037,17 @@ The retained frustum bore distance (`40d8e76`) bounds the minimum squared
 distance globally. Live OCCT agrees on five through and cavity probes,
 including an irrational rim distance, a retained annulus and both inward
 floors. Normal and race checks pass, including native reindexing and limits.
+The full reconciled production build `967e3c3` passed all 66 original PlainCAD
+tests in 242.4 seconds, without skips, retries or failures. All 841 original
+sources matched the pinned `50432ed` archive; the separate browser preflight
+confirmed the Go/WASM backend and no OCCT requests. Both TypeScript checks
+and the original controlled rebuild/STL timing case passed.
+Distinct original spline contact pairs (`753c316`) agree with live OCCT on
+empty common and unchanged cut, with 58 other pairs proved separated. A
+missing pair and exhausted shared budget reject atomically. Normal and
+focused race passed. Exact frustum bore mass properties (`e8b53d9`) match
+independent OCCT area, volume, centroid and inertia for an eccentric tube
+and a tapered enclosed cavity; the original cap and wall owners are retained.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
