@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD concealed cutters in grouped oblique Hole crossings — 2026-11-14
+
+Grouped cuts retain a cardinal and an oblique cutter after proving
+the other tools share one of those lines and remain covered by a
+qualified through or blind span. The canonical STEP boundary omits
+the redundant tools. Native checks cover blind and through cardinal
+spans, reversed oblique tools, input order, repeated tools and rejection
+of off-axis tools.
+
+[Seventeen original Hole and STEP cases](evidence/plaincad-concealed-oblique-step-browser-2026-11-14.json)
+and the [supplemental browser WASM and PlainCAD import case](evidence/plaincad-concealed-oblique-step-native-2026-11-14.json)
+pass. The grouped and visible-only STEP are byte-identical and the
+imported stock reports zero overlap with the concealed tool. The
+42,261-byte STEP matches the independently measured two-tool Boolean.
+Readback exports 400 watertight STL triangles. The earlier side-opening
+concealed STEP regression also passes with the OCCT oracle enabled.
+
 ## PlainCAD cardinal blind floors on oblique Hole crossings — 2026-11-14
 
 For equal-radius crossings, the cardinal Hole can stop beyond the
