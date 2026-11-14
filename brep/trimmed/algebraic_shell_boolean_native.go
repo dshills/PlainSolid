@@ -16,27 +16,82 @@ import (
 // Use the Boolean JSON codec to persist the original construction and proof.
 // Results with source edges, holes, or several section branches are unresolved.
 func (s AlgebraicShellBoolean) NativeTubeLens(ctx context.Context, tolerance float64, o edgecheck.Options) (Solid, error) {
-	if ctx == nil || s.source == nil || tolerance <= 0 || !finite(tolerance) {
-		return Solid{}, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
+	parts, e := s.NativeTubeLensComponents(ctx, tolerance, o)
+	if e != nil {
 		return Solid{}, e
 	}
-	if len(s.faces) != 2 || len(s.source.branches) != 1 {
+	if len(parts) != 1 {
 		return Solid{}, geom.ErrConvergence
 	}
-	b := s.source.branches[0]
+	return parts[0], nil
+}
+
+// NativeTubeLensComponents converts each retained two-face tube lens into a
+// native Solid. Each component must have one complete closed section, with
+// no holes or original shell edges. Components remain separate, in original
+// section branch order. Any unqualified component rejects the entire result.
+func (s AlgebraicShellBoolean) NativeTubeLensComponents(ctx context.Context, tolerance float64, o edgecheck.Options) ([]Solid, error) {
+	if ctx == nil || s.source == nil || tolerance <= 0 || !finite(tolerance) {
+		return nil, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	if len(s.faces) == 0 {
+		return nil, nil
+	}
+	owners := make([][2]int, len(s.source.branches))
+	for i := range owners {
+		owners[i] = [2]int{-1, -1}
+	}
+	for i, f := range s.faces {
+		if e := ctx.Err(); e != nil {
+			return nil, e
+		}
+		if len(f.Outer) == 0 || len(f.Holes) != 0 {
+			return nil, geom.ErrConvergence
+		}
+		edge := s.index[f.Outer[0].Edge]
+		if edge.OriginalSubdivisionEdge >= 0 || edge.SectionPiece < 0 {
+			return nil, geom.ErrConvergence
+		}
+		branch := s.parts[0].Section[edge.SectionPiece].Branch
+		if owners[branch][f.Operand] >= 0 {
+			return nil, geom.ErrConvergence
+		}
+		owners[branch][f.Operand] = i
+	}
+	var result []Solid
+	for branch, faces := range owners {
+		if faces == [2]int{-1, -1} {
+			continue
+		}
+		if faces[0] < 0 || faces[1] < 0 {
+			return nil, geom.ErrConvergence
+		}
+		part, e := s.nativeTubeLensComponent(ctx, branch, faces, tolerance, o)
+		if e != nil {
+			return nil, fmt.Errorf("trimmed: section branch %d: %w", branch, e)
+		}
+		result = append(result, part)
+	}
+	return result, nil
+}
+
+func (s AlgebraicShellBoolean) nativeTubeLensComponent(ctx context.Context, branch int, ids [2]int, tolerance float64, o edgecheck.Options) (Solid, error) {
+	b := s.source.branches[branch]
 	n := len(b.Segments)
-	if !b.Closed || n < 3 || n > 128 || len(s.index) != n || len(s.vertices) != n {
+	if !b.Closed || n < 3 || n > 128 {
 		return Solid{}, geom.ErrConvergence
 	}
 	var f [2]Face
 	var ring tubeRegionSolidRing
-	for i, src := range s.faces {
+	for i, id := range ids {
+		src := s.faces[id]
 		if src.Operand != i || src.Original != b.Faces[i] || len(src.Outer) != n || len(src.Holes) != 0 {
 			return Solid{}, geom.ErrConvergence
 		}
-		orig, e := s.OriginalFace(i)
+		orig, e := s.OriginalFace(id)
 		if e != nil {
 			return Solid{}, e
 		}
@@ -57,7 +112,7 @@ func (s AlgebraicShellBoolean) NativeTubeLens(ctx context.Context, tolerance flo
 			if reverse {
 				want = (first + n - j) % n
 			}
-			if piece.Branch != 0 || piece.Reversed || piece.Index != want {
+			if piece.Branch != branch || piece.Reversed || piece.Index != want {
 				return Solid{}, geom.ErrConvergence
 			}
 		}

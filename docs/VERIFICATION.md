@@ -91,6 +91,14 @@ crease (`c008e53`, `6573299`). The split cylinder STEP fixtures (`aec0684`,
 `977b2da`) transfer as valid four-face OCCT solids with rational and explicit
 parameter-trimmed rational axial curves; readers retain original parameters
 and senses and reject edits to the represented geometry.
+The true seam proof is used end-to-end by opt-in wrapped face operations
+(`aaf6fe0`), including continuous native agreement across the physical seam.
+The native two-face lens conversion (`36ea13e`) reconstructs both original
+faces and proves every implicit model/UV edge use. The two-lobe shell regression
+then qualifies two independent closures and an analytic total volume bracket
+for its two disjoint circular sections. Independently authored and Go-written
+IGES type 186 fixtures (`23c2931`) both transfer through pinned OCCT as valid
+tetrahedra with four faces, volume 4/3 and centroid (1/2, 1/2, 1/2).
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual

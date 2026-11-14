@@ -236,9 +236,15 @@ whole-period UV line shifts. A bounded partial coincidence and arrangement API
 retains exact original lifted intervals, materializes original-support faces,
 and proves immutable open union, intersection and directed difference with
 original edge ancestry and oriented hole cycles. Lifted rectangle injectivity
-can now span a true fundamental seam using one exact global projection proof;
-its integration into wrapped face assembly and general periodic Boolean
-assembly remain open.
+now spans a true fundamental seam using one exact global projection proof.
+The opt-in wrapped face arrangement and open region operators use that proof
+and keep original edge evaluators across the seam. Multi-image periodic
+assembly remains a separate gate.
+The shell imprint now keeps disjoint closed sections on the same source face
+when exact chart boxes prove that they do not touch or nest. A two-lobe roof
+has two closed common components and can return two independent native solids
+with continuously certified paired trims. General mixed and nested arrangements
+remain open.
 
 Exact finite line and first-hit queries cover transverse finite cylinders and
 sphere/cylinder union and subtraction. They report algebraic parameters and
