@@ -244,6 +244,13 @@ adds worktree commit `b3899732` to clean review revision `407cb101`.
 Focused bridge tests check exact coverage, overlap and the transition from
 blind to through. The live native tests, Go/WASM preflight and all 17 original
 browser scenarios passed; 841 app and 1,966 kernel source hashes matched.
+The [before-axis and at-axis STEP reconciliation](evidence/plaincad-reconciled-1de8d6fa-development-before-crossed-holes-step-2026-11-14.json)
+adds worktree commit `8ecb989b` to review revision `1de8d6fa`. It passed
+the native and live STEP checks, the Go/WASM preflight and 17 original
+browser scenarios, verifying 841 app and 1,977 kernel source hashes.
+Both [authored browser cases](evidence/plaincad-reconciled-1de8d6fa-supplemental-before-crossed-step-2026-11-14.json)
+passed on that same WASM, and the independent OCCT reads reproduced
+each browser STEP's reference mass properties.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
