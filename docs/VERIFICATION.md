@@ -1801,7 +1801,12 @@ Exact conical material queries (`eee0af8`) retain the native owners on both
 toroidal bands and blind floors, and distinguish offsets of 2⁻¹⁰⁰ with
 identical binary64 representations. The band display certificate verifies
 two-sided deflection at 0.1 (512 and 4,096 triangles), exact original rim
-parameters, and shared seam indices; full closed tessellation is separate.
+parameters, and shared seam indices. A separate certified closed result
+uses 2,112 triangles at deflection 0.2 on the unbored two-fillet frustum,
+shares original rim indices, and proves no unintended triangle contacts.
+The exact clipped planar cap mesh triangulates the original coplanar
+boundary samples with the void open or intact. It proves chord ownership,
+display ring topology, oriented coverage and a two-sided fill error.
 The eccentric, quarter-rotated STEP hole (`4285219`) strictly clears its
 original outer ellipse and preserves both owners. Pinned OCCT confirms
 native reload, two original edges, and area 38π.
