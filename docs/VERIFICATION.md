@@ -2598,3 +2598,26 @@ walls, floor and roof, and equal boxes. Tests check exact rational values and
 atomic cancellation and fail-closed source rejection. The live focused race
 run (`PLAINSOLID_OCCT_COINCIDENT_ROOF_AREA` with `mass` mode) passed; the separate
 surface area regression passed in the same run.
+
+`TestCoincidentRoofBoxPointLocation` checks 36 source classifications against
+independent OCCT regularized box Common, Fuse and Cut, including both sides
+of an exposed seam and a zero-volume contact. `TestRoofBoxNonlinearPointGerms`
+checks a nonplanar wedge and cancellation on coincident rational and creased
+roofs. The tangent regression uses `(Y-X)^2-X^3`, where diagonal cancellation
+is necessary to see both signs. Work exhaustion and cancellation return no
+location result. The focused live race run passed in 4.533 s, including the
+shared boundary measures and independent creased-roof check.
+
+## Original non-unit native annulus (2026-11-14)
+
+`TestNativeNonunitRadialAnnulus` checks the original roof height in the annulus,
+hole and exterior without meshing. Full section, intersection and native
+assembly retain two original supports, 176 original edges, two inner wires
+and Euler characteristic zero, with two opposed uses per edge. Removing a
+loop fails. The earlier complete normal run passed in 108.16 s; the final
+race run with ownership and mutation checks passed in 589.60 s.
+`TestNonunitRadialExactTransfer` checks 124 independent cover cells against
+176 tubes and exercises operation, stratum and cell limits; it passed in
+32.09 s under the race detector. Both ran together on isolated `84b54eac`'s
+test tree in 623.161 s. Independent integration of the original height field
+gives volume π·421875/2147483648; this test qualifies native topology.

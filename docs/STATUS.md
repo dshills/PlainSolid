@@ -1546,3 +1546,23 @@ of Cut accept supported shared floor, wall and roof supports. Mass includes
 world first moments and inertia. Zero-volume intersections have exact zero
 moments and no defined centroid. This adds measure queries; construction and
 source topology for coincident Boolean results remain separate.
+
+`PrepareRoofBoxPointQuery` also classifies the same original source pair on
+coincident supports. It uses local occupied layers to distinguish an internal
+union seam, a face-only intersection, and a genuinely exposed contact. Exact
+one-sided polynomial proofs include shared rational roofs and piecewise roof
+creases. A harder tangential order that affects the location fails closed.
+
+## Non-unit native radial annulus qualification (2026-11-14)
+
+A separate original-source fixture uses the roof rectangle [2,4]×[-1,2]
+and stock footprint [1.5,4.5]×[-1.5,2.5]. For
+q=(X−3)²+(Y−1/2)², the exact height is −3(q−25/1024)(q−25/256), against
+stock bottom Z=0. The retained annulus has physical radii 5/32 and 5/16.
+The source floor Z=−256 satisfies the existing sufficient wall injectivity
+proof and does not alter the retained material.
+
+Native assembly retains 176 ordered original tube edges, the original UV
+owners and two original support objects. Each edge has two opposed uses;
+there are two inner wires and Euler characteristic zero. Removing an inner
+wire fails atomically. Separate tests cover exact transfer work limits.
