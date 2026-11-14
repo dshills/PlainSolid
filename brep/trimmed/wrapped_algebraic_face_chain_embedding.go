@@ -124,13 +124,6 @@ func CertifyWrappedAlgebraicFaceChainEmbedding(ctx context.Context, pairs []*Wra
 		}
 		return n
 	}
-	check := func(q *big.Rat) error {
-		used++
-		if q == nil || used > o.MaxOperations || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
-			return geom.ErrConvergence
-		}
-		return ctx.Err()
-	}
 	pairProof := make([]*WrappedAlgebraicShellEmbedding, len(pairs))
 	for i, s := range pairs {
 		opts := o
@@ -160,8 +153,6 @@ func CertifyWrappedAlgebraicFaceChainEmbedding(ctx context.Context, pairs []*Wra
 			out.shifts[i+1][axis] = new(big.Int).Add(out.shifts[i][axis], p.shifts[axis])
 		}
 	}
-	w := source[0].NativeFace().Face.Surface.(*geom.WrappedSurfacePatch)
-	periods := w.Periods()
 	skip := make([]map[int]bool, len(source))
 	for i := range skip {
 		skip[i] = map[int]bool{}
@@ -172,6 +163,28 @@ func CertifyWrappedAlgebraicFaceChainEmbedding(ctx context.Context, pairs []*Wra
 		skip[i][a.Edge] = true
 		skip[i+1][b.Edge] = true
 	}
+	return certifyWrappedFaceExterior(ctx, source, skip, o, used, out)
+}
+
+// Shared exact exterior/hull proof; callers independently establish all
+// cancelled mate identities and the connected face-link topology.
+func certifyWrappedFaceExterior(ctx context.Context, source []*WrappedAlgebraicQuadraticFace, skip []map[int]bool, o geom.SurfaceInjectivityOptions, used int, out *WrappedAlgebraicFaceChainEmbedding) (*WrappedAlgebraicFaceChainEmbedding, error) {
+	remaining := func() int {
+		n := o.MaxOperations - used
+		if n <= 0 {
+			return -1
+		}
+		return n
+	}
+	check := func(q *big.Rat) error {
+		used++
+		if q == nil || used > o.MaxOperations || q.Num().BitLen() > o.MaxCoefficientBits || q.Denom().BitLen() > o.MaxCoefficientBits {
+			return geom.ErrConvergence
+		}
+		return ctx.Err()
+	}
+	w := source[0].NativeFace().Face.Surface.(*geom.WrappedSurfacePatch)
+	periods := w.Periods()
 	var edges []WrappedChainBoundaryEdge
 	for fi, f := range source {
 		var delta [2]*big.Rat
