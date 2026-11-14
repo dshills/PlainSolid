@@ -18,6 +18,20 @@ type sideDualDiskRecipe struct {
 	height, depth float64
 }
 
+func (p sideDualDiskRecipe) externalRadical() bool {
+	x0, x1 := p.discs[0].Center.X, p.discs[1].Center.X
+	left, right := p.discs[0].Radius, p.discs[1].Radius
+	if x0 > x1 {
+		x0, x1, left, right = x1, x0, right, left
+	}
+	rat := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	delta := new(big.Rat).Sub(rat(x1), rat(x0))
+	d2 := new(big.Rat).Mul(delta, delta)
+	a, b := rat(left), rat(right)
+	radiusDelta := new(big.Rat).Sub(a.Mul(a, a), b.Mul(b, b))
+	return radiusDelta.Abs(radiusDelta).Cmp(d2) > 0
+}
+
 type sideDualDiskBody struct {
 	sideDualDiskRecipe
 	boundary trimmed.Solid
@@ -42,7 +56,7 @@ func (b *sideDualDiskBody) planarFace(origin, normal geom.Vec3) (PlanarFace, err
 		if id == b.walls[0][0] || id == b.walls[1][0] {
 			continue
 		}
-		q, e := trimmed.NewAffineSplineFaceQuery(ctx, f, trimmed.AffineSplineFaceQueryOptions{})
+		q, e := trimmed.NewAffineSplineFaceQuery(ctx, f, trimmed.AffineSplineFaceQueryOptions{MaxDomainSubdivisions: 128})
 		if e != nil {
 			return PlanarFace{}, e
 		}
@@ -93,6 +107,14 @@ func (p sideDualDiskRecipe) solid() (*sideDualDiskBody, error) {
 	ctx := context.Background()
 	if p.discs[0].Radius == p.discs[1].Radius {
 		cut, e := trimmed.CutSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
+		if e != nil {
+			return nil, e
+		}
+		m, e := cut.Measures()
+		return &sideDualDiskBody{p, cut.Solid, cut.WallFaces, m}, e
+	}
+	if p.externalRadical() {
+		cut, e := trimmed.CutGeneralSideOpenDualDisks(ctx, p.frame, p.min, p.max, p.discs, p.height, p.depth, 1e-9, trimvalidate.Options{})
 		if e != nil {
 			return nil, e
 		}

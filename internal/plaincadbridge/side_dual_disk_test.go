@@ -161,6 +161,44 @@ func TestPlainCADUnequalSideOpenDualDiskCuts(t *testing.T) {
 	}
 }
 
+func TestPlainCADOffCenterSideOpenDualDisk(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{50, 12, 6})
+	a := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 5, 3)
+	c := circle(t, b, vector{24.5, 0, 0}, vector{0, 0, 1}, 8.5, 3)
+	prior := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": a.Handle})
+	left := math.Atan2(4, 3)
+	right := math.Atan2(4, -7.5)
+	opening := (25*left + 8.5*8.5*right + 18) / 2
+	want := 3600 - 3*opening
+	near(t, overlapMeasure(t, b, prior.Handle, c.Handle), 3*(opening-25*math.Pi/2))
+	for _, request := range []map[string]any{
+		{"op": "cutMany", "a": stock.Handle, "tools": []string{c.Handle, a.Handle}},
+		{"op": "cut", "a": prior.Handle, "b": c.Handle},
+	} {
+		out := shape(t, b, request)
+		near(t, out.GeometryAssertions.Volume, want)
+		if out.Bounds != stock.Bounds {
+			t.Fatal("off-center opening changed stock extrema", out.Bounds)
+		}
+		proof, e := b.exportSTEP([]string{out.Handle})
+		if e != nil || len(proof.After) != 1 {
+			t.Fatal("off-center export/readback", e)
+		}
+		near(t, proof.After[0].Volume, want)
+		var d, angle optionalNumber
+		d.set, d.value, angle.set, angle.value = true, .5, true, .2
+		m, e := b.shapes[out.Handle].tessellate(requestForSideMesh(d, angle))
+		if e != nil || m.ValidateSolid() != nil {
+			t.Fatal("off-center display", e)
+		}
+	}
+}
+
+func requestForSideMesh(deflection, angular optionalNumber) request {
+	return request{LinearDeflection: deflection, AngularDeflection: angular}
+}
+
 func TestPlainCADSideOpenDualDiskRejectsUnprovedCrossing(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{0, 4, 0}, vector{10, 10, 6})

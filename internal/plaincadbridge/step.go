@@ -159,6 +159,13 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 			}
 			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p)
 		}
+		if m, e := step.ReadGeneralSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
+			p, e := m.Native.Measures()
+			if e != nil {
+				return Shape{}, e
+			}
+			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p)
+		}
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
@@ -329,6 +336,8 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		}
 		if d.Discs[0].Radius == d.Discs[1].Radius {
 			e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, d)
+		} else if p.externalRadical() {
+			e = step.WriteGeneralSideOpenDualDiskProduct(context.Background(), &out, step.GeneralSideOpenDualDiskDescriptor(d))
 		} else {
 			e = step.WriteUnequalSideOpenDualDiskProduct(context.Background(), &out, step.UnequalSideOpenDualDiskDescriptor(d))
 		}
