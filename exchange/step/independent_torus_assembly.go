@@ -35,10 +35,14 @@ type IndependentTorusAssemblyModel struct {
 func ReadIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, tol float64) (IndependentTorusAssembly, error) {
 	return readIndependentTorusAssembly(ctx, r, l, tol, false)
 }
-func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, tol float64, cylinder bool) (IndependentTorusAssembly, error) {
+func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, tol float64, cylinder bool, dagMode ...bool) (IndependentTorusAssembly, error) {
 	products := 3
 	if cylinder {
 		products = 4
+	}
+	dag := cylinder && len(dagMode) == 1 && dagMode[0]
+	if dag {
+		products = 5
 	}
 	bad := func() (IndependentTorusAssembly, error) {
 		return IndependentTorusAssembly{}, geom.ErrInvalid
@@ -80,7 +84,13 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 			return bad()
 		}
 		kind := "ADVANCED_BREP_SHAPE_REPRESENTATION"
-		if p.DefinitionID == a.Roots[0] {
+		node := p.DefinitionID == a.Roots[0]
+		if dag {
+			if _, err := simple(f, p.Representations[0], "SHAPE_REPRESENTATION", 3); err == nil {
+				node = true
+			}
+		}
+		if node {
 			kind = "SHAPE_REPRESENTATION"
 		}
 		rep, e := simple(f, p.Representations[0], kind, 3)
@@ -100,7 +110,7 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 		if e != nil {
 			return bad()
 		}
-		if p.DefinitionID == a.Roots[0] {
+		if node {
 			if len(ids) != 0 {
 				return bad()
 			}
@@ -194,16 +204,18 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if nt != 1 || np != 1 || (cylinder && nc != 1) || (!cylinder && nc != 0) {
 		return bad()
 	}
-	uses := map[int64]int{}
-	for _, u := range a.Occurrences {
-		if u.Parent != a.Roots[0] || out.Products[u.Child].SourceBodyID == 0 || !planarSplineRigid(u.Transform) {
-			return bad()
+	if !dag {
+		uses := map[int64]int{}
+		for _, u := range a.Occurrences {
+			if u.Parent != a.Roots[0] || out.Products[u.Child].SourceBodyID == 0 || !planarSplineRigid(u.Transform) {
+				return bad()
+			}
+			uses[u.Child]++
 		}
-		uses[u.Child]++
-	}
-	for id, p := range out.Products {
-		if uses[id] == 0 || (p.Torus != nil && uses[id] < 2) {
-			return bad()
+		for id, p := range out.Products {
+			if uses[id] == 0 || (p.Torus != nil && uses[id] < 2) {
+				return bad()
+			}
 		}
 	}
 	metadata := map[string]bool{}
@@ -288,6 +300,11 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 	if e != nil || len(all) != len(f.Entities) {
 		return bad()
 	}
+	if dag {
+		if _, e = independentAnalyticDAGPaths(out); e != nil {
+			return bad()
+		}
+	}
 	return out, nil
 }
 
@@ -296,10 +313,14 @@ func readIndependentTorusAssembly(ctx context.Context, r io.Reader, l Limits, to
 func WriteIndependentTorusAssembly(ctx context.Context, w io.Writer, m IndependentTorusAssemblyModel, l Limits, tol float64) error {
 	return writeIndependentTorusAssembly(ctx, w, m, l, tol, false)
 }
-func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m IndependentTorusAssemblyModel, l Limits, tol float64, cylinder bool) error {
+func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m IndependentTorusAssemblyModel, l Limits, tol float64, cylinder bool, dagMode ...bool) error {
 	products := 3
 	if cylinder {
 		products = 4
+	}
+	dag := cylinder && len(dagMode) == 1 && dagMode[0]
+	if dag {
+		products = 5
 	}
 	if ctx == nil || w == nil || len(m.Products) != products || len(m.Occurrences) > 16 {
 		return geom.ErrInvalid
@@ -341,7 +362,7 @@ func writeIndependentTorusAssembly(ctx context.Context, w io.Writer, m Independe
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(b.Bytes()), l, tol, cylinder, dag); e != nil {
 		return e
 	}
 	n, e := w.Write(b.Bytes())
@@ -373,7 +394,8 @@ func independentTorusAssemblyPose(b mappedRationalBasis) (geom.Affine, error) {
 func WriteIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64) error {
 	return writeIndependentTorusAssemblySource(ctx, w, source, l, tol, false)
 }
-func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, cylinder bool) error {
+func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, source *File, l Limits, tol float64, cylinder bool, dagMode ...bool) error {
+	dag := cylinder && len(dagMode) == 1 && dagMode[0]
 	if ctx == nil || w == nil || !independentNativeSourceBound(source, 4096) {
 		return geom.ErrInvalid
 	}
@@ -381,7 +403,7 @@ func writeIndependentTorusAssemblySource(ctx context.Context, w io.Writer, sourc
 	if e != nil {
 		return e
 	}
-	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder); e != nil {
+	if _, e = readIndependentTorusAssembly(ctx, bytes.NewReader(raw), l, tol, cylinder, dag); e != nil {
 		return e
 	}
 	n, e := w.Write(raw)
