@@ -10,8 +10,9 @@ import (
 
 // WrappedRationalStationOccurrenceOptions keeps source authentication and
 // exact pose arithmetic separate. MaxTransformBits defaults to16384 and is
-// bounded by65536. Each query uses at most four fixed-size3x4 transformations;
-// original point/normal queries retain their own explicit budgets.
+// bounded by65536. Point/normal queries use at most four fixed-size3x4
+// transformations; distance queries use at most20. Original queries retain
+// their own explicit budgets.
 type WrappedRationalStationOccurrenceOptions struct {
 	Source           geom.SurfacePatchOptions
 	MaxTransformBits int
