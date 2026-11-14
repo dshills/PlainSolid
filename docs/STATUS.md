@@ -799,6 +799,13 @@ original browser cases passed with 841 app and 2,167 kernel source blobs
 verified. Both [authored blind-floor cases](evidence/plaincad-reconciled-cc2030ea-supplemental-blind-oblique-step-2026-11-14.json)
 reproduced the worktree's STEP and watertight STL. Independent OCCT
 transfer and direct construction agreed on their physical properties.
+The [grouped concealed-cutter reconciliation](evidence/plaincad-reconciled-dd49d102-development-concealed-oblique-holes-step-2026-11-14.json)
+adds worktree revision `19ca5756` to review `dd49d102`. Focused native
+race checks and all 17 original browser cases passed. The run verified
+841 app and 2,168 kernel source blobs. The [authored concealed-cutter case](evidence/plaincad-reconciled-dd49d102-supplemental-concealed-oblique-step-2026-11-14.json)
+confirmed that a wholly covered cutter leaves the canonical STEP unchanged.
+The reconciled STEP and watertight STL matched the worktree's files, and
+independent OCCT confirmed the resulting geometry.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
@@ -1792,3 +1799,25 @@ charts; it is not an automatic affine-chart fallback. Overlapping proposals
 alone are not ordered topology. No new persistence or flagship qualification is
 claimed. Next work may align independent original charts, then requalify larger
 nested families through the same transfer proof.
+
+## Exact affine transport for radial coverage (2026-11-14)
+
+`geom.CertifyAffineRadialGraphContours` proves signed-axis affine XY maps,
+computes their exact common physical footprint, and restricts original tensor
+controls at rational UV values before proving the complete radial identity.
+The first explicit footprint scope is the physical unit square; larger and
+unequal original projected rectangles are accepted when their intersection is
+exactly that square. Shears, other footprints and multiple spans remain outside
+this API. Original chart scales, reversals and axis permutations are retained.
+
+`RadialOverlapCoverageOptions.AffineCharts` opts into this transport. Outward
+mapped boxes are proposal enclosures only: every uniform tube is re-proved on
+original supports; exact original endpoint roots establish radius and strict
+membership on both original domains. The independent cover is then transferred
+into the original supplied tube union as before. No endpoint identity is inferred
+from a rounded mapped box. The default identity-only route remains strict.
+
+A native plane/dome lens with stock map X=5U/4-1/8,Y=5V/4-1/8 and a unit roof
+qualifies end-to-end. Its exact restriction uses nonbinary original UV1/10 and
+9/10. This is a compact source qualification, not a repeat of the long triple
+flagship or a new persistence claim.

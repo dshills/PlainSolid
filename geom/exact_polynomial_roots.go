@@ -21,6 +21,7 @@ type ExactPolynomialRoot struct {
 // root collection, so callers can charge it to a larger query budget.
 type ExactPolynomialRootIsolation struct {
 	Roots                    []ExactPolynomialRoot
+	LowerSign, UpperSign     int // polynomial signs at the original clip ends
 	Operations, Subdivisions int
 }
 
@@ -38,6 +39,7 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 	defer func() {
 		if err != nil {
 			out.Roots = nil
+			out.LowerSign, out.UpperSign = 0, 0
 		}
 	}()
 	if ctx == nil || len(coefficients) == 0 || len(coefficients) > ExactPolynomialMaxDegree+1 || lower == nil || upper == nil || lower.Cmp(upper) > 0 {
@@ -69,6 +71,17 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 	for _, v := range []*big.Rat{lower, upper} {
 		if e = b.check(v); e != nil {
 			return out, e
+		}
+	}
+	for i, p0 := range []*big.Rat{lower, upper} {
+		value, e := polynomialValue(p, p0, b)
+		if e != nil {
+			return out, e
+		}
+		if i == 0 {
+			out.LowerSign = value.Sign()
+		} else {
+			out.UpperSign = value.Sign()
 		}
 	}
 	out.Subdivisions, e = isolatePolynomialRoots(p, lower, upper, b, o.MaxSubdivisions, func(lo, hi *big.Rat, multiplicity int) (bool, error) {

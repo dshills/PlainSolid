@@ -86,6 +86,13 @@ func (c *RadialTubeCoverage) Endpoint(tube, end int) (TubeAlgebraicGraphEndpoint
 // Missing arcs/radii, endpoint-only joins, changed supports and exhausted work
 // fail atomically. This sufficient proof does not infer native branch topology.
 func (r *SplineGraphRadialContours) CertifyTubeCoverage(ctx context.Context, tubes []VerifiedSurfaceTube, o RadialTubeCoverageOptions) (*RadialTubeCoverage, error) {
+	if r == nil {
+		return nil, ErrInvalid
+	}
+	return r.certifyTubeCoverageOriginal(ctx, tubes, o, r.supports, true)
+}
+
+func (r *SplineGraphRadialContours) certifyTubeCoverageOriginal(ctx context.Context, tubes []VerifiedSurfaceTube, o RadialTubeCoverageOptions, original [2]*SurfacePatch, identity bool) (*RadialTubeCoverage, error) {
 	if ctx == nil || r == nil || r.supports[0] == nil || r.supports[1] == nil || len(r.radii) == 0 || len(tubes) == 0 {
 		return nil, ErrInvalid
 	}
@@ -139,7 +146,7 @@ func (r *SplineGraphRadialContours) CertifyTubeCoverage(ctx context.Context, tub
 			if e != nil {
 				return nil, e
 			}
-			same, e := compareExactSurfaceRationalDomains(ctx, r.supports[owner], p, ExactSurfaceComparisonOptions{MaxCells: 64, MaxOperations: n, MaxCoefficientBits: o.MaxCoefficientBits}, &domains)
+			same, e := compareExactSurfaceRationalDomains(ctx, original[owner], p, ExactSurfaceComparisonOptions{MaxCells: 64, MaxOperations: n, MaxCoefficientBits: o.MaxCoefficientBits}, &domains)
 			b.operations += same.ExactOperations
 			if e != nil {
 				return nil, e
@@ -162,7 +169,7 @@ func (r *SplineGraphRadialContours) CertifyTubeCoverage(ctx context.Context, tub
 			if !endpoint.Proven || endpoint.ModelEvent == nil || endpoint.ModelEvent.cell == nil || endpoint.ModelEvent.root == nil {
 				return nil, ErrConvergence
 			}
-			for axis := 0; axis < 2; axis++ {
+			for axis := 0; identity && axis < 2; axis++ {
 				if endpoint.Parameters[axis] == nil || endpoint.Parameters[axis+2] == nil {
 					return nil, ErrConvergence
 				}

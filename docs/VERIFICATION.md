@@ -785,6 +785,12 @@ disabled. Four packages have no tests. Go recorded 4,495 passing test
 events and 386 skips, including opt-in comparators. The module list
 contains only PlainSolid.
 
+A [later count-one Go package summary](evidence/native-full-nontrimmed-c5067418-summary-2026-11-14.json)
+from the working checkout based on `c5067418` also passed all 49 tested
+packages outside `brep/trimmed` with CGO disabled. The four remaining
+packages report no tests. Separate focused qualification covers the
+subsequent changes; this summary does not record per-test events.
+
 The [full-mode native run outside the trimmed package](evidence/native-full-nontrimmed-d6fe29e4-2026-11-14.json)
 passed 49 tested packages on a clean `d6fe29e4` archive with CGO disabled;
 three packages have no tests. Go reported 4,414 passing test events and
@@ -5180,4 +5186,30 @@ GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^Test
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./brep/trimmed -run '^TestNativeLensIndependentRadialCoverage$' -count=1 -v -timeout 4m
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./intersect -run '^(TestSplineTubeCoverage|TestSplinePairTrace|TestRadialContourDiscoveryAtomicRejections)' -count=1
 GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./intersect ./brep/trimmed
+```
+
+## Affine original radial coverage (2026-11-14)
+
+The compact original plane/dome native shell passes affine radial coverage,
+complete native section, Intersection material and a two-face Euler2 native
+component preserving both original surface objects. Stock physical footprint
+[-1/8,9/8]^2 uses original UV[0,1]^2; the roof uses physical/UV[0,1]^2.
+The exact common-footprint restriction therefore requires UV1/10 and9/10,
+which remain rational in the coefficient proof. The complete coverage charges
+998170 operations. Focused affine race passed (geometry 1.235s, native 51.53s),
+and vet passed for geom/intersect/trimmed. Exact total quota succeeds; one less, omitted original
+tubes and use of the old identity-only path reject atomically.
+
+Independent geometry tests compare transported canonical coefficients exactly
+against the original physical plane, test a signed swapped chart and outward
+(nonexact) mapped proposals, reject a clipped common footprint and a height
+perturbation, and verify cancellation/exact arithmetic quotas. No test trusts
+box overlap as incidence. The topology test explicitly re-proves original
+B-free hints rather than rounding a new original free endpoint.
+
+```sh
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./geom -run '^(TestAffineRadialOriginalTransport|TestExactRadialTubeCoverage)' -count=1 -v
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test ./brep/trimmed -run '^TestNativeLensAffineRadialCoverage$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go test -race ./geom ./brep/trimmed -run '^(TestAffineRadialOriginalTransport|TestNativeLensAffineRadialCoverage)$' -count=1 -v -timeout 4m
+GOMAXPROCS=2 GOCACHE=/tmp/plainsolid-go-cache go vet ./geom ./intersect ./brep/trimmed
 ```

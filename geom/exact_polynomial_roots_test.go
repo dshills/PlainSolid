@@ -11,8 +11,12 @@ func TestExactQuarticRootSigns(t *testing.T) {
 	r := func(n int64) *big.Rat { return big.NewRat(n, 1) }
 	p := []*big.Rat{r(6), r(0), r(-5), r(0), r(1)}
 	roots, e := IsolateExactPolynomialRoots(ctx, p, r(-2), r(2), ExactCurvePlaneEventOptions{})
-	if e != nil || len(roots.Roots) != 4 {
+	if e != nil || len(roots.Roots) != 4 || roots.LowerSign != 1 || roots.UpperSign != 1 {
 		t.Fatal(roots, e)
+	}
+	atEnds, e := IsolateExactPolynomialRoots(ctx, []*big.Rat{r(-1), r(0), r(1)}, r(0), r(1), ExactCurvePlaneEventOptions{})
+	if e != nil || len(atEnds.Roots) != 1 || atEnds.LowerSign != -1 || atEnds.UpperSign != 0 {
+		t.Fatal("exact endpoint signs", atEnds, e)
 	}
 	p[0].SetInt64(100)
 	for i, v := range roots.Roots {
