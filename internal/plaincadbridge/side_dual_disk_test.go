@@ -282,7 +282,7 @@ func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 			near(t, s.GeometryAssertions.Volume, wantV)
 			near(t, s.GeometryAssertions.SurfaceArea, wantA)
 			near(t, overlapMeasure(t, b, s.Handle, c.Handle), 0)
-			m, e := b.shapes[s.Handle].tessellateSTL(requestForSideMesh(optionalNumber{value: .5, set: true}, optionalNumber{value: .2, set: true}))
+			m, e := b.shapes[s.Handle].tessellate(requestForSideMesh(optionalNumber{value: .5, set: true}, optionalNumber{value: .2, set: true}))
 			if e != nil {
 				t.Fatal("offset STL mesh", e)
 			}

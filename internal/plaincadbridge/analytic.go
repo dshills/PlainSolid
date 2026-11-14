@@ -87,8 +87,14 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		// The exact mesher re-proves cylinder and affine support identities
 		// from the boundary and never uses the recipe's radii as evidence.
 		source := trimmed.SideOpenDualDiskCut{Solid: a.sideDualDisk.boundary, WallFaces: a.sideDualDisk.walls}
+		angle := min(2*o.Angle, 1)
+		if a.sideDualDisk.offsetCenters() {
+			// PlainCAD fabricates the accepted model mesh. Curved segment
+			// volume accumulates along the axial wall, so cap its turn here.
+			angle = min(angle, .05)
+		}
 		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
-			Deflection: o.Deflection, AngularTurn: min(2*o.Angle, 1),
+			Deflection: o.Deflection, AngularTurn: angle,
 			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
 		})
 		return result.Mesh, err
