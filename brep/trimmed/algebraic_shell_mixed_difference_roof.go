@@ -7,6 +7,8 @@ import (
 
 // MixedRoofMaterialConstraint names the exact whole-cell material witness.
 // Inside/above/below margins have model Z units; footprint margins have XY units.
+// AboveOtherRoof may certify only the cell intersection with the opposing
+// footprint; the remainder is outside that solid by XY coordinates.
 type MixedRoofMaterialConstraint uint8
 
 const (
@@ -26,10 +28,13 @@ const (
 // inside A and published with reversed orientation. It does not alter the
 // intersection-only or strict-interior entry points.
 func (n *CertifiedMixedAlgebraicShellBoundary) TessellateDifferenceRoofFragmentCertified(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions) (*CertifiedMixedRoofFragment, error) {
-	return n.tessellateRoofFragment(ctx, face, oppositeRoof, o, true)
+	return n.tessellateRoofFragment(ctx, face, oppositeRoof, o, true, false)
 }
 
 func mixedRoofMaterialClearance(host, other *mixedRoofBox, xy [3][2]*big.Rat, outside bool) (*big.Rat, MixedRoofMaterialConstraint, error) {
+	return mixedRoofMaterialClearanceMode(host, other, xy, outside, false)
+}
+func mixedRoofMaterialClearanceMode(host, other *mixedRoofBox, xy [3][2]*big.Rat, outside, clipped bool) (*big.Rat, MixedRoofMaterialConstraint, error) {
 	if !outside {
 		m, e := mixedRoofTriangleClearance(host, other, xy)
 		return m, MixedRoofInsideOther, e
@@ -70,6 +75,9 @@ func mixedRoofMaterialClearance(host, other *mixedRoofBox, xy [3][2]*big.Rat, ou
 	below := new(big.Rat).Sub(other.floor, hi)
 	if below.Sign() > 0 {
 		return below, MixedRoofBelowOtherFloor, nil
+	}
+	if clipped {
+		return mixedRoofClippedAbove(host, other, xy)
 	}
 	// Only evaluate the opposing graph on its actual chart domain.
 	for _, p := range xy {

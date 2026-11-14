@@ -109,9 +109,9 @@ func (r *CertifiedMixedRoofFragment) MarshalJSON() ([]byte, error) {
 // exhaustive strict-material or original-trim collar cells. Unproved cells
 // reject the entire fragment; the existing strict-interior API is unchanged.
 func (n *CertifiedMixedAlgebraicShellBoundary) TessellateRoofFragmentCertified(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions) (*CertifiedMixedRoofFragment, error) {
-	return n.tessellateRoofFragment(ctx, face, oppositeRoof, o, false)
+	return n.tessellateRoofFragment(ctx, face, oppositeRoof, o, false, false)
 }
-func (n *CertifiedMixedAlgebraicShellBoundary) tessellateRoofFragment(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions, difference bool) (*CertifiedMixedRoofFragment, error) {
+func (n *CertifiedMixedAlgebraicShellBoundary) tessellateRoofFragment(ctx context.Context, face, oppositeRoof int, o MixedRoofCollarOptions, difference, union bool) (*CertifiedMixedRoofFragment, error) {
 	if !finite(o.Width) || o.Width <= 0 {
 		return nil, geom.ErrInvalid
 	}
@@ -130,7 +130,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateRoofFragment(ctx contex
 	if o.MaxDepth < 1 || o.MaxDepth > 24 || o.MaxCells < 1 || o.MaxCells > 1000000 || o.MaxPairs < 1 || o.MaxPairs > 8000000 || o.MaxCandidates < 1 || o.MaxCandidates > 128 {
 		return nil, geom.ErrInvalid
 	}
-	work := &mixedRoofCollarWork{difference: difference, options: o, width2: new(big.Rat).Mul(ratInset(o.Width), ratInset(o.Width))}
+	work := &mixedRoofCollarWork{difference: difference, union: union, options: o, width2: new(big.Rat).Mul(ratInset(o.Width), ratInset(o.Width))}
 	base, e := n.tessellateMixedRoof(ctx, face, oppositeRoof, o.Roof, work)
 	if e != nil {
 		return nil, e
@@ -140,6 +140,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) tessellateRoofFragment(ctx contex
 
 type mixedRoofCollarWork struct {
 	difference     bool
+	union          bool
 	outside        bool
 	options        MixedRoofCollarOptions
 	width2         *big.Rat
@@ -212,7 +213,12 @@ func (w *mixedRoofCollarWork) certifyTriangle(ctx context.Context, triangle int,
 		ax, ay, bx, by float64
 	}
 	var chords []chord
-	for _, use := range n.source.boundary.faces[face].Outer {
+	f := n.source.boundary.faces[face]
+	uses := append([]AlgebraicShellBooleanUse(nil), f.Outer...)
+	for _, hole := range f.Holes {
+		uses = append(uses, hole...)
+	}
+	for _, use := range uses {
 		path := n.network.Edges[use.Edge]
 		for j := 1; j < len(path); j++ {
 			a, b := n.network.Vertices[path[j-1]], n.network.Vertices[path[j]]
@@ -233,7 +239,7 @@ func (w *mixedRoofCollarWork) certifyTriangle(ctx context.Context, triangle int,
 		if w.visited > w.options.MaxCells {
 			return geom.ErrConvergence
 		}
-		margin, kind, e := mixedRoofMaterialClearance(host, other, q, w.outside)
+		margin, kind, e := mixedRoofMaterialClearanceMode(host, other, q, w.outside, w.union)
 		if e != nil {
 			return e
 		}

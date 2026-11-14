@@ -29,7 +29,11 @@ triangles preserve the exact boundary source and have a source error
 bound below 0.098 model units. The matching difference also has a closed
 certified mesh for all 14 fragments and two independently oriented
 components. Its 2,018 triangles retain the original charts and reversed
-cutter faces. A complete union mesh remains a separate requirement.
+cutter faces. The matching union has a certified closed mesh with 2,076
+triangles for all 17 original fragments. It includes the roof with an
+enclosed hole, uses the shared original boundary samples, and has a
+source error bound below 0.143 model units. Its complement proof clips
+query cells to the opposing chart before testing height.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -38,6 +42,11 @@ wall owners across isolated contacts, coincident runs, and common line
 intervals between two placed stock bodies. Directional separation and
 nearest owner tests distinguish exact ties from overlapping numerical
 enclosures below binary64 precision.
+Exact ring torus IGES material now covers canonical and signed-axis placed
+sources, including authenticated reordered records. The analytic sphere
+reader qualifies exact IGES pole and seam graphs, including proper signed-axis
+placements; the promoted native sphere uses its established numerical angular
+evaluation and does not claim rational patch sewing.
 
 ## Immediate priority: PlainCAD compatibility
 

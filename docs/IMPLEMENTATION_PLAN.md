@@ -122,9 +122,11 @@ charts. The three curved roofs use strict signed material cells and
 explicit original trim collars. Final exact contact tests verify the
 assembled closed mesh. The original difference also has a complete
 certified mesh; it retains both components, checks complement signs,
-and reverses cutter faces after source validation. Extend these proofs
-to union, including holed retained fragments. General curved and singular family coverage
-remains a release requirement. Separate exact weighted
+and reverses cutter faces after source validation. The matching union
+passes all 17 original fragments, including an enclosed roof hole. Its
+complement proof intersects each cell with the other chart before
+evaluating the height difference. General curved and singular family
+coverage remains a release requirement. Separate exact weighted
 stock proofs cover closed certified display, finite line events including
 isolated shared supports, nearest original owners, and mass properties
 through rational rigid placement.
