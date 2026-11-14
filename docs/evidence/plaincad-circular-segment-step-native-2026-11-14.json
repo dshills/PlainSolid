@@ -1,0 +1,53 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "acdefd3d071117f84c8f717ee3f2ba05ca1674d2b75aaf5eff4555019c8377cf",
+  "supplemental": {
+    "report": "/tmp/plainsolid-circular-segment-authored-5574/circular-segment-browser.json",
+    "reportSha256": "30d316b3e2cb3f5b71a90c0424ecec9217c89e7806eb8f4b22688e2c4caa1d5f",
+    "sourceSha256": "6782413049829c11583f8004f4de5b885dc8dedc4a22cad0d18660a586893ceb",
+    "summary": {
+      "startTime": "2026-11-14T15:13:02.841Z",
+      "duration": 56062.263,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "radiusMm": 20,
+      "heightMm": 5,
+      "startAngle": 2.5002222596456e-07,
+      "sweep": 3.141592153545341,
+      "boundsMm": {
+        "minZ": 17,
+        "maxZ": 22
+      },
+      "analyticalVolumeMm3": 3141.591653500889,
+      "analyticalAreaMm2": 1770.7958767548835,
+      "originalWorkflow": "Arc authoring, driving dimensions, face offsets and explicit plane repair",
+      "stepByteCount": 13169,
+      "stepSha256": "3eb7e10929e7a98b94621d1194609c2d05f391eeb6861fea071914af9fb439ec",
+      "stlTriangles": 264,
+      "stlTwoUseEdges": 396,
+      "stlSha256": "eddcbc400a73d139b5bac695c40a364ec0d3ec2cd722e19749dff148a432ff7c",
+      "occtStepReadback": {
+        "Area": 1770.7958767548823,
+        "Volume": 3141.5916535008873,
+        "Centroid": [
+          -2.3809885941165195e-15,
+          8.488266333706255,
+          19.5
+        ]
+      }
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 18
+  },
+  "vet": "passed",
+  "nativeRace": "passed for exchange and bridge",
+  "baselineSupplemental": "/tmp/plainsolid-circular-segment-authored-5574/circular-segment-baseline-browser.json"
+}

@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD driven arc-and-chord STEP exchange — 2026-11-14
+
+STEP for a bounded circular segment recovers the represented angles from
+the cylinder's axial pcurve lines. The reader checks each intermediate
+seam and the full regenerated graph. Qualified minor and major segments
+retain the exact circle and closing chord. The graph rejects modified
+seam values and intervals that cross the supported angular branch.
+
+[Nine original sketch and STEP cases](evidence/plaincad-circular-segment-step-browser-2026-11-14.json)
+and an [extension of the original driven arc case](evidence/plaincad-circular-segment-step-native-2026-11-14.json)
+pass on the same WASM. Before the fix, the authored case reached STEP
+generation and the download remained disabled. The 13,169-byte STEP
+now exports, reimports and reopens after radius and offset edits. Its
+264-triangle STL is watertight. Eighteen independent OCCT minor and major
+segment comparisons, the original solver fixture, race checks, and Go
+vet pass.
+
 ## PlainCAD Circle Trim half-disk STEP exchange — 2026-11-14
 
 The exact half-disk produced by the original XY Circle Trim workflow
