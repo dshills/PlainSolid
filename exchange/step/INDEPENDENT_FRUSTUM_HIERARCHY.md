@@ -172,3 +172,21 @@ The comparator intersects every transferred solid through OCCT's face
 intersector; it does not filter by surface type. The rebuilt executable passes
 the same retained frustum line tests. Numerical per-solid hit deduplication is
 only oracle behavior, not an exact native acceptance rule.
+
+## Exact incident outward normal rays
+
+`BoundaryNormalsIndependentCircularFrustumHierarchy` uses the complete exact
+point-location/source proof and returns one outward ray for each incident
+original face, preserving original surface IDs and rim/seam/vertex contacts.
+For the tapered wall it uses (h²x,h²y,−Δr*(r0*h+Δr*z)), one half of the
+outward implicit gradient. Positive radii guarantee a nonzero wall gradient.
+Cap rays are the negative/positive axial direction. Exact proper occurrences
+rotate these rays without floating normalization. At a rim, cap and wall rays
+remain separate; shared occurrences remain separate, with no union boundary or
+averaged-corner normal claim. Noncircular profiles remain unsupported here.
+
+Returned vectors and squared norms are copied exact rationals. Source, point
+proof/coefficient and output-normal quotas apply atomically. The existing normal
+query's bounded snapshot/reproof pattern is retained. Pinned OCCT independently
+checks wall and both rim normal sets under translated and rotated occurrences,
+after native reload; normalization to floats occurs only in that comparison.

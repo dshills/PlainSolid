@@ -97,6 +97,11 @@ func boundaryNormalsHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 	if e != nil {
 		return bad(e)
 	}
+	return normalsAuthenticatedHierarchy(ctx, proof.Source, proof.Products, proof.Instances, locations, o)
+}
+func normalsAuthenticatedHierarchy(ctx context.Context, source *File, products map[int64]IndependentExactMaterial, instances []RationalHierarchyInstance, locations RationalHierarchyPointLocations, o RationalHierarchyNormalOptions) (RationalHierarchyNormals, error) {
+	bad := func(e error) (RationalHierarchyNormals, error) { return RationalHierarchyNormals{}, e }
+	var e error
 	bits := o.Point.MaxCoefficientBits
 	if bits == 0 {
 		bits = 4096
@@ -117,8 +122,8 @@ func boundaryNormalsHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 		if e = ctx.Err(); e != nil {
 			return bad(e)
 		}
-		u := proof.Instances[k]
-		product := proof.Products[u.ProductID]
+		u := instances[k]
+		product := products[u.ProductID]
 		leaf := HierarchyBoundaryNormalLeaf{ProductID: location.ProductID, SourceProductID: location.SourceProductID, SourceBodyID: location.SourceBodyID, Path: append([]int64(nil), location.Path...), ContactEdgeIDs: append([]int64(nil), location.ContactEdgeIDs...), ContactVertexIDs: append([]int64(nil), location.ContactVertexIDs...), Family: location.Family, Location: location.Location}
 		if location.Location != AnalyticPointBoundary {
 			out.Leaves = append(out.Leaves, leaf)
@@ -134,7 +139,7 @@ func boundaryNormalsHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 			if count > o.MaxNormals {
 				return geom.ErrConvergence
 			}
-			fr, e := simple(proof.Source, fid, "ADVANCED_FACE", 4)
+			fr, e := simple(source, fid, "ADVANCED_FACE", 4)
 			if e != nil {
 				return e
 			}
@@ -155,15 +160,15 @@ func boundaryNormalsHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 		}
 		if product.Planar != nil {
 			for _, fid := range location.ContactFaceIDs {
-				fr, e := simple(proof.Source, fid, "ADVANCED_FACE", 4)
+				fr, e := simple(source, fid, "ADVANCED_FACE", 4)
 				if e != nil {
 					return bad(e)
 				}
-				pl, e := simple(proof.Source, fr.Args[2].Ref, "PLANE", 2)
+				pl, e := simple(source, fr.Args[2].Ref, "PLANE", 2)
 				if e != nil {
 					return bad(e)
 				}
-				f, e := mappedExactFrame(proof.Source, pl.Args[1].Ref)
+				f, e := mappedExactFrame(source, pl.Args[1].Ref)
 				if e != nil {
 					return bad(e)
 				}
@@ -178,6 +183,32 @@ func boundaryNormalsHierarchy(ctx context.Context, m RationalSphericalHierarchy,
 					}
 				}
 				if e = add(fid, "planar-face", n); e != nil {
+					return bad(e)
+				}
+			}
+		} else if product.Frustum != nil {
+			roles, err := circularFrustumSourceFaces(source, product, location.SourceFaceIDs)
+			if err != nil {
+				return bad(err)
+			}
+			q := product.Frustum.Embedding
+			local := location.AnalyticCoordinates()
+			h := a.sub(q.UpperZ, q.LowerZ)
+			delta := a.sub(q.UpperRadius, q.LowerRadius)
+			n := a.add(a.mul(q.LowerRadius, h), a.mul(delta, local[2]))
+			h2 := a.mul(h, h)
+			for _, role := range location.BoundaryRoles {
+				switch role {
+				case "wall":
+					e = add(roles[0], role, [3]*big.Rat{a.mul(h2, local[0]), a.mul(h2, local[1]), a.mul(big.NewRat(-1, 1), a.mul(delta, n))})
+				case "lower-cap":
+					e = add(roles[1], role, [3]*big.Rat{new(big.Rat), new(big.Rat), big.NewRat(-1, 1)})
+				case "upper-cap":
+					e = add(roles[2], role, [3]*big.Rat{new(big.Rat), new(big.Rat), big.NewRat(1, 1)})
+				default:
+					e = geom.ErrInvalid
+				}
+				if e != nil {
 					return bad(e)
 				}
 			}
