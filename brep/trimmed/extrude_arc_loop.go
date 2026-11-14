@@ -22,7 +22,7 @@ type ArcLoopExtrusion struct {
 
 // ExtrudeArcLoop sweeps a proved simple line/circle loop. Its bounded domain
 // includes convex loops, axis-aligned line/quarter-circle loops with either
-// signed curvature, transverse two-circle boundaries, and circular segments
+// signed curvature, concentric annular quadrants, transverse two-circle boundaries, and circular segments
 // with one transverse circular notch whose disk is strictly clear of the
 // closing chord. Unresolved nonconvex arrangements are rejected rather than
 // replaced by a polygon. Positive and negative heights are supported.
@@ -115,7 +115,7 @@ func ExtrudeArcLoop(ctx context.Context, frame geom.Frame, segments []ExtrusionS
 		}
 		signedArea = -signedArea
 	}
-	if !arcLoopConvex(pieces) && !arcLoopSeparatedQuarters(pieces) && !arcLoopTwoCircles(segments, tolerance) && !arcLoopCircleNotch(segments, tolerance) {
+	if !arcLoopConvex(pieces) && !arcLoopSeparatedQuarters(pieces) && !arcLoopAnnularQuarter(pieces) && !arcLoopTwoCircles(segments, tolerance) && !arcLoopCircleNotch(segments, tolerance) {
 		return result, geom.ErrDomain
 	}
 	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
@@ -298,6 +298,30 @@ func arcLoopSeparatedQuarters(p []ExtrusionSegment) bool {
 	}
 	return true
 }
+
+// The two radii and their opposing quarter sweeps partition the boundary
+// into concentric arcs and the radial intervals that meet only their endpoints.
+func arcLoopAnnularQuarter(p []ExtrusionSegment) bool {
+	if len(p) != 4 {
+		return false
+	}
+	for i, outer := range p {
+		if outer.Sweep != math.Pi/2 || !arcLoopCardinalQuarter(outer) {
+			continue
+		}
+		inner := p[(i+2)%4]
+		if inner.Sweep != -math.Pi/2 || !arcLoopCardinalQuarter(inner) ||
+			inner.Center != outer.Center || inner.Radius >= outer.Radius {
+			continue
+		}
+		if math.Remainder(inner.StartAngle-(outer.StartAngle+outer.Sweep), 2*math.Pi) == 0 &&
+			p[(i+1)%4].Radius == 0 && p[(i+3)%4].Radius == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func arcLoopBounds(frame geom.Frame, pieces []ExtrusionSegment, lo, hi float64) (geom.Box, error) {
 	var points []geom.Vec3
 	add := func(p geom.Vec2) {
