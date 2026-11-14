@@ -1,8 +1,10 @@
 package geom
 
 import (
+	"context"
 	"errors"
 	"math"
+	"math/big"
 	"testing"
 )
 
@@ -32,5 +34,22 @@ func TestSurfaceDistanceBoundsPreservedAtLimit(t *testing.T) {
 	r, e := BoundPointSurfaceDistance(Vec3{2, .3, 0}, p, SurfaceDistanceOptions{MaxCells: 1})
 	if !errors.Is(e, ErrConvergence) || r.Complete || r.SquaredDistanceMin > 1 || r.SquaredDistanceMax < 1 {
 		t.Fatal(r, e)
+	}
+}
+
+func TestExactRationalSurfaceDistanceUnrounded(t *testing.T) {
+	ctx := context.Background()
+	p := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
+	eps := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120))
+	query := [3]*big.Rat{new(big.Rat).Add(big.NewRat(1, 1), eps), big.NewRat(1, 1), new(big.Rat)}
+	r, e := BoundPointSurfaceDistanceRational(ctx, query, p, SurfaceDistanceOptions{SquaredTolerance: 1e-90})
+	want := new(big.Rat).Mul(eps, eps)
+	if e != nil || !r.Complete || !r.HasUpperPoint || r.Squared.Lower.Cmp(want) != 0 || r.Squared.Upper.Cmp(want) != 0 || r.Witness[0].Cmp(big.NewRat(1, 1)) != 0 || r.Witness[1].Cmp(big.NewRat(1, 1)) != 0 {
+		t.Fatal("the exact displacement from the trim corner must not round to zero", r, e, want)
+	}
+	query[1] = big.NewRat(1, 3)
+	r, e = BoundPointSurfaceDistanceRational(ctx, query, p, SurfaceDistanceOptions{MaxCells: 1, SquaredTolerance: 1e-30})
+	if !errors.Is(e, ErrConvergence) || r.Complete || !r.HasUpperPoint || r.Squared.Lower.Cmp(want) > 0 || r.Squared.Upper.Cmp(want) < 0 {
+		t.Fatal("resource limit must retain a truthful exact enclosure", r, e)
 	}
 }

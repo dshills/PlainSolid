@@ -44,15 +44,22 @@ func (h distanceBoundHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h *distanceBoundHeap) Push(x any)        { *h = append(*h, x.(distanceBoundNode)) }
 func (h *distanceBoundHeap) Pop() any          { a := *h; n := a[len(a)-1]; *h = a[:len(a)-1]; return n }
 func exactPointBoxDistance(query Vec3, box Box, b *polynomialBudget) (*big.Rat, error) {
+	return exactRationalPointBoxDistance(rationalLineVec3(query), box, b)
+}
+
+func exactRationalPointBoxDistance(query [3]*big.Rat, box Box, b *polynomialBudget) (*big.Rat, error) {
 	sum := new(big.Rat)
 	for axis := 0; axis < 3; axis++ {
-		q := coordinate(query, axis)
-		lo, hi := coordinate(box.Min, axis), coordinate(box.Max, axis)
+		q := query[axis]
+		lo, hi := new(big.Rat).SetFloat64(coordinate(box.Min, axis)), new(big.Rat).SetFloat64(coordinate(box.Max, axis))
+		if lo == nil || hi == nil {
+			return nil, ErrConvergence
+		}
 		difference := new(big.Rat)
-		if q < lo {
-			difference.Sub(new(big.Rat).SetFloat64(lo), new(big.Rat).SetFloat64(q))
-		} else if q > hi {
-			difference.Sub(new(big.Rat).SetFloat64(q), new(big.Rat).SetFloat64(hi))
+		if q.Cmp(lo) < 0 {
+			difference.Sub(lo, q)
+		} else if q.Cmp(hi) > 0 {
+			difference.Sub(q, hi)
 		}
 		sum.Add(sum, new(big.Rat).Mul(difference, difference))
 		if e := b.check(sum); e != nil {
@@ -61,7 +68,7 @@ func exactPointBoxDistance(query Vec3, box Box, b *polynomialBudget) (*big.Rat, 
 	}
 	return sum, nil
 }
-func distancePatchSample(p *SurfacePatch, query Vec3, b *polynomialBudget) (value *big.Rat, uv Vec2, box Box, err error) {
+func distancePatchSample(p *SurfacePatch, query [3]*big.Rat, b *polynomialBudget) (value *big.Rat, uv Vec2, box Box, exact [3]*big.Rat, err error) {
 	d := p.Domain()
 	uv = Vec2{d.UMin + (d.UMax-d.UMin)/2, d.VMin + (d.VMax-d.VMin)/2}
 	current := p
@@ -72,7 +79,7 @@ func distancePatchSample(p *SurfacePatch, query Vec3, b *polynomialBudget) (valu
 		}
 		left, right, e := current.split(t, u, b)
 		if e != nil {
-			return nil, uv, box, e
+			return nil, uv, box, exact, e
 		}
 		parameter := uv.X
 		if !u {
@@ -86,14 +93,15 @@ func distancePatchSample(p *SurfacePatch, query Vec3, b *polynomialBudget) (valu
 	}
 	point, _, e := exactSurfaceJet(current, new(big.Rat).SetFloat64(uv.X), new(big.Rat).SetFloat64(uv.Y), b)
 	if e != nil {
-		return nil, uv, box, e
+		return nil, uv, box, exact, e
 	}
+	exact = point
 	value = new(big.Rat)
 	for axis := 0; axis < 3; axis++ {
-		delta := new(big.Rat).Sub(point[axis], new(big.Rat).SetFloat64(coordinate(query, axis)))
+		delta := new(big.Rat).Sub(point[axis], query[axis])
 		value.Add(value, new(big.Rat).Mul(delta, delta))
 		if e := b.check(value); e != nil {
-			return nil, uv, box, e
+			return nil, uv, box, exact, e
 		}
 		lo, hi := rationalFloatBound(point[axis], true), rationalFloatBound(point[axis], false)
 		switch axis {
@@ -113,12 +121,14 @@ func distancePatchSample(p *SurfacePatch, query Vec3, b *polynomialBudget) (valu
 		h := p.net[corner.index]
 		candidate := new(big.Rat)
 		var candidateBox Box
+		var candidatePoint [3]*big.Rat
 		for axis := 0; axis < 3; axis++ {
 			q := new(big.Rat).Quo(h[axis], h[3])
-			delta := new(big.Rat).Sub(q, new(big.Rat).SetFloat64(coordinate(query, axis)))
+			candidatePoint[axis] = q
+			delta := new(big.Rat).Sub(q, query[axis])
 			candidate.Add(candidate, new(big.Rat).Mul(delta, delta))
 			if e := b.check(candidate); e != nil {
-				return nil, uv, box, e
+				return nil, uv, box, exact, e
 			}
 			lo, hi := rationalFloatBound(q, true), rationalFloatBound(q, false)
 			switch axis {
@@ -131,10 +141,10 @@ func distancePatchSample(p *SurfacePatch, query Vec3, b *polynomialBudget) (valu
 			}
 		}
 		if candidate.Cmp(value) < 0 {
-			value, uv, box = candidate, corner.uv, candidateBox
+			value, uv, box, exact = candidate, corner.uv, candidateBox, candidatePoint
 		}
 	}
-	return value, uv, box, nil
+	return value, uv, box, exact, nil
 }
 
 // BoundPointSurfaceDistance uses exact point-to-outward-control-box lower bounds
@@ -156,6 +166,28 @@ func BoundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 }
 
 func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *SurfacePatch, o SurfaceDistanceOptions, curveOnly bool) (result SurfaceDistanceBounds, err error) {
+	if !query.IsFinite() {
+		return SurfaceDistanceBounds{SquaredDistanceMax: math.Inf(1)}, ErrInvalid
+	}
+	r, e := boundPointSurfaceDistanceRational(ctx, rationalLineVec3(query), p, o, curveOnly)
+	return r.SurfaceDistanceBounds, e
+}
+
+// RationalSurfaceDistanceBounds additionally retains the exact global squared
+// enclosure and actual rational sample. It keeps the same bounded search and
+// resource-error behavior as the legacy outward binary64 interface.
+type RationalSurfaceDistanceBounds struct {
+	SurfaceDistanceBounds
+	Squared ExactParameterInterval
+	Witness [3]*big.Rat
+}
+
+// BoundPointSurfaceDistanceRational never rounds the model query or a witness.
+func BoundPointSurfaceDistanceRational(ctx context.Context, query [3]*big.Rat, p *SurfacePatch, o SurfaceDistanceOptions) (RationalSurfaceDistanceBounds, error) {
+	return boundPointSurfaceDistanceRational(ctx, query, p, o, false)
+}
+
+func boundPointSurfaceDistanceRational(ctx context.Context, query [3]*big.Rat, p *SurfacePatch, o SurfaceDistanceOptions, curveOnly bool) (result RationalSurfaceDistanceBounds, err error) {
 	result.SquaredDistanceMax = math.Inf(1)
 	if ctx == nil {
 		return result, ErrInvalid
@@ -163,7 +195,7 @@ func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 	if e := ctx.Err(); e != nil {
 		return result, e
 	}
-	if p == nil || len(p.net) == 0 || !query.IsFinite() {
+	if p == nil || len(p.net) == 0 {
 		return result, ErrInvalid
 	}
 	if o.SquaredTolerance == 0 {
@@ -190,20 +222,30 @@ func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 	result.SquaredDistanceMax = math.Inf(1)
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { result.ExactOperations = b.operations }()
-	lower, e := exactPointBoxDistance(query, p.bounds, b)
+	for _, q := range query {
+		if q == nil {
+			return result, ErrInvalid
+		}
+		if e := b.check(q); e != nil {
+			return result, e
+		}
+	}
+	lower, e := exactRationalPointBoxDistance(query, p.bounds, b)
 	if e != nil {
 		return result, e
 	}
+	result.Squared.Lower = new(big.Rat).Set(lower)
 	result.SquaredDistanceMin = rationalFloatBound(lower, true)
 	if e := ctx.Err(); e != nil {
 		return result, e
 	}
-	upper, uv, point, e := distancePatchSample(p, query, b)
+	upper, uv, point, witness, e := distancePatchSample(p, query, b)
 	if e != nil {
 		return result, e
 	}
 	result.HasUpperPoint = true
-	result.UpperUV, result.UpperPoint = uv, point
+	result.UpperUV, result.UpperPoint, result.Witness = uv, point, witness
+	result.Squared.Upper = new(big.Rat).Set(upper)
 	result.SquaredDistanceMax = rationalFloatBound(upper, false)
 	queue := &distanceBoundHeap{{p, lower, 0}}
 	heap.Init(queue)
@@ -221,6 +263,7 @@ func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 		return minimum
 	}
 	finish := func() {
+		result.Squared.Lower, result.Squared.Upper = new(big.Rat).Set(currentLower()), new(big.Rat).Set(upper)
 		result.SquaredDistanceMin = rationalFloatBound(currentLower(), true)
 		result.SquaredDistanceMax = rationalFloatBound(upper, false)
 	}
@@ -251,14 +294,14 @@ func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 		if n.lower.Cmp(upper) >= 0 {
 			continue
 		}
-		sample, uv, box, e := distancePatchSample(n.patch, query, b)
+		sample, uv, box, witness, e := distancePatchSample(n.patch, query, b)
 		if e != nil {
 			restore()
 			return result, e
 		}
 		if sample.Cmp(upper) < 0 {
 			upper = sample
-			result.UpperUV, result.UpperPoint = uv, box
+			result.UpperUV, result.UpperPoint, result.Witness = uv, box, witness
 		}
 		if e := ctx.Err(); e != nil {
 			restore()
@@ -291,7 +334,7 @@ func boundPointSurfaceDistanceContext(ctx context.Context, query Vec3, p *Surfac
 		}
 		children := []distanceBoundNode{}
 		for _, child := range []*SurfacePatch{left, right} {
-			bound, e := exactPointBoxDistance(query, child.bounds, b)
+			bound, e := exactRationalPointBoxDistance(query, child.bounds, b)
 			if e != nil {
 				restore()
 				return result, e

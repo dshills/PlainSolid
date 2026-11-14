@@ -69,4 +69,16 @@ func TestPlacedWeightedFrustumGenerator(t *testing.T) {
 		}
 	}
 
+	// Exact upper cap projection at local (1/3,1/7,3+1/9).
+	query := [3]*big.Rat{q(892, 315), q(-1, 7), q(327, 195)}
+	closest, e := s.BoundPointPlacedWrappedFrustumDistanceRational(ctx, pose, query, geom.SurfaceDistanceOptions{SquaredTolerance: 1e-14})
+	if e != nil || closest.Lower.Cmp(q(1, 81)) != 0 || closest.Upper.Cmp(q(1, 81)) != 0 || closest.Face != 0 {
+		t.Fatal("global exact noncircular cap projection", closest, e)
+	}
+	for i, want := range [3]*big.Rat{q(96, 35), q(-1, 7), q(314, 195)} {
+		if closest.Witness[i].Cmp(want) != 0 {
+			t.Fatal("exact world cap witness", i, closest.Witness, want)
+		}
+	}
+
 }
