@@ -117,4 +117,35 @@ func TestClipCrossingRationalGraphSplineShell(t *testing.T) {
 		}
 		cuts[0], cuts[1] = cuts[1], cuts[0]
 	}
+	for _, c := range []struct {
+		above  bool
+		volume float64
+	}{
+		// The upper envelope subtracts the gap integrated over x≥1/2
+		// from z≥3/16; the lower envelope subtracts the gap over x≤1/2
+		// from z≤3/16. Those gaps are 233/61440 and 337/61440.
+		{true, 406369. / 430080},
+		{false, 19721. / 430080},
+	} {
+		for i := range cuts {
+			cuts[i].KeepPositive = c.above
+		}
+		r, e := stock.ClipCrossingRationalGraphSplineShell(ctx, cuts, RationalGraphSeparatedBandOptions{})
+		if e != nil {
+			t.Fatal(c.above, e)
+		}
+		m, e := r.Solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(m.Volume-c.volume) > 1e-9 || len(r.SourceFaces[4]) != 1 || r.Solid.Topology().EulerCharacteristic != 2 {
+			t.Fatal("crossing graph envelope volume/topology", c.above, m, r.SourceFaces, e)
+		}
+		var boundaryPieces int
+		for _, u := range r.Solid.faces[r.SourceFaces[4][0]].Outer {
+			if u.Curve != nil {
+				boundaryPieces++
+			}
+		}
+		if boundaryPieces != 2 {
+			t.Fatal("both graph pieces must survive in the curved stock envelope", c.above, boundaryPieces)
+		}
+	}
 }

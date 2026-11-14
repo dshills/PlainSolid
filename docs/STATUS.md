@@ -847,7 +847,9 @@ surfaces must keep their geometry through the operation. Continue with:
    can land on planar stock, or one can land directly on a cubic stock face
    with two retained exact graph trims. Original vertices on the opposite
    plane, nonrepresentable junctions, holes and multiple retained runs are
-   still outside this crossing path.
+   still outside this crossing path. A crossing can also select the upper or
+   lower envelope of two same-direction graphs, joining both original trims
+   at the proved cap endpoint.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

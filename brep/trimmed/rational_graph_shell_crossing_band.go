@@ -22,9 +22,10 @@ type RationalGraphCrossingBand struct {
 // the other plane crosses it twice at strictly interior, exactly represented
 // edge points. Each original stock face is either unchanged, wholly omitted,
 // singly split, affine, or bounded by two graph sections in the same chart
-// direction. A crossing between two graphs on one face must be unique and
-// leave one contiguous run. The two caps and paired stock trims are authored
-// independently on the original supports.
+// direction. A crossing between two graphs on one face must be unique. The
+// kept sides can bound a band or select the upper or lower graph envelope.
+// Each must leave one simple region. The two caps and paired stock trims
+// are authored independently on the original supports.
 func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2]RationalGraphHalfspace, o RationalGraphSeparatedBandOptions) (RationalGraphCrossingBand, error) {
 	var zero RationalGraphCrossingBand
 	if o.Caps.RationalEndpoints {
@@ -245,9 +246,7 @@ func (s Solid) ClipCrossingRationalGraphSplineShell(ctx context.Context, cuts [2
 func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.SurfacePatch, branches [2]RationalGraphShellBranch,
 	pieces [2][]PCurve, keep [2]int, cuts [2]capBoundaryCut, faceID int, o SplineRectangleEmbeddingOptions) (SewFace, error) {
 	free := branches[0].freeAxis
-	if branches[0].positive == keep[0] && branches[1].positive == keep[1] || branches[0].positive != keep[0] && branches[1].positive != keep[1] {
-		return SewFace{}, geom.ErrConvergence
-	}
+	above := [2]bool{branches[0].positive == keep[0], branches[1].positive == keep[1]}
 	var junctions int
 	for _, cut := range cuts {
 		if cut.Source.Face == faceID {
@@ -284,8 +283,14 @@ func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.Surfa
 			}
 		}
 	}
+	if above[0] == above[1] {
+		if junctions != 1 {
+			return SewFace{}, geom.ErrConvergence
+		}
+		return rationalGraphCrossingEnvelope(ctx, face, patch, free, above[0], chains, pieces, o)
+	}
 	a, b := chains[0], chains[1]
-	if branches[0].positive != keep[0] {
+	if !above[0] {
 		a, b = b, a
 	}
 	var shared int
@@ -314,6 +319,45 @@ func rationalGraphCrossingFace(ctx context.Context, face Face, patch *geom.Surfa
 		b = b[:len(b)-1]
 	}
 	part, e := slabSewFace(ctx, face, patch, append(a, b...), o)
+	if e != nil {
+		return SewFace{}, e
+	}
+	if e = installRationalGraphFragmentTrims(ctx, &part, append(append([]PCurve(nil), pieces[0]...), pieces[1]...), false); e != nil {
+		return SewFace{}, e
+	}
+	return part, nil
+}
+
+func rationalGraphCrossingEnvelope(ctx context.Context, face Face, patch *geom.SurfacePatch, free int, above bool,
+	chains [2][][2]*big.Rat, pieces [2][]PCurve, o SplineRectangleEmbeddingOptions) (SewFace, error) {
+	// Both retained intervals together must run from one original chart
+	// boundary to the other, with exactly the independently proved join.
+	a, b := chains[0], chains[1]
+	if a[0][free].Cmp(b[0][free]) > 0 {
+		a, b = b, a
+	}
+	d := patch.Domain()
+	lo := [2]*big.Rat{ratInset(d.UMin), ratInset(d.VMin)}
+	hi := [2]*big.Rat{ratInset(d.UMax), ratInset(d.VMax)}
+	if a[0][free].Cmp(lo[free]) != 0 || b[len(b)-1][free].Cmp(hi[free]) != 0 || !rationalGraphSameUV(a[len(a)-1], b[0]) {
+		return SewFace{}, geom.ErrConvergence
+	}
+	chain := append(a, b[1:]...)
+	var uv [][2]*big.Rat
+	switch {
+	case free == 1 && !above:
+		uv = append([][2]*big.Rat{lo}, chain...)
+		uv = append(uv, [2]*big.Rat{lo[0], hi[1]})
+	case free == 1:
+		reverseGraphUVChain(chain)
+		uv = append([][2]*big.Rat{{hi[0], lo[1]}, hi}, chain...)
+	case !above:
+		reverseGraphUVChain(chain)
+		uv = append([][2]*big.Rat{lo, {hi[0], lo[1]}}, chain...)
+	default:
+		uv = append(chain, hi, [2]*big.Rat{lo[0], hi[1]})
+	}
+	part, e := slabSewFace(ctx, face, patch, uv, o)
 	if e != nil {
 		return SewFace{}, e
 	}
