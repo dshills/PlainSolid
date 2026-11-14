@@ -47,9 +47,6 @@ func TessellateWrappedCircularFrustumNormalsCertified(ctx context.Context, w *ge
 	if e != nil {
 		return out, e
 	}
-	h := new(big.Rat).Sub(proof.UpperZ, proof.LowerZ)
-	dr := new(big.Rat).Sub(proof.UpperRadius, proof.LowerRadius)
-	axial := new(big.Rat).Neg(new(big.Rat).Mul(proof.LowerRadius, dr))
 	limit := ratInset(angle)
 	limit.Mul(limit, limit)
 	maximum := new(big.Rat)
@@ -90,24 +87,15 @@ func TessellateWrappedCircularFrustumNormalsCertified(ctx context.Context, w *ge
 			lo = min(lo, q.X)
 			hi = max(hi, q.X)
 		}
-		for _, cut := range proof.QuarterParameters {
-			if cut > lo && cut < hi {
-				return out, geom.ErrConvergence
-			}
+		q, e := circularFrustumFacetNormalBound(ctx, p, proof, ratInset(lo), ratInset(hi), normal, false, o.Patch.Evaluation)
+		if e != nil {
+			return out, e
 		}
-		for _, u := range []float64{lo, hi} {
-			jet, e := p.EvaluateRational(ctx, ratInset(u), ratInset(p.Domain().VMin), o.Patch.Evaluation)
-			if e != nil {
-				return out, e
-			}
-			radial := [3]*big.Rat{new(big.Rat).Sub(jet.Point[0], proof.CenterX), new(big.Rat).Sub(jet.Point[1], proof.CenterY), new(big.Rat)}
-			if ddDot(normal, radial).Sign() <= 0 {
-				return out, geom.ErrConvergence
-			}
-			source := [3]*big.Rat{new(big.Rat).Mul(h, radial[0]), new(big.Rat).Mul(h, radial[1]), axial}
-			if !check(source) {
-				return out, geom.ErrConvergence
-			}
+		if q.Cmp(limit) > 0 {
+			return out, geom.ErrConvergence
+		}
+		if q.Cmp(maximum) > 0 {
+			maximum.Set(q)
 		}
 	}
 	return CertifiedWrappedFrustumNormals{CertifiedWrappedFrustumMesh: m, SquaredNormalTangent: maximum}, nil
