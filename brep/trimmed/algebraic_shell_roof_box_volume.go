@@ -31,6 +31,7 @@ type MixedRoofVolume struct {
 type mixedRoofVolumeCell struct {
 	xy    [2]geom.ExactParameterInterval
 	chart [2]bool
+	roof  [2]*mixedRoofBox // selected exact span for each active original box
 	value geom.ExactParameterInterval
 	width *big.Rat
 	depth int
@@ -169,9 +170,9 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 		}
 		heights := [2]geom.ExactParameterInterval{}
 		var uv [2][2]geom.ExactParameterInterval
-		for i, b := range q.box {
-			heights[i] = geom.ExactParameterInterval{Lower: b.floor, Upper: b.floor}
-			if !c.chart[i] {
+		for i, b := range c.roof {
+			heights[i] = geom.ExactParameterInterval{Lower: q.box[i].floor, Upper: q.box[i].floor}
+			if b == nil {
 				continue
 			}
 			var err error
@@ -192,7 +193,7 @@ func (q *MixedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 			return c, err
 		}
 		if v.Lower.Cmp(v.Upper) != 0 {
-			avg, err := q.exactPolynomialColumnAverage(c.chart, uv, heights, &w)
+			avg, err := q.exactPolynomialColumnAverage(c.chart, c.roof, uv, heights, &w)
 			if err != nil {
 				return c, err
 			}
@@ -341,16 +342,25 @@ func (q PlacedRoofMaterialQuery) BoundVolume(ctx context.Context, o MixedRoofVol
 
 func mixedRoofVolumeFootprint(q *MixedRoofMaterialQuery) []mixedRoofVolumeCell {
 	var cuts [2][]float64
-	for i, b := range [2][4]float64{
-		{q.box[0].domain.UMin, q.box[0].domain.UMax, q.box[1].domain.UMin, q.box[1].domain.UMax},
-		{q.box[0].domain.VMin, q.box[0].domain.VMax, q.box[1].domain.VMin, q.box[1].domain.VMax},
-	} {
-		sort.Float64s(b[:])
-		for _, u := range b {
-			if len(cuts[i]) == 0 || cuts[i][len(cuts[i])-1] != u {
-				cuts[i] = append(cuts[i], u)
+	for _, b := range q.box {
+		if len(b.roofSpans) != 0 {
+			u, v := b.roof.KnotBreaks()
+			cuts[0], cuts[1] = append(cuts[0], u...), append(cuts[1], v...)
+		} else {
+			cuts[0] = append(cuts[0], b.domain.UMin, b.domain.UMax)
+			cuts[1] = append(cuts[1], b.domain.VMin, b.domain.VMax)
+		}
+	}
+	for i, row := range cuts {
+		sort.Float64s(row)
+		k := 0
+		for _, v := range row {
+			if k == 0 || row[k-1] != v {
+				row[k] = v
+				k++
 			}
 		}
+		cuts[i] = row[:k]
 	}
 	var out []mixedRoofVolumeCell
 	for i := 1; i < len(cuts[0]); i++ {
@@ -358,8 +368,20 @@ func mixedRoofVolumeFootprint(q *MixedRoofMaterialQuery) []mixedRoofVolumeCell {
 			x, y := [2]float64{cuts[0][i-1], cuts[0][i]}, [2]float64{cuts[1][j-1], cuts[1][j]}
 			c := mixedRoofVolumeCell{xy: [2]geom.ExactParameterInterval{{Lower: ratInset(x[0]), Upper: ratInset(x[1])}, {Lower: ratInset(y[0]), Upper: ratInset(y[1])}}}
 			for i, b := range q.box {
-				d := b.domain
-				c.chart[i] = x[0] >= d.UMin && x[1] <= d.UMax && y[0] >= d.VMin && y[1] <= d.VMax
+				covers := func(d geom.ParameterRectangle) bool {
+					return x[0] >= d.UMin && x[1] <= d.UMax && y[0] >= d.VMin && y[1] <= d.VMax
+				}
+				c.chart[i] = covers(b.domain)
+				if !c.chart[i] {
+					continue
+				}
+				c.roof[i] = b
+				for _, s := range b.roofSpans {
+					if covers(s.domain) {
+						c.roof[i] = s
+						break
+					}
+				}
 			}
 			if q.op == parametric.Intersection && c.chart[0] && c.chart[1] ||
 				q.op == parametric.Difference && c.chart[0] || q.op == parametric.Union && (c.chart[0] || c.chart[1]) {

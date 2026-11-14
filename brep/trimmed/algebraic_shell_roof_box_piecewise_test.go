@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"math/big"
 	"os"
 	"os/exec"
@@ -74,9 +75,29 @@ func TestOriginalCreasedRoofMaterial(t *testing.T) {
 	}
 	// Integrating 2+x on the left and 3-x on the right gives 9/4.
 	// The original buried tool removes 27/64.
-	volume, err := q.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 30), SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 4000000}})
-	if err != nil || volume.Volume.Lower.Cmp(r(117, 64)) > 0 || volume.Volume.Upper.Cmp(r(117, 64)) < 0 {
+	volume, err := q.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 1000000), MaxCells: 12})
+	if err != nil || !volume.Converged || volume.Volume.Lower.Cmp(r(117, 64)) != 0 || volume.Volume.Upper.Cmp(r(117, 64)) != 0 {
 		t.Fatal("creased original cavity volume", volume, err)
+	}
+	mass, err := q.BoundMass(ctx, MixedRoofMassOptions{MaxCells: 12})
+	if err != nil || mass.VisitedCells != 12 || mass.EnclosedCells != 0 {
+		t.Fatal("partitioning at the knot should integrate both spans without approximation", mass, err)
+	}
+	exact := func(v geom.ExactParameterInterval, want *big.Rat) bool {
+		return v.Lower.Cmp(want) == 0 && v.Upper.Cmp(want) == 0
+	}
+	for i, wanted := range [3]*big.Rat{r(3717, 4096), r(117, 128), r(223855, 98304)} {
+		if !exact(mass.FirstMoment[i], wanted) {
+			t.Fatal("exact first moment on the original knot partition", i, mass.FirstMoment[i], wanted)
+		}
+	}
+	for i, row := range [3][3]*big.Rat{{r(1867, 3072), r(3717, 8192), r(222559, 196608)},
+		{r(3717, 8192), r(2559, 4096), r(223855, 196608)}, {r(222559, 196608), r(223855, 196608), r(59925, 16384)}} {
+		for j, wanted := range row {
+			if !exact(mass.SecondMoment[i][j], wanted) {
+				t.Fatal("exact second moment on the original knot partition", i, j, mass.SecondMoment[i][j], wanted)
+			}
+		}
 	}
 	if program := os.Getenv("PLAINSOLID_OCCT_CREASED_ROOF"); program != "" {
 		data, err := exec.CommandContext(ctx, program, "creased-mass").Output()
@@ -89,12 +110,12 @@ func TestOriginalCreasedRoofMaterial(t *testing.T) {
 		if err != nil || json.Unmarshal(data, &ref) != nil || ref.Name != "difference" {
 			t.Fatal("missing independent creased cavity", ref, err)
 		}
-		mass, err := q.BoundMass(ctx, MixedRoofMassOptions{MaxDepth: 8})
 		contains := func(v geom.ExactParameterInterval, x float64) bool {
-			p := new(big.Rat).SetFloat64(x)
-			return p != nil && v.Lower != nil && v.Lower.Cmp(p) <= 0 && v.Upper.Cmp(p) >= 0
+			// OCCT integrates numerically; compare within its observed integration precision.
+			exact, _ := v.Lower.Float64()
+			return finite(x) && math.Abs(exact-x) < 1e-12
 		}
-		if err != nil || !contains(mass.Volume, ref.Volume) {
+		if !contains(mass.Volume, ref.Volume) {
 			t.Fatal("original creased mass excludes OCCT", mass, ref, err)
 		}
 		for i := range 3 {

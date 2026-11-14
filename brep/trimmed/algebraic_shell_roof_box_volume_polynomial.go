@@ -10,13 +10,13 @@ import (
 // combination of the two original heights and floors. Integrate each active
 // polynomial exactly; a rational height that cancels does not prevent this.
 // A nil average leaves the conservative pointwise enclosure in force.
-func (q *MixedRoofMaterialQuery) exactPolynomialColumnAverage(chart [2]bool, uv [2][2]geom.ExactParameterInterval, height [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (*big.Rat, error) {
+func (q *MixedRoofMaterialQuery) exactPolynomialColumnAverage(chart [2]bool, supports [2]*mixedRoofBox, uv [2][2]geom.ExactParameterInterval, height [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (*big.Rat, error) {
 	roof, floor, proven := q.fixedColumnPrimitives(chart, height)
 	if !proven {
 		return nil, nil
 	}
 	for i, c := range roof {
-		if c != 0 && (q.box[i].weight != nil || len(q.box[i].roofSpans) != 0) {
+		if c != 0 && (supports[i] == nil || supports[i].weight != nil || len(supports[i].roofSpans) != 0) {
 			return nil, nil
 		}
 	}
@@ -38,7 +38,7 @@ func (q *MixedRoofMaterialQuery) exactPolynomialColumnAverage(chart [2]bool, uv 
 			return nil, err
 		}
 		if roof[i] != 0 {
-			r, err := mixedRoofAveragePower(b.linePower, uv[i], w)
+			r, err := mixedRoofAveragePower(supports[i].linePower, uv[i], w)
 			if err != nil {
 				return nil, err
 			}

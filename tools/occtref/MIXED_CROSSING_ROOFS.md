@@ -75,8 +75,9 @@ authored OCCT fuse joins two sloped source halves before cutting the same
 buried tool; no PlainSolid boundary is imported. The Go test retains the
 single original roof owner across both spans, distinguishes the isolated
 crease contact from an unchanged interior crossing, reports both one-sided
-normals, and encloses the independently verified volume `117/64`, centroid
-and full inertia tensor. Run it with `PLAINSOLID_OCCT_CREASED_ROOF` pointing
+normals, and integrates the volume `117/64`, centroid, and full inertia
+tensor exactly on the native knot partition. OCCT agrees within `1e-12`.
+Run it with `PLAINSOLID_OCCT_CREASED_ROOF` pointing
 at the executable built above.
 
 `BoundTrimmedGeometry` is a separate native enclosure query. It intersects
