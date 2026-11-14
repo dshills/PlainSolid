@@ -50,6 +50,16 @@ func (q FilletedFrustumOccurrence) BoundBoundaryConeDistanceRational(ctx context
 	if e != nil {
 		return out, e
 	}
+	return q.transformFilletedConeDistance(ctx, original)
+}
+
+func (q FilletedFrustumOccurrence) transformFilletedConeDistance(ctx context.Context, original FilletedFrustumConeDistance) (out FilletedFrustumOccurrenceConeDistance, err error) {
+	defer func() {
+		if err != nil {
+			out = FilletedFrustumOccurrenceConeDistance{}
+		}
+	}()
+	var e error
 	out.Original = original
 	out.Lower = new(big.Rat).Set(original.Lower)
 	out.Upper = new(big.Rat).Set(original.Upper)

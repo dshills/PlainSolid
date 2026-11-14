@@ -33,6 +33,8 @@ type MixedAffineFragment struct {
 	ErrorUpper              *big.Rat
 	AreaUV                  *big.Rat
 	Triangles               [][3]int
+	projectionAxes          [2]int
+	projectionReversed      bool
 }
 
 // CertifiedMixedAffineFragmentFill is a partial open display surface. It does
@@ -112,6 +114,10 @@ func (r *CertifiedMixedAffineFragmentFill) MarshalJSON() ([]byte, error) {
 // fragments. All selected faces must qualify; unsupported charts, holes,
 // projected vertices outside the original rectangle and exhausted budgets return no partial result.
 func (n *CertifiedMixedAlgebraicShellBoundary) FillAffineFragmentsCertified(ctx context.Context, faces []int, o MixedAffineFragmentFillOptions) (*CertifiedMixedAffineFragmentFill, error) {
+	return n.fillMixedPlanarFragments(ctx, faces, o, nil)
+}
+
+func (n *CertifiedMixedAlgebraicShellBoundary) fillMixedPlanarFragments(ctx context.Context, faces []int, o MixedAffineFragmentFillOptions, planes map[int]MixedPlanarFragmentProposal) (*CertifiedMixedAffineFragmentFill, error) {
 	if ctx == nil || n == nil || n.source == nil || !n.embedded || len(faces) == 0 {
 		return nil, geom.ErrInvalid
 	}
@@ -171,11 +177,21 @@ func (n *CertifiedMixedAlgebraicShellBoundary) FillAffineFragmentsCertified(ctx 
 		if remain <= 0 {
 			return nil, geom.ErrConvergence
 		}
-		chart, e := geom.NewAffineSurfaceChart(ctx, patch, geom.AffineSurfaceChartOptions{MaxOperations: remain, MaxCoefficientBits: 4096})
-		if e != nil {
-			return nil, fmt.Errorf("affine fragment %d: %w", id, e)
+		var chart *geom.AffineSurfaceChart
+		var physical *mixedPhysicalPlane
+		if planes == nil {
+			chart, e = geom.NewAffineSurfaceChart(ctx, patch, geom.AffineSurfaceChartOptions{MaxOperations: remain, MaxCoefficientBits: 4096})
+			if e != nil {
+				return nil, fmt.Errorf("affine fragment %d: %w", id, e)
+			}
+			r.operations += chart.ExactOperations()
+		} else {
+			physical, e = proveMixedPhysicalPlane(ctx, patch, planes[id], remain)
+			if e != nil {
+				return nil, fmt.Errorf("planar fragment %d: %w", id, e)
+			}
+			r.operations += physical.operations
 		}
-		r.operations += chart.ExactOperations()
 		ring := []int{}
 		for _, u := range f.Outer {
 			path := n.network.Edges[u.Edge]
@@ -211,32 +227,67 @@ func (n *CertifiedMixedAlgebraicShellBoundary) FillAffineFragmentsCertified(ctx 
 		p := partitionFillProof{ctx: ctx, limit: o.MaxPredicates, work: r.predicates, points: make([][2]*big.Rat, len(r.geometry.Vertices))}
 		residual := make([]*big.Rat, len(p.points))
 		maxDisplacement := new(big.Rat)
-		domain := chart.Domain()
-		unused := 3 - chart.ProjectionAxes()[0] - chart.ProjectionAxes()[1]
-		for j, v := range r.geometry.Vertices {
-			remain = o.MaxOperations - r.operations
-			if remain <= 64 {
-				return nil, geom.ErrConvergence
+		unused := 0
+		if chart != nil {
+			domain := chart.Domain()
+			unused = 3 - chart.ProjectionAxes()[0] - chart.ProjectionAxes()[1]
+			for j, v := range r.geometry.Vertices {
+				remain = o.MaxOperations - r.operations
+				if remain <= 64 {
+					return nil, geom.ErrConvergence
+				}
+				xyz := [3]*big.Rat{ratInset(v.X), ratInset(v.Y), ratInset(v.Z)}
+				inv, e := chart.InvertExactContext(ctx, xyz, geom.AffineChartInverseOptions{MaxOperations: remain - 64, MaxCoefficientBits: 4096})
+				if e != nil {
+					return nil, e
+				}
+				r.operations += inv.ExactOperations + 64
+				if on[j] && (inv.U.Cmp(ratInset(domain.UMin)) < 0 || inv.U.Cmp(ratInset(domain.UMax)) > 0 || inv.V.Cmp(ratInset(domain.VMin)) < 0 || inv.V.Cmp(ratInset(domain.VMax)) > 0) {
+					return nil, fmt.Errorf("fragment %d projected point %d outside chart: %w", id, j, geom.ErrUnrepresentable)
+				}
+				p.points[j] = [2]*big.Rat{inv.U, inv.V}
+				plane, e := chart.EvalExact(inv.U, inv.V)
+				if e != nil {
+					return nil, e
+				}
+				residual[j] = new(big.Rat).Sub(xyz[unused], plane[unused])
+				if on[j] {
+					d := new(big.Rat).Abs(residual[j])
+					if d.Cmp(maxDisplacement) > 0 {
+						maxDisplacement.Set(d)
+					}
+				}
 			}
-			xyz := [3]*big.Rat{ratInset(v.X), ratInset(v.Y), ratInset(v.Z)}
-			inv, e := chart.InvertExactContext(ctx, xyz, geom.AffineChartInverseOptions{MaxOperations: remain - 64, MaxCoefficientBits: 4096})
-			if e != nil {
-				return nil, e
+		} else {
+			unused = 3 - physical.axes[0] - physical.axes[1]
+			for j, v := range r.geometry.Vertices {
+				if e := ctx.Err(); e != nil {
+					return nil, e
+				}
+				r.operations += 64
+				if r.operations > o.MaxOperations {
+					return nil, geom.ErrConvergence
+				}
+				xyz := [3]*big.Rat{ratInset(v.X), ratInset(v.Y), ratInset(v.Z)}
+				p.points[j] = [2]*big.Rat{xyz[physical.axes[0]], xyz[physical.axes[1]]}
+				value := new(big.Rat).Neg(physical.offset)
+				for k, x := range xyz {
+					value.Add(value, new(big.Rat).Mul(physical.normal[k], x))
+				}
+				residual[j] = value.Quo(value, physical.normal[unused])
+				if residual[j].Num().BitLen() > 4096 || residual[j].Denom().BitLen() > 4096 {
+					return nil, geom.ErrConvergence
+				}
+				if on[j] {
+					d := new(big.Rat).Abs(residual[j])
+					if d.Cmp(maxDisplacement) > 0 {
+						maxDisplacement.Set(d)
+					}
+				}
 			}
-			r.operations += inv.ExactOperations + 64
-			if on[j] && (inv.U.Cmp(ratInset(domain.UMin)) < 0 || inv.U.Cmp(ratInset(domain.UMax)) > 0 || inv.V.Cmp(ratInset(domain.VMin)) < 0 || inv.V.Cmp(ratInset(domain.VMax)) > 0) {
-				return nil, fmt.Errorf("fragment %d projected point %d outside chart: %w", id, j, geom.ErrUnrepresentable)
-			}
-			p.points[j] = [2]*big.Rat{inv.U, inv.V}
-			plane, e := chart.EvalExact(inv.U, inv.V)
-			if e != nil {
-				return nil, e
-			}
-			residual[j] = new(big.Rat).Sub(xyz[unused], plane[unused])
-			if on[j] {
-				d := new(big.Rat).Abs(residual[j])
-				if d.Cmp(maxDisplacement) > 0 {
-					maxDisplacement.Set(d)
+			if physical.orientation < 0 {
+				for a, b := 0, len(ring)-1; a < b; a, b = a+1, b-1 {
+					ring[a], ring[b] = ring[b], ring[a]
 				}
 			}
 		}
@@ -304,12 +355,16 @@ func (n *CertifiedMixedAlgebraicShellBoundary) FillAffineFragmentsCertified(ctx 
 		}
 		r.predicates = p.work
 		fragment := MixedAffineFragment{Face: id, Operand: f.Operand, Original: f.Original, BoundaryVertices: ring, AreaUV: area, UV: make([][2]*big.Rat, len(ring)), PlaneResidual: make([]*big.Rat, len(ring)), ResidualAxis: unused, ErrorUpper: bound}
+		if physical != nil {
+			fragment.projectionAxes = physical.axes
+			fragment.projectionReversed = physical.orientation < 0
+		}
 		for j, v := range ring {
 			fragment.UV[j] = p.points[v]
 			fragment.PlaneResidual[j] = residual[v]
 		}
 		for _, t := range tris {
-			if f.Reversed {
+			if f.Reversed != fragment.projectionReversed {
 				t[1], t[2] = t[2], t[1]
 			}
 			fragment.Triangles = append(fragment.Triangles, t)

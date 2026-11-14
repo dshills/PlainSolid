@@ -9,13 +9,15 @@ import (
 	"plainsolid/geom"
 )
 
-// AlgebraicGraphVerticalLineContact is an exact wall or cap event. One owner
-// is present: Cap indexes the original cap role or StockFace the original
-// vertical stock support. The fields are -1 when absent.
+// AlgebraicGraphVerticalLineContact is one exact event. Cap and OtherCap
+// index cap roles; StockFace and OtherStockFace index original stock
+// supports. An absent owner is -1. Junction indicates a shared boundary
+// of several supports, even if the original chart is geometrically smooth.
 type AlgebraicGraphVerticalLineContact struct {
-	Parameter      *geom.ExactAlgebraicRoot
-	Cap, StockFace int
-	Entry          bool
+	Parameter                 *geom.ExactAlgebraicRoot
+	Cap, OtherCap             int
+	StockFace, OtherStockFace int
+	Entry, Junction           bool
 	// Touch is true for an isolated tangency without a transition.
 	Touch bool
 }
@@ -34,18 +36,27 @@ type AlgebraicGraphVerticalLine struct {
 // Tangencies, vertices and coincident intervals remain unsupported.
 func (m AlgebraicGraphVerticalMaterial) IntersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
-	return m.intersectRationalLine(ctx, origin, direction, extent, opts, false)
+	return m.intersectRationalLine(ctx, origin, direction, extent, opts, false, false)
 }
 
 // IntersectRationalLineWithTouches additionally retains regular isolated
 // wall tangencies. These leave both open material sides unchanged.
 func (m AlgebraicGraphVerticalMaterial) IntersectRationalLineWithTouches(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
 	opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
-	return m.intersectRationalLine(ctx, origin, direction, extent, opts, true)
+	return m.intersectRationalLine(ctx, origin, direction, extent, opts, true, false)
+}
+
+// IntersectRationalLineWithJunctions also resolves isolated events shared by
+// stock walls and caps. It combines exact material sides of the common
+// projected perimeter and both cap halfspaces. A line on a cap plane,
+// coincident with a projected trim, or singular remains unsupported.
+func (m AlgebraicGraphVerticalMaterial) IntersectRationalLineWithJunctions(ctx context.Context, origin, direction [3]*big.Rat,
+	extent [2]*big.Rat, opts geom.ExactCurvePlaneEventOptions) (AlgebraicGraphVerticalLine, error) {
+	return m.intersectRationalLine(ctx, origin, direction, extent, opts, true, true)
 }
 
 func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat, extent [2]*big.Rat,
-	opts geom.ExactCurvePlaneEventOptions, includeTouches bool) (AlgebraicGraphVerticalLine, error) {
+	opts geom.ExactCurvePlaneEventOptions, includeTouches, includeJunctions bool) (AlgebraicGraphVerticalLine, error) {
 	var zero AlgebraicGraphVerticalLine
 	if ctx == nil || m.caps[0].recipe == nil || opts.MaxOperations < 0 || opts.MaxCoefficientBits < 0 || opts.MaxSubdivisions < 0 {
 		return zero, geom.ErrInvalid
@@ -100,6 +111,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 	}
 	var events []AlgebraicGraphVerticalLineContact
 	var residual [2][]*big.Rat
+	var capBoundary [2]bool
 	for i, cap := range m.caps {
 		plane := cap.regions.plane
 		slope := plane.dot(direction)
@@ -121,6 +133,10 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		if where == trimvalidate.Outside {
 			continue
 		}
+		if where == trimvalidate.Boundary && includeJunctions {
+			capBoundary[i] = true
+			continue
+		}
 		if where != trimvalidate.Inside {
 			return zero, geom.ErrConvergence
 		}
@@ -128,7 +144,8 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		if e != nil {
 			return zero, e
 		}
-		events = append(events, AlgebraicGraphVerticalLineContact{Parameter: h, Cap: i, StockFace: -1, Entry: slope.Sign()*plane.orientation < 0})
+		events = append(events, AlgebraicGraphVerticalLineContact{Parameter: h, Cap: i, OtherCap: -1,
+			StockFace: -1, OtherStockFace: -1, Entry: slope.Sign()*plane.orientation < 0})
 	}
 	if direction[0].Sign() != 0 || direction[1].Sign() != 0 {
 		cap := m.caps[m.lower]
@@ -172,7 +189,7 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 		if lo == nil || hi == nil {
 			return zero, geom.ErrConvergence
 		}
-		h, e := cap.intersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits(), includeTouches)
+		h, e := cap.intersectRationalLine(ctx, a, d, [2]*big.Rat{new(big.Rat).Sub(lo, big.NewRat(1, 1)), new(big.Rat).Add(hi, big.NewRat(1, 1))}, b.limits(), includeTouches, includeJunctions)
 		if e != nil {
 			return zero, e
 		}
@@ -194,12 +211,61 @@ func (m AlgebraicGraphVerticalMaterial) intersectRationalLine(ctx context.Contex
 			if signs[0] > 0 || signs[1] > 0 {
 				continue
 			}
-			u := cap.wires[hit.Wire][hit.Use]
-			if signs[0] == 0 || signs[1] == 0 || u.Seam >= 0 || u.Source.Face < 0 {
+			event := AlgebraicGraphVerticalLineContact{Parameter: hit.Parameter, Cap: -1, OtherCap: -1,
+				StockFace: -1, OtherStockFace: -1, Entry: hit.Entry, Touch: hit.Touch}
+			before, after := hit.insideBefore, hit.insideAfter
+			for i, sign := range signs {
+				if sign != 0 {
+					continue
+				}
+				// Vanishing of this exact affine residual establishes
+				// identity with the independently found cap plane hit.
+				// Its slope gives both strict halfspace signs.
+				slope := residual[i][1].Sign()
+				if !includeJunctions || !capBoundary[i] || slope == 0 {
+					return zero, geom.ErrConvergence
+				}
+				capBoundary[i] = false
+				if event.Cap < 0 {
+					event.Cap = i
+				} else {
+					event.OtherCap = i
+				}
+				before = before && slope > 0
+				after = after && slope < 0
+			}
+			uses := [2]int{hit.Use, hit.OtherUse}
+			for _, use := range uses {
+				if use < 0 {
+					continue
+				}
+				u := cap.wires[hit.Wire][use]
+				if u.Seam >= 0 {
+					// Generated cap seams have no original wall owner.
+					if event.OtherCap < 0 {
+						return zero, geom.ErrConvergence
+					}
+					continue
+				}
+				if u.Source.Face < 0 {
+					return zero, geom.ErrConvergence
+				}
+				if event.StockFace < 0 {
+					event.StockFace = u.Source.Face
+				} else if event.StockFace != u.Source.Face {
+					event.OtherStockFace = u.Source.Face
+				}
+			}
+			if event.StockFace < 0 && event.OtherCap < 0 {
 				return zero, geom.ErrConvergence
 			}
-			events = append(events, AlgebraicGraphVerticalLineContact{Parameter: hit.Parameter, Cap: -1, StockFace: u.Source.Face, Entry: hit.Entry, Touch: hit.Touch})
+			event.Junction = hit.Junction || event.Cap >= 0
+			event.Touch, event.Entry = before == after, !before && after
+			events = append(events, event)
 		}
+	}
+	if capBoundary[0] || capBoundary[1] {
+		return zero, geom.ErrConvergence
 	}
 	cmp := func(a, z *geom.ExactAlgebraicRoot) (int, error) {
 		r, e := a.Compare(ctx, z, b.limits())

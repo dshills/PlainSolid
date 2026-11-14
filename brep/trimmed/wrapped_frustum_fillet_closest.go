@@ -16,17 +16,20 @@ const (
 	FilletedFrustumClosestToroid
 	FilletedFrustumClosestNestedToroid
 	FilletedFrustumClosestCone
+	FilletedFrustumClosestBore
 )
 
 // FilletedFrustumClosestBoundary is a tagged view of one complete query.
-// Kind selects exactly one witness in Proof: Cone, Baseline.Nested,
+// Bore selects BoreProof.Bore; other kinds select a witness in Proof:
+// Cone, Baseline.Nested,
 // Baseline.Baseline.Toroid, Baseline.Baseline.Baseline.Rim, or the final
 // rational Baseline.Witness. Faces are original source owners. Converged
 // means only that the squared interval meets tolerance; NearestProven alone
 // certifies the selected exact witness as globally nearest (not unique).
 // All data are result-owned; Proof and its tagged view share no source data.
 type FilletedFrustumClosestBoundary struct {
-	Proof                    FilletedFrustumConeDistance
+	Proof                    FilletedFrustumConeDistance  // compatibility: pre-bore proof
+	BoreProof                *FilletedFrustumBoreDistance // complete query, including selected Bore
 	Kind                     FilletedFrustumClosestKind
 	Faces                    []int
 	Lower, Upper             *big.Rat
@@ -34,16 +37,19 @@ type FilletedFrustumClosestBoundary struct {
 }
 
 // ClosestBoundaryRational runs the existing bounded support, rim, torus and
-// cone chain once. Candidates replace their predecessor only when their
+// cone/bore chain once (at most16 additional bore checks). Candidates replace their predecessor only when their
 // certified upper bound is smaller. Unresolved lower bounds never promote
 // a candidate to a nearest proof; no algebraic tie/uniqueness claim is made.
 func (q FilletedFrustumMaterial) ClosestBoundaryRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumNestedDistanceOptions) (FilletedFrustumClosestBoundary, error) {
-	proof, e := q.BoundBoundaryConeDistanceRational(ctx, p, o)
+	proof, e := q.BoundBoundaryBoreDistanceRational(ctx, p, FilletedFrustumBoreDistanceOptions{Original: o})
 	if e != nil {
 		return FilletedFrustumClosestBoundary{}, e
 	}
-	kind, faces := filletedClosestSelection(proof)
-	return FilletedFrustumClosestBoundary{Proof: proof, Kind: kind, Faces: faces, Lower: new(big.Rat).Set(proof.Lower), Upper: new(big.Rat).Set(proof.Upper), NearestProven: proof.NearestProven, Converged: proof.Converged}, nil
+	kind, faces := filletedClosestSelection(proof.Baseline)
+	if proof.Bore != nil {
+		kind, faces = FilletedFrustumClosestBore, []int{proof.Bore.Face}
+	}
+	return FilletedFrustumClosestBoundary{Proof: proof.Baseline, BoreProof: &proof, Kind: kind, Faces: faces, Lower: new(big.Rat).Set(proof.Lower), Upper: new(big.Rat).Set(proof.Upper), NearestProven: proof.NearestProven, Converged: proof.Converged}, nil
 }
 
 func filletedClosestSelection(p FilletedFrustumConeDistance) (FilletedFrustumClosestKind, []int) {
@@ -66,10 +72,11 @@ func filletedClosestSelection(p FilletedFrustumConeDistance) (FilletedFrustumClo
 }
 
 // FilletedFrustumOccurrenceClosestBoundary tags the corresponding world-space
-// witness in Proof.WorldCone or its nested Fallback chain. Original proofs
+// witness in BoreProof.WorldBore, otherwise Proof.WorldCone or its fallback. Original proofs
 // remain explicitly local. Rigid invariance preserves bounds and owner IDs.
 type FilletedFrustumOccurrenceClosestBoundary struct {
-	Proof                    FilletedFrustumOccurrenceConeDistance
+	Proof                    FilletedFrustumOccurrenceConeDistance  // fallback only when no bore selected
+	BoreProof                *FilletedFrustumOccurrenceBoreDistance // complete world query
 	Kind                     FilletedFrustumClosestKind
 	Faces                    []int
 	Lower, Upper             *big.Rat
@@ -79,10 +86,13 @@ type FilletedFrustumOccurrenceClosestBoundary struct {
 // ClosestBoundaryRational performs one original query and one symbolic world
 // placement of its selected witness, retaining conservative fallback status.
 func (q FilletedFrustumOccurrence) ClosestBoundaryRational(ctx context.Context, p [3]*big.Rat, o FilletedFrustumNestedDistanceOptions) (FilletedFrustumOccurrenceClosestBoundary, error) {
-	proof, e := q.BoundBoundaryConeDistanceRational(ctx, p, o)
+	proof, e := q.BoundBoundaryBoreDistanceRational(ctx, p, FilletedFrustumBoreDistanceOptions{Original: o})
 	if e != nil {
 		return FilletedFrustumOccurrenceClosestBoundary{}, e
 	}
-	kind, faces := filletedClosestSelection(proof.Original)
-	return FilletedFrustumOccurrenceClosestBoundary{Proof: proof, Kind: kind, Faces: faces, Lower: new(big.Rat).Set(proof.Lower), Upper: new(big.Rat).Set(proof.Upper), NearestProven: proof.NearestProven, Converged: proof.Converged}, nil
+	kind, faces := filletedClosestSelection(proof.Original.Baseline)
+	if proof.WorldBore != nil {
+		kind, faces = FilletedFrustumClosestBore, []int{proof.WorldBore.Face}
+	}
+	return FilletedFrustumOccurrenceClosestBoundary{Proof: proof.Fallback, BoreProof: &proof, Kind: kind, Faces: faces, Lower: new(big.Rat).Set(proof.Lower), Upper: new(big.Rat).Set(proof.Upper), NearestProven: proof.NearestProven, Converged: proof.Converged}, nil
 }

@@ -36,6 +36,20 @@ type AlgebraicGraphCapPair struct {
 // side of each plane is material. This regular crossing path requires at
 // least one common material interval and rejects incomplete pairing.
 func (s Solid) ClipAlgebraicGraphCapPair(ctx context.Context, planes [2][3]geom.Vec3, section RationalGraphShellSectionOptions, o RationalGraphShellRegionOptions) (AlgebraicGraphCapPair, error) {
+	return s.clipAlgebraicGraphCapPair(ctx, planes, section, o, false)
+}
+
+// ClipAlgebraicGraphBand additionally accepts two caps whose intersection
+// stays completely outside the original stock. In that case both cap
+// sections must lie strictly in the other's retained halfspace. Parallel
+// or diverging support planes can bound such a band without any common seam.
+func (s Solid) ClipAlgebraicGraphBand(ctx context.Context, planes [2][3]geom.Vec3, section RationalGraphShellSectionOptions,
+	o RationalGraphShellRegionOptions) (AlgebraicGraphCapPair, error) {
+	return s.clipAlgebraicGraphCapPair(ctx, planes, section, o, true)
+}
+
+func (s Solid) clipAlgebraicGraphCapPair(ctx context.Context, planes [2][3]geom.Vec3, section RationalGraphShellSectionOptions,
+	o RationalGraphShellRegionOptions, separated bool) (AlgebraicGraphCapPair, error) {
 	var zero AlgebraicGraphCapPair
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -53,14 +67,40 @@ func (s Solid) ClipAlgebraicGraphCapPair(ctx context.Context, planes [2][3]geom.
 		limits := o
 		limits.Topology = topo
 		limits.Topology.MaxWork, limits.Topology.MaxSubdivisions = b.work, b.subdiv
-		cap, e := s.ClipAlgebraicGraphCap(ctx, planes[i], planes[i^1], false, section, limits)
-		if e != nil {
-			return zero, e
+		var cap AlgebraicGraphCapClip
+		if separated {
+			// Authenticate the no-contact case before invoking the
+			// crossing engine. A strict entire original ring hull is
+			// enough to prove containment in the other halfspace.
+			cap, e = s.separatedAlgebraicCap(ctx, planes[i], planes[i^1], section, limits)
+			if e != nil && !errors.Is(e, geom.ErrUnrepresentable) {
+				return zero, e
+			}
+		}
+		if cap.recipe == nil {
+			cap, e = s.ClipAlgebraicGraphCap(ctx, planes[i], planes[i^1], false, section, limits)
+			if e != nil {
+				return zero, e
+			}
 		}
 		if e := b.charge(cap.ExactOperations, cap.Subdivisions); e != nil {
 			return zero, e
 		}
 		out.Caps[i] = cap
+	}
+	if separated {
+		a, z := out.Caps[0], out.Caps[1]
+		if a.separated != z.separated {
+			return zero, geom.ErrConvergence
+		}
+		if a.separated {
+			if len(a.wires) == 0 || len(z.wires) == 0 {
+				return zero, geom.ErrUnrepresentable
+			}
+			out.caps = out.Caps
+			out.ExactOperations, out.Subdivisions = topo.MaxWork-b.work, topo.MaxSubdivisions-b.subdiv
+			return out, nil
+		}
 	}
 	// Any nonconstant world axis on the exact plane intersection orders the
 	// same material intervals on both cap charts. The other two coordinates

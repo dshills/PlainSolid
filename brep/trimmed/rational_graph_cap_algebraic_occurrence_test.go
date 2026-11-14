@@ -191,6 +191,14 @@ func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
 		}
 	}
 
+	areaRoots := root
+	areaRoots.MaxOperations = 100000000
+	areaRoots.MaxSubdivisions = 30000
+	area, e := w.BoundSurfaceArea(ctx, q(1, 20), areaRoots)
+	if e != nil || area.Interval.Lower.Sign() <= 0 || area.Interval.Lower.Cmp(ratInset(11.940081106438639)) > 0 ||
+		area.Interval.Upper.Cmp(ratInset(11.940081106438639)) < 0 {
+		t.Fatal("rigid occurrence must preserve source area enclosure", area, e)
+	}
 	full, e := w.BoundMass(ctx, q(1, 1<<17), selection, root)
 	if e != nil {
 		t.Fatal("world second moments and inertia", e)

@@ -45,7 +45,7 @@ func (c AlgebraicGraphCapPair) OriginalStockLoops(ctx context.Context, o Rationa
 
 func (c AlgebraicGraphCapPair) originalStockLoops(o RationalGraphShellSectionOptions, b *capClipBudget) ([]AlgebraicGraphStockFaceLoop, error) {
 	ctx := b.ctx
-	if c.caps[0].recipe == nil || c.caps[1].recipe == nil || len(c.seams) == 0 {
+	if c.caps[0].recipe == nil || c.caps[1].recipe == nil || len(c.seams) == 0 && !(c.caps[0].separated && c.caps[1].separated) {
 		return nil, geom.ErrInvalid
 	}
 	sc := c.caps[0].recipe.stock
