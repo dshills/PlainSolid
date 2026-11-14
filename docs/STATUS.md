@@ -39,7 +39,7 @@ face assignments or rational wall seeds.
 On proved original roof boxes, exact rational point and line queries
 preserve original floor, side, and roof owners, including simultaneous
 contacts and a retained difference span below binary64 resolution.
-The arbitrary-direction line sweep isolates up to quartic restrictions,
+The arbitrary-direction line sweep isolates up to sixth-degree restrictions,
 distinguishes repeated roots from crossings, and reports exposed
 coincident spans separately from the interior. It qualifies both the
 mixed restricted-wall Boolean and the independently curved bubble roofs.
@@ -56,11 +56,11 @@ exposed trims and provide exact rational witnesses, including shared
 seam owners. The distance bounds, rotated centroid, first moments, and
 inertia have separate original OCCT comparisons.
 Prepared roof queries also admit original single-span positive rational
-weights whose cleared line equation stays at degree four or below. The
-weighted cavity kept its exact roof hit, quotient normal and floor
-distance, and an independently sewn OCCT rational model gave the same
-line parameter. The specialized polynomial mesh proof keeps its
-existing scope.
+surfaces through degree three in each chart axis. The weighted cavity
+kept its exact roof hit, quotient normal and floor distance, and an
+independently sewn OCCT rational model gave the same line parameter.
+A separate original bicubic roof retained its different sixth-degree
+line root. The specialized polynomial mesh proof keeps its existing scope.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and
@@ -604,6 +604,12 @@ passed, verifying 841 app and 2,035 kernel source files. The [authored model](ev
 retained its 16 analytic elliptical trims, reopened through STEP, and
 produced watertight STL. The actual exported STEP matched live OCCT
 reference measures.
+The [disjoint cardinal and oblique reconciliation](evidence/plaincad-reconciled-c2c00be9-development-disjoint-oblique-holes-step-2026-11-14.json)
+adds worktree commit `b284a071` to review `c2c00be9`. Native STEP
+checks and all 17 original browser tests passed, verifying 841 app and
+2,042 kernel source files. The [authored separated-bore STEP](evidence/plaincad-reconciled-c2c00be9-supplemental-disjoint-oblique-step-2026-11-14.json)
+reopened successfully and preserved its watertight STL. Live OCCT readback
+reproduced volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

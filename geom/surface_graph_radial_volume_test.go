@@ -128,6 +128,10 @@ func TestRadialVolumeRejectsVariableDenominator(t *testing.T) {
 		t.Fatal("centroid requires original polynomial height", e)
 	}
 
+	if r, e := proof.MassTensorBands(ctx, []int{0, 2}, geom.RadialGraphMomentOptions{}); e == nil || r.Total.SecondMomentPiCoefficients[0][0] != nil || len(r.Bands) != 0 {
+		t.Fatal("tensor requires original polynomial heights", e)
+	}
+
 }
 
 func TestTripleRadialVolumeOCCT(t *testing.T) {

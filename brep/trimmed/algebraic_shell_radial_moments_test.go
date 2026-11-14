@@ -88,6 +88,39 @@ func TestNativeRadialTubeRegionPlanarMoments(t *testing.T) {
 	if x, e := s.RadialTubeRegionMassMoments(cancelled, center, radii, geom.RadialGraphMomentOptions{}); e != context.Canceled || len(x.Components) != 0 {
 		t.Fatal("centroid cancellation", e)
 	}
+	tensor, e := s.RadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !reflect.DeepEqual(tensor.Components, volume.Components) || tensor.Tensor.Total.SecondMomentPiCoefficients[2][2].Cmp(big.NewRat(390625, 51539607552)) != 0 || tensor.Tensor.Total.SecondMomentPiCoefficients[0][2].Cmp(big.NewRat(15625, 201326592)) != 0 || tensor.Tensor.Total.SecondMomentPiCoefficients[1][2].Cmp(big.NewRat(15625, 201326592)) != 0 {
+		t.Fatal("independent original material tensor", tensor)
+	}
+	for i := range 3 {
+		for j := range 3 {
+			want := new(big.Rat).Neg(tensor.Tensor.Total.SecondMomentPiCoefficients[i][j])
+			if i == j {
+				for k := range 3 {
+					want.Add(want, tensor.Tensor.Total.SecondMomentPiCoefficients[k][k])
+				}
+			}
+			if tensor.Tensor.Total.OriginInertiaPiCoefficients[i][j].Cmp(want) != 0 {
+				t.Fatal("original world-origin inertia", i, j)
+			}
+		}
+	}
+	if x, e := s.RadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: tensor.Tensor.ExactOperations - 1}); e == nil || len(x.Components) != 0 || x.Tensor.Total.SecondMomentPiCoefficients[0][0] != nil {
+		t.Fatal("atomic tensor quota", e)
+	}
+	if _, e := s.RadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{MaxOperations: tensor.Tensor.ExactOperations}); e != nil {
+		t.Fatal("exact tensor quota", e)
+	}
+	if x, e := bad.RadialTubeRegionMassTensor(ctx, center, radii, geom.RadialGraphMomentOptions{}); e == nil || len(x.Components) != 0 {
+		t.Fatal("wrong tensor owner side", e)
+	}
+	if x, e := s.RadialTubeRegionMassTensor(cancelled, center, radii, geom.RadialGraphMomentOptions{}); e != context.Canceled || len(x.Components) != 0 {
+		t.Fatal("tensor cancellation", e)
+	}
+	t.Log("native tensor cumulative work", tensor.Tensor.ExactOperations)
 	t.Log("native original height moment work", mass.Moments.ExactOperations)
 	t.Log("native source moments total work", work)
 }

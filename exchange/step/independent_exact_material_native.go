@@ -74,7 +74,10 @@ func independentMaterialClaims(m IndependentExactMaterial, cylinderMode ...bool)
 	if m.Sphere != nil {
 		countFamilies++
 	}
-	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) >= 1 && cylinderMode[0])) || (m.Sphere != nil && !(len(cylinderMode) == 2 && cylinderMode[1])) {
+	if m.Torus != nil {
+		countFamilies++
+	}
+	if countFamilies != 1 || (m.Cylinder != nil && !(len(cylinderMode) >= 1 && cylinderMode[0])) || (m.Sphere != nil && !(len(cylinderMode) >= 2 && cylinderMode[1])) || (m.Torus != nil && !(len(cylinderMode) == 3 && cylinderMode[2])) {
 		return bad()
 	}
 	if m.Planar != nil {
@@ -193,8 +196,11 @@ func independentCollectionEnvelope(ctx context.Context, m IndependentExactMateri
 	if len(cylinderMode) >= 1 && cylinderMode[0] {
 		q.Format = independentCylinderNativeFormat
 	}
-	if len(cylinderMode) == 2 && cylinderMode[1] {
+	if len(cylinderMode) >= 2 && cylinderMode[1] {
 		q.Format = independentSphereNativeFormat
+	}
+	if len(cylinderMode) == 3 && cylinderMode[2] {
+		q.Format = independentTorusNativeFormat
 	}
 	claims := []IndependentExactMaterial{}
 	if !finiteNumber(m.tolerance) || m.tolerance <= 0 || len(m.Members) < 1 || len(m.Members) > 16 {
@@ -241,19 +247,23 @@ func writeIndependentMaterialsJSON(ctx context.Context, w io.Writer, m Independe
 	if cylinder {
 		read = ReadIndependentCylinderMaterials
 	}
-	sphere := len(sphereMode) == 1 && sphereMode[0]
+	sphere := len(sphereMode) >= 1 && sphereMode[0]
 	if sphere {
 		read = ReadIndependentSphereMaterials
+	}
+	torus := len(sphereMode) == 2 && sphereMode[1]
+	if torus {
+		read = ReadIndependentToroidalMaterials
 	}
 	proof, e := read(ctx, bytes.NewReader(source), Limits{}, m.tolerance)
 	if e != nil {
 		return e
 	}
-	actual, claims, e := independentCollectionEnvelope(ctx, m, source, cylinder, sphere)
+	actual, claims, e := independentCollectionEnvelope(ctx, m, source, cylinder, sphere, torus)
 	if e != nil {
 		return e
 	}
-	expected, proved, e := independentCollectionEnvelope(ctx, proof, source, cylinder, sphere)
+	expected, proved, e := independentCollectionEnvelope(ctx, proof, source, cylinder, sphere, torus)
 	if e != nil {
 		return e
 	}
@@ -315,10 +325,15 @@ func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l Independen
 		format = independentCylinderNativeFormat
 		read = ReadIndependentCylinderMaterials
 	}
-	sphere := len(sphereMode) == 1 && sphereMode[0]
+	sphere := len(sphereMode) >= 1 && sphereMode[0]
 	if sphere {
 		format = independentSphereNativeFormat
 		read = ReadIndependentSphereMaterials
+	}
+	torus := len(sphereMode) == 2 && sphereMode[1]
+	if torus {
+		format = independentTorusNativeFormat
+		read = ReadIndependentToroidalMaterials
 	}
 	var q independentMaterialEnvelope
 	d := json.NewDecoder(bytes.NewReader(b))
@@ -334,7 +349,7 @@ func readIndependentMaterialsJSON(ctx context.Context, r io.Reader, l Independen
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}
-	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source), cylinder, sphere)
+	expected, _, e := independentCollectionEnvelope(ctx, m, []byte(q.Source), cylinder, sphere, torus)
 	if e != nil {
 		return IndependentExactMaterialCollection{}, e
 	}

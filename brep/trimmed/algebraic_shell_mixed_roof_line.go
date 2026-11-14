@@ -64,7 +64,7 @@ func (w *mixedRoofLineWork) rootOptions() (geom.ExactCurvePlaneEventOptions, err
 	return geom.ExactCurvePlaneEventOptions{MaxOperations: a, MaxSubdivisions: b, MaxCoefficientBits: w.o.MaxCoefficientBits}, nil
 }
 
-type mixedRoofLinePoly [5]*big.Rat
+type mixedRoofLinePoly [7]*big.Rat
 
 func mixedRoofEmptyPoly() (p mixedRoofLinePoly) {
 	for i := range p {
@@ -96,7 +96,7 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 	}
 	d := b.domain
 	lo, hi := [2]float64{d.UMin, d.VMin}, [2]float64{d.UMax, d.VMax}
-	var powers [2][3][]*big.Rat
+	var powers [2][4][]*big.Rat
 	for i := range powers {
 		if out[2*i][0], err = w.rat(new(big.Rat).Sub(origin[i], ratInset(lo[i]))); err != nil {
 			return out, err
@@ -118,18 +118,28 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		if err != nil {
 			return out, err
 		}
-		powers[i] = [3][]*big.Rat{{big.NewRat(1, 1)}, {a, e}, make([]*big.Rat, 3)}
-		for j, pair := range [3][2]*big.Rat{{a, a}, {a, e}, {e, e}} {
-			v, err := w.rat(new(big.Rat).Mul(pair[0], pair[1]))
-			if err != nil {
-				return out, err
+		powers[i][0], powers[i][1] = []*big.Rat{big.NewRat(1, 1)}, []*big.Rat{a, e}
+		maxPower := len(b.linePower) - 1
+		if i == 1 {
+			maxPower = len(b.linePower[0]) - 1
+		}
+		for k := 2; k <= maxPower; k++ {
+			powers[i][k] = make([]*big.Rat, k+1)
+			for j := range powers[i][k] {
+				powers[i][k][j] = new(big.Rat)
 			}
-			if j == 1 {
-				if _, err := w.rat(v.Add(v, v)); err != nil {
-					return out, err
+			for j, v := range powers[i][k-1] {
+				for shift, a := range powers[i][1] {
+					m, err := w.rat(new(big.Rat).Mul(v, a))
+					if err != nil {
+						return out, err
+					}
+					dst := powers[i][k][j+shift]
+					if _, err := w.rat(dst.Add(dst, m)); err != nil {
+						return out, err
+					}
 				}
 			}
-			powers[i][2][j] = v
 		}
 	}
 	if out[4][0], err = w.rat(new(big.Rat).Sub(origin[2], b.floor)); err != nil {
@@ -140,9 +150,12 @@ func (b *mixedRoofBox) linePolynomials(origin, direction [3]*big.Rat, w *mixedRo
 		out[5][0].Neg(origin[2])
 		out[5][1].Neg(direction[2])
 	}
-	for a, row := range b.power {
+	for a, row := range b.linePower {
 		for k, coeff := range row {
-			weight := b.weight[a][k]
+			var weight *big.Rat
+			if b.weight != nil {
+				weight = b.weight[a][k]
+			}
 			if coeff.Sign() == 0 && (weight == nil || weight.Sign() == 0) {
 				continue
 			}
@@ -227,7 +240,7 @@ func (w *mixedRoofLineWork) compare(ctx context.Context, a, b *geom.ExactAlgebra
 
 // IntersectLineRational sweeps the exact finite line origin+direction*t through
 // the two original graph boxes. It composes six inward inequalities per box
-// directly with the rational line and isolates the complete degree <=4
+// directly with the rational line and isolates the complete degree <=6
 // station ledger. Coincident individual support polynomials are retained
 // as side, floor, or roof spans; no root is selected by a float tolerance.
 func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o MixedRoofLineOptions) (MixedRoofLineSection, error) {
@@ -247,7 +260,7 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 	w := mixedRoofLineWork{o: o}
 	var faces [12]MixedRoofFaceOwner
 	var signs [12]int
-	stations := make([]mixedRoofLineStation, 0, 20)
+	stations := make([]mixedRoofLineStation, 0, 24)
 	for i, t := range [2]*big.Rat{minT, maxT} {
 		opts, err := w.rootOptions()
 		if err != nil {
@@ -308,8 +321,8 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 			}
 		}
 	}
-	// The maximum is 20 stations (two sets of five affine polynomials
-	// and one quartic, plus clip ends). Insertion orders and coalesces
+	// The maximum is 24 stations (two sets of five affine polynomials
+	// and one sextic, plus clip ends). Insertion orders and coalesces
 	// using proofs that can report errors instead of hiding them in sort.
 	ordered := make([]mixedRoofLineStation, 0, len(stations))
 	for _, s := range stations {
@@ -436,7 +449,7 @@ func (q *MixedRoofMaterialQuery) IntersectLineRational(ctx context.Context, orig
 }
 
 // leftSign uses the leading nonzero Taylor coefficient at t. The degree
-// never exceeds four; differentiating in place preserves that exact sign.
+// never exceeds six; differentiating in place preserves that exact sign.
 func (w *mixedRoofLineWork) leftSign(p mixedRoofLinePoly, degree int, t *big.Rat) (int, error) {
 	for order := 0; order <= degree; order++ {
 		s, err := w.value(p, t)

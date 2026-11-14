@@ -29,16 +29,16 @@ c++ -std=c++17 -O2 \
  -L/tmp/plainsolid-occt-build/mac64/clang/lib \
  -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
  tools/occtref/torus_cylinder_material.cxx \
- -o /tmp/plainsolid-torus-cylinder-area-oracle \
+ -o /tmp/plainsolid-torus-cylinder-moments-oracle \
  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
  -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-area-oracle \
+PLAINSOLID_OCCT_TORUS_CYLINDER=/tmp/plainsolid-torus-cylinder-moments-oracle \
  GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./internal/occtcheck \
- -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestTorusCylinderVolume|TestTorusCylinderArea|TestOCCTTorusCylinderMaterial)$' -count=1
+ -run '^(TestTorusCylinderMaterial|TestTorusCylinderUnion|TestTorusCylinderVolume|TestTorusCylinderArea|TestTorusCylinderMoments|TestOCCTTorusCylinderMaterial)$' -count=1
 ```
 
 Qualified executable SHA-256:
-`f441c1388cb96a58f40e5f9a99e426bec2354acb67069b0b9ee575eb65944e1d`.
+`b4a01a67ff6a3ca696241ab9e790b70b1153e4b4ffe6718632799fc5cc644a6e`.
 No executable or generated reference data is committed. This milestone does
 not add native torus/cylinder Boolean assembly, arbitrary caps, tangency source
 regimes. The exposed original torus/wall/cap supports are distinguished even
@@ -83,3 +83,28 @@ square roots, pi and final areas are enclosed in exact rational arithmetic.
 Seams have zero area and retain their separate exact query ownership.
 The kernel tests c=3.25,5,6,6.75, all operations, original owner/normal fields,
 independent closed-form evaluations, precision and cumulative operation limits.
+
+
+## Axial centroid and inertia
+
+OCCT's independently integrated original Boolean reports CentreOfMass and
+MatrixOfInertia (about its center). The comparator checks axial first moment,
+axial centroid, diagonal central inertia and reconstructed raw second moments
+against the kernel intervals. Numerical allowance is1e-5. Each operation is
+integrated once and reused for repeated line reference rows.
+
+The kernel's shared radial partition integrates nonnegative weights rho,
+rho³ and rho*(r²-(rho-R)²) against h=sqrt(r²-(rho-R)²). Concavity provides
+lower endpoint chords and upper midpoint tangents. Polynomial-weighted line
+integrals are exact. Tangent upper terms are rounded upward to a common dyadic
+lattice to bound denominator growth; this error remains in the final enclosure.
+They produce V=4*pi*I1, Qxx=Qyy=2*pi*I3, Qzz=4*pi*Iz/3. Full torus and finite
+cylinder moments are analytic, with outward pi. Unequal cap heights contribute
+the signed cylinder first moment in Union; other operations are z-symmetric.
+Centroid and parallel-axis inertia use outward positive-volume division.
+
+The four explicitly requested widths are volume0.01, raw second moment0.1,
+centroid0.001 and inertia0.2. The source domain is unchanged. Unit tests use
+c=R with an independent closed antiderivative, both cap ranges[-3,4] and[-4,3],
+all operations, and measured one-operation-short/cell/cancellation failure.
+No mixed-coordinate placement or radial containment extension is included.

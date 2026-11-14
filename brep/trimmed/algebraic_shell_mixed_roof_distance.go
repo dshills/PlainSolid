@@ -113,7 +113,7 @@ func (b *mixedRoofBox) roofBoxLocation(box mixedRoofBoundBox, w *mixedRoofLineWo
 // Coordinates are in [0,1]. Bound every positive monomial by its two
 // endpoint products, using signed interval sums for the original polynomial.
 func (b *mixedRoofBox) roofHeightRange(uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
-	num, err := mixedRoofPowerRange(b.power, uv, w)
+	num, err := mixedRoofPowerRange(b.linePower, uv, w)
 	if err != nil || b.minWeight == nil {
 		return num, err
 	}
@@ -140,19 +140,25 @@ func (b *mixedRoofBox) roofHeightRange(uv [2]geom.ExactParameterInterval, w *mix
 	return out, nil
 }
 
-func mixedRoofPowerRange(power [3][3]*big.Rat, uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
+func mixedRoofPowerRange(power [][]*big.Rat, uv [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
 	out := geom.ExactParameterInterval{Lower: new(big.Rat), Upper: new(big.Rat)}
-	var powers [2][3][2]*big.Rat
+	var powers [2][4][2]*big.Rat
 	for i, s := range uv {
 		a, c := s.Lower, s.Upper
 		powers[i][0] = [2]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1)}
 		powers[i][1] = [2]*big.Rat{a, c}
-		for j, x := range powers[i][1] {
-			z, err := w.rat(new(big.Rat).Mul(x, x))
-			if err != nil {
-				return out, err
+		degree := len(power) - 1
+		if i == 1 {
+			degree = len(power[0]) - 1
+		}
+		for k := 2; k <= degree; k++ {
+			for j, x := range powers[i][1] {
+				z, err := w.rat(new(big.Rat).Mul(x, powers[i][k-1][j]))
+				if err != nil {
+					return out, err
+				}
+				powers[i][k][j] = z
 			}
-			powers[i][2][j] = z
 		}
 	}
 	for i, row := range power {

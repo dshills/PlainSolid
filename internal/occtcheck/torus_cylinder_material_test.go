@@ -33,12 +33,15 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 	dec := json.NewDecoder(f)
 	seen := map[[2]int]bool{}
 	r := big.NewRat
+	moments := map[geom.TorusCylinderOperation]geom.TorusCylinderMoments{}
 	for {
 		var ref struct {
 			Difference bool
 			Union      bool
 			Axis       bool
 			Volume     float64
+			CentroidZ  float64
+			Inertia    [3]float64
 			Areas      [4]float64
 			Sign       int
 			Parameters []float64
@@ -74,6 +77,29 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		s, e := geom.NewTorusCylinderMaterial(5, 2, 6, -3, 4, op)
 		if e != nil {
 			t.Fatal(e)
+		}
+		m, exists := moments[op]
+		if !exists {
+			m, e = s.BoundMoments(ctx, geom.TorusCylinderMomentOptions{VolumeTolerance: r(1, 100), SecondMomentTolerance: r(1, 10), CentroidTolerance: r(1, 1000), InertiaTolerance: r(1, 5)})
+			if e != nil {
+				t.Fatal(e)
+			}
+			moments[op] = m
+		}
+		checkMoment := func(x float64, bounds [2]*big.Rat) {
+			t.Helper()
+			lo, _ := bounds[0].Float64()
+			hi, _ := bounds[1].Float64()
+			if math.IsNaN(x) || x < lo-1e-5 || x > hi+1e-5 {
+				t.Fatal("independent moment", x, lo, hi)
+			}
+		}
+		checkMoment(ref.Inertia[2]/2, m.SecondXY)
+		checkMoment(ref.Inertia[0]-ref.Inertia[2]/2+ref.Volume*ref.CentroidZ*ref.CentroidZ, m.SecondZ)
+		checkMoment(ref.CentroidZ, m.CentroidZ)
+		checkMoment(ref.Volume*ref.CentroidZ, m.FirstZ)
+		for i := 0; i < 3; i++ {
+			checkMoment(ref.Inertia[i], m.InertiaCentroid[i])
 		}
 		area, err := s.BoundArea(ctx, geom.TorusCylinderAreaOptions{AreaTolerance: r(1, 1000000)})
 		if err != nil {
