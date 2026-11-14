@@ -143,3 +143,99 @@ func TestSideOpeningPairDifferentStockSides(t *testing.T) {
 		})
 	}
 }
+
+func TestSideOpeningCutsRetainHistoryAndAcceptFurtherHoles(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{26, 20, 8})
+	var drills []Shape
+	for i, depth := range []float64{3, 6, 4, 8} {
+		drills = append(drills, circle(t, b, vector{6 + 4*float64(i), 0, 0}, vector{0, 0, 1}, 3, depth))
+	}
+	third := func(order []int) Shape {
+		t.Helper()
+		handles := make([]string, len(order))
+		for i, id := range order {
+			handles[i] = drills[id].Handle
+		}
+		out, err := b.cutMany(stock.Handle, handles)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	firstThree := third([]int{0, 1, 2})
+	reordered := third([]int{2, 0, 1, 1})
+	near(t, reordered.GeometryAssertions.Volume, firstThree.GeometryAssertions.Volume)
+	near(t, reordered.GeometryAssertions.SurfaceArea, firstThree.GeometryAssertions.SurfaceArea)
+	exported, err := b.exportSTEP([]string{firstThree.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := base64.StdEncoding.DecodeString(exported.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := b.importSTEP(string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	removed := overlapMeasure(t, b, restored.Handle, drills[3].Handle)
+	four := shape(t, b, map[string]any{"op": "cut", "a": restored.Handle, "b": drills[3].Handle})
+	groupedFour := third([]int{3, 2, 1, 0})
+	near(t, four.GeometryAssertions.Volume, firstThree.GeometryAssertions.Volume-removed)
+	near(t, four.GeometryAssertions.Volume, groupedFour.GeometryAssertions.Volume)
+	near(t, four.GeometryAssertions.SurfaceArea, groupedFour.GeometryAssertions.SurfaceArea)
+	near(t, overlapMeasure(t, b, four.Handle, drills[3].Handle), 0)
+	near(t, overlapMeasure(t, b, firstThree.Handle, drills[3].Handle), removed)
+	mirrored := shape(t, b, map[string]any{"op": "transform", "handle": four.Handle, "matrix": [][]float64{
+		{-1, 0, 0, 26}, {0, 1, 0, 0}, {0, 0, 1, 0},
+	}})
+	if _, err := b.exportSTEP([]string{mirrored.Handle}); err != nil {
+		t.Fatal(err)
+	}
+	near(t, overlapMeasure(t, b, four.Handle, drills[3].Handle), 0)
+
+	// A tangent extra tool cannot publish a partial grouped result.
+	tangent := circle(t, b, vector{24, 0, 0}, vector{0, 0, 1}, 3, 4)
+	count := len(b.shapes)
+	if _, err := b.cutMany(four.Handle, []string{tangent.Handle}); err == nil || len(b.shapes) != count {
+		t.Fatal("unsupported cutter published a shape", err)
+	}
+}
+
+// Exercise the handoff between two independently supported representations.
+// The first cuts use the original exact path; adding a third rebuilds the
+// complete stock from the original tool descriptors.
+func TestSideOpeningCutsContinueStrictDualDisk(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{0, 4, 0}, vector{15, 10, 6})
+	first := circle(t, b, vector{3.5, 4, 0}, vector{0, 0, 1}, 2.5, 3)
+	second := circle(t, b, vector{7.5, 4, 0}, vector{0, 0, 1}, 2.5, 3)
+	third := circle(t, b, vector{11.5, 4, 0}, vector{0, 0, 1}, 2.5, 5)
+	pair, err := b.cutMany(stock.Handle, []string{first.Handle, second.Handle})
+	if err != nil || b.shapes[pair.Handle].analytic.sideDualDisk == nil {
+		t.Fatal("expected the original exact two-cut family", pair, err)
+	}
+	removed := overlapMeasure(t, b, pair.Handle, third.Handle)
+	combined := shape(t, b, map[string]any{"op": "cut", "a": pair.Handle, "b": third.Handle})
+	r := b.shapes[combined.Handle].analytic.sideOpeningCuts
+	if r == nil || len(r.Cuts) != 3 || combined.Bounds != stock.Bounds {
+		t.Fatal("the grouped body must inherit the original stock and all three cutters", r, combined.Bounds)
+	}
+	grouped, err := b.cutMany(stock.Handle, []string{third.Handle, second.Handle, first.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, combined.GeometryAssertions.Volume, grouped.GeometryAssertions.Volume)
+	near(t, combined.GeometryAssertions.SurfaceArea, grouped.GeometryAssertions.SurfaceArea)
+	near(t, combined.GeometryAssertions.Volume, pair.GeometryAssertions.Volume-removed)
+	data, err := writeSTEPBody(b.shapes[combined.Handle])
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := b.importSTEP(string(data))
+	if err != nil || b.shapes[loaded.Handle].analytic.sideOpeningCuts == nil {
+		t.Fatal("grouped cutter history must survive STEP reload", err)
+	}
+	near(t, loaded.GeometryAssertions.Volume, combined.GeometryAssertions.Volume)
+}

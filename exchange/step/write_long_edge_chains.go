@@ -121,12 +121,17 @@ func longEdgeSurfaceOf(surface geom.Surface) (longEdgeSurface, error) {
 
 // The caller supplies only topology freshly produced by the two validated
 // native constructors above; this is not a generic Solid serializer.
+type nativeLongEdgeLimits struct{ faces, edges, vertices, loops, uses int }
+
 func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
+	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
+}
+func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
 	vertices, edges, faces := s.Vertices(), s.Edges(), s.Faces()
-	if len(faces) < 3 || len(faces) > 64 || len(edges) > 256 || len(vertices) > 256 {
+	if len(faces) < 3 || len(faces) > limits.faces || len(edges) > limits.edges || len(vertices) > limits.vertices {
 		return geom.ErrDomain
 	}
 	surfaces := make([]longEdgeSurface, len(faces))
@@ -139,11 +144,11 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 			return e
 		}
 		loops := append([][]trimmed.Use{face.Outer}, face.Holes...)
-		if len(loops) > 5 {
+		if len(loops) > limits.loops {
 			return geom.ErrDomain
 		}
 		for _, loop := range loops {
-			if len(loop) < 3 || len(loop) > 64 {
+			if len(loop) < 3 || len(loop) > limits.uses {
 				return geom.ErrDomain
 			}
 			for j, u := range loop {

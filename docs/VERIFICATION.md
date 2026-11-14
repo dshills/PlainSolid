@@ -68,6 +68,26 @@ backend preflight passed. [Evidence](evidence/plaincad-reconciled-viewer-runtime
 binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
+## PlainCAD intersecting groups of side-opening Hole cutters — 2026-11-14
+
+The rectangular-stock arrangement accepts up to 16 circular cutters with
+parallel axes and intersecting footprints. It retains analytic walls,
+blind floors, through openings, and connected material islands. STEP
+regenerates the complete boundary graph and recovers partially buried
+walls from the orientation of their neighboring floors. A strictly
+contained cutter already covered by one wider cut adds no boundary.
+
+[Thirteen original PlainCAD Hole and STEP cases](evidence/plaincad-multi-side-opening-browser-2026-11-14.json)
+and [two same-WASM Chromium probes](evidence/plaincad-multi-side-opening-native-2026-11-14.json)
+pass on `50432ed`. The supplemental cases exercise a grouped three-center
+Hole with shared overlap and four successive Holes at unequal depths,
+including through-all. Both retain exact measures, STEP and watertight
+STL through project reopen. Native checks include cutting again after
+STEP import, input-order and redundancy checks, and atomic rejection.
+Independent OCCT checks cover signed placements, a 16-site chain,
+buried cylindrical walls, and an inner wire in a blind floor. Focused
+race checks and Go vet pass.
+
 ## PlainCAD intersecting Hole cutters on different stock sides — 2026-11-14
 
 The rectangular stock arrangement now supports two intersecting circular

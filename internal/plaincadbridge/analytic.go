@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"slices"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
@@ -32,7 +33,7 @@ type analyticBody struct {
 	stepDisk        *step.DiskHoleExtrusionBody
 	sideNotch       *step.SideNotchBody
 	sideDualDisk    *sideDualDiskBody
-	sideOpeningPair *step.SideOpeningPairBody
+	sideOpeningCuts *step.SideOpeningCutsBody
 	layeredDisk     bool
 	pockets         *pocketStock
 	coaxial         *coaxialBody
@@ -189,7 +190,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.stepDisk = nil
 	out.sideNotch = nil
 	out.sideDualDisk = nil
-	out.sideOpeningPair = nil
+	out.sideOpeningCuts = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -258,13 +259,14 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			return &out, nil
 		}
 	}
-	if a.sideOpeningPair != nil {
-		p := *a.sideOpeningPair
+	if a.sideOpeningCuts != nil {
+		p := *a.sideOpeningCuts
 		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
 		origin := m.Apply(p.Frame.Origin())
 		if m.Determinant() < 0 {
 			origin = origin.Add(x.Scale(p.Width))
 			x = x.Scale(-1)
+			p.Cuts = slices.Clone(p.Cuts)
 			for i := range p.Cuts {
 				p.Cuts[i].Center.X = p.Width - p.Cuts[i].Center.X
 			}
@@ -272,7 +274,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		f, e := geom.NewFrame(origin, x, z)
 		if e == nil && cardinalFrame(f) && f.YAxis() == y {
 			p.Frame = f
-			out.sideOpeningPair = &p
+			out.sideOpeningCuts = &p
 		}
 	}
 	if a.stepRounded != nil {
