@@ -179,7 +179,8 @@ func CutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 		return zero, geom.ErrConvergence
 	}
 	out.Solid = solid
-	out.source = &sideOpenDualDiskSource{frame, min, max, discs, height, depth}
+	out.source = &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth,
+		outer: s.Outer, owners: s.Owner}
 	return out, nil
 }
 
