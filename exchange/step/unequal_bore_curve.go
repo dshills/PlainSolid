@@ -25,6 +25,12 @@ type unequalBoreSplines struct {
 // approximateUnequalBoreEdge is private to native unequal crossed-bore
 // topology. Three cubic Hermite curves share the same parameter and knots.
 func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, surfaces []longEdgeSurface, tolerance float64) (*unequalBoreSplines, error) {
+	return approximateUnequalBoreEdgeOptions(start, end, adjacent, surfaces, tolerance, false)
+}
+
+// Finite output may reuse checked control rounding and C1 Hermite join removal.
+// The existing through representation and all fit/resource budgets stay unchanged.
+func approximateUnequalBoreEdgeOptions(start, end geom.Vec3, adjacent []longEdgeOwner, surfaces []longEdgeSurface, tolerance float64, compactFinite bool) (*unequalBoreSplines, error) {
 	first, second := surfaces[adjacent[0].face], surfaces[adjacent[1].face]
 	a, b := min(first.radius, second.radius), max(first.radius, second.radius)
 	if !(a > 0 && b >= a) || first.frame.ZAxis().Dot(second.frame.ZAxis()) != 0 {
@@ -87,7 +93,7 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 	}
 
 	n := int(segments)
-	result := &unequalBoreSplines{compact: d != 0, smooth: partial}
+	result := &unequalBoreSplines{compact: d != 0 || compactFinite, smooth: partial || compactFinite}
 	for index, owner := range adjacent {
 		curve, ok := owner.use.Curve.(differentiatedUV)
 		if !ok {

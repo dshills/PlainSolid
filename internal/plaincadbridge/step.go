@@ -403,7 +403,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.blindCrossed != nil:
 		recipe := s.bore.blindCrossed
-		if recipe.radii[0] != recipe.radii[1] {
+		if recipe.radii[0] != recipe.radii[1] || recipe.partialSkew() {
 			p := step.UnequalBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing,
 				XRadius: recipe.radii[0], ZRadius: recipe.radii[1], Offset: recipe.offset,
 				XBlindDepth: recipe.depth[0], ZBlindDepth: recipe.depth[1], XOppositeCap: recipe.oppositeCap[0], ZOppositeCap: recipe.oppositeCap[1]}

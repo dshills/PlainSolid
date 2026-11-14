@@ -1,0 +1,75 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "6f89668100bed8e62df1377e96d0b4bd9c5f4b1ba41941e66053727ef55402af",
+  "supplemental": {
+    "report": "/tmp/plainsolid-partial-finite-authored-5552/partial-finite-browser.json",
+    "reportSha256": "1fbfc0d978f58715c20046b98c1492cf7e18f03ac18014d74229babbda4b409b",
+    "sourceSha256": "54aedf9eba116710b7d404b54d801ee816efb2c83ff6a2cb4d4c5e75026589c5",
+    "summary": {
+      "startTime": "2026-11-14T14:04:46.485Z",
+      "duration": 17235.614999999998,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        40,
+        40,
+        40
+      ],
+      "crossingMm": [
+        20,
+        16,
+        20
+      ],
+      "axisOffsetMm": 5,
+      "radiiMm": [
+        5,
+        4
+      ],
+      "topEntryDepthMm": 30,
+      "floorZMm": 10,
+      "stepByteCount": 367577,
+      "stepSha256": "289e2c36185ccabebab652012f31822e248ac00d1c502abba99e55541acf594c",
+      "stlTriangles": 1284,
+      "stlTwoUseEdges": 1926,
+      "stlSha256": "d60bacade502db61321347a8fbd0694128483350cebade531359f7312a7d2568",
+      "occtStepReadback": {
+        "Area": 11257.499933349824,
+        "Volume": 59522.69404381489,
+        "Centroid": [
+          20.000000000000004,
+          20.182828533891353,
+          19.87332861037739
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 59522.69404370083,
+        "Area": 11257.499933452984,
+        "Centroid": [
+          20.00000000000211,
+          20.18282853389381,
+          19.87332861037691
+        ]
+      },
+      "directOracleSourceSha256": "1d626bbbcfec249c69d4c891faf1dc2f7cf57324503689f23f5ce577546b176c"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 3
+  },
+  "vet": "passed",
+  "native": {
+    "massCases": 72,
+    "meshCases": 6,
+    "focusedRaceSeconds": {
+      "exchange/step": 19.131,
+      "internal/plaincadbridge": 4.683
+    }
+  }
+}
