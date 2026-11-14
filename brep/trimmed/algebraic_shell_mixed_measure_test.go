@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
 
@@ -205,6 +206,7 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		}
 		checkMixedOriginalVerticalSection(t, ctx, roof, i, delta)
 		checkMixedOriginalAlgebraicLines(t, ctx, roof, i)
+		checkPlacedOriginalRoofQueries(t, ctx, roof, i, delta)
 		if hasLineOracle {
 			origin := [3]*big.Rat{new(big.Rat), big.NewRat(1, 4), new(big.Rat)}
 			direction := [3]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 4), new(big.Rat)}
@@ -360,6 +362,70 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 	cancel()
 	if partial, err := bodies[0].BoundMassProperties(cancelled, AlgebraicShellMeasureOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
 		t.Fatal("cancellation may not expose partial material measure", partial, err)
+	}
+}
+
+func checkPlacedOriginalRoofQueries(t *testing.T, ctx context.Context, roof *MixedRoofMaterialQuery, op int, delta *big.Rat) {
+	t.Helper()
+	r := big.NewRat
+	distant := new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), 120))
+	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{r(3, 5), r(0, 1), r(4, 5), distant},
+		{r(0, 1), r(1, 1), r(0, 1), r(2, 7)},
+		{r(-4, 5), r(0, 1), r(3, 5), r(-1, 3)},
+	}, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q, err := roof.Place(pose)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := geom.SurfacePatchEvaluationOptions{}
+	p := [3]*big.Rat{r(1, 2), r(1, 2), new(big.Rat).Add(r(-7, 128), delta)}
+	world, err := pose.TransformPoint(ctx, p, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hit, err := q.LocateRational(ctx, world, o)
+	if err != nil || hit.Location != [3]parametric.Location{parametric.Outside, parametric.Inside, parametric.Inside}[op] ||
+		hit.Operands != [2]parametric.Location{parametric.Inside, parametric.Outside} {
+		t.Fatal("placed point lost exact offset above the original roof", op, hit, err)
+	}
+	orig, dir := [3]*big.Rat{r(0, 1), r(1, 4), r(0, 1)}, [3]*big.Rat{r(1, 1), r(1, 4), r(0, 1)}
+	world, err = pose.TransformPoint(ctx, orig, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worldDirection, err := pose.TransformVector(ctx, dir, false, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rangeStart, rangeEnd := r(1, 16), r(15, 16)
+	moved, err := q.IntersectLineRational(ctx, world, worldDirection, rangeStart, rangeEnd, MixedRoofLineOptions{})
+	if err != nil {
+		t.Fatal("placed exact line", op, err)
+	}
+	local, err := roof.IntersectLineRational(ctx, orig, dir, rangeStart, rangeEnd, MixedRoofLineOptions{})
+	if err != nil || len(local.Events) != len(moved.Events) || len(local.Spans) != len(moved.Spans) ||
+		local.Start != moved.Start || local.End != moved.End || moved.ExactOperations-local.ExactOperations != roofPosePointOperations+roofPoseVectorOperations {
+		t.Fatal("placement changed exact line states or budget", op, moved, local, err)
+	}
+	for i, event := range moved.Events {
+		ref := local.Events[i]
+		order, err := event.Parameter.Compare(ctx, ref.Parameter, geom.ExactCurvePlaneEventOptions{})
+		if err != nil || !order.Proven || order.Order != 0 || event.Before != ref.Before || event.After != ref.After ||
+			len(event.Owners) != 1 || event.Owners[0] != ref.Owners[0] {
+			t.Fatal("placement changed original station or face", op, i, event, order, err)
+		}
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if partial, err := q.IntersectLineRational(cancelled, world, worldDirection, rangeStart, rangeEnd, MixedRoofLineOptions{}); !errors.Is(err, context.Canceled) || partial.Events != nil || partial.Spans != nil {
+		t.Fatal("placed line cancellation leaked results", partial, err)
+	}
+	if _, err := roof.Place(placement.RationalRigid{}); err == nil {
+		t.Fatal("unproved zero pose")
 	}
 }
 
