@@ -152,6 +152,13 @@ All 17 original Hole and STEP browser tests and the Go/WASM preflight
 passed with no skips or retries. Both crossed and disjoint native STEP
 regressions passed against live OCCT. The verifier checked all 841
 application and 1,885 kernel source hashes.
+The [unequal crossing reconciliation](evidence/plaincad-reconciled-6c990c74-development-unequal-bore-holes-step-2026-11-14.json)
+adds worktree commit `144afff1` to review revision `6c990c74`. The shared
+adaptive mesher retains the existing helical allocation switch. All 17
+original browser cases and the Go/WASM preflight passed without skips or
+retries. Three unequal-radius solids matched live OCCT volume, area, and
+centroid within `10⁻⁶`. All 841 application and 1,894 kernel source hashes
+were verified. STEP for the unequal trim itself was outside this revision.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
