@@ -80,7 +80,7 @@ func ReadAlgebraicSplineSectionJSON(ctx context.Context, r io.Reader, l JSONLimi
 		return empty, e
 	}
 	first := f.Tubes[0]
-	charts, seeds, e := rebuildAlgebraicTubeSeeds(ctx, [2]nativeTubePatch{first.A, first.B}, f.Tubes, l, trace)
+	charts, seeds, e := rebuildAlgebraicTubeSeedsWithExactSupport(ctx, [2]nativeTubePatch{first.A, first.B}, f.Tubes, l, trace, true)
 	if e != nil {
 		return empty, e
 	}
@@ -89,23 +89,34 @@ func ReadAlgebraicSplineSectionJSON(ctx context.Context, r io.Reader, l JSONLimi
 
 func rebuildAlgebraicTubeSeeds(ctx context.Context, input [2]nativeTubePatch, tubes []nativeTubeRecipe, l JSONLimits,
 	trace intersect.SplinePairTraceOptions) (charts [2]intersect.Patch, seeds intersect.SplineSeedReport, err error) {
+	return rebuildAlgebraicTubeSeedsWithExactSupport(ctx, input, tubes, l, trace, false)
+}
+
+func rebuildAlgebraicTubeSeedsWithExactSupport(ctx context.Context, input [2]nativeTubePatch, tubes []nativeTubeRecipe, l JSONLimits,
+	trace intersect.SplinePairTraceOptions, allowExact bool) (charts [2]intersect.Patch, seeds intersect.SplineSeedReport, err error) {
+	var patches [2]*geom.SurfacePatch
 	for i, p := range input {
 		s, e := parametric.DecodeSurface(p.Surface, l.MaxControlPoints)
 		if e != nil {
 			return charts, seeds, e
 		}
-		if _, ok := s.(*geom.BSplineSurface); !ok {
+		var support *geom.SurfacePatch
+		switch a := s.(type) {
+		case *geom.BSplineSurface:
+			support, e = geom.NewSurfacePatch(a, trace.Seeds.Patches)
+		case *geom.ExactBezierSurface:
+			if !allowExact {
+				return charts, seeds, geom.ErrInvalid
+			}
+			support, e = a.ExactPatch().WithLimits(trace.Seeds.Patches)
+		default:
 			return charts, seeds, geom.ErrInvalid
 		}
-		charts[i] = intersect.Patch{Surface: s, Min: p.Min, Max: p.Max}
-	}
-	var patches [2]*geom.SurfacePatch
-	for i, c := range charts {
-		p, e := geom.NewSurfacePatch(c.Surface.(*geom.BSplineSurface), trace.Seeds.Patches)
 		if e != nil {
 			return charts, seeds, e
 		}
-		patches[i], e = p.Trim(geom.ParameterRectangle{UMin: c.Min.X, UMax: c.Max.X, VMin: c.Min.Y, VMax: c.Max.Y})
+		charts[i] = intersect.Patch{Surface: s, Min: p.Min, Max: p.Max}
+		patches[i], e = support.Trim(geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y})
 		if e != nil {
 			return charts, seeds, e
 		}
@@ -121,7 +132,7 @@ func rebuildAlgebraicTubeSeeds(ctx context.Context, input [2]nativeTubePatch, tu
 		if len(tube.ExactEndpoints) > 0 {
 			return charts, seeds, geom.ErrConvergence
 		}
-		if _, e := tube.rebuild(ctx, l.MaxControlPoints); e != nil {
+		if _, e := tube.rebuildWithExactSupport(ctx, l.MaxControlPoints, allowExact); e != nil {
 			return charts, seeds, e
 		}
 		for i, c := range tube.Cells {

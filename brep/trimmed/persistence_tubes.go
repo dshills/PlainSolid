@@ -76,12 +76,18 @@ func validateTubeRecipes(tubes []nativeTubeRecipe, maxControls int) error {
 }
 
 func (t nativeTubeRecipe) rebuild(ctx context.Context, maxControls int) ([]intersect.TubeSegment, error) {
+	return t.rebuildWithExactSupport(ctx, maxControls, false)
+}
+
+func (t nativeTubeRecipe) rebuildWithExactSupport(ctx context.Context, maxControls int, allowExact bool) ([]intersect.TubeSegment, error) {
 	decode := func(p nativeTubePatch) (intersect.Patch, error) {
 		s, e := parametric.DecodeSurface(p.Surface, maxControls)
 		if e != nil {
 			return intersect.Patch{}, e
 		}
-		if _, ok := s.(*geom.BSplineSurface); !ok {
+		_, spline := s.(*geom.BSplineSurface)
+		_, exact := s.(*geom.ExactBezierSurface)
+		if !spline && !(allowExact && exact) {
 			return intersect.Patch{}, fmt.Errorf("trimmed: tube recipe requires two splines")
 		}
 		return intersect.Patch{Surface: s, Min: p.Min, Max: p.Max}, nil

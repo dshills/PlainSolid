@@ -265,6 +265,12 @@ func (p TubeTrim) SourceSurface() geom.Surface {
 	return p.segment.a
 }
 
+// HasSourceSurface checks that the trim belongs to this stored chart. It
+// recognizes immutable adapter identity and equal represented B-spline data.
+func (p TubeTrim) HasSourceSurface(s geom.Surface) bool {
+	return sameStoredTubeSupport(p.SourceSurface(), s)
+}
+
 // TubeCurves builds paired p-curves for an increasing same-axis chain.
 // It independently rechecks every junction because the reports are mutable.
 // Adjacent endpoint boxes are intersected, so shared representatives agree
