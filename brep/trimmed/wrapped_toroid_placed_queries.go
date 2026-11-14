@@ -114,3 +114,23 @@ func (s Solid) SectionPlacedCircularToroidRational(ctx context.Context, pose pla
 	}
 	return out, ctx.Err()
 }
+
+// ClipPlacedCircularToroidLineRational returns closed whole-material spans on
+// the original world line, under the toroid's proved exact occurrence pose.
+func (s Solid) ClipPlacedCircularToroidLineRational(ctx context.Context, pose placement.RationalRigid, origin, direction [3]*big.Rat, minT, maxT *big.Rat,
+	o geom.ToroidLineOptions) (geom.ToroidLineMaterial, error) {
+	var out geom.ToroidLineMaterial
+	p, e := pose.TransformPoint(ctx, origin, true, o.Surface.MaxCoefficientBits)
+	if e != nil {
+		return out, e
+	}
+	d, e := pose.TransformVector(ctx, direction, true, o.Surface.MaxCoefficientBits)
+	if e != nil {
+		return out, e
+	}
+	w, e := s.canonicalToroidSupport(ctx)
+	if e != nil {
+		return out, e
+	}
+	return geom.ClipWrappedCircularToroidLineRational(ctx, w, p, d, minT, maxT, o)
+}
