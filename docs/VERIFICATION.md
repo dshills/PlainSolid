@@ -1,5 +1,19 @@
 # Verification record
 
+## PlainCAD stepped shaft and hex socket STEP exchange — 2026-11-14
+
+The native shoulder, shaft and head cylinders, and blind polygonal
+socket are exchanged together. Import derives the stock dimensions,
+socket wire, and floor and checks the complete regenerated graph.
+Native signed placement and centimeter normalization pass.
+
+[Six original fastener, Thread, Revolve and STEP tests plus provider preflight](evidence/plaincad-socket-fastener-step-browser-2026-11-14.json)
+and the [authored M3 fastener STEP and STL extension](evidence/plaincad-socket-fastener-step-native-2026-11-14.json)
+pass. The 39,536-byte STEP reexports byte-identically after import and
+project reopen. The imported STL has 276 watertight triangles.
+Independent OCCT verifies the authored file and native shaft examples
+with and without the socket. Focused race checks and Go vet pass.
+
 ## PlainCAD equal-setback circular rim chamfer STEP exchange — 2026-11-14
 
 A complete station-loft proof validates the exact ruled frustum bands,
