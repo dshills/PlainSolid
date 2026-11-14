@@ -11,8 +11,8 @@ import (
 )
 
 // ReadCylinderTorusCavityOccurrence accepts the paired placed STEP dialect, recovering
-// its exact proper signed-coordinate pose from the actual torus axis placement. Direction
-// ratios must be signed coordinate axes: no binary conversion
+// its exact proper rational pose from the actual torus axis placement. Direction
+// ratios must be exact unit perpendicular vectors: no binary conversion
 // or silent normalization authenticates pose. All 3D geometry is pulled back
 // exactly and validated by the canonical importer, then the complete forward
 // graph is rechecked. General OCCT-healed/rounded dialects remain unsupported.

@@ -19,3 +19,13 @@ irrational intersection rims in this strict containment family. The existing
 analytic primitive writers use represented 2π pcurve endpoints; their seam
 roundoff is not an exact symbolic angular encoding. No source-recovery import
 or arbitrary placed dialect is claimed by this milestone.
+
+The optional eighth argument `oblique` checks the rational proper pose with
+X=(3/5,0,-4/5), Z=(4/5,0,3/5), translation=(1/10,-2/5,3/8).
+It independently builds original OCCT primitives at that pose and performs
+Cut, compares transferred volume/area/centroid, and intersects both independent
+and transferred shapes with the transformed original X line. All six retained
+boundary parameters are checked against [-8,-7,-3,3,7,8]. Run
+TestCylinderTorusCavityObliqueOccurrence with the same environment variable.
+The exact occurrence accepts proper rational rotations only when all source
+pose and transformed geometry values have bounded finite decimal expansions.

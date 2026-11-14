@@ -11,7 +11,7 @@ import (
 )
 
 // CylinderTorusCavitySTEPOccurrence preserves the exact local native cavity and
-// a proper signed-coordinate pose. Translation and transformed coordinates must
+// a proper rational pose. Translation and transformed coordinates must
 // have bounded finite decimal expansions; no rounded world native BRep is made.
 type CylinderTorusCavitySTEPOccurrence struct {
 	original ImportedCylinderTorusCavity
@@ -44,13 +44,6 @@ func (s ImportedCylinderTorusCavity) PlaceSTEP(ctx context.Context, p rigidplace
 	matrix, e := p.Matrix()
 	if e != nil {
 		return zero, e
-	}
-	for _, row := range matrix {
-		for j := 0; j < 3; j++ {
-			if row[j].Sign() != 0 && row[j].Cmp(big.NewRat(1, 1)) != 0 && row[j].Cmp(big.NewRat(-1, 1)) != 0 {
-				return zero, geom.ErrDomain
-			}
-		}
 	}
 	for _, row := range matrix {
 		for _, q := range row {
