@@ -13,8 +13,19 @@ Ordered Common of a genuinely creased original roof retains two distinct
 roof fragments and their one-sided slopes. The 10-face solid has one shell
 and Euler characteristic two. Analytic area and volume agree with live
 pinned OCCT, and native reload rechecks the boundary. A second fixture
-switches original roof owner exactly at the knot. Interior switching fails
-atomically. The focused live race suite passed in 20.727 seconds.
+switches original roof owner exactly at the knot. Subsequent Common and
+Fuse tests imprinted crossings within single and multiple original spans.
+The creased stock crosses the other roof at X=1/4 and X=3/4. Common and
+Fuse each sew one 18-face shell and agree with independently authored
+OCCT on area and analytic volumes 35/16 and 37/16. A nonrepresentable
+crossing rejects before publishing topology. The four focused original
+knot and crossing tests passed under race in 11.301 seconds.
+
+The corresponding Cut retains whole creased upper bands, both bands
+of a fully separating cutter, and creased source faces on either side
+of a strictly enclosed cavity. Authored OCCT results agree with the
+analytic volumes 3/4, 11/4, 2, and 45/8. A terminating cut band or
+cavity contact remains a separate topology proof.
 
 Exact native source-use restriction preserves quadratic and cubic controls,
 outer and hole ownership, and orientation under nonbinary restriction.
@@ -28,6 +39,77 @@ profile integral gives material volume 28.5738627004. The 288-triangle
 display has volume 27.8423645320 at deflection 0.2. Changing only interior
 rim weights rejects the loft even when station corners agree. The focused
 integrated race passed in 8.156 seconds.
+
+The mixed original source section-to-native pipeline retains 12 exact
+source uses. The resulting six faces and 18 edges enclose volume 0.125.
+Native JSON rechecks every original edge and the affine tube endpoints.
+One-ULP vertex displacement fails on read and on write before publishing
+output. The focused integrated race passed in 53.640 seconds. The
+noncircular loft's separate exact point tests distinguish rational points
+inside, on, and outside the original weighted profile, and check original
+cap and crease owners.
+
+The quadratic-warped source fixture retains eight genuinely curved
+tube uses and passes native write and reload using an exact paired
+chart-path proof. The full six-face, 30-edge result holds the original
+volume 0.125. The initial focused integrated pipeline race passed in
+47.795 seconds. The bounded automatic paired-chart fallback eliminates
+caller tubes on the same original fixture. Its independent coverage
+rejects an omitted interval and an off-lattice second branch. Its full
+integrated race passed in 161.849 seconds. Exact quarter-position
+discovery passed separately. Returning an immutable verified tube
+and diagnostic report from a single proof reduced one 32-slab
+discovery from 95,013 to 54,053 exact operations. The focused
+geometry and discovery race groups passed in 1.468 and 36.107 seconds.
+
+The wrapped rational station loft line test independently
+checks two disconnected interior spans, an oblique rational exit,
+irrational root brackets, cap and crease ownership, and multiplicity.
+Its integrated race passed in 20.526 seconds.
+The cap and selected generator coincidence tests preserve original
+endpoint owners. Exact section extraction retains both wall IDs
+at the waist, and retains the weighted chart at nonbinary heights.
+These integrated race checks passed in 25.278 seconds. The separate
+exact rational mass proof bounds the sectional area with inner chords
+and outer control polygons. Independent symmetric and asymmetric
+integrals passed under race in 7.920 seconds with a volume enclosure
+width below 0.01.
+
+AP242 product-local palette input and the canonical STEP round trip
+agree with live OCCT XCAF on both local colors, three occurrences,
+volume 54 and area 126. The integrated race passed in 1.467 seconds.
+The wrapped spline p-curve exact decimal gate rejects distinct source
+coefficients below a binary64 ULP and excessive exponent spellings.
+Original and re-emitted wrapped tube STEP still agree with OCCT's
+adaptive area and volume. The integrated live race passed in 4.408
+seconds.
+Flat AP242 contextual styles retain exact occurrence, placement, body,
+preceding style and context ownership. The source and re-export preserve
+red, blue and green occurrence colors, volume 54 and area 126 in live
+OCCT XCAF. The integrated occurrence race passed in 2.253 seconds.
+The source-backed native appearance envelope revalidates original
+geometry, poses, styles and contextual record ancestry on reload. Its
+integrated live race passed in 2.489 seconds.
+
+## PlainCAD qualification on kernel 18204a56 (2026-11-14)
+
+The [run record](evidence/plaincad-main-18204a56-2026-11-14.json) links
+the raw reports and build hashes for app `efae4d2` and kernel
+`18204a56`. The original development run passed 342 of 345. The
+three modeling failures were font requests denied by Vite because the
+dependency directory was symlinked outside the workspace. The same
+WASM and three original fixtures passed with dependencies physically
+inside a clean stage. The original production run passed 65 of 66.
+Chromium evicted the 16.5 MB WASM response before the CSP test could
+hash it. The focused control passed, and the full production rerun
+with the same app, port and fixtures and the larger DevTools capture
+buffer passed all 66 cases with zero skips, retries or flakes.
+Chromium, Firefox and WebKit passed all 15 configured cases. The
+unit suite passed 1,691 tests in 220 files once its legacy OCCT fixture
+assets were accessible in a local dependency stage. The four selected
+Go WASM contracts passed separately. Both TypeScript checks and all
+72 JavaScript bundle budgets passed. The corrected full development
+run is still in progress.
 
 ## PlainCAD acceptance on the main merge 8f76f16b — 2026-11-14
 

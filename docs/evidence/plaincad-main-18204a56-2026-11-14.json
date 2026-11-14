@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "plainCadProviderCommit": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "buildKernel": {
+    "revision": "18204a56b93dbc4cd493246cfb436f174fae01e9",
+    "go": "go version go1.27.4 darwin/arm64",
+    "wasmSha256": "a1fc24440031ac3de7767bb5520b9a8c745d25617aed999aea38ca594ba98d94",
+    "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "builtWasm": {
+    "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/dist/assets/plainsolid-kernel-SJEGJFTu.wasm",
+    "sha256": "a1fc24440031ac3de7767bb5520b9a8c745d25617aed999aea38ca594ba98d94",
+    "bytes": 16521529
+  },
+  "checks": {
+    "build": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/build.log",
+      "sha256": "d7114dd2e11976ab4bbc5ba4ebb9d49b803ab29a3dd742991d5c2cdf615b1b82"
+    },
+    "types": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/types.log",
+      "sha256": "ff610e03902daa5e6fc10b21d75419670df9386aa4fbe470d8dbb977214a0963"
+    },
+    "localDependencyBuild": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/build.log",
+      "sha256": "ea87821af994ebff6fed1e7a59d52ab0fdde510ae4414ec83ec9f34febb06b1e"
+    },
+    "localDependencyTypes": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/types.log",
+      "sha256": "ff610e03902daa5e6fc10b21d75419670df9386aa4fbe470d8dbb977214a0963"
+    }
+  },
+  "reports": {
+    "development-original-staging": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/development.json",
+      "sha256": "57ddfac3cd46cd504c7e60812ebced288b577156ef21b9994f0a8304dbe0ec0d",
+      "stats": {
+        "startTime": "2026-11-14T20:11:39.352Z",
+        "duration": 2088300.285,
+        "expected": 342,
+        "skipped": 0,
+        "unexpected": 3,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": [
+        {
+          "file": "modeling.spec.ts",
+          "title": "XY: non-template modeling, edit, save/open, and real-kernel STL",
+          "status": "unexpected"
+        },
+        {
+          "file": "modeling.spec.ts",
+          "title": "XZ: non-template modeling, edit, save/open, and real-kernel STL",
+          "status": "unexpected"
+        },
+        {
+          "file": "modeling.spec.ts",
+          "title": "YZ: non-template modeling, edit, save/open, and real-kernel STL",
+          "status": "unexpected"
+        }
+      ]
+    },
+    "development-local-dependencies": null,
+    "development-original-modeling-control": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-local-deps.cloKKY/modeling-font-control.json",
+      "sha256": "2cc3f0a69dfcb7860b43318a42dd1ef9bf6f6556b032a76eb978fd433829bc2f",
+      "stats": {
+        "startTime": "2026-11-14T20:29:34.306Z",
+        "duration": 37556.011,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": []
+    },
+    "production-ordinary": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/production.json",
+      "sha256": "bf1c6383c60397c8a8552c58e574b701fd236129e39cafa575604de9b4451197",
+      "stats": {
+        "startTime": "2026-11-14T20:46:28.238Z",
+        "duration": 253186.584,
+        "expected": 65,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": [
+        {
+          "file": "csp.spec.ts",
+          "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+          "status": "unexpected"
+        }
+      ]
+    },
+    "production-csp-capture-control": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-cdp.W7VUAs/csp-control.json",
+      "sha256": "7bf4532c1a13545491bdd42159ba6a9b9632e6c91a4a72922fd7ca62019b3f36",
+      "stats": {
+        "startTime": "2026-11-14T20:48:44.456Z",
+        "duration": 7758.145,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": []
+    },
+    "production-capture-buffer": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-cdp.W7VUAs/production-buffered.json",
+      "sha256": "661acfbae09a71ee4b7b53560c556085debb73a1c922e3e09c512aea2e976048",
+      "stats": {
+        "startTime": "2026-11-14T20:51:55.297Z",
+        "duration": 259642.29799999998,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": []
+    },
+    "cross-browser": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/cross-browser.json",
+      "sha256": "1a94f763d7665cc1d30f4b6006981ff8bcc25470b95d7a4ebebe9153cfae806e",
+      "stats": {
+        "startTime": "2026-11-14T20:50:41.921Z",
+        "duration": 51861.573,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "harnessErrors": 0,
+      "failures": []
+    },
+    "ordinary-units-original-staging": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/ordinary-units.json",
+      "sha256": "865d4830740c0943c877718cbfff061d1fb1fe9dde39f2ef2277c00bdcf36c5d",
+      "files": 220,
+      "passed": 572,
+      "failed": 0,
+      "failedFiles": 142,
+      "pending": 0,
+      "success": false,
+      "selection": "ordinary app suite"
+    },
+    "ordinary-units-local-dependencies": {
+      "path": "/tmp/plainsolid-18204a56-plaincad-cdp.W7VUAs/ordinary-units-local.json",
+      "sha256": "9146c7c24a848246719c8a04b07585f56543ea80d27c7fc7fc268160bfb8ec3c",
+      "files": 220,
+      "passed": 1691,
+      "failed": 0,
+      "failedFiles": 0,
+      "pending": 0,
+      "success": true,
+      "selection": "ordinary app suite"
+    },
+    "selected-go-wasm-contracts": {
+      "path": "/tmp/plainsolid-18204a56-plaincad.hgAQ1l/selected-kernel.json",
+      "sha256": "876feba5353d7c899684527b0b119e076187805bd92d30ba38545eb2e859257b",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "failedFiles": 0,
+      "pending": 0,
+      "success": true,
+      "selection": "selected Go WASM provider suite"
+    }
+  },
+  "ordinaryUnitOptions": {
+    "workers": 1,
+    "retryLimit": 2,
+    "testTimeoutMs": 15000
+  },
+  "chromiumDiagnostic": {
+    "playwright": "1.63.0",
+    "networkBufferBytes": 134217728,
+    "perResourceBufferBytes": 33554432,
+    "beforeSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+    "afterSha256": "2bad350c6198b7ebdb3875b91afdc1d61c15d1c5c84ccc6f483dddb5bc1e9a39"
+  },
+  "notes": [
+    "Original development stage used symlinked node_modules. Vite denied the Inter font requests; the three original modeling cases passed in a physically copied dependency stage.",
+    "The original production case failed when Chromium evicted the captured response. The enlarged-buffer rerun preserved original fixtures, app code, port, and WASM.",
+    "Ordinary units cover existing legacy-provider contracts. Selected Go WASM tests cover the separate provider suite.",
+    "A null report denotes a suite still running."
+  ]
+}

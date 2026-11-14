@@ -14,15 +14,46 @@ timeout. A separate full normal and race qualification is running from
 `18204a56` in three deterministic trimmed-solid groups and the remaining
 packages. The PlainCAD release runs use the same kernel snapshot and the
 original app provider configuration at `efae4d2`.
+The normal run outside `brep/trimmed` completed on that snapshot. It
+records 50 passing packages, five without tests and no failed packages.
+The external-oracle and optional large-fixture skips are explicit in the
+log. The trimmed groups and race qualification are still running.
 General curved Boolean splitting, advanced surface modeling and broader CAD
 exchange remain separate implementation work against the specification.
 
-Ordered roof Common now retains genuine original spline creases. It can
-change the selected roof across an existing exact knot, with no interior
-wall or rounded edge weld. A switching roof inside a knot interval still
-needs a new imprint. Native algebraic reconstruction can also retain
-original quadratic and cubic source p-curves on both outer and hole loops
-when the native endpoint and model range requirements are met.
+Ordered roof Common and matching-footprint Fuse retain genuine original
+spline creases and imprint exact axis-aligned crossings inside original
+knot rectangles. Adjacent cap tiles share the same exact edge. Crossings
+that require nonrepresentable native vertex coordinates or general curved
+imprints remain open. Native algebraic reconstruction retains original
+quadratic and cubic source p-curves on outer and hole loops and re-proves
+mixed exact and implicit tube uses on JSON reload when both chart paths
+are affine, including curved model paths. The bounded automatic path
+proposer now certifies the original curved fixture without supplied seeds.
+Ordered roof Cut retains creases
+in full-footprint bands and strictly enclosed cavities. The noncircular
+rational station loft has exact point classification, isolated line events,
+coincident cap and selected wall spans, exact horizontal sections, and
+certified volume and centroid bounds.
+
+The STEP reader now qualifies standard named product colors on an
+independently authored AP242 assembly, including repeated product use.
+The flat contextual occurrence reader authenticates whole-body override
+ownership and can independently preserve the original STEP source.
+Nested and face-specific occurrence styles remain open. Wrapped
+spline p-curves require exact original pole and knot coordinates before
+normalization.
+
+The [current PlainCAD runs](evidence/plaincad-main-18204a56-2026-11-14.json)
+use kernel `18204a56`. All 15 Chromium, Firefox and WebKit cases, four
+selected WASM contracts, 1,691 ordinary units, typechecks and bundle
+budgets pass. The original production run passed 65 of 66. Enlarging
+the local Chromium response capture buffer recovered the failed CSP
+case and all 66 passed in the full rerun. Vite denied fonts through the
+original dependency symlink, causing three development failures. All
+three passed when the same dependencies were placed inside the isolated
+app. The corrected full development run uses the original fixtures,
+configuration and port.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume
