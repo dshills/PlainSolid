@@ -5,9 +5,9 @@ implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
 The two PlainCAD integration branches are in `main` through the implementation
-merge `8f76f16b` and the final verification merge `012096ee`. The next release
-checks are a clean full PlainCAD run and completion of native Go
-qualification, including the expensive trimmed-solid cases. The 65-minute
+merge `8f76f16b` and the final verification merge `012096ee`. The full PlainCAD qualification below passed on the pinned provider.
+Native race qualification and newer release runs remain active, including
+the expensive trimmed-solid cases. The 65-minute
 pure-Go short run at `3a488eb5` passed every package outside `brep/trimmed`
 and reached `TestCertifiedSelectedTubeRegionCollection` before its package
 timeout. A separate full normal and race qualification is running from
@@ -66,7 +66,10 @@ three passed when the same dependencies were placed inside the isolated
 app. The corrected full development run passed all 345 with the original
 fixtures, configuration and port. On newer kernel `1d938079`, the same
 PlainCAD app separately passed the three modeling cases and four WASM
-contracts.
+contracts. The [newer qualification checkpoint](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
+records the full normal Go and PlainCAD reruns on `6c4ab7c4`. The WASM
+build, type checks, JavaScript bundle budget and four selected kernel
+contracts passed. The full browser and native runs are still active.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

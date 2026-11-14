@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "kernelRevision": "6c4ab7c40724f26fc721c26d1e2c8a4417537898",
+  "checkpointAt": "2026-11-14T16:20:56-06:00",
+  "goNormal": {
+    "status": "running",
+    "CGO_ENABLED": 0,
+    "Go": "1.27.4",
+    "GOMAXPROCS": 2,
+    "timeoutMinutesPerLane": 210,
+    "selection": "All packages. Disjoint deterministic lanes for brep/trimmed. No -short.",
+    "lanes": {
+      "packages": {
+        "path": "/tmp/plainsolid-refresh-go.YxS4pf/packages.jsonl",
+        "sha256AtCheckpoint": "49f76b44f82915f0b475e48490282bb00ef3808f24659d20e4be60bdf8d4bf37",
+        "bytesAtCheckpoint": 5441069,
+        "packageOutcomes": {
+          "pass": 49,
+          "skip": 5
+        },
+        "testOutcomesIncludingSubtests": {
+          "pass": 6477,
+          "skip": 417
+        },
+        "topLevelTestOutcomes": {
+          "pass": 3494,
+          "skip": 407
+        },
+        "activeTopLevelTestsAtCheckpoint": {
+          "plainsolid/intersect": "TestTripleRadialOriginalTubeDiscovery"
+        },
+        "failures": []
+      },
+      "trimmed-0": {
+        "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-0.jsonl",
+        "sha256AtCheckpoint": "a1c74c268aba842d7312f9f9cf5ce8f331f548abf8db3425158e1e894df509b2",
+        "bytesAtCheckpoint": 37051,
+        "packageOutcomes": {},
+        "testOutcomesIncludingSubtests": {
+          "pass": 38
+        },
+        "topLevelTestOutcomes": {
+          "pass": 33
+        },
+        "activeTopLevelTestsAtCheckpoint": {
+          "plainsolid/brep/trimmed": "TestMixedUnionProjectedHoleRegion"
+        },
+        "failures": []
+      },
+      "trimmed-1": {
+        "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-1.jsonl",
+        "sha256AtCheckpoint": "84317372a49b570bc7328681c7c8cb775632eb6dbb3efcf9155f1a3cd92b362f",
+        "bytesAtCheckpoint": 55674,
+        "packageOutcomes": {},
+        "testOutcomesIncludingSubtests": {
+          "pass": 58
+        },
+        "topLevelTestOutcomes": {
+          "pass": 46
+        },
+        "activeTopLevelTestsAtCheckpoint": {
+          "plainsolid/brep/trimmed": "TestNativeTubeRegionCollectionMesh"
+        },
+        "failures": []
+      },
+      "trimmed-2": {
+        "path": "/tmp/plainsolid-refresh-go.YxS4pf/trimmed-2.jsonl",
+        "sha256AtCheckpoint": "24d41c0f9c275e1cd84b59cfd9fe36c22aa5b35ccdf80f5441360b353b331331",
+        "bytesAtCheckpoint": 37043,
+        "packageOutcomes": {},
+        "testOutcomesIncludingSubtests": {
+          "pass": 39
+        },
+        "topLevelTestOutcomes": {
+          "pass": 37
+        },
+        "activeTopLevelTestsAtCheckpoint": {
+          "plainsolid/brep/trimmed": "TestMixedDifferenceRoofCollarsAndClosedMesh"
+        },
+        "failures": []
+      }
+    }
+  },
+  "plainCad": {
+    "status": "running",
+    "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+    "wasm": {
+      "revision": "6c4ab7c40724f26fc721c26d1e2c8a4417537898",
+      "go": "go version go1.27.4 darwin/arm64",
+      "wasmSha256": "7e5b451ffce9c66dbf529becb17b9490f8674c34119dd9ae3cf32a25ab110c66",
+      "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+    },
+    "root": "/tmp/plainsolid-refresh-plaincad.DxtFMB",
+    "dependencies": "Local copy of the same installed dependencies used by the previous corrected full run.",
+    "completedExitCodes": {
+      "wasm": 0,
+      "build": 0,
+      "types": 0,
+      "selected-kernel": 0
+    },
+    "developmentLive": {
+      "passedLines": 230,
+      "failedLines": 0,
+      "logAtCheckpoint": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/development.log",
+        "bytes": 35619,
+        "sha256": "59501ccbff4f20b482ec71af9e6681cf7606c15c803e6f081fd33776e924987c"
+      }
+    },
+    "completedLogs": {
+      "wasm": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/wasm.log",
+        "bytes": 286,
+        "sha256": "5614b0b4265e167bdeb0c85881695783e9a54c7cd815910eba3a33be4e30502b"
+      },
+      "build": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/build.log",
+        "bytes": 11663,
+        "sha256": "6535f4ce743fe6b98f556902b1ca69891ce6d4271b08e2fb311e224c2ab9839d"
+      },
+      "types": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/types.log",
+        "bytes": 70,
+        "sha256": "ff610e03902daa5e6fc10b21d75419670df9386aa4fbe470d8dbb977214a0963"
+      },
+      "selected-kernel": {
+        "path": "/tmp/plainsolid-refresh-plaincad.DxtFMB/selected-kernel.log",
+        "bytes": 318,
+        "sha256": "b1ba8d0f2f7cf552a08b5d8e299a7df010a64ba37409e8cfdb82341ff5133af6"
+      }
+    }
+  }
+}

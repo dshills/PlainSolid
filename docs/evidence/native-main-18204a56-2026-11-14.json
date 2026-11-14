@@ -19,13 +19,25 @@
       "skip": 13,
       "fail": 0,
       "mixedTestRevision": true
+    },
+    "artifacts": {
+      "path": "/tmp/plainsolid-18204a56-normal-qualification-artifacts.tar.gz",
+      "bytes": 488987,
+      "sha256": "5683c2fe93785bc097edcef1a42d130e698dc571db3538bda8dcf6645f2fae2c"
     }
   },
   "race": {
     "CGO_ENABLED": 1,
     "timeoutMinutes": 145,
     "GOMAXPROCS": 2,
-    "status": "running"
+    "status": "running",
+    "checkpointAt": "2026-11-14T16:20:56-06:00",
+    "remainingIfInterrupted": {
+      "runner": "/tmp/plainsolid-18204a56-race-continuation.py",
+      "planAndResults": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
+      "selection": "Every top-level test missing a pass or explicit skip in the original race JSON is selected after original package completion.",
+      "source": "The same immutable production source with only the verified 313dfb62 assertion correction."
+    }
   },
   "status": "running",
   "lanes": {
@@ -50,22 +62,22 @@
     },
     "packages-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-race.jsonl",
-      "sha256AtCheckpoint": "c6994cfdc6d2b1deccbf75f7b278690dbc9b525af08bc3ea2e18a696c1789226",
-      "bytesAtCheckpoint": 5299748,
+      "sha256AtCheckpoint": "63aa7beb22362c71462784a63091b3f417f364423831819170f83e49b2ba5ce8",
+      "bytesAtCheckpoint": 5304145,
       "packageOutcomes": {
         "pass": 49,
         "skip": 5
       },
       "testOutcomesIncludingSubtests": {
-        "pass": 6304,
+        "pass": 6309,
         "skip": 410
       },
       "topLevelTestOutcomes": {
-        "pass": 3413,
+        "pass": 3415,
         "skip": 400
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/intersect": "TestTripleRadialOriginalTubeDiscovery"
+        "plainsolid/intersect": "TestTripleRadialCoverageRejectsOmittedInnerBranch"
       },
       "failures": []
     },
@@ -89,17 +101,17 @@
     },
     "trimmed-0-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-race.jsonl",
-      "sha256AtCheckpoint": "2b91e96b100e9c2183e6fb615d874604bc4dce9ecf1bcece77fb01f0531443ff",
-      "bytesAtCheckpoint": 16966,
+      "sha256AtCheckpoint": "de58cc5af999991e55d761ff1804b07a8492588700d906156cdb8ce3e28df63c",
+      "bytesAtCheckpoint": 30576,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 18
+        "pass": 32
       },
       "topLevelTestOutcomes": {
-        "pass": 16
+        "pass": 30
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestCertifiedExactPlacedXZBooleanAnnulusFill"
+        "plainsolid/brep/trimmed": "TestGraphWindowNestedDepth"
       },
       "failures": []
     },
@@ -123,17 +135,17 @@
     },
     "trimmed-1-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-race.jsonl",
-      "sha256AtCheckpoint": "e5bddc3c3543207377b1feb7ad6a33b551e0ea958b81b921d361ce738e41cef9",
-      "bytesAtCheckpoint": 17832,
+      "sha256AtCheckpoint": "303f4596039aefd4a1a518223ce0e50e116f203efb7f84573028fcbf62414412",
+      "bytesAtCheckpoint": 55302,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 20
+        "pass": 59
       },
       "topLevelTestOutcomes": {
-        "pass": 17
+        "pass": 54
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestBubbleCertifiedSharedBoundary"
+        "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
       },
       "failures": []
     },
@@ -167,17 +179,17 @@
     },
     "trimmed-2-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-race.jsonl",
-      "sha256AtCheckpoint": "e1cd0571c471302a976b3159e8614f3b285f6295c552837fa41c6b18d3e95d94",
-      "bytesAtCheckpoint": 22072,
+      "sha256AtCheckpoint": "49fd754fe5f85cbd9f82ec32172a955d0056f4a963ebfbf4259c4f20c926aa7f",
+      "bytesAtCheckpoint": 43135,
       "packageOutcomes": {},
       "testOutcomesIncludingSubtests": {
-        "pass": 24
+        "pass": 45
       },
       "topLevelTestOutcomes": {
-        "pass": 12
+        "pass": 33
       },
       "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestAlgebraicGraphOccurrenceRationalArea"
+        "plainsolid/brep/trimmed": "TestGraphWindowPolynomialIntegral"
       },
       "failures": []
     }
