@@ -10,6 +10,9 @@ func ellipseShellFaceOrder(shell topologyRecord, records map[int]topologyRecord,
 	if annular {
 		roles = [][2]int{{122, 1}, {122, 0}, {190, 1}, {190, 0}}
 	}
+	return conicShellFaceOrder(shell, records, roles)
+}
+func conicShellFaceOrder(shell topologyRecord, records map[int]topologyRecord, roles [][2]int) (topologyRecord, error) {
 	if len(shell.values) != 2+2*len(roles) {
 		return topologyRecord{}, geom.ErrInvalid
 	}
