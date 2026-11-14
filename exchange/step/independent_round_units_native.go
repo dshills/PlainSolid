@@ -42,7 +42,7 @@ func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMate
 		return normalizedRoundEnvelope{}, geom.ErrInvalid
 	}
 	c := IndependentExactMaterialCollection{Source: m.NormalizedSource, Members: m.Members, LengthUnit: unit, tolerance: m.tolerance}
-	claims, _, e := independentCollectionEnvelope(ctx, c, normalized, true, true)
+	claims, _, e := independentCollectionEnvelope(ctx, c, normalized, true, true, len(planarMode) == 3 && planarMode[2])
 	if e != nil {
 		return normalizedRoundEnvelope{}, e
 	}
@@ -52,9 +52,20 @@ func normalizedRoundClaims(ctx context.Context, m NormalizedIndependentRoundMate
 		format = normalizedPlanarFormat
 		claims.Format = "plainsolid-step-normalized-planar-material-claims"
 	}
-	if len(planarMode) == 2 && planarMode[1] {
+	if len(planarMode) >= 2 && planarMode[1] {
 		format = normalizedMixedFormat
 		claims.Format = "plainsolid-step-normalized-heterogeneous-material-claims"
+	}
+	if len(planarMode) == 3 && planarMode[2] {
+		found := false
+		for _, p := range m.Members {
+			found = found || p.Torus != nil
+		}
+		if !found {
+			return normalizedRoundEnvelope{}, geom.ErrInvalid
+		}
+		format = normalizedToroidalFormat
+		claims.Format = "plainsolid-step-normalized-toroidal-material-claims"
 	}
 	return normalizedRoundEnvelope{format, 1, string(original), m.TargetUnit, append([]RoundMaterialSIUnit(nil), m.OriginalUnits...), claims}, nil
 }
@@ -72,16 +83,17 @@ func writeNormalizedMaterialsJSON(ctx context.Context, w io.Writer, m Normalized
 	if e := ctx.Err(); e != nil {
 		return e
 	}
-	mixed := len(mixedMode) == 1 && mixedMode[0]
-	actual, e := normalizedRoundClaims(ctx, m, planar, mixed)
+	mixed := len(mixedMode) >= 1 && mixedMode[0]
+	torus := mixed && len(mixedMode) == 2 && mixedMode[1]
+	actual, e := normalizedRoundClaims(ctx, m, planar, mixed, torus)
 	if e != nil {
 		return e
 	}
-	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance, planar, mixed)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(actual.OriginalSource)), m.TargetUnit, Limits{}, m.tolerance, planar, mixed, torus)
 	if e != nil {
 		return e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed)
+	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed, torus)
 	if e != nil {
 		return e
 	}
@@ -144,10 +156,15 @@ func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l Independent
 		format = normalizedPlanarFormat
 		claimsFormat = "plainsolid-step-normalized-planar-material-claims"
 	}
-	mixed := len(mixedMode) == 1 && mixedMode[0]
+	mixed := len(mixedMode) >= 1 && mixedMode[0]
+	torus := mixed && len(mixedMode) == 2 && mixedMode[1]
 	if mixed {
 		format = normalizedMixedFormat
 		claimsFormat = "plainsolid-step-normalized-heterogeneous-material-claims"
+	}
+	if torus {
+		format = normalizedToroidalFormat
+		claimsFormat = "plainsolid-step-normalized-toroidal-material-claims"
 	}
 	var q normalizedRoundEnvelope
 	d := json.NewDecoder(bytes.NewReader(raw))
@@ -159,11 +176,11 @@ func readNormalizedMaterialsJSON(ctx context.Context, r io.Reader, l Independent
 	if d.Decode(&extra) != io.EOF {
 		return bad()
 	}
-	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance, planar, mixed)
+	proof, e := readNormalizedIndependentUnits(ctx, bytes.NewReader([]byte(q.OriginalSource)), q.TargetUnit, l.Source, q.Normalized.Tolerance, planar, mixed, torus)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}
-	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed)
+	expected, e := normalizedRoundClaims(ctx, proof, planar, mixed, torus)
 	if e != nil {
 		return NormalizedIndependentRoundMaterials{}, e
 	}

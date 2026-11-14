@@ -34,16 +34,16 @@ c++ -std=c++17 -O2 \
  -L/tmp/plainsolid-occt-build/mac64/clang/lib \
  -Wl,-rpath,/tmp/plainsolid-occt-build/mac64/clang/lib \
  tools/occtref/torus_cylinder_occurrence.cxx \
- -o /tmp/plainsolid-torus-cylinder-world-distance-oracle \
+ -o /tmp/plainsolid-torus-cylinder-world-moments-oracle \
  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomAlgo -lTKGeomBase \
  -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_TORUS_OCCURRENCE=/tmp/plainsolid-torus-cylinder-world-distance-oracle \
+PLAINSOLID_OCCT_TORUS_OCCURRENCE=/tmp/plainsolid-torus-cylinder-world-moments-oracle \
  GOCACHE=/tmp/plainsolid-go-cache go test ./geom ./brep/placement ./internal/occtcheck \
- -run '^(TestTorusCylinderNormals|TestTorusCylinderOccurrence|TestTorusCylinderOccurrenceDistance|TestOCCTTorusCylinderOccurrence)$' -count=1
+ -run '^(TestTorusCylinderNormals|TestTorusCylinderOccurrence|TestTorusCylinderOccurrenceDistance|TestTorusCylinderOccurrenceMoments|TestOCCTTorusCylinderOccurrence)$' -count=1
 ```
 
 Qualified local executable SHA-256:
-3a093c5771cc75b312548fe2a27dba2f29c1be65d3aee96ae6bdfdbc3f0fb65a.
+19ebe0e45cd20e359488252f59bfccf958c90d0ef092835b6c246dbc87dc778a.
 No executable or generated reference data committed.
 
 
@@ -64,3 +64,24 @@ a complete attained circle using two exact orthonormal world vectors instead
 of division by zero. No upper witness is promoted to an exact closest point.
 Unit tests check unchanged complete source reports, perpendicular/unit world
 basis, attained upper distances, circle families and mutable-output isolation.
+
+
+## Exact posed mass tensors
+
+BRepGProp independently integrates every actual oblique Boolean's volume,
+world center and full central inertia matrix. The comparator reconstructs
+world first/raw second moments and origin inertia from those independent
+values, checking all components with a1e-5 numerical allowance. Source
+integration widths remain volume0.01, rawsecond0.1, centroid0.001, inertia0.2.
+These are LOCAL tolerances; no identical transformed-width promise is made.
+
+The kernel reuses one original certificate and exact proper rational pose:
+Fworld=R*F+V*t;
+Qworld=R*Q*R^T+(R*F)*t^T+t*(R*F)^T+V*t*t^T;
+IcenterWorld=R*Icenter*R^T.
+Centroid is t+R*Clocal, origin inertia is trace(Qworld)*identity-Qworld.
+Sign-aware exact interval arithmetic preserves all off-diagonal bounds, with
+separate reported transform operation and coefficient limits. Failures discard
+the entire report. Tests include exact identity and signed-axis equivalence,
+independent c=R antiderivative tensors under the rational oblique pose, one
+mapping operation less than required, cancellation and output ownership.

@@ -39,7 +39,7 @@ func ReadNormalizedIndependentMaterials(ctx context.Context, r io.Reader, target
 	return q, nil
 }
 
-func readHeterogeneousUnitMaterial(ctx context.Context, f *File, l Limits, tol float64) (IndependentExactMaterial, error) {
+func readHeterogeneousUnitMaterial(ctx context.Context, f *File, l Limits, tol float64, torusMode ...bool) (IndependentExactMaterial, error) {
 	bad := func() (IndependentExactMaterial, error) { return IndependentExactMaterial{}, geom.ErrInvalid }
 	planar, faces := true, 0
 	for _, id := range f.Order {
@@ -61,11 +61,11 @@ func readHeterogeneousUnitMaterial(ctx context.Context, f *File, l Limits, tol f
 		return bad()
 	}
 	if !planar {
-		m, e := readIndependentExactMaterial(ctx, f, l, tol, true, true, true)
+		m, e := readIndependentExactMaterial(ctx, f, l, tol, true, true, true, len(torusMode) == 1 && torusMode[0])
 		if e != nil {
 			return IndependentExactMaterial{}, e
 		}
-		if m.Cylinder == nil && m.Sphere == nil {
+		if m.Cylinder == nil && m.Sphere == nil && m.Torus == nil {
 			return bad()
 		}
 		return m, nil

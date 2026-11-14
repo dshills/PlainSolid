@@ -260,8 +260,8 @@ func readIndependentMaterialSelection(ctx context.Context, r io.Reader, l Limits
 		leaf.MaxVertices -= vertices
 		leaf.MaxEdgeUses -= uses
 		var m IndependentExactMaterial
-		if len(cylinderMode) == 4 && cylinderMode[3] {
-			m, e = readHeterogeneousUnitMaterial(ctx, view, leaf, tol)
+		if len(cylinderMode) >= 4 && cylinderMode[3] {
+			m, e = readHeterogeneousUnitMaterial(ctx, view, leaf, tol, len(cylinderMode) == 5 && cylinderMode[4])
 		} else {
 			m, e = readIndependentExactMaterial(ctx, view, leaf, tol, allowPlanar, len(cylinderMode) >= 1 && cylinderMode[0], len(cylinderMode) >= 2 && cylinderMode[1], len(cylinderMode) == 5 && cylinderMode[4])
 		}
