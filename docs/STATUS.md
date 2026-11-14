@@ -98,6 +98,11 @@ reconciliation](evidence/plaincad-reconciled-56b4633-cross-browser-2026-11-14.js
 passed 15 unchanged cases across Chromium, Firefox, and WebKit on
 `56b4633`. The exact original Playwright config and every source hash
 were independently checked; there were no skipped cases or retries.
+The [corner-opening reconciliation](evidence/plaincad-reconciled-1ca7a88-development-corner-holes-step-2026-11-14.json)
+combines the worktree's across-corner cutters from `9770a5a` with
+the native kernel on `1ca7a88`. All 16 original Hole and STEP
+browser cases passed, with no skips or retries. The focused trimmed,
+STEP, and bridge tests passed on that same review build.
 
 The first gate is a real Go WebAssembly kernel adapter exercised through
 PlainCAD's signed polygon extrusion, edit, save/reload and STL browser fixtures.
