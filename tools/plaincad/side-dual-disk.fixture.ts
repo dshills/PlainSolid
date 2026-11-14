@@ -12,14 +12,30 @@ import { openStepImport, stepCommand } from "./stepImportAcceptance";
 const bounds = { min: [0, 0, 0], max: [10, 6, 6] };
 const stockArea = 312, stockVolume = 360;
 const angle = Math.PI - Math.acos(.6), capOpening = 6.25 * angle + 3;
-function fixture(depth: number) {
-  const base = addCornerRectangle(createXySketch("Rectangle"), "10mm", "6mm");
+interface SideCutFixture {
+  label: string;
+  bounds: typeof bounds;
+  tools: ReadonlyArray<readonly [number, number, number]>;
+  measures: (depth: number) => { volume: number; area: number };
+  product?: string;
+}
+const equal: SideCutFixture = { label: "", bounds, tools: [[3.5, 0, 2.5], [6.5, 0, 2.5]], measures: depth => ({
+  volume: stockVolume - depth * capOpening,
+  area: stockArea + depth * (5 * angle - 8) - (depth === 6 ? 2 * capOpening : 0),
+}) };
+const offset: SideCutFixture = { label: " offset", bounds: { min: [0, 0, 0], max: [40, 10, 6] },
+  tools: [[12.5, -7.5, 65 / 8], [22, -7.5, 87 / 8]], product: "side-cut-offset-disks", measures: depth => depth === 3
+    ? { volume: 2282.902744168073, area: 1405.432569688520 }
+    : { volume: 2165.805488336147, area: 1332.800302155755 },
+};
+function fixture(depth: number, model: SideCutFixture = equal) {
+  const base = addCornerRectangle(createXySketch("Rectangle"), `${model.bounds.max[0]}mm`, `${model.bounds.max[1]}mm`);
   const stock = createExtrudeFeature({ name: "Pocket stock", sketchId: base.id,
     profileId: detectProfiles(solveSketch(base, {})).profiles[0].id, operation: "newBody", direction: "positive",
     distance: { expression: "6mm", unit: "mm" } });
   let document = upsertFeature(upsertSketch(createEmptyDocument("Side-opening pocket pair"), base), stock);
-  for (const x of [3.5, 6.5]) {
-    const circle = addCircleAt(createXySketch(`Cutter at ${x}`), `${x}mm`, "0mm", "2.5mm");
+  for (const [x, y, radius] of model.tools) {
+    const circle = addCircleAt(createXySketch(`Cutter at ${x}`), `${x}mm`, `${y}mm`, `${radius}mm`);
     const cut = createExtrudeFeature({ name: `Cut ${x}`, sketchId: circle.id,
       profileId: detectProfiles(solveSketch(circle, {})).profiles[0].id, operation: "cut", direction: "positive",
       distance: { expression: `${depth}mm`, unit: "mm" }, targetBodyIds: [`body:${stock.id}`] });
@@ -65,15 +81,14 @@ async function rebuilt(page: Page) {
   return state.value as unknown as Snapshot;
 }
 
-for (const depth of [3, 6]) {
-  test(`Go WASM overlap of two side-opening circles: ${depth === 3 ? "blind" : "through"} rebuild, reopen, STL and STEP`, async ({ page }, info) => {
-    const volume = stockVolume - depth * capOpening;
-    const area = stockArea + depth * (5 * angle - 8) - (depth === 6 ? 2 * capOpening : 0);
+for (const model of [equal, offset]) for (const depth of [3, 6]) {
+  test(`Go WASM overlap of two side-opening${model.label} circles: ${depth === 3 ? "blind" : "through"} rebuild, reopen, STL and STEP`, async ({ page }, info) => {
+    const { volume, area } = model.measures(depth);
     const forbidden: string[] = [];
     page.on("request", request => { if (/opencascade\.(?:wasm|js)/.test(request.url())) forbidden.push(request.url()); });
     await observeStepProofs(page);
     await page.goto("/");
-    const { document, bodyId } = fixture(depth);
+    const { document, bodyId } = fixture(depth, model);
     const opened = await stepCommand(page, { command: "file.openProject", arguments: { file: { name: "pocket-pair.pcaddoc", text: JSON.stringify(document) } } });
     expect(opened).toMatchObject({ ok: true });
     const check = async (expectedBody?: string) => {
@@ -82,7 +97,7 @@ for (const depth of [3, 6]) {
       expect(state.rebuild.bodies).toHaveLength(1);
       const [body] = state.rebuild.bodies;
       if (expectedBody) expect(body.id).toBe(expectedBody);
-      expect(body.bounds).toEqual(bounds);
+      expect(body.bounds).toEqual(model.bounds);
       expect(body.assertions).toMatchObject({ valid: true, solidCount: 1 });
       expect(body.assertions.volume).toBeCloseTo(volume, 7);
       expect(body.assertions.surfaceArea).toBeCloseTo(area, 7);
@@ -112,7 +127,7 @@ for (const depth of [3, 6]) {
     expect(proof.units).toBe("mm");
     for (const set of [proof.before, proof.after]) {
       expect(set).toHaveLength(1);
-      expect(set[0]).toMatchObject({ valid: true, solidCount: 1, bounds });
+      expect(set[0]).toMatchObject({ valid: true, solidCount: 1, bounds: model.bounds });
       expect(set[0].volume).toBeCloseTo(volume, 7);
       expect(set[0].surfaceArea).toBeCloseTo(area, 7);
     }
@@ -123,6 +138,7 @@ for (const depth of [3, 6]) {
     const source = await readFile(step, "utf8");
     expect(source.match(/CYLINDRICAL_SURFACE\(/g)).toHaveLength(2);
     expect(source).not.toContain("PCURVE(");
+    if (model.product) expect(source).toContain(`PRODUCT('${model.product}'`);
 
     const empty = createEmptyDocument("STEP readback");
     expect(await stepCommand(page, { command: "file.openProject", arguments: { file: { name: "empty.pcaddoc", text: JSON.stringify(empty) } } })).toMatchObject({ ok: true });
