@@ -158,6 +158,15 @@ func TestAlgebraicSectionRetainsNonbinarySupports(t *testing.T) {
 			}
 		}
 	}
+	m, e := section.TessellateTubeRunCertified(ctx, 0, 0, 0, AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .02}})
+	if e != nil || len(m.Vertices) < 3 || len(m.SquaredErrors) != 1 {
+		t.Fatal("verified cut polyline lost its exact nonbinary source", len(m.Vertices), e)
+	}
+	for _, p := range m.Vertices {
+		if p.Y != .5 || p.Z != 0 {
+			t.Fatal("polyline left the independently known section line", p)
+		}
+	}
 }
 
 func makeFlatExactNet(in [][4]*big.Rat) [][4]*big.Rat {

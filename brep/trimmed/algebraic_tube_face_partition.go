@@ -190,10 +190,7 @@ func (r AlgebraicTrimmedPairSection) PartitionFaceByTubeRun(ctx context.Context,
 			p = AlgebraicTubeFacePartition{ExactOperations: p.ExactOperations}
 		}
 	}()
-	s := r.partitionSource
-	if s == nil {
-		s = r.exactPartitionSource
-	}
+	s := r.runSource()
 	if ctx == nil || s == nil || chart < 0 || chart > 1 || branch < 0 || branch >= len(s.branches) ||
 		run < 0 || run >= len(s.branches[branch].Runs) {
 		return p, geom.ErrInvalid

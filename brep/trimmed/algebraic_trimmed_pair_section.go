@@ -53,6 +53,13 @@ type AlgebraicTrimmedPairSection struct {
 	exactPartitionSource                        *trimmedSectionPartitionSource
 }
 
+func (r AlgebraicTrimmedPairSection) runSource() *trimmedSectionPartitionSource {
+	if r.partitionSource != nil {
+		return r.partitionSource
+	}
+	return r.exactPartitionSource
+}
+
 // SectionTrimmedSplinePair proves all contacts between two trimmed faces on
 // the supported regular graph branch subset. The input patches must cover the
 // entire original trims; the trace is independently certified on that larger
