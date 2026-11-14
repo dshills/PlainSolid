@@ -1,5 +1,22 @@
 # Verification record
 
+## PlainCAD blind stops before and at a perpendicular crossing — 2026-11-14
+
+A blind floor inside the near half of the crossing retains two disconnected
+circular segments. A stop exactly through the crossing axis consumes the
+planar floor and retains the analytic cylinder intersection. A shared stock
+and cap-wire builder preserves the previous far-half STEP bytes.
+
+[Seventeen original PlainCAD Hole and STEP scenarios](evidence/plaincad-before-crossed-step-browser-2026-11-14.json)
+pass on the same WASM as the supplemental
+[near-half stop](evidence/plaincad-before-crossed-step-native-2026-11-14.json)
+and [exact-axis stop](evidence/plaincad-center-crossed-step-native-2026-11-14.json).
+Both authored projects export analytic STEP, reimport, reopen and produce
+watertight STL. Thirty new signed native checks and six independent OCCT
+STEP comparisons cover these cases. The two authored models also match
+direct OCCT Booleans in volume, area and centroid. The focused race checks
+and Go vet pass.
+
 ## PlainCAD STEP for disjoint mixed-axis blind Holes — 2026-11-14
 
 Canonical STEP retains up to 32 independent interior bores on two or three

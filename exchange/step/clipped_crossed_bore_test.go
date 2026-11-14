@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -17,13 +18,20 @@ import (
 )
 
 func TestClippedCrossedBoreSTEP(t *testing.T) {
+	for _, depth := range []float64{4.8, 6, 7.2} {
+		t.Run(fmt.Sprint(depth), func(t *testing.T) { testClippedCrossedBoreSTEP(t, depth) })
+	}
+}
+
+func testClippedCrossedBoreSTEP(t *testing.T, depth float64) {
+	t.Helper()
 	for i, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {
 			t.Fatal(err)
 		}
 		p := CrossedBoreBody{Name: "split blind Hole floor", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 12},
-			Crossing: geom.Vec3{X: 10, Y: 8, Z: 6}, Radius: 2, BlindDepth: 7.2, ClippedFloor: true}
+			Crossing: geom.Vec3{X: 10, Y: 8, Z: 6}, Radius: 2, BlindDepth: depth, ClippedFloor: true}
 		unit := .001
 		if i == 2 {
 			unit = .0254
@@ -72,7 +80,15 @@ func TestClippedCrossedBoreSTEP(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctx := context.Background()
-		body, err := trimmed.BoxClippedCrossedBores(ctx, f, p.Dimensions, p.Crossing, p.Radius, p.BlindDepth, 1e-9)
+		var body trimmed.BoxCrossedBoresResult
+		switch {
+		case depth < p.Crossing.Z:
+			body, err = trimmed.BoxBeforeCrossedBores(ctx, f, p.Dimensions, p.Crossing, p.Radius, depth, 1e-9)
+		case depth == p.Crossing.Z:
+			body, err = trimmed.BoxCenterCrossedBores(ctx, f, p.Dimensions, p.Crossing, p.Radius, 1e-9)
+		default:
+			body, err = trimmed.BoxClippedCrossedBores(ctx, f, p.Dimensions, p.Crossing, p.Radius, depth, 1e-9)
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

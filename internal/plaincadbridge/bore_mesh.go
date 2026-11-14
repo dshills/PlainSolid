@@ -11,9 +11,16 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
-	if s.bore.blindCrossed != nil {
-		if s.bore.blindCrossed.clippedFloor {
-			return s.bore.solid.TessellateClippedCrossedBores(ctx, o)
+	if p := s.bore.blindCrossed; p != nil {
+		if p.clippedFloor {
+			switch {
+			case p.depth[1] < p.crossing.Z:
+				return s.bore.solid.TessellateBeforeCrossedBores(ctx, o)
+			case p.depth[1] == p.crossing.Z:
+				return s.bore.solid.TessellateCenterCrossedBores(ctx, o)
+			default:
+				return s.bore.solid.TessellateClippedCrossedBores(ctx, o)
+			}
 		}
 		return s.bore.solid.TessellateBlindCrossedBores(ctx, o)
 	}

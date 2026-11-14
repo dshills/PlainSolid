@@ -63,37 +63,11 @@ func BoxClippedCrossedBores(ctx context.Context, frame geom.Frame, dimensions, c
 	}
 	q := math.Sqrt((radius - h) * (radius + h))
 	theta := math.Acos(h / radius)
-	b := cornerCylinderBuilder{ctx: ctx, frame: frame, verticesByPoint: map[geom.Vec3]int{}, edgesByEnds: map[[2]int]int{}}
+	b, e := crossedStockBuilder(ctx, frame, dimensions)
+	if e != nil {
+		return fail(e)
+	}
 	x, y, z := dimensions.X, dimensions.Y, dimensions.Z
-	polygons := [][]geom.Vec3{
-		{{}, {Y: y}, {X: x, Y: y}, {X: x}},
-		{{Z: z}, {X: x, Z: z}, {X: x, Y: y, Z: z}, {Y: y, Z: z}},
-		{{}, {X: x}, {X: x, Z: z}, {Z: z}},
-		{{X: x}, {X: x, Y: y}, {X: x, Y: y, Z: z}, {X: x, Z: z}},
-		{{Y: y}, {Y: y, Z: z}, {X: x, Y: y, Z: z}, {X: x, Y: y}},
-		{{}, {Z: z}, {Y: y, Z: z}, {Y: y}},
-	}
-	for _, p := range polygons {
-		a := frame.ToWorld(p[0])
-		dx := frame.ToWorld(p[1]).Sub(a)
-		dy := frame.ToWorld(p[3]).Sub(a)
-		f, e := geom.NewFrame(a, dx, dx.Cross(dy))
-		if e != nil {
-			return fail(e)
-		}
-		surface, e := geom.NewPlaneSurface(f)
-		if e != nil {
-			return fail(e)
-		}
-		uv := make([]geom.Vec2, 4)
-		for i, q := range p {
-			l := f.ToLocal(frame.ToWorld(q))
-			uv[i] = geom.Vec2{X: l.X, Y: l.Y}
-		}
-		if e = b.face(surface, p, uv, nil, false); e != nil {
-			return fail(e)
-		}
-	}
 	angles := []float64{0, theta, math.Pi / 2, math.Pi - theta, math.Pi, math.Pi + theta, 3 * math.Pi / 2, 2*math.Pi - theta, 2 * math.Pi}
 	rx := []float64{radius, h, 0, -h, -radius, -h, 0, h, radius}
 	ry := []float64{0, q, radius, q, 0, -q, -radius, -q, 0}
@@ -157,38 +131,9 @@ func BoxClippedCrossedBores(ctx context.Context, frame geom.Frame, dimensions, c
 			if k == 1 {
 				level = high
 			}
-			cap := &b.faces[capID]
-			plane := cap.Surface.(geom.PlaneSurface).Frame()
-			center := plane.ToLocal(frame.ToWorld(crossing.Add(direction.Scale(level))))
-			vx, vy := vector(radialX), vector(radialY)
-			points := make([]geom.Vec3, 8)
-			uv := make([]geom.Vec2, 8)
-			curves := map[int]PCurve{}
-			ids := []int{0, 1, 2, 3, 4, 5, 6, 7}
-			if k == 1 {
-				ids = []int{8, 7, 6, 5, 4, 3, 2, 1}
-			}
-			for j, i := range ids {
-				points[j], e = normalize(point(i, level))
-				if e != nil {
-					return fail(e)
-				}
-				p := plane.ToLocal(frame.ToWorld(points[j]))
-				uv[j] = geom.Vec2{X: p.X, Y: p.Y}
-			}
-			for j, i := range ids {
-				end := i + 1
-				if k == 1 {
-					end = i - 1
-				}
-				raw := EllipseUV{Center: geom.Vec2{X: center.X, Y: center.Y}, Cos: geom.Vec2{X: radius * vx.Dot(plane.XAxis()), Y: radius * vx.Dot(plane.YAxis())}, Sin: geom.Vec2{X: radius * vy.Dot(plane.XAxis()), Y: radius * vy.Dot(plane.YAxis())}, From: angles[i], To: angles[end]}
-				curves[j] = unionArcUV{raw, uv[j], uv[(j+1)%8]}
-			}
-			wire, e := b.wire(cap.Surface, points, uv, curves)
-			if e != nil {
+			if e = b.crossedCapWire(frame, frame.ToWorld(crossing.Add(direction.Scale(level))), vector(radialX), vector(radialY), radius, capID, k == 1, angles, func(i int) geom.Vec3 { return point(i, level) }, normalize); e != nil {
 				return fail(e)
 			}
-			cap.Holes = append(cap.Holes, wire)
 		}
 		for i := 0; i < 8; i++ {
 			a, c := angles[i], angles[i+1]

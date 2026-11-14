@@ -80,7 +80,7 @@ func blindCrossedRecipe(base brep.Solid, tools []*cylinderBody, spans []float64,
 		if p.oppositeCap[1] {
 			distance = p.depth[1] - (p.dimensions.Z - p.crossing.Z)
 		}
-		if distance > 0 && distance < p.radii[0] {
+		if distance > -p.radii[0] && distance < p.radii[0] {
 			p.clippedFloor = true
 			if p.oppositeCap[1] {
 				old := p.frame
@@ -106,7 +106,14 @@ func newBlindCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.
 	var err error
 	switch {
 	case p.clippedFloor:
-		result, err = trimmed.BoxClippedCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.depth[1], 1e-9)
+		switch {
+		case p.depth[1] < p.crossing.Z:
+			result, err = trimmed.BoxBeforeCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.depth[1], 1e-9)
+		case p.depth[1] == p.crossing.Z:
+			result, err = trimmed.BoxCenterCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
+		default:
+			result, err = trimmed.BoxClippedCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.depth[1], 1e-9)
+		}
 	case p.depth[0] != 0:
 		result, err = trimmed.BoxDoubleBlindCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0],
 			p.depth[0], p.depth[1], p.oppositeCap[0], p.oppositeCap[1], 1e-9)
