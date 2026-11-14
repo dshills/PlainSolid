@@ -2644,3 +2644,16 @@ PLAINSOLID_TRIPLE_RADIAL_AFFINE_COVERAGE=1 PLAINSOLID_TRIPLE_RADIAL_MESH=1 GOMAX
 
 Local log: `/tmp/plainsolid-affine-triple-physical-full-2026-11-14.log`, SHA-256
 `7ca811e33294fab9574071ff8340960268a93604b9d8ddf1ca3b12ca98b8053a`.
+
+## Physical annulus moments with independent beta integral (2026-11-14)
+
+`TestAffineRadialPhysicalAnnulusMoments` uses exact Bernstein roofs over
+[2,4]×[−1,2] with a swapped, reversed chart and common nonradial height
+7+X/3−Y/5. For q=(X−3)²+(Y−1/2)², a=25/1024, b=25/256 and L=b−a,
+the gap is H=3(q−a)(b−q). Independent integration gives volume/π=L³/2,
+integral(H²)dq=3L⁵/10, mean q=(a+b)/2, and centroid Z=79/10+3L²/10.
+The new physical volume, planar and mass APIs agree on the exact volume,
+second moments, centroid and first Z moment, including work limits and output
+ownership. The integrated focused geometry race passed in 1.680 s. These
+methods accept explicit radial bands and do not independently select native
+Boolean material.
