@@ -18,7 +18,7 @@ type CrossedObliqueBoreBody struct {
 	Dimensions, Crossing geom.Vec3
 	Radius               float64
 	// AxisRatio zero preserves the legacy 4:3 file representation.
-	// The additional supported ratio is (3,4).
+	// The additional supported ratios are (3,4), (12,5) and (5,12).
 	AxisRatio geom.Vec2
 }
 
@@ -49,7 +49,7 @@ func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	switch p.AxisRatio {
 	case geom.Vec2{}:
 		r, err = trimmed.BoxCrossedBores345(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.Radius, 1e-9)
-	case geom.Vec2{X: 3, Y: 4}:
+	case geom.Vec2{X: 3, Y: 4}, geom.Vec2{X: 12, Y: 5}, geom.Vec2{X: 5, Y: 12}:
 		r, err = trimmed.BoxCrossedObliqueBores(context.Background(), p.Frame, p.Dimensions, p.Crossing, p.AxisRatio, p.Radius, 1e-9)
 	default:
 		return geom.ErrDomain
@@ -115,14 +115,12 @@ func recoverCrossedObliqueBore(f *File, id int64) (CrossedObliqueBoreBody, error
 		return fail()
 	}
 	x, axis := z.frame.XAxis(), z.frame.ZAxis()
-	basis := x.Scale(.8).Add(axis.Scale(.6))
-	ratio := geom.Vec2{}
-	if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
-		basis = x.Scale(.6).Add(axis.Scale(.8))
-		if b.frame.ZAxis().Distance(basis) > 8*0x1p-52 {
-			return fail()
-		}
-		ratio = geom.Vec2{X: 3, Y: 4}
+	ratio, ok := trimmed.CrossedObliqueAxisRatio(x.Dot(b.frame.ZAxis()), axis.Dot(b.frame.ZAxis()))
+	if !ok {
+		return fail()
+	}
+	if ratio == (geom.Vec2{X: 4, Y: 3}) {
+		ratio = geom.Vec2{}
 	}
 	frame, err := geom.NewFrame(geom.Vec3{}, x, axis)
 	if err != nil {

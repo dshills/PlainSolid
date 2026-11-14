@@ -105,12 +105,12 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 		{{Z: 1}, {Y: 1}}, {{X: 1}, {Y: 1}}, {{Y: 1}, {X: 1}}, {{Z: 1}, {X: 1}},
 	} {
 		for _, sign := range []float64{-1, 1} {
-			for _, ratio := range []geom.Vec2{{X: 4, Y: 3}, {X: 3, Y: 4}} {
+			for _, ratio := range []geom.Vec2{{X: 4, Y: 3}, {X: 3, Y: 4}, {X: 12, Y: 5}, {X: 5, Y: 12}} {
 				f, err := geom.NewFrame(geom.Vec3{X: 4, Y: 8, Z: 16}, axes[0], axes[1])
 				if err != nil {
 					t.Fatal(err)
 				}
-				bounds, err := geom.Bounds([]geom.Vec3{f.Origin(), f.ToWorld(geom.Vec3{X: 20, Y: 16, Z: 40})})
+				bounds, err := geom.Bounds([]geom.Vec3{f.Origin(), f.ToWorld(geom.Vec3{X: 20, Y: 16, Z: 70})})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -120,14 +120,20 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 					return coordinates(f.XAxis().Scale(x).Add(f.YAxis().Scale(y)).Add(f.ZAxis().Scale(z)))
 				}
 				point := func(x, y, z float64) vector { return coordinates(f.ToWorld(geom.Vec3{X: x, Y: y, Z: z})) }
-				cardinal := circle(t, b, point(10, 8, -2), vec(0, 0, 1), 2, 44)
-				oblique := circle(t, b, point(10-4*ratio.X, 8, 20-4*ratio.Y*sign), vec(ratio.X, 0, ratio.Y*sign), 2, 48)
+				cardinal := circle(t, b, point(10, 8, -2), vec(0, 0, 1), 2, 74)
+				steps := math.Ceil(18 / ratio.X)
+				oblique := circle(t, b, point(10-steps*ratio.X, 8, 35-steps*ratio.Y*sign), vec(ratio.X, 0, ratio.Y*sign), 2, 150)
 				part, err := b.cutMany(base.Handle, []string{oblique.Handle, cardinal.Handle})
 				if err != nil {
 					t.Fatal(axes, sign, ratio, err)
 				}
-				stretch := 5 / ratio.X
-				near(t, part.GeometryAssertions.Volume, 12800-4*math.Pi*(40+20*stretch)+128*stretch/3)
+				stretch := math.Hypot(ratio.X, ratio.Y) / ratio.X
+				near(t, part.GeometryAssertions.Volume, 22400-4*math.Pi*(70+20*stretch)+128*stretch/3)
+				opening, err := b.shapes[part.Handle].bore.planarFace(f.Origin(), f.XAxis())
+				if err != nil {
+					t.Fatal(axes, sign, ratio, err)
+				}
+				near(t, opening.Area, 1120-4*math.Pi*stretch)
 				before, err := b.exportSTEP([]string{part.Handle})
 				if err != nil {
 					t.Fatal(axes, sign, ratio, err)

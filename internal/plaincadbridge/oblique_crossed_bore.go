@@ -25,13 +25,8 @@ func obliqueCrossingAxis(direction geom.Vec3) (geom.Vec2, float64, bool) {
 	if direction.X == 0 || direction.Y != 0 || direction.Z == 0 {
 		return geom.Vec2{}, 0, false
 	}
-	ax, az := math.Abs(direction.X), math.Abs(direction.Z)
-	for _, ratio := range [2]geom.Vec2{{X: 4, Y: 3}, {X: 3, Y: 4}} {
-		if math.Abs(ax-ratio.X/5) <= 8*0x1p-52 && math.Abs(az-ratio.Y/5) <= 8*0x1p-52 {
-			return ratio, math.Copysign(1, direction.X*direction.Z), true
-		}
-	}
-	return geom.Vec2{}, 0, false
+	ratio, ok := trimmed.CrossedObliqueAxisRatio(math.Abs(direction.X), math.Abs(direction.Z))
+	return ratio, math.Copysign(1, direction.X*direction.Z), ok
 }
 
 func obliqueLineZ(origin geom.Vec3, x float64, ratio geom.Vec2, slopeSign float64) *big.Rat {
@@ -251,7 +246,7 @@ func crossedObliqueFromSTEP(p step.CrossedObliqueBoreBody, unit float64) (*boreB
 	if err != nil {
 		return nil, err
 	}
-	oblique, err := newCylinder(of, p.Radius, 10*e)
+	oblique, err := newCylinder(of, p.Radius, 2*e*math.Hypot(ratio.X, ratio.Y))
 	if err != nil {
 		return nil, err
 	}

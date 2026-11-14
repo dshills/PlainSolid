@@ -1,0 +1,61 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "4f74673774a09e6aaf49a21936c66a69ccbb59fa753501a4c0de14faafcbffb8",
+  "supplemental": {
+    "report": "/tmp/plainsolid-pythagorean-oblique-authored-5611/pythagorean-oblique-browser.json",
+    "reportSha256": "ed4e6a81d7593f0bd9a70baac7e0fde9ff175e862d083978229d08970317556c",
+    "sourceSha256": "2a365086a41904294a474563c3ba8b5edd95cff31fb7a2e7c76c77719c320ab8",
+    "summary": {
+      "startTime": "2026-11-14T16:43:31.612Z",
+      "duration": 20474.694,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "axisRatio": [
+        5,
+        12
+      ],
+      "stockMM": [
+        20,
+        16,
+        70
+      ],
+      "radiusMM": 2,
+      "exactEllipses": 16,
+      "stepByteCount": 42177,
+      "stepSha256": "40cd0ceb88b0a910aca2ce8e4c2d1b14b3a0b116c1788549f11deb98171c7248",
+      "stlTriangles": 404,
+      "stlTwoUseEdges": 606,
+      "stlSha256": "1bb9ba5fe65aee2679d2211e508e1ce9561c7857471fb69a5d41ae5c59a2a1a6",
+      "occtStepReadback": {
+        "Area": 6956.219345579866,
+        "Volume": 20977.836119013897,
+        "Centroid": [
+          9.999999999999996,
+          7.999999999999995,
+          35.000000000000014
+        ]
+      },
+      "occtDirectBoolean": {
+        "Volume": 20977.83611837599,
+        "Area": 6956.219346536724,
+        "Centroid": [
+          10.00000000000049,
+          8,
+          35.00000000000115
+        ]
+      },
+      "directOracleSourceSha256": "9de1c180cc713a0100f3d75bdccf41666d6bd6afc46cecdbdfd32dce6e858914"
+    }
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "status": "passed",
+    "newStepCases": 4
+  },
+  "vet": "passed"
+}

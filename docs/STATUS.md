@@ -4,6 +4,11 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. No production or
 OCCT compatibility qualification is claimed.
 
+The [native short suite](evidence/plainsolid-native-981161dd-short-2026-11-14.json)
+completed across all packages on integration revision `981161dd`.
+It records 39 package passes, four packages without tests and no
+failures. Short-mode exclusions and full qualification remain open.
+
 ## Immediate priority: PlainCAD compatibility
 
 The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in
@@ -110,7 +115,7 @@ The native bridge verifies the finite tool covers both openings before
 scoped Cut, retains the stock face IDs, and generates watertight STL.
 Its STEP exchange preserves both analytic ellipses and the cylinder support.
 An equal-radius cardinal bore and a concurrent oblique bore in local
-4:3 or 3:4 axis ratio retain their exact crossing ellipses and all four
+4:3, 3:4, 12:5 or 5:12 axis ratio retain their exact crossing ellipses and all four
 full stock openings through STEP and STL. The cardinal axis may lie
 along X, Y, or Z. Both slope signs and transverse coordinate directions
 retain the same exchange proof.

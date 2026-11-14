@@ -15,14 +15,13 @@ func crossedObliqueBoreEdge(a, b geom.Vec3, owners []longEdgeOwner, surfaces []l
 	r := first.radius
 	second := surfaces[owners[1].face]
 	dot := math.Abs(first.frame.ZAxis().Dot(second.frame.ZAxis()))
-	reciprocal := math.Abs(dot-.8) <= 8*0x1p-52
-	if !reciprocal && math.Abs(dot-.6) > 8*0x1p-52 {
+	sin := first.frame.ZAxis().Cross(second.frame.ZAxis()).Length()
+	ratio, ok := trimmed.CrossedObliqueAxisRatio(sin, dot)
+	if !ok {
 		return fail()
 	}
-	positive, negative := 2*r, -.5*r
-	if reciprocal {
-		positive, negative = 3*r, (-1./3)*r
-	}
+	k, _ := trimmed.CrossedObliqueCoefficients(ratio)
+	positive, negative := k.Positive*r, k.Negative*r
 	tol := 1e-9 + 128*0x1p-52*max(a.Length(), b.Length(), r)
 	if !finiteOblique(tol) || tol >= r/16 {
 		return fail()
@@ -49,11 +48,14 @@ func crossedObliqueBoreEdge(a, b geom.Vec3, owners []longEdgeOwner, surfaces []l
 		if c.Cos.Y < 0 {
 			major *= .5
 		}
-		if reciprocal {
+		switch ratio {
+		case geom.Vec2{X: 3, Y: 4}:
 			major = r * math.Sqrt(10)
 			if c.Cos.Y < 0 {
 				major /= 3
 			}
+		case geom.Vec2{X: 12, Y: 5}, geom.Vec2{X: 5, Y: 12}:
+			major = math.Hypot(r, c.Cos.Y)
 		}
 		from, to := c.From, c.To
 		if u.Reversed {
