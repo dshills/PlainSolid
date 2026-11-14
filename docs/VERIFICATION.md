@@ -26,7 +26,9 @@ retries. Its benchmark finished in 26.3 seconds and checked all 25
 edits and 11 STL downloads. The full ordinary unit and component suite
 passed 1,691 tests. All four WASM provider contracts passed with the
 original timeout after test contention subsided. The full development
-run is still in progress.
+run passed 344 of 345 cases. The first AI canvas test timed out during
+its initial click and passed unchanged in a focused rerun on the same
+development server. The report records both outcomes.
 
 ## PlainCAD tighter covered-width Hole STEP — 2026-11-14
 

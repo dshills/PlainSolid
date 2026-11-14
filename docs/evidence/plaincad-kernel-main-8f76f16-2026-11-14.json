@@ -40,6 +40,34 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "reports": {
+    "dev": {
+      "path": "/tmp/plainsolid-main-merge-8f76f16-dev.json",
+      "sha256": "1b8175a5eb234880f0979c9e9550d181dcb98ce91a0398d6a768e41398fdb86e",
+      "stats": {
+        "startTime": "2026-11-14T18:31:18.454Z",
+        "duration": 2359536.984,
+        "expected": 344,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "workers": 1,
+      "retries": 0,
+      "harnessErrors": [],
+      "failures": [
+        {
+          "file": "ai-canvas-conversation.spec.ts",
+          "title": "canvas conversation creates a part then halves thickness locally with native geometry, stable IDs and one-step undo/redo",
+          "project": "",
+          "results": [
+            {
+              "status": "failed",
+              "message": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'New project', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"ribbon-button\" aria-label=\"New project\" data-command-target=\"_r_2_\" title=\"Create a blank local project\" data-command-site=\"ui.app.App.c3688107c1e9\">\u2026</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n"
+            }
+          ]
+        }
+      ]
+    },
     "production": {
       "path": "/tmp/plainsolid-main-merge-8f76f16-production.json",
       "sha256": "c7e0854b7deaaea5b52968318023abfd6bde9e4618b89489c55e1929b19dfb8b",
