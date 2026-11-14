@@ -16,11 +16,14 @@ import (
 // signed coordinate frame. Local z=0 is fixed to the tool entry cap.
 // Through follows the current stock height; for a blind cut Depth must lie
 // strictly between the current caps. Tolerance zero selects the native default.
+// ExactWalls explicitly allows nonbinary homogeneous controls for an
+// off-center unequal cut. This flag does not relax any endpoint or stock proof.
 type SideOpenDualDiskRecipe struct {
 	Origin, U, Inward geom.Vec3
 	Discs             [2]trimmed.ExtrusionCircle
 	Depth, Tolerance  float64
 	Through           bool
+	ExactWalls        bool `json:",omitempty"`
 }
 
 func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe) (trimmed.Solid, error) {
@@ -120,14 +123,35 @@ func defineSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDu
 	}
 	d := step.SideOpenDualDiskDescriptor{Frame: f, Min: geom.Vec2{X: l.X, Y: l.Y}, Max: geom.Vec2{X: h.X, Y: h.Y},
 		Discs: p.Discs, Height: h.Z, Depth: depth, Tolerance: tolerance}
+	for _, c := range d.Discs {
+		if !(geom.Vec3{X: c.Center.X, Y: c.Center.Y, Z: c.Radius}).IsFinite() || c.Radius <= 0 {
+			return trimmed.Solid{}, geom.ErrInvalid
+		}
+	}
 	var solid trimmed.Solid
 	if d.Discs[0].Radius == d.Discs[1].Radius {
+		if p.ExactWalls {
+			return trimmed.Solid{}, geom.ErrDomain
+		}
 		cut, e := trimmed.CutSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 		if e != nil {
 			return trimmed.Solid{}, e
 		}
 		solid = cut.Solid
+	} else if externalSideDiskRadical(d) {
+		build := trimmed.CutGeneralSideOpenDualDisks
+		if p.ExactWalls {
+			build = trimmed.CutGeneralSideOpenDualDisksWithExactWalls
+		}
+		cut, e := build(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+		if e != nil {
+			return trimmed.Solid{}, e
+		}
+		solid = cut.Solid
 	} else {
+		if p.ExactWalls {
+			return trimmed.Solid{}, geom.ErrDomain
+		}
 		cut, e := trimmed.CutUnequalSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 		if e != nil {
 			return trimmed.Solid{}, e
@@ -138,4 +162,12 @@ func defineSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDu
 		*out = d
 	}
 	return solid, nil
+}
+
+func externalSideDiskRadical(d step.SideOpenDualDiskDescriptor) bool {
+	q := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	sq := func(x *big.Rat) *big.Rat { return new(big.Rat).Mul(x, x) }
+	gap := new(big.Rat).Sub(q(d.Discs[1].Center.X), q(d.Discs[0].Center.X))
+	delta := new(big.Rat).Sub(sq(q(d.Discs[0].Radius)), sq(q(d.Discs[1].Radius)))
+	return delta.Abs(delta).Cmp(sq(gap)) > 0
 }

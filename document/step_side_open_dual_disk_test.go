@@ -81,3 +81,65 @@ func TestDocumentSideOpenDualDiskUnequalRecipe(t *testing.T) {
 		t.Fatal("wrong native readback volume", m, e)
 	}
 }
+
+func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
+	ctx := context.Background()
+	for _, exact := range []bool{false, true} {
+		r0, r1, x1, stockY := 5., 8.5, 24.5, 12.
+		if exact {
+			r0, r1, x1, stockY = 13, 15, 24, 22
+		}
+		s := State{LengthUnit: .001, Features: map[string]Feature{
+			"stock": {Kind: BoxFeature, Max: geom.Vec3{X: 50, Y: stockY, Z: 6}},
+			"cut": {Kind: SideOpenDualDiskCutFeature, Input: "stock", SideOpenDualDisk: &SideOpenDualDiskRecipe{
+				U: geom.Vec3{X: 1}, Inward: geom.Vec3{Z: 1}, Depth: 3, ExactWalls: exact,
+				Discs: [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: r0}, {Center: geom.Vec2{X: x1}, Radius: r1}},
+			}},
+		}, Nodes: map[string]Node{"cut": {Asset: "cut", Transform: geom.Identity()}}}
+		d, e := New(s, 2)
+		if e != nil {
+			t.Fatal(exact, e)
+		}
+		var state bytes.Buffer
+		if e = d.Write(&state); e != nil {
+			t.Fatal(e)
+		}
+		loaded, e := Read(&state, 0, 2)
+		if e != nil {
+			t.Fatal(e)
+		}
+		ss, _ := loaded.Snapshot()
+		if ss.Features["cut"].SideOpenDualDisk.ExactWalls != exact {
+			t.Fatal("document lost explicit nonbinary wall policy")
+		}
+		built, e := ss.EvaluateFeatures(ctx)
+		if e != nil {
+			t.Fatal(e)
+		}
+		walls := 0
+		for _, face := range built.Trimmed["cut"].Faces() {
+			if _, ok := face.Surface.(*geom.ExactBezierSurface); ok {
+				walls++
+			}
+		}
+		if exact && walls != 2 || !exact && walls != 0 {
+			t.Fatal("reloaded document changed wall representation", exact, walls)
+		}
+		if exact {
+			tx := loaded.Begin()
+			tx.State.Features["cut"].SideOpenDualDisk.ExactWalls = false
+			if e = tx.Commit(); !errors.Is(e, geom.ErrUnrepresentable) {
+				t.Fatal("disabling exact wall must reject nonbinary controls", e)
+			}
+			continue
+		}
+		var out bytes.Buffer
+		if e = ss.WriteSideOpenDualDiskSTEP(ctx, &out, "cut"); e != nil {
+			t.Fatal(e)
+		}
+		p, e := step.ReadGeneralSideOpenDualDiskProduct(ctx, &out, step.Limits{}, 1e-9)
+		if e != nil || p.RadicalSide != step.ExternalRadicalLeft {
+			t.Fatal("off-center authored occurrence used wrong STEP domain", p.RadicalSide, e)
+		}
+	}
+}
