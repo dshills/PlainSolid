@@ -33,8 +33,10 @@ blind spans that overlap or leave a material web. STEP recovers partially
 buried cylindrical walls from their neighboring faces. Exact stock
 vertex contacts also pass for blind and through cutters, for two cutters
 sharing the vertex, and for endpoint tangency when the cutter opens
-across the adjacent side. Nonparallel axes and coincident opposed floors
-across overlapping footprints remain open.
+across the adjacent side. Fully concealed cutters no longer leave extra
+STEP face partitions. The exported boundary also round-trips a through
+cutter whose entry is concealed by other Holes. Nonparallel axes and
+coincident opposed floors across overlapping footprints remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
@@ -573,9 +575,8 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 
 ## Continuing implementation
 
-PlainCAD's same-side, same-entry intersecting cutter pair now passes
-native, browser, and STEP verification. Opposed entry cuts and cutters
-opening on different stock sides remain open.
+The remaining rectangular Hole geometry work includes nonparallel
+cutter axes and coincident opposed floors across overlapping footprints.
 The full unit gate still has 36 repeat failures after focused retests.
 The recorded controls identify the OCCT-private bindings and fixtures
 that depend on an uninitialized kernel.

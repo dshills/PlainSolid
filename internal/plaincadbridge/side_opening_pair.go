@@ -158,13 +158,9 @@ func (b *Bridge) cutSideOpeningCuts(a stored, tools []stored) (Shape, bool, erro
 	if len(p.Cuts) == 1 {
 		circle := p.Cuts[0].ExtrusionCircle
 		if a.analytic != nil && a.analytic.sideNotch != nil ||
-			a.planar() && (skip != nil || exactStockCorner(p, circle)) ||
-			trimmed.BoxSideOpeningCount(p.Width, p.Back, circle, sideOpeningTolerance) != 2 {
+			a.planar() && (skip != nil || exactStockCorner(p, circle)) {
 			return Shape{}, false, nil
 		}
-	}
-	if len(p.Cuts) == 2 && compareCircularFootprints(p.Cuts[0].ExtrusionCircle, p.Cuts[1].ExtrusionCircle, false) >= 0 {
-		return Shape{}, false, nil
 	}
 	for i, site := range spans {
 		sort.Slice(site, func(a, b int) bool { return site[a][0] < site[b][0] })
@@ -199,6 +195,7 @@ func sideOpeningCutsBody(p step.SideOpeningCutsBody) (*analyticBody, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.Cuts = result.RetainedCuts
 	var corners []geom.Vec3
 	for _, x := range []float64{0, p.Width} {
 		for _, y := range []float64{0, p.Back} {
@@ -232,11 +229,8 @@ func overlapSideOpeningCuts(a, tool stored) (float64, bool, error) {
 	if !ok || high <= low || trimmed.BoxSideOpeningCount(p.Width, p.Back, c, sideOpeningTolerance) == 0 {
 		return 0, false, nil
 	}
-	if a.analytic.sideOpeningCuts == nil {
-		prior := p.Cuts[0].ExtrusionCircle
-		if c == prior || compareCircularFootprints(prior, c, false) >= 0 {
-			return 0, false, nil
-		}
+	if a.analytic.sideOpeningCuts == nil && c == p.Cuts[0].ExtrusionCircle {
+		return 0, false, nil
 	}
 	volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, p.Cuts, c, low, high, sideOpeningTolerance)
 	return volume, true, err

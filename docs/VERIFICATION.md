@@ -1,5 +1,24 @@
 # Verification record
 
+## PlainCAD STEP for fully concealed Hole cutters — 2026-11-14
+
+The rectangular-stock boundary builder checks which cutter disks cover
+each section cell over each axial interval. A cutter whose entire removal
+is covered by other cuts disappears from the boundary recipe. Rebuilding
+the section without it removes the redundant wall and floor partitions.
+STEP infers a through cut from the absence of its own blind floor, even
+when later cuts hide the wall at one stock cap.
+
+[Sixteen original PlainCAD Hole and STEP cases](evidence/plaincad-concealed-cutter-browser-2026-11-14.json)
+pass on `50432ed`. A [supplemental probe on the same WASM](evidence/plaincad-concealed-cutter-native-2026-11-14.json)
+verifies byte-identical STEP for the concealed and visible-only models,
+reimported dimensions and measures, watertight STL, and preservation of the
+authored Hole features after project reopen. The native bridge test drills
+through the same site after importing the STEP and exports the new result.
+Independent OCCT checks cover union concealment across depth layers,
+concealment at a stock vertex, disjoint visible cuts, and a through cutter
+with a concealed entry. Focused race checks and Go vet pass.
+
 ## PlainCAD Hole cutters through exact stock vertices — 2026-11-14
 
 The section arrangement uses a single vertex when a circular cutter passes
