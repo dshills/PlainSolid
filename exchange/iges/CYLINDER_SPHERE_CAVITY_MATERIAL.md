@@ -48,3 +48,32 @@ oversized sphere, offset axis, wrong void direction, reused shell, cross-support
 and vertex references, nonzero sphere center, forged ancestry and resource limits.
 Focused live/normal, race, Go 1.23, vet, earlier sphere/cone cases and bounded fuzz
 qualify this mixed-support material. Arbitrary placement/reordering are not added.
+
+## Common proper signed-axis placement
+
+`ReadPlacedCylinderSphereCavityMaterial` / `WritePlacedCylinderSphereCavity`
+add a separate 40-record family. One proper signed-coordinate type 124 attaches
+to the cylinder wall/caps/rims/model meridian and the sphere support. The sphere's
+own type 100 meridian retains a distinct type 124, which must equal the exact
+composition of the common pose with its original XZ circle frame. Both type 502
+lists contain world vertices and are independently inverted before complete
+local support/containment proof. Cylinder and sphere degree pcurves remain UV
+records; neither family may acquire a world transform.
+
+Native cylinder controls are rebuilt with exact rational coordinate sums in the
+posed frame, retaining zero continuous edge discrepancy. The sphere retains the
+qualified bounded native angular convention; all six cardinal radius witnesses
+must map losslessly. It is transformed and reversed as the void, then joined at
+the original caller tolerance without repeated tolerance inflation. Native pole
+coordinates, sphere radius/seam agreement and stock edge identities are tested
+separately. Original source vertices, shared and composed transform ownership,
+local ancestry and both native edge groups survive source-bound/plain reload.
+
+The independent `--placed` source maps the axis to +X with sphere center
+(10,-3,5). Pinned OCCT imports original and generated output as valid four-face,
+one-solid material with volume 185π/3, area 64π and centroid
+(10+189/370,-3,5). Tests reject detached inner support/meridian, disagreeing composed
+frame, shifted sphere datum, world transforms on either degree-pcurve family,
+forged native pose and resource limits. Focused normal/live, race, Go 1.23, vet,
+earlier mixed/spherical cases and bounded fuzz qualify the separate placement
+path. No record reordering is included.

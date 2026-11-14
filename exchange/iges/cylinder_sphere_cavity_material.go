@@ -168,24 +168,11 @@ func ReadCylinderSphereCavityMaterial(ctx context.Context, r io.Reader, l Limits
 	if e != nil {
 		return bad()
 	}
-	v, edges, faces := outer.Vertices(), outer.Edges(), outer.Faces()
-	nv, ne := len(v), len(edges)
-	iv, ie, ifaces := inner.Vertices(), inner.Edges(), inner.Faces()
-	for i := range ie {
-		ie[i].Start += nv
-		ie[i].End += nv
-	}
-	for i := range ifaces {
-		ifaces[i].Reversed = !ifaces[i].Reversed
-		for j := range ifaces[i].Outer {
-			ifaces[i].Outer[j].Edge += ne
-		}
-	}
-	solid, e := trimmed.NewSolid(append(v, iv...), append(edges, ie...), append(faces, ifaces...), tol)
+	solid, sphereEdges, e := joinCylinderSphereCavity(outer, inner, tol)
 	if e != nil {
 		return CylinderSphereCavityMaterial{}, e
 	}
-	return CylinderSphereCavityMaterial{d, doc.unit, solid, values, metadata, rims, [3]int{ne, ne + 1, ne + 2}, [7]int{43, 41, 39, 39, 39, 39, 51}, 47, [2]int{45, 49}, [4]int{39, 41, 43, 51}, [2]int{15, 63}, 69, [2][4]int{{25, 27, 29, 31}, {65, 73, 75, 77}}, append([]byte(nil), doc.bytes...)}, nil
+	return CylinderSphereCavityMaterial{d, doc.unit, solid, values, metadata, rims, sphereEdges, [7]int{43, 41, 39, 39, 39, 39, 51}, 47, [2]int{45, 49}, [4]int{39, 41, 43, 51}, [2]int{15, 63}, 69, [2][4]int{{25, 27, 29, 31}, {65, 73, 75, 77}}, append([]byte(nil), doc.bytes...)}, nil
 }
 func WriteCylinderSphereCavityMaterial(ctx context.Context, w io.Writer, d CylinderSphereCavityMaterialDescriptor, unit, tol float64) error {
 	if w == nil {
@@ -215,4 +202,25 @@ func WriteCylinderSphereCavityMaterial(ctx context.Context, w io.Writer, d Cylin
 		e = io.ErrShortWrite
 	}
 	return e
+}
+
+func joinCylinderSphereCavity(outer, inner trimmed.Solid, tol float64) (trimmed.Solid, [3]int, error) {
+	v, edges, faces := outer.Vertices(), outer.Edges(), outer.Faces()
+	nv, ne := len(v), len(edges)
+	iv, ie, ifaces := inner.Vertices(), inner.Edges(), inner.Faces()
+	for i := range ie {
+		ie[i].Start += nv
+		ie[i].End += nv
+	}
+	for i := range ifaces {
+		ifaces[i].Reversed = !ifaces[i].Reversed
+		for j := range ifaces[i].Outer {
+			ifaces[i].Outer[j].Edge += ne
+		}
+	}
+	solid, e := trimmed.NewSolid(append(v, iv...), append(edges, ie...), append(faces, ifaces...), tol)
+	if e != nil {
+		return trimmed.Solid{}, [3]int{}, e
+	}
+	return solid, [3]int{ne, ne + 1, ne + 2}, nil
 }
