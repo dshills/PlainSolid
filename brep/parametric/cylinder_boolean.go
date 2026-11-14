@@ -300,3 +300,42 @@ func cylinderAnnulus(frame geom.Frame, a, b DiskProfile, h, tol float64) (Solid,
 	}
 	return joinPrimitivePatches(faces, tol)
 }
+
+// ConcentricTubeParameters recovers a full tube's native construction recipe.
+// The four angular sectors each retain two walls and two ruled planar caps.
+func (s Solid) ConcentricTubeParameters() (frame geom.Frame, outer, inner, height float64, ok bool) {
+	if len(s.faces) != 16 {
+		return
+	}
+	outerWall, ok := s.faces[0].Surface.(reparameterizedCylinder)
+	if !ok {
+		return geom.Frame{}, 0, 0, 0, false
+	}
+	innerWall, ok := s.faces[1].Surface.(reparameterizedCylinder)
+	if !ok {
+		return geom.Frame{}, 0, 0, 0, false
+	}
+	frame, outer = outerWall.s.Parameters()
+	innerFrame, inner := innerWall.s.Parameters()
+	height = s.faces[0].V.Max
+	if frame != innerFrame || inner >= outer || inner <= 0 || height <= 0 {
+		return geom.Frame{}, 0, 0, 0, false
+	}
+	for i := range 4 {
+		u := Interval{float64(i) * math.Pi / 2, float64(i+1) * math.Pi / 2}
+		wall := Interval{Max: height}
+		want := [4]Face{
+			{Surface: reparameterizedCylinder{outerWall.s, u}, U: normalized, V: wall},
+			{Surface: reparameterizedCylinder{innerWall.s, u}, U: normalized, V: wall, Reversed: true},
+			{Surface: ruledArcs{outerWall.s, innerWall.s, u, u, 0}, U: normalized, V: normalized, Reversed: true},
+			{Surface: ruledArcs{outerWall.s, innerWall.s, u, u, height}, U: normalized, V: normalized},
+		}
+		for j, expected := range want {
+			f := s.faces[4*i+j]
+			if f.Surface != expected.Surface || f.U != expected.U || f.V != expected.V || f.Reversed != expected.Reversed {
+				return geom.Frame{}, 0, 0, 0, false
+			}
+		}
+	}
+	return frame, outer, inner, height, true
+}

@@ -82,6 +82,16 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 		return b.putSTEPAnalytic(solid, m.LengthUnit)
 	}
+	// The complete periodic tube dialect also matches the independent
+	// disk-hole reader. Retain its full native recipe before that fallback.
+	supports := strings.ToUpper(source)
+	if strings.Contains(supports, "SEAM_CURVE") && strings.Contains(supports, "CYLINDRICAL_SURFACE") {
+		if m, e := step.ReadAnalyticBodies(r(), stepLimits()); e == nil {
+			if recipe, ok := tubeFromSTEP(m); ok {
+				return b.putRadialSector(recipe)
+			}
+		}
+	}
 	diskReaders := []func() (step.DiskHoleExtrusionModel, error){
 		func() (step.DiskHoleExtrusionModel, error) {
 			return step.ReadDiskHoleExtrusions(r(), stepLimits())
@@ -299,7 +309,6 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		p := m.Model
 		return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, p.LengthUnit)
 	}
-	supports := strings.ToUpper(source)
 	if strings.Contains(supports, "TOROIDAL_SURFACE") || strings.Contains(supports, "CYLINDRICAL_SURFACE") {
 		if m, e := step.ReadAnalyticBodies(r(), stepLimits()); e == nil {
 			if recipe, ok := torusFromSTEP(m); ok {
@@ -493,6 +502,10 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		if sector := s.analytic.sector; sector != nil {
 			if sector.inner == 0 {
 				e = sector.writeSectorSTEP(&out)
+				break
+			}
+			if sector.angle == 2*math.Pi {
+				e = sector.writeTubeSTEP(&out)
 				break
 			}
 			if p, ok := sector.quarterAnnularSTEP(); ok {

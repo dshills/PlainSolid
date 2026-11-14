@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD full coaxially bored Revolve STEP exchange — 2026-11-14
+
+The complete tube uses two periodic cylindrical faces and two annular
+plane caps. The strict analytic reader restores the concentric native
+recipe before the generic disk-hole reader. An independently authored
+tube and centimeter source units pass. Widening the bore after import
+gives the same STEP as cutting a fresh cylinder.
+
+[Seven original Revolve, Hole, outline and STEP cases plus provider preflight](evidence/plaincad-full-tube-step-browser-2026-11-14.json)
+and the [authored full-sweep Edit Revolve extension](evidence/plaincad-full-tube-step-native-2026-11-14.json)
+pass on the same WASM. The 6,670-byte STEP reexports byte-identically
+after project reopen. The 8,192-triangle STL is watertight. OCCT agrees
+with analytic volume and area. The existing native and independent tube
+exchange tests, focused race checks, and Go vet pass.
+
 ## PlainCAD cylindrical Revolve sector STEP exchange — 2026-11-14
 
 Simple solid cylindrical sectors use the existing five-face analytic
