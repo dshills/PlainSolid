@@ -86,12 +86,17 @@ func TestPartialSkewBoreSTEP(t *testing.T) {
 	}
 }
 
-func TestTightPartialSkewBoreSTEP(t *testing.T) {
+func TestTightSkewBoreSTEP(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range []struct {
 		normal geom.Vec3
 		offset float64
-	}{{geom.Vec3{Z: 1}, 2}, {geom.Vec3{Y: -1}, -2.5}} {
+	}{
+		{geom.Vec3{Z: 1}, 2},
+		{geom.Vec3{Y: -1}, -2.5},
+		{geom.Vec3{Z: 1}, .75},
+		{geom.Vec3{Y: -1}, -.75},
+	} {
 		f, err := geom.FrameFromNormal(geom.Vec3{}, tc.normal)
 		if err != nil {
 			t.Fatal(err)
@@ -133,7 +138,11 @@ func TestTightPartialSkewBoreSTEP(t *testing.T) {
 		if err := json.Unmarshal(raw, &oracle); err != nil {
 			t.Fatal(err)
 		}
-		native, err := trimmed.BoxPartialSkewBores(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, 1e-9)
+		build := trimmed.BoxPartialSkewBores
+		if math.Abs(tc.offset) < 1 {
+			build = trimmed.BoxSkewCrossedBores
+		}
+		native, err := build(ctx, p.Frame, p.Dimensions, p.Crossing, p.XRadius, p.ZRadius, p.Offset, 1e-9)
 		if err != nil {
 			t.Fatal(tc, err)
 		}

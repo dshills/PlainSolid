@@ -130,8 +130,8 @@ oblique crossing now exchanges on all three cardinal axes. The cardinal
 Hole may retain a blind floor beyond the complete oblique crossing and
 accept a later coaxial cut after STEP import. The oblique Hole can also
 retain a floor beyond its complete crossing, from either entry, including
-a pair with two blind floors. Tighter partial perpendicular overlap
-uses certified local interpolation bounds and a compact STEP trim.
+a pair with two blind floors. Tighter partial and covered-width perpendicular overlaps use local
+interpolation bounds and compact STEP trims.
 Continue with smaller supported clearances and floors that intersect
 the crossing.
 

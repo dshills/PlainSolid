@@ -45,6 +45,13 @@ func (c unequalBoreTrim) raw(t float64) (geom.Vec2, error) {
 	}
 	return geom.Vec2{X: angle, Y: c.a * k}, nil
 }
+
+// CoveredSkewAngularInterval exposes the shared small-cylinder parameter
+// and the signed transverse offset for bounded STEP interpolation.
+func (c unequalBoreTrim) CoveredSkewAngularInterval() (float64, float64, float64) {
+	return c.from, c.to, c.offset
+}
+
 func (c unequalBoreTrim) EvalUV(t float64) (geom.Vec2, error) {
 	if t == 0 {
 		return c.start, nil
