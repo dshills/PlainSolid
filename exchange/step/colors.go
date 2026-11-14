@@ -8,7 +8,8 @@ import (
 	"strings"
 )
 
-// RGB contains the STEP COLOUR_RGB components in sRGB space, each in [0,1].
+// RGB contains STEP COLOUR_RGB components or the exact standard draughting
+// palette equivalent in sRGB space, each in [0,1].
 // No alpha, texture, material, lighting or per-face override is implied.
 type RGB struct{ R, G, B float64 }
 type ColoredBody struct {
@@ -250,24 +251,12 @@ func readStylesForBodyCounts(f *File, m Model, ids []int64, contexts map[int64]i
 			if e != nil {
 				return fail()
 			}
-			rgb, e := take(next, "COLOUR_RGB", 4)
+			c, e := readSurfaceStyleColour(f, next)
 			if e != nil {
 				return fail()
 			}
-			if _, e = textValue(rgb.Args[0]); e != nil {
-				return fail()
-			}
-			c := RGB{}
-			v := []*float64{&c.R, &c.G, &c.B}
-			for j := range v {
-				*v[j], e = numeric(rgb.Args[j+1])
-				if e != nil {
-					return fail()
-				}
-			}
-			if !validRGB(c) {
-				return fail()
-			}
+			seen[next] = true
+
 			coloredTargets[body] = true
 			if faceIndex < 0 {
 				out.Bodies[index].SurfaceColor = &c
@@ -430,4 +419,42 @@ func appendSurfaceStyles(w io.Writer, raw []byte, f *File, targets []styleTarget
 		return io.ErrShortWrite
 	}
 	return e
+}
+
+// The standard draughting palette has exact RGB corner values. Names are
+// case-sensitive; unknown names and other predefined-colour subtypes are not
+// interpreted as vendor aliases.
+func readSurfaceStyleColour(f *File, id int64) (RGB, error) {
+	fail := func() (RGB, error) { return RGB{}, errors.New("step: unsupported surface colour") }
+	if r, e := simple(f, id, "DRAUGHTING_PRE_DEFINED_COLOUR", 1); e == nil {
+		name, e := textValue(r.Args[0])
+		if e != nil {
+			return fail()
+		}
+		palette := map[string]RGB{"black": {0, 0, 0}, "white": {1, 1, 1}, "red": {1, 0, 0}, "green": {0, 1, 0}, "blue": {0, 0, 1}, "yellow": {1, 1, 0}, "magenta": {1, 0, 1}, "cyan": {0, 1, 1}}
+		c, ok := palette[name]
+		if !ok {
+			return fail()
+		}
+		return c, nil
+	}
+	r, e := simple(f, id, "COLOUR_RGB", 4)
+	if e != nil {
+		return fail()
+	}
+	if _, e = textValue(r.Args[0]); e != nil {
+		return fail()
+	}
+	c := RGB{}
+	values := []*float64{&c.R, &c.G, &c.B}
+	for i, p := range values {
+		*p, e = numeric(r.Args[i+1])
+		if e != nil {
+			return fail()
+		}
+	}
+	if !validRGB(c) {
+		return fail()
+	}
+	return c, nil
 }
