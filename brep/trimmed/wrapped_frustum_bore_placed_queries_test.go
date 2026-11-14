@@ -82,6 +82,30 @@ func TestPlacedFrustumBoreExactObliqueQueries(t *testing.T) {
 			t.Fatal("world plane or original circle center was rounded", i, section)
 		}
 	}
+	// Independent closed cylinder integrals give V/π=33, M=(-3/4,-3/4,66),
+	// Mxx=Myy=1281/16, Mxy=-3/16, Mxz=Myz=-3/2, Mzz=711/4.
+	// The listed world values follow by direct substitution of each
+	// affine coordinate into those elementary integrals.
+	mass, e := s.MeasurePlacedWrappedFrustumBoreRational(ctx, pose, patch)
+	if e != nil || mass.VolumePi.Cmp(q(33, 1)) != 0 || len(mass.Area) != 6 {
+		t.Fatal(mass, e)
+	}
+	c := [3]*big.Rat{q(2663, 1540), q(-95, 308), q(926, 715)}
+	second := [3][3]*big.Rat{{q(3072753, 19600), q(-69477, 3920), q(261363, 4550)},
+		{q(-69477, 3920), q(65217, 784), q(-11847, 910)}, {q(261363, 4550), q(-11847, 910), q(2079543, 16900)}}
+	inertia := [3][3]*big.Rat{{q(162519, 1100), q(27, 220), q(4527, 275)},
+		{q(27, 220), q(5535, 44), q(-9, 55)}, {q(4527, 275), q(-9, 55), q(37989, 275)}}
+	for i := range c {
+		if mass.Centroid[i].Cmp(c[i]) != 0 || mass.FirstMomentPi[i].Cmp(new(big.Rat).Mul(c[i], q(33, 1))) != 0 {
+			t.Fatal("exact placed centroid/first moment", i, mass)
+		}
+		for j := range c {
+			if mass.SecondMomentPi[i][j].Cmp(second[i][j]) != 0 || mass.InertiaAtCentroidPi[i][j].Cmp(inertia[i][j]) != 0 {
+				t.Fatal("wrong placed parallel-axis or rotated inertia term", i, j, mass)
+			}
+		}
+	}
+
 	reflection := [3][4]*big.Rat{{q(-1, 1), zero, zero, zero}, {zero, q(1, 1), zero, zero}, {zero, zero, q(1, 1), zero}}
 	if _, e := placement.NewRationalRigid(reflection, 0); !errors.Is(e, placement.ErrInvalid) {
 		t.Fatal("improper rotation accepted", e)

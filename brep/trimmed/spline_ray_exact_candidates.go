@@ -144,6 +144,10 @@ func exactSplineSupportPatch(s geom.Surface, o geom.SurfacePatchOptions) (*geom.
 		if b != nil && b.ExactPatch() != nil {
 			return b.ExactPatch().WithLimits(o)
 		}
+	case *geom.ExactTensorSurface:
+		if b != nil && b.ExactPatch() != nil {
+			return b.ExactPatch().WithLimits(o)
+		}
 	}
 	return nil, geom.ErrConvergence
 }
@@ -153,6 +157,8 @@ func supportsExactSplinePatch(s geom.Surface) bool {
 	case *geom.BSplineSurface:
 		return s != nil
 	case *geom.ExactBezierSurface:
+		return s != nil && s.ExactPatch() != nil
+	case *geom.ExactTensorSurface:
 		return s != nil && s.ExactPatch() != nil
 	}
 	return false

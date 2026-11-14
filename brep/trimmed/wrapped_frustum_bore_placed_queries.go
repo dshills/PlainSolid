@@ -132,3 +132,94 @@ func (s Solid) SectionPlacedWrappedFrustumBoreRational(ctx context.Context, pose
 	}
 	return out, err
 }
+
+// MeasurePlacedWrappedFrustumBoreRational gives exact world mass properties
+// for this original bore under a proved proper rational rigid placement.
+// Area terms and volume remain exact and retain the original face owners.
+func (s Solid) MeasurePlacedWrappedFrustumBoreRational(ctx context.Context, pose placement.RationalRigid, o geom.SurfacePatchOptions) (out WrappedFrustumBoreMass, err error) {
+	defer func() {
+		if err != nil {
+			out = WrappedFrustumBoreMass{}
+		}
+	}()
+	z := new(big.Rat)
+	bits := o.MaxCoefficientBits
+	translation, e := pose.TransformPoint(ctx, [3]*big.Rat{z, z, z}, false, bits)
+	if e != nil {
+		return out, e
+	}
+	if bits == 0 {
+		bits = 16384
+	}
+	check := func(q *big.Rat) error {
+		if q.Num().BitLen() > bits || q.Denom().BitLen() > bits {
+			return geom.ErrConvergence
+		}
+		return ctx.Err()
+	}
+	local, e := s.MeasureCanonicalWrappedFrustumBore(ctx, o)
+	if e != nil {
+		return out, e
+	}
+	out.VolumePi = new(big.Rat).Set(local.VolumePi)
+	out.Area = local.Area
+	out.Centroid, err = pose.TransformPoint(ctx, local.Centroid, false, bits)
+	if err != nil {
+		return out, err
+	}
+	first, e := pose.TransformVector(ctx, local.FirstMomentPi, false, bits)
+	if e != nil {
+		return out, e
+	}
+	for i := range first {
+		out.FirstMomentPi[i] = new(big.Rat).Add(first[i], new(big.Rat).Mul(out.VolumePi, translation[i]))
+		if e := check(out.FirstMomentPi[i]); e != nil {
+			return out, e
+		}
+	}
+	// First rotate tensor columns, then rotate each resulting row as a
+	// column. Translation then contributes the three parallel-axis terms
+	// to the raw second moment. Centroidal inertia needs only the rotation.
+	rotateTensor := func(t [3][3]*big.Rat) (r [3][3]*big.Rat, err error) {
+		for j := range 3 {
+			c, e := pose.TransformVector(ctx, [3]*big.Rat{t[0][j], t[1][j], t[2][j]}, false, bits)
+			if e != nil {
+				return r, e
+			}
+			for i, x := range c {
+				r[i][j] = x
+			}
+		}
+		for i, row := range r {
+			r[i], err = pose.TransformVector(ctx, row, false, bits)
+			if err != nil {
+				return r, err
+			}
+		}
+		return r, nil
+	}
+	out.InertiaAtCentroidPi, err = rotateTensor(local.InertiaAtCentroidPi)
+	if err != nil {
+		return out, err
+	}
+	out.SecondMomentPi, err = rotateTensor(local.SecondMomentPi)
+	if err != nil {
+		return out, err
+	}
+	for i := range 3 {
+		for j := range 3 {
+			w := out.SecondMomentPi[i][j]
+			for _, q := range []*big.Rat{new(big.Rat).Mul(translation[i], first[j]), new(big.Rat).Mul(translation[j], first[i]),
+				new(big.Rat).Mul(out.VolumePi, new(big.Rat).Mul(translation[i], translation[j]))} {
+				if e := check(q); e != nil {
+					return out, e
+				}
+				w.Add(w, q)
+				if e := check(w); e != nil {
+					return out, e
+				}
+			}
+		}
+	}
+	return out, ctx.Err()
+}
