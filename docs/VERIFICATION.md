@@ -6096,3 +6096,11 @@ outside results with original topology after reload and index changes.
 Both wall owners survive at a crease. Exact and one-short query limits
 are checked. The integrated geometry race passed in 1.199 s and the combined
 trimmed race in 44.829 s.
+
+### Path-specific AP242 style qualification
+
+Independent OCCT reads both complete repeated-group paths with SHUO mode
+enabled. The selected path is blue and the other shared leaf use remains
+red. Retargeting the upper use swaps that single override. Exact native
+reproof and STEP transfer retain six placed leaves, volume 108 and area
+252. The combined flat, nested and SHUO live race passed in 7.350 s.

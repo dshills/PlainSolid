@@ -2280,3 +2280,11 @@ Rational point classification uses the original independent station scales
 and weighted profile. Results retain original cap, rim, vertex, crease and
 periodic seam owners. Interior section disks never create an artificial
 material boundary.
+
+### Path-specific AP242 appearance
+
+A separate reader authorizes one original two-link SHUO in the bounded
+repeated-group structure. It retains both original use identities and
+applies the override only to the selected path. Native reload rechecks
+geometry, placement, exact source ownership and all sibling appearances.
+See the [SHUO exchange contract](../exchange/step/SHUO_OCCURRENCE_COLORS.md).
