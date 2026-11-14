@@ -27,6 +27,14 @@ func checkWeightedRoofStrictSurfaceArea(t *testing.T, ctx context.Context, cut, 
 		if math.Max(lo-value, value-hi) > 1e-11 {
 			t.Fatal("independent OCCT area lies outside the exact hull", r.Area, occt)
 		}
+		if i == 1 {
+			// The full-boundary path uses the same quotient derivatives on
+			// clipped cells instead of whole-face density-only integration.
+			direct, err := q.BoundCrossingSurfaceArea(ctx, MixedRoofAreaOptions{AbsoluteGap: .25})
+			if err != nil || direct.Area.Lower.Cmp(occt) > 0 || direct.Area.Upper.Cmp(occt) < 0 {
+				t.Fatal("direct rational cavity area must enclose the independent OCCT result", direct, err)
+			}
+		}
 		for j, owner := range r.Faces {
 			if owner.Owner != (MixedRoofFaceOwner{j / 6, j % 6}) || owner.Retained != (i == 1 || j >= 6) || owner.Reversed != (i == 1 && j >= 6) ||
 				(owner.Area.Upper.Sign() > 0) != owner.Retained {
