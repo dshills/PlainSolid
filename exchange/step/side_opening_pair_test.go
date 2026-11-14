@@ -586,3 +586,71 @@ func TestVertexSideOpeningSharedIntersectionSTEP(t *testing.T) {
 		})
 	}
 }
+
+func TestSideOpeningCutsSTEPConcealedCanonicalBytes(t *testing.T) {
+	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, fixture := range []struct {
+			name    string
+			visible []trimmed.SideOpeningCut
+			hidden  trimmed.SideOpeningCut
+		}{
+			{"disjoint-visible", []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}, Depth: 5}, {ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 14}, Radius: 2}, Depth: 4}}, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: -4, Y: 3}, Radius: 5}, Depth: 2}},
+			{"vertex", []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 3, Y: 4}, Radius: 5}, Depth: 5}}, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: -4, Y: 3}, Radius: 5}, Depth: 2}},
+			{"union-same-depth", []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 8}, Radius: 3}, Depth: 4}, {ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 12}, Radius: 3}, Depth: 4}}, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 2}, Depth: 2}},
+			{"union-varied-depth", []trimmed.SideOpeningCut{{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 8}, Radius: 3}, Depth: 4}, {ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 12}, Radius: 3}, Depth: 6}}, trimmed.SideOpeningCut{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 2}, Depth: 2}},
+		} {
+			t.Run(fmt.Sprintf("%s/%d", fixture.name, ni), func(t *testing.T) {
+				p := SideOpeningCutsBody{Name: "concealed opening", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: fixture.visible}
+				model := SideOpeningCutsModel{Body: p, LengthUnit: .001}
+				var expected bytes.Buffer
+				if err := WriteSideOpeningCuts(&expected, model); err != nil {
+					t.Fatal(err)
+				}
+				for _, first := range []bool{false, true} {
+					augmented := model
+					augmented.Body.Cuts = append([]trimmed.SideOpeningCut(nil), p.Cuts...)
+					if first {
+						augmented.Body.Cuts = append([]trimmed.SideOpeningCut{fixture.hidden}, augmented.Body.Cuts...)
+					} else {
+						augmented.Body.Cuts = append(augmented.Body.Cuts, fixture.hidden)
+					}
+					var actual bytes.Buffer
+					if err := WriteSideOpeningCuts(&actual, augmented); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(expected.Bytes(), actual.Bytes()) {
+						t.Fatal("concealed cutter changed canonical STEP bytes")
+					}
+				}
+				got, err := ReadSideOpeningCuts(bytes.NewReader(expected.Bytes()), Limits{})
+				if err != nil || !reflect.DeepEqual(got, model) {
+					t.Fatal(got, err)
+				}
+				oracleBody := p
+				oracleBody.Cuts = append(append([]trimmed.SideOpeningCut(nil), p.Cuts...), fixture.hidden)
+				checkSideOpeningCutsOCCT(t, oracleBody, expected.Bytes())
+			})
+		}
+	}
+}
+
+func TestSideOpeningCutsSTEPOneCapBuriedThrough(t *testing.T) {
+	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
+		t.Run(fmt.Sprint(ni), func(t *testing.T) {
+			frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := SideOpeningCutsBody{Name: "one cap buried through cutter", Frame: frame, Width: 20, Back: 20, Length: 8, Cuts: []trimmed.SideOpeningCut{
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 8}, Radius: 3}, Depth: 6},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10}, Radius: 1.75}, Depth: 8},
+				{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 12}, Radius: 3}, Depth: 6},
+			}}
+			checkCornerSideOpeningSTEP(t, p)
+		})
+	}
+}

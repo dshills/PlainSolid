@@ -301,3 +301,52 @@ func TestIntersectingCornerOpeningHoles(t *testing.T) {
 		})
 	}
 }
+
+func TestConcealedHoleSTEPAndFurtherCut(t *testing.T) {
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 20, 8})
+	hidden := circle(t, b, vector{10, 0, 0}, vector{0, 0, 1}, 1.75, 2)
+	left := circle(t, b, vector{8, 0, 0}, vector{0, 0, 1}, 3, 6)
+	right := circle(t, b, vector{12, 0, 0}, vector{0, 0, 1}, 3, 6)
+	base := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": hidden.Handle})
+	tools := []string{left.Handle, right.Handle}
+	final, err := b.cutMany(base.Handle, tools)
+	if err != nil {
+		t.Fatal(err)
+	}
+	visible, err := b.cutMany(stock.Handle, tools)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b.shapes[final.Handle].analytic.sideOpeningCuts.Cuts) != 2 {
+		t.Fatal("retained the concealed cutter in the boundary recipe")
+	}
+	expected, err := b.exportSTEP([]string{visible.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := b.exportSTEP([]string{final.Handle})
+	if err != nil || actual.Base64 != expected.Base64 {
+		t.Fatal("concealed cutter changed canonical STEP export", err)
+	}
+	data, err := base64.StdEncoding.DecodeString(actual.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := b.importSTEP(string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.GeometryAssertions != final.GeometryAssertions || restored.Bounds != final.Bounds {
+		t.Fatal(restored, final)
+	}
+	near(t, overlapMeasure(t, b, restored.Handle, hidden.Handle), 0)
+	deeper := circle(t, b, vector{10, 0, 0}, vector{0, 0, 1}, 1.75, 8)
+	removed := overlapMeasure(t, b, restored.Handle, deeper.Handle)
+	near(t, removed, math.Pi*1.75*1.75)
+	cut := shape(t, b, map[string]any{"op": "cut", "a": restored.Handle, "b": deeper.Handle})
+	near(t, cut.GeometryAssertions.Volume, restored.GeometryAssertions.Volume-removed)
+	if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
+		t.Fatal(err)
+	}
+}

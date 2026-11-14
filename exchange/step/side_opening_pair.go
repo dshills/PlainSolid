@@ -16,8 +16,8 @@ import (
 // between cuts, and each cut enters its selected end cap;
 // Depth=Length opens both caps. Dimensions and centers are in Frame coordinates.
 // Buried wall endpoints use adjacent floor orientation to recover a canonical
-// interval; complete graph regeneration verifies hidden extensions. Completely
-// occluded cutters have no recoverable support and are not retained as history.
+// interval. Complete graph regeneration verifies hidden extensions. The
+// arrangement omits cutters that make no contribution to the removed volume.
 type SideOpeningCutsBody struct {
 	Name                string
 	Frame               geom.Frame
@@ -170,22 +170,11 @@ func recoverSideOpeningCuts(f *File, id int64) (SideOpeningCutsBody, error) {
 		return fail()
 	}
 	for i := range result.Cuts {
-		switch {
-		case lows[i] == 0:
-			result.Cuts[i].Depth = highs[i]
-		case highs[i] == result.Length:
-			result.Cuts[i].Depth = result.Length - lows[i]
-			result.Cuts[i].OppositeCap = true
-			if result.Length-result.Cuts[i].Depth != lows[i] {
-				return fail()
-			}
-		default:
-			cut, ok := recoverBuriedSideOpening(g, frame, result.Cuts[i].ExtrusionCircle, lows[i], highs[i], result.Length)
-			if !ok {
-				return fail()
-			}
-			result.Cuts[i] = cut
+		cut, ok := recoverSideOpeningSpan(g, frame, result.Cuts[i].ExtrusionCircle, lows[i], highs[i], result.Length)
+		if !ok {
+			return fail()
 		}
+		result.Cuts[i] = cut
 	}
 	sort.Slice(result.Cuts[:], func(i, j int) bool {
 		a, b := result.Cuts[i], result.Cuts[j]
@@ -204,7 +193,7 @@ func recoverSideOpeningCuts(f *File, id int64) (SideOpeningCutsBody, error) {
 // ends against a +Z floor. Oppositely oriented adjacent floors hide an endpoint
 // inside material already removed by another cutter. No orientation combinations
 // are searched: regeneration must prove the one canonical interval inferred here.
-func recoverBuriedSideOpening(g circularSourceGraph, frame geom.Frame, circle trimmed.ExtrusionCircle, low, high, length float64) (trimmed.SideOpeningCut, bool) {
+func recoverSideOpeningSpan(g circularSourceGraph, frame geom.Frame, circle trimmed.ExtrusionCircle, low, high, length float64) (trimmed.SideOpeningCut, bool) {
 	lowerStop, upperStop := false, false
 	for id, edge := range g.edges {
 		if edge.kind != "CIRCLE" || edge.radius != circle.Radius {
@@ -223,8 +212,8 @@ func recoverBuriedSideOpening(g circularSourceGraph, frame geom.Frame, circle tr
 			if !face.sense {
 				normal = normal.Scale(-1)
 			}
-			lowerStop = lowerStop || (p.Z == high && normal == frame.ZAxis().Scale(-1))
-			upperStop = upperStop || (p.Z == low && normal == frame.ZAxis())
+			lowerStop = lowerStop || (p.Z == high && high < length && normal == frame.ZAxis().Scale(-1))
+			upperStop = upperStop || (p.Z == low && low > 0 && normal == frame.ZAxis())
 		}
 	}
 	cut := trimmed.SideOpeningCut{ExtrusionCircle: circle}
