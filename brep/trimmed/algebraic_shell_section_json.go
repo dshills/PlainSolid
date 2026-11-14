@@ -120,29 +120,39 @@ func ReadAlgebraicShellSectionJSON(ctx context.Context, r io.Reader, l JSONLimit
 	if len(s[0].vertices)+len(s[0].edges)+len(s[0].faces)+len(s[1].vertices)+len(s[1].edges)+len(s[1].faces)+cells > l.MaxEntities {
 		return out, geom.ErrConvergence
 	}
+	seeds, e := rebuildShellSectionSeeds(ctx, s, q.Pairs, l, o)
+	if e != nil {
+		return out, e
+	}
+	o.Seeds = seeds
+
+	return SectionSplineShellsAlgebraic(ctx, s[0], s[1], o)
+}
+
+func rebuildShellSectionSeeds(ctx context.Context, s [2]Solid, pairs []nativeShellSectionPair, l JSONLimits, o AlgebraicShellSectionOptions) ([]AlgebraicShellSectionSeed, error) {
 	o.Seeds = nil
 	seen := map[[2]int]bool{}
-	for _, p := range q.Pairs {
+	for _, p := range pairs {
 		if e := ctx.Err(); e != nil {
-			return out, e
+			return nil, e
 		}
 		if seen[p.Faces] {
-			return out, geom.ErrInvalid
+			return nil, geom.ErrInvalid
 		}
 		seen[p.Faces] = true
 		first := p.Tubes[0]
 		patches, seeds, e := rebuildAlgebraicTubeSeeds(ctx, [2]nativeTubePatch{first.A, first.B}, p.Tubes, l, o.Trace)
 		if e != nil {
-			return out, e
+			return nil, e
 		}
 		for i, ix := range p.Faces {
 			if ix < 0 || ix >= len(s[i].faces) {
-				return out, geom.ErrInvalid
+				return nil, geom.ErrInvalid
 			}
 			f := s[i].faces[ix]
 			b, e := faceUVBounds(f)
 			if e != nil {
-				return out, e
+				return nil, e
 			}
 			x := patches[i]
 			same := sameTrimmedSectionChart(f.Surface, x.Surface)
@@ -152,19 +162,19 @@ func ReadAlgebraicShellSectionJSON(ctx context.Context, r io.Reader, l JSONLimit
 				// canonical stored identity before using the saved proposals.
 				p, e := parametric.EncodeSurface(f.Surface)
 				if e != nil {
-					return out, e
+					return nil, e
 				}
 				q, e := parametric.EncodeSurface(x.Surface)
 				if e != nil {
-					return out, e
+					return nil, e
 				}
 				same = bytes.Equal(p, q)
 			}
 			if !same || b != (geom.ParameterRectangle{UMin: x.Min.X, UMax: x.Max.X, VMin: x.Min.Y, VMax: x.Max.Y}) {
-				return out, geom.ErrDomain
+				return nil, geom.ErrDomain
 			}
 		}
 		o.Seeds = append(o.Seeds, AlgebraicShellSectionSeed{p.Faces, seeds})
 	}
-	return SectionSplineShellsAlgebraic(ctx, s[0], s[1], o)
+	return o.Seeds, nil
 }
