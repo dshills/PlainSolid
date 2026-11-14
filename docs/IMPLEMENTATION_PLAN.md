@@ -190,6 +190,13 @@ disjoint holes are assigned to the resulting fragment. A closed single
 regular loop now seals an exact two-face graph lens. Continue from that
 material proof to multi-loop containment and cross-shell sewing, including
 original edge-to-edge and tangential-return events.
+Disjoint interior loops on the same rectangular source face now produce
+separate native lens components, with conservative total measures. A bounded
+projected graph lens can produce a closed display whose model edge ancestry,
+continuous deflection, orientation and non-incidence checks are preserved.
+The verified cylindrical quotient handles exact two-image intersections and
+annular union, including original charts on both seam occurrences. Extend
+that work to nonrectangular periodic trims and general periodic assemblies.
 Independent edge-to-face isolation already provides regular terminal hints
 to the tube verifier. Integrate exact algebraic terminal identities and
 prove complete continuation before assembling the resulting material.

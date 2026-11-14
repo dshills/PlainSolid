@@ -213,6 +213,23 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if (argc == 3 && mode == "frustum-erosion") {
+      std::ofstream out(argv[1]);
+      out.exceptions(std::ios::failbit | std::ios::badbit);
+      // Independently construct the inward-shifted lateral cone over its
+      // full original height, then intersect two translated cap halfspaces
+      // represented together by an encompassing box.
+      const auto caps = BRepPrimAPI_MakeBox(gp_Pnt(-8, -5, 3.5), 14, 14, 3).Shape();
+      for (int sense : {-1, 1}) {
+        const double start = sense > 0 ? 2 : 5;
+        const double finish = sense > 0 ? 5 : 2;
+        const auto wall = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(-1, 2, 3), gp_Dir(0, 0, 1)),
+                                              start - 0.625, finish - 0.625, 4).Shape();
+        record(out, sense > 0 ? "frustum-erosion-rising" : "frustum-erosion-falling",
+               BRepAlgoAPI_Common(wall, caps).Shape(), 1e-11);
+      }
+      return 0;
+    }
     if(argc==3 && mode=="warped-open-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedOpenSplineBooleans(out);return 0;}
     if(argc==3 && mode=="warped-corner-spline"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedCornerSplineBooleans(out,"corner",1./4,0);warpedCornerSplineBooleans(out,"interior",1./4,1./8);warpedCornerSplineBooleans(out,"two-corner",9./16,0);return 0;}
     if(argc==3 && mode=="warped-spline-slab"){std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);warpedSplineSlab(out);return 0;}

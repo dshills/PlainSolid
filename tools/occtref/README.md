@@ -36,6 +36,10 @@ The IGES oracle validates imported shapes and reports total curve length and
 edge count. All exchange fixtures produced by the executable are generated
 at test time; no OCCT source, binaries, or test fixtures are vendored.
 
+`frustum-erosion` constructs each tapered reference by intersecting an
+inward-shifted full lateral cone with a separate cap slab. The Go test
+checks volume, area and centroid for rising and falling taper.
+
 Run all optional exchange checks with:
 
 ```sh

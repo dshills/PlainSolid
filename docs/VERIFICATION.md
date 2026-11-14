@@ -112,6 +112,21 @@ The biquadratic IGES shell (`8bf3e78`) preserves a curved roof and retains
 original spline charts through shared-edge proofs and global native embedding.
 Both the independent fixture and Go output transfer through pinned OCCT as
 one valid solid with volume 37/36 and centroid (1/2, 1/2, 951/1850).
+The curved-rim IGES solid (`8226fd9`) independently transfers in and out of
+OCCT with two quadratic model edges, volume 4/3, and centroid (9/16, 1/2,
+7/10). The first-moment and world inertia bounds (`ce5ad8f`, `7030f52`)
+enclose independent volume integrals of a signed, translated warped slab
+and a separate box. The exact-lens point/line test (`66eb459`) passed race;
+the finite line suppresses buried crossings and rejects a simultaneous rim
+contact atomically. The closed graph-lens mesh (`f0ccdaa`) passed race in
+both XY and YZ. Its 1,520 and 1,696 triangles satisfy bounds of 0.097219 and
+0.072267 respectively and pass exact display non-incidence checks. The
+exact annular union and its native adapter (`41a1275`, `94cff4e`) keep two
+oppositely directed boundary loops; nonbinary native vertices are rejected
+without losing the exact complex.
+The capped circular frustum erosion matched independent pinned OCCT
+intersections of the shifted analytic cone and cap slab for both taper
+directions. Native mass, continuous rim agreement and race checks passed.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
