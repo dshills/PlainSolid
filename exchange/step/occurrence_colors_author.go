@@ -31,20 +31,7 @@ func SetOccurrenceSurfaceColor(ctx context.Context, source *File, occurrenceID i
 	if e != nil {
 		return zero, e
 	}
-	contextual := false
-	for _, en := range source.Entities {
-		for _, r := range en.Records {
-			if r.Type == "PRESENTATION_STYLE_BY_CONTEXT" {
-				contextual = true
-			}
-		}
-	}
-	var before OccurrenceColoredAssembly
-	if contextual {
-		before, e = ReadOccurrenceColoredAssembly(bytes.NewReader(raw), l)
-	} else {
-		before.Assembly, e = ReadColoredAssembly(bytes.NewReader(raw), l)
-	}
+	before, e := readFlatAppearance(raw, source, l)
 	if e != nil {
 		return zero, e
 	}

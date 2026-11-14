@@ -42,9 +42,18 @@ type occurrenceColorsEnvelope struct {
 // It does not construct a solid from untrusted stored claims: the reader only
 // returns the newly authenticated source model after comparing all claims.
 func occurrenceColorsClaims(ctx context.Context, m OccurrenceColoredAssembly) (occurrenceColorsEnvelope, error) {
+	if len(m.Overrides) == 0 {
+		return occurrenceColorsEnvelope{}, geom.ErrInvalid
+	}
+	return occurrenceAppearanceClaims(ctx, m)
+}
+
+// The internal appearance comparison also permits a proved return to defaults;
+// the public contextual persistence path above still requires an override.
+func occurrenceAppearanceClaims(ctx context.Context, m OccurrenceColoredAssembly) (occurrenceColorsEnvelope, error) {
 	fail := func() (occurrenceColorsEnvelope, error) { return occurrenceColorsEnvelope{}, geom.ErrInvalid }
 	a := m.Assembly.Assembly
-	if !independentNativeSourceRecordBound(a.Source, 4096, 8) || len(a.Products) < 1 || len(a.Products) > 16 || len(a.Roots) > 16 || len(a.Occurrences) > 4096 || len(m.Overrides) < 1 || len(m.Overrides) > 64 || len(m.Assembly.ProductBodies) != len(a.Products) {
+	if !independentNativeSourceRecordBound(a.Source, 4096, 8) || len(a.Products) < 1 || len(a.Products) > 16 || len(a.Roots) > 16 || len(a.Occurrences) > 4096 || len(m.Overrides) > 64 || len(m.Assembly.ProductBodies) != len(a.Products) {
 		return fail()
 	}
 	raw, e := mappedPlanarSourceBytes(a.Source)
