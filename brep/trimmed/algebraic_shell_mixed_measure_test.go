@@ -139,6 +139,23 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if generated == 0 || split == 0 {
 			t.Fatal("expected both generated and split edges", name, generated, split)
 		}
+		roof, err := body.PrepareRoofMaterialQuery(ctx, MixedRoofQueryOptions{})
+		if err != nil || roof.PreparationOperations() <= 0 {
+			t.Fatal("original roof query preparation", name, err)
+		}
+		delta := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 100))
+		height := big.NewRat(-7, 128) // tool roof at x=y=1/2
+		for j, want := range [3][3]parametric.Location{
+			{parametric.Inside, parametric.Boundary, parametric.Outside},
+			{parametric.Inside, parametric.Inside, parametric.Inside},
+			{parametric.Outside, parametric.Boundary, parametric.Inside},
+		}[i] {
+			z := new(big.Rat).Add(height, new(big.Rat).Mul(big.NewRat(int64(j-1), 1), delta))
+			got, err := roof.LocateRational(ctx, [3]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2), z}, geom.SurfacePatchEvaluationOptions{})
+			if err != nil || got.Location != want || got.Operands[0] != parametric.Inside || got.Operands[1] != [3]parametric.Location{parametric.Inside, parametric.Boundary, parametric.Outside}[j] {
+				t.Fatal("sub-binary roof classification", name, j, got, want, err)
+			}
+		}
 		selection := AlgebraicShellMeasureOptions{MaxDepth: 5, TubeSubdivisions: 8}
 		area, err := body.BoundOriginalFaceAreas(ctx, selection)
 		if err != nil || !contains(area.Area, ref.Area) || area.Area.Lower.Sign() <= 0 {
