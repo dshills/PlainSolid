@@ -37,7 +37,11 @@ across the adjacent side. Fully concealed cutters no longer leave extra
 STEP face partitions. The exported boundary also round-trips a through
 cutter whose entry is concealed by other Holes. Opposed blind floors
 can now meet exactly and retain an open passage through the shared
-footprint. Intersecting cutters on nonparallel axes remain open.
+footprint. Two equal-radius through cutters whose perpendicular axes
+intersect inside a rectangular block retain exact cylindrical walls and
+elliptical intersection edges. Grouped and successive cuts, overlap
+queries, STEP and STL pass. Unequal radii, skew or oblique axes and
+intersecting blind cutters remain open.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
@@ -576,8 +580,8 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 
 ## Continuing implementation
 
-The remaining rectangular Hole geometry work includes nonparallel
-cutter axes.
+The remaining rectangular Hole geometry work includes unequal-radius
+intersections, skew and oblique cutter axes, and nonparallel blind cuts.
 The full unit gate still has 36 repeat failures after focused retests.
 The recorded controls identify the OCCT-private bindings and fixtures
 that depend on an uninitialized kernel.
