@@ -210,3 +210,6 @@ with the native cubic band, also checked against independent integrals.
 `crossing-band` mode intersects the two caps inside the swept stock, with
 one end of their seam on the original cubic floor. The differential is
 `TestClipCrossingRationalGraphSplineShell`.
+`sleeve` independently cuts a square through-void in stock and intersects it
+with two planes whose intersection traverses the void. The native comparison
+uses Euler and material measures because the Go stock has split side charts.

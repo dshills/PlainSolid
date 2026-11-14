@@ -857,6 +857,12 @@ surfaces must keep their geometry through the operation. Continue with:
    its original faces and cap coedges. A crossing can select the upper or
    lower envelope of two same-direction graphs, joining both original trims
    at the proved cap endpoint.
+   For polygonal sections, an exact line arrangement also handles crossings
+   through inner wires and multiple material intervals on the same line.
+   A cut square sleeve opens its void into a notch, leaving two independent
+   cap/cap edges. The native result retains its original surfaces and reloads.
+   Intersected higher-degree inner wires and multi-fragment stock faces remain
+   outside that path.
 2. Extend periodic and singular chart proofs. Sewing supports canonical seams,
    circular closed edges and collapsed poles of selected analytic primitives.
    Extend that work to general periodic spline faces, arbitrary inner loops,

@@ -1,4 +1,5 @@
 #include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
@@ -37,12 +38,20 @@ static TopoDS_Shape cubicStock() {
 int main(int argc, char** argv) {
   if (argc > 2) return 3;
   const std::string_view mode = argc == 2 ? argv[1] : "";
-  if (!mode.empty() && mode != "curved-band" && mode != "crossing-band") return 3;
-  const bool curved = argc == 2;
+  if (!mode.empty() && mode != "curved-band" && mode != "crossing-band" && mode != "sleeve") return 3;
   const bool crossing = mode == "crossing-band";
+  const bool curved = crossing || mode == "curved-band";
+  const bool sleeve = mode == "sleeve";
   TopoDS_Shape stock = curved ? cubicStock() : BRepPrimAPI_MakeBox(1, 1, 1).Shape();
+  if (sleeve) {
+    const auto body = BRepPrimAPI_MakeBox(3, 3, 1).Shape();
+    const auto hole = BRepPrimAPI_MakeBox(gp_Pnt(1, 1, -1), gp_Pnt(2, 2, 2)).Shape();
+    BRepAlgoAPI_Cut boring(body, hole);
+    if (!boring.IsDone()) return 6;
+    stock = boring.Shape();
+  }
   if (!BRepCheck_Analyzer(stock).IsValid()) return 4;
-  const gp_Pnt inside = crossing ? gp_Pnt(.75, .125, .1953125) :
+  const gp_Pnt inside = sleeve ? gp_Pnt(2.5, .5, .5625) : crossing ? gp_Pnt(.75, .125, .1953125) :
                         curved ? gp_Pnt(.5, .125, .203125) : gp_Pnt(.875, .125, .6875);
   const gp_Pln wedgePlanes[] = {
     gp_Pln(gp_Pnt(0, 0, .375), gp_Dir(-.25, -.25, 1)),
@@ -54,8 +63,12 @@ int main(int argc, char** argv) {
     crossing ? gp_Pln(gp_Pnt(0, 0, .15625), gp_Dir(-1./16, 0, 1)) :
                gp_Pln(gp_Pnt(0, 0, .21875), gp_Dir(-1./128, 0, 1)),
   };
-  for (int i = 0; i < (curved ? 2 : 3); ++i) {
-    const auto face = BRepBuilderAPI_MakeFace(curved ? bandPlanes[i] : wedgePlanes[i]).Face();
+  const gp_Pln sleevePlanes[] = {
+    gp_Pln(gp_Pnt(0, 0, .5), gp_Dir(0, 0, 1)),
+    gp_Pln(gp_Pnt(0, 0, .3125), gp_Dir(-.125, 0, 1)),
+  };
+  for (int i = 0; i < (curved || sleeve ? 2 : 3); ++i) {
+    const auto face = BRepBuilderAPI_MakeFace(sleeve ? sleevePlanes[i] : curved ? bandPlanes[i] : wedgePlanes[i]).Face();
     const auto tool = BRepPrimAPI_MakeHalfSpace(face, inside).Solid();
     BRepAlgoAPI_Common cut(stock, tool);
     if (!cut.IsDone() || cut.Shape().IsNull() || !BRepCheck_Analyzer(cut.Shape()).IsValid()) return 1;
