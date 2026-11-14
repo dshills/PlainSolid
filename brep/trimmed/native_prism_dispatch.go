@@ -39,6 +39,7 @@ const (
 	NativePrismFamilyEmpty
 	NativePrismFamilyNestedFuse
 	NativePrismFamilyNestedCut
+	NativePrismFamilyCoveringCut
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
@@ -61,6 +62,7 @@ type NativePrismMaterial struct {
 	crossingFuse       *NativeCrossingPrismFuse
 	nestedFuse         *NativeNestedPrismFuse
 	nestedCut          *NativeNestedPrismCut
+	coveringCut        *NativePrismCoveringCut
 	classificationWork int
 }
 
@@ -166,6 +168,12 @@ func (s *NativePrismMaterial) NestedCutProof() *NativeNestedPrismCut {
 		return nil
 	}
 	return s.nestedCut
+}
+func (s *NativePrismMaterial) CoveringCutProof() *NativePrismCoveringCut {
+	if s == nil {
+		return nil
+	}
+	return s.coveringCut
 }
 func (s *NativePrismMaterial) ClassificationNativeOperations() int {
 	if s == nil {
@@ -393,7 +401,13 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 				}
 			}
 		} else if !aInsideB {
-			if x.lo < y.lo && y.hi < x.hi {
+			if y.lo <= x.lo && x.hi <= y.hi {
+				out.coveringCut, e = CutCoveringCrossingNativePrisms(ctx, a, b, o.Construct)
+				if e == nil {
+					out.family = NativePrismFamilyCoveringCut
+					out.components = out.coveringCut.Components()
+				}
+			} else if x.lo < y.lo && y.hi < x.hi {
 				q, err := ImprintNestedCrossingNativePrismCut(ctx, a, b, o.Construct)
 				e = err
 				if e == nil {

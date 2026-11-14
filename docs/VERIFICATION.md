@@ -6302,3 +6302,11 @@ passed all 66 tests after increasing only Chromium's DevTools network
 capture buffers in the copied test dependency. The unadjusted 65/66
 production result is also recorded. This evidence is bound to the pinned
 Go and app revisions. See the [combined evidence](evidence/main-6c4ab7c4-qualification-2026-11-14.json).
+
+### Crossing prism through Cut qualification
+
+The native dispatcher and crossing-family race run passed in 6.612
+seconds. Cases cover equal and enclosing tool intervals, disconnected
+retained components, and a tool hole that leaves a material post.
+Independent volume, source-support agreement, topology, operation quotas,
+and rejection of nonbinary native vertices were checked.

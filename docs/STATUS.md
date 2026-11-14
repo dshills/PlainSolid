@@ -2388,3 +2388,11 @@ positive-length collinear overlap, records exact original parameter
 ranges, and re-proves the original and split coedges before joining the
 closed graph. UV and model endpoints must fit binary64 exactly. Point
 contacts leave disconnected vertex links distinct.
+
+### Crossing prism through Cut
+
+`CutCoveringCrossingNativePrisms` extrudes the exact Difference footprint
+through both original stock caps. It supports separate retained components
+and retains original stock and cutter wall intervals, including reversed
+cutter hole walls. The unified dispatcher selects the construction for
+qualified tool-coverage cases.
