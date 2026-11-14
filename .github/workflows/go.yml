@@ -86,6 +86,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalAnnularPrismTopology$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalAnnularPrismMaterialNative$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedEllipticalPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedEllipticalPrism$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTangentCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzGeometricTangentComposite$ -fuzztime=100x -parallel=1 -timeout=90s
