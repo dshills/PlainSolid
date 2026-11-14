@@ -44,7 +44,8 @@ func (l AlgebraicProjectedTubeLens) BoundBoundaryDistance(ctx context.Context, q
 func (l tubeLensQuery) boundBoundaryDistance(ctx context.Context, q [3]*big.Rat,
 	interval func(context.Context, [2]*big.Rat, geom.ExactCurvePlaneEventOptions) (AlgebraicTubeLensVerticalInterval, error),
 	o AlgebraicTubeLensDistanceOptions) (out AlgebraicTubeLensDistance, err error) {
-	if ctx == nil || l.section.partitionSource == nil || q[0] == nil || q[1] == nil || q[2] == nil ||
+	source := l.section.runSource()
+	if ctx == nil || source == nil || q[0] == nil || q[1] == nil || q[2] == nil ||
 		o.MaxDepth < 0 || o.MaxDepth > 40 || o.MaxCells < 0 || o.MaxCells > 262144 {
 		return out, geom.ErrInvalid
 	}
@@ -75,9 +76,21 @@ func (l tubeLensQuery) boundBoundaryDistance(ctx context.Context, q [3]*big.Rat,
 		}
 	}
 	limits := func() geom.SurfacePatchOptions { p := o.Patch; p.MaxOperations -= out.ExactOperations; return p }
+	trim := func(p *geom.SurfacePatch, d geom.ParameterRectangle) (*geom.SurfacePatch, error) {
+		if p.Domain() == d {
+			return p, nil
+		}
+		n := limits().MaxOperations
+		if n < 1 {
+			return nil, geom.ErrConvergence
+		}
+		result, used, e := p.TrimWithWorkLimit(d, n)
+		out.ExactOperations += used
+		return result, e
+	}
 	var roots [2]*geom.SurfacePatch
 	work := tubeLensDistanceHeap{}
-	for i, f := range l.section.partitionSource.faces {
+	for i, f := range source.faces {
 		d, e := faceUVBounds(f)
 		if e != nil {
 			return out, e
@@ -86,16 +99,15 @@ func (l tubeLensQuery) boundBoundaryDistance(ctx context.Context, q [3]*big.Rat,
 		if p.MaxOperations < 1 {
 			return out, geom.ErrConvergence
 		}
-		s, e := geom.NewSurfacePatch(l.faces[i].Support, p)
+		s, used, e := exactLensQueryPatch(f, p)
+		out.ExactOperations += used
 		if e != nil {
 			return out, e
 		}
-		out.ExactOperations += s.ExactOperations()
-		roots[i], e = s.Trim(d)
+		roots[i], e = trim(s, d)
 		if e != nil {
 			return out, e
 		}
-		out.ExactOperations += roots[i].ExactOperations()
 		b, e := roots[i].Bounds()
 		if e != nil {
 			return out, e
@@ -225,11 +237,10 @@ func (l tubeLensQuery) boundBoundaryDistance(ctx context.Context, q [3]*big.Rat,
 			if limits().MaxOperations < 1 {
 				return finish(geom.ErrConvergence, minLensDistance(unresolved, x.lower))
 			}
-			p, e := x.patch.Trim(d)
+			p, e := trim(x.patch, d)
 			if e != nil {
 				return finish(e, minLensDistance(unresolved, x.lower))
 			}
-			out.ExactOperations += p.ExactOperations()
 			box, e := p.Bounds()
 			if e != nil {
 				return finish(e, minLensDistance(unresolved, x.lower))

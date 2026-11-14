@@ -1,6 +1,28 @@
 package trimmed
 
-import "plainsolid/geom"
+import (
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+// Reuse the original homogeneous support, including any world placement,
+// without recovering it by rounding the control net or fitting a new chart.
+func exactLensQueryPatch(f Face, o geom.SurfacePatchOptions) (*geom.SurfacePatch, int, error) {
+	base, placement := parametric.SurfaceMapping(f.Surface)
+	s, e := exactSplineSupportPatch(base, o)
+	if e != nil {
+		return nil, 0, e
+	}
+	used := s.ExactOperations()
+	if placement == geom.Identity() {
+		return s, used, nil
+	}
+	if used >= o.MaxOperations {
+		return nil, used, geom.ErrConvergence
+	}
+	out, work, e := s.TransformedWithWorkLimit(placement, o.MaxOperations-used)
+	return out, used + work, e
+}
 
 func tubeLensPartitionSurface(f AlgebraicTubeFacePartition) geom.Surface {
 	if f.SourceSurface != nil {

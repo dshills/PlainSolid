@@ -81,6 +81,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzSplineGeneratrixCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTrimmedGeneratrixCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzPlanarSplineAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCylinderMaterialAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRevolutionSurfaces$ -fuzztime=10s -parallel=2
@@ -96,6 +97,7 @@ jobs:
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMappedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedTopologySolids$ -fuzztime=100x -parallel=1 -timeout=90s
       - run: go test ./brep/parametric -fuzz=FuzzReadJSON -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadCurves -fuzztime=10s -parallel=2
       - run: go test ./exchange/step -fuzz=FuzzReadSurfaces -fuzztime=10s -parallel=2
@@ -105,6 +107,7 @@ jobs:
       - run: go test ./exchange -fuzz=FuzzBinaryPLY -fuzztime=10s -parallel=2
       - run: go test ./brep/trimmed -fuzz=FuzzTrimmedJSON -fuzztime=10s -parallel=2
       - run: go test ./brep/trimmed -run=^$ -fuzz=FuzzAlgebraicTubeRecipe -fuzztime=10s -parallel=2
+      - run: GOMAXPROCS=2 go test ./brep/trimmed -run=^$ -fuzz=^FuzzWrappedQuadraticFaceJSON$ -fuzztime=100x -parallel=1 -timeout=120s
       - run: go test ./brep/trimvalidate -run=^$ -fuzz=^FuzzExactRationalCircleContainment$ -fuzztime=10s -parallel=2
       - run: go test ./geom -run=^$ -fuzz=^FuzzOrient3DAntisymmetry$ -fuzztime=10s -parallel=2
       - run: go test ./internal/plaincadbridge -run=^$ -fuzz=^FuzzBoundedRequests$ -fuzztime=10s -parallel=2

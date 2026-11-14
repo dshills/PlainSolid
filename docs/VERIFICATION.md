@@ -1794,6 +1794,29 @@ definitions and three placed occurrences. The pinned OCCT reader independently
 accepts the OCCT-authored file, Go export and Go re-export. All report 18
 faces, volume 16, and centroid (-7/16, 175/24, 139/144). Local original
 curved supports and separate occurrence identities survive the Go round trip.
+The heterogeneous cylinder assembly (`988b2e2`) adds two occurrences of
+one shared analytic cylinder. Independent OCCT source, Go output and source
+re-export each transfer as five solids and 24 faces, with three shared
+definitions, volume 16+4π and the independently derived world centroid.
+The bounded periodic face recipe (`4b4be54`) stores just the fundamental
+surface and authored quadratic loops. Reload re-proves the seam, trim
+and native model edge agreement; both the retained seam parameter 2/3 and
+the inclined-line query survive reload. Unknown or duplicate fields, damaged
+geometry, trailing data and exhausted limits reject.
+Line, plane, and boundary distance queries on the nonbinary exact roof
+(`a0c6365`) now use its original support. They recover independent rational
+line endpoints 1/4 and 3/4, plane rim endpoints 3/16 and 13/16, and zero
+distance at the analytic crown. This and the existing XZ fixture passed race.
+The vertical periodic fiber classifier (`7e44fad`) proves ordered exact
+trim crossings and overlap intervals using an original-chart rational
+witness. Signed traversals through a seam hole, isolated boundary contacts,
+shared-edge endpoint ownership and the same algebraic seam parameter survive
+focused race checks. Unrecovered roots and coincident spans reject in this
+milestone rather than changing hole parity.
+The mixed IGES material collection (`92f76f0`) reuses independent full
+tetrahedron and curved roof proofs and preserves each source owner's entity
+IDs. The live pinned OCCT oracle transfers source and Go re-export as two
+solids, ten faces, volume 8/3 and centroid (21/32, -1/2, 21/10).
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the

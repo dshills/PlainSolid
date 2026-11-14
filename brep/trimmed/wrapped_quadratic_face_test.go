@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func wrappedQuadraticLoop(t *testing.T) []ExactQuadraticUV {
+func wrappedQuadraticLoop(t testing.TB) []ExactQuadraticUV {
 	t.Helper()
 	pts := [][2]*big.Rat{{big.NewRat(-1, 4), big.NewRat(-1, 1)}, {big.NewRat(1, 4), big.NewRat(-1, 1)}, {big.NewRat(1, 4), new(big.Rat)}, {big.NewRat(-1, 4), new(big.Rat)}}
 	out := make([]ExactQuadraticUV, 4)
