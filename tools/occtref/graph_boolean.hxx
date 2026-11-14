@@ -161,3 +161,40 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-common",BRepAlgoAPI_Common(a,b).Shape());
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
+
+static void tangentSplineShellRecords(std::ostream& out) {
+  BRepBuilderAPI_Sewing sewing(1e-9);
+  const double sq[3]{.25,-.25,.25};
+  for (int fixed = 0; fixed < 3; ++fixed) for (int side = 0; side < 2; ++side) {
+    const int u = (fixed + 1) % 3, v = (fixed + 2) % 3;
+    const int du = u == 2 ? 1 : 2, dv = v == 2 ? 1 : 2;
+    NCollection_Array2<gp_Pnt> poles(1,du+1,1,dv+1);
+    for (int i = 0; i <= du; ++i) for (int j = 0; j <= dv; ++j) {
+      int p[3]{};
+      p[fixed] = side * (fixed == 2 ? 1 : 2);
+      p[u] = i;
+      p[v] = j;
+      const double z = p[2] == 0 ? -1 : -sq[p[0]] - sq[p[1]];
+      poles.SetValue(i+1,j+1,gp_Pnt(.5*p[0],.5*p[1],z));
+    }
+    NCollection_Array1<double> k(1,2);
+    k.SetValue(1,0); k.SetValue(2,1);
+    NCollection_Array1<int> mu(1,2),mv(1,2);
+    mu.Init(du+1); mv.Init(dv+1);
+    occ::handle<Geom_BSplineSurface> support = new Geom_BSplineSurface(poles,k,k,mu,mv,du,dv);
+    auto face = BRepBuilderAPI_MakeFace(support,1e-9).Face();
+    if (side == 0) face.Reverse();
+    sewing.Add(face);
+  }
+  sewing.Perform();
+  TopExp_Explorer ex(sewing.SewedShape(),TopAbs_SHELL);
+  if (!ex.More()) throw std::runtime_error("missing tangent roof");
+  auto tool = BRepBuilderAPI_MakeSolid(TopoDS::Shell(ex.Current())).Solid();
+  ex.Next();
+  if (ex.More() || !BRepCheck_Analyzer(tool).IsValid()) throw std::runtime_error("invalid tangent roof");
+  const auto stock = BRepPrimAPI_MakeBox(1,1,1).Shape();
+  auto common = BRepAlgoAPI_Common(stock,tool);
+  if (!common.IsDone() || TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
+    throw std::runtime_error("isolated tangency produced common material");
+  record(out,"isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
+}
