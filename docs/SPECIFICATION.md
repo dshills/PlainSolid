@@ -107,4 +107,6 @@ In particular:
   [pinned reference harness](../tools/occtref/README.md) exercises selected
   cross-kernel exchange cases.
 - Document snapshots preserve exact supported assets, stable asset IDs and
-  feature recipes. Stable topology naming across regeneration remains open.
+  feature recipes. Authored planar box face references trace retained,
+  deleted, fragmented and reversed faces across planar Booleans and transforms.
+  Stable generated-edge and general curved topology naming remain open.

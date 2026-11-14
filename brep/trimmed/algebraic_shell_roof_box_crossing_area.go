@@ -18,6 +18,23 @@ import (
 // The default gap is 0.15 square model units. On exhaustion or cancellation
 // the method returns no face ledger.
 func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o MixedRoofAreaOptions) (MixedRoofArea, error) {
+	return q.boundRoofBoxArea(ctx, o, false)
+}
+
+// BoundRoofBoxSurfaceArea proves both original spline roof boxes and measures
+// the surface of their regularized Boolean directly. Coincident floor, wall
+// and graph areas are counted once or removed according to material incidence.
+// The first operand owns any shared portion that remains exposed. The
+// operation does not construct or imply a closed native Boolean topology.
+func BoundRoofBoxSurfaceArea(ctx context.Context, a, b Solid, op parametric.BooleanOp, proof MixedRoofQueryOptions, o MixedRoofAreaOptions) (MixedRoofArea, error) {
+	q, err := prepareRoofMaterialQuery(ctx, [2]Solid{a, b}, op, proof)
+	if err != nil {
+		return MixedRoofArea{}, err
+	}
+	return q.boundRoofBoxArea(ctx, o, true)
+}
+
+func (q *MixedRoofMaterialQuery) boundRoofBoxArea(ctx context.Context, o MixedRoofAreaOptions, allowCoincidence bool) (MixedRoofArea, error) {
 	var zero MixedRoofArea
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 8000000
@@ -45,7 +62,7 @@ func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o
 		return zero, geom.ErrInvalid
 	}
 	a, b := q.box[0], q.box[1]
-	if a.floor.Cmp(b.floor) == 0 || roofAreaCoincidentWalls(a.domain, b.domain) {
+	if !allowCoincidence && (a.floor.Cmp(b.floor) == 0 || roofAreaCoincidentWalls(a.domain, b.domain)) {
 		return zero, geom.ErrUnrepresentable
 	}
 	w := mixedRoofLineWork{o: MixedRoofLineOptions{SurfacePatchEvaluationOptions: o.SurfacePatchEvaluationOptions}}
@@ -58,33 +75,37 @@ func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o
 	}
 	work := crossingRoofAreaWork{
 		ctx: ctx, owner: q, arithmetic: &w, options: o, result: &out,
-		charts: map[*mixedRoofBox]crossingRoofAreaDerivatives{},
-		order:  make(roofOrderCache),
+		charts:           map[*mixedRoofBox]crossingRoofAreaDerivatives{},
+		order:            make(roofOrderCache),
+		allowCoincidence: allowCoincidence,
 	}
+	walls := make(map[roofAreaWallKey][]crossingRoofAreaCell)
+	var wallOrder []roofAreaWallKey
 	var pending crossingRoofAreaHeap
+	add := func(item crossingRoofAreaCell) error {
+		if err := work.calculate(&item); err != nil {
+			return err
+		}
+		if err := work.replace(item.face, [2]*big.Rat{}, item.area); err != nil {
+			return err
+		}
+		if item.width.Sign() != 0 {
+			heap.Push(&pending, item)
+		}
+		return nil
+	}
 	for _, cell := range footprint {
 		for i, support := range cell.roof {
 			if support == nil {
 				continue
 			}
 			box := q.box[i]
-			add := func(j int, kind crossingRoofAreaKind, axis int, xy [2]geom.ExactParameterInterval) error {
-				item := crossingRoofAreaCell{footprint: cell.roof, xy: xy, owner: i, face: 6*i + j, kind: kind, axis: axis}
-				if err := work.calculate(&item); err != nil {
-					return err
-				}
-				if err := work.replace(item.face, [2]*big.Rat{}, item.area); err != nil {
-					return err
-				}
-				if item.width.Sign() != 0 {
-					heap.Push(&pending, item)
-				}
-				return nil
-			}
-			if err = add(box.floorFace, crossingAreaFloor, 0, cell.xy); err != nil {
+			item := crossingRoofAreaCell{footprint: cell.roof, xy: cell.xy, owner: i, face: 6*i + box.floorFace, kind: crossingAreaFloor}
+			if err = add(item); err != nil {
 				return zero, err
 			}
-			if err = add(box.roofFace, crossingAreaRoof, 0, cell.xy); err != nil {
+			item.face, item.kind = 6*i+box.roofFace, crossingAreaRoof
+			if err = add(item); err != nil {
 				return zero, err
 			}
 			planes := [2][2]float64{{box.domain.UMin, box.domain.UMax}, {box.domain.VMin, box.domain.VMax}}
@@ -94,11 +115,41 @@ func (q *MixedRoofMaterialQuery) BoundCrossingSurfaceArea(ctx context.Context, o
 					if x.Cmp(ratInset(planes[axis][edge])) == 0 {
 						wall := cell.xy
 						wall[axis] = geom.ExactParameterInterval{Lower: x, Upper: x}
-						if err = add(box.sideFaces[2*axis+edge], crossingAreaWall, axis, wall); err != nil {
-							return zero, err
+						item := crossingRoofAreaCell{footprint: cell.roof, xy: wall, owner: i, face: 6*i + box.sideFaces[2*axis+edge], kind: crossingAreaWall, axis: axis, side: edge}
+						if !allowCoincidence {
+							if err := add(item); err != nil {
+								return zero, err
+							}
+							continue
 						}
+						run := wall[1-axis]
+						key := roofAreaWallKey{axis, x.RatString(), run.Lower.RatString(), run.Upper.RatString()}
+						if len(walls[key]) == 0 {
+							wallOrder = append(wallOrder, key)
+						}
+						walls[key] = append(walls[key], item)
 					}
 				}
+			}
+		}
+	}
+	for _, key := range wallOrder {
+		rows := walls[key]
+		if len(rows) == 2 && rows[0].owner != rows[1].owner {
+			for i := range rows {
+				other := rows[1-i]
+				rows[i].footprint[other.owner] = other.footprint[other.owner]
+				rows[i].wallCoincidence = 1
+				if rows[i].side != other.side {
+					rows[i].wallCoincidence = -1
+				}
+			}
+		} else if len(rows) != 1 {
+			return zero, geom.ErrUnrepresentable
+		}
+		for _, row := range rows {
+			if err := add(row); err != nil {
+				return zero, err
 			}
 		}
 	}
@@ -181,13 +232,20 @@ const (
 )
 
 type crossingRoofAreaCell struct {
-	footprint   [2]*mixedRoofBox
-	xy          [2]geom.ExactParameterInterval
-	owner, face int
-	kind        crossingRoofAreaKind
-	axis, depth int // axis is fixed for walls
-	area        geom.ExactParameterInterval
-	width       *big.Rat
+	footprint       [2]*mixedRoofBox
+	xy              [2]geom.ExactParameterInterval
+	owner, face     int
+	kind            crossingRoofAreaKind
+	axis, depth     int // axis is fixed for walls
+	side            int
+	wallCoincidence int // +1 same material side, -1 opposite sides
+	area            geom.ExactParameterInterval
+	width           *big.Rat
+}
+
+type roofAreaWallKey struct {
+	axis              int
+	fixed, start, end string
 }
 
 type crossingRoofAreaHeap []crossingRoofAreaCell
@@ -210,13 +268,14 @@ type crossingRoofAreaDerivatives struct {
 	scale  [2]*big.Rat
 }
 type crossingRoofAreaWork struct {
-	ctx        context.Context
-	owner      *MixedRoofMaterialQuery
-	arithmetic *mixedRoofLineWork
-	options    MixedRoofAreaOptions
-	result     *MixedRoofArea
-	charts     map[*mixedRoofBox]crossingRoofAreaDerivatives
-	order      roofOrderCache
+	ctx              context.Context
+	owner            *MixedRoofMaterialQuery
+	arithmetic       *mixedRoofLineWork
+	options          MixedRoofAreaOptions
+	result           *MixedRoofArea
+	charts           map[*mixedRoofBox]crossingRoofAreaDerivatives
+	order            roofOrderCache
+	allowCoincidence bool
 }
 
 func (s *crossingRoofAreaWork) replace(index int, old [2]*big.Rat, added geom.ExactParameterInterval) error {
@@ -253,7 +312,7 @@ func (s *crossingRoofAreaWork) calculate(c *crossingRoofAreaCell) error {
 	var heights [2]geom.ExactParameterInterval
 	floors := [2]*big.Rat{s.owner.box[0].floor, s.owner.box[1].floor}
 	for k, support := range c.footprint {
-		if support == nil || (k == a && c.kind == crossingAreaFloor) {
+		if support == nil || c.kind == crossingAreaFloor && (k == a || floors[0].Cmp(floors[1]) == 0) {
 			continue
 		}
 		p, err := support.volumeRoofDomain(c.xy, w)
@@ -277,22 +336,40 @@ func (s *crossingRoofAreaWork) calculate(c *crossingRoofAreaCell) error {
 		if c.kind == crossingAreaFloor {
 			height = geom.ExactParameterInterval{Lower: floors[a], Upper: floors[a]}
 		}
-		strictlyIn := c.footprint[b] != nil && height.Lower.Cmp(floors[b]) > 0 && height.Upper.Cmp(heights[b].Lower) < 0
-		strictlyOut := c.footprint[b] == nil || height.Upper.Cmp(floors[b]) < 0 || height.Lower.Cmp(heights[b].Upper) > 0
-		if !strictlyIn && !strictlyOut && c.kind == crossingAreaRoof && c.footprint[b] != nil {
-			order, err := s.order.order(c.footprint, c.xy, w)
-			if err != nil {
-				return err
+		if c.kind == crossingAreaFloor && c.footprint[b] != nil && floors[a].Cmp(floors[b]) == 0 {
+			guaranteed = a == 0 && s.owner.op != parametric.Difference
+			maybe = guaranteed
+		} else {
+			strictlyIn := c.footprint[b] != nil && height.Lower.Cmp(floors[b]) > 0 && height.Upper.Cmp(heights[b].Lower) < 0
+			strictlyOut := c.footprint[b] == nil || height.Upper.Cmp(floors[b]) < 0 || height.Lower.Cmp(heights[b].Upper) > 0
+			coincident := false
+			if !strictlyIn && !strictlyOut && c.kind == crossingAreaRoof && c.footprint[b] != nil {
+				order, err := s.order.order(c.footprint, c.xy, w)
+				if err != nil {
+					return err
+				}
+				coincident = order.Lower.Sign() == 0 && order.Upper.Sign() == 0
+				if coincident && !s.allowCoincidence {
+					return geom.ErrUnrepresentable
+				}
+				if a == 1 {
+					order.Lower, order.Upper = new(big.Rat).Neg(order.Upper), new(big.Rat).Neg(order.Lower)
+				}
+				strictlyOut = order.Lower.Sign() > 0
+				strictlyIn = order.Upper.Sign() < 0 && height.Lower.Cmp(floors[b]) > 0
 			}
-			if a == 1 {
-				order.Lower, order.Upper = new(big.Rat).Neg(order.Upper), new(big.Rat).Neg(order.Lower)
+			// If the two roofs coincide on an open cell, both contain
+			// material immediately below it. Cutter orientation is never
+			// assigned to their canceled shared boundary on Difference.
+			switch {
+			case coincident:
+				guaranteed = a == 0 && s.owner.op != parametric.Difference
+				maybe = guaranteed
+			case insideWanted:
+				guaranteed, maybe = strictlyIn, !strictlyOut
+			default:
+				guaranteed, maybe = strictlyOut, !strictlyIn
 			}
-			strictlyOut = order.Lower.Sign() > 0
-			strictlyIn = order.Upper.Sign() < 0 && height.Lower.Cmp(floors[b]) > 0
-		}
-		guaranteed, maybe = strictlyIn, !strictlyOut
-		if !insideWanted {
-			guaranteed, maybe = strictlyOut, !strictlyIn
 		}
 		if !maybe {
 			c.width = new(big.Rat)
@@ -342,7 +419,40 @@ func (s *crossingRoofAreaWork) calculate(c *crossingRoofAreaCell) error {
 		}
 	} else {
 		var err error
-		density, err = crossingRoofAreaWall(heights, floors, a, c.footprint[b] != nil, insideWanted, w)
+		var wallMode roofWallAreaMode
+		switch c.wallCoincidence {
+		case 1:
+			switch s.owner.op {
+			case parametric.Intersection:
+				if a == 0 {
+					wallMode = roofWallInside
+				}
+			case parametric.Union:
+				wallMode = roofWallOutside
+				if a == 0 {
+					wallMode = roofWallWhole
+				}
+			case parametric.Difference:
+				if a == 0 {
+					wallMode = roofWallOutside
+				}
+			}
+		case -1:
+			switch s.owner.op {
+			case parametric.Union:
+				wallMode = roofWallOutside
+			case parametric.Difference:
+				if a == 0 {
+					wallMode = roofWallWhole
+				}
+			}
+		default:
+			wallMode = roofWallOutside
+			if insideWanted {
+				wallMode = roofWallInside
+			}
+		}
+		density, err = crossingRoofAreaWall(heights, floors, a, c.footprint[b] != nil, wallMode, w)
 		if err != nil {
 			return err
 		}
@@ -377,29 +487,41 @@ func (s *crossingRoofAreaWork) calculate(c *crossingRoofAreaCell) error {
 // nondecreasing in the opposing height, and the exterior strip is
 // nonincreasing. Each endpoint can therefore be evaluated without assuming
 // independence or correlation between the two source functions.
-func crossingRoofAreaWall(h [2]geom.ExactParameterInterval, f [2]*big.Rat, a int, cover, inside bool, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
+type roofWallAreaMode uint8
+
+const (
+	roofWallNone roofWallAreaMode = iota
+	roofWallWhole
+	roofWallInside
+	roofWallOutside
+)
+
+func crossingRoofAreaWall(h [2]geom.ExactParameterInterval, f [2]*big.Rat, a int, cover bool, mode roofWallAreaMode, w *mixedRoofLineWork) (geom.ExactParameterInterval, error) {
 	b := 1 - a
 	row := mixedRoofZeroInterval()
+	if mode == roofWallNone {
+		return row, nil
+	}
 	for i, upper := range []bool{false, true} {
 		ha, hb := h[a].Lower, h[b].Lower
 		if upper {
 			ha, hb = h[a].Upper, h[b].Upper
 		}
-		if !inside {
+		if mode == roofWallOutside {
 			hb = h[b].Upper
 			if upper {
 				hb = h[b].Lower
 			}
 		}
 		value := new(big.Rat)
-		if cover {
+		if cover && mode != roofWallWhole {
 			if z := minRat(ha, hb); z.Cmp(maxRat(f[a], f[b])) > 0 {
 				if _, err := w.rat(value.Sub(z, maxRat(f[a], f[b]))); err != nil {
 					return row, err
 				}
 			}
 		}
-		if !inside {
+		if mode != roofWallInside {
 			base, err := w.rat(new(big.Rat).Sub(ha, f[a]))
 			if err != nil {
 				return row, err

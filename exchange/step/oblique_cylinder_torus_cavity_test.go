@@ -68,6 +68,19 @@ func TestObliqueCylinderTorusCavitySTEP(t *testing.T) {
 			t.Fatal(e, string(log))
 		}
 	}
+	b.Frame[0][3] = r(1, 10)
+	b.Frame[1][3] = r(1, 5)
+	b.Frame[2][3] = r(1, 8)
+	b.Lower = -5.5
+	b.Upper = 6.25
+	var finite bytes.Buffer
+	if e := WriteObliqueCylinderTorusCavity(&finite, b, .001); e != nil {
+		t.Fatal("finite source", e)
+	}
+	recovered, e := ReadObliqueCylinderTorusCavity(&finite, Limits{})
+	if e != nil || recovered.Source().Frame[0][3].Cmp(r(1, 10)) != 0 || recovered.Source().Upper != 6.25 {
+		t.Fatal("finite recovery", e)
+	}
 	b.Frame[0][3] = r(1, 7)
 	var bad bytes.Buffer
 	if e := WriteObliqueCylinderTorusCavity(&bad, b, .001); e == nil || bad.Len() != 0 {

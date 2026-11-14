@@ -22,3 +22,15 @@ Source getter deeply owns rationals. Parsed recipe provides exact analytic query
 no floating geom.Frame native oblique BRep is claimed. Parser bounds512entities,
 16384values/2MiB and rational transformations4096bits. Generic OCCT reordering/
 healing dialects remain outside paired import; no vendor source payload is used.
+
+A separate exact whole-occurrence API preserves both original local rational
+torus frame and cylinder chart. It uses the already-qualified separately related
+standard source coordinate datum; missing/duplicate datum and inconsistent world
+geometry reject. All original model points/directions and that datum transform
+exactly, while source pcurves remain unchanged. The optional `oblique` oracle
+argument applies another proper3/5–4/5 world rotation plus(1/10,-2/5,3/8) to
+both independently authored OCCT primitives. The torus then has world axis
+(24/25,0,-7/25), distinct from the stock axis(4/5,0,3/5). Imported support axis,
+solid/shell counts, inward orientation, mass and centroid are independently
+checked. Run TestObliqueCylinderTorusCavityObliqueOccurrence. Local finite-decimal
+center(1/10,1/5,1/8) and dyadic caps[-5.5,6.25] also roundtrip exactly.
