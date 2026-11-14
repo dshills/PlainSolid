@@ -60,3 +60,19 @@ blends along shared quadrant curves. Each selected radius must be smaller
 than half the cylinder radius, and their sum must leave a positive straight
 lateral band. The result retains explicit seam and fillet ancestry and can
 be saved and revalidated through the native trimmed format.
+
+### Through-bore after circular rim blends
+
+`BoreWrappedRoundedCylinder` removes an axial, optionally eccentric circular
+bore from a validated canonical rim-filleted cylinder. The complete bore disk
+must lie strictly inside both original flat cap disks, checked by exact squared
+clearance. Those cap radii bound every intervening stock section from below, so
+the bore cannot reach the original toroidal blends or lateral wall.
+
+The graft preserves all original vertex, edge and face IDs and original surface
+objects. Only cap hole lists change; the new reversed cylindrical wall and rim
+edges are appended. Exact donor/source cap-chart equality, cap trim certification
+and model-edge agreement gate construction. History separates surviving original
+faces from the generated bore wall. Tangency, unsupported source topology,
+nonrepresentable native geometry and exhausted proofs fail atomically. This is a
+local through-removal subset, not a general Boolean against filleted stock.
