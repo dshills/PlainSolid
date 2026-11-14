@@ -351,6 +351,13 @@ adds worktree commit `8e15addf`. All 16 original cases also passed on
 `9011e7b`, with no skipped tests or retries and a successful Go/WASM
 backend preflight. The verifier confirmed that changing the local port
 was the only edit to the original Playwright configuration.
+The [crossed-bore reconciliation](evidence/plaincad-reconciled-45218737-development-crossed-bore-holes-step-2026-11-14.json)
+adds worktree commit `f571a964` to clean review revision `45218737`.
+The trimmed, STEP, and bridge tests passed, including the live OCCT
+comparison of the analytic crossed-bore STEP file. All 16 original
+browser cases and the Go/WASM preflight passed with no skips or retries.
+The verifier checked 841 application and 1,875 kernel source hashes and
+confirmed that only the local port changed in the Playwright configuration.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
