@@ -1,0 +1,52 @@
+# Exact independently scaled weighted stations
+
+`NewWrappedAnisotropicStationLoft` constructs a native closed solid from 1–16
+original `WrappedSurfacePatch` bands. `ValidateWrappedAnisotropicStationLoft`
+authenticates the actual native walls, caps and edge uses after reload/reindexing.
+`SectionWrappedAnisotropicStationRational` returns an exact homogeneous section,
+original incident face IDs and original station rim IDs without binary64 rounding
+of the query height or curve controls.
+
+This differs from `parametric.LoftEllipticStations`, which uses analytic angular
+ellipse supports with cubic axial interpolation, and from homothetic weighted
+station lofts. The new source is degree2×1, nine U poles in four weighted
+quadrants and two V rows. Its X and Y control scales vary independently and
+linearly with height. An arbitrary weighted profile is not called an ellipse.
+The default circular/homothetic mesh/query/STEP paths remain unchanged.
+
+The geometry certificate checks every original homogeneous control against
+`(cx+sx(v)*f(u), cy+sy(v)*g(u), z(v))`: weights are positive and identical between
+V rows; both endpoint scales are strictly positive; height strictly increases;
+original U knots have four ordered clamped quadratic intervals. The normalized
+weighted square profile has strictly increasing polar angle on each quadrant.
+A positive diagonal map preserves that property. Since
+`dot(Su×Sv,(x-cx,y-cy,0)) = sx*sy*z_v*(f*g'-g*f') > 0`, each open piece is regular
+and outward. C0 knot joins are allowed without claiming C1 continuity. Height
+separates all sections; ordered open band slabs therefore cannot intersect.
+
+The constructor reuses exact native cap trim validation and complete edge/model
+agreement. Neighboring corners and scales alone are insufficient: the shared
+full rational rim must agree, so changing interior weights at a station is
+rejected. Only two terminal disks become material caps. Every intermediate
+station is a shared four-edge rim with both original wall owners. Native cap
+curve export must be exactly representable; unsupported nonbinary native pole
+export fails rather than rounding. Rational interior sections have no such
+export requirement and retain the exact controls.
+
+Limits are explicit: at most16 bands, fixed18 controls per source, supplied
+surface coefficient/pole/work limits per geometric proof and section extraction,
+and the existing bounded exact native edge agreement. Validation uses a fixed
+number of passes over each band and reuses the exact original topology matcher;
+its work limit is per proof pass, not a single aggregate scalar counter.
+Cancellation or any failed pass returns no partial solid or section.
+
+Qualification uses center(1/4,−1/2), weight3/4, U cuts−2,−1,1,4,8, V domain2..5,
+heights0,1,3 and independent scales(3,1),(1,2),(2,1). The section at height1/3 has
+scales(7/3,4/3), original V=3 and first-quadrant midpoint
+(23/12,19/42,1/3). Independent normalized-profile Green integration gives
+volume `profileArea*43/6` and axial centroid `60/43`, matching native integration.
+Tests include reload/face reordering, original rim parameter ranges, a changed
+interior profile with unchanged corners, source drift, collapsed scale, unequal
+V weights, missing height interval, altered native wall, quotas and cancellation.
+No certified display, general loft Boolean or arbitrary frame acceptance is
+claimed by this milestone.

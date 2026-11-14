@@ -6008,3 +6008,12 @@ output retains every original chart and p-curve and passes the independent
 loft embedding validation. Missing faces, altered interiors with identical
 endpoints and a one-ULP endpoint shift reject. Two point-touching components
 retain separate vertex fans. The integrated race passed in 4.877 s.
+
+### Independent weighted station scale qualification
+
+The original noncircular fixture has XY scales (3,1), (1,2), (2,1) at
+heights 0, 1 and 3 and independent nonuniform original parameter domains.
+A profile integral, analytic axial factors and generic integration agree
+on volume and centroid. Changed interior weights with the same rim
+corners, invalid scales and forged source geometry reject. The integrated
+geometry race passed in 1.286 s and the combined trimmed race in 32.270 s.

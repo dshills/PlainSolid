@@ -92,6 +92,15 @@ func NewWrappedCircularStationLoft(ctx context.Context, bands []*geom.WrappedSur
 // Every shared rim is independently checked by complete model/pcurve identity.
 func joinWrappedStationBands(ctx context.Context, bands []*geom.WrappedSurfacePatch, tolerance float64,
 	o geom.SurfacePatchOptions) (Solid, WrappedLoftHistory, error) {
+	return joinWrappedStationBandsUsing(ctx, bands, tolerance, o, func(ctx context.Context, w *geom.WrappedSurfacePatch, tolerance float64, o geom.SurfacePatchOptions) (Solid, error) {
+		s, _, e := NewWrappedFrustum(ctx, w, tolerance, o)
+		return s, e
+	})
+}
+
+// The builder must prove each complete embedded capped source band. Shared rim
+// equality and native incidence are independently re-proved below.
+func joinWrappedStationBandsUsing(ctx context.Context, bands []*geom.WrappedSurfacePatch, tolerance float64, o geom.SurfacePatchOptions, build func(context.Context, *geom.WrappedSurfacePatch, float64, geom.SurfacePatchOptions) (Solid, error)) (Solid, WrappedLoftHistory, error) {
 	h := WrappedLoftHistory{StationRims: make([][4]int, len(bands)+1)}
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
@@ -101,7 +110,7 @@ func joinWrappedStationBands(ctx context.Context, bands []*geom.WrappedSurfacePa
 		if e := ctx.Err(); e != nil {
 			return Solid{}, WrappedLoftHistory{}, e
 		}
-		segment, _, e := NewWrappedFrustum(ctx, w, tolerance, o)
+		segment, e := build(ctx, w, tolerance, o)
 		if e != nil {
 			return Solid{}, WrappedLoftHistory{}, e
 		}

@@ -2211,3 +2211,12 @@ welds only vertices linked by a proved shared edge. It verifies vertex fans,
 retains input incidence maps and can repair relative face orientation.
 Global embedding, cavity classification and nonconforming edge splitting
 remain separate from this sewing operation.
+
+### Native weighted lofts with independent station scales
+
+Original weighted rational bands can vary X and Y scale independently
+while maintaining a fixed center and increasing height. Native construction
+reproves both original scales and complete shared station rims. Exact
+sections retain the independently varying scale, curve and original wall
+and crease owners after native reload and reindexing. See the
+[anisotropic station contract](../brep/trimmed/WRAPPED_ANISOTROPIC_STATIONS.md).
