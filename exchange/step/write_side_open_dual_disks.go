@@ -39,6 +39,7 @@ const (
 	sideDiskUnequal
 	sideDiskGeneral
 	sideDiskExactWalls
+	sideDiskOffset
 )
 
 func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, kind sideDiskConstruction) error {
@@ -60,7 +61,13 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 	var solid trimmed.Solid
 	var wallFaces [2][]int
 	var e error
-	if kind == sideDiskExactWalls {
+	if kind == sideDiskOffset {
+		built, err := trimmed.CutOffsetSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
+		if err != nil {
+			return err
+		}
+		solid, wallFaces = built.Solid, built.WallFaces
+	} else if kind == sideDiskExactWalls {
 		built, err := trimmed.CutGeneralSideOpenDualDisksWithExactWalls(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
 		if err != nil {
 			return err
@@ -119,7 +126,7 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 			if e != nil {
 				return e
 			}
-			if kind == sideDiskExactWalls {
+			if kind == sideDiskExactWalls || kind == sideDiskOffset {
 				if _, ok := face.Surface.(*geom.ExactBezierSurface); !ok {
 					return geom.ErrDomain
 				}
@@ -319,6 +326,8 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 	productID := "1"
 	if kind == sideDiskExactWalls {
 		productID = exactWallSideDiskProductID
+	} else if kind == sideDiskOffset {
+		productID = offsetSideDiskProductID
 	}
 	data := bytes.Replace(raw.Bytes(), marker, []byte("PRODUCT("+quote(productID)+","+quote(d.Name)+",'',"), 1)
 	if _, e = Parse(bytes.NewReader(data), Limits{MaxBytes: 1 << 20, MaxEntities: 2048, MaxValues: 32768, MaxDepth: 32}); e != nil {
