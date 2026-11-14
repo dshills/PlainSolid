@@ -14,6 +14,7 @@ const (
 	SphereNearestTransverseIsolated
 	SphereNearestTransverseAxis
 	SphereNearestSingle
+	SphereNearestTouchingCavity
 )
 
 // SpherePairNearest preserves the complete original-owner set and exact
@@ -30,6 +31,7 @@ type SpherePairNearest struct {
 	Isolated     *SphereOverlapAlgebraicNearest
 	Axis         *SphereVectorAxisNearest
 	Single       *SphereSingleNearest
+	Touching     *SphereTouchingCavityNearest
 }
 
 // NearestBoundaryRational selects one exact sphere-pair nearest proof without
@@ -40,7 +42,8 @@ type SpherePairNearest struct {
 // Containment, coincidence and disjoint/tangent subtraction that reduce to one
 // sphere return Single. Coincident Union/Intersection retains both owners;
 // discarded touching supports do not become owners. Empty regularized results
-// and internally tangent cavities return ErrDomain. Native assembly is unchanged.
+// return ErrDomain. Internally tangent cavities return an analytic Touching
+// report without changing native manifold assembly rejection.
 // All selection, candidate construction and comparison share one work/bit
 // ledger. Every failure returns a zero result, never a partially proved payload.
 func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SpherePairNearest, err error) {
@@ -130,7 +133,7 @@ func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*b
 	} else {
 		switch s.op {
 		case SphereSetUnion:
-			q, e := s.nearestFullSphereBoundaryRational(ctx, p, o, false, budget)
+			q, e := s.nearestFullSphereBoundaryRational(ctx, p, o, false, false, budget)
 			if e != nil {
 				return out, e
 			}
@@ -138,7 +141,24 @@ func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*b
 			out.Separated = &SphereSeparatedUnionNearest{Lower: q.Lower, Upper: q.Upper, Owners: q.Owners, Comparison: q.Comparison, Operations: q.Operations, Candidates: q.Candidates}
 			out.Lower, out.Upper, out.Owners = q.Lower, q.Upper, q.Owners
 		case SphereSetDifference:
-			q, e := s.nearestFullSphereBoundaryRational(ctx, p, o, true, budget)
+			R, r := a.sqrt(s.radius2[0]), a.sqrt(s.radius2[1])
+			gap := a.sub(R, r)
+			limit := a.mul(gap, gap)
+			D2 := a.distance(s.center[0], s.center[1])
+			if a.err != nil {
+				return out, a.err
+			}
+			if gap.Sign() > 0 && D2.Cmp(limit) == 0 {
+				q, e := s.nearestTouchingCavityBoundaryRational(ctx, p, o, budget)
+				if e != nil {
+					return out, e
+				}
+				out.Kind = SphereNearestTouchingCavity
+				out.Touching = &q
+				out.Lower, out.Upper, out.Owners = q.Boundary.Lower, q.Boundary.Upper, q.Boundary.Owners
+				break
+			}
+			q, e := s.nearestFullSphereBoundaryRational(ctx, p, o, true, false, budget)
 			if e != nil {
 				return out, e
 			}
