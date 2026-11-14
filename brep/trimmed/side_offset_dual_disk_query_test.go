@@ -68,6 +68,28 @@ func TestOffsetSideOpenDualDiskExactPoint(t *testing.T) {
 		if err != nil || len(line.Intervals) != 1 || line.Intervals[0].Support != seam || line.Intervals[0].StartBounds.Lower.Cmp(ratInset(1)) != 0 || line.Intervals[0].EndBounds.Upper.Cmp(ratInset(depth+1)) != 0 {
 			t.Fatal("offset generator", line, err)
 		}
+
+		h, err := c.FirstBoundaryHit(ctx, world(14.5, 0, 1), [3]*big.Rat{ratInset(2), ratInset(0), ratInset(0)}, ratInset(0), ratInset(1), geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+		if err != nil || !h.HasHit || h.Support != seam || len(h.Normals) != 2 || h.Bounds.Lower.Cmp(big.NewRat(3, 16)) != 0 {
+			t.Fatal("first", h, err)
+		}
+		for owner, n := range h.Normals {
+			want := 2.
+			if owner == 1 {
+				want = -7.5
+			}
+			if n.Constant[0].Cmp(ratInset(-7.5)) != 0 || n.Constant[1].Cmp(ratInset(want)) != 0 || n.Linear[0].Cmp(ratInset(-2)) != 0 || n.DirectionSign != -1 {
+				t.Fatal("world normal", owner, n)
+			}
+		}
+		transitions, err := c.IntersectLineBoundaryTransitions(ctx, world(14.5, 0, 1), [3]*big.Rat{ratInset(2), ratInset(0), ratInset(0)}, ratInset(0), ratInset(1), geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+		if err != nil || len(transitions.Events) != 1 || transitions.Events[0].Support != seam || transitions.Events[0].Before.Location != geom.BoreOutside || transitions.Events[0].After.Location != geom.BoreInside {
+			t.Fatal("transitions", transitions, err)
+		}
+		h, err = c.FirstBoundaryHit(ctx, world(14.5, .375, 1), [3]*big.Rat{ratInset(0), ratInset(0), ratInset(1)}, ratInset(0), ratInset(8), geom.ToroidLineOptions{ParameterTolerance: 1e-10})
+		if err != nil || h.SpanEnd == nil || !h.Tangent || h.Support != seam {
+			t.Fatal("first generator", h, err)
+		}
 		// Public result topology assignment cannot replace the immutable source.
 		c.Solid = Solid{}
 		r, e = c.ClassifyRational(ctx, world(14.5, .375, 1))
