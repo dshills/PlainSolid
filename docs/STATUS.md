@@ -429,6 +429,13 @@ Focused native geometry, STEP readback against live OCCT, and bridge tests
 passed. All 17 original Hole and STEP browser cases and the separate Go/WASM
 preflight passed without skips or retries. All 841 app and 1,912 kernel
 source hashes were checked.
+The [oblique-bore reconciliation](evidence/plaincad-reconciled-d02f38ee-development-oblique-holes-step-2026-11-14.json)
+adds worktree commit `96d4a583` at review revision `d02f38ee`. Its adaptive
+mesher retains the shared entry point and the existing helical allocation
+switch. Native oblique, crossed and skew regressions passed, as did all 17
+original Hole and STEP browser cases and the separate Go/WASM preflight.
+That snapshot covers oblique modeling and display; oblique STEP is the
+next independent review. All 841 app and 1,921 kernel source hashes matched.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
