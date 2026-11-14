@@ -42,6 +42,17 @@ func TestAlgebraicStockFootprintPerimeter(t *testing.T) {
 	interval(r.Interval, q(16, 1)) // outer perimeter 12, inner perimeter 4
 	interval(r.Seams, q(0, 1))
 	interval(r.Stock, q(16, 1))
+	moments, err := band.BoundFootprintMoments(ctx, q(1, 2048), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Material is [0,3]² with [1,2]² removed.
+	interval(moments.Area, q(8, 1))
+	interval(moments.First[0], q(12, 1))
+	interval(moments.First[1], q(12, 1))
+	interval(moments.Second[0], q(74, 3))
+	interval(moments.Second[1], q(18, 1))
+	interval(moments.Second[2], q(74, 3))
 	for _, use := range r.Uses {
 		if use.StockFace < 0 || use.Seam != -1 {
 			t.Fatal("separated band may only have original wall owners", use)
@@ -69,6 +80,19 @@ func TestAlgebraicStockFootprintPerimeter(t *testing.T) {
 	interval(r.Interval, q(10, 1))
 	interval(r.Stock, q(8, 1))
 	interval(r.Seams, q(2, 1))
+	clipped, err := model.BoundFootprintMoments(ctx, q(1, 2048), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Clip at X=3/2 and subtract the open rectangular notch.
+	// This asymmetric mask distinguishes X and Y when the cap
+	// orientation reverses their projected coordinate ordering.
+	interval(clipped.Area, q(4, 1))
+	interval(clipped.First[0], q(37, 4))
+	interval(clipped.First[1], q(6, 1))
+	interval(clipped.Second[0], q(265, 12))
+	interval(clipped.Second[1], q(111, 8))
+	interval(clipped.Second[2], q(37, 3))
 	seams := 0
 	for _, use := range r.Uses {
 		if use.Seam >= 0 {
