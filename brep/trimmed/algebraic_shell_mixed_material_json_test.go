@@ -98,6 +98,29 @@ func TestMixedMaterialPersistenceAndVolume(t *testing.T) {
 	if before != after {
 		t.Fatal("changed topology")
 	}
+	h1, e1 := bodies[0].History()
+	h2, e2 := reload.History()
+	if e1 != nil || e2 != nil || len(h1.Faces) != len(h2.Faces) || len(h1.Edges) != len(h2.Edges) {
+		t.Fatal("reload changed Boolean history inventory", e1, e2)
+	}
+	for i, a := range h1.Edges {
+		b := h2.Edges[i]
+		if a.Operand != b.Operand || a.OriginalEdge != b.OriginalEdge || a.Branch != b.Branch || a.Piece != b.Piece || a.Faces != b.Faces || a.Reversed != b.Reversed {
+			t.Fatal("reload changed original edge ancestry", i, a, b)
+		}
+		for k, root := range [2]*geom.ExactAlgebraicRoot{a.Lower, a.Upper} {
+			other := [2]*geom.ExactAlgebraicRoot{b.Lower, b.Upper}[k]
+			if (root == nil) != (other == nil) {
+				t.Fatal("reload changed original split identity", i, k)
+			}
+			if root != nil {
+				v, e := root.Compare(ctx, other, geom.ExactCurvePlaneEventOptions{})
+				if e != nil || !v.Proven || v.Order != 0 {
+					t.Fatal("reload changed exact original split parameter", i, k, v, e)
+				}
+			}
+		}
+	}
 	restricted := 0
 	for i, edge := range reload.Edges() {
 		if edge.SectionPiece < 0 {
