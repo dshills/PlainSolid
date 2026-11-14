@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"math"
 	"plainsolid/geom"
 	"plainsolid/intersect"
 	"testing"
@@ -78,6 +79,7 @@ func TestAutomaticOverlappingRoofShellContinuation(t *testing.T) {
 	o.Trace.Branches.MaxComparisons = 4096
 	o.Trace.MaxTopologyPairs = 1000000
 	o.Trace.Coverage.MaxCandidateTests = 4096
+	o.Trace.Coverage.IsoPlaneFallback = true
 	o.Trace.PlaneFallback.Enabled = true
 	o.Trace.PlaneFallback.Plane.Arcs.ResolveSubdivisionCorners = true
 	pa := intersect.Patch{Surface: ar, Min: geom.Vec2{X: -.125}, Max: geom.Vec2{X: 1.125, Y: 1}}
@@ -114,16 +116,53 @@ func TestAutomaticOverlappingRoofShellContinuation(t *testing.T) {
 	if pe != nil || proposal.OpenContours != 1 || len(proposal.Seeds.Attempts) == 0 {
 		t.Fatal("neighbor proposal", pe)
 	}
+	cover, ce := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, side, pb, proposal.Seeds, intersect.IsoPlaneTubeCoverageOptions{})
+	if ce != nil || !cover.Covered || len(cover.Spans) != 1 || cover.Spans[0][0].RatString() != "1/4" || cover.Spans[0][1].RatString() != "3/4" {
+		t.Fatal("iso coverage", cover, ce)
+	}
+	reversed := proposal.Seeds
+	reversed.Attempts = append([]intersect.SplineSeedCell(nil), reversed.Attempts...)
+	for i := range reversed.Attempts {
+		seed := &reversed.Attempts[i]
+		seed.Cell.DomainA, seed.Cell.DomainB = seed.Cell.DomainB, seed.Cell.DomainA
+		tube := *seed.Tube
+		tube.FreeAxis = (tube.FreeAxis + 2) % 4
+		seed.Tube = &tube
+	}
+	reverseCover, re := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, pb, side, reversed, intersect.IsoPlaneTubeCoverageOptions{})
+	if re != nil || !reverseCover.Covered || reverseCover.SourceOperand != 0 {
+		t.Fatal("reversed iso owners", re)
+	}
+	for _, omit := range []int{0, 2, 5} {
+		missing := proposal.Seeds
+		missing.Attempts = append([]intersect.SplineSeedCell(nil), proposal.Seeds.Attempts[:omit]...)
+		missing.Attempts = append(missing.Attempts, proposal.Seeds.Attempts[omit+1:]...)
+		bad, e := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, side, pb, missing, intersect.IsoPlaneTubeCoverageOptions{})
+		if e == nil || bad.Covered || len(bad.Spans) > 0 {
+			t.Fatal("omitted iso segment", omit, e)
+		}
+	}
+	tiny, e := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, side, pb, proposal.Seeds, intersect.IsoPlaneTubeCoverageOptions{MaxOperations: 1})
+	if e == nil || tiny.Covered || len(tiny.AcceptedTubes) > 0 {
+		t.Fatal("atomic iso budget", e)
+	}
+	near := proposal.Seeds
+	near.Attempts = append([]intersect.SplineSeedCell(nil), near.Attempts...)
+	near.Attempts[0].Cell.DomainA.VMax = math.Nextafter(1, 0)
+	bad, be := intersect.CertifyIsoPlaneSplineTubeCoverage(ctx, side, pb, near, intersect.IsoPlaneTubeCoverageOptions{})
+	if be == nil || bad.Covered {
+		t.Fatal("one-ULP end gap accepted", be)
+	}
 	neighbor, ne := SectionSplinePairAlgebraic(ctx, side, pb, &proposal.Seeds, o.Trace, geom.TubeAlgebraicGraphEndpointOptions{})
-	if !errors.Is(ne, intersect.ErrUnresolved) || neighbor.Complete || neighbor.Trace.Coverage.CoversAllContacts {
-		t.Fatal("neighbor coverage must remain unproved", neighbor.Trace.Issues, ne)
+	if ne != nil || !neighbor.Complete || !neighbor.Trace.Coverage.CoversAllContacts {
+		t.Fatal("exact neighbor section failed", neighbor.Trace.Issues, ne)
 	}
 	result, e := SectionSplineShellsAlgebraic(ctx, a, b, o)
 	if !errors.Is(e, intersect.ErrUnresolved) || result.Complete || len(result.Wires) != 0 {
-		t.Fatal("global unresolved neighbor must not assemble", result.Pairs, e)
+		t.Fatal("unproved global continuation", e)
 	}
-	if len(result.Pairs) == 0 || result.Pairs[len(result.Pairs)-1] != [2]int{4, 1} {
+	if len(result.Pairs) == 0 || result.Pairs[len(result.Pairs)-1] != [2]int{4, 2} {
 		t.Fatal("unexpected frontier", result.Pairs, e)
 	}
-	t.Log("proved roof pair with both unique-owner branches; neighbor iso-plane proposals", len(proposal.Seeds.Attempts), "uncovered candidates", len(neighbor.Trace.Coverage.Unresolved), "global accounted branches", len(result.Branches))
+	t.Log("exact iso neighbor complete; remaining planar-wall frontier", result.Pairs[len(result.Pairs)-1])
 }
