@@ -53,8 +53,9 @@ func ReadSideOpenDualDiskProductWithOptions(ctx context.Context, r io.Reader, l 
 
 type sideDiskReadResult struct {
 	SideOpenDualDiskProduct
-	unequalNative trimmed.UnequalSideOpenDualDiskCut
-	generalNative trimmed.GeneralSideOpenDualDiskCut
+	unequalNative   trimmed.UnequalSideOpenDualDiskCut
+	generalNative   trimmed.GeneralSideOpenDualDiskCut
+	exactWallNative trimmed.GeneralSideOpenDualDiskCut
 }
 
 func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tolerance float64, options SideOpenDualDiskReadOptions, kind sideDiskConstruction) (sideDiskReadResult, error) {
@@ -238,7 +239,9 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 		d.Discs[0], d.Discs[1] = d.Discs[1], d.Discs[0]
 	}
 	var expected bytes.Buffer
-	if kind == sideDiskGeneral {
+	if kind == sideDiskExactWalls {
+		err = WriteExactWallSideOpenDualDiskProduct(ctx, &expected, ExactWallSideOpenDualDiskDescriptor(d))
+	} else if kind == sideDiskGeneral {
 		err = WriteGeneralSideOpenDualDiskProduct(ctx, &expected, GeneralSideOpenDualDiskDescriptor(d))
 	} else if kind == sideDiskUnequal {
 		err = WriteUnequalSideOpenDualDiskProduct(ctx, &expected, UnequalSideOpenDualDiskDescriptor(d))
@@ -279,7 +282,10 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	var native trimmed.SideOpenDualDiskCut
 	var unequalNative trimmed.UnequalSideOpenDualDiskCut
 	var generalNative trimmed.GeneralSideOpenDualDiskCut
-	if kind == sideDiskGeneral {
+	var exactWallNative trimmed.GeneralSideOpenDualDiskCut
+	if kind == sideDiskExactWalls {
+		exactWallNative, err = trimmed.CutGeneralSideOpenDualDisksWithExactWalls(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+	} else if kind == sideDiskGeneral {
 		generalNative, err = trimmed.CutGeneralSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
 	} else if kind == sideDiskUnequal {
 		unequalNative, err = trimmed.CutUnequalSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, tolerance, trimvalidate.Options{})
@@ -292,7 +298,7 @@ func readSideOpenDualDiskProduct(ctx context.Context, r io.Reader, l Limits, tol
 	if err = ctx.Err(); err != nil {
 		return sideDiskReadResult{}, err
 	}
-	return sideDiskReadResult{unequalNative: unequalNative, generalNative: generalNative, SideOpenDualDiskProduct: SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}}, nil
+	return sideDiskReadResult{unequalNative: unequalNative, generalNative: generalNative, exactWallNative: exactWallNative, SideOpenDualDiskProduct: SideOpenDualDiskProduct{Descriptor: d, Native: native, Body: bodies[0], Shell: shellID, Faces: append([]int64(nil), faces...), Edges: edgeIDs, ReversedModelLines: reversedLines, RephasedModelCircles: rephasedCircles, OppositeNormalModelCircles: oppositeCircles, OppositeNormalPlanes: oppositePlanes}}, nil
 }
 func sideDiskReadFrame(f *File, id int64) (geom.Frame, error) {
 	rec, e := simple(f, id, "AXIS2_PLACEMENT_3D", 4)
