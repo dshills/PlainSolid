@@ -5982,3 +5982,11 @@ and revalidate native rim ownership and original support data. Canonical
 re-export and OCCT transfer preserve mass and every centroid coordinate.
 The integrated live race passed in 35.131 s. The independent author and
 reproduction commands are [in the oracle notes](../tools/occtref/weighted_station_author.md).
+
+### Native prism operand qualification
+
+Tests cover all three operations, disconnected holed output, signed axis
+permutations and slanted profile edges. They reconstruct original directed
+source intervals on both caps and reject unequal height intervals, tapered
+walls and exhausted budgets. The integrated native prism and arrangement
+race passed in 2.008 s.

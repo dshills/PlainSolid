@@ -2183,3 +2183,12 @@ A filled loft occurrence preserves the exact per-face and total boundary
 area intervals. Its centroidal inertia uses exact rational rotation in
 world axes. The required original integration width follows from the
 coefficient sums of the symmetric tensor transform.
+
+### Exact polygonal prism Booleans from native operands
+
+`trimmed.CombineMatchingNativePrisms` authenticates original cap and wall
+topology for two straight coordinate-axis extrusions with an equal axial
+interval. It recovers outer and hole loops, then solves and materializes
+the arrangement. Result walls retain original operand walls and exact
+intervals on both original cap edges. The general Boolean dispatcher
+retains its existing face history contract.
