@@ -2256,3 +2256,12 @@ faces, both original ring orders and the exact stored parameters of boundary
 edges. An oblique prism retains exact original model coordinates and an
 exact squared area scale. The region areas are checked against each output
 component's cap area.
+
+### Native prism Common across unequal axial intervals
+
+`trimmed.CommonNativePrismIntervals` independently proves both cardinal
+extrusions and intersects their exact height intervals and planar profiles.
+Positive material returns native components with original controlling caps
+and clipped original wall fractions. Closed contact and empty intersection
+are explicitly distinguished. Unequal-interval fuse and cut require separate
+shoulder sewing.

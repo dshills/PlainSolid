@@ -6067,3 +6067,9 @@ and √5. Its ten ideal algebraic coordinates and native volume match the
 intersection of five independently shifted lines. Exact √6 and √24 loads
 reuse the √2 and √3 generators and verify symbolic cancellation. The
 single-class fixtures still pass. The full draft race passed in 8.196 s.
+
+### Unequal-interval native prism qualification
+
+Fixtures cover staggered, contained and tied caps, rational clipped wall
+fractions, a disconnected nonconvex profile intersection, and separate
+axial or footprint contact cases. The integrated race passed in 1.563 s.
