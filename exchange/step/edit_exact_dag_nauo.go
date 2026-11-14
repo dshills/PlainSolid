@@ -21,6 +21,18 @@ type ExactNAUOPlacement struct {
 // from frame is retained, so the new target is desiredPose composed with from.
 // No rounding, entity cloning, geometry changes or implicit shared-use edits occur.
 func WriteExactDAGNAUORootPlacements(w io.Writer, source *File, placements []ExactNAUOPlacement, l Limits) error {
+	return writeExactDAGNAUOPlacements(w, source, placements, l, false)
+}
+
+// WriteExactDAGNAUOSharedPlacements explicitly edits selected internal uses.
+// Every expanded path containing that original NAUO receives the new local pose;
+// other uses of the same product remain unchanged. Root uses are rejected.
+// Exclusive datum ownership and exact decimal gates match the root-only API.
+func WriteExactDAGNAUOSharedPlacements(w io.Writer, source *File, placements []ExactNAUOPlacement, l Limits) error {
+	return writeExactDAGNAUOPlacements(w, source, placements, l, true)
+}
+
+func writeExactDAGNAUOPlacements(w io.Writer, source *File, placements []ExactNAUOPlacement, l Limits, shared bool) error {
 	if w == nil || source == nil || len(placements) == 0 || len(placements) > 32 {
 		return mappedPlanarFailure()
 	}
@@ -35,9 +47,13 @@ func WriteExactDAGNAUORootPlacements(w io.Writer, source *File, placements []Exa
 	f := a.Source
 	known := map[int64]ExactNAUOOccurrence{}
 	for _, u := range a.Relationships {
-		if u.ParentID == a.Root.DefinitionID {
+		if (u.ParentID == a.Root.DefinitionID) != shared {
 			known[u.NAUOID] = u
 		}
+	}
+	representations := map[int64]int64{a.Root.DefinitionID: a.Root.Representations[0]}
+	for _, g := range a.Groups {
+		representations[g.DefinitionID] = g.Representations[0]
 	}
 	// Count each original reference, not just each distinct referring entity.
 	incoming := map[int64]map[int64]int{}
@@ -78,7 +94,7 @@ func WriteExactDAGNAUORootPlacements(w io.Writer, source *File, placements []Exa
 		}
 		target := composeMappedPose(pose, from)
 		users := incoming[u.ToPlacementID]
-		if len(users) != 2 || users[u.TransformationID] != 1 || users[a.Root.Representations[0]] != 1 {
+		if len(users) != 2 || users[u.TransformationID] != 1 || users[representations[u.ParentID]] != 1 {
 			return mappedPlanarFailure()
 		}
 		frame, e := simple(f, u.ToPlacementID, "AXIS2_PLACEMENT_3D", 4)
