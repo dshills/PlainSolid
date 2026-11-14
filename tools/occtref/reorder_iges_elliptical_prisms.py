@@ -5,7 +5,9 @@ reorder_loops = "--loops" in sys.argv
 reorder_vertices = "--vertices" in sys.argv or reorder_loops
 reorder_edges = "--edges" in sys.argv or reorder_vertices
 reorder_faces = "--faces" in sys.argv or reorder_edges
-for name in ('elliptical-prism-topology','elliptical-annular-prism-topology','placed-elliptical-prism-topology','placed-elliptical-annular-prism-topology'):
+names = ('elliptical-prism-topology','elliptical-annular-prism-topology','placed-elliptical-prism-topology','placed-elliptical-annular-prism-topology')
+if "--circle" in sys.argv:names=("conic-circular-prism-topology",)
+for name in names:
  lines=Path('exchange/iges/testdata/'+name+'.igs').read_text().splitlines();ds=[x for x in lines if x[72]=='D'];ps=[x for x in lines if x[72]=='P'];records=[]
  for i in range(0,len(ds),2):
   a,b=ds[i],ds[i+1];start=int(a[8:16]);n=int(b[24:32]);v=''.join(x[:64] for x in ps[start-1:start-1+n]).strip().rstrip(';').split(',');records.append((i+1,a,b,[x.strip() for x in v]))

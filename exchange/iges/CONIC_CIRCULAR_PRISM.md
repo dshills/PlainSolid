@@ -55,3 +55,29 @@ Tests reject noncircular conics, changed noninvariant point/direction/vertex/
 terminal/seam coordinates and resource exhaustion. Existing ellipse input is
 rejected by the circular API and vice versa. The seeded fuzz target is
 `FuzzConicCircularPrism`; the bounded qualification run uses100 executions.
+
+## Reindexed source variant
+
+`ReadReindexedConicCircularPrismMaterial` composes the same explicit circular
+normalization with the authenticated record, shell face, edge-list, vertex-list
+and cyclic loop-start proof. It admits only unplaced filled material. The nested
+`Material` is the canonical circular proof; `SourceForCanonical`,
+`SourceVertexOrdinals`, `SourceUseOrdinals`, `NativeFaceSourceIDs` and
+`SourceRimCurveIDs` retain original identities separately. No support is inferred
+from numeric record ordering.
+
+`WriteReindexedConicCircularPrismSource` revalidates the entire graph and all
+exposed ancestry before returning unchanged source bytes. Its separate version1
+native envelope stores original source and the canonical circular recipe;
+reload derives all identity maps anew and checks the native binding. It has a
+1MiB envelope cap and the same source caps above. Existing canonical readers
+remain strict.
+
+The independent script `reorder_iges_elliptical_prisms.py --loops --circle`
+reverses records, shell faces, edge entries and vertices, updating their declared
+references, and rotates lateral coedges. Pinned OCCT transfers the retained
+fixture/re-export as the same valid three-face circular solid. Tests cover
+native recipe stability, original ordinal retention, noncircular geometry,
+noninvariant terminals, invalid vertex ordinals, recursive root ownership,
+stale provenance and resource limits. `FuzzReindexedConicCircularPrism` retains
+this positive source seed.

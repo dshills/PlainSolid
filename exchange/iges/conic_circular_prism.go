@@ -70,62 +70,9 @@ func ReadConicCircularPrismMaterial(ctx context.Context, r io.Reader, l Limits, 
 		return bad()
 	}
 	source := append([]byte(nil), doc.bytes...)
-	originals := map[int][]float64{}
-	for i, rec := range doc.entities {
-		if rec.transform != 0 || compositeSourceNumbers(110, rec.values) != nil {
-			return bad()
-		}
-		originals[rec.id] = make([]float64, len(rec.values))
-		for j, p := range rec.values {
-			x, e := realValue(p)
-			if e != nil {
-				return bad()
-			}
-			originals[rec.id][j] = x
-		}
-		// y/2 leaves every nonconic authored coordinate invariant in this dialect:
-		// all points, vertices, seam and terminal lie at y=0; plane normals are Z
-		// and references X. Reject any counterexample before changing conic data.
-		zero := []int{}
-		switch rec.kind {
-		case 104:
-			if len(rec.values) != 12 {
-				return bad()
-			}
-			v := originals[rec.id]
-			if v[1] != v[3] || v[1] <= 0 || v[2] != 0 || v[4] != 0 || v[5] != 0 || v[9] != 0 || v[11] != 0 {
-				return bad()
-			}
-			q := new(big.Rat).Mul(compositeRat(v[3]), big.NewRat(4, 1))
-			x, ok := q.Float64()
-			if !ok || !finite(x) {
-				return bad()
-			}
-			rec.values = append([]parameter(nil), rec.values...)
-			rec.values[3].text = number(x)
-			doc.entities[i] = rec
-		case 110:
-			zero = []int{2, 5}
-		case 116:
-			zero = []int{2}
-		case 123:
-			zero = []int{2}
-		case 122:
-			zero = []int{3}
-		case 502:
-			if len(rec.values) != 8 {
-				return bad()
-			}
-			zero = []int{3, 6}
-		case 190, 186, 504, 508, 510, 514:
-		default:
-			return bad()
-		}
-		for _, j := range zero {
-			if j >= len(rec.values) || originals[rec.id][j] != 0 {
-				return bad()
-			}
-		}
+	originals, e := normalizeCircularPrismSource(&doc)
+	if e != nil {
+		return bad()
 	}
 	normalized, e := mixedRoofFile(doc)
 	if e != nil {
@@ -197,4 +144,65 @@ func WriteConicCircularPrism(ctx context.Context, w io.Writer, d EllipticalPrism
 		e = io.ErrShortWrite
 	}
 	return e
+}
+
+func normalizeCircularPrismSource(doc *topologySource) (map[int][]float64, error) {
+	originals := map[int][]float64{}
+	for i, rec := range doc.entities {
+		if rec.transform != 0 || compositeSourceNumbers(110, rec.values) != nil {
+			return nil, geom.ErrInvalid
+		}
+		originals[rec.id] = make([]float64, len(rec.values))
+		for j, p := range rec.values {
+			x, e := realValue(p)
+			if e != nil {
+				return nil, geom.ErrInvalid
+			}
+			originals[rec.id][j] = x
+		}
+		// y/2 leaves every nonconic authored coordinate invariant in this dialect:
+		// all points, vertices, seam and terminal lie at y=0; plane normals are Z
+		// and references X. Reject any counterexample before changing conic data.
+		zero := []int{}
+		switch rec.kind {
+		case 104:
+			if len(rec.values) != 12 {
+				return nil, geom.ErrInvalid
+			}
+			v := originals[rec.id]
+			if v[1] != v[3] || v[1] <= 0 || v[2] != 0 || v[4] != 0 || v[5] != 0 || v[9] != 0 || v[11] != 0 {
+				return nil, geom.ErrInvalid
+			}
+			q := new(big.Rat).Mul(compositeRat(v[3]), big.NewRat(4, 1))
+			x, ok := q.Float64()
+			if !ok || !finite(x) {
+				return nil, geom.ErrInvalid
+			}
+			rec.values = append([]parameter(nil), rec.values...)
+			rec.values[3].text = number(x)
+			doc.entities[i] = rec
+		case 110:
+			zero = []int{2, 5}
+		case 116:
+			zero = []int{2}
+		case 123:
+			zero = []int{2}
+		case 122:
+			zero = []int{3}
+		case 502:
+			if len(rec.values) != 8 {
+				return nil, geom.ErrInvalid
+			}
+			zero = []int{3, 6}
+		case 190, 186, 504, 508, 510, 514:
+		default:
+			return nil, geom.ErrInvalid
+		}
+		for _, j := range zero {
+			if j >= len(rec.values) || originals[rec.id][j] != 0 {
+				return nil, geom.ErrInvalid
+			}
+		}
+	}
+	return originals, nil
 }
