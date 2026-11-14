@@ -17,6 +17,9 @@ type AffineChartDiscoveryOptions struct {
 	// LatticeDivisions selects exact i/n chart sites, default2, bounded2..8.
 	// Nonbinary sites are permitted; native proposal boxes still must be lossless.
 	LatticeDivisions int
+	// BoundaryPlaneSites additionally isolates original iso-boundary contacts
+	// against proved coordinate-plane supports and verifies exact target inverses.
+	BoundaryPlaneSites bool
 	// ConstantPaddingDivisor controls proposal widths only (default8, power of2).
 	ConstantPaddingDivisor int
 }
@@ -168,6 +171,13 @@ func discoverAffineChartPairTubes(ctx context.Context, a, b Patch, p geom.Surfac
 				matches = append(matches, [4]*big.Rat{x.uv[0], x.uv[1], y.uv[0], y.uv[1]})
 			}
 		}
+	}
+	if o.BoundaryPlaneSites {
+		extra, e := affineChartBoundarySites(ctx, patches, &remaining, o.MaxCoefficientBits)
+		if e != nil {
+			return empty, e
+		}
+		matches = append(matches, extra...)
 	}
 	if len(matches) < 2 {
 		return empty, fmt.Errorf("affine chart discovery: insufficient exact lattice sites: %w", ErrUnresolved)
