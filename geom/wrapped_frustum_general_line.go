@@ -7,9 +7,17 @@ import (
 )
 
 func intersectFrustumProfileLine(ctx context.Context, w *WrappedSurfacePatch, origin, direction Vec3, minT, maxT *big.Rat, o ToroidLineOptions, ignoreHeight bool) (CylinderLineIntersections, error) {
+	if !origin.IsFinite() || !direction.IsFinite() {
+		return CylinderLineIntersections{}, ErrInvalid
+	}
+	return intersectFrustumProfileLineRational(ctx, w, rationalLineVec3(origin), rationalLineVec3(direction), minT, maxT, o, ignoreHeight)
+}
+
+func intersectFrustumProfileLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions, ignoreHeight bool) (CylinderLineIntersections, error) {
 	empty := CylinderLineIntersections{}
-	if !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || minT == nil || maxT == nil || minT.Cmp(maxT) > 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
-		return empty, ErrInvalid
+	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
+	if e != nil {
+		return empty, e
 	}
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 1024
@@ -21,9 +29,8 @@ func intersectFrustumProfileLine(ctx context.Context, w *WrappedSurfacePatch, or
 	if e != nil {
 		return empty, e
 	}
-	options, _ := patchOptions(o.Surface)
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits, operations: p.ExactOperations}
-	z := new(big.Rat).SetFloat64(origin.Z)
+	z := origin[2]
 	if !ignoreHeight && (z.Cmp(p.LowerZ) < 0 || z.Cmp(p.UpperZ) > 0) {
 		return CylinderLineIntersections{}, nil
 	}
@@ -34,10 +41,10 @@ func intersectFrustumProfileLine(ctx context.Context, w *WrappedSurfacePatch, or
 	if !ignoreHeight && z.Cmp(p.UpperZ) == 0 {
 		capPart = CylinderUpperCap
 	}
-	x := rationalPolynomial{new(big.Rat).Sub(new(big.Rat).SetFloat64(origin.X), p.CenterX), new(big.Rat).SetFloat64(direction.X)}
-	y := rationalPolynomial{new(big.Rat).Sub(new(big.Rat).SetFloat64(origin.Y), p.CenterY), new(big.Rat).SetFloat64(direction.Y)}
+	x := rationalPolynomial{new(big.Rat).Sub(origin[0], p.CenterX), direction[0]}
+	y := rationalPolynomial{new(big.Rat).Sub(origin[1], p.CenterY), direction[1]}
 	slope := new(big.Rat).Quo(new(big.Rat).Sub(p.UpperRadius, p.LowerRadius), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
-	radius := rationalPolynomial{new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, p.LowerZ))), new(big.Rat).Mul(slope, new(big.Rat).SetFloat64(direction.Z))}
+	radius := rationalPolynomial{new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(z, p.LowerZ))), new(big.Rat).Mul(slope, direction[2])}
 	lo, hi := new(big.Rat).Set(minT), new(big.Rat).Set(maxT)
 	tol := new(big.Rat).SetFloat64(o.ParameterTolerance)
 	negate := func(a rationalPolynomial) rationalPolynomial {
@@ -123,6 +130,19 @@ func intersectFrustumProfileLine(ctx context.Context, w *WrappedSurfacePatch, or
 			}
 			if new(big.Rat).Sub(h, l).Cmp(tol) > 0 {
 				return false, nil
+			}
+			if l.Cmp(h) != 0 {
+				// Reject a closed enclosure that also contains a known
+				// exact root at either endpoint of the active bracket.
+				for _, x := range []*big.Rat{l, h} {
+					v, e := polynomialValue(polynomial, x, budget)
+					if e != nil {
+						return false, e
+					}
+					if v.Sign() == 0 {
+						return false, nil
+					}
+				}
 			}
 			result.Hits = append(result.Hits, CylinderLineHit{ToroidLineRoot{new(big.Rat).Set(l), new(big.Rat).Set(h), m}, CylinderLateral | capPart})
 			return true, nil
@@ -234,21 +254,30 @@ func intersectFrustumProfileLine(ctx context.Context, w *WrappedSurfacePatch, or
 // Options budget each bounded proof/side stage and each quadrant's subdivision;
 // errors never expose partial results. Collapsed apex radii remain unsupported.
 func IntersectWrappedFrustumLine(ctx context.Context, w *WrappedSurfacePatch, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) (CylinderLineIntersections, error) {
-	empty := CylinderLineIntersections{}
-	if !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || !finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || o.MaxSubdivisions < 0 || o.MaxSubdivisions > 65536 {
-		return empty, ErrInvalid
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
+		return CylinderLineIntersections{}, ErrInvalid
 	}
-	if direction.Z == 0 {
-		return intersectFrustumProfileLine(ctx, w, origin, direction, new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), o, false)
+	return IntersectWrappedFrustumLineRational(ctx, w, rationalLineVec3(origin), rationalLineVec3(direction), new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), o)
+}
+
+// IntersectWrappedFrustumLineRational extends exact finite line clipping to
+// canonical weighted profiles whose quadrant conics are not necessarily circular.
+func IntersectWrappedFrustumLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) (CylinderLineIntersections, error) {
+	empty := CylinderLineIntersections{}
+	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
+	if e != nil {
+		return empty, e
+	}
+	if direction[2].Sign() == 0 {
+		return intersectFrustumProfileLineRational(ctx, w, origin, direction, minT, maxT, o, false)
 	}
 	p, e := CertifyWrappedFrustumEmbedding(ctx, w, o.Surface)
 	if e != nil {
 		return empty, e
 	}
-	options, _ := patchOptions(o.Surface)
 	budget := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits, operations: p.ExactOperations}
-	lo, hi := new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT)
-	z, dz := new(big.Rat).SetFloat64(origin.Z), new(big.Rat).SetFloat64(direction.Z)
+	lo, hi := new(big.Rat).Set(minT), new(big.Rat).Set(maxT)
+	z, dz := origin[2], direction[2]
 	capT := [2]*big.Rat{new(big.Rat).Quo(new(big.Rat).Sub(p.LowerZ, z), dz), new(big.Rat).Quo(new(big.Rat).Sub(p.UpperZ, z), dz)}
 	a, b := capT[0], capT[1]
 	if a.Cmp(b) > 0 {
@@ -271,8 +300,8 @@ func IntersectWrappedFrustumLine(ctx context.Context, w *WrappedSurfacePatch, or
 	}
 	exact := func(t *big.Rat) ToroidLineRoot { return ToroidLineRoot{new(big.Rat).Set(t), new(big.Rat).Set(t), 1} }
 	profile := func(t *big.Rat) (int, error) {
-		x := new(big.Rat).Add(new(big.Rat).SetFloat64(origin.X), new(big.Rat).Mul(t, new(big.Rat).SetFloat64(direction.X)))
-		y := new(big.Rat).Add(new(big.Rat).SetFloat64(origin.Y), new(big.Rat).Mul(t, new(big.Rat).SetFloat64(direction.Y)))
+		x := new(big.Rat).Add(origin[0], new(big.Rat).Mul(t, direction[0]))
+		y := new(big.Rat).Add(origin[1], new(big.Rat).Mul(t, direction[1]))
 		height := new(big.Rat).Add(z, new(big.Rat).Mul(dz, t))
 		slope := new(big.Rat).Quo(new(big.Rat).Sub(p.UpperRadius, p.LowerRadius), new(big.Rat).Sub(p.UpperZ, p.LowerZ))
 		radius := new(big.Rat).Add(p.LowerRadius, new(big.Rat).Mul(slope, new(big.Rat).Sub(height, p.LowerZ)))
@@ -318,7 +347,7 @@ func IntersectWrappedFrustumLine(ctx context.Context, w *WrappedSurfacePatch, or
 		return left.Cmp(right), nil
 	}
 	result := CylinderLineIntersections{}
-	result, e = intersectFrustumProfileLine(ctx, w, origin, direction, sideLo, sideHi, o, true)
+	result, e = intersectFrustumProfileLineRational(ctx, w, origin, direction, sideLo, sideHi, o, true)
 	if e != nil {
 		return empty, e
 	}
@@ -361,7 +390,7 @@ func IntersectWrappedFrustumLine(ctx context.Context, w *WrappedSurfacePatch, or
 		if sign == 0 {
 			for j := range result.Hits {
 				h := &result.Hits[j]
-				if h.Parameter.Min.Cmp(t) <= 0 && h.Parameter.Max.Cmp(t) >= 0 {
+				if h.Parameter.Min.Cmp(t) == 0 && h.Parameter.Max.Cmp(t) == 0 {
 					m := h.Parameter.Multiplicity
 					h.Parameter = exact(t)
 					h.Parameter.Multiplicity = m
