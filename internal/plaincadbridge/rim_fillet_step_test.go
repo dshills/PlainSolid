@@ -7,7 +7,7 @@ import (
 )
 
 func TestCylinderRimFilletSTEP(t *testing.T) {
-	for _, axis := range []vector{{0, 0, 1}, {0, 0, -1}} {
+	for _, axis := range []vector{{0, 0, 1}, {0, 0, -1}, {0, 1, 0}, {0, -1, 0}, {1, 0, 0}, {-1, 0, 0}} {
 		b := New()
 		start := vector{1, 2, 3}
 		stock := circle(t, b, start, axis, 10, 10)

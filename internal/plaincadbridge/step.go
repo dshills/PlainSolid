@@ -369,8 +369,8 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		}
 	}
 	if strings.Contains(supports, "B_SPLINE_SURFACE_WITH_KNOTS") && strings.Contains(supports, "SEAM_CURVE") {
-		if p, e := step.ReadWrappedRimFillet(r(), stepLimits(), step.WrappedSurfaceOptions{}); e == nil {
-			return b.putRimFilletSTEP(p)
+		if p, axis, e := step.ReadPlacedWrappedRimFillet(r(), stepLimits(), step.WrappedSurfaceOptions{}); e == nil {
+			return b.putRimFilletSTEP(p, axis)
 		}
 	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
@@ -572,11 +572,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
-		if s.analytic.rimFillet != nil {
-			if p, ok := s.analytic.rimFillet.stepBody(); ok {
-				e = step.WriteWrappedRimFillet(&out, p)
-				break
-			}
+		if p := s.analytic.rimFillet; p != nil {
+			e = p.writeSTEP(&out)
+			break
 		}
 		if sector := s.analytic.sector; sector != nil {
 			if sector.inner == 0 {
