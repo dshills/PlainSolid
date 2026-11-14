@@ -278,6 +278,22 @@ type 124 placement on all six support/model leaves. It preserves local
 analytic charts and verifies authored world vertices. OCCT source and output
 agree on one solid, three faces, volume 12π, area 20π, and centroid
 (8.5, -4, 2).
+Mixed placed circular material (`8474571`) keeps the original type 124 as
+a uniquely owned dependency of its own cylinder and preserves its directory
+ID through exact rebasing. An independent planar/spline/placed-cylinder
+source and Go output transfer in OCCT as three solids and 13 faces.
+The signed XZ annulus (`14926ac`) qualifies the odd projection permutation.
+The independently checked world stock normal and both original boundary
+traversals agree with the native shell; its full normal test and focused
+guard race test passed.
+Wrapped composition proof cells (`5b39e64`) retain an irrational seam
+root, the original and shifted UV occurrences, exact original curve
+parameters and a proved model endpoint join. Reversing the authored
+curve or refining original knots preserves the attained model image.
+The native open-face constructor still requires its representable boundary.
+The shell Boolean dispatcher (`538dee7`) now selects the sole-contact proof
+after independently separating all other face pairs. The existing
+separated, closed, affine and boundary-contact dispatch checks pass.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
