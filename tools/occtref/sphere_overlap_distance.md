@@ -105,3 +105,21 @@ queries because the existing native constructor still accepts coordinate axes
 only. `TestOCCTSphereTransverseNearest` compares all seven independent OCCT
 results with the prior finite-precision allowances, including isolated feet.
 Other three oracle modes remain unchanged.
+
+## Arbitrary-axis complete families
+
+Optional `--vector-axis` independently constructs R=5 spheres at (0,0,0) and
+(2,2,2). The common plane has raw normal(2,2,2), point(1,1,1), circle radius²22.
+The union at either source center has squared distance25 and an entire retained
+cap. At the midpoint its minimum is the entire circle at squared distance22.
+The common at midpoint has two algebraic pole minima, squared28−10√3. At source
+center A, both common and A-minus-B have the retained B pole, squared37−10√12.
+At B's center, A-minus-B has an entire inward-facing B cap, squared25. Union at
+(-2,-2,-2) has a single retained A pole, squared37−10√12.
+
+`TestOCCTSphereVectorAxisFamilies` checks eight numerical distances and
+representative feet with the existing allowances. Complete minimizer sets are
+established by the exact Go axial functional proof, not the number of OCCT
+solutions. This arbitrary-axis case uses geometry queries; the native adapter
+retains its existing coordinate-axis construction restriction. All four prior
+oracle modes retain their original definitions.

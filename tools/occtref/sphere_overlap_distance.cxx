@@ -23,14 +23,15 @@ static void nearest(std::ostream& out,const char* name,const TopoDS_Shape& bound
  auto w=d.PointOnShape2(1);out<<std::setprecision(17)<<"{\"Name\":\""<<name<<"\",\"SquaredDistance\":"<<d.Value()*d.Value()<<",\"Point\":["<<w.X()<<','<<w.Y()<<','<<w.Z()<<"],\"Solutions\":"<<d.NbSolution()<<"}\n";
 }
 int main(int argc,char**argv){try{
- if(argc!=2&&argc!=3)throw std::runtime_error("usage: sphere_overlap_distance OUTPUT_JSONL [--algebraic|--axis|--transverse]");
+ if(argc!=2&&argc!=3)throw std::runtime_error("usage: sphere_overlap_distance OUTPUT_JSONL [--algebraic|--axis|--transverse|--vector-axis]");
  bool algebraic=argc==3&&std::string(argv[2])=="--algebraic";
  bool axis=argc==3&&std::string(argv[2])=="--axis";
  bool transverse=argc==3&&std::string(argv[2])=="--transverse";
- if(argc==3&&!algebraic&&!axis&&!transverse)throw std::runtime_error("unknown mode");
+ bool vectorAxis=argc==3&&std::string(argv[2])=="--vector-axis";
+ if(argc==3&&!algebraic&&!axis&&!transverse&&!vectorAxis)throw std::runtime_error("unknown mode");
  std::ofstream out(argv[1]);out.exceptions(std::ios::failbit|std::ios::badbit);
- auto a=BRepPrimAPI_MakeSphere(transverse?gp_Pnt(0,0,0):gp_Pnt(-3,0,0),5).Shape();
- auto b=BRepPrimAPI_MakeSphere(transverse?gp_Pnt(2,2,1):gp_Pnt(3,0,0),5).Shape();
+ auto a=BRepPrimAPI_MakeSphere((transverse||vectorAxis)?gp_Pnt(0,0,0):gp_Pnt(-3,0,0),5).Shape();
+ auto b=BRepPrimAPI_MakeSphere(vectorAxis?gp_Pnt(2,2,2):(transverse?gp_Pnt(2,2,1):gp_Pnt(3,0,0)),5).Shape();
  TopoDS_Shape bodies[3]={BRepAlgoAPI_Fuse(a,b).Shape(),BRepAlgoAPI_Common(a,b).Shape(),BRepAlgoAPI_Cut(a,b).Shape()};
  const char* names[3]={"unionRim","commonRim","cutRim"};
  gp_Pnt points[3]={gp_Pnt(0,2.25,0),gp_Pnt(0,7.2,0),gp_Pnt(3,4.5,0)};
@@ -42,10 +43,11 @@ int main(int argc,char**argv){try{
  if(solids!=1)throw std::runtime_error("expected one solid");
  BRep_Builder builder;TopoDS_Compound boundary;builder.MakeCompound(boundary);
  for(TopExp_Explorer f(bodies[i],TopAbs_FACE);f.More();f.Next())builder.Add(boundary,f.Current());
- if(axis){
- if(i==0){nearest(out,"unionCapA",boundary,gp_Pnt(-3,0,0));nearest(out,"unionCapB",boundary,gp_Pnt(3,0,0));nearest(out,"unionCircle",boundary,gp_Pnt(0,0,0));nearest(out,"unionPole",boundary,gp_Pnt(-10,0,0));}
- if(i==1){nearest(out,"commonPoles",boundary,gp_Pnt(0,0,0));nearest(out,"commonCenter",boundary,gp_Pnt(-3,0,0));}
- if(i==2){nearest(out,"cutCap",boundary,gp_Pnt(3,0,0));nearest(out,"cutCenter",boundary,gp_Pnt(-3,0,0));}
+ if(axis||vectorAxis){
+ gp_Pnt ca=vectorAxis?gp_Pnt(0,0,0):gp_Pnt(-3,0,0), cb=vectorAxis?gp_Pnt(2,2,2):gp_Pnt(3,0,0), mid=vectorAxis?gp_Pnt(1,1,1):gp_Pnt(0,0,0), far=vectorAxis?gp_Pnt(-2,-2,-2):gp_Pnt(-10,0,0);
+ if(i==0){nearest(out,"unionCapA",boundary,ca);nearest(out,"unionCapB",boundary,cb);nearest(out,"unionCircle",boundary,mid);nearest(out,"unionPole",boundary,far);}
+ if(i==1){nearest(out,"commonPoles",boundary,mid);nearest(out,"commonCenter",boundary,ca);}
+ if(i==2){nearest(out,"cutCap",boundary,cb);nearest(out,"cutCenter",boundary,ca);}
  continue;
  }
  nearest(out,names[i],boundary,points[i]);
