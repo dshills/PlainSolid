@@ -410,6 +410,13 @@ native checks and all ten original browser cases passed, with 841 app and
 and [authored full tube](evidence/plaincad-reconciled-ce54d341-supplemental-full-tube-step-2026-11-14.json)
 matched the worktree's STEP and watertight STLs byte for byte. Each exported
 solid's volume, area, and centroid were independently confirmed by OCCT.
+The [all-plane rim fillet reconciliation](evidence/plaincad-reconciled-830e4932-development-rim-fillet-holes-step-2026-11-14.json)
+adds worktree revisions through `bc85d42c` to review `830e4932`. Native checks
+and all seven original browser cases passed, with 841 app and 2,113 kernel
+source blobs verified. The [authored XY](evidence/plaincad-reconciled-830e4932-supplemental-rim-fillet-step-2026-11-14.json)
+and [authored XZ/YZ](evidence/plaincad-reconciled-830e4932-supplemental-placed-rim-fillet-step-2026-11-14.json)
+cases each reproduced the source worktree's STEP and watertight STL.
+Independent OCCT confirmed volume, area and the placed centroids.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native
