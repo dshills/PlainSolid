@@ -7,10 +7,13 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func torusCylinderSTEPBody(op geom.TorusCylinderOperation) TorusCylinderBody {
@@ -119,5 +122,71 @@ func TestOCCTTorusCylinderSTEP(t *testing.T) {
 			t.Fatal("centroid", got)
 		}
 		t.Log(op, got)
+	}
+}
+
+func TestOCCTTorusCylinderSTEPOriginalBoolean(t *testing.T) {
+	oracle := os.Getenv("PLAINSOLID_OCCT_TORUS_CYLINDER_STEP")
+	if oracle == "" {
+		t.Skip("set PLAINSOLID_OCCT_TORUS_CYLINDER_STEP to pinned reader")
+	}
+	for _, c := range []float64{4, 6} {
+		for _, op := range []geom.TorusCylinderOperation{geom.TorusCylinderCommon, geom.TorusCylinderDifference, geom.TorusCylinderUnion} {
+			for _, caps := range [][2]float64{{-3, 4}, {-4, 3}} {
+				if caps[0] == -4 && op != geom.TorusCylinderUnion {
+					continue
+				}
+				b := torusCylinderSTEPBody(op)
+				b.CylinderRadius, b.Lower, b.Upper = c, caps[0], caps[1]
+				var buf bytes.Buffer
+				if e := WriteTorusCylinderSets(&buf, TorusCylinderModel{[]TorusCylinderBody{b}, .001, 1e-8}); e != nil {
+					t.Fatal(e)
+				}
+				path := filepath.Join(t.TempDir(), "shape.step")
+				if e := os.WriteFile(path, buf.Bytes(), 0600); e != nil {
+					t.Fatal(e)
+				}
+				output := filepath.Join(t.TempDir(), "read.json")
+				args := []string{output, path}
+				for _, v := range []float64{5, 2, c, caps[0], caps[1]} {
+					args = append(args, strconv.FormatFloat(v, 'g', -1, 64))
+				}
+				args = append(args, strconv.Itoa(int(op)))
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				log, e := exec.CommandContext(ctx, oracle, args...).CombinedOutput()
+				cancel()
+				if e != nil {
+					t.Fatalf("original Boolean %v: %v %s", b, e, log)
+				}
+				data, e := os.ReadFile(output)
+				if e != nil {
+					t.Fatal(e)
+				}
+				var got struct {
+					Volume, Area, CentroidZ, ReferenceVolume, ReferenceArea, ReferenceCentroidZ, EdgeResidual float64
+					Solids, Shells, Faces                                                                     int
+				}
+				if e = json.Unmarshal(data, &got); e != nil {
+					t.Fatal(e)
+				}
+				wantFaces := 2
+				if op == geom.TorusCylinderUnion {
+					wantFaces = 5
+				}
+				if got.Solids != 1 || got.Shells != 1 || got.Faces != wantFaces || got.EdgeResidual > 1e-8 || math.Abs(got.Volume-got.ReferenceVolume) > 1e-5 || math.Abs(got.Area-got.ReferenceArea) > 1e-5 || math.Abs(got.CentroidZ-got.ReferenceCentroidZ) > 1e-7 {
+					t.Fatal(b, got)
+				}
+				t.Log(c, op, caps, got.EdgeResidual)
+			}
+		}
+	}
+}
+
+func TestTorusCylinderSTEPExactDecimal(t *testing.T) {
+	for _, x := range []float64{.1, -.1, 1.0 / 3, math.SmallestNonzeroFloat64, math.MaxFloat64, 2 * math.Pi} {
+		v, ok := new(big.Rat).SetString(torusCylinderSTEPReal(x))
+		if !ok || v.Cmp(new(big.Rat).SetFloat64(x)) != 0 {
+			t.Fatal("decimal changed represented scalar", x)
+		}
 	}
 }
