@@ -146,7 +146,8 @@ func orderedRoofBoxOrder(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]geom
 	if err != nil {
 		return 0, err
 	}
-	return orderedRoofPowerSign(ctx, cache[boxes].power, difference, w)
+	sign, _, err := orderedRoofPowerSign(ctx, cache[boxes].power, difference, w)
+	return sign, err
 }
 
 // Compare physical height with a constant after multiplication by the
@@ -167,21 +168,22 @@ func orderedRoofAgainstFloor(ctx context.Context, roof *mixedRoofBox, xy [2]geom
 	if err != nil {
 		return 0, err
 	}
-	return orderedRoofPowerSign(ctx, gap, bounds, w)
+	sign, _, err := orderedRoofPowerSign(ctx, gap, bounds, w)
+	return sign, err
 }
 
-func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (int, error) {
+func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (sign int, strict bool, err error) {
 	if difference.Upper.Sign() <= 0 {
-		return difference.Lower.Sign(), nil
+		return difference.Lower.Sign(), difference.Upper.Sign() < 0, nil
 	}
 	if difference.Lower.Sign() >= 0 {
-		return 1, nil
+		return 1, difference.Lower.Sign() > 0, nil
 	}
-	sign, err := proveRoofBoxPowerOrder(ctx, power, w)
+	sign, strict, err = proveRoofBoxPowerOrder(ctx, power, w)
 	if err == nil && sign == 0 {
 		err = geom.ErrUnrepresentable
 	}
-	return sign, err
+	return sign, strict, err
 }
 
 func orderedRoofFlatFloor(ctx context.Context, d geom.ParameterRectangle, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {
@@ -336,10 +338,10 @@ func roofBoxConstructionPatch(ctx context.Context, d geom.ParameterRectangle, du
 	return p, nil
 }
 
-// Weak one-sign Bernstein controls prove roof order on each closed subcell,
-// even if the roofs are tangent there. Fit independent exact halvings of each
-// axis. The small fixed grid is sufficient, so mixed-sign controls fail closed.
-func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLineWork) (int, error) {
+// One-sign Bernstein controls prove the sign on a closed cell. All strictly
+// one-sign controls across a complete cover additionally prove strict order.
+// Adaptively bisect ambiguous cells, with fixed depth and total work bounds.
+func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLineWork) (int, bool, error) {
 	z, m, h := new(big.Rat), big.NewRat(1, 2), big.NewRat(1, 1)
 	chart := make([][][4]*big.Rat, len(p))
 	for i, row := range p {
@@ -353,49 +355,87 @@ func proveRoofBoxPowerOrder(ctx context.Context, p roofPowerGrid, w *mixedRoofLi
 	factor := func(index, power, degree int) *big.Rat {
 		return new(big.Rat).SetFrac(binomial(power, index), binomial(power, degree))
 	}
-	order := 0
-	for i := range 2 {
-		for j := range 2 {
-			if err := ctx.Err(); err != nil {
-				return 0, err
-			}
-			cuts := [3]*big.Rat{z, m, h}
-			cell, err := mixedRoofRebasePower(chart, geom.ParameterRectangle{UMax: 1, VMax: 1}, [2][2]*big.Rat{{cuts[i], cuts[i+1]}, {cuts[j], cuts[j+1]}}, w)
-			if err != nil {
-				return 0, err
-			}
-			for a := 0; a <= du; a++ {
-				for b := 0; b <= dv; b++ {
-					s := new(big.Rat)
-					for u := 0; u <= a; u++ {
-						for v := 0; v <= b; v++ {
-							c := cell[u][v][2]
-							if c.Sign() == 0 {
-								continue
-							}
-							x, err := w.rat(new(big.Rat).Mul(c, factor(a, u, du)))
-							if err != nil {
-								return 0, err
-							}
-							if _, err := w.rat(x.Mul(x, factor(b, v, dv))); err != nil {
-								return 0, err
-							}
-							if _, err := w.rat(s.Add(s, x)); err != nil {
-								return 0, err
-							}
+	type roofSignCell struct {
+		axes  [2][2]*big.Rat
+		depth int
+	}
+	pending := []roofSignCell{{axes: [2][2]*big.Rat{{z, h}, {z, h}}}}
+	order, strict := 0, true
+	for len(pending) > 0 {
+		if err := ctx.Err(); err != nil {
+			return 0, false, err
+		}
+		n := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		cell, err := mixedRoofRebasePower(chart, geom.ParameterRectangle{UMax: 1, VMax: 1}, n.axes, w)
+		if err != nil {
+			return 0, false, err
+		}
+		positive, negative, allNonzero := false, false, true
+		for a := 0; a <= du; a++ {
+			for b := 0; b <= dv; b++ {
+				s := new(big.Rat)
+				for u := 0; u <= a; u++ {
+					for v := 0; v <= b; v++ {
+						c := cell[u][v][2]
+						if c.Sign() == 0 {
+							continue
 						}
-					}
-					if s.Sign() != 0 {
-						if order != 0 && order != s.Sign() {
-							return 0, nil
+						x, err := w.rat(new(big.Rat).Mul(c, factor(a, u, du)))
+						if err != nil {
+							return 0, false, err
 						}
-						order = s.Sign()
+						if _, err := w.rat(x.Mul(x, factor(b, v, dv))); err != nil {
+							return 0, false, err
+						}
+						if _, err := w.rat(s.Add(s, x)); err != nil {
+							return 0, false, err
+						}
 					}
 				}
+				positive = positive || s.Sign() > 0
+				negative = negative || s.Sign() < 0
+				allNonzero = allNonzero && s.Sign() != 0
 			}
 		}
+		if positive && negative {
+			if n.depth >= 12 {
+				return 0, false, nil
+			}
+			axis := n.depth % 2
+			if dv == 0 {
+				axis = 0
+			} else if du == 0 {
+				axis = 1
+			}
+			mid, err := w.rat(new(big.Rat).Add(n.axes[axis][0], n.axes[axis][1]))
+			if err != nil {
+				return 0, false, err
+			}
+			if _, err := w.rat(mid.Mul(mid, m)); err != nil {
+				return 0, false, err
+			}
+			l, r := n, n
+			l.axes[axis][1], r.axes[axis][0] = mid, mid
+			l.depth, r.depth = n.depth+1, n.depth+1
+			pending = append(pending, r, l)
+			continue
+		}
+		cellSign := 0
+		if positive {
+			cellSign = 1
+		} else if negative {
+			cellSign = -1
+		}
+		if cellSign != 0 {
+			if order != 0 && order != cellSign {
+				return 0, false, nil
+			}
+			order = cellSign
+		}
+		strict = strict && allNonzero
 	}
-	return order, nil
+	return order, strict, nil
 }
 
 // Both wall rows must use the same weight at every longitudinal parameter.

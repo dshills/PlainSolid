@@ -66,16 +66,15 @@ func SubtractOrderedRoofBoxes(ctx context.Context, stock, cutter Solid, proof Mi
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	sign, err = orderedRoofPowerSign(ctx, cache[q.box].power, order, &w)
+	sign, strict, err := orderedRoofPowerSign(ctx, cache[q.box].power, order, &w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
 	if sign <= 0 {
 		return Solid{}, RoofBoxDifferenceHistory{ExactOperations: w.operations}, ctx.Err()
 	}
-	// A strict lower bound is sufficient. Tangencies or mixed coefficients
-	// are not accepted here because a pinched difference is not a manifold.
-	if order.Lower.Sign() <= 0 {
+	// Contact with the stock roof would pinch the sewn material band.
+	if !strict {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
 	if err := certifyRoofStrictlyAboveFloor(ctx, lower, a.floor, &w); err != nil {
@@ -106,11 +105,16 @@ func unchangedOrderedRoofBox(ctx context.Context, stock Solid, w *mixedRoofLineW
 
 func subtractFloatingRoofBox(ctx context.Context, stock, cutter Solid, boxes [2]*mixedRoofBox, xy [2]geom.ExactParameterInterval, stockRoof, cutterRoof *geom.SurfacePatch, w *mixedRoofLineWork) (Solid, RoofBoxDifferenceHistory, error) {
 	var zero RoofBoxDifferenceHistory
-	order, err := make(roofOrderCache).order(boxes, xy, w)
+	cache := make(roofOrderCache)
+	order, err := cache.order(boxes, xy, w)
 	if err != nil {
 		return Solid{}, zero, err
 	}
-	if order.Lower.Sign() <= 0 {
+	sign, strict, err := orderedRoofPowerSign(ctx, cache[boxes].power, order, w)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if sign != 1 || !strict {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
 	a, b := boxes[0], boxes[1]

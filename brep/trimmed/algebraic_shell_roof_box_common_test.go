@@ -124,15 +124,15 @@ func TestOrderedRoofBoxCommonNativeWeighted(t *testing.T) {
 }
 func orderedRoofTangentSource(t *testing.T) Solid {
 	t.Helper()
-	return orderedRoofTangentSourceWithSign(t, 1)
+	return orderedRoofParabolaSource(t, 1, .5)
 }
 
-func orderedRoofTangentSourceWithSign(t *testing.T, sign float64) Solid {
+func orderedRoofParabolaSource(t *testing.T, sign, center float64) Solid {
 	t.Helper()
 	ctx := context.Background()
 	x := [3]float64{0, .5, 1}
 	y := [2]float64{-.125, 1.125}
-	z := [3]float64{1 + sign*.25, 1 - sign*.25, 1 + sign*.25} // h=1±(X-1/2)^2
+	z := [3]float64{1 + sign*center*center, 1 + sign*center*(center-1), 1 + sign*(center-1)*(center-1)}
 	floor := -.5
 	var parts []SewFace
 	add := func(du int, d geom.ParameterRectangle, reversed bool, point func(int, int) geom.Vec3) {
@@ -173,7 +173,7 @@ func orderedRoofTangentSourceWithSign(t *testing.T, sign float64) Solid {
 
 func TestOrderedRoofBoxInteriorFloorContact(t *testing.T) {
 	ctx := context.Background()
-	tool := orderedRoofTangentSourceWithSign(t, -1)
+	tool := orderedRoofParabolaSource(t, -1, .5)
 	stock, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 1}, [3]float64{1, 1.125, 2}, 0)
 	if out, h, err := IntersectOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err != nil || !h.ProjectedContact || out.Topology().Faces != 0 {
 		t.Fatal("interior line contact has no regularized common", out.Topology(), h, err)
@@ -181,12 +181,45 @@ func TestOrderedRoofBoxInteriorFloorContact(t *testing.T) {
 	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err != nil || len(h.Faces) != 6 || out.faces[0].Surface != stock.faces[0].Surface {
 		t.Fatal("contact-only cut must retain the authenticated stock", out.Topology(), h, err)
 	}
-	tool = orderedRoofTangentSourceWithSign(t, 1)
+	tool = orderedRoofParabolaSource(t, 1, .5)
 	if out, h, err := IntersectOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
 		t.Fatal("positive material pinched at the interior line is unresolved", out.Topology(), h, err)
 	}
 	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
 		t.Fatal("changing cut floor contact remains outside the sewn-band proof", out.Topology(), h, err)
+	}
+}
+
+func TestOrderedRoofBoxAdaptiveHeightOrder(t *testing.T) {
+	ctx := context.Background()
+	// A weak order at X=3/8 requires more than the previous single
+	// halving. A strictly lower tool just below the minimum proves a
+	// positive remaining band despite cancelling monomial coefficients.
+	stock := orderedRoofParabolaSource(t, 1, .375)
+	for _, tb := range []struct {
+		roof float64
+		cut  bool
+	}{{1, false}, {1 - 1./65536, true}} {
+		tool, _ := makeOpenSplineBox(t, [3]float64{0, -.125, -1}, [3]float64{1, 1.125, tb.roof}, 0)
+		common, h, err := IntersectOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if err != nil || len(h.Faces) != 6 || h.Faces[0].Operand != 1 || common.Topology().EulerCharacteristic != 2 {
+			t.Fatal("adaptive chart cover certifies the lower roof", h, err)
+		}
+		cut, ancestry, err := SubtractOrderedRoofBoxes(ctx, stock, tool, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+		if !tb.cut {
+			if err == nil || cut.Topology().Faces != 0 || len(ancestry.Faces) != 0 {
+				t.Fatal("strictness may not be inferred from weak height order", cut.Topology(), ancestry, err)
+			}
+			continue
+		}
+		if err != nil || len(ancestry.Faces) != 6 {
+			t.Fatal("adaptive strict order qualifies the positive band", ancestry, err)
+		}
+		mass, err := cut.MassProperties(ctx, parametric.IntegrationOptions{})
+		want := 1.25 * (1./3 - .375 + .375*.375 + 1./65536)
+		if err != nil || math.Abs(mass.Volume-want) > 1e-12 {
+			t.Fatal("independent thin band volume", mass, want, err)
+		}
 	}
 }
 
