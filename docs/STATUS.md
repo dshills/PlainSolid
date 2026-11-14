@@ -24,7 +24,10 @@ Contained coaxial cutters on the same body merge independently of batch
 order, including through cutters that join two opposed blind spans.
 Separated blind spans at the same interior site preserve the material web
 and both cap openings through STEP.
-Intersecting noncoaxial notch footprints remain open.
+Two transversely intersecting side-opening Hole cutters from the same
+cap now retain exact cylindrical walls and blind floors on rectangular
+stock. Grouped and successive cuts, unequal depths, through cuts, and
+canonical STEP round-trip pass verification.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
@@ -563,19 +566,17 @@ curve qualification also passed. See [verification](VERIFICATION.md) and
 
 ## Continuing implementation
 
-For PlainCAD, the next geometry gap is a second side-opening cutter with
-a different footprint on already notched stock. Start with two crossing
-circles on the same rectangular side and parallel axes. Qualify the
-section arrangement and axial spans, then verify exact measures,
-rebuild and STEP before expanding to cutters on different sides.
+PlainCAD's same-side, same-entry intersecting cutter pair now passes
+native, browser, and STEP verification. Opposed entry cuts and cutters
+opening on different stock sides remain open.
 The full unit gate still has 36 repeat failures after focused retests.
 The recorded controls identify the OCCT-private bindings and fixtures
 that depend on an uninitialized kernel.
 
 The two short-mode exclusions for nested quartic material and transverse
-shell operations passed separately earlier. A fresh opt-in run for
+shell operations passed separately earlier. The opt-in run for
 `TestQualifyNestedQuarticShell` and `TestStraightTubeMassInvestigation`
-is in progress. Its JSON log is
+also passed in 133.593 seconds. Its JSON log is
 `/tmp/plainsolid-integration-native-two-opt-ins-20261113.jsonl`.
 
 For immediate work, follow the PlainCAD gates above. Within the remaining full

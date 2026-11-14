@@ -52,6 +52,8 @@ interior bores in the same batch. Both families have focused original regression
 independent OCCT exchange measurements.
 Blind and through quarter-circle corner cuts support the same contained
 bores and round-trip STEP.
+Two intersecting circular cutters crossing one side of rectangular stock
+and entering the same cap now preserve the axial layers through STEP.
 
 The latest completed production run passes all 66 originals, including the
 42.966-second performance case. The full development run on PlainCAD

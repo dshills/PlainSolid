@@ -17,29 +17,30 @@ import (
 type analyticBody struct {
 	planarBores *planarBoredStock
 	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
-	polygonExtrema []geom.Vec3
-	solid          trimmed.Solid
-	patches        *parametric.Solid
-	rimPatches     bool
-	sector         *radialSector
-	shaft          *trimmed.SteppedShaft
-	segment        *circularSegmentSweep
-	arcLoop        *arcLoopSupport
-	helical        bool
-	lead           *leadPart
-	helicalMesh    *mesh.Mesh
-	stepRounded    *step.RoundedRectangleExtrusionBody
-	stepDisk       *step.DiskHoleExtrusionBody
-	sideNotch      *step.SideNotchBody
-	layeredDisk    bool
-	pockets        *pocketStock
-	coaxial        *coaxialBody
-	rounded        *roundedStock
-	annular        *annularStock
-	threadStock    *planarThreadStock
-	islandPocket   *trimmed.RectangularIslandPocket
-	filletedCap    *filletedCapStock
-	volume, area   float64
+	polygonExtrema  []geom.Vec3
+	solid           trimmed.Solid
+	patches         *parametric.Solid
+	rimPatches      bool
+	sector          *radialSector
+	shaft           *trimmed.SteppedShaft
+	segment         *circularSegmentSweep
+	arcLoop         *arcLoopSupport
+	helical         bool
+	lead            *leadPart
+	helicalMesh     *mesh.Mesh
+	stepRounded     *step.RoundedRectangleExtrusionBody
+	stepDisk        *step.DiskHoleExtrusionBody
+	sideNotch       *step.SideNotchBody
+	sideOpeningPair *step.SideOpeningPairBody
+	layeredDisk     bool
+	pockets         *pocketStock
+	coaxial         *coaxialBody
+	rounded         *roundedStock
+	annular         *annularStock
+	threadStock     *planarThreadStock
+	islandPocket    *trimmed.RectangularIslandPocket
+	filletedCap     *filletedCapStock
+	volume, area    float64
 }
 
 func (b *Bridge) putAnalytic(s trimmed.Solid, volume, area float64) (Shape, error) {
@@ -158,6 +159,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.stepRounded = nil
 	out.stepDisk = nil
 	out.sideNotch = nil
+	out.sideOpeningPair = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -214,6 +216,23 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		if e == nil && cardinalFrame(f) && f.YAxis() == y {
 			p.Frame = f
 			out.sideNotch = &p
+		}
+	}
+	if a.sideOpeningPair != nil {
+		p := *a.sideOpeningPair
+		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
+		origin := m.Apply(p.Frame.Origin())
+		if m.Determinant() < 0 {
+			origin = origin.Add(x.Scale(p.Width))
+			x = x.Scale(-1)
+			for i := range p.Cuts {
+				p.Cuts[i].Center.X = p.Width - p.Cuts[i].Center.X
+			}
+		}
+		f, e := geom.NewFrame(origin, x, z)
+		if e == nil && cardinalFrame(f) && f.YAxis() == y {
+			p.Frame = f
+			out.sideOpeningPair = &p
 		}
 	}
 	if a.stepRounded != nil {
