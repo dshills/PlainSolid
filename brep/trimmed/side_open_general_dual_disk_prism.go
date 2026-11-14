@@ -23,5 +23,5 @@ func CutGeneralSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max
 	if e != nil {
 		return GeneralSideOpenDualDiskCut{}, e
 	}
-	return GeneralSideOpenDualDiskCut{UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth}}}, nil
+	return GeneralSideOpenDualDiskCut{UnequalSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: r.source}}, nil
 }

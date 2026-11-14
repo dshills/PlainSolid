@@ -195,10 +195,10 @@ func cutSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max geom.V
 		return zero, geom.ErrConvergence
 	}
 	out.Solid = solid
-	if !unequal {
-		out.source = &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth,
-			outer: s.Outer, owners: s.Owner}
-	}
+	// The unexported intermediate is shared. Each public result exposes only
+	// its qualified query family and retains the actual combined wall arcs.
+	out.source = &sideOpenDualDiskSource{frame: frame, min: min, max: max, discs: discs, height: height, depth: depth,
+		outer: s.Outer, owners: s.Owner}
 	return out, nil
 }
 

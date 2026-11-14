@@ -91,3 +91,29 @@ func TestSideOpenDualDiskExactAxialStations(t *testing.T) {
 		}
 	}
 }
+
+func TestOffCenterSideOpenDualDiskAxialStation(t *testing.T) {
+	ctx := context.Background()
+	f, e := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 24.5}, Radius: 8.5}, {Center: geom.Vec2{X: 20}, Radius: 5}}
+	c, e := CutGeneralSideOpenDualDisks(ctx, f, geom.Vec2{}, geom.Vec2{X: 50, Y: 12}, discs, 6, 3, 1e-10, trimvalidate.Options{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	notch, e := c.SectionAtStation(ctx, big.NewRat(2, 3))
+	if e != nil || notch.Floor || notch.Empty || len(notch.Outer) != 7 || notch.CutterOwner[1] != 1 || notch.CutterOwner[2] != 0 {
+		t.Fatal("nonbinary station lost original unequal wall ownership", notch.CutterOwner, e)
+	}
+	endpoints, _ := notch.Outer[1].Endpoints()
+	x, y := endpoints[1][0], endpoints[1][1]
+	if x.Cmp(big.NewRat(17, 1)) != 0 || y.Cmp(big.NewRat(4, 1)) != 0 {
+		t.Fatal("off-center radical-axis seam changed", endpoints)
+	}
+	floor, e := c.SectionAtStation(ctx, big.NewRat(3, 1))
+	if e != nil || !floor.Floor || floor.Empty || len(floor.Outer) != 4 {
+		t.Fatal("closed blind-floor plane must retain the complete box", floor.CutterOwner, e)
+	}
+}
