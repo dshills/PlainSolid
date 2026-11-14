@@ -45,6 +45,16 @@ func (s State) WriteSideOpenDualDiskSTEP(ctx context.Context, w io.Writer, nodeI
 	if d.Name == "" {
 		d.Name = nodeID
 	}
+	if p := f.SideOpenDualDisk; p.UnequalCenterJoin != nil {
+		join, e := p.exactJoin()
+		if e != nil {
+			return e
+		}
+		if world[nodeID].Determinant() < 0 {
+			join[0].Neg(join[0])
+		}
+		return step.WriteUnequalCenterSideOpenDualDiskProduct(ctx, w, step.UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: join})
+	}
 	if f.SideOpenDualDisk.OffsetCenters {
 		return step.WriteOffsetSideOpenDualDiskProduct(ctx, w, step.OffsetSideOpenDualDiskDescriptor(d))
 	}

@@ -20,14 +20,17 @@ import (
 // ExactWalls explicitly allows nonbinary homogeneous controls for an
 // off-center unequal cut. This flag does not relax any endpoint or stock proof.
 // OffsetCenters selects the separately certified common-center-below-side cut.
-// It uses exact homogeneous walls directly; the two flags are exclusive.
+// UnequalCenterJoin selects different centers below the opening side and
+// supplies their exact stock-local intersection as rational text. It is checked
+// against the original circles on every evaluation. These policies are exclusive.
 type SideOpenDualDiskRecipe struct {
 	Origin, U, Inward geom.Vec3
 	Discs             [2]trimmed.ExtrusionCircle
 	Depth, Tolerance  float64
 	Through           bool
-	ExactWalls        bool `json:",omitempty"`
-	OffsetCenters     bool `json:",omitempty"`
+	ExactWalls        bool       `json:",omitempty"`
+	OffsetCenters     bool       `json:",omitempty"`
+	UnequalCenterJoin *[2]string `json:",omitempty"`
 }
 
 func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpenDualDiskRecipe) (trimmed.Solid, error) {
@@ -36,6 +39,14 @@ func evaluateSideOpenDualDisk(ctx context.Context, stock brep.Solid, p *SideOpen
 		return trimmed.Solid{}, e
 	}
 	f, tolerance := d.Frame, d.Tolerance
+	if p.UnequalCenterJoin != nil {
+		join, e := p.exactJoin()
+		if e != nil {
+			return trimmed.Solid{}, e
+		}
+		c, e := trimmed.CutUnequalCenterSideOpenDualDisks(ctx, f, d.Min, d.Max, d.Discs, join, d.Height, d.Depth, tolerance, trimvalidate.Options{})
+		return c.Solid, e
+	}
 	if p.OffsetCenters {
 		if d.Discs[0].Radius == d.Discs[1].Radius {
 			return trimmed.Solid{}, geom.ErrDomain
@@ -68,7 +79,7 @@ func authoredSideOpenDualDiskDescriptor(stock brep.Solid, p *SideOpenDualDiskRec
 	if p == nil || len(stock.Vertices()) != 8 || len(stock.Edges()) != 12 || len(stock.Faces()) != 6 || p.Through && p.Depth != 0 {
 		return step.SideOpenDualDiskDescriptor{}, fmt.Errorf("exact dual disk cut needs rectangular stock and an authored cap recipe")
 	}
-	if p.ExactWalls && p.OffsetCenters {
+	if p.ExactWalls && p.OffsetCenters || p.UnequalCenterJoin != nil && (p.ExactWalls || p.OffsetCenters) {
 		return step.SideOpenDualDiskDescriptor{}, geom.ErrInvalid
 	}
 	cardinal := func(a geom.Vec3) bool {
@@ -166,6 +177,28 @@ func authoredSideOpenDualDiskDescriptor(stock brep.Solid, p *SideOpenDualDiskRec
 		}
 	}
 	return d, nil
+}
+
+func (p *SideOpenDualDiskRecipe) exactJoin() (join [2]*big.Rat, err error) {
+	if p == nil || p.UnequalCenterJoin == nil {
+		return join, geom.ErrInvalid
+	}
+	for i, s := range p.UnequalCenterJoin {
+		if len(s) == 0 || len(s) > 8192 {
+			return join, geom.ErrInvalid
+		}
+		for _, c := range s {
+			if (c < '0' || c > '9') && c != '-' && c != '/' {
+				return join, geom.ErrInvalid
+			}
+		}
+		q, ok := new(big.Rat).SetString(s)
+		if !ok || q.RatString() != s {
+			return join, geom.ErrInvalid
+		}
+		join[i] = q
+	}
+	return join, nil
 }
 
 func externalSideDiskRadical(d step.SideOpenDualDiskDescriptor) bool {

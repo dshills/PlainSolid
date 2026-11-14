@@ -127,6 +127,10 @@ func (f Feature) clone() Feature {
 	}
 	if f.SideOpenDualDisk != nil {
 		recipe := *f.SideOpenDualDisk
+		if recipe.UnequalCenterJoin != nil {
+			join := *recipe.UnequalCenterJoin
+			recipe.UnequalCenterJoin = &join
+		}
 		f.SideOpenDualDisk = &recipe
 	}
 	h := make([][]geom.Vec3, len(f.Holes))
