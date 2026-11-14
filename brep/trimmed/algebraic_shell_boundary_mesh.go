@@ -63,6 +63,9 @@ type CertifiedAlgebraicShellBoundary struct {
 // exact vertices that collapse in binary64 are rejected, never welded. Errors
 // return no partial network. Mutable public Boolean diagnostics are ignored.
 func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, o AlgebraicShellBoundaryOptions) (CertifiedAlgebraicShellBoundary, error) {
+	return tessellateAlgebraicShellBoundary(ctx, s, o, nil)
+}
+func tessellateAlgebraicShellBoundary(ctx context.Context, s AlgebraicShellBoolean, o AlgebraicShellBoundaryOptions, restricted map[int]geom.CertifiedComposedCollectionPolyline) (CertifiedAlgebraicShellBoundary, error) {
 	var empty CertifiedAlgebraicShellBoundary
 	if ctx == nil || s.source == nil || !(o.Deflection > 0) || math.IsInf(o.Deflection, 0) {
 		return empty, geom.ErrInvalid
@@ -160,6 +163,14 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 		}
 		ends := [2]geom.Vec3{r.Vertices[r.TopologyVertices[edge.Start]], r.Vertices[r.TopologyVertices[edge.End]]}
 		var points []geom.Vec3
+		var chain *geom.RationalIsoTubeChain
+		pieceIndex := 0
+		if edge.OriginalSubdivisionEdge < 0 {
+			use := s.parts[0].Section[edge.SectionPiece]
+			chain = s.source.branches[use.Branch].rational
+			pieceIndex = use.Index
+		}
+
 		if edge.OriginalSubdivisionEdge >= 0 {
 			cells, e := s.SourceCurveCells(ctx, ei, o.Proof)
 			if e != nil {
@@ -185,6 +196,40 @@ func (s AlgebraicShellBoolean) TessellateBoundaryCertified(ctx context.Context, 
 			}
 			r.ExactOperations += line.ExactOperations
 			r.SourceCertificates[ei] = line
+		} else if chain != nil {
+			if restricted == nil {
+				return empty, geom.ErrUnrepresentable
+			}
+			proof := o.Proof.Composition
+			if proof.MaxOperations < 0 {
+				return empty, geom.ErrInvalid
+			}
+			proof.MaxOperations = capPositiveBudget(proof.MaxOperations, o.MaxOperations-r.ExactOperations)
+			cells, e := chain.ModelCurveCells(ctx, pieceIndex, proof)
+			if e != nil {
+				return empty, fmt.Errorf("restricted edge %d model: %w", ei, e)
+			}
+			r.ExactOperations += cells.ExactOperations
+			if r.ExactOperations >= o.MaxOperations {
+				return empty, geom.ErrConvergence
+			}
+			opt := o.Source
+			opt.Deflection = o.Deflection
+			opt.MaxSegments = o.MaxSegments - r.Segments
+			opt.MaxOperations = o.MaxOperations - r.ExactOperations
+			opt.EndpointPoints = &ends
+			line, e := cells.TessellateCertified(ctx, geom.ComposedCollectionPolylineOptions{ComposedCurvePolylineOptions: opt})
+			if e != nil {
+				return empty, fmt.Errorf("restricted edge %d display: %w", ei, e)
+			}
+			if !line.Complete || line.DisplayDegenerate {
+				return empty, geom.ErrConvergence
+			}
+			for _, v := range line.Vertices {
+				points = append(points, v.Point)
+			}
+			r.ExactOperations += line.ExactOperations
+			restricted[ei] = line
 		} else {
 			segment, pair, e := s.SectionSegment(ei)
 			if e != nil {
