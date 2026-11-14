@@ -1,5 +1,20 @@
 # Verification record
 
+## PlainCAD fragmented arc-only lens STEP exchange — 2026-11-14
+
+Adjacent fragments with the same exact circle center and radius are
+joined only along their shared anchored seam. The signed sweep is
+preserved. PlainCAD keeps all four authored sketch arcs and their
+references through edit and project reopen.
+
+[Eleven original sketch and STEP regressions plus provider preflight](evidence/plaincad-arc-only-lens-step-browser-2026-11-14.json)
+and the [extended arc-only case](evidence/plaincad-arc-only-lens-step-native-2026-11-14.json)
+pass on the same WASM. Before the change, STEP generation left the
+download disabled. Its 17,602-byte file equals the whole-circle lens
+exchange byte for byte. The reimported STL has 348 watertight triangles.
+OCCT readback, the existing independent lens corpus, race checks and Go
+vet pass.
+
 ## PlainCAD Edit Revolve quarter-bore STEP exchange — 2026-11-14
 
 The coaxially bored quarter sweep retains two opposed cylindrical
@@ -119,6 +134,25 @@ reopens that STEP in PlainCAD, extends the X blind Hole from 30.5 mm to
 and both unmodified floors. Native coverage also opens X through the
 opposite cap and compares STEP byte-for-byte with a fresh cut. Independent
 OCCT measures and the focused race tests pass.
+
+## Full PlainCAD provider rerun on kernel e60f34e7 — 2026-11-14
+
+The isolated app provider at `9779044` passes 345 development, 66
+production and 15 Chromium, Firefox and WebKit cases with zero browser
+skips, retries or flaky cases. All 1,691 ordinary unit and component
+cases and four selected actual-WASM contracts pass. Both TypeScript
+checks and the bundle gate pass. The largest of 72 JavaScript bundles
+measures 496.50 kB and the built WASM hash matches the source manifest.
+
+The performance case validates all 25 edits and 11 STL exports in each
+environment. The development and production cases finish in 25.188 and
+85.975 seconds while validation shares the test host. The unchanged
+production case passes in 32.1 seconds after native and unit tests finish.
+The separate native `brep/trimmed` aggregate hits its 35-minute budget.
+The in-flight multispan elliptical contact test passes individually in
+0.60 seconds. The native aggregate result remains open.
+
+[Reports and build hashes](evidence/plaincad-provider-kernel-e60f34e7-2026-11-14.json).
 
 ## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
 

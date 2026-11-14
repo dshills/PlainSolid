@@ -99,13 +99,14 @@ comparisons.
 
 The [selectable PlainSolid provider qualification](evidence/plaincad-provider-integration-verified-2026-11-14.json)
 pins the PlainCAD app at `9779044` and its initial verified PlainSolid build
-at `f571a964`. The [full provider rerun](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json)
-on kernel `65441a2d` also passed 345 development, 66 production and 15
-cross-browser cases with no skips, retries, or flaky results. The ordinary
-app suite passed 1,691 cases and four actual-WASM contracts. The isolated
-PlainCAD provider branch selects PlainSolid in the app and its workers,
-with a fingerprinted WASM file and the matching Go runtime. Later kernel
-milestones have focused browser and exchange evidence.
+at `f571a964`. Full provider reruns on [kernel 65441a2d](evidence/plaincad-provider-kernel-65441a2d-2026-11-14.json)
+and [kernel e60f34e7](evidence/plaincad-provider-kernel-e60f34e7-2026-11-14.json)
+passed 345 development, 66 production and 15 cross-browser cases with no
+skips, retries, or flaky results. The ordinary app suite passed 1,691 cases
+and four actual-WASM contracts. The isolated PlainCAD provider branch
+selects PlainSolid in the app and its workers, with a fingerprinted WASM
+file and the matching Go runtime. Later kernel milestones have focused
+browser and exchange evidence.
 
 Development now prioritizes the operations exercised by PlainCAD's existing
 acceptance tests before expanding unrelated OCCT domains. The full specification
@@ -220,7 +221,8 @@ complete represented graph. Qualified minor and major segments keep the
 circular support and chord. Equal-circle and unequal circle/arc lens
 extrusions also retain both analytic cylindrical walls and their shared
 vertical seams. Both original XY workflows exchange exact solids and
-reopen with watertight STL. The construction-axis Revolve workflow
+reopen with watertight STL. The arc-only lens retains all four original
+sketch fragments and produces the same STEP as the equivalent circle lens. The construction-axis Revolve workflow
 round-trips the exact toroidal surface and planar caps of its quarter
 sweep. Full rings and larger signed sweeps also pass the native STEP
 gate, including reflection and non-millimeter readback. The Edit Revolve

@@ -9,10 +9,14 @@ import (
 )
 
 func (s *arcLoopSupport) circularLensSTEP() (step.CircularLensExtrusionBody, bool) {
-	if len(s.segments) != 2 || !cardinalFrame(s.frame) {
+	if !cardinalFrame(s.frame) {
 		return step.CircularLensExtrusionBody{}, false
 	}
-	a, b := s.segments[0], s.segments[1]
+	arcs, ok := lensSupportArcs(s.segments)
+	if !ok {
+		return step.CircularLensExtrusionBody{}, false
+	}
+	a, b := arcs[0], arcs[1]
 	if a.Radius <= 0 || b.Radius <= 0 || a.Sweep*b.Sweep <= 0 ||
 		math.Abs(a.Sweep) >= math.Pi || math.Abs(b.Sweep) >= math.Pi {
 		return step.CircularLensExtrusionBody{}, false
@@ -36,6 +40,61 @@ func (s *arcLoopSupport) circularLensSTEP() (step.CircularLensExtrusionBody, boo
 	}
 	return step.CircularLensExtrusionBody{Name: "PlainSolid", Frame: f, Height: math.Abs(s.height),
 		Arcs: [2]trimmed.ExtrusionSegment{a, b}}, true
+}
+
+// lensSupportArcs joins adjacent authored seams on the same circular
+// support for exchange. Original sketch entities and feature IDs are retained.
+func lensSupportArcs(segments []trimmed.ExtrusionSegment) ([2]trimmed.ExtrusionSegment, bool) {
+	var arcs [2]trimmed.ExtrusionSegment
+	if len(segments) < 2 {
+		return arcs, false
+	}
+	if len(segments) == 2 {
+		return [2]trimmed.ExtrusionSegment{segments[0], segments[1]}, true
+	}
+	same := func(a, b trimmed.ExtrusionSegment) bool {
+		return a.Center == b.Center && a.Radius == b.Radius
+	}
+	first := -1
+	count := 0
+	for i, a := range segments {
+		if a.Radius <= 0 || a.Sweep == 0 {
+			return arcs, false
+		}
+		if !same(a, segments[(i+len(segments)-1)%len(segments)]) {
+			if first < 0 {
+				first = i
+			}
+			count++
+		}
+	}
+	if count != len(arcs) {
+		return arcs, false
+	}
+	index := 0
+	arcs[0] = segments[first]
+	for i := 1; i < len(segments); i++ {
+		next := segments[(first+i)%len(segments)]
+		run := &arcs[index]
+		if !same(*run, next) {
+			index++
+			arcs[index] = next
+			continue
+		}
+		end := run.StartAngle + run.Sweep
+		// The native input has already checked both evaluations against
+		// their shared anchored vertex. Allow only angular roundoff at
+		// the represented seam and preserve the sum of the input sweeps.
+		scale := max(1, math.Abs(end), math.Abs(next.StartAngle))
+		budget := 64 * (math.Nextafter(scale, math.Inf(1)) - scale)
+		if run.End != next.Start || (run.Sweep > 0) != (next.Sweep > 0) ||
+			math.Abs(math.Remainder(end-next.StartAngle, 2*math.Pi)) > budget {
+			return arcs, false
+		}
+		run.End = next.End
+		run.Sweep += next.Sweep
+	}
+	return arcs, true
 }
 
 func (b *Bridge) putCircularLensSTEP(m step.CircularLensExtrusionModel) (Shape, error) {
