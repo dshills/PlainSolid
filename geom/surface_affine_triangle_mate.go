@@ -11,6 +11,7 @@ import (
 // Triangle vertices 0 and 1 specify corresponding full mate traversals; vertex
 // 2 is strictly off the separating plane on opposite sides for the two owners.
 type SurfaceAffineTriangleMate struct {
+	separator  SurfaceAffineTriangleSeparator
 	source     [2]*SurfacePatch
 	triangles  [2][3][2]*big.Rat
 	sides      [2]int
@@ -152,6 +153,34 @@ func CertifySurfaceAffineTriangleMate(ctx context.Context, a, b *SurfacePatch, t
 	if e = ctx.Err(); e != nil {
 		return nil, e
 	}
+	out.separator = SurfaceAffineTriangleSeparator{Normal: normal, UV: uv, Offset: offset, Level: level}
+	out.separator = out.Separator()
 	out.operations = budget.operations
 	return out, nil
+}
+
+// SurfaceAffineTriangleSeparator retains exact original scalar-plane units.
+type SurfaceAffineTriangleSeparator struct {
+	Normal [3]*big.Rat
+	UV     [2][2]*big.Rat
+	Offset [2]*big.Rat
+	Level  *big.Rat
+}
+
+func (p *SurfaceAffineTriangleMate) Separator() SurfaceAffineTriangleSeparator {
+	if p == nil {
+		return SurfaceAffineTriangleSeparator{}
+	}
+	q := p.separator
+	q.Level = new(big.Rat).Set(q.Level)
+	for i := range q.Normal {
+		q.Normal[i] = new(big.Rat).Set(q.Normal[i])
+	}
+	for i := range q.UV {
+		q.Offset[i] = new(big.Rat).Set(q.Offset[i])
+		for j := range q.UV[i] {
+			q.UV[i][j] = new(big.Rat).Set(q.UV[i][j])
+		}
+	}
+	return q
 }

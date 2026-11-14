@@ -21,6 +21,7 @@ type AffineTriangleShellOptions struct {
 // Original triangle indices are retained in ancestry: edge i joins original
 // vertices i and (i+1)%3. Native outer uses may reverse that authored order.
 type AffineTriangleMateShell struct {
+	projection [2][2]int
 	contact    *geom.SurfaceAffineTriangleMate
 	graph      *WrappedAlgebraicOpenShell
 	operations int
@@ -141,6 +142,7 @@ func NewAffineTriangleMateShell(ctx context.Context, contact *geom.SurfaceAffine
 			return nil, e
 		}
 		out.operations += proof.ExactOperations
+		out.projection[owner] = proof.ProjectionAxes
 		if !proof.ProvenInjective {
 			return nil, geom.ErrConvergence
 		}

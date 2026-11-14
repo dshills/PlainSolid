@@ -2,6 +2,8 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
+
 	"plainsolid/geom"
 )
 
@@ -11,26 +13,41 @@ import (
 // trims, holes, reversed faces, placements and edited seam partitions reject.
 // Projection data is algebraic, with explicit nonunique axis/centerline cases.
 func (s Solid) ProjectCanonicalCircularToroid(ctx context.Context, q geom.Vec3, o geom.FrustumDistanceOptions) (geom.ToroidProjection, error) {
-	empty := geom.ToroidProjection{}
+	if !q.IsFinite() {
+		return geom.ToroidProjection{}, geom.ErrInvalid
+	}
+	return s.ProjectCanonicalCircularToroidRational(ctx, [3]*big.Rat{ratInset(q.X), ratInset(q.Y), ratInset(q.Z)}, o)
+}
+
+// ProjectCanonicalCircularToroidRational retains the native support and exact point.
+func (s Solid) ProjectCanonicalCircularToroidRational(ctx context.Context, q [3]*big.Rat, o geom.FrustumDistanceOptions) (geom.ToroidProjection, error) {
+	w, e := s.canonicalToroidSupport(ctx)
+	if e != nil {
+		return geom.ToroidProjection{}, e
+	}
+	return geom.ProjectWrappedCircularToroidRational(ctx, w, q, o)
+}
+
+func (s Solid) canonicalToroidSupport(ctx context.Context) (*geom.WrappedSurfacePatch, error) {
 	if ctx == nil {
-		return empty, geom.ErrInvalid
+		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
-		return empty, e
+		return nil, e
 	}
 	if len(s.faces) != 1 {
-		return empty, geom.ErrConvergence
+		return nil, geom.ErrConvergence
 	}
 	f := s.faces[0]
 	w, ok := f.Surface.(*geom.WrappedSurfacePatch)
 	if !ok || f.Reversed || len(f.Holes) != 0 || len(f.Outer) != 4 {
-		return empty, geom.ErrConvergence
+		return nil, geom.ErrConvergence
 	}
 	corners := insetCorners(w.Domain())
 	for i, u := range f.Outer {
 		if u.Curve != nil || u.UVStart != corners[i] || u.UVEnd != corners[(i+1)%4] {
-			return empty, geom.ErrConvergence
+			return nil, geom.ErrConvergence
 		}
 	}
-	return geom.ProjectWrappedCircularToroid(ctx, w, q, o)
+	return w, nil
 }

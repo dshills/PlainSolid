@@ -275,10 +275,17 @@ func validateFrustumRationalDistance(ctx context.Context, query [3]*big.Rat, o F
 	if ctx == nil || !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 || o.MaxBisections < 0 || o.MaxBisections > 4096 {
 		return o.Surface, ErrInvalid
 	}
-	if e := ctx.Err(); e != nil {
-		return o.Surface, e
+	return validateRationalPoint(ctx, query, o.Surface)
+}
+
+func validateRationalPoint(ctx context.Context, query [3]*big.Rat, o SurfacePatchOptions) (SurfacePatchOptions, error) {
+	if ctx == nil {
+		return o, ErrInvalid
 	}
-	opt, e := patchOptions(o.Surface)
+	if e := ctx.Err(); e != nil {
+		return o, e
+	}
+	opt, e := patchOptions(o)
 	if e != nil {
 		return opt, e
 	}

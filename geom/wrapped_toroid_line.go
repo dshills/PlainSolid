@@ -29,8 +29,19 @@ type ToroidLineRoot struct {
 // roots, returning no partial result on failure. Rational brackets are sorted
 // in the original parameter, without normalization or approximate geometry.
 func IntersectWrappedCircularToroidLine(ctx context.Context, w *WrappedSurfacePatch, origin, direction Vec3, minT, maxT float64, o ToroidLineOptions) ([]ToroidLineRoot, error) {
-	if !origin.IsFinite() || !direction.IsFinite() || direction == (Vec3{}) || !finite(minT) || !finite(maxT) || minT > maxT || !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 {
+	if !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) {
 		return nil, ErrInvalid
+	}
+	return IntersectWrappedCircularToroidLineRational(ctx, w, rationalLineVec3(origin), rationalLineVec3(direction), new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), o)
+}
+
+// IntersectWrappedCircularToroidLineRational preserves nonbinary model lines
+// and finite parameter bounds. Distinct roots have strictly separated closed
+// brackets; exact multiple roots retain their multiplicity.
+func IntersectWrappedCircularToroidLineRational(ctx context.Context, w *WrappedSurfacePatch, origin, direction [3]*big.Rat, minT, maxT *big.Rat, o ToroidLineOptions) ([]ToroidLineRoot, error) {
+	options, e := validateRationalCircularLine(ctx, origin[:], direction[:], minT, maxT, o)
+	if e != nil {
+		return nil, e
 	}
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 1024
@@ -39,10 +50,6 @@ func IntersectWrappedCircularToroidLine(ctx context.Context, w *WrappedSurfacePa
 		return nil, ErrInvalid
 	}
 	proof, e := CertifyWrappedToroidEmbedding(ctx, w, o.Surface)
-	if e != nil {
-		return nil, e
-	}
-	options, e := patchOptions(o.Surface)
 	if e != nil {
 		return nil, e
 	}
@@ -63,9 +70,8 @@ func IntersectWrappedCircularToroidLine(ctx context.Context, w *WrappedSurfacePa
 		}
 	}
 	var squares [3]rationalPolynomial
-	ov, dv := []float64{origin.X, origin.Y, origin.Z}, []float64{direction.X, direction.Y, direction.Z}
 	for i := 0; i < 3; i++ {
-		linear := rationalPolynomial{new(big.Rat).Sub(new(big.Rat).SetFloat64(ov[i]), proof.Center[i]), new(big.Rat).SetFloat64(dv[i])}
+		linear := rationalPolynomial{new(big.Rat).Sub(origin[i], proof.Center[i]), direction[i]}
 		squares[i], e = polynomialProduct(linear, linear, budget)
 		if e != nil {
 			return nil, e
@@ -106,12 +112,29 @@ func IntersectWrappedCircularToroidLine(ctx context.Context, w *WrappedSurfacePa
 	// Thus squaring A=2R sqrt(q) introduces no extraneous real roots.
 	tolerance := new(big.Rat).SetFloat64(o.ParameterTolerance)
 	roots := []ToroidLineRoot{}
-	_, e = isolatePolynomialRoots(trimPolynomial(polynomial), new(big.Rat).SetFloat64(minT), new(big.Rat).SetFloat64(maxT), budget, o.MaxSubdivisions, func(lo, hi *big.Rat, multiplicity int) (bool, error) {
+	poly := trimPolynomial(polynomial)
+	_, e = isolatePolynomialRoots(poly, minT, maxT, budget, o.MaxSubdivisions, func(lo, hi *big.Rat, multiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
 		}
 		if new(big.Rat).Sub(hi, lo).Cmp(tolerance) > 0 {
 			return false, nil
+		}
+		if lo.Cmp(hi) != 0 {
+			// A distinct interval must exclude any root already emitted
+			// at either endpoint, including removed finite endpoint roots.
+			for _, t := range []*big.Rat{lo, hi} {
+				v, e := polynomialValue(poly, t, budget)
+				if e != nil {
+					return false, e
+				}
+				if v.Sign() == 0 {
+					return false, nil
+				}
+			}
+			if len(roots) > 0 && roots[len(roots)-1].Max.Cmp(lo) == 0 {
+				return false, nil
+			}
 		}
 		roots = append(roots, ToroidLineRoot{new(big.Rat).Set(lo), new(big.Rat).Set(hi), multiplicity})
 		return true, nil

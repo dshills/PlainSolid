@@ -22,12 +22,21 @@ type ToroidProjection struct {
 // Each independent certificate receives the supplied bounded options; failure
 // returns no partial projection. Elliptic meridians remain unsupported here.
 func ProjectWrappedCircularToroid(ctx context.Context, w *WrappedSurfacePatch, q Vec3, o FrustumDistanceOptions) (ToroidProjection, error) {
+	if !q.IsFinite() {
+		return ToroidProjection{}, ErrInvalid
+	}
+	return ProjectWrappedCircularToroidRational(ctx, w, rationalLineVec3(q), o)
+}
+
+// ProjectWrappedCircularToroidRational proves signed distance without rounding
+// either the model point or any meridian sign predicate.
+func ProjectWrappedCircularToroidRational(ctx context.Context, w *WrappedSurfacePatch, q [3]*big.Rat, o FrustumDistanceOptions) (ToroidProjection, error) {
 	empty := ToroidProjection{}
-	location, e := LocateWrappedCircularToroid(ctx, w, q, o.Surface)
+	location, e := LocateWrappedCircularToroidRational(ctx, w, q, o.Surface)
 	if e != nil {
 		return empty, e
 	}
-	d, e := BoundPointWrappedCircularToroidDistance(ctx, w, q, o)
+	d, e := BoundPointWrappedCircularToroidDistanceRational(ctx, w, q, o)
 	if e != nil {
 		return empty, e
 	}

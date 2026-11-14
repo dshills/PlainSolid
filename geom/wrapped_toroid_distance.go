@@ -29,9 +29,19 @@ type ToroidDistanceBounds struct {
 // than a sampled/rounded point. Options and failure atomicity match the
 // frustum distance query. Elliptical meridians fail explicitly.
 func BoundPointWrappedCircularToroidDistance(ctx context.Context, w *WrappedSurfacePatch, query Vec3, o FrustumDistanceOptions) (ToroidDistanceBounds, error) {
-	empty := ToroidDistanceBounds{}
-	if !query.IsFinite() || !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 {
-		return empty, ErrInvalid
+	if !query.IsFinite() {
+		return ToroidDistanceBounds{}, ErrInvalid
+	}
+	return BoundPointWrappedCircularToroidDistanceRational(ctx, w, rationalLineVec3(query), o)
+}
+
+// BoundPointWrappedCircularToroidDistanceRational does not round the input
+// model point and retains its exact component values in the local witness.
+func BoundPointWrappedCircularToroidDistanceRational(ctx context.Context, w *WrappedSurfacePatch, query [3]*big.Rat, o FrustumDistanceOptions) (ToroidDistanceBounds, error) {
+	var empty ToroidDistanceBounds
+	opts, e := validateFrustumRationalDistance(ctx, query, o)
+	if e != nil {
+		return empty, e
 	}
 	if o.MaxBisections == 0 {
 		o.MaxBisections = 256
@@ -46,7 +56,6 @@ func BoundPointWrappedCircularToroidDistance(ctx context.Context, w *WrappedSurf
 	if p.RadialMinorRadius.Cmp(p.AxialMinorRadius) != 0 {
 		return empty, ErrConvergence
 	}
-	opts, _ := patchOptions(o.Surface)
 	budget := &polynomialBudget{operations: p.ExactOperations, maxOperations: opts.MaxOperations, maxBits: opts.MaxCoefficientBits}
 	for _, stride := range []int{1, 9} {
 		for j := 0; j < 8; j += 2 {
@@ -63,19 +72,15 @@ func BoundPointWrappedCircularToroidDistance(ctx context.Context, w *WrappedSurf
 			}
 		}
 	}
-	x, y, z := new(big.Rat).Sub(new(big.Rat).SetFloat64(query.X), p.Center[0]), new(big.Rat).Sub(new(big.Rat).SetFloat64(query.Y), p.Center[1]), new(big.Rat).Sub(new(big.Rat).SetFloat64(query.Z), p.Center[2])
+	x, y, z := new(big.Rat).Sub(query[0], p.Center[0]), new(big.Rat).Sub(query[1], p.Center[1]), new(big.Rat).Sub(query[2], p.Center[2])
 	q := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
 	z2 := new(big.Rat).Mul(z, z)
-	sqrtBracket := func(v *big.Rat) (*big.Rat, *big.Rat) {
-		n, d := new(big.Int).Sqrt(v.Num()), new(big.Int).Sqrt(v.Denom())
-		if new(big.Int).Mul(new(big.Int).Set(n), n).Cmp(v.Num()) == 0 && new(big.Int).Mul(new(big.Int).Set(d), d).Cmp(v.Denom()) == 0 {
-			r := new(big.Rat).SetFrac(n, d)
-			return r, new(big.Rat).Set(r)
+	for _, v := range []*big.Rat{x, y, z, q, z2} {
+		if e := budget.check(v); e != nil {
+			return empty, e
 		}
-		r := new(big.Rat).SetInt(new(big.Int).Sqrt(new(big.Int).Quo(v.Num(), v.Denom())))
-		return r, new(big.Rat).Add(r, big.NewRat(1, 1))
 	}
-	rhoLo, rhoHi := sqrtBracket(q)
+	rhoLo, rhoHi := frustumSqrtBounds(q)
 	tol := new(big.Rat).SetFloat64(o.SquaredTolerance)
 	square := func(v *big.Rat) *big.Rat { return new(big.Rat).Mul(v, v) }
 	// Maintain enclosing sqrt intervals for the smallest and largest meridian
@@ -97,8 +102,8 @@ func BoundPointWrappedCircularToroidDistance(ctx context.Context, w *WrappedSurf
 		min2 = new(big.Rat).Add(min2, z2)
 		max2 = new(big.Rat).Add(max2, z2)
 		if distLo == nil {
-			distLo, _ = sqrtBracket(min2)
-			_, distHi = sqrtBracket(max2)
+			distLo, _ = frustumSqrtBounds(min2)
+			_, distHi = frustumSqrtBounds(max2)
 		}
 		// Bisection endpoints are certified against the current targets, so each
 		// update remains valid even after rho's interval has contracted.
