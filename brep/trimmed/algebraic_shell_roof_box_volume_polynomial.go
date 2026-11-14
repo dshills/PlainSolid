@@ -3,7 +3,6 @@ package trimmed
 import (
 	"math/big"
 
-	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
 
@@ -12,37 +11,9 @@ import (
 // polynomial exactly; a rational height that cancels does not prevent this.
 // A nil average leaves the conservative pointwise enclosure in force.
 func (q *MixedRoofMaterialQuery) exactPolynomialColumnAverage(chart [2]bool, uv [2][2]geom.ExactParameterInterval, height [2]geom.ExactParameterInterval, w *mixedRoofLineWork) (*big.Rat, error) {
-	var roof, floor [2]int
-	if chart[0] && q.op != parametric.Intersection {
-		roof[0], floor[0] = 1, -1
-	}
-	if chart[1] && q.op == parametric.Union {
-		roof[1], floor[1] = 1, -1
-	}
-	if chart[0] && chart[1] {
-		maxFloor := 0
-		if q.box[0].floor.Cmp(q.box[1].floor) < 0 {
-			maxFloor = 1
-		}
-		f := q.box[maxFloor].floor
-		if height[0].Upper.Cmp(f) > 0 && height[1].Upper.Cmp(f) > 0 {
-			// The entire cell must have overlap and the same lower roof.
-			if height[0].Lower.Cmp(f) < 0 || height[1].Lower.Cmp(f) < 0 {
-				return nil, nil
-			}
-			lower := 0
-			if height[1].Upper.Cmp(height[0].Lower) <= 0 {
-				lower = 1
-			} else if height[0].Upper.Cmp(height[1].Lower) > 0 {
-				return nil, nil
-			}
-			m := -1
-			if q.op == parametric.Intersection {
-				m = 1
-			}
-			roof[lower] += m
-			floor[maxFloor] -= m
-		}
+	roof, floor, proven := q.fixedColumnPrimitives(chart, height)
+	if !proven {
+		return nil, nil
 	}
 	for i, c := range roof {
 		if c != 0 && q.box[i].weight != nil {

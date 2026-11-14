@@ -393,6 +393,14 @@ enclosure when refinement is limited. Its `27/64` Common is exact, and the
 separately sewn weighted OCCT Common, Fuse, and Cut all agree. Cancellation
 returns no bounds.
 
+The direct column mass proof also encloses all three crossing-roof OCCT
+centroids and full origin inertia tensors, including negative coordinates.
+The weighted Common has exact volume, centroid and all six independent
+inertia coefficients from its polynomial tool. The weighted Cut bounds
+tighten under refinement and contain the independent OCCT mass properties.
+The same raw second moments transport through a proper rigid occurrence.
+Cell and arithmetic limits and cancellation return no partial tensor.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall

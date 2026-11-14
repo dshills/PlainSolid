@@ -61,6 +61,14 @@ line event is checked by exact substitution into the independently expanded
 degree-eight polynomial, with a nonzero sign in the previous sextic. This
 covers higher-order line roots without changing the native Boolean proof.
 
+`MixedRoofMaterialQuery.BoundMass` integrates all ten raw monomials through
+degree two over the same original column material. Fixed polynomial columns
+have exact moments. Unresolved and rational columns use inner and outer
+material intervals; the integration accounts for positive and negative parts
+when a coordinate crosses zero. The crossing test checks volume, centroid and
+the full inertia tensor for each operation. The weighted Common checks exact
+local and placed tensors, and the weighted Cut checks live OCCT containment.
+
 `BoundTrimmedGeometry` is a separate native enclosure query. It intersects
 the operation's operand box with the outward hull of all retained and
 unresolved source cells, using the same chart cover as the area and mass

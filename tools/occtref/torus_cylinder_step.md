@@ -88,3 +88,43 @@ At most two native factory proofs run with their fixed per-proof root budget.
 The live original-Boolean comparator also tests import/re-export and compares
 the reconstructed native volume/area/centroid with independently authored OCCT
 Common/Cut/Fuse, not merely the geometry emitted by PlainSolid.
+
+## Exact proper occurrences
+
+`ImportedTorusCylinder.PlaceSTEP` and `NewTorusCylinderSTEPOccurrence` retain
+the original native body and its original owner IDs, plus the existing exact
+proper rational world point/line/moment query. They transform all 3D model
+points and analytic axis/reference directions with rational arithmetic, leaving
+2D pcurves and incidence unchanged. STEP uses the transformed analytic axis
+placements, not sampled approximations or vendor payloads. The original
+canonical paired importer is unchanged and rejects noncanonical placed data.
+This milestone exports a placed analytic boundary; it does not claim a rounded
+transformed native BRep or general product-assembly import.
+
+This first domain requires exact finite-decimal pose coefficients and transformed
+coordinates. Reduced denominators may contain only factors 2 and 5. Scalars
+are bounded to 4096 bits, at most 1074 decimal places/1100 token characters, and
+a finite non-underflowed STEP reader numeric range. Nonterminating translations
+such as 1/7 fail atomically. Thus no pose rounding is hidden: proper isometry
+preserves the original certified rim/seam error in model units.
+
+The independent reader accepts optional pose mode 1: translation(2,-3,4),
+X=(0,0,1), Z=(-1,0,0); or mode 2: translation(1/10,-2/5,3/8),
+X=(3/5,0,-4/5), Z=(4/5,0,3/5). It builds the actual independently placed OCCT
+torus and finite cylinder before applying each Boolean. All three operations
+pass valid single-solid/shell readback, original native area/volume invariance,
+world centroid comparison and the exact world-query mass enclosures. Maximum
+sampled edge residual was below 2.52e-15; the analytic rational export proof
+remains separate from this downstream numerical check.
+
+Build the same source as above with output
+`/tmp/plainsolid-torus-cylinder-placed-step-oracle`, then run:
+
+```sh
+PLAINSOLID_OCCT_TORUS_CYLINDER_PLACED_STEP=/tmp/plainsolid-torus-cylinder-placed-step-oracle \
+  go test -race ./exchange/step \
+  -run '^(TestTorusCylinderSTEPExactOccurrence|TestOCCTPlacedTorusCylinderSTEP)$' -count=1
+```
+
+The placed-reader binary SHA256 was
+`4a3dbba030e2f22c44ab64ad6dfcd7b2d00fcd842fd55bc84d86e7ad4e02969c`.

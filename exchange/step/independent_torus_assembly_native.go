@@ -32,14 +32,21 @@ type independentTorusAssemblyEnvelope struct {
 func makeIndependentTorusAssemblyEnvelope(ctx context.Context, m IndependentTorusAssembly, source []byte, cylinderMode ...bool) (independentTorusAssemblyEnvelope, []IndependentExactMaterial, error) {
 	q := independentTorusAssemblyEnvelope{Format: independentTorusAssemblyNativeFormat, Version: 1, Source: string(source), Assembly: m.Assembly}
 	q.Assembly.Source = nil
-	cylinder := len(cylinderMode) == 1 && cylinderMode[0]
+	cylinder := len(cylinderMode) >= 1 && cylinderMode[0]
+	dag := cylinder && len(cylinderMode) == 2 && cylinderMode[1]
 	products := 3
 	if cylinder {
 		products = 4
 		q.Format = independentAnalyticAssemblyNativeFormat
 	}
+	locals := products - 1
+	if dag {
+		products = 5
+		locals = 3
+		q.Format = independentAnalyticDAGClaimsFormat
+	}
 	var trustedClaims []IndependentExactMaterial
-	if len(m.Products) != products-1 || len(m.Assembly.Products) != products || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < products || len(m.Assembly.Occurrences) > 16 {
+	if len(m.Products) != locals || len(m.Assembly.Products) != products || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < products || len(m.Assembly.Occurrences) > 16 {
 		return q, nil, geom.ErrInvalid
 	}
 	for _, p := range m.Assembly.Products {

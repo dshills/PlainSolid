@@ -647,6 +647,13 @@ round trips and all seven original browser cases passed, with 841 app and
 and [authored half disk](evidence/plaincad-reconciled-b88d0aa9-supplemental-semicircle-step-2026-11-14.json)
 produced byte-identical analytic STEP and watertight STL in both checkouts.
 Independent OCCT readback confirmed both solids' volume, area, and centroid.
+The [driven circular-segment reconciliation](evidence/plaincad-reconciled-d97fd910-development-circular-segment-holes-step-2026-11-14.json)
+adds worktree revision `11d57e9f` to review `d97fd910`. Native and all nine
+original browser checks passed, with 841 app and 2,070 kernel source blobs
+verified. Both [authored workflows](evidence/plaincad-reconciled-d97fd910-supplemental-circular-segment-step-2026-11-14.json)
+passed. The exported STEP structure matched the worktree's; numerical tokens
+differed by at most `8.89e-15`. The 264-triangle STL was watertight, and
+independent OCCT reproduced volume, area, and centroid.
 The [latest complete production reconciliation](evidence/plaincad-reconciled-c0e81c4-production-2026-11-14.json)
 passed all 66 original tests on clean review revision `c0e81c4`. It includes
 the separate worktree through `8df00f2` and the more recent native

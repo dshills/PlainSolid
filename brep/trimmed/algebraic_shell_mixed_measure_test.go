@@ -236,6 +236,21 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if err != nil || !volume.Converged || !contains(volume.Volume, ref.Volume) {
 			t.Fatal("direct original roof integral misses independent OCCT volume", name, volume, ref.Volume, err)
 		}
+		columnMass, err := roof.BoundMass(ctx, MixedRoofMassOptions{MaxDepth: 7,
+			SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 4000000}})
+		if err != nil || !contains(columnMass.Volume, ref.Volume) {
+			t.Fatal("direct original roof mass misses independent OCCT volume", name, columnMass, ref.Volume, err)
+		}
+		for row := range 3 {
+			if !contains(columnMass.Centroid[row], ref.Centroid[row]) {
+				t.Fatal("signed roof centroid misses OCCT", name, row, columnMass.Centroid[row], ref.Centroid[row])
+			}
+			for col := range 3 {
+				if !contains(columnMass.Inertia[row][col], ref.Inertia[row][col]) {
+					t.Fatal("signed roof inertia misses OCCT", name, row, col, columnMass.Inertia[row][col], ref.Inertia[row][col])
+				}
+			}
+		}
 		delta := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 100))
 		height := big.NewRat(-7, 128) // tool roof at x=y=1/2
 		for j, want := range [3][3]parametric.Location{
