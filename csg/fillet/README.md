@@ -134,3 +134,12 @@ History distinguishes original wall fragments from bevel fragments attributed
 to the original wall plus cap. Different wall runouts can subdivide one bevel
 into several result faces without losing its original ownership. Tangent walls,
 apex/runout collapse and nonrepresentable output fail atomically.
+
+`ChamferWrappedFrustumTubeRims` accepts independently tapered coaxial original
+outer and inner walls. Each bevel adds/removes a linearly vanishing radial width
+from the original affine radius function; shoulders use the original wall
+values at their actual heights. Strict nested clearance is proved on the union
+of all runout heights, and the same exact native station-bore construction
+retains cap/wall ancestry and circular bases. This accepts rational slopes
+without requiring rational unit-normal lengths. Eccentric axes remain outside
+this API; all original cylinder tube behavior is unchanged.
