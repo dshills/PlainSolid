@@ -5550,3 +5550,12 @@ The exact reducer distinguishes strict minima and retains rational/algebraic
 ties, including repeated uses. Boundary-zero queries, cancellation and
 insufficient budget have dedicated checks. The integrated exchange and
 document races passed in 4.910 s and 8.889 s respectively.
+
+The [full original development run on the integration review snapshot](evidence/plaincad-reconciled-f87dd4f3-development-2026-11-14.json)
+finished with 340 passes and four failures. The original two focused
+constraint repair assertions seed storage at port 5279, whereas the first
+run used port 5753. Two original shop-drawing cases failed in document
+or fixture readiness and passed separate unchanged PlainSolid and OCCT
+controls. The full run remains failed; its source and WASM were checked
+against the recorded revisions and its backend probe passed. A clean
+original-port run is tracked separately.
