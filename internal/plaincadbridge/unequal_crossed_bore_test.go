@@ -1,8 +1,8 @@
 package plaincadbridge
 
 import (
+	"encoding/base64"
 	"math"
-	"strings"
 	"testing"
 )
 
@@ -35,7 +35,21 @@ func TestUnequalCrossedBoreScopeAndSTL(t *testing.T) {
 	if err := mesh.ValidateSolid(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.exportSTEP([]string{next.Handle}); err == nil || !strings.Contains(err.Error(), "unequal-diameter") {
-		t.Fatalf("unexpected STEP result: %v", err)
+	exported, err := b.exportSTEP([]string{next.Handle})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bytes, err := base64.StdEncoding.DecodeString(exported.Base64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imported, err := b.importSTEP(string(bytes))
+	if err != nil || imported.Bounds != stock.Bounds || imported.GeometryAssertions != next.GeometryAssertions {
+		t.Fatal(imported, err)
+	}
+	near(t, overlapMeasure(t, b, imported.Handle, x.Handle), 0)
+	reexported, err := b.exportSTEP([]string{imported.Handle})
+	if err != nil || reexported.Base64 != exported.Base64 {
+		t.Fatal("noncanonical re-export", err)
 	}
 }

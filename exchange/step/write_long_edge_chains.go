@@ -79,6 +79,7 @@ type longEdgeCurve struct {
 	circle            bool
 	ellipse           bool
 	minorRadius       float64
+	unequal           *unequalBoreSplines
 	frame             geom.Frame
 	radius            float64
 	origin, direction geom.Vec3
@@ -129,14 +130,14 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
 }
 func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false)
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false, 0)
 }
 
 func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true)
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, 0)
 }
 
-func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool) error {
+func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -195,6 +196,14 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 		}
 		a, b := vertices[edge.Start], vertices[edge.End]
 		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
+			if unequalTolerance > 0 {
+				fitted, err := approximateUnequalBoreEdge(a, b, os, surfaces, unequalTolerance)
+				if err != nil {
+					return err
+				}
+				curves[i] = longEdgeCurve{unequal: fitted, same: true}
+				continue
+			}
 			curve, err := crossedBoreEdgeCurve(a, b, os, surfaces)
 			if err != nil {
 				return err
@@ -263,7 +272,7 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 	// Preflight every owner representation before any bytes are written.
 	for i, os := range owners {
 		curve := curves[i]
-		if curve.ellipse {
+		if curve.ellipse || curve.unequal != nil {
 			continue
 		}
 		for _, owner := range os {
@@ -289,7 +298,7 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 			}
 		}
 	}
-	return writeStandalone(w, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	return writeStandaloneWithUncertainty(w, unit, unequalTolerance, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		point3 := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
@@ -336,7 +345,9 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,%s)", vertexIDs[edge.Start], vertexIDs[edge.End], model, sense))
 				continue
 			}
-			if curve.circle {
+			if curve.unequal != nil {
+				model = emitUnequalBoreSpline(emit, curve.unequal.model, point3)
+			} else if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
 			} else {
@@ -349,7 +360,11 @@ func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, 
 				surface := surfaces[owner.face]
 				u := owner.use
 				var geometry int64
-				if surface.kind == "PLANE" {
+				if curve.unequal != nil {
+					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], func(p geom.Vec3) int64 {
+						return point2(geom.Vec2{X: p.X, Y: p.Y})
+					})
+				} else if surface.kind == "PLANE" {
 					if curve.circle {
 						p := surface.frame.ToLocal(curve.frame.Origin())
 						x := curve.frame.XAxis()
