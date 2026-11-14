@@ -177,17 +177,68 @@ func orderedRoofAgainstFloorDetail(ctx context.Context, roof *mixedRoofBox, xy [
 }
 
 func orderedRoofPowerSign(ctx context.Context, power roofPowerGrid, difference geom.ExactParameterInterval, w *mixedRoofLineWork) (sign int, strict bool, err error) {
-	if difference.Upper.Sign() <= 0 {
-		return difference.Lower.Sign(), difference.Upper.Sign() < 0, nil
+	if difference.Upper.Sign() < 0 || difference.Lower.Sign() > 0 {
+		return difference.Lower.Sign(), true, nil
 	}
-	if difference.Lower.Sign() >= 0 {
-		return 1, difference.Lower.Sign() > 0, nil
+	if difference.Lower.Sign() == 0 && difference.Upper.Sign() == 0 {
+		return 0, false, nil
+	}
+	// A one-coordinate height difference can be decided completely, even
+	// when an even-multiplicity contact lies off all dyadic subdivision lines.
+	if len(power) == 1 || len(power[0]) == 1 {
+		return exactUnivariateRoofSign(ctx, power, w)
+	}
+	if difference.Lower.Sign() == 0 || difference.Upper.Sign() == 0 {
+		return difference.Lower.Sign() + difference.Upper.Sign(), false, nil
 	}
 	sign, strict, err = proveRoofBoxPowerOrder(ctx, power, w)
 	if err == nil && sign == 0 {
 		err = geom.ErrUnrepresentable
 	}
 	return sign, strict, err
+}
+
+func exactUnivariateRoofSign(ctx context.Context, power roofPowerGrid, w *mixedRoofLineWork) (int, bool, error) {
+	p := power[0]
+	if len(power) > 1 {
+		p = make([]*big.Rat, len(power))
+		for i, row := range power {
+			p[i] = row[0]
+		}
+	}
+	left, err := roofBoxConstructionOptions(w)
+	if err != nil {
+		return 0, false, err
+	}
+	z, one := new(big.Rat), big.NewRat(1, 1)
+	roots, err := geom.IsolateExactPolynomialRoots(ctx, p, z, one, geom.ExactCurvePlaneEventOptions{MaxOperations: left.MaxOperations, MaxCoefficientBits: left.MaxCoefficientBits})
+	w.operations += roots.Operations
+	if err != nil {
+		return 0, false, err
+	}
+	for _, r := range roots.Roots {
+		if r.Multiplicity%2 == 0 {
+			continue
+		}
+		d := r.Root.Interval()
+		if d.Lower.Cmp(d.Upper) != 0 || d.Lower.Sign() != 0 && d.Lower.Cmp(one) != 0 {
+			return 0, false, geom.ErrUnrepresentable
+		}
+	}
+	sign := roots.LowerSign
+	if sign == 0 {
+		sign = roots.UpperSign
+	}
+	if sign == 0 {
+		// At u→0+, the first nonzero Taylor coefficient gives the sign.
+		for _, c := range p {
+			if c.Sign() != 0 {
+				sign = c.Sign()
+				break
+			}
+		}
+	}
+	return sign, len(roots.Roots) == 0, nil
 }
 
 func orderedRoofFlatFloor(ctx context.Context, d geom.ParameterRectangle, xy [2]geom.ExactParameterInterval, floor *big.Rat, w *mixedRoofLineWork) (*geom.SurfacePatch, error) {

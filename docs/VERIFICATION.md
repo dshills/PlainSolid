@@ -5628,6 +5628,10 @@ An exactly knot-refined weighted roof now reduces to the same global
 rational chart for native ordered Booleans. Nonbinary point and derivative
 checks match the original evaluator, while a genuine crease is rejected.
 The complete focused live roof race passed in 15.502 s.
+For one-coordinate height differences, exact real-root isolation now
+distinguishes genuine crossings from even-multiplicity contacts anywhere
+in the original footprint. The authored `X=1/3` tangency retains the flat
+Common and does not qualify a strictly separated Cut band.
 
 ## Isolated quartic graph contact with odd mixed terms (2026-11-14)
 

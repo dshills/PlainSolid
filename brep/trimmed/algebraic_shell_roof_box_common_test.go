@@ -165,10 +165,14 @@ func orderedRoofTangentSource(t *testing.T) Solid {
 
 func orderedRoofParabolaSource(t *testing.T, sign, center float64) Solid {
 	t.Helper()
+	return orderedRoofParabolaSourceControls(t, [3]float64{1 + sign*center*center, 1 + sign*center*(center-1), 1 + sign*(center-1)*(center-1)})
+}
+
+func orderedRoofParabolaSourceControls(t *testing.T, z [3]float64) Solid {
+	t.Helper()
 	ctx := context.Background()
 	x := [3]float64{0, .5, 1}
 	y := [2]float64{-.125, 1.125}
-	z := [3]float64{1 + sign*center*center, 1 + sign*center*(center-1), 1 + sign*(center-1)*(center-1)}
 	floor := -.5
 	var parts []SewFace
 	add := func(du int, d geom.ParameterRectangle, reversed bool, point func(int, int) geom.Vec3) {
@@ -256,6 +260,25 @@ func TestOrderedRoofBoxAdaptiveHeightOrder(t *testing.T) {
 		if err != nil || math.Abs(mass.Volume-want) > 1e-12 {
 			t.Fatal("independent thin band volume", mass, want, err)
 		}
+	}
+}
+
+func TestOrderedRoofBoxNonbinaryTangentOrder(t *testing.T) {
+	ctx := context.Background()
+	// Heights 1+(3X-1)²/8 and 1 differ by a dyadic polynomial;
+	// the original shared line is at nonbinary X=1/3.
+	stock := orderedRoofParabolaSourceControls(t, [3]float64{1.125, .75, 1.5})
+	flat, _ := makeOpenSplineBox(t, [3]float64{0, -.125, 0}, [3]float64{1, 1.125, 1}, 0)
+	out, h, err := IntersectOrderedRoofBoxes(ctx, stock, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || len(h.Faces) != 6 || h.Faces[0].Operand != 1 {
+		t.Fatal("algebraic tangency must not change ceiling ownership", h, err)
+	}
+	mass, err := out.MassProperties(ctx, parametric.IntegrationOptions{})
+	if err != nil || math.Abs(mass.Volume-1.25) > 1e-12 {
+		t.Fatal("expected exact flat common", mass, err)
+	}
+	if out, h, err := SubtractOrderedRoofBoxes(ctx, stock, flat, MixedRoofQueryOptions{}, geom.SurfacePatchEvaluationOptions{}); err == nil || out.Topology().Faces != 0 || len(h.Faces) != 0 {
+		t.Fatal("even algebraic root must not certify strict height separation", out.Topology(), h, err)
 	}
 }
 
