@@ -519,6 +519,34 @@ func TestAlgebraicShellSectionIrrationalOriginalEdges(t *testing.T) {
 		if len(seenEdges) != len(q.index) || len(seenFaces) != len(q.faces) {
 			t.Fatal("history did not cover the result", len(seenEdges), len(seenFaces))
 		}
+		if row.op == parametric.Difference {
+			owners := map[int]AlgebraicShellBooleanCoedge{}
+			for fi, face := range q.faces {
+				original, e := q.OriginalFace(fi)
+				if e != nil {
+					t.Fatal(e)
+				}
+				for li, ring := range append([][]AlgebraicShellBooleanUse{face.Outer}, face.Holes...) {
+					for ui, use := range ring {
+						x, e := q.Coedge(ctx, fi, li, ui, AlgebraicSeamOptions{})
+						if e != nil || x.Edge != use.Edge || x.Reverse != use.Reversed || x.PhysicalReverse != (use.Reversed != face.Reversed) {
+							t.Fatal("coedge direction or indexed owner", fi, li, ui, x, e)
+						}
+						if y, ok := owners[x.Edge]; ok && y.PhysicalReverse == x.PhysicalReverse {
+							t.Fatal("opposite owners traverse one physical direction", x.Edge)
+						}
+						owners[x.Edge] = x
+						if q.index[use.Edge].SectionPiece >= 0 {
+							if x.Source != nil || x.Section == nil || !x.Section.HasSourceSurface(original.Surface) {
+								t.Fatal("lost original chart of section edge", x.Edge)
+							}
+						} else if x.Source == nil || x.Section != nil || x.Source.UV == nil || !x.Source.Model.Complete {
+							t.Fatal("lost restricted original edge chart", x.Edge)
+						}
+					}
+				}
+			}
+		}
 		if row.op == parametric.Intersection {
 			b, e := q.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 11})
 			// Integrate roof thickness y²−1/2 on sqrt(1/2)<y<1
