@@ -30,7 +30,8 @@ type ExactPolynomialRootIsolation struct {
 type ExactPolynomialSign struct{ Sign, Operations, Subdivisions int }
 
 // IsolateExactPolynomialRoots proves the complete finite real-root ledger for
-// a rational polynomial of degree at most ExactPolynomialMaxDegree.
+// a rational polynomial of degree at most ExactPolynomialMaxDegree. Roots are
+// ordered by increasing parameter, including either finite clip endpoint.
 // Identically zero polynomials return
 // ErrDomain: coincident intervals are not isolated events. All coefficients,
 // root arithmetic and subdivisions share the supplied bounded proof budget.
@@ -84,6 +85,7 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 			out.UpperSign = value.Sign()
 		}
 	}
+	var end ExactPolynomialRoot
 	out.Subdivisions, e = isolatePolynomialRoots(p, lower, upper, b, o.MaxSubdivisions, func(lo, hi *big.Rat, multiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
@@ -107,11 +109,20 @@ func IsolateExactPolynomialRoots(ctx context.Context, coefficients []*big.Rat, l
 			poly[i] = new(big.Rat).Set(v)
 		}
 		root := &ExactAlgebraicRoot{root: &ExactGraphLineRoot{polynomial: poly, bounds: [2]*big.Rat{new(big.Rat).Set(lo), new(big.Rat).Set(hi)}}}
-		out.Roots = append(out.Roots, ExactPolynomialRoot{root, multiplicity})
+		if lo.Cmp(upper) == 0 && lower.Cmp(upper) != 0 {
+			// The isolator removes both endpoint factors before visiting
+			// interior intervals. Hold the upper one until those are output.
+			end = ExactPolynomialRoot{root, multiplicity}
+		} else {
+			out.Roots = append(out.Roots, ExactPolynomialRoot{root, multiplicity})
+		}
 		return true, nil
 	})
 	if e != nil {
 		return out, e
+	}
+	if end.Root != nil {
+		out.Roots = append(out.Roots, end)
 	}
 	return out, nil
 }

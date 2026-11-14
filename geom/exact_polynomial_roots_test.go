@@ -50,6 +50,27 @@ func TestExactQuarticRootSigns(t *testing.T) {
 	}
 }
 
+func TestExactPolynomialRootLedgerOrdersBothEndpoints(t *testing.T) {
+	ctx := context.Background()
+	r := func(n int64) *big.Rat { return big.NewRat(n, 1) }
+	// t*(t-1)*(t-2). Endpoint factors are separated before the interior
+	// Sturm proof but must appear in interval order in the public ledger.
+	s, err := IsolateExactPolynomialRoots(ctx, []*big.Rat{r(0), r(2), r(-3), r(1)}, r(0), r(2), ExactCurvePlaneEventOptions{})
+	if err != nil || len(s.Roots) != 3 || s.LowerSign != 0 || s.UpperSign != 0 {
+		t.Fatal(s, err)
+	}
+	for i, hit := range s.Roots {
+		expect, _, err := NewExactRationalRoot(ctx, r(int64(i)), ExactCurvePlaneEventOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		order, err := hit.Root.Compare(ctx, expect, ExactCurvePlaneEventOptions{})
+		if err != nil || !order.Proven || order.Order != 0 {
+			t.Fatal("root ledger out of parameter order", i, order, err)
+		}
+	}
+}
+
 func TestExactQuarticToroidBranchAndTrimSigns(t *testing.T) {
 	ctx := context.Background()
 	r := func(n, d int64) *big.Rat { return big.NewRat(n, d) }
