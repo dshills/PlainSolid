@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/placement"
 	"plainsolid/geom"
 )
 
@@ -214,6 +215,37 @@ func TestOriginalWeightedRoofMaterialQueries(t *testing.T) {
 	if err != nil || !dist.Converged || dist.Squared.Lower.Cmp(r(1, 64)) != 0 || dist.Squared.Upper.Cmp(r(1, 64)) != 0 ||
 		len(dist.Owners) != 1 || dist.Owners[0] != (MixedRoofFaceOwner{0, 0}) {
 		t.Fatal("weighted stock distance lost the original floor witness", dist, err)
+	}
+	volume, err := q.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 100)})
+	// Integrating (2+x²)/(1+x) gives 3 ln(2)-1/2. The completely
+	// enclosed sloped tool has area 9/16 and average thickness 3/4.
+	want := new(big.Rat).SetFloat64(3*math.Log(2) - .5 - 27.0/64)
+	if err != nil || !volume.Converged || volume.Volume.Lower.Cmp(want) > 0 || volume.Volume.Upper.Cmp(want) < 0 {
+		t.Fatal("weighted cavity analytic volume", volume, want, err)
+	}
+	pose, err := placement.NewRationalRigid([3][4]*big.Rat{
+		{r(0, 1), r(0, 1), r(-1, 1), r(7, 1)}, {r(0, 1), r(1, 1), r(0, 1), r(8, 1)}, {r(1, 1), r(0, 1), r(0, 1), r(9, 1)},
+	}, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	placed, err := q.Place(pose)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worldVolume, err := placed.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 100)})
+	if err != nil || !worldVolume.Converged || worldVolume.Volume.Lower.Cmp(volume.Volume.Lower) != 0 || worldVolume.Volume.Upper.Cmp(volume.Volume.Upper) != 0 {
+		t.Fatal("proper rigid placement changed volume", worldVolume, volume, err)
+	}
+	coarse, err := q.BoundVolume(ctx, MixedRoofVolumeOptions{AbsoluteGap: r(1, 100000), MaxCells: 10})
+	if !errors.Is(err, geom.ErrConvergence) || coarse.Volume.Lower == nil ||
+		coarse.Volume.Lower.Cmp(volume.Volume.Lower) > 0 || coarse.Volume.Upper.Cmp(volume.Volume.Upper) < 0 {
+		t.Fatal("limited volume must preserve a conservative enclosure", coarse, volume, err)
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if partial, err := q.BoundVolume(cancelled, MixedRoofVolumeOptions{}); !errors.Is(err, context.Canceled) || partial.Volume.Lower != nil {
+		t.Fatal("volume cancellation exposed partial data", partial, err)
 	}
 	if _, err := proveMixedRoofBox(ctx, a, 1, 1000000); !errors.Is(err, geom.ErrUnrepresentable) {
 		t.Fatal("polynomial-only mesh proof accepted rational height", err)

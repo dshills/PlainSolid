@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"testing"
 	"time"
@@ -34,6 +35,7 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 	seen := map[[2]int]bool{}
 	r := big.NewRat
 	moments := map[geom.TorusCylinderOperation]geom.TorusCylinderMoments{}
+	native := map[geom.TorusCylinderOperation]parametric.Properties{}
 	for {
 		var ref struct {
 			Difference bool
@@ -77,6 +79,37 @@ func TestOCCTTorusCylinderMaterial(t *testing.T) {
 		s, e := geom.NewTorusCylinderMaterial(5, 2, 6, -3, 4, op)
 		if e != nil {
 			t.Fatal(e)
+		}
+		{
+			props, ok := native[op]
+			if !ok {
+				var solid parametric.Solid
+				var err error
+				if op == geom.TorusCylinderUnion {
+					var body parametric.TorusCylinderUnionSet
+					body, err = parametric.NewTorusCylinderUnionSet(ctx, 5, 2, 6, -3, 4, 1e-9)
+					solid = body.Solid()
+				} else {
+					var body parametric.TorusCylinderSet
+					body, err = parametric.NewTorusCylinderSet(ctx, 5, 2, 6, -3, 4, op, 1e-9)
+					solid = body.Solid()
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				props, err = solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
+				if err != nil {
+					t.Fatal(err)
+				}
+				native[op] = props
+			}
+			area := 0.0
+			for _, x := range ref.Areas {
+				area += x
+			}
+			if math.Abs(props.Volume-ref.Volume) > 1e-5 || math.Abs(props.Area-area) > 1e-5 || math.Abs(props.Centroid.Z-ref.CentroidZ) > 1e-7 {
+				t.Fatal("native actual surface vs OCCT", props, ref)
+			}
 		}
 		m, exists := moments[op]
 		if !exists {

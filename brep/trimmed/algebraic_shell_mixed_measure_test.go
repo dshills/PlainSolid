@@ -230,6 +230,12 @@ func TestMixedOriginalSourceMassAndArea(t *testing.T) {
 		if err != nil || roof.PreparationOperations() <= 0 {
 			t.Fatal("original roof query preparation", name, err)
 		}
+		volumeOptions := MixedRoofVolumeOptions{AbsoluteGap: big.NewRat(1, 20),
+			SurfacePatchEvaluationOptions: geom.SurfacePatchEvaluationOptions{MaxOperations: 4000000}}
+		volume, err := roof.BoundVolume(ctx, volumeOptions)
+		if err != nil || !volume.Converged || !contains(volume.Volume, ref.Volume) {
+			t.Fatal("direct original roof integral misses independent OCCT volume", name, volume, ref.Volume, err)
+		}
 		delta := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 100))
 		height := big.NewRat(-7, 128) // tool roof at x=y=1/2
 		for j, want := range [3][3]parametric.Location{

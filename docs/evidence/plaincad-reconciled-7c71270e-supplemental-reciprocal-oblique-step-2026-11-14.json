@@ -1,0 +1,73 @@
+{
+  "schema": "plaincad-reconciled-supplemental-reciprocal-oblique-step-v1",
+  "status": "passed",
+  "integrationCommit": "6c0c783e0cf4b9e4061d1e92259923a4c33159e5",
+  "reviewCommit": "7c71270e732cd00581d2b3d4be66aaa923292a4a",
+  "plainCadCommit": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "19aa3b8b5306ffcfe3fdae3b47da99f2246847c5f2d85fc35c223f3b0125c591",
+  "fixture": "e2e/plainsolid-reciprocal-oblique-step-holes.spec.ts",
+  "sourceSha256": "888419ac939258cb23cdb52c2529cd8ce10b41f923a5cea8e3751d63b40caf74",
+  "runSha256": "7d3bb639ea0e425a774b8d250afe81f997098b22c752157e53c5488ead8eda44",
+  "reportStats": {
+    "startTime": "2026-11-14T15:03:34.001Z",
+    "duration": 12457.417,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "case": {
+    "stockMm": [
+      20,
+      16,
+      40
+    ],
+    "crossingMm": [
+      10,
+      8,
+      20
+    ],
+    "radiusMm": 2,
+    "obliqueAxisRatio": [
+      3,
+      0,
+      4
+    ],
+    "analyticEllipses": 16,
+    "stepByteCount": 42187,
+    "stepSha256": "7ff55b9f3b0a52aeb297dede5ee78811eff44507d27fc807fbb2b0078284797f",
+    "stlTriangles": 404,
+    "stlTwoUseEdges": 606,
+    "stlSha256": "4598b1cbecbbcce28f3eb7c11649477f7c6dba3340ebee2a47cc98b49064dfe6",
+    "occtStepReadback": {
+      "Area": 4267.846534501705,
+      "Volume": 11949.577266463475,
+      "Centroid": [
+        10,
+        8,
+        20
+      ]
+    },
+    "occtDirectBoolean": {
+      "Volume": 11949.577266048931,
+      "Area": 4267.8465351235245,
+      "Centroid": [
+        10.000000000000503,
+        8,
+        20.000000000000632
+      ]
+    },
+    "directOracleSourceSha256": "e6f07c54988774faab69437d3b4616627a159f2e6ed69d61e6563bb06c212ca1"
+  },
+  "oracleBinarySha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+  "occtStepReadback": {
+    "Area": 4267.846534501705,
+    "Volume": 11949.577266463475,
+    "Centroid": [
+      10,
+      8,
+      20
+    ]
+  }
+}

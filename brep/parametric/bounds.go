@@ -414,6 +414,23 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		f = a.frame
 		x, y = scalarBounds{-a.r, upAdd(a.d, a.r)}, scalarBounds{-a.r, a.r}
 		z = scalarBounds{a.lower, a.upper}
+	case torusCylinderOuterWall:
+		if v.Min < 0 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		f, _ = geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		x, y = scalarBounds{-a.source.c, a.source.c}, scalarBounds{-a.source.c, a.source.c}
+		z = scalarBounds{-a.source.r, a.cap}
+		if a.lower {
+			z = scalarBounds{a.cap, a.source.r}
+		}
+	case torusCylinderChart:
+		if v.Min < -1 || v.Max > 1 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		f, _ = geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		extent := upAdd(a.R, a.r)
+		x, y, z = scalarBounds{-extent, extent}, scalarBounds{-extent, extent}, scalarBounds{-a.r, a.r}
 	case geom.TorusSurface:
 		frame, r, t := a.Parameters()
 		f = frame

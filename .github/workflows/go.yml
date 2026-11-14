@@ -152,7 +152,7 @@ jobs:
       - name: Bounded fuzzing for independent STEP products and units
         shell: bash
         run: |
-          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative FuzzIndependentPlanarUnits FuzzIndependentPlanarUnitsNative; do
+          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative FuzzIndependentPlanarUnits FuzzIndependentPlanarUnitsNative FuzzIndependentHeterogeneousUnits FuzzIndependentHeterogeneousUnitsNative FuzzIndependentToroidalMaterials FuzzIndependentToroidalMaterialsNative FuzzIndependentToroidalUnits FuzzIndependentToroidalUnitsNative; do
             GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
           done
       - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s

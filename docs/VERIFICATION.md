@@ -287,6 +287,22 @@ removal. Other bore families keep their original tool sets.
 pass. Focused native tests verify grouped duplicates, shorter and narrower
 cutters, incremental overlap, deepening and final opening. Race and Go vet pass.
 
+The original three-contour radial Common was reconstructed from all 228
+source proposals in a CGO-free run (877 seconds). Its four native faces
+form two material components with two inner wires. The exact total volume
+divided by π is `63333935546875/864691128455135232`, centroid Z is
+`106610222140625/232841378390867968`, and the second Z moment divided by π
+is `8952130846239958703517913818359375/401413413573551216547642928907670507107647488`.
+The [independent original OCCT model](../tools/occtref/TRIPLE_RADIAL_ROOFS.md)
+verifies the component topology and volume within `1e-10`.
+
+Direct volume bounds over the original XY footprints contain the independent
+OCCT Common, Fuse, and Cut volumes for the crossing-roof shells. Each
+enclosure is at most `1/20` cubic model units wide. The weighted cavity
+contains its independent logarithmic integral within `1/100`, preserves
+the bounds under a proper rigid placement, and returns a conservative
+enclosure when refinement is limited. Cancellation returns no bounds.
+
 The [newer full trimmed run](evidence/native-full-trimmed-b7e62101-2026-11-14.json)
 accounted for all 796 top-level cases on clean `b7e62101`, with CGO
 disabled: 783 passed and 13 skipped. Initial shard 0 reached its wall
