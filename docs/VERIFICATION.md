@@ -171,11 +171,31 @@ roof and its narrower projected domain. The rational volume, three centroid
 coordinates and selected world inertia terms enclose the independent disk
 integrals. The unequal exact, XZ and independent affine-chart tests all passed
 race; a small budget returned no partial mass values.
+The convex trim extension (`eae3f58`) verifies an exact common trim corner
+at (1/3, 1/6), the complete footprint area of 167/384, and the independent
+volume, centroid and inertia bounds. The same cell integration now works
+with bounded convex straight trims and their aligned rectangular supports.
+The disjoint-region measures (`438411f`) separately bound two lobe volumes
+on unequal original rectangles, retaining an exact cubic owner with
+nonbinary controls. The common footprint is clipped before mass is assigned
+to the original section branches. Both extensions pass focused race tests.
+The mixed STEP assembly (`15575b7`) keeps two shared planar/spline product
+definitions and three placed occurrences. The pinned OCCT reader independently
+accepts the OCCT-authored file, Go export and Go re-export. All report 18
+faces, volume 16, and centroid (-7/16, 175/24, 139/144). Local original
+curved supports and separate occurrence identities survive the Go round trip.
 The two-lobe Boolean display (`d26665d`) keeps one global set of source face,
 edge and vertex indices for 3,392 triangles in two closed components. Its
 two-sided distance bound is 0.015637139; 482,854 contact checks qualify the
 whole display. The fixture passes under race and checks display volume
 against the independent total analytic volume of the two lobes.
+The corresponding exact-owner fixture (`8a484ac`) retains a homogeneous
+1/3 control on the original opposite plane and gives the same independently
+checked closed display. The wrapped-cylinder point and line queries
+(`f034043`, `b8396ac`, `60eda3f`) preserve original seam occurrences,
+exact rational parameters, and signed oriented normals. They check holes,
+inclined directions, and nonbinary chart heights under race; vertical
+directions and unresolved supporting-line contacts remain outside this path.
 
 Blind and through equal-depth overlapping side pockets now have a direct
 material query in the certified cardinal frame. It distinguishes the actual
