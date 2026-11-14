@@ -41,3 +41,41 @@ root is `OCCT-4dbfdcc448c0b3e565488afcd626c84483172db9/`. The source checkout is
 an extracted archive, not a Git clone. Area and volume comparisons allow
 3e-7 relative error, centroid comparisons 3e-7 model units; exact Go roots
 are enclosed to parameter width 1e-9 before the reference comparison.
+
+## Independent nearest-boundary differential
+
+Rebuild the same executable and run:
+
+```sh
+PLAINSOLID_OCCT_CONICAL_FILLET=/tmp/conical-mixed-oracle \
+  go test ./internal/occtcheck -run '^TestOCCTConicalNearestBoundary$' -count=1
+```
+
+The test invokes `OUTPUT_JSONL --nearest`. The default invocation and original
+five records remain unchanged. The extra nine records use
+`BRepExtrema_DistShapeShape` against a compound of the actual retained OCCT
+faces, **not the solid** (solid-to-interior-point distance would be zero).
+No PlainSolid point, mesh, curve, or source profile is supplied to OCCT.
+
+Cases cover irrational-azimuth torus and cone interiors, rational-azimuth
+irrational torus projection, cylindrical bore interior, blind floor, entry
+rim, blind-floor rim, torus meridian-center family, and axis entry-rim family.
+Go reconstructs and reloads its exact native recipe, requires proved nearest
+status and a squared enclosure width at most 1e-12, and compares against both
+OCCT and independent analytic formulas. OCCT tolerance is
+`3e-7*max(1,squared distance)`; its native extrema search deflection is 1e-10.
+Input constants such as 77/12 and -19/10 undergo binary64 rounding only on the
+OCCT side. The allowance covers that and the reference model's finite precision;
+it does not weaken the exact Go proof. Returned OCCT witness distance is also
+checked against its reported value. OCCT solution counts are **not** interpreted
+as exhaustive multiplicity: it returns representative points for continua.
+
+Fresh observed squared values include torus 0.0098174049602652406,
+cone 0.00089552792959004222, bore 0.12857864376269049,
+entry rim 0.14420364376269049, floor rim 0.05851821881345242,
+meridian family 0.87890625 and entry circle 0.265625.
+The pinned source archive SHA256 is
+`32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7`.
+The local fresh reference executable SHA256 was
+`010345be3df3e1c3672239663305c155f08ac7f0060fc3b3ce7ac5bc4660cb70`;
+executables are local verification artifacts, not committed dependencies.
