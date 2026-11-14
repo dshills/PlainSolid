@@ -90,6 +90,22 @@
         }
       ]
     },
+    "production-buffered": {
+      "path": "/tmp/plainsolid-main-merge-8f76f16-production-buffered.json",
+      "sha256": "1f792e4ada386db891e5acbc2027ed1e1e5ea5b75645edc564e7839351b2e77d",
+      "stats": {
+        "startTime": "2026-11-14T18:45:29.832Z",
+        "duration": 254530.97400000002,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workers": 1,
+      "retries": 0,
+      "harnessErrors": [],
+      "failures": []
+    },
     "cross-browser": {
       "path": "/tmp/plainsolid-main-merge-8f76f16-cross-browser.json",
       "sha256": "ecec84f11ad057283a83f7d748472765577fdd8dc546cba50535d37e3e3d84e4",
@@ -215,6 +231,34 @@
       "retries": 0,
       "harnessErrors": [],
       "failures": []
+    },
+    "unmodified-csp-retest": {
+      "path": "/tmp/plainsolid-main-merge-8f76f16-unmodified-csp-retest.json",
+      "sha256": "a84102272df24f4d7d9ec2cc03f1a4c7512dc10489a2aefdbc77f1b239f22b3d",
+      "stats": {
+        "startTime": "2026-11-14T18:45:07.633Z",
+        "duration": 3528.737,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "workers": 1,
+      "retries": 0,
+      "harnessErrors": [],
+      "failures": [
+        {
+          "file": "csp.spec.ts",
+          "title": "built app enforces CSP while native modeling, import, recovery and STL workers operate",
+          "project": "",
+          "results": [
+            {
+              "status": "failed",
+              "message": "Error: response.body: Protocol error (Network.getResponseBody): Request content was evicted from inspector cache\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+            }
+          ]
+        }
+      ]
     }
   },
   "provider": {
@@ -229,8 +273,40 @@
     "path": "/tmp/plainsolid-main-merge-8f76f16-provider-timing-control.log",
     "sha256": "e0ee0a8bbcc92c38fd3d34327136eb095cd36016d388467b9ac892b6c6bc8d8f"
   },
+  "provider-final-retest": {
+    "path": "/tmp/plainsolid-main-merge-8f76f16-provider-final-retest.log",
+    "sha256": "581a22d4eab54c7546df2ca76739dc0b0e956402a02227143cc1817ccc01a522"
+  },
   "targeted-race": {
     "path": "/tmp/plainsolid-main-merge-8f76f16-targeted-race.log",
     "sha256": "f6191ae8ea6c66d66a8391c2203f7027a9aaf248b397213186a8368a38fe8b4b"
+  },
+  "unit": {
+    "path": "/tmp/plainsolid-main-merge-8f76f16-unit.log",
+    "sha256": "af673b6e53cf09f331421f6b3c4e196898e3f8caf8823b60d982dd9fa7940dc7"
+  },
+  "unmodified-csp-retest": {
+    "path": "/tmp/plainsolid-main-merge-8f76f16-unmodified-csp-retest.log",
+    "sha256": "8cf470ea3700442ce5caeb63e9d86b63f86a84b21ba5852b0bdf76e978799678"
+  },
+  "productionAcceptanceBufferControl": {
+    "chromiumPerResponseBytes": 33554432,
+    "chromiumTotalBytes": 134217728,
+    "testSourcesAndAssertionsChanged": false,
+    "playwrightDependencyRestored": true,
+    "benchmark": {
+      "path": "/tmp/plaincad-verified-main-csp-control/test-results/production/performance-production-CSP-84684-idated-STL-download-timings/performance.json",
+      "sha256": "f526096a5d134b7d829744432eef12714b65538a128d065dc0caa85c243a7864",
+      "edits": 25,
+      "stlDownloads": 11
+    }
+  },
+  "ordinaryUnitAndComponent": {
+    "path": "/tmp/plainsolid-main-merge-8f76f16-unit.json",
+    "sha256": "c0b785fbfa565ca6ebaf2cae671bff3dd814646928bf606c37f3dada422bd24d",
+    "numTotalTests": 1691,
+    "numPassedTests": 1691,
+    "numFailedTests": 0,
+    "numPendingTests": 0
   }
 }

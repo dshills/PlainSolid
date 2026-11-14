@@ -20,7 +20,13 @@ reruns, with the performance case taking 43.5 seconds. The original
 CSP case exceeded Chromium's response capture buffer. The unchanged
 assertions passed after increasing that buffer in a temporary local
 harness. The ordinary harness result and the diagnostic control are
-preserved separately. The full development run is still in progress.
+preserved separately. The full production rerun with only the local
+Chromium capture buffer enlarged passed all 66 tests with no skips or
+retries. Its benchmark finished in 26.3 seconds and checked all 25
+edits and 11 STL downloads. The full ordinary unit and component suite
+passed 1,691 tests. All four WASM provider contracts passed with the
+original timeout after test contention subsided. The full development
+run is still in progress.
 
 ## PlainCAD tighter covered-width Hole STEP — 2026-11-14
 
