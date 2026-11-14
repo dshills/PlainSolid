@@ -117,8 +117,9 @@ toroidal rings and bounded elbows. The quarter-sweep annular cylinder
 from the existing Edit Revolve workflow now round-trips STEP and
 retains a recipe for subsequent coaxial cuts. The original arc-only lens
 exchanges both cylindrical supports with its four sketch fragments still
-editable. Next connect the exact writer for simple cylindrical Revolve
-sectors and full concentric tubes.
+editable. Simple cylindrical Revolve sectors now use the existing
+analytic STEP writer. Next qualify full concentric tubes produced by
+coaxial cuts on cylindrical stock.
 
 The full selected-provider gate on PlainCAD `9779044` and PlainSolid
 `e60f34e7` passes 345 development, 66 production and 15 cross-browser

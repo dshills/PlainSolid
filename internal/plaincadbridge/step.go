@@ -299,7 +299,8 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		p := m.Model
 		return b.putSTEPCylinder(p.Frame, p.Radius, p.Height, p.LengthUnit)
 	}
-	if strings.Contains(strings.ToUpper(source), "TOROIDAL_SURFACE") {
+	supports := strings.ToUpper(source)
+	if strings.Contains(supports, "TOROIDAL_SURFACE") || strings.Contains(supports, "CYLINDRICAL_SURFACE") {
 		if m, e := step.ReadAnalyticBodies(r(), stepLimits()); e == nil {
 			if recipe, ok := torusFromSTEP(m); ok {
 				body, err := recipe.body()
@@ -307,6 +308,9 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 					return Shape{}, err
 				}
 				return b.putAnalyticBody(body)
+			}
+			if recipe, ok := cylinderSectorFromSTEP(m); ok {
+				return b.putRadialSector(recipe)
 			}
 		}
 	}
@@ -486,8 +490,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:
-		if s.analytic.sector != nil {
-			if p, ok := s.analytic.sector.quarterAnnularSTEP(); ok {
+		if sector := s.analytic.sector; sector != nil {
+			if sector.inner == 0 {
+				e = sector.writeSectorSTEP(&out)
+				break
+			}
+			if p, ok := sector.quarterAnnularSTEP(); ok {
 				e = step.WriteQuarterAnnularExtrusion(&out, step.QuarterAnnularExtrusionModel{Body: p, LengthUnit: .001})
 				break
 			}

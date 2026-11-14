@@ -132,7 +132,9 @@ sweep. Full rings and larger signed sweeps also pass the native STEP
 gate, including reflection and non-millimeter readback. The Edit Revolve
 quarter sweep with a coaxial through cut preserves both cylinders, the
 planar caps and the radial walls. A STEP-reimported part can enlarge
-the bore and reproduce the canonical output of a fresh cut.
+the bore and reproduce the canonical output of a fresh cut. Cylindrical
+Revolve sectors with the axis intact likewise retain their partial angle
+and planar radial faces through STEP and accept a subsequent coaxial cut.
 
 PlainCAD also imports the strict half- and quarter-cylinder STEP model
 and rooted product dialects from main as native cylindrical stock, retaining its
