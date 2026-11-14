@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -40,6 +41,15 @@ func TestDocumentOffsetDualDiskRecipe(t *testing.T) {
 	}
 	if e = s.WriteSideOpenDualDiskSTEP(ctx, &data, "cut"); e != nil || !bytes.Contains(data.Bytes(), []byte("PRODUCT('side-cut-offset-disks'")) {
 		t.Fatal("reflected offset occurrence needs its registered STEP class", e)
+	}
+	p, e := step.ReadOffsetSideOpenDualDiskProduct(ctx, &data, step.Limits{}, 1e-9)
+	if e != nil || p.SourceFloorFace != 0 || p.SourceWallFaces[0] == 0 || p.SourceWallFaces[1] == 0 || p.SourceWallFaces[0] == p.SourceWallFaces[1] {
+		t.Fatal("reflected through product did not retain the two original wall owners", p.SourceWallFaces, p.SourceFloorFace, e)
+	}
+	for _, disc := range p.Descriptor.Discs {
+		if disc.Center.Y != -7.5 {
+			t.Fatal("readback moved a source circle onto the opening side", disc)
+		}
 	}
 	edit := d.Begin()
 	edit.State.Features["cut"].SideOpenDualDisk.ExactWalls = true
