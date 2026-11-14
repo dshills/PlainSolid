@@ -170,25 +170,7 @@ func ReadConical45CavityMaterial(ctx context.Context, r io.Reader, l Limits, tol
 			return Conical45CavityMaterial{}, e
 		}
 	}
-	vertices, edges, faces := solids[0].Vertices(), solids[0].Edges(), solids[0].Faces()
-	nv, ne := len(vertices), len(edges)
-	iv, ie, ifaces := solids[1].Vertices(), solids[1].Edges(), solids[1].Faces()
-	for i := range ie {
-		ie[i].Start += nv
-		ie[i].End += nv
-	}
-	for i := range ifaces {
-		ifaces[i].Reversed = !ifaces[i].Reversed
-		for j := range ifaces[i].Outer {
-			ifaces[i].Outer[j].Edge += ne
-		}
-	}
-	for k := range rims[1] {
-		for j := range rims[1][k] {
-			rims[1][k][j] += ne
-		}
-	}
-	s, e := trimmed.NewSolid(append(vertices, iv...), append(edges, ie...), append(faces, ifaces...), tol)
+	s, rims, e := joinConical45Cavity(solids, rims, tol)
 	if e != nil {
 		return Conical45CavityMaterial{}, e
 	}
@@ -214,4 +196,30 @@ func WriteConical45CavityMaterial(ctx context.Context, w io.Writer, d Conical45C
 		e = io.ErrShortWrite
 	}
 	return e
+}
+
+func joinConical45Cavity(solids [2]trimmed.Solid, rims [2][2][4]int, tol float64) (trimmed.Solid, [2][2][4]int, error) {
+	vertices, edges, faces := solids[0].Vertices(), solids[0].Edges(), solids[0].Faces()
+	nv, ne := len(vertices), len(edges)
+	iv, ie, ifaces := solids[1].Vertices(), solids[1].Edges(), solids[1].Faces()
+	for i := range ie {
+		ie[i].Start += nv
+		ie[i].End += nv
+	}
+	for i := range ifaces {
+		ifaces[i].Reversed = !ifaces[i].Reversed
+		for j := range ifaces[i].Outer {
+			ifaces[i].Outer[j].Edge += ne
+		}
+	}
+	for k := range rims[1] {
+		for j := range rims[1][k] {
+			rims[1][k][j] += ne
+		}
+	}
+	s, e := trimmed.NewSolid(append(vertices, iv...), append(edges, ie...), append(faces, ifaces...), tol)
+	if e != nil {
+		return trimmed.Solid{}, [2][2][4]int{}, e
+	}
+	return s, rims, nil
 }

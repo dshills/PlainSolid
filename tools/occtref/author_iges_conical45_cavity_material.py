@@ -1,4 +1,6 @@
 from pathlib import Path
+import sys
+placed="--placed" in sys.argv
 r=[]
 def add(k,f,v):
  i=2*len(r)+1;r.append((k,f,','.join(map(str,v))+';'));return i
@@ -18,6 +20,14 @@ root=add(186,0,[186,outer,1,0])
 inner=shell(1,2,1)
 r[(root-1)//2]=(186,0,f"186,{outer},1,1,{inner},0;")
 
+if placed:
+ for i,(kind,form,text) in enumerate(r):
+  if kind!=502:continue
+  v=text.rstrip(';').split(',')
+  for j in (2,5):
+   x,y,z=map(int,v[j:j+3]);v[j:j+3]=map(str,(10+z,-3+y,5-x))
+  r[i]=(kind,form,','.join(v)+';')
+ add(124,0,[124,0,0,1,10,0,1,0,-3,-1,0,0,5])
 g=[x[:72] for x in Path('exchange/iges/testdata/cylinder-solid.igs').read_text().splitlines() if x[72]=='G'];out=[]
 def emit(s,k,n):out.append(f'{s:<72}{k}{n:7d}')
 emit('Independent exact45degree conical frustum with internal void','S',1)
@@ -28,8 +38,8 @@ for i,(kind,form,s) in enumerate(r):
  while len(s)>64:
   cut=s.rfind(',',0,64)+1;chunks.append(s[:cut]);s=s[cut:]
  chunks.append(s);start=len(p)+1;p.extend((v,2*i+1) for v in chunks);status=0 if kind==186 else (10001 if kind==504 else 10000)
- emit(''.join(f'{x:8d}' for x in (kind,start,0,0,0,0,0,0))+f'{status:08d}','D',2*i+1)
+ emit(''.join(f'{x:8d}' for x in (kind,start,0,0,0,0,79 if placed and kind in (100,110,190,194) else 0,0))+f'{status:08d}','D',2*i+1)
  emit(''.join(f'{x:8d}' for x in (kind,0,0,len(chunks),form,0,0))+' '*8+f'{0:8d}','D',2*i+2)
 for i,(v,owner) in enumerate(p):emit(f'{v:<64}{owner:8d}','P',i+1)
 emit(f'S{1:7d}G{len(g):7d}D{2*len(r):7d}P{len(p):7d}','T',1)
-Path('exchange/iges/testdata/conical45-cavity-material.igs').write_text('\n'.join(out)+'\n')
+Path('exchange/iges/testdata/'+('placed-conical45-cavity-material.igs' if placed else 'conical45-cavity-material.igs')).write_text('\n'.join(out)+'\n')

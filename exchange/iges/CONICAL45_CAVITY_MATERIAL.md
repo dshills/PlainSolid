@@ -54,3 +54,31 @@ Mutations include void direction, reused outer shell, touching radius, cross-she
 support ownership, incorrect angle and source edge references. Focused live,
 normal/race, Go 1.23, vet, previous conical/spherical cases and bounded 100-run fuzz
 qualify this narrow analytic material family.
+
+## Shared proper signed-axis placement
+
+`ReadPlacedConical45CavityMaterial` / `WritePlacedConical45Cavity` add a separate
+40-record contract. One proper signed-coordinate type 124 is explicitly attached
+to both type 194 walls, all four type 190 planes, all four type 100 rims and both
+model type 110 meridians. The circle records already use the common local XY
+frame with their individual Z stations; applying that original matrix therefore
+composes each complete rim frame, not only its center. Datums stay local to their
+supports. Both type 502 lists contain world coordinates and are inverted exactly
+before full local source/nesting reproof. No source transform is inferred from a
+shell/solid parent and independent differing inner placements are rejected.
+
+Each native frustum is rebuilt directly in the exact represented signed frame,
+using rational sums for every control coordinate. The local strict containment
+proof is preserved by the common proper motion. The inner shell is independently
+sewn then reversed; all native continuous shared-edge discrepancies remain zero.
+Original source vertices, shared transform metadata, local source proof and
+native quarter-rim ancestry survive source-bound and plain native reload.
+
+The independent author's `--placed` fixture maps the axis to +X and the outer
+base center to (10,-3,5). Pinned OCCT source/output remain valid six-face,
+one-solid cavities, with the same volume/area and volume centroid
+(10+366/145,-3,5). Tests independently detach inner wall/rim placements or shift
+the inner source datum and require rejection. Native zero edge discrepancy,
+measurements, signed reversal pose, resource limits and forged native placement
+are checked. Focused normal/live, race, Go 1.23, vet, earlier conical variants and
+bounded fuzz pass. Entity reordering remains a separate unsupported variation.
