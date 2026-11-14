@@ -34,7 +34,7 @@ func (s State) WriteSideOpenDualDiskSTEP(ctx context.Context, w io.Writer, nodeI
 		return e
 	}
 	var d step.SideOpenDualDiskDescriptor
-	if _, e = defineSideOpenDualDisk(ctx, built.Planar[f.Input], f.SideOpenDualDisk, &d); e != nil {
+	if d, e = authoredSideOpenDualDiskDescriptor(built.Planar[f.Input], f.SideOpenDualDisk); e != nil {
 		return e
 	}
 	d, e = placeSideOpenDualDisk(d, world[nodeID])
@@ -45,8 +45,15 @@ func (s State) WriteSideOpenDualDiskSTEP(ctx context.Context, w io.Writer, nodeI
 	if d.Name == "" {
 		d.Name = nodeID
 	}
+	if f.SideOpenDualDisk.OffsetCenters {
+		return step.WriteOffsetSideOpenDualDiskProduct(ctx, w, step.OffsetSideOpenDualDiskDescriptor(d))
+	}
 	if f.SideOpenDualDisk.ExactWalls {
-		return step.WriteExactWallSideOpenDualDiskProduct(ctx, w, step.ExactWallSideOpenDualDiskDescriptor(d))
+		for _, face := range built.Trimmed[node.Asset].Faces() {
+			if _, exact := face.Surface.(*geom.ExactBezierSurface); exact {
+				return step.WriteExactWallSideOpenDualDiskProduct(ctx, w, step.ExactWallSideOpenDualDiskDescriptor(d))
+			}
+		}
 	}
 	if d.Discs[0].Radius == d.Discs[1].Radius {
 		return step.WriteSideOpenDualDiskProduct(ctx, w, d)

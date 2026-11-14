@@ -28,12 +28,12 @@ func (s TubeSegment) IntersectQuadraticTrimProjected(ctx context.Context, chart 
 	used := 0
 	defer func() { r.ExactOperations += used }()
 	var supports [2]*geom.SurfacePatch
-	for i, surface := range []*geom.BSplineSurface{s.a, s.b} {
+	for i, surface := range [2]geom.Surface{s.a, s.b} {
 		remaining := o.MaxOperations - used
 		if remaining < 1 {
 			return r, geom.ErrConvergence
 		}
-		p, e := geom.NewSurfacePatch(surface, geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
+		p, e := exactSplineSupport(surface, geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
 		if e != nil {
 			return r, e
 		}

@@ -7,12 +7,13 @@ import (
 )
 
 // OffsetSideOpenDualDiskCut retains native topology and original cutter face
-// ancestry for the explicit external-center domain. It deliberately does not
-// inherit side-centered analytic measures or material query methods.
+// ancestry for the explicit external-center domain. Its private source retains the actual offset circles; it does not inherit
+// side-centered formulas.
 type OffsetSideOpenDualDiskCut struct {
 	Solid     Solid
 	WallFaces [2][]int
 	FloorFace int
+	source    *sideOpenDualDiskSource
 }
 
 // CutOffsetSideOpenDualDisks constructs the certified offset section's axial
@@ -35,5 +36,5 @@ func CutOffsetSideOpenDualDisks(ctx context.Context, frame geom.Frame, min, max 
 	if e != nil {
 		return zero, e
 	}
-	return OffsetSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace}, nil
+	return OffsetSideOpenDualDiskCut{Solid: r.Solid, WallFaces: r.WallFaces, FloorFace: r.FloorFace, source: r.source}, nil
 }

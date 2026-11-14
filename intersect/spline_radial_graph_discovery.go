@@ -27,11 +27,11 @@ func discoverConcentricGraphPairTubes(ctx context.Context, a, b Patch, p geom.Su
 	if ctx == nil || !a.valid() || !b.valid() {
 		return seeds, geom.ErrInvalid
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return seeds, e
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return seeds, e
 	}

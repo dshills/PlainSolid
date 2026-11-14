@@ -95,6 +95,7 @@ func TestOffsetSideOpenDualDiskSection(t *testing.T) {
 func TestOffsetSideOpenDualDiskSectionRejects(t *testing.T) {
 	ds := [2]ExtrusionCircle{{Center: geom.Vec2{X: 12.5, Y: -7.5}, Radius: 65. / 8}, {Center: geom.Vec2{X: 22, Y: -7.5}, Radius: 87. / 8}}
 	for _, change := range []func(*[2]ExtrusionCircle){
+		func(d *[2]ExtrusionCircle) { d[1].Radius = d[0].Radius; d[1].Center.X = 16.5 },
 		func(d *[2]ExtrusionCircle) { d[1].Center.Y = -7 },
 		func(d *[2]ExtrusionCircle) { d[0].Center.Y = 0; d[1].Center.Y = 0 },
 		func(d *[2]ExtrusionCircle) { d[0].Center.Y = -8; d[1].Center.Y = -8 },

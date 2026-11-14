@@ -51,6 +51,10 @@ func TestOffsetSideOpenDualDiskNative(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
+			analytic, err := cut.Measures()
+			if err != nil || math.Abs(m.Volume-analytic.Volume) > 1e-4 || math.Abs(m.Area-analytic.Area) > 1e-4 || m.Centroid.Sub(analytic.Centroid).Length() > 1e-6 {
+				t.Fatal("analytic moments", m, analytic, err)
+			}
 			wantV := 2400 - depth*removed
 			wantA := 1400 + (arc-(239./8-75./8))*depth
 			if depth == 6 {

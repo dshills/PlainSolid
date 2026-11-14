@@ -24,7 +24,7 @@ type TubeCurveOptions struct {
 // Exact root enclosures are available through Evaluate; TrimA and TrimB
 // return bounded floating representatives of the same contact.
 type TubeSegment struct {
-	a, b     *geom.BSplineSurface
+	a, b     geom.Surface
 	pa, pb   *geom.SurfacePatch
 	proof    geom.VerifiedSurfaceTube
 	options  TubeCurveOptions
@@ -173,7 +173,7 @@ func (p TubeTrim) CertifiesPairedTube(q TubeTrim, a, b *geom.BSplineSurface) boo
 	if pa != pb && (x.FreeAxis != y.FreeAxis || x.Closed != y.Closed || x.Options != y.Options ||
 		x.A.Min != y.A.Min || x.A.Max != y.A.Max || x.B.Min != y.B.Min || x.B.Max != y.B.Max ||
 		!slices.Equal(x.Cells, y.Cells) || !slices.Equal(x.Oriented, y.Oriented) || !slices.Equal(x.ExactEndpoints, y.ExactEndpoints) ||
-		!geom.SameSplineSurface(p.segment.a, q.segment.a) || !geom.SameSplineSurface(p.segment.b, q.segment.b)) {
+		!sameStoredTubeSupport(p.segment.a, q.segment.a) || !sameStoredTubeSupport(p.segment.b, q.segment.b)) {
 		return false
 	}
 	sa, sb := p.segment.a, q.segment.a
@@ -183,7 +183,20 @@ func (p TubeTrim) CertifiesPairedTube(q TubeTrim, a, b *geom.BSplineSurface) boo
 	if secondB {
 		sb = q.segment.b
 	}
-	return geom.SameSplineSurface(a, sa) && geom.SameSplineSurface(b, sb)
+	return sameStoredTubeSupport(a, sa) && sameStoredTubeSupport(b, sb)
+}
+
+func sameStoredTubeSupport(a, b geom.Surface) bool {
+	switch s := a.(type) {
+	case *geom.BSplineSurface:
+		t, ok := b.(*geom.BSplineSurface)
+		return ok && geom.SameSplineSurface(s, t)
+	case *geom.ExactBezierSurface:
+		t, ok := b.(*geom.ExactBezierSurface)
+		return ok && s.ExactPatch() != nil && s.ExactPatch() == t.ExactPatch()
+	default:
+		return false
+	}
 }
 
 // BoundsUV encloses the entire p-curve in its certified tube rectangle.
@@ -237,8 +250,15 @@ func outwardSplineParameter(x *big.Rat, lower bool) float64 {
 	return r.Max
 }
 
-// Support returns the original immutable spline of this trim's chart.
+// Support returns the original B-spline of this trim's chart, or nil for an
+// exact homogeneous adapter. Use SourceSurface for either representation.
 func (p TubeTrim) Support() *geom.BSplineSurface {
+	s, _ := p.SourceSurface().(*geom.BSplineSurface)
+	return s
+}
+
+// SourceSurface returns the original immutable surface of this trim's chart.
+func (p TubeTrim) SourceSurface() geom.Surface {
 	if p.second {
 		return p.segment.b
 	}
@@ -288,30 +308,11 @@ func RebuildTubeCurves(ctx context.Context, data TubeRecipeData) ([]TubeSegment,
 	if !finite(o.ResidualTolerance) || o.ResidualTolerance <= 0 {
 		return nil, geom.ErrInvalid
 	}
-	sa, ok := a.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return nil, geom.ErrInvalid
-	}
-	sb, ok := b.Surface.(*geom.BSplineSurface)
-	if !ok {
-		return nil, geom.ErrInvalid
-	}
-	pa, e := geom.NewSurfacePatch(sa, o.Patches)
+	pa, e := exactSplinePatch(a, o.Patches)
 	if e != nil {
 		return nil, e
 	}
-	pb, e := geom.NewSurfacePatch(sb, o.Patches)
-	if e != nil {
-		return nil, e
-	}
-	domain := func(p Patch) geom.ParameterRectangle {
-		return geom.ParameterRectangle{UMin: p.Min.X, UMax: p.Max.X, VMin: p.Min.Y, VMax: p.Max.Y}
-	}
-	pa, e = pa.Trim(domain(a))
-	if e != nil {
-		return nil, e
-	}
-	pb, e = pb.Trim(domain(b))
+	pb, e := exactSplinePatch(b, o.Patches)
 	if e != nil {
 		return nil, e
 	}
@@ -403,7 +404,7 @@ func RebuildTubeCurves(ctx context.Context, data TubeRecipeData) ([]TubeSegment,
 		if len(data.Oriented) != 0 && reversed != (tube.FreeTangentSign() < 0) {
 			return nil, ErrUnresolved
 		}
-		seg := TubeSegment{a: sa, b: sb, pa: ta, pb: tb, proof: tube, options: o, axis: axis, lo: lo, hi: hi, reversed: reversed,
+		seg := TubeSegment{a: a.Surface, b: b.Surface, pa: ta, pb: tb, proof: tube, options: o, axis: axis, lo: lo, hi: hi, reversed: reversed,
 			samples: &tubeSampleCache{}, recipe: recipe, index: i}
 		if reversed {
 			lo, hi = hi, lo

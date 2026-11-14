@@ -44,7 +44,7 @@ func CompareTubeAlgebraicGraphEndpoints(ctx context.Context, left, right TubeSeg
 	if o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
 		return r, geom.ErrInvalid
 	}
-	for _, pair := range [][2]*geom.BSplineSurface{{left.a, right.a}, {left.b, right.b}} {
+	for _, pair := range [][2]geom.Surface{{left.a, right.a}, {left.b, right.b}} {
 		if pair[0] == pair[1] {
 			continue
 		}
@@ -54,7 +54,7 @@ func CompareTubeAlgebraicGraphEndpoints(ctx context.Context, left, right TubeSeg
 			if remaining < 1 {
 				return r, geom.ErrConvergence
 			}
-			p, e := geom.NewSurfacePatch(surface, geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
+			p, e := exactSplineSupport(surface, geom.SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
 			if e != nil {
 				return r, e
 			}

@@ -1,11 +1,12 @@
 # Bounded side-cut product decoder fuzzing
 
 `FuzzReadSideCutProducts` exercises the actual strict typed equal, between-center
-unequal and external-radical general STEP readers. It does not substitute parser-
-only validation or expand geometry acceptance. There are 38 initial seeds:
-blind/through output from each of the three registered writers, wrong-category
+unequal, external-radical general, exact-wall and offset STEP readers. It does not substitute parser-
+only validation or expand geometry acceptance. There are 92 initial seeds:
+blind/through output from each of the five registered writers, wrong-category
 inputs, truncations, invalid prefix/NUL payloads, trailing out-of-file records,
-invalid terminators and small malformed inputs.
+invalid terminators and small malformed inputs. Every valid seed additionally contributes forged
+product-class, model-circle edge-owner and shared cylinder-placement mutations.
 
 The harness uses a fixed work schedule per input: one selected typed read, at
 most one accepted-descriptor write, and one readback. It performs no retries,
@@ -18,7 +19,7 @@ resource limits remain active independently of wall-clock scheduling.
 
 Assertions cover all-or-none failures, complete native shell results, required
 source lineage/proof fields, accepted-descriptor re-emission and normalized
-readback stability. Separate ordinary tests prove the six valid seeds fit these
+readback stability. Separate ordinary tests prove the ten valid seeds fit these
 limits, reject category crossings and malformed outer payloads, and check
 pre-cancelled calls. Deadline/cancellation during accepted-output checks is an
 inconclusive bounded case, not a falsely reported semantic defect.
@@ -42,3 +43,22 @@ artifacts reported. These are deliberately small smoke campaigns, not evidence
 of exhaustive fuzz coverage or general STEP robustness. Go reports worker batch
 completion, so intervals without an updated execution count are not themselves
 proof of a stalled decoder.
+
+## Five-family extension
+
+The same fixed resource schedule now applies to all five typed readers; exact-wall
+and offset success additionally require source wall IDs, an exact owned radical
+join and a single native shell. Ordinary regressions exercise all cross-category
+pairs and prove each semantic mutation actually rejects, including blind and
+through variants. Corruption changes a genuine parsed dependency, not merely a
+string with an unknown entity number. The existing test-only source mutation
+helper now accepts `testing.TB` so fuzz seed construction uses the same serializer.
+
+CI adds a count-bounded 100-execution, one-worker smoke with GOMAXPROCS=2 and a
+180-second outer test timeout, retaining the per-input two-second cooperative
+context. With 92 seeds this is primarily a regression/seed smoke, not a large
+mutation campaign. It does not qualify general STEP acceptance.
+
+The expanded count-bounded campaign passed 100 executions in 46.641 seconds:
+all 92 baseline seeds completed, one new interesting input and no failing artifact.
+Focused semantic/cross-family tests passed in 9.809 seconds; Go 1.23 passed in 8.414 seconds.

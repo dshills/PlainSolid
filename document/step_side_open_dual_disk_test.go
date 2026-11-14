@@ -84,7 +84,8 @@ func TestDocumentSideOpenDualDiskUnequalRecipe(t *testing.T) {
 
 func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 	ctx := context.Background()
-	for _, exact := range []bool{false, true} {
+	for _, setting := range []struct{ exact, allow bool }{{false, false}, {false, true}, {true, true}} {
+		exact, allow := setting.exact, setting.allow
 		r0, r1, x1, stockY := 5., 8.5, 24.5, 12.
 		if exact {
 			r0, r1, x1, stockY = 13, 15, 24, 22
@@ -92,7 +93,7 @@ func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 		s := State{LengthUnit: .001, Features: map[string]Feature{
 			"stock": {Kind: BoxFeature, Max: geom.Vec3{X: 50, Y: stockY, Z: 6}},
 			"cut": {Kind: SideOpenDualDiskCutFeature, Input: "stock", SideOpenDualDisk: &SideOpenDualDiskRecipe{
-				U: geom.Vec3{X: 1}, Inward: geom.Vec3{Z: 1}, Depth: 3, ExactWalls: exact,
+				U: geom.Vec3{X: 1}, Inward: geom.Vec3{Z: 1}, Depth: 3, ExactWalls: allow,
 				Discs: [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: r0}, {Center: geom.Vec2{X: x1}, Radius: r1}},
 			}},
 		}, Nodes: map[string]Node{"cut": {Asset: "cut", Transform: geom.Identity()}}}
@@ -109,7 +110,7 @@ func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 			t.Fatal(e)
 		}
 		ss, _ := loaded.Snapshot()
-		if ss.Features["cut"].SideOpenDualDisk.ExactWalls != exact {
+		if ss.Features["cut"].SideOpenDualDisk.ExactWalls != allow {
 			t.Fatal("document lost explicit nonbinary wall policy")
 		}
 		built, e := ss.EvaluateFeatures(ctx)
@@ -132,6 +133,10 @@ func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
 		if exact {
 			if !bytes.Contains(out.Bytes(), []byte("PRODUCT('side-cut-exact-walls'")) {
 				t.Fatal("exact wall occurrence did not use the registered STEP product")
+			}
+			p, e := step.ReadExactWallSideOpenDualDiskProduct(ctx, bytes.NewReader(out.Bytes()), step.Limits{}, 1e-9)
+			if e != nil || p.RadicalSide != step.ExternalRadicalLeft || p.SourceWallFaces[0] == 0 || p.SourceWallFaces[1] == 0 || p.SourceFloorFace == 0 {
+				t.Fatal("exact wall occurrence did not round trip with original support lineage", p.RadicalSide, p.SourceWallFaces, p.SourceFloorFace, e)
 			}
 			if _, e = step.ReadGeneralSideOpenDualDiskProduct(ctx, bytes.NewReader(out.Bytes()), step.Limits{}, 1e-9); e == nil {
 				t.Fatal("ordinary float-wall reader admitted the exact-wall dialect")

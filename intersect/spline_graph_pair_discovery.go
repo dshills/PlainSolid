@@ -37,11 +37,11 @@ func discoverGraphPairTubes(ctx context.Context, a, b Patch, p geom.SurfacePatch
 	if o.MaxArcs < 1 || o.MaxArcs > 4096 || o.MaxTubes < 1 || o.MaxTubes > 4096 || len(o.UCuts)+len(o.VCuts) > 64 || o.Tubes.MaxOperations < 0 || (o.Tubes.MaxCoefficientBits != 0 && o.Tubes.MaxCoefficientBits < 64) {
 		return out, geom.ErrInvalid
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return out, e
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return out, e
 	}

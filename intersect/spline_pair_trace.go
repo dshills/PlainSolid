@@ -57,6 +57,7 @@ type SplinePairTrace struct {
 // Fully coincident charts have a separate mapping proof; since they do not
 // form a finite curve set, they still return ErrUnresolved. Tangent, partially
 // coincident, overlapping and ambiguous branches remain unresolved.
+// Patch supports may be B-splines or exact positive homogeneous Bézier adapters.
 func TraceSplinePair(ctx context.Context, a, b Patch, o SplinePairTraceOptions) (SplinePairTrace, error) {
 	var r SplinePairTrace
 	if o.MaxTopologyPairs == 0 {

@@ -19,11 +19,7 @@ func DiscoverProjectedAffineGraphPairTubes(ctx context.Context, a, b Patch, p ge
 	}
 	pair := [2]Patch{a, b}
 	for i := range pair {
-		s, ok := pair[i].Surface.(*geom.BSplineSurface)
-		if !ok {
-			return out, geom.ErrInvalid
-		}
-		permuted, e := s.PermutedModelAxes([3]int{axes[0], axes[1], 3 - axes[0] - axes[1]})
+		permuted, e := permuteSplineSupport(pair[i].Surface, [3]int{axes[0], axes[1], 3 - axes[0] - axes[1]}, p)
 		if e != nil {
 			return out, e
 		}
@@ -33,11 +29,11 @@ func DiscoverProjectedAffineGraphPairTubes(ctx context.Context, a, b Patch, p ge
 	if e != nil {
 		return out, e
 	}
-	pa, e := exactCoincidencePatch(a, p)
+	pa, e := exactSplinePatch(a, p)
 	if e != nil {
 		return out, e
 	}
-	pb, e := exactCoincidencePatch(b, p)
+	pb, e := exactSplinePatch(b, p)
 	if e != nil {
 		return out, e
 	}

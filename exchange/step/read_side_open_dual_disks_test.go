@@ -37,7 +37,7 @@ func TestReadSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 
-func sideDiskMutateSource(t *testing.T, raw []byte, edit func(*File)) []byte {
+func sideDiskMutateSource(t testing.TB, raw []byte, edit func(*File)) []byte {
 	t.Helper()
 	f, e := Parse(bytes.NewReader(raw), Limits{})
 	if e != nil {

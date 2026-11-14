@@ -135,6 +135,20 @@ func TestSideOpenDualDiskApplicationTolerances(t *testing.T) {
 func checkDualDiskSegmentVolume(t *testing.T, r CertifiedSideOpenDualDiskMesh, depth float64) *big.Rat {
 	t.Helper()
 	exactVolume := new(big.Rat)
+	walls := 0
+	for _, face := range r.Network.Faces {
+		if face.RectangularGrid {
+			walls++
+			for _, uv := range face.ExactUV {
+				if uv[1].Sign() != 0 && uv[1].Cmp(big.NewRat(1, 1)) != 0 {
+					t.Fatal("mass fixture requires two axial rim rows")
+				}
+			}
+		}
+	}
+	if walls != 2 {
+		t.Fatal("mass fixture circular wall ownership", walls)
+	}
 	for _, face := range r.Network.Faces {
 		for _, tri := range face.Mesh.Triangles {
 			a, b, c := face.ExactPoints[tri[0]], face.ExactPoints[tri[1]], face.ExactPoints[tri[2]]
