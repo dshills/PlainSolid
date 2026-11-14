@@ -10,9 +10,10 @@ import (
 // General proof retains finite original face loops. It is never substituted for
 // a convex proof in existing halfspace-based APIs.
 type hierarchyGeneralPlanarFace struct {
-	plane hierarchyPlanarFace
-	loops [][]int
-	drop  int
+	plane    hierarchyPlanarFace
+	loops    [][]int
+	boundIDs []int64
+	drop     int
 }
 type hierarchyGeneralPlanarProof struct {
 	base  *hierarchyConvexPlanarProof
@@ -198,6 +199,7 @@ func prepareHierarchyGeneralPlanar(ctx context.Context, p IndependentExactMateri
 				return nil, geom.ErrInvalid
 			}
 			gf.loops = append(gf.loops, ids)
+			gf.boundIDs = append(gf.boundIDs, bounds[matched])
 		}
 		base.planes = append(base.planes, plane)
 		out.faces = append(out.faces, gf)
