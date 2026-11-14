@@ -45,6 +45,17 @@ func (q FilletedFrustumOccurrence) BoundBoundaryBoreDistanceRational(ctx context
 	if e != nil {
 		return out, e
 	}
+	return q.transformFilletedBoreDistance(ctx, original)
+}
+
+// transformFilletedBoreDistance reuses the completed source query.
+func (q FilletedFrustumOccurrence) transformFilletedBoreDistance(ctx context.Context, original FilletedFrustumBoreDistance) (out FilletedFrustumOccurrenceBoreDistance, err error) {
+	defer func() {
+		if err != nil {
+			out = FilletedFrustumOccurrenceBoreDistance{}
+		}
+	}()
+	var e error
 	out.Original = original
 	out.Lower = new(big.Rat).Set(original.Lower)
 	out.Upper = new(big.Rat).Set(original.Upper)
