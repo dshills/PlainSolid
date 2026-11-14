@@ -34,3 +34,10 @@ are merged at 1e-8; comparison tolerance is 3e-7, not an exact OCCT claim.
 Observed reference values: stock volume 2301.2509568979344, area
 1151.2281711040541; mixed volume 2292.6115771005625, area
 1184.2148939667472. The optional test skips without its environment variable.
+
+The local verification used the previously built OCCT libraries corresponding
+to `/tmp/plainsolid-occt-4dbfdcc.tar.gz`; its independently inspected archive
+root is `OCCT-4dbfdcc448c0b3e565488afcd626c84483172db9/`. The source checkout is
+an extracted archive, not a Git clone. Area and volume comparisons allow
+3e-7 relative error, centroid comparisons 3e-7 model units; exact Go roots
+are enclosed to parameter width 1e-9 before the reference comparison.
