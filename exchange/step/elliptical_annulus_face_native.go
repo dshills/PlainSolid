@@ -23,12 +23,15 @@ type ellipticalAnnulusNative struct {
 }
 
 func ellipticalAnnulusNativeData(f EllipticalAnnulusFace) (ellipticalAnnulusNative, error) {
+	return ellipticalAnnulusNativeDataAt(f, geom.Vec2{X: f.InnerMajorRadius})
+}
+func ellipticalAnnulusNativeDataAt(f EllipticalAnnulusFace, start geom.Vec2) (ellipticalAnnulusNative, error) {
 	if len(f.Face.Holes) != 1 || len(f.Face.Holes[0]) != 1 {
 		return ellipticalAnnulusNative{}, ellipticalAnnulusFailure()
 	}
 	u := f.Face.Holes[0][0]
 	uv, ok := u.Curve.(trimmed.EllipseUV)
-	if !ok || u.Edge != 1 || !u.Reversed || u.UVStart != (geom.Vec2{X: f.InnerMajorRadius}) || u.UVEnd != u.UVStart {
+	if !ok || u.Edge != 1 || !u.Reversed || u.UVStart != start || u.UVEnd != u.UVStart {
 		return ellipticalAnnulusNative{}, ellipticalAnnulusFailure()
 	}
 	outer := f.EllipticalDiskFace

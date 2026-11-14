@@ -29,6 +29,9 @@ func ellipticalAnnulusFailure() error {
 // including opposite FACE_BOUND senses, independent model/pcurve pairs and
 // strictly contained aligned ellipses. All geometric coefficients are exact.
 func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, error) {
+	return readEllipticalAnnulusFace(r, l, nil)
+}
+func readEllipticalAnnulusFace(r io.Reader, l Limits, eccentric *EccentricEllipseClearance) (EllipticalAnnulusFace, error) {
 	fail := func() (EllipticalAnnulusFace, error) { return EllipticalAnnulusFace{}, ellipticalAnnulusFailure() }
 	if r == nil {
 		return fail()
@@ -146,7 +149,7 @@ func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, er
 		return fail()
 	}
 	innerFrame, e := mappedExactFrame(f, innerFrameID)
-	if e != nil || innerFrame != frame {
+	if e != nil || (eccentric == nil && innerFrame != frame) {
 		return fail()
 	}
 	ia, e := cylinderSupportNumber(inner.Args[2])
@@ -154,8 +157,18 @@ func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, er
 		return fail()
 	}
 	ib, e := cylinderSupportNumber(inner.Args[3])
-	if e != nil || ib <= 0 || ia <= ib || ia >= a || ib >= b {
+	if e != nil || ib <= 0 || ia <= ib || (eccentric == nil && (ia >= a || ib >= b)) {
 		return fail()
+	}
+	var uvCenter, uvReference geom.Vec2
+	uvReference.X = 1
+	if eccentric != nil {
+		proof, err := eccentricEllipseClearance(frame, innerFrame, a, b, ia, ib)
+		if err != nil {
+			return fail()
+		}
+		*eccentric = proof
+		uvCenter, uvReference = proof.Center, proof.Reference
 	}
 	var buf bytes.Buffer
 	analyticSupportHeader(&buf)
@@ -178,11 +191,21 @@ func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, er
 		en.Records[0].Args[1].Items = []Value{number(v.X), number(v.Y), number(v.Z)}
 		want.Entities[id] = en
 	}
-	for _, ids := range [][3]int64{{27, 28, 29}, {33, 34, 35}, {51, 52, 53}} {
+	for _, ids := range [][3]int64{{27, 28, 29}, {33, 34, 35}} {
 		setVec(ids[0], frame.Origin())
 		setVec(ids[1], frame.ZAxis())
 		setVec(ids[2], frame.XAxis())
 	}
+	setVec(51, innerFrame.Origin())
+	setVec(52, innerFrame.ZAxis())
+	setVec(53, innerFrame.XAxis())
+	set2 := func(id int64, p geom.Vec2) {
+		en := want.Entities[id]
+		en.Records[0].Args[1].Items = []Value{number(p.X), number(p.Y)}
+		want.Entities[id] = en
+	}
+	set2(58, uvCenter)
+	set2(59, uvReference)
 	for _, id := range []int64{25, 37} {
 		en := want.Entities[id]
 		en.Records[0].Args[2] = mr.Args[2]
@@ -209,6 +232,8 @@ func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, er
 	}
 	vertex := geom.Vec3{X: v[0], Y: v[1], Z: v[2]}
 	setVec(23, vertex)
+	oo = []float64{innerFrame.Origin().X, innerFrame.Origin().Y, innerFrame.Origin().Z}
+	xx = []float64{innerFrame.XAxis().X, innerFrame.XAxis().Y, innerFrame.XAxis().Z}
 	for i := range 3 {
 		q := new(big.Rat).Add(new(big.Rat).SetFloat64(oo[i]), new(big.Rat).Mul(new(big.Rat).SetFloat64(ia), new(big.Rat).SetFloat64(xx[i])))
 		var exact bool
@@ -241,12 +266,17 @@ func ReadEllipticalAnnulusFace(r io.Reader, l Limits) (EllipticalAnnulusFace, er
 	}
 	uv := trimmed.EllipseUV{Cos: geom.Vec2{X: a}, Sin: geom.Vec2{Y: b}, To: 2 * math.Pi}
 	face := trimmed.Face{Surface: plane, Outer: []trimmed.Use{{Edge: 0, UVStart: geom.Vec2{X: a}, UVEnd: geom.Vec2{X: a}, Curve: uv}}}
-	innerCurve, e := geom.NewEllipse(frame, ia, ib)
+	innerCurve, e := geom.NewEllipse(innerFrame, ia, ib)
 	if e != nil {
 		return fail()
 	}
-	hole := trimmed.EllipseUV{Cos: geom.Vec2{X: ia}, Sin: geom.Vec2{Y: ib}, From: 2 * math.Pi}
-	face.Holes = [][]trimmed.Use{{{Edge: 1, Reversed: true, UVStart: geom.Vec2{X: ia}, UVEnd: geom.Vec2{X: ia}, Curve: hole}}}
+	hole := trimmed.EllipseUV{Center: uvCenter, Cos: geom.Vec2{X: ia * uvReference.X, Y: ia * uvReference.Y}, Sin: geom.Vec2{X: -ib * uvReference.Y, Y: ib * uvReference.X}, From: 2 * math.Pi}
+	start, e := eccentricUVStart(uvCenter, hole.Cos)
+	if e != nil {
+		return fail()
+	}
+	face.Holes = [][]trimmed.Use{{{Edge: 1, Reversed: true, UVStart: start, UVEnd: start, Curve: hole}}}
+
 	return EllipticalAnnulusFace{EllipticalDiskFace: EllipticalDiskFace{Name: pr.Args[1].Text, Face: face, Boundary: boundary, Vertex: vertex, MajorRadius: a, MinorRadius: b, LengthUnit: unit, Source: f, SourceFaceID: mapping[17], SourceEdgeID: mapping[21], SourceVertexID: mapping[22], SourcePCurveID: mapping[30], SourceModelCurveID: mid, SourcePlaneID: mapping[31]}, InnerBoundary: innerCurve, InnerVertex: innerVertex, InnerMajorRadius: ia, InnerMinorRadius: ib, SourceInnerBoundID: mapping[42], SourceInnerEdgeID: mapping[45], SourceInnerVertexID: mapping[46], SourceInnerPCurveID: mapping[54], SourceInnerModelCurveID: innerID}, nil
 }
 
