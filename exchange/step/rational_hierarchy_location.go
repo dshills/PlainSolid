@@ -44,14 +44,16 @@ func (p RationalHierarchyPointLeaf) AnalyticCoordinates() [3]*big.Rat {
 // RationalHierarchyPointLocations has no union or first-hit interpretation.
 // Coincident or overlapping occurrences remain separate, in source path order.
 type RationalHierarchyPointLocations struct {
-	Leaves      []RationalHierarchyPointLeaf
-	LengthUnit  float64
-	PlanarTests int
+	Leaves        []RationalHierarchyPointLeaf
+	LengthUnit    float64
+	PlanarTests   int
+	RayDirections int
 }
 type RationalHierarchyPointOptions struct {
 	MaxCoefficientBits int
 	MaxPlanarTests     int
 	Source             Limits
+	MaxRayDirections   int
 }
 
 func LocateRationalHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
@@ -134,6 +136,14 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 	if !reflect.DeepEqual(actual, expected) || !reflect.DeepEqual(c, d) {
 		return bad(geom.ErrInvalid)
 	}
+	generalPlanar := len(planarMode) > 1 && planarMode[1]
+	if o.MaxRayDirections == 0 {
+		o.MaxRayDirections = 64
+	}
+	if o.MaxRayDirections < 1 || o.MaxRayDirections > 4096 {
+		return bad(geom.ErrInvalid)
+	}
+	generalPrepared := map[int64]*hierarchyGeneralPlanarProof{}
 	includePlanar := len(planarMode) > 0 && planarMode[0]
 	if o.MaxPlanarTests == 0 {
 		o.MaxPlanarTests = 65536
@@ -188,6 +198,31 @@ func locateHierarchyAnalyticPoint(ctx context.Context, m RationalSphericalHierar
 			major = new(big.Rat).SetFloat64(p.Torus.MajorRadius)
 		case p.Planar != nil:
 			v.Family = "planar"
+			if generalPlanar {
+				cert, ok := generalPrepared[u.ProductID]
+				if !ok {
+					cert, e = prepareHierarchyGeneralPlanar(ctx, p, v.SourceFaceIDs, &a, tick)
+					if e != nil {
+						return bad(e)
+					}
+					generalPrepared[u.ProductID] = cert
+				}
+				v.product = a.inverse(point, u.pose.Origin, [3][3]*big.Rat{u.pose.X, u.pose.Y, u.pose.Z})
+				if a.err != nil {
+					return bad(a.err)
+				}
+				var attempts int
+				v.Location, v.ContactFaceIDs, v.ContactEdgeIDs, v.ContactVertexIDs, attempts, e = cert.classify(v.product, &a, tick, o.MaxRayDirections-out.RayDirections)
+				out.RayDirections += attempts
+				if e != nil {
+					return bad(e)
+				}
+				if v.Location == AnalyticPointBoundary {
+					v.BoundaryRoles = []string{"planar-face"}
+				}
+				out.Leaves = append(out.Leaves, v)
+				continue
+			}
 			if includePlanar {
 				cert, ok := prepared[u.ProductID]
 				if !ok {
@@ -288,4 +323,14 @@ func LocateRationalHierarchyPoint(ctx context.Context, m RationalSphericalHierar
 }
 func LocateOCCTRationalHierarchyPoint(ctx context.Context, m OCCTRationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
 	return locateHierarchyAnalyticPoint(ctx, RationalSphericalHierarchy(m), point, o, true, true)
+}
+
+// LocateGeneralRationalHierarchyPoint adds source-authenticated nonconvex and
+// holed planar boundaries to the separately qualified point mode. Exact generic
+// ray parity is used only after complete original embedding reproof.
+func LocateGeneralRationalHierarchyPoint(ctx context.Context, m RationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
+	return locateHierarchyAnalyticPoint(ctx, m, point, o, false, true, true)
+}
+func LocateGeneralOCCTRationalHierarchyPoint(ctx context.Context, m OCCTRationalSphericalHierarchy, point [3]*big.Rat, o RationalHierarchyPointOptions) (RationalHierarchyPointLocations, error) {
+	return locateHierarchyAnalyticPoint(ctx, RationalSphericalHierarchy(m), point, o, true, true, true)
 }
