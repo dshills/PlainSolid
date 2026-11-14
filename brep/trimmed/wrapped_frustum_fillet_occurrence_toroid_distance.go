@@ -51,6 +51,17 @@ func (q FilletedFrustumOccurrence) BoundBoundaryToroidDistanceRational(ctx conte
 	if e != nil {
 		return out, e
 	}
+	return q.transformFilletedToroidDistance(ctx, original)
+}
+
+// Transform one already-proved source result, preserving its work accounting.
+func (q FilletedFrustumOccurrence) transformFilletedToroidDistance(ctx context.Context, original FilletedFrustumToroidDistance) (out FilletedFrustumOccurrenceToroidDistance, err error) {
+	defer func() {
+		if err != nil {
+			out = FilletedFrustumOccurrenceToroidDistance{}
+		}
+	}()
+	var e error
 	out.Original = original
 	out.Lower = new(big.Rat).Set(original.Lower)
 	out.Upper = new(big.Rat).Set(original.Upper)
