@@ -265,3 +265,34 @@ from [51.9785482,52.6093492] to [52.2846544,52.4366131], containing independent
 original quotient-rule integration 52.38293785. The latter uses 2048 wall cells,
 64 profile segments and 2442503 charged operations. A constant rectangle cell
 is enclosed exactly. These are boundary-area certificates, not mesh measures.
+
+## Strict anisotropic through bore
+
+`CutWrappedAnisotropicStationLofts` removes a complete inner source loft from a
+complete outer source with the same exact center/end planes and proportional
+original normalized quadrant weights. Independent station grids and X/Y scales
+are accepted. In each positive-weight canonical quadrant, the profile's positive
+X magnitude decreases strictly and Y increases strictly; its enclosed quadrant
+is coordinatewise downward-closed. Therefore strict independent diagonal scale
+contraction places the entire inner profile strictly inside the outer one.
+Both scale gaps are checked exactly at every station in the merged partition;
+affinity proves them over every intervening interval. Contacts, crossings,
+different normalized profiles and nonmatching ends/centers reject.
+
+Actual original wrapped supports and edge/coedge curves are retained. Inner
+walls reverse orientation; the two original outer caps receive real reversed
+inner loops. Exact trim-loop, edge agreement and genus-one closed topology
+validation remain mandatory. No source wall subdivision or approximate welding
+is used. `ValidateWrappedAnisotropicStationBore` reconstructs and rechecks the
+original source families after native reload, mapping actual result face IDs.
+Its positive minimum scale gaps are not Euclidean-distance certificates.
+
+`LocateWrappedAnisotropicStationBoreRational` uses the authenticated source
+classifiers with one shared point-work allowance. Reconstructed inner cap disks
+are openings, not exposed material. Source authentication retains its existing
+bounded per-pass quotas. The positive independently numbered source fixture has
+outer stations 0/1/3 and inner 0/2/3, six faces, two annular loops and Euler 0.
+Native integration volume 21.52961182634816 matches independent original-profile
+area times 217/32. Tests include deterministic reload, material/opening/rim probes,
+wrong inward ownership, tangency, profile mismatch, limits and a protrusion
+visible only at an inner-only station.

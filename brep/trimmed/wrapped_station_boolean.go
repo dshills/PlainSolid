@@ -279,9 +279,15 @@ func combineCoaxialWrappedStationLofts(ctx context.Context, a, b Solid, op param
 
 func joinWrappedStationLoftBore(ctx context.Context, a, b Solid, x, y WrappedStationLoftProof,
 	o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
+	return joinProvedWrappedStationLoftBore(ctx, a, b, x.History, y.History, x.Heights, y.Heights, o)
+}
+
+// The caller proves strict whole-height nesting; this core only transfers
+// original supports/coedges and independently validates the annular topology.
+func joinProvedWrappedStationLoftBore(ctx context.Context, a, b Solid, x, y WrappedLoftHistory, xz, yz []*big.Rat, o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
 	var history WrappedStationBooleanHistory
-	history.SourceCaps = [2][2]int{x.History.CapFaces, y.History.CapFaces}
-	history.ResultCaps = x.History.CapFaces
+	history.SourceCaps = [2][2]int{x.CapFaces, y.CapFaces}
+	history.ResultCaps = x.CapFaces
 	history.CapSources = [2][2]bool{{true, true}, {true, true}}
 	v := append(a.Vertices(), b.vertices...)
 	edges := a.Edges()
@@ -292,26 +298,26 @@ func joinWrappedStationLoftBore(ctx context.Context, a, b Solid, x, y WrappedSta
 		edges = append(edges, e)
 	}
 	faces := a.Faces()
-	for i, id := range x.History.WallFaces {
+	for i, id := range x.WallFaces {
 		history.Bands = append(history.Bands, WrappedStationBooleanBand{
-			LowerZ: new(big.Rat).Set(x.Heights[i]), UpperZ: new(big.Rat).Set(x.Heights[i+1]),
+			LowerZ: new(big.Rat).Set(xz[i]), UpperZ: new(big.Rat).Set(xz[i+1]),
 			SourceWalls: [2]int{id, -1}, ResultWall: id, BasisPreserved: true,
 		})
 	}
-	for i, id := range y.History.WallFaces {
+	for i, id := range y.WallFaces {
 		wall := cloneFace(b.faces[id])
 		wall.Reversed = !wall.Reversed
 		for j := range wall.Outer {
 			wall.Outer[j].Edge += offset
 		}
 		history.InnerBands = append(history.InnerBands, WrappedStationBooleanBand{
-			LowerZ: new(big.Rat).Set(y.Heights[i]), UpperZ: new(big.Rat).Set(y.Heights[i+1]),
+			LowerZ: new(big.Rat).Set(yz[i]), UpperZ: new(big.Rat).Set(yz[i+1]),
 			SourceWalls: [2]int{-1, id}, ResultWall: len(faces), BasisPreserved: true,
 		})
 		faces = append(faces, wall)
 	}
-	for i, id := range x.History.CapFaces {
-		inner := b.faces[y.History.CapFaces[i]].Outer
+	for i, id := range x.CapFaces {
+		inner := b.faces[y.CapFaces[i]].Outer
 		hole := make([]Use, len(inner))
 		for j, u := range inner {
 			hole[len(inner)-1-j] = Use{Edge: u.Edge + offset, Reversed: !u.Reversed,
