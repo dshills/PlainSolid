@@ -1,5 +1,35 @@
 # Verification record
 
+## PlainCAD Circle Trim half-disk STEP exchange — 2026-11-14
+
+The exact half-disk produced by the original XY Circle Trim workflow
+retains its two circular rim arcs and planar diameter face through STEP.
+The importer verifies the complete native graph before restoring the
+analytic extrusion. Signed height, reflected section placement and a
+representable non-millimeter source pass native bridge checks.
+
+[Seven original curved-sketch and STEP cases](evidence/plaincad-semicircle-step-browser-2026-11-14.json)
+and an [extension of the original Circle Trim workflow](evidence/plaincad-semicircle-step-native-2026-11-14.json)
+pass on the same WASM. The 9,185-byte STEP reimports and reopens. The
+imported STL has 256 watertight triangles. Twelve independent OCCT
+placements, authored STEP measures, malformed-graph rejection,
+focused race tests and Go vet pass.
+
+## PlainCAD Arc Extend quarter-sector STEP exchange — 2026-11-14
+
+The exact quarter-sector produced by the original YZ Arc Extend workflow
+round-trips its analytic cylindrical wall and circular edges. The retained
+recipe supports signed cardinal placement, clockwise authored order and
+negative extrusion. The importer verifies the complete regenerated graph.
+
+[Seven original curved-sketch and STEP cases](evidence/plaincad-quarter-sector-step-browser-2026-11-14.json)
+and an [extension of the original Arc Extend workflow](evidence/plaincad-quarter-sector-step-native-2026-11-14.json)
+pass on the same WASM. The 8,992-byte STEP reimports and reopens after
+the authored edit and Undo/Redo. The imported STL has 132 watertight
+triangles. Twenty-four independent OCCT placements, the authored STEP
+measurements, malformed graph rejection, focused race and Go vet pass.
+The representable non-millimeter bridge fixture also passes.
+
 ## PlainCAD multiple finite floors in a three-Hole crossing — 2026-11-14
 
 Two or three concurrent cardinal cutters can retain their complete blind
@@ -15,6 +45,13 @@ Ray checks identify all three retained floor positions in a watertight
 588-triangle STL. Thirty-two independent OCCT STEP comparisons, four
 translated decimal-depth round-trips, grouped and successive native
 cuts, focused race tests, and Go vet pass.
+
+The [recut follow-up](evidence/plaincad-multi-floor-recut-2026-11-14.json)
+reopens that STEP in PlainCAD, extends the X blind Hole from 30.5 mm to
+34 mm, and exports the new STEP. The 588-triangle STL retains the new
+and both unmodified floors. Native coverage also opens X through the
+opposite cap and compares STEP byte-for-byte with a fresh cut. Independent
+OCCT measures and the focused race tests pass.
 
 ## Full PlainCAD provider rerun on kernel 65441a2d — 2026-11-14
 
