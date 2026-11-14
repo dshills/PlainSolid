@@ -12,6 +12,10 @@ import (
 )
 
 func transverseSplineCaps(t *testing.T) (Solid, Solid, intersect.SplineSeedReport) {
+	return transverseSplineCapsDomain(t, false)
+}
+
+func transverseSplineCapsDomain(t *testing.T, unit bool) (Solid, Solid, intersect.SplineSeedReport) {
 	t.Helper()
 	ctx := context.Background()
 	const radius = 5.0 / 16
@@ -80,7 +84,11 @@ func transverseSplineCaps(t *testing.T) (Solid, Solid, intersect.SplineSeedRepor
 		return s, surfaces[0]
 	}
 	a, aFace := build(0, 1, 0, false)
-	b, bFace := build(.125, .875, -.5, true)
+	lo, hi, bottom := .125, .875, -.5
+	if unit {
+		lo, hi, bottom = 0, 1, -2
+	}
+	b, bFace := build(lo, hi, bottom, true)
 	pa, _ := geom.NewSurfacePatch(aFace, geom.SurfacePatchOptions{})
 	pb, _ := geom.NewSurfacePatch(bFace, geom.SurfacePatchOptions{})
 	var hints intersect.SplineSeedReport

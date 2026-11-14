@@ -21,7 +21,41 @@ import (
 // retain 128 pieces per ring. Broader native serialization is not implied, and
 // existing persistence limits remain unchanged.
 func (s AlgebraicShellBoolean) NativeTubeRegionComponents(ctx context.Context, tolerance float64, o edgecheck.Options) ([]Solid, error) {
-	if ctx == nil || s.source == nil || tolerance <= 0 || !finite(tolerance) {
+	if tolerance <= 0 || !finite(tolerance) {
+		return nil, geom.ErrInvalid
+	}
+	layouts, e := s.nativeTubeRegions(ctx)
+	if e != nil {
+		return nil, e
+	}
+	var result []Solid
+	for _, layout := range layouts {
+		var rings []tubeRegionSolidRing
+		for i, branch := range layout.Branches {
+			ring, e := s.nativeWholeTubeRingBounded(ctx, branch, layout.Uses[i], 256)
+			if e != nil {
+				return nil, e
+			}
+			rings = append(rings, ring)
+		}
+		component, e := assembleTubeRegionSolidBounded(ctx, layout.Faces, rings, tolerance, o, 256)
+		if e != nil {
+			return nil, fmt.Errorf("trimmed: tube region outer branch %d: %w", layout.Branches[0], e)
+		}
+		result = append(result, component)
+	}
+	return result, nil
+}
+
+type nativeTubeRegionLayout struct {
+	Owners   [2]int
+	Faces    [2]Face
+	Branches []int // outer then original-branch-ordered holes
+	Uses     [][2][]AlgebraicShellBooleanUse
+}
+
+func (s AlgebraicShellBoolean) nativeTubeRegions(ctx context.Context) ([]nativeTubeRegionLayout, error) {
+	if ctx == nil || s.source == nil {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -93,7 +127,7 @@ func (s AlgebraicShellBoolean) NativeTubeRegionComponents(ctx context.Context, t
 		}
 	}
 	used := make([]bool, len(owners))
-	var result []Solid
+	var result []nativeTubeRegionLayout
 	for outer, ids := range owners {
 		if ids == [2]int{-1, -1} {
 			continue
@@ -119,11 +153,11 @@ func (s AlgebraicShellBoolean) NativeTubeRegionComponents(ctx context.Context, t
 			faces[operand] = Face{Surface: orig.Surface, Reversed: f.Reversed}
 			loops[operand] = f.Outer
 		}
-		ring, e := s.nativeWholeTubeRingBounded(ctx, outer, loops, 256)
+		_, e := s.nativeWholeTubeRingOrder(ctx, outer, loops, 256)
 		if e != nil {
 			return nil, e
 		}
-		rings := []tubeRegionSolidRing{ring}
+		component := nativeTubeRegionLayout{Owners: ids, Faces: faces, Branches: []int{outer}, Uses: [][2][]AlgebraicShellBooleanUse{loops}}
 		used[outer] = true
 		for h := range owners {
 			left, has := holes[ids[0]][h]
@@ -134,16 +168,13 @@ func (s AlgebraicShellBoolean) NativeTubeRegionComponents(ctx context.Context, t
 			if !has || used[h] || owners[h] != [2]int{-1, -1} || s.source.branches[h].Faces != pair {
 				return nil, geom.ErrConvergence
 			}
-			ring, e := s.nativeWholeTubeRingBounded(ctx, h, [2][]AlgebraicShellBooleanUse{left, right}, 256)
+			_, e := s.nativeWholeTubeRingOrder(ctx, h, [2][]AlgebraicShellBooleanUse{left, right}, 256)
 			if e != nil {
 				return nil, e
 			}
-			rings = append(rings, ring)
+			component.Branches = append(component.Branches, h)
+			component.Uses = append(component.Uses, [2][]AlgebraicShellBooleanUse{left, right})
 			used[h] = true
-		}
-		component, e := assembleTubeRegionSolidBounded(ctx, faces, rings, tolerance, o, 256)
-		if e != nil {
-			return nil, fmt.Errorf("trimmed: tube region outer branch %d: %w", outer, e)
 		}
 		result = append(result, component)
 	}

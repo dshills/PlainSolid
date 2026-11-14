@@ -159,37 +159,11 @@ func (s AlgebraicShellBoolean) nativeWholeTubeRing(ctx context.Context, branch i
 }
 
 func (s AlgebraicShellBoolean) nativeWholeTubeRingBounded(ctx context.Context, branch int, uses [2][]AlgebraicShellBooleanUse, maxPieces int) (tubeRegionSolidRing, error) {
-	if maxPieces < 3 || maxPieces > 256 {
-		return tubeRegionSolidRing{}, geom.ErrInvalid
+	ring, e := s.nativeWholeTubeRingOrder(ctx, branch, uses, maxPieces)
+	if e != nil {
+		return tubeRegionSolidRing{}, e
 	}
-	var ring tubeRegionSolidRing
 	b := s.source.branches[branch]
-	n := len(b.Segments)
-	if !b.Closed || n < 3 || n > maxPieces || len(uses[0]) != n || len(uses[1]) != n {
-		return ring, geom.ErrConvergence
-	}
-	for i, row := range uses {
-		reverse := row[0].Reversed
-		ring.reversed[i] = reverse
-		first := -1
-		for j, u := range row {
-			edge := s.index[u.Edge]
-			if edge.OriginalSubdivisionEdge >= 0 || edge.SectionPiece < 0 || u.Reversed != reverse {
-				return tubeRegionSolidRing{}, geom.ErrConvergence
-			}
-			piece := s.parts[0].Section[edge.SectionPiece]
-			if j == 0 {
-				first = piece.Index
-			}
-			want := (first + j) % n
-			if reverse {
-				want = (first + n - j) % n
-			}
-			if piece.Branch != branch || piece.Reversed || piece.Index != want {
-				return tubeRegionSolidRing{}, geom.ErrConvergence
-			}
-		}
-	}
 	for i, piece := range b.Segments {
 		if e := ctx.Err(); e != nil {
 			return tubeRegionSolidRing{}, e
@@ -213,6 +187,52 @@ func (s AlgebraicShellBoolean) nativeWholeTubeRingBounded(ctx context.Context, b
 			}
 		}
 		ring.cut = append(ring.cut, x)
+	}
+	return ring, nil
+}
+
+// nativeWholeTubeRingOrder rechecks original closed-wire incidence without
+// constructing endpoint representatives or native curves.
+func (s AlgebraicShellBoolean) nativeWholeTubeRingOrder(ctx context.Context, branch int, uses [2][]AlgebraicShellBooleanUse, maxPieces int) (tubeRegionSolidRing, error) {
+	if ctx == nil || s.source == nil || branch < 0 || branch >= len(s.source.branches) {
+		return tubeRegionSolidRing{}, geom.ErrInvalid
+	}
+	if maxPieces < 3 || maxPieces > 256 {
+		return tubeRegionSolidRing{}, geom.ErrInvalid
+	}
+	var ring tubeRegionSolidRing
+	b := s.source.branches[branch]
+	n := len(b.Segments)
+	if !b.Closed || n < 3 || n > maxPieces || len(uses[0]) != n || len(uses[1]) != n {
+		return ring, geom.ErrConvergence
+	}
+	for i, row := range uses {
+		reverse := row[0].Reversed
+		ring.reversed[i] = reverse
+		first := -1
+		for j, u := range row {
+			if e := ctx.Err(); e != nil {
+				return tubeRegionSolidRing{}, e
+			}
+			if u.Edge < 0 || u.Edge >= len(s.index) {
+				return tubeRegionSolidRing{}, geom.ErrInvalid
+			}
+			edge := s.index[u.Edge]
+			if edge.OriginalSubdivisionEdge >= 0 || edge.SectionPiece < 0 || edge.SectionPiece >= len(s.parts[0].Section) || u.Reversed != reverse {
+				return tubeRegionSolidRing{}, geom.ErrConvergence
+			}
+			piece := s.parts[0].Section[edge.SectionPiece]
+			if j == 0 {
+				first = piece.Index
+			}
+			want := (first + j) % n
+			if reverse {
+				want = (first + n - j) % n
+			}
+			if piece.Branch != branch || piece.Reversed || piece.Index < 0 || piece.Index >= n || piece.Index != want {
+				return tubeRegionSolidRing{}, geom.ErrConvergence
+			}
+		}
 	}
 	return ring, nil
 }

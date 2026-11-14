@@ -47,6 +47,14 @@ The native tube adapter also assembles the original triple radial
 intersection as separate disk and annular solids with four original
 faces, 228 retained edges, and two inner wires. Whole original ring
 ownership is required; general algebraic fragment materialization remains open.
+The original disk and annular regions now bind the exact radial band
+integral to their complete wires and outward supports. The total volume
+divided by π is exactly `63333935546875/864691128455135232`; the
+outward volume interval is positive and narrower than `2^-80`.
+For the mixed roof solids, bounded nearest queries search the original
+exposed trims and provide exact rational witnesses, including shared
+seam owners. The distance bounds, rotated centroid, first moments, and
+inertia have separate original OCCT comparisons.
 The same IGES exchange now qualifies exact filled and hollow circular
 prisms and exact 45° conical frusta, with source-bound reload, proper
 signed-axis placement, and authenticated record, vertex, edge, and

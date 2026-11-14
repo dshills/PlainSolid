@@ -161,17 +161,25 @@ func TestAlgebraicShellTripleRadialMaterialComponents(t *testing.T) {
 	if partial, e := common.NativeTubeRegionComponents(cancelled, 1e-7, edgecheck.Options{}); e != context.Canceled || partial != nil {
 		t.Fatal("cancelled native publication", e)
 	}
-	volume, e := common.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 3})
+	volume, e := common.BoundRadialTubeRegionVolume(ctx, [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}, testgraphfixture.TripleRadialRadii(), geom.RadialGraphVolumeOptions{PrecisionBits: 80})
 	if e != nil {
-		t.Fatal("independent original flux enclosure", e)
+		t.Fatal("original radial material bound", e)
 	}
-	lo, _ := volume.Volume.Lower.Float64()
-	hi, _ := volume.Volume.Upper.Float64()
-	want := tripleRadialAnalyticVolume()
-	if !(want > 0) || lo > want || hi < want {
-		t.Fatal("radial integral outside independent original flux enclosure", lo, want, hi)
+	wantCoefficient := big.NewRat(63333935546875, 864691128455135232)
+	if volume.Volume.PiCoefficient.Cmp(wantCoefficient) != 0 || len(volume.Components) != 2 {
+		t.Fatal("original radial coefficient/components", volume)
 	}
-	t.Log("two native components, exact source volume enclosure", lo, hi, "independent analytic", want)
+	if len(volume.Volume.Bands) != 2 || volume.Volume.Bands[0].Band != 0 || volume.Volume.Bands[1].Band != 2 || volume.Volume.Bands[0].PiCoefficient.Cmp(big.NewRat(613935546875, 864691128455135232)) != 0 || volume.Volume.Bands[1].PiCoefficient.Cmp(big.NewRat(478515625, 6597069766656)) != 0 {
+		t.Fatal("disk/annulus source coefficients", volume.Volume.Bands)
+	}
+	width := new(big.Rat).Sub(volume.Volume.Volume.Upper, volume.Volume.Volume.Lower)
+	if volume.Volume.Volume.Lower.Sign() <= 0 || width.Cmp(new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 80))) > 0 {
+		t.Fatal("nonpositive or loose enclosure", width)
+	}
+	lo, _ := volume.Volume.Volume.Lower.Float64()
+	hi, _ := volume.Volume.Volume.Upper.Float64()
+	t.Log("two native components, tight original-source volume enclosure", lo, hi, "exact coefficient", wantCoefficient, "width", width, "work", volume.Volume.ExactOperations)
+
 }
 
 // Integrate the independent radial polynomial with dA=pi*dq. The material
