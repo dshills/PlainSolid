@@ -101,6 +101,28 @@ binds the build, original 841-file source inventory and exact display
 runtime edits. This is an app adaptation result, separate from the earlier
 unchanged viewer result.
 
+## PlainCAD skew perpendicular through Holes — 2026-11-14
+
+Two perpendicular through bores may have different transverse centers.
+This family requires the larger bore to enclose the full transverse width
+of the smaller bore. Both intersection loops retain their analytic
+radical trims. STEP applies the same bounded cubic-spline exchange
+representation and recovers the distinct axes from the actual cylinder
+supports. The writer normalizes signed placements and decimal offsets
+before constructing the canonical STEP graph.
+
+[Seventeen original PlainCAD Hole and STEP cases](evidence/plaincad-skew-step-browser-2026-11-14.json)
+and the [authored offset-axis probe](evidence/plaincad-skew-step-native-2026-11-14.json)
+use the same WASM. The probe verifies a 1 mm axis offset through STEP
+export, reimport, project reopen and watertight STL. The first export
+exceeded the app's 512 KiB import limit. Bounded rounding of interior
+spline controls reduces the same export to 503,220 bytes and leaves
+shared endpoint coordinates intact. Four independent OCCT STEP imports cover signed placements, both radius orders and decimal
+offsets. Native tests check 36 arrangements against independent numerical
+cross-section volume, area and centroid, and check the float32 mesh
+embedding separately. The final race and vet checks are recorded with
+the browser evidence.
+
 ## PlainCAD STEP for unequal-radius crossing Holes — 2026-11-14
 
 STEP preserves the analytic cylindrical and planar supports. Each

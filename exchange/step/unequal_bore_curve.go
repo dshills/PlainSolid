@@ -16,8 +16,9 @@ type differentiatedUV interface {
 }
 
 type unequalBoreSplines struct {
-	model  []geom.Vec3
-	owners [2][]geom.Vec3
+	model   []geom.Vec3
+	owners  [2][]geom.Vec3
+	compact bool
 }
 
 // approximateUnequalBoreEdge is private to native unequal crossed-bore
@@ -25,14 +26,22 @@ type unequalBoreSplines struct {
 func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, surfaces []longEdgeSurface, tolerance float64) (*unequalBoreSplines, error) {
 	first, second := surfaces[adjacent[0].face], surfaces[adjacent[1].face]
 	a, b := min(first.radius, second.radius), max(first.radius, second.radius)
-	if !(a > 0 && b > a) || first.frame.Origin() != second.frame.Origin() || first.frame.ZAxis().Dot(second.frame.ZAxis()) != 0 {
+	if !(a > 0 && b > a) || first.frame.ZAxis().Dot(second.frame.ZAxis()) != 0 {
 		return nil, geom.ErrDomain
 	}
 	small := 0
 	if first.radius > second.radius {
 		small = 1
 	}
-	// For q²=b²-a² the exact-arithmetic Hermite interpolation error
+	delta := first.frame.Origin().Sub(second.frame.Origin())
+	if delta.Dot(first.frame.ZAxis()) != 0 || delta.Dot(second.frame.ZAxis()) != 0 {
+		return nil, geom.ErrDomain
+	}
+	d := delta.Length()
+	if a+d >= b {
+		return nil, geom.ErrDomain
+	}
+	// The exact-arithmetic Hermite interpolation error
 	// is bounded by max(|f''''|)*step^4/384. Compute the derivative
 	// envelope using a/q to avoid large powers of the radii themselves.
 	q := math.Sqrt((b - a) * (b + a))
@@ -40,6 +49,24 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 	k2 := k * k
 	heightFourth := a * k * (4 + k2*(7+k2*(4.5+k2*15/16)))
 	angleFourth := k * (1 + k2*(6.5+k2*(6.75+k2*15/8)))
+	if d != 0 {
+		// y=d+a*sin(u), h=sqrt(b²-y²). The offset increases the
+		// derivative envelopes for b²-y² and lowers its minimum.
+		m := a + d
+		q = math.Sqrt((b - m) * (b + m))
+		da, dq := a/q, m/q
+		w1 := 2 * da * dq
+		w2 := 2 * da * (da + dq)
+		w3 := 2 * da * (3*da + dq)
+		w4 := 2 * da * (7*da + dq)
+		heightFourth = q * (w4/2 + w1*w3 + 3*w2*w2/4 + 9*w1*w1*w2/4 + 15*w1*w1*w1*w1/16)
+		// theta'=±a*cos(u)/h. Bound derivatives of 1/h before
+		// applying the product rule three more times.
+		g1 := w1 / 2
+		g2 := w2/2 + 3*w1*w1/4
+		g3 := w3/2 + 9*w1*w2/4 + 15*w1*w1*w1/8
+		angleFourth = da * (1 + 3*g1 + 3*g2 + g3)
+	}
 	envelope := max(2*a+heightFourth, a+b*angleFourth)
 	stepSize := math.Pow(384*(tolerance/16)/envelope, .25)
 	segments := math.Ceil((math.Pi / 2) / stepSize)
@@ -55,7 +82,7 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 	}
 
 	n := int(segments)
-	result := &unequalBoreSplines{}
+	result := &unequalBoreSplines{compact: d != 0}
 	for index, owner := range adjacent {
 		curve, ok := owner.use.Curve.(differentiatedUV)
 		if !ok {
@@ -128,10 +155,22 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 			}
 			prevPoint, prevDirection = point, direction
 		}
-		for _, poles := range [][]geom.Vec3{uv, model} {
-			for _, pole := range poles {
+		for i, poles := range [][]geom.Vec3{uv, model} {
+			// A nonrational B-spline is a convex combination of its
+			// controls. This physical-space budget applies to all t.
+			poleBudget := tolerance / 32
+			if i == 0 {
+				poleBudget /= max(support.radius, 1)
+			}
+			for j, pole := range poles {
 				if !pole.IsFinite() {
 					return nil, geom.ErrUnrepresentable
+				}
+				if !result.compact || j == 0 || j == len(poles)-1 {
+					continue
+				}
+				if rounded, ok := compactUnequalBoreControl(pole, poleBudget); ok {
+					poles[j] = rounded
 				}
 			}
 		}
@@ -141,6 +180,30 @@ func approximateUnequalBoreEdge(start, end geom.Vec3, adjacent []longEdgeOwner, 
 		}
 	}
 	return result, nil
+}
+
+// Keep the endpoints byte-stable. Interior controls can use shorter decimal
+// values when rounding fits in the explicit model or parameter-space budget.
+func compactUnequalBoreControl(p geom.Vec3, budget float64) (geom.Vec3, bool) {
+	round := func(x float64) float64 {
+		value, _ := strconv.ParseFloat(strconv.FormatFloat(x, 'g', 11, 64), 64)
+		return value
+	}
+	q := geom.Vec3{X: round(p.X), Y: round(p.Y), Z: round(p.Z)}
+	return q, q.IsFinite() && q.Distance(p) <= budget
+}
+
+func compactUnequalBoreReal(x float64) string {
+	// Use the shortest round-trippable text for the already checked control.
+	s := strings.ToUpper(strconv.FormatFloat(x, 'g', -1, 64))
+	offset := strings.IndexByte(s, 'E')
+	if offset < 0 {
+		offset = len(s)
+	}
+	if !strings.Contains(s[:offset], ".") {
+		s = s[:offset] + "." + s[offset:]
+	}
+	return s
 }
 
 func emitUnequalBoreSpline(emit func(string) int64, poles []geom.Vec3, point func(geom.Vec3) int64) int64 {

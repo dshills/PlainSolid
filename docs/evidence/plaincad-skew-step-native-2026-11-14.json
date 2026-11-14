@@ -1,0 +1,66 @@
+{
+  "plainCadRevision": "50432ed44ee4b9a7a552b34f9cf92d4f414161cb",
+  "wasmSha256": "4a32bbdb34dd58cd0ba36edd9d00a053e78f4adf9f7dd7803fe542899d1736c8",
+  "supplemental": {
+    "report": "/tmp/plainsolid-skew-authored-5512/browser-results-compact.json",
+    "reportSha256": "d8b861875c6a5c6dab8bb523a52d4ecd05bde9ffd895abd8740b9fc0ea8b1e5f",
+    "sourceSha256": "d9bcacefb982202f5a1603621b84c6e957e87d76ca276360db85707efb6e190f",
+    "summary": {
+      "startTime": "2026-11-14T12:41:56.057Z",
+      "duration": 19697.429,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "e2eTypecheck": "passed",
+    "case": {
+      "stockMm": [
+        20,
+        24,
+        18
+      ],
+      "axes": [
+        "X",
+        "Z"
+      ],
+      "radiusMm": [
+        5,
+        2
+      ],
+      "axisOffsetMm": 1,
+      "stepByteCountBeforeCompaction": 598541,
+      "stepByteCount": 503220,
+      "stepSha256": "88359a5c6f2cef24acfad4a4629e6832436babdda7f6a615b9fd2f2d4ee5e837",
+      "stepDistanceUncertaintyMm": 1e-07,
+      "stlTriangles": 1134,
+      "stlTwoUseEdges": 1701,
+      "stlSha256": "12bad30bf851c47ed9dd3796dce25b99c241157a0212f59b80832b9f46bc2207",
+      "occtStepReadback": {
+        "Area": 3072.4364949294395,
+        "Volume": 6963.38928732832,
+        "Centroid": [
+          10.030391633013785,
+          11.98403237367048,
+          9.000000000000048
+        ]
+      }
+    }
+  },
+  "focusedRaceSeconds": {
+    "internal/plaincadbridge": 12.479,
+    "exchange/step": 31.068,
+    "brep/trimmed": 155.61
+  },
+  "independentOcct": {
+    "oracleSha256": "0e608874b81848594bfaf89c83a2fb1dd0e5b5bba1238995539c281b2803d206",
+    "fixtureOracleSha256": "8c5facebde36f484b16e64d53d400a17965bf958670cb4cada234258742d40ee",
+    "fixtureOracleSourceSha256": "8611ad6ec5e5a70e0a9d4c49456f2807a15cf587ea5d4cf849f852c5970cf849",
+    "status": "passed",
+    "newCases": 4
+  },
+  "nativeGeometryCases": 36,
+  "nativeAdaptiveMeshCases": 12,
+  "centeredSTEPUnchangedSha256": "5afd9d28186d64c85ceafac1947587ce542bb0c308ab5e4dafc36f76c73abea3",
+  "vet": "passed"
+}

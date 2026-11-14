@@ -15,6 +15,7 @@ type unequalBoreTrim struct {
 	a, b, sign, from, to float64
 	large                bool
 	start, end           geom.Vec2
+	offset               float64
 }
 
 func (c unequalBoreTrim) raw(t float64) (geom.Vec2, error) {
@@ -24,13 +25,21 @@ func (c unequalBoreTrim) raw(t float64) (geom.Vec2, error) {
 	u := (1-t)*c.from + t*c.to
 	s, k := math.Sincos(u)
 	h := math.Sqrt((c.b-c.a)*(c.b+c.a) + c.a*c.a*k*k)
+	if c.offset != 0 {
+		y := c.offset + c.a*s
+		h = math.Sqrt((c.b - math.Abs(y)) * (c.b + math.Abs(y)))
+	}
 	if !finite(h) || h <= 0 {
 		return geom.Vec2{}, geom.ErrDomain
 	}
 	if !c.large {
 		return geom.Vec2{X: u, Y: c.sign * h}, nil
 	}
-	angle := math.Atan2(c.sign*h, c.a*s)
+	y := c.a * s
+	if c.offset != 0 {
+		y += c.offset
+	}
+	angle := math.Atan2(c.sign*h, y)
 	if angle < 0 {
 		angle += 2 * math.Pi
 	}
@@ -52,8 +61,15 @@ func (c unequalBoreTrim) DerivativeUV(t float64) (geom.Vec2, error) {
 	u := (1-t)*c.from + t*c.to
 	s, k := math.Sincos(u)
 	h := math.Sqrt((c.b-c.a)*(c.b+c.a) + c.a*c.a*k*k)
+	if c.offset != 0 {
+		y := c.offset + c.a*s
+		h = math.Sqrt((c.b - math.Abs(y)) * (c.b + math.Abs(y)))
+	}
 	scale := c.to - c.from
 	if !c.large {
+		if c.offset != 0 {
+			return geom.Vec2{X: scale, Y: -c.sign * c.a * (c.offset + c.a*s) * k / h * scale}, nil
+		}
 		return geom.Vec2{X: scale, Y: -c.sign * c.a * c.a * s * k / h * scale}, nil
 	}
 	return geom.Vec2{X: -c.sign * c.a * k / h * scale, Y: -c.a * s * scale}, nil
@@ -84,8 +100,21 @@ func (c unequalBoreTrim) BoundsUV() (geom.UVBox, error) {
 // Returned measures use converged surface quadrature, independently of mesh;
 // they are numerical evaluations of retained analytic geometry.
 func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, tolerance float64) (BoxCrossedBoresResult, error) {
+	return boxSkewCrossedBores(ctx, frame, dims, crossing, xRadius, zRadius, 0, tolerance)
+}
+
+// BoxSkewCrossedBores removes perpendicular through cylinders with skew axes.
+// The X axis is (x,crossing.Y,crossing.Z); the Z axis is
+// (crossing.X,crossing.Y+offset,z). The larger radius must strictly contain
+// the smaller cylinder's entire transverse width: minRadius+abs(offset)<maxRadius.
+// The analytic boundary is retained; measures use surface quadrature.
+func BoxSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, offset, tolerance float64) (BoxCrossedBoresResult, error) {
+	return boxSkewCrossedBores(ctx, frame, dims, crossing, xRadius, zRadius, offset, tolerance)
+}
+
+func boxSkewCrossedBores(ctx context.Context, frame geom.Frame, dims, crossing geom.Vec3, xRadius, zRadius, offset, tolerance float64) (BoxCrossedBoresResult, error) {
 	fail := func(e error) (BoxCrossedBoresResult, error) { return BoxCrossedBoresResult{}, e }
-	if ctx == nil || !dims.IsFinite() || !crossing.IsFinite() || !finite(xRadius) || !finite(zRadius) || !finite(tolerance) || tolerance <= 0 || min(xRadius, zRadius) <= 8*tolerance {
+	if ctx == nil || !finite(offset) || !dims.IsFinite() || !crossing.IsFinite() || !finite(xRadius) || !finite(zRadius) || !finite(tolerance) || tolerance <= 0 || min(xRadius, zRadius) <= 8*tolerance {
 		return fail(geom.ErrInvalid)
 	}
 	if e := ctx.Err(); e != nil {
@@ -96,10 +125,10 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 		if e != nil {
 			return fail(e)
 		}
-		return BoxUnequalCrossedBores(ctx, f, geom.Vec3{X: dims.Z, Y: dims.Y, Z: dims.X}, geom.Vec3{X: crossing.Z, Y: dims.Y - crossing.Y, Z: crossing.X}, zRadius, xRadius, tolerance)
+		return boxSkewCrossedBores(ctx, f, geom.Vec3{X: dims.Z, Y: dims.Y, Z: dims.X}, geom.Vec3{X: crossing.Z, Y: dims.Y - (crossing.Y + offset), Z: crossing.X}, zRadius, xRadius, offset, tolerance)
 	}
 	a, b := zRadius, xRadius
-	if b-a <= max(8*tolerance, 1024*0x1p-52*b) || !finite((b-a)*(b+a)) {
+	if b-a-math.Abs(offset) <= max(8*tolerance, 1024*0x1p-52*b) || !finite((b-a)*(b+a)) {
 		return fail(geom.ErrDomain)
 	}
 	for _, v := range []geom.Vec3{frame.XAxis(), frame.YAxis(), frame.ZAxis()} {
@@ -177,7 +206,11 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 	vector := func(v geom.Vec3) geom.Vec3 {
 		return frame.XAxis().Scale(v.X).Add(frame.YAxis().Scale(v.Y)).Add(frame.ZAxis().Scale(v.Z))
 	}
-	sf, e := geom.NewFrame(frame.ToWorld(crossing), frame.XAxis(), frame.ZAxis())
+	smallCenter := crossing
+	if offset != 0 {
+		smallCenter.Y += offset
+	}
+	sf, e := geom.NewFrame(frame.ToWorld(smallCenter), frame.XAxis(), frame.ZAxis())
 	if e != nil {
 		return fail(e)
 	}
@@ -193,7 +226,9 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 	if e != nil {
 		return fail(e)
 	}
-	smallPoint := func(i int, h float64) geom.Vec3 { return crossing.Add(geom.Vec3{X: a * cos[i], Y: a * sin[i], Z: h}) }
+	smallPoint := func(i int, h float64) geom.Vec3 {
+		return smallCenter.Add(geom.Vec3{X: a * cos[i], Y: a * sin[i], Z: h})
+	}
 	largePoint := func(i int, h float64) geom.Vec3 { return crossing.Add(geom.Vec3{X: h, Y: b * cos[i], Z: b * sin[i]}) }
 	for axis := 0; axis < 2; axis++ {
 		radius := a
@@ -217,7 +252,11 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 			}
 			points, uv := make([]geom.Vec3, 4), make([]geom.Vec2, 4)
 			curves := map[int]PCurve{}
-			center := plane.ToLocal(frame.ToWorld(crossing.Add(dir.Scale(h))))
+			capCenter := crossing
+			if axis == 0 {
+				capCenter = smallCenter
+			}
+			center := plane.ToLocal(frame.ToWorld(capCenter.Add(dir.Scale(h))))
 			vx, vy := vector(rx).Scale(radius), vector(ry).Scale(radius)
 			for j, i := range indices {
 				points[j] = point(i, h)
@@ -251,6 +290,12 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 	}
 	root := math.Sqrt((b - a) * (b + a))
 	height := []float64{b, root, b, root, b}
+	if offset != 0 {
+		for i := range height {
+			y := offset + a*sin[i]
+			height[i] = math.Sqrt((b - math.Abs(y)) * (b + math.Abs(y)))
+		}
+	}
 	checked := func(c unequalBoreTrim) (PCurve, error) {
 		for i, p := range []geom.Vec2{c.start, c.end} {
 			q, e := c.raw(float64(i))
@@ -275,7 +320,7 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 			}
 			points := []geom.Vec3{smallPoint(i, lo0), smallPoint(i+1, lo1), smallPoint(i+1, hi1), smallPoint(i, hi0)}
 			uv := []geom.Vec2{{X: u, Y: lo0}, {X: v, Y: lo1}, {X: v, Y: hi1}, {X: u, Y: hi0}}
-			curve, e := checked(unequalBoreTrim{a, b, sign, from, to, false, uv[edge], uv[(edge+1)%4]})
+			curve, e := checked(unequalBoreTrim{a, b, sign, from, to, false, uv[edge], uv[(edge+1)%4], offset})
 			if e != nil {
 				return fail(e)
 			}
@@ -308,7 +353,11 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 		hp, huv := make([]geom.Vec3, 4), make([]geom.Vec2, 4)
 		for j, i := range order {
 			hp[j] = smallPoint(i, sign*height[i])
-			theta := math.Atan2(sign*height[i], a*sin[i])
+			radialY := a * sin[i]
+			if offset != 0 {
+				radialY += offset
+			}
+			theta := math.Atan2(sign*height[i], radialY)
 			if theta < 0 {
 				theta += 2 * math.Pi
 			}
@@ -324,7 +373,7 @@ func BoxUnequalCrossedBores(ctx context.Context, frame geom.Frame, dims, crossin
 				}
 				to = from - math.Pi/2
 			}
-			curve, e := checked(unequalBoreTrim{a, b, sign, from, to, true, huv[j], huv[(j+1)%4]})
+			curve, e := checked(unequalBoreTrim{a, b, sign, from, to, true, huv[j], huv[(j+1)%4], offset})
 			if e != nil {
 				return fail(e)
 			}
