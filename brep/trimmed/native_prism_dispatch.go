@@ -40,6 +40,7 @@ const (
 	NativePrismFamilyNestedFuse
 	NativePrismFamilyNestedCut
 	NativePrismFamilyCoveringCut
+	NativePrismFamilyAbuttingFuse
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
@@ -63,6 +64,7 @@ type NativePrismMaterial struct {
 	nestedFuse         *NativeNestedPrismFuse
 	nestedCut          *NativeNestedPrismCut
 	coveringCut        *NativePrismCoveringCut
+	abuttingFuse       *NativeAbuttingPrismFuse
 	classificationWork int
 }
 
@@ -175,6 +177,12 @@ func (s *NativePrismMaterial) CoveringCutProof() *NativePrismCoveringCut {
 	}
 	return s.coveringCut
 }
+func (s *NativePrismMaterial) AbuttingFuseProof() *NativeAbuttingPrismFuse {
+	if s == nil {
+		return nil
+	}
+	return s.abuttingFuse
+}
 func (s *NativePrismMaterial) ClassificationNativeOperations() int {
 	if s == nil {
 		return 0
@@ -232,13 +240,16 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 			}
 			continue
 		}
-		rank := 3
+		rank := 4
 		if x.lo == y.lo && x.hi == y.hi {
 			rank = 0
 		} else if (x.lo < y.lo && y.lo < x.hi && x.hi < y.hi) || (y.lo < x.lo && x.lo < y.hi && y.hi < x.hi) {
-			rank = 1
-		} else if y.lo <= x.lo && x.hi <= y.hi {
 			rank = 2
+		} else if y.lo <= x.lo && x.hi <= y.hi {
+			rank = 3
+		}
+		if operation == intersect.AffineRingUnion && (x.hi == y.lo || y.hi == x.lo) {
+			rank = 1
 		}
 		if rank < best {
 			selected, best = axis, rank
@@ -330,6 +341,20 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 		return finish()
 	}
 	if common.kind != NativePrismCommonMaterial {
+		if operation == intersect.AffineRingUnion && common.kind == NativePrismCommonContact && (x.hi == y.lo || y.hi == x.lo) {
+			q, err := ImprintAbuttingCrossingNativePrismFuse(ctx, a, b, o.Construct)
+			if err != nil {
+				return nil, err
+			}
+			out.abuttingFuse, err = q.BuildNative(ctx, o.Publish)
+			if err != nil {
+				return nil, err
+			}
+			out.kind = NativePrismMaterialSolid
+			out.family = NativePrismFamilyAbuttingFuse
+			out.components = []brep.Solid{out.abuttingFuse.Solid()}
+			return finish()
+		}
 		return nil, geom.ErrDomain
 	}
 	maximum, bits := o.Classify.Native.MaxOperations, o.Classify.Native.MaxCoefficientBits

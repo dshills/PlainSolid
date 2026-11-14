@@ -118,8 +118,8 @@ func TestCombineNativePrismsEmptyContactAndOriginal(t *testing.T) {
 	if e != nil || len(q.Components()) != 2 || q.ComponentOwners()[1] != 1 {
 		t.Fatal(q, e)
 	}
-	if out, e := trimmed.CombineNativePrisms(context.Background(), a, touch, intersect.AffineRingUnion, trimmed.NativePrismDispatchOptions{}); e == nil || out != nil {
-		t.Fatal("unsupported cap-contact Fuse")
+	if out, e := trimmed.CombineNativePrisms(context.Background(), a, touch, intersect.AffineRingUnion, trimmed.NativePrismDispatchOptions{}); e != nil || out == nil || out.Family() != trimmed.NativePrismFamilyAbuttingFuse {
+		t.Fatal("qualified positive-area cap join", out, e)
 	}
 	large := transitionPrism(t, geom.Vec3{X: -1, Y: -1, Z: -1}, geom.Vec3{X: 3, Y: 3, Z: 4})
 	q, e = trimmed.CombineNativePrisms(context.Background(), a, large, intersect.AffineRingDifference, trimmed.NativePrismDispatchOptions{})

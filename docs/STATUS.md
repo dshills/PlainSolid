@@ -2396,3 +2396,10 @@ through both original stock caps. It supports separate retained components
 and retains original stock and cutter wall intervals, including reversed
 cutter hole walls. The unified dispatcher selects the construction for
 qualified tool-coverage cases.
+
+### Abutting crossing prism Fuse
+
+Prisms meeting on an exact cap plane can be fused when their crossing cap
+footprints have positive-area overlap. The native result removes the
+shared cap interior. Its exposed shoulders keep the original cap IDs,
+and both original wall bands retain their full source intervals.

@@ -6310,3 +6310,12 @@ seconds. Cases cover equal and enclosing tool intervals, disconnected
 retained components, and a tool hole that leaves a material post.
 Independent volume, source-support agreement, topology, operation quotas,
 and rejection of nonbinary native vertices were checked.
+
+### Abutting crossing prism Fuse qualification
+
+Both operand orders give independent volume 16 and centroid
+(3/2, 1, 17/8), with closed incidence and Euler characteristic two.
+Tests confirm shared cap removal, original wall ancestry, and rejection
+of isolated point and line contacts. The combined main race run for the
+dispatcher, abutting Fuse, and anisotropic bore measures passed in
+62.052 seconds.
