@@ -95,9 +95,13 @@ func extrema(points []point, axis int) (point, point) {
 }
 
 func triangleIntersection(a, b [3]geom.Vec3) (Kind, []point) {
-	ta, tb := exactTriangle(a), exactTriangle(b)
-	na, nb := triangleNormal(ta), triangleNormal(tb)
-	da, db := dot(na, ta[0]), dot(nb, tb[0])
+	return preparedTriangleIntersection(prepareExactTriangle(a), prepareExactTriangle(b))
+}
+
+func preparedTriangleIntersection(a, b preparedExactTriangle) (Kind, []point) {
+	ta, tb := a.vertices, b.vertices
+	na, nb := a.normal, b.normal
+	da, db := a.offset, b.offset
 	line := cross(na, nb)
 	axis := nonzeroAxis(line)
 	if axis < 0 {
