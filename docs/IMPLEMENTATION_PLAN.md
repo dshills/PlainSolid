@@ -153,11 +153,14 @@ Pin an OCCT revision and curate licensed, reproducible fixtures for each capabil
 
 The current exact curved Boolean checkpoint includes a mixed-path section,
 indexed material reconstruction, native reload and conservative volume.
-The shared boundary mesh now connects certified fills for all five
-physically planar fragments in the original mixed fixture, including
-three on nonlinear parameter charts. The three original roof interiors
-still need a signed trim proof and compatible fill. Curved and singular
-family coverage remains a release requirement. Separate exact weighted
+The shared boundary mesh now supports all eight original intersection
+fragments. Five are physically planar, with three on nonlinear parameter
+charts. The three curved roofs use strict signed material cells and
+explicit original trim collars. Final exact contact tests verify the
+assembled closed mesh. Extend the same ownership and signed clearance
+proofs to difference and union, including reversed tool faces and
+holed retained fragments. General curved and singular family coverage
+remains a release requirement. Separate exact weighted
 stock proofs cover closed certified display, finite line events including
 isolated shared supports, nearest original owners, and mass properties
 through rational rigid placement.

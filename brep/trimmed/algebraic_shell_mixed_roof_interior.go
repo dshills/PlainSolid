@@ -37,6 +37,7 @@ type CertifiedMixedRoofInterior struct {
 	errors                             []*big.Rat
 	clearance                          []*big.Rat
 	omitted, checks, pairs, operations int
+	imageBound                         *big.Rat
 }
 
 func (r *CertifiedMixedRoofInterior) Mesh() mesh.Mesh {
@@ -108,6 +109,9 @@ func (r *CertifiedMixedRoofInterior) MarshalJSON() ([]byte, error) {
 // rejects any unproved boundary collar atomically. Shared boundary vertices are
 // never moved; newly created interior vertices evaluate the original graph.
 func (n *CertifiedMixedAlgebraicShellBoundary) TessellateUniqueRoofInteriorCertified(ctx context.Context, face, oppositeRoof int, o MixedRoofInteriorOptions) (*CertifiedMixedRoofInterior, error) {
+	return n.tessellateMixedRoof(ctx, face, oppositeRoof, o, nil)
+}
+func (n *CertifiedMixedAlgebraicShellBoundary) tessellateMixedRoof(ctx context.Context, face, oppositeRoof int, o MixedRoofInteriorOptions, collar *mixedRoofCollarWork) (*CertifiedMixedRoofInterior, error) {
 	if ctx == nil || n == nil || n.source == nil || !n.embedded || n.source.boundary.op != parametric.Intersection || face < 0 || face >= len(n.source.boundary.faces) {
 		return nil, geom.ErrInvalid
 	}
@@ -124,7 +128,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateUniqueRoofInteriorCerti
 			count++
 		}
 	}
-	if count != 1 {
+	if count != 1 && collar == nil {
 		return nil, geom.ErrUnrepresentable
 	}
 	if o.Proof.MaxOperations == 0 {
@@ -246,6 +250,7 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateUniqueRoofInteriorCerti
 	if len(refined.Mesh.Triangles) > o.Interior.MaxTriangles {
 		return nil, geom.ErrConvergence
 	}
+	r.imageBound = new(big.Rat).Set(refined.FillSquaredDistance)
 	r.checks = refined.TriangleChecks
 	remap := make([]int, len(refined.Mesh.Vertices))
 	r.uv = make([][2]*big.Rat, len(r.geometry.Vertices))
@@ -271,45 +276,19 @@ func (n *CertifiedMixedAlgebraicShellBoundary) TessellateUniqueRoofInteriorCerti
 			return nil, e
 		}
 		xy := [3][2]*big.Rat{refined.ExactUV[t[0]], refined.ExactUV[t[1]], refined.ExactUV[t[2]]}
-		inside := true
-		for _, box := range []*mixedRoofBox{host, other} {
-			d := box.domain
-			for _, p := range xy {
-				inside = inside && p[0].Cmp(ratInset(d.UMin)) > 0 && p[0].Cmp(ratInset(d.UMax)) < 0 && p[1].Cmp(ratInset(d.VMin)) > 0 && p[1].Cmp(ratInset(d.VMax)) < 0
-			}
-		}
-		if !inside {
-			r.omitted++
-			continue
-		}
-		a, e := mixedRoofTrianglePower(host.roof, xy)
+		margin, e := mixedRoofTriangleClearance(host, other, xy)
 		if e != nil {
 			return nil, e
 		}
-		b, e := mixedRoofTrianglePower(other.roof, xy)
-		if e != nil {
-			return nil, e
-		}
-		height, _ := mixedRoofPolynomialRange(a)
-		height.Sub(height, host.floor)
-		otherFloor, _ := mixedRoofPolynomialRange(a)
-		otherFloor.Sub(otherFloor, other.floor)
-		for i := 0; i <= 5; i++ {
-			for j := 0; j <= 5-i; j++ {
-				b[i][j].Sub(b[i][j], a[i][j])
+		if collar != nil {
+			if e := collar.certifyTriangle(ctx, index, xy, host, other, n, ring, face); e != nil {
+				return nil, e
 			}
-		}
-		gap, _ := mixedRoofPolynomialRange(b)
-		if height.Sign() <= 0 || otherFloor.Sign() <= 0 || gap.Sign() <= 0 {
+		} else if margin.Sign() <= 0 {
 			r.omitted++
 			continue
 		}
-		margin := new(big.Rat).Set(gap)
-		for _, x := range []*big.Rat{height, otherFloor} {
-			if x.Cmp(margin) < 0 {
-				margin.Set(x)
-			}
-		}
+
 		r.geometry.Triangles = append(r.geometry.Triangles, [3]int{remap[t[0]], remap[t[1]], remap[t[2]]})
 		r.errors = append(r.errors, new(big.Rat).Set(refined.SquaredErrors[index]))
 		r.clearance = append(r.clearance, margin)
