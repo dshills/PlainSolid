@@ -57,8 +57,8 @@ frames, metadata and appearance restrictions remain in force.
 
 Evidence getters return copies. `WriteScaledNURBSPlanarAssemblySource` re-proves
 and writes original source only, ignoring edits to derived native fields.
-Failure returns no partial result; source writes validate before output. No
-new native JSON format is added. Existing `WriteColoredAssembly` can separately
+Failure returns no partial result; source writes validate before output. Source-bound native JSON is documented separately in
+[NURBS_PLANAR_ASSEMBLY_NATIVE.md](NURBS_PLANAR_ASSEMBLY_NATIVE.md). Existing `WriteColoredAssembly` can separately
 encode the derived native planar bodies as newly authored STEP.
 
 Original and proof views each obey the same bounded limits: at most 1 MiB,

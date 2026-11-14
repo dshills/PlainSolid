@@ -54,7 +54,7 @@ of exact source-role evidence. Their coordinates are rational strings.
 it does not serialize edits to the derived `Geometry` field. Native planar
 products can separately be authored with the existing `WriteColoredAssembly`
 API; that is new planar geometry encoding, not preservation of original spline
-bases. This milestone does not introduce a new native JSON schema.
+bases. Source-bound native JSON is documented in [NURBS_PLANAR_ASSEMBLY_NATIVE.md](NURBS_PLANAR_ASSEMBLY_NATIVE.md).
 
 Input is capped at 1 MiB, 4096 entities, 65536 parsed values, nesting depth 16,
 4096 edge uses and 16 material bodies, further restricted by caller limits.

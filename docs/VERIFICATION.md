@@ -6034,3 +6034,12 @@ The triangular prism independently verifies the exact volume
 keeps exact rational coordinates. Collapsed incidence, incompatible
 quadratic fields, insufficient conversion accuracy and cancellation
 reject without geometry. The full draft package race passed in 7.760 s.
+
+### Source-bound planar NURBS assembly persistence
+
+Unit, scaled and oblique planar NURBS assemblies each reload through the
+matching original STEP authentication path. Mutated native geometry, source
+records, appearance, placement and affine proof fields reject. The three
+independent OCCT chains preserve volume, area, centroids and occurrence
+colors after native reload and STEP transfer. The integrated live race
+passed in 14.234 s. See the [native envelope contract](../exchange/step/NURBS_PLANAR_ASSEMBLY_NATIVE.md).

@@ -63,8 +63,9 @@ original source. The writer re-proves that source and never serializes edits to
 derived native fields. There is deliberately no public "normalized assembly"
 STEP: the private local coordinate changes are proof machinery, not authored
 occurrence changes or an equivalent world-coordinate assembly on their own.
-This milestone introduces no native JSON format or general geometry authoring
-API.
+Source-bound native JSON is documented in
+[NURBS_PLANAR_ASSEMBLY_NATIVE.md](NURBS_PLANAR_ASSEMBLY_NATIVE.md). General
+geometry authoring remains outside this API.
 
 Unsupported cases include irrational basis norms, skew/nonorthogonal chart
 axes, loss during either coordinate transformation, multiple bodies in a local
