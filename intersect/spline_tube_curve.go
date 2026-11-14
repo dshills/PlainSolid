@@ -164,6 +164,12 @@ func (p TubeTrim) Recipe() (TubeRecipe, int, bool) {
 // CertifiesPairedTube reports whether p and q refer to the same certified
 // root segment and their respective original spline supports.
 func (p TubeTrim) CertifiesPairedTube(q TubeTrim, a, b *geom.BSplineSurface) bool {
+	return p.CertifiesPairedTubeOnSurfaces(q, a, b)
+}
+
+// CertifiesPairedTubeOnSurfaces binds the same certified root segment to
+// its two original charts, including immutable exact Bézier supports.
+func (p TubeTrim) CertifiesPairedTubeOnSurfaces(q TubeTrim, a, b geom.Surface) bool {
 	pa, i, secondA := p.Recipe()
 	pb, j, secondB := q.Recipe()
 	if pa.data == nil || pb.data == nil || a == nil || b == nil || i != j {

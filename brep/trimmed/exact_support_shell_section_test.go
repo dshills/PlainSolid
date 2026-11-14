@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
@@ -116,6 +117,16 @@ func TestAlgebraicShellSectionOnNonbinaryRoof(t *testing.T) {
 	}
 	if kept != 1 {
 		t.Fatal("Boolean selected a surrogate for its original exact roof", kept)
+	}
+	copyOfViews := common
+	copyOfViews.Edges, copyOfViews.Faces, copyOfViews.Vertices = nil, nil, nil
+	native, e := copyOfViews.NativeTubeLens(ctx, 1e-8, edgecheck.Options{})
+	if e != nil || len(native.Faces()) != 2 || native.Topology().EulerCharacteristic != 2 {
+		t.Fatal("exact Boolean lens did not produce a native solid", native.Topology(), e)
+	}
+	agreement, e := native.ValidateEdgeAgreement(ctx, edgecheck.Options{})
+	if e != nil || !agreement.Complete || len(agreement.Uses) != 2*len(common.Edges) {
+		t.Fatal("native Boolean tube lost its continuous edge proof", agreement, e)
 	}
 	coarse, e := common.BoundVolume(ctx, AlgebraicShellVolumeOptions{MaxDepth: 2, TubeSubdivisions: 4})
 	if e != nil {
