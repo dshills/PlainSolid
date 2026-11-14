@@ -25,9 +25,18 @@ type SideOpenDualDiskStation struct {
 // cap retain its actual closed material. Use the original cut's frame to map
 // local section coordinates into world space.
 func (c SideOpenDualDiskCut) SectionAtStation(ctx context.Context, localZ *big.Rat) (SideOpenDualDiskStation, error) {
+	return sideOpenDualDiskSectionAtStation(ctx, c.source, localZ)
+}
+
+// SectionAtStation reports the exact axial material section of the unequal
+// cut, preserving the original unequal circle supports and their owners.
+func (c UnequalSideOpenDualDiskCut) SectionAtStation(ctx context.Context, localZ *big.Rat) (SideOpenDualDiskStation, error) {
+	return sideOpenDualDiskSectionAtStation(ctx, c.source, localZ)
+}
+
+func sideOpenDualDiskSectionAtStation(ctx context.Context, s *sideOpenDualDiskSource, localZ *big.Rat) (SideOpenDualDiskStation, error) {
 	var out SideOpenDualDiskStation
-	s := c.source
-	if ctx == nil || s == nil || localZ == nil {
+	if ctx == nil || s == nil || len(s.outer) == 0 || localZ == nil {
 		return out, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {

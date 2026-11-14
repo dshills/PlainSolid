@@ -21,7 +21,8 @@ import (
 // accepted dyadic count per wall. Face and collision proof budgets retain the
 // closed mixed mesher defaults except the explicit Topology defaults below and
 // a2048-vertex/2000000-operation exact cap triangulation allowance. Proof failures
-// are atomic.
+// are atomic. Exact trim-domain containment may use up to1024 homogeneous
+// subdivisions per face, depth16, without changing any original chart.
 // Only exact signed-coordinate circular extrusions and affine remaining faces
 // are accepted. This is not a generic mesher or a source embedding certificate.
 type SideOpenDualDiskMeshOptions struct {
@@ -394,7 +395,7 @@ func (s SideOpenDualDiskCut) TessellateCertified(ctx context.Context, o SideOpen
 				}
 			}
 		}
-		options[fi] = SolidMixedFaceMeshOptions{Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{RectangularGrid: true, Cuts: cuts, Boundary: MixedExactAffineMeshOptions{Topology: o.Topology, MaxBoundaryVertices: 2048, MaxTriangulationWork: 2000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: o.Deflection, MaxTriangles: o.MaxTriangles}}}}
+		options[fi] = SolidMixedFaceMeshOptions{Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{RectangularGrid: true, Cuts: cuts, Boundary: MixedExactAffineMeshOptions{DomainSubdivisions: 1024, DomainDepth: 16, Topology: o.Topology, MaxBoundaryVertices: 2048, MaxTriangulationWork: 2000000}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: o.Deflection, MaxTriangles: o.MaxTriangles}}}}
 	}
 	display, e := s.Solid.TessellateMixedClosedCertified(ctx, StoredMixedClosedMeshOptions{Faces: options, MaxTriangles: o.MaxTriangles, Collision: o.Collision})
 	if e != nil {

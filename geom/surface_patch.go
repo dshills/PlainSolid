@@ -35,7 +35,8 @@ func patchOptions(o SurfacePatchOptions) (SurfacePatchOptions, error) {
 }
 
 // SurfacePatch is an immutable exact rational restriction of the geometry
-// defined by stored BSplineSurface coefficients. It does not round refined
+// defined by stored BSplineSurface coefficients or supplied exact homogeneous
+// Bernstein controls. It does not round refined
 // control geometry back into float64. Bounds are outward-rounded enclosures of
 // that ideal rational patch; floating surface-evaluation error is additional.
 // The source must be clamped, with interior knot multiplicity no greater than

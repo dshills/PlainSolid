@@ -29,10 +29,18 @@ type SideOpenDualDiskDescriptor struct {
 // exporting its actual sewn topology with direct analytic model curves. No
 // rounded angular pcurves, sampled inference or approximate source import is used.
 func WriteSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor) error {
-	return writeSideOpenDualDiskProduct(ctx, w, d, false)
+	return writeSideOpenDualDiskProduct(ctx, w, d, sideDiskEqual)
 }
 
-func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, unequal bool) error {
+type sideDiskConstruction uint8
+
+const (
+	sideDiskEqual sideDiskConstruction = iota
+	sideDiskUnequal
+	sideDiskGeneral
+)
+
+func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDualDiskDescriptor, kind sideDiskConstruction) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 1024 {
 		return geom.ErrInvalid
 	}
@@ -51,7 +59,13 @@ func writeSideOpenDualDiskProduct(ctx context.Context, w io.Writer, d SideOpenDu
 	var solid trimmed.Solid
 	var wallFaces [2][]int
 	var e error
-	if unequal {
+	if kind == sideDiskGeneral {
+		built, err := trimmed.CutGeneralSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
+		if err != nil {
+			return err
+		}
+		solid, wallFaces = built.Solid, built.WallFaces
+	} else if kind == sideDiskUnequal {
 		built, err := trimmed.CutUnequalSideOpenDualDisks(ctx, d.Frame, d.Min, d.Max, d.Discs, d.Height, d.Depth, d.Tolerance, trimvalidate.Options{})
 		if err != nil {
 			return err
