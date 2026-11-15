@@ -4,28 +4,28 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The two PlainCAD integration branches are in `main` through the implementation
-merge `8f76f16b` and the final verification merge `012096ee`. The full PlainCAD qualification below passed on the pinned provider.
-Native race qualification and newer release runs remain active, including
-the expensive trimmed-solid cases. The 65-minute
-pure-Go short run at `3a488eb5` passed every package outside `brep/trimmed`
-and reached `TestCertifiedSelectedTubeRegionCollection` before its package
-timeout. A separate full normal and race qualification is running from
-`18204a56` in three deterministic trimmed-solid groups and the remaining
-packages. The PlainCAD release runs use the same kernel snapshot and the
-original app provider configuration at `efae4d2`.
-The [native run checkpoint](evidence/native-main-18204a56-2026-11-14.json)
-records 50 passing normal packages outside `brep/trimmed` and five
-without tests. All three normal trimmed groups finished. One stale
-regression assertion used degree seven to check a ceiling of eight.
-The same pinned source with only the assertion corrected passed that
-fixture in normal and race mode. Together the normal trimmed runs
-account for all 1,036 top-level cases, with 1,023 passing and 13
-explicit skips. The full race passed all 50 packages outside `brep/trimmed`,
-with five packages without tests. The three trimmed race lanes remain active. The
-raw results preserve the test revisions and original failure.
-General curved Boolean splitting, advanced surface modeling and broader CAD
-exchange remain separate implementation work against the specification.
+The two PlainCAD integration branches are in `main` through implementation
+merge `8f76f16b` and verification merge `012096ee`.
+The [full ordinary Go run](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
+on `6c4ab7c4` accounted for 4,567 passing top-level cases, 421 explicit
+optional skips and five packages without tests. All 1,081 trimmed-solid
+cases were accounted for, with 1,068 passes and 13 optional skips.
+The [newest full PlainCAD qualification](evidence/plaincad-main-0e57c2d8-2026-11-14.json)
+uses provider `0e57c2d8` and app `efae4d2`. Its WASM build, typecheck, bundle
+budgets, 345 development cases, 15 cross-browser cases, 1,691 ordinary
+units and four WASM contract cases passed. The production control passed
+65 of 66. Chromium evicted a WASM response from the inspector cache. All
+66 production cases passed when the isolated test driver's capture buffer
+was enlarged. The driver was restored after that run.
+
+The [earlier native race qualification](evidence/native-main-18204a56-2026-11-14.json)
+passed all 50 packages with tests outside `brep/trimmed`. Three original
+trimmed watchdogs elapsed. The resumed run selects exactly the 804
+remaining top-level cases using the same production source and the stale
+degree-ceiling assertion corrected in `313dfb62`. At the 18:34 checkpoint
+708 of those cases passed and 12 explicitly skipped, with 84 pending.
+General curved Boolean assembly, advanced surface modeling and broader CAD
+exchange remain required under the specification.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -74,8 +74,20 @@ build, type checks, JavaScript bundle budget and four selected kernel
 contracts passed. All 345 development, 66 buffered production and 15 cross-browser
 cases passed, with four WASM and 1,691 ordinary unit passes. The ordinary
 production run reproduced the inspector capture eviction and passed 65 of
-66. All normal packages outside `brep/trimmed` passed. The refreshed
-three normal trimmed groups remain active.
+66. All refreshed normal Go groups finished successfully.
+
+The native prism Boolean tier now preserves original parent faces for
+nested, abutting, covered, and side-opening profile transitions. Forty-eight
+OCCT comparisons include through, one-ended and interior side openings in
+two exact poses. Simultaneous affine source edges now authorize the full
+face-pair graph and fragment all original affine faces. A pinched original
+region can be subdivided along certified noncrossing auxiliary edges. The
+original two shells reassemble from 60 triangles and 35 paired auxiliary
+edges. Original weighted rational trim clipping and fragmentation now
+cover degree eight, while exact distance witnesses include original trim
+splines crossing an irrational support-knot event. Mapped whole spline
+face equality retains the original outer and hole identities in all
+eight supported chart symmetries.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

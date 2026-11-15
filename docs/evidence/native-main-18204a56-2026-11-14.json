@@ -31,7 +31,7 @@
     "timeoutMinutes": 145,
     "GOMAXPROCS": 2,
     "status": "all 50 tested packages outside brep/trimmed passed; three original trimmed shards hit the watchdog; continuation running",
-    "checkpointAt": "2026-11-14T18:08:00-06:00",
+    "checkpointAt": "2026-11-14T18:34:54-06:00",
     "remainingIfInterrupted": {
       "runner": "/tmp/plainsolid-18204a56-race-continuation.py",
       "planAndResults": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
@@ -53,7 +53,8 @@
       "status": "running",
       "totalTopLevelTargets": 804,
       "targetDispositionAtCheckpoint": {
-        "pass": 42
+        "pass": 708,
+        "skip": 12
       },
       "batchCount": 12,
       "planSHA256": "cc872f191a2d3589ba3b0812e9050c0cb15a4a624c4e68afcc36737a71629068",

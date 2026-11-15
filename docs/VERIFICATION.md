@@ -1,5 +1,38 @@
 # Verification record
 
+## Full baseline and recent exact modeling qualification (2026-11-14)
+
+The [normal Go record](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
+accounts for all 1,081 trimmed top-level tests on `6c4ab7c4`, with 1,068
+passes and 13 explicit skips. Across all packages, 4,567 top-level tests
+passed and 421 optional tests skipped. The [race continuation record](evidence/native-main-18204a56-2026-11-14.json)
+retains the original watchdog logs and the exact selection of 804
+remaining cases. At 18:34 local time, 708 passed, 12 skipped and 84
+remained. The [full PlainCAD record](evidence/plaincad-main-0e57c2d8-2026-11-14.json)
+includes the passing development, cross-browser, unit, WASM contract,
+type and size runs on `0e57c2d8`. All 66 production cases passed after
+the test driver's temporary Chromium response buffer increase. The
+unadjusted control retained one inspector-cache eviction.
+
+The independent OCCT prism comparator passed 48 original constructions,
+including through, one-ended and interior side cuts against a shared stock
+wall. Exact affine imprint subdivision produced 60 triangles with 35
+opposite auxiliary pairs across 12 original faces, in both operand orders.
+Sewing each original shell preserved exact volumes 32 and 6, each with
+Euler characteristic two. The integrated affine and mapped coincidence
+race run passed in 3.824 seconds. The independently authored rounded
+nested STEP group, including native reload and live XCAF checks, passed
+under race in 83.160 seconds.
+
+Independent anisotropic OCCT wall and cap authoring compares 40 filled
+and 80 bore surface samples and exact native material enclosures. It
+passed under race in 36.221 seconds together with the affine face
+fragment tests. The separate STEP tests import and re-export original
+filled and bored NURBS, including different inner and outer station
+grids, and compare each result with independently authored OCCT source
+geometry. The original raw and converged OCCT area measures are recorded
+in the material oracle notes.
+
 ## Native qualification and piecewise reconstruction (2026-11-14)
 
 The 65-minute pure-Go short run at `3a488eb5` completed every package except
