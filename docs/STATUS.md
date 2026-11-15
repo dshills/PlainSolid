@@ -141,13 +141,16 @@ when the two original owner curves have independent projective laws.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
 Native race on `491b18f1` is running. The newer ordinary run on `5181d219`
-found a missing exact axis extremum in five shaded STEP repair meshes; its
-failure is retained while the source-aware display fix is being tested.
+found a missing exact axis extremum in five shaded STEP repair meshes.
+All five now pass the focused ordinary check with the original radial
+normals restored; race and actual WASM checks are continuing.
+An independent tilted STEP bore now qualifies strict source authentication
+of both original cap holes and the inward-cylinder seam.
 Vet and Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-physically different footprints, shaded STEP extrema and
-rational off-seam support charts.
+physically different footprints, multiple independent curved insets,
+native tilted bore replay and rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

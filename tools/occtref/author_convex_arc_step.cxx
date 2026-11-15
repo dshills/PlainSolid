@@ -21,6 +21,8 @@
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Pln.hxx>
@@ -289,7 +291,9 @@ const bool three = mode == "write-three-default" || mode == "write-three-default
 const bool groupedConvertedMetre = mode == "write-both-default-tilted-converted-metre";
 const bool groupedConvertedInch = mode == "write-both-default-tilted-converted-inch" ||
                                  mode == "write-both-default-tilted-converted-inch-unscaled";
-const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
+const bool throughBore = mode == "write-both-default-tilted-through-bore";
+const bool blindBore = mode == "write-both-default-tilted-blind-bore";
+const bool groupedTilted = throughBore || blindBore || mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch" || groupedConvertedMetre || groupedConvertedInch;
 const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" ||
                             groupedConvertedMetre || threeConvertedMetre || fourConvertedMetre || fiveConvertedMetre;
@@ -340,6 +344,14 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
   fillet.Add(fiveNonDyadic ? 3.0/16 : 15.0/64, fifth);
  }
  fillet.Build();if(!fillet.IsDone())return 4;shape=fillet.Shape();
+ if (throughBore || blindBore) {
+  const double start=throughBore ? -1 : 2;
+  const auto drill=BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(1,1,start),gp_Dir(0,0,1),gp_Dir(1,0,0)),.25,6-start).Shape();
+  BRepAlgoAPI_Cut cut(shape,drill);
+  cut.Build();
+  if (!cut.IsDone()) return 4;
+  shape=cut.Shape();
+ }
  if (mode != "write" && mode != "write-both" && mode != "write-default" && mode != "write-both-default" && mode != "write-three-default") {
   gp_Trsf pose;
   if (mode == "write-x" || mode == "write-both-x" || mode == "write-both-default-x") {

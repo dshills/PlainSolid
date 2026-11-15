@@ -115,6 +115,14 @@ launcher and package/case inventories are retained in
 `.worktrees/qualification/2026-11-15/go-509cdbd3`. This is a full ordinary
 Go pass on the recorded snapshot.
 
+The later full ordinary run on `5181d219` exposed a shaded STEP regression
+in five signed-frame fixtures. Generic compact tessellation had taken
+priority over the source-aware sampler and missed the exact axis
+extremum. The focused ordinary run passed all five after restoring that
+sampler, including exact cylinder normals at the extrema, closed mesh
+volume and stable canonical STEP. This is a focused correction; the
+failed snapshot is preserved in `.worktrees/qualification/2026-11-15/go-5181d219`.
+
 The [newer PlainCAD run](evidence/plaincad-main-05ce6e82-2026-11-15.json)
 uses immutable `05ce6e82` and PlainCAD `efae4d2`. All eight app stages
 returned zero. The browser reports record 345 development, 66 production,
@@ -275,6 +283,13 @@ kept its pristine hash. Raw results remain in
   distinct original owner laws and a 700-triangle closed display. Both
   false owner weights reject. The main live and byte compatibility race
   passed in 302.752 seconds.
+- Independently authored tilted STEP authentication recognizes both
+  original interior cap wires, the inward cylinder and its paired periodic
+  seam. Its corrected transfer reopens in pinned OCCT as one eight-face
+  solid with volume `28.096231102869` and area `73.084237522361`.
+  The focused main race passed in 16.957 seconds, including the original
+  blind control and edited owner rejection. The source proof alone does
+  not widen the default STEP reader.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
