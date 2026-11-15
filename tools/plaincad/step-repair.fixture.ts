@@ -17,6 +17,7 @@ interface Fixture {
   units?: StepSourceUnit;
   mmPerUnit?: number;
   metresPerUnit?: number;
+  grouped?: true;
 }
 
 const tiltedSingle: Fixture = {
@@ -27,6 +28,15 @@ const tiltedSingle: Fixture = {
   prefix: "plainsolid-step-rational-posed-pcurve-convex-arc-source",
   pose: [["0", "3/5", "4/5", "8/5"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "6/5"]],
 };
+const tiltedGrouped: Fixture = {
+  file: "occt-both-default-tilted-oblique-prism-fillet",
+  family: "occt-rational-posed-grouped-pcurve-convex-arc",
+  bounds: { min: [0, 0, -2.7], max: [6.025, 3, 3] },
+  measures: [29.077978807115539, 65.622954970084379], sites: 8, owners: 28,
+  prefix: "plainsolid-step-rational-posed-grouped-pcurve-convex-arc-source",
+  pose: [["0", "3/5", "4/5", "0"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "0"]],
+  grouped: true,
+};
 const fixtures: readonly Fixture[] = [
   {
     file: "occt-default-two-fillets-minus-x",
@@ -35,16 +45,11 @@ const fixtures: readonly Fixture[] = [
     measures: [29.077978807115535, 65.622954970084379], sites: 6, owners: 28,
   },
   tiltedSingle,
-  {
-    file: "occt-both-default-tilted-oblique-prism-fillet",
-    family: "occt-rational-posed-grouped-pcurve-convex-arc",
-    bounds: { min: [0, 0, -2.7], max: [6.025, 3, 3] },
-    measures: [29.077978807115539, 65.622954970084379], sites: 8, owners: 28,
-    prefix: "plainsolid-step-rational-posed-grouped-pcurve-convex-arc-source",
-    pose: [["0", "3/5", "4/5", "0"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "0"]],
-  },
+  tiltedGrouped,
   { ...tiltedSingle, file: `${tiltedSingle.file}-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1 },
   { ...tiltedSingle, file: `${tiltedSingle.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
+  { ...tiltedGrouped, file: `${tiltedGrouped.file}-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1 },
+  { ...tiltedGrouped, file: `${tiltedGrouped.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
 ];
 
 for (const fixture of fixtures) {
@@ -78,6 +83,13 @@ for (const fixture of fixtures) {
         expect(proof).toMatchObject({ Format: fixture.prefix, Version: 1, MaxDistance: 1e-12,
           Claims: { SourceSHA256: digest, Pose: fixture.pose } });
         expect(Buffer.from(proof.Source, "base64").toString("utf8")).toBe(source);
+        if (fixture.grouped) {
+          expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners: 8, rationalCaps: 2, axialTrims: 1 });
+          expect(proof.Claims.FiniteLineOwners).toHaveLength(8);
+          expect(proof.Claims.Grouped.RationalCaps).toHaveLength(2);
+          expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
+          expect(proof.Claims.Grouped.AxialTrims).toHaveLength(1);
+        }
       } else {
         expect(evidence.nativeProofJSON).toBeUndefined();
       }

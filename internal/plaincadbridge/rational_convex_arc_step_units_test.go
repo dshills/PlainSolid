@@ -11,25 +11,37 @@ import (
 	"strings"
 	"testing"
 
+	rigidplacement "plainsolid/brep/placement"
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
 )
+
+type sourceUnitReceipt interface {
+	OriginalSTEP() string
+	LocalDescriptor() step.ExactCircularLoopExtrusion
+	Pose() rigidplacement.RationalRigid
+	Solid() trimmed.Solid
+}
 
 func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{}, vector{1, 2, 3})
 	var handles []string
 	for _, tc := range []struct {
-		fixture   string
+		name      string
+		file      string
 		unit      stepFileUnit
 		metres    float64
 		mmPerUnit float64
+		grouped   bool
 	}{
-		{"metre", stepMetre, 1, 1000},
-		{"inch", stepInch, .0254, 25.4},
+		{"metre", "occt-default-tilted-translated-oblique-prism-fillet-metre", stepMetre, 1, 1000, false},
+		{"inch", "occt-default-tilted-translated-oblique-prism-fillet-inch", stepInch, .0254, 25.4, false},
+		{"grouped-metre", "occt-both-default-tilted-oblique-prism-fillet-metre", stepMetre, 1, 1000, true},
+		{"grouped-inch", "occt-both-default-tilted-oblique-prism-fillet-inch", stepInch, .0254, 25.4, true},
 	} {
-		t.Run(tc.fixture, func(t *testing.T) {
-			source := stepRepairFixture(t, "occt-default-tilted-translated-oblique-prism-fillet-"+tc.fixture)
+		t.Run(tc.name, func(t *testing.T) {
+			source := stepRepairFixture(t, tc.file)
 			other := stepMetre
 			if tc.unit == stepMetre {
 				other = stepInch
@@ -56,13 +68,33 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				t.Fatal("bridge flattened the source-unit model")
 			}
 			ctx := context.Background()
-			reloaded, err := step.ReadRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, strings.NewReader(admitted.NativeProofJSON), step.IndependentMaterialJSONLimits{})
+			var reloaded sourceUnitReceipt
+			var err error
+			bounds := Bounds{Min: vector{1, 0, -.7}, Max: vector{7.025, 3, 5}}
+			volume, area := 29.145041881053842, 66.186284791166074
+			x, z := big.NewRat(8, 5), big.NewRat(6, 5)
+			proof := strings.NewReader(admitted.NativeProofJSON)
+			if tc.grouped {
+				m, e := step.ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
+				evidence := admitted.RepairEvidence
+				if e != nil || evidence.Family != "occt-rational-posed-grouped-pcurve-convex-arc" || len(evidence.Repairs) != 8 ||
+					evidence.PCurveOwners != 28 || evidence.FiniteLineOwners != 8 || evidence.RationalCaps != 2 || evidence.AxialTrims != 1 ||
+					len(m.PCurves()) != 28 || len(m.FiniteLineOwners()) != 8 || len(m.FiniteTrims()) != 2 || len(m.AxialTrims()) != 1 {
+					t.Fatal("grouped bridge receipt lost original finite owner evidence", e)
+				}
+				reloaded = m
+				bounds = Bounds{Min: vector{0, 0, -2.7}, Max: vector{6.025, 3, 3}}
+				volume, area = 29.077978807115539, 65.622954970084379
+				x, z = new(big.Rat), new(big.Rat)
+			} else {
+				reloaded, err = step.ReadRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
+			}
 			if err != nil || reloaded.OriginalSTEP() != source || reloaded.LocalDescriptor().LengthUnit != tc.metres {
 				t.Fatal("written source proof lost the original STEP unit", err)
 			}
 			matrix, err := reloaded.Pose().Matrix()
 			if err != nil || !reflect.DeepEqual(&matrix, admitted.RepairEvidence.WorldPose) ||
-				matrix[0][3].Cmp(big.NewRat(8, 5)) != 0 || matrix[2][3].Cmp(big.NewRat(6, 5)) != 0 {
+				matrix[0][3].Cmp(x) != 0 || matrix[2][3].Cmp(z) != 0 {
 				t.Fatal("source proof lost its exact source-unit world pose", err)
 			}
 			arcMatrix, err := arc.pose.Matrix()
@@ -71,14 +103,14 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			}
 			checkLocalSTEPArcJSON(t, arc.local, reloaded.Solid())
 
-			for axis, want := range []vector{{1, 0, -.7}, {7.025, 3, 5}} {
-				got := [2]vector{admitted.Bounds.Min, admitted.Bounds.Max}[axis]
+			for side, want := range [2]vector{bounds.Min, bounds.Max} {
+				got := [2]vector{admitted.Bounds.Min, admitted.Bounds.Max}[side]
 				for i := range got {
 					near(t, got[i], want[i]*tc.mmPerUnit)
 				}
 			}
-			volume := 29.145041881053842 * math.Pow(tc.mmPerUnit, 3)
-			area := 66.186284791166074 * math.Pow(tc.mmPerUnit, 2)
+			volume *= math.Pow(tc.mmPerUnit, 3)
+			area *= math.Pow(tc.mmPerUnit, 2)
 			if math.Abs(admitted.GeometryAssertions.Volume/volume-1) > 1e-11 ||
 				math.Abs(admitted.GeometryAssertions.SurfaceArea/area-1) > 1e-11 {
 				t.Fatal("incorrect analytic millimetre estimates", admitted.GeometryAssertions)

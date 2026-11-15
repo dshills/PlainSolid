@@ -80,14 +80,16 @@ the disposable app with `--suite unit --step-repair-fixture`. The harness
 typechecks the adapter and records the fixture and original STEP input hashes.
 The cases cover signed and rationally tilted placements, source proof transport,
 world meshes, and strict canonical STEP reimport and re-export. The source-unit
-cases also qualify model retention and millimetre display in metres and inches.
+cases also qualify model retention and millimetre display for single and
+grouped repairs in metres and inches.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
-the concrete adapter. For translated tilted OCCT inputs in millimetres,
-metres, and inches, the test compares the certificate text with the original
-bytes returned by Go WASM. A fresh worker receives that certificate, derives
+the concrete adapter. It covers translated single-fillet inputs in all three
+units and tilted grouped inputs in metres and inches. The test compares the
+certificate text with the original bytes returned by Go WASM. A fresh worker
+receives that certificate, derives
 the identical native receipt from its original source, and strictly reopens
 and re-exports the canonical STEP. The metre and inch cases check explicit
 matching file units, millimetre `proofUnits`, and rejection of missing,
