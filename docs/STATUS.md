@@ -58,9 +58,9 @@ passed the build, typechecks, bundle budget, 345 development browser cases,
 WASM contracts. The [newer ordinary Go run on `509cdbd3`](evidence/main-509cdbd3-qualification-2026-11-15.json)
 accounted for all 5,921 top-level cases: 5,374 passes and 547 optional
 skips, including 1,411 trimmed passes and 47 optional trimmed skips.
-Every trimmed case in the refreshed full race on `d5906fde` is accounted
-for; the long ordinary `intersect` lane remains open with no reported
-failures. PlainCAD on `05ce6e82` has passed the WASM, production build,
+The [full native race on `d5906fde`](evidence/native-main-d5906fde-race-2026-11-15.json)
+accounted for all 5,769 cases: 5,247 passed and 522 optional cases were
+skipped. All 52 tested packages and the eight trimmed groups finished. PlainCAD on `05ce6e82` has passed the WASM, production build,
 type and selected kernel gates and is running the full development suite.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.

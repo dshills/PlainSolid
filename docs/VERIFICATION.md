@@ -102,8 +102,8 @@ to their respective lanes. PlainCAD records 345 development, 66 production,
 15 cross-browser, 1,691 ordinary unit and four WASM contract passes. All
 eight app stages returned zero; the production WASM and freshly built asset
 are byte-identical, the driver is pristine, and the bundle gate passed.
-The separately archived `d5906fde` full race remains in progress. Original
-reports, logs and case inventories are under
+The separately archived `d5906fde` full race result is recorded below.
+Original reports, logs and case inventories are under
 `.worktrees/qualification/2026-11-15`.
 
 A separate [newer ordinary Go run](evidence/main-509cdbd3-qualification-2026-11-15.json)
@@ -115,6 +115,15 @@ launcher and package/case inventories are retained in
 `.worktrees/qualification/2026-11-15/go-509cdbd3`. This is a full ordinary
 Go pass on the recorded snapshot while the separate PlainCAD and refreshed
 race runs are in progress.
+
+The [refreshed native macOS arm64 race](evidence/native-main-d5906fde-race-2026-11-15.json)
+on immutable `d5906fde` completed all nine lanes. Independent package and
+case inventories account for all 5,769 cases: 5,247 passes and 522 optional
+skips. The trimmed lanes have 1,381 passes and 47 skips. The ordinary lane
+has 3,866 passes and 475 skips. The optional checks were not counted as
+passes. The source, launcher and original result logs are under
+`.worktrees/qualification/2026-11-15/go-d5906fde-race`. This replaces the
+earlier running status for this same immutable snapshot.
 
 Focused main verification adds two bounded cases:
 
@@ -270,7 +279,8 @@ Focused main verification adds two bounded cases:
   selection. It reproduced the complete `bafe7e81` totals and rejected a
   deliberately duplicated terminal event without emitting a manifest.
   The `d5906fde` three-contour discovery race completed in 2978.900
-  seconds; the independent omitted-inner-contour check is still running.
+  seconds; the independent omitted-inner-contour check and the remaining
+  ordinary intersection cases also completed.
 
 Further main milestones use the same pinned optional OCCT reference:
 
