@@ -18,6 +18,17 @@ type SphericalLensDilationHistory struct {
 	RimRadius, BlendRadius float64
 }
 
+// ClassifyDilatedSphericalLens uses exact represented coordinates to classify
+// the parallel body of this original lens. The analytic query can handle a
+// nonrepresentable circular rim without rounding a native support.
+func (s SpherePairSet) ClassifyDilatedSphericalLens(ctx context.Context, p geom.Vec3, distance float64, o geom.SphereFullBoundaryDistanceOptions) (geom.SphereLensDilationPoint, error) {
+	if !s.valid || !p.IsFinite() || !finite(distance) {
+		return geom.SphereLensDilationPoint{}, geom.ErrInvalid
+	}
+	q := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
+	return s.query.ClassifyDilatedLensRational(ctx, [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)}, q(distance), o)
+}
+
 // DilateSphericalLens dilates an originally transverse ball intersection
 // using its two outward-offset spherical caps and their rolling torus band.
 // The original contact circle's center and radius and both expanded radii

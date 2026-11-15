@@ -111,6 +111,9 @@ func TestSphericalLensDilationBounds(t *testing.T) {
 	if _, _, err := irrational.DilateSphericalLens(ctx, .5, 1e-9); !errors.Is(err, geom.ErrUnrepresentable) {
 		t.Fatalf("irrational rim was rounded into a model support: %v", err)
 	}
+	if r, err := irrational.ClassifyDilatedSphericalLens(ctx, geom.Vec3{X: 1, Z: 2}, .5, geom.SphereFullBoundaryDistanceOptions{}); err != nil || r.Location != geom.BoreInside {
+		t.Fatalf("exact classification with a nonrepresentable rim: %+v %v", r, err)
+	}
 }
 
 func TestSphericalLensDilationBeyondRingRadius(t *testing.T) {

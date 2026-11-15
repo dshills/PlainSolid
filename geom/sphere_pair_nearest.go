@@ -47,6 +47,10 @@ type SpherePairNearest struct {
 // All selection, candidate construction and comparison share one work/bit
 // ledger. Every failure returns a zero result, never a partially proved payload.
 func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions) (out SpherePairNearest, err error) {
+	return s.nearestBoundaryRational(ctx, p, o, nil)
+}
+
+func (s SpherePairMaterial) nearestBoundaryRational(ctx context.Context, p [3]*big.Rat, o SphereFullBoundaryDistanceOptions, budget *polynomialBudget) (out SpherePairNearest, err error) {
 	defer func() {
 		if err != nil {
 			out = SpherePairNearest{}
@@ -68,7 +72,9 @@ func (s SpherePairMaterial) NearestBoundaryRational(ctx context.Context, p [3]*b
 	if e != nil {
 		return out, e
 	}
-	budget := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	if budget == nil {
+		budget = &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	}
 	a := sphereOverlapArithmetic{ctx: ctx, b: budget}
 	for _, v := range p {
 		if v == nil {
