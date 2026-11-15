@@ -52,6 +52,12 @@ func convexArcRotateTriple(m geom.Affine, p [3]*big.Rat, inverse bool) (out [3]*
 // candidate, leaving neutral representation metadata unchanged. Unsupported
 // geometry remains present and must be rejected by the complete strict reader.
 func convexArcRotateView(ctx context.Context, f *File, body, metadata map[int64]bool, m geom.Affine, inverse bool) (*File, error) {
+	return convexArcTransformView(ctx, f, body, metadata, func(_ string, p [3]*big.Rat) ([3]*big.Rat, error) {
+		return convexArcRotateTriple(m, p, inverse), nil
+	})
+}
+
+func convexArcTransformView(ctx context.Context, f *File, body, metadata map[int64]bool, transform func(string, [3]*big.Rat) ([3]*big.Rat, error)) (*File, error) {
 	view := &File{Header: f.Header, Order: append([]int64(nil), f.Order...), Entities: make(map[int64]Entity, len(f.Entities))}
 	for id, en := range f.Entities {
 		view.Entities[id] = en
@@ -75,7 +81,10 @@ func convexArcRotateView(ctx context.Context, f *File, body, metadata map[int64]
 		if e != nil {
 			return nil, e
 		}
-		q := convexArcRotateTriple(m, p, inverse)
+		q, e := transform(kind, p)
+		if e != nil {
+			return nil, e
+		}
 		values := make([]Value, 3)
 		for i := range q {
 			if metadata[id] && q[i].Cmp(p[i]) != 0 {
