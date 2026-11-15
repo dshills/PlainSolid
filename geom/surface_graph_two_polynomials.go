@@ -34,9 +34,9 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 }
 
 type polynomialGraphContactMode struct {
-	crossings, tangencies, cubicCrossings int
-	polynomialHeight                      bool
-	certify                               func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
+	crossings, tangencies, cubicCrossings, quarticTangencies int
+	polynomialHeight                                         bool
+	certify                                                  func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
 }
 
 func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, mode polynomialGraphContactMode) (r SplineGraphTwoPolynomials, err error) {
@@ -144,10 +144,11 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if len(disc) > 9 {
 		return r, ErrConvergence
 	}
-	if len(disc) == 0 && mode.crossings > 1 && mode.tangencies == 0 && mode.cubicCrossings == 0 {
+	repeatedContacts := mode.tangencies + mode.cubicCrossings + mode.quarticTangencies
+	if len(disc) == 0 && mode.crossings > 1 && repeatedContacts == 0 {
 		return r, ErrDegenerate
 	}
-	coincident := len(disc) == 0 && (mode.tangencies > 0 || mode.cubicCrossings > 0)
+	coincident := len(disc) == 0 && repeatedContacts > 0
 	var root rationalPolynomial
 	if !coincident {
 		root, e = graphExactPolynomialSqrt(disc, budget)
@@ -223,10 +224,10 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	var roots []*big.Rat
 	if coincident {
 		order = 1
-	} else if mode.crossings+mode.tangencies+mode.cubicCrossings == 0 {
+	} else if mode.crossings+repeatedContacts == 0 {
 		order, e = proveSign(delta)
 	} else {
-		roots, order, e = discoverGraphPolynomialPairRoots(ctx, delta, mode.crossings, mode.tangencies, mode.cubicCrossings, o.MaxCells, &visits, budget)
+		roots, order, e = discoverGraphPolynomialPairRoots(ctx, delta, mode, o.MaxCells, &visits, budget)
 	}
 	if e != nil {
 		return r, e
