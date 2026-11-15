@@ -30,7 +30,39 @@ type ExactCircularLoopExtrusionProduct struct {
 // Entity numbering/order and exact equivalent decimal spelling may differ;
 // alternate topology, rounded values, pcurves and metadata are not inferred.
 func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) (ExactCircularLoopExtrusionProduct, error) {
-	var zero ExactCircularLoopExtrusionProduct
+	p, err := readExactCircularLoopDialect(ctx, r, l, false)
+	if err != nil {
+		return ExactCircularLoopExtrusionProduct{}, err
+	}
+	return ExactCircularLoopExtrusionProduct{
+		Descriptor: ExactCircularLoopExtrusion{Name: p.Descriptor.Name, Frame: p.Descriptor.Frame, Segments: p.Descriptor.Outer, Height: p.Descriptor.Height, LengthUnit: p.Descriptor.LengthUnit},
+		Native:     p.Native, Source: p.Source, Body: p.Body, Shell: p.Shell, Caps: p.Caps, Walls: p.Walls, VerticalEdges: p.VerticalEdges, Rims: p.Rims, Vertices: p.Vertices,
+	}, nil
+}
+
+// ExactDirectedCircularLoopExtrusionProduct binds each original ring to the
+// native solid. RingOffsets delimit outer and inner wires in the original rim,
+// vertex, wall, and vertical edge arrays.
+type ExactDirectedCircularLoopExtrusionProduct struct {
+	Descriptor           ExactDirectedCircularLoopExtrusion
+	Native               trimmed.Solid
+	Source               *File
+	Body, Shell          int64
+	Caps                 [2]int64
+	Walls, VerticalEdges []int64
+	Rims, Vertices       [2][]int64
+	RingOffsets          []int
+}
+
+// ReadExactDirectedCircularLoopExtrusion reads the canonical rooted analytic
+// dialect, re-proves all original directed wires, and authenticates every
+// shared edge use and support against the reconstructed STEP graph.
+func ReadExactDirectedCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) (ExactDirectedCircularLoopExtrusionProduct, error) {
+	return readExactCircularLoopDialect(ctx, r, l, true)
+}
+
+func readExactCircularLoopDialect(ctx context.Context, r io.Reader, l Limits, directed bool) (ExactDirectedCircularLoopExtrusionProduct, error) {
+	var zero ExactDirectedCircularLoopExtrusionProduct
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -144,8 +176,8 @@ func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) 
 		}
 		height = lo.Z
 	}
-	out := ExactCircularLoopExtrusionProduct{Source: f, Body: bodies[0], Shell: body.Args[1].Ref, Caps: [2]int64{ids[0], ids[1]}, Walls: append([]int64(nil), ids[2:]...)}
-	out.Descriptor = ExactCircularLoopExtrusion{Name: name, Frame: frame, Height: height, LengthUnit: unit}
+	out := ExactDirectedCircularLoopExtrusionProduct{Source: f, Body: bodies[0], Shell: body.Args[1].Ref, Caps: [2]int64{ids[0], ids[1]}, Walls: append([]int64(nil), ids[2:]...)}
+	out.Descriptor = ExactDirectedCircularLoopExtrusion{Name: name, Frame: frame, Height: height, LengthUnit: unit}
 	point := func(id int64) (geom.Vec3, error) {
 		v, e := simple(f, id, "VERTEX_POINT", 2)
 		if e != nil {
@@ -158,63 +190,81 @@ func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) 
 		return sideDiskLocal(frame, p)
 	}
 	for j := 0; j < 2; j++ {
-		uses, e := exactLoopSourceUses(f, ids[j], n)
-		if e != nil {
-			return zero, e
+		rings, err := exactLoopRimSourceUses(f, ids[j], n, directed)
+		if err != nil {
+			return zero, err
 		}
-		for _, eid := range uses {
-			edge, e := simple(f, eid, "EDGE_CURVE", 5)
-			if e != nil {
-				return zero, e
-			}
-			out.Rims[j] = append(out.Rims[j], eid)
-			out.Vertices[j] = append(out.Vertices[j], edge.Args[1].Ref)
-			if j != 0 {
-				continue
-			}
-			start, e := point(edge.Args[1].Ref)
-			if e != nil {
-				return zero, e
-			}
-			end, e := point(edge.Args[2].Ref)
-			if e != nil {
-				return zero, e
-			}
-			if start.Z != lo.Z || end.Z != lo.Z {
+		if j == 0 {
+			out.RingOffsets = []int{0}
+			out.Descriptor.Holes = make([][]trimmed.ExactCircularLoopSegment, len(rings)-1)
+		} else if len(rings)+1 != len(out.RingOffsets) {
+			return zero, geom.ErrDomain
+		}
+		for ri, uses := range rings {
+			if j == 1 && len(uses) != out.RingOffsets[ri+1]-out.RingOffsets[ri] {
 				return zero, geom.ErrDomain
 			}
-			segment := trimmed.ExactCircularLoopSegment{Start: geom.Vec2{X: start.X, Y: start.Y}, End: geom.Vec2{X: end.X, Y: end.Y}}
-			curve := f.Entities[edge.Args[3].Ref]
-			if len(curve.Records) != 1 {
-				return zero, geom.ErrDomain
-			}
-			c := curve.Records[0]
-			switch c.Type {
-			case "LINE":
-				if len(c.Args) != 3 {
-					return zero, geom.ErrDomain
-				}
-			case "CIRCLE":
-				if len(c.Args) != 3 {
-					return zero, geom.ErrDomain
-				}
-				cf, e := sideDiskReadFrame(f, c.Args[1].Ref)
+			for _, eid := range uses {
+				edge, e := simple(f, eid, "EDGE_CURVE", 5)
 				if e != nil {
 					return zero, e
 				}
-				center, e := sideDiskLocal(frame, cf.Origin())
-				if e != nil || center.Z != lo.Z {
+				out.Rims[j] = append(out.Rims[j], eid)
+				out.Vertices[j] = append(out.Vertices[j], edge.Args[1].Ref)
+				if j != 0 {
+					continue
+				}
+				start, e := point(edge.Args[1].Ref)
+				if e != nil {
+					return zero, e
+				}
+				end, e := point(edge.Args[2].Ref)
+				if e != nil {
+					return zero, e
+				}
+				if start.Z != lo.Z || end.Z != lo.Z {
 					return zero, geom.ErrDomain
 				}
-				segment.Center = geom.Vec2{X: center.X, Y: center.Y}
-				segment.Radius, e = cylinderSupportNumber(c.Args[2])
-				if e != nil || segment.Radius <= 0 {
+				segment := trimmed.ExactCircularLoopSegment{Start: geom.Vec2{X: start.X, Y: start.Y}, End: geom.Vec2{X: end.X, Y: end.Y}}
+				curve := f.Entities[edge.Args[3].Ref]
+				if len(curve.Records) != 1 {
 					return zero, geom.ErrDomain
 				}
-			default:
-				return zero, geom.ErrDomain
+				c := curve.Records[0]
+				switch c.Type {
+				case "LINE":
+					if len(c.Args) != 3 {
+						return zero, geom.ErrDomain
+					}
+				case "CIRCLE":
+					if len(c.Args) != 3 {
+						return zero, geom.ErrDomain
+					}
+					cf, e := sideDiskReadFrame(f, c.Args[1].Ref)
+					if e != nil {
+						return zero, e
+					}
+					center, e := sideDiskLocal(frame, cf.Origin())
+					if e != nil || center.Z != lo.Z {
+						return zero, geom.ErrDomain
+					}
+					segment.Center = geom.Vec2{X: center.X, Y: center.Y}
+					segment.Radius, e = cylinderSupportNumber(c.Args[2])
+					if e != nil || segment.Radius <= 0 {
+						return zero, geom.ErrDomain
+					}
+				default:
+					return zero, geom.ErrDomain
+				}
+				if ri == 0 {
+					out.Descriptor.Outer = append(out.Descriptor.Outer, segment)
+				} else {
+					out.Descriptor.Holes[ri-1] = append(out.Descriptor.Holes[ri-1], segment)
+				}
 			}
-			out.Descriptor.Segments = append(out.Descriptor.Segments, segment)
+			if j == 0 {
+				out.RingOffsets = append(out.RingOffsets, len(out.Rims[0]))
+			}
 		}
 	}
 	for _, fid := range ids[2:] {
@@ -225,7 +275,7 @@ func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) 
 		out.VerticalEdges = append(out.VerticalEdges, uses[3])
 	}
 	var expected bytes.Buffer
-	if e = WriteExactCircularLoopExtrusion(ctx, &expected, out.Descriptor); e != nil {
+	if e = writeExactCircularLoopDialect(ctx, &expected, out.Descriptor, directed); e != nil {
 		return zero, e
 	}
 	canonical, e := Parse(&expected, l)
@@ -235,7 +285,11 @@ func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) 
 	if e = sideDiskMatchWholeGraph(f, canonical); e != nil {
 		return zero, e
 	}
-	out.Native, e = trimmed.ExtrudeExactCircularLoop(ctx, out.Descriptor.Segments, height, trimmed.ExactCircularLoopOptions{})
+	if directed {
+		out.Native, e = trimmed.ExtrudeExactDirectedCircularLoops(ctx, out.Descriptor.Outer, out.Descriptor.Holes, lo.Z, hi.Z, trimmed.ExactCircularLoopOptions{})
+	} else {
+		out.Native, e = trimmed.ExtrudeExactCircularLoop(ctx, out.Descriptor.Outer, height, trimmed.ExactCircularLoopOptions{})
+	}
 	if e != nil {
 		return zero, e
 	}
@@ -245,33 +299,52 @@ func ReadExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) 
 	return out, nil
 }
 func exactLoopSourceUses(f *File, fid int64, n int) ([]int64, error) {
-	face, e := simple(f, fid, "ADVANCED_FACE", 4)
-	if e != nil {
-		return nil, e
+	loops, err := exactLoopRimSourceUses(f, fid, n, false)
+	if err != nil {
+		return nil, err
 	}
-	bounds, e := listRefs(face.Args[1], 1)
-	if e != nil || len(bounds) != 1 {
+	return loops[0], nil
+}
+
+func exactLoopRimSourceUses(f *File, fid int64, n int, directed bool) ([][]int64, error) {
+	face, err := simple(f, fid, "ADVANCED_FACE", 4)
+	if err != nil {
+		return nil, err
+	}
+	ids, err := listRefs(face.Args[1], 1)
+	if err != nil || len(ids) > 21 || (!directed && len(ids) != 1) {
 		return nil, geom.ErrDomain
 	}
-	b, e := simple(f, bounds[0], "FACE_OUTER_BOUND", 3)
-	if e != nil {
-		return nil, e
-	}
-	loop, e := simple(f, b.Args[1].Ref, "EDGE_LOOP", 2)
-	if e != nil {
-		return nil, e
-	}
-	uses, e := listRefs(loop.Args[1], n)
-	if e != nil || len(uses) != n {
-		return nil, geom.ErrDomain
-	}
-	var ids []int64
-	for _, id := range uses {
-		u, e := simple(f, id, "ORIENTED_EDGE", 5)
-		if e != nil {
-			return nil, e
+	loops := make([][]int64, len(ids))
+	total := 0
+	for i, id := range ids {
+		kind := "FACE_OUTER_BOUND"
+		if i > 0 {
+			kind = "FACE_BOUND"
 		}
-		ids = append(ids, u.Args[3].Ref)
+		b, err := simple(f, id, kind, 3)
+		if err != nil {
+			return nil, err
+		}
+		loop, err := simple(f, b.Args[1].Ref, "EDGE_LOOP", 2)
+		if err != nil {
+			return nil, err
+		}
+		uses, err := listRefs(loop.Args[1], 3)
+		if err != nil || len(uses) > n-total {
+			return nil, geom.ErrDomain
+		}
+		total += len(uses)
+		for _, k := range uses {
+			u, err := simple(f, k, "ORIENTED_EDGE", 5)
+			if err != nil {
+				return nil, err
+			}
+			loops[i] = append(loops[i], u.Args[3].Ref)
+		}
 	}
-	return ids, nil
+	if total != n {
+		return nil, geom.ErrDomain
+	}
+	return loops, nil
 }
