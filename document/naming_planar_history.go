@@ -22,7 +22,8 @@ const (
 
 // PlanarFaceHistory is an address in the document feature graph, not a stored
 // topology index. Source must identify an authored box and one of BoxFaceRoles;
-// Target is that box or a downstream planar transform or Boolean feature.
+// Target is that box or a downstream planar transform, Boolean, seam join,
+// or inset join.
 type PlanarFaceHistory struct {
 	Source FeatureFace
 	Target string
@@ -49,7 +50,7 @@ type ResolvedPlanarFaceHistory struct {
 var ErrUnrelatedFeature = errors.New("document: target does not descend from named feature")
 
 // ResolvePlanarFaceHistory evaluates and traces every owned fragment of one
-// semantic box face through planar Booleans and transforms. It never chooses
+// semantic box face through planar Booleans, joins and transforms. It never chooses
 // a fragment by proximity, normal tolerance or its previous index. Coincident
 // Boolean faces are attributed only to the operand that owns the result.
 func (s State) ResolvePlanarFaceHistory(ctx context.Context, ref PlanarFaceHistory) (ResolvedPlanarFaceHistory, error) {
@@ -107,7 +108,7 @@ func (s State) ResolvePlanarFaceHistory(ctx context.Context, ref PlanarFaceHisto
 					}
 				}
 				next.err = geom.ErrUnrepresentable
-			case BooleanFeature:
+			case BooleanFeature, PlanarSeamJoinFeature, PlanarInsetJoinFeature:
 				sources := history.Faces
 				if len(sources) != len(geometry.Planar[id].Faces()) {
 					next.err = geom.ErrUnrepresentable

@@ -37,6 +37,8 @@ const (
 	PlanarOffsetFeature          FeatureKind = "planar-offset"
 	TransformFeature             FeatureKind = "transform"
 	BooleanFeature               FeatureKind = "planar-boolean"
+	PlanarSeamJoinFeature        FeatureKind = "planar-seam-join"
+	PlanarInsetJoinFeature       FeatureKind = "planar-inset-join"
 	CylinderBoreFeature          FeatureKind = "cylinder-bore"
 	SideOpenDualDiskCutFeature   FeatureKind = "side-open-dual-disk-cut"
 	PrismFilletFeature           FeatureKind = "prism-corner-fillet"
@@ -52,7 +54,8 @@ const (
 
 // Feature describes a reproducible construction. Asset IDs stay stable across
 // edits. Input is required for offset, transform and Boolean. Boolean also
-// requires Tool and uses Operation. Box uses Min and Max;
+// requires Tool and uses Operation. Seam and inset joins use Input and Tool;
+// an inset join treats Input as the host. Box uses Min and Max;
 // Prism uses Profile, Holes and Offset; Sphere uses Center and Radius;
 // RoundedBox uses Min, Max and Radius; planar offset uses Distance and
 // Tolerance; transform uses Transform. A bore uses a box input (possibly
@@ -222,10 +225,10 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				}
 				marks[name] = 1
 				stack = append(stack, item{name, true})
-				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
+				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
 					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature
-				needsTool := f.Kind == BooleanFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
+				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
 				}
@@ -348,6 +351,15 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 					return State{}, fmt.Errorf("document: feature %q needs planar input %q", name, f.Input)
 				}
 				p, e = csg.Offset(a, f.Distance, f.Tolerance)
+			case PlanarSeamJoinFeature, PlanarInsetJoinFeature:
+				a, ok := result.Planar[f.Input]
+				b, hasTool := result.Planar[f.Tool]
+				if !ok || !hasTool || f.Operation != poly.Union {
+					return State{}, fmt.Errorf("document: feature %q requires two planar assets and a union", name)
+				}
+				wantFaces := observe != nil && observe.needsHistory != nil && observe.needsHistory(f)
+				wantEdges := observe != nil && observe.needsEdges != nil && observe.needsEdges(f)
+				p, topology, e = evaluatePlanarContactFeature(ctx, f.Kind, a, b, wantFaces, wantEdges)
 			case BooleanFeature:
 				a, ok := result.Planar[f.Input]
 				b, hasTool := result.Planar[f.Tool]
