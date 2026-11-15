@@ -116,7 +116,7 @@ func CutAlignedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 	}
 
 	charts := alignedPolynomialCharts(aligned)
-	mapped, e := alignedPolynomialOwnerPieces(aligned)
+	mapped, e := polynomialOwnerPieces(proof, aligned.Owners)
 	if e != nil {
 		return nil, e
 	}
