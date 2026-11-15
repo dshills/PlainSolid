@@ -555,3 +555,42 @@ reader rejects these stored support gaps.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairFiveConvertedConvexArc' -count=1
 ```
+
+## Original two-fillet product with two interior cap wires
+
+The pinned `write-both-default-tilted-through-bore` mode cuts a radius
+`1/4` mm circular bore from the two-fillet prism before applying its exact
+`3/5`, `4/5` tilt. The resulting AP214 original has 524 entities, one
+solid, eight faces and two planar caps. Each cap references its own
+single-circle interior wire. `InspectRationalPosedConvexArcThroughBore`
+proves the bounded source and the corrected STEP graph with both wires.
+
+The exterior proof still accounts for all original outer walls and
+28 regular and two rational cap owners. The bore proof retains cap faces
+`#137` and `#382`, original rims `#250` and `#435`, inward wall `#492`
+and twice-used seam `#497`. It checks the complete original cap and
+cylindrical lifts for both circles, cap and wall winding, and exclusive
+owner links. Axial stations `1` and `6` measure the rim positions from
+the original cylinder origin. The seam uses branches `6.28318530718`
+and `0`, with the same affine axial law on both. A rational enclosure
+of `2π` bounds the radial mismatch along the complete finite seam to
+less than `1.05e-13` mm. The exact swept exterior cap proof places the
+bore's entire enclosing square strictly inside both exterior cap trims.
+
+The `1e-12` mm caller budget covers the exterior and the original seam
+owner bound. A `1e-13` mm request rejects in exterior owner proof. An
+edited seam exceeding the `1e-12` mm budget, changed owner or winding,
+and separately authored blind bore also reject. The corrected exchange
+graph reattaches the original interior wires and bore owners to the
+repaired exterior and preserves their exact shared support records.
+The existing one-loop strict readers retain their existing scope.
+
+Pinned OCCT reopens both the original and corrected graphs as one
+eight-face solid with volume `28.096231102869` mm³ and area
+`73.084237522361` mm². The separate `write-both-default-tilted-blind-bore`
+control reopens in OCCT as a nine-face solid with a finite floor.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test -race ./exchange/step -run '^TestInspectRationalPosedConvexArcThroughBore' -count=1
+```
