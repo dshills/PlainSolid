@@ -583,14 +583,27 @@ edited seam exceeding the `1e-12` mm budget, changed owner or winding,
 and separately authored blind bore also reject. The corrected exchange
 graph reattaches the original interior wires and bore owners to the
 repaired exterior and preserves their exact shared support records.
-The existing one-loop strict readers retain their existing scope.
+The native reconstruction retains the same geometry in a product-local
+solid with four exact quarter-cylinder patches for the bore and a
+clockwise interior loop on each cap. It certifies both complete planar
+trim domains and every shared coedge. Its native world measures use the
+original rational pose and match the independently reopened OCCT solid.
+
+`WriteCanonicalSTEP` writes the full native geometry as a distinct
+rationally placed analytic STEP product.
+`ReadRationalPosedExactCircularLoopThroughHoleExtrusion` recovers the
+occurrence and exterior recipe, then matches the entire input B-rep to
+the regenerated analytic boundary. Strict reopen preserves native
+material and re-exports the same bytes. Edited cap winding, borrowed
+interior loops and incorrect bore wall incidence reject.
 
 Pinned OCCT reopens both the original and corrected graphs as one
-eight-face solid with volume `28.096231102869` mm³ and area
+eight-face solid, and the canonical graph as one eleven-face solid.
+All three transfers have volume `28.096231102869` mm³ and area
 `73.084237522361` mm². The separate `write-both-default-tilted-blind-bore`
 control reopens in OCCT as a nine-face solid with a finite floor.
 
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
-  go test -race ./exchange/step -run '^TestInspectRationalPosedConvexArcThroughBore' -count=1
+  go test -race ./exchange/step -run 'Through(Bore|Hole)' -count=1
 ```

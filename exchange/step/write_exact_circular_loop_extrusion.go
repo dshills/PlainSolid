@@ -34,6 +34,45 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 	}, false)
 }
 
+// writeExactCircularLoopExtrusion preserves the older exterior-only graph
+// and supplies the analytic boundary for a separately proved round bore.
+func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle) error {
+	if hole == nil {
+		return WriteExactCircularLoopExtrusion(ctx, w, d)
+	}
+	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 4096 || !planarSplineRigid(frameTransform(d.Frame)) {
+		return geom.ErrInvalid
+	}
+	solid, err := trimmed.ExtrudeExactCircularLoopWithThroughHole(ctx, d.Segments, *hole, d.Height, trimmed.ExactCircularLoopOptions{})
+	if err != nil {
+		return err
+	}
+	const boreSpans = 4
+	vertices, edges, faces := solid.Vertices(), solid.Edges(), solid.Faces()
+	n := len(d.Segments)
+	if len(vertices) != 2*(n+boreSpans) || len(edges) != 3*(n+boreSpans) || len(faces) != n+boreSpans+2 {
+		return geom.ErrInvalid
+	}
+	supports, circles := make([]circularBoundarySupport, len(faces)), make([]trimmed.ExactCircularLoopSegment, len(edges))
+	supports[0].capZ, supports[1].capZ = vertices[0].Z, vertices[n].Z
+	for i, segment := range d.Segments {
+		supports[i+2] = circularBoundarySupport{wall: true, segment: segment}
+		circles[i], circles[i+n] = segment, segment
+	}
+	for i := 0; i < boreSpans; i++ {
+		j := 3*n + i
+		e := edges[j]
+		a, b := vertices[e.Start], vertices[e.End]
+		span := trimmed.ExactCircularLoopSegment{Start: geom.Vec2{X: a.X, Y: a.Y}, End: geom.Vec2{X: b.X, Y: b.Y}, Center: hole.Center, Radius: hole.Radius}
+		if occtLoopArcCross(span) <= 0 {
+			return geom.ErrDomain
+		}
+		supports[n+2+i] = circularBoundarySupport{wall: true, segment: span}
+		circles[j], circles[j+boreSpans] = span, span
+	}
+	return writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, localExactCircularLoopThroughHoleProduct, solid, supports, circles)
+}
+
 // ExactDirectedCircularLoopExtrusion stores source circular and linear
 // geometry in a signed-coordinate frame. The outer wire is CCW, inner
 // wires clockwise; individual minor circular arcs can turn either way.
