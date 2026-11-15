@@ -21,7 +21,8 @@ type SolidMixedFaceMeshOptions struct {
 // MixedFaceCoedgeSamples maps one original face/loop/use to its model edge.
 // TrimParameters are normalized original coedge parameters, independent of
 // face reversal. AuthoredParameters are exact original SplineUV.Curve parameters
-// after Range and SplineUV.Reversed, or equal TrimParameters for native normalized
+// after Range and SplineUV.Reversed (and the exact authored speed map for
+// MappedSplineUV), or equal TrimParameters for native normalized
 // curves/straight uses. They are independent owned values, not model parameters.
 // ModelParameters are exact values in the stored edge's actual Range, including
 // Use.Reversed. Vertices refer to the final display. FaceReversed records the
@@ -43,7 +44,8 @@ type CertifiedSolidMixedFaceMesh struct {
 // TessellateMixedFaceCertified certifies one stored spline face, preserving its
 // exact represented affine placement and physical orientation. Straight uses,
 // native ExactQuadraticUV/ExactBezierUV, and degree<=4 SplineUV with an exact
-// single-Bezier trace are supported when endpoints and complete correspondence
+// single-Bezier trace, plus explicitly mapped original MappedSplineUV, are
+// supported when endpoints and complete correspondence
 // are proved. Up to eight original redundant knot spans may be retained.
 // Each complete pcurve/model-edge correspondence is independently proved before
 // meshing. Unsupported periodic/collapsed topology, curves, parameterizations or
@@ -161,6 +163,12 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 				authored.Mul(authored, new(big.Rat).Sub(ratInset(q.Range.Max), ratInset(q.Range.Min)))
 				authored.Add(authored, ratInset(q.Range.Min))
 			}
+			if q, ok := source.(MappedSplineUV); ok {
+				authored, e = q.AuthoredParameter(t)
+				if e != nil {
+					return empty, e
+				}
+			}
 			item.AuthoredParameters = append(item.AuthoredParameters, authored)
 			q := new(big.Rat).Set(t)
 			if u.Reversed {
@@ -200,6 +208,11 @@ func mixedStoredUseCurveContext(ctx context.Context, u Use, o geom.SurfacePatchO
 		return nil, e
 	}
 	switch q := u.Curve.(type) {
+	case MappedSplineUV:
+		if q.weight == nil {
+			return nil, geom.ErrInvalid
+		}
+		return q.curve, nil
 	case ExactQuadraticUV, ExactBezierUV:
 		return q, nil
 	case *ExactQuadraticUV:

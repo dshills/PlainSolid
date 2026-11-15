@@ -137,7 +137,7 @@ func exactFloatMix(a, b, t float64) (float64, bool) {
 func compareSplineEdgeUse(ctx context.Context, model parametric.Edge, surface geom.Surface, use Use, o edgecheck.Options) (bool, error) {
 	if use.Curve != nil {
 		switch use.Curve.(type) {
-		case SplineUV, ExactQuadraticUV, ExactBezierUV:
+		case SplineUV, ExactQuadraticUV, ExactBezierUV, MappedSplineUV:
 			return compareSplineRationalTrimUse(ctx, model, surface, use, o)
 		}
 		return compareSplineWallUse(ctx, model, surface, use, o)
@@ -323,7 +323,7 @@ func compareSplineRationalTrimUse(ctx context.Context, model parametric.Edge, su
 	if m, ok := model.Curve.(surfaceTrimCurve); ok {
 		higher := func(c PCurve) bool {
 			switch q := c.(type) {
-			case ExactBezierUV:
+			case ExactBezierUV, MappedSplineUV:
 				return true
 			case SplineUV:
 				return q.Curve != nil && q.Curve.Degree() > 2
