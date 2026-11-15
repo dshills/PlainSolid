@@ -59,7 +59,7 @@ func WriteNonplanarSplineCavity(ctx context.Context, w io.Writer, m NonplanarSpl
 // nonplanarPolynomialShellFile is shared authoring only; it never normalizes
 // external geometry. Every newly emitted unit-weight entity is checked.
 func nonplanarPolynomialShellFile(ctx context.Context, bodies []SplineShellBody, unit float64) (*File, error) {
-	if ctx == nil || len(bodies) < 2 || len(bodies) > 5 {
+	if ctx == nil || len(bodies) < 1 || len(bodies) > 5 {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
