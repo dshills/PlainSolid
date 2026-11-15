@@ -25,35 +25,50 @@ func CombineRectangularPolynomialEnvelope(ctx context.Context, base, a, b *geom.
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	limits := o.Section.Patch
-	bp, e := geom.NewSurfacePatch(base, limits)
+	stock, e := prepareRectangularPolynomialStock(ctx, base, a, b, o)
 	if e != nil {
 		return nil, e
 	}
-	reference, e := geom.NewAffineXYRectangleReference(ctx, bp, limits)
-	if e != nil {
-		return nil, e
-	}
-	baseAlignment, e := geom.AlignAffineXYCharts(ctx, reference, bp, limits)
-	if e != nil {
-		return nil, e
-	}
-	mapping, e := baseAlignment.MapCoefficients()
+	mapping, e := stock.base.MapCoefficients()
 	if e != nil {
 		return nil, e
 	}
 	orientation := (mapping[0][0].Sign() * mapping[1][1].Sign()) - (mapping[0][1].Sign() * mapping[1][0].Sign())
 	baseChart := polynomialEnvelopeChart(mapping, orientation)
-	patches, e := preparePositivePolynomialRoofs(ctx, baseAlignment.TargetOnSource(), [2]*geom.BSplineSurface{a, b}, o)
-	if e != nil {
-		return nil, e
-	}
-	proof, e := geom.DiscoverProjectedSplineGraphPolynomialArrangement(ctx, reference, patches[0], patches[1], axis, o.Proof)
+	proof, e := geom.DiscoverProjectedSplineGraphPolynomialArrangement(ctx, stock.reference, stock.roofs[0], stock.roofs[1], axis, o.Proof)
 	if e != nil {
 		return nil, e
 	}
 	return buildNativePolynomialEnvelope(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
 		nativeRectangularPolynomialEnvelope, proof.Arrangement, proof.Owners, baseChart, projectedPolynomialCharts(proof))
+}
+
+type rectangularPolynomialPatches struct {
+	reference *geom.SurfacePatch
+	base      *geom.AffineXYChartAlignment
+	roofs     [2]*geom.SurfacePatch
+}
+
+func prepareRectangularPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (rectangularPolynomialPatches, error) {
+	limits := o.Section.Patch
+	bp, e := geom.NewSurfacePatch(base, limits)
+	if e != nil {
+		return rectangularPolynomialPatches{}, e
+	}
+	reference, e := geom.NewAffineXYRectangleReference(ctx, bp, limits)
+	if e != nil {
+		return rectangularPolynomialPatches{}, e
+	}
+	baseAlignment, e := geom.AlignAffineXYCharts(ctx, reference, bp, limits)
+	if e != nil {
+		return rectangularPolynomialPatches{}, e
+	}
+	patches, e := preparePositivePolynomialRoofs(ctx, baseAlignment.TargetOnSource(), [2]*geom.BSplineSurface{a, b}, o)
+	if e != nil {
+		return rectangularPolynomialPatches{}, e
+	}
+	return rectangularPolynomialPatches{reference: reference, base: baseAlignment, roofs: patches}, nil
 }
 
 func bindRectangularEnvelopeBase(s Solid, base *geom.BSplineSurface, chart graphEnvelopeChart, h SplineGraphBooleanHistory) error {

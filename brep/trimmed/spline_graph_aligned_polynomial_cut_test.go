@@ -121,6 +121,11 @@ func checkNativeAlignedCut(t *testing.T, cut *AlignedPolynomialCut, profile, axi
 
 func checkNativePolynomialCutMaterial(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int) {
 	t.Helper()
+	checkNativePolynomialCutMaterialOnFootprint(t, cut, profile, axis, order, 0, 1, 1)
+}
+
+func checkNativePolynomialCutMaterialOnFootprint(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int, origin, length float64, areaScale int64) {
+	t.Helper()
 	parts, contacts := cut.Components(), cut.Contacts()
 	regions := [2][]int{{0, 4}, {1, 2, 3}}[order]
 	if !slices.Equal(cut.Regions(), regions) || len(parts) != len(regions) {
@@ -129,6 +134,7 @@ func checkNativePolynomialCutMaterial(t *testing.T, cut *AlignedPolynomialCut, p
 	volumes, total := cut.ExactComponentVolumes()
 	wantTotal := new(big.Rat)
 	for i, want := range independentAlignedCutVolumes(profile, order) {
+		want.Mul(want, big.NewRat(areaScale, 1))
 		if len(volumes) != len(parts) || volumes[i].Sign() <= 0 || volumes[i].Cmp(want) != 0 {
 			t.Fatal("independent exact component integral", profile, axis, order, i, volumes, want)
 		}
@@ -150,7 +156,7 @@ func checkNativePolynomialCutMaterial(t *testing.T, cut *AlignedPolynomialCut, p
 			pair = [2]int{i, i + 1}
 		}
 		p, e := geom.RepresentedExactPoint(c.Point)
-		if e != nil || c.Order != orders[i] || c.Components != pair || ([2]float64{p.X, p.Y})[axis] != float64(1+2*i)/4 {
+		if e != nil || c.Order != orders[i] || c.Components != pair || ([2]float64{p.X, p.Y})[axis] != origin+length*float64(1+2*i)/4 {
 			t.Fatal("exact shared contact identity and indexed incidences", i, c, e)
 		}
 		for j, part := range pair {
