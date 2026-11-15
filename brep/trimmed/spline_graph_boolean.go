@@ -448,15 +448,20 @@ func saddleRepresentedUV(p [2]*big.Rat) (geom.Vec2, error) {
 }
 
 func saddleSquareArc(start, end geom.Vec2) ([]openSectionPiece, error) {
+	return saddleRectangleArc(start, end, geom.ParameterRectangle{UMax: 1, VMax: 1})
+}
+
+func saddleRectangleArc(start, end geom.Vec2, d geom.ParameterRectangle) ([]openSectionPiece, error) {
+	corners := [4]geom.Vec2{{X: d.UMin, Y: d.VMin}, {X: d.UMax, Y: d.VMin}, {X: d.UMax, Y: d.VMax}, {X: d.UMin, Y: d.VMax}}
 	side := func(p geom.Vec2) int {
 		switch {
-		case p.Y == 0 && p.X < 1:
+		case p.Y == d.VMin && p.X >= d.UMin && p.X < d.UMax:
 			return 0
-		case p.X == 1 && p.Y < 1:
+		case p.X == d.UMax && p.Y >= d.VMin && p.Y < d.VMax:
 			return 1
-		case p.Y == 1 && p.X > 0:
+		case p.Y == d.VMax && p.X > d.UMin && p.X <= d.UMax:
 			return 2
-		case p.X == 0 && p.Y > 0:
+		case p.X == d.UMin && p.Y > d.VMin && p.Y <= d.VMax:
 			return 3
 		default:
 			return -1
@@ -465,13 +470,13 @@ func saddleSquareArc(start, end geom.Vec2) ([]openSectionPiece, error) {
 	before := func(p, q geom.Vec2, axis int) bool {
 		switch axis {
 		case 0:
-			return p.X < q.X && q.Y == 0
+			return p.X < q.X && q.Y == d.VMin
 		case 1:
-			return p.Y < q.Y && q.X == 1
+			return p.Y < q.Y && q.X == d.UMax
 		case 2:
-			return p.X > q.X && q.Y == 1
+			return p.X > q.X && q.Y == d.VMax
 		default:
-			return p.Y > q.Y && q.X == 0
+			return p.Y > q.Y && q.X == d.UMin
 		}
 	}
 	if start == end || side(start) < 0 || side(end) < 0 {
@@ -480,7 +485,7 @@ func saddleSquareArc(start, end geom.Vec2) ([]openSectionPiece, error) {
 	var out []openSectionPiece
 	for p, n := start, 0; n < 5; n++ {
 		j := side(p)
-		q := unitSquare[(j+1)%4]
+		q := corners[(j+1)%4]
 		if before(p, end, j) {
 			q = end
 		}
@@ -687,7 +692,8 @@ func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurfac
 
 func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface,
 	regions []graphEnvelopeRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
-	return assembleSplineEnvelopeOnCharts(ctx, base, a, b, regions, [2]graphEnvelopeChart{}, tolerance, evaluate...)
+	return assembleSplineEnvelopeOnCharts(ctx, base, a, b, regions, geom.ParameterRectangle{UMax: 1, VMax: 1},
+		graphEnvelopeChart{}, [2]graphEnvelopeChart{}, tolerance, evaluate...)
 }
 
 type graphEnvelopeChart struct {
@@ -720,7 +726,8 @@ func reverseGraphUses(uses []Use) {
 }
 
 func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplineSurface,
-	regions []graphEnvelopeRegion, charts [2]graphEnvelopeChart, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
+	regions []graphEnvelopeRegion, d geom.ParameterRectangle, baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart,
+	tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	bad := func(reason string) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{}, fmt.Errorf("trimmed: spline envelope: %s", reason)
 	}
@@ -745,8 +752,7 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 	if len(perimeter) < 4 || len(perimeter) > 36 {
 		return bad("incomplete perimeter partition")
 	}
-	// The two portions of the original square perimeter are independently
-	// counterclockwise. Assemble their pieces by exact endpoint identity.
+	// Assemble the counterclockwise perimeter by exact endpoint identity.
 	index := make(map[geom.Vec2]int, len(perimeter))
 	for i, x := range perimeter {
 		if _, exists := index[x.a]; exists {
@@ -755,7 +761,8 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		index[x.a] = i
 	}
 	var outer []arc
-	p := unitSquare[0]
+	first := geom.Vec2{X: d.UMin, Y: d.VMin}
+	p := first
 	for range len(perimeter) {
 		i, ok := index[p]
 		if !ok {
@@ -765,16 +772,16 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		outer = append(outer, perimeter[i])
 		p = perimeter[i].b
 	}
-	if p != unitSquare[0] {
+	if p != first {
 		return bad("unclosed perimeter")
 	}
 	h := SplineGraphBooleanHistory{TopA: -1, TopB: -1, Base: len(regions)}
 	faces := make([]Face, len(regions)+1)
-	faces[h.Base] = Face{Surface: base, Reversed: true}
+	faces[h.Base] = Face{Surface: base, Reversed: !baseChart.reversed}
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	top, low := map[geom.Vec2]int{}, map[geom.Vec2]int{}
-	exactVertices := charts[0].transfer != nil || charts[1].transfer != nil
+	exactVertices := baseChart.transfer != nil || charts[0].transfer != nil || charts[1].transfer != nil
 	if exactVertices && len(evaluate) == 0 {
 		return bad("independent charts require an exact vertex evaluator")
 	}
@@ -788,6 +795,9 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		}
 		if e != nil {
 			return 0, e
+		}
+		if baseChart.transfer != nil && (p.X != key.X || p.Y != key.Y) {
+			return 0, fmt.Errorf("trimmed: original envelope vertex differs from physical reference: %w", geom.ErrConvergence)
 		}
 		if i, ok := ids[key]; ok {
 			if exactVertices && vertices[i] != p {
@@ -875,12 +885,16 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 			return Solid{}, h, e
 		}
 		topEdges[x.a] = id
-		id, e = model(low, base, x.openSectionPiece, x.openSectionPiece)
+		basePiece, e := baseChart.piece(x.openSectionPiece)
+		if e != nil {
+			return Solid{}, h, e
+		}
+		id, e = model(low, base, x.openSectionPiece, basePiece)
 		if e != nil {
 			return Solid{}, h, e
 		}
 		lowEdges[x.a] = id
-		faces[h.Base].Outer = append(faces[h.Base].Outer, Use{Edge: id, UVStart: x.a, UVEnd: x.b})
+		faces[h.Base].Outer = append(faces[h.Base].Outer, Use{Edge: id, UVStart: basePiece.a, UVEnd: basePiece.b})
 		tp, bp := vertices[top[x.a]], vertices[low[x.a]]
 		if tp.Z <= bp.Z {
 			return bad("wall collapsed at vertex")
@@ -891,6 +905,9 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 			return Solid{}, h, e
 		}
 		uprights[x.a] = edge(low[x.a], top[x.a], c, d.Length())
+	}
+	if baseChart.reversed {
+		reverseGraphUses(faces[h.Base].Outer)
 	}
 	for i, r := range regions {
 		chart := charts[0]
@@ -940,7 +957,11 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		hi := geom.Vec2{X: length, Y: vertices[low[x.b]].Z - startHeight}
 		tr := geom.Vec2{X: length, Y: vertices[top[x.b]].Z - startHeight}
 		tl := geom.Vec2{Y: vertices[top[x.a]].Z - startHeight}
-		lc := wallTrim{base, x.a, x.b, length, startHeight, lo.Y, hi.Y}
+		basePiece, e := baseChart.piece(x.openSectionPiece)
+		if e != nil {
+			return Solid{}, h, e
+		}
+		lc := baseChart.wall(wallTrim{base, basePiece.a, basePiece.b, length, startHeight, lo.Y, hi.Y})
 		owned, e := x.chart.piece(x.openSectionPiece)
 		if e != nil {
 			return Solid{}, h, e

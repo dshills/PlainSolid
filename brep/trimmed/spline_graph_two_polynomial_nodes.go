@@ -94,6 +94,11 @@ func twoPolynomialNodeRegionLoops(arrangement geom.SplineGraphTwoPolynomialNodes
 }
 
 func polynomialNodeRegionLoops(regions []geom.SplineGraphPolynomialRegion, uv []geom.Vec2, pieces [][]openSectionPiece) ([][]openSectionPiece, error) {
+	return polynomialNodeRegionLoopsOnRectangle(regions, uv, pieces, geom.ParameterRectangle{UMax: 1, VMax: 1})
+}
+
+func polynomialNodeRegionLoopsOnRectangle(regions []geom.SplineGraphPolynomialRegion, uv []geom.Vec2, pieces [][]openSectionPiece,
+	d geom.ParameterRectangle) ([][]openSectionPiece, error) {
 	loops := make([][]openSectionPiece, len(regions))
 	for i, region := range regions {
 		for _, use := range region.Edges {
@@ -111,7 +116,7 @@ func polynomialNodeRegionLoops(regions []geom.SplineGraphPolynomialRegion, uv []
 			if p.ParameterDirection != 1 {
 				return loops, geom.ErrConvergence
 			}
-			arc, e := saddleSquareArc(uv[p.Start], uv[p.End])
+			arc, e := saddleRectangleArc(uv[p.Start], uv[p.End], d)
 			if e != nil {
 				return loops, e
 			}

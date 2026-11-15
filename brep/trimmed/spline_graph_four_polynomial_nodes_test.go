@@ -63,6 +63,11 @@ func fourPolynomialNodeSourceArea(fuse bool) float64 {
 }
 
 func polynomialPairSourceEnvelopeArea(fuse bool, stations []float64, branches func(float64) (f, g, df, dg float64)) float64 {
+	return polynomialPairSourceEnvelopeAreaScaled(fuse, stations, branches, 1, 1, [3]float64{})
+}
+
+func polynomialPairSourceEnvelopeAreaScaled(fuse bool, stations []float64, branches func(float64) (f, g, df, dg float64),
+	freeLength, dependentLength float64, base [3]float64) float64 {
 	// Independent Gauss-Legendre integration directly on the original
 	// stock equations. Each quadrature rectangle maps to one signed
 	// strip over a slab and evaluates the original roof derivatives.
@@ -91,7 +96,9 @@ func polynomialPairSourceEnvelopeArea(fuse bool, stations []float64, branches fu
 			du -= (105.0 / 128) * (df*(v-g) + dg*(v-f))
 			dv += (105.0 / 128) * (2*v - f - g)
 		}
-		return math.Sqrt(1 + du*du + dv*dv)
+		du, dv = du*dependentLength, dv*freeLength
+		xy := freeLength * dependentLength
+		return math.Sqrt(xy*xy + du*du + dv*dv)
 	}
 	fiber := func(u float64, value func(float64, float64, bool) float64) float64 {
 		f, g, _, _ := branches(u)
@@ -100,14 +107,19 @@ func polynomialPairSourceEnvelopeArea(fuse bool, stations []float64, branches fu
 		interior := func(v float64) float64 { return value(u, v, !fuse) }
 		return integrate(0, lo, exterior) + integrate(lo, hi, interior) + integrate(hi, 1, exterior)
 	}
-	area := 1.0 // shared base
+	xy := freeLength * dependentLength
+	baseU, baseV := base[1]*dependentLength, base[2]*freeLength
+	area := math.Sqrt(xy*xy + baseU*baseU + baseV*baseV)
 	for i := range stations[:len(stations)-1] {
 		area += integrate(stations[i], stations[i+1], func(u float64) float64 { return fiber(u, roofJacobian) })
 	}
 	// Each wall is a vertical fiber over an original domain side.
 	for _, edge := range []float64{0, 1} {
-		area += integrate(0, 1, func(u float64) float64 { return roofHeight(u, edge, fuse) })
-		area += fiber(edge, roofHeight)
+		thickness := func(u, v float64, raised bool) float64 {
+			return roofHeight(u, v, raised) - (base[0] + base[1]*u + base[2]*v)
+		}
+		area += freeLength * integrate(0, 1, func(u float64) float64 { return thickness(u, edge, fuse) })
+		area += dependentLength * fiber(edge, thickness)
 	}
 	return area
 }

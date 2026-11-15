@@ -33,7 +33,7 @@ func CombineProjectedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BS
 		return nil, e
 	}
 	return buildNativePolynomialEnvelope(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
-		nativeProjectedPolynomialEnvelope, proof.Arrangement, proof.Owners, projectedPolynomialCharts(proof))
+		nativeProjectedPolynomialEnvelope, proof.Arrangement, proof.Owners, graphEnvelopeChart{}, projectedPolynomialCharts(proof))
 }
 
 func prepareProjectedPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,

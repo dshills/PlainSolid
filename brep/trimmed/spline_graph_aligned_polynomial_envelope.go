@@ -77,13 +77,13 @@ func CombineAlignedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpl
 		return nil, e
 	}
 	return buildNativePolynomialEnvelope(ctx, [3]*geom.BSplineSurface{base, a, b}, stock.first, axis, op, tolerance, o,
-		nativeAlignedPolynomialEnvelope, aligned.Arrangement, aligned.Owners, alignedPolynomialCharts(aligned))
+		nativeAlignedPolynomialEnvelope, aligned.Arrangement, aligned.Owners, graphEnvelopeChart{}, alignedPolynomialCharts(aligned))
 }
 
 func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSplineSurface, first, axis int,
 	op parametric.BooleanOp, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions, kind string,
 	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
-	charts [2]graphEnvelopeChart) (*AlignedPolynomialEnvelope, error) {
+	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart) (*AlignedPolynomialEnvelope, error) {
 	base := sources[0]
 	roofs := [2]*geom.BSplineSurface{sources[1+first], sources[2-first]}
 	if !isNativeAlignedPolynomialArrangement(proof, axis) {
@@ -97,7 +97,7 @@ func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSpline
 	if e != nil {
 		return nil, e
 	}
-	loops, e := polynomialNodeRegionLoops(proof.Regions, uv, pieces)
+	loops, e := polynomialNodeRegionLoopsOnRectangle(proof.Regions, uv, pieces, proof.Domain)
 	if e != nil {
 		return nil, e
 	}
@@ -105,9 +105,14 @@ func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSpline
 	for i, loop := range loops {
 		regions[i] = graphEnvelopeRegion{loop: loop, first: (proof.Regions[i].HeightSide > 0) == (op == parametric.Union)}
 	}
-	solid, envelope, e := assembleSplineEnvelopeOnCharts(ctx, base, roofs[0], roofs[1], regions, charts, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	solid, envelope, e := assembleSplineEnvelopeOnCharts(ctx, base, roofs[0], roofs[1], regions, proof.Domain, baseChart, charts, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
 	if e != nil {
 		return nil, e
+	}
+	if baseChart.transfer != nil {
+		if e = bindRectangularEnvelopeBase(solid, base, baseChart, envelope); e != nil {
+			return nil, e
+		}
 	}
 	if e = validateExactGraphPartitionEdges(ctx, solid, o.Proof); e != nil {
 		return nil, e
