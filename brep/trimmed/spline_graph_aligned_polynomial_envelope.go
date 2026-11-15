@@ -94,7 +94,11 @@ func buildNativePolynomialEnvelopeOnFootprint(ctx context.Context, sources [3]*g
 	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart, reference graphEnvelopeReference) (*AlignedPolynomialEnvelope, error) {
 	base := sources[0]
 	roofs := [2]*geom.BSplineSurface{sources[1+first], sources[2-first]}
-	if !isNativeAlignedPolynomialArrangement(proof, axis) {
+	admit := isNativeAlignedPolynomialArrangement
+	if kind == nativeClippedPolynomialCommon {
+		admit = isNativeClippedPolynomialArrangement
+	}
+	if !admit(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
 	uv, xyz, e := proof.RepresentedVertices()
