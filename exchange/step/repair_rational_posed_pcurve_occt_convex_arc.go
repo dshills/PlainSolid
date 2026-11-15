@@ -112,7 +112,7 @@ func RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.R
 		if e != nil {
 			if src.conversion != nil && src.local.Entities[q.GeometryID].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
 				var span ConvexArcCylinderSpanOwner
-				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion, nil, nil)
+				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion, nil, nil, false)
 				spans = append(spans, span)
 			} else {
 				var domain FiniteConvexArcLineOwner
@@ -229,8 +229,14 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, fmt.Errorf("rational pose model: %w", e)
 	}
-	if fillets == 3 && (converted || src.material.Descriptor().LengthUnit != .001) {
-		return nil, geom.ErrDomain
+	if fillets == 3 {
+		unit := .001
+		if converted {
+			unit = 1
+		}
+		if src.material.Descriptor().LengthUnit != unit {
+			return nil, geom.ErrDomain
+		}
 	}
 	if converted {
 		// The model reader has already verified the exact unit declaration.
