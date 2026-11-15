@@ -28,7 +28,9 @@ type MappedChainPolylineSegment struct {
 // CertifiedMappedChainPolyline covers the complete proved piecewise edge. The
 // pointwise chord bound is two-sided under affine interpolation of ModelParameter.
 // Both original owners share this one index array. KnotVertices retain every
-// original model/source station. No face fill or embedding is certified.
+// original model/source station. At a joint between independently authored
+// bases a vertex records the incoming parameters. Individual face samples
+// also retain the outgoing parameters. No face fill or embedding is certified.
 type CertifiedMappedChainPolyline struct {
 	Vertices        []MappedChainPolylineVertex
 	Segments        []MappedChainPolylineSegment

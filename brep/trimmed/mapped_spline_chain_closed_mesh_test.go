@@ -14,9 +14,17 @@ import (
 
 func mappedChainClosedFixture(t *testing.T) (MappedSplineChainAgreement, [2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
 	t.Helper()
+	return mappedChainClosedFixtureWithKnot(t, false)
+}
+
+func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineChainAgreement, [2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
+	t.Helper()
 	ctx := context.Background()
 	a, ca := mappedChainFixture(t, false)
 	b, cb := mappedChainFixture(t, true)
+	if crease {
+		a, b = mappedChainCreasedSupport(t, false), mappedChainCreasedSupport(t, true)
+	}
 	proof, err := CertifyMappedSplineChainAgreement(ctx, a, ca, b, cb, edgecheck.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -86,6 +94,27 @@ func mappedChainClosedFixture(t *testing.T) (MappedSplineChainAgreement, [2][]PC
 		{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, 3}}, {{3, 4}, {5, 3}},
 		{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
 	}
+	if crease {
+		closing[0] = []PCurve{closing[0][0],
+			line(geom.Vec2{X: 1, Y: .75}, geom.Vec2{X: .5, Y: .75}),
+			line(geom.Vec2{X: .5, Y: .75}, geom.Vec2{Y: .75}), closing[0][2]}
+		closing[1] = []PCurve{closing[1][0],
+			line(geom.Vec2{Y: 1}, geom.Vec2{Y: .5}),
+			line(geom.Vec2{Y: .5}, geom.Vec2{}), closing[1][2]}
+		planar[0] = face(geom.Vec3{X: 1, Z: -1}, yAxis, height, false,
+			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: 1}, geom.Vec2{X: .25, Y: .75}, geom.Vec2{Y: .625})
+		planar[2] = face(geom.Vec3{Y: .75, Z: -1}, xAxis, height, true,
+			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{X: .5, Y: .6875}, geom.Vec2{Y: .5})
+		planar[3] = face(geom.Vec3{Z: -1}, xAxis, height, false,
+			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: .625}, geom.Vec2{X: .5, Y: .5}, geom.Vec2{Y: .5})
+		seams = [][2]MappedChainClosedUse{
+			{{0, 0}, {2, 2}}, {{0, 1}, {4, 2}}, {{0, 2}, {4, 3}}, {{0, 3}, {3, 2}},
+			{{1, 0}, {2, 3}}, {{1, 1}, {5, 2}}, {{1, 2}, {5, 3}}, {{1, 3}, {3, 3}},
+			{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, 4}}, {{3, 4}, {5, 4}},
+			{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
+		}
+	}
+
 	return loaded, closing, planar, seams
 }
 

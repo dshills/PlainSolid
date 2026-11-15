@@ -2,15 +2,17 @@ package trimmed
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"plainsolid/geom"
 )
 
-// ExactTrimModelBezier composes an original bounded pcurve with its single
-// Bézier support. The output uses normalized trim traversal or its exact
-// reverse and retains the rational model coefficients. The support may use
-// a represented affine placement.
+// ExactTrimModelBezier composes an original bounded pcurve in one original
+// support knot cell. The output uses normalized trim traversal or its exact
+// reverse and retains the rational model coefficients. A multi-span support
+// keeps its original UV coordinates. Its trim control hull must fit in one
+// closed original knot rectangle. A represented affine placement is allowed.
 func ExactTrimModelBezier(ctx context.Context, support geom.Surface, trim PCurve, reverse bool, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
 	if ctx == nil || support == nil || trim == nil {
 		return nil, geom.ErrInvalid
@@ -23,7 +25,54 @@ func ExactTrimModelBezier(ctx context.Context, support geom.Surface, trim PCurve
 	if err != nil {
 		return nil, err
 	}
+	p, err = trimModelSupportCell(ctx, p, c, o)
+	if err != nil {
+		return nil, err
+	}
 	return p.ComposeParameterCurve(ctx, c, o)
+}
+
+// Exact containment of the positive-weight UV control hull proves the entire
+// original source trim lies in the selected knot rectangle. Shared knot lines
+// have the same C0 lift on either side of a clamped continuous support.
+func trimModelSupportCell(ctx context.Context, p *geom.SurfacePatch, uv *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	u, v := p.KnotBreaks()
+	if len(u) == 2 && len(v) == 2 {
+		return p, nil
+	}
+	net, _, err := uv.BezierControlNet(ctx, o)
+	if err != nil {
+		return nil, err
+	}
+	var box [2][2]*big.Rat
+	for i, h := range net.Control {
+		for axis := range box {
+			x := new(big.Rat).Quo(h[axis], h[3])
+			if i == 0 || x.Cmp(box[axis][0]) < 0 {
+				box[axis][0] = x
+			}
+			if i == 0 || x.Cmp(box[axis][1]) > 0 {
+				box[axis][1] = x
+			}
+		}
+	}
+	var ranges [2][2]float64
+	for axis, knots := range [2][]float64{u, v} {
+		found := false
+		for i := 0; i+1 < len(knots); i++ {
+			if box[axis][0].Cmp(ratInset(knots[i])) >= 0 && box[axis][1].Cmp(ratInset(knots[i+1])) <= 0 {
+				ranges[axis] = [2]float64{knots[i], knots[i+1]}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("original trim control hull spans support knot cells: %w", geom.ErrConvergence)
+		}
+	}
+	return p.Trim(geom.ParameterRectangle{
+		UMin: ranges[0][0], UMax: ranges[0][1], VMin: ranges[1][0], VMax: ranges[1][1],
+	})
 }
 
 // ProveMappedSplineTransfer recovers a positive owner speed for an original
