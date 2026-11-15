@@ -42,6 +42,7 @@ type TubeTrimIntersection struct {
 type TubeCoincidentTrimSpan struct {
 	Ends      [2]TubeTrimContact
 	FreeOrder int
+	source    *tubeCoincidentTrimSource
 }
 
 // IntersectQuadraticTrim composes a positive-weight quadratic UV Bezier on
@@ -474,6 +475,12 @@ func certifyCoincidentTubeSpan(ctx context.Context, piece ComposedCurvePlaneInte
 		end.ParametersA = UVBox{Min: Vec2{boxes[0][0], boxes[1][0]}, Max: Vec2{boxes[0][1], boxes[1][1]}}
 		end.ParametersB = UVBox{Min: Vec2{boxes[2][0], boxes[3][0]}, Max: Vec2{boxes[2][1], boxes[3][1]}}
 		end.Bounds = point.Bounds
+	}
+	if !pointOnly {
+		for i, end := range piece.Boundary {
+			freeChart.endpoints[i] = end.root
+		}
+		r.source = &tubeCoincidentTrimSource{chart: &freeChart, coordinate: free % 2}
 	}
 	return r, true, nil
 }

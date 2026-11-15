@@ -159,6 +159,9 @@ func captureTrimmedSectionPartitions(patches [2]intersect.Patch, faces [2]Face,
 		}
 		for _, clip := range b.Clips {
 			c := SplineTubeClipReport{}
+			for j, f := range clip.FaceTrims {
+				c.FaceTrims[j].Coincidences = append([]SplineTubeTrimCoincidence(nil), f.Coincidences...)
+			}
 			for _, event := range clip.Events {
 				for j := range event.Contacts {
 					event.Contacts[j] = append([]SplineTubeTrimContact(nil), event.Contacts[j]...)

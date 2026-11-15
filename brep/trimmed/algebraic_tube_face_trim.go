@@ -39,6 +39,7 @@ type SplineTubeTrimContact struct {
 type SplineTubeTrimCoincidence struct {
 	Ends      [2]SplineTubeTrimContact
 	FreeOrder int
+	proof     geom.TubeCoincidentTrimSpan
 }
 
 type SplineTubeTrimPending struct {
@@ -187,7 +188,7 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 					r.Contacts = append(r.Contacts, c)
 				}
 				for _, s := range q.Spans {
-					c := SplineTubeTrimCoincidence{FreeOrder: s.FreeOrder}
+					c := SplineTubeTrimCoincidence{FreeOrder: s.FreeOrder, proof: s}
 					for i, end := range s.Ends {
 						c.Ends[i], e = contact(end)
 						if e != nil {

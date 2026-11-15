@@ -206,6 +206,24 @@ func TestTubeQuadraticTrimExactCrossingAndTangency(t *testing.T) {
 			t.Fatal("interior source root and original conic support", end)
 		}
 	}
+	freeRoot, e := ImportExactRoot(ctx, ExactRootRecipe{Version: 1, Coefficients: []string{"-7", "0", "128"}, Lower: "7/32", Upper: "1/4"}, ExactRootCodecOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	parameter, _, e := c.ParameterAtFreeRoot(ctx, freeRoot, ExactCurvePlaneEventOptions{})
+	if e != nil {
+		t.Fatal("inverse of algebraic conic coordinate", e)
+	}
+	// X=(9-6t-t²)/(2(9+t²)) in the restricted source parameter.
+	// Substituting 128 X²=7 gives this independent quartic.
+	wantParameter, e := ImportExactRoot(ctx, ExactRootRecipe{Version: 1,
+		Coefficients: []string{"2025", "-3456", "450", "384", "25"}, Lower: "1/2", Upper: "3/4"}, ExactRootCodecOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if q, e := parameter.Compare(ctx, wantParameter, ExactCurvePlaneEventOptions{}); e != nil || !q.Proven || q.Order != 0 {
+		t.Fatal("original conic source preimage", q, e)
+	}
 	projectedTube, _, _, e := proof.projectedGraphTube(ctx, [2]int{0, 2}, TubeAlgebraicGraphEndpointOptions{})
 	if e != nil {
 		t.Fatal(e)

@@ -52,6 +52,7 @@ type AlgebraicTrimmedPairSection struct {
 	native                                      *nativeTrimmedPairSection
 	partitionSource                             *trimmedSectionPartitionSource
 	exactPartitionSource                        *trimmedSectionPartitionSource
+	coincidentSource                            *trimmedSectionPartitionSource
 }
 
 func (r AlgebraicTrimmedPairSection) runSource() *trimmedSectionPartitionSource {
@@ -191,12 +192,13 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 	}
 	r.Complete = true
 	r.native = encodeTrimmedPairSection(patches, faces, r.Trace.Curves, o.Clip.Projection, coincident)
+	source := captureTrimmedSectionPartitions(patches, faces, r.Branches, r.Trace.Curves, o.Clip.Projection)
 	if coincident {
 		// A section on an original edge needs a shared-edge imprint plan.
 		// The face-interior partitioner accepts only new branch coedges.
+		r.coincidentSource = source
 		return r, nil
 	}
-	source := captureTrimmedSectionPartitions(patches, faces, r.Branches, r.Trace.Curves, o.Clip.Projection)
 	// Solid assembly still has a separate float B-spline source gate.
 	if _, a := faces[0].Surface.(*geom.BSplineSurface); a {
 		if _, b := faces[1].Surface.(*geom.BSplineSurface); b {

@@ -109,4 +109,58 @@ func TestTrimmedSplinePairCoincidentSourceSpan(t *testing.T) {
 		t.Fatal("coincident native recipe independent reload", err)
 	}
 	check(back)
+
+	// Now the opposite face is crossed from one original side to the other.
+	// Both endpoints are in the interior of the original weighted coedge.
+	faces[1].Outer = wire(91, [4]geom.Vec2{{X: .375, Y: .25}, {X: .625, Y: .25}, {X: .625, Y: .75}, {X: .375, Y: .75}})
+	faces[1].Holes = nil
+	section, err := SectionTrimmedSplinePair(ctx, patches, faces, &seeds, o)
+	if err != nil || !section.Complete || len(section.Branches[0].Runs) != 1 {
+		t.Fatal("original coedge crosses the whole opposite face", section.Complete, err)
+	}
+	if p, err := section.ImprintCoincidentTrimRun(ctx, 1, 0, 0, AlgebraicTubeFacePartitionOptions{}); err == nil || len(p.BoundaryRanges) != 0 {
+		t.Fatal("interior face attributed as owner of original coincident trim", err)
+	}
+	if p, err := section.ImprintCoincidentTrimRun(ctx, 0, 0, 0, AlgebraicTubeFacePartitionOptions{ExactCurvePlaneEventOptions: geom.ExactCurvePlaneEventOptions{MaxOperations: 1}}); err == nil || len(p.BoundaryRanges) != 0 {
+		t.Fatal("bounded exact imprint must fail atomically", err)
+	}
+	section.Branches[0].Clips[0].FaceTrims[0].Coincidences[0].Ends[0].Source.Edge = -1
+	section.Branches[0].Runs[0].Intervals = nil
+	imprint, err := section.ImprintCoincidentTrimRun(ctx, 0, 0, 0, AlgebraicTubeFacePartitionOptions{})
+	if err != nil || imprint.Partition.Chart != 1 || imprint.Partition.SourceSurface != patches[1].Surface || len(imprint.Partition.Cut) != 1 || len(imprint.BoundaryRanges) != 1 {
+		t.Fatal("certified opposite-face partition and original ownership", err)
+	}
+	if p := imprint.Partition; len(p.Fragments[0].Outer) != 3 || len(p.Fragments[1].Outer) != 3 || p.Fragments[0].CutReversed == p.Fragments[1].CutReversed {
+		t.Fatal("opposite original face partition incidence", p.Fragments)
+	}
+	owned := imprint.BoundaryRanges[0]
+	if owned.Source != (SplineTubeTrimSource{Use: 0, Edge: 77, Reversed: true, ParameterStart: 6, ParameterEnd: 2}) {
+		t.Fatal("mutable report changed source ownership", owned.Source)
+	}
+	// Independently subtract qW from the original ascending weighted cubic.
+	// In normalized original units the crossing equations are these cubics.
+	for _, recipe := range []geom.ExactRootRecipe{
+		{Version: 1, Coefficients: []string{"3", "-6", "3", "-1"}, Lower: "1/2", Upper: "1"},
+		{Version: 1, Coefficients: []string{"2", "-6", "-3", "1"}, Lower: "0", Upper: "1/2"},
+	} {
+		root, err := geom.ImportExactRoot(ctx, recipe, geom.ExactRootCodecOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		root, _, err = root.AffineMap(ctx, big.NewRat(2, 1), big.NewRat(4, 1), geom.ExactCurvePlaneEventOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, bound := range []*geom.ExactAlgebraicRoot{owned.Start, owned.End} {
+			q, err := root.Compare(ctx, bound, geom.ExactCurvePlaneEventOptions{})
+			if err != nil || !q.Proven {
+				t.Fatal(q, err)
+			}
+			found = found || q.Order == 0
+		}
+		if !found {
+			t.Fatal("wrong original weighted coedge split", recipe)
+		}
+	}
 }
