@@ -46,6 +46,10 @@ type MappedChainShellSTEPOptions struct {
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
 	AllowIndependentOwnerBases bool
+	// AllowMixedOwnerBases admits one whole basis shared by all coedges of
+	// one roof, and one whole basis per coedge of the other. This explicit
+	// coedge graph uses the same exact integer scale on model stations.
+	AllowMixedOwnerBases bool
 }
 
 // WriteMappedChainRectangularShell writes a single independently certified
@@ -61,15 +65,14 @@ func WriteMappedChainRectangularShell(ctx context.Context, w io.Writer, shell tr
 		o.Tolerance = 1e-9
 	}
 	bases := shell.IndependentOwnerBases()
-	independent := bases == [2]bool{true, true}
-	if bases[0] != bases[1] || (independent && !o.AllowIndependentOwnerBases) {
+	if !o.allowsOwnerBases(bases) {
 		return fmt.Errorf("mapped STEP owner basis arrangement: %w", geom.ErrConvergence)
 	}
 	native, err := shell.BuildRectangularSolid(ctx, o.Tolerance, o.Geometry)
 	if err != nil {
 		return err
 	}
-	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, independent, o.Geometry)
+	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, bases, o.Geometry)
 	if err != nil {
 		return err
 	}
@@ -86,15 +89,26 @@ func WriteMappedChainRectangularShell(ctx context.Context, w io.Writer, shell tr
 	return err
 }
 
+func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {
+	switch independent {
+	case [2]bool{}:
+		return true
+	case [2]bool{true, true}:
+		return o.AllowIndependentOwnerBases
+	default:
+		return o.AllowMixedOwnerBases
+	}
+}
+
 type mappedChainStepOwner struct {
 	face int
 	use  trimmed.Use
 }
 
-func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, independent bool, o geom.SurfacePatchOptions) ([]byte, error) {
+func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, independent [2]bool, o geom.SurfacePatchOptions) ([]byte, error) {
 	faces, edges, vertices := native.Solid.Faces(), native.Solid.Edges(), native.Solid.Vertices()
 	stations := native.ChainStations
-	if independent {
+	if independent != [2]bool{} {
 		var err error
 		stations, err = mappedChainSTEPIntegerStations(stations)
 		if err != nil {
@@ -151,7 +165,7 @@ func mappedChainSTEPIntegerStations(stations []*big.Rat) ([]*big.Rat, error) {
 	return out, nil
 }
 
-func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, independent bool, o geom.SurfacePatchOptions) (int64, error) {
+func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, independent [2]bool, o geom.SurfacePatchOptions) (int64, error) {
 	surfaces := make([]int64, len(faces))
 	for i, face := range faces {
 		p, ok := face.Surface.(*geom.BSplineSurface)
@@ -204,7 +218,7 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 		pc := make([]int64, 2)
 		for j, owner := range owners {
 			basis := &bases[owner.face]
-			if independent {
+			if chain && independent[owner.face] {
 				basis = &mappedChainStepBasis{}
 			}
 			curve, err := emitMappedChainStepUse(emit, owner.use, chain, basis)
