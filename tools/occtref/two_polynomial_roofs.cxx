@@ -2,7 +2,7 @@
 // tessellation or section curve: OCCT intersects the two original surfaces.
 // A-B=(105/128)(v-f(u))(v-g(u)), B=3+uv/64, base=0.
 // f=1/4+3u/8-3u^2/8+u^3/8; g=5/8+u^4/8.
-// The node variant uses g=f+(1-2u)(1+u^3)/64 and compares Common and Fuse.
+// The node modes use g=f+(1-2u)(1+u^3)/64 for Common, Fuse and Cut.
 // The common denominator multiplier makes every degree-eight model pole dyadic.
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
@@ -24,6 +24,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 static TopoDS_Solid stock(bool raised, bool node) {
   const double v[]={0,.5,1}, f[]={.25,.375,-.375,.125,0};
@@ -54,18 +55,39 @@ static TopoDS_Solid stock(bool raised, bool node) {
   return s;
 }
 int main(int argc, char** argv){
-  const bool node=argc==2&&std::string(argv[1])=="node";
-  if(argc!=1&&!node)return 2;
+  const std::string mode = argc == 2 ? argv[1] : "";
+  const bool cut = mode == "node-cut";
+  const bool node = cut || mode == "node";
+  if (argc != 1 && !node) return 2;
+  const int firstOperation = cut ? 2 : 0;
+  const int operationEnd = mode == "node" ? 2 : 3;
   auto a=stock(true,node),b=stock(false,node);std::cout<<std::setprecision(17)<<"[";bool first=true;
   for(int order=0;order<2;++order){auto x=order?b:a,y=order?a:b;
-    for(int op=0;op<(node?2:3);++op){TopoDS_Shape s;
+    for(int op=firstOperation;op<operationEnd;++op){TopoDS_Shape s;
       if(op==0){BRepAlgoAPI_Common f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
       else if(op==1){BRepAlgoAPI_Fuse f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
       else{BRepAlgoAPI_Cut f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
       GProp_GProps mass;BRepGProp::VolumeProperties(s,mass,1e-10);int solids=0;
-      for(TopExp_Explorer it(s,TopAbs_SOLID);it.More();it.Next())++solids;
+      std::vector<double> partVolumes;
+      for (TopExp_Explorer it(s, TopAbs_SOLID); it.More(); it.Next()) {
+        ++solids;
+        if (cut) {
+          GProp_GProps part;
+          BRepGProp::VolumeProperties(it.Current(), part, 1e-10);
+          partVolumes.push_back(part.Mass());
+        }
+      }
       if(!first)std::cout<<",";first=false;
-      std::cout<<"{\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass()<<"}";
+      std::cout<<"{\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass();
+      if (cut) {
+        std::cout << ",\"PartVolumes\":[";
+        for (std::size_t i = 0; i < partVolumes.size(); ++i) {
+          if (i > 0) std::cout << ",";
+          std::cout << partVolumes[i];
+        }
+        std::cout << "]";
+      }
+      std::cout<<"}";
     }
   }
   std::cout<<"]\n";

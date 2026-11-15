@@ -19,6 +19,7 @@ type SplineGraphBooleanOptions struct {
 	// PolynomialNode selects two cubic/quartic graph branches crossing once.
 	// Common and Fuse require exactly representable node and terminal vertices.
 	// Cut returns ErrDegenerate because its opposite sectors meet at the node.
+	// CutSplineGraphPolynomialNodeComponents exposes those two material components.
 	PolynomialNode *geom.GraphPointContactOptions
 	// PolynomialNodeAxis selects the original free coordinate (0=U, 1=V).
 	PolynomialNodeAxis int

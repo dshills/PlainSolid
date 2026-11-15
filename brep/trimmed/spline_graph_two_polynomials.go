@@ -66,15 +66,11 @@ func assembleTwoPolynomialGraphs(ctx context.Context, base, a, b *geom.BSplineSu
 				split = append(split, p)
 				continue
 			}
-			xy := [2]*big.Rat{}
-			for i, pair := range [][2]float64{{p.a.X, p.b.X}, {p.a.Y, p.b.Y}} {
-				xy[i] = new(big.Rat).Quo(new(big.Rat).Add(new(big.Rat).SetFloat64(pair[0]), new(big.Rat).SetFloat64(pair[1])), big.NewRat(2, 1))
-			}
-			mid, e := exactGraphPartitionUV(xy)
+			halves, e := splitGraphSideAtMidpoint(p)
 			if e != nil {
 				return fail(e)
 			}
-			split = append(split, openSectionPiece{a: p.a, b: mid, side: p.side}, openSectionPiece{a: mid, b: p.b, side: p.side})
+			split = append(split, halves[:]...)
 		}
 		loops[1] = split
 	}
@@ -103,4 +99,17 @@ func assembleTwoPolynomialGraphs(ctx context.Context, base, a, b *geom.BSplineSu
 	}
 	history.TwoPolynomials = &section
 	return solid, history, nil
+}
+
+func splitGraphSideAtMidpoint(p openSectionPiece) ([2]openSectionPiece, error) {
+	var halves [2]openSectionPiece
+	xy := [2]*big.Rat{}
+	for i, pair := range [2][2]float64{{p.a.X, p.b.X}, {p.a.Y, p.b.Y}} {
+		xy[i] = new(big.Rat).Quo(new(big.Rat).Add(new(big.Rat).SetFloat64(pair[0]), new(big.Rat).SetFloat64(pair[1])), big.NewRat(2, 1))
+	}
+	mid, e := exactGraphPartitionUV(xy)
+	if e != nil {
+		return halves, e
+	}
+	return [2]openSectionPiece{{a: p.a, b: mid, side: p.side}, {a: mid, b: p.b, side: p.side}}, nil
 }
