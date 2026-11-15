@@ -2451,3 +2451,11 @@ direction for every eligible original border. Discovery uses the
 necessary twice-tolerance separation bound. The fixed-support repair
 checks the requested actual displacement and final embedding, and the
 report retains each inferred pair.
+
+### Cubic and quartic trimmed spline sections
+
+Verified spline-pair tubes can contact cubic and quartic rational trim
+coedges in the original face charts. The proof retains original knot
+parameters, crossing signs, multiplicity, clipped section runs, and
+both fragment uses. Exact Bézier section files use a versioned native
+recipe and re-prove the original trims on reload.

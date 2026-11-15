@@ -9,6 +9,16 @@ import (
 // 1 (B). The trim is a normalized exact rational quadratic UV Bezier. It uses
 // original model supports and the immutable segment tube, never display samples.
 func (s TubeSegment) IntersectQuadraticTrim(ctx context.Context, chart int, trim *geom.ExactSplineCurve, o geom.TubeTrimIntersectionOptions) (r geom.TubeTrimIntersection, err error) {
+	return s.intersectRationalBezierTrim(ctx, chart, trim, o, true)
+}
+
+// IntersectRationalBezierTrim proves source-bound branch contacts for an exact
+// positive-weight Bézier trim through degree four on the selected chart.
+func (s TubeSegment) IntersectRationalBezierTrim(ctx context.Context, chart int, trim *geom.ExactSplineCurve, o geom.TubeTrimIntersectionOptions) (geom.TubeTrimIntersection, error) {
+	return s.intersectRationalBezierTrim(ctx, chart, trim, o, false)
+}
+
+func (s TubeSegment) intersectRationalBezierTrim(ctx context.Context, chart int, trim *geom.ExactSplineCurve, o geom.TubeTrimIntersectionOptions, quadraticOnly bool) (r geom.TubeTrimIntersection, err error) {
 	if ctx == nil || s.a == nil || s.b == nil || s.pa == nil || chart < 0 || chart > 1 {
 		return r, geom.ErrInvalid
 	}
@@ -43,5 +53,8 @@ func (s TubeSegment) IntersectQuadraticTrim(ctx context.Context, chart int, trim
 	if o.MaxOperations < 1 {
 		return r, geom.ErrConvergence
 	}
-	return s.proof.IntersectQuadraticTrim(ctx, supports[0], supports[1], chart, trim, o)
+	if quadraticOnly {
+		return s.proof.IntersectQuadraticTrim(ctx, supports[0], supports[1], chart, trim, o)
+	}
+	return s.proof.IntersectRationalBezierTrim(ctx, supports[0], supports[1], chart, trim, o)
 }

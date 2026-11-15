@@ -52,7 +52,8 @@ type SplineTubeFaceTrimReport struct {
 
 // IntersectSplineTubeFaceTrims exhausts the selected verified tube segment
 // against a certified outer loop and all holes, using the original face
-// support. Coincidences and contacts on a dependent tube wall are unresolved.
+// support. Positive-weight rational Bézier coedges through degree four qualify.
+// Coincidences and contacts on a dependent tube wall are unresolved.
 // A contact can have multiple owners at a knot or face vertex; these records
 // are kept separately. The report does not classify the intervening branch.
 func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSegment, chart int, f Face,
@@ -122,7 +123,7 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 				if p.MaxOperations < 1 {
 					return r, geom.ErrConvergence
 				}
-				uv, e := exactQuadraticTrimParameterCurve(ctx, span.controls, p)
+				uv, e := exactBezierTrimParameterCurve(ctx, span.controls, p)
 				if e != nil {
 					return r, e
 				}
@@ -135,9 +136,9 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 				}
 				var q geom.TubeTrimIntersection
 				if o.Projection == nil || r.ProjectionAxes == [2]int{0, 1} {
-					q, e = segment.IntersectQuadraticTrim(ctx, chart, uv, child)
+					q, e = segment.IntersectRationalBezierTrim(ctx, chart, uv, child)
 				} else {
-					p, e2 := segment.IntersectQuadraticTrimProjected(ctx, chart, uv, r.ProjectionAxes, child)
+					p, e2 := segment.IntersectRationalBezierTrimProjected(ctx, chart, uv, r.ProjectionAxes, child)
 					q, e = p.TubeTrimIntersection, e2
 				}
 				r.ExactOperations += q.ExactOperations
@@ -178,12 +179,12 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 
 type splineTubeTrimSpan struct {
 	source   SplineTubeTrimSource
-	controls [3][3]*big.Rat
+	controls [][3]*big.Rat
 }
 
 func tubeFaceTrimSpans(ctx context.Context, u Use, source SplineTubeTrimSource, p geom.SurfacePatchOptions) ([]splineTubeTrimSpan, int, error) {
 	if q, ok := shortSplineTrim(u.Curve); ok {
-		if q.Curve.Degree() > 2 {
+		if q.Curve.Degree() > 4 {
 			return nil, 0, geom.ErrConvergence
 		}
 		cells, used, e := q.Curve.ExactBezierSpans(ctx, q.Range.Min, q.Range.Max, geom.ExactBezierSpanOptions{SurfacePatchOptions: p})
@@ -203,6 +204,7 @@ func tubeFaceTrimSpans(ctx context.Context, u Use, source SplineTubeTrimSource, 
 				s.ParameterStart, s.ParameterEnd = c.End, c.Start
 			}
 			spans[i].source = s
+			spans[i].controls = make([][3]*big.Rat, max(3, len(c.Control)))
 			for j, pole := range c.Control {
 				if pole[2].Sign() != 0 {
 					return nil, used, geom.ErrDomain
@@ -217,13 +219,17 @@ func tubeFaceTrimSpans(ctx context.Context, u Use, source SplineTubeTrimSource, 
 				spans[i].controls[m] = [3]*big.Rat{pole[0], pole[1], pole[3]}
 			}
 			if len(c.Control) == 2 {
-				h := &spans[i].controls
+				h := spans[i].controls
 				for j := range h[1] {
 					h[1][j] = new(big.Rat).Quo(new(big.Rat).Add(h[0][j], h[2][j]), big.NewRat(2, 1))
 				}
 			}
 		}
 		return spans, used, nil
+	}
+	source.ParameterEnd = 1
+	if q, ok := u.Curve.(ExactBezierUV); ok {
+		return []splineTubeTrimSpan{{source, q.HomogeneousControls()}}, 0, nil
 	}
 	if q, ok := u.Curve.(*QuadraticUV); ok {
 		if q == nil {
@@ -235,6 +241,5 @@ func tubeFaceTrimSpans(ctx context.Context, u Use, source SplineTubeTrimSource, 
 	if e != nil {
 		return nil, 0, e
 	}
-	source.ParameterEnd = 1
-	return []splineTubeTrimSpan{{source, h}}, 0, nil
+	return []splineTubeTrimSpan{{source, h[:]}}, 0, nil
 }

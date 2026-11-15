@@ -379,7 +379,11 @@ func composeSplineTrimControls(ctx context.Context, p *geom.SurfacePatch, h [3][
 }
 
 func exactQuadraticTrimParameterCurve(ctx context.Context, h [3][3]*big.Rat, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
-	net := make([][4]*big.Rat, 3)
+	return exactBezierTrimParameterCurve(ctx, h[:], o)
+}
+
+func exactBezierTrimParameterCurve(ctx context.Context, h [][3]*big.Rat, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
+	net := make([][4]*big.Rat, len(h))
 	for i, q := range h {
 		net[i] = [4]*big.Rat{q[0], q[1], new(big.Rat), q[2]}
 	}

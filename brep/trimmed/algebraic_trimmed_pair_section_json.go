@@ -36,7 +36,7 @@ func encodeTrimmedPairSection(patches [2]intersect.Patch, faces [2]Face, branche
 		out := append([]Use(nil), l...)
 		for i := range out {
 			switch c := out[i].Curve.(type) {
-			case nil, QuadraticUV, ExactQuadraticUV, SplineUV:
+			case nil, QuadraticUV, ExactQuadraticUV, ExactBezierUV, SplineUV:
 			case *SplineUV:
 				if c == nil {
 					return nil, geom.ErrInvalid
@@ -84,6 +84,9 @@ func encodeTrimmedPairSection(patches [2]intersect.Patch, faces [2]Face, branche
 			return nil
 		}
 		n.Tubes = append(n.Tubes, q)
+	}
+	if encoder.exactBezier {
+		n.Version = 2
 	}
 	if validateTubeRecipes(n.Tubes, 4096) != nil {
 		return nil
@@ -142,7 +145,7 @@ func ReadTrimmedSplinePairSectionJSON(ctx context.Context, reader io.Reader, l J
 	if e := d.Decode(&n); e != nil {
 		return r, e
 	}
-	if e := d.Decode(new(any)); e != io.EOF || n.Version != 1 || n.Kind != "trimmed-algebraic-pair-section" {
+	if e := d.Decode(new(any)); e != io.EOF || (n.Version != 1 && n.Version != 2) || n.Kind != "trimmed-algebraic-pair-section" {
 		return r, geom.ErrInvalid
 	}
 	if len(n.Projection) > 0 {
@@ -159,7 +162,11 @@ func ReadTrimmedSplinePairSectionJSON(ctx context.Context, reader io.Reader, l J
 	if e := validateTubeRecipes(n.Tubes, l.MaxControlPoints); e != nil {
 		return r, e
 	}
-	td := trimDecoder{maxControls: l.MaxControlPoints, version: 5}
+	version := 5
+	if n.Version == 2 {
+		version = 6
+	}
+	td := trimDecoder{maxControls: l.MaxControlPoints, version: version}
 	var faces [2]Face
 	entities := 0
 	for i, f := range n.Faces {

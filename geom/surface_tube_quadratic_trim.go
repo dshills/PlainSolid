@@ -38,6 +38,17 @@ type TubeTrimIntersection struct {
 // remain pending unless a strict outward hull proves the whole span outside
 // this tube. Hits retain per-knot ancestry; no rounded event merging occurs.
 func (t VerifiedSurfaceTube) IntersectQuadraticTrim(ctx context.Context, originalA, originalB *SurfacePatch, chart int, trim *ExactSplineCurve, o TubeTrimIntersectionOptions) (r TubeTrimIntersection, err error) {
+	return t.intersectRationalBezierTrim(ctx, originalA, originalB, chart, trim, o, true)
+}
+
+// IntersectRationalBezierTrim proves the same contact relation for one exact
+// positive-weight UV Bézier of degree one through four. The curve's original
+// normalized parameter, contact signs and multiplicities are retained.
+func (t VerifiedSurfaceTube) IntersectRationalBezierTrim(ctx context.Context, originalA, originalB *SurfacePatch, chart int, trim *ExactSplineCurve, o TubeTrimIntersectionOptions) (TubeTrimIntersection, error) {
+	return t.intersectRationalBezierTrim(ctx, originalA, originalB, chart, trim, o, false)
+}
+
+func (t VerifiedSurfaceTube) intersectRationalBezierTrim(ctx context.Context, originalA, originalB *SurfacePatch, chart int, trim *ExactSplineCurve, o TubeTrimIntersectionOptions, quadraticOnly bool) (r TubeTrimIntersection, err error) {
 	if ctx == nil || t.a == nil || t.b == nil || t.tangentSign == 0 || originalA == nil || originalB == nil || chart < 0 || chart > 1 || trim == nil || trim.patch == nil {
 		return r, ErrInvalid
 	}
@@ -58,7 +69,8 @@ func (t VerifiedSurfaceTube) IntersectQuadraticTrim(ctx context.Context, origina
 	if o.MaxSubdivisions < 1 || !finite(o.Tolerance) || o.Tolerance <= 0 {
 		return r, ErrInvalid
 	}
-	if trim.patch.degreeU != 2 || trim.patch.countU != 3 {
+	d := trim.patch.degreeU
+	if trim.patch.countU != d+1 || d < 1 || d > 4 || (quadraticOnly && d != 2) {
 		return r, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
@@ -97,7 +109,7 @@ func (t VerifiedSurfaceTube) IntersectQuadraticTrim(ctx context.Context, origina
 	}
 	uv := &ExactComposedCurveCell{endpoints: [2]*ExactGraphLineRoot{{polynomial: rationalPolynomial{new(big.Rat), big.NewRat(1, 1)}, bounds: [2]*big.Rat{new(big.Rat), new(big.Rat)}}, {polynomial: rationalPolynomial{big.NewRat(-1, 1), big.NewRat(1, 1)}, bounds: [2]*big.Rat{big.NewRat(1, 1), big.NewRat(1, 1)}}}}
 	for axis := 0; axis < 4; axis++ {
-		values := make([]*big.Rat, 3)
+		values := make([]*big.Rat, trim.patch.countU)
 		for i := range values {
 			values[i] = trim.patch.net[i*trim.patch.countV][axis]
 		}

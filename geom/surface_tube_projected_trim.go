@@ -16,6 +16,16 @@ type ProjectedTubeTrimIntersection struct {
 // are retained and rechecked. All returned model events/bounds use original XYZ;
 // source UV controls and original parameter roots are never permuted.
 func (t VerifiedSurfaceTube) IntersectQuadraticTrimProjected(ctx context.Context, a, b *SurfacePatch, chart int, trim *ExactSplineCurve, axes [2]int, o TubeTrimIntersectionOptions) (r ProjectedTubeTrimIntersection, err error) {
+	return t.intersectRationalBezierTrimProjected(ctx, a, b, chart, trim, axes, o, true)
+}
+
+// IntersectRationalBezierTrimProjected proves exact Bézier trim contacts of
+// degree one through four using the selected original model projection.
+func (t VerifiedSurfaceTube) IntersectRationalBezierTrimProjected(ctx context.Context, a, b *SurfacePatch, chart int, trim *ExactSplineCurve, axes [2]int, o TubeTrimIntersectionOptions) (ProjectedTubeTrimIntersection, error) {
+	return t.intersectRationalBezierTrimProjected(ctx, a, b, chart, trim, axes, o, false)
+}
+
+func (t VerifiedSurfaceTube) intersectRationalBezierTrimProjected(ctx context.Context, a, b *SurfacePatch, chart int, trim *ExactSplineCurve, axes [2]int, o TubeTrimIntersectionOptions, quadraticOnly bool) (r ProjectedTubeTrimIntersection, err error) {
 	r.ProjectionAxes = axes
 	order, e := modelProjectionPermutation(axes)
 	if e != nil || a == nil || b == nil {
@@ -49,7 +59,7 @@ func (t VerifiedSurfaceTube) IntersectQuadraticTrimProjected(ctx context.Context
 	if o.MaxOperations < 1 {
 		return r, ErrConvergence
 	}
-	r.TubeTrimIntersection, err = proof.IntersectQuadraticTrim(ctx, pa, pb, chart, trim, o)
+	r.TubeTrimIntersection, err = proof.intersectRationalBezierTrim(ctx, pa, pb, chart, trim, o, quadraticOnly)
 	inverse := [3]int{}
 	for i, j := range order {
 		inverse[j] = i

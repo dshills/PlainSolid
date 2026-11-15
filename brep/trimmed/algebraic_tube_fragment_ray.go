@@ -94,7 +94,7 @@ func classifyHoleAgainstOpenFragment(ctx context.Context, chart int, support *ge
 			if p.MaxOperations < 1 {
 				return false, operations, geom.ErrConvergence
 			}
-			c, e := exactQuadraticTrimParameterCurve(ctx, span.controls, p)
+			c, e := exactBezierTrimParameterCurve(ctx, span.controls, p)
 			if e != nil {
 				return false, operations, e
 			}

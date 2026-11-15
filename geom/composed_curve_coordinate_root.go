@@ -43,6 +43,22 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}
 	defer func() { operations = b.operations }()
+	if source := root.root; len(source.polynomial) > 5 && source.bounds[0].Cmp(source.bounds[1]) == 0 {
+		// A composed weighted residual can retain extraneous algebraic
+		// factors even when isolation has already proved an exact rational
+		// event. Use its verified linear identity for the coordinate image.
+		parameter := source.bounds[0]
+		value, e := polynomialValue(source.polynomial, parameter, b)
+		if e != nil {
+			return nil, 0, subdivisions, e
+		}
+		if value.Sign() != 0 {
+			return nil, 0, subdivisions, ErrConvergence
+		}
+		isolated := *source
+		isolated.polynomial = rationalPolynomial{new(big.Rat).Neg(parameter), big.NewRat(1, 1)}
+		root = &ExactAlgebraicRoot{root: &isolated}
+	}
 	if len(root.root.polynomial) > 9 || len(root.root.polynomial) < 2 {
 		return nil, 0, subdivisions, ErrConvergence
 	}

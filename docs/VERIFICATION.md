@@ -6385,3 +6385,12 @@ and per-solid Euler characteristic. Cases include a shared annular cap,
 an interior tool hole that leaves a connected post, a sealed cavity,
 and two kinds of disconnected Cut. The same fixed corpus passed under
 race instrumentation. See the [comparator guide](../tools/occtref/README.md).
+
+### Higher-degree original coedge qualification
+
+A reversed cubic B-spline coedge in knot units [2, 6] and a weighted
+quartic Bézier coedge split an exact transverse section into two open
+runs. Each original contact was checked against its independent
+algebraic equation. XY and XZ projections, original face partitions,
+opposite fragment uses, and native reload all passed. The legacy
+quadratic contact and native knot-section race assertions also passed.

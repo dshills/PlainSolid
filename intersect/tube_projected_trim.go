@@ -10,6 +10,16 @@ import (
 // original model supports and the immutable segment tube, never display samples.
 // axes selects model projection; returned model events remain in original XYZ.
 func (s TubeSegment) IntersectQuadraticTrimProjected(ctx context.Context, chart int, trim *geom.ExactSplineCurve, axes [2]int, o geom.TubeTrimIntersectionOptions) (r geom.ProjectedTubeTrimIntersection, err error) {
+	return s.intersectRationalBezierTrimProjected(ctx, chart, trim, axes, o, true)
+}
+
+// IntersectRationalBezierTrimProjected proves source-bound branch contacts for
+// a positive-weight Bézier trim through degree four in an original projection.
+func (s TubeSegment) IntersectRationalBezierTrimProjected(ctx context.Context, chart int, trim *geom.ExactSplineCurve, axes [2]int, o geom.TubeTrimIntersectionOptions) (geom.ProjectedTubeTrimIntersection, error) {
+	return s.intersectRationalBezierTrimProjected(ctx, chart, trim, axes, o, false)
+}
+
+func (s TubeSegment) intersectRationalBezierTrimProjected(ctx context.Context, chart int, trim *geom.ExactSplineCurve, axes [2]int, o geom.TubeTrimIntersectionOptions, quadraticOnly bool) (r geom.ProjectedTubeTrimIntersection, err error) {
 	if ctx == nil || s.a == nil || s.b == nil || s.pa == nil || chart < 0 || chart > 1 {
 		return r, geom.ErrInvalid
 	}
@@ -44,5 +54,8 @@ func (s TubeSegment) IntersectQuadraticTrimProjected(ctx context.Context, chart 
 	if o.MaxOperations < 1 {
 		return r, geom.ErrConvergence
 	}
-	return s.proof.IntersectQuadraticTrimProjected(ctx, supports[0], supports[1], chart, trim, axes, o)
+	if quadraticOnly {
+		return s.proof.IntersectQuadraticTrimProjected(ctx, supports[0], supports[1], chart, trim, axes, o)
+	}
+	return s.proof.IntersectRationalBezierTrimProjected(ctx, supports[0], supports[1], chart, trim, axes, o)
 }
