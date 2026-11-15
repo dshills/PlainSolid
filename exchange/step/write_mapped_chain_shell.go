@@ -84,8 +84,10 @@ type MappedChainShellSTEPOptions struct {
 	// AllowTwoInteriorRoofKnots, AllowUnsplitSupportKnot and AllowMixedOwnerBases.
 	AllowJoinedSupportKnotCells bool
 	// AllowThreeJoinedSupportKnotCells admits three original model Béziers
-	// with both shared source joints retained and one owner-only interior
-	// cut per cell. Requires AllowJoinedSupportKnotCells.
+	// with two retained original support joints and one owner-only interior
+	// cut per cell. The joins can both be shared, or one can be unilateral
+	// on an original pair of roofs with two and four support knots.
+	// Requires AllowJoinedSupportKnotCells.
 	AllowThreeJoinedSupportKnotCells bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The

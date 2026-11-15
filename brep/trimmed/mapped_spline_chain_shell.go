@@ -152,6 +152,12 @@ type MappedSplineChainShell struct {
 // Topology returns the exact original shell's certified incidence counts.
 func (r MappedSplineChainShell) Topology() MappedChainShellTopology { return r.topology }
 
+// OriginalJointSupportChanges returns the source roof masks proved at the
+// original joined chain stations in traversal order.
+func (r MappedSplineChainShell) OriginalJointSupportChanges() [][2]bool {
+	return r.boundary.OriginalJointSupportChanges()
+}
+
 // IndependentOwnerBases reports which roofs use a separate original spline
 // for each authored coedge. The order is the source roof order.
 func (r MappedSplineChainShell) IndependentOwnerBases() [2]bool {

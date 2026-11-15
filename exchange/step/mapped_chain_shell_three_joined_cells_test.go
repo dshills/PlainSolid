@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -28,18 +30,31 @@ const threeJoinedArea = 4.655759693110457
 const threeJoinedSTEPVolume = 0.64045501353686718
 const threeJoinedSTEPArea = 4.655823835734676
 
+const asymmetricJoinedRoofPath = "testdata/occt_mapped_chain_asymmetric_joined_independent_roofs.step"
+const asymmetricJoinedMissingJointPath = "testdata/occt_mapped_chain_asymmetric_joined_independent_missing_joint.step"
+const asymmetricJoinedVolume = 0.64313717250617142
+const asymmetricJoinedArea = 4.651017456483614
+const asymmetricJoinedSTEPVolume = 0.64314146076604906
+const asymmetricJoinedSTEPArea = 4.6510825384330969
+
 func threeJoinedRoofOptions() MappedChainShellSTEPOptions {
 	o := joinedRationalCellOptions()
 	o.AllowThreeJoinedSupportKnotCells = true
 	return o
 }
 
-func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte) []byte {
+func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte, asymmetric bool) []byte {
 	t.Helper()
 	o := threeJoinedRoofOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
 		t.Fatal(err)
+	}
+	modelVersion, sourceEdges, sourceVertices := 11, 24, 19
+	volume, area := threeJoinedVolume, threeJoinedArea
+	if asymmetric {
+		modelVersion, sourceEdges, sourceVertices = 12, 23, 18
+		volume, area = asymmetricJoinedVolume, asymmetricJoinedArea
 	}
 	if len(m.Chain) != 3 || len(m.Crossings) != 3 || len(m.SupportJoints) != 2 || m.SupportJoint != nil {
 		t.Fatal("three original Béziers must retain one interior cut per cell and both original support joints")
@@ -66,7 +81,8 @@ func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(m.Native.ChainEdges) != 6 || len(m.Native.ChainStations) != 7 || len(vertices) != 22 || len(edges) != 27 || len(faces) != 7 {
+	if len(m.Native.ChainEdges) != 6 || len(m.Native.ChainStations) != 7 ||
+		len(vertices) != sourceVertices+3 || len(edges) != sourceEdges+3 || len(faces) != 7 {
 		t.Fatal("the rebuilt solid must preserve all original vertices and add only the three paired split vertices")
 	}
 	agreement, err := m.Native.Solid.ValidateEdgeAgreement(ctx, edgecheck.Options{})
@@ -118,8 +134,15 @@ func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte) 
 			}
 		}
 	}
+	jointMasks := [][2]bool{{true, true}, {true, true}}
+	if asymmetric {
+		jointMasks[1][1-north] = false
+	}
+	if got := m.Shell.OriginalJointSupportChanges(); !slices.Equal(got, jointMasks) {
+		t.Fatal("native source proof must retain the original owner masks", got)
+	}
 	for i, joint := range m.SupportJoints {
-		if joint.SourceEdges != [2]int64{m.Chain[i].EdgeID, m.Chain[i+1].EdgeID} ||
+		if joint.OwnersChangingCells != jointMasks[i] || joint.SourceEdges != [2]int64{m.Chain[i].EdgeID, m.Chain[i+1].EdgeID} ||
 			joint.ModelStation.Cmp(big.NewRat(sourceStations[i+1], 32)) != 0 ||
 			joint.NativeEdges != [2]int{m.Native.ChainEdges[2*i+1], m.Native.ChainEdges[2*i+2]} ||
 			edges[joint.NativeEdges[0]].End != edges[joint.NativeEdges[1]].Start {
@@ -146,19 +169,20 @@ func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte) 
 			}
 		}
 	}
-	verifyThreeJoinedRoofCreases(t, ctx, m, north)
+	verifyThreeJoinedRoofCreases(t, ctx, m, north, asymmetric)
 	mass, err := m.Native.Solid.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
-	if err != nil || math.Abs(mass.Volume-threeJoinedVolume) > 1e-8 || math.Abs(mass.Area-threeJoinedArea) > 1e-8 {
+	if err != nil || math.Abs(mass.Volume-volume) > 1e-8 || math.Abs(mass.Area-area) > 1e-8 {
 		t.Fatal("native material must agree with the independent original OCCT body", mass, err)
 	}
 	var recipe, replay, canonical bytes.Buffer
 	nativeOpts := trimmed.MappedChainShellNativeOptions{}
-	if err := m.Shell.WriteJSON(ctx, &recipe, nativeOpts); err != nil || !bytes.Contains(recipe.Bytes(), []byte(`"Boundary":{"Version":11,`)) {
-		t.Fatal("native v11 must retain all original source cells, bases and relative model stations", err)
+	if err := m.Shell.WriteJSON(ctx, &recipe, nativeOpts); err != nil ||
+		!bytes.Contains(recipe.Bytes(), fmt.Appendf(nil, `"Boundary":{"Version":%d,`, modelVersion)) {
+		t.Fatal("the native version must preserve all original source cells and their joint semantics", modelVersion, err)
 	}
 	reopened, err := trimmed.ReadMappedSplineChainShellJSON(ctx, bytes.NewReader(recipe.Bytes()), nativeOpts)
-	if err != nil {
-		t.Fatal(err)
+	if err != nil || !slices.Equal(reopened.OriginalJointSupportChanges(), jointMasks) {
+		t.Fatal("native reload must re-prove the earlier original joint owner masks", err)
 	}
 	native, err := reopened.BuildRectangularSolid(ctx, 1e-9, o.Geometry)
 	if err != nil || len(native.ChainStations) != len(m.Native.ChainStations) {
@@ -184,7 +208,7 @@ func verifyThreeJoinedRoofSource(t *testing.T, ctx context.Context, raw []byte) 
 	verifyOriginalRationalRoofSurfaces(t, m, strict, true)
 	for i, joint := range strict.SupportJoints {
 		original := m.SupportJoints[i]
-		if joint.SourceEdges != [2]int64{strict.Chain[i].EdgeID, strict.Chain[i+1].EdgeID} ||
+		if joint.OwnersChangingCells != jointMasks[i] || joint.SourceEdges != [2]int64{strict.Chain[i].EdgeID, strict.Chain[i+1].EdgeID} ||
 			joint.ModelStation.Cmp(original.ModelStation) != 0 || joint.NativeEdges != original.NativeEdges {
 			t.Fatal("canonical STEP must preserve both original model joints", i)
 		}
@@ -241,11 +265,15 @@ func verifyThreeJoinedOriginalModel(t *testing.T, f *File, id, lo, hi, ratio int
 	}
 }
 
-func verifyThreeJoinedRoofCreases(t *testing.T, ctx context.Context, m MappedChainSTEPModel, north int) {
+func verifyThreeJoinedRoofCreases(t *testing.T, ctx context.Context, m MappedChainSTEPModel, north int, asymmetric bool) {
 	t.Helper()
 	faces := m.Native.Solid.Faces()
 	one, yLimit := big.NewRat(1, 1), big.NewRat(3, 4)
-	for owner, knots := range [][]float64{{.125, .25, .375, .5}, {.25, .5, .75}} {
+	knotsByRoof := [2][]float64{{.125, .25, .375, .5}, {.25, .5, .75}}
+	if asymmetric {
+		knotsByRoof[1] = []float64{.25, .75}
+	}
+	for owner, knots := range knotsByRoof {
 		face, y, axis := north, big.NewRat(1, 2), 0
 		if owner == 1 {
 			face, y, axis = 1-north, big.NewRat(1, 8), 1
@@ -256,6 +284,19 @@ func verifyThreeJoinedRoofCreases(t *testing.T, ctx context.Context, m MappedCha
 		}
 		den := new(big.Rat).Add(one, new(big.Rat).Mul(big.NewRat(3, 1), new(big.Rat).Mul(v, v)))
 		roof := faces[face].Surface.(*geom.BSplineSurface)
+		patch, err := geom.NewSurfacePatch(roof, geom.SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		uBreaks, vBreaks := patch.KnotBreaks()
+		actual := [2][]float64{uBreaks, vBreaks}[axis]
+		expected := []float64{0}
+		for _, knot := range knots {
+			expected = append(expected, .75*knot)
+		}
+		if !slices.Equal(actual, append(expected, .75)) {
+			t.Fatal("the untouched original span at the unilateral joint must have no authored break", owner, actual)
+		}
 		for _, knot := range knots {
 			p := threeJoinedPhysicalModelPoint(knot)
 			got := new(big.Rat).Mul(big.NewRat(-16, 1), y)
@@ -269,12 +310,16 @@ func verifyThreeJoinedRoofCreases(t *testing.T, ctx context.Context, m MappedCha
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofs(t *testing.T) {
-	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, threeJoinedRoofPath))
+	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, threeJoinedRoofPath), false)
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, threeJoinedRoofPath))
+}
+
+func verifyThreeJoinedRoofDisplay(t *testing.T, raw []byte) {
+	t.Helper()
 	ctx := context.Background()
-	raw := readInferredSharedMappedChainFixture(t, threeJoinedRoofPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, threeJoinedRoofOptions())
 	if err != nil {
 		t.Fatal(err)
@@ -327,7 +372,22 @@ func rejectThreeJoinedRoofMissingJoint(t *testing.T, ctx context.Context, raw, b
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsLive(t *testing.T) {
-	author := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_JOINED_ROOFS_AUTHOR")
+	verifyPinnedThreeJoinedRoofs(t, false)
+}
+
+func verifyPinnedThreeJoinedRoofs(t *testing.T, asymmetric bool) {
+	t.Helper()
+	authorEnv, mode := "PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_JOINED_ROOFS_AUTHOR", "three-joined-independent-roofs"
+	negativeMode := "-missing-south-joint"
+	edges, vertices := 24, 19
+	volume, area, stepVolume, stepArea := threeJoinedVolume, threeJoinedArea, threeJoinedSTEPVolume, threeJoinedSTEPArea
+	if asymmetric {
+		authorEnv, mode = "PLAINSOLID_OCCT_MAPPED_CHAIN_ASYMMETRIC_JOINED_ROOFS_AUTHOR", "asymmetric-joined-independent-roofs"
+		negativeMode = "-missing-shared-joint"
+		edges, vertices = 23, 18
+		volume, area, stepVolume, stepArea = asymmetricJoinedVolume, asymmetricJoinedArea, asymmetricJoinedSTEPVolume, asymmetricJoinedSTEPArea
+	}
+	author := os.Getenv(authorEnv)
 	reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
@@ -337,15 +397,15 @@ func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsLive(t *testing.T)
 	authorFile := func(suffix string) ([]byte, string) {
 		t.Helper()
 		path := filepath.Join(t.TempDir(), "three-joined"+suffix+".step")
-		if data, err := exec.CommandContext(ctx, author, "write-three-joined-independent-roofs"+suffix, path).CombinedOutput(); err != nil {
+		if data, err := exec.CommandContext(ctx, author, "write-"+mode+suffix, path).CombinedOutput(); err != nil {
 			t.Fatalf("pinned OCCT author failed: %v\n%s", err, data)
 		}
 		return readInferredSharedMappedChainFixture(t, path), path
 	}
 	raw, _ := authorFile("")
-	canonical := verifyThreeJoinedRoofSource(t, ctx, raw)
-	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, threeJoinedSTEPVolume, threeJoinedSTEPArea)
-	data, err := exec.CommandContext(ctx, author, "measure-three-joined-independent-roofs").CombinedOutput()
+	canonical := verifyThreeJoinedRoofSource(t, ctx, raw, asymmetric)
+	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, stepVolume, stepArea)
+	data, err := exec.CommandContext(ctx, author, "measure-"+mode).CombinedOutput()
 	if err != nil {
 		t.Fatalf("could not measure independent OCCT material before STEP: %v\n%s", err, data)
 	}
@@ -353,12 +413,12 @@ func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsLive(t *testing.T)
 		Faces, Edges, Vertices int
 		Volume, Area           float64
 	}
-	if err := json.Unmarshal(data, &material); err != nil || material.Faces != 7 || material.Edges != 24 || material.Vertices != 19 ||
-		math.Abs(material.Volume-threeJoinedVolume) > 1e-8 || math.Abs(material.Area-threeJoinedArea) > 1e-8 {
+	if err := json.Unmarshal(data, &material); err != nil || material.Faces != 7 || material.Edges != edges || material.Vertices != vertices ||
+		math.Abs(material.Volume-volume) > 1e-8 || math.Abs(material.Area-area) > 1e-8 {
 		t.Fatal("the pinned original closed body and native material must agree", material, err)
 	}
 	t.Logf("OCCT before STEP volume %.15g, area %.15g", material.Volume, material.Area)
-	bad, path := authorFile("-missing-south-joint")
+	bad, path := authorFile(negativeMode)
 	data, err = exec.CommandContext(ctx, reader, "read", path).CombinedOutput()
 	if err != nil {
 		t.Fatalf("pinned OCCT could not reopen the independently moved support knot: %v\n%s", err, data)
@@ -367,5 +427,9 @@ func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsLive(t *testing.T)
 	if err := json.Unmarshal(data, &reopened); err != nil || reopened.Faces != 7 || reopened.Solids != 1 {
 		t.Fatal("the moved joint control must still be an independently valid seven-face solid", reopened, err)
 	}
-	rejectThreeJoinedRoofMissingJoint(t, ctx, raw, bad)
+	if asymmetric {
+		rejectAsymmetricJoinedRoofMissingJoint(t, ctx, raw, bad)
+	} else {
+		rejectThreeJoinedRoofMissingJoint(t, ctx, raw, bad)
+	}
 }

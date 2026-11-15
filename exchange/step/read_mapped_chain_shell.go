@@ -40,15 +40,17 @@ type MappedChainSTEPSupportCrossing struct {
 	NativeEdges          [2]int
 }
 
-// MappedChainSTEPJointSupportCrossing records a transverse support event on
-// both original charts at an existing STEP vertex. Each pair is ordered
-// incoming then outgoing. OwnerParameters uses the original roof order.
+// MappedChainSTEPJointSupportCrossing records the exact support event at an
+// existing STEP vertex and which original charts change cells there. Each
+// pair is ordered incoming then outgoing. OwnerParameters and
+// OwnersChangingCells follow the original roof order.
 type MappedChainSTEPJointSupportCrossing struct {
 	SourceVertexID        int64
 	SourceEdges           [2]int64
 	SourceModelParameters [2]*big.Rat
 	ModelStation          *big.Rat
 	OwnerParameters       [2][2]*big.Rat
+	OwnersChangingCells   [2]bool
 	NativeEdges           [2]int
 }
 
@@ -439,7 +441,8 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	cellLocal := localCells != 0
 	separatedCandidate := canUseSeparatedCells && withStoredKnots == 1
 	threeJoined := o.AllowThreeJoinedSupportKnotCells && len(chainIDs) == 3 && withStoredKnots == 0 &&
-		min(knotsA, knotsB) == 3 && max(knotsA, knotsB) == 4
+		min(knotsA, knotsB) >= 2 && min(knotsA, knotsB) <= 3 && max(knotsA, knotsB) == 4
+	asymmetricJoined := threeJoined && min(knotsA, knotsB) == 2
 	joinedCandidate := threeJoined || o.AllowJoinedSupportKnotCells && len(chainIDs) == 2 && withStoredKnots == 0 && knotsA == 2 && knotsB == 2
 	expectedPerEdge := maxCrossings
 	if cellLocal {
@@ -672,17 +675,20 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		return zero, fmt.Errorf("three joined source cells require one owner-only interior event per original edge: %w", geom.ErrConvergence)
 	}
 	certify := trimmed.CertifyMappedSplineChainAgreement
-	switch len(crossings) {
-	case 1:
+	switch {
+	case joined:
+		certify = trimmed.CertifyMappedSplineChainJoinedSupportKnotsAgreement
+		if asymmetricJoined {
+			certify = trimmed.CertifyMappedSplineChainAsymmetricJoinedSupportKnotsAgreement
+		}
+	case len(crossings) == 1:
 		if crossings[0].OwnersChangingCells != [2]bool{true, true} {
 			return zero, fmt.Errorf("asynchronous repair requires a crossing on each original roof: %w", geom.ErrConvergence)
 		}
 		certify = trimmed.CertifyMappedSplineChainSupportKnotAgreement
-	case 2:
+	case len(crossings) == 2:
 		a, b := crossings[0].OwnersChangingCells, crossings[1].OwnersChangingCells
-		if joined {
-			certify = trimmed.CertifyMappedSplineChainJoinedSupportKnotsAgreement
-		} else if crossings[0].EdgeID == crossings[1].EdgeID {
+		if crossings[0].EdgeID == crossings[1].EdgeID {
 			shared := [2]bool{true, true}
 			switch {
 			case bezierRepairs&mappedChainBezierAsynchronous != 0 && mappedChainSameCellAsynchronousCrossings(crossings):
@@ -703,11 +709,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			}
 			certify = trimmed.CertifyMappedSplineChainAsynchronousSupportKnotsAgreement
 		}
-	case 3:
-		if joined {
-			certify = trimmed.CertifyMappedSplineChainJoinedSupportKnotsAgreement
-			break
-		}
+	case len(crossings) == 3:
 		if separated {
 			certify = trimmed.CertifyMappedSplineChainCellLocalSupportKnotsAgreement
 			break
@@ -716,7 +718,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			return zero, fmt.Errorf("three support cuts must belong to one original foreign edge: %w", geom.ErrConvergence)
 		}
 		certify = trimmed.CertifyMappedSplineChainThreeSupportKnotsAgreement
-	case 4, 5, 6:
+	case len(crossings) >= 4 && len(crossings) <= 6:
 		if cellLocal {
 			certify = trimmed.CertifyMappedSplineChainCellLocalSupportKnotsAgreement
 			break
@@ -755,6 +757,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		out.Crossing = &out.Crossings[0]
 	}
 	if joined {
+		jointChanges := agreement.OriginalJointSupportChanges()
 		for i := 1; i < len(chain); i++ {
 			joint, err := g.sourceSupportJoint([2]mappedChainStepEdge(sourceEdges[i-1:i+1]), [2]MappedChainSTEPCell(chain[i-1:i+1]),
 				[2][]trimmed.MappedSplineUV{parts[0][i-1 : i+1], parts[1][i-1 : i+1]}, stations[i],
@@ -762,6 +765,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			if err != nil {
 				return zero, err
 			}
+			joint.OwnersChangingCells = jointChanges[i-1]
 			out.SupportJoints = append(out.SupportJoints, *joint)
 		}
 		if len(out.SupportJoints) == 1 {

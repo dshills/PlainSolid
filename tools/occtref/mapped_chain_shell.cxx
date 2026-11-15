@@ -92,6 +92,7 @@ struct RoofSupportLayout {
   bool missingSouthJoint = false;
   bool mirroredSouthRoof = false;
   bool threeJoinedRationalCells = false;
+  bool asymmetricJoinedRationalCells = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -221,6 +222,9 @@ static occ::handle<Geom_BezierCurve> nonplanarModelSeam(const std::vector<gp_Pnt
 }
 
 static std::vector<double> nonplanarSupportEvents(bool south, RoofSupportLayout layout) {
+  if (layout.asymmetricJoinedRationalCells && south) {
+    return {layout.missingSouthJoint ? .375 : .25, .75};
+  }
   if (layout.threeJoinedRationalCells) {
     return south ? std::vector<double>{.25, layout.missingSouthJoint ? .625 : .5, .75}
                  : std::vector<double>{.125, .25, .375, .5};
@@ -758,16 +762,19 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool threeJoinedRationalCells = mode == "write-three-joined-independent-roofs" ||
+    const bool asymmetricJoinedRationalCells = mode == "write-asymmetric-joined-independent-roofs" ||
+      mode == "write-asymmetric-joined-independent-roofs-missing-shared-joint" || mode == "measure-asymmetric-joined-independent-roofs";
+    const bool threeJoinedRationalCells = asymmetricJoinedRationalCells || mode == "write-three-joined-independent-roofs" ||
       mode == "write-three-joined-independent-roofs-missing-south-joint" || mode == "measure-three-joined-independent-roofs";
     const bool mirroredSouthRoof = threeJoinedRationalCells || mode == "write-joined-independent-roofs" ||
       mode == "write-joined-independent-roofs-missing-south-joint" ||
       mode == "write-joined-independent-roofs-false-south-weight" || mode == "measure-joined-independent-roofs";
     const bool missingSouthJoint = mode == "write-joined-rational-cells-missing-south-joint" ||
       mode == "write-joined-independent-roofs-missing-south-joint" ||
-      mode == "write-three-joined-independent-roofs-missing-south-joint";
+      mode == "write-three-joined-independent-roofs-missing-south-joint" ||
+      mode == "write-asymmetric-joined-independent-roofs-missing-shared-joint";
     const bool measureJoined = mode == "measure-joined-rational-cells" || mode == "measure-joined-independent-roofs" ||
-      mode == "measure-three-joined-independent-roofs";
+      mode == "measure-three-joined-independent-roofs" || mode == "measure-asymmetric-joined-independent-roofs";
     const bool joinedRationalCells = mode == "write-joined-rational-cells" || missingSouthJoint || measureJoined || mirroredSouthRoof;
     const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight" || mode == "write-joined-independent-roofs-false-south-weight";
     const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight || joinedRationalCells;
@@ -784,7 +791,7 @@ int main(int argc, char** argv) {
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
                                    rationalModel, independentOwnerClocks, rationalRoofs, joinedRationalCells, missingSouthJoint,
-                                   mirroredSouthRoof, threeJoinedRationalCells};
+                                   mirroredSouthRoof, threeJoinedRationalCells, asymmetricJoinedRationalCells};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
