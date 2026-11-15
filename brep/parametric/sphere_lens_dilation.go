@@ -40,6 +40,15 @@ func (s SpherePairSet) ClipDilatedSphericalLensLine(ctx context.Context, origin,
 	return s.query.ClipDilatedLensRationalLine(ctx, p(origin), p(direction), q(minT), q(maxT), q(distance), o)
 }
 
+// MeasureDilatedSphericalLens encloses analytical area and volume independently
+// of the native support or display tessellation.
+func (s SpherePairSet) MeasureDilatedSphericalLens(ctx context.Context, distance float64, o geom.SphereLensMeasureOptions) (geom.SphereLensParallelMeasures, error) {
+	if !s.valid || !finite(distance) {
+		return geom.SphereLensParallelMeasures{}, geom.ErrInvalid
+	}
+	return s.query.MeasureDilatedLensRational(ctx, new(big.Rat).SetFloat64(distance), o)
+}
+
 // DilateSphericalLens dilates an originally transverse ball intersection
 // using its two outward-offset spherical caps and their rolling torus band.
 // The original contact circle's center and radius and both expanded radii

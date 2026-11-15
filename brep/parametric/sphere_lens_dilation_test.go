@@ -146,6 +146,18 @@ func TestSphericalLensDilationBeyondRingRadius(t *testing.T) {
 		if err != nil || math.Abs(mass.Volume-volume) > 1e-7 || math.Abs(mass.Area-area) > 1e-7 || mass.Centroid.Distance(geom.Vec3{Z: 3}) > 1e-9 {
 			t.Fatalf("offset %v mass=%+v want %g, %g; %v", offset, mass, volume, area, err)
 		}
+		enclosures, err := source.MeasureDilatedSphericalLens(ctx, offset, geom.SphereLensMeasureOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, band := range []geom.ExactParameterInterval{enclosures.Volume, enclosures.Area} {
+			lo, _ := band.Lower.Float64()
+			hi, _ := band.Upper.Float64()
+			native := [2]float64{mass.Volume, mass.Area}[i]
+			if native < lo-1e-7 || native > hi+1e-7 {
+				t.Fatalf("offset %v native mass term %v is outside analytic bounds [%v, %v]", offset, native, lo, hi)
+			}
+		}
 		bounds, err := s.Bounds()
 		wantMin, wantMax := (geom.Vec3{X: -4 - offset, Y: -4 - offset, Z: 1 - offset}), (geom.Vec3{X: 4 + offset, Y: 4 + offset, Z: 5 + offset})
 		if err != nil || !bounds.Contains(wantMin) || !bounds.Contains(wantMax) || bounds.Min.Distance(wantMin) > 2e-9 || bounds.Max.Distance(wantMax) > 2e-9 {
