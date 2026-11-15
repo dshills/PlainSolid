@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"math/big"
 	"slices"
 
 	"plainsolid/geom"
@@ -27,13 +28,9 @@ func (r *PolynomialMixedCut) ExactComponentVolumes(ctx context.Context, o Polyno
 	if e := ctx.Err(); e != nil {
 		return zero, e
 	}
-	var roofs [2]*geom.SurfacePatch
-	for i := range roofs {
-		p, e := geom.NewSurfacePatch(r.sources[i+1], o.Patch)
-		if e != nil {
-			return zero, e
-		}
-		roofs[i] = p
+	roofs, e := exactPolynomialCutRoofs(r.sources, o.Patch)
+	if e != nil {
+		return zero, e
 	}
 	report, e := geom.IntegrateSplineGraphPolynomialMixedVolumes(ctx, roofs[0], roofs[1], r.axis, o.Proof)
 	if e != nil {
@@ -50,43 +47,64 @@ func (r *PolynomialMixedCut) ExactComponentVolumes(ctx context.Context, o Polyno
 
 func (r *PolynomialMixedCut) bindVolumeRegions(report geom.SplineGraphPolynomialMixedVolumes) error {
 	arrangement := report.Arrangement
-	if !arrangement.Proven || arrangement.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) ||
-		!slices.Equal(report.Regions, r.material.regions) || len(report.Volumes) != len(r.material.components) ||
-		arrangement.ContactOrder != r.orders || len(r.material.contacts) != len(arrangement.Nodes) {
+	if !arrangement.Proven || arrangement.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || arrangement.ContactOrder != r.orders {
 		return geom.ErrConvergence
+	}
+	for i, gap := range arrangement.DerivativeGap {
+		if gap.Cmp(r.derivatives[i]) != 0 {
+			return geom.ErrConvergence
+		}
 	}
 	uv, xyz, e := arrangement.RepresentedVertices()
 	if e != nil {
 		return e
 	}
-	pieces, e := polynomialNodePieces(arrangement.Edges[:], uv[:])
+	return r.material.bindVolumeRegions(r.sources, report.Regions, report.Volumes, arrangement.Regions[:], arrangement.Edges[:], arrangement.Vertices[:], arrangement.Nodes[:], uv[:], xyz[:])
+}
+
+func exactPolynomialCutRoofs(sources [3]*geom.BSplineSurface, options geom.SurfacePatchOptions) ([2]*geom.SurfacePatch, error) {
+	var roofs [2]*geom.SurfacePatch
+	for i := range roofs {
+		p, e := geom.NewSurfacePatch(sources[i+1], options)
+		if e != nil {
+			return [2]*geom.SurfacePatch{}, e
+		}
+		roofs[i] = p
+	}
+	return roofs, nil
+}
+
+func (material polynomialNodeCutMaterial) bindVolumeRegions(sources [3]*geom.BSplineSurface, regions []int, volumes []*big.Rat,
+	sourceRegions []geom.SplineGraphPolynomialRegion, edges []geom.SplineGraphPolynomialPiece, vertices []geom.SplineGraphPolynomialVertex,
+	nodes []geom.SplineGraphPolynomialJunction, uv []geom.Vec2, xyz []geom.Vec3) error {
+	if !slices.Equal(regions, material.regions) || len(volumes) != len(material.components) || len(material.contacts) != len(nodes) {
+		return geom.ErrConvergence
+	}
+	pieces, e := polynomialNodePieces(edges, uv)
 	if e != nil {
 		return e
 	}
-	loops, e := polynomialNodeRegionLoops(arrangement.Regions[:], uv[:], pieces)
+	loops, e := polynomialNodeRegionLoops(sourceRegions, uv, pieces)
 	if e != nil {
 		return e
 	}
-	for i, part := range r.material.components {
-		if len(part.faces) < 2 || report.Volumes[i].Sign() <= 0 {
+	for i, part := range material.components {
+		if len(part.faces) < 2 || volumes[i].Sign() <= 0 {
 			return geom.ErrConvergence
 		}
-		loop, e := splitPolynomialNodeCutPerimeter(loops[report.Regions[i]])
+		loop, e := splitPolynomialNodeCutPerimeter(loops[regions[i]])
 		if e != nil {
 			return e
 		}
 		for owner := 0; owner < 2; owner++ {
-			if e = bindPolynomialTangencyFace(part.faces[owner], r.sources[owner+1], owner == 1, loop); e != nil {
+			if e = bindPolynomialTangencyFace(part.faces[owner], sources[owner+1], owner == 1, loop); e != nil {
 				return e
 			}
 		}
 	}
-	for i, c := range r.material.contacts {
-		node := arrangement.Nodes[i]
-		vertex := arrangement.Vertices[node.Vertex]
-		if arrangement.DerivativeGap[i].Cmp(r.derivatives[i]) != 0 {
-			return geom.ErrConvergence
-		}
+	for i, c := range material.contacts {
+		node := nodes[i]
+		vertex := vertices[node.Vertex]
 		for j, q := range vertex.Parameters {
 			if q.Cmp(c.Parameters[j]) != 0 {
 				return geom.ErrConvergence
@@ -101,10 +119,10 @@ func (r *PolynomialMixedCut) bindVolumeRegions(report geom.SplineGraphPolynomial
 			return geom.ErrConvergence
 		}
 		for j, component := range c.Components {
-			if component < 0 || component >= len(r.material.components) || !slices.Contains(node.Regions[:], report.Regions[component]) {
+			if component < 0 || component >= len(material.components) || !slices.Contains(node.Regions[:], regions[component]) {
 				return geom.ErrConvergence
 			}
-			part, v := r.material.components[component], c.Vertices[j]
+			part, v := material.components[component], c.Vertices[j]
 			if v < 0 || v >= len(part.vertices) || part.vertices[v] != xyz[node.Vertex] {
 				return geom.ErrConvergence
 			}

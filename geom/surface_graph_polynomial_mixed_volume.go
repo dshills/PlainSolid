@@ -31,7 +31,9 @@ func IntegrateSplineGraphPolynomialMixedVolumes(ctx context.Context, a, b *Surfa
 			if e := arrangement.certifyArrangement(ctx, a, pair, roots, domain, b); e != nil {
 				return e
 			}
-			return integratePolynomialMixedPositiveLayers(ctx, &result, arrangement, roots, domain, pair.heightScale, b)
+			volumes, e := integratePolynomialPositiveLayers(ctx, arrangement.Power, arrangement.Regions[:], arrangement.ContactOrder[:], roots, domain, pair.heightScale, b)
+			result.Regions, result.Volumes, result.Total = volumes.regions, volumes.volumes, volumes.total
+			return e
 		},
 	}
 	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, mode)
@@ -69,33 +71,44 @@ func graphPolynomialCellHeightScale(cell *SurfacePatch, numerator, dependentWidt
 	return scale, b.check(scale)
 }
 
-func integratePolynomialMixedPositiveLayers(ctx context.Context, out *SplineGraphPolynomialMixedVolumes, arrangement SplineGraphPolynomialMixedContact, roots []*big.Rat,
-	domain ParameterRectangle, scale *big.Rat, b *polynomialBudget) error {
-	if scale == nil || scale.Sign() == 0 {
-		return ErrConvergence
+type polynomialPositiveVolumes struct {
+	regions []int
+	volumes []*big.Rat
+	total   *big.Rat
+}
+
+func integratePolynomialPositiveLayers(ctx context.Context, powers [2][]*big.Rat, regions []SplineGraphPolynomialRegion, orders []int, roots []*big.Rat,
+	domain ParameterRectangle, scale *big.Rat, b *polynomialBudget) (polynomialPositiveVolumes, error) {
+	zero := polynomialPositiveVolumes{}
+	if scale == nil || scale.Sign() == 0 || len(regions) != len(roots)+3 || len(orders) != len(roots) {
+		return zero, ErrConvergence
 	}
-	stations := [4]*big.Rat{new(big.Rat).SetFloat64(domain.UMin), roots[0], roots[1], new(big.Rat).SetFloat64(domain.UMax)}
+	stations := make([]*big.Rat, 0, len(roots)+2)
+	stations = append(stations, new(big.Rat).SetFloat64(domain.UMin))
+	stations = append(stations, roots...)
+	stations = append(stations, new(big.Rat).SetFloat64(domain.UMax))
 	limits := [2]*big.Rat{new(big.Rat).SetFloat64(domain.VMin), new(big.Rat).SetFloat64(domain.VMax)}
 	factor := new(big.Rat).Quo(new(big.Rat).Abs(scale), big.NewRat(6, 1))
 	if e := b.check(factor); e != nil {
-		return e
+		return zero, e
 	}
-	out.Total = new(big.Rat)
+	out := polynomialPositiveVolumes{total: new(big.Rat)}
+	exterior := scale.Sign() > 0
+	if exterior {
+		out.regions = []int{0, len(regions) - 1}
+		out.volumes = []*big.Rat{new(big.Rat), new(big.Rat)}
+	}
 	lower := 0
 	for slab := 0; slab < len(stations)-1; slab++ {
 		if e := ctx.Err(); e != nil {
-			return e
+			return zero, e
 		}
 		lo, hi := stations[slab], stations[slab+1]
-		f, g := arrangement.Power[lower], arrangement.Power[1-lower]
-		if scale.Sign() > 0 {
-			if slab == 0 {
-				out.Regions = []int{0, 4}
-				out.Volumes = []*big.Rat{new(big.Rat), new(big.Rat)}
-			}
-			for side, region := range out.Regions {
-				if arrangement.Regions[region].HeightSide != 1 {
-					return ErrConvergence
+		f, g := powers[lower], powers[1-lower]
+		if exterior {
+			for side, region := range out.regions {
+				if regions[region].HeightSide != 1 {
+					return zero, ErrConvergence
 				}
 				l, h := rationalPolynomial(f), rationalPolynomial(g)
 				if side == 1 {
@@ -103,57 +116,60 @@ func integratePolynomialMixedPositiveLayers(ctx context.Context, out *SplineGrap
 				}
 				poly, e := graphPolynomialExteriorFiber(l, h, limits[side], side == 1, b)
 				if e != nil {
-					return e
+					return zero, e
 				}
 				volume, e := integrateGraphPolynomialFiber(poly, lo, hi, factor, b)
 				if e != nil {
-					return e
+					return zero, e
 				}
 				if volume.Sign() <= 0 {
-					return ErrConvergence
+					return zero, ErrConvergence
 				}
-				out.Volumes[side].Add(out.Volumes[side], volume)
-				if e = b.check(out.Volumes[side]); e != nil {
-					return e
+				out.volumes[side].Add(out.volumes[side], volume)
+				if e = b.check(out.volumes[side]); e != nil {
+					return zero, e
 				}
 			}
 		} else {
-			if arrangement.Regions[slab+1].HeightSide != 1 {
-				return ErrConvergence
+			if regions[slab+1].HeightSide != 1 {
+				return zero, ErrConvergence
 			}
 			gap, e := graphPolynomialSum(g, f, -1, b)
 			if e != nil {
-				return e
+				return zero, e
 			}
 			square, e := polynomialProduct(gap, gap, b)
 			if e != nil {
-				return e
+				return zero, e
 			}
 			cube, e := polynomialProduct(square, gap, b)
 			if e != nil {
-				return e
+				return zero, e
 			}
 			volume, e := integrateGraphPolynomialFiber(cube, lo, hi, factor, b)
 			if e != nil {
-				return e
+				return zero, e
 			}
 			if volume.Sign() <= 0 {
-				return ErrConvergence
+				return zero, ErrConvergence
 			}
-			out.Regions = append(out.Regions, slab+1)
-			out.Volumes = append(out.Volumes, volume)
+			out.regions = append(out.regions, slab+1)
+			out.volumes = append(out.volumes, volume)
 		}
-		if slab < len(arrangement.ContactOrder) && arrangement.ContactOrder[slab] == 1 {
+		if slab < len(orders) && orders[slab] == 1 {
 			lower = 1 - lower
 		}
 	}
-	for _, volume := range out.Volumes {
-		out.Total.Add(out.Total, volume)
-		if e := b.check(out.Total); e != nil {
-			return e
+	for _, volume := range out.volumes {
+		out.total.Add(out.total, volume)
+		if e := b.check(out.total); e != nil {
+			return zero, e
 		}
 	}
-	return ctx.Err()
+	if e := ctx.Err(); e != nil {
+		return zero, e
+	}
+	return out, nil
 }
 
 // graphPolynomialExteriorFiber computes l²(3h-l), with l and h the distances
