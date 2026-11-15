@@ -85,11 +85,14 @@ cases also qualify model retention and millimetre display in metres and inches.
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
-the concrete adapter. For the translated tilted OCCT input, the test compares
-the certificate text received from the worker with the original certificate
-bytes returned by Go WASM. It then sends the exported canonical STEP to a
-fresh worker for ordinary strict import and byte-stable re-export. The report
-records the test sources, authored STEP input, and WASM hashes.
+the concrete adapter. For translated tilted OCCT inputs in millimetres,
+metres, and inches, the test compares the certificate text with the original
+bytes returned by Go WASM. A fresh worker receives that certificate, derives
+the identical native receipt from its original source, and strictly reopens
+and re-exports the canonical STEP. The metre and inch cases check explicit
+matching file units, millimetre `proofUnits`, and rejection of missing,
+mismatched, and mixed file units. The report records the test sources, authored
+STEP input, WASM, and receipt hashes.
 
 ## What changes in the isolated app
 

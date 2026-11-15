@@ -178,6 +178,8 @@ async function runSTEPRepairWorkerFixture() {
     "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
     "tools/plaincad/step-repair-worker.spec.fixture.ts": stepRepairWorkerTest,
     "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet.step": "public/plainsolid-step-repair-input.step",
+    "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-metre.step": "public/plainsolid-step-repair-metre.step",
+    "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-inch.step": "public/plainsolid-step-repair-inch.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
@@ -200,9 +202,9 @@ async function runSTEPRepairWorkerFixture() {
     const result = JSON.parse(await readFile(path, "utf8"));
     report.tests = browserTests(result.suites);
     report.summaries = [{ path, ...result.stats }];
-    const [test] = report.tests;
-    report.backendVerified = report.tests.length === 1 && test.status === "expected" &&
-      test.results.length === 1 && test.results[0].status === "passed";
+    const count = report.tests.length;
+    report.backendVerified = count > 0 && (grep !== ".*" || count === 3) && report.tests.every(test =>
+      test.status === "expected" && test.results.length === 1 && test.results[0].status === "passed");
   } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }
   report.status = !report.error && report.backendVerified ? "passed" : "failed";
   if (report.status === "failed") report.error ??= "The dedicated STEP repair worker test must pass.";
