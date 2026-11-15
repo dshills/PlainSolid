@@ -121,7 +121,7 @@ func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
 	return out
 }
 
-func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, allowThree, allowFour bool, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
+func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
 	joins := mappedChainModelJoins(edge.joins, reverse)
 	type cut struct {
 		t      *big.Rat
@@ -136,8 +136,8 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 	switch n := a + b; {
 	case n > 1:
 		three := allowThree && a == 1 && b == 1
-		four := allowFour && min(a, b) == 1 && max(a, b) == 2
-		if len(joins) != 1 || !three && !four {
+		multiple := n+1 == v8Cuts && min(a, b) >= 1
+		if len(joins) != 1 || !three && !multiple {
 			return nil, fmt.Errorf("asynchronous repair permits one owner-side crossing per original edge: %w", geom.ErrConvergence)
 		}
 		var extra []*big.Rat
@@ -158,8 +158,8 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 			face := g.faces[owner]
 			if err := trimmed.ProveMappedSplineStoredKnotPartition(ctx, face.surface, curve, [2]*geom.ExactSplineCurve(pieces), joins[0], extra, o); err != nil {
 				partition := "three-cut"
-				if four {
-					partition = "four-cut"
+				if multiple {
+					partition = fmt.Sprintf("%d-cut", v8Cuts)
 				}
 				return nil, fmt.Errorf("owner #%d on the common %s partition: %w", face.id, partition, err)
 			}

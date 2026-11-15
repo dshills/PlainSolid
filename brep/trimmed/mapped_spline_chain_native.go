@@ -40,6 +40,7 @@ type MappedChainNativeOptions struct {
 // a standalone boundary format. Version 2 retains independently authored
 // whole coedge bases in addition to version 1's whole owner spline.
 // Versions 3 through 8 rederive the original support-knot repairs.
+// Version 8 derives its bounded cut count from the original roof supports.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid

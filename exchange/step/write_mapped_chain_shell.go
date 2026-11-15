@@ -47,6 +47,11 @@ type MappedChainShellSTEPOptions struct {
 	// admits a third interior roof knot. Requires AllowTwoInteriorRoofKnots
 	// and, for original unsplit input, AllowUnsplitSupportKnot.
 	AllowFourSupportKnots bool
+	// AllowUpToSixSupportKnots admits the native v8 arrangement with four
+	// through six cuts. The original roofs have two through four knots each,
+	// with one shared stored event and separate events on both roofs. Its
+	// prerequisites match AllowFourSupportKnots.
+	AllowUpToSixSupportKnots bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
@@ -54,7 +59,7 @@ type MappedChainShellSTEPOptions struct {
 	// AllowMixedOwnerBases admits one whole basis shared by all coedges of
 	// one roof, and one whole basis per original coedge of the other. It uses
 	// the same exact integer model scale. The matching support-knot opt-in
-	// admits three or four cuts of one mixed-basis original coedge.
+	// admits three through six cuts of one mixed-basis original coedge.
 	AllowMixedOwnerBases bool
 }
 
@@ -101,7 +106,7 @@ func writeReprovedMappedChainSTEP(ctx context.Context, w io.Writer, raw []byte, 
 
 func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
 	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot &&
-		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots)
+		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots)
 }
 
 func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {

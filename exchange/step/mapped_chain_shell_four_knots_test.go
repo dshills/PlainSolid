@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -100,7 +101,7 @@ func verifyFourKnotMappedChain(t *testing.T, ctx context.Context, raw []byte) []
 			}
 		}
 	}
-	verifyFourthOriginalCrease(t, ctx, faces[north].Surface.(*geom.BSplineSurface))
+	verifyMappedRoofSlopeJump(t, ctx, faces[north].Surface.(*geom.BSplineSurface), 0, 407.0/16384, big.NewRat(1, 2), big.NewRat(1, 16))
 	var recipe, canonical, replay bytes.Buffer
 	if err := m.Shell.WriteJSON(ctx, &recipe, trimmed.MappedChainShellNativeOptions{}); err != nil {
 		t.Fatal(err)
@@ -156,27 +157,40 @@ func requireFourKnotMaterial(t *testing.T, ctx context.Context, native trimmed.M
 	}
 }
 
-func verifyFourthOriginalCrease(t *testing.T, ctx context.Context, surface *geom.BSplineSurface) {
+func verifyMappedRoofSlopeJump(t *testing.T, ctx context.Context, surface *geom.BSplineSurface, axis int, knot float64, cross, wantJump *big.Rat) {
 	t.Helper()
-	const k = 407.0 / 16384
 	patch, err := geom.NewSurfacePatch(surface, geom.SurfacePatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	var z [2]*big.Rat
-	for i, bounds := range [][2]float64{{0, k}, {k, 107.0 / 2048}} {
-		p, err := patch.Trim(geom.ParameterRectangle{UMin: bounds[0], UMax: bounds[1], VMax: 1})
-		if err != nil {
-			t.Fatal(err)
-		}
-		jet, err := p.EvaluateRational(ctx, big.NewRat(407, 16384), big.NewRat(1, 2), geom.SurfacePatchEvaluationOptions{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		z[i] = jet.Du[2]
+	u, v := patch.KnotBreaks()
+	breaks := [2][]float64{u, v}[axis]
+	i := slices.Index(breaks, knot)
+	if i <= 0 || i >= len(breaks)-1 {
+		t.Fatal("the authored crease must be an interior knot", knot)
 	}
-	if new(big.Rat).Sub(z[1], z[0]).Cmp(big.NewRat(1, 16)) != 0 {
-		t.Fatal("the fourth authored north support knot must change the genuine off-seam material derivative")
+	var z [2]*big.Rat
+	uv := [2]*big.Rat{cross, cross}
+	uv[axis] = mappedChainStepRat(knot)
+	for side, bounds := range [][2]float64{{breaks[i-1], knot}, {knot, breaks[i+1]}} {
+		box := geom.ParameterRectangle{UMax: 1, VMax: 1}
+		if axis == 0 {
+			box.UMin, box.UMax = bounds[0], bounds[1]
+		} else {
+			box.VMin, box.VMax = bounds[0], bounds[1]
+		}
+		p, err := patch.Trim(box)
+		if err != nil {
+			t.Fatal(err)
+		}
+		jet, err := p.EvaluateRational(ctx, uv[0], uv[1], geom.SurfacePatchEvaluationOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		z[side] = [2]*big.Rat{jet.Du[2], jet.Dv[2]}[axis]
+	}
+	if new(big.Rat).Sub(z[1], z[0]).Cmp(wantJump) != 0 {
+		t.Fatal("the original support knot must change the exact off-seam derivative", knot, z)
 	}
 }
 
@@ -198,6 +212,11 @@ func TestOCCTMappedChainRectangularFourSupportKnotsClosedDisplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	verifyMappedChainCutDisplay(t, ctx, m)
+}
+
+func verifyMappedChainCutDisplay(t *testing.T, ctx context.Context, m MappedChainSTEPModel) {
+	t.Helper()
 	fill := trimmed.MixedExactMultiSpanMeshOptions{Face: trimmed.MixedExactCurvedMeshOptions{
 		BoundaryModelBudget: .005, Interior: trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .04},
 	}}
@@ -205,14 +224,16 @@ func TestOCCTMappedChainRectangularFourSupportKnotsClosedDisplay(t *testing.T) {
 		Boundary: trimmed.MappedChainPolylineOptions{Deflection: .005}, Curved: [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
 	})
 	if err != nil || !display.DisplayCollision.Complete || len(display.DisplayCollision.Contacts) != 0 {
-		t.Fatal("all four exact cuts must support one closed display with no unintended contact", err)
+		t.Fatal("all exact cuts must support one closed display with no unintended contact", err)
 	}
 	edges, points := m.Native.Solid.Edges(), m.Native.Solid.Vertices()
 	for _, cut := range m.Crossings {
 		point := points[edges[cut.NativeEdges[0]].End]
 		found := false
 		for _, sample := range display.ChainSamples {
-			if sample.ModelParameter.Cmp(cut.ModelStation) == 0 && display.Mesh.Vertices[sample.Vertex] == point {
+			if sample.ModelParameter.Cmp(cut.ModelStation) == 0 && display.Mesh.Vertices[sample.Vertex] == point &&
+				sample.AuthoredParts == ([2]int{0, 0}) && sample.AuthoredParameters[0].Cmp(cut.RawParameters[0]) == 0 &&
+				sample.AuthoredParameters[1].Cmp(cut.RawParameters[1]) == 0 {
 				found = true
 				break
 			}
@@ -221,7 +242,7 @@ func TestOCCTMappedChainRectangularFourSupportKnotsClosedDisplay(t *testing.T) {
 			t.Fatal("the shared display ledger lost an original support station", cut.ModelStation)
 		}
 	}
-	t.Logf("closed display retains all four exact shared stations across %d triangles", len(display.Mesh.Triangles))
+	t.Logf("closed display retains %d exact shared stations across %d triangles", len(m.Crossings), len(display.Mesh.Triangles))
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnotsRejectsInvalidSource(t *testing.T) {
