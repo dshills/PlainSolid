@@ -124,6 +124,20 @@ func TestConvexAffinePolygonCapOCCT(t *testing.T) {
 	if actual != volume {
 		t.Fatal("native volume differs from original supports")
 	}
+	// The independent physical oracle also qualifies the same sources with
+	// normalized original side charts and nonbinary exact trim endpoints.
+	normalizedA, normalizedB := affinePolygonCapFixtureUnits(t, 0, false, false)
+	normalized, e := CertifyConvexAffinePolygonCapContact(context.Background(), normalizedA, normalizedB, [2]int{1, 0}, ConvexAffinePolygonCapOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	exactNative, e := normalized.Fuse(context.Background(), ConvexAffinePolygonCapFuseOptions{RationalUVEndpoints: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if exactNative.ExactVolume().Cmp(native.ExactVolume()) != 0 {
+		t.Fatal("rational original UV changes physical volume")
+	}
 
 	if !oracle.Valid || oracle.Solids != 1 || math.Abs(oracle.Volume-volume) > 1e-10 || math.Abs(oracle.CommonVolume) > 1e-12 || math.Abs(oracle.CapAreaSquared-sq) > 1e-10 {
 		t.Fatal(oracle, volume, sq)

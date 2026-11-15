@@ -12,14 +12,20 @@ import (
 // cumulatively (64M default, 128M maximum), and selected faces (512 default,
 // 4096 maximum). Evaluation and Sew retain separately bounded proof stages.
 type ConvexAffinePolygonCapFuseOptions struct {
+	// RationalUVEndpoints retains nonbinary original UV in exact native
+	// straight quadratic p-curves, with separate nearest display coordinates.
+	// Model vertices remain lossless. Existing native 256-edge limits apply.
+	RationalUVEndpoints bool
+
 	MaxOperations, MaxFaces int
 	Evaluation              geom.SurfacePatchEvaluationOptions
 	Sew                     SewOptions
 }
 
 // ConvexAffinePolygonCapUnion retains the original supports and complete exact
-// face partitions, including removed cap cells. Native storage requires lossless
-// model and original UV endpoints; the contact proof itself has no such restriction.
+// face partitions, including removed cap cells. Native model vertices must be
+// lossless. Original UV endpoints are lossless by default, or retained as exact
+// rational p-curves with separate display coordinates in the opt-in mode.
 type ConvexAffinePolygonCapUnion struct {
 	contact   *ConvexAffinePolygonCapContact
 	solid     Solid
@@ -131,7 +137,8 @@ func affinePolygonClip(b *nativePrismAffineBudget, p, polygon [][2]*big.Rat) [][
 // Fuse removes exactly the positive-area common cap footprint and conforms all
 // original side coedges to its exact endpoints. The complete supporting-plane
 // proof excludes any other cross-shell contact. All retained native surfaces
-// are original; nonlossless endpoints or unresolved topology reject atomically.
+// are original. Nonlossless model endpoints or unresolved topology reject
+// atomically; RationalUVEndpoints explicitly enables exact nonbinary UV recipes.
 func (r *ConvexAffinePolygonCapContact) Fuse(ctx context.Context, o ConvexAffinePolygonCapFuseOptions) (*ConvexAffinePolygonCapUnion, error) {
 	if r == nil || ctx == nil {
 		return nil, geom.ErrInvalid
@@ -232,7 +239,12 @@ func (r *ConvexAffinePolygonCapContact) Fuse(ctx context.Context, o ConvexAffine
 			}
 			b.work += part.ExactOperations()
 			out.fragments[owner][face] = part
-			native, e := part.NativeFaces(ctx, o.Evaluation)
+			var native []SewFace
+			if o.RationalUVEndpoints {
+				native, e = nativePolygonCapRationalFaces(ctx, part, o.Evaluation)
+			} else {
+				native, e = part.NativeFaces(ctx, o.Evaluation)
+			}
 			if e != nil {
 				return nil, fmt.Errorf("polygon cap native owner %d face %d: %w", owner, face, e)
 			}
@@ -327,7 +339,19 @@ func (r *ConvexAffinePolygonCapContact) Fuse(ctx context.Context, o ConvexAffine
 				if k == 1 {
 					uv = u.UVEnd
 				}
-				if !q.OnPlane || !q.Inside || q.U.Cmp(ratInset(uv.X)) != 0 || q.V.Cmp(ratInset(uv.Y)) != 0 {
+				exactUV := [2]*big.Rat{ratInset(uv.X), ratInset(uv.Y)}
+				if o.RationalUVEndpoints {
+					curve, ok := u.Curve.(ExactQuadraticUV)
+					if !ok || !curve.rationalEndpoints {
+						return nil, geom.ErrDomain
+					}
+					endpoints, display := curve.Endpoints()
+					if display[k] != uv {
+						return nil, geom.ErrDomain
+					}
+					exactUV = endpoints[k]
+				}
+				if !q.OnPlane || !q.Inside || q.U.Cmp(exactUV[0]) != 0 || q.V.Cmp(exactUV[1]) != 0 {
 					return nil, fmt.Errorf("polygon cap sewn source endpoint: %w", geom.ErrDomain)
 				}
 			}
