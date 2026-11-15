@@ -23,8 +23,22 @@ func JoinPlanarRegions(ctx context.Context, a, b brep.Solid, faces [2][]int, o c
 	if err != nil {
 		return brep.Solid{}, PlanarRegionJoinHistory{}, err
 	}
+	return joinProvedPlanarRegions(ctx, a, b, proof, o.Validation)
+}
+
+// JoinCoincidentPlanarRegions discovers the complete interface even when the
+// contacting original faces are divided differently across the two bodies.
+func JoinCoincidentPlanarRegions(ctx context.Context, a, b brep.Solid, o collision.PlanarFaceContactOptions) (brep.Solid, PlanarRegionJoinHistory, error) {
+	proof, err := collision.DiscoverPlanarRegionContact(ctx, a, b, o)
+	if err != nil {
+		return brep.Solid{}, PlanarRegionJoinHistory{}, err
+	}
+	return joinProvedPlanarRegions(ctx, a, b, proof, o.Validation)
+}
+
+func joinProvedPlanarRegions(ctx context.Context, a, b brep.Solid, proof collision.PlanarRegionContact, o collision.LocationOptions) (brep.Solid, PlanarRegionJoinHistory, error) {
 	input := planarInterface{faces: proof.Faces, vertices: proof.Vertices, edges: proof.Edges, volume: proof.SignedVolume}
-	out, owners, err := joinPlanarInterface(ctx, a, b, input, o.Validation)
+	out, owners, err := joinPlanarInterface(ctx, a, b, input, o)
 	if err != nil {
 		return brep.Solid{}, PlanarRegionJoinHistory{}, err
 	}

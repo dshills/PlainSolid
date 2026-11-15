@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"plainsolid/brep"
@@ -102,9 +103,34 @@ func TestJoinPlanarRegionsKeepsSeamAcrossIndependentSubdivisions(t *testing.T) {
 				}
 			}
 		}
+		discovered, proof, err := JoinCoincidentPlanarRegions(ctx, a, b, collision.PlanarFaceContactOptions{})
+		if err != nil || !reflect.DeepEqual(s, discovered) || !reflect.DeepEqual(faces, proof.Contact.Faces) ||
+			proof.Contact.BroadPairs != p.BroadPairs {
+			t.Fatalf("one discovery sweep did not reproduce the original interface: %+v %v", proof, err)
+		}
 		out, g, err := JoinPlanarRegions(ctx, a, b, [2][]int{af[:3], bf}, collision.PlanarFaceContactOptions{})
 		if !errors.Is(err, collision.ErrInvalid) || len(out.Vertices()) != 0 || g.Contact.SignedVolume != nil {
 			t.Fatalf("partly declared interface returned a union: %+v %v", g, err)
 		}
+	}
+}
+
+func TestDiscoverPlanarRegionsRejectsPartialAndLowerDimensionalContact(t *testing.T) {
+	ctx := context.Background()
+	a, _ := subdivideContactCap(t, 0, 1, &geom.Vec3{X: .5, Y: .5, Z: 1})
+	for _, lo := range []geom.Vec3{{X: .25, Z: 1}, {X: 1, Y: 1}, {X: .5, Y: .5, Z: .5}, {Z: 3}} {
+		b, err := brep.Box(lo, lo.Add(geom.Vec3{X: 1, Y: 1, Z: 1}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, h, err := JoinCoincidentPlanarRegions(ctx, a, b, collision.PlanarFaceContactOptions{})
+		if !errors.Is(err, collision.ErrInvalid) || len(s.Faces()) != 0 || h.Contact.SignedVolume != nil {
+			t.Fatalf("unproved original interface at %v: %+v %v", lo, h, err)
+		}
+	}
+	b, _ := subdivideContactCap(t, 1, 0, nil)
+	s, h, err := JoinCoincidentPlanarRegions(ctx, a, b, collision.PlanarFaceContactOptions{Cross: collision.Options{MaxContacts: 1}})
+	if !errors.Is(err, collision.ErrLimit) || len(s.Faces()) != 0 || h.Contact.SignedVolume != nil {
+		t.Fatalf("uncompleted exact discovery published material: %+v %v", h, err)
 	}
 }

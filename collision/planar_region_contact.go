@@ -32,8 +32,22 @@ type planarRegionFace struct {
 // completely by oppositely oriented material on the other body. The external
 // seams must match edge for edge; internal subdivisions need not match.
 func ValidatePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2][]int, o PlanarFaceContactOptions) (PlanarRegionContact, error) {
+	if len(faces[0]) == 0 || len(faces[1]) == 0 {
+		return PlanarRegionContact{}, ErrInvalid
+	}
+	return provePlanarRegionContact(ctx, a, b, faces, false, o)
+}
+
+// DiscoverPlanarRegionContact collects original face regions in one exact
+// cross-boundary sweep. It rejects partial original faces and any contact
+// outside the inferred complete faces and their common seams.
+func DiscoverPlanarRegionContact(ctx context.Context, a, b brep.Solid, o PlanarFaceContactOptions) (PlanarRegionContact, error) {
+	return provePlanarRegionContact(ctx, a, b, [2][]int{}, true, o)
+}
+
+func provePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2][]int, discover bool, o PlanarFaceContactOptions) (PlanarRegionContact, error) {
 	var zero PlanarRegionContact
-	if ctx == nil || len(faces[0]) == 0 || len(faces[1]) == 0 || o.Cross.MaxContacts < 0 || o.Cross.MaxPairs < 0 || o.MaxPerimeterChecks < 0 {
+	if ctx == nil || o.Cross.MaxContacts < 0 || o.Cross.MaxPairs < 0 || o.MaxPerimeterChecks < 0 {
 		return zero, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -56,33 +70,42 @@ func ValidatePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2]
 	count := [2][]uint8{make([]uint8, len(ed[0])), make([]uint8, len(ed[1]))}
 	have := [2][]big.Rat{make([]big.Rat, len(af[0])), make([]big.Rat, len(af[1]))}
 	out := PlanarRegionContact{}
+	selectFace := func(i, n int) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		use[i][n] = true
+		q, err := measurePlanarRegionFace(af[i][n], ed[i], vs[i], count[i])
+		if err != nil {
+			return err
+		}
+		region[i][n] = q
+		return nil
+	}
 	for i, fs := range faces {
 		if len(fs) > len(af[i]) {
 			return zero, ErrInvalid
 		}
 		for _, n := range fs {
-			if err := ctx.Err(); err != nil {
-				return zero, err
-			}
 			if n < 0 || n >= len(af[i]) || use[i][n] {
 				return zero, fmt.Errorf("%w: region must declare distinct original face IDs", ErrInvalid)
 			}
-			use[i][n] = true
-			q, err := measurePlanarRegionFace(af[i][n], ed[i], vs[i], count[i])
-			if err != nil {
+			if err := selectFace(i, n); err != nil {
 				return zero, err
 			}
-			region[i][n] = q
-			out.TwiceProjectedAreas[i] = append(out.TwiceProjectedAreas[i], q.area)
-			out.DropAxes[i] = append(out.DropAxes[i], q.drop)
 		}
-		out.Faces[i] = append([]int(nil), fs...)
 	}
-	edges, vertices, seams, err := pairOriginalRegionSeams(ed, vs, count)
-	if err != nil {
-		return zero, err
+	var seams [][2]point
+	prepareSeams := func() error {
+		var err error
+		out.Edges, out.Vertices, seams, err = pairOriginalRegionSeams(ed, vs, count)
+		return err
 	}
-	out.Edges, out.Vertices = edges, vertices
+	if !discover {
+		if err := prepareSeams(); err != nil {
+			return zero, err
+		}
+	}
 	la, err := NewMeshPointLocator(ctx, am, fm[0], opt)
 	if err != nil {
 		return zero, err
@@ -98,10 +121,42 @@ func ValidatePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2]
 	if remaining == 0 {
 		remaining = DefaultMaxPairs
 	}
+	checkTouch := func(ps [2]point, n int) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		for _, s := range seams {
+			if remaining == 0 {
+				return ErrLimit
+			}
+			remaining--
+			if onSegment(ps[0], s[0], s[1]) && (n == 1 || onSegment(ps[1], s[0], s[1])) {
+				return nil
+			}
+		}
+		return fmt.Errorf("%w: exterior contact leaves the original interface seam", ErrInvalid)
+	}
+	type touch struct {
+		f, g, n int
+		p       [2]point
+	}
+	var deferred []touch // The sweep's MaxContacts bounds this queue.
 	report, err := sweepIntersections(ctx, am, bm, false, o.Cross, func(i, j int, k Kind, ps []point) error {
 		f, g := fm[0][i], fm[1][j]
 		selected := use[0][f] && use[1][g]
-		if k == CoplanarOverlap && selected {
+		if k == CoplanarOverlap && (selected || discover) {
+			if discover {
+				if !use[0][f] {
+					if err := selectFace(0, f); err != nil {
+						return err
+					}
+				}
+				if !use[1][g] {
+					if err := selectFace(1, g); err != nil {
+						return err
+					}
+				}
+			}
 			p, q := region[0][f], region[1][g]
 			if dot(p.normal, q.normal).Sign() >= 0 {
 				return fmt.Errorf("%w: coincident contact regions do not oppose", ErrInvalid)
@@ -116,16 +171,13 @@ func ValidatePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2]
 		if selected {
 			return nil
 		}
-		for _, s := range seams {
-			if remaining == 0 {
-				return ErrLimit
-			}
-			remaining--
-			if onSegment(ps[0], s[0], s[1]) && (len(ps) == 1 || onSegment(ps[1], s[0], s[1])) {
-				return nil
-			}
+		c := touch{f: f, g: g, n: len(ps)}
+		copy(c.p[:], ps)
+		if discover {
+			deferred = append(deferred, c)
+			return nil
 		}
-		return fmt.Errorf("%w: exterior contact leaves the original interface seam", ErrInvalid)
+		return checkTouch(c.p, c.n)
 	})
 	if err != nil {
 		return zero, err
@@ -133,12 +185,39 @@ func ValidatePlanarRegionContact(ctx context.Context, a, b brep.Solid, faces [2]
 	if !report.Complete {
 		return zero, ErrLimit
 	}
-	for i, fs := range faces {
-		for _, n := range fs {
-			if have[i][n].Cmp(region[i][n].area) != 0 {
-				return zero, fmt.Errorf("%w: opposing sources do not cover all of body %d face %d", ErrInvalid, i, n)
+	if discover {
+		for i, seen := range use {
+			for n, selected := range seen {
+				if selected {
+					faces[i] = append(faces[i], n)
+				}
 			}
 		}
+		if len(faces[0]) == 0 || len(faces[1]) == 0 {
+			return zero, fmt.Errorf("%w: no positive common face area", ErrInvalid)
+		}
+		if err := prepareSeams(); err != nil {
+			return zero, err
+		}
+		for _, c := range deferred {
+			if use[0][c.f] && use[1][c.g] {
+				continue
+			}
+			if err := checkTouch(c.p, c.n); err != nil {
+				return zero, err
+			}
+		}
+	}
+	for i, fs := range faces {
+		for _, n := range fs {
+			q := region[i][n]
+			if have[i][n].Cmp(q.area) != 0 {
+				return zero, fmt.Errorf("%w: opposing sources do not cover all of body %d face %d", ErrInvalid, i, n)
+			}
+			out.TwiceProjectedAreas[i] = append(out.TwiceProjectedAreas[i], q.area)
+			out.DropAxes[i] = append(out.DropAxes[i], q.drop)
+		}
+		out.Faces[i] = append([]int(nil), fs...)
 	}
 	if err := faceContactExterior(ctx, la, lb, af[0], len(ed[0]), use[0], opt.MaxWork); err != nil {
 		return zero, err
