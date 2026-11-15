@@ -116,27 +116,7 @@ func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolera
 	if err != nil {
 		return empty, noHistory, err
 	}
-	south := Face{Surface: surfaces[1], U: circleDomain, V: Interval{-math.Pi / 2, latitude[1]},
-		Boundary: [4]Use{{0, false}, {1, false}, {2, false}, {1, true}}}
-	middle := Face{Surface: blend, U: circleDomain, V: Interval{latitude[1], latitude[0]},
-		Boundary: [4]Use{{2, true}, {3, false}, {4, false}, {3, true}}}
-	north := Face{Surface: surfaces[0], U: circleDomain, V: Interval{latitude[0], math.Pi / 2},
-		Boundary: [4]Use{{4, true}, {5, false}, {6, false}, {5, true}}}
-	vertices := make([]geom.Vec3, 4)
-	for i, face := range [...]Face{south, middle, north} {
-		vertices[i], err = face.Surface.Eval(0, face.V.Min)
-		if err != nil {
-			return empty, noHistory, err
-		}
-	}
-	vertices[3], err = north.Surface.Eval(0, north.V.Max)
-	if err != nil {
-		return empty, noHistory, err
-	}
-	result, err := buildPatches(vertices, tolerance,
-		patch{face: south, corners: [4]int{0, 0, 1, 1}, collapsed: [4]bool{true, false, false, false}},
-		patch{face: middle, corners: [4]int{1, 1, 2, 2}},
-		patch{face: north, corners: [4]int{2, 2, 3, 3}, collapsed: [4]bool{false, false, true, false}})
+	result, err := stitchSphericalLensDilation(surfaces, blend, latitude, tolerance)
 	if err != nil {
 		return empty, noHistory, err
 	}
@@ -146,6 +126,31 @@ func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolera
 	history.ResultFaces, history.BlendFace = [2]int{2, 0}, 1
 	history.RimCenter, history.RimRadius, history.BlendRadius = center, rim, distance
 	return result, history, nil
+}
+
+func stitchSphericalLensDilation(surfaces [2]geom.SphereSurface, blend geom.Surface, latitude [2]float64, tolerance float64) (Solid, error) {
+	south := Face{Surface: surfaces[1], U: circleDomain, V: Interval{-math.Pi / 2, latitude[1]},
+		Boundary: [4]Use{{0, false}, {1, false}, {2, false}, {1, true}}}
+	middle := Face{Surface: blend, U: circleDomain, V: Interval{latitude[1], latitude[0]},
+		Boundary: [4]Use{{2, true}, {3, false}, {4, false}, {3, true}}}
+	north := Face{Surface: surfaces[0], U: circleDomain, V: Interval{latitude[0], math.Pi / 2},
+		Boundary: [4]Use{{4, true}, {5, false}, {6, false}, {5, true}}}
+	vertices := make([]geom.Vec3, 4)
+	var err error
+	for i, face := range [...]Face{south, middle, north} {
+		vertices[i], err = face.Surface.Eval(0, face.V.Min)
+		if err != nil {
+			return Solid{}, err
+		}
+	}
+	vertices[3], err = north.Surface.Eval(0, north.V.Max)
+	if err != nil {
+		return Solid{}, err
+	}
+	return buildPatches(vertices, tolerance,
+		patch{face: south, corners: [4]int{0, 0, 1, 1}, collapsed: [4]bool{true, false, false, false}},
+		patch{face: middle, corners: [4]int{1, 1, 2, 2}},
+		patch{face: north, corners: [4]int{2, 2, 3, 3}, collapsed: [4]bool{false, false, true, false}})
 }
 
 func sphericalLensRim(ctx context.Context, source geom.SpherePairMaterial, axis geom.Vec3) (geom.Vec3, float64, [2]float64, error) {

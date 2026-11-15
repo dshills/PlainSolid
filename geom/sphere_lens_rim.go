@@ -84,6 +84,7 @@ type SphereLensRimEnclosure struct {
 	Rim      SphereLensRim
 	Radius   ExactParameterInterval
 	Latitude [2]ExactParameterInterval
+	Pi       ExactParameterInterval
 	Work     int
 }
 
@@ -157,7 +158,7 @@ func (s SpherePairMaterial) EncloseTransverseLensRim(ctx context.Context, o Sphe
 		if err := ctx.Err(); err != nil {
 			return zero, err
 		}
-		out := SphereLensRimEnclosure{Rim: r, Radius: ExactParameterInterval{radius.lo, radius.hi}, Work: b.operations}
+		out := SphereLensRimEnclosure{Rim: r, Radius: ExactParameterInterval{radius.lo, radius.hi}, Pi: ExactParameterInterval{pi.lo, pi.hi}, Work: b.operations}
 		for i, v := range angle {
 			out.Latitude[i] = ExactParameterInterval{v.lo, v.hi}
 		}
