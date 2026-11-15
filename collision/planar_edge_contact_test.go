@@ -141,3 +141,72 @@ func TestPlanarEdgeContactExactLocationAndLinePartition(t *testing.T) {
 		t.Fatalf("incomplete lookup published a partial owner: %+v %v", p, err)
 	}
 }
+
+func TestPlanarEdgeContactRetainsDistinctOriginalSubintervals(t *testing.T) {
+	ctx := context.Background()
+	a := dbox(t, geom.Vec3{}, geom.Vec3{X: 1, Y: 1, Z: 3})
+	b := dbox(t, geom.Vec3{X: 1, Y: 1, Z: 1}, geom.Vec3{X: 2, Y: 2, Z: 4})
+	onAxis := func(s brep.Solid, upward bool) (brep.Solid, int) {
+		t.Helper()
+		v, e, f := s.Vertices(), s.Edges(), s.Faces()
+		for i := range e {
+			x, y := v[e[i].Start], v[e[i].End]
+			if x.X != 1 || x.Y != 1 || y.X != 1 || y.Y != 1 || x.Z == y.Z {
+				continue
+			}
+			if (x.Z < y.Z) == upward {
+				return s, i
+			}
+			e[i].Start, e[i].End = e[i].End, e[i].Start
+			for j := range f {
+				for k := range f[j].Boundary {
+					u := &f[j].Boundary[k]
+					if u.Edge == i {
+						u.Reversed = !u.Reversed
+					}
+				}
+			}
+			part, err := brep.NewSolid(v, e, f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return part, i
+		}
+		t.Fatal("test body has no original vertical contact edge")
+		return s, -1
+	}
+	a, ea := onAxis(a, true)
+	b, eb := onAxis(b, false)
+	o := PlanarEdgeContactOptions{}
+	if _, err := ValidatePlanarEdgeContact(ctx, a, b, ea, eb, o); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("whole-edge proof widened: %v", err)
+	}
+	p, err := ValidatePlanarEdgeIntervalContact(ctx, a, b, ea, eb, o)
+	if err != nil || !p.Reversed || p.Start != (geom.Vec3{X: 1, Y: 1, Z: 1}) || p.End != (geom.Vec3{X: 1, Y: 1, Z: 3}) ||
+		p.ParameterA[0].RatString() != "1/3" || p.ParameterA[1].RatString() != "1" ||
+		p.ParameterB[0].RatString() != "1" || p.ParameterB[1].RatString() != "1/3" || p.SignedVolume.RatString() != "6" {
+		t.Fatalf("original directed subintervals were not retained: %+v %v", p, err)
+	}
+	l, err := NewPlanarEdgeIntervalContactLocator(ctx, a, b, ea, eb, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := l.Report()
+	first.ParameterA[0].SetInt64(0)
+	if l.Report().ParameterA[0].RatString() != "1/3" {
+		t.Fatal("report alias changed the immutable source interval")
+	}
+	rat := big.NewRat
+	line, err := l.PartitionRationalLine(ctx,
+		[3]*big.Rat{rat(1, 1), rat(1, 1), rat(0, 1)},
+		[3]*big.Rat{rat(0, 1), rat(0, 1), rat(4, 1)},
+		rat(0, 1), rat(1, 1), RationalLinePartitionOptions{})
+	if err != nil || len(line.Spans) != 3 || line.Stations[1].Parameter.RatString() != "1/4" || line.Stations[2].Parameter.RatString() != "3/4" {
+		t.Fatalf("line lost the original overlap endpoints: %+v %v", line, err)
+	}
+	for i, span := range line.Spans {
+		if span.Location != OnBoundary || span.SharedEdge != (i == 1) || len(span.Components) != [...]int{1, 2, 1}[i] {
+			t.Fatalf("incorrect shared line interval: %+v", span)
+		}
+	}
+}

@@ -22,12 +22,14 @@ type PlanarEdgeContactOptions struct {
 
 // PlanarEdgeContact identifies the full original edge in each independently
 // valid planar body and the two original incident faces of each edge.
-// Start and End follow the direction of EdgeA.
+// Start and End follow the direction of EdgeA. ParameterA and ParameterB
+// are the exact original [0,1] edge parameters of those two endpoints.
 type PlanarEdgeContact struct {
 	EdgeA, EdgeB             int
 	FacesA, FacesB           [2]int
 	Start, End               geom.Vec3
 	Reversed                 bool
+	ParameterA, ParameterB   [2]*big.Rat
 	SignedVolume             *big.Rat
 	BroadPairs, ContactPairs int
 }
@@ -81,7 +83,7 @@ func discoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdg
 	if pair[0] < 0 {
 		return PlanarEdgeContact{}, fmt.Errorf("%w: no common full original edge", ErrInvalid)
 	}
-	return validatePlanarEdgeContact(ctx, a, b, pair[0], pair[1], o, prepared)
+	return validatePlanarEdgeContact(ctx, a, b, pair[0], pair[1], o, true, prepared)
 }
 
 // ValidatePlanarEdgeContact verifies that two independently outward,
@@ -90,10 +92,17 @@ func discoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdg
 // and must be covered by the declared segment. The proof publishes nothing
 // if it cannot inspect the entire boundary.
 func ValidatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions) (PlanarEdgeContact, error) {
-	return validatePlanarEdgeContact(ctx, a, b, edgeA, edgeB, o, nil)
+	return validatePlanarEdgeContact(ctx, a, b, edgeA, edgeB, o, true, nil)
 }
 
-func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions, prepared *[2]vertexContactComponent) (PlanarEdgeContact, error) {
+// ValidatePlanarEdgeIntervalContact accepts a positive common subinterval of
+// two specified original straight edges and proves it is their only contact.
+// The original edge ranges remain separate.
+func ValidatePlanarEdgeIntervalContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions) (PlanarEdgeContact, error) {
+	return validatePlanarEdgeContact(ctx, a, b, edgeA, edgeB, o, false, nil)
+}
+
+func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions, full bool, prepared *[2]vertexContactComponent) (PlanarEdgeContact, error) {
 	var zero PlanarEdgeContact
 	if ctx == nil || o.Cross.MaxPairs < 0 || o.Cross.MaxContacts < 0 || o.MaxQueryWork < 0 {
 		return zero, ErrInvalid
@@ -111,11 +120,13 @@ func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edge
 	}
 	ea, eb := as[edgeA], bs[edgeB]
 	av, bv := a.Vertices(), b.Vertices()
-	p0, p1 := av[ea.Start], av[ea.End]
-	q0, q1 := bv[eb.Start], bv[eb.End]
-	reversed := p0 == q1 && p1 == q0
-	if p0 == p1 || !reversed && (p0 != q0 || p1 != q1) {
+	ac, bc := [2]geom.Vec3{av[ea.Start], av[ea.End]}, [2]geom.Vec3{bv[eb.Start], bv[eb.End]}
+	if full && ac != bc && ac != ([2]geom.Vec3{bc[1], bc[0]}) {
 		return zero, fmt.Errorf("%w: original edge endpoints do not coincide", ErrInvalid)
+	}
+	ends, intervalA, intervalB, err := planarEdgeCommonInterval(ac, bc)
+	if err != nil {
+		return zero, err
 	}
 	ma, mb := a.Tessellate(), b.Tessellate()
 	if len(ma.Triangles) > opts.MaxTriangles-len(mb.Triangles) {
@@ -132,7 +143,7 @@ func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edge
 	if len(la.shells) != 1 || len(lb.shells) != 1 {
 		return zero, fmt.Errorf("%w: edge contact requires two single-shell parts", ErrInvalid)
 	}
-	pa, pb := exact(p0), exact(p1)
+	pa, pb := exact(ends[0]), exact(ends[1])
 	axis := nonzeroAxis(minus(pb, pa))
 	width := sub(pb[axis], pa[axis])
 	parameter := func(p point) scalar { return div(sub(p[axis], pa[axis]), width) }
@@ -189,10 +200,13 @@ func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edge
 	// Removing one embedded closed arc from the boundary of a connected
 	// closed shell does not disconnect it. Material membership is constant
 	// on the remainder because the sweep proved there are no other contacts.
-	if err := validateComponentOutside(ctx, ca, cb, map[int]bool{ea.Start: true, ea.End: true}); err != nil {
+	skip := func(v []geom.Vec3, edge brep.Edge) map[int]bool {
+		return map[int]bool{edge.Start: onSegment(exact(v[edge.Start]), pa, pb), edge.End: onSegment(exact(v[edge.End]), pa, pb)}
+	}
+	if err := validateComponentOutside(ctx, ca, cb, skip(av, ea)); err != nil {
 		return zero, err
 	}
-	if err := validateComponentOutside(ctx, cb, ca, map[int]bool{eb.Start: true, eb.End: true}); err != nil {
+	if err := validateComponentOutside(ctx, cb, ca, skip(bv, eb)); err != nil {
 		return zero, err
 	}
 	fa, err := planarEdgeContactFaces(a, edgeA)
@@ -210,10 +224,49 @@ func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edge
 		*prepared = [2]vertexContactComponent{ca, cb}
 	}
 	return PlanarEdgeContact{
-		EdgeA: edgeA, EdgeB: edgeB, FacesA: fa, FacesB: fb, Start: p0, End: p1,
-		Reversed: reversed, SignedVolume: add(la.shells[0].SignedVolume, lb.shells[0].SignedVolume),
+		EdgeA: edgeA, EdgeB: edgeB, FacesA: fa, FacesB: fb, Start: ends[0], End: ends[1],
+		ParameterA: intervalA, ParameterB: intervalB,
+		Reversed: intervalB[0].Cmp(intervalB[1]) > 0, SignedVolume: add(la.shells[0].SignedVolume, lb.shells[0].SignedVolume),
 		BroadPairs: r.BroadPhasePairs, ContactPairs: count,
 	}, nil
+}
+
+func planarEdgeCommonInterval(a, b [2]geom.Vec3) ([2]geom.Vec3, [2]scalar, [2]scalar, error) {
+	fail := func(reason string) ([2]geom.Vec3, [2]scalar, [2]scalar, error) {
+		return [2]geom.Vec3{}, [2]scalar{}, [2]scalar{}, fmt.Errorf("%w: %s", ErrInvalid, reason)
+	}
+	p, q := exact(a[0]), exact(a[1])
+	d := minus(q, p)
+	axis := nonzeroAxis(d)
+	if axis < 0 || b[0] == b[1] {
+		return fail("original edge has zero extent")
+	}
+	var t [2]scalar
+	for i, v := range b {
+		offset := minus(exact(v), p)
+		if nonzeroAxis(cross(offset, d)) >= 0 {
+			return fail("original edge supports are not exactly collinear")
+		}
+		t[i] = div(offset[axis], d[axis])
+	}
+	low, high := 0, 1
+	if t[low].Cmp(t[high]) > 0 {
+		low, high = high, low
+	}
+	endpoints := a
+	pa := [2]scalar{new(big.Rat), big.NewRat(1, 1)}
+	if t[low].Cmp(pa[0]) > 0 {
+		pa[0], endpoints[0] = t[low], b[low]
+	}
+	if t[high].Cmp(pa[1]) < 0 {
+		pa[1], endpoints[1] = t[high], b[high]
+	}
+	if pa[0].Cmp(pa[1]) >= 0 {
+		return fail("original edges have no positive common interval")
+	}
+	w := sub(t[1], t[0])
+	pb := [2]scalar{div(sub(pa[0], t[0]), w), div(sub(pa[1], t[0]), w)}
+	return endpoints, pa, pb, nil
 }
 
 func planarEdgeContactFaces(s brep.Solid, edge int) ([2]int, error) {
