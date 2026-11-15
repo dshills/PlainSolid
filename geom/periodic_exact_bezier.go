@@ -17,6 +17,12 @@ type ExactPeriodicBezierSpan struct {
 	Control    [][4]*big.Rat
 }
 
+type periodicSpanWindow struct {
+	start, end, localStart, localEnd *big.Rat
+	cycle                            *big.Int
+	span                             int
+}
+
 // ExactBezierSpans extracts the exact homogeneous pieces of a uniform
 // periodic curve over a nonempty rational parameter interval. The physical
 // knot lattice uses the represented start and period as exact coefficients.
@@ -37,68 +43,25 @@ func (c *PeriodicBSpline) ExactBezierSpans(ctx context.Context, start, end *big.
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { operations = budget.operations }()
-	for _, value := range []*big.Rat{start, end} {
-		if err = budget.check(value); err != nil {
-			return nil, 0, err
-		}
-	}
-	if start.Cmp(end) >= 0 {
-		return nil, 0, ErrInvalid
-	}
 	limit := options.MaxSpans
 	if limit == 0 {
 		limit = 256
 	}
-	n := int64(len(c.poles))
-	origin := new(big.Rat).SetFloat64(c.start)
-	width := new(big.Rat).Quo(new(big.Rat).SetFloat64(c.period), big.NewRat(n, 1))
-	lo := new(big.Rat).Quo(new(big.Rat).Sub(start, origin), width)
-	hi := new(big.Rat).Quo(new(big.Rat).Sub(end, origin), width)
-	for _, value := range []*big.Rat{origin, width, lo, hi} {
-		if err = budget.check(value); err != nil {
-			return nil, 0, err
-		}
+	windows, err := uniformPeriodicSpanWindows(ctx, len(c.poles), c.start, c.period, start, end, min(limit, o.MaxPoles/(c.degree+1)), budget)
+	if err != nil {
+		return nil, 0, err
 	}
-	first := new(big.Int).Div(lo.Num(), lo.Denom())
-	stop := new(big.Int).Neg(new(big.Int).Div(new(big.Int).Neg(hi.Num()), hi.Denom()))
-	length := new(big.Int).Sub(stop, first)
-	if length.Cmp(big.NewInt(int64(min(limit, o.MaxPoles/(c.degree+1))))) > 0 {
-		return nil, 0, ErrConvergence
-	}
-	spans = make([]ExactPeriodicBezierSpan, 0, int(length.Int64()))
-	count, one := big.NewInt(n), big.NewInt(1)
-	for i := new(big.Int).Set(first); i.Cmp(stop) < 0; i.Add(i, one) {
-		if err = ctx.Err(); err != nil {
-			return nil, 0, err
-		}
-		cycle, offset := new(big.Int), new(big.Int)
-		cycle.DivMod(i, count, offset)
-		index := int(offset.Int64())
-		left := new(big.Rat).Add(origin, new(big.Rat).Mul(width, new(big.Rat).SetInt(i)))
-		right := new(big.Rat).Add(left, width)
-		a, b := left, right
-		if start.Cmp(a) > 0 {
-			a = new(big.Rat).Set(start)
-		}
-		if end.Cmp(b) < 0 {
-			b = new(big.Rat).Set(end)
-		}
-		localStart := new(big.Rat).Quo(new(big.Rat).Sub(a, left), width)
-		localEnd := new(big.Rat).Quo(new(big.Rat).Sub(b, left), width)
-		for _, value := range []*big.Rat{left, right, localStart, localEnd} {
-			if err = budget.check(value); err != nil {
-				return nil, 0, err
-			}
-		}
-		controls, err := c.periodicBezierControls(ctx, index, budget)
+	spans = make([]ExactPeriodicBezierSpan, 0, len(windows))
+	for _, window := range windows {
+		controls, err := c.periodicBezierControls(ctx, window.span, budget)
 		if err != nil {
 			return nil, 0, err
 		}
-		controls, err = restrictExactBezier(controls, localStart, localEnd, budget)
+		controls, err = restrictExactBezier(controls, window.localStart, window.localEnd, budget)
 		if err != nil {
 			return nil, 0, err
 		}
-		piece := ExactPeriodicBezierSpan{Start: a, End: b, Cycle: cycle, Span: index, Control: make([][4]*big.Rat, len(controls))}
+		piece := ExactPeriodicBezierSpan{Start: window.start, End: window.end, Cycle: window.cycle, Span: window.span, Control: make([][4]*big.Rat, len(controls))}
 		for j, control := range controls {
 			for axis, v := range control {
 				piece.Control[j][axis] = new(big.Rat).Set(v)
@@ -107,6 +70,61 @@ func (c *PeriodicBSpline) ExactBezierSpans(ctx context.Context, start, end *big.
 		spans = append(spans, piece)
 	}
 	return spans, 0, nil
+}
+
+func uniformPeriodicSpanWindows(ctx context.Context, poleCount int, start, period float64, lower, upper *big.Rat, limit int, budget *polynomialBudget) ([]periodicSpanWindow, error) {
+	for _, value := range []*big.Rat{lower, upper} {
+		if err := budget.check(value); err != nil {
+			return nil, err
+		}
+	}
+	if lower.Cmp(upper) >= 0 {
+		return nil, ErrInvalid
+	}
+	n := int64(poleCount)
+	origin := new(big.Rat).SetFloat64(start)
+	width := new(big.Rat).Quo(new(big.Rat).SetFloat64(period), big.NewRat(n, 1))
+	lo := new(big.Rat).Quo(new(big.Rat).Sub(lower, origin), width)
+	hi := new(big.Rat).Quo(new(big.Rat).Sub(upper, origin), width)
+	for _, value := range []*big.Rat{origin, width, lo, hi} {
+		if err := budget.check(value); err != nil {
+			return nil, err
+		}
+	}
+	first := new(big.Int).Div(lo.Num(), lo.Denom())
+	stop := new(big.Int).Neg(new(big.Int).Div(new(big.Int).Neg(hi.Num()), hi.Denom()))
+	length := new(big.Int).Sub(stop, first)
+	if length.Cmp(big.NewInt(int64(limit))) > 0 {
+		return nil, ErrConvergence
+	}
+	windows := make([]periodicSpanWindow, 0, int(length.Int64()))
+	count, one := big.NewInt(n), big.NewInt(1)
+	for i := new(big.Int).Set(first); i.Cmp(stop) < 0; i.Add(i, one) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		cycle, offset := new(big.Int), new(big.Int)
+		cycle.DivMod(i, count, offset)
+		index := int(offset.Int64())
+		left := new(big.Rat).Add(origin, new(big.Rat).Mul(width, new(big.Rat).SetInt(i)))
+		right := new(big.Rat).Add(left, width)
+		a, b := left, right
+		if lower.Cmp(a) > 0 {
+			a = new(big.Rat).Set(lower)
+		}
+		if upper.Cmp(b) < 0 {
+			b = new(big.Rat).Set(upper)
+		}
+		localStart := new(big.Rat).Quo(new(big.Rat).Sub(a, left), width)
+		localEnd := new(big.Rat).Quo(new(big.Rat).Sub(b, left), width)
+		for _, value := range []*big.Rat{left, right, localStart, localEnd} {
+			if err := budget.check(value); err != nil {
+				return nil, err
+			}
+		}
+		windows = append(windows, periodicSpanWindow{start: a, end: b, localStart: localStart, localEnd: localEnd, cycle: cycle, span: index})
+	}
+	return windows, nil
 }
 
 func (c *PeriodicBSpline) periodicBezierControls(ctx context.Context, span int, budget *polynomialBudget) ([]exactHomogeneous, error) {
