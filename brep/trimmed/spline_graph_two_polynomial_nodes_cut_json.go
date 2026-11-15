@@ -45,7 +45,7 @@ func (r *TwoPolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error
 	if ctx == nil || w == nil || r == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
 	}
-	sources, e := encodePolynomialCutSupports(ctx, r.sources)
+	sources, e := encodePolynomialGraphSupports(ctx, r.sources)
 	if e != nil {
 		return e
 	}
@@ -54,14 +54,14 @@ func (r *TwoPolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error
 	for _, c := range r.contacts {
 		recipe.Contacts = append(recipe.Contacts, c.recipeContact())
 	}
-	return writePolynomialCutRecipe(ctx, w, recipe)
+	return writePolynomialGraphRecipe(ctx, w, recipe)
 }
 
 // ReadTwoPolynomialNodeCutJSON rebuilds the original layers, independently
 // re-proves their embeddings, and checks both exact point-contact identities.
 func ReadTwoPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, o PolynomialNodeCutOptions) (*TwoPolynomialNodeCut, error) {
 	var recipe twoPolynomialNodeCutRecipe
-	if e := readPolynomialCutRecipe(ctx, r, limits, &recipe); e != nil {
+	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
 		return nil, e
 	}
 	if recipe.Version != 1 || recipe.Kind != nativeTwoPolynomialNodeCut || len(recipe.Sources) != 3 || recipe.Axis == nil ||
@@ -73,7 +73,7 @@ func ReadTwoPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONL
 			return nil, geom.ErrInvalid
 		}
 	}
-	sources, e := decodePolynomialCutSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
 	if e != nil {
 		return nil, e
 	}
@@ -91,7 +91,7 @@ func ReadTwoPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONL
 			return nil, geom.ErrConvergence
 		}
 	}
-	if limits.MaxEntities > 0 && polynomialCutEntityCount(out.components) > limits.MaxEntities {
+	if limits.MaxEntities > 0 && polynomialGraphEntityCount(out.components) > limits.MaxEntities {
 		return nil, geom.ErrConvergence
 	}
 	return out, nil
