@@ -113,8 +113,17 @@ optional skips, including 1,411 trimmed passes and 47 explicit trimmed
 skips. There are 52 tested packages and four without tests. Raw results,
 launcher and package/case inventories are retained in
 `.worktrees/qualification/2026-11-15/go-509cdbd3`. This is a full ordinary
-Go pass on the recorded snapshot while the separate PlainCAD and refreshed
-race runs are in progress.
+Go pass on the recorded snapshot.
+
+The [newer PlainCAD run](evidence/plaincad-main-05ce6e82-2026-11-15.json)
+uses immutable `05ce6e82` and PlainCAD `efae4d2`. All eight app stages
+returned zero. The browser reports record 345 development, 66 production,
+and 15 cross-browser passes with no failures, skips or flaky results. The
+unit reports record 1,691 ordinary passes and four real WASM contracts.
+The staged driver matches its pristine SHA-256, both documented test-only
+patches are recorded, the JavaScript budget passed, and the production
+WASM is identical to the asset built in the first stage. Its independent
+reports and archived logs are under `.worktrees/qualification/2026-11-15`.
 
 The [refreshed native macOS arm64 race](evidence/native-main-d5906fde-race-2026-11-15.json)
 on immutable `d5906fde` completed all nine lanes. Independent package and

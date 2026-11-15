@@ -60,8 +60,11 @@ accounted for all 5,921 top-level cases: 5,374 passes and 547 optional
 skips, including 1,411 trimmed passes and 47 optional trimmed skips.
 The [full native race on `d5906fde`](evidence/native-main-d5906fde-race-2026-11-15.json)
 accounted for all 5,769 cases: 5,247 passed and 522 optional cases were
-skipped. All 52 tested packages and the eight trimmed groups finished. PlainCAD on `05ce6e82` has passed the WASM, production build,
-type and selected kernel gates and is running the full development suite.
+skipped. All 52 tested packages and the eight trimmed groups finished.
+The [newer full PlainCAD run on `05ce6e82`](evidence/plaincad-main-05ce6e82-2026-11-15.json)
+passed all eight stages: 345 development, 66 production, 15 cross-browser,
+1,691 ordinary unit and four real WASM cases. The production WASM is
+byte-identical to the build and the Playwright driver is pristine.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -71,18 +74,22 @@ strict inset footprints on an original host. STEP and IGES keep independent
 authored parts. Document recipes carry named exterior faces and exact parent
 edge intervals through splits, joins, edits, undo and reopen.
 
-Native Common, Fuse and Cut cover mixed simple/order-three crossings and
-distinct second- and fourth-order contacts, with original-source reload.
-Mapped v8 retains four exact support cuts in one original cell, including
+Native Common, Fuse and Cut cover mixed simple/order-three crossings,
+distinct second- and fourth-order contacts, and three simple crossings
+with a quadratic tangency, with original-source reload. The general
+geometry arrangement proves exact multiplicities through degree five.
+Mapped v8 retains four to six exact support cuts in one original cell, including
 the original unsplit author graph with both basis families and raw knots.
-The original three-fillet STEP body passes the native bridge and real
-Node and Chromium WASM. Converted three-fillet units and source-proved
-quintic native assemblies are being qualified separately.
+The original and converted metre and inch three-fillet STEP bodies pass
+the native bridge and real Node and Chromium WASM. Native extrusion and
+canonical STEP retain directed minor arcs and separate curved cap holes;
+orthogonal reentrant fillets also regenerate through document edits.
 
-Immediate work includes finishing the in-progress qualification lanes,
-exact concave fillets with directed circular loops, separate inner curved
-wire extrusion, and remaining wider contact/discovery, advanced
-modeling, exchange and native platform gates.
+Immediate work includes five-crossing native Booleans, original STEP cap
+wire authentication, mapped support events across several original cells,
+and four separated STEP fillet charts and their application bridge. Wider
+contact discovery, advanced modeling, exchange and native platform gates
+remain open.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.
