@@ -14,15 +14,28 @@ import (
 	"plainsolid/intersect"
 )
 
-func nativeThreeCrossingsTangencyFixture(t *testing.T, axis int) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
+func nativeThreeCrossingsTangencyFixture(t *testing.T, axis, tangent int, firstDenominator int64) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
 	t.Helper()
 	f := []*big.Rat{big.NewRat(1, 4), big.NewRat(3, 8), big.NewRat(-3, 8), big.NewRat(1, 8)}
-	// Subtract f to get -(u-1/8)^2(u-3/8)(u-5/8)(u-7/8).
-	// The original roof product f*g has degree eight and fits the same
-	// exact dyadic stock representation as earlier branch fixtures.
-	g := []*big.Rat{
-		big.NewRat(8297, 32768), big.NewRat(1255, 4096), big.NewRat(35, 256),
-		big.NewRat(-47, 32), big.NewRat(17, 8), big.NewRat(-1, 1),
+	// For denominator eight the original gap is the negative product of the
+	// five monic factors, including the repeated tangent station. The roof
+	// product f*g has degree eight and fits exact dyadic stock coefficients.
+	stations := [4][2]int64{{1, firstDenominator}, {3, 8}, {5, 8}, {7, 8}}
+	factors := [5][2]int64{stations[0], stations[1], stations[2], stations[3], stations[tangent]}
+	g := []*big.Rat{big.NewRat(-1, 32768)}
+	for _, station := range factors {
+		next := make([]*big.Rat, len(g)+1)
+		for i := range next {
+			next[i] = new(big.Rat)
+		}
+		for i, c := range g {
+			next[i].Sub(next[i], new(big.Rat).Mul(c, big.NewRat(station[0], 1)))
+			next[i+1].Add(next[i+1], new(big.Rat).Mul(c, big.NewRat(station[1], 1)))
+		}
+		g = next
+	}
+	for i, c := range f {
+		g[i].Add(g[i], c)
 	}
 	return twoPolynomialRoofFixture(t, axis, f, g)
 }
@@ -30,7 +43,7 @@ func nativeThreeCrossingsTangencyFixture(t *testing.T, axis int) (*geom.BSplineS
 func TestSourceGraphQuinticTrimsPreserveExactRestrictions(t *testing.T) {
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
-		base, a, b := nativeThreeCrossingsTangencyFixture(t, axis)
+		base, a, b := nativeThreeCrossingsTangencyFixture(t, axis, 0, 8)
 		for order, roofs := range [][2]*geom.BSplineSurface{{a, b}, {b, a}} {
 			patches, e := prepareSharedBaseGraphContact(ctx, base, roofs[0], roofs[1], intersect.SplinePlaneOptions{})
 			if e != nil {
