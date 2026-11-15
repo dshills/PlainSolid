@@ -17,7 +17,7 @@ import (
 // checked during input validation, tree construction and pair traversal.
 // At most MaxTriangles triangles and 3*MaxTriangles vertices are accepted.
 // Up to4096 immutable exact triangle/plane values are memoized within this
-// call. Exact coordinate/axial-plane simplex proofs may resolve disjoint or
+// call. Exact projected simplex proofs may resolve disjoint or
 // indexed-incidence candidates before general clipping. Larger IDs use the
 // identical uncached predicate; pair budgets/order
 // and contact witnesses are unchanged.
@@ -172,7 +172,9 @@ func SelfIntersectionsBVHContext(ctx context.Context, m mesh.Mesh, o Options) (r
 			ta, tb = tb, ta
 		}
 		report.NarrowPhasePairs++
-		if coordinatePlaneExpectedContact(m, ta, tb) || ruledExpectedContact(m, ta, tb) {
+		if coordinatePlaneExpectedContact(m, ta, tb) ||
+			projectedExpectedContact(m, ta, tb) ||
+			ruledExpectedContact(m, ta, tb) {
 			return nil
 		}
 		kind, points := preparedTriangleIntersection(memo.get(ta), memo.get(tb))
