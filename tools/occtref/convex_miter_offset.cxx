@@ -3,6 +3,7 @@
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
+#include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
@@ -28,7 +29,7 @@ int main(int argc, char** argv) {
   const std::string_view operation = argv[1];
   if (operation == "triangle" || operation == "triangle-open-top" ||
       operation == "triangle-open-both" || operation == "triangle-closed" ||
-      operation == "triangle-chamfer") {
+      operation == "triangle-chamfer" || operation == "triangle-fillet") {
     outline.Add(gp_Pnt(0, 3, 0));
   } else if (std::string_view(argv[1]) == "clipped") {
     outline.Add(gp_Pnt(4, 3.25, 0));
@@ -42,7 +43,7 @@ int main(int argc, char** argv) {
   const auto source = BRepPrimAPI_MakePrism(face, gp_Vec(0, 0, 5)).Shape();
   const double distance = std::strtod(argv[2], nullptr);
   TopoDS_Shape shape;
-  if (operation == "triangle-chamfer") {
+  if (operation == "triangle-chamfer" || operation == "triangle-fillet") {
     TopoDS_Edge target;
     TopoDS_Face side;
     for (TopExp_Explorer it(source, TopAbs_FACE); it.More(); it.Next()) {
@@ -59,11 +60,19 @@ int main(int argc, char** argv) {
       }
     }
     if (target.IsNull() || side.IsNull()) return 5;
-    BRepFilletAPI_MakeChamfer chamfer(source);
-    chamfer.Add(.625, distance, target, side);
-    chamfer.Build();
-    if (!chamfer.IsDone()) return 3;
-    shape = chamfer.Shape();
+    if (operation == "triangle-chamfer") {
+      BRepFilletAPI_MakeChamfer chamfer(source);
+      chamfer.Add(.625, distance, target, side);
+      chamfer.Build();
+      if (!chamfer.IsDone()) return 3;
+      shape = chamfer.Shape();
+    } else {
+      BRepFilletAPI_MakeFillet fillet(source);
+      fillet.Add(distance, target);
+      fillet.Build();
+      if (!fillet.IsDone()) return 3;
+      shape = fillet.Shape();
+    }
   } else if (operation == "triangle-open-top" || operation == "triangle-open-both") {
     NCollection_List<TopoDS_Shape> opening;
     for (TopExp_Explorer it(source, TopAbs_FACE); it.More(); it.Next()) {
