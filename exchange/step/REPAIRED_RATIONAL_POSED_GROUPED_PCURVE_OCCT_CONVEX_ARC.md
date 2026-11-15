@@ -44,9 +44,18 @@ PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairRationalPosedGroupedPCurveOCCTConvexArc' -count=1
 ```
 
-Ordinary OCCT TransferRoots reads the regenerated original and repaired
-world model as one valid seven-face solid. Independent volume
+The live test reloads the source-only native proof before writing the
+repaired world model. Ordinary OCCT TransferRoots reads the regenerated
+original and repaired world model as one valid seven-face solid. Independent volume
 `29.077978807115539`, area `65.622954970084379`, and centroid
 `(2.7627619257740741,1.0271143655601034,0.48298409896790118)` agree with
-posed native material within `1e-11`. Native proof persistence, strict
-bridge integration and arbitrary rounded rotations remain open.
+posed native material within `1e-11`. Strict bridge integration and
+arbitrary rounded rotations remain open.
+
+`WriteRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON` and
+`ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON` use a distinct
+version-one source schema. Alongside the shared [source-only claims](REPAIRED_RATIONAL_POSED_PCURVE_OCCT_CONVEX_ARC.md),
+the grouped record binds both directed axial intervals, circle and coedge
+reversals, rational cap owner evidence, and the exact finite root recipes.
+The writers and readers independently re-prove the original source under
+bounded STEP and JSON input limits.

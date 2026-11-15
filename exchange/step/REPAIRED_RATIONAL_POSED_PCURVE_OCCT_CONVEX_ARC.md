@@ -32,9 +32,22 @@ pcurve IDs and directed model parameter endpoints for the finite claims.
 The finite comparison concerns the original pcurve lift at the same parameter
 on the selected model interval. Each distance claim applies to its individual
 owner or repair site. Exact original UV trim closure, a combined material
-distance bound, general rounded rotations, native proof persistence, and
-strict bridge integration remain open. Independently authored tilted
+distance bound, general rounded rotations, and strict bridge integration
+remain open. Independently authored tilted
 two-fillet sources use the separate [grouped repair](REPAIRED_RATIONAL_POSED_GROUPED_PCURVE_OCCT_CONVEX_ARC.md).
+
+## Source-only native proof
+
+`WriteRationalPosedPCurveRepairedOCCTConvexArcJSON` and
+`ReadRationalPosedPCurveRepairedOCCTConvexArcJSON` use the version-one
+single-fillet source schema. The record stores the exact original bytes as
+base64, the caller's maximum distance, and canonical claims for the exact
+rational placement, provenance, repairs and original owner ledgers. The
+source, corrected model, local recipe and native geometry have separately
+checked SHA-256 claims. Reload reconstructs all derived material and checks
+the canonical claims without parsing supplied rational coefficients.
+The grouped reader uses its own source schema and also checks the finite
+axial, reversal, rational cap and algebraic station evidence.
 
 ## Independent reproduction
 
@@ -50,8 +63,9 @@ PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairRationalPosedPCurveOCCTConvexArc' -count=1
 ```
 
-The live test regenerates both sources. Ordinary OCCT TransferRoots reads
-each original and repaired world STEP as one valid six-face solid. Native
+The live test regenerates both sources and reloads their native proofs.
+Ordinary OCCT TransferRoots reads each original and repaired world STEP as
+one valid six-face solid. Native
 material and those transfers agree independently on volume
 `29.145041881053842`, area `66.186284791166074`, and each world centroid
 within `1e-11`. The negative cases change source placement orthogonality,

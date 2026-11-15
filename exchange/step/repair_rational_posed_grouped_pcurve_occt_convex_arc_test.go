@@ -232,9 +232,18 @@ func TestRepairRationalPosedGroupedPCurveOCCTConvexArcLive(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	m, e := RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{MaxDistance: 1e-12})
+	ctx := context.Background()
+	m, e := RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{MaxDistance: 1e-12})
 	if e != nil {
 		t.Fatal(e)
+	}
+	var native bytes.Buffer
+	if e = WriteRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &native, m); e != nil {
+		t.Fatal(e)
+	}
+	m, e = ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &native, IndependentMaterialJSONLimits{})
+	if e != nil || m.OriginalSTEP() != string(raw) {
+		t.Fatal("source-only reload lost independently authored STEP", e)
 	}
 	repaired := filepath.Join(dir, "corrected-world.step")
 	if e = os.WriteFile(repaired, []byte(m.CorrectedModelSTEP()), 0600); e != nil {
