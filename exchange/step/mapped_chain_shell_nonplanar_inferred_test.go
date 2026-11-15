@@ -202,7 +202,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	}
 	verifyOriginalMappedChainSTEPGraph(t, m, strict)
 	if variant == nonplanarRationalRoofs {
-		verifyOriginalRationalRoofSurfaces(t, m, strict)
+		verifyOriginalRationalRoofSurfaces(t, m, strict, false)
 	}
 	replay.Reset()
 	if err := strict.Shell.WriteJSON(ctx, &replay, nativeOptions); err != nil || !bytes.Equal(recipe.Bytes(), replay.Bytes()) {

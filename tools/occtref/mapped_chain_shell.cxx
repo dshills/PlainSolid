@@ -90,6 +90,7 @@ struct RoofSupportLayout {
   bool rationalRoofs = false;
   bool joinedRationalCells = false;
   bool missingSouthJoint = false;
+  bool mirroredSouthRoof = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -138,15 +139,15 @@ static double nonplanarRoofEnvelope(double u, double first, double last) {
 // with u=4*x/3, h the common quadratic UV trace and A the owner's affine
 // envelope on this span. A vanishes on the x walls. The other factors vanish
 // on the y walls and along the shared trace. The rational form doubles this
-// correction and divides it by W(v)=1+3v², v=4y/3. Its homogeneous x and y
-// still represent the original affine XY chart, with dyadic Cartesian poles.
-static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const std::vector<double>& knots, bool rational) {
+// correction and divides it by W(v)=1+3v² or W(1-v), with v=4y/3.
+// Homogeneous x and y retain an exact affine XY projection.
+static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const std::vector<double>& knots, bool rational, bool mirrored) {
   const int spanCount = static_cast<int>(knots.size()) - 1;
   const int xPoles = 3 * spanCount + 1;
   NCollection_Array2<gp_Pnt> poles(1, south ? 4 : xPoles, 1, south ? xPoles : 4);
   NCollection_Array2<double> weights(1, south ? 4 : xPoles, 1, south ? xPoles : 4);
-  const std::array<double, 4> homogeneousWeights{1., 1., 2., 4.};
-  const std::array<double, 4> rationalY{0., .25, .25, .75};
+  const auto homogeneousWeights = mirrored ? std::array{4., 2., 1., 1.} : std::array{1., 1., 2., 4.};
+  const auto rationalY = mirrored ? std::array{0., .5, .5, .75} : std::array{0., .25, .25, .75};
   for (int span = 0; span < spanCount; ++span) {
     const double a = knots[span], b = knots[span + 1];
     const auto seam = nonplanarSeamPoles(a, b);
@@ -248,7 +249,7 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (layout.inferred == InferredSupportEvents::nonplanar) {
     const auto knots = nonplanarSupportEvents(south, layout);
-    const double v = y / .75;
+    const double v = south && layout.mirroredSouthRoof ? 1. - y / .75 : y / .75;
     const double scale = layout.rationalRoofs ? 2. / (1. + 3. * v * v) : 1.;
     return nonplanarWidth*x*y + 3.*nonplanarAmplitude*scale*nonplanarRoofEnvelope(x, knots[0], knots[1])
       * y*(.75-y)*(y-nonplanarSeamY(x));
@@ -291,7 +292,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const bool nonplanar = layout.inferred == InferredSupportEvents::nonplanar;
   occ::handle<Geom_Surface> support;
   if (nonplanar) {
-    support = nonplanarRoofSupport(south, x, layout.rationalRoofs);
+    support = nonplanarRoofSupport(south, x, layout.rationalRoofs, south && layout.mirroredSouthRoof);
   } else {
     const std::vector<double> y{0., 1.};
     const auto& u = south ? y : x;
@@ -541,7 +542,7 @@ static occ::handle<StepGeom_BSplineSurfaceWithKnots> stepRoofKnots(const occ::ha
 
 // Retain every source pole and coedge but falsify one strictly interior
 // south-roof weight. The exact changed value remains a finite STEP decimal.
-static void authorFalseSouthRoofWeight(const occ::handle<StepData_StepModel>& model) {
+static void authorFalseSouthRoofWeight(const occ::handle<StepData_StepModel>& model, int row) {
   bool changed = false;
   for (int i = 1; i <= model->NbEntities(); ++i) {
     auto roof = occ::down_cast<StepGeom_BSplineSurfaceWithKnotsAndRationalBSplineSurface>(model->Entity(i));
@@ -549,10 +550,10 @@ static void authorFalseSouthRoofWeight(const occ::handle<StepData_StepModel>& mo
       continue;
     }
     auto weights = roof->WeightsData();
-    if (changed || weights->Value(3, 8) != 2.) {
+    if (changed || weights->Value(row, 8) != 2.) {
       throw std::runtime_error("unexpected original south roof weights");
     }
-    weights->SetValue(3, 8, 2. + 1. / 131072);
+    weights->SetValue(row, 8, 2. + 1. / 131072);
     changed = true;
   }
   if (!changed) {
@@ -737,10 +738,14 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool missingSouthJoint = mode == "write-joined-rational-cells-missing-south-joint";
-    const bool measureJoined = mode == "measure-joined-rational-cells";
-    const bool joinedRationalCells = mode == "write-joined-rational-cells" || missingSouthJoint || measureJoined;
-    const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight";
+    const bool mirroredSouthRoof = mode == "write-joined-independent-roofs" ||
+      mode == "write-joined-independent-roofs-missing-south-joint" ||
+      mode == "write-joined-independent-roofs-false-south-weight" || mode == "measure-joined-independent-roofs";
+    const bool missingSouthJoint = mode == "write-joined-rational-cells-missing-south-joint" ||
+      mode == "write-joined-independent-roofs-missing-south-joint";
+    const bool measureJoined = mode == "measure-joined-rational-cells" || mode == "measure-joined-independent-roofs";
+    const bool joinedRationalCells = mode == "write-joined-rational-cells" || missingSouthJoint || measureJoined || mirroredSouthRoof;
+    const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight" || mode == "write-joined-independent-roofs-false-south-weight";
     const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight || joinedRationalCells;
     const bool independentOwnerClocks = mode == "write-nonplanar-independent-owner-clocks" || rationalRoofs;
     const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed" || independentOwnerClocks;
@@ -754,7 +759,8 @@ int main(int argc, char** argv) {
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
-                                   rationalModel, independentOwnerClocks, rationalRoofs, joinedRationalCells, missingSouthJoint};
+                                   rationalModel, independentOwnerClocks, rationalRoofs, joinedRationalCells, missingSouthJoint,
+                                   mirroredSouthRoof};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
@@ -836,7 +842,7 @@ int main(int argc, char** argv) {
           model = authorMixedBasis(model, protocol, unsplitBasis, layout);
         }
         if (falseRoofWeight) {
-          authorFalseSouthRoofWeight(model);
+          authorFalseSouthRoofWeight(model, mirroredSouthRoof ? 2 : 3);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);

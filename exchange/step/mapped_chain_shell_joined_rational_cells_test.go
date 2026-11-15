@@ -23,6 +23,9 @@ import (
 
 const joinedRationalCellsPath = "testdata/occt_mapped_chain_joined_rational_cells.step"
 const joinedRationalMissingJointPath = "testdata/occt_mapped_chain_joined_rational_missing_joint.step"
+const joinedIndependentRoofsPath = "testdata/occt_mapped_chain_joined_independent_roofs.step"
+const joinedIndependentMissingJointPath = "testdata/occt_mapped_chain_joined_independent_missing_joint.step"
+const joinedIndependentFalseWeightPath = "testdata/occt_mapped_chain_joined_independent_false_weight.step"
 
 // Independent integration of the two exact rational charts gives these
 // references. OCCT's STEP transferrer reports its own numerical properties.
@@ -30,13 +33,17 @@ const joinedRationalVolume = 0.635266080676929
 const joinedRationalArea = 4.679335100741437
 const joinedRationalOCCTVolume = 0.635267017379662
 const joinedRationalOCCTArea = 4.679345521098269
+const joinedIndependentRoofVolume = 0.640508273389408
+const joinedIndependentRoofArea = 4.65185532305444
+const joinedIndependentRoofOCCTVolume = 0.640509222445185
+const joinedIndependentRoofOCCTArea = 4.651865358117015
 
 func joinedRationalCellOptions() MappedChainShellSTEPOptions {
 	return MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true, AllowTwoInteriorRoofKnots: true,
 		AllowUnsplitSupportKnot: true, AllowMixedOwnerBases: true, AllowJoinedSupportKnotCells: true}
 }
 
-func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte) []byte {
+func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte, mirroredSouth bool) []byte {
 	t.Helper()
 	o := joinedRationalCellOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
@@ -55,7 +62,7 @@ func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte) [
 		north = 1
 	}
 	south := 1 - north
-	verifyJoinedRationalMaterial(t, ctx, m.Native)
+	verifyJoinedRationalMaterial(t, ctx, m.Native, mirroredSouth)
 	var ownerStops [2][2][3]int64
 	ownerStops[north], ownerStops[south] = [2][3]int64{{2, 32, 167}, {700, 706, 715}}, [2][3]int64{{181, 126, 16}, {16, 6, 1}}
 	cutRaw := [2]*big.Rat{big.NewRat(8, 7), big.NewRat(64, 5)}
@@ -140,8 +147,16 @@ func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte) [
 	}
 	northRoof := faces[north].Surface.(*geom.BSplineSurface)
 	southRoof := faces[south].Surface.(*geom.BSplineSurface)
+	southSlope := big.NewRat(-765, 1664)
+	if mirroredSouth {
+		southSlope = big.NewRat(-765, 4736)
+		verifyRationalRoofSection(t, ctx, rationalRoofSectionWitness{northRoof, big.NewRat(1, 2), big.NewRat(363, 1792),
+			[4]*big.Rat{new(big.Rat), big.NewRat(-141, 512), big.NewRat(231, 512), big.NewRat(9, 8)}, false, false})
+		verifyRationalRoofSection(t, ctx, rationalRoofSectionWitness{southRoof, big.NewRat(1, 8), big.NewRat(213, 18944),
+			[4]*big.Rat{new(big.Rat), big.NewRat(3, 512), big.NewRat(231, 512), big.NewRat(9, 32)}, true, true})
+	}
 	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 3.0/16, big.NewRat(1, 2), big.NewRat(-45, 128))
-	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/16, big.NewRat(1, 8), big.NewRat(-765, 1664))
+	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/16, big.NewRat(1, 8), southSlope)
 	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 3.0/16, big.NewRat(25, 64), new(big.Rat))
 	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/16, big.NewRat(25, 64), new(big.Rat))
 
@@ -158,7 +173,7 @@ func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte) [
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyJoinedRationalMaterial(t, ctx, native)
+	verifyJoinedRationalMaterial(t, ctx, native, mirroredSouth)
 	for i, want := range []*big.Rat{new(big.Rat), cutModel[0], joint.ModelStation, cutModel[1], big.NewRat(1, 1)} {
 		if native.ChainStations[i].Cmp(want) != 0 {
 			t.Fatal("source-only native replay must derive all old and new model stations exactly", i)
@@ -175,7 +190,7 @@ func verifyJoinedRationalSource(t *testing.T, ctx context.Context, raw []byte) [
 		t.Fatal("strict STEP must re-prove both original rational curves and the original joint", err)
 	}
 	verifyOriginalMappedChainSTEPGraph(t, m, strict)
-	verifyOriginalRationalRoofSurfaces(t, m, strict)
+	verifyOriginalRationalRoofSurfaces(t, m, strict, mirroredSouth)
 	transferredJoint := strict.SupportJoint
 	if transferredJoint.SourceEdges != [2]int64{strict.Chain[0].EdgeID, strict.Chain[1].EdgeID} ||
 		transferredJoint.NativeEdges != joint.NativeEdges || transferredJoint.ModelStation.Cmp(joint.ModelStation) != 0 {
@@ -224,7 +239,7 @@ func verifyJoinedSecondRationalModel(t *testing.T, f *File, id int64) {
 	}
 }
 
-func verifyJoinedRationalMaterial(t *testing.T, ctx context.Context, native trimmed.MappedChainRectangularSolid) {
+func verifyJoinedRationalMaterial(t *testing.T, ctx context.Context, native trimmed.MappedChainRectangularSolid, mirroredSouth bool) {
 	t.Helper()
 	s := native.Solid
 	if len(native.ChainEdges) != 4 || len(s.Faces()) != 7 || len(s.Edges()) != 22 || len(s.Vertices()) != 17 {
@@ -234,19 +249,27 @@ func verifyJoinedRationalMaterial(t *testing.T, ctx context.Context, native trim
 	if err != nil || !proof.Complete || len(proof.Uses) != 44 {
 		t.Fatal("all original and repaired incidences must have complete continuous agreement", err)
 	}
+	volume, area := joinedRationalVolume, joinedRationalArea
+	if mirroredSouth {
+		volume, area = joinedIndependentRoofVolume, joinedIndependentRoofArea
+	}
 	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
-	if err != nil || math.Abs(mass.Volume-joinedRationalVolume) > 1e-8 || math.Abs(mass.Area-joinedRationalArea) > 1e-8 {
+	if err != nil || math.Abs(mass.Volume-volume) > 1e-8 || math.Abs(mass.Area-area) > 1e-8 {
 		t.Fatal("the native material must match integration of the exact original roof charts", mass, err)
 	}
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCells(t *testing.T) {
-	verifyJoinedRationalSource(t, context.Background(), readInferredSharedMappedChainFixture(t, joinedRationalCellsPath))
+	verifyJoinedRationalSource(t, context.Background(), readInferredSharedMappedChainFixture(t, joinedRationalCellsPath), false)
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsClosedDisplay(t *testing.T) {
+	verifyJoinedRationalDisplay(t, readInferredSharedMappedChainFixture(t, joinedRationalCellsPath))
+}
+
+func verifyJoinedRationalDisplay(t *testing.T, raw []byte) {
+	t.Helper()
 	ctx := context.Background()
-	raw := readInferredSharedMappedChainFixture(t, joinedRationalCellsPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, joinedRationalCellOptions())
 	if err != nil {
 		t.Fatal(err)
@@ -275,14 +298,24 @@ func TestOCCTMappedChainRectangularJoinedRationalSupportCellsClosedDisplay(t *te
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsRejectsMissingJoint(t *testing.T) {
-	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, joinedRationalCellsPath)
 	badSource := readInferredSharedMappedChainFixture(t, joinedRationalMissingJointPath)
+	rejectJoinedRationalMissingJoint(t, context.Background(), raw, badSource)
+}
+
+func rejectJoinedRationalMissingJoint(t *testing.T, ctx context.Context, raw, badSource []byte) {
+	t.Helper()
 	o := joinedRationalCellOptions()
 	bad, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(badSource), Limits{}, o)
 	if !errors.Is(err, geom.ErrConvergence) || len(bad.Crossings) != 0 || bad.SupportJoint != nil || len(bad.Native.ChainEdges) != 0 {
 		t.Fatal("the genuine different south support arrangement must reject without publishing a repaired shell", err)
 	}
+	rejectChangedJoinedRationalNativeSupport(t, ctx, raw, badSource, "one support event at the original joint")
+}
+
+func rejectChangedJoinedRationalNativeSupport(t *testing.T, ctx context.Context, raw, badSource []byte, diagnosis string) {
+	t.Helper()
+	o := joinedRationalCellOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
 		t.Fatal(err)
@@ -315,26 +348,70 @@ func TestOCCTMappedChainRectangularJoinedRationalSupportCellsRejectsMissingJoint
 	}
 	altered := bytes.Replace(recipe.Bytes(), before, after, 1)
 	reopened, err := trimmed.ReadMappedSplineChainShellJSON(ctx, bytes.NewReader(altered), nativeOptions)
-	if !errors.Is(err, geom.ErrConvergence) || !strings.Contains(err.Error(), "one support event at the original joint") || reopened.Topology().Faces != 0 {
-		t.Fatal("native reproof must detect that the replacement chart loses the original joint", err)
+	if !errors.Is(err, geom.ErrConvergence) || !strings.Contains(err.Error(), diagnosis) || reopened.Topology().Faces != 0 {
+		t.Fatal("native reproof must reject the substituted source chart atomically", err)
 	}
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsLive(t *testing.T) {
-	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_JOINED_RATIONAL_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
+	verifyPinnedJoinedRationalSource(t, os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_JOINED_RATIONAL_AUTHOR"), false)
+}
+
+func TestOCCTMappedChainRectangularJoinedIndependentRoofs(t *testing.T) {
+	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
+	verifyJoinedRationalSource(t, context.Background(), raw, true)
+}
+
+func TestOCCTMappedChainRectangularJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	verifyJoinedRationalDisplay(t, readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath))
+}
+
+func TestOCCTMappedChainRectangularJoinedIndependentRoofsRejectsMissingJoint(t *testing.T) {
+	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
+	bad := readInferredSharedMappedChainFixture(t, joinedIndependentMissingJointPath)
+	rejectJoinedRationalMissingJoint(t, context.Background(), raw, bad)
+}
+
+func TestOCCTMappedChainRectangularJoinedIndependentRoofsRejectsFalseWeight(t *testing.T) {
+	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
+	bad := readInferredSharedMappedChainFixture(t, joinedIndependentFalseWeightPath)
+	ctx := context.Background()
+	rejectFalseRationalRoofWeight(t, ctx, raw, bad, joinedRationalCellOptions(), 1)
+	rejectChangedJoinedRationalNativeSupport(t, ctx, raw, bad, "")
+}
+
+func TestOCCTMappedChainRectangularJoinedIndependentRoofsLive(t *testing.T) {
+	verifyPinnedJoinedRationalSource(t, os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INDEPENDENT_JOINED_ROOFS_AUTHOR"), true)
+}
+
+func verifyPinnedJoinedRationalSource(t *testing.T, author string, mirroredSouth bool) {
+	t.Helper()
+	reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	path := filepath.Join(t.TempDir(), "joined-original.step")
-	if output, err := exec.CommandContext(ctx, author, "write-joined-rational-cells", path).CombinedOutput(); err != nil {
-		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
+	stem := "joined-rational-cells"
+	volume, area := joinedRationalVolume, joinedRationalArea
+	occtVolume, occtArea := joinedRationalOCCTVolume, joinedRationalOCCTArea
+	if mirroredSouth {
+		stem = "joined-independent-roofs"
+		volume, area = joinedIndependentRoofVolume, joinedIndependentRoofArea
+		occtVolume, occtArea = joinedIndependentRoofOCCTVolume, joinedIndependentRoofOCCTArea
 	}
-	raw := readInferredSharedMappedChainFixture(t, path)
-	canonical := verifyJoinedRationalSource(t, ctx, raw)
-	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, joinedRationalOCCTVolume, joinedRationalOCCTArea)
-	beforeSTEP, err := exec.CommandContext(ctx, author, "measure-joined-rational-cells").CombinedOutput()
+	authorFile := func(suffix string) ([]byte, string) {
+		mode := "write-" + stem + suffix
+		path := filepath.Join(t.TempDir(), mode+".step")
+		if output, err := exec.CommandContext(ctx, author, mode, path).CombinedOutput(); err != nil {
+			t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
+		}
+		return readInferredSharedMappedChainFixture(t, path), path
+	}
+	raw, _ := authorFile("")
+	canonical := verifyJoinedRationalSource(t, ctx, raw, mirroredSouth)
+	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, occtVolume, occtArea)
+	beforeSTEP, err := exec.CommandContext(ctx, author, "measure-"+stem).CombinedOutput()
 	if err != nil {
 		t.Fatalf("pinned OCCT could not measure the original body before STEP transfer: %v\n%s", err, beforeSTEP)
 	}
@@ -343,19 +420,23 @@ func TestOCCTMappedChainRectangularJoinedRationalSupportCellsLive(t *testing.T) 
 		Faces        int
 	}
 	if err := json.Unmarshal(beforeSTEP, &material); err != nil || material.Faces != 7 ||
-		math.Abs(material.Volume-joinedRationalVolume) > 1e-8 || math.Abs(material.Area-joinedRationalArea) > 5e-7 {
+		math.Abs(material.Volume-volume) > 1e-8 || math.Abs(material.Area-area) > 5e-7 {
 		t.Fatal("the original constructed OCCT body must agree with independently integrated source material", material, err)
 	}
 	t.Logf("OCCT before STEP volume %.15g, area %.15g", material.Volume, material.Area)
-	badPath := filepath.Join(t.TempDir(), "joined-missing-south-joint.step")
-	if output, err := exec.CommandContext(ctx, author, "write-joined-rational-cells-missing-south-joint", badPath).CombinedOutput(); err != nil {
-		t.Fatalf("pinned OCCT could not author the different support arrangement: %v\n%s", err, output)
-	}
-	if output, err := exec.CommandContext(ctx, reader, "read", badPath).CombinedOutput(); err != nil {
+	movedJoint, path := authorFile("-missing-south-joint")
+	if output, err := exec.CommandContext(ctx, reader, "read", path).CombinedOutput(); err != nil {
 		t.Fatalf("pinned OCCT could not reopen the different support arrangement: %v\n%s", err, output)
 	}
-	bad, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(readInferredSharedMappedChainFixture(t, badPath)), Limits{}, joinedRationalCellOptions())
+	bad, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(movedJoint), Limits{}, joinedRationalCellOptions())
 	if !errors.Is(err, geom.ErrConvergence) || bad.SupportJoint != nil || len(bad.Crossings) != 0 || len(bad.Native.ChainEdges) != 0 {
 		t.Fatal("the live different chart must reject without publishing the original joint or repaired topology", err)
+	}
+	if mirroredSouth {
+		falseWeight, path := authorFile("-false-south-weight")
+		if output, err := exec.CommandContext(ctx, reader, "read", path).CombinedOutput(); err != nil {
+			t.Fatalf("pinned OCCT could not reopen the changed support weight: %v\n%s", err, output)
+		}
+		rejectFalseRationalRoofWeight(t, ctx, raw, falseWeight, joinedRationalCellOptions(), 1)
 	}
 }
