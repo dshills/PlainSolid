@@ -180,6 +180,18 @@ func (b *clippedFuseBuilder) perimeter(tile, region int, start, end geom.Vec2) (
 		}
 		byStart[p] = ref
 	}
+	if tile < 0 {
+		// For offset footprints the bounding-box corner may be outside
+		// both inputs. Choose the lexicographically first actual vertex.
+		first := true
+		for p := range byStart {
+			if first || p.X < start.X || p.X == start.X && p.Y < start.Y {
+				start = p
+				first = false
+			}
+		}
+		end = start
+	}
 	out := make([]clippedFuseDirectedSpan, 0, len(byStart))
 	next := start
 	for len(byStart) > 0 {
@@ -266,10 +278,11 @@ func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialM
 		faces = append(faces, b.cap(owner, loop, charts[owner]))
 		owners = append(owners, owner-1)
 	}
-	a, z := material.Footprints[0], material.Footprints[1]
-	corner := geom.Vec2{X: min(a.UMin, z.UMin), Y: min(a.VMin, z.VMin)}
-	spans, e := b.perimeter(-1, -1, corner, corner)
+	spans, e := b.perimeter(-1, -1, geom.Vec2{}, geom.Vec2{})
 	if e != nil {
+		return nil, nil, nil, -1, e
+	}
+	if e := b.certifyBaseOutline(spans, material.Tiles); e != nil {
 		return nil, nil, nil, -1, e
 	}
 	loop := make([]Use, 0, len(spans))
@@ -277,6 +290,54 @@ func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialM
 		loop = append(loop, b.trace(0, span))
 	}
 	return faces, owners, section, b.cap(0, loop, charts[0]), nil
+}
+
+// The exterior atlas provides one directed cycle around the union. Check
+// that its axial trim segments form a simple ring and that its positive
+// signed area equals the sum of all disjoint physical stock tiles. The affine
+// original base map carries this exact domain to its unmodified UV chart.
+func (b *clippedFuseBuilder) certifyBaseOutline(spans []clippedFuseDirectedSpan, tiles []geom.ClippedPolynomialStockTile) error {
+	if len(spans) < 4 {
+		return geom.ErrConvergence
+	}
+	vertices := make([]geom.Vec2, len(spans))
+	for i, ref := range spans {
+		start, _ := ref.ends()
+		vertices[i] = b.spans[ref.id].points[start]
+	}
+	twiceArea := new(big.Rat)
+	for i, p := range vertices {
+		q := vertices[(i+1)%len(vertices)]
+		if (p.X == q.X) == (p.Y == q.Y) {
+			return geom.ErrConvergence
+		}
+		for j := i + 2; j < len(vertices); j++ {
+			if i == 0 && j == len(vertices)-1 {
+				continue
+			}
+			r, s := vertices[j], vertices[(j+1)%len(vertices)]
+			// Binary endpoints are exact. For axis-aligned edges their
+			// closed bounding rectangles intersect iff the edges do.
+			if max(min(p.X, q.X), min(r.X, s.X)) <= min(max(p.X, q.X), max(r.X, s.X)) &&
+				max(min(p.Y, q.Y), min(r.Y, s.Y)) <= min(max(p.Y, q.Y), max(r.Y, s.Y)) {
+				return geom.ErrConvergence
+			}
+		}
+		twiceArea.Add(twiceArea, new(big.Rat).Mul(ratInset(p.X), ratInset(q.Y)))
+		twiceArea.Sub(twiceArea, new(big.Rat).Mul(ratInset(q.X), ratInset(p.Y)))
+	}
+	want := new(big.Rat)
+	for _, tile := range tiles {
+		d := tile.Physical
+		width := new(big.Rat).Sub(ratInset(d.UMax), ratInset(d.UMin))
+		height := new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin))
+		want.Add(want, width.Mul(width, height))
+	}
+	want.Mul(want, big.NewRat(2, 1))
+	if twiceArea.Sign() <= 0 || twiceArea.Cmp(want) != 0 {
+		return geom.ErrConvergence
+	}
+	return nil
 }
 
 // addWalls joins every exposed interval to its two original model traces.
