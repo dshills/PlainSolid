@@ -221,9 +221,6 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 			}
 		}
 	}
-	if fillets == 5 && converted {
-		return nil, geom.ErrDomain
-	}
 	pose, reference, body, metadata, e := rationalConvexArcPose(model, grouped)
 	if e != nil {
 		return nil, e

@@ -498,3 +498,60 @@ transfers the same original within its tolerance.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairFiveConvexArc' -count=1
 ```
+
+## Five disjoint fillets converted to metres and inches
+
+The pinned `write-five-default-tilted-converted-metre` and
+`write-five-default-tilted-converted-inch` modes build the same five-fillet
+product in millimetres and let OCCT convert its original model and charts.
+The metre author scales the millimetre model by 1000. The inch author
+scales it by 127 mm per base profile unit, so the resulting five-inch
+coordinates retain the original exact dyadic support relations. Both
+files contain one twelve-face solid with 60 pcurve owners.
+
+Every original planar LINE retains the exact chart map (`1/1000` for
+metres, `5/127` for inches). The original 3D LINE speed is the raw token
+`1.E-03` for metres and `3.937007874016E-02` for inches. The receipt
+retains the 20 cylindrical spline intervals and affine coefficients
+independently of the planar map. For example, the original axial spans
+map `[0,5000]` to `[0,5]` metres and `[0,635]` to `[0,25]` inches.
+In the metre file edge `#653` retains its exact projected LINE station
+`1250000000000000000000000000001/250000000000000000000000000`.
+Owner `#666` clips the paired endpoint to its original knot at `5000`.
+The receipt records both stations and the affine traversal inside the
+stored knots. The source-derived inch stations lie inside the knots.
+The two rational cap trims preserve both original owner orders.
+
+Original spline owners `#319` and `#620` have knots `3.14159265359`
+and `4.712388980385`. Their model and cylinder reference azimuths are
+exactly antipodal. Their constant-axial charts have unit angular slope
+starting at `u=0`. The finite proof encloses the original and repaired
+model endpoints on the negative cosine and negative sine axes and
+bounds the two complete lifts against the authored knot intervals.
+Owners `#263` and `#574` preserve a different interval, from an oblique
+quadrant II ray to the negative cosine axis. An altered half-turn knot,
+reference azimuth or coefficient rejects, as does a substituted owner
+in the written receipt.
+
+The opt-in repair budgets are `1e-12` m and `1e-11` in. A `1e-13` m
+request rejects at original owner `#207`. A `1e-12` in request rejects
+at planar owner `#64`. Strict import rejects both original files.
+Their corrected and canonical STEP transfer as one twelve-face solid
+with the original pose and file units. The ordinary strict canonical
+reader reproduces the exact native body and byte-stable re-export.
+Pinned OCCT observes maximum antipodal-owner distances of `2.27e-14` m
+and `1.14e-13` in at sampled stations. Removing the phase in that
+witness increases those distances to `0.4375` m and `2.1875` in.
+
+The pinned `write-five-default-tilted-converted-inch-unscaled` mode
+exports the original physical millimetre-sized product directly to
+inches. OCCT transfers it as a twelve-face solid. Its stored analytic
+supports break exact tangency at seven shared edges. For example, the
+plane distance minus the cylinder radius is `-429/1000000000000000` in
+at edge `#723` and `-217/500000000000000` in at edge `#775`. The opt-in
+reader rejects these stored support gaps.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairFiveConvertedConvexArc' -count=1
+```

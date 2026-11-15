@@ -107,8 +107,8 @@ static int circularLoopOwnerWitness(const char* path, double modelSpeed, double 
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
- int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0, rationalCaps=0, shifted=0;
- double maxDistance=0, withoutMap=0, maxCapDistance=0, maxShiftedDistance=0;
+ int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0, rationalCaps=0, shifted=0, halfTurns=0;
+ double maxDistance=0, withoutMap=0, maxCapDistance=0, maxShiftedDistance=0, maxHalfTurnDistance=0, withoutHalfTurn=0;
  for (int i=1; i<=model->NbEntities(); ++i) {
   const auto edge = Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));
   if (edge.IsNull()) continue;
@@ -191,9 +191,18 @@ static int circularLoopOwnerWitness(const char* path, double modelSpeed, double 
      if (finiteCylinder && uv->FirstParameter()>0) {
       ++shifted;
       const double first=uv->FirstParameter(), last=uv->LastParameter();
+      const bool halfTurn=fillets==5 && first>3 && first<4;
+      if (halfTurn) ++halfTurns;
       for (double fraction : {0.0, .5, 1.0}) {
        const auto onCircle=circle->Value(angleStart+fraction*(angleEnd-angleStart));
-       maxShiftedDistance=std::max(maxShiftedDistance,onCircle.Distance(lift(first+fraction*(last-first))));
+       const double station=first+fraction*(last-first);
+       const auto dist=onCircle.Distance(lift(station));
+       maxShiftedDistance=std::max(maxShiftedDistance,dist);
+       if (halfTurn) {
+        const auto p=uv->Value(station);
+        maxHalfTurnDistance=std::max(maxHalfTurnDistance,dist);
+        withoutHalfTurn=std::max(withoutHalfTurn,onCircle.Distance(surface->Value(p.X()+first,p.Y())));
+       }
       }
       maxDistance=std::max(maxDistance,maxShiftedDistance);
       continue;
@@ -209,12 +218,15 @@ static int circularLoopOwnerWitness(const char* path, double modelSpeed, double 
  if (fillets>1) std::cout << ",\"RationalCaps\":" << rationalCaps << ",\"MaxCapDistance\":" << maxCapDistance;
  if (finiteCylinder && fillets>=3) std::cout << ",\"ShiftedCylinderCircles\":" << shifted << ",\"ShiftedSamples\":" << 3*shifted
                            << ",\"MaxShiftedDistance\":" << maxShiftedDistance;
+ if (finiteCylinder && fillets==5) std::cout << ",\"HalfTurnOwners\":" << halfTurns << ",\"MaxHalfTurnDistance\":" << maxHalfTurnDistance
+                                             << ",\"WithoutHalfTurn\":" << withoutHalfTurn;
  std::cout << "}\n";
  const int expectedCaps=fillets>1 ? 2 : 0;
  const int expectedPlaneLines=6*std::max(3,fillets);
  const int expectedShifted=finiteCylinder && fillets>=3 ? 2*(fillets-2) : 0;
  return planeLines==expectedPlaneLines && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
-        cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==expectedShifted ? 0 : 9;
+        cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==expectedShifted &&
+        halfTurns==(finiteCylinder && fillets==5 ? 2 : 0) ? 0 : 9;
 }
 
 static TopoDS_Edge verticalEdge(const TopoDS_Shape& prism, double x, double y) {
@@ -238,6 +250,8 @@ if(std::string(argv[1])=="four-converted-metre-witness") return circularLoopOwne
 if(std::string(argv[1])=="four-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 4);
 if(std::string(argv[1])=="four-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 4, false);
 if(std::string(argv[1])=="four-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 4);
+if(std::string(argv[1])=="five-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 5);
+if(std::string(argv[1])=="five-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 5);
 if(std::string(argv[1])=="five-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 5, false);
 if(std::string(argv[1])=="five-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 6, 2);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
@@ -254,7 +268,10 @@ if(std::string(argv[1])=="cap-witness") {
 }
 const std::string mode = argv[1];
 const bool fiveNonDyadic = mode == "write-five-default-tilted-nondyadic";
-const bool five = mode == "write-five-default-tilted" || fiveNonDyadic;
+const bool fiveConvertedMetre = mode == "write-five-default-tilted-converted-metre";
+const bool fiveConvertedInch = mode == "write-five-default-tilted-converted-inch" ||
+                                mode == "write-five-default-tilted-converted-inch-unscaled";
+const bool five = mode == "write-five-default-tilted" || fiveNonDyadic || fiveConvertedMetre || fiveConvertedInch;
 const bool fourNonDyadic = mode == "write-four-default-tilted-nondyadic";
 const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-plane" ||
                                  mode == "write-four-default-tilted-converted-metre-automatic-plane";
@@ -275,9 +292,9 @@ const bool groupedConvertedInch = mode == "write-both-default-tilted-converted-i
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch" || groupedConvertedMetre || groupedConvertedInch;
 const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" ||
-                            groupedConvertedMetre || threeConvertedMetre || fourConvertedMetre;
+                            groupedConvertedMetre || threeConvertedMetre || fourConvertedMetre || fiveConvertedMetre;
 const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
-                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch || fourConvertedInch;
+                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch || fourConvertedInch || fiveConvertedInch;
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
@@ -346,7 +363,8 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
    if (mode != "write-default-tilted-translated-converted-inch-unscaled" &&
        mode != "write-both-default-tilted-converted-inch-unscaled" &&
        mode != "write-three-default-tilted-converted-inch-unscaled" &&
-       mode != "write-four-default-tilted-converted-inch-unscaled") {
+       mode != "write-four-default-tilted-converted-inch-unscaled" &&
+       mode != "write-five-default-tilted-converted-inch-unscaled") {
     gp_Trsf scale;
     scale.SetScale(gp_Pnt(0,0,0), convertedMetre ? 1000.0 : 127.0);
     shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();
