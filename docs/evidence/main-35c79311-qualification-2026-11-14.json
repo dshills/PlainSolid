@@ -1,0 +1,141 @@
+{
+  "checkpointAt": "2026-11-14T22:13:44-06:00",
+  "snapshot": "35c79311bd39f84cf8918b571458ba242ba55246",
+  "status": "full ordinary macOS arm64 Go qualification passed; optional reference integrations are reported as skips",
+  "toolchain": "go version go1.27.4 darwin/arm64",
+  "command": "CGO_ENABLED=0 GOMAXPROCS=2 go test -p 2 -count=1 -json -timeout=210m outside brep/trimmed, and three complete deterministic brep/trimmed shards with the same environment and timeout",
+  "summary": {
+    "packagesPassed": 52,
+    "packagesWithoutTests": 4,
+    "topLevelPasses": 4923,
+    "optionalTopLevelSkips": 460,
+    "trimmedInventory": 1290,
+    "trimmedPasses": 1266,
+    "trimmedOptionalSkips": 24
+  },
+  "lanes": {
+    "packages": {
+      "path": "/tmp/plainsolid-refresh-go.DWL1rQ/packages.jsonl",
+      "bytes": 5797349,
+      "sha256": "9870596fed7e0733aca8b358fd7570d59c702e1f1276f3cfcc24e7df88942859",
+      "terminalPackages": {
+        "plainsolid/brep/edgecheck": "pass",
+        "plainsolid/brep/faceclip": "pass",
+        "plainsolid/brep": "pass",
+        "plainsolid/brep/placement": "pass",
+        "plainsolid/brep/splinebounds": "pass",
+        "plainsolid/brep/support": "pass",
+        "plainsolid/brep/trimvalidate": "pass",
+        "plainsolid/brep/trimvalidate/adapter": "pass",
+        "plainsolid/capability": "pass",
+        "plainsolid/cmd/plaincadwasm": "skip",
+        "plainsolid/collision": "pass",
+        "plainsolid/csg": "pass",
+        "plainsolid/csg/draft": "pass",
+        "plainsolid/csg/elbow": "pass",
+        "plainsolid/csg/feature": "pass",
+        "plainsolid/csg/fillet": "pass",
+        "plainsolid/csg/loft": "pass",
+        "plainsolid/brep/parametric": "pass",
+        "plainsolid/csg/poly": "pass",
+        "plainsolid/csg/prism": "pass",
+        "plainsolid/csg/thread": "pass",
+        "plainsolid/csg/offset": "pass",
+        "plainsolid/examples/boredplate": "pass",
+        "plainsolid/examples/bracket": "pass",
+        "plainsolid/examples/ellipticallens": "pass",
+        "plainsolid/examples/pressurecap": "pass",
+        "plainsolid/examples/splineenvelope": "pass",
+        "plainsolid/examples/tubelens": "skip",
+        "plainsolid/examples/wrappedbore": "pass",
+        "plainsolid/exchange": "pass",
+        "plainsolid/exchange/analytic": "pass",
+        "plainsolid/exchange/cylinder": "pass",
+        "plainsolid/exchange/cylindercells": "pass",
+        "plainsolid/exchange/extrusion": "pass",
+        "plainsolid/exchange/iges": "pass",
+        "plainsolid/exchange/plane": "pass",
+        "plainsolid/exchange/revolution": "pass",
+        "plainsolid/exchange/sphere": "pass",
+        "plainsolid/document": "pass",
+        "plainsolid/exchange/torus": "pass",
+        "plainsolid/geom": "pass",
+        "plainsolid/heal": "pass",
+        "plainsolid/heal/frommesh": "pass",
+        "plainsolid/heal/unify": "pass",
+        "plainsolid/internal/ellipticprism": "skip",
+        "plainsolid/internal/occtcheck": "pass",
+        "plainsolid/internal/plaincadbridge": "pass",
+        "plainsolid/internal/testgraphfixture": "skip",
+        "plainsolid/exchange/step": "pass",
+        "plainsolid/mesh": "pass",
+        "plainsolid/query": "pass",
+        "plainsolid/scene": "pass",
+        "plainsolid/section": "pass",
+        "plainsolid/solid": "pass",
+        "plainsolid/intersect": "pass"
+      },
+      "topLevel": {
+        "pass": 3657,
+        "skip": 436
+      },
+      "includingSubtests": {
+        "pass": 6884,
+        "skip": 446
+      }
+    },
+    "trimmed-0": {
+      "path": "/tmp/plainsolid-refresh-go.DWL1rQ/trimmed-0.jsonl",
+      "bytes": 446121,
+      "sha256": "cdf9c7d547c567799161c3e4186c2e31a26a7006638f4d158b00f891e573ee66",
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
+      "topLevel": {
+        "pass": 421,
+        "skip": 9
+      },
+      "includingSubtests": {
+        "pass": 523,
+        "skip": 9
+      }
+    },
+    "trimmed-1": {
+      "path": "/tmp/plainsolid-refresh-go.DWL1rQ/trimmed-1.jsonl",
+      "bytes": 391968,
+      "sha256": "f2d6eeb695cabcfc14d86c0468d7bcaa736931eea9453bc99e9cb30a0171fdf8",
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
+      "topLevel": {
+        "pass": 425,
+        "skip": 5
+      },
+      "includingSubtests": {
+        "pass": 469,
+        "skip": 5
+      }
+    },
+    "trimmed-2": {
+      "path": "/tmp/plainsolid-refresh-go.DWL1rQ/trimmed-2.jsonl",
+      "bytes": 442397,
+      "sha256": "37caf03cd03df1d02830867a9e2499dfafe96868ac79d2b14e8e0ee713c0803f",
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
+      "topLevel": {
+        "pass": 420,
+        "skip": 10
+      },
+      "includingSubtests": {
+        "pass": 514,
+        "skip": 10
+      }
+    }
+  },
+  "archive": {
+    "path": "/tmp/plainsolid-main-35c79311-ordinary-go-qualification-2026-11-14.tar.gz",
+    "sha256": "11e9b171aa295b8b3e9a5a8175e58b0b7a631783dee25923ccc626fd2f4aa21d",
+    "bytes": 566740
+  }
+}

@@ -6706,3 +6706,39 @@ STEP export, import, and byte-identical canonical re-export on both
 axes. Independent OCCT transferred the canonical analytic file and
 matched the fillet's volume, area and one-solid boundary. The focused
 STEP and bridge suites passed under race with the live reader enabled.
+
+The [full ordinary macOS qualification](evidence/main-35c79311-qualification-2026-11-14.json)
+on pinned `35c79311` passed all 52 packages with tests. The logs account
+for 4,923 top-level passes and 460 optional skips. The three independently
+listed and disjoint trimmed inventories contain 1,290 cases. All were
+accounted for, with 1,266 passes and 24 optional skips. The record includes
+the archive and per-lane log SHA-256 checksums.
+
+The U and V original parabolic roof contacts pass live OCCT checks
+under race. In the piecewise test, the two source branches meet at a
+true C0 knot and keep separate one-sided tangents. A separate original
+refinement produces a third exact coedge. All six operations and
+operand orders pass native reload and reproduce the independent OCCT
+volumes within `2e-9`.
+
+The two-span speed test uses a raw quartic with a real multiplicity-four
+knot and separate Möbius maps. The model station at the original source
+knot appears under one vertex ID for both original owners. The
+native v10 reload retained a closed 288-triangle mesh with zero contacts.
+Changes to the raw source, either map, the station or the versioned
+payload fail the focused proofs. The same runs exercise the older v9
+single-span branch and its source-preserving split/merge.
+
+The periodic tests compare exact homogeneous curve controls against the
+independently evaluated cyclic cubic basis across two seams and nonbinary
+knots. Plane hits include an irrational crossing, a double tangency, a
+coincident span and separate incident seam owners. Distance bounds retain
+an exact witness on cycle `2^100`. Certified chord bounds contain the
+rational basis samples and preserve the original knot cuts. The one-operation
+short cases exercise partial distance and tessellation output. These tests
+passed under the race detector.
+
+Focused Go WASM tests passed the original oblique axial fillet, STEP
+round trip and grouped chamfer on XY and YZ. The standard Go launcher
+initially rejected the inherited environment size. The rerun used a
+minimal environment and the same Go WASM test binary and assertions.

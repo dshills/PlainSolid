@@ -37,12 +37,13 @@ preflight catalog did not recognize `SPECIFIED_HIGHER_USAGE_OCCURRENCE`.
 The entire pinned STEP package passed after the one-line catalog correction
 in `36380200`.
 
-The refreshed macOS and Linux arm64 runs use pinned kernel `35c79311`.
-The macOS run finished every package outside `brep/trimmed`, with
-3,657 passing top-level cases and 436 optional skips. Two macOS trimmed
-groups passed. The last macOS group and the three Linux trimmed groups
-are in progress. Linux finished every
-other package. Its four original geometry case failures were resolved
+The [full refreshed macOS run](evidence/main-35c79311-qualification-2026-11-14.json)
+on `35c79311` passed 52 tested packages and 4,923 top-level cases, with
+460 optional skips and four packages without tests. All three trimmed
+groups matched their independent inventories, with 1,266 passes and
+24 optional skips across 1,290 cases. The Linux arm64 run on the same
+snapshot has passed two trimmed groups. Its last trimmed group is in
+progress. Its four original geometry case failures were resolved
 by the exact parameter-domain changes in `c855ecaa`. The complete
 repaired geometry package passed all 945 required cases with one
 optional skip. The pinned Windows amd64 build passed.
@@ -61,7 +62,8 @@ WASM contracts also passed. The original failure controls and the
 interrupted alternate-origin development run are retained in the record.
 A new complete PlainCAD run on `42ab9727` includes the committed fixture
 corrections and the native oblique fillet bridge. Its WASM build,
-typecheck, and four contracts passed. Browser qualification is in progress.
+typecheck, four contracts, all 345 development cases and all 66 production
+cases passed. Cross-browser and unit qualification are in progress.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -2605,8 +2607,11 @@ their original reversal and restricted raw ranges. Exact complementary
 range merges restore the authored knot, pole and weight records. Native
 version 9 accepts a proved positive Möbius speed map on one original
 cubic or quartic spline owner. The closed mesher evaluates the nonlinear
-source stations on both owners and proves their common positions. General
-piecewise speed laws remain open.
+source stations on both owners and proves their common positions. Native
+version 10 preserves two actual original cubic or quartic knot spans with
+independent positive speed maps and forces the original internal station
+into both owners' shared mesh ledger. The full raw basis is re-proved on
+reload. More general speed laws remain open.
 
 The opt-in polygon Cut with separated vertex links retains one connected
 boundary with two circular vertex links at one isolated original point.
@@ -2654,6 +2659,13 @@ Successful legacy triangulations keep their original ordering.
 An opt-in original-knot search qualifies two and three closed loops on
 either chart axis. Native reload preserves all selected boundary owners.
 
+Open parabolic contours work on both original chart axes. The piecewise
+mode proves each original knot slab separately and retains the exact
+common points and one-sided tangents. An independent fixture with a
+changed quadratic at a C0 knot and a separate refinement knot produces
+three original contour edges. Common, Fuse and both Cuts retain the source
+surfaces and pass native revalidation and OCCT volume checks.
+
 The nonplanar STEP cavity route authenticates the original outer and
 reversed inner shell from `BREP_WITH_VOIDS`. Each shell retains its
 complete owner graph. Exact original separation and containment are
@@ -2661,3 +2673,20 @@ re-proved after source-bound native reload and writer generation.
 The same proof qualifies up to four original inner shells. One strict
 reader dispatches these cavity families and the four qualified exterior
 spline shell forms according to their actual source graphs.
+
+The explicit OCCT prism-fillet repair authenticates independent original
+model-edge ownership, bounds each required tangent displacement, and
+revalidates the corrected full STEP graph. The signed-coordinate pose
+variant also proves each correction in the original world coordinates.
+Both return the original and corrected bytes and copied repair evidence.
+Ordinary exact readers continue to reject the inconsistent original data.
+
+### Uniform periodic spline geometry
+
+Periodic curve windows retain the original rational physical lattice and
+owner spans even when a knot or cyclic phase cannot be represented as a
+binary64 parameter. Exact plane intersection reports isolated crossings,
+tangencies and coincident pieces with separate one-sided incidences at
+knots. Certified point-distance bounds retain an exact original witness
+parameter. Certified tessellation keeps original knots and seams, with
+position and parameter-linear chord error bounds on every output interval.
