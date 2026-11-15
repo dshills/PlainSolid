@@ -195,7 +195,13 @@ func CombineSplineGraphSolids(ctx context.Context, base, a, b *geom.BSplineSurfa
 				}
 				h.Ellipse = elliptical.Ellipse
 				if errors.Is(e, geom.ErrUnrepresentable) {
-					arcs, arcErr := geom.DiscoverSplineGraphRationalCircleArcs(ctx, ap, bp, geom.RationalCircleArcDiscoveryOptions{GraphPointContactOptions: proof})
+					var arcs geom.SplineGraphQuadraticEllipseArcs
+					var arcErr error
+					if ellipse.Ellipse.RadiusSquared[0].Cmp(ellipse.Ellipse.RadiusSquared[1]) == 0 {
+						arcs, arcErr = geom.DiscoverSplineGraphRationalCircleArcs(ctx, ap, bp, geom.RationalCircleArcDiscoveryOptions{GraphPointContactOptions: proof})
+					} else {
+						arcs, arcErr = geom.DiscoverSplineGraphRationalEllipseArcs(ctx, ap, bp, geom.RationalEllipseArcDiscoveryOptions{GraphPointContactOptions: proof})
+					}
 					if arcErr == nil {
 						q, rational, rationalErr := assembleRationalEllipseGraphBoolean(ctx, base, a, b, op, tolerance, arcs, proof)
 						if rationalErr == nil {
@@ -212,6 +218,15 @@ func CombineSplineGraphSolids(ctx context.Context, base, a, b *geom.BSplineSurfa
 						return q, elliptical, nil
 					}
 					h.QuadraticEllipse = elliptical.QuadraticEllipse
+					if errors.Is(e, geom.ErrUnrepresentable) {
+						arcs, arcErr := geom.DiscoverSplineGraphRationalEllipseArcs(ctx, ap, bp, geom.RationalEllipseArcDiscoveryOptions{GraphPointContactOptions: proof})
+						if arcErr == nil {
+							q, rational, rationalErr := assembleRationalEllipseGraphBoolean(ctx, base, a, b, op, tolerance, arcs, proof)
+							if rationalErr == nil {
+								return q, rational, nil
+							}
+						}
+					}
 				}
 			}
 			p, discoveryErr := geom.DiscoverSplineGraphPointContact(ctx, ap, bp, geom.GraphPointContactDiscoveryOptions{
