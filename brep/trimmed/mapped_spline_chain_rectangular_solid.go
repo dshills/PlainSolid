@@ -10,7 +10,7 @@ import (
 )
 
 // MappedChainRectangularSolid is an opt-in material construction. ChainEdges
-// follows the common original model-station order, and ClosingEdges follows the
+// follows the proved model-station order, and ClosingEdges follows the
 // declared closing seams. ChainStations gives the original global parameter
 // range of each chain edge. The native solid's face order preserves source IDs.
 type MappedChainRectangularSolid struct {

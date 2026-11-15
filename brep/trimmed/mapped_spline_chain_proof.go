@@ -2,7 +2,9 @@ package trimmed
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
 )
@@ -192,10 +194,11 @@ func (c MappedSplineChain) cellParameters(a, b *big.Rat) (int, *big.Rat, *big.Ra
 // it is not an embedding, closed shell, native persistence or face-fill proof.
 // Source ownership is the ordered pair of immutable input chains/supports.
 type MappedSplineChainAgreement struct {
-	cuts     []*big.Rat
-	points   [][3]*big.Rat
-	sources  [2]MappedSplineChain
-	supports [2]geom.Surface
+	cuts             []*big.Rat
+	points           [][3]*big.Rat
+	sources          [2]MappedSplineChain
+	supports         [2]geom.Surface
+	splitSupportKnot bool
 }
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -236,6 +239,22 @@ func (r MappedSplineChainAgreement) AuthoredParameters(owner int) ([]*big.Rat, e
 // must be representable under the existing exact Bezier descriptor contract.
 // Both supports must be directly supported exact spline charts (no placement).
 func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, false)
+}
+
+// CertifyMappedSplineChainSupportKnotAgreement adds one shared model station
+// at an isolated transverse crossing inside the original chain station union.
+// Each roof may have at most one interior support knot across its two axes.
+// Bounded rational reconstruction must recover the exact crossing. Both
+// raw owner restrictions and the model point must fit the native source
+// contracts. Both restrictions must fit
+// wholly in original support knot cells. The resulting partition has at most
+// 15 cells and retains the original curves and charts.
+func CertifyMappedSplineChainSupportKnotAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, true)
+}
+
+func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, splitSupportKnot bool) (MappedSplineChainAgreement, error) {
 	var zero MappedSplineChainAgreement
 	if ctx == nil || len(ca.parts) < 2 || len(cb.parts) < 2 {
 		return zero, geom.ErrInvalid
@@ -271,7 +290,18 @@ func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 	if e != nil {
 		return zero, e
 	}
-	out := MappedSplineChainAgreement{cuts: cuts, sources: [2]MappedSplineChain{ca, cb}, supports: [2]geom.Surface{a, b}}
+	out := MappedSplineChainAgreement{sources: [2]MappedSplineChain{ca, cb}, supports: [2]geom.Surface{a, b}, splitSupportKnot: splitSupportKnot}
+	var supportCut int
+	if splitSupportKnot {
+		cuts, supportCut, e = mappedSplineSupportKnotCut(ctx, out.sources, [2]*geom.SurfacePatch{pa, pb}, cuts, o)
+		if e != nil {
+			return zero, e
+		}
+		if len(cuts) > 16 || o.MaxIntervals > 0 && len(cuts)-1 > o.MaxIntervals {
+			return zero, geom.ErrConvergence
+		}
+	}
+	out.cuts = cuts
 	for i := 0; i+1 < len(cuts); i++ {
 		qa, e := ca.cell(cuts[i], cuts[i+1])
 		if e != nil {
@@ -288,6 +318,24 @@ func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 		db, e := qb.descriptor(ctx, limits)
 		if e != nil {
 			return zero, e
+		}
+		if splitSupportKnot {
+			for owner, d := range [2]*geom.ExactSplineCurve{da, db} {
+				patch := [2]*geom.SurfacePatch{pa, pb}[owner]
+				if _, err := trimModelSupportCell(ctx, patch, d, limits); err != nil {
+					return zero, fmt.Errorf("roof %d proved cell %d: %w", owner, i, err)
+				}
+				if i == supportCut-1 || i == supportCut {
+					c := out.sources[owner]
+					part, lo, hi, err := c.cellParameters(cuts[i], cuts[i+1])
+					if err != nil {
+						return zero, err
+					}
+					if _, err := restrictMappedSource(ctx, c.parts[part], lo, hi, limits); err != nil {
+						return zero, fmt.Errorf("roof %d proved cell %d original restriction: %w", owner, i, err)
+					}
+				}
+			}
 		}
 		equal, e := compareTrimCompositionsOnPlacedSplineSupports(ctx, a, da, b, db, o)
 		if e != nil {
@@ -315,6 +363,11 @@ func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 					return zero, geom.ErrConvergence
 				}
 				point[k] = new(big.Rat).Set(xa.Point[k])
+			}
+			if splitSupportKnot && i == supportCut-1 && endpoint == 1 {
+				if _, e := geom.RepresentedExactPoint(point); e != nil {
+					return zero, e
+				}
 			}
 			out.points = append(out.points, point)
 		}

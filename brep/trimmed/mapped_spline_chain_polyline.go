@@ -28,9 +28,10 @@ type MappedChainPolylineSegment struct {
 // CertifiedMappedChainPolyline covers the complete proved piecewise edge. The
 // pointwise chord bound is two-sided under affine interpolation of ModelParameter.
 // Both original owners share this one index array. KnotVertices retain every
-// original model/source station. At a joint between independently authored
-// bases a vertex records the incoming parameters. Individual face samples
-// also retain the outgoing parameters. No face fill or embedding is certified.
+// proved model station, including an opt-in support-knot split. At a joint
+// between independently authored bases a vertex records the incoming
+// parameters. Individual face samples also retain the outgoing parameters.
+// No face fill or embedding is certified.
 type CertifiedMappedChainPolyline struct {
 	Vertices        []MappedChainPolylineVertex
 	Segments        []MappedChainPolylineSegment
@@ -39,8 +40,8 @@ type CertifiedMappedChainPolyline struct {
 	ExactOperations int
 }
 
-// TessellateCertified currently requires no additional support-knot crossing
-// inside each common source cell. It uses exact homogeneous composition and the
+// TessellateCertified requires every proved chain cell to lie in one original
+// support knot cell. It uses exact homogeneous composition and the
 // existing second-derivative/endpoint-rounding certificate, never sampled fitting.
 // All failures discard the complete partial ledger. Defaults: .001,4096 segments,
 // 8M counted operations,16384 coefficient bits,32 subdivision levels.

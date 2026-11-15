@@ -82,6 +82,13 @@ on the knot may use either incident cell by C0 agreement. A trim spanning
 the two cells needs an explicit source coedge split before this exchange
 path can establish its exact model lift.
 
+For native source preparation, `CertifyMappedSplineChainSupportKnotAgreement`
+can derive one isolated, transverse interior crossing of the shared roof
+boundary. Both original owner curves must admit exact raw restrictions at the
+same model station. The native source recipe rediscovers that station on
+reopen. STEP readers still require the source wire to carry explicit coedges
+with individual lifts contained in support cells.
+
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
 Both roof charts retain the interior knot at model `x=1/2` on their own

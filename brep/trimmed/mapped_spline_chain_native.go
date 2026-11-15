@@ -39,6 +39,7 @@ type MappedChainNativeOptions struct {
 // per-cell correspondence are re-proved before any bytes are written. This is
 // a standalone boundary format. Version 2 retains independently authored
 // whole coedge bases in addition to version 1's whole owner spline.
+// Version 3 rederives one paired support-knot crossing from those sources.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
@@ -93,7 +94,10 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 		}
 		record.Owners = append(record.Owners, x)
 	}
-	if _, e := CertifyMappedSplineChainAgreement(ctx, r.supports[0], chains[0], r.supports[1], chains[1], o.Proof); e != nil {
+	if r.splitSupportKnot {
+		record.Version = 3
+	}
+	if _, e := certifyMappedSplineChainAgreement(ctx, r.supports[0], chains[0], r.supports[1], chains[1], o.Proof, r.splitSupportKnot); e != nil {
 		return e
 	}
 	raw, e := json.Marshal(record)
@@ -156,7 +160,7 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e = decoder.Decode(&extra); e != io.EOF {
 		return zero, geom.ErrInvalid
 	}
-	if (record.Version != 1 && record.Version != 2) || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
+	if record.Version < 1 || record.Version > 3 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
 		return zero, geom.ErrInvalid
 	}
 	var chains [2]MappedSplineChain
@@ -173,7 +177,7 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 		independent := len(x.Sources) != 0
 		var source SplineUV
 		if independent {
-			if record.Version != 2 || x.Source != nil || len(x.Sources) != len(x.Ranges) {
+			if record.Version == 1 || x.Source != nil || len(x.Sources) != len(x.Ranges) {
 				return zero, geom.ErrInvalid
 			}
 			anyIndependent = true
@@ -231,7 +235,7 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if record.Version == 2 && !anyIndependent {
 		return zero, geom.ErrInvalid
 	}
-	return CertifyMappedSplineChainAgreement(ctx, surfaces[0], chains[0], surfaces[1], chains[1], o.Proof)
+	return certifyMappedSplineChainAgreement(ctx, surfaces[0], chains[0], surfaces[1], chains[1], o.Proof, record.Version == 3)
 }
 
 func decodeMappedChainNativeSource(ctx context.Context, raw nativeUse) (SplineUV, error) {
