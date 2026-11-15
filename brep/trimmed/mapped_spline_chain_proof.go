@@ -194,12 +194,22 @@ func (c MappedSplineChain) cellParameters(a, b *big.Rat) (int, *big.Rat, *big.Ra
 // it is not an embedding, closed shell, native persistence or face-fill proof.
 // Source ownership is the ordered pair of immutable input chains/supports.
 type MappedSplineChainAgreement struct {
-	cuts              []*big.Rat
-	points            [][3]*big.Rat
-	sources           [2]MappedSplineChain
-	supports          [2]geom.Surface
-	splitSupportKnots int
+	cuts       []*big.Rat
+	points     [][3]*big.Rat
+	sources    [2]MappedSplineChain
+	supports   [2]geom.Surface
+	knotRepair mappedChainKnotRepair
 }
+
+type mappedChainKnotRepair uint8
+
+// Nonzero identifiers map to native boundary recipe versions 3 through 5.
+const (
+	mappedChainNoKnotRepair mappedChainKnotRepair = iota
+	mappedChainSingleKnotRepair
+	mappedChainSynchronizedKnotsRepair
+	mappedChainAsynchronousKnotsRepair
+)
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
 	out := make([]*big.Rat, len(r.cuts))
@@ -239,7 +249,7 @@ func (r MappedSplineChainAgreement) AuthoredParameters(owner int) ([]*big.Rat, e
 // must be representable under the existing exact Bezier descriptor contract.
 // Both supports must be directly supported exact spline charts (no placement).
 func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
-	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, 0)
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainNoKnotRepair)
 }
 
 // CertifyMappedSplineChainSupportKnotAgreement adds one shared model station
@@ -251,7 +261,7 @@ func CertifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 // wholly in original support knot cells. The resulting partition has at most
 // 15 cells and retains the original curves and charts.
 func CertifyMappedSplineChainSupportKnotAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
-	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, 1)
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainSingleKnotRepair)
 }
 
 // CertifyMappedSplineChainTwoSupportKnotsAgreement proves two synchronized
@@ -261,10 +271,19 @@ func CertifyMappedSplineChainSupportKnotAgreement(ctx context.Context, a geom.Su
 // are proved for the three resulting cells. The common partition is bounded
 // to 15 cells including the two new cuts.
 func CertifyMappedSplineChainTwoSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
-	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, 2)
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainSynchronizedKnotsRepair)
 }
 
-func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, splitSupportKnots int) (MappedSplineChainAgreement, error) {
+// CertifyMappedSplineChainAsynchronousSupportKnotsAgreement adds one shared
+// model cut inside each of two original common chain cells. Each original
+// roof has one transverse support knot crossing in a different cell. The
+// other roof remains in its original span at that cut. Both exact raw curves
+// and their model lifts are preserved on every resulting restriction.
+func CertifyMappedSplineChainAsynchronousSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainAsynchronousKnotsRepair)
+}
+
+func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
 	var zero MappedSplineChainAgreement
 	if ctx == nil || len(ca.parts) < 2 || len(cb.parts) < 2 {
 		return zero, geom.ErrInvalid
@@ -300,10 +319,10 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 	if e != nil {
 		return zero, e
 	}
-	out := MappedSplineChainAgreement{sources: [2]MappedSplineChain{ca, cb}, supports: [2]geom.Surface{a, b}, splitSupportKnots: splitSupportKnots}
-	var supportCut int
-	if splitSupportKnots > 0 {
-		cuts, supportCut, e = mappedSplineSupportKnotCuts(ctx, out.sources, [2]*geom.SurfacePatch{pa, pb}, cuts, splitSupportKnots, o)
+	out := MappedSplineChainAgreement{sources: [2]MappedSplineChain{ca, cb}, supports: [2]geom.Surface{a, b}, knotRepair: repair}
+	var repairedCuts []bool
+	if repair != mappedChainNoKnotRepair {
+		cuts, repairedCuts, e = mappedSplineSupportKnotCuts(ctx, out.sources, [2]*geom.SurfacePatch{pa, pb}, cuts, repair, o)
 		if e != nil {
 			return zero, e
 		}
@@ -329,13 +348,13 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 		if e != nil {
 			return zero, e
 		}
-		if splitSupportKnots > 0 {
+		if repair != mappedChainNoKnotRepair {
 			for owner, d := range [2]*geom.ExactSplineCurve{da, db} {
 				patch := [2]*geom.SurfacePatch{pa, pb}[owner]
 				if _, err := trimModelSupportCell(ctx, patch, d, limits); err != nil {
 					return zero, fmt.Errorf("roof %d proved cell %d: %w", owner, i, err)
 				}
-				if i >= supportCut-1 && i < supportCut+splitSupportKnots {
+				if repairedCuts[i] || repairedCuts[i+1] {
 					c := out.sources[owner]
 					part, lo, hi, err := c.cellParameters(cuts[i], cuts[i+1])
 					if err != nil {
@@ -374,7 +393,7 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 				}
 				point[k] = new(big.Rat).Set(xa.Point[k])
 			}
-			if i+1 >= supportCut && i+1 < supportCut+splitSupportKnots && endpoint == 1 {
+			if repair != mappedChainNoKnotRepair && repairedCuts[i+1] && endpoint == 1 {
 				if _, e := geom.RepresentedExactPoint(point); e != nil {
 					return zero, e
 				}

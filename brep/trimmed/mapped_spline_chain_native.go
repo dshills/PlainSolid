@@ -39,7 +39,7 @@ type MappedChainNativeOptions struct {
 // per-cell correspondence are re-proved before any bytes are written. This is
 // a standalone boundary format. Version 2 retains independently authored
 // whole coedge bases in addition to version 1's whole owner spline.
-// Versions 3 and 4 rederive one or two verified support-knot crossings.
+// Versions 3 through 5 rederive the original support-knot repairs.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
@@ -94,10 +94,10 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 		}
 		record.Owners = append(record.Owners, x)
 	}
-	if r.splitSupportKnots > 0 {
-		record.Version = 2 + r.splitSupportKnots
+	if r.knotRepair != mappedChainNoKnotRepair {
+		record.Version = 2 + int(r.knotRepair)
 	}
-	if _, e := certifyMappedSplineChainAgreement(ctx, r.supports[0], chains[0], r.supports[1], chains[1], o.Proof, r.splitSupportKnots); e != nil {
+	if _, e := certifyMappedSplineChainAgreement(ctx, r.supports[0], chains[0], r.supports[1], chains[1], o.Proof, r.knotRepair); e != nil {
 		return e
 	}
 	raw, e := json.Marshal(record)
@@ -160,7 +160,7 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e = decoder.Decode(&extra); e != io.EOF {
 		return zero, geom.ErrInvalid
 	}
-	if record.Version < 1 || record.Version > 4 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
+	if record.Version < 1 || record.Version > 5 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
 		return zero, geom.ErrInvalid
 	}
 	var chains [2]MappedSplineChain
@@ -235,7 +235,8 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if record.Version == 2 && !anyIndependent {
 		return zero, geom.ErrInvalid
 	}
-	return certifyMappedSplineChainAgreement(ctx, surfaces[0], chains[0], surfaces[1], chains[1], o.Proof, max(0, record.Version-2))
+	repair := mappedChainKnotRepair(max(0, record.Version-2))
+	return certifyMappedSplineChainAgreement(ctx, surfaces[0], chains[0], surfaces[1], chains[1], o.Proof, repair)
 }
 
 func decodeMappedChainNativeSource(ctx context.Context, raw nativeUse) (SplineUV, error) {

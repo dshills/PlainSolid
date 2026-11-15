@@ -70,7 +70,7 @@ func TestMappedSplineChainTwoSupportKnotsRebuild(t *testing.T) {
 	}
 	edges, vertices, faces := solid.Solid.Edges(), solid.Solid.Vertices(), solid.Solid.Faces()
 	if len(edges) != 23 || len(vertices) != 18 || len(faces) != 7 || len(solid.ChainEdges) != 5 ||
-		len(solid.ChainStations) != 6 || opened.boundary.splitSupportKnots != 2 {
+		len(solid.ChainStations) != 6 || opened.boundary.knotRepair != mappedChainSynchronizedKnotsRepair {
 		t.Fatal("two original support crossings must add exactly two shared native vertices")
 	}
 	for i, station := range wantStation {

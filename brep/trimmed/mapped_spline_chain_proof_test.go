@@ -19,10 +19,18 @@ func mappedChainFixture(t *testing.T, other bool) (geom.Surface, MappedSplineCha
 
 func mappedChainFixtureWithRawWidth(t *testing.T, other bool, width float64) (geom.Surface, MappedSplineChain) {
 	t.Helper()
+	return mappedChainFixtureRawShape(t, other, width, false)
+}
+
+func mappedChainFixtureRawShape(t *testing.T, other bool, width float64, constantSeamY bool) (geom.Surface, MappedSplineChain) {
+	t.Helper()
 	ctx := context.Background()
 	makeCurve := func(p [][2]float64) ExactBezierUV {
 		h := make([][3]*big.Rat, len(p))
 		for i, v := range p {
+			if constantSeamY {
+				v[1] = .25
+			}
 			h[i] = [3]*big.Rat{ratInset(v[0]), ratInset(v[1]), big.NewRat(1, 1)}
 		}
 		q, e := NewExactBezierUV(h)
