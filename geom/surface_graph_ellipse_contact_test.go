@@ -127,3 +127,29 @@ func TestGraphEllipseRepeatedContactUnresolved(t *testing.T) {
 		t.Fatal(r, e)
 	}
 }
+
+func TestCertifiedRepeatedGraphEllipse(t *testing.T) {
+	ctx := context.Background()
+	a, b, hint := ellipseGraphFixture(t, true)
+	r, e := CertifySplineGraphRepeatedEllipse(ctx, a, b, hint, GraphPointContactOptions{})
+	if e != nil || !r.Proven || r.InsideSide != 1 || r.OutsideSide != 1 || len(r.CertifiedCells) < 2 {
+		t.Fatal(r, e)
+	}
+	r, e = CertifySplineGraphRepeatedEllipse(ctx, b, a, hint, GraphPointContactOptions{})
+	if e != nil || !r.Proven || r.InsideSide != -1 || r.OutsideSide != -1 {
+		t.Fatal("same strict reverse side inside and outside", r, e)
+	}
+	r, e = DiscoverSplineGraphRepeatedEllipse(ctx, a, b, GraphPointContactOptions{})
+	if e != nil || !r.Proven || r.InsideSide != 1 || r.OutsideSide != 1 {
+		t.Fatal("independent multi-cell repeated ellipse discovery", r, e)
+	}
+	for i := range hint.Center {
+		if hint.Center[i].Cmp(r.Ellipse.Center[i]) != 0 || hint.RadiusSquared[i].Cmp(r.Ellipse.RadiusSquared[i]) != 0 {
+			t.Fatal("wrong original conic recovery", r.Ellipse, hint)
+		}
+	}
+	a, b, hint = ellipseGraphFixture(t, false)
+	if r, e := CertifySplineGraphRepeatedEllipse(ctx, a, b, hint, GraphPointContactOptions{}); e == nil || r.Proven {
+		t.Fatal("transverse contact accepted as double", r, e)
+	}
+}

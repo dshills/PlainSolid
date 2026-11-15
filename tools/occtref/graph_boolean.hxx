@@ -162,7 +162,7 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
 
-static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false) {
+static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
   const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
@@ -176,8 +176,9 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
       p[fixed] = side * degree[fixed];
       p[u] = i;
       p[v] = j;
+      const double radialSquared = closedContact ? 1.0 / 16 : 0;
       const double z = p[2] == 0 ? -1 : separable ? -q4[p[0]]/16 - sq[p[1]] : quartic ?
-        -(9*(q4[p[0]]+q4[p[1]])+2*q2[p[0]]*q2[p[1]])/256 :
+        -(9*(q4[p[0]]+q4[p[1]])+2*q2[p[0]]*q2[p[1]]-24*radialSquared*(q2[p[0]]+q2[p[1]])+144*radialSquared*radialSquared)/256 :
         -sq[p[0]] - sq[p[1]];
       poles.SetValue(i+1,j+1,gp_Pnt(double(p[0])/degree[0],double(p[1])/degree[1],z));
     }
@@ -201,8 +202,8 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
   const auto stock = BRepPrimAPI_MakeBox(1,1,1).Shape();
   auto common = BRepAlgoAPI_Common(stock,tool);
   if (!common.IsDone() || TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
-    throw std::runtime_error("isolated tangency produced common material");
-  record(out,"isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
+    throw std::runtime_error("tangency produced common material");
+  record(out,closedContact ? "repeated-ellipse-stock-cut" : "isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
 }
 
 static void multipleKnotTangentSplineShellRecords(std::ostream& out, bool splitStock = false) {

@@ -31,6 +31,19 @@ type SplineGraphEllipse struct {
 // to have one common strict sign. Unsupported division/sign bounds remain
 // ErrConvergence; a failed hint is never evidence of absence.
 func CertifySplineGraphEllipse(ctx context.Context, a, c *SurfacePatch, hint GraphEllipseHint, o GraphPointContactOptions) (r SplineGraphEllipse, err error) {
+	return certifySplineGraphEllipseMultiplicity(ctx, a, c, hint, o, 1)
+}
+
+// CertifySplineGraphRepeatedEllipse proves an exact double contact along
+// one closed original-chart ellipse. The residual keeps the same strict
+// sign on both sides. Every union-knot cell must divide twice with a
+// remaining strict sign, so mixed orders and other contacts fail closed.
+func CertifySplineGraphRepeatedEllipse(ctx context.Context, a, c *SurfacePatch, hint GraphEllipseHint, o GraphPointContactOptions) (SplineGraphEllipse, error) {
+	return certifySplineGraphEllipseMultiplicity(ctx, a, c, hint, o, 2)
+}
+
+func certifySplineGraphEllipseMultiplicity(ctx context.Context, a, c *SurfacePatch, hint GraphEllipseHint, o GraphPointContactOptions,
+	multiplicity int) (r SplineGraphEllipse, err error) {
 	if ctx == nil || a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 {
 		return r, ErrInvalid
 	}
@@ -108,12 +121,15 @@ func CertifySplineGraphEllipse(ctx context.Context, a, c *SurfacePatch, hint Gra
 			coefficients[1+2*axis].Quo(new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(origin, width)), denominator)
 			coefficients[2+2*axis].Quo(new(big.Rat).Mul(width, width), denominator)
 		}
-		q, e := divideGraphAxisQuadraticBernstein(ctx, cell, coefficients, b)
-		if e != nil {
-			return r, e
-		}
-		if q == nil {
-			return r, ErrConvergence
+		q := cell
+		for i := 0; i < multiplicity; i++ {
+			q, e = divideGraphAxisQuadraticBernstein(ctx, q, coefficients, b)
+			if e != nil {
+				return r, e
+			}
+			if q == nil {
+				return r, ErrConvergence
+			}
 		}
 		for _, h := range q.net {
 			current := h[2].Sign()
@@ -142,7 +158,10 @@ func CertifySplineGraphEllipse(ctx context.Context, a, c *SurfacePatch, hint Gra
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	r.InsideSide = -sign
+	r.InsideSide = sign
+	if multiplicity%2 != 0 {
+		r.InsideSide = -sign
+	}
 	r.OutsideSide = sign
 	r.Proven = true
 	return r, nil
