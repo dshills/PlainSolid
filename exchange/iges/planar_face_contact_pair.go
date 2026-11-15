@@ -31,17 +31,7 @@ type PlanarFaceContactPair struct {
 // It certifies one complete shared original face, including its inner wires.
 func ReadPlanarFaceContactPair(ctx context.Context, r io.Reader, o FaceContactIGESOptions) (PlanarFaceContactPair, error) {
 	var zero PlanarFaceContactPair
-	if ctx == nil || r == nil {
-		return zero, geom.ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
-		return zero, err
-	}
-	d, err := readPlanarTopologySource(r, o.Limits)
-	if err != nil {
-		return zero, err
-	}
-	m, err := readIGESPlanarAssemblyBodies(ctx, d, collision.VertexContactAssemblyOptions{MaxSolids: 2, Validation: o.Proof.Contact.Validation})
+	m, err := readIGESFaceContactBodies(ctx, r, o.Limits, o.Proof.Contact.Validation)
 	if err != nil {
 		return zero, err
 	}
@@ -51,6 +41,24 @@ func ReadPlanarFaceContactPair(ctx context.Context, r io.Reader, o FaceContactIG
 		return zero, err
 	}
 	return PlanarFaceContactPair{GroupID: m.GroupID, LengthUnit: m.LengthUnit, Bodies: bodies, Contact: p}, nil
+}
+
+func readIGESFaceContactBodies(ctx context.Context, r io.Reader, limits Limits, validation collision.LocationOptions) (PlanarVertexContactAssembly, error) {
+	if ctx == nil || r == nil {
+		return PlanarVertexContactAssembly{}, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return PlanarVertexContactAssembly{}, err
+	}
+	d, err := readPlanarTopologySource(r, limits)
+	if err != nil {
+		return PlanarVertexContactAssembly{}, err
+	}
+	m, err := readIGESPlanarAssemblyBodies(ctx, d, collision.VertexContactAssemblyOptions{MaxSolids: 2, Validation: validation})
+	if err != nil {
+		return PlanarVertexContactAssembly{}, err
+	}
+	return m, nil
 }
 
 // WritePlanarFaceContactPair preserves the separate original IGES root

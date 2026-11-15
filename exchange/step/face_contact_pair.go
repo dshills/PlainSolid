@@ -20,23 +20,8 @@ type FaceContactSTEPOptions struct {
 // only intersection is one common complete face, with matching inner wires.
 func ReadFaceContactPair(ctx context.Context, r io.Reader, o FaceContactSTEPOptions) (Model, collision.PlanarFaceContact, error) {
 	var zero collision.PlanarFaceContact
-	if ctx == nil || r == nil {
-		return Model{}, zero, geom.ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
-		return Model{}, zero, err
-	}
-	if o.Limits.MaxSolids == 0 || o.Limits.MaxSolids > 2 {
-		o.Limits.MaxSolids = 2
-	}
-	m, err := readPlanarModel(r, o.Limits, true, false)
+	m, err := readExactSTEPFaceContactBodies(ctx, r, o.Limits)
 	if err != nil {
-		return Model{}, zero, err
-	}
-	if len(m.Bodies) != 2 {
-		return Model{}, zero, fmt.Errorf("%w: STEP face contact requires two separate bodies", collision.ErrInvalid)
-	}
-	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
 		return Model{}, zero, err
 	}
 	p, err := collision.DiscoverPlanarFaceContact(ctx, m.Bodies[0].Solid, m.Bodies[1].Solid, o.Proof)
@@ -44,6 +29,29 @@ func ReadFaceContactPair(ctx context.Context, r io.Reader, o FaceContactSTEPOpti
 		return Model{}, zero, err
 	}
 	return m, p, nil
+}
+
+func readExactSTEPFaceContactBodies(ctx context.Context, r io.Reader, limits Limits) (Model, error) {
+	if ctx == nil || r == nil {
+		return Model{}, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return Model{}, err
+	}
+	if limits.MaxSolids == 0 || limits.MaxSolids > 2 {
+		limits.MaxSolids = 2
+	}
+	m, err := readPlanarModel(r, limits, true, false)
+	if err != nil {
+		return Model{}, err
+	}
+	if len(m.Bodies) != 2 {
+		return Model{}, fmt.Errorf("%w: STEP face contact requires two separate bodies", collision.ErrInvalid)
+	}
+	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
+		return Model{}, err
+	}
+	return m, nil
 }
 
 // WriteFaceContactPair writes separate advanced BRep solids and verifies all
