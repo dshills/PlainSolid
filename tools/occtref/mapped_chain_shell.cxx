@@ -80,9 +80,14 @@ static constexpr double thirdSharedKnot = .75;
 struct RoofSupportLayout {
   int cuts = 3;
   int storedCells = 1;
+  bool separated = false;
 };
 
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
+  if (layout.separated) {
+    return south ? std::vector<double>{0., 29. / 256, .75, 1.}
+                 : std::vector<double>{0., 107. / 2048, 29. / 256, 1.};
+  }
   if (layout.storedCells >= 2) {
     auto knots = south ? std::vector<double>{0., 29. / 256, secondSharedKnot, secondCellSouthKnot, 1.}
                        : std::vector<double>{0., 107. / 2048, 29. / 256, secondSharedKnot, 1.};
@@ -107,6 +112,10 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
+    if (layout.separated) {
+      const double separate = south ? .75 : 107. / 2048;
+      return x * y + .125 * std::max(0., x - 29. / 256) + .125 * (y - .25) * std::max(0., x - separate);
+    }
     if (layout.storedCells >= 2) {
       const double separate = south ? secondCellSouthKnot : 107. / 2048;
       const double third = layout.storedCells == 3 ? .125 * std::max(0., x - thirdSharedKnot) : 0.;
@@ -333,8 +342,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
   const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
   const int supportCuts = layout.cuts;
-  const bool localCells = layout.storedCells >= 2;
-  const double lastSouthParameter = layout.storedCells == 3 ? -2. : 0.;
+  const bool localCells = layout.storedCells >= 2 || layout.separated;
+  const double lastSouthParameter = layout.storedCells == 3 || layout.separated ? -2. : 0.;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -464,8 +473,8 @@ int main(int argc, char** argv) {
     const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2 : 1;
-    const RoofSupportLayout layout{supportCuts, storedCells};
-    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2;
+    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells"};
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2 || layout.separated;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;

@@ -163,6 +163,18 @@ func proveMappedSplineLift(ctx context.Context, support geom.Surface, curve Mapp
 // fits one original support cell. The model Bézier need not have a knot at a
 // crossing: its exact rational restrictions are compared on each side.
 func ProveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 1, o)
+}
+
+// ProveMappedSplineCellLocalAsynchronousTransfer proves one original model
+// Bézier on a chart with up to two authored knots. Only zero or one interior
+// event may occur on this coedge. The full raw map and every model restriction
+// must agree exactly, including when no support event occurs.
+func ProveMappedSplineCellLocalAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 2, o)
+}
+
+func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
 	var zero MappedSplineUV
 	if ctx == nil || support == nil || model == nil {
 		return zero, nil, geom.ErrInvalid
@@ -171,7 +183,7 @@ func ProveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Sur
 	if err != nil {
 		return zero, nil, err
 	}
-	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, 1)
+	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, maxSupportKnots)
 	if err != nil {
 		return zero, nil, err
 	}
@@ -184,16 +196,18 @@ func ProveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Sur
 	if err != nil {
 		return zero, nil, err
 	}
-	crossing, err := mappedSplineSupportKnotRoot(ctx, raw.curve, planes[0], o, geom.ExactCurvePlaneEventOptions{
-		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
-	})
+	crossings, err := mappedSplineSupportRoots(ctx, raw, planes, false, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	if crossing == nil {
+	if len(crossings) == 0 {
 		q, err := ProveMappedSplineTransfer(ctx, support, source, model, o)
 		return q, nil, err
 	}
+	if len(crossings) != 1 {
+		return zero, nil, fmt.Errorf("the original model coedge permits only one active support knot: %w", geom.ErrConvergence)
+	}
+	crossing := crossings[0]
 	normalized, err := model.Reparameterize(0, 1, false, o)
 	if err != nil {
 		return zero, nil, err
