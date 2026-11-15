@@ -75,16 +75,20 @@ func (r *PolynomialMixedEnvelope) Contacts() [2]PolynomialMixedEnvelopeContact {
 	}
 	out := r.contacts
 	for i := range out {
-		c := &out[i]
-		for j, x := range c.Parameters {
-			c.Parameters[j] = new(big.Rat).Set(x)
-		}
-		for j, x := range c.Point {
-			c.Point[j] = new(big.Rat).Set(x)
-		}
-		c.DerivativeGap = new(big.Rat).Set(c.DerivativeGap)
+		out[i] = out[i].copy()
 	}
 	return out
+}
+
+func (c PolynomialMixedEnvelopeContact) copy() PolynomialMixedEnvelopeContact {
+	for i, x := range c.Parameters {
+		c.Parameters[i] = new(big.Rat).Set(x)
+	}
+	for i, x := range c.Point {
+		c.Point[i] = new(big.Rat).Set(x)
+	}
+	c.DerivativeGap = new(big.Rat).Set(c.DerivativeGap)
+	return c
 }
 
 // CombineSplineGraphPolynomialMixedContact constructs a bounded Common or Fuse
@@ -137,7 +141,7 @@ func CombineSplineGraphPolynomialMixedContact(ctx context.Context, base, a, b *g
 	result := &PolynomialMixedEnvelope{
 		solid: solid, sources: [3]*geom.BSplineSurface{base, a, b}, axis: axis, op: op, tolerance: tolerance,
 	}
-	if e = result.bind(proof, xyz, pieces, regions, envelope); e != nil {
+	if e = result.bind(proof, xyz, pieces, loops, envelope); e != nil {
 		return nil, e
 	}
 	if e = ctx.Err(); e != nil {
@@ -146,25 +150,53 @@ func CombineSplineGraphPolynomialMixedContact(ctx context.Context, base, a, b *g
 	return result, nil
 }
 
-func (r *PolynomialMixedEnvelope) bind(proof geom.SplineGraphPolynomialMixedContact, xyz [6]geom.Vec3, pieces [][]openSectionPiece, regions []graphEnvelopeRegion, envelope SplineGraphBooleanHistory) error {
-	s := r.solid
-	topology := s.Topology()
-	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 || len(envelope.ContourEdges) != 8 {
-		return geom.ErrConvergence
-	}
-	binding, e := bindPolynomialNodeEdges(s, envelope.ContourEdges, proof.Edges[:], xyz[:], pieces)
+func (r *PolynomialMixedEnvelope) bind(proof geom.SplineGraphPolynomialMixedContact, xyz [6]geom.Vec3, pieces, loops [][]openSectionPiece, envelope SplineGraphBooleanHistory) error {
+	binding, e := bindPolynomialEnvelopeSources(r.solid, r.sources, r.op, proof.Edges[:], proof.Regions[:], xyz[:], pieces, loops, envelope)
 	if e != nil {
 		return e
 	}
-	h := &r.history
-	h.Base = envelope.Base
-	h.Vertices = [6]int(binding.vertices)
-	h.Midpoints = [2]int{binding.midpoints[1], binding.midpoints[4]}
-	for i, chain := range binding.edges {
-		h.Edges[i] = [2]int{chain[0], -1}
-		if len(chain) == 2 {
-			h.Edges[i][1] = chain[1]
+	r.history = PolynomialMixedEnvelopeHistory{
+		Base: envelope.Base, Vertices: [6]int(binding.vertices), Edges: [6][2]int(binding.chains),
+		Midpoints: [2]int{binding.midpoints[1], binding.midpoints[4]},
+		RoofFaces: [5]int(binding.roofFaces), RoofOwners: [5]int(binding.roofOwners),
+	}
+	for i, node := range proof.Nodes {
+		c, e := bindPolynomialEnvelopeJunction(r.solid, binding, proof.Edges[:], node, proof.Vertices[node.Vertex], xyz[node.Vertex])
+		if e != nil {
+			return e
 		}
+		c.Order, c.DerivativeGap = proof.ContactOrder[i], proof.DerivativeGap[i]
+		r.contacts[i] = c
+	}
+	return nil
+}
+
+type polynomialEnvelopeBinding struct {
+	polynomialNodeBinding
+	chains     [][2]int
+	roofFaces  []int
+	roofOwners []int
+}
+
+func bindPolynomialEnvelopeSources(s Solid, sources [3]*geom.BSplineSurface, op parametric.BooleanOp, edges []geom.SplineGraphPolynomialPiece, regions []geom.SplineGraphPolynomialRegion,
+	xyz []geom.Vec3, pieces, loops [][]openSectionPiece, envelope SplineGraphBooleanHistory) (polynomialEnvelopeBinding, error) {
+	var out polynomialEnvelopeBinding
+	topology := s.Topology()
+	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 ||
+		envelope.Base != len(regions) || len(s.faces) <= envelope.Base || s.faces[envelope.Base].Surface != sources[0] {
+		return out, geom.ErrConvergence
+	}
+	binding, e := bindPolynomialNodeEdges(s, envelope.ContourEdges, edges, xyz, pieces)
+	if e != nil {
+		return out, e
+	}
+	out.polynomialNodeBinding = binding
+	for i, chain := range binding.edges {
+		encoded := [2]int{chain[0], -1}
+		if len(chain) == 2 {
+			encoded[1] = chain[1]
+		}
+		out.chains = append(out.chains, encoded)
 		for j, id := range chain {
 			model := s.edges[id].Curve.(surfaceTrimCurve)
 			piece := pieces[i][j]
@@ -172,27 +204,27 @@ func (r *PolynomialMixedEnvelope) bind(proof geom.SplineGraphPolynomialMixedCont
 			if model.a == piece.b {
 				expected = reversePCurve(expected)
 			}
-			if (model.surface != r.sources[1] && model.surface != r.sources[2]) || !matchesTangencyTrim(model.curve, expected) {
-				return geom.ErrConvergence
+			if (model.surface != sources[1] && model.surface != sources[2]) || !matchesTangencyTrim(model.curve, expected) {
+				return polynomialEnvelopeBinding{}, geom.ErrConvergence
 			}
 		}
 	}
 
-	// Source sector coverage establishes the simple native UV regions even
-	// where the two boundary tangents coincide. Bind each directed coedge
-	// to that exact boundary and its selected original roof.
+	// Bind both directed coedges of each original branch restriction
+	// to their exact source sector loops and selected roofs.
 	for i, region := range regions {
 		owner := 1
-		if region.first {
+		if (region.HeightSide > 0) == (op == parametric.Union) {
 			owner = 0
 		}
-		h.RoofFaces[i], h.RoofOwners[i] = i, owner
+		out.roofFaces = append(out.roofFaces, i)
+		out.roofOwners = append(out.roofOwners, owner)
 		face := s.faces[i]
-		if e := bindPolynomialTangencyFace(face, r.sources[1+owner], false, region.loop); e != nil {
-			return fmt.Errorf("trimmed: mixed contact roof region %d: %w", i, e)
+		if e := bindPolynomialTangencyFace(face, sources[1+owner], false, loops[i]); e != nil {
+			return polynomialEnvelopeBinding{}, fmt.Errorf("trimmed: polynomial roof region %d: %w", i, e)
 		}
 		offset := 0
-		for _, source := range proof.Regions[i].Edges {
+		for _, source := range region.Edges {
 			chain := binding.edges[source.Edge]
 			for j := range chain {
 				index := j
@@ -200,44 +232,41 @@ func (r *PolynomialMixedEnvelope) bind(proof geom.SplineGraphPolynomialMixedCont
 					index = len(chain) - 1 - j
 				}
 				if face.Outer[offset+j].Edge != chain[index] {
-					return geom.ErrConvergence
+					return polynomialEnvelopeBinding{}, geom.ErrConvergence
 				}
 			}
 			offset += len(chain)
 		}
 	}
+	return out, nil
+}
 
-	for i, node := range proof.Nodes {
-		p := proof.Vertices[node.Vertex]
-		c := PolynomialMixedEnvelopeContact{
-			Parameters: p.Parameters, Point: p.Point, Order: proof.ContactOrder[i], DerivativeGap: proof.DerivativeGap[i],
-			Vertex: h.Vertices[node.Vertex],
+func bindPolynomialEnvelopeJunction(s Solid, binding polynomialEnvelopeBinding, edges []geom.SplineGraphPolynomialPiece, node geom.SplineGraphPolynomialJunction,
+	point geom.SplineGraphPolynomialVertex, xyz geom.Vec3) (PolynomialMixedEnvelopeContact, error) {
+	c := PolynomialMixedEnvelopeContact{Parameters: point.Parameters, Point: point.Point, Vertex: binding.vertices[node.Vertex]}
+	seen := make(map[int]bool, len(node.RayCycle))
+	for j, source := range node.RayCycle {
+		chain := binding.edges[source]
+		id := chain[0]
+		if edges[source].End == node.Vertex {
+			id = chain[len(chain)-1]
 		}
-		seen := make(map[int]bool, len(node.RayCycle))
-		for j, source := range node.RayCycle {
-			chain := binding.edges[source]
-			id := chain[0]
-			if proof.Edges[source].End == node.Vertex {
-				id = chain[len(chain)-1]
-			}
-			edge := s.edges[id]
-			if seen[id] || (edge.Start == c.Vertex) == (edge.End == c.Vertex) {
-				return geom.ErrConvergence
-			}
-			seen[id] = true
-			c.Rays[j], c.Sectors[j] = id, h.RoofFaces[node.Regions[j]]
+		edge := s.edges[id]
+		if seen[id] || (edge.Start == c.Vertex) == (edge.End == c.Vertex) {
+			return PolynomialMixedEnvelopeContact{}, geom.ErrConvergence
 		}
-		for id, edge := range s.edges {
-			if (edge.Start == c.Vertex || edge.End == c.Vertex) && !seen[id] {
-				return geom.ErrConvergence
-			}
-		}
-		for id, point := range s.vertices {
-			if point == xyz[node.Vertex] && id != c.Vertex {
-				return geom.ErrConvergence
-			}
-		}
-		r.contacts[i] = c
+		seen[id] = true
+		c.Rays[j], c.Sectors[j] = id, binding.roofFaces[node.Regions[j]]
 	}
-	return nil
+	for id, edge := range s.edges {
+		if (edge.Start == c.Vertex || edge.End == c.Vertex) && !seen[id] {
+			return PolynomialMixedEnvelopeContact{}, geom.ErrConvergence
+		}
+	}
+	for id, point := range s.vertices {
+		if point == xyz && id != c.Vertex {
+			return PolynomialMixedEnvelopeContact{}, geom.ErrConvergence
+		}
+	}
+	return c, nil
 }

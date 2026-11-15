@@ -242,18 +242,18 @@ func TestNativePolynomialMixedEnvelopeReloadRejections(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	for name, change := range map[string]func(*polynomialMixedEnvelopeRecipe){
-		"contact type":   func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.Contacts[1].Order = 1 },
-		"gap derivative": func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.Contacts[0].DerivativeGap = "0" },
-		"same vertex":    func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.Contacts[1].Vertex = r.Ledger.Contacts[0].Vertex },
-		"sector cycle":   func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.Contacts[1].Sectors[0] = 5 },
-		"lens edge":      func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.Edges[1] = r.Ledger.Edges[1][:1] },
-		"owner":          func(r *polynomialMixedEnvelopeRecipe) { r.Ledger.RoofOwners[2] ^= 1 },
-		"source":         func(r *polynomialMixedEnvelopeRecipe) { r.Sources[1] = source },
-		"tangent kind":   func(r *polynomialMixedEnvelopeRecipe) { r.Kind = nativePolynomialTangencyEnvelope },
+	for name, change := range map[string]func(*polynomialEnvelopeRecipe){
+		"contact type":   func(r *polynomialEnvelopeRecipe) { r.Ledger.Contacts[1].Order = 1 },
+		"gap derivative": func(r *polynomialEnvelopeRecipe) { r.Ledger.Contacts[0].DerivativeGap = "0" },
+		"same vertex":    func(r *polynomialEnvelopeRecipe) { r.Ledger.Contacts[1].Vertex = r.Ledger.Contacts[0].Vertex },
+		"sector cycle":   func(r *polynomialEnvelopeRecipe) { r.Ledger.Contacts[1].Sectors[0] = 5 },
+		"lens edge":      func(r *polynomialEnvelopeRecipe) { r.Ledger.Edges[1] = r.Ledger.Edges[1][:1] },
+		"owner":          func(r *polynomialEnvelopeRecipe) { r.Ledger.RoofOwners[2] ^= 1 },
+		"source":         func(r *polynomialEnvelopeRecipe) { r.Sources[1] = source },
+		"tangent kind":   func(r *polynomialEnvelopeRecipe) { r.Kind = nativePolynomialTangencyEnvelope },
 	} {
 		t.Run(name, func(t *testing.T) {
-			var recipe polynomialMixedEnvelopeRecipe
+			var recipe polynomialEnvelopeRecipe
 			if e := json.Unmarshal(raw.Bytes(), &recipe); e != nil {
 				t.Fatal(e)
 			}
