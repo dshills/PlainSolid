@@ -23,6 +23,18 @@ type SplineBoundaryDistanceOptions struct {
 	// SupportIterations strengthens nonaffine cell bounds with exact
 	// directional control-hull support checks. Zero leaves this off.
 	SupportIterations int
+	// TrimWitnessCells optionally searches exact composed original trim curves
+	// for attained upper witnesses. Zero preserves the original sampling path.
+	// At most 1024 curve uses are admitted; this is a shared search-cell quota.
+	// Up to 64 cells are spent per use, in stored face/loop order. Exhausting
+	// this optional quota resumes the unchanged exhaustive face search.
+	// Single-span composition requires the UV control hull within the
+	// support rectangle. The fallback admits at most 32 original curve spans
+	// and 64 algebraic support events per span, sampling only re-proved
+	// rational cell members. Unsupported composition supplies no witness.
+	// Patches arithmetic limits apply per span/construction/evaluation;
+	// algebraic root isolation is capped at 1024 subdivisions per call.
+	TrimWitnessCells int
 }
 
 // SplineBoundaryDistance bounds the exact squared distance to the bounded
@@ -37,6 +49,7 @@ type SplineBoundaryDistance struct {
 	Point                  geom.Box
 	HasWitness, Complete   bool
 	Cells, PeakQueuePoles  int
+	TrimWitnessCells       int
 }
 
 type splineDistanceFace struct {
@@ -99,7 +112,7 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 	if o.MaxFaces == 0 {
 		o.MaxFaces = 128
 	}
-	if !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 || o.MaxCells < 1 || o.MaxCells > 1<<20 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxQueuePoles < 4 || o.MaxQueuePoles > 1<<22 || o.MaxFaces < 1 || o.MaxFaces > 4096 || o.SupportIterations < 0 || o.SupportIterations > 64 {
+	if !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 || o.MaxCells < 1 || o.MaxCells > 1<<20 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxQueuePoles < 4 || o.MaxQueuePoles > 1<<22 || o.MaxFaces < 1 || o.MaxFaces > 4096 || o.SupportIterations < 0 || o.SupportIterations > 64 || o.TrimWitnessCells < 0 || o.TrimWitnessCells > 65536 {
 		return r, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -107,6 +120,17 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 	}
 	if len(s.faces) > o.MaxFaces {
 		return r, parametric.ErrBudget
+	}
+	if o.TrimWitnessCells > 0 {
+		uses := 0
+		for _, f := range s.faces {
+			for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
+				uses += len(loop)
+				if uses > 1024 {
+					return r, parametric.ErrBudget
+				}
+			}
+		}
 	}
 	faces := make([]splineDistanceFace, len(s.faces))
 	var queue splineDistanceQueue
@@ -226,6 +250,16 @@ func (s Solid) BoundSplineBoundaryDistance(ctx context.Context, point geom.Vec3,
 			for _, use := range l {
 				if e := ctx.Err(); e != nil {
 					return r, e
+				}
+				if o.TrimWitnessCells > r.TrimWitnessCells {
+					uv, b, used, hit, e := composedSplineTrimWitness(ctx, patches[i], use, point, min(64, o.TrimWitnessCells-r.TrimWitnessCells), o)
+					r.TrimWitnessCells += used
+					if e != nil {
+						return r, e
+					}
+					if hit {
+						record(i, uv, b)
+					}
 				}
 				if use.Curve == nil && f.affine.chart != nil {
 					uv, p, e := affineSplineEdgeWitness(f.affine.chart, use, point)
