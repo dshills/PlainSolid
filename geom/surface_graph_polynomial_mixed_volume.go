@@ -156,7 +156,8 @@ func integratePolynomialPositiveLayers(ctx context.Context, powers [2][]*big.Rat
 			out.regions = append(out.regions, slab+1)
 			out.volumes = append(out.volumes, volume)
 		}
-		if slab < len(orders) && orders[slab] == 1 {
+		// Odd contact orders exchange the lower and upper branches.
+		if slab < len(orders) && orders[slab]%2 == 1 {
 			lower = 1 - lower
 		}
 	}
