@@ -51,6 +51,15 @@ The command reports the exact before/after Playwright bundle hashes.
 Use the original app test configuration and archive the control's report
 separately from the ordinary run.
 
+For PlainCAD revision `efae4d2ffa6065875d3a76fc5926f358b5936a29`,
+`plaincad-production-wasm-capture.patch` provides a test-only fix for
+the CSP fixture. Apply it in an isolated PlainCAD copy before running
+the production suite with the standard Playwright driver. The test
+forwards the preview server's fingerprinted WASM response to the browser,
+compares its SHA-256 with the manifest, and checks the browser-observed
+statuses and security headers. Its matching is limited to the
+fingerprinted PlainSolid WASM asset.
+
 Use `--suite unit` to run the original Vitest suite with real PlainSolid WASM
 initialized in each test file. It defaults to one worker to reduce contention
 with solver deadlines. `--test modelingGeometry.test.ts` selects a file and

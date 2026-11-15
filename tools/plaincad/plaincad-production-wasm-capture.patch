@@ -1,0 +1,45 @@
+--- a/production-e2e/csp.spec.ts
++++ b/production-e2e/csp.spec.ts
+@@ -85,13 +85,30 @@
+   const plainSolidAsset = /^\/assets\/plainsolid-kernel-[^/]+\.wasm$/;
+   const context = page.context();
+   context.on("request", (request) => kernelRequests.push(new URL(request.url()).pathname));
++  const observedPlainSolidStatuses: number[] = [];
+   context.on("response", (response) => {
+     if (plainSolidAsset.test(new URL(response.url()).pathname)) {
+-      plainSolidResponses.push(response.body().then((body) => ({
+-        status: response.status(),
+-        sha256: createHash("sha256").update(body).digest("hex"),
+-      })));
++      observedPlainSolidStatuses.push(response.status());
+     }
++  });
++  // Read and forward the actual preview response while it is in flight.
++  // Chromium's inspector can evict large WASM bodies before response.body().
++  await context.route((url) => plainSolidAsset.test(url.pathname), async (route) => {
++    const forwarded = (async () => {
++      const upstream = await route.fetch({ maxRedirects: 0 });
++      try {
++        const body = await upstream.body();
++        await route.fulfill({ response: upstream, body });
++        return {
++          status: upstream.status(),
++          sha256: createHash("sha256").update(body).digest("hex"),
++        };
++      } finally {
++        await upstream.dispose();
++      }
++    })();
++    plainSolidResponses.push(forwarded);
++    await forwarded;
+   });
+   const response = await page.goto("/");
+   for (const [header, value] of Object.entries(SECURITY_HEADERS))
+@@ -263,6 +280,7 @@
+     expect(manifest.wasmSha256).toMatch(/^[a-f0-9]{64}$/);
+     const loaded = await Promise.all(plainSolidResponses);
+     expect(loaded.length).toBeGreaterThan(0);
++    expect(observedPlainSolidStatuses).toEqual(loaded.map(() => 200));
+     for (const asset of loaded) {
+       expect(asset).toEqual({ status: 200, sha256: manifest.wasmSha256 });
+     }
