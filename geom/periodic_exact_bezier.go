@@ -82,8 +82,7 @@ func uniformPeriodicSpanWindows(ctx context.Context, poleCount int, start, perio
 		return nil, ErrInvalid
 	}
 	n := int64(poleCount)
-	origin := new(big.Rat).SetFloat64(start)
-	width := new(big.Rat).Quo(new(big.Rat).SetFloat64(period), big.NewRat(n, 1))
+	origin, width := exactUniformPeriodicAxis(poleCount, start, period)
 	lo := new(big.Rat).Quo(new(big.Rat).Sub(lower, origin), width)
 	hi := new(big.Rat).Quo(new(big.Rat).Sub(upper, origin), width)
 	for _, value := range []*big.Rat{origin, width, lo, hi} {
@@ -125,6 +124,10 @@ func uniformPeriodicSpanWindows(ctx context.Context, poleCount int, start, perio
 		windows = append(windows, periodicSpanWindow{start: a, end: b, localStart: localStart, localEnd: localEnd, cycle: cycle, span: index})
 	}
 	return windows, nil
+}
+
+func exactUniformPeriodicAxis(count int, start, period float64) (origin, step *big.Rat) {
+	return new(big.Rat).SetFloat64(start), new(big.Rat).Quo(new(big.Rat).SetFloat64(period), big.NewRat(int64(count), 1))
 }
 
 func (c *PeriodicBSpline) periodicBezierControls(ctx context.Context, span int, budget *polynomialBudget) ([]exactHomogeneous, error) {

@@ -102,10 +102,7 @@ func (s *PeriodicBSplineSurface) exactTensorAxisWindows(ctx context.Context, dir
 		return nil, ErrInvalid
 	}
 	axis := s.axis[direction]
-	degree, count, knots := s.surface.degreeU, s.surface.countU, s.surface.knotsU
-	if direction == 1 {
-		degree, count, knots = s.surface.degreeV, s.surface.countV, s.surface.knotsV
-	}
+	degree, count, knots := s.tensorSplineAxis(direction)
 	if axis.Period != 0 {
 		pieces, err := uniformPeriodicSpanWindows(ctx, s.count[direction], axis.Start, axis.Period, window.Lower, window.Upper, limit, b)
 		if err != nil {
@@ -166,6 +163,13 @@ func (s *PeriodicBSplineSurface) exactTensorAxisWindows(ctx context.Context, dir
 		}, weights: weights})
 	}
 	return out, nil
+}
+
+func (s *PeriodicBSplineSurface) tensorSplineAxis(direction int) (degree, count int, knots []float64) {
+	if direction == 0 {
+		return s.surface.degreeU, s.surface.countU, s.surface.knotsU
+	}
+	return s.surface.degreeV, s.surface.countV, s.surface.knotsV
 }
 
 // Back-propagate each blossom evaluation through the de Boor blends. Each

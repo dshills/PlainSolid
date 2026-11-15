@@ -85,9 +85,13 @@ func (p *SurfacePatch) EvaluateRational(ctx context.Context, u, v *big.Rat, o Su
 		r.Du[axis] = new(big.Rat).Set(derivative[axis][0])
 		r.Dv[axis] = new(big.Rat).Set(derivative[axis][1])
 	}
-	bounds := func(values [3]*big.Rat) Box {
-		return Box{Min: Vec3{rationalFloatBound(values[0], true), rationalFloatBound(values[1], true), rationalFloatBound(values[2], true)}, Max: Vec3{rationalFloatBound(values[0], false), rationalFloatBound(values[1], false), rationalFloatBound(values[2], false)}}
-	}
-	r.PointBounds, r.DuBounds, r.DvBounds = bounds(r.Point), bounds(r.Du), bounds(r.Dv)
+	r.PointBounds, r.DuBounds, r.DvBounds = rationalSurfaceVectorBounds(r.Point), rationalSurfaceVectorBounds(r.Du), rationalSurfaceVectorBounds(r.Dv)
 	return r, nil
+}
+
+func rationalSurfaceVectorBounds(values [3]*big.Rat) Box {
+	return Box{
+		Min: Vec3{rationalFloatBound(values[0], true), rationalFloatBound(values[1], true), rationalFloatBound(values[2], true)},
+		Max: Vec3{rationalFloatBound(values[0], false), rationalFloatBound(values[1], false), rationalFloatBound(values[2], false)},
+	}
 }
