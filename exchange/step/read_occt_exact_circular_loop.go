@@ -184,7 +184,8 @@ type OCCTExactCircularLoopExtrusion struct {
 // from original model edges and material-oriented loops. This explicit mode
 // admits exact direction ratios and arbitrary coplanar frame origins, but only
 // common Z-axis cylinders, binary-lossless source vertices/radii and one simple
-// loop per face. No tolerances or source pcurves are used to repair geometry.
+// loop per face. It admits metre and millimetre SI units and OCCT's exact inch
+// declaration. No tolerances or source pcurves are used to repair geometry.
 func ReadOCCTExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) (OCCTExactCircularLoopExtrusion, error) {
 	var zero OCCTExactCircularLoopExtrusion
 	if ctx == nil || r == nil {
@@ -625,19 +626,25 @@ func occtLoopProductGraph(f *File, a Assembly) (int64, error) {
 	if _, e = simple(f, items[1], "MANIFOLD_SOLID_BREP", 2); e != nil {
 		return bad()
 	}
-	prefix, e := nauoSIPrefix(f, rep.Args[2].Ref)
-	if e != nil || (prefix != "$" && prefix != "MILLI") {
+	inches := a.LengthUnit == .0254
+	if !inches && a.LengthUnit != .001 && a.LengthUnit != 1 {
 		return bad()
 	}
 	allowed := map[string]bool{}
 	for _, k := range []string{"APPLICATION_PROTOCOL_DEFINITION", "APPLICATION_CONTEXT", "SHAPE_DEFINITION_REPRESENTATION", "PRODUCT_DEFINITION_SHAPE", "PRODUCT_DEFINITION", "PRODUCT_DEFINITION_FORMATION", "PRODUCT", "PRODUCT_CONTEXT", "PRODUCT_DEFINITION_CONTEXT", "PRODUCT_RELATED_PRODUCT_CATEGORY", "ADVANCED_BREP_SHAPE_REPRESENTATION", "AXIS2_PLACEMENT_3D", "CARTESIAN_POINT", "DIRECTION", "MANIFOLD_SOLID_BREP", "CLOSED_SHELL", "ADVANCED_FACE", "FACE_BOUND", "FACE_OUTER_BOUND", "EDGE_LOOP", "ORIENTED_EDGE", "EDGE_CURVE", "VERTEX_POINT", "LINE", "VECTOR", "CIRCLE", "PLANE", "CYLINDRICAL_SURFACE", "GEOMETRIC_REPRESENTATION_CONTEXT", "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT", "GLOBAL_UNIT_ASSIGNED_CONTEXT", "REPRESENTATION_CONTEXT", "LENGTH_UNIT", "NAMED_UNIT", "SI_UNIT", "PLANE_ANGLE_UNIT", "SOLID_ANGLE_UNIT", "UNCERTAINTY_MEASURE_WITH_UNIT"} {
 		allowed[k] = true
 	}
+	inchRecords := []string{"CONVERSION_BASED_UNIT", "DIMENSIONAL_EXPONENTS", "LENGTH_MEASURE_WITH_UNIT"}
+	if inches {
+		for _, k := range inchRecords {
+			allowed[k] = true
+		}
+	}
 	geometryNames := map[string]bool{}
 	for _, k := range []string{"AXIS2_PLACEMENT_3D", "CARTESIAN_POINT", "DIRECTION", "MANIFOLD_SOLID_BREP", "CLOSED_SHELL", "ADVANCED_FACE", "FACE_BOUND", "FACE_OUTER_BOUND", "EDGE_LOOP", "ORIENTED_EDGE", "EDGE_CURVE", "VERTEX_POINT", "LINE", "VECTOR", "CIRCLE", "PLANE", "CYLINDRICAL_SURFACE"} {
 		geometryNames[k] = true
 	}
-	if e := occtLoopContext(f, rep.Args[2].Ref); e != nil {
+	if e := occtLoopContextUnits(f, rep.Args[2].Ref, false, inches); e != nil {
 		return bad()
 	}
 	schemas := 0
@@ -680,6 +687,13 @@ func occtLoopProductGraph(f *File, a Assembly) (int64, error) {
 	for _, k := range []string{"APPLICATION_PROTOCOL_DEFINITION", "APPLICATION_CONTEXT", "SHAPE_DEFINITION_REPRESENTATION", "PRODUCT_DEFINITION_SHAPE", "PRODUCT_DEFINITION", "PRODUCT_DEFINITION_FORMATION", "PRODUCT", "PRODUCT_CONTEXT", "PRODUCT_DEFINITION_CONTEXT", "PRODUCT_RELATED_PRODUCT_CATEGORY", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SOLID_BREP", "CLOSED_SHELL"} {
 		if counts[k] != 1 {
 			return bad()
+		}
+	}
+	if inches {
+		for _, k := range inchRecords {
+			if counts[k] != 1 {
+				return bad()
+			}
 		}
 	}
 	pid, pd, _, e := independentMaterialProduct(f, sdr)
@@ -738,8 +752,11 @@ func occtLoopProductGraph(f *File, a Assembly) (int64, error) {
 	return items[1], nil
 }
 
-func occtLoopContext(f *File, id int64) error { return occtLoopContextMode(f, id, false) }
 func occtLoopContextMode(f *File, id int64, optionalUncertainty bool) error {
+	return occtLoopContextUnits(f, id, optionalUncertainty, false)
+}
+
+func occtLoopContextUnits(f *File, id int64, optionalUncertainty, inches bool) error {
 	en := f.Entities[id]
 	if len(en.Records) != 4 && !(optionalUncertainty && len(en.Records) == 3) {
 		return geom.ErrDomain
@@ -793,6 +810,13 @@ func occtLoopContextMode(f *File, id int64, optionalUncertainty bool) error {
 		en := f.Entities[uid]
 		if len(en.Records) != 3 {
 			return geom.ErrDomain
+		}
+		if _, conversion := component(en, "CONVERSION_BASED_UNIT"); inches && conversion {
+			if kinds["LENGTH_UNIT"] || !occtLoopInch(f, en) {
+				return geom.ErrDomain
+			}
+			kinds["LENGTH_UNIT"], length = true, uid
+			continue
 		}
 		kind := ""
 		var si Record
@@ -850,6 +874,47 @@ func occtLoopContextMode(f *File, id int64, optionalUncertainty bool) error {
 		return geom.ErrDomain
 	}
 	return nil
+}
+
+// OCCT's AP214 inch declaration is exactly 127/5 millimetres. Authenticate
+// that original conversion chain before accepting its rounded float64 unit.
+func occtLoopInch(f *File, unit Entity) bool {
+	length, ok := component(unit, "LENGTH_UNIT")
+	named, hasName := component(unit, "NAMED_UNIT")
+	conversion, converted := component(unit, "CONVERSION_BASED_UNIT")
+	if !ok || len(length.Args) != 0 || !hasName || len(named.Args) != 1 || named.Args[0].Kind != Reference ||
+		!converted || len(conversion.Args) != 2 || conversion.Args[0].Kind != String || conversion.Args[0].Text != "INCH" || conversion.Args[1].Kind != Reference {
+		return false
+	}
+	dim, err := simple(f, named.Args[0].Ref, "DIMENSIONAL_EXPONENTS", 7)
+	if err != nil {
+		return false
+	}
+	for i, value := range dim.Args {
+		want := int64(0)
+		if i == 0 {
+			want = 1
+		}
+		q, err := liftSourceRat(value)
+		if err != nil || q.Cmp(big.NewRat(want, 1)) != 0 {
+			return false
+		}
+	}
+	m, err := simple(f, conversion.Args[1].Ref, "LENGTH_MEASURE_WITH_UNIT", 2)
+	if err != nil || m.Args[1].Kind != Reference {
+		return false
+	}
+	q, err := liftSourceRat(m.Args[0])
+	if err != nil || q.Cmp(big.NewRat(127, 5)) != 0 {
+		return false
+	}
+	base := f.Entities[m.Args[1].Ref]
+	length, ok = component(base, "LENGTH_UNIT")
+	named, hasName = component(base, "NAMED_UNIT")
+	si, isSI := component(base, "SI_UNIT")
+	return len(base.Records) == 3 && ok && len(length.Args) == 0 && hasName && len(named.Args) == 1 && named.Args[0].Kind == Derived &&
+		isSI && len(si.Args) == 2 && si.Args[0].Kind == Enumeration && si.Args[0].Text == "MILLI" &&
+		si.Args[1].Kind == Enumeration && si.Args[1].Text == "METRE"
 }
 
 // WriteOCCTExactCircularLoopSource re-proves and re-emits the authenticated
