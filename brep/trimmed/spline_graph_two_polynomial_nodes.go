@@ -39,31 +39,13 @@ func assembleTwoPolynomialNodeGraphs(ctx context.Context, base, a, b *geom.BSpli
 	if e != nil {
 		return fail(e)
 	}
-	regions := make([]graphEnvelopeRegion, len(arrangement.Regions))
-	for i, region := range arrangement.Regions {
-		var loop []openSectionPiece
-		for _, use := range region.Edges {
-			chain := pieces[use.Edge]
-			if use.Reversed {
-				for j := len(chain) - 1; j >= 0; j-- {
-					p := chain[j]
-					loop = append(loop, openSectionPiece{a: p.b, b: p.a, c: reversePCurve(p.c), side: -1})
-				}
-			} else {
-				loop = append(loop, chain...)
-			}
-		}
-		if p := region.Perimeter; p != nil {
-			if p.ParameterDirection != 1 {
-				return fail(geom.ErrConvergence)
-			}
-			arc, e := saddleSquareArc(uv[p.Start], uv[p.End])
-			if e != nil {
-				return fail(e)
-			}
-			loop = append(loop, arc...)
-		}
-		regions[i] = graphEnvelopeRegion{loop: loop, first: (region.HeightSide > 0) == (op == parametric.Union)}
+	loops, e := twoPolynomialNodeRegionLoops(arrangement, uv, pieces)
+	if e != nil {
+		return fail(e)
+	}
+	regions := make([]graphEnvelopeRegion, len(loops))
+	for i, loop := range loops {
+		regions[i] = graphEnvelopeRegion{loop: loop, first: (arrangement.Regions[i].HeightSide > 0) == (op == parametric.Union)}
 	}
 	solid, history, e := assembleSplineEnvelope(ctx, base, a, b, regions, tolerance, exactGraphVertexEvaluator(ctx, proof))
 	if e != nil {
@@ -90,6 +72,34 @@ func assembleTwoPolynomialNodeGraphs(ctx context.Context, base, a, b *geom.BSpli
 	}
 	history.TwoPolynomialNodes = mapping
 	return solid, history, nil
+}
+
+func twoPolynomialNodeRegionLoops(arrangement geom.SplineGraphTwoPolynomialNodes, uv [6]geom.Vec2, pieces [6][]openSectionPiece) ([5][]openSectionPiece, error) {
+	var loops [5][]openSectionPiece
+	for i, region := range arrangement.Regions {
+		for _, use := range region.Edges {
+			chain := pieces[use.Edge]
+			if use.Reversed {
+				for j := len(chain) - 1; j >= 0; j-- {
+					p := chain[j]
+					loops[i] = append(loops[i], openSectionPiece{a: p.b, b: p.a, c: reversePCurve(p.c), side: -1})
+				}
+			} else {
+				loops[i] = append(loops[i], chain...)
+			}
+		}
+		if p := region.Perimeter; p != nil {
+			if p.ParameterDirection != 1 {
+				return loops, geom.ErrConvergence
+			}
+			arc, e := saddleSquareArc(uv[p.Start], uv[p.End])
+			if e != nil {
+				return loops, e
+			}
+			loops[i] = append(loops[i], arc...)
+		}
+	}
+	return loops, nil
 }
 
 func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv [6]geom.Vec2) (pieces [6][]openSectionPiece, err error) {

@@ -25,6 +25,7 @@ type SplineGraphBooleanOptions struct {
 	PolynomialNodeAxis int
 	// TwoPolynomialNodes selects Common or Fuse across exactly two transverse
 	// crossings of cubic/quartic graph branches. Native vertices must be exact.
+	// CutSplineGraphTwoPolynomialNodeComponents exposes the touching Cut components.
 	TwoPolynomialNodes     *geom.GraphPointContactOptions
 	TwoPolynomialNodesAxis int // original free coordinate (0=U, 1=V)
 	Section                intersect.SplinePlaneOptions

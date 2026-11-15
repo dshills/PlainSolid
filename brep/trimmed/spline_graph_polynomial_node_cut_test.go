@@ -105,7 +105,7 @@ func polynomialNodeCutVolumes(axis, order int) [2]float64 {
 	return want
 }
 
-func checkPolynomialNodeCutStrictCollision(t *testing.T, parts [2]Solid, center geom.Vec3) {
+func checkPolynomialNodeCutStrictCollision(t *testing.T, parts [2]Solid, centers ...geom.Vec3) {
 	t.Helper()
 	ctx := context.Background()
 	compound, e := AssembleShells(ctx, []PlacedSolid{{parts[0], geom.Identity()}, {parts[1], geom.Identity()}}, 16)
@@ -120,12 +120,18 @@ func checkPolynomialNodeCutStrictCollision(t *testing.T, parts [2]Solid, center 
 	if e != nil || !r.Complete || len(r.Contacts) == 0 {
 		t.Fatal("global collision silently accepted nonincident contact", r.Complete, e)
 	}
-	for _, contact := range r.Contacts {
-		if contact.Kind == collision.Touching && len(contact.Points) == 1 && contact.Points[0] == center {
-			return
+	for _, center := range centers {
+		found := false
+		for _, contact := range r.Contacts {
+			if contact.Kind == collision.Touching && len(contact.Points) == 1 && contact.Points[0] == center {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatal("global collision did not report the isolated node", center)
 		}
 	}
-	t.Fatal("global collision did not report the isolated node")
 }
 
 func TestNativePolynomialNodeCutOCCT(t *testing.T) {
