@@ -121,10 +121,18 @@ func (c MappedSplineChain) AuthoredParameter(t *big.Rat) (*big.Rat, error) {
 	return c.parts[i].AuthoredParameter(u)
 }
 func (c MappedSplineChain) cell(a, b *big.Rat) (ExactBezierUV, error) {
+	i, lo, hi, e := c.cellParameters(a, b)
+	if e != nil {
+		return ExactBezierUV{}, e
+	}
+	return restrictMappedProofCurve(c.parts[i].curve, lo, hi)
+}
+
+func (c MappedSplineChain) cellParameters(a, b *big.Rat) (int, *big.Rat, *big.Rat, error) {
 	mid := new(big.Rat).Quo(new(big.Rat).Add(a, b), big.NewRat(2, 1))
 	i, _, e := c.locate(mid)
 	if e != nil {
-		return ExactBezierUV{}, e
+		return 0, nil, nil, e
 	}
 	lo := new(big.Rat)
 	if i > 0 {
@@ -135,10 +143,10 @@ func (c MappedSplineChain) cell(a, b *big.Rat) (ExactBezierUV, error) {
 		hi = c.stations[i]
 	}
 	if a.Cmp(lo) < 0 || b.Cmp(hi) > 0 {
-		return ExactBezierUV{}, geom.ErrConvergence
+		return 0, nil, nil, geom.ErrConvergence
 	}
 	w := new(big.Rat).Sub(hi, lo)
-	return restrictMappedProofCurve(c.parts[i].curve, new(big.Rat).Quo(new(big.Rat).Sub(a, lo), w), new(big.Rat).Quo(new(big.Rat).Sub(b, lo), w))
+	return i, new(big.Rat).Quo(new(big.Rat).Sub(a, lo), w), new(big.Rat).Quo(new(big.Rat).Sub(b, lo), w), nil
 }
 
 // MappedSplineChainAgreement proves continuous complete model correspondence;
