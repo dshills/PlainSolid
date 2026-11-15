@@ -17,7 +17,8 @@ func writeWrappedAxialBore(w io.Writer, m WrappedStationBoreBody, single bool) e
 	return writeWrappedProfileBore(w, m, single, false)
 }
 
-func writeWrappedProfileBore(w io.Writer, m WrappedStationBoreBody, single, rational bool) error {
+func writeWrappedProfileBore(w io.Writer, m WrappedStationBoreBody, single, rational bool, anisotropicMode ...bool) error {
+	anisotropic := len(anisotropicMode) == 1 && anisotropicMode[0]
 	if w == nil {
 		return geom.ErrInvalid
 	}
@@ -32,7 +33,9 @@ func writeWrappedProfileBore(w io.Writer, m WrappedStationBoreBody, single, rati
 		b.CapNames = m.CapNames
 		var raw bytes.Buffer
 		var err error
-		if rational {
+		if anisotropic {
+			err = WriteWrappedAnisotropicStationLoft(&raw, WrappedAnisotropicStationLoftBody{Name: b.Name, Walls: b.Walls, CapNames: b.CapNames, LengthUnit: b.LengthUnit})
+		} else if rational {
 			err = WriteWrappedRationalStationLoft(&raw, WrappedRationalStationLoftBody{Name: b.Name, Walls: b.Walls, CapNames: b.CapNames, LengthUnit: b.LengthUnit})
 		} else {
 			err = writeStationBoreLoft(&raw, b)
@@ -173,7 +176,7 @@ func writeWrappedProfileBore(w io.Writer, m WrappedStationBoreBody, single, rati
 	if e != nil {
 		return e
 	}
-	if _, e = readWrappedProfileBore(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, single, rational); e != nil {
+	if _, e = readWrappedProfileBore(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, single, rational, anisotropic); e != nil {
 		return e
 	}
 	n, e := w.Write(out.Bytes())

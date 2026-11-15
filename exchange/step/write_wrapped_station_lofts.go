@@ -47,14 +47,27 @@ func WriteWrappedStationLoft(w io.Writer, m WrappedStationLoftBody) error {
 	return writeWrappedStationGraph(w, m.Name, parts, true)
 }
 
-func writeWrappedStationGraph(w io.Writer, name string, parts WrappedFrustumModel, circular bool) error {
+func writeWrappedStationGraph(w io.Writer, name string, parts WrappedFrustumModel, circular bool, anisotropicMode ...bool) error {
+	anisotropic := len(anisotropicMode) == 1 && anisotropicMode[0]
 	var e error
 	var raw bytes.Buffer
-	if e = WriteWrappedFrusta(&raw, parts); e != nil {
+	if anisotropic {
+		input := WrappedCylindricalModel{LengthUnit: parts.LengthUnit}
+		for _, b := range parts.Bodies {
+			input.Bodies = append(input.Bodies, WrappedCylindricalBody{Name: b.Name, Face: b.Face, CapNames: b.CapNames})
+		}
+		e = stageWrappedCappedBodies(&raw, input, func(data []byte) error {
+			_, err := readWrappedCappedBodies(bytes.NewReader(data), Limits{}, WrappedSurfaceOptions{}, true, true)
+			return err
+		})
+	} else {
+		e = WriteWrappedFrusta(&raw, parts)
+	}
+	if e != nil {
 		return e
 	}
 	source := append([]byte(nil), raw.Bytes()...)
-	decoded, e := ReadWrappedFrusta(bytes.NewReader(source), Limits{}, WrappedSurfaceOptions{})
+	decoded, e := readWrappedCappedBodies(bytes.NewReader(source), Limits{}, WrappedSurfaceOptions{}, true, anisotropic)
 	if e != nil {
 		return e
 	}
@@ -162,7 +175,7 @@ func writeWrappedStationGraph(w io.Writer, name string, parts WrappedFrustumMode
 	if e != nil {
 		return e
 	}
-	if _, e = readWrappedStationLoft(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, circular); e != nil {
+	if _, e = readWrappedStationLoft(bytes.NewReader(out.Bytes()), Limits{}, WrappedSurfaceOptions{}, circular, anisotropic); e != nil {
 		return e
 	}
 	n, e := w.Write(out.Bytes())

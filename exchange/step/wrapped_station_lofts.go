@@ -27,8 +27,12 @@ func ReadWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions) (Wra
 	return readWrappedStationLoft(r, l, o, true)
 }
 
-func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circular bool) (WrappedStationLoftBody, error) {
+func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circular bool, anisotropicMode ...bool) (WrappedStationLoftBody, error) {
+	anisotropic := len(anisotropicMode) == 1 && anisotropicMode[0]
 	fail := func() (WrappedStationLoftBody, error) {
+		if anisotropic {
+			return WrappedStationLoftBody{}, errors.New("step: unsupported wrapped anisotropic station loft")
+		}
 		if !circular {
 			return WrappedStationLoftBody{}, errors.New("step: unsupported wrapped rational station loft")
 		}
@@ -46,6 +50,11 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 	f, e := Parse(r, l)
 	if e != nil {
 		return WrappedStationLoftBody{}, e
+	}
+	if anisotropic {
+		if e = anisotropicStationSourceWeights(f); e != nil {
+			return WrappedStationLoftBody{}, e
+		}
 	}
 	root := int64(0)
 	unit := 0.
@@ -113,7 +122,7 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 	}
 	type band struct {
 		face    WrappedSplineFace
-		proof   geom.WrappedFrustumEmbedding
+		proof   stationScaleEmbedding
 		surface int64
 	}
 	bands := []band{}
@@ -196,7 +205,7 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 		if e != nil {
 			return WrappedStationLoftBody{}, e
 		}
-		proof, e := geom.CertifyWrappedFrustumEmbedding(context.Background(), decoded.Geometry, geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
+		proof, e := certifyStationScaleEmbedding(decoded.Geometry, geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}, anisotropic)
 		if e != nil || !proof.Complete || circular && !proof.Circular {
 			return fail()
 		}
@@ -233,7 +242,7 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 		}
 		if i > 0 {
 			p := bands[i-1]
-			if p.proof.UpperZ.Cmp(b.proof.LowerZ) != 0 || p.proof.UpperRadius.Cmp(b.proof.LowerRadius) != 0 || p.face.SideEdges[2] != b.face.SideEdges[0] || p.face.CornerVertices[2] != b.face.CornerVertices[0] {
+			if p.proof.UpperZ.Cmp(b.proof.LowerZ) != 0 || (p.proof.UpperScale[0].Cmp(b.proof.LowerScale[0]) != 0 || p.proof.UpperScale[1].Cmp(b.proof.LowerScale[1]) != 0) || p.face.SideEdges[2] != b.face.SideEdges[0] || p.face.CornerVertices[2] != b.face.CornerVertices[0] {
 				return fail()
 			}
 		}
@@ -253,11 +262,13 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 		if e != nil {
 			return WrappedStationLoftBody{}, e
 		}
-		radius, e := geom.RepresentedExactScalar(b.proof.LowerRadius)
+		radius, e := geom.RepresentedExactScalar(b.proof.LowerScale[0])
 		if e != nil {
 			return WrappedStationLoftBody{}, e
 		}
-		out.Stations = append(out.Stations, trimmed.WrappedLoftStation{Z: z, Radius: radius})
+		if !anisotropic {
+			out.Stations = append(out.Stations, trimmed.WrappedLoftStation{Z: z, Radius: radius})
+		}
 		out.Walls = append(out.Walls, b.face)
 	}
 	last := bands[len(bands)-1]
@@ -265,11 +276,13 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 	if e != nil {
 		return WrappedStationLoftBody{}, e
 	}
-	radius, e := geom.RepresentedExactScalar(last.proof.UpperRadius)
+	radius, e := geom.RepresentedExactScalar(last.proof.UpperScale[0])
 	if e != nil {
 		return WrappedStationLoftBody{}, e
 	}
-	out.Stations = append(out.Stations, trimmed.WrappedLoftStation{Z: z, Radius: radius})
+	if !anisotropic {
+		out.Stations = append(out.Stations, trimmed.WrappedLoftStation{Z: z, Radius: radius})
+	}
 	if len(vertices) != len(bands)+1 || len(expectedOwners) != len(bands)+1 || len(edgeOwners) != 2*len(bands)+1 {
 		return fail()
 	}
@@ -346,7 +359,11 @@ func readWrappedStationLoft(r io.Reader, l Limits, o WrappedSurfaceOptions, circ
 		for i := range bands {
 			supports[i] = bands[i].face.Geometry
 		}
-		out.Solid, _, e = trimmed.NewWrappedRationalStationLoft(context.Background(), supports, 1e-10, options)
+		if anisotropic {
+			out.Solid, _, e = trimmed.NewWrappedAnisotropicStationLoft(context.Background(), supports, 1e-10, options)
+		} else {
+			out.Solid, _, e = trimmed.NewWrappedRationalStationLoft(context.Background(), supports, 1e-10, options)
+		}
 	}
 	if e != nil {
 		return WrappedStationLoftBody{}, e

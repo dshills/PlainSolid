@@ -75,7 +75,8 @@ func readWrappedAxialBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single
 	return readWrappedProfileBore(r, l, o, single, false)
 }
 
-func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single, rational bool) (WrappedStationBoreBody, error) {
+func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, single, rational bool, anisotropicMode ...bool) (WrappedStationBoreBody, error) {
+	anisotropic := len(anisotropicMode) == 1 && anisotropicMode[0]
 	fail := func() (WrappedStationBoreBody, error) {
 		return WrappedStationBoreBody{}, fmt.Errorf("step: unsupported wrapped axial bore graph")
 	}
@@ -91,6 +92,11 @@ func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, sing
 	f, e := Parse(r, l)
 	if e != nil {
 		return WrappedStationBoreBody{}, e
+	}
+	if anisotropic {
+		if e = anisotropicStationSourceWeights(f); e != nil {
+			return WrappedStationBoreBody{}, e
+		}
 	}
 	root, repID := int64(0), int64(0)
 	unit := 0.
@@ -435,7 +441,7 @@ func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, sing
 		internal := l
 		internal.MaxBytes = max(l.MaxBytes, int64(raw.Len()))
 		if rational {
-			local[side], e = readWrappedStationLoft(&raw, internal, o, false)
+			local[side], e = readWrappedStationLoft(&raw, internal, o, false, anisotropic)
 		} else if len(walls[side]) == 1 {
 			var model WrappedFrustumModel
 			model, e = ReadWrappedFrusta(&raw, internal, o)
@@ -477,6 +483,20 @@ func readWrappedProfileBore(r io.Reader, l Limits, o WrappedSurfaceOptions, sing
 		return fail()
 	}
 	options := geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+	if anisotropic {
+		solid, _, err := trimmed.CutWrappedAnisotropicStationLofts(context.Background(), local[0].Solid, local[1].Solid, options)
+		if err != nil {
+			return WrappedStationBoreBody{}, err
+		}
+		proof, err := solid.ValidateWrappedAnisotropicStationBore(context.Background(), options)
+		if err != nil {
+			return WrappedStationBoreBody{}, err
+		}
+		if !proof.Complete {
+			return fail()
+		}
+		return WrappedStationBoreBody{Name: name, Outer: local[0], Inner: local[1], CapNames: local[0].CapNames, Solid: solid, LengthUnit: unit}, nil
+	}
 	combine := trimmed.CombineCoaxialWrappedStationLofts
 	if rational {
 		combine = trimmed.CombineCoaxialWrappedRationalStationLofts

@@ -48,7 +48,8 @@ type wrappedCappedModel struct {
 	LengthUnit float64
 }
 
-func readWrappedCappedBodies(r io.Reader, l Limits, o WrappedSurfaceOptions, frustum bool) (wrappedCappedModel, error) {
+func readWrappedCappedBodies(r io.Reader, l Limits, o WrappedSurfaceOptions, frustum bool, anisotropicMode ...bool) (wrappedCappedModel, error) {
+	anisotropic := len(anisotropicMode) == 1 && anisotropicMode[0]
 	fail := func() (wrappedCappedModel, error) {
 		return wrappedCappedModel{}, errors.New("step: unsupported capped wrapped spline body")
 	}
@@ -272,7 +273,9 @@ func readWrappedCappedBodies(r io.Reader, l Limits, o WrappedSurfaceOptions, fru
 		}
 		b := wrappedCappedBody{Name: name, CapNames: capNames[m.FaceIDs[i]], Face: face}
 		options := geom.SurfacePatchOptions{MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
-		if frustum {
+		if anisotropic {
+			b.Solid, _, e = trimmed.NewWrappedAnisotropicStationLoft(context.Background(), []*geom.WrappedSurfacePatch{face.Geometry}, 1e-10, options)
+		} else if frustum {
 			b.Solid, b.FrustumProof, e = trimmed.NewWrappedFrustum(context.Background(), face.Geometry, 1e-10, options)
 			if e == nil && !b.FrustumProof.Complete {
 				return fail()
