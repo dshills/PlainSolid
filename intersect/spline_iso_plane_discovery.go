@@ -152,12 +152,9 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 						if e != nil {
 							return r, e
 						}
-						anchor = &TubeBoundaryAnchor{AtUpper: option.AtUpper}
-						for j, q := range option.Anchor {
-							anchor.Parameters[j], e = geom.RepresentedExactScalar(q)
-							if e != nil {
-								return r, e
-							}
+						anchor, e = NewTubeBoundaryAnchor(option.AtUpper, option.Anchor)
+						if e != nil {
+							return r, e
 						}
 					}
 					if e != nil || !proof.ProvenBranch {
@@ -227,14 +224,7 @@ func certifyIsoDiscoveryTerminal(ctx context.Context, a, b *geom.SurfacePatch, s
 		if e != nil {
 			return SplineOpenPlaneTerminal{}, e
 		}
-		tube, e := geom.NewVerifiedSurfaceTube(pa, pb, geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits})
-		if seed.BoundaryAnchor != nil {
-			var anchor [4]*big.Rat
-			for j, q := range seed.BoundaryAnchor.Parameters {
-				anchor[j] = new(big.Rat).SetFloat64(q)
-			}
-			tube, e = geom.NewBoundaryAnchoredSurfaceTube(ctx, pa, pb, geom.SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits}, AtUpper: seed.BoundaryAnchor.AtUpper, Anchor: anchor})
-		}
+		tube, e := verifySplineTubeCell(ctx, pa, pb, geom.SurfacePairTubeOptions{FreeAxis: axis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits}, seed.BoundaryAnchor)
 		if e != nil {
 			return SplineOpenPlaneTerminal{}, e
 		}

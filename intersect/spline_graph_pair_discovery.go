@@ -126,12 +126,9 @@ func discoverGraphPairTubes(ctx context.Context, a, b Patch, p geom.SurfacePatch
 					if e != nil {
 						return out, e
 					}
-					anchor = &TubeBoundaryAnchor{AtUpper: tube.Boundary.AtUpper}
-					for i, q := range tube.Boundary.Anchor {
-						anchor.Parameters[i], e = geom.RepresentedExactScalar(q)
-						if e != nil {
-							return out, e
-						}
+					anchor, e = NewTubeBoundaryAnchor(tube.Boundary.AtUpper, tube.Boundary.Anchor)
+					if e != nil {
+						return out, e
 					}
 				}
 

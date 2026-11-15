@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -148,15 +147,11 @@ func rebuildAlgebraicTubeSeeds(ctx context.Context, input [2]nativeTubePatch, tu
 				q, e = geom.CertifySurfacePairTube(a, b, options)
 			} else {
 				x := *c.BoundaryAnchor
-				var uv [4]*big.Rat
-				for j, v := range x.Parameters {
-					if !finite(v) {
-						return charts, seeds, geom.ErrInvalid
-					}
-					uv[j] = ratInset(v)
+				boundary, e2 := x.ExactOptions(options)
+				if e2 != nil {
+					return charts, seeds, e2
 				}
-				q, e = geom.CertifyBoundaryAnchoredSurfacePairTube(ctx, a, b, geom.SurfaceTubeBoundaryOptions{
-					SurfacePairTubeOptions: options, AtUpper: x.AtUpper, Anchor: uv})
+				q, e = geom.CertifyBoundaryAnchoredSurfacePairTube(ctx, a, b, boundary)
 				anchor = &x
 			}
 			if e != nil {

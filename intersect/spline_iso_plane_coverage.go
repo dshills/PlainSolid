@@ -3,7 +3,6 @@ package intersect
 import (
 	"context"
 	"errors"
-	"math"
 	"math/big"
 	"plainsolid/geom"
 	"sort"
@@ -230,14 +229,7 @@ func CertifyIsoPlaneSplineTubeCoverage(ctx context.Context, a, b Patch, seeds Sp
 				if e != nil {
 					return empty, e
 				}
-				var anchor [4]*big.Rat
-				for j, q := range seed.BoundaryAnchor.Parameters {
-					if math.IsNaN(q) || math.IsInf(q, 0) {
-						return empty, geom.ErrInvalid
-					}
-					anchor[j] = new(big.Rat).SetFloat64(q)
-				}
-				proof, e = geom.CertifyBoundaryAnchoredSurfacePairTube(ctx, restricted[0], restricted[1], geom.SurfaceTubeBoundaryOptions{SurfacePairTubeOptions: geom.SurfacePairTubeOptions{FreeAxis: seed.Tube.FreeAxis, MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits}, AtUpper: seed.BoundaryAnchor.AtUpper, Anchor: anchor})
+				proof, e = certifySplineTubeCell(ctx, restricted[0], restricted[1], geom.SurfacePairTubeOptions{FreeAxis: seed.Tube.FreeAxis, MaxOperations: opts.MaxOperations, MaxCoefficientBits: w.bits}, seed.BoundaryAnchor)
 			}
 			if e != nil {
 				return empty, e

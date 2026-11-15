@@ -2,12 +2,61 @@ package intersect
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
 
 	"plainsolid/geom"
 )
+
+func TestTubeBoundaryAnchorRationalRecipe(t *testing.T) {
+	r := [4]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 3), big.NewRat(1, 2), big.NewRat(1, 3)}
+	a, err := NewTubeBoundaryAnchor(true, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r[1].SetInt64(99)
+	data, err := json.Marshal(a)
+	if err != nil || string(data) != `{"AtUpper":true,"RationalParameters":["1/2","1/3","1/2","1/3"]}` {
+		t.Fatal(string(data), err)
+	}
+	var back TubeBoundaryAnchor
+	if err := json.Unmarshal(data, &back); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		out, err := back.ExactOptions(geom.SurfacePairTubeOptions{FreeAxis: 2})
+		if err != nil || !out.AtUpper || out.FreeAxis != 2 || out.Anchor[1].Cmp(big.NewRat(1, 3)) != 0 {
+			t.Fatal("exact rational anchor provenance", out, err)
+		}
+		out.Anchor[1].SetInt64(5)
+	}
+	for _, raw := range []string{
+		`{"Parameters":[0,0,0,0],"RationalParameters":["0","1/3","0","1/3"]}`,
+		`{"RationalParameters":["0","2/6","0","1/3"]}`,
+		`{"RationalParameters":["0","1e99999999","0","1/3"]}`,
+		`{"RationalParameters":["0","1/3","0"]}`,
+		`{"Parameters":[0,null,0,0]}`,
+		`{"Parameters":[0,0,0,0],"Proven":true}`,
+	} {
+		if err := json.Unmarshal([]byte(raw), &back); err == nil {
+			t.Fatal("accepted invalid proposal", raw)
+		}
+	}
+	a.Parameters[1] = .25
+	if _, err := a.ExactOptions(geom.SurfacePairTubeOptions{}); err == nil {
+		t.Fatal("accepted ambiguous coordinate encodings")
+	}
+	legacy, err := NewTubeBoundaryAnchor(false, [4]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 4), big.NewRat(1, 8), new(big.Rat)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err = json.Marshal(legacy)
+	if err != nil || string(data) != `{"AtUpper":false,"Parameters":[0.5,0.25,0.125,0]}` {
+		t.Fatal("changed legacy anchor recipe", string(data), err)
+	}
+}
 
 func TestBoundaryAnchoredSplinePairFullCoverageAndRecipe(t *testing.T) {
 	ctx := context.Background()

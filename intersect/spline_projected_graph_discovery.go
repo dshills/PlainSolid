@@ -55,7 +55,7 @@ func DiscoverProjectedAffineGraphPairTubes(ctx context.Context, a, b Patch, p ge
 		options := geom.SurfacePairTubeOptions{FreeAxis: seed.Tube.FreeAxis, MaxOperations: o.Tubes.MaxOperations, MaxCoefficientBits: o.Tubes.MaxCoefficientBits}
 		proof, e := geom.CertifySurfacePairTube(qa, qb, options)
 		if seed.BoundaryAnchor != nil {
-			anchor, ae := seed.BoundaryAnchor.exact(options)
+			anchor, ae := seed.BoundaryAnchor.ExactOptions(options)
 			if ae != nil {
 				return out, ae
 			}

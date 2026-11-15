@@ -32,7 +32,7 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 	for i := range surfaces {
 		if i == 1 && useTensor {
 			r := geom.ExactTensorSurfaceRecipe{Version: 1, DegreeU: 1, DegreeV: 1, CountU: 3, CountV: 2, KnotsU: k, KnotsV: u,
-				Controls: [][4]string{{"0", "0", "-1/3", "1"}, {"0", "2", "5/3", "1"}, {"1/2", "0", "-1/2", "1"}, {"1/2", "2", "3/2", "1"}, {"1", "0", "-4/3", "1"}, {"1", "2", "2/3", "1"}}}
+				Controls: [][4]string{{"0", "0", "-1/4", "1"}, {"0", "2", "7/4", "1"}, {"1/2", "0", "-1/3", "1"}, {"1/2", "2", "5/3", "1"}, {"1", "0", "-4/3", "1"}, {"1", "2", "2/3", "1"}}}
 			var e error
 			p[i], e = geom.ImportExactTensorSurfaceRecipe(ctx, r, geom.SurfacePatchOptions{})
 			if e != nil {
@@ -62,6 +62,9 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 		{A: geom.ParameterRectangle{UMin: .5, UMax: .625, VMax: 1}, B: geom.ParameterRectangle{UMin: .5, UMax: .75, VMax: 1}},
 	}
 	anchor := [4]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2), big.NewRat(1, 2), big.NewRat(1, 2)}
+	if useTensor {
+		anchor[1], anchor[3] = big.NewRat(1, 3), big.NewRat(1, 3)
+	}
 	var seeds intersect.SplineSeedReport
 	for i, box := range boxes {
 		a, e := p[0].Trim(box.A)
@@ -76,9 +79,13 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 		if e != nil || !h.ProvenBranch {
 			t.Fatal(h, e)
 		}
+		bound, e := intersect.NewTubeBoundaryAnchor(i == 0, anchor)
+		if e != nil {
+			t.Fatal(e)
+		}
 		seeds.Attempts = append(seeds.Attempts, intersect.SplineSeedCell{
 			Cell: geom.SurfaceSurfaceCell{DomainA: box.A, DomainB: box.B}, Tube: &h,
-			BoundaryAnchor: &intersect.TubeBoundaryAnchor{AtUpper: i == 0, Parameters: [4]float64{.5, .5, .5, .5}}})
+			BoundaryAnchor: bound})
 	}
 	charts := [2]intersect.Patch{
 		{Surface: surfaces[0], Min: geom.Vec2{X: .375}, Max: geom.Vec2{X: .625, Y: 1}},
@@ -111,7 +118,7 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 				t.Fatalf("lost original tensor chart: %T", p.Faces[1].SourceSurface)
 			}
 			cuts := p.Faces[0].Cut
-			heights := [3]int64{15, 16, 21}
+			heights := [3]*big.Rat{big.NewRat(61, 192), big.NewRat(1, 3), big.NewRat(25, 48)}
 			mid, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(1, 2), geom.ExactCurvePlaneEventOptions{})
 			if e != nil {
 				t.Fatal(e)
@@ -128,7 +135,7 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 				if e != nil {
 					t.Fatal(i, e)
 				}
-				want, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(heights[i], 32), geom.ExactCurvePlaneEventOptions{})
+				want, _, e := geom.NewExactRationalRoot(ctx, heights[i], geom.ExactCurvePlaneEventOptions{})
 				if e != nil {
 					t.Fatal(e)
 				}
@@ -144,6 +151,9 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 	if e := WriteTrimmedSplinePairSectionJSON(&file, r); e != nil {
 		t.Fatal(e)
 	}
+	if useTensor && !bytes.Contains(file.Bytes(), []byte(`"RationalParameters":["1/2","1/3","1/2","1/3"]`)) {
+		t.Fatal("nonbinary dependent anchor must survive in original form")
+	}
 	back, e := ReadTrimmedSplinePairSectionJSON(ctx, bytes.NewReader(file.Bytes()), JSONLimits{}, o)
 	if e != nil {
 		t.Fatal(e)
@@ -153,7 +163,17 @@ func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 	if e := json.Unmarshal(file.Bytes(), &native); e != nil {
 		t.Fatal(e)
 	}
-	native.Tubes[0].Cells[0].BoundaryAnchor.Parameters[1] += .001
+	stored := native.Tubes[0].Cells[0].BoundaryAnchor
+	if useTensor {
+		var e error
+		anchor[1] = big.NewRat(334, 1000)
+		native.Tubes[0].Cells[0].BoundaryAnchor, e = intersect.NewTubeBoundaryAnchor(stored.AtUpper, anchor)
+		if e != nil {
+			t.Fatal(e)
+		}
+	} else {
+		stored.Parameters[1] += .001
+	}
 	data, e := json.Marshal(native)
 	if e != nil {
 		t.Fatal(e)

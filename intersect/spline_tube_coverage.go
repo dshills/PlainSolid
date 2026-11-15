@@ -130,7 +130,7 @@ func CertifySplineTubeCoverage(ctx context.Context, a, b Patch, supplied SplineS
 		}
 		t := geom.SurfacePairTubeRegion{Box: geom.SurfacePairParameterBox{A: c.Cell.DomainA, B: c.Cell.DomainB}, FreeAxis: axis}
 		if c.BoundaryAnchor != nil {
-			x, e := c.BoundaryAnchor.exact(geom.SurfacePairTubeOptions{FreeAxis: axis})
+			x, e := c.BoundaryAnchor.ExactOptions(geom.SurfacePairTubeOptions{FreeAxis: axis})
 			if e != nil {
 				return r, e
 			}
