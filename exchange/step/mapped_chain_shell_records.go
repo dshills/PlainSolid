@@ -15,7 +15,7 @@ type mappedChainStepFace struct {
 	plane         *mappedChainForeignPlane
 }
 
-func parseMappedChainStepFace(f *File, id int64, foreign bool) (mappedChainStepFace, error) {
+func parseMappedChainStepFace(f *File, id int64, foreign, allowMultiSpan bool) (mappedChainStepFace, error) {
 	var zero mappedChainStepFace
 	face, err := simple(f, id, "ADVANCED_FACE", 4)
 	if err != nil || face.Args[0].Kind != String {
@@ -81,7 +81,7 @@ func parseMappedChainStepFace(f *File, id int64, foreign bool) (mappedChainStepF
 	if foreign && plane {
 		out.surface, out.plane, err = readMappedChainForeignPlane(f, sid, out.uses)
 	} else {
-		out.surface, err = decodeMappedChainStepSurface(f, sid)
+		out.surface, err = decodeMappedChainStepSurface(f, sid, allowMultiSpan)
 	}
 	if err != nil {
 		return zero, err
@@ -89,13 +89,16 @@ func parseMappedChainStepFace(f *File, id int64, foreign bool) (mappedChainStepF
 	return out, nil
 }
 
-func decodeMappedChainStepSurface(f *File, id int64) (*geom.BSplineSurface, error) {
+func decodeMappedChainStepSurface(f *File, id int64, allowMultiSpan bool) (*geom.BSplineSurface, error) {
 	s, err := DecodeBSplineSurface(f, id, 81)
 	if err != nil || s.ClosedU != "F" || s.ClosedV != "F" || s.SelfIntersect != "F" {
 		return nil, geom.ErrInvalid
 	}
-	data := s.Geometry.Data()
-	if data.CountU != data.DegreeU+1 || data.CountV != data.DegreeV+1 {
+	maxInterior := 0
+	if allowMultiSpan {
+		maxInterior = 1
+	}
+	if mappedChainInteriorSupportKnots(s.Geometry) > maxInterior {
 		return nil, geom.ErrConvergence
 	}
 	k, _ := component(f.Entities[id], "B_SPLINE_SURFACE_WITH_KNOTS")
@@ -133,6 +136,19 @@ func decodeMappedChainStepSurface(f *File, id int64) (*geom.BSplineSurface, erro
 		}
 	}
 	return s.Geometry, nil
+}
+
+func mappedChainInteriorSupportKnots(s *geom.BSplineSurface) int {
+	data := s.Data()
+	count := 0
+	for _, knots := range [2][]float64{data.KnotsU, data.KnotsV} {
+		for i := 1; i < len(knots)-1; i++ {
+			if knots[i] != knots[i-1] && knots[i] != knots[len(knots)-1] {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 func mappedChainStepVertex(f *File, id int64) ([3]*big.Rat, error) {

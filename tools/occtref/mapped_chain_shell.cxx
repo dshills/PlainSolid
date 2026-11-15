@@ -9,13 +9,21 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepLib.hxx>
+#include <BRep_Builder.hxx>
+#include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
 #ifdef PLAINSOLID_AUTHORED_STEP
 #include <STEPControl_Writer.hxx>
 #include <Interface_Static.hxx>
 #endif
 #include <Geom2d_BezierCurve.hxx>
+#include <Geom2d_BSplineCurve.hxx>
+#include <Geom_Plane.hxx>
 #include <Geom_BezierSurface.hxx>
+#include <Geom_BSplineSurface.hxx>
+#include <Geom_BSplineCurve.hxx>
+#include <gp_Ax3.hxx>
+#include <gp_Pln.hxx>
 #include <NCollection_Array1.hxx>
 #include <NCollection_Array2.hxx>
 #include <TopExp.hxx>
@@ -29,6 +37,7 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -48,14 +57,39 @@ static std::array<Cubic, 2> split(const Cubic& p) {
   return {Cubic{p[0], a, d, m}, Cubic{m, e, c, p[3]}};
 }
 
-static TopoDS_Face roof(bool south, int rotate = 0) {
-  NCollection_Array2<gp_Pnt> poles(1, 2, 1, 2);
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      poles.SetValue(i + 1, j + 1, gp_Pnt(south ? j : i, south ? i : j, i * j));
+static double roofHeight(double x, double y, bool crease) {
+  return x * y + (crease ? .5 * std::max(0., x - .5) : 0.);
+}
+
+static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false) {
+  const std::vector<double> x = crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
+  const std::vector<double> y{0., 1.};
+  const auto& u = south ? y : x;
+  const auto& v = south ? x : y;
+  NCollection_Array2<gp_Pnt> poles(1, static_cast<int>(u.size()), 1, static_cast<int>(v.size()));
+  for (int i = 0; i < poles.UpperRow(); ++i) {
+    for (int j = 0; j < poles.UpperCol(); ++j) {
+      const double a = south ? v[j] : u[i];
+      const double b = south ? u[i] : v[j];
+      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease)));
     }
   }
-  occ::handle<Geom_BezierSurface> support = new Geom_BezierSurface(poles);
+  occ::handle<Geom_Surface> support;
+  if (crease) {
+    NCollection_Array1<double> ku(1, static_cast<int>(u.size())), kv(1, static_cast<int>(v.size()));
+    NCollection_Array1<int> mu(1, ku.Upper()), mv(1, kv.Upper());
+    for (int i = 1; i <= ku.Upper(); ++i) {
+      ku.SetValue(i, u[i - 1]);
+      mu.SetValue(i, i == 1 || i == ku.Upper() ? 2 : 1);
+    }
+    for (int j = 1; j <= kv.Upper(); ++j) {
+      kv.SetValue(j, v[j - 1]);
+      mv.SetValue(j, j == 1 || j == kv.Upper() ? 2 : 1);
+    }
+    support = new Geom_BSplineSurface(poles, ku, kv, mu, mv, 1, 1);
+  } else {
+    support = new Geom_BezierSurface(poles);
+  }
   BRepBuilderAPI_MakeWire wire;
   auto use = [&](const std::vector<gp_Pnt2d>& points) {
     NCollection_Array1<gp_Pnt2d> net(1, static_cast<int>(points.size()));
@@ -82,7 +116,12 @@ static TopoDS_Face roof(bool south, int rotate = 0) {
   }
   const double outer = south ? 0 : .75;
   traces.push_back({gp_Pnt2d(1, .25), gp_Pnt2d(1, outer)});
-  traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(0, outer)});
+  if (crease) {
+    traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(.5, outer)});
+    traces.push_back({gp_Pnt2d(.5, outer), gp_Pnt2d(0, outer)});
+  } else {
+    traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(0, outer)});
+  }
   traces.push_back({gp_Pnt2d(0, outer), gp_Pnt2d(0, .25)});
   std::rotate(traces.begin(), traces.begin() + rotate, traces.end());
   for (const auto& p : traces) {
@@ -99,13 +138,16 @@ static TopoDS_Face roof(bool south, int rotate = 0) {
   return result;
 }
 
-static TopoDS_Face planar(const std::vector<gp_Pnt>& points, bool reverse) {
+static TopoDS_Face planar(const std::vector<gp_Pnt>& points, bool reverse,
+                          std::optional<gp_Ax3> frame = std::nullopt) {
   BRepBuilderAPI_MakePolygon wire;
   for (const auto& p : points) {
     wire.Add(p);
   }
   wire.Close();
-  BRepBuilderAPI_MakeFace face(wire.Wire(), true);
+  BRepBuilderAPI_MakeFace face = frame
+    ? BRepBuilderAPI_MakeFace(gp_Pln(*frame), wire.Wire(), true)
+    : BRepBuilderAPI_MakeFace(wire.Wire(), true);
   if (!face.IsDone()) {
     throw std::runtime_error("could not build the independent planar face");
   }
@@ -116,18 +158,84 @@ static TopoDS_Face planar(const std::vector<gp_Pnt>& points, bool reverse) {
   return result;
 }
 
+// Author the straight planar incidences explicitly in their own charts and
+// 3D. A normalized LINE direction would round the slope of an oblique edge
+// when written as a finite STEP decimal.
+static void setOriginalPlaneCurves(const TopoDS_Solid& solid) {
+  BRep_Builder builder;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> prepared;
+  for (TopExp_Explorer current(solid, TopAbs_FACE); current.More(); current.Next()) {
+    const auto face = TopoDS::Face(current.Current());
+    auto plane = occ::down_cast<Geom_Plane>(BRep_Tool::Surface(face));
+    if (plane.IsNull()) {
+      continue;
+    }
+    const auto frame = plane->Position();
+    auto chart = [&](const TopoDS_Vertex& vertex) {
+      const gp_Vec delta(frame.Location(), BRep_Tool::Pnt(vertex));
+      return gp_Pnt2d(delta.Dot(gp_Vec(frame.XDirection())), delta.Dot(gp_Vec(frame.YDirection())));
+    };
+    for (TopExp_Explorer use(face, TopAbs_EDGE); use.More(); use.Next()) {
+      auto edge = TopoDS::Edge(use.Current());
+      edge.Orientation(TopAbs_FORWARD);
+      TopoDS_Vertex start, end;
+      TopExp::Vertices(edge, start, end, true);
+      double low, high;
+      BRep_Tool::Range(edge, low, high);
+      NCollection_Array1<gp_Pnt2d> poles(1, 2);
+      poles.SetValue(1, chart(start));
+      poles.SetValue(2, chart(end));
+      NCollection_Array1<double> knots(1, 2);
+      knots.SetValue(1, low);
+      knots.SetValue(2, high);
+      NCollection_Array1<int> mult(1, 2);
+      mult.Init(2);
+      if (!prepared.Contains(edge)) {
+        NCollection_Array1<gp_Pnt> model(1, 2);
+        model.SetValue(1, BRep_Tool::Pnt(start));
+        model.SetValue(2, BRep_Tool::Pnt(end));
+        occ::handle<Geom_BSplineCurve> curve = new Geom_BSplineCurve(model, knots, mult, 1);
+        builder.UpdateEdge(edge, curve, BRep_Tool::Tolerance(edge));
+        prepared.Add(edge);
+      }
+      occ::handle<Geom2d_BSplineCurve> pcurve = new Geom2d_BSplineCurve(poles, knots, mult, 1);
+      builder.UpdateEdge(edge, pcurve, face, BRep_Tool::Tolerance(edge));
+      builder.Range(edge, face, low, high);
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   try {
     const std::string mode = argc > 1 ? argv[1] : "";
-    const bool reordered = mode == "write-reordered";
+    const bool authoredPlanes = mode == "write-knot";
+    const bool crease = authoredPlanes || mode == "write-knot-default-planes";
+    auto frame = [&](const gp_Pnt& origin, const gp_Dir& normal, const gp_Dir& u) -> std::optional<gp_Ax3> {
+      if (!authoredPlanes) {
+        return std::nullopt;
+      }
+      return gp_Ax3(origin, normal, u);
+    };
+    const bool reordered = mode == "write-reordered" || crease;
+    auto side = [&](double y, bool reverse) {
+      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease)}};
+      if (crease) {
+        points.emplace_back(.5, y, roofHeight(.5, y, true));
+      }
+      points.emplace_back(0, y, 0);
+      return planar(points, reverse, frame({0, y, 0}, {0, -1, 0}, {0, 0, -1}));
+    };
     const std::array<TopoDS_Face, 7> source{
-      roof(false, reordered ? 4 : 0),
-      roof(true, reordered ? 5 : 0),
-      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, .75}, {1, .25, .25}, {1, 0, 0}}, false),
-      planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true),
-      planar({{0, .75, -1}, {1, .75, -1}, {1, .75, .75}, {0, .75, 0}}, true),
-      planar({{0, 0, -1}, {1, 0, -1}, {1, 0, 0}, {0, 0, 0}}, false),
-      planar({{0, 0, -1}, {1, 0, -1}, {1, .75, -1}, {0, .75, -1}}, true)
+      roof(false, reordered ? 4 : 0, crease),
+      roof(true, reordered ? 5 : 0, crease),
+      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease)}, {1, .25, roofHeight(1, .25, crease)}, {1, 0, roofHeight(1, 0, crease)}}, false,
+             frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
+      planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
+             frame({0, 0, 0}, {1, 0, 0}, {0, 0, 1})),
+      side(.75, true),
+      side(0, false),
+      planar({{0, 0, -1}, {1, 0, -1}, {1, .75, -1}, {0, .75, -1}}, true,
+             frame({0, 0, -1}, {0, 0, 1}, {1, 0, 0}))
     };
     const std::array<int, 7> order = reordered
       ? std::array<int, 7>{6, 2, 1, 4, 3, 0, 5}
@@ -142,6 +250,9 @@ int main(int argc, char** argv) {
       throw std::runtime_error("independent source shell is not closed");
     }
     const auto solid = BRepBuilderAPI_MakeSolid(TopoDS::Shell(shell.Current())).Solid();
+    if (authoredPlanes) {
+      setOriginalPlaneCurves(solid);
+    }
     shell.Next();
     if (shell.More() || !BRepCheck_Analyzer(solid).IsValid()) {
       throw std::runtime_error("independent source solid is invalid");

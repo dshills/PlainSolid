@@ -19,6 +19,9 @@ import (
 type MappedChainShellSTEPOptions struct {
 	Geometry  geom.SurfacePatchOptions
 	Tolerance float64
+	// AllowMultiSpanRoofs admits one interior original support knot per
+	// roof. Every source trim must fit a closed original knot rectangle.
+	AllowMultiSpanRoofs bool
 }
 
 // WriteMappedChainRectangularShell writes a single independently certified

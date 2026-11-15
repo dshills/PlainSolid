@@ -70,3 +70,31 @@ sh tools/occtref/build_mapped_chain_shell.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/ma
 PLAINSOLID_OCCT_MAPPED_CHAIN_AUTHOR=/tmp/mapped-chain-shell \
   go test -race ./exchange/step -run '^TestOCCTMappedChainRectangular'
 ```
+
+## One original interior roof knot
+
+Set `MappedChainShellSTEPOptions.AllowMultiSpanRoofs` for either bounded
+reader and for the canonical writer. Each roof may then have one
+interior support knot in either UV direction. The original support net,
+knot values, multiplicities and UV coordinates are retained. The entire
+trim control hull must lie in one closed original knot rectangle. A trim
+on the knot may use either incident cell by C0 agreement. A trim spanning
+the two cells needs an explicit source coedge split before this exchange
+path can establish its exact model lift.
+
+The independently authored creased shell has height
+`x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
+Both roof charts retain the interior knot at model `x=1/2` on their own
+UV axes. The knot intersections with the outer roof boundary are
+individual original coedge vertices on the roof and the adjoining
+wall. The test covers equal one-sided knot-line lifts, distinct
+one-sided slopes, native source reopen, canonical STEP, and live OCCT
+authoring and transfer.
+
+The live author's `write-knot` mode uses explicit signed-axis plane
+frames and exact degree-one bounds on the wall incidences. The
+`write-knot-default-planes` control lets OCCT generate its plane
+parameter values. Its rounded source chart lifts disagree with the
+stored model edges, so the exact reader rejects that control. Live
+qualification uses the same optional binaries documented above and
+selects `^Test(MappedChainRectangularSTEP|OCCTMappedChainRectangular)`.
