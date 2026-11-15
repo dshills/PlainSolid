@@ -12,6 +12,9 @@ import (
 // SplineFaceCoincidenceOptions bounds the two independent trim validations,
 // per-use extraction and one cumulative support/curve identity ledger.
 type SplineFaceCoincidenceOptions struct {
+	// MatchHolePermutation admits uniquely shared exact original hole vertices.
+	// Candidate matching never replaces the subsequent complete wire proof.
+	MatchHolePermutation   bool
 	Patches                geom.SurfacePatchOptions
 	Trims                  trimvalidate.Options
 	MaxUses, MaxOperations int
@@ -20,14 +23,18 @@ type SplineFaceCoincidenceOptions struct {
 // CoincidentSplineUse identifies original topological uses. Reversed compares
 // their UV traversal, independently of each model edge's stored direction.
 type CoincidentSplineUse struct {
+	// RangeA and RangeB are owned normalized original coedge traversal ranges.
+	RangeA, RangeB                         [2]*big.Rat
 	LoopA, UseA, EdgeA, LoopB, UseB, EdgeB int
 	Reversed                               bool
 }
 
 // SplineFaceCoincidence reports equality of complete original trimmed images,
 // not chart injectivity, shell embedding or Boolean admission. Hole order must
-// agree; each wire may start at a different use. Different subdivisions and
-// partial overlaps are deliberately unsupported. Returned slices are owned.
+// agree unless MatchHolePermutation proves a unique original-vertex matching;
+// each wire may start at a different use. B may subdivide complete A
+// uses when exact rational cut recovery and full subcurve identity succeed.
+// Partial overlap and incompatible refinements remain unsupported. Slices are owned.
 type SplineFaceCoincidence struct {
 	Faces [2]int
 	Map   intersect.SplineChartMap
@@ -116,10 +123,30 @@ func (a Solid) CertifySplineFaceCoincidence(ctx context.Context, faceA int, b So
 	r := SplineFaceCoincidence{Faces: [2]int{faceA, faceB}, Map: support.Map, ExactOperations: support.ExactOperations}
 	r.OppositeOrientation = (support.Map.Orientation() < 0) != (fa.Reversed != fb.Reversed)
 	matrix := splineCoincidenceUVMatrix(support.Map)
+	loopIDs := make([]int, len(loopsB))
+	for i := range loopIDs {
+		loopIDs[i] = i
+	}
+	if o.MatchHolePermutation {
+		var err error
+		loopIDs, err = coincidentHoleOrder(ctx, loopsA, loopsB, matrix, o.Patches)
+		if err != nil {
+			return fail(err)
+		}
+	}
 	for li, la := range loopsA {
-		lb := loopsB[li]
+		lb := loopsB[loopIDs[li]]
 		if len(la) != len(lb) {
-			return fail(geom.ErrConvergence)
+			matches, work, err := refinedCoincidentWire(ctx, la, lb, li, matrix, support.Map.Orientation(), o, o.MaxOperations-r.ExactOperations)
+			r.ExactOperations += work
+			if err != nil {
+				return fail(err)
+			}
+			for i := range matches {
+				matches[i].LoopB = loopIDs[li]
+			}
+			r.Uses = append(r.Uses, matches...)
+			continue
 		}
 		type curve struct {
 			c       *geom.ExactSplineCurve
@@ -163,9 +190,12 @@ func (a Solid) CertifySplineFaceCoincidence(ctx context.Context, faceA int, b So
 				if !comparison.Complete || !comparison.Equal {
 					break
 				}
-				matches = append(matches, CoincidentSplineUse{li, j, la[j].Edge, li, k, lb[k].Edge, direction < 0})
+				matches = append(matches, CoincidentSplineUse{LoopA: li, UseA: j, EdgeA: la[j].Edge, LoopB: li, UseB: k, EdgeB: lb[k].Edge, Reversed: direction < 0, RangeA: [2]*big.Rat{new(big.Rat), big.NewRat(1, 1)}, RangeB: coincidentTraversalRange(direction)})
 			}
 			if len(matches) == len(la) {
+				for i := range matches {
+					matches[i].LoopB = loopIDs[li]
+				}
 				r.Uses = append(r.Uses, matches...)
 				found = true
 				break
