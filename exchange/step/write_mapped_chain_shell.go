@@ -49,8 +49,7 @@ type MappedChainShellSTEPOptions struct {
 	// AllowMixedOwnerBases admits one whole basis shared by all coedges of
 	// one roof, and one whole basis per original coedge of the other. It uses
 	// the same exact integer model scale. With AllowThreeSupportKnots the
-	// foreign reader can prove three cuts of one mixed-basis original coedge.
-	// The canonical exchange path covers explicit original coedges.
+	// readers can prove three cuts of one mixed-basis original coedge.
 	AllowMixedOwnerBases bool
 }
 
@@ -74,10 +73,14 @@ func WriteMappedChainRectangularShell(ctx context.Context, w io.Writer, shell tr
 	if err != nil {
 		return err
 	}
-	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, bases, o.Geometry)
+	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, bases, mappedChainOriginalSTEPGraph{}, o.Geometry)
 	if err != nil {
 		return err
 	}
+	return writeReprovedMappedChainSTEP(ctx, w, raw, l, o)
+}
+
+func writeReprovedMappedChainSTEP(ctx context.Context, w io.Writer, raw []byte, l Limits, o MappedChainShellSTEPOptions) error {
 	if _, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(raw), l, o); err != nil {
 		return err
 	}
@@ -89,6 +92,10 @@ func WriteMappedChainRectangularShell(ctx context.Context, w io.Writer, shell tr
 		err = io.ErrShortWrite
 	}
 	return err
+}
+
+func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
+	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot && o.AllowThreeSupportKnots
 }
 
 func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {
@@ -107,19 +114,21 @@ type mappedChainStepOwner struct {
 	use  trimmed.Use
 }
 
-func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, independent [2]bool, o geom.SurfacePatchOptions) ([]byte, error) {
+func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, independent [2]bool, original mappedChainOriginalSTEPGraph, o geom.SurfacePatchOptions) ([]byte, error) {
 	faces, edges, vertices := native.Solid.Faces(), native.Solid.Edges(), native.Solid.Vertices()
-	stations := native.ChainStations
-	if independent != [2]bool{} {
-		var err error
-		stations, err = mappedChainSTEPIntegerStations(stations)
-		if err != nil {
-			return nil, err
-		}
-	}
 	mapped := make(map[int][2]*big.Rat, len(native.ChainEdges))
-	for i, id := range native.ChainEdges {
-		mapped[id] = [2]*big.Rat{stations[i], stations[i+1]}
+	if len(original.edges) == 0 {
+		stations := native.ChainStations
+		if independent != [2]bool{} {
+			var err error
+			stations, err = mappedChainSTEPIntegerStations(stations)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for i, id := range native.ChainEdges {
+			mapped[id] = [2]*big.Rat{stations[i], stations[i+1]}
+		}
 	}
 	uses := make([][]mappedChainStepOwner, len(edges))
 	for i, face := range faces {
@@ -131,7 +140,7 @@ func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.Mappe
 	var stageErr error
 	err := writeStandalone(&out, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		var root int64
-		root, stageErr = emitMappedChainRectangularShell(ctx, emit, name, faces, vertices, uses, native, mapped, independent, o)
+		root, stageErr = emitMappedChainRectangularShell(ctx, emit, name, faces, vertices, uses, native, mapped, independent, original, o)
 		if stageErr != nil {
 			return nil
 		}
@@ -167,7 +176,7 @@ func mappedChainSTEPIntegerStations(stations []*big.Rat) ([]*big.Rat, error) {
 	return out, nil
 }
 
-func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, independent [2]bool, o geom.SurfacePatchOptions) (int64, error) {
+func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, independent [2]bool, original mappedChainOriginalSTEPGraph, o geom.SurfacePatchOptions) (int64, error) {
 	surfaces := make([]int64, len(faces))
 	for i, face := range faces {
 		p, ok := face.Surface.(*geom.BSplineSurface)
@@ -182,6 +191,9 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 	}
 	vertexIDs := make([]int64, len(vertices))
 	for i, point := range vertices {
+		if original.omittedVertices[i] {
+			continue
+		}
 		p, err := mappedChainStepDecimals(mappedChainStepFloats([]float64{point.X, point.Y, point.Z}))
 		if err != nil {
 			return 0, err
@@ -197,33 +209,48 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 		if err := ctx.Err(); err != nil {
 			return 0, err
 		}
+		if original.omittedEdges[i] {
+			continue
+		}
 		if len(owners) != 2 {
 			return 0, geom.ErrConvergence
 		}
-		a := owners[0]
-		model, err := trimmed.ExactTrimModelBezier(ctx, faces[a.face].Surface, a.use.Curve, a.use.Reversed, o)
-		if err != nil {
-			return 0, fmt.Errorf("mapped STEP edge %d: %w", i, err)
-		}
-		net, _, err := model.BezierControlNet(ctx, o)
-		if err != nil {
-			return 0, err
-		}
+		source, fromSource := original.edges[i]
+		modelSpline := source.model
+		start, end := source.start, source.end
 		r, chain := mapped[i]
-		if !chain {
-			r = [2]*big.Rat{new(big.Rat), big.NewRat(1, 1)}
+		if !fromSource {
+			a := owners[0]
+			model, err := trimmed.ExactTrimModelBezier(ctx, faces[a.face].Surface, a.use.Curve, a.use.Reversed, o)
+			if err != nil {
+				return 0, fmt.Errorf("mapped STEP edge %d: %w", i, err)
+			}
+			net, _, err := model.BezierControlNet(ctx, o)
+			if err != nil {
+				return 0, err
+			}
+			if !chain {
+				r = [2]*big.Rat{new(big.Rat), big.NewRat(1, 1)}
+			}
+			modelSpline = mappedChainStepSplineFromBezier(net.Control, 3, r[0], r[1])
+			start, end = edges[i].Start, edges[i].End
 		}
-		modelID, err := mappedChainStepSplineFromBezier(net.Control, 3, r[0], r[1]).emit(emit)
+		modelID, err := modelSpline.emit(emit)
 		if err != nil {
 			return 0, fmt.Errorf("mapped STEP model edge %d: %w", i, err)
 		}
 		pc := make([]int64, 2)
 		for j, owner := range owners {
 			basis := &bases[owner.face]
-			if chain && independent[owner.face] {
+			if (chain || fromSource) && independent[owner.face] {
 				basis = &mappedChainStepBasis{}
 			}
-			curve, err := emitMappedChainStepUse(emit, owner.use, chain, basis)
+			var curve int64
+			if fromSource {
+				curve, err = emitMappedChainStepRawUse(emit, source.owners[owner.face], false, basis)
+			} else {
+				curve, err = emitMappedChainStepUse(emit, owner.use, chain, basis)
+			}
 			if err != nil {
 				return 0, fmt.Errorf("mapped STEP owner %d edge %d: %w", owner.face, i, err)
 			}
@@ -231,14 +258,17 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 			pc[j] = emit(fmt.Sprintf("PCURVE('',#%d,#%d)", surfaces[owner.face], rep))
 		}
 		sc := emit(fmt.Sprintf("SURFACE_CURVE('',#%d,%s,.CURVE_3D.)", modelID, references(pc)))
-		e := edges[i]
-		edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[e.Start], vertexIDs[e.End], sc))
+		edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[start], vertexIDs[end], sc))
 	}
 	faceIDs := make([]int64, len(faces))
 	for i, face := range faces {
-		wire := make([]int64, len(face.Outer))
-		for j, use := range face.Outer {
-			wire[j] = emit(fmt.Sprintf("ORIENTED_EDGE('',*,*,#%d,%s)", edgeIDs[use.Edge], mappedChainStepSense(!use.Reversed)))
+		wire := make([]int64, 0, len(face.Outer))
+		for _, use := range face.Outer {
+			if original.omittedEdges[use.Edge] {
+				continue
+			}
+			flipped := original.edges[use.Edge].reversed
+			wire = append(wire, emit(fmt.Sprintf("ORIENTED_EDGE('',*,*,#%d,%s)", edgeIDs[use.Edge], mappedChainStepSense(use.Reversed == flipped))))
 		}
 		loop := emit("EDGE_LOOP(''," + references(wire) + ")")
 		side := mappedChainStepSense(!face.Reversed)
@@ -260,30 +290,7 @@ func emitMappedChainStepUse(emit func(string) int64, use trimmed.Use, chain bool
 		if !ok {
 			return 0, geom.ErrConvergence
 		}
-		source := p.Source()
-		if basis.id == 0 {
-			id, err := mappedChainStepSplineFromSource(source.Curve).emit(emit)
-			if err != nil {
-				return 0, err
-			}
-			*basis = mappedChainStepBasis{id: id, source: source.Curve}
-		} else if prior := basis.source; prior != source.Curve &&
-			(prior.Degree() != source.Curve.Degree() ||
-				!slices.Equal(prior.Poles(), source.Curve.Poles()) ||
-				!slices.Equal(prior.Weights(), source.Curve.Weights()) ||
-				!slices.Equal(prior.Knots(), source.Curve.Knots())) {
-			return 0, fmt.Errorf("owner coedges require one common original spline basis: %w", geom.ErrConvergence)
-		}
-		lo, err := mappedChainStepDecimal(mappedChainStepRat(source.Range.Min))
-		if err != nil {
-			return 0, err
-		}
-		hi, err := mappedChainStepDecimal(mappedChainStepRat(source.Range.Max))
-		if err != nil {
-			return 0, err
-		}
-		sense := mappedChainStepSense(source.Reversed == use.Reversed)
-		return emit(fmt.Sprintf("TRIMMED_CURVE('',#%d,(PARAMETER_VALUE(%s)),(PARAMETER_VALUE(%s)),%s,.PARAMETER.)", basis.id, lo, hi, sense)), nil
+		return emitMappedChainStepRawUse(emit, p.Source(), use.Reversed, basis)
 	}
 	var source [][3]*big.Rat
 	switch c := use.Curve.(type) {
@@ -303,6 +310,32 @@ func emitMappedChainStepUse(emit func(string) int64, use trimmed.Use, chain bool
 		h[i] = [4]*big.Rat{p[0], p[1], new(big.Rat), p[2]}
 	}
 	return mappedChainStepSplineFromBezier(h, 2, new(big.Rat), big.NewRat(1, 1)).emit(emit)
+}
+
+func emitMappedChainStepRawUse(emit func(string) int64, source trimmed.SplineUV, reverse bool, basis *mappedChainStepBasis) (int64, error) {
+	if basis.id == 0 {
+		id, err := mappedChainStepSplineFromSource(source.Curve).emit(emit)
+		if err != nil {
+			return 0, err
+		}
+		*basis = mappedChainStepBasis{id: id, source: source.Curve}
+	} else if prior := basis.source; prior != source.Curve &&
+		(prior.Degree() != source.Curve.Degree() ||
+			!slices.Equal(prior.Poles(), source.Curve.Poles()) ||
+			!slices.Equal(prior.Weights(), source.Curve.Weights()) ||
+			!slices.Equal(prior.Knots(), source.Curve.Knots())) {
+		return 0, fmt.Errorf("owner coedges require one common original spline basis: %w", geom.ErrConvergence)
+	}
+	lo, err := mappedChainStepDecimal(mappedChainStepRat(source.Range.Min))
+	if err != nil {
+		return 0, err
+	}
+	hi, err := mappedChainStepDecimal(mappedChainStepRat(source.Range.Max))
+	if err != nil {
+		return 0, err
+	}
+	sense := mappedChainStepSense(source.Reversed == reverse)
+	return emit(fmt.Sprintf("TRIMMED_CURVE('',#%d,(PARAMETER_VALUE(%s)),(PARAMETER_VALUE(%s)),%s,.PARAMETER.)", basis.id, lo, hi, sense)), nil
 }
 
 func mappedChainStepSense(forward bool) string {
