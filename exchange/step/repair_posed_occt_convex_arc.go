@@ -102,6 +102,9 @@ func convexArcRotateView(ctx context.Context, f *File, body, metadata map[int64]
 // retained in original profile coordinates and the descriptor's axial origin.
 // The unposed repair entry point is unchanged.
 func RepairPosedOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions) (PosedRepairedOCCTConvexArcExtrusion, error) {
+	return repairPosedOCCTConvexArcExtrusion(ctx, r, l, o, false)
+}
+func repairPosedOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (PosedRepairedOCCTConvexArcExtrusion, error) {
 	var zero PosedRepairedOCCTConvexArcExtrusion
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
@@ -174,6 +177,27 @@ func RepairPosedOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limit
 		if err != nil {
 			return zero, err
 		}
+		if grouped {
+			found := false
+			for _, sid := range f.Order {
+				if !body[sid] {
+					continue
+				}
+				cyl, err := simple(f, sid, "CYLINDRICAL_SURFACE", 3)
+				if err != nil {
+					continue
+				}
+				_, z, _, err = occtLoopFrame(f, cyl.Args[1].Ref)
+				if err != nil {
+					return zero, err
+				}
+				found = true
+				break
+			}
+			if !found {
+				return zero, geom.ErrDomain
+			}
+		}
 		za, err := posedLoopCardinal(z)
 		if err != nil {
 			return zero, err
@@ -201,7 +225,7 @@ func RepairPosedOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limit
 	if e != nil {
 		return zero, e
 	}
-	repair, e := RepairOCCTConvexArcExtrusion(ctx, bytes.NewReader(local), l, o)
+	repair, e := repairOCCTConvexArcExtrusion(ctx, bytes.NewReader(local), l, o, grouped)
 	if e != nil {
 		return zero, e
 	}
@@ -240,6 +264,9 @@ func RepairPosedOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limit
 		if occtLoopDot(d, d).Cmp(site.SquaredDistance) != 0 {
 			return zero, geom.ErrDomain
 		}
+	}
+	for i := range repair.tangencies {
+		repair.tangencies[i].Point = convexArcRotateTriple(matrix, repair.tangencies[i].Point, false)
 	}
 	repair.original = string(raw)
 	repair.corrected = string(worldRaw)

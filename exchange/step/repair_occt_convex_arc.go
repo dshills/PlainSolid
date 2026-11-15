@@ -31,6 +31,8 @@ type RepairedOCCTConvexArcExtrusion struct {
 	material            OCCTExactCircularLoopExtrusion
 	sites               []ConvexArcRepairSite
 	azimuths            []int64
+	reversals           []ConvexArcRepairReversal
+	tangencies          []ConvexArcTangentEvidence
 }
 
 // ConvexArcRepairProvenance maps corrected native roles to the unchanged
@@ -82,6 +84,9 @@ func (m RepairedOCCTConvexArcExtrusion) Repairs() []ConvexArcRepairSite {
 // no source pcurves. The corrected whole source passes the existing exact
 // circular-loop importer, including original incidence and directed trims.
 func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions) (RepairedOCCTConvexArcExtrusion, error) {
+	return repairOCCTConvexArcExtrusion(ctx, r, l, o, false)
+}
+func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (RepairedOCCTConvexArcExtrusion, error) {
 	var zero RepairedOCCTConvexArcExtrusion
 	if ctx == nil || r == nil || math.IsNaN(o.MaxDistance) || math.IsInf(o.MaxDistance, 0) || o.MaxDistance <= 0 {
 		return zero, geom.ErrInvalid
@@ -112,7 +117,11 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 	edges := map[int64]Record{}
 	vertices := map[int64]int64{}
 	incident := map[int64]map[int64]bool{}
-	var cylinder occtLoopFace
+	cylinders := map[int64]occtLoopFace{}
+	wanted := 1
+	if grouped {
+		wanted = 2
+	}
 	for _, id := range f.Order {
 		if _, err := simple(f, id, "ADVANCED_FACE", 4); err != nil {
 			continue
@@ -123,10 +132,7 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 		}
 		faces[id] = face
 		if face.kind == "CYLINDRICAL_SURFACE" {
-			if cylinder.id != 0 {
-				return zero, geom.ErrDomain
-			}
-			cylinder = face
+			cylinders[id] = face
 		}
 		for _, u := range face.uses {
 			ed, err := simple(f, u.id, "EDGE_CURVE", 5)
@@ -147,17 +153,20 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			}
 		}
 	}
-	if len(faces) != 6 || len(edges) != 12 || len(vertices) != 8 || cylinder.id == 0 || !cylinder.sense || !occtLoopPositiveAxis(cylinder.z, 2) {
+	if len(faces) != 5+wanted || len(edges) != 3*(3+wanted) || len(vertices) != 2*(3+wanted) || len(cylinders) != wanted {
 		return zero, geom.ErrDomain
 	}
 	tolerance := new(big.Rat).SetFloat64(o.MaxDistance)
-	if tolerance.Cmp(new(big.Rat).Quo(cylinder.radius, big.NewRat(1000000, 1))) > 0 {
-		return zero, geom.ErrDomain
+	for _, cylinder := range cylinders {
+		if !cylinder.sense || !occtLoopPositiveAxis(cylinder.z, 2) || tolerance.Cmp(new(big.Rat).Quo(cylinder.radius, big.NewRat(1000000, 1))) > 0 {
+			return zero, geom.ErrDomain
+		}
 	}
 	tol2 := new(big.Rat).Mul(tolerance, tolerance)
 	original := map[int64][3]*big.Rat{}
 	target := map[int64][3]*big.Rat{}
 	roles := map[int64]string{}
+	var tangencies []ConvexArcTangentEvidence
 	for _, pid := range vertices {
 		v, err := occtLoopTriple(f, pid, "CARTESIAN_POINT")
 		if err != nil {
@@ -166,7 +175,16 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 		original[pid] = v
 	}
 	for vid, pid := range vertices {
-		if !incident[vid][cylinder.id] {
+		var cylinder occtLoopFace
+		for id, c := range cylinders {
+			if incident[vid][id] {
+				if cylinder.id != 0 {
+					return zero, geom.ErrDomain
+				}
+				cylinder = c
+			}
+		}
+		if cylinder.id == 0 {
 			continue
 		}
 		var cap, side occtLoopFace
@@ -203,6 +221,7 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			p[j] = new(big.Rat).Sub(cylinder.origin[j], new(big.Rat).Mul(k, side.z[j]))
 		}
 		p[2] = new(big.Rat).Set(cap.origin[2])
+		tangencies = append(tangencies, ConvexArcTangentEvidence{VertexID: vid, PointID: pid, CylinderFaceID: cylinder.id, CapFaceID: cap.id, PlaneFaceID: side.id, Point: p})
 		d := occtLoopSub(p, original[pid])
 		d2 := occtLoopDot(d, d)
 		if d2.Cmp(tol2) > 0 {
@@ -275,7 +294,7 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			roles[pid] = "axial line origin"
 		}
 	}
-	if len(target) > 6 {
+	if len(target) > 6*wanted {
 		return zero, geom.ErrDomain
 	}
 	// Reverse references forbid using moved points for supports or unrelated
@@ -298,6 +317,14 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 		}
 	}
 	out := RepairedOCCTConvexArcExtrusion{original: string(raw)}
+	// Use original entity order, not map iteration, for deterministic evidence.
+	for _, id := range f.Order {
+		for _, q := range tangencies {
+			if q.VertexID == id {
+				out.tangencies = append(out.tangencies, q)
+			}
+		}
+	}
 	for _, pid := range f.Order {
 		p, ok := target[pid]
 		if !ok {
@@ -345,6 +372,12 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 		}
 		f.Entities[pid] = Entity{ID: pid, Records: []Record{rec}}
 	}
+	if grouped {
+		out.reversals, e = normalizeGroupedConvexArcReversals(f, refs)
+		if e != nil {
+			return zero, e
+		}
+	}
 	for _, id := range f.Order {
 		en := f.Entities[id]
 		if len(en.Records) != 1 {
@@ -391,7 +424,7 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 	if e != nil {
 		return zero, e
 	}
-	if len(material.Descriptor.Segments) != 4 {
+	if len(material.Descriptor.Segments) != 3+wanted {
 		return zero, geom.ErrDomain
 	}
 	count := 0
@@ -400,7 +433,7 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			count++
 		}
 	}
-	if count != 1 {
+	if count != wanted {
 		return zero, geom.ErrDomain
 	}
 	out.corrected = string(corrected)
