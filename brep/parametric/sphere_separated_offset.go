@@ -22,7 +22,7 @@ func (s SpherePairSet) OffsetSeparatedSpheres(ctx context.Context, distance, tol
 	if err := ctx.Err(); err != nil {
 		return empty, noHistory, err
 	}
-	balls, source, err := s.fullSphereOffsetOwners(false)
+	balls, source, err := s.sphereOffsetOwners(Union, true)
 	if err != nil {
 		return empty, noHistory, err
 	}

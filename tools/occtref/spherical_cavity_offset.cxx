@@ -1,3 +1,4 @@
+#include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRep_Builder.hxx>
@@ -67,6 +68,12 @@ int main(int argc, char** argv) {
       shape = cavity(4. + distance, 1. - distance);
     } else if (mode == "separated-supports") {
       shape = separated(distance);
+    } else if (mode == "lens-supports") {
+      const auto first = BRepPrimAPI_MakeSphere(gp_Pnt(0, 0, 0), 2. - distance).Shape();
+      const auto second = BRepPrimAPI_MakeSphere(gp_Pnt(0, 2, 0), 2.5 - distance).Shape();
+      BRepAlgoAPI_Common overlap(first, second);
+      if (!overlap.IsDone()) return 4;
+      shape = overlap.Shape();
     } else {
       return 2;
     }

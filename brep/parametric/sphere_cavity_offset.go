@@ -37,7 +37,7 @@ func (s SpherePairSet) OffsetSphericalCavity(ctx context.Context, distance, tole
 	if err := ctx.Err(); err != nil {
 		return empty, noHistory, err
 	}
-	balls, source, err := s.fullSphereOffsetOwners(true)
+	balls, source, err := s.sphereOffsetOwners(Difference, true)
 	if err != nil {
 		return empty, noHistory, err
 	}
@@ -106,14 +106,17 @@ func (s SpherePairSet) OffsetSphericalCavity(ctx context.Context, distance, tole
 	return offset.solid, history, nil
 }
 
-func (s SpherePairSet) fullSphereOffsetOwners(secondReversed bool) (balls [2]Ball, source [2]int, err error) {
+func (s SpherePairSet) sphereOffsetOwners(operation BooleanOp, fullSurface bool) (balls [2]Ball, source [2]int, err error) {
+	if s.operation != operation {
+		return balls, source, geom.ErrDomain
+	}
 	for i, owners := range s.faces {
 		if len(owners) != 1 {
 			return balls, source, geom.ErrDomain
 		}
 		face := s.solid.faces[owners[0]]
 		surface, ok := face.Surface.(geom.SphereSurface)
-		if !ok || face.Reversed != (i == 1 && secondReversed) || face.V.Min != -math.Pi/2 || face.V.Max != math.Pi/2 {
+		if !ok || face.Reversed != (i == 1 && operation == Difference) || fullSurface && (face.V.Min != -math.Pi/2 || face.V.Max != math.Pi/2) {
 			return balls, source, geom.ErrDomain
 		}
 		frame, radius := surface.Parameters()
