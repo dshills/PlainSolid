@@ -6929,3 +6929,40 @@ tilt STEP reader (`c491b216`) passed the standard convex-arc focused race
 suite in 32.811 seconds with the live pinned reference. The single-fillet
 source and translated source preserve original world placement, 24 original
 owner claims, and eight independently bounded finite planar owner intervals.
+
+The [November 15 full Go run](evidence/main-48b0ce58-qualification-2026-11-15.json)
+passed 5,143 of the 5,646 pinned top-level cases, with 503 documented optional
+skips, 52 tested packages and four packages without tests. The independently
+listed 1,398 trimmed cases account for 1,357 passes and 41 skips. The original
+group-zero prefix includes the full 1,349.190-second triple-radial test. Four
+complementary lanes verify all 231 cases after that prefix against the same
+revision. The logs and selection manifests were reconciled with zero duplicate
+or unaccounted cases. Other groups and the package lane use the original run.
+
+`ebc3d1f7` qualifies native Common and Fuse for two original transverse nodes.
+Both narrow and wider fixtures pass native construction and exact source
+reload across each axis and operand order. All eight wider live cases return
+one valid OCCT solid with volume errors under `4.8e-11`. The narrow reference
+diagnostic returned no solid; independent native volume and topology checks
+remain recorded separately. The main focused race passed in 86.728 seconds.
+
+`ed815c5e` writes and reads an exact 21,713-byte mapped shell file. It keeps
+17 model curves and 34 paired pcurves, including the two whole source spline
+bases and their six trimmed uses. The original supports, lifts, and speed
+maps are re-proved on import. Canonical re-export is byte-identical; the
+native focused races reject changed model interiors, direction, owner and
+vertex identities. The live pinned OCCT transfer returns one valid solid,
+seven faces and the expected volume, area and centroid.
+
+The tilted grouped STEP race passed in 33.390 seconds with independent live
+OCCT readback. The 440-entity default file preserves its exact pose and proves
+eight model changes, one bounded unequal axial endpoint repair, eight finite
+planar owner ranges, and both original rational cap trims. The original and
+corrected world shapes transfer as seven-face solids with matching measures.
+
+`651f50cb` proves area and volume without tessellation using the exact
+positive cap heights and the source rim normal angle. The focused race cases
+check irrational oblique centers/radii, the obtuse angle branch, work and
+precision limits, and matching native integrals. `6791dc9a` binds the source
+circle, line solver, measure proof and native represented-radius assembly to
+the same exact original sphere equations.

@@ -91,19 +91,23 @@ The [fresh full PlainCAD qualification](evidence/plaincad-main-48b0ce58-2026-11-
 passed 345 development, 66 production, 15 cross-browser, 1,691 ordinary
 unit and four WASM contract cases on kernel `48b0ce58` and app `efae4d2`.
 The build, both typechecks and bundle budget passed, and the production
-WASM bytes match the fresh build. The pinned full Go run is still working
-through its independently enumerated 5,646 cases across 52 tested packages,
-including 1,398 in the five trimmed groups. The ordinary package lane and
-two complete trimmed groups have passed. Newer changes have focused checks;
-`f5bfaac2` also passed `go vet ./...` and a Windows amd64 cross-build.
+WASM bytes match the fresh build. The [full pinned Go qualification](evidence/main-48b0ce58-qualification-2026-11-15.json)
+passed 5,143 top-level cases across 52 tested packages, with 503 explicit
+optional skips and four packages without tests. The independent inventory
+matches all 5,646 cases. Group zero combines its passing original prefix
+through the long triple-radial case with 231 disjoint complementary cases.
+Newer changes have focused checks; `f5bfaac2` also passed `go vet ./...`
+and a Windows amd64 cross-build.
 
-Two transverse nodes now have complete exact branch and signed-region
-certificates, with native Common and Fuse under verification. Native analytic
-line clips cover large offsets and irrational sphere-lens rims. The separately
-bounded, tilted single-fillet STEP reader passed independent OCCT fixtures.
-The next active work covers native two-node operations, mapped shell STEP
-transfer, tilted grouped repair, and further native offset qualification.
-Broader general curved assembly, exchange, and qualification remain required.
+Two transverse nodes now qualify native Common and Fuse, with exact source
+branches, both node identities and deterministic reload. Canonical mapped shell
+STEP reopens with all 34 original coedges and passes pinned OCCT transfer.
+Analytic point and line queries and area/volume enclosures cover large offsets
+and irrational sphere-lens rims. Bounded tilted single and grouped STEP repair
+pass actual pinned OCCT specimens. The next active work covers two-node Cut,
+noncanonical mapped STEP input, native proof persistence for tilted repair,
+and certified display bindings for nonrepresentable lens rims. Broader curved
+assembly, exchange, and qualification remain required.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
