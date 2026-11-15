@@ -16,6 +16,12 @@ type SplineGraphBooleanOptions struct {
 	// TwoPolynomials selects exactly two strictly ordered cubic/quartic graphs.
 	TwoPolynomials     *geom.GraphPointContactOptions
 	TwoPolynomialsAxis int
+	// PolynomialNode selects two cubic/quartic graph branches crossing once.
+	// Common and Fuse require exactly representable node and terminal vertices.
+	// Cut returns ErrDegenerate because its opposite sectors meet at the node.
+	PolynomialNode *geom.GraphPointContactOptions
+	// PolynomialNodeAxis selects the original free coordinate (0=U, 1=V).
+	PolynomialNodeAxis int
 	Section            intersect.SplinePlaneOptions
 	DisjointEllipses   *geom.DisjointEllipseDiscoveryOptions
 	ThreeEllipses      *geom.ThreeEllipseDiscoveryOptions
@@ -43,7 +49,7 @@ type SplineGraphBooleanOptions struct {
 // requirements as CombineSplineGraphSolids. These options recognize only
 // their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.TwoPolynomials == nil && o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil && o.BivariatePolynomial == nil && o.PiecewisePolynomial == nil {
+	if o.PolynomialNode == nil && o.TwoPolynomials == nil && o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil && o.BivariatePolynomial == nil && o.PiecewisePolynomial == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
@@ -77,6 +83,9 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	if o.TwoPolynomials != nil {
 		selected++
 	}
+	if o.PolynomialNode != nil {
+		selected++
+	}
 	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
@@ -89,6 +98,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.PolynomialNode != nil {
+		section, e := geom.DiscoverSplineGraphPolynomialNode(ctx, patches[0], patches[1], o.PolynomialNodeAxis, *o.PolynomialNode)
+		if e != nil {
+			return fail(e)
+		}
+		return assemblePolynomialNodeGraphBoolean(ctx, base, a, b, op, tolerance, section, *o.PolynomialNode)
 	}
 	if o.TwoPolynomials != nil {
 		section, e := geom.DiscoverSplineGraphTwoPolynomials(ctx, patches[0], patches[1], o.TwoPolynomialsAxis, *o.TwoPolynomials)
