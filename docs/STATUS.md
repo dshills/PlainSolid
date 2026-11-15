@@ -55,31 +55,32 @@ optional skips. All 1,438 trimmed cases were accounted for, with 1,391
 passes and 47 optional skips. The [PlainCAD run](evidence/plaincad-main-bafe7e81-2026-11-15.json)
 passed the build, typechecks, bundle budget, 345 development browser cases,
 66 production cases, 15 cross-browser cases, 1,691 ordinary units and four
-WASM contracts. The refreshed full race on `d5906fde` has five of eight
-trimmed groups green and no reported failures. A new ordinary Go run
-starts on `509cdbd3`. The separate `016354ee` vet and Windows amd64
-cross-build pass; native Windows execution is still unqualified.
+WASM contracts. Every trimmed case in the refreshed full race on
+`d5906fde` is accounted for; the long ordinary `intersect` lane remains
+open with no reported failures. Another full ordinary Go run on
+`509cdbd3` is underway. PlainCAD on `05ce6e82` has passed the WASM,
+production build, type and selected kernel gates and is running the
+full development browser suite. Vet and the Windows amd64 cross-build
+on `016354ee` pass; native Windows execution is still unqualified.
 
 Planar contact now supports concave faces and holes, folded and differently
-subdivided original regions, and exact seam refinement when the two
-original boundaries have different stations. The joined boundary retains
-original exterior faces and directed parent edge intervals. Native receipts
-re-prove source contact on load; STEP and IGES retain separate original
-solids and four-to-one face subdivisions when their seam topology matches.
-Strict STEP authenticates finite original linear chart curves and stations.
+subdivided regions, different original seam stations, and one or more
+strict inset footprints on an original host. STEP and IGES keep independent
+authored parts. Document recipes carry named exterior faces and exact parent
+edge intervals through splits, joins, edits, undo and reopen.
 
-Native Common, Fuse and Cut qualify two crossings plus one tangency or
-two distinct quadratic tangencies. An independently tested geometry proof
-also handles an isolated order-three crossing. The mapped STEP transfer
-preserves mixed whole and independent owner bases, including an unsplit
-source with a stored model knot and separately inferred owner cuts. Grouped
-converted-metre and converted-inch tests pass independent OCCT, native,
-typed Node WASM and Chromium.
+Native Common, Fuse and Cut cover mixed simple/order-three crossings and
+distinct second- and fourth-order contacts, with original-source reload.
+Mapped v8 retains four exact support cuts in one original cell, including
+the original unsplit author graph with both basis families and raw knots.
+The original three-fillet STEP body passes the native bridge and real
+Node and Chromium WASM. Converted three-fillet units and source-proved
+quintic native assemblies are being qualified separately.
 
-Immediate work includes native order-three assembly integration, exact
-original-unsplit mapped STEP re-export, independent three-fillet exchange
-and app runtime qualification, and wider contact/trim, advanced modeling,
-exchange, and platform release gates.
+Immediate work includes finishing the in-progress qualification lanes,
+exact concave fillets with directed circular loops, separate inner curved
+wire extrusion, and remaining wider contact/discovery, advanced
+modeling, exchange and native platform gates.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

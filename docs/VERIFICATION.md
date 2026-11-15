@@ -226,6 +226,42 @@ Focused main verification adds two bounded cases:
   prior profile regressions passed under race in 35.073 seconds. Vet and the
   Windows amd64 cross-build on this exact revision returned zero.
 
+- `eaa2e7ed`, `96d938d5`, and `bd2f861e`: the native order-three,
+  mixed simple/order-three, and fourth-order Common/Fuse/Cut cohorts
+  passed on main under race in 452.650, 190.780, and 165.728 seconds,
+  respectively. Each case compares exact original source integrals and
+  re-proves the stored topology on reload. Independently authored OCCT
+  probes omit positive components or return inaccurate stock-scale
+  volumes on these narrow profiles; they are diagnostic comparisons.
+- `42c473e8` and `ed026efc`: captured original unsplit mixed STEP
+  re-export preserves the authored `0/2/4` graph and normalized native
+  v7 bytes. A scaled, reversed original also retains its distinct raw
+  stations. Native v8 admits the separate four-cut original with raw
+  `1,2,4,6` on the stored parent domain `0/4/8`; only raw 4 is stored.
+  The four exact owner pairs, closed 4,922-triangle display and pinned
+  original/canonical material pass under race in 185.226 seconds.
+- `b1bf97b9`: independently authored three-fillet STEP retains ten
+  repair sites, two finite axial maps and 36 original owners, including
+  two rational caps. Native focused race passed in 43.356 seconds.
+  Node passed 12/12 and Chromium 10/10 with matching actual WASM
+  `03bb9ebe36ed79fb968164344d4f25e341c9bac2469488b2c74fb676350fdcff`.
+  The 0.5-mm display has 376 triangles and both workers reproduced
+  the exact original repair and canonical file.
+- `05ce6e82`, `b463b416`, `b7c1d824`, and `e547daae`: a whole
+  original tool face can meet the strict interior of an original host
+  face. Several disjoint footprints become distinct holes in the same
+  retained face. Live STEP and IGES preserve the independent 16 source
+  faces and volume 25; the joined bridge has 14 exterior faces and area
+  76. Document face/edge histories survive edit, invalid commit, undo
+  and reload. Separate named edge split recipes compose exact thirds
+  across a two-owner seam, with three fully owned result edges.
+- `8e8c39f0`: `tools/ci/verify-go-evidence.py` independently
+  reconciles top-level test names, packages, terminal status and lane
+  selection. It reproduced the complete `bafe7e81` totals and rejected a
+  deliberately duplicated terminal event without emitting a manifest.
+  The `d5906fde` three-contour discovery race completed in 2978.900
+  seconds; the independent omitted-inner-contour check is still running.
+
 Further main milestones use the same pinned optional OCCT reference:
 
 - Four-crossing Common and Fuse passed the exact source region and independent
