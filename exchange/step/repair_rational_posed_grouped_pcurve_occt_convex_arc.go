@@ -81,7 +81,7 @@ func (m RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) FiniteTrims() 
 }
 
 // RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion repairs a complete
-// default two-fillet source under a source-derived rational proper pose.
+// supported default grouped-fillet source under a source-derived rational proper pose.
 // In addition to the original model, pcurve and rational cap proofs, it
 // bounds axial endpoint station shifts and finite planar LINE owner slopes.
 func RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions) (RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion, error) {

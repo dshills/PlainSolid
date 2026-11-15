@@ -23,6 +23,7 @@
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
+#include <gp_Pln.hxx>
 #include <gp_Trsf.hxx>
 #include <BRepGProp.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -38,7 +39,7 @@
 #include <iomanip>
 #include <string>
 
-static int shiftedCylinderWitness(const char* path) {
+static int shiftedCylinderWitness(const char* path, int expectedOwners = 2) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
@@ -88,10 +89,10 @@ static int shiftedCylinderWitness(const char* path) {
  }
  std::cout << std::setprecision(17) << "{\"Owners\":" << owners << ",\"Samples\":" << 3*owners
            << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPhase\":" << withoutPhase << "}\n";
- return owners == 2 ? 0 : 9;
+ return owners == expectedOwners ? 0 : 9;
 }
 
-static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale, int fillets = 1) {
+static int circularLoopOwnerWitness(const char* path, double modelSpeed, double ownerScale, int fillets = 1, bool finiteCylinder = true) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
@@ -171,11 +172,12 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
      ++rationalCaps;
     }
    } else {
-    if (Handle(StepGeom_CylindricalSurface)::DownCast(pc->BasisSurface()).IsNull() ||
-        Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
+    if (Handle(StepGeom_CylindricalSurface)::DownCast(pc->BasisSurface()).IsNull()) return 9;
+    if (finiteCylinder ? Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()
+                       : Handle(StepGeom_Line)::DownCast(geometry).IsNull()) return 9;
     if (line.IsNull()) {
      ++cylinderCircles;
-     if (uv->FirstParameter()>0) {
+     if (finiteCylinder && uv->FirstParameter()>0) {
       ++shifted;
       const double first=uv->FirstParameter(), last=uv->LastParameter();
       for (double fraction : {0.0, .5, 1.0}) {
@@ -198,17 +200,31 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
                            << ",\"MaxShiftedDistance\":" << maxShiftedDistance;
  std::cout << "}\n";
  const int expectedCaps=fillets>1 ? 2 : 0;
- return planeLines==18 && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
-        cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==(fillets==3 ? 2 : 0) ? 0 : 9;
+ const int expectedPlaneLines=fillets==4 ? 24 : 18;
+ const int expectedShifted=finiteCylinder && fillets==3 ? 2 : 0;
+ return planeLines==expectedPlaneLines && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
+        cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==expectedShifted ? 0 : 9;
+}
+
+static TopoDS_Edge verticalEdge(const TopoDS_Shape& prism, double x, double y) {
+ TopoDS_Edge match;
+ for (TopExp_Explorer edge(prism, TopAbs_EDGE); edge.More(); edge.Next()) {
+  GProp_GProps properties;
+  BRepGProp::LinearProperties(edge.Current(), properties);
+  if (properties.CentreOfMass().Distance(gp_Pnt(x,y,2.5)) < 1e-12) match = TopoDS::Edge(edge.Current());
+ }
+ return match;
 }
 
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
-if(std::string(argv[1])=="converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001);
-if(std::string(argv[1])=="converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0);
-if(std::string(argv[1])=="grouped-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 2);
-if(std::string(argv[1])=="grouped-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 2);
-if(std::string(argv[1])=="three-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 3);
-if(std::string(argv[1])=="three-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
+if(std::string(argv[1])=="converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001);
+if(std::string(argv[1])=="converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0);
+if(std::string(argv[1])=="grouped-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 2);
+if(std::string(argv[1])=="grouped-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 2);
+if(std::string(argv[1])=="three-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 3);
+if(std::string(argv[1])=="three-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
+if(std::string(argv[1])=="four-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 4, false);
+if(std::string(argv[1])=="four-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 4);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
@@ -222,6 +238,9 @@ if(std::string(argv[1])=="cap-witness") {
  std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
 }
 const std::string mode = argv[1];
+const bool fourNonDyadic = mode == "write-four-default-tilted-nondyadic";
+const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-plane";
+const bool four = mode == "write-four-default-tilted" || fourNonDyadic || fourAutomaticPlane;
 const bool threeNonDyadic = mode == "write-three-default-tilted-nondyadic";
 const bool threeConvertedMetre = mode == "write-three-default-tilted-converted-metre";
 const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch" ||
@@ -239,21 +258,38 @@ const bool convertedInch = mode == "write-default-tilted-translated-converted-in
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
-                           mode == "write-three-default-tilted" || threeNonDyadic || groupedTilted || metre || inch;
+                           mode == "write-three-default-tilted" || threeNonDyadic || groupedTilted || four || metre || inch;
 if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || tiltedDefault || three){
- BRepBuilderAPI_MakePolygon p;p.Add(gp_Pnt(0,0,0));p.Add(gp_Pnt(4,0,0));p.Add(gp_Pnt(0,3,0));p.Close();auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(p.Wire()).Face(),gp_Vec(0,0,5)).Shape();TopoDS_Edge target;
- for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(4,0,2.5))<1e-12)target=TopoDS::Edge(e.Current());}
- if(target.IsNull())return 3;BRepFilletAPI_MakeFillet fillet(stock);fillet.Add(5.0/16,target);
- if(std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || groupedTilted || three){TopoDS_Edge other;for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(0,0,2.5))<1e-12)other=TopoDS::Edge(e.Current());}if(other.IsNull())return 8;fillet.Add(.25,other);}
- if (three) {
-  TopoDS_Edge third;
-  for (TopExp_Explorer e(stock, TopAbs_EDGE); e.More(); e.Next()) {
-   GProp_GProps g;
-   BRepGProp::LinearProperties(e.Current(), g);
-   if (g.CentreOfMass().Distance(gp_Pnt(0,3,2.5)) < 1e-12) third = TopoDS::Edge(e.Current());
-  }
+ BRepBuilderAPI_MakePolygon profile;
+ profile.Add(gp_Pnt(0,0,0));
+ profile.Add(gp_Pnt(four ? 2 : 4,0,0));
+ if (four) profile.Add(gp_Pnt(2,1.5,0));
+ profile.Add(gp_Pnt(0,3,0));
+ profile.Close();
+ const auto face = four && !fourAutomaticPlane
+  ? BRepBuilderAPI_MakeFace(gp_Pln(gp_Pnt(0,0,0),gp_Dir(0,0,1)),profile.Wire()).Face()
+  : BRepBuilderAPI_MakeFace(profile.Wire()).Face();
+ const auto stock = BRepPrimAPI_MakePrism(face,gp_Vec(0,0,5)).Shape();
+ const auto target = verticalEdge(stock, four ? 2 : 4, 0);
+ if (target.IsNull()) return 3;
+ BRepFilletAPI_MakeFillet fillet(stock);
+ fillet.Add(four ? 3.0/8 : 5.0/16, target);
+ if (mode=="write-both" || mode=="write-both-x" || mode=="write-both-default" ||
+     mode=="write-both-default-x" || mode=="write-both-default-minus-x" || mode=="write-both-default-translated" ||
+     groupedTilted || three || four) {
+  const auto other = verticalEdge(stock, 0, 0);
+  if (other.IsNull()) return 8;
+  fillet.Add(.25, other);
+ }
+ if (three || four) {
+  const auto third = verticalEdge(stock, 0, 3);
   if (third.IsNull()) return 8;
-  fillet.Add(threeNonDyadic ? 3.0/16 : 5.0/32, third);
+  fillet.Add(threeNonDyadic || fourNonDyadic ? 3.0/16 : 5.0/32, third);
+ }
+ if (four) {
+  const auto fourth = verticalEdge(stock, 2, 1.5);
+  if (fourth.IsNull()) return 8;
+  fillet.Add(5.0/16, fourth);
  }
  fillet.Build();if(!fillet.IsDone())return 4;shape=fillet.Shape();
  if (mode != "write" && mode != "write-both" && mode != "write-default" && mode != "write-both-default" && mode != "write-three-default") {

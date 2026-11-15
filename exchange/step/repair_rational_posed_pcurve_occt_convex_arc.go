@@ -181,18 +181,28 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, e
 	}
-	fillets := 1
-	if grouped {
-		fillets = 2
-	}
-	model, owners, e := convexPCurveModelView(f, 3*(3+fillets), grouped)
+	sides, fillets := 3, 1
+	var model *File
+	var owners []ConvexArcPCurveAgreement
 	converted := false
-	if e != nil {
-		if grouped {
+	if grouped {
+		// The two triangular profiles and the four-fillet quadrilateral
+		// have distinct edge counts. Each edge has exactly two owners.
+		model, owners, e = convexPCurveModelView(f, 15, true, 18, 24)
+		switch len(owners) {
+		case 30:
+			fillets = 2
+		case 36:
 			fillets = 3
+		case 48:
+			sides, fillets = 4, 4
 		}
-		model, owners, e = convexPCurveModelView(f, 3*(3+fillets), true)
-		converted = !grouped && e == nil
+	} else {
+		model, owners, e = convexPCurveModelView(f, 12, false)
+		if e != nil {
+			model, owners, e = convexPCurveModelView(f, 12, true)
+			converted = e == nil
+		}
 	}
 	if e != nil {
 		return nil, e
@@ -225,11 +235,14 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, e
 	}
-	src.material, e = repairOCCTConvexArcModel(ctx, bytes.NewReader(modelRaw), l, o, fillets, grouped)
+	src.material, e = repairOCCTConvexArcModel(ctx, bytes.NewReader(modelRaw), l, o, sides, fillets, grouped)
 	if e != nil {
 		return nil, fmt.Errorf("rational pose model: %w", e)
 	}
 	if fillets == 3 && !converted && src.material.Descriptor().LengthUnit != .001 {
+		return nil, geom.ErrDomain
+	}
+	if fillets == 4 && (converted || src.material.Descriptor().LengthUnit != .001) {
 		return nil, geom.ErrDomain
 	}
 	if converted {

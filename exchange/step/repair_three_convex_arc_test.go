@@ -157,9 +157,9 @@ func TestRepairThreeConvexArcRejectsChangedOwners(t *testing.T) {
 	}
 }
 
-func checkThreeConvexArcUnrepresentable(t *testing.T, raw []byte) {
+func checkGroupedConvexArcUnrepresentable(t *testing.T, raw []byte, distance float64) {
 	t.Helper()
-	m, err := RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{MaxDistance: threeConvexArcDistance})
+	m, err := RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{MaxDistance: distance})
 	if !errors.Is(err, geom.ErrUnrepresentable) || m.OriginalSTEP() != "" {
 		t.Fatal("non-binary tangent vertices yielded material or lost their exact rejection", err)
 	}
@@ -170,7 +170,7 @@ func TestRepairThreeConvexArcRejectsUnrepresentableTangencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkThreeConvexArcUnrepresentable(t, raw)
+	checkGroupedConvexArcUnrepresentable(t, raw, threeConvexArcDistance)
 }
 
 func TestRepairThreeConvexArcLive(t *testing.T) {
@@ -215,5 +215,5 @@ func TestRepairThreeConvexArcLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkThreeConvexArcUnrepresentable(t, raw)
+	checkGroupedConvexArcUnrepresentable(t, raw, threeConvexArcDistance)
 }
