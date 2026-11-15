@@ -65,7 +65,7 @@ func (r *SplineGraphPolynomialTwoCrossingsTangency) certifyArrangement(ctx conte
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
 	stations := [5]*big.Rat{new(big.Rat).SetFloat64(domain.UMin), roots[0], roots[1], roots[2], new(big.Rat).SetFloat64(domain.UMax)}
-	orders, e := certifyPolynomialGraphContactOrders(r.FreeAxis, r.Power, stations[:], r.Nodes[:], 1, b)
+	orders, e := certifyPolynomialGraphContactOrders(r.FreeAxis, r.Power, stations[:], r.Nodes[:], 1, 0, b)
 	if e != nil {
 		return e
 	}
