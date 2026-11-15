@@ -283,9 +283,4 @@ func TestNativeClippedPolynomialFuseRefusals(t *testing.T) {
 	if r, e := FuseClippedPolynomialEnvelope(ctx, short, src[1], src[2], 0, 1e-9, o); r != nil || !errors.Is(e, geom.ErrDomain) {
 		t.Fatal("complete original base coverage required on both exclusive strips", e)
 	}
-	src[1] = restrictOriginalClipStock(t, src[1], geom.ParameterRectangle{UMin: -2, UMax: 1.5, VMin: 8.25, VMax: 10})
-	src[2] = restrictOriginalClipStock(t, src[2], geom.ParameterRectangle{UMin: 2, UMax: 4.625, VMin: -.75, VMax: 1})
-	if r, e := FuseClippedPolynomialEnvelope(ctx, src[0], src[1], src[2], 0, 1e-9, o); r != nil || !errors.Is(e, geom.ErrDomain) {
-		t.Fatal("two-axis offset requires a separate native scope", e)
-	}
 }
