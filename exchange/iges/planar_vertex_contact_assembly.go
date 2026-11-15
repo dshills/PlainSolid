@@ -97,6 +97,22 @@ func ReadPlanarVertexContactAssembly(ctx context.Context, r io.Reader, o PlanarV
 }
 
 func certifyIGESPlanarAssembly(ctx context.Context, d topologySource, o collision.VertexContactAssemblyOptions) (PlanarVertexContactAssembly, error) {
+	m, err := readIGESPlanarAssemblyBodies(ctx, d, o)
+	if err != nil {
+		return PlanarVertexContactAssembly{}, err
+	}
+	solids := make([]brep.Solid, len(m.Bodies))
+	for i, b := range m.Bodies {
+		solids[i] = b.Solid
+	}
+	m.Proof, err = collision.DiscoverVertexContactAssembly(ctx, solids, o)
+	if err != nil {
+		return PlanarVertexContactAssembly{}, err
+	}
+	return m, nil
+}
+
+func readIGESPlanarAssemblyBodies(ctx context.Context, d topologySource, o collision.VertexContactAssemblyOptions) (PlanarVertexContactAssembly, error) {
 	m := PlanarVertexContactAssembly{LengthUnit: d.unit}
 	fail := func(e error) (PlanarVertexContactAssembly, error) { return PlanarVertexContactAssembly{}, e }
 	g := igesPlanarGraph{records: make(map[int]topologyRecord, len(d.entities)), used: make(map[int]bool, len(d.entities))}
@@ -145,7 +161,6 @@ func certifyIGESPlanarAssembly(ctx context.Context, d topologySource, o collisio
 		return fail(err)
 	}
 	owners := igesPlanarAssemblyOwners{make(map[int]bool), make(map[int]bool)}
-	solids := make([]brep.Solid, n)
 	m.Bodies = make([]PlanarAssemblyBody, n)
 	for i, id := range ids[2:] {
 		root, err := g.take(id, 186)
@@ -164,14 +179,9 @@ func certifyIGESPlanarAssembly(ctx context.Context, d topologySource, o collisio
 		if err != nil {
 			return fail(err)
 		}
-		solids[i] = m.Bodies[i].Solid
 	}
 	if len(g.used) != len(g.records) || len(owners.vertices) != len(lists.vertices) || len(owners.edges) != len(lists.edges) {
 		return fail(igesPlanarFailure(group.id, "unowned source entities or list entries"))
-	}
-	m.Proof, err = collision.DiscoverVertexContactAssembly(ctx, solids, o)
-	if err != nil {
-		return fail(err)
 	}
 	return m, nil
 }

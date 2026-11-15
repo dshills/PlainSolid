@@ -32,3 +32,10 @@ a separate part. Both original and canonical files reopen as two
 solids, 20 faces, volume 441 and area 398. A third oblique part
 that meets only one void corner retains two separate contact
 vertex IDs and independently verified net volume `28225/64`.
+
+`ReadEdgeContactPair` and `WriteEdgeContactPair` are separate opt-in
+entry points for two single-shell parts whose only contact is one
+complete original edge. They retain both edge and incident face owners.
+The reader proves full interval coverage and rejects partial-edge and
+face contact. Pinned OCCT authors and reopens the tested two-box pair
+as two independent solids with 12 faces, volume 2 and area 12.

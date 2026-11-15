@@ -59,3 +59,9 @@ independently authored group of three boxes retains one corner contact;
 original and canonical IGES open in OCCT as three solids with 18 faces,
 volume 3 and area 18. An oblique insert touching only the corner of a void
 retains two independent solid owners and exact volume `3585/8`.
+
+`ReadPlanarEdgeContactPair` and `WritePlanarEdgeContactPair` qualify two
+separate single-shell bodies whose only contact is one complete
+original edge. Both original edge-list entries and incident faces
+are preserved. Pinned OCCT writes and independently reopens the pair
+as two solids with 12 faces, volume 2 and area 12.

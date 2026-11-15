@@ -97,6 +97,10 @@ The author's `voids <output.step>` mode generates a concave planar exterior
 with a separate closed void shell and an independently transferred second
 body. The same Go pattern includes its exact cavity and corner-contact
 roundtrip checks.
+The `edge <output.step>` mode instead writes a separate pair of bodies
+meeting at one original edge. Set `PLAINSOLID_OCCT_VERTEX_CONTACT_STEP`
+to the pinned convex-arc author in its `read` mode, and select
+`TestPlanarEdgeContactPairSTEP` to verify both independent directions.
 
 ### Planar IGES with a through-hole
 
@@ -106,6 +110,8 @@ The `write-void` and `write-two-voids` modes independently carve enclosed
 material cavities.
 The `write-assembly` mode authors three separate boxes, two of which
 share one geometric corner but have distinct vertex-list records.
+The `write-edge-pair` mode authors two independent boxes meeting along
+one full original edge.
 The read mode checks the independently authored file and the PlainSolid
 export for valid topology and compares surface area, volume and centroid.
 
@@ -114,7 +120,7 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
   tools/occtref/author_iges_vendor_planar_prism.cxx -o /tmp/occt-planar-iges \
   -lTKDEIGES -lTKXSBase -lTKBO -lTKPrim -lTKTopAlgo -lTKGeomAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
 PLAINSOLID_OCCT_PLANAR_PRISM_IGES=/tmp/occt-planar-iges PLAINSOLID_OCCT_PLANAR_SHELLS_IGES=/tmp/occt-planar-iges \
-  go test -race ./exchange/iges -run '^TestPlanar(SolidIGES|VertexContactAssemblyIGES)'
+  go test -race ./exchange/iges -run '^TestPlanar(SolidIGES|VertexContactAssemblyIGES|EdgeContactPairIGES)'
 ```
 
 ### Tangent polynomial-roof diagnostic

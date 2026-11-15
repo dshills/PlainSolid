@@ -12,7 +12,8 @@
 
 int main(int argc, char** argv) {
     const bool cavity = argc == 3 && std::strcmp(argv[1], "voids") == 0;
-    if (argc != 2 && !cavity) return 2;
+    const bool edge = argc == 3 && std::strcmp(argv[1], "edge") == 0;
+    if (argc != 2 && !cavity && !edge) return 2;
     STEPControl_Writer writer;
     if (!Interface_Static::SetCVal("write.step.schema", "AP214IS") ||
         !Interface_Static::SetIVal("write.surfacecurve.mode", cavity ? 0 : 1)) return 3;
@@ -32,11 +33,16 @@ int main(int argc, char** argv) {
         if (pieces.More()) return 4;
         const auto separate = BRepPrimAPI_MakeBox(gp_Pnt(12,12,12),1,1,1).Shape();
         if (writer.Transfer(separate, STEPControl_AsIs) != IFSelect_RetDone) return 4;
+    } else if (edge) {
+        for (double p : {0., 1.}) {
+            const auto stock = BRepPrimAPI_MakeBox(gp_Pnt(p,p,0),1,1,1).Shape();
+            if (writer.Transfer(stock, STEPControl_AsIs) != IFSelect_RetDone) return 4;
+        }
     } else {
         for (double p : {0.0, 1.0, 4.0}) {
             const auto stock = BRepPrimAPI_MakeBox(gp_Pnt(p, p, p), 1.0, 1.0, 1.0).Shape();
             if (writer.Transfer(stock, STEPControl_AsIs) != IFSelect_RetDone) return 4;
         }
     }
-    return writer.Write(argv[cavity ? 2 : 1]) == IFSelect_RetDone ? 0 : 5;
+    return writer.Write(argv[argc-1]) == IFSelect_RetDone ? 0 : 5;
 }
