@@ -12,14 +12,18 @@ import (
 )
 
 func affinePolygonCapFixture(t *testing.T, shift float64, sameSide bool) (Solid, Solid) {
-	a := convexPolygonShellMappedFixture(t, []geom.Vec2{{}, {X: 2}, {X: 3, Y: 1}, {X: 2, Y: 2}, {Y: 2}}, func(x, y, z float64) geom.Vec3 { z -= 2; return geom.Vec3{X: x + z/4, Y: y + x/8, Z: z + y/4} })
-	c := convexPolygonShellMappedFixture(t, []geom.Vec2{{X: .5, Y: .5}, {X: 2.75, Y: .5}, {X: .5, Y: 2.75}}, func(x, y, z float64) geom.Vec3 {
+	return affinePolygonCapFixtureUnits(t, shift, sameSide, true)
+}
+func affinePolygonCapFixtureUnits(t *testing.T, shift float64, sameSide, physicalUnits bool) (Solid, Solid) {
+
+	a := convexPolygonShellUnitsFixture(t, []geom.Vec2{{}, {X: 2}, {X: 3, Y: 1}, {X: 2, Y: 2}, {Y: 2}}, func(x, y, z float64) geom.Vec3 { z -= 2; return geom.Vec3{X: x + z/4, Y: y + x/8, Z: z + y/4} }, physicalUnits)
+	c := convexPolygonShellUnitsFixture(t, []geom.Vec2{{X: .5, Y: .5}, {X: 2.75, Y: .5}, {X: .5, Y: 2.75}}, func(x, y, z float64) geom.Vec3 {
 		x += shift
 		if sameSide {
 			z -= 2
 		}
 		return geom.Vec3{X: x - z/8, Y: y + x/8 + z/4, Z: z + y/4}
-	})
+	}, physicalUnits)
 	return a, c
 }
 func TestConvexAffinePolygonCapContact(t *testing.T) {
@@ -112,6 +116,15 @@ func TestConvexAffinePolygonCapOCCT(t *testing.T) {
 	x, _ := r.OriginalShell(0)
 	y, _ := r.OriginalShell(1)
 	volume, _ := new(big.Rat).Add(x.ExactVolume(), y.ExactVolume()).Float64()
+	native, e := r.Fuse(context.Background(), ConvexAffinePolygonCapFuseOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	actual, _ := native.ExactVolume().Float64()
+	if actual != volume {
+		t.Fatal("native volume differs from original supports")
+	}
+
 	if !oracle.Valid || oracle.Solids != 1 || math.Abs(oracle.Volume-volume) > 1e-10 || math.Abs(oracle.CommonVolume) > 1e-12 || math.Abs(oracle.CapAreaSquared-sq) > 1e-10 {
 		t.Fatal(oracle, volume, sq)
 	}

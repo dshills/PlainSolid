@@ -97,6 +97,12 @@ func (s *AffineShellPairedImprint) FragmentFace(ctx context.Context, owner, face
 }
 
 func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner, face int, o AffineImprintFragmentOptions, points [][2]*big.Rat) (*AffineImprintFaceFragments, error) {
+	return s.fragmentFacePolygonPoints(ctx, owner, face, o, points, false)
+}
+
+// polygon is private and used only after complete original convex polygon shell
+// authentication. The public rectangle path keeps its original gates unchanged.
+func (s *AffineShellPairedImprint) fragmentFacePolygonPoints(ctx context.Context, owner, face int, o AffineImprintFragmentOptions, points [][2]*big.Rat, polygon bool) (*AffineImprintFaceFragments, error) {
 	if ctx == nil || s == nil || owner < 0 || owner > 1 || face < 0 || face >= len(s.sources[owner].faces) {
 		return nil, geom.ErrInvalid
 	}
@@ -176,7 +182,7 @@ func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner
 			axis = 1
 		}
 		fixed := 1 - axis
-		if p[fixed].Cmp(q[fixed]) != 0 || p[axis].Cmp(q[axis]) == 0 {
+		if (!polygon && p[fixed].Cmp(q[fixed]) != 0) || p[axis].Cmp(q[axis]) == 0 {
 			return nil, geom.ErrDomain
 		}
 		type at struct {
@@ -185,7 +191,12 @@ func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner
 		}
 		points := []at{}
 		for i, v := range r.uv {
-			if v[fixed].Cmp(p[fixed]) != 0 {
+			if polygon {
+				det := b.op('-', b.op('*', b.op('-', q[0], p[0]), b.op('-', v[1], p[1])), b.op('*', b.op('-', q[1], p[1]), b.op('-', v[0], p[0])))
+				if det.Sign() != 0 {
+					continue
+				}
+			} else if v[fixed].Cmp(p[fixed]) != 0 {
 				continue
 			}
 			t := b.op('/', b.op('-', v[axis], p[axis]), b.op('-', q[axis], p[axis]))
@@ -252,7 +263,8 @@ func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner
 		}
 	}
 	// The authenticated original affine chart is injective on this convex
-	// rectangle. Thus every segment between its exact nodes stays on the original
+	// rectangle (or separately authenticated convex polygon in the private lane).
+	// Thus every segment between its exact nodes stays on the original
 	// face. A maximal noncrossing augmentation removes pinched face walks without
 	// moving a node or assuming which side belongs to either Boolean operand.
 	if o.AuxiliarySubdivision {
@@ -260,6 +272,16 @@ func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner
 		lo := [2]*big.Rat{ratInset(domain.UMin), ratInset(domain.VMin)}
 		hi := [2]*big.Rat{ratInset(domain.UMax), ratInset(domain.VMax)}
 		for _, p := range r.uv {
+			if polygon {
+				for _, u := range original.Outer {
+					a, c := [2]*big.Rat{ratInset(u.UVStart.X), ratInset(u.UVStart.Y)}, [2]*big.Rat{ratInset(u.UVEnd.X), ratInset(u.UVEnd.Y)}
+					det := b.op('-', b.op('*', b.op('-', c[0], a[0]), b.op('-', p[1], a[1])), b.op('*', b.op('-', c[1], a[1]), b.op('-', p[0], a[0])))
+					if det.Sign() < 0 {
+						return nil, geom.ErrDomain
+					}
+				}
+				continue
+			}
 			for k, v := range p {
 				if v.Cmp(lo[k]) < 0 || v.Cmp(hi[k]) > 0 {
 					return nil, geom.ErrDomain
@@ -413,6 +435,13 @@ func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner
 	}
 	domain := s.charts[owner][face].patch.Domain()
 	area := b.op('*', b.op('-', ratInset(domain.UMax), ratInset(domain.UMin)), b.op('-', ratInset(domain.VMax), ratInset(domain.VMin)))
+	if polygon {
+		uv := [][2]*big.Rat{}
+		for _, u := range original.Outer {
+			uv = append(uv, [2]*big.Rat{ratInset(u.UVStart.X), ratInset(u.UVStart.Y)})
+		}
+		area = affineCapPolygonArea(b, uv)
+	}
 	if sum.Cmp(area) != 0 {
 		return nil, geom.ErrInvalid
 	}

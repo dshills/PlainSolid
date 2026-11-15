@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"math"
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -15,12 +16,16 @@ func convexPolygonShellFixture(t *testing.T, polygon []geom.Vec2) Solid {
 	return convexPolygonShellMappedFixture(t, polygon, func(x, y, z float64) geom.Vec3 { return geom.Vec3{X: x + z/4, Y: y + x/8, Z: z + y/4} })
 }
 func convexPolygonShellMappedFixture(t *testing.T, polygon []geom.Vec2, world func(float64, float64, float64) geom.Vec3) Solid {
+	return convexPolygonShellUnitsFixture(t, polygon, world, false)
+}
+func convexPolygonShellUnitsFixture(t *testing.T, polygon []geom.Vec2, world func(float64, float64, float64) geom.Vec3, physicalUnits bool) Solid {
+
 	t.Helper()
 	ctx := context.Background()
 	parts := []SewFace{}
-	add := func(uv []geom.Vec2, eval func(float64, float64) geom.Vec3, reverse bool) {
-		poles := []geom.Vec3{eval(0, 0), eval(0, 1), eval(1, 0), eval(1, 1)}
-		surf, e := geom.NewBSplineSurface(1, 1, 2, 2, poles, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	add := func(uv []geom.Vec2, eval func(float64, float64) geom.Vec3, reverse bool, umax float64) {
+		poles := []geom.Vec3{eval(0, 0), eval(0, 1), eval(umax, 0), eval(umax, 1)}
+		surf, e := geom.NewBSplineSurface(1, 1, 2, 2, poles, []float64{0, 0, umax, umax}, []float64{0, 0, 1, 1}, nil)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -37,11 +42,15 @@ func convexPolygonShellMappedFixture(t *testing.T, polygon []geom.Vec2, world fu
 	for i, p := range polygon {
 		uv[i] = geom.Vec2{X: p.X / 4, Y: p.Y / 4}
 	}
-	add(uv, func(u, v float64) geom.Vec3 { return world(4*u, 4*v, 0) }, true)
-	add(uv, func(u, v float64) geom.Vec3 { return world(4*u, 4*v, 2) }, false)
+	add(uv, func(u, v float64) geom.Vec3 { return world(4*u, 4*v, 0) }, true, 1)
+	add(uv, func(u, v float64) geom.Vec3 { return world(4*u, 4*v, 2) }, false, 1)
 	for i, p := range polygon {
 		q := polygon[(i+1)%len(polygon)]
-		add([]geom.Vec2{{}, {X: 1}, {X: 1, Y: 1}, {Y: 1}}, func(u, v float64) geom.Vec3 { return world(p.X+u*(q.X-p.X), p.Y+u*(q.Y-p.Y), 2*v) }, false)
+		length := 1.0
+		if physicalUnits {
+			length = math.Max(math.Abs(q.X-p.X), math.Abs(q.Y-p.Y))
+		}
+		add([]geom.Vec2{{}, {X: length}, {X: length, Y: 1}, {Y: 1}}, func(u, v float64) geom.Vec3 { return world(p.X+(u/length)*(q.X-p.X), p.Y+(u/length)*(q.Y-p.Y), 2*v) }, false, length)
 	}
 	s, _, e := Sew(ctx, parts, SewOptions{Tolerance: 1e-10})
 	if e != nil {
