@@ -122,6 +122,17 @@ type polynomialNodeCutMaterial struct {
 func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSplineSurface, tolerance float64, proof geom.GraphPointContactOptions,
 	regions []geom.SplineGraphPolynomialRegion, nodes []geom.SplineGraphPolynomialJunction, vertices []geom.SplineGraphPolynomialVertex, xyz []geom.Vec3,
 	loops [][]openSectionPiece, bindLayer func(Solid, OpenSectionHistory, []openSectionPiece) error) (polynomialNodeCutMaterial, error) {
+	evaluate := exactGraphVertexEvaluator(ctx, proof)
+	assemble := func(loop []openSectionPiece) (Solid, OpenSectionHistory, error) {
+		return assembleOpenSplineGraphPair(a, b, 0, true, tolerance, loop, evaluate)
+	}
+	return buildPolynomialNodeCutComponents(ctx, proof, regions, nodes, vertices, xyz, loops, assemble, bindLayer)
+}
+
+func buildPolynomialNodeCutComponents(ctx context.Context, proof geom.GraphPointContactOptions,
+	regions []geom.SplineGraphPolynomialRegion, nodes []geom.SplineGraphPolynomialJunction, vertices []geom.SplineGraphPolynomialVertex, xyz []geom.Vec3,
+	loops [][]openSectionPiece, assemble func([]openSectionPiece) (Solid, OpenSectionHistory, error),
+	bindLayer func(Solid, OpenSectionHistory, []openSectionPiece) error) (polynomialNodeCutMaterial, error) {
 	var material polynomialNodeCutMaterial
 	componentByRegion := make([]int, len(regions))
 	for i, region := range regions {
@@ -153,13 +164,12 @@ func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSpline
 	}
 
 	histories := make([]OpenSectionHistory, 0, len(material.regions))
-	evaluate := exactGraphVertexEvaluator(ctx, proof)
 	for _, index := range material.regions {
 		loop, e := splitPolynomialNodeCutPerimeter(loops[index])
 		if e != nil {
 			return polynomialNodeCutMaterial{}, e
 		}
-		part, history, e := assembleOpenSplineGraphPair(a, b, 0, true, tolerance, loop, evaluate)
+		part, history, e := assemble(loop)
 		if e != nil {
 			return polynomialNodeCutMaterial{}, e
 		}

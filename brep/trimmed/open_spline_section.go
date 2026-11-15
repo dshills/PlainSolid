@@ -239,11 +239,34 @@ func openGraphLoop(c intersect.CertifiedContour, difference *geom.SurfacePatch, 
 }
 
 func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height float64, above bool, tolerance float64, pieces []openSectionPiece, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
+	return assembleOpenSplineGraphPairOnCharts(context.Background(), surface, bottom, height, above, tolerance, pieces, [2]graphEnvelopeChart{}, evaluate...)
+}
+
+func assembleOpenSplineGraphPairOnCharts(ctx context.Context, surface, bottom *geom.BSplineSurface, height float64, above bool,
+	tolerance float64, pieces []openSectionPiece, charts [2]graphEnvelopeChart, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
 	fail := func(reason string) (Solid, OpenSectionHistory, error) {
 		return Solid{}, OpenSectionHistory{}, fmt.Errorf("trimmed: spline wall assembly: %s", reason)
 	}
 	fr, _ := geom.FrameFromNormal(geom.Vec3{Z: height}, geom.Vec3{Z: 1})
 	n := len(pieces)
+	ownerPieces := [2][]openSectionPiece{pieces, pieces}
+	exactVertices := charts[0].transfer != nil || charts[1].transfer != nil
+	if exactVertices && (len(evaluate) == 0 || bottom == nil) {
+		return fail("independent charts require two roofs and an exact vertex evaluator")
+	}
+	for i, chart := range charts {
+		if chart.transfer == nil {
+			continue
+		}
+		ownerPieces[i] = make([]openSectionPiece, n)
+		for j, p := range pieces {
+			owned, e := chart.piece(p)
+			if e != nil {
+				return Solid{}, OpenSectionHistory{}, e
+			}
+			ownerPieces[i][j] = owned
+		}
+	}
 	vertices := make([]geom.Vec3, n)
 	topIDs, baseIDs := make([]int, n), make([]int, n)
 	basePoint := func(p geom.Vec2) (geom.Vec3, error) {
@@ -255,7 +278,10 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 		}
 		return bottom.Eval(p.X, p.Y)
 	}
-	for i, x := range pieces {
+	for i, x := range ownerPieces[0] {
+		if e := ctx.Err(); e != nil {
+			return Solid{}, OpenSectionHistory{}, e
+		}
 		var p geom.Vec3
 		var e error
 		if len(evaluate) > 0 {
@@ -268,13 +294,16 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 		}
 		topIDs[i] = i
 		vertices[i] = p
-		q, e := basePoint(x.a)
+		q, e := basePoint(ownerPieces[1][i].a)
 		if e != nil {
 			return Solid{}, OpenSectionHistory{}, e
 		}
 		// A vertex incident to any section edge belongs to both original charts.
 		if x.side < 0 || pieces[(i+n-1)%n].side < 0 {
 			baseIDs[i] = i
+			if exactVertices && p != q {
+				return Solid{}, OpenSectionHistory{}, fmt.Errorf("trimmed: original layer contour vertices differ exactly: %w", geom.ErrConvergence)
+			}
 			if !closePoint(p, q, tolerance) {
 				return fail("contour vertex exceeds tolerance")
 			}
@@ -291,7 +320,7 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 	if bottom != nil {
 		baseSurface = bottom
 	}
-	faces := []Face{{Surface: surface, Reversed: !above}, {Surface: baseSurface, Reversed: above}}
+	faces := []Face{{Surface: surface, Reversed: !above != charts[0].reversed}, {Surface: baseSurface, Reversed: above != charts[1].reversed}}
 	var edges []parametric.Edge
 	add := func(a, b int, c geom.Curve, span float64) int {
 		id := len(edges)
@@ -312,8 +341,9 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 	}
 	topEdges, baseEdges, verticals := make([]int, n), make([]int, n), make([]int, n)
 	report := OpenSectionHistory{SplineFace: 0, PlaneFace: 1}
-	for i, x := range pieces {
+	for i, x := range ownerPieces[0] {
 		j := (i + 1) % n
+		low := ownerPieces[1][i]
 		c := surfaceTrimCurve{surface: surface, a: x.a, b: x.b, curve: x.c}
 		id := add(topIDs[i], topIDs[j], c, 1)
 		topEdges[i] = id
@@ -321,7 +351,7 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 		if x.side < 0 {
 			baseEdges[i] = id
 			report.ContourEdges = append(report.ContourEdges, id)
-			faces[1].Outer = append(faces[1].Outer, makeUse(id, false, x.a, x.b, x.c))
+			faces[1].Outer = append(faces[1].Outer, makeUse(id, false, low.a, low.b, low.c))
 			continue
 		}
 		if bottom == nil {
@@ -331,10 +361,15 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 			}
 			id = newID
 		} else {
-			id = add(baseIDs[i], baseIDs[j], surfaceTrimCurve{bottom, x.a, x.b, nil}, 1)
+			id = add(baseIDs[i], baseIDs[j], surfaceTrimCurve{bottom, low.a, low.b, nil}, 1)
 		}
 		baseEdges[i] = id
-		faces[1].Outer = append(faces[1].Outer, makeUse(id, false, x.a, x.b, nil))
+		faces[1].Outer = append(faces[1].Outer, makeUse(id, false, low.a, low.b, nil))
+	}
+	for i, chart := range charts {
+		if chart.reversed {
+			reverseGraphUses(faces[i].Outer)
+		}
 	}
 	for i := range pieces {
 		verticals[i] = -1
@@ -370,10 +405,11 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 			d = aa
 		}
 		// Evaluators preserve the same graph-edge normalized parameter.
-		arc := wallTrim{surface: surface, a: x.a, b: x.b, length: length, height: height, start: d.Y, end: c.Y}
+		top, low := ownerPieces[0][i], ownerPieces[1][i]
+		arc := charts[0].wall(wallTrim{surface: surface, a: top.a, b: top.b, length: length, height: height, start: d.Y, end: c.Y})
 		var baseArc PCurve
 		if bottom != nil {
-			baseArc = wallTrim{surface: bottom, a: x.a, b: x.b, length: length, height: height, start: aa.Y, end: bb.Y}
+			baseArc = charts[1].wall(wallTrim{surface: bottom, a: low.a, b: low.b, length: length, height: height, start: aa.Y, end: bb.Y})
 		}
 		l := []Use{makeUse(baseEdges[i], false, aa, bb, baseArc)}
 		if verticals[j] >= 0 {
@@ -384,20 +420,13 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 			l = append(l, makeUse(verticals[i], true, d, aa, nil))
 		}
 		if !above {
-			rev := make([]Use, len(l))
-			for k, u := range l {
-				u.Reversed = !u.Reversed
-				u.UVStart, u.UVEnd = u.UVEnd, u.UVStart
-				u.Curve = reversePCurve(u.Curve)
-				rev[len(l)-1-k] = u
-			}
-			l = rev
+			reverseGraphUses(l)
 		}
 		report.WallFaces = append(report.WallFaces, len(faces))
 		report.DomainSides = append(report.DomainSides, x.side)
 		faces = append(faces, Face{Surface: ws, Outer: l})
 	}
-	out, e := NewSolid(vertices, edges, faces, tolerance)
+	out, e := NewSolidContext(ctx, vertices, edges, faces, tolerance)
 	if e != nil {
 		return Solid{}, OpenSectionHistory{}, e
 	}
