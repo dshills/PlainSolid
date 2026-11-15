@@ -176,3 +176,98 @@ Tests cover stable native bytes, positive/negative canonical sources, genuine
 vendor source, source/canonical re-export, corruption, source/byte quotas,
 cancellation before/during input, and short writes. Pinned OCCT live tests now
 include native envelope reload before regenerated STEP transfer in both modes.
+
+## Separate proper signed-axis vendor pose mode
+
+`ReadPosedOCCTExactCircularLoopExtrusion` adds a separate exact rotation mode.
+A source CIRCLE frame must provide proper signed-coordinate axes. Every
+coordinate-bearing body dependency (all 3D CARTESIAN_POINT and DIRECTION
+records) is inverse-rotated using exact rational arithmetic into a temporary
+proof view. The unchanged local vendor gate then authenticates all supports,
+loops, owners and metadata. The original representation frame must be neutral;
+a coordinate dependency shared with it must remain invariant. No UV data is
+rotated (the underlying model-only gate rejects pcurves), and no original
+source records are changed.
+
+The result retains the actual original source, role IDs, selected source CIRCLE
+ID and exact rotation from normalized axes to original world axes. `Native` remains local and the
+reconstructed `Descriptor.Frame` maps it to original world geometry. Height is
+positive-normalized; translated profile coordinates and the cap station carry
+the source location, without asserting an authored construction history.
+Arbitrary rotations/scales, inconsistent axes and unrepresentable source
+conversion fail closed. The old unposed reader and its JSON tag are unchanged;
+they reject the oblique posed source. No posed native envelope is claimed yet.
+`WritePosedOCCTExactCircularLoopSource` re-proves the original graph before
+re-export; canonical emission uses the existing exact writer with the recovered
+proper signed-coordinate frame.
+
+The independent OCCT author supports `write-model-only-posed output.step` and
+retains `testdata/occt-model-only-posed-rounded-triangle.step`. It constructs a
+negative-height prism and applies (x,y,z)→(z+1,x−2,y+3) before exporting through
+the official model-only setting. Fresh source, preserved source and generated
+canonical STEP all transfer through OCCT with matching topology, analytic
+volume/area and world centroid within 1e-9. Tests also assert untouched original
+records, native reload, old-mode rejection, mismatched wall/circle axes,
+unsupported oblique ratios, metadata-frame guards, limits and cancellation.
+
+### Posed source-bound native envelope
+
+`WritePosedOCCTExactCircularLoopExtrusionJSON` and
+`ReadPosedOCCTExactCircularLoopExtrusionJSON` use the separate version-one
+`plainsolid-step-posed-occt-exact-circular-loop-extrusion` format. Original
+source, product and topology roles, selected reference circle, exact axis
+rotation, local native bytes and world recipe are claims compared against one
+complete posed-source reproof. The local height remains normalized positive;
+no historical extrusion sign is recovered. The envelope is bounded to 8 MiB,
+source to 1 MiB, with caller source limits and cancellation. Prior native tags
+remain unchanged. Independent live qualification now reloads this envelope
+before original-source and generated canonical STEP transfer.
+
+### Shared rounded product assembly
+
+`ReadExactCircularLoopAssembly`, `WriteExactCircularLoopAssembly`, and
+`WriteExactCircularLoopAssemblySource` form a separate AP214 subset: one
+geometry-free root, one original model-only line/circle prism product, and
+2–16 flat shared occurrences with proper signed-coordinate rigid transforms.
+The local product retains its source cap/wall/rim/vertical-edge/vertex IDs.
+Apply `Body.Descriptor.Frame` to local native coordinates, then the selected
+occurrence transform; no geometry is flattened and no assembly union is claimed.
+The body source is the original assembly file, not a standalone product envelope.
+
+The writer accepts an authenticated standalone unposed OCCT product source and
+explicit product names/occurrences. It stages unchanged local geometry through
+the standard assembly writer and re-proves all output before writing. The reader
+shares the existing weighted station assembly's strict flat relationship/closure
+proof, then independently authenticates the rounded body's complete geometry.
+Uniform metre or millimetre SI contexts, radians/steradians, and neutral child
+frames are required. Nested products, mixed units, pcurves, unsupported local
+geometry, detached entities, and nonneutral child transforms fail closed.
+Existing standalone and weighted station public APIs keep their prior domains.
+
+The pinned OCCT author now provides `write-assembly` and `read-assembly` modes.
+The retained `occt-model-only-rounded-assembly.step` is independently created
+from analytic OCCT construction and XCAF shared instances with
+`WriteSurfaceCurMode=false`, not generated from PlainSolid STEP. The two uses
+are identity and `(x,y,z) -> (z+10,x-2,y+3)`. Live XCAF import verifies both uses
+refer to the same original product. Original, preserved and Go-authored files
+have 2 solids, 16 faces, 36 edges and 24 vertices; aggregate volume is
+`2*(27+25*pi/32)` and area `2*(51+105*pi/32)`, with matching world centroid.
+Native local reload, ownership/geometry/limit/cancellation negatives and a
+40-execution bounded decoder fuzz campaign qualify this selected graph.
+
+### Shared assembly native persistence
+
+`WriteExactCircularLoopAssemblyJSON` and `ReadExactCircularLoopAssemblyJSON`
+use the distinct version-one `plainsolid-step-exact-circular-loop-assembly`
+format. One original STEP source and one local native solid are stored; every
+product, cap/wall/rim/vertex role, NAUO/CDSR/relationship/frame ID, and exact
+occurrence matrix is independently re-proved on reload. Stored geometry and
+placements are claims, never authoritative replacements. The nested body claim
+is deliberately not a standalone native format. All prior tags remain unchanged.
+
+The reader enforces an 8 MiB envelope, 1 MiB source, caller STEP limits,
+cancellation, and atomic failure. Tests reject altered source, local recipe,
+native geometry, role and occurrence identities, transforms and tags. Live XCAF
+qualification reloads native before source re-export and before regenerating
+analytic local STEP geometry plus standard shared occurrence records; both
+outputs retain shared product identity, topology and world measures.

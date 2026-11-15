@@ -242,6 +242,12 @@ func ReadOCCTExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limi
 	if e != nil {
 		return zero, fmt.Errorf("step: exact loop product: %w", e)
 	}
+	return authenticateOCCTLoopBody(ctx, f, l, a.Products[0], a.LengthUnit, bodyID)
+}
+
+// authenticateOCCTLoopBody requires independently authenticated ownership and units.
+func authenticateOCCTLoopBody(ctx context.Context, f *File, l Limits, product AssemblyProduct, unit float64, bodyID int64) (OCCTExactCircularLoopExtrusion, error) {
+	var zero OCCTExactCircularLoopExtrusion
 	body, e := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
 	if e != nil {
 		return zero, e
@@ -359,12 +365,12 @@ func ReadOCCTExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limi
 		}
 	}
 	frame, _ := geom.NewFrame(geom.Vec3{Z: z0}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
-	out := OCCTExactCircularLoopExtrusion{Product: a.Products[0]}
+	out := OCCTExactCircularLoopExtrusion{Product: product}
 	out.Source = f
 	out.Body = bodyID
 	out.Shell = body.Args[1].Ref
 	out.Caps = [2]int64{capIDs[0], capIDs[1]}
-	out.Descriptor = ExactCircularLoopExtrusion{Name: a.Products[0].Name, Frame: frame, Height: height, LengthUnit: a.LengthUnit}
+	out.Descriptor = ExactCircularLoopExtrusion{Name: product.Name, Frame: frame, Height: height, LengthUnit: unit}
 	// Reverse the outward low cap cycle to obtain the required CCW source loop.
 	for i := n - 1; i >= 0; i-- {
 		u := lo.uses[i]
@@ -732,9 +738,10 @@ func occtLoopProductGraph(f *File, a Assembly) (int64, error) {
 	return items[1], nil
 }
 
-func occtLoopContext(f *File, id int64) error {
+func occtLoopContext(f *File, id int64) error { return occtLoopContextMode(f, id, false) }
+func occtLoopContextMode(f *File, id int64, optionalUncertainty bool) error {
 	en := f.Entities[id]
-	if len(en.Records) != 4 {
+	if len(en.Records) != 4 && !(optionalUncertainty && len(en.Records) == 3) {
 		return geom.ErrDomain
 	}
 	seen := map[string]bool{}
@@ -830,6 +837,9 @@ func occtLoopContext(f *File, id int64) error {
 				return geom.ErrDomain
 			}
 		}
+	}
+	if uncertainty == 0 && optionalUncertainty && len(en.Records) == 3 {
+		return nil
 	}
 	u, e := simple(f, uncertainty, "UNCERTAINTY_MEASURE_WITH_UNIT", 4)
 	if e != nil || u.Args[0].Kind != Typed || u.Args[0].Text != "LENGTH_MEASURE" || len(u.Args[0].Items) != 1 || u.Args[1].Ref != length || u.Args[2].Kind != String || u.Args[3].Kind != String {
