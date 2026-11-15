@@ -239,7 +239,9 @@ func measurePlanarRegionFace(f brep.Face, e []brep.Edge, v []geom.Vec3, counts [
 	for w, wire := range append([][]brep.EdgeUse{f.Boundary}, f.Holes...) {
 		p := make([]point, len(wire))
 		for i, u := range wire {
-			counts[u.Edge]++
+			if counts != nil {
+				counts[u.Edge]++
+			}
 			id := e[u.Edge].Start
 			if u.Reversed {
 				id = e[u.Edge].End
