@@ -12,7 +12,7 @@ func assembleParabolicGraphContact(ctx context.Context, base, a, b *geom.BSpline
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{}, e
 	}
-	if !section.Proven || section.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || section.TerminalMasks != ([2]uint8{1, 2}) {
+	if !section.Proven || section.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || (section.FreeAxis != 0 && section.FreeAxis != 1) || (section.FreeAxis == 0 && section.TerminalMasks != ([2]uint8{1, 2})) || (section.FreeAxis == 1 && section.TerminalMasks != ([2]uint8{4, 8})) {
 		return fail(geom.ErrConvergence)
 	}
 	var h [3][3]*big.Rat
@@ -37,6 +37,11 @@ func assembleParabolicGraphContact(ctx context.Context, base, a, b *geom.BSpline
 	tl := geom.Vec2{Y: 1}
 	lower := openGraphRegion{sign: -section.PositiveSide, loop: []openSectionPiece{{a: zero, b: br, side: 0}, {a: br, b: right, side: 1}, {a: right, b: left, c: reversePCurve(curve), side: -1}, {a: left, b: zero, side: 3}}}
 	upper := openGraphRegion{sign: section.PositiveSide, loop: []openSectionPiece{{a: left, b: right, c: curve, side: -1}, {a: right, b: tr, side: 1}, {a: tr, b: tl, side: 2}, {a: tl, b: left, side: 3}}}
+	if section.FreeAxis == 1 {
+		// Left and right regions retain CCW original-UV orientation.
+		lower.loop = []openSectionPiece{{a: zero, b: left, side: 0}, {a: left, b: right, c: curve, side: -1}, {a: right, b: tl, side: 2}, {a: tl, b: zero, side: 3}}
+		upper.loop = []openSectionPiece{{a: left, b: br, side: 0}, {a: br, b: tr, side: 1}, {a: tr, b: right, side: 2}, {a: right, b: left, c: reversePCurve(curve), side: -1}}
+	}
 	solid, history, e := combineOpenGraphRegions(ctx, base, a, b, []openGraphRegion{lower, upper}, op, tolerance)
 	if e != nil {
 		return fail(e)

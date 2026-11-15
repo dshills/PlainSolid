@@ -19,10 +19,11 @@
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
-static TopoDS_Solid stock(bool raised) {
+static TopoDS_Solid stock(bool raised, bool vertical) {
   const double x[]={0,.5,1}, f[]={.25,.5,.25};
-  auto roof=[&](int i,int j){return 3+x[i]*x[j]/64+(raised?(x[j]-f[i]):0);};
+  auto roof=[&](int i,int j){return 3+x[i]*x[j]/64+(raised?(vertical?x[i]-f[j]:x[j]-f[i]):0);};
   BRepBuilderAPI_Sewing sewing(1e-10);
   auto face=[&](int nu,int nv,bool reverse,const std::function<gp_Pnt(int,int)>& point){
     NCollection_Array2<gp_Pnt> poles(1,nu,1,nv);
@@ -43,8 +44,9 @@ static TopoDS_Solid stock(bool raised) {
   GProp_GProps m;BRepGProp::VolumeProperties(s,m);if(m.Mass()<=0)throw std::runtime_error("wrong source orientation");
   return s;
 }
-int main(){
-  auto a=stock(true),b=stock(false);std::cout<<std::setprecision(17)<<"[";bool first=true;
+int main(int argc,char** argv){
+  bool vertical=argc==2 && std::string(argv[1])=="vertical";
+  auto a=stock(true,vertical),b=stock(false,vertical);std::cout<<std::setprecision(17)<<"[";bool first=true;
   for(int order=0;order<2;++order){auto x=order?b:a,y=order?a:b;
     for(int op=0;op<3;++op){TopoDS_Shape s;
       if(op==0){BRepAlgoAPI_Common f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
@@ -53,7 +55,7 @@ int main(){
       GProp_GProps mass;BRepGProp::VolumeProperties(s,mass,1e-10);int solids=0;
       for(TopExp_Explorer it(s,TopAbs_SOLID);it.More();it.Next())++solids;
       if(!first)std::cout<<",";first=false;
-      std::cout<<"{\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass()<<"}";
+      std::cout<<"{\"Vertical\":"<<(vertical?"true":"false")<<",\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass()<<"}";
     }
   }
   std::cout<<"]\n";

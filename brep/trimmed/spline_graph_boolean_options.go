@@ -17,6 +17,8 @@ type SplineGraphBooleanOptions struct {
 	DisjointEllipses *geom.DisjointEllipseDiscoveryOptions
 	ThreeEllipses    *geom.ThreeEllipseDiscoveryOptions
 	Parabola         *geom.GraphPointContactOptions
+	// ParabolaAxis selects the original free coordinate (0=U, 1=V).
+	ParabolaAxis int
 }
 
 // CombineSplineGraphSolidsWithOptions is the opt-in normal common-base graph
@@ -55,7 +57,7 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 		return fail(e)
 	}
 	if o.Parabola != nil {
-		section, e := geom.DiscoverSplineGraphParabola(ctx, patches[0], patches[1], *o.Parabola)
+		section, e := geom.DiscoverSplineGraphParabolaOnAxis(ctx, patches[0], patches[1], o.ParabolaAxis, *o.Parabola)
 		if e != nil {
 			return fail(e)
 		}
