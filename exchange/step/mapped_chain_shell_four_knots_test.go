@@ -228,11 +228,12 @@ func verifyMappedChainCutDisplay(t *testing.T, ctx context.Context, m MappedChai
 	}
 	edges, points := m.Native.Solid.Edges(), m.Native.Solid.Vertices()
 	for _, cut := range m.Crossings {
+		part := slices.IndexFunc(m.Chain, func(cell MappedChainSTEPCell) bool { return cell.EdgeID == cut.EdgeID })
 		point := points[edges[cut.NativeEdges[0]].End]
 		found := false
 		for _, sample := range display.ChainSamples {
 			if sample.ModelParameter.Cmp(cut.ModelStation) == 0 && display.Mesh.Vertices[sample.Vertex] == point &&
-				sample.AuthoredParts == ([2]int{0, 0}) && sample.AuthoredParameters[0].Cmp(cut.RawParameters[0]) == 0 &&
+				sample.AuthoredParts == ([2]int{part, part}) && sample.AuthoredParameters[0].Cmp(cut.RawParameters[0]) == 0 &&
 				sample.AuthoredParameters[1].Cmp(cut.RawParameters[1]) == 0 {
 				found = true
 				break

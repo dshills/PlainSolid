@@ -73,8 +73,20 @@ static std::array<Cubic, 2> split(const Cubic& p) {
 static constexpr double additionalNorthKnot = 407. / 16384;
 static constexpr double fifthSupportKnot = 1341. / 16384;
 static constexpr double sixthSupportKnot = 2395. / 16384;
+static constexpr double secondSharedKnot = 99. / 256;
+static constexpr double secondCellSouthKnot = 917. / 2048;
 
-static std::vector<double> roofSupportKnots(bool south, int supportCuts) {
+struct RoofSupportLayout {
+  int cuts = 3;
+  bool twoCells = false;
+};
+
+static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
+  if (layout.twoCells) {
+    return south ? std::vector<double>{0., 29. / 256, secondSharedKnot, secondCellSouthKnot, 1.}
+                 : std::vector<double>{0., 107. / 2048, 29. / 256, secondSharedKnot, 1.};
+  }
+  const int supportCuts = layout.cuts;
   if (south && supportCuts == 6) {
     return {0., 29. / 256, sixthSupportKnot, 369. / 2048, 1.};
   }
@@ -88,8 +100,14 @@ static std::vector<double> roofSupportKnots(bool south, int supportCuts) {
                : std::vector<double>{0., 107. / 2048, 29. / 256, 1.};
 }
 
-static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, int supportCuts = 3) {
+static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
+    if (layout.twoCells) {
+      const double separate = south ? secondCellSouthKnot : 107. / 2048;
+      return x * y + .125 * (std::max(0., x - 29. / 256) + std::max(0., x - secondSharedKnot))
+        + .125 * (y - .25) * std::max(0., x - separate);
+    }
+    const int supportCuts = layout.cuts;
     const double separate = south ? 369. / 2048 : 107. / 2048;
     double extra = supportCuts >= 4 && !south ? .25 * (y - .25) * std::max(0., x - additionalNorthKnot) : 0.;
     if (supportCuts >= 5 && !south) {
@@ -103,8 +121,8 @@ static double roofHeight(double x, double y, bool crease, bool three = false, bo
   return x * y + (crease ? .5 * std::max(0., x - .5) : 0.);
 }
 
-static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool unsplit, int supportCuts) {
-  const std::vector<double> x = three ? roofSupportKnots(south, supportCuts)
+static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool unsplit, RoofSupportLayout layout) {
+  const std::vector<double> x = three ? roofSupportKnots(south, layout)
     : crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
   const std::vector<double> y{0., 1.};
   const auto& u = south ? y : x;
@@ -114,7 +132,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
     for (int j = 0; j < poles.UpperCol(); ++j) {
       const double a = south ? v[j] : u[i];
       const double b = south ? u[i] : v[j];
-      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, supportCuts)));
+      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, layout)));
     }
   }
   occ::handle<Geom_Surface> support;
@@ -149,10 +167,10 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
       // The seam has one fixed chart coordinate. Each model piece uses the
       // exact affine lift of its UV controls along that trace.
       auto lift = [&](const gp_Pnt2d& p) {
-        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, supportCuts));
+        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, layout));
       };
       occ::handle<Geom_Curve> lifted;
-      if (unsplit && points.size() == 4 && points.front().X() == 0.) {
+      if (unsplit && points.size() == 4 && (points.front().X() == 0. || (layout.twoCells && points.front().X() == .25))) {
         // The full first UV cubic crosses the original support stations.
         // Only the shared material kink splits its stored model curve.
         const auto pieces = split(Cubic{points[0], points[1], points[2], points[3]});
@@ -306,7 +324,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 // Author one original south basis with a decreasing raw parameter and
 // nonuniform weights. The north roof keeps the six OCCT-generated bases.
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
-  const occ::handle<StepData_Protocol>& protocol, bool unsplit, int supportCuts) {
+  const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
+  const int supportCuts = layout.cuts;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -316,21 +335,23 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   }
   occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
     new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
-  const auto southKnots = supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  const auto southWeights = supportCuts >= 4 ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
+  const auto southKnots = layout.twoCells ? std::array{0., 1., 16., 48.}
+    : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
+  const auto southWeights = (layout.twoCells || supportCuts >= 4) ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
     : std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512};
   shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
   const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
+  const auto raw = layout.twoCells ? std::vector<double>{48., 16., 1., 0.}
+                  : supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
-  const auto station = supportCuts >= 4 ? std::vector<double>{0., 8., 16., 32.}
+  const auto station = (layout.twoCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
                       : unsplit ? std::vector<double>{0., 4., 8., 16.}
                                : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
-  const auto northKnots = static_cast<int>(roofSupportKnots(false, supportCuts).size());
-  const auto southKnotCount = static_cast<int>(roofSupportKnots(true, supportCuts).size());
+  const auto northKnots = static_cast<int>(roofSupportKnots(false, layout).size());
+  const auto southKnotCount = static_cast<int>(roofSupportKnots(true, layout).size());
   std::vector<bool> changed(x.size() - 1);
   for (int i = 1; i <= model->NbEntities(); ++i) {
     auto curve = occ::down_cast<StepGeom_SurfaceCurve>(model->Entity(i));
@@ -366,11 +387,11 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       throw std::runtime_error("unexpected independently authored seam junction");
     }
     changed[cell] = true;
-    if (unsplit && cell == 0) {
+    if (unsplit && (cell == 0 || (layout.twoCells && cell == 1))) {
       if (spatial->NbControlPointsList() != 7 || spatial->NbKnots() != 3) {
-        throw std::runtime_error("the first unsplit model edge needs the original material knot");
+        throw std::runtime_error("the unsplit model edge needs its original material knot");
       }
-      spatial->SetKnots(stepArray(std::array{0., station[1] / 2., station[1]}));
+      spatial->SetKnots(stepArray(std::array{station[cell], (station[cell] + station[cell + 1]) / 2., station[cell + 1]}));
     } else {
       if (spatial->NbControlPointsList() != 4 || spatial->NbKnots() != 2) {
         throw std::runtime_error("an explicit seam edge needs one original cubic span");
@@ -381,10 +402,10 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       // The first two Cartesian nets are exact half restrictions of the
       // original north cubic. The homogeneous weights express the original
       // rational raw map with a common dyadic scale on each basis.
-      const double firstRawEnd = supportCuts >= 5 ? 4622. : supportCuts == 4 ? 107. : 457.;
+      const double firstRawEnd = supportCuts >= 5 ? 4622. : (supportCuts == 4 || layout.twoCells) ? 107. : 457.;
       const auto firstWeights = supportCuts >= 5 ? std::array{1., 3., 9., 27.}
-        : supportCuts == 4 ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
-      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., 706.}, {850., 862.}}};
+        : (supportCuts == 4 || layout.twoCells) ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
+      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., layout.twoCells ? 715. : 706.}, {850., 862.}}};
       const std::array<std::array<double, 4>, 3> weights{{
         firstWeights, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
       auto w = weights[cell];
@@ -433,7 +454,8 @@ int main(int argc, char** argv) {
     const std::string mode = argc > 1 ? argv[1] : "";
     const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
-    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3;
+    const RoofSupportLayout layout{supportCuts, mode == "write-two-support-cells"};
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || layout.twoCells;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;
@@ -447,11 +469,11 @@ int main(int argc, char** argv) {
     const bool reordered = mode == "write-reordered" || crease;
     auto side = [&](double y, bool reverse) {
       const bool south = y == 0.;
-      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south, supportCuts)}};
+      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south, layout)}};
       if (three) {
-        const auto xs = roofSupportKnots(south, supportCuts);
+        const auto xs = roofSupportKnots(south, layout);
         for (int i = static_cast<int>(xs.size()) - 2; i > 0; --i) {
-          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south, supportCuts));
+          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south, layout));
         }
       } else if (crease) {
         points.emplace_back(.5, y, roofHeight(.5, y, true));
@@ -460,9 +482,10 @@ int main(int argc, char** argv) {
       return planar(points, reverse, frame({0, y, 0}, {0, -1, 0}, {0, 0, -1}));
     };
     const std::array<TopoDS_Face, 7> source{
-      roof(false, reordered ? 4 : 0, crease, three, unsplitBasis, supportCuts),
-      roof(true, reordered ? 5 : 0, crease, three, unsplitBasis, supportCuts),
-      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three, false, supportCuts)}, {1, .25, roofHeight(1, .25, crease, three)}, {1, 0, roofHeight(1, 0, crease, three, true, supportCuts)}}, false,
+      roof(false, reordered ? 4 : 0, crease, three, unsplitBasis, layout),
+      roof(true, reordered ? 5 : 0, crease, three, unsplitBasis, layout),
+      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three, false, layout)},
+             {1, .25, roofHeight(1, .25, crease, three, false, layout)}, {1, 0, roofHeight(1, 0, crease, three, true, layout)}}, false,
              frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
              frame({0, 0, 0}, {1, 0, 0}, {0, 0, 1})),
@@ -508,7 +531,7 @@ int main(int argc, char** argv) {
           throw std::runtime_error("independent STEP model has no protocol");
         }
         if (mixedBasis) {
-          model = authorMixedBasis(model, protocol, unsplitBasis, supportCuts);
+          model = authorMixedBasis(model, protocol, unsplitBasis, layout);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);

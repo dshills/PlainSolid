@@ -28,6 +28,18 @@ func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geo
 // support crossings are proved in the same map and returned in traversal order.
 // maxSupportKnots is between two and four.
 func ProveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
+	return proveMappedSplineSingleStoredKnotTransfer(ctx, support, source, pieces, join, maxSupportKnots, false, o)
+}
+
+// ProveMappedSplineCellLocalStoredKnotTransfer proves an original owner coedge
+// against two stored pieces when the support also has knots outside this
+// coedge. The shared stored knot and at most one other active support crossing
+// must fit one exact raw map. Missing or nonisolated active events fail.
+func ProveMappedSplineCellLocalStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
+	return proveMappedSplineSingleStoredKnotTransfer(ctx, support, source, pieces, join, 3, true, o)
+}
+
+func proveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, maxSupportKnots int, cellLocal bool, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
 	var zero MappedSplineUV
 	one := big.NewRat(1, 1)
 	if ctx == nil || support == nil || pieces[0] == nil || pieces[1] == nil || join == nil ||
@@ -50,9 +62,12 @@ func ProveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom
 	if err != nil {
 		return zero, nil, err
 	}
-	roots, err := mappedSplineRequiredSupportRoots(ctx, raw, planes, o)
+	roots, err := mappedSplineSupportRoots(ctx, raw, planes, !cellLocal, o)
 	if err != nil {
 		return zero, nil, err
+	}
+	if cellLocal && (len(roots) == 0 || len(roots) > 2) {
+		return zero, nil, fmt.Errorf("the original model cell requires one or two active support knots: %w", geom.ErrConvergence)
 	}
 	firstModel, err := pieces[0].Reparameterize(0, 1, false, o)
 	if err != nil {

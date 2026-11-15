@@ -52,6 +52,11 @@ type MappedChainShellSTEPOptions struct {
 	// with one shared stored event and separate events on both roofs. Its
 	// prerequisites match AllowFourSupportKnots.
 	AllowUpToSixSupportKnots bool
+	// AllowMultipleSupportKnotCells admits two original edges, each with one
+	// stored shared support knot and one inferred owner-only event. The two
+	// inferred events must belong to opposite roofs. Its prerequisites match
+	// AllowFourSupportKnots.
+	AllowMultipleSupportKnotCells bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
@@ -106,7 +111,7 @@ func writeReprovedMappedChainSTEP(ctx context.Context, w io.Writer, raw []byte, 
 
 func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
 	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot &&
-		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots)
+		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells)
 }
 
 func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {

@@ -116,11 +116,11 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if foreign && o.AllowAsynchronousSupportKnots && !o.AllowUnsplitSupportKnot {
 		return zero, geom.ErrInvalid
 	}
-	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots) &&
+	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells) &&
 		(!o.AllowUnsplitSupportKnot || !o.AllowTwoInteriorRoofKnots) {
 		return zero, geom.ErrInvalid
 	}
-	if (o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots) && !o.AllowTwoInteriorRoofKnots {
+	if (o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells) && !o.AllowTwoInteriorRoofKnots {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -155,7 +155,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if o.AllowTwoInteriorRoofKnots {
 		maxRoofKnots = 2
 	}
-	if o.AllowFourSupportKnots {
+	if o.AllowFourSupportKnots || o.AllowMultipleSupportKnotCells {
 		maxRoofKnots = 3
 	}
 	if o.AllowUpToSixSupportKnots {
@@ -353,6 +353,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
 	allowMixed := g.foreign && o.AllowMixedSupportKnots && min(knotsA, knotsB) == 1 && max(knotsA, knotsB) == 2
 	allowThree := (g.foreign || canonicalOriginal) && o.AllowThreeSupportKnots && knotsA == 2 && knotsB == 2
+	canUseLocalCells := (g.foreign || canonicalOriginal) && o.AllowMultipleSupportKnotCells && knotsA == 3 && knotsB == 3
 	v8Cuts := 0
 	if (g.foreign || canonicalOriginal) && min(knotsA, knotsB) >= 2 && max(knotsA, knotsB) <= 4 {
 		count := knotsA + knotsB - 1
@@ -367,7 +368,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		maxInferredSupportKnots = 2
 	}
 	maxModelPieces := 1
-	if canonicalOriginal && (allowThree || v8Cuts != 0) {
+	if canonicalOriginal && (allowThree || v8Cuts != 0 || canUseLocalCells) {
 		maxModelPieces = 2
 	} else if allowUnsplit {
 		maxModelPieces = 2
@@ -375,11 +376,26 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			maxModelPieces = 3
 		}
 	}
-	for _, id := range chainIDs {
+	sourceEdges := make([]mappedChainStepEdge, len(chainIDs))
+	withStoredKnots := 0
+	for i, id := range chainIDs {
 		e, err := g.edge(ctx, id, o.Geometry, maxModelPieces)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
+		sourceEdges[i] = e
+		if len(e.joins) != 0 {
+			withStoredKnots++
+		}
+	}
+	cellLocal := canUseLocalCells && withStoredKnots == 2
+	expectedPerEdge := maxCrossings
+	if cellLocal {
+		maxCrossings, expectedPerEdge = 4, 2
+	}
+	for i, id := range chainIDs {
+		e := sourceEdges[i]
+		var err error
 		if g.foreign && len(chain) == 0 {
 			var forms [2]bool
 			for owner, p := range e.pcurves {
@@ -391,7 +407,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				foreignTrimmed = [2]bool{true, true}
 			}
 		}
-		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && (!(allowThree || v8Cuts != 0) || len(e.joins) != 1) {
+		if (foreignMixed || canonicalOriginal || cellLocal) && len(e.joins) != 0 && (!(allowThree || v8Cuts != 0 || cellLocal) || len(e.joins) != 1) {
 			return zero, geom.ErrConvergence
 		}
 		if g.foreign && foreignTrimmed == [2]bool{} {
@@ -436,7 +452,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
-			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync && !foreignMixed, maxInferredSupportKnots, o.Geometry)
+			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync && !foreignMixed, cellLocal, maxInferredSupportKnots, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
@@ -450,8 +466,8 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if len(crossings)+len(edgeCrossings) > maxCrossings {
 			return zero, geom.ErrConvergence
 		}
-		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && len(edgeCrossings) != maxCrossings {
-			return zero, fmt.Errorf("mixed original owner bases require a complete %d-cut repair: %w", maxCrossings, geom.ErrConvergence)
+		if (foreignMixed || canonicalOriginal || cellLocal) && len(e.joins) != 0 && len(edgeCrossings) != expectedPerEdge {
+			return zero, fmt.Errorf("each original model edge requires a complete %d-cut repair: %w", expectedPerEdge, geom.ErrConvergence)
 		}
 		crossings = append(crossings, edgeCrossings...)
 		chain = append(chain, row)
@@ -593,6 +609,13 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 		certify = trimmed.CertifyMappedSplineChainThreeSupportKnotsAgreement
 	case 4, 5, 6:
+		if cellLocal {
+			if !mappedChainCrossingsOnTwoLocalCells(crossings) {
+				return zero, fmt.Errorf("each original edge requires one shared and one distinct single-owner event: %w", geom.ErrConvergence)
+			}
+			certify = trimmed.CertifyMappedSplineChainCellLocalSupportKnotsAgreement
+			break
+		}
 		if len(crossings) != v8Cuts || !allMappedChainCrossingsOnOneEdge(crossings) {
 			return zero, fmt.Errorf("all support cuts must belong to one original edge: %w", geom.ErrConvergence)
 		}
@@ -645,6 +668,27 @@ func allMappedChainCrossingsOnOneEdge(crossings []MappedChainSTEPSupportCrossing
 		}
 	}
 	return true
+}
+
+func mappedChainCrossingsOnTwoLocalCells(crossings []MappedChainSTEPSupportCrossing) bool {
+	if len(crossings) != 4 || crossings[0].EdgeID == crossings[2].EdgeID {
+		return false
+	}
+	var singleOwner [2][2]bool
+	for i := range singleOwner {
+		a, b := crossings[2*i], crossings[2*i+1]
+		if a.EdgeID != b.EdgeID || a.StoredModelKnot == b.StoredModelKnot {
+			return false
+		}
+		if !a.StoredModelKnot {
+			a, b = b, a
+		}
+		if a.OwnersChangingCells != [2]bool{true, true} || b.OwnersChangingCells[0] == b.OwnersChangingCells[1] {
+			return false
+		}
+		singleOwner[i] = b.OwnersChangingCells
+	}
+	return singleOwner[0] != singleOwner[1]
 }
 
 func mappedChainSTEPBasisModes(chain []MappedChainSTEPCell) ([2]bool, error) {

@@ -204,7 +204,7 @@ type MappedSplineChainAgreement struct {
 
 type mappedChainKnotRepair uint8
 
-// Nonzero identifiers map to native boundary recipe versions 3 through 8.
+// Nonzero identifiers map to native boundary recipe versions 3 through 9.
 const (
 	mappedChainNoKnotRepair mappedChainKnotRepair = iota
 	mappedChainSingleKnotRepair
@@ -213,6 +213,7 @@ const (
 	mappedChainMixedKnotsRepair
 	mappedChainThreeKnotsRepair
 	mappedChainMultipleKnotsRepair
+	mappedChainCellLocalKnotsRepair
 )
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -324,6 +325,14 @@ func CertifyMappedSplineChainFourSupportKnotsAgreement(ctx context.Context, a ge
 // from the original support charts during native v8 reload.
 func CertifyMappedSplineChainMultipleSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainMultipleKnotsRepair)
+}
+
+// CertifyMappedSplineChainCellLocalSupportKnotsAgreement proves two original
+// common cells with two transverse crossings each. Each cell has one shared
+// support event and one event from a single owner. The single-owner events
+// belong to opposite roofs, each with three authored interior knots.
+func CertifyMappedSplineChainCellLocalSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainCellLocalKnotsRepair)
 }
 
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
