@@ -19,6 +19,9 @@ type CertifiedPolygonPatchMesh struct {
 	VertexUV     []geom.Vec2
 	Loops        [][]int
 	OriginalFace int
+	// KnotCells/KnotPieces include all attempted refinements; zero when the
+	// optional original-knot proof was not requested.
+	KnotCells, KnotPieces int
 	// Uses records exact original straight-UV traversal parameters for stored
 	// faces only. It does not certify correspondence to stored model edges.
 	Uses []PolygonFaceUseSamples
@@ -89,6 +92,13 @@ func tessellatePolygonPatchCertified(ctx context.Context, p *geom.SurfacePatch, 
 	tolerance := ratInset(o.Deflection)
 	tolerance.Mul(tolerance, tolerance)
 	checks := 0
+	var knot *polygonKnotBudget
+	if o.PolygonMultiSpan != nil {
+		knot, e = newPolygonKnotBudget(*o.PolygonMultiSpan)
+		if e != nil {
+			return empty, e
+		}
+	}
 	midpoint := func(a, b geom.Vec2) (geom.Vec2, error) {
 		var result [2]float64
 		for i, pair := range [][2]float64{{a.X, b.X}, {a.Y, b.Y}} {
@@ -143,7 +153,7 @@ func tessellatePolygonPatchCertified(ctx context.Context, p *geom.SurfacePatch, 
 				index[k] = id
 				model[k] = result.Mesh.Vertices[id]
 			}
-			bound, e := BoundSplineTriangleDeviation(ctx, p, uv, model)
+			bound, e := polygonTriangleDeviation(ctx, p, uv, model, knot)
 			checks++
 			if e != nil {
 				return empty, e
@@ -172,6 +182,10 @@ func tessellatePolygonPatchCertified(ctx context.Context, p *geom.SurfacePatch, 
 				return empty, e
 			}
 			result.TriangleChecks = checks
+			if knot != nil {
+				result.KnotCells = knot.cells
+				result.KnotPieces = knot.pieces
+			}
 			return result, nil
 		}
 		if n == o.MaxSubdivisions || len(triangles) > (o.MaxTriangleChecks-checks)/4 {

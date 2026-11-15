@@ -15,6 +15,9 @@ type CertifiedPatchMeshOptions struct {
 	Deflection                         float64
 	MaxSubdivisions, MaxTriangleChecks int
 	Evaluation                         geom.SurfacePatchEvaluationOptions
+	// PolygonMultiSpan opts polygon face/patch meshing into exact knot-cell
+	// two-sided residuals. Other entry points retain their own contracts.
+	PolygonMultiSpan *PolygonMultiSpanMeshOptions
 }
 
 // CertifiedPatchMesh contains a conforming indexed mesh and one exact
