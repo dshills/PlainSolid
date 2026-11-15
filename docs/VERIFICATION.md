@@ -249,6 +249,12 @@ kept its pristine hash. Raw results remain in
   original line-to-line and line-to-arc corners and rejects a genuine
   irrational line normal. The expanded fillet main race passed in 76.788
   seconds, including the earlier circular and orthogonal regressions.
+- Major and half-turn arcs and explicitly authored full circles retain
+  their direction and exact start/end positions when split for native
+  trims. Pinned OCCT independently authored a single 270-degree edge and
+  a full circular opening; both native sweeps match their material. The
+  main race passed in 16.616 seconds and rejected an unrepresentable
+  required extremum without rejecting a short span that avoids it.
 - Nonunit Cut and prior native Boolean cases passed the main trimmed race
   in 284.486 seconds. Both Cut orders retain the original sloping base and
   both independent roof owners. Independent physical integration agrees

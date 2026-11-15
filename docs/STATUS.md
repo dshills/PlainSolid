@@ -121,6 +121,8 @@ Two incident original arcs can also be rounded in the represented domain,
 with separate parameter maps even when the arcs turn in different directions.
 Rounding now accepts oblique original lines with rational unit directions,
 including a corner between one such line and an original arc.
+Long directed circular spans, including half-turns and authored full circles,
+can now be split into exact native quarter-turn or shorter pieces.
 Complete equal curved caps also join, leaving one common original rim.
 Different original rim partitions are now refined to exactly shared stations;
 native and document replay re-prove the two directed source parameter maps.

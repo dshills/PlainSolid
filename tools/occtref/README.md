@@ -63,6 +63,11 @@ through-hole for `TestExactCircularSweepCapOverlayLiveOCCT`.
 Its `multiple` mode fuses two hollow bosses on one host cap and a third
 mixed circular and planar boss on the opposite cap.
 
+`directed_circular_span.cxx` independently constructs a 270-degree analytic
+edge and, in a separate case, a stock with a full circular opening. Set
+`PLAINSOLID_OCCT_DIRECTED_CIRCULAR_SPAN` to compare signed material for the
+Go constructor's exact subdivision of the respective directed spans.
+
 `circular_sweep_mixed_fillets.cxx` first rounds a stock edge, cuts a
 square and a circular opening, then independently rounds a convex corner
 and an inner corner. Set `PLAINSOLID_OCCT_CIRCULAR_MIXED_FILLETS` to the
