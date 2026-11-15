@@ -126,7 +126,7 @@ func buildNativePolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurfa
 	if e != nil {
 		return nil, e
 	}
-	loops, e := polynomialNodeRegionLoops(proof.Regions, uv, pieces)
+	loops, e := polynomialNodeRegionLoopsOnRectangle(proof.Regions, uv, pieces, proof.Domain)
 	if e != nil {
 		return nil, e
 	}

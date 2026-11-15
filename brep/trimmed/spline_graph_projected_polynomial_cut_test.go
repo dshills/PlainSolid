@@ -61,6 +61,11 @@ func TestNativeProjectedPolynomialCut(t *testing.T) {
 func checkNativeProjectedCut(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int) {
 	t.Helper()
 	checkNativePolynomialCutMaterial(t, cut, profile, axis, order)
+	checkProjectedCutOwnerTrims(t, cut, axis, order, func(p geom.Vec3) geom.Vec3 { return p })
+}
+
+func checkProjectedCutOwnerTrims(t *testing.T, cut *AlignedPolynomialCut, axis, order int, toUnit func(geom.Vec3) geom.Vec3) {
+	t.Helper()
 	parts := cut.Components()
 	for region, part := range parts {
 		top := part.Topology()
@@ -80,7 +85,7 @@ func checkNativeProjectedCut(t *testing.T, cut *AlignedPolynomialCut, profile, a
 					e.Start, e.End = e.End, e.Start
 				}
 				a, b := part.vertices[e.Start], part.vertices[e.End]
-				if use.UVStart != projectedFixtureUV(physicalOwner, axis, a) || use.UVEnd != projectedFixtureUV(physicalOwner, axis, b) {
+				if use.UVStart != projectedFixtureUV(physicalOwner, axis, toUnit(a)) || use.UVEnd != projectedFixtureUV(physicalOwner, axis, toUnit(b)) {
 					t.Fatal("original cap pcurve interval", region, i, use.Edge)
 				}
 			}
@@ -95,7 +100,7 @@ func checkNativeProjectedCut(t *testing.T, cut *AlignedPolynomialCut, profile, a
 					}
 					e := part.edges[use.Edge]
 					a, b := part.vertices[e.Start], part.vertices[e.End]
-					if seen[i] || use.Reversed != (i == 0) || trim.a != projectedFixtureUV(i^order, axis, a) || trim.b != projectedFixtureUV(i^order, axis, b) {
+					if seen[i] || use.Reversed != (i == 0) || trim.a != projectedFixtureUV(i^order, axis, toUnit(a)) || trim.b != projectedFixtureUV(i^order, axis, toUnit(b)) {
 						t.Fatal("Bound wall pcurve station and owner", region, i, use.Edge)
 					}
 					seen[i] = true
