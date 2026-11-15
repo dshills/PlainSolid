@@ -35,6 +35,10 @@ const fixtures = [
     otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1,
     grouped: true, fillets: 4, rejectedDistance: 1e-13,
     converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { name: "four-fillet converted inch", path: "/plainsolid-four-converted-step-repair-inch.step", units: "in",
+    otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254,
+    grouped: true, fillets: 4, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -164,6 +168,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   } : undefined;
   const finiteAxialTransfer = four && converted ? {
     owner: certificate.Claims.CylindricalSpanOwners.filter((span: { ClippedOwnerParameters?: unknown }) => span.ClippedOwnerParameters !== undefined),
+    maps: certificate.Claims.CylindricalSpanOwners.filter((span: { RepairedToOwner?: unknown }) => span.RepairedToOwner !== undefined),
     trims: certificate.Claims.Grouped.AxialTrims,
   } : undefined;
   if (convertedOwners) {
@@ -175,19 +180,35 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     const spans = certificate.Claims.CylindricalSpanOwners;
     expect(spans).toHaveLength(convertedOwners.cylindricalSpanOwners);
     if (four) {
-      const excess = "1/25000000000000000000000000";
-      const projectedEnd = "125000000000000000000000000001/25000000000000000000000000";
       const shifted = spans.filter((span: { ModelAngleBounds?: unknown }) => span.ModelAngleBounds !== undefined);
       expect(shifted.map((span: { PCurveID: number }) => span.PCurveID)).toEqual([207, 263, 472, 518]);
-      expect(finiteAxialTransfer).toMatchObject({
-        owner: [{
-          PCurveID: 564, ParameterInterval: ["0", axialEnd], UVStart: ["553574358897/250000000000", "0"],
-          UVDerivative: ["0", ownerScale], RepairedToOwner: [`-${excess}`, "1"], ClippedOwnerParameters: ["0", axialEnd],
-        }],
-        trims: [{ EdgeID: 332 }, {
-          EdgeID: 551, OriginalParameters: ["0", projectedEnd], RepairedParameters: [excess, projectedEnd],
-        }],
-      });
+      if (fixture.units === "in") {
+        const denominator = "/984251968504000000000000000";
+        const ends = ["625000000000000000000000000001", "625000000000000000000000000003"];
+        expect(finiteAxialTransfer).toMatchObject({
+          owner: [],
+          maps: [340, 564].map(PCurveID => ({
+            PCurveID, ParameterInterval: ["0", axialEnd], UVDerivative: ["0", ownerScale],
+            RepairedToOwner: [expect.any(String), expect.any(String)],
+          })),
+          trims: [332, 551].map((EdgeID, i) => ({
+            EdgeID, OriginalParameters: ["0", ends[i] + denominator],
+            RepairedParameters: [["1", "3"][i] + denominator, ends[i] + denominator],
+          })),
+        });
+      } else {
+        const excess = "1/25000000000000000000000000";
+        const projectedEnd = "125000000000000000000000000001/25000000000000000000000000";
+        expect(finiteAxialTransfer).toMatchObject({
+          owner: [{
+            PCurveID: 564, ParameterInterval: ["0", axialEnd], UVStart: ["553574358897/250000000000", "0"],
+            UVDerivative: ["0", ownerScale], RepairedToOwner: [`-${excess}`, "1"], ClippedOwnerParameters: ["0", axialEnd],
+          }],
+          trims: [{ EdgeID: 332 }, {
+            EdgeID: 551, OriginalParameters: ["0", projectedEnd], RepairedParameters: [excess, projectedEnd],
+          }],
+        });
+      }
       expect(certificate.Claims.Grouped.FiniteTrims).toMatchObject([
         { CapOwner: { PCurveID: 310 }, CylinderOwner: { PCurveID: 321 }, EndStation: expect.any(Object) },
         { CapOwner: { PCurveID: 367 }, CylinderOwner: { PCurveID: 361 }, EndStation: expect.any(Object) },

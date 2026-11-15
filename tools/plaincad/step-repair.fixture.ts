@@ -85,6 +85,9 @@ const fixtures: readonly Fixture[] = [
   tiltedFour,
   { ...tiltedFour, file: `${tiltedFour.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1,
     converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { ...tiltedFour, file: `${tiltedFour.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ];
 
 for (const fixture of fixtures) {
@@ -154,18 +157,32 @@ for (const fixture of fixtures) {
           for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
           const spans = proof.Claims.CylindricalSpanOwners;
           if (fixture.fillets === 4) {
-            const excess = "1/25000000000000000000000000";
-            const projectedEnd = "125000000000000000000000000001/25000000000000000000000000";
             const shifted = spans.filter((span: { ModelAngleBounds?: unknown }) => span.ModelAngleBounds !== undefined);
             expect(shifted.map((span: { PCurveID: number }) => span.PCurveID)).toEqual([207, 263, 472, 518]);
             expect(spans).toHaveLength(16);
-            expect(spans.filter((span: { ClippedOwnerParameters?: unknown }) => span.ClippedOwnerParameters !== undefined)).toEqual([{
-              PCurveID: 564, ParameterInterval: ["0", axialEnd], UVStart: ["553574358897/250000000000", "0"],
-              UVDerivative: ["0", ownerScale], RepairedToOwner: [`-${excess}`, "1"], ClippedOwnerParameters: ["0", axialEnd],
-            }]);
-            expect(proof.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 332 }, {
-              EdgeID: 551, OriginalParameters: ["0", projectedEnd], RepairedParameters: [excess, projectedEnd],
-            }]);
+            const clipped = spans.filter((span: { ClippedOwnerParameters?: unknown }) => span.ClippedOwnerParameters !== undefined);
+            if (units === "in") {
+              const denominator = "/984251968504000000000000000";
+              const ends = ["625000000000000000000000000001", "625000000000000000000000000003"];
+              expect(clipped).toEqual([]);
+              expect(spans.filter((span: { RepairedToOwner?: unknown }) => span.RepairedToOwner !== undefined)).toMatchObject(
+                [340, 564].map(PCurveID => ({ PCurveID, ParameterInterval: ["0", axialEnd], UVDerivative: ["0", ownerScale],
+                  RepairedToOwner: [expect.any(String), expect.any(String)] })));
+              expect(proof.Claims.Grouped.AxialTrims).toMatchObject([332, 551].map((EdgeID, i) => ({
+                EdgeID, OriginalParameters: ["0", ends[i] + denominator],
+                RepairedParameters: [["1", "3"][i] + denominator, ends[i] + denominator],
+              })));
+            } else {
+              const excess = "1/25000000000000000000000000";
+              const projectedEnd = "125000000000000000000000000001/25000000000000000000000000";
+              expect(clipped).toEqual([{
+                PCurveID: 564, ParameterInterval: ["0", axialEnd], UVStart: ["553574358897/250000000000", "0"],
+                UVDerivative: ["0", ownerScale], RepairedToOwner: [`-${excess}`, "1"], ClippedOwnerParameters: ["0", axialEnd],
+              }]);
+              expect(proof.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 332 }, {
+                EdgeID: 551, OriginalParameters: ["0", projectedEnd], RepairedParameters: [excess, projectedEnd],
+              }]);
+            }
             expect(proof.Claims.Grouped.FiniteTrims).toMatchObject([
               { CapOwner: { PCurveID: 310 }, CylinderOwner: { PCurveID: 321 }, EndStation: expect.any(Object) },
               { CapOwner: { PCurveID: 367 }, CylinderOwner: { PCurveID: 361 }, EndStation: expect.any(Object) },
