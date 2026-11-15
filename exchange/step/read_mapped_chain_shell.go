@@ -109,7 +109,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if err != nil {
 		return zero, err
 	}
-	source, err := openMappedChainSTEPSource(f, l, foreign)
+	source, err := openMappedChainSTEPSource(f, l, foreign, o.AllowMultiSpanRoofs)
 	if err != nil {
 		return zero, err
 	}
@@ -124,7 +124,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	return out, nil
 }
 
-func openMappedChainSTEPSource(f *File, l Limits, foreign bool) (mappedChainStepSource, error) {
+func openMappedChainSTEPSource(f *File, l Limits, foreign, allowMultiSpan bool) (mappedChainStepSource, error) {
 	var zero mappedChainStepSource
 	var rid int64
 	for _, id := range f.Order {
@@ -189,7 +189,7 @@ func openMappedChainSTEPSource(f *File, l Limits, foreign bool) (mappedChainStep
 	supports := make(map[int64]bool)
 	used := 0
 	for _, id := range fids {
-		face, err := parseMappedChainStepFace(f, id, foreign)
+		face, err := parseMappedChainStepFace(f, id, foreign, allowMultiSpan)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP face #%d: %w", id, err)
 		}
@@ -206,6 +206,9 @@ func openMappedChainSTEPSource(f *File, l Limits, foreign bool) (mappedChainStep
 		}
 	}
 	for i, face := range source.faces {
+		if i >= 2 && mappedChainInteriorSupportKnots(face.surface) != 0 {
+			return zero, geom.ErrConvergence
+		}
 		for j, u := range face.uses {
 			source.uses[u.id] = append(source.uses[u.id], mappedChainStepUseIndex{i, j, u.sense})
 		}
@@ -270,7 +273,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	}
 	n := len(chainIDs)
 	if n < 2 || n > 8 || g.faces[0].reversed == g.faces[1].reversed {
-		return zero, geom.ErrConvergence
+		return zero, fmt.Errorf("mapped STEP shared chain has unsupported source topology: %w", geom.ErrConvergence)
 	}
 	var closing [2][]trimmed.PCurve
 	for i := range closing {
@@ -288,7 +291,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	for _, id := range chainIDs {
 		e, err := g.edge(ctx, id, o.Geometry)
 		if err != nil {
-			return zero, err
+			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
 		if g.foreign {
 			if len(stations) == 0 {
@@ -344,7 +347,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 		e, err := g.edge(ctx, id, o.Geometry)
 		if err != nil {
-			return zero, err
+			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
 		var pair [2]trimmed.MappedChainClosedUse
 		for j, use := range owners {
@@ -402,7 +405,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	budget := edgecheck.Options{MaxWork: o.Geometry.MaxOperations, MaxBits: o.Geometry.MaxCoefficientBits}
 	agreement, err := trimmed.CertifyMappedSplineChainAgreement(ctx, g.faces[0].surface, chains[0], g.faces[1].surface, chains[1], budget)
 	if err != nil {
-		return zero, err
+		return zero, fmt.Errorf("mapped source chain agreement: %w", err)
 	}
 	roofOrientation := [2]bool{g.faces[0].reversed, g.faces[1].reversed}
 	shell, err := trimmed.CertifyMappedSplineChainShell(ctx, agreement, closing, roofOrientation, planar, seams, trimmed.MappedChainShellProofOptions{Closing: budget})
@@ -411,7 +414,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	}
 	native, err := shell.BuildRectangularSolid(ctx, o.Tolerance, o.Geometry)
 	if err != nil {
-		return zero, err
+		return zero, fmt.Errorf("mapped source solid: %w", err)
 	}
 	out := MappedChainSTEPModel{Name: g.name, LengthUnit: g.unit, Shell: shell, Native: native, Chain: chain}
 	for _, f := range g.faces {

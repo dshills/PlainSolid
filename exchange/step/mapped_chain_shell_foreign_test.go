@@ -51,7 +51,7 @@ func verifyOCCTMappedChainSTEP(t *testing.T, raw []byte, reordered bool) MappedC
 			t.Fatal("live fixture must genuinely reorder the source faces", err)
 		}
 		for i := range 2 {
-			rawFace, err := parseMappedChainStepFace(f, m.FaceIDs[i], true)
+			rawFace, err := parseMappedChainStepFace(f, m.FaceIDs[i], true, false)
 			if err != nil || rawFace.uses[0].id == m.Chain[0].EdgeID {
 				t.Fatal("live fixture must start both roof wires off the shared chain", i, err)
 			}
