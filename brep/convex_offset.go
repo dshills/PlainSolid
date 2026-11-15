@@ -124,6 +124,10 @@ func (w *offsetPlaneWork) test() error {
 
 type offsetVector [3]*big.Rat
 
+func exactOffsetVector(p geom.Vec3) offsetVector {
+	return offsetVector{new(big.Rat).SetFloat64(p.X), new(big.Rat).SetFloat64(p.Y), new(big.Rat).SetFloat64(p.Z)}
+}
+
 func (a offsetVector) sub(b offsetVector) offsetVector {
 	return offsetVector{new(big.Rat).Sub(a[0], b[0]), new(big.Rat).Sub(a[1], b[1]), new(big.Rat).Sub(a[2], b[2])}
 }
@@ -152,7 +156,7 @@ type offsetPlane struct {
 func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, unshifted int, work *offsetPlaneWork) ([]offsetPlane, error) {
 	points := make([]offsetVector, len(s.vertices))
 	for i, p := range s.vertices {
-		points[i] = offsetVector{new(big.Rat).SetFloat64(p.X), new(big.Rat).SetFloat64(p.Y), new(big.Rat).SetFloat64(p.Z)}
+		points[i] = exactOffsetVector(p)
 	}
 	planes := make([]offsetPlane, 0, len(s.faces))
 	for i, face := range s.faces {

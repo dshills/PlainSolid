@@ -162,6 +162,6 @@ func compareConvexOffsetOCCT(t *testing.T, bin, shape string, d float64, out bre
 	}
 	if len(values) != 5 || values[0] != 1 || values[1] != 1 || values[2] != float64(len(out.Faces())) ||
 		math.Abs(values[3]-m.Volume) > 1e-10 || math.Abs(values[4]-m.SurfaceArea) > 1e-10 {
-		t.Fatal("OCCT miter offset geometry", string(b), m)
+		t.Fatal("OCCT convex treatment geometry", string(b), m)
 	}
 }

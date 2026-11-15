@@ -4,4 +4,4 @@ set -eu
 [ "$#" -eq 3 ] || exit 2
 exec "${CXX:-c++}" -std=c++17 -O2 -I"$1" -L"$2" "-Wl,-rpath,$2" \
   "$(dirname "$0")/convex_miter_offset.cxx" -o "$3" \
-  -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKMath -lTKernel
+  -lTKOffset -lTKFillet -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKMath -lTKernel
