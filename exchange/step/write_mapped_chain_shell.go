@@ -19,8 +19,8 @@ import (
 type MappedChainShellSTEPOptions struct {
 	Geometry  geom.SurfacePatchOptions
 	Tolerance float64
-	// AllowMultiSpanRoofs admits one interior original support knot per
-	// roof. Every source trim must fit a closed original knot rectangle.
+	// AllowMultiSpanRoofs admits one interior original support knot per roof.
+	// Every emitted or read coedge must fit a closed original knot rectangle.
 	AllowMultiSpanRoofs bool
 }
 
@@ -118,7 +118,7 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 	uvContext := emit("(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''))")
 	edgeIDs := make([]int64, len(uses))
 	edges := native.Solid.Edges()
-	bases := make([]int64, len(faces))
+	bases := make([]mappedChainStepBasis, len(faces))
 	for i, owners := range uses {
 		if err := ctx.Err(); err != nil {
 			return 0, err
@@ -171,19 +171,30 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 	return emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(name), closed)), nil
 }
 
-func emitMappedChainStepUse(emit func(string) int64, use trimmed.Use, chain bool, basis *int64) (int64, error) {
+type mappedChainStepBasis struct {
+	id     int64
+	source *geom.BSpline
+}
+
+func emitMappedChainStepUse(emit func(string) int64, use trimmed.Use, chain bool, basis *mappedChainStepBasis) (int64, error) {
 	if chain {
 		p, ok := use.Curve.(trimmed.MappedSplineUV)
 		if !ok {
 			return 0, geom.ErrConvergence
 		}
 		source := p.Source()
-		if *basis == 0 {
+		if basis.id == 0 {
 			id, err := mappedChainStepSplineFromSource(source.Curve).emit(emit)
 			if err != nil {
 				return 0, err
 			}
-			*basis = id
+			*basis = mappedChainStepBasis{id: id, source: source.Curve}
+		} else if prior := basis.source; prior != source.Curve &&
+			(prior.Degree() != source.Curve.Degree() ||
+				!slices.Equal(prior.Poles(), source.Curve.Poles()) ||
+				!slices.Equal(prior.Weights(), source.Curve.Weights()) ||
+				!slices.Equal(prior.Knots(), source.Curve.Knots())) {
+			return 0, fmt.Errorf("owner coedges require one common original spline basis: %w", geom.ErrConvergence)
 		}
 		lo, err := mappedChainStepDecimal(mappedChainStepRat(source.Range.Min))
 		if err != nil {
@@ -194,7 +205,7 @@ func emitMappedChainStepUse(emit func(string) int64, use trimmed.Use, chain bool
 			return 0, err
 		}
 		sense := mappedChainStepSense(source.Reversed == use.Reversed)
-		return emit(fmt.Sprintf("TRIMMED_CURVE('',#%d,(PARAMETER_VALUE(%s)),(PARAMETER_VALUE(%s)),%s,.PARAMETER.)", *basis, lo, hi, sense)), nil
+		return emit(fmt.Sprintf("TRIMMED_CURVE('',#%d,(PARAMETER_VALUE(%s)),(PARAMETER_VALUE(%s)),%s,.PARAMETER.)", basis.id, lo, hi, sense)), nil
 	}
 	var source [][3]*big.Rat
 	switch c := use.Curve.(type) {
