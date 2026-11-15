@@ -6375,3 +6375,13 @@ bound. A one-short work budget, missing counterpart, ambiguous near
 edges, and an over-tolerance repair all returned no geometry. The
 combined planar and exact subdivision sewing race run passed in
 13.932 seconds.
+
+### Independent native prism Boolean corpus
+
+The OCCT comparator built inputs from authored profiles and heights and
+ran its own Common, Fuse, and Cut. All 42 matched cases passed source
+family routing, volume, surface area, centroid, solid and shell count,
+and per-solid Euler characteristic. Cases include a shared annular cap,
+an interior tool hole that leaves a connected post, a sealed cavity,
+and two kinds of disconnected Cut. The same fixed corpus passed under
+race instrumentation. See the [comparator guide](../tools/occtref/README.md).

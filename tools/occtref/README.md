@@ -41,6 +41,18 @@ inward-shifted full lateral cone with a separate cap slab. The Go test
 checks volume, area and centroid for rising and falling taper, then checks
 the closed walls against the corresponding OCCT subtractions.
 
+The native prism comparator receives original profile rings and heights,
+builds both prisms independently, and executes OCCT Common, Fuse, or Cut.
+The Go test compares volume, area, centroid, solid and shell counts, and
+Euler characteristic. The cases include rotated and axially reflected
+placements, cavities, retained holes, and disconnected material.
+
+```sh
+sh tools/occtref/build_native_prism_boolean.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/occt-prism
+PLAINSOLID_OCCT_NATIVE_PRISM_BOOLEAN=/tmp/occt-prism \
+  go test -race -v ./brep/trimmed -run '^TestNativePrismBooleanAgainstOCCT$'
+```
+
 Run all optional exchange checks with:
 
 ```sh
