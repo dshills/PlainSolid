@@ -19,13 +19,18 @@ import (
 )
 
 const nonplanarInferredMappedChainPath = "testdata/occt_mapped_chain_nonplanar_inferred_mixed.step"
+const nonplanarRationalInferredMappedChainPath = "testdata/occt_mapped_chain_nonplanar_rational_inferred_mixed.step"
 
 // Integrate the common graph xy and both bicubic perturbations over their
 // original roof domains split by y = 1/4 + 3u(1-u)/4, with u = 4x/3.
 const nonplanarInferredMappedChainVolume = 10127995838792649.0 / 15762598695796736
 const nonplanarInferredMappedChainArea = 4.649146934610298
 
-func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte) []byte {
+// Pinned OCCT evaluates the original and canonical rational STEP trims at
+// this area. The exact material has the same graph as the polynomial source.
+const nonplanarRationalInferredOCCTArea = 4.649146910413742
+
+func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte, rationalModel bool) []byte {
 	t.Helper()
 	o := inferredMixedMappedChainOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
@@ -47,18 +52,28 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	verifyNonplanarInferredMappedChainMaterial(t, ctx, m.Shell, m.Native)
 	edges, vertices, faces := m.Native.Solid.Edges(), m.Native.Solid.Vertices(), m.Native.Solid.Faces()
 	stations := [3]int64{2, 4, 6}
+	modelRaw := [3]*big.Rat{big.NewRat(2, 1), big.NewRat(4, 1), big.NewRat(6, 1)}
+	if rationalModel {
+		modelRaw = [3]*big.Rat{big.NewRat(8, 7), big.NewRat(8, 3), big.NewRat(24, 5)}
+	}
 	var stops [2][5]int64
 	stops[north], stops[south] = [5]int64{2, 17, 37, 65, 107}, [5]int64{48, 40, 32, 24, 16}
 	for i, cut := range m.Crossings {
 		p := float64(stations[i]) / 32
 		x, y := .75*p, .25+.75*p*(1-p)
+		modelStation := new(big.Rat).Quo(modelRaw[i], big.NewRat(32, 1))
 		if cut.EdgeID != m.Chain[0].EdgeID || cut.StoredModelKnot ||
-			cut.SourceModelParameter.Cmp(big.NewRat(stations[i], 1)) != 0 || cut.ModelStation.Cmp(big.NewRat(stations[i], 32)) != 0 ||
+			cut.SourceModelParameter.Cmp(modelRaw[i]) != 0 || cut.ModelStation.Cmp(modelStation) != 0 ||
 			cut.RawParameters[north].Cmp(big.NewRat(stops[north][i+1], 1)) != 0 ||
 			cut.RawParameters[south].Cmp(big.NewRat(stops[south][i+1], 1)) != 0 ||
 			cut.OwnersChangingCells[north] != (i != 1) || cut.OwnersChangingCells[south] != (i != 2) ||
 			cut.NativeEdges != [2]int{m.Native.ChainEdges[i], m.Native.ChainEdges[i+1]} {
 			t.Fatal("the joint and owner-only events must retain their exact raw and model ownership", i, cut)
+		}
+		if rationalModel {
+			if _, exact := cut.SourceModelParameter.Float64(); exact {
+				t.Fatal("the rational original must retain a non-dyadic model station", i)
+			}
 		}
 		a, b := edges[cut.NativeEdges[0]], edges[cut.NativeEdges[1]]
 		if a.End != b.Start || vertices[a.End] != (geom.Vec3{X: x, Y: y, Z: x * y}) {
@@ -69,7 +84,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyOriginalNonplanarModelBezier(t, f, m.Chain[0].ModelCurveID)
+	verifyOriginalNonplanarModelBezier(t, f, m.Chain[0].ModelCurveID, rationalModel)
 	for owner, use := range m.Chain[0].Owners {
 		original, err := originalMappedChainStepOwner(f, use, true)
 		if err != nil {
@@ -118,6 +133,11 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		t.Fatal(err)
 	}
 	verifyNonplanarInferredMappedChainMaterial(t, ctx, opened, native)
+	for i, cut := range m.Crossings {
+		if native.ChainStations[i+1].Cmp(cut.ModelStation) != 0 {
+			t.Fatal("native reload must rederive the exact original model station", i)
+		}
+	}
 	if err := opened.WriteJSON(ctx, &replay, nativeOptions); err != nil || !bytes.Equal(recipe.Bytes(), replay.Bytes()) {
 		t.Fatal("native v7 reload must retain the original source recipe bytes", err)
 	}
@@ -140,7 +160,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	return canonical.Bytes()
 }
 
-func verifyOriginalNonplanarModelBezier(t *testing.T, f *File, modelID int64) {
+func verifyOriginalNonplanarModelBezier(t *testing.T, f *File, modelID int64, rationalModel bool) {
 	t.Helper()
 	model, err := readMappedChainStepSpline(f, modelID, 3, 16, 17, true)
 	if err != nil || model.degree != 3 || len(model.poles) != 4 || len(model.knots) != 8 {
@@ -150,9 +170,13 @@ func verifyOriginalNonplanarModelBezier(t *testing.T, f *File, modelID int64) {
 		{0, .25, 0}, {1.0 / 16, 5.0 / 16, 1.0 / 64},
 		{1.0 / 8, 23.0 / 64, 11.0 / 256}, {3.0 / 16, 25.0 / 64, 75.0 / 1024},
 	}
+	weights := [4]int64{1, 1, 1, 1}
+	if rationalModel {
+		weights = [4]int64{1, 2, 4, 8}
+	}
 	for i, pole := range poles {
-		if model.knots[i].Sign() != 0 || model.knots[i+4].Cmp(big.NewRat(8, 1)) != 0 || model.weights[i].Cmp(big.NewRat(1, 1)) != 0 {
-			t.Fatal("the authored cubic must retain its exact raw interval and unit weights", i)
+		if model.knots[i].Sign() != 0 || model.knots[i+4].Cmp(big.NewRat(8, 1)) != 0 || model.weights[i].Cmp(big.NewRat(weights[i], 1)) != 0 {
+			t.Fatal("the authored cubic must retain its exact raw interval and original weights", i)
 		}
 		for axis, value := range pole {
 			if model.poles[i][axis].Cmp(mappedChainStepRat(value)) != 0 {
@@ -203,7 +227,7 @@ func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Contex
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnots(t *testing.T) {
-	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath))
+	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath), false)
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
@@ -213,13 +237,16 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsClosedDispl
 	if err != nil {
 		t.Fatal(err)
 	}
-	fill := trimmed.MixedExactMultiSpanMeshOptions{
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+}
+
+func nonplanarInferredDisplayOptions() trimmed.MixedExactMultiSpanMeshOptions {
+	return trimmed.MixedExactMultiSpanMeshOptions{
 		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 3},
 		Face: trimmed.MixedExactCurvedMeshOptions{
 			BoundaryModelBudget: .005, Interior: trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .04},
 		},
 	}
-	verifyMappedChainCutDisplayWithOptions(t, ctx, m, fill)
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsRejectsChangedPole(t *testing.T) {
@@ -260,6 +287,61 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsLive(t *tes
 		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
 	}
 	raw := readInferredSharedMappedChainFixture(t, path)
-	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw)
+	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, false)
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, nonplanarInferredMappedChainVolume, nonplanarInferredMappedChainArea)
+}
+
+func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnots(t *testing.T) {
+	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath), true)
+}
+
+func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
+	ctx := context.Background()
+	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath)
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+}
+
+func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsRejectsFalseWeight(t *testing.T) {
+	ctx := context.Background()
+	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath)
+	o := inferredMixedMappedChainOptions()
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := Parse(bytes.NewReader(raw), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, weights, err := mappedChainStepSplineParts(f, m.Chain[0].ModelCurveID)
+	if err != nil || len(weights) != 4 {
+		t.Fatal("the originally authored 3D spline must retain four rational weights", err)
+	}
+	// Leave the exact original poles, endpoint vertices, raw domain and both
+	// owner maps fixed while invalidating the original projective clock.
+	weights[2].Text = "3."
+	bad, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(serializeWrappedProofFile(f)), Limits{}, o)
+	if !errors.Is(err, geom.ErrConvergence) || len(bad.Crossings) != 0 || len(bad.Native.ChainEdges) != 0 {
+		t.Fatal("a false 3D weight must reject atomically even with exact endpoints and raw limits", err)
+	}
+}
+
+func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsLive(t *testing.T) {
+	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_NONPLANAR_RATIONAL_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
+	if author == "" || reader == "" {
+		t.Skip("optional pinned OCCT source author and STEP consumer")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	path := filepath.Join(t.TempDir(), "rational-nonplanar-original.step")
+	if output, err := exec.CommandContext(ctx, author, "write-nonplanar-rational-inferred-mixed", path).CombinedOutput(); err != nil {
+		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
+	}
+	raw := readInferredSharedMappedChainFixture(t, path)
+	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, true)
+	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, nonplanarInferredMappedChainVolume, nonplanarRationalInferredOCCTArea)
 }
