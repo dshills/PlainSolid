@@ -18,20 +18,28 @@ built asset. Later commits have focused differential and race checks.
 
 Three transverse nodes now qualify native Common, Fuse and both component
 Cut orders. The new mixed crossing and tangency proof retains five signed
-regions on the original analytic roofs. Canonical mapped STEP and native
-reload preserve two synchronized original support-knot crossings. Exact
+regions on the original analytic roofs through Common, Fuse, both Cut
+orders and source-backed native reload. Canonical and independently authored
+unsplit mapped STEP preserve both synchronized and asynchronous support-knot
+cuts. Exact
 planar STEP point-contact transfer authenticates original model lines, planes
 and both incident pcurves when supplied. The optional PlainCAD STEP repair
 bridge preserves authored metre and inch units while reporting physical
-measurements and display coordinates in millimetres.
+measurements and display coordinates in millimetres. Single and grouped
+repairs passed typed Node WASM and real Chromium worker verification.
+Planar IGES now transfers concave material with through-holes, one exterior
+with disjoint enclosed cavities, and flat groups with independent planar
+bodies and exact vertex contacts.
 
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-The refreshed full race run on `d5906fde` is in progress. Immediate work
-includes native mixed-contact shell assembly, foreign STEP edge sharing across
-two support knots, asynchronous mapped support cuts, and exact planar IGES
-transfer of connected material with holes.
+The refreshed full race run on `d5906fde` and another full paired Go and
+PlainCAD qualification on `bafe7e81` are in progress. Immediate work includes
+direct exact volumes for the smallest mixed-contact Cut pieces, one cell
+containing both a synchronized and an asynchronous mapped cut, the original
+OCCT metre conversion with changed edge charts, and optional isolated
+contacts on cavities inside a grouped planar part.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

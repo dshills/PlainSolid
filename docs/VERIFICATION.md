@@ -62,6 +62,40 @@ Focused qualification after the paired full run:
   The focused main unit race passed in 46.490 seconds; the earlier complete
   repair bridge cases passed in 177.235 seconds. Five typed adapter fixtures
   passed with actual Go WASM in Node.
+- Mixed-contact native Common and Fuse passed all 16 cases and source-reload
+  tamper checks in 96.917 seconds under race on main. Mixed Cut passed
+  both original contact orders, original axes and operand orders under
+  race in 231.431 seconds. Its smallest positive material piece has
+  independently integrated exact volume `335/457396837154816`.
+  Pinned OCCT's empty and wrong-volume outputs remain diagnostic only.
+- Asynchronous mapped repair retains one changing original support at
+  each of `1/8` and `3/8`, with raw stations `(17,27)` and `(65,21)`.
+  Both native and explicit STEP races passed, and the foreign unsplit
+  original with both separately authenticated owners passed its main live
+  race in 20.964 seconds. Pinned OCCT reads one seven-face solid with
+  volume `0.901441276073456` and area `5.93259130227283`.
+- The planar IGES reader and writer passed the live concave prism,
+  one- and two-void solid, and separate point-contact group races. Pinned
+  OCCT independently reopened the original and native IGES with identical
+  material measures and respective topology. The through-hole solid has
+  volume 50 and area 102; the enclosed-void models have volumes 448 and
+  496. The group retains three separate solids and their single corner
+  contact, with volume 3 and area 18. The focused planar IGES fuzz run
+  passed its bounded 20-second invocation.
+- The single-repair Chromium gate passed three exact unit cases on main.
+  The isolated pinned app run then passed all seven Node WASM cases and
+  all five Chromium cases, including independently authored grouped
+  metre/inch. A fresh worker rederived the exact receipt and re-exported
+  identical original-unit STEP. The grouped main Go bridge race passed
+  in 155.745 seconds. The matched Node and Chromium WASM hash is
+  `a89aa08a9e3bb7b6de1d3a839d5287e67c99b12ceda38e19a2bc68baafd31d2e`.
+  Durable grouped logs are under `.worktrees/grouped-step-repair-unit-evidence`.
+
+The newer full race archive starts from immutable `d5906fde`; fresh full
+ordinary Go and PlainCAD runs start from `bafe7e81`, with PlainCAD pinned
+at `efae4d2`. The run directories and independent case inventories are
+under `.worktrees/qualification/2026-11-15`. These runs are in progress;
+the completed paired qualification above remains the latest full pass.
 
 ## Full baseline and recent exact modeling qualification (2026-11-14)
 
