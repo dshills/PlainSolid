@@ -129,8 +129,7 @@ first roof changes cells, with raw parameters `65` and `43` on the paired
 coedges. Both roofs retain the crease at the shared crossing. The second
 crease changes only one roof's one-sided derivative away from the shared
 trace. The existing canonical STEP path uses `AllowMultiSpanRoofs` and
-`AllowTwoInteriorRoofKnots` for explicit paired coedges. Foreign unsplit
-transfer for the mixed arrangement is outside this path.
+`AllowTwoInteriorRoofKnots` for explicit paired coedges.
 
 ### Asynchronous support crossings
 
@@ -198,6 +197,23 @@ asynchronous fixture with two unsplit edges and no model-curve knots at
 the repairs. Pinned OCCT independently validates the original unsplit
 source as one seven-face solid. Combining both crossings into one
 original edge requires another common-cell partition.
+
+For one unsplit mixed edge, set `AllowMixedSupportKnots` together with
+`AllowMultiSpanRoofs`, `AllowTwoInteriorRoofKnots`, and
+`AllowUnsplitSupportKnot`. The source edge stores two model Béziers with
+one degree-multiplicity knot at the shared material crease. Both owners
+must cross there. The other exact crossing lies inside one stored model
+piece and changes only one original support chart. An exact tangent ratio
+proposes the two-knot owner's whole raw parameter law. All three
+restrictions of both pcurves must match their exact stored model
+restrictions before the reader applies native version 6.
+
+`standard_mapped_chain_unsplit_mixed_knots.step` retains one original shared
+edge across both stations, with just the model knot at `1/8`. At the
+inferred `3/16` station, the companion stays in its original support cell
+and preserves its exact raw parameter `43`. Pinned OCCT independently
+validates both the unsplit source and the emitted canonical split wire as
+the same seven-face solid.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
