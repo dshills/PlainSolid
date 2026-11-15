@@ -583,7 +583,11 @@ edited seam exceeding the `1e-12` mm budget, changed owner or winding,
 and separately authored blind bore also reject. The corrected exchange
 graph reattaches the original interior wires and bore owners to the
 repaired exterior and preserves their exact shared support records.
-The existing one-loop strict readers retain their existing scope.
+The native reconstruction retains the same geometry in a product-local
+solid with four exact quarter-cylinder patches for the bore and a
+clockwise interior loop on each cap. It certifies both complete planar
+trim domains and every shared coedge. Its native world measures use the
+original rational pose and match the independently reopened OCCT solid.
 
 Pinned OCCT reopens both the original and corrected graphs as one
 eight-face solid with volume `28.096231102869` mm³ and area

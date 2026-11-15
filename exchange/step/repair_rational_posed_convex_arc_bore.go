@@ -40,6 +40,7 @@ type ConvexArcThroughBoreEvidence struct {
 type RationalPosedConvexArcThroughBore struct {
 	original, corrected string
 	outer               RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion
+	hole                trimmed.ExtrusionCircle
 	Bore                ConvexArcThroughBoreEvidence
 }
 
@@ -48,6 +49,13 @@ func (m RationalPosedConvexArcThroughBore) CorrectedModelSTEP() string { return 
 func (m RationalPosedConvexArcThroughBore) Pose() rigid.RationalRigid  { return m.outer.Pose() }
 func (m RationalPosedConvexArcThroughBore) ExteriorRepairs() []ConvexArcRepairSite {
 	return m.outer.Repairs()
+}
+
+// Native reconstructs a product-local solid with both holes in the shared
+// cap trims. Pose maps that material into the original world coordinates.
+func (m RationalPosedConvexArcThroughBore) Native(ctx context.Context) (trimmed.Solid, error) {
+	d := m.outer.LocalDescriptor()
+	return trimmed.ExtrudeExactCircularLoopWithThroughHole(ctx, d.Segments, m.hole, d.Height, trimmed.ExactCircularLoopOptions{})
 }
 
 // InspectRationalPosedConvexArcThroughBore proves a bounded original two-fillet
@@ -138,7 +146,12 @@ func InspectRationalPosedConvexArcThroughBore(ctx context.Context, r io.Reader, 
 	if err = ctx.Err(); err != nil {
 		return zero, err
 	}
-	return RationalPosedConvexArcThroughBore{original: string(raw), corrected: corrected, outer: outer, Bore: evidence}, nil
+	circle, err := circularRepairVector([3]*big.Rat{evidence.Center[0], evidence.Center[1], evidence.Radius})
+	if err != nil {
+		return zero, err
+	}
+	hole := trimmed.ExtrusionCircle{Center: geom.Vec2{X: circle.X, Y: circle.Y}, Radius: circle.Z}
+	return RationalPosedConvexArcThroughBore{original: string(raw), corrected: corrected, outer: outer, hole: hole, Bore: evidence}, nil
 }
 
 type convexArcBoreLoop struct {
@@ -361,9 +374,6 @@ func proveConvexArcBore(f *File, q convexArcBoreTopology, height, budget float64
 	tolerance, span := new(big.Rat).SetFloat64(budget), new(big.Rat).SetFloat64(height)
 	if err != nil || radius.Sign() <= 0 || tolerance.Cmp(new(big.Rat).Quo(radius, big.NewRat(1000000, 1))) > 0 {
 		return out, geom.ErrDomain
-	}
-	if _, err := circularRepairVector([3]*big.Rat{o[0], o[1], radius}); err != nil {
-		return out, err
 	}
 	out.WallFaceID, out.WallSupportID, out.WallBoundID, out.WallLoopID = q.wall.face, support, q.wall.bound, q.wall.loop
 	out.Center, out.Radius = [2]*big.Rat{o[0], o[1]}, radius
