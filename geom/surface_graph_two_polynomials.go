@@ -28,10 +28,10 @@ type SplineGraphTwoPolynomials struct {
 // the complete domain. Positive Bernstein subdivision proves ordering; no root
 // samples substitute for full identities. All failure results are atomic.
 func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomials, error) {
-	return discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, nil)
+	return discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, nil, nil)
 }
 
-func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, node *SplineGraphPolynomialNode, twoNodes *SplineGraphTwoPolynomialNodes) (r SplineGraphTwoPolynomials, err error) {
+func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, node *SplineGraphPolynomialNode, twoNodes *SplineGraphTwoPolynomialNodes, tangent *SplineGraphPolynomialTangency) (r SplineGraphTwoPolynomials, err error) {
 	used := 0
 	defer func() {
 		if err != nil {
@@ -139,9 +139,13 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if len(disc) == 0 && twoNodes != nil {
 		return r, ErrDegenerate
 	}
-	root, e := graphExactPolynomialSqrt(disc, budget)
-	if e != nil {
-		return r, e
+	coincident := len(disc) == 0 && tangent != nil
+	var root rationalPolynomial
+	if !coincident {
+		root, e = graphExactPolynomialSqrt(disc, budget)
+		if e != nil {
+			return r, e
+		}
 	}
 	first := orient(cells[0].Domain())
 	u0 := new(big.Rat).SetFloat64(first.UMin)
@@ -208,17 +212,22 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		return r, e
 	}
 	var order int
-	var crossings [2]*big.Rat
-	count := 0
-	if node != nil {
+	var roots [2]*big.Rat
+	count, multiplicity := 0, 1
+	switch {
+	case node != nil:
 		count = 1
-	} else if twoNodes != nil {
+	case twoNodes != nil:
 		count = 2
+	case tangent != nil:
+		count, multiplicity = 1, 2
 	}
-	if count == 0 {
+	if coincident {
+		order = 1
+	} else if count == 0 {
 		order, e = proveSign(delta)
 	} else {
-		crossings, order, e = discoverGraphPolynomialCrossings(ctx, delta, count, o.MaxCells, &visits, budget)
+		roots, order, e = discoverGraphPolynomialPairRoots(ctx, delta, count, multiplicity, o.MaxCells, &visits, budget)
 	}
 	if e != nil {
 		return r, e
@@ -333,6 +342,11 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		}
 		r.CertifiedCells = append(r.CertifiedCells, cell.Domain())
 	}
+	if coincident {
+		// A repeated factor in the first cell alone says nothing about later
+		// spans. The same two factors now account for every source coefficient.
+		return r, ErrDegenerate
+	}
 	remaining := o.MaxOperations - budget.operations
 	if remaining < 1 || visits >= o.MaxCells {
 		return r, ErrConvergence
@@ -356,19 +370,23 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if axis == 1 {
 		r.TerminalMasks = [2]uint8{4, 8}
 	}
-	for _, crossing := range crossings[:count] {
-		crossing.Mul(crossing, width)
-		crossing.Add(crossing, lo)
-		if e = budget.check(crossing); e != nil {
+	for _, root := range roots[:count] {
+		root.Mul(root, width)
+		root.Add(root, lo)
+		if e = budget.check(root); e != nil {
 			return r, e
 		}
 	}
 	if node != nil {
-		if e = node.certifySectors(ctx, a, r, crossings[0], d, budget); e != nil {
+		if e = node.certifySectors(ctx, a, r, roots[0], d, budget); e != nil {
 			return r, e
 		}
 	} else if twoNodes != nil {
-		if e = twoNodes.certifyArrangement(ctx, a, r, crossings, d, budget); e != nil {
+		if e = twoNodes.certifyArrangement(ctx, a, r, roots, d, budget); e != nil {
+			return r, e
+		}
+	} else if tangent != nil {
+		if e = tangent.certifyArrangement(ctx, a, r, roots[0], d, budget); e != nil {
 			return r, e
 		}
 	}

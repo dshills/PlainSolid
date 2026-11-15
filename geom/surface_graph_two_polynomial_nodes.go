@@ -83,7 +83,7 @@ type SplineGraphTwoPolynomialNodes struct {
 // ErrUnrepresentable. Other unresolved proofs return an error without geometry.
 func DiscoverSplineGraphTwoPolynomialNodes(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomialNodes, error) {
 	var result SplineGraphTwoPolynomialNodes
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, &result)
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, &result, nil)
 	if e != nil {
 		return SplineGraphTwoPolynomialNodes{ExactOperations: pair.ExactOperations}, e
 	}
@@ -125,62 +125,9 @@ func (r SplineGraphTwoPolynomialNodes) RepresentedVertices() ([6]Vec2, [6]Vec3, 
 func (r *SplineGraphTwoPolynomialNodes) certifyArrangement(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, free [2]*big.Rat, d ParameterRectangle, b *polynomialBudget) error {
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
-	chart := func(x, y *big.Rat) [2]*big.Rat {
-		if r.FreeAxis == 1 {
-			return [2]*big.Rat{y, x}
-		}
-		return [2]*big.Rat{x, y}
-	}
 	stations := [4]*big.Rat{new(big.Rat).SetFloat64(d.UMin), free[0], free[1], new(big.Rat).SetFloat64(d.UMax)}
-	vertexID := [2][4]int{{0, 4, 5, 1}, {2, 4, 5, 3}}
-	for k, power := range r.Power {
-		for i := 0; i < 3; i++ {
-			width := new(big.Rat).Sub(stations[i+1], stations[i])
-			if e := b.check(width); e != nil {
-				return e
-			}
-			local, e := composeProjectionPolynomial(power, rationalPolynomial{stations[i], width}, b)
-			if e != nil {
-				return e
-			}
-			bern, e := graphFactorBernstein(local, b)
-			if e != nil {
-				return e
-			}
-			edge := SplineGraphPolynomialPiece{Branch: k, Start: vertexID[k][i], End: vertexID[k][i+1], Controls: make([][2]*big.Rat, len(bern))}
-			for j, y := range bern {
-				x := new(big.Rat).Add(stations[i], new(big.Rat).Mul(width, big.NewRat(int64(j), int64(len(bern)-1))))
-				if e := b.check(x); e != nil {
-					return e
-				}
-				edge.Controls[j] = chart(x, y)
-			}
-			r.Edges[3*k+i] = edge
-			for j, id := range [2]int{edge.Start, edge.End} {
-				uv := edge.Controls[j*(len(bern)-1)]
-				v := &r.Vertices[id]
-				if v.Parameters[0] != nil {
-					if v.Parameters[0].Cmp(uv[0]) != 0 || v.Parameters[1].Cmp(uv[1]) != 0 {
-						return ErrConvergence
-					}
-					continue
-				}
-				v.Parameters = [2]*big.Rat{new(big.Rat).Set(uv[0]), new(big.Rat).Set(uv[1])}
-			}
-		}
-	}
-	for i := range r.Vertices {
-		v := &r.Vertices[i]
-		remaining := b.maxOperations - b.operations
-		if remaining < 1 {
-			return ErrConvergence
-		}
-		p, e := a.EvaluateRational(ctx, v.Parameters[0], v.Parameters[1], SurfacePatchEvaluationOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
-		b.operations += p.ExactOperations
-		if e != nil {
-			return e
-		}
-		v.Point = p.Point
+	if e := buildPolynomialGraphPieces(ctx, a, pair, stations[:], r.Vertices[:], r.Edges[:], b); e != nil {
+		return e
 	}
 	orientation := r.Graph.ProjectionOrientation
 	if r.FreeAxis == 1 {
@@ -197,7 +144,7 @@ func (r *SplineGraphTwoPolynomialNodes) certifyArrangement(ctx context.Context, 
 			if e != nil {
 				return e
 			}
-			n.Tangents[j] = chart(big.NewRat(1, 1), slope)
+			n.Tangents[j] = graphPolynomialUV(r.FreeAxis, big.NewRat(1, 1), slope)
 		}
 		if orientation < 0 {
 			slices.Reverse(n.RayCycle[1:])
@@ -205,32 +152,107 @@ func (r *SplineGraphTwoPolynomialNodes) certifyArrangement(ctx context.Context, 
 		}
 	}
 	r.orderRegions(orientation, pair.StripSigns[0])
+	if e := graphPolynomialRegionWitnesses(pair, d, stations[:], r.Vertices[4].Parameters[1-r.FreeAxis], r.Regions[:], b); e != nil {
+		return e
+	}
+	return ctx.Err()
+}
+
+func graphPolynomialUV(axis int, x, y *big.Rat) [2]*big.Rat {
+	if axis == 1 {
+		return [2]*big.Rat{y, x}
+	}
+	return [2]*big.Rat{x, y}
+}
+
+// Both branches share each original contact station. Terminals have the first
+// four vertex IDs, followed by contacts in increasing free-coordinate order.
+func buildPolynomialGraphPieces(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, stations []*big.Rat, vertices []SplineGraphPolynomialVertex, edges []SplineGraphPolynomialPiece, b *polynomialBudget) error {
+	slabs := len(stations) - 1
+	for k, power := range pair.Power {
+		previous := 2 * k
+		for i := 0; i < slabs; i++ {
+			width := new(big.Rat).Sub(stations[i+1], stations[i])
+			if e := b.check(width); e != nil {
+				return e
+			}
+			local, e := composeProjectionPolynomial(power, rationalPolynomial{stations[i], width}, b)
+			if e != nil {
+				return e
+			}
+			bern, e := graphFactorBernstein(local, b)
+			if e != nil {
+				return e
+			}
+			next := 4 + i
+			if i == slabs-1 {
+				next = 2*k + 1
+			}
+			edge := SplineGraphPolynomialPiece{Branch: k, Start: previous, End: next, Controls: make([][2]*big.Rat, len(bern))}
+			for j, y := range bern {
+				x := new(big.Rat).Add(stations[i], new(big.Rat).Mul(width, big.NewRat(int64(j), int64(len(bern)-1))))
+				if e := b.check(x); e != nil {
+					return e
+				}
+				edge.Controls[j] = graphPolynomialUV(pair.FreeAxis, x, y)
+			}
+			edges[slabs*k+i] = edge
+			previous = next
+			for j, id := range [2]int{edge.Start, edge.End} {
+				uv := edge.Controls[j*(len(bern)-1)]
+				v := &vertices[id]
+				if v.Parameters[0] != nil {
+					if v.Parameters[0].Cmp(uv[0]) != 0 || v.Parameters[1].Cmp(uv[1]) != 0 {
+						return ErrConvergence
+					}
+					continue
+				}
+				v.Parameters = [2]*big.Rat{new(big.Rat).Set(uv[0]), new(big.Rat).Set(uv[1])}
+			}
+		}
+	}
+	for i := range vertices {
+		v := &vertices[i]
+		remaining := b.maxOperations - b.operations
+		if remaining < 1 {
+			return ErrConvergence
+		}
+		p, e := a.EvaluateRational(ctx, v.Parameters[0], v.Parameters[1], SurfacePatchEvaluationOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
+		b.operations += p.ExactOperations
+		if e != nil {
+			return e
+		}
+		v.Point = p.Point
+	}
+	return nil
+}
+
+func graphPolynomialRegionWitnesses(pair SplineGraphTwoPolynomials, d ParameterRectangle, stations []*big.Rat, firstContactOrdinate *big.Rat, regions []SplineGraphPolynomialRegion, b *polynomialBudget) error {
 	between := func(x, y *big.Rat) *big.Rat {
 		return new(big.Rat).Quo(new(big.Rat).Add(x, y), big.NewRat(2, 1))
 	}
-	nodeParameter := r.Vertices[4].Parameters[1-r.FreeAxis]
-	r.Regions[0].Witness = chart(new(big.Rat).Set(free[0]), between(new(big.Rat).SetFloat64(d.VMin), nodeParameter))
-	r.Regions[4].Witness = chart(new(big.Rat).Set(free[0]), between(nodeParameter, new(big.Rat).SetFloat64(d.VMax)))
-	for i := 0; i < 3; i++ {
+	regions[0].Witness = graphPolynomialUV(pair.FreeAxis, new(big.Rat).Set(stations[1]), between(new(big.Rat).SetFloat64(d.VMin), firstContactOrdinate))
+	regions[len(regions)-1].Witness = graphPolynomialUV(pair.FreeAxis, new(big.Rat).Set(stations[1]), between(firstContactOrdinate, new(big.Rat).SetFloat64(d.VMax)))
+	for i := 0; i+1 < len(stations); i++ {
 		x := between(stations[i], stations[i+1])
-		f, e := polynomialValue(r.Power[0], x, b)
+		f, e := polynomialValue(pair.Power[0], x, b)
 		if e != nil {
 			return e
 		}
-		g, e := polynomialValue(r.Power[1], x, b)
+		g, e := polynomialValue(pair.Power[1], x, b)
 		if e != nil {
 			return e
 		}
-		r.Regions[i+1].Witness = chart(x, between(f, g))
+		regions[i+1].Witness = graphPolynomialUV(pair.FreeAxis, x, between(f, g))
 	}
-	for _, reg := range r.Regions {
+	for _, reg := range regions {
 		for _, x := range reg.Witness {
 			if e := b.check(x); e != nil {
 				return e
 			}
 		}
 	}
-	return ctx.Err()
+	return nil
 }
 
 // The lower branch on the three slabs is 0,1,0. These closed boundaries
@@ -247,11 +269,14 @@ func (r *SplineGraphTwoPolynomialNodes) orderRegions(orientation, sign int) {
 		{Edges: []SplineGraphPolynomialUse{{5, true}, {2, false}}, Perimeter: perimeter(1, 3), HeightSide: -sign},
 		{Edges: []SplineGraphPolynomialUse{{3, false}, {1, false}, {5, false}}, Perimeter: perimeter(3, 2), HeightSide: sign},
 	}
-	if orientation >= 0 {
-		return
+	if orientation < 0 {
+		reversePolynomialGraphRegionBoundaries(r.Regions[:])
 	}
-	for i := range r.Regions {
-		reg := &r.Regions[i]
+}
+
+func reversePolynomialGraphRegionBoundaries(regions []SplineGraphPolynomialRegion) {
+	for i := range regions {
+		reg := &regions[i]
 		slices.Reverse(reg.Edges)
 		for j := range reg.Edges {
 			reg.Edges[j].Reversed = !reg.Edges[j].Reversed

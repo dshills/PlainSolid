@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func twoNodeGraphFixture(t *testing.T, axis int, delta rationalPolynomial) (*SurfacePatch, *SurfacePatch, [2]rationalPolynomial) {
+func polynomialPairGraphFixture(t *testing.T, axis int, delta rationalPolynomial) (*SurfacePatch, *SurfacePatch, [2]rationalPolynomial) {
 	t.Helper()
 	// The source gap is (v-f)(v-g), g=f+delta. The rational tensor fixture
 	// places a free-axis knot on A and a dependent-axis knot on B.
@@ -36,7 +36,7 @@ func twoNodeGap(firstDenominator int64) rationalPolynomial {
 func TestSplineGraphTwoPolynomialNodes(t *testing.T) {
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
-		a, b, want := twoNodeGraphFixture(t, axis, twoNodeGap(4))
+		a, b, want := polynomialPairGraphFixture(t, axis, twoNodeGap(4))
 		for order, pair := range [][2]*SurfacePatch{{a, b}, {b, a}} {
 			result, e := DiscoverSplineGraphTwoPolynomialNodes(ctx, pair[0], pair[1], axis, GraphPointContactOptions{})
 			if e != nil || !result.Proven || len(result.CertifiedCells) != 4 || result.FreeAxis != axis {
@@ -57,7 +57,7 @@ func TestSplineGraphTwoPolynomialNodes(t *testing.T) {
 			}
 			checkTwoPolynomialNodeGeometry(t, result, pair, 1-2*order)
 			for i, wantArea := range []*big.Rat{big.NewRat(269, 163840), big.NewRat(61, 163840), big.NewRat(163, 10240)} {
-				if area := testTwoNodeStripArea(result, i+1); area.Cmp(wantArea) != 0 {
+				if area := testPolynomialStripArea(axis, result.Edges[:], result.Regions[i+1]); area.Cmp(wantArea) != 0 {
 					t.Fatal("analytical between-branch area", i, area, wantArea)
 				}
 			}
@@ -77,26 +77,26 @@ func TestSplineGraphTwoPolynomialNodes(t *testing.T) {
 	}
 }
 
-func testTwoNodeStripArea(r SplineGraphTwoPolynomialNodes, region int) *big.Rat {
+func testPolynomialStripArea(axis int, edges []SplineGraphPolynomialPiece, region SplineGraphPolynomialRegion) *big.Rat {
 	// Integrate -dependent * d(free) around the exact reported boundary. The
 	// free coordinate is affine on each piece, so the mean of all its dependent
 	// controls is the exact mean branch ordinate. Terminal arcs have fixed free
 	// coordinate. The analytical oracles integrate ±(g-f) independently.
 	area := new(big.Rat)
-	for _, use := range r.Regions[region].Edges {
-		controls := r.Edges[use.Edge].Controls
-		width := new(big.Rat).Sub(controls[len(controls)-1][r.FreeAxis], controls[0][r.FreeAxis])
+	for _, use := range region.Edges {
+		controls := edges[use.Edge].Controls
+		width := new(big.Rat).Sub(controls[len(controls)-1][axis], controls[0][axis])
 		if !use.Reversed {
 			width.Neg(width)
 		}
 		integral := new(big.Rat)
 		for _, c := range controls {
-			integral.Add(integral, c[1-r.FreeAxis])
+			integral.Add(integral, c[1-axis])
 		}
 		integral.Quo(integral, big.NewRat(int64(len(controls)), 1)).Mul(integral, width)
 		area.Add(area, integral)
 	}
-	if r.FreeAxis == 1 {
+	if axis == 1 {
 		area.Neg(area)
 	}
 	return area
@@ -232,7 +232,7 @@ func testGraphBezierValue(controls [][2]*big.Rat, x *big.Rat) [2]*big.Rat {
 
 func TestSplineGraphTwoPolynomialNodesNativeAdmission(t *testing.T) {
 	ctx := context.Background()
-	a, b, _ := twoNodeGraphFixture(t, 0, twoNodeGap(3))
+	a, b, _ := polynomialPairGraphFixture(t, 0, twoNodeGap(3))
 	r, e := DiscoverSplineGraphTwoPolynomialNodes(ctx, a, b, 0, GraphPointContactOptions{})
 	if e != nil || !r.Proven || r.Vertices[4].Parameters[0].Cmp(big.NewRat(1, 3)) != 0 {
 		t.Fatal("exact nonbinary rational arrangement", e)
@@ -249,7 +249,7 @@ func TestSplineGraphTwoPolynomialNodesNativeAdmission(t *testing.T) {
 
 func TestSplineGraphTwoPolynomialNodesOriginalUnitsAndOrientation(t *testing.T) {
 	ctx := context.Background()
-	a, b, _ := twoNodeGraphFixture(t, 0, twoNodeGap(4))
+	a, b, _ := polynomialPairGraphFixture(t, 0, twoNodeGap(4))
 	pair := [2]*SurfacePatch{a, b}
 	for i, p := range pair {
 		for j := range p.knotsU {
@@ -285,14 +285,14 @@ func TestSplineGraphTwoPolynomialNodesRejectsIncompleteArrangement(t *testing.T)
 		"extra":      {rationalPolynomial{big.NewRat(-3, 128), big.NewRat(11, 64), big.NewRat(-3, 8), big.NewRat(1, 4)}, ErrConvergence},
 	} {
 		t.Run(name, func(t *testing.T) {
-			a, b, _ := twoNodeGraphFixture(t, 0, tc.delta)
+			a, b, _ := polynomialPairGraphFixture(t, 0, tc.delta)
 			r, e := DiscoverSplineGraphTwoPolynomialNodes(ctx, a, b, 0, GraphPointContactOptions{})
 			if !errors.Is(e, tc.want) || !reflect.DeepEqual(r, SplineGraphTwoPolynomialNodes{ExactOperations: r.ExactOperations}) {
 				t.Fatal("unexpected partial certificate", r, e)
 			}
 		})
 	}
-	a, b, _ := twoNodeGraphFixture(t, 0, twoNodeGap(4))
+	a, b, _ := polynomialPairGraphFixture(t, 0, twoNodeGap(4))
 	ctx, cancel := context.WithCancel(ctx)
 	cancel()
 	if r, e := DiscoverSplineGraphTwoPolynomialNodes(ctx, a, b, 0, GraphPointContactOptions{}); !errors.Is(e, context.Canceled) || r.Proven {
