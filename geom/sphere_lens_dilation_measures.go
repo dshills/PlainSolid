@@ -60,10 +60,11 @@ func (s SpherePairMaterial) MeasureDilatedLensRational(ctx context.Context, disp
 	}
 	one, two, three := big.NewRat(1, 1), big.NewRat(2, 1), big.NewRat(3, 1)
 	radii := [2]*big.Rat{a.sqrt(s.radius2[0]), a.sqrt(s.radius2[1])}
-	d2 := a.distance(s.center[0], s.center[1])
-	f := a.div(a.add(a.sub(s.radius2[0], s.radius2[1]), d2), a.mul(two, d2))
-	h2 := a.sub(s.radius2[0], a.mul(a.mul(f, f), d2))
-	cosine := a.div(a.sub(a.add(s.radius2[0], s.radius2[1]), d2), a.mul(two, a.mul(radii[0], radii[1])))
+	rim, err := s.deriveLensRim(a)
+	if err != nil {
+		return zero, err
+	}
+	d2, f, h2, cosine := rim.AxisSquared, rim.CenterFraction, rim.RadiusSquared, rim.NormalDot
 	abs := new(big.Rat).Abs(cosine)
 	ratio := a.div(a.sub(one, abs), a.add(one, abs))
 	delta2 := a.mul(displacement, displacement)
@@ -71,7 +72,7 @@ func (s SpherePairMaterial) MeasureDilatedLensRational(ctx context.Context, disp
 	if a.err != nil {
 		return zero, a.err
 	}
-	if h2.Sign() <= 0 || ratio.Sign() <= 0 {
+	if ratio.Sign() <= 0 {
 		return zero, ErrConvergence
 	}
 	target := lensMeasurePowerOfTwo(o.PrecisionBits)

@@ -85,17 +85,12 @@ func (s SpherePairMaterial) ClipDilatedLensRationalLine(ctx context.Context, ori
 		return zero, a.err
 	}
 	ops := lensLinePolynomials{&a}
-	axis := [3]*big.Rat{}
-	d2 := a.distance(s.center[0], s.center[1])
-	for i := range axis {
-		axis[i] = a.sub(s.center[1][i], s.center[0][i])
+	rim, err := s.deriveLensRim(&a)
+	if err != nil {
+		return zero, err
 	}
-	fraction := a.div(a.add(a.sub(s.radius2[0], s.radius2[1]), d2), a.mul(big.NewRat(2, 1), d2))
-	h2 := a.sub(s.radius2[0], a.mul(a.mul(fraction, fraction), d2))
-	center := [3]*big.Rat{}
-	for i := range center {
-		center[i] = a.add(s.center[0][i], a.mul(fraction, axis[i]))
-	}
+	axis, center, d2 := rim.Axis, rim.Center, rim.AxisSquared
+	fraction, h2 := rim.CenterFraction, rim.RadiusSquared
 	signedDot := func(center [3]*big.Rat) rationalPolynomial {
 		start, rate := new(big.Rat), new(big.Rat)
 		for i, d := range axis {
@@ -136,9 +131,6 @@ func (s SpherePairMaterial) ClipDilatedLensRationalLine(ctx context.Context, ori
 	polynomials[10], polynomials[11] = C, Q
 	if a.err != nil {
 		return zero, a.err
-	}
-	if h2.Sign() <= 0 {
-		return zero, ErrConvergence
 	}
 	classify := func(sign []int) (BorePointLocation, BoreBoundaryMask) {
 		// The partition treats BoreBoundary as retained material, with zero

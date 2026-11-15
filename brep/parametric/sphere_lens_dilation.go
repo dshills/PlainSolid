@@ -99,7 +99,7 @@ func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolera
 			return empty, noHistory, err
 		}
 	}
-	center, rim, latitude, err := sphericalLensRim(balls, frames[0].ZAxis())
+	center, rim, latitude, err := sphericalLensRim(ctx, s.query, frames[0].ZAxis())
 	if err != nil {
 		return empty, noHistory, err
 	}
@@ -148,31 +148,24 @@ func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolera
 	return result, history, nil
 }
 
-func sphericalLensRim(balls [2]Ball, axis geom.Vec3) (geom.Vec3, float64, [2]float64, error) {
+func sphericalLensRim(ctx context.Context, source geom.SpherePairMaterial, axis geom.Vec3) (geom.Vec3, float64, [2]float64, error) {
 	var zero geom.Vec3
 	var latitude [2]float64
+	proof, err := source.TransverseLensRim(ctx, geom.SurfacePatchOptions{})
+	if err != nil {
+		return zero, 0, latitude, err
+	}
 	q := func(value float64) *big.Rat { return new(big.Rat).SetFloat64(value) }
-	a, b := balls[0].Center, balls[1].Center
-	xyzA := [3]float64{a.X, a.Y, a.Z}
-	xyzB := [3]float64{b.X, b.Y, b.Z}
 	n := [3]float64{axis.X, axis.Y, axis.Z}
 	separation := new(big.Rat)
 	for i := range n {
-		step := new(big.Rat).Sub(q(xyzB[i]), q(xyzA[i]))
-		separation.Add(separation, step.Mul(step, q(n[i])))
+		separation.Add(separation, new(big.Rat).Mul(proof.Axis[i], q(n[i])))
 	}
-	if separation.Sign() <= 0 {
+	if separation.Sign() <= 0 || new(big.Rat).Mul(separation, separation).Cmp(proof.AxisSquared) != 0 {
 		return zero, 0, latitude, geom.ErrDomain
 	}
-	square := func(value *big.Rat) *big.Rat { return new(big.Rat).Mul(value, value) }
-	a2, b2, d2 := square(q(balls[0].Radius)), square(q(balls[1].Radius)), square(separation)
-	axial := new(big.Rat).Sub(a2, b2)
-	axial.Add(axial, d2)
-	axial.Quo(axial, new(big.Rat).Mul(big.NewRat(2, 1), separation))
-	radiusSquared := new(big.Rat).Sub(a2, square(axial))
-	if radiusSquared.Sign() <= 0 {
-		return zero, 0, latitude, geom.ErrDomain
-	}
+	axial := new(big.Rat).Mul(proof.CenterFraction, separation)
+	radiusSquared := proof.RadiusSquared
 	num, den := new(big.Int).Sqrt(radiusSquared.Num()), new(big.Int).Sqrt(radiusSquared.Denom())
 	if new(big.Int).Mul(num, num).Cmp(radiusSquared.Num()) != 0 || new(big.Int).Mul(den, den).Cmp(radiusSquared.Denom()) != 0 {
 		return zero, 0, latitude, geom.ErrUnrepresentable
@@ -181,17 +174,13 @@ func sphericalLensRim(balls [2]Ball, axis geom.Vec3) (geom.Vec3, float64, [2]flo
 	if err != nil {
 		return zero, 0, latitude, err
 	}
-	var center [3]float64
-	for i := range n {
-		position := new(big.Rat).Add(q(xyzA[i]), new(big.Rat).Mul(q(n[i]), axial))
-		center[i], err = geom.RepresentedExactScalar(position)
-		if err != nil {
-			return zero, 0, latitude, err
-		}
+	center, err := geom.RepresentedExactPoint(proof.Center)
+	if err != nil {
+		return zero, 0, latitude, err
 	}
 	for i, x := range [2]*big.Rat{axial, new(big.Rat).Sub(axial, separation)} {
 		ratio, _ := new(big.Rat).Quo(x, q(rim)).Float64()
 		latitude[i] = math.Atan(ratio)
 	}
-	return geom.Vec3{X: center[0], Y: center[1], Z: center[2]}, rim, latitude, nil
+	return center, rim, latitude, nil
 }
