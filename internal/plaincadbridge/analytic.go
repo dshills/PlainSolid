@@ -90,6 +90,11 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.stepArcLoop != nil {
+		if display, qualified, err := a.stepArcLoop.tessellate(o); qualified {
+			return display, err
+		}
+	}
 	if a.sideDualDisk != nil {
 		// The exact mesher re-proves cylinder and affine support identities
 		// from the boundary and never uses the recipe's radii as evidence.
