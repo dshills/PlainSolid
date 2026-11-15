@@ -114,8 +114,8 @@ func scaledMixedFixtureCharts(t *testing.T, s Solid) Solid {
 	return out
 }
 
-func TestStoredMixedWeightedReversedCurvedKnots(t *testing.T) {
-	ctx := context.Background()
+func storedMixedWeightedKnotsFixture(t *testing.T) (Solid, int) {
+	t.Helper()
 	s, edge := storedMixedCurvedWeightedFixture(t)
 	s, _ = storedMixedAffineSideFixture(t, s)
 	s = scaledMixedFixtureCharts(t, s)
@@ -179,6 +179,13 @@ func TestStoredMixedWeightedReversedCurvedKnots(t *testing.T) {
 			t.Fatal("native authored source history changed")
 		}
 	}
+	return s, edge
+}
+
+func TestStoredMixedWeightedReversedCurvedKnots(t *testing.T) {
+	ctx := context.Background()
+	s, edge := storedMixedWeightedKnotsFixture(t)
+	var e error
 	o := StoredMixedClosedMeshOptions{Faces: make([]SolidMixedFaceMeshOptions, len(s.faces))}
 	for fi, f := range s.faces {
 		o.Faces[fi] = SolidMixedFaceMeshOptions{Face: MixedExactMultiSpanMeshOptions{Span: MultiSpanTriangleBoundOptions{MaxDegree: 4}, Face: MixedExactCurvedMeshOptions{BoundaryModelBudget: .01, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .04}}}}

@@ -12,7 +12,12 @@ import (
 // SplitExactBezierTrimEdge splits both owning cubic or quartic trims and the
 // shared normalized model edge at the same exact rational event. It preserves
 // source surfaces and proves agreement and trim topology before publication.
-// The new UV and model vertex coordinates must be exactly representable.
+// Original degree-three/four SplineUV owners with a proved single Bezier trace
+// retain their authored curve and restricted parameter ranges (including reversal
+// and redundant knots). Their exact split parameter must also be representable.
+// The new UV and model vertex coordinates must be exactly representable;
+// existing native endpoint evaluation checks also remain in force. The inverse
+// MergeExactBezierTrimEdges operation remains limited to ExactBezierUV owners.
 func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Rat, options edgecheck.Options) (Solid, EdgeSplit, error) {
 	var zero EdgeSplit
 	if ctx == nil || edge < 0 || edge >= len(s.edges) || t == nil {
@@ -80,9 +85,9 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 			if position >= 0 {
 				j, u := position, (*ring)[position]
 				owners++
-				c, ok := u.Curve.(ExactBezierUV)
-				if !ok {
-					return Solid{}, zero, geom.ErrConvergence
+				c, e := splitStoredBezierDescriptor(ctx, u.Curve, options)
+				if e != nil {
+					return Solid{}, zero, e
 				}
 				proven, e := comparePolynomialTrimUse(ctx, m, f.Surface, u, options)
 				if e != nil {
@@ -99,13 +104,17 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 				if e != nil {
 					return Solid{}, zero, e
 				}
+				sourceA, sourceB, e := splitStoredBezierSources(u.Curve, local, a, b)
+				if e != nil {
+					return Solid{}, zero, e
+				}
 				// The source chart's normalized t is verified above, so the
 				// split represents the same exact model point on this owner.
 				before, after := (*ring)[:j], (*ring)[j+1:]
 				next := make([]Use, 0, len(*ring)+1)
 				next = append(next, before...)
-				next = append(next, Use{Edge: first, Reversed: u.Reversed, UVStart: a.ends[0], UVEnd: a.ends[1], Curve: a},
-					Use{Edge: second, Reversed: u.Reversed, UVStart: b.ends[0], UVEnd: b.ends[1], Curve: b})
+				next = append(next, Use{Edge: first, Reversed: u.Reversed, UVStart: a.ends[0], UVEnd: a.ends[1], Curve: sourceA},
+					Use{Edge: second, Reversed: u.Reversed, UVStart: b.ends[0], UVEnd: b.ends[1], Curve: sourceB})
 				*ring = append(next, after...)
 			}
 		}
