@@ -86,8 +86,18 @@ For native source preparation, `CertifyMappedSplineChainSupportKnotAgreement`
 can derive one isolated, transverse interior crossing of the shared roof
 boundary. Both original owner curves must admit exact raw restrictions at the
 same model station. The native source recipe rediscovers that station on
-reopen. STEP readers still require the source wire to carry explicit coedges
-with individual lifts contained in support cells.
+reopen. The same multi-span writer exports the repaired boundary as
+adjacent standard `EDGE_CURVE` records referencing one common
+`VERTEX_POINT`. Each roof keeps its whole spline basis, and each coedge
+keeps its own parameter-valued `TRIMMED_CURVE` and `PCURVE`. Model
+stations must have exact terminating STEP decimals. The bounded readers
+consume explicit coedges contained in individual support cells.
+
+The repaired fixture adds model station `1/8` at support knot `29/256`.
+Its original raw owner parameters are `5` and `27`, on different UV axes
+and opposite raw traversal directions. PlainSolid reconstructs and
+rewrites the paired coedges byte-identically, and pinned OCCT independently
+opens the output as one valid seven-face solid.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
