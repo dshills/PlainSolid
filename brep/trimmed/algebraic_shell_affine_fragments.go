@@ -93,6 +93,10 @@ func (r *AffineImprintFaceFragments) ExactOperations() int {
 // loops. Unsupported atom intersections always reject atomically. Cycles do not
 // select either shell's retained material.
 func (s *AffineShellPairedImprint) FragmentFace(ctx context.Context, owner, face int, o AffineImprintFragmentOptions) (*AffineImprintFaceFragments, error) {
+	return s.fragmentFacePoints(ctx, owner, face, o, nil)
+}
+
+func (s *AffineShellPairedImprint) fragmentFacePoints(ctx context.Context, owner, face int, o AffineImprintFragmentOptions, points [][2]*big.Rat) (*AffineImprintFaceFragments, error) {
 	if ctx == nil || s == nil || owner < 0 || owner > 1 || face < 0 || face >= len(s.sources[owner].faces) {
 		return nil, geom.ErrInvalid
 	}
@@ -132,6 +136,11 @@ func (s *AffineShellPairedImprint) FragmentFace(ctx context.Context, owner, face
 		ids[key] = i
 		r.uv = append(r.uv, [2]*big.Rat{new(big.Rat).Set(p[0]), new(big.Rat).Set(p[1])})
 		return i, nil
+	}
+	for _, p := range points {
+		if _, e := vertex(p); e != nil {
+			return nil, e
+		}
 	}
 	type atom struct {
 		a, c int
