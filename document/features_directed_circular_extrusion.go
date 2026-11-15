@@ -10,7 +10,10 @@ import (
 	"plainsolid/geom"
 )
 
-const DirectedCircularExtrusionFeature FeatureKind = "directed-circular-extrusion"
+const (
+	DirectedCircularExtrusionFeature       FeatureKind = "directed-circular-extrusion"
+	DirectedCircularExtrusionOffsetFeature FeatureKind = "directed-circular-extrusion-side-offset"
+)
 
 // NamedCircularProfileSegment identifies one authored line or directed minor
 // circular arc. IDs are unique across the exterior and all hole wires and
@@ -64,13 +67,17 @@ func (r *DirectedCircularExtrusionRecipe) profile() ([][]trimmed.ExactCircularLo
 	return curves, index, nil
 }
 
-func evaluateDirectedCircularExtrusion(ctx context.Context, f Feature) (trimmed.Solid, error) {
+func evaluateDirectedCircularExtrusion(ctx context.Context, f Feature) (trimmed.ExactCircularSweep, trimmed.Solid, error) {
 	r := f.DirectedCircularExtrusion
 	curves, _, err := r.profile()
 	if err != nil {
-		return trimmed.Solid{}, err
+		return trimmed.ExactCircularSweep{}, trimmed.Solid{}, err
 	}
-	return trimmed.ExtrudeExactDirectedCircularLoops(ctx, curves[0], curves[1:], r.Bottom, r.Top, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
+	solid, err := trimmed.ExtrudeExactDirectedCircularLoops(ctx, curves[0], curves[1:], r.Bottom, r.Top, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
+	if err != nil {
+		return trimmed.ExactCircularSweep{}, trimmed.Solid{}, err
+	}
+	return trimmed.ExactCircularSweep{Outer: curves[0], Holes: curves[1:], Bottom: r.Bottom, Top: r.Top}, solid, nil
 }
 
 func (s State) directedCircularSource(id string) (*DirectedCircularExtrusionRecipe, error) {
@@ -92,6 +99,12 @@ func (s State) directedCircularSource(id string) (*DirectedCircularExtrusionReci
 			id = f.Input
 		case DirectedCircularExtrusionFeature:
 			return f.DirectedCircularExtrusion, nil
+		case DirectedCircularExtrusionOffsetFeature:
+			input := s.Features[f.Input].Kind
+			if input != DirectedCircularExtrusionFeature && input != DirectedCircularExtrusionOffsetFeature {
+				return nil, fmt.Errorf("document: offset %q has no authored circular input", id)
+			}
+			id = f.Input
 		default:
 			return nil, fmt.Errorf("document: feature kind %q has no directed circular extrusion roles", f.Kind)
 		}
@@ -102,6 +115,7 @@ func (s State) directedCircularSource(id string) (*DirectedCircularExtrusionReci
 // ResolveDirectedCircularExtrusionFace resolves lower-cap, upper-cap or
 // wall:<segment ID> in the evaluated asset. A transform preserves the source
 // cap names and segment ownership, including when its world axes change.
+// Lateral offsets retain the original role IDs and ring order.
 func (s State) ResolveDirectedCircularExtrusionFace(ref FeatureFace) (int, error) {
 	r, err := s.directedCircularSource(ref.Feature)
 	if err != nil {

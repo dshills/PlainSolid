@@ -145,3 +145,80 @@ func TestDirectedCircularExtrusionNamedRolesSurviveEdits(t *testing.T) {
 		t.Fatalf("document recipe did not reopen canonically: %v", err)
 	}
 }
+
+func TestDirectedCircularExtrusionOffsetChainRetainsOriginalRoles(t *testing.T) {
+	ctx := context.Background()
+	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
+	recipe := &DirectedCircularExtrusionRecipe{
+		Outer:  circularDocumentRing("stock", p(0, 0), p(6, 0), p(6, 4), p(0, 4)),
+		Holes:  [][]NamedCircularProfileSegment{circularDocumentHole("hole", 2, 2, .5)},
+		Bottom: -1, Top: 1,
+	}
+	pose := geom.Affine{{1, 0, 0, 10}, {0, 1, 0, 2}, {0, 0, 1, 0}}
+	d, err := New(State{LengthUnit: .001, Features: map[string]Feature{
+		"source": {Kind: DirectedCircularExtrusionFeature, DirectedCircularExtrusion: recipe},
+		"side":   {Kind: DirectedCircularExtrusionOffsetFeature, Input: "source", Distance: .125},
+		"out":    {Kind: DirectedCircularExtrusionOffsetFeature, Input: "side", Distance: .125},
+		"placed": {Kind: TransformFeature, Input: "out", Transform: pose},
+	}}, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := func(a *Document, distance float64) {
+		t.Helper()
+		s, _ := a.Snapshot()
+		r, err := s.EvaluateFeatures(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		solid := r.Trimmed["placed"]
+		f, err := s.ResolveDirectedCircularExtrusionFace(FeatureFace{Feature: "placed", Role: "wall:hole-0"})
+		if err != nil || f != 6 {
+			t.Fatal(f, err)
+		}
+		index, err := s.ResolveDirectedCircularExtrusionEdge(CircularExtrusionEdge{Feature: "placed", Segment: "hole-0", Role: CircularExtrusionUpperRim})
+		if err != nil || index != 12 {
+			t.Fatal(index, err)
+		}
+		v := solid.Vertices()[solid.Edges()[index].Start]
+		radius := .5 - distance
+		if v != pose.Apply(geom.Vec3{X: 2 + radius, Y: 2, Z: 1}) {
+			t.Fatalf("offset moved the original cap or lost its hole identity: %+v", v)
+		}
+		m, err := solid.MassProperties(ctx, parametric.IntegrationOptions{})
+		want := 2 * ((6+2*distance)*(4+2*distance) - math.Pi*radius*radius)
+		if err != nil || math.Abs(m.Volume-want) > 1e-8 {
+			t.Fatalf("wrong composed signed offset material: %+v %v, want %v", m, err, want)
+		}
+	}
+	check(d, .25)
+	tx := d.Begin()
+	f := tx.State.Features["out"]
+	f.Distance = -.125
+	tx.State.Features["out"] = f
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	check(d, 0)
+	bad := d.Begin()
+	f = bad.State.Features["side"]
+	f.Distance = .5
+	bad.State.Features["side"] = f
+	if err := bad.Commit(); err == nil {
+		t.Fatal("offset edit collapsed the authored hole")
+	}
+	check(d, 0)
+	if err := d.Undo(); err != nil {
+		t.Fatal(err)
+	}
+	check(d, .25)
+	var b bytes.Buffer
+	if err := d.Write(&b); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Read(bytes.NewReader(b.Bytes()), 0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(reopened, .25)
+}

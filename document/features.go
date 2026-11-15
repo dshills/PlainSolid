@@ -70,6 +70,8 @@ const (
 // An orthogonal prism fillet also accepts reentrant profile corners.
 // A directed circular extrusion uses its named DirectedCircularExtrusion
 // profile and cap elevations, with Tolerance used for display validation.
+// Its lateral offset uses Input, signed Distance and Tolerance. Offsets can
+// be composed before applying a placement transform.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -199,6 +201,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 	if result.Trimmed == nil {
 		result.Trimmed = map[string]trimmed.Solid{}
 	}
+	var circularSweeps map[string]trimmed.ExactCircularSweep
 	ids := make([]string, 0, len(s.Features))
 	for id := range s.Features {
 		if _, ok := s.Assets[id]; ok {
@@ -245,7 +248,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				stack = append(stack, item{name, true})
 				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
-					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature
+					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
@@ -284,7 +287,28 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				r, e = evaluateOrthogonalPrismFillet(ctx, f)
 			case DirectedCircularExtrusionFeature:
 				uv = true
-				r, e = evaluateDirectedCircularExtrusion(ctx, f)
+				var source trimmed.ExactCircularSweep
+				source, r, e = evaluateDirectedCircularExtrusion(ctx, f)
+				if e == nil {
+					if circularSweeps == nil {
+						circularSweeps = make(map[string]trimmed.ExactCircularSweep)
+					}
+					circularSweeps[name] = source
+				}
+			case DirectedCircularExtrusionOffsetFeature:
+				uv = true
+				source, ok := circularSweeps[f.Input]
+				if !ok {
+					e = fmt.Errorf("directed circular offset needs an authored extrusion or offset before placement")
+					break
+				}
+				o := trimmed.CircularSweepOffsetOptions{Sweep: trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance}}
+				var next trimmed.CircularSweepSideOffset
+				next, e = trimmed.OffsetExactCircularSweepSide(ctx, source, f.Distance, o)
+				if e == nil {
+					r = next.Solid
+					circularSweeps[name] = next.Profile
+				}
 			case PrismFilletFeature:
 				uv = true
 				if len(f.Profile) < 3 || len(f.Profile) > 128 || len(f.Holes) != 0 || f.Offset.X != 0 || f.Offset.Y != 0 || f.Offset.Z <= 0 {
