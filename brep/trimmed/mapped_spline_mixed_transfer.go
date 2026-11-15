@@ -36,7 +36,7 @@ func ProveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom
 // coedge. The shared stored knot and at most one other active support crossing
 // must fit one exact raw map. Missing or nonisolated active events fail.
 func ProveMappedSplineCellLocalStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
-	return proveMappedSplineSingleStoredKnotTransfer(ctx, support, source, pieces, join, 3, true, o)
+	return proveMappedSplineSingleStoredKnotTransfer(ctx, support, source, pieces, join, 4, true, o)
 }
 
 func proveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, maxSupportKnots int, cellLocal bool, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {

@@ -75,16 +75,21 @@ static constexpr double fifthSupportKnot = 1341. / 16384;
 static constexpr double sixthSupportKnot = 2395. / 16384;
 static constexpr double secondSharedKnot = 99. / 256;
 static constexpr double secondCellSouthKnot = 917. / 2048;
+static constexpr double thirdSharedKnot = .75;
 
 struct RoofSupportLayout {
   int cuts = 3;
-  bool twoCells = false;
+  int storedCells = 1;
 };
 
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
-  if (layout.twoCells) {
-    return south ? std::vector<double>{0., 29. / 256, secondSharedKnot, secondCellSouthKnot, 1.}
-                 : std::vector<double>{0., 107. / 2048, 29. / 256, secondSharedKnot, 1.};
+  if (layout.storedCells >= 2) {
+    auto knots = south ? std::vector<double>{0., 29. / 256, secondSharedKnot, secondCellSouthKnot, 1.}
+                       : std::vector<double>{0., 107. / 2048, 29. / 256, secondSharedKnot, 1.};
+    if (layout.storedCells == 3) {
+      knots.insert(knots.end() - 1, thirdSharedKnot);
+    }
+    return knots;
   }
   const int supportCuts = layout.cuts;
   if (south && supportCuts == 6) {
@@ -102,10 +107,11 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
-    if (layout.twoCells) {
+    if (layout.storedCells >= 2) {
       const double separate = south ? secondCellSouthKnot : 107. / 2048;
+      const double third = layout.storedCells == 3 ? .125 * std::max(0., x - thirdSharedKnot) : 0.;
       return x * y + .125 * (std::max(0., x - 29. / 256) + std::max(0., x - secondSharedKnot))
-        + .125 * (y - .25) * std::max(0., x - separate);
+        + .125 * (y - .25) * std::max(0., x - separate) + third;
     }
     const int supportCuts = layout.cuts;
     const double separate = south ? 369. / 2048 : 107. / 2048;
@@ -170,7 +176,8 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
         return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, layout));
       };
       occ::handle<Geom_Curve> lifted;
-      if (unsplit && points.size() == 4 && (points.front().X() == 0. || (layout.twoCells && points.front().X() == .25))) {
+      const double lastStoredStart = layout.storedCells == 3 ? .5 : layout.storedCells == 2 ? .25 : 0.;
+      if (unsplit && points.size() == 4 && points.front().X() <= lastStoredStart) {
         // The full first UV cubic crosses the original support stations.
         // Only the shared material kink splits its stored model curve.
         const auto pieces = split(Cubic{points[0], points[1], points[2], points[3]});
@@ -326,6 +333,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
   const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
   const int supportCuts = layout.cuts;
+  const bool localCells = layout.storedCells >= 2;
+  const double lastSouthParameter = layout.storedCells == 3 ? -2. : 0.;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -335,19 +344,19 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   }
   occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
     new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
-  const auto southKnots = layout.twoCells ? std::array{0., 1., 16., 48.}
+  const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., 48.}
     : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  const auto southWeights = (layout.twoCells || supportCuts >= 4) ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
+  const auto southWeights = (localCells || supportCuts >= 4) ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
     : std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512};
   shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
   const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = layout.twoCells ? std::vector<double>{48., 16., 1., 0.}
+  const auto raw = localCells ? std::vector<double>{48., 16., 1., lastSouthParameter}
                   : supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
-  const auto station = (layout.twoCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
+  const auto station = (localCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
                       : unsplit ? std::vector<double>{0., 4., 8., 16.}
                                : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
   const auto northKnots = static_cast<int>(roofSupportKnots(false, layout).size());
@@ -387,7 +396,7 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       throw std::runtime_error("unexpected independently authored seam junction");
     }
     changed[cell] = true;
-    if (unsplit && (cell == 0 || (layout.twoCells && cell == 1))) {
+    if (unsplit && cell < static_cast<std::size_t>(layout.storedCells)) {
       if (spatial->NbControlPointsList() != 7 || spatial->NbKnots() != 3) {
         throw std::runtime_error("the unsplit model edge needs its original material knot");
       }
@@ -402,10 +411,10 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       // The first two Cartesian nets are exact half restrictions of the
       // original north cubic. The homogeneous weights express the original
       // rational raw map with a common dyadic scale on each basis.
-      const double firstRawEnd = supportCuts >= 5 ? 4622. : (supportCuts == 4 || layout.twoCells) ? 107. : 457.;
+      const double firstRawEnd = supportCuts >= 5 ? 4622. : (supportCuts == 4 || localCells) ? 107. : 457.;
       const auto firstWeights = supportCuts >= 5 ? std::array{1., 3., 9., 27.}
-        : (supportCuts == 4 || layout.twoCells) ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
-      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., layout.twoCells ? 715. : 706.}, {850., 862.}}};
+        : (supportCuts == 4 || localCells) ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
+      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., localCells ? 715. : 706.}, {850., 862.}}};
       const std::array<std::array<double, 4>, 3> weights{{
         firstWeights, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
       auto w = weights[cell];
@@ -454,8 +463,9 @@ int main(int argc, char** argv) {
     const std::string mode = argc > 1 ? argv[1] : "";
     const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
-    const RoofSupportLayout layout{supportCuts, mode == "write-two-support-cells"};
-    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || layout.twoCells;
+    const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2 : 1;
+    const RoofSupportLayout layout{supportCuts, storedCells};
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;

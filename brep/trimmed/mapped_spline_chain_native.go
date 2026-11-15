@@ -41,7 +41,7 @@ type MappedChainNativeOptions struct {
 // whole coedge bases in addition to version 1's whole owner spline.
 // Versions 3 through 9 rederive the original support-knot repairs.
 // Version 8 derives its bounded cut count from the original roof supports.
-// Version 9 rederives separate support events on two original common cells.
+// Version 9 rederives separate support events on two or three original cells.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
