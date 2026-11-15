@@ -47,7 +47,12 @@ type AlignedSplineGraphPolynomialArrangement struct {
 // scaling. Axis selects the free coordinate of the first roof.
 // Nonrepresentable remapped knots return ErrUnrepresentable. Failed calls
 // return no geometry.
-func DiscoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (r AlignedSplineGraphPolynomialArrangement, err error) {
+func DiscoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (AlignedSplineGraphPolynomialArrangement, error) {
+	return discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, DiscoverSplineGraphPolynomialArrangement)
+}
+
+func discoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions,
+	discover func(context.Context, *SurfacePatch, *SurfacePatch, int, GraphPointContactOptions) (SplineGraphPolynomialArrangement, error)) (r AlignedSplineGraphPolynomialArrangement, err error) {
 	if ctx == nil || a == nil || b == nil || len(a.net) == 0 || len(b.net) == 0 || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
@@ -79,7 +84,7 @@ func DiscoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *
 	if o.MaxOperations < 1 {
 		return r, ErrConvergence
 	}
-	proof, e := DiscoverSplineGraphPolynomialArrangement(ctx, a, align.TargetOnSource(), axis, o)
+	proof, e := discover(ctx, a, align.TargetOnSource(), axis, o)
 	budget.operations += proof.ExactOperations
 	if e != nil {
 		return r, e
