@@ -232,9 +232,6 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 		case 1:
 			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(1, 1000), modelSpeed: big.NewRat(1, 1000)}
 		case .0254:
-			if grouped {
-				return nil, geom.ErrDomain
-			}
 			// OCCT writes 3.937007874016E-02 for the model LINE vector.
 			// The actual owner conversion is the declared 5/127 inch per mm.
 			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(5, 127), modelSpeed: big.NewRat(123031496063, 3125000000000)}
