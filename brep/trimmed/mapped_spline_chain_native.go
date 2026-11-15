@@ -43,7 +43,8 @@ type MappedChainNativeOptions struct {
 // Version 8 derives its bounded cut count from the original roof supports.
 // Version 9 rederives separate support events on two or three original cells.
 // Version 10 rederives two asynchronous owner events in one original cell.
-// Version 11 rederives opposite interior events and their shared original joint.
+// Version 11 rederives one owner-only event per original cell and the shared
+// support events at their original joints.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid

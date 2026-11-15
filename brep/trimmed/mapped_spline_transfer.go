@@ -174,6 +174,14 @@ func ProveMappedSplineCellLocalAsynchronousTransfer(ctx context.Context, support
 	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 2, o)
 }
 
+// ProveMappedSplineJoinedSupportTransfer proves an original model Bézier in
+// a three-cell chain on a chart with up to four authored support knots.
+// This coedge has at most one interior event. Joint completeness is proved
+// separately across all the original chain cells.
+func ProveMappedSplineJoinedSupportTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 4, o)
+}
+
 func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
 	mapped, stations, err := proveMappedSplineInferredSupportTransfer(ctx, support, source, model, maxSupportKnots, 1, o)
 	if len(stations) == 0 {

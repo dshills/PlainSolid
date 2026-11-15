@@ -83,6 +83,10 @@ type MappedChainShellSTEPOptions struct {
 	// shared at the original joint. Requires AllowMultiSpanRoofs,
 	// AllowTwoInteriorRoofKnots, AllowUnsplitSupportKnot and AllowMixedOwnerBases.
 	AllowJoinedSupportKnotCells bool
+	// AllowThreeJoinedSupportKnotCells admits three original model Béziers
+	// with both shared source joints retained and one owner-only interior
+	// cut per cell. Requires AllowJoinedSupportKnotCells.
+	AllowThreeJoinedSupportKnotCells bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
