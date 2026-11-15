@@ -142,6 +142,51 @@ Focused main verification adds two bounded cases:
   original metre model and agree with independent OCCT at about
   `29077978807.11554 mm³`; the `1e-12 m` proof passes and `1e-13 m` fails.
 
+- `c809c6a7`: in the twelve main mixed Cut cases, the two operand
+  orders return two outside components or four ordered inner components.
+  Three exact contacts, original owner curves and independently integrated
+  rational component volumes survive native reload. The main race passed
+  in 105.103 seconds. The optional pinned OCCT diagnostic omitted every
+  positive interior reverse layer in the twelve independently clipped
+  input slabs.
+- `f49b393b`: two quadratic tangencies in independent cubic/quartic
+  original roofs qualify five signed regions, six exact original
+  restrictions and both directed sets of contact rays. Two fixtures
+  gave independently integrated lens areas `1/960` and `7/7680`.
+  The focused and earlier mixed main geometry races passed in 78.385 seconds.
+- `6d7d1764`: opt-in v7 mapped STEP preserving one shared rational
+  owner basis and six independent full bases on the other owner passed
+  main race in 35.054 seconds and the isolated broad mapped STEP race in
+  91.025 seconds. Native and canonical replays are byte-stable in either
+  roof order; original and re-export agree on the pinned OCCT material.
+- `49b5c1f0`: grouped converted-metre app qualification passed seven
+  native source-unit checks, all ten Node WASM tests and eight Chromium
+  tests. Both workers independently reproduced receipt SHA-256
+  `03303d736d014b2f6cf8200bd2c43833d50f9492aeddff6b4d5b64e7165e1c64`
+  and the exact canonical metre STEP. Common WASM SHA-256 is
+  `d5e75cdf0e4862c07410a4af3f981ae98fff88f5674787c2822fc36433fb197e`.
+  Durable original app reports are under `.worktrees/grouped-converted-metre-bridge-evidence`.
+- `6d32b6c5`: independent original and canonical STEP and IGES readback
+  retain two separate square tubes, 20 faces, volume 24 and area 96.
+  Joining after import removes the shared annulus and produces one volume-24
+  body with area 72. Original finite degree-one planar pcurves are bounded
+  by their exact source knots, model line speed and both lifted endpoints.
+  A same-line shortened pole, shifted knot, reversed owner and altered
+  speed all reject without returning material. STEP and IGES targeted
+  main races passed.
+- `5d9d9067`: matched complete original planar faces can fold around a
+  seam or fill an open pocket. The seam case retains volume 4 and area 16
+  with 14 vertices, 22 edges and 10 faces. The five-face pocket case
+  removes exactly four original buried vertices and eight buried edges
+  from each operand and retains exact volume 16 and area 48. Prior
+  planar cavity and broad `collision`, `csg` and `csg/poly` races passed.
+- `71a77941`: grouped converted-inch transfer passes the live original
+  metre/inch exchanges under race (26.363 seconds on main; 77.679 seconds
+  in isolated regression). The source checks 18 planar owners, eight
+  cylindrical spans and two rational caps. `1e-11 in` accepts and
+  `1e-12 in` rejects. Rounded unscaled OCCT input loses two original
+  plane/curve tangencies and is rejected. Main app integration remains open.
+
 Further main milestones use the same pinned optional OCCT reference:
 
 - Four-crossing Common and Fuse passed the exact source region and independent

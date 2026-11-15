@@ -57,16 +57,25 @@ passed the build, typechecks, bundle budget, 345 development browser cases,
 66 production cases, 15 cross-browser cases, 1,691 ordinary units and four
 WASM contracts. The refreshed full race run on `d5906fde` is still running.
 
-Complete planar face contact now joins original concave single-shell bodies
-with matching inner wires. It preserves exterior face and edge histories and
-can enclose a cavity. The v7 STEP writer round-trips independently authored
-per-edge bases with their finite domains, rational weights and owner maps.
-Native Common and Fuse retain all six signed regions around two crossings
-and one tangency, and reload re-proves the original source geometry.
-The grouped converted-metre exchange passes the independent original and
-canonical OCCT measurements. Immediate work includes transferring original
-face contacts in STEP and IGES, native mixed Cut qualification, and strict
-ownership paths for mixed and unsplit original STEP bases.
+Complete concave planar contacts now join along matching inner wires or
+any certified set of complete original faces. The joined boundary preserves
+original exterior faces and deletes hidden seam edges and vertices. STEP
+and IGES transfer a single exact original face contact with inner wires
+while keeping both solids separate. Strict STEP transfer authenticates
+original finite linear spline owner curves and their exact model stations.
+
+Native Common, Fuse and both Cut orders qualify two crossings plus one
+tangency. The geometry proof also covers two distinct quadratic tangencies.
+The mapped STEP writer preserves either independently authored per-edge
+bases or a mixture of a shared basis and independent coedge bases. The
+grouped converted-metre exchange passed pinned OCCT, typed Node and
+Chromium. The grouped converted-inch exchange passed pinned OCCT, and
+its app qualification is in progress.
+
+Immediate work includes coincident planar regions authored with different
+original face divisions, native two-tangency envelope and Cut integration,
+mixed-owner unsplit STEP transfer and the remaining curved Boolean,
+advanced modeling, exchange and platform release gates.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.
