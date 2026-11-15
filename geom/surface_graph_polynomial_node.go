@@ -45,7 +45,7 @@ func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, 
 	return node, nil
 }
 
-func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, crossings, tangencies, cubicCrossings, maxCells int, visits *int, b *polynomialBudget) ([]*big.Rat, int, error) {
+func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, mode polynomialGraphContactMode, maxCells int, visits *int, b *polynomialBudget) ([]*big.Rat, int, error) {
 	if len(delta) < 2 || *visits >= maxCells {
 		return nil, 0, ErrConvergence
 	}
@@ -55,8 +55,8 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 		return nil, 0, e
 	}
 	order := delta[0].Sign()
-	count := crossings + tangencies + cubicCrossings
-	singleCrossing := crossings == 1 && tangencies == 0 && cubicCrossings == 0
+	count := mode.crossings + mode.tangencies + mode.cubicCrossings + mode.quarticTangencies
+	singleCrossing := mode.crossings == 1 && count == 1
 	if singleCrossing && order*end.Sign() != -1 {
 		return nil, 0, ErrConvergence
 	}
@@ -69,7 +69,7 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 	if !singleCrossing {
 		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
 	}
-	remaining := [4]int{0, crossings, tangencies, cubicCrossings}
+	remaining := [5]int{0, mode.crossings, mode.tangencies, mode.cubicCrossings, mode.quarticTangencies}
 	splits, e := isolatePolynomialRoots(delta, zero, one, b, (maxCells-*visits-1)/2, func(lo, hi *big.Rat, rootMultiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
@@ -80,14 +80,14 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 				return false, ErrConvergence
 			}
 		case 2:
-			if tangencies == 0 {
+			if mode.tangencies == 0 {
 				return false, degenerate
 			}
 			if remaining[2] == 0 {
 				return false, ErrConvergence
 			}
-		case 3:
-			if remaining[3] == 0 {
+		case 3, 4:
+			if remaining[rootMultiplicity] == 0 {
 				return false, degenerate
 			}
 		default:
