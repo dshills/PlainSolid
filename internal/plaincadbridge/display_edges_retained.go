@@ -17,6 +17,16 @@ func (s stored) displayEdges(maxUses, maxSegments int) (displayEdgeResult, error
 	if maxUses < 1 || maxUses > 12000 || maxSegments < 1 || maxSegments > 24000 {
 		return displayEdgeResult{}, geom.ErrInvalid
 	}
+	if p := s.rationalStepArc; p != nil {
+		local, err := (stored{analytic: &analyticBody{solid: p.local}}).displayEdges(maxUses, maxSegments)
+		if err != nil {
+			return displayEdgeResult{}, err
+		}
+		if err = p.roundDisplayEdges(context.Background(), local.Segments); err != nil {
+			return displayEdgeResult{}, err
+		}
+		return local, nil
+	}
 	if s.tangent != nil {
 		return s.tangent.displayEdges(maxUses, maxSegments)
 	}

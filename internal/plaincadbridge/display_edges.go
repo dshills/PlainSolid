@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"context"
 	"errors"
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
@@ -24,6 +25,16 @@ func nativeDisplayEdges(s stored, maxSegments int, remaining *int) (displayEdges
 	out := displayEdges{Positions: []float64{}}
 	if maxSegments < 0 || maxSegments > 60000 || remaining != nil && (*remaining < 0 || *remaining > 40000) {
 		return out, errors.New("invalid native display budget")
+	}
+	if p := s.rationalStepArc; p != nil {
+		local, err := nativeDisplayEdges(stored{analytic: &analyticBody{solid: p.local}}, maxSegments, remaining)
+		if err != nil {
+			return out, err
+		}
+		if err = p.roundDisplayEdges(context.Background(), local.Positions); err != nil {
+			return out, err
+		}
+		return local, nil
 	}
 	if s.tangent != nil {
 		maxUses := 12000

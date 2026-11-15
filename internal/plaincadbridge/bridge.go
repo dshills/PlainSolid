@@ -128,17 +128,18 @@ type Shape struct {
 	NativeProof        *json.RawMessage    `json:"nativeProof,omitempty"`
 }
 type stored struct {
-	solid    brep.Solid
-	cylinder *cylinderBody
-	bore     *boreBody
-	treated  *edgeBody
-	analytic *analyticBody
-	tangent  *tangentBlindBore
-	result   Shape
+	solid           brep.Solid
+	cylinder        *cylinderBody
+	bore            *boreBody
+	treated         *edgeBody
+	analytic        *analyticBody
+	tangent         *tangentBlindBore
+	rationalStepArc *rationalStepArcLoop
+	result          Shape
 }
 
 func (s stored) planar() bool {
-	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil
+	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil && s.rationalStepArc == nil
 }
 
 type failure struct {
@@ -229,6 +230,9 @@ func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
 	if q.StepRepair != nil && q.Op != "importStep" {
 		return nil, errors.New("stepRepair applies only to importStep")
+	}
+	if err := b.checkRationalSTEPArcOperation(q); err != nil {
+		return nil, err
 	}
 	switch q.Op {
 	case "capabilities":
@@ -582,6 +586,13 @@ func (b *Bridge) execute(q request) (any, error) {
 				for j, value := range row {
 					m[i][j] = float64(value)
 				}
+			}
+			if p := s.rationalStepArc; p != nil {
+				pose, err := p.transformed(ctx, m)
+				if err != nil {
+					return nil, err
+				}
+				return b.putRationalSTEPArcLoop(ctx, p.local, p.descriptor, pose)
 			}
 			if s.treated != nil {
 				body, err := s.treated.transformed(m)

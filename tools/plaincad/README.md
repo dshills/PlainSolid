@@ -133,9 +133,10 @@ qualified default OCCT fillet sources. Supply the original STEP text as
 `source` and set `stepRepair` to `{"maxDistance": 1e-12, "native": true}`
 on `importStep`. The finite positive distance is in source length units.
 The bridge tries strict import first. If strict import fails as unsupported,
-it can prove a single fillet, a pair of fillets, or the signed-coordinate poses
-of the grouped source within that distance. Omitting `stepRepair` keeps the
-strict import behavior.
+it can prove a single fillet, a pair of fillets, signed-coordinate poses of
+the grouped source, or qualified exactly rational tilted placements of the
+single and grouped sources within that distance. Omitting `stepRepair` keeps
+the strict import behavior.
 
 A repaired handle reports world placement in millimetres. Its
 `repairEvidence` identifies the proof family, source SHA-256, original entity
@@ -154,6 +155,17 @@ same rim samples across both caps and the axial walls. Each chord checks
 distance and angular deflection with rational arithmetic, accounting for
 vertex rounding and including the exact axis extrema. The existing polygon
 mesh assembler uses that profile to produce a closed oriented display.
+
+Rationally tilted repair retains the product-local analytic solid and its exact
+rational world placement. `repairEvidence.worldPose` carries the placement as a
+3×4 array of rational strings. The evidence also counts finite line owners and
+axial trims where applicable. The bridge exports convex millimetre occurrences as
+exact world STEP that ordinary strict import can read. Inspection, cloning,
+display edges, drawing bounds, mesh, STL, and exact proper rigid transforms are
+supported for these occurrences. Local rim subdivision and verified placement
+rounding share the requested distance and angular allowances. The represented
+world mesh also passes an independent closed-shell embedding check. Modeling
+operations on these occurrences reject outside this domain.
 
 Finite to-face extrusion resolves one actual retained planar face and proves that
 it covers the projected profile, including the target's boundaries and holes.
