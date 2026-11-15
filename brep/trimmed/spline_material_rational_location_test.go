@@ -60,3 +60,35 @@ func TestRationalSplineMaterialLocationOriginalCavity(t *testing.T) {
 		t.Fatal("canceled classification", e)
 	}
 }
+
+func TestRationalSplineMaterialLocationDisplayVertex(t *testing.T) {
+	ctx := context.Background()
+	shift := big.NewRat(1, 3)
+	var parts []SewFace
+	for axis := range 3 {
+		for side := range 2 {
+			reverse := (side == 0) != (axis == 1)
+			parts = append(parts, exactSewTestFace(t, axis, big.NewRat(int64(side), 1), shift, reverse))
+		}
+	}
+	s, _, e := SewRationalQuadratic(ctx, parts, SewOptions{Tolerance: 1e-9})
+	if e != nil {
+		t.Fatal(e)
+	}
+	point := [3]*big.Rat{shift, new(big.Rat), new(big.Rat)}
+	o := SplineShellBooleanOptions{}
+	if loc, e := s.LocateRationalSplineMaterialPoint(ctx, point, o); e != nil || loc != parametric.Boundary {
+		t.Fatal("exact nonrepresentable shared vertex", loc, e)
+	}
+	x, _ := shift.Float64()
+	rounded := geom.Vec3{X: x}
+	if ratInset(x).Cmp(shift) >= 0 {
+		t.Fatal("the fixture requires its stored vertex to round outside the stock")
+	}
+	if loc, e := s.LocateRationalSplineMaterialPoint(ctx, affineMaterialXYZ(rounded), o); e != nil || loc != parametric.Outside {
+		t.Fatal("rounded vertex is only a display position", loc, e)
+	}
+	if loc, e := s.LocateSplineMaterialPoint(ctx, rounded, o); e != nil || loc != parametric.Outside {
+		t.Fatal("represented query must also respect the exact original boundary", loc, e)
+	}
+}

@@ -71,7 +71,7 @@ func locateOriginalBooleanOperand(ctx context.Context, s Solid, bounds geom.Box,
 		return parametric.Outside, nil
 	}
 	for _, x := range s.vertices {
-		if x == p {
+		if x == p && !usesRationalEndpoints(s) {
 			return parametric.Boundary, nil
 		}
 	}

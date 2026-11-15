@@ -41,11 +41,6 @@ func (s Solid) LocateRationalSplineMaterialPoint(ctx context.Context, point [3]*
 			return parametric.Outside, nil
 		}
 	}
-	for _, v := range s.vertices {
-		if exactPointCoordinatesEqual(affineMaterialXYZ(v), point) {
-			return parametric.Boundary, nil
-		}
-	}
 	boundary, e := s.locateSplineMaterialBoundary(ctx, point, o)
 	if e != nil {
 		return parametric.Outside, e
