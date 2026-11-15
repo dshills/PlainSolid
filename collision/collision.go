@@ -4,6 +4,7 @@
 package collision
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -133,6 +134,12 @@ func triangle(m mesh.Mesh, index int) [3]geom.Vec3 {
 	return [3]geom.Vec3{m.Vertices[ids[0]], m.Vertices[ids[1]], m.Vertices[ids[2]]}
 }
 func intersections(a, b mesh.Mesh, self bool, options Options) (Report, error) {
+	return sweepIntersections(nil, a, b, self, options, nil)
+}
+
+// The optional visitor sees the exact contact points before any float64
+// conversion. A nil context keeps the public legacy sweep behavior.
+func sweepIntersections(ctx context.Context, a, b mesh.Mesh, self bool, options Options, visit func(int, int, Kind, []point) error) (Report, error) {
 	var report Report
 	if options.MaxPairs < 0 || options.MaxContacts < 0 {
 		return report, ErrInvalid
@@ -183,13 +190,24 @@ func intersections(a, b mesh.Mesh, self bool, options Options) (Report, error) {
 		}
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].min[axis] < all[j].min[axis] })
+	contactCount := 0
 	for i, left := range all {
+		if ctx != nil {
+			if err := ctx.Err(); err != nil {
+				return report, err
+			}
+		}
 		for _, right := range all[i+1:] {
 			if right.min[axis] > left.max[axis] {
 				break
 			}
 			if report.BroadPhasePairs >= options.MaxPairs {
 				return report, ErrLimit
+			}
+			if ctx != nil {
+				if err := ctx.Err(); err != nil {
+					return report, err
+				}
 			}
 			report.BroadPhasePairs++
 			if !self && left.group == right.group {
@@ -221,10 +239,17 @@ func intersections(a, b mesh.Mesh, self bool, options Options) (Report, error) {
 			if self && expectedSharedContact(a, ta, tb, kind, points) {
 				continue
 			}
-			if len(report.Contacts) >= options.MaxContacts {
+			if contactCount >= options.MaxContacts {
 				return report, ErrLimit
 			}
-			report.Contacts = append(report.Contacts, Contact{TriangleA: ta, TriangleB: tb, Intersection: Intersection{Kind: kind, Points: rounded(points)}})
+			contactCount++
+			if visit != nil {
+				if err := visit(ta, tb, kind, points); err != nil {
+					return report, err
+				}
+			} else {
+				report.Contacts = append(report.Contacts, Contact{TriangleA: ta, TriangleB: tb, Intersection: Intersection{Kind: kind, Points: rounded(points)}})
+			}
 		}
 	}
 	sort.Slice(report.Contacts, func(i, j int) bool {
