@@ -1,7 +1,9 @@
 package parametric
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
@@ -67,5 +69,61 @@ func TestCertifiedSphericalLensDilationDisplayRetainsExactRim(t *testing.T) {
 	}
 	if failed, err := source.ProveSphericalLensDilationDisplay(ctx, distance, 1e-20, geom.SphereLensMeasureOptions{}); !errors.Is(err, geom.ErrUnrepresentable) || len(failed.DisplaySolid().Faces()) != 0 {
 		t.Fatalf("impossible display model budget was accepted: %v", err)
+	}
+}
+
+func TestCertifiedSphericalLensDilationDisplayNativeRecipe(t *testing.T) {
+	ctx := context.Background()
+	a := Ball{Center: geom.Vec3{X: 2, Y: 5, Z: -2}, Radius: 3}
+	b := Ball{Center: geom.Vec3{X: 2, Y: 8, Z: -2}, Radius: 2}
+	source, err := NewSpherePairSet(ctx, a, b, Intersection, 5e-10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := source.ProveSphericalLensDilationDisplay(ctx, .1, 1e-9, geom.SphereLensMeasureOptions{PrecisionBits: 42})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var original bytes.Buffer
+	if err := result.WriteJSON(ctx, &original, SphericalLensDisplayJSONOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := ReadCertifiedSphericalLensDilationJSON(ctx, bytes.NewReader(original.Bytes()), SphericalLensDisplayJSONOptions{})
+	if err != nil || reloaded.Proof().OriginalCenter[1].Cmp(big.NewRat(22, 3)) != 0 {
+		t.Fatalf("source recipe reload: %+v %v", reloaded.Proof(), err)
+	}
+	var emitted bytes.Buffer
+	if err := reloaded.WriteJSON(ctx, &emitted, SphericalLensDisplayJSONOptions{}); err != nil || !bytes.Equal(emitted.Bytes(), original.Bytes()) {
+		t.Fatal("source recipe did not reload byte deterministically", err)
+	}
+	m, err := reloaded.Tessellate(ctx, TessellationOptions{Deflection: .08})
+	if err != nil || m.ValidateSolid() != nil {
+		t.Fatalf("reloaded source did not yield a closed display: %v", err)
+	}
+	for _, mutate := range []func(*sphericalLensDisplayNative){
+		func(r *sphericalLensDisplayNative) { r.Source.Distance *= 2 },
+		func(r *sphericalLensDisplayNative) { r.Source.Balls[1].Center.Y++ },
+		func(r *sphericalLensDisplayNative) { r.ModelDeviation = "0" },
+		func(r *sphericalLensDisplayNative) { r.OriginalCenter[0] = "201/100" },
+	} {
+		var edited sphericalLensDisplayNative
+		if err := json.Unmarshal(original.Bytes(), &edited); err != nil {
+			t.Fatal(err)
+		}
+		mutate(&edited)
+		raw, err := json.Marshal(edited)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if failed, err := ReadCertifiedSphericalLensDilationJSON(ctx, bytes.NewReader(raw), SphericalLensDisplayJSONOptions{}); !errors.Is(err, geom.ErrInvalid) || len(failed.DisplaySolid().Faces()) != 0 {
+			t.Fatalf("edited certificate was accepted: %v", err)
+		}
+	}
+	var budget bytes.Buffer
+	if err := result.WriteJSON(ctx, &budget, SphericalLensDisplayJSONOptions{MaxBytes: 32}); !errors.Is(err, ErrBudget) || budget.Len() != 0 {
+		t.Fatalf("partial output on size exhaustion: %v", err)
+	}
+	if _, err := ReadCertifiedSphericalLensDilationJSON(ctx, bytes.NewReader(original.Bytes()), SphericalLensDisplayJSONOptions{Arithmetic: geom.SurfacePatchOptions{MaxOperations: 1}}); !errors.Is(err, geom.ErrConvergence) {
+		t.Fatalf("reload did not re-prove arithmetic: %v", err)
 	}
 }

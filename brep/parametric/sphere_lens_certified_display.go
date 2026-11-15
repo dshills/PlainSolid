@@ -30,6 +30,7 @@ type CertifiedSphericalLensDilation struct {
 	display  Solid
 	proof    SphericalLensDisplayProof
 	distance float64
+	bits     int
 }
 
 // ProveSphericalLensDilationDisplay builds a bounded analytical display of a
@@ -131,7 +132,7 @@ func (s SpherePairSet) ProveSphericalLensDilationDisplay(ctx context.Context, di
 		return zero, err
 	}
 	p := SphericalLensDisplayProof{bound.Rim.Center, bound.Rim.RadiusSquared, bound.Latitude, deviation, owners, [2]int{2, 0}, 1}
-	return CertifiedSphericalLensDilation{s, display, p, distance}, nil
+	return CertifiedSphericalLensDilation{s, display, p, distance, o.PrecisionBits}, nil
 }
 
 // DisplaySolid returns the immutable bounded chart representation.
