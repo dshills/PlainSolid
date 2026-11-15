@@ -30,7 +30,8 @@ type SplineGraphBooleanOptions struct {
 	TwoPolynomialNodesAxis int // original free coordinate (0=U, 1=V)
 	// ThreePolynomialNodes selects Common or Fuse across exactly three
 	// transverse crossings of cubic/quartic graph branches. Native vertices
-	// must be exact. Cut returns ErrDegenerate for this point-contact arrangement.
+	// must be exact. CutSplineGraphThreePolynomialNodeComponents separately
+	// proves and retains the point-contacting Cut components.
 	ThreePolynomialNodes     *geom.GraphPointContactOptions
 	ThreePolynomialNodesAxis int // original free coordinate (0=U, 1=V)
 	Section                  intersect.SplinePlaneOptions

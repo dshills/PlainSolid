@@ -217,17 +217,17 @@ func TestNativeTwoPolynomialNodeCutRecipeRejections(t *testing.T) {
 	if e = cut.WriteJSON(ctx, &native); e != nil {
 		t.Fatal(e)
 	}
-	for name, mutate := range map[string]func(*twoPolynomialNodeCutRecipe){
-		"second point":    func(r *twoPolynomialNodeCutRecipe) { r.Contacts[1].Point[0] = "1/2" },
-		"removed contact": func(r *twoPolynomialNodeCutRecipe) { r.Contacts = r.Contacts[:1] },
-		"wrong pair":      func(r *twoPolynomialNodeCutRecipe) { r.Contacts[1].Components[0] = 0 },
-		"wrong vertex":    func(r *twoPolynomialNodeCutRecipe) { r.Contacts[0].Vertices[1]++ },
-		"wrong sector":    func(r *twoPolynomialNodeCutRecipe) { r.Regions[1] = 4 },
-		"exchanged roofs": func(r *twoPolynomialNodeCutRecipe) { r.Sources[1], r.Sources[2] = r.Sources[2], r.Sources[1] },
-		"version":         func(r *twoPolynomialNodeCutRecipe) { r.Version++ },
+	for name, mutate := range map[string]func(*polynomialNodeComponentsRecipe){
+		"second point":    func(r *polynomialNodeComponentsRecipe) { r.Contacts[1].Point[0] = "1/2" },
+		"removed contact": func(r *polynomialNodeComponentsRecipe) { r.Contacts = r.Contacts[:1] },
+		"wrong pair":      func(r *polynomialNodeComponentsRecipe) { r.Contacts[1].Components[0] = 0 },
+		"wrong vertex":    func(r *polynomialNodeComponentsRecipe) { r.Contacts[0].Vertices[1]++ },
+		"wrong sector":    func(r *polynomialNodeComponentsRecipe) { r.Regions[1] = 4 },
+		"exchanged roofs": func(r *polynomialNodeComponentsRecipe) { r.Sources[1], r.Sources[2] = r.Sources[2], r.Sources[1] },
+		"version":         func(r *polynomialNodeComponentsRecipe) { r.Version++ },
 	} {
 		t.Run(name, func(t *testing.T) {
-			var recipe twoPolynomialNodeCutRecipe
+			var recipe polynomialNodeComponentsRecipe
 			if e := json.Unmarshal(native.Bytes(), &recipe); e != nil {
 				t.Fatal(e)
 			}
