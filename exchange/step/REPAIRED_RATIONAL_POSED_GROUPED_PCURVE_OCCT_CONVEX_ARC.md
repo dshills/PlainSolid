@@ -173,3 +173,43 @@ so both gaps prevent exact reconstruction.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairGroupedConvertedInchConvexArc' -count=1
 ```
+
+## Three disjoint fillets in an original millimetre STEP
+
+The pinned `write-three-default-tilted` mode independently fillets the
+three separate vertical edges of the triangular oblique prism. The 520-entity
+AP214 original has one solid, three straight and three circular profile
+segments, and eight faces. Its radii are `5/32`, `1/4`, and `5/16`
+millimetres. The same explicit grouped repair retains ten repair sites, two
+unequal axial intervals, and the exact source-world rotation.
+
+Two original cylindrical CIRCLE owners on the additional fillet use
+`u = -2.498091544797 + t`. Their constant axial parameters are 0 and 5.
+The original cylinder and circle charts have different azimuths. The proof
+expands the lift in `cos(t)` and `sin(t)`, encloses the sine and cosine of
+the authored phase with rationals, and bounds the discrepancy for the entire
+model curve. The exact original cylinder chart is retained in the source
+receipt. Its corrected model carrier has an equivalent canonical azimuth
+on the same axis and radius. Native reproof checks these two bounds, the
+other 32 analytic owners, and the two original rational cap owners.
+
+Pinned OCCT samples both ends and the midpoint of each phase-shifted owner.
+The maximum observed difference is about `7.71e-14` mm with the authored
+phase and `0.2965` mm with zero phase. Ordinary OCCT reads the original,
+corrected and strict canonical files as valid eight-face solids and agrees
+on world volume `28.968988172080639` mm³, area `64.184278587623695` mm²,
+and centroid. The strict canonical Go reader recovers the same native solid
+and re-exports identical bytes. The original requires explicit repair at
+`1e-12` mm and rejects the smaller `1e-13` mm budget.
+
+The separate pinned `write-three-default-tilted-nondyadic` mode uses a
+third radius of `3/16` mm. Its exact local tangent vertices require
+`(-2.775, 0.3)`, whose coordinates cannot be represented exactly by the
+current profile. The source is rejected before material is published.
+Wrong phases, traversal, nonunit oblique frames, and borrowed owners
+also reject.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairThreeConvexArc' -count=1
+```

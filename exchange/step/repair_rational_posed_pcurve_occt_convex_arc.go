@@ -181,15 +181,18 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, e
 	}
-	count := 12
+	fillets := 1
 	if grouped {
-		count = 15
+		fillets = 2
 	}
-	model, owners, e := convexPCurveModelView(f, count, grouped)
+	model, owners, e := convexPCurveModelView(f, 3*(3+fillets), grouped)
 	converted := false
-	if e != nil && !grouped {
-		model, owners, e = convexPCurveModelView(f, count, true)
-		converted = e == nil
+	if e != nil {
+		if grouped {
+			fillets = 3
+		}
+		model, owners, e = convexPCurveModelView(f, 3*(3+fillets), true)
+		converted = !grouped && e == nil
 	}
 	if e != nil {
 		return nil, e
@@ -222,9 +225,12 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, e
 	}
-	src.material, e = repairOCCTConvexArcModel(ctx, bytes.NewReader(modelRaw), l, o, grouped, grouped)
+	src.material, e = repairOCCTConvexArcModel(ctx, bytes.NewReader(modelRaw), l, o, fillets, grouped)
 	if e != nil {
 		return nil, fmt.Errorf("rational pose model: %w", e)
+	}
+	if fillets == 3 && (converted || src.material.Descriptor().LengthUnit != .001) {
+		return nil, geom.ErrDomain
 	}
 	if converted {
 		// The model reader has already verified the exact unit declaration.

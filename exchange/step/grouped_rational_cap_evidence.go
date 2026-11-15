@@ -310,6 +310,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 	out := GroupedPCurveEvidence{modelRepair: m, Reversals: m.Reversals(), Repairs: m.Repairs()}
 	tol := new(big.Rat).SetFloat64(distance)
 	tol.Mul(tol, tol)
+	segments := len(m.material.Descriptor.Segments)
 	for _, q := range owners {
 		if e := ctx.Err(); e != nil {
 			return zero, e
@@ -330,7 +331,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 		// An original reversed circle has the same cosine axis and opposite sine
 		// axis to its cylinder. U=-t is therefore the exact owner correspondence.
 		var e error
-		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID)
+		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID, segments == 6)
 		if e != nil && allowFiniteLines {
 			var trim *ConvexArcAxialTrimRepair
 			if conversion != nil {
@@ -368,7 +369,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 		}
 		out.OtherOwners = append(out.OtherOwners, q)
 	}
-	if len(out.Caps) != 2 || len(out.OtherOwners) != 28 || len(out.Reversals) != 2 {
+	if len(out.Caps) != 2 || len(out.OtherOwners) != 6*segments-2 || len(out.Reversals) != 2 {
 		return zero, geom.ErrDomain
 	}
 	for _, c := range out.Caps {
@@ -388,12 +389,12 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 	return out, nil
 }
 
-func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64) (string, *big.Rat, error) {
+func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64, allowPhase bool) (string, *big.Rat, error) {
 	circle, e := simple(f, model, "CIRCLE", 3)
 	if e == nil {
 		cyl, e := simple(f, support, "CYLINDRICAL_SURFACE", 3)
 		if e == nil {
-			co, cx, cy, _, e := convexUVFrame(f, circle.Args[1].Ref)
+			co, cx, cy, cz, e := convexUVFrame(f, circle.Args[1].Ref)
 			if e != nil {
 				return "", nil, e
 			}
@@ -414,19 +415,54 @@ func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64) (s
 				return "", nil, e
 			}
 			sign := d[0]
-			if uv[0].Sign() != 0 || d[1].Sign() != 0 || new(big.Rat).Abs(sign).Cmp(big.NewRat(1, 1)) != 0 || r.Cmp(rr) != 0 || !convexUVSame(cx, x) {
+			if d[1].Sign() != 0 || new(big.Rat).Abs(sign).Cmp(big.NewRat(1, 1)) != 0 || r.Cmp(rr) != 0 {
+				return "", nil, geom.ErrDomain
+			}
+			for i := range y {
+				o[i].Add(o[i], new(big.Rat).Mul(z[i], uv[1]))
+			}
+			delta := occtLoopSub(o, co)
+			if uv[0].Sign() != 0 {
+				if !allowPhase || sign.Sign() != 1 || !convexUVSame(cz, z) || new(big.Rat).Abs(uv[0]).Cmp(big.NewRat(3, 1)) > 0 {
+					return "", nil, geom.ErrDomain
+				}
+				bound, err := boundGroupedCylinderPhase(delta, x, y, cx, cy, r, uv[0])
+				return "phase-cylinder-circle", bound, err
+			}
+			if !convexUVSame(cx, x) {
 				return "", nil, geom.ErrDomain
 			}
 			for i := range y {
 				y[i] = new(big.Rat).Mul(y[i], sign)
-				o[i].Add(o[i], new(big.Rat).Mul(z[i], uv[1]))
 			}
 			if !convexUVSame(cy, y) {
 				return "", nil, geom.ErrDomain
 			}
-			delta := occtLoopSub(o, co)
 			return "cylinder-circle", occtLoopDot(delta, delta), nil
 		}
 	}
 	return boundConvexOwnerPCurve(f, fixed, model, geometry, support)
+}
+
+// Expand the authored u=phase+t chart in cos(t) and sin(t). Enclosing
+// sin(phase) and cos(phase) proves the entire periodic lift, including the
+// finite model edge, without treating the decimal phase as an exact rotation.
+func boundGroupedCylinderPhase(delta, x, y, cx, cy [3]*big.Rat, radius, phase *big.Rat) (*big.Rat, error) {
+	sine, cosine, remainder, err := liftTrigBernstein([]*big.Rat{phase, phase})
+	if err != nil {
+		return nil, err
+	}
+	squared := new(big.Rat)
+	for i := range x {
+		a := new(big.Rat).Add(new(big.Rat).Mul(x[i], cosine[0]), new(big.Rat).Mul(y[i], sine[0]))
+		b := new(big.Rat).Sub(new(big.Rat).Mul(y[i], cosine[0]), new(big.Rat).Mul(x[i], sine[0]))
+		a.Sub(a, cx[i]).Abs(a)
+		b.Sub(b, cy[i]).Abs(b)
+		trigError := new(big.Rat).Add(new(big.Rat).Abs(x[i]), new(big.Rat).Abs(y[i]))
+		trigError.Mul(trigError, remainder).Mul(trigError, big.NewRat(2, 1))
+		bound := new(big.Rat).Add(a, b)
+		bound.Add(bound, trigError).Mul(bound, radius).Add(bound, new(big.Rat).Abs(delta[i]))
+		squared.Add(squared, new(big.Rat).Mul(bound, bound))
+	}
+	return squared, nil
 }
