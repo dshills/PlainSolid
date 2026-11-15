@@ -40,10 +40,16 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 		{"grouped-metre", "occt-both-default-tilted-oblique-prism-fillet-metre", stepMetre, 1, 1000, true},
 		{"grouped-inch", "occt-both-default-tilted-oblique-prism-fillet-inch", stepInch, .0254, 25.4, true},
 		{"converted-metre", "occt-default-tilted-translated-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, false},
+		{"converted-inch", "occt-default-tilted-translated-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := stepRepairFixture(t, tc.file)
-			converted := tc.name == "converted-metre"
+			converted := strings.HasPrefix(tc.name, "converted-")
+			convertedInch := converted && tc.unit == stepInch
+			maxDistance, millimetresPerBase := 1e-12, tc.mmPerUnit
+			if convertedInch {
+				maxDistance, millimetresPerBase = 1e-11, 5*tc.mmPerUnit
+			}
 			other := stepMetre
 			if tc.unit == stepMetre {
 				other = stepInch
@@ -52,7 +58,11 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			rejectGroup(t, b, request)
 			request["stepUnits"] = tc.unit
 			rejectGroup(t, b, request)
-			request["stepRepair"] = map[string]any{"maxDistance": 1e-12, "nativeText": true}
+			if convertedInch {
+				request["stepRepair"] = map[string]any{"maxDistance": 1e-12, "nativeText": true}
+				rejectGroup(t, b, request)
+			}
+			request["stepRepair"] = map[string]any{"maxDistance": maxDistance, "nativeText": true}
 			delete(request, "stepUnits")
 			rejectGroup(t, b, request)
 			request["stepUnits"] = other
@@ -62,7 +72,7 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			handles = append(handles, admitted.Handle)
 			inspect := shape(t, b, map[string]any{"op": "inspect", "handle": admitted.Handle})
 			if inspect.StepUnits != tc.unit || !reflect.DeepEqual(inspect, admitted) || admitted.RepairEvidence == nil ||
-				admitted.RepairEvidence.LengthUnit != tc.metres || admitted.NativeProofJSON == "" {
+				admitted.RepairEvidence.LengthUnit != tc.metres || admitted.RepairEvidence.MaxDistance != maxDistance || admitted.NativeProofJSON == "" {
 				t.Fatal("retained native handle lost explicit source-unit evidence")
 			}
 			arc := b.shapes[admitted.Handle].rationalStepArc
@@ -75,6 +85,9 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			bounds := Bounds{Min: vector{1, 0, -.7}, Max: vector{7.025, 3, 5}}
 			volume, area := 29.145041881053842, 66.186284791166074
 			x, z := big.NewRat(8, 5), big.NewRat(6, 5)
+			if convertedInch {
+				x, z = big.NewRat(8, 1), big.NewRat(6, 1)
+			}
 			proof := strings.NewReader(admitted.NativeProofJSON)
 			if tc.grouped {
 				m, e := step.ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
@@ -91,7 +104,7 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			} else {
 				m, e := step.ReadRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
 				if e == nil && converted {
-					checkConvertedMetreBridgeReceipt(t, admitted.RepairEvidence, m)
+					checkConvertedBridgeReceipt(t, tc.unit, admitted.RepairEvidence, m)
 				}
 				reloaded, err = m, e
 			}
@@ -112,11 +125,11 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			for side, want := range [2]vector{bounds.Min, bounds.Max} {
 				got := [2]vector{admitted.Bounds.Min, admitted.Bounds.Max}[side]
 				for i := range got {
-					near(t, got[i], want[i]*tc.mmPerUnit)
+					near(t, got[i], want[i]*millimetresPerBase)
 				}
 			}
-			volume *= math.Pow(tc.mmPerUnit, 3)
-			area *= math.Pow(tc.mmPerUnit, 2)
+			volume *= math.Pow(millimetresPerBase, 3)
+			area *= math.Pow(millimetresPerBase, 2)
 			if math.Abs(admitted.GeometryAssertions.Volume/volume-1) > 1e-11 ||
 				math.Abs(admitted.GeometryAssertions.SurfaceArea/area-1) > 1e-11 {
 				t.Fatal("incorrect analytic millimetre estimates", admitted.GeometryAssertions)
@@ -165,7 +178,8 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			q["handles"] = []string{admitted.Handle}
 			var exported stepExport
 			if err = json.Unmarshal(invoke(t, b, q), &exported); err != nil || exported.Units != tc.unit || exported.ProofUnits != stepMillimetre ||
-				len(exported.Before) != 1 || !reflect.DeepEqual(exported.Before, exported.After) {
+				len(exported.Before) != 1 || exported.Before[0] != (stepProof{Assertions: admitted.GeometryAssertions, Bounds: admitted.Bounds}) ||
+				!reflect.DeepEqual(exported.Before, exported.After) {
 				t.Fatal("source-unit export lost file units or millimetre proof", err)
 			}
 			canonical, err := base64.StdEncoding.DecodeString(exported.Base64)
@@ -204,31 +218,44 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	}
 }
 
-func checkConvertedMetreBridgeReceipt(t *testing.T, evidence *stepRepairEvidence, m step.RationalPosedPCurveRepairedOCCTConvexArcExtrusion) {
+func checkConvertedBridgeReceipt(t *testing.T, unit stepFileUnit, evidence *stepRepairEvidence, m step.RationalPosedPCurveRepairedOCCTConvexArcExtrusion) {
 	t.Helper()
 	lines, spans := m.FiniteLineOwners(), m.CylindricalSpanOwners()
 	if evidence.Family != "occt-rational-posed-single-pcurve-convex-arc" || len(evidence.Repairs) != 3 ||
 		evidence.FiniteLineOwners != 18 || evidence.PCurveOwners != 24 || len(lines) != 18 || len(spans) != 4 {
-		t.Fatal("converted-metre bridge receipt lost its chart ledgers")
+		t.Fatal("converted source bridge receipt lost its chart ledgers")
+	}
+	ownerScale, axialEnd, height := "1/1000", "5000", "5"
+	if unit == stepInch {
+		ownerScale, axialEnd, height = "5/127", "635", "25"
 	}
 	for _, owner := range lines {
-		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != "1/1000" {
-			t.Fatal("converted-metre receipt changed a planar parameter map", owner)
+		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != ownerScale {
+			t.Fatal("converted source receipt changed a planar parameter map", owner)
 		}
 	}
+	const sweep = "2498091544797/1000000000000"
 	want := map[int64][5]string{
-		125: {"5000", "0", "0", "0", "1/1000"},
-		225: {"5000", "2498091544797/1000000000000", "0", "0", "1/1000"},
-		157: {"2498091544797/1000000000000", "0", "0", "1", "0"},
-		246: {"2498091544797/1000000000000", "0", "5", "1", "0"},
+		125: {axialEnd, "0", "0", "0", ownerScale},
+		225: {axialEnd, sweep, "0", "0", ownerScale},
+		157: {sweep, "0", "0", "1", "0"},
+		246: {sweep, "0", height, "1", "0"},
 	}
 	for _, span := range spans {
 		coefficients := [5]string{span.ParameterInterval[1].RatString(), span.UVStart[0].RatString(), span.UVStart[1].RatString(),
 			span.UVDerivative[0].RatString(), span.UVDerivative[1].RatString()}
 		if span.ParameterInterval[0].Sign() != 0 || coefficients != want[span.PCurveID] {
-			t.Fatal("converted-metre receipt changed a cylindrical span", span)
+			t.Fatal("converted source receipt changed a cylindrical span", span)
 		}
 		delete(want, span.PCurveID)
+	}
+	if unit == stepInch {
+		for _, owner := range m.PCurves() {
+			if owner.PCurveID == 125 &&
+				(owner.Kind != "finite-cylinder-line" || owner.DistanceSquaredUpper.RatString() != "625/244140625000031250000000001") {
+				t.Fatal("converted inch receipt lost the exact axial drift bound", owner)
+			}
+		}
 	}
 }
 

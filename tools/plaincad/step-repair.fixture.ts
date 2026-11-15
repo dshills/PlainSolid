@@ -17,8 +17,11 @@ interface Fixture {
   units?: StepSourceUnit;
   mmPerUnit?: number;
   metresPerUnit?: number;
+  sourceScale?: number;
+  maxDistance?: number;
+  rejectedDistance?: number;
   grouped?: true;
-  converted?: true;
+  converted?: { ownerScale: string; axialEnd: string; height: string };
 }
 
 const tiltedSingle: Fixture = {
@@ -51,7 +54,12 @@ const fixtures: readonly Fixture[] = [
   { ...tiltedSingle, file: `${tiltedSingle.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1 },
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
-  { ...tiltedSingle, file: `${tiltedSingle.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1, converted: true },
+  { ...tiltedSingle, file: `${tiltedSingle.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1,
+    converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { ...tiltedSingle, file: `${tiltedSingle.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    pose: [["0", "3/5", "4/5", "8"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "6"]],
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ];
 
 for (const fixture of fixtures) {
@@ -62,10 +70,17 @@ for (const fixture of fixtures) {
     expect(() => strictAdapter.importStep!(source)).toThrow(/PlainSolid UNSUPPORTED/);
     const units = fixture.units;
     const scale = fixture.mmPerUnit ?? 1;
-    const options: StepImportOptions = { stepRepair: { maxDistance: 1e-12, native: !!fixture.prefix }, units };
+    const millimetresPerBase = scale * (fixture.sourceScale ?? 1);
+    const maxDistance = fixture.maxDistance ?? 1e-12;
+    const options: StepImportOptions = { stepRepair: { maxDistance, native: !!fixture.prefix }, units };
     if (units) {
       expect(() => kernel.importStep(source, { units })).toThrow(/PlainSolid UNSUPPORTED/);
       expect(() => kernel.importStep(source, { stepRepair: options.stepRepair })).toThrow(/STEP import unit must match/);
+    }
+    const rejectedDistance = fixture.rejectedDistance;
+    if (rejectedDistance !== undefined) {
+      expect(() => kernel.disposeShape(kernel.importStep(source, { units, stepRepair: { maxDistance: rejectedDistance, native: true } })))
+        .toThrow(/PlainSolid UNSUPPORTED: STEP source has no qualified default OCCT pcurve repair within maxDistance/);
     }
     const shape = kernel.importStep(source, options);
     try {
@@ -73,7 +88,7 @@ for (const fixture of fixtures) {
       const evidence = kernel.nativeStepRepairEvidence(shape)!;
       const digest = createHash("sha256").update(source).digest("hex");
       expect(evidence.repairEvidence).toMatchObject({
-        family: fixture.family, sourceSHA256: digest, lengthUnit: fixture.metresPerUnit ?? .001, maxDistance: 1e-12, pcurveOwners: fixture.owners,
+        family: fixture.family, sourceSHA256: digest, lengthUnit: fixture.metresPerUnit ?? .001, maxDistance, pcurveOwners: fixture.owners,
       });
       expect(evidence.repairEvidence.provenance.Body).toBeGreaterThan(0);
       expect(evidence.repairEvidence.repairs).toHaveLength(fixture.sites);
@@ -82,8 +97,8 @@ for (const fixture of fixtures) {
         const json = evidence.nativeProofJSON!;
         expect(json.endsWith("\n")).toBe(true);
         const proof = JSON.parse(json);
-        expect(proof).toMatchObject({ Format: fixture.prefix, Version: 1, MaxDistance: 1e-12,
-          Claims: { SourceSHA256: digest, Pose: fixture.pose } });
+        expect(proof).toMatchObject({ Format: fixture.prefix, Version: 1, MaxDistance: maxDistance,
+          Claims: { SourceSHA256: digest, Pose: fixture.pose, MaxDistance: maxDistance } });
         expect(Buffer.from(proof.Source, "base64").toString("utf8")).toBe(source);
         if (fixture.grouped) {
           expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners: 8, rationalCaps: 2, axialTrims: 1 });
@@ -93,18 +108,22 @@ for (const fixture of fixtures) {
           expect(proof.Claims.Grouped.AxialTrims).toHaveLength(1);
         }
         if (fixture.converted) {
+          const { ownerScale, axialEnd, height } = fixture.converted;
           expect(evidence.repairEvidence.finiteLineOwners).toBe(18);
           expect(proof.Claims.FiniteLineOwners).toHaveLength(18);
-          for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe("1/1000");
+          for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
           const spans = proof.Claims.CylindricalSpanOwners;
           const sweep = "2498091544797/1000000000000";
           expect(spans).toHaveLength(4);
           expect(spans).toEqual(expect.arrayContaining([
-            { PCurveID: 125, ParameterInterval: ["0", "5000"], UVStart: ["0", "0"], UVDerivative: ["0", "1/1000"] },
-            { PCurveID: 225, ParameterInterval: ["0", "5000"], UVStart: [sweep, "0"], UVDerivative: ["0", "1/1000"] },
+            { PCurveID: 125, ParameterInterval: ["0", axialEnd], UVStart: ["0", "0"], UVDerivative: ["0", ownerScale] },
+            { PCurveID: 225, ParameterInterval: ["0", axialEnd], UVStart: [sweep, "0"], UVDerivative: ["0", ownerScale] },
             { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
-            { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", "5"], UVDerivative: ["1", "0"] },
+            { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
           ]));
+          if (units === "in") expect(proof.Claims.PCurves).toContainEqual(expect.objectContaining({
+            PCurveID: 125, Kind: "finite-cylinder-line", DistanceSquaredUpper: "625/244140625000031250000000001",
+          }));
         }
       } else {
         expect(evidence.nativeProofJSON).toBeUndefined();
@@ -115,14 +134,14 @@ for (const fixture of fixtures) {
 
       const bounds = kernel.nativeBounds(shape);
       for (const side of ["min", "max"] as const) {
-        bounds[side].forEach((value, axis) => expect(value / scale).toBeCloseTo(fixture.bounds[side][axis], 11));
+        bounds[side].forEach((value, axis) => expect(value / millimetresPerBase).toBeCloseTo(fixture.bounds[side][axis], 11));
       }
       const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
       expect(mesh).toMatchObject({ geometrySource: "plainsolid", kernelOperation: "stepImport", bounds });
       expect(mesh.indices.length).toBeGreaterThan(0);
       expect(mesh.geometryAssertions).toMatchObject({ valid: true, solidCount: 1 });
-      expect(mesh.geometryAssertions!.volume / scale ** 3).toBeCloseTo(fixture.measures[0], 10);
-      expect(mesh.geometryAssertions!.surfaceArea / scale ** 2).toBeCloseTo(fixture.measures[1], 10);
+      expect(mesh.geometryAssertions!.volume / millimetresPerBase ** 3).toBeCloseTo(fixture.measures[0], 10);
+      expect(mesh.geometryAssertions!.surfaceArea / millimetresPerBase ** 2).toBeCloseTo(fixture.measures[1], 10);
       expect(Array.from(mesh.positions).every((value, i) => value >= bounds.min[i % 3] - 1e-12 * scale
         && value <= bounds.max[i % 3] + 1e-12 * scale)).toBe(true);
 
@@ -137,6 +156,7 @@ for (const fixture of fixtures) {
       expect(exported.after).toEqual(exported.before);
       const canonical = new TextDecoder().decode(exported.bytes);
       if (units === "m") expect(canonical).toContain("SI_UNIT($,.METRE.)");
+      if (units === "in") expect(canonical).toContain("LENGTH_MEASURE(0.0254)");
       if (units) expect(() => strictAdapter.importStep!(canonical)).toThrow(/STEP import unit must match/);
       const strict = units ? kernel.importStep(canonical, { units }) : strictAdapter.importStep!(canonical);
       try {
