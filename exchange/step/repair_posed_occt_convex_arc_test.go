@@ -224,3 +224,73 @@ func FuzzRepairPosedOCCTConvexArc(f *testing.F) {
 		}
 	})
 }
+
+// The second actual OCCT fillet has an oppositely parameterized model circle,
+// not merely an extra copy of the first cylinder's graph.
+func TestRepairOCCTGroupedFilletsRemainExplicitlyUnsupported(t *testing.T) {
+	raw, e := os.ReadFile("testdata/occt-model-only-two-oblique-prism-fillets.step")
+	if e != nil {
+		t.Fatal(e)
+	}
+	f, e := Parse(bytes.NewReader(raw), Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	cylinders, negativeCircles := 0, 0
+	for _, id := range f.Order {
+		r := f.Entities[id].Records[0]
+		if r.Type == "CYLINDRICAL_SURFACE" {
+			cylinders++
+		}
+		if r.Type == "CIRCLE" {
+			_, z, _, e := occtLoopFrame(f, r.Args[1].Ref)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if z[2].Sign() < 0 {
+				negativeCircles++
+			}
+		}
+	}
+	if cylinders != 2 || negativeCircles != 2 {
+		t.Fatal("actual distinct orientation", cylinders, negativeCircles)
+	}
+	if _, e = RepairOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12}); e == nil {
+		t.Fatal("single-fillet scope")
+	}
+	if _, e = RepairPosedOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12}); e == nil {
+		t.Fatal("posed scope")
+	}
+	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
+	if bin == "" {
+		return
+	}
+	for _, mode := range []string{"write-both", "write-both-x"} {
+		path := filepath.Join(t.TempDir(), "both.step")
+		out, e := exec.Command(bin, mode, path).CombinedOutput()
+		if e != nil {
+			t.Fatal(e, string(out))
+		}
+		at := bytes.LastIndex(out, []byte("{\"Volume\""))
+		if at < 0 {
+			t.Fatal(string(out))
+		}
+		var q struct {
+			Volume, Area  float64
+			Faces, Solids int
+		}
+		if e = json.Unmarshal(bytes.TrimSpace(out[at:]), &q); e != nil {
+			t.Fatal(e)
+		}
+		if q.Faces != 7 || q.Solids != 1 || math.Abs(q.Volume-29.077978807115535) > 1e-9 || math.Abs(q.Area-65.62295497008438) > 1e-9 {
+			t.Fatal(q)
+		}
+		source, e := os.ReadFile(path)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if _, e = RepairPosedOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(source), Limits{}, ConvexArcRepairOptions{1e-12}); e == nil {
+			t.Fatal("not silently widened")
+		}
+	}
+}
