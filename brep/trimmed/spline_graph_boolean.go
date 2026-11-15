@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -686,12 +687,30 @@ func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurfac
 
 func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface,
 	regions []graphEnvelopeRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
+	return assembleSplineEnvelopeOnCharts(ctx, base, a, b, regions, [2]graphEnvelopeChart{}, tolerance, evaluate...)
+}
+
+type graphEnvelopeChart struct {
+	transfer func(openSectionPiece) (openSectionPiece, error)
+	reversed bool
+}
+
+func (c graphEnvelopeChart) piece(p openSectionPiece) (openSectionPiece, error) {
+	if c.transfer == nil {
+		return p, nil
+	}
+	return c.transfer(p)
+}
+
+func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplineSurface,
+	regions []graphEnvelopeRegion, charts [2]graphEnvelopeChart, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	bad := func(reason string) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{}, fmt.Errorf("trimmed: spline envelope: %s", reason)
 	}
 	type arc struct {
 		openSectionPiece
 		surface *geom.BSplineSurface
+		chart   graphEnvelopeChart
 	}
 	var perimeter []arc
 	for _, region := range regions {
@@ -699,11 +718,11 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 			if x.side < 0 {
 				continue
 			}
-			s := a
+			owner := 0
 			if !region.first {
-				s = b
+				owner = 1
 			}
-			perimeter = append(perimeter, arc{x, s})
+			perimeter = append(perimeter, arc{x, [2]*geom.BSplineSurface{a, b}[owner], charts[owner]})
 		}
 	}
 	if len(perimeter) < 4 || len(perimeter) > 36 {
@@ -738,8 +757,11 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	top, low := map[geom.Vec2]int{}, map[geom.Vec2]int{}
-	vertex := func(ids map[geom.Vec2]int, x openSectionPiece, surface *geom.BSplineSurface) (int, error) {
-		uv := x.a
+	exactVertices := charts[0].transfer != nil || charts[1].transfer != nil
+	if exactVertices && len(evaluate) == 0 {
+		return bad("independent charts require an exact vertex evaluator")
+	}
+	vertex := func(ids map[geom.Vec2]int, key geom.Vec2, x openSectionPiece, surface *geom.BSplineSurface) (int, error) {
 		var p geom.Vec3
 		var e error
 		if len(evaluate) > 0 {
@@ -750,7 +772,10 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 		if e != nil {
 			return 0, e
 		}
-		if i, ok := ids[uv]; ok {
+		if i, ok := ids[key]; ok {
+			if exactVertices && vertices[i] != p {
+				return 0, fmt.Errorf("trimmed: original roof vertices differ exactly: %w", geom.ErrConvergence)
+			}
 			if !closePoint(vertices[i], p, tolerance) {
 				return 0, fmt.Errorf("trimmed: graph junction exceeds tolerance")
 			}
@@ -758,7 +783,7 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 		}
 		i := len(vertices)
 		vertices = append(vertices, p)
-		ids[uv] = i
+		ids[key] = i
 		return i, nil
 	}
 	edge := func(i, j int, c geom.Curve, length float64) int {
@@ -766,12 +791,12 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 		edges = append(edges, parametric.Edge{Start: i, End: j, Curve: c, Range: parametric.Interval{Max: length}})
 		return id
 	}
-	model := func(ids map[geom.Vec2]int, surface *geom.BSplineSurface, x openSectionPiece) (int, error) {
-		i, e := vertex(ids, x, surface)
+	model := func(ids map[geom.Vec2]int, surface *geom.BSplineSurface, common, x openSectionPiece) (int, error) {
+		i, e := vertex(ids, common.a, x, surface)
 		if e != nil {
 			return 0, e
 		}
-		j, e := vertex(ids, openSectionPiece{a: x.b, b: x.a, c: reversePCurve(x.c)}, surface)
+		j, e := vertex(ids, common.b, openSectionPiece{a: x.b, b: x.a, c: reversePCurve(x.c)}, surface)
 		if e != nil {
 			return 0, e
 		}
@@ -779,14 +804,14 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 	}
 	section := make(map[[2]geom.Vec2]int)
 	for i, region := range regions {
-		s := a
+		s, chart := a, charts[0]
 		if region.first {
 			h.FacesA = append(h.FacesA, i)
 		} else {
-			s = b
+			s, chart = b, charts[1]
 			h.FacesB = append(h.FacesB, i)
 		}
-		faces[i].Surface = s
+		faces[i].Surface, faces[i].Reversed = s, chart.reversed
 		for _, ring := range append([][]openSectionPiece{region.loop}, region.holes...) {
 			for _, x := range ring {
 				if x.side >= 0 {
@@ -795,14 +820,18 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 				if e := ctx.Err(); e != nil {
 					return Solid{}, h, e
 				}
+				owned, e := chart.piece(x)
+				if e != nil {
+					return Solid{}, h, e
+				}
 				id, ok := section[[2]geom.Vec2{x.b, x.a}]
 				if ok {
-					if _, e := vertex(top, x, s); e != nil {
+					if _, e := vertex(top, x.a, owned, s); e != nil {
 						return Solid{}, h, e
 					}
 				} else {
 					var e error
-					id, e = model(top, s, x)
+					id, e = model(top, s, x, owned)
 					if e != nil {
 						return Solid{}, h, e
 					}
@@ -820,12 +849,16 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 	}
 	topEdges, lowEdges, uprights := map[geom.Vec2]int{}, map[geom.Vec2]int{}, map[geom.Vec2]int{}
 	for _, x := range outer {
-		id, e := model(top, x.surface, x.openSectionPiece)
+		owned, e := x.chart.piece(x.openSectionPiece)
+		if e != nil {
+			return Solid{}, h, e
+		}
+		id, e := model(top, x.surface, x.openSectionPiece, owned)
 		if e != nil {
 			return Solid{}, h, e
 		}
 		topEdges[x.a] = id
-		id, e = model(low, base, x.openSectionPiece)
+		id, e = model(low, base, x.openSectionPiece, x.openSectionPiece)
 		if e != nil {
 			return Solid{}, h, e
 		}
@@ -843,6 +876,10 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 		uprights[x.a] = edge(low[x.a], top[x.a], c, d.Length())
 	}
 	for i, r := range regions {
+		chart := charts[0]
+		if !r.first {
+			chart = charts[1]
+		}
 		for j, ring := range append([][]openSectionPiece{r.loop}, r.holes...) {
 			var uses []Use
 			for _, x := range ring {
@@ -854,7 +891,20 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 						id, reversed = section[[2]geom.Vec2{x.b, x.a}], true
 					}
 				}
-				uses = append(uses, Use{Edge: id, Reversed: reversed, UVStart: x.a, UVEnd: x.b, Curve: x.c})
+				owned, e := chart.piece(x)
+				if e != nil {
+					return Solid{}, h, e
+				}
+				uses = append(uses, Use{Edge: id, Reversed: reversed, UVStart: owned.a, UVEnd: owned.b, Curve: owned.c})
+			}
+			if chart.reversed {
+				slices.Reverse(uses)
+				for k := range uses {
+					u := &uses[k]
+					u.Reversed = !u.Reversed
+					u.UVStart, u.UVEnd = u.UVEnd, u.UVStart
+					u.Curve = reversePCurve(u.Curve)
+				}
 			}
 			if j == 0 {
 				faces[i].Outer = uses
@@ -880,11 +930,19 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 		tr := geom.Vec2{X: length, Y: vertices[top[x.b]].Z - startHeight}
 		tl := geom.Vec2{Y: vertices[top[x.a]].Z - startHeight}
 		lc := wallTrim{base, x.a, x.b, length, startHeight, lo.Y, hi.Y}
-		tc := wallTrim{x.surface, x.a, x.b, length, startHeight, tl.Y, tr.Y}
+		owned, e := x.chart.piece(x.openSectionPiece)
+		if e != nil {
+			return Solid{}, h, e
+		}
+		tc := wallTrim{x.surface, owned.a, owned.b, length, startHeight, tl.Y, tr.Y}
+		var topTrim differentiableTrim = tc
+		if x.chart.transfer != nil {
+			topTrim = affineGraphWallTrim{tc}
+		}
 		faces = append(faces, Face{Surface: wall, Outer: []Use{
 			{Edge: lowEdges[x.a], UVStart: lo, UVEnd: hi, Curve: lc},
 			{Edge: uprights[x.b], UVStart: hi, UVEnd: tr},
-			{Edge: topEdges[x.a], Reversed: true, UVStart: tr, UVEnd: tl, Curve: reverseTrim{tc}},
+			{Edge: topEdges[x.a], Reversed: true, UVStart: tr, UVEnd: tl, Curve: reverseTrim{topTrim}},
 			{Edge: uprights[x.a], Reversed: true, UVStart: tl, UVEnd: lo},
 		}})
 		h.WallFaces = append(h.WallFaces, len(faces)-1)

@@ -184,6 +184,11 @@ type polynomialNodeBinding struct {
 }
 
 func bindPolynomialNodeEdges(solid Solid, ids []int, sources []geom.SplineGraphPolynomialPiece, xyz []geom.Vec3, pieces [][]openSectionPiece) (polynomialNodeBinding, error) {
+	return bindPolynomialNodeEdgesOnChart(solid, ids, sources, xyz, pieces, false)
+}
+
+func bindPolynomialNodeEdgesOnChart(solid Solid, ids []int, sources []geom.SplineGraphPolynomialPiece, xyz []geom.Vec3,
+	pieces [][]openSectionPiece, modelXY bool) (polynomialNodeBinding, error) {
 	const missing = -1
 	mapping := polynomialNodeBinding{
 		edges:     make([][]int, len(sources)),
@@ -206,11 +211,16 @@ func bindPolynomialNodeEdges(solid Solid, ids []int, sources []geom.SplineGraphP
 		if !ok {
 			return polynomialNodeBinding{}, geom.ErrConvergence
 		}
-		if _, duplicate := lookup[[2]geom.Vec2{model.a, model.b}]; duplicate {
+		a, b := model.a, model.b
+		if modelXY {
+			start, end := solid.vertices[edge.Start], solid.vertices[edge.End]
+			a, b = geom.Vec2{X: start.X, Y: start.Y}, geom.Vec2{X: end.X, Y: end.Y}
+		}
+		if _, duplicate := lookup[[2]geom.Vec2{a, b}]; duplicate {
 			return polynomialNodeBinding{}, geom.ErrConvergence
 		}
-		lookup[[2]geom.Vec2{model.a, model.b}] = directedEdge{id, edge.Start, edge.End}
-		lookup[[2]geom.Vec2{model.b, model.a}] = directedEdge{id, edge.End, edge.Start}
+		lookup[[2]geom.Vec2{a, b}] = directedEdge{id, edge.Start, edge.End}
+		lookup[[2]geom.Vec2{b, a}] = directedEdge{id, edge.End, edge.Start}
 	}
 	for i, chain := range pieces {
 		source := sources[i]

@@ -239,8 +239,12 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 		}
 		c, rev = q.differentiableTrim, !rev
 	}
-	w, ok := c.(wallTrim)
-	if !ok || w.surface == nil || !finite(w.length) || w.length <= 0 || !finite(w.height) {
+	w, identity := c.(wallTrim)
+	affine, aligned := c.(affineGraphWallTrim)
+	if aligned {
+		w = affine.wallTrim
+	}
+	if !identity && !aligned || w.surface == nil || !finite(w.length) || w.length <= 0 || !finite(w.height) {
 		return false, nil
 	}
 	plane, ok := surface.(geom.PlaneSurface)
@@ -256,25 +260,34 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 	}
 	f := plane.Frame()
 	origin, u, v := f.Origin(), f.XAxis(), f.YAxis()
-	// The wall pcurve is (length*t, Z(sourceUV(t))-height).
-	// Prove its plane map equals the original identity XY graph
-	// point over the whole range, including declared endpoints.
-	if origin != (geom.Vec3{X: w.a.X, Y: w.a.Y, Z: w.height}) || v != (geom.Vec3{Z: 1}) || u.Z != 0 {
+	if origin.Z != w.height || v != (geom.Vec3{Z: 1}) || u.Z != 0 {
 		return false, nil
 	}
-	for i, x := range [2]float64{u.X, u.Y} {
-		p, q := [2]float64{w.a.X, w.a.Y}[i], [2]float64{w.b.X, w.b.Y}[i]
-		if new(big.Rat).Mul(ratInset(x), ratInset(w.length)).Cmp(new(big.Rat).Sub(ratInset(q), ratInset(p))) != 0 {
+	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
+	if identity {
+		if origin != (geom.Vec3{X: w.a.X, Y: w.a.Y, Z: w.height}) {
 			return false, nil
 		}
-	}
-	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
-	if e := requireIdentitySplineChart(ctx, w.surface, limits); e != nil {
-		return false, e
+		for i, x := range [2]float64{u.X, u.Y} {
+			p, q := [2]float64{w.a.X, w.a.Y}[i], [2]float64{w.b.X, w.b.Y}[i]
+			if new(big.Rat).Mul(ratInset(x), ratInset(w.length)).Cmp(new(big.Rat).Sub(ratInset(q), ratInset(p))) != 0 {
+				return false, nil
+			}
+		}
+		if e := requireIdentitySplineChart(ctx, w.surface, limits); e != nil {
+			return false, e
+		}
 	}
 	p, e := geom.NewSurfacePatch(w.surface, limits)
 	if e != nil {
 		return false, e
+	}
+	if aligned {
+		// The exact affine XY projection and both endpoint identities prove
+		// the plane's horizontal station along the whole owner isocurve.
+		if _, e := geom.NewAffineXYGraph(ctx, p, limits); e != nil {
+			return false, e
+		}
 	}
 	for j, x := range [2]geom.Vec2{w.a, w.b} {
 		y, e := p.EvaluateRational(ctx, ratInset(x.X), ratInset(x.Y), geom.SurfacePatchEvaluationOptions{
@@ -283,9 +296,19 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 		if e != nil {
 			return false, e
 		}
-		z := [2]float64{w.start, w.end}[j]
-		if new(big.Rat).Add(ratInset(z), ratInset(w.height)).Cmp(y.Point[2]) != 0 {
+		height := [2]float64{w.start, w.end}[j]
+		if new(big.Rat).Add(ratInset(height), ratInset(w.height)).Cmp(y.Point[2]) != 0 {
 			return false, nil
+		}
+		if aligned {
+			distance := [2]float64{0, w.length}[j]
+			for axis, start := range [2]float64{origin.X, origin.Y} {
+				direction := [2]float64{u.X, u.Y}[axis]
+				want := new(big.Rat).Add(ratInset(start), new(big.Rat).Mul(ratInset(direction), ratInset(distance)))
+				if want.Cmp(y.Point[axis]) != 0 {
+					return false, nil
+				}
+			}
 		}
 	}
 	x, xr, e := exactEdgeSplineWithOptions(model, limits)
