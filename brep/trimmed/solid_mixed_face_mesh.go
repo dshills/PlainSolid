@@ -22,7 +22,7 @@ type SolidMixedFaceMeshOptions struct {
 // TrimParameters are normalized original coedge parameters, independent of
 // face reversal. AuthoredParameters are exact original SplineUV.Curve parameters
 // after Range and SplineUV.Reversed (and the exact authored speed map for
-// MappedSplineUV/PiecewiseMappedSplineUV), or equal TrimParameters for native normalized
+// MappedSplineUV/PiecewiseMappedSplineUV/MultiSpanMappedSplineUV), or equal TrimParameters for native normalized
 // curves/straight uses. They are independent owned values, not model parameters.
 // ModelParameters are exact values in the stored edge's actual Range, including
 // Use.Reversed. Vertices refer to the final display. FaceReversed records the
@@ -45,7 +45,7 @@ type CertifiedSolidMixedFaceMesh struct {
 // exact represented affine placement and physical orientation. Straight uses,
 // native ExactQuadraticUV/ExactBezierUV, and degree<=4 SplineUV with an exact
 // single-Bezier trace, plus explicitly mapped original MappedSplineUV and
-// PiecewiseMappedSplineUV, are
+// PiecewiseMappedSplineUV/MultiSpanMappedSplineUV, are
 // supported when endpoints and complete correspondence
 // are proved. Up to eight original redundant knot spans may be retained.
 // Original piecewise source knots become mandatory shared boundary cuts.
@@ -181,6 +181,12 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 					return empty, e
 				}
 			}
+			if q, ok := source.(MultiSpanMappedSplineUV); ok {
+				authored, e = q.AuthoredParameter(t)
+				if e != nil {
+					return empty, e
+				}
+			}
 			item.AuthoredParameters = append(item.AuthoredParameters, authored)
 			q := new(big.Rat).Set(t)
 			if u.Reversed {
@@ -220,6 +226,11 @@ func mixedStoredUseCurveContext(ctx context.Context, u Use, o geom.SurfacePatchO
 		return nil, e
 	}
 	switch q := u.Curve.(type) {
+	case MultiSpanMappedSplineUV:
+		if len(q.parts) < 3 {
+			return nil, geom.ErrInvalid
+		}
+		return q.curve, nil
 	case PiecewiseMappedSplineUV:
 		if q.station == nil {
 			return nil, geom.ErrInvalid

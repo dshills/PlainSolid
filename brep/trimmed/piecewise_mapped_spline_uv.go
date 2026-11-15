@@ -192,7 +192,7 @@ func piecewiseMappedFaceCuts(uses [][]Use, cuts [][][]*big.Rat) ([][][]*big.Rat,
 	needed := false
 	for _, loop := range uses {
 		for _, u := range loop {
-			if _, ok := u.Curve.(PiecewiseMappedSplineUV); ok {
+			if len(originalMappedStations(u.Curve)) > 0 {
 				needed = true
 			}
 		}
@@ -226,24 +226,21 @@ func piecewiseMappedFaceCuts(uses [][]Use, cuts [][][]*big.Rat) ([][][]*big.Rat,
 					out[li][ui] = append(out[li][ui], new(big.Rat).Set(t))
 				}
 			}
-			if q, ok := u.Curve.(PiecewiseMappedSplineUV); ok {
-				if q.station == nil {
-					return nil, geom.ErrInvalid
-				}
+			for _, station := range originalMappedStations(u.Curve) {
 				list := out[li][ui]
 				if list == nil {
 					list = []*big.Rat{new(big.Rat), big.NewRat(1, 1)}
 				}
 				found := false
 				for i, p := range list {
-					if p.Cmp(q.station) == 0 {
+					if p.Cmp(station) == 0 {
 						found = true
 						break
 					}
-					if p.Cmp(q.station) > 0 {
+					if p.Cmp(station) > 0 {
 						list = append(list, nil)
 						copy(list[i+1:], list[i:])
-						list[i] = q.ModelStation()
+						list[i] = new(big.Rat).Set(station)
 						found = true
 						break
 					}

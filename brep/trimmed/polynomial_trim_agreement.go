@@ -11,6 +11,8 @@ import (
 // Normalization/reversal is exact and never reconstructs a sampled trace.
 func polynomialTrimDescriptor(ctx context.Context, c PCurve, reverse bool, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
 	switch q := c.(type) {
+	case MultiSpanMappedSplineUV:
+		return polynomialTrimDescriptor(ctx, q.curve, reverse, o)
 	case PiecewiseMappedSplineUV:
 		return polynomialTrimDescriptor(ctx, q.curve, reverse, o)
 	case MappedSplineUV:

@@ -28,16 +28,21 @@ type nativeEdge struct {
 	Surface    json.RawMessage `json:",omitempty"`
 	P          *nativeUse      `json:",omitempty"`
 }
+type nativeMultiSpanMappedSplineUse struct {
+	Source            nativeUse
+	Stations, Weights []string
+}
 type nativePiecewiseMappedSplineUse struct {
 	Source  nativeUse
 	Station string
-	Weights [2]string
+	Weights []string
 }
 type nativeMappedSplineUse struct {
 	Source nativeUse
 	Weight string
 }
 type nativeUse struct {
+	MultiSpanMappedSpline *nativeMultiSpanMappedSplineUse `json:",omitempty"`
 	PiecewiseMappedSpline *nativePiecewiseMappedSplineUse `json:",omitempty"`
 	MappedSpline          *nativeMappedSplineUse          `json:",omitempty"`
 	Edge                  int
@@ -108,6 +113,7 @@ type trimEncoder struct {
 	exactSplineEndpoints  bool
 	mappedSpline          bool
 	piecewiseMappedSpline bool
+	multiSpanMappedSpline bool
 }
 
 func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
@@ -194,6 +200,34 @@ func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
 				return nil, e
 			}
 			x.Subcurve, x.Flip = &base[0], true
+		case MultiSpanMappedSplineUV:
+			proved, e := NewMultiSpanMappedSplineUV(context.Background(), c.source, c.ModelStations(), c.ParameterWeights(), geom.SurfacePatchOptions{})
+			if e != nil {
+				return nil, e
+			}
+			if len(proved.curve.control) != len(c.curve.control) {
+				return nil, geom.ErrConvergence
+			}
+			for i := range proved.curve.control {
+				for k := 0; k < 3; k++ {
+					if proved.curve.control[i][k].Cmp(c.curve.control[i][k]) != 0 {
+						return nil, geom.ErrConvergence
+					}
+				}
+			}
+			source, e := t.encodeUses([]Use{{Curve: c.source}})
+			if e != nil {
+				return nil, e
+			}
+			raw := &nativeMultiSpanMappedSplineUse{Source: source[0]}
+			for _, v := range c.stations {
+				raw.Stations = append(raw.Stations, v.RatString())
+			}
+			for _, v := range c.parts {
+				raw.Weights = append(raw.Weights, v.weight.RatString())
+			}
+			x.MultiSpanMappedSpline = raw
+			t.multiSpanMappedSpline = true
 		case PiecewiseMappedSplineUV:
 			proved, e := NewPiecewiseMappedSplineUV(context.Background(), c.source, c.station, c.ParameterWeights(), geom.SurfacePatchOptions{})
 			if e != nil {
@@ -213,7 +247,7 @@ func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
 			if e != nil {
 				return nil, e
 			}
-			x.PiecewiseMappedSpline = &nativePiecewiseMappedSplineUse{Source: source[0], Station: c.station.RatString(), Weights: [2]string{c.parts[0].weight.RatString(), c.parts[1].weight.RatString()}}
+			x.PiecewiseMappedSpline = &nativePiecewiseMappedSplineUse{Source: source[0], Station: c.station.RatString(), Weights: []string{c.parts[0].weight.RatString(), c.parts[1].weight.RatString()}}
 			t.piecewiseMappedSpline = true
 		case MappedSplineUV:
 			proved, e := NewMappedSplineUV(context.Background(), c.source, c.weight, geom.SurfacePatchOptions{})
@@ -333,7 +367,7 @@ func WriteJSON(w io.Writer, s Solid) error {
 		d.Version, d.Tubes = 3, t.tubes
 	}
 	usesExactSurface := hasNativeExactSplineSupport(s)
-	if t.exactQuadratic || t.exactBezier || usesExactSurface || t.exactSplineEndpoints || t.mappedSpline || t.piecewiseMappedSpline {
+	if t.exactQuadratic || t.exactBezier || usesExactSurface || t.exactSplineEndpoints || t.mappedSpline || t.piecewiseMappedSpline || t.multiSpanMappedSpline {
 		if e := validateNativeExactQuadratics(context.Background(), s); e != nil {
 			return e
 		}
@@ -356,6 +390,9 @@ func WriteJSON(w io.Writer, s Solid) error {
 	}
 	if t.piecewiseMappedSpline {
 		d.Version = 10
+	}
+	if t.multiSpanMappedSpline {
+		d.Version = 11
 	}
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -383,7 +420,58 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 	}
 	r := make([]Use, len(n))
 	for i, x := range n {
+		if x.MultiSpanMappedSpline != nil {
+			only := nativeUse{Edge: x.Edge, Reversed: x.Reversed, UVStart: x.UVStart, UVEnd: x.UVEnd, MultiSpanMappedSpline: x.MultiSpanMappedSpline}
+			a, _ := json.Marshal(x)
+			b, _ := json.Marshal(only)
+			if d.version < 11 || !bytes.Equal(a, b) {
+				return nil, geom.ErrInvalid
+			}
+			recipe := x.MultiSpanMappedSpline
+			if len(recipe.Stations) < 2 || len(recipe.Stations) > 7 || len(recipe.Weights) != len(recipe.Stations)+1 {
+				return nil, geom.ErrConvergence
+			}
+			raw := recipe.Source
+			allowed := nativeUse{Spline: raw.Spline, SplineRange: raw.SplineRange, SplineReversed: raw.SplineReversed, SplineExactEndpoints: raw.SplineExactEndpoints}
+			a, _ = json.Marshal(raw)
+			b, _ = json.Marshal(allowed)
+			if len(raw.Spline) == 0 || !bytes.Equal(a, b) {
+				return nil, geom.ErrInvalid
+			}
+			sources, e := d.decodeUses([]nativeUse{raw}, depth+1)
+			if e != nil {
+				return nil, e
+			}
+			source, ok := sources[0].Curve.(SplineUV)
+			if !ok {
+				return nil, geom.ErrInvalid
+			}
+			var stations, weights []*big.Rat
+			for _, v := range recipe.Stations {
+				q, e := parseNativeExactTrimCoefficient(v)
+				if e != nil {
+					return nil, e
+				}
+				stations = append(stations, q)
+			}
+			for _, v := range recipe.Weights {
+				q, e := parseNativeExactTrimCoefficient(v)
+				if e != nil {
+					return nil, e
+				}
+				weights = append(weights, q)
+			}
+			mapped, e := NewMultiSpanMappedSplineUV(d.ctx, source, stations, weights, geom.SurfacePatchOptions{})
+			if e != nil {
+				return nil, e
+			}
+			r[i] = Use{Edge: x.Edge, Reversed: x.Reversed, UVStart: x.UVStart, UVEnd: x.UVEnd, Curve: mapped}
+			continue
+		}
 		if x.PiecewiseMappedSpline != nil {
+			if len(x.PiecewiseMappedSpline.Weights) != 2 {
+				return nil, geom.ErrInvalid
+			}
 			only := nativeUse{Edge: x.Edge, Reversed: x.Reversed, UVStart: x.UVStart, UVEnd: x.UVEnd, PiecewiseMappedSpline: x.PiecewiseMappedSpline}
 			a, _ := json.Marshal(x)
 			b, _ := json.Marshal(only)
@@ -648,7 +736,7 @@ func parseNativeExactTrimCoefficient(raw string) (*big.Rat, error) {
 	return q, nil
 }
 
-// ReadJSON bounds and validates a version 1 through 10 trimmed boundary. Zero fields
+// ReadJSON bounds and validates a version 1 through 11 trimmed boundary. Zero fields
 // select 32 MiB, 20,000 entities and 4,096 poles per geometry record.
 func ReadJSON(r io.Reader, o JSONLimits) (Solid, error) {
 	return ReadJSONContext(context.Background(), r, o)
@@ -690,7 +778,7 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 	if err = d.Decode(&extra); err != io.EOF {
 		return Solid{}, fmt.Errorf("trimmed: trailing data")
 	}
-	if n.Version < 1 || n.Version > 10 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
+	if n.Version < 1 || n.Version > 11 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
 		n.Version < 3 && len(n.Tubes) > 0 {
 		return Solid{}, fmt.Errorf("trimmed: unsupported schema")
 	}
@@ -831,8 +919,11 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 	if hasNativeMappedSpline(solid) && n.Version < 9 || n.Version == 9 && !hasNativeMappedSpline(solid) {
 		return Solid{}, fmt.Errorf("trimmed: mapped spline requires native version 9")
 	}
-	if hasNativePiecewiseMappedSpline(solid) != (n.Version == 10) {
+	if hasNativePiecewiseMappedSpline(solid) && n.Version < 10 || n.Version == 10 && !hasNativePiecewiseMappedSpline(solid) {
 		return Solid{}, fmt.Errorf("trimmed: piecewise mapped spline requires native version 10")
+	}
+	if hasNativeMultiSpanMappedSpline(solid) != (n.Version == 11) {
+		return Solid{}, fmt.Errorf("trimmed: multispan mapped spline requires native version 11")
 	}
 	if n.Version < 4 {
 		return solid, nil
@@ -876,7 +967,7 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 	var containsExact func(PCurve) bool
 	containsExact = func(p PCurve) bool {
 		switch c := p.(type) {
-		case ExactQuadraticUV, ExactBezierUV, MappedSplineUV, PiecewiseMappedSplineUV:
+		case ExactQuadraticUV, ExactBezierUV, MappedSplineUV, PiecewiseMappedSplineUV, MultiSpanMappedSplineUV:
 			return true
 		case SplineUV:
 			return c.ExactEndpoints

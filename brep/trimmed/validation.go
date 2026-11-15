@@ -330,6 +330,9 @@ func exactTrimPieces(ctx context.Context, u Use, c SplineUV, count, work, bits i
 func TrimValidationSegment(u Use) (trimvalidate.Segment, bool) {
 	v := trimvalidate.Segment{Start: u.UVStart, End: u.UVEnd}
 	switch c := u.Curve.(type) {
+	case MultiSpanMappedSplineUV:
+		u.Curve = c.curve
+		return TrimValidationSegment(u)
 	case PiecewiseMappedSplineUV:
 		u.Curve = c.curve
 		return TrimValidationSegment(u)
