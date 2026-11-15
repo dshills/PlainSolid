@@ -192,6 +192,10 @@ func (n lensMeasureIntervals) angle(x, pi exactInterval, bits int) exactInterval
 		if n.a.err != nil {
 			return n.point(new(big.Rat))
 		}
+		reciprocal := t.Cmp(one) > 0
+		if reciprocal {
+			t = n.a.div(one, t)
+		}
 		base := n.point(new(big.Rat))
 		if t.Cmp(big.NewRat(1, 2)) > 0 {
 			// atan(t) = pi/4 + atan((t-1)/(1+t)); the new magnitude is <=1/3.
@@ -206,7 +210,11 @@ func (n lensMeasureIntervals) angle(x, pi exactInterval, bits int) exactInterval
 		if err != nil {
 			return n.point(new(big.Rat))
 		}
-		return n.add(base, exactInterval{y[0], y[1]})
+		out := n.add(base, exactInterval{y[0], y[1]})
+		if reciprocal {
+			out = n.sub(n.scale(pi, big.NewRat(1, 2)), out)
+		}
+		return out
 	}
 	return exactInterval{f(x.lo).lo, f(x.hi).hi}
 }

@@ -75,3 +75,93 @@ func (s SpherePairMaterial) deriveLensRim(a *sphereOverlapArithmetic) (SphereLen
 	}
 	return r, nil
 }
+
+// SphereLensRimEnclosure retains the exact rim and closed rational bounds
+// on its radius and the two cap latitudes. The latitudes use a common axis
+// directed from sphere one to sphere two; Latitude[0] is always above
+// Latitude[1]. This also covers two joins on the same side of the equator.
+type SphereLensRimEnclosure struct {
+	Rim      SphereLensRim
+	Radius   ExactParameterInterval
+	Latitude [2]ExactParameterInterval
+	Work     int
+}
+
+// EncloseTransverseLensRim supplies independently bounded chart parameters
+// for the continuous spherical cap and rolling-band joins. PrecisionBits is
+// an absolute interval width for lengths and radians; see SphereLensMeasureOptions.
+// The original axis and center remain exact even if no binary64 chart can
+// represent the contact circle. Failures return no partial parameters.
+func (s SpherePairMaterial) EncloseTransverseLensRim(ctx context.Context, o SphereLensMeasureOptions) (SphereLensRimEnclosure, error) {
+	var zero SphereLensRimEnclosure
+	if ctx == nil || s.radius2[0] == nil {
+		return zero, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return zero, e
+	}
+	if !s.transverse || s.op != SphereSetIntersection {
+		return zero, ErrDomain
+	}
+	if o.PrecisionBits == 0 {
+		o.PrecisionBits = 40
+	}
+	if o.PrecisionBits < 8 || o.PrecisionBits > 128 {
+		return zero, ErrInvalid
+	}
+	limits, err := patchOptions(o.Arithmetic)
+	if err != nil {
+		return zero, err
+	}
+	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	a := &sphereOverlapArithmetic{ctx: ctx, b: b}
+	for i, center := range s.center {
+		for _, coordinate := range center {
+			a.check(coordinate)
+		}
+		a.check(s.radius2[i])
+	}
+	r, err := s.deriveLensRim(a)
+	if err != nil {
+		return zero, err
+	}
+	fractions := [2]*big.Rat{r.CenterFraction, a.sub(r.CenterFraction, big.NewRat(1, 1))}
+	var slopes2 [2]*big.Rat
+	for i, f := range fractions {
+		slopes2[i] = a.div(a.mul(a.mul(f, f), r.AxisSquared), r.RadiusSquared)
+	}
+	if a.err != nil {
+		return zero, a.err
+	}
+	n := lensMeasureIntervals{a}
+	target := lensMeasurePowerOfTwo(o.PrecisionBits)
+	for bits := o.PrecisionBits + 12; bits <= 512; bits += 32 {
+		pi := lensMeasurePi(ctx, lensMeasurePowerOfTwo(bits+12), a)
+		radius := n.root(r.RadiusSquared, bits)
+		var angle [2]exactInterval
+		for i, f := range fractions {
+			angle[i] = n.angle(n.root(slopes2[i], bits), pi, bits)
+			if f.Sign() < 0 {
+				angle[i] = n.scale(angle[i], big.NewRat(-1, 1))
+			}
+		}
+		width := func(q exactInterval) *big.Rat { return a.sub(q.hi, q.lo) }
+		retry := radius.lo.Sign() <= 0 || angle[0].lo.Cmp(angle[1].hi) <= 0 ||
+			width(radius).Cmp(target) > 0 || width(angle[0]).Cmp(target) > 0 || width(angle[1]).Cmp(target) > 0
+		if a.err != nil {
+			return zero, a.err
+		}
+		if retry {
+			continue
+		}
+		if err := ctx.Err(); err != nil {
+			return zero, err
+		}
+		out := SphereLensRimEnclosure{Rim: r, Radius: ExactParameterInterval{radius.lo, radius.hi}, Work: b.operations}
+		for i, v := range angle {
+			out.Latitude[i] = ExactParameterInterval{v.lo, v.hi}
+		}
+		return out, nil
+	}
+	return zero, ErrConvergence
+}
