@@ -18,6 +18,14 @@
 #include <StepData_Protocol.hxx>
 #include <StepData_StepModel.hxx>
 #include <StepData_StepWriter.hxx>
+#include <StepGeom_BSplineCurveWithKnots.hxx>
+#include <StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve.hxx>
+#include <StepGeom_BSplineSurfaceWithKnots.hxx>
+#include <StepGeom_Pcurve.hxx>
+#include <StepGeom_SurfaceCurve.hxx>
+#include <StepGeom_TrimmedCurve.hxx>
+#include <StepGeom_TrimmingSelect.hxx>
+#include <StepRepr_DefinitionalRepresentation.hxx>
 #include <fstream>
 #endif
 #include <Geom2d_BezierCurve.hxx>
@@ -244,10 +252,107 @@ static void setOriginalPlaneCurves(const TopoDS_Solid& solid) {
   }
 }
 
+#ifdef PLAINSOLID_AUTHORED_STEP
+template<class T, std::size_t N>
+static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& values) {
+  occ::handle<NCollection_HArray1<T>> items = new NCollection_HArray1<T>(1, N);
+  for (std::size_t i = 0; i < N; ++i) {
+    items->SetValue(i + 1, values[i]);
+  }
+  return items;
+}
+
+// Author one original south basis with a decreasing raw parameter and
+// nonuniform weights. The north roof keeps the six OCCT-generated bases.
+static occ::handle<StepData_StepModel> authorMixedBasis(
+  const occ::handle<StepData_StepModel>& model, const occ::handle<StepData_Protocol>& protocol) {
+  occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
+  const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
+  std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
+  for (std::size_t i = 0; i < poles.size(); ++i) {
+    poles[i] = new StepGeom_CartesianPoint;
+    poles[i]->Init2D(name, .25, southX[i]);
+  }
+  occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
+    new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
+  shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+               stepArray(std::array{4, 3, 3, 4}), stepArray(std::array{10., 17., 23., 478.}),
+               StepGeom_ktUnspecified,
+               stepArray(std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512}));
+  const std::array<double, 7> x{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
+  const std::array<double, 7> raw{478., 443., 387., 283., 23., 17., 10.};
+  const std::array<double, 7> station{0., 1., 2., 3., 4., 8., 16.};
+  std::array<bool, 6> changed{};
+  for (int i = 1; i <= model->NbEntities(); ++i) {
+    auto curve = occ::down_cast<StepGeom_SurfaceCurve>(model->Entity(i));
+    if (curve.IsNull() || curve->NbAssociatedGeometry() != 2) {
+      continue;
+    }
+    occ::handle<StepGeom_Pcurve> north, south;
+    for (int j = 1; j <= 2; ++j) {
+      auto owner = curve->AssociatedGeometryValue(j).Pcurve();
+      if (owner.IsNull()) {
+        continue;
+      }
+      const auto roof = occ::down_cast<StepGeom_BSplineSurfaceWithKnots>(owner->BasisSurface());
+      if (!roof.IsNull() && roof->NbUKnots() == 4 && roof->NbVKnots() == 2) {
+        north = owner;
+      }
+      if (!roof.IsNull() && roof->NbUKnots() == 2 && roof->NbVKnots() == 4) {
+        south = owner;
+      }
+    }
+    if (north.IsNull() || south.IsNull()) {
+      continue;
+    }
+    auto spatial = occ::down_cast<StepGeom_BSplineCurveWithKnots>(curve->Curve3d());
+    auto isolated = occ::down_cast<StepGeom_BSplineCurveWithKnots>(north->ReferenceToCurve()->ItemsValue(1));
+    if (spatial.IsNull() || spatial->NbControlPointsList() != 4 || isolated.IsNull() || isolated->NbKnots() != 2) {
+      throw std::runtime_error("unexpected independently authored seam bases");
+    }
+    const double a = spatial->ControlPointsListValue(1)->CoordinatesValue(1);
+    const double b = spatial->ControlPointsListValue(4)->CoordinatesValue(1);
+    const auto cell = static_cast<std::size_t>(std::find(x.begin(), x.end(), std::min(a, b)) - x.begin());
+    if (cell >= changed.size() || changed[cell] || x[cell + 1] != std::max(a, b)) {
+      throw std::runtime_error("unexpected independently authored seam junction");
+    }
+    changed[cell] = true;
+    spatial->SetKnots(stepArray(std::array{station[cell], station[cell + 1]}));
+    // Distinct complete raw intervals make the independent ownership visible.
+    const double domain = 10. + 8. * cell;
+    isolated->SetKnots(stepArray(std::array{domain, domain + 7.}));
+    StepGeom_TrimmingSelect lo, hi;
+    lo.SetParameterValue(raw[cell + 1]);
+    hi.SetParameterValue(raw[cell]);
+    occ::handle<StepGeom_TrimmedCurve> trim = new StepGeom_TrimmedCurve;
+    trim->Init(name, shared, stepArray(std::array{lo}), stepArray(std::array{hi}), a > b, StepGeom_tpParameter);
+    south->ReferenceToCurve()->Items()->SetValue(1, trim);
+    curve->SetMasterRepresentation(StepGeom_pscrCurve3d);
+  }
+  if (std::find(changed.begin(), changed.end(), false) != changed.end()) {
+    throw std::runtime_error("could not author all six mixed-basis coedges");
+  }
+  // Retain the original product assembly and rebuild the reference closure
+  // after replacing the six individual south coedge bases.
+  occ::handle<StepData_StepModel> out = new StepData_StepModel;
+  out->GetFromAnother(model);
+  for (int i = 1; i <= model->NbEntities(); ++i) {
+    const auto entity = model->Entity(i);
+    const std::string type = entity->DynamicType()->Name();
+    if (type == "StepShape_ShapeDefinitionRepresentation" || type == "StepBasic_ApplicationProtocolDefinition"
+        || type == "StepBasic_ProductRelatedProductCategory") {
+      out->AddWithRefs(entity, protocol);
+    }
+  }
+  return out;
+}
+#endif
+
 int main(int argc, char** argv) {
   try {
     const std::string mode = argc > 1 ? argv[1] : "";
-    const bool three = mode == "write-three-knots";
+    const bool mixedBasis = mode == "write-three-knots-mixed-basis";
+    const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;
     const bool crease = authoredPlanes || mode == "write-knot-default-planes";
     auto frame = [&](const gp_Pnt& origin, const gp_Dir& normal, const gp_Dir& u) -> std::optional<gp_Ax3> {
@@ -319,6 +424,9 @@ int main(int argc, char** argv) {
         auto protocol = occ::down_cast<StepData_Protocol>(model->Protocol());
         if (protocol.IsNull()) {
           throw std::runtime_error("independent STEP model has no protocol");
+        }
+        if (mixedBasis) {
+          model = authorMixedBasis(model, protocol);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);

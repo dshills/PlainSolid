@@ -101,6 +101,7 @@ func TestMappedChainRectangularSTEPThreeSupportKnots(t *testing.T) {
 	}
 	var replay bytes.Buffer
 	o.AllowIndependentOwnerBases = true
+	o.AllowMixedOwnerBases = true
 	if err := WriteMappedChainRectangularShell(ctx, &replay, m.Shell, m.Name, m.LengthUnit, Limits{}, o); err != nil ||
 		!bytes.Equal(raw, replay.Bytes()) {
 		t.Fatal("reopened explicit wire must rewrite byte-identically", err)
@@ -208,6 +209,7 @@ func verifyIndependentlyAuthoredThreeKnots(t *testing.T, ctx context.Context, ra
 func verifyIndependentlyAuthoredThreeKnotExport(t *testing.T, ctx context.Context, original MappedChainSTEPModel, shell trimmed.MappedSplineChainShell, o MappedChainShellSTEPOptions) []byte {
 	t.Helper()
 	var encoded bytes.Buffer
+	o.AllowMixedOwnerBases = true
 	if err := WriteMappedChainRectangularShell(ctx, &encoded, shell, original.Name, original.LengthUnit, Limits{}, o); err == nil || encoded.Len() != 0 {
 		t.Fatal("per-edge basis export must be explicitly enabled", err)
 	}
