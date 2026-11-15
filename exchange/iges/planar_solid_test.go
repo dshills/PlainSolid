@@ -132,6 +132,20 @@ func TestPlanarSolidIGESRejectsChangedSource(t *testing.T) {
 
 func makePlanarIGESMutation(t *testing.T, raw []byte, id, index int, value string) []byte {
 	t.Helper()
+	return editPlanarIGESParameters(t, raw, func(r topologyRecord) bool {
+		if r.id != id {
+			return false
+		}
+		if r.values[index].text == value {
+			t.Fatal("mutation would not change original input")
+		}
+		r.values[index].text = value
+		return true
+	})
+}
+
+func editPlanarIGESParameters(t *testing.T, raw []byte, edit func(topologyRecord) bool) []byte {
+	t.Helper()
 	d, err := readPlanarTopologySource(bytes.NewReader(raw), Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -139,11 +153,7 @@ func makePlanarIGESMutation(t *testing.T, raw []byte, id, index int, value strin
 	a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}}
 	changed := false
 	for _, r := range d.entities {
-		if r.id == id {
-			if r.values[index].text == value {
-				t.Fatal("mutation would not change original input")
-			}
-			r.values[index].text = value
+		if edit(r) {
 			changed = true
 		}
 		p := make([]string, len(r.values))

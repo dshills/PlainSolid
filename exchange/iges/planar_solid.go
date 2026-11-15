@@ -210,110 +210,139 @@ func certifyIGESPlanarSolid(ctx context.Context, d topologySource, o collision.L
 			return PlanarSolid{}, igesPlanarFailure(group, "association must name the one material root")
 		}
 	}
-	nvoid, err := igesPlanarCount(s, 3, 4, 2, 0)
-	if err != nil || nvoid > maxIGESPlanarVoids {
-		return PlanarSolid{}, igesPlanarFailure(s.id, "invalid void shell count")
-	}
-	root, err := topologyInts(s, 4+2*nvoid)
+	lists, err := g.planarLists(ctx, m.VertexListID, m.EdgeListID, false)
 	if err != nil {
 		return PlanarSolid{}, err
 	}
-	shellRefs := [][2]int{{root[1], root[2]}}
-	for i := range nvoid {
-		shellRefs = append(shellRefs, [2]int{root[4+2*i], root[5+2*i]})
-	}
-	m.ShellID = root[1]
-	vertexRecord, err := g.take(m.VertexListID, 502)
+	faces, err := g.planarMaterialFaces(ctx, s, &m, lists)
 	if err != nil {
 		return PlanarSolid{}, err
+	}
+	if len(g.used) != len(g.records) {
+		return PlanarSolid{}, igesPlanarFailure(m.SolidID, "unclaimed source entities")
+	}
+	m.SourceEdges = lists.sourceEdges
+	return verifyIGESPlanarMaterial(ctx, m, lists.vertices, lists.edges, faces, o)
+}
+
+type igesPlanarLists struct {
+	vertices    []geom.Vec3
+	exact       []igesPlanarVec
+	edges       []brep.Edge
+	sourceEdges []int
+}
+
+func (g igesPlanarGraph) planarLists(ctx context.Context, vertexList, edgeList int, allowCoincident bool) (igesPlanarLists, error) {
+	vertexRecord, err := g.take(vertexList, 502)
+	if err != nil {
+		return igesPlanarLists{}, err
 	}
 	nv, err := igesPlanarCount(vertexRecord, 1, 2, 3, 4)
 	if err != nil || noPointers(vertexRecord.values[2+3*nv:]) != nil {
-		return PlanarSolid{}, igesPlanarFailure(vertexRecord.id, "invalid vertex list")
+		return igesPlanarLists{}, igesPlanarFailure(vertexRecord.id, "invalid vertex list")
 	}
 	vertices, exact := make([]geom.Vec3, nv), make([]igesPlanarVec, nv)
 	positions := make(map[geom.Vec3]bool, nv)
 	for i := range vertices {
 		if err := ctx.Err(); err != nil {
-			return PlanarSolid{}, err
+			return igesPlanarLists{}, err
 		}
 		exact[i], err = igesPlanarCoordinates(vertexRecord.values[2+3*i : 5+3*i])
 		if err == nil {
 			vertices[i], err = exact[i].represented()
 		}
 		if err != nil {
-			return PlanarSolid{}, fmt.Errorf("iges planar vertex %d: %w", i+1, err)
+			return igesPlanarLists{}, fmt.Errorf("iges planar vertex %d: %w", i+1, err)
 		}
-		if positions[vertices[i]] {
-			return PlanarSolid{}, igesPlanarFailure(vertexRecord.id, "distinct vertices share an exact location")
+		if !allowCoincident && positions[vertices[i]] {
+			return igesPlanarLists{}, igesPlanarFailure(vertexRecord.id, "distinct vertices share an exact location")
 		}
 		positions[vertices[i]] = true
 	}
-	edgeRecord, err := g.take(m.EdgeListID, 504)
+	edgeRecord, err := g.take(edgeList, 504)
 	if err != nil {
-		return PlanarSolid{}, err
+		return igesPlanarLists{}, err
 	}
 	ne, err := igesPlanarCount(edgeRecord, 1, 2, 5, 6)
 	if err != nil {
-		return PlanarSolid{}, err
+		return igesPlanarLists{}, err
 	}
 	ev, err := topologyInts(edgeRecord, 2+5*ne)
 	if err != nil {
-		return PlanarSolid{}, err
+		return igesPlanarLists{}, err
 	}
 	edges := make([]brep.Edge, ne)
-	m.SourceEdges = make([]int, ne)
+	sourceEdges := make([]int, ne)
 	pairs := make(map[[2]int]bool, ne)
 	for i := range edges {
 		if err := ctx.Err(); err != nil {
-			return PlanarSolid{}, err
+			return igesPlanarLists{}, err
 		}
 		a := ev[2+5*i : 7+5*i]
-		if a[1] != m.VertexListID || a[3] != m.VertexListID || a[2] < 1 || a[2] > nv || a[4] < 1 || a[4] > nv || a[2] == a[4] {
-			return PlanarSolid{}, igesPlanarFailure(edgeRecord.id, "invalid model-edge vertices")
+		if a[1] != vertexList || a[3] != vertexList || a[2] < 1 || a[2] > nv || a[4] < 1 || a[4] > nv || a[2] == a[4] {
+			return igesPlanarLists{}, igesPlanarFailure(edgeRecord.id, "invalid model-edge vertices")
 		}
 		key := [2]int{min(a[2], a[4]), max(a[2], a[4])}
 		if pairs[key] {
-			return PlanarSolid{}, igesPlanarFailure(edgeRecord.id, "duplicate model-edge endpoints")
+			return igesPlanarLists{}, igesPlanarFailure(edgeRecord.id, "duplicate model-edge endpoints")
 		}
 		pairs[key] = true
 		edges[i] = brep.Edge{Start: a[2] - 1, End: a[4] - 1}
-		m.SourceEdges[i] = a[0]
+		sourceEdges[i] = a[0]
 		line, err := g.take(a[0], 110)
 		if err != nil {
-			return PlanarSolid{}, err
+			return igesPlanarLists{}, err
 		}
 		if len(line.values) < 7 || noPointers(line.values[7:]) != nil {
-			return PlanarSolid{}, igesPlanarFailure(line.id, "invalid model line")
+			return igesPlanarLists{}, igesPlanarFailure(line.id, "invalid model line")
 		}
 		p, err := igesPlanarCoordinates(line.values[1:4])
 		if err != nil || !p.equal(exact[edges[i].Start]) {
-			return PlanarSolid{}, igesPlanarFailure(line.id, "original line start disagrees with edge vertex")
+			return igesPlanarLists{}, igesPlanarFailure(line.id, "original line start disagrees with edge vertex")
 		}
 		q, err := igesPlanarCoordinates(line.values[4:7])
 		if err != nil || !q.equal(exact[edges[i].End]) {
-			return PlanarSolid{}, igesPlanarFailure(line.id, "original line end disagrees with edge vertex")
+			return igesPlanarLists{}, igesPlanarFailure(line.id, "original line end disagrees with edge vertex")
 		}
 	}
+	return igesPlanarLists{vertices, exact, edges, sourceEdges}, nil
+}
+
+func (g igesPlanarGraph) planarMaterialFaces(ctx context.Context, s topologyRecord, m *PlanarSolid, lists igesPlanarLists) ([]brep.Face, error) {
+	nvoid, err := igesPlanarCount(s, 3, 4, 2, 0)
+	if err != nil || nvoid > maxIGESPlanarVoids {
+		return nil, igesPlanarFailure(s.id, "invalid void shell count")
+	}
+	root, err := topologyInts(s, 4+2*nvoid)
+	if err != nil {
+		return nil, err
+	}
+	shellRefs := [][2]int{{root[1], root[2]}}
+	for i := range nvoid {
+		shellRefs = append(shellRefs, [2]int{root[4+2*i], root[5+2*i]})
+	}
+	m.ShellID = root[1]
 	var faces []brep.Face
 	for i, ref := range shellRefs {
 		if ref[1] != 0 && ref[1] != 1 {
-			return PlanarSolid{}, igesPlanarFailure(ref[0], "invalid shell orientation")
+			return nil, igesPlanarFailure(ref[0], "invalid shell orientation")
 		}
-		fs, source, err := g.planarShell(ctx, ref[0], m.EdgeListID, exact, edges, ref[1] == 0)
+		fs, source, err := g.planarShell(ctx, ref[0], m.EdgeListID, lists.exact, lists.edges, ref[1] == 0)
 		if err != nil {
-			return PlanarSolid{}, err
+			return nil, err
 		}
 		m.SourceShells = append(m.SourceShells, PlanarShellSource{ref[0], len(faces), len(faces) + len(fs), i != 0})
 		faces, m.SourceFaces = append(faces, fs...), append(m.SourceFaces, source...)
 	}
-	if len(g.used) != len(g.records) {
-		return PlanarSolid{}, igesPlanarFailure(m.SolidID, "unclaimed source entities")
-	}
-	m.Solid, err = brep.NewSolid(vertices, edges, faces)
+	return faces, nil
+}
+
+func verifyIGESPlanarMaterial(ctx context.Context, m PlanarSolid, vertices []geom.Vec3, edges []brep.Edge, faces []brep.Face, o collision.LocationOptions) (PlanarSolid, error) {
+	solid, err := brep.NewSolid(vertices, edges, faces)
 	if err != nil {
 		return PlanarSolid{}, err
 	}
+	m.Solid = solid
 	shells, err := igesPlanarEmbeddedShells(ctx, m.Solid, o)
 	if err != nil {
 		return PlanarSolid{}, err

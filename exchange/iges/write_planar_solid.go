@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"plainsolid/brep"
+	"plainsolid/collision"
 	"plainsolid/geom"
 )
 
@@ -64,32 +65,97 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := s.Validate(); err != nil {
-		return err
-	}
-	opt, err := o.Limits.defaults()
+	raw, expected, err := authorPlanarIGES(ctx, []brep.Solid{s}, unit, o.Limits, o.Validation)
 	if err != nil {
 		return err
 	}
-	v, e, f := s.Vertices(), s.Edges(), s.Faces()
-	groups, err := igesPlanarEmbeddedShells(ctx, s, o.Validation)
+	reopened, err := ReadPlanarSolid(ctx, bytes.NewReader(raw), o)
 	if err != nil {
+		return fmt.Errorf("iges planar solid readback: %w", err)
+	}
+	if reopened.LengthUnit != unit || !samePlanarIGESBody(s, reopened.Solid, expected[0]) {
+		return igesPlanarFailure(0, "reopen changed original planar topology or units")
+	}
+	return publishPlanarIGES(ctx, w, raw)
+}
+
+func samePlanarIGESBody(original, reopened brep.Solid, faces []brep.Face) bool {
+	return reflect.DeepEqual(reopened.Vertices(), original.Vertices()) &&
+		reflect.DeepEqual(reopened.Edges(), original.Edges()) && reflect.DeepEqual(reopened.Faces(), faces)
+}
+
+func publishPlanarIGES(ctx context.Context, w io.Writer, raw []byte) error {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
-	var canonicalFaceOrder []int
-	for _, group := range groups {
-		canonicalFaceOrder = append(canonicalFaceOrder, group...)
+	n, err := w.Write(raw)
+	if err == nil && n != len(raw) {
+		err = io.ErrShortWrite
 	}
-	entityCount := 3 + len(groups) + len(e) + 6*len(f)
-	for _, face := range f {
-		entityCount += len(face.Holes)
+	return err
+}
+
+func authorPlanarIGES(ctx context.Context, solids []brep.Solid, unit float64, l Limits, validation collision.LocationOptions) ([]byte, [][]brep.Face, error) {
+	opt, err := l.defaults()
+	if err != nil {
+		return nil, nil, err
 	}
-	if entityCount > opt.MaxEntities {
-		return igesPlanarFailure(0, "output entity limit exceeded")
+	var v []geom.Vec3
+	var e []brep.Edge
+	var f []brep.Face
+	bodyGroups, expectedFaces := make([][][]int, len(solids)), make([][]brep.Face, len(solids))
+	entityCount := 2 + len(solids)
+	if len(solids) > 1 {
+		entityCount++
+	}
+	for i, s := range solids {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, err
+		}
+		if err := s.Validate(); err != nil {
+			return nil, nil, err
+		}
+		groups, err := igesPlanarEmbeddedShells(ctx, s, validation)
+		if err != nil {
+			return nil, nil, err
+		}
+		vertices, edges, faces := s.Vertices(), s.Edges(), s.Faces()
+		entityCount += len(groups) + len(edges) + 6*len(faces)
+		for _, face := range faces {
+			entityCount += len(face.Holes)
+		}
+		if entityCount > opt.MaxEntities {
+			return nil, nil, igesPlanarFailure(0, "output entity limit exceeded")
+		}
+		vo, eo := len(v), len(e)
+		v = append(v, vertices...)
+		for _, edge := range edges {
+			e = append(e, brep.Edge{Start: edge.Start + vo, End: edge.End + vo})
+		}
+		shift := func(loop []brep.EdgeUse) []brep.EdgeUse {
+			uses := make([]brep.EdgeUse, len(loop))
+			for j, use := range loop {
+				uses[j] = brep.EdgeUse{Edge: use.Edge + eo, Reversed: use.Reversed}
+			}
+			return uses
+		}
+		bodyGroups[i] = make([][]int, len(groups))
+		for j, group := range groups {
+			for _, id := range group {
+				face := faces[id]
+				expectedFaces[i] = append(expectedFaces[i], face)
+				shifted := brep.Face{Boundary: shift(face.Boundary)}
+				for _, hole := range face.Holes {
+					shifted.Holes = append(shifted.Holes, shift(hole))
+				}
+				bodyGroups[i][j] = append(bodyGroups[i][j], len(f))
+				f = append(f, shifted)
+			}
+		}
 	}
 	// The shared fixed-record writer uses one ordinary geometry entity to
 	// generate the Global section; this datum is not emitted as a directory entry.
-	a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}}
+	a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}, groupedSolids: len(solids) > 1}
 	points := make([]igesPlanarVec, len(v))
 	vp := []string{"502", fmt.Sprint(len(v))}
 	for i, p := range v {
@@ -100,7 +166,7 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 	ev := []int{504, len(e)}
 	for _, edge := range e {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, nil, err
 		}
 		data := append([]string{"110"}, points[edge.Start].text()...)
 		data = append(data, points[edge.End].text()...)
@@ -116,11 +182,10 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 		}
 		return edge.Start
 	}
-	for _, faceIndex := range canonicalFaceOrder {
+	for faceIndex, face := range f {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, nil, err
 		}
-		face := f[faceIndex]
 		outer := face.Boundary
 		p := points[startVertex(outer[0])]
 		x := points[startVertex(outer[1])].sub(p)
@@ -151,38 +216,29 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 		}
 		faceIDs[faceIndex] = a.add(510, 1, topologyNumbers(fv...))
 	}
-	shells, expectedFaces := make([]int, len(groups)), make([]brep.Face, 0, len(f))
-	for i, group := range groups {
-		sv := []int{514, len(group)}
-		for _, j := range group {
-			sv = append(sv, faceIDs[j], 1)
-			expectedFaces = append(expectedFaces, f[j])
+	roots := make([]int, 0, len(solids))
+	for _, groups := range bodyGroups {
+		shells := make([]int, len(groups))
+		for i, group := range groups {
+			sv := []int{514, len(group)}
+			for _, j := range group {
+				sv = append(sv, faceIDs[j], 1)
+			}
+			shells[i] = a.add(514, 1, topologyNumbers(sv...))
 		}
-		shells[i] = a.add(514, 1, topologyNumbers(sv...))
+		root := []int{186, shells[0], 1, len(shells) - 1}
+		for _, shell := range shells[1:] {
+			root = append(root, shell, 1)
+		}
+		roots = append(roots, a.add(186, 0, topologyNumbers(root...)))
 	}
-	root := []int{186, shells[0], 1, len(shells) - 1}
-	for _, shell := range shells[1:] {
-		root = append(root, shell, 1)
+	if len(roots) > 1 {
+		group := append([]int{402, len(roots)}, roots...)
+		a.add(402, 1, topologyNumbers(group...))
 	}
-	a.add(186, 0, topologyNumbers(root...))
 	raw, err := a.file(unit)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	reopen, err := ReadPlanarSolid(ctx, bytes.NewReader(raw), o)
-	if err != nil {
-		return fmt.Errorf("iges planar solid readback: %w", err)
-	}
-	if reopen.LengthUnit != unit || !reflect.DeepEqual(reopen.Solid.Vertices(), v) ||
-		!reflect.DeepEqual(reopen.Solid.Edges(), e) || !reflect.DeepEqual(reopen.Solid.Faces(), expectedFaces) {
-		return igesPlanarFailure(0, "reopen changed original planar topology or units")
-	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	n, err := w.Write(raw)
-	if err == nil && n != len(raw) {
-		err = io.ErrShortWrite
-	}
-	return err
+	return raw, expectedFaces, nil
 }

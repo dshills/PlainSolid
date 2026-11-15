@@ -15,8 +15,9 @@ type nativeTopologyRecord struct {
 	data       string
 }
 type topologyAuthor struct {
-	records  []nativeTopologyRecord
-	geometry Model
+	records       []nativeTopologyRecord
+	geometry      Model
+	groupedSolids bool
 }
 
 func (a *topologyAuthor) add(kind, form int, data string) int {
@@ -74,6 +75,12 @@ func (a *topologyAuthor) file(unit float64) ([]byte, error) {
 			status = 10001
 		}
 		if r.kind == 186 {
+			status = 0
+			if a.groupedSolids {
+				status = 20000
+			}
+		}
+		if r.kind == 402 && a.groupedSolids {
 			status = 0
 		}
 		line(fmt.Sprintf("%8d%8d%8d%8d%8d%8d%8d%8d%08d", r.kind, start, 0, 0, 0, 0, 0, 0, status), 'D', 2*i+1)

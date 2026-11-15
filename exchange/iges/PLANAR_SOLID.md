@@ -38,3 +38,14 @@ area 102 and centroid `(3.22, 2.22, 1)`.
 The same oracle authors a box with one cavity and a box with two disjoint
 cavities. For those fixtures original and canonical output transfer with
 volumes 448 and 496, areas 480 and 432, and the original shell counts.
+
+`ReadPlanarVertexContactAssembly` and `WritePlanarVertexContactAssembly`
+handle a flat type 402 form 1 group containing separate type 186 material
+bodies. They prove the ownership of every entry in the shared vertex and
+edge lists and preserve original list indices for each native body. The
+proof accepts isolated corner contact only between distinct original
+vertex records; welded records, shared edges, face contact, crossings
+and hidden overlaps fail. Separate cavity shells inside grouped bodies
+remain outside this entry point. The independently authored group of
+three boxes retains one corner contact; original and canonical IGES open
+in OCCT as three solids with 18 faces, volume 3 and area 18.

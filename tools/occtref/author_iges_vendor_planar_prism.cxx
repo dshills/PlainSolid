@@ -5,10 +5,12 @@
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRep_Builder.hxx>
 #include <GProp_GProps.hxx>
 #include <IGESControl_Reader.hxx>
 #include <IGESControl_Writer.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopoDS_Compound.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <iomanip>
@@ -26,13 +28,21 @@ static TopoDS_Wire wire(std::initializer_list<gp_Pnt> points) {
 int main(int argc, char** argv) {
     if (argc != 3) return 2;
     const std::string mode = argv[1];
-    if (mode == "write" || mode == "write-void" || mode == "write-two-voids") {
+    if (mode == "write" || mode == "write-void" || mode == "write-two-voids" || mode == "write-assembly") {
         TopoDS_Shape shape;
         if (mode == "write") {
             BRepBuilderAPI_MakeFace face(wire({{0,0,0},{6,0,0},{6,5,0},{4,5,0},{4,4,0},{0,4,0}}));
             face.Add(wire({{1,1,0},{1,2,0},{2,2,0},{2,1,0}}));
             if (!face.IsDone()) return 3;
             shape = BRepPrimAPI_MakePrism(face.Face(), gp_Vec(0,0,2)).Shape();
+        } else if (mode == "write-assembly") {
+            BRep_Builder builder;
+            TopoDS_Compound pieces;
+            builder.MakeCompound(pieces);
+            for (double p : {0., 1., 4.}) {
+                builder.Add(pieces, BRepPrimAPI_MakeBox(gp_Pnt(p,p,p),1,1,1).Shape());
+            }
+            shape = pieces;
         } else {
             const auto box = BRepPrimAPI_MakeBox(8,8,8).Shape();
             if (mode == "write-void") {
