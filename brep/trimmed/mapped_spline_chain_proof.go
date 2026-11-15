@@ -194,11 +194,12 @@ func (c MappedSplineChain) cellParameters(a, b *big.Rat) (int, *big.Rat, *big.Ra
 // it is not an embedding, closed shell, native persistence or face-fill proof.
 // Source ownership is the ordered pair of immutable input chains/supports.
 type MappedSplineChainAgreement struct {
-	cuts       []*big.Rat
-	points     [][3]*big.Rat
-	sources    [2]MappedSplineChain
-	supports   [2]geom.Surface
-	knotRepair mappedChainKnotRepair
+	cuts         []*big.Rat
+	points       [][3]*big.Rat
+	sources      [2]MappedSplineChain
+	supports     [2]geom.Surface
+	knotRepair   mappedChainKnotRepair
+	knotCutCount int
 }
 
 type mappedChainKnotRepair uint8
@@ -211,7 +212,7 @@ const (
 	mappedChainAsynchronousKnotsRepair
 	mappedChainMixedKnotsRepair
 	mappedChainThreeKnotsRepair
-	mappedChainFourKnotsRepair
+	mappedChainMultipleKnotsRepair
 )
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -309,7 +310,20 @@ func CertifyMappedSplineChainThreeSupportKnotsAgreement(ctx context.Context, a g
 // contribute one and two separate crossings of their original support knots.
 // Each of the five restrictions retains both original raw parameter maps.
 func CertifyMappedSplineChainFourSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
-	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainFourKnotsRepair)
+	proof, err := CertifyMappedSplineChainMultipleSupportKnotsAgreement(ctx, a, ca, b, cb, o)
+	if err == nil && proof.knotCutCount != 4 {
+		return MappedSplineChainAgreement{}, geom.ErrConvergence
+	}
+	return proof, err
+}
+
+// CertifyMappedSplineChainMultipleSupportKnotsAgreement proves four through
+// six distinct exact crossings inside one original common cell. Each owner
+// has two through four original support knots and contributes at least one
+// owner-only crossing. Exactly one station is shared. The count is rederived
+// from the original support charts during native v8 reload.
+func CertifyMappedSplineChainMultipleSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainMultipleKnotsRepair)
 }
 
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
@@ -351,6 +365,7 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 	out := MappedSplineChainAgreement{sources: [2]MappedSplineChain{ca, cb}, supports: [2]geom.Surface{a, b}, knotRepair: repair}
 	var repairedCuts []bool
 	if repair != mappedChainNoKnotRepair {
+		originalCount := len(cuts)
 		cuts, repairedCuts, e = mappedSplineSupportKnotCuts(ctx, out.sources, [2]*geom.SurfacePatch{pa, pb}, cuts, repair, o)
 		if e != nil {
 			return zero, e
@@ -358,6 +373,7 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 		if len(cuts) > 16 || o.MaxIntervals > 0 && len(cuts)-1 > o.MaxIntervals {
 			return zero, geom.ErrConvergence
 		}
+		out.knotCutCount = len(cuts) - originalCount
 	}
 	out.cuts = cuts
 	for i := 0; i+1 < len(cuts); i++ {

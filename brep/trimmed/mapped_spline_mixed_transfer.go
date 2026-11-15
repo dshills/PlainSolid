@@ -24,14 +24,14 @@ func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geo
 
 // ProveMappedSplineSingleStoredKnotTransfer recovers one positive raw map
 // from a pair of stored model Béziers and an original owner coedge. One
-// original support crossing must match the stored knot. Up to two other
+// original support crossing must match the stored knot. Up to three other
 // support crossings are proved in the same map and returned in traversal order.
-// maxSupportKnots is two or three.
+// maxSupportKnots is between two and four.
 func ProveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
 	var zero MappedSplineUV
 	one := big.NewRat(1, 1)
 	if ctx == nil || support == nil || pieces[0] == nil || pieces[1] == nil || join == nil ||
-		join.Sign() <= 0 || join.Cmp(one) >= 0 || maxSupportKnots < 2 || maxSupportKnots > 3 {
+		join.Sign() <= 0 || join.Cmp(one) >= 0 || maxSupportKnots < 2 || maxSupportKnots > 4 {
 		return zero, nil, geom.ErrInvalid
 	}
 	patch, err := exactFaceSupportPatch(Face{Surface: support}, o)
@@ -101,12 +101,12 @@ func ProveMappedSplineThreeKnotSplitTransfer(ctx context.Context, support geom.S
 	return ProveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, extra[:], o)
 }
 
-// ProveMappedSplineStoredKnotPartition compares up to five original owner
-// restrictions against two stored model Béziers. join and up to three extra
+// ProveMappedSplineStoredKnotPartition compares up to seven original owner
+// restrictions against two stored model Béziers. join and up to five extra
 // distinct cuts are in whole normalized model traversal.
 func ProveMappedSplineStoredKnotPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra []*big.Rat, o geom.SurfacePatchOptions) error {
 	one := big.NewRat(1, 1)
-	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil || len(extra) > 3 {
+	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil || len(extra) > 5 {
 		return geom.ErrInvalid
 	}
 	stations := append([]*big.Rat{join}, extra...)

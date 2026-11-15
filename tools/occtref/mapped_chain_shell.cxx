@@ -71,26 +71,40 @@ static std::array<Cubic, 2> split(const Cubic& p) {
 }
 
 static constexpr double additionalNorthKnot = 407. / 16384;
+static constexpr double fifthSupportKnot = 1341. / 16384;
+static constexpr double sixthSupportKnot = 2395. / 16384;
 
-static std::vector<double> roofSupportKnots(bool south, bool four) {
-  if (four && !south) {
+static std::vector<double> roofSupportKnots(bool south, int supportCuts) {
+  if (south && supportCuts == 6) {
+    return {0., 29. / 256, sixthSupportKnot, 369. / 2048, 1.};
+  }
+  if (!south && supportCuts >= 5) {
+    return {0., additionalNorthKnot, 107. / 2048, fifthSupportKnot, 29. / 256, 1.};
+  }
+  if (!south && supportCuts == 4) {
     return {0., additionalNorthKnot, 107. / 2048, 29. / 256, 1.};
   }
   return south ? std::vector<double>{0., 29. / 256, 369. / 2048, 1.}
                : std::vector<double>{0., 107. / 2048, 29. / 256, 1.};
 }
 
-static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, bool four = false) {
+static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, int supportCuts = 3) {
   if (three) {
     const double separate = south ? 369. / 2048 : 107. / 2048;
-    const double extra = four && !south ? .25 * (y - .25) * std::max(0., x - additionalNorthKnot) : 0.;
+    double extra = supportCuts >= 4 && !south ? .25 * (y - .25) * std::max(0., x - additionalNorthKnot) : 0.;
+    if (supportCuts >= 5 && !south) {
+      extra += .25 * (y - .25) * std::max(0., x - fifthSupportKnot);
+    }
+    if (supportCuts == 6 && south) {
+      extra += .25 * (y - .25) * std::max(0., x - sixthSupportKnot);
+    }
     return x * y + .125 * std::max(0., x - 29. / 256) + .125 * (y - .25) * std::max(0., x - separate) + extra;
   }
   return x * y + (crease ? .5 * std::max(0., x - .5) : 0.);
 }
 
-static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool unsplit, bool four) {
-  const std::vector<double> x = three ? roofSupportKnots(south, four)
+static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool unsplit, int supportCuts) {
+  const std::vector<double> x = three ? roofSupportKnots(south, supportCuts)
     : crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
   const std::vector<double> y{0., 1.};
   const auto& u = south ? y : x;
@@ -100,7 +114,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
     for (int j = 0; j < poles.UpperCol(); ++j) {
       const double a = south ? v[j] : u[i];
       const double b = south ? u[i] : v[j];
-      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, four)));
+      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, supportCuts)));
     }
   }
   occ::handle<Geom_Surface> support;
@@ -135,7 +149,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
       // The seam has one fixed chart coordinate. Each model piece uses the
       // exact affine lift of its UV controls along that trace.
       auto lift = [&](const gp_Pnt2d& p) {
-        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, four));
+        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, supportCuts));
       };
       occ::handle<Geom_Curve> lifted;
       if (unsplit && points.size() == 4 && points.front().X() == 0.) {
@@ -292,7 +306,7 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 // Author one original south basis with a decreasing raw parameter and
 // nonuniform weights. The north roof keeps the six OCCT-generated bases.
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
-  const occ::handle<StepData_Protocol>& protocol, bool unsplit, bool four) {
+  const occ::handle<StepData_Protocol>& protocol, bool unsplit, int supportCuts) {
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -302,19 +316,21 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   }
   occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
     new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
-  const auto southKnots = four ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  const auto southWeights = four ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
+  const auto southKnots = supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
+  const auto southWeights = supportCuts >= 4 ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
     : std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512};
   shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
   const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = four ? std::vector<double>{48., 16., 8., 2.}
+  const auto raw = supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
-  const auto station = four ? std::vector<double>{0., 8., 16., 32.}
+  const auto station = supportCuts >= 4 ? std::vector<double>{0., 8., 16., 32.}
                       : unsplit ? std::vector<double>{0., 4., 8., 16.}
                                : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
+  const auto northKnots = static_cast<int>(roofSupportKnots(false, supportCuts).size());
+  const auto southKnotCount = static_cast<int>(roofSupportKnots(true, supportCuts).size());
   std::vector<bool> changed(x.size() - 1);
   for (int i = 1; i <= model->NbEntities(); ++i) {
     auto curve = occ::down_cast<StepGeom_SurfaceCurve>(model->Entity(i));
@@ -328,10 +344,10 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
         continue;
       }
       const auto roof = occ::down_cast<StepGeom_BSplineSurfaceWithKnots>(owner->BasisSurface());
-      if (!roof.IsNull() && roof->NbUKnots() == (four ? 5 : 4) && roof->NbVKnots() == 2) {
+      if (!roof.IsNull() && roof->NbUKnots() == northKnots && roof->NbVKnots() == 2) {
         north = owner;
       }
-      if (!roof.IsNull() && roof->NbUKnots() == 2 && roof->NbVKnots() == 4) {
+      if (!roof.IsNull() && roof->NbUKnots() == 2 && roof->NbVKnots() == southKnotCount) {
         south = owner;
       }
     }
@@ -365,10 +381,12 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       // The first two Cartesian nets are exact half restrictions of the
       // original north cubic. The homogeneous weights express the original
       // rational raw map with a common dyadic scale on each basis.
-      const std::array<std::array<double, 2>, 3> domains{{{2., four ? 107. : 457.}, {700., 706.}, {850., 862.}}};
+      const double firstRawEnd = supportCuts >= 5 ? 4622. : supportCuts == 4 ? 107. : 457.;
+      const auto firstWeights = supportCuts >= 5 ? std::array{1., 3., 9., 27.}
+        : supportCuts == 4 ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
+      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., 706.}, {850., 862.}}};
       const std::array<std::array<double, 4>, 3> weights{{
-        four ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.},
-        {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
+        firstWeights, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
       auto w = weights[cell];
       if (a > b) {
         std::reverse(w.begin(), w.end());
@@ -413,8 +431,9 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
 int main(int argc, char** argv) {
   try {
     const std::string mode = argc > 1 ? argv[1] : "";
-    const bool four = mode == "write-four-knots-mixed-unsplit";
-    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || four;
+    const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
+      : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;
@@ -428,11 +447,11 @@ int main(int argc, char** argv) {
     const bool reordered = mode == "write-reordered" || crease;
     auto side = [&](double y, bool reverse) {
       const bool south = y == 0.;
-      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south, four)}};
+      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south, supportCuts)}};
       if (three) {
-        const auto xs = roofSupportKnots(south, four);
+        const auto xs = roofSupportKnots(south, supportCuts);
         for (int i = static_cast<int>(xs.size()) - 2; i > 0; --i) {
-          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south, four));
+          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south, supportCuts));
         }
       } else if (crease) {
         points.emplace_back(.5, y, roofHeight(.5, y, true));
@@ -441,9 +460,9 @@ int main(int argc, char** argv) {
       return planar(points, reverse, frame({0, y, 0}, {0, -1, 0}, {0, 0, -1}));
     };
     const std::array<TopoDS_Face, 7> source{
-      roof(false, reordered ? 4 : 0, crease, three, unsplitBasis, four),
-      roof(true, reordered ? 5 : 0, crease, three, unsplitBasis, four),
-      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three, false, four)}, {1, .25, roofHeight(1, .25, crease, three)}, {1, 0, roofHeight(1, 0, crease, three, true)}}, false,
+      roof(false, reordered ? 4 : 0, crease, three, unsplitBasis, supportCuts),
+      roof(true, reordered ? 5 : 0, crease, three, unsplitBasis, supportCuts),
+      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three, false, supportCuts)}, {1, .25, roofHeight(1, .25, crease, three)}, {1, 0, roofHeight(1, 0, crease, three, true, supportCuts)}}, false,
              frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
              frame({0, 0, 0}, {1, 0, 0}, {0, 0, 1})),
@@ -482,18 +501,23 @@ int main(int argc, char** argv) {
         throw std::runtime_error("independent STEP writer failed");
       }
       if (three) {
-        // The authored geometric coefficients are dyadic with at most 18
-        // fractional decimal digits. Retain every one in the pinned writer.
+        // Retain all authored dyadic coefficients in the pinned writer.
         auto model = writer.Model();
         auto protocol = occ::down_cast<StepData_Protocol>(model->Protocol());
         if (protocol.IsNull()) {
           throw std::runtime_error("independent STEP model has no protocol");
         }
         if (mixedBasis) {
-          model = authorMixedBasis(model, protocol, unsplitBasis, four);
+          model = authorMixedBasis(model, protocol, unsplitBasis, supportCuts);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);
+        if (supportCuts >= 5) {
+          // The new chart coefficients use up to 19 fractional digits.
+          // They have magnitude below 2, while the raw knots can be larger
+          // integers. The separate format keeps both within OCCT's buffer.
+          exactWriter.FloatWriter().SetFormatForRange("%.19f", 0., 2.);
+        }
         exactWriter.SendModel(protocol);
         std::ofstream output(argv[2]);
         if (!output || !exactWriter.Print(output)) {
