@@ -60,6 +60,8 @@ const fixtures: readonly Fixture[] = [
     sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     pose: [["0", "3/5", "4/5", "8"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "6"]],
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { ...tiltedGrouped, file: `${tiltedGrouped.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1,
+    rejectedDistance: 1e-13, converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
 ];
 
 for (const fixture of fixtures) {
@@ -101,8 +103,9 @@ for (const fixture of fixtures) {
           Claims: { SourceSHA256: digest, Pose: fixture.pose, MaxDistance: maxDistance } });
         expect(Buffer.from(proof.Source, "base64").toString("utf8")).toBe(source);
         if (fixture.grouped) {
-          expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners: 8, rationalCaps: 2, axialTrims: 1 });
-          expect(proof.Claims.FiniteLineOwners).toHaveLength(8);
+          const finiteLineOwners = fixture.converted ? 18 : 8;
+          expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners, rationalCaps: 2, axialTrims: 1 });
+          expect(proof.Claims.FiniteLineOwners).toHaveLength(finiteLineOwners);
           expect(proof.Claims.Grouped.RationalCaps).toHaveLength(2);
           expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
           expect(proof.Claims.Grouped.AxialTrims).toHaveLength(1);
@@ -113,14 +116,32 @@ for (const fixture of fixtures) {
           expect(proof.Claims.FiniteLineOwners).toHaveLength(18);
           for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
           const spans = proof.Claims.CylindricalSpanOwners;
-          const sweep = "2498091544797/1000000000000";
-          expect(spans).toHaveLength(4);
-          expect(spans).toEqual(expect.arrayContaining([
-            { PCurveID: 125, ParameterInterval: ["0", axialEnd], UVStart: ["0", "0"], UVDerivative: ["0", ownerScale] },
-            { PCurveID: 225, ParameterInterval: ["0", axialEnd], UVStart: [sweep, "0"], UVDerivative: ["0", ownerScale] },
-            { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
-            { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
-          ]));
+          if (fixture.grouped) {
+            const quarterTurn = "314159265359/200000000000";
+            expect(spans).toHaveLength(8);
+            expect(spans).toEqual(expect.arrayContaining([
+              { PCurveID: 237, ParameterInterval: ["0", quarterTurn], UVStart: ["0", "0"], UVDerivative: ["-1", "0"] },
+              { PCurveID: 277, ParameterInterval: ["0", quarterTurn], UVStart: ["0", height], UVDerivative: ["-1", "0"] },
+              { PCurveID: 256, ParameterInterval: ["0", axialEnd], UVStart: [`-${quarterTurn}`, "0"], UVDerivative: ["0", ownerScale],
+                RepairedToOwner: [
+                  "7499999999999999999999999999991/1250000000000000000000000000000000000000000000000000000000",
+                  "2499999999999999999999999999997/2500000000000000000000000000000",
+                ] },
+            ]));
+            expect(proof.Claims.Grouped.FiniteTrims).toMatchObject([
+              { CapOwner: { PCurveID: 226 }, CylinderOwner: { PCurveID: 237 }, EndStation: expect.any(Object) },
+              { CapOwner: { PCurveID: 283 }, CylinderOwner: { PCurveID: 277 }, EndStation: expect.any(Object) },
+            ]);
+          } else {
+            const sweep = "2498091544797/1000000000000";
+            expect(spans).toHaveLength(4);
+            expect(spans).toEqual(expect.arrayContaining([
+              { PCurveID: 125, ParameterInterval: ["0", axialEnd], UVStart: ["0", "0"], UVDerivative: ["0", ownerScale] },
+              { PCurveID: 225, ParameterInterval: ["0", axialEnd], UVStart: [sweep, "0"], UVDerivative: ["0", ownerScale] },
+              { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
+              { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
+            ]));
+          }
           if (units === "in") expect(proof.Claims.PCurves).toContainEqual(expect.objectContaining({
             PCurveID: 125, Kind: "finite-cylinder-line", DistanceSquaredUpper: "625/244140625000031250000000001",
           }));
