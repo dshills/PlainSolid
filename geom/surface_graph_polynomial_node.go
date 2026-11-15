@@ -36,7 +36,7 @@ type SplineGraphPolynomialNode struct {
 // irrational and additional intersections are unresolved. Failure is atomic.
 func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialNode, error) {
 	var node SplineGraphPolynomialNode
-	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, &node, nil)
+	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, &node, nil, nil)
 	if e != nil {
 		return SplineGraphPolynomialNode{ExactOperations: r.ExactOperations}, e
 	}
@@ -45,7 +45,7 @@ func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, 
 	return node, nil
 }
 
-func discoverGraphPolynomialCrossings(ctx context.Context, delta rationalPolynomial, count, maxCells int, visits *int, b *polynomialBudget) (roots [2]*big.Rat, order int, err error) {
+func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, count, multiplicity, maxCells int, visits *int, b *polynomialBudget) (roots [2]*big.Rat, order int, err error) {
 	if len(delta) < 2 || *visits >= maxCells {
 		return roots, 0, ErrConvergence
 	}
@@ -55,7 +55,8 @@ func discoverGraphPolynomialCrossings(ctx context.Context, delta rationalPolynom
 		return roots, 0, e
 	}
 	order = delta[0].Sign()
-	if count == 1 && order*end.Sign() != -1 {
+	singleCrossing := count == 1 && multiplicity == 1
+	if singleCrossing && order*end.Sign() != -1 {
 		return roots, 0, ErrConvergence
 	}
 	if order == 0 || end.Sign() == 0 {
@@ -64,14 +65,17 @@ func discoverGraphPolynomialCrossings(ctx context.Context, delta rationalPolynom
 	var minimumWidth *big.Rat
 	found := 0
 	degenerate, irrational := ErrConvergence, ErrConvergence
-	if count == 2 {
+	if !singleCrossing {
 		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
 	}
-	splits, e := isolatePolynomialRoots(delta, zero, one, b, (maxCells-*visits-1)/2, func(lo, hi *big.Rat, multiplicity int) (bool, error) {
+	splits, e := isolatePolynomialRoots(delta, zero, one, b, (maxCells-*visits-1)/2, func(lo, hi *big.Rat, rootMultiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
 		}
-		if multiplicity != 1 {
+		if rootMultiplicity != multiplicity {
+			if rootMultiplicity == 1 {
+				return false, ErrConvergence
+			}
 			return false, degenerate
 		}
 		if found == count {
