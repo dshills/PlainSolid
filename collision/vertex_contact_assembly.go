@@ -22,6 +22,9 @@ type VertexContactAssemblyOptions struct {
 	// Zero selects 256 solids, 1024 declarations, and one million cross
 	// broad-phase comparisons over the complete assembly.
 	MaxSolids, MaxDeclaredContacts, MaxCrossPairs int
+	// MaxQueryWork bounds each prepared assembly lookup across all possible
+	// components. Zero selects two million units.
+	MaxQueryWork int
 	// Validation bounds each component's exact embedding and location
 	// queries. Its triangle limit also applies to the whole assembly.
 	Validation LocationOptions
@@ -54,8 +57,12 @@ type vertexContactPair struct {
 // One noncontact vertex per component and potentially overlapping mate must
 // be available to prove exterior membership. No partial report is published.
 func ValidateVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions) (VertexContactAssemblyReport, error) {
+	return prepareVertexContactAssembly(ctx, solids, declarations, o, nil)
+}
+
+func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions, prepared *[]vertexContactComponent) (VertexContactAssemblyReport, error) {
 	var zero VertexContactAssemblyReport
-	if ctx == nil || o.MaxSolids < 0 || o.MaxDeclaredContacts < 0 || o.MaxCrossPairs < 0 {
+	if ctx == nil || o.MaxSolids < 0 || o.MaxDeclaredContacts < 0 || o.MaxCrossPairs < 0 || o.MaxQueryWork < 0 {
 		return zero, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -205,6 +212,9 @@ func ValidateVertexContactAssembly(ctx context.Context, solids []brep.Solid, dec
 	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
+	}
+	if prepared != nil {
+		*prepared = components
 	}
 	return report, nil
 }
