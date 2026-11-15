@@ -20,6 +20,8 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		maxOwnerKnots, count = 2, 2
 	case mappedChainAsynchronousKnotsRepair:
 		count = 2
+	case mappedChainThreeKnotsRepair:
+		maxOwnerKnots, count = 2, 3
 	}
 	type station struct {
 		parameter *big.Rat
@@ -33,7 +35,7 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		if err != nil {
 			return nil, nil, fmt.Errorf("roof %d: %w", owner, err)
 		}
-		if repair == mappedChainSynchronizedKnotsRepair && len(planes) != 2 {
+		if (repair == mappedChainSynchronizedKnotsRepair || repair == mappedChainThreeKnotsRepair) && len(planes) != 2 {
 			return nil, nil, fmt.Errorf("roof %d requires two original support knots: %w", owner, geom.ErrConvergence)
 		}
 		if repair == mappedChainAsynchronousKnotsRepair && len(planes) != 1 {
@@ -93,6 +95,15 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 	if repair == mappedChainMixedKnotsRepair &&
 		(originalKnots != 3 || (stations[0].owners == 3) == (stations[1].owners == 3)) {
 		return nil, nil, fmt.Errorf("mixed repair requires one shared crossing and one single-owner crossing across three original support knots: %w", geom.ErrConvergence)
+	}
+	if repair == mappedChainThreeKnotsRepair {
+		var ownerChanges [4]bool
+		for _, s := range stations {
+			ownerChanges[s.owners] = true
+		}
+		if !ownerChanges[1] || !ownerChanges[2] || !ownerChanges[3] {
+			return nil, nil, fmt.Errorf("three-cut repair requires one shared crossing and one separate crossing for each owner: %w", geom.ErrConvergence)
+		}
 	}
 	slices.SortFunc(stations, func(a, b station) int { return a.parameter.Cmp(b.parameter) })
 	repaired := make([]bool, len(cuts)+len(stations))
