@@ -10,12 +10,15 @@ import (
 )
 
 // AssemblyLineState describes the exact membership and original owner IDs of
-// a line station or open span in a proved point-contact assembly. BoundaryFaces
-// is populated only on the boundary. Components retain their original order.
+// a line station or open span in a proved assembly. BoundaryFaces is populated
+// only on the boundary. Components retain their original order.
 type AssemblyLineState struct {
 	Location      Location
 	Components    []int
 	BoundaryFaces []AssemblyFace
+	// SharedEdge is set only on a complete station or open span in the
+	// original shared edge of a proved edge-contact pair.
+	SharedEdge bool
 }
 
 type AssemblyLineStation struct {
@@ -110,15 +113,22 @@ func (l *VertexContactAssemblyLocator) PartitionRationalLine(ctx context.Context
 		s := AssemblyLineStation{Parameter: new(big.Rat).Set(at), AssemblyLineState: state}
 		if len(state.Components) > 1 {
 			xyz := plus(origin, scale(direction, at))
-			x, ex := xyz[0].Float64()
-			y, ey := xyz[1].Float64()
-			z, ez := xyz[2].Float64()
-			if !ex || !ey || !ez {
-				return zero, ErrInvalid // all admitted shared contacts are represented vertices
-			}
-			s.Contacts = append([]AssemblyVertexContact(nil), l.contacts[geom.Vec3{X: x, Y: y, Z: z}]...)
-			if len(s.Contacts) != len(state.Components)*(len(state.Components)-1)/2 {
-				return zero, ErrInvalid
+			if l.edge != nil {
+				if !onSegment(xyz, l.edge[0], l.edge[1]) {
+					return zero, ErrInvalid
+				}
+				s.SharedEdge = true
+			} else {
+				x, ex := xyz[0].Float64()
+				y, ey := xyz[1].Float64()
+				z, ez := xyz[2].Float64()
+				if !ex || !ey || !ez {
+					return zero, ErrInvalid // admitted vertex contacts have represented coordinates
+				}
+				s.Contacts = append([]AssemblyVertexContact(nil), l.contacts[geom.Vec3{X: x, Y: y, Z: z}]...)
+				if len(s.Contacts) != len(state.Components)*(len(state.Components)-1)/2 {
+					return zero, ErrInvalid
+				}
 			}
 		}
 		r.Stations[i] = s
@@ -131,7 +141,12 @@ func (l *VertexContactAssemblyLocator) PartitionRationalLine(ctx context.Context
 			return zero, err
 		}
 		if len(state.Components) > 1 {
-			return zero, ErrInvalid // a nonzero span cannot be a point contact
+			if l.edge == nil ||
+				!onSegment(plus(origin, scale(direction, parameters[i-1])), l.edge[0], l.edge[1]) ||
+				!onSegment(plus(origin, scale(direction, at)), l.edge[0], l.edge[1]) {
+				return zero, ErrInvalid
+			}
+			state.SharedEdge = true
 		}
 		r.Spans[i-1] = AssemblyLineSpan{i - 1, i, state}
 	}

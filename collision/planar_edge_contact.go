@@ -15,6 +15,9 @@ import (
 type PlanarEdgeContactOptions struct {
 	Validation LocationOptions
 	Cross      Options
+	// MaxQueryWork bounds each query on a prepared pair. Zero selects
+	// two million units.
+	MaxQueryWork int
 }
 
 // PlanarEdgeContact identifies the full original edge in each independently
@@ -34,6 +37,10 @@ type PlanarEdgeContact struct {
 // edge overlap, zero or multiple matching edges, or other material overlap
 // is outside this entry point.
 func DiscoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdgeContactOptions) (PlanarEdgeContact, error) {
+	return discoverPlanarEdgeContact(ctx, a, b, o, nil)
+}
+
+func discoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdgeContactOptions, prepared *[2]vertexContactComponent) (PlanarEdgeContact, error) {
 	if ctx == nil {
 		return PlanarEdgeContact{}, ErrInvalid
 	}
@@ -74,7 +81,7 @@ func DiscoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdg
 	if pair[0] < 0 {
 		return PlanarEdgeContact{}, fmt.Errorf("%w: no common full original edge", ErrInvalid)
 	}
-	return ValidatePlanarEdgeContact(ctx, a, b, pair[0], pair[1], o)
+	return validatePlanarEdgeContact(ctx, a, b, pair[0], pair[1], o, prepared)
 }
 
 // ValidatePlanarEdgeContact verifies that two independently outward,
@@ -83,8 +90,12 @@ func DiscoverPlanarEdgeContact(ctx context.Context, a, b brep.Solid, o PlanarEdg
 // and must be covered by the declared segment. The proof publishes nothing
 // if it cannot inspect the entire boundary.
 func ValidatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions) (PlanarEdgeContact, error) {
+	return validatePlanarEdgeContact(ctx, a, b, edgeA, edgeB, o, nil)
+}
+
+func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions, prepared *[2]vertexContactComponent) (PlanarEdgeContact, error) {
 	var zero PlanarEdgeContact
-	if ctx == nil || o.Cross.MaxPairs < 0 || o.Cross.MaxContacts < 0 {
+	if ctx == nil || o.Cross.MaxPairs < 0 || o.Cross.MaxContacts < 0 || o.MaxQueryWork < 0 {
 		return zero, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -194,6 +205,9 @@ func ValidatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edge
 	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
+	}
+	if prepared != nil {
+		*prepared = [2]vertexContactComponent{ca, cb}
 	}
 	return PlanarEdgeContact{
 		EdgeA: edgeA, EdgeB: edgeB, FacesA: fa, FacesB: fb, Start: p0, End: p1,

@@ -20,7 +20,9 @@ type VertexContactAssemblyLocation struct {
 	Location Location
 	Owners   []AssemblyLocationOwner
 	Contacts []AssemblyVertexContact
-	Work     int
+	// SharedEdge is set only on queries of a proved edge-contact pair.
+	SharedEdge bool
+	Work       int
 }
 
 type vertexContactLocatedComponent struct {
@@ -34,6 +36,7 @@ type vertexContactLocatedComponent struct {
 type VertexContactAssemblyLocator struct {
 	components []vertexContactLocatedComponent
 	contacts   map[geom.Vec3][]AssemblyVertexContact
+	edge       *[2]point
 	report     VertexContactAssemblyReport
 	maxWork    int
 }
@@ -122,6 +125,12 @@ func (l *VertexContactAssemblyLocator) Locate(ctx context.Context, p geom.Vec3) 
 	}
 	if r.Location == OnBoundary {
 		r.Contacts = append([]AssemblyVertexContact(nil), l.contacts[p]...)
+		if len(r.Owners) > 1 && l.edge != nil {
+			if !onSegment(exact(p), l.edge[0], l.edge[1]) {
+				return zero, ErrInvalid
+			}
+			r.SharedEdge = true
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
