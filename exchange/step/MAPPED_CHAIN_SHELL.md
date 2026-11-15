@@ -76,11 +76,10 @@ PLAINSOLID_OCCT_MAPPED_CHAIN_AUTHOR=/tmp/mapped-chain-shell \
 Set `MappedChainShellSTEPOptions.AllowMultiSpanRoofs` for either bounded
 reader and for the canonical writer. Each roof may then have one
 interior support knot in either UV direction. The original support net,
-knot values, multiplicities and UV coordinates are retained. The entire
-trim control hull must lie in one closed original knot rectangle. A trim
-on the knot may use either incident cell by C0 agreement. A trim spanning
-the two cells needs an explicit source coedge split before this exchange
-path can establish its exact model lift.
+knot values, multiplicities and UV coordinates are retained. In a
+canonical wire, each trim control hull must lie in one closed original
+knot rectangle. A trim on the knot may use either incident cell by C0
+agreement. The foreign reader's option for an unsplit wire is below.
 
 For native source preparation, `CertifyMappedSplineChainSupportKnotAgreement`
 can derive one isolated, transverse interior crossing of the shared roof
@@ -113,22 +112,23 @@ the explicitly split coedges. The fixture has exact model stations
 `51`, `43` on the reversed roof. PlainSolid preserves both original
 support knot vectors and owner spline bases, rebuilding and rewriting the
 paired STEP coedges byte-identically. Pinned OCCT independently opens the
-result as one valid seven-face solid. The unsplit foreign import below
-covers a single crossing.
+result as one valid seven-face solid.
 
-### One unsplit foreign STEP edge
+### An unsplit foreign STEP edge
 
 Set both `AllowMultiSpanRoofs` and `AllowUnsplitSupportKnot` for
 `ReadOCCTMappedChainRectangularShell`. One original shared `EDGE_CURVE`
 may store a two-piece clamped rational model spline with one interior
-knot of degree multiplicity. Each original cubic or quartic UV trim
-must cross one support knot transversely and admit an exact raw split.
-The reader recovers a positive parameter map from that event and compares
-the full homogeneous model lift of each restriction with the corresponding
-stored model piece. It then uses the native support-knot proof to rebuild
-the shared vertex. `Crossing` records the original edge and model
-parameter, the common native station, both raw parameters and both rebuilt
-edge IDs. `Chain` retains the original STEP edge inventory.
+knot of degree multiplicity. Also set `AllowTwoInteriorRoofKnots` for an
+unsplit three-piece model spline with two degree-multiplicity knots.
+Each original cubic or quartic UV trim must cross each corresponding
+support knot transversely. One positive parameter map per owner must
+satisfy every junction and the full homogeneous lift of each restriction.
+The reader uses the native support-knot proof to rebuild the shared
+vertices. `Crossings` is ordered by native model station and records the
+original edge, source model knot, native model station, two raw parameters,
+and adjacent rebuilt edge IDs. `Crossing` identifies the sole repair in
+the single-crossing case. `Chain` retains the original STEP edge inventory.
 
 Both roof chains can use direct per-edge pcurves or parameter-valued
 restrictions on a single whole basis per owner. For the latter, the stored
@@ -140,6 +140,12 @@ Pinned OCCT independently validates the source as one seven-face solid
 with the same volume as the repaired shell. PlainSolid retains the two
 original bases and raw values `5` and `27` through native reopen and
 emits explicit paired coedges when writing STEP.
+
+`standard_mapped_chain_unsplit_two_knots.step` likewise re-encodes all
+three exact model branches as one degree-five curve with two interior
+knots and two original unsplit owner restrictions. Pinned OCCT independently
+validates the unsplit input as one seven-face solid. PlainSolid retains both
+junctions and reopens the native source before exporting explicit coedges.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.

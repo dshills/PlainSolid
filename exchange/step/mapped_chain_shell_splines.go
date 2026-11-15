@@ -319,33 +319,37 @@ func (s mappedChainStepSpline) homogeneousControls() [][4]*big.Rat {
 	return h
 }
 
-// The original middle knot has degree multiplicity, so the two stored
-// Bézier nets meet at a single common pole. Keep the original exact ratio.
-func (s mappedChainStepSpline) exactTwoBezier(ctx context.Context, o geom.SurfacePatchOptions) ([2]*geom.ExactSplineCurve, *big.Rat, error) {
-	var pieces [2]*geom.ExactSplineCurve
+// Degree multiplicity at every interior knot gives exact Bézier nets
+// meeting at one original shared pole. Keep every original knot ratio.
+func (s mappedChainStepSpline) exactBezierPieces(ctx context.Context, o geom.SurfacePatchOptions, maxPieces int) ([]*geom.ExactSplineCurve, []*big.Rat, error) {
 	d := s.degree
-	if len(s.poles) != 2*d+1 {
-		return pieces, nil, geom.ErrConvergence
+	n := (len(s.poles) - 1) / d
+	if n < 2 || n > maxPieces || len(s.poles) != n*d+1 {
+		return nil, nil, geom.ErrConvergence
 	}
-	lo, mid, hi := s.knots[0], s.knots[d+1], s.knots[len(s.knots)-1]
-	for _, k := range s.knots[d+1 : 2*d+1] {
-		if k.Cmp(mid) != 0 {
-			return pieces, nil, geom.ErrConvergence
+	lo, hi := s.knots[0], s.knots[len(s.knots)-1]
+	width := new(big.Rat).Sub(hi, lo)
+	joins := make([]*big.Rat, n-1)
+	last := lo
+	for i := range joins {
+		start := (i+1)*d + 1
+		mid := s.knots[start]
+		if mid.Cmp(last) <= 0 || mid.Cmp(hi) >= 0 || s.knots[start+d-1].Cmp(mid) != 0 {
+			return nil, nil, fmt.Errorf("invalid model spline junction multiplicity or order: %w", geom.ErrConvergence)
 		}
+		joins[i] = new(big.Rat).Quo(new(big.Rat).Sub(mid, lo), width)
+		last = mid
 	}
-	if lo.Cmp(mid) >= 0 || mid.Cmp(hi) >= 0 {
-		return pieces, nil, geom.ErrConvergence
-	}
+	pieces := make([]*geom.ExactSplineCurve, n)
 	h := s.homogeneousControls()
 	for i := range pieces {
 		var err error
 		pieces[i], err = geom.NewExactHomogeneousBezier(ctx, h[i*d:i*d+d+1], o)
 		if err != nil {
-			return pieces, nil, err
+			return nil, nil, err
 		}
 	}
-	join := new(big.Rat).Quo(new(big.Rat).Sub(mid, lo), new(big.Rat).Sub(hi, lo))
-	return pieces, join, nil
+	return pieces, joins, nil
 }
 
 func (s mappedChainStepSpline) exactBezier(ctx context.Context, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
