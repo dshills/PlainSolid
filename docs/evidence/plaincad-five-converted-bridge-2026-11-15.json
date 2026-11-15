@@ -1,0 +1,101 @@
+{
+  "commit": "30e1f5652a9d7cda21043b67c52a2ad5067b2951",
+  "tree": "beb6afc3b9ac9ac59dadbacca36523a575be32be",
+  "exchangeCommit": "2a6e6cb4e0f09682b8aa0edd1db0a03ae8fae4cd",
+  "plainCADSource": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "wasm": "2f2b65fdb43153854b37b8074b0425111681ee7e55cdd23f6657170f2abb6eb7",
+  "verifiedSourceFiles": 2579,
+  "cases": {
+    "node": {
+      "uniquePassed": 20,
+      "firstRunPassed": 19,
+      "focusedRetryPassed": 3
+    },
+    "chromium": 18,
+    "nativeRace": 2,
+    "harness": 5
+  },
+  "nodeLegacyRetry": {
+    "case": "real Go WASM STEP repair through the typed adapter: occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre",
+    "firstRunMs": 67578.19004200003,
+    "focusedRetryMs": 42845.310375,
+    "timeoutMs": 60000
+  },
+  "preservedLegacyBrowserProofs": 16,
+  "units": {
+    "metre": {
+      "unit": "metre",
+      "maxDistance": 1e-12,
+      "rejectedDistance": 1e-13,
+      "sourceSha256": "81529db82d782c4469bd1ac6613e2d0fffbf07f2a7e115569b16de870d638f1e",
+      "certificateSha256": "57a832b0a3110caf2d7bd2fb0511ec859d26727999ca4ab2f73d04f143e29f65",
+      "canonicalSha256": "3cc1f6fa3c343cc9add5aa62d815a75d5008871fc94b520e201600d1f7252d83",
+      "canonicalDataSha256": "d860683767098c1666e4649f8a00d78a8f4f9882531ffcd7c1e60dfc6d8c025c",
+      "standaloneSha256": "b77efe8daa84f29fca8a9a349a4a338a95f5fb3b1d6249fb082f00d8019d01e7",
+      "bounds": {
+        "min": [
+          0,
+          0,
+          -2400
+        ],
+        "max": [
+          5800,
+          2750,
+          3000
+        ]
+      },
+      "nodeMs": 40235.86612499999,
+      "chromiumMs": 20677,
+      "displayTriangles": 624,
+      "chromiumCertificateSha256": "57a832b0a3110caf2d7bd2fb0511ec859d26727999ca4ab2f73d04f143e29f65",
+      "chromiumCanonicalSha256": "3cc1f6fa3c343cc9add5aa62d815a75d5008871fc94b520e201600d1f7252d83"
+    },
+    "inch": {
+      "unit": "inch",
+      "maxDistance": 1e-11,
+      "rejectedDistance": 1e-12,
+      "sourceSha256": "eb70c75de4e130e95719cca9ea96886caaff5884a0ca4d3ecbdeb0648feab7ac",
+      "negativeSourceSha256": "1679141590dc22cea0b238a4190af9397114716be9858e5aa5c7ed882cdc0ca7",
+      "certificateSha256": "92dee466d1de50491d651f4c8ade2dfffceab63ce8326072a9d993758dd2292e",
+      "canonicalSha256": "c3aec99010b070ebaa2b24fdc5bf5c8e8b9f3af9a0946b83399530b064f25d4d",
+      "canonicalDataSha256": "25026a91fefd8e9b8a65a6b7b062df2d2b7f2c040da4d7f1c1ce7b2ae17e8a31",
+      "standaloneSha256": "561f02a94b46310060a164514cf31242c8d0f090962021f07a01567ef23b231d",
+      "bounds": {
+        "min": [
+          0,
+          0,
+          -304.8
+        ],
+        "max": [
+          736.6,
+          349.25,
+          381
+        ]
+      },
+      "nodeMs": 31829.234792000003,
+      "chromiumMs": 16874,
+      "displayTriangles": 400,
+      "chromiumCertificateSha256": "92dee466d1de50491d651f4c8ade2dfffceab63ce8326072a9d993758dd2292e",
+      "chromiumCanonicalSha256": "c3aec99010b070ebaa2b24fdc5bf5c8e8b9f3af9a0946b83399530b064f25d4d"
+    }
+  },
+  "wasmSourceOverlay": {
+    "gitBuildInfo": {
+      "revision": "37f80fea1b0ed903f014d968a122b90a06d1c590",
+      "modified": true
+    },
+    "sourceOverlayExchangeCommit": "2a6e6cb4e0f09682b8aa0edd1db0a03ae8fae4cd",
+    "sourceOverlayRuntimeCommit": "30e1f5652a9d7cda21043b67c52a2ad5067b2951",
+    "selectedGoChanges": {
+      "exchange/step/repair_converted_convex_arc_cylinder_span.go": "49dcb8fe2a12025167ded57e3e9141447bceed66b15e8ea90483bb46de8f8c7b",
+      "exchange/step/repair_rational_posed_pcurve_occt_convex_arc.go": "559df2565effeabdc8e28daa54275c937a0938845417bd8a65709632d48dd55d"
+    },
+    "fullStagedManifestSha256": "a4593dcfb8a514ee37b020765c30ef7c56eeaeb690ea3864235bb646d219d2bd",
+    "verifiedFiles": 2579,
+    "documentationBaselineException": {
+      "path": "tools/plaincad/README.md",
+      "sha256": "baa4481fa4cf8cab6f2977ca1efc3771247748b72b78a12b608e946c41630a20"
+    },
+    "nodeAndChromiumWASMSha256": "2f2b65fdb43153854b37b8074b0425111681ee7e55cdd23f6657170f2abb6eb7"
+  }
+}

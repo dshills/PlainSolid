@@ -137,6 +137,9 @@ export default defineConfig({ ...base, test: {
       "occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre",
       "occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch",
       "occt-five-default-tilted-pentagonal-prism-fillet",
+      "occt-five-default-tilted-pentagonal-prism-fillet-converted-metre",
+      "occt-five-default-tilted-pentagonal-prism-fillet-converted-inch",
+      "occt-five-default-tilted-pentagonal-prism-fillet-converted-inch-unscaled",
       "occt-five-default-tilted-pentagonal-prism-fillet-nondyadic"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
@@ -203,12 +206,15 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre.step": "public/plainsolid-four-converted-step-repair-metre.step",
     "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch.step": "public/plainsolid-four-converted-step-repair-inch.step",
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet.step": "public/plainsolid-five-step-repair.step",
+    "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-metre.step": "public/plainsolid-five-converted-step-repair-metre.step",
+    "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-inch.step": "public/plainsolid-five-converted-step-repair-inch.step",
   };
   const sourceFiles = {
     "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
     "tools/plaincad/step-repair-worker.spec.fixture.ts": stepRepairWorkerTest,
     ...fixtureStepSources,
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-nondyadic.step": "public/plainsolid-five-nondyadic.step",
+    "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-inch-unscaled.step": "public/plainsolid-five-unscaled-inch.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
