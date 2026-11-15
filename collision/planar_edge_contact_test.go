@@ -187,6 +187,11 @@ func TestPlanarEdgeContactRetainsDistinctOriginalSubintervals(t *testing.T) {
 		p.ParameterB[0].RatString() != "1" || p.ParameterB[1].RatString() != "1/3" || p.SignedVolume.RatString() != "6" {
 		t.Fatalf("original directed subintervals were not retained: %+v %v", p, err)
 	}
+	found, err := DiscoverPlanarEdgeIntervalContact(ctx, a, b, o)
+	if err != nil || found.EdgeA != ea || found.EdgeB != eb || found.ParameterA[0].Cmp(p.ParameterA[0]) != 0 ||
+		found.ParameterB[1].Cmp(p.ParameterB[1]) != 0 {
+		t.Fatalf("exact collinear discovery could not recover the original owners: %+v %v", found, err)
+	}
 	l, err := NewPlanarEdgeIntervalContactLocator(ctx, a, b, ea, eb, o)
 	if err != nil {
 		t.Fatal(err)

@@ -29,6 +29,16 @@ type PlanarEdgeContactPair struct {
 // meet only on one entire edge from each original solid. Their records
 // remain independent even where the exact endpoint coordinates coincide.
 func ReadPlanarEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactIGESOptions) (PlanarEdgeContactPair, error) {
+	return readIGESPlanarEdgeContactPair(ctx, r, o, false)
+}
+
+// ReadPlanarEdgeIntervalContactPair preserves a positive common subinterval
+// and both original directed edge ranges of two independent IGES bodies.
+func ReadPlanarEdgeIntervalContactPair(ctx context.Context, r io.Reader, o EdgeContactIGESOptions) (PlanarEdgeContactPair, error) {
+	return readIGESPlanarEdgeContactPair(ctx, r, o, true)
+}
+
+func readIGESPlanarEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactIGESOptions, interval bool) (PlanarEdgeContactPair, error) {
 	if ctx == nil {
 		return PlanarEdgeContactPair{}, geom.ErrInvalid
 	}
@@ -43,7 +53,7 @@ func ReadPlanarEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactIG
 	if err != nil {
 		return PlanarEdgeContactPair{}, err
 	}
-	proof, err := collision.DiscoverPlanarEdgeContact(ctx, m.Bodies[0].Solid, m.Bodies[1].Solid, o.Proof)
+	proof, err := proveIGESPlanarEdgeContactPair(ctx, [2]brep.Solid{m.Bodies[0].Solid, m.Bodies[1].Solid}, o.Proof, interval)
 	if err != nil {
 		return PlanarEdgeContactPair{}, err
 	}
@@ -53,11 +63,28 @@ func ReadPlanarEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactIG
 // WritePlanarEdgeContactPair emits two independently indexed standard
 // material roots and proves the same original edge-only contact on readback.
 func WritePlanarEdgeContactPair(ctx context.Context, w io.Writer, parts [2]brep.Solid, unit float64, o EdgeContactIGESOptions) (collision.PlanarEdgeContact, error) {
+	return writeIGESPlanarEdgeContactPair(ctx, w, parts, unit, o, false)
+}
+
+// WritePlanarEdgeIntervalContactPair transfers two separately indexed IGES
+// material roots and re-proves the exact original intervals on readback.
+func WritePlanarEdgeIntervalContactPair(ctx context.Context, w io.Writer, parts [2]brep.Solid, unit float64, o EdgeContactIGESOptions) (collision.PlanarEdgeContact, error) {
+	return writeIGESPlanarEdgeContactPair(ctx, w, parts, unit, o, true)
+}
+
+func proveIGESPlanarEdgeContactPair(ctx context.Context, parts [2]brep.Solid, o collision.PlanarEdgeContactOptions, interval bool) (collision.PlanarEdgeContact, error) {
+	if interval {
+		return collision.DiscoverPlanarEdgeIntervalContact(ctx, parts[0], parts[1], o)
+	}
+	return collision.DiscoverPlanarEdgeContact(ctx, parts[0], parts[1], o)
+}
+
+func writeIGESPlanarEdgeContactPair(ctx context.Context, w io.Writer, parts [2]brep.Solid, unit float64, o EdgeContactIGESOptions, interval bool) (collision.PlanarEdgeContact, error) {
 	var zero collision.PlanarEdgeContact
 	if ctx == nil || w == nil {
 		return zero, geom.ErrInvalid
 	}
-	proof, err := collision.DiscoverPlanarEdgeContact(ctx, parts[0], parts[1], o.Proof)
+	proof, err := proveIGESPlanarEdgeContactPair(ctx, parts, o.Proof, interval)
 	if err != nil {
 		return zero, err
 	}
@@ -65,7 +92,7 @@ func WritePlanarEdgeContactPair(ctx context.Context, w io.Writer, parts [2]brep.
 	if err != nil {
 		return zero, err
 	}
-	got, err := ReadPlanarEdgeContactPair(ctx, bytes.NewReader(raw), o)
+	got, err := readIGESPlanarEdgeContactPair(ctx, bytes.NewReader(raw), o, interval)
 	if err != nil {
 		return zero, fmt.Errorf("iges planar edge contact readback: %w", err)
 	}
@@ -73,6 +100,11 @@ func WritePlanarEdgeContactPair(ctx context.Context, w io.Writer, parts [2]brep.
 	if got.LengthUnit != unit || p.EdgeA != proof.EdgeA || p.EdgeB != proof.EdgeB ||
 		p.Start != proof.Start || p.End != proof.End || p.Reversed != proof.Reversed || p.SignedVolume.Cmp(proof.SignedVolume) != 0 {
 		return zero, igesPlanarFailure(0, "readback changed exact edge contact or units")
+	}
+	for i := range p.ParameterA {
+		if p.ParameterA[i].Cmp(proof.ParameterA[i]) != 0 || p.ParameterB[i].Cmp(proof.ParameterB[i]) != 0 {
+			return zero, igesPlanarFailure(0, "readback changed exact original edge intervals")
+		}
 	}
 	for i, s := range parts {
 		if !samePlanarIGESBody(s, got.Bodies[i].Solid, faces[i]) {

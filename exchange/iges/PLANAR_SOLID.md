@@ -65,3 +65,6 @@ separate single-shell bodies whose only contact is one complete
 original edge. Both original edge-list entries and incident faces
 are preserved. Pinned OCCT writes and independently reopens the pair
 as two solids with 12 faces, volume 2 and area 12.
+The separate partial-edge entry points retain the original nonmatching
+edge extents and return exact directed ranges on both. The pinned
+partial pair remains two solids with 12 faces, volume 6 and area 28.

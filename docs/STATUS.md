@@ -33,8 +33,8 @@ bodies and exact vertex contacts. STEP and IGES support selected original
 point contacts on cavities, with independent shell containment witnesses.
 The native pair proof supports complete or partial contact along two
 original straight edges. It retains both directed rational ranges, native
-reload and shared point and line ownership. Complete edge contact also
-round-trips through independent STEP and IGES.
+reload and shared point and line ownership. Complete and partial edge
+contact also round-trip through independent STEP and IGES.
 
 Four transverse crossings qualify native Common, Fuse and both Cut orders,
 including exact source-integrated Cut volumes and source-based reload.
@@ -53,8 +53,8 @@ on `bafe7e81` are in progress. PlainCAD on `bafe7e81` has passed development,
 production and cross-browser gates; ordinary units are the remaining gate.
 Immediate work includes native three-event mixed shell assembly, exact
 re-export of independently authored per-edge STEP bases and a grouped
-millimetre-to-metre original transfer. The partially overlapping original
-edge STEP and IGES suites are also running.
+millimetre-to-metre original transfer, and exact assembly of bodies
+meeting on a complete original planar face.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

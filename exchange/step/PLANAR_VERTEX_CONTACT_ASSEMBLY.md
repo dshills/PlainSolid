@@ -39,3 +39,8 @@ complete original edge. They retain both edge and incident face owners.
 The reader proves full interval coverage and rejects partial-edge and
 face contact. Pinned OCCT authors and reopens the tested two-box pair
 as two independent solids with 12 faces, volume 2 and area 12.
+The corresponding `ReadEdgeIntervalContactPair` and
+`WriteEdgeIntervalContactPair` entry points qualify partial overlap
+along those two original straight edges. Their reported parameters
+belong to the original directed edges and no split or weld is applied.
+The independently written partial pair opens with volume 6 and area 28.

@@ -22,11 +22,25 @@ type EdgeContactSTEPOptions struct {
 // one complete original shared edge. It proves original supports and
 // physical units without rounding, and keeps separate native topology.
 func ReadEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactSTEPOptions) (Model, collision.PlanarEdgeContact, error) {
+	return readSTEPPlanarEdgePair(ctx, r, o, false)
+}
+
+// ReadEdgeIntervalContactPair proves the only contact is a positive common
+// interval of one original edge from each separate body. It retains both
+// exact directed intervals without splitting or welding either source edge.
+func ReadEdgeIntervalContactPair(ctx context.Context, r io.Reader, o EdgeContactSTEPOptions) (Model, collision.PlanarEdgeContact, error) {
+	return readSTEPPlanarEdgePair(ctx, r, o, true)
+}
+
+func readSTEPPlanarEdgePair(ctx context.Context, r io.Reader, o EdgeContactSTEPOptions, interval bool) (Model, collision.PlanarEdgeContact, error) {
 	if ctx == nil || r == nil {
 		return Model{}, collision.PlanarEdgeContact{}, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
 		return Model{}, collision.PlanarEdgeContact{}, err
+	}
+	if o.Limits.MaxSolids == 0 || o.Limits.MaxSolids > 2 {
+		o.Limits.MaxSolids = 2
 	}
 	m, err := readPlanarModel(r, o.Limits, true, false)
 	if err != nil {
@@ -38,7 +52,7 @@ func ReadEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactSTEPOpti
 	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
 		return Model{}, collision.PlanarEdgeContact{}, err
 	}
-	proof, err := collision.DiscoverPlanarEdgeContact(ctx, m.Bodies[0].Solid, m.Bodies[1].Solid, o.Proof)
+	proof, err := proveSTEPPlanarEdgePair(ctx, m, o.Proof, interval)
 	if err != nil {
 		return Model{}, collision.PlanarEdgeContact{}, err
 	}
@@ -48,6 +62,24 @@ func ReadEdgeContactPair(ctx context.Context, r io.Reader, o EdgeContactSTEPOpti
 // WriteEdgeContactPair writes two separate standard advanced STEP bodies
 // and verifies the same edge-only contact before publishing any bytes.
 func WriteEdgeContactPair(ctx context.Context, w io.Writer, m Model, o EdgeContactSTEPOptions) (collision.PlanarEdgeContact, error) {
+	return writeSTEPPlanarEdgePair(ctx, w, m, o, false)
+}
+
+// WriteEdgeIntervalContactPair transfers two original STEP boundaries whose
+// sole contact is one positive interval, with full strict readback.
+func WriteEdgeIntervalContactPair(ctx context.Context, w io.Writer, m Model, o EdgeContactSTEPOptions) (collision.PlanarEdgeContact, error) {
+	return writeSTEPPlanarEdgePair(ctx, w, m, o, true)
+}
+
+func proveSTEPPlanarEdgePair(ctx context.Context, m Model, o collision.PlanarEdgeContactOptions, interval bool) (collision.PlanarEdgeContact, error) {
+	a, b := m.Bodies[0].Solid, m.Bodies[1].Solid
+	if interval {
+		return collision.DiscoverPlanarEdgeIntervalContact(ctx, a, b, o)
+	}
+	return collision.DiscoverPlanarEdgeContact(ctx, a, b, o)
+}
+
+func writeSTEPPlanarEdgePair(ctx context.Context, w io.Writer, m Model, o EdgeContactSTEPOptions, interval bool) (collision.PlanarEdgeContact, error) {
 	var zero collision.PlanarEdgeContact
 	if ctx == nil || w == nil || len(m.Bodies) != 2 {
 		return zero, geom.ErrInvalid
@@ -62,7 +94,7 @@ func WriteEdgeContactPair(ctx context.Context, w io.Writer, m Model, o EdgeConta
 	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
 		return zero, err
 	}
-	proof, err := collision.DiscoverPlanarEdgeContact(ctx, m.Bodies[0].Solid, m.Bodies[1].Solid, o.Proof)
+	proof, err := proveSTEPPlanarEdgePair(ctx, m, o.Proof, interval)
 	if err != nil {
 		return zero, err
 	}
@@ -70,7 +102,7 @@ func WriteEdgeContactPair(ctx context.Context, w io.Writer, m Model, o EdgeConta
 	if err := writePlanarModel(&out, m, true, true); err != nil {
 		return zero, err
 	}
-	got, p, err := ReadEdgeContactPair(ctx, bytes.NewReader(out.Bytes()), o)
+	got, p, err := readSTEPPlanarEdgePair(ctx, bytes.NewReader(out.Bytes()), o, interval)
 	if err != nil {
 		return zero, fmt.Errorf("step edge contact reopen: %w", err)
 	}

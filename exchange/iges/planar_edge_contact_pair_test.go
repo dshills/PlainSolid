@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,13 +46,28 @@ func TestPlanarEdgeContactPairIGES(t *testing.T) {
 }
 
 func TestPlanarEdgeContactPairIGESLiveOCCT(t *testing.T) {
+	checkPlanarEdgePairIGESLiveOCCT(t, false)
+}
+
+func TestPlanarEdgeIntervalContactPairIGESLiveOCCT(t *testing.T) {
+	checkPlanarEdgePairIGESLiveOCCT(t, true)
+}
+
+func checkPlanarEdgePairIGESLiveOCCT(t *testing.T, interval bool) {
+	t.Helper()
 	oracle := os.Getenv("PLAINSOLID_OCCT_PLANAR_SHELLS_IGES")
 	if oracle == "" {
 		t.Skip("optional pinned OCCT IGES author and reader")
 	}
 	dir := t.TempDir()
 	upstream, native := filepath.Join(dir, "upstream-edge.igs"), filepath.Join(dir, "native-edge.igs")
-	if data, err := exec.Command(oracle, "write-edge-pair", upstream).CombinedOutput(); err != nil {
+	mode, volume, area := "write-edge-pair", 2., 12.
+	read, write := ReadPlanarEdgeContactPair, WritePlanarEdgeContactPair
+	if interval {
+		mode, volume, area = "write-edge-interval", 6., 28.
+		read, write = ReadPlanarEdgeIntervalContactPair, WritePlanarEdgeIntervalContactPair
+	}
+	if data, err := exec.Command(oracle, mode, upstream).CombinedOutput(); err != nil {
 		t.Fatalf("OCCT original edge contact: %v %s", err, data)
 	}
 	raw, err := os.ReadFile(upstream)
@@ -59,13 +75,21 @@ func TestPlanarEdgeContactPairIGESLiveOCCT(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	m, err := ReadPlanarEdgeContactPair(ctx, bytes.NewReader(raw), EdgeContactIGESOptions{})
-	if err != nil || m.Contact.SignedVolume.RatString() != "2" {
+	m, err := read(ctx, bytes.NewReader(raw), EdgeContactIGESOptions{})
+	if err != nil || m.Contact.SignedVolume.Cmp(new(big.Rat).SetFloat64(volume)) != 0 {
 		t.Fatalf("exact OCCT IGES body edges: %+v %v", m.Contact, err)
+	}
+	if interval {
+		if min(m.Contact.Start.Z, m.Contact.End.Z) != 1 || max(m.Contact.Start.Z, m.Contact.End.Z) != 3 {
+			t.Fatalf("the original IGES partial edge interval changed: %+v", m.Contact)
+		}
+		if _, err := ReadPlanarEdgeContactPair(ctx, bytes.NewReader(raw), EdgeContactIGESOptions{}); err == nil {
+			t.Fatal("whole-edge reader admitted the partial original IGES contact")
+		}
 	}
 	var out bytes.Buffer
 	parts := [2]brep.Solid{m.Bodies[0].Solid, m.Bodies[1].Solid}
-	if _, err := WritePlanarEdgeContactPair(ctx, &out, parts, m.LengthUnit, EdgeContactIGESOptions{}); err != nil {
+	if _, err := write(ctx, &out, parts, m.LengthUnit, EdgeContactIGESOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(native, out.Bytes(), 0600); err != nil {
@@ -78,7 +102,7 @@ func TestPlanarEdgeContactPairIGESLiveOCCT(t *testing.T) {
 			Volume, Area  float64
 		}
 		i := bytes.LastIndexByte(data, '{')
-		if err != nil || i < 0 || json.Unmarshal(data[i:], &p) != nil || p.Solids != 2 || p.Faces != 12 || math.Abs(p.Volume-2) > 1e-9 || math.Abs(p.Area-12) > 1e-9 {
+		if err != nil || i < 0 || json.Unmarshal(data[i:], &p) != nil || p.Solids != 2 || p.Faces != 12 || math.Abs(p.Volume-volume) > 1e-9 || math.Abs(p.Area-area) > 1e-9 {
 			t.Fatalf("independent reader lost edge-contact bodies: %v %s", err, data)
 		}
 	}

@@ -102,6 +102,83 @@ func ValidatePlanarEdgeIntervalContact(ctx context.Context, a, b brep.Solid, edg
 	return validatePlanarEdgeContact(ctx, a, b, edgeA, edgeB, o, false, nil)
 }
 
+// DiscoverPlanarEdgeIntervalContact finds one pair of original edges with
+// a positive shared interval. Exact line keys avoid comparing unrelated
+// edges. The complete boundary proof still requires that the recovered
+// interval is the only inter-body contact.
+func DiscoverPlanarEdgeIntervalContact(ctx context.Context, a, b brep.Solid, o PlanarEdgeContactOptions) (PlanarEdgeContact, error) {
+	var zero PlanarEdgeContact
+	if ctx == nil || o.Cross.MaxPairs < 0 {
+		return zero, ErrInvalid
+	}
+	limit := o.Cross.MaxPairs
+	if limit == 0 {
+		limit = DefaultMaxPairs
+	}
+	av, bv := a.Vertices(), b.Vertices()
+	type candidate struct {
+		id     int
+		lo, hi scalar
+	}
+	first := make(map[[6]string][]candidate)
+	for i, e := range a.Edges() {
+		if err := ctx.Err(); err != nil {
+			return zero, err
+		}
+		key, lo, hi, err := exactPlanarEdgeLineKey(av[e.Start], av[e.End])
+		if err != nil {
+			return zero, err
+		}
+		first[key] = append(first[key], candidate{i, lo, hi})
+	}
+	pair := [2]int{-1, -1}
+	for j, e := range b.Edges() {
+		if err := ctx.Err(); err != nil {
+			return zero, err
+		}
+		key, lo, hi, err := exactPlanarEdgeLineKey(bv[e.Start], bv[e.End])
+		if err != nil {
+			return zero, err
+		}
+		for _, c := range first[key] {
+			if limit == 0 {
+				return zero, ErrLimit
+			}
+			limit--
+			if c.lo.Cmp(hi) >= 0 || lo.Cmp(c.hi) >= 0 {
+				continue
+			}
+			if pair[0] >= 0 {
+				return zero, fmt.Errorf("%w: interval contact requires one original edge pair", ErrInvalid)
+			}
+			pair = [2]int{c.id, j}
+		}
+	}
+	if pair[0] < 0 {
+		return zero, fmt.Errorf("%w: no positive original edge interval in common", ErrInvalid)
+	}
+	return ValidatePlanarEdgeIntervalContact(ctx, a, b, pair[0], pair[1], o)
+}
+
+func exactPlanarEdgeLineKey(a, b geom.Vec3) (key [6]string, lo, hi scalar, err error) {
+	p, q := exact(a), exact(b)
+	d := minus(q, p)
+	axis := nonzeroAxis(d)
+	if axis < 0 {
+		return key, nil, nil, ErrInvalid
+	}
+	for i := range d {
+		direction := div(d[i], d[axis])
+		intercept := sub(p[i], mul(p[axis], direction))
+		key[i], key[i+3] = direction.RatString(), intercept.RatString()
+	}
+	lo, hi = p[axis], q[axis]
+	if lo.Cmp(hi) > 0 {
+		lo, hi = hi, lo
+	}
+	return key, lo, hi, nil
+}
+
 func validatePlanarEdgeContact(ctx context.Context, a, b brep.Solid, edgeA, edgeB int, o PlanarEdgeContactOptions, full bool, prepared *[2]vertexContactComponent) (PlanarEdgeContact, error) {
 	var zero PlanarEdgeContact
 	if ctx == nil || o.Cross.MaxPairs < 0 || o.Cross.MaxContacts < 0 || o.MaxQueryWork < 0 {
