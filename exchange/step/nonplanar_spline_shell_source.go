@@ -75,6 +75,10 @@ func noncoplanarSplinePoles(f *File, r Record) bool {
 	return false
 }
 func ReadNonplanarSplineShellSource(ctx context.Context, r io.Reader, l Limits) (NonplanarSplineShellSource, error) {
+	return readNonplanarSplineShellSource(ctx, r, l, 2)
+}
+
+func readNonplanarSplineShellSource(ctx context.Context, r io.Reader, l Limits, maxDegree int) (NonplanarSplineShellSource, error) {
 	var zero NonplanarSplineShellSource
 	fail := func() (NonplanarSplineShellSource, error) { return zero, geom.ErrInvalid }
 	if ctx == nil || r == nil {
@@ -157,17 +161,17 @@ func ReadNonplanarSplineShellSource(ctx context.Context, r io.Reader, l Limits) 
 					}
 				}
 			case "B_SPLINE_SURFACE_WITH_KNOTS":
-				if len(en.Records) != 1 || len(r.Args) != 13 || r.Args[3].Kind != Aggregate || len(r.Args[3].Items) > 3 {
+				if len(en.Records) != 1 || len(r.Args) != 13 || r.Args[3].Kind != Aggregate || len(r.Args[3].Items) > maxDegree+1 {
 					return fail()
 				}
 				for _, row := range r.Args[3].Items {
-					if row.Kind != Aggregate || len(row.Items) > 3 {
+					if row.Kind != Aggregate || len(row.Items) > maxDegree+1 {
 						return fail()
 					}
 				}
 				for _, index := range []int{1, 2} {
 					q, e := affineSplineSourceRat(r.Args[index])
-					if e != nil || !q.IsInt() || q.Cmp(big.NewRat(1, 1)) < 0 || q.Cmp(big.NewRat(2, 1)) > 0 {
+					if e != nil || !q.IsInt() || q.Cmp(big.NewRat(1, 1)) < 0 || q.Cmp(big.NewRat(int64(maxDegree), 1)) > 0 {
 						return fail()
 					}
 				}
@@ -238,7 +242,7 @@ func ReadNonplanarSplineShellSource(ctx context.Context, r io.Reader, l Limits) 
 			}
 			for _, v := range integers {
 				q, e := affineSplineSourceRat(v)
-				if e != nil || !q.IsInt() || q.Sign() <= 0 || q.Cmp(big.NewRat(3, 1)) > 0 {
+				if e != nil || !q.IsInt() || q.Sign() <= 0 || q.Cmp(big.NewRat(int64(maxDegree+1), 1)) > 0 {
 					return fail()
 				}
 			}
