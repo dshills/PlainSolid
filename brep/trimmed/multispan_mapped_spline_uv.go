@@ -9,8 +9,8 @@ import (
 // MultiSpanMappedSplineUV preserves three through eight original cubic/quartic
 // source spans with independent positive Möbius speeds. Every source knot has
 // degree-fold multiplicity and exact C0 ownership. All mapped pieces must prove
-// the same complete model-normalized Bézier. Repair is not supported by this
-// type yet; no original source history is flattened to permit it.
+// the same complete model-normalized Bézier. Restricted descendants preserve the
+// entire original source and at least two active spans.
 type MultiSpanMappedSplineUV struct {
 	source   SplineUV
 	stations []*big.Rat
@@ -18,7 +18,7 @@ type MultiSpanMappedSplineUV struct {
 	curve    ExactBezierUV
 }
 
-// NewMultiSpanMappedSplineUV accepts the whole original clamped source domain.
+// NewMultiSpanMappedSplineUV accepts a contiguous interval of an original clamped source domain.
 // On each consecutive model interval, its normalized local t is mapped through
 // the corresponding positive weight, then through the original span and reversal.
 // There are at most eight bounded single-span mapped constructions and eight
@@ -27,7 +27,7 @@ type MultiSpanMappedSplineUV struct {
 // at most 4096 bits.
 func NewMultiSpanMappedSplineUV(ctx context.Context, source SplineUV, stations []*big.Rat, weights []*big.Rat, o geom.SurfacePatchOptions) (MultiSpanMappedSplineUV, error) {
 	var zero MultiSpanMappedSplineUV
-	if ctx == nil || source.Curve == nil || len(weights) < 3 || len(weights) > 8 || len(stations) != len(weights)-1 {
+	if ctx == nil || source.Curve == nil || len(weights) < 2 || len(weights) > 8 || len(stations) != len(weights)-1 {
 		return zero, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -47,14 +47,18 @@ func NewMultiSpanMappedSplineUV(ctx context.Context, source SplineUV, stations [
 		prior = s
 	}
 	count, n := len(weights), source.Curve.Degree()
-	knots := source.Curve.Knots()
-	lo, hi := source.Curve.Domain()
-	if n < 3 || n > 4 || source.Range != (UVInterval{lo, hi}) || len(source.Curve.Poles()) != n*count+1 || len(knots) != n*(count+1)+2 {
+	if n < 3 || n > 4 {
 		return zero, geom.ErrConvergence
 	}
-	raw := make([]float64, count+1)
-	raw[0], raw[count] = lo, hi
-	for i := 1; i < count; i++ {
+	total := (len(source.Curve.Poles()) - 1) / n
+	knots := source.Curve.Knots()
+	lo, hi := source.Curve.Domain()
+	if n < 3 || n > 4 || total < 3 || total > 8 || !finite(source.Range.Min) || !finite(source.Range.Max) || source.Range.Min < lo || source.Range.Max > hi || source.Range.Min >= source.Range.Max || len(source.Curve.Poles()) != n*total+1 || len(knots) != n*(total+1)+2 {
+		return zero, geom.ErrConvergence
+	}
+	raw := make([]float64, total+1)
+	raw[0], raw[total] = lo, hi
+	for i := 1; i < total; i++ {
 		raw[i] = knots[n+1+(i-1)*n]
 		if raw[i] <= raw[i-1] || raw[i] >= hi {
 			return zero, geom.ErrConvergence
@@ -63,7 +67,7 @@ func NewMultiSpanMappedSplineUV(ctx context.Context, source SplineUV, stations [
 	cursor := 0
 	for i, v := range raw {
 		multiplicity := n
-		if i == 0 || i == count {
+		if i == 0 || i == total {
 			multiplicity++
 		}
 		for j := 0; j < multiplicity; j++ {
@@ -73,6 +77,17 @@ func NewMultiSpanMappedSplineUV(ctx context.Context, source SplineUV, stations [
 			cursor++
 		}
 	}
+	active := []float64{source.Range.Min}
+	for _, k := range raw {
+		if k > source.Range.Min && k < source.Range.Max {
+			active = append(active, k)
+		}
+	}
+	active = append(active, source.Range.Max)
+	if len(active) != count+1 {
+		return zero, geom.ErrConvergence
+	}
+	raw = active
 	parts := make([]MappedSplineUV, count)
 	for i := range parts {
 		index := i
@@ -131,7 +146,7 @@ func (q MultiSpanMappedSplineUV) ParameterWeights() []*big.Rat {
 	return out
 }
 func (q MultiSpanMappedSplineUV) AuthoredParameter(t *big.Rat) (*big.Rat, error) {
-	if len(q.parts) < 3 || t == nil {
+	if len(q.parts) < 2 || t == nil {
 		return nil, geom.ErrDomain
 	}
 	if t.Num().BitLen() > 4096 || t.Denom().BitLen() > 4096 {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"testing"
@@ -258,9 +257,7 @@ func checkStoredMixedMultiSpan(t *testing.T, count int, reverse bool) {
 	if verified != count-1 {
 		t.Fatal("knot count", verified)
 	}
-	if out, _, e := s.SplitExactBezierTrimEdge(ctx, edge, big.NewRat(1, 2), edgecheck.Options{}); e == nil || len(out.faces) != 0 {
-		t.Fatal("unsupported repair flattened source")
-	}
+
 	t.Logf("spans=%d triangles=%d volume=%g shared original knots=%d", count, len(r.Mesh.Triangles), v, verified)
 }
 

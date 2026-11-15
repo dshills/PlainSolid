@@ -8,6 +8,12 @@ import (
 )
 
 func splitStoredBezierDescriptor(ctx context.Context, c PCurve, o edgecheck.Options) (ExactBezierUV, error) {
+	if q, ok := c.(MultiSpanMappedSplineUV); ok {
+		if len(q.parts) < 2 {
+			return ExactBezierUV{}, geom.ErrInvalid
+		}
+		return q.curve, nil
+	}
 	if q, ok := c.(PiecewiseMappedSplineUV); ok {
 		if q.station == nil {
 			return ExactBezierUV{}, geom.ErrInvalid
@@ -39,6 +45,9 @@ func splitStoredBezierDescriptor(ctx context.Context, c PCurve, o edgecheck.Opti
 // local follows the coedge; the raw split follows SplineUV.Curve before its own
 // reversal. Final native correspondence independently rechecks both restrictions.
 func splitStoredBezierSources(ctx context.Context, source PCurve, local *big.Rat, a, b ExactBezierUV, o edgecheck.Options) (PCurve, PCurve, error) {
+	if q, ok := source.(MultiSpanMappedSplineUV); ok {
+		return splitMultiSpanMappedSource(ctx, q, local, a, b, geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits})
+	}
 	if q, ok := source.(PiecewiseMappedSplineUV); ok {
 		return splitPiecewiseMappedSource(ctx, q, local, a, b, geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits})
 	}

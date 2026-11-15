@@ -227,7 +227,7 @@ func mixedStoredUseCurveContext(ctx context.Context, u Use, o geom.SurfacePatchO
 	}
 	switch q := u.Curve.(type) {
 	case MultiSpanMappedSplineUV:
-		if len(q.parts) < 3 {
+		if len(q.parts) < 2 {
 			return nil, geom.ErrInvalid
 		}
 		return q.curve, nil

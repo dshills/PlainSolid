@@ -428,7 +428,7 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 				return nil, geom.ErrInvalid
 			}
 			recipe := x.MultiSpanMappedSpline
-			if len(recipe.Stations) < 2 || len(recipe.Stations) > 7 || len(recipe.Weights) != len(recipe.Stations)+1 {
+			if len(recipe.Stations) < 1 || len(recipe.Stations) > 7 || len(recipe.Weights) != len(recipe.Stations)+1 {
 				return nil, geom.ErrConvergence
 			}
 			raw := recipe.Source

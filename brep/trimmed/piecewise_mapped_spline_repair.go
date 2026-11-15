@@ -117,6 +117,8 @@ func restrictPiecewiseMappedSource(ctx context.Context, q PiecewiseMappedSplineU
 }
 func mappedRepairSource(c PCurve) (ExactBezierUV, SplineUV, bool) {
 	switch q := c.(type) {
+	case MultiSpanMappedSplineUV:
+		return q.curve, q.source, len(q.parts) >= 2
 	case MappedSplineUV:
 		return q.curve, q.source, q.weight != nil
 	case PiecewiseMappedSplineUV:
@@ -147,7 +149,7 @@ type mappedRepairPiece struct {
 	lo, hi *big.Rat
 }
 
-// At most four input pieces, three adjacent joins and one two-span rebuild are
+// At most sixteen input pieces, fifteen adjacent joins and one eight-span rebuild are
 // examined. Each source/curve reproof retains the bounded native merge budget;
 // original source identity, raw adjacency and exact parameter maps are mandatory.
 // Two single-span children may first attempt the existing bounded single-map
@@ -177,6 +179,16 @@ func joinPiecewiseMappedSources(ctx context.Context, a, b PCurve, t *big.Rat) (P
 	var parts []mappedRepairPiece
 	appendParts := func(c PCurve, lo, hi *big.Rat) {
 		switch q := c.(type) {
+		case MultiSpanMappedSplineUV:
+			prior := lo
+			for i, p := range q.parts {
+				end := hi
+				if i < len(q.stations) {
+					end = new(big.Rat).Add(lo, new(big.Rat).Mul(new(big.Rat).Sub(hi, lo), q.stations[i]))
+				}
+				parts = append(parts, mappedRepairPiece{p, prior, end})
+				prior = end
+			}
 		case MappedSplineUV:
 			parts = append(parts, mappedRepairPiece{q, lo, hi})
 		case PiecewiseMappedSplineUV:
@@ -218,13 +230,35 @@ func joinPiecewiseMappedSources(ctx context.Context, a, b PCurve, t *big.Rat) (P
 	case 1:
 		result = parts[0].q
 	case 2:
+		if (len(source.Curve.Poles())-1)/source.Curve.Degree() > 2 {
+			q, e := NewMultiSpanMappedSplineUV(ctx, source, []*big.Rat{parts[0].hi}, []*big.Rat{parts[0].q.weight, parts[1].q.weight}, o)
+			if e != nil {
+				return nil, zero, e
+			}
+			result = q
+			break
+		}
 		q, e := NewPiecewiseMappedSplineUV(ctx, source, parts[0].hi, [2]*big.Rat{parts[0].q.weight, parts[1].q.weight}, o)
 		if e != nil {
 			return nil, zero, e
 		}
 		result = q
 	default:
-		return nil, zero, geom.ErrConvergence
+		if len(parts) > 8 {
+			return nil, zero, geom.ErrConvergence
+		}
+		var stations, weights []*big.Rat
+		for i, p := range parts {
+			weights = append(weights, p.q.weight)
+			if i+1 < len(parts) {
+				stations = append(stations, p.hi)
+			}
+		}
+		q, e := NewMultiSpanMappedSplineUV(ctx, source, stations, weights, o)
+		if e != nil {
+			return nil, zero, e
+		}
+		result = q
 	}
 	whole, _, _ := mappedRepairSource(result)
 	x, y, e := whole.Split(t)

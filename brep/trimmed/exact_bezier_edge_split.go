@@ -147,6 +147,9 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 // evaluations equal their independently proved exact values.
 func (s Solid) MergeExactBezierTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
 	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
+		if _, ok := a.(MultiSpanMappedSplineUV); ok {
+			return joinPiecewiseMappedSources(ctx, a, b, t)
+		}
 		if _, ok := a.(PiecewiseMappedSplineUV); ok {
 			return joinPiecewiseMappedSources(ctx, a, b, t)
 		}
