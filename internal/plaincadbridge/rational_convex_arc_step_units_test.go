@@ -43,10 +43,13 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 		{"converted-inch", "occt-default-tilted-translated-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, false},
 		{"converted-grouped-metre", "occt-both-default-tilted-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
 		{"converted-grouped-inch", "occt-both-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
+		{"converted-three-metre", "occt-three-default-tilted-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
+		{"converted-three-inch", "occt-three-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := stepRepairFixture(t, tc.file)
 			converted := strings.HasPrefix(tc.name, "converted-")
+			three := strings.HasPrefix(tc.name, "converted-three-")
 			convertedInch := converted && tc.unit == stepInch
 			maxDistance, millimetresPerBase := 1e-12, tc.mmPerUnit
 			if convertedInch {
@@ -98,21 +101,30 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			if tc.grouped {
 				m, e := step.ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
 				evidence := admitted.RepairEvidence
-				finiteOwners := 8
+				finiteOwners, owners, repairs, axialTrims := 8, 28, 8, 1
 				if converted {
 					finiteOwners = 18
 				}
-				if e != nil || evidence.Family != "occt-rational-posed-grouped-pcurve-convex-arc" || len(evidence.Repairs) != 8 ||
-					evidence.PCurveOwners != 28 || evidence.FiniteLineOwners != finiteOwners || evidence.RationalCaps != 2 || evidence.AxialTrims != 1 ||
-					len(m.PCurves()) != 28 || len(m.FiniteLineOwners()) != finiteOwners || len(m.FiniteTrims()) != 2 || len(m.AxialTrims()) != 1 {
+				if three {
+					owners, repairs, axialTrims = 34, 10, 2
+				}
+				if e != nil || evidence.Family != "occt-rational-posed-grouped-pcurve-convex-arc" || len(evidence.Repairs) != repairs ||
+					evidence.PCurveOwners != owners || evidence.FiniteLineOwners != finiteOwners || evidence.RationalCaps != 2 || evidence.AxialTrims != axialTrims ||
+					len(m.PCurves()) != owners || len(m.FiniteLineOwners()) != finiteOwners || len(m.FiniteTrims()) != 2 || len(m.AxialTrims()) != axialTrims {
 					t.Fatal("grouped bridge receipt lost original finite owner evidence", e)
 				}
-				if converted {
+				if three {
+					checkThreeConvertedBridgeReceipt(t, tc.unit, m)
+				} else if converted {
 					checkGroupedConvertedBridgeReceipt(t, tc.unit, m)
 				}
 				reloaded = m
 				bounds = Bounds{Min: vector{0, 0, -2.7}, Max: vector{6.025, 3, 3}}
 				volume, area = 29.077978807115539, 65.622954970084379
+				if three {
+					bounds.Max[1] = 2.84375
+					volume, area = 28.968988172080639, 64.184278587623695
+				}
 				x, z = new(big.Rat), new(big.Rat)
 			} else {
 				m, e := step.ReadRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, proof, step.IndependentMaterialJSONLimits{})
@@ -228,6 +240,57 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	}
 	if len(handles) > 1 {
 		rejectGroup(t, b, map[string]any{"op": "exportStep", "stepUnits": stepMetre, "handles": handles})
+	}
+}
+
+func checkThreeConvertedBridgeReceipt(t *testing.T, unit stepFileUnit, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
+	t.Helper()
+	scale, end, height := "1/1000", "5000", "5"
+	if unit == stepInch {
+		scale, end, height = "5/127", "635", "25"
+	}
+	for _, owner := range m.FiniteLineOwners() {
+		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != scale {
+			t.Fatal("bridge receipt lost original planar parameter map", owner.PCurveID)
+		}
+	}
+	spans, trims := m.CylindricalSpanOwners(), m.FiniteTrims()
+	if len(spans) != 12 || len(trims) != 2 {
+		t.Fatal("bridge receipt lost converted cylinder owners or finite cap trims")
+	}
+	byOwner := make(map[int64]step.ConvexArcCylinderSpanOwner, len(spans))
+	for _, span := range spans {
+		byOwner[span.PCurveID] = span
+	}
+	for i, id := range [2]int64{207, 416} {
+		span := byOwner[id]
+		if span.ModelAngleBounds == nil || span.ParameterInterval[0].RatString() != "2498091544797/1000000000000" ||
+			span.ParameterInterval[1].RatString() != "942477796077/200000000000" ||
+			span.UVStart[0].Sign() != 0 || span.UVStart[1].RatString() != [2]string{"0", height}[i] ||
+			span.UVDerivative[0].RatString() != "1" || span.UVDerivative[1].Sign() != 0 {
+			t.Fatal("bridge receipt lost original phase and finite angle bounds", id)
+		}
+	}
+	for i, id := range [2]int64{284, 462} {
+		span := byOwner[id]
+		trim := m.AxialTrims()[i]
+		mapping := span.RepairedToOwner
+		if mapping == nil || mapping[1].Sign() <= 0 || trim.EdgeID != [2]int64{276, 449}[i] ||
+			span.ParameterInterval[0].Sign() != 0 || span.ParameterInterval[1].RatString() != end ||
+			span.UVDerivative[1].RatString() != scale {
+			t.Fatal("bridge receipt lost finite axial map", id)
+		}
+		for j, station := range trim.RepairedParameters {
+			original := new(big.Rat).Add(mapping[0], new(big.Rat).Mul(mapping[1], station))
+			if original.Cmp(trim.OriginalParameters[j]) != 0 || original.Cmp(span.ParameterInterval[0]) < 0 ||
+				original.Cmp(span.ParameterInterval[1]) > 0 {
+				t.Fatal("bridge receipt map exceeds authored axial knots", id)
+			}
+		}
+		if trims[i].CapOwner.PCurveID != [2]int64{254, 311}[i] ||
+			trims[i].CylinderOwner.PCurveID != [2]int64{265, 305}[i] || trims[i].EndStation == nil {
+			t.Fatal("bridge receipt lost original rational cap pairing", trims[i].CapOwner.PCurveID)
+		}
 	}
 }
 

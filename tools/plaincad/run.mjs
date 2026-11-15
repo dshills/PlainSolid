@@ -130,7 +130,9 @@ export default defineConfig({ ...base, test: {
       "occt-default-tilted-translated-oblique-prism-fillet-converted-inch",
       "occt-both-default-tilted-oblique-prism-fillet-converted-metre",
       "occt-both-default-tilted-oblique-prism-fillet-converted-inch",
-      "occt-three-default-tilted-oblique-prism-fillet"]) {
+      "occt-three-default-tilted-oblique-prism-fillet",
+      "occt-three-default-tilted-oblique-prism-fillet-converted-metre",
+      "occt-three-default-tilted-oblique-prism-fillet-converted-inch"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
@@ -192,6 +194,8 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-converted-metre.step": "public/plainsolid-grouped-converted-step-repair-metre.step",
     "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-converted-inch.step": "public/plainsolid-grouped-converted-step-repair-inch.step",
     "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet.step": "public/plainsolid-three-step-repair.step",
+    "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet-converted-metre.step": "public/plainsolid-three-converted-step-repair-metre.step",
+    "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet-converted-inch.step": "public/plainsolid-three-converted-step-repair-inch.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
@@ -215,7 +219,8 @@ async function runSTEPRepairWorkerFixture() {
     report.tests = browserTests(result.suites);
     report.summaries = [{ path, ...result.stats }];
     const count = report.tests.length;
-    report.backendVerified = count > 0 && (grep !== ".*" || count === 10) && report.tests.every(test =>
+    const expectedCount = Object.keys(sourceFiles).filter(source => source.endsWith(".step")).length;
+    report.backendVerified = count > 0 && (grep !== ".*" || count === expectedCount) && report.tests.every(test =>
       test.status === "expected" && test.results.length === 1 && test.results[0].status === "passed");
   } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }
   report.status = !report.error && report.backendVerified ? "passed" : "failed";

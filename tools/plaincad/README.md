@@ -93,6 +93,10 @@ and their reversed cylindrical spans.
 The original three-fillet millimetre fixture checks both phase-shifted
 cylinder charts, two unequal axial trims, and strict canonical reopen. It
 uses a `1e-12` mm repair budget and rejects `1e-13` mm.
+The converted three-fillet metre and inch originals check the 12-owner
+cylindrical ledger, both shifted angular bounds, both directed axial maps,
+and the original rational cap pairs. The fixtures use the explicit file
+units and the same repair budgets as their converted two-fillet counterparts.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
@@ -100,7 +104,7 @@ disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
 corresponding original converted OCCT exports. It also covers the tilted
-three-fillet millimetre original. The
+three-fillet millimetre original and its converted metre and inch fixtures. The
 test compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports

@@ -21,6 +21,14 @@ const fixtures = [
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
   { name: "three-fillet", path: "/plainsolid-three-step-repair.step", units: undefined, otherPath: undefined, scale: 1, metresPerUnit: .001,
     grouped: true, three: true, rejectedDistance: 1e-13 },
+  { name: "three-fillet converted metre", path: "/plainsolid-three-converted-step-repair-metre.step", units: "m",
+    otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1,
+    grouped: true, three: true, rejectedDistance: 1e-13,
+    converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { name: "three-fillet converted inch", path: "/plainsolid-three-converted-step-repair-inch.step", units: "in",
+    otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254,
+    grouped: true, three: true, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -126,23 +134,40 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     expect(certificate.Claims.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
     expect(certificate.Claims.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
   }
-  const phaseOwners = three ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "phase-cylinder-circle") : undefined;
+  const phaseKind = "converted" in fixture ? "finite-phase-cylinder-circle" : "phase-cylinder-circle";
+  const phaseOwners = three ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === phaseKind) : undefined;
   if (three) {
-    expect(phaseOwners).toMatchObject([
-      { PCurveID: 210, DistanceSquaredUpper: expect.any(String) },
-      { PCurveID: 425, DistanceSquaredUpper: expect.any(String) },
-    ]);
+    const owners = "converted" in fixture ? [207, 416] : [210, 425];
+    expect(phaseOwners).toMatchObject(
+      owners.map(PCurveID => ({ PCurveID, DistanceSquaredUpper: expect.any(String) })));
   }
-  const convertedOwners = "converted" in fixture ? { finiteLineOwners: 18, cylindricalSpanOwners: fixture.grouped ? 8 : 4, ...fixture.converted } : undefined;
+  const convertedOwners = "converted" in fixture ? {
+    finiteLineOwners: 18, cylindricalSpanOwners: three ? 12 : fixture.grouped ? 8 : 4, ...fixture.converted,
+  } : undefined;
   if (convertedOwners) {
     const { ownerScale, axialEnd, height } = convertedOwners;
     expect(result.repairEvidence.finiteLineOwners).toBe(convertedOwners.finiteLineOwners);
-    expect(result.repairEvidence.repairs).toHaveLength(fixture.grouped ? 8 : 3);
+    expect(result.repairEvidence.repairs).toHaveLength(three ? 10 : fixture.grouped ? 8 : 3);
     expect(certificate.Claims.FiniteLineOwners).toHaveLength(convertedOwners.finiteLineOwners);
     for (const owner of certificate.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
     const spans = certificate.Claims.CylindricalSpanOwners;
     expect(spans).toHaveLength(convertedOwners.cylindricalSpanOwners);
-    if (fixture.grouped) {
+    if (three) {
+      const shiftedInterval = ["2498091544797/1000000000000", "942477796077/200000000000"];
+      const modelAngleBounds = [["624522886199/250000000000", "1249045772399/500000000000"],
+        ["147262155637/31250000000", "2356194490193/500000000000"]];
+      expect(spans.filter((span: { ModelAngleBounds?: unknown }) => span.ModelAngleBounds !== undefined)).toEqual([
+        { PCurveID: 207, ParameterInterval: shiftedInterval, UVStart: ["0", "0"], UVDerivative: ["1", "0"], ModelAngleBounds: modelAngleBounds },
+        { PCurveID: 416, ParameterInterval: shiftedInterval, UVStart: ["0", height], UVDerivative: ["1", "0"], ModelAngleBounds: modelAngleBounds },
+      ]);
+      expect(spans.filter((span: { RepairedToOwner?: unknown }) => span.RepairedToOwner !== undefined)).toMatchObject(
+        [284, 462].map(PCurveID => ({ PCurveID, ParameterInterval: ["0", axialEnd], UVDerivative: ["0", ownerScale],
+          RepairedToOwner: [expect.any(String), expect.any(String)] })));
+      expect(certificate.Claims.Grouped.FiniteTrims).toMatchObject([
+        { CapOwner: { PCurveID: 254 }, CylinderOwner: { PCurveID: 265 }, EndStation: expect.any(Object) },
+        { CapOwner: { PCurveID: 311 }, CylinderOwner: { PCurveID: 305 }, EndStation: expect.any(Object) },
+      ]);
+    } else if (fixture.grouped) {
       const quarterTurn = "314159265359/200000000000";
       const repairedToOwner = fixture.units === "in" ? [
         "-625000000000000000000000000001/615157480315000000000000000000000000000000000000000000000",
