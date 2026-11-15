@@ -29,6 +29,17 @@ func (s SpherePairSet) ClassifyDilatedSphericalLens(ctx context.Context, p geom.
 	return s.query.ClassifyDilatedLensRational(ctx, [3]*big.Rat{q(p.X), q(p.Y), q(p.Z)}, q(distance), o)
 }
 
+// ClipDilatedSphericalLensLine retains exact raw-t intervals for the original
+// lens parallel body and identifies the original cap or rim at each endpoint.
+func (s SpherePairSet) ClipDilatedSphericalLensLine(ctx context.Context, origin, direction geom.Vec3, minT, maxT, distance float64, o geom.ToroidLineOptions) (geom.SphereLensDilationLine, error) {
+	if !s.valid || !origin.IsFinite() || !direction.IsFinite() || !finite(minT) || !finite(maxT) || !finite(distance) {
+		return geom.SphereLensDilationLine{}, geom.ErrInvalid
+	}
+	q := func(v float64) *big.Rat { return new(big.Rat).SetFloat64(v) }
+	p := func(v geom.Vec3) [3]*big.Rat { return [3]*big.Rat{q(v.X), q(v.Y), q(v.Z)} }
+	return s.query.ClipDilatedLensRationalLine(ctx, p(origin), p(direction), q(minT), q(maxT), q(distance), o)
+}
+
 // DilateSphericalLens dilates an originally transverse ball intersection
 // using its two outward-offset spherical caps and their rolling torus band.
 // The original contact circle's center and radius and both expanded radii

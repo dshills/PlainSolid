@@ -155,6 +155,18 @@ func TestSphericalLensDilationBeyondRingRadius(t *testing.T) {
 		if err != nil || len(hits) != 2 || math.Abs(hits[0].Point.X+4+offset) > 1e-8 || math.Abs(hits[1].Point.X-4-offset) > 1e-8 {
 			t.Fatalf("offset %v ray=%+v; %v", offset, hits, err)
 		}
+		clip, err := source.ClipDilatedSphericalLensLine(ctx, geom.Vec3{X: -20, Z: 3}, geom.Vec3{X: 1}, 0, 40, offset, geom.ToroidLineOptions{ParameterTolerance: 1e-9})
+		both := geom.SpherePairFirst | geom.SpherePairSecond
+		if err != nil || clip.Interval == nil || clip.Interval.StartBoundary != both || clip.Interval.EndBoundary != both {
+			t.Fatalf("offset %v exact clip=%+v; %v", offset, clip, err)
+		}
+		for i, interval := range []geom.ExactParameterInterval{clip.Interval.StartBounds, clip.Interval.EndBounds} {
+			lo, _ := interval.Lower.Float64()
+			hi, _ := interval.Upper.Float64()
+			if hits[i].Distance < lo-1e-9 || hits[i].Distance > hi+1e-9 {
+				t.Fatalf("ray and exact interval differ: %+v, %+v", hits[i], interval)
+			}
+		}
 		m, err := s.Tessellate(ctx, TessellationOptions{Deflection: .15, AnalyticBound: true})
 		if err != nil {
 			t.Fatal(err)
