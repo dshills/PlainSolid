@@ -74,22 +74,38 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 		segments = append(segments, hole...)
 	}
 	n := len(segments)
-	circleForward := func(i int) bool {
-		q := segments[i]
-		if q.Radius <= 0 {
-			return true
-		}
-		cx, cy := sideRat(q.Center.X), sideRat(q.Center.Y)
-		x, y := new(big.Rat).Sub(sideRat(q.Start.X), cx), new(big.Rat).Sub(sideRat(q.Start.Y), cy)
-		u, v := new(big.Rat).Sub(sideRat(q.End.X), cx), new(big.Rat).Sub(sideRat(q.End.Y), cy)
-		return new(big.Rat).Sub(new(big.Rat).Mul(x, v), new(big.Rat).Mul(y, u)).Sign() > 0
-	}
 	if len(vertices) != 2*n || len(edges) != 3*n || len(faces) != n+2 {
 		return geom.ErrInvalid
 	}
+	supports, circles := make([]circularBoundarySupport, len(faces)), make([]trimmed.ExactCircularLoopSegment, len(edges))
+	supports[0].capZ, supports[1].capZ = vertices[0].Z, vertices[n].Z
+	for i, segment := range segments {
+		supports[i+2] = circularBoundarySupport{wall: true, segment: segment}
+		circles[i], circles[i+n] = segment, segment
+	}
+	kind := "exact-circular-loop-extrusion"
+	if directed {
+		kind = "exact-directed-circular-loop-extrusion"
+	}
+	return writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, kind, solid, supports, circles)
+}
+
+type circularBoundarySupport struct {
+	capZ    float64
+	wall    bool
+	segment trimmed.ExactCircularLoopSegment
+}
+
+func writeCircularBoundaryGraph(ctx context.Context, w io.Writer, name string, frame geom.Frame, unit float64, kind string, solid trimmed.Solid, supports []circularBoundarySupport, circles []trimmed.ExactCircularLoopSegment) error {
+	vertices, edges, faces := solid.Vertices(), solid.Edges(), solid.Faces()
+	if len(supports) != len(faces) || len(circles) != len(edges) {
+		return geom.ErrInvalid
+	}
+	forward := func(s trimmed.ExactCircularLoopSegment) bool { return s.Radius <= 0 || occtLoopArcCross(s) > 0 }
+	var e error
 	world := make([]geom.Vec3, len(vertices))
 	for i, p := range vertices {
-		world[i], e = sideDiskWorld(d.Frame, p)
+		world[i], e = sideDiskWorld(frame, p)
 		if e != nil {
 			return e
 		}
@@ -112,7 +128,7 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 	}
 	vec := func(p geom.Vec3) [3]*big.Rat { return [3]*big.Rat{sideRat(p.X), sideRat(p.Y), sideRat(p.Z)} }
 	rotate := func(v [3]*big.Rat) [3]*big.Rat {
-		a := frameTransform(d.Frame)
+		a := frameTransform(frame)
 		var out [3]*big.Rat
 		for i := range out {
 			out[i] = new(big.Rat)
@@ -123,13 +139,13 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 		return out
 	}
 	var staged bytes.Buffer
-	e = writeStandalone(&staged, d.LengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	e = writeStandalone(&staged, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		xyz := func(kind string, v [3]*big.Rat) int64 {
 			return emit(fmt.Sprintf("%s('',(%s,%s,%s))", kind, number(v[0]), number(v[1]), number(v[2])))
 		}
 		point := func(p geom.Vec3) int64 { return xyz("CARTESIAN_POINT", vec(p)) }
 		place := func(origin geom.Vec3, z, x [3]*big.Rat) int64 {
-			p, e := sideDiskWorld(d.Frame, origin)
+			p, e := sideDiskWorld(frame, origin)
 			if e != nil {
 				numeric = e
 			}
@@ -137,19 +153,21 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 		}
 		axis := vec(geom.Vec3{Z: 1})
 		ref := vec(geom.Vec3{X: 1})
-		surfaces := make([]int64, n+2)
-		for j := 0; j < 2; j++ {
-			surfaces[j] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{Z: vertices[j*n].Z}, axis, ref)))
-		}
-		for i, s := range segments {
+		surfaces := make([]int64, len(faces))
+		for i, f := range supports {
+			if !f.wall {
+				surfaces[i] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{Z: f.capZ}, axis, ref)))
+				continue
+			}
+			s := f.segment
 			if s.Radius > 0 {
-				surfaces[2+i] = emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)", place(geom.Vec3{X: s.Center.X, Y: s.Center.Y}, axis, ref), number(sideRat(s.Radius))))
+				surfaces[i] = emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)", place(geom.Vec3{X: s.Center.X, Y: s.Center.Y}, axis, ref), number(sideRat(s.Radius))))
 			} else {
 				dx := new(big.Rat).Sub(sideRat(s.End.X), sideRat(s.Start.X))
 				dy := new(big.Rat).Sub(sideRat(s.End.Y), sideRat(s.Start.Y))
 				t := [3]*big.Rat{dx, dy, new(big.Rat)}
 				normal := [3]*big.Rat{new(big.Rat).Set(dy), new(big.Rat).Neg(dx), new(big.Rat)}
-				surfaces[2+i] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{X: s.Start.X, Y: s.Start.Y}, normal, t)))
+				surfaces[i] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{X: s.Start.X, Y: s.Start.Y}, normal, t)))
 			}
 		}
 		vids := make([]int64, len(vertices))
@@ -159,8 +177,8 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 		eids := make([]int64, len(edges))
 		for i, edge := range edges {
 			var model int64
-			if i < 2*n && segments[i%n].Radius > 0 {
-				s := segments[i%n]
+			if circles[i].Radius > 0 {
+				s := circles[i]
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(geom.Vec3{X: s.Center.X, Y: s.Center.Y, Z: vertices[edge.Start].Z}, axis, ref), number(sideRat(s.Radius))))
 			} else {
 				a, b := vec(world[edge.Start]), vec(world[edge.End])
@@ -171,7 +189,7 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 				v := emit(fmt.Sprintf("VECTOR('',#%d,1.)", xyz("DIRECTION", direction)))
 				model = emit(fmt.Sprintf("LINE('',#%d,#%d)", point(world[edge.Start]), v))
 			}
-			sameSense := i >= 2*n || circleForward(i%n)
+			sameSense := forward(circles[i])
 			eids[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,%s)", vids[edge.Start], vids[edge.End], model, sideDiskBool(sameSense)))
 		}
 		fids := make([]int64, len(faces))
@@ -190,13 +208,13 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 				bounds = append(bounds, emit(fmt.Sprintf("%s('',#%d,%s)", kind, loop, sideDiskBool(!f.Reversed))))
 			}
 			sameSense := !f.Reversed
-			if i >= 2 && !circleForward(i-2) {
+			if supports[i].wall && !forward(supports[i].segment) {
 				sameSense = !sameSense
 			}
 			fids[i] = emit(fmt.Sprintf("ADVANCED_FACE('',%s,#%d,%s)", references(bounds), surfaces[i], sideDiskBool(sameSense)))
 		}
 		shell := emit("CLOSED_SHELL(''," + references(fids) + ")")
-		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(d.Name), shell))}
+		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(name), shell))}
 	})
 	if e != nil {
 		return e
@@ -211,11 +229,7 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 	if bytes.Count(staged.Bytes(), marker) != 1 {
 		return geom.ErrInvalid
 	}
-	kind := "exact-circular-loop-extrusion"
-	if directed {
-		kind = "exact-directed-circular-loop-extrusion"
-	}
-	raw := bytes.Replace(staged.Bytes(), marker, []byte("PRODUCT('"+kind+"',"+quote(d.Name)+",'',"), 1)
+	raw := bytes.Replace(staged.Bytes(), marker, []byte("PRODUCT('"+kind+"',"+quote(name)+",'',"), 1)
 	if _, e = Parse(bytes.NewReader(raw), Limits{MaxBytes: 1 << 20, MaxEntities: 4096, MaxValues: 65536, MaxDepth: 16}); e != nil {
 		return e
 	}

@@ -317,6 +317,10 @@ func exactLoopRimSourceUses(f *File, fid int64, n int, directed bool) ([][]int64
 	}
 	loops := make([][]int64, len(ids))
 	total := 0
+	maximum := n
+	if maximum == 0 && directed {
+		maximum = 64
+	}
 	for i, id := range ids {
 		kind := "FACE_OUTER_BOUND"
 		if i > 0 {
@@ -331,7 +335,7 @@ func exactLoopRimSourceUses(f *File, fid int64, n int, directed bool) ([][]int64
 			return nil, err
 		}
 		uses, err := listRefs(loop.Args[1], 3)
-		if err != nil || len(uses) > n-total {
+		if err != nil || len(uses) > maximum-total {
 			return nil, geom.ErrDomain
 		}
 		total += len(uses)
@@ -343,7 +347,7 @@ func exactLoopRimSourceUses(f *File, fid int64, n int, directed bool) ([][]int64
 			loops[i] = append(loops[i], u.Args[3].Ref)
 		}
 	}
-	if total != n {
+	if n != 0 && total != n {
 		return nil, geom.ErrDomain
 	}
 	return loops, nil
