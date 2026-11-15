@@ -8,6 +8,12 @@ import (
 )
 
 func splitStoredBezierDescriptor(ctx context.Context, c PCurve, o edgecheck.Options) (ExactBezierUV, error) {
+	if q, ok := c.(MappedSplineUV); ok {
+		if q.weight == nil {
+			return ExactBezierUV{}, geom.ErrInvalid
+		}
+		return q.curve, nil
+	}
 	if q, ok := c.(ExactBezierUV); ok {
 		return q, nil
 	}
@@ -26,7 +32,10 @@ func splitStoredBezierDescriptor(ctx context.Context, c PCurve, o edgecheck.Opti
 // Preserve the authored spline rather than replacing it by the proof descriptor.
 // local follows the coedge; the raw split follows SplineUV.Curve before its own
 // reversal. Final native correspondence independently rechecks both restrictions.
-func splitStoredBezierSources(source PCurve, local *big.Rat, a, b ExactBezierUV) (PCurve, PCurve, error) {
+func splitStoredBezierSources(ctx context.Context, source PCurve, local *big.Rat, a, b ExactBezierUV, o edgecheck.Options) (PCurve, PCurve, error) {
+	if q, ok := source.(MappedSplineUV); ok {
+		return splitMappedSplineSource(ctx, q, local, a, b, geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits})
+	}
 	q, ok := source.(SplineUV)
 	if !ok {
 		return a, b, nil

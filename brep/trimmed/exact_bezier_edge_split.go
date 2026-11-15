@@ -15,6 +15,8 @@ import (
 // Original degree-three/four SplineUV owners with a proved single Bezier trace
 // retain their authored curve and restricted parameter ranges (including reversal
 // and redundant knots). Their exact split parameter must also be representable.
+// MappedSplineUV owners retain their exact original source and derive positive
+// child speed maps, with independent full-curve comparison on both children.
 // The new UV and model vertex coordinates must be exactly representable;
 // existing native endpoint evaluation checks also remain in force.
 func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Rat, options edgecheck.Options) (Solid, EdgeSplit, error) {
@@ -103,7 +105,7 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 				if e != nil {
 					return Solid{}, zero, e
 				}
-				sourceA, sourceB, e := splitStoredBezierSources(u.Curve, local, a, b)
+				sourceA, sourceB, e := splitStoredBezierSources(ctx, u.Curve, local, a, b, options)
 				if e != nil {
 					return Solid{}, zero, e
 				}
@@ -138,10 +140,19 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 // children additionally require unchanged authored curves, exactly touching raw
 // ranges, and the exact original split ratio; both normalized restrictions are
 // independently reproved before the authored full range is restored. Exact
+// MappedSplineUV children require exact adjacent source intervals and the
+// independently proved child Möbius coefficient identities. Ordinary spline
 // endpoint modes are normalized to legacy only when both whole-source endpoint
 // evaluations equal their independently proved exact values.
 func (s Solid) MergeExactBezierTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
 	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
+		if x, ok := a.(MappedSplineUV); ok {
+			y, ok := b.(MappedSplineUV)
+			if !ok {
+				return nil, [2]geom.Vec2{}, geom.ErrInvalid
+			}
+			return joinMappedSplineSources(ctx, x, y, t)
+		}
 		if x, ok := a.(SplineUV); ok {
 			y, ok := b.(SplineUV)
 			if !ok {

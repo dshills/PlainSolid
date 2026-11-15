@@ -305,8 +305,8 @@ func TestMappedSplineNativeProofGuards(t *testing.T) {
 	if e := WriteJSON(&out, bad); e == nil || out.Len() != 0 {
 		t.Fatal("stale source cache escaped")
 	}
-	if result, _, e := s.SplitExactBezierTrimEdge(context.Background(), edge, big.NewRat(1, 2), edgecheck.Options{}); e == nil || len(result.faces) != 0 {
-		t.Fatal("unsupported repair silently discarded map")
+	if result, _, e := s.SplitExactBezierTrimEdge(context.Background(), edge, big.NewRat(1, 2), edgecheck.Options{}); !errors.Is(e, geom.ErrUnrepresentable) || len(result.faces) != 0 {
+		t.Fatal("nonbinary raw repair station accepted", e)
 	}
 }
 
