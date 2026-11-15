@@ -108,6 +108,9 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if foreign && o.AllowAsynchronousSupportKnots && !o.AllowUnsplitSupportKnot {
 		return zero, geom.ErrInvalid
 	}
+	if foreign && o.AllowMixedSupportKnots && (!o.AllowUnsplitSupportKnot || !o.AllowTwoInteriorRoofKnots) {
+		return zero, geom.ErrInvalid
+	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
@@ -324,8 +327,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	var crossings []MappedChainSTEPSupportCrossing
 	var foreignTrimmed bool
 	allowUnsplit := g.foreign && o.AllowUnsplitSupportKnot
-	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots &&
-		mappedChainInteriorSupportKnots(g.faces[0].surface) == 1 && mappedChainInteriorSupportKnots(g.faces[1].surface) == 1
+	knotsA, knotsB := mappedChainInteriorSupportKnots(g.faces[0].surface), mappedChainInteriorSupportKnots(g.faces[1].surface)
+	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
+	allowMixed := g.foreign && o.AllowMixedSupportKnots && min(knotsA, knotsB) == 1 && max(knotsA, knotsB) == 2
 	maxModelPieces := 1
 	if allowUnsplit {
 		maxModelPieces = 2
@@ -384,7 +388,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
-			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync, o.Geometry)
+			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync, allowMixed, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
@@ -477,10 +481,18 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 		certify = trimmed.CertifyMappedSplineChainSupportKnotAgreement
 	case 2:
+		a, b := crossings[0].OwnersChangingCells, crossings[1].OwnersChangingCells
 		if crossings[0].EdgeID == crossings[1].EdgeID {
-			certify = trimmed.CertifyMappedSplineChainTwoSupportKnotsAgreement
+			shared := [2]bool{true, true}
+			switch {
+			case a == shared && b == shared:
+				certify = trimmed.CertifyMappedSplineChainTwoSupportKnotsAgreement
+			case allowMixed && (a == shared && b[0] != b[1] || b == shared && a[0] != a[1]):
+				certify = trimmed.CertifyMappedSplineChainMixedSupportKnotsAgreement
+			default:
+				return zero, geom.ErrConvergence
+			}
 		} else {
-			a, b := crossings[0].OwnersChangingCells, crossings[1].OwnersChangingCells
 			if a[0] == a[1] || b[0] == b[1] || a == b {
 				return zero, fmt.Errorf("asynchronous repair requires distinct edges and one crossing for each owner: %w", geom.ErrConvergence)
 			}

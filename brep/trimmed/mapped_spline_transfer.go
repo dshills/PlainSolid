@@ -194,35 +194,46 @@ func ProveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Sur
 		q, err := ProveMappedSplineTransfer(ctx, support, source, model, o)
 		return q, nil, err
 	}
-	first, err := restrictMappedSource(ctx, raw, new(big.Rat), crossing, o)
-	if err != nil {
-		return zero, nil, err
-	}
-	lift, err := ExactTrimModelBezier(ctx, support, first, false, o)
-	if err != nil {
-		return zero, nil, err
-	}
 	normalized, err := model.Reparameterize(0, 1, false, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	weight, err := mappedSplineEndpointWeight(ctx, lift, normalized, o)
+	weight, err := mappedSplineFirstBranchWeight(ctx, support, raw, normalized, crossing, one, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	// The first restriction is normalized to its own parameter. Recover the
-	// speed in the whole original raw interval before inferring the model cut.
-	weight.Mul(weight, crossing)
 	mapped, err := NewMappedSplineUV(ctx, source, weight, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	den := new(big.Rat).Add(crossing, new(big.Rat).Mul(weight, new(big.Rat).Sub(one, crossing)))
-	station := new(big.Rat).Quo(crossing, den)
+	station := mappedSplineModelStation(crossing, weight)
 	if err := ProveMappedSplineSplitTransfer(ctx, support, mapped, normalized, station, o); err != nil {
 		return zero, nil, err
 	}
 	return mapped, station, nil
+}
+
+func mappedSplineFirstBranchWeight(ctx context.Context, support geom.Surface, raw MappedSplineUV, firstModel *geom.ExactSplineCurve, rawEnd, modelEnd *big.Rat, o geom.SurfacePatchOptions) (*big.Rat, error) {
+	first, err := restrictMappedSource(ctx, raw, new(big.Rat), rawEnd, o)
+	if err != nil {
+		return nil, err
+	}
+	lift, err := ExactTrimModelBezier(ctx, support, first, false, o)
+	if err != nil {
+		return nil, err
+	}
+	weight, err := mappedSplineEndpointWeight(ctx, lift, firstModel, o)
+	if err != nil {
+		return nil, err
+	}
+	// Each branch uses its own normalized interval. Convert the tangent
+	// ratio to the full original raw and model intervals.
+	return weight.Mul(weight, new(big.Rat).Quo(rawEnd, modelEnd)), nil
+}
+
+func mappedSplineModelStation(raw, weight *big.Rat) *big.Rat {
+	den := new(big.Rat).Add(raw, new(big.Rat).Mul(weight, new(big.Rat).Sub(big.NewRat(1, 1), raw)))
+	return new(big.Rat).Quo(raw, den)
 }
 
 // ProveMappedSplineSplitTransfer compares both exact raw restrictions of one
@@ -308,21 +319,10 @@ func proveMappedSplineSupportKnotsTransfer(ctx context.Context, support geom.Sur
 	if err != nil {
 		return zero, err
 	}
-	events := geom.ExactCurvePlaneEventOptions{
-		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+	roots, err := mappedSplineRequiredSupportRoots(ctx, raw, planes, o)
+	if err != nil {
+		return zero, err
 	}
-	var roots []*big.Rat
-	for _, plane := range planes {
-		root, err := mappedSplineSupportKnotRoot(ctx, raw.curve, plane, o, events)
-		if err != nil {
-			return zero, err
-		}
-		if root == nil {
-			return zero, fmt.Errorf("original support crossing missing from unsplit coedge: %w", geom.ErrConvergence)
-		}
-		roots = append(roots, root)
-	}
-	slices.SortFunc(roots, func(a, b *big.Rat) int { return a.Cmp(b) })
 	num := new(big.Rat).Mul(roots[0], new(big.Rat).Sub(one, joins[0]))
 	den := new(big.Rat).Mul(joins[0], new(big.Rat).Sub(one, roots[0]))
 	mapped, err := NewMappedSplineUV(ctx, source, num.Quo(num, den), o)
@@ -356,4 +356,21 @@ func proveMappedSplineSupportKnotsTransfer(ctx context.Context, support geom.Sur
 		}
 	}
 	return mapped, nil
+}
+
+func mappedSplineRequiredSupportRoots(ctx context.Context, raw MappedSplineUV, planes [][4]*big.Rat, o geom.SurfacePatchOptions) ([]*big.Rat, error) {
+	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+	var roots []*big.Rat
+	for _, plane := range planes {
+		root, err := mappedSplineSupportKnotRoot(ctx, raw.curve, plane, o, events)
+		if err != nil {
+			return nil, err
+		}
+		if root == nil {
+			return nil, fmt.Errorf("original support crossing missing from unsplit coedge: %w", geom.ErrConvergence)
+		}
+		roots = append(roots, root)
+	}
+	slices.SortFunc(roots, func(a, b *big.Rat) int { return a.Cmp(b) })
+	return roots, nil
 }

@@ -63,7 +63,7 @@ func mappedChainSTEPBezierInTraversal(model *geom.ExactSplineCurve, reverse bool
 	return model, nil
 }
 
-func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous bool, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, *big.Rat, error) {
+func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous, mixed bool, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, *big.Rat, error) {
 	if len(edge.joins) == 0 {
 		model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
 		if err != nil {
@@ -75,24 +75,35 @@ func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, sou
 		q, err := trimmed.ProveMappedSplineTransfer(ctx, support, source, model, o)
 		return q, nil, err
 	}
-	pieces, joins := edge.pieces, mappedChainModelJoins(edge.joins, reverse)
-	if reverse {
-		pieces = make([]*geom.ExactSplineCurve, len(edge.pieces))
-		for i := range pieces {
-			piece := edge.pieces[len(pieces)-1-i]
-			var err error
-			pieces[i], err = piece.Reparameterize(0, 1, true, o)
-			if err != nil {
-				return trimmed.MappedSplineUV{}, nil, err
-			}
-		}
+	pieces, err := mappedChainSTEPPiecesInTraversal(edge.pieces, reverse, o)
+	if err != nil {
+		return trimmed.MappedSplineUV{}, nil, err
 	}
+	joins := mappedChainModelJoins(edge.joins, reverse)
 	if len(joins) == 1 {
+		if mixed {
+			return trimmed.ProveMappedSplineMixedSupportKnotsTransfer(ctx, support, source, [2]*geom.ExactSplineCurve(pieces), joins[0], o)
+		}
 		q, err := trimmed.ProveMappedSplineSupportKnotTransfer(ctx, support, source, [2]*geom.ExactSplineCurve(pieces), joins[0], o)
 		return q, nil, err
 	}
 	q, err := trimmed.ProveMappedSplineTwoSupportKnotsTransfer(ctx, support, source, [3]*geom.ExactSplineCurve(pieces), [2]*big.Rat(joins), o)
 	return q, nil, err
+}
+
+func mappedChainSTEPPiecesInTraversal(source []*geom.ExactSplineCurve, reverse bool, o geom.SurfacePatchOptions) ([]*geom.ExactSplineCurve, error) {
+	if !reverse {
+		return source, nil
+	}
+	pieces := make([]*geom.ExactSplineCurve, len(source))
+	for i := range pieces {
+		var err error
+		pieces[i], err = source[len(pieces)-1-i].Reparameterize(0, 1, true, o)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return pieces, nil
 }
 
 func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
@@ -107,8 +118,15 @@ func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
 }
 
 func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2]*big.Rat, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
-	cuts := mappedChainModelJoins(edge.joins, reverse)
-	changed := [2]bool{true, true}
+	joins := mappedChainModelJoins(edge.joins, reverse)
+	type cut struct {
+		t      *big.Rat
+		owners [2]bool
+	}
+	var cuts []cut
+	for _, join := range joins {
+		cuts = append(cuts, cut{join, [2]bool{true, true}})
+	}
 	if ownerCuts[0] != nil || ownerCuts[1] != nil {
 		if ownerCuts[0] != nil && ownerCuts[1] != nil {
 			return nil, fmt.Errorf("asynchronous repair permits one owner-side crossing per original edge: %w", geom.ErrConvergence)
@@ -117,19 +135,35 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 		if ownerCuts[1] != nil {
 			owner = 1
 		}
-		cuts = []*big.Rat{ownerCuts[owner]}
+		extra := ownerCuts[owner]
 		companion := 1 - owner
-		changed[companion] = false
-		model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
-		if err != nil {
-			return nil, err
+		support := g.faces[companion].surface
+		var err error
+		switch len(joins) {
+		case 0:
+			model, e := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
+			if e != nil {
+				return nil, e
+			}
+			err = trimmed.ProveMappedSplineSplitTransfer(ctx, support, mapped[companion], model, extra, o)
+		case 1:
+			pieces, e := mappedChainSTEPPiecesInTraversal(edge.pieces, reverse, o)
+			if e != nil {
+				return nil, e
+			}
+			err = trimmed.ProveMappedSplineMixedSplitTransfer(ctx, support, mapped[companion], [2]*geom.ExactSplineCurve(pieces), joins[0], extra, o)
+		default:
+			return nil, geom.ErrConvergence
 		}
-		if err := trimmed.ProveMappedSplineSplitTransfer(ctx, g.faces[companion].surface, mapped[companion], model, cuts[0], o); err != nil {
+		if err != nil {
 			return nil, fmt.Errorf("companion owner #%d at original support crossing: %w", g.faces[companion].id, err)
 		}
+		cuts = append(cuts, cut{extra, [2]bool{owner == 0, owner == 1}})
+		slices.SortFunc(cuts, func(a, b cut) int { return a.t.Cmp(b.t) })
 	}
 	var crossings []MappedChainSTEPSupportCrossing
-	for _, t := range cuts {
+	for _, cut := range cuts {
+		t := cut.t
 		fileParameter := t
 		if reverse {
 			fileParameter = new(big.Rat).Sub(big.NewRat(1, 1), t)
@@ -137,7 +171,7 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 		original := new(big.Rat).Add(edge.lo, new(big.Rat).Mul(fileParameter, new(big.Rat).Sub(edge.hi, edge.lo)))
 		station := new(big.Rat).Add(interval[0], new(big.Rat).Mul(t, new(big.Rat).Sub(interval[1], interval[0])))
 		crossing := MappedChainSTEPSupportCrossing{
-			EdgeID: id, SourceModelParameter: original, ModelStation: station, OwnersChangingCells: changed,
+			EdgeID: id, SourceModelParameter: original, ModelStation: station, OwnersChangingCells: cut.owners,
 		}
 		for owner, curve := range mapped {
 			raw, err := curve.AuthoredParameter(t)
