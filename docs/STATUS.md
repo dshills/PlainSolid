@@ -29,17 +29,32 @@ measurements and display coordinates in millimetres. Single and grouped
 repairs passed typed Node WASM and real Chromium worker verification.
 Planar IGES now transfers concave material with through-holes, one exterior
 with disjoint enclosed cavities, and flat groups with independent planar
-bodies and exact vertex contacts.
+bodies and exact vertex contacts. STEP and IGES support selected original
+point contacts on cavities, with independent shell containment witnesses.
+The native pair proof supports complete or partial contact along two
+original straight edges. It retains both directed rational ranges, native
+reload and shared point and line ownership. Complete edge contact also
+round-trips through independent STEP and IGES.
+
+Four transverse crossings qualify native Common, Fuse and both Cut orders,
+including exact source-integrated Cut volumes and source-based reload.
+Geometry also proves two crossings plus one quadratic tangency in any
+original event order. The v7 mapped proof retains three exact support
+cuts in one original cell, including explicitly split, unsplit foreign,
+and source-native paths. The separate converted-metre and converted-inch
+STEP fixtures prove their changed original owner charts and pass native,
+Node WASM and Chromium qualification in their retained source units.
 
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-The refreshed full race run on `d5906fde` and another full paired Go and
-PlainCAD qualification on `bafe7e81` are in progress. Immediate work includes
-direct exact volumes for the smallest mixed-contact Cut pieces, one cell
-containing both a synchronized and an asynchronous mapped cut, the original
-OCCT metre conversion with changed edge charts, and optional isolated
-contacts on cavities inside a grouped planar part.
+The refreshed full race run on `d5906fde` and another full ordinary Go run
+on `bafe7e81` are in progress. PlainCAD on `bafe7e81` has passed development,
+production and cross-browser gates; ordinary units are the remaining gate.
+Immediate work includes native three-event mixed shell assembly, exact
+re-export of independently authored per-edge STEP bases and a grouped
+millimetre-to-metre original transfer. The partially overlapping original
+edge STEP and IGES suites are also running.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

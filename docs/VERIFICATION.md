@@ -97,6 +97,38 @@ at `efae4d2`. The run directories and independent case inventories are
 under `.worktrees/qualification/2026-11-15`. These runs are in progress;
 the completed paired qualification above remains the latest full pass.
 
+Further main milestones use the same pinned optional OCCT reference:
+
+- Four-crossing Common and Fuse passed the exact source region and independent
+  measure tests under race in 212.406 seconds. The four-crossing Cut main
+  race in the combined mapped run finished in 304.339 seconds and verifies
+  exact signed volumes of all parts before and after native reload. OCCT
+  diagnosed empty or inaccurate outcomes on the narrow lens inputs; the
+  qualified native volumes are exact integrals of the original roofs.
+- The planar contact suite independently verifies STEP physical unit
+  factors, source face direction, grouped IGES owner lists, through-holes
+  and separate cavities, plus each open line span at a shared edge.
+  Full-edge STEP and IGES races passed in 6.137 and 5.914 seconds.
+  Native partial-edge proofs and JSON reload retain both original
+  rational ranges and reject edited ranges. Source knots are not moved.
+- The native three-support-cut mapped v7 source retains original
+  stations `1/16`, `1/8`, `3/16`; the raw parameter pairs are
+  `(93,443)`, `(197,387)`, and `(317,283)`. Independently authored
+  pinned OCCT and native STEPs contain one valid seven-face solid
+  with volume `0.93318617483601` and area `6.09166222908489`.
+  The foreign unsplit input retains one original material knot and
+  recovers both other stations by proving the original owner restrictions.
+- Converted-metre and scaled converted-inch original transfers passed
+  native, Node WASM and real two-worker Chromium verification. The inch
+  import accepts a `1e-11` inch repair budget and refuses `1e-12` because
+  of the proved original chart drift. The separate unscaled source has
+  an independently measured exact tangency obstruction and stays rejected.
+  Durable logs remain in `.worktrees/converted-metre-step-evidence` and
+  `.worktrees/converted-inch-bridge-evidence`. The focused main converted
+  bridge races passed in 46.413 and 29.591 seconds.
+- An immutable `aa59655c` checkout passed `go vet ./...` and a Windows
+  amd64 cross-build. A build does not qualify Windows runtime behavior.
+
 ## Full baseline and recent exact modeling qualification (2026-11-14)
 
 The [normal Go record](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
