@@ -61,10 +61,10 @@ func (s State) circularInsetRoles(id string) (circularInsetRoleLayout, error) {
 		if f.Kind != DirectedCircularInsetJoinFeature {
 			return zero, fmt.Errorf("document: feature kind %q has no circular inset roles", f.Kind)
 		}
-		desc := func(id string) (*DirectedCircularExtrusionRecipe, error) {
+		desc := func(id string) (circularSweepNames, error) {
 			k := s.Features[id].Kind
-			if k != DirectedCircularExtrusionFeature && k != DirectedCircularExtrusionOffsetFeature {
-				return nil, fmt.Errorf("document: circular inset %q is not an authored unplaced sweep", id)
+			if !localCircularSweepKind(k) {
+				return circularSweepNames{}, fmt.Errorf("document: circular inset %q is not an authored unplaced sweep", id)
 			}
 			return s.directedCircularSource(id)
 		}
@@ -76,19 +76,11 @@ func (s State) circularInsetRoles(id string) (circularInsetRoleLayout, error) {
 		if err != nil {
 			return zero, err
 		}
-		_, hRoles, err := h.profile()
-		if err != nil {
-			return zero, err
-		}
-		_, gRoles, err := g.profile()
-		if err != nil {
-			return zero, err
-		}
-		r := circularInsetRoleLayout{input: f.Input, tool: f.Tool, hostCount: len(hRoles), guestCount: len(gRoles), floors: len(g.Holes)}
+		r := circularInsetRoleLayout{input: f.Input, tool: f.Tool, hostCount: h.count(), guestCount: g.count(), floors: len(g.rings) - 1}
 		switch {
-		case h.Top == g.Bottom:
+		case h.top == g.bottom:
 			r.hostCap = 1
-		case h.Bottom == g.Top:
+		case h.bottom == g.top:
 			r.guestCap = 1
 		default:
 			return zero, geom.ErrDomain

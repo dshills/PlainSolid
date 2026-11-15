@@ -80,10 +80,10 @@ func (s State) circularInsetExportRecipe(ctx context.Context, nodeID string) (tr
 
 func (s State) circularInsetExportSweep(ctx context.Context, id string) (trimmed.ExactCircularSweep, error) {
 	var zero trimmed.ExactCircularSweep
-	var offsets []Feature
-	for s.Features[id].Kind == DirectedCircularExtrusionOffsetFeature {
+	var modifiers []Feature
+	for k := s.Features[id].Kind; k == DirectedCircularExtrusionOffsetFeature || k == DirectedCircularCornerFilletFeature; k = s.Features[id].Kind {
 		f := s.Features[id]
-		offsets = append(offsets, f)
+		modifiers = append(modifiers, f)
 		id = f.Input
 	}
 	f := s.Features[id]
@@ -91,14 +91,22 @@ func (s State) circularInsetExportSweep(ctx context.Context, id string) (trimmed
 	if err != nil {
 		return zero, err
 	}
-	for j := len(offsets) - 1; j >= 0; j-- {
-		f := offsets[j]
-		o := trimmed.CircularSweepOffsetOptions{Sweep: trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance}}
-		next, err := trimmed.OffsetExactCircularSweepSide(ctx, src, f.Distance, o)
-		if err != nil {
-			return zero, err
+	for j := len(modifiers) - 1; j >= 0; j-- {
+		f := modifiers[j]
+		if f.Kind == DirectedCircularCornerFilletFeature {
+			next, err := s.applyNamedCircularFillets(ctx, f, src)
+			if err != nil {
+				return zero, err
+			}
+			src = next.Profile
+		} else {
+			o := trimmed.CircularSweepOffsetOptions{Sweep: trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance}}
+			next, err := trimmed.OffsetExactCircularSweepSide(ctx, src, f.Distance, o)
+			if err != nil {
+				return zero, err
+			}
+			src = next.Profile
 		}
-		src = next.Profile
 	}
 	return src, nil
 }
@@ -148,7 +156,7 @@ func circularInsetExactCompose(a, b geom.Affine) (geom.Affine, error) {
 }
 
 // WriteCircularInsetSTEP exports one authored inset occurrence. Both original
-// profiles and feature offsets are regenerated; proper signed-coordinate
+// profiles and feature modifiers are regenerated; proper signed-coordinate
 // feature and assembly placements must compose without rounding.
 func (s State) WriteCircularInsetSTEP(ctx context.Context, w io.Writer, nodeID string) error {
 	if ctx == nil || w == nil {

@@ -110,6 +110,8 @@ clearance for the complete offset path before returning material. Exact
 curved inset joins keep original host caps, guest walls, and separate
 exposed floors inside through-openings. They qualify compact display, native
 and document replay, and analytic STEP and IGES with supported placements.
+Named corner rounds on mixed line-and-arc profiles retain the original arcs,
+shortened straight spans, and independent holes through edits and reopen.
 Complete equal curved caps also join, leaving one common original rim.
 Different original rim partitions are now refined to exactly shared stations;
 native replay re-proves the two directed source parameter maps.
@@ -120,7 +122,7 @@ three inferred events with mixed joint and independent support ownership.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre STEP with both independent antipodal owners. The native
 race on `491b18f1` is still running. Vet and Windows amd64 cross-build pass
-on `12ab5dbf`. Current work covers named document rounds and cap joins,
+on `12ab5dbf`. Current work covers named document cap joins,
 nonunit physical roof charts, nonplanar mapped model curves and converted
 five-fillet STEP originals. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

@@ -173,6 +173,13 @@ kept its pristine hash. Raw results remain in
   re-export the same source-unit STEP bytes. The five-fillet result has a
   400-triangle display and rejects the original nonbinary control and the
   tighter `1e-13 mm` tolerance before returning a shape.
+- Native rounding of selected original orthogonal spans on a mixed line
+  and arc sweep (`10df5ff0`) passed the focused pinned OCCT check in 5.382
+  seconds. The editable document round, original extrusion, chained lateral
+  offset and inset role tests passed together under race in 164.463 seconds.
+  Both added radii and all unchanged arc names survived placement, radius
+  edit, undo, redo and reopen. Duplicate identities, a curved incident span
+  and an oversized round failed without publishing a document edit.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

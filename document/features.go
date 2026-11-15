@@ -73,6 +73,7 @@ const (
 // Its lateral offset uses Input, signed Distance and Tolerance. Offsets can
 // be composed before applying a placement transform.
 // A circular inset join uses Input as the host and Tool as the inset sweep.
+// A circular corner fillet uses Input and named CircularCornerRounds.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -116,11 +117,13 @@ type Feature struct {
 	PlanarEdgeSplit             *PlanarEdgeSplitRecipe       `json:",omitempty"`
 
 	DirectedCircularExtrusion *DirectedCircularExtrusionRecipe `json:",omitempty"`
+	CircularCornerRounds      []NamedCircularCornerRound       `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
 	f.Profile = append([]geom.Vec3(nil), f.Profile...)
 	f.CornerRadii = append([]fillet.CornerRadius(nil), f.CornerRadii...)
+	f.CircularCornerRounds = append([]NamedCircularCornerRound(nil), f.CircularCornerRounds...)
 	f.Stations = append([]trimmed.WrappedLoftStation(nil), f.Stations...)
 	if f.LongCapChain != nil {
 		recipe := *f.LongCapChain
@@ -249,7 +252,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				stack = append(stack, item{name, true})
 				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
-					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature
+					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCornerFilletFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularInsetJoinFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
@@ -322,6 +325,19 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				join, e = trimmed.JoinExactCircularSweepInset(ctx, host, guest, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
 				if e == nil {
 					r = join.Solid
+				}
+			case DirectedCircularCornerFilletFeature:
+				uv = true
+				source, ok := circularSweeps[f.Input]
+				if !ok {
+					e = fmt.Errorf("circular corner fillet needs an authored unplaced sweep")
+					break
+				}
+				var rounded fillet.CircularSweepCornerResult
+				rounded, e = s.applyNamedCircularFillets(ctx, f, source)
+				if e == nil {
+					r = rounded.Solid
+					circularSweeps[name] = rounded.Profile
 				}
 			case PrismFilletFeature:
 				uv = true

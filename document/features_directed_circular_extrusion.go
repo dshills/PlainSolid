@@ -57,7 +57,7 @@ func (r *DirectedCircularExtrusionRecipe) profile() ([][]trimmed.ExactCircularLo
 		curves[i] = make([]trimmed.ExactCircularLoopSegment, len(ring))
 		for j, a := range ring {
 			_, duplicate := index[a.ID]
-			if len(a.ID) == 0 || len(a.ID) > 128 || !utf8.ValidString(a.ID) || strings.Contains(a.ID, ":") || duplicate {
+			if !validCircularSegmentID(a.ID) || duplicate {
 				return nil, nil, fmt.Errorf("%w: empty, reserved or repeated profile segment ID %q", geom.ErrInvalid, a.ID)
 			}
 			index[a.ID] = len(index)
@@ -80,48 +80,72 @@ func evaluateDirectedCircularExtrusion(ctx context.Context, f Feature) (trimmed.
 	return trimmed.ExactCircularSweep{Outer: curves[0], Holes: curves[1:], Bottom: r.Bottom, Top: r.Top}, solid, nil
 }
 
-func (s State) directedCircularSource(id string) (*DirectedCircularExtrusionRecipe, error) {
+func validCircularSegmentID(id string) bool {
+	return len(id) > 0 && len(id) <= 128 && utf8.ValidString(id) && !strings.Contains(id, ":")
+}
+
+func (s State) directedCircularSource(id string) (circularSweepNames, error) {
+	var zero circularSweepNames
 	seen := map[string]bool{}
+	var rounds [][]NamedCircularCornerRound
 	for id != "" {
-		if seen[id] {
-			return nil, fmt.Errorf("document: feature cycle at %q", id)
+		if seen[id] || len(seen) >= 10000 {
+			return zero, fmt.Errorf("document: circular feature cycle or chain too long at %q", id)
 		}
 		seen[id] = true
 		f, ok := s.Features[id]
 		if !ok {
-			return nil, fmt.Errorf("document: missing feature %q", id)
+			return zero, fmt.Errorf("document: missing feature %q", id)
 		}
 		switch f.Kind {
 		case TransformFeature:
 			if _, err := f.Transform.Inverse(); err != nil {
-				return nil, err
+				return zero, err
 			}
 			id = f.Input
 		case DirectedCircularExtrusionFeature:
-			return f.DirectedCircularExtrusion, nil
-		case DirectedCircularExtrusionOffsetFeature:
-			input := s.Features[f.Input].Kind
-			if input != DirectedCircularExtrusionFeature && input != DirectedCircularExtrusionOffsetFeature {
-				return nil, fmt.Errorf("document: offset %q has no authored circular input", id)
+			r := f.DirectedCircularExtrusion
+			if _, _, err := r.profile(); err != nil {
+				return zero, err
+			}
+			n := circularSweepNames{bottom: r.Bottom, top: r.Top}
+			for _, ring := range append([][]NamedCircularProfileSegment{r.Outer}, r.Holes...) {
+				ids := make([]string, len(ring))
+				for i, a := range ring {
+					ids[i] = a.ID
+				}
+				n.rings = append(n.rings, ids)
+			}
+			for i := len(rounds) - 1; i >= 0; i-- {
+				var err error
+				n, _, err = namedCircularFilletLayout(n, rounds[i])
+				if err != nil {
+					return zero, err
+				}
+			}
+			return n, nil
+		case DirectedCircularExtrusionOffsetFeature, DirectedCircularCornerFilletFeature:
+			if !localCircularSweepKind(s.Features[f.Input].Kind) {
+				return zero, fmt.Errorf("document: feature %q has no authored circular sweep input", id)
+			}
+			if f.Kind == DirectedCircularCornerFilletFeature {
+				rounds = append(rounds, f.CircularCornerRounds)
 			}
 			id = f.Input
 		default:
-			return nil, fmt.Errorf("document: feature kind %q has no directed circular extrusion roles", f.Kind)
+			return zero, fmt.Errorf("document: feature kind %q has no directed circular extrusion roles", f.Kind)
 		}
 	}
-	return nil, fmt.Errorf("document: empty feature reference")
+	return zero, fmt.Errorf("document: empty feature reference")
 }
 
 // ResolveDirectedCircularExtrusionFace resolves lower-cap, upper-cap or
 // wall:<segment ID> in the evaluated asset. A transform preserves the source
 // cap names and segment ownership, including when its world axes change.
-// Lateral offsets retain the original role IDs and ring order.
+// Lateral offsets retain the original role IDs. Named fillets retain original
+// span names and expose their new arcs by their own IDs.
 func (s State) ResolveDirectedCircularExtrusionFace(ref FeatureFace) (int, error) {
 	r, err := s.directedCircularSource(ref.Feature)
-	if err != nil {
-		return 0, err
-	}
-	_, index, err := r.profile()
 	if err != nil {
 		return 0, err
 	}
@@ -132,7 +156,7 @@ func (s State) ResolveDirectedCircularExtrusionFace(ref FeatureFace) (int, error
 		return 1, nil
 	}
 	if id, ok := strings.CutPrefix(ref.Role, "wall:"); ok {
-		if i, exists := index[id]; exists {
+		if i, exists := r.index(id); exists {
 			return i + 2, nil
 		}
 	}
@@ -140,8 +164,8 @@ func (s State) ResolveDirectedCircularExtrusionFace(ref FeatureFace) (int, error
 }
 
 // CircularExtrusionEdge is one original rim or vertical edge. For a vertical
-// role, Segment names the profile segment whose directed start is the edge's
-// lower endpoint.
+// role, Segment names the surviving profile segment whose directed start
+// is the edge's lower endpoint.
 type CircularExtrusionEdge struct {
 	Feature, Segment string
 	Role             CircularExtrusionEdgeRole
@@ -162,11 +186,7 @@ func (s State) ResolveDirectedCircularExtrusionEdge(ref CircularExtrusionEdge) (
 	if err != nil {
 		return 0, err
 	}
-	_, index, err := r.profile()
-	if err != nil {
-		return 0, err
-	}
-	i, ok := index[ref.Segment]
+	i, ok := r.index(ref.Segment)
 	if !ok {
 		return 0, fmt.Errorf("document: unknown directed circular extrusion segment %q", ref.Segment)
 	}
@@ -174,9 +194,9 @@ func (s State) ResolveDirectedCircularExtrusionEdge(ref CircularExtrusionEdge) (
 	case CircularExtrusionLowerRim:
 		return i, nil
 	case CircularExtrusionUpperRim:
-		return i + len(index), nil
+		return i + r.count(), nil
 	case CircularExtrusionVertical:
-		return i + 2*len(index), nil
+		return i + 2*r.count(), nil
 	default:
 		return 0, fmt.Errorf("document: unknown directed circular extrusion edge role %q", ref.Role)
 	}
