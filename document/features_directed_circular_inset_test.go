@@ -3,11 +3,14 @@ package document
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math"
 	"reflect"
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/exchange/iges"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -33,7 +36,11 @@ func TestDirectedCircularInsetPreservesOriginalMemberRoles(t *testing.T) {
 		Bottom: 0, Top: 3,
 	}
 	pose := geom.Affine{{0, 0, -1, 10}, {0, 1, 0, 2}, {1, 0, 0, 0}}
-	d, e := New(State{LengthUnit: .001, Features: map[string]Feature{
+	d, e := New(State{LengthUnit: .001, Nodes: map[string]Node{
+		"group":     {Transform: geom.Affine{{1, 0, 0, 5}, {0, 1, 0, -1}, {0, 0, 1, 0}}},
+		"step-part": {Name: "placed inset", Parent: "group", Asset: "placed", Transform: geom.Affine{{1, 0, 0, 3}, {0, 1, 0, 4}, {0, 0, 1, 5}}},
+		"iges-part": {Parent: "group", Asset: "joined", Transform: geom.Affine{{0, -1, 0, 1}, {1, 0, 0, -2}, {0, 0, 1, 3}}},
+	}, Features: map[string]Feature{
 		"plate":  {Kind: DirectedCircularExtrusionFeature, DirectedCircularExtrusion: host},
 		"boss":   {Kind: DirectedCircularExtrusionFeature, DirectedCircularExtrusion: guest},
 		"joined": {Kind: DirectedCircularInsetJoinFeature, Input: "plate", Tool: "boss"},
@@ -97,6 +104,36 @@ func TestDirectedCircularInsetPreservesOriginalMemberRoles(t *testing.T) {
 		t.Fatal(e)
 	}
 	check(reopened, .75)
+	snapshot, _ := reopened.Snapshot()
+	var sb, ib bytes.Buffer
+	if e = snapshot.WriteCircularInsetSTEP(ctx, &sb, "step-part"); e != nil {
+		t.Fatal(e)
+	}
+	a, e := step.ReadExactCircularSweepInset(ctx, &sb, step.Limits{})
+	if e != nil || a.Descriptor.Name != "placed inset" || a.Descriptor.LengthUnit != .001 ||
+		a.Descriptor.Frame.Origin() != (geom.Vec3{X: 18, Y: 5, Z: 5}) ||
+		a.Descriptor.Frame.ZAxis() != (geom.Vec3{X: -1}) || a.Descriptor.Guest.Holes[0][0].Radius != .75 {
+		t.Fatalf("STEP lost signed feature and assembly placement: %+v %v", a.Descriptor, e)
+	}
+	if e = snapshot.WriteCircularInsetIGES(ctx, &ib, "iges-part"); e != nil {
+		t.Fatal(e)
+	}
+	b, e := iges.ReadExactCircularSweepInset(ctx, &ib, iges.Limits{})
+	if e != nil || b.Descriptor.Unit != .001 || b.Descriptor.Host.Bottom != 1 || b.Descriptor.Guest.Top != 6 ||
+		b.Descriptor.Guest.Holes[0][0].Center != (geom.Vec2{X: 3, Y: 1}) || b.Descriptor.Guest.Holes[0][0].Radius != .75 {
+		t.Fatalf("IGES lost original placed cap and ring geometry: %+v %v", b.Descriptor, e)
+	}
+	ib.Reset()
+	if e = snapshot.WriteCircularInsetIGES(ctx, &ib, "step-part"); !errors.Is(e, geom.ErrDomain) || ib.Len() != 0 {
+		t.Fatalf("IGES accepted nonaxial placement: %v", e)
+	}
+	group := snapshot.Nodes["group"]
+	group.Transform[0][3] = 1e16
+	snapshot.Nodes["group"] = group
+	sb.Reset()
+	if e = snapshot.WriteCircularInsetSTEP(ctx, &sb, "step-part"); !errors.Is(e, geom.ErrUnrepresentable) || sb.Len() != 0 {
+		t.Fatalf("STEP rounded accumulated node placement: %v", e)
+	}
 	if e = d.Undo(); e != nil {
 		t.Fatal(e)
 	}
