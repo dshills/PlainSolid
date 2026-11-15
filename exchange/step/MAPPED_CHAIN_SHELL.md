@@ -130,8 +130,7 @@ roof's V knot lies at station `3/8`, with raw owner parameters `65` and
 shared edge. The canonical STEP path uses `AllowMultiSpanRoofs` and
 writes explicit paired coedges at both stations. Output reopens and
 rewrites byte-identically, and pinned OCCT independently opens it as one
-valid seven-face solid. Foreign unsplit asynchronous coedges still need
-an exact transfer proof for the owner that stays in one span.
+valid seven-face solid.
 
 ### An unsplit foreign STEP edge
 
@@ -165,6 +164,22 @@ three exact model branches as one degree-five curve with two interior
 knots and two original unsplit owner restrictions. Pinned OCCT independently
 validates the unsplit input as one seven-face solid. PlainSolid retains both
 junctions and reopens the native source before exporting explicit coedges.
+
+For asynchronous foreign input, add `AllowAsynchronousSupportKnots` to
+`AllowMultiSpanRoofs` and `AllowUnsplitSupportKnot`. Two distinct original
+shared edges each store one model Bézier. On each edge exactly one owner
+crosses an original support knot. Its exact first model tangent determines
+the owner parameter law. Both raw restrictions of each pcurve are proved
+equal to the corresponding rational restrictions of that original model
+curve. The reader then applies the native version 5 proof. Each
+`Crossings` record identifies the corresponding foreign edge and the roof
+that changes cells, and reports both original raw parameters.
+
+`standard_mapped_chain_unsplit_asynchronous_knots.step` re-encodes the
+asynchronous fixture with two unsplit edges and no model-curve knots at
+the repairs. Pinned OCCT independently validates the original unsplit
+source as one seven-face solid. Combining both crossings into one
+original edge requires another common-cell partition.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
