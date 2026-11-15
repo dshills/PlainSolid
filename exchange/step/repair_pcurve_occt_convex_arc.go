@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 	"math/big"
+	"slices"
+
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -330,7 +332,7 @@ func RepairPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limi
 	return PCurveRepairedOCCTConvexArcExtrusion{source: string(raw), material: material, agreements: agreements, tolerance: o.MaxDistance}, nil
 }
 
-func convexPCurveModelView(f *File, edgeCount int, rational bool) (*File, []ConvexArcPCurveAgreement, error) {
+func convexPCurveModelView(f *File, edgeCount int, rational bool, additionalEdgeCounts ...int) (*File, []ConvexArcPCurveAgreement, error) {
 	owners := map[int64][]occtLoopFace{}
 	refs := map[int64][]int64{}
 	var collect func(int64, Value)
@@ -359,7 +361,7 @@ func convexPCurveModelView(f *File, edgeCount int, rational bool) (*File, []Conv
 			}
 		}
 	}
-	if len(owners) != edgeCount {
+	if len(owners) != edgeCount && !slices.Contains(additionalEdgeCounts, len(owners)) {
 		return nil, nil, geom.ErrDomain
 	}
 	view := &File{Header: f.Header, Order: append([]int64(nil), f.Order...), Entities: make(map[int64]Entity, len(f.Entities))}

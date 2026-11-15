@@ -59,7 +59,8 @@ func checkRationalTiltUnitCanonical(t *testing.T, tc rationalTiltUnitFixture, m 
 	t.Helper()
 	ctx := context.Background()
 	canonical := encodeRationalWorldCircularLoop(t, m, false)
-	if tc.name == "inch" {
+	switch tc.name {
+	case "inch":
 		const exact = "LENGTH_MEASURE(0.0254)"
 		if !bytes.Contains(canonical, []byte(exact)) {
 			t.Fatal("canonical inch factor must be 127/5000 metres exactly")
@@ -68,8 +69,14 @@ func checkRationalTiltUnitCanonical(t *testing.T, tc rationalTiltUnitFixture, m 
 		if _, err := ReadRationalPosedExactCircularLoopExtrusion(ctx, bytes.NewReader(forged), Limits{}); err == nil {
 			t.Fatal("strict canonical reader accepted an inexact inch factor")
 		}
-	} else if !bytes.Contains(canonical, []byte("SI_UNIT($,.METRE.)")) {
-		t.Fatal("canonical metre model lost its exact SI declaration")
+	case "metre":
+		if !bytes.Contains(canonical, []byte("SI_UNIT($,.METRE.)")) {
+			t.Fatal("canonical metre model lost its exact SI declaration")
+		}
+	case "millimetre":
+		if !bytes.Contains(canonical, []byte("SI_UNIT(.MILLI.,.METRE.)")) {
+			t.Fatal("canonical millimetre model lost its exact SI declaration")
+		}
 	}
 	strict, err := ReadRationalPosedExactCircularLoopExtrusion(ctx, bytes.NewReader(canonical), Limits{})
 	if err != nil || strict.Descriptor.LengthUnit != tc.metresPerUnit {

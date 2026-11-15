@@ -95,10 +95,10 @@ func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 	if grouped {
 		fillets = 2
 	}
-	return repairOCCTConvexArcModel(ctx, r, l, o, fillets, false)
+	return repairOCCTConvexArcModel(ctx, r, l, o, 3, fillets, false)
 }
 
-func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, wanted int, finiteAxial bool) (RepairedOCCTConvexArcExtrusion, error) {
+func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, sides, fillets int, finiteAxial bool) (RepairedOCCTConvexArcExtrusion, error) {
 	var zero RepairedOCCTConvexArcExtrusion
 	if ctx == nil || r == nil || math.IsNaN(o.MaxDistance) || math.IsInf(o.MaxDistance, 0) || o.MaxDistance <= 0 {
 		return zero, geom.ErrInvalid
@@ -161,7 +161,8 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 			}
 		}
 	}
-	if len(faces) != 5+wanted || len(edges) != 3*(3+wanted) || len(vertices) != 2*(3+wanted) || len(cylinders) != wanted {
+	segments := sides + fillets
+	if len(faces) != 2+segments || len(edges) != 3*segments || len(vertices) != 2*segments || len(cylinders) != fillets {
 		return zero, geom.ErrDomain
 	}
 	tolerance := new(big.Rat).SetFloat64(o.MaxDistance)
@@ -315,7 +316,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 			roles[pid] = "axial line origin"
 		}
 	}
-	if len(target) > 6*wanted {
+	if len(target) > 6*fillets {
 		return zero, geom.ErrDomain
 	}
 	// Reverse references forbid using moved points for supports or unrelated
@@ -402,7 +403,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 		}
 		f.Entities[pid] = Entity{ID: pid, Records: []Record{rec}}
 	}
-	if wanted > 1 {
+	if fillets > 1 {
 		out.reversals, e = normalizeGroupedConvexArcReversals(f, refs)
 		if e != nil {
 			return zero, e
@@ -425,7 +426,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 			return zero, geom.ErrDomain
 		}
 		cardinal := (x[0].Sign() == 0) != (x[1].Sign() == 0)
-		if x[2].Sign() != 0 || (!cardinal && (wanted != 3 || !convexUVUnit(x[:]))) {
+		if x[2].Sign() != 0 || (!cardinal && (fillets < 3 || !convexUVUnit(x[:]))) {
 			return zero, geom.ErrDomain
 		}
 		frame, _ := simple(f, rec.Args[1].Ref, "AXIS2_PLACEMENT_3D", 4)
@@ -455,7 +456,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 	if e != nil {
 		return zero, e
 	}
-	if len(material.Descriptor.Segments) != 3+wanted {
+	if len(material.Descriptor.Segments) != segments {
 		return zero, geom.ErrDomain
 	}
 	count := 0
@@ -464,7 +465,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 			count++
 		}
 	}
-	if count != wanted {
+	if count != fillets {
 		return zero, geom.ErrDomain
 	}
 	out.corrected = string(corrected)

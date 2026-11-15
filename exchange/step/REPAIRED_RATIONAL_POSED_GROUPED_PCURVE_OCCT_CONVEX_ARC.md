@@ -299,3 +299,56 @@ rejects this model before publishing material.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairThreeConvertedInchConvexArc' -count=1
 ```
+
+## Four disjoint fillets in an original millimetre STEP
+
+The pinned `write-four-default-tilted` mode extrudes a trapezoid whose
+profile vertices are `(0,0)`, `(2,0)`, `(2,1.5)`, and `(0,3)`.
+It authors its planar support explicitly at the base of the 5 mm prism
+and rounds all four separated vertical edges with four distinct radii:
+`1/4`, `3/8`, `5/16`, and `5/32` mm. The default AP214 original
+has 678 entities, one solid and ten faces. The grouped reader admits this
+24-edge topology with four distinct cylinder supports, four straight
+profile spans and exactly one original body. Its existing entity and
+repair bounds apply. This four-fillet qualification covers the native
+millimetre charts.
+
+The original 48 pcurve owners include 24 planar lines, six planar circles,
+eight cylindrical lines, eight cylindrical arcs and two rational caps.
+Eight planar lines and two rational caps need finite trim proofs. The
+original unequal axial stations on edges `#338` and `#563` retain their
+separate directed intervals. The two rational cap owners `#315` and
+`#375` retain the same-circle pairs `#326` and `#368` with both original
+owner orders. Their finite root enclosures remain in the source receipt.
+
+On both caps the same-direction circular owners have two distinct
+nonzero phases. Owners `#210` and `#482` use `u=t-1.570796326795`.
+Owners `#267` and `#529` use `u=t-2.498091544797`. The existing
+rational sine and cosine enclosures bound all four analytic charts
+throughout the model arcs. The largest proved lift distance is below
+`1.09e-13` mm. Pinned OCCT independently checks all 48 owners and compares
+the four shifted charts at twelve stations. The latter check measures a
+maximum `7.71e-14` mm with the authored phases and approximately
+`0.442` mm with zero phase.
+
+The original requires explicit repair at `1e-12` mm and rejects
+`1e-13` mm. The strict canonical reader retains the exact world pose and
+solid and re-exports identical bytes. Pinned OCCT independently reads the
+original, corrected and canonical worlds as one ten-face solid with
+canonical volume `22.155304183748054` mm³, area `51.012178844414059` mm²
+and centroid `(2.5325644799355218, 1.1687478248848513, 0.789914026752639)` mm.
+
+The separate `write-four-default-tilted-automatic-plane` original uses
+OCCT's automatic planar support. In STEP, both cap planes are displaced
+axially by exactly `-1/5000000000000` mm from their original model circles.
+The exact repair retains those supports and rejects the incompatible
+circle trims. Pinned OCCT transfers that independent original within
+its tolerance. The separate `write-four-default-tilted-nondyadic` original
+changes the acute fillet to `3/16` mm and requires non-binary tangent
+coordinates. Wrong source phases, borrowed owners and an added B-rep root
+item also reject without publishing repaired material.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairFourConvexArc' -count=1
+```
