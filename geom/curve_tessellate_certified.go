@@ -62,7 +62,7 @@ func TessellateCurveCertifiedContext(ctx context.Context, c *BSpline, o Certifie
 		return CertifiedCurveTessellation{ExactOperations: p.operations}, ErrConvergence
 	}
 	o.MaxOperations = operations - p.operations
-	r, e := tessellateExactCurve(ctx, p, o)
+	r, e := tessellateExactCurve(ctx, p, o, nil)
 	r.ExactOperations += p.operations
 	return r, e
 }
@@ -77,7 +77,7 @@ func (c *SurfaceIsoCurve) TessellateCertifiedContext(ctx context.Context, o Cert
 	if ctx == nil || c == nil || c.patch == nil {
 		return CertifiedCurveTessellation{}, ErrInvalid
 	}
-	return tessellateExactCurve(ctx, c.patch, o)
+	return tessellateExactCurve(ctx, c.patch, o, nil)
 }
 
 func roundedHomogeneousPoint(h exactHomogeneous, b *polynomialBudget) (Vec3, float64, error) {
@@ -98,7 +98,7 @@ func roundedHomogeneousPoint(h exactHomogeneous, b *polynomialBudget) (Vec3, flo
 	}
 	return Vec3{values[0], values[1], values[2]}, outwardSqrtRat(squared, false), nil
 }
-func tessellateExactCurve(ctx context.Context, p *SurfacePatch, o CertifiedTessellationOptions) (r CertifiedCurveTessellation, err error) {
+func tessellateExactCurve(ctx context.Context, p *SurfacePatch, o CertifiedTessellationOptions, mapSegment func(CertifiedCurveSegment, *polynomialBudget) error) (r CertifiedCurveTessellation, err error) {
 	if o.Deflection == 0 {
 		o.Deflection = 1e-4
 	}
@@ -155,7 +155,13 @@ func tessellateExactCurve(ctx context.Context, p *SurfacePatch, o CertifiedTesse
 				errorBound = rationalFloatBound(sum, false)
 			}
 			if errorBound <= o.Deflection {
-				r.Segments = append(r.Segments, CertifiedCurveSegment{ParameterSpan{Start: d.UMin, End: d.UMax, Index: len(r.Segments)}, start, end, errorBound})
+				segment := CertifiedCurveSegment{ParameterSpan{Start: d.UMin, End: d.UMax, Index: len(r.Segments)}, start, end, errorBound}
+				if mapSegment != nil {
+					if e := mapSegment(segment, b); e != nil {
+						return r, e
+					}
+				}
+				r.Segments = append(r.Segments, segment)
 				continue
 			}
 			if current.depth >= o.MaxDepth {
