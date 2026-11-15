@@ -239,11 +239,11 @@ func openGraphLoop(c intersect.CertifiedContour, difference *geom.SurfacePatch, 
 }
 
 func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height float64, above bool, tolerance float64, pieces []openSectionPiece, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
-	return assembleOpenSplineGraphPairOnCharts(context.Background(), surface, bottom, height, above, tolerance, pieces, [2]graphEnvelopeChart{}, evaluate...)
+	return assembleOpenSplineGraphPairOnCharts(context.Background(), surface, bottom, height, above, tolerance, pieces, [2]graphEnvelopeChart{}, nil, evaluate...)
 }
 
 func assembleOpenSplineGraphPairOnCharts(ctx context.Context, surface, bottom *geom.BSplineSurface, height float64, above bool,
-	tolerance float64, pieces []openSectionPiece, charts [2]graphEnvelopeChart, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
+	tolerance float64, pieces []openSectionPiece, charts [2]graphEnvelopeChart, reference graphEnvelopeReference, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
 	fail := func(reason string) (Solid, OpenSectionHistory, error) {
 		return Solid{}, OpenSectionHistory{}, fmt.Errorf("trimmed: spline wall assembly: %s", reason)
 	}
@@ -297,6 +297,17 @@ func assembleOpenSplineGraphPairOnCharts(ctx context.Context, surface, bottom *g
 		q, e := basePoint(ownerPieces[1][i].a)
 		if e != nil {
 			return Solid{}, OpenSectionHistory{}, e
+		}
+		if reference != nil {
+			for _, point := range [2]geom.Vec3{p, q} {
+				uv, e := graphEnvelopeReferencePoint(point, reference)
+				if e != nil {
+					return Solid{}, OpenSectionHistory{}, e
+				}
+				if uv != pieces[i].a {
+					return Solid{}, OpenSectionHistory{}, geom.ErrConvergence
+				}
+			}
 		}
 		// A vertex incident to any section edge belongs to both original charts.
 		if x.side < 0 || pieces[(i+n-1)%n].side < 0 {
@@ -386,16 +397,17 @@ func assembleOpenSplineGraphPairOnCharts(ctx context.Context, surface, bottom *g
 			continue
 		}
 		j := (i + 1) % n
-		// The wall chart runs from a to b along its horizontal axis and
-		// measures distance from the section plane along +Z.
-		dir := geom.Vec3{X: x.b.X - x.a.X, Y: x.b.Y - x.a.Y}
-		norm := dir.Cross(geom.Vec3{Z: 1})
-		wf, e := geom.NewFrame(geom.Vec3{X: x.a.X, Y: x.a.Y, Z: height}, dir, norm)
+		// Keep the vertical parameter measured from the section plane.
+		// The oblique horizontal parameter uses the exact world side.
+		start, end := vertices[baseIDs[i]], vertices[baseIDs[j]]
+		start.Z = height
+		if reference == nil {
+			start.X, start.Y, end.X, end.Y = x.a.X, x.a.Y, x.b.X, x.b.Y
+		}
+		ws, length, e := graphEnvelopeWall(start, end, reference != nil)
 		if e != nil {
 			return Solid{}, OpenSectionHistory{}, e
 		}
-		ws, _ := geom.NewPlaneSurface(wf)
-		length := dir.Length()
 		aa, bb := geom.Vec2{Y: vertices[baseIDs[i]].Z - height}, geom.Vec2{X: length, Y: vertices[baseIDs[j]].Z - height}
 		c, d := geom.Vec2{X: length, Y: vertices[j].Z - height}, geom.Vec2{Y: vertices[i].Z - height}
 		if verticals[j] < 0 {

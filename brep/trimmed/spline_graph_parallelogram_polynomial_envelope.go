@@ -38,11 +38,36 @@ func CombineParallelogramPolynomialEnvelope(ctx context.Context, base, a, b *geo
 	if e != nil {
 		return nil, e
 	}
-	graph, e := geom.NewAffineXYGraph(ctx, stock.reference, o.Section.Patch)
+	reference, e := newGraphEnvelopeReference(ctx, stock.reference, o)
 	if e != nil {
 		return nil, e
 	}
-	reference := func(p geom.Vec3) (geom.Vec2, error) {
+	return buildNativePolynomialEnvelopeOnFootprint(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
+		nativeParallelogramPolynomialEnvelope, proof.Arrangement, proof.Owners, baseChart, projectedPolynomialCharts(proof), reference)
+}
+
+func newGraphEnvelopeReference(ctx context.Context, patch *geom.SurfacePatch,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (graphEnvelopeReference, error) {
+	graph, e := geom.NewAffineXYGraph(ctx, patch, o.Section.Patch)
+	if e != nil {
+		return nil, e
+	}
+	// Every native use starts from the same represented world corners.
+	d := patch.Domain()
+	for _, u := range []float64{d.UMin, d.UMax} {
+		for _, v := range []float64{d.VMin, d.VMax} {
+			jet, e := graph.EvaluateRational(ctx, [2]*big.Rat{ratInset(u), ratInset(v)}, geom.SurfacePatchEvaluationOptions{
+				MaxOperations: o.Proof.MaxOperations, MaxCoefficientBits: o.Proof.MaxCoefficientBits,
+			})
+			if e != nil {
+				return nil, e
+			}
+			if _, e := geom.RepresentedExactPoint(jet.Point); e != nil {
+				return nil, e
+			}
+		}
+	}
+	return func(p geom.Vec3) (geom.Vec2, error) {
 		q, e := graph.InvertRational(ctx, [2]*big.Rat{ratInset(p.X), ratInset(p.Y)}, geom.SurfacePatchEvaluationOptions{
 			MaxOperations: o.Proof.MaxOperations, MaxCoefficientBits: o.Proof.MaxCoefficientBits,
 		})
@@ -53,9 +78,7 @@ func CombineParallelogramPolynomialEnvelope(ctx context.Context, base, a, b *geo
 			return geom.Vec2{}, geom.ErrDomain
 		}
 		return exactGraphPartitionUV(q.UV)
-	}
-	return buildNativePolynomialEnvelopeOnFootprint(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
-		nativeParallelogramPolynomialEnvelope, proof.Arrangement, proof.Owners, baseChart, projectedPolynomialCharts(proof), reference)
+	}, nil
 }
 
 // ReadParallelogramPolynomialEnvelopeJSON re-proves the original footprint,
