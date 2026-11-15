@@ -9,6 +9,7 @@ import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {suitePorts,passedProbe,verifyDelegatedReport,requireDevelopmentOrigin} from "./suite-delegation.mjs";
 import { installDisplayRuntime } from "./display-runtime.mjs";
+import { leadFitCases, leadFitDeadlineMs, leadFitTest, leadFitTestPrefix, passedLeadFitCases, stageLeadFitProviderChecks } from "./lead-fit.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -19,19 +20,26 @@ const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date
 const suite = option("--suite", "development");
 const ports=suitePorts(suite,option("--port"),option("--preflight-port"));
 const port=ports.preflight;
+const leadFitFixture = args.includes("--lead-fit-fixture");
 const stepRepairFixture = args.includes("--step-repair-fixture");
 const stepRepairTest = "plainSolidStepRepair.test.ts";
 const stepRepairWorkerFixture = args.includes("--step-repair-worker-fixture");
 const stepRepairWorkerTest = "e2e/plainsolid-step-repair-worker.spec.ts";
-const testDefaults = { development: stepRepairWorkerFixture ? stepRepairWorkerTest : "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : "" };
+const testDefaults = { development: stepRepairWorkerFixture ? stepRepairWorkerTest : "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : leadFitFixture ? leadFitTest : "" };
 const testFile = option("--test", testDefaults[suite]);
-const grep = option("--grep", suite === "development" && !stepRepairWorkerFixture ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
+const defaultGrep = suite === "development" && !stepRepairWorkerFixture
+  ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding"
+  : leadFitFixture ? `^${leadFitTestPrefix} ` : ".*";
+const grep = option("--grep", defaultGrep);
 const unitWorkers = option("--workers", "1");
 if (suite === "unit" && !/^[1-9]\d*$/.test(unitWorkers)) throw new Error("Invalid --workers");
 const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts", unit: undefined };
 if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite development, production, cross-browser or unit.");
 const acceptanceConfig = acceptanceConfigs[suite];
 const sideDualDiskFixture = args.includes("--side-dual-disk-fixture");
+if (leadFitFixture && (suite !== "unit" || testFile !== leadFitTest || grep !== defaultGrep ||
+    stepRepairFixture || stepRepairWorkerFixture || sideDualDiskFixture))
+  throw new Error("The lead-fit fixture runs all three original cases as a standalone unit selection.");
 if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainsolid-side-dual-disk.spec.ts"))
   throw new Error("The supplemental dual-disk fixture must run by itself in the development suite.");
 if (stepRepairFixture && (suite !== "unit" || testFile !== stepRepairTest))
@@ -152,6 +160,20 @@ export default defineConfig({ ...base, test: {
     await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
     report.typecheck = "passed";
   }
+  if (leadFitFixture) {
+    const file = `src/tests/${leadFitTest}`;
+    const original = await readFile(join(source, file), "utf8");
+    const staged = await readFile(join(work, file), "utf8");
+    const checks = stageLeadFitProviderChecks(original, staged);
+    await writeFile(join(work, file), checks.source);
+    report.leadFit = {
+      file, originalFileSha256: hash(original), stagedFileSha256: hash(checks.source),
+      originalCasesSha256: hash(checks.originalCases), stagedCasesSha256: hash(checks.adaptedCases),
+      deadlineMs: leadFitDeadlineMs, cases: leadFitCases, assertedProvider: "plainsolid",
+      goVersion: execFileSync("go", ["version"], { encoding: "utf8" }).trim(),
+      wasmRuntimeSha256: hash(await readFile(join(work, "src/cad/kernel/wasm_exec.js"))),
+    };
+  }
   const unitResult = join(work, "unit-results.json");
   try {
     await command("node", [join(work, "node_modules/vitest/vitest.mjs"), "run", "--config", configPath, "--maxWorkers", unitWorkers,
@@ -178,6 +200,10 @@ export default defineConfig({ ...base, test: {
   }))));
   const complete = report.unit.passed > 0 && report.unit.failed === 0 &&
     report.unit.total === report.unit.passed + report.unit.pending && (grep !== ".*" || report.unit.pending === 0);
+  if (leadFitFixture) {
+    report.backendVerified = passedLeadFitCases(report.tests);
+    if (!report.backendVerified) report.error ??= "All three original PlainSolid lead-fit cases must pass within 45 seconds each.";
+  }
   report.status = !report.error && complete ? "passed" : "failed";
   if (report.status === "failed") report.error ??= "All selected unit tests must pass.";
 }
@@ -287,7 +313,7 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
-  if (!stepRepairFixture && !stepRepairWorkerFixture) {
+  if (!stepRepairFixture && !stepRepairWorkerFixture && !leadFitFixture) {
     // The worker already accepts this progress callback for modeled threads.
     // Report actual feature boundaries for the synchronous Go kernel as well.
     const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
