@@ -70,6 +70,10 @@ func Write(w io.Writer, m Model) error { return writeModel(w, m, false) }
 func WriteAdvanced(w io.Writer, m Model) error { return writeModel(w, m, true) }
 
 func writeModel(w io.Writer, m Model, advanced bool) error {
+	return writeModelWithPointNumber(w, m, advanced, real)
+}
+
+func writeModelWithPointNumber(w io.Writer, m Model, advanced bool, pointNumber func(float64) string) error {
 	if w == nil {
 		return errors.New("step: nil writer")
 	}
@@ -114,7 +118,7 @@ func writeModel(w io.Writer, m Model, advanced bool) error {
 		vertices, edges, faces := body.Solid.Vertices(), body.Solid.Edges(), body.Solid.Faces()
 		pointIDs := make([]int64, len(vertices))
 		for i, p := range vertices {
-			pointIDs[i] = emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
+			pointIDs[i] = emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", pointNumber(p.X), pointNumber(p.Y), pointNumber(p.Z)))
 		}
 		edgeIDs := make([]int64, len(edges))
 		if advanced {

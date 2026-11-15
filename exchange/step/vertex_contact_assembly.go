@@ -5,6 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
+	"strconv"
+	"strings"
 
 	"plainsolid/brep"
 	"plainsolid/collision"
@@ -23,8 +26,10 @@ type VertexContactSTEPOptions struct {
 // ReadVertexContactAssembly interprets separate planar STEP bodies as a
 // compound with disjoint interiors and discovers their complete exact vertex
 // contact graph. The file requires no private marker or supplementary ledger.
-// The ordinary planar STEP transfer limits still apply; mapped occurrences and
-// nonplanar geometry are not part of this entry point.
+// Original STEP vertex coordinates must be exactly representable as binary64,
+// and each bounded original face polygon must be exactly planar. Vertices that
+// would coincide only after rounding cannot acquire a contact. Mapped
+// occurrences and nonplanar geometry are outside this entry point.
 func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContactSTEPOptions) (Model, collision.VertexContactAssemblyReport, error) {
 	var zero Model
 	var noReport collision.VertexContactAssemblyReport
@@ -34,12 +39,15 @@ func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContact
 	if err := ctx.Err(); err != nil {
 		return zero, noReport, err
 	}
-	m, err := Read(r, o.Limits)
+	m, err := readPlanarModel(r, o.Limits, exactVertexContactPointNumber)
 	if err != nil {
 		return zero, noReport, err
 	}
 	p, err := collision.DiscoverVertexContactAssembly(ctx, vertexContactBodies(m), o.Proof)
 	if err != nil {
+		return zero, noReport, err
+	}
+	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
 		return zero, noReport, err
 	}
 	return m, p, nil
@@ -70,9 +78,12 @@ func WriteVertexContactAssembly(ctx context.Context, w io.Writer, m Model, o Ver
 	if err != nil {
 		return empty, err
 	}
+	if err := checkVertexContactSTEPFaces(ctx, m); err != nil {
+		return empty, err
+	}
 	var staged vertexContactSTEPBuffer
 	staged.max = limits.MaxBytes
-	if err := writeModel(&staged, m, !o.FacetedWriter); err != nil {
+	if err := writeModelWithPointNumber(&staged, m, !o.FacetedWriter, exactVertexContactPointText); err != nil {
 		return empty, err
 	}
 	reopened, check, err := ReadVertexContactAssembly(ctx, bytes.NewReader(staged.Bytes()), o)
@@ -98,6 +109,75 @@ func WriteVertexContactAssembly(ctx context.Context, w io.Writer, m Model, o Ver
 		return empty, io.ErrShortWrite
 	}
 	return proof, nil
+}
+
+func exactVertexContactPointNumber(v Value) (float64, error) {
+	if v.Kind != Number || len(v.Text) > 1100 {
+		return 0, geom.ErrUnrepresentable
+	}
+	if i := strings.IndexAny(v.Text, "eE"); i >= 0 {
+		exp, err := strconv.Atoi(v.Text[i+1:])
+		if err != nil || exp < -4096 || exp > 4096 {
+			return 0, geom.ErrUnrepresentable
+		}
+	}
+	q, ok := new(big.Rat).SetString(v.Text)
+	if !ok || q.Num().BitLen() > 8192 || q.Denom().BitLen() > 8192 {
+		return 0, geom.ErrUnrepresentable
+	}
+	return geom.RepresentedExactScalar(q)
+}
+
+func exactVertexContactPointText(x float64) string {
+	q := new(big.Rat).SetFloat64(x)
+	if q.IsInt() {
+		return q.Num().String() + "."
+	}
+	// A binary64 denominator is a power of two. Multiplication by the
+	// same power of five gives its exact terminating decimal expansion.
+	return q.FloatString(q.Denom().BitLen() - 1)
+}
+
+func checkVertexContactSTEPFaces(ctx context.Context, m Model) error {
+	for bodyID, body := range m.Bodies {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		mesh, faces, edges := body.Solid.Tessellate(), body.Solid.Faces(), body.Solid.Edges()
+		planes := make([][3]geom.Vec3, len(faces))
+		seen := make([]bool, len(faces))
+		for i, face := range body.Solid.TriangleFaces() {
+			if seen[face] {
+				continue
+			}
+			seen[face] = true
+			t := mesh.Triangles[i]
+			planes[face] = [3]geom.Vec3{mesh.Vertices[t[0]], mesh.Vertices[t[1]], mesh.Vertices[t[2]]}
+		}
+		for i, face := range faces {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if !seen[i] {
+				return collision.ErrInvalid
+			}
+			plane := planes[i]
+			for _, loop := range append([][]brep.EdgeUse{face.Boundary}, face.Holes...) {
+				for _, u := range loop {
+					e := edges[u.Edge]
+					vertex := e.Start
+					if u.Reversed {
+						vertex = e.End
+					}
+					sign, err := geom.Orient3D(plane[0], plane[1], plane[2], mesh.Vertices[vertex])
+					if err != nil || sign != 0 {
+						return fmt.Errorf("%w: STEP component %d face %d original vertices are not exactly planar", collision.ErrInvalid, bodyID, i)
+					}
+				}
+			}
+		}
+	}
+	return ctx.Err()
 }
 
 type vertexContactSTEPBuffer struct {

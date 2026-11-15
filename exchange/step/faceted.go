@@ -147,6 +147,10 @@ func contextUnits(f *File, id int64) (float64, error) {
 // source vertex/edge identities are preserved. Assemblies, curved faces and
 // void-body entities are rejected. Product metadata is not transferred.
 func Read(r io.Reader, l Limits) (Model, error) {
+	return readPlanarModel(r, l, numeric)
+}
+
+func readPlanarModel(r io.Reader, l Limits, pointNumber func(Value) (float64, error)) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -216,7 +220,7 @@ func Read(r io.Reader, l Limits) (Model, error) {
 			if len(model.Bodies) >= l.MaxSolids {
 				return Model{}, errors.New("step: solid limit exceeded")
 			}
-			body, e := readBody(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, kind == "ADVANCED_BREP_SHAPE_REPRESENTATION")
+			body, e := readBodyWithPointNumber(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, kind == "ADVANCED_BREP_SHAPE_REPRESENTATION", pointNumber)
 			if e != nil {
 				return Model{}, e
 			}
@@ -245,6 +249,10 @@ func Read(r io.Reader, l Limits) (Model, error) {
 	return model, nil
 }
 func readBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advanced bool) (Body, error) {
+	return readBodyWithPointNumber(f, id, maxVertices, maxFaces, maxEdgeUses, advanced, numeric)
+}
+
+func readBodyWithPointNumber(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advanced bool, pointNumber func(Value) (float64, error)) (Body, error) {
 	bodyKind := "FACETED_BREP"
 	if advanced {
 		bodyKind = "MANIFOLD_SOLID_BREP"
@@ -295,9 +303,9 @@ func readBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advance
 		}
 		p := geom.Vec3{}
 		for i, x := range []*float64{&p.X, &p.Y, &p.Z} {
-			*x, e = numeric(v.Items[i])
+			*x, e = pointNumber(v.Items[i])
 			if e != nil {
-				return 0, e
+				return 0, fmt.Errorf("step: vertex point #%d axis %d: %w", id, i, e)
 			}
 		}
 		if n, ok := pointIndex[p]; ok {

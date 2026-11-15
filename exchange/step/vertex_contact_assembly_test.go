@@ -110,3 +110,61 @@ func TestPlanarVertexContactAssemblySTEPOCCT(t *testing.T) {
 		t.Fatalf("pinned OCCT measured %+v from %q (%v)", p, out, err)
 	}
 }
+
+func TestPlanarVertexContactAssemblySTEPNeverRoundsAContactCoordinate(t *testing.T) {
+	ctx := context.Background()
+	m := vertexContactSTEPFixture(t)
+	for _, f := range []bool{false, true} {
+		var out bytes.Buffer
+		o := VertexContactSTEPOptions{FacetedWriter: f}
+		if _, err := WriteVertexContactAssembly(ctx, &out, m, o); err != nil {
+			t.Fatal(err)
+		}
+		old, changed := []byte("CARTESIAN_POINT('',(1.,1.,1.))"), []byte("CARTESIAN_POINT('',(1.00000000000000001,1.,1.))")
+		if !bytes.Contains(out.Bytes(), old) {
+			t.Fatal("emitted fixture lost its authored point")
+		}
+		mutant := bytes.Replace(out.Bytes(), old, changed, 1)
+		if legacy, err := Read(bytes.NewReader(mutant), Limits{}); err != nil || len(legacy.Bodies) != 3 {
+			t.Fatalf("legacy numeric transfer should still work: %v", err)
+		}
+		if r, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(mutant), o); !errors.Is(err, geom.ErrUnrepresentable) || len(r.Bodies) != 0 || p.SignedVolume != nil {
+			t.Fatalf("rounded vertex admitted into the exact contact graph: %v", err)
+		}
+	}
+	box, err := brep.Box(geom.Vec3{X: .1}, geom.Vec3{X: .5, Y: 1, Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if _, err := WriteVertexContactAssembly(ctx, &out, Model{Bodies: []Body{{"decimal", box}}, LengthUnit: .001}, VertexContactSTEPOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("0.1000000000000000055511151231257827021181583404541015625")) {
+		t.Fatal("writer did not emit the exact finite decimal of the original represented point")
+	}
+	if got, _, err := ReadVertexContactAssembly(ctx, bytes.NewReader(out.Bytes()), VertexContactSTEPOptions{}); err != nil || len(got.Bodies) != 1 {
+		t.Fatalf("exact expanded decimal did not reopen: %v", err)
+	}
+}
+
+func TestPlanarVertexContactAssemblySTEPRejectsNonplanarOriginalWire(t *testing.T) {
+	ctx := context.Background()
+	m := vertexContactSTEPFixture(t)
+	s := m.Bodies[0].Solid
+	vertices := s.Vertices()
+	for i, p := range vertices {
+		if p == (geom.Vec3{X: 1, Y: 1, Z: 1}) {
+			vertices[i].Z = math.Nextafter(1, 2)
+		}
+	}
+	warped, err := brep.NewSolid(vertices, s.Edges(), s.Faces())
+	if err != nil {
+		t.Fatalf("fixture must be inside the ordinary BRep planarity tolerance: %v", err)
+	}
+	m.Bodies = []Body{{"tolerated planar fixture", warped}}
+	var out bytes.Buffer
+	if p, err := WriteVertexContactAssembly(ctx, &out, m, VertexContactSTEPOptions{}); !errors.Is(err, collision.ErrInvalid) || out.Len() != 0 || p.SignedVolume != nil {
+		t.Fatalf("nonplanar original wire escaped exact STEP qualification: %v", err)
+	}
+}
