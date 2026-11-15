@@ -85,18 +85,18 @@ grouped repairs in metres and inches.
 The cases OCCT converts from millimetres to metres or inches check exact
 planar parameter scales and cylindrical span coefficients in the native
 receipt. Their world meshes use PlainCAD's ordinary 0.5 mm linear deflection.
-The converted inch fixture uses a `1e-11` inch repair budget and verifies
+The converted inch fixtures use a `1e-11` inch repair budget and verify
 that `1e-12` inch is insufficient.
 The grouped converted metre fixture uses a `1e-12` metre budget and rejects
-`1e-13`. Its receipt retains the finite axial map, both original cap trims,
+`1e-13`. Each grouped conversion receipt retains the finite axial map, both original cap trims,
 and their reversed cylindrical spans.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
-units, the original converted OCCT metre and inch exports, tilted grouped
-inputs in metres and inches, and the grouped converted metre export. The
+units and tilted grouped inputs in metres and inches. Both include the
+corresponding original converted OCCT exports. The
 test compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports
