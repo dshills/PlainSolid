@@ -109,13 +109,12 @@ func (a *planarMassArithmetic) div(x, y *big.Rat) *big.Rat {
 	return a.check(new(big.Rat).Quo(x, y))
 }
 
-func exactPlanarMass(ctx context.Context, parts []*PointLocator, o ExactMassOptions) (ExactPlanarMass, error) {
-	var zero ExactPlanarMass
+func newPlanarMassArithmetic(ctx context.Context, o ExactMassOptions) (planarMassArithmetic, error) {
 	if ctx == nil || o.MaxOperations < 0 || o.MaxCoefficientBits < 0 {
-		return zero, ErrInvalid
+		return planarMassArithmetic{}, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
-		return zero, err
+		return planarMassArithmetic{}, err
 	}
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 2000000
@@ -123,7 +122,15 @@ func exactPlanarMass(ctx context.Context, parts []*PointLocator, o ExactMassOpti
 	if o.MaxCoefficientBits == 0 {
 		o.MaxCoefficientBits = 16384
 	}
-	arith := planarMassArithmetic{budget: locationBudget{ctx: ctx, limit: o.MaxOperations}, bits: o.MaxCoefficientBits}
+	return planarMassArithmetic{budget: locationBudget{ctx: ctx, limit: o.MaxOperations}, bits: o.MaxCoefficientBits}, nil
+}
+
+func exactPlanarMass(ctx context.Context, parts []*PointLocator, o ExactMassOptions) (ExactPlanarMass, error) {
+	var zero ExactPlanarMass
+	arith, err := newPlanarMassArithmetic(ctx, o)
+	if err != nil {
+		return zero, err
+	}
 	volume, validationVolume := new(big.Rat), new(big.Rat)
 	var first [3]*big.Rat
 	var second [3][3]*big.Rat
