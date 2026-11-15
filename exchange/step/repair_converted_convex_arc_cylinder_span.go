@@ -152,7 +152,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 			}
 			excess := new(big.Rat).Sub(t, owner[i])
 			excess.Mul(excess, conversion.modelSpeed)
-			if segments != 8 || trim == nil || excess.Mul(excess, excess).Cmp(tolSquared) > 0 {
+			if (segments != 8 && segments != 10) || trim == nil || excess.Mul(excess, excess).Cmp(tolSquared) > 0 {
 				return zero, "", nil, geom.ErrDomain
 			}
 			clipped = true
@@ -206,7 +206,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 		}
 		return span, "finite-cylinder-line", upper, nil
 	case "CIRCLE":
-		allowQuarter := segments == 8
+		allowQuarter := segments == 8 || segments == 10
 		mo, mx, my, mz, err := convexUVFrame(src, curve[0].Args[1].Ref)
 		increment, kind := big.NewRat(1, 1), "finite-cylinder-circle"
 		if reversal != nil {
@@ -228,7 +228,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 			if (segments != 6 && !allowQuarter) || reversal != nil || !convexUVSame(z, mz) {
 				return zero, "", nil, geom.ErrDomain
 			}
-			return boundShiftedConvexArcCylinderSpan(src, corrected, q, model, span, delta, x, y, mo, mx, my, mz, radius, tolSquared, allowQuarter)
+			return boundShiftedConvexArcCylinderSpan(src, corrected, q, model, span, delta, x, y, mo, mx, my, mz, radius, tolSquared, allowQuarter, segments == 10)
 		}
 		if uv[0].Sign() != 0 || slope[0].Cmp(increment) != 0 || !convexUVSame(x, mx) {
 			return zero, "", nil, geom.ErrDomain
@@ -251,7 +251,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 // the same normalized arc fraction. A rational enclosure proves that the
 // two parameters differ by at most angularError throughout both intervals.
 func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, span ConvexArcCylinderSpanOwner,
-	delta, x, y, origin, mx, my, mz [3]*big.Rat, radius, tolSquared *big.Rat, allowQuarter bool) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
+	delta, x, y, origin, mx, my, mz [3]*big.Rat, radius, tolSquared *big.Rat, allowQuarter, pentagonal bool) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
 	var zero ConvexArcCylinderSpanOwner
 	angularError := big.NewRat(1, 1000000000000)
 	lo, hi := span.ParameterInterval[0], span.ParameterInterval[1]
@@ -274,13 +274,25 @@ func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAg
 		return zero, "", nil, geom.ErrDomain
 	}
 
-	// The original unwrapped span starts at a quadrant II ray or at
-	// the positive sine axis. The directed ends are in their next branch.
+	// The stored knots select a candidate branch. The exact model rays
+	// and their enclosures below certify both endpoints of that branch.
 	minimum := [2]int64{2, 4}
 	raySigns := [2][2]int{{-1, 1}, {0, -1}}
-	if allowQuarter && lo.Cmp(big.NewRat(2, 1)) < 0 {
+	switch {
+	case allowQuarter && lo.Cmp(big.NewRat(2, 1)) < 0:
 		minimum = [2]int64{1, 2}
 		raySigns = [2][2]int{{0, 1}, {-1, 1}}
+	case pentagonal && lo.Cmp(big.NewRat(3, 1)) > 0:
+		// A positive quarter starts on the negative cosine axis in the
+		// model frame. The original cylinder reference is antipodal.
+		if occtLoopDot(x, mx).Cmp(big.NewRat(-1, 1)) != 0 {
+			return zero, "", nil, geom.ErrDomain
+		}
+		minimum = [2]int64{3, 4}
+		raySigns = [2][2]int{{-1, 0}, {0, -1}}
+	case pentagonal && hi.Cmp(big.NewRat(4, 1)) < 0:
+		minimum = [2]int64{2, 3}
+		raySigns = [2][2]int{{-1, 1}, {-1, 0}}
 	}
 	var bounds [2][2]*big.Rat
 	type trig struct{ sine, cosine, remainder *big.Rat }
