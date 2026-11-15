@@ -64,14 +64,49 @@ func disjointEllipseGraphFixture(t *testing.T) (*geom.BSplineSurface, *geom.BSpl
 	return out[0], out[1], out[2], hints
 }
 func TestDisjointEllipseOriginalGraphBooleans(t *testing.T) {
+	checkDisjointEllipseGraphBooleans(t, false)
+}
+func TestAutomaticDisjointEllipseGraphBooleans(t *testing.T) {
+	checkDisjointEllipseGraphBooleans(t, true)
+}
+func checkDisjointEllipseGraphBooleans(t *testing.T, automatic bool) {
 	ctx := context.Background()
 	base, a, b, hints := disjointEllipseGraphFixture(t)
+	if automatic {
+		p, e := geom.NewSurfacePatch(a, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		p, e = p.InsertUKnot(.125, 1, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		a, e = p.ToBSplineSurface()
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+
 	lens := math.Pi / 4096
 	delta := 1.0/64 - 5.0/48
 	vb := 3 + 1.0/256
 	for order, pair := range [][2]*geom.BSplineSurface{{a, b}, {b, a}} {
 		for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Union, parametric.Difference} {
-			s, h, e := CombineDisjointEllipseContactSplineGraphs(ctx, base, pair[0], pair[1], op, 1e-9, intersect.SplinePlaneOptions{}, .5, hints, geom.GraphPointContactOptions{})
+			var s Solid
+			var h DisjointEllipseGraphHistory
+			var e error
+			if automatic {
+				var history SplineGraphBooleanHistory
+				s, history, e = CombineSplineGraphSolidsWithOptions(ctx, base, pair[0], pair[1], op, 1e-9, SplineGraphBooleanOptions{DisjointEllipses: &geom.DisjointEllipseDiscoveryOptions{}})
+				if e == nil {
+					if history.DisjointEllipses == nil || !history.DisjointEllipses.Complete || history.DisjointEllipses.SplitU != .5 || history.DisjointEllipses.TestedSeparators != 2 {
+						t.Fatal("automatic original knot proof", history)
+					}
+					h = DisjointEllipseGraphHistory{Section: history.DisjointEllipses.Section, Material: history}
+				}
+			} else {
+				s, h, e = CombineDisjointEllipseContactSplineGraphs(ctx, base, pair[0], pair[1], op, 1e-9, intersect.SplinePlaneOptions{}, .5, hints, geom.GraphPointContactOptions{})
+			}
 
 			if e != nil {
 				t.Fatal(order, op, e)

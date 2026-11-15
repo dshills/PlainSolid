@@ -36,6 +36,13 @@ func CombineDisjointEllipseContactSplineGraphs(ctx context.Context, base, a, b *
 	if e != nil {
 		return fail(e)
 	}
+	return assembleDisjointEllipseGraphContact(ctx, base, a, b, op, tolerance, section, proof)
+}
+
+func assembleDisjointEllipseGraphContact(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, section geom.SplineGraphDisjointEllipses, proof geom.GraphPointContactOptions) (Solid, DisjointEllipseGraphHistory, error) {
+	fail := func(e error) (Solid, DisjointEllipseGraphHistory, error) {
+		return Solid{}, DisjointEllipseGraphHistory{}, e
+	}
 	if !section.Complete || section.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) {
 		return fail(geom.ErrConvergence)
 	}
