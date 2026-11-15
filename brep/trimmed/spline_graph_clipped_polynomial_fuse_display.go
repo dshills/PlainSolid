@@ -17,6 +17,13 @@ type fuseDisplayPoint struct {
 	id int
 }
 
+type fuseDisplayRow struct {
+	points []fuseDisplayPoint
+	// traceEnds indexes the ends of the two outer traces in the
+	// previous and next slabs, respectively.
+	traceEnds [2][]int
+}
+
 type fuseDisplaySample struct {
 	id, station int
 	parameter   float64
@@ -31,7 +38,7 @@ func fuseDisplayCoordinate(p geom.Vec3, axis int) float64 {
 	return [2]float64{p.X, p.Y}[axis]
 }
 
-// The one-axis clipped Fuse proves affine XY charts and polynomial traces
+// The clipped Fuse proves affine XY charts and polynomial traces
 // in a common free coordinate. Slicing both owners at the same stations
 // keeps thin contact regions from being filled by nearly parallel ears.
 func (s Solid) tessellateClippedFuse(ctx context.Context, axis int, o parametric.TessellationOptions) (mesh.Mesh, error) {
@@ -135,7 +142,7 @@ func (s Solid) clippedFuseDisplayCandidate(ctx context.Context, axis, n int, sta
 		}
 		boundary := make(map[[2]int]fuseDisplaySide)
 		ring := make([]fuseDisplayPoint, 0, len(face.Outer))
-		rows := make([][]fuseDisplayPoint, len(stations))
+		rows := make([]fuseDisplayRow, len(stations))
 		_, wall := face.Surface.(splineGraphAffineWall)
 		for _, use := range face.Outer {
 			points := edges[use.Edge]
@@ -165,7 +172,17 @@ func (s Solid) clippedFuseDisplayCandidate(ctx context.Context, axis, n int, sta
 				if wall {
 					ring = append(ring, point)
 				} else {
-					rows[a.station] = append(rows[a.station], point)
+					rows[a.station].points = append(rows[a.station].points, point)
+					if a.station != b.station {
+						left, right := a, b
+						if a.station > b.station {
+							left, right = b, a
+						}
+						leftEnds := &rows[left.station].traceEnds[1]
+						rightEnds := &rows[right.station].traceEnds[0]
+						*leftEnds = append(*leftEnds, left.id)
+						*rightEnds = append(*rightEnds, right.id)
+					}
 				}
 			}
 		}
@@ -243,14 +260,14 @@ func emitFuseDisplayWall(ctx context.Context, ring []fuseDisplayPoint, emit func
 	return nil
 }
 
-func emitFuseDisplayCap(ctx context.Context, surface geom.Surface, rows [][]fuseDisplayPoint, axis, n int,
+func emitFuseDisplayCap(ctx context.Context, surface geom.Surface, rows []fuseDisplayRow, axis, n int,
 	m *mesh.Mesh, maxTriangles int, boundary map[[2]int]fuseDisplaySide, emit func([3]fuseDisplayPoint) error) error {
-	first := slices.IndexFunc(rows, func(row []fuseDisplayPoint) bool { return len(row) != 0 })
+	first := slices.IndexFunc(rows, func(row fuseDisplayRow) bool { return len(row.points) != 0 })
 	if first < 0 {
 		return errTrimFold
 	}
 	rows = rows[first:]
-	for len(rows[len(rows)-1]) == 0 {
+	for len(rows[len(rows)-1].points) == 0 {
 		rows = rows[:len(rows)-1]
 	}
 	transverse := func(p fuseDisplayPoint) float64 {
@@ -261,48 +278,85 @@ func emitFuseDisplayCap(ctx context.Context, surface geom.Surface, rows [][]fuse
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if len(row) == 0 || len(row) == 1 && i != 0 && i != len(rows)-1 {
+		sides, e := splitFuseDisplayRow(surface, row, transverse, n, maxTriangles, m, boundary)
+		if e != nil {
+			return e
+		}
+		if (i == 0) != (len(sides[0]) == 0) || (i == len(rows)-1) != (len(sides[1]) == 0) {
 			return errTrimFold
 		}
-		slices.SortFunc(row, func(a, b fuseDisplayPoint) int { return cmp.Compare(transverse(a), transverse(b)) })
-		for j := 1; j < len(row); j++ {
-			if transverse(row[j-1]) >= transverse(row[j]) {
-				return errTrimFold
+		if previous != nil {
+			if e := emitFuseDisplayStrip(previous, sides[0], transverse, emit); e != nil {
+				return e
 			}
 		}
-		if len(row) == 2 && !hasFuseDisplaySide(boundary, row[0], row[1]) {
-			if n-1 > maxTriangles-len(m.Vertices) {
-				return parametric.ErrBudget
+		previous = sides[1]
+	}
+	return nil
+}
+
+// A stock can start or end halfway across this row. Its exposed native
+// segments belong to one slab; the remaining interval is shared by both.
+func splitFuseDisplayRow(surface geom.Surface, row fuseDisplayRow, transverse func(fuseDisplayPoint) float64, n, maxTriangles int,
+	m *mesh.Mesh, boundary map[[2]int]fuseDisplaySide) ([2][]fuseDisplayPoint, error) {
+	var sides [2][]fuseDisplayPoint
+	points := row.points
+	slices.SortFunc(points, func(a, b fuseDisplayPoint) int { return cmp.Compare(transverse(a), transverse(b)) })
+	for j := 1; j < len(points); j++ {
+		if transverse(points[j-1]) >= transverse(points[j]) {
+			return sides, errTrimFold
+		}
+	}
+	bounds := [2][2]int{{-1, -1}, {-1, -1}}
+	for i, ends := range row.traceEnds {
+		if len(ends) == 0 {
+			continue
+		}
+		if len(ends) != 2 {
+			return sides, errTrimFold
+		}
+		var at [2]int
+		for j, id := range ends {
+			at[j] = slices.IndexFunc(points, func(p fuseDisplayPoint) bool { return p.id == id })
+			if at[j] < 0 {
+				return sides, errTrimFold
 			}
-			a, b := row[0], row[1]
-			row = make([]fuseDisplayPoint, n+1)
-			row[0], row[n] = a, b
+		}
+		bounds[i] = [2]int{min(at[0], at[1]), max(at[0], at[1])}
+	}
+	for i, a := range points {
+		for j, span := range bounds {
+			if span[0] <= i && i <= span[1] {
+				sides[j] = append(sides[j], a)
+			}
+		}
+		if i == len(points)-1 {
+			break
+		}
+		b := points[i+1]
+		before := bounds[0][0] <= i && i < bounds[0][1]
+		after := bounds[1][0] <= i && i < bounds[1][1]
+		if (!before && !after) || hasFuseDisplaySide(boundary, a, b) != (before != after) {
+			return sides, errTrimFold
+		}
+		if before && after {
+			if n-1 > maxTriangles-len(m.Vertices) {
+				return sides, parametric.ErrBudget
+			}
 			for j := 1; j < n; j++ {
 				uv := mix(a.uv, b.uv, float64(j)/float64(n))
 				v, e := surface.Eval(uv.X, uv.Y)
 				if e != nil || !v.IsFinite() {
-					return errTrimFold
+					return sides, errTrimFold
 				}
-				row[j] = fuseDisplayPoint{uv, len(m.Vertices)}
+				p := fuseDisplayPoint{uv, len(m.Vertices)}
 				m.Vertices = append(m.Vertices, v)
-			}
-		} else {
-			// A native transverse edge may contain several source
-			// segments. Keep their shared samples as one ordered row.
-			for j := 1; j < len(row); j++ {
-				if !hasFuseDisplaySide(boundary, row[j-1], row[j]) {
-					return errTrimFold
-				}
+				sides[0] = append(sides[0], p)
+				sides[1] = append(sides[1], p)
 			}
 		}
-		if previous != nil {
-			if e := emitFuseDisplayStrip(previous, row, transverse, emit); e != nil {
-				return e
-			}
-		}
-		previous = row
 	}
-	return nil
+	return sides, nil
 }
 
 func hasFuseDisplaySide(boundary map[[2]int]fuseDisplaySide, a, b fuseDisplayPoint) bool {
