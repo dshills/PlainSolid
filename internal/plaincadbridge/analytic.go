@@ -28,6 +28,7 @@ type analyticBody struct {
 	shaft           *trimmed.SteppedShaft
 	segment         *circularSegmentSweep
 	arcLoop         *arcLoopSupport
+	stepArcLoop     *stepArcLoopSupport
 	helical         bool
 	lead            *leadPart
 	helicalMesh     *mesh.Mesh
@@ -64,6 +65,8 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 		box, err = geom.Bounds(body.polygonExtrema)
 	} else if body.arcLoop != nil {
 		box = body.arcLoop.bounds
+	} else if body.stepArcLoop != nil {
+		box = body.stepArcLoop.bounds
 	} else if body.segment != nil {
 		box, err = body.segment.bounds()
 	} else if body.sideNotch != nil {
@@ -178,6 +181,13 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 			return nil, err
 		}
 		out.arcLoop = &p
+	}
+	if a.stepArcLoop != nil {
+		var err error
+		out.stepArcLoop, err = a.stepArcLoop.transformed(m)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if a.segment != nil {
 		s := *a.segment
