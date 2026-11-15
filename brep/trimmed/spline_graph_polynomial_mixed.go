@@ -124,18 +124,8 @@ func CombineSplineGraphPolynomialMixedContact(ctx context.Context, base, a, b *g
 	if e != nil {
 		return nil, e
 	}
-	regions := make([]graphEnvelopeRegion, len(loops))
-	for i, loop := range loops {
-		regions[i] = graphEnvelopeRegion{loop: loop, first: (proof.Regions[i].HeightSide > 0) == (op == parametric.Union)}
-	}
-	solid, envelope, e := assembleSplineEnvelope(ctx, base, a, b, regions, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	solid, envelope, e := assemblePolynomialSourceEnvelope(ctx, base, a, b, op, tolerance, proof.Regions[:], loops, o.Proof)
 	if e != nil {
-		return nil, e
-	}
-	if e = validateExactGraphPartitionEdges(ctx, solid, o.Proof); e != nil {
-		return nil, e
-	}
-	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
 		return nil, e
 	}
 	result := &PolynomialMixedEnvelope{
@@ -148,6 +138,27 @@ func CombineSplineGraphPolynomialMixedContact(ctx context.Context, base, a, b *g
 		return nil, e
 	}
 	return result, nil
+}
+
+// The signed source arrangement proves the roof regions, including tangent
+// boundaries. Both callers also bind every native coedge to those regions.
+func assemblePolynomialSourceEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64,
+	source []geom.SplineGraphPolynomialRegion, loops [][]openSectionPiece, proof geom.GraphPointContactOptions) (Solid, SplineGraphBooleanHistory, error) {
+	regions := make([]graphEnvelopeRegion, len(loops))
+	for i, loop := range loops {
+		regions[i] = graphEnvelopeRegion{loop: loop, first: (source[i].HeightSide > 0) == (op == parametric.Union)}
+	}
+	solid, envelope, e := assembleSplineEnvelope(ctx, base, a, b, regions, tolerance, exactGraphVertexEvaluator(ctx, proof))
+	if e != nil {
+		return Solid{}, SplineGraphBooleanHistory{}, e
+	}
+	if e = validateExactGraphPartitionEdges(ctx, solid, proof); e != nil {
+		return Solid{}, SplineGraphBooleanHistory{}, e
+	}
+	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
+		return Solid{}, SplineGraphBooleanHistory{}, e
+	}
+	return solid, envelope, nil
 }
 
 func (r *PolynomialMixedEnvelope) bind(proof geom.SplineGraphPolynomialMixedContact, xyz [6]geom.Vec3, pieces, loops [][]openSectionPiece, envelope SplineGraphBooleanHistory) error {
