@@ -35,7 +35,7 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 
 type polynomialGraphContactMode struct {
 	crossings, tangencies, cubicCrossings, quarticTangencies int
-	polynomialHeight, allowQuintic                           bool
+	polynomialHeight, allowQuintic, discoverArrangement      bool
 	certify                                                  func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
 }
 
@@ -153,7 +153,7 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if len(disc) == 0 && mode.crossings > 1 && repeatedContacts == 0 {
 		return r, ErrDegenerate
 	}
-	coincident := len(disc) == 0 && repeatedContacts > 0
+	coincident := len(disc) == 0 && (repeatedContacts > 0 || mode.discoverArrangement)
 	var root rationalPolynomial
 	if !coincident {
 		root, e = graphExactPolynomialSqrt(disc, budget)
@@ -229,7 +229,7 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	var roots []*big.Rat
 	if coincident {
 		order = 1
-	} else if mode.crossings+repeatedContacts == 0 {
+	} else if mode.crossings+repeatedContacts == 0 && !mode.discoverArrangement {
 		order, e = proveSign(delta)
 	} else {
 		roots, order, e = discoverGraphPolynomialPairRoots(ctx, delta, mode, o.MaxCells, &visits, budget)

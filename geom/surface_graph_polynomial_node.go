@@ -56,7 +56,7 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 	}
 	order := delta[0].Sign()
 	count := mode.crossings + mode.tangencies + mode.cubicCrossings + mode.quarticTangencies
-	singleCrossing := mode.crossings == 1 && count == 1
+	singleCrossing := !mode.discoverArrangement && mode.crossings == 1 && count == 1
 	if singleCrossing && order*end.Sign() != -1 {
 		return nil, 0, ErrConvergence
 	}
@@ -64,7 +64,11 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 		return nil, 0, ErrDomain
 	}
 	var minimumWidth *big.Rat
-	roots := make([]*big.Rat, 0, count)
+	capacity := count
+	if mode.discoverArrangement {
+		capacity = len(delta) - 1
+	}
+	roots := make([]*big.Rat, 0, capacity)
 	degenerate, irrational := ErrConvergence, ErrConvergence
 	if !singleCrossing {
 		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
@@ -74,24 +78,30 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 		if e := ctx.Err(); e != nil {
 			return false, e
 		}
-		switch rootMultiplicity {
-		case 1:
-			if remaining[1] == 0 {
-				return false, ErrConvergence
+		if mode.discoverArrangement {
+			if rootMultiplicity < 1 || rootMultiplicity > 5 {
+				return false, ErrDegenerate
 			}
-		case 2:
-			if mode.tangencies == 0 {
+		} else {
+			switch rootMultiplicity {
+			case 1:
+				if remaining[1] == 0 {
+					return false, ErrConvergence
+				}
+			case 2:
+				if mode.tangencies == 0 {
+					return false, degenerate
+				}
+				if remaining[2] == 0 {
+					return false, ErrConvergence
+				}
+			case 3, 4:
+				if remaining[rootMultiplicity] == 0 {
+					return false, degenerate
+				}
+			default:
 				return false, degenerate
 			}
-			if remaining[2] == 0 {
-				return false, ErrConvergence
-			}
-		case 3, 4:
-			if remaining[rootMultiplicity] == 0 {
-				return false, degenerate
-			}
-		default:
-			return false, degenerate
 		}
 		x, e := recoverRationalPolynomialRoot(delta, lo, hi, b)
 		if e != nil {
@@ -120,14 +130,16 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 			return false, ErrConvergence
 		}
 		roots = append(roots, x)
-		remaining[rootMultiplicity]--
+		if !mode.discoverArrangement {
+			remaining[rootMultiplicity]--
+		}
 		return true, nil
 	})
 	*visits += 1 + 2*splits
 	if e != nil {
 		return nil, 0, e
 	}
-	if len(roots) != count {
+	if len(roots) == 0 || (!mode.discoverArrangement && len(roots) != count) {
 		return nil, 0, ErrConvergence
 	}
 	return roots, order, nil
