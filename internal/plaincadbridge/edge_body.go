@@ -444,9 +444,16 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 			if s.planar() && q.Direction != nil {
 				out, edgeErr := b.treatOrthogonalAxialEdges(base, q, resolved, size)
 				var domain *failureError
-				if q.Op == "fillet" && errors.As(edgeErr, &domain) && domain.code == "UNSUPPORTED" {
-					if candidate, handled, e := b.filletConvexPrismAxialEdges(base, q.Direction.vec(), normal, resolved, size); handled {
-						return candidate, e
+				if errors.As(edgeErr, &domain) && domain.code == "UNSUPPORTED" {
+					switch q.Op {
+					case "fillet":
+						if candidate, handled, e := b.filletConvexPrismAxialEdges(base, q.Direction.vec(), normal, resolved, size); handled {
+							return candidate, e
+						}
+					case "chamfer":
+						if candidate, handled, e := b.chamferConvexPrismAxialEdges(base, q.Direction.vec(), normal, resolved, size); handled {
+							return candidate, e
+						}
 					}
 				}
 				return out, edgeErr

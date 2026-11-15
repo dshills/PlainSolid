@@ -10,35 +10,13 @@ import (
 )
 
 func (b *Bridge) filletConvexPrismAxialEdges(stock brep.Solid, requestedAxis, normal geom.Vec3, resolved [][2]geom.Vec3, radius float64) (Shape, bool, error) {
-	axis, e := geom.FrameFromNormal(geom.Vec3{}, requestedAxis)
-	if e != nil || !cardinalFrame(axis) || normal != axis.ZAxis() && normal != axis.ZAxis().Scale(-1) {
+	axis, ids, ok := nativeAxialEdgeSelection(stock, requestedAxis, normal, resolved)
+	if !ok {
 		return Shape{}, false, nil
 	}
-	for _, pair := range resolved {
-		a, c := axis.ToLocal(pair[0]), axis.ToLocal(pair[1])
-		if a.X != c.X || a.Y != c.Y || a.Z == c.Z {
-			return Shape{}, false, nil
-		}
-	}
-	vertices, native := stock.Vertices(), stock.Edges()
-	selected := make(map[int]bool, len(resolved))
-	requests := make([]trimmed.ConvexPrismEdgeRadius, 0, len(resolved))
-	for _, pair := range resolved {
-		match := -1
-		for i, edge := range native {
-			a, c := vertices[edge.Start], vertices[edge.End]
-			if a == pair[0] && c == pair[1] || a == pair[1] && c == pair[0] {
-				match = i
-				break
-			}
-		}
-		if match < 0 {
-			return Shape{}, false, nil
-		}
-		if !selected[match] {
-			selected[match] = true
-			requests = append(requests, trimmed.ConvexPrismEdgeRadius{Edge: match, Radius: radius})
-		}
+	requests := make([]trimmed.ConvexPrismEdgeRadius, len(ids))
+	for i, id := range ids {
+		requests[i] = trimmed.ConvexPrismEdgeRadius{Edge: id, Radius: radius}
 	}
 	x, y, z := axis.XAxis(), axis.YAxis(), axis.ZAxis()
 	toLocal := geom.Affine{{x.X, x.Y, x.Z, 0}, {y.X, y.Y, y.Z, 0}, {z.X, z.Y, z.Z, 0}}
