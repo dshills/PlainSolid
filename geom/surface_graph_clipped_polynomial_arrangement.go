@@ -30,7 +30,12 @@ type ClippedSplineGraphPolynomialArrangement struct {
 // base coverage returns ErrDomain. Touch-only overlap and unresolved signs
 // return ErrConvergence. A failed call publishes no partial geometry.
 func DiscoverClippedSplineGraphPolynomialArrangement(ctx context.Context, base, a, b *SurfacePatch, axis int,
-	o GraphPointContactOptions) (r ClippedSplineGraphPolynomialArrangement, err error) {
+	o GraphPointContactOptions) (ClippedSplineGraphPolynomialArrangement, error) {
+	return discoverClippedSplineGraphPolynomialArrangement(ctx, base, a, b, axis, o, DiscoverSplineGraphPolynomialArrangement)
+}
+
+func discoverClippedSplineGraphPolynomialArrangement(ctx context.Context, base, a, b *SurfacePatch, axis int,
+	o GraphPointContactOptions, discover polynomialArrangementDiscovery) (r ClippedSplineGraphPolynomialArrangement, err error) {
 	if ctx == nil || base == nil || a == nil || b == nil || len(base.net) == 0 || len(a.net) == 0 || len(b.net) == 0 || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
@@ -151,7 +156,7 @@ func DiscoverClippedSplineGraphPolynomialArrangement(ctx context.Context, base, 
 	if o.MaxOperations < 1 {
 		return r, ErrConvergence
 	}
-	r.Projection, e = DiscoverProjectedSplineGraphPolynomialArrangement(ctx, r.Reference, clipped[1], clipped[2], axis, o)
+	r.Projection, e = discoverProjectedSplineGraphPolynomialArrangement(ctx, r.Reference, clipped[1], clipped[2], axis, o, discover)
 	budget.operations += r.Projection.ExactOperations
 	if e != nil {
 		return r, e
