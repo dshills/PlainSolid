@@ -603,7 +603,7 @@ func (b *Bridge) execute(q request) (any, error) {
 				if err != nil {
 					return nil, err
 				}
-				return b.putRationalSTEPArcLoop(ctx, p.local, p.descriptor, pose)
+				return b.putRationalSTEPArcLoopWithHole(ctx, p.local, p.descriptor, pose, p.hole)
 			}
 			if s.treated != nil {
 				body, err := s.treated.transformed(m)

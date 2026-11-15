@@ -595,7 +595,10 @@ rationally placed analytic STEP product.
 occurrence and exterior recipe, then matches the entire input B-rep to
 the regenerated analytic boundary. Strict reopen preserves native
 material and re-exports the same bytes. Edited cap winding, borrowed
-interior loops and incorrect bore wall incidence reject.
+interior loops and incorrect bore wall incidence reject. The source-only
+native receipt binds the original STEP bytes, outer owner ledgers, both
+cap wires, all six bore owners and the native material digest. Reload
+reconstructs the native body and verifies the exact stored claims.
 
 Pinned OCCT reopens both the original and corrected graphs as one
 eight-face solid, and the canonical graph as one eleven-face solid.

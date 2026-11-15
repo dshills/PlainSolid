@@ -17,6 +17,7 @@ type rationalStepArcLoop struct {
 	descriptor step.ExactCircularLoopExtrusion
 	pose       rigidplacement.RationalRigid
 	mmPerUnit  *big.Rat
+	hole       *trimmed.ExtrusionCircle
 }
 
 func rationalSTEPFileUnit(lengthUnit float64) (stepFileUnit, *big.Rat) {
@@ -44,6 +45,10 @@ func checkRationalSTEPUnit(lengthUnit float64, requested stepFileUnit) error {
 }
 
 func (b *Bridge) putRationalSTEPArcLoop(ctx context.Context, local trimmed.Solid, d step.ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid) (Shape, error) {
+	return b.putRationalSTEPArcLoopWithHole(ctx, local, d, pose, nil)
+}
+
+func (b *Bridge) putRationalSTEPArcLoopWithHole(ctx context.Context, local trimmed.Solid, d step.ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid, hole *trimmed.ExtrusionCircle) (Shape, error) {
 	unit, scale := rationalSTEPFileUnit(d.LengthUnit)
 	if scale == nil || frameMap(d.Frame) != geom.Identity() || !convexStepLoop(d.Segments) {
 		return Shape{}, unsupportedEdge("rational-world STEP import requires a convex product-local circular extrusion with a qualified source unit")
@@ -55,14 +60,19 @@ func (b *Bridge) putRationalSTEPArcLoop(ctx context.Context, local trimmed.Solid
 	if err != nil {
 		return Shape{}, err
 	}
-	p, err := local.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
-	if err != nil {
-		return Shape{}, err
+	var volume, area float64
+	if hole == nil {
+		p, err := local.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+		if err != nil {
+			return Shape{}, err
+		}
+		volume, area = p.Volume, p.Area
+	} else {
+		volume, area = measureStepLoopThroughHole(d, *hole)
 	}
-	if !finite(p.Volume) || !finite(p.Area) {
+	if !finite(volume) || !finite(area) {
 		return Shape{}, geom.ErrDomain
 	}
-	volume, area := p.Volume, p.Area
 	var explicitUnit stepFileUnit
 	if unit != stepMillimetre {
 		explicitUnit = unit
@@ -75,13 +85,39 @@ func (b *Bridge) putRationalSTEPArcLoop(ctx context.Context, local trimmed.Solid
 		return Shape{}, geom.ErrDomain
 	}
 	return b.publish(stored{
-		rationalStepArc: &rationalStepArcLoop{local: local, descriptor: d, pose: pose, mmPerUnit: scale},
+		rationalStepArc: &rationalStepArcLoop{local: local, descriptor: d, pose: pose, mmPerUnit: scale, hole: hole},
 		result: Shape{
 			Bounds:             Bounds{coordinates(bounds.Min), coordinates(bounds.Max)},
 			GeometryAssertions: Assertions{Valid: true, Volume: volume, SurfaceArea: area, SolidCount: 1},
 			StepUnits:          explicitUnit,
 		},
 	})
+}
+
+// The proved convex cap has a chord-polygon area plus one circular segment
+// per arc. The complete axial bore subtracts two disks and adds its wall.
+func measureStepLoopThroughHole(d step.ExactCircularLoopExtrusion, hole trimmed.ExtrusionCircle) (float64, float64) {
+	origin := rationalXY(d.Segments[0].Start)
+	polygon := new(big.Rat)
+	arcArea, perimeter := 0., 0.
+	for _, s := range d.Segments {
+		start, end := rationalXY(s.Start), rationalXY(s.End)
+		polygon.Add(polygon, start.sub(origin).cross(end.sub(origin)))
+		if s.Radius == 0 {
+			perimeter += math.Hypot(s.End.X-s.Start.X, s.End.Y-s.Start.Y)
+			continue
+		}
+		center := rationalXY(s.Center)
+		u, v := start.sub(center), end.sub(center)
+		cross, _ := u.cross(v).Float64()
+		dot, _ := u.dot(v).Float64()
+		angle := math.Atan2(cross, dot)
+		perimeter += s.Radius * angle
+		arcArea += (s.Radius*s.Radius*angle - cross) / 2
+	}
+	chords, _ := polygon.Float64()
+	cap := chords/2 + arcArea - math.Pi*hole.Radius*hole.Radius
+	return cap * d.Height, 2*cap + (perimeter+2*math.Pi*hole.Radius)*d.Height
 }
 
 func (p rationalStepArcLoop) transformed(ctx context.Context, m geom.Affine) (rigidplacement.RationalRigid, error) {

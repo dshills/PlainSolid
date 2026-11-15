@@ -38,7 +38,7 @@ type StepRationalPoseRow = readonly [string, string, string, string];
 export interface StepRepairEvidence {
   readonly family: "occt-single-pcurve-convex-arc" | "occt-grouped-pcurve-convex-arc"
     | "occt-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-single-pcurve-convex-arc"
-    | "occt-rational-posed-grouped-pcurve-convex-arc";
+    | "occt-rational-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-grouped-through-bore-pcurve-convex-arc";
   readonly sourceSHA256: string;
   /** Source length unit, in metres. */
   readonly lengthUnit: number;
@@ -66,6 +66,14 @@ export interface StepRepairEvidence {
   readonly rationalCaps?: number;
   readonly finiteLineOwners?: number;
   readonly axialTrims?: number;
+  readonly throughBore?: {
+    readonly capFaces: readonly [number, number];
+    readonly capBounds: readonly [number, number];
+    readonly rimEdges: readonly [number, number];
+    readonly wallFace: number;
+    readonly seamEdge: number;
+    readonly seamOwners: readonly [number, number];
+  };
   /** Exact rational placement in the original STEP coordinate unit. */
   readonly worldPose?: readonly [StepRationalPoseRow, StepRationalPoseRow, StepRationalPoseRow];
 }

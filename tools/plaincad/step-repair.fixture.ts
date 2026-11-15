@@ -23,6 +23,7 @@ interface Fixture {
   grouped?: true;
   fillets?: 3 | 4 | 5;
   negativeFile?: string;
+  throughBore?: true;
   converted?: { ownerScale: string; axialEnd: string; height: string };
 }
 
@@ -100,6 +101,9 @@ const fixtures: readonly Fixture[] = [
   { ...tiltedFive, file: `${tiltedFive.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
     negativeFile: `${tiltedFive.file}-converted-inch-unscaled`, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { ...tiltedGrouped, file: `${tiltedGrouped.file}-through-bore`, throughBore: true, rejectedDistance: 1e-13,
+    negativeFile: `${tiltedGrouped.file}-blind-bore`, measures: [28.096231102869041, 73.08423752236105], owners: 34,
+    family: "occt-rational-posed-grouped-through-bore-pcurve-convex-arc", prefix: "plainsolid-step-rational-posed-convex-arc-through-bore-source" },
 ];
 
 for (const fixture of fixtures) {
@@ -117,6 +121,9 @@ for (const fixture of fixtures) {
       expect(() => kernel.importStep(source, { units })).toThrow(/PlainSolid UNSUPPORTED/);
       expect(() => kernel.importStep(source, { stepRepair: options.stepRepair })).toThrow(/STEP import unit must match/);
       expect(() => kernel.importStep(source, { ...options, units: units === "m" ? "in" : "m" })).toThrow(/STEP import unit must match/);
+    }
+    if (fixture.throughBore) {
+      expect(() => kernel.importStep(source, { ...options, units: "m" })).toThrow(/STEP import unit must match/);
     }
     const rejectedDistance = fixture.rejectedDistance;
     if (rejectedDistance !== undefined) {
@@ -147,13 +154,24 @@ for (const fixture of fixtures) {
           Claims: { SourceSHA256: digest, Pose: fixture.pose, MaxDistance: maxDistance } });
         expect(Buffer.from(proof.Source, "base64").toString("utf8")).toBe(source);
         const finiteLineOwners = fixture.fillets === 5 ? (fixture.converted ? 30 : 12) : fixture.converted ? fixture.fillets === 4 ? 24 : 18 : 8;
+        if (fixture.throughBore) {
+          expect(evidence.repairEvidence.throughBore).toEqual({ capFaces: [137, 382], capBounds: [247, 432],
+            rimEdges: [250, 435], wallFace: 492, seamEdge: 497, seamOwners: [503, 510] });
+          expect(proof.Claims.Bore).toMatchObject({ WallFaceID: 492, WallSupportID: 267, SeamEdgeID: 497,
+            SeamParameters: ["1", "6"], SeamAngles: ["314159265359/50000000000", "0"],
+            Rims: [{ BoundID: 247, Owners: [{ PCurveID: 259 }, { PCurveID: 266 }] },
+              { BoundID: 432, Owners: [{ PCurveID: 444 }, { PCurveID: 451 }] }],
+            SeamOwners: [{ PCurveID: 503 }, { PCurveID: 510 }],
+          });
+        }
         if (fixture.grouped) {
+          const outer = fixture.throughBore ? proof.Claims.Exterior : proof.Claims;
           const axialTrims = fixture.fillets ? 2 : 1;
           expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners, rationalCaps: 2, axialTrims });
-          expect(proof.Claims.FiniteLineOwners).toHaveLength(finiteLineOwners);
-          expect(proof.Claims.Grouped.RationalCaps).toHaveLength(2);
-          expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
-          expect(proof.Claims.Grouped.AxialTrims).toHaveLength(axialTrims);
+          expect(outer.FiniteLineOwners).toHaveLength(finiteLineOwners);
+          expect(outer.Grouped.RationalCaps).toHaveLength(2);
+          expect(outer.Grouped.FiniteTrims).toHaveLength(2);
+          expect(outer.Grouped.AxialTrims).toHaveLength(axialTrims);
         }
         if (fixture.fillets && !fixture.converted) {
           const phases = fixture.fillets === 5 ? [210, 267, 324, 539, 586, 633] :
@@ -310,9 +328,14 @@ for (const fixture of fixtures) {
       for (const side of ["min", "max"] as const) {
         bounds[side].forEach((value, axis) => expect(value / millimetresPerBase).toBeCloseTo(fixture.bounds[side][axis], 11));
       }
-      const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted || fixture.fillets ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
+      const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted || fixture.fillets || fixture.throughBore ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
       expect(mesh).toMatchObject({ geometrySource: "plainsolid", kernelOperation: "stepImport", bounds });
       expect(mesh.indices.length).toBeGreaterThan(0);
+      if (fixture.throughBore) {
+        const points = new Set<string>();
+        for (let i = 0; i < mesh.positions.length; i += 3) points.add(`${mesh.positions[i]},${mesh.positions[i + 1]},${mesh.positions[i + 2]}`);
+        expect(points.size - mesh.indices.length / 6).toBe(0);
+      }
       expect(mesh.geometryAssertions).toMatchObject({ valid: true, solidCount: 1 });
       expect(mesh.geometryAssertions!.volume / millimetresPerBase ** 3).toBeCloseTo(fixture.measures[0], 10);
       expect(mesh.geometryAssertions!.surfaceArea / millimetresPerBase ** 2).toBeCloseTo(fixture.measures[1], 10);
@@ -331,7 +354,7 @@ for (const fixture of fixtures) {
       const canonical = new TextDecoder().decode(exported.bytes);
       if (units === "m") expect(canonical).toContain("SI_UNIT($,.METRE.)");
       if (units === "in") expect(canonical).toContain("LENGTH_MEASURE(0.0254)");
-      if (fixture.fillets === 5 && !units) expect(canonical).toContain("SI_UNIT(.MILLI.,.METRE.)");
+      if ((fixture.fillets === 5 || fixture.throughBore) && !units) expect(canonical).toContain("SI_UNIT(.MILLI.,.METRE.)");
       if (units) expect(() => strictAdapter.importStep!(canonical)).toThrow(/STEP import unit must match/);
       const strict = units ? kernel.importStep(canonical, { units }) : strictAdapter.importStep!(canonical);
       try {

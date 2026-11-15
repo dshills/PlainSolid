@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"context"
 	"math"
 	"math/big"
 	"slices"
@@ -209,9 +210,23 @@ func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.M
 }
 
 func (p stepArcLoopSupport) tessellateNormals(o parametric.TessellationOptions, normals *[][3]geom.Vec3) (mesh.Mesh, bool, error) {
+	return p.tessellateProfile(context.Background(), o, nil, normals)
+}
+
+func (p stepArcLoopSupport) tessellateWithHole(ctx context.Context, o parametric.TessellationOptions, hole *trimmed.ExtrusionCircle) (mesh.Mesh, bool, error) {
+	return p.tessellateProfile(ctx, o, hole, nil)
+}
+
+func (p stepArcLoopSupport) tessellateProfile(ctx context.Context, o parametric.TessellationOptions, hole *trimmed.ExtrusionCircle, normals *[][3]geom.Vec3) (mesh.Mesh, bool, error) {
 	d := p.descriptor
 	if !p.exactPlacement || !convexStepLoop(d.Segments) {
 		return mesh.Mesh{}, false, nil
+	}
+	if ctx == nil {
+		return mesh.Mesh{}, true, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return mesh.Mesh{}, true, err
 	}
 	if !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi ||
 		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
@@ -255,6 +270,9 @@ func (p stepArcLoopSupport) tessellateNormals(o parametric.TessellationOptions, 
 		segmentEnds = make([]int, len(d.Segments))
 	}
 	for i, s := range d.Segments {
+		if err := ctx.Err(); err != nil {
+			return mesh.Mesh{}, true, err
+		}
 		start, end := rationalXY(s.Start), rationalXY(s.End)
 		var err error
 		if s.Radius == 0 {
@@ -298,6 +316,13 @@ func (p stepArcLoopSupport) tessellateNormals(o parametric.TessellationOptions, 
 			}
 		}
 		ring[i] = geom.Vec3{X: point.X, Y: point.Y}
+	}
+	if hole != nil {
+		if frameMap(d.Frame) != geom.Identity() {
+			return mesh.Mesh{}, false, nil
+		}
+		display, err := tessellateStepLoopThroughHole(ctx, ring, *hole, m, levels, o.MaxTriangles)
+		return display, true, err
 	}
 	display, err := mesh.Extrude(ring, geom.Vec3{Z: 1})
 	if err != nil {

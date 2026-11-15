@@ -42,6 +42,15 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 	r := func() *strings.Reader { return strings.NewReader(source) }
 	// The product identifiers are dispatch hints. The readers authenticate
 	// the complete rooted graphs and their original geometry.
+	if strings.Contains(source, "'rational-posed-exact-circular-loop-through-hole-extrusion'") {
+		ctx := context.Background()
+		if m, e := step.ReadRationalPosedExactCircularLoopThroughHoleExtrusion(ctx, r(), stepLimits()); e == nil {
+			if e = checkRationalSTEPUnit(m.Exterior.LengthUnit, units); e != nil {
+				return Shape{}, e
+			}
+			return b.putRationalSTEPArcLoopWithHole(ctx, m.Native, m.Exterior, m.Pose, &m.Hole)
+		}
+	}
 	if strings.Contains(source, "'rational-posed-exact-circular-loop-extrusion'") {
 		ctx := context.Background()
 		if m, e := step.ReadRationalPosedExactCircularLoopExtrusion(ctx, r(), stepLimits()); e == nil {
@@ -501,7 +510,11 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.Write(&out, step.Model{LengthUnit: .001, Bodies: []step.Body{{Name: "PlainSolid", Solid: planar}}})
 	case s.rationalStepArc != nil:
 		p := s.rationalStepArc
-		e = step.WriteRationalPosedExactCircularLoopExtrusion(context.Background(), &out, p.descriptor, p.pose)
+		if p.hole != nil {
+			e = step.WriteRationalPosedExactCircularLoopThroughHoleExtrusion(context.Background(), &out, p.descriptor, *p.hole, p.pose)
+		} else {
+			e = step.WriteRationalPosedExactCircularLoopExtrusion(context.Background(), &out, p.descriptor, p.pose)
+		}
 	case s.tangent != nil:
 		return nil, unsupportedEdge("STEP export requires a manifold boundary. The side-tangent blind bore has a non-manifold contact edge.")
 	case s.cylinder != nil:

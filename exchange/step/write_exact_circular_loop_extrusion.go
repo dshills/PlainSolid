@@ -29,16 +29,16 @@ type ExactCircularLoopExtrusion struct {
 // rational-spline controls are invented. Only source scalars within the bounded
 // exact-decimal domain and exactly representable posed vertices are accepted.
 func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion) error {
-	return writeExactCircularLoopDialect(ctx, w, ExactDirectedCircularLoopExtrusion{
-		Name: d.Name, Frame: d.Frame, Outer: d.Segments, Height: d.Height, LengthUnit: d.LengthUnit,
-	}, false)
+	return writeExactCircularLoopExtrusion(ctx, w, d, nil, nil)
 }
 
 // writeExactCircularLoopExtrusion preserves the older exterior-only graph
 // and supplies the analytic boundary for a separately proved round bore.
-func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle) error {
+func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle, material *trimmed.Solid) error {
 	if hole == nil {
-		return WriteExactCircularLoopExtrusion(ctx, w, d)
+		return writeExactCircularLoopDialect(ctx, w, ExactDirectedCircularLoopExtrusion{
+			Name: d.Name, Frame: d.Frame, Outer: d.Segments, Height: d.Height, LengthUnit: d.LengthUnit,
+		}, false, material)
 	}
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 4096 || !planarSplineRigid(frameTransform(d.Frame)) {
 		return geom.ErrInvalid
@@ -70,7 +70,13 @@ func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 		supports[n+2+i] = circularBoundarySupport{wall: true, segment: span}
 		circles[j], circles[j+boreSpans] = span, span
 	}
-	return writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, localExactCircularLoopThroughHoleProduct, solid, supports, circles)
+	if err := writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, localExactCircularLoopThroughHoleProduct, solid, supports, circles); err != nil {
+		return err
+	}
+	if material != nil {
+		*material = solid
+	}
+	return nil
 }
 
 // ExactDirectedCircularLoopExtrusion stores source circular and linear
@@ -87,10 +93,10 @@ type ExactDirectedCircularLoopExtrusion struct {
 // WriteExactDirectedCircularLoopExtrusion preserves each original ring and
 // circle sense in a rooted analytic STEP B-rep after exact native validation.
 func WriteExactDirectedCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactDirectedCircularLoopExtrusion) error {
-	return writeExactCircularLoopDialect(ctx, w, d, true)
+	return writeExactCircularLoopDialect(ctx, w, d, true, nil)
 }
 
-func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDirectedCircularLoopExtrusion, directed bool) error {
+func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDirectedCircularLoopExtrusion, directed bool, material *trimmed.Solid) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 4096 || !planarSplineRigid(frameTransform(d.Frame)) {
 		return geom.ErrInvalid
 	}
@@ -126,7 +132,13 @@ func writeExactCircularLoopDialect(ctx context.Context, w io.Writer, d ExactDire
 	if directed {
 		kind = "exact-directed-circular-loop-extrusion"
 	}
-	return writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, kind, solid, supports, circles)
+	if err := writeCircularBoundaryGraph(ctx, w, d.Name, d.Frame, d.LengthUnit, kind, solid, supports, circles); err != nil {
+		return err
+	}
+	if material != nil {
+		*material = solid
+	}
+	return nil
 }
 
 type circularBoundarySupport struct {

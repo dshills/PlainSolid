@@ -44,7 +44,11 @@ type ExactCircularLoopOptions struct {
 // every continuous coedge are certified. The finished closed boundary retains
 // original analytic arcs even when their middle controls cannot fit binary64.
 func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions) (Solid, error) {
-	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{min(height, 0), max(height, 0)}, false, o)
+	return extrudeExactCircularLoop(ctx, input, height, o, true)
+}
+
+func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions, certify bool) (Solid, error) {
+	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{min(height, 0), max(height, 0)}, false, certify, o)
 }
 
 // ExtrudeExactDirectedCircularLoop validates and sweeps a CCW profile whose
@@ -52,7 +56,7 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 // Exact endpoint radii and cross products determine the minor-arc direction.
 // Both original model-space cap elevations are retained.
 func ExtrudeExactDirectedCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, zMin, zMax float64, o ExactCircularLoopOptions) (Solid, error) {
-	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{zMin, zMax}, true, o)
+	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{zMin, zMax}, true, true, o)
 }
 
 // ExtrudeExactDirectedCircularLoops sweeps a CCW outer wire and clockwise
@@ -60,10 +64,10 @@ func ExtrudeExactDirectedCircularLoop(ctx context.Context, input []ExactCircular
 // and original cap/side incidence. Inner wires must be strictly separate and
 // contained; nesting and contact between wires are rejected.
 func ExtrudeExactDirectedCircularLoops(ctx context.Context, outer []ExactCircularLoopSegment, holes [][]ExactCircularLoopSegment, zMin, zMax float64, o ExactCircularLoopOptions) (Solid, error) {
-	return extrudeExactCircularLoops(ctx, outer, holes, [2]float64{zMin, zMax}, true, o)
+	return extrudeExactCircularLoops(ctx, outer, holes, [2]float64{zMin, zMax}, true, true, o)
 }
 
-func extrudeExactCircularLoops(ctx context.Context, outer []ExactCircularLoopSegment, holes [][]ExactCircularLoopSegment, z [2]float64, directed bool, o ExactCircularLoopOptions) (Solid, error) {
+func extrudeExactCircularLoops(ctx context.Context, outer []ExactCircularLoopSegment, holes [][]ExactCircularLoopSegment, z [2]float64, directed, certify bool, o ExactCircularLoopOptions) (Solid, error) {
 	if o.DisplayTolerance == 0 {
 		o.DisplayTolerance = 1e-8
 	}
@@ -190,6 +194,11 @@ func extrudeExactCircularLoops(ctx context.Context, outer []ExactCircularLoopSeg
 				faces[j].Holes[wire-1] = append(faces[j].Holes[wire-1], u)
 			}
 		}
+	}
+	if !certify {
+		// Only the through-hole assembler uses these temporary pieces. It
+		// certifies each complete cap and the final closed boundary.
+		return Solid{vertices: vertices, edges: edges, faces: faces, tolerance: o.DisplayTolerance}, nil
 	}
 	for _, cap := range faces[:2] {
 		proof, err := ValidateFaceTrimLoops(ctx, cap, o.Trims)

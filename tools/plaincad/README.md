@@ -121,6 +121,11 @@ canonical re-export in the declared unit and millimetre world proofs. The
 metre case distinguishes the projected endpoint from the clipped owner
 knot at `5000`. The inch case uses `1e-11` inch, rejects `1e-12` inch and
 rejects the independently authored unscaled inch export.
+The tilted through-bore fixture exercises both original cap wires and all
+six bore owners through the same opt-in repair. Its closed world mesh
+keeps the bore open through both caps. The millimetre canonical export
+strictly reopens with the same geometry and bytes. The tests also cover
+the independently authored blind control and a tighter repair budget.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The

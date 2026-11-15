@@ -30,7 +30,7 @@ func (p rationalStepArcLoop) tessellate(ctx context.Context, options parametric.
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
 	local := stepArcLoopSupport{descriptor: p.descriptor, exactPlacement: true}
-	source, qualified, err := local.tessellate(localOptions)
+	source, qualified, err := local.tessellateWithHole(ctx, localOptions, p.hole)
 	if err != nil {
 		return mesh.Mesh{}, err
 	}

@@ -275,7 +275,7 @@ func readExactCircularLoopDialect(ctx context.Context, r io.Reader, l Limits, di
 		out.VerticalEdges = append(out.VerticalEdges, uses[3])
 	}
 	var expected bytes.Buffer
-	if e = writeExactCircularLoopDialect(ctx, &expected, out.Descriptor, directed); e != nil {
+	if e = writeExactCircularLoopDialect(ctx, &expected, out.Descriptor, directed, nil); e != nil {
 		return zero, e
 	}
 	canonical, e := Parse(&expected, l)
