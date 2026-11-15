@@ -83,7 +83,7 @@ type SplineGraphTwoPolynomialNodes struct {
 // ErrUnrepresentable. Other unresolved proofs return an error without geometry.
 func DiscoverSplineGraphTwoPolynomialNodes(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomialNodes, error) {
 	var result SplineGraphTwoPolynomialNodes
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 2, multiplicity: 1, certify: result.certifyArrangement})
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{crossings: 2, certify: result.certifyArrangement})
 	if e != nil {
 		return SplineGraphTwoPolynomialNodes{ExactOperations: pair.ExactOperations}, e
 	}
