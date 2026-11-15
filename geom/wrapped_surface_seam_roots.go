@@ -10,6 +10,7 @@ import (
 // root. DistinctParameters concerns the quotient chart, not spatial separation.
 type WrappedArcSeamRootJunction struct {
 	Matched, DistinctParameters, TransverseContinuation, LeftUpper bool
+	C0Continuation                                                 bool
 	TangentSeamSign                                                int
 	Lower, Upper                                                   *big.Rat
 	ExactOperations                                                int
@@ -20,6 +21,10 @@ type WrappedArcSeamRootJunction struct {
 // and a strict homogeneous plane-numerator derivative bound on both arc cells.
 // Its scope excludes corner roots and entire coincident seam edges.
 func (w *WrappedSurfacePatch) CompareArcSeamRoots(ctx context.Context, left SurfacePlaneArc, leftEnd int, right SurfacePlaneArc, rightEnd, axis int, o ArcExactEndpointOptions) (r WrappedArcSeamRootJunction, err error) {
+	return w.compareArcSeamRoots(ctx, left, leftEnd, right, rightEnd, axis, o, false)
+}
+
+func (w *WrappedSurfacePatch) compareArcSeamRoots(ctx context.Context, left SurfacePlaneArc, leftEnd int, right SurfacePlaneArc, rightEnd, axis int, o ArcExactEndpointOptions, allowC0 bool) (r WrappedArcSeamRootJunction, err error) {
 	if ctx == nil || w == nil || w.patch == nil || axis < 0 || axis > 1 || leftEnd < 0 || leftEnd > 1 || rightEnd < 0 || rightEnd > 1 || left.source == nil || right.source == nil {
 		return r, ErrInvalid
 	}
@@ -127,9 +132,10 @@ func (w *WrappedSurfacePatch) CompareArcSeamRoots(ctx context.Context, left Surf
 		r.Upper.Set(c.hi)
 	}
 	r.Matched = true
-	if w.seam.FirstPartialsMatched[axis] && signs[0] != 0 && signs[0] == signs[1] {
+	if signs[0] != 0 && signs[0] == signs[1] && (w.seam.FirstPartialsMatched[axis] || allowC0 && w.seam.PositionMatched[axis]) {
 		r.TransverseContinuation = true
 		r.TangentSeamSign = signs[0]
+		r.C0Continuation = !w.seam.FirstPartialsMatched[axis]
 	}
 	return r, nil
 }

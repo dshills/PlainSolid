@@ -185,7 +185,8 @@ func assembleWrappedSurfaceTrace(ctx context.Context, w *WrappedSurfacePatch, f 
 				r.SeamOperations += corner.ExactOperations
 				matched, transverse = corner.Matched, corner.TransverseContinuation
 			} else {
-				root, e = w.CompareArcSeamRoots(ctx, f.Isolation.Arcs[a.arc], a.end, f.Isolation.Arcs[b.arc], b.end, a.axis, ArcExactEndpointOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
+				root, e = w.compareArcSeamRoots(ctx, f.Isolation.Arcs[a.arc], a.end, f.Isolation.Arcs[b.arc], b.end, a.axis,
+					ArcExactEndpointOptions{MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits}, o.AllowC0SeamContinuation)
 				r.SeamOperations += root.ExactOperations
 				if e == nil && root.DistinctParameters {
 					continue

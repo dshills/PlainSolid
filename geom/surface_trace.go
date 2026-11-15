@@ -18,6 +18,10 @@ type surfaceRootIdentity struct {
 type SurfaceTraceOptions struct {
 	Arcs                                                      SurfacePlaneArcOptions
 	MaxJoinComparisons, MaxJoinOperations, MaxCoefficientBits int
+	// AllowC0SeamContinuation permits a one-sided transverse join across
+	// a position-closed wrapped seam, including a crease. It applies to
+	// regular noncorner roots with strict derivative bounds on both cells.
+	AllowC0SeamContinuation bool
 }
 
 // OrientedSurfaceArc references an arc in SurfacePlaneTrace.Isolation.Arcs.
