@@ -702,6 +702,23 @@ func (c graphEnvelopeChart) piece(p openSectionPiece) (openSectionPiece, error) 
 	return c.transfer(p)
 }
 
+func (c graphEnvelopeChart) wall(trim wallTrim) differentiableTrim {
+	if c.transfer != nil {
+		return affineGraphWallTrim{trim}
+	}
+	return trim
+}
+
+func reverseGraphUses(uses []Use) {
+	slices.Reverse(uses)
+	for i := range uses {
+		u := &uses[i]
+		u.Reversed = !u.Reversed
+		u.UVStart, u.UVEnd = u.UVEnd, u.UVStart
+		u.Curve = reversePCurve(u.Curve)
+	}
+}
+
 func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplineSurface,
 	regions []graphEnvelopeRegion, charts [2]graphEnvelopeChart, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	bad := func(reason string) (Solid, SplineGraphBooleanHistory, error) {
@@ -898,13 +915,7 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 				uses = append(uses, Use{Edge: id, Reversed: reversed, UVStart: owned.a, UVEnd: owned.b, Curve: owned.c})
 			}
 			if chart.reversed {
-				slices.Reverse(uses)
-				for k := range uses {
-					u := &uses[k]
-					u.Reversed = !u.Reversed
-					u.UVStart, u.UVEnd = u.UVEnd, u.UVStart
-					u.Curve = reversePCurve(u.Curve)
-				}
+				reverseGraphUses(uses)
 			}
 			if j == 0 {
 				faces[i].Outer = uses
@@ -935,10 +946,7 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 			return Solid{}, h, e
 		}
 		tc := wallTrim{x.surface, owned.a, owned.b, length, startHeight, tl.Y, tr.Y}
-		var topTrim differentiableTrim = tc
-		if x.chart.transfer != nil {
-			topTrim = affineGraphWallTrim{tc}
-		}
+		topTrim := x.chart.wall(tc)
 		faces = append(faces, Face{Surface: wall, Outer: []Use{
 			{Edge: lowEdges[x.a], UVStart: lo, UVEnd: hi, Curve: lc},
 			{Edge: uprights[x.b], UVStart: hi, UVEnd: tr},

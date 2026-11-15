@@ -175,9 +175,13 @@ func validatePolynomialCutLayer(ctx context.Context, part Solid, history OpenSec
 }
 
 func validatePolynomialCutBoundary(ctx context.Context, part Solid, history OpenSectionHistory, proof geom.GraphPointContactOptions) error {
+	return validatePolynomialCutBoundaryOnCharts(ctx, part, history, [2]bool{false, true}, proof)
+}
+
+func validatePolynomialCutBoundaryOnCharts(ctx context.Context, part Solid, history OpenSectionHistory, reversed [2]bool, proof geom.GraphPointContactOptions) error {
 	topology := part.Topology()
 	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 ||
-		part.faces[history.SplineFace].Reversed || !part.faces[history.PlaneFace].Reversed {
+		part.faces[history.SplineFace].Reversed != reversed[0] || part.faces[history.PlaneFace].Reversed != reversed[1] {
 		return geom.ErrConvergence
 	}
 	if e := affineMaterialVertexLinks(ctx, part); e != nil {

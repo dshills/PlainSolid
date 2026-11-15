@@ -67,50 +67,17 @@ func CombineAlignedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpl
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	limits := o.Section.Patch
-	if e := requireIdentitySplineChart(ctx, base, limits); e != nil {
-		return nil, e
-	}
-	bp, e := geom.NewSurfacePatch(base, limits)
+	stock, e := prepareAlignedPolynomialStock(ctx, base, a, b, o)
 	if e != nil {
 		return nil, e
 	}
-	roofs := [2]*geom.BSplineSurface{a, b}
-	first := 0
-	if requireIdentitySplineChart(ctx, a, limits) != nil {
-		if e := requireIdentitySplineChart(ctx, b, limits); e != nil {
-			return nil, e
-		}
-		first, roofs = 1, [2]*geom.BSplineSurface{b, a}
-	}
-	var patches [2]*geom.SurfacePatch
-	for i, roof := range roofs {
-		patches[i], e = geom.NewSurfacePatch(roof, limits)
-		if e != nil {
-			return nil, e
-		}
-		align, e := geom.AlignAffineXYCharts(ctx, bp, patches[i], limits)
-		if e != nil {
-			return nil, e
-		}
-		height, e := align.HeightRange(ctx, geom.GeneralSurfaceHeightOptions{
-			MaxPoles: limits.MaxPoles, MaxOperations: o.Proof.MaxOperations,
-			MaxCoefficientBits: o.Proof.MaxCoefficientBits, MaxCells: o.Proof.MaxCells,
-		})
-		if e != nil {
-			return nil, e
-		}
-		if height.StrictSign != -1 {
-			return nil, geom.ErrConvergence
-		}
-	}
-	aligned, e := geom.DiscoverAlignedSplineGraphPolynomialArrangement(ctx, patches[0], patches[1], axis, o.Proof)
+	roofs, first := stock.roofs, stock.first
+	aligned, e := geom.DiscoverAlignedSplineGraphPolynomialArrangement(ctx, stock.patches[0], stock.patches[1], axis, o.Proof)
 	if e != nil {
 		return nil, e
 	}
 	proof := aligned.Arrangement
-	if !proof.Proven || proof.FreeAxis != axis || proof.Graph.ProjectionOrientation != 1 ||
-		(!slices.Equal(proof.ContactOrder, []int{3, 2}) && !slices.Equal(proof.ContactOrder, []int{2, 3})) {
+	if !isNativeAlignedPolynomialArrangement(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
 	uv, xyz, e := proof.RepresentedVertices()
@@ -125,12 +92,7 @@ func CombineAlignedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpl
 	if e != nil {
 		return nil, e
 	}
-	charts := [2]graphEnvelopeChart{{}, {
-		transfer: func(p openSectionPiece) (openSectionPiece, error) {
-			return transferAlignedPolynomialPiece(p, aligned.TargetMap)
-		},
-		reversed: aligned.Owners[1].ProjectionOrientation < 0,
-	}}
+	charts := alignedPolynomialCharts(aligned)
 	regions := make([]graphEnvelopeRegion, len(loops))
 	for i, loop := range loops {
 		regions[i] = graphEnvelopeRegion{loop: loop, first: (proof.Regions[i].HeightSide > 0) == (op == parametric.Union)}
@@ -170,6 +132,70 @@ func CombineAlignedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpl
 		return nil, e
 	}
 	return out, nil
+}
+
+type alignedPolynomialStock struct {
+	// The first chart is the physical unit chart. first identifies its
+	// roof in the original input order.
+	roofs   [2]*geom.BSplineSurface
+	patches [2]*geom.SurfacePatch
+	first   int
+}
+
+func prepareAlignedPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (alignedPolynomialStock, error) {
+	limits := o.Section.Patch
+	if e := requireIdentitySplineChart(ctx, base, limits); e != nil {
+		return alignedPolynomialStock{}, e
+	}
+	bp, e := geom.NewSurfacePatch(base, limits)
+	if e != nil {
+		return alignedPolynomialStock{}, e
+	}
+	roofs := [2]*geom.BSplineSurface{a, b}
+	first := 0
+	if requireIdentitySplineChart(ctx, a, limits) != nil {
+		if e := requireIdentitySplineChart(ctx, b, limits); e != nil {
+			return alignedPolynomialStock{}, e
+		}
+		first, roofs = 1, [2]*geom.BSplineSurface{b, a}
+	}
+	var patches [2]*geom.SurfacePatch
+	for i, roof := range roofs {
+		patches[i], e = geom.NewSurfacePatch(roof, limits)
+		if e != nil {
+			return alignedPolynomialStock{}, e
+		}
+		align, e := geom.AlignAffineXYCharts(ctx, bp, patches[i], limits)
+		if e != nil {
+			return alignedPolynomialStock{}, e
+		}
+		height, e := align.HeightRange(ctx, geom.GeneralSurfaceHeightOptions{
+			MaxPoles: limits.MaxPoles, MaxOperations: o.Proof.MaxOperations,
+			MaxCoefficientBits: o.Proof.MaxCoefficientBits, MaxCells: o.Proof.MaxCells,
+		})
+		if e != nil {
+			return alignedPolynomialStock{}, e
+		}
+		if height.StrictSign != -1 {
+			return alignedPolynomialStock{}, geom.ErrConvergence
+		}
+	}
+	return alignedPolynomialStock{roofs: roofs, patches: patches, first: first}, nil
+}
+
+func isNativeAlignedPolynomialArrangement(proof geom.SplineGraphPolynomialArrangement, axis int) bool {
+	return proof.Proven && proof.FreeAxis == axis && proof.Graph.ProjectionOrientation == 1 &&
+		(slices.Equal(proof.ContactOrder, []int{3, 2}) || slices.Equal(proof.ContactOrder, []int{2, 3}))
+}
+
+func alignedPolynomialCharts(aligned geom.AlignedSplineGraphPolynomialArrangement) [2]graphEnvelopeChart {
+	return [2]graphEnvelopeChart{{}, {
+		transfer: func(p openSectionPiece) (openSectionPiece, error) {
+			return transferAlignedPolynomialPiece(p, aligned.TargetMap)
+		},
+		reversed: aligned.Owners[1].ProjectionOrientation < 0,
+	}}
 }
 
 func transferAlignedPolynomialPiece(p openSectionPiece, mapping [2][3]*big.Rat) (openSectionPiece, error) {
@@ -224,23 +250,9 @@ func bindAlignedPolynomialEnvelope(s Solid, base *geom.BSplineSurface, roofs [2]
 		return result, e
 	}
 	result.polynomialNodeBinding = binding
-	var ownerPieces [2][][]openSectionPiece
-	for i, owner := range aligned.Owners {
-		uv := make([]geom.Vec2, len(owner.Vertices))
-		for j, v := range owner.Vertices {
-			uv[j], e = exactGraphPartitionUV(v)
-			if e != nil {
-				return result, e
-			}
-		}
-		edges := slices.Clone(proof.Edges)
-		for j := range edges {
-			edges[j].Controls = owner.Edges[j].Controls
-		}
-		ownerPieces[i], e = polynomialNodePieces(edges, uv)
-		if e != nil {
-			return result, e
-		}
+	ownerPieces, e := alignedPolynomialOwnerPieces(aligned)
+	if e != nil {
+		return result, e
 	}
 	for i, chain := range binding.edges {
 		encoded := [2]int{chain[0], -1}
@@ -341,6 +353,30 @@ func bindAlignedPolynomialEnvelope(s Solid, base *geom.BSplineSurface, roofs [2]
 	return result, nil
 }
 
+func alignedPolynomialOwnerPieces(aligned geom.AlignedSplineGraphPolynomialArrangement) ([2][][]openSectionPiece, error) {
+	proof := aligned.Arrangement
+	var ownerPieces [2][][]openSectionPiece
+	var e error
+	for i, owner := range aligned.Owners {
+		uv := make([]geom.Vec2, len(owner.Vertices))
+		for j, v := range owner.Vertices {
+			uv[j], e = exactGraphPartitionUV(v)
+			if e != nil {
+				return [2][][]openSectionPiece{}, e
+			}
+		}
+		edges := slices.Clone(proof.Edges)
+		for j := range edges {
+			edges[j].Controls = owner.Edges[j].Controls
+		}
+		ownerPieces[i], e = polynomialNodePieces(edges, uv)
+		if e != nil {
+			return [2][][]openSectionPiece{}, e
+		}
+	}
+	return ownerPieces, nil
+}
+
 func bindAlignedPolynomialWallUses(s Solid, wallFaces []int, owners map[int]int, roofs [2]*geom.BSplineSurface) error {
 	for _, i := range wallFaces {
 		face := s.faces[i]
@@ -349,23 +385,8 @@ func bindAlignedPolynomialWallUses(s Solid, wallFaces []int, owners map[int]int,
 		}
 		top := face.Outer[2]
 		owner, exists := owners[top.Edge]
-		reversed, ok := top.Curve.(reverseTrim)
+		trim, ok := graphWallSourceTrim(top.Curve, true, owner == 1)
 		if !exists || !ok || !top.Reversed {
-			return geom.ErrConvergence
-		}
-		var trim wallTrim
-		switch p := reversed.differentiableTrim.(type) {
-		case wallTrim:
-			if owner != 0 {
-				return geom.ErrConvergence
-			}
-			trim = p
-		case affineGraphWallTrim:
-			if owner != 1 {
-				return geom.ErrConvergence
-			}
-			trim = p.wallTrim
-		default:
 			return geom.ErrConvergence
 		}
 		model := s.edges[top.Edge].Curve.(surfaceTrimCurve)
