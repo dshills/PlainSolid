@@ -27,9 +27,10 @@ type VertexContactSTEPOptions struct {
 // compound with disjoint interiors and discovers their complete exact vertex
 // contact graph. The file requires no private marker or supplementary ledger.
 // Original STEP vertex coordinates must be exactly representable as binary64,
-// and each bounded original face polygon must be exactly planar. Vertices that
-// would coincide only after rounding cannot acquire a contact. Mapped
-// occurrences and nonplanar geometry are outside this entry point.
+// and each bounded original face polygon must be exactly planar. Declared
+// planes and direct STEP lines must agree exactly with the boundary. Vertices
+// that would coincide only after rounding cannot acquire a contact. Mapped
+// occurrences, edge pcurves, and nonplanar geometry are outside this entry point.
 func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContactSTEPOptions) (Model, collision.VertexContactAssemblyReport, error) {
 	var zero Model
 	var noReport collision.VertexContactAssemblyReport
@@ -39,7 +40,7 @@ func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContact
 	if err := ctx.Err(); err != nil {
 		return zero, noReport, err
 	}
-	m, err := readPlanarModel(r, o.Limits, exactVertexContactPointNumber)
+	m, err := readPlanarModel(r, o.Limits, true)
 	if err != nil {
 		return zero, noReport, err
 	}
@@ -83,7 +84,7 @@ func WriteVertexContactAssembly(ctx context.Context, w io.Writer, m Model, o Ver
 	}
 	var staged vertexContactSTEPBuffer
 	staged.max = limits.MaxBytes
-	if err := writeModelWithPointNumber(&staged, m, !o.FacetedWriter, exactVertexContactPointText); err != nil {
+	if err := writePlanarModel(&staged, m, !o.FacetedWriter, true); err != nil {
 		return empty, err
 	}
 	reopened, check, err := ReadVertexContactAssembly(ctx, bytes.NewReader(staged.Bytes()), o)
@@ -112,29 +113,39 @@ func WriteVertexContactAssembly(ctx context.Context, w io.Writer, m Model, o Ver
 }
 
 func exactVertexContactPointNumber(v Value) (float64, error) {
-	if v.Kind != Number || len(v.Text) > 1100 {
-		return 0, geom.ErrUnrepresentable
-	}
-	if i := strings.IndexAny(v.Text, "eE"); i >= 0 {
-		exp, err := strconv.Atoi(v.Text[i+1:])
-		if err != nil || exp < -4096 || exp > 4096 {
-			return 0, geom.ErrUnrepresentable
-		}
-	}
-	q, ok := new(big.Rat).SetString(v.Text)
-	if !ok || q.Num().BitLen() > 8192 || q.Denom().BitLen() > 8192 {
-		return 0, geom.ErrUnrepresentable
+	q, err := exactVertexContactScalar(v)
+	if err != nil {
+		return 0, err
 	}
 	return geom.RepresentedExactScalar(q)
 }
 
+func exactVertexContactScalar(v Value) (*big.Rat, error) {
+	if v.Kind != Number || len(v.Text) > 2500 {
+		return nil, geom.ErrUnrepresentable
+	}
+	if i := strings.IndexAny(v.Text, "eE"); i >= 0 {
+		exp, err := strconv.Atoi(v.Text[i+1:])
+		if err != nil || exp < -4096 || exp > 4096 {
+			return nil, geom.ErrUnrepresentable
+		}
+	}
+	q, ok := new(big.Rat).SetString(v.Text)
+	if !ok || q.Num().BitLen() > 8192 || q.Denom().BitLen() > 8192 {
+		return nil, geom.ErrUnrepresentable
+	}
+	return q, nil
+}
+
 func exactVertexContactPointText(x float64) string {
-	q := new(big.Rat).SetFloat64(x)
+	return exactVertexContactDyadicText(new(big.Rat).SetFloat64(x))
+}
+
+func exactVertexContactDyadicText(q *big.Rat) string {
 	if q.IsInt() {
 		return q.Num().String() + "."
 	}
-	// A binary64 denominator is a power of two. Multiplication by the
-	// same power of five gives its exact terminating decimal expansion.
+	// A dyadic denominator is a power of two, so its decimal terminates.
 	return q.FloatString(q.Denom().BitLen() - 1)
 }
 

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"plainsolid/geom"
 )
 
 func quote(s string) string {
@@ -70,10 +72,10 @@ func Write(w io.Writer, m Model) error { return writeModel(w, m, false) }
 func WriteAdvanced(w io.Writer, m Model) error { return writeModel(w, m, true) }
 
 func writeModel(w io.Writer, m Model, advanced bool) error {
-	return writeModelWithPointNumber(w, m, advanced, real)
+	return writePlanarModel(w, m, advanced, false)
 }
 
-func writeModelWithPointNumber(w io.Writer, m Model, advanced bool, pointNumber func(float64) string) error {
+func writePlanarModel(w io.Writer, m Model, advanced, exactSupports bool) error {
 	if w == nil {
 		return errors.New("step: nil writer")
 	}
@@ -94,6 +96,13 @@ func writeModelWithPointNumber(w io.Writer, m Model, advanced bool, pointNumber 
 		if body.Solid.Topology().Shells != 1 || volume <= 0 || math.IsNaN(volume) || math.IsInf(volume, 0) {
 			return errors.New("step: each body must have one outward connected shell")
 		}
+	}
+	pointNumber := real
+	if exactSupports {
+		pointNumber = exactVertexContactPointText
+	}
+	floatDirection := func(d geom.Vec3) string {
+		return real(d.X) + "," + real(d.Y) + "," + real(d.Z)
 	}
 	b := bufio.NewWriter(w)
 	var writeErr error
@@ -127,11 +136,20 @@ func writeModelWithPointNumber(w io.Writer, m Model, advanced bool, pointNumber 
 				vertexIDs[i] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", id))
 			}
 			for i, e := range edges {
-				d, err := vertices[e.End].Sub(vertices[e.Start]).Unit()
+				a, b := vertices[e.Start], vertices[e.End]
+				var ratios string
+				var err error
+				if exactSupports {
+					ratios, err = vertexContactDirectionText(vertexContactDifference(mappedRatVec(b), mappedRatVec(a)))
+				} else {
+					var d geom.Vec3
+					d, err = b.Sub(a).Unit()
+					ratios = floatDirection(d)
+				}
 				if err != nil {
 					return err
 				}
-				direction := emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(d.X), real(d.Y), real(d.Z)))
+				direction := emit(fmt.Sprintf("DIRECTION('',(%s))", ratios))
 				vector := emit(fmt.Sprintf("VECTOR('',#%d,1.)", direction))
 				lineID := emit(fmt.Sprintf("LINE('',#%d,#%d)", pointIDs[e.Start], vector))
 				edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[e.Start], vertexIDs[e.End], lineID))
@@ -189,24 +207,38 @@ func writeModelWithPointNumber(w io.Writer, m Model, advanced bool, pointNumber 
 				}
 				boundIDs = append(boundIDs, emit(fmt.Sprintf("%s('',#%d,.T.)", kind, loop)))
 			}
-			plane, err := body.Solid.FacePlane(i)
-			if err != nil {
-				return err
-			}
-			normal := plane.Normal()
 			firstUse := face.Boundary[0]
 			firstEdge := edges[firstUse.Edge]
 			first, second := firstEdge.Start, firstEdge.End
 			if firstUse.Reversed {
 				first, second = second, first
 			}
-			direction := vertices[second].Sub(vertices[first])
-			xaxis, err := direction.Sub(normal.Scale(direction.Dot(normal))).Unit()
-			if err != nil {
-				return err
+			var normalRatios, referenceRatios string
+			if exactSupports {
+				var err error
+				normalRatios, err = vertexContactDirectionText(vertexContactOrientedNormal(vertices, edges, face.Boundary))
+				if err != nil {
+					return err
+				}
+				referenceRatios, err = vertexContactDirectionText(vertexContactDifference(mappedRatVec(vertices[second]), mappedRatVec(vertices[first])))
+				if err != nil {
+					return err
+				}
+			} else {
+				plane, err := body.Solid.FacePlane(i)
+				if err != nil {
+					return err
+				}
+				normal := plane.Normal()
+				direction := vertices[second].Sub(vertices[first])
+				xaxis, err := direction.Sub(normal.Scale(direction.Dot(normal))).Unit()
+				if err != nil {
+					return err
+				}
+				normalRatios, referenceRatios = floatDirection(normal), floatDirection(xaxis)
 			}
-			axisID := emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(normal.X), real(normal.Y), real(normal.Z)))
-			refID := emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(xaxis.X), real(xaxis.Y), real(xaxis.Z)))
+			axisID := emit(fmt.Sprintf("DIRECTION('',(%s))", normalRatios))
+			refID := emit(fmt.Sprintf("DIRECTION('',(%s))", referenceRatios))
 			placement := emit(fmt.Sprintf("AXIS2_PLACEMENT_3D('',#%d,#%d,#%d)", pointIDs[first], axisID, refID))
 			surface := emit(fmt.Sprintf("PLANE('',#%d)", placement))
 			faceKind := "FACE_SURFACE"

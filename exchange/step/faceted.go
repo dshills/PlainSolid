@@ -147,10 +147,10 @@ func contextUnits(f *File, id int64) (float64, error) {
 // source vertex/edge identities are preserved. Assemblies, curved faces and
 // void-body entities are rejected. Product metadata is not transferred.
 func Read(r io.Reader, l Limits) (Model, error) {
-	return readPlanarModel(r, l, numeric)
+	return readPlanarModel(r, l, false)
 }
 
-func readPlanarModel(r io.Reader, l Limits, pointNumber func(Value) (float64, error)) (Model, error) {
+func readPlanarModel(r io.Reader, l Limits, exactSupports bool) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -220,7 +220,7 @@ func readPlanarModel(r io.Reader, l Limits, pointNumber func(Value) (float64, er
 			if len(model.Bodies) >= l.MaxSolids {
 				return Model{}, errors.New("step: solid limit exceeded")
 			}
-			body, e := readBodyWithPointNumber(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, kind == "ADVANCED_BREP_SHAPE_REPRESENTATION", pointNumber)
+			body, e := readPlanarBody(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, kind == "ADVANCED_BREP_SHAPE_REPRESENTATION", exactSupports)
 			if e != nil {
 				return Model{}, e
 			}
@@ -249,10 +249,10 @@ func readPlanarModel(r io.Reader, l Limits, pointNumber func(Value) (float64, er
 	return model, nil
 }
 func readBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advanced bool) (Body, error) {
-	return readBodyWithPointNumber(f, id, maxVertices, maxFaces, maxEdgeUses, advanced, numeric)
+	return readPlanarBody(f, id, maxVertices, maxFaces, maxEdgeUses, advanced, false)
 }
 
-func readBodyWithPointNumber(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advanced bool, pointNumber func(Value) (float64, error)) (Body, error) {
+func readPlanarBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, advanced, exactSupports bool) (Body, error) {
 	bodyKind := "FACETED_BREP"
 	if advanced {
 		bodyKind = "MANIFOLD_SOLID_BREP"
@@ -289,6 +289,10 @@ func readBodyWithPointNumber(f *File, id int64, maxVertices, maxFaces, maxEdgeUs
 	supportingPlanes := []*geom.Plane{}
 	pointIndex := map[geom.Vec3]int{}
 	edgeIndex := map[[2]int]int{}
+	pointNumber := numeric
+	if exactSupports {
+		pointNumber = exactVertexContactPointNumber
+	}
 	point := func(id int64) (int, error) {
 		r, e := simple(f, id, "CARTESIAN_POINT", 2)
 		if e != nil {
@@ -403,6 +407,12 @@ func readBodyWithPointNumber(f *File, id int64, maxVertices, maxFaces, maxEdgeUs
 			}
 			n, ok := edgeIndex[key]
 			if !ok {
+				if advanced && exactSupports {
+					source := linear.edges[i]
+					if err := exactVertexContactLine(f, source, linearEdges[source]); err != nil {
+						return nil, fmt.Errorf("step: exact edge #%d: %w", source, err)
+					}
+				}
 				n = len(edges)
 				edgeIndex[key] = n
 				edges = append(edges, brep.Edge{Start: key[0], End: key[1]})
@@ -478,6 +488,11 @@ func readBodyWithPointNumber(f *File, id int64, maxVertices, maxFaces, maxEdgeUs
 		plane, e := facePlane(f, r)
 		if e != nil {
 			return Body{}, e
+		}
+		if exactSupports && r.Type != "FACE" {
+			if e := exactVertexContactPlane(f, r, vertices, edges, face); e != nil {
+				return Body{}, fmt.Errorf("step: exact face #%d: %w", id, e)
+			}
 		}
 		supportingPlanes = append(supportingPlanes, plane)
 		faces = append(faces, face)

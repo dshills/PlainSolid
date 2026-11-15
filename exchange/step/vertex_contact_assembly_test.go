@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"os"
@@ -166,5 +167,107 @@ func TestPlanarVertexContactAssemblySTEPRejectsNonplanarOriginalWire(t *testing.
 	var out bytes.Buffer
 	if p, err := WriteVertexContactAssembly(ctx, &out, m, VertexContactSTEPOptions{}); !errors.Is(err, collision.ErrInvalid) || out.Len() != 0 || p.SignedVolume != nil {
 		t.Fatalf("nonplanar original wire escaped exact STEP qualification: %v", err)
+	}
+}
+
+func TestPlanarVertexContactAssemblySTEPObliqueExactSupports(t *testing.T) {
+	ctx := context.Background()
+	m := vertexContactSTEPFixture(t)
+	for i := range m.Bodies {
+		s := m.Bodies[i].Solid
+		v := s.Vertices()
+		for j, p := range v {
+			// This affine shear has determinant one. Its edge ratios and
+			// plane normals need not have rational unit-length components.
+			v[j] = geom.Vec3{X: p.X + 2*p.Y, Y: 3*p.X + 7*p.Y, Z: 2*p.X - p.Y + p.Z}
+		}
+		changed, err := brep.NewSolid(v, s.Edges(), s.Faces())
+		if err != nil {
+			t.Fatal(err)
+		}
+		m.Bodies[i].Solid = changed
+	}
+	for _, faceted := range []bool{false, true} {
+		var out bytes.Buffer
+		o := VertexContactSTEPOptions{FacetedWriter: faceted}
+		if _, err := WriteVertexContactAssembly(ctx, &out, m, o); err != nil {
+			t.Fatalf("faceted=%v exact oblique writer: %v", faceted, err)
+		}
+		got, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(out.Bytes()), o)
+		if err != nil || len(p.Contacts) != 1 || p.SignedVolume.Cmp(big.NewRat(3, 1)) != 0 {
+			t.Fatalf("faceted=%v oblique readback: %+v %v", faceted, p, err)
+		}
+		c := p.Contacts[0]
+		if got.Bodies[c.A.Solid].Solid.Vertices()[c.A.Vertex] != (geom.Vec3{X: 3, Y: 10, Z: 2}) {
+			t.Fatalf("faceted=%v original oblique contact lost: %+v", faceted, c)
+		}
+	}
+}
+
+func TestPlanarVertexContactAssemblySTEPRejectsNearDeclaredSupports(t *testing.T) {
+	ctx := context.Background()
+	var out bytes.Buffer
+	if _, err := WriteVertexContactAssembly(ctx, &out, vertexContactSTEPFixture(t), VertexContactSTEPOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	f, err := Parse(bytes.NewReader(out.Bytes()), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	findFirst := func(kind string) Record {
+		t.Helper()
+		for _, id := range f.Order {
+			records := f.Entities[id].Records
+			if len(records) == 1 && records[0].Type == kind {
+				return records[0]
+			}
+		}
+		t.Fatalf("missing %s", kind)
+		return Record{}
+	}
+	line := findFirst("LINE")
+	vector, err := simple(f, line.Args[2].Ref, "VECTOR", 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plane := findFirst("PLANE")
+	axis, err := simple(f, plane.Args[1].Ref, "AXIS2_PLACEMENT_3D", 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name, message string
+		id            int64
+	}{
+		{"line", "declared line exactly", vector.Args[1].Ref},
+		{"plane", "declared plane exactly", axis.Args[2].Ref},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r, err := simple(f, c.id, "DIRECTION", 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			v := r.Args[1].Items
+			old := fmt.Sprintf("#%d=DIRECTION('',(%s,%s,%s));", c.id, v[0].Text, v[1].Text, v[2].Text)
+			component := [3]string{v[0].Text, v[1].Text, v[2].Text}
+			for i, x := range component {
+				if x == "0." {
+					component[i] = "1.E-18"
+					break
+				}
+			}
+			changed := fmt.Sprintf("#%d=DIRECTION('',(%s,%s,%s));", c.id, component[0], component[1], component[2])
+			mutant := bytes.Replace(out.Bytes(), []byte(old), []byte(changed), 1)
+			if bytes.Equal(mutant, out.Bytes()) {
+				t.Fatal("test did not modify the original support")
+			}
+			if _, err := Read(bytes.NewReader(mutant), Limits{}); err != nil {
+				t.Fatalf("ordinary tolerant STEP reader rejected its control: %v", err)
+			}
+			m, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(mutant), VertexContactSTEPOptions{})
+			if err == nil || !bytes.Contains([]byte(err.Error()), []byte(c.message)) || len(m.Bodies) != 0 || p.SignedVolume != nil {
+				t.Fatalf("inconsistent source support yielded a compound report: %+v %v", p, err)
+			}
+		})
 	}
 }
