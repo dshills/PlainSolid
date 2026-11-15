@@ -76,44 +76,8 @@ func TestNativeAlignedPolynomialCut(t *testing.T) {
 
 func checkNativeAlignedCut(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int) {
 	t.Helper()
-	parts, contacts := cut.Components(), cut.Contacts()
-	regions := [2][]int{{0, 4}, {1, 2, 3}}[order]
-	if !slices.Equal(cut.Regions(), regions) || len(parts) != len(regions) {
-		t.Fatal("two exterior shells or three between-branch shells", cut.Regions(), len(parts))
-	}
-	volumes, total := cut.ExactComponentVolumes()
-	wantTotal := new(big.Rat)
-	for i, want := range independentAlignedCutVolumes(profile, order) {
-		if len(volumes) != len(parts) || volumes[i].Sign() <= 0 || volumes[i].Cmp(want) != 0 {
-			t.Fatal("independent exact component integral", profile, axis, order, i, volumes, want)
-		}
-		wantTotal.Add(wantTotal, want)
-	}
-	if total.Cmp(wantTotal) != 0 {
-		t.Fatal("independent exact Cut total", total, wantTotal)
-	}
-	volumes[0].SetInt64(0)
-	total.SetInt64(0)
-	actualVolumes, actualTotal := cut.ExactComponentVolumes()
-	if actualVolumes[0].Sign() <= 0 || actualTotal.Sign() <= 0 {
-		t.Fatal("exact integrals are immutable at the native boundary")
-	}
-	orders := [2][2]int{{3, 2}, {2, 3}}[profile]
-	for i, c := range contacts {
-		pair := [2]int{0, 1}
-		if order == 1 {
-			pair = [2]int{i, i + 1}
-		}
-		p, e := geom.RepresentedExactPoint(c.Point)
-		if e != nil || c.Order != orders[i] || c.Components != pair || ([2]float64{p.X, p.Y})[axis] != float64(1+2*i)/4 {
-			t.Fatal("exact shared contact identity and indexed incidences", i, c, e)
-		}
-		for j, part := range pair {
-			if parts[part].vertices[c.Vertices[j]] != p {
-				t.Fatal("original contact was not bound to a local vertex", i, j, c)
-			}
-		}
-	}
+	checkNativePolynomialCutMaterial(t, cut, profile, axis, order)
+	parts := cut.Components()
 
 	for i, part := range parts {
 		topology := part.Topology()
@@ -150,6 +114,48 @@ func checkNativeAlignedCut(t *testing.T, cut *AlignedPolynomialCut, profile, axi
 			}
 			if seen != [2]bool{true, true} {
 				t.Fatal("wall trims retain both original owners", i, seen)
+			}
+		}
+	}
+}
+
+func checkNativePolynomialCutMaterial(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int) {
+	t.Helper()
+	parts, contacts := cut.Components(), cut.Contacts()
+	regions := [2][]int{{0, 4}, {1, 2, 3}}[order]
+	if !slices.Equal(cut.Regions(), regions) || len(parts) != len(regions) {
+		t.Fatal("two exterior shells or three between-branch shells", cut.Regions(), len(parts))
+	}
+	volumes, total := cut.ExactComponentVolumes()
+	wantTotal := new(big.Rat)
+	for i, want := range independentAlignedCutVolumes(profile, order) {
+		if len(volumes) != len(parts) || volumes[i].Sign() <= 0 || volumes[i].Cmp(want) != 0 {
+			t.Fatal("independent exact component integral", profile, axis, order, i, volumes, want)
+		}
+		wantTotal.Add(wantTotal, want)
+	}
+	if total.Cmp(wantTotal) != 0 {
+		t.Fatal("independent exact Cut total", total, wantTotal)
+	}
+	volumes[0].SetInt64(0)
+	total.SetInt64(0)
+	actualVolumes, actualTotal := cut.ExactComponentVolumes()
+	if actualVolumes[0].Sign() <= 0 || actualTotal.Sign() <= 0 {
+		t.Fatal("exact integrals are immutable at the native boundary")
+	}
+	orders := [2][2]int{{3, 2}, {2, 3}}[profile]
+	for i, c := range contacts {
+		pair := [2]int{0, 1}
+		if order == 1 {
+			pair = [2]int{i, i + 1}
+		}
+		p, e := geom.RepresentedExactPoint(c.Point)
+		if e != nil || c.Order != orders[i] || c.Components != pair || ([2]float64{p.X, p.Y})[axis] != float64(1+2*i)/4 {
+			t.Fatal("exact shared contact identity and indexed incidences", i, c, e)
+		}
+		for j, part := range pair {
+			if parts[part].vertices[c.Vertices[j]] != p {
+				t.Fatal("original contact was not bound to a local vertex", i, j, c)
 			}
 		}
 	}

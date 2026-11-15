@@ -23,7 +23,12 @@ type ProjectedSplineGraphPolynomialArrangement struct {
 // and scaling with exactly representable remapped knots. Only the reference
 // chart's XY projection participates in the proof. Its height is independent.
 func DiscoverProjectedSplineGraphPolynomialArrangement(ctx context.Context, reference, a, b *SurfacePatch, axis int,
-	o GraphPointContactOptions) (r ProjectedSplineGraphPolynomialArrangement, err error) {
+	o GraphPointContactOptions) (ProjectedSplineGraphPolynomialArrangement, error) {
+	return discoverProjectedSplineGraphPolynomialArrangement(ctx, reference, a, b, axis, o, DiscoverSplineGraphPolynomialArrangement)
+}
+
+func discoverProjectedSplineGraphPolynomialArrangement(ctx context.Context, reference, a, b *SurfacePatch, axis int,
+	o GraphPointContactOptions, discover polynomialArrangementDiscovery) (r ProjectedSplineGraphPolynomialArrangement, err error) {
 	if ctx == nil || reference == nil || a == nil || b == nil || len(reference.net) == 0 || len(a.net) == 0 ||
 		len(b.net) == 0 || axis < 0 || axis > 1 {
 		return r, ErrInvalid
@@ -65,7 +70,7 @@ func DiscoverProjectedSplineGraphPolynomialArrangement(ctx context.Context, refe
 	if o.MaxOperations < 1 {
 		return r, ErrConvergence
 	}
-	r.Arrangement, e = DiscoverSplineGraphPolynomialArrangement(ctx, onReference[0], onReference[1], axis, o)
+	r.Arrangement, e = discover(ctx, onReference[0], onReference[1], axis, o)
 	budget.operations += r.Arrangement.ExactOperations
 	if e != nil {
 		return r, e

@@ -26,7 +26,18 @@ type AlignedSplineGraphPolynomialVolumes struct {
 // The alignment and root order remain in A's chart in both difference orders.
 func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *SurfacePatch, axis int, reverse bool, o GraphPointContactOptions) (AlignedSplineGraphPolynomialVolumes, error) {
 	var volumes polynomialPositiveVolumes
-	discover := func(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialArrangement, error) {
+	proof, e := discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, polynomialVolumeDiscovery(reverse, &volumes))
+	if e != nil {
+		return AlignedSplineGraphPolynomialVolumes{ExactOperations: proof.ExactOperations}, e
+	}
+	return AlignedSplineGraphPolynomialVolumes{
+		Alignment: proof, Reverse: reverse, Regions: volumes.regions, Volumes: volumes.volumes, Total: volumes.total,
+		ExactOperations: proof.ExactOperations,
+	}, nil
+}
+
+func polynomialVolumeDiscovery(reverse bool, volumes *polynomialPositiveVolumes) polynomialArrangementDiscovery {
+	return func(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialArrangement, error) {
 		var arrangement SplineGraphPolynomialArrangement
 		mode := polynomialGraphContactMode{
 			allowQuintic: true, polynomialHeight: true, discoverArrangement: true,
@@ -46,7 +57,7 @@ func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *Sur
 					}
 				}
 				var e error
-				volumes, e = integratePolynomialPositiveLayers(ctx, arrangement.Power, regions, arrangement.ContactOrder, roots, domain, scale, budget)
+				*volumes, e = integratePolynomialPositiveLayers(ctx, arrangement.Power, regions, arrangement.ContactOrder, roots, domain, scale, budget)
 				return e
 			},
 		}
@@ -57,12 +68,4 @@ func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *Sur
 		arrangement.Proven, arrangement.ExactOperations = true, pair.ExactOperations
 		return arrangement, nil
 	}
-	proof, e := discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, discover)
-	if e != nil {
-		return AlignedSplineGraphPolynomialVolumes{ExactOperations: proof.ExactOperations}, e
-	}
-	return AlignedSplineGraphPolynomialVolumes{
-		Alignment: proof, Reverse: reverse, Regions: volumes.regions, Volumes: volumes.volumes, Total: volumes.total,
-		ExactOperations: proof.ExactOperations,
-	}, nil
 }
