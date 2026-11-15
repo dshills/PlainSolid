@@ -115,6 +115,12 @@ charts, including the original antipodal half-turns on both caps. Its
 fixture verifies the twelve finite planar intervals and both axial trims,
 the `1e-13` mm budget rejection, and rejection of the independently
 authored source with a non-binary tangent point at `1e-12` mm.
+The converted five-fillet metre and scaled inch fixtures keep the original
+antipodal spline knots and source-unit axial maps. Both tests verify strict
+canonical re-export in the declared unit and millimetre world proofs. The
+metre case distinguishes the projected endpoint from the clipped owner
+knot at `5000`. The inch case uses `1e-11` inch, rejects `1e-12` inch and
+rejects the independently authored unscaled inch export.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
@@ -123,7 +129,7 @@ the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
 corresponding original converted OCCT exports. The suite also covers the
 tilted three-fillet sources, all three qualified four-fillet STEP variants,
-and the native millimetre five-fillet source and rejection control.
+and all three five-fillet variants with their independent rejection controls.
 It compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports

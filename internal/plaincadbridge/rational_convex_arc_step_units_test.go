@@ -47,12 +47,15 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 		{"converted-three-inch", "occt-three-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
 		{"converted-four-metre", "occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
 		{"converted-four-inch", "occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
+		{"converted-five-metre", "occt-five-default-tilted-pentagonal-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
+		{"converted-five-inch", "occt-five-default-tilted-pentagonal-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := stepRepairFixture(t, tc.file)
 			converted := strings.HasPrefix(tc.name, "converted-")
 			three := strings.HasPrefix(tc.name, "converted-three-")
 			four := strings.HasPrefix(tc.name, "converted-four-")
+			five := strings.HasPrefix(tc.name, "converted-five-")
 			convertedInch := converted && tc.unit == stepInch
 			maxDistance, millimetresPerBase := 1e-12, tc.mmPerUnit
 			if convertedInch {
@@ -80,6 +83,10 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 			request["stepUnits"] = other
 			rejectGroup(t, b, request)
 			request["stepUnits"] = tc.unit
+			if five && convertedInch {
+				rejectGroup(t, b, map[string]any{"op": "importStep", "source": stepRepairFixture(t, tc.file+"-unscaled"), "stepUnits": tc.unit,
+					"stepRepair": map[string]any{"maxDistance": maxDistance, "nativeText": true}})
+			}
 			admitted := shape(t, b, request)
 			handles = append(handles, admitted.Handle)
 			inspect := shape(t, b, map[string]any{"op": "inspect", "handle": admitted.Handle})
@@ -114,12 +121,17 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				if four {
 					finiteOwners, owners, repairs, axialTrims = 24, 46, 10, 2
 				}
+				if five {
+					finiteOwners, owners, repairs, axialTrims = 30, 58, 10, 2
+				}
 				if e != nil || evidence.Family != "occt-rational-posed-grouped-pcurve-convex-arc" || len(evidence.Repairs) != repairs ||
 					evidence.PCurveOwners != owners || evidence.FiniteLineOwners != finiteOwners || evidence.RationalCaps != 2 || evidence.AxialTrims != axialTrims ||
 					len(m.PCurves()) != owners || len(m.FiniteLineOwners()) != finiteOwners || len(m.FiniteTrims()) != 2 || len(m.AxialTrims()) != axialTrims {
 					t.Fatal("grouped bridge receipt lost original finite owner evidence", e)
 				}
-				if four {
+				if five {
+					checkFiveConvertedBridgeReceipt(t, tc.unit, m)
+				} else if four {
 					checkFourConvertedBridgeReceipt(t, tc.unit, m)
 				} else if three {
 					checkThreeConvertedBridgeReceipt(t, tc.unit, m)
@@ -136,6 +148,10 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				if four {
 					bounds = Bounds{Min: vector{0, 0, -1.6}, Max: vector{5.2, 2.84375, 3}}
 					volume, area = 22.155304183748054, 51.012178844414059
+				}
+				if five {
+					bounds = Bounds{Min: vector{0, 0, -2.4}, Max: vector{5.8, 2.75, 3}}
+					volume, area = 39.084768347549009, 68.682455982680239
 				}
 				x, z = new(big.Rat), new(big.Rat)
 			} else {
@@ -252,6 +268,56 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	}
 	if len(handles) > 1 {
 		rejectGroup(t, b, map[string]any{"op": "exportStep", "stepUnits": stepMetre, "handles": handles})
+	}
+}
+
+func checkFiveConvertedBridgeReceipt(t *testing.T, unit stepFileUnit, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
+	t.Helper()
+	scale, knots, height := "1/1000", "5000", "5"
+	if unit == stepInch {
+		scale, knots, height = "5/127", "635", "25"
+	}
+	for _, owner := range m.FiniteLineOwners() {
+		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != scale {
+			t.Fatal("lost the original five-fillet planar conversion", owner.PCurveID)
+		}
+	}
+	spans, trims, caps := m.CylindricalSpanOwners(), m.AxialTrims(), m.FiniteTrims()
+	if len(spans) != 20 || trims[0].EdgeID != 388 || trims[1].EdgeID != 653 {
+		t.Fatal("lost original axial owners or finite charts")
+	}
+	var shifts []int64
+	for _, span := range spans {
+		if span.ModelAngleBounds != nil {
+			shifts = append(shifts, span.PCurveID)
+		}
+		if span.PCurveID == 319 || span.PCurveID == 620 {
+			v := "0"
+			if span.PCurveID == 620 {
+				v = height
+			}
+			if span.ModelAngleBounds == nil || span.ParameterInterval[0].RatString() != "314159265359/100000000000" ||
+				span.ParameterInterval[1].RatString() != "942477796077/200000000000" || span.UVStart[0].Sign() != 0 || span.UVStart[1].RatString() != v ||
+				span.UVDerivative[0].RatString() != "1" || span.UVDerivative[1].Sign() != 0 {
+				t.Fatal("bridge receipt changed the original half-turn chart", span.PCurveID)
+			}
+		}
+		if span.PCurveID == 666 {
+			clip := span.ClippedOwnerParameters
+			if span.RepairedToOwner == nil || span.ParameterInterval[1].RatString() != knots || span.UVDerivative[1].RatString() != scale ||
+				(unit == stepInch && clip != nil) || (unit == stepMetre && (clip == nil || clip[0].Sign() != 0 || clip[1].RatString() != knots ||
+				trims[1].OriginalParameters[1].RatString() != "1250000000000000000000000000001/250000000000000000000000000")) {
+				t.Fatal("bridge receipt changed the original projected or authored axial stations", span.PCurveID)
+			}
+		}
+	}
+	if !reflect.DeepEqual(shifts, []int64{207, 263, 319, 528, 574, 620}) {
+		t.Fatal("bridge receipt lost original shifted owners", shifts)
+	}
+	for i, cap := range caps {
+		if cap.CapOwner.PCurveID != [2]int64{366, 423}[i] || cap.CylinderOwner.PCurveID != [2]int64{377, 417}[i] || cap.EndStation == nil {
+			t.Fatal("bridge receipt changed the original cap root", cap.CapOwner.PCurveID)
+		}
 	}
 }
 
