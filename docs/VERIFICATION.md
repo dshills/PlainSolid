@@ -6518,3 +6518,28 @@ accounted for the same test inventory. Together the runs passed 52
 tested packages, 4,807 top-level cases and 8,188 cases including subtests.
 The [qualification record](evidence/main-4078f85a-qualification-2026-11-14.json)
 retains the original failure and the repaired package and trimmed results.
+
+### Original cavity, crossing material and conforming tensor shell checks
+
+The independent OCCT comparator returns two valid material solids for
+exterior closed-contact Fuse. Their combined volume is `40707/20480`.
+Nested Cut retains one solid with the original stock and cavity shells.
+For the axis-aligned and rotated inputs the volumes are `43773/20480`
+and `43793/20480`. Native reload re-proves the source contact and original
+orientation. Exact spline rays through the native cavity verify preserved
+material, removed material and the two opposite contacts on the ellipse.
+
+Two independently authored oblique triangular prisms produce five exact
+section junctions across all 25 original face pairs. Common, Fuse and
+both Cuts match six valid OCCT results. The exact volumes are
+`9675/8192`, `56373/8192` and `23349/8192` respectively.
+The original native dispatch exposes retained and reversed faces, source
+edge rows, section edges and generated subdivision edges.
+
+Exact multispan polygon faces have two-sided error bounds, original UV
+samples at the knot crossing and continuous shared sample identities
+after native shell reload. All 24 original coedges participate in the
+closed-shell fixture with volume `37/36`.
+Independently authored AP242 tensor, UV and three-dimensional model
+splines preserve their records and exact original bases through source
+and native reload. Live OCCT and focused race checks passed.

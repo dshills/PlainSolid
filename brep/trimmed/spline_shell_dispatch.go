@@ -21,10 +21,13 @@ type SplineShellCombineOptions struct {
 	// AffinePaired explicitly selects complete exact convex affine authorization
 	// and original-fragment material assembly. Nil preserves legacy dispatch.
 	AffinePaired *ConvexAffineSplineShellOptions
-	Transverse   SplineShellTransverseOptions
-	Join         SplineShellJoinOptions
-	Open         SplineShellOpenOptions
-	OpenSections []SplineShellOpenSection
+	// AffinePolygon explicitly selects exact transverse convex polygon
+	// crossing and native original-fragment assembly.
+	AffinePolygon *ConvexAffinePolygonBooleanOptions
+	Transverse    SplineShellTransverseOptions
+	Join          SplineShellJoinOptions
+	Open          SplineShellOpenOptions
+	OpenSections  []SplineShellOpenSection
 	// Sections supplies proposals for closed or mixed arrangements. It
 	// is mutually exclusive with OpenSections.
 	Sections []SplineShellSection
@@ -54,8 +57,9 @@ type SplineShellCombineOptions struct {
 	OrderedRoofCut *SplineShellRoofOptions
 	// ClosedEllipseTangency tries exact closed double-ellipse discovery when
 	// just one original face pair remains after separation. Its work limit
-	// is shared across projections. Exterior Fuse can return both contacting
-	// material shells. Unsupported contacts continue dispatch.
+	// is shared across projections. Exterior Fuse keeps two material shells,
+	// and nested Cut keeps an outward stock and an inward cavity boundary.
+	// Unsupported contacts continue dispatch.
 	ClosedEllipseTangency *geom.GraphPointContactOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
@@ -94,6 +98,7 @@ type SplineShellCombineHistory struct {
 	// AffinePaired retains exact fragment occupancy and full source ancestry for
 	// the explicit paired-affine path; other dispatch paths leave it nil.
 	AffinePaired   *AffineShellMaterial
+	AffinePolygon  *ConvexAffinePolygonMaterial
 	ClosedEllipse  *SplineShellRepeatedEllipse
 	FacesA, FacesB [][]int
 	EdgesA, EdgesB [][]int
@@ -121,6 +126,13 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 	}
 	if e := ctx.Err(); e != nil {
 		return Solid{}, r, e
+	}
+	if o.AffinePolygon != nil {
+		if o.AffineCap != nil || o.AffinePaired != nil || o.Algebraic != nil || len(o.Sections) != 0 ||
+			len(o.OpenSections) != 0 || o.DisableAffineDiscovery || o.VerticalQuadraticWarp != 0 || o.DiscoverVerticalQuadraticWarp {
+			return Solid{}, r, geom.ErrInvalid
+		}
+		return combineSplineShellsAffinePolygon(ctx, a, b, op, *o.AffinePolygon)
 	}
 	if o.AffineCap != nil {
 		if o.AffinePaired != nil || o.Algebraic != nil || len(o.Sections) != 0 || len(o.OpenSections) != 0 || o.DisableAffineDiscovery || o.VerticalQuadraticWarp != 0 || o.DiscoverVerticalQuadraticWarp {

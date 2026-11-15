@@ -119,7 +119,11 @@ pair and projection from the source geometry. Coincident nonorthogonal charts no
 concave regions with multiple independent straight holes, including
 concave hole boundaries and disconnected overlap. Convex polygonal cap
 joins support original-model native Fuse and exact source UV such as
-`8/9` through the rational endpoint option.
+`8/9` through the rational endpoint option. Exterior closed-contact Fuse
+keeps two distinct original components. Contained Cut keeps the original
+outward stock and the inward cavity shell, with opposite oriented
+crossings at the same contact. Exact crossing polygon shells now reach
+native Common, Fuse and Cut under the original-fragment dispatch option.
 
 Independently authored anisotropic filled and bored NURBS round-trip in
 STEP as individual solids and flat or nested shared-product assemblies.
@@ -133,8 +137,12 @@ The independently authored quadratic planar AP242 reader retains
 degree-two tensor supports and coedge p-curves under a complete exact
 affine identity, and reloads their original STEP source. The higher-degree
 reader extends those identities to independent single-span degrees from
-one through eight. A separate polygon mesher preserves exact homogeneous
-supports and original UV-use lineage on concave trims.
+one through eight. Multispan polynomial tensor supports, p-curves and
+three-dimensional model curves retain their original knot and ownership
+records after exact Greville certification. The polygon mesher preserves
+exact homogeneous supports and original UV-use lineage on concave trims,
+including certified two-sided bounds across knots and shared native
+sample IDs on a closed multispan shell.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

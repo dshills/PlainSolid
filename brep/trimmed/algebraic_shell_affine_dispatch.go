@@ -42,7 +42,37 @@ func combineSplineShellsAffinePaired(ctx context.Context, a, b Solid, op paramet
 	if e != nil {
 		return Solid{}, SplineShellCombineHistory{}, e
 	}
-	h := SplineShellCombineHistory{Method: "exact-convex-affine-paired", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces)), EdgesA: make([][]int, len(a.edges)), EdgesB: make([][]int, len(b.edges)), AffinePaired: r}
+	h, e := affineWitnessMaterialHistory(ctx, a, b, r)
+	if e != nil {
+		return Solid{}, SplineShellCombineHistory{}, e
+	}
+	h.Method, h.AffinePaired = "exact-convex-affine-paired", r
+	return r.solid, h, nil
+}
+
+func combineSplineShellsAffinePolygon(ctx context.Context, a, b Solid, op parametric.BooleanOp, o ConvexAffinePolygonBooleanOptions) (Solid, SplineShellCombineHistory, error) {
+	r, e := CombineConvexAffinePolygonShells(ctx, a, b, op, o)
+	if e != nil {
+		return Solid{}, SplineShellCombineHistory{}, e
+	}
+	h, e := affineWitnessMaterialHistory(ctx, a, b, r.material)
+	if e != nil {
+		return Solid{}, SplineShellCombineHistory{}, e
+	}
+	h.Method, h.AffinePolygon = "exact-convex-affine-polygon-crossing", r
+	for i, source := range r.FaceSources() {
+		if source.Reversed {
+			h.ReversedFaces = append(h.ReversedFaces, i)
+		}
+	}
+	return r.material.solid, h, nil
+}
+
+func affineWitnessMaterialHistory(ctx context.Context, a, b Solid, r *AffineShellMaterial) (SplineShellCombineHistory, error) {
+	h := SplineShellCombineHistory{
+		FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces)),
+		EdgesA: make([][]int, len(a.edges)), EdgesB: make([][]int, len(b.edges)),
+	}
 	appendUnique := func(ids []int, id int) []int {
 		for _, old := range ids {
 			if old == id {
@@ -53,7 +83,7 @@ func combineSplineShellsAffinePaired(ctx context.Context, a, b Solid, op paramet
 	}
 	for fi, f := range r.FaceSources() {
 		if e := ctx.Err(); e != nil {
-			return Solid{}, SplineShellCombineHistory{}, e
+			return SplineShellCombineHistory{}, e
 		}
 		if f.Owner == 0 {
 			h.FacesA[f.Face] = append(h.FacesA[f.Face], fi)
@@ -79,7 +109,7 @@ func combineSplineShellsAffinePaired(ctx context.Context, a, b Solid, op paramet
 		}
 	}
 	if e := ctx.Err(); e != nil {
-		return Solid{}, SplineShellCombineHistory{}, e
+		return SplineShellCombineHistory{}, e
 	}
-	return r.solid, h, nil
+	return h, nil
 }
