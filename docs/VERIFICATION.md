@@ -6506,3 +6506,15 @@ original SHA-256 was verified.
   support `z=uv/3` with a concave outer and a slanted concave hole.
   Exact UV area, original use sample parameters, both face orientations
   and independent sagitta samples passed.
+
+### Full pure-Go refresh on 4078f85a
+
+The pinned source accounted for all 1,219 listed trimmed-solid cases in
+three groups, with 1,204 passes and 15 optional skips. The original
+package run found three independent AP242 inventory subtests missing
+`SPECIFIED_HIGHER_USAGE_OCCURRENCE` in the STEP preflight catalog. Repeating
+the entire STEP package on the pinned source with that one-line correction
+accounted for the same test inventory. Together the runs passed 52
+tested packages, 4,807 top-level cases and 8,188 cases including subtests.
+The [qualification record](evidence/main-4078f85a-qualification-2026-11-14.json)
+retains the original failure and the repaired package and trimmed results.

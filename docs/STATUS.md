@@ -29,11 +29,13 @@ General curved Boolean assembly, advanced surface modeling and broader CAD
 exchange remain required under the specification.
 
 The [ordinary Go rerun on `4078f85a`](evidence/main-4078f85a-qualification-2026-11-14.json)
-has completed the packages outside `brep/trimmed`. Three independently
+accounted for 4,807 top-level passes and 440 optional skips across 52
+tested packages. All three trimmed groups completed with 1,204 passes
+and 15 optional skips, matching all 1,219 listed cases. Three independently
 authored AP242 fixture inventories initially failed because the STEP
 preflight catalog did not recognize `SPECIFIED_HIGHER_USAGE_OCCURRENCE`.
-With the one-line catalog correction in `36380200`, the entire pinned
-STEP package passed. The three trimmed groups continue on the pinned source.
+The entire pinned STEP package passed after the one-line catalog correction
+in `36380200`.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original

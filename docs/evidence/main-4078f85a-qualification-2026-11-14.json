@@ -1,17 +1,17 @@
 {
-  "checkpointAt": "2026-11-14T19:22:44-06:00",
+  "checkpointAt": "2026-11-14T19:57:51-06:00",
   "snapshot": "4078f85abf4f1ceb4fb40341ad0cea5563070790",
-  "status": "all ordinary nontrimmed packages accounted for after the scoped STEP correction; full trimmed groups running",
+  "status": "all ordinary Go packages and all three trimmed groups passed after applying the documented one-line correction to the complete pinned STEP rerun",
   "command": "CGO_ENABLED=0 GOMAXPROCS=2 ordinary Go test, count 1, all packages with three deterministic brep/trimmed lanes",
   "lanes": {
     "packages": {
       "path": "/tmp/plainsolid-refresh-go.rPwzm1/packages.jsonl",
-      "bytesAtCheckpoint": 5699319,
-      "sha256AtCheckpoint": "943eca61f4aa4a5a4d507f304ba951878ff54e656e6c989b24aeaeb37e9d5927",
+      "bytes": 5699319,
+      "sha256": "943eca61f4aa4a5a4d507f304ba951878ff54e656e6c989b24aeaeb37e9d5927",
       "packages": {
-        "fail": 1,
         "pass": 50,
-        "skip": 4
+        "skip": 4,
+        "fail": 1
       },
       "terminalPackages": {
         "plainsolid/brep/edgecheck": "pass",
@@ -80,7 +80,6 @@
         "skip": 435,
         "fail": 4
       },
-      "activeTopLevel": {},
       "failures": [
         {
           "package": "plainsolid/exchange/step",
@@ -106,52 +105,61 @@
     },
     "trimmed-0": {
       "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-0.jsonl",
-      "bytesAtCheckpoint": 204727,
-      "sha256AtCheckpoint": "8b37466ee8c81b734a1ddde982b1a478c718c4d2adc70a7a2391ed89c005d31c",
-      "packages": {},
-      "terminalPackages": {},
+      "bytes": 448985,
+      "sha256": "53d96ca7d451d714b1f990ab09a6dcf23cea88437ef5ff229689e0314359af94",
+      "packages": {
+        "pass": 1
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
       "topLevel": {
-        "pass": 196
+        "pass": 402,
+        "skip": 5
       },
       "includingSubtests": {
-        "pass": 235
-      },
-      "activeTopLevel": {
-        "plainsolid/brep/trimmed": "TestClipCrossingRationalGraphThroughHole"
+        "pass": 528,
+        "skip": 5
       },
       "failures": []
     },
     "trimmed-1": {
       "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-1.jsonl",
-      "bytesAtCheckpoint": 69006,
-      "sha256AtCheckpoint": "5b9bf6938e183a2d443188854f38f3efefb51e5c06c0dd2fdfb385c00c1283dc",
-      "packages": {},
-      "terminalPackages": {},
+      "bytes": 401726,
+      "sha256": "f0ec9608d2c28bda16cbd0d4e012226171773a93d1d73cad0008a9a3d1aca1f5",
+      "packages": {
+        "pass": 1
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
       "topLevel": {
-        "pass": 60
+        "pass": 400,
+        "skip": 6
       },
       "includingSubtests": {
-        "pass": 71
-      },
-      "activeTopLevel": {
-        "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
+        "pass": 474,
+        "skip": 6
       },
       "failures": []
     },
     "trimmed-2": {
       "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-2.jsonl",
-      "bytesAtCheckpoint": 70293,
-      "sha256AtCheckpoint": "e78b4e3f77a246e6318b5a41981853357380eb4b6a5f9d6a5b3ab253a1057484",
-      "packages": {},
-      "terminalPackages": {},
+      "bytes": 367980,
+      "sha256": "f9dd48ca035ba7fe7df1d3801c4de487e9a14f912fc5939c4e7762be98e739b1",
+      "packages": {
+        "pass": 1
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
       "topLevel": {
-        "pass": 67
+        "pass": 402,
+        "skip": 4
       },
       "includingSubtests": {
-        "pass": 74
-      },
-      "activeTopLevel": {
-        "plainsolid/brep/trimmed": "TestCertifiedSelectedNestedDiskAnnulus"
+        "pass": 440,
+        "skip": 4
       },
       "failures": []
     }
@@ -163,8 +171,8 @@
     "correction": "Catalog SPECIFIED_HIGHER_USAGE_OCCURRENCE as assembly. Existing independent fixture parsers and native color ownership are unchanged.",
     "result": {
       "path": "/tmp/plainsolid-4078f85a-step-fixed-qualification.jsonl",
-      "bytesAtCheckpoint": 2907187,
-      "sha256AtCheckpoint": "24383e99b74b0f641933e9686f19e1b34f8eed1582fbdf6ac1d2611fd9941467",
+      "bytes": 2907187,
+      "sha256": "24383e99b74b0f641933e9686f19e1b34f8eed1582fbdf6ac1d2611fd9941467",
       "packages": {
         "pass": 1
       },
@@ -179,8 +187,47 @@
         "pass": 3355,
         "skip": 224
       },
-      "activeTopLevel": {},
       "failures": []
     }
+  },
+  "runtime": "go1.27.4 darwin/arm64",
+  "originalLaneExitCodes": {
+    "packages": 1,
+    "trimmed-0": 0,
+    "trimmed-1": 0,
+    "trimmed-2": 0
+  },
+  "combined": {
+    "packages": {
+      "pass": 52,
+      "skip": 4
+    },
+    "topLevel": {
+      "pass": 4807,
+      "skip": 440
+    },
+    "includingSubtests": {
+      "pass": 8188,
+      "skip": 450
+    },
+    "trimmedInventory": {
+      "uniqueTopLevel": 1219,
+      "results": {
+        "pass": 1204,
+        "skip": 15
+      },
+      "missing": 0,
+      "duplicates": 0,
+      "enumeration": {
+        "path": "/tmp/plainsolid-4078f85a-trimmed-inventory.txt",
+        "bytes": 46301,
+        "sha256": "9a9ad0b2df5066f003780a4e4d607429ce0db8483a77a7e9ae9f46a3f3d9fc13"
+      }
+    }
+  },
+  "archive": {
+    "path": "/tmp/plainsolid-main-4078f85a-normal-go-qualification-2026-11-14.tar.gz",
+    "bytes": 742119,
+    "sha256": "4c81986b35f0dc89f8e8b8ebeaadba41d4ea54d44c0fa498b428d4ed8fcd97ef"
   }
 }
