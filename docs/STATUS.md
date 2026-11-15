@@ -10,8 +10,8 @@ The [full ordinary Go run](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
 on `6c4ab7c4` accounted for 4,567 passing top-level cases, 421 explicit
 optional skips and five packages without tests. All 1,081 trimmed-solid
 cases were accounted for, with 1,068 passes and 13 optional skips.
-The [newest full PlainCAD qualification](evidence/plaincad-main-0e57c2d8-2026-11-14.json)
-uses provider `0e57c2d8` and app `efae4d2`. Its WASM build, typecheck, bundle
+The [newest full PlainCAD qualification](evidence/plaincad-main-acf376e1-2026-11-14.json)
+uses provider `acf376e1` and app `efae4d2`. Its WASM build, typecheck, bundle
 budgets, 345 development cases, 15 cross-browser cases, 1,691 ordinary
 units and four WASM contract cases passed. The production control passed
 65 of 66. Chromium evicted a WASM response from the inspector cache. All

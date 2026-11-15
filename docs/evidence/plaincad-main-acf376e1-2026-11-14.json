@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "kernelRevision": "acf376e1c0b92ef6e6420d593f24e02ee08f3757",
+  "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "checkpointAt": "2026-11-14T19:41:49-06:00",
+  "status": "passed on local loopback with an isolated Chromium production capture-buffer adjustment",
+  "stagedAppRoot": "/tmp/plainsolid-refresh-plaincad.4BWyxQ",
+  "tools": {
+    "go": "go version go1.27.4 darwin/arm64",
+    "node": "v26.13.1",
+    "playwright": "1.63.0"
+  },
+  "wasm": {
+    "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/src/cad/kernel/plainsolid-kernel.wasm",
+    "bytes": 16608903,
+    "sha256": "06a281e27af0c26cc6ab4a4dce4927b21e8ff8293205cdcbacbb684f5b29acde"
+  },
+  "wasmRuntime": {
+    "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/src/cad/kernel/wasm_exec.js",
+    "bytes": 16992,
+    "sha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "build": {
+    "jsBundles": 72,
+    "largestBundleKB": 496.5,
+    "limitKB": 500
+  },
+  "exitCodes": {
+    "wasm": 0,
+    "build": 0,
+    "types": 0,
+    "selected-kernel": 0,
+    "development": 0,
+    "production": 1,
+    "capture-control": 0,
+    "production-buffered": 0,
+    "cross-browser": 0,
+    "ordinary-units": 0
+  },
+  "tests": {
+    "development": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/development.json",
+      "bytes": 408655,
+      "sha256": "437efc26e0b964deba32b5bc058463c2869078d14b6bad8cc03e6518256b2638",
+      "summary": {
+        "startTime": "2026-11-15T00:53:45.967Z",
+        "duration": 2039936.1600000001,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "production": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/production.json",
+      "bytes": 83693,
+      "sha256": "9fbf6dacf0e357784a5dab6be876399a143a8c22271904f310c88569a1a07fc1",
+      "summary": {
+        "startTime": "2026-11-15T01:27:46.503Z",
+        "duration": 225611.87600000002,
+        "expected": 65,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "productionBuffered": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/production-buffered.json",
+      "bytes": 78757,
+      "sha256": "3b1377ab98f845a5993e62168ed4f21cb9f039ff04a9724c4e07eec3d46c4d08",
+      "summary": {
+        "startTime": "2026-11-15T01:31:32.887Z",
+        "duration": 237305.668,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "crossBrowser": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/cross-browser.json",
+      "bytes": 455987,
+      "sha256": "8b01992ea82e99d87f4130dbeb9368f9d6eb0adafeaedd74f26b47ec8ffbbaea",
+      "summary": {
+        "startTime": "2026-11-15T01:35:30.554Z",
+        "duration": 45908.696,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "ordinaryUnits": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/ordinary-units.json",
+      "bytes": 653000,
+      "sha256": "bad99f1349f374831037109c311ccb5db264bbb2469867104dee74b29da34fdd",
+      "summary": {
+        "numTotalTests": 1691,
+        "numPassedTests": 1691,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    "selectedActualWASM": {
+      "path": "/tmp/plainsolid-refresh-plaincad.4BWyxQ/selected-kernel.json",
+      "bytes": 2154,
+      "sha256": "d0ff75ad440d45ef8c184ea435f413bf7d419bd63d6a1ff19a0675c38b82db24",
+      "summary": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  },
+  "captureAdjustment": {
+    "playwright": "1.63.0",
+    "chromiumNetworkBufferBytes": 134217728,
+    "chromiumResourceBufferBytes": 33554432,
+    "beforeSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+    "afterSha256": "2bad350c6198b7ebdb3875b91afdc1d61c15d1c5c84ccc6f483dddb5bc1e9a39",
+    "restoredSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171"
+  },
+  "environment": [
+    "The ordinary production run completed 65 of 66. Chromium DevTools evicted the WASM response before the CSP case captured it.",
+    "The isolated test driver used enlarged response capture buffers for the entire 66-case production rerun. Original dependency bytes were restored before the cross-browser and unit runs. The original app checkout was not modified."
+  ],
+  "archive": {
+    "path": "/tmp/plainsolid-plaincad-main-acf376e1-2026-11-14.tar.gz",
+    "bytes": 475731,
+    "sha256": "fb8dd901d66f7b465f04ad68280ccca2b20a120a128cfc967509214fe285db10"
+  }
+}

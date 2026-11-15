@@ -6464,3 +6464,14 @@ production run passed 65 tests and reproduced DevTools response
 eviction in the CSP capture test. An isolated Chromium capture-buffer
 adjustment passed all 66 production tests. The copied dependency bytes
 were restored and checked. See [the staged-run evidence](evidence/plaincad-main-0e57c2d8-2026-11-14.json).
+
+### PlainCAD application rerun on acf376e1
+
+PlainCAD `efae4d2` built against kernel `acf376e1` in an isolated app
+checkout. The WASM build, type checks and 500 kB bundle ceiling passed.
+All 345 development, 15 cross-browser, 1,691 unit and four actual WASM
+contract cases passed. The ordinary production capture reproduced the
+single Chromium inspector-cache eviction. All 66 production cases passed
+with the isolated driver buffers enlarged. The driver was restored and its
+original SHA-256 was verified.
+[Staged-run evidence and log archive](evidence/plaincad-main-acf376e1-2026-11-14.json).
