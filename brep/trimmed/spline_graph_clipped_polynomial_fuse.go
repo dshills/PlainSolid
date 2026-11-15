@@ -71,10 +71,10 @@ func (r *ClippedPolynomialFuse) Walls() []ClippedPolynomialFuseWall {
 	return out
 }
 
-// FuseClippedPolynomialEnvelope builds the union over exactly representable
-// axis-aligned footprints with the same span in one physical axis. The cubic
-// crossing and quadratic tangency must both be interior to the overlap. Roof
-// step walls keep the original upper and lower traces, including tapered ends.
+// FuseClippedPolynomialEnvelope builds the union over unequal, exactly
+// representable axis-aligned footprints. A cubic crossing and quadratic
+// tangency must both be interior to the overlap. Roof step walls keep the
+// original upper and lower traces, including tapered ends.
 func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*ClippedPolynomialFuse, error) {
 	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
@@ -97,9 +97,7 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 	if e != nil {
 		return nil, e
 	}
-	first, second := material.Footprints[0], material.Footprints[1]
-	if first == second || !(first.UMin == second.UMin && first.UMax == second.UMax ||
-		first.VMin == second.VMin && first.VMax == second.VMax) {
+	if material.Footprints[0] == material.Footprints[1] {
 		return nil, geom.ErrDomain
 	}
 	proof := material.Overlap.Projection.Arrangement
