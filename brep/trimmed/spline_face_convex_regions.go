@@ -36,6 +36,23 @@ func (a Solid) BuildCoincidentConvexRegions(ctx context.Context, faceA int, b So
 	if e != nil {
 		return fail(e)
 	}
+	return a.buildCoincidentConvexCells(ctx, faceA, b, faceB, overlay, o)
+}
+
+// buildCoincidentConvexCells consumes only independently proved disjoint-interior
+// positive convex cells. Exposed ownership is rechecked against original faces.
+func (a Solid) buildCoincidentConvexCells(ctx context.Context, faceA int, b Solid, faceB int, overlay CoincidentConvexHoleMaterial, o CoincidentConvexRegionOptions) (CoincidentChartRegions, error) {
+	fail := func(e error) (CoincidentChartRegions, error) { return CoincidentChartRegions{}, e }
+	if o.MaxSegments == 0 {
+		o.MaxSegments = 4096
+	}
+	if o.MaxSplitWork == 0 {
+		o.MaxSplitWork = 1000000
+	}
+	if o.MaxSegments < 1 || o.MaxSegments > 16384 || o.MaxSplitWork < 1 || o.MaxSplitWork > 4000000 {
+		return fail(geom.ErrInvalid)
+	}
+	var e error
 	type edge struct {
 		a, b   [2]*big.Rat
 		owners []CoincidentTrimOwner
