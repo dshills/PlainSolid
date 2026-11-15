@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "backend": "plainsolid-go-wasm",
+  "sourceIdentity": {
+    "kind": "git-archive",
+    "head": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+    "sourceRepository": "/Users/dshills/Development/projects/PlainCAD",
+    "cleanCommittedArchive": true,
+    "manifestSha256": "e3157dc7a14e558d3d0c615a03395b68b2827ea81dbaa467e9d4e6938427287e"
+  },
+  "plainSolidIdentity": {
+    "head": "dfbe23d9d2cd13415917a4b55d1d1d40298ba090",
+    "status": "",
+    "branch": "codex/plaincad-lead-fit-qualification"
+  },
+  "selected": {
+    "suite": "unit",
+    "testFile": "modelingGeometry.test.ts",
+    "grep": "^native lead screw and nut ",
+    "acceptancePort": "5279",
+    "preflightPort": "5279"
+  },
+  "status": "passed",
+  "wasmSha256": "0147e278b1991d81020bf6296305327e6244c0d34c8b1be3508d99dee0329f06",
+  "leadFit": {
+    "file": "src/tests/modelingGeometry.test.ts",
+    "originalFileSha256": "8eaf6993b1255ce910b45ff4fb457dcf95379cb1cf0279112f7a86fb04b72666",
+    "stagedFileSha256": "c79527c28560cc9f9d01ca4bf0b6c643237ec7df18922f7e7f9f348aab29d8c0",
+    "originalCasesSha256": "ddb2b5aaf785fb19f23772614fc42c4ca57467d66445fbe483ed53869f819cf9",
+    "stagedCasesSha256": "a4d746a31676c8863495d161b5511fc3e8ebbc7ee7f63837c4cd8dc78429cedc",
+    "deadlineMs": 45000,
+    "cases": [
+      "native lead screw and nut cuts 1 start(s), right-hand trapezoidal threads and verifies coaxial fit",
+      "native lead screw and nut cuts 2 start(s), left-hand acme threads and verifies coaxial fit",
+      "native lead screw and nut cuts 4 start(s), right-hand trapezoidal threads and verifies coaxial fit"
+    ],
+    "assertedProvider": "plainsolid",
+    "goVersion": "go version go1.27.4 darwin/arm64",
+    "wasmRuntimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "unit": {
+    "report": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-lead-fit-committed/unit-results.json",
+    "reportSha256": "7585c0b1122ee0fbd8b3f0b2fd3a965bee4611805e89e6a9710144953e396984",
+    "total": 39,
+    "passed": 3,
+    "failed": 0,
+    "pending": 36
+  },
+  "backendVerified": true,
+  "sourceFileCount": 849,
+  "plainSolidSourceFileCount": 2783,
+  "fullReport": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-lead-fit-committed/readiness.json",
+    "sha256": "925e9010a3c843b7b397748ef5802a9c83a206cd5d4d3d1ae1b32060cca630c1"
+  }
+}

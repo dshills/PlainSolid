@@ -69,6 +69,23 @@ including fixtures that assume OCCT-private bindings or an uninitialized
 kernel. This mode uses the local WASM file and does not start a browser;
 original middleware fixtures still require loopback access.
 
+Use `--suite unit --lead-fit-fixture` for the three original PlainCAD lead screw
+and nut tests at 1, 2, and 4 starts.
+
+```sh
+node tools/plaincad/run.mjs \
+  --source /absolute/path/to/PlainCAD \
+  --work /tmp/plaincad-plainsolid-lead-fit \
+  --suite unit --lead-fit-fixture
+```
+
+The harness keeps each original geometry assertion and 45-second deadline in
+the copied test. It also checks that both meshes came from PlainSolid. The
+report requires an actual pass for every start count, records individual test
+times, and hashes the original and staged cases, the runtime, the WASM binary,
+and its Go sources. The ordinary PlainCAD Vitest suite still uses OpenCascade.
+
+
 The opt-in side-opening overlap fixture runs through the actual application
 commands, viewer and exchange workers, and is recorded separately from
 original PlainCAD fixtures. Enable it with `--side-dual-disk-fixture --test
