@@ -24,15 +24,7 @@ func CombineProjectedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BS
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	limits := o.Section.Patch
-	if e := requireIdentitySplineChart(ctx, base, limits); e != nil {
-		return nil, e
-	}
-	bp, e := geom.NewSurfacePatch(base, limits)
-	if e != nil {
-		return nil, e
-	}
-	patches, e := preparePositivePolynomialRoofs(ctx, bp, [2]*geom.BSplineSurface{a, b}, o)
+	bp, patches, e := prepareProjectedPolynomialStock(ctx, base, a, b, o)
 	if e != nil {
 		return nil, e
 	}
@@ -40,12 +32,32 @@ func CombineProjectedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BS
 	if e != nil {
 		return nil, e
 	}
-	var charts [2]graphEnvelopeChart
+	return buildNativePolynomialEnvelope(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
+		nativeProjectedPolynomialEnvelope, proof.Arrangement, proof.Owners, projectedPolynomialCharts(proof))
+}
+
+func prepareProjectedPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (*geom.SurfacePatch, [2]*geom.SurfacePatch, error) {
+	limits := o.Section.Patch
+	if e := requireIdentitySplineChart(ctx, base, limits); e != nil {
+		return nil, [2]*geom.SurfacePatch{}, e
+	}
+	bp, e := geom.NewSurfacePatch(base, limits)
+	if e != nil {
+		return nil, [2]*geom.SurfacePatch{}, e
+	}
+	patches, e := preparePositivePolynomialRoofs(ctx, bp, [2]*geom.BSplineSurface{a, b}, o)
+	if e != nil {
+		return nil, [2]*geom.SurfacePatch{}, e
+	}
+	return bp, patches, nil
+}
+
+func projectedPolynomialCharts(proof geom.ProjectedSplineGraphPolynomialArrangement) (charts [2]graphEnvelopeChart) {
 	for i, owner := range proof.Owners {
 		charts[i] = polynomialEnvelopeChart(proof.Maps[i], owner.ProjectionOrientation)
 	}
-	return buildNativePolynomialEnvelope(ctx, [3]*geom.BSplineSurface{base, a, b}, 0, axis, op, tolerance, o,
-		nativeProjectedPolynomialEnvelope, proof.Arrangement, proof.Owners, charts)
+	return charts
 }
 
 // ReadProjectedPolynomialEnvelopeJSON rebuilds each original cap and wall

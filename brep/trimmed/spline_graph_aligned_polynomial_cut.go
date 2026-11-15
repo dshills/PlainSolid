@@ -24,6 +24,7 @@ type AlignedPolynomialCut struct {
 	total       *big.Rat
 	axis        int
 	tolerance   float64
+	kind        string
 }
 
 // Components returns shells in the retained arrangement's region order.
@@ -92,6 +93,28 @@ func CutAlignedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 		return nil, e
 	}
 	aligned, proof := measure.Alignment, measure.Alignment.Arrangement
+	owners, charts := aligned.Owners, alignedPolynomialCharts(aligned)
+	if measure.Reverse {
+		proof.Regions = slices.Clone(proof.Regions)
+		for i := range proof.Regions {
+			proof.Regions[i].HeightSide = -proof.Regions[i].HeightSide
+		}
+		owners[0], owners[1] = owners[1], owners[0]
+		charts[0], charts[1] = charts[1], charts[0]
+	}
+	return buildNativePolynomialCut(ctx, [3]*geom.BSplineSurface{base, a, b}, axis, tolerance, o,
+		nativeAlignedPolynomialCut, proof, owners, charts, polynomialCutVolumes{measure.Regions, measure.Volumes, measure.Total})
+}
+
+type polynomialCutVolumes struct {
+	regions []int
+	volumes []*big.Rat
+	total   *big.Rat
+}
+
+func buildNativePolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurface, axis int, tolerance float64, o PolynomialNodeCutOptions,
+	kind string, proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
+	charts [2]graphEnvelopeChart, measure polynomialCutVolumes) (*AlignedPolynomialCut, error) {
 	if !isNativeAlignedPolynomialArrangement(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
@@ -107,16 +130,7 @@ func CutAlignedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 	if e != nil {
 		return nil, e
 	}
-	regions := proof.Regions
-	if measure.Reverse {
-		regions = slices.Clone(regions)
-		for i := range regions {
-			regions[i].HeightSide = -regions[i].HeightSide
-		}
-	}
-
-	charts := alignedPolynomialCharts(aligned)
-	mapped, e := polynomialOwnerPieces(proof, aligned.Owners)
+	mapped, e := polynomialOwnerPieces(proof, owners)
 	if e != nil {
 		return nil, e
 	}
@@ -127,7 +141,7 @@ func CutAlignedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 		expect[layer] = make(map[[2]geom.Vec2]openSectionPiece)
 		for i, chain := range pieces {
 			for j, p := range chain {
-				owner := mapped[layer^stock.first][i][j]
+				owner := mapped[layer][i][j]
 				if _, duplicate := expect[layer][[2]geom.Vec2{p.a, p.b}]; duplicate {
 					return nil, geom.ErrConvergence
 				}
@@ -136,30 +150,27 @@ func CutAlignedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 			}
 		}
 	}
-	if stock.first == 1 {
-		charts[0], charts[1] = charts[1], charts[0]
-	}
-	roofs := [2]*geom.BSplineSurface{a, b}
+	roofs := [2]*geom.BSplineSurface{sources[1], sources[2]}
 	evaluate := exactGraphVertexEvaluator(ctx, o.Proof)
 	assemble := func(loop []openSectionPiece) (Solid, OpenSectionHistory, error) {
-		return assembleOpenSplineGraphPairOnCharts(ctx, a, b, 0, true, tolerance, loop, charts, evaluate)
+		return assembleOpenSplineGraphPairOnCharts(ctx, roofs[0], roofs[1], 0, true, tolerance, loop, charts, evaluate)
 	}
 	bind := func(part Solid, h OpenSectionHistory, loop []openSectionPiece) error {
 		return bindAlignedPolynomialCutLayer(ctx, part, h, roofs, charts, loop, expect, o.Proof)
 	}
-	material, e := buildPolynomialNodeCutComponents(ctx, o.Proof, regions, proof.Nodes, proof.Vertices, xyz, loops, assemble, bind)
+	material, e := buildPolynomialNodeCutComponents(ctx, o.Proof, proof.Regions, proof.Nodes, proof.Vertices, xyz, loops, assemble, bind)
 	if e != nil {
 		return nil, e
 	}
-	if !slices.Equal(material.regions, measure.Regions) || len(material.components) != len(measure.Volumes) {
+	if !slices.Equal(material.regions, measure.regions) || len(material.components) != len(measure.volumes) {
 		return nil, geom.ErrConvergence
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
 	return &AlignedPolynomialCut{
-		sources: [3]*geom.BSplineSurface{base, a, b}, material: material, orders: [2]int(proof.ContactOrder),
-		derivatives: [2]*big.Rat(proof.DerivativeGap), volumes: measure.Volumes, total: measure.Total, axis: axis, tolerance: tolerance,
+		sources: sources, material: material, orders: [2]int(proof.ContactOrder),
+		derivatives: [2]*big.Rat(proof.DerivativeGap), volumes: measure.volumes, total: measure.total, axis: axis, tolerance: tolerance, kind: kind,
 	}, nil
 }
 
@@ -284,7 +295,7 @@ func (r *AlignedPolynomialCut) WriteJSON(ctx context.Context, w io.Writer) error
 	if r == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
 	}
-	return writePolynomialMixedCutRecipe(ctx, w, nativeAlignedPolynomialCut, r.sources, r.axis, r.tolerance, r.material, r.orders[:], r.derivatives[:])
+	return writePolynomialMixedCutRecipe(ctx, w, r.kind, r.sources, r.axis, r.tolerance, r.material, r.orders[:], r.derivatives[:])
 }
 
 // ReadAlignedPolynomialCutJSON reconstructs the original-source components

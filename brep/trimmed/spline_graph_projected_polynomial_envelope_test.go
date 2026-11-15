@@ -107,13 +107,6 @@ func checkProjectedPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnvelope
 			t.Fatal("exact native contact in physical station order", i, c, e)
 		}
 	}
-	mapUV := func(physicalOwner int, p geom.Vec3) geom.Vec2 {
-		if physicalOwner == 0 {
-			return geom.Vec2{X: 4*p.X - 2, Y: 10 - 2*p.Y}
-		}
-		xy := [2]float64{p.X, p.Y}
-		return geom.Vec2{X: 5 - 3*xy[axis], Y: 2*xy[1-axis] - 1}
-	}
 	edgeEnds := func(u Use) (geom.Vec3, geom.Vec3) {
 		e := s.edges[u.Edge]
 		if u.Reversed {
@@ -134,7 +127,7 @@ func checkProjectedPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnvelope
 		}
 		for _, u := range f.Outer {
 			a, b := edgeEnds(u)
-			if u.UVStart != mapUV(physicalOwner, a) || u.UVEnd != mapUV(physicalOwner, b) {
+			if u.UVStart != projectedFixtureUV(physicalOwner, axis, a) || u.UVEnd != projectedFixtureUV(physicalOwner, axis, b) {
 				t.Fatal("independent original roof pcurve station", i, u.Edge)
 			}
 		}
@@ -154,7 +147,7 @@ func checkProjectedPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnvelope
 			owner = 1
 		}
 		b, a := edgeEnds(u)
-		if trim.a != mapUV(owner, a) || trim.b != mapUV(owner, b) {
+		if trim.a != projectedFixtureUV(owner, axis, a) || trim.b != projectedFixtureUV(owner, axis, b) {
 			t.Fatal("original wall pcurve range", owner, u.Edge)
 		}
 		walls[owner]++
@@ -166,6 +159,14 @@ func checkProjectedPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnvelope
 	if walls != want {
 		t.Fatal("complete original wall owner partition", walls, want)
 	}
+}
+
+func projectedFixtureUV(physicalOwner, axis int, p geom.Vec3) geom.Vec2 {
+	if physicalOwner == 0 {
+		return geom.Vec2{X: 4*p.X - 2, Y: 10 - 2*p.Y}
+	}
+	xy := [2]float64{p.X, p.Y}
+	return geom.Vec2{X: 5 - 3*xy[axis], Y: 2*xy[1-axis] - 1}
 }
 
 func TestNativeProjectedPolynomialEnvelopeRejections(t *testing.T) {
