@@ -425,3 +425,31 @@ The independent noncircular void fixture uses weight3/4 and scales(1,1/2): its
 normalized homogeneous squared-radius residual is
 `(4w²−2)t²(1−t)² >= 0`, so the minor-axis wall foot independently proves squared
 distance1/4. The cap candidates correctly stay beyond squared distance1.
+
+## Proper rational occurrences
+
+`PlaceWrappedAnisotropicStation` and `PlaceWrappedAnisotropicStationBore`
+authenticate their respective native sources and privately retain a checked
+`placement.RationalRigid`. They preserve local support/topology identities and
+do not manufacture a rounded world B-rep. `Source` exposes the original immutable
+solid; `Pose` returns an owned exact matrix. Signed proper coordinate placements
+and genuinely oblique rational frames are supported, including nonbinary rational
+translations. A reflected or nonorthogonal frame is not a proper rigid pose.
+
+Filled occurrences preserve exact point owners and the existing separate
+nonhorizontal, horizontal, cap-coincident and selected-generator line contracts.
+Horizontal and cap labels refer to the original source frame. Bore occurrences
+preserve exact material classification and the unified line interval/boundary
+ledger. Inverse mapping never normalizes directions, so rational t, algebraic
+root brackets, multiplicities and every local native owner remain unchanged.
+
+Bore distance performs one original query and transforms every attained witness
+exactly. Proper orthogonality leaves all squared bounds and tolerances invariant.
+The independent Original/World reports preserve the same source owner IDs and
+single-query work counts; neither claims complete nearest-face ties. The source
+search quotas remain unchanged. A separate bit limit bounds at most36 fixed-size
+pose transforms, and any inverse/forward transform failure discards both reports.
+Tests cover signed axis maps, a3/5–4/5 oblique rotation, translations1/3,−2/7,5/11,
+world-oblique annular cap spans, genuine original creases, nonzero noncircular
+void-distance enclosures, exact independent world witness distances and atomic
+quota failures after native source reload.
