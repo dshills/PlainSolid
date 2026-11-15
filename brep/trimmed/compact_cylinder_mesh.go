@@ -52,8 +52,10 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 			return mesh.Mesh{}, true, err
 		}
 		surface, _ := parametric.SurfaceMapping(f.Surface)
+		if isCompactPlane(surface) {
+			continue
+		}
 		switch surface.(type) {
-		case geom.PlaneSurface:
 		case geom.TorusSurface:
 			if !compactTorus(f) {
 				return mesh.Mesh{}, false, nil
@@ -167,6 +169,8 @@ func compactStraightEdge(curve geom.Curve) bool {
 			return true
 		case geom.CylinderSurface:
 			return c.a.X == c.b.X
+		case *geom.ExactBezierSurface:
+			return c.a.X == c.b.X && compactExactVerticalChart(surface)
 		}
 	}
 	return false
@@ -376,7 +380,7 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 					return mesh.Mesh{}, err
 				}
 				base, _ := parametric.SurfaceMapping(f.Surface)
-				_, planar := base.(geom.PlaneSurface)
+				planar := isCompactPlane(base)
 				found := false
 				if planar {
 					for _, side := range t.edge {
@@ -428,6 +432,11 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 }
 
 func isCompactPlane(surface geom.Surface) bool {
-	_, ok := surface.(geom.PlaneSurface)
-	return ok
+	switch s := surface.(type) {
+	case geom.PlaneSurface:
+		return true
+	case *geom.BSplineSurface:
+		return compactExactXYChart(s)
+	}
+	return false
 }

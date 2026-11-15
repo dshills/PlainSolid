@@ -52,6 +52,11 @@ exposes the independently rounded last quarter endpoint. Set
 `PLAINSOLID_OCCT_DIRECTED_IGES_AUTHOR` and `PLAINSOLID_OCCT_PLANAR_SHELLS_IGES`
 to run `TestOCCTExactDirectedCircularLoopOriginalIGESLive`.
 
+`circular_sweep_inset_join.cxx` independently cuts a through-hole into a box,
+makes a hollow circular boss, and fuses them at their shared cap. Link OCCT's
+Boolean and modeling toolkits. `PLAINSOLID_OCCT_CIRCULAR_SWEEP_INSET` points
+to this helper for `TestExactCircularSweepInsetLiveOCCT`.
+
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test
 checks volume, area and centroid for rising and falling taper, then checks

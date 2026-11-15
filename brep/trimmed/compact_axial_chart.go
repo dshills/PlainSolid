@@ -19,6 +19,10 @@ func compactAxialStart(f Face) (int, bool) {
 	base, _ := parametric.SurfaceMapping(f.Surface)
 	switch base.(type) {
 	case geom.CylinderSurface:
+	case *geom.ExactBezierSurface:
+		if !compactExactVerticalChart(base) {
+			return 0, false
+		}
 	default:
 		_, a, b, ok := parametric.RevolutionSideParameters(base)
 		if !ok || a.Y == b.Y || a.X <= 0 || b.X <= 0 {
