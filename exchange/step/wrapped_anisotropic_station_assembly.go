@@ -26,9 +26,9 @@ type WrappedAnisotropicStationBoreAssembly struct {
 	Body WrappedAnisotropicStationBoreBody
 }
 
-func anisotropicAssemblySource(ctx context.Context, r io.Reader, l Limits) (WrappedAnisotropicAssemblySource, []byte, error) {
+func anisotropicAssemblySource(ctx context.Context, r io.Reader, l Limits, nested bool) (WrappedAnisotropicAssemblySource, []byte, error) {
 	var zero WrappedAnisotropicAssemblySource
-	base, e := readExactFlatSingleProductAssembly(ctx, r, l)
+	base, e := readExactFlatSingleProductAssembly(ctx, r, l, nested)
 	if e != nil {
 		return zero, nil, e
 	}
@@ -58,12 +58,15 @@ func anisotropicAssemblySource(ctx context.Context, r io.Reader, l Limits) (Wrap
 // ReadWrappedAnisotropicStationAssembly proves the original filled local support
 // graph once and every independently owned occurrence frame without baking it.
 func ReadWrappedAnisotropicStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions) (WrappedAnisotropicStationAssembly, error) {
+	return readWrappedAnisotropicStationAssembly(ctx, r, l, o, false)
+}
+func readWrappedAnisotropicStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions, nested bool) (WrappedAnisotropicStationAssembly, error) {
 	var zero WrappedAnisotropicStationAssembly
 	l, e := occurrenceColorSourceLimits(l)
 	if e != nil {
 		return zero, e
 	}
-	source, raw, e := anisotropicAssemblySource(ctx, r, l)
+	source, raw, e := anisotropicAssemblySource(ctx, r, l, nested)
 	if e != nil {
 		return zero, e
 	}
@@ -83,12 +86,15 @@ func ReadWrappedAnisotropicStationAssembly(ctx context.Context, r io.Reader, l L
 // ReadWrappedAnisotropicStationBoreAssembly separately proves both original
 // independently scaled wall families and annular caps of the shared local bore.
 func ReadWrappedAnisotropicStationBoreAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions) (WrappedAnisotropicStationBoreAssembly, error) {
+	return readWrappedAnisotropicStationBoreAssembly(ctx, r, l, o, false)
+}
+func readWrappedAnisotropicStationBoreAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions, nested bool) (WrappedAnisotropicStationBoreAssembly, error) {
 	var zero WrappedAnisotropicStationBoreAssembly
 	l, e := occurrenceColorSourceLimits(l)
 	if e != nil {
 		return zero, e
 	}
-	source, raw, e := anisotropicAssemblySource(ctx, r, l)
+	source, raw, e := anisotropicAssemblySource(ctx, r, l, nested)
 	if e != nil {
 		return zero, e
 	}
@@ -136,11 +142,18 @@ func anisotropicAssemblyNames(name string, caps [2]string, walls []WrappedSpline
 	return true
 }
 func WriteWrappedAnisotropicStationAssembly(ctx context.Context, w io.Writer, m WrappedAnisotropicStationAssemblyModel, l Limits, o WrappedSurfaceOptions) error {
-	if len(m.Products) != 2 {
+	return writeWrappedAnisotropicStationAssembly(ctx, w, m, l, o, false)
+}
+func writeWrappedAnisotropicStationAssembly(ctx context.Context, w io.Writer, m WrappedAnisotropicStationAssemblyModel, l Limits, o WrappedSurfaceOptions, nested bool) error {
+	products := 2
+	if nested {
+		products = 3
+	}
+	if len(m.Products) != products {
 		return geom.ErrInvalid
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
-	counts := make([]int, 2)
+	counts := make([]int, products)
 	for i, p := range m.Products {
 		graph.Products = append(graph.Products, AssemblyPart{ID: p.ID, Name: p.Name})
 		if p.Body != nil {
@@ -156,14 +169,21 @@ func WriteWrappedAnisotropicStationAssembly(ctx context.Context, w io.Writer, m 
 			return nil, nil, e
 		}
 		return stagedAssemblyBodies(&b)
-	}, l, o, false)
+	}, l, o, false, nested)
 }
 func WriteWrappedAnisotropicStationBoreAssembly(ctx context.Context, w io.Writer, m WrappedAnisotropicStationBoreAssemblyModel, l Limits, o WrappedSurfaceOptions) error {
-	if len(m.Products) != 2 {
+	return writeWrappedAnisotropicStationBoreAssembly(ctx, w, m, l, o, false)
+}
+func writeWrappedAnisotropicStationBoreAssembly(ctx context.Context, w io.Writer, m WrappedAnisotropicStationBoreAssemblyModel, l Limits, o WrappedSurfaceOptions, nested bool) error {
+	products := 2
+	if nested {
+		products = 3
+	}
+	if len(m.Products) != products {
 		return geom.ErrInvalid
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
-	counts := make([]int, 2)
+	counts := make([]int, products)
 	for i, p := range m.Products {
 		graph.Products = append(graph.Products, AssemblyPart{ID: p.ID, Name: p.Name})
 		if p.Body != nil {
@@ -179,10 +199,18 @@ func WriteWrappedAnisotropicStationBoreAssembly(ctx context.Context, w io.Writer
 			return nil, nil, e
 		}
 		return stagedAssemblyBodies(&b)
-	}, l, o, true)
+	}, l, o, true, nested)
 }
-func writeAnisotropicAssembly(ctx context.Context, w io.Writer, m AssemblyModel, counts []int, stage func(int) (*File, []int64, error), l Limits, o WrappedSurfaceOptions, bore bool) error {
-	if ctx == nil || w == nil || len(counts) != 2 || counts[0]+counts[1] != 1 || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 {
+func writeAnisotropicAssembly(ctx context.Context, w io.Writer, m AssemblyModel, counts []int, stage func(int) (*File, []int64, error), l Limits, o WrappedSurfaceOptions, bore bool, nested bool) error {
+	products, minUses, maxUses := 2, 2, 16
+	if nested {
+		products, minUses, maxUses = 3, 3, 17
+	}
+	total := 0
+	for _, n := range counts {
+		total += n
+	}
+	if ctx == nil || w == nil || len(counts) != products || total != 1 || len(m.Occurrences) < minUses || len(m.Occurrences) > maxUses {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -204,9 +232,9 @@ func writeAnisotropicAssembly(ctx context.Context, w io.Writer, m AssemblyModel,
 	}
 	var e error
 	if bore {
-		_, e = ReadWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(staged.Bytes()), l, o)
+		_, e = readWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(staged.Bytes()), l, o, nested)
 	} else {
-		_, e = ReadWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(staged.Bytes()), l, o)
+		_, e = readWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(staged.Bytes()), l, o, nested)
 	}
 	if e != nil {
 		return e

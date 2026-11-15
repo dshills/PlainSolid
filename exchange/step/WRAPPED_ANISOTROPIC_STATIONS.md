@@ -142,3 +142,45 @@ limits, cancellation before and during reads, short writes and stale edits.
 Live filled/bore and negative-axis XCAF tests now traverse the full envelope
 before original-source re-export and native-local regeneration into new STEP.
 Both routes retain one shared local product and independent world measures.
+
+## One shared intermediate assembly
+
+The separate `Read/WriteNestedWrappedAnisotropicStationAssembly` and bore
+counterparts admit exactly one geometry-free root, one shared intermediate
+product and one original local material product. The root has two to sixteen
+uses of the intermediate product, which has exactly one use of the leaf.
+Each expanded instance retains its original two NAUO IDs and leaf product ID.
+Composed transforms are computed exactly and must remain losslessly represented
+proper signed-coordinate placements. Unrepresentable sums reject before output.
+The previous flat readers and native JSON tags remain strict; nested persistence uses the separate tags described below.
+
+Original-source writers re-prove the full graph. Generated STEP preserves the
+three products and original local supports rather than baking world geometry.
+The independent OCCT XCAF `filled-nested-assembly` and
+`bore-nested-assembly` fixtures contain 281 and 473 records. Their subgroup has
+a nonzero local translation and is reused under two distinct root placements.
+`read-nested-assembly` independently verifies shared subgroup and leaf identity;
+source re-export and native-local reload followed by generated output agree on
+volume, area and centroid. Tests reject cycles, incorrect pcurve ownership,
+parser limits, cancellation and nonrepresentable composed placements. Arbitrary
+depth, multiple local products, contextual styles and mixed units remain outside
+this explicitly bounded grammar.
+
+### Nested source-bound native formats
+
+The separate `Write/ReadNestedWrappedAnisotropicStationAssemblyJSON` and bore
+counterparts now persist the complete nested result. Their version-one tags are
+`plainsolid-step-nested-anisotropic-station-assembly` and
+`plainsolid-step-nested-anisotropic-station-bore-assembly`. The preceding flat
+tags retain their original meaning and reject these payloads.
+
+Reload re-proves the complete original STEP once, including local original
+weighted supports, topology and each relationship, then compares the stored
+native solid, all original role IDs, intermediate product ID and expanded
+source paths/composed matrices against that proof. Cached geometry and instance
+edits are not instructions to alter the source; stale claims fail atomically.
+The existing 16 MiB envelope / 1 MiB source limits and source parse quotas apply.
+Unknown fields, trailing data, wrong tags, corrupted ancestry/supports/material,
+limits and cancellation are tested. Live filled and bore XCAF chains pass
+through the full envelope before source and regenerated STEP export, preserving
+shared subgroup/leaf identity and independent world measures.

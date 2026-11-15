@@ -48,7 +48,13 @@ func regenerateAnisotropicAssembly(t testing.TB, source WrappedAnisotropicAssemb
 			}
 			m.Products = append(m.Products, q)
 		}
-		if e := WriteWrappedAnisotropicStationAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{}); e != nil {
+		var e error
+		if len(source.Assembly.Products) == 3 {
+			e = WriteNestedWrappedAnisotropicStationAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{})
+		} else {
+			e = WriteWrappedAnisotropicStationAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{})
+		}
+		if e != nil {
 			t.Fatal(e)
 		}
 	} else {
@@ -60,7 +66,13 @@ func regenerateAnisotropicAssembly(t testing.TB, source WrappedAnisotropicAssemb
 			}
 			m.Products = append(m.Products, q)
 		}
-		if e := WriteWrappedAnisotropicStationBoreAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{}); e != nil {
+		var e error
+		if len(source.Assembly.Products) == 3 {
+			e = WriteNestedWrappedAnisotropicStationBoreAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{})
+		} else {
+			e = WriteWrappedAnisotropicStationBoreAssembly(ctx, &out, m, Limits{}, WrappedSurfaceOptions{})
+		}
+		if e != nil {
 			t.Fatal(e)
 		}
 	}

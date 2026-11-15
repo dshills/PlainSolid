@@ -35,7 +35,7 @@ type anisotropicAssemblyNativeEnvelope struct {
 	Occurrences   []rationalHierarchyRelationClaim
 }
 
-func anisotropicAssemblyNativeClaim(ctx context.Context, source WrappedAnisotropicAssemblySource, name string, caps [2]string, unit float64, sides []WrappedAnisotropicStationLoftBody, solid trimmed.Solid, bore bool) (anisotropicAssemblyNativeEnvelope, error) {
+func anisotropicAssemblyNativeClaim(ctx context.Context, source WrappedAnisotropicAssemblySource, name string, caps [2]string, unit float64, sides []WrappedAnisotropicStationLoftBody, solid trimmed.Solid, bore bool, nestedMode ...bool) (anisotropicAssemblyNativeEnvelope, error) {
 	q := anisotropicAssemblyNativeEnvelope{Format: anisotropicAssemblyNativeFormat, Version: 1, Assembly: source.Assembly, Product: source.Product, SourceBodyID: source.SourceBodyID, SourceFaceIDs: source.SourceFaceIDs, Name: name, CapNames: caps, LengthUnit: unit}
 	count := 1
 	if bore {
@@ -45,7 +45,11 @@ func anisotropicAssemblyNativeClaim(ctx context.Context, source WrappedAnisotrop
 	if e := ctx.Err(); e != nil {
 		return q, e
 	}
-	if !independentNativeSourceRecordBound(source.Assembly.Source, 4096, 16) || len(source.Assembly.Products) != 2 || len(source.Assembly.Roots) != 1 || len(source.Assembly.Occurrences) < 2 || len(source.Assembly.Occurrences) > 16 || len(source.Occurrences) < 2 || len(source.Occurrences) > 16 || len(source.SourceFaceIDs) > 34 || len(sides) != count || len(name) > 4096 || len(caps[0]) > 4096 || len(caps[1]) > 4096 {
+	products, minimum, maximum := 2, 2, 16
+	if len(nestedMode) == 1 && nestedMode[0] {
+		products, minimum, maximum = 3, 3, 17
+	}
+	if !independentNativeSourceRecordBound(source.Assembly.Source, 4096, 16) || len(source.Assembly.Products) != products || len(source.Assembly.Roots) != 1 || len(source.Assembly.Occurrences) < minimum || len(source.Assembly.Occurrences) > maximum || len(source.Occurrences) < minimum || len(source.Occurrences) > maximum || len(source.SourceFaceIDs) > 34 || len(sides) != count || len(name) > 4096 || len(caps[0]) > 4096 || len(caps[1]) > 4096 {
 		return q, geom.ErrInvalid
 	}
 	for _, p := range source.Assembly.Products {
