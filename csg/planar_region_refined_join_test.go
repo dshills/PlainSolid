@@ -86,6 +86,17 @@ func TestJoinRefinedPlanarRegionsOverlaysIndependentSeamStations(t *testing.T) {
 	if !reflect.DeepEqual(owners[0], owners[1]) {
 		t.Fatalf("refined seam lacks identical exterior edge ownership: %v", owners)
 	}
+	auto, automatic, err := JoinRefinedCoincidentPlanarRegions(ctx, a, b, PlanarRegionRefinementOptions{})
+	if err != nil || !reflect.DeepEqual(s, auto) || !reflect.DeepEqual(h, automatic) {
+		t.Fatalf("automatic constrained seam changed original ownership: %+v %v", automatic, err)
+	}
+	partial, err := brep.Box(geom.Vec3{X: .125, Z: 1}, geom.Vec3{X: 1.125, Y: 1, Z: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, p, err := JoinRefinedCoincidentPlanarRegions(ctx, a, partial, PlanarRegionRefinementOptions{}); !errors.Is(err, collision.ErrInvalid) || len(out.Faces()) != 0 || p.Contact.SignedVolume != nil {
+		t.Fatalf("automatic seam accepted partially overlapping material: %+v %v", p, err)
+	}
 	for _, opts := range []PlanarRegionRefinementOptions{{MaxStations: 1}, {MaxStationTests: 1}} {
 		out, h, err := JoinRefinedPlanarRegions(ctx, a, b, claimed, opts)
 		if !errors.Is(err, collision.ErrLimit) || len(out.Faces()) != 0 || h.Contact.SignedVolume != nil {
