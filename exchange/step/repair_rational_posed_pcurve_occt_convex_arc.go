@@ -203,11 +203,15 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 }
 
 func (src *rationalConvexArcSource) transformView(ctx context.Context, source *File, inverse bool) (*File, error) {
-	return convexArcTransformView(ctx, source, src.body, src.metadata, func(kind string, p [3]*big.Rat) ([3]*big.Rat, error) {
+	return rationalConvexArcView(ctx, source, src.body, src.metadata, src.rotation, inverse)
+}
+
+func rationalConvexArcView(ctx context.Context, f *File, body, metadata map[int64]bool, pose rigidplacement.RationalRigid, inverse bool) (*File, error) {
+	return convexArcTransformView(ctx, f, body, metadata, func(kind string, p [3]*big.Rat) ([3]*big.Rat, error) {
 		if kind == "DIRECTION" {
-			return src.rotation.TransformVector(ctx, p, inverse, 512)
+			return pose.TransformVector(ctx, p, inverse, 512)
 		}
-		return src.rotation.TransformPoint(ctx, p, inverse, 512)
+		return pose.TransformPoint(ctx, p, inverse, 512)
 	})
 }
 

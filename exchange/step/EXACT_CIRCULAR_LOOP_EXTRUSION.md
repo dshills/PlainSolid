@@ -303,3 +303,28 @@ authored and native-reloaded regenerated files match 2 solids/16 faces/36 edges/
 24 vertices, analytic aggregate volume/area, and world centroid. Tests include
 cycle, wrong support/relationship, forged path/composed matrix, old-tag rejection,
 nonrepresentable composition, limits, cancellation and bounded decoder fuzz.
+
+## Separate exact rational-world canonical mode
+
+`WriteRationalPosedExactCircularLoopExtrusion` places the existing canonical
+LINE/CIRCLE graph using a proper `placement.RationalRigid`. Its descriptor
+frame is the identity and the exact pose carries the full world placement.
+The separate product identifier is
+`rational-posed-exact-circular-loop-extrusion`. Cartesian points and
+directions are emitted as exact terminating STEP decimals from the bounded
+rational transform.
+
+`ReadRationalPosedExactCircularLoopExtrusion` recovers the proper basis from
+the first cap frame and the axial origin from the first wall support. An
+exact inverse transform normalizes the complete model closure. The existing
+strict canonical reader authenticates the normalized graph, its ownership,
+the original roles and signed height. The returned native solid stays
+product-local and the pose retains all world coordinates independently.
+
+The three pinned tilted default repair fixtures qualify exact native solid
+and pose round trips, mixed independent model joining and splitting,
+and byte-stable world re-export. A negative-height case verifies the
+recovered wall station. Ordinary OCCT TransferRoots accepts the three
+canonical world exports with their original world measures and centroids.
+Tests exercise alternate tags, unrepresentable exact decimals, modified
+source directions and vertices, byte budgets, cancellation and short writes.
