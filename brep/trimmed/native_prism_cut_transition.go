@@ -104,6 +104,9 @@ func (s *NativePrismCutTransition) Operations() (int, int) {
 // opposite directions. Contact degeneracies remain unsupported. No native shell
 // is claimed until a conforming cap/wall subdivision consumes this certificate.
 func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, o NativePrismBooleanOptions) (*NativePrismCutTransition, error) {
+	return imprintCrossingPrismCutMode(ctx, stock, tool, o, false)
+}
+func imprintCrossingPrismCutMode(ctx context.Context, stock, tool brep.Solid, o NativePrismBooleanOptions, sideOpening bool) (*NativePrismCutTransition, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -126,6 +129,7 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 	}
 	result := &NativePrismCutTransition{owners: [2]brep.Solid{stock, tool}}
 	profiles := [2]nativePrismProfile{}
+	var sideCommon *intersect.AffineGeneralPolygonArrangement
 	axis := -1
 	topEntry := false
 	var floor, entry float64
@@ -192,7 +196,18 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 			if remain.MaxOperations < 1 {
 				return nil, geom.ErrConvergence
 			}
-			arrs[i], e = intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{a.trim, b.trim}, op, o.Patches, remain)
+			if sideOpening {
+				var g *intersect.AffineGeneralPolygonArrangement
+				g, e = intersect.ArrangeGeneralAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{a.trim, b.trim}, op, o.Patches, remain)
+				if e == nil {
+					arrs[i] = g.Area()
+					if i == 1 {
+						sideCommon = g
+					}
+				}
+			} else {
+				arrs[i], e = intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{a.trim, b.trim}, op, o.Patches, remain)
+			}
 			if e != nil {
 				return nil, e
 			}
@@ -215,6 +230,11 @@ func ImprintCrossingNativePrismCut(ctx context.Context, stock, tool brep.Solid, 
 	}
 
 	budget := &nativePrismAffineBudget{ctx: ctx, max: maximum, bits: bits}
+	if sideOpening {
+		if e := certifyNativePrismSideOpening(sideCommon, profiles[1], budget); e != nil {
+			return nil, e
+		}
+	}
 	result.axis = axis
 	result.normal = -1
 	result.floorOwner = NativePrismCapOwner{1, profiles[1].upperCap}

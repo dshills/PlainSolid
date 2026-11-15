@@ -44,34 +44,40 @@ const (
 	NativePrismFamilyTiedFuse
 	NativePrismFamilySideAbuttingFuse
 	NativePrismFamilyProfileCoveredCut
+	NativePrismFamilySideOpeningCut
+	NativePrismFamilySideOpeningBlindCut
+	NativePrismFamilySideOpeningInteriorCut
 )
 
 // NativePrismMaterial is immutable. Typed accessors identify the actual exact
 // construction proof; no generic single-source BSP face history is synthesized.
 // SourceOrder maps the selected family's original operands to caller operands.
 type NativePrismMaterial struct {
-	owners             [2]brep.Solid
-	components         []brep.Solid
-	componentOwners    []int
-	order              [2]int
-	kind               NativePrismMaterialKind
-	family             NativePrismMaterialFamily
-	common             *NativePrismIntervalCommon
-	matching           *NativePrismBoolean
-	blind              *NativePrismBlindCut
-	cavity             *NativePrismCavityCut
-	through            *NativePrismThroughCut
-	boss               *NativePrismBossFuse
-	crossingCut        *NativeCrossingPrismCut
-	crossingFuse       *NativeCrossingPrismFuse
-	nestedFuse         *NativeNestedPrismFuse
-	nestedCut          *NativeNestedPrismCut
-	coveringCut        *NativePrismCoveringCut
-	abuttingFuse       *NativeAbuttingPrismFuse
-	tiedFuse           *NativeTiedPrismFuse
-	sideAbuttingFuse   *NativeSideAbuttingPrismFuse
-	classificationWork int
-	profileCoveredCut  *NativePrismProfileCoveredCut
+	owners              [2]brep.Solid
+	components          []brep.Solid
+	componentOwners     []int
+	order               [2]int
+	kind                NativePrismMaterialKind
+	family              NativePrismMaterialFamily
+	common              *NativePrismIntervalCommon
+	matching            *NativePrismBoolean
+	blind               *NativePrismBlindCut
+	cavity              *NativePrismCavityCut
+	through             *NativePrismThroughCut
+	boss                *NativePrismBossFuse
+	crossingCut         *NativeCrossingPrismCut
+	crossingFuse        *NativeCrossingPrismFuse
+	nestedFuse          *NativeNestedPrismFuse
+	nestedCut           *NativeNestedPrismCut
+	coveringCut         *NativePrismCoveringCut
+	abuttingFuse        *NativeAbuttingPrismFuse
+	tiedFuse            *NativeTiedPrismFuse
+	sideAbuttingFuse    *NativeSideAbuttingPrismFuse
+	classificationWork  int
+	profileCoveredCut   *NativePrismProfileCoveredCut
+	sideOpeningCut      *NativePrismCoveringCut
+	sideOpeningBlind    *NativeCrossingPrismCut
+	sideOpeningInterior *NativeNestedPrismCut
 }
 
 // Complete distinguishes a published proof from a zero-value result.
@@ -182,6 +188,24 @@ func (s *NativePrismMaterial) CoveringCutProof() *NativePrismCoveringCut {
 		return nil
 	}
 	return s.coveringCut
+}
+func (s *NativePrismMaterial) SideOpeningBlindCutProof() *NativeCrossingPrismCut {
+	if s == nil {
+		return nil
+	}
+	return s.sideOpeningBlind
+}
+func (s *NativePrismMaterial) SideOpeningInteriorCutProof() *NativeNestedPrismCut {
+	if s == nil {
+		return nil
+	}
+	return s.sideOpeningInterior
+}
+func (s *NativePrismMaterial) SideOpeningCutProof() *NativePrismCoveringCut {
+	if s == nil {
+		return nil
+	}
+	return s.sideOpeningCut
 }
 func (s *NativePrismMaterial) ProfileCoveredCutProof() *NativePrismProfileCoveredCut {
 	if s == nil {
@@ -456,18 +480,50 @@ func CombineNativePrisms(ctx context.Context, a, b brep.Solid, operation interse
 		} else if bInsideA {
 			switch {
 			case y.lo <= x.lo && x.hi <= y.hi:
+				if len(common.profile.SharedBoundarySpans()) > 0 {
+					out.sideOpeningCut, e = CutSideOpeningNativePrisms(ctx, a, b, o.Construct)
+					if e == nil {
+						out.family = NativePrismFamilySideOpeningCut
+						out.components = out.sideOpeningCut.Components()
+					}
+					break
+				}
 				out.through, e = CutContainedNativePrismThrough(ctx, a, b, o.Construct)
 				if e == nil {
 					out.family = NativePrismFamilyThroughCut
 					out.components = []brep.Solid{out.through.Solid()}
 				}
 			case x.lo < y.lo && y.hi < x.hi:
+				if len(common.profile.SharedBoundarySpans()) > 0 {
+					var p *NativeNestedPrismCutTransition
+					p, e = ImprintInteriorSideOpeningNativePrismCut(ctx, a, b, o.Construct)
+					if e == nil {
+						out.sideOpeningInterior, e = p.BuildNative(ctx, o.Publish)
+					}
+					if e == nil {
+						out.family = NativePrismFamilySideOpeningInteriorCut
+						out.components = []brep.Solid{out.sideOpeningInterior.Solid()}
+					}
+					break
+				}
 				out.cavity, e = CutContainedNativePrismCavity(ctx, a, b, o.Construct)
 				if e == nil {
 					out.family = NativePrismFamilyCavityCut
 					out.components = []brep.Solid{out.cavity.Solid()}
 				}
 			default:
+				if len(common.profile.SharedBoundarySpans()) > 0 {
+					var p *NativePrismCutTransition
+					p, e = ImprintSideOpeningNativePrismCut(ctx, a, b, o.Construct)
+					if e == nil {
+						out.sideOpeningBlind, e = p.BuildNative(ctx, o.Publish)
+					}
+					if e == nil {
+						out.family = NativePrismFamilySideOpeningBlindCut
+						out.components = []brep.Solid{out.sideOpeningBlind.Solid()}
+					}
+					break
+				}
 				out.blind, e = CutContainedNativePrismBlind(ctx, a, b, o.Construct)
 				if e == nil {
 					out.family = NativePrismFamilyBlindCut

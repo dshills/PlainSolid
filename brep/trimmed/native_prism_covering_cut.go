@@ -76,6 +76,16 @@ func (s *NativePrismCoveringCut) NativeOperations() int {
 // caps belong to stock; tool walls reverse with exact original height clipping.
 // Nonbinary native vertices, unresolved topology and noncrossing domains reject.
 func CutCoveringCrossingNativePrisms(ctx context.Context, a, c brep.Solid, o NativePrismBooleanOptions) (*NativePrismCoveringCut, error) {
+	return cutCoveringNativePrismsMode(ctx, a, c, o, false)
+}
+
+// CutSideOpeningNativePrisms requires a complete contained tool footprint sharing
+// positive length with exactly one original outer stock side, and full axial
+// stock coverage. Isolated contacts and unresolved regularization reject.
+func CutSideOpeningNativePrisms(ctx context.Context, a, c brep.Solid, o NativePrismBooleanOptions) (*NativePrismCoveringCut, error) {
+	return cutCoveringNativePrismsMode(ctx, a, c, o, true)
+}
+func cutCoveringNativePrismsMode(ctx context.Context, a, c brep.Solid, o NativePrismBooleanOptions, sideOpening bool) (*NativePrismCoveringCut, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -154,46 +164,112 @@ func CutCoveringCrossingNativePrisms(ctx context.Context, a, c brep.Solid, o Nat
 		return nil, geom.ErrInvalid
 	}
 	budget := &nativePrismAffineBudget{ctx: ctx, max: maximum, bits: bits}
-	// Prove a proper transverse event in retained original owner-edge units.
-	// Complete General arrangement still proves all other boundary/contact pieces.
-	edges, v := arrangement.Area().Edges(), arrangement.Area().Vertices()
-	crossing := false
-	for _, x := range edges {
-		if x.Owner != 0 {
-			continue
+	if sideOpening {
+		// Shared spans are independent of the requested Difference. Equal direction
+		// along the two original boundaries proves the contained-side contact sense.
+		spans := arrangement.SharedBoundarySpans()
+		if len(spans) == 0 || len(arrangement.IsolatedCommonPoints()) != 0 {
+			return nil, geom.ErrDomain
 		}
-		for xe, xi := range []int{x.Start, x.End} {
-			t := x.Parameter[xe]
-			if t.Sign() <= 0 || t.Cmp(big.NewRat(1, 1)) >= 0 {
+		stockSide := -1
+		for _, span := range spans {
+			if len(span.Sources) != 2 || span.IntersectionSides[0] == span.IntersectionSides[1] {
+				return nil, geom.ErrDomain
+			}
+			x, y := span.Sources[0], span.Sources[1]
+			if x.Owner == 1 {
+				x, y = y, x
+			}
+			if x.Owner != 0 || y.Owner != 1 || x.Ring != 0 || x.Parameter[1].Cmp(x.Parameter[0])*y.Parameter[1].Cmp(y.Parameter[0]) != 1 {
+				return nil, geom.ErrDomain
+			}
+			if stockSide >= 0 && stockSide != x.Edge {
+				return nil, geom.ErrDomain
+			}
+			stockSide = x.Edge
+		}
+		limits := o.Arrangement
+		if limits.MaxOperations == 0 {
+			limits.MaxOperations = 8000000
+		}
+		limits.MaxOperations -= arrangement.ExactOperations()
+		if limits.MaxOperations < 1 {
+			return nil, geom.ErrConvergence
+		}
+		common, e := intersect.ArrangeGeneralAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[0].trim, profiles[1].trim}, intersect.AffineRingIntersection, o.Patches, limits)
+		if e != nil {
+			return nil, e
+		}
+		area := func(p nativePrismProfile) *big.Rat {
+			sum := new(big.Rat)
+			for _, ring := range append([][][2]*big.Rat{p.trim.Outer}, p.trim.Holes...) {
+				for i, v := range ring {
+					w := ring[(i+1)%len(ring)]
+					sum = budget.op('+', sum, budget.op('-', budget.op('*', v[0], w[1]), budget.op('*', v[1], w[0])))
+				}
+			}
+			return budget.op('/', sum, big.NewRat(2, 1))
+		}
+		ca := new(big.Rat)
+		for _, cycle := range common.Area().Cycles() {
+			ca = budget.op('+', ca, cycle.SignedAreaA)
+		}
+		toolArea := area(profiles[1])
+		if budget.err != nil {
+			return nil, budget.err
+		}
+		if toolArea.Sign() <= 0 || ca.Cmp(toolArea) != 0 {
+			return nil, geom.ErrDomain
+		}
+		retained := new(big.Rat)
+		for _, cycle := range arrangement.Area().Cycles() {
+			retained = budget.op('+', retained, cycle.SignedAreaA)
+		}
+		if retained.Sign() <= 0 || budget.op('+', retained, ca).Cmp(area(profiles[0])) != 0 {
+			return nil, geom.ErrDomain
+		}
+	} else {
+		// Prove a proper transverse event in retained original owner-edge units.
+		// Complete General arrangement still proves all other boundary/contact pieces.
+		edges, v := arrangement.Area().Edges(), arrangement.Area().Vertices()
+		crossing := false
+		for _, x := range edges {
+			if x.Owner != 0 {
 				continue
 			}
-			for _, y := range edges {
-				if y.Owner != 1 {
+			for xe, xi := range []int{x.Start, x.End} {
+				t := x.Parameter[xe]
+				if t.Sign() <= 0 || t.Cmp(big.NewRat(1, 1)) >= 0 {
 					continue
 				}
-				for ye, yi := range []int{y.Start, y.End} {
-					u := y.Parameter[ye]
-					if u.Sign() <= 0 || u.Cmp(big.NewRat(1, 1)) >= 0 {
+				for _, y := range edges {
+					if y.Owner != 1 {
 						continue
 					}
-					budget.check(t)
-					if v[xi].A[0].Cmp(v[yi].A[0]) != 0 || v[xi].A[1].Cmp(v[yi].A[1]) != 0 {
-						continue
-					}
-					dx := [2]*big.Rat{budget.op('-', x.UV[1][0], x.UV[0][0]), budget.op('-', x.UV[1][1], x.UV[0][1])}
-					dy := [2]*big.Rat{budget.op('-', y.UV[1][0], y.UV[0][0]), budget.op('-', y.UV[1][1], y.UV[0][1])}
-					if budget.op('-', budget.op('*', dx[0], dy[1]), budget.op('*', dx[1], dy[0])).Sign() != 0 {
-						crossing = true
+					for ye, yi := range []int{y.Start, y.End} {
+						u := y.Parameter[ye]
+						if u.Sign() <= 0 || u.Cmp(big.NewRat(1, 1)) >= 0 {
+							continue
+						}
+						budget.check(t)
+						if v[xi].A[0].Cmp(v[yi].A[0]) != 0 || v[xi].A[1].Cmp(v[yi].A[1]) != 0 {
+							continue
+						}
+						dx := [2]*big.Rat{budget.op('-', x.UV[1][0], x.UV[0][0]), budget.op('-', x.UV[1][1], x.UV[0][1])}
+						dy := [2]*big.Rat{budget.op('-', y.UV[1][0], y.UV[0][0]), budget.op('-', y.UV[1][1], y.UV[0][1])}
+						if budget.op('-', budget.op('*', dx[0], dy[1]), budget.op('*', dx[1], dy[0])).Sign() != 0 {
+							crossing = true
+						}
 					}
 				}
 			}
 		}
-	}
-	if budget.err != nil {
-		return nil, budget.err
-	}
-	if !crossing {
-		return nil, geom.ErrDomain
+		if budget.err != nil {
+			return nil, budget.err
+		}
+		if !crossing {
+			return nil, geom.ErrDomain
+		}
 	}
 	delta := budget.op('-', new(big.Rat).SetFloat64(profiles[0].hi), new(big.Rat).SetFloat64(profiles[0].lo))
 	height, exact := delta.Float64()

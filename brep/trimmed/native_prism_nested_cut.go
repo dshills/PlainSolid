@@ -66,7 +66,10 @@ func (s *NativeNestedPrismCutTransition) Operations() (int, int) {
 // stock volume minus the whole Common middle slab. No artificial source caps or
 // changed source intervals are introduced. Tangency/equal cap cases reject.
 func ImprintNestedCrossingNativePrismCut(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions) (*NativeNestedPrismCutTransition, error) {
-	source, e := imprintNestedCrossingNativePrismProfiles(ctx, a, b, o, 0)
+	return imprintNestedPrismCutMode(ctx, a, b, o, false)
+}
+func imprintNestedPrismCutMode(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, sideOpening bool) (*NativeNestedPrismCutTransition, error) {
+	source, e := imprintNestedPrismProfilesExtended(ctx, a, b, o, 0, false, sideOpening)
 	if e != nil {
 		return nil, e
 	}

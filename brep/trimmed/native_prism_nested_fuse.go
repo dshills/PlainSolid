@@ -107,6 +107,9 @@ func imprintNestedCrossingNativePrismProfiles(ctx context.Context, a, b brep.Sol
 	return imprintNestedPrismProfilesMode(ctx, a, b, o, requiredOuter, false)
 }
 func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, requiredOuter int, tied bool) (*NativeNestedPrismFuseTransition, error) {
+	return imprintNestedPrismProfilesExtended(ctx, a, b, o, requiredOuter, tied, false)
+}
+func imprintNestedPrismProfilesExtended(ctx context.Context, a, b brep.Solid, o NativePrismBooleanOptions, requiredOuter int, tied, sideOpening bool) (*NativeNestedPrismFuseTransition, error) {
 	if ctx == nil {
 		return nil, geom.ErrInvalid
 	}
@@ -198,13 +201,27 @@ func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o Nati
 		return nil, e
 	}
 	patch := intersect.Patch{Surface: surf, Min: geom.Vec2{X: bounds[0][0], Y: bounds[1][0]}, Max: geom.Vec2{X: bounds[0][1], Y: bounds[1][1]}}
+	var sideCommon *intersect.AffineGeneralPolygonArrangement
 	arrange := func(owner int, op intersect.AffineRingOperation) (*intersect.AffinePolygonArrangement, error) {
 		limits := o.Arrangement
 		limits.MaxOperations = arrMax - out.arrangementWork
 		if limits.MaxOperations < 1 {
 			return nil, geom.ErrConvergence
 		}
-		q, e := intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+		var q *intersect.AffinePolygonArrangement
+		var e error
+		if sideOpening {
+			var g *intersect.AffineGeneralPolygonArrangement
+			g, e = intersect.ArrangeGeneralAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+			if e == nil {
+				q = g.Area()
+				if owner == 0 && op == intersect.AffineRingIntersection {
+					sideCommon = g
+				}
+			}
+		} else {
+			q, e = intersect.ArrangeTransverseAffinePolygons(ctx, patch, patch, [2]intersect.AffinePolygonTrim{profiles[owner].trim, profiles[1-owner].trim}, op, o.Patches, limits)
+		}
 		if e != nil {
 			return nil, e
 		}
@@ -226,6 +243,14 @@ func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o Nati
 		return nil, e
 	}
 	budget := &nativePrismAffineBudget{ctx: ctx, max: maximum, bits: bits}
+	if sideOpening {
+		if out.outer != 0 {
+			return nil, geom.ErrDomain
+		}
+		if e := certifyNativePrismSideOpening(sideCommon, profiles[1], budget); e != nil {
+			return nil, e
+		}
+	}
 	makeUse := func(owner int, edge intersect.AffineArrangementEdge) NativePrismIntervalWallUse {
 		p := profiles[owner]
 		side := p.sides[edge.Ring][edge.Edge]
@@ -261,7 +286,7 @@ func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o Nati
 		edges := [2][]intersect.AffineArrangementEdge{q.Region(0).Edges(), q.Region(1).Edges()}
 		for r, arr := range q.regions {
 			regionAreas[owner][r] = area(arr)
-			if regionAreas[owner][r].Sign() <= 0 {
+			if regionAreas[owner][r].Sign() < 0 || (regionAreas[owner][r].Sign() == 0 && !(sideOpening && owner == 1 && r == 0)) {
 				return nil, geom.ErrDomain
 			}
 			for _, edge := range edges[r] {
@@ -298,7 +323,7 @@ func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o Nati
 				}
 			}
 		}
-		if !crossed {
+		if !crossed && !sideOpening {
 			return nil, geom.ErrDomain
 		}
 		used := make([]bool, len(edges[1]))
@@ -342,28 +367,30 @@ func imprintNestedPrismProfilesMode(ctx context.Context, a, b brep.Solid, o Nati
 	if common.Cmp(regionAreas[1][1]) != 0 {
 		return nil, geom.ErrInvalid
 	}
-	used := [2][]bool{make([]bool, len(out.proofs[0].Region(0).Edges())), make([]bool, len(out.proofs[1].Region(0).Edges()))}
-	for _, u := range out.union.Edges() {
-		found := -1
-		for j, v := range out.proofs[u.Owner].Region(0).Edges() {
-			budget.check(u.Parameter[0])
-			if v.Owner == 0 && u.Ring == v.Ring && u.Edge == v.Edge && u.Parameter[0].Cmp(v.Parameter[0]) == 0 && u.Parameter[1].Cmp(v.Parameter[1]) == 0 {
-				if found >= 0 || used[u.Owner][j] {
+	if !sideOpening {
+		used := [2][]bool{make([]bool, len(out.proofs[0].Region(0).Edges())), make([]bool, len(out.proofs[1].Region(0).Edges()))}
+		for _, u := range out.union.Edges() {
+			found := -1
+			for j, v := range out.proofs[u.Owner].Region(0).Edges() {
+				budget.check(u.Parameter[0])
+				if v.Owner == 0 && u.Ring == v.Ring && u.Edge == v.Edge && u.Parameter[0].Cmp(v.Parameter[0]) == 0 && u.Parameter[1].Cmp(v.Parameter[1]) == 0 {
+					if found >= 0 || used[u.Owner][j] {
+						return nil, geom.ErrInvalid
+					}
+					found = j
+				}
+			}
+			if found < 0 {
+				return nil, geom.ErrInvalid
+			}
+			used[u.Owner][found] = true
+			out.uses = append(out.uses, makeUse(u.Owner, u))
+		}
+		for owner, q := range out.proofs {
+			for j, e := range q.Region(0).Edges() {
+				if e.Owner == 0 && !used[owner][j] {
 					return nil, geom.ErrInvalid
 				}
-				found = j
-			}
-		}
-		if found < 0 {
-			return nil, geom.ErrInvalid
-		}
-		used[u.Owner][found] = true
-		out.uses = append(out.uses, makeUse(u.Owner, u))
-	}
-	for owner, q := range out.proofs {
-		for j, e := range q.Region(0).Edges() {
-			if e.Owner == 0 && !used[owner][j] {
-				return nil, geom.ErrInvalid
 			}
 		}
 	}

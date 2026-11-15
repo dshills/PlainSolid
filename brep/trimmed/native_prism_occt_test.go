@@ -36,6 +36,7 @@ func nativePrismOracleCases() []occtPrismCase {
 	}
 	stock, crossing, inside := rect(0, 0, 4, 3), rect(2, -1, 5, 2), rect(1, 1, 2, 2)
 	ridge, side := rect(2, -1, 3, 4), rect(4, 1, 6, 2)
+	sideTool := rect(3, 1, 4, 2)
 	annulus := occtPrismInput{[][]geom.Vec2{rect(0, 0, 6, 6), rect(2, 2, 4, 4)}, 0, 2}
 	restrict := occtPrismInput{[][]geom.Vec2{rect(1, 1, 5, 5), rect(1.5, 1.5, 4.5, 4.5)}, 2, 4}
 	post := occtPrismInput{[][]geom.Vec2{rect(2, .5, 5, 2.5), rect(2.5, 1, 3, 2)}, 1, 3}
@@ -62,6 +63,9 @@ func nativePrismOracleCases() []occtPrismCase {
 		{"boss fuse", "fuse", span(stock, 0, 4), span(inside, 2, 5), trimmed.NativePrismFamilyBossFuse},
 		{"profile-covered two-slab cut", "cut", span(stock, 0, 4), span(rect(-1, -1, 5, 4), 1, 3), trimmed.NativePrismFamilyProfileCoveredCut},
 		{"profile-covered bound cut", "cut", span(stock, 0, 4), span(rect(-1, -1, 5, 4), 0, 2), trimmed.NativePrismFamilyProfileCoveredCut},
+		{"through side-opening cut", "cut", span(stock, 0, 4), span(sideTool, -1, 5), trimmed.NativePrismFamilySideOpeningCut},
+		{"one-ended side-opening cut", "cut", span(stock, 0, 4), span(sideTool, 2, 5), trimmed.NativePrismFamilySideOpeningBlindCut},
+		{"interior side-opening cut", "cut", span(stock, 0, 4), span(sideTool, 1, 3), trimmed.NativePrismFamilySideOpeningInteriorCut},
 		{"disjoint fuse", "fuse", span(stock, 0, 2), span(crossing, 3, 4), trimmed.NativePrismFamilyOriginal},
 		{"cap-only common", "common", span(stock, 0, 2), span(crossing, 2, 5), trimmed.NativePrismFamilyCommon},
 	}
