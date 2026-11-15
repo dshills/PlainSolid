@@ -27,6 +27,9 @@ type SplineGraphBooleanOptions struct {
 	// FactoredPolynomial proves a strictly signed nonconstant free-coordinate factor.
 	FactoredPolynomial     *geom.GraphPointContactOptions
 	FactoredPolynomialAxis int
+	// BivariatePolynomial permits a strictly signed linear-dependent cofactor.
+	BivariatePolynomial     *geom.GraphPointContactOptions
+	BivariatePolynomialAxis int
 }
 
 // CombineSplineGraphSolidsWithOptions is the opt-in normal common-base graph
@@ -35,7 +38,7 @@ type SplineGraphBooleanOptions struct {
 // requirements as CombineSplineGraphSolids. These options recognize only
 // their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil {
+	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil && o.BivariatePolynomial == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
@@ -60,6 +63,9 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	if o.FactoredPolynomial != nil {
 		selected++
 	}
+	if o.BivariatePolynomial != nil {
+		selected++
+	}
 	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
@@ -72,6 +78,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.BivariatePolynomial != nil {
+		section, e := geom.DiscoverSplineGraphBivariatePolynomialContact(ctx, patches[0], patches[1], o.BivariatePolynomialAxis, *o.BivariatePolynomial)
+		if e != nil {
+			return fail(e)
+		}
+		return assembleBivariatePolynomialGraphContact(ctx, base, a, b, op, tolerance, section, *o.BivariatePolynomial)
 	}
 	if o.FactoredPolynomial != nil {
 		section, e := geom.DiscoverSplineGraphFactoredPolynomialContact(ctx, patches[0], patches[1], o.FactoredPolynomialAxis, *o.FactoredPolynomial)
