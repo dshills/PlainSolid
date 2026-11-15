@@ -6394,3 +6394,15 @@ runs. Each original contact was checked against its independent
 algebraic equation. XY and XZ projections, original face partitions,
 opposite fragment uses, and native reload all passed. The legacy
 quadratic contact and native knot-section race assertions also passed.
+
+### PlainCAD application rerun on 0e57c2d8
+
+The original PlainCAD revision efae4d2ffa6065875d3a76fc5926f358b5936a29
+was rebuilt against kernel 0e57c2d854ff53c7ee523ef19b52c9b60255a9e8.
+Build and type checks passed. Development passed 345 tests, Chromium,
+Firefox and WebKit passed 15 tests, ordinary units passed 1,691 tests,
+and selected actual-WASM contracts passed four tests. The ordinary
+production run passed 65 tests and reproduced DevTools response
+eviction in the CSP capture test. An isolated Chromium capture-buffer
+adjustment passed all 66 production tests. The copied dependency bytes
+were restored and checked. See [the staged-run evidence](evidence/plaincad-main-0e57c2d8-2026-11-14.json).

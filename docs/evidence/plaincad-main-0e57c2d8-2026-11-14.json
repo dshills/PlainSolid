@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "kernelRevision": "0e57c2d854ff53c7ee523ef19b52c9b60255a9e8",
+  "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "checkpointAt": "2026-11-14T18:14:12-06:00",
+  "status": "passed on local loopback; production required an isolated Chromium capture-buffer adjustment",
+  "stagedAppRoot": "/tmp/plainsolid-refresh-plaincad.5802UC",
+  "tools": {
+    "go": "go version go1.27.4 darwin/arm64",
+    "node": "v26.13.1",
+    "playwright": "1.63.0"
+  },
+  "wasm": {
+    "path": "/tmp/plainsolid-refresh-plaincad.5802UC/src/cad/kernel/plainsolid-kernel.wasm",
+    "bytes": 16568121,
+    "sha256": "28ad66d559c51fbf0c7c9a19287913b7e3e0e24cffc62be6fed77fdcb7285d2b"
+  },
+  "wasmRuntime": {
+    "path": "/tmp/plainsolid-refresh-plaincad.5802UC/src/cad/kernel/wasm_exec.js",
+    "bytes": 16992,
+    "sha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "build": {
+    "jsBundles": 72,
+    "largestBundleKB": 496.5
+  },
+  "originalExitCodes": {
+    "wasm": 0,
+    "build": 0,
+    "types": 0,
+    "selected-kernel": 0,
+    "development": 1,
+    "production": 1,
+    "cross-browser": 1,
+    "ordinary-units": 1,
+    "ordinary-units-loopback": 0,
+    "development-loopback": 0,
+    "production-loopback": 1,
+    "production-buffered-loopback": 0,
+    "cross-browser-loopback": 0
+  },
+  "tests": {
+    "development": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/development-loopback.json",
+      "bytes": 408623,
+      "sha256": "70bd0630f30d87421696daa382e2528e36086d2fc6367fd51683eb03d066e6ee",
+      "summary": {
+        "startTime": "2026-11-14T23:30:25.816Z",
+        "duration": 1931340.456,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "production": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/production-loopback.json",
+      "bytes": 83508,
+      "sha256": "99e83b7bb8b3b8874e4546d1749d6ea58d4cf13bb57dd24d4032e8f291aff23c",
+      "summary": {
+        "startTime": "2026-11-15T00:02:37.620Z",
+        "duration": 215651.836,
+        "expected": 65,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "productionBuffered": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/production-buffered-loopback.json",
+      "bytes": 78757,
+      "sha256": "3c3217322a27f2b95aed7fd4f83cf72e8167bbd634199c9da01f41dc374969db",
+      "summary": {
+        "startTime": "2026-11-15T00:06:13.821Z",
+        "duration": 221035.839,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "crossBrowser": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/cross-browser-loopback.json",
+      "bytes": 455850,
+      "sha256": "a0f7a66c272e69eaf23854285f0dba24e54efab92cdd1db954918365fcb3f84a",
+      "summary": {
+        "startTime": "2026-11-15T00:09:55.170Z",
+        "duration": 42071.985,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0,
+        "retries": 0
+      }
+    },
+    "ordinaryUnits": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/ordinary-units-loopback.json",
+      "bytes": 653141,
+      "sha256": "6e4374c067d8ca4db2cdebbf10375d39fb9d9ca74224de5514531eec91c93c7d",
+      "summary": {
+        "numTotalTests": 1691,
+        "numPassedTests": 1691,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    "selectedActualWASM": {
+      "path": "/tmp/plainsolid-refresh-plaincad.5802UC/selected-kernel.json",
+      "bytes": 2164,
+      "sha256": "c0f239061bb85b56fbfe2cbcdbb680ab0983c03c2f1246bdfc6b20220589cd46",
+      "summary": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  },
+  "captureAdjustment": {
+    "playwright": "1.63.0",
+    "chromiumNetworkBufferBytes": 134217728,
+    "chromiumResourceBufferBytes": 33554432,
+    "beforeSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+    "afterSha256": "2bad350c6198b7ebdb3875b91afdc1d61c15d1c5c84ccc6f483dddb5bc1e9a39"
+  },
+  "environment": [
+    "Initial launch under the workspace sandbox could not bind 127.0.0.1. Browser runs and ordinary units were rerun using the same staged source, app options and local dependency installation with loopback enabled.",
+    "The ordinary loopback production suite passed 65 out of 66. The CSP case could not obtain the large WASM response after Chromium DevTools evicted it from the inspector cache.",
+    "Only the staged Playwright Chromium Network.enable capture limits were changed for the 66-test buffered rerun. The original dependency bytes were restored and verified before completing the cross-browser suite."
+  ],
+  "archive": {
+    "path": "/tmp/plainsolid-plaincad-main-0e57c2d8-2026-11-14.tar.gz",
+    "bytes": 564111,
+    "sha256": "5f82f49dbc39ec2b4c16a4e0d3205cc798803486d8cc7a2e195c227c95746e53"
+  }
+}
