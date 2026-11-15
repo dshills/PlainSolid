@@ -19,6 +19,25 @@ type ConvexPrismFilletHistory struct {
 	FilletFaces []int
 }
 
+// ConvexPrismEdgeRadius selects a native vertical stock edge and radius.
+type ConvexPrismEdgeRadius struct {
+	Edge   int
+	Radius float64
+}
+
+// ConvexPrismEdgeFillet identifies the cylindrical charts of one transition.
+type ConvexPrismEdgeFillet struct {
+	SourceEdge int
+	Faces      []int
+}
+
+// ConvexPrismFilletsHistory maps all original boundary faces and lists the
+// generated transitions in counterclockwise profile order.
+type ConvexPrismFilletsHistory struct {
+	SourceFaces []int
+	Fillets     []ConvexPrismEdgeFillet
+}
+
 // FilletConvexPrismEdge rounds one vertical edge of an outward, convex
 // right prism with horizontal caps. The selected edge is a native stock
 // edge index. The two original supporting lines must admit exact rational
@@ -28,83 +47,125 @@ type ConvexPrismFilletHistory struct {
 // The cylindrical fillet is analytic. Circular trim evaluation uses the
 // bounded endpoint tolerance of ExtrudeArcLoop.
 func FilletConvexPrismEdge(ctx context.Context, source brep.Solid, edge int, radius, tolerance float64) (Solid, ConvexPrismFilletHistory, error) {
-	if !finite(tolerance) || tolerance <= 0 || !finite(radius) || radius <= 8*tolerance {
-		return Solid{}, ConvexPrismFilletHistory{}, geom.ErrInvalid
+	out, h, e := FilletConvexPrismEdges(ctx, source, []ConvexPrismEdgeRadius{{edge, radius}}, tolerance)
+	if e != nil {
+		return Solid{}, ConvexPrismFilletHistory{}, e
+	}
+	return out, ConvexPrismFilletHistory{SourceEdge: edge, SourceFaces: h.SourceFaces, FilletFaces: h.Fillets[0].Faces}, nil
+}
+
+// FilletConvexPrismEdges rounds multiple selected vertical edges in one
+// operation. Each adjacent pair must leave a positive segment of its
+// original wall between the two exact tangent points. All requested
+// transitions use the proof and analytic construction of the single-edge
+// operation.
+func FilletConvexPrismEdges(ctx context.Context, source brep.Solid, requests []ConvexPrismEdgeRadius, tolerance float64) (Solid, ConvexPrismFilletsHistory, error) {
+	if !finite(tolerance) || tolerance <= 0 || len(requests) < 1 || len(requests) > 62 {
+		return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrInvalid
+	}
+	for _, q := range requests {
+		if q.Edge < 0 || !finite(q.Radius) || q.Radius <= 8*tolerance {
+			return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrInvalid
+		}
 	}
 	if _, _, e := source.OffsetConvex(ctx, 0, brep.ConvexOffsetOptions{}); e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
-	prism, e := convexFilletPrismProfile(source, edge)
+	prism, e := convexFilletPrismProfile(source)
 	if e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
-	arc, e := exactConvexPrismFilletArc(prism.profile, prism.corner, radius)
-	if e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+	arcs := make([]ExtrusionSegment, len(prism.profile))
+	for _, q := range requests {
+		if q.Edge >= len(prism.edges) {
+			return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrInvalid
+		}
+		corner := prism.edges[q.Edge]
+		if corner < 0 || arcs[corner].Radius != 0 {
+			return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrDomain
+		}
+		arcs[corner], e = exactConvexPrismFilletArc(prism.profile, corner, q.Radius)
+		if e != nil {
+			return Solid{}, ConvexPrismFilletsHistory{}, e
+		}
 	}
-	segments := make([]ExtrusionSegment, 0, len(prism.profile)+1)
+	segments := make([]ExtrusionSegment, 0, len(prism.profile)+len(requests))
+	var arcSources []int
 	for i, a := range prism.profile {
 		j := (i + 1) % len(prism.profile)
 		b := prism.profile[j]
-		if i == prism.corner {
-			a = arc.End
+		if arcs[i].Radius != 0 {
+			a = arcs[i].End
 		}
-		if j == prism.corner {
-			b = arc.Start
+		if arcs[j].Radius != 0 {
+			b = arcs[j].Start
+		}
+		originalDirection := exactFilletUV(prism.profile[j]).sub(exactFilletUV(prism.profile[i]))
+		if exactFilletUV(b).sub(exactFilletUV(a)).dot(originalDirection).Sign() <= 0 {
+			return Solid{}, ConvexPrismFilletsHistory{}, fmt.Errorf("trimmed: adjacent fillets meet on original wall %d: %w", prism.walls[i], geom.ErrDomain)
 		}
 		segments = append(segments, ExtrusionSegment{Start: a, End: b})
-		if j == prism.corner {
-			segments = append(segments, arc)
+		if arcs[j].Radius != 0 {
+			segments = append(segments, arcs[j])
+			arcSources = append(arcSources, prism.vertical[j])
 		}
 	}
 	frame, e := geom.NewFrame(geom.Vec3{Z: prism.z[0]}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
 	height, e := geom.RepresentedExactScalar(new(big.Rat).Sub(ratInset(prism.z[1]), ratInset(prism.z[0])))
 	if e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
 	result, e := ExtrudeArcLoop(ctx, frame, segments, height, tolerance)
 	if e != nil {
-		return Solid{}, ConvexPrismFilletHistory{}, e
+		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
-	h := ConvexPrismFilletHistory{SourceEdge: edge, SourceFaces: make([]int, len(prism.walls)+2)}
+	h := ConvexPrismFilletsHistory{SourceFaces: make([]int, len(prism.walls)+2)}
 	for i, cap := range prism.caps {
 		h.SourceFaces[cap] = i
 	}
 	wall := 0
+	inFillet := false
 	for i, face := range result.Solid.faces[2:] {
 		if _, ok := face.Surface.(geom.CylinderSurface); ok {
-			h.FilletFaces = append(h.FilletFaces, i+2)
+			if !inFillet {
+				if len(h.Fillets) == len(arcSources) {
+					return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrConvergence
+				}
+				h.Fillets = append(h.Fillets, ConvexPrismEdgeFillet{SourceEdge: arcSources[len(h.Fillets)]})
+			}
+			q := &h.Fillets[len(h.Fillets)-1]
+			q.Faces = append(q.Faces, i+2)
+			inFillet = true
 			continue
 		}
+		inFillet = false
 		if wall == len(prism.walls) {
-			return Solid{}, ConvexPrismFilletHistory{}, geom.ErrConvergence
+			return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrConvergence
 		}
 		h.SourceFaces[prism.walls[wall]] = i + 2
 		wall++
 	}
-	if wall != len(prism.walls) || len(h.FilletFaces) == 0 {
-		return Solid{}, ConvexPrismFilletHistory{}, geom.ErrConvergence
+	if wall != len(prism.walls) || len(h.Fillets) != len(requests) {
+		return Solid{}, ConvexPrismFilletsHistory{}, geom.ErrConvergence
 	}
 	return result.Solid, h, nil
 }
 
 type filletPrismProfile struct {
-	profile []geom.Vec2
-	walls   []int
-	z       [2]float64
-	caps    [2]int
-	corner  int
+	profile  []geom.Vec2
+	walls    []int
+	edges    []int
+	vertical []int
+	z        [2]float64
+	caps     [2]int
 }
 
-func convexFilletPrismProfile(s brep.Solid, edge int) (filletPrismProfile, error) {
-	r := filletPrismProfile{caps: [2]int{-1, -1}, corner: -1}
+func convexFilletPrismProfile(s brep.Solid) (filletPrismProfile, error) {
+	r := filletPrismProfile{caps: [2]int{-1, -1}}
 	vertices, edges, faces := s.Vertices(), s.Edges(), s.Faces()
-	if edge < 0 || edge >= len(edges) {
-		return r, geom.ErrInvalid
-	}
 	bounds, e := s.Bounds()
 	if e != nil || bounds.Min.Z >= bounds.Max.Z {
 		return r, geom.ErrDomain
@@ -126,10 +187,6 @@ func convexFilletPrismProfile(s brep.Solid, edge int) (filletPrismProfile, error
 		if paired != 3 {
 			return r, geom.ErrDomain
 		}
-	}
-	selected := edges[edge]
-	if xy(vertices[selected.Start]) != xy(vertices[selected.End]) || vertices[selected.Start].Z == vertices[selected.End].Z {
-		return r, geom.ErrDomain
 	}
 	var lower []int
 	walls := make(map[[2]int]int, len(levels))
@@ -162,20 +219,28 @@ func convexFilletPrismProfile(s brep.Solid, edge int) (filletPrismProfile, error
 	// The authenticated bottom cap faces down. Its reversed wire is
 	// counterclockwise in the fixed XY chart used by the new prism.
 	slices.Reverse(lower)
+	profileIndices := make(map[geom.Vec2]int, len(lower))
 	for i, v := range lower {
 		q := xy(vertices[v])
 		r.profile = append(r.profile, q)
-		if q == xy(vertices[selected.Start]) {
-			r.corner = i
-		}
+		profileIndices[q] = i
 		w, ok := walls[pair(v, lower[(i+1)%len(lower)])]
 		if !ok {
 			return filletPrismProfile{}, geom.ErrDomain
 		}
 		r.walls = append(r.walls, w)
 	}
-	if r.corner < 0 {
-		return filletPrismProfile{}, geom.ErrDomain
+	r.edges = make([]int, len(edges))
+	r.vertical = make([]int, len(r.profile))
+	for i := range r.vertical {
+		r.vertical[i] = -1
+	}
+	for i, edge := range edges {
+		a, b := vertices[edge.Start], vertices[edge.End]
+		r.edges[i] = -1
+		if corner, ok := profileIndices[xy(a)]; ok && xy(a) == xy(b) && a.Z != b.Z && r.vertical[corner] < 0 {
+			r.edges[i], r.vertical[corner] = corner, i
+		}
 	}
 	return r, nil
 }

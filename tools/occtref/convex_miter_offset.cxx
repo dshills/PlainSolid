@@ -29,7 +29,8 @@ int main(int argc, char** argv) {
   const std::string_view operation = argv[1];
   if (operation == "triangle" || operation == "triangle-open-top" ||
       operation == "triangle-open-both" || operation == "triangle-closed" ||
-      operation == "triangle-chamfer" || operation == "triangle-fillet") {
+      operation == "triangle-chamfer" || operation == "triangle-fillet" ||
+      operation == "triangle-fillet-both") {
     outline.Add(gp_Pnt(0, 3, 0));
   } else if (std::string_view(argv[1]) == "clipped") {
     outline.Add(gp_Pnt(4, 3.25, 0));
@@ -43,7 +44,8 @@ int main(int argc, char** argv) {
   const auto source = BRepPrimAPI_MakePrism(face, gp_Vec(0, 0, 5)).Shape();
   const double distance = std::strtod(argv[2], nullptr);
   TopoDS_Shape shape;
-  if (operation == "triangle-chamfer" || operation == "triangle-fillet") {
+  if (operation == "triangle-chamfer" || operation == "triangle-fillet" ||
+      operation == "triangle-fillet-both") {
     TopoDS_Edge target;
     TopoDS_Face side;
     for (TopExp_Explorer it(source, TopAbs_FACE); it.More(); it.Next()) {
@@ -69,6 +71,17 @@ int main(int argc, char** argv) {
     } else {
       BRepFilletAPI_MakeFillet fillet(source);
       fillet.Add(distance, target);
+      if (operation == "triangle-fillet-both") {
+        TopoDS_Edge other;
+        for (TopExp_Explorer it(source, TopAbs_EDGE); it.More(); it.Next()) {
+          GProp_GProps line;
+          BRepGProp::LinearProperties(it.Current(), line);
+          const gp_Pnt midpoint = line.CentreOfMass();
+          if (midpoint.Distance(gp_Pnt(0, 0, 2.5)) < 1e-9) other = TopoDS::Edge(it.Current());
+        }
+        if (other.IsNull()) return 5;
+        fillet.Add(.25, other);
+      }
       fillet.Build();
       if (!fillet.IsDone()) return 3;
       shape = fillet.Shape();

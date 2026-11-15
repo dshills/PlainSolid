@@ -93,17 +93,72 @@ func TestFilletOriginalConvexPrismEdgeOCCT(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	compareOriginalConvexFilletOCCT(t, bin, "triangle-fillet", 6, s)
+}
+
+func TestFilletOriginalConvexPrismAdjacentEdges(t *testing.T) {
+	ctx := context.Background()
+	stock, acute := obliqueFilletStock(t, geom.Vec3{})
+	vertices := stock.Vertices()
+	right := -1
+	for i, uv := range stock.Edges() {
+		a, b := vertices[uv.Start], vertices[uv.End]
+		if a.X == 0 && a.Y == 0 && b.X == 0 && b.Y == 0 {
+			right = i
+			break
+		}
+	}
+	if right < 0 {
+		t.Fatal("independent right-angle vertical edge is absent")
+	}
+	requests := []ConvexPrismEdgeRadius{{acute, 5.0 / 16}, {right, .25}}
+	s, history, e := FilletConvexPrismEdges(ctx, stock, requests, 1e-9)
+	if e != nil || len(history.SourceFaces) != 5 || len(history.Fillets) != 2 {
+		t.Fatal("separate original edge histories", history, e)
+	}
+	wantCharts := map[int]int{acute: 4, right: 1}
+	for _, f := range history.Fillets {
+		if len(f.Faces) != wantCharts[f.SourceEdge] || wantCharts[f.SourceEdge] == 0 {
+			t.Fatal("generated cylinder charts belong to the correct source edge", history)
+		}
+		delete(wantCharts, f.SourceEdge)
+	}
+	if topo := s.Topology(); len(topo.Shells) != 1 || topo.EulerCharacteristic != 2 {
+		t.Fatal("closed prism with two adjacent fillets", topo)
+	}
+	var a, b bytes.Buffer
+	if e := WriteJSON(&a, s); e != nil {
+		t.Fatal(e)
+	}
+	otherOrder, _, e := FilletConvexPrismEdges(ctx, stock, []ConvexPrismEdgeRadius{requests[1], requests[0]}, 1e-9)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e := WriteJSON(&b, otherOrder); e != nil || !bytes.Equal(a.Bytes(), b.Bytes()) {
+		t.Fatal("atomic requests are independent of their submission order", e)
+	}
+	if s, h, e := FilletConvexPrismEdges(ctx, stock, []ConvexPrismEdgeRadius{requests[0], requests[0]}, 1e-9); !errors.Is(e, geom.ErrDomain) || len(s.faces) != 0 || h.Fillets != nil {
+		t.Fatal("duplicate source edge is rejected atomically", h, e)
+	}
+	if bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_OFFSET"); bin != "" {
+		compareOriginalConvexFilletOCCT(t, bin, "triangle-fillet-both", 7, s)
+	}
+}
+
+func compareOriginalConvexFilletOCCT(t *testing.T, bin, original string, faceCount int, s Solid) {
+	t.Helper()
+	ctx := context.Background()
 	p, e := s.MassProperties(ctx, parametric.IntegrationOptions{})
 	if e != nil {
 		t.Fatal(e)
 	}
-	raw, e := exec.Command(bin, "triangle-fillet", "0.3125").CombinedOutput()
+	raw, e := exec.Command(bin, original, "0.3125").CombinedOutput()
 	if e != nil {
 		t.Fatal(e, string(raw))
 	}
 	var valid, solids, faces int
 	var volume, area float64
-	if n, e := fmt.Sscan(string(raw), &valid, &solids, &faces, &volume, &area); e != nil || n != 5 || valid != 1 || solids != 1 || faces != 6 ||
+	if n, e := fmt.Sscan(string(raw), &valid, &solids, &faces, &volume, &area); e != nil || n != 5 || valid != 1 || solids != 1 || faces != faceCount ||
 		math.Abs(p.Volume-volume) > 1e-7 || math.Abs(p.Area-area) > 1e-7 {
 		t.Fatal("independent OCCT cylindrical fillet measures", p, string(raw), e)
 	}
