@@ -129,20 +129,23 @@ Strict import uses the two original profiles to re-prove the seam maps.
 Native Common, Fuse and both Cut orders now keep two independently projected
 original roof charts. Common, Fuse and both Cut orders also qualify a
 translated nonunit axis-aligned footprint with a sloping original base.
-Common and Fuse also preserve both original roof and wall trims over a
-nonorthogonal parallelogram with a sloping original base.
+Common, Fuse and both Cut orders also preserve both original roof and wall
+trims over a nonorthogonal parallelogram with a sloping original base.
 Independently authored unsplit STEP Béziers, including a spatially
 nonplanar cubic, keep three inferred events with mixed joint and independent
 support ownership. The independently authored rational cubic keeps exact
-non-dyadic model stations without inserting new stored source knots.
+non-dyadic model stations without inserting new stored source knots, even
+when the two original owner curves have independent projective laws.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
-The native race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
-Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
+Native race on `491b18f1` is running. The newer ordinary run on `5181d219`
+found a missing exact axis extremum in five shaded STEP repair meshes; its
+failure is retained while the source-aware display fix is being tested.
+Vet and Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-document export, oblique native Cut, physically different footprints and independent
-rational owner clocks.
+document export, physically different footprints, shaded STEP extrema and
+rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

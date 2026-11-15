@@ -257,6 +257,18 @@ kept its pristine hash. Raw results remain in
   native race with rectangular regressions passed in 359.033 seconds,
   and the independent geometry volume race passed in 5.200 seconds.
   All 48 earlier native recipe digests matched in the isolate.
+- Both oblique Cut orders and native rectangular regressions passed under
+  the main race in 307.478 seconds. Both original roof and wall owners
+  survive with their exact shared sloping base. The smallest independently
+  integrated component measures `5/38386270208`. Main source reload
+  rejects changed physical chart and component ledgers; all 56 previous
+  receipt digests matched independently.
+- The strictly reopened rational nonplanar STEP also retains independent
+  first-owner raw stops `32,68,112` and reversed second-owner stops
+  `126,82,46` at model parameters `8/7,8/3,24/5`. Native replay proves
+  distinct original owner laws and a 700-triangle closed display. Both
+  false owner weights reject. The main live and byte compatibility race
+  passed in 302.752 seconds.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

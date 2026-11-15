@@ -85,6 +85,7 @@ struct RoofSupportLayout {
   bool separated = false;
   InferredSupportEvents inferred = InferredSupportEvents::none;
   bool rationalModel = false;
+  bool independentOwnerClocks = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -500,7 +501,8 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
     new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
-  const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., 48.}
+  const double firstSouthParameter = layout.independentOwnerClocks ? 181. : 48.;
+  const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., firstSouthParameter}
     : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
   if (nonplanar) {
     const std::array<double, 4> ends{1., .5, .25, 0.};
@@ -513,9 +515,13 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
         poles[3*i+j] = point;
       }
     }
+    // The last stored span is the first in model traversal. Its new
+    // increasing-raw geometric weight ratio 3/2 acts in reverse traversal.
+    const auto weights = layout.independentOwnerClocks
+      ? std::array{1., 2., 4., 8., 16., 32., 64., 96., 144., 216.}
+      : std::array{1., 2., 4., 8., 16., 32., 64., 64., 64., 64.};
     shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
-                 stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified,
-                 stepArray(std::array{1., 2., 4., 8., 16., 32., 64., 64., 64., 64.}));
+                 stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(weights));
   } else {
     const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
     std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -530,7 +536,7 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   }
   const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = localCells ? std::vector<double>{48., 16., 1., lastSouthParameter}
+  const auto raw = localCells ? std::vector<double>{firstSouthParameter, 16., 1., lastSouthParameter}
                   : supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
@@ -604,8 +610,10 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       // The first two Cartesian nets are exact half restrictions of the
       // original north cubic. The homogeneous weights express the original
       // rational raw map with a common dyadic scale on each basis.
-      const double firstRawEnd = supportCuts >= 5 ? 4622. : (supportCuts == 4 || localCells) ? 107. : 457.;
-      const auto firstWeights = supportCuts >= 5 ? std::array{1., 3., 9., 27.}
+      const double firstRawEnd = layout.independentOwnerClocks ? 167.
+        : supportCuts >= 5 ? 4622. : (supportCuts == 4 || localCells) ? 107. : 457.;
+      const auto firstWeights = layout.independentOwnerClocks ? std::array{8., 12., 18., 27.}
+        : supportCuts >= 5 ? std::array{1., 3., 9., 27.}
         : (supportCuts == 4 || localCells) ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
       const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., localCells ? 715. : 706.}, {850., 862.}}};
       const std::array<std::array<double, 4>, 3> weights{{
@@ -660,7 +668,8 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed";
+    const bool independentOwnerClocks = mode == "write-nonplanar-independent-owner-clocks";
+    const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed" || independentOwnerClocks;
     const bool nonplanar = mode == "write-nonplanar-inferred-mixed" || rationalModel;
     const auto inferred = nonplanar ? InferredSupportEvents::nonplanar
       : offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
@@ -670,7 +679,8 @@ int main(int argc, char** argv) {
       || mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-offset-pair" || nonplanar;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
-    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred, rationalModel};
+    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
+                                   rationalModel, independentOwnerClocks};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
