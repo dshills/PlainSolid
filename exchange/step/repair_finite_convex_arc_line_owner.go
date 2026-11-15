@@ -57,12 +57,8 @@ func boundFiniteConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 			if e != nil {
 				return bad()
 			}
-			h := occtLoopSub(world, point)
-			t := new(big.Rat).Quo(occtLoopDot(h, d), lsq)
-			for j := range h {
-				h[j].Sub(h[j], new(big.Rat).Mul(t, d[j]))
-			}
-			if occtLoopDot(h, h).Cmp(tolSquared) > 0 {
+			t, residual := projectConvexArcLine(world, point, d, lsq)
+			if residual.Cmp(tolSquared) > 0 {
 				return bad()
 			}
 			if f == src {
@@ -72,7 +68,7 @@ func boundFiniteConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 			}
 		}
 		sense, e := boolean(edge.Args[4])
-		if turn := domain[1].Cmp(domain[0]); e != nil || turn == 0 || (turn > 0) != sense {
+		if e != nil || !convexArcDirectedLineInterval(domain, sense) {
 			return bad()
 		}
 	}

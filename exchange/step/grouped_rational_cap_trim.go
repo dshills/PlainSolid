@@ -76,6 +76,11 @@ func InspectGroupedConvexArcFiniteTrims(ctx context.Context, r io.Reader, l Limi
 	if e != nil {
 		return zero, e
 	}
+	return proveGroupedConvexArcCapTrims(ctx, f, nil, full, o, rootOptions)
+}
+
+func proveGroupedConvexArcCapTrims(ctx context.Context, f, fixed *File, full GroupedPCurveEvidence, o ConvexArcRepairOptions, rootOptions geom.ExactCurvePlaneEventOptions) (GroupedFiniteTrimEvidence, error) {
+	var zero GroupedFiniteTrimEvidence
 	if rootOptions.MaxOperations < 0 || rootOptions.MaxCoefficientBits < 0 || rootOptions.MaxSubdivisions < 0 {
 		return zero, geom.ErrInvalid
 	}
@@ -128,9 +133,26 @@ func InspectGroupedConvexArcFiniteTrims(ctx context.Context, r io.Reader, l Limi
 			if e != nil {
 				return zero, e
 			}
-			p, e := occtLoopTriple(f, v.Args[1].Ref, "CARTESIAN_POINT")
+			original, e := occtLoopTriple(f, v.Args[1].Ref, "CARTESIAN_POINT")
 			if e != nil {
 				return zero, e
+			}
+			p, displacement := original, new(big.Rat)
+			if fixed != nil {
+				// Preserve the original vertex ID and directed cap sense. The
+				// already authenticated repaired vertex selects the exact ray,
+				// and the original point contributes its bounded displacement.
+				repairedVertex, e := simple(fixed, id, "VERTEX_POINT", 2)
+				if e != nil || repairedVertex.Args[1].Ref != v.Args[1].Ref {
+					return zero, geom.ErrDomain
+				}
+				p, e = occtLoopTriple(fixed, v.Args[1].Ref, "CARTESIAN_POINT")
+				if e != nil {
+					return zero, e
+				}
+				for _, delta := range occtLoopSub(original, p) {
+					displacement.Add(displacement, new(big.Rat).Abs(delta))
+				}
 			}
 			d := occtLoopSub(p, center)
 			a, b, c := occtLoopDot(d, x), occtLoopDot(d, y), occtLoopDot(d, z)
@@ -142,6 +164,7 @@ func InspectGroupedConvexArcFiniteTrims(ctx context.Context, r io.Reader, l Limi
 				rad = b
 			}
 			trim.EndpointDistanceUpper[i] = new(big.Rat).Add(new(big.Rat).Abs(new(big.Rat).Sub(rad, radius)), cap.RadialDistanceUpper)
+			trim.EndpointDistanceUpper[i].Add(trim.EndpointDistanceUpper[i], displacement)
 			if trim.EndpointDistanceUpper[i].Cmp(new(big.Rat).SetFloat64(o.MaxDistance)) > 0 {
 				return zero, geom.ErrDomain
 			}

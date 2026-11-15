@@ -44,12 +44,13 @@ if(std::string(argv[1])=="cap-witness") {
  std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
 }
 const std::string mode = argv[1];
-const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated";
+const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
+                           mode == "write-both-default-tilted";
 if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || tiltedDefault){
  BRepBuilderAPI_MakePolygon p;p.Add(gp_Pnt(0,0,0));p.Add(gp_Pnt(4,0,0));p.Add(gp_Pnt(0,3,0));p.Close();auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(p.Wire()).Face(),gp_Vec(0,0,5)).Shape();TopoDS_Edge target;
  for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(4,0,2.5))<1e-12)target=TopoDS::Edge(e.Current());}
  if(target.IsNull())return 3;BRepFilletAPI_MakeFillet fillet(stock);fillet.Add(5.0/16,target);
- if(std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated"){TopoDS_Edge other;for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(0,0,2.5))<1e-12)other=TopoDS::Edge(e.Current());}if(other.IsNull())return 8;fillet.Add(.25,other);}
+ if(std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || mode=="write-both-default-tilted"){TopoDS_Edge other;for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(0,0,2.5))<1e-12)other=TopoDS::Edge(e.Current());}if(other.IsNull())return 8;fillet.Add(.25,other);}
  fillet.Build();if(!fillet.IsDone())return 4;shape=fillet.Shape();
  if (mode != "write" && mode != "write-both" && mode != "write-default" && mode != "write-both-default") {
   gp_Trsf pose;
