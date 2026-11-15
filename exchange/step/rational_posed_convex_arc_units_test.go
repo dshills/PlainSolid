@@ -28,9 +28,9 @@ var rationalTiltUnitFixtures = []rationalTiltUnitFixture{
 	{name: "inch", metresPerUnit: .0254, mmNumerator: 127, mmDenominator: 5},
 }
 
-func (tc rationalTiltUnitFixture) source(t *testing.T) []byte {
+func (tc rationalTiltUnitFixture) source(t *testing.T, name string) []byte {
 	t.Helper()
-	path := "testdata/occt-default-tilted-translated-oblique-prism-fillet-" + tc.name + ".step"
+	path := "testdata/" + name + "-" + tc.name + ".step"
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,25 @@ func checkRationalTiltUnitReadback(t *testing.T, tc rationalTiltUnitFixture, raw
 		len(m.Repairs()) != 3 || len(m.PCurves()) != 24 || len(m.FiniteLineOwners()) != 8 {
 		t.Fatal("original source units or owner evidence were lost")
 	}
+	return m, checkRationalTiltUnitCanonical(t, tc, m, big.NewRat(8, 5), big.NewRat(6, 5))
+}
+
+func checkRationalTiltUnitCanonical(t *testing.T, tc rationalTiltUnitFixture, m rationalPosedPCurveRepairMaterial, x, z *big.Rat) []byte {
+	t.Helper()
+	ctx := context.Background()
 	canonical := encodeRationalWorldCircularLoop(t, m, false)
+	if tc.name == "inch" {
+		const exact = "LENGTH_MEASURE(0.0254)"
+		if !bytes.Contains(canonical, []byte(exact)) {
+			t.Fatal("canonical inch factor must be 127/5000 metres exactly")
+		}
+		forged := bytes.Replace(canonical, []byte(exact), []byte("LENGTH_MEASURE(0.025399999999999999)"), 1)
+		if _, err := ReadRationalPosedExactCircularLoopExtrusion(ctx, bytes.NewReader(forged), Limits{}); err == nil {
+			t.Fatal("strict canonical reader accepted an inexact inch factor")
+		}
+	} else if !bytes.Contains(canonical, []byte("SI_UNIT($,.METRE.)")) {
+		t.Fatal("canonical metre model lost its exact SI declaration")
+	}
 	strict, err := ReadRationalPosedExactCircularLoopExtrusion(ctx, bytes.NewReader(canonical), Limits{})
 	if err != nil || strict.Descriptor.LengthUnit != tc.metresPerUnit {
 		t.Fatal("canonical STEP lost source units", strict.Descriptor.LengthUnit, err)
@@ -62,7 +80,7 @@ func checkRationalTiltUnitReadback(t *testing.T, tc rationalTiltUnitFixture, raw
 		t.Fatal(err)
 	}
 	got, err := strict.Pose.Matrix()
-	if err != nil || !reflect.DeepEqual(want, got) || got[0][3].Cmp(big.NewRat(8, 5)) != 0 || got[2][3].Cmp(big.NewRat(6, 5)) != 0 {
+	if err != nil || !reflect.DeepEqual(want, got) || got[0][3].Cmp(x) != 0 || got[2][3].Cmp(z) != 0 {
 		t.Fatal("canonical STEP changed exact source-unit placement", got, err)
 	}
 	original, err := prismNativeBytes(m.Solid())
@@ -77,7 +95,7 @@ func checkRationalTiltUnitReadback(t *testing.T, tc rationalTiltUnitFixture, raw
 	if err = WriteRationalPosedExactCircularLoopExtrusion(ctx, &again, strict.Descriptor, strict.Pose); err != nil || !bytes.Equal(canonical, again.Bytes()) {
 		t.Fatal("world canonical bytes changed on native re-export", err)
 	}
-	return m, canonical
+	return canonical
 }
 
 type rationalTiltUnitMeasurements struct {
@@ -88,13 +106,20 @@ type rationalTiltUnitMeasurements struct {
 
 func checkRationalTiltUnitMeasures(t *testing.T, tc rationalTiltUnitFixture, got rationalTiltUnitMeasurements) {
 	t.Helper()
+	want := rationalTiltUnitMeasurements{Volume: 29.145041881053842, Area: 66.186284791166074,
+		Centroid: [3]float64{3.7610838977055483, 1.0248794567287747, 2.4852214697259356}, Faces: 6, Solids: 1}
+	checkScaledRationalTiltUnitMeasures(t, tc, got, want)
+}
+
+func checkScaledRationalTiltUnitMeasures(t *testing.T, tc rationalTiltUnitFixture, got, source rationalTiltUnitMeasurements) {
+	t.Helper()
 	unit := big.NewRat(tc.mmNumerator, tc.mmDenominator)
 	mm, _ := unit.Float64()
 	want := []float64{
-		29.145041881053842 * mm * mm * mm, 66.186284791166074 * mm * mm,
-		3.7610838977055483 * mm, 1.0248794567287747 * mm, 2.4852214697259356 * mm,
+		source.Volume * mm * mm * mm, source.Area * mm * mm,
+		source.Centroid[0] * mm, source.Centroid[1] * mm, source.Centroid[2] * mm,
 	}
-	if got.Faces != 6 || got.Solids != 1 {
+	if got.Faces != source.Faces || got.Solids != source.Solids {
 		t.Fatal("world topology changed", got)
 	}
 	for i, value := range []float64{got.Volume, got.Area, got.Centroid[0], got.Centroid[1], got.Centroid[2]} {
@@ -104,22 +129,37 @@ func checkRationalTiltUnitMeasures(t *testing.T, tc rationalTiltUnitFixture, got
 	}
 }
 
+func measureRationalTiltUnitMaterial(t *testing.T, tc rationalTiltUnitFixture, m rationalPosedPCurveRepairMaterial) rationalTiltUnitMeasurements {
+	t.Helper()
+	ctx := context.Background()
+	p, err := m.Solid().MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	center, err := m.Pose().TransformPoint(ctx, occtLoopVec(p.Centroid), false, 512)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mm := big.NewRat(tc.mmNumerator, tc.mmDenominator)
+	mm2 := new(big.Rat).Mul(mm, mm)
+	mm3 := new(big.Rat).Mul(mm2, mm)
+	got := rationalTiltUnitMeasurements{Faces: len(m.Solid().Faces()), Solids: len(m.Solid().Topology().Shells)}
+	got.Volume, _ = new(big.Rat).Mul(sideRat(p.Volume), mm3).Float64()
+	got.Area, _ = new(big.Rat).Mul(sideRat(p.Area), mm2).Float64()
+	for i := range center {
+		got.Centroid[i], _ = center[i].Mul(center[i], mm).Float64()
+	}
+	return got
+}
+
+const singleTiltUnitSource = "occt-default-tilted-translated-oblique-prism-fillet"
+
 func TestRationalPosedConvexArcNonMillimetreUnits(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range rationalTiltUnitFixtures {
 		t.Run(tc.name, func(t *testing.T) {
-			raw := tc.source(t)
-			m, canonical := checkRationalTiltUnitReadback(t, tc, raw)
-			if tc.name == "inch" {
-				const exact = "LENGTH_MEASURE(0.0254)"
-				if !bytes.Contains(canonical, []byte(exact)) {
-					t.Fatal("canonical inch factor must be 127/5000 metres exactly")
-				}
-				forged := bytes.Replace(canonical, []byte(exact), []byte("LENGTH_MEASURE(0.025399999999999999)"), 1)
-				if _, err := ReadRationalPosedExactCircularLoopExtrusion(ctx, bytes.NewReader(forged), Limits{}); err == nil {
-					t.Fatal("strict canonical reader accepted an inexact inch factor")
-				}
-			}
+			raw := tc.source(t, singleTiltUnitSource)
+			m, _ := checkRationalTiltUnitReadback(t, tc, raw)
 			var proof bytes.Buffer
 			if err := WriteRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m); err != nil {
 				t.Fatal(err)
@@ -128,30 +168,13 @@ func TestRationalPosedConvexArcNonMillimetreUnits(t *testing.T) {
 			if err != nil || m.OriginalSTEP() != string(raw) || m.LocalDescriptor().LengthUnit != tc.metresPerUnit {
 				t.Fatal("native proof lost the original unit declaration", err)
 			}
-			p, err := m.Solid().MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
-			if err != nil {
-				t.Fatal(err)
-			}
-			center, err := m.Pose().TransformPoint(ctx, occtLoopVec(p.Centroid), false, 512)
-			if err != nil {
-				t.Fatal(err)
-			}
-			mm := big.NewRat(tc.mmNumerator, tc.mmDenominator)
-			mm2 := new(big.Rat).Mul(mm, mm)
-			mm3 := new(big.Rat).Mul(mm2, mm)
-			got := rationalTiltUnitMeasurements{Faces: len(m.Solid().Faces()), Solids: len(m.Solid().Topology().Shells)}
-			got.Volume, _ = new(big.Rat).Mul(sideRat(p.Volume), mm3).Float64()
-			got.Area, _ = new(big.Rat).Mul(sideRat(p.Area), mm2).Float64()
-			for i := range center {
-				got.Centroid[i], _ = center[i].Mul(center[i], mm).Float64()
-			}
-			checkRationalTiltUnitMeasures(t, tc, got)
+			checkRationalTiltUnitMeasures(t, tc, measureRationalTiltUnitMaterial(t, tc, m))
 		})
 	}
 }
 
 func TestRationalPosedConvexArcRejectsInexactInchDeclaration(t *testing.T) {
-	raw := rationalTiltUnitFixtures[1].source(t)
+	raw := rationalTiltUnitFixtures[1].source(t, singleTiltUnitSource)
 	for _, edit := range []struct{ name, old, replacement string }{
 		{"same binary64 scale", "LENGTH_MEASURE_WITH_UNIT(25.4,", "LENGTH_MEASURE_WITH_UNIT(25.40000000000000001,"},
 		{"wrong dimension", "DIMENSIONAL_EXPONENTS(1.,", "DIMENSIONAL_EXPONENTS(0.,"},
@@ -187,24 +210,34 @@ func TestRationalPosedConvexArcNonMillimetreUnitsLive(t *testing.T) {
 				t.Fatal(err)
 			}
 			m, canonical := checkRationalTiltUnitReadback(t, tc, raw)
-			corrected, generated := filepath.Join(dir, "corrected.step"), filepath.Join(dir, "canonical.step")
-			if err = os.WriteFile(corrected, []byte(m.CorrectedModelSTEP()), 0600); err != nil {
-				t.Fatal(err)
-			}
-			if err = os.WriteFile(generated, canonical, 0600); err != nil {
-				t.Fatal(err)
-			}
-			for _, path := range []string{original, corrected, generated} {
-				out, err := exec.Command(oracle, "read", path).CombinedOutput()
-				if err != nil {
-					t.Fatalf("pinned OCCT transfer of %s: %v\n%s", path, err, out)
-				}
-				var measured rationalTiltUnitMeasurements
-				if err = json.Unmarshal([]byte(strings.TrimSpace(string(out))), &measured); err != nil {
-					t.Fatalf("invalid pinned OCCT measurements: %v\n%s", err, out)
-				}
+			for _, measured := range readRationalTiltUnitWorldSTEP(t, oracle, original, m.CorrectedModelSTEP(), canonical) {
 				checkRationalTiltUnitMeasures(t, tc, measured)
 			}
 		})
 	}
+}
+
+func readRationalTiltUnitWorldSTEP(t *testing.T, oracle, original, corrected string, canonical []byte) []rationalTiltUnitMeasurements {
+	t.Helper()
+	dir := filepath.Dir(original)
+	repaired, generated := filepath.Join(dir, "corrected.step"), filepath.Join(dir, "canonical.step")
+	if err := os.WriteFile(repaired, []byte(corrected), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(generated, canonical, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var results []rationalTiltUnitMeasurements
+	for _, path := range []string{original, repaired, generated} {
+		out, err := exec.Command(oracle, "read", path).CombinedOutput()
+		if err != nil {
+			t.Fatalf("pinned OCCT transfer of %s: %v\n%s", path, err, out)
+		}
+		var measured rationalTiltUnitMeasurements
+		if err = json.Unmarshal([]byte(strings.TrimSpace(string(out))), &measured); err != nil {
+			t.Fatalf("invalid pinned OCCT measurements: %v\n%s", err, out)
+		}
+		results = append(results, measured)
+	}
+	return results
 }
