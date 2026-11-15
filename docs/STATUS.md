@@ -109,6 +109,15 @@ owners. Exact closed ellipse tangency produces a regularized empty Common
 and a source-preserving Cut. Rotated tangent sections retain both originals
 across knot events, and nonlinear double-contact arcs retain original coedge
 parameters through rational spline trims.
+Closed original spline contacts also qualify external and nested material
+when a definite repeated conic can be proved over the complete common
+chart. Nested Common and Fuse retain the original inner and enclosing
+shells respectively. The opt-in native Boolean entry discovers the contact
+pair and projection from the source geometry. Coincident nonorthogonal charts now reconstruct
+concave regions with multiple independent straight holes, including
+concave hole boundaries and disconnected overlap. Convex polygonal cap
+joins support original-model native Fuse and exact source UV such as
+`8/9` through the rational endpoint option.
 
 Independently authored anisotropic filled and bored NURBS round-trip in
 STEP as individual solids and flat or nested shared-product assemblies.
@@ -116,7 +125,14 @@ The exact rational occurrence path retains original frame and use records.
 A source with compound oblique parent transforms retains its exact
 `(-7/25, 24/25)` planar direction components on native reload. Generated
 flat occurrences accept lossless STEP decimal frames and reprove every
-original material support and occurrence before writing.
+original material support and occurrence before writing. Generated
+nested occurrences additionally reprove the composed leaf placements.
+The independently authored quadratic planar AP242 reader retains
+degree-two tensor supports and coedge p-curves under a complete exact
+affine identity, and reloads their original STEP source. The higher-degree
+reader extends those identities to independent single-span degrees from
+one through eight. A separate polygon mesher preserves exact homogeneous
+supports and original UV-use lineage on concave trims.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

@@ -38,6 +38,14 @@ type SplineShellRepeatedEllipse struct {
 	Enclosing int
 }
 
+type tangentEllipseRelation uint8
+
+const (
+	exteriorTangentEllipse tangentEllipseRelation = iota
+	containedTangentEllipse
+	discoverTangentEllipseRelation
+)
+
 // CombineExternallyTangentSplineShellEllipse proves a closed curve of double
 // contact between two exterior single shells. Every other original face pair
 // must be strictly separated. Common is empty and Cut retains the original
@@ -45,7 +53,7 @@ type SplineShellRepeatedEllipse struct {
 // this arrangement and reports ErrConvergence.
 func CombineExternallyTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation parametric.BooleanOp,
 	o SplineShellRepeatedEllipseOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
-	return combineTangentSplineShellEllipse(ctx, a, b, operation, o, false)
+	return combineTangentSplineShellEllipse(ctx, [2]Solid{a, b}, [2][]splineEmbeddingFace{}, operation, o, exteriorTangentEllipse)
 }
 
 // CombineInternallyTangentSplineShellEllipse proves one original shell
@@ -56,11 +64,13 @@ func CombineExternallyTangentSplineShellEllipse(ctx context.Context, a, b Solid,
 // representation of the singular result.
 func CombineInternallyTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation parametric.BooleanOp,
 	o SplineShellRepeatedEllipseOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
-	return combineTangentSplineShellEllipse(ctx, a, b, operation, o, true)
+	return combineTangentSplineShellEllipse(ctx, [2]Solid{a, b}, [2][]splineEmbeddingFace{}, operation, o, containedTangentEllipse)
 }
 
-func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation parametric.BooleanOp,
-	o SplineShellRepeatedEllipseOptions, internal bool) (out Solid, history SplineShellCombineHistory, proof SplineShellRepeatedEllipse, err error) {
+// Supplied embeddings are the exact original snapshots on which the ordinary
+// dispatch has already separated every pair except the selected one.
+func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace, operation parametric.BooleanOp,
+	o SplineShellRepeatedEllipseOptions, relation tangentEllipseRelation) (out Solid, history SplineShellCombineHistory, proof SplineShellRepeatedEllipse, err error) {
 	if ctx == nil || operation > parametric.Difference || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 || o.Contact.MaxOperations < 0 ||
 		o.Contact.MaxCoefficientBits != 0 && o.Contact.MaxCoefficientBits < 64 || o.Contact.MaxCells < 0 || o.Contact.MaxDepth < 0 {
 		return out, history, proof, geom.ErrInvalid
@@ -73,7 +83,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	if e := ctx.Err(); e != nil {
 		return out, history, proof, e
 	}
-	if operation == parametric.Union && !internal {
+	if operation == parametric.Union && relation == exteriorTangentEllipse {
 		return out, history, proof, geom.ErrConvergence
 	}
 	if o.Shells.MaxRays == 0 {
@@ -89,7 +99,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	if axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1] {
 		return out, history, proof, geom.ErrInvalid
 	}
-	solids := [2]Solid{a, b}
+	a, b := solids[0], solids[1]
 	if len(a.faces)*len(b.faces) > 256 {
 		return out, history, proof, geom.ErrConvergence
 	}
@@ -101,7 +111,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	limit := func() geom.SurfacePatchOptions {
 		return geom.SurfacePatchOptions{MaxOperations: o.Contact.MaxOperations - proof.ExactOperations, MaxCoefficientBits: o.Contact.MaxCoefficientBits}
 	}
-	var all [2][]splineEmbeddingFace
+	prevalidated := len(all[0]) != 0 && len(all[1]) != 0
 	var source [2]*geom.SurfacePatch
 	var outward [2]int
 	for i, s := range solids {
@@ -109,8 +119,10 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 		if face < 0 || face >= len(s.faces) {
 			return out, history, proof, geom.ErrInvalid
 		}
-		if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
-			return out, history, proof, fmt.Errorf("trimmed: tangent operand %d embedding: %w", i, e)
+		if !prevalidated {
+			if _, e := s.validateSplineRectangleEmbedding(ctx, o.Shells.Embedding, &all[i]); e != nil {
+				return out, history, proof, fmt.Errorf("trimmed: tangent operand %d embedding: %w", i, e)
+			}
 		}
 		p := all[i][face].patch
 		if axes != [2]int{0, 1} {
@@ -142,7 +154,9 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 		}
 		source[i] = p
 	}
-	if (outward[0] == outward[1]) != internal || limit().MaxOperations < 1 {
+	internal := outward[0] == outward[1]
+	if (relation != discoverTangentEllipseRelation && (relation == containedTangentEllipse) != internal) ||
+		(operation == parametric.Union && !internal) || limit().MaxOperations < 1 {
 		return out, history, proof, geom.ErrConvergence
 	}
 	align := func() (*geom.AffineXYChartAlignment, error) {
@@ -231,8 +245,10 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 			if [2]int{i, j} == o.Faces {
 				continue
 			}
-			if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
-				return out, history, proof, fmt.Errorf("trimmed: repeated ellipse unseparated original face pair %d,%d: %w", i, j, e)
+			if !prevalidated {
+				if e := proveSplinePatchPairDisjoint(ctx, f.patch, g.patch, o.Shells.Separation); e != nil {
+					return out, history, proof, fmt.Errorf("trimmed: repeated ellipse unseparated original face pair %d,%d: %w", i, j, e)
+				}
 			}
 			proof.SeparatedPairs++
 		}

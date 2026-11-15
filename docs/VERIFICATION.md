@@ -6475,3 +6475,34 @@ single Chromium inspector-cache eviction. All 66 production cases passed
 with the isolated driver buffers enlarged. The driver was restored and its
 original SHA-256 was verified.
 [Staged-run evidence and log archive](evidence/plaincad-main-acf376e1-2026-11-14.json).
+
+### Original cap, trim and STEP source qualification
+
+- The pinned OCCT comparator confirms the original convex polygonal cap
+  contact and native Fuse in both operand orders. The exact output volume
+  is `60639/4096`, with 36 faces, 54 edges and 20 vertices. Original UV
+  `8/9` and its model witness survive native reload. Altering the exact
+  p-curve midpoint with the endpoints fixed fails revalidation.
+- Independently mapped nonorthogonal concave charts retain two slanted
+  holes, all 16 exact source uses and area `11/16`. Holes contributed by
+  both parents yield three retained holes, and clipping across an original
+  concave hole yields two components of area `1/128` each.
+- The nested rational AP242 writer round-trips filled and bored source
+  material. The original document, regenerated STEP and native reload
+  agree on the composed leaf placements and material properties with
+  the pinned XCAF reader. A separate original AP242 fixture verifies
+  twelve degree-two planar tensor supports and 48 quadratic p-curves.
+  All original owner records survive native and STEP round trips.
+  Interior pole and sub-binary decimal deviations fail exact identity.
+- Independent cubic and mixed-degree AP242 originals passed STEP and
+  native round trips with three solids, eighteen faces, volume 10,800
+  and area 4,860. Genuine rounded oblique poles fail the exact identity.
+- Independent exterior and nested rotated double conics passed OCCT
+  material checks. The nested Common and Fuse volumes are `20207/20480`
+  and `25/8`. Native opt-in dispatch found the sole original face pair
+  and YZ projection after placement, and retained the original boundary
+  and edge ownership. The combined race run passed.
+- Certified polygon tessellation uses the original nonbinary homogeneous
+  support `z=uv/3` with a concave outer and a slanted concave hole.
+  Exact UV area, original use sample parameters, both face orientations
+  and independent sagitta samples passed.

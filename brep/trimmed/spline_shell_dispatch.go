@@ -52,6 +52,10 @@ type SplineShellCombineOptions struct {
 	// OrderedRoofCut optionally tries the exact band or cavity Cut before
 	// general section discovery. Unsupported geometry retains fallback.
 	OrderedRoofCut *SplineShellRoofOptions
+	// ClosedEllipseTangency tries exact closed double-ellipse discovery when
+	// just one original face pair remains after separation. Its work limit
+	// is shared across projections. Unsupported contacts continue dispatch.
+	ClosedEllipseTangency *geom.GraphPointContactOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
 	// independent original-support tube proofs are required before use.
@@ -89,6 +93,7 @@ type SplineShellCombineHistory struct {
 	// AffinePaired retains exact fragment occupancy and full source ancestry for
 	// the explicit paired-affine path; other dispatch paths leave it nil.
 	AffinePaired   *AffineShellMaterial
+	ClosedEllipse  *SplineShellRepeatedEllipse
 	FacesA, FacesB [][]int
 	EdgesA, EdgesB [][]int
 	SectionEdges   []int
@@ -336,6 +341,16 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 	}
 	if len(unresolved) == 1 {
 		f := unresolved[0]
+		if o.ClosedEllipseTangency != nil {
+			s, h, e := discoverSplineShellClosedEllipse(ctx, [2]Solid{a, b}, [2][]splineEmbeddingFace{ap, bp}, op,
+				f, o.Transverse.Shells, *o.ClosedEllipseTangency)
+			if e == nil {
+				return s, h, nil
+			}
+			if !errors.Is(e, geom.ErrConvergence) {
+				return Solid{}, r, e
+			}
+		}
 		if op != parametric.Union {
 			for _, axes := range [3][2]int{{0, 1}, {1, 2}, {0, 2}} {
 				s, h, _, e := combineTangentSplineShellPair(ctx, [2]Solid{a, b}, [2][]splineEmbeddingFace{ap, bp}, op,
@@ -464,6 +479,36 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 		return Solid{}, r, fmt.Errorf("trimmed: %d face pairs need further contact classification: %w", len(unresolved), errors.Join(geom.ErrConvergence, unresolvedDiscovery))
 	}
 	return Solid{}, r, fmt.Errorf("trimmed: %d face pairs need further contact classification: %w", len(unresolved), geom.ErrConvergence)
+}
+
+// Embeddings and every unselected original face pair are certified by the
+// caller. Each candidate still has to prove the full contact and classify
+// the original solid witnesses.
+func discoverSplineShellClosedEllipse(ctx context.Context, solids [2]Solid, all [2][]splineEmbeddingFace, op parametric.BooleanOp,
+	faces [2]int, shells SplineShellBooleanOptions, contact geom.GraphPointContactOptions) (Solid, SplineShellCombineHistory, error) {
+	if contact.MaxOperations == 0 {
+		contact.MaxOperations = 8000000
+	}
+	workLimit := contact.MaxOperations
+	for _, axes := range [3][2]int{{0, 1}, {1, 2}, {0, 2}} {
+		s, h, p, e := combineTangentSplineShellEllipse(ctx, solids, all, op, SplineShellRepeatedEllipseOptions{
+			Faces: faces, Projection: axes, Shells: shells, Contact: contact,
+		}, discoverTangentEllipseRelation)
+		if e == nil {
+			p.ExactOperations += workLimit - contact.MaxOperations
+			h.ClosedEllipse = &p
+			return s, h, nil
+		}
+		if !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) &&
+			!errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrUnrepresentable) {
+			return Solid{}, SplineShellCombineHistory{}, e
+		}
+		contact.MaxOperations -= p.ExactOperations
+		if contact.MaxOperations < 1 {
+			break
+		}
+	}
+	return Solid{}, SplineShellCombineHistory{}, geom.ErrConvergence
 }
 
 func splineDispatchAffineOptions(o SplineShellCombineOptions) AffineSplineShellBooleanOptions {
