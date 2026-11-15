@@ -2,7 +2,6 @@ package geom
 
 import (
 	"context"
-	"math"
 	"math/big"
 )
 
@@ -45,13 +44,22 @@ type LineSplineSurfaceResult struct {
 	Complete                      bool
 }
 
-func exactLineSectionPatch(line Line, lo, hi float64, options SurfacePatchOptions, b *polynomialBudget) (*SurfacePatch, error) {
+func validRationalLineDirection(d [3]*big.Rat) bool {
+	return d[0] != nil && d[1] != nil && d[2] != nil && (d[0].Sign() != 0 || d[1].Sign() != 0 || d[2].Sign() != 0)
+}
+
+func exactLineSectionPatch(origin, direction [3]*big.Rat, lo, hi float64, options SurfacePatchOptions, b *polynomialBudget) (*SurfacePatch, error) {
 	axis := 0
-	if math.Abs(line.direction.Y) < math.Abs(line.direction.X) {
-		axis = 1
-	}
-	if math.Abs(line.direction.Z) < math.Abs(coordinate(line.direction, axis)) {
-		axis = 2
+	for k := range direction {
+		if e := b.check(origin[k]); e != nil {
+			return nil, e
+		}
+		if e := b.check(direction[k]); e != nil {
+			return nil, e
+		}
+		if new(big.Rat).Abs(direction[k]).Cmp(new(big.Rat).Abs(direction[axis])) < 0 {
+			axis = k
+		}
 	}
 	p := &SurfacePatch{degreeU: 1, degreeV: 1, countU: 2, countV: 2, knotsU: []float64{-1, -1, 1, 1}, knotsV: []float64{lo, lo, hi, hi}, options: options, net: make([]exactHomogeneous, 4)}
 	for i, s := range []int64{-1, 1} {
@@ -59,7 +67,7 @@ func exactLineSectionPatch(line Line, lo, hi float64, options SurfacePatchOption
 			var h exactHomogeneous
 			h[3] = big.NewRat(1, 1)
 			for k := 0; k < 3; k++ {
-				h[k] = new(big.Rat).Add(new(big.Rat).SetFloat64(coordinate(line.origin, k)), new(big.Rat).Mul(new(big.Rat).SetFloat64(t), new(big.Rat).SetFloat64(coordinate(line.direction, k))))
+				h[k] = new(big.Rat).Add(origin[k], new(big.Rat).Mul(new(big.Rat).SetFloat64(t), direction[k]))
 				if k == axis {
 					h[k].Add(h[k], big.NewRat(s, 1))
 				}
@@ -93,7 +101,18 @@ func IntersectLineSplineSurface(line Line, patch *SurfacePatch, o LineSplineSurf
 // IntersectLineSplineSurfaceContext cooperatively cancels between exact
 // contact cells and retains all unprocessed candidates in Pending.
 func IntersectLineSplineSurfaceContext(ctx context.Context, line Line, patch *SurfacePatch, o LineSplineSurfaceOptions) (result LineSplineSurfaceResult, err error) {
-	if ctx == nil || !line.valid() || patch == nil || len(patch.net) == 0 || !finite(o.MinParameter) || !finite(o.MaxParameter) || o.MinParameter >= o.MaxParameter || !finite(o.MaxParameter-o.MinParameter) {
+	if !line.valid() {
+		return result, ErrInvalid
+	}
+	return IntersectRationalLineSplineSurface(ctx, rationalLineVec3(line.origin), rationalLineVec3(line.direction), patch, o)
+}
+
+// IntersectRationalLineSplineSurface isolates contacts of the exact line
+// origin+t*direction. The supplied direction defines the parameter scale.
+// Contact enclosures use outward float64 bounds and unresolved cells are retained.
+func IntersectRationalLineSplineSurface(ctx context.Context, origin, direction [3]*big.Rat, patch *SurfacePatch, o LineSplineSurfaceOptions) (result LineSplineSurfaceResult, err error) {
+	if ctx == nil || origin[0] == nil || origin[1] == nil || origin[2] == nil || !validRationalLineDirection(direction) ||
+		patch == nil || len(patch.net) == 0 || !finite(o.MinParameter) || !finite(o.MaxParameter) || o.MinParameter >= o.MaxParameter || !finite(o.MaxParameter-o.MinParameter) {
 		return result, ErrInvalid
 	}
 	if o.MaxDepth == 0 {
@@ -116,7 +135,7 @@ func IntersectLineSplineSurfaceContext(ctx context.Context, line Line, patch *Su
 		return result, e
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	linePatch, e := exactLineSectionPatch(line, o.MinParameter, o.MaxParameter, patch.options, budget)
+	linePatch, e := exactLineSectionPatch(origin, direction, o.MinParameter, o.MaxParameter, patch.options, budget)
 	result.ExactOperations = budget.operations
 	if e != nil {
 		result.Pending = append(result.Pending, LineSplineSurfacePending{patch.Domain(), ParameterSpan{Start: o.MinParameter, End: o.MaxParameter}, 0, "line section construction limit"})
@@ -189,7 +208,7 @@ func IntersectLineSplineSurfaceContext(ctx context.Context, line Line, patch *Su
 				}
 				edgeBudget := &polynomialBudget{maxOperations: remaining, maxBits: o.MaxCoefficientBits}
 				ld := n.l.Domain()
-				boundaryExists, e = proveLineEdgeRoot(n.p, line, patch.Domain(), ld.VMin, ld.VMax, edgeBudget)
+				boundaryExists, e = proveLineEdgeRoot(n.p, origin, direction, patch.Domain(), ld.VMin, ld.VMax, edgeBudget)
 				result.ExactOperations += edgeBudget.operations
 				if e != nil {
 					fail(&n)

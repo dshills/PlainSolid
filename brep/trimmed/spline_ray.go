@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"slices"
 	"sort"
 
@@ -55,6 +56,32 @@ type SplineRayResult struct {
 // must have embedded UV loops. Coincidence and roots near a curved trim
 // can remain unresolved; no sampled winding replaces a missing proof.
 func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o SplineRayOptions) (SplineRayResult, error) {
+	line, e := geom.NewLine(origin, direction)
+	if e != nil {
+		return SplineRayResult{}, e
+	}
+	d := line.Direction()
+	return s.splineRay(ctx, [3]*big.Rat{ratInset(origin.X), ratInset(origin.Y), ratInset(origin.Z)},
+		[3]*big.Rat{ratInset(d.X), ratInset(d.Y), ratInset(d.Z)}, &line, o)
+}
+
+// SplineRayRational intersects a bounded exact model line with the original
+// trimmed supports. Parameter bounds refer to origin+t*direction using the
+// caller's exact direction without normalization. Incomplete proofs retain
+// their issues just as SplineRay does.
+func (s Solid) SplineRayRational(ctx context.Context, origin, direction [3]*big.Rat, o SplineRayOptions) (SplineRayResult, error) {
+	for i := range origin {
+		if origin[i] == nil || direction[i] == nil {
+			return SplineRayResult{}, geom.ErrInvalid
+		}
+	}
+	if direction[0].Sign() == 0 && direction[1].Sign() == 0 && direction[2].Sign() == 0 {
+		return SplineRayResult{}, geom.ErrInvalid
+	}
+	return s.splineRay(ctx, origin, direction, nil, o)
+}
+
+func (s Solid) splineRay(ctx context.Context, origin, direction [3]*big.Rat, represented *geom.Line, o SplineRayOptions) (SplineRayResult, error) {
 	var r SplineRayResult
 	if o.MaxFaces == 0 {
 		o.MaxFaces = 128
@@ -70,10 +97,6 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	line, e := geom.NewLine(origin, direction)
-	if e != nil {
-		return r, e
-	}
 	for i, f := range s.faces {
 		if e := ctx.Err(); e != nil {
 			return r, e
@@ -83,8 +106,8 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 			return r, fmt.Errorf("trimmed: spline ray face %d has unsupported support %T", i, f.Surface)
 		}
 		exactTrim := hasNativeExactSplineTrim(f)
-		if base, ok := support.(*geom.BSplineSurface); ok && exactTrim {
-			handled, e := exactVerticalGraphFaceRay(ctx, &r, i, f, base, placement, line, o)
+		if base, ok := support.(*geom.BSplineSurface); ok && exactTrim && represented != nil {
+			handled, e := exactVerticalGraphFaceRay(ctx, &r, i, f, base, placement, *represented, o)
 			if e != nil {
 				return r, e
 			}
@@ -107,7 +130,7 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 		if e != nil {
 			return r, e
 		}
-		report, e := geom.IntersectLineSplineSurfaceContext(ctx, line, p, o.Line)
+		report, e := geom.IntersectRationalLineSplineSurface(ctx, origin, direction, p, o.Line)
 		if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, context.Canceled) && !errors.Is(e, context.DeadlineExceeded) {
 			return r, e
 		}
@@ -144,7 +167,7 @@ func (s Solid) SplineRay(ctx context.Context, origin, direction geom.Vec3, o Spl
 			if outside {
 				continue
 			}
-			c, e := hit.Crossing(line, p, o.Crossing)
+			c, e := hit.RationalCrossing(direction, p, o.Crossing)
 			if e != nil && !errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrConvergence) {
 				return r, e
 			}

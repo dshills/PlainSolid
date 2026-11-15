@@ -164,14 +164,15 @@ func splineShellPatchBounds(faces []splineEmbeddingFace) geom.Box {
 	return b
 }
 
+var splineWitnessDirections = [...]geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1},
+	{X: 1, Y: .25, Z: .5}, {X: -1, Y: .5, Z: .25}, {X: .5, Y: 1, Z: -.25},
+	{X: .25, Y: -.5, Z: 1}, {X: 1, Y: -.75, Z: -.5}, {X: -.75, Y: -1, Z: -.5}}
+
 func classifySeparatedSplineWitness(ctx context.Context, s Solid, bounds geom.Box, p geom.Vec3, o SplineShellBooleanOptions) (bool, error) {
 	if !bounds.Contains(p) {
 		return false, nil
 	}
-	directions := [...]geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1},
-		{X: 1, Y: .25, Z: .5}, {X: -1, Y: .5, Z: .25}, {X: .5, Y: 1, Z: -.25},
-		{X: .25, Y: -.5, Z: 1}, {X: 1, Y: -.75, Z: -.5}, {X: -.75, Y: -1, Z: -.5}}
-	for _, d := range directions[:o.MaxRays] {
+	for _, d := range splineWitnessDirections[:o.MaxRays] {
 		if e := ctx.Err(); e != nil {
 			return false, e
 		}
@@ -187,22 +188,25 @@ func classifySeparatedSplineWitness(ctx context.Context, s Solid, bounds geom.Bo
 		if e != nil && !errors.Is(e, geom.ErrConvergence) {
 			return false, e
 		}
-		if !r.Complete {
-			continue
-		}
-		count, known := 0, true
-		for _, hit := range r.Hits {
-			if hit.Direction == 0 || hit.ParameterMin <= 0 || hit.ParameterMax >= o.Ray.Line.MaxParameter {
-				known = false
-				break
-			}
-			count += hit.Direction
-		}
-		if known && (count == 0 || count == 1) {
-			return count == 1, nil
+		if inside, known := splineMaterialRayWinding(r, o.Ray.Line.MaxParameter); known {
+			return inside, nil
 		}
 	}
 	return false, fmt.Errorf("%w: no transverse spline shell witness ray", geom.ErrConvergence)
+}
+
+func splineMaterialRayWinding(r SplineRayResult, end float64) (inside, known bool) {
+	if !r.Complete {
+		return false, false
+	}
+	count := 0
+	for _, hit := range r.Hits {
+		if hit.Direction == 0 || hit.ParameterMin <= 0 || hit.ParameterMax >= end {
+			return false, false
+		}
+		count += hit.Direction
+	}
+	return count == 1, count == 0 || count == 1
 }
 
 // Choose a represented line parameter strictly outside an exact enclosing

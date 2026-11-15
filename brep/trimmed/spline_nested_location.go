@@ -17,48 +17,56 @@ import (
 // cavity shells. Exact face membership or complete oriented spline rays
 // establish the result. Inconclusive boundary queries and rays return an error.
 func (s Solid) LocateSplineMaterialPoint(ctx context.Context, point geom.Vec3, o SplineShellBooleanOptions) (parametric.Location, error) {
-	if ctx == nil || !point.IsFinite() || o.MaxRays < 0 || o.MaxRays > 12 || o.Ray.MaxFaces < 0 {
+	if !point.IsFinite() {
 		return parametric.Outside, geom.ErrInvalid
 	}
-	if e := ctx.Err(); e != nil {
+	bounds, e := s.splineMaterialPointBounds(ctx, o)
+	if e != nil {
 		return parametric.Outside, e
 	}
-	if len(s.faces) == 0 {
-		return parametric.Outside, nil
-	}
 	if o.MaxRays == 0 {
-		o.MaxRays = 12
+		o.MaxRays = len(splineWitnessDirections)
+	}
+	return locateOriginalBooleanOperand(ctx, s, bounds, point, o)
+}
+
+func (s Solid) splineMaterialPointBounds(ctx context.Context, o SplineShellBooleanOptions) (geom.Box, error) {
+	var bounds geom.Box
+	if ctx == nil || o.MaxRays < 0 || o.MaxRays > len(splineWitnessDirections) || o.Ray.MaxFaces < 0 {
+		return bounds, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return bounds, e
 	}
 	maxFaces := o.Ray.MaxFaces
 	if maxFaces == 0 {
 		maxFaces = 128
 	}
 	if len(s.faces) > maxFaces {
-		return parametric.Outside, parametric.ErrBudget
+		return bounds, parametric.ErrBudget
 	}
-	var bounds geom.Box
 	for i, f := range s.faces {
 		if e := ctx.Err(); e != nil {
-			return parametric.Outside, e
+			return bounds, e
 		}
 		p, e := exactFaceSupportPatch(f, o.Embedding.Patches)
 		if e != nil {
-			return parametric.Outside, fmt.Errorf("trimmed: spline material face %d: %w", i, e)
+			return bounds, fmt.Errorf("trimmed: spline material face %d: %w", i, e)
 		}
 		box, e := p.Bounds()
 		if e != nil {
-			return parametric.Outside, e
+			return bounds, e
 		}
 		if i == 0 {
 			bounds = box
 		} else {
 			bounds, e = bounds.Union(box)
 			if e != nil {
-				return parametric.Outside, e
+				return bounds, e
 			}
 		}
 	}
-	return locateOriginalBooleanOperand(ctx, s, bounds, point, o)
+	return bounds, nil
 }
 
 // LocateNestedSplineMaterial classifies a represented point against a

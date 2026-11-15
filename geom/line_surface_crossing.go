@@ -23,7 +23,14 @@ type LineSurfaceCrossing struct {
 // is parametric: reversing one surface parameter reverses Sign. There is no
 // inferred solid/material orientation or tolerance-based grazing classification.
 func CertifyLineSurfaceCrossing(line Line, p *SurfacePatch, o SurfaceTransversalityOptions) (result LineSurfaceCrossing, err error) {
-	if !line.valid() || p == nil || len(p.net) == 0 {
+	if !line.valid() {
+		return result, ErrInvalid
+	}
+	return certifyRationalLineSurfaceCrossing(rationalLineVec3(line.direction), p, o)
+}
+
+func certifyRationalLineSurfaceCrossing(direction [3]*big.Rat, p *SurfacePatch, o SurfaceTransversalityOptions) (result LineSurfaceCrossing, err error) {
+	if p == nil || len(p.net) == 0 {
 		return result, ErrInvalid
 	}
 	if p.countU != p.degreeU+1 || p.countV != p.degreeV+1 {
@@ -46,8 +53,10 @@ func CertifyLineSurfaceCrossing(line Line, p *SurfacePatch, o SurfaceTransversal
 	}
 	sum := exactInterval{new(big.Rat), new(big.Rat)}
 	for axis := 0; axis < 3; axis++ {
-		direction := new(big.Rat).SetFloat64(coordinate(line.direction, axis))
-		term, e := intervalMultiply(normal[axis], exactInterval{direction, direction}, b)
+		if e := b.check(direction[axis]); e != nil {
+			return result, e
+		}
+		term, e := intervalMultiply(normal[axis], exactInterval{direction[axis], direction[axis]}, b)
 		if e != nil {
 			return result, e
 		}
@@ -68,7 +77,16 @@ func CertifyLineSurfaceCrossing(line Line, p *SurfacePatch, o SurfaceTransversal
 // UV dimensions are expanded by at most one adjacent float inside Cell, retaining
 // the exact boundary contact. A zero sign must not contribute a winding count.
 func (h LineSplineSurfaceHit) Crossing(line Line, original *SurfacePatch, o SurfaceTransversalityOptions) (result LineSurfaceCrossing, err error) {
-	if original == nil || !h.Cell.Valid() || !line.valid() {
+	if !line.valid() {
+		return result, ErrInvalid
+	}
+	return h.RationalCrossing(rationalLineVec3(line.direction), original, o)
+}
+
+// RationalCrossing certifies the oriented derivative sign at the hit for an
+// exact, nonzero direction. Its scale is preserved in the reported product.
+func (h LineSplineSurfaceHit) RationalCrossing(direction [3]*big.Rat, original *SurfacePatch, o SurfaceTransversalityOptions) (result LineSurfaceCrossing, err error) {
+	if original == nil || !h.Cell.Valid() || !validRationalLineDirection(direction) {
 		return result, ErrInvalid
 	}
 	r := ParameterRectangle{max(h.Cell.UMin, h.UV.Min.X), min(h.Cell.UMax, h.UV.Max.X), max(h.Cell.VMin, h.UV.Min.Y), min(h.Cell.VMax, h.UV.Max.Y)}
@@ -106,7 +124,7 @@ func (h LineSplineSurfaceHit) Crossing(line Line, original *SurfacePatch, o Surf
 	if o.MaxOperations < 1 {
 		return result, ErrConvergence
 	}
-	result, e = CertifyLineSurfaceCrossing(line, p, o)
+	result, e = certifyRationalLineSurfaceCrossing(direction, p, o)
 	result.ExactOperations += budget.operations
 	return result, e
 }

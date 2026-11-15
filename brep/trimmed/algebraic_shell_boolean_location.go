@@ -75,19 +75,30 @@ func locateOriginalBooleanOperand(ctx context.Context, s Solid, bounds geom.Box,
 			return parametric.Boundary, nil
 		}
 	}
-	query := [3]*big.Rat{ratInset(p.X), ratInset(p.Y), ratInset(p.Z)}
-	for i := range s.faces {
-		q, e := s.LocateRationalOnSplineFace(ctx, i, query, SplineFacePointOptions{Patch: o.Embedding.Patches, Trim: o.Ray.Trim})
-		if e != nil && !errors.Is(e, geom.ErrConvergence) {
-			return parametric.Outside, e
-		}
-		if e == nil && (q.Location == SplineFacePointInterior || q.Location == SplineFacePointOnTrim) {
-			return parametric.Boundary, nil
-		}
+	query := affineMaterialXYZ(p)
+	boundary, e := s.locateSplineMaterialBoundary(ctx, query, o)
+	if e != nil {
+		return parametric.Outside, e
+	}
+	if boundary {
+		return parametric.Boundary, nil
 	}
 	inside, e := classifySeparatedSplineWitness(ctx, s, bounds, p, o)
 	if inside {
 		return parametric.Inside, e
 	}
 	return parametric.Outside, e
+}
+
+func (s Solid) locateSplineMaterialBoundary(ctx context.Context, query [3]*big.Rat, o SplineShellBooleanOptions) (bool, error) {
+	for i := range s.faces {
+		q, e := s.LocateRationalOnSplineFace(ctx, i, query, SplineFacePointOptions{Patch: o.Embedding.Patches, Trim: o.Ray.Trim})
+		if e != nil && !errors.Is(e, geom.ErrConvergence) {
+			return false, e
+		}
+		if e == nil && (q.Location == SplineFacePointInterior || q.Location == SplineFacePointOnTrim) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
