@@ -224,6 +224,9 @@ func derivativeBounds(s geom.Surface, v Interval) (uu, uv, vv float64, ok bool) 
 	case geom.TorusSurface:
 		_, a, b := x.Parameters()
 		return a + b, b, b, true
+	case geom.OuterTorusSurface:
+		_, a, b := x.Parameters()
+		return a + b, b, b, true
 	case reparameterizedCylinder:
 		_, r := x.s.Parameters()
 		k := x.u.Max - x.u.Min

@@ -289,6 +289,9 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 	case geom.TorusSurface:
 		f, a, b := x.Parameters()
 		return surfaceData{Kind: "torus", Frame: frameToData(f), A: a, B: b}, nil
+	case geom.OuterTorusSurface:
+		f, a, b := x.Parameters()
+		return surfaceData{Kind: "outer-torus", Frame: frameToData(f), A: a, B: b}, nil
 	case reparameterizedCylinder:
 		base, e := encodeSurface(x.s)
 		if e != nil {
@@ -810,6 +813,8 @@ func (d surfaceData) decode(budget *int) (geom.Surface, error) {
 		return newTorusCylinderChart(x.Major, x.Minor, x.Radius, x.Outer, x.Wall)
 	case "torus":
 		return geom.NewTorusSurface(f, d.A, d.B)
+	case "outer-torus":
+		return geom.NewOuterTorusSurface(f, d.A, d.B)
 	case "arc-fan":
 		if d.Center == nil || !d.Center.IsFinite() || !finite(d.B) {
 			return nil, geom.ErrInvalid

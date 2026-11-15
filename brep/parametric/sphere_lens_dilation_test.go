@@ -97,7 +97,7 @@ func TestSphericalLensDilationBounds(t *testing.T) {
 	for _, tc := range []struct {
 		offset float64
 		want   error
-	}{{4, geom.ErrDomain}, {.1, geom.ErrUnrepresentable}, {-1, geom.ErrInvalid}} {
+	}{{.1, geom.ErrUnrepresentable}, {-1, geom.ErrInvalid}} {
 		result, report, err := source.DilateSphericalLens(ctx, tc.offset, 1e-9)
 		if !errors.Is(err, tc.want) || len(result.Faces()) != 0 || report.BlendFace != -1 || report.Radii[0] != nil {
 			t.Fatalf("distance %v published partial data: %+v, %v", tc.offset, report, err)
@@ -110,6 +110,55 @@ func TestSphericalLensDilationBounds(t *testing.T) {
 	}
 	if _, _, err := irrational.DilateSphericalLens(ctx, .5, 1e-9); !errors.Is(err, geom.ErrUnrepresentable) {
 		t.Fatalf("irrational rim was rounded into a model support: %v", err)
+	}
+}
+
+func TestSphericalLensDilationBeyondRingRadius(t *testing.T) {
+	ctx := context.Background()
+	source, err := NewSpherePairSet(ctx, Ball{Radius: 5}, Ball{Center: geom.Vec3{Z: 6}, Radius: 5}, Intersection, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, offset := range []float64{4, 12} {
+		dilated, history, err := source.DilateSphericalLens(ctx, offset, 1e-9)
+		if err != nil || history.RimRadius != 4 || history.BlendRadius != offset {
+			t.Fatalf("offset %v: %+v, %v", offset, history, err)
+		}
+		if _, ok := dilated.Faces()[history.BlendFace].Surface.(geom.OuterTorusSurface); !ok {
+			t.Fatalf("offset %v uses %T", offset, dilated.Faces()[history.BlendFace].Surface)
+		}
+		var data bytes.Buffer
+		if err := WriteJSON(&data, dilated); err != nil {
+			t.Fatal(err)
+		}
+		s, err := ReadJSON(bytes.NewReader(data.Bytes()), JSONLimits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		v0, a0 := 104*math.Pi/3, 40*math.Pi
+		curvature := 8*math.Pi + 4*math.Pi*math.Acos(7./25)
+		volume := v0 + a0*offset + curvature*offset*offset + 4*math.Pi/3*offset*offset*offset
+		area := a0 + 2*curvature*offset + 4*math.Pi*offset*offset
+		mass, err := s.MassProperties(ctx, IntegrationOptions{})
+		if err != nil || math.Abs(mass.Volume-volume) > 1e-7 || math.Abs(mass.Area-area) > 1e-7 || mass.Centroid.Distance(geom.Vec3{Z: 3}) > 1e-9 {
+			t.Fatalf("offset %v mass=%+v want %g, %g; %v", offset, mass, volume, area, err)
+		}
+		bounds, err := s.Bounds()
+		wantMin, wantMax := (geom.Vec3{X: -4 - offset, Y: -4 - offset, Z: 1 - offset}), (geom.Vec3{X: 4 + offset, Y: 4 + offset, Z: 5 + offset})
+		if err != nil || !bounds.Contains(wantMin) || !bounds.Contains(wantMax) || bounds.Min.Distance(wantMin) > 2e-9 || bounds.Max.Distance(wantMax) > 2e-9 {
+			t.Fatalf("offset %v bounds=%+v; %v", offset, bounds, err)
+		}
+		hits, err := s.Ray(geom.Vec3{X: -20, Z: 3}, geom.Vec3{X: 1}, 40, 1e-8)
+		if err != nil || len(hits) != 2 || math.Abs(hits[0].Point.X+4+offset) > 1e-8 || math.Abs(hits[1].Point.X-4-offset) > 1e-8 {
+			t.Fatalf("offset %v ray=%+v; %v", offset, hits, err)
+		}
+		m, err := s.Tessellate(ctx, TessellationOptions{Deflection: .15, AnalyticBound: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := m.ValidateSolid(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

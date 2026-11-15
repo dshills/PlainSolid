@@ -21,9 +21,9 @@ type SphericalLensDilationHistory struct {
 // DilateSphericalLens dilates an originally transverse ball intersection
 // using its two outward-offset spherical caps and their rolling torus band.
 // The original contact circle's center and radius and both expanded radii
-// must be exactly representable. A positive displacement must be smaller
-// than the contact circle radius. Angular trim endpoints use the native
-// analytic sewing tolerance.
+// must be exactly representable. The rolling band is restricted to the regular
+// outer half when a complete torus would be singular. Angular trim endpoints
+// use the native analytic sewing tolerance.
 func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolerance float64) (Solid, SphericalLensDilationHistory, error) {
 	var empty Solid
 	noHistory := SphericalLensDilationHistory{SpherePairOffsetHistory: emptySpherePairOffsetHistory(), BlendFace: -1}
@@ -72,14 +72,16 @@ func (s SpherePairSet) DilateSphericalLens(ctx context.Context, distance, tolera
 	if err != nil {
 		return empty, noHistory, err
 	}
-	if distance >= rim {
-		return empty, noHistory, geom.ErrDomain
-	}
 	frame, err := geom.NewFrame(center, frames[0].XAxis(), frames[0].ZAxis())
 	if err != nil {
 		return empty, noHistory, err
 	}
-	blend, err := geom.NewTorusSurface(frame, rim, distance)
+	var blend geom.Surface
+	if distance < rim {
+		blend, err = geom.NewTorusSurface(frame, rim, distance)
+	} else {
+		blend, err = geom.NewOuterTorusSurface(frame, rim, distance)
+	}
 	if err != nil {
 		return empty, noHistory, err
 	}

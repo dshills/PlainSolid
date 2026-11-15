@@ -49,6 +49,9 @@ func (s Solid) Ray(origin, direction geom.Vec3, maxDistance, tolerance float64) 
 			case geom.TorusSurface:
 				_, r, _ := a.Parameters()
 				v = math.Atan2(x.Z, math.Hypot(x.X, x.Y)-r)
+			case geom.OuterTorusSurface:
+				_, r, _ := a.Parameters()
+				v = math.Atan2(x.Z, math.Hypot(x.X, x.Y)-r)
 			case disk:
 				v = math.Hypot(x.X, x.Y)
 			}
@@ -62,6 +65,8 @@ func (s Solid) Ray(origin, direction geom.Vec3, maxDistance, tolerance float64) 
 			case geom.TorusSurface:
 				vTolerance = 1e-10
 				vPeriodic = true
+			case geom.OuterTorusSurface:
+				vTolerance = 1e-10
 			}
 			v, insideV := admissible(v, f.V, vTolerance, vPeriodic)
 			if !insideV {
@@ -149,6 +154,14 @@ func raySupport(s geom.Surface, l geom.Line, maxDistance, tolerance float64) ([]
 	case geom.TorusSurface:
 		f, _, _ := a.Parameters()
 		r, e := geom.IntersectLineTorus(l, a, geom.LineTorusOptions{UseParameterRange: true, MinParameter: 0, MaxParameter: maxDistance, DistanceTolerance: tolerance})
+		var out []geom.LineSurfaceHit
+		for _, h := range r.Hits {
+			out = append(out, h.LineSurfaceHit)
+		}
+		return out, f, e
+	case geom.OuterTorusSurface:
+		f, _, _ := a.Parameters()
+		r, e := geom.IntersectLineOuterTorus(l, a, geom.LineTorusOptions{UseParameterRange: true, MinParameter: 0, MaxParameter: maxDistance, DistanceTolerance: tolerance})
 		var out []geom.LineSurfaceHit
 		for _, h := range r.Hits {
 			out = append(out, h.LineSurfaceHit)

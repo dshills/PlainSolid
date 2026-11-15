@@ -437,6 +437,15 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		cv, sv := trig(v, false), trig(v, true)
 		radial(scalarBounds{r + t*cv.lo, r + t*cv.hi})
 		z = multiply(sv, scalarBounds{t, t})
+	case geom.OuterTorusSurface:
+		if v.Min < -math.Pi/2 || v.Max > math.Pi/2 {
+			return geom.Box{}, geom.ErrDomain
+		}
+		frame, r, t := a.Parameters()
+		f = frame
+		cv, sv := trig(v, false), trig(v, true)
+		radial(scalarBounds{r + t*cv.lo, r + t*cv.hi})
+		z = multiply(sv, scalarBounds{t, t})
 	case reparameterizedCylinder:
 		return surfaceBounds(a.s, Interval{a.u.at(u.Min), a.u.at(u.Max)}, v)
 	case ruledArcs:

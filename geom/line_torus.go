@@ -35,7 +35,8 @@ type LineTorusResult struct {
 	Operations, Subdivisions int
 }
 
-func torusLinePolynomial(origin, direction Vec3, major, minor float64, budget *polynomialBudget) (rationalPolynomial, error) {
+func torusLinePolynomial(origin, direction Vec3, major, minor float64, budget *polynomialBudget) (rationalPolynomial, [2]rationalPolynomial, error) {
+	var sheets [2]rationalPolynomial
 	radius := new(big.Rat).SetFloat64(major)
 	radius.Mul(radius, radius)
 	tube := new(big.Rat).SetFloat64(minor)
@@ -48,7 +49,7 @@ func torusLinePolynomial(origin, direction Vec3, major, minor float64, budget *p
 		for i, term := range terms {
 			sphere[i].Add(sphere[i], term)
 			if e := budget.check(sphere[i]); e != nil {
-				return nil, e
+				return nil, sheets, e
 			}
 			if axis < 2 {
 				radial[i].Add(radial[i], term)
@@ -57,16 +58,17 @@ func torusLinePolynomial(origin, direction Vec3, major, minor float64, budget *p
 	}
 	result, e := polynomialProduct(sphere, sphere, budget)
 	if e != nil {
-		return nil, e
+		return nil, sheets, e
 	}
 	factor := new(big.Rat).Mul(big.NewRat(4, 1), radius)
 	for i, coefficient := range radial {
 		result[i].Sub(result[i], new(big.Rat).Mul(factor, coefficient))
 		if e := budget.check(result[i]); e != nil {
-			return nil, e
+			return nil, sheets, e
 		}
 	}
-	return trimPolynomial(result), nil
+	radial[0].Sub(radial[0], radius)
+	return trimPolynomial(result), [2]rationalPolynomial{trimPolynomial(sphere), trimPolynomial(radial)}, nil
 }
 
 // IntersectLineTorus finds all contacts of a line with a ring TorusSurface.
@@ -75,6 +77,18 @@ func torusLinePolynomial(origin, direction Vec3, major, minor float64, budget *p
 // Root bounds refer to the stored local float64 line coefficients; every world
 // point must also satisfy the requested geometric torus distance residual.
 func IntersectLineTorus(line Line, surface TorusSurface, options LineTorusOptions) (result LineTorusResult, err error) {
+	return intersectLineTorus(line, surface, options, false)
+}
+
+// IntersectLineOuterTorus isolates the same exact quartic and retains only its
+// outward circular half. Exact polynomial signs at each root exclude both the
+// untrimmed inner arc and the reflected spindle sheet, including shared roots
+// at the regular meridian endpoints.
+func IntersectLineOuterTorus(line Line, surface OuterTorusSurface, options LineTorusOptions) (LineTorusResult, error) {
+	return intersectLineTorus(line, surface.torus, options, true)
+}
+
+func intersectLineTorus(line Line, surface TorusSurface, options LineTorusOptions, outer bool) (result LineTorusResult, err error) {
 	o := options
 	if o.DistanceTolerance == 0 {
 		o.DistanceTolerance = 1e-9
@@ -94,7 +108,7 @@ func IntersectLineTorus(line Line, surface TorusSurface, options LineTorusOption
 	if o.MaxSubdivisions == 0 {
 		o.MaxSubdivisions = 8192
 	}
-	if !finite(o.DistanceTolerance) || o.DistanceTolerance <= 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance < 0 || !finite(o.RelativeParameterTolerance) || o.RelativeParameterTolerance < 0 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.MaxSubdivisions < 1 || !surface.frame.valid() || !finite(surface.major) || !finite(surface.minor) || surface.minor <= 0 || surface.major <= surface.minor {
+	if !finite(o.DistanceTolerance) || o.DistanceTolerance <= 0 || !finite(o.ParameterTolerance) || o.ParameterTolerance < 0 || !finite(o.RelativeParameterTolerance) || o.RelativeParameterTolerance < 0 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.MaxSubdivisions < 1 || !surface.frame.valid() || !finite(surface.major) || !finite(surface.minor) || surface.minor <= 0 || surface.major <= 0 || (!outer && surface.major <= surface.minor) {
 		return result, ErrInvalid
 	}
 	if o.UseParameterRange {
@@ -113,9 +127,35 @@ func IntersectLineTorus(line Line, surface TorusSurface, options LineTorusOption
 		result.Operations = budget.operations
 		sort.SliceStable(result.Hits, func(i, j int) bool { return result.Hits[i].Parameter < result.Hits[j].Parameter })
 	}()
-	polynomial, e := torusLinePolynomial(origin, direction, surface.major, surface.minor, budget)
+	polynomial, sheets, e := torusLinePolynomial(origin, direction, surface.major, surface.minor, budget)
 	if e != nil {
 		return result, e
+	}
+	var common [2][]rationalPolynomial
+	if outer {
+		for i, sheet := range sheets {
+			if len(sheet) == 0 {
+				continue
+			}
+			gcd, e := polynomialGCD(polynomial, sheet, budget)
+			if e != nil {
+				return result, e
+			}
+			if len(gcd) > 1 {
+				repeated, e := polynomialGCD(gcd, polynomialDerivative(gcd), budget)
+				if e != nil {
+					return result, e
+				}
+				squareFree, _, e := polynomialDivide(gcd, repeated, budget)
+				if e != nil {
+					return result, e
+				}
+				common[i], e = polynomialSturm(squareFree, budget)
+				if e != nil {
+					return result, e
+				}
+			}
+		}
 	}
 	bound, e := polynomialRootBound(polynomial, budget)
 	if e != nil {
@@ -135,6 +175,19 @@ func IntersectLineTorus(line Line, surface TorusSurface, options LineTorusOption
 		}
 	}
 	accept := func(left, right *big.Rat, multiplicity int) (bool, error) {
+		if outer {
+			for i, sheet := range sheets {
+				sign, known, e := torusSheetSign(sheet, common[i], left, right, budget)
+				if e != nil || !known {
+					return false, e
+				}
+				if sign < 0 || (i == 0 && sign == 0) {
+					// The sign of r²+z²+R²−m² identifies the sheet.
+					// The sign of r²−R² clips its meridian to the outer half.
+					return true, nil
+				}
+			}
+		}
 		mid := new(big.Rat).Quo(new(big.Rat).Add(left, right), big.NewRat(2, 1))
 		parameter, _ := mid.Float64()
 		if !finite(parameter) {
@@ -183,4 +236,34 @@ func IntersectLineTorus(line Line, surface TorusSurface, options LineTorusOption
 		}
 	}
 	return result, nil
+}
+
+func torusSheetSign(p rationalPolynomial, common []rationalPolynomial, lo, hi *big.Rat, b *polynomialBudget) (int, bool, error) {
+	if len(p) == 0 {
+		return 0, true, nil
+	}
+	if lo.Cmp(hi) == 0 {
+		x, e := polynomialValue(p, lo, b)
+		if e != nil {
+			return 0, false, e
+		}
+		return x.Sign(), true, nil
+	}
+	if len(common) != 0 {
+		n, e := sturmCount(common, lo, hi, b)
+		if e != nil || n != 0 {
+			return 0, e == nil, e
+		}
+	}
+	value, e := polynomialInterval(p, exactInterval{lo: lo, hi: hi}, b)
+	if e != nil {
+		return 0, false, e
+	}
+	if value.lo.Sign() > 0 {
+		return 1, true, nil
+	}
+	if value.hi.Sign() < 0 {
+		return -1, true, nil
+	}
+	return 0, false, nil
 }
