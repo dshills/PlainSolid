@@ -72,7 +72,9 @@ profile wire, extrudes it, then asks OCCT to round its vertical corner. Set
 `PLAINSOLID_OCCT_CIRCULAR_LINE_ARC_FILLETS` to the helper linked against the
 OCCT fillet toolkits. Its `internal` and `external` modes compare straight
 line and circle tangencies; `arc-pair` and `mixed-arc-pair` compare two
-incident circles. Adaptive integration resolves the small material differences.
+incident circles. The `oblique-lines` and `oblique-line-arc` modes compare
+non-axis-aligned original lines. Adaptive integration resolves the small
+material differences.
 
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test

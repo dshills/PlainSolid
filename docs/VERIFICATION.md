@@ -206,6 +206,11 @@ kept its pristine hash. Raw results remain in
   nonadaptive OCCT integration was off by `2.2e-6` for volume; no Go
   tolerance was widened. The focused fillet and editable document races
   passed in 47.832 and 59.198 seconds.
+- Exact rounds with oblique original lines preserve the straight and
+  circular source intervals and agree with pinned adaptive OCCT. This covers
+  original line-to-line and line-to-arc corners and rejects a genuine
+  irrational line normal. The expanded fillet main race passed in 76.788
+  seconds, including the earlier circular and orthogonal regressions.
 - Nonunit Cut and prior native Boolean cases passed the main trimmed race
   in 284.486 seconds. Both Cut orders retain the original sloping base and
   both independent roof owners. Independent physical integration agrees

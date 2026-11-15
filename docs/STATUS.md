@@ -116,6 +116,8 @@ Rounds at an axis-aligned line meeting an original circle cover internal
 and external tangency, keeping the shortened circle's exact parameter map.
 Two incident original arcs can also be rounded in the represented domain,
 with separate parameter maps even when the arcs turn in different directions.
+Rounding now accepts oblique original lines with rational unit directions,
+including a corner between one such line and an original arc.
 Complete equal curved caps also join, leaving one common original rim.
 Different original rim partitions are now refined to exactly shared stations;
 native and document replay re-prove the two directed source parameter maps.
@@ -133,9 +135,10 @@ Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
 The native
 race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
-Windows amd64 cross-build pass on `12ab5dbf`. Current work covers tangent
-rounds on oblique line profiles, oblique physical roof charts, independent
-rational owner clocks and the converted five-fillet typed app qualification.
+Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
+inputs passed the focused native bridge and both actual WASM runtimes, with
+one legacy timing retry recorded. Current work covers analytic cap overlay
+exchange, oblique physical roof charts and independent rational owner clocks.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

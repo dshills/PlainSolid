@@ -25,9 +25,13 @@
 int main(int argc, char** argv) {
     if (argc != 2) return 1;
     const std::string_view mode(argv[1]);
-    const bool internal = mode == "internal", mixed = mode == "mixed-arc-pair";
+    const bool obliqueLine = mode == "oblique-lines", obliqueArc = mode == "oblique-line-arc";
+    const bool internal = mode == "internal" || obliqueArc, mixed = mode == "mixed-arc-pair";
     const bool pair = mode == "arc-pair" || mixed;
-    if (!internal && !pair && mode != "external") return 1;
+    if (!internal && !pair && !obliqueLine && mode != "external") return 1;
+    auto placed = [&](const gp_Pnt& p) {
+        return obliqueArc ? gp_Pnt(3.*p.X()-4.*p.Y(), 4.*p.X()+3.*p.Y(), p.Z()) : p;
+    };
     gp_Pnt initial, corner, end;
     std::vector<gp_Pnt> rest;
     BRepBuilderAPI_MakeWire wire;
@@ -44,12 +48,20 @@ int main(int argc, char** argv) {
         addArc(initial, corner, gp_Pnt(initial.X(), 0., 0.), -initial.Y(), 1.);
         addArc(corner, end, mixed ? gp_Pnt(3.75, 5., 0.) : gp_Pnt(-1.5, -2., 0.),
                mixed ? 1.25 : 7.5, mixed ? -1. : 1.);
+    } else if (obliqueLine) {
+        initial = corner = gp_Pnt(0., 0., 0.);
+        end = gp_Pnt(18., 24., 0.);
+        rest = {{-24., 24., 0.}, {-24., 0., 0.}};
+        wire.Add(BRepBuilderAPI_MakeEdge(corner, end));
     } else {
         initial = corner = gp_Pnt(internal ? 6. : -4., 0., 0.);
         end = gp_Pnt(internal ? 0. : 5., internal ? 18. : 3., 0.);
         rest = internal ? std::vector<gp_Pnt>{{-12., 18., 0.}, {-12., 0., 0.}} :
                           std::vector<gp_Pnt>{{5., 16., 0.}, {-20., 16., 0.}, {-20., 0., 0.}};
-        addArc(corner, end, gp_Pnt(0., internal ? 8. : 3., 0.), internal ? 10. : 5., 1.);
+        initial = corner = placed(corner);
+        end = placed(end);
+        for (auto& p : rest) p = placed(p);
+        addArc(corner, end, placed(gp_Pnt(0., internal ? 8. : 3., 0.)), obliqueArc ? 50. : internal ? 10. : 5., 1.);
     }
     gp_Pnt from = end;
     for (const auto& to : rest) {
@@ -74,7 +86,7 @@ int main(int argc, char** argv) {
         if (std::abs(p.Z()-q.Z()) > 1. &&
             std::hypot(p.X()-corner.X(), p.Y()-corner.Y()) < 1e-8 &&
             std::hypot(q.X()-corner.X(), q.Y()-corner.Y()) < 1e-8) {
-            fillet.Add(5., edge);
+            fillet.Add(obliqueArc ? 25. : obliqueLine ? 10. : 5., edge);
             found = true;
             break;
         }

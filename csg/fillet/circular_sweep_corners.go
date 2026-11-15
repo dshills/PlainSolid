@@ -121,10 +121,10 @@ func mixedFilletTangent(c geom.Vec2, prev, next orthogonalDirection, r float64) 
 	return mixedCornerRound{incoming: in, outgoing: out, center: center, radius: r, reach2: qm(qm(rad, rad), big.NewRat(4, 1))}, nil
 }
 
-// CircularSweepCorners rounds selected orthogonal line junctions, an
-// axis-aligned line meeting a circular arc, or two circular arcs, on a model-Z
-// sweep. A curved round requires exactly representable tangent points and
-// center. All arcs and holes retain their original supports. Every corner
+// CircularSweepCorners rounds selected junctions of lines and circular arcs
+// on a model-Z sweep. Tangent points and the center must be exactly
+// representable, including on oblique lines with rational unit directions.
+// All arcs and holes retain their original supports. Every corner
 // influence region is separated from all nonincident spans and other rounds.
 func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep, selection []CircularSweepCorner, o OrthogonalPrismOptions) (CircularSweepCornerResult, error) {
 	var zero CircularSweepCornerResult
@@ -178,6 +178,8 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 		switch {
 		case a && b:
 			round, err = mixedFilletTangent(out.Start, da, db, s.Radius)
+		case in.Radius == 0 && out.Radius == 0:
+			round, err = mixedFilletObliqueLines(in, out, s.Radius)
 		case in.Radius > 0 && out.Radius > 0:
 			round, err = mixedFilletArcPair(in, out, s.Radius)
 		default:

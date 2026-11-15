@@ -28,14 +28,18 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 	if in.Radius > 0 {
 		line, arc, lineFirst = out, in, false
 	}
-	dir, lineOK := mixedFilletAxis(line)
-	if !lineOK || arc.Radius <= 0 {
-		return zero, fmt.Errorf("%w: expected an axis-aligned line and circular arc", ErrInvalid)
+	if line.Radius != 0 || arc.Radius <= 0 {
+		return zero, fmt.Errorf("%w: expected a line and circular arc", ErrInvalid)
 	}
+	dir, err := circularFilletUnitLine(line)
+	if err != nil {
+		return zero, err
+	}
+	normal := [2]q{qs(new(big.Rat), dir[1]), dir[0]}
 	at := out.Start
 	arcSense := mixedFilletCross(mixedFilletPoint(arc.Start, arc.Center), mixedFilletPoint(arc.End, arc.Center)).Sign()
 	radial := mixedFilletPoint(at, arc.Center)
-	turn := mixedFilletDot([2]q{big.NewRat(dir[0], 1), big.NewRat(dir[1], 1)}, radial).Sign() * arcSense
+	turn := mixedFilletDot(dir, radial).Sign() * arcSense
 	if !lineFirst {
 		turn = -turn
 	}
@@ -49,15 +53,10 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 	}
 	coords := func(p geom.Vec2) [2]q { return [2]q{num(p.X), num(p.Y)} }
 	a, c := coords(at), coords(arc.Center)
-	normal := [2]int64{-dir[1], dir[0]}
-	axis := 0
-	if dir[0] == 0 {
-		axis = 1
-	}
-	fixed := 1 - axis
-	center := [2]q{}
-	center[fixed] = qa(a[fixed], qm(r, big.NewRat(int64(turn)*normal[fixed], 1)))
-	d := qs(center[fixed], c[fixed])
+	toSupport := [2]q{qs(c[0], a[0]), qs(c[1], a[1])}
+	along := mixedFilletDot(dir, toSupport)
+	offset := qm(r, big.NewRat(int64(turn), 1))
+	d := qs(offset, mixedFilletDot(normal, toSupport))
 	delta2 := qs(qm(locusRadius, locusRadius), qm(d, d))
 	if delta2.Sign() < 0 {
 		return zero, ErrRadius
@@ -73,9 +72,9 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 		if side < 0 && delta.Sign() == 0 {
 			break
 		}
-		center[axis] = qa(c[axis], qm(delta, big.NewRat(side, 1)))
-		tangentLine := a
-		tangentLine[axis] = center[axis]
+		t := qa(along, qm(delta, big.NewRat(side, 1)))
+		tangentLine := [2]q{qa(a[0], qm(t, dir[0])), qa(a[1], qm(t, dir[1]))}
+		center := [2]q{qa(tangentLine[0], qm(offset, normal[0])), qa(tangentLine[1], qm(offset, normal[1]))}
 		tangentArc := [2]q{
 			qa(c[0], qm(scale, qs(center[0], c[0]))),
 			qa(c[1], qm(scale, qs(center[1], c[1]))),
