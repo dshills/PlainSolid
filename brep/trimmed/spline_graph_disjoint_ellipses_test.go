@@ -11,7 +11,6 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/intersect"
-	"strings"
 	"testing"
 )
 
@@ -73,15 +72,7 @@ func TestDisjointEllipseOriginalGraphBooleans(t *testing.T) {
 	for order, pair := range [][2]*geom.BSplineSurface{{a, b}, {b, a}} {
 		for _, op := range []parametric.BooleanOp{parametric.Intersection, parametric.Union, parametric.Difference} {
 			s, h, e := CombineDisjointEllipseContactSplineGraphs(ctx, base, pair[0], pair[1], op, 1e-9, intersect.SplinePlaneOptions{}, .5, hints, geom.GraphPointContactOptions{})
-			if order == 1 && op == parametric.Difference {
-				// The complete exact section is qualified, but the legacy wall
-				// display triangulator rejects its C0 strip. Keep this honest.
-				if e == nil || !strings.Contains(e.Error(), "sampled domain") || len(s.faces) != 0 || h.Section.Complete {
-					t.Fatal("unqualified exterior wall", e)
-				}
-				t.Log("remaining native exterior Cut gate", e)
-				continue
-			}
+
 			if e != nil {
 				t.Fatal(order, op, e)
 			}
@@ -123,6 +114,9 @@ func TestDisjointEllipseOriginalGraphBooleans(t *testing.T) {
 			loaded, e := ReadJSONContext(ctx, &data, JSONLimits{})
 			if e != nil {
 				t.Fatal(e)
+			}
+			if loaded.Topology().EulerCharacteristic != euler || len(loaded.Topology().Shells) != shells {
+				t.Fatal("restored material topology")
 			}
 			if e = validateExactGraphPartitionEdges(ctx, loaded, geom.GraphPointContactOptions{}); e != nil {
 				t.Fatal(e)

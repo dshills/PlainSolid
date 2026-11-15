@@ -27,6 +27,15 @@ func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int)
 	}
 	var splits []subdivision
 	for i, r := range rings {
+		// A repeated point must not disappear when both adjacent collinear
+		// occurrences are removed; restoring it would create a zero-area face.
+		seen := map[geom.Vec2]bool{}
+		for _, point := range r {
+			if !point.IsFinite() || seen[uv(point)] {
+				return nil, geom.ErrInvalid
+			}
+			seen[uv(point)] = true
+		}
 		var retained []int
 		for j, x := range r {
 			a, b := r[(j+len(r)-1)%len(r)], r[(j+1)%len(r)]
@@ -86,14 +95,19 @@ func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int)
 		}
 		prism, e := brep.PrismWithHoles(clean[0], clean[1:], geom.Vec3{Z: z})
 		if e != nil {
-			return nil, e
-		}
-		m := prism.Tessellate()
+			// The legacy prism path can reject nonzero represented turns.
+			// Independently prove complete exact coverage; never snap a corner.
+			// Prove the original rings, including every collinear subdivision,
+			// so no restoration or boundary atom can escape certification.
+			return triangulateExactUVFallback(ctx, rings, maximum)
+		} else {
+			m := prism.Tessellate()
 
-		for _, tri := range m.Triangles {
-			a, b, c := m.Vertices[tri[0]], m.Vertices[tri[1]], m.Vertices[tri[2]]
-			if a.Z == 0 && b.Z == 0 && c.Z == 0 {
-				out = append(out, [3]geom.Vec2{uv(a), uv(c), uv(b)})
+			for _, tri := range m.Triangles {
+				a, b, c := m.Vertices[tri[0]], m.Vertices[tri[1]], m.Vertices[tri[2]]
+				if a.Z == 0 && b.Z == 0 && c.Z == 0 {
+					out = append(out, [3]geom.Vec2{uv(a), uv(c), uv(b)})
+				}
 			}
 		}
 	}

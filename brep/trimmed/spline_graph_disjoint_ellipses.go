@@ -21,8 +21,6 @@ type DisjointEllipseGraphHistory struct {
 // with two holes; positive-inside Cut retains two separate closed lens shells.
 // Native arc conversion must be lossless. This does not discover arbitrary
 // multiple contours or widen the existing single-loop automatic dispatcher.
-// Existing native display validation may reject an otherwise certified exterior
-// Cut on nonsmooth original walls; no sampled-domain checks are bypassed.
 func CombineDisjointEllipseContactSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o intersect.SplinePlaneOptions, splitU float64, hints [2]geom.GraphEllipseHint, proof geom.GraphPointContactOptions) (Solid, DisjointEllipseGraphHistory, error) {
 	fail := func(e error) (Solid, DisjointEllipseGraphHistory, error) {
 		return Solid{}, DisjointEllipseGraphHistory{}, e
