@@ -24,17 +24,29 @@ type CoincidentSimpleRegionOptions struct {
 // Areas are exact UV areas, not curved model-space surface areas. The result
 // is a chart arrangement, with no solid Boolean or mesh acceptance implied.
 func (a Solid) BuildCoincidentSimpleRegions(ctx context.Context, fa int, b Solid, fb int, o CoincidentSimpleRegionOptions) (CoincidentChartRegions, error) {
-	return a.buildCoincidentSimpleRegions(ctx, fa, b, fb, o, false)
+	return a.buildCoincidentSimpleRegions(ctx, fa, b, fb, o, 0)
 }
 
 // BuildCoincidentSimpleHoledRegions additionally accepts one independently
-// validated simple straight hole per face. Bridge diagonals are temporary and
+// validated simple straight hole per face; the hole may itself be concave.
+// Bridge diagonals are temporary and
 // must cancel; all exposed hole ranges retain original source use ownership.
 func (a Solid) BuildCoincidentSimpleHoledRegions(ctx context.Context, fa int, b Solid, fb int, o CoincidentSimpleRegionOptions) (CoincidentChartRegions, error) {
-	return a.buildCoincidentSimpleRegions(ctx, fa, b, fb, o, true)
+	return a.buildCoincidentSimpleRegions(ctx, fa, b, fb, o, 1)
 }
 
-func (a Solid) buildCoincidentSimpleRegions(ctx context.Context, fa int, b Solid, fb int, o CoincidentSimpleRegionOptions, holes bool) (CoincidentChartRegions, error) {
+// BuildCoincidentMultiHoledRegions accepts up to maxHoles original holes per
+// face (1..8). Original loop/use indices are retained without canonicalizing
+// input hole order. MaxUses bounds all outer and hole uses across both faces;
+// triangulation, clipping and reconstruction retain their cumulative quotas.
+func (a Solid) BuildCoincidentMultiHoledRegions(ctx context.Context, fa int, b Solid, fb int, maxHoles int, o CoincidentSimpleRegionOptions) (CoincidentChartRegions, error) {
+	if maxHoles < 1 || maxHoles > 8 {
+		return CoincidentChartRegions{}, geom.ErrInvalid
+	}
+	return a.buildCoincidentSimpleRegions(ctx, fa, b, fb, o, maxHoles)
+}
+
+func (a Solid) buildCoincidentSimpleRegions(ctx context.Context, fa int, b Solid, fb int, o CoincidentSimpleRegionOptions, maxHoles int) (CoincidentChartRegions, error) {
 	fail := func(e error) (CoincidentChartRegions, error) { return CoincidentChartRegions{}, e }
 	if ctx == nil || fa < 0 || fa >= len(a.faces) || fb < 0 || fb >= len(b.faces) {
 		return fail(geom.ErrInvalid)
@@ -87,7 +99,7 @@ func (a Solid) buildCoincidentSimpleRegions(ctx context.Context, fa int, b Solid
 		return nil
 	}
 	for source, f := range faces {
-		if len(f.Holes) > 1 || (!holes && len(f.Holes) != 0) || len(f.Outer) < 3 {
+		if len(f.Holes) > maxHoles || len(f.Outer) < 3 {
 			return fail(geom.ErrConvergence)
 		}
 		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
