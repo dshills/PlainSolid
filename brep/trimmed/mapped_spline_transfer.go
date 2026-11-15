@@ -52,6 +52,9 @@ func ProveMappedSplineTransfer(ctx context.Context, support geom.Surface, source
 	if err != nil {
 		return zero, err
 	}
+	if len(a.Control) < 2 || len(b.Control) < 2 {
+		return zero, geom.ErrDegenerate
+	}
 	tangent := func(span geom.ExactBezierSpan, axis int) *big.Rat {
 		p, q := span.Control[0], span.Control[1]
 		num := new(big.Rat).Sub(new(big.Rat).Mul(q[axis], p[3]), new(big.Rat).Mul(p[axis], q[3]))
