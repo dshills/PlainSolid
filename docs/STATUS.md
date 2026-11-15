@@ -87,15 +87,23 @@ compact signed-frame mesh passed the five-fixture Go race and actual WASM runs.
 The pinned OCCT reference has been rebuilt, and the new live spherical,
 curved-node, mapped-shell, and original STEP repair comparisons passed.
 
-The fresh full Go and PlainCAD runs are still running against `48b0ce58`.
-The Go run has an independently enumerated inventory of 5,646 cases across
-52 tested packages, including 1,398 in five complete trimmed groups. Newer
-changes have focused checks, and `f5bfaac2` also passed `go vet ./...` and a
-Windows amd64 cross-build. The next active work covers multiple transverse
-nodes, mapped shell STEP transfer, tilted fixtures for bounded STEP repair,
-and algebraic line queries for large or nonrepresentable spherical-lens
-offsets. Broader general curved assembly, exchange, and qualification remain
-required by the specification.
+The [fresh full PlainCAD qualification](evidence/plaincad-main-48b0ce58-2026-11-15.json)
+passed 345 development, 66 production, 15 cross-browser, 1,691 ordinary
+unit and four WASM contract cases on kernel `48b0ce58` and app `efae4d2`.
+The build, both typechecks and bundle budget passed, and the production
+WASM bytes match the fresh build. The pinned full Go run is still working
+through its independently enumerated 5,646 cases across 52 tested packages,
+including 1,398 in the five trimmed groups. The ordinary package lane and
+two complete trimmed groups have passed. Newer changes have focused checks;
+`f5bfaac2` also passed `go vet ./...` and a Windows amd64 cross-build.
+
+Two transverse nodes now have complete exact branch and signed-region
+certificates, with native Common and Fuse under verification. Native analytic
+line clips cover large offsets and irrational sphere-lens rims. The separately
+bounded, tilted single-fillet STEP reader passed independent OCCT fixtures.
+The next active work covers native two-node operations, mapped shell STEP
+transfer, tilted grouped repair, and further native offset qualification.
+Broader general curved assembly, exchange, and qualification remain required.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original

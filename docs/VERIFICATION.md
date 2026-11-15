@@ -6902,3 +6902,30 @@ that radius. `f5bfaac2` additionally passes exact point classification across
 the original cap/rim joins and on opposite sides separated by one ULP. The
 point proof supports an oblique irrational rim without a native floating
 support. Vet and the Windows amd64 cross-build on the pinned snapshot passed.
+
+The [November 15 complete PlainCAD run](evidence/plaincad-main-48b0ce58-2026-11-15.json)
+passes all eight gates on provider `48b0ce58` and app `efae4d2`. The reports
+account for 345 development, 66 production, 15 cross-browser, 1,691 ordinary
+unit and four selected WASM cases with zero failed, skipped or flaky cases.
+The generated WASM matches the production asset, the browser driver matches
+its pristine hash, and all 72 JavaScript bundles pass the 500 kB budget.
+The manifest identifies both already documented test-only corrections and
+the durable workspace archive.
+
+The exact lens line tests (`2cd46dba`) include rational cap-to-rim joins,
+isolated tangency, clipped interior ranges, both operand orders of an unequal
+sphere pair whose radical plane lies beyond a center, and exact algebraic
+contact parameters for an oblique irrational rim. `b0752ce1` independently
+verifies area and volume against pinned OCCT rolling offsets of 0.5, 4 and 12.
+The reference returned one closed shell of three faces at every distance;
+the comparator validated closure, made an oriented solid, and checked it
+with OCCT's standard analyzer before measuring.
+
+The two-node original arrangement (`6b45e67e`) passed its focused race
+suite, with two exact transverse vertices, six original branch pieces,
+five signed regions, both chart axes and both operand orders. Its native
+admission and representability gate is separately exercised. The rational
+tilt STEP reader (`c491b216`) passed the standard convex-arc focused race
+suite in 32.811 seconds with the live pinned reference. The single-fillet
+source and translated source preserve original world placement, 24 original
+owner claims, and eight independently bounded finite planar owner intervals.
