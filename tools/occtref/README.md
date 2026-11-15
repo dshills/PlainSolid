@@ -58,6 +58,8 @@ Boolean and modeling toolkits. `PLAINSOLID_OCCT_CIRCULAR_SWEEP_INSET` points
 to this helper for `TestExactCircularSweepInsetLiveOCCT`.
 Its `complete` mode fuses equal cap footprints with two through-holes for
 `TestExactCircularSweepCompleteCapLiveOCCT`.
+Its `overlay` mode measures an independent circular solid with a square
+through-hole for `TestExactCircularSweepCapOverlayLiveOCCT`.
 
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test

@@ -14,8 +14,9 @@
 #include <string_view>
 
 int main(int argc, char** argv) {
-    const bool full = argc == 2 && std::string_view(argv[1]) == "complete";
-    if (argc != 1 && !full) return 1;
+    const std::string_view mode = argc == 2 ? argv[1] : "";
+    const bool full = mode == "complete", overlay = mode == "overlay";
+    if (argc != 1 && !full && !overlay) return 1;
     const auto cylinder = [](double x, double y, double z, double r, double height) {
         return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(x,y,z),gp_Dir(0.,0.,1.)),r,height).Shape();
     };
@@ -33,6 +34,13 @@ int main(int argc, char** argv) {
         if (!bothUpper.IsDone()) return 4;
         lower=bothLower.Shape();
         upper=bothUpper.Shape();
+    }
+    if (overlay) {
+        const auto aperture=BRepPrimAPI_MakeBox(gp_Pnt(-1.,-1.,-3.),2.,2.,7.).Shape();
+        BRepAlgoAPI_Cut a(cylinder(0.,0.,-2.,5.,2.),aperture), b(cylinder(0.,0.,0.,5.,3.),aperture);
+        if (!a.IsDone() || !b.IsDone()) return 4;
+        lower=a.Shape();
+        upper=b.Shape();
     }
     BRepAlgoAPI_Fuse joined(lower,upper);
     if (!joined.IsDone() || joined.Shape().IsNull() || !BRepCheck_Analyzer(joined.Shape()).IsValid()) return 3;
