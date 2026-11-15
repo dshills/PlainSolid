@@ -67,7 +67,7 @@ func (r *SplineGraphPolynomialMixedContact) certifyArrangement(ctx context.Conte
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
 	stations := [4]*big.Rat{new(big.Rat).SetFloat64(d.UMin), roots[0], roots[1], new(big.Rat).SetFloat64(d.UMax)}
-	orders, e := certifyPolynomialGraphMixedOrders(r.FreeAxis, r.Power, stations[:], r.Nodes[:], b)
+	orders, e := certifyPolynomialGraphContactOrders(r.FreeAxis, r.Power, stations[:], r.Nodes[:], 1, b)
 	if e != nil {
 		return e
 	}
@@ -82,22 +82,24 @@ func (r *SplineGraphPolynomialMixedContact) certifyArrangement(ctx context.Conte
 	return ctx.Err()
 }
 
-type polynomialGraphMixedOrders struct {
+type polynomialGraphContactOrders struct {
 	orders   []int
 	gaps     []*big.Rat
 	lower    []int
 	cofactor rationalPolynomial
 }
 
-// certifyPolynomialGraphMixedOrders rechecks the local derivatives and the
-// complete factorization for one quadratic tangency and one or two crossings.
-func certifyPolynomialGraphMixedOrders(axis int, power [2][]*big.Rat, stations []*big.Rat, nodes []SplineGraphPolynomialJunction, b *polynomialBudget) (polynomialGraphMixedOrders, error) {
-	zero := polynomialGraphMixedOrders{}
+// certifyPolynomialGraphContactOrders rechecks the local derivatives and the
+// complete factorization of the prescribed simple and double roots. These
+// profiles use at least three degrees, leaving a constant or affine cofactor.
+func certifyPolynomialGraphContactOrders(axis int, power [2][]*big.Rat, stations []*big.Rat, nodes []SplineGraphPolynomialJunction,
+	expectedTangencies int, b *polynomialBudget) (polynomialGraphContactOrders, error) {
+	zero := polynomialGraphContactOrders{}
 	delta, e := graphPolynomialSum(power[1], power[0], -1, b)
 	if e != nil {
 		return zero, e
 	}
-	out := polynomialGraphMixedOrders{
+	out := polynomialGraphContactOrders{
 		orders: make([]int, len(nodes)), gaps: make([]*big.Rat, len(nodes)),
 		lower: make([]int, len(nodes)+1), cofactor: delta,
 	}
@@ -146,13 +148,13 @@ func certifyPolynomialGraphMixedOrders(axis int, power [2][]*big.Rat, stations [
 			}
 		}
 	}
-	// Each node accounts for one degree, and the double root for one more.
+	// Each node accounts for one degree, and each double root for one more.
 	maxCofactorCoefficients := 5 - len(nodes) - tangencies
-	if tangencies != 1 || len(out.cofactor) == 0 || len(out.cofactor) > maxCofactorCoefficients {
+	if tangencies != expectedTangencies || len(out.cofactor) == 0 || len(out.cofactor) > maxCofactorCoefficients {
 		return zero, ErrConvergence
 	}
 	// At the low endpoint the gap is positive and each simple monic factor
-	// is negative. The squared factor is positive. The constant or affine
+	// is negative. Every squared factor is positive. The constant or affine
 	// cofactor has the resulting strict sign throughout if both ends do.
 	crossings := len(nodes) - tangencies
 	sign := 1 - 2*(crossings%2)
