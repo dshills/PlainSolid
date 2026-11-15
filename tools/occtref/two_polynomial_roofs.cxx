@@ -3,6 +3,7 @@
 // A-B=(105/128)(v-f(u))(v-g(u)), B=3+uv/64, base=0.
 // f=1/4+3u/8-3u^2/8+u^3/8; g=5/8+u^4/8.
 // The node modes use g=f+(1-2u)(1+u^3)/64 for Common, Fuse and Cut.
+// The two-node mode uses g=f+(4u-1)(4u-3)(1+u^2)/32 for Common and Fuse.
 // The common denominator multiplier makes every degree-eight model pole dyadic.
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
@@ -26,10 +27,8 @@
 #include <string>
 #include <vector>
 
-static TopoDS_Solid stock(bool raised, bool node) {
+static TopoDS_Solid stock(bool raised, const double* g, int axis) {
   const double v[]={0,.5,1}, f[]={.25,.375,-.375,.125,0};
-  const double disjoint[]={.625,0,0,0,.125}, crossing[]={17.0/64,11.0/32,-.375,9.0/64,-1.0/32};
-  const auto* g=node?crossing:disjoint;
   double x[9],sum[9]={},prod[9]={};
   for(int i=0;i<9;++i)x[i]=i/8.0;
   for(int i=0;i<5;++i){sum[i]=f[i]+g[i];for(int j=0;j<5;++j)prod[i+j]+=f[i]*g[j];}
@@ -39,9 +38,15 @@ static TopoDS_Solid stock(bool raised, bool node) {
   BRepBuilderAPI_Sewing sewing(1e-10);
   auto face=[&](int nu,int nv,bool reverse,const std::function<gp_Pnt(int,int)>& point){
     NCollection_Array2<gp_Pnt> poles(1,nu,1,nv);
-    for(int i=0;i<nu;++i)for(int j=0;j<nv;++j)poles.SetValue(i+1,j+1,point(i,j));
+    for (int i = 0; i < nu; ++i) for (int j = 0; j < nv; ++j) {
+      auto p = point(i, j);
+      if (axis == 1) p.SetCoord(p.Y(), p.X(), p.Z());
+      poles.SetValue(i+1, j+1, p);
+    }
     occ::handle<Geom_BezierSurface> support=new Geom_BezierSurface(poles);
-    auto f=BRepBuilderAPI_MakeFace(support,1e-10).Face();if(reverse)f.Reverse();sewing.Add(f);
+    auto f = BRepBuilderAPI_MakeFace(support, 1e-10).Face();
+    if (reverse != (axis == 1)) f.Reverse();
+    sewing.Add(f);
   };
   face(2,2,true,[&](int i,int j){return gp_Pnt(i,j,0);});
   face(9,3,false,[&](int i,int j){return gp_Pnt(x[i],v[j],roof(i,j));});
@@ -57,37 +62,47 @@ static TopoDS_Solid stock(bool raised, bool node) {
 int main(int argc, char** argv){
   const std::string mode = argc == 2 ? argv[1] : "";
   const bool cut = mode == "node-cut";
-  const bool node = cut || mode == "node";
-  if (argc != 1 && !node) return 2;
+  const bool twoNodes = mode == "node-pair";
+  const bool oneNode = cut || mode == "node";
+  if (argc != 1 && !oneNode && !twoNodes) return 2;
+  const double disjoint[] = {.625, 0, 0, 0, .125};
+  const double crossing[] = {17.0/64, 11.0/32, -.375, 9.0/64, -1.0/32};
+  const double twiceCrossing[] = {11.0/32, -1.0/8, 7.0/32, -3.0/8, .5};
+  const auto* g = oneNode ? crossing : (twoNodes ? twiceCrossing : disjoint);
   const int firstOperation = cut ? 2 : 0;
-  const int operationEnd = mode == "node" ? 2 : 3;
-  auto a=stock(true,node),b=stock(false,node);std::cout<<std::setprecision(17)<<"[";bool first=true;
-  for(int order=0;order<2;++order){auto x=order?b:a,y=order?a:b;
-    for(int op=firstOperation;op<operationEnd;++op){TopoDS_Shape s;
-      if(op==0){BRepAlgoAPI_Common f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
-      else if(op==1){BRepAlgoAPI_Fuse f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
-      else{BRepAlgoAPI_Cut f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
-      GProp_GProps mass;BRepGProp::VolumeProperties(s,mass,1e-10);int solids=0;
-      std::vector<double> partVolumes;
-      for (TopExp_Explorer it(s, TopAbs_SOLID); it.More(); it.Next()) {
-        ++solids;
+  const int operationEnd = mode == "node" || twoNodes ? 2 : 3;
+  std::cout << std::setprecision(17) << "[";
+  bool first = true;
+  for (int axis = 0; axis < (twoNodes ? 2 : 1); ++axis) {
+    auto a = stock(true, g, axis), b = stock(false, g, axis);
+    for(int order=0;order<2;++order){auto x=order?b:a,y=order?a:b;
+      for(int op=firstOperation;op<operationEnd;++op){TopoDS_Shape s;
+        if(op==0){BRepAlgoAPI_Common f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
+        else if(op==1){BRepAlgoAPI_Fuse f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
+        else{BRepAlgoAPI_Cut f(x,y);if(!f.IsDone())return 2;s=f.Shape();}
+        GProp_GProps mass;BRepGProp::VolumeProperties(s,mass,1e-10);int solids=0;
+        std::vector<double> partVolumes;
+        for (TopExp_Explorer it(s, TopAbs_SOLID); it.More(); it.Next()) {
+          ++solids;
+          if (cut) {
+            GProp_GProps part;
+            BRepGProp::VolumeProperties(it.Current(), part, 1e-10);
+            partVolumes.push_back(part.Mass());
+          }
+        }
+        if(!first)std::cout<<",";first=false;
+        std::cout<<"{\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass();
+        if (twoNodes) std::cout << ",\"Axis\":" << axis;
         if (cut) {
-          GProp_GProps part;
-          BRepGProp::VolumeProperties(it.Current(), part, 1e-10);
-          partVolumes.push_back(part.Mass());
+          std::cout << ",\"PartVolumes\":[";
+          for (std::size_t i = 0; i < partVolumes.size(); ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << partVolumes[i];
+          }
+          std::cout << "]";
         }
+        std::cout<<"}";
       }
-      if(!first)std::cout<<",";first=false;
-      std::cout<<"{\"Order\":"<<order<<",\"Operation\":"<<op<<",\"Valid\":"<<(BRepCheck_Analyzer(s).IsValid()?"true":"false")<<",\"Solids\":"<<solids<<",\"Volume\":"<<mass.Mass();
-      if (cut) {
-        std::cout << ",\"PartVolumes\":[";
-        for (std::size_t i = 0; i < partVolumes.size(); ++i) {
-          if (i > 0) std::cout << ",";
-          std::cout << partVolumes[i];
-        }
-        std::cout << "]";
-      }
-      std::cout<<"}";
     }
   }
   std::cout<<"]\n";
