@@ -72,3 +72,63 @@ func TestEdgeContactPairNativeJSON(t *testing.T) {
 		t.Fatalf("bounded writer published a partial receipt: %v", err)
 	}
 }
+
+func TestEdgeIntervalContactPairNativeJSON(t *testing.T) {
+	ctx := context.Background()
+	a, err := brep.Box(geom.Vec3{}, geom.Vec3{X: 1, Y: 1, Z: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := brep.Box(geom.Vec3{X: 1, Y: 1, Z: 1}, geom.Vec3{X: 2, Y: 2, Z: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	edge := func(s brep.Solid) int {
+		t.Helper()
+		v := s.Vertices()
+		for i, e := range s.Edges() {
+			p, q := v[e.Start], v[e.End]
+			if p.X == 1 && p.Y == 1 && q.X == 1 && q.Y == 1 {
+				return i
+			}
+		}
+		t.Fatal("no original directed shared-edge support")
+		return -1
+	}
+	edges := [2]int{edge(a), edge(b)}
+	parts := [2]brep.Solid{a, b}
+	o := EdgeContactPairJSONOptions{}
+	var out, again bytes.Buffer
+	if err := WriteEdgeIntervalContactPairJSON(ctx, &out, parts, edges, o); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, proof, err := ReadEdgeIntervalContactPairJSON(ctx, bytes.NewReader(out.Bytes()), o)
+	if err != nil || proof.EdgeA != edges[0] || proof.EdgeB != edges[1] ||
+		proof.SignedVolume.RatString() != "6" || proof.Start.Z == proof.End.Z {
+		t.Fatalf("native subinterval reproof: %+v %v", proof, err)
+	}
+	if err := WriteEdgeIntervalContactPairJSON(ctx, &again, reloaded, edges, o); err != nil || !bytes.Equal(out.Bytes(), again.Bytes()) {
+		t.Fatalf("exact subinterval receipt changed on reload: %v", err)
+	}
+	if _, _, err := ReadEdgeContactPairJSON(ctx, bytes.NewReader(out.Bytes()), o); !errors.Is(err, collision.ErrInvalid) {
+		t.Fatalf("whole-edge reader widened to a partial receipt: %v", err)
+	}
+	for _, change := range []func(*edgeContactPairWitness){
+		func(w *edgeContactPairWitness) { w.Intervals[0][0] = "1/5" },
+		func(w *edgeContactPairWitness) { w.Intervals[1] = append(w.Intervals[1], "1/2") },
+	} {
+		var doc edgeContactPairDocument
+		if err := json.Unmarshal(out.Bytes(), &doc); err != nil {
+			t.Fatal(err)
+		}
+		change(doc.Witness)
+		raw, err := json.Marshal(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b, p, err := ReadEdgeIntervalContactPairJSON(ctx, bytes.NewReader(raw), o); !errors.Is(err, collision.ErrInvalid) ||
+			len(b[0].Vertices()) != 0 || p.SignedVolume != nil {
+			t.Fatalf("inconsistent persisted source interval published topology: %v", err)
+		}
+	}
+}
