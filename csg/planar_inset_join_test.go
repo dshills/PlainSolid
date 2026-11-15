@@ -99,3 +99,81 @@ func TestJoinPlanarInsetPreservesExistingIndependentHostHole(t *testing.T) {
 		t.Fatalf("empty host hole was used as a contact surface: %v", err)
 	}
 }
+
+func TestJoinPlanarInsetsRetainsTwoDisjointBridgeFeet(t *testing.T) {
+	ctx := context.Background()
+	host := insetBox(t, geom.Vec3{}, geom.Vec3{X: 5, Y: 4, Z: 1})
+	xz := [][2]float64{{1, 1}, {2, 1}, {2, 2}, {3, 2}, {3, 1}, {4, 1}, {4, 3}, {1, 3}}
+	loop := make([]geom.Vec3, len(xz))
+	for i, p := range xz {
+		loop[i] = geom.Vec3{X: p[0], Y: 1, Z: p[1]}
+	}
+	tool, err := brep.Prism(loop, geom.Vec3{Y: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []int
+	v, e := tool.Vertices(), tool.Edges()
+	for i, f := range tool.Faces() {
+		on := true
+		for _, u := range f.Boundary {
+			w := e[u.Edge]
+			on = on && v[w.Start].Z == 1 && v[w.End].Z == 1
+		}
+		if on {
+			ids = append(ids, i)
+		}
+	}
+	if len(ids) != 2 {
+		t.Fatal("fixture needs two original bridge pads", ids)
+	}
+	s, h, err := JoinPlanarInsets(ctx, host, tool, 1, ids, collision.PlanarFaceContactOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := s.MassProperties()
+	if err != nil || h.Contact.SignedVolume.RatString() != "25" || len(s.Faces()) != 14 ||
+		len(s.Faces()[1].Holes) != 2 || math.Abs(m.SurfaceArea-76) > 1e-13 {
+		t.Fatalf("joined bridge loses one original inset: %+v %+v %v", h.Contact, m, err)
+	}
+	for i, id := range ids {
+		if h.Owners[1].Faces[id] != -1 || h.Contact.Tools[i].TwiceToolArea.RatString() != "2" {
+			t.Fatalf("lost exact bridge pad %d", id)
+		}
+		for j, u := range tool.Faces()[id].Boundary {
+			old := h.Owners[1].Edges[u.Edge]
+			old.Reversed = u.Reversed
+			if s.Faces()[1].Holes[i][j] != old {
+				t.Fatal("lost original separate bridge footprint", i, j)
+			}
+		}
+	}
+	loc, err := collision.NewPointLocator(ctx, s, collision.LocationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []struct {
+		x, z float64
+		want collision.Location
+	}{
+		{1.5, 1, collision.Inside},
+		{3.5, 1, collision.Inside},
+		{2.5, 1.5, collision.Outside},
+		{2.5, 2.5, collision.Inside},
+	} {
+		r, err := loc.Locate(ctx, geom.Vec3{X: q.x, Y: 1.5, Z: q.z})
+		if err != nil || r.Location != q.want {
+			t.Fatalf("bridge point %v: %+v %v", q, r, err)
+		}
+	}
+	discovered, proof, err := JoinCoincidentPlanarInsets(ctx, host, tool, collision.PlanarFaceContactOptions{})
+	if err != nil || !reflect.DeepEqual(s, discovered) || !reflect.DeepEqual(h, proof) {
+		t.Fatalf("automatic inset changed original bridge pads: %+v %v", proof, err)
+	}
+	for _, bad := range [][]int{ids[:1], {ids[0], ids[0]}} {
+		s, h, err := JoinPlanarInsets(ctx, host, tool, 1, bad, collision.PlanarFaceContactOptions{})
+		if !errors.Is(err, collision.ErrInvalid) || len(s.Faces()) != 0 || h.Contact.SignedVolume != nil {
+			t.Fatalf("incomplete bridge produced material: %+v %v", h, err)
+		}
+	}
+}

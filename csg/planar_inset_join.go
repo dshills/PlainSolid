@@ -20,12 +20,29 @@ type PlanarInsetJoinHistory struct {
 // meets the strict interior of a larger host face. The host exterior face
 // retains its original outer boundary and any existing holes.
 func JoinPlanarInset(ctx context.Context, host, tool brep.Solid, hostFace, toolFace int, o collision.PlanarFaceContactOptions) (brep.Solid, PlanarInsetJoinHistory, error) {
-	var zero PlanarInsetJoinHistory
-	p, err := collision.ValidatePlanarInsetContact(ctx, host, tool, hostFace, toolFace, o)
+	s, h, err := JoinPlanarInsets(ctx, host, tool, hostFace, []int{toolFace}, o)
+	if err != nil {
+		return brep.Solid{}, PlanarInsetJoinHistory{}, err
+	}
+	return s, PlanarInsetJoinHistory{Owners: h.Owners, Contact: h.Contact.Tools[0]}, nil
+}
+
+// PlanarInsetSetJoinHistory retains every original tool disk and maps the
+// corresponding whole boundary to a separate hole in the original host face.
+type PlanarInsetSetJoinHistory struct {
+	Owners  [2]PlanarFaceJoinOwner
+	Contact collision.PlanarInsetContactSet
+}
+
+// JoinPlanarInsets attaches a single tool across several disjoint complete
+// tool faces contained strictly in the same host face.
+func JoinPlanarInsets(ctx context.Context, host, tool brep.Solid, hostFace int, toolFaces []int, o collision.PlanarFaceContactOptions) (brep.Solid, PlanarInsetSetJoinHistory, error) {
+	var zero PlanarInsetSetJoinHistory
+	p, err := collision.ValidatePlanarInsetContactSet(ctx, host, tool, hostFace, toolFaces, o)
 	if err != nil {
 		return brep.Solid{}, zero, err
 	}
-	h := PlanarInsetJoinHistory{Contact: p}
+	h := PlanarInsetSetJoinHistory{Contact: p}
 	hv, he, hf := host.Vertices(), host.Edges(), host.Faces()
 	tv, te, tf := tool.Vertices(), tool.Edges(), tool.Faces()
 	vo, eo := len(hv), len(he)
@@ -61,12 +78,16 @@ func JoinPlanarInset(ctx context.Context, host, tool brep.Solid, hostFace, toolF
 		b.Edges[i].Edge = eo + i
 	}
 	f := hf
+	removed := make([]bool, len(tf))
+	for _, q := range p.Tools {
+		removed[q.ToolFace] = true
+	}
 	for i, face := range tf {
 		if err := ctx.Err(); err != nil {
 			return brep.Solid{}, zero, err
 		}
 		mapWire(face.Boundary)
-		if i == toolFace {
+		if removed[i] {
 			b.Faces[i] = -1
 			f[hostFace].Holes = append(f[hostFace].Holes, face.Boundary)
 			continue
