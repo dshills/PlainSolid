@@ -194,6 +194,15 @@ func CombineSplineGraphSolids(ctx context.Context, base, a, b *geom.BSplineSurfa
 					return q, elliptical, nil
 				}
 				h.Ellipse = elliptical.Ellipse
+				if errors.Is(e, geom.ErrUnrepresentable) {
+					arcs, arcErr := geom.DiscoverSplineGraphRationalCircleArcs(ctx, ap, bp, geom.RationalCircleArcDiscoveryOptions{GraphPointContactOptions: proof})
+					if arcErr == nil {
+						q, rational, rationalErr := assembleRationalEllipseGraphBoolean(ctx, base, a, b, op, tolerance, arcs, proof)
+						if rationalErr == nil {
+							return q, rational, nil
+						}
+					}
+				}
 			}
 			if !ellipse.Proven {
 				rotated, rotatedErr := geom.DiscoverSplineGraphQuadraticEllipse(ctx, ap, bp, proof)

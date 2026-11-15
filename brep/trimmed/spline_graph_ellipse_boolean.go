@@ -255,6 +255,12 @@ func CombineRationalEllipseContactSplineGraphs(ctx context.Context, base, a, b *
 	if e != nil {
 		return Solid{}, h, e
 	}
+	return assembleRationalEllipseGraphBoolean(ctx, base, a, b, op, tolerance, arcs, proof)
+}
+
+// The arc data is private input produced by an original-support certifier.
+func assembleRationalEllipseGraphBoolean(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, arcs geom.SplineGraphQuadraticEllipseArcs, proof geom.GraphPointContactOptions) (Solid, SplineGraphBooleanHistory, error) {
+	h := SplineGraphBooleanHistory{TopA: -1, TopB: -1, Base: -1}
 	if !arcs.Complete || !arcs.Certificate.Proven || arcs.Certificate.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) {
 		return Solid{}, h, geom.ErrConvergence
 	}
