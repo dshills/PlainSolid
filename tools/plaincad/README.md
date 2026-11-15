@@ -75,6 +75,12 @@ original PlainCAD fixtures. Enable it with `--side-dual-disk-fixture --test
 e2e/plainsolid-side-dual-disk.spec.ts --grep 'Go WASM overlap'`. The harness
 adds the fixture only to the disposable copy and records its source hash.
 
+Run the supplemental TypeScript STEP repair fixture against real Go WASM in
+the disposable app with `--suite unit --step-repair-fixture`. The harness
+typechecks the adapter and records the fixture and original STEP input hashes.
+The cases cover signed and rationally tilted placements, source proof transport,
+world meshes, and strict canonical STEP reimport and re-export.
+
 ## What changes in the isolated app
 
 - The `OpenCascadeKernel` import boundary is replaced by `PlainSolidKernel.ts`.
@@ -131,7 +137,9 @@ placed bounds, cancellation, stale-result, persistence, and STL assertions.
 The raw `plainSolidCall` JSON bridge supports explicit bounded repair for the
 qualified default OCCT fillet sources. Supply the original STEP text as
 `source` and set `stepRepair` to `{"maxDistance": 1e-12, "native": true}`
-on `importStep`. The finite positive distance is in source length units.
+on `importStep`. Use `nativeText: true` to receive the native document as
+`nativeProofJSON`, preserving its original JSON number spellings in JavaScript.
+The finite positive distance is in source length units.
 The bridge tries strict import first. If strict import fails as unsupported,
 it can prove a single fillet, a pair of fillets, signed-coordinate poses of
 the grouped source, or qualified exactly rational tilted placements of the
@@ -148,6 +156,20 @@ allows complete reproof. These fields are present on the repaired import
 result and subsequent inspection. Export writes the repaired material as
 canonical model-only STEP in millimetres, verified by ordinary strict
 readback. The original pcurve evidence remains in the native proof record.
+
+On the concrete TypeScript adapter, use the optional second argument to opt in
+from an isolated worker and read the source evidence from the live shape.
+
+```ts
+const shape = kernel.importStep(source, { stepRepair: { maxDistance: 1e-12, native: true } });
+const evidence = kernel.nativeStepRepairEvidence(shape);
+```
+
+`evidence` is absent when the import succeeds strictly. On repaired shapes it
+contains the typed `repairEvidence` summary and, with `native: true`, the
+opaque `nativeProofJSON` string. Pass that string unchanged to the native
+proof reader. The existing `KernelAdapter.importStep(source)` interface
+continues to use strict import.
 
 For convex repaired or canonical circular extrusions in signed-coordinate
 frames, the bridge subdivides the exact circular profile once and shares the

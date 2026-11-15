@@ -13,7 +13,63 @@ import { withDisposableScope } from "./disposableScope";
 import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
-type Proof = { handle: string; geometryAssertions: GeometryAssertions; bounds: BoundingBox };
+export interface StepRepairOptions {
+  /** Positive finite displacement in the source STEP's length units. */
+  readonly maxDistance: number;
+  /** Include source-bound proof JSON for independent native reproof. */
+  readonly native?: boolean;
+}
+export interface StepImportOptions {
+  readonly stepRepair?: StepRepairOptions;
+}
+type StepRationalPoint = readonly [string, string, string];
+type StepRationalPoseRow = readonly [string, string, string, string];
+export interface StepRepairEvidence {
+  readonly family: "occt-single-pcurve-convex-arc" | "occt-grouped-pcurve-convex-arc"
+    | "occt-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-single-pcurve-convex-arc"
+    | "occt-rational-posed-grouped-pcurve-convex-arc";
+  readonly sourceSHA256: string;
+  /** Source length unit, in metres. */
+  readonly lengthUnit: number;
+  readonly maxDistance: number;
+  /** Display entity IDs. The native proof retains the original integer lexemes. */
+  readonly provenance: {
+    readonly ProductID: number;
+    readonly DefinitionID: number;
+    readonly Body: number;
+    readonly Shell: number;
+    readonly Caps: readonly [number, number];
+    readonly Walls: readonly number[];
+    readonly VerticalEdges: readonly number[];
+    readonly Rims: readonly [readonly number[], readonly number[]];
+    readonly Vertices: readonly [readonly number[], readonly number[]];
+  };
+  readonly repairs: readonly {
+    readonly PointID: number;
+    readonly Role: string;
+    readonly Original: StepRationalPoint;
+    readonly Repaired: StepRationalPoint;
+    readonly SquaredDistance: string;
+  }[];
+  readonly pcurveOwners: number;
+  readonly rationalCaps?: number;
+  readonly finiteLineOwners?: number;
+  readonly axialTrims?: number;
+  readonly worldPose?: readonly [StepRationalPoseRow, StepRationalPoseRow, StepRationalPoseRow];
+}
+export interface NativeStepRepairEvidence {
+  readonly repairEvidence: StepRepairEvidence;
+  /** Opaque JSON for the exchange reader. Keep this string intact for reproof. */
+  readonly nativeProofJSON?: string;
+}
+
+type Proof = {
+  handle: string;
+  geometryAssertions: GeometryAssertions;
+  bounds: BoundingBox;
+  repairEvidence?: StepRepairEvidence;
+  nativeProofJSON?: string;
+};
 type DisplayEdgeBudget = { edgeUses: number };
 type Handle = {
   proof: Proof;
@@ -785,9 +841,19 @@ export class OpenCascadeKernel implements KernelAdapter {
     progress?.("lead_pair_fit");
     request({ op: "assertLeadPair", a: handle(screw).proof.handle, b: handle(nut).proof.handle, lead: dimensions });
   }
-  importStep(source: string): KernelShape {
+  importStep(source: string, options?: StepImportOptions): KernelShape {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated browser worker.");
-    return owned(request({ op: "importStep", source }), "stepImport");
+    const repair = options?.stepRepair;
+    const stepRepair = repair && { maxDistance: repair.maxDistance, nativeText: repair.native };
+    return owned(request({ op: "importStep", source, stepRepair }), "stepImport");
+  }
+  nativeStepRepairEvidence(shape: KernelShape): NativeStepRepairEvidence | undefined {
+    const state = handle(shape);
+    if (!state?.proof || state.disposed) throw new Error("STEP repair evidence requires a live native shape.");
+    const { repairEvidence, nativeProofJSON } = state.proof;
+    if (!repairEvidence) return undefined;
+    const copy = structuredClone(repairEvidence);
+    return nativeProofJSON === undefined ? { repairEvidence: copy } : { repairEvidence: copy, nativeProofJSON };
   }
   exportStep(shapes: readonly KernelShape[]): NativeStepExport {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP export requires an isolated browser worker.");
