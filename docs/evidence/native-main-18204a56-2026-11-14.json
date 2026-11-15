@@ -30,16 +30,37 @@
     "CGO_ENABLED": 1,
     "timeoutMinutes": 145,
     "GOMAXPROCS": 2,
-    "status": "all packages outside brep/trimmed completed; three trimmed lanes running",
-    "checkpointAt": "2026-11-14T16:48:27-06:00",
+    "status": "all 50 tested packages outside brep/trimmed passed; three original trimmed shards hit the watchdog; continuation running",
+    "checkpointAt": "2026-11-14T18:08:00-06:00",
     "remainingIfInterrupted": {
       "runner": "/tmp/plainsolid-18204a56-race-continuation.py",
       "planAndResults": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
       "selection": "Every top-level test missing a pass or explicit skip in the original race JSON is selected after original package completion.",
       "source": "The same immutable production source with only the verified 313dfb62 assertion correction."
+    },
+    "originalTrimmedWatchdogTests": {
+      "trimmed-0-race": "TestChamferedAnnularPrism",
+      "trimmed-1-race": "TestCertifiedExactOwnerAnnularRegion",
+      "trimmed-2-race": "TestCertifiedSelectedNestedDiskAnnulus"
+    },
+    "originalRaceArchive": {
+      "path": "/tmp/plainsolid-18204a56-original-race-artifacts-2026-11-14.tar.gz",
+      "bytes": 435565,
+      "sha256": "f90181cce606a4dc85098861dd031ba1bdb58a84cbbb47499e93265ba28a5371"
+    },
+    "continuation": {
+      "directory": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
+      "status": "running",
+      "totalTopLevelTargets": 804,
+      "targetDispositionAtCheckpoint": {
+        "pass": 42
+      },
+      "batchCount": 12,
+      "planSHA256": "cc872f191a2d3589ba3b0812e9050c0cb15a4a624c4e68afcc36737a71629068",
+      "concurrency": 4
     }
   },
-  "status": "running",
+  "status": "race continuation running",
   "lanes": {
     "packages-normal": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-normal.jsonl",
@@ -99,19 +120,25 @@
     },
     "trimmed-0-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-0-race.jsonl",
-      "sha256AtCheckpoint": "33c355f90f73abb82fbeaa05e59dc6c7c0fd082c20ad67ef6388352de893f1b3",
-      "bytesAtCheckpoint": 33581,
-      "packageOutcomes": {},
+      "sha256AtCheckpoint": "ef6aef908ecd9f5fe1423db2580852565a34ebee461310c3688f56a9ed0fabec",
+      "bytesAtCheckpoint": 110284,
+      "packageOutcomes": {
+        "fail": 1
+      },
       "testOutcomesIncludingSubtests": {
-        "pass": 35
+        "pass": 111
       },
       "topLevelTestOutcomes": {
-        "pass": 33
+        "pass": 104
       },
-      "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestMixedOriginalAutomaticCompleteMesh"
-      },
-      "failures": []
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": [
+        {
+          "package": "plainsolid/brep/trimmed",
+          "reason": "package watchdog elapsed",
+          "interruptedTest": "TestChamferedAnnularPrism"
+        }
+      ]
     },
     "trimmed-1-normal": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-normal.jsonl",
@@ -133,19 +160,25 @@
     },
     "trimmed-1-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-1-race.jsonl",
-      "sha256AtCheckpoint": "303f4596039aefd4a1a518223ce0e50e116f203efb7f84573028fcbf62414412",
-      "bytesAtCheckpoint": 55302,
-      "packageOutcomes": {},
+      "sha256AtCheckpoint": "27c22a086bca97400b03941b25ee5db082dca03f8d184a95b15001416370cfbd",
+      "bytesAtCheckpoint": 78847,
+      "packageOutcomes": {
+        "fail": 1
+      },
       "testOutcomesIncludingSubtests": {
-        "pass": 59
+        "pass": 66
       },
       "topLevelTestOutcomes": {
-        "pass": 54
+        "pass": 61
       },
-      "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
-      },
-      "failures": []
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": [
+        {
+          "package": "plainsolid/brep/trimmed",
+          "reason": "package watchdog elapsed",
+          "interruptedTest": "TestCertifiedExactOwnerAnnularRegion"
+        }
+      ]
     },
     "trimmed-2-normal": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-normal.jsonl",
@@ -177,19 +210,27 @@
     },
     "trimmed-2-race": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/trimmed-2-race.jsonl",
-      "sha256AtCheckpoint": "82a529d50d4171baa7c0476869499fbe1272ade542b0036ec35185474beb3766",
-      "bytesAtCheckpoint": 51061,
-      "packageOutcomes": {},
+      "sha256AtCheckpoint": "f29e6a86e2dc8c6b50cc494130c4f2dadd0d3bbd90e5a1374d941cf7e6c07082",
+      "bytesAtCheckpoint": 93794,
+      "packageOutcomes": {
+        "fail": 1
+      },
       "testOutcomesIncludingSubtests": {
-        "pass": 52
+        "pass": 80,
+        "skip": 1
       },
       "topLevelTestOutcomes": {
-        "pass": 40
+        "pass": 66,
+        "skip": 1
       },
-      "activeTopLevelTestsAtCheckpoint": {
-        "plainsolid/brep/trimmed": "TestMixedOriginalSourceMassAndArea"
-      },
-      "failures": []
+      "activeTopLevelTestsAtCheckpoint": {},
+      "failures": [
+        {
+          "package": "plainsolid/brep/trimmed",
+          "reason": "package watchdog elapsed",
+          "interruptedTest": "TestCertifiedSelectedNestedDiskAnnulus"
+        }
+      ]
     }
   },
   "degreeCeilingCorrection": {
