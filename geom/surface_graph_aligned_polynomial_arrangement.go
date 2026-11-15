@@ -59,14 +59,9 @@ func discoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	if o.MaxOperations == 0 {
-		o.MaxOperations = 8000000
-	}
-	if o.MaxCoefficientBits == 0 {
-		o.MaxCoefficientBits = 16384
-	}
-	if o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.MaxCells < 0 || o.MaxDepth < 0 || o.MaxDepth > 32 {
-		return r, ErrInvalid
+	o, e := alignedPolynomialProofOptions(o)
+	if e != nil {
+		return r, e
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() {
@@ -103,6 +98,19 @@ func discoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *
 		}
 	}
 	return r, ctx.Err()
+}
+
+func alignedPolynomialProofOptions(o GraphPointContactOptions) (GraphPointContactOptions, error) {
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 8000000
+	}
+	if o.MaxCoefficientBits == 0 {
+		o.MaxCoefficientBits = 16384
+	}
+	if o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.MaxCells < 0 || o.MaxDepth < 0 || o.MaxDepth > 32 {
+		return o, ErrInvalid
+	}
+	return o, nil
 }
 
 func polynomialArrangementOwner(ctx context.Context, original *SurfacePatch, proof SplineGraphPolynomialArrangement, mapping [2][3]*big.Rat, recheckOriginal bool, budget *polynomialBudget) (SplineGraphPolynomialOwnerLedger, error) {
