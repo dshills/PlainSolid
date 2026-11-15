@@ -77,7 +77,7 @@ static constexpr double secondSharedKnot = 99. / 256;
 static constexpr double secondCellSouthKnot = 917. / 2048;
 static constexpr double thirdSharedKnot = .75;
 
-enum class InferredSupportEvents { none, asynchronous, shared, sharedPair, offsetPair };
+enum class InferredSupportEvents { none, asynchronous, shared, sharedPair, offsetPair, nonplanar };
 
 struct RoofSupportLayout {
   int cuts = 3;
@@ -93,11 +93,97 @@ static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvent
   case InferredSupportEvents::sharedPair:
   case InferredSupportEvents::offsetPair:
     return {107. / 2048, south && events == InferredSupportEvents::offsetPair ? 29. / 256 : 369. / 2048};
+  case InferredSupportEvents::nonplanar:
+    return {1. / 16, south ? 1. / 8 : 3. / 16};
   case InferredSupportEvents::asynchronous:
     return {south ? 369. / 2048 : 107. / 2048};
   default:
     return {};
   }
+}
+
+static constexpr double nonplanarWidth = .75;
+static constexpr double nonplanarAmplitude = 8.;
+
+static double nonplanarSeamY(double u) {
+  return .25 + .75 * u * (1. - u);
+}
+
+static std::array<gp_Pnt2d, 3> nonplanarSeamPoles(double a, double b) {
+  return {gp_Pnt2d(a, nonplanarSeamY(a)),
+          gp_Pnt2d((a + b) / 2., .25 + .75 * ((a + b) / 2. - a * b)),
+          gp_Pnt2d(b, nonplanarSeamY(b))};
+}
+
+static Cubic nonplanarChartSeam(double a, double b) {
+  const auto seam = nonplanarSeamPoles(a, b);
+  const double xa = nonplanarWidth*a, xb = nonplanarWidth*b;
+  return {gp_Pnt2d(xa, seam[0].Y()),
+          gp_Pnt2d((2*xa+xb)/3., (seam[0].Y()+2*seam[1].Y())/3.),
+          gp_Pnt2d((xa+2*xb)/3., (2*seam[1].Y()+seam[2].Y())/3.),
+          gp_Pnt2d(xb, seam[2].Y())};
+}
+
+static double nonplanarRoofEnvelope(double u, double first, double last) {
+  return (1. - last) * std::max(0., u - first) - (1. - first) * std::max(0., u - last);
+}
+
+// Each affine-XY bicubic roof adds 24*A(u)*y*(3/4-y)*(y-h(u)) to z=x*y,
+// with u=4*x/3, h the common quadratic UV trace and A the owner's affine
+// envelope on this span. A vanishes on the x walls. The other factors vanish
+// on the y walls and along the shared trace. All Bernstein poles are dyadic.
+static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const std::vector<double>& knots) {
+  const int spanCount = static_cast<int>(knots.size()) - 1;
+  const int xPoles = 3 * spanCount + 1;
+  NCollection_Array2<gp_Pnt> poles(1, south ? 4 : xPoles, 1, south ? xPoles : 4);
+  for (int span = 0; span < spanCount; ++span) {
+    const double a = knots[span], b = knots[span + 1];
+    const auto seam = nonplanarSeamPoles(a, b);
+    const double a0 = nonplanarRoofEnvelope(a, knots[1], knots[2]);
+    const double a1 = nonplanarRoofEnvelope(b, knots[1], knots[2]);
+    // These are cubic controls of 3*A and 3*A*h. Scaling by three
+    // cancels the denominator in the Bernstein product of A with h.
+    const std::array<double, 4> envelope{3 * a0, 2 * a0 + a1, a0 + 2 * a1, 3 * a1};
+    const std::array<double, 4> envelopeSeam{
+      3 * a0 * seam[0].Y(), 2 * a0 * seam[1].Y() + a1 * seam[0].Y(),
+      a0 * seam[2].Y() + 2 * a1 * seam[1].Y(), 3 * a1 * seam[2].Y()};
+    for (int i = 0; i < 4; ++i) {
+      const double x = nonplanarWidth * a + (b - a) * i / 4.;
+      for (int j = 0; j < 4; ++j) {
+        const double y = j / 4.;
+        double z = x * y;
+        if (j == 1 || j == 2) {
+          // 3/16 is the nonzero Bernstein coefficient of y(3/4-y)
+          // after multiplying its quadratic by the linear y-seam factor.
+          z += 3. / 16 * nonplanarAmplitude * ((j == 2 ? .75 * envelope[i] : 0.) - envelopeSeam[i]);
+        }
+        const int xi = 3 * span + i + 1, yi = j + 1;
+        poles.SetValue(south ? yi : xi, south ? xi : yi, gp_Pnt(x, y, z));
+      }
+    }
+  }
+  NCollection_Array1<double> xKnots(1, spanCount + 1), yKnots(1, 2);
+  NCollection_Array1<int> xMult(1, spanCount + 1), yMult(1, 2);
+  for (int i = 1; i <= xKnots.Upper(); ++i) {
+    xKnots.SetValue(i, nonplanarWidth * knots[i - 1]);
+    xMult.SetValue(i, i == 1 || i == xKnots.Upper() ? 4 : 3);
+  }
+  yKnots.SetValue(1, 0.);
+  yKnots.SetValue(2, .75);
+  yMult.Init(4);
+  return south ? new Geom_BSplineSurface(poles, yKnots, xKnots, yMult, xMult, 3, 3)
+               : new Geom_BSplineSurface(poles, xKnots, yKnots, xMult, yMult, 3, 3);
+}
+
+static occ::handle<Geom_BezierCurve> nonplanarModelSeam(const std::vector<gp_Pnt2d>& seam) {
+  const double xa = nonplanarWidth * seam[0].X(), xb = nonplanarWidth * seam[2].X();
+  const double ya = seam[0].Y(), ym = seam[1].Y(), yb = seam[2].Y();
+  NCollection_Array1<gp_Pnt> poles(1, 4);
+  poles.SetValue(1, gp_Pnt(xa, ya, xa * ya));
+  poles.SetValue(2, gp_Pnt((2*xa+xb)/3., (ya+2*ym)/3., (2*xa*ym+xb*ya)/3.));
+  poles.SetValue(3, gp_Pnt((xa+2*xb)/3., (2*ym+yb)/3., (xa*yb+2*xb*ym)/3.));
+  poles.SetValue(4, gp_Pnt(xb, yb, xb * yb));
+  return new Geom_BezierCurve(poles);
 }
 
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
@@ -134,6 +220,11 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 }
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
+  if (layout.inferred == InferredSupportEvents::nonplanar) {
+    const auto knots = inferredSupportKnots(south, layout.inferred);
+    return nonplanarWidth*x*y + 3.*nonplanarAmplitude*nonplanarRoofEnvelope(x, knots[0], knots[1])
+      * y*(.75-y)*(y-nonplanarSeamY(x));
+  }
   if (three) {
     if (layout.inferred != InferredSupportEvents::none) {
       double z = x * y;
@@ -169,54 +260,77 @@ static double roofHeight(double x, double y, bool crease, bool three = false, bo
 static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool unsplit, RoofSupportLayout layout) {
   const std::vector<double> x = three ? roofSupportKnots(south, layout)
     : crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
-  const std::vector<double> y{0., 1.};
-  const auto& u = south ? y : x;
-  const auto& v = south ? x : y;
-  NCollection_Array2<gp_Pnt> poles(1, static_cast<int>(u.size()), 1, static_cast<int>(v.size()));
-  for (int i = 0; i < poles.UpperRow(); ++i) {
-    for (int j = 0; j < poles.UpperCol(); ++j) {
-      const double a = south ? v[j] : u[i];
-      const double b = south ? u[i] : v[j];
-      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, layout)));
-    }
-  }
+  const bool nonplanar = layout.inferred == InferredSupportEvents::nonplanar;
   occ::handle<Geom_Surface> support;
-  if (crease || three) {
-    NCollection_Array1<double> ku(1, static_cast<int>(u.size())), kv(1, static_cast<int>(v.size()));
-    NCollection_Array1<int> mu(1, ku.Upper()), mv(1, kv.Upper());
-    for (int i = 1; i <= ku.Upper(); ++i) {
-      ku.SetValue(i, u[i - 1]);
-      mu.SetValue(i, i == 1 || i == ku.Upper() ? 2 : 1);
-    }
-    for (int j = 1; j <= kv.Upper(); ++j) {
-      kv.SetValue(j, v[j - 1]);
-      mv.SetValue(j, j == 1 || j == kv.Upper() ? 2 : 1);
-    }
-    support = new Geom_BSplineSurface(poles, ku, kv, mu, mv, 1, 1);
+  if (nonplanar) {
+    support = nonplanarRoofSupport(south, x);
   } else {
-    support = new Geom_BezierSurface(poles);
+    const std::vector<double> y{0., 1.};
+    const auto& u = south ? y : x;
+    const auto& v = south ? x : y;
+    NCollection_Array2<gp_Pnt> poles(1, static_cast<int>(u.size()), 1, static_cast<int>(v.size()));
+    for (int i = 0; i < poles.UpperRow(); ++i) {
+      for (int j = 0; j < poles.UpperCol(); ++j) {
+        const double a = south ? v[j] : u[i];
+        const double b = south ? u[i] : v[j];
+        poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south, layout)));
+      }
+    }
+    if (crease || three) {
+      NCollection_Array1<double> ku(1, static_cast<int>(u.size())), kv(1, static_cast<int>(v.size()));
+      NCollection_Array1<int> mu(1, ku.Upper()), mv(1, kv.Upper());
+      for (int i = 1; i <= ku.Upper(); ++i) {
+        ku.SetValue(i, u[i - 1]);
+        mu.SetValue(i, i == 1 || i == ku.Upper() ? 2 : 1);
+      }
+      for (int j = 1; j <= kv.Upper(); ++j) {
+        kv.SetValue(j, v[j - 1]);
+        mv.SetValue(j, j == 1 || j == kv.Upper() ? 2 : 1);
+      }
+      support = new Geom_BSplineSurface(poles, ku, kv, mu, mv, 1, 1);
+    } else {
+      support = new Geom_BezierSurface(poles);
+    }
   }
   BRepBuilderAPI_MakeWire wire;
   auto use = [&](const std::vector<gp_Pnt2d>& points) {
-    NCollection_Array1<gp_Pnt2d> net(1, static_cast<int>(points.size()));
-    for (int i = 1; i <= net.Upper(); ++i) {
-      const auto& p = points[i - 1];
-      net.SetValue(i, south ? gp_Pnt2d(p.Y(), p.X()) : p);
+    const bool spatialSeam = nonplanar && points.size() == 3;
+    NCollection_Array1<gp_Pnt2d> net(1, spatialSeam ? 4 : static_cast<int>(points.size()));
+    if (spatialSeam) {
+      const auto chart = nonplanarChartSeam(points.front().X(), points.back().X());
+      for (int i = 1; i <= net.Upper(); ++i) {
+        const auto& p = chart[i - 1];
+        net.SetValue(i, south ? gp_Pnt2d(p.Y(), p.X()) : p);
+      }
+    } else {
+      for (int i = 1; i <= net.Upper(); ++i) {
+        const auto& p = points[i - 1];
+        const double x = nonplanar ? nonplanarWidth * p.X() : p.X();
+        net.SetValue(i, south ? gp_Pnt2d(p.Y(), x) : gp_Pnt2d(x, p.Y()));
+      }
     }
+    auto lift = [&](const gp_Pnt2d& p) {
+      const double modelX = nonplanar ? nonplanarWidth * p.X() : p.X();
+      return gp_Pnt(modelX, p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, layout));
+    };
     occ::handle<Geom2d_BezierCurve> curve = new Geom2d_BezierCurve(net);
-    BRepBuilderAPI_MakeEdge edge(curve, support);
+    BRepBuilderAPI_MakeEdge edge;
+    if (nonplanar) {
+      // Author exact endpoints along with the model curve so STEP vertices
+      // retain the same represented points as the independently stored poles.
+      edge.Init(curve, support, lift(points.front()), lift(points.back()), 0., 1.);
+    } else {
+      edge.Init(curve, support);
+    }
     if (!edge.IsDone()) {
       throw std::runtime_error("could not lift the independent source edge");
     }
     if (three) {
-      // The seam has one fixed chart coordinate. Each model piece uses the
-      // exact affine lift of its UV controls along that trace.
-      auto lift = [&](const gp_Pnt2d& p) {
-        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south, layout));
-      };
       occ::handle<Geom_Curve> lifted;
       const double lastStoredStart = layout.storedCells == 3 ? .5 : layout.storedCells == 2 ? .25 : 0.;
-      if (unsplit && layout.storedCells > 0 && points.size() == 4 && points.front().X() <= lastStoredStart) {
+      if (spatialSeam) {
+        lifted = nonplanarModelSeam(points);
+      } else if (unsplit && layout.storedCells > 0 && points.size() == 4 && points.front().X() <= lastStoredStart) {
         // The full first UV cubic crosses the original support stations.
         // The authored stored cut normally follows the shared material kink.
         // The same-cell control mode instead authors a redundant exact join.
@@ -258,7 +372,13 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const Cubic b{gp_Pnt2d(.5, .25), gp_Pnt2d(.625, three ? .25 : .5), gp_Pnt2d(.875, three ? .25 : .5), gp_Pnt2d(1, .25)};
   const auto ab = split(a);
   std::vector<std::vector<gp_Pnt2d>> traces;
-  if (three && !unsplit) {
+  if (nonplanar) {
+    const std::array<double, 4> ends{0., .25, .5, 1.};
+    for (std::size_t i = 0; i + 1 < ends.size(); ++i) {
+      const auto seam = nonplanarSeamPoles(ends[i], ends[i + 1]);
+      traces.emplace_back(seam.begin(), seam.end());
+    }
+  } else if (three && !unsplit) {
     const auto quarters = split(ab[0]);
     const auto left = split(quarters[0]);
     const auto right = split(quarters[1]);
@@ -373,23 +493,40 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
   const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
   const int supportCuts = layout.cuts;
+  const bool nonplanar = layout.inferred == InferredSupportEvents::nonplanar;
   const bool localCells = layout.storedCells >= 2 || layout.separated || layout.inferred != InferredSupportEvents::none;
   const double lastSouthParameter = layout.storedCells == 3 || layout.separated || layout.inferred != InferredSupportEvents::none ? -2. : 0.;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
-  const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
-  std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
-  for (std::size_t i = 0; i < poles.size(); ++i) {
-    poles[i] = new StepGeom_CartesianPoint;
-    poles[i]->Init2D(name, .25, southX[i]);
-  }
   occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> shared =
     new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
   const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., 48.}
     : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  const auto southWeights = (localCells || supportCuts >= 4) ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
-    : std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512};
-  shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
-               stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
+  if (nonplanar) {
+    const std::array<double, 4> ends{1., .5, .25, 0.};
+    std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
+    for (std::size_t i = 0; i + 1 < ends.size(); ++i) {
+      const auto seam = nonplanarChartSeam(ends[i], ends[i + 1]);
+      for (std::size_t j = 0; j < seam.size(); ++j) {
+        auto point = new StepGeom_CartesianPoint;
+        point->Init2D(name, seam[j].Y(), seam[j].X());
+        poles[3*i+j] = point;
+      }
+    }
+    shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+                 stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified,
+                 stepArray(std::array{1., 2., 4., 8., 16., 32., 64., 64., 64., 64.}));
+  } else {
+    const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
+    std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
+    for (std::size_t i = 0; i < poles.size(); ++i) {
+      poles[i] = new StepGeom_CartesianPoint;
+      poles[i]->Init2D(name, .25, southX[i]);
+    }
+    const auto southWeights = (localCells || supportCuts >= 4) ? std::array{1., 2., 4., 8., 4., 2., 1., 1., 1., 1.}
+      : std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512};
+    shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+                 stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
+  }
   const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
   const auto raw = localCells ? std::vector<double>{48., 16., 1., lastSouthParameter}
@@ -429,8 +566,9 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
     if (spatial.IsNull() || isolated.IsNull() || isolated->NbControlPointsList() != 4 || isolated->NbKnots() != 2) {
       throw std::runtime_error("unexpected independently authored seam bases");
     }
-    const double a = spatial->ControlPointsListValue(1)->CoordinatesValue(1);
-    const double b = spatial->ControlPointsListValue(spatial->NbControlPointsList())->CoordinatesValue(1);
+    const double scale = nonplanar ? nonplanarWidth : 1.;
+    const double a = spatial->ControlPointsListValue(1)->CoordinatesValue(1) / scale;
+    const double b = spatial->ControlPointsListValue(spatial->NbControlPointsList())->CoordinatesValue(1) / scale;
     const auto cell = static_cast<std::size_t>(std::find(x.begin(), x.end(), std::min(a, b)) - x.begin());
     if (cell >= changed.size() || changed[cell] || x[cell + 1] != std::max(a, b)) {
       throw std::runtime_error("unexpected independently authored seam junction");
@@ -507,11 +645,13 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const auto inferred = offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
+    const bool nonplanar = mode == "write-nonplanar-inferred-mixed";
+    const auto inferred = nonplanar ? InferredSupportEvents::nonplanar
+      : offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
       : sharedInferred ? InferredSupportEvents::shared
       : sameCellAsynchronous ? InferredSupportEvents::asynchronous : InferredSupportEvents::none;
     const bool noModelKnot = mode == "write-same-cell-asynchronous" || mode == "write-shared-inferred-knot"
-      || mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-offset-pair";
+      || mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-offset-pair" || nonplanar;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred};
@@ -528,13 +668,14 @@ int main(int argc, char** argv) {
       return gp_Ax3(origin, normal, u);
     };
     const bool reordered = mode == "write-reordered" || crease;
+    const double width = nonplanar ? nonplanarWidth : 1.;
     auto side = [&](double y, bool reverse) {
       const bool south = y == 0.;
-      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south, layout)}};
+      std::vector<gp_Pnt> points{{0, y, -1}, {width, y, -1}, {width, y, roofHeight(1, y, crease, three, south, layout)}};
       if (three) {
         const auto xs = roofSupportKnots(south, layout);
         for (int i = static_cast<int>(xs.size()) - 2; i > 0; --i) {
-          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south, layout));
+          points.emplace_back(width * xs[i], y, roofHeight(xs[i], y, crease, true, south, layout));
         }
       } else if (crease) {
         points.emplace_back(.5, y, roofHeight(.5, y, true));
@@ -545,14 +686,14 @@ int main(int argc, char** argv) {
     const std::array<TopoDS_Face, 7> source{
       roof(false, reordered ? 4 : 0, crease, three, unsplitBasis, layout),
       roof(true, reordered ? 5 : 0, crease, three, unsplitBasis, layout),
-      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three, false, layout)},
-             {1, .25, roofHeight(1, .25, crease, three, false, layout)}, {1, 0, roofHeight(1, 0, crease, three, true, layout)}}, false,
-             frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
+      planar({{width, 0, -1}, {width, .75, -1}, {width, .75, roofHeight(1, .75, crease, three, false, layout)},
+             {width, .25, roofHeight(1, .25, crease, three, false, layout)}, {width, 0, roofHeight(1, 0, crease, three, true, layout)}}, false,
+             frame({width, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
              frame({0, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       side(.75, true),
       side(0, false),
-      planar({{0, 0, -1}, {1, 0, -1}, {1, .75, -1}, {0, .75, -1}}, true,
+      planar({{0, 0, -1}, {width, 0, -1}, {width, .75, -1}, {0, .75, -1}}, true,
              frame({0, 0, -1}, {0, 0, 1}, {1, 0, 0}))
     };
     const std::array<int, 7> order = reordered

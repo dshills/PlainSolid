@@ -39,6 +39,8 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 			"1b02f5358b051bdd8c4900bf171acefd5dec395eafbfc0eb146ab9ff64e8bb0f", inferredSharedMappedChainOptions()},
 		{inferredSharedPairMappedChainPath, "75dc81e678a1dd71d09dca4541f33f5492a1d670eff27a04ce51947c59d72662",
 			"de6c246e34b515a006535c12f0c436bde6a66f553164aea874c2d1cd99969fd5", inferredSharedMappedChainOptions()},
+		{inferredMixedMappedChainPath, "820ca5d596527763c59c7c81a1ea943fee277e10b439f82faa47dbf4abebb577",
+			"45d9b12f26bb6cd2ed90e6641048b35d05a192297af31b184d3ce91c3dc91536", inferredMixedMappedChainOptions()},
 	} {
 		raw, err := os.ReadFile(tc.path)
 		if err != nil {
