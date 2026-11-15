@@ -25,8 +25,48 @@ func nonplanarCavityGenerated(ctx context.Context, m NonplanarSplineCavitySource
 	outer, inner := m.Outer, m.Inner
 	outer.Name = m.Name
 	inner.Name = ""
+	f, e := nonplanarPolynomialShellFile(ctx, []SplineShellBody{outer, inner}, m.LengthUnit)
+	if e != nil {
+		return nil, e
+	}
+	out, e := joinWrappedVoid(f)
+	if e != nil {
+		return nil, e
+	}
+	if _, e = ReadNonplanarSplineCavitySource(ctx, bytes.NewReader(out), Limits{}); e != nil {
+		return nil, fmt.Errorf("generated cavity reproof: %w", e)
+	}
+	return out, nil
+}
+
+// WriteNonplanarSplineCavity emits generated standard BREP_WITH_VOIDS geometry
+// after re-proving the supplied source-bound material and every native claim.
+func WriteNonplanarSplineCavity(ctx context.Context, w io.Writer, m NonplanarSplineCavitySource, l Limits) error {
+	if w == nil {
+		return geom.ErrInvalid
+	}
+	q, e := checkedNonplanarSplineCavity(ctx, m, l)
+	if e != nil {
+		return e
+	}
+	n, e := io.WriteString(w, q.Generated)
+	if e == nil && n != len(q.Generated) {
+		e = io.ErrShortWrite
+	}
+	return e
+}
+
+// nonplanarPolynomialShellFile is shared authoring only; it never normalizes
+// external geometry. Every newly emitted unit-weight entity is checked.
+func nonplanarPolynomialShellFile(ctx context.Context, bodies []SplineShellBody, unit float64) (*File, error) {
+	if ctx == nil || len(bodies) < 2 || len(bodies) > 5 {
+		return nil, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
 	var raw bytes.Buffer
-	if e := WriteSplineShells(&raw, SplineShellModel{Bodies: []SplineShellBody{outer, inner}, LengthUnit: m.LengthUnit}); e != nil {
+	if e := WriteSplineShells(&raw, SplineShellModel{Bodies: bodies, LengthUnit: unit}); e != nil {
 		return nil, e
 	}
 	f, e := Parse(&raw, Limits{})
@@ -143,32 +183,9 @@ func nonplanarCavityGenerated(ctx context.Context, m NonplanarSplineCavitySource
 		delete(f.Entities, did)
 		count++
 	}
-	if count != 48 {
+	if count != 24*len(bodies) {
 		return nil, fmt.Errorf("generated UV count %d: %w", count, geom.ErrInvalid)
 	}
-	out, e := joinWrappedVoid(f)
-	if e != nil {
-		return nil, e
-	}
-	if _, e = ReadNonplanarSplineCavitySource(ctx, bytes.NewReader(out), Limits{}); e != nil {
-		return nil, fmt.Errorf("generated cavity reproof: %w", e)
-	}
-	return out, nil
-}
 
-// WriteNonplanarSplineCavity emits generated standard BREP_WITH_VOIDS geometry
-// after re-proving the supplied source-bound material and every native claim.
-func WriteNonplanarSplineCavity(ctx context.Context, w io.Writer, m NonplanarSplineCavitySource, l Limits) error {
-	if w == nil {
-		return geom.ErrInvalid
-	}
-	q, e := checkedNonplanarSplineCavity(ctx, m, l)
-	if e != nil {
-		return e
-	}
-	n, e := io.WriteString(w, q.Generated)
-	if e == nil && n != len(q.Generated) {
-		e = io.ErrShortWrite
-	}
-	return e
+	return f, nil
 }
