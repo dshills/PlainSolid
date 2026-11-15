@@ -22,16 +22,9 @@ type PeriodicBSpline struct {
 // A physical knot span must also be distinguishable at both domain endpoints.
 // Existing BSpline constructors and their domain semantics are unchanged.
 func NewPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, period float64) (*PeriodicBSpline, error) {
-	if degree < 1 || degree > 64 || len(poles) <= degree || uint64(len(poles)) > 1<<52 || !finite(start) || !finite(period) || period <= 0 {
-		return nil, ErrInvalid
-	}
-	end := start + period
-	if !finite(end) || end <= start {
-		return nil, ErrInvalid
-	}
-	spacing := period / float64(len(poles))
-	if spacing == 0 || start+spacing == start || end-spacing == end {
-		return nil, ErrInvalid
+	end, err := uniformPeriodicEnd(degree, len(poles), start, period)
+	if err != nil {
+		return nil, err
 	}
 	for _, p := range poles {
 		if !p.IsFinite() {
@@ -47,11 +40,7 @@ func NewPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, peri
 	for i := range expandedPoles {
 		expandedPoles[i], expandedWeights[i] = poles[i%len(poles)], w[i%len(poles)]
 	}
-	knots := make([]float64, len(poles)+2*degree+1)
-	for i := range knots {
-		knots[i] = float64(i - degree)
-	}
-	curve, e := NewBSpline(degree, expandedPoles, knots, expandedWeights)
+	curve, e := NewBSpline(degree, expandedPoles, uniformPeriodicKnots(degree, len(poles)), expandedWeights)
 	if e != nil {
 		return nil, e
 	}
@@ -92,39 +81,66 @@ func (c *PeriodicBSpline) Weights() []float64 {
 	return append([]float64(nil), c.weights...)
 }
 func (c *PeriodicBSpline) wrappedParameter(t float64) (float64, error) {
-	if c == nil || c.curve == nil || !finite(t) {
+	if c == nil || c.curve == nil {
 		return 0, ErrDomain
 	}
-	if t == c.start || t == c.end {
+	return wrapUniformSplineParameter(t, c.start, c.end, c.period, len(c.poles))
+}
+
+func uniformPeriodicEnd(degree, count int, start, period float64) (float64, error) {
+	if degree < 1 || degree > 64 || count <= degree || uint64(count) > 1<<52 || !finite(start) || !finite(period) || period <= 0 {
+		return 0, ErrInvalid
+	}
+	end := start + period
+	spacing := period / float64(count)
+	if !finite(end) || end <= start || spacing == 0 || start+spacing == start || end-spacing == end {
+		return 0, ErrInvalid
+	}
+	return end, nil
+}
+
+func uniformPeriodicKnots(degree, count int) []float64 {
+	knots := make([]float64, count+2*degree+1)
+	for i := range knots {
+		knots[i] = float64(i - degree)
+	}
+	return knots
+}
+
+func wrapUniformSplineParameter(t, start, end, period float64, count int) (float64, error) {
+	if !finite(t) {
+		return 0, ErrDomain
+	}
+	if t == start || t == end {
 		return 0, nil
 	}
-	difference := t - c.start
+	difference := t - start
 	phase := 0.0
 	if finite(difference) {
-		phase = math.Mod(difference, c.period)
+		phase = math.Mod(difference, period)
 		if phase < 0 {
-			phase += c.period
+			phase += period
 		}
 	} else { // Separately reduce finite operands when subtraction would overflow.
-		rt, rs := math.Mod(t, c.period), math.Mod(c.start, c.period)
+		rt, rs := math.Mod(t, period), math.Mod(start, period)
 		if rt < 0 {
-			rt += c.period
+			rt += period
 		}
 		if rs < 0 {
-			rs += c.period
+			rs += period
 		}
 		phase = rt - rs
 		if phase < 0 {
-			phase += c.period
+			phase += period
 		}
 	}
-	count := float64(len(c.poles))
-	if phase >= c.period {
-		return math.Nextafter(count, 0), nil
+	w := float64(count)
+	if phase >= period {
+		return math.Nextafter(w, 0), nil
 	}
-	u := (phase / c.period) * count
-	if u >= count {
-		u = math.Nextafter(count, 0)
+	u := (phase / period) * w
+	if u >= w {
+		u = math.Nextafter(w, 0)
 	}
 	return u, nil
 }
@@ -148,8 +164,12 @@ func (c *PeriodicBSpline) Derivative(t float64) (Vec3, error) {
 	if e != nil {
 		return Vec3{}, e
 	}
-	numeratorMantissa, numeratorExponent := math.Frexp(float64(len(c.poles)))
-	denominatorMantissa, denominatorExponent := math.Frexp(c.period)
+	return scaleUniformSplineDerivative(derivative, len(c.poles), c.period)
+}
+
+func scaleUniformSplineDerivative(derivative Vec3, count int, period float64) (Vec3, error) {
+	numeratorMantissa, numeratorExponent := math.Frexp(float64(count))
+	denominatorMantissa, denominatorExponent := math.Frexp(period)
 	scale := numeratorMantissa / denominatorMantissa
 	exponent := numeratorExponent - denominatorExponent
 	values := [3]float64{}

@@ -58,6 +58,7 @@ type surfaceData struct {
 	A, B             float64                  `json:",omitempty"`
 	Meridian         *[2]geom.Vec2            `json:",omitempty"`
 	Spline           *geom.BSplineSurfaceData `json:",omitempty"`
+	PeriodicSpline   *periodicSplineAxes      `json:",omitempty"`
 	Center           *geom.Vec3               `json:",omitempty"`
 	Other            *surfaceData             `json:",omitempty"`
 	U0, U1           *Interval                `json:",omitempty"`
@@ -78,6 +79,10 @@ type surfaceData struct {
 	SkewOverlap      *skewOverlapData         `json:",omitempty"`
 	ObliqueCylinder  *obliqueCylinderData     `json:",omitempty"`
 	GeneralCylinder  *generalCylinderData     `json:",omitempty"`
+}
+
+type periodicSplineAxes struct {
+	U, V *geom.PeriodicSplineAxis `json:",omitempty"`
 }
 
 type obliqueSplitData struct {
@@ -345,6 +350,12 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 			return surfaceData{Kind: "bspline-exact-weights", Spline: &d}, nil
 		}
 		return surfaceData{Kind: "bspline", Spline: &d}, nil
+	case *geom.PeriodicBSplineSurface:
+		d, u, v := x.Data()
+		if u == nil && v == nil {
+			return surfaceData{}, geom.ErrInvalid
+		}
+		return surfaceData{Kind: "periodic-spline-surface", Spline: &d, PeriodicSpline: &periodicSplineAxes{U: u, V: v}}, nil
 	case *geom.WrappedSurfacePatch:
 		if x == nil || x.FundamentalPatch() == nil {
 			return surfaceData{}, geom.ErrInvalid
@@ -366,6 +377,24 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "periodic-spline-surface") != (d.PeriodicSpline != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if d.PeriodicSpline != nil {
+		x := d.Spline
+		if x == nil || d != (surfaceData{Kind: d.Kind, Spline: x, PeriodicSpline: d.PeriodicSpline}) {
+			return nil, geom.ErrInvalid
+		}
+		if len(x.Poles) > *budget {
+			return nil, geom.ErrConvergence
+		}
+		s, err := geom.NewPeriodicBSplineSurface(*x, d.PeriodicSpline.U, d.PeriodicSpline.V)
+		if err != nil {
+			return nil, err
+		}
+		*budget -= len(x.Poles)
+		return s, nil
+	}
 	if (d.Kind == "exact-bezier-surface") != (d.ExactBezier != nil) || (d.Kind == "exact-tensor-surface") != (d.ExactTensor != nil) {
 		return nil, geom.ErrInvalid
 	}

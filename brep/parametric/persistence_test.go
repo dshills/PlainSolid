@@ -178,3 +178,52 @@ func TestPeriodicGeometryCodec(t *testing.T) {
 		}
 	}
 }
+
+func TestPeriodicSplineSurfaceCodec(t *testing.T) {
+	data := geom.BSplineSurfaceData{
+		DegreeU: 1, DegreeV: 1, CountU: 3, CountV: 2,
+		KnotsV:  []float64{-3, -3, 2, 2},
+		Poles:   []geom.Vec3{{}, {Z: 3}, {X: 2}, {X: 2, Z: 3}, {Y: 2}, {Y: 2, Z: 3}},
+		Weights: []float64{2, 1, 1, 3, 4, 5},
+	}
+	surface, err := geom.NewPeriodicBSplineSurface(data, &geom.PeriodicSplineAxis{Start: 1, Period: 2}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := EncodeSurface(surface)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := DecodeSurface(raw, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reencoded, err := EncodeSurface(decoded)
+	if err != nil || !bytes.Equal(raw, reencoded) {
+		t.Fatalf("source codec changed on reload: %s (%v)", reencoded, err)
+	}
+	for _, u := range []float64{-15.75, -.8, 1, 3, 4.7, 20.32} {
+		p, err := surface.Eval(u, .25)
+		q, decodeErr := decoded.Eval(u, .25)
+		du, dv, partialErr := surface.Partials(u, .25)
+		ru, rv, reloadErr := decoded.Partials(u, .25)
+		if err != nil || decodeErr != nil || partialErr != nil || reloadErr != nil || p != q || du != ru || dv != rv {
+			t.Fatalf("geometry at %v changed on reload: %v and %v", u, p, q)
+		}
+	}
+	if _, err := DecodeSurface(raw, 5); err == nil {
+		t.Fatal("original poles exceeded the native control budget")
+	}
+	for _, change := range [][2]string{
+		{`"Period":2`, `"Period":0`}, {`"periodic-spline-surface"`, `"bspline"`},
+		{`"Start":1`, `"Start":1,"Unrecognized":true`}, {`"Kind":`, `"A":1,"Kind":`},
+	} {
+		altered := bytes.Replace(raw, []byte(change[0]), []byte(change[1]), 1)
+		if bytes.Equal(altered, raw) {
+			t.Fatalf("failed to alter fixture with %v", change)
+		}
+		if _, err := DecodeSurface(altered, 6); err == nil {
+			t.Fatalf("accepted changed periodic recipe %s", altered)
+		}
+	}
+}
