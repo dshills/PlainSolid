@@ -9,7 +9,11 @@ const fixtures = [
   { name: "inch", path: "/plainsolid-step-repair-inch.step", units: "in", otherPath: "/plainsolid-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: false },
   { name: "grouped metre", path: "/plainsolid-grouped-step-repair-metre.step", units: "m", otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: true },
   { name: "grouped inch", path: "/plainsolid-grouped-step-repair-inch.step", units: "in", otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: true },
-  { name: "converted metre", path: "/plainsolid-converted-step-repair-metre.step", units: "m", otherPath: "/plainsolid-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: false, converted: true },
+  { name: "converted metre", path: "/plainsolid-converted-step-repair-metre.step", units: "m", otherPath: "/plainsolid-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: false,
+    converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { name: "converted inch", path: "/plainsolid-converted-step-repair-inch.step", units: "in", otherPath: "/plainsolid-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: false,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12, poseTranslation: ["8", "6"],
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -26,7 +30,9 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   });
   await page.goto("/plainsolid-step-repair-worker.html");
   const linearDeflection = "converted" in fixture ? .5 : .025 * fixture.scale;
-  const result = await page.evaluate(async ({ path, units, otherPath, linearDeflection }) => {
+  const maxDistance = "maxDistance" in fixture ? fixture.maxDistance : 1e-12;
+  const rejectedDistance = "rejectedDistance" in fixture ? fixture.rejectedDistance : undefined;
+  const result = await page.evaluate(async ({ path, units, otherPath, linearDeflection, maxDistance, rejectedDistance }) => {
     function ask(request: StepRepairProbeRequest, transfer: ArrayBuffer[] = []): Promise<StepRepairProbeReply> {
       const worker = new Worker("/src/cad/kernel/plainSolidStepRepairProbe.ts", { type: "module" });
       return new Promise((resolve, reject) => {
@@ -43,7 +49,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     }
     const source = await sourceAt(path);
     const otherSource = otherPath ? await sourceAt(otherPath) : undefined;
-    const repair = await ask({ operation: "repair", source, units, otherSource, linearDeflection });
+    const repair = await ask({ operation: "repair", source, units, otherSource, linearDeflection, maxDistance, rejectedDistance });
     if (!repair.ok) throw new Error(repair.error);
     if (!repair.repair || !repair.evidence?.nativeProofJSON) throw new Error("Missing the repaired worker reply");
     const fromWasm = repair.repair.certificateFromWasm;
@@ -58,6 +64,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       certificateReopened: strict.reopen.reprovedCertificate,
       repairEvidence: repair.evidence.repairEvidence,
       strictFailure: repair.repair.strictFailure,
+      budgetFailure: repair.repair.budgetFailure,
       triangles: repair.repair.triangles,
       positionsInWorldBounds: repair.repair.positionsInWorldBounds,
       before: repair.before,
@@ -73,31 +80,34 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       canonical: Array.from(new Uint8Array(repair.canonical)),
       canonicalReopened: Array.from(new Uint8Array(strict.canonical)),
     };
-  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath, linearDeflection });
+  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath, linearDeflection, maxDistance, rejectedDistance });
 
   expect(workers).toHaveLength(2);
   expect(wasmLoads.length).toBeGreaterThan(0);
   expect(wasmLoads.every(status => status === 200 || status === 304)).toBe(true);
   expect(occtRequests).toEqual([]);
   expect(result.strictFailure).toMatch(/PlainSolid UNSUPPORTED/);
+  if (rejectedDistance !== undefined) {
+    expect(result.budgetFailure).toMatch(/PlainSolid UNSUPPORTED: STEP source has no qualified default OCCT pcurve repair within maxDistance/);
+  }
   expect(result.triangles).toBeGreaterThan(0);
   expect(result.positionsInWorldBounds).toBe(true);
 
   const source = await readFile(`public${fixture.path}`);
   const digest = sha256(source);
-  const pose = [["0", "3/5", "4/5", fixture.grouped ? "0" : "8/5"], ["-1", "0", "0", "0"],
-    ["0", "-4/5", "3/5", fixture.grouped ? "0" : "6/5"]];
+  const [x, z] = "poseTranslation" in fixture ? fixture.poseTranslation : fixture.grouped ? ["0", "0"] : ["8/5", "6/5"];
+  const pose = [["0", "3/5", "4/5", x], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", z]];
   const family = fixture.grouped ? "occt-rational-posed-grouped-pcurve-convex-arc" : "occt-rational-posed-single-pcurve-convex-arc";
   expect(result.repairEvidence).toMatchObject({ family,
-    sourceSHA256: digest, maxDistance: 1e-12, pcurveOwners: fixture.grouped ? 28 : 24, worldPose: pose, lengthUnit: fixture.metresPerUnit });
+    sourceSHA256: digest, maxDistance, pcurveOwners: fixture.grouped ? 28 : 24, worldPose: pose, lengthUnit: fixture.metresPerUnit });
   const certificateBytes = Buffer.from(result.certificateFromWasm);
   expect(Buffer.from(result.certificate, "utf8")).toEqual(certificateBytes);
   expect(Buffer.from(result.certificateReopened, "utf8")).toEqual(certificateBytes);
   expect(result.certificate.endsWith("\n")).toBe(true);
   const certificate = JSON.parse(result.certificate);
   const format = fixture.grouped ? "plainsolid-step-rational-posed-grouped-pcurve-convex-arc-source" : "plainsolid-step-rational-posed-pcurve-convex-arc-source";
-  expect(certificate).toMatchObject({ Format: format, Version: 1,
-    Claims: { SourceSHA256: digest, Pose: pose } });
+  expect(certificate).toMatchObject({ Format: format, Version: 1, MaxDistance: maxDistance,
+    Claims: { SourceSHA256: digest, Pose: pose, MaxDistance: maxDistance } });
   expect(Buffer.from(certificate.Source, "base64")).toEqual(source);
   const groupedOwners = fixture.grouped ? { finiteLineOwners: 8, rationalCaps: 2, axialTrims: 1, finiteTrims: 2 } : undefined;
   if (groupedOwners) {
@@ -108,31 +118,36 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     expect(certificate.Claims.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
     expect(certificate.Claims.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
   }
-  const convertedOwners = "converted" in fixture ? { finiteLineOwners: 18, cylindricalSpanOwners: 4 } : undefined;
+  const convertedOwners = "converted" in fixture ? { finiteLineOwners: 18, cylindricalSpanOwners: 4, ...fixture.converted } : undefined;
   if (convertedOwners) {
+    const { ownerScale, axialEnd, height } = convertedOwners;
     expect(result.repairEvidence.finiteLineOwners).toBe(convertedOwners.finiteLineOwners);
     expect(result.repairEvidence.repairs).toHaveLength(3);
     expect(certificate.Claims.FiniteLineOwners).toHaveLength(convertedOwners.finiteLineOwners);
-    for (const owner of certificate.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe("1/1000");
+    for (const owner of certificate.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
     const spans = certificate.Claims.CylindricalSpanOwners;
     const sweep = "2498091544797/1000000000000";
     expect(spans).toHaveLength(convertedOwners.cylindricalSpanOwners);
     expect(spans).toEqual(expect.arrayContaining([
-      { PCurveID: 125, ParameterInterval: ["0", "5000"], UVStart: ["0", "0"], UVDerivative: ["0", "1/1000"] },
-      { PCurveID: 225, ParameterInterval: ["0", "5000"], UVStart: [sweep, "0"], UVDerivative: ["0", "1/1000"] },
+      { PCurveID: 125, ParameterInterval: ["0", axialEnd], UVStart: ["0", "0"], UVDerivative: ["0", ownerScale] },
+      { PCurveID: 225, ParameterInterval: ["0", axialEnd], UVStart: [sweep, "0"], UVDerivative: ["0", ownerScale] },
       { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
-      { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", "5"], UVDerivative: ["1", "0"] },
+      { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
     ]));
+    if (fixture.units === "in") expect(certificate.Claims.PCurves).toContainEqual(expect.objectContaining({
+      PCurveID: 125, Kind: "finite-cylinder-line", DistanceSquaredUpper: "625/244140625000031250000000001",
+    }));
   }
 
   expect(result.before).toHaveLength(1);
   const [proof] = result.before;
+  const millimetresPerBase = fixture.scale * ("sourceScale" in fixture ? fixture.sourceScale : 1);
   expect(proof).toMatchObject({ valid: true, solidCount: 1 });
-  expect(proof.volume / fixture.scale ** 3).toBeCloseTo(fixture.grouped ? 29.077978807115539 : 29.145041881053842, 10);
-  expect(proof.surfaceArea / fixture.scale ** 2).toBeCloseTo(fixture.grouped ? 65.622954970084379 : 66.186284791166074, 10);
+  expect(proof.volume / millimetresPerBase ** 3).toBeCloseTo(fixture.grouped ? 29.077978807115539 : 29.145041881053842, 10);
+  expect(proof.surfaceArea / millimetresPerBase ** 2).toBeCloseTo(fixture.grouped ? 65.622954970084379 : 66.186284791166074, 10);
   for (const [side, expected] of [["min", fixture.grouped ? [0, 0, -2.7] : [1, 0, -.7]],
     ["max", fixture.grouped ? [6.025, 3, 3] : [7.025, 3, 5]]] as const) {
-    proof.bounds[side].forEach((value, axis) => expect(value / fixture.scale).toBeCloseTo(expected[axis], 11));
+    proof.bounds[side].forEach((value, axis) => expect(value / millimetresPerBase).toBeCloseTo(expected[axis], 11));
   }
   const expectedUnits = { file: fixture.units ?? "mm", proof: fixture.units ? "mm" : undefined, source: fixture.units };
   expect(result.initialUnits).toEqual(expectedUnits);
@@ -155,6 +170,6 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     sourceSha256: digest, certificateSha256: sha256(certificateBytes), reopenedCertificateSha256: sha256(Buffer.from(result.certificateReopened)),
     canonicalSha256: sha256(canonical), reopenedCanonicalSha256: sha256(canonicalReopened),
     units: result.initialUnits, unitFailures: result.unitFailures, family, groupedOwners, convertedOwners, proof,
-    linearDeflection, triangles: result.triangles,
+    maxDistance, rejectedDistance, budgetFailure: result.budgetFailure, linearDeflection, triangles: result.triangles,
   }, null, 2) });
 });

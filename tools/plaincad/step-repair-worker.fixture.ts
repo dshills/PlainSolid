@@ -3,7 +3,7 @@ import type { KernelShape } from "./KernelAdapter";
 import type { NativeStepExport } from "./nativeStep";
 
 export type StepRepairProbeRequest = { source: string; units?: StepSourceUnit } & (
-  { operation: "repair"; otherSource?: string; linearDeflection: number }
+  { operation: "repair"; otherSource?: string; linearDeflection: number; maxDistance: number; rejectedDistance?: number }
   | { operation: "reopen"; receipt: { certificate: string; fromWasm: ArrayBuffer } }
 );
 
@@ -19,6 +19,7 @@ export type StepRepairProbeReply = {
   repair?: {
     certificateFromWasm: ArrayBuffer;
     strictFailure: string;
+    budgetFailure?: string;
     triangles: number;
     positionsInWorldBounds: boolean;
     wrongImport?: string;
@@ -79,9 +80,12 @@ async function runProbe(request: StepRepairProbeRequest) {
     return;
   }
 
+  const { maxDistance, rejectedDistance } = request;
   const strictFailure = failure(() => kernel.disposeShape(kernel.importStep(source, { units })));
+  const budgetFailure = rejectedDistance === undefined ? undefined : failure(() => kernel.disposeShape(kernel.importStep(source,
+    { units, stepRepair: { maxDistance: rejectedDistance, native: true } })));
   const wrongImport = units ? failure(() => kernel.disposeShape(kernel.importStep(source,
-    { units: otherUnit, stepRepair: { maxDistance: 1e-12 } }))) : undefined;
+    { units: otherUnit, stepRepair: { maxDistance } }))) : undefined;
   const dispatch = host.plainSolidCall;
   if (!dispatch) throw new Error("Missing the Go WASM dispatcher");
   let certificateFromWire: string | undefined;
@@ -91,7 +95,7 @@ async function runProbe(request: StepRepairProbeRequest) {
     return response;
   };
   const shape = (() => {
-    try { return kernel.importStep(source, { units, stepRepair: { maxDistance: 1e-12, native: true } }); }
+    try { return kernel.importStep(source, { units, stepRepair: { maxDistance, native: true } }); }
     finally { host.plainSolidCall = dispatch; }
   })();
   try {
@@ -112,7 +116,7 @@ async function runProbe(request: StepRepairProbeRequest) {
       finally { kernel.disposeShape(other); }
     }
     const result = exportOccurrence(kernel, shape, units);
-    host.postMessage({ ok: true, ...result, repair: { certificateFromWasm, strictFailure, triangles: mesh.indices.length / 3,
+    host.postMessage({ ok: true, ...result, repair: { certificateFromWasm, strictFailure, budgetFailure, triangles: mesh.indices.length / 3,
       positionsInWorldBounds, wrongImport, omittedExport, wrongExport, mixedExport } }, [result.canonical, certificateFromWasm]);
   } finally { kernel.disposeShape(shape); }
 }
