@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -26,9 +27,16 @@ type PlanarFaceSource struct {
 	LoopIDs         []int
 }
 
+// PlanarShellSource identifies one original type 514 shell and the half-open
+// range of its faces in PlanarSolid.SourceFaces. The exterior precedes voids.
+type PlanarShellSource struct {
+	ShellID, FaceStart, FaceEnd int
+	Void                        bool
+}
+
 // PlanarSolid transfers one IGES type 186, form 0 planar B-rep. SourceEdges
 // has one original type 110 model line per native edge. SourceFaces follows
-// the original shell's face ordering. Coordinates remain in the file's units.
+// each original shell's face ordering. Coordinates remain in the file's units.
 type PlanarSolid struct {
 	Solid                    brep.Solid
 	LengthUnit               float64
@@ -36,7 +44,10 @@ type PlanarSolid struct {
 	VertexListID, EdgeListID int
 	SourceEdges              []int
 	SourceFaces              []PlanarFaceSource
+	SourceShells             []PlanarShellSource
 }
+
+const maxIGESPlanarVoids = 64
 
 type igesPlanarVec [3]*big.Rat
 
@@ -137,12 +148,12 @@ func (g igesPlanarGraph) take(id, typ int) (topologyRecord, error) {
 	return r, nil
 }
 
-// ReadPlanarSolid transfers a closed planar material with one shell, type 190
-// form 1 planes, straight type 110 model edges, and independent loop incidence.
-// Concave outer wires and through-holes are supported. Separate void shells,
-// assembly transformations and parameter-space edge curves are outside this
-// codec. Exact vertex agreement, orientation and embedded material are proved
-// before publishing a native solid.
+// ReadPlanarSolid transfers a closed planar material with one exterior shell
+// and up to 64 direct void shells, type 190 form 1 planes, straight type 110
+// model edges, and independent loop incidence. Concave outer wires and
+// through-holes are supported. Assembly transformations and parameter-space
+// edge curves are outside this codec. Exact vertex agreement, orientation,
+// embedding and each declared cavity are proved before publishing a solid.
 func ReadPlanarSolid(ctx context.Context, r io.Reader, o PlanarSolidOptions) (PlanarSolid, error) {
 	if ctx == nil {
 		return PlanarSolid{}, geom.ErrInvalid
@@ -164,10 +175,13 @@ func readPlanarTopologySource(r io.Reader, l Limits) (topologySource, error) {
 func certifyIGESPlanarSolid(ctx context.Context, d topologySource, o collision.LocationOptions) (PlanarSolid, error) {
 	m := PlanarSolid{LengthUnit: d.unit}
 	g := igesPlanarGraph{records: make(map[int]topologyRecord, len(d.entities)), used: make(map[int]bool, len(d.entities))}
+	group := 0
 	for _, r := range d.entities {
 		g.records[r.id] = r
 		var id *int
 		switch r.kind {
+		case 402:
+			id = &group
 		case 186:
 			id = &m.SolidID
 		case 502:
@@ -186,12 +200,29 @@ func certifyIGESPlanarSolid(ctx context.Context, d topologySource, o collision.L
 	if err != nil {
 		return PlanarSolid{}, err
 	}
-	root, err := topologyInts(s, 4)
-	if err != nil || root[2] < 0 || root[2] > 1 || root[3] != 0 {
-		return PlanarSolid{}, igesPlanarFailure(s.id, "expected one explicit outer shell and no void shells")
+	if group != 0 {
+		association, err := g.take(group, 402)
+		if err != nil {
+			return PlanarSolid{}, err
+		}
+		shape, err := topologyInts(association, 3)
+		if err != nil || shape[1] != 1 || shape[2] != s.id {
+			return PlanarSolid{}, igesPlanarFailure(group, "association must name the one material root")
+		}
+	}
+	nvoid, err := igesPlanarCount(s, 3, 4, 2, 0)
+	if err != nil || nvoid > maxIGESPlanarVoids {
+		return PlanarSolid{}, igesPlanarFailure(s.id, "invalid void shell count")
+	}
+	root, err := topologyInts(s, 4+2*nvoid)
+	if err != nil {
+		return PlanarSolid{}, err
+	}
+	shellRefs := [][2]int{{root[1], root[2]}}
+	for i := range nvoid {
+		shellRefs = append(shellRefs, [2]int{root[4+2*i], root[5+2*i]})
 	}
 	m.ShellID = root[1]
-	outerReversed := root[2] == 0
 	vertexRecord, err := g.take(m.VertexListID, 502)
 	if err != nil {
 		return PlanarSolid{}, err
@@ -264,32 +295,17 @@ func certifyIGESPlanarSolid(ctx context.Context, d topologySource, o collision.L
 			return PlanarSolid{}, igesPlanarFailure(line.id, "original line end disagrees with edge vertex")
 		}
 	}
-	shell, err := g.take(m.ShellID, 514)
-	if err != nil {
-		return PlanarSolid{}, err
-	}
-	nf, err := igesPlanarCount(shell, 1, 2, 2, 4)
-	if err != nil {
-		return PlanarSolid{}, err
-	}
-	sv, err := topologyInts(shell, 2+2*nf)
-	if err != nil {
-		return PlanarSolid{}, err
-	}
-	faces := make([]brep.Face, nf)
-	m.SourceFaces = make([]PlanarFaceSource, nf)
-	for i := range faces {
-		if err := ctx.Err(); err != nil {
-			return PlanarSolid{}, err
+	var faces []brep.Face
+	for i, ref := range shellRefs {
+		if ref[1] != 0 && ref[1] != 1 {
+			return PlanarSolid{}, igesPlanarFailure(ref[0], "invalid shell orientation")
 		}
-		sense := sv[3+2*i]
-		if sense < 0 || sense > 1 {
-			return PlanarSolid{}, igesPlanarFailure(shell.id, "invalid face orientation")
-		}
-		faces[i], m.SourceFaces[i], err = g.planarFace(ctx, sv[2+2*i], m.EdgeListID, exact, edges, outerReversed != (sense == 0))
+		fs, source, err := g.planarShell(ctx, ref[0], m.EdgeListID, exact, edges, ref[1] == 0)
 		if err != nil {
 			return PlanarSolid{}, err
 		}
+		m.SourceShells = append(m.SourceShells, PlanarShellSource{ref[0], len(faces), len(faces) + len(fs), i != 0})
+		faces, m.SourceFaces = append(faces, fs...), append(m.SourceFaces, source...)
 	}
 	if len(g.used) != len(g.records) {
 		return PlanarSolid{}, igesPlanarFailure(m.SolidID, "unclaimed source entities")
@@ -298,13 +314,105 @@ func certifyIGESPlanarSolid(ctx context.Context, d topologySource, o collision.L
 	if err != nil {
 		return PlanarSolid{}, err
 	}
-	if m.Solid.Topology().Shells != 1 {
-		return PlanarSolid{}, igesPlanarFailure(m.ShellID, "disconnected shell")
+	shells, err := igesPlanarEmbeddedShells(ctx, m.Solid, o)
+	if err != nil {
+		return PlanarSolid{}, err
 	}
-	if _, err := collision.NewPointLocator(ctx, m.Solid, o); err != nil {
-		return PlanarSolid{}, fmt.Errorf("iges planar solid embedding: %w", err)
+	if len(shells) != len(m.SourceShells) {
+		return PlanarSolid{}, igesPlanarFailure(m.SolidID, "declared shells disagree with embedded material")
+	}
+	for i, shell := range m.SourceShells {
+		if len(shells[i]) != shell.FaceEnd-shell.FaceStart {
+			return PlanarSolid{}, igesPlanarFailure(shell.ShellID, "declared shell has different face membership")
+		}
+		for j, face := range shells[i] {
+			if face != shell.FaceStart+j {
+				return PlanarSolid{}, igesPlanarFailure(shell.ShellID, "declared shell has different face membership")
+			}
+		}
 	}
 	return m, nil
+}
+
+func (g igesPlanarGraph) planarShell(ctx context.Context, id, edgesID int, exact []igesPlanarVec, edges []brep.Edge, reversed bool) ([]brep.Face, []PlanarFaceSource, error) {
+	shell, err := g.take(id, 514)
+	if err != nil {
+		return nil, nil, err
+	}
+	n, err := igesPlanarCount(shell, 1, 2, 2, 4)
+	if err != nil {
+		return nil, nil, err
+	}
+	sv, err := topologyInts(shell, 2+2*n)
+	if err != nil {
+		return nil, nil, err
+	}
+	faces, source := make([]brep.Face, n), make([]PlanarFaceSource, n)
+	for i := range faces {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, err
+		}
+		sense := sv[3+2*i]
+		if sense < 0 || sense > 1 {
+			return nil, nil, igesPlanarFailure(id, "invalid face orientation")
+		}
+		faces[i], source[i], err = g.planarFace(ctx, sv[2+2*i], edgesID, exact, edges, reversed != (sense == 0))
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return faces, source, nil
+}
+
+func igesPlanarEmbeddedShells(ctx context.Context, s brep.Solid, o collision.LocationOptions) ([][]int, error) {
+	n := s.Topology().Shells
+	if n < 1 || n > 1+maxIGESPlanarVoids {
+		return nil, igesPlanarFailure(0, "unsupported embedded shell count")
+	}
+	triangleFaces := s.TriangleFaces()
+	locator, err := collision.NewMeshPointLocator(ctx, s.Tessellate(), triangleFaces, o)
+	if err != nil {
+		return nil, fmt.Errorf("iges planar solid embedding: %w", err)
+	}
+	shells := locator.Shells()
+	outer := -1
+	for i, shell := range shells {
+		if shell.Depth == 0 {
+			if outer != -1 {
+				return nil, igesPlanarFailure(0, "material has more than one exterior")
+			}
+			outer = i
+		}
+	}
+	if outer < 0 {
+		return nil, igesPlanarFailure(0, "material has no exterior")
+	}
+	result := make([][]int, 1, len(shells))
+	faceOwners := make(map[int]int)
+	for i, shell := range shells {
+		if i != outer && (shell.Depth != 1 || shell.Parent != outer) {
+			return nil, igesPlanarFailure(0, "every void must be directly enclosed by the exterior")
+		}
+		var faces []int
+		for _, tri := range shell.Triangles {
+			face := triangleFaces[tri]
+			owner, seen := faceOwners[face]
+			if seen && owner != i {
+				return nil, igesPlanarFailure(0, "face belongs to more than one embedded shell")
+			}
+			if !seen {
+				faceOwners[face] = i
+				faces = append(faces, face)
+			}
+		}
+		sort.Ints(faces)
+		if i == outer {
+			result[0] = faces
+		} else {
+			result = append(result, faces)
+		}
+	}
+	return result, nil
 }
 
 func (g igesPlanarGraph) datum(id, typ int) (igesPlanarVec, error) {

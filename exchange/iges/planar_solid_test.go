@@ -116,29 +116,7 @@ func TestPlanarSolidIGESRejectsChangedSource(t *testing.T) {
 		{"broken-loop", 15, 5, "0"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			d, err := readPlanarTopologySource(bytes.NewReader(raw), Limits{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}}
-			for _, r := range d.entities {
-				if r.id == c.id {
-					r.values[c.index].text = c.text
-				}
-				p := make([]string, len(r.values))
-				for i, v := range r.values {
-					p[i] = v.text
-				}
-				form := 0
-				if r.kind >= 500 || r.kind == 190 {
-					form = 1
-				}
-				a.add(r.kind, form, joinTopologyValues(p))
-			}
-			mutant, err := a.file(d.unit)
-			if err != nil {
-				t.Fatal(err)
-			}
+			mutant := makePlanarIGESMutation(t, raw, c.id, c.index, c.text)
 			if m, err := ReadPlanarSolid(ctx, bytes.NewReader(mutant), PlanarSolidOptions{}); err == nil || m.SolidID != 0 || m.SourceFaces != nil {
 				t.Fatalf("mutated original yielded a partial solid: %+v %v", m, err)
 			}
@@ -152,12 +130,50 @@ func TestPlanarSolidIGESRejectsChangedSource(t *testing.T) {
 	}
 }
 
-func FuzzPlanarSolidIGES(f *testing.F) {
-	src, err := os.ReadFile(planarPrismIGESFixture)
+func makePlanarIGESMutation(t *testing.T, raw []byte, id, index int, value string) []byte {
+	t.Helper()
+	d, err := readPlanarTopologySource(bytes.NewReader(raw), Limits{})
 	if err != nil {
-		f.Fatal(err)
+		t.Fatal(err)
 	}
-	f.Add(src)
+	a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}}
+	changed := false
+	for _, r := range d.entities {
+		if r.id == id {
+			if r.values[index].text == value {
+				t.Fatal("mutation would not change original input")
+			}
+			r.values[index].text = value
+			changed = true
+		}
+		p := make([]string, len(r.values))
+		for i, v := range r.values {
+			p[i] = v.text
+		}
+		form := 0
+		if r.kind >= 500 || r.kind == 190 || r.kind == 402 {
+			form = 1
+		}
+		a.add(r.kind, form, joinTopologyValues(p))
+	}
+	if !changed {
+		t.Fatal("mutation target absent")
+	}
+	mutant, err := a.file(d.unit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return mutant
+}
+
+func FuzzPlanarSolidIGES(f *testing.F) {
+	for _, name := range []string{planarPrismIGESFixture, "testdata/occt-planar-material-void.igs"} {
+		src, err := os.ReadFile(name)
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(src)
+	}
 	f.Add([]byte("incomplete IGES"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		o := PlanarSolidOptions{
@@ -165,8 +181,8 @@ func FuzzPlanarSolidIGES(f *testing.F) {
 			Validation: collision.LocationOptions{MaxTriangles: 256, MaxWork: 50000},
 		}
 		m, err := ReadPlanarSolid(context.Background(), bytes.NewReader(data), o)
-		if err == nil && (m.SolidID == 0 || m.Solid.Topology().Shells != 1 || m.Solid.Validate() != nil) {
-			t.Fatal("successful read did not produce one validated original shell")
+		if err == nil && (m.SolidID == 0 || len(m.SourceShells) == 0 || m.Solid.Topology().Shells != len(m.SourceShells) || m.Solid.Validate() != nil) {
+			t.Fatal("successful read did not produce validated original shells")
 		}
 	})
 }

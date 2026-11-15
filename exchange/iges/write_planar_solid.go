@@ -54,8 +54,9 @@ func (p igesPlanarVec) scaledDirection() igesPlanarVec {
 
 // WritePlanarSolid emits a standard model-only type 186 B-rep with original
 // vertices, exact planar supports, and explicit outer and inner wires. The
-// supported topology is the same as ReadPlanarSolid. The generated IGES is
-// re-read and checked for unchanged topology before any bytes are written.
+// supported topology is the same as ReadPlanarSolid. One exterior is written
+// before its independently verified voids. The generated IGES is re-read and
+// checked for unchanged topology before any bytes are written.
 func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float64, o PlanarSolidOptions) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
@@ -66,15 +67,20 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 	if err := s.Validate(); err != nil {
 		return err
 	}
-	if s.Topology().Shells != 1 {
-		return igesPlanarFailure(0, "one connected shell is required")
-	}
 	opt, err := o.Limits.defaults()
 	if err != nil {
 		return err
 	}
 	v, e, f := s.Vertices(), s.Edges(), s.Faces()
-	entityCount := 4 + len(e) + 6*len(f)
+	groups, err := igesPlanarEmbeddedShells(ctx, s, o.Validation)
+	if err != nil {
+		return err
+	}
+	var canonicalFaceOrder []int
+	for _, group := range groups {
+		canonicalFaceOrder = append(canonicalFaceOrder, group...)
+	}
+	entityCount := 3 + len(groups) + len(e) + 6*len(f)
 	for _, face := range f {
 		entityCount += len(face.Holes)
 	}
@@ -102,7 +108,7 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 		ev = append(ev, line, vid, edge.Start+1, vid, edge.End+1)
 	}
 	eid := a.add(504, 1, topologyNumbers(ev...))
-	sv := []int{514, len(f)}
+	faceIDs := make([]int, len(f))
 	startVertex := func(u brep.EdgeUse) int {
 		edge := e[u.Edge]
 		if u.Reversed {
@@ -110,10 +116,11 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 		}
 		return edge.Start
 	}
-	for _, face := range f {
+	for _, faceIndex := range canonicalFaceOrder {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		face := f[faceIndex]
 		outer := face.Boundary
 		p := points[startVertex(outer[0])]
 		x := points[startVertex(outer[1])].sub(p)
@@ -142,10 +149,22 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 			}
 			fv = append(fv, a.add(508, 1, topologyNumbers(lv...)))
 		}
-		sv = append(sv, a.add(510, 1, topologyNumbers(fv...)), 1)
+		faceIDs[faceIndex] = a.add(510, 1, topologyNumbers(fv...))
 	}
-	shell := a.add(514, 1, topologyNumbers(sv...))
-	a.add(186, 0, topologyNumbers(186, shell, 1, 0))
+	shells, expectedFaces := make([]int, len(groups)), make([]brep.Face, 0, len(f))
+	for i, group := range groups {
+		sv := []int{514, len(group)}
+		for _, j := range group {
+			sv = append(sv, faceIDs[j], 1)
+			expectedFaces = append(expectedFaces, f[j])
+		}
+		shells[i] = a.add(514, 1, topologyNumbers(sv...))
+	}
+	root := []int{186, shells[0], 1, len(shells) - 1}
+	for _, shell := range shells[1:] {
+		root = append(root, shell, 1)
+	}
+	a.add(186, 0, topologyNumbers(root...))
 	raw, err := a.file(unit)
 	if err != nil {
 		return err
@@ -155,7 +174,7 @@ func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float
 		return fmt.Errorf("iges planar solid readback: %w", err)
 	}
 	if reopen.LengthUnit != unit || !reflect.DeepEqual(reopen.Solid.Vertices(), v) ||
-		!reflect.DeepEqual(reopen.Solid.Edges(), e) || !reflect.DeepEqual(reopen.Solid.Faces(), f) {
+		!reflect.DeepEqual(reopen.Solid.Edges(), e) || !reflect.DeepEqual(reopen.Solid.Faces(), expectedFaces) {
 		return igesPlanarFailure(0, "reopen changed original planar topology or units")
 	}
 	if err := ctx.Err(); err != nil {

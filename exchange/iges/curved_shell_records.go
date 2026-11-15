@@ -172,7 +172,7 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 		}
 		if planarShells {
 			switch kind {
-			case 110, 116, 123, 186, 190, 502, 504, 508, 510, 514:
+			case 110, 116, 123, 186, 190, 402, 502, 504, 508, 510, 514:
 				supported = true
 			default:
 				supported = false
@@ -190,7 +190,7 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
 			}
 		}
-		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
+		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !(planarShells && kind == 186 && first[8] == 20000) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
 			return topologySource{}, errors.New("iges: unsupported directory status")
 		}
 		if first[8] == 10000 || first[8] == 10500 {
@@ -215,7 +215,7 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 		if e != nil {
 			return topologySource{}, e
 		}
-		formOne := ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism || planarShells) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)
+		formOne := ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism || planarShells) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192) || planarShells && kind == 402
 		if (first[6] != 0 && !(placed && (sphericalMaterial && kind == 196 || toroidalMaterial && kind == 198 || placedCone && kind == 194 || ellipseConic && kind == 104 || ellipsePrism && (kind == 110 || kind == 190) || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && (!formOne || second[4] != 1)) || (formOne && second[4] != 1) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}

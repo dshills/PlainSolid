@@ -98,14 +98,16 @@ plane entity is substituted for the actual incident owner.
 
 The independent author uses two polygon wires and extrudes the resulting
 concave face with an inner loop, then transfers the solid as IGES B-rep.
+The `write-void` and `write-two-voids` modes independently carve enclosed
+material cavities.
 The read mode checks the independently authored file and the PlainSolid
 export for valid topology and compares surface area, volume and centroid.
 
 ```sh
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
   tools/occtref/author_iges_vendor_planar_prism.cxx -o /tmp/occt-planar-iges \
-  -lTKDEIGES -lTKXSBase -lTKPrim -lTKTopAlgo -lTKGeomAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
-PLAINSOLID_OCCT_PLANAR_PRISM_IGES=/tmp/occt-planar-iges \
+  -lTKDEIGES -lTKXSBase -lTKBO -lTKPrim -lTKTopAlgo -lTKGeomAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_PLANAR_PRISM_IGES=/tmp/occt-planar-iges PLAINSOLID_OCCT_PLANAR_SHELLS_IGES=/tmp/occt-planar-iges \
   go test -race ./exchange/iges -run '^TestPlanarSolidIGES'
 ```
 
