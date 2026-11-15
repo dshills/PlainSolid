@@ -94,21 +94,28 @@ func ReadBRepJSON(r io.Reader, l BRepLimits) (brep.Solid, error) {
 	if d.Version != 1 || d.Kind != "planar-brep" {
 		return brep.Solid{}, errors.New("exchange: unsupported BRep schema")
 	}
+	if e := checkBRepDocument(d, l); e != nil {
+		return brep.Solid{}, e
+	}
+	return brep.NewSolid(d.Vertices, d.Edges, d.Faces)
+}
+
+func checkBRepDocument(d brepDocument, l BRepLimits) error {
 	if len(d.Vertices) > l.MaxVertices || len(d.Edges) > l.MaxEdges || len(d.Faces) > l.MaxFaces {
-		return brep.Solid{}, errors.New("exchange: BRep entity limit exceeded")
+		return errors.New("exchange: BRep entity limit exceeded")
 	}
 	uses := 0
 	for _, f := range d.Faces {
 		if len(f.Boundary) > l.MaxEdgeUses-uses {
-			return brep.Solid{}, errors.New("exchange: BRep edge-use limit exceeded")
+			return errors.New("exchange: BRep edge-use limit exceeded")
 		}
 		uses += len(f.Boundary)
 		for _, hole := range f.Holes {
 			if len(hole) > l.MaxEdgeUses-uses {
-				return brep.Solid{}, errors.New("exchange: BRep edge-use limit exceeded")
+				return errors.New("exchange: BRep edge-use limit exceeded")
 			}
 			uses += len(hole)
 		}
 	}
-	return brep.NewSolid(d.Vertices, d.Edges, d.Faces)
+	return nil
 }
