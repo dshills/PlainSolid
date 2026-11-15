@@ -37,7 +37,7 @@ func exactSweepSTEPCircle(x, y, r float64, clockwise bool) []trimmed.ExactCircul
 	return a
 }
 
-func exactSweepInsetSTEPFixture(t *testing.T, below bool) ExactCircularSweepInset {
+func exactSweepInsetSTEPFixture(t testing.TB, below bool) ExactCircularSweepInset {
 	t.Helper()
 	frame, err := geom.NewFrame(geom.Vec3{X: 10, Y: -3, Z: 2}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})
 	if err != nil {
@@ -54,6 +54,28 @@ func exactSweepInsetSTEPFixture(t *testing.T, below bool) ExactCircularSweepInse
 		d.Guest.Bottom, d.Guest.Top = -3, 0
 	}
 	return d
+}
+
+func FuzzReadExactCircularSweepInsetSTEP(f *testing.F) {
+	var seed bytes.Buffer
+	ctx := context.Background()
+	if e := WriteExactCircularSweepInset(ctx, &seed, exactSweepInsetSTEPFixture(f, false)); e != nil {
+		f.Fatal(e)
+	}
+	f.Add(seed.Bytes())
+	f.Add([]byte("ISO-10303-21;HEADER;ENDSEC;DATA;ENDSEC;END-ISO-10303-21;"))
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		p, e := ReadExactCircularSweepInset(ctx, bytes.NewReader(raw), Limits{MaxBytes: 1 << 17, MaxEntities: 1536, MaxDepth: 16})
+		if e != nil {
+			if p.Source != nil || p.Body != 0 {
+				t.Fatal("failed input exposed a partial join")
+			}
+			return
+		}
+		if p.Body <= 0 || len(p.Native.Solid.Faces()) < 9 || p.GuestFaces[p.Native.GuestCap] != 0 {
+			t.Fatal("accepted source lacks joined material or exposes the interface")
+		}
+	})
 }
 
 func TestExactCircularSweepInsetSTEPRoundTrip(t *testing.T) {

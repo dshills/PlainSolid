@@ -27,6 +27,7 @@ type directedIGESRoles struct {
 	walls, verticals, ringOffsets []int
 	caps                          [2]int
 	capLoops                      [2][]int
+	faceIDs, curveIDs             []int
 }
 
 func directedIGESFloat(x float64) (string, error) {
@@ -78,16 +79,45 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 	if err != nil {
 		return topologyAuthor{}, zero, trimmed.Solid{}, err
 	}
+	flat := append([]trimmed.ExactCircularLoopSegment(nil), d.Outer...)
+	offsets := []int{0, len(flat)}
+	for _, ring := range d.Holes {
+		flat = append(flat, ring...)
+		offsets = append(offsets, len(flat))
+	}
+	n := len(flat)
+	supports, circles := make([]directedIGESSupport, n+2), make([]trimmed.ExactCircularLoopSegment, 3*n)
+	supports[0].z, supports[1].z = d.Bottom, d.Top
+	for i, segment := range flat {
+		supports[2+i] = directedIGESSupport{z: d.Bottom, wall: true, segment: segment}
+		circles[i], circles[n+i] = segment, segment
+	}
+	a, roles, err := buildDirectedIGESBoundary(ctx, native, supports, circles)
+	if err != nil {
+		return topologyAuthor{}, zero, trimmed.Solid{}, err
+	}
+	roles.ringOffsets = offsets
+	roles.rims = [2][]int{roles.curveIDs[:n], roles.curveIDs[n : 2*n]}
+	roles.verticals = roles.curveIDs[2*n:]
+	roles.caps = [2]int{roles.faceIDs[0], roles.faceIDs[1]}
+	roles.walls = roles.faceIDs[2:]
+	return a, roles, native, nil
+}
+
+type directedIGESSupport struct {
+	z       float64
+	wall    bool
+	segment trimmed.ExactCircularLoopSegment
+}
+
+func buildDirectedIGESBoundary(ctx context.Context, native trimmed.Solid, supports []directedIGESSupport, circles []trimmed.ExactCircularLoopSegment) (topologyAuthor, directedIGESRoles, error) {
+	var zero directedIGESRoles
 	a := directedIGESAuthor{}
 	role := directedIGESRoles{}
 	verts, edges, faces := native.Vertices(), native.Edges(), native.Faces()
-	flat := append([]trimmed.ExactCircularLoopSegment(nil), d.Outer...)
-	role.ringOffsets = []int{0, len(flat)}
-	for _, ring := range d.Holes {
-		flat = append(flat, ring...)
-		role.ringOffsets = append(role.ringOffsets, len(flat))
+	if len(supports) != len(faces) || len(circles) != len(edges) {
+		return topologyAuthor{}, zero, geom.ErrInvalid
 	}
-	n := len(flat)
 	v := []float64{float64(len(verts))}
 	for _, p := range verts {
 		v = append(v, p.X, p.Y, p.Z)
@@ -99,8 +129,8 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 		from, to := e.Start, e.End
 		p, q := verts[from], verts[to]
 		var id int
-		if i < 2*n && flat[i%n].Radius > 0 {
-			s := flat[i%n]
+		if circles[i].Radius > 0 {
+			s := circles[i]
 			if directedIGESClockwise(s) {
 				from, to, p, q = to, from, q, p
 				reverse[i] = true
@@ -110,44 +140,37 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 			id = a.addReal(110, 0, p.X, p.Y, p.Z, q.X, q.Y, q.Z)
 		}
 		edgeArgs = append(edgeArgs, id, role.vertices, from+1, role.vertices, to+1)
-		switch {
-		case i < n:
-			role.rims[0] = append(role.rims[0], id)
-		case i < 2*n:
-			role.rims[1] = append(role.rims[1], id)
-		default:
-			role.verticals = append(role.verticals, id)
-		}
+		role.curveIDs = append(role.curveIDs, id)
 	}
 	role.edges = a.add(504, 1, topologyNumbers(edgeArgs...))
 	x := a.addReal(123, 0, 1, 0, 0)
 	z := a.addReal(123, 0, 0, 0, 1)
 	shellArgs := []int{514, len(faces)}
 	for i, f := range faces {
-		if err = ctx.Err(); err != nil {
-			return topologyAuthor{}, zero, trimmed.Solid{}, err
+		if err := ctx.Err(); err != nil {
+			return topologyAuthor{}, zero, err
 		}
 		var support int
 		outward := true
 		switch {
-		case i < 2:
-			h := []float64{d.Bottom, d.Top}[i]
+		case !supports[i].wall:
+			h := supports[i].z
 			origin := a.addReal(116, 0, 0, 0, h, 0)
 			support = a.add(190, 1, topologyNumbers(190, origin, z, x))
-			outward = i == 1
-		case flat[i-2].Radius > 0:
-			s := flat[i-2]
-			origin := a.addReal(116, 0, s.Center.X, s.Center.Y, d.Bottom, 0)
+			outward = !f.Reversed
+		case supports[i].segment.Radius > 0:
+			s := supports[i].segment
+			origin := a.addReal(116, 0, s.Center.X, s.Center.Y, supports[i].z, 0)
 			support = a.addReal(192, 1, float64(origin), float64(z), s.Radius, float64(x))
 			outward = !directedIGESClockwise(s)
 		default:
-			s := flat[i-2]
+			s := supports[i].segment
 			dx, ex := cylinderExactSum(s.End.X, -s.Start.X)
 			dy, ey := cylinderExactSum(s.End.Y, -s.Start.Y)
 			if ex != nil || ey != nil {
-				return topologyAuthor{}, zero, trimmed.Solid{}, geom.ErrUnrepresentable
+				return topologyAuthor{}, zero, geom.ErrUnrepresentable
 			}
-			origin := a.addReal(116, 0, s.Start.X, s.Start.Y, d.Bottom, 0)
+			origin := a.addReal(116, 0, s.Start.X, s.Start.Y, supports[i].z, 0)
 			norm := a.addReal(123, 0, dy, -dx, 0)
 			ref := a.addReal(123, 0, dx, dy, 0)
 			support = a.add(190, 1, topologyNumbers(190, origin, norm, ref))
@@ -160,7 +183,7 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 				j := k
 				// Align the trim traversal with the analytic support. A
 				// clockwise wall’s rational native chart points inward.
-				reversedChart := i >= 2 && !outward
+				reversedChart := supports[i].wall && !outward
 				if reversedChart {
 					j = len(ring) - 1 - j
 				}
@@ -183,11 +206,7 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 			sense = 1
 		}
 		shellArgs = append(shellArgs, id, sense)
-		if i < 2 {
-			role.caps[i] = id
-		} else {
-			role.walls = append(role.walls, id)
-		}
+		role.faceIDs = append(role.faceIDs, id)
 	}
 	role.shell = a.add(514, 1, topologyNumbers(shellArgs...))
 	role.solid = a.add(186, 0, topologyNumbers(186, role.shell, 1, 0))
@@ -195,9 +214,9 @@ func buildDirectedIGES(ctx context.Context, d ExactDirectedCircularLoopExtrusion
 		a.geometry.Entities = append(a.geometry.Entities, Entity{Point: &p})
 	}
 	if a.err != nil {
-		return topologyAuthor{}, zero, trimmed.Solid{}, a.err
+		return topologyAuthor{}, zero, a.err
 	}
-	return a.topologyAuthor, role, native, nil
+	return a.topologyAuthor, role, nil
 }
 
 // WriteExactDirectedCircularLoopExtrusion writes one IGES type-186 solid
