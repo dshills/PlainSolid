@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "kernelRevision": "bafe7e811db0782759124f4277b11068be6d9377",
+  "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "checkpointAt": "2026-11-15T12:18:58-06:00",
+  "status": "all isolated PlainCAD suites passed with both documented test fixture corrections and the pristine Playwright driver",
+  "stagedAppRoot": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81",
+  "tools": {
+    "go": "go version go1.27.4 darwin/arm64",
+    "node": "v26.13.1",
+    "playwright": "1.63.0"
+  },
+  "exits": {
+    "wasm": 0,
+    "build": 0,
+    "types": 0,
+    "selected-kernel": 0,
+    "development": 0,
+    "production": 0,
+    "cross-browser": 0,
+    "ordinary-units": 0
+  },
+  "reports": {
+    "development": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/development.json",
+      "bytes": 409602,
+      "sha256": "c00409f7c77d6ca01cdbc998c04f771a861775ced1ba2e1efceea8039cbe3fb4",
+      "summary": {
+        "startTime": "2026-11-15T17:19:31.021Z",
+        "duration": 2528293.0239999997,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "production": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/production.json",
+      "bytes": 79079,
+      "sha256": "f687cb50983b06fd70f8cfe5e0b2a6956970991fd506d93ac5b6e7d45b2c01f1",
+      "summary": {
+        "startTime": "2026-11-15T18:01:40.580Z",
+        "duration": 385410.366,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "cross-browser": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/cross-browser.json",
+      "bytes": 457079,
+      "sha256": "f53d3cee766dc94201760fff2e5984ae235e2ad629016c2cc69b8720f4020a87",
+      "summary": {
+        "startTime": "2026-11-15T18:08:06.796Z",
+        "duration": 65430.520000000004,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "selected-kernel": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/selected-kernel.json",
+      "bytes": 2225,
+      "sha256": "93d3ba0d72ef83286c6c422b05fa39901c5eee9daf2157caea9b8affffc5fbc5",
+      "summary": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    "ordinary-units": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/ordinary-units.json",
+      "bytes": 668104,
+      "sha256": "1b95d10dc97e5a9a2e312077ebd09c654dcc2f1f2d5fbf1c8d12f2dd1512bea5",
+      "summary": {
+        "numTotalTests": 1691,
+        "numPassedTests": 1691,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  },
+  "wasm": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/src/cad/kernel/plainsolid-kernel.wasm",
+    "bytes": 18378548,
+    "sha256": "5d7ed74b517e00ac2dde5bbe674a0f44e10d388ef62e919656d123da1e42f9dc"
+  },
+  "productionAsset": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/dist/assets/plainsolid-kernel-B84QsN3m.wasm",
+    "bytes": 18378548,
+    "sha256": "5d7ed74b517e00ac2dde5bbe674a0f44e10d388ef62e919656d123da1e42f9dc"
+  },
+  "driver": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81/node_modules/playwright-core/lib/coreBundle.js",
+    "bytes": 3477183,
+    "sha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171"
+  },
+  "testOnlyPatches": {
+    "plaincad-fastener-preset-locator.patch": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/tools/plaincad/plaincad-fastener-preset-locator.patch",
+      "bytes": 762,
+      "sha256": "c219de415c1cdd7cb876d84fa0365d464b530cdd8e1321855c6648610213046d"
+    },
+    "plaincad-production-wasm-capture.patch": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/tools/plaincad/plaincad-production-wasm-capture.patch",
+      "bytes": 1928,
+      "sha256": "fbd929a7db863fc762254ffa4a20cd94402ed6516374371e4cc988f6a5c28974"
+    }
+  },
+  "bundle": {
+    "bundles": 72,
+    "largestKB": 496.5,
+    "limitKB": 500.0
+  },
+  "archive": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-bafe7e81.tar.gz",
+    "bytes": 467744,
+    "sha256": "3c761355b5e169cb608a1a558cdca1fb55669dec65e8b6568cf6bf148c32663e"
+  }
+}

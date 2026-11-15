@@ -48,13 +48,19 @@ Node WASM and Chromium qualification in their retained source units.
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-The refreshed full race run on `d5906fde` and another full ordinary Go run
-on `bafe7e81` are in progress. PlainCAD on `bafe7e81` has passed development,
-production and cross-browser gates; ordinary units are the remaining gate.
-Immediate work includes native three-event mixed shell assembly, exact
-re-export of independently authored per-edge STEP bases and a grouped
-millimetre-to-metre original transfer, and exact assembly of bodies
-meeting on a complete original planar face.
+The [refreshed PlainCAD run on `bafe7e81`](evidence/plaincad-main-bafe7e81-2026-11-15.json)
+passed the build, typechecks, bundle budget, 345 development browser cases,
+66 production cases, 15 cross-browser cases, 1,691 ordinary units and four
+WASM contracts. All eight trimmed-solid lanes passed on the same revision;
+the ordinary Go lane and the refreshed full race run on `d5906fde` are
+still running.
+
+Complete concave planar face contact now joins two original single-shell
+bodies while preserving the exterior edge and face history. The v7 STEP
+writer also round-trips twelve independently authored per-edge bases with
+their original finite domains, rational weights and owner maps. Immediate
+work includes the mixed native Cut, grouped converted-metre runtime
+qualification, and original planar face joins with inner wires.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

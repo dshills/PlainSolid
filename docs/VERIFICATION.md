@@ -91,11 +91,33 @@ Focused qualification after the paired full run:
   `a89aa08a9e3bb7b6de1d3a839d5287e67c99b12ceda38e19a2bc68baafd31d2e`.
   Durable grouped logs are under `.worktrees/grouped-step-repair-unit-evidence`.
 
-The newer full race archive starts from immutable `d5906fde`; fresh full
-ordinary Go and PlainCAD runs start from `bafe7e81`, with PlainCAD pinned
-at `efae4d2`. The run directories and independent case inventories are
-under `.worktrees/qualification/2026-11-15`. These runs are in progress;
-the completed paired qualification above remains the latest full pass.
+The newer full race archive starts from immutable `d5906fde`; the refreshed
+full ordinary Go and PlainCAD runs use `bafe7e81`, with PlainCAD pinned at
+`efae4d2`. The [completed PlainCAD manifest](evidence/plaincad-main-bafe7e81-2026-11-15.json)
+records 345 development, 66 production, 15 cross-browser, 1,691 ordinary unit
+and four WASM contract passes. All eight stages returned zero; the production
+WASM and the freshly built asset are byte-identical, the driver is pristine,
+and the bundle gate passed. All eight trimmed-solid ordinary Go lanes have
+passed; the ordinary package lane and refreshed full race run are still open.
+Original reports, logs and case inventories are under
+`.worktrees/qualification/2026-11-15`.
+
+Focused main verification adds two bounded cases:
+
+- `d54df03f`: the exact full-face join checks both winding and every original
+  perimeter ID, proves the complete overlap without mesh welding, removes
+  the two interface faces, and revalidates the resulting embedded boundary.
+  The independently assembled concave L prisms have 18 result vertices,
+  30 edges, 14 faces, exact volume 10 and area 34. Point classification
+  checks the removed interface, its seam, and the concave exterior notch.
+  Shifted, wrong and same-oriented interfaces, quota exhaustion and
+  cancellation publish no result. Both `collision` and `csg` focused
+  race tests passed.
+- `f490779d`: the live OCCT v7 three-support-knot STEP group passes under
+  race. Native and canonical STEP round trips retain twelve independently
+  authored positive-rational bases and their exact model and chart domains.
+  Pinned OCCT independently reads one seven-face body, volume
+  `0.93318617483601` and area `6.09166222908489`, from original and output.
 
 Further main milestones use the same pinned optional OCCT reference:
 
