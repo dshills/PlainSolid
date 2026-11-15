@@ -35,6 +35,10 @@ type ExactCircularLoopOptions struct {
 // every continuous coedge are certified. The finished closed boundary retains
 // original analytic arcs even when their middle controls cannot fit binary64.
 func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions) (Solid, error) {
+	return extrudeExactCircularLoop(ctx, input, height, o, true)
+}
+
+func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions, certify bool) (Solid, error) {
 	if o.DisplayTolerance == 0 {
 		o.DisplayTolerance = 1e-8
 	}
@@ -134,6 +138,10 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 		for j := range z {
 			faces[j].Outer = append(faces[j].Outer, Use{Edge: j*n + i, UVStart: input[i].Start, UVEnd: input[i].End, Curve: curve})
 		}
+	}
+	if !certify {
+		// The through-hole assembler certifies the combined closed boundary.
+		return Solid{vertices: vertices, edges: edges, faces: faces, tolerance: o.DisplayTolerance}, nil
 	}
 	for _, cap := range faces[:2] {
 		proof, err := ValidateFaceTrimLoops(ctx, cap, o.Trims)

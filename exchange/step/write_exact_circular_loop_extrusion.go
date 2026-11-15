@@ -29,10 +29,10 @@ type ExactCircularLoopExtrusion struct {
 // rational-spline controls are invented. Only source scalars within the bounded
 // exact-decimal domain and exactly representable posed vertices are accepted.
 func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion) error {
-	return writeExactCircularLoopExtrusion(ctx, w, d, nil)
+	return writeExactCircularLoopExtrusion(ctx, w, d, nil, nil)
 }
 
-func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle) error {
+func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle, material *trimmed.Solid) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 4096 || !planarSplineRigid(frameTransform(d.Frame)) {
 		return geom.ErrInvalid
 	}
@@ -198,6 +198,9 @@ func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 	k, e := w.Write(raw)
 	if e == nil && k != len(raw) {
 		return io.ErrShortWrite
+	}
+	if e == nil && material != nil {
+		*material = solid
 	}
 	return e
 }

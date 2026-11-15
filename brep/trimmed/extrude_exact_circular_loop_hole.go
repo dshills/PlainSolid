@@ -29,11 +29,11 @@ func ExtrudeExactCircularLoopWithThroughHole(ctx context.Context, input []ExactC
 	for i := range segments {
 		segments[i].End = segments[(i+1)%len(segments)].Start
 	}
-	exterior, err := ExtrudeExactCircularLoop(ctx, input, height, o)
+	exterior, err := extrudeExactCircularLoop(ctx, input, height, o, false)
 	if err != nil {
 		return Solid{}, err
 	}
-	cylinder, err := ExtrudeExactCircularLoop(ctx, segments[:], height, o)
+	cylinder, err := extrudeExactCircularLoop(ctx, segments[:], height, o, false)
 	if err != nil {
 		return Solid{}, err
 	}

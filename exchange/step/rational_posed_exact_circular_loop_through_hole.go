@@ -32,7 +32,7 @@ func WriteRationalPosedExactCircularLoopThroughHoleExtrusion(ctx context.Context
 	if exterior.LengthUnit != .001 || exterior.Height <= 0 || len(exterior.Segments) > 60 {
 		return geom.ErrDomain
 	}
-	return writeRationalPosedExactCircularLoopExtrusion(ctx, w, exterior, &hole, pose)
+	return writeRationalPosedExactCircularLoopExtrusion(ctx, w, exterior, &hole, pose, nil)
 }
 
 // WriteCanonicalSTEP emits the proved through-hole recipe and its original
@@ -99,10 +99,7 @@ func ReadRationalPosedExactCircularLoopThroughHoleExtrusion(ctx context.Context,
 		return zero, err
 	}
 	d := exterior.Descriptor
-	if err := proveExactCircularLoopThroughHoleGraph(ctx, f, rep, d, hole, pose); err != nil {
-		return zero, err
-	}
-	native, err := trimmed.ExtrudeExactCircularLoopWithThroughHole(ctx, d.Segments, hole, d.Height, trimmed.ExactCircularLoopOptions{})
+	native, err := proveExactCircularLoopThroughHoleGraph(ctx, f, rep, d, hole, pose)
 	if err != nil {
 		return zero, err
 	}
@@ -185,15 +182,21 @@ func isolateCanonicalCircularLoopExterior(f *File, bodyID int64, body map[int64]
 	return trimmed.ExtrusionCircle{Center: geom.Vec2{X: center.X, Y: center.Y}, Radius: center.Z}, nil
 }
 
-func proveExactCircularLoopThroughHoleGraph(ctx context.Context, source *File, rep int64, exterior ExactCircularLoopExtrusion, hole trimmed.ExtrusionCircle, pose rigid.RationalRigid) error {
+func proveExactCircularLoopThroughHoleGraph(ctx context.Context, source *File, rep int64, exterior ExactCircularLoopExtrusion, hole trimmed.ExtrusionCircle, pose rigid.RationalRigid) (trimmed.Solid, error) {
 	var replay bytes.Buffer
-	if err := WriteRationalPosedExactCircularLoopThroughHoleExtrusion(ctx, &replay, exterior, hole, pose); err != nil {
-		return err
+	var material trimmed.Solid
+	if exterior.LengthUnit != .001 || exterior.Height <= 0 || len(exterior.Segments) > 60 {
+		return trimmed.Solid{}, geom.ErrDomain
+	}
+	if err := writeRationalPosedExactCircularLoopExtrusion(ctx, &replay, exterior, &hole, pose, &material); err != nil {
+		return trimmed.Solid{}, err
 	}
 	expected, expectedRep, _, _, err := parseCanonicalCircularExtrusions(&replay, Limits{})
 	if err != nil {
-		return err
+		return trimmed.Solid{}, err
 	}
-	_, err = equalCircularExtrusionGraph(source, rep, expected, expectedRep)
-	return err
+	if _, err = equalCircularExtrusionGraph(source, rep, expected, expectedRep); err != nil {
+		return trimmed.Solid{}, err
+	}
+	return material, nil
 }

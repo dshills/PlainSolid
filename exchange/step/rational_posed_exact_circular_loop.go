@@ -27,10 +27,10 @@ type RationalPosedExactCircularLoopExtrusionProduct struct {
 // is the identity: Pose already accounts for the full placement. The
 // product uses a distinct identifier and exact terminating STEP decimals.
 func WriteRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid) error {
-	return writeRationalPosedExactCircularLoopExtrusion(ctx, w, d, nil, pose)
+	return writeRationalPosedExactCircularLoopExtrusion(ctx, w, d, nil, pose, nil)
 }
 
-func writeRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle, pose rigidplacement.RationalRigid) error {
+func writeRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle, pose rigidplacement.RationalRigid, material *trimmed.Solid) error {
 	if ctx == nil || w == nil || frameTransform(d.Frame) != geom.Identity() {
 		return geom.ErrInvalid
 	}
@@ -41,7 +41,8 @@ func writeRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writ
 		return e
 	}
 	var staged bytes.Buffer
-	if e := writeExactCircularLoopExtrusion(ctx, &staged, d, hole); e != nil {
+	var local trimmed.Solid
+	if e := writeExactCircularLoopExtrusion(ctx, &staged, d, hole, &local); e != nil {
 		return e
 	}
 	f, rep, _, bodies, e := parseCanonicalCircularExtrusions(&staged, Limits{})
@@ -88,6 +89,9 @@ func writeRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writ
 	n, e := w.Write(raw)
 	if e == nil && n != len(raw) {
 		e = io.ErrShortWrite
+	}
+	if e == nil && material != nil {
+		*material = local
 	}
 	return e
 }
