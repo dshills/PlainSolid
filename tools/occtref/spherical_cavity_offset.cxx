@@ -2,15 +2,20 @@
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRep_Builder.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
+#include <BRepLib.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
+#include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
 #include <Standard_Failure.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Shape.hxx>
+#include <TopoDS_Solid.hxx>
 #include <gp_Pnt.hxx>
 
 #include <cstdlib>
@@ -68,6 +73,23 @@ int main(int argc, char** argv) {
       shape = cavity(4. + distance, 1. - distance);
     } else if (mode == "separated-supports") {
       shape = separated(distance);
+    } else if (mode == "lens-joined-dilation") {
+      const auto first = BRepPrimAPI_MakeSphere(gp_Pnt(0, 0, 0), 5.).Shape();
+      const auto second = BRepPrimAPI_MakeSphere(gp_Pnt(0, 0, 6), 5.).Shape();
+      BRepAlgoAPI_Common overlap(first, second);
+      if (!overlap.IsDone() || !BRepCheck_Analyzer(overlap.Shape()).IsValid()) return 3;
+      BRepOffsetAPI_MakeOffsetShape operation;
+      operation.PerformByJoin(overlap.Shape(), distance, 1.e-9, BRepOffset_Skin,
+                              false, false, GeomAbs_Arc, true);
+      if (!operation.IsDone()) return 4;
+      TopExp_Explorer shells(operation.Shape(), TopAbs_SHELL);
+      if (!shells.More() || !BRep_Tool::IsClosed(shells.Current())) return 7;
+      const auto shell = TopoDS::Shell(shells.Current());
+      shells.Next();
+      if (shells.More()) return 7;
+      TopoDS_Solid solid = BRepBuilderAPI_MakeSolid(shell).Solid();
+      if (!BRepLib::OrientClosedSolid(solid)) return 7;
+      shape = solid;
     } else if (mode == "lens-supports") {
       const auto first = BRepPrimAPI_MakeSphere(gp_Pnt(0, 0, 0), 2. - distance).Shape();
       const auto second = BRepPrimAPI_MakeSphere(gp_Pnt(0, 2, 0), 2.5 - distance).Shape();
