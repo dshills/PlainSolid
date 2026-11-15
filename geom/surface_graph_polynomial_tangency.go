@@ -43,7 +43,7 @@ type SplineGraphPolynomialTangency struct {
 // Additional or unresolved contacts fail without publishing partial geometry.
 func DiscoverSplineGraphPolynomialTangency(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialTangency, error) {
 	var result SplineGraphPolynomialTangency
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 1, multiplicity: 2, certify: result.certifyArrangement})
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{tangencies: 1, certify: result.certifyArrangement})
 	if e != nil {
 		return SplineGraphPolynomialTangency{ExactOperations: pair.ExactOperations}, e
 	}

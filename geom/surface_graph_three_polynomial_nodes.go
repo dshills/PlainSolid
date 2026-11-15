@@ -35,7 +35,7 @@ type SplineGraphThreePolynomialNodes struct {
 // tangent, coincident, irrational and additional contacts fail atomically.
 func DiscoverSplineGraphThreePolynomialNodes(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphThreePolynomialNodes, error) {
 	var result SplineGraphThreePolynomialNodes
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 3, multiplicity: 1, certify: result.certifyArrangement})
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{crossings: 3, certify: result.certifyArrangement})
 	if e != nil {
 		return SplineGraphThreePolynomialNodes{ExactOperations: pair.ExactOperations}, e
 	}
