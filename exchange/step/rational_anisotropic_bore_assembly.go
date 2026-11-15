@@ -23,12 +23,15 @@ type RationalWrappedAnisotropicStationBoreAssembly struct {
 }
 
 func ReadRationalWrappedAnisotropicStationBoreAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions) (RationalWrappedAnisotropicStationBoreAssembly, error) {
+	return readRationalWrappedAnisotropicStationBoreAssembly(ctx, r, l, o, false)
+}
+func readRationalWrappedAnisotropicStationBoreAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions, nested bool) (RationalWrappedAnisotropicStationBoreAssembly, error) {
 	var zero RationalWrappedAnisotropicStationBoreAssembly
 	source, view, frames, e := rationalAnisotropicProofView(ctx, r, l)
 	if e != nil {
 		return zero, e
 	}
-	proof, e := ReadWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(view), l, o)
+	proof, e := readWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(view), l, o, nested)
 	if e != nil {
 		return zero, e
 	}

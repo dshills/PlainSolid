@@ -289,3 +289,38 @@ over-budget, nonterminating, irrational or nonorthogonal ratios, duplicate or
 foreign occurrence IDs, cancellation and atomic pre-output failure. Canonical
 bytes are stable under equivalent raw direction scales, and caller rationals
 remain unchanged.
+
+## Nested exact rational source assemblies
+
+The separate `ReadNestedRationalWrappedAnisotropicStationAssembly` and bore
+counterpart admit exactly the established three-product grammar: one root,
+one reused geometry-free subgroup, one original local material, two to sixteen
+root uses and one subgroup-to-leaf use. Both levels may have proper rational
+orthonormal frames under the same common-unit and neutral-source-frame rules.
+Original relationship/frame IDs remain available separately from expanded
+`RationalHierarchyInstance` paths and composed poses. Every composition is
+exact, with the same 256-bit and terminating-decimal gate, including the shared
+64-character decimal serializer ceiling. No world control points are rounded.
+
+Their `Source` writers re-prove and preserve the actual standard original graph.
+The `JSON` APIs use distinct version-one tags
+`plainsolid-step-nested-rational-anisotropic-station-assembly` and
+`plainsolid-step-nested-rational-anisotropic-station-bore-assembly`. They retain
+all original local material/support claims, subgroup ID, original relationships,
+expanded two-use paths and exact composed matrices. Reload re-proves the whole
+original source once and compares every stored claim; native bytes and stored
+poses are not authorities. The existing flat rational and signed nested APIs
+and tags remain strict. Caller-generated nested rational authoring is not part
+of this source-backed milestone.
+
+Independent XCAF `filled-nested-oblique` and `bore-nested-oblique` modes author
+281- and 473-record AP242 sources with an oblique subgroup use and one oblique
+root use. Both use exact original decimal ratios `(0.6,0.8,0)`; composition
+produces `(-7/25,24/25,0)` exactly. The pinned reader reports actual leaf poses,
+shared subgroup/leaf identity, topology and material measures. Tests compare
+those poses and original/native/source-re-export measures, preserve local native
+material proof, reject cyclic ownership and rounded frames, and test a composed
+translation exceeding the decimal quota although its inputs each fit. Native
+corruption tests cover subgroup/path/matrix/source/support/material claims,
+limits, cancellation, cross-mode tags and atomic failure. Both through-bore
+walls and the annular cap/rim topology remain independently re-proved.

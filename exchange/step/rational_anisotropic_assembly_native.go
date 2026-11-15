@@ -25,12 +25,16 @@ type rationalAnisotropicNativeEnvelope struct {
 	Occurrences   []rationalHierarchyRelationClaim
 }
 
-func rationalAnisotropicNativeClaim(ctx context.Context, m RationalWrappedAnisotropicStationAssembly) (rationalAnisotropicNativeEnvelope, error) {
+func rationalAnisotropicNativeClaim(ctx context.Context, m RationalWrappedAnisotropicStationAssembly, nestedMode ...bool) (rationalAnisotropicNativeEnvelope, error) {
 	q := rationalAnisotropicNativeEnvelope{Format: rationalAnisotropicNativeFormat, Version: 1, Definitions: m.Definitions, Roots: m.Roots, Product: m.Product, SourceBodyID: m.SourceBodyID, SourceFaceIDs: m.SourceFaceIDs}
 	if e := ctx.Err(); e != nil {
 		return q, e
 	}
-	if !independentNativeSourceRecordBound(m.Source, 4096, 16) || len(m.Definitions) != 2 || len(m.Roots) != 1 || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 || len(m.SourceFaceIDs) > 34 || !anisotropicAssemblyNames(m.Body.Name, m.Body.CapNames, m.Body.Walls) {
+	products, minimum, maximum := 2, 2, 16
+	if len(nestedMode) == 1 && nestedMode[0] {
+		products, minimum, maximum = 3, 3, 17
+	}
+	if !independentNativeSourceRecordBound(m.Source, 4096, 16) || len(m.Definitions) != products || len(m.Roots) != 1 || len(m.Occurrences) < minimum || len(m.Occurrences) > maximum || len(m.SourceFaceIDs) > 34 || !anisotropicAssemblyNames(m.Body.Name, m.Body.CapNames, m.Body.Walls) {
 		return q, geom.ErrInvalid
 	}
 	raw, e := mappedPlanarSourceBytes(m.Source)

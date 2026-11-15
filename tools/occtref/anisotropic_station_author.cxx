@@ -62,12 +62,12 @@ int main(int argc,char**argv) {
  try {
   if(argc!=4)return 2;
   const std::string mode=argv[3];
-  const bool assembly=mode=="filled-assembly"||mode=="filled-assembly-oblique"||mode=="filled-assembly-negative"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="read-assembly"||mode=="filled-nested-assembly"||mode=="bore-nested-assembly"||mode=="read-nested-assembly";
+  const bool assembly=mode=="filled-assembly"||mode=="filled-assembly-oblique"||mode=="filled-assembly-negative"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="read-assembly"||mode=="filled-nested-oblique"||mode=="bore-nested-oblique"||mode=="filled-nested-assembly"||mode=="bore-nested-assembly"||mode=="read-nested-assembly";
   const bool reading=mode=="read"||mode=="read-assembly"||mode=="read-nested-assembly";
   const bool nested=mode.find("nested")!=std::string::npos;
   if(mode!="filled"&&mode!="bore"&&!assembly&&!reading)return 2;
-  TopoDS_Shape shape;std::vector<gp_Trsf> placements;
-  if(!reading){shape=loft();if(mode=="bore"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="bore-nested-assembly")shape=BRepAlgoAPI_Cut(shape,loft(true)).Shape();}
+  TopoDS_Shape shape;std::vector<gp_Trsf> placements,leafPlacements;
+  if(!reading){shape=loft();if(mode=="bore"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="bore-nested-assembly"||mode=="bore-nested-oblique")shape=BRepAlgoAPI_Cut(shape,loft(true)).Shape();}
   else if(!assembly){STEPControl_Reader reader;if(reader.ReadFile(argv[1])!=IFSelect_RetDone||reader.TransferRoots()!=1)return 4;shape=reader.OneShape();}
   if(assembly){
    occ::handle<TDocStd_Document> doc=new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));
@@ -76,8 +76,8 @@ int main(int argc,char**argv) {
     auto part=shapes->AddShape(shape,false),root=shapes->NewShape();
     TDataStd_Name::Set(part,TCollection_ExtendedString("Original anisotropic product"));TDataStd_Name::Set(root,TCollection_ExtendedString("Repeated anisotropic assembly"));
     auto target=part;
-    if(nested){target=shapes->NewShape();TDataStd_Name::Set(target,TCollection_ExtendedString("Shared anisotropic subgroup"));gp_Trsf inner;inner.SetTranslation(gp_Vec(1,2,0));shapes->AddComponent(target,part,TopLoc_Location(inner));}
-    shapes->AddComponent(root,target,TopLoc_Location());gp_Trsf pose;pose.SetValues(0,0,1,10,1,0,0,-2,0,1,0,3);if(mode=="filled-assembly-oblique"||mode=="bore-assembly-oblique")pose.SetValues(.6,-.8,0,10,.8,.6,0,-2,0,0,1,3);if(mode=="filled-assembly-negative")pose.SetValues(-1,0,0,10,0,1,0,-2,0,0,-1,3);shapes->AddComponent(root,target,TopLoc_Location(pose));shapes->UpdateAssemblies();
+    if(nested){target=shapes->NewShape();TDataStd_Name::Set(target,TCollection_ExtendedString("Shared anisotropic subgroup"));gp_Trsf inner;inner.SetTranslation(gp_Vec(1,2,0));if(mode.find("nested-oblique")!=std::string::npos)inner.SetValues(.6,-.8,0,1,.8,.6,0,2,0,0,1,0);shapes->AddComponent(target,part,TopLoc_Location(inner));}
+    shapes->AddComponent(root,target,TopLoc_Location());gp_Trsf pose;pose.SetValues(0,0,1,10,1,0,0,-2,0,1,0,3);if(mode=="filled-assembly-oblique"||mode=="bore-assembly-oblique"||mode.find("nested-oblique")!=std::string::npos)pose.SetValues(.6,-.8,0,10,.8,.6,0,-2,0,0,1,3);if(mode=="filled-assembly-negative")pose.SetValues(-1,0,0,10,0,1,0,-2,0,0,-1,3);shapes->AddComponent(root,target,TopLoc_Location(pose));shapes->UpdateAssemblies();
     STEPCAFControl_Writer writer;DESTEP_Parameters params;params.WriteSchema=DESTEP_Parameters::WriteMode_StepSchema_AP242DIS;
     if(!writer.Transfer(doc,params)||writer.Write(argv[1])!=IFSelect_RetDone)return 5;
    }else{STEPCAFControl_Reader reader;if(reader.ReadFile(argv[1])!=IFSelect_RetDone||!reader.Transfer(doc))return 4;}
@@ -85,7 +85,7 @@ int main(int argc,char**argv) {
    shapes->GetComponents(roots.Value(1),uses,false);if(uses.Length()!=2)return 6;TDF_Label first;
    for(int i=1;i<=2;i++){TDF_Label part;if(!shapes->GetReferredShape(uses.Value(i),part))return 6;if(i==1)first=part;else if(first!=part)return 6;}
    for(int i=1;i<=2;i++)placements.push_back(shapes->GetLocation(uses.Value(i)).Transformation());
-   if(nested){NCollection_Sequence<TDF_Label> inner;shapes->GetComponents(first,inner,false);if(inner.Length()!=1)return 6;TDF_Label leaf;if(!shapes->GetReferredShape(inner.Value(1),leaf)||leaf==first)return 6;}
+   if(nested){NCollection_Sequence<TDF_Label> inner;shapes->GetComponents(first,inner,false);if(inner.Length()!=1)return 6;TDF_Label leaf;if(!shapes->GetReferredShape(inner.Value(1),leaf)||leaf==first)return 6;auto local=shapes->GetLocation(inner.Value(1)).Transformation();for(const auto& outer:placements)leafPlacements.push_back(outer.Multiplied(local));}else leafPlacements=placements;
    shape=shapes->GetShape(roots.Value(1));
   }
   if(shape.IsNull()||!BRepCheck_Analyzer(shape).IsValid())throw std::runtime_error("invalid independent weighted result");
@@ -93,7 +93,7 @@ int main(int argc,char**argv) {
   if(solids!=(assembly?2:1)||shells!=solids)throw std::runtime_error("unexpected component count");
   if(!reading&&!assembly){STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(argv[1])!=IFSelect_RetDone)throw std::runtime_error("STEP export failed");}
   GProp_GProps volume,area;BRepGProp::VolumeProperties(shape,volume,1e-12);BRepGProp::SurfaceProperties(shape,area,1e-12);
-  auto c=volume.CentreOfMass();std::ofstream out(argv[2]);out<<std::setprecision(17)<<"{\"Volume\":"<<volume.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<c.X()<<","<<c.Y()<<","<<c.Z()<<"],\"Solids\":"<<solids<<",\"Shells\":"<<shells<<",\"Shared\":"<<(assembly?"true":"false")<<",\"Placements\":[";for(size_t k=0;k<placements.size();k++){if(k)out<<",";out<<"[";for(int i=1;i<=3;i++){if(i>1)out<<",";out<<"[";for(int j=1;j<=4;j++){if(j>1)out<<",";out<<placements[k].Value(i,j);}out<<"]";}out<<"]";}out<<"]}\n";
+  auto c=volume.CentreOfMass();std::ofstream out(argv[2]);out<<std::setprecision(17)<<"{\"Volume\":"<<volume.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<c.X()<<","<<c.Y()<<","<<c.Z()<<"],\"Solids\":"<<solids<<",\"Shells\":"<<shells<<",\"Shared\":"<<(assembly?"true":"false")<<",\"Placements\":[";for(size_t k=0;k<placements.size();k++){if(k)out<<",";out<<"[";for(int i=1;i<=3;i++){if(i>1)out<<",";out<<"[";for(int j=1;j<=4;j++){if(j>1)out<<",";out<<placements[k].Value(i,j);}out<<"]";}out<<"]";}out<<"],\"LeafPlacements\":[";for(size_t k=0;k<leafPlacements.size();k++){if(k)out<<",";out<<"[";for(int i=1;i<=3;i++){if(i>1)out<<",";out<<"[";for(int j=1;j<=4;j++){if(j>1)out<<",";out<<leafPlacements[k].Value(i,j);}out<<"]";}out<<"]";}out<<"]}\n";
   return out?0:3;
  }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}
 }

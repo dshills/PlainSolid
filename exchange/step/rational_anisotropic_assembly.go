@@ -173,12 +173,15 @@ type RationalWrappedAnisotropicStationAssembly struct {
 }
 
 func ReadRationalWrappedAnisotropicStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions) (RationalWrappedAnisotropicStationAssembly, error) {
+	return readRationalWrappedAnisotropicStationAssembly(ctx, r, l, o, false)
+}
+func readRationalWrappedAnisotropicStationAssembly(ctx context.Context, r io.Reader, l Limits, o WrappedSurfaceOptions, nested bool) (RationalWrappedAnisotropicStationAssembly, error) {
 	var zero RationalWrappedAnisotropicStationAssembly
 	source, view, frames, e := rationalAnisotropicProofView(ctx, r, l)
 	if e != nil {
 		return zero, e
 	}
-	proof, e := ReadWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(view), l, o)
+	proof, e := readWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(view), l, o, nested)
 	if e != nil {
 		return zero, e
 	}
