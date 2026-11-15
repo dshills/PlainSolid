@@ -34,6 +34,13 @@ type SplineTubeTrimContact struct {
 	geom.TubeTrimContact
 }
 
+// SplineTubeTrimCoincidence retains both original coedge parameters and the
+// exact corresponding tube roots. Ends follow coedge traversal.
+type SplineTubeTrimCoincidence struct {
+	Ends      [2]SplineTubeTrimContact
+	FreeOrder int
+}
+
 type SplineTubeTrimPending struct {
 	Source     SplineTubeTrimSource
 	Events     []*geom.ExactComposedCurveEvent
@@ -43,6 +50,7 @@ type SplineTubeTrimPending struct {
 type SplineTubeFaceTrimReport struct {
 	Loops           trimvalidate.Report
 	Contacts        []SplineTubeTrimContact
+	Coincidences    []SplineTubeTrimCoincidence
 	Pending         []SplineTubeTrimPending
 	ExactOperations int
 	Complete        bool
@@ -53,7 +61,8 @@ type SplineTubeFaceTrimReport struct {
 // IntersectSplineTubeFaceTrims exhausts the selected verified tube segment
 // against a certified outer loop and all holes, using the original face
 // support. Positive-weight rational Bézier coedges through degree eight qualify.
-// Coincidences and contacts on a dependent tube wall are unresolved.
+// Coincident spans qualify with CoincidentSpans when proved strictly away
+// from the dependent walls. Other unresolved coincidences remain pending.
 // A contact can have multiple owners at a knot or face vertex; these records
 // are kept separately. The report does not classify the intervening branch.
 func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSegment, chart int, f Face,
@@ -130,7 +139,7 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 				r.ExactOperations += uv.ExactOperations()
 				child := o.TubeTrimIntersectionOptions
 				child.MaxOperations -= r.ExactOperations
-				child.MaxEvents -= len(r.Contacts) + len(r.Pending)
+				child.MaxEvents -= len(r.Contacts) + 2*len(r.Coincidences) + len(r.Pending)
 				if child.MaxOperations < 1 || child.MaxEvents < 1 {
 					return r, geom.ErrConvergence
 				}
@@ -150,25 +159,42 @@ func IntersectSplineTubeFaceTrims(ctx context.Context, segment intersect.TubeSeg
 					// An unresolved span can leave later events unexamined.
 					return r, geom.ErrConvergence
 				}
-				if !q.Complete || len(q.Hits) > child.MaxEvents {
+				if !q.Complete || len(q.Hits)+2*len(q.Spans) > child.MaxEvents {
 					return r, geom.ErrConvergence
 				}
-				for _, h := range q.Hits {
+				contact := func(h geom.TubeTrimContact) (SplineTubeTrimContact, error) {
 					x := h.TrimEvent.Root()
 					if span.source.ParameterStart != 0 || span.source.ParameterEnd != 1 {
 						p.MaxOperations = o.MaxOperations - r.ExactOperations
 						if p.MaxOperations < 1 {
-							return r, geom.ErrConvergence
+							return SplineTubeTrimContact{}, geom.ErrConvergence
 						}
 						a, z := ratInset(span.source.ParameterStart), ratInset(span.source.ParameterEnd)
 						x, used, e = x.AffineMap(ctx, a, new(big.Rat).Sub(z, a), geom.ExactCurvePlaneEventOptions{
 							MaxOperations: p.MaxOperations, MaxCoefficientBits: p.MaxCoefficientBits, MaxSubdivisions: o.MaxSubdivisions})
 						r.ExactOperations += used
 						if e != nil {
+							return SplineTubeTrimContact{}, e
+						}
+					}
+					return SplineTubeTrimContact{span.source, x, h}, nil
+				}
+				for _, h := range q.Hits {
+					c, e := contact(h)
+					if e != nil {
+						return r, e
+					}
+					r.Contacts = append(r.Contacts, c)
+				}
+				for _, s := range q.Spans {
+					c := SplineTubeTrimCoincidence{FreeOrder: s.FreeOrder}
+					for i, end := range s.Ends {
+						c.Ends[i], e = contact(end)
+						if e != nil {
 							return r, e
 						}
 					}
-					r.Contacts = append(r.Contacts, SplineTubeTrimContact{span.source, x, h})
+					r.Coincidences = append(r.Coincidences, c)
 				}
 			}
 		}

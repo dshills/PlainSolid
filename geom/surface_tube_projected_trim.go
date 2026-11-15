@@ -77,8 +77,7 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrimProjected(ctx context.Co
 		restored[event] = &copy
 		return &copy
 	}
-	for i := range r.Hits {
-		hit := &r.Hits[i]
+	restoreContact := func(hit *TubeTrimContact) {
 		hit.TrimEvent = restore(hit.TrimEvent)
 		lo, hi := [3]float64{}, [3]float64{}
 		for j, k := range inverse {
@@ -86,6 +85,14 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrimProjected(ctx context.Co
 			hi[j] = coordinate(hit.Bounds.Max, k)
 		}
 		hit.Bounds = Box{Min: Vec3{lo[0], lo[1], lo[2]}, Max: Vec3{hi[0], hi[1], hi[2]}}
+	}
+	for i := range r.Hits {
+		restoreContact(&r.Hits[i])
+	}
+	for i := range r.Spans {
+		for j := range r.Spans[i].Ends {
+			restoreContact(&r.Spans[i].Ends[j])
+		}
 	}
 	for i := range r.Pending {
 		r.Pending[i] = restore(r.Pending[i])

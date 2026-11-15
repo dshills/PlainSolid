@@ -9,6 +9,9 @@ import (
 type TubeTrimIntersectionOptions struct {
 	SurfaceCurveAgreementOptions
 	Tolerance float64
+	// CoincidentSpans also clips positive-length trim spans with strictly
+	// monotone free coordinate and proves their strict dependent-wall clearance.
+	CoincidentSpans bool
 }
 type TubeTrimContact struct {
 	// SideSigns gives source height minus opposite graph height before/after
@@ -20,13 +23,25 @@ type TubeTrimContact struct {
 	Bounds                            Box
 	Multiplicity                      int
 	Transverse, Tangent, SingularTrim bool
+	// CoincidentEndpoint marks the end of a trim that lies on the branch.
+	// Its multiplicity is zero because the height residual vanishes identically.
+	CoincidentEndpoint bool
 }
 type TubeTrimIntersection struct {
 	Complete        bool
 	Hits            []TubeTrimContact
 	Pending         []*ExactComposedCurveEvent
 	Coincident      []ComposedCurvePlaneIntersection
+	Spans           []TubeCoincidentTrimSpan
 	ExactOperations int
+}
+
+// TubeCoincidentTrimSpan carries both chart parameter roots at each end of an
+// exact trim interval lying on the branch. Endpoints follow trim traversal;
+// FreeOrder is +1 for increasing tube free coordinate and -1 for decreasing.
+type TubeCoincidentTrimSpan struct {
+	Ends      [2]TubeTrimContact
+	FreeOrder int
 }
 
 // IntersectQuadraticTrim composes a positive-weight quadratic UV Bezier on
@@ -35,8 +50,8 @@ type TubeTrimIntersection struct {
 // be invertible affine XY, and the trim's full inverse-projected UV path must fit its rectangle.
 // Isolated exact contacts are accepted only inside the tube's closed free range
 // and strict dependent ranges. Coincident spans and boundary-dependent contacts
-// remain pending unless a strict outward hull proves the whole span outside
-// this tube. Hits retain per-knot ancestry; no rounded event merging occurs.
+// remain pending unless excluded or explicitly certified by CoincidentSpans.
+// Hits and spans retain per-knot ancestry.
 func (t VerifiedSurfaceTube) IntersectQuadraticTrim(ctx context.Context, originalA, originalB *SurfacePatch, chart int, trim *ExactSplineCurve, o TubeTrimIntersectionOptions) (r TubeTrimIntersection, err error) {
 	return t.intersectRationalBezierTrim(ctx, originalA, originalB, chart, trim, o, true)
 }
@@ -156,6 +171,20 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrim(ctx context.Context, or
 					return r, e
 				}
 				if !outside {
+					if o.CoincidentSpans {
+						span, proven, e := certifyCoincidentTubeSpan(ctx, piece.Intersection, models, parameter, domains, t.axis, o, b)
+						if e != nil {
+							return r, e
+						}
+						if proven {
+							if span.FreeOrder != 0 {
+								r.Spans = append(r.Spans, span)
+							} else if span.Ends[0].TrimEvent != nil {
+								r.Hits = append(r.Hits, span.Ends[0])
+							}
+							continue
+						}
+					}
 					r.Coincident = append(r.Coincident, piece.Intersection)
 				}
 				continue
@@ -237,15 +266,7 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrim(ctx context.Context, or
 				}
 				moving := false
 				for axis := 0; axis < 2; axis++ {
-					first, e := polynomialProduct(polynomialDerivative(uv.power[axis]), uv.power[3], b)
-					if e != nil {
-						return r, e
-					}
-					second, e := polynomialProduct(uv.power[axis], polynomialDerivative(uv.power[3]), b)
-					if e != nil {
-						return r, e
-					}
-					derivative, e := subtractScaledPolynomial(first, second, big.NewRat(1, 1), b)
+					derivative, e := rationalDerivativeNumerator(uv.power[axis], uv.power[3], b)
 					if e != nil {
 						return r, e
 					}
@@ -281,6 +302,180 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrim(ctx context.Context, or
 		return r, ErrConvergence
 	}
 	return r, nil
+}
+
+func rationalDerivativeNumerator(numerator, denominator rationalPolynomial, b *polynomialBudget) (rationalPolynomial, error) {
+	first, e := polynomialProduct(polynomialDerivative(numerator), denominator, b)
+	if e != nil {
+		return nil, e
+	}
+	second, e := polynomialProduct(numerator, polynomialDerivative(denominator), b)
+	if e != nil {
+		return nil, e
+	}
+	return subtractScaledPolynomial(first, second, big.NewRat(1, 1), b)
+}
+
+// Exact equality was proved on the composition cell by the original affine
+// graph comparison. The local tube supplies uniqueness at each free value.
+// Bernstein signs certify containment and injectivity over the entire cell.
+func certifyCoincidentTubeSpan(ctx context.Context, piece ComposedCurvePlaneIntersection, charts [2]*ExactComposedCurveCell,
+	parameter exactInterval, domains [4][2]float64, free int, o TubeTrimIntersectionOptions, b *polynomialBudget) (r TubeCoincidentTrimSpan, proven bool, err error) {
+	options := func() ExactCurvePlaneEventOptions {
+		return ExactCurvePlaneEventOptions{MaxOperations: b.maxOperations - b.operations, MaxCoefficientBits: b.maxBits, MaxSubdivisions: o.MaxSubdivisions}
+	}
+	freeChart := *charts[free/2]
+	for i, end := range piece.Boundary {
+		freeChart.endpoints[i] = end.root
+	}
+	p, w := freeChart.power[free%2], freeChart.power[3]
+	weight, e := polynomialBernsteinInterval(w, parameter, b)
+	if e != nil || weight.lo.Sign() <= 0 {
+		return r, false, e
+	}
+	n, e := rationalDerivativeNumerator(p, w, b)
+	if e != nil {
+		return r, false, e
+	}
+	derivative, e := polynomialBernsteinInterval(n, parameter, b)
+	if e != nil {
+		return r, false, e
+	}
+	switch {
+	case derivative.lo.Sign() > 0:
+		r.FreeOrder = 1
+	case derivative.hi.Sign() < 0:
+		r.FreeOrder = -1
+	default:
+		return r, false, nil
+	}
+	pointOnly := false
+	for side, bound := range domains[free] {
+		residual, e := subtractScaledPolynomial(p, w, new(big.Rat).SetFloat64(bound), b)
+		if e != nil {
+			return r, false, e
+		}
+		var signs [2]int
+		for i, end := range piece.Boundary {
+			signs[i], _, e = composedPolynomialRootSign(ctx, end.root, residual, b, o.MaxSubdivisions)
+			if e != nil {
+				return r, false, e
+			}
+			if side == 1 {
+				signs[i] = -signs[i]
+			}
+		}
+		if signs[0] < 0 && signs[1] < 0 {
+			return TubeCoincidentTrimSpan{}, true, nil
+		}
+		if signs[0] >= 0 && signs[1] >= 0 {
+			continue
+		}
+		if signs[0] == 0 || signs[1] == 0 {
+			end := piece.Boundary[0]
+			if signs[1] == 0 {
+				end = piece.Boundary[1]
+			}
+			piece.Boundary = [2]*ExactComposedCurveEvent{end, end}
+			pointOnly = true
+			continue
+		}
+		cut, e := freeChart.intersectComposedPolynomial(ctx, residual, options(), b)
+		if e != nil {
+			return r, false, e
+		}
+		if !cut.Complete || len(cut.Events) != 1 {
+			return r, false, nil
+		}
+		i := 0
+		if signs[1] < 0 {
+			i = 1
+		}
+		root := cut.Events[0].root
+		opts := options()
+		if opts.MaxOperations < 1 {
+			return r, false, ErrConvergence
+		}
+		refined, e := (&ExactAlgebraicRoot{root: root}).Enclose(ctx, big.NewRat(1, 1<<40), opts)
+		b.operations += refined.Operations
+		if e != nil || !refined.Converged {
+			return r, false, e
+		}
+		piece.Boundary[i] = &ExactComposedCurveEvent{root: &ExactGraphLineRoot{
+			polynomial: root.polynomial, bounds: [2]*big.Rat{refined.Interval.Lower, refined.Interval.Upper},
+		}, cell: piece.Boundary[i].cell}
+	}
+	parameter = exactInterval{lo: piece.Boundary[0].root.bounds[0], hi: piece.Boundary[1].root.bounds[1]}
+	for owner, chart := range charts {
+		weight := chart.power[3]
+		w, e := polynomialBernsteinInterval(weight, parameter, b)
+		if e != nil || w.lo.Sign() <= 0 {
+			return r, false, e
+		}
+		for coordinate := 0; coordinate < 2; coordinate++ {
+			axis := 2*owner + coordinate
+			if axis == free {
+				continue
+			}
+			p := chart.power[coordinate]
+			for side, bound := range domains[axis] {
+				residual, e := subtractScaledPolynomial(p, weight, new(big.Rat).SetFloat64(bound), b)
+				if e != nil {
+					return r, false, e
+				}
+				hull, e := polynomialBernsteinInterval(residual, parameter, b)
+				if e != nil {
+					return r, false, e
+				}
+				sign := hull.lo.Sign()
+				if side == 1 {
+					sign = -hull.hi.Sign()
+				}
+				if sign <= 0 {
+					return r, false, nil
+				}
+			}
+		}
+	}
+	for i, event := range piece.Boundary {
+		if pointOnly && i == 1 {
+			r.FreeOrder = 0
+			break
+		}
+		end := &r.Ends[i]
+		end.TrimEvent = event
+		end.CoincidentEndpoint = true
+		var boxes [4][2]float64
+		for owner, chart := range charts {
+			for coordinate := 0; coordinate < 2; coordinate++ {
+				axis := 2*owner + coordinate
+				opts := options()
+				if opts.MaxOperations < 1 {
+					return r, false, ErrConvergence
+				}
+				root, used, e := chart.CoordinateRoot(ctx, event.Root(), coordinate, opts)
+				b.operations += used
+				if e != nil {
+					return r, false, e
+				}
+				end.Parameters[axis] = root
+				boxes[axis] = [2]float64{max(domains[axis][0], rationalFloatBound(root.root.bounds[0], true)), min(domains[axis][1], rationalFloatBound(root.root.bounds[1], false))}
+			}
+		}
+		opts := options()
+		if opts.MaxOperations < 1 {
+			return r, false, ErrConvergence
+		}
+		point, e := event.Enclose(ctx, ComposedCurveEndpointOptions{Tolerance: o.Tolerance, ExactCurvePlaneEventOptions: opts})
+		b.operations += point.ExactOperations
+		if e != nil {
+			return r, false, e
+		}
+		end.ParametersA = UVBox{Min: Vec2{boxes[0][0], boxes[1][0]}, Max: Vec2{boxes[0][1], boxes[1][1]}}
+		end.ParametersB = UVBox{Min: Vec2{boxes[2][0], boxes[3][0]}, Max: Vec2{boxes[2][1], boxes[3][1]}}
+		end.Bounds = point.Bounds
+	}
+	return r, true, nil
 }
 
 // A strict outward coordinate hull separation proves the entire coincident

@@ -26,7 +26,7 @@ type nativeTrimmedPairSection struct {
 	Projection []int                       `json:"projection,omitempty"`
 }
 
-func encodeTrimmedPairSection(patches [2]intersect.Patch, faces [2]Face, branches [][]intersect.TubeSegment, projection *[2]int) *nativeTrimmedPairSection {
+func encodeTrimmedPairSection(patches [2]intersect.Patch, faces [2]Face, branches [][]intersect.TubeSegment, projection *[2]int, coincident bool) *nativeTrimmedPairSection {
 	n := &nativeTrimmedPairSection{Version: 1, Kind: "trimmed-algebraic-pair-section"}
 	if projection != nil {
 		n.Projection = append([]int(nil), projection[:]...)
@@ -88,6 +88,9 @@ func encodeTrimmedPairSection(patches [2]intersect.Patch, faces [2]Face, branche
 	if encoder.exactBezier {
 		n.Version = 2
 	}
+	if coincident {
+		n.Version = 3
+	}
 	if validateTubeRecipes(n.Tubes, 4096) != nil {
 		return nil
 	}
@@ -145,7 +148,7 @@ func ReadTrimmedSplinePairSectionJSON(ctx context.Context, reader io.Reader, l J
 	if e := d.Decode(&n); e != nil {
 		return r, e
 	}
-	if e := d.Decode(new(any)); e != io.EOF || (n.Version != 1 && n.Version != 2) || n.Kind != "trimmed-algebraic-pair-section" {
+	if e := d.Decode(new(any)); e != io.EOF || n.Version < 1 || n.Version > 3 || n.Kind != "trimmed-algebraic-pair-section" {
 		return r, geom.ErrInvalid
 	}
 	if len(n.Projection) > 0 {
@@ -163,8 +166,11 @@ func ReadTrimmedSplinePairSectionJSON(ctx context.Context, reader io.Reader, l J
 		return r, e
 	}
 	version := 5
-	if n.Version == 2 {
+	if n.Version >= 2 {
 		version = 6
+	}
+	if n.Version == 3 {
+		o.Clip.CoincidentSpans = true
 	}
 	td := trimDecoder{maxControls: l.MaxControlPoints, version: version}
 	var faces [2]Face

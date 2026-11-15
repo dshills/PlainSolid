@@ -182,6 +182,30 @@ func TestTubeQuadraticTrimExactCrossingAndTangency(t *testing.T) {
 	if !errors.Is(e, ErrConvergence) || pendingCoincidence.Complete || len(pendingCoincidence.Coincident) == 0 {
 		t.Fatal(pendingCoincidence, e)
 	}
+	spanOpts := TubeTrimIntersectionOptions{CoincidentSpans: true}
+	coincidence, e := proof.IntersectQuadraticTrim(ctx, original, plane, 0, crossingArc, spanOpts)
+	if e != nil || !coincidence.Complete || len(coincidence.Spans) != 1 || len(coincidence.Hits)+len(coincidence.Coincident) != 0 {
+		t.Fatal("exact clipped conic coincidence", coincidence, e)
+	}
+	c := coincidence.Spans[0]
+	if c.FreeOrder != -1 {
+		t.Fatal("directed decreasing conic", c.FreeOrder)
+	}
+	for i, value := range []*big.Rat{big.NewRat(1, 4), big.NewRat(7, 32)} {
+		want, _, e := NewExactRationalRoot(ctx, value, ExactCurvePlaneEventOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, axis := range []int{0, 2} {
+			q, e := want.Compare(ctx, c.Ends[i].Parameters[axis], ExactCurvePlaneEventOptions{})
+			if e != nil || !q.Proven || q.Order != 0 {
+				t.Fatal("equal conic chart endpoint roots", i, axis, q, e)
+			}
+		}
+		if end := c.Ends[i]; end.TrimEvent.EndpointMask() != 0 || end.Multiplicity != 0 || end.Bounds.Min.Z > .5 || end.Bounds.Max.Z < .5 {
+			t.Fatal("interior source root and original conic support", end)
+		}
+	}
 	projectedTube, _, _, e := proof.projectedGraphTube(ctx, [2]int{0, 2}, TubeAlgebraicGraphEndpointOptions{})
 	if e != nil {
 		t.Fatal(e)
@@ -193,6 +217,24 @@ func TestTubeQuadraticTrimExactCrossingAndTangency(t *testing.T) {
 	bounds, e := projectedPending.Coincident[0].Boundary[0].Enclose(ctx, ComposedCurveEndpointOptions{})
 	if e != nil || bounds.Bounds.Min.Y > .5 || bounds.Bounds.Max.Y < .5 {
 		t.Fatal("coincident event restoration", bounds, e)
+	}
+	projectedCoincidence, e := projectedTube.IntersectQuadraticTrimProjected(ctx, projectedA, projectedB, 0, crossingArc, [2]int{0, 2}, spanOpts)
+	if e != nil || !projectedCoincidence.Complete || len(projectedCoincidence.Spans) != 1 {
+		t.Fatal("projected positive coincidence", projectedCoincidence, e)
+	}
+	for i, end := range projectedCoincidence.Spans[0].Ends {
+		q, e := end.TrimEvent.Root().Compare(ctx, c.Ends[i].TrimEvent.Root(), ExactCurvePlaneEventOptions{})
+		if e != nil || !q.Proven || q.Order != 0 || end.Bounds.Min.Y > .5 || end.Bounds.Max.Y < .5 {
+			t.Fatal("projected original coordinates and roots", i, end, q, e)
+		}
+	}
+	endpointTube := tube(ParameterRectangle{.5, 17.0 / 32, 7.0 / 16, 9.0 / 16}, ParameterRectangle{7.0 / 16, 9.0 / 16, 3.0 / 8, 5.0 / 8})
+	endpointOnly, e := endpointTube.IntersectQuadraticTrim(ctx, original, plane, 0, outsideArc, spanOpts)
+	if e != nil || !endpointOnly.Complete || len(endpointOnly.Spans) != 0 || len(endpointOnly.Hits) != 1 {
+		t.Fatal("the trim only reaches the free boundary at one end", endpointOnly, e)
+	}
+	if end := endpointOnly.Hits[0]; !end.CoincidentEndpoint || end.Transverse || end.Tangent || end.TrimEvent.EndpointMask() != 1 {
+		t.Fatal("coincident endpoint must retain distinct source semantics", end)
 	}
 
 	if _, e = proof.IntersectQuadraticTrim(ctx, original, plane, 0, trim, TubeTrimIntersectionOptions{SurfaceCurveAgreementOptions: SurfaceCurveAgreementOptions{SurfacePatchOptions: SurfacePatchOptions{MaxOperations: 1}}}); !errors.Is(e, ErrConvergence) {

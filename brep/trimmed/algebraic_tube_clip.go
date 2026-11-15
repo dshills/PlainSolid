@@ -20,9 +20,10 @@ type SplineTubeClipOptions struct {
 // SplineTubeClipEvent groups all proved coedge contacts at one branch point.
 // TubeEnd is -1 for an interior event, or 0/1 in segment traversal order.
 type SplineTubeClipEvent struct {
-	Free     *geom.ExactAlgebraicRoot
-	TubeEnd  int
-	Contacts [2][]SplineTubeTrimContact
+	Free                 *geom.ExactAlgebraicRoot
+	TubeEnd              int
+	Contacts             [2][]SplineTubeTrimContact
+	spanStarts, spanEnds [2][]int
 }
 
 // SplineTubeClipInterval is an open interval in segment traversal order.
@@ -32,6 +33,9 @@ type SplineTubeClipInterval struct {
 	Start, End int
 	Witness    *big.Rat
 	Locations  [2]trimvalidate.Location
+	// CoincidentTrim indexes FaceTrims[chart].Coincidences, or is -1 when
+	// this interval does not lie on an original trim coedge in that chart.
+	CoincidentTrim [2]int
 	// WitnessPoint is an exact point of both original supports.
 	WitnessPoint geom.TubeAlgebraicGraphPointCertificate
 	Retained     bool
@@ -129,6 +133,39 @@ func ClipSplineTubeByFaceTrims(ctx context.Context, segment intersect.TubeSegmen
 		ends = [2]int{1, 0}
 	}
 	events := []SplineTubeClipEvent{{Free: start, TubeEnd: ends[0]}, {Free: end, TubeEnd: ends[1]}}
+	insert := func(chart int, c SplineTubeTrimContact) (int, error) {
+		x := c.Parameters[axis]
+		lo, hi := 0, len(events)
+		for lo < hi {
+			m := (lo + hi) / 2
+			order, e := compare(events[m].Free, x)
+			if e != nil {
+				return 0, e
+			}
+			if order.Order < 0 {
+				lo = m + 1
+			} else {
+				hi = m
+			}
+		}
+		if lo == len(events) {
+			return 0, geom.ErrConvergence
+		}
+		order, e := compare(events[lo].Free, x)
+		if e != nil {
+			return 0, e
+		}
+		if order.Order != 0 {
+			if lo == 0 || len(events)-1 >= o.MaxIntervals {
+				return 0, geom.ErrConvergence
+			}
+			events = append(events, SplineTubeClipEvent{})
+			copy(events[lo+1:], events[lo:])
+			events[lo] = SplineTubeClipEvent{Free: x, TubeEnd: -1}
+		}
+		events[lo].Contacts[chart] = append(events[lo].Contacts[chart], c)
+		return lo, nil
+	}
 	for chart, face := range faces {
 		child := o.SplineTubeFaceTrimOptions
 		child.MaxOperations -= r.ExactOperations
@@ -147,36 +184,25 @@ func ClipSplineTubeByFaceTrims(ctx context.Context, segment intersect.TubeSegmen
 			return r, geom.ErrConvergence
 		}
 		for _, c := range q.Contacts {
-			x := c.Parameters[axis]
-			lo, hi := 0, len(events)
-			for lo < hi {
-				m := (lo + hi) / 2
-				order, e := compare(events[m].Free, x)
-				if e != nil {
-					return r, e
-				}
-				if order.Order < 0 {
-					lo = m + 1
-				} else {
-					hi = m
-				}
+			if _, e := insert(chart, c); e != nil {
+				return r, e
 			}
-			if lo == len(events) {
-				return r, geom.ErrConvergence
+		}
+		for i, span := range q.Coincidences {
+			starts := 0
+			if (span.FreeOrder < 0) != reversed {
+				starts = 1
 			}
-			order, e := compare(events[lo].Free, x)
+			first, e := insert(chart, span.Ends[starts])
 			if e != nil {
 				return r, e
 			}
-			if order.Order != 0 {
-				if lo == 0 || len(events)-1 >= o.MaxIntervals {
-					return r, geom.ErrConvergence
-				}
-				events = append(events, SplineTubeClipEvent{})
-				copy(events[lo+1:], events[lo:])
-				events[lo] = SplineTubeClipEvent{Free: x, TubeEnd: -1}
+			events[first].spanStarts[chart] = append(events[first].spanStarts[chart], i)
+			last, e := insert(chart, span.Ends[1-starts])
+			if e != nil {
+				return r, e
 			}
-			events[lo].Contacts[chart] = append(events[lo].Contacts[chart], c)
+			events[last].spanEnds[chart] = append(events[last].spanEnds[chart], i)
 		}
 	}
 	if reversed {
@@ -185,7 +211,28 @@ func ClipSplineTubeByFaceTrims(ctx context.Context, segment intersect.TubeSegmen
 		}
 	}
 	r.Events = events
-	for i, a := range events[:len(events)-1] {
+	active := [2]int{-1, -1}
+	for i, a := range events {
+		for chart := range faces {
+			for _, span := range a.spanEnds[chart] {
+				if active[chart] != span {
+					return r, geom.ErrConvergence
+				}
+				active[chart] = -1
+			}
+			for _, span := range a.spanStarts[chart] {
+				if active[chart] != -1 {
+					return r, geom.ErrConvergence
+				}
+				active[chart] = span
+			}
+		}
+		if i == len(events)-1 {
+			if active != [2]int{-1, -1} {
+				return r, geom.ErrConvergence
+			}
+			break
+		}
 		z := events[i+1]
 		if reversed {
 			a, z = z, a
@@ -217,8 +264,12 @@ func ClipSplineTubeByFaceTrims(ctx context.Context, segment intersect.TubeSegmen
 		if !point.Proven {
 			return r, geom.ErrConvergence
 		}
-		iv := SplineTubeClipInterval{Start: i, End: i + 1, Witness: w, WitnessPoint: point}
+		iv := SplineTubeClipInterval{Start: i, End: i + 1, Witness: w, WitnessPoint: point, CoincidentTrim: active}
 		for chart, face := range faces {
+			if active[chart] != -1 {
+				iv.Locations[chart] = trimvalidate.Boundary
+				continue
+			}
 			for bit := 16; bit <= min(512, o.MaxCoefficientBits/2); bit *= 2 {
 				width := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), uint(bit)))
 				var lo, hi [2]*big.Rat
@@ -256,9 +307,13 @@ func ClipSplineTubeByFaceTrims(ctx context.Context, segment intersect.TubeSegmen
 				return r, geom.ErrConvergence
 			}
 		}
-		iv.Retained = iv.Locations[0] == trimvalidate.Inside && iv.Locations[1] == trimvalidate.Inside
+		iv.Retained = closedFaceLocation(iv.Locations[0]) && closedFaceLocation(iv.Locations[1])
 		r.Intervals = append(r.Intervals, iv)
 	}
 	r.Complete = true
 	return r, nil
+}
+
+func closedFaceLocation(x trimvalidate.Location) bool {
+	return x == trimvalidate.Inside || x == trimvalidate.Boundary
 }

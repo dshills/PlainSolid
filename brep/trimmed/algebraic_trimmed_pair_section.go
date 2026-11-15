@@ -145,6 +145,7 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 		return r, geom.ErrConvergence
 	}
 	segments, intervals := 0, 0
+	coincident := false
 	for i, branch := range r.Trace.Curves {
 		if len(branch) == 0 || len(branch) > o.MaxSegments-segments {
 			return r, geom.ErrConvergence
@@ -173,6 +174,12 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 			if !q.Complete {
 				return r, geom.ErrConvergence
 			}
+			for _, trim := range q.FaceTrims {
+				coincident = coincident || len(trim.Coincidences) != 0
+				for _, contact := range trim.Contacts {
+					coincident = coincident || contact.CoincidentEndpoint
+				}
+			}
 			intervals += len(q.Intervals)
 			clips = append(clips, q)
 		}
@@ -183,7 +190,12 @@ func SectionTrimmedSplinePair(ctx context.Context, patches [2]intersect.Patch, f
 		r.Branches = append(r.Branches, b)
 	}
 	r.Complete = true
-	r.native = encodeTrimmedPairSection(patches, faces, r.Trace.Curves, o.Clip.Projection)
+	r.native = encodeTrimmedPairSection(patches, faces, r.Trace.Curves, o.Clip.Projection, coincident)
+	if coincident {
+		// A section on an original edge needs a shared-edge imprint plan.
+		// The face-interior partitioner accepts only new branch coedges.
+		return r, nil
+	}
 	source := captureTrimmedSectionPartitions(patches, faces, r.Branches, r.Trace.Curves, o.Clip.Projection)
 	// Solid assembly still has a separate float B-spline source gate.
 	if _, a := faces[0].Surface.(*geom.BSplineSurface); a {
@@ -276,7 +288,7 @@ func assembleAlgebraicTrimmedSectionBranch(clips []SplineTubeClipReport, closed 
 			if !boundary && p.sides == 2 && p.locations[0][chart] != p.locations[1][chart] {
 				return r, geom.ErrConvergence
 			}
-			inside[chart] = boundary || p.locations[0][chart] == trimvalidate.Inside
+			inside[chart] = boundary || closedFaceLocation(p.locations[0][chart])
 		}
 		n.OnFaces = inside[0] && inside[1]
 		n.Isolated = n.OnFaces && !p.incident
