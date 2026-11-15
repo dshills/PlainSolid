@@ -1,12 +1,14 @@
 // Package heal repairs limited planar topology defects. It does not repair
-// arbitrary geometry, close gaps with new faces, or infer nested cavity shells.
+// arbitrary geometry or close gaps with new faces.
 package heal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"plainsolid/brep"
+	"plainsolid/collision"
 	"plainsolid/geom"
 	"sort"
 )
@@ -39,6 +41,10 @@ type Options struct {
 	// positive. It must not be used for cavity shells that need inward orientation;
 	// no geometric containment or cavity nesting is inferred.
 	OrientOutward bool
+	// OrientByNesting implies RepairOrientation and uses exact tests to verify
+	// embedding and orient cavities and material shells by containment depth.
+	// Nil disables this check. It is mutually exclusive with OrientOutward.
+	OrientByNesting *collision.LocationOptions
 }
 
 // FaceMap maps each original input vertex occurrence to the output vertex index.
@@ -64,6 +70,7 @@ type Report struct {
 	Vertices         []geom.Vec3
 	VertexMap        []FaceMap
 	FlippedFaces     []int
+	Shells           []ShellOrientation // populated on success with OrientByNesting
 	OpenEdges        []EdgeDiagnostic
 	NonManifoldEdges []EdgeDiagnostic
 }
@@ -81,7 +88,18 @@ type edgeUse struct{ face, sign int }
 // Face geometry is checked by brep.NewSolid after welding, so small changes that
 // break planarity are rejected rather than silently changing the face surface.
 func Sew(input []Face, options Options) (brep.Solid, Report, error) {
+	return SewContext(context.Background(), input, options)
+}
+
+// SewContext is Sew with cancellation during welding and nesting validation.
+func SewContext(ctx context.Context, input []Face, options Options) (brep.Solid, Report, error) {
 	var report Report
+	if ctx == nil || (options.OrientOutward && options.OrientByNesting != nil) {
+		return brep.Solid{}, report, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return brep.Solid{}, report, err
+	}
 	if options.Tolerance < 0 || math.IsNaN(options.Tolerance) || math.IsInf(options.Tolerance, 0) {
 		return brep.Solid{}, report, fmt.Errorf("%w: tolerance must be finite and nonnegative", ErrInvalid)
 	}
@@ -91,6 +109,9 @@ func Sew(input []Face, options Options) (brep.Solid, Report, error) {
 	report.VertexMap = make([]FaceMap, len(input))
 	var occurrences []occurrence
 	for f, face := range input {
+		if err := ctx.Err(); err != nil {
+			return brep.Solid{}, report, err
+		}
 		report.VertexMap[f].Holes = make([][]int, len(face.Holes))
 		for loop, ring := range append([][]geom.Vec3{face.Outer}, face.Holes...) {
 			if len(ring) < 3 {
@@ -125,6 +146,9 @@ func Sew(input []Face, options Options) (brep.Solid, Report, error) {
 		return a.Z < b.Z
 	})
 	for _, o := range occurrences {
+		if err := ctx.Err(); err != nil {
+			return brep.Solid{}, report, err
+		}
 		best := -1
 		distance := math.Inf(1)
 		// Representatives are lexicographically sorted. Search only the nearby X
@@ -158,6 +182,9 @@ func Sew(input []Face, options Options) (brep.Solid, Report, error) {
 	faces := make([]brep.Face, len(input))
 	lookup := map[[2]int]int{}
 	for f, mapping := range report.VertexMap {
+		if err := ctx.Err(); err != nil {
+			return brep.Solid{}, report, err
+		}
 		seen := map[int]bool{}
 		for loop, ids := range append([][]int{mapping.Outer}, mapping.Holes...) {
 			uses := make([]brep.EdgeUse, len(ids))
@@ -215,7 +242,7 @@ func Sew(input []Face, options Options) (brep.Solid, Report, error) {
 	}
 	flips := make([]int, len(faces))
 	var shells [][]int
-	if options.RepairOrientation || options.OrientOutward {
+	if options.RepairOrientation || options.OrientOutward || options.OrientByNesting != nil {
 		type neighbor struct{ face, relation int }
 		adjacent := make([][]neighbor, len(faces))
 		for _, uses := range incidence {
@@ -256,6 +283,12 @@ func Sew(input []Face, options Options) (brep.Solid, Report, error) {
 	solid, err := brep.NewSolid(report.Vertices, edges, faces)
 	if err != nil {
 		return brep.Solid{}, report, fmt.Errorf("%w: welded boundary: %v", ErrInvalid, err)
+	}
+	if options.OrientByNesting != nil {
+		solid, report.Shells, err = orientNestedShells(ctx, solid, report.Vertices, edges, faces, flips, *options.OrientByNesting)
+		if err != nil {
+			return brep.Solid{}, report, err
+		}
 	}
 	if options.OrientOutward {
 		for _, shell := range shells {

@@ -21,8 +21,9 @@ const (
 
 // LocationOptions bounds preparation and each individual query separately.
 // Zero defaults are 4096 triangles, 2000000 work units, 100000 collision pairs,
-// and 64 ray directions. MaxRays may not exceed 1024. Collision validation is
-// bounded separately and is not internally cancellable; other loops check ctx.
+// and 64 ray directions. MaxRays may not exceed 1024. Collision validation has
+// its own bound. The indexed mesh and shell inspectors also check cancellation
+// during collision validation.
 type LocationOptions struct{ MaxTriangles, MaxWork, MaxCollisionPairs, MaxRays int }
 
 func locationDefaults(o LocationOptions) (LocationOptions, error) {
@@ -120,7 +121,7 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	return newMeshPointLocator(ctx, s.Tessellate(), s.TriangleFaces(), o, false)
+	return newMeshPointLocator(ctx, s.Tessellate(), s.TriangleFaces(), o, false, true)
 }
 
 // NewMeshPointLocator validates a represented, oriented material boundary and
@@ -129,10 +130,10 @@ func NewPointLocator(ctx context.Context, s brep.Solid, o LocationOptions) (*Poi
 // validation and exact ray tests for shell nesting. The returned locator owns
 // its snapshot of the mesh and mapping.
 func NewMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o LocationOptions) (*PointLocator, error) {
-	return newMeshPointLocator(ctx, m, faces, o, true)
+	return newMeshPointLocator(ctx, m, faces, o, true, true)
 }
 
-func newMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o LocationOptions, indexed bool) (*PointLocator, error) {
+func newMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o LocationOptions, indexed, requireOrientation bool) (*PointLocator, error) {
 	if ctx == nil {
 		return nil, ErrInvalid
 	}
@@ -266,7 +267,10 @@ func newMeshPointLocator(ctx context.Context, m mesh.Mesh, faces []int, o Locati
 			expected = -1
 		}
 		loc.shells[i] = ShellInfo{Parent: -1, Depth: depth, Triangles: append([]int(nil), shell...), SignedVolume: new(big.Rat).Quo(volume, big.NewRat(6, 1))}
-		if volume.Sign() != expected {
+		if volume.Sign() == 0 {
+			return nil, fmt.Errorf("%w: shell has zero volume", ErrInvalid)
+		}
+		if requireOrientation && volume.Sign() != expected {
 			return nil, fmt.Errorf("%w: shell orientation disagrees with material nesting", ErrInvalid)
 		}
 	}

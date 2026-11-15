@@ -34,6 +34,25 @@ func (p *PointLocator) Shells() []ShellInfo {
 	return out
 }
 
+// InspectShellNesting proves that a planar boundary consists of closed,
+// mutually disjoint embedded shells and returns their exact containment tree.
+// Each shell must be consistently wound, but its direction need not agree with
+// material parity. SignedVolume records the input winding. Use NewPointLocator
+// to require material orientation and classify points.
+func InspectShellNesting(ctx context.Context, s brep.Solid, o LocationOptions) ([]ShellInfo, error) {
+	if ctx == nil {
+		return nil, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	locator, err := newMeshPointLocator(ctx, s.Tessellate(), s.TriangleFaces(), o, true, false)
+	if err != nil {
+		return nil, err
+	}
+	return locator.Shells(), nil
+}
+
 type AssemblyOptions struct {
 	MaxSolids  int
 	Validation LocationOptions
