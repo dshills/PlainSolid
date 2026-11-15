@@ -79,6 +79,9 @@ distinct second- and fourth-order contacts, and three simple crossings
 with a quadratic tangency, with original-source reload. The general
 geometry arrangement proves exact multiplicities through degree five. Five
 transverse crossings qualify source-backed Common, Fuse and both Cut orders.
+The cubic-crossing and quadratic-tangency pair qualifies original-source
+Common and Fuse in both event orders. Geometry discovery also preserves
+independent exact source roof charts, including reversed affine stations.
 Mapped v8 retains four to six exact support cuts in one original cell, including
 the original unsplit author graph with both basis families and raw knots.
 Mapped v9 retains four events in two original cells or five in three cells.
@@ -86,16 +89,20 @@ It preserves both sides of each joint and the separate stored and inferred
 stations.
 The original and converted metre and inch three-fillet STEP bodies pass
 the native bridge and real Node and Chromium WASM. Four separated fillets
-now qualify exact STEP transfer in the original millimetre charts. Native
+now qualify exact STEP transfer in the original millimetre charts and real
+PlainCAD worker runtimes. Native
 extrusion, canonical STEP and canonical IGES retain directed minor arcs and
 separate curved cap holes. The original two-hole OCCT STEP also reopens from
-a source-backed native receipt. Orthogonal reentrant fillets regenerate
-through document edits.
+a source-backed native receipt. Original IGES preserves 16 transformed arcs
+and 32 explicit cylindrical pcurves with exact chart and endpoint proofs.
+Directed profiles keep stable named walls and rims across edits, placement,
+undo, redo, and reopen. Orthogonal reentrant fillets also regenerate.
 
-Immediate work includes original IGES cylinder-chart qualification, unequal
-original roof parameter maps, mapped event cells separated by empty cells,
-and the four-fillet application bridge. A fresh ordinary Go run is running
-on immutable `a1030049`. Wider contact discovery, advanced modeling,
+Immediate work includes curved inset joins, native envelope assembly with
+original owner-specific roof charts, mapped event cells separated by empty
+cells, and four-fillet converted units. The fresh ordinary Go run on
+immutable `a1030049` is still running. Vet and Windows amd64 cross-build
+also pass on `12ab5dbf`. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation

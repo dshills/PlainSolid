@@ -173,6 +173,36 @@ under `.worktrees/qualification/2026-11-15/go-a1030049`.
   23.400 seconds, including pinned OCCT readback of the nine-face reentrant
   solid and the 14-face two-hole solid. It rejects edited source arcs,
   cylinder sense, cap loop order, and orphan data.
+- Original directed IGES `f91cd74e` passed the focused main race in 18.275
+  seconds. The exact local-chart author preserved all 16 original model
+  arcs and 32 explicit cylinder pcurves. OCCT read the original, byte exact
+  replay, and canonical export as equivalent 14-face solids. The default
+  shared-chart author has rounded original arc endpoints; the strict mode
+  rejects it. The test also rejects a lone 360-degree owner phase shift,
+  an edited transform, and a borrowed pcurve.
+- The four-fillet application harness `e9832653` passed the main native
+  race in 33.513 seconds; its independent pinned runtime qualification
+  passed Node 15/15 and real Chromium 13/13. The typed workers and native
+  source receipt share certificate SHA-256
+  `4893ea75e2b32523a443a2625c1c1b44b0b919b9da31fdb5fece8177d14ab7c5`.
+  The Node and Chromium bridge exports match byte for byte. Standalone
+  STEP has the same DATA records and different file header formatting.
+  The browser reports, build hash, and manifests are retained under
+  `.worktrees/four-convex-arc-bridge-evidence`.
+- Mixed cubic-crossing and quadratic-tangency envelopes `5bca7749` passed
+  their main race in 120.543 seconds, retaining the signed source regions,
+  exact original restrictions and both pcurve owners. Pinned OCCT returned
+  empty shapes for these near-gap stocks; independent rational integration
+  supplied the positive volumes. Original affine chart alignment `2319d1f3`
+  passed the geometry race in 50.736 seconds, including both source axes and
+  orders, six common refinement cells and an independently integrated unit
+  footprint. Its scope is geometry and does not substitute aligned supports
+  for original native owners.
+- The directed document naming and reentrant fillet regression passed the
+  main race in 57.043 seconds. Named walls and rims survived source wire
+  reordering, resized holes, placement, failed edits, undo, redo, and
+  canonical reopen. Complete `go vet` and Windows amd64 cross-build on
+  immutable `12ab5dbf` passed; Windows runtime remains unqualified.
 
 Focused main verification adds two bounded cases:
 
