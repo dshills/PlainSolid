@@ -14,7 +14,10 @@ import (
 
 func (p rationalStepArcLoop) tessellate(ctx context.Context, options parametric.TessellationOptions) (mesh.Mesh, error) {
 	localOptions := options
-	localOptions.Deflection /= 2
+	distanceLimit := new(big.Rat).SetFloat64(options.Deflection)
+	twoMillimetresPerUnit := new(big.Rat).Mul(big.NewRat(2, 1), p.mmPerUnit)
+	localHalf := new(big.Rat).Quo(distanceLimit, twoMillimetresPerUnit)
+	localOptions.Deflection = outwardStepArcBound(localHalf, false)
 	localOptions.Angle /= 2
 	if localOptions.Angle*2 > options.Angle {
 		localOptions.Angle = math.Nextafter(localOptions.Angle, 0)
@@ -35,12 +38,17 @@ func (p rationalStepArcLoop) tessellate(ctx context.Context, options parametric.
 		return mesh.Mesh{}, unsupportedEdge("rational-world STEP display requires the proved local convex extrusion mesh")
 	}
 	limits := rigidplacement.MeshRoundingOptions{MaxTriangles: localOptions.MaxTriangles}
-	world, err := p.pose.RoundMesh(ctx, source, limits)
+	var world rigidplacement.RoundedMeshImage
+	if p.mmPerUnit.Num().Cmp(p.mmPerUnit.Denom()) == 0 {
+		world, err = p.pose.RoundMesh(ctx, source, limits)
+	} else {
+		world, err = p.roundSourceUnitMesh(ctx, source, localOptions.MaxTriangles)
+	}
 	if err != nil {
 		return mesh.Mesh{}, err
 	}
-	distance := new(big.Rat).Add(new(big.Rat).SetFloat64(localOptions.Deflection), world.RoundingUpper)
-	if distance.Cmp(new(big.Rat).SetFloat64(options.Deflection)) > 0 {
+	distance := new(big.Rat).Mul(new(big.Rat).SetFloat64(localOptions.Deflection), p.mmPerUnit)
+	if distance.Add(distance, world.RoundingUpper).Cmp(distanceLimit) > 0 {
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
 	if err = verifyRationalStepArcFacetNormals(ctx, p.pose, source, world.Mesh, localOptions.Angle); err != nil {
@@ -56,6 +64,60 @@ func (p rationalStepArcLoop) tessellate(ctx context.Context, options parametric.
 		return mesh.Mesh{}, geom.ErrDomain
 	}
 	return world.Mesh, nil
+}
+
+// Only display points are converted to binary64 millimetres. The exact
+// source-unit pose and model remain available for STEP proof and export.
+func (p rationalStepArcLoop) millimetrePoint(ctx context.Context, point geom.Vec3) ([3]*big.Rat, error) {
+	if !point.IsFinite() {
+		return [3]*big.Rat{}, geom.ErrUnrepresentable
+	}
+	q, err := p.pose.TransformPoint(ctx, rationalStepArcVectorFrom(point), false, 4096)
+	if err != nil {
+		return [3]*big.Rat{}, err
+	}
+	for _, v := range q {
+		v.Mul(v, p.mmPerUnit)
+	}
+	return q, nil
+}
+
+func (p rationalStepArcLoop) roundSourceUnitMesh(ctx context.Context, source mesh.Mesh, maxTriangles int) (rigidplacement.RoundedMeshImage, error) {
+	var zero rigidplacement.RoundedMeshImage
+	if len(source.Vertices) > collision.MaxTriangles || len(source.Triangles) > maxTriangles {
+		return zero, parametric.ErrBudget
+	}
+	if err := source.Validate(); err != nil {
+		return zero, err
+	}
+	out := rigidplacement.RoundedMeshImage{
+		Mesh:          mesh.Mesh{Vertices: make([]geom.Vec3, len(source.Vertices)), Triangles: append([][3]int(nil), source.Triangles...)},
+		RoundingUpper: new(big.Rat),
+	}
+	for i, point := range source.Vertices {
+		q, err := p.millimetrePoint(ctx, point)
+		if err != nil {
+			return zero, err
+		}
+		var rounded vector
+		distance := new(big.Rat)
+		for axis, value := range q {
+			x, _ := value.Float64()
+			if !finite(x) {
+				return zero, geom.ErrUnrepresentable
+			}
+			rounded[axis] = x
+			delta := new(big.Rat).Sub(value, new(big.Rat).SetFloat64(x))
+			distance.Add(distance, delta.Abs(delta))
+		}
+		// Barycentric interpolation preserves the worst vertex L1 error on
+		// each triangle. This bounds both directions of the rounding error.
+		if distance.Cmp(out.RoundingUpper) > 0 {
+			out.RoundingUpper.Set(distance)
+		}
+		out.Mesh.Vertices[i] = rounded.vec()
+	}
+	return out, nil
 }
 
 type rationalStepArcVector [3]*big.Rat
@@ -119,8 +181,7 @@ func verifyRationalStepArcFacetNormals(ctx context.Context, pose rigidplacement.
 
 func (p rationalStepArcLoop) roundDisplayEdges(ctx context.Context, positions []float64) error {
 	for i := 0; i < len(positions); i += 3 {
-		local := rationalStepArcVectorFrom(vector(positions[i : i+3]).vec())
-		world, err := p.pose.TransformPoint(ctx, local, false, 4096)
+		world, err := p.millimetrePoint(ctx, vector(positions[i:i+3]).vec())
 		if err != nil {
 			return err
 		}

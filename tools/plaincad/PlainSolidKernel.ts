@@ -19,8 +19,19 @@ export interface StepRepairOptions {
   /** Include source-bound proof JSON for independent native reproof. */
   readonly native?: boolean;
 }
+export type StepSourceUnit = "m" | "in";
 export interface StepImportOptions {
   readonly stepRepair?: StepRepairOptions;
+  /** Expected original unit of a qualified rational-world STEP occurrence. */
+  readonly units?: StepSourceUnit;
+}
+export interface StepSourceExportOptions {
+  readonly units: StepSourceUnit;
+}
+export interface NativeStepSourceExport extends Omit<NativeStepExport, "units"> {
+  readonly units: StepSourceUnit;
+  /** Units of the length values in the before/after analytic proofs. */
+  readonly proofUnits: "mm";
 }
 type StepRationalPoint = readonly [string, string, string];
 type StepRationalPoseRow = readonly [string, string, string, string];
@@ -55,6 +66,7 @@ export interface StepRepairEvidence {
   readonly rationalCaps?: number;
   readonly finiteLineOwners?: number;
   readonly axialTrims?: number;
+  /** Exact rational placement in the original STEP coordinate unit. */
   readonly worldPose?: readonly [StepRationalPoseRow, StepRationalPoseRow, StepRationalPoseRow];
 }
 export interface NativeStepRepairEvidence {
@@ -69,6 +81,7 @@ type Proof = {
   bounds: BoundingBox;
   repairEvidence?: StepRepairEvidence;
   nativeProofJSON?: string;
+  stepUnits?: StepSourceUnit;
 };
 type DisplayEdgeBudget = { edgeUses: number };
 type Handle = {
@@ -845,7 +858,12 @@ export class OpenCascadeKernel implements KernelAdapter {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated browser worker.");
     const repair = options?.stepRepair;
     const stepRepair = repair && { maxDistance: repair.maxDistance, nativeText: repair.native };
-    return owned(request({ op: "importStep", source, stepRepair }), "stepImport");
+    return owned(request({ op: "importStep", source, stepRepair, stepUnits: options?.units }), "stepImport");
+  }
+  nativeStepSourceUnit(shape: KernelShape): StepSourceUnit | undefined {
+    const state = handle(shape);
+    if (!state?.proof || state.disposed) throw new Error("STEP source unit requires a live native shape.");
+    return state.proof.stepUnits;
   }
   nativeStepRepairEvidence(shape: KernelShape): NativeStepRepairEvidence | undefined {
     const state = handle(shape);
@@ -855,7 +873,9 @@ export class OpenCascadeKernel implements KernelAdapter {
     const copy = structuredClone(repairEvidence);
     return nativeProofJSON === undefined ? { repairEvidence: copy } : { repairEvidence: copy, nativeProofJSON };
   }
-  exportStep(shapes: readonly KernelShape[]): NativeStepExport {
+  exportStep(shapes: readonly KernelShape[]): NativeStepExport;
+  exportStep(shapes: readonly KernelShape[], options: StepSourceExportOptions): NativeStepSourceExport;
+  exportStep(shapes: readonly KernelShape[], options?: StepSourceExportOptions): NativeStepExport | NativeStepSourceExport {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP export requires an isolated browser worker.");
     const handles = shapes.map(shape => {
       const native = handle(shape);
@@ -864,7 +884,9 @@ export class OpenCascadeKernel implements KernelAdapter {
       return native.proof.handle;
     });
     if (new Set(handles).size !== handles.length) throw new Error("STEP export requires unique native bodies.");
-    const result = request<Omit<NativeStepExport, "bytes"> & { base64: string }>({ op: "exportStep", handles });
-    return { bytes: Uint8Array.from(atob(result.base64), character => character.charCodeAt(0)).buffer, before: result.before, after: result.after, units: result.units };
+    type Reply = (Omit<NativeStepExport, "bytes"> | Omit<NativeStepSourceExport, "bytes">) & { base64: string };
+    const result = request<Reply>({ op: "exportStep", handles, stepUnits: options?.units });
+    const { base64, ...proof } = result;
+    return { ...proof, bytes: Uint8Array.from(atob(base64), character => character.charCodeAt(0)).buffer };
   }
 }

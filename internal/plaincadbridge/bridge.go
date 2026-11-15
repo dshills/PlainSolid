@@ -98,6 +98,7 @@ type request struct {
 	Radius            number               `json:"radius,omitempty"`
 	Source            string               `json:"source,omitempty"`
 	StepRepair        *stepRepairRequest   `json:"stepRepair,omitempty"`
+	StepUnits         stepFileUnit         `json:"stepUnits,omitempty"`
 	Handles           []string             `json:"handles,omitempty"`
 	Lead              *leadRequest         `json:"lead,omitempty"`
 	Nut               bool                 `json:"nut,omitempty"`
@@ -127,6 +128,7 @@ type Shape struct {
 	RepairEvidence     *stepRepairEvidence `json:"repairEvidence,omitempty"`
 	NativeProof        *json.RawMessage    `json:"nativeProof,omitempty"`
 	NativeProofJSON    string              `json:"nativeProofJSON,omitempty"`
+	StepUnits          stepFileUnit        `json:"stepUnits,omitempty"`
 }
 type stored struct {
 	solid           brep.Solid
@@ -232,6 +234,14 @@ func (b *Bridge) execute(q request) (any, error) {
 	if q.StepRepair != nil && q.Op != "importStep" {
 		return nil, errors.New("stepRepair applies only to importStep")
 	}
+	if q.StepUnits != "" {
+		if q.Op != "importStep" && q.Op != "exportStep" {
+			return nil, errors.New("stepUnits applies only to importStep and exportStep")
+		}
+		if q.StepUnits != stepMetre && q.StepUnits != stepInch {
+			return nil, errors.New("stepUnits must be m or in for explicit source-unit STEP transfer")
+		}
+	}
 	if err := b.checkRationalSTEPArcOperation(q); err != nil {
 		return nil, err
 	}
@@ -267,9 +277,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 		return b.threadBody(s, *q.Thread)
 	case "importStep":
-		return b.importSTEPWithRepair(ctx, q.Source, q.StepRepair)
+		return b.importSTEPWithRepair(ctx, q.Source, q.StepRepair, q.StepUnits)
 	case "exportStep":
-		return b.exportSTEP(q.Handles)
+		return b.exportSTEPInUnits(q.Handles, q.StepUnits)
 	case "pocketFloor", "holeRim":
 		s, err := b.get(q.Handle)
 		if err != nil {

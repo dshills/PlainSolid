@@ -123,7 +123,9 @@ export default defineConfig({ ...base, test: {
     const directory = "src/tests/plainsolid-step-repair";
     await mkdir(join(work, directory));
     const inputs = {};
-    for (const name of ["occt-default-two-fillets-minus-x", "occt-default-tilted-translated-oblique-prism-fillet", "occt-both-default-tilted-oblique-prism-fillet"]) {
+    for (const name of ["occt-default-two-fillets-minus-x", "occt-default-tilted-translated-oblique-prism-fillet",
+      "occt-both-default-tilted-oblique-prism-fillet", "occt-default-tilted-translated-oblique-prism-fillet-metre",
+      "occt-default-tilted-translated-oblique-prism-fillet-inch"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });

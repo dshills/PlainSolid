@@ -16,16 +16,42 @@ type rationalStepArcLoop struct {
 	local      trimmed.Solid
 	descriptor step.ExactCircularLoopExtrusion
 	pose       rigidplacement.RationalRigid
+	mmPerUnit  *big.Rat
+}
+
+func rationalSTEPFileUnit(lengthUnit float64) (stepFileUnit, *big.Rat) {
+	switch lengthUnit {
+	case .001:
+		return stepMillimetre, big.NewRat(1, 1)
+	case 1:
+		return stepMetre, big.NewRat(1000, 1)
+	case .0254:
+		return stepInch, big.NewRat(127, 5)
+	default:
+		return "", nil
+	}
+}
+
+func checkRationalSTEPUnit(lengthUnit float64, requested stepFileUnit) error {
+	actual, _ := rationalSTEPFileUnit(lengthUnit)
+	if requested == "" {
+		requested = stepMillimetre
+	}
+	if actual != requested {
+		return &failureError{"INVALID", "STEP import unit must match the retained source unit"}
+	}
+	return nil
 }
 
 func (b *Bridge) putRationalSTEPArcLoop(ctx context.Context, local trimmed.Solid, d step.ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid) (Shape, error) {
-	if d.LengthUnit != .001 || frameMap(d.Frame) != geom.Identity() || !convexStepLoop(d.Segments) {
-		return Shape{}, unsupportedEdge("rational-world STEP import requires a convex product-local circular extrusion in millimetres")
+	unit, scale := rationalSTEPFileUnit(d.LengthUnit)
+	if scale == nil || frameMap(d.Frame) != geom.Identity() || !convexStepLoop(d.Segments) {
+		return Shape{}, unsupportedEdge("rational-world STEP import requires a convex product-local circular extrusion with a qualified source unit")
 	}
 	if len(local.Topology().Shells) != 1 {
 		return Shape{}, geom.ErrDomain
 	}
-	bounds, err := rationalStepArcBounds(d, pose)
+	bounds, err := rationalStepArcBounds(d, pose, scale)
 	if err != nil {
 		return Shape{}, err
 	}
@@ -33,14 +59,27 @@ func (b *Bridge) putRationalSTEPArcLoop(ctx context.Context, local trimmed.Solid
 	if err != nil {
 		return Shape{}, err
 	}
-	if !finite(p.Volume) || !finite(p.Area) || p.Volume <= 0 || p.Area <= 0 {
+	if !finite(p.Volume) || !finite(p.Area) {
+		return Shape{}, geom.ErrDomain
+	}
+	volume, area := p.Volume, p.Area
+	var explicitUnit stepFileUnit
+	if unit != stepMillimetre {
+		explicitUnit = unit
+		squared := new(big.Rat).Mul(scale, scale)
+		cubed := new(big.Rat).Mul(squared, scale)
+		volume, _ = new(big.Rat).Mul(cubed, new(big.Rat).SetFloat64(volume)).Float64()
+		area, _ = new(big.Rat).Mul(squared, new(big.Rat).SetFloat64(area)).Float64()
+	}
+	if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
 		return Shape{}, geom.ErrDomain
 	}
 	return b.publish(stored{
-		rationalStepArc: &rationalStepArcLoop{local: local, descriptor: d, pose: pose},
+		rationalStepArc: &rationalStepArcLoop{local: local, descriptor: d, pose: pose, mmPerUnit: scale},
 		result: Shape{
 			Bounds:             Bounds{coordinates(bounds.Min), coordinates(bounds.Max)},
-			GeometryAssertions: Assertions{Valid: true, Volume: p.Volume, SurfaceArea: p.Area, SolidCount: 1},
+			GeometryAssertions: Assertions{Valid: true, Volume: volume, SurfaceArea: area, SolidCount: 1},
+			StepUnits:          explicitUnit,
 		},
 	})
 }
@@ -51,6 +90,9 @@ func (p rationalStepArcLoop) transformed(ctx context.Context, m geom.Affine) (ri
 		for j, q := range row {
 			matrix[i][j] = new(big.Rat).SetFloat64(q)
 		}
+		// Placement commands use world millimetres. Compose with the original
+		// exact pose in its source length unit.
+		matrix[i][3].Quo(matrix[i][3], p.mmPerUnit)
 	}
 	next, err := rigidplacement.NewRationalRigid(matrix, 512)
 	if err != nil {
@@ -82,7 +124,7 @@ func (b *Bridge) checkRationalSTEPArcOperation(q request) error {
 // rationalStepArcBounds encloses each support extremum with outward binary64
 // rounding. Exact cross signs select the extrema of each original minor arc.
 // A directed square root bounds the length of the world axis projected in XY.
-func rationalStepArcBounds(d step.ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid) (geom.Box, error) {
+func rationalStepArcBounds(d step.ExactCircularLoopExtrusion, pose rigidplacement.RationalRigid, scale *big.Rat) (geom.Box, error) {
 	matrix, err := pose.Matrix()
 	if err != nil {
 		return geom.Box{}, err
@@ -134,7 +176,8 @@ func rationalStepArcBounds(d step.ExactCircularLoopExtrusion, pose rigidplacemen
 		} else {
 			hi.Add(hi, axial)
 		}
-		lower[i], upper[i] = outwardStepArcBound(lo, false), outwardStepArcBound(hi, true)
+		lower[i] = outwardStepArcBound(lo.Mul(lo, scale), false)
+		upper[i] = outwardStepArcBound(hi.Mul(hi, scale), true)
 		if !finite(lower[i]) || !finite(upper[i]) {
 			return geom.Box{}, geom.ErrUnrepresentable
 		}
