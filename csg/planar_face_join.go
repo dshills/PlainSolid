@@ -3,6 +3,7 @@ package csg
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"plainsolid/brep"
 	"plainsolid/collision"
@@ -26,7 +27,7 @@ type PlanarFaceJoinHistory struct {
 
 // JoinPlanarFacePair returns the regularized union of two outward planar
 // single-shell parts that meet only along a complete, oppositely oriented
-// original face. The shared face may be concave and must have no holes.
+// original face. The shared face may be concave and have matching inner wires.
 // Neighboring faces and all other original incidences are preserved. Exact
 // embedding and material volume are checked before returning the result.
 func JoinPlanarFacePair(ctx context.Context, a, b brep.Solid, faceA, faceB int, o collision.PlanarFaceContactOptions) (brep.Solid, PlanarFaceJoinHistory, error) {
@@ -120,7 +121,18 @@ func JoinPlanarFacePair(ctx context.Context, a, b brep.Solid, faceA, faceB int, 
 		return brep.Solid{}, PlanarFaceJoinHistory{}, err
 	}
 	shells := loc.Shells()
-	if len(shells) != 1 || shells[0].SignedVolume.Cmp(proof.SignedVolume) != 0 {
+	roots := 0
+	volume := new(big.Rat)
+	for _, s := range shells {
+		if s.Depth == 0 {
+			roots++
+		}
+		if s.Depth > 1 {
+			return brep.Solid{}, PlanarFaceJoinHistory{}, fmt.Errorf("%w: joined material contains an enclosed island", collision.ErrInvalid)
+		}
+		volume.Add(volume, s.SignedVolume)
+	}
+	if roots != 1 || volume.Cmp(proof.SignedVolume) != 0 {
 		return brep.Solid{}, PlanarFaceJoinHistory{}, fmt.Errorf("%w: joined boundary must enclose the complete combined material", collision.ErrInvalid)
 	}
 	return out, h, nil

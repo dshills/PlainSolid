@@ -123,3 +123,85 @@ func TestJoinPlanarFacePairRejectsPartialOverlap(t *testing.T) {
 		t.Fatalf("partial face published a union or history: %v, %+v, %v", s, h, err)
 	}
 }
+
+// pocketJoinStock independently models a square prism with a blind recess.
+// The recess opens toward the join; the opposite cap closes the outer stock.
+func pocketJoinStock(t *testing.T, lower, shiftHole bool) brep.Solid {
+	t.Helper()
+	z := 0.0
+	if !lower {
+		z = 1
+	}
+	loop := func(min, max, offset float64) []geom.Vec3 {
+		return []geom.Vec3{{X: min + offset, Y: min, Z: z}, {X: max + offset, Y: min, Z: z}, {X: max + offset, Y: max, Z: z}, {X: min + offset, Y: max, Z: z}}
+	}
+	shift := 0.0
+	if shiftHole {
+		shift = .25
+	}
+	s, err := brep.PrismWithHoles(loop(0, 4, 0), [][]geom.Vec3{loop(1, 3, shift)}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, e, f := s.Vertices(), s.Edges(), s.Faces()
+	closeEnd, depth := 0, .25
+	if !lower {
+		closeEnd, depth = 1, 1.75
+	}
+	bottom := f[closeEnd].Holes[0]
+	for _, u := range bottom {
+		v[e[u.Edge].Start].Z = depth
+		v[e[u.Edge].End].Z = depth
+	}
+	f[closeEnd].Holes = nil
+	f = append(f, brep.Face{Boundary: bottom})
+	s, err = brep.NewSolid(v, e, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestJoinPlanarFacePairClosesAnOriginalCavity(t *testing.T) {
+	ctx := context.Background()
+	a, b := pocketJoinStock(t, true, false), pocketJoinStock(t, false, false)
+	s, h, err := JoinPlanarFacePair(ctx, a, b, 1, 0, collision.PlanarFaceContactOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := h.Contact
+	if len(p.WireOffsets) != 3 || p.WireOffsets[0] != 0 || p.WireOffsets[1] != 4 || p.WireOffsets[2] != 8 ||
+		p.TwiceProjectedArea.RatString() != "24" || p.SignedVolume.RatString() != "26" || len(s.Faces()) != 20 {
+		t.Fatalf("annular join lost matched inner and outer source wires: %+v; %d faces", p, len(s.Faces()))
+	}
+	m, err := s.MassProperties()
+	if err != nil || math.Abs(m.Volume-26) > 1e-13 || math.Abs(m.SurfaceArea-84) > 1e-13 {
+		t.Fatalf("incorrect joined cavity measures: %+v %v", m, err)
+	}
+	loc, err := collision.NewPointLocator(ctx, s, collision.LocationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	shells := loc.Shells()
+	if len(shells) != 2 || shells[0].Depth != 0 || shells[1].Parent != 0 || shells[1].Depth != 1 || shells[1].SignedVolume.RatString() != "-6" {
+		t.Fatalf("missing independently validated inward cavity shell: %+v", shells)
+	}
+	for _, test := range []struct {
+		p    geom.Vec3
+		want collision.Location
+	}{
+		{geom.Vec3{X: 2, Y: 2, Z: 1}, collision.Outside},
+		{geom.Vec3{X: .5, Y: 2, Z: 1}, collision.Inside},
+		{geom.Vec3{X: 1, Y: 2, Z: 1}, collision.OnBoundary},
+		{geom.Vec3{X: 2, Y: 2, Z: .1}, collision.Inside},
+	} {
+		r, err := loc.Locate(ctx, test.p)
+		if err != nil || r.Location != test.want {
+			t.Fatalf("%v: %+v %v; want %v", test.p, r, err, test.want)
+		}
+	}
+	s, h, err = JoinPlanarFacePair(ctx, a, pocketJoinStock(t, false, true), 1, 0, collision.PlanarFaceContactOptions{})
+	if !errors.Is(err, collision.ErrInvalid) || len(s.Faces()) != 0 || h.Contact.SignedVolume != nil {
+		t.Fatalf("mismatched recess exported a joined body: %+v %v", h, err)
+	}
+}

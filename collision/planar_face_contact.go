@@ -10,7 +10,7 @@ import (
 )
 
 // PlanarFaceContactOptions bounds local embedding, cross-boundary tests,
-// and checks against the declared original perimeter.
+// and checks against the declared original perimeter wires.
 type PlanarFaceContactOptions struct {
 	Validation LocationOptions
 	Cross      Options
@@ -19,11 +19,13 @@ type PlanarFaceContactOptions struct {
 }
 
 // PlanarFaceContact is an exact full-face incidence proof between two
-// separate materials. The edge and vertex pairs follow the first face's
-// outer boundary. Each pair's entries are original IDs in the two bodies.
+// separate materials. Vertex and edge pairs follow the first face's outer
+// boundary and each inner wire in order. WireOffsets delimit those cycles
+// in both arrays, starting at zero and ending at their common length.
 type PlanarFaceContact struct {
 	FaceA, FaceB       int
 	Vertices, Edges    [][2]int
+	WireOffsets        []int
 	DropAxis           int
 	TwiceProjectedArea *big.Rat
 	SignedVolume       *big.Rat
@@ -33,7 +35,7 @@ type PlanarFaceContact struct {
 // ValidatePlanarFaceContact proves that the only contact between two
 // outward single-shell parts is precisely the specified matching original
 // face. Concave faces are supported. The two face cycles must have opposite
-// orientation, complete identical boundaries and no inner wires.
+// orientation and identical complete boundaries, including every inner wire.
 func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, faceB int, o PlanarFaceContactOptions) (PlanarFaceContact, error) {
 	var zero PlanarFaceContact
 	if ctx == nil || o.Cross.MaxContacts < 0 || o.Cross.MaxPairs < 0 || o.MaxPerimeterChecks < 0 {
@@ -51,8 +53,8 @@ func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, face
 		return zero, ErrInvalid
 	}
 	fa, fb := af[faceA], bf[faceB]
-	if len(fa.Holes) != 0 || len(fb.Holes) != 0 || len(fa.Boundary) < 3 || len(fa.Boundary) != len(fb.Boundary) {
-		return zero, fmt.Errorf("%w: expected matching complete perimeter cycles without inner wires", ErrInvalid)
+	if len(fa.Holes) != len(fb.Holes) || len(fa.Boundary) < 3 || len(fa.Boundary) != len(fb.Boundary) {
+		return zero, fmt.Errorf("%w: expected matching complete perimeter wires", ErrInvalid)
 	}
 	av, bv := a.Vertices(), b.Vertices()
 	ae, be := a.Edges(), b.Edges()
@@ -63,34 +65,45 @@ func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, face
 		}
 		return e.Start
 	}
-	first := av[start(fa.Boundary[0], ae)]
-	at := -1
-	for i, u := range fb.Boundary {
-		if bv[start(u, be)] == first {
-			at = i
-			break
+	loopsA := append([][]brep.EdgeUse{fa.Boundary}, fa.Holes...)
+	loopsB := append([][]brep.EdgeUse{fb.Boundary}, fb.Holes...)
+	stations := make(map[geom.Vec3][2]int)
+	for w, loop := range loopsB {
+		for j, u := range loop {
+			stations[bv[start(u, be)]] = [2]int{w, j}
 		}
 	}
-	if at < 0 {
-		return zero, fmt.Errorf("%w: original perimeters differ", ErrInvalid)
-	}
-	n := len(fa.Boundary)
-	perimeter := make([]point, n)
-	vertices, edges := make([][2]int, n), make([][2]int, n)
-	skipA, skipB := make(map[int]bool, n), make(map[int]bool, n)
-	for i, u := range fa.Boundary {
-		j := (at + n - i) % n
-		va, vb := start(u, ae), start(fb.Boundary[j], be)
-		if av[va] != bv[vb] {
-			return zero, fmt.Errorf("%w: perimeters must match with opposite directions", ErrInvalid)
+	var vertices, edges [][2]int
+	var perimeter []point
+	offsets := []int{0}
+	used := make([]bool, len(loopsB))
+	for w, loop := range loopsA {
+		if err := ctx.Err(); err != nil {
+			return zero, err
 		}
-		vertices[i], edges[i] = [2]int{va, vb}, [2]int{u.Edge, fb.Boundary[(j+n-1)%n].Edge}
-		perimeter[i] = exact(av[va])
-		skipA[va], skipB[vb] = true, true
+		q, ok := stations[av[start(loop[0], ae)]]
+		other := loopsB[q[0]]
+		if !ok || (w == 0) != (q[0] == 0) || used[q[0]] || len(loop) != len(other) {
+			return zero, fmt.Errorf("%w: original perimeter wires differ", ErrInvalid)
+		}
+		used[q[0]] = true
+		n := len(loop)
+		for i, u := range loop {
+			j := (q[1] + n - i) % n
+			va, vb := start(u, ae), start(other[j], be)
+			if av[va] != bv[vb] {
+				return zero, fmt.Errorf("%w: perimeter wires must match with opposite directions", ErrInvalid)
+			}
+			vertices = append(vertices, [2]int{va, vb})
+			edges = append(edges, [2]int{u.Edge, other[(j+n-1)%n].Edge})
+			perimeter = append(perimeter, exact(av[va]))
+		}
+		offsets = append(offsets, len(perimeter))
 	}
+	outer := perimeter[:offsets[1]]
 	normal := point{new(big.Rat), new(big.Rat), new(big.Rat)}
-	for i := 1; i+1 < len(perimeter); i++ {
-		normal = cross(minus(perimeter[i], perimeter[0]), minus(perimeter[i+1], perimeter[0]))
+	for i := 1; i+1 < len(outer); i++ {
+		normal = cross(minus(outer[i], outer[0]), minus(outer[i+1], outer[0]))
 		if nonzeroAxis(normal) >= 0 {
 			break
 		}
@@ -104,8 +117,11 @@ func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, face
 			return zero, fmt.Errorf("%w: original common face is not exactly planar", ErrInvalid)
 		}
 	}
-	wantArea := absoluteProjectedFaceArea2(perimeter, drop)
-	if wantArea.Sign() == 0 {
+	wantArea := absoluteProjectedFaceArea2(outer, drop)
+	for w := 1; w+1 < len(offsets); w++ {
+		wantArea.Sub(wantArea, absoluteProjectedFaceArea2(perimeter[offsets[w]:offsets[w+1]], drop))
+	}
+	if wantArea.Sign() <= 0 {
 		return zero, fmt.Errorf("%w: original common face has zero projected area", ErrInvalid)
 	}
 	ma, mb := a.Tessellate(), b.Tessellate()
@@ -141,14 +157,17 @@ func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, face
 		if onFaces {
 			return nil
 		}
-		for k, p := range perimeter {
-			if remaining == 0 {
-				return ErrLimit
-			}
-			remaining--
-			q := perimeter[(k+1)%n]
-			if onSegment(ps[0], p, q) && (len(ps) == 1 || onSegment(ps[1], p, q)) {
-				return nil
+		for w := 0; w+1 < len(offsets); w++ {
+			loop := perimeter[offsets[w]:offsets[w+1]]
+			for k, p := range loop {
+				if remaining == 0 {
+					return ErrLimit
+				}
+				remaining--
+				q := loop[(k+1)%len(loop)]
+				if onSegment(ps[0], p, q) && (len(ps) == 1 || onSegment(ps[1], p, q)) {
+					return nil
+				}
 			}
 		}
 		return fmt.Errorf("%w: side contact leaves the original common perimeter", ErrInvalid)
@@ -162,28 +181,17 @@ func ValidatePlanarFaceContact(ctx context.Context, a, b brep.Solid, faceA, face
 	if haveArea.Cmp(wantArea) != 0 {
 		return zero, fmt.Errorf("%w: triangle overlaps do not cover the complete original face", ErrInvalid)
 	}
-	boxA, err := geom.Bounds(av)
-	if err != nil {
+	if err := faceContactExterior(ctx, la, lb, af, len(ae), faceA, options.MaxWork); err != nil {
 		return zero, err
 	}
-	boxB, err := geom.Bounds(bv)
-	if err != nil {
-		return zero, err
-	}
-	ca, cb := vertexContactComponent{ma, boxA, la}, vertexContactComponent{mb, boxB, lb}
-	// The complement of a complete embedded closed disk in a connected
-	// boundary stays connected, so one noncontact witness per part suffices.
-	if err := validateComponentOutside(ctx, ca, cb, skipA); err != nil {
-		return zero, err
-	}
-	if err := validateComponentOutside(ctx, cb, ca, skipB); err != nil {
+	if err := faceContactExterior(ctx, lb, la, bf, len(be), faceB, options.MaxWork); err != nil {
 		return zero, err
 	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	return PlanarFaceContact{
-		FaceA: faceA, FaceB: faceB, Vertices: vertices, Edges: edges, DropAxis: drop,
+		FaceA: faceA, FaceB: faceB, Vertices: vertices, Edges: edges, WireOffsets: offsets, DropAxis: drop,
 		TwiceProjectedArea: wantArea, SignedVolume: add(la.shells[0].SignedVolume, lb.shells[0].SignedVolume),
 		BroadPairs: crossing.BroadPhasePairs,
 	}, nil
@@ -195,4 +203,77 @@ func absoluteProjectedFaceArea2(p []point, drop int) *big.Rat {
 		area.Add(area, orient(p[0], p[i], p[i+1], drop))
 	}
 	return area.Abs(area)
+}
+
+// Each connected component of the boundary after removing the common face
+// (including its perimeter) must lie outside the other part. Joining remaining
+// faces across original edges enumerates these components, even when a hole
+// disconnects them. An exact triangle centroid lies strictly inside its
+// original face. The prior cross sweep proved it cannot be on the other shell.
+func faceContactExterior(ctx context.Context, a, b *PointLocator, faces []brep.Face, edgeCount, common, maxWork int) error {
+	budget := locationBudget{ctx: ctx, limit: maxWork}
+	parents := make([]int, len(faces))
+	owner := make([]int, edgeCount)
+	for i := range parents {
+		parents[i] = i
+	}
+	for i := range owner {
+		owner[i] = -1
+	}
+	find := func(i int) int {
+		for parents[i] != i {
+			parents[i] = parents[parents[i]]
+			i = parents[i]
+		}
+		return i
+	}
+	for f, face := range faces {
+		if f == common {
+			continue
+		}
+		for _, loop := range append([][]brep.EdgeUse{face.Boundary}, face.Holes...) {
+			for _, u := range loop {
+				if err := budget.tick(1); err != nil {
+					return err
+				}
+				k := owner[u.Edge]
+				if k < 0 {
+					owner[u.Edge] = f
+				} else {
+					parents[find(f)] = find(k)
+				}
+			}
+		}
+	}
+	checked := make([]bool, len(faces))
+	third := big.NewRat(1, 3)
+	for _, t := range a.triangles {
+		if err := budget.tick(1); err != nil {
+			return err
+		}
+		if t.face == common {
+			continue
+		}
+		root := find(t.face)
+		if checked[root] {
+			continue
+		}
+		checked[root] = true
+		q := point{}
+		for i := range q {
+			q[i] = mul(add(add(t.v[0][i], t.v[1][i]), t.v[2][i]), third)
+		}
+		hits, _, err := b.ray(q, nil, &budget)
+		if err != nil {
+			return err
+		}
+		winding := 0
+		for _, h := range hits {
+			winding += h.sign
+		}
+		if winding != 0 {
+			return fmt.Errorf("%w: material overlaps behind the declared common face", ErrInvalid)
+		}
+	}
+	return nil
 }
