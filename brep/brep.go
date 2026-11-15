@@ -21,8 +21,9 @@ type EdgeUse struct {
 
 // Face has one simple outer boundary and zero or more disjoint inner wires.
 // Holes must have the opposite winding, be strictly inside the outer boundary,
-// and neither touch nor contain one another. Consecutive collinear vertices are
-// unsupported. Boundary winding determines the face's outward direction.
+// and neither touch nor contain one another. A strictly intermediate collinear
+// vertex subdivides its edge; consecutive edges cannot retrace one another.
+// Boundary winding determines the face's outward direction.
 type Face struct {
 	Boundary []EdgeUse
 	Holes    [][]EdgeUse
@@ -191,13 +192,7 @@ func (s Solid) buildMesh() (mesh.Mesh, error) {
 				}
 			}
 		}
-		var triangles [][3]int
-		var err error
-		if len(rings) == 1 {
-			triangles, err = triangulate(rings[0])
-		} else {
-			triangles, err = triangulateRings(rings[0], rings[1:])
-		}
+		triangles, err := triangulateFaceWires(rings)
 		if err != nil {
 			return mesh.Mesh{}, fmt.Errorf("brep: face %d: %w", i, err)
 		}
