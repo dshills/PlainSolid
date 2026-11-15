@@ -17,6 +17,7 @@ import (
 // VertexContactSTEPOptions bounds standard planar STEP transfer and the exact
 // assembly proof independently. FacetedWriter selects FACETED_BREP instead of
 // the default planar ADVANCED_FACE output; the reader accepts either.
+// Proof.AllowCavities also admits planar advanced BREP_WITH_VOIDS.
 type VertexContactSTEPOptions struct {
 	Limits        Limits
 	Proof         collision.VertexContactAssemblyOptions
@@ -41,7 +42,7 @@ func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContact
 	if err := ctx.Err(); err != nil {
 		return zero, noReport, err
 	}
-	m, err := readPlanarModel(r, o.Limits, true)
+	m, err := readPlanarModel(r, o.Limits, true, o.Proof.AllowCavities)
 	if err != nil {
 		return zero, noReport, err
 	}
@@ -85,7 +86,7 @@ func WriteVertexContactAssembly(ctx context.Context, w io.Writer, m Model, o Ver
 	}
 	var staged vertexContactSTEPBuffer
 	staged.max = limits.MaxBytes
-	if err := writePlanarModel(&staged, m, !o.FacetedWriter, true); err != nil {
+	if err := writeVertexContactModel(ctx, &staged, m, o); err != nil {
 		return empty, err
 	}
 	reopened, check, err := ReadVertexContactAssembly(ctx, bytes.NewReader(staged.Bytes()), o)

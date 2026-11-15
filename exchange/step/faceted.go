@@ -147,10 +147,10 @@ func contextUnits(f *File, id int64) (float64, error) {
 // source vertex/edge identities are preserved. Assemblies, curved faces and
 // void-body entities are rejected. Product metadata is not transferred.
 func Read(r io.Reader, l Limits) (Model, error) {
-	return readPlanarModel(r, l, false)
+	return readPlanarModel(r, l, false, false)
 }
 
-func readPlanarModel(r io.Reader, l Limits, exactSupports bool) (Model, error) {
+func readPlanarModel(r io.Reader, l Limits, exactSupports, allowCavities bool) (Model, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return Model{}, e
@@ -220,7 +220,13 @@ func readPlanarModel(r io.Reader, l Limits, exactSupports bool) (Model, error) {
 			if len(model.Bodies) >= l.MaxSolids {
 				return Model{}, errors.New("step: solid limit exceeded")
 			}
-			body, e := readPlanarBody(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, kind == "ADVANCED_BREP_SHAPE_REPRESENTATION", exactSupports)
+			advanced := kind == "ADVANCED_BREP_SHAPE_REPRESENTATION"
+			var body Body
+			if item := f.Entities[bodyID]; advanced && allowCavities && len(item.Records) == 1 && item.Records[0].Type == "BREP_WITH_VOIDS" {
+				body, e = readExactPlanarCavityBody(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses)
+			} else {
+				body, e = readPlanarBody(f, bodyID, l.MaxVertices-totalVertices, l.MaxFaces-totalFaces, l.MaxEdgeUses-totalUses, advanced, exactSupports)
+			}
 			if e != nil {
 				return Model{}, e
 			}
@@ -241,7 +247,7 @@ func readPlanarModel(r io.Reader, l Limits, exactSupports bool) (Model, error) {
 	}
 	for _, ent := range f.Entities {
 		for _, r := range ent.Records {
-			if (r.Type == "FACETED_BREP" || r.Type == "MANIFOLD_SOLID_BREP") && !used[ent.ID] {
+			if (r.Type == "FACETED_BREP" || r.Type == "MANIFOLD_SOLID_BREP" || exactSupports && r.Type == "BREP_WITH_VOIDS") && !used[ent.ID] {
 				return Model{}, errors.New("step: unrepresented solid body")
 			}
 		}
@@ -269,6 +275,10 @@ func readPlanarBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, a
 	if e != nil {
 		return Body{}, e
 	}
+	return readPlanarClosedShell(f, shellID, name, maxVertices, maxFaces, maxEdgeUses, advanced, exactSupports)
+}
+
+func readPlanarClosedShell(f *File, shellID int64, name string, maxVertices, maxFaces, maxEdgeUses int, advanced, exactSupports bool) (Body, error) {
 	shell, e := simple(f, shellID, "CLOSED_SHELL", 2)
 	if e != nil {
 		return Body{}, e

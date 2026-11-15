@@ -84,7 +84,7 @@ lines and both actual incident planar owner charts on each shared edge.
 ```sh
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
   tools/occtref/author_planar_contact_step.cxx -o /tmp/occt-planar-contact \
-  -lTKDESTEP -lTKXSBase -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+  -lTKDESTEP -lTKXSBase -lTKBO -lTKPrim -lTKTopAlgo -lTKGeomAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
 PLAINSOLID_OCCT_PLANAR_CONTACT_AUTHOR=/tmp/occt-planar-contact \
   go test -race ./exchange/step -run '^TestPlanarVertexContactAssemblySTEP'
 ```
@@ -93,6 +93,10 @@ The checked-in specimen removes the writer's trailing layout whitespace.
 Mutations leave its material unchanged under ordinary floating-point import
 but fail the exact proof if a pcurve misses its model line or if an identical
 plane entity is substituted for the actual incident owner.
+The author's `voids <output.step>` mode generates a concave planar exterior
+with a separate closed void shell and an independently transferred second
+body. The same Go pattern includes its exact cavity and corner-contact
+roundtrip checks.
 
 ### Planar IGES with a through-hole
 
