@@ -88,6 +88,8 @@ struct RoofSupportLayout {
   bool rationalModel = false;
   bool independentOwnerClocks = false;
   bool rationalRoofs = false;
+  bool joinedRationalCells = false;
+  bool missingSouthJoint = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -202,9 +204,17 @@ static occ::handle<Geom_BezierCurve> nonplanarModelSeam(const std::vector<gp_Pnt
   return new Geom_BezierCurve(poles);
 }
 
+static std::vector<double> nonplanarSupportEvents(bool south, RoofSupportLayout layout) {
+  if (layout.joinedRationalCells) {
+    return south ? std::vector<double>{layout.missingSouthJoint ? .125 : .25, .625}
+                 : std::vector<double>{.0625, .25};
+  }
+  return inferredSupportKnots(south, layout.inferred);
+}
+
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
   if (layout.inferred != InferredSupportEvents::none) {
-    auto knots = inferredSupportKnots(south, layout.inferred);
+    auto knots = nonplanarSupportEvents(south, layout);
     knots.insert(knots.begin(), 0.);
     knots.push_back(1.);
     return knots;
@@ -237,7 +247,7 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (layout.inferred == InferredSupportEvents::nonplanar) {
-    const auto knots = inferredSupportKnots(south, layout.inferred);
+    const auto knots = nonplanarSupportEvents(south, layout);
     const double v = y / .75;
     const double scale = layout.rationalRoofs ? 2. / (1. + 3. * v * v) : 1.;
     return nonplanarWidth*x*y + 3.*nonplanarAmplitude*scale*nonplanarRoofEnvelope(x, knots[0], knots[1])
@@ -391,7 +401,8 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const auto ab = split(a);
   std::vector<std::vector<gp_Pnt2d>> traces;
   if (nonplanar) {
-    const std::array<double, 4> ends{0., .25, .5, 1.};
+    const auto ends = layout.joinedRationalCells ? std::vector<double>{0., .25, 1.}
+                                                 : std::vector<double>{0., .25, .5, 1.};
     for (std::size_t i = 0; i + 1 < ends.size(); ++i) {
       const auto seam = nonplanarSeamPoles(ends[i], ends[i + 1]);
       traces.emplace_back(seam.begin(), seam.end());
@@ -506,6 +517,20 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
   return items;
 }
 
+template <std::size_t N>
+static auto nonplanarSouthPoles(const occ::handle<TCollection_HAsciiString>& name, const std::array<double, N>& ends) {
+  std::array<occ::handle<StepGeom_CartesianPoint>, 3*(N-1)+1> poles;
+  for (std::size_t i = 0; i + 1 < N; ++i) {
+    const auto seam = nonplanarChartSeam(ends[i], ends[i + 1]);
+    for (std::size_t j = 0; j < seam.size(); ++j) {
+      auto point = new StepGeom_CartesianPoint;
+      point->Init2D(name, seam[j].Y(), seam[j].X());
+      poles[3*i+j] = point;
+    }
+  }
+  return stepArray(poles);
+}
+
 static occ::handle<StepGeom_BSplineSurfaceWithKnots> stepRoofKnots(const occ::handle<StepGeom_Surface>& support) {
   auto rational = occ::down_cast<StepGeom_BSplineSurfaceWithKnotsAndRationalBSplineSurface>(support);
   if (!rational.IsNull()) {
@@ -549,23 +574,19 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   const double firstSouthParameter = layout.independentOwnerClocks ? 181. : 48.;
   const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., firstSouthParameter}
     : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  if (nonplanar) {
-    const std::array<double, 4> ends{1., .5, .25, 0.};
-    std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
-    for (std::size_t i = 0; i + 1 < ends.size(); ++i) {
-      const auto seam = nonplanarChartSeam(ends[i], ends[i + 1]);
-      for (std::size_t j = 0; j < seam.size(); ++j) {
-        auto point = new StepGeom_CartesianPoint;
-        point->Init2D(name, seam[j].Y(), seam[j].X());
-        poles[3*i+j] = point;
-      }
-    }
+  if (layout.joinedRationalCells) {
+    const auto poles = nonplanarSouthPoles(name, std::array{1., .25, 0.});
+    shared->Init(name, 3, poles, StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+                 stepArray(std::array{4, 3, 4}), stepArray(std::array{1., 16., 181.}), StepGeom_ktUnspecified,
+                 stepArray(std::array{8., 16., 32., 64., 96., 144., 216.}));
+  } else if (nonplanar) {
+    const auto poles = nonplanarSouthPoles(name, std::array{1., .5, .25, 0.});
     // The last stored span is the first in model traversal. Its new
     // increasing-raw geometric weight ratio 3/2 acts in reverse traversal.
     const auto weights = layout.independentOwnerClocks
       ? std::array{1., 2., 4., 8., 16., 32., 64., 96., 144., 216.}
       : std::array{1., 2., 4., 8., 16., 32., 64., 64., 64., 64.};
-    shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+    shared->Init(name, 3, poles, StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                  stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(weights));
   } else {
     const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
@@ -579,13 +600,16 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
     shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                  stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
   }
-  const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
+  const auto x = layout.joinedRationalCells ? std::vector<double>{0., .25, 1.}
+                : unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = localCells ? std::vector<double>{firstSouthParameter, 16., 1., lastSouthParameter}
+  const auto raw = layout.joinedRationalCells ? std::vector<double>{181., 16., 1.}
+                  : localCells ? std::vector<double>{firstSouthParameter, 16., 1., lastSouthParameter}
                   : supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
-  const auto station = (localCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
+  const auto station = layout.joinedRationalCells ? std::vector<double>{0., 8., 32.}
+                      : (localCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
                       : unsplit ? std::vector<double>{0., 4., 8., 16.}
                                : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
   const auto northKnots = static_cast<int>(roofSupportKnots(false, layout).size());
@@ -637,10 +661,10 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       }
       spatial->SetKnots(stepArray(std::array{station[cell], station[cell + 1]}));
     }
-    if (layout.rationalModel && cell == 0) {
-      // Geometric homogeneous weights compose the original nonplanar cubic
-      // with t -> 2t/(1+t). The Cartesian poles and endpoint knots stay exact.
-      std::array<double, 4> weights{1., 2., 4., 8.};
+    if (layout.rationalModel && (cell == 0 || layout.joinedRationalCells)) {
+      // The geometric homogeneous weights induce independent positive
+      // projective parameters on the original nonplanar Bézier cells.
+      auto weights = cell == 0 ? std::array{1., 2., 4., 8.} : std::array{1., 4., 16., 64.};
       if (a > b) {
         std::reverse(weights.begin(), weights.end());
       }
@@ -713,8 +737,11 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
+    const bool missingSouthJoint = mode == "write-joined-rational-cells-missing-south-joint";
+    const bool measureJoined = mode == "measure-joined-rational-cells";
+    const bool joinedRationalCells = mode == "write-joined-rational-cells" || missingSouthJoint || measureJoined;
     const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight";
-    const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight;
+    const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight || joinedRationalCells;
     const bool independentOwnerClocks = mode == "write-nonplanar-independent-owner-clocks" || rationalRoofs;
     const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed" || independentOwnerClocks;
     const bool nonplanar = mode == "write-nonplanar-inferred-mixed" || rationalModel;
@@ -727,7 +754,7 @@ int main(int argc, char** argv) {
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
-                                   rationalModel, independentOwnerClocks, rationalRoofs};
+                                   rationalModel, independentOwnerClocks, rationalRoofs, joinedRationalCells, missingSouthJoint};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
@@ -830,7 +857,7 @@ int main(int argc, char** argv) {
       return 0;
     }
 #endif
-    if (argc != 1) {
+    if (argc != 1 && !(argc == 2 && measureJoined)) {
       return 2;
     }
     GProp_GProps volume, area;

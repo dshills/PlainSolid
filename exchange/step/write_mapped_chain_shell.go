@@ -78,6 +78,11 @@ type MappedChainShellSTEPOptions struct {
 	// on a single model Bézier beyond an event-free original edge. Its
 	// prerequisites match AllowMultipleSupportKnotCells.
 	AllowSeparatedSupportKnotCells bool
+	// AllowJoinedSupportKnotCells admits two adjacent original model Béziers
+	// with one opposite owner-only interior cut per edge and a support event
+	// shared at the original joint. Requires AllowMultiSpanRoofs,
+	// AllowTwoInteriorRoofKnots, AllowUnsplitSupportKnot and AllowMixedOwnerBases.
+	AllowJoinedSupportKnotCells bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
@@ -136,7 +141,7 @@ func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
 	}
 	return o.AllowSameCellAsynchronousSupportKnots || o.AllowInferredSharedSupportKnot || o.AllowTwoInteriorRoofKnots &&
 		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells ||
-			o.AllowThreeSupportKnotCells || o.AllowSeparatedSupportKnotCells)
+			o.AllowThreeSupportKnotCells || o.AllowSeparatedSupportKnotCells || o.AllowJoinedSupportKnotCells)
 }
 
 func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {

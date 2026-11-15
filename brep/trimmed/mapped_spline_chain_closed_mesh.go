@@ -48,14 +48,17 @@ type MappedChainClosedMeshOptions struct {
 // distances. FaceVertices maps face-local IDs to the shell. ChainSamples
 // records every shared chain vertex with both original authored parameters,
 // including refinement beyond the initial Boundary ledger. A joint vertex
-// retains the incoming original coedge parameters. ClosingVertices
-// follows the first declared use of each closing seam. This is a display
+// retains the incoming original coedge parameters in ChainSamples and both
+// original occurrences in ChainJoints. ClosingVertices follows the first declared use of each closing seam. This is a display
 // certificate; ideal source embedding and Solid admission require separate proofs.
 type CertifiedMappedChainClosedMesh struct {
-	Mesh             mesh.Mesh
-	OriginalFace     []int
-	FaceVertices     [][]int
-	ChainSamples     []MappedChainFaceSample
+	Mesh         mesh.Mesh
+	OriginalFace []int
+	FaceVertices [][]int
+	ChainSamples []MappedChainFaceSample
+	// ChainJoints contains incoming and outgoing samples at an original
+	// coedge boundary with one shared display vertex.
+	ChainJoints      [][2]MappedChainFaceSample
 	ClosingVertices  [][]int
 	Boundary         CertifiedMappedChainPolyline
 	Curved           [2]CertifiedMixedExactCurvedMesh
@@ -230,6 +233,8 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 		}
 		if i == 0 || a[i-1].Vertex != s.Vertex {
 			out.ChainSamples = append(out.ChainSamples, s)
+		} else if prior := a[i-1]; prior.AuthoredParts != s.AuthoredParts && prior.ModelParameter.Cmp(s.ModelParameter) == 0 {
+			out.ChainJoints = append(out.ChainJoints, [2]MappedChainFaceSample{prior, s})
 		}
 	}
 	for i, seam := range seams {
@@ -278,6 +283,11 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 	}
 	for i, s := range out.ChainSamples {
 		out.ChainSamples[i].Vertex = out.FaceVertices[0][s.Vertex]
+	}
+	for i, pair := range out.ChainJoints {
+		for j, sample := range pair {
+			out.ChainJoints[i][j].Vertex = out.FaceVertices[0][sample.Vertex]
+		}
 	}
 	for i, ids := range out.ClosingVertices {
 		for j, id := range ids {
