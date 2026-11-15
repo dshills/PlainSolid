@@ -13,7 +13,7 @@ func boundFiniteConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 	return boundMappedConvexArcLineOwner(src, corrected, q, model, tolSquared, nil)
 }
 
-func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared, parameterScale *big.Rat) (FiniteConvexArcLineOwner, *big.Rat, error) {
+func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength) (FiniteConvexArcLineOwner, *big.Rat, error) {
 	bad := func() (FiniteConvexArcLineOwner, *big.Rat, error) {
 		return FiniteConvexArcLineOwner{}, nil, geom.ErrDomain
 	}
@@ -50,13 +50,15 @@ func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 	if e != nil || magnitude.Sign() <= 0 {
 		return bad()
 	}
-	if parameterScale != nil {
-		// The converted metre dialect maps a unit-speed planar pcurve to the
-		// authored model speed. Both speeds are proved before applying it.
-		squaredScale := new(big.Rat).Mul(parameterScale, parameterScale)
-		if magnitude.Cmp(big.NewRat(1, 1)) != 0 || occtLoopDot(d, d).Cmp(squaredScale) != 0 {
+	var parameterScale *big.Rat
+	if conversion != nil {
+		// The file unit defines the owner map. The affine lift bound below
+		// still compares against the exact source LINE speed, including drift.
+		squaredSpeed := new(big.Rat).Mul(conversion.modelSpeed, conversion.modelSpeed)
+		if magnitude.Cmp(big.NewRat(1, 1)) != 0 || occtLoopDot(d, d).Cmp(squaredSpeed) != 0 {
 			return bad()
 		}
+		parameterScale = conversion.ownerScale
 		magnitude.Mul(magnitude, parameterScale)
 	}
 	normSquared := new(big.Rat).Add(new(big.Rat).Mul(ratio[0], ratio[0]), new(big.Rat).Mul(ratio[1], ratio[1]))

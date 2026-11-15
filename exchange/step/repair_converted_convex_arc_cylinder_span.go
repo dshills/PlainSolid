@@ -6,6 +6,11 @@ import (
 	"plainsolid/geom"
 )
 
+type convertedConvexArcLength struct {
+	ownerScale *big.Rat // exact source length per millimetre
+	modelSpeed *big.Rat // exact original LINE magnitude token
+}
+
 // ConvexArcCylinderSpanOwner records an original clamped degree-one UV owner.
 // Its two controls define UVStart + t*UVDerivative on ParameterInterval,
 // starting at t=0. Here t is also the original model LINE or CIRCLE parameter.
@@ -78,7 +83,7 @@ func readConvexArcCylinderSpan(f *File, q ConvexArcPCurveAgreement) (ConvexArcCy
 	return out, nil
 }
 
-func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
+func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
 	var zero ConvexArcCylinderSpanOwner
 	span, err := readConvexArcCylinderSpan(src, q)
 	if err != nil {
@@ -104,7 +109,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 	switch curve[0].Type {
 	case "LINE":
 		p, d, interval, err := convexArcOwnerLineDomain(src, corrected, q, model, tolSquared)
-		if err != nil || slope[0].Sign() != 0 || slope[1].Cmp(big.NewRat(1, 1000)) != 0 {
+		if err != nil || slope[0].Sign() != 0 || slope[1].Cmp(conversion.ownerScale) != 0 {
 			return zero, "", nil, geom.ErrDomain
 		}
 		for _, t := range interval {
@@ -113,12 +118,26 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 			}
 		}
 		for i := range d {
-			if d[i].Cmp(new(big.Rat).Mul(z[i], slope[1])) != 0 {
+			if d[i].Cmp(new(big.Rat).Mul(z[i], conversion.modelSpeed)) != 0 {
 				return zero, "", nil, geom.ErrDomain
 			}
 		}
-		bound, err := boundConvexArcCylinderLine(o, x, y, z, p, radius, uv[0], uv[1])
-		return span, "finite-cylinder-line", bound, err
+		// Subtract the traversed model station from the physical spline
+		// station. With constant u, the difference is affine in t and its
+		// squared norm is bounded by its values at the interval endpoints.
+		drift := new(big.Rat).Sub(slope[1], conversion.modelSpeed)
+		upper := new(big.Rat)
+		for _, t := range interval {
+			v := new(big.Rat).Add(uv[1], new(big.Rat).Mul(drift, t))
+			bound, err := boundConvexArcCylinderLine(o, x, y, z, p, radius, uv[0], v)
+			if err != nil {
+				return zero, "", nil, err
+			}
+			if bound.Cmp(upper) > 0 {
+				upper = bound
+			}
+		}
+		return span, "finite-cylinder-line", upper, nil
 	case "CIRCLE":
 		mo, mx, my, mz, err := convexUVFrame(src, curve[0].Args[1].Ref)
 		if err != nil || uv[0].Sign() != 0 || slope[0].Cmp(big.NewRat(1, 1)) != 0 || slope[1].Sign() != 0 ||

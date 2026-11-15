@@ -110,14 +110,14 @@ func RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.R
 		sc, _ := simple(src.original, q.SurfaceCurveID, "SURFACE_CURVE", 4)
 		q.Kind, q.DistanceSquaredUpper, e = boundConvexOwnerPCurve(src.local, src.corrected, sc.Args[1].Ref, q.GeometryID, q.SupportID)
 		if e != nil {
-			if src.convertedMetre && src.local.Entities[q.GeometryID].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
+			if src.conversion != nil && src.local.Entities[q.GeometryID].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
 				var span ConvexArcCylinderSpanOwner
-				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol)
+				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion)
 				spans = append(spans, span)
 			} else {
 				var domain FiniteConvexArcLineOwner
-				if src.convertedMetre {
-					domain, q.DistanceSquaredUpper, e = boundMappedConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol, big.NewRat(1, 1000))
+				if src.conversion != nil {
+					domain, q.DistanceSquaredUpper, e = boundMappedConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion)
 				}
 				if e != nil {
 					domain, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol)
@@ -152,7 +152,7 @@ type rationalConvexArcSource struct {
 	owners                     []ConvexArcPCurveAgreement
 	material                   RepairedOCCTConvexArcExtrusion
 	limits                     Limits
-	convertedMetre             bool
+	conversion                 *convertedConvexArcLength
 }
 
 func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (*rationalConvexArcSource, error) {
@@ -200,7 +200,7 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	}
 	src := &rationalConvexArcSource{
 		raw: string(raw), original: f, rotation: pose, reference: reference,
-		body: body, metadata: metadata, owners: owners, limits: l, convertedMetre: converted,
+		body: body, metadata: metadata, owners: owners, limits: l,
 	}
 	localModel, e := src.transformView(ctx, model, true)
 	if e != nil {
@@ -214,8 +214,18 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, fmt.Errorf("rational pose model: %w", e)
 	}
-	if converted && src.material.Descriptor().LengthUnit != 1 {
-		return nil, geom.ErrDomain
+	if converted {
+		// The model reader has already verified the exact unit declaration.
+		switch src.material.Descriptor().LengthUnit {
+		case 1:
+			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(1, 1000), modelSpeed: big.NewRat(1, 1000)}
+		case .0254:
+			// OCCT writes 3.937007874016E-02 for the model LINE vector.
+			// The actual owner conversion is the declared 5/127 inch per mm.
+			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(5, 127), modelSpeed: big.NewRat(123031496063, 3125000000000)}
+		default:
+			return nil, geom.ErrDomain
+		}
 	}
 	// Only the proved model closure moves. The original numerically authored
 	// UV records retain their original charts and parameter semantics.

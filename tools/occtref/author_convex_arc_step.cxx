@@ -38,7 +38,7 @@
 #include <iomanip>
 #include <string>
 
-static int convertedMetreWitness(const char* path) {
+static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
@@ -64,7 +64,7 @@ static int convertedMetreWitness(const char* path) {
   if (!line.IsNull()) {
    if (stepLine.IsNull() || stepLine->Dir().IsNull()) return 9;
    speed = stepLine->Dir()->Magnitude();
-   if (speed != .001) return 9;
+   if (speed != modelSpeed) return 9;
    const auto axis = line->Position();
    const auto station = [&](const gp_Pnt& point) { return gp_Vec(axis.Location(), point).Dot(gp_Vec(axis.Direction())); };
    parameter = (station(a->Pnt()) + station(b->Pnt())) / (2 * speed);
@@ -92,7 +92,7 @@ static int convertedMetreWitness(const char* path) {
      const auto ownerLine = Handle(StepGeom_Line)::DownCast(geometry);
      if (ownerLine.IsNull() || ownerLine->Dir().IsNull() || ownerLine->Dir()->Magnitude() != 1) return 9;
      ++planeLines;
-     ownerParameter *= speed;
+     ownerParameter *= ownerScale;
      withoutMap = std::max(withoutMap, point.Distance(lift(parameter)));
     } else {
      if (Handle(StepGeom_Circle)::DownCast(geometry).IsNull()) return 9;
@@ -114,7 +114,8 @@ static int convertedMetreWitness(const char* path) {
 }
 
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
-if(std::string(argv[1])=="converted-metre-witness") return convertedMetreWitness(argv[2]);
+if(std::string(argv[1])=="converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001);
+if(std::string(argv[1])=="converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
  for(int i=1;i<=model->NbEntities();++i){auto edge=Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));if(edge.IsNull())continue;auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(edge->EdgeGeometry());if(sc.IsNull())continue;auto circleSource=Handle(StepGeom_Circle)::DownCast(sc->Curve3d());if(circleSource.IsNull())continue;auto circle=StepToGeom::MakeCircle(circleSource);for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto surf=StepToGeom::MakeSurface(pc->BasisSurface());auto point=[&](double t){auto p=uv->Value(t);return surf->Value(p.X(),p.Y());};double lo=uv->FirstParameter(),hi=lo+(uv->LastParameter()-lo)/3;auto axis=circle->Position().XDirection();for(int k=0;k<60;++k){double mid=(lo+hi)/2;double x=gp_Vec(circle->Location(),point(mid)).Dot(gp_Vec(axis));if(x>0)lo=mid;else hi=mid;}double station=(lo+hi)/2;minStation=std::min(minStation,station);maxStation=std::max(maxStation,station);
@@ -130,8 +131,10 @@ const std::string mode = argv[1];
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch";
 const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre";
+const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
+                           mode == "write-default-tilted-translated-converted-inch-unscaled";
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
-const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch";
+const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
                            groupedTilted || metre || inch;
 if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || tiltedDefault){
@@ -156,12 +159,15 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
  }
  STEPControl_Writer w;
  if (metre || inch) {
-  if (convertedMetre) {
-   // Author metre-sized geometry in a millimetre model and let STEPControl
-   // convert its native model and owner charts during the actual transfer.
-   gp_Trsf scale;
-   scale.SetScale(gp_Pnt(0,0,0), 1000.0);
-   shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();
+  if (convertedMetre || convertedInch) {
+   // Author in millimetres and let STEPControl convert the model and charts.
+   // 127 mm is exactly five inches, so scaled dyadic model coordinates
+   // retain terminating inch decimals even though the LINE speed does not.
+   if (mode != "write-default-tilted-translated-converted-inch-unscaled") {
+    gp_Trsf scale;
+    scale.SetScale(gp_Pnt(0,0,0), convertedMetre ? 1000.0 : 127.0);
+    shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();
+   }
    w.Model()->SetLocalLengthUnit(1.0);
   } else {
    w.Model()->SetLocalLengthUnit(metre ? 1000.0 : 25.4);
