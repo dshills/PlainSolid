@@ -187,6 +187,45 @@ Focused main verification adds two bounded cases:
   `1e-12 in` rejects. Rounded unscaled OCCT input loses two original
   plane/curve tangencies and is rejected. Main app integration remains open.
 
+- `00f2030f` and `a5b3483c`: exact native Common, Fuse and both Cut
+  orders across two quadratic tangencies pass the combined main race in
+  388.622 seconds. Six exact restrictions survive as eight model edges
+  in the envelopes. The directed Cuts retain two or three components,
+  both distinct tangent contacts, and independently integrated rational
+  component volumes before and after canonical reload.
+- `b3bb412c`: independently authored unsplit mapped v7 STEP retains one
+  stored model knot and both owner-only cuts. Reload preserves nonnormalized
+  exact weights and incoming/outgoing raw values 457 and 700 at the same
+  original model vertex. Main live STEP race passed in 36.289 seconds;
+  isolated broad mapped STEP, geometry, parametric and mapped native
+  races also passed. Source re-export is qualified separately.
+- `572f5b22`: grouped converted-inch native race passed in 61.292 seconds.
+  An unchanged isolated Node replay passed all 11 after an unrelated
+  grouped-metre case hit its 60-second deadline in the earlier concurrent
+  run. Chromium passed 9/9; both workers reproduced receipt SHA-256
+  `9fb8c4fd15953606c0b2bc522108ea50aca5e39916e92c5b235ecbb99deb2f67`
+  and canonical inch STEP. Common WASM SHA-256 is
+  `343ec4fa996b5b40429e24165323188dcf7b3f82e509aad3f398767dc08a4553`.
+- `a052e2c4`, `42c44383`, `addd1829`, and `c7756665`: exact regions
+  can join across different original face divisions, and discovery reproduces
+  the explicit proof. Native reload rejects modified owner, seam, area, or
+  volume claims. Live independent STEP and IGES originals and readback
+  retain two original solids, 15 faces, volume 96 and area 248. Their
+  refined join has area 152. An earlier untranslated OCCT IGES diagnostic
+  correctly failed because original finite line #49 differed from its
+  endpoint vertex by approximately `2.2e-16` in model units.
+- `c5dffc88` and `509cdbd3`: planar boundary split checks preserve
+  original face and vertex IDs, split stations on outer and inner wires,
+  and exact `1/3`, `2/3` parent intervals. An exact overlay combines
+  different original seam stations, mapping three result edges back to
+  both original owners with no geometric displacement. Foundations and
+  focused join races pass. Work and station limits reject atomically.
+- `016354ee`: original cubic/quartic roofs with an isolated order-three
+  crossing reproduce equal first and second jets, a strict third
+  derivative gap and complete source-region proofs. Main geometry and
+  prior profile regressions passed under race in 35.073 seconds. Vet and the
+  Windows amd64 cross-build on this exact revision returned zero.
+
 Further main milestones use the same pinned optional OCCT reference:
 
 - Four-crossing Common and Fuse passed the exact source region and independent
