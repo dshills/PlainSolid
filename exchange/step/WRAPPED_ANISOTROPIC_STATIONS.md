@@ -97,8 +97,8 @@ This mode uses uniform metre/millimetre source units and the established strict
 flat ownership/closure proof. Unknown geometry, orphan entities, pcurve ownership
 changes, cycles, improper or noncardinal frames, mixed units, nested groups and
 appearance records are unsupported. The returned local native asset can be saved
-and reloaded with its exact original geometry; a source-bound JSON envelope for
-the entire assembly is not part of these APIs. Original source export re-proves
+and reloaded with its exact original geometry. The separate JSON APIs below
+persist and re-prove the full assembly. Original source export re-proves
 the complete original graph before retaining its entity IDs. Canonical output
 stages the explicit local source supports through the existing assembly writer
 and validates the entire resulting graph before output.
@@ -114,3 +114,31 @@ centroid. Local source data is not flattened into world control points. Focused
 negative tests include source owner/sense-class changes, unrepresentable weights,
 parser limits, cancellation, unit mismatch and reflection rejection; a bounded
 two-family fuzz target uses the actual strict readers.
+
+## Source-bound flat assembly native formats
+
+`Write/ReadWrappedAnisotropicStationAssemblyJSON` use version-one tag
+`plainsolid-step-anisotropic-station-assembly`;
+`Write/ReadWrappedAnisotropicStationBoreAssemblyJSON` use the distinct tag
+`plainsolid-step-anisotropic-station-bore-assembly`. Older homothetic, standalone
+and other native tags are unchanged. Each envelope stores one original STEP
+source, one local native solid, original product/face IDs, original weighted
+support data and edge/vertex identities, and all original assembly and exact
+occurrence relationship/matrix claims. Bore mode stores both original wall
+families and its actual annular material, not two unrelated positive solids.
+
+Reload invokes the corresponding strict original STEP reader once and compares
+all supplied claims with the regenerated result. The serialized native solid,
+public IDs and poses are never replacement authorities. Writers similarly
+reject stale in-memory claims before output; changing cached geometry or a
+matrix does not request an edit to the authenticated source. Author and reimport
+changed STEP to establish a new accepted model. Bounds are 16 MiB native / 1 MiB
+source, existing bounded graph and geometry rules, caller source parse limits,
+and cancellation checks. Failure returns no partial source, material or graph.
+
+Corruption tests cover source, tag/version, original body/face/product/use IDs,
+relationship matrices, weighted supports, native geometry, cross-family payloads,
+limits, cancellation before and during reads, short writes and stale edits.
+Live filled/bore and negative-axis XCAF tests now traverse the full envelope
+before original-source re-export and native-local regeneration into new STEP.
+Both routes retain one shared local product and independent world measures.

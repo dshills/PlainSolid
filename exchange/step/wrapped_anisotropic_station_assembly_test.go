@@ -218,6 +218,14 @@ func TestWrappedAnisotropicStationAssemblyLive(t *testing.T) {
 				if e != nil {
 					t.Fatal(e)
 				}
+				var envelope bytes.Buffer
+				if e = WriteWrappedAnisotropicStationAssemblyJSON(ctx, &envelope, m); e != nil {
+					t.Fatal(e)
+				}
+				m, e = ReadWrappedAnisotropicStationAssemblyJSON(ctx, &envelope, IndependentMaterialJSONLimits{})
+				if e != nil {
+					t.Fatal(e)
+				}
 				var native bytes.Buffer
 				if e = trimmed.WriteJSON(&native, m.Body.Solid); e != nil {
 					t.Fatal(e)
@@ -236,6 +244,14 @@ func TestWrappedAnisotropicStationAssemblyLive(t *testing.T) {
 				}
 			} else {
 				m, e := ReadWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})
+				if e != nil {
+					t.Fatal(e)
+				}
+				var envelope bytes.Buffer
+				if e = WriteWrappedAnisotropicStationBoreAssemblyJSON(ctx, &envelope, m); e != nil {
+					t.Fatal(e)
+				}
+				m, e = ReadWrappedAnisotropicStationBoreAssemblyJSON(ctx, &envelope, IndependentMaterialJSONLimits{})
 				if e != nil {
 					t.Fatal(e)
 				}
