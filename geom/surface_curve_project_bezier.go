@@ -42,6 +42,74 @@ func (c *ExactComposedCurveCell) ExactBezierCurve(ctx context.Context, ends [2]*
 	return c.exactBezierInAxes(ctx, [4]int{0, 1, 2, 3}, ends, 64, o)
 }
 
+// SingleExactBezier recovers a single normalized model curve from contiguous
+// composition cells when all cells prove the same rational continuation.
+// It removes redundant source knot cuts without fitting any coefficients or
+// merging distinct laws. The rational ends must equal the full domain roots.
+func (r SurfaceCurveCompositionCells) SingleExactBezier(ctx context.Context, ends [2]*big.Rat, o ExactCurvePlaneEventOptions) (*ExactSplineCurve, int, error) {
+	if ctx == nil || !r.Complete || len(r.Cells) == 0 {
+		return nil, 0, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, 0, e
+	}
+	o, e := graphRootOptions(o)
+	if e != nil {
+		return nil, 0, e
+	}
+	valid := func(c *ExactComposedCurveCell) bool {
+		return c != nil && c.endpoints[0] != nil && c.endpoints[1] != nil && len(c.power[3]) != 0
+	}
+	if first := r.Cells[0]; !valid(first) {
+		return nil, 0, ErrInvalid
+	} else if len(r.Cells) == 1 {
+		return first.ExactBezierCurve(ctx, ends, o)
+	}
+	first := r.Cells[0]
+	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	for i, c := range r.Cells[1:] {
+		if e := ctx.Err(); e != nil {
+			return nil, b.operations, e
+		}
+		if !valid(c) || o.MaxSubdivisions < 1 {
+			return nil, b.operations, ErrConvergence
+		}
+		joint, e := compareRootBudget(ctx, r.Cells[i].endpoints[1], c.endpoints[0], b, o.MaxSubdivisions)
+		if e != nil {
+			return nil, b.operations, e
+		}
+		o.MaxSubdivisions -= joint.Subdivisions
+		if !joint.Proven || joint.Order != 0 {
+			return nil, b.operations, ErrConvergence
+		}
+		for axis := 0; axis < 3; axis++ {
+			p, e := polynomialProduct(first.power[axis], c.power[3], b)
+			if e != nil {
+				return nil, b.operations, e
+			}
+			q, e := polynomialProduct(c.power[axis], first.power[3], b)
+			if e != nil {
+				return nil, b.operations, e
+			}
+			difference, e := subtractScaledPolynomial(p, q, big.NewRat(1, 1), b)
+			if e != nil {
+				return nil, b.operations, e
+			}
+			if len(difference) != 0 {
+				return nil, b.operations, ErrConvergence
+			}
+		}
+	}
+	o.MaxOperations -= b.operations
+	if o.MaxOperations < 1 || o.MaxSubdivisions < 1 {
+		return nil, b.operations, ErrConvergence
+	}
+	whole := *first
+	whole.endpoints[1] = r.Cells[len(r.Cells)-1].endpoints[1]
+	curve, used, e := whole.ExactBezierCurve(ctx, ends, o)
+	return curve, b.operations + used, e
+}
+
 func (c *ExactComposedCurveCell) exactBezierInAxes(ctx context.Context, axes [4]int, ends [2]*big.Rat, maxDegree int, o ExactCurvePlaneEventOptions) (*ExactSplineCurve, int, error) {
 	if ctx == nil || c == nil || c.endpoints[0] == nil || c.endpoints[1] == nil || len(c.power[3]) == 0 ||
 		ends[0] == nil || ends[1] == nil || ends[0].Cmp(ends[1]) >= 0 {
