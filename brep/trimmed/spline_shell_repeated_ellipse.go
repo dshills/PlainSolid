@@ -264,7 +264,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all 
 			return out, history, proof, e
 		}
 		if operation == parametric.Union {
-			out, history, err = assembleTangentEllipseComponents(ctx, a, b)
+			out, history, err = assembleTangentEllipseBoundaries(ctx, a, b, false)
 			return out, history, proof, err
 		}
 		out, history = isolatedGraphTouchResult(a, b, operation)
@@ -287,7 +287,11 @@ func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all 
 	}
 	proof.Enclosing = outer
 	if operation == parametric.Difference && outer == 0 {
-		return out, history, proof, geom.ErrConvergence
+		if relation != discoverTangentEllipseRelation {
+			return out, history, proof, geom.ErrConvergence
+		}
+		out, history, err = assembleTangentEllipseBoundaries(ctx, a, b, true)
+		return out, history, proof, err
 	}
 	history = SplineShellCombineHistory{Method: "contained-repeated-ellipse-tangency", FacesA: make([][]int, len(a.faces)), FacesB: make([][]int, len(b.faces)),
 		EdgesA: make([][]int, len(a.edges)), EdgesB: make([][]int, len(b.edges))}

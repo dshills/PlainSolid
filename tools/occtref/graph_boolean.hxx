@@ -217,6 +217,16 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
       throw std::runtime_error("invalid contained tangent material");
     record(out,"contained-tangent-common",common.Shape(),1e-11);
     record(out,"contained-tangent-fuse",fuse.Shape(),1e-11);
+    if (recordComponents) {
+      BRepAlgoAPI_Cut cavity(outer,tool);
+      if (!cavity.IsDone()) throw std::runtime_error("contained tangent cavity operation failed");
+      int solids = 0, shells = 0;
+      for (TopExp_Explorer e(cavity.Shape(),TopAbs_SOLID); e.More(); e.Next()) ++solids;
+      for (TopExp_Explorer e(cavity.Shape(),TopAbs_SHELL); e.More(); e.Next()) ++shells;
+      if (solids != 1 || shells != 2)
+        throw std::runtime_error("contained tangent Cut did not retain an outer and cavity shell");
+      record(out,"contained-tangent-cavity",cavity.Shape(),1e-11);
+    }
     return;
   }
   const auto stock = BRepPrimAPI_MakeBox(1,1,1).Shape();

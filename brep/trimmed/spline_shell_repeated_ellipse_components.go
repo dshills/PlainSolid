@@ -18,14 +18,40 @@ func FuseExternallyTangentSplineShellEllipseComponents(ctx context.Context, a, b
 	if err != nil {
 		return Solid{}, SplineShellCombineHistory{}, proof, err
 	}
-	out, h, err := assembleTangentEllipseComponents(ctx, a, b)
+	out, h, err := assembleTangentEllipseBoundaries(ctx, a, b, false)
 	if err != nil {
 		return Solid{}, SplineShellCombineHistory{}, SplineShellRepeatedEllipse{ExactOperations: proof.ExactOperations}, err
 	}
 	return out, h, proof, nil
 }
 
-func assembleTangentEllipseComponents(ctx context.Context, a, b Solid) (Solid, SplineShellCombineHistory, error) {
+// CutInternallyTangentSplineShellEllipseCavity retains the outward stock
+// and inward cutter as two native boundary shells. The cutter must be
+// contained by the stock and touch it only on the proved double ellipse.
+func CutInternallyTangentSplineShellEllipseCavity(ctx context.Context, stock, cutter Solid,
+	o SplineShellRepeatedEllipseOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
+	_, _, proof, err := CombineInternallyTangentSplineShellEllipse(ctx, stock, cutter, parametric.Intersection, o)
+	if err != nil {
+		return Solid{}, SplineShellCombineHistory{}, proof, err
+	}
+	if proof.Enclosing != 0 {
+		return Solid{}, SplineShellCombineHistory{}, SplineShellRepeatedEllipse{ExactOperations: proof.ExactOperations}, geom.ErrConvergence
+	}
+	out, h, err := assembleTangentEllipseBoundaries(ctx, stock, cutter, true)
+	if err != nil {
+		return Solid{}, SplineShellCombineHistory{}, SplineShellRepeatedEllipse{ExactOperations: proof.ExactOperations}, err
+	}
+	return out, h, proof, nil
+}
+
+func assembleTangentEllipseBoundaries(ctx context.Context, a, b Solid, cavity bool) (Solid, SplineShellCombineHistory, error) {
+	if cavity {
+		var err error
+		b, err = reverseMaterialShell(ctx, b)
+		if err != nil {
+			return Solid{}, SplineShellCombineHistory{}, err
+		}
+	}
 	out, err := AssembleShells(ctx, []PlacedSolid{{a, geom.Identity()}, {b, geom.Identity()}}, len(a.faces)+len(b.faces))
 	if err != nil {
 		return Solid{}, SplineShellCombineHistory{}, err
@@ -46,6 +72,12 @@ func assembleTangentEllipseComponents(ctx context.Context, a, b Solid) (Solid, S
 	}
 	for i := range h.EdgesB {
 		h.EdgesB[i] = []int{len(a.edges) + i}
+	}
+	if cavity {
+		h.Method = "contained-repeated-ellipse-cavity"
+		for i := range b.faces {
+			h.ReversedFaces = append(h.ReversedFaces, len(a.faces)+i)
+		}
 	}
 	return out, h, nil
 }

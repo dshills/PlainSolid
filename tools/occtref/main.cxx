@@ -213,6 +213,12 @@ int main(int argc, char** argv) {
     if (argc < 2 || argc > 4)
       throw std::runtime_error("usage: occtref output [input.step|write-step|write-step-curves|step-curves input.step|write-step-surface|write-step-sphere|write-step-torus|write-step-cylinder|write-step-cone|write-step-frustum|step-surface input.step|write-iges|write-iges-surface|iges input.igs|iges-surface input.igs]");
     const std::string mode = argc >= 3 ? argv[2] : "";
+    if (argc == 3 && (mode == "repeated-ellipse-cavity-cut" || mode == "rotated-ellipse-cavity-cut")) {
+      std::ofstream out(argv[1]);
+      out.exceptions(std::ios::failbit | std::ios::badbit);
+      tangentSplineShellRecords(out, true, false, true, true, mode == "rotated-ellipse-cavity-cut", true);
+      return 0;
+    }
     if (argc == 3 && mode == "repeated-ellipse-tangent-components") {
       std::ofstream out(argv[1]);
       out.exceptions(std::ios::failbit | std::ios::badbit);

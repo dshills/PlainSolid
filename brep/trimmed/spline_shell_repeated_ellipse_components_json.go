@@ -10,7 +10,12 @@ import (
 	"plainsolid/geom"
 )
 
-const nativeTangentEllipseFuse = "trimmed-closed-ellipse-component-fuse"
+const (
+	nativeTangentEllipseFuse   = "trimmed-closed-ellipse-component-fuse"
+	nativeTangentEllipseCavity = "trimmed-closed-ellipse-cavity-cut"
+)
+
+type tangentEllipseBoundaryOperation func(context.Context, Solid, Solid, SplineShellRepeatedEllipseOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error)
 
 type tangentEllipseFuseRecipe struct {
 	Version    int               `json:"version"`
@@ -26,14 +31,25 @@ type tangentEllipseFuseRecipe struct {
 // their original boundaries and selected chart data. The fused boundary and
 // its material classification are reconstructed by the reader.
 func WriteTangentEllipseComponentFuseJSON(ctx context.Context, w io.Writer, a, b Solid, o SplineShellRepeatedEllipseOptions) error {
+	return writeTangentEllipseBoundaryJSON(ctx, w, a, b, o, nativeTangentEllipseFuse, FuseExternallyTangentSplineShellEllipseComponents)
+}
+
+// WriteTangentEllipseCavityCutJSON re-proves the nested original shells and
+// writes the source recipe for the outward stock and inward cavity boundary.
+func WriteTangentEllipseCavityCutJSON(ctx context.Context, w io.Writer, stock, cutter Solid, o SplineShellRepeatedEllipseOptions) error {
+	return writeTangentEllipseBoundaryJSON(ctx, w, stock, cutter, o, nativeTangentEllipseCavity, CutInternallyTangentSplineShellEllipseCavity)
+}
+
+func writeTangentEllipseBoundaryJSON(ctx context.Context, w io.Writer, a, b Solid, o SplineShellRepeatedEllipseOptions,
+	kind string, operation tangentEllipseBoundaryOperation) error {
 	if w == nil {
 		return geom.ErrInvalid
 	}
-	_, _, proof, e := FuseExternallyTangentSplineShellEllipseComponents(ctx, a, b, o)
+	_, _, proof, e := operation(ctx, a, b, o)
 	if e != nil {
 		return e
 	}
-	n := tangentEllipseFuseRecipe{Version: 1, Kind: nativeTangentEllipseFuse, Faces: proof.Faces[:], Projection: proof.Projection[:]}
+	n := tangentEllipseFuseRecipe{Version: 1, Kind: kind, Faces: proof.Faces[:], Projection: proof.Projection[:]}
 	for _, s := range [2]Solid{a, b} {
 		if e := ctx.Err(); e != nil {
 			return e
@@ -82,6 +98,18 @@ func WriteTangentEllipseComponentFuseJSON(ctx context.Context, w io.Writer, a, b
 // each original boundary.
 func ReadTangentEllipseComponentFuseJSON(ctx context.Context, r io.Reader, limits JSONLimits, shells SplineShellBooleanOptions,
 	contact geom.GraphPointContactOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
+	return readTangentEllipseBoundaryJSON(ctx, r, limits, shells, contact, nativeTangentEllipseFuse, FuseExternallyTangentSplineShellEllipseComponents)
+}
+
+// ReadTangentEllipseCavityCutJSON independently proves containment and exact
+// closed contact before constructing the outward stock and inward shell.
+func ReadTangentEllipseCavityCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, shells SplineShellBooleanOptions,
+	contact geom.GraphPointContactOptions) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
+	return readTangentEllipseBoundaryJSON(ctx, r, limits, shells, contact, nativeTangentEllipseCavity, CutInternallyTangentSplineShellEllipseCavity)
+}
+
+func readTangentEllipseBoundaryJSON(ctx context.Context, r io.Reader, limits JSONLimits, shells SplineShellBooleanOptions,
+	contact geom.GraphPointContactOptions, kind string, operation tangentEllipseBoundaryOperation) (Solid, SplineShellCombineHistory, SplineShellRepeatedEllipse, error) {
 	var solid Solid
 	var history SplineShellCombineHistory
 	var proof SplineShellRepeatedEllipse
@@ -107,7 +135,7 @@ func ReadTangentEllipseComponentFuseJSON(ctx context.Context, r io.Reader, limit
 	if e := d.Decode(&n); e != nil {
 		return solid, history, proof, e
 	}
-	if e := d.Decode(new(any)); e != io.EOF || n.Version != 1 || n.Kind != nativeTangentEllipseFuse || len(n.Sources) != 2 ||
+	if e := d.Decode(new(any)); e != io.EOF || n.Version != 1 || n.Kind != kind || len(n.Sources) != 2 ||
 		len(n.Faces) != 2 || len(n.Projection) != 2 || len(n.AxisHint) != 0 && len(n.AxisHint) != 4 ||
 		len(n.ConicHint) != 0 && len(n.ConicHint) != 6 || len(n.AxisHint) != 0 && len(n.ConicHint) != 0 {
 		return solid, history, proof, geom.ErrInvalid
@@ -139,5 +167,5 @@ func ReadTangentEllipseComponentFuseJSON(ctx context.Context, r io.Reader, limit
 		}
 		originals[i] = s
 	}
-	return FuseExternallyTangentSplineShellEllipseComponents(ctx, originals[0], originals[1], o)
+	return operation(ctx, originals[0], originals[1], o)
 }
