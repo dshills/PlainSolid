@@ -19,6 +19,8 @@ type CoincidentRectangleOverlapOptions struct {
 	Coincidence        intersect.SplineCoincidenceOptions
 	Trims              trimvalidate.Options
 	MaxLoops, MaxCells int
+	// MaxUses counts both original loop collections (default128,max512).
+	MaxUses int
 }
 type CoincidentUVRectangle struct{ Min, Max [2]*big.Rat }
 type CoincidentTrimOwner struct{ Source, Face, Loop, Use, Edge int }
@@ -56,6 +58,10 @@ type CoincidentRectangleOverlap struct {
 }
 
 func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions) (CoincidentRectangleOverlap, error) {
+	return a.intersectCoincidentOrthogonalTrims(ctx, faceA, b, faceB, o, true)
+}
+
+func (a Solid) intersectCoincidentOrthogonalTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions, rectangular bool) (CoincidentRectangleOverlap, error) {
 	fail := func(e error) (CoincidentRectangleOverlap, error) { return CoincidentRectangleOverlap{}, e }
 	if ctx == nil || faceA < 0 || faceA >= len(a.faces) || faceB < 0 || faceB >= len(b.faces) {
 		return fail(geom.ErrInvalid)
@@ -66,7 +72,10 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 	if o.MaxCells == 0 {
 		o.MaxCells = 4096
 	}
-	if o.MaxLoops < 2 || o.MaxLoops > 32 || o.MaxCells < 1 || o.MaxCells > 65536 {
+	if o.MaxUses == 0 {
+		o.MaxUses = 128
+	}
+	if o.MaxUses < 1 || o.MaxUses > 512 || o.MaxLoops < 2 || o.MaxLoops > 32 || o.MaxCells < 1 || o.MaxCells > 65536 {
 		return fail(geom.ErrInvalid)
 	}
 	faces := [2]Face{a.faces[faceA], b.faces[faceB]}
@@ -74,11 +83,16 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 	if 2+len(faces[0].Holes)+len(faces[1].Holes) > o.MaxLoops {
 		return fail(parametric.ErrBudget)
 	}
+	uses := 0
 	var patches [2]*geom.SurfacePatch
 	for i, f := range faces {
 		loops := append([][]Use{f.Outer}, f.Holes...)
 		for _, loop := range loops {
-			if len(loop) != 4 {
+			uses += len(loop)
+			if uses > o.MaxUses {
+				return fail(parametric.ErrBudget)
+			}
+			if len(loop) < 4 || rectangular && len(loop) != 4 {
 				return fail(geom.ErrConvergence)
 			}
 			for _, u := range loop {
@@ -134,12 +148,13 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 		ends  [2][2]*big.Rat
 		owner CoincidentTrimOwner
 	}
-	var rectangles [2][]CoincidentUVRectangle
+	var rings [2][][][2]*big.Rat
 	var boundaries []boundary
 	var axes [2][]*big.Rat
 	for source, f := range faces {
 		for li, loop := range append([][]Use{f.Outer}, f.Holes...) {
 			var r CoincidentUVRectangle
+			var ring [][2]*big.Rat
 			for ui, u := range loop {
 				endpoints := [2][2]*big.Rat{{ratInset(u.UVStart.X), ratInset(u.UVStart.Y)}, {ratInset(u.UVEnd.X), ratInset(u.UVEnd.Y)}}
 				if source == 1 {
@@ -147,9 +162,11 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 						endpoints[k] = coincidentMapPoint(toA, endpoints[k])
 					}
 				}
+				ring = append(ring, endpoints[0])
 				boundaries = append(boundaries, boundary{endpoints, CoincidentTrimOwner{source, ids[source], li, ui, u.Edge}})
 				for _, p := range endpoints {
 					for k := range p {
+						axes[k] = append(axes[k], p[k])
 						if r.Min[k] == nil || p[k].Cmp(r.Min[k]) < 0 {
 							r.Min[k] = new(big.Rat).Set(p[k])
 						}
@@ -165,7 +182,7 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 				}
 				axes[k] = append(axes[k], r.Min[k], r.Max[k])
 			}
-			rectangles[source] = append(rectangles[source], r)
+			rings[source] = append(rings[source], ring)
 		}
 	}
 	for k := range axes {
@@ -184,12 +201,12 @@ func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA in
 	}
 	r := CoincidentRectangleOverlap{Injectivity: injective, Faces: ids, Map: proof.Map, UVArea: [2]*big.Rat{new(big.Rat), new(big.Rat)}, Cells: (nx - 1) * (ny - 1)}
 	inside := func(p [2]*big.Rat) bool {
-		for _, rr := range rectangles {
-			if !coincidentRectangleContains(rr[0], p, false) {
+		for _, loops := range rings {
+			if coincidentOrthogonalLocation(loops[0], p) == 0 {
 				return false
 			}
-			for _, h := range rr[1:] {
-				if coincidentRectangleContains(h, p, true) {
+			for _, hole := range loops[1:] {
+				if coincidentOrthogonalLocation(hole, p) == 1 {
 					return false
 				}
 			}
