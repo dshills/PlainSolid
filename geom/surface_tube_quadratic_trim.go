@@ -42,7 +42,7 @@ func (t VerifiedSurfaceTube) IntersectQuadraticTrim(ctx context.Context, origina
 }
 
 // IntersectRationalBezierTrim proves the same contact relation for one exact
-// positive-weight UV Bézier of degree one through four. The curve's original
+// positive-weight UV Bézier of degree one through eight. The curve's original
 // normalized parameter, contact signs and multiplicities are retained.
 func (t VerifiedSurfaceTube) IntersectRationalBezierTrim(ctx context.Context, originalA, originalB *SurfacePatch, chart int, trim *ExactSplineCurve, o TubeTrimIntersectionOptions) (TubeTrimIntersection, error) {
 	return t.intersectRationalBezierTrim(ctx, originalA, originalB, chart, trim, o, false)
@@ -70,7 +70,7 @@ func (t VerifiedSurfaceTube) intersectRationalBezierTrim(ctx context.Context, or
 		return r, ErrInvalid
 	}
 	d := trim.patch.degreeU
-	if trim.patch.countU != d+1 || d < 1 || d > 4 || (quadraticOnly && d != 2) {
+	if trim.patch.countU != d+1 || d < 1 || d > 8 || (quadraticOnly && d != 2) {
 		return r, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: options.MaxOperations, maxBits: options.MaxCoefficientBits}

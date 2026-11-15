@@ -52,7 +52,7 @@ type SplineTubeFaceTrimReport struct {
 
 // IntersectSplineTubeFaceTrims exhausts the selected verified tube segment
 // against a certified outer loop and all holes, using the original face
-// support. Positive-weight rational Bézier coedges through degree four qualify.
+// support. Positive-weight rational Bézier coedges through degree eight qualify.
 // Coincidences and contacts on a dependent tube wall are unresolved.
 // A contact can have multiple owners at a knot or face vertex; these records
 // are kept separately. The report does not classify the intervening branch.
@@ -184,7 +184,7 @@ type splineTubeTrimSpan struct {
 
 func tubeFaceTrimSpans(ctx context.Context, u Use, source SplineTubeTrimSource, p geom.SurfacePatchOptions) ([]splineTubeTrimSpan, int, error) {
 	if q, ok := shortSplineTrim(u.Curve); ok {
-		if q.Curve.Degree() > 4 {
+		if q.Curve.Degree() > 8 {
 			return nil, 0, geom.ErrConvergence
 		}
 		cells, used, e := q.Curve.ExactBezierSpans(ctx, q.Range.Min, q.Range.Max, geom.ExactBezierSpanOptions{SurfacePatchOptions: p})

@@ -58,8 +58,29 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 		isolated.polynomial = rationalPolynomial{new(big.Rat).Neg(parameter), big.NewRat(1, 1)}
 		root = &ExactAlgebraicRoot{root: &isolated}
 	}
-	if len(root.root.polynomial) > 9 || len(root.root.polynomial) < 2 {
+	if len(root.root.polynomial) < 2 {
 		return nil, 0, subdivisions, ErrConvergence
+	}
+	if source := root.root; len(source.polynomial) > 9 {
+		// Repeated residual factors have the same isolated real root. Exact
+		// square-free reduction keeps that identity and allows the later
+		// denominator test to eliminate factors singular only elsewhere.
+		gcd, e := polynomialGCD(source.polynomial, polynomialDerivative(source.polynomial), b)
+		if e != nil {
+			return nil, 0, subdivisions, e
+		}
+		if len(gcd) > 1 {
+			p, remainder, e := polynomialDivide(source.polynomial, gcd, b)
+			if e != nil {
+				return nil, 0, subdivisions, e
+			}
+			if len(remainder) != 0 {
+				return nil, 0, subdivisions, ErrConvergence
+			}
+			isolated := *source
+			isolated.polynomial = p
+			root = &ExactAlgebraicRoot{root: &isolated}
+		}
 	}
 	if len(root.root.polynomial) > 5 {
 		for _, poly := range append([]rationalPolynomial{root.root.polynomial}, c.power[:]...) {
@@ -111,6 +132,9 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 		if len(remainder) != 0 {
 			return nil, 0, subdivisions, ErrConvergence
 		}
+	}
+	if len(p) > 9 {
+		return nil, 0, subdivisions, ErrConvergence
 	}
 	_, n, e := polynomialDivide(c.power[axis], p, b)
 	if e != nil {

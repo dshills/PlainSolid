@@ -20,7 +20,7 @@ func (t VerifiedSurfaceTube) IntersectQuadraticTrimProjected(ctx context.Context
 }
 
 // IntersectRationalBezierTrimProjected proves exact Bézier trim contacts of
-// degree one through four using the selected original model projection.
+// degree one through eight using the selected original model projection.
 func (t VerifiedSurfaceTube) IntersectRationalBezierTrimProjected(ctx context.Context, a, b *SurfacePatch, chart int, trim *ExactSplineCurve, axes [2]int, o TubeTrimIntersectionOptions) (ProjectedTubeTrimIntersection, error) {
 	return t.intersectRationalBezierTrimProjected(ctx, a, b, chart, trim, axes, o, false)
 }

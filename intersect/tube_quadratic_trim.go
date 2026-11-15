@@ -13,7 +13,7 @@ func (s TubeSegment) IntersectQuadraticTrim(ctx context.Context, chart int, trim
 }
 
 // IntersectRationalBezierTrim proves source-bound branch contacts for an exact
-// positive-weight Bézier trim through degree four on the selected chart.
+// positive-weight Bézier trim through degree eight on the selected chart.
 func (s TubeSegment) IntersectRationalBezierTrim(ctx context.Context, chart int, trim *geom.ExactSplineCurve, o geom.TubeTrimIntersectionOptions) (geom.TubeTrimIntersection, error) {
 	return s.intersectRationalBezierTrim(ctx, chart, trim, o, false)
 }

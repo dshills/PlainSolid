@@ -60,10 +60,10 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 				return out
 			}
 			bounds := makeWire([4]geom.Vec2{{X: -.25}, {X: 1.25}, {X: 1.25, Y: 1}, {X: -.25, Y: 1}}, nil)
-			for _, degree := range []int{3, 4} {
+			for _, degree := range []int{3, 4, 5, 8} {
 				var curve PCurve
 				var start, end geom.Vec2
-				var rootRecipes [2]geom.ExactRootRecipe
+				var rootRecipes []geom.ExactRootRecipe
 				base := SplineTubeTrimSource{Loop: 0, Use: 0, Edge: 40}
 				if degree == 3 {
 					c, err := geom.NewBSpline(3, []geom.Vec3{{X: 1, Y: .3125}, {X: .75, Y: .8125}, {X: .25, Y: .8125}, {Y: .3125}}, []float64{2, 2, 2, 2, 6, 6, 6, 6}, nil)
@@ -73,11 +73,11 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 					curve = SplineUV{Curve: c, Range: UVInterval{2, 6}, Reversed: true}
 					start, end = geom.Vec2{Y: .3125}, geom.Vec2{X: 1, Y: .3125}
 					base.ParameterStart, base.ParameterEnd = 6, 2
-					rootRecipes = [2]geom.ExactRootRecipe{
+					rootRecipes = []geom.ExactRootRecipe{
 						{Version: 1, Coefficients: []string{"14", "-8", "1"}, Lower: "5", Upper: "6"},
 						{Version: 1, Coefficients: []string{"14", "-8", "1"}, Lower: "2", Upper: "3"},
 					}
-				} else {
+				} else if degree == 4 {
 					// U/W=t. V-W/2=-(t-1/4)(t-3/4)(1+t/2+t²/4).
 					// These positive homogeneous quartic coefficients preserve
 					// both exact crossings and the independent directed weight.
@@ -95,10 +95,44 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 					}
 					curve, start, end = c, c.ends[0], c.ends[1]
 					base.ParameterEnd = 1
-					rootRecipes = [2]geom.ExactRootRecipe{
+					rootRecipes = []geom.ExactRootRecipe{
 						{Version: 1, Coefficients: []string{"-1/4", "1"}, Lower: "1/4", Upper: "1/4"},
 						{Version: 1, Coefficients: []string{"-3/4", "1"}, Lower: "3/4", Upper: "3/4"},
 					}
+				} else {
+					poles := make([]geom.Vec3, degree+1)
+					weights := make([]float64, len(poles))
+					knots := make([]float64, len(poles)*2)
+					coefficients := make([]string, len(poles))
+					for i := range poles {
+						x := float64(i) / 8
+						if degree == 5 {
+							x = [6]float64{0, .125, .25, .5, .75, 1}[i]
+						}
+						poles[i], weights[i], knots[len(poles)+i] = geom.Vec3{X: x, Y: .125}, 1, 1
+						// Contact y=1/2 gives 10*(1-t)^degree + 3*t^degree - 6 = 0.
+						z := new(big.Int).Binomial(int64(degree), int64(i))
+						z.Mul(z, big.NewInt(10))
+						if i%2 != 0 {
+							z.Neg(z)
+						}
+						if i == 0 {
+							z.Sub(z, big.NewInt(6))
+						}
+						if i == degree {
+							z.Add(z, big.NewInt(3))
+						}
+						coefficients[i] = z.String()
+					}
+					poles[0].Y, weights[degree] = .75, .5
+					c, err := geom.NewBSpline(degree, poles, knots, weights)
+					if err != nil {
+						t.Fatal(err)
+					}
+					curve = SplineUV{Curve: c, Range: UVInterval{Max: 1}}
+					start, end = geom.Vec2{Y: .75}, geom.Vec2{X: 1, Y: .125}
+					base.ParameterEnd = 1
+					rootRecipes = []geom.ExactRootRecipe{{Version: 1, Coefficients: coefficients, Lower: "0", Upper: "1/4"}}
 				}
 				wire := makeWire([4]geom.Vec2{start, end, {X: 1, Y: 1}, {Y: 1}}, curve)
 				wire[0].Reversed = true
@@ -112,8 +146,8 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 				}
 				check := func(r AlgebraicTrimmedPairSection) {
 					t.Helper()
-					if len(r.Branches[0].Runs) != 2 {
-						t.Fatal("the curved trim must leave two open section runs", r.Branches[0].Runs)
+					if len(r.Branches[0].Runs) != len(rootRecipes) {
+						t.Fatal("unexpected number of open section runs", degree, r.Branches[0].Runs)
 					}
 					var contacts []SplineTubeTrimContact
 					for _, clip := range r.Branches[0].Clips {
@@ -123,15 +157,15 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 							}
 						}
 					}
-					if len(contacts) != 2 {
-						t.Fatal("missing original cubic or quartic coedge contacts", degree, contacts)
+					if len(contacts) != len(rootRecipes) {
+						t.Fatal("missing original coedge contacts", degree, contacts)
 					}
 					for _, hit := range contacts {
 						if hit.Source != base || hit.Multiplicity != 1 || !hit.Transverse || hit.SideSigns[0]*hit.SideSigns[1] != -1 {
 							t.Fatal("original directed trim ancestry or crossing signs lost", degree, hit.Source, hit.SideSigns)
 						}
 					}
-					seen := [2]bool{}
+					seen := make([]bool, len(rootRecipes))
 					for i, recipe := range rootRecipes {
 						root, err := geom.ImportExactRoot(ctx, recipe, geom.ExactRootCodecOptions{})
 						if err != nil {
@@ -145,8 +179,10 @@ func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
 							seen[i] = seen[i] || q.Proven && q.Order == 0
 						}
 					}
-					if seen != ([2]bool{true, true}) {
-						t.Fatal("incorrect original algebraic trim parameters", degree, contacts)
+					for _, valid := range seen {
+						if !valid {
+							t.Fatal("incorrect original algebraic trim parameters", degree, contacts)
+						}
 					}
 					for i := range r.Branches[0].Runs {
 						part, err := r.PartitionFaceByTubeRun(ctx, 0, 0, i, AlgebraicTubeFacePartitionOptions{})
