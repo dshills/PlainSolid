@@ -8,6 +8,7 @@
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <Geom_Circle.hxx>
 #include <GProp_GProps.hxx>
+#include <IGESControl_Writer.hxx>
 #include <Interface_Static.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp_Explorer.hxx>
@@ -21,9 +22,12 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 
 int main(int argc, char** argv) {
-    if (argc > 2) return 1;
+    const std::string_view mode = argc == 3 ? argv[1] : "";
+    const bool iges = mode == "iges" || mode == "iges-local-chart";
+    if (argc > 2 && !iges) return 1;
     BRepBuilderAPI_MakePolygon stock;
     const std::array<gp_Pnt,4> outline{{{0.,0.,-1.},{6.,0.,-1.},{6.,4.,-1.},{0.,4.,-1.}}};
     for (const auto& p : outline) stock.Add(p);
@@ -37,7 +41,15 @@ int main(int argc, char** argv) {
         for (int i=0; i<4; ++i) vertices[i]=BRepBuilderAPI_MakeVertex(cardinal[i]).Vertex();
         BRepBuilderAPI_MakeWire hole;
         for (int i=0; i<4; ++i) {
-            BRepBuilderAPI_MakeEdge edge(circle,vertices[i],vertices[(i+1)%4],i*turn,(i+1)*turn);
+            auto support = circle;
+            double first = i*turn;
+            if (mode == "iges-local-chart") {
+                // Use an independent proper local frame for each quarter.
+                const gp_Dir ray(cardinal[i].X()-x,cardinal[i].Y()-2.,0.);
+                support = new Geom_Circle(gp_Ax2(gp_Pnt(x,2.,-1.),gp_Dir(0.,0.,1.),ray),.5);
+                first = 0.;
+            }
+            BRepBuilderAPI_MakeEdge edge(support,vertices[i],vertices[(i+1)%4],first,first+turn);
             if (!edge.IsDone()) return 2;
             hole.Add(edge.Edge());
         }
@@ -59,5 +71,9 @@ int main(int argc, char** argv) {
         Interface_Static::SetCVal("write.step.schema", "AP214IS");
         Interface_Static::SetIVal("write.surfacecurve.mode", 0);
         if (writer.Transfer(shape, STEPControl_AsIs) != IFSelect_RetDone || writer.Write(argv[1]) != IFSelect_RetDone) return 5;
+    }
+    if (iges) {
+        IGESControl_Writer writer("MM", 1);
+        if (!writer.AddShape(shape) || !writer.Write(argv[2])) return 6;
     }
 }

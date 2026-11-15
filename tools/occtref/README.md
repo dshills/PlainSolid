@@ -38,13 +38,19 @@ at test time; no OCCT source, binaries, or test fixtures are vendored.
 
 The separate `exact_directed_circular_loops.cxx` author builds a prism with
 two disjoint circular holes from explicit cardinal vertices. Link the same
-OCCT STEP and modeling toolkits used by the STEP reference. With no arguments
-it reports the shape's independent volume, area and face count. An output path
-also writes original AP214 model edges and cap bounds. Set
+OCCT STEP, IGES and modeling toolkits used by the `step-iges` reference. With
+no arguments it reports the shape's independent volume, area and face count.
+An output path also writes original AP214 model edges and cap bounds. Set
 `PLAINSOLID_OCCT_DIRECTED_LOOP_AUTHOR` to this executable and
 `PLAINSOLID_OCCT_DIRECTED_CIRCULAR_STEP` to the built
 `author_convex_arc_step.cxx` helper to compare the original STEP, preserved
 source, and canonical re-export in `TestOCCTExactDirectedCircularLoopLiveOriginal`.
+The `iges-local-chart output.igs` mode writes each quarter circle in its own
+proper frame, preserving the exact transformed endpoints and all cylindrical
+owner pcurves. The `iges output.igs` mode uses one frame per full circle and
+exposes the independently rounded last quarter endpoint. Set
+`PLAINSOLID_OCCT_DIRECTED_IGES_AUTHOR` and `PLAINSOLID_OCCT_PLANAR_SHELLS_IGES`
+to run `TestOCCTExactDirectedCircularLoopOriginalIGESLive`.
 
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test

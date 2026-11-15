@@ -46,6 +46,10 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 }
 
 func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed, planarShells bool, circularMode ...bool) (topologySource, error) {
+	return readTopologyRecordPolicy(r, l, lens, cylinders, planes, spheres, tori, cones, placed, planarShells, false, circularMode...)
+}
+
+func readTopologyRecordPolicy(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed, planarShells, vendorDirected bool, circularMode ...bool) (topologySource, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return topologySource{}, e
@@ -200,7 +204,7 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
 			}
 		}
-		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !(planarShells && kind == 186 && first[8] == 20000) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
+		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !(planarShells && kind == 186 && first[8] == 20000) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells || vendorDirected) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
 			return topologySource{}, errors.New("iges: unsupported directory status")
 		}
 		if first[8] == 10000 || first[8] == 10500 {
