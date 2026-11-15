@@ -61,6 +61,12 @@ Its `complete` mode fuses equal cap footprints with two through-holes for
 Its `overlay` mode measures an independent circular solid with a square
 through-hole for `TestExactCircularSweepCapOverlayLiveOCCT`.
 
+`circular_sweep_mixed_fillets.cxx` first rounds a stock edge, cuts a
+square and a circular opening, then independently rounds a convex corner
+and an inner corner. Set `PLAINSOLID_OCCT_CIRCULAR_MIXED_FILLETS` to the
+helper linked against the OCCT Boolean and fillet toolkits to verify the
+resulting native material.
+
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test
 checks volume, area and centroid for rising and falling taper, then checks
