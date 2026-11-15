@@ -111,13 +111,21 @@ func invertTriangularSurfaceRational(ctx context.Context, p *SurfacePatch, query
 		}
 	}
 	d := p.Domain()
-	limits := [2][2]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
 	fixed := o.FixedParameterAxis
 	varying := 1 - fixed
+	// Preserve original domain endpoints independently of subsequent cell work.
+	fixedLo, fixedHi := new(big.Rat).SetFloat64(d.UMin), new(big.Rat).SetFloat64(d.UMax)
+	if fixed == 1 {
+		fixedLo.SetFloat64(d.VMin)
+		fixedHi.SetFloat64(d.VMax)
+	}
 	var ends [2]*big.Rat
 	for side := 0; side < 2; side++ {
 		uv := [2]*big.Rat{new(big.Rat).SetFloat64(d.UMin), new(big.Rat).SetFloat64(d.VMin)}
-		uv[fixed].SetFloat64(limits[fixed][side])
+		uv[fixed].Set(fixedLo)
+		if side == 1 {
+			uv[fixed].Set(fixedHi)
+		}
 		remaining := o.MaxOperations - b.operations
 		if remaining < 1 {
 			return r, ErrConvergence
@@ -129,11 +137,11 @@ func invertTriangularSurfaceRational(ctx context.Context, p *SurfacePatch, query
 		}
 		ends[side] = jet.Point[o.ProjectionAxes[0]]
 	}
-	scale := new(big.Rat).Quo(new(big.Rat).Sub(ends[1], ends[0]), new(big.Rat).Sub(new(big.Rat).SetFloat64(limits[fixed][1]), new(big.Rat).SetFloat64(limits[fixed][0])))
+	scale := new(big.Rat).Quo(new(big.Rat).Sub(ends[1], ends[0]), new(big.Rat).Sub(fixedHi, fixedLo))
 	if scale.Sign() == 0 {
 		return r, ErrConvergence
 	}
-	offset := new(big.Rat).Sub(ends[0], new(big.Rat).Mul(scale, new(big.Rat).SetFloat64(limits[fixed][0])))
+	offset := new(big.Rat).Sub(ends[0], new(big.Rat).Mul(scale, fixedLo))
 	cells, e := graphContactBezierCells(ctx, p, o.MaxCells, b)
 	if e != nil {
 		return r, e
@@ -184,7 +192,7 @@ func invertTriangularSurfaceRational(ctx context.Context, p *SurfacePatch, query
 	if e := b.check(fixedValue); e != nil {
 		return r, e
 	}
-	if fixedValue.Cmp(new(big.Rat).SetFloat64(limits[fixed][0])) < 0 || fixedValue.Cmp(new(big.Rat).SetFloat64(limits[fixed][1])) > 0 {
+	if fixedValue.Cmp(fixedLo) < 0 || fixedValue.Cmp(fixedHi) > 0 {
 		r.Excluded = true
 		r.Complete = true
 		return r, nil

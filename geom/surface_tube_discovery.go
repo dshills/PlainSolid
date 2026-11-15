@@ -47,8 +47,7 @@ func DiscoverSurfacePairTube(a, b *SurfacePatch, o SurfaceTubeDiscoveryOptions) 
 	if o.MaxAttempts < 1 || o.MaxAttempts > 256 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
 		return result, ErrInvalid
 	}
-	original := SurfacePairParameterBox{a.Domain(), b.Domain()}
-	domain := pairParameterRanges(original)
+	domain := pairParameterRanges(SurfacePairParameterBox{a.Domain(), b.Domain()})
 	seedRanges := pairParameterRanges(o.DependentBox)
 	for axis, r := range seedRanges {
 		if r[0] < domain[axis][0] || r[1] > domain[axis][1] {
@@ -56,7 +55,8 @@ func DiscoverSurfacePairTube(a, b *SurfacePatch, o SurfaceTubeDiscoveryOptions) 
 		}
 	}
 	free := o.FreeAxis
-	if o.Parameter <= domain[free][0] || o.Parameter >= domain[free][1] || o.Parameter < seedRanges[free][0] || o.Parameter > seedRanges[free][1] {
+	freeMin, freeMax := domain[free][0], domain[free][1]
+	if o.Parameter <= freeMin || o.Parameter >= freeMax || o.Parameter < seedRanges[free][0] || o.Parameter > seedRanges[free][1] {
 		return result, ErrDomain
 	}
 	trim := func(box SurfacePairParameterBox) (*SurfacePatch, *SurfacePatch, error) {
@@ -90,25 +90,32 @@ func DiscoverSurfacePairTube(a, b *SurfacePatch, o SurfaceTubeDiscoveryOptions) 
 	if !result.Seed.ProvenUnique {
 		return result, ErrConvergence
 	}
+	e = searchSurfacePairTube(o, freeMin, freeMax, seedRanges, &result, trim)
+	return result, e
+}
+
+func searchSurfacePairTube(o SurfaceTubeDiscoveryOptions, freeMin, freeMax float64,
+	seedRanges [4][2]float64, result *SurfaceTubeDiscovery, trim func(SurfacePairParameterBox) (*SurfacePatch, *SurfacePatch, error)) error {
 	roots := seedRanges
 	for i, axis := range result.Seed.ActiveAxes {
 		roots[axis] = [2]float64{max(seedRanges[axis][0], result.Seed.KrawczykBounds[i].Min), min(seedRanges[axis][1], result.Seed.KrawczykBounds[i].Max)}
 	}
 	width := o.InitialFreeWidth
 	if width == 0 {
-		width = (domain[free][1] - domain[free][0]) / 8
+		width = (freeMax - freeMin) / 8
 	}
 	if !finite(width) || width <= 0 {
-		return result, ErrInvalid
+		return ErrInvalid
 	}
+	free := o.FreeAxis
 	for attempt := 0; attempt < o.MaxAttempts; attempt++ {
 		// Three dependent margin choices per free span avoid conflating too-wide
 		// Jacobian bounds with too-tight root containment. All keep the proved root.
 		level, choice := attempt/3, attempt%3
 		half := math.Ldexp(width, -level-1)
-		lo, hi := max(domain[free][0], o.Parameter-half), min(domain[free][1], o.Parameter+half)
+		lo, hi := max(freeMin, o.Parameter-half), min(freeMax, o.Parameter+half)
 		if lo >= o.Parameter || hi <= o.Parameter {
-			return result, ErrConvergence
+			return ErrConvergence
 		}
 		candidate := seedRanges
 		candidate[free] = [2]float64{lo, hi}
@@ -132,24 +139,24 @@ func DiscoverSurfacePairTube(a, b *SurfacePatch, o SurfaceTubeDiscoveryOptions) 
 			}
 		}
 		box := rangesParameterPair(candidate)
-		pa, pb, e = trim(box)
+		pa, pb, e := trim(box)
 		if e != nil {
-			return result, e
+			return e
 		}
-		remaining = o.MaxOperations - result.ExactOperations
+		remaining := o.MaxOperations - result.ExactOperations
 		if remaining < 1 {
-			return result, ErrConvergence
+			return ErrConvergence
 		}
 		tube, e := CertifySurfacePairTube(pa, pb, SurfacePairTubeOptions{FreeAxis: free, MaxOperations: remaining, MaxCoefficientBits: o.MaxCoefficientBits})
 		result.Attempted++
 		result.ExactOperations += tube.Test.ExactOperations
 		if e != nil {
-			return result, e
+			return e
 		}
 		if tube.ProvenBranch {
 			result.Found, result.Box, result.Tube = true, box, tube
-			return result, nil
+			return nil
 		}
 	}
-	return result, ErrConvergence
+	return ErrConvergence
 }
