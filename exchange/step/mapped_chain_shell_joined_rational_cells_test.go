@@ -310,12 +310,16 @@ func rejectJoinedRationalMissingJoint(t *testing.T, ctx context.Context, raw, ba
 	if !errors.Is(err, geom.ErrConvergence) || len(bad.Crossings) != 0 || bad.SupportJoint != nil || len(bad.Native.ChainEdges) != 0 {
 		t.Fatal("the genuine different south support arrangement must reject without publishing a repaired shell", err)
 	}
-	rejectChangedJoinedRationalNativeSupport(t, ctx, raw, badSource, "one support event at the original joint")
+	rejectChangedJoinedRationalNativeSupport(t, ctx, raw, badSource, "did not cross support at original joint")
 }
 
 func rejectChangedJoinedRationalNativeSupport(t *testing.T, ctx context.Context, raw, badSource []byte, diagnosis string) {
 	t.Helper()
-	o := joinedRationalCellOptions()
+	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, badSource, joinedRationalCellOptions(), diagnosis)
+}
+
+func rejectChangedJoinedRationalNativeSupportWithOptions(t *testing.T, ctx context.Context, raw, badSource []byte, o MappedChainShellSTEPOptions, diagnosis string) {
+	t.Helper()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
 		t.Fatal(err)

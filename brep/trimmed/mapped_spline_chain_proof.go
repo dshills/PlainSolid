@@ -348,10 +348,11 @@ func CertifyMappedSplineChainCellLocalSupportKnotsAgreement(ctx context.Context,
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainCellLocalKnotsRepair)
 }
 
-// CertifyMappedSplineChainJoinedSupportKnotsAgreement proves two adjacent
-// original coedges on each roof, with one transverse shared support event
-// at their original joint. Each roof also changes support once inside a
-// different original coedge. Only the two interior events add model cuts.
+// CertifyMappedSplineChainJoinedSupportKnotsAgreement proves two or three
+// adjacent original coedges on each roof. Both roofs must cross a support
+// line transversely at each original joint. Exactly one roof crosses support
+// inside each coedge, and both roofs must contribute interior events. Only
+// interior events add model cuts.
 func CertifyMappedSplineChainJoinedSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainJoinedKnotsRepair)
 }
