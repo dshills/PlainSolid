@@ -10,6 +10,8 @@ import (
 
 // SolidMixedFaceMeshOptions applies face limits once and exact model-edge
 // comparison limits independently to each original coedge (at most256).
+// Higher-degree SplineUV additionally performs one bounded exact restriction
+// and one whole-UV identity check; those proof limits apply separately.
 type SolidMixedFaceMeshOptions struct {
 	Face           MixedExactMultiSpanMeshOptions
 	ModelAgreement edgecheck.Options
@@ -36,7 +38,8 @@ type CertifiedSolidMixedFaceMesh struct {
 
 // TessellateMixedFaceCertified certifies one stored spline face, preserving its
 // exact represented affine placement and physical orientation. Straight uses,
-// native ExactQuadraticUV/ExactBezierUV, and quadratic SplineUV are supported.
+// native ExactQuadraticUV/ExactBezierUV, and single-span degree<=4 SplineUV
+// are supported when endpoints and complete model correspondence are proved.
 // Each complete pcurve/model-edge correspondence is independently proved before
 // meshing. Unsupported periodic/collapsed topology, curves, parameterizations or
 // proof budgets reject atomically. This does not stitch neighboring faces or
@@ -74,7 +77,7 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 			if edge.Curve == nil || edge.Start == edge.End || !finite(edge.Range.Min) || !finite(edge.Range.Max) || edge.Range.Min >= edge.Range.Max {
 				return empty, geom.ErrConvergence
 			}
-			curve, e := mixedStoredUseCurve(u)
+			curve, e := mixedStoredUseCurveContext(ctx, u, o.Face.Face.Boundary.Composition.SurfacePatchOptions)
 			if e != nil {
 				return empty, e
 			}
@@ -99,6 +102,17 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 				proofUse.Curve = *q
 			case *SplineUV:
 				proofUse.Curve = *q
+			}
+			if q, ok := proofUse.Curve.(SplineUV); ok && q.Curve != nil && q.Curve.Degree() >= 3 {
+				proofUse.Curve = curve
+				limits := geom.SurfacePatchOptions{MaxOperations: o.ModelAgreement.MaxWork, MaxCoefficientBits: o.ModelAgreement.MaxBits}
+				affine, e := mixedStoredSplineAffineIdentity(ctx, curve, u, limits)
+				if e != nil {
+					return empty, e
+				}
+				if affine {
+					proofUse.Curve = nil
+				}
 			}
 			proven := sameSplineTrim(edge, f.Surface, proofUse) || mixedFaceAffineRangeIdentity(edge, f.Surface, proofUse)
 			if !proven {
@@ -151,6 +165,16 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 	return out, nil
 }
 func mixedStoredUseCurve(u Use) (PCurve, error) {
+	return mixedStoredUseCurveContext(context.Background(), u, geom.SurfacePatchOptions{})
+}
+
+func mixedStoredUseCurveContext(ctx context.Context, u Use, o geom.SurfacePatchOptions) (PCurve, error) {
+	if ctx == nil {
+		return nil, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
 	switch q := u.Curve.(type) {
 	case ExactQuadraticUV, ExactBezierUV:
 		return q, nil
@@ -164,9 +188,12 @@ func mixedStoredUseCurve(u Use) (PCurve, error) {
 		}
 	case *SplineUV:
 		if q != nil {
-			return mixedStoredUseCurve(Use{Curve: *q})
+			return mixedStoredUseCurveContext(ctx, Use{Curve: *q}, o)
 		}
 	case SplineUV:
+		if q.Curve != nil && q.Curve.Degree() >= 3 {
+			return mixedStoredHigherSplineUV(ctx, q, o)
+		}
 		h, e := quadraticTrimSourceControls(q)
 		if e != nil {
 			return nil, e
