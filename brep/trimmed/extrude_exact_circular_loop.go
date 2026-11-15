@@ -21,6 +21,14 @@ type ExactCircularLoopSegment struct {
 	Radius             float64
 }
 
+// ExactCircularSweep describes a positive model-Z sweep of directed line
+// and circular-arc wires, using the winding of ExtrudeExactDirectedCircularLoops.
+type ExactCircularSweep struct {
+	Outer       []ExactCircularLoopSegment
+	Holes       [][]ExactCircularLoopSegment
+	Bottom, Top float64
+}
+
 // ExactCircularLoopOptions bounds source construction and validation. The
 // display tolerance defaults to 1e-8 and affects finite evaluation checks.
 type ExactCircularLoopOptions struct {
