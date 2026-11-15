@@ -40,21 +40,9 @@ func nativeFivePolynomialNodeFixture(t *testing.T, axis int, firstDenominator in
 
 func fivePolynomialNodeMeasures(t *testing.T, op parametric.BooleanOp) (float64, float64) {
 	t.Helper()
-	// Integrate the dependent primitive (105/128)(v³/3-(f+g)v²/2+fgv)
-	// at the original branches and perimeter, then integrate each free slab.
-	interior := []string{
-		"3087361865/1152921504606846976", "1015625/1152921504606846976",
-		"3235/562949953421312", "3235/562949953421312",
-		"1015625/1152921504606846976", "3087361865/1152921504606846976",
-	}
-	exterior := []string{"217521001940707433/19023204826012975104", "1482668567472957545/19023204826012975104"}
-	sum := func(raw []string) *big.Rat {
+	sum := func(order int) *big.Rat {
 		total := new(big.Rat)
-		for _, s := range raw {
-			v, ok := new(big.Rat).SetString(s)
-			if !ok || v.Sign() <= 0 {
-				t.Fatal("positive independent source material", s)
-			}
+		for _, v := range fivePolynomialNodeCutVolumes(t, order) {
 			total.Add(total, v)
 		}
 		return total
@@ -62,12 +50,12 @@ func fivePolynomialNodeMeasures(t *testing.T, op parametric.BooleanOp) (float64,
 	fuse := op == parametric.Union
 	volume := big.NewRat(769, 256) // exact volume of B=3+u*v/64
 	if fuse {
-		volume.Add(volume, sum(exterior))
+		volume.Add(volume, sum(0))
 		if volume.Cmp(big.NewRat(2674732429150191067, 864691128455135232)) != 0 {
 			t.Fatal("exact positive exterior material in Fuse", volume)
 		}
 	} else {
-		volume.Sub(volume, sum(interior))
+		volume.Sub(volume, sum(1))
 		if volume.Cmp(big.NewRat(865817026814476471, 288230376151711744)) != 0 {
 			t.Fatal("exact omitted interior material in Common", volume)
 		}

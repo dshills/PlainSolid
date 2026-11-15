@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"slices"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -88,13 +89,8 @@ func CombineSplineGraphFivePolynomialNodes(ctx context.Context, base, a, b *geom
 	if e != nil {
 		return nil, e
 	}
-	if !proof.Proven || proof.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || proof.Graph.ProjectionOrientation != 1 || len(proof.ContactOrder) != 5 {
+	if !isNativeFivePolynomialNodeArrangement(proof) {
 		return nil, geom.ErrConvergence
-	}
-	for _, order := range proof.ContactOrder {
-		if order != 1 {
-			return nil, geom.ErrConvergence
-		}
 	}
 	uv, xyz, e := proof.RepresentedVertices()
 	if e != nil {
@@ -137,4 +133,9 @@ func CombineSplineGraphFivePolynomialNodes(ctx context.Context, base, a, b *geom
 		return nil, e
 	}
 	return r, nil
+}
+
+func isNativeFivePolynomialNodeArrangement(proof geom.SplineGraphPolynomialArrangement) bool {
+	return proof.Proven && proof.Domain == (geom.ParameterRectangle{UMax: 1, VMax: 1}) &&
+		proof.Graph.ProjectionOrientation == 1 && slices.Equal(proof.ContactOrder, []int{1, 1, 1, 1, 1})
 }
