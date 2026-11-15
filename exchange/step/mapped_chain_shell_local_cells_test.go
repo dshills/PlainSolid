@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -20,20 +21,32 @@ import (
 )
 
 const localCellMappedChainPath = "testdata/occt_mapped_chain_two_support_cells.step"
+const threeLocalCellMappedChainPath = "testdata/occt_mapped_chain_three_support_cells.step"
 
 // The integration covers xy and both shared crease terms over the whole roof,
 // then each owner-only term over its original north or south region.
 const mappedChainLocalCellVolume = 2043402795.0 / 2147483648
 const mappedChainLocalCellArea = 6.223151117122341
+const mappedChainThreeLocalCellVolume = mappedChainLocalCellVolume + 3.0/1024
+const mappedChainThreeLocalCellArea = 6.264678133500285
 
 func localCellMappedChainOptions() MappedChainShellSTEPOptions {
 	return MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true, AllowTwoInteriorRoofKnots: true,
 		AllowUnsplitSupportKnot: true, AllowMultipleSupportKnotCells: true, AllowMixedOwnerBases: true}
 }
 
-func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) []byte {
+func threeLocalCellMappedChainOptions() MappedChainShellSTEPOptions {
+	o := localCellMappedChainOptions()
+	o.AllowMultipleSupportKnotCells, o.AllowThreeSupportKnotCells = false, true
+	return o
+}
+
+func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte, cells int) []byte {
 	t.Helper()
 	o := localCellMappedChainOptions()
+	if cells == 3 {
+		o = threeLocalCellMappedChainOptions()
+	}
 	// Both modes fit the authored roof count. Each original model graph must
 	// select its own proof even when the v8 option is coenabled.
 	o.AllowUpToSixSupportKnots = true
@@ -41,8 +54,8 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(m.Chain) != 3 || len(m.Crossings) != 4 || !mappedChainCrossingsOnTwoLocalCells(m.Crossings) {
-		t.Fatal("four events must be distributed over the original two unsplit edges")
+	if len(m.Chain) != 3 || len(m.Crossings) != cells+2 || mappedChainCrossingLocalCellCount(m.Crossings) != cells {
+		t.Fatal("every event must remain in its own original unsplit edge", cells)
 	}
 	bases := m.Shell.IndependentOwnerBases()
 	if bases[0] == bases[1] {
@@ -52,15 +65,15 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 	if !bases[0] {
 		north = 1
 	}
-	verifyLocalCellMaterial(t, ctx, m.Native)
+	verifyLocalCellMaterial(t, ctx, m.Native, cells)
 	edges, vertices, faces := m.Native.Solid.Edges(), m.Native.Solid.Vertices(), m.Native.Solid.Faces()
-	modelStations := [4]int64{2, 4, 12, 14}
-	rawPairs := [4][2]int64{{17, 40}, {37, 32}, {706, 11}, {710, 7}}
-	points := [4]geom.Vec3{{X: 107.0 / 2048, Y: .25, Z: 107.0 / 8192}, {X: 29.0 / 256, Y: .25, Z: 29.0 / 1024},
-		{X: 99.0 / 256, Y: .25, Z: 67.0 / 512}, {X: 917.0 / 2048, Y: .25, Z: 661.0 / 4096}}
+	modelStations := [5]int64{2, 4, 12, 14, 24}
+	rawPairs := [5][2]int64{{17, 40}, {37, 32}, {706, 11}, {710, 7}, {858, -1}}
+	points := [5]geom.Vec3{{X: 107.0 / 2048, Y: .25, Z: 107.0 / 8192}, {X: 29.0 / 256, Y: .25, Z: 29.0 / 1024},
+		{X: 99.0 / 256, Y: .25, Z: 67.0 / 512}, {X: 917.0 / 2048, Y: .25, Z: 661.0 / 4096}, {X: .75, Y: .25, Z: 5.0 / 16}}
 	for i, cut := range m.Crossings {
 		cell, child := i/2, i+i/2
-		if cut.EdgeID != m.Chain[cell].EdgeID || cut.StoredModelKnot != (i == 1 || i == 2) ||
+		if cut.EdgeID != m.Chain[cell].EdgeID || cut.StoredModelKnot != (i == 1 || i == 2 || i == 4) ||
 			cut.SourceModelParameter.Cmp(big.NewRat(modelStations[i], 1)) != 0 || cut.ModelStation.Cmp(big.NewRat(modelStations[i], 32)) != 0 ||
 			cut.RawParameters[north].Cmp(big.NewRat(rawPairs[i][0], 1)) != 0 || cut.RawParameters[1-north].Cmp(big.NewRat(rawPairs[i][1], 1)) != 0 ||
 			cut.OwnersChangingCells[north] != (i != 3) || cut.OwnersChangingCells[1-north] != (i != 0) ||
@@ -78,18 +91,23 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 	}
 	northStops := [][]int64{{2, 17, 37, 107}, {700, 706, 710, 715}, {850, 862}}
 	southStops := [][]int64{{48, 40, 32, 16}, {16, 11, 7, 1}, {1, 0}}
+	if cells == 3 {
+		northStops[2] = []int64{850, 858, 862}
+		southStops[2] = []int64{1, -1, -2}
+	}
+	modelKnots := [3][3]int64{{0, 4, 8}, {8, 12, 16}, {16, 24, 32}}
 	for cell, source := range m.Chain {
 		model, err := readMappedChainStepSpline(file, source.ModelCurveID, 3, 16, 33, true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if cell < 2 {
-			start := int64(8 * cell)
-			if len(model.poles) != 7 || model.knots[0].Cmp(big.NewRat(start, 1)) != 0 || model.knots[10].Cmp(big.NewRat(start+8, 1)) != 0 {
+		if cell < cells {
+			start, interior, end := modelKnots[cell][0], modelKnots[cell][1], modelKnots[cell][2]
+			if len(model.poles) != 7 || model.knots[0].Cmp(big.NewRat(start, 1)) != 0 || model.knots[10].Cmp(big.NewRat(end, 1)) != 0 {
 				t.Fatal("the original cell must have two exact cubic pieces", cell)
 			}
 			for _, knot := range model.knots[4:7] {
-				if knot.Cmp(big.NewRat(start+4, 1)) != 0 {
+				if knot.Cmp(big.NewRat(interior, 1)) != 0 {
 					t.Fatal("each original edge must retain its own stored material knot", cell)
 				}
 			}
@@ -117,11 +135,18 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 			}
 		}
 	}
-	if m.Native.ChainStations[3].Cmp(big.NewRat(1, 4)) != 0 || edges[m.Native.ChainEdges[2]].End != edges[m.Native.ChainEdges[3]].Start {
-		t.Fatal("the original junction between cells must keep one model vertex and both distinct owner endpoints")
+	for i := 1; i <= 2; i++ {
+		join := i * 3
+		if m.Native.ChainStations[join].Cmp(big.NewRat(int64(i), 4)) != 0 || edges[m.Native.ChainEdges[join-1]].End != edges[m.Native.ChainEdges[join]].Start {
+			t.Fatal("the original junction between cells must keep one model vertex and both distinct owner endpoints", i)
+		}
 	}
 	verifyMappedRoofSlopeJump(t, ctx, faces[north].Surface.(*geom.BSplineSurface), 0, 107.0/2048, big.NewRat(1, 2), big.NewRat(1, 32))
 	verifyMappedRoofSlopeJump(t, ctx, faces[1-north].Surface.(*geom.BSplineSurface), 1, 917.0/2048, big.NewRat(1, 8), big.NewRat(-1, 64))
+	if cells == 3 {
+		verifyMappedRoofSlopeJump(t, ctx, faces[north].Surface.(*geom.BSplineSurface), 0, .75, big.NewRat(1, 4), big.NewRat(1, 8))
+		verifyMappedRoofSlopeJump(t, ctx, faces[1-north].Surface.(*geom.BSplineSurface), 1, .75, big.NewRat(1, 4), big.NewRat(1, 8))
+	}
 	var recipe, canonical, replay bytes.Buffer
 	if err := m.Shell.WriteJSON(ctx, &recipe, trimmed.MappedChainShellNativeOptions{}); err != nil {
 		t.Fatal(err)
@@ -134,8 +159,8 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 		t.Fatal(err)
 	}
 	strict, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(canonical.Bytes()), Limits{}, o)
-	if err != nil || len(strict.Chain) != 3 || len(strict.Crossings) != 4 || !mappedChainCrossingsOnTwoLocalCells(strict.Crossings) || strict.Shell.IndependentOwnerBases() != bases {
-		t.Fatal("strict import must re-prove both original cell partitions", err)
+	if err != nil || len(strict.Chain) != 3 || len(strict.Crossings) != cells+2 || mappedChainCrossingLocalCellCount(strict.Crossings) != cells || strict.Shell.IndependentOwnerBases() != bases {
+		t.Fatal("strict import must re-prove each original cell partition", err)
 	}
 	verifyOriginalMappedChainSTEPGraph(t, m, strict)
 	if err := strict.Shell.WriteJSON(ctx, &replay, trimmed.MappedChainShellNativeOptions{}); err != nil || !bytes.Equal(recipe.Bytes(), replay.Bytes()) {
@@ -149,7 +174,7 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyLocalCellMaterial(t, ctx, native)
+	verifyLocalCellMaterial(t, ctx, native, cells)
 	replay.Reset()
 	if err := WriteMappedChainRectangularOriginalShell(ctx, &replay, strict, Limits{}, o); err != nil || !bytes.Equal(canonical.Bytes(), replay.Bytes()) {
 		t.Fatal("the two original canonical graphs must replay byte-for-byte", err)
@@ -161,19 +186,24 @@ func verifyLocalCellMappedChain(t *testing.T, ctx context.Context, raw []byte) [
 	return canonical.Bytes()
 }
 
-func verifyLocalCellMaterial(t *testing.T, ctx context.Context, native trimmed.MappedChainRectangularSolid) {
+func verifyLocalCellMaterial(t *testing.T, ctx context.Context, native trimmed.MappedChainRectangularSolid, cells int) {
 	t.Helper()
 	s := native.Solid
-	if len(native.ChainEdges) != 7 || len(s.Faces()) != 7 || len(s.Edges()) != 27 || len(s.Vertices()) != 22 {
-		t.Fatal("both original roofs and the two split edges require their original closed topology")
+	edges := 27 + 3*(cells-2)
+	if len(native.ChainEdges) != cells+5 || len(s.Faces()) != 7 || len(s.Edges()) != edges || len(s.Vertices()) != edges-5 {
+		t.Fatal("both original roofs and their split edges require their original closed topology")
 	}
 	proof, err := s.ValidateEdgeAgreement(ctx, edgecheck.Options{})
-	if err != nil || !proof.Complete || len(proof.Uses) != 54 {
+	if err != nil || !proof.Complete || len(proof.Uses) != 2*edges {
 		t.Fatal("both owners must agree continuously on each of the original and repaired edges", err)
 	}
 	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
-	if err != nil || math.Abs(mass.Volume-mappedChainLocalCellVolume) > 1e-8 || math.Abs(mass.Area-mappedChainLocalCellArea) > 1e-8 {
-		t.Fatal("native material must match the independently authored two-cell fixture", mass, err)
+	volume, area := mappedChainLocalCellVolume, mappedChainLocalCellArea
+	if cells == 3 {
+		volume, area = mappedChainThreeLocalCellVolume, mappedChainThreeLocalCellArea
+	}
+	if err != nil || math.Abs(mass.Volume-volume) > 1e-8 || math.Abs(mass.Area-area) > 1e-8 {
+		t.Fatal("native material must match the independently authored fixture", cells, mass, err)
 	}
 }
 
@@ -182,7 +212,7 @@ func TestOCCTMappedChainRectangularLocalSupportKnotCells(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyLocalCellMappedChain(t, context.Background(), raw)
+	verifyLocalCellMappedChain(t, context.Background(), raw, 2)
 }
 
 func TestOCCTMappedChainRectangularLocalSupportKnotCellsClosedDisplay(t *testing.T) {
@@ -302,13 +332,23 @@ func moveLocalSouthCrease(t *testing.T, f *File, faceID int64, x float64) {
 		}
 		return text
 	}
-	// Both values exercised here remain between the two stored shared knots.
 	// The change is entirely off the seam at y=1/4.
-	roof.Args[11].Items[2].Text, roof.Args[11].Items[3].Text = decimal(x), decimal(99.0/256)
+	knots := []float64{0, 29.0 / 256, 99.0 / 256, x, 1}
+	third := len(roof.Args[11].Items) == 6
+	if third {
+		knots = append(knots, .75)
+	}
+	slices.Sort(knots)
+	for i, v := range knots {
+		roof.Args[11].Items[i].Text = decimal(v)
+	}
 	for i, row := range roof.Args[3].Items {
 		for j, pole := range row.Items {
-			xp, y := [5]float64{0, 29.0 / 256, x, 99.0 / 256, 1}[j], float64(i)
+			xp, y := knots[j], float64(i)
 			z := xp*y + .125*(max(0, xp-29.0/256)+max(0, xp-99.0/256)) + .125*(y-.25)*max(0, xp-x)
+			if third {
+				z += .125 * max(0, xp-.75)
+			}
 			p := f.Entities[pole.Ref].Records[0].Args[1].Items
 			p[0].Text, p[2].Text = decimal(xp), decimal(z)
 		}
@@ -330,6 +370,6 @@ func TestOCCTMappedChainRectangularLocalSupportKnotCellsLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	canonical := verifyLocalCellMappedChain(t, ctx, raw)
+	canonical := verifyLocalCellMappedChain(t, ctx, raw, 2)
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, mappedChainLocalCellVolume, mappedChainLocalCellArea)
 }
