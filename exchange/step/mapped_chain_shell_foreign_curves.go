@@ -166,6 +166,32 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 		for _, station := range ownerCuts[0] {
 			cuts = append(cuts, cut{t: station, owners: [2]bool{true, true}})
 		}
+	case sharedCount == 2 && a == 2 && b == 2 && len(joins) == 0 && allowThree:
+		for owner, row := range ownerCuts {
+			for _, station := range row {
+				i := slices.IndexFunc(cuts, func(c cut) bool { return c.t.Cmp(station) == 0 })
+				if i < 0 {
+					cuts = append(cuts, cut{t: station, owners: [2]bool{owner == 0, owner == 1}})
+				} else {
+					cuts[i].owners[owner] = true
+				}
+			}
+		}
+		if len(cuts) != 3 {
+			return nil, fmt.Errorf("the original model Bézier requires one shared support event and one separate event per roof: %w", geom.ErrConvergence)
+		}
+		slices.SortFunc(cuts, func(a, b cut) int { return a.t.Cmp(b.t) })
+		stations := [3]*big.Rat{cuts[0].t, cuts[1].t, cuts[2].t}
+		model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
+		if err != nil {
+			return nil, err
+		}
+		for owner, curve := range mapped {
+			face := g.faces[owner]
+			if err := trimmed.ProveMappedSplineBezierThreeSupportPartition(ctx, face.surface, curve, model, stations, o); err != nil {
+				return nil, fmt.Errorf("owner #%d on the mixed original Bézier partition: %w", face.id, err)
+			}
+		}
 	case sharedCount == 2 && n > 0 || sharedCount == 1 && n > 1 && bezierRepairs&mappedChainBezierAsynchronous == 0:
 		return nil, fmt.Errorf("both inferred roof support streams must coincide on the original model Bézier: %w", geom.ErrConvergence)
 	case n > 1:

@@ -90,17 +90,7 @@ func verifyInferredSharedMappedChain(t *testing.T, ctx context.Context, raw []by
 	if err != nil {
 		t.Fatal(err)
 	}
-	model, err := readMappedChainStepSpline(f, m.Chain[0].ModelCurveID, 3, 16, 17, true)
-	if err != nil || len(model.poles) != 4 || len(model.knots) != 8 {
-		t.Fatal("the shared support event must stay unstored in the original single model Bézier", err)
-	}
-	for i, px := range [4]float64{0, 1.0 / 16, 5.0 / 32, .25} {
-		if model.knots[i].Sign() != 0 || model.knots[i+4].Cmp(big.NewRat(8, 1)) != 0 ||
-			model.weights[i].Cmp(big.NewRat(1, 1)) != 0 || model.poles[i][0].Cmp(mappedChainStepRat(px)) != 0 ||
-			model.poles[i][1].Cmp(big.NewRat(1, 4)) != 0 || model.poles[i][2].Cmp(mappedChainStepRat(px/4)) != 0 {
-			t.Fatal("the model must retain the exact authored cubic and raw finite domain", i)
-		}
-	}
+	verifyOriginalInferredModelBezier(t, f, m.Chain[0].ModelCurveID)
 	var stops [2][]int64
 	stops[north], stops[south] = northStops, southStops
 	for owner, use := range m.Chain[0].Owners {
@@ -166,6 +156,21 @@ func verifyInferredSharedMappedChain(t *testing.T, ctx context.Context, raw []by
 		t.Fatal("strict canonical STEP must replay the original model graph byte-for-byte", err)
 	}
 	return canonical.Bytes()
+}
+
+func verifyOriginalInferredModelBezier(t *testing.T, f *File, modelID int64) {
+	t.Helper()
+	model, err := readMappedChainStepSpline(f, modelID, 3, 16, 17, true)
+	if err != nil || len(model.poles) != 4 || len(model.knots) != 8 {
+		t.Fatal("the support events must stay unstored in the original single model Bézier", err)
+	}
+	for i, px := range [4]float64{0, 1.0 / 16, 5.0 / 32, .25} {
+		if model.knots[i].Sign() != 0 || model.knots[i+4].Cmp(big.NewRat(8, 1)) != 0 ||
+			model.weights[i].Cmp(big.NewRat(1, 1)) != 0 || model.poles[i][0].Cmp(mappedChainStepRat(px)) != 0 ||
+			model.poles[i][1].Cmp(big.NewRat(1, 4)) != 0 || model.poles[i][2].Cmp(mappedChainStepRat(px/4)) != 0 {
+			t.Fatal("the model must retain the exact authored cubic and raw finite domain", i)
+		}
+	}
 }
 
 func verifyInferredSharedMappedChainMaterial(t *testing.T, ctx context.Context, m trimmed.MappedChainRectangularSolid, paired bool) {
