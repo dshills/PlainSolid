@@ -342,6 +342,11 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	if m, e := step.ReadCircularLensExtrusion(r(), stepLimits()); e == nil {
 		return b.putCircularLensSTEP(m)
 	}
+	if strings.Contains(supports, "CYLINDRICAL_SURFACE") && strings.Contains(supports, "PCURVE") {
+		if m, e := step.ReadConvexArcExtrusion(r(), stepLimits()); e == nil {
+			return b.putConvexArcExtrusionSTEP(m)
+		}
+	}
 
 	if m, err := step.ReadSplitCylinderModel(r(), stepLimits()); err == nil {
 		return b.putSTEPCylinder(m.Frame, m.Radius, m.Height, m.LengthUnit)
@@ -619,6 +624,11 @@ func writeSTEPBody(s stored) ([]byte, error) {
 			if p, ok := s.analytic.arcLoop.circularLensSTEP(); ok {
 				e = step.WriteCircularLensExtrusion(&out, step.CircularLensExtrusionModel{Body: p, LengthUnit: .001})
 				break
+			}
+			if p, ok := s.analytic.arcLoop.convexArcSTEP(); ok {
+				if e = step.WriteConvexArcExtrusion(&out, step.ConvexArcExtrusionModel{Body: p, LengthUnit: .001}); e == nil {
+					break
+				}
 			}
 		}
 		e = step.WriteCapsuleBoundary(&out, s.analytic.solid, .001, "PlainSolid")

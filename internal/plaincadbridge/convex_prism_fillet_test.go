@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"math"
 	"testing"
@@ -38,6 +39,22 @@ func TestConvexPrismFilletDispatchesOriginalAxialEdges(t *testing.T) {
 			}
 			invoke(t, b, map[string]any{"op": "mesh", "handle": out.Handle, "linearDeflection": .025, "angularDeflection": .2})
 			invoke(t, b, map[string]any{"op": "stl", "handle": out.Handle, "linearDeflection": .025, "angularDeflection": .2})
+			first, err := b.exportSTEP([]string{out.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err := base64.StdEncoding.DecodeString(first.Base64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			loaded, err := b.importSTEP(string(data))
+			if err != nil || loaded.Bounds != out.Bounds || loaded.GeometryAssertions != out.GeometryAssertions {
+				t.Fatal("STEP changed the fillet", loaded, out, err)
+			}
+			second, err := b.exportSTEP([]string{loaded.Handle})
+			if err != nil || second.Base64 != first.Base64 {
+				t.Fatal("STEP re-export changed the canonical file", err)
+			}
 			var available struct{ Available bool }
 			for _, a := range []struct {
 				handle string
