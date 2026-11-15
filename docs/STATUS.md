@@ -55,13 +55,15 @@ optional skips. All 1,438 trimmed cases were accounted for, with 1,391
 passes and 47 optional skips. The [PlainCAD run](evidence/plaincad-main-bafe7e81-2026-11-15.json)
 passed the build, typechecks, bundle budget, 345 development browser cases,
 66 production cases, 15 cross-browser cases, 1,691 ordinary units and four
-WASM contracts. Every trimmed case in the refreshed full race on
-`d5906fde` is accounted for; the long ordinary `intersect` lane remains
-open with no reported failures. Another full ordinary Go run on
-`509cdbd3` is underway. PlainCAD on `05ce6e82` has passed the WASM,
-production build, type and selected kernel gates and is running the
-full development browser suite. Vet and the Windows amd64 cross-build
-on `016354ee` pass; native Windows execution is still unqualified.
+WASM contracts. The [newer ordinary Go run on `509cdbd3`](evidence/main-509cdbd3-qualification-2026-11-15.json)
+accounted for all 5,921 top-level cases: 5,374 passes and 547 optional
+skips, including 1,411 trimmed passes and 47 optional trimmed skips.
+Every trimmed case in the refreshed full race on `d5906fde` is accounted
+for; the long ordinary `intersect` lane remains open with no reported
+failures. PlainCAD on `05ce6e82` has passed the WASM, production build,
+type and selected kernel gates and is running the full development suite.
+Vet and the Windows amd64 cross-build on `016354ee` pass; native
+Windows execution remains unqualified.
 
 Planar contact now supports concave faces and holes, folded and differently
 subdivided regions, different original seam stations, and one or more

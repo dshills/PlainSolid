@@ -106,6 +106,16 @@ The separately archived `d5906fde` full race remains in progress. Original
 reports, logs and case inventories are under
 `.worktrees/qualification/2026-11-15`.
 
+A separate [newer ordinary Go run](evidence/main-509cdbd3-qualification-2026-11-15.json)
+on immutable `509cdbd3` passed all nine lanes. The repository verifier
+independently accounted for 5,921 top-level cases: 5,374 passes and 547
+optional skips, including 1,411 trimmed passes and 47 explicit trimmed
+skips. There are 52 tested packages and four without tests. Raw results,
+launcher and package/case inventories are retained in
+`.worktrees/qualification/2026-11-15/go-509cdbd3`. This is a full ordinary
+Go pass on the recorded snapshot while the separate PlainCAD and refreshed
+race runs are in progress.
+
 Focused main verification adds two bounded cases:
 
 - `d54df03f`: the exact full-face join checks both winding and every original
