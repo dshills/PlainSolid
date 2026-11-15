@@ -27,13 +27,14 @@ type MappedChainSTEPCell struct {
 }
 
 // MappedChainSTEPSupportCrossing records one original STEP edge junction
-// and its two adjacent certified native edges. RawParameters follow the
-// original owners.
+// and its two adjacent certified native edges. RawParameters and
+// OwnersChangingCells follow the original owners.
 type MappedChainSTEPSupportCrossing struct {
 	EdgeID               int64
 	SourceModelParameter *big.Rat
 	ModelStation         *big.Rat
 	RawParameters        [2]*big.Rat
+	OwnersChangingCells  [2]bool
 	NativeEdges          [2]int
 }
 
@@ -102,6 +103,9 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 		return zero, geom.ErrInvalid
 	}
 	if !o.AllowMultiSpanRoofs && (o.AllowTwoInteriorRoofKnots || foreign && o.AllowUnsplitSupportKnot) {
+		return zero, geom.ErrInvalid
+	}
+	if foreign && o.AllowAsynchronousSupportKnots && !o.AllowUnsplitSupportKnot {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -320,6 +324,8 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	var crossings []MappedChainSTEPSupportCrossing
 	var foreignTrimmed bool
 	allowUnsplit := g.foreign && o.AllowUnsplitSupportKnot
+	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots &&
+		mappedChainInteriorSupportKnots(g.faces[0].surface) == 1 && mappedChainInteriorSupportKnots(g.faces[1].surface) == 1
 	maxModelPieces := 1
 	if allowUnsplit {
 		maxModelPieces = 2
@@ -350,31 +356,17 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			stations = append(stations, e.hi)
 		}
 		reverse := !g.uses[id][0].sense
-		localCrossings := mappedChainModelJoins(e.joins, reverse)
-		if len(localCrossings) != 0 {
-			if len(crossings) != 0 {
-				return zero, geom.ErrConvergence
-			}
-			a, b := stations[len(stations)-2], stations[len(stations)-1]
-			for i, t := range localCrossings {
-				index := i
-				if reverse {
-					index = len(e.joins) - 1 - i
-				}
-				original := new(big.Rat).Add(e.lo, new(big.Rat).Mul(e.joins[index], new(big.Rat).Sub(e.hi, e.lo)))
-				global := new(big.Rat).Add(a, new(big.Rat).Mul(t, new(big.Rat).Sub(b, a)))
-				crossings = append(crossings, MappedChainSTEPSupportCrossing{EdgeID: id, SourceModelParameter: original, ModelStation: global})
-			}
-		}
 		row := MappedChainSTEPCell{EdgeID: id, ModelCurveID: e.modelID}
+		var mapped [2]trimmed.MappedSplineUV
+		var ownerCuts [2]*big.Rat
 		for owner, p := range e.pcurves {
-			var q trimmed.MappedSplineUV
+			var source trimmed.SplineUV
 			_, trimmedPCurve := component(g.file.Entities[p.curve], "TRIMMED_CURVE")
 			if allowUnsplit && trimmedPCurve != foreignTrimmed {
 				return zero, geom.ErrConvergence
 			}
 			if g.foreign && !foreignTrimmed {
-				q, err = g.proveForeignRoofUse(ctx, id, e, owner, o.Geometry)
+				source, err = g.foreignRoofSource(e, owner, reverse)
 				row.Owners[owner] = MappedChainSTEPCoedge{FaceID: g.faces[owner].id, PCurveID: p.id, BasisID: p.curve}
 			} else {
 				basis, span, reversed, err := mappedChainStepRawUse(g.file, p.curve)
@@ -386,25 +378,27 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				if err != nil {
 					return zero, err
 				}
-				reverseModel := !g.uses[id][owner].sense
-				source := trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed != reverseModel}
-				q, err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverseModel, o.Geometry)
-				if err != nil {
-					return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
-				}
+				source = trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed != reverse}
 				row.Owners[owner] = MappedChainSTEPCoedge{g.faces[owner].id, p.id, p.curve, basis}
 			}
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
-			for i, t := range localCrossings {
-				crossings[i].RawParameters[owner], err = q.AuthoredParameter(t)
-				if err != nil {
-					return zero, err
-				}
+			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync, o.Geometry)
+			if err != nil {
+				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
-			parts[owner] = append(parts[owner], q)
+			parts[owner] = append(parts[owner], mapped[owner])
 		}
+		interval := [2]*big.Rat{stations[len(stations)-2], stations[len(stations)-1]}
+		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, o.Geometry)
+		if err != nil {
+			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
+		}
+		if len(crossings)+len(edgeCrossings) > 2 {
+			return zero, geom.ErrConvergence
+		}
+		crossings = append(crossings, edgeCrossings...)
 		chain = append(chain, row)
 	}
 	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 ||
@@ -478,9 +472,20 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	certify := trimmed.CertifyMappedSplineChainAgreement
 	switch len(crossings) {
 	case 1:
+		if crossings[0].OwnersChangingCells != [2]bool{true, true} {
+			return zero, fmt.Errorf("asynchronous repair requires a crossing on each original roof: %w", geom.ErrConvergence)
+		}
 		certify = trimmed.CertifyMappedSplineChainSupportKnotAgreement
 	case 2:
-		certify = trimmed.CertifyMappedSplineChainTwoSupportKnotsAgreement
+		if crossings[0].EdgeID == crossings[1].EdgeID {
+			certify = trimmed.CertifyMappedSplineChainTwoSupportKnotsAgreement
+		} else {
+			a, b := crossings[0].OwnersChangingCells, crossings[1].OwnersChangingCells
+			if a[0] == a[1] || b[0] == b[1] || a == b {
+				return zero, fmt.Errorf("asynchronous repair requires distinct edges and one crossing for each owner: %w", geom.ErrConvergence)
+			}
+			certify = trimmed.CertifyMappedSplineChainAsynchronousSupportKnotsAgreement
+		}
 	}
 	agreement, err := certify(ctx, g.faces[0].surface, chains[0], g.faces[1].surface, chains[1], budget)
 	if err != nil {

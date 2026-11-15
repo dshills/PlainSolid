@@ -94,16 +94,31 @@ func ProveMappedSplineTransfer(ctx context.Context, support geom.Surface, source
 	if err != nil {
 		return zero, err
 	}
+	weight, err := mappedSplineEndpointWeight(ctx, raw, normalized, o)
+	if err != nil {
+		return zero, err
+	}
+	q, err := NewMappedSplineUV(ctx, source, weight, o)
+	if err != nil {
+		return zero, err
+	}
+	if err := proveMappedSplineLift(ctx, support, q, normalized, o); err != nil {
+		return zero, err
+	}
+	return q, nil
+}
+
+func mappedSplineEndpointWeight(ctx context.Context, raw, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (*big.Rat, error) {
 	a, _, err := raw.BezierControlNet(ctx, o)
 	if err != nil {
-		return zero, err
+		return nil, err
 	}
-	b, _, err := normalized.BezierControlNet(ctx, o)
+	b, _, err := model.BezierControlNet(ctx, o)
 	if err != nil {
-		return zero, err
+		return nil, err
 	}
 	if len(a.Control) < 2 || len(b.Control) < 2 {
-		return zero, geom.ErrDegenerate
+		return nil, geom.ErrDegenerate
 	}
 	tangent := func(span geom.ExactBezierSpan, axis int) *big.Rat {
 		p, q := span.Control[0], span.Control[1]
@@ -120,26 +135,127 @@ func ProveMappedSplineTransfer(ctx context.Context, support geom.Surface, source
 		}
 	}
 	if weight == nil || weight.Sign() <= 0 {
-		return zero, geom.ErrConvergence
+		return nil, geom.ErrConvergence
 	}
-	q, err := NewMappedSplineUV(ctx, source, weight, o)
+	return weight, nil
+}
+
+func proveMappedSplineLift(ctx context.Context, support geom.Surface, curve MappedSplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) error {
+	lift, err := ExactTrimModelBezier(ctx, support, curve, false, o)
 	if err != nil {
-		return zero, err
+		return err
 	}
-	lift, err := ExactTrimModelBezier(ctx, support, q, false, o)
-	if err != nil {
-		return zero, err
-	}
-	comparison, err := geom.CompareExactCurvesContext(ctx, lift, normalized, geom.ExactCurveComparisonOptions{
+	comparison, err := geom.CompareExactCurvesContext(ctx, lift, model, geom.ExactCurveComparisonOptions{
 		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
 	})
 	if err != nil {
-		return zero, err
+		return err
 	}
 	if !comparison.Complete || !comparison.Equal {
-		return zero, geom.ErrConvergence
+		return geom.ErrConvergence
 	}
-	return q, nil
+	return nil
+}
+
+// ProveMappedSplineAsynchronousTransfer proves an original trim against one
+// stored model Bézier, retaining an isolated exact model station if the trim
+// crosses one original support knot. A nil station means the complete trim
+// fits one original support cell. The model Bézier need not have a knot at a
+// crossing: its exact rational restrictions are compared on each side.
+func ProveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	var zero MappedSplineUV
+	if ctx == nil || support == nil || model == nil {
+		return zero, nil, geom.ErrInvalid
+	}
+	patch, err := exactFaceSupportPatch(Face{Surface: support}, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, 1)
+	if err != nil {
+		return zero, nil, err
+	}
+	if len(planes) == 0 {
+		q, err := ProveMappedSplineTransfer(ctx, support, source, model, o)
+		return q, nil, err
+	}
+	one := big.NewRat(1, 1)
+	raw, err := NewMappedSplineUV(ctx, source, one, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	crossing, err := mappedSplineSupportKnotRoot(ctx, raw.curve, planes[0], o, geom.ExactCurvePlaneEventOptions{
+		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+	})
+	if err != nil {
+		return zero, nil, err
+	}
+	if crossing == nil {
+		q, err := ProveMappedSplineTransfer(ctx, support, source, model, o)
+		return q, nil, err
+	}
+	first, err := restrictMappedSource(ctx, raw, new(big.Rat), crossing, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	lift, err := ExactTrimModelBezier(ctx, support, first, false, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	normalized, err := model.Reparameterize(0, 1, false, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	weight, err := mappedSplineEndpointWeight(ctx, lift, normalized, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	// The first restriction is normalized to its own parameter. Recover the
+	// speed in the whole original raw interval before inferring the model cut.
+	weight.Mul(weight, crossing)
+	mapped, err := NewMappedSplineUV(ctx, source, weight, o)
+	if err != nil {
+		return zero, nil, err
+	}
+	den := new(big.Rat).Add(crossing, new(big.Rat).Mul(weight, new(big.Rat).Sub(one, crossing)))
+	station := new(big.Rat).Quo(crossing, den)
+	if err := ProveMappedSplineSplitTransfer(ctx, support, mapped, normalized, station, o); err != nil {
+		return zero, nil, err
+	}
+	return mapped, station, nil
+}
+
+// ProveMappedSplineSplitTransfer compares both exact raw restrictions of one
+// already mapped owner with the corresponding parts of a single model Bézier.
+// The station is in normalized model traversal. Either support side may use
+// the same original knot cell when its complete control hull fits there.
+func ProveMappedSplineSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, station *big.Rat, o geom.SurfacePatchOptions) error {
+	one := big.NewRat(1, 1)
+	if ctx == nil || support == nil || mapped.weight == nil || model == nil ||
+		station == nil || station.Sign() <= 0 || station.Cmp(one) >= 0 {
+		return geom.ErrInvalid
+	}
+	normalized, err := model.Reparameterize(0, 1, false, o)
+	if err != nil {
+		return err
+	}
+	cuts := [3]*big.Rat{new(big.Rat), station, one}
+	for i := range 2 {
+		part, err := restrictMappedSource(ctx, mapped, cuts[i], cuts[i+1], o)
+		if err != nil {
+			return err
+		}
+		original, err := normalized.RationalSegment(ctx, cuts[i], cuts[i+1], geom.TubeAffineLineOptions{
+			MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+		})
+		if err != nil {
+			return err
+		}
+		if err := proveMappedSplineLift(ctx, support, part, original, o); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ProveMappedSplineSupportKnotTransfer checks one unsplit original UV
@@ -231,22 +347,12 @@ func proveMappedSplineSupportKnotsTransfer(ctx context.Context, support geom.Sur
 		if err != nil {
 			return zero, err
 		}
-		lift, err := ExactTrimModelBezier(ctx, support, part, false, o)
-		if err != nil {
-			return zero, err
-		}
 		normalized, err := model.Reparameterize(0, 1, false, o)
 		if err != nil {
 			return zero, err
 		}
-		proof, err := geom.CompareExactCurvesContext(ctx, lift, normalized, geom.ExactCurveComparisonOptions{
-			MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
-		})
-		if err != nil {
+		if err := proveMappedSplineLift(ctx, support, part, normalized, o); err != nil {
 			return zero, err
-		}
-		if !proof.Complete || !proof.Equal {
-			return zero, geom.ErrConvergence
 		}
 	}
 	return mapped, nil

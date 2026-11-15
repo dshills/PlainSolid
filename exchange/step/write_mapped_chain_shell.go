@@ -30,6 +30,10 @@ type MappedChainShellSTEPOptions struct {
 	// same support knot stations. Allows one crossing, or two with
 	// AllowTwoInteriorRoofKnots. Also requires AllowMultiSpanRoofs.
 	AllowUnsplitSupportKnot bool
+	// AllowAsynchronousSupportKnots admits two distinct unsplit foreign
+	// shared edges, each with a single model spline and one original owner
+	// changing support cells. Requires AllowUnsplitSupportKnot.
+	AllowAsynchronousSupportKnots bool
 }
 
 // WriteMappedChainRectangularShell writes a single independently certified
