@@ -75,6 +75,8 @@ const (
 // A circular inset join uses Input as the host and Tool as the inset sweep.
 // A circular corner fillet uses Input and named CircularCornerRounds.
 // A circular cap overlay joins the full abutting caps of Input and Tool.
+// A circular multiple inset join uses Input as the host and Tools as the
+// ordered original inset sweeps. Each tool contributes to one host cap.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -105,6 +107,7 @@ type Feature struct {
 	Holes                       [][]geom.Vec3 `json:",omitempty"`
 	Transform                   geom.Affine
 	Tool                        string         `json:",omitempty"`
+	Tools                       []string       `json:",omitempty"`
 	Operation                   poly.Operation `json:",omitempty"`
 	EntryRole, ExitRole         string         `json:",omitempty"`
 	Direction                   geom.Vec3
@@ -123,6 +126,7 @@ type Feature struct {
 
 func (f Feature) clone() Feature {
 	f.Profile = append([]geom.Vec3(nil), f.Profile...)
+	f.Tools = append([]string(nil), f.Tools...)
 	f.CornerRadii = append([]fillet.CornerRadius(nil), f.CornerRadii...)
 	f.CircularCornerRounds = append([]NamedCircularCornerRound(nil), f.CircularCornerRounds...)
 	f.Stations = append([]trimmed.WrappedLoftStation(nil), f.Stations...)
@@ -184,6 +188,7 @@ type featureFaceObserver struct {
 	needsEdges            func(Feature) bool
 	record                func(string, Feature, State, poly.TopologyHistory) error
 	recordCircularOverlay func(string, trimmed.CircularSweepCapOverlay)
+	recordCircularInsets  func(string, trimmed.CircularSweepInsets)
 }
 
 func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserver) (State, error) {
@@ -254,10 +259,23 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				stack = append(stack, item{name, true})
 				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
-					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCornerFilletFeature || f.Kind == DirectedCircularCapOverlayFeature
+					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCornerFilletFeature || f.Kind == DirectedCircularCapOverlayFeature || f.Kind == DirectedCircularMultipleInsetJoinFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCapOverlayFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
+				}
+				if (len(f.Tools) != 0) != (f.Kind == DirectedCircularMultipleInsetJoinFeature) || len(f.Tools) > 16 {
+					return State{}, fmt.Errorf("document: invalid tool list for feature %q", name)
+				}
+				if len(f.Tools) != 0 {
+					seen := map[string]bool{f.Input: true}
+					for _, id := range f.Tools {
+						if id == "" || seen[id] {
+							return State{}, fmt.Errorf("document: empty or repeated original tool for feature %q", name)
+						}
+						seen[id] = true
+						stack = append(stack, item{name: id})
+					}
 				}
 				if f.Tool != "" {
 					stack = append(stack, item{name: f.Tool})
@@ -327,6 +345,33 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				join, e = trimmed.JoinExactCircularSweepInset(ctx, host, guest, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
 				if e == nil {
 					r = join.Solid
+				}
+			case DirectedCircularMultipleInsetJoinFeature:
+				uv = true
+				host, found := circularSweeps[f.Input]
+				if !found {
+					e = fmt.Errorf("circular inset join requires an authored unplaced host")
+					break
+				}
+				guests := make([]trimmed.ExactCircularSweep, len(f.Tools))
+				for i, id := range f.Tools {
+					guest, ok := circularSweeps[id]
+					if !ok {
+						e = fmt.Errorf("circular inset guest %q is not an authored unplaced sweep", id)
+						break
+					}
+					guests[i] = guest
+				}
+				if e != nil {
+					break
+				}
+				var join trimmed.CircularSweepInsets
+				join, e = trimmed.JoinExactCircularSweepInsets(ctx, host, guests, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
+				if e == nil {
+					r = join.Solid
+					if observe != nil && observe.recordCircularInsets != nil {
+						observe.recordCircularInsets(name, join)
+					}
 				}
 			case DirectedCircularCornerFilletFeature:
 				uv = true

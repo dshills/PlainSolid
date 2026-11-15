@@ -112,7 +112,8 @@ exposed floors inside through-openings. They qualify compact display, native
 and document replay, and analytic STEP and IGES with supported placements.
 The native multi-inset operation joins independent guests on either cap
 and re-proves native receipts with separate floor and rim ownership.
-The joined solid also transfers through strict analytic STEP and IGES.
+Editable multi-inset documents resolve each named guest after reorder and
+placement. The joined solid transfers through strict analytic STEP and IGES.
 Named corner rounds on mixed line-and-arc profiles retain the original arcs,
 shortened straight spans, and independent holes through edits and reopen.
 Rounds at an axis-aligned line meeting an original circle cover internal
@@ -162,8 +163,8 @@ Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. The unequal-footprint geometry also
 proves exact complement volumes and original wall owners. Current work
-covers native stepped walls on those footprints, editable named multi-inset
-documents, the tilted bore PlainCAD route and multiple original rational
+covers native stepped walls on those footprints, the tilted bore PlainCAD
+route and multiple original rational
 STEP model cells.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

@@ -14,8 +14,19 @@ import (
 )
 
 func (s State) circularJoinExportRecipe(ctx context.Context, nodeID string, kind FeatureKind) (trimmed.ExactCircularSweep, trimmed.ExactCircularSweep, geom.Affine, string, error) {
-	fail := func(err error) (trimmed.ExactCircularSweep, trimmed.ExactCircularSweep, geom.Affine, string, error) {
+	src, pose, name, err := s.circularJoinExportMembers(ctx, nodeID, kind)
+	if err != nil {
 		return trimmed.ExactCircularSweep{}, trimmed.ExactCircularSweep{}, geom.Affine{}, "", err
+	}
+	if len(src) != 2 {
+		return trimmed.ExactCircularSweep{}, trimmed.ExactCircularSweep{}, geom.Affine{}, "", geom.ErrInvalid
+	}
+	return src[0], src[1], pose, name, nil
+}
+
+func (s State) circularJoinExportMembers(ctx context.Context, nodeID string, kind FeatureKind) ([]trimmed.ExactCircularSweep, geom.Affine, string, error) {
+	fail := func(err error) ([]trimmed.ExactCircularSweep, geom.Affine, string, error) {
+		return nil, geom.Affine{}, "", err
 	}
 	node, ok := s.Nodes[nodeID]
 	if !ok || node.Asset == "" {
@@ -71,19 +82,33 @@ func (s State) circularJoinExportRecipe(ctx context.Context, nodeID string, kind
 	if pose.Determinant() != 1 {
 		return fail(fmt.Errorf("document: circular sweep join export needs a proper signed-coordinate placement: %w", geom.ErrDomain))
 	}
-	host, err := s.circularJoinExportSweep(ctx, join.Input)
-	if err != nil {
-		return fail(err)
+	tools := []string{join.Tool}
+	if join.Kind == DirectedCircularMultipleInsetJoinFeature {
+		if join.Tool != "" || len(join.Tools) == 0 || len(join.Tools) > 16 {
+			return fail(geom.ErrInvalid)
+		}
+		tools = join.Tools
+	} else if len(join.Tools) != 0 {
+		return fail(geom.ErrInvalid)
 	}
-	guest, err := s.circularJoinExportSweep(ctx, join.Tool)
-	if err != nil {
-		return fail(err)
+	src := make([]trimmed.ExactCircularSweep, len(tools)+1)
+	seen = map[string]bool{}
+	for i, id := range append([]string{join.Input}, tools...) {
+		if id == "" || seen[id] {
+			return fail(geom.ErrInvalid)
+		}
+		seen[id] = true
+		profile, e := s.circularJoinExportSweep(ctx, id)
+		if e != nil {
+			return fail(e)
+		}
+		src[i] = profile
 	}
 	name := node.Name
 	if name == "" {
 		name = nodeID
 	}
-	return host, guest, pose, name, nil
+	return src, pose, name, nil
 }
 
 func (s State) circularJoinExportSweep(ctx context.Context, id string) (trimmed.ExactCircularSweep, error) {

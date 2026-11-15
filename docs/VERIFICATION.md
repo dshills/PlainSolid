@@ -218,6 +218,10 @@ kept its pristine hash. Raw results remain in
   OCCT and retain distinct original floors. The main overlay and multi-inset
   exchange race passed in 133.437 seconds, including rejection of a
   changed guest order or cap height in the supplied original sources.
+  Named multi-inset document roles and strict placed STEP/IGES export
+  passed with the existing inset and complete-cap document regressions
+  in 368.403 seconds. Reorder and file reopen retain named original
+  guest rims on the exposed floors and duplicate guest IDs reject.
 - Named document occurrence export, the original editable inset exchange,
   and named circular fillet regeneration passed the main document race
   together in 324.615 seconds. STEP preserved both original source
