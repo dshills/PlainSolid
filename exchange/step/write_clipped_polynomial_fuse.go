@@ -48,7 +48,7 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 	var geometryErr error
 	err = writeStandalone(&staged, lengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		var id int64
-		id, geometryErr = emitClippedPolynomialFuse(ctx, emit, b, name, mappedChainStepRat(o.PoleTolerance))
+		id, geometryErr = emitExactBezierSTEPBody(ctx, emit, b, name, mappedChainStepRat(o.PoleTolerance))
 		return []int64{id}
 	})
 	if geometryErr != nil {
@@ -117,7 +117,7 @@ type clippedFuseSTEPOwner struct {
 	uv   geom.ExactBezierSpan
 }
 
-func emitClippedPolynomialFuse(ctx context.Context, emit func(string) int64, b trimmed.ExactBezierBoundary, name string, poleTolerance *big.Rat) (int64, error) {
+func emitExactBezierSTEPBody(ctx context.Context, emit func(string) int64, b trimmed.ExactBezierBoundary, name string, poleTolerance *big.Rat) (int64, error) {
 	supports := make([]int64, len(b.Faces))
 	owners := make([][]clippedFuseSTEPOwner, len(b.Edges))
 	for i, f := range b.Faces {
@@ -126,7 +126,7 @@ func emitClippedPolynomialFuse(ctx context.Context, emit func(string) int64, b t
 		}
 		surface, err := f.BSplineSupport()
 		if err != nil {
-			return 0, fmt.Errorf("step: clipped Fuse support %d: %w", i, err)
+			return 0, fmt.Errorf("step: exact Bézier support %d: %w", i, err)
 		}
 		supports[i], err = emitMappedChainStepSurface(emit, surface)
 		if err != nil {
@@ -157,13 +157,13 @@ func emitClippedPolynomialFuse(ctx context.Context, emit func(string) int64, b t
 		}
 		model, err := emitClippedFuseSTEPBezier(emit, e.Model, 3, poleTolerance)
 		if err != nil {
-			return 0, fmt.Errorf("step: clipped Fuse model edge %d: %w", i, err)
+			return 0, fmt.Errorf("step: exact Bézier model edge %d: %w", i, err)
 		}
 		var pc [2]int64
 		for j, owner := range owners[i] {
 			uv, err := emitClippedFuseSTEPBezier(emit, owner.uv, 2, poleTolerance)
 			if err != nil {
-				return 0, fmt.Errorf("step: clipped Fuse edge %d face %d pcurve: %w", i, owner.face, err)
+				return 0, fmt.Errorf("step: exact Bézier edge %d face %d pcurve: %w", i, owner.face, err)
 			}
 			rep := emit(fmt.Sprintf("DEFINITIONAL_REPRESENTATION('',(#%d),#%d)", uv, uvContext))
 			pc[j] = emit(fmt.Sprintf("PCURVE('',#%d,#%d)", supports[owner.face], rep))
