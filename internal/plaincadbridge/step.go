@@ -19,10 +19,23 @@ import (
 )
 
 const maxSTEPBytes = 1 << 20 // Also bounded by the bridge request envelope.
+
+type stepFileUnit string
+
+const (
+	stepMillimetre stepFileUnit = "mm"
+	stepMetre      stepFileUnit = "m"
+	stepInch       stepFileUnit = "in"
+)
+
 func stepLimits() step.Limits {
 	return step.Limits{MaxBytes: maxSTEPBytes, MaxEntities: 50000, MaxValues: 200000, MaxVertices: 20000, MaxFaces: 10000, MaxEdgeUses: 50000, MaxSolids: 32}
 }
 func (b *Bridge) importSTEP(source string) (Shape, error) {
+	return b.importSTEPInUnits(source, "")
+}
+
+func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, error) {
 	if len(source) == 0 || len(source) > maxSTEPBytes {
 		return Shape{}, &failureError{"LIMIT", "STEP source must contain between 1 byte and 1 MiB"}
 	}
@@ -32,8 +45,14 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 	if strings.Contains(source, "'rational-posed-exact-circular-loop-extrusion'") {
 		ctx := context.Background()
 		if m, e := step.ReadRationalPosedExactCircularLoopExtrusion(ctx, r(), stepLimits()); e == nil {
+			if e = checkRationalSTEPUnit(m.Descriptor.LengthUnit, units); e != nil {
+				return Shape{}, e
+			}
 			return b.putRationalSTEPArcLoop(ctx, m.Native, m.Descriptor, m.Pose)
 		}
+	}
+	if units != "" {
+		return Shape{}, unsupportedEdge("explicit source-unit import requires a qualified rational-world STEP solid")
 	}
 	if strings.Contains(source, "'exact-circular-loop-extrusion'") {
 		ctx := context.Background()
@@ -714,18 +733,26 @@ type stepProof struct {
 	Bounds Bounds `json:"bounds"`
 }
 type stepExport struct {
-	Base64 string      `json:"base64"`
-	Before []stepProof `json:"before"`
-	After  []stepProof `json:"after"`
-	Units  string      `json:"units"`
+	Base64     string       `json:"base64"`
+	Before     []stepProof  `json:"before"`
+	After      []stepProof  `json:"after"`
+	Units      stepFileUnit `json:"units"`
+	ProofUnits stepFileUnit `json:"proofUnits,omitempty"`
 }
 
 func (b *Bridge) exportSTEP(handles []string) (stepExport, error) {
+	return b.exportSTEPInUnits(handles, "")
+}
+
+func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepExport, error) {
 	fail := func(e error) (stepExport, error) { return stepExport{}, e }
 	if len(handles) == 0 || len(handles) > 32 {
 		return fail(&failureError{"LIMIT", "STEP export requires 1 to 32 bodies"})
 	}
-	out := stepExport{Units: "mm"}
+	out := stepExport{Units: stepMillimetre}
+	if units != "" {
+		out.Units, out.ProofUnits = units, stepMillimetre
+	}
 	sources := make([][]byte, len(handles))
 	seen := map[string]bool{}
 	for i, h := range handles {
@@ -736,6 +763,9 @@ func (b *Bridge) exportSTEP(handles []string) (stepExport, error) {
 		s, e := b.get(h)
 		if e != nil {
 			return fail(e)
+		}
+		if s.result.StepUnits != units {
+			return fail(&failureError{"INVALID", "STEP export unit must match each retained source unit"})
 		}
 		sources[i], e = writeSTEPBody(s)
 		if e != nil {
@@ -757,7 +787,7 @@ func (b *Bridge) exportSTEP(handles []string) (stepExport, error) {
 	// Readback uses a private registry so no caller handles are published or lost.
 	verify := New()
 	for i, p := range parts {
-		s, e := verify.importSTEP(string(p))
+		s, e := verify.importSTEPInUnits(string(p), units)
 		if e != nil {
 			return fail(e)
 		}

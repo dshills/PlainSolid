@@ -79,7 +79,8 @@ Run the supplemental TypeScript STEP repair fixture against real Go WASM in
 the disposable app with `--suite unit --step-repair-fixture`. The harness
 typechecks the adapter and records the fixture and original STEP input hashes.
 The cases cover signed and rationally tilted placements, source proof transport,
-world meshes, and strict canonical STEP reimport and re-export.
+world meshes, and strict canonical STEP reimport and re-export. The source-unit
+cases also qualify model retention and millimetre display in metres and inches.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
@@ -180,6 +181,25 @@ opaque `nativeProofJSON` string. Pass that string unchanged to the native
 proof reader. The existing `KernelAdapter.importStep(source)` interface
 continues to use strict import.
 
+For qualified rational-world STEP sources authored in metres or inches, pass
+the original `units` explicitly on both import and export. The raw JSON field
+is `stepUnits`. The same unit selection enables strict canonical reopen.
+
+```ts
+const shape = kernel.importStep(source, { units: "in", stepRepair: { maxDistance: 1e-12, native: true } });
+const exported = kernel.exportStep([shape], { units: "in" });
+const reopened = kernel.importStep(new TextDecoder().decode(exported.bytes), { units: "in" });
+```
+
+`nativeStepSourceUnit(shape)` reports the explicitly retained file unit.
+`repairEvidence.worldPose` and repair distances stay in the original STEP
+coordinate unit. The export's `units` also names the file unit. The before and
+after measures and bounds are in millimetres, as marked by `proofUnits: "mm"`.
+Display applies the exact unit factor to the retained local geometry and pose
+before rounding points to millimetres. A distance, normal, and embedding proof
+bounds the mesh conversion. The bridge rejects a missing or mismatched unit
+on an explicit source-unit occurrence and rejects mixed-unit STEP exports.
+
 For convex repaired or canonical circular extrusions in signed-coordinate
 frames, the bridge subdivides the exact circular profile once and shares the
 same rim samples across both caps and the axial walls. Each chord checks
@@ -190,8 +210,8 @@ mesh assembler uses that profile to produce a closed oriented display.
 Rationally tilted repair retains the product-local analytic solid and its exact
 rational world placement. `repairEvidence.worldPose` carries the placement as a
 3×4 array of rational strings. The evidence also counts finite line owners and
-axial trims where applicable. The bridge exports convex millimetre occurrences as
-exact world STEP that ordinary strict import can read. Inspection, cloning,
+axial trims where applicable. The bridge exports qualified convex occurrences as
+exact world STEP that strict import can read. Inspection, cloning,
 display edges, drawing bounds, mesh, STL, and exact proper rigid transforms are
 supported for these occurrences. Local rim subdivision and verified placement
 rounding share the requested distance and angular allowances. The represented

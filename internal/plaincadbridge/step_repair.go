@@ -44,39 +44,41 @@ type stepRepairMaterial interface {
 	PCurves() []step.ConvexArcPCurveAgreement
 }
 
-func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair *stepRepairRequest) (Shape, error) {
+func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair *stepRepairRequest, units stepFileUnit) (Shape, error) {
 	if repair == nil {
-		return b.importSTEP(source)
+		return b.importSTEPInUnits(source, units)
 	}
 	maxDistance := float64(repair.MaxDistance)
 	if !finite(maxDistance) || maxDistance <= 0 {
 		return Shape{}, errors.New("stepRepair requires a positive finite maxDistance in source length units")
 	}
-	shape, err := b.importSTEP(source)
+	shape, err := b.importSTEPInUnits(source, units)
 	var strictErr *failureError
 	if !errors.As(err, &strictErr) || strictErr.code != "UNSUPPORTED" {
 		return shape, err
 	}
 	options := step.ConvexArcRepairOptions{MaxDistance: maxDistance}
-	if material, err := step.RepairPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
-		return b.putSTEPRepair(ctx, material, *repair)
-	}
-	if material, err := step.RepairGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
-		return b.putSTEPRepair(ctx, material, *repair)
-	}
-	if material, err := step.RepairPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
-		return b.putSTEPRepair(ctx, material, *repair)
+	if units == "" {
+		if material, err := step.RepairPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+			return b.putSTEPRepair(ctx, material, *repair, units)
+		}
+		if material, err := step.RepairGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+			return b.putSTEPRepair(ctx, material, *repair, units)
+		}
+		if material, err := step.RepairPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+			return b.putSTEPRepair(ctx, material, *repair, units)
+		}
 	}
 	if material, err := step.RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
-		return b.putSTEPRepair(ctx, material, *repair)
+		return b.putSTEPRepair(ctx, material, *repair, units)
 	}
 	if material, err := step.RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
-		return b.putSTEPRepair(ctx, material, *repair)
+		return b.putSTEPRepair(ctx, material, *repair, units)
 	}
 	return Shape{}, unsupportedEdge("STEP source has no qualified default OCCT pcurve repair within maxDistance")
 }
 
-func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial, q stepRepairRequest) (Shape, error) {
+func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial, q stepRepairRequest, units stepFileUnit) (Shape, error) {
 	evidence := stepRepairEvidence{
 		MaxDistance:  float64(q.MaxDistance),
 		Provenance:   material.Provenance(),
@@ -135,6 +137,9 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 		return Shape{}, errors.New("unrecognized STEP repair material")
 	}
 	if err != nil {
+		return Shape{}, err
+	}
+	if err = checkRationalSTEPUnit(d.LengthUnit, units); err != nil {
 		return Shape{}, err
 	}
 	if proof.Len() > MaxRequestBytes {
