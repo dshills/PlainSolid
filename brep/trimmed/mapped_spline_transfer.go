@@ -175,6 +175,22 @@ func ProveMappedSplineCellLocalAsynchronousTransfer(ctx context.Context, support
 }
 
 func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	mapped, stations, err := proveMappedSplineInferredSupportTransfer(ctx, support, source, model, maxSupportKnots, 1, o)
+	if len(stations) == 0 {
+		return mapped, nil, err
+	}
+	return mapped, stations[0], err
+}
+
+// ProveMappedSplineInferredSupportTransfer proves an original owner map on a
+// single model Bézier across up to two transverse original support events.
+// It preserves every exact raw restriction. An empty stream certifies the
+// original edge stays within one support cell.
+func ProveMappedSplineInferredSupportTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
+	return proveMappedSplineInferredSupportTransfer(ctx, support, source, model, 2, 2, o)
+}
+
+func proveMappedSplineInferredSupportTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, maxSupportKnots, maxActiveKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
 	var zero MappedSplineUV
 	if ctx == nil || support == nil || model == nil {
 		return zero, nil, geom.ErrInvalid
@@ -204,15 +220,14 @@ func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Sur
 		q, err := ProveMappedSplineTransfer(ctx, support, source, model, o)
 		return q, nil, err
 	}
-	if len(crossings) != 1 {
-		return zero, nil, fmt.Errorf("the original model coedge permits only one active support knot: %w", geom.ErrConvergence)
+	if len(crossings) > maxActiveKnots {
+		return zero, nil, fmt.Errorf("the original model coedge permits at most %d active support knots: %w", maxActiveKnots, geom.ErrConvergence)
 	}
-	crossing := crossings[0]
 	normalized, err := model.Reparameterize(0, 1, false, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	weight, err := mappedSplineFirstBranchWeight(ctx, support, raw, normalized, crossing, one, o)
+	weight, err := mappedSplineFirstBranchWeight(ctx, support, raw, normalized, crossings[0], one, o)
 	if err != nil {
 		return zero, nil, err
 	}
@@ -220,11 +235,14 @@ func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Sur
 	if err != nil {
 		return zero, nil, err
 	}
-	station := mappedSplineModelStation(crossing, weight)
-	if err := ProveMappedSplineSplitTransfer(ctx, support, mapped, normalized, station, o); err != nil {
+	stations := make([]*big.Rat, len(crossings))
+	for i, crossing := range crossings {
+		stations[i] = mappedSplineModelStation(crossing, weight)
+	}
+	if err := proveMappedSplineBezierPartition(ctx, support, mapped, normalized, stations, o); err != nil {
 		return zero, nil, err
 	}
-	return mapped, station, nil
+	return mapped, stations, nil
 }
 
 func mappedSplineFirstBranchWeight(ctx context.Context, support geom.Surface, raw MappedSplineUV, firstModel *geom.ExactSplineCurve, rawEnd, modelEnd *big.Rat, o geom.SurfacePatchOptions) (*big.Rat, error) {

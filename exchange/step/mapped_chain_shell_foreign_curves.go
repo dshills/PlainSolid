@@ -63,13 +63,16 @@ func mappedChainSTEPBezierInTraversal(model *geom.ExactSplineCurve, reverse bool
 	return model, nil
 }
 
-func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous, cellLocal bool, maxInferredSupportKnots int, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, []*big.Rat, error) {
+func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous, cellLocal bool, bezierRepairs mappedChainBezierRepairs, maxInferredSupportKnots int, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, []*big.Rat, error) {
 	if len(edge.joins) == 0 {
 		model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
 		if err != nil {
 			return trimmed.MappedSplineUV{}, nil, err
 		}
-		if asynchronous {
+		if bezierRepairs&mappedChainBezierSharedPair != 0 {
+			return trimmed.ProveMappedSplineInferredSupportTransfer(ctx, support, source, model, o)
+		}
+		if asynchronous || bezierRepairs != 0 {
 			prove := trimmed.ProveMappedSplineAsynchronousTransfer
 			if cellLocal {
 				prove = trimmed.ProveMappedSplineCellLocalAsynchronousTransfer
@@ -133,6 +136,7 @@ type mappedChainBezierRepairs uint8
 const (
 	mappedChainBezierAsynchronous mappedChainBezierRepairs = 1 << iota
 	mappedChainBezierShared
+	mappedChainBezierSharedPair
 )
 
 func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, bezierRepairs mappedChainBezierRepairs, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
@@ -147,20 +151,27 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 		cuts = append(cuts, cut{join, [2]bool{true, true}, true})
 	}
 	a, b := len(ownerCuts[0]), len(ownerCuts[1])
+	sharedCount := 0
+	switch {
+	case bezierRepairs&mappedChainBezierSharedPair != 0:
+		sharedCount = 2
+	case bezierRepairs&mappedChainBezierShared != 0:
+		sharedCount = 1
+	}
 	switch n := a + b; {
+	case sharedCount != 0 && a == sharedCount && a == b && len(joins) == 0 &&
+		slices.EqualFunc(ownerCuts[0], ownerCuts[1], func(a, b *big.Rat) bool { return a.Cmp(b) == 0 }):
+		// Each owner already proved its exact raw restrictions against this
+		// Bézier. Equal model stations define the shared partition.
+		for _, station := range ownerCuts[0] {
+			cuts = append(cuts, cut{t: station, owners: [2]bool{true, true}})
+		}
+	case sharedCount == 2 && n > 0 || sharedCount == 1 && n > 1 && bezierRepairs&mappedChainBezierAsynchronous == 0:
+		return nil, fmt.Errorf("both inferred roof support streams must coincide on the original model Bézier: %w", geom.ErrConvergence)
 	case n > 1:
 		three := allowThree && a == 1 && b == 1
 		multiple := n+1 == v8Cuts && min(a, b) >= 1
-		singleBezier := bezierRepairs != 0 && len(joins) == 0 && a == 1 && b == 1
-		if singleBezier && bezierRepairs&mappedChainBezierShared != 0 && ownerCuts[0][0].Cmp(ownerCuts[1][0]) == 0 {
-			// Each owner already proved both exact raw restrictions against
-			// this model Bézier. Equal model stations define one shared cut.
-			cuts = append(cuts, cut{t: ownerCuts[0][0], owners: [2]bool{true, true}})
-			break
-		}
-		if singleBezier && bezierRepairs&mappedChainBezierAsynchronous == 0 {
-			return nil, fmt.Errorf("the two inferred roof support events must coincide on the original model Bézier: %w", geom.ErrConvergence)
-		}
+		singleBezier := bezierRepairs&mappedChainBezierAsynchronous != 0 && len(joins) == 0 && a == 1 && b == 1
 		if !singleBezier && (len(joins) != 1 || !three && !multiple) {
 			return nil, fmt.Errorf("asynchronous repair permits one owner-side crossing per original edge: %w", geom.ErrConvergence)
 		}
