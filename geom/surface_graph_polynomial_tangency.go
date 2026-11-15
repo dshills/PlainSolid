@@ -43,7 +43,7 @@ type SplineGraphPolynomialTangency struct {
 // Additional or unresolved contacts fail without publishing partial geometry.
 func DiscoverSplineGraphPolynomialTangency(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialTangency, error) {
 	var result SplineGraphPolynomialTangency
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, nil, &result)
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 1, multiplicity: 2, certify: result.certifyArrangement})
 	if e != nil {
 		return SplineGraphPolynomialTangency{ExactOperations: pair.ExactOperations}, e
 	}
@@ -52,7 +52,8 @@ func DiscoverSplineGraphPolynomialTangency(ctx context.Context, a, b *SurfacePat
 	return result, nil
 }
 
-func (r *SplineGraphPolynomialTangency) certifyArrangement(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, free *big.Rat, d ParameterRectangle, b *polynomialBudget) error {
+func (r *SplineGraphPolynomialTangency) certifyArrangement(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, roots []*big.Rat, d ParameterRectangle, b *polynomialBudget) error {
+	free := roots[0]
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
 	delta, e := graphPolynomialSum(pair.Power[1], pair.Power[0], -1, b)
