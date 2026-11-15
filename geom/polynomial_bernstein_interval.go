@@ -24,20 +24,28 @@ func polynomialBernsteinInterval(p rationalPolynomial, interval exactInterval, b
 	degree := len(local) - 1
 	var lo, hi *big.Rat
 	for i := 0; i <= degree; i++ {
-		value := new(big.Rat)
-		for j := 0; j <= i; j++ {
-			ratio := new(big.Rat).SetFrac(new(big.Int).Binomial(int64(i), int64(j)), new(big.Int).Binomial(int64(degree), int64(j)))
-			value.Add(value, new(big.Rat).Mul(local[j], ratio))
-			if e := b.check(value); e != nil {
-				return exactInterval{}, e
-			}
+		value, e := polynomialBernsteinControl(local, degree, i, b)
+		if e != nil {
+			return exactInterval{}, e
 		}
 		if lo == nil || value.Cmp(lo) < 0 {
-			lo = new(big.Rat).Set(value)
+			lo = value
 		}
 		if hi == nil || value.Cmp(hi) > 0 {
-			hi = new(big.Rat).Set(value)
+			hi = value
 		}
 	}
 	return exactInterval{lo: lo, hi: hi}, nil
+}
+
+func polynomialBernsteinControl(p rationalPolynomial, degree, i int, b *polynomialBudget) (*big.Rat, error) {
+	value := new(big.Rat)
+	for j := 0; j <= i && j < len(p); j++ {
+		ratio := new(big.Rat).SetFrac(new(big.Int).Binomial(int64(i), int64(j)), new(big.Int).Binomial(int64(degree), int64(j)))
+		value.Add(value, new(big.Rat).Mul(p[j], ratio))
+		if e := b.check(value); e != nil {
+			return nil, e
+		}
+	}
+	return value, nil
 }
