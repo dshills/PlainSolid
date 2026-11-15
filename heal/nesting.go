@@ -25,13 +25,7 @@ type ShellOrientation struct {
 func orientNestedShells(ctx context.Context, solid brep.Solid, vertices []geom.Vec3, edges []brep.Edge, faces []brep.Face, flips []int, options collision.LocationOptions) (brep.Solid, []ShellOrientation, error) {
 	shells, err := collision.InspectShellNesting(ctx, solid, options)
 	if err != nil {
-		switch {
-		case errors.Is(err, collision.ErrInvalid):
-			err = fmt.Errorf("%w: %w", ErrInvalid, err)
-		case errors.Is(err, collision.ErrLimit):
-			err = fmt.Errorf("%w: %w", ErrLimit, err)
-		}
-		return brep.Solid{}, nil, err
+		return brep.Solid{}, nil, planarValidationError(err)
 	}
 	mapping := solid.TriangleFaces()
 	report := make([]ShellOrientation, len(shells))
@@ -72,4 +66,15 @@ func orientNestedShells(ctx context.Context, solid brep.Solid, vertices []geom.V
 		return brep.Solid{}, nil, err
 	}
 	return solid, report, nil
+}
+
+func planarValidationError(err error) error {
+	switch {
+	case errors.Is(err, collision.ErrInvalid):
+		return fmt.Errorf("%w: %w", ErrInvalid, err)
+	case errors.Is(err, collision.ErrLimit):
+		return fmt.Errorf("%w: %w", ErrLimit, err)
+	default:
+		return err
+	}
 }
