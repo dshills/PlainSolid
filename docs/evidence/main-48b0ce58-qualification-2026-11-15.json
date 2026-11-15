@@ -248,5 +248,39 @@
     "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-48b0ce58-reconciled.tar.gz",
     "bytes": 687743,
     "sha256": "b95c5220199231fc773a408407c6e163c5de5243bd86aa88c2005672ea7da305"
+  },
+  "originalLanesCompletion": {
+    "checkedAt": "2026-11-15T09:48:57-06:00",
+    "summary": {
+      "packagesPassed": 52,
+      "packagesWithoutTests": 4,
+      "topLevelPasses": 5143,
+      "optionalTopLevelSkips": 503,
+      "topLevelInventory": 5646,
+      "trimmedInventory": 1398,
+      "trimmedPasses": 1357,
+      "trimmedOptionalSkips": 41
+    },
+    "trimmed0": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-48b0ce58/trimmed-0.jsonl",
+      "bytes": 270580,
+      "sha256": "528eb165c13959834c046747f3abda838270861301ca6c879dec05246ddbaa66",
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      },
+      "topLevel": {
+        "pass": 272,
+        "skip": 8
+      },
+      "includingSubtests": {
+        "pass": 317,
+        "skip": 8
+      }
+    },
+    "archive": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-48b0ce58.tar.gz",
+      "bytes": 682493,
+      "sha256": "96f228497ee9324b426e54d15de5d310823085ce054b69d8603b46a1d5a599ba"
+    }
   }
 }

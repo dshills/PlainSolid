@@ -6938,6 +6938,9 @@ group-zero prefix includes the full 1,349.190-second triple-radial test. Four
 complementary lanes verify all 231 cases after that prefix against the same
 revision. The logs and selection manifests were reconciled with zero duplicate
 or unaccounted cases. Other groups and the package lane use the original run.
+The original unsplit group zero later finished independently with the same
+272 passes and eight skips. The primary run's full archive is included in
+the manifest with the same inventory and totals.
 
 `ebc3d1f7` qualifies native Common and Fuse for two original transverse nodes.
 Both narrow and wider fixtures pass native construction and exact source
@@ -6966,3 +6969,35 @@ check irrational oblique centers/radii, the obtuse angle branch, work and
 precision limits, and matching native integrals. `6791dc9a` binds the source
 circle, line solver, measure proof and native represented-radius assembly to
 the same exact original sphere equations.
+
+The two-node Cut contract preserves either two shells sharing both original
+nodes or three positive shells joined by a chain of two exact contacts. The
+wide pinned OCCT comparator matches independently clipped original slabs to
+within `3.1e-11`; the whole-stock reverse OCCT grouping differs by chart
+axis, so it does not qualify the native point-contact grouping. The main
+two-node and earlier single-node Cut races passed together in 346.376 seconds.
+
+The original OCCT mapped-shell author emitted separate standard AP242 graphs
+with invariant exact model geometry, including a reordered shell and rotated
+roof wires. The focused main race passed in 6.823 seconds for the recorded and
+two live authoring cases, exact planar chart transfers, owner mutations, and
+canonical STEP reopen. The first helper build lacked its optional STEP flag;
+the successful run uses the documented STEP-enabled build.
+
+The lens display recipe keeps the original irrational rim and continuously
+bounds the model chart deviation, before reserving that allowance from the
+mesh deflection budget. The source-only native record re-proves all bounds
+and regenerates a closed mesh. Its race tests reject oversized input, changes
+to the original source or witness and unfinished arithmetic.
+
+The tilted STEP native proof race passed in 26.402 seconds, including actual
+single, translated single and grouped OCCT specimens. The original STEP is
+byte-identical on reload; all repair and owner certificates are recomputed
+before being compared with the stored source proof. Pinned OCCT transfers the
+corrected world geometry after the same reload.
+
+The novel planar component assembly certificate passed `collision` and all
+`heal` race suites. A concave prism and an independent diamond prism share two
+distinct original vertices and no other boundary. The verifier proves exact
+volume `29/2`, and rejects an incomplete ledger, duplicate claims, edge/face
+touch, crossing interiors, hidden containment, inward shell and work limits.

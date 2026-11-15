@@ -99,15 +99,18 @@ through the long triple-radial case with 231 disjoint complementary cases.
 Newer changes have focused checks; `f5bfaac2` also passed `go vet ./...`
 and a Windows amd64 cross-build.
 
-Two transverse nodes now qualify native Common and Fuse, with exact source
-branches, both node identities and deterministic reload. Canonical mapped shell
-STEP reopens with all 34 original coedges and passes pinned OCCT transfer.
-Analytic point and line queries and area/volume enclosures cover large offsets
-and irrational sphere-lens rims. Bounded tilted single and grouped STEP repair
-pass actual pinned OCCT specimens. The next active work covers two-node Cut,
-noncanonical mapped STEP input, native proof persistence for tilted repair,
-and certified display bindings for nonrepresentable lens rims. Broader curved
-assembly, exchange, and qualification remain required.
+Two transverse nodes now qualify native Common, Fuse, and a separate Cut
+component result with exact contact graphs and deterministic reload. A general
+planar vertex-contact assembly proof preserves separate indexed components.
+Canonical mapped shell STEP reopens with all 34 original coedges, and the
+foreign reader accepts the independently authored and reordered OCCT graph.
+Native tilted STEP repair records preserve the original source bytes and
+re-prove the exact rigid placement, changed curves and original owner ranges.
+Analytical queries and a separate certified display recipe cover irrational
+sphere-lens rims. The next active work includes exact tangency arrangements,
+multi-span mapped roof supports, and canonical transfer of rationally tilted
+STEP repairs. Broader curved assembly, exchange and qualification remain
+required.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
