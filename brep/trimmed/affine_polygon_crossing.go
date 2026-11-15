@@ -12,13 +12,14 @@ import (
 // cross-owner face clipping cumulatively. Face/edge proof stages keep their
 // existing bounds. Defaults:64M operations,256 face pairs; maxima:128M,16384.
 type ConvexAffinePolygonCrossingOptions struct {
+	// AllowPairedEdgeJunctions accepts exact simultaneous edge/edge nodes only
+	// with both source parameters and all four original incident face pairs.
+	// Material pairing is independently checked during native reconstruction.
+	AllowPairedEdgeJunctions    bool
 	Shell                       ConvexAffinePolygonShellOptions
 	MaxOperations, MaxFacePairs int
 }
 
-// ConvexAffinePolygonCrossing authenticates complete transverse closed section
-// cycles on two original convex polygon shells. Coplanar area, point-only,
-// edge-carried and simultaneous original boundary contacts remain unsupported.
 // ConvexAffinePolygonSectionVertex retains one normalized canonical original
 // edge parameter in [0,1] (the original model Range remains on OriginalShell)
 // and both incident original face/coedge occurrences at a transverse junction.
@@ -27,14 +28,24 @@ type ConvexAffinePolygonSectionVertex struct {
 	Owner, Edge int
 	Parameter   *big.Rat
 	Occurrences [][2]int
+	// Owners has one entry normally, or both entries in the opt-in paired mode.
+	// Paired nodes set legacy Owner/Edge to -1 and Parameter to nil.
+	Owners       []ConvexAffinePolygonSectionOwner
+	ContactPairs [][2]int
 }
+
+// ConvexAffinePolygonCrossing authenticates complete original section incidence.
+// The default produces degree-two cycles. The paired-edge opt-in admits degree
+// two/four junctions with all four incident pairs; it does not choose a material
+// pairing. Coplanar area and edge-carried contacts remain unsupported.
 type ConvexAffinePolygonCrossing struct {
-	shells   [2]*ConvexAffinePolygonShell
-	source   *AffineShellPairedImprint
-	points   [][3]*big.Rat
-	contacts []*intersect.AffinePolygonContact
-	nodes    []ConvexAffinePolygonSectionVertex
-	work     int
+	shells      [2]*ConvexAffinePolygonShell
+	source      *AffineShellPairedImprint
+	points      [][3]*big.Rat
+	contacts    []*intersect.AffinePolygonContact
+	nodes       []ConvexAffinePolygonSectionVertex
+	work        int
+	allowPaired bool
 }
 
 func (r *ConvexAffinePolygonCrossing) CompleteFacePairs() int {
@@ -70,7 +81,15 @@ func (r *ConvexAffinePolygonCrossing) SectionVertices() []ConvexAffinePolygonSec
 		for k := range out[i].Point {
 			out[i].Point[k] = new(big.Rat).Set(out[i].Point[k])
 		}
-		out[i].Parameter = new(big.Rat).Set(out[i].Parameter)
+		if out[i].Parameter != nil {
+			out[i].Parameter = new(big.Rat).Set(out[i].Parameter)
+		}
+		out[i].Owners = append([]ConvexAffinePolygonSectionOwner(nil), out[i].Owners...)
+		for j := range out[i].Owners {
+			out[i].Owners[j].Parameter = new(big.Rat).Set(out[i].Owners[j].Parameter)
+			out[i].Owners[j].Occurrences = append([][2]int(nil), out[i].Owners[j].Occurrences...)
+		}
+		out[i].ContactPairs = append([][2]int(nil), out[i].ContactPairs...)
 		out[i].Occurrences = append([][2]int(nil), out[i].Occurrences...)
 	}
 	return out
@@ -104,7 +123,7 @@ func CertifyConvexAffinePolygonCrossing(ctx context.Context, a, c Solid, o Conve
 		return nil, geom.ErrConvergence
 	}
 	b := &nativePrismAffineBudget{ctx: ctx, max: o.MaxOperations, bits: 16384}
-	r := &ConvexAffinePolygonCrossing{source: &AffineShellPairedImprint{sources: [2]Solid{a, c}}}
+	r := &ConvexAffinePolygonCrossing{allowPaired: o.AllowPairedEdgeJunctions, source: &AffineShellPairedImprint{sources: [2]Solid{a, c}}}
 	for owner, s := range r.source.sources {
 		if b.work >= b.max {
 			return nil, geom.ErrConvergence
@@ -127,7 +146,6 @@ func CertifyConvexAffinePolygonCrossing(ctx context.Context, a, c Solid, o Conve
 			r.source.charts[owner] = append(r.source.charts[owner], splineEmbeddingFace{patch: p})
 		}
 	}
-	key := func(p [3]*big.Rat) [3]string { return [3]string{p[0].RatString(), p[1].RatString(), p[2].RatString()} }
 	ids := map[[3]string]int{}
 	degree := []int{}
 	segments := map[[2]int]bool{}
@@ -159,7 +177,7 @@ func CertifyConvexAffinePolygonCrossing(ctx context.Context, a, c Solid, o Conve
 			if kind == intersect.AffinePatchContactEmpty {
 				continue
 			}
-			if kind != intersect.AffinePatchContactSegment {
+			if kind != intersect.AffinePatchContactSegment && !(r.allowPaired && kind == intersect.AffinePatchContactPoint) {
 				return nil, fmt.Errorf("polygon crossing pair %d/%d is not transverse segment: %w", i, j, geom.ErrDomain)
 			}
 			points, e := contact.Vertices()
@@ -170,58 +188,40 @@ func CertifyConvexAffinePolygonCrossing(ctx context.Context, a, c Solid, o Conve
 			if e != nil {
 				return nil, e
 			}
-			if len(points) != 2 || len(edges) != 1 {
-				return nil, geom.ErrDomain
-			}
-			sides := pair.EdgeTrimSides()
-			if len(sides) != 1 || len(sides[0][0]) != 0 || len(sides[0][1]) != 0 {
-				return nil, geom.ErrDomain
+			pointOnly := kind == intersect.AffinePatchContactPoint
+			if pointOnly {
+				if len(points) != 1 || len(edges) != 0 {
+					return nil, geom.ErrDomain
+				}
+			} else {
+				if len(points) != 2 || len(edges) != 1 {
+					return nil, geom.ErrDomain
+				}
+				sides := pair.EdgeTrimSides()
+				if len(sides) != 1 || len(sides[0][0]) != 0 || len(sides[0][1]) != 0 {
+					return nil, geom.ErrDomain
+				}
 			}
 			vertices := pair.VertexTrimSides()
 			ends := [2]int{}
 			for k, p := range points {
-				if len(vertices[k][0])+len(vertices[k][1]) != 1 {
-					return nil, fmt.Errorf("polygon crossing simultaneous/vertex endpoint: %w", geom.ErrDomain)
-				}
-
-				owner, face, uv := 0, i, p.A
-				if len(vertices[k][1]) == 1 {
-					owner, face, uv = 1, j, p.B
-				}
-				local := vertices[k][owner][0]
-				use := r.source.sources[owner].faces[face].Outer[local]
-				start, end := [2]*big.Rat{ratInset(use.UVStart.X), ratInset(use.UVStart.Y)}, [2]*big.Rat{ratInset(use.UVEnd.X), ratInset(use.UVEnd.Y)}
-				axis := 0
-				if start[0].Cmp(end[0]) == 0 {
-					axis = 1
-				}
-				parameter := b.op('/', b.op('-', uv[axis], start[axis]), b.op('-', end[axis], start[axis]))
-				if use.Reversed {
-					parameter = b.op('-', big.NewRat(1, 1), parameter)
-				}
-				if b.err != nil {
-					return nil, b.err
-				}
-				if parameter.Sign() <= 0 || parameter.Cmp(big.NewRat(1, 1)) >= 0 {
+				if pointOnly && len(vertices[k][0])+len(vertices[k][1]) != 2 {
 					return nil, geom.ErrDomain
 				}
-				token := key(p.Point)
-				id, ok := ids[token]
-				if !ok {
-					id = len(r.points)
-					ids[token] = id
-					r.points = append(r.points, p.Point)
-					degree = append(degree, 0)
-					r.nodes = append(r.nodes, ConvexAffinePolygonSectionVertex{Point: p.Point, Owner: owner, Edge: use.Edge, Parameter: parameter})
-				} else {
-					node := r.nodes[id]
-					if node.Owner != owner || node.Edge != use.Edge || node.Parameter.Cmp(parameter) != 0 {
-						return nil, geom.ErrDomain
-					}
+				id, e := r.recordSectionPoint(b, ids, [2]int{i, j}, p, vertices[k])
+				if e != nil {
+					return nil, e
 				}
-				r.nodes[id].Occurrences = append(r.nodes[id].Occurrences, [2]int{face, local})
+				for len(degree) < len(r.nodes) {
+					degree = append(degree, 0)
+				}
 				ends[k] = id
-				degree[id]++
+				if !pointOnly {
+					degree[id]++
+				}
+			}
+			if pointOnly {
+				continue
 			}
 			ordered := ends
 			if ends[0] > ends[1] {
@@ -237,11 +237,8 @@ func CertifyConvexAffinePolygonCrossing(ctx context.Context, a, c Solid, o Conve
 	if len(segments) < 3 {
 		return nil, geom.ErrDomain
 	}
-	for vi, d := range degree {
-		occurrences := r.nodes[vi].Occurrences
-		if d != 2 || len(occurrences) != 2 || occurrences[0][0] == occurrences[1][0] {
-			return nil, geom.ErrDomain
-		}
+	if e := r.finishSectionNodes(b, degree); e != nil {
+		return nil, e
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e

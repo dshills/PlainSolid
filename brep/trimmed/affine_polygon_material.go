@@ -337,8 +337,10 @@ func (r *ConvexAffinePolygonCrossing) validateSectionBinding(b *nativePrismAffin
 	if n == 0 || m == 0 || len(r.contacts) != n*m || len(r.points) != len(r.nodes) {
 		return geom.ErrInvalid
 	}
+	check := &ConvexAffinePolygonCrossing{source: r.source, allowPaired: r.allowPaired}
+	ids := map[[3]string]int{}
+	degree := []int{}
 	count := 0
-	degree := make([]int, len(r.points))
 	for index, pair := range r.contacts {
 		if pair == nil {
 			return geom.ErrInvalid
@@ -351,36 +353,60 @@ func (r *ConvexAffinePolygonCrossing) validateSectionBinding(b *nativePrismAffin
 		if kind == intersect.AffinePatchContactEmpty {
 			continue
 		}
-		if kind != intersect.AffinePatchContactSegment || count >= len(r.source.edges) {
+		pointOnly := kind == intersect.AffinePatchContactPoint
+		if kind != intersect.AffinePatchContactSegment && !(r.allowPaired && pointOnly) {
 			return geom.ErrDomain
 		}
-		edge := r.source.edges[count]
-		count++
-		if edge.Faces != [2]int{index / m, index % m} {
-			return geom.ErrDomain
-		}
+		faces := [2]int{index / m, index % m}
 		points, e := contact.Vertices()
 		if e != nil {
 			return e
 		}
-		if len(points) != 2 {
+		if (pointOnly && len(points) != 1) || (!pointOnly && len(points) != 2) {
 			return geom.ErrDomain
 		}
-		for k, p := range points {
-			vi := edge.Vertices[k]
-			if vi < 0 || vi >= len(r.points) {
+		sides := pair.VertexTrimSides()
+		var edge AffineShellImprintEdge
+		if !pointOnly {
+			if count >= len(r.source.edges) {
 				return geom.ErrDomain
 			}
-			degree[vi]++
+			edge = r.source.edges[count]
+			count++
+			if edge.Faces != faces {
+				return geom.ErrDomain
+			}
+		}
+		for k, p := range points {
+			if pointOnly && len(sides[k][0])+len(sides[k][1]) != 2 {
+				return geom.ErrDomain
+			}
+			vi, e := check.recordSectionPoint(b, ids, faces, p, sides[k])
+			if e != nil {
+				return e
+			}
+			for len(degree) < len(check.nodes) {
+				degree = append(degree, 0)
+			}
+			if vi >= len(r.points) {
+				return geom.ErrDomain
+			}
 			for axis, v := range p.Point {
 				b.check(v)
 				if b.err != nil {
 					return b.err
 				}
-				if v.Cmp(r.points[vi][axis]) != 0 {
+				if r.points[vi][axis] == nil || v.Cmp(r.points[vi][axis]) != 0 {
 					return geom.ErrDomain
 				}
 			}
+			if pointOnly {
+				continue
+			}
+			if edge.Vertices[k] != vi {
+				return geom.ErrDomain
+			}
+			degree[vi]++
 			for owner, uv := range [2][2]*big.Rat{p.A, p.B} {
 				for axis, v := range uv {
 					b.check(edge.UV[owner][k][axis])
@@ -394,11 +420,14 @@ func (r *ConvexAffinePolygonCrossing) validateSectionBinding(b *nativePrismAffin
 			}
 		}
 	}
-	if count != len(r.source.edges) {
+	if count != len(r.source.edges) || len(check.nodes) != len(r.nodes) {
 		return geom.ErrDomain
 	}
-	for _, d := range degree {
-		if d != 2 {
+	if e := check.finishSectionNodes(b, degree); e != nil {
+		return e
+	}
+	for i, node := range check.nodes {
+		if !polygonSectionNodesEqual(node, r.nodes[i]) {
 			return geom.ErrDomain
 		}
 	}
