@@ -196,12 +196,12 @@ static int circularLoopOwnerWitness(const char* path, double modelSpeed, double 
            << ",\"CylinderLines\":" << cylinderLines << ",\"CylinderCircles\":" << cylinderCircles
            << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPlanarMap\":" << withoutMap;
  if (fillets>1) std::cout << ",\"RationalCaps\":" << rationalCaps << ",\"MaxCapDistance\":" << maxCapDistance;
- if (fillets==3) std::cout << ",\"ShiftedCylinderCircles\":" << shifted << ",\"ShiftedSamples\":" << 3*shifted
+ if (finiteCylinder && fillets>=3) std::cout << ",\"ShiftedCylinderCircles\":" << shifted << ",\"ShiftedSamples\":" << 3*shifted
                            << ",\"MaxShiftedDistance\":" << maxShiftedDistance;
  std::cout << "}\n";
  const int expectedCaps=fillets>1 ? 2 : 0;
  const int expectedPlaneLines=fillets==4 ? 24 : 18;
- const int expectedShifted=finiteCylinder && fillets==3 ? 2 : 0;
+ const int expectedShifted=finiteCylinder && fillets>=3 ? 2*(fillets-2) : 0;
  return planeLines==expectedPlaneLines && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
         cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==expectedShifted ? 0 : 9;
 }
@@ -223,6 +223,7 @@ if(std::string(argv[1])=="grouped-converted-metre-witness") return circularLoopO
 if(std::string(argv[1])=="grouped-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 2);
 if(std::string(argv[1])=="three-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 3);
 if(std::string(argv[1])=="three-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
+if(std::string(argv[1])=="four-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 4);
 if(std::string(argv[1])=="four-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 4, false);
 if(std::string(argv[1])=="four-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 4);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
@@ -239,8 +240,11 @@ if(std::string(argv[1])=="cap-witness") {
 }
 const std::string mode = argv[1];
 const bool fourNonDyadic = mode == "write-four-default-tilted-nondyadic";
-const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-plane";
-const bool four = mode == "write-four-default-tilted" || fourNonDyadic || fourAutomaticPlane;
+const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-plane" ||
+                                 mode == "write-four-default-tilted-converted-metre-automatic-plane";
+const bool fourConvertedMetre = mode == "write-four-default-tilted-converted-metre" ||
+                                 mode == "write-four-default-tilted-converted-metre-automatic-plane";
+const bool four = mode == "write-four-default-tilted" || fourNonDyadic || fourAutomaticPlane || fourConvertedMetre;
 const bool threeNonDyadic = mode == "write-three-default-tilted-nondyadic";
 const bool threeConvertedMetre = mode == "write-three-default-tilted-converted-metre";
 const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch" ||
@@ -252,7 +256,8 @@ const bool groupedConvertedInch = mode == "write-both-default-tilted-converted-i
                                  mode == "write-both-default-tilted-converted-inch-unscaled";
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch" || groupedConvertedMetre || groupedConvertedInch;
-const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" || groupedConvertedMetre || threeConvertedMetre;
+const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" ||
+                            groupedConvertedMetre || threeConvertedMetre || fourConvertedMetre;
 const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
                            mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch;
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
@@ -299,7 +304,7 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
   } else if (mode == "write-minus-x" || mode == "write-both-default-minus-x") {
    pose.SetValues(0,0,-1,2, -1,0,0,-3, 0,1,0,0);
   } else if (tiltedDefault) {
-   const bool translated = !groupedTilted && !three && (mode == "write-default-tilted-translated" || metre || inch);
+   const bool translated = !groupedTilted && !three && !four && (mode == "write-default-tilted-translated" || metre || inch);
    pose.SetValues(.6,0,.8,translated ? 1 : 0, 0,1,0,0, -.8,0,.6,translated ? 2 : 0);
   } else {
    pose.SetTranslation(gp_Vec(2,0,3));

@@ -188,13 +188,13 @@ func TestRepairFourConvexArcRejectsChangedOwners(t *testing.T) {
 	}
 }
 
-func checkFourConvexArcAutomaticPlane(t *testing.T, raw []byte) {
+func checkFourConvexArcAutomaticPlane(t *testing.T, raw []byte, pairs [2][2]int64) {
 	t.Helper()
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, pair := range [2][2]int64{{44, 310}, {100, 363}} {
+	for _, pair := range pairs {
 		plane, err := simple(f, pair[0], "PLANE", 2)
 		if err != nil {
 			t.Fatal(err)
@@ -229,7 +229,7 @@ func TestRepairFourConvexArcRejectsIndependentControls(t *testing.T) {
 			if suffix == "-nondyadic" {
 				checkGroupedConvexArcUnrepresentable(t, raw, fourConvexArcDistance)
 			} else {
-				checkFourConvexArcAutomaticPlane(t, raw)
+				checkFourConvexArcAutomaticPlane(t, raw, [2][2]int64{{44, 310}, {100, 363}})
 			}
 		})
 	}
@@ -296,7 +296,7 @@ func TestRepairFourConvexArcLive(t *testing.T) {
 	_, raw = author("-nondyadic")
 	checkGroupedConvexArcUnrepresentable(t, raw, fourConvexArcDistance)
 	automatic, raw := author("-automatic-plane")
-	checkFourConvexArcAutomaticPlane(t, raw)
+	checkFourConvexArcAutomaticPlane(t, raw, [2][2]int64{{44, 310}, {100, 363}})
 	out, err := exec.Command(oracle, "read", automatic).CombinedOutput()
 	var rounded rationalTiltUnitMeasurements
 	if err != nil || json.Unmarshal(out, &rounded) != nil {

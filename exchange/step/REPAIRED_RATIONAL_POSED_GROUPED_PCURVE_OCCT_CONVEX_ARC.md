@@ -305,13 +305,12 @@ PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
 The pinned `write-four-default-tilted` mode extrudes a trapezoid whose
 profile vertices are `(0,0)`, `(2,0)`, `(2,1.5)`, and `(0,3)`.
 It authors its planar support explicitly at the base of the 5 mm prism
-and rounds all four separated vertical edges with four distinct radii:
-`1/4`, `3/8`, `5/16`, and `5/32` mm. The default AP214 original
+and rounds all four separated vertical edges with radii of `1/4`, `3/8`,
+`5/16`, and `5/32` mm. The default AP214 original
 has 678 entities, one solid and ten faces. The grouped reader admits this
 24-edge topology with four distinct cylinder supports, four straight
 profile spans and exactly one original body. Its existing entity and
-repair bounds apply. This four-fillet qualification covers the native
-millimetre charts.
+repair bounds apply.
 
 The original 48 pcurve owners include 24 planar lines, six planar circles,
 eight cylindrical lines, eight cylindrical arcs and two rational caps.
@@ -351,4 +350,60 @@ item also reject without publishing repaired material.
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairFourConvexArc' -count=1
+```
+
+## Four-fillet millimetre model converted to metre STEP
+
+The pinned `write-four-default-tilted-converted-metre` mode scales the
+millimetre-native trapezoidal prism by 1000 before transfer. The 662-entity
+source keeps the exact metre declaration, rational world pose and four
+circular supports. The 48 original owners include 24 planar LINE maps
+`t → t/1000`, six planar CIRCLEs, 16 clamped cylindrical splines and two
+rational caps. The rational cap proofs retain both original paired owner
+orders and their finite angular root intervals.
+
+Two same-direction cylindrical quarter spans start at zero. Four shifted
+spans use the original nonzero knots. Owners `#207` and `#472` run from
+`1.570796326795` to `2.498091544797` with unit angular speed. Owners
+`#263` and `#518` run from `2.498091544797` to `4.712388980385` with
+original `u0 = 4.440892098501e-16` and exact slope
+`7380991451959998519702633833/7380991451960000000000000000`.
+Both angular laws preserve fixed axial position. A rational bracket
+encloses each directed model endpoint angle within `1e-12` radian of its
+authored knot. With normalized travel through the original knots, the
+angular discrepancy is bounded by the angle bracket plus the larger
+authored coefficient discrepancy at either end. The two pairs have full
+lift bounds below `4.47e-13` and `2.70e-13` metre,
+respectively.
+
+The original unequal axial trim on edge `#551` projects to directed line
+stations `[0, 5000 + 4e-26]`. Its corrected model stations are
+`[4e-26, 5000 + 4e-26]`. Its cylindrical spline owner `#564` has knots
+`[0,5000]` and exact `dv/dt = 1/1000`. The directed owner map is
+`t → t - 4e-26` on the repaired interval. The receipt records the original
+projection, corrected interval and actual finite owner stations separately.
+The clipped end removes an excess of `4e-29` metre. With constant angle,
+the squared lift error to each model line is bounded at the corresponding
+endpoints. The other unequal axial owner keeps its complete original
+projected interval. No source spline evaluation leaves its authored knots.
+
+The original passes explicit repair at `1e-12` metre and rejects
+`1e-13` metre at shifted owner `#207`. Pinned OCCT independently samples
+the original owners and observes a maximum shifted lift difference of
+`1.22e-13` metre. Strict canonical reopen preserves the exact world pose
+and native solid and re-exports identical bytes. Pinned OCCT reads one
+ten-face solid from the original, corrected and canonical worlds. Its
+canonical measurements are volume `22155304183.748058` mm³, area
+`51012178.844414063` mm² and centroid
+`(2532.56447993552, 1168.7478248848513, 789.91402675263919)` mm.
+
+The independently authored `write-four-default-tilted-converted-metre-automatic-plane`
+control transfers through OCCT and retains exact axial cap-plane gaps of
+`1/5000000000000` metre to both original model circles. Exact repair rejects
+this source, shortened knots, angular drift outside the permitted bounds,
+and a forged finite owner endpoint in the native certificate.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairFourConvertedMetreConvexArc' -count=1
 ```
