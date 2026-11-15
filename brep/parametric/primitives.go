@@ -21,6 +21,10 @@ func build(vertices []geom.Vec3, size float64, patches ...patch) (Solid, error) 
 	if tolerance == 0 || !finite(tolerance) {
 		return Solid{}, fmt.Errorf("parametric: primitive scale outside supported range")
 	}
+	return buildPatches(vertices, tolerance, patches...)
+}
+
+func buildPatches(vertices []geom.Vec3, tolerance float64, patches ...patch) (Solid, error) {
 	faces := make([]Face, len(patches))
 	var edges []Edge
 	for i, p := range patches {
