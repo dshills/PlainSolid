@@ -51,8 +51,10 @@ func DiscoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *
 	return discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, DiscoverSplineGraphPolynomialArrangement)
 }
 
+type polynomialArrangementDiscovery func(context.Context, *SurfacePatch, *SurfacePatch, int, GraphPointContactOptions) (SplineGraphPolynomialArrangement, error)
+
 func discoverAlignedSplineGraphPolynomialArrangement(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions,
-	discover func(context.Context, *SurfacePatch, *SurfacePatch, int, GraphPointContactOptions) (SplineGraphPolynomialArrangement, error)) (r AlignedSplineGraphPolynomialArrangement, err error) {
+	discover polynomialArrangementDiscovery) (r AlignedSplineGraphPolynomialArrangement, err error) {
 	if ctx == nil || a == nil || b == nil || len(a.net) == 0 || len(b.net) == 0 || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
