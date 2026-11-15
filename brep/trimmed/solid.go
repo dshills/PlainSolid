@@ -43,13 +43,14 @@ type Face struct {
 // sides are permitted. A collapsed edge has equal ends, nil model curve,
 // and exactly one face use.
 type Solid struct {
-	vertices     []geom.Vec3
-	edges        []parametric.Edge
-	faces        []Face
-	tolerance    float64
-	seeds        [][]seed
-	minimumLevel int
-	splitSeeds   []bool
+	vertices        []geom.Vec3
+	edges           []parametric.Edge
+	faces           []Face
+	tolerance       float64
+	seeds           [][]seed
+	minimumLevel    int
+	splitSeeds      []bool
+	clippedFuseAxis int // 0 for ordinary shells, 1 or 2 for an original-source clipped Fuse
 }
 type seed struct {
 	uv  [3]geom.Vec2
@@ -443,7 +444,7 @@ func (s Solid) seedTriangles() [][]samples {
 	return out
 }
 
-// Tessellate refines all faces by shared dyadic edge splits. The maximum
+// Tessellate refines faces using shared model-edge samples. The maximum
 // number of UV subdivisions is controlled by MaxSubdivisions (default 128);
 // MaxTriangles bounds the resulting triangles. Deflection and normal angles
 // are checked at samples. AnalyticBound adds a real-arithmetic interpolation
@@ -463,6 +464,12 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 	}
 	if o.MaxTriangles == 0 {
 		o.MaxTriangles = 1000000
+	}
+	if s.clippedFuseAxis != 0 && !o.AnalyticBound {
+		m, err := s.tessellateClippedFuse(ctx, s.clippedFuseAxis-1, o)
+		if err != parametric.ErrBudget && err != errTrimFold {
+			return m, err
+		}
 	}
 	if m, ok, err := s.compactCylinderMesh(ctx, o); ok {
 		return m, err
