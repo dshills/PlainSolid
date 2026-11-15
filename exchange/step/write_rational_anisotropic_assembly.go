@@ -27,8 +27,12 @@ type RationalWrappedAnisotropicStationBoreAssemblyModel struct {
 	LengthUnit  float64
 }
 
-func stageRationalAnisotropicUses(ctx context.Context, uses []RationalAnisotropicAssemblyInstance) ([]AssemblyInstance, map[string]mappedRationalBasis, error) {
-	if len(uses) < 2 || len(uses) > 16 {
+func stageRationalAnisotropicUses(ctx context.Context, uses []RationalAnisotropicAssemblyInstance, nestedMode ...bool) ([]AssemblyInstance, map[string]mappedRationalBasis, error) {
+	minimum, maximum := 2, 16
+	if len(nestedMode) == 1 && nestedMode[0] {
+		minimum, maximum = 3, 17
+	}
+	if len(uses) < minimum || len(uses) > maximum {
 		return nil, nil, geom.ErrInvalid
 	}
 	neutral := make([]AssemblyInstance, 0, len(uses))
@@ -100,8 +104,9 @@ func WriteRationalWrappedAnisotropicStationBoreAssembly(ctx context.Context, w i
 	}
 	return writeRationalAnisotropicPlaced(ctx, w, b.Bytes(), poses, l, o, true)
 }
-func writeRationalAnisotropicPlaced(ctx context.Context, w io.Writer, raw []byte, poses map[string]mappedRationalBasis, l Limits, o WrappedSurfaceOptions, bore bool) error {
-	base, e := readExactFlatSingleProductAssembly(ctx, bytes.NewReader(raw), l)
+func writeRationalAnisotropicPlaced(ctx context.Context, w io.Writer, raw []byte, poses map[string]mappedRationalBasis, l Limits, o WrappedSurfaceOptions, bore bool, nestedMode ...bool) error {
+	nested := len(nestedMode) == 1 && nestedMode[0]
+	base, e := readExactFlatSingleProductAssembly(ctx, bytes.NewReader(raw), l, nested)
 	if e != nil {
 		return e
 	}
@@ -181,18 +186,34 @@ func writeRationalAnisotropicPlaced(ctx context.Context, w io.Writer, raw []byte
 		return e
 	}
 	var verified []ExactNAUOOccurrence
-	if bore {
-		m, e := ReadRationalWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(out), l, o)
-		if e != nil {
-			return e
+	if nested {
+		if bore {
+			m, e := ReadNestedRationalWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(out), l, o)
+			if e != nil {
+				return e
+			}
+			verified = m.Occurrences
+		} else {
+			m, e := ReadNestedRationalWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(out), l, o)
+			if e != nil {
+				return e
+			}
+			verified = m.Occurrences
 		}
-		verified = m.Occurrences
 	} else {
-		m, e := ReadRationalWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(out), l, o)
-		if e != nil {
-			return e
+		if bore {
+			m, e := ReadRationalWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(out), l, o)
+			if e != nil {
+				return e
+			}
+			verified = m.Occurrences
+		} else {
+			m, e := ReadRationalWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(out), l, o)
+			if e != nil {
+				return e
+			}
+			verified = m.Occurrences
 		}
-		verified = m.Occurrences
 	}
 	if len(verified) != len(poses) {
 		return geom.ErrInvalid
