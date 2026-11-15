@@ -12,9 +12,10 @@ type mappedChainStepFace struct {
 	surface       *geom.BSplineSurface
 	reversed      bool
 	uses          []analyticUse
+	plane         *mappedChainForeignPlane
 }
 
-func parseMappedChainStepFace(f *File, id int64) (mappedChainStepFace, error) {
+func parseMappedChainStepFace(f *File, id int64, foreign bool) (mappedChainStepFace, error) {
 	var zero mappedChainStepFace
 	face, err := simple(f, id, "ADVANCED_FACE", 4)
 	if err != nil || face.Args[0].Kind != String {
@@ -32,7 +33,13 @@ func parseMappedChainStepFace(f *File, id int64) (mappedChainStepFace, error) {
 	if err != nil || len(bounds) != 1 {
 		return zero, geom.ErrInvalid
 	}
-	bound, err := simple(f, bounds[0], "FACE_OUTER_BOUND", 3)
+	kind := "FACE_OUTER_BOUND"
+	if foreign {
+		if _, ok := component(f.Entities[bounds[0]], "FACE_BOUND"); ok {
+			kind = "FACE_BOUND"
+		}
+	}
+	bound, err := simple(f, bounds[0], kind, 3)
 	if err != nil || bound.Args[0].Kind != String {
 		return zero, geom.ErrInvalid
 	}
@@ -52,11 +59,7 @@ func parseMappedChainStepFace(f *File, id int64) (mappedChainStepFace, error) {
 	if err != nil || len(ids) > 24 {
 		return zero, geom.ErrInvalid
 	}
-	s, err := decodeMappedChainStepSurface(f, sid)
-	if err != nil {
-		return zero, err
-	}
-	out := mappedChainStepFace{id: id, supportID: sid, surface: s, reversed: !forward}
+	out := mappedChainStepFace{id: id, supportID: sid, reversed: !forward}
 	seen := make(map[int64]bool)
 	for _, use := range ids {
 		u, err := simple(f, use, "ORIENTED_EDGE", 5)
@@ -73,6 +76,15 @@ func parseMappedChainStepFace(f *File, id int64) (mappedChainStepFace, error) {
 		}
 		seen[eid] = true
 		out.uses = append(out.uses, analyticUse{eid, sense})
+	}
+	_, plane := component(f.Entities[sid], "PLANE")
+	if foreign && plane {
+		out.surface, out.plane, err = readMappedChainForeignPlane(f, sid, out.uses)
+	} else {
+		out.surface, err = decodeMappedChainStepSurface(f, sid)
+	}
+	if err != nil {
+		return zero, err
 	}
 	return out, nil
 }

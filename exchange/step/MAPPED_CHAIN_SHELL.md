@@ -34,3 +34,36 @@ The optional live check uses the pinned OCCT STEP executable built by
 PLAINSOLID_OCCT_MAPPED_CHAIN_STEP=/path/to/author-convex-arc-step \
   go test -race ./exchange/step -run '^TestMappedChainRectangularSTEP'
 ```
+
+## Independently authored OCCT STEP
+
+`ReadOCCTMappedChainRectangularShell` opts into the independent source
+form emitted by pinned OCCT. It finds the two original spline roof
+supports among five analytic signed-axis planes and rotates each roof's
+cyclic wire to the common chain. It accepts the identity representation
+placement, `FACE_BOUND`, the normal pcurve master representation, and
+direct separately authored cubic or quartic pcurves on shared roof
+edges. Each such pcurve keeps its own original basis and local interval.
+The reader assigns equally spaced global model stations because the
+independent model-edge parameters are local. It requires the two
+original roof wire directions to agree along the shared chain.
+
+For analytic planes it retains the exact source origin and chart
+directions and records a rational UV shift. This shift represents the
+same chart after removing decimal offsets from the native coordinates.
+The reader verifies raw `LINE` and degree-one spline pcurves against
+the exact original planar lift, authenticates both directed source
+vertices, and verifies the complete roof pcurve and model spline
+identities. `OriginalSTEP` retains the complete independent input.
+The ordinary native solid can also round-trip its independent pcurve
+bases through native JSON.
+
+The recorded fixture was written by pinned OCCT with the floor first,
+the roofs separated in shell order, and both roof wires started off the
+shared chain. Live authoring covers the original and reordered forms:
+
+```sh
+sh tools/occtref/build_mapped_chain_shell.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/mapped-chain-shell step
+PLAINSOLID_OCCT_MAPPED_CHAIN_AUTHOR=/tmp/mapped-chain-shell \
+  go test -race ./exchange/step -run '^TestOCCTMappedChainRectangular'
+```

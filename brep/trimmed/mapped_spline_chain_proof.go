@@ -12,8 +12,9 @@ import (
 // It deliberately does not implement PCurve: native topology and face filling
 // must not silently replace the original piecewise geometry by one polynomial.
 type MappedSplineChain struct {
-	parts    []MappedSplineUV
-	stations []*big.Rat
+	parts       []MappedSplineUV
+	stations    []*big.Rat
+	independent bool
 }
 
 // NewMappedSplineChain re-proves two through eight contiguous restrictions of
@@ -21,6 +22,17 @@ type MappedSplineChain struct {
 // Every map constructor retains o's independent work limit (at most eight).
 // Model station coefficients are bounded to 4096 bits. No C1 promise is made.
 func NewMappedSplineChain(ctx context.Context, parts []MappedSplineUV, stations []*big.Rat, o geom.SurfacePatchOptions) (MappedSplineChain, error) {
+	return newMappedSplineChain(ctx, parts, stations, o, false)
+}
+
+// NewMappedSplineEdgeChain proves a chain of independently authored whole
+// Bézier spline coedges. Their charts and endpoint positions remain exact.
+// Each original basis and raw interval remains attached to its own coedge.
+func NewMappedSplineEdgeChain(ctx context.Context, parts []MappedSplineUV, stations []*big.Rat, o geom.SurfacePatchOptions) (MappedSplineChain, error) {
+	return newMappedSplineChain(ctx, parts, stations, o, true)
+}
+
+func newMappedSplineChain(ctx context.Context, parts []MappedSplineUV, stations []*big.Rat, o geom.SurfacePatchOptions, independent bool) (MappedSplineChain, error) {
 	var zero MappedSplineChain
 	if ctx == nil || len(parts) < 2 || len(parts) > 8 || len(stations) != len(parts)-1 {
 		return zero, geom.ErrInvalid
@@ -41,7 +53,7 @@ func NewMappedSplineChain(ctx context.Context, parts []MappedSplineUV, stations 
 		}
 		prior = s
 	}
-	var out MappedSplineChain
+	out := MappedSplineChain{independent: independent}
 	for i, p := range parts {
 		if p.source.Curve == nil {
 			return zero, geom.ErrInvalid
@@ -55,21 +67,34 @@ func NewMappedSplineChain(ctx context.Context, parts []MappedSplineUV, stations 
 		if e != nil {
 			return zero, e
 		}
-		if i > 0 {
-			a := out.parts[i-1]
-			if !sameAuthoredBezierSpline(a.source.Curve, q.source.Curve) || a.source.Reversed != q.source.Reversed || a.source.ExactEndpoints != q.source.ExactEndpoints {
+		if independent {
+			lo, hi := q.source.Curve.Domain()
+			if q.source.Range != (UVInterval{lo, hi}) {
 				return zero, geom.ErrConvergence
 			}
-			if (!q.source.Reversed && a.source.Range.Max != q.source.Range.Min) || (q.source.Reversed && a.source.Range.Min != q.source.Range.Max) || a.curve.ends[1] != q.curve.ends[0] {
+		}
+		if i > 0 {
+			a := out.parts[i-1]
+			if a.curve.ends[1] != q.curve.ends[0] {
 				return zero, geom.ErrConvergence
+			}
+			if !independent {
+				if !sameAuthoredBezierSpline(a.source.Curve, q.source.Curve) || a.source.Reversed != q.source.Reversed || a.source.ExactEndpoints != q.source.ExactEndpoints {
+					return zero, geom.ErrConvergence
+				}
+				if (!q.source.Reversed && a.source.Range.Max != q.source.Range.Min) || (q.source.Reversed && a.source.Range.Min != q.source.Range.Max) {
+					return zero, geom.ErrConvergence
+				}
 			}
 		}
 		out.parts = append(out.parts, q)
 	}
-	first, last := out.parts[0].source, out.parts[len(parts)-1].source
-	lo, hi := first.Curve.Domain()
-	if (!first.Reversed && (first.Range.Min != lo || last.Range.Max != hi)) || (first.Reversed && (first.Range.Max != hi || last.Range.Min != lo)) {
-		return zero, geom.ErrConvergence
+	if !independent {
+		first, last := out.parts[0].source, out.parts[len(parts)-1].source
+		lo, hi := first.Curve.Domain()
+		if (!first.Reversed && (first.Range.Min != lo || last.Range.Max != hi)) || (first.Reversed && (first.Range.Max != hi || last.Range.Min != lo)) {
+			return zero, geom.ErrConvergence
+		}
 	}
 	for _, s := range stations {
 		out.stations = append(out.stations, new(big.Rat).Set(s))
