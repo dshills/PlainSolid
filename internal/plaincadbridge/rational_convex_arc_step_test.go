@@ -23,23 +23,25 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 		caps, sites  int
 		axial        int
 		owners       int
+		phaseOwners  []int64
 	}{
 		{"occt-default-tilted-oblique-prism-fillet", "occt-rational-posed-single-pcurve-convex-arc",
-			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24},
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24, nil},
 		{"occt-default-tilted-translated-oblique-prism-fillet", "occt-rational-posed-single-pcurve-convex-arc",
-			Bounds{vector{1, 0, -.7}, vector{7.025, 3, 5}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24},
+			Bounds{vector{1, 0, -.7}, vector{7.025, 3, 5}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24, nil},
 		{"occt-both-default-tilted-oblique-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
-			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.077978807115539, 65.622954970084379, 2, 8, 1, 28},
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.077978807115539, 65.622954970084379, 2, 8, 1, 28, nil},
 		{"occt-three-default-tilted-oblique-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
-			Bounds{vector{0, 0, -2.7}, vector{6.025, 2.84375, 3}}, 28.968988172080639, 64.184278587623695, 2, 10, 2, 34},
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 2.84375, 3}}, 28.968988172080639, 64.184278587623695, 2, 10, 2, 34, []int64{210, 425}},
+		{"occt-four-default-tilted-trapezoidal-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
+			Bounds{vector{0, 0, -1.6}, vector{5.2, 2.84375, 3}}, 22.155304183748054, 51.012178844414059, 2, 10, 2, 46, []int64{210, 267, 482, 529}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			b := New()
 			source := stepRepairFixture(t, tc.file)
 			rejectGroup(t, b, map[string]any{"op": "importStep", "source": source})
-			three := tc.owners == 34
 			linearDeflection := .025
-			if three {
+			if len(tc.phaseOwners) > 0 {
 				linearDeflection = .5
 				rejectGroup(t, b, map[string]any{"op": "importStep", "source": source,
 					"stepRepair": map[string]any{"maxDistance": 1e-13, "native": true}})
@@ -77,15 +79,24 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 				if e != nil {
 					t.Fatal(e)
 				}
-				if three {
+				if len(tc.phaseOwners) > 0 {
 					var ids []int64
 					for _, owner := range m.PCurves() {
 						if owner.Kind == "phase-cylinder-circle" && owner.DistanceSquaredUpper.Sign() > 0 {
 							ids = append(ids, owner.PCurveID)
 						}
 					}
-					if !reflect.DeepEqual(ids, []int64{210, 425}) || len(m.AxialTrims()) != 2 || len(m.FiniteTrims()) != 2 {
-						t.Fatal("native receipt lost a three-fillet owner proof", ids)
+					if !reflect.DeepEqual(ids, tc.phaseOwners) || len(m.AxialTrims()) != tc.axial || len(m.FiniteTrims()) != tc.caps {
+						t.Fatal("native receipt lost an original phased owner proof", ids)
+					}
+				}
+				if tc.owners == 46 {
+					caps, trims := m.FiniteTrims(), m.AxialTrims()
+					for i, cap := range caps {
+						if cap.CapOwner.PCurveID != [2]int64{315, 375}[i] || cap.CylinderOwner.PCurveID != [2]int64{326, 368}[i] ||
+							cap.EndStation == nil || trims[i].EdgeID != [2]int64{338, 563}[i] {
+							t.Fatal("four-fillet receipt lost an original trim", cap.CapOwner.PCurveID)
+						}
 					}
 				}
 				reloadedSource = m.OriginalSTEP()

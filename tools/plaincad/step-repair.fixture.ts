@@ -21,7 +21,7 @@ interface Fixture {
   maxDistance?: number;
   rejectedDistance?: number;
   grouped?: true;
-  three?: true;
+  fillets?: 3 | 4;
   converted?: { ownerScale: string; axialEnd: string; height: string };
 }
 
@@ -43,7 +43,7 @@ const tiltedGrouped: Fixture = {
   grouped: true,
 };
 const tiltedThree: Fixture = {
-  ...tiltedGrouped, file: "occt-three-default-tilted-oblique-prism-fillet", three: true, rejectedDistance: 1e-13,
+  ...tiltedGrouped, file: "occt-three-default-tilted-oblique-prism-fillet", fillets: 3, rejectedDistance: 1e-13,
   bounds: { min: [0, 0, -2.7], max: [6.025, 2.84375, 3] },
   measures: [28.968988172080639, 64.184278587623695], sites: 10, owners: 34,
 };
@@ -77,6 +77,9 @@ const fixtures: readonly Fixture[] = [
   { ...tiltedThree, file: `${tiltedThree.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
     sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { ...tiltedGrouped, file: "occt-four-default-tilted-trapezoidal-prism-fillet", fillets: 4, rejectedDistance: 1e-13,
+    bounds: { min: [0, 0, -1.6], max: [5.2, 2.84375, 3] },
+    measures: [22.155304183748054, 51.012178844414059], sites: 10, owners: 46 },
 ];
 
 for (const fixture of fixtures) {
@@ -120,17 +123,23 @@ for (const fixture of fixtures) {
         expect(Buffer.from(proof.Source, "base64").toString("utf8")).toBe(source);
         if (fixture.grouped) {
           const finiteLineOwners = fixture.converted ? 18 : 8;
-          const axialTrims = fixture.three ? 2 : 1;
+          const axialTrims = fixture.fillets ? 2 : 1;
           expect(evidence.repairEvidence).toMatchObject({ finiteLineOwners, rationalCaps: 2, axialTrims });
           expect(proof.Claims.FiniteLineOwners).toHaveLength(finiteLineOwners);
           expect(proof.Claims.Grouped.RationalCaps).toHaveLength(2);
           expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
           expect(proof.Claims.Grouped.AxialTrims).toHaveLength(axialTrims);
         }
-        if (fixture.three && !fixture.converted) {
-          expect(proof.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "phase-cylinder-circle")).toMatchObject([
-            { PCurveID: 210, DistanceSquaredUpper: expect.any(String) },
-            { PCurveID: 425, DistanceSquaredUpper: expect.any(String) },
+        if (fixture.fillets && !fixture.converted) {
+          const phases = fixture.fillets === 4 ? [210, 267, 482, 529] : [210, 425];
+          expect(proof.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "phase-cylinder-circle")).toMatchObject(
+            phases.map(PCurveID => ({ PCurveID, DistanceSquaredUpper: expect.any(String) })));
+        }
+        if (fixture.fillets === 4) {
+          expect(proof.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 338 }, { EdgeID: 563 }]);
+          expect(proof.Claims.Grouped.FiniteTrims).toMatchObject([
+            { CapOwner: { PCurveID: 315 }, CylinderOwner: { PCurveID: 326 }, EndStation: expect.any(Object) },
+            { CapOwner: { PCurveID: 375 }, CylinderOwner: { PCurveID: 368 }, EndStation: expect.any(Object) },
           ]);
         }
         if (fixture.converted) {
@@ -139,7 +148,7 @@ for (const fixture of fixtures) {
           expect(proof.Claims.FiniteLineOwners).toHaveLength(18);
           for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
           const spans = proof.Claims.CylindricalSpanOwners;
-          if (fixture.three) {
+          if (fixture.fillets === 3) {
             expect(proof.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "finite-phase-cylinder-circle")).toMatchObject([
               { PCurveID: 207, DistanceSquaredUpper: expect.any(String) },
               { PCurveID: 416, DistanceSquaredUpper: expect.any(String) },
@@ -204,7 +213,7 @@ for (const fixture of fixtures) {
       for (const side of ["min", "max"] as const) {
         bounds[side].forEach((value, axis) => expect(value / millimetresPerBase).toBeCloseTo(fixture.bounds[side][axis], 11));
       }
-      const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted || fixture.three ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
+      const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted || fixture.fillets ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
       expect(mesh).toMatchObject({ geometrySource: "plainsolid", kernelOperation: "stepImport", bounds });
       expect(mesh.indices.length).toBeGreaterThan(0);
       expect(mesh.geometryAssertions).toMatchObject({ valid: true, solidCount: 1 });

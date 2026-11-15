@@ -20,15 +20,17 @@ const fixtures = [
     sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
   { name: "three-fillet", path: "/plainsolid-three-step-repair.step", units: undefined, otherPath: undefined, scale: 1, metresPerUnit: .001,
-    grouped: true, three: true, rejectedDistance: 1e-13 },
+    grouped: true, fillets: 3, rejectedDistance: 1e-13 },
   { name: "three-fillet converted metre", path: "/plainsolid-three-converted-step-repair-metre.step", units: "m",
     otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1,
-    grouped: true, three: true, rejectedDistance: 1e-13,
+    grouped: true, fillets: 3, rejectedDistance: 1e-13,
     converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
   { name: "three-fillet converted inch", path: "/plainsolid-three-converted-step-repair-inch.step", units: "in",
     otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254,
-    grouped: true, three: true, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    grouped: true, fillets: 3, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { name: "four-fillet", path: "/plainsolid-four-step-repair.step", units: undefined, otherPath: undefined, scale: 1, metresPerUnit: .001,
+    grouped: true, fillets: 4, rejectedDistance: 1e-13 },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -44,8 +46,10 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     if (/opencascade.*\.(?:wasm|js)/i.test(request.url())) occtRequests.push(request.url());
   });
   await page.goto("/plainsolid-step-repair-worker.html");
-  const three = "three" in fixture;
-  const linearDeflection = "converted" in fixture || three ? .5 : .025 * fixture.scale;
+  const phased = "fillets" in fixture;
+  const three = phased && fixture.fillets === 3;
+  const four = phased && fixture.fillets === 4;
+  const linearDeflection = "converted" in fixture || phased ? .5 : .025 * fixture.scale;
   const maxDistance = "maxDistance" in fixture ? fixture.maxDistance : 1e-12;
   const rejectedDistance = "rejectedDistance" in fixture ? fixture.rejectedDistance : undefined;
   const result = await page.evaluate(async ({ path, units, otherPath, linearDeflection, maxDistance, rejectedDistance }) => {
@@ -114,8 +118,9 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const [x, z] = "poseTranslation" in fixture ? fixture.poseTranslation : fixture.grouped ? ["0", "0"] : ["8/5", "6/5"];
   const pose = [["0", "3/5", "4/5", x], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", z]];
   const family = fixture.grouped ? "occt-rational-posed-grouped-pcurve-convex-arc" : "occt-rational-posed-single-pcurve-convex-arc";
+  const pcurveOwners = four ? 46 : three ? 34 : fixture.grouped ? 28 : 24;
   expect(result.repairEvidence).toMatchObject({ family,
-    sourceSHA256: digest, maxDistance, pcurveOwners: three ? 34 : fixture.grouped ? 28 : 24, worldPose: pose, lengthUnit: fixture.metresPerUnit });
+    sourceSHA256: digest, maxDistance, pcurveOwners, worldPose: pose, lengthUnit: fixture.metresPerUnit });
   const certificateBytes = Buffer.from(result.certificateFromWasm);
   expect(Buffer.from(result.certificate, "utf8")).toEqual(certificateBytes);
   expect(Buffer.from(result.certificateReopened, "utf8")).toEqual(certificateBytes);
@@ -125,21 +130,28 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(certificate).toMatchObject({ Format: format, Version: 1, MaxDistance: maxDistance,
     Claims: { SourceSHA256: digest, Pose: pose, MaxDistance: maxDistance } });
   expect(Buffer.from(certificate.Source, "base64")).toEqual(source);
-  const groupedOwners = fixture.grouped ? { finiteLineOwners: "converted" in fixture ? 18 : 8, rationalCaps: 2, axialTrims: three ? 2 : 1, finiteTrims: 2 } : undefined;
+  const groupedOwners = fixture.grouped ? { finiteLineOwners: "converted" in fixture ? 18 : 8, rationalCaps: 2, axialTrims: phased ? 2 : 1, finiteTrims: 2 } : undefined;
   if (groupedOwners) {
     expect(result.repairEvidence).toMatchObject({ finiteLineOwners: groupedOwners.finiteLineOwners, rationalCaps: 2, axialTrims: groupedOwners.axialTrims });
-    expect(result.repairEvidence.repairs).toHaveLength(three ? 10 : 8);
+    expect(result.repairEvidence.repairs).toHaveLength(phased ? 10 : 8);
     expect(certificate.Claims.FiniteLineOwners).toHaveLength(groupedOwners.finiteLineOwners);
     expect(certificate.Claims.Grouped.RationalCaps).toHaveLength(groupedOwners.rationalCaps);
     expect(certificate.Claims.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
     expect(certificate.Claims.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
   }
   const phaseKind = "converted" in fixture ? "finite-phase-cylinder-circle" : "phase-cylinder-circle";
-  const phaseOwners = three ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === phaseKind) : undefined;
-  if (three) {
-    const owners = "converted" in fixture ? [207, 416] : [210, 425];
+  const phaseOwners = phased ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === phaseKind) : undefined;
+  if (phased) {
+    const owners = four ? [210, 267, 482, 529] : "converted" in fixture ? [207, 416] : [210, 425];
     expect(phaseOwners).toMatchObject(
       owners.map(PCurveID => ({ PCurveID, DistanceSquaredUpper: expect.any(String) })));
+  }
+  if (four) {
+    expect(certificate.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 338 }, { EdgeID: 563 }]);
+    expect(certificate.Claims.Grouped.FiniteTrims).toMatchObject([
+      { CapOwner: { PCurveID: 315 }, CylinderOwner: { PCurveID: 326 }, EndStation: expect.any(Object) },
+      { CapOwner: { PCurveID: 375 }, CylinderOwner: { PCurveID: 368 }, EndStation: expect.any(Object) },
+    ]);
   }
   const convertedOwners = "converted" in fixture ? {
     finiteLineOwners: 18, cylindricalSpanOwners: three ? 12 : fixture.grouped ? 8 : 4, ...fixture.converted,
@@ -203,11 +215,16 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(result.before).toHaveLength(1);
   const [proof] = result.before;
   const millimetresPerBase = fixture.scale * ("sourceScale" in fixture ? fixture.sourceScale : 1);
+  const [volume, area] = four ? [22.155304183748054, 51.012178844414059] :
+    three ? [28.968988172080639, 64.184278587623695] :
+    fixture.grouped ? [29.077978807115539, 65.622954970084379] : [29.145041881053842, 66.186284791166074];
+  const [min, max] = four ? [[0, 0, -1.6], [5.2, 2.84375, 3]] :
+    three ? [[0, 0, -2.7], [6.025, 2.84375, 3]] :
+    fixture.grouped ? [[0, 0, -2.7], [6.025, 3, 3]] : [[1, 0, -.7], [7.025, 3, 5]];
   expect(proof).toMatchObject({ valid: true, solidCount: 1 });
-  expect(proof.volume / millimetresPerBase ** 3).toBeCloseTo(three ? 28.968988172080639 : fixture.grouped ? 29.077978807115539 : 29.145041881053842, 10);
-  expect(proof.surfaceArea / millimetresPerBase ** 2).toBeCloseTo(three ? 64.184278587623695 : fixture.grouped ? 65.622954970084379 : 66.186284791166074, 10);
-  for (const [side, expected] of [["min", fixture.grouped ? [0, 0, -2.7] : [1, 0, -.7]],
-    ["max", three ? [6.025, 2.84375, 3] : fixture.grouped ? [6.025, 3, 3] : [7.025, 3, 5]]] as const) {
+  expect(proof.volume / millimetresPerBase ** 3).toBeCloseTo(volume, 10);
+  expect(proof.surfaceArea / millimetresPerBase ** 2).toBeCloseTo(area, 10);
+  for (const [side, expected] of [["min", min], ["max", max]] as const) {
     proof.bounds[side].forEach((value, axis) => expect(value / millimetresPerBase).toBeCloseTo(expected[axis], 11));
   }
   const expectedUnits = { file: fixture.units ?? "mm", proof: fixture.units ? "mm" : undefined, source: fixture.units };

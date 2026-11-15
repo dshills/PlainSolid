@@ -132,7 +132,8 @@ export default defineConfig({ ...base, test: {
       "occt-both-default-tilted-oblique-prism-fillet-converted-inch",
       "occt-three-default-tilted-oblique-prism-fillet",
       "occt-three-default-tilted-oblique-prism-fillet-converted-metre",
-      "occt-three-default-tilted-oblique-prism-fillet-converted-inch"]) {
+      "occt-three-default-tilted-oblique-prism-fillet-converted-inch",
+      "occt-four-default-tilted-trapezoidal-prism-fillet"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
@@ -196,6 +197,7 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet.step": "public/plainsolid-three-step-repair.step",
     "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet-converted-metre.step": "public/plainsolid-three-converted-step-repair-metre.step",
     "exchange/step/testdata/occt-three-default-tilted-oblique-prism-fillet-converted-inch.step": "public/plainsolid-three-converted-step-repair-inch.step",
+    "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet.step": "public/plainsolid-four-step-repair.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {

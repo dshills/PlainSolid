@@ -97,15 +97,19 @@ The converted three-fillet metre and inch originals check the 12-owner
 cylindrical ledger, both shifted angular bounds, both directed axial maps,
 and the original rational cap pairs. The fixtures use the explicit file
 units and the same repair budgets as their converted two-fillet counterparts.
+The native millimetre four-fillet trapezoid verifies all four original
+phase-shifted owners, both directed axial trims and both finite rational
+cap pairs. The ordinary 0.5 mm world mesh and strict canonical round trip
+use the existing opt-in request and the original millimetre context.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
-corresponding original converted OCCT exports. It also covers the tilted
-three-fillet millimetre original and its converted metre and inch fixtures. The
-test compares the certificate text with the original bytes returned by Go
+corresponding original converted OCCT exports. The suite also covers the
+tilted three-fillet sources and the native millimetre four-fillet trapezoid.
+It compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports
 the canonical STEP. The metre and inch cases check explicit
