@@ -208,6 +208,7 @@ if(std::string(argv[1])=="converted-inch-witness") return convertedUnitWitness(a
 if(std::string(argv[1])=="grouped-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 2);
 if(std::string(argv[1])=="grouped-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 2);
 if(std::string(argv[1])=="three-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 3);
+if(std::string(argv[1])=="three-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
@@ -223,7 +224,8 @@ if(std::string(argv[1])=="cap-witness") {
 const std::string mode = argv[1];
 const bool threeNonDyadic = mode == "write-three-default-tilted-nondyadic";
 const bool threeConvertedMetre = mode == "write-three-default-tilted-converted-metre";
-const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch";
+const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch" ||
+                                mode == "write-three-default-tilted-converted-inch-unscaled";
 const bool three = mode == "write-three-default" || mode == "write-three-default-tilted" || threeNonDyadic ||
                    threeConvertedMetre || threeConvertedInch;
 const bool groupedConvertedMetre = mode == "write-both-default-tilted-converted-metre";
@@ -274,7 +276,9 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
    // Author in millimetres and let STEPControl convert the model and charts.
    // 127 mm is exactly five inches, so scaled dyadic model coordinates
    // retain terminating inch decimals even though the LINE speed does not.
-   if (mode != "write-default-tilted-translated-converted-inch-unscaled" && mode != "write-both-default-tilted-converted-inch-unscaled") {
+   if (mode != "write-default-tilted-translated-converted-inch-unscaled" &&
+       mode != "write-both-default-tilted-converted-inch-unscaled" &&
+       mode != "write-three-default-tilted-converted-inch-unscaled") {
     gp_Trsf scale;
     scale.SetScale(gp_Pnt(0,0,0), convertedMetre ? 1000.0 : 127.0);
     shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();

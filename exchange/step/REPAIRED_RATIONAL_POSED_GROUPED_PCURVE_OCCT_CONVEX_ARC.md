@@ -252,3 +252,50 @@ centroid `(2765.4896548128527, 1020.1651571311468, 479.34712691619546)` mm.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairThreeConvertedMetreConvexArc' -count=1
 ```
+
+## Three-fillet millimetre model converted to inch STEP
+
+The pinned `write-three-default-tilted-converted-inch` mode scales the
+millimetre-native model by 127 before transfer. The 511-entity STEP keeps
+the exact `127/5` millimetre inch factor, world rotation and three circular
+supports, with a 25-inch height. All 18 original planar LINE owners retain
+`t → 5t/127`. The six axial splines retain knots `[0,635]` and
+`dv/dt = 5/127`, with the authored rounded model LINE speed
+`3.937007874016E-02` proved separately. Edges `#276` and `#449` keep
+their directed unequal-trim maps. The corrected start stations are
+`1/984251968504000000000000000` and
+`-1/196850393700800000000000000`, respectively, with original start
+stations of zero.
+
+The oblique cylindrical owners retain the same original knots and exact
+model-angle brackets as the metre original, with constant axial positions
+0 and 25 inches. The whole-span normalized lift bound is below
+`1.35e-12` inch for each of those owners. Pinned OCCT samples six
+stations on the shifted charts with a maximum distance of
+`1.43e-13` inch. Both finite rational cap proofs retain their original
+paired cylinder owners, and the independent endpoint witness measures a
+maximum cap distance of `2.78e-13` inch. The source passes at `1e-11`
+inch and rejects `1e-12` inch, an inexact inch factor, changed model LINE
+speed, and altered shifted knots even when their UV slope is unchanged.
+
+The source-only receipt re-proves the original bytes and exact owner
+charts. The strict canonical inch reopen preserves the native solid and
+produces the same export bytes. Pinned OCCT reads the original, corrected
+and canonical models as one eight-face solid. It measures canonical
+volume `59339582.898891054` mm³, area `1035228.2293397824` mm², and
+centroid `(351.21718616123235, 129.56097495565567, 60.877085118356803)` mm.
+
+In the separate 523-entity `write-three-default-tilted-converted-inch-unscaled`
+original the unit conversion rounds three tangent support pairs. The
+orthogonal source cylinder axes and side-plane normals already have exact
+unit length. Their exact plane-distance-minus-radius gaps are
+`1/5000000000000000`, `147/625000000000000` and
+`471/1250000000000000` inch on edges `#281`, `#335` and `#488`,
+respectively. OCCT transfers the file within its tolerance. The PlainSolid
+repair requires exact tangency of the original supporting surfaces and
+rejects this model before publishing material.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairThreeConvertedInchConvexArc' -count=1
+```
