@@ -9,12 +9,14 @@
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <cstring>
+#include "planar_contact_annulus.hxx"
 
 int main(int argc, char** argv) {
     const bool cavity = argc == 3 && std::strcmp(argv[1], "voids") == 0;
+    const bool faceContact = argc == 3 && std::strcmp(argv[1], "face-annulus") == 0;
     const bool interval = argc == 3 && std::strcmp(argv[1], "edge-interval") == 0;
     const bool edge = interval || (argc == 3 && std::strcmp(argv[1], "edge") == 0);
-    if (argc != 2 && !cavity && !edge) return 2;
+    if (argc != 2 && !cavity && !edge && !faceContact) return 2;
     STEPControl_Writer writer;
     if (!Interface_Static::SetCVal("write.step.schema", "AP214IS") ||
         !Interface_Static::SetIVal("write.surfacecurve.mode", cavity ? 0 : 1)) return 3;
@@ -34,6 +36,13 @@ int main(int argc, char** argv) {
         if (pieces.More()) return 4;
         const auto separate = BRepPrimAPI_MakeBox(gp_Pnt(12,12,12),1,1,1).Shape();
         if (writer.Transfer(separate, STEPControl_AsIs) != IFSelect_RetDone) return 4;
+    } else if (faceContact) {
+        for (double z : {0., 1.}) {
+            TopExp_Explorer solid(contactAnnulus(z), TopAbs_SOLID);
+            if (!solid.More() || writer.Transfer(solid.Current(), STEPControl_AsIs) != IFSelect_RetDone) return 4;
+            solid.Next();
+            if (solid.More()) return 4;
+        }
     } else if (edge) {
         for (double p : {0., 1.}) {
             const auto stock = BRepPrimAPI_MakeBox(gp_Pnt(p,p,interval ? p : 0.),1,1,interval ? 3. : 1.).Shape();

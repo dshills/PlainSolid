@@ -72,3 +72,15 @@ func TestPlanarFaceContactRejectsUnprovedContact(t *testing.T) {
 		t.Fatalf("cancelled contact published a proof: %+v %v", p, err)
 	}
 }
+
+func TestDiscoverPlanarFaceContactRejectsTwoCompleteFaces(t *testing.T) {
+	a, err := brep.Prism([]geom.Vec3{{}, {X: 2}, {X: 2, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: 2}, {Y: 2}}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := dbox(t, geom.Vec3{X: 1, Y: 1}, geom.Vec3{X: 2, Y: 2, Z: 1})
+	p, err := DiscoverPlanarFaceContact(context.Background(), a, b, PlanarFaceDiscoveryOptions{})
+	if !errors.Is(err, ErrInvalid) || p.SignedVolume != nil {
+		t.Fatalf("ambiguous two original faces published single contact: %+v %v", p, err)
+	}
+}

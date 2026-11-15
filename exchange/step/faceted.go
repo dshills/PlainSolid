@@ -382,7 +382,7 @@ func readPlanarClosedShell(f *File, shellID int64, name string, maxVertices, max
 			if loop.Args[1].Kind != Aggregate || len(loop.Args[1].Items) > maxEdgeUses-edgeUses {
 				return nil, errors.New("step: expanded edge-use limit exceeded")
 			}
-			linear, e = edgeLoop(f, loopID, linearEdges)
+			linear, e = edgeLoopWithExactSupport(f, loopID, linearEdges, exactSupports)
 			if e != nil {
 				return nil, e
 			}

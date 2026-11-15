@@ -141,7 +141,7 @@ func pointsOnLine(a, b, origin, direction geom.Vec3) error {
 	return nil
 }
 func finiteNumber(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
-func pcurveLine(f *File, id int64, a, b geom.Vec3) error {
+func pcurveLine(f *File, id int64, a, b geom.Vec3, exactSupports bool) error {
 	r, e := simple(f, id, "PCURVE", 3)
 	if e != nil {
 		return e
@@ -200,6 +200,11 @@ func pcurveLine(f *File, id int64, a, b geom.Vec3) error {
 			return errors.New("step: unsupported pcurve context component")
 		}
 	}
+	// Finite linear splines are accepted only by the exact support path.
+	// It authenticates their knots, direction and full model edge coverage.
+	if exactSupports && len(f.Entities[ids[0]].Records) == 1 && f.Entities[ids[0]].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
+		return nil
+	}
 	p, d, e := lineGeometry(f, ids[0], 2)
 	if e != nil {
 		return e
@@ -211,7 +216,7 @@ func pcurveLine(f *File, id int64, a, b geom.Vec3) error {
 	}
 	return pointsOnLine(a, b, origin, direction)
 }
-func validateEdgeGeometry(f *File, id int64, a, b geom.Vec3, sense bool) error {
+func validateEdgeGeometry(f *File, id int64, a, b geom.Vec3, sense, exactSupports bool) error {
 	ent := f.Entities[id]
 	if len(ent.Records) != 1 {
 		return errors.New("step: complex edge geometry unsupported")
@@ -264,13 +269,13 @@ func validateEdgeGeometry(f *File, id int64, a, b geom.Vec3, sense bool) error {
 		return errors.New("step: edge sense disagrees with line")
 	}
 	for _, id := range pcurves {
-		if e = pcurveLine(f, id, a, b); e != nil {
+		if e = pcurveLine(f, id, a, b, exactSupports); e != nil {
 			return e
 		}
 	}
 	return nil
 }
-func readLinearEdge(f *File, id int64) (linearEdge, error) {
+func readLinearEdge(f *File, id int64, exactSupports bool) (linearEdge, error) {
 	r, e := simple(f, id, "EDGE_CURVE", 5)
 	if e != nil {
 		return linearEdge{}, e
@@ -321,12 +326,16 @@ func readLinearEdge(f *File, id int64) (linearEdge, error) {
 	if e != nil {
 		return edge, e
 	}
-	if e = validateEdgeGeometry(f, geometry, coords[0], coords[1], sense); e != nil {
+	if e = validateEdgeGeometry(f, geometry, coords[0], coords[1], sense, exactSupports); e != nil {
 		return edge, e
 	}
 	return edge, nil
 }
 func edgeLoop(f *File, id int64, cache map[int64]linearEdge) (linearLoop, error) {
+	return edgeLoopWithExactSupport(f, id, cache, false)
+}
+
+func edgeLoopWithExactSupport(f *File, id int64, cache map[int64]linearEdge, exactSupports bool) (linearLoop, error) {
 	r, e := simple(f, id, "EDGE_LOOP", 2)
 	if e != nil {
 		return linearLoop{}, e
@@ -357,7 +366,7 @@ func edgeLoop(f *File, id int64, cache map[int64]linearEdge) (linearLoop, error)
 		}
 		edge, ok := cache[edgeID]
 		if !ok {
-			edge, e = readLinearEdge(f, edgeID)
+			edge, e = readLinearEdge(f, edgeID, exactSupports)
 			if e != nil {
 				return result, e
 			}

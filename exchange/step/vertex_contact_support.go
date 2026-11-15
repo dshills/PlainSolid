@@ -115,7 +115,7 @@ func exactVertexContactLine(f *File, id int64, edge linearEdge) (owners [2]int64
 		return owners, errors.New("step: original edge sense does not match its declared line")
 	}
 	for i, pc := range pcurveIDs {
-		owners[i], err = exactVertexContactPCurve(f, pc, a, b, d)
+		owners[i], err = exactVertexContactPCurve(f, pc, lineID, a, b, origin, d)
 		if err != nil {
 			return owners, err
 		}
@@ -204,7 +204,7 @@ func exactVertexContactPlane(f *File, r Record, vertices []geom.Vec3, edges []br
 	return nil
 }
 
-func exactVertexContactPCurve(f *File, id int64, a, b, modelDirection [3]*big.Rat) (int64, error) {
+func exactVertexContactPCurve(f *File, id, modelLine int64, a, b, modelOrigin, modelDirection [3]*big.Rat) (int64, error) {
 	r, err := simple(f, id, "PCURVE", 3)
 	if err != nil {
 		return 0, err
@@ -234,17 +234,24 @@ func exactVertexContactPCurve(f *File, id int64, a, b, modelDirection [3]*big.Ra
 	if err != nil {
 		return 0, err
 	}
-	// The ordinary pcurve preflight has already checked this representation
-	// and ensures that it contains a single line in a 2D context.
-	p, d, err := vertexContactLineData(f, rep.Args[1].Items[0].Ref, 2)
-	if err != nil {
-		return 0, err
-	}
+	// The pcurve preflight authenticated the representation and 2D context.
+	curve := rep.Args[1].Items[0].Ref
 	lift := func(q [3]*big.Rat) (r [3]*big.Rat) {
 		for i := range r {
 			r[i] = new(big.Rat).Add(new(big.Rat).Mul(q[0], x[i]), new(big.Rat).Mul(q[1], y[i]))
 		}
 		return r
+	}
+	if records := f.Entities[curve].Records; len(records) == 1 && records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
+		err := exactFinitePlanarPCurve(f, curve, modelLine, a, b, modelOrigin, modelDirection, origin, lift)
+		if err != nil {
+			return 0, err
+		}
+		return plane, nil
+	}
+	p, d, err := vertexContactLineData(f, curve, 2)
+	if err != nil {
+		return 0, err
 	}
 	p, d = lift(p), lift(d)
 	for i := range p {
@@ -254,6 +261,75 @@ func exactVertexContactPCurve(f *File, id int64, a, b, modelDirection [3]*big.Ra
 		return 0, errors.New("step: original owner pcurve does not lift to its directed model edge exactly")
 	}
 	return plane, nil
+}
+
+// An OCCT planar Boolean can preserve the 3D model line while writing its
+// owner as a finite degree-one polynomial spline. Verify both original
+// endpoints at their original model stations. Affinity then proves the
+// complete owner interval, without admitting an infinite line extension.
+func exactFinitePlanarPCurve(f *File, id, modelLine int64, a, b, modelOrigin, modelDirection, planeOrigin [3]*big.Rat, lift func([3]*big.Rat) [3]*big.Rat) error {
+	r, err := simple(f, id, "B_SPLINE_CURVE_WITH_KNOTS", 9)
+	if err != nil {
+		return err
+	}
+	_, nameErr := textValue(r.Args[0])
+	degree, degreeErr := integer(r.Args[1])
+	closed, closedErr := boolean(r.Args[4])
+	self, selfErr := boolean(r.Args[5])
+	controls, pointsErr := listRefs(r.Args[2], 2)
+	mults, knots := r.Args[6], r.Args[7]
+	form, spec := r.Args[3], r.Args[8]
+	if nameErr != nil || degreeErr != nil || degree != 1 || closedErr != nil || closed || selfErr != nil || self ||
+		pointsErr != nil || len(controls) != 2 || mults.Kind != Aggregate || len(mults.Items) != 2 ||
+		knots.Kind != Aggregate || len(knots.Items) != 2 || form.Kind != Enumeration || form.Text != "UNSPECIFIED" ||
+		spec.Kind != Enumeration || (spec.Text != "PIECEWISE_BEZIER_KNOTS" && spec.Text != "UNSPECIFIED") {
+		return errors.New("step: original planar pcurve must be one finite degree-one Bezier span")
+	}
+	line, err := simple(f, modelLine, "LINE", 3)
+	if err != nil {
+		return err
+	}
+	vector, err := simple(f, line.Args[2].Ref, "VECTOR", 3)
+	if err != nil {
+		return err
+	}
+	speed, err := exactVertexContactScalar(vector.Args[2])
+	if err != nil || speed.Sign() <= 0 {
+		return errors.New("step: invalid original model line speed")
+	}
+	dir, err := mappedRationalUnit(modelDirection)
+	if err != nil {
+		return errors.New("step: finite planar pcurve requires an exact rational model line velocity")
+	}
+	if mappedRationalDot(vertexContactDifference(b, a), dir).Sign() < 0 {
+		a, b = b, a
+	}
+	var previous *big.Rat
+	for i, end := range [2][3]*big.Rat{a, b} {
+		mult, err := integer(mults.Items[i])
+		if err != nil || mult != 2 {
+			return errors.New("step: finite planar pcurve is not clamped")
+		}
+		t, err := exactVertexContactScalar(knots.Items[i])
+		if err != nil || (previous != nil && t.Cmp(previous) <= 0) {
+			return errors.New("step: finite planar pcurve knot order is invalid")
+		}
+		previous = t
+		uv, err := vertexContactSupportCoordinates(f, controls[i], "CARTESIAN_POINT", 2)
+		if err != nil {
+			return err
+		}
+		world := lift(uv)
+		distance := new(big.Rat).Mul(t, speed)
+		for j := range world {
+			world[j].Add(world[j], planeOrigin[j])
+			model := new(big.Rat).Add(modelOrigin[j], new(big.Rat).Mul(distance, dir[j]))
+			if world[j].Cmp(end[j]) != 0 || model.Cmp(end[j]) != 0 {
+				return errors.New("step: finite planar pcurve endpoint or model station changed")
+			}
+		}
+	}
+	return nil
 }
 
 // STEP DIRECTION encodes ratios. Scale by a common power of two instead of

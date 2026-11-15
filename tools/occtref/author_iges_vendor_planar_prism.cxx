@@ -17,6 +17,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <string>
+#include "planar_contact_annulus.hxx"
 
 static TopoDS_Wire wire(std::initializer_list<gp_Pnt> points) {
     BRepBuilderAPI_MakePolygon polygon;
@@ -28,21 +29,30 @@ static TopoDS_Wire wire(std::initializer_list<gp_Pnt> points) {
 int main(int argc, char** argv) {
     if (argc != 3) return 2;
     const std::string mode = argv[1];
+    const bool faceContact = mode == "write-face-annulus";
     const bool interval = mode == "write-edge-interval";
     const bool edge = interval || mode == "write-edge-pair";
-    if (mode == "write" || mode == "write-void" || mode == "write-two-voids" || mode == "write-assembly" || edge) {
+    if (mode == "write" || mode == "write-void" || mode == "write-two-voids" || mode == "write-assembly" || edge || faceContact) {
         TopoDS_Shape shape;
         if (mode == "write") {
             BRepBuilderAPI_MakeFace face(wire({{0,0,0},{6,0,0},{6,5,0},{4,5,0},{4,4,0},{0,4,0}}));
             face.Add(wire({{1,1,0},{1,2,0},{2,2,0},{2,1,0}}));
             if (!face.IsDone()) return 3;
             shape = BRepPrimAPI_MakePrism(face.Face(), gp_Vec(0,0,2)).Shape();
-        } else if (mode == "write-assembly" || edge) {
+        } else if (mode == "write-assembly" || edge || faceContact) {
             BRep_Builder builder;
             TopoDS_Compound pieces;
             builder.MakeCompound(pieces);
             for (double p : {0., 1., 4.}) {
-                if (edge && p == 4.) break;
+                if ((edge || faceContact) && p == 4.) break;
+                if (faceContact) {
+                    TopExp_Explorer solid(contactAnnulus(p), TopAbs_SOLID);
+                    if (!solid.More()) return 4;
+                    builder.Add(pieces, solid.Current());
+                    solid.Next();
+                    if (solid.More()) return 4;
+                    continue;
+                }
                 const double z = edge && !interval ? 0. : p;
                 builder.Add(pieces, BRepPrimAPI_MakeBox(gp_Pnt(p,p,z),1,1,interval ? 3. : 1.).Shape());
             }
