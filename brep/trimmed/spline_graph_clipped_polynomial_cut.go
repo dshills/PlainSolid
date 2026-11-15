@@ -77,11 +77,11 @@ func (r *ClippedPolynomialCut) Walls(component int) []ClippedPolynomialWallBindi
 	return cloneClippedPolynomialWallBindings(r.shells[component].Walls)
 }
 
-// CutClippedPolynomialComponents subtracts B from A on uneven axis-aligned
-// original footprints. It admits a cubic crossing and a quadratic tangency
-// inside the overlap. Each selected component must have a single cyclic
-// link at each native vertex. Components can share only the exact indexed
-// points proved by the original source arrangement.
+// CutClippedPolynomialComponents subtracts B from A on unequal axis-aligned
+// original footprints. It admits two transverse crossings or a cubic crossing
+// and a quadratic tangency inside the overlap. Each component must have a
+// single cyclic link at each native vertex. Components can share only the
+// exact indexed points proved by the original source arrangement.
 func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialNodeCutOptions) (*ClippedPolynomialCut, error) {
 	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
@@ -109,7 +109,7 @@ func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 	}
 	projection := cut.Material.Overlap.Projection
 	proof := projection.Arrangement
-	if !isNativeAlignedPolynomialArrangement(proof, axis) {
+	if !isNativeClippedPolynomialArrangement(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
 	order := cut.Orders[0]
@@ -184,6 +184,12 @@ func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 		derivatives: [2]*big.Rat(proof.DerivativeGap), volumes: volumes, total: order.Total,
 		axis: axis, tolerance: tolerance, kind: nativeClippedPolynomialCut}
 	return &ClippedPolynomialCut{native: native, footprints: cut.Material.Footprints, shells: ledgers}, nil
+}
+
+func isNativeClippedPolynomialArrangement(proof geom.SplineGraphPolynomialArrangement, axis int) bool {
+	return isNativeAlignedPolynomialArrangement(proof, axis) ||
+		proof.Proven && proof.FreeAxis == axis && proof.Graph.ProjectionOrientation == 1 &&
+			slices.Equal(proof.ContactOrder, []int{1, 1})
 }
 
 func (b *clippedStockShellBuilder) buildCutShell(ctx context.Context, material geom.ClippedSplineGraphPolynomialMaterial,
