@@ -37,6 +37,12 @@ preflight catalog did not recognize `SPECIFIED_HIGHER_USAGE_OCCURRENCE`.
 The entire pinned STEP package passed after the one-line catalog correction
 in `36380200`.
 
+The refreshed macOS, Linux arm64 and PlainCAD runs use pinned kernel
+`35c79311`. The Linux geometry package passed all 945 required cases
+after the original parameter domain changes in `c855ecaa`, with one
+optional skip. The pinned Windows amd64 build passed.
+[Linux geometry qualification](evidence/linux-geometry-go126-2026-11-14.json).
+
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
 knot rectangles. Adjacent cap tiles share the same exact edge. Crossings
@@ -141,7 +147,11 @@ affine identity, and reloads their original STEP source. The higher-degree
 reader extends those identities to independent single-span degrees from
 one through eight. Multispan polynomial tensor supports, p-curves and
 three-dimensional model curves retain their original knot and ownership
-records after exact Greville certification. The polygon mesher preserves
+records after exact Greville certification. The combined rational AP242
+route preserves positive variable-weight supports and p-curves alongside
+independently knotted model edges. Supports with one simple interior knot
+in each direction certify the homogeneous identity on all four original
+rectangles. The polygon mesher preserves
 exact homogeneous supports and original UV-use lineage on concave trims,
 including certified two-sided bounds across knots and shared native
 sample IDs on a closed multispan shell.
@@ -2481,7 +2491,8 @@ proves equality over the full common interval before subdividing.
 The multispan option compares original knot partitions and can split
 at an existing knot or across it. A source knot reported by two
 incident spans authorizes one preimage only when their exact parameters
-are equal.
+are equal. The original model parameter can be nonbinary when the new
+native UV and model vertex coordinates are losslessly representable.
 The result retains original supports and exact source parameter ranges.
 
 ### Planar tolerance repair with fixed supports

@@ -6543,3 +6543,23 @@ closed-shell fixture with volume `37/36`.
 Independently authored AP242 tensor, UV and three-dimensional model
 splines preserve their records and exact original bases through source
 and native reload. Live OCCT and focused race checks passed.
+
+### Linux geometry and downstream qualification
+
+The complete geometry package reproduced four failures on the original
+Go 1.26.0 Linux arm64 toolchain. The original source passed those same
+cases when optimization was disabled for the diagnostic. One source
+change retains the exact fixed-axis domain through triangular inversion.
+The other passes scalar original limits from the certified seed into the
+tube search. Both changes preserve the original proof and error checks.
+The complete repaired package passed 945 top-level tests and had one
+optional skip, using standard optimization.
+[Original, diagnostic and repaired logs](evidence/linux-geometry-go126-2026-11-14.json).
+
+The original convex paired-edge reverse Cut preserves two independently
+closed material solids meeting at one exact original point. Native and
+independent OCCT volumes are `7/32` and `77/64`. The forward Cut has two
+circular link fans at one vertex, which the strict native result reports.
+Multispan border sewing retains the exact original model split at
+`1/3` with lossless original chart and output vertex coordinates. The
+knot and coedge agreement are verified on native reload.

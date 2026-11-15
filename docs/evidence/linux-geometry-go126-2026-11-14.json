@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "snapshot": "35c79311bd39f84cf8918b571458ba242ba55246",
+  "sourceCorrection": "c855ecaae1bdf84359dafe0c295deff06baf2ee9",
+  "checkpointAt": "2026-11-14T20:30:28-06:00",
+  "go": "go1.26.0 linux/arm64",
+  "image": "sha256:1bf57f277dfcb5ca2f2aaf22d7a4e1ac62661788e29fae795d21fc84d1f78879",
+  "qualification": "The complete geometry package passed with the original toolchain and default optimization. The pinned non-geometry and trimmed Linux runs continue separately.",
+  "correctedFiles": [
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/geom/surface_projection_triangular_inverse.go",
+      "bytes": 12117,
+      "sha256": "0c837913b9398d07138002c80aec0e83a4ebf1b9e4ce67d90c33ba427945e205"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/geom/surface_tube_discovery.go",
+      "bytes": 6279,
+      "sha256": "0a364687e4025c0422993b5fb7a809e162de2ebe5806a80330df9c55c62e24fe"
+    }
+  ],
+  "runs": {
+    "original": {
+      "path": "/tmp/plainsolid-linux-geometry-probe.7YeA7w/logs/geom-pinned-full.jsonl",
+      "bytes": 688220,
+      "sha256": "c6abecb798f9c0686780ce9ac1165b053c970a2d46be37b5428e379dac1ea054",
+      "topLevel": {
+        "pass": 941,
+        "fail": 4,
+        "skip": 1
+      },
+      "failures": [
+        "TestTriangularSurfaceRationalInverse",
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits"
+      ]
+    },
+    "triangularChangeOnly": {
+      "path": "/tmp/plainsolid-triangular-linux-probe/logs/go126-refactor.jsonl",
+      "bytes": 692409,
+      "sha256": "f5fa0e13312a8578086d540ca4ce90367e5372148c8a2a6012a2fee78b02efae",
+      "topLevel": {
+        "pass": 948,
+        "fail": 3,
+        "skip": 1
+      },
+      "failures": [
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits"
+      ]
+    },
+    "tubeChangeOnly": {
+      "path": "/tmp/plainsolid-linux-tube-repair.N2vBKl/logs/go126-full.jsonl",
+      "bytes": 686667,
+      "sha256": "d3c14613d252bdaf357f2bb93e849d4433799666fb7fc0005a7237c6aa5282e1",
+      "topLevel": {
+        "pass": 944,
+        "fail": 1,
+        "skip": 1
+      },
+      "failures": [
+        "TestTriangularSurfaceRationalInverse"
+      ]
+    },
+    "bothFinalChanges": {
+      "path": "/tmp/plainsolid-linux-exact-geometry-repair.M1Fpze/logs/go126-full.jsonl",
+      "bytes": 686218,
+      "sha256": "9c05046880bf55602a7f3e4d37387539c54a55198f4bfa977636113a36d97410",
+      "topLevel": {
+        "pass": 945,
+        "skip": 1
+      },
+      "failures": []
+    },
+    "originalOptimizedFocused": {
+      "path": "/tmp/plainsolid-linux-geometry-probe.7YeA7w/logs/go126-targeted-pristine.jsonl",
+      "bytes": 19417,
+      "sha256": "a981a8e199af8d8c9ff86537e10692880044968e040ea4ae553cdf66320b56e0",
+      "topLevel": {
+        "fail": 16
+      },
+      "failures": [
+        "TestTriangularSurfaceRationalInverse",
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits",
+        "TestTriangularSurfaceRationalInverse",
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits",
+        "TestTriangularSurfaceRationalInverse",
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits",
+        "TestTriangularSurfaceRationalInverse",
+        "TestDiscoverSurfaceTubeAffine",
+        "TestDiscoverSurfaceTubeShrinksFreeSpan",
+        "TestDiscoverSurfaceTubeRationalAndLimits"
+      ]
+    },
+    "originalUnoptimizedFocusedDiagnostic": {
+      "path": "/tmp/plainsolid-linux-geometry-probe.7YeA7w/logs/go126-targeted-unoptimized.jsonl",
+      "bytes": 5788,
+      "sha256": "2e9459339c577a5660ddd1d2495cd1ea50bd9d792e31e6b339eedd0cb39876c9",
+      "topLevel": {
+        "pass": 8
+      },
+      "failures": []
+    }
+  },
+  "archive": {
+    "path": "/tmp/plainsolid-linux-geom-go1.26.0-2026-11-14.tar.gz",
+    "bytes": 262762,
+    "sha256": "ca767e285a4518992355daf0a41aedbce986e43dcbbb3cf32939cab5fc616cf5"
+  },
+  "windowsCrossBuild": {
+    "snapshot": "35c79311bd39f84cf8918b571458ba242ba55246",
+    "go": "go1.27.4 darwin/arm64",
+    "goos": "windows",
+    "goarch": "amd64",
+    "cgoEnabled": 0,
+    "command": "go build ./...",
+    "exitCode": 0
+  }
+}
