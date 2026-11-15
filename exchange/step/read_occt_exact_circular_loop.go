@@ -19,10 +19,18 @@ type occtLoopFace struct {
 	kind         string
 	origin, z, x [3]*big.Rat
 	radius       *big.Rat
+	trims        []occtLoopTrim
+}
+type occtLoopTrim struct {
+	bound, loop int64
+	oriented    []int64
+	uses        []analyticUse
+	outer       bool
 }
 type occtLoopEdge struct {
 	id, a, b, model int64
 	kind            string
+	same            bool
 }
 
 func occtLoopTriple(f *File, id int64, kind string) ([3]*big.Rat, error) {
@@ -87,6 +95,10 @@ func occtLoopFrame(f *File, id int64) (o, z, x [3]*big.Rat, e error) {
 	return
 }
 func occtLoopReadFace(f *File, id int64) (q occtLoopFace, e error) {
+	return occtLoopReadFaceMode(f, id, false)
+}
+
+func occtLoopReadFaceMode(f *File, id int64, directed bool) (q occtLoopFace, e error) {
 	q.id = id
 	r, e := simple(f, id, "ADVANCED_FACE", 4)
 	if e != nil {
@@ -120,14 +132,27 @@ func occtLoopReadFace(f *File, id int64) (q occtLoopFace, e error) {
 		}
 	}
 	bs, e := listRefs(r.Args[1], 1)
-	if e != nil || len(bs) != 1 {
+	if e != nil || (!directed && len(bs) != 1) || len(bs) > 16 {
 		e = geom.ErrDomain
 		return
 	}
-	q.bound = bs[0]
-	b, e := simple(f, bs[0], "FACE_BOUND", 3)
+	for _, bid := range bs {
+		trim, err := occtLoopReadTrim(f, bid)
+		if err != nil {
+			return q, err
+		}
+		q.trims = append(q.trims, trim)
+	}
+	q.bound, q.loop, q.oriented, q.uses = q.trims[0].bound, q.trims[0].loop, q.trims[0].oriented, q.trims[0].uses
+	return
+}
+
+func occtLoopReadTrim(f *File, id int64) (q occtLoopTrim, e error) {
+	q.bound = id
+	b, e := simple(f, id, "FACE_BOUND", 3)
 	if e != nil {
-		b, e = simple(f, bs[0], "FACE_OUTER_BOUND", 3)
+		b, e = simple(f, id, "FACE_OUTER_BOUND", 3)
+		q.outer = e == nil
 	}
 	if e != nil {
 		return
@@ -187,53 +212,61 @@ type OCCTExactCircularLoopExtrusion struct {
 // loop per face. It admits metre and millimetre SI units and OCCT's exact inch
 // declaration. No tolerances or source pcurves are used to repair geometry.
 func ReadOCCTExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limits) (OCCTExactCircularLoopExtrusion, error) {
-	var zero OCCTExactCircularLoopExtrusion
+	a, body, l, e := readOCCTCircularLoopSource(ctx, r, l)
+	if e != nil {
+		return OCCTExactCircularLoopExtrusion{}, e
+	}
+	return authenticateOCCTLoopBody(ctx, a.Source, l, a.Products[0], a.LengthUnit, body)
+}
+
+func readOCCTCircularLoopSource(ctx context.Context, r io.Reader, l Limits) (Assembly, int64, Limits, error) {
+	var zero Assembly
 	if ctx == nil || r == nil {
-		return zero, geom.ErrInvalid
+		return zero, 0, l, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	l, e := occurrenceColorSourceLimits(l)
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	raw, e := io.ReadAll(io.LimitReader(r, l.MaxBytes+1))
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	if int64(len(raw)) > l.MaxBytes {
-		return zero, geom.ErrConvergence
+		return zero, 0, l, geom.ErrConvergence
 	}
 	f, e := Parse(bytes.NewReader(raw), l)
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	var sdrID int64
 	for _, id := range f.Order {
 		if _, err := simple(f, id, "SHAPE_DEFINITION_REPRESENTATION", 2); err == nil {
 			if sdrID != 0 {
-				return zero, geom.ErrDomain
+				return zero, 0, l, geom.ErrDomain
 			}
 			sdrID = id
 		}
 	}
 	if sdrID == 0 {
-		return zero, geom.ErrDomain
+		return zero, 0, l, geom.ErrDomain
 	}
 	pid, pd, name, e := independentMaterialProduct(f, sdrID)
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	sdr, _ := simple(f, sdrID, "SHAPE_DEFINITION_REPRESENTATION", 2)
 	repID := sdr.Args[1].Ref
 	rep, e := simple(f, repID, "ADVANCED_BREP_SHAPE_REPRESENTATION", 3)
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	unit, e := contextUnits(f, rep.Args[2].Ref)
 	if e != nil {
-		return zero, e
+		return zero, 0, l, e
 	}
 	product, _ := simple(f, pid, "PRODUCT", 4)
 	identifier, _ := textValue(product.Args[0])
@@ -241,146 +274,40 @@ func ReadOCCTExactCircularLoopExtrusion(ctx context.Context, r io.Reader, l Limi
 	a := Assembly{Source: f, LengthUnit: unit, Products: []AssemblyProduct{{DefinitionID: pd, ProductID: pid, Identifier: identifier, Name: name, Description: description, Representations: []int64{repID}}}, Roots: []int64{pd}}
 	bodyID, e := occtLoopProductGraph(f, a)
 	if e != nil {
-		return zero, fmt.Errorf("step: exact loop product: %w", e)
+		return zero, 0, l, fmt.Errorf("step: exact loop product: %w", e)
 	}
-	return authenticateOCCTLoopBody(ctx, f, l, a.Products[0], a.LengthUnit, bodyID)
+	return a, bodyID, l, nil
 }
 
 // authenticateOCCTLoopBody requires independently authenticated ownership and units.
 func authenticateOCCTLoopBody(ctx context.Context, f *File, l Limits, product AssemblyProduct, unit float64, bodyID int64) (OCCTExactCircularLoopExtrusion, error) {
 	var zero OCCTExactCircularLoopExtrusion
-	body, e := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
+	m, e := readOCCTLoopModel(ctx, f, l, bodyID, false)
 	if e != nil {
 		return zero, e
 	}
-	shell, e := simple(f, body.Args[1].Ref, "CLOSED_SHELL", 2)
-	if e != nil {
-		return zero, e
-	}
-	ids, e := listRefs(shell.Args[1], 5)
-	if e != nil || len(ids) > 66 || len(ids) > l.MaxFaces {
-		return zero, geom.ErrDomain
-	}
-	faces := map[int64]occtLoopFace{}
-	edges := map[int64]occtLoopEdge{}
-	points := map[int64]geom.Vec3{}
-	owners := map[int64][]int64{}
-	uses := map[int64][]bool{}
-	var capIDs []int64
-	axis := occtLoopVec(geom.Vec3{Z: 1})
-	ownedUses := map[int64]bool{}
-	for _, fid := range ids {
-		if _, ok := faces[fid]; ok {
-			return zero, geom.ErrDomain
-		}
-		face, e := occtLoopReadFace(f, fid)
-		if e != nil {
-			return zero, e
-		}
-		for _, id := range append([]int64{face.bound, face.loop}, face.oriented...) {
-			if ownedUses[id] {
-				return zero, geom.ErrDomain
-			}
-			ownedUses[id] = true
-		}
-		faces[fid] = face
-		if face.kind == "PLANE" && occtLoopParallel(face.z, axis) {
-			capIDs = append(capIDs, fid)
-		}
-		for _, u := range face.uses {
-			owners[u.id] = append(owners[u.id], fid)
-			uses[u.id] = append(uses[u.id], u.sense)
-			if _, ok := edges[u.id]; ok {
-				continue
-			}
-			er, e := simple(f, u.id, "EDGE_CURVE", 5)
-			if e != nil {
-				return zero, e
-			}
-			same, e := boolean(er.Args[4])
-			if e != nil || !same {
-				return zero, geom.ErrDomain
-			}
-			curve := f.Entities[er.Args[3].Ref]
-			if len(curve.Records) != 1 || (curve.Records[0].Type != "LINE" && curve.Records[0].Type != "CIRCLE") {
-				return zero, geom.ErrDomain
-			}
-			edges[u.id] = occtLoopEdge{u.id, er.Args[1].Ref, er.Args[2].Ref, er.Args[3].Ref, curve.Records[0].Type}
-			for _, vid := range []int64{er.Args[1].Ref, er.Args[2].Ref} {
-				vr, e := simple(f, vid, "VERTEX_POINT", 2)
-				if e != nil {
-					return zero, e
-				}
-				v, e := occtLoopTriple(f, vr.Args[1].Ref, "CARTESIAN_POINT")
-				if e != nil {
-					return zero, e
-				}
-				p, e := obliqueNURBSFloatPoint(v)
-				if e != nil {
-					return zero, e
-				}
-				points[vid] = p
-			}
-		}
-	}
-	if len(points) > l.MaxVertices || len(edges)*2 > l.MaxEdgeUses {
-		return zero, geom.ErrConvergence
-	}
-	if len(capIDs) != 2 {
-		return zero, geom.ErrDomain
-	}
-	if faces[capIDs[0]].origin[2].Cmp(faces[capIDs[1]].origin[2]) > 0 {
-		capIDs[0], capIDs[1] = capIDs[1], capIDs[0]
-	}
-	lo, hi := faces[capIDs[0]], faces[capIDs[1]]
-	z0, ok := lo.origin[2].Float64()
-	if !ok {
-		return zero, geom.ErrUnrepresentable
-	}
-	height, ok := new(big.Rat).Sub(hi.origin[2], lo.origin[2]).Float64()
-	if !ok || height <= 0 {
-		return zero, geom.ErrDomain
-	}
+	lo := m.faces[m.lo]
 	n := len(lo.uses)
-	if n < 3 || len(hi.uses) != n || len(ids) != n+2 || len(edges) != 3*n || len(points) != 2*n {
+	if len(m.faces[m.hi].uses) != n {
 		return zero, geom.ErrDomain
 	}
-	for eid, os := range owners {
-		if len(os) != 2 || os[0] == os[1] || uses[eid][0] == uses[eid][1] {
-			return zero, geom.ErrDomain
-		}
-	}
-	for _, face := range faces {
-		for i, u := range face.uses {
-			edge, next := edges[u.id], edges[face.uses[(i+1)%len(face.uses)].id]
-			end, start := edge.b, next.a
-			if !u.sense {
-				end = edge.a
-			}
-			if !face.uses[(i+1)%len(face.uses)].sense {
-				start = next.b
-			}
-			if end != start {
-				return zero, geom.ErrDomain
-			}
-		}
-	}
+	z0, height := m.z0, m.height
 	frame, _ := geom.NewFrame(geom.Vec3{Z: z0}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	out := OCCTExactCircularLoopExtrusion{Product: product}
 	out.Source = f
 	out.Body = bodyID
-	out.Shell = body.Args[1].Ref
-	out.Caps = [2]int64{capIDs[0], capIDs[1]}
+	out.Shell = m.shell
+	out.Caps = [2]int64{m.lo, m.hi}
 	out.Descriptor = ExactCircularLoopExtrusion{Name: product.Name, Frame: frame, Height: height, LengthUnit: unit}
 	// Reverse the outward low cap cycle to obtain the required CCW source loop.
 	for i := n - 1; i >= 0; i-- {
 		u := lo.uses[i]
-		edge := edges[u.id]
+		edge := m.edges[u.id]
 		start, end := edge.b, edge.a
 		if !u.sense {
 			start, end = edge.a, edge.b
 		}
-		p, q := points[start], points[end]
+		p, q := m.points[start], m.points[end]
 		if p.Z != z0 || q.Z != z0 {
 			return zero, geom.ErrDomain
 		}
@@ -412,13 +339,159 @@ func authenticateOCCTLoopBody(ctx context.Context, f *File, l Limits, product As
 		return zero, e
 	}
 	out.Native = native
-	if e = occtLoopBindNative(f, &out, faces, edges, points, owners); e != nil {
+	if e = occtLoopBindNative(f, &out, m.faces, m.edges, m.points, m.owners); e != nil {
 		return zero, fmt.Errorf("step: exact loop native binding: %w", e)
 	}
 	if e = ctx.Err(); e != nil {
 		return zero, e
 	}
 	return out, nil
+}
+
+type occtLoopModel struct {
+	shell, lo, hi int64
+	faces         map[int64]occtLoopFace
+	edges         map[int64]occtLoopEdge
+	points        map[int64]geom.Vec3
+	owners        map[int64][]int64
+	z0, height    float64
+}
+
+func readOCCTLoopModel(ctx context.Context, f *File, l Limits, bodyID int64, directed bool) (occtLoopModel, error) {
+	var zero occtLoopModel
+	body, e := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
+	if e != nil {
+		return zero, e
+	}
+	shell, e := simple(f, body.Args[1].Ref, "CLOSED_SHELL", 2)
+	if e != nil {
+		return zero, e
+	}
+	ids, e := listRefs(shell.Args[1], 5)
+	if e != nil || len(ids) > 66 || len(ids) > l.MaxFaces {
+		return zero, geom.ErrDomain
+	}
+	faces := map[int64]occtLoopFace{}
+	edges := map[int64]occtLoopEdge{}
+	points := map[int64]geom.Vec3{}
+	owners := map[int64][]int64{}
+	uses := map[int64][]bool{}
+	var capIDs []int64
+	axis := occtLoopVec(geom.Vec3{Z: 1})
+	ownedUses := map[int64]bool{}
+	for _, fid := range ids {
+		if e := ctx.Err(); e != nil {
+			return zero, e
+		}
+		if _, ok := faces[fid]; ok {
+			return zero, geom.ErrDomain
+		}
+		face, e := occtLoopReadFaceMode(f, fid, directed)
+		if e != nil {
+			return zero, e
+		}
+		for _, t := range face.trims {
+			for _, id := range append([]int64{t.bound, t.loop}, t.oriented...) {
+				if ownedUses[id] {
+					return zero, geom.ErrDomain
+				}
+				ownedUses[id] = true
+			}
+		}
+		faces[fid] = face
+		if face.kind == "PLANE" && occtLoopParallel(face.z, axis) {
+			capIDs = append(capIDs, fid)
+		}
+		for _, t := range face.trims {
+			for _, u := range t.uses {
+				owners[u.id] = append(owners[u.id], fid)
+				uses[u.id] = append(uses[u.id], u.sense)
+				if _, ok := edges[u.id]; ok {
+					continue
+				}
+				er, e := simple(f, u.id, "EDGE_CURVE", 5)
+				if e != nil {
+					return zero, e
+				}
+				same, e := boolean(er.Args[4])
+				if e != nil || (!directed && !same) {
+					return zero, geom.ErrDomain
+				}
+				curve := f.Entities[er.Args[3].Ref]
+				if len(curve.Records) != 1 || (curve.Records[0].Type != "LINE" && curve.Records[0].Type != "CIRCLE") {
+					return zero, geom.ErrDomain
+				}
+				edges[u.id] = occtLoopEdge{u.id, er.Args[1].Ref, er.Args[2].Ref, er.Args[3].Ref, curve.Records[0].Type, same}
+				for _, vid := range []int64{er.Args[1].Ref, er.Args[2].Ref} {
+					vr, e := simple(f, vid, "VERTEX_POINT", 2)
+					if e != nil {
+						return zero, e
+					}
+					v, e := occtLoopTriple(f, vr.Args[1].Ref, "CARTESIAN_POINT")
+					if e != nil {
+						return zero, e
+					}
+					p, e := obliqueNURBSFloatPoint(v)
+					if e != nil {
+						return zero, e
+					}
+					points[vid] = p
+				}
+			}
+		}
+	}
+	if len(points) > l.MaxVertices || len(edges)*2 > l.MaxEdgeUses {
+		return zero, geom.ErrConvergence
+	}
+	if len(capIDs) != 2 {
+		return zero, geom.ErrDomain
+	}
+	if faces[capIDs[0]].origin[2].Cmp(faces[capIDs[1]].origin[2]) > 0 {
+		capIDs[0], capIDs[1] = capIDs[1], capIDs[0]
+	}
+	lo, hi := faces[capIDs[0]], faces[capIDs[1]]
+	z0, ok := lo.origin[2].Float64()
+	if !ok {
+		return zero, geom.ErrUnrepresentable
+	}
+	height, ok := new(big.Rat).Sub(hi.origin[2], lo.origin[2]).Float64()
+	if !ok || height <= 0 {
+		return zero, geom.ErrDomain
+	}
+	n := 0
+	for _, t := range lo.trims {
+		n += len(t.uses)
+	}
+	if len(hi.trims) != len(lo.trims) || n < 3 || len(ids) != n+2 || len(edges) != 3*n || len(points) != 2*n {
+		return zero, geom.ErrDomain
+	}
+	for eid, os := range owners {
+		if len(os) != 2 || os[0] == os[1] || uses[eid][0] == uses[eid][1] {
+			return zero, geom.ErrDomain
+		}
+	}
+	for fid, face := range faces {
+		if fid != capIDs[0] && fid != capIDs[1] && len(face.trims) != 1 {
+			return zero, geom.ErrDomain
+		}
+		for _, t := range face.trims {
+			for i, u := range t.uses {
+				nextUse := t.uses[(i+1)%len(t.uses)]
+				edge, next := edges[u.id], edges[nextUse.id]
+				end, start := edge.b, next.a
+				if !u.sense {
+					end = edge.a
+				}
+				if !nextUse.sense {
+					start = next.b
+				}
+				if end != start {
+					return zero, geom.ErrDomain
+				}
+			}
+		}
+	}
+	return occtLoopModel{body.Args[1].Ref, capIDs[0], capIDs[1], faces, edges, points, owners, z0, height}, nil
 }
 func occtLoopPositiveAxis(v [3]*big.Rat, k int) bool {
 	for j, q := range v {
@@ -434,8 +507,22 @@ func occtLoopPositiveAxis(v [3]*big.Rat, k int) bool {
 }
 
 func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[int64]occtLoopFace, edges map[int64]occtLoopEdge, points map[int64]geom.Vec3, owners map[int64][]int64) error {
+	m := occtLoopModel{faces: faces, edges: edges, points: points, owners: owners}
+	b := ExactDirectedCircularLoopExtrusionProduct{
+		Descriptor: ExactDirectedCircularLoopExtrusion{Frame: out.Descriptor.Frame},
+		Native:     out.Native, Caps: out.Caps,
+	}
+	if err := occtLoopBindSource(f, &b, out.Descriptor.Segments, m, false); err != nil {
+		return err
+	}
+	out.Walls, out.VerticalEdges, out.Rims, out.Vertices = b.Walls, b.VerticalEdges, b.Rims, b.Vertices
+	return nil
+}
+
+func occtLoopBindSource(f *File, out *ExactDirectedCircularLoopExtrusionProduct, segments []trimmed.ExactCircularLoopSegment, m occtLoopModel, directed bool) error {
+	faces, edges, points, owners := m.faces, m.edges, m.points, m.owners
 	vs, es, fs := out.Native.Vertices(), out.Native.Edges(), out.Native.Faces()
-	n := len(out.Descriptor.Segments)
+	n := len(segments)
 	vertexIDs := make([]int64, len(vs))
 	world := make([]geom.Vec3, len(vs))
 	seen := map[int64]bool{}
@@ -480,15 +567,29 @@ func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[
 		s := edges[id]
 		start, end := occtLoopVec(points[s.a]), occtLoopVec(points[s.b])
 		curve := f.Entities[s.model].Records[0]
-		circle := i < 2*n && out.Descriptor.Segments[i%n].Radius > 0
+		circle := i < 2*n && segments[i%n].Radius > 0
 		if circle {
-			if s.kind != "CIRCLE" || !forward[i] || len(curve.Args) != 3 {
+			if s.kind != "CIRCLE" || (!directed && !forward[i]) || len(curve.Args) != 3 {
 				return geom.ErrDomain
 			}
-			seg := out.Descriptor.Segments[i%n]
+			seg := segments[i%n]
 			o, z, x, e := occtLoopFrame(f, curve.Args[1].Ref)
-			if e != nil || !occtLoopPositiveAxis(z, 2) || !occtLoopPositiveAxis(x, 0) || o[0].Cmp(sideRat(seg.Center.X)) != 0 || o[1].Cmp(sideRat(seg.Center.Y)) != 0 || o[2].Cmp(start[2]) != 0 {
+			if e != nil || (!directed && (!occtLoopPositiveAxis(z, 2) || !occtLoopPositiveAxis(x, 0))) || !occtLoopParallel(z, occtLoopVec(geom.Vec3{Z: 1})) || o[0].Cmp(sideRat(seg.Center.X)) != 0 || o[1].Cmp(sideRat(seg.Center.Y)) != 0 || o[2].Cmp(start[2]) != 0 {
 				return geom.ErrDomain
+			}
+			if directed {
+				// SameSense states whether the finite original edge follows the
+				// circle's model axis; disagreement selects the major arc.
+				positive := z[2].Sign() > 0
+				if !s.same {
+					positive = !positive
+				}
+				if !forward[i] {
+					positive = !positive
+				}
+				if (occtLoopArcCross(seg) > 0) != positive {
+					return geom.ErrDomain
+				}
 			}
 			radius, e := liftSourceRat(curve.Args[2])
 			if e != nil || radius.Cmp(sideRat(seg.Radius)) != 0 {
@@ -512,7 +613,7 @@ func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[
 			}
 			mag, e := liftSourceRat(v.Args[2])
 			delta := occtLoopSub(end, start)
-			if e != nil || mag.Sign() <= 0 || !occtLoopParallel(d, delta) || occtLoopDot(d, delta).Sign() <= 0 {
+			if e != nil || mag.Sign() <= 0 || !occtLoopParallel(d, delta) || (occtLoopDot(d, delta).Sign() > 0) != s.same {
 				return geom.ErrDomain
 			}
 			offset := occtLoopSub(start, o)
@@ -545,37 +646,12 @@ func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[
 	}
 	for i, native := range fs {
 		source := faces[faceIDs[i]]
-		expected := make([]analyticUse, len(native.Outer))
-		for j, u := range native.Outer {
-			expected[j] = analyticUse{edgeIDs[u.Edge], forward[u.Edge] != u.Reversed}
+		if !occtLoopMatchTrims(native, source, edgeIDs, forward, directed) {
+			return fmt.Errorf("face #%d trims: %w", source.id, geom.ErrDomain)
 		}
-		if native.Reversed {
-			for a, b := 0, len(expected)-1; a < b; a, b = a+1, b-1 {
-				expected[a], expected[b] = expected[b], expected[a]
-			}
-			for j := range expected {
-				expected[j].sense = !expected[j].sense
-			}
-		}
-		match := false
-		if len(expected) == len(source.uses) {
-			for shift := range expected {
-				ok := true
-				for j, u := range expected {
-					if u != source.uses[(j+shift)%len(expected)] {
-						ok = false
-						break
-					}
-				}
-				match = match || ok
-			}
-		}
-		if !match {
-			return geom.ErrDomain
-		}
-		if i >= 2 && out.Descriptor.Segments[i-2].Radius > 0 {
-			seg := out.Descriptor.Segments[i-2]
-			if source.kind != "CYLINDRICAL_SURFACE" || !source.sense || !occtLoopParallel(source.z, occtLoopVec(geom.Vec3{Z: 1})) || !occtLoopPositiveAxis(source.x, 0) || source.origin[0].Cmp(sideRat(seg.Center.X)) != 0 || source.origin[1].Cmp(sideRat(seg.Center.Y)) != 0 || source.radius.Cmp(sideRat(seg.Radius)) != 0 {
+		if i >= 2 && segments[i-2].Radius > 0 {
+			seg := segments[i-2]
+			if source.kind != "CYLINDRICAL_SURFACE" || source.sense != (!directed || occtLoopArcCross(seg) > 0) || !occtLoopParallel(source.z, occtLoopVec(geom.Vec3{Z: 1})) || (!directed && !occtLoopPositiveAxis(source.x, 0)) || source.origin[0].Cmp(sideRat(seg.Center.X)) != 0 || source.origin[1].Cmp(sideRat(seg.Center.Y)) != 0 || source.radius.Cmp(sideRat(seg.Radius)) != 0 {
 				return geom.ErrDomain
 			}
 		} else {
@@ -587,7 +663,7 @@ func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[
 				normal[2].Neg(normal[2])
 			}
 			if i >= 2 {
-				seg := out.Descriptor.Segments[i-2]
+				seg := segments[i-2]
 				normal = [3]*big.Rat{new(big.Rat).Sub(sideRat(seg.End.Y), sideRat(seg.Start.Y)), new(big.Rat).Sub(sideRat(seg.Start.X), sideRat(seg.End.X)), new(big.Rat)}
 			}
 			if !occtLoopParallel(normal, source.z) {
@@ -597,15 +673,74 @@ func occtLoopBindNative(f *File, out *OCCTExactCircularLoopExtrusion, faces map[
 			if sense != source.sense {
 				return geom.ErrDomain
 			}
-			for _, u := range native.Outer {
-				p := occtLoopVec(world[es[u.Edge].Start])
-				if occtLoopDot(occtLoopSub(p, source.origin), source.z).Sign() != 0 {
-					return geom.ErrDomain
+			for _, ring := range append([][]trimmed.Use{native.Outer}, native.Holes...) {
+				for _, u := range ring {
+					p := occtLoopVec(world[es[u.Edge].Start])
+					if occtLoopDot(occtLoopSub(p, source.origin), source.z).Sign() != 0 {
+						return geom.ErrDomain
+					}
 				}
 			}
 		}
 	}
 	return nil
+}
+
+// occtLoopArcCross gives the exact orientation of two endpoint radii.
+func occtLoopArcCross(seg trimmed.ExactCircularLoopSegment) int {
+	ax := new(big.Rat).Sub(sideRat(seg.Start.X), sideRat(seg.Center.X))
+	ay := new(big.Rat).Sub(sideRat(seg.Start.Y), sideRat(seg.Center.Y))
+	bx := new(big.Rat).Sub(sideRat(seg.End.X), sideRat(seg.Center.X))
+	by := new(big.Rat).Sub(sideRat(seg.End.Y), sideRat(seg.Center.Y))
+	return new(big.Rat).Sub(ax.Mul(ax, by), ay.Mul(ay, bx)).Sign()
+}
+
+func occtLoopMatchTrims(native trimmed.Face, source occtLoopFace, edges []int64, forward []bool, directed bool) bool {
+	rings := append([][]trimmed.Use{native.Outer}, native.Holes...)
+	if len(rings) != len(source.trims) {
+		return false
+	}
+	used := make([]bool, len(rings))
+	explicit := false
+	for _, q := range source.trims {
+		explicit = explicit || q.outer
+	}
+	for i, ring := range rings {
+		expected := make([]analyticUse, len(ring))
+		for j, u := range ring {
+			k := j
+			if native.Reversed {
+				k = len(ring) - 1 - j
+			}
+			expected[k] = analyticUse{edges[u.Edge], forward[u.Edge] != (u.Reversed != native.Reversed)}
+		}
+		match := false
+		for k, q := range source.trims {
+			if used[k] || (directed && explicit && q.outer != (i == 0)) || len(q.uses) != len(expected) {
+				continue
+			}
+			for shift := range expected {
+				ok := true
+				for j, u := range expected {
+					if u != q.uses[(j+shift)%len(expected)] {
+						ok = false
+						break
+					}
+				}
+				if ok {
+					used[k], match = true, true
+					break
+				}
+			}
+			if match {
+				break
+			}
+		}
+		if !match {
+			return false
+		}
+	}
+	return true
 }
 
 func occtLoopProductGraph(f *File, a Assembly) (int64, error) {

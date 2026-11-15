@@ -1,11 +1,15 @@
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <Geom_Circle.hxx>
 #include <GProp_GProps.hxx>
+#include <Interface_Static.hxx>
+#include <STEPControl_Writer.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Wire.hxx>
@@ -18,7 +22,8 @@
 #include <iomanip>
 #include <iostream>
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc > 2) return 1;
     BRepBuilderAPI_MakePolygon stock;
     const std::array<gp_Pnt,4> outline{{{0.,0.,-1.},{6.,0.,-1.},{6.,4.,-1.},{0.,4.,-1.}}};
     for (const auto& p : outline) stock.Add(p);
@@ -26,10 +31,13 @@ int main() {
     BRepBuilderAPI_MakeFace face(stock.Wire());
     constexpr double turn = 1.57079632679489661923;
     for (double x : {2.,4.}) {
-        const gp_Circ circle(gp_Ax2(gp_Pnt(x,2.,-1.),gp_Dir(0.,0.,1.)),.5);
+        const occ::handle<Geom_Circle> circle = new Geom_Circle(gp_Ax2(gp_Pnt(x,2.,-1.),gp_Dir(0.,0.,1.)),.5);
+        const std::array<gp_Pnt,4> cardinal{{{x+.5,2.,-1.},{x,2.5,-1.},{x-.5,2.,-1.},{x,1.5,-1.}}};
+        std::array<TopoDS_Vertex,4> vertices;
+        for (int i=0; i<4; ++i) vertices[i]=BRepBuilderAPI_MakeVertex(cardinal[i]).Vertex();
         BRepBuilderAPI_MakeWire hole;
         for (int i=0; i<4; ++i) {
-            BRepBuilderAPI_MakeEdge edge(circle,i*turn,(i+1)*turn);
+            BRepBuilderAPI_MakeEdge edge(circle,vertices[i],vertices[(i+1)%4],i*turn,(i+1)*turn);
             if (!edge.IsDone()) return 2;
             hole.Add(edge.Edge());
         }
@@ -46,4 +54,10 @@ int main() {
     BRepGProp::SurfaceProperties(shape,area);
     std::cout << std::setprecision(17) << "{\"Faces\":" << faces << ",\"Volume\":"
               << volume.Mass() << ",\"Area\":" << area.Mass() << "}\n";
+    if (argc == 2) {
+        STEPControl_Writer writer;
+        Interface_Static::SetCVal("write.step.schema", "AP214IS");
+        Interface_Static::SetIVal("write.surfacecurve.mode", 0);
+        if (writer.Transfer(shape, STEPControl_AsIs) != IFSelect_RetDone || writer.Write(argv[1]) != IFSelect_RetDone) return 5;
+    }
 }
