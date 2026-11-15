@@ -19,7 +19,7 @@ type AssemblyVertex struct{ Solid, Vertex int }
 type AssemblyVertexContact struct{ A, B AssemblyVertex }
 
 type VertexContactAssemblyOptions struct {
-	// Zero selects 256 solids, 1024 declarations, and one million cross
+	// Zero selects 256 solids, 1024 declared or discovered point contacts, and one million cross
 	// broad-phase comparisons over the complete assembly.
 	MaxSolids, MaxDeclaredContacts, MaxCrossPairs int
 	// MaxQueryWork bounds each prepared assembly lookup across all possible
@@ -57,10 +57,18 @@ type vertexContactPair struct {
 // One noncontact vertex per component and potentially overlapping mate must
 // be available to prove exterior membership. No partial report is published.
 func ValidateVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions) (VertexContactAssemblyReport, error) {
-	return prepareVertexContactAssembly(ctx, solids, declarations, o, nil)
+	return prepareVertexContactAssembly(ctx, solids, declarations, o, false, nil)
 }
 
-func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions, prepared *[]vertexContactComponent) (VertexContactAssemblyReport, error) {
+// DiscoverVertexContactAssembly explicitly admits all proved original vertex
+// contacts between independently embedded, disjoint-interior planar solids.
+// It discovers a complete ledger using the same predicates and limits as
+// ValidateVertexContactAssembly. No other kind of contact is admitted.
+func DiscoverVertexContactAssembly(ctx context.Context, solids []brep.Solid, o VertexContactAssemblyOptions) (VertexContactAssemblyReport, error) {
+	return prepareVertexContactAssembly(ctx, solids, nil, o, true, nil)
+}
+
+func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions, discover bool, prepared *[]vertexContactComponent) (VertexContactAssemblyReport, error) {
 	var zero VertexContactAssemblyReport
 	if ctx == nil || o.MaxSolids < 0 || o.MaxDeclaredContacts < 0 || o.MaxCrossPairs < 0 || o.MaxQueryWork < 0 {
 		return zero, ErrInvalid
@@ -126,25 +134,13 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 			report.Contacts[i] = AssemblyVertexContact{c.B, c.A}
 		}
 	}
-	sort.Slice(report.Contacts, func(i, j int) bool {
-		a, b := report.Contacts[i], report.Contacts[j]
-		if a.A.Solid != b.A.Solid {
-			return a.A.Solid < b.A.Solid
-		}
-		if a.B.Solid != b.B.Solid {
-			return a.B.Solid < b.B.Solid
-		}
-		if a.A.Vertex != b.A.Vertex {
-			return a.A.Vertex < b.A.Vertex
-		}
-		return a.B.Vertex < b.B.Vertex
-	})
+	sortAssemblyVertexContacts(report.Contacts)
 	pairs := map[[2]int]*vertexContactPair{}
 	for i, c := range report.Contacts {
 		k := [2]int{c.A.Solid, c.B.Solid}
 		p := pairs[k]
 		if p == nil {
-			p = &vertexContactPair{make(map[[2]int]int), [2]map[int]bool{make(map[int]bool), make(map[int]bool)}}
+			p = newVertexContactPair()
 			pairs[k] = p
 		}
 		if p.used[0][c.A.Vertex] || p.used[1][c.B.Vertex] {
@@ -173,14 +169,35 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 				return zero, ErrLimit
 			}
 			cross, err := sweepIntersections(ctx, a.mesh, b.mesh, false, Options{MaxPairs: remaining, MaxContacts: remaining}, func(ta, tb int, k Kind, points []point) error {
-				if p != nil && k == Touching && len(points) == 1 {
+				if (p != nil || discover) && k == Touching && len(points) == 1 {
+					if p == nil {
+						p = newVertexContactPair()
+					}
 					for _, va := range a.mesh.Triangles[ta] {
 						for _, vb := range b.mesh.Triangles[tb] {
-							if id, ok := p.claims[[2]int{va, vb}]; ok && same(points[0], exact(a.mesh.Vertices[va])) {
-								seen[id] = true
-								report.ContactPairs++
-								return nil
+							key := [2]int{va, vb}
+							id, known := p.claims[key]
+							if !known && (!discover || a.mesh.Vertices[va] != b.mesh.Vertices[vb]) {
+								continue
 							}
+							if !same(points[0], exact(a.mesh.Vertices[va])) {
+								continue
+							}
+							if !known {
+								if p.used[0][va] || p.used[1][vb] {
+									return ErrInvalid
+								}
+								if len(report.Contacts) >= o.MaxDeclaredContacts {
+									return ErrLimit
+								}
+								id = len(report.Contacts)
+								p.claims[key], p.used[0][va], p.used[1][vb] = id, true, true
+								report.Contacts = append(report.Contacts, AssemblyVertexContact{AssemblyVertex{i, va}, AssemblyVertex{j, vb}})
+								seen = append(seen, false)
+							}
+							seen[id] = true
+							report.ContactPairs++
+							return nil
 						}
 					}
 				}
@@ -213,10 +230,33 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
+	if discover {
+		sortAssemblyVertexContacts(report.Contacts)
+	}
 	if prepared != nil {
 		*prepared = components
 	}
 	return report, nil
+}
+
+func newVertexContactPair() *vertexContactPair {
+	return &vertexContactPair{make(map[[2]int]int), [2]map[int]bool{make(map[int]bool), make(map[int]bool)}}
+}
+
+func sortAssemblyVertexContacts(contacts []AssemblyVertexContact) {
+	sort.Slice(contacts, func(i, j int) bool {
+		a, b := contacts[i], contacts[j]
+		if a.A.Solid != b.A.Solid {
+			return a.A.Solid < b.A.Solid
+		}
+		if a.B.Solid != b.B.Solid {
+			return a.B.Solid < b.B.Solid
+		}
+		if a.A.Vertex != b.A.Vertex {
+			return a.A.Vertex < b.A.Vertex
+		}
+		return a.B.Vertex < b.B.Vertex
+	})
 }
 
 func validateComponentOutside(ctx context.Context, component, other vertexContactComponent, skip map[int]bool) error {

@@ -43,7 +43,7 @@ type VertexContactAssemblyLocator struct {
 // subsequent queries. It publishes no locator on incomplete preparation.
 func NewVertexContactAssemblyLocator(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions) (*VertexContactAssemblyLocator, error) {
 	var prepared []vertexContactComponent
-	report, err := prepareVertexContactAssembly(ctx, solids, declarations, o, &prepared)
+	report, err := prepareVertexContactAssembly(ctx, solids, declarations, o, false, &prepared)
 	if err != nil {
 		return nil, err
 	}

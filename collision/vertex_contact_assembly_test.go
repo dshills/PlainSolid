@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"slices"
 	"testing"
 )
 
@@ -54,6 +55,13 @@ func TestVertexContactAssemblyVerifiesTwoOriginalPointContacts(t *testing.T) {
 		if entry.A.Solid != 0 || entry.B.Solid != 1 {
 			t.Fatalf("noncanonical component order: %+v", entry)
 		}
+	}
+	found, err := DiscoverVertexContactAssembly(ctx, parts, VertexContactAssemblyOptions{})
+	if err != nil || !slices.Equal(found.Contacts, r.Contacts) || found.SignedVolume.Cmp(r.SignedVolume) != 0 {
+		t.Fatalf("discovery missed the original contacts: %+v %v", found, err)
+	}
+	if found, err := DiscoverVertexContactAssembly(ctx, parts, VertexContactAssemblyOptions{MaxDeclaredContacts: 1}); !errors.Is(err, ErrLimit) || found.SignedVolume != nil {
+		t.Fatalf("discovery exceeded its contact ledger budget: %+v %v", found, err)
 	}
 	if _, err := ValidateAssembly(ctx, parts, AssemblyOptions{}); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("strict assembly accepted touching components: %v", err)
