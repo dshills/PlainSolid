@@ -57,9 +57,38 @@ scale on the original, corrected model-only, and generated canonical files.
 The pinned author uses `write-default-tilted-translated-metre` and
 `write-default-tilted-translated-inch` with the same local modelling and
 output unit. These two default exports retain the proved analytic owner
-charts. Exporting an existing millimetre-native B-rep in a different unit can
-instead produce degree-one spline owners with different parameter scales.
-Those charts require a separate proof.
+charts.
+
+## Millimetre model converted to metre STEP by OCCT
+
+The pinned `write-default-tilted-translated-converted-metre` author starts
+with metre-sized geometry in a millimetre-native OCCT model. During transfer
+OCCT emits the metre context, changes the 3D LINE speed to `1/1000` and leaves
+the planar owner LINE speed at one. For all 18 original planar LINE owners,
+the exact model-to-owner map is `t → t/1000`. The proof checks both authored
+speeds and encloses the lift discrepancy on the original finite model
+interval, including the correction for direction normalization. The two
+planar CIRCLE owners retain the existing proof.
+
+The four original cylindrical owners are clamped degree-one B-splines with
+two controls and one knot interval. `CylindricalSpanOwners` records that
+interval and the exact affine UV coefficients. Two axial spans have constant
+`u` and `dv/dt = 1/1000`. Their knots cover the entire directed original and
+repaired LINE intervals. Two circular spans have `u = t` and constant `v`.
+An exact cross-product inequality with rational sine and cosine enclosures
+puts both original and repaired end rays inside each authored knot interval.
+Truncating that interval while keeping `u = t` is rejected. The source-only
+receipt authenticates all maps and coefficients by reconstruction.
+
+The pinned OCCT evaluator independently samples all 24 original owners at
+model-edge midpoints. It measures a maximum discrepancy of approximately
+`1.54e-13` metres with the planar parameter map, and `2965.78125` metres
+when the planar owner uses the model parameters directly. The original,
+corrected and strict canonical STEP transfers keep the metre declaration,
+exact placement, and equivalent independently measured physical geometry.
+This qualification covers the proved degree-one cylindrical spans and
+binary-lossless local model coordinates of this converted single-fillet
+family.
 
 ## Source-only native proof
 
@@ -85,7 +114,7 @@ translation `(1,0,2)`. Each source has 352 entities and 24 owner pcurves.
 
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
-  go test ./exchange/step -run '^(TestRepairRationalPosedPCurveOCCTConvexArc|TestRationalPosedConvexArc)' -count=1
+  go test ./exchange/step -run '^(TestRepairRationalPosedPCurveOCCTConvexArc|TestRationalPosedConvexArc|TestRepairConvertedMetreConvexArc)' -count=1
 ```
 
 The live test regenerates both sources and reloads their native proofs.

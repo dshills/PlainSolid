@@ -2,12 +2,16 @@
 #include <StepShape_VertexPoint.hxx>
 #include <StepGeom_CartesianPoint.hxx>
 #include <StepGeom_Circle.hxx>
+#include <StepGeom_Line.hxx>
+#include <StepGeom_Vector.hxx>
 #include <Geom_Circle.hxx>
 #include <Geom_CartesianPoint.hxx>
+#include <Geom_Line.hxx>
 #include <StepData_StepModel.hxx>
 #include <StepGeom_SurfaceCurve.hxx>
 #include <StepGeom_Pcurve.hxx>
 #include <StepGeom_Plane.hxx>
+#include <StepGeom_CylindricalSurface.hxx>
 #include <StepGeom_BSplineCurve.hxx>
 #include <StepRepr_DefinitionalRepresentation.hxx>
 #include <StepToGeom.hxx>
@@ -28,10 +32,89 @@
 #include <Interface_Static.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <string>
+
+static int convertedMetreWitness(const char* path) {
+ STEPControl_Reader reader;
+ if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
+ const auto model = reader.StepModel();
+ int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0;
+ double maxDistance=0, withoutMap=0;
+ for (int i=1; i<=model->NbEntities(); ++i) {
+  const auto edge = Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));
+  if (edge.IsNull()) continue;
+  const auto sc = Handle(StepGeom_SurfaceCurve)::DownCast(edge->EdgeGeometry());
+  if (sc.IsNull()) return 9;
+  const auto curve = StepToGeom::MakeCurve(sc->Curve3d());
+  const auto stepLine = Handle(StepGeom_Line)::DownCast(sc->Curve3d());
+  const auto line = Handle(Geom_Line)::DownCast(curve);
+  const auto circle = Handle(Geom_Circle)::DownCast(curve);
+  const auto start = Handle(StepShape_VertexPoint)::DownCast(edge->EdgeStart());
+  const auto end = Handle(StepShape_VertexPoint)::DownCast(edge->EdgeEnd());
+  if (start.IsNull() || end.IsNull() || (line.IsNull() && circle.IsNull())) return 9;
+  const auto a = StepToGeom::MakeCartesianPoint(Handle(StepGeom_CartesianPoint)::DownCast(start->VertexGeometry()));
+  const auto b = StepToGeom::MakeCartesianPoint(Handle(StepGeom_CartesianPoint)::DownCast(end->VertexGeometry()));
+  if (a.IsNull() || b.IsNull()) return 9;
+  double speed = 1;
+  double parameter;
+  if (!line.IsNull()) {
+   if (stepLine.IsNull() || stepLine->Dir().IsNull()) return 9;
+   speed = stepLine->Dir()->Magnitude();
+   if (speed != .001) return 9;
+   const auto axis = line->Position();
+   const auto station = [&](const gp_Pnt& point) { return gp_Vec(axis.Location(), point).Dot(gp_Vec(axis.Direction())); };
+   parameter = (station(a->Pnt()) + station(b->Pnt())) / (2 * speed);
+  } else {
+   const auto chart = circle->Position();
+   const auto angle = [&](const gp_Pnt& point) {
+    const auto ray = gp_Vec(chart.Location(), point);
+    return std::atan2(ray.Dot(gp_Vec(chart.YDirection())), ray.Dot(gp_Vec(chart.XDirection())));
+   };
+   parameter = (angle(a->Pnt()) + angle(b->Pnt())) / 2;
+  }
+  const auto point = curve->Value(parameter * speed);
+  for (int j=1; j<=sc->NbAssociatedGeometry(); ++j) {
+   const auto pc = sc->AssociatedGeometryValue(j).Pcurve();
+   if (pc.IsNull()) return 9;
+   const auto geometry = Handle(StepGeom_Curve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));
+   if (geometry.IsNull()) return 9;
+   const auto uv = StepToGeom::MakeCurve2d(geometry);
+   const auto surface = StepToGeom::MakeSurface(pc->BasisSurface());
+   if (uv.IsNull() || surface.IsNull()) return 9;
+   const auto lift = [&](double t) { const auto p=uv->Value(t); return surface->Value(p.X(),p.Y()); };
+   double ownerParameter = parameter;
+   if (!Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull()) {
+    if (!line.IsNull()) {
+     const auto ownerLine = Handle(StepGeom_Line)::DownCast(geometry);
+     if (ownerLine.IsNull() || ownerLine->Dir().IsNull() || ownerLine->Dir()->Magnitude() != 1) return 9;
+     ++planeLines;
+     ownerParameter *= speed;
+     withoutMap = std::max(withoutMap, point.Distance(lift(parameter)));
+    } else {
+     if (Handle(StepGeom_Circle)::DownCast(geometry).IsNull()) return 9;
+     ++planeCircles;
+    }
+   } else {
+    if (Handle(StepGeom_CylindricalSurface)::DownCast(pc->BasisSurface()).IsNull() ||
+        Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
+    if (line.IsNull()) ++cylinderCircles;
+    else ++cylinderLines;
+   }
+   maxDistance = std::max(maxDistance, point.Distance(lift(ownerParameter)));
+  }
+ }
+ std::cout << std::setprecision(17) << "{\"PlaneLines\":" << planeLines << ",\"PlaneCircles\":" << planeCircles
+           << ",\"CylinderLines\":" << cylinderLines << ",\"CylinderCircles\":" << cylinderCircles
+           << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPlanarMap\":" << withoutMap << "}\n";
+ return planeLines==18 && planeCircles==2 && cylinderLines==2 && cylinderCircles==2 ? 0 : 9;
+}
+
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
+if(std::string(argv[1])=="converted-metre-witness") return convertedMetreWitness(argv[2]);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
  for(int i=1;i<=model->NbEntities();++i){auto edge=Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));if(edge.IsNull())continue;auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(edge->EdgeGeometry());if(sc.IsNull())continue;auto circleSource=Handle(StepGeom_Circle)::DownCast(sc->Curve3d());if(circleSource.IsNull())continue;auto circle=StepToGeom::MakeCircle(circleSource);for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto surf=StepToGeom::MakeSurface(pc->BasisSurface());auto point=[&](double t){auto p=uv->Value(t);return surf->Value(p.X(),p.Y());};double lo=uv->FirstParameter(),hi=lo+(uv->LastParameter()-lo)/3;auto axis=circle->Position().XDirection();for(int k=0;k<60;++k){double mid=(lo+hi)/2;double x=gp_Vec(circle->Location(),point(mid)).Dot(gp_Vec(axis));if(x>0)lo=mid;else hi=mid;}double station=(lo+hi)/2;minStation=std::min(minStation,station);maxStation=std::max(maxStation,station);
@@ -46,7 +129,8 @@ if(std::string(argv[1])=="cap-witness") {
 const std::string mode = argv[1];
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch";
-const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre";
+const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre";
+const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch";
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
                            groupedTilted || metre || inch;
@@ -72,9 +156,16 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
  }
  STEPControl_Writer w;
  if (metre || inch) {
-  // The native solid was authored in this unit. Keep the 3D and UV charts
-  // in those coordinates while asking the vendor to emit the unit declaration.
-  w.Model()->SetLocalLengthUnit(metre ? 1000.0 : 25.4);
+  if (convertedMetre) {
+   // Author metre-sized geometry in a millimetre model and let STEPControl
+   // convert its native model and owner charts during the actual transfer.
+   gp_Trsf scale;
+   scale.SetScale(gp_Pnt(0,0,0), 1000.0);
+   shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();
+   w.Model()->SetLocalLengthUnit(1.0);
+  } else {
+   w.Model()->SetLocalLengthUnit(metre ? 1000.0 : 25.4);
+  }
   if (!Interface_Static::SetCVal("write.step.unit", metre ? "M" : "INCH")) return 9;
  }
  Interface_Static::SetCVal("write.step.schema","AP214IS");Interface_Static::SetIVal("write.surfacecurve.mode",(mode=="write-default" || mode=="write-both-default" || mode=="write-both-default-x" || mode=="write-both-default-minus-x" || mode=="write-both-default-translated" || tiltedDefault)?1:0);if(w.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||w.Write(argv[2])!=IFSelect_RetDone)return 5;

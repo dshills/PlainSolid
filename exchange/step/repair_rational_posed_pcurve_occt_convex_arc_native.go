@@ -78,20 +78,21 @@ func rationalPosedPCurveClaims(ctx context.Context, m rationalPosedPCurveRepairM
 		return nil, e
 	}
 	claim := struct {
-		SourceSHA256         string
-		MaxDistance          float64
-		Pose                 [3][4]*big.Rat
-		ReferenceCircleID    int64
-		CorrectedModelSHA256 string
-		NativeSHA256         string
-		LocalRecipeSHA256    string
-		Provenance           ConvexArcRepairProvenance
-		Repairs              []ConvexArcRepairSite
-		Tangencies           []ConvexArcTangentEvidence
-		AzimuthDirections    []int64
-		PCurves              []ConvexArcPCurveAgreement
-		FiniteLineOwners     []FiniteConvexArcLineOwner
-		Grouped              *rationalPosedGroupedRepairClaim `json:",omitempty"`
+		SourceSHA256          string
+		MaxDistance           float64
+		Pose                  [3][4]*big.Rat
+		ReferenceCircleID     int64
+		CorrectedModelSHA256  string
+		NativeSHA256          string
+		LocalRecipeSHA256     string
+		Provenance            ConvexArcRepairProvenance
+		Repairs               []ConvexArcRepairSite
+		Tangencies            []ConvexArcTangentEvidence
+		AzimuthDirections     []int64
+		PCurves               []ConvexArcPCurveAgreement
+		FiniteLineOwners      []FiniteConvexArcLineOwner
+		CylindricalSpanOwners []ConvexArcCylinderSpanOwner     `json:",omitempty"`
+		Grouped               *rationalPosedGroupedRepairClaim `json:",omitempty"`
 	}{
 		SourceSHA256: rationalPosedRepairDigest([]byte(m.OriginalSTEP())), MaxDistance: distance,
 		Pose: pose, ReferenceCircleID: m.ReferenceCircleID(),
@@ -104,6 +105,7 @@ func rationalPosedPCurveClaims(ctx context.Context, m rationalPosedPCurveRepairM
 	switch p := m.(type) {
 	case RationalPosedPCurveRepairedOCCTConvexArcExtrusion:
 		claim.AzimuthDirections = p.base.material.AzimuthDirections()
+		claim.CylindricalSpanOwners = p.CylindricalSpanOwners()
 	case RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
 		claim.AzimuthDirections = p.base.material.AzimuthDirections()
 		group := &rationalPosedGroupedRepairClaim{

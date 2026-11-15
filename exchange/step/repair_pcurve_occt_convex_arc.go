@@ -188,20 +188,11 @@ func boundConvexOwnerPCurve(f, corrected *File, model, geometry, support int64) 
 		if !convexUVSame(direction, md) {
 			return bad()
 		}
-		sine, cosine, remainder, e := liftTrigBernstein([]*big.Rat{uv[0], uv[0]})
+		bound, e := boundConvexArcCylinderLine(o, x, y, z, mp, radius, uv[0], uv[1])
 		if e != nil {
 			return bad()
 		}
-		sum := new(big.Rat)
-		for i := range mp {
-			approx := new(big.Rat).Add(o[i], new(big.Rat).Mul(z[i], uv[1]))
-			approx.Add(approx, new(big.Rat).Mul(radius, new(big.Rat).Add(new(big.Rat).Mul(x[i], cosine[0]), new(big.Rat).Mul(y[i], sine[0]))))
-			delta := new(big.Rat).Abs(new(big.Rat).Sub(approx, mp[i]))
-			err := new(big.Rat).Mul(radius, new(big.Rat).Mul(remainder, new(big.Rat).Add(new(big.Rat).Abs(x[i]), new(big.Rat).Abs(y[i]))))
-			delta.Add(delta, err)
-			sum.Add(sum, new(big.Rat).Mul(delta, delta))
-		}
-		return "cylinder-line", sum, nil
+		return "cylinder-line", bound, nil
 	}
 	if mr.Type != "CIRCLE" || len(mr.Args) != 3 {
 		return bad()
@@ -253,6 +244,23 @@ func boundConvexOwnerPCurve(f, corrected *File, model, geometry, support int64) 
 	}
 	delta := occtLoopSub(convexUVLift(o, x, y, center[0], center[1]), mo)
 	return "plane-circle", occtLoopDot(delta, delta), nil
+}
+
+func boundConvexArcCylinderLine(o, x, y, z, p [3]*big.Rat, radius, u, v *big.Rat) (*big.Rat, error) {
+	sine, cosine, remainder, e := liftTrigBernstein([]*big.Rat{u, u})
+	if e != nil {
+		return nil, e
+	}
+	sum := new(big.Rat)
+	for i := range p {
+		approx := new(big.Rat).Add(o[i], new(big.Rat).Mul(z[i], v))
+		approx.Add(approx, new(big.Rat).Mul(radius, new(big.Rat).Add(new(big.Rat).Mul(x[i], cosine[0]), new(big.Rat).Mul(y[i], sine[0]))))
+		delta := new(big.Rat).Abs(new(big.Rat).Sub(approx, p[i]))
+		err := new(big.Rat).Mul(radius, new(big.Rat).Mul(remainder, new(big.Rat).Add(new(big.Rat).Abs(x[i]), new(big.Rat).Abs(y[i]))))
+		delta.Add(delta, err)
+		sum.Add(sum, new(big.Rat).Mul(delta, delta))
+	}
+	return sum, nil
 }
 
 // RepairPCurveOCCTConvexArcExtrusion authenticates the actual default OCCT
