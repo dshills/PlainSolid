@@ -12,8 +12,8 @@ import (
 )
 
 // WriteMappedChainRectangularOriginalShell exports the captured STEP graph of
-// a mixed-basis shell with one original edge crossing three through six
-// support knots or original edges with separate local support cuts. Both
+// a mixed-basis shell with a supported original-edge partition, including two
+// asynchronous cuts in one original model Bézier. Both
 // the captured source and the staged canonical graph pass
 // the complete proof. The authored model poles, weights, knot values, and
 // directions survive, as do the original pcurve bases and parameter limits.
@@ -31,9 +31,11 @@ func WriteMappedChainRectangularOriginalShell(ctx context.Context, w io.Writer, 
 		return geom.ErrInvalid
 	}
 	independent := source.Shell.IndependentOwnerBases()
-	if independent[0] == independent[1] || len(source.Crossings) < 3 || len(source.Crossings) > 6 ||
-		(!allMappedChainCrossingsOnOneEdge(source.Crossings) && mappedChainCrossingLocalCellCount(source.Crossings) == 0 &&
-			!mappedChainSeparatedSupportCells(source.Chain, source.Crossings)) {
+	crossings := source.Crossings
+	recordedPartition := len(crossings) >= 3 && len(crossings) <= 6 &&
+		(allMappedChainCrossingsOnOneEdge(crossings) || mappedChainCrossingLocalCellCount(crossings) != 0 ||
+			mappedChainSeparatedSupportCells(source.Chain, crossings))
+	if independent[0] == independent[1] || !recordedPartition && !mappedChainSameCellAsynchronousCrossings(crossings) {
 		return fmt.Errorf("original mixed STEP export requires a supported source-edge support-knot partition: %w", geom.ErrConvergence)
 	}
 	file, err := Parse(strings.NewReader(source.original), l)

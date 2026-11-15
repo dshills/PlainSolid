@@ -255,17 +255,35 @@ func mappedSplineModelStation(raw, weight *big.Rat) *big.Rat {
 // The station is in normalized model traversal. Either support side may use
 // the same original knot cell when its complete control hull fits there.
 func ProveMappedSplineSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, station *big.Rat, o geom.SurfacePatchOptions) error {
-	one := big.NewRat(1, 1)
-	if ctx == nil || support == nil || mapped.weight == nil || model == nil ||
-		station == nil || station.Sign() <= 0 || station.Cmp(one) >= 0 {
+	return proveMappedSplineBezierPartition(ctx, support, mapped, model, []*big.Rat{station}, o)
+}
+
+// ProveMappedSplineBezierSupportPartition proves an original owner
+// restriction at two strictly ordered normalized stations on one model
+// Bézier. Its three exact branches use the original model basis and
+// only restrict the existing raw owner map.
+func ProveMappedSplineBezierSupportPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, stations [2]*big.Rat, o geom.SurfacePatchOptions) error {
+	return proveMappedSplineBezierPartition(ctx, support, mapped, model, stations[:], o)
+}
+
+func proveMappedSplineBezierPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, stations []*big.Rat, o geom.SurfacePatchOptions) error {
+	if ctx == nil || support == nil || mapped.weight == nil || model == nil {
 		return geom.ErrInvalid
 	}
+	one := big.NewRat(1, 1)
+	cuts := []*big.Rat{new(big.Rat)}
+	for _, station := range stations {
+		if station == nil || station.Cmp(cuts[len(cuts)-1]) <= 0 || station.Cmp(one) >= 0 {
+			return geom.ErrInvalid
+		}
+		cuts = append(cuts, station)
+	}
+	cuts = append(cuts, one)
 	normalized, err := model.Reparameterize(0, 1, false, o)
 	if err != nil {
 		return err
 	}
-	cuts := [3]*big.Rat{new(big.Rat), station, one}
-	for i := range 2 {
+	for i := range len(cuts) - 1 {
 		part, err := restrictMappedSource(ctx, mapped, cuts[i], cuts[i+1], o)
 		if err != nil {
 			return err

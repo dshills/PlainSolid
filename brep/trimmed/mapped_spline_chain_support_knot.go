@@ -18,7 +18,7 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 	switch repair {
 	case mappedChainSynchronizedKnotsRepair, mappedChainMixedKnotsRepair:
 		maxOwnerKnots, count = 2, 2
-	case mappedChainAsynchronousKnotsRepair:
+	case mappedChainAsynchronousKnotsRepair, mappedChainSameCellAsynchronousKnotsRepair:
 		count = 2
 	case mappedChainThreeKnotsRepair:
 		maxOwnerKnots, count = 2, 3
@@ -42,7 +42,7 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		if (repair == mappedChainSynchronizedKnotsRepair || repair == mappedChainThreeKnotsRepair) && len(planes) != 2 {
 			return nil, nil, fmt.Errorf("roof %d requires two original support knots: %w", owner, geom.ErrConvergence)
 		}
-		if repair == mappedChainAsynchronousKnotsRepair && len(planes) != 1 {
+		if (repair == mappedChainAsynchronousKnotsRepair || repair == mappedChainSameCellAsynchronousKnotsRepair) && len(planes) != 1 {
 			return nil, nil, fmt.Errorf("roof %d requires one original support knot: %w", owner, geom.ErrConvergence)
 		}
 		if repair == mappedChainMixedKnotsRepair && len(planes) == 0 {
@@ -88,10 +88,13 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 					if ownerCrossed || len(stations) > 0 && stations[0].insert == insert {
 						return nil, nil, fmt.Errorf("asynchronous support crossings require one crossing per roof in distinct common chain cells: %w", geom.ErrConvergence)
 					}
-					ownerCrossed = true
 				} else if repair != mappedChainCellLocalKnotsRepair && len(stations) > 0 && stations[0].insert != insert {
 					return nil, nil, fmt.Errorf("original support crossings span common chain cells: %w", geom.ErrConvergence)
 				}
+				if repair == mappedChainSameCellAsynchronousKnotsRepair && ownerCrossed {
+					return nil, nil, fmt.Errorf("same-cell asynchronous repair requires only one crossing per roof: %w", geom.ErrConvergence)
+				}
+				ownerCrossed = true
 				width := new(big.Rat).Sub(cuts[i+1], cuts[i])
 				t := new(big.Rat).Add(cuts[i], new(big.Rat).Mul(width, root))
 				j := slices.IndexFunc(stations, func(s station) bool { return s.parameter.Cmp(t) == 0 })

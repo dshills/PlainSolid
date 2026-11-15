@@ -34,6 +34,10 @@ type MappedChainShellSTEPOptions struct {
 	// shared edges, each with a single model spline and one original owner
 	// changing support cells. Requires AllowUnsplitSupportKnot.
 	AllowAsynchronousSupportKnots bool
+	// AllowSameCellAsynchronousSupportKnots admits two distinct owner-only
+	// crossings inside one original model Bézier with mixed owner bases.
+	// Requires AllowMultiSpanRoofs, AllowUnsplitSupportKnot and AllowMixedOwnerBases.
+	AllowSameCellAsynchronousSupportKnots bool
 	// AllowMixedSupportKnots admits one original foreign shared edge with a
 	// stored model knot crossed by both owners and one additional single-owner
 	// crossing. Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
@@ -119,7 +123,10 @@ func writeReprovedMappedChainSTEP(ctx context.Context, w io.Writer, raw []byte, 
 }
 
 func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
-	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot &&
+	if !o.AllowMixedOwnerBases || !o.AllowMultiSpanRoofs || !o.AllowUnsplitSupportKnot {
+		return false
+	}
+	return o.AllowSameCellAsynchronousSupportKnots || o.AllowTwoInteriorRoofKnots &&
 		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells ||
 			o.AllowThreeSupportKnotCells || o.AllowSeparatedSupportKnotCells)
 }

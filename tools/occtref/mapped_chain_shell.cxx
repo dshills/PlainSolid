@@ -81,9 +81,13 @@ struct RoofSupportLayout {
   int cuts = 3;
   int storedCells = 1;
   bool separated = false;
+  bool sameCellAsynchronous = false;
 };
 
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
+  if (layout.sameCellAsynchronous) {
+    return {0., south ? 369. / 2048 : 107. / 2048, 1.};
+  }
   if (layout.separated) {
     return south ? std::vector<double>{0., 29. / 256, .75, 1.}
                  : std::vector<double>{0., 107. / 2048, 29. / 256, 1.};
@@ -112,6 +116,10 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
+    if (layout.sameCellAsynchronous) {
+      const double separate = south ? 369. / 2048 : 107. / 2048;
+      return x * y + .125 * (y - .25) * std::max(0., x - separate);
+    }
     if (layout.separated) {
       const double separate = south ? .75 : 107. / 2048;
       return x * y + .125 * std::max(0., x - 29. / 256) + .125 * (y - .25) * std::max(0., x - separate);
@@ -186,9 +194,10 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
       };
       occ::handle<Geom_Curve> lifted;
       const double lastStoredStart = layout.storedCells == 3 ? .5 : layout.storedCells == 2 ? .25 : 0.;
-      if (unsplit && points.size() == 4 && points.front().X() <= lastStoredStart) {
+      if (unsplit && layout.storedCells > 0 && points.size() == 4 && points.front().X() <= lastStoredStart) {
         // The full first UV cubic crosses the original support stations.
-        // Only the shared material kink splits its stored model curve.
+        // The authored stored cut normally follows the shared material kink.
+        // The same-cell control mode instead authors a redundant exact join.
         const auto pieces = split(Cubic{points[0], points[1], points[2], points[3]});
         NCollection_Array1<gp_Pnt> model(1, 7);
         for (int i = 0; i < 4; ++i) {
@@ -342,8 +351,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
   const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
   const int supportCuts = layout.cuts;
-  const bool localCells = layout.storedCells >= 2 || layout.separated;
-  const double lastSouthParameter = layout.storedCells == 3 || layout.separated ? -2. : 0.;
+  const bool localCells = layout.storedCells >= 2 || layout.separated || layout.sameCellAsynchronous;
+  const double lastSouthParameter = layout.storedCells == 3 || layout.separated || layout.sameCellAsynchronous ? -2. : 0.;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -472,9 +481,12 @@ int main(int argc, char** argv) {
     const std::string mode = argc > 1 ? argv[1] : "";
     const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
-    const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2 : 1;
-    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells"};
-    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2 || layout.separated;
+    const bool sameCellAsynchronous = mode == "write-same-cell-asynchronous" || mode == "write-same-cell-redundant-knot";
+    const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
+      : mode == "write-same-cell-asynchronous" ? 0 : 1;
+    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", sameCellAsynchronous};
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
+      || layout.separated || sameCellAsynchronous;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;

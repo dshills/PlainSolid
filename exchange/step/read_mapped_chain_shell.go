@@ -116,6 +116,9 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if foreign && o.AllowAsynchronousSupportKnots && !o.AllowUnsplitSupportKnot {
 		return zero, geom.ErrInvalid
 	}
+	if o.AllowSameCellAsynchronousSupportKnots && (!o.AllowMultiSpanRoofs || !o.AllowUnsplitSupportKnot || !o.AllowMixedOwnerBases) {
+		return zero, geom.ErrInvalid
+	}
 	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots ||
 		o.AllowMultipleSupportKnotCells || o.AllowThreeSupportKnotCells || o.AllowSeparatedSupportKnotCells) &&
 		(!o.AllowUnsplitSupportKnot || !o.AllowTwoInteriorRoofKnots) {
@@ -353,6 +356,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	allowUnsplit := g.foreign && o.AllowUnsplitSupportKnot
 	knotsA, knotsB := mappedChainInteriorSupportKnots(g.faces[0].surface), mappedChainInteriorSupportKnots(g.faces[1].surface)
 	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
+	canUseSameCellAsync := (g.foreign || canonicalOriginal) && o.AllowSameCellAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
 	allowMixed := g.foreign && o.AllowMixedSupportKnots && min(knotsA, knotsB) == 1 && max(knotsA, knotsB) == 2
 	allowThree := (g.foreign || canonicalOriginal) && o.AllowThreeSupportKnots && knotsA == 2 && knotsB == 2
 	canUseTwoCells := (g.foreign || canonicalOriginal) && o.AllowMultipleSupportKnotCells && knotsA == 3 && knotsB == 3
@@ -416,6 +420,10 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				foreignTrimmed = [2]bool{true, true}
 			}
 		}
+		sameCellAsync := canUseSameCellAsync && (foreignMixed || canonicalOriginal)
+		if sameCellAsync && len(e.joins) != 0 {
+			return zero, fmt.Errorf("same-cell asynchronous repair requires an original model Bézier without a stored knot: %w", geom.ErrConvergence)
+		}
 		if (foreignMixed || canonicalOriginal || cellLocal || separatedCandidate) && len(e.joins) != 0 &&
 			(!(allowThree || v8Cuts != 0 || cellLocal || separatedCandidate) || len(e.joins) != 1) {
 			return zero, geom.ErrConvergence
@@ -463,14 +471,14 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse,
-				allowAsync && !foreignMixed || separatedCandidate, cellLocal || separatedCandidate, maxInferredSupportKnots, o.Geometry)
+				allowAsync && !foreignMixed || separatedCandidate || sameCellAsync, cellLocal || separatedCandidate, maxInferredSupportKnots, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			parts[owner] = append(parts[owner], mapped[owner])
 		}
 		interval := [2]*big.Rat{stations[len(stations)-2], stations[len(stations)-1]}
-		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, allowThree, v8Cuts, o.Geometry)
+		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, sameCellAsync, allowThree, v8Cuts, o.Geometry)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
@@ -614,6 +622,8 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if crossings[0].EdgeID == crossings[1].EdgeID {
 			shared := [2]bool{true, true}
 			switch {
+			case canUseSameCellAsync && mappedChainSameCellAsynchronousCrossings(crossings):
+				certify = trimmed.CertifyMappedSplineChainSameCellAsynchronousSupportKnotsAgreement
 			case a == shared && b == shared:
 				certify = trimmed.CertifyMappedSplineChainTwoSupportKnotsAgreement
 			case allowMixed && (a == shared && b[0] != b[1] || b == shared && a[0] != a[1]):
@@ -622,6 +632,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				return zero, geom.ErrConvergence
 			}
 		} else {
+			if canUseSameCellAsync && !allowAsync {
+				return zero, fmt.Errorf("same-cell asynchronous crossings require one original model Bézier: %w", geom.ErrConvergence)
+			}
 			if a[0] == a[1] || b[0] == b[1] || a == b {
 				return zero, fmt.Errorf("asynchronous repair requires distinct edges and one crossing for each owner: %w", geom.ErrConvergence)
 			}
@@ -693,6 +706,16 @@ func allMappedChainCrossingsOnOneEdge(crossings []MappedChainSTEPSupportCrossing
 		}
 	}
 	return true
+}
+
+func mappedChainSameCellAsynchronousCrossings(crossings []MappedChainSTEPSupportCrossing) bool {
+	if len(crossings) != 2 {
+		return false
+	}
+	a, b := crossings[0], crossings[1]
+	return a.EdgeID == b.EdgeID && !a.StoredModelKnot && !b.StoredModelKnot &&
+		a.OwnersChangingCells[0] != a.OwnersChangingCells[1] &&
+		b.OwnersChangingCells == [2]bool{!a.OwnersChangingCells[0], !a.OwnersChangingCells[1]}
 }
 
 func mappedChainSeparatedSupportCells(chain []MappedChainSTEPCell, crossings []MappedChainSTEPSupportCrossing) bool {

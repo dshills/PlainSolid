@@ -31,6 +31,8 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 			"32a7789cea5621a0d9eaf2bfce4356bc2a1b8968e1cf7fae5675341307a06ba0", localCellMappedChainOptions()},
 		{threeLocalCellMappedChainPath, "de6e1057c4c5b36ca61292318f3e042a5e48ba98003c4f5a335e598191505158",
 			"4dda9544dd51f94b86551bb1fa3ddd5a524b46998e871153d0476d2563968b14", threeLocalCellMappedChainOptions()},
+		{separatedCellMappedChainPath, "dfe9c4727e60353c1c2e41699befde7b279c30e439d0ac92279c2dee1cc93b3f",
+			"882efc77ce9618c84825fc06e05b0f36e4cefb64a8bab3acac00b72a77af94ae", separatedCellMappedChainOptions()},
 	} {
 		raw, err := os.ReadFile(tc.path)
 		if err != nil {
@@ -40,6 +42,7 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 		tc.options.AllowMultipleSupportKnotCells = true
 		tc.options.AllowThreeSupportKnotCells = true
 		tc.options.AllowSeparatedSupportKnotCells = true
+		tc.options.AllowSameCellAsynchronousSupportKnots = true
 		m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, tc.options)
 		if err != nil {
 			t.Fatal(err)
