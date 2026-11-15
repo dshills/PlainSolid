@@ -40,6 +40,18 @@ type MappedChainSTEPSupportCrossing struct {
 	NativeEdges          [2]int
 }
 
+// MappedChainSTEPJointSupportCrossing records a transverse support event on
+// both original charts at an existing STEP vertex. Each pair is ordered
+// incoming then outgoing. OwnerParameters uses the original roof order.
+type MappedChainSTEPJointSupportCrossing struct {
+	SourceVertexID        int64
+	SourceEdges           [2]int64
+	SourceModelParameters [2]*big.Rat
+	ModelStation          *big.Rat
+	OwnerParameters       [2][2]*big.Rat
+	NativeEdges           [2]int
+}
+
 // MappedChainSTEPModel contains the rebuilt source certificate, embedded native
 // material, and original roof ownership. FaceIDs follows the native face order.
 type MappedChainSTEPModel struct {
@@ -54,8 +66,10 @@ type MappedChainSTEPModel struct {
 	// when the original edge has exactly one repair.
 	Crossings []MappedChainSTEPSupportCrossing
 	Crossing  *MappedChainSTEPSupportCrossing
-	original  string
-	foreign   bool
+	// SupportJoint retains the original vertex separately from the new cuts.
+	SupportJoint *MappedChainSTEPJointSupportCrossing
+	original     string
+	foreign      bool
 }
 
 func (m MappedChainSTEPModel) OriginalSTEP() string { return m.original }
@@ -118,6 +132,10 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	}
 	if (o.AllowSameCellAsynchronousSupportKnots || o.AllowInferredSharedSupportKnot) &&
 		(!o.AllowMultiSpanRoofs || !o.AllowUnsplitSupportKnot || !o.AllowMixedOwnerBases) {
+		return zero, geom.ErrInvalid
+	}
+	if o.AllowJoinedSupportKnotCells && (!o.AllowMultiSpanRoofs || !o.AllowTwoInteriorRoofKnots ||
+		!o.AllowUnsplitSupportKnot || !o.AllowMixedOwnerBases) {
 		return zero, geom.ErrInvalid
 	}
 	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots ||
@@ -415,6 +433,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	}
 	cellLocal := localCells != 0
 	separatedCandidate := canUseSeparatedCells && withStoredKnots == 1
+	joinedCandidate := o.AllowJoinedSupportKnotCells && len(chainIDs) == 2 && withStoredKnots == 0 && knotsA == 2 && knotsB == 2
 	expectedPerEdge := maxCrossings
 	if cellLocal {
 		maxCrossings, expectedPerEdge = localCells+2, 2
@@ -434,9 +453,11 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			}
 		}
 		var edgeBezierRepairs mappedChainBezierRepairs
-		if foreignMixed || canonicalOriginal {
+		mixedOriginal := foreignMixed || canonicalOriginal
+		if mixedOriginal {
 			edgeBezierRepairs = bezierRepairs
 		}
+		allowJoined := joinedCandidate && mixedOriginal
 		if edgeBezierRepairs != 0 && len(e.joins) != 0 {
 			return zero, fmt.Errorf("inferred support repair requires an original model Bézier without a stored knot: %w", geom.ErrConvergence)
 		}
@@ -487,14 +508,15 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse,
-				allowAsync && !foreignMixed || separatedCandidate, cellLocal || separatedCandidate, edgeBezierRepairs, maxInferredSupportKnots, o.Geometry)
+				allowAsync && !foreignMixed || separatedCandidate || allowJoined, cellLocal || separatedCandidate || allowJoined,
+				edgeBezierRepairs, maxInferredSupportKnots, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			parts[owner] = append(parts[owner], mapped[owner])
 		}
 		interval := [2]*big.Rat{stations[len(stations)-2], stations[len(stations)-1]}
-		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, edgeBezierRepairs, allowThree, v8Cuts, o.Geometry)
+		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, edgeBezierRepairs, allowThree, allowJoined, v8Cuts, o.Geometry)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
@@ -626,6 +648,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		chains[i] = q
 	}
 	budget := edgecheck.Options{MaxWork: o.Geometry.MaxOperations, MaxBits: o.Geometry.MaxCoefficientBits}
+	joined := joinedCandidate && (foreignMixed || canonicalOriginal) && mappedChainJoinedSupportCells(chain, crossings)
 	certify := trimmed.CertifyMappedSplineChainAgreement
 	switch len(crossings) {
 	case 1:
@@ -635,7 +658,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		certify = trimmed.CertifyMappedSplineChainSupportKnotAgreement
 	case 2:
 		a, b := crossings[0].OwnersChangingCells, crossings[1].OwnersChangingCells
-		if crossings[0].EdgeID == crossings[1].EdgeID {
+		if joined {
+			certify = trimmed.CertifyMappedSplineChainJoinedSupportKnotsAgreement
+		} else if crossings[0].EdgeID == crossings[1].EdgeID {
 			shared := [2]bool{true, true}
 			switch {
 			case bezierRepairs&mappedChainBezierAsynchronous != 0 && mappedChainSameCellAsynchronousCrossings(crossings):
@@ -703,10 +728,57 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	if len(crossings) == 1 {
 		out.Crossing = &out.Crossings[0]
 	}
+	if joined {
+		out.SupportJoint, err = g.sourceSupportJoint([2]mappedChainStepEdge(sourceEdges), [2]MappedChainSTEPCell(chain), parts, stations[1],
+			[2]int{crossings[0].NativeEdges[1], crossings[1].NativeEdges[0]})
+		if err != nil {
+			return zero, err
+		}
+	}
 	for _, f := range g.faces {
 		out.FaceIDs = append(out.FaceIDs, f.id)
 		if f.plane != nil {
 			out.Planes = append(out.Planes, f.plane.evidence(f.id, f.supportID))
+		}
+	}
+	return out, nil
+}
+
+func mappedChainJoinedSupportCells(chain []MappedChainSTEPCell, crossings []MappedChainSTEPSupportCrossing) bool {
+	if len(chain) != 2 || len(crossings) != 2 {
+		return false
+	}
+	a, b := crossings[0], crossings[1]
+	return a.EdgeID == chain[0].EdgeID && b.EdgeID == chain[1].EdgeID && !a.StoredModelKnot && !b.StoredModelKnot &&
+		a.OwnersChangingCells[0] != a.OwnersChangingCells[1] &&
+		b.OwnersChangingCells == [2]bool{!a.OwnersChangingCells[0], !a.OwnersChangingCells[1]}
+}
+
+func (g *mappedChainStepSource) sourceSupportJoint(edges [2]mappedChainStepEdge, chain [2]MappedChainSTEPCell, parts [2][]trimmed.MappedSplineUV, station *big.Rat, native [2]int) (*MappedChainSTEPJointSupportCrossing, error) {
+	ids := [2]int64{chain[0].EdgeID, chain[1].EdgeID}
+	ends := [2]int{1, 0}
+	for i, id := range ids {
+		if !g.uses[id][0].sense {
+			ends[i] = 1 - ends[i]
+		}
+	}
+	vertex := g.edgeEnds[ids[0]][ends[0]]
+	if vertex != g.edgeEnds[ids[1]][ends[1]] {
+		return nil, geom.ErrConvergence
+	}
+	out := &MappedChainSTEPJointSupportCrossing{
+		SourceVertexID: vertex, SourceEdges: ids, ModelStation: new(big.Rat).Set(station), NativeEdges: native,
+	}
+	for i, edge := range edges {
+		out.SourceModelParameters[i] = new(big.Rat).Set([2]*big.Rat{edge.lo, edge.hi}[ends[i]])
+	}
+	for owner, row := range parts {
+		for part := range 2 {
+			raw, err := row[part].AuthoredParameter(big.NewRat(int64(1-part), 1))
+			if err != nil {
+				return nil, err
+			}
+			out.OwnerParameters[owner][part] = raw
 		}
 	}
 	return out, nil

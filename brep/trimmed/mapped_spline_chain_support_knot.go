@@ -14,6 +14,9 @@ import (
 func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChain, patches [2]*geom.SurfacePatch, cuts []*big.Rat, repair mappedChainKnotRepair, o edgecheck.Options) ([]*big.Rat, []bool, error) {
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits, MaxSubdivisions: o.MaxDepth}
+	if repair == mappedChainJoinedKnotsRepair {
+		return mappedSplineJoinedSupportKnotCuts(ctx, chains, patches, cuts, limits, events)
+	}
 	maxOwnerKnots, count := 1, 1
 	switch repair {
 	case mappedChainSynchronizedKnotsRepair, mappedChainMixedKnotsRepair:
@@ -220,21 +223,29 @@ func mappedSplineInteriorSupportKnotPlanes(patch *geom.SurfacePatch, maxKnots in
 	return planes, nil
 }
 
-func mappedSplineSupportKnotRoot(ctx context.Context, trim ExactBezierUV, plane [4]*big.Rat, limits geom.SurfacePatchOptions, events geom.ExactCurvePlaneEventOptions) (*big.Rat, error) {
+func mappedSplineSupportKnotPlaneHits(ctx context.Context, trim ExactBezierUV, plane [4]*big.Rat, limits geom.SurfacePatchOptions, events geom.ExactCurvePlaneEventOptions) (geom.ComposedCurvePlaneIntersection, error) {
 	d, err := trim.descriptor(ctx, limits)
 	if err != nil {
-		return nil, err
+		return geom.ComposedCurvePlaneIntersection{}, err
 	}
 	cell, err := geom.NewExactComposedBezierCell(ctx, d, limits)
 	if err != nil {
-		return nil, err
+		return geom.ComposedCurvePlaneIntersection{}, err
 	}
 	hits, err := cell.IntersectRawPlane(ctx, plane, events)
 	if err != nil {
-		return nil, err
+		return geom.ComposedCurvePlaneIntersection{}, err
 	}
 	if !hits.Complete || hits.Coincident {
-		return nil, fmt.Errorf("crossing must be isolated: %w", geom.ErrConvergence)
+		return geom.ComposedCurvePlaneIntersection{}, fmt.Errorf("crossing must be isolated: %w", geom.ErrConvergence)
+	}
+	return hits, nil
+}
+
+func mappedSplineSupportKnotRoot(ctx context.Context, trim ExactBezierUV, plane [4]*big.Rat, limits geom.SurfacePatchOptions, events geom.ExactCurvePlaneEventOptions) (*big.Rat, error) {
+	hits, err := mappedSplineSupportKnotPlaneHits(ctx, trim, plane, limits, events)
+	if err != nil {
+		return nil, err
 	}
 	var root *big.Rat
 	for _, hit := range hits.Events {
@@ -244,16 +255,23 @@ func mappedSplineSupportKnotRoot(ctx context.Context, trim ExactBezierUV, plane 
 		if hit.Multiplicity() != 1 || root != nil {
 			return nil, fmt.Errorf("interior crossing must be unique and transverse: %w", geom.ErrConvergence)
 		}
-		// The search width bounds rational reconstruction work. A root
-		// bracket is never used as a cut.
-		exact, err := hit.Root().RecoverRational(ctx, big.NewRat(1, 1000000000000), events)
+		root, err = recoverMappedSplineSupportKnotRoot(ctx, hit, events)
 		if err != nil {
 			return nil, err
 		}
-		if exact == nil || exact.Sign() <= 0 || exact.Cmp(big.NewRat(1, 1)) >= 0 {
-			return nil, fmt.Errorf("exact rational crossing parameter not proved: %w", geom.ErrUnrepresentable)
-		}
-		root = exact
 	}
 	return root, nil
+}
+
+func recoverMappedSplineSupportKnotRoot(ctx context.Context, hit *geom.ExactComposedPlaneEvent, events geom.ExactCurvePlaneEventOptions) (*big.Rat, error) {
+	// The search width bounds rational reconstruction work. A root
+	// bracket is never used as a cut.
+	exact, err := hit.Root().RecoverRational(ctx, big.NewRat(1, 1000000000000), events)
+	if err != nil {
+		return nil, err
+	}
+	if exact == nil || exact.Sign() <= 0 || exact.Cmp(big.NewRat(1, 1)) >= 0 {
+		return nil, fmt.Errorf("exact rational crossing parameter not proved: %w", geom.ErrUnrepresentable)
+	}
+	return exact, nil
 }

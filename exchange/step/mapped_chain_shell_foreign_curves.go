@@ -139,7 +139,7 @@ const (
 	mappedChainBezierSharedPair
 )
 
-func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, bezierRepairs mappedChainBezierRepairs, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
+func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, bezierRepairs mappedChainBezierRepairs, allowThree, allowJoined bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
 	joins := mappedChainModelJoins(edge.joins, reverse)
 	type cut struct {
 		t      *big.Rat
@@ -192,7 +192,7 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 				return nil, fmt.Errorf("owner #%d on the mixed original Bézier partition: %w", face.id, err)
 			}
 		}
-	case sharedCount == 2 && n > 0 || sharedCount == 1 && n > 1 && bezierRepairs&mappedChainBezierAsynchronous == 0:
+	case sharedCount == 2 && n > 0 && (!allowJoined || n > 1) || sharedCount == 1 && n > 1 && bezierRepairs&mappedChainBezierAsynchronous == 0:
 		return nil, fmt.Errorf("both inferred roof support streams must coincide on the original model Bézier: %w", geom.ErrConvergence)
 	case n > 1:
 		three := allowThree && a == 1 && b == 1

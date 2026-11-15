@@ -223,11 +223,16 @@ func verifyMappedChainCutDisplay(t *testing.T, ctx context.Context, m MappedChai
 	verifyMappedChainCutDisplayWithOptions(t, ctx, m, fill, .005)
 }
 
-func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions, boundaryDeflection float64) {
+func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions, boundaryDeflection float64) trimmed.CertifiedMappedChainClosedMesh {
 	t.Helper()
-	display, err := m.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+	return verifyMappedChainCutDisplayWithClosedOptions(t, ctx, m, trimmed.MappedChainClosedMeshOptions{
 		Boundary: trimmed.MappedChainPolylineOptions{Deflection: boundaryDeflection}, Curved: [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
 	})
+}
+
+func verifyMappedChainCutDisplayWithClosedOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, o trimmed.MappedChainClosedMeshOptions) trimmed.CertifiedMappedChainClosedMesh {
+	t.Helper()
+	display, err := m.Shell.TessellateClosedCertified(ctx, nil, o)
 	if err != nil || !display.DisplayCollision.Complete || len(display.DisplayCollision.Contacts) != 0 {
 		t.Fatal("all exact cuts must support one closed display with no unintended contact", err)
 	}
@@ -249,6 +254,7 @@ func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m
 		}
 	}
 	t.Logf("closed display retains %d exact shared stations across %d triangles", len(m.Crossings), len(display.Mesh.Triangles))
+	return display
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnotsRejectsInvalidSource(t *testing.T) {

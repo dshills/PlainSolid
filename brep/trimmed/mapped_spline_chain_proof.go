@@ -204,7 +204,7 @@ type MappedSplineChainAgreement struct {
 
 type mappedChainKnotRepair uint8
 
-// Nonzero identifiers map to native boundary recipe versions 3 through 10.
+// Nonzero identifiers map to native boundary recipe versions 3 through 11.
 const (
 	mappedChainNoKnotRepair mappedChainKnotRepair = iota
 	mappedChainSingleKnotRepair
@@ -215,6 +215,7 @@ const (
 	mappedChainMultipleKnotsRepair
 	mappedChainCellLocalKnotsRepair
 	mappedChainSameCellAsynchronousKnotsRepair
+	mappedChainJoinedKnotsRepair
 )
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -345,6 +346,14 @@ func CertifyMappedSplineChainMultipleSupportKnotsAgreement(ctx context.Context, 
 // Every authored roof knot contributes exactly once.
 func CertifyMappedSplineChainCellLocalSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainCellLocalKnotsRepair)
+}
+
+// CertifyMappedSplineChainJoinedSupportKnotsAgreement proves two adjacent
+// original coedges on each roof, with one transverse shared support event
+// at their original joint. Each roof also changes support once inside a
+// different original coedge. Only the two interior events add model cuts.
+func CertifyMappedSplineChainJoinedSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainJoinedKnotsRepair)
 }
 
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
