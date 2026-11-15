@@ -36,7 +36,7 @@ func quotientMultiplicationMatrix(poly, modulus rationalPolynomial, b *polynomia
 // Hamilton proves the selected coordinate is a root, including reducible P.
 func rationalCoordinateCharacteristic(p, numerator, denominator rationalPolynomial, b *polynomialBudget) (rationalPolynomial, error) {
 	n := len(p) - 1
-	if n < 1 || n > 4 {
+	if n < 1 || n > 8 {
 		return nil, ErrConvergence
 	}
 	matrix, e := quotientMultiplicationMatrix(denominator, p, b)
@@ -91,59 +91,8 @@ func rationalCoordinateCharacteristic(p, numerator, denominator rationalPolynomi
 	if e != nil {
 		return nil, e
 	}
-	result := make(rationalPolynomial, n+1)
-	for i := range result {
-		result[i] = new(big.Rat)
-	}
-	permutation := make([]int, n)
-	used := make([]bool, n)
-	var visit func(int) error
-	visit = func(row int) error {
-		if row == n {
-			term := rationalPolynomial{big.NewRat(1, 1)}
-			inversions := 0
-			for i, col := range permutation {
-				for j := 0; j < i; j++ {
-					if permutation[j] > col {
-						inversions++
-					}
-				}
-				factor := rationalPolynomial{new(big.Rat).Neg(multiplication[i][col])}
-				if i == col {
-					factor = append(factor, big.NewRat(1, 1))
-				}
-				var e error
-				term, e = polynomialProduct(term, factor, b)
-				if e != nil {
-					return e
-				}
-			}
-			for i, x := range term {
-				if inversions%2 == 0 {
-					result[i].Add(result[i], x)
-				} else {
-					result[i].Sub(result[i], x)
-				}
-				if e := b.check(result[i]); e != nil {
-					return e
-				}
-			}
-			return nil
-		}
-		for col := 0; col < n; col++ {
-			if used[col] {
-				continue
-			}
-			used[col] = true
-			permutation[row] = col
-			if e := visit(row + 1); e != nil {
-				return e
-			}
-			used[col] = false
-		}
-		return nil
-	}
-	if e := visit(0); e != nil {
+	result, e := rationalMatrixCharacteristic(multiplication, b)
+	if e != nil {
 		return nil, e
 	}
 	gcd, e := polynomialGCD(result, polynomialDerivative(result), b)
@@ -152,6 +101,62 @@ func rationalCoordinateCharacteristic(p, numerator, denominator rationalPolynomi
 	}
 	result, _, e = polynomialDivide(result, gcd, b)
 	return result, e
+}
+
+// The Faddeev–LeVerrier recurrence computes det(xI-A) with exact
+// rational matrix products and trace divisions. Its bounded work grows
+// polynomially with matrix order.
+func rationalMatrixCharacteristic(a [][]*big.Rat, b *polynomialBudget) (rationalPolynomial, error) {
+	n := len(a)
+	previous := make([][]*big.Rat, n)
+	for i := range previous {
+		previous[i] = make([]*big.Rat, n)
+		for j := range previous[i] {
+			previous[i][j] = new(big.Rat)
+		}
+		previous[i][i].SetInt64(1)
+	}
+	result := make(rationalPolynomial, n+1)
+	result[n] = big.NewRat(1, 1)
+	for k := 1; k <= n; k++ {
+		product := make([][]*big.Rat, n)
+		trace := new(big.Rat)
+		for i := range product {
+			product[i] = make([]*big.Rat, n)
+			for j := range product[i] {
+				sum := new(big.Rat)
+				for l, x := range a[i] {
+					if x.Sign() == 0 || previous[l][j].Sign() == 0 {
+						continue
+					}
+					sum.Add(sum, new(big.Rat).Mul(x, previous[l][j]))
+					if e := b.check(sum); e != nil {
+						return nil, e
+					}
+				}
+				product[i][j] = sum
+			}
+			trace.Add(trace, product[i][i])
+			if e := b.check(trace); e != nil {
+				return nil, e
+			}
+		}
+		coefficient := new(big.Rat).Quo(trace, big.NewRat(-int64(k), 1))
+		if e := b.check(coefficient); e != nil {
+			return nil, e
+		}
+		result[n-k] = coefficient
+		if k < n {
+			for i := range product {
+				product[i][i].Add(product[i][i], coefficient)
+				if e := b.check(product[i][i]); e != nil {
+					return nil, e
+				}
+			}
+		}
+		previous = product
+	}
+	return result, nil
 }
 
 func coordinateRootCharacteristic(ctx context.Context, source *ExactGraphLineRoot, p, n, w rationalPolynomial, b *polynomialBudget, maxSubdivisions int) (root *ExactGraphLineRoot, steps int, err error) {

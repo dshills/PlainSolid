@@ -6,12 +6,11 @@ import (
 )
 
 // CoordinateRoot proves the exact coordinate N(root)/W(root) of a cell point.
-// General coordinate images support defining polynomials of degree at most four.
-// Degrees five through eight require an exact affine numerator over a nonzero
-// constant denominator after reduction. Coordinate polynomials may have any
-// supported cell degree. Exact reduction
-// modulo a quadratic yields an affine expression; degree three/four uses a
-// quotient-algebra characteristic polynomial with unique image-root isolation. No interval midpoint is used as the algebraic value.
+// General coordinate images support defining polynomials of degree at most
+// eight. Exact reduction modulo a quadratic yields an affine expression.
+// Higher degrees use an affine shortcut where possible and otherwise isolate
+// the unique image root of a quotient-algebra characteristic polynomial.
+// An exactly isolated rational event can use its verified linear identity.
 // Membership in the true cell domain and a nonzero denominator are rechecked.
 func (c *ExactComposedCurveCell) CoordinateRoot(ctx context.Context, root *ExactAlgebraicRoot, axis int, o ExactCurvePlaneEventOptions) (out *ExactAlgebraicRoot, operations int, err error) {
 	image, work, _, err := c.CoordinateRootWithWork(ctx, root, axis, o)
@@ -122,10 +121,7 @@ func (c *ExactComposedCurveCell) CoordinateRootWithWork(ctx context.Context, roo
 		return nil, 0, subdivisions, e
 	}
 
-	if len(p) > 5 {
-		if len(w) != 1 || w[0].Sign() == 0 || len(n) > 2 {
-			return nil, 0, subdivisions, ErrConvergence
-		}
+	if len(p) > 5 && len(w) == 1 && w[0].Sign() != 0 && len(n) <= 2 {
 		offset, scale := new(big.Rat), new(big.Rat)
 		if len(n) > 0 {
 			offset.Quo(n[0], w[0])

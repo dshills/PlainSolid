@@ -2459,3 +2459,11 @@ coedges in the original face charts. The proof retains original knot
 parameters, crossing signs, multiplicity, clipped section runs, and
 both fragment uses. Exact Bézier section files use a versioned native
 recipe and re-prove the original trims on reload.
+
+### Algebraic coordinate images through degree eight
+
+The exact composed-curve coordinate query handles nonlinear rational
+images of isolated roots through degree eight. Its quotient-algebra
+characteristic polynomial uses exact rational matrix operations and
+the output is independently isolated and compared in the original
+coordinate system.
