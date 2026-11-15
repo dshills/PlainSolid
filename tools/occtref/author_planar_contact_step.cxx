@@ -11,11 +11,13 @@
 #include <cstring>
 #include "planar_contact_annulus.hxx"
 #include "planar_contact_subdivided.hxx"
+#include "planar_contact_insets.hxx"
 
 int main(int argc, char** argv) {
     const bool cavity = argc == 3 && std::strcmp(argv[1], "voids") == 0;
     const bool divided = argc == 3 && std::strcmp(argv[1], "face-subdivided") == 0;
-    const bool faceContact = divided || (argc == 3 && std::strcmp(argv[1], "face-annulus") == 0);
+    const bool insets = argc == 3 && std::strcmp(argv[1], "face-insets") == 0;
+    const bool faceContact = divided || insets || (argc == 3 && std::strcmp(argv[1], "face-annulus") == 0);
     const bool interval = argc == 3 && std::strcmp(argv[1], "edge-interval") == 0;
     const bool edge = interval || (argc == 3 && std::strcmp(argv[1], "edge") == 0);
     if (argc != 2 && !cavity && !edge && !faceContact) return 2;
@@ -40,7 +42,7 @@ int main(int argc, char** argv) {
         if (writer.Transfer(separate, STEPControl_AsIs) != IFSelect_RetDone) return 4;
     } else if (faceContact) {
         for (double z : {0., 1.}) {
-            const auto part = divided ? contactSubdivided(z) : contactAnnulus(z);
+            const auto part = divided ? contactSubdivided(z) : (insets ? contactInsets(z) : contactAnnulus(z));
             if (part.IsNull()) return 4;
             TopExp_Explorer solid(part, TopAbs_SOLID);
             if (!solid.More() || writer.Transfer(solid.Current(), STEPControl_AsIs) != IFSelect_RetDone) return 4;

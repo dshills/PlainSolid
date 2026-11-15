@@ -42,6 +42,11 @@ func JoinPlanarInsets(ctx context.Context, host, tool brep.Solid, hostFace int, 
 	if err != nil {
 		return brep.Solid{}, zero, err
 	}
+	return joinProvedPlanarInsets(ctx, host, tool, p, o.Validation)
+}
+
+func joinProvedPlanarInsets(ctx context.Context, host, tool brep.Solid, p collision.PlanarInsetContactSet, o collision.LocationOptions) (brep.Solid, PlanarInsetSetJoinHistory, error) {
+	var zero PlanarInsetSetJoinHistory
 	h := PlanarInsetSetJoinHistory{Contact: p}
 	hv, he, hf := host.Vertices(), host.Edges(), host.Faces()
 	tv, te, tf := tool.Vertices(), tool.Edges(), tool.Faces()
@@ -89,7 +94,7 @@ func JoinPlanarInsets(ctx context.Context, host, tool brep.Solid, hostFace int, 
 		mapWire(face.Boundary)
 		if removed[i] {
 			b.Faces[i] = -1
-			f[hostFace].Holes = append(f[hostFace].Holes, face.Boundary)
+			f[p.HostFace].Holes = append(f[p.HostFace].Holes, face.Boundary)
 			continue
 		}
 		for _, w := range face.Holes {
@@ -102,7 +107,7 @@ func JoinPlanarInsets(ctx context.Context, host, tool brep.Solid, hostFace int, 
 	if err != nil {
 		return brep.Solid{}, zero, fmt.Errorf("csg: cannot add inset wire to original host face: %w", err)
 	}
-	loc, err := collision.NewPointLocator(ctx, out, o.Validation)
+	loc, err := collision.NewPointLocator(ctx, out, o)
 	if err != nil {
 		return brep.Solid{}, zero, err
 	}

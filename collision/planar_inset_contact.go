@@ -204,3 +204,16 @@ func ValidatePlanarInsetContactSet(ctx context.Context, host, tool brep.Solid, h
 func vertexParallelOpposite(a, b point) bool {
 	return nonzeroAxis(cross(a, b)) < 0 && dot(a, b).Sign() < 0
 }
+
+// DiscoverPlanarInsetContactSet identifies one original host face and all
+// contacting tool faces, then proves the disjoint complete tool footprints.
+func DiscoverPlanarInsetContactSet(ctx context.Context, host, tool brep.Solid, o PlanarFaceContactOptions) (PlanarInsetContactSet, error) {
+	regions, err := FindPlanarRegionCandidates(ctx, host, tool, o)
+	if err != nil {
+		return PlanarInsetContactSet{}, err
+	}
+	if len(regions.Faces[0]) != 1 {
+		return PlanarInsetContactSet{}, fmt.Errorf("%w: inset tooling must meet one original host face", ErrInvalid)
+	}
+	return ValidatePlanarInsetContactSet(ctx, host, tool, regions.Faces[0][0], regions.Faces[1], o)
+}
