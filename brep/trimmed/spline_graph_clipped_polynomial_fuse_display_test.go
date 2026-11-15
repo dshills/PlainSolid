@@ -43,9 +43,14 @@ func checkClippedFuseDisplayLayouts(t *testing.T, stock func(*testing.T, int, in
 
 func checkClippedFuseDisplay(t *testing.T, r *ClippedPolynomialFuse) {
 	t.Helper()
+	want, _ := r.ExactVolume().Float64()
+	checkClippedShellDisplay(t, r.Boundary(), want)
+}
+
+func checkClippedShellDisplay(t *testing.T, boundary Solid, want float64) {
+	t.Helper()
 	ctx := context.Background()
 	opts := parametric.TessellationOptions{Deflection: .05, Angle: .15, MaxSubdivisions: 32, MaxTriangles: 80_000}
-	boundary := r.Boundary()
 	m, err := boundary.Tessellate(ctx, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +63,6 @@ func checkClippedFuseDisplay(t *testing.T, r *ClippedPolynomialFuse) {
 		t.Fatalf("display intersection scan: %v, %+v", err, report)
 	}
 	mass, err := m.MassProperties()
-	want, _ := r.ExactVolume().Float64()
 	if err != nil || math.Abs(mass.Volume-want) > .003*want {
 		t.Fatalf("display volume %g differs from exact native volume %g: %v", mass.Volume, want, err)
 	}
