@@ -84,6 +84,13 @@ func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSpline
 	op parametric.BooleanOp, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions, kind string,
 	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
 	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart) (*AlignedPolynomialEnvelope, error) {
+	return buildNativePolynomialEnvelopeOnFootprint(ctx, sources, first, axis, op, tolerance, o, kind, proof, owners, baseChart, charts, nil)
+}
+
+func buildNativePolynomialEnvelopeOnFootprint(ctx context.Context, sources [3]*geom.BSplineSurface, first, axis int,
+	op parametric.BooleanOp, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions, kind string,
+	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
+	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart, reference graphEnvelopeReference) (*AlignedPolynomialEnvelope, error) {
 	base := sources[0]
 	roofs := [2]*geom.BSplineSurface{sources[1+first], sources[2-first]}
 	if !isNativeAlignedPolynomialArrangement(proof, axis) {
@@ -105,12 +112,12 @@ func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSpline
 	for i, loop := range loops {
 		regions[i] = graphEnvelopeRegion{loop: loop, first: (proof.Regions[i].HeightSide > 0) == (op == parametric.Union)}
 	}
-	solid, envelope, e := assembleSplineEnvelopeOnCharts(ctx, base, roofs[0], roofs[1], regions, proof.Domain, baseChart, charts, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	solid, envelope, e := assembleSplineEnvelopeOnCharts(ctx, base, roofs[0], roofs[1], regions, proof.Domain, baseChart, charts, reference, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
 	if e != nil {
 		return nil, e
 	}
 	if baseChart.transfer != nil {
-		if e = bindRectangularEnvelopeBase(solid, base, baseChart, envelope); e != nil {
+		if e = bindPolynomialEnvelopeBase(solid, base, baseChart, envelope, reference); e != nil {
 			return nil, e
 		}
 	}
@@ -120,7 +127,7 @@ func buildNativePolynomialEnvelope(ctx context.Context, sources [3]*geom.BSpline
 	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
 		return nil, e
 	}
-	binding, e := bindAlignedPolynomialEnvelope(solid, base, roofs, proof, owners, xyz, pieces, regions, charts, envelope)
+	binding, e := bindAlignedPolynomialEnvelope(solid, base, roofs, proof, owners, xyz, pieces, regions, charts, envelope, reference)
 	if e != nil {
 		return nil, e
 	}
@@ -264,14 +271,15 @@ func transferAlignedPolynomialPiece(p openSectionPiece, mapping [2][3]*big.Rat) 
 
 func bindAlignedPolynomialEnvelope(s Solid, base *geom.BSplineSurface, roofs [2]*geom.BSplineSurface,
 	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger, xyz []geom.Vec3,
-	pieces [][]openSectionPiece, regions []graphEnvelopeRegion, charts [2]graphEnvelopeChart, envelope SplineGraphBooleanHistory) (polynomialEnvelopeBinding, error) {
+	pieces [][]openSectionPiece, regions []graphEnvelopeRegion, charts [2]graphEnvelopeChart, envelope SplineGraphBooleanHistory,
+	reference graphEnvelopeReference) (polynomialEnvelopeBinding, error) {
 	var result polynomialEnvelopeBinding
 	t := s.Topology()
 	if len(t.Shells) != 1 || t.EulerCharacteristic != 2 || t.CollapsedEdges != 0 ||
 		envelope.Base != len(regions) || len(s.faces) <= envelope.Base || s.faces[envelope.Base].Surface != base {
 		return result, geom.ErrConvergence
 	}
-	binding, e := bindPolynomialNodeEdgesOnChart(s, envelope.ContourEdges, proof.Edges, xyz, pieces, true)
+	binding, e := bindPolynomialNodeEdgesOnChart(s, envelope.ContourEdges, proof.Edges, xyz, pieces, true, reference)
 	if e != nil {
 		return result, e
 	}
@@ -297,8 +305,11 @@ func bindAlignedPolynomialEnvelope(s Solid, base *geom.BSplineSurface, roofs [2]
 				owner = 1
 			}
 			expected := ownerPieces[owner][i][j]
-			start := s.vertices[edge.Start]
-			if (geom.Vec2{X: start.X, Y: start.Y}) != pieces[i][j].a {
+			start, e := graphEnvelopeReferencePoint(s.vertices[edge.Start], reference)
+			if e != nil {
+				return result, e
+			}
+			if start != pieces[i][j].a {
 				expected = openSectionPiece{a: expected.b, b: expected.a, c: reversePCurve(expected.c), side: expected.side}
 			}
 			if model.a != expected.a || model.b != expected.b || !matchesTangencyTrim(model.curve, expected.c) {

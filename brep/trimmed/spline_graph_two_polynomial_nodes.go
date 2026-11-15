@@ -189,11 +189,11 @@ type polynomialNodeBinding struct {
 }
 
 func bindPolynomialNodeEdges(solid Solid, ids []int, sources []geom.SplineGraphPolynomialPiece, xyz []geom.Vec3, pieces [][]openSectionPiece) (polynomialNodeBinding, error) {
-	return bindPolynomialNodeEdgesOnChart(solid, ids, sources, xyz, pieces, false)
+	return bindPolynomialNodeEdgesOnChart(solid, ids, sources, xyz, pieces, false, nil)
 }
 
 func bindPolynomialNodeEdgesOnChart(solid Solid, ids []int, sources []geom.SplineGraphPolynomialPiece, xyz []geom.Vec3,
-	pieces [][]openSectionPiece, modelXY bool) (polynomialNodeBinding, error) {
+	pieces [][]openSectionPiece, modelXY bool, reference graphEnvelopeReference) (polynomialNodeBinding, error) {
 	const missing = -1
 	mapping := polynomialNodeBinding{
 		edges:     make([][]int, len(sources)),
@@ -219,7 +219,15 @@ func bindPolynomialNodeEdgesOnChart(solid Solid, ids []int, sources []geom.Splin
 		a, b := model.a, model.b
 		if modelXY {
 			start, end := solid.vertices[edge.Start], solid.vertices[edge.End]
-			a, b = geom.Vec2{X: start.X, Y: start.Y}, geom.Vec2{X: end.X, Y: end.Y}
+			var e error
+			a, e = graphEnvelopeReferencePoint(start, reference)
+			if e != nil {
+				return polynomialNodeBinding{}, e
+			}
+			b, e = graphEnvelopeReferencePoint(end, reference)
+			if e != nil {
+				return polynomialNodeBinding{}, e
+			}
 		}
 		if _, duplicate := lookup[[2]geom.Vec2{a, b}]; duplicate {
 			return polynomialNodeBinding{}, geom.ErrConvergence

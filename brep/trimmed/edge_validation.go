@@ -208,6 +208,9 @@ func sameCertifiedSection(e parametric.Edge, surface geom.Surface, use Use) bool
 }
 
 func edgeChart(s geom.Surface) (edgecheck.Chart, bool) {
+	if wall, ok := s.(splineGraphAffineWall); ok {
+		return wall.chart(), true
+	}
 	base, m := parametric.SurfaceMapping(s)
 	p, ok := base.(geom.PlaneSurface)
 	if !ok {

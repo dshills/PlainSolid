@@ -693,7 +693,7 @@ func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurfac
 func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface,
 	regions []graphEnvelopeRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	return assembleSplineEnvelopeOnCharts(ctx, base, a, b, regions, geom.ParameterRectangle{UMax: 1, VMax: 1},
-		graphEnvelopeChart{}, [2]graphEnvelopeChart{}, tolerance, evaluate...)
+		graphEnvelopeChart{}, [2]graphEnvelopeChart{}, nil, tolerance, evaluate...)
 }
 
 type graphEnvelopeChart struct {
@@ -725,9 +725,18 @@ func reverseGraphUses(uses []Use) {
 	}
 }
 
+type graphEnvelopeReference func(geom.Vec3) (geom.Vec2, error)
+
+func graphEnvelopeReferencePoint(p geom.Vec3, reference graphEnvelopeReference) (geom.Vec2, error) {
+	if reference != nil {
+		return reference(p)
+	}
+	return geom.Vec2{X: p.X, Y: p.Y}, nil
+}
+
 func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplineSurface,
 	regions []graphEnvelopeRegion, d geom.ParameterRectangle, baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart,
-	tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
+	reference graphEnvelopeReference, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	bad := func(reason string) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{}, fmt.Errorf("trimmed: spline envelope: %s", reason)
 	}
@@ -796,8 +805,14 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		if e != nil {
 			return 0, e
 		}
-		if baseChart.transfer != nil && (p.X != key.X || p.Y != key.Y) {
-			return 0, fmt.Errorf("trimmed: original envelope vertex differs from physical reference: %w", geom.ErrConvergence)
+		if baseChart.transfer != nil {
+			uv, e := graphEnvelopeReferencePoint(p, reference)
+			if e != nil {
+				return 0, e
+			}
+			if uv != key {
+				return 0, fmt.Errorf("trimmed: original envelope vertex differs from proved reference: %w", geom.ErrConvergence)
+			}
 		}
 		if i, ok := ids[key]; ok {
 			if exactVertices && vertices[i] != p {
@@ -942,17 +957,15 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		}
 	}
 	for _, x := range outer {
-		dir := geom.Vec3{X: x.b.X - x.a.X, Y: x.b.Y - x.a.Y}
-		length := dir.Length()
-		startHeight := vertices[low[x.a]].Z
-		frame, e := geom.NewFrame(geom.Vec3{X: x.a.X, Y: x.a.Y, Z: startHeight}, dir, dir.Cross(geom.Vec3{Z: 1}))
+		start, end := vertices[low[x.a]], vertices[low[x.b]]
+		if reference == nil {
+			start.X, start.Y, end.X, end.Y = x.a.X, x.a.Y, x.b.X, x.b.Y
+		}
+		wall, length, e := graphEnvelopeWall(start, end, reference != nil)
 		if e != nil {
 			return Solid{}, h, e
 		}
-		wall, e := geom.NewPlaneSurface(frame)
-		if e != nil {
-			return Solid{}, h, e
-		}
+		startHeight := start.Z
 		lo := geom.Vec2{}
 		hi := geom.Vec2{X: length, Y: vertices[low[x.b]].Z - startHeight}
 		tr := geom.Vec2{X: length, Y: vertices[top[x.b]].Z - startHeight}
@@ -982,4 +995,19 @@ func assembleSplineEnvelopeOnCharts(ctx context.Context, base, a, b *geom.BSplin
 		return Solid{}, SplineGraphBooleanHistory{}, e
 	}
 	return s, h, nil
+}
+
+func graphEnvelopeWall(start, end geom.Vec3, affine bool) (geom.Surface, float64, error) {
+	if affine {
+		wall, e := newSplineGraphAffineWall(start, end)
+		return wall, 1, e
+	}
+	dir := geom.Vec3{X: end.X - start.X, Y: end.Y - start.Y}
+	length := dir.Length()
+	frame, e := geom.NewFrame(start, dir, dir.Cross(geom.Vec3{Z: 1}))
+	if e != nil {
+		return nil, 0, e
+	}
+	wall, e := geom.NewPlaneSurface(frame)
+	return wall, length, e
 }
