@@ -8,28 +8,40 @@ import (
 )
 
 // SplineGraphBooleanOptions keeps Boolean-only discovery separate from stored
-// section-trim recipes. Both discovery pointers nil select the unchanged legacy entry.
-// Exactly one nonnil value selects bounded original-knot two- or three-loop discovery exclusively;
+// section-trim recipes. All discovery pointers nil select the unchanged legacy entry.
+// Exactly one nonnil value selects bounded complete contact discovery exclusively;
 // an unsupported/exhausted proof fails atomically, without a speculative result.
+// Parabola selects one open quadratic graph with exact original side terminals.
 type SplineGraphBooleanOptions struct {
 	Section          intersect.SplinePlaneOptions
 	DisjointEllipses *geom.DisjointEllipseDiscoveryOptions
 	ThreeEllipses    *geom.ThreeEllipseDiscoveryOptions
+	Parabola         *geom.GraphPointContactOptions
 }
 
 // CombineSplineGraphSolidsWithOptions is the opt-in normal common-base graph
 // Boolean entry. It requires no caller separator, ellipse or material labels.
 // Original supports must satisfy the same strict identity-XY and positive-base
 // requirements as CombineSplineGraphSolids. These options recognize only
-// their complete original U- or V-knot partition domains documented by the geometry APIs.
+// their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.DisjointEllipses == nil && o.ThreeEllipses == nil {
+	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{TopA: -1, TopB: -1, Base: -1}, e
 	}
-	if o.DisjointEllipses != nil && o.ThreeEllipses != nil {
+	selected := 0
+	if o.DisjointEllipses != nil {
+		selected++
+	}
+	if o.ThreeEllipses != nil {
+		selected++
+	}
+	if o.Parabola != nil {
+		selected++
+	}
+	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
 	if ctx == nil || base == nil || a == nil || b == nil || op > parametric.Difference || !finite(tolerance) || tolerance <= 0 || o.Section.Domain != (geom.ParameterRectangle{}) {
@@ -41,6 +53,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.Parabola != nil {
+		section, e := geom.DiscoverSplineGraphParabola(ctx, patches[0], patches[1], *o.Parabola)
+		if e != nil {
+			return fail(e)
+		}
+		return assembleParabolicGraphContact(ctx, base, a, b, op, tolerance, section, *o.Parabola)
 	}
 	if o.ThreeEllipses != nil {
 		discovery, e := geom.DiscoverSplineGraphThreeEllipses(ctx, patches[0], patches[1], *o.ThreeEllipses)
