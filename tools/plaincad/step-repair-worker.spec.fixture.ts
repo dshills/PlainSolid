@@ -16,6 +16,9 @@ const fixtures = [
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
   { name: "grouped converted metre", path: "/plainsolid-grouped-converted-step-repair-metre.step", units: "m", otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: true,
     rejectedDistance: 1e-13, converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { name: "grouped converted inch", path: "/plainsolid-grouped-converted-step-repair-inch.step", units: "in", otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: true,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -131,14 +134,18 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     expect(spans).toHaveLength(convertedOwners.cylindricalSpanOwners);
     if (fixture.grouped) {
       const quarterTurn = "314159265359/200000000000";
+      const repairedToOwner = fixture.units === "in" ? [
+        "-625000000000000000000000000001/615157480315000000000000000000000000000000000000000000000",
+        "625000000000000000000000000001/625000000000000000000000000000",
+      ] : [
+        "7499999999999999999999999999991/1250000000000000000000000000000000000000000000000000000000",
+        "2499999999999999999999999999997/2500000000000000000000000000000",
+      ];
       expect(spans).toEqual(expect.arrayContaining([
         { PCurveID: 237, ParameterInterval: ["0", quarterTurn], UVStart: ["0", "0"], UVDerivative: ["-1", "0"] },
         { PCurveID: 277, ParameterInterval: ["0", quarterTurn], UVStart: ["0", height], UVDerivative: ["-1", "0"] },
         { PCurveID: 256, ParameterInterval: ["0", axialEnd], UVStart: [`-${quarterTurn}`, "0"], UVDerivative: ["0", ownerScale],
-          RepairedToOwner: [
-            "7499999999999999999999999999991/1250000000000000000000000000000000000000000000000000000000",
-            "2499999999999999999999999999997/2500000000000000000000000000000",
-          ] },
+          RepairedToOwner: repairedToOwner },
       ]));
       expect(certificate.Claims.Grouped.FiniteTrims).toMatchObject([
         { CapOwner: { PCurveID: 226 }, CylinderOwner: { PCurveID: 237 }, EndStation: expect.any(Object) },
@@ -153,7 +160,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
         { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
       ]));
     }
-    if (fixture.units === "in") expect(certificate.Claims.PCurves).toContainEqual(expect.objectContaining({
+    if (fixture.units === "in" && !fixture.grouped) expect(certificate.Claims.PCurves).toContainEqual(expect.objectContaining({
       PCurveID: 125, Kind: "finite-cylinder-line", DistanceSquaredUpper: "625/244140625000031250000000001",
     }));
   }

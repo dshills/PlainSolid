@@ -42,6 +42,7 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 		{"converted-metre", "occt-default-tilted-translated-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, false},
 		{"converted-inch", "occt-default-tilted-translated-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, false},
 		{"converted-grouped-metre", "occt-both-default-tilted-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
+		{"converted-grouped-inch", "occt-both-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := stepRepairFixture(t, tc.file)
@@ -63,7 +64,7 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				request["stepRepair"] = map[string]any{"maxDistance": 1e-12, "nativeText": true}
 				rejectGroup(t, b, request)
 			}
-			if converted && tc.grouped {
+			if converted && tc.grouped && !convertedInch {
 				request["stepRepair"] = map[string]any{"maxDistance": 1e-13, "nativeText": true}
 				rejectGroup(t, b, request)
 			}
@@ -107,7 +108,7 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 					t.Fatal("grouped bridge receipt lost original finite owner evidence", e)
 				}
 				if converted {
-					checkGroupedConvertedBridgeReceipt(t, m)
+					checkGroupedConvertedBridgeReceipt(t, tc.unit, m)
 				}
 				reloaded = m
 				bounds = Bounds{Min: vector{0, 0, -2.7}, Max: vector{6.025, 3, 3}}
@@ -230,10 +231,14 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	}
 }
 
-func checkGroupedConvertedBridgeReceipt(t *testing.T, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
+func checkGroupedConvertedBridgeReceipt(t *testing.T, unit stepFileUnit, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
 	t.Helper()
+	ownerScale, axialEnd, repairedStart := "1/1000", "5000", "-3/500000000000000000000000000"
+	if unit == stepInch {
+		ownerScale, axialEnd, repairedStart = "5/127", "635", "1/984251968504000000000000000"
+	}
 	for _, owner := range m.FiniteLineOwners() {
-		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != "1/1000" {
+		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != ownerScale {
 			t.Fatal("grouped conversion receipt changed a planar parameter map", owner)
 		}
 	}
@@ -250,7 +255,8 @@ func checkGroupedConvertedBridgeReceipt(t *testing.T, m step.RationalPosedGroupe
 		delete(want, span.PCurveID)
 		if span.PCurveID == 256 {
 			mapping := span.RepairedToOwner
-			if mapping == nil || mapping[1].Sign() <= 0 || axial.EdgeID != 248 {
+			if mapping == nil || mapping[1].Sign() <= 0 || axial.EdgeID != 248 || axial.RepairedParameters[0].RatString() != repairedStart ||
+				span.ParameterInterval[0].Sign() != 0 || span.ParameterInterval[1].RatString() != axialEnd || span.UVDerivative[1].RatString() != ownerScale {
 				t.Fatal("grouped conversion receipt lost the finite axial map", span)
 			}
 			for i, endpoint := range axial.RepairedParameters {

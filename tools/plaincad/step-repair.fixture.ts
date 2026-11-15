@@ -62,6 +62,9 @@ const fixtures: readonly Fixture[] = [
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1,
     rejectedDistance: 1e-13, converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { ...tiltedGrouped, file: `${tiltedGrouped.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ];
 
 for (const fixture of fixtures) {
@@ -118,15 +121,19 @@ for (const fixture of fixtures) {
           const spans = proof.Claims.CylindricalSpanOwners;
           if (fixture.grouped) {
             const quarterTurn = "314159265359/200000000000";
+            const repairedToOwner = units === "in" ? [
+              "-625000000000000000000000000001/615157480315000000000000000000000000000000000000000000000",
+              "625000000000000000000000000001/625000000000000000000000000000",
+            ] : [
+              "7499999999999999999999999999991/1250000000000000000000000000000000000000000000000000000000",
+              "2499999999999999999999999999997/2500000000000000000000000000000",
+            ];
             expect(spans).toHaveLength(8);
             expect(spans).toEqual(expect.arrayContaining([
               { PCurveID: 237, ParameterInterval: ["0", quarterTurn], UVStart: ["0", "0"], UVDerivative: ["-1", "0"] },
               { PCurveID: 277, ParameterInterval: ["0", quarterTurn], UVStart: ["0", height], UVDerivative: ["-1", "0"] },
               { PCurveID: 256, ParameterInterval: ["0", axialEnd], UVStart: [`-${quarterTurn}`, "0"], UVDerivative: ["0", ownerScale],
-                RepairedToOwner: [
-                  "7499999999999999999999999999991/1250000000000000000000000000000000000000000000000000000000",
-                  "2499999999999999999999999999997/2500000000000000000000000000000",
-                ] },
+                RepairedToOwner: repairedToOwner },
             ]));
             expect(proof.Claims.Grouped.FiniteTrims).toMatchObject([
               { CapOwner: { PCurveID: 226 }, CylinderOwner: { PCurveID: 237 }, EndStation: expect.any(Object) },
@@ -142,7 +149,7 @@ for (const fixture of fixtures) {
               { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", height], UVDerivative: ["1", "0"] },
             ]));
           }
-          if (units === "in") expect(proof.Claims.PCurves).toContainEqual(expect.objectContaining({
+          if (units === "in" && !fixture.grouped) expect(proof.Claims.PCurves).toContainEqual(expect.objectContaining({
             PCurveID: 125, Kind: "finite-cylinder-line", DistanceSquaredUpper: "625/244140625000031250000000001",
           }));
         }
