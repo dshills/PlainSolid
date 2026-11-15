@@ -53,6 +53,27 @@ PLAINSOLID_OCCT_NATIVE_PRISM_BOOLEAN=/tmp/occt-prism \
   go test -race -v ./brep/trimmed -run '^TestNativePrismBooleanAgainstOCCT$'
 ```
 
+### Three transverse polynomial nodes
+
+The `node-triple` mode independently builds two complete original roof
+stocks with a cubic and a quartic contact branch. Their difference is
+`(1-4u)(1-2u)(3-4u)(1+u)/256`. The test compares Common and Fuse volumes
+for both chart axes and operand orders against the native solid and exact
+integrals. On the pinned OCCT revision each case returns one valid solid
+and the largest difference from its exact volume is about `9.64e-11`.
+
+```sh
+sh tools/occtref/build_two_polynomial_roofs.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/occt-polynomial-roofs
+PLAINSOLID_OCCT_THREE_POLYNOMIAL_NODES=/tmp/occt-polynomial-roofs \
+  go test -v ./brep/trimmed -run '^TestNativeThreePolynomialNode'
+```
+
+The ordinary native test independently uses the full-gap variant, with
+denominator 128. Its exact analytical volumes qualify separately.
+At the full gap, the pinned OCCT comparison on the swapped chart in reverse
+operand order differs from the exact volume by approximately `5.33e-7`
+for both Common and Fuse.
+
 ### Tangent polynomial-roof diagnostic
 
 The `tangent` mode builds the same two original mixed-degree roof stocks as

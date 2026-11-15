@@ -43,27 +43,8 @@ func assembleTwoPolynomialNodeGraphs(ctx context.Context, base, a, b *geom.BSpli
 	if e != nil {
 		return fail(e)
 	}
-	regions := make([]graphEnvelopeRegion, len(loops))
-	for i, loop := range loops {
-		regions[i] = graphEnvelopeRegion{loop: loop, first: (arrangement.Regions[i].HeightSide > 0) == (op == parametric.Union)}
-	}
-	solid, history, e := assembleSplineEnvelope(ctx, base, a, b, regions, tolerance, exactGraphVertexEvaluator(ctx, proof))
+	solid, history, e := assemblePolynomialNodeEnvelope(ctx, base, a, b, op, tolerance, arrangement.Regions[:], loops[:], proof)
 	if e != nil {
-		return fail(e)
-	}
-	if e = validateExactGraphPartitionEdges(ctx, solid, proof); e != nil {
-		return fail(e)
-	}
-	for i, region := range arrangement.Regions {
-		location, r, e := LocateRationalInFaceTrim(ctx, solid.faces[i], region.Witness, trimvalidate.Options{})
-		if e != nil {
-			return fail(e)
-		}
-		if r.Status != trimvalidate.Certified || location != trimvalidate.Inside {
-			return fail(fmt.Errorf("trimmed: two polynomial node region %d: %s: %w", i, r.Reason, geom.ErrConvergence))
-		}
-	}
-	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
 		return fail(e)
 	}
 	mapping, e := bindTwoPolynomialNodeEdges(solid, history.ContourEdges, arrangement, xyz, pieces)
@@ -74,9 +55,47 @@ func assembleTwoPolynomialNodeGraphs(ctx context.Context, base, a, b *geom.BSpli
 	return solid, history, nil
 }
 
+func assemblePolynomialNodeEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, arrangement []geom.SplineGraphPolynomialRegion, loops [][]openSectionPiece, proof geom.GraphPointContactOptions) (Solid, SplineGraphBooleanHistory, error) {
+	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
+		return Solid{}, SplineGraphBooleanHistory{TopA: -1, TopB: -1, Base: -1}, e
+	}
+	regions := make([]graphEnvelopeRegion, len(loops))
+	for i, loop := range loops {
+		regions[i] = graphEnvelopeRegion{loop: loop, first: (arrangement[i].HeightSide > 0) == (op == parametric.Union)}
+	}
+	solid, history, e := assembleSplineEnvelope(ctx, base, a, b, regions, tolerance, exactGraphVertexEvaluator(ctx, proof))
+	if e != nil {
+		return fail(e)
+	}
+	if e = validateExactGraphPartitionEdges(ctx, solid, proof); e != nil {
+		return fail(e)
+	}
+	for i, region := range arrangement {
+		location, r, e := LocateRationalInFaceTrim(ctx, solid.faces[i], region.Witness, trimvalidate.Options{})
+		if e != nil {
+			return fail(e)
+		}
+		if r.Status != trimvalidate.Certified || location != trimvalidate.Inside {
+			return fail(fmt.Errorf("trimmed: polynomial node region %d: %s: %w", i, r.Reason, geom.ErrConvergence))
+		}
+	}
+	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
+		return fail(e)
+	}
+	return solid, history, nil
+}
+
 func twoPolynomialNodeRegionLoops(arrangement geom.SplineGraphTwoPolynomialNodes, uv [6]geom.Vec2, pieces [6][]openSectionPiece) ([5][]openSectionPiece, error) {
-	var loops [5][]openSectionPiece
-	for i, region := range arrangement.Regions {
+	loops, e := polynomialNodeRegionLoops(arrangement.Regions[:], uv[:], pieces[:])
+	if e != nil {
+		return [5][]openSectionPiece{}, e
+	}
+	return [5][]openSectionPiece(loops), nil
+}
+
+func polynomialNodeRegionLoops(regions []geom.SplineGraphPolynomialRegion, uv []geom.Vec2, pieces [][]openSectionPiece) ([][]openSectionPiece, error) {
+	loops := make([][]openSectionPiece, len(regions))
+	for i, region := range regions {
 		for _, use := range region.Edges {
 			chain := pieces[use.Edge]
 			if use.Reversed {
@@ -102,8 +121,17 @@ func twoPolynomialNodeRegionLoops(arrangement geom.SplineGraphTwoPolynomialNodes
 	return loops, nil
 }
 
-func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv [6]geom.Vec2) (pieces [6][]openSectionPiece, err error) {
-	for i, edge := range arrangement.Edges {
+func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv [6]geom.Vec2) ([6][]openSectionPiece, error) {
+	pieces, e := polynomialNodePieces(arrangement.Edges[:], uv[:])
+	if e != nil {
+		return [6][]openSectionPiece{}, e
+	}
+	return [6][]openSectionPiece(pieces), nil
+}
+
+func polynomialNodePieces(edges []geom.SplineGraphPolynomialPiece, uv []geom.Vec2) ([][]openSectionPiece, error) {
+	pieces := make([][]openSectionPiece, len(edges))
+	for i, edge := range edges {
 		h := make([][3]*big.Rat, len(edge.Controls))
 		for j, p := range edge.Controls {
 			h[j] = [3]*big.Rat{p[0], p[1], big.NewRat(1, 1)}
@@ -115,7 +143,9 @@ func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv 
 		if curve.ends != ([2]geom.Vec2{uv[edge.Start], uv[edge.End]}) {
 			return pieces, geom.ErrConvergence
 		}
-		if edge.Start == arrangement.Nodes[0].Vertex && edge.End == arrangement.Nodes[1].Vertex {
+		// The four terminal vertices precede all interior nodes.
+		const firstNode = 4
+		if edge.Start >= firstNode && edge.End >= firstNode {
 			// Both lens sides get distinct vertices at the same free station.
 			// The native rim becomes a four-edge loop with unique end pairs.
 			left, right, e := curve.Split(big.NewRat(1, 2))
@@ -134,11 +164,37 @@ func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv 
 }
 
 func bindTwoPolynomialNodeEdges(solid Solid, ids []int, arrangement geom.SplineGraphTwoPolynomialNodes, xyz [6]geom.Vec3, pieces [6][]openSectionPiece) (*TwoPolynomialNodeHistory, error) {
-	if len(ids) != 8 {
-		return nil, geom.ErrConvergence
+	binding, e := bindPolynomialNodeEdges(solid, ids, arrangement.Edges[:], xyz[:], pieces[:])
+	if e != nil {
+		return nil, e
 	}
+	return &TwoPolynomialNodeHistory{
+		Arrangement: arrangement,
+		Edges:       [6][]int(binding.edges),
+		Vertices:    [6]int(binding.vertices),
+		Midpoints:   [2]int{binding.midpoints[1], binding.midpoints[4]},
+	}, nil
+}
+
+type polynomialNodeBinding struct {
+	edges     [][]int
+	vertices  []int
+	midpoints []int // indexed by source edge, -1 for an unsplit edge
+}
+
+func bindPolynomialNodeEdges(solid Solid, ids []int, sources []geom.SplineGraphPolynomialPiece, xyz []geom.Vec3, pieces [][]openSectionPiece) (polynomialNodeBinding, error) {
 	const missing = -1
-	mapping := &TwoPolynomialNodeHistory{Arrangement: arrangement, Vertices: [6]int{missing, missing, missing, missing, missing, missing}}
+	mapping := polynomialNodeBinding{
+		edges:     make([][]int, len(sources)),
+		vertices:  make([]int, len(xyz)),
+		midpoints: make([]int, len(sources)),
+	}
+	for i := range mapping.vertices {
+		mapping.vertices[i] = missing
+	}
+	for i := range mapping.midpoints {
+		mapping.midpoints[i] = missing
+	}
 	type directedEdge struct {
 		id, start, end int
 	}
@@ -147,29 +203,29 @@ func bindTwoPolynomialNodeEdges(solid Solid, ids []int, arrangement geom.SplineG
 		edge := solid.edges[id]
 		model, ok := edge.Curve.(surfaceTrimCurve)
 		if !ok {
-			return nil, geom.ErrConvergence
+			return polynomialNodeBinding{}, geom.ErrConvergence
 		}
 		if _, duplicate := lookup[[2]geom.Vec2{model.a, model.b}]; duplicate {
-			return nil, geom.ErrConvergence
+			return polynomialNodeBinding{}, geom.ErrConvergence
 		}
 		lookup[[2]geom.Vec2{model.a, model.b}] = directedEdge{id, edge.Start, edge.End}
 		lookup[[2]geom.Vec2{model.b, model.a}] = directedEdge{id, edge.End, edge.Start}
 	}
 	for i, chain := range pieces {
-		source := arrangement.Edges[i]
+		source := sources[i]
 		for j, p := range chain {
 			edge, ok := lookup[[2]geom.Vec2{p.a, p.b}]
 			if !ok {
-				return nil, geom.ErrConvergence
+				return polynomialNodeBinding{}, geom.ErrConvergence
 			}
 			delete(lookup, [2]geom.Vec2{p.a, p.b})
 			delete(lookup, [2]geom.Vec2{p.b, p.a})
-			mapping.Edges[i] = append(mapping.Edges[i], edge.id)
+			mapping.edges[i] = append(mapping.edges[i], edge.id)
 			if j == 0 && len(chain) == 2 {
-				mapping.Midpoints[source.Branch] = edge.end
+				mapping.midpoints[i] = edge.end
 			}
-			if j == 1 && mapping.Midpoints[source.Branch] != edge.start {
-				return nil, geom.ErrConvergence
+			if j == 1 && mapping.midpoints[i] != edge.start {
+				return polynomialNodeBinding{}, geom.ErrConvergence
 			}
 			for _, bind := range [2]struct {
 				attached       bool
@@ -180,16 +236,32 @@ func bindTwoPolynomialNodeEdges(solid Solid, ids []int, arrangement geom.SplineG
 				if !bind.attached {
 					continue
 				}
-				old := mapping.Vertices[bind.source]
+				old := mapping.vertices[bind.source]
 				if (old != missing && old != bind.native) || solid.vertices[bind.native] != xyz[bind.source] {
-					return nil, geom.ErrConvergence
+					return polynomialNodeBinding{}, geom.ErrConvergence
 				}
-				mapping.Vertices[bind.source] = bind.native
+				mapping.vertices[bind.source] = bind.native
 			}
 		}
 	}
-	if len(lookup) != 0 || mapping.Midpoints[0] == mapping.Midpoints[1] {
-		return nil, geom.ErrConvergence
+	if len(lookup) != 0 {
+		return polynomialNodeBinding{}, geom.ErrConvergence
+	}
+	used := make(map[int]bool, len(xyz)+len(sources))
+	for _, id := range mapping.vertices {
+		if id == missing || used[id] {
+			return polynomialNodeBinding{}, geom.ErrConvergence
+		}
+		used[id] = true
+	}
+	for _, id := range mapping.midpoints {
+		if id == missing {
+			continue
+		}
+		if used[id] {
+			return polynomialNodeBinding{}, geom.ErrConvergence
+		}
+		used[id] = true
 	}
 	return mapping, nil
 }

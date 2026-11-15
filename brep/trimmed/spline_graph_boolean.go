@@ -20,6 +20,7 @@ type SplineGraphBooleanHistory struct {
 	TwoPolynomials                       *geom.SplineGraphTwoPolynomials
 	PolynomialNode                       *geom.SplineGraphPolynomialNode
 	TwoPolynomialNodes                   *TwoPolynomialNodeHistory
+	ThreePolynomialNodes                 *ThreePolynomialNodeHistory
 	TopA, TopB, Base                     int
 	FacesA, FacesB                       []int
 	ContourEdges, WallFaces, DomainSides []int
