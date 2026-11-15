@@ -3,9 +3,11 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
+#include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopoDS_Shape.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 
@@ -19,7 +21,8 @@ int main(int argc, char** argv) {
   BRepBuilderAPI_MakePolygon outline;
   outline.Add(gp_Pnt(0, 0, 0));
   outline.Add(gp_Pnt(4, 0, 0));
-  if (std::string_view(argv[1]) == "triangle") {
+  const std::string_view operation = argv[1];
+  if (operation == "triangle" || operation == "triangle-open-top") {
     outline.Add(gp_Pnt(0, 3, 0));
   } else if (std::string_view(argv[1]) == "clipped") {
     outline.Add(gp_Pnt(4, 3.25, 0));
@@ -31,11 +34,28 @@ int main(int argc, char** argv) {
   outline.Close();
   const auto face = BRepBuilderAPI_MakeFace(outline.Wire()).Face();
   const auto source = BRepPrimAPI_MakePrism(face, gp_Vec(0, 0, 5)).Shape();
-  BRepOffsetAPI_MakeOffsetShape offset;
-  offset.PerformByJoin(source, std::strtod(argv[2], nullptr), 1e-9,
-                       BRepOffset_Skin, false, false, GeomAbs_Intersection, true);
-  if (!offset.IsDone()) return 3;
-  const auto& shape = offset.Shape();
+  const double distance = std::strtod(argv[2], nullptr);
+  TopoDS_Shape shape;
+  if (operation == "triangle-open-top") {
+    NCollection_List<TopoDS_Shape> opening;
+    for (TopExp_Explorer it(source, TopAbs_FACE); it.More(); it.Next()) {
+      GProp_GProps properties;
+      BRepGProp::SurfaceProperties(it.Current(), properties);
+      if (properties.CentreOfMass().Z() > 4.99) opening.Append(it.Current());
+    }
+    if (opening.Size() != 1) return 5;
+    BRepOffsetAPI_MakeThickSolid thick;
+    thick.MakeThickSolidByJoin(source, opening, distance, 1e-9, BRepOffset_Skin,
+                              false, false, GeomAbs_Intersection, true);
+    if (!thick.IsDone()) return 3;
+    shape = thick.Shape();
+  } else {
+    BRepOffsetAPI_MakeOffsetShape offset;
+    offset.PerformByJoin(source, distance, 1e-9, BRepOffset_Skin, false, false,
+                         GeomAbs_Intersection, true);
+    if (!offset.IsDone()) return 3;
+    shape = offset.Shape();
+  }
   if (shape.IsNull()) return 4;
   auto count = [&](TopAbs_ShapeEnum kind) {
     int n = 0;

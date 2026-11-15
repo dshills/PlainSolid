@@ -138,24 +138,30 @@ func TestConvexMiterOffsetOCCT(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		m, e := out.MassProperties()
-		if e != nil {
-			t.Fatal(e)
-		}
-		b, e := exec.Command(bin, tc.shape, strconv.FormatFloat(tc.d, 'g', -1, 64)).CombinedOutput()
+		compareConvexOffsetOCCT(t, bin, tc.shape, tc.d, out)
+	}
+}
+
+func compareConvexOffsetOCCT(t *testing.T, bin, shape string, d float64, out brep.Solid) {
+	t.Helper()
+	m, e := out.MassProperties()
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, e := exec.Command(bin, shape, strconv.FormatFloat(d, 'g', -1, 64)).CombinedOutput()
+	if e != nil {
+		t.Fatal(e, string(b))
+	}
+	var values []float64
+	for _, x := range strings.Fields(string(b)) {
+		v, e := strconv.ParseFloat(x, 64)
 		if e != nil {
 			t.Fatal(e, string(b))
 		}
-		var values []float64
-		for _, x := range strings.Fields(string(b)) {
-			v, e := strconv.ParseFloat(x, 64)
-			if e != nil {
-				t.Fatal(e, string(b))
-			}
-			values = append(values, v)
-		}
-		if len(values) != 5 || values[0] != 1 || values[1] != 1 || values[2] != float64(len(out.Faces())) || math.Abs(values[3]-m.Volume) > 1e-10 || math.Abs(values[4]-m.SurfaceArea) > 1e-10 {
-			t.Fatal("OCCT miter offset geometry", string(b), m)
-		}
+		values = append(values, v)
+	}
+	if len(values) != 5 || values[0] != 1 || values[1] != 1 || values[2] != float64(len(out.Faces())) ||
+		math.Abs(values[3]-m.Volume) > 1e-10 || math.Abs(values[4]-m.SurfaceArea) > 1e-10 {
+		t.Fatal("OCCT miter offset geometry", string(b), m)
 	}
 }

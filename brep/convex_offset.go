@@ -34,29 +34,17 @@ type ConvexOffsetHistory struct {
 // normal length must be rational, and all resulting vertices must be
 // exactly representable. An unrepresentable result returns an error.
 func (s Solid) OffsetConvex(ctx context.Context, distance float64, o ConvexOffsetOptions) (Solid, ConvexOffsetHistory, error) {
-	if ctx == nil || math.IsNaN(distance) || math.IsInf(distance, 0) {
+	if math.IsNaN(distance) || math.IsInf(distance, 0) {
 		return Solid{}, ConvexOffsetHistory{}, geom.ErrInvalid
 	}
-	if o.MaxFaces == 0 {
-		o.MaxFaces = 64
-	}
-	if o.MaxPlaneTests == 0 {
-		o.MaxPlaneTests = 4000000
-	}
-	if o.MaxFaces < 4 || o.MaxFaces > 64 || o.MaxPlaneTests < 1 || o.MaxPlaneTests > 10000000 {
-		return Solid{}, ConvexOffsetHistory{}, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
+	work, e := s.prepareConvexOffset(ctx, o)
+	if e != nil {
 		return Solid{}, ConvexOffsetHistory{}, e
 	}
 	if len(s.faces) == 0 {
 		return Solid{}, ConvexOffsetHistory{}, nil
 	}
-	if len(s.faces) > o.MaxFaces || len(s.vertices) > 2*len(s.faces)-4 {
-		return Solid{}, ConvexOffsetHistory{}, fmt.Errorf("brep: convex offset input exceeds supporting face bound: %w", geom.ErrDomain)
-	}
-	work := offsetPlaneWork{o.MaxPlaneTests, 0}
-	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat).SetFloat64(distance), &work)
+	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat).SetFloat64(distance), -1, &work)
 	if e != nil {
 		return Solid{}, ConvexOffsetHistory{}, e
 	}
@@ -88,12 +76,9 @@ func (s Solid) OffsetConvex(ctx context.Context, distance float64, o ConvexOffse
 		}
 		return Solid{}, h, nil
 	}
-	vertices := make([]geom.Vec3, len(points))
-	for i, p := range points {
-		vertices[i], e = geom.RepresentedExactPoint([3]*big.Rat(p))
-		if e != nil {
-			return Solid{}, ConvexOffsetHistory{}, fmt.Errorf("brep: translated supporting planes meet at vertex %d: %w", i, e)
-		}
+	vertices, e := representedOffsetVertices(points)
+	if e != nil {
+		return Solid{}, ConvexOffsetHistory{}, e
 	}
 	if e = ctx.Err(); e != nil {
 		return Solid{}, ConvexOffsetHistory{}, e
@@ -102,10 +87,32 @@ func (s Solid) OffsetConvex(ctx context.Context, distance float64, o ConvexOffse
 	if e != nil {
 		return Solid{}, ConvexOffsetHistory{}, e
 	}
+	if e = ctx.Err(); e != nil {
+		return Solid{}, ConvexOffsetHistory{}, e
+	}
 	return out, h, nil
 }
 
 type offsetPlaneWork struct{ limit, tests int }
+
+func (s Solid) prepareConvexOffset(ctx context.Context, o ConvexOffsetOptions) (offsetPlaneWork, error) {
+	if o.MaxFaces == 0 {
+		o.MaxFaces = 64
+	}
+	if o.MaxPlaneTests == 0 {
+		o.MaxPlaneTests = 4000000
+	}
+	if ctx == nil || o.MaxFaces < 4 || o.MaxFaces > 64 || o.MaxPlaneTests < 1 || o.MaxPlaneTests > 10000000 {
+		return offsetPlaneWork{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return offsetPlaneWork{}, e
+	}
+	if len(s.faces) != 0 && (len(s.faces) > o.MaxFaces || len(s.vertices) > 2*len(s.faces)-4) {
+		return offsetPlaneWork{}, fmt.Errorf("brep: convex offset input exceeds supporting face bound: %w", geom.ErrDomain)
+	}
+	return offsetPlaneWork{limit: o.MaxPlaneTests}, nil
+}
 
 func (w *offsetPlaneWork) test() error {
 	if w.tests == w.limit {
@@ -142,7 +149,7 @@ type offsetPlane struct {
 	d *big.Rat
 }
 
-func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, work *offsetPlaneWork) ([]offsetPlane, error) {
+func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, unshifted int, work *offsetPlaneWork) ([]offsetPlane, error) {
 	points := make([]offsetVector, len(s.vertices))
 	for i, p := range s.vertices {
 		points[i] = offsetVector{new(big.Rat).SetFloat64(p.X), new(big.Rat).SetFloat64(p.Y), new(big.Rat).SetFloat64(p.Z)}
@@ -180,7 +187,7 @@ func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, work *
 				return nil, fmt.Errorf("brep: source face %d must own the full supporting facet: %w", i, geom.ErrDomain)
 			}
 		}
-		if distance.Sign() != 0 {
+		if distance.Sign() != 0 && i != unshifted {
 			length, ok := exactOffsetSqrt(n2)
 			if !ok {
 				return nil, fmt.Errorf("brep: source face %d has irrational normal length: %w", i, geom.ErrUnrepresentable)
@@ -190,6 +197,18 @@ func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, work *
 		planes = append(planes, offsetPlane{n, d})
 	}
 	return planes, nil
+}
+
+func representedOffsetVertices(points []offsetVector) ([]geom.Vec3, error) {
+	vertices := make([]geom.Vec3, len(points))
+	for i, p := range points {
+		v, e := geom.RepresentedExactPoint([3]*big.Rat(p))
+		if e != nil {
+			return nil, fmt.Errorf("brep: translated supporting planes meet at vertex %d: %w", i, e)
+		}
+		vertices[i] = v
+	}
+	return vertices, nil
 }
 
 func exactOffsetSqrt(r *big.Rat) (*big.Rat, bool) {
