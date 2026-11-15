@@ -123,6 +123,26 @@ func verifyOCCTMappedChainSTEP(t *testing.T, raw []byte, reordered bool) MappedC
 	if err != nil {
 		t.Fatal(err)
 	}
+	var sourceRecipe bytes.Buffer
+	if err := m.Shell.WriteJSON(ctx, &sourceRecipe, trimmed.MappedChainShellNativeOptions{}); err != nil {
+		t.Fatal("persist independent original source coedges", err)
+	}
+	reopened, err := trimmed.ReadMappedSplineChainShellJSON(ctx, &sourceRecipe, trimmed.MappedChainShellNativeOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rebuild, err := reopened.BuildRectangularSolid(ctx, 1e-9, geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var original, reconstructed bytes.Buffer
+	if err := trimmed.WriteJSON(&original, m.Native.Solid); err != nil {
+		t.Fatal(err)
+	}
+	if err := trimmed.WriteJSON(&reconstructed, rebuild.Solid); err != nil || !bytes.Equal(original.Bytes(), reconstructed.Bytes()) {
+		t.Fatal("independent source recipe did not restore the complete native shell", err)
+	}
+
 	proof, err := solid.ValidateEdgeAgreement(ctx, edgecheck.Options{})
 	if err != nil || !proof.Complete || len(proof.Uses) != 34 {
 		t.Fatal("standalone native coedges after source transfer", err)

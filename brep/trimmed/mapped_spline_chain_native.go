@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"math/big"
+	"reflect"
+
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -13,7 +15,8 @@ import (
 
 type nativeMappedChainOwner struct {
 	Surface           json.RawMessage
-	Source            nativeUse
+	Source            *nativeUse  `json:",omitempty"`
+	Sources           []nativeUse `json:",omitempty"`
 	Ranges            []UVInterval
 	Weights, Stations []string
 }
@@ -34,7 +37,8 @@ type MappedChainNativeOptions struct {
 
 // WriteJSON persists only original geometry and exact maps. Full source and
 // per-cell correspondence are re-proved before any bytes are written. This is
-// a standalone boundary format; it cannot be read as native trimmed-brep v11.
+// a standalone boundary format. Version 2 retains independently authored
+// whole coedge bases in addition to version 1's whole owner spline.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
@@ -50,7 +54,7 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 	var chains [2]MappedSplineChain
 	limits := geom.SurfacePatchOptions{MaxOperations: o.Proof.MaxWork, MaxCoefficientBits: o.Proof.MaxBits}
 	for owner, c := range r.sources {
-		proved, e := NewMappedSplineChain(ctx, c.parts, c.stations, limits)
+		proved, e := newMappedSplineChain(ctx, c.parts, c.stations, limits, c.independent)
 		if e != nil {
 			return e
 		}
@@ -59,15 +63,27 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 		if e != nil {
 			return e
 		}
-		source := proved.parts[0].source
-		lo, hi := source.Curve.Domain()
-		source.Range = UVInterval{lo, hi}
+		x := nativeMappedChainOwner{Surface: surface}
 		encoder := trimEncoder{}
-		uses, e := encoder.encodeUses([]Use{{Curve: source}})
-		if e != nil {
-			return e
+		if c.independent {
+			record.Version = 2
+			for _, part := range proved.parts {
+				uses, e := encoder.encodeUses([]Use{{Curve: part.source}})
+				if e != nil {
+					return e
+				}
+				x.Sources = append(x.Sources, uses[0])
+			}
+		} else {
+			source := proved.parts[0].source
+			lo, hi := source.Curve.Domain()
+			source.Range = UVInterval{lo, hi}
+			uses, e := encoder.encodeUses([]Use{{Curve: source}})
+			if e != nil {
+				return e
+			}
+			x.Source = &uses[0]
 		}
-		x := nativeMappedChainOwner{Surface: surface, Source: uses[0]}
 		for _, p := range proved.parts {
 			x.Ranges = append(x.Ranges, p.source.Range)
 			x.Weights = append(x.Weights, p.weight.RatString())
@@ -90,7 +106,10 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 	if e = ctx.Err(); e != nil {
 		return e
 	}
-	_, e = w.Write(raw)
+	n, e := w.Write(raw)
+	if e == nil && n != len(raw) {
+		e = io.ErrShortWrite
+	}
 	return e
 }
 func mappedChainNativeMax(n int64) (int64, error) {
@@ -137,12 +156,13 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e = decoder.Decode(&extra); e != io.EOF {
 		return zero, geom.ErrInvalid
 	}
-	if record.Version != 1 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
+	if (record.Version != 1 && record.Version != 2) || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
 		return zero, geom.ErrInvalid
 	}
 	var chains [2]MappedSplineChain
 	var surfaces [2]geom.Surface
 	limits := geom.SurfacePatchOptions{MaxOperations: o.Proof.MaxWork, MaxCoefficientBits: o.Proof.MaxBits}
+	var anyIndependent bool
 	for owner, x := range record.Owners {
 		if e = ctx.Err(); e != nil {
 			return zero, e
@@ -150,24 +170,21 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 		if len(x.Ranges) < 2 || len(x.Ranges) > 8 || len(x.Weights) != len(x.Ranges) || len(x.Stations) != len(x.Ranges)-1 {
 			return zero, geom.ErrInvalid
 		}
-		allowed := nativeUse{Spline: x.Source.Spline, SplineRange: x.Source.SplineRange, SplineReversed: x.Source.SplineReversed, SplineExactEndpoints: x.Source.SplineExactEndpoints}
-		a, _ := json.Marshal(allowed)
-		b, _ := json.Marshal(x.Source)
-		if len(x.Source.Spline) == 0 || !bytes.Equal(a, b) {
-			return zero, geom.ErrInvalid
-		}
-		d := trimDecoder{ctx: ctx, version: 8, maxControls: 64}
-		uses, e := d.decodeUses([]nativeUse{x.Source}, 0)
-		if e != nil {
-			return zero, e
-		}
-		source, ok := uses[0].Curve.(SplineUV)
-		if !ok {
-			return zero, geom.ErrInvalid
-		}
-		lo, hi := source.Curve.Domain()
-		if source.Range != (UVInterval{lo, hi}) {
-			return zero, geom.ErrConvergence
+		independent := len(x.Sources) != 0
+		var source SplineUV
+		if independent {
+			if record.Version != 2 || x.Source != nil || len(x.Sources) != len(x.Ranges) {
+				return zero, geom.ErrInvalid
+			}
+			anyIndependent = true
+		} else {
+			if x.Source == nil {
+				return zero, geom.ErrInvalid
+			}
+			source, e = decodeMappedChainNativeSource(ctx, *x.Source)
+			if e != nil {
+				return zero, e
+			}
 		}
 		surface, e := parametric.DecodeSurface(x.Surface, 4096)
 		if e != nil {
@@ -182,7 +199,17 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 				return zero, e
 			}
 			part := source
-			part.Range = span
+			if independent {
+				part, e = decodeMappedChainNativeSource(ctx, x.Sources[i])
+				if e != nil {
+					return zero, e
+				}
+				if part.Range != span {
+					return zero, geom.ErrConvergence
+				}
+			} else {
+				part.Range = span
+			}
 			q, e := NewMappedSplineUV(ctx, part, weight, limits)
 			if e != nil {
 				return zero, e
@@ -196,10 +223,35 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 			}
 			stations = append(stations, v)
 		}
-		chains[owner], e = NewMappedSplineChain(ctx, parts, stations, limits)
+		chains[owner], e = newMappedSplineChain(ctx, parts, stations, limits, independent)
 		if e != nil {
 			return zero, e
 		}
 	}
+	if record.Version == 2 && !anyIndependent {
+		return zero, geom.ErrInvalid
+	}
 	return CertifyMappedSplineChainAgreement(ctx, surfaces[0], chains[0], surfaces[1], chains[1], o.Proof)
+}
+
+func decodeMappedChainNativeSource(ctx context.Context, raw nativeUse) (SplineUV, error) {
+	var zero SplineUV
+	allowed := nativeUse{Spline: raw.Spline, SplineRange: raw.SplineRange, SplineReversed: raw.SplineReversed, SplineExactEndpoints: raw.SplineExactEndpoints}
+	if len(raw.Spline) == 0 || !reflect.DeepEqual(allowed, raw) {
+		return zero, geom.ErrInvalid
+	}
+	d := trimDecoder{ctx: ctx, version: 8, maxControls: 64}
+	uses, err := d.decodeUses([]nativeUse{raw}, 0)
+	if err != nil {
+		return zero, err
+	}
+	source, ok := uses[0].Curve.(SplineUV)
+	if !ok {
+		return zero, geom.ErrInvalid
+	}
+	lo, hi := source.Curve.Domain()
+	if source.Range != (UVInterval{lo, hi}) {
+		return zero, geom.ErrConvergence
+	}
+	return source, nil
 }

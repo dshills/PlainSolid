@@ -17,15 +17,20 @@ type MappedChainFaceOptions struct {
 	Face      MixedExactMultiSpanMeshOptions
 	Collision collision.Options
 }
+
+// MappedChainFaceSample stores the original part index and raw parameter on
+// each owner at one sample of the common model cell.
 type MappedChainFaceSample struct {
 	Cell, Vertex       int
+	AuthoredParts      [2]int
 	ModelParameter     *big.Rat
 	AuthoredParameters [2]*big.Rat
 }
 
 // CertifiedMappedChainFace fills one original chart region. LedgerVertices map
 // all certified shared edge samples into the actual face mesh; extra adaptive
-// samples retain both original source histories. No shell or material claim.
+// samples retain both original source histories. A joint has one sample per
+// cell, each with its own original source parameter. No shell or material claim.
 type CertifiedMappedChainFace struct {
 	Face           CertifiedMixedExactCurvedMesh
 	Boundary       CertifiedMappedChainPolyline
@@ -119,11 +124,11 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 			id := use.Vertices[j]
 			sample := MappedChainFaceSample{Cell: cell, Vertex: id, ModelParameter: global}
 			for side := 0; side < 2; side++ {
-				raw, e := r.sources[side].AuthoredParameter(global)
+				part, raw, e := r.sources[side].authoredCellParameter(r.cuts[cell], r.cuts[cell+1], t)
 				if e != nil {
 					return zero, e
 				}
-				sample.AuthoredParameters[side] = raw
+				sample.AuthoredParts[side], sample.AuthoredParameters[side] = part, raw
 			}
 			out.Samples = append(out.Samples, sample)
 			if k, ok := ledger[global.RatString()]; ok {

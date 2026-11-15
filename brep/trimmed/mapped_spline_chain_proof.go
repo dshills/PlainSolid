@@ -138,6 +138,10 @@ func (c MappedSplineChain) locate(t *big.Rat) (int, *big.Rat, error) {
 	}
 	return 0, nil, geom.ErrDomain
 }
+
+// AuthoredParameter returns the raw parameter on the incoming original coedge
+// at a joint. Independently authored adjacent coedges may have distinct raw
+// parameters for that same point.
 func (c MappedSplineChain) AuthoredParameter(t *big.Rat) (*big.Rat, error) {
 	i, u, e := c.locate(t)
 	if e != nil {
@@ -145,6 +149,16 @@ func (c MappedSplineChain) AuthoredParameter(t *big.Rat) (*big.Rat, error) {
 	}
 	return c.parts[i].AuthoredParameter(u)
 }
+func (c MappedSplineChain) authoredCellParameter(a, b, t *big.Rat) (int, *big.Rat, error) {
+	i, lo, hi, err := c.cellParameters(a, b)
+	if err != nil {
+		return 0, nil, err
+	}
+	u := new(big.Rat).Add(lo, new(big.Rat).Mul(t, new(big.Rat).Sub(hi, lo)))
+	raw, err := c.parts[i].AuthoredParameter(u)
+	return i, raw, err
+}
+
 func (c MappedSplineChain) cell(a, b *big.Rat) (ExactBezierUV, error) {
 	i, lo, hi, e := c.cellParameters(a, b)
 	if e != nil {

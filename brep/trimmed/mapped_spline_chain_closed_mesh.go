@@ -47,7 +47,8 @@ type MappedChainClosedMeshOptions struct {
 // triangle contacts. SquaredDistance bounds both directed source/display
 // distances. FaceVertices maps face-local IDs to the shell. ChainSamples
 // records every shared chain vertex with both original authored parameters,
-// including refinement beyond the initial Boundary ledger. ClosingVertices
+// including refinement beyond the initial Boundary ledger. A joint vertex
+// retains the incoming original coedge parameters. ClosingVertices
 // follows the first declared use of each closing seam. This is a display
 // certificate; ideal source embedding and Solid admission require separate proofs.
 type CertifiedMappedChainClosedMesh struct {

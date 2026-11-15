@@ -28,7 +28,7 @@ shells, arbitrary external face ordering, periodic seams, and assemblies
 require other exchange paths.
 
 The optional live check uses the pinned OCCT STEP executable built by
-`tools/occtref/build_author_convex_arc_step.sh`:
+`tools/occtref/build_author_convex_arc_step.sh`.
 
 ```sh
 PLAINSOLID_OCCT_MAPPED_CHAIN_STEP=/path/to/author-convex-arc-step \
@@ -55,12 +55,15 @@ The reader verifies raw `LINE` and degree-one spline pcurves against
 the exact original planar lift, authenticates both directed source
 vertices, and verifies the complete roof pcurve and model spline
 identities. `OriginalSTEP` retains the complete independent input.
-The ordinary native solid can also round-trip its independent pcurve
-bases through native JSON.
+The ordinary solid and the standalone mapped-chain source recipe both
+round-trip the independent pcurve bases through native JSON. The source
+recipe uses a version-2 boundary record for the separate coedges. Face
+tessellation retains both the incoming and outgoing raw parameters at each
+joint, and both are tied to their own original coedges.
 
 The recorded fixture was written by pinned OCCT with the floor first,
 the roofs separated in shell order, and both roof wires started off the
-shared chain. Live authoring covers the original and reordered forms:
+shared chain. Live authoring covers the original and reordered forms.
 
 ```sh
 sh tools/occtref/build_mapped_chain_shell.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/mapped-chain-shell step
