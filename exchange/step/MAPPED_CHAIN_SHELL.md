@@ -153,6 +153,7 @@ It supplies exact affine model lifts of the source UV curves, with extra
 decimal precision for the dyadic coordinates. The recorded AP242 file
 imports through the bounded foreign reader with explicit coedges. Its
 individual source pcurve bases survive a native recipe round trip.
+Canonical re-export requires one whole original spline basis per roof.
 Set `PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_AUTHOR` to the pinned author
 built with absolute include and library paths for live qualification.
 
@@ -239,6 +240,19 @@ inferred `3/16` station, the companion stays in its original support cell
 and preserves its exact raw parameter `43`. Pinned OCCT independently
 validates both the unsplit source and the emitted canonical split wire as
 the same seven-face solid.
+
+For three cuts in one unsplit shared edge, use `AllowThreeSupportKnots`
+with the unsplit and two-interior-knot capabilities. Both original
+pcurves cross the sole stored material knot and each supplies one distinct
+additional support crossing. Before applying v7, the reader proves
+both original owner maps over all four restrictions of the two stored
+model Béziers. The crossings at `1/16` and `3/16` are inferred inside
+opposite stored pieces. The common material knot is at `1/8`.
+
+`standard_mapped_chain_unsplit_three_knots.step` keeps one raw basis per
+roof, allowing canonical explicit re-export after native source reload.
+Pinned OCCT validates the original unsplit and repaired canonical files
+with identical material properties.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.
