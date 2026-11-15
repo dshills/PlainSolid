@@ -112,6 +112,7 @@ exposed floors inside through-openings. They qualify compact display, native
 and document replay, and analytic STEP and IGES with supported placements.
 The native multi-inset operation joins independent guests on either cap
 and re-proves native receipts with separate floor and rim ownership.
+The joined solid also transfers through strict analytic STEP and IGES.
 Named corner rounds on mixed line-and-arc profiles retain the original arcs,
 shortened straight spans, and independent holes through edits and reopen.
 Rounds at an axis-aligned line meeting an original circle cover internal
@@ -155,7 +156,7 @@ material, and strict canonical STEP reopen.
 Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-physical complement regions, analytic multi-inset exchange, the tilted
+physical complement regions, editable named multi-inset documents, the tilted
 bore PlainCAD route and rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

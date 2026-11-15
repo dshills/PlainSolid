@@ -214,6 +214,10 @@ kept its pristine hash. Raw results remain in
   Independent OCCT agrees on volume `200+8.6875π` and area `284+20π`.
   Crossing guests reject before publication; canonical native source
   reopen rejects an altered guest edge offset and respects input limits.
+  Analytic placed STEP and IGES both reopen as one 40-face solid in pinned
+  OCCT and retain distinct original floors. The main overlay and multi-inset
+  exchange race passed in 133.437 seconds, including rejection of a
+  changed guest order or cap height in the supplied original sources.
 - Named document occurrence export, the original editable inset exchange,
   and named circular fillet regeneration passed the main document race
   together in 324.615 seconds. STEP preserved both original source
