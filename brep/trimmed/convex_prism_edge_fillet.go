@@ -31,11 +31,21 @@ type ConvexPrismEdgeFillet struct {
 	Faces      []int
 }
 
+// ConvexPrismFilletSection retains the analytic profile, its sketch frame,
+// and the sweep used to construct the native result. Segments are caller-owned.
+type ConvexPrismFilletSection struct {
+	Frame           geom.Frame
+	Segments        []ExtrusionSegment
+	Height          float64
+	Area, Perimeter float64
+}
+
 // ConvexPrismFilletsHistory maps all original boundary faces and lists the
 // generated transitions in counterclockwise profile order.
 type ConvexPrismFilletsHistory struct {
 	SourceFaces []int
 	Fillets     []ConvexPrismEdgeFillet
+	Section     ConvexPrismFilletSection
 }
 
 // FilletConvexPrismEdge rounds one vertical edge of an outward, convex
@@ -122,7 +132,11 @@ func FilletConvexPrismEdges(ctx context.Context, source brep.Solid, requests []C
 	if e != nil {
 		return Solid{}, ConvexPrismFilletsHistory{}, e
 	}
-	h := ConvexPrismFilletsHistory{SourceFaces: make([]int, len(prism.walls)+2)}
+	h := ConvexPrismFilletsHistory{
+		SourceFaces: make([]int, len(prism.walls)+2),
+		Section: ConvexPrismFilletSection{Frame: frame, Segments: segments, Height: height,
+			Area: result.Area, Perimeter: result.Perimeter},
+	}
 	for i, cap := range prism.caps {
 		h.SourceFaces[cap] = i
 	}

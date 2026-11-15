@@ -442,7 +442,14 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		body, err = inferEdgeStock(base, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
 			if s.planar() && q.Direction != nil {
-				return b.treatOrthogonalAxialEdges(base, q, resolved, size)
+				out, edgeErr := b.treatOrthogonalAxialEdges(base, q, resolved, size)
+				var domain *failureError
+				if q.Op == "fillet" && errors.As(edgeErr, &domain) && domain.code == "UNSUPPORTED" {
+					if candidate, handled, e := b.filletConvexPrismAxialEdges(base, q.Direction.vec(), normal, resolved, size); handled {
+						return candidate, e
+					}
+				}
+				return out, edgeErr
 			}
 			if q.Op == "fillet" && s.planar() && len(resolved) == 1 {
 				return b.treatRetainedPlanarEdge(s, q, normal, size, resolved[0])
