@@ -134,6 +134,7 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 	}
 	doc := topologySource{unit: unit, bytes: append([]byte(nil), b...)}
 	used := make([]bool, len(sections['P']))
+	planarControlPoints := 0
 	for i := 0; i < len(sections['D']); i += 2 {
 		a, c := sections['D'][i].data, sections['D'][i+1].data
 		var first, second [9]int
@@ -172,10 +173,19 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 		}
 		if planarShells {
 			switch kind {
-			case 110, 116, 123, 186, 190, 402, 502, 504, 508, 510, 514:
+			case 110, 116, 123, 126, 128, 186, 190, 402, 502, 504, 508, 510, 514:
 				supported = true
 			default:
 				supported = false
+			}
+			switch kind {
+			case 126:
+				planarControlPoints += 2
+			case 128:
+				planarControlPoints += 4
+			}
+			if planarControlPoints > l.MaxControlPoints {
+				return topologySource{}, errors.New("iges: planar spline control point limit exceeded")
 			}
 		}
 		if !supported {

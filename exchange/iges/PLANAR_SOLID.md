@@ -3,9 +3,14 @@
 `ReadPlanarSolid` imports one type 186 solid and its type 514 exterior shell.
 Up to 64 separately declared void shells may be directly inside the exterior.
 A type 402 form 1 wrapper may identify the single material root.
-The supports are type 190 form 1 planes. Edges use type 110 model segments;
-each type 508 loop refers to the shared model edge list and records the
-direction of each use. A type 510 face supplies an explicit outer loop
+Supports are type 190 form 1 planes or single-cell affine degree-one
+type 128 charts on the unit rectangle. Model edges use type 110
+segments or degree-one type 126 curves. Each type 508 loop refers to
+the shared model edge list and records the direction of each use.
+Affine spline faces also require an independent original type 126
+pcurve for each edge use; the exact affine lift must match both
+endpoints of the directed model line and hence its entire interval.
+A type 510 face supplies an explicit outer loop
 followed by its inner loops. Faces can be concave, and through-holes can
 traverse the material. Original vertex, edge, loop, plane and face
 identities are available in the import result, along with the face range
@@ -26,8 +31,10 @@ are supported without rounded direction ratios. The writer checks exact
 native topology and units on readback before publishing bytes. It does
 not attempt to reconstruct arbitrary original directory labels or entity
 numbers. It writes the exterior before its voids, even when native faces
-are interleaved. Transformed instances, parametric edge curves, multiple
-solid roots and material islands inside cavities are outside this entry point.
+are interleaved. It writes model-only edges on type 190 planes after
+validating the original spline faces. Transformed instances, general
+curved charts or pcurves, multiple solid roots and material islands inside
+cavities are outside this entry point.
 
 The pinned OCCT author and consumer are in
 [`tools/occtref`](../../tools/occtref/README.md). The fixture is a concave

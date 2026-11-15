@@ -25,6 +25,9 @@ type PlanarSolidOptions struct {
 type PlanarFaceSource struct {
 	FaceID, PlaneID int
 	LoopIDs         []int
+	// ParameterCurves is present for affine spline supports. It follows
+	// LoopIDs and the original use order in each file loop.
+	ParameterCurves [][]int
 }
 
 // PlanarShellSource identifies one original type 514 shell and the half-open
@@ -35,7 +38,7 @@ type PlanarShellSource struct {
 }
 
 // PlanarSolid transfers one IGES type 186, form 0 planar B-rep. SourceEdges
-// has one original type 110 model line per native edge. SourceFaces follows
+// has one original straight model curve per native edge. SourceFaces follows
 // each original shell's face ordering. Coordinates remain in the file's units.
 type PlanarSolid struct {
 	Solid                    brep.Solid
@@ -149,11 +152,12 @@ func (g igesPlanarGraph) take(id, typ int) (topologyRecord, error) {
 }
 
 // ReadPlanarSolid transfers a closed planar material with one exterior shell
-// and up to 64 direct void shells, type 190 form 1 planes, straight type 110
-// model edges, and independent loop incidence. Concave outer wires and
-// through-holes are supported. Assembly transformations and parameter-space
-// edge curves are outside this codec. Exact vertex agreement, orientation,
-// embedding and each declared cavity are proved before publishing a solid.
+// and up to 64 direct void shells. Type 190 planes and affine degree-one
+// type 128 charts are supported with exact straight model edges. Every
+// affine chart coedge must have an exactly agreeing linear type 126 pcurve.
+// Concave outer wires and through-holes are supported. Exact vertex
+// agreement, orientation, embedding and each declared cavity are proved
+// before publishing a solid. Assembly transformations are not supported.
 func ReadPlanarSolid(ctx context.Context, r io.Reader, o PlanarSolidOptions) (PlanarSolid, error) {
 	if ctx == nil {
 		return PlanarSolid{}, geom.ErrInvalid
@@ -289,20 +293,15 @@ func (g igesPlanarGraph) planarLists(ctx context.Context, vertexList, edgeList i
 		pairs[key] = true
 		edges[i] = brep.Edge{Start: a[2] - 1, End: a[4] - 1}
 		sourceEdges[i] = a[0]
-		line, err := g.take(a[0], 110)
+		line, err := g.planarModelSegment(a[0])
 		if err != nil {
 			return igesPlanarLists{}, err
 		}
-		if len(line.values) < 7 || noPointers(line.values[7:]) != nil {
-			return igesPlanarLists{}, igesPlanarFailure(line.id, "invalid model line")
+		if !line[0].equal(exact[edges[i].Start]) {
+			return igesPlanarLists{}, igesPlanarFailure(a[0], "original line start disagrees with edge vertex")
 		}
-		p, err := igesPlanarCoordinates(line.values[1:4])
-		if err != nil || !p.equal(exact[edges[i].Start]) {
-			return igesPlanarLists{}, igesPlanarFailure(line.id, "original line start disagrees with edge vertex")
-		}
-		q, err := igesPlanarCoordinates(line.values[4:7])
-		if err != nil || !q.equal(exact[edges[i].End]) {
-			return igesPlanarLists{}, igesPlanarFailure(line.id, "original line end disagrees with edge vertex")
+		if !line[1].equal(exact[edges[i].End]) {
+			return igesPlanarLists{}, igesPlanarFailure(a[0], "original line end disagrees with edge vertex")
 		}
 	}
 	return igesPlanarLists{vertices, exact, edges, sourceEdges}, nil
@@ -474,34 +473,19 @@ func (g igesPlanarGraph) planarFace(ctx context.Context, id, edgeList int, verti
 		return fail(igesPlanarFailure(id, "explicit original outer loop required"))
 	}
 	source := PlanarFaceSource{FaceID: id, PlaneID: fv[1], LoopIDs: fv[4:]}
-	plane, err := g.take(source.PlaneID, 190)
+	support, err := g.planarFaceGeometry(source.PlaneID)
 	if err != nil {
 		return fail(err)
-	}
-	pv, err := topologyInts(plane, 4)
-	if err != nil {
-		return fail(err)
-	}
-	o, err := g.datum(pv[1], 116)
-	if err != nil {
-		return fail(err)
-	}
-	z, err := g.datum(pv[2], 123)
-	if err != nil {
-		return fail(err)
-	}
-	x, err := g.datum(pv[3], 123)
-	if err != nil {
-		return fail(err)
-	}
-	if z.dot(z).Sign() == 0 || x.dot(x).Sign() == 0 || z.dot(x).Sign() != 0 {
-		return fail(igesPlanarFailure(plane.id, "invalid exact plane axes"))
 	}
 	f := brep.Face{}
 	for i, loop := range source.LoopIDs {
-		uses, err := g.planarLoop(ctx, loop, edgeList, vertices, edges, o, z, i == 0)
+		pcurves := []int(nil)
+		uses, err := g.planarLoop(ctx, loop, edgeList, vertices, edges, support, i == 0, &pcurves)
 		if err != nil {
 			return fail(err)
+		}
+		if support.chart != nil {
+			source.ParameterCurves = append(source.ParameterCurves, pcurves)
 		}
 		if reversed {
 			for j, k := 0, len(uses)-1; j < k; j, k = j+1, k-1 {
@@ -520,16 +504,20 @@ func (g igesPlanarGraph) planarFace(ctx context.Context, id, edgeList int, verti
 	return f, source, nil
 }
 
-func (g igesPlanarGraph) planarLoop(ctx context.Context, id, edgeList int, vertices []igesPlanarVec, edges []brep.Edge, origin, normal igesPlanarVec, outer bool) ([]brep.EdgeUse, error) {
+func (g igesPlanarGraph) planarLoop(ctx context.Context, id, edgeList int, vertices []igesPlanarVec, edges []brep.Edge, support igesPlanarFaceGeometry, outer bool, pcurves *[]int) ([]brep.EdgeUse, error) {
 	r, err := g.take(id, 508)
 	if err != nil {
 		return nil, err
 	}
-	n, err := igesPlanarCount(r, 1, 2, 5, 3)
+	stride := 5
+	if support.chart != nil {
+		stride = 7
+	}
+	n, err := igesPlanarCount(r, 1, 2, stride, 3)
 	if err != nil {
 		return nil, err
 	}
-	v, err := topologyInts(r, 2+5*n)
+	v, err := topologyInts(r, 2+stride*n)
 	if err != nil {
 		return nil, err
 	}
@@ -540,12 +528,33 @@ func (g igesPlanarGraph) planarLoop(ctx context.Context, id, edgeList int, verti
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		u := v[2+5*i : 7+5*i]
-		if u[0] != 0 || u[1] != edgeList || u[2] < 1 || u[2] > len(edges) || u[3] < 0 || u[3] > 1 || u[4] != 0 {
-			return nil, igesPlanarFailure(id, "expected directed model-only loop incidence")
+		start := 2 + stride*i
+		u := v[start : start+stride]
+		if u[0] != 0 || u[1] != edgeList || u[2] < 1 || u[2] > len(edges) || u[3] < 0 || u[3] > 1 {
+			return nil, igesPlanarFailure(id, "invalid directed loop incidence")
 		}
 		uses[i] = brep.EdgeUse{Edge: u[2] - 1, Reversed: u[3] == 0}
 		e := edges[uses[i].Edge]
+		if support.chart == nil {
+			if u[4] != 0 {
+				return nil, igesPlanarFailure(id, "explicit plane pcurves are outside this source dialect")
+			}
+		} else {
+			if u[4] != 1 || u[5] != 0 {
+				return nil, igesPlanarFailure(id, "affine chart use requires one independent linear pcurve")
+			}
+			trim, err := g.planarSplineSegment(u[6])
+			if err != nil {
+				return nil, err
+			}
+			for j, v := range []int{e.Start, e.End} {
+				p, ok := support.lift(trim[j])
+				if !ok || !p.equal(vertices[v]) {
+					return nil, igesPlanarFailure(u[6], "pcurve does not exactly lift to the original directed edge")
+				}
+			}
+			*pcurves = append(*pcurves, u[6])
+		}
 		start, end := e.Start, e.End
 		if uses[i].Reversed {
 			start, end = end, start
@@ -558,7 +567,7 @@ func (g igesPlanarGraph) planarLoop(ctx context.Context, id, edgeList int, verti
 			first = start
 		}
 		points[i] = vertices[start]
-		if points[i].sub(origin).dot(normal).Sign() != 0 {
+		if points[i].sub(support.origin).dot(support.normal).Sign() != 0 {
 			return nil, igesPlanarFailure(id, "original face vertex does not lie on the declared plane exactly")
 		}
 	}
@@ -568,7 +577,7 @@ func (g igesPlanarGraph) planarLoop(ctx context.Context, id, edgeList int, verti
 	area := new(big.Rat)
 	for i := 1; i+1 < n; i++ {
 		u, v := points[i].sub(points[0]), points[i+1].sub(points[0])
-		area.Add(area, u.cross(v).dot(normal))
+		area.Add(area, u.cross(v).dot(support.normal))
 	}
 	if area.Sign() == 0 || (area.Sign() > 0) != outer {
 		return nil, igesPlanarFailure(id, "original outer and inner orientations disagree with the plane")
