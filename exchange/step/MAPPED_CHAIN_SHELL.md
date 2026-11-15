@@ -114,6 +114,25 @@ support knot vectors and owner spline bases, rebuilding and rewriting the
 paired STEP coedges byte-identically. Pinned OCCT independently opens the
 result as one valid seven-face solid.
 
+### Asynchronous support crossings
+
+`CertifyMappedSplineChainAsynchronousSupportKnotsAgreement` proves one
+transverse crossing per roof in distinct original common chain cells. At
+each station the other roof stays within its original support cell. Both
+raw parameter restrictions and their complete model equality are proved
+at every resulting coedge. The version 5 native boundary recipe stores
+the original charts and authored trims and rederives both cuts on reopen.
+
+The fixture meets along `y=1/4, z=x/4`. The first roof's U knot lies at
+model station `1/8`, with raw owner parameters `17` and `27`. The second
+roof's V knot lies at station `3/8`, with raw owner parameters `65` and
+`21`. Both roofs retain their distinct one-sided creases away from the
+shared edge. The canonical STEP path uses `AllowMultiSpanRoofs` and
+writes explicit paired coedges at both stations. Output reopens and
+rewrites byte-identically, and pinned OCCT independently opens it as one
+valid seven-face solid. Foreign unsplit asynchronous coedges still need
+an exact transfer proof for the owner that stays in one span.
+
 ### An unsplit foreign STEP edge
 
 Set both `AllowMultiSpanRoofs` and `AllowUnsplitSupportKnot` for

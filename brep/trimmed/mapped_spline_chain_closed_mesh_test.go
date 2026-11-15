@@ -51,15 +51,7 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 func mappedChainFixtureClosures(t *testing.T, knot, slope float64, extra ...[2]float64) ([2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
 	t.Helper()
 	line := func(a, b geom.Vec2) PCurve {
-		quadratic, err := NewExactQuadraticUV([3][3]*big.Rat{
-			{ratInset(a.X), ratInset(a.Y), big.NewRat(1, 1)},
-			{ratInset((a.X + b.X) / 2), ratInset((a.Y + b.Y) / 2), big.NewRat(1, 1)},
-			{ratInset(b.X), ratInset(b.Y), big.NewRat(1, 1)},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return quadratic
+		return mappedChainFixtureLine(t, a, b)
 	}
 	closing := [2][]PCurve{
 		mappedChainClosing(t),
@@ -70,17 +62,7 @@ func mappedChainFixtureClosures(t *testing.T, knot, slope float64, extra ...[2]f
 		},
 	}
 	face := func(origin, u, v geom.Vec3, reversed bool, ring ...geom.Vec2) MappedChainPlanarFace {
-		knots := []float64{0, 0, 1, 1}
-		patch, err := geom.NewBSplineSurface(1, 1, 2, 2,
-			[]geom.Vec3{origin, origin.Add(v), origin.Add(u), origin.Add(u).Add(v)}, knots, knots, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		out := MappedChainPlanarFace{Surface: patch, Reversed: reversed}
-		for i, p := range ring {
-			out.Outer = append(out.Outer, line(p, ring[(i+1)%len(ring)]))
-		}
-		return out
+		return mappedChainFixturePlanarFace(t, origin, u, v, reversed, ring...)
 	}
 	xAxis, yAxis, height := geom.Vec3{X: 1}, geom.Vec3{Y: 1}, geom.Vec3{Z: 2}
 	planar := []MappedChainPlanarFace{
@@ -145,6 +127,34 @@ func mappedChainFixtureClosures(t *testing.T, knot, slope float64, extra ...[2]f
 	}
 
 	return closing, planar, seams
+}
+
+func mappedChainFixtureLine(t *testing.T, a, b geom.Vec2) PCurve {
+	t.Helper()
+	q, err := NewExactQuadraticUV([3][3]*big.Rat{
+		{ratInset(a.X), ratInset(a.Y), big.NewRat(1, 1)},
+		{ratInset((a.X + b.X) / 2), ratInset((a.Y + b.Y) / 2), big.NewRat(1, 1)},
+		{ratInset(b.X), ratInset(b.Y), big.NewRat(1, 1)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return q
+}
+
+func mappedChainFixturePlanarFace(t *testing.T, origin, u, v geom.Vec3, reversed bool, ring ...geom.Vec2) MappedChainPlanarFace {
+	t.Helper()
+	knots := []float64{0, 0, 1, 1}
+	patch, err := geom.NewBSplineSurface(1, 1, 2, 2,
+		[]geom.Vec3{origin, origin.Add(v), origin.Add(u), origin.Add(u).Add(v)}, knots, knots, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := MappedChainPlanarFace{Surface: patch, Reversed: reversed}
+	for i, p := range ring {
+		out.Outer = append(out.Outer, mappedChainFixtureLine(t, p, ring[(i+1)%len(ring)]))
+	}
+	return out
 }
 
 func TestMappedSplineChainClosedMesh(t *testing.T) {
