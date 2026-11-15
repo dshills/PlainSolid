@@ -34,7 +34,7 @@ func (s Solid) ChamferConvexEdge(ctx context.Context, edge, referenceFace int, f
 	if e != nil {
 		return Solid{}, ConvexChamferHistory{}, e
 	}
-	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat), -1, &work)
+	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat), nil, &work)
 	if e != nil {
 		return Solid{}, ConvexChamferHistory{}, e
 	}

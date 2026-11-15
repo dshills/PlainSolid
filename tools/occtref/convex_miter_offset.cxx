@@ -1,3 +1,4 @@
+#include <BRepAlgoAPI_Cut.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -25,7 +26,9 @@ int main(int argc, char** argv) {
   outline.Add(gp_Pnt(0, 0, 0));
   outline.Add(gp_Pnt(4, 0, 0));
   const std::string_view operation = argv[1];
-  if (operation == "triangle" || operation == "triangle-open-top" || operation == "triangle-chamfer") {
+  if (operation == "triangle" || operation == "triangle-open-top" ||
+      operation == "triangle-open-both" || operation == "triangle-closed" ||
+      operation == "triangle-chamfer") {
     outline.Add(gp_Pnt(0, 3, 0));
   } else if (std::string_view(argv[1]) == "clipped") {
     outline.Add(gp_Pnt(4, 3.25, 0));
@@ -61,19 +64,31 @@ int main(int argc, char** argv) {
     chamfer.Build();
     if (!chamfer.IsDone()) return 3;
     shape = chamfer.Shape();
-  } else if (operation == "triangle-open-top") {
+  } else if (operation == "triangle-open-top" || operation == "triangle-open-both") {
     NCollection_List<TopoDS_Shape> opening;
     for (TopExp_Explorer it(source, TopAbs_FACE); it.More(); it.Next()) {
       GProp_GProps properties;
       BRepGProp::SurfaceProperties(it.Current(), properties);
-      if (properties.CentreOfMass().Z() > 4.99) opening.Append(it.Current());
+      const double z = properties.CentreOfMass().Z();
+      if (z > 4.99 || (operation == "triangle-open-both" && z < .01)) opening.Append(it.Current());
     }
-    if (opening.Size() != 1) return 5;
+    if (opening.Size() != (operation == "triangle-open-top" ? 1 : 2)) return 5;
     BRepOffsetAPI_MakeThickSolid thick;
     thick.MakeThickSolidByJoin(source, opening, distance, 1e-9, BRepOffset_Skin,
                               false, false, GeomAbs_Intersection, true);
     if (!thick.IsDone()) return 3;
     shape = thick.Shape();
+  } else if (operation == "triangle-closed") {
+    if (distance != -.5) return 2;
+    BRepBuilderAPI_MakePolygon inner;
+    inner.Add(gp_Pnt(.5, .5, .5));
+    inner.Add(gp_Pnt(2.5, .5, .5));
+    inner.Add(gp_Pnt(.5, 2, .5));
+    inner.Close();
+    const auto cavity = BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(inner.Wire()).Face(), gp_Vec(0, 0, 4)).Shape();
+    BRepAlgoAPI_Cut cut(source, cavity);
+    if (!cut.IsDone()) return 3;
+    shape = cut.Shape();
   } else {
     BRepOffsetAPI_MakeOffsetShape offset;
     offset.PerformByJoin(source, distance, 1e-9, BRepOffset_Skin, false, false,

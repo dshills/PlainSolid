@@ -44,7 +44,7 @@ func (s Solid) OffsetConvex(ctx context.Context, distance float64, o ConvexOffse
 	if len(s.faces) == 0 {
 		return Solid{}, ConvexOffsetHistory{}, nil
 	}
-	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat).SetFloat64(distance), -1, &work)
+	planes, e := s.convexOffsetPlanes(ctx, new(big.Rat).SetFloat64(distance), nil, &work)
 	if e != nil {
 		return Solid{}, ConvexOffsetHistory{}, e
 	}
@@ -153,7 +153,7 @@ type offsetPlane struct {
 	d *big.Rat
 }
 
-func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, unshifted int, work *offsetPlaneWork) ([]offsetPlane, error) {
+func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, unshifted map[int]bool, work *offsetPlaneWork) ([]offsetPlane, error) {
 	points := make([]offsetVector, len(s.vertices))
 	for i, p := range s.vertices {
 		points[i] = exactOffsetVector(p)
@@ -191,7 +191,7 @@ func (s Solid) convexOffsetPlanes(ctx context.Context, distance *big.Rat, unshif
 				return nil, fmt.Errorf("brep: source face %d must own the full supporting facet: %w", i, geom.ErrDomain)
 			}
 		}
-		if distance.Sign() != 0 && i != unshifted {
+		if distance.Sign() != 0 && !unshifted[i] {
 			length, ok := exactOffsetSqrt(n2)
 			if !ok {
 				return nil, fmt.Errorf("brep: source face %d has irrational normal length: %w", i, geom.ErrUnrepresentable)
