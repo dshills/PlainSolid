@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"io"
+	"math/big"
 	"slices"
 
 	"plainsolid/geom"
@@ -19,15 +20,23 @@ type polynomialMixedCutRecipe struct {
 // WriteJSON records the original graph supports, both contact types, and
 // the indexed component ledger. Reload reconstructs the positive layers.
 func (r *PolynomialMixedCut) WriteJSON(ctx context.Context, w io.Writer) error {
-	if r == nil || w == nil {
+	if r == nil {
 		return geom.ErrInvalid
 	}
-	source, e := makePolynomialNodeComponentsRecipe(ctx, nativePolynomialMixedCut, r.sources, r.axis, r.tolerance, r.material.regions, r.material.contacts)
+	return writePolynomialMixedCutRecipe(ctx, w, nativePolynomialMixedCut, r.sources, r.axis, r.tolerance, r.material, r.orders[:], r.derivatives[:])
+}
+
+func writePolynomialMixedCutRecipe(ctx context.Context, w io.Writer, kind string, stock [3]*geom.BSplineSurface, axis int, tolerance float64,
+	material polynomialNodeCutMaterial, orders []int, derivatives []*big.Rat) error {
+	if w == nil {
+		return geom.ErrInvalid
+	}
+	source, e := makePolynomialNodeComponentsRecipe(ctx, kind, stock, axis, tolerance, material.regions, material.contacts)
 	if e != nil {
 		return e
 	}
-	recipe := polynomialMixedCutRecipe{polynomialNodeComponentsRecipe: source, Orders: r.orders[:]}
-	for _, gap := range r.derivatives {
+	recipe := polynomialMixedCutRecipe{polynomialNodeComponentsRecipe: source, Orders: orders}
+	for _, gap := range derivatives {
 		recipe.DerivativeGaps = append(recipe.DerivativeGaps, gap.RatString())
 	}
 	return writePolynomialGraphRecipe(ctx, w, recipe)
@@ -36,14 +45,7 @@ func (r *PolynomialMixedCut) WriteJSON(ctx context.Context, w io.Writer) error {
 // ReadPolynomialMixedCutJSON re-proves both original contacts and all
 // positive source sectors before binding the component ledger.
 func ReadPolynomialMixedCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, o PolynomialNodeCutOptions) (*PolynomialMixedCut, error) {
-	var recipe polynomialMixedCutRecipe
-	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
-		return nil, e
-	}
-	if len(recipe.Orders) != 2 || len(recipe.DerivativeGaps) != 2 {
-		return nil, geom.ErrInvalid
-	}
-	sources, e := recipe.decodeSupports(ctx, limits, nativePolynomialMixedCut, 2)
+	recipe, sources, e := readPolynomialMixedCutRecipe(ctx, r, limits, nativePolynomialMixedCut, 2)
 	if e != nil {
 		return nil, e
 	}
@@ -51,16 +53,32 @@ func ReadPolynomialMixedCutJSON(ctx context.Context, r io.Reader, limits JSONLim
 	if e != nil {
 		return nil, e
 	}
-	if !slices.Equal(recipe.Orders, out.orders[:]) {
-		return nil, geom.ErrConvergence
-	}
-	for i, x := range out.derivatives {
-		if recipe.DerivativeGaps[i] != x.RatString() {
-			return nil, geom.ErrConvergence
-		}
-	}
-	if e = recipe.verify(out.material.regions, out.material.contacts, out.material.components, limits); e != nil {
+	if e = recipe.verifyTypedContacts(out.material, out.orders[:], out.derivatives[:], limits); e != nil {
 		return nil, e
 	}
 	return out, nil
+}
+
+func readPolynomialMixedCutRecipe(ctx context.Context, r io.Reader, limits JSONLimits, kind string, nodes int) (polynomialMixedCutRecipe, [3]*geom.BSplineSurface, error) {
+	var recipe polynomialMixedCutRecipe
+	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
+		return polynomialMixedCutRecipe{}, [3]*geom.BSplineSurface{}, e
+	}
+	if len(recipe.Orders) != nodes || len(recipe.DerivativeGaps) != nodes {
+		return polynomialMixedCutRecipe{}, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+	}
+	sources, e := recipe.decodeSupports(ctx, limits, kind, nodes)
+	return recipe, sources, e
+}
+
+func (recipe polynomialMixedCutRecipe) verifyTypedContacts(material polynomialNodeCutMaterial, orders []int, derivatives []*big.Rat, limits JSONLimits) error {
+	if !slices.Equal(recipe.Orders, orders) || len(recipe.DerivativeGaps) != len(derivatives) {
+		return geom.ErrConvergence
+	}
+	for i, x := range derivatives {
+		if recipe.DerivativeGaps[i] != x.RatString() {
+			return geom.ErrConvergence
+		}
+	}
+	return recipe.verify(material.regions, material.contacts, material.components, limits)
 }
