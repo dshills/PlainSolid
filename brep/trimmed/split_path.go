@@ -170,6 +170,8 @@ func reversePCurve(c PCurve) PCurve {
 		return QuadraticUV{p.End, p.Control, p.Start}
 	case ExactQuadraticUV:
 		return p.reversed()
+	case ExactBezierUV:
+		return p.reversed()
 	case EllipseUV:
 		p.From, p.To = p.To, p.From
 		return p
