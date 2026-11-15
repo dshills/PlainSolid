@@ -8,7 +8,7 @@ import (
 
 // BSpline is an immutable rational B-spline curve with a full knot vector.
 // Constructors copy input. Concurrent evaluation is safe. Degree is 1..64;
-// weights must be strictly positive. Weights are normalized by their maximum;
+// weights must be strictly positive. NewBSpline normalizes by their maximum;
 // normalization that underflows to zero is rejected. Repeated interior knots
 // are supported. A zero value can be evaluated but returns ErrDomain.
 type BSpline struct {
@@ -68,6 +68,17 @@ func copyWeights(count int, weights []float64) ([]float64, error) {
 	return w, nil
 }
 func NewBSpline(degree int, poles []Vec3, knots, weights []float64) (*BSpline, error) {
+	return newBSpline(degree, poles, knots, weights, false)
+}
+
+// NewBSplineWithExactWeights preserves the supplied binary64 weights. Use it
+// when normalizing by the maximum would change their exact ratios. Each weight
+// must be positive and its homogeneous pole products must be finite.
+func NewBSplineWithExactWeights(degree int, poles []Vec3, knots, weights []float64) (*BSpline, error) {
+	return newBSpline(degree, poles, knots, weights, true)
+}
+
+func newBSpline(degree int, poles []Vec3, knots, weights []float64, exactWeights bool) (*BSpline, error) {
 	if e := validateKnots(degree, len(poles), knots); e != nil {
 		return nil, e
 	}
@@ -76,11 +87,27 @@ func NewBSpline(degree int, poles []Vec3, knots, weights []float64) (*BSpline, e
 			return nil, ErrInvalid
 		}
 	}
-	w, e := copyWeights(len(poles), weights)
+	w, e := splineWeights(poles, weights, exactWeights)
 	if e != nil {
 		return nil, e
 	}
 	return &BSpline{degree, append([]Vec3(nil), poles...), append([]float64(nil), knots...), w}, nil
+}
+
+func splineWeights(poles []Vec3, weights []float64, exact bool) ([]float64, error) {
+	if !exact {
+		return copyWeights(len(poles), weights)
+	}
+	if len(weights) != len(poles) {
+		return nil, ErrInvalid
+	}
+	for i, w := range weights {
+		p := poles[i]
+		if !finite(w) || w <= 0 || !finite(p.X*w) || !finite(p.Y*w) || !finite(p.Z*w) {
+			return nil, ErrInvalid
+		}
+	}
+	return append([]float64(nil), weights...), nil
 }
 func (c *BSpline) Degree() int {
 	if c == nil {
@@ -259,22 +286,7 @@ func newBSplineSurface(degreeU, degreeV, countU, countV int, poles []Vec3, knots
 			return nil, ErrInvalid
 		}
 	}
-	var w []float64
-	var e error
-	if exactWeights {
-		if len(weights) != len(poles) {
-			return nil, ErrInvalid
-		}
-		w = append([]float64(nil), weights...)
-		for i, x := range w {
-			p := poles[i]
-			if !finite(x) || x <= 0 || !finite(p.X*x) || !finite(p.Y*x) || !finite(p.Z*x) {
-				return nil, ErrInvalid
-			}
-		}
-	} else {
-		w, e = copyWeights(len(poles), weights)
-	}
+	w, e := splineWeights(poles, weights, exactWeights)
 	if e != nil {
 		return nil, e
 	}

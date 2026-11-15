@@ -83,7 +83,7 @@ static double roofHeight(double x, double y, bool crease, bool three = false, bo
   return x * y + (crease ? .5 * std::max(0., x - .5) : 0.);
 }
 
-static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false, bool three = false) {
+static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false, bool three = false, bool unsplit = false) {
   const std::vector<double> x = three ? threeRoofKnots(south)
     : crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
   const std::vector<double> y{0., 1.};
@@ -126,16 +126,37 @@ static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false, bool th
       throw std::runtime_error("could not lift the independent source edge");
     }
     if (three) {
-      // Each trace has one fixed chart coordinate and lies within one original
-      // support cell. Its model controls are the exact affine lifts of its UV
-      // controls in that cell.
-      NCollection_Array1<gp_Pnt> model(1, net.Upper());
-      for (int i = 1; i <= model.Upper(); ++i) {
-        const auto& p = points[i - 1];
-        model.SetValue(i, gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south)));
+      // The seam has one fixed chart coordinate. Each model piece uses the
+      // exact affine lift of its UV controls along that trace.
+      auto lift = [&](const gp_Pnt2d& p) {
+        return gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south));
+      };
+      occ::handle<Geom_Curve> lifted;
+      if (unsplit && points.size() == 4 && points.front().X() == 0.) {
+        // The full first UV cubic crosses all three original support stations.
+        // Only the shared material kink splits its stored model curve.
+        const auto pieces = split(Cubic{points[0], points[1], points[2], points[3]});
+        NCollection_Array1<gp_Pnt> model(1, 7);
+        for (int i = 0; i < 4; ++i) {
+          model.SetValue(i + 1, lift(pieces[0][i]));
+          model.SetValue(i + 4, lift(pieces[1][i]));
+        }
+        NCollection_Array1<int> mult(1, 3);
+        mult.Init(4);
+        mult.SetValue(2, 3);
+        NCollection_Array1<double> knots(1, 3);
+        knots.SetValue(1, 0.);
+        knots.SetValue(2, .5);
+        knots.SetValue(3, 1.);
+        lifted = new Geom_BSplineCurve(model, knots, mult, 3);
+      } else {
+        NCollection_Array1<gp_Pnt> model(1, net.Upper());
+        for (int i = 1; i <= model.Upper(); ++i) {
+          model.SetValue(i, lift(points[i - 1]));
+        }
+        lifted = new Geom_BezierCurve(model);
       }
       BRep_Builder builder;
-      occ::handle<Geom_BezierCurve> lifted = new Geom_BezierCurve(model);
       builder.UpdateEdge(edge.Edge(), lifted, 1e-11);
       builder.Range(edge.Edge(), 0., 1., true);
       builder.SameRange(edge.Edge(), true);
@@ -152,7 +173,7 @@ static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false, bool th
   const Cubic b{gp_Pnt2d(.5, .25), gp_Pnt2d(.625, three ? .25 : .5), gp_Pnt2d(.875, three ? .25 : .5), gp_Pnt2d(1, .25)};
   const auto ab = split(a);
   std::vector<std::vector<gp_Pnt2d>> traces;
-  if (three) {
+  if (three && !unsplit) {
     const auto quarters = split(ab[0]);
     const auto left = split(quarters[0]);
     const auto right = split(quarters[1]);
@@ -264,8 +285,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 
 // Author one original south basis with a decreasing raw parameter and
 // nonuniform weights. The north roof keeps the six OCCT-generated bases.
-static occ::handle<StepData_StepModel> authorMixedBasis(
-  const occ::handle<StepData_StepModel>& model, const occ::handle<StepData_Protocol>& protocol) {
+static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
+  const occ::handle<StepData_Protocol>& protocol, bool unsplit) {
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -279,10 +300,13 @@ static occ::handle<StepData_StepModel> authorMixedBasis(
                stepArray(std::array{4, 3, 3, 4}), stepArray(std::array{10., 17., 23., 478.}),
                StepGeom_ktUnspecified,
                stepArray(std::array{1./64, 1./16, 1./4, 1., 1./2, 1./4, 1./8, 1./32, 1./128, 1./512}));
-  const std::array<double, 7> x{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const std::array<double, 7> raw{478., 443., 387., 283., 23., 17., 10.};
-  const std::array<double, 7> station{0., 1., 2., 3., 4., 8., 16.};
-  std::array<bool, 6> changed{};
+  const auto x = unsplit ? std::vector<double>{0., .25, .5, 1.}
+                         : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
+  const auto raw = unsplit ? std::vector<double>{478., 23., 17., 10.}
+                           : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
+  const auto station = unsplit ? std::vector<double>{0., 4., 8., 16.}
+                               : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
+  std::vector<bool> changed(x.size() - 1);
   for (int i = 1; i <= model->NbEntities(); ++i) {
     auto curve = occ::down_cast<StepGeom_SurfaceCurve>(model->Entity(i));
     if (curve.IsNull() || curve->NbAssociatedGeometry() != 2) {
@@ -307,20 +331,47 @@ static occ::handle<StepData_StepModel> authorMixedBasis(
     }
     auto spatial = occ::down_cast<StepGeom_BSplineCurveWithKnots>(curve->Curve3d());
     auto isolated = occ::down_cast<StepGeom_BSplineCurveWithKnots>(north->ReferenceToCurve()->ItemsValue(1));
-    if (spatial.IsNull() || spatial->NbControlPointsList() != 4 || isolated.IsNull() || isolated->NbKnots() != 2) {
+    if (spatial.IsNull() || isolated.IsNull() || isolated->NbControlPointsList() != 4 || isolated->NbKnots() != 2) {
       throw std::runtime_error("unexpected independently authored seam bases");
     }
     const double a = spatial->ControlPointsListValue(1)->CoordinatesValue(1);
-    const double b = spatial->ControlPointsListValue(4)->CoordinatesValue(1);
+    const double b = spatial->ControlPointsListValue(spatial->NbControlPointsList())->CoordinatesValue(1);
     const auto cell = static_cast<std::size_t>(std::find(x.begin(), x.end(), std::min(a, b)) - x.begin());
     if (cell >= changed.size() || changed[cell] || x[cell + 1] != std::max(a, b)) {
       throw std::runtime_error("unexpected independently authored seam junction");
     }
     changed[cell] = true;
-    spatial->SetKnots(stepArray(std::array{station[cell], station[cell + 1]}));
-    // Distinct complete raw intervals make the independent ownership visible.
-    const double domain = 10. + 8. * cell;
-    isolated->SetKnots(stepArray(std::array{domain, domain + 7.}));
+    if (unsplit && cell == 0) {
+      if (spatial->NbControlPointsList() != 7 || spatial->NbKnots() != 3) {
+        throw std::runtime_error("the first unsplit model edge needs the original material knot");
+      }
+      spatial->SetKnots(stepArray(std::array{0., 2., 4.}));
+    } else {
+      if (spatial->NbControlPointsList() != 4 || spatial->NbKnots() != 2) {
+        throw std::runtime_error("an explicit seam edge needs one original cubic span");
+      }
+      spatial->SetKnots(stepArray(std::array{station[cell], station[cell + 1]}));
+    }
+    if (unsplit) {
+      // The first two Cartesian nets are exact half restrictions of the
+      // original north cubic. The homogeneous weights express the original
+      // rational raw map with a common dyadic scale on each basis.
+      const std::array<std::array<double, 2>, 3> domains{{{2., 457.}, {700., 706.}, {850., 862.}}};
+      const std::array<std::array<double, 4>, 3> weights{{{27./64, 9./16, 3./4, 1.}, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
+      auto w = weights[cell];
+      if (a > b) {
+        std::reverse(w.begin(), w.end());
+      }
+      occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> rational =
+        new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
+      rational->Init(name, 3, isolated->ControlPointsList(), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+                     isolated->KnotMultiplicities(), stepArray(domains[cell]), StepGeom_ktUnspecified, stepArray(w));
+      north->ReferenceToCurve()->Items()->SetValue(1, rational);
+    } else {
+      // Distinct complete raw intervals make the independent ownership visible.
+      const double domain = 10. + 8. * cell;
+      isolated->SetKnots(stepArray(std::array{domain, domain + 7.}));
+    }
     StepGeom_TrimmingSelect lo, hi;
     lo.SetParameterValue(raw[cell + 1]);
     hi.SetParameterValue(raw[cell]);
@@ -330,7 +381,7 @@ static occ::handle<StepData_StepModel> authorMixedBasis(
     curve->SetMasterRepresentation(StepGeom_pscrCurve3d);
   }
   if (std::find(changed.begin(), changed.end(), false) != changed.end()) {
-    throw std::runtime_error("could not author all six mixed-basis coedges");
+    throw std::runtime_error("could not author all mixed-basis coedges");
   }
   // Retain the original product assembly and rebuild the reference closure
   // after replacing the six individual south coedge bases.
@@ -351,7 +402,8 @@ static occ::handle<StepData_StepModel> authorMixedBasis(
 int main(int argc, char** argv) {
   try {
     const std::string mode = argc > 1 ? argv[1] : "";
-    const bool mixedBasis = mode == "write-three-knots-mixed-basis";
+    const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit";
+    const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;
     const bool crease = authoredPlanes || mode == "write-knot-default-planes";
@@ -377,8 +429,8 @@ int main(int argc, char** argv) {
       return planar(points, reverse, frame({0, y, 0}, {0, -1, 0}, {0, 0, -1}));
     };
     const std::array<TopoDS_Face, 7> source{
-      roof(false, reordered ? 4 : 0, crease, three),
-      roof(true, reordered ? 5 : 0, crease, three),
+      roof(false, reordered ? 4 : 0, crease, three, unsplitBasis),
+      roof(true, reordered ? 5 : 0, crease, three, unsplitBasis),
       planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three)}, {1, .25, roofHeight(1, .25, crease, three)}, {1, 0, roofHeight(1, 0, crease, three, true)}}, false,
              frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
@@ -426,7 +478,7 @@ int main(int argc, char** argv) {
           throw std::runtime_error("independent STEP model has no protocol");
         }
         if (mixedBasis) {
-          model = authorMixedBasis(model, protocol);
+          model = authorMixedBasis(model, protocol, unsplitBasis);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);

@@ -379,7 +379,7 @@ func (s mappedChainStepSpline) ownerBasis() (*geom.BSpline, error) {
 		}
 		poles[i] = geom.Vec3{X: q[0], Y: q[1]}
 	}
-	return geom.NewBSpline(s.degree, poles, knots, w)
+	return geom.NewBSplineWithExactWeights(s.degree, poles, knots, w)
 }
 
 func mappedChainRepresentedScalars(input []*big.Rat) ([]float64, error) {

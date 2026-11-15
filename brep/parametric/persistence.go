@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"math/big"
+	"slices"
 
 	"plainsolid/geom"
 )
@@ -930,7 +931,12 @@ func encodeCurve(c geom.Curve) (*curveData, error) {
 		if x == nil {
 			return nil, fmt.Errorf("parametric: nil spline")
 		}
-		return &curveData{Kind: "bspline", Degree: x.Degree(), Poles: x.Poles(), Knots: x.Knots(), Weights: x.Weights()}, nil
+		weights := x.Weights()
+		kind := "bspline"
+		if len(weights) != 0 && slices.Max(weights) != 1 {
+			kind = "bspline-exact-weights"
+		}
+		return &curveData{Kind: kind, Degree: x.Degree(), Poles: x.Poles(), Knots: x.Knots(), Weights: weights}, nil
 	case iso:
 		s, e := encodeSurface(x.face.Surface)
 		if e != nil {
@@ -1013,11 +1019,14 @@ func (d *curveData) decode(budget *int) (geom.Curve, error) {
 		r, _, e := geom.NewWrappedBSpline(p, *d.Seam)
 		return r, e
 
-	case "bspline":
+	case "bspline", "bspline-exact-weights":
 		if len(d.Poles) > *budget {
 			return nil, fmt.Errorf("parametric: control point limit")
 		}
 		*budget -= len(d.Poles)
+		if d.Kind == "bspline-exact-weights" {
+			return geom.NewBSplineWithExactWeights(d.Degree, d.Poles, d.Knots, d.Weights)
+		}
 		return geom.NewBSpline(d.Degree, d.Poles, d.Knots, d.Weights)
 	case "iso":
 		if d.Surface == nil || d.U == nil || d.V == nil || !d.U.valid() || !d.V.valid() || d.Side < 0 || d.Side > 3 {
