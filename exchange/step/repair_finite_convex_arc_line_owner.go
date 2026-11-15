@@ -10,10 +10,10 @@ import (
 // the same projected parameters as the independently proved repaired edge.
 // The source pcurve's direction ratios are normalized by STEP semantics.
 func boundFiniteConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat) (FiniteConvexArcLineOwner, *big.Rat, error) {
-	return boundMappedConvexArcLineOwner(src, corrected, q, model, tolSquared, nil)
+	return boundMappedConvexArcLineOwner(src, corrected, q, model, tolSquared, nil, nil)
 }
 
-func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength) (FiniteConvexArcLineOwner, *big.Rat, error) {
+func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength, trim *ConvexArcAxialTrimRepair) (FiniteConvexArcLineOwner, *big.Rat, error) {
 	bad := func() (FiniteConvexArcLineOwner, *big.Rat, error) {
 		return FiniteConvexArcLineOwner{}, nil, geom.ErrDomain
 	}
@@ -25,7 +25,7 @@ func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 	if e != nil {
 		return bad()
 	}
-	p, d, domain, e := convexArcOwnerLineDomain(src, corrected, q, model, tolSquared)
+	p, d, intervals, e := convexArcOwnerLineIntervals(src, corrected, q, model, tolSquared, trim)
 	if e != nil {
 		return bad()
 	}
@@ -68,9 +68,17 @@ func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 	// ||r/||r|| - r|| = |1 - ||r|| | <= |1 - ||r||²|. The original
 	// orthonormal plane chart preserves this error in world space.
 	normalization := new(big.Rat).Abs(new(big.Rat).Sub(normSquared, big.NewRat(1, 1)))
-	maxT := new(big.Rat).Abs(domain[0])
-	if t := new(big.Rat).Abs(domain[1]); t.Cmp(maxT) > 0 {
-		maxT = t
+	// The planar LINE is defined for every parameter. Bound its lift over
+	// both finite intervals when the model's axial endpoints were changed.
+	domain := intervals[0][:]
+	if trim != nil {
+		domain = append(domain, intervals[1][:]...)
+	}
+	maxT := new(big.Rat)
+	for _, endpoint := range domain {
+		if t := new(big.Rat).Abs(endpoint); t.Cmp(maxT) > 0 {
+			maxT = t
+		}
 	}
 	normalization.Mul(normalization, magnitude)
 	normalization.Mul(normalization, maxT)
@@ -89,58 +97,81 @@ func boundMappedConvexArcLineOwner(src, corrected *File, q ConvexArcPCurveAgreem
 		bound.Add(bound, normalization)
 		squared.Add(squared, new(big.Rat).Mul(bound, bound))
 	}
-	return FiniteConvexArcLineOwner{PCurveID: q.PCurveID, StartParameter: domain[0], EndParameter: domain[1], PCurveParameterScale: parameterScale}, squared, nil
+	return FiniteConvexArcLineOwner{PCurveID: q.PCurveID, StartParameter: intervals[0][0], EndParameter: intervals[0][1], PCurveParameterScale: parameterScale}, squared, nil
 }
 
-func convexArcOwnerLineDomain(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat) (p, d [3]*big.Rat, domain [2]*big.Rat, err error) {
+// The rows retain the original and repaired directed parameters.
+// A difference requires an independently proved axial trim for this edge.
+func convexArcOwnerLineIntervals(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, trim *ConvexArcAxialTrimRepair) (p, d [3]*big.Rat, intervals [2][2]*big.Rat, err error) {
 	originalPoint, originalDirection, e := convexUVLine(src, model, 3)
 	if e != nil {
-		return p, d, domain, e
+		return p, d, intervals, e
 	}
 	repairedPoint, repairedDirection, e := convexUVLine(corrected, model, 3)
 	if e != nil {
-		return p, d, domain, e
+		return p, d, intervals, e
 	}
 	p, d = [3]*big.Rat(repairedPoint), [3]*big.Rat(repairedDirection)
 	if !convexUVSame([3]*big.Rat(originalDirection), d) {
-		return p, d, domain, geom.ErrDomain
+		return p, d, intervals, geom.ErrDomain
+	}
+	var want [2][2]*big.Rat
+	if trim != nil {
+		if trim.EdgeID != q.EdgeID || trim.LineID != model {
+			return p, d, intervals, geom.ErrDomain
+		}
+		want = [2][2]*big.Rat{trim.OriginalParameters, trim.RepairedParameters}
 	}
 	lsq := occtLoopDot(d, d)
-	for _, f := range []*File{src, corrected} {
+	var vertices [2]int64
+	for row, f := range []*File{src, corrected} {
 		edge, e := simple(f, q.EdgeID, "EDGE_CURVE", 5)
 		if e != nil {
-			return p, d, domain, e
+			return p, d, intervals, e
 		}
 		point, line := p, model
-		if f == src {
+		if row == 0 {
 			point, line = [3]*big.Rat(originalPoint), q.SurfaceCurveID
 		}
 		if edge.Args[3].Ref != line {
-			return p, d, domain, geom.ErrDomain
+			return p, d, intervals, geom.ErrDomain
 		}
-		for i := range domain {
-			v, e := simple(f, edge.Args[i+1].Ref, "VERTEX_POINT", 2)
+		for i := range vertices {
+			id := edge.Args[i+1].Ref
+			if row == 0 {
+				vertices[i] = id
+			}
+			if id != vertices[i] || (trim != nil && id != trim.VertexIDs[i]) {
+				return p, d, intervals, geom.ErrDomain
+			}
+			v, e := simple(f, id, "VERTEX_POINT", 2)
 			if e != nil {
-				return p, d, domain, e
+				return p, d, intervals, e
 			}
 			world, e := occtLoopTriple(f, v.Args[1].Ref, "CARTESIAN_POINT")
 			if e != nil {
-				return p, d, domain, e
+				return p, d, intervals, e
 			}
 			t, residual := projectConvexArcLine(world, point, d, lsq)
 			if residual.Cmp(tolSquared) > 0 {
-				return p, d, domain, geom.ErrDomain
+				return p, d, intervals, geom.ErrDomain
 			}
-			if f == src {
-				domain[i] = t
-			} else if t.Cmp(domain[i]) != 0 {
-				return p, d, domain, geom.ErrDomain
+			intervals[row][i] = t
+			expected := intervals[0][i]
+			if trim != nil {
+				expected = want[row][i]
+			}
+			if t.Cmp(expected) != 0 {
+				return p, d, intervals, geom.ErrDomain
 			}
 		}
 		sense, e := boolean(edge.Args[4])
-		if e != nil || !convexArcDirectedLineInterval(domain, sense) {
-			return p, d, domain, geom.ErrDomain
+		if e != nil || !convexArcDirectedLineInterval(intervals[row], sense) {
+			return p, d, intervals, geom.ErrDomain
 		}
 	}
-	return p, d, domain, nil
+	if intervals[0][1].Cmp(intervals[0][0]) != intervals[1][1].Cmp(intervals[1][0]) {
+		return p, d, intervals, geom.ErrDomain
+	}
+	return p, d, intervals, nil
 }

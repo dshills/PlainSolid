@@ -108,6 +108,7 @@ func rationalPosedPCurveClaims(ctx context.Context, m rationalPosedPCurveRepairM
 		claim.CylindricalSpanOwners = p.CylindricalSpanOwners()
 	case RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
 		claim.AzimuthDirections = p.base.material.AzimuthDirections()
+		claim.CylindricalSpanOwners = p.CylindricalSpanOwners()
 		group := &rationalPosedGroupedRepairClaim{
 			AxialTrims: p.AxialTrims(), Reversals: p.Reversals(), RationalCaps: p.RationalCaps(),
 		}

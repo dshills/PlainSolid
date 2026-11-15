@@ -112,12 +112,12 @@ func RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.R
 		if e != nil {
 			if src.conversion != nil && src.local.Entities[q.GeometryID].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
 				var span ConvexArcCylinderSpanOwner
-				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion)
+				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion, nil, nil)
 				spans = append(spans, span)
 			} else {
 				var domain FiniteConvexArcLineOwner
 				if src.conversion != nil {
-					domain, q.DistanceSquaredUpper, e = boundMappedConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion)
+					domain, q.DistanceSquaredUpper, e = boundMappedConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol, src.conversion, nil)
 				}
 				if e != nil {
 					domain, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol)
@@ -194,6 +194,18 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	if e != nil {
 		return nil, e
 	}
+	if grouped {
+		// The grouped native-unit dialect already admits complex rational
+		// cap owners. A simple cylindrical spline marks the converted chart.
+		for _, owner := range owners {
+			if _, err := simple(f, owner.GeometryID, "B_SPLINE_CURVE_WITH_KNOTS", 9); err == nil {
+				if _, err = simple(f, owner.SupportID, "CYLINDRICAL_SURFACE", 3); err == nil {
+					converted = true
+					break
+				}
+			}
+		}
+	}
 	pose, reference, body, metadata, e := rationalConvexArcPose(model, grouped)
 	if e != nil {
 		return nil, e
@@ -220,6 +232,9 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 		case 1:
 			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(1, 1000), modelSpeed: big.NewRat(1, 1000)}
 		case .0254:
+			if grouped {
+				return nil, geom.ErrDomain
+			}
 			// OCCT writes 3.937007874016E-02 for the model LINE vector.
 			// The actual owner conversion is the declared 5/127 inch per mm.
 			src.conversion = &convertedConvexArcLength{ownerScale: big.NewRat(5, 127), modelSpeed: big.NewRat(123031496063, 3125000000000)}

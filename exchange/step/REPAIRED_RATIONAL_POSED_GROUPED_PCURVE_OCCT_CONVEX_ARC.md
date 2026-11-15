@@ -85,3 +85,45 @@ can have different owner parameter charts and needs its own proof.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRationalPosedGroupedConvexArcNonMillimetreUnits' -count=1
 ```
+
+## Millimetre model converted to metre STEP by OCCT
+
+The pinned `write-both-default-tilted-converted-metre` mode transfers a
+millimetre-native two-fillet B-rep after scaling it by 1000. The resulting
+432-entity AP214 file keeps the exact tilted world pose, metre model
+geometry, and both original quadratic rational cap owners. It has eight
+cylindrical degree-one spline owners. The 18 planar LINE owners keep unit
+speed and use the exact model-to-owner map `t → t/1000`. Two planar CIRCLE
+owners retain their analytic proofs.
+
+Four cylindrical axial spans have exact slope `dv/dt = 1/1000` and knots
+`[0,5000]`. On edge `#248`, the source and repaired finite model intervals
+have different start stations. The repaired start is
+`-3/500000000000000000000000000`, just outside the original spline knots.
+The source proof records an exact directed affine map from the repaired
+interval into the original model interval, which lies within the spline
+knots. The lift difference is affine at constant angle, so the two
+corresponding endpoint bounds apply throughout. The planar owner of this
+edge has an unbounded LINE chart. Its proof covers both finite model
+intervals with the same `t/1000` map.
+
+Two cylindrical circle spans have `u = t`. The two owned by the quarter-turn
+rational caps have `u = -t`. Endpoint order follows the source circle
+reversal ledger. Exact rational sine and cosine enclosures prove both
+quarter turns fit inside the authored interval `[0,1.570796326795]`.
+Both rational caps retain their original radial and angular proofs and
+positive-endpoint root enclosures. The source-only receipt reconstructs the
+18 planar maps, eight original cylindrical laws, unequal axial map and
+both finite cap proofs. A `1e-12` metre repair budget passes and a
+`1e-13` metre budget rejects this original.
+
+The independent OCCT evaluator checks all 30 actual owners, using radial
+projection for the two rational caps. Ordinary OCCT transfer verifies
+millimetre volume, surface area and centroid on the original, corrected
+world file, and strict canonical metre file. The canonical read retains the
+exact source pose and native solid and re-exports identical bytes.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairGroupedConvertedMetreConvexArc' -count=1
+```

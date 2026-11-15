@@ -221,7 +221,7 @@ func proveGroupedConvexArcCapTrims(ctx context.Context, f, fixed *File, full Gro
 		trim.SourceEnd = geom.ExactParameterInterval{Lower: new(big.Rat).Add(trim.FirstSpan[0], new(big.Rat).Mul(scale, enc.Interval.Lower)), Upper: new(big.Rat).Add(trim.FirstSpan[0], new(big.Rat).Mul(scale, enc.Interval.Upper))}
 		for _, q := range full.OtherOwners {
 			if q.EdgeID == cap.Owner.EdgeID {
-				if trim.CylinderOwner.EdgeID != 0 || q.Kind != "cylinder-circle" {
+				if trim.CylinderOwner.EdgeID != 0 || (q.Kind != "cylinder-circle" && q.Kind != "finite-reversed-cylinder-circle") {
 					return zero, geom.ErrDomain
 				}
 				trim.CylinderOwner = q
