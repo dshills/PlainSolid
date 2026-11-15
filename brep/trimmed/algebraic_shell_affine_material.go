@@ -114,8 +114,29 @@ func affineMaterialValue(b *nativePrismAffineBudget, p affineMaterialPlane, x [3
 // inferred pairing is introduced. Ambiguous, nonmanifold, empty or nonlosslessly
 // representable native outputs reject; this method does not publish empty solids.
 func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op intersect.AffineRingOperation, o AffineShellMaterialOptions) (*AffineShellMaterial, error) {
+	out, selected, o, e := s.selectConvexMaterial(ctx, op, o)
+	if e != nil {
+		return nil, e
+	}
+	solid, _, e := Sew(ctx, selected, o.Sew)
+	if e != nil {
+		return nil, e
+	}
+	// The selected occupancy sectors must form one circular link at each vertex.
+	// Exact coincident coordinates alone cannot authorize a pinched material node.
+	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
+		return nil, e
+	}
+	if e = ctx.Err(); e != nil {
+		return nil, e
+	}
+	out.solid = solid
+	return out, nil
+}
+
+func (s *AffineShellPairedImprint) selectConvexMaterial(ctx context.Context, op intersect.AffineRingOperation, o AffineShellMaterialOptions) (*AffineShellMaterial, []SewFace, AffineShellMaterialOptions, error) {
 	if ctx == nil || s == nil || (op != intersect.AffineRingIntersection && op != intersect.AffineRingUnion && op != intersect.AffineRingDifference) {
-		return nil, geom.ErrInvalid
+		return nil, nil, o, geom.ErrInvalid
 	}
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 64000000
@@ -124,7 +145,7 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 		o.MaxFaces = 512
 	}
 	if o.MaxOperations < 1 || o.MaxOperations > 256000000 || o.MaxFaces < 1 || o.MaxFaces > 4096 {
-		return nil, geom.ErrInvalid
+		return nil, nil, o, geom.ErrInvalid
 	}
 	if o.NativeEvaluation.MaxOperations == 0 {
 		o.NativeEvaluation.MaxOperations = 1000000
@@ -153,35 +174,35 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 				plane.d = b.op('+', plane.d, b.op('*', n[k], p[k]))
 			}
 			if b.err != nil {
-				return nil, b.err
+				return nil, nil, o, b.err
 			}
 			if n[0].Sign() == 0 && n[1].Sign() == 0 && n[2].Sign() == 0 {
-				return nil, geom.ErrDomain
+				return nil, nil, o, geom.ErrDomain
 			}
 			strict := false
 			for _, v := range s.sources[owner].vertices {
 				sign := affineMaterialValue(b, plane, affineMaterialXYZ(v)).Sign()
 				if sign > 0 {
-					return nil, geom.ErrDomain
+					return nil, nil, o, geom.ErrDomain
 				}
 				strict = strict || sign < 0
 			}
 			for _, id := range ch.vertex {
 				if affineMaterialValue(b, plane, affineMaterialXYZ(s.sources[owner].vertices[id])).Sign() != 0 {
-					return nil, geom.ErrDomain
+					return nil, nil, o, geom.ErrDomain
 				}
 			}
 			if b.err != nil {
-				return nil, b.err
+				return nil, nil, o, b.err
 			}
 			if !strict {
-				return nil, geom.ErrDomain
+				return nil, nil, o, geom.ErrDomain
 			}
 			planes[owner] = append(planes[owner], plane)
 		}
 	}
 	if b.err != nil {
-		return nil, b.err
+		return nil, nil, o, b.err
 	}
 	out := &AffineShellMaterial{source: s, operation: op, volume: new(big.Rat)}
 	for owner := 0; owner < 2; owner++ {
@@ -192,7 +213,7 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 		for face := range s.sources[owner].faces {
 			remaining := b.max - b.work
 			if remaining < 1 {
-				return nil, geom.ErrConvergence
+				return nil, nil, o, geom.ErrConvergence
 			}
 			if remaining > 128000000 {
 				remaining = 128000000
@@ -203,17 +224,17 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 			}
 			parts, e := s.FragmentFace(ctx, owner, face, AffineImprintFragmentOptions{AuxiliarySubdivision: true, MaxOperations: remaining, MaxCycles: cycles})
 			if e != nil {
-				return nil, e
+				return nil, nil, o, e
 			}
 			b.work += parts.ExactOperations()
 			out.fragments[owner][face] = parts
 			fs, e := parts.NativeFaces(ctx, o.NativeEvaluation)
 			if e != nil {
-				return nil, e
+				return nil, nil, o, e
 			}
 			for ci, c := range parts.cycles {
 				if len(c.Uses) != 3 {
-					return nil, geom.ErrDomain
+					return nil, nil, o, geom.ErrDomain
 				}
 				poly := make([]affineMaterialPoint, 3)
 				center := [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat)}
@@ -258,10 +279,10 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 				inside := area.Cmp(c.Area) == 0 && insideCenter
 				outside := area.Sign() == 0 && outsideCenter
 				if b.err != nil {
-					return nil, b.err
+					return nil, nil, o, b.err
 				}
 				if !inside && !outside {
-					return nil, geom.ErrDomain
+					return nil, nil, o, geom.ErrDomain
 				}
 				keep := inside
 				if op == intersect.AffineRingUnion {
@@ -276,7 +297,7 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 					continue
 				}
 				if len(selected) >= o.MaxFaces {
-					return nil, geom.ErrConvergence
+					return nil, nil, o, geom.ErrConvergence
 				}
 				f := fs[ci]
 				if reverse {
@@ -297,26 +318,13 @@ func (s *AffineShellPairedImprint) CombineConvex(ctx context.Context, op interse
 		}
 	}
 	if b.err != nil {
-		return nil, b.err
+		return nil, nil, o, b.err
 	}
 	if len(selected) == 0 || out.volume.Sign() <= 0 {
-		return nil, geom.ErrDomain
+		return nil, nil, o, geom.ErrDomain
 	}
-	solid, _, e := Sew(ctx, selected, o.Sew)
-	if e != nil {
-		return nil, e
-	}
-	// The selected occupancy sectors must form one circular link at each vertex.
-	// Exact coincident coordinates alone cannot authorize a pinched material node.
-	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
-		return nil, e
-	}
-	if e = ctx.Err(); e != nil {
-		return nil, e
-	}
-	out.solid = solid
 	out.work = b.work
-	return out, nil
+	return out, selected, o, nil
 }
 
 func affineMaterialVertexLinks(ctx context.Context, s Solid) error {

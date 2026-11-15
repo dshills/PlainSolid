@@ -95,6 +95,7 @@ func TestOCCTAffinePairedMaterial(t *testing.T) {
 		Regular, Order, Operation, Solids int
 		Valid                             bool
 		Volume                            float64
+		ComponentVolumes                  []float64
 	}
 	seen := map[[3]int]bool{}
 	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
@@ -142,6 +143,22 @@ func TestOCCTAffinePairedMaterial(t *testing.T) {
 		if q.Regular == 0 && q.Operation == 2 {
 			if e == nil || result != nil {
 				t.Fatal("singular material accepted")
+			}
+			if q.Order == 1 {
+				collection, err := CombineConvexAffineSplineShellComponents(ctx, a, b, op, ConvexAffineSplineShellCollectionOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				volumes := collection.ComponentVolumes()
+				if len(volumes) != q.Solids || len(q.ComponentVolumes) != q.Solids {
+					t.Fatal("independent component count")
+				}
+				for i, v := range volumes {
+					x, _ := v.Float64()
+					if math.Abs(x-q.ComponentVolumes[i]) > 1e-10 {
+						t.Fatal("independent component volume")
+					}
+				}
 			}
 			continue
 		}
