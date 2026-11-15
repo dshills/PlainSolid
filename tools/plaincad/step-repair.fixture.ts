@@ -42,6 +42,11 @@ const tiltedGrouped: Fixture = {
   pose: [["0", "3/5", "4/5", "0"], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", "0"]],
   grouped: true,
 };
+const tiltedThree: Fixture = {
+  ...tiltedGrouped, file: "occt-three-default-tilted-oblique-prism-fillet", three: true, rejectedDistance: 1e-13,
+  bounds: { min: [0, 0, -2.7], max: [6.025, 2.84375, 3] },
+  measures: [28.968988172080639, 64.184278587623695], sites: 10, owners: 34,
+};
 const fixtures: readonly Fixture[] = [
   {
     file: "occt-default-two-fillets-minus-x",
@@ -66,9 +71,12 @@ const fixtures: readonly Fixture[] = [
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
     sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
-  { ...tiltedGrouped, file: "occt-three-default-tilted-oblique-prism-fillet", three: true, rejectedDistance: 1e-13,
-    bounds: { min: [0, 0, -2.7], max: [6.025, 2.84375, 3] },
-    measures: [28.968988172080639, 64.184278587623695], sites: 10, owners: 34 },
+  tiltedThree,
+  { ...tiltedThree, file: `${tiltedThree.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1,
+    converted: { ownerScale: "1/1000", axialEnd: "5000", height: "5" } },
+  { ...tiltedThree, file: `${tiltedThree.file}-converted-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254,
+    sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
+    converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
 ];
 
 for (const fixture of fixtures) {
@@ -85,6 +93,7 @@ for (const fixture of fixtures) {
     if (units) {
       expect(() => kernel.importStep(source, { units })).toThrow(/PlainSolid UNSUPPORTED/);
       expect(() => kernel.importStep(source, { stepRepair: options.stepRepair })).toThrow(/STEP import unit must match/);
+      expect(() => kernel.importStep(source, { ...options, units: units === "m" ? "in" : "m" })).toThrow(/STEP import unit must match/);
     }
     const rejectedDistance = fixture.rejectedDistance;
     if (rejectedDistance !== undefined) {
@@ -118,7 +127,7 @@ for (const fixture of fixtures) {
           expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
           expect(proof.Claims.Grouped.AxialTrims).toHaveLength(axialTrims);
         }
-        if (fixture.three) {
+        if (fixture.three && !fixture.converted) {
           expect(proof.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "phase-cylinder-circle")).toMatchObject([
             { PCurveID: 210, DistanceSquaredUpper: expect.any(String) },
             { PCurveID: 425, DistanceSquaredUpper: expect.any(String) },
@@ -130,7 +139,27 @@ for (const fixture of fixtures) {
           expect(proof.Claims.FiniteLineOwners).toHaveLength(18);
           for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe(ownerScale);
           const spans = proof.Claims.CylindricalSpanOwners;
-          if (fixture.grouped) {
+          if (fixture.three) {
+            expect(proof.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === "finite-phase-cylinder-circle")).toMatchObject([
+              { PCurveID: 207, DistanceSquaredUpper: expect.any(String) },
+              { PCurveID: 416, DistanceSquaredUpper: expect.any(String) },
+            ]);
+            const shiftedInterval = ["2498091544797/1000000000000", "942477796077/200000000000"];
+            const modelAngleBounds = [["624522886199/250000000000", "1249045772399/500000000000"],
+              ["147262155637/31250000000", "2356194490193/500000000000"]];
+            expect(spans).toHaveLength(12);
+            expect(spans.filter((span: { ModelAngleBounds?: unknown }) => span.ModelAngleBounds !== undefined)).toEqual([
+              { PCurveID: 207, ParameterInterval: shiftedInterval, UVStart: ["0", "0"], UVDerivative: ["1", "0"], ModelAngleBounds: modelAngleBounds },
+              { PCurveID: 416, ParameterInterval: shiftedInterval, UVStart: ["0", height], UVDerivative: ["1", "0"], ModelAngleBounds: modelAngleBounds },
+            ]);
+            expect(spans.filter((span: { RepairedToOwner?: unknown }) => span.RepairedToOwner !== undefined)).toMatchObject(
+              [284, 462].map(PCurveID => ({ PCurveID, ParameterInterval: ["0", axialEnd], UVDerivative: ["0", ownerScale],
+                RepairedToOwner: [expect.any(String), expect.any(String)] })));
+            expect(proof.Claims.Grouped.FiniteTrims).toMatchObject([
+              { CapOwner: { PCurveID: 254 }, CylinderOwner: { PCurveID: 265 }, EndStation: expect.any(Object) },
+              { CapOwner: { PCurveID: 311 }, CylinderOwner: { PCurveID: 305 }, EndStation: expect.any(Object) },
+            ]);
+          } else if (fixture.grouped) {
             const quarterTurn = "314159265359/200000000000";
             const repairedToOwner = units === "in" ? [
               "-625000000000000000000000000001/615157480315000000000000000000000000000000000000000000000",
