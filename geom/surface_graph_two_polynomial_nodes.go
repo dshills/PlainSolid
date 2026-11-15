@@ -40,7 +40,7 @@ type SplineGraphPolynomialRegion struct {
 	Witness    [2]*big.Rat
 }
 
-// SplineGraphPolynomialJunction records a transverse contact vertex. Tangents
+// SplineGraphPolynomialJunction records an isolated contact vertex. Tangents
 // direct the two original UV branches toward increasing free parameter.
 // RayCycle lists incident edges CCW in model XY. Regions[i] identifies the
 // region between RayCycle[i] and the next ray.

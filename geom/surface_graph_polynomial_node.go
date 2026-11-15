@@ -45,7 +45,7 @@ func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, 
 	return node, nil
 }
 
-func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, crossings, tangencies, maxCells int, visits *int, b *polynomialBudget) ([]*big.Rat, int, error) {
+func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, crossings, tangencies, cubicCrossings, maxCells int, visits *int, b *polynomialBudget) ([]*big.Rat, int, error) {
 	if len(delta) < 2 || *visits >= maxCells {
 		return nil, 0, ErrConvergence
 	}
@@ -55,8 +55,8 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 		return nil, 0, e
 	}
 	order := delta[0].Sign()
-	count := crossings + tangencies
-	singleCrossing := crossings == 1 && tangencies == 0
+	count := crossings + tangencies + cubicCrossings
+	singleCrossing := crossings == 1 && tangencies == 0 && cubicCrossings == 0
 	if singleCrossing && order*end.Sign() != -1 {
 		return nil, 0, ErrConvergence
 	}
@@ -69,7 +69,7 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 	if !singleCrossing {
 		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
 	}
-	remaining := [3]int{0, crossings, tangencies}
+	remaining := [4]int{0, crossings, tangencies, cubicCrossings}
 	splits, e := isolatePolynomialRoots(delta, zero, one, b, (maxCells-*visits-1)/2, func(lo, hi *big.Rat, rootMultiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
@@ -85,6 +85,10 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 			}
 			if remaining[2] == 0 {
 				return false, ErrConvergence
+			}
+		case 3:
+			if remaining[3] == 0 {
+				return false, degenerate
 			}
 		default:
 			return false, degenerate
