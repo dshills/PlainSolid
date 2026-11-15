@@ -1,0 +1,23 @@
+# Posed grouped default-pcurve repair
+
+`RepairPosedGroupedPCurveOCCTConvexArcExtrusion` is a separate proper signed-coordinate world-frame mode for the already qualified grouped default-pcurve repair. It retains the original full STEP and all UV records. The exact native solid stays product-local; `Descriptor.Frame` maps it to original world coordinates. No approximate axis normalization or rounded coordinate baking is admitted.
+
+First, the exclusive model/pcurve graph ownership proof identifies the model-only closure. The existing posed grouped model repair derives a proper signed-coordinate rotation, checks the neutral product representation placement, transports every repair point back to its exact source world coordinate, verifies unchanged squared displacement and independently reads the corrected world graph. Only that authenticated model closure's three-dimensional points and directions are rotated in a temporary full-source proof view. Every pcurve coordinate, knot, weight, two-dimensional frame, context and owner link stays unchanged. Geometry shared with neutral metadata may move only if its values remain invariant.
+
+The complete grouped pcurve and finite cap proof then runs in the normalized frame, including both rational cap one-turn maps and uniquely selected finite arcs. Its native bytes and original topology provenance must exactly match the independently proved posed model. A proper orthogonal rotation preserves model/owner distances, radial rays, circle orientation, algebraic station polynomials and parameter intervals. World repair and tangent observations replace local ones in the returned proof; original source IDs and UV parameter semantics remain unchanged. Rational cap correspondence is still explicit radial projection plus nonlinear parameterization, not original same-parameter equivalence.
+
+Original translation is retained in the profile coordinates and the axial descriptor origin. Numeric representability and the existing native constructor gates still apply. The older unposed mode is unchanged; it rejects the non-Z sources. The new API does not imply support for arbitrary oblique axes, nonneutral representation placements, additional product graphs, transformed UV coordinates or different trim families.
+
+The distinct native JSON tag is `plainsolid-step-posed-grouped-pcurve-convex-arc-repair`, version 1. Read and write re-prove the original world source, compare canonical native geometry, descriptor, source roles, all owner/trim/repair claims, normalization matrix and original reference-circle ID. Untrusted rational claims remain raw JSON until canonical comparison. Old grouped and single tags are rejected. Getter observations retain their existing copy semantics.
+
+## Independent posed sources
+
+The standalone OCCT helper adds `write-both-default-x`, `write-both-default-minus-x` and `write-both-default-translated`. It applies BRepBuilderAPI_Transform to the actual BRepFilletAPI result **before** writing standard AP214 with `write.surfacecurve.mode=1`. Each retained fixture has 440 entities and thirty owner pcurves. The proper motions are:
+
+- +X: `(x,y,z) -> (z+2,x-3,y)`.
+- −X: `(x,y,z) -> (2-z,-x-3,y)`.
+- Translated +Z: `(x,y,z) -> (x+2,y,z+3)`.
+
+The actual exports have six nonzero model repair sites apiece; source values that OCCT already rounded to exact tangent values are not invented as extra repairs. The exact source token for every reported world site is checked. Native reload verifies complete edge agreement with zero squared discrepancy. Independent original/corrected/generated TransferRoots all yield one valid seven-face solid, volume `29.077978807115535` and area `65.622954970084379`. World centroids are, respectively, `(4.5,-1.7287301237098764,1.0271143655601032)`, `(-0.5,-4.2712698762901233,1.0271143655601032)` and `(3.2712698762901238,1.0271143655601032,5.5)`, within the numerical comparator tolerances. These agree with native local mass transformed through the exact descriptor after source-bound JSON reload.
+
+Build the same standalone helper using `tools/occtref/build_author_convex_arc_step.sh` and the pinned OCCT paths documented in `REPAIRED_PCURVE_OCCT_CONVEX_ARC.md`. Run with `PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/tmp/plainsolid-convex-arc-step` and `go test ./exchange/step -run '^TestRepairPosedGroupedPCurve'`. Tests cover all three retained sources, genuine regenerated source, untouched UV records, native byte stability, original world repair tokens, old-tag rejection, incompatible model axes, changed UV poles/phase/owner, metadata placement, tampered pose claims, limits, cancellation and bounded native-envelope fuzzing.
