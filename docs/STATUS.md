@@ -41,18 +41,17 @@ The [full refreshed macOS run](evidence/main-35c79311-qualification-2026-11-14.j
 on `35c79311` passed 52 tested packages and 4,923 top-level cases, with
 460 optional skips and four packages without tests. All three trimmed
 groups matched their independent inventories, with 1,266 passes and
-24 optional skips across 1,290 cases. The Linux arm64 run on the same
-snapshot has passed two trimmed groups. Its last trimmed group is in
-progress. Its four original geometry case failures were resolved
-by the exact parameter-domain changes in `c855ecaa`. The complete
-repaired geometry package passed all 945 required cases with one
-optional skip. The pinned Windows amd64 build passed.
-[Linux geometry qualification](evidence/linux-geometry-go126-2026-11-14.json).
+24 optional skips across 1,290 cases. The [full Linux arm64 qualification](evidence/main-35c79311-linux-arm64-qualification-2026-11-14.json)
+on the same snapshot matched those totals after its complete geometry
+package was rerun with the exact parameter-domain correction in
+`c855ecaa`. The original run's four geometry failures are preserved.
+All three original Linux trimmed groups passed. The pinned Windows
+amd64 cross-build passed. [Linux geometry qualification](evidence/linux-geometry-go126-2026-11-14.json).
 The newer `0402eb63` platform run passed 36 focused Linux arm64 cases
 with 10 optional OCCT skips, and its Windows amd64 cross-build passed.
 [Focused platform qualification](evidence/main-0402eb63-focused-platform-2026-11-14.json).
 
-The [newest full PlainCAD qualification](evidence/plaincad-main-35c79311-2026-11-14.json)
+The [preceding full PlainCAD qualification](evidence/plaincad-main-35c79311-2026-11-14.json)
 uses the same pinned kernel and app `efae4d2`. The corrected toolbar
 locator passed the full 345-case development run on its configured
 origin. The direct asset-capture fixture passed all 66 production
@@ -60,10 +59,14 @@ cases with the standard Playwright driver. The WASM build, typecheck,
 bundle limit, 15 cross-browser cases, 1,691 ordinary units and four
 WASM contracts also passed. The original failure controls and the
 interrupted alternate-origin development run are retained in the record.
-A new complete PlainCAD run on `42ab9727` includes the committed fixture
-corrections and the native oblique fillet bridge. Its WASM build,
-typecheck, four contracts, all 345 development cases and all 66 production
-cases passed. Cross-browser and unit qualification are in progress.
+The [latest full PlainCAD qualification](evidence/plaincad-main-42ab9727-2026-11-14.json)
+on `42ab9727` includes the two committed test fixture corrections and
+the native oblique fillet bridge. The WASM build, typecheck, four
+contracts, 345 development cases, 66 production cases, 15 cross-browser
+cases and 1,691 units passed. The standard driver matches its pristine
+copy. The production WASM hash matches the built package. Another full
+Go run on `abb80f9f` uses five disjoint groups balanced by the measured
+trimmed case durations from `35c79311`.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -2612,6 +2615,8 @@ version 10 preserves two actual original cubic or quartic knot spans with
 independent positive speed maps and forces the original internal station
 into both owners' shared mesh ledger. The full raw basis is re-proved on
 reload. More general speed laws remain open.
+Exact split and merge now preserve the v10 source on either original
+span and at the original knot, with forward and reversed raw traversal.
 
 The opt-in polygon Cut with separated vertex links retains one connected
 boundary with two circular vertex links at one isolated original point.
@@ -2665,6 +2670,11 @@ common points and one-sided tangents. An independent fixture with a
 changed quadratic at a C0 knot and a separate refinement knot produces
 three original contour edges. Common, Fuse and both Cuts retain the source
 surfaces and pass native revalidation and OCCT volume checks.
+The original polynomial mode also qualifies genuine cubic and quartic
+contours in both chart directions. Original dependent knots can cross
+at irrational curve parameters. Exact evaluation supplies the shared
+representable wall vertices and the ordinary continuous edge proof
+still rejects a coherently perturbed one-ULP endpoint.
 
 The nonplanar STEP cavity route authenticates the original outer and
 reversed inner shell from `BREP_WITH_VOIDS`. Each shell retains its
@@ -2680,6 +2690,14 @@ revalidates the corrected full STEP graph. The signed-coordinate pose
 variant also proves each correction in the original world coordinates.
 Both return the original and corrected bytes and copied repair evidence.
 Ordinary exact readers continue to reject the inconsistent original data.
+The grouped model-only repair proves separate tangent ownership on two
+cylinders. When the source has opposite circle axes, it proves both
+incident coedge reversals along with the corrected directed minor arc.
+The independent default single-fillet STEP with pcurves enabled also
+qualifies. Its source-bound record re-proves all 24 original owner lifts
+under the caller's tolerance. The corrected model uses the separately
+validated model-only representation. The grouped default files with
+rational cap pcurve parameterizations still require a complete proof.
 
 ### Uniform periodic spline geometry
 
@@ -2690,3 +2708,8 @@ tangencies and coincident pieces with separate one-sided incidences at
 knots. Certified point-distance bounds retain an exact original witness
 parameter. Certified tessellation keeps original knots and seams, with
 position and parameter-linear chord error bounds on every output interval.
+Uniform periodic rational surfaces now store one or two cyclic axes with
+their original pole net and represented weights. Their native geometry
+record round-trips the original parameter ranges and optional ordinary
+knot axis. Exact tensor cells retain ownership and clipped rational ranges
+on both axes and adapt to the normalized exact surface engine.

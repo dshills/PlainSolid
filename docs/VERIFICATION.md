@@ -6742,3 +6742,55 @@ Focused Go WASM tests passed the original oblique axial fillet, STEP
 round trip and grouped chamfer on XY and YZ. The standard Go launcher
 initially rejected the inherited environment size. The rerun used a
 minimal environment and the same Go WASM test binary and assertions.
+
+The [full Linux arm64 qualification](evidence/main-35c79311-linux-arm64-qualification-2026-11-14.json)
+uses the pinned Go 1.26.0 image and the original `35c79311` test
+inventory. All three original trimmed groups passed. The complete geometry
+package rerun with `c855ecaa` closed four failures in the original output.
+After replacing that package's results with the corrected rerun, the record
+accounts for 4,923 top-level passes and 460 explicit optional skips across
+52 tested packages. The archive includes the original log and the exact
+correction patch. The corrected geometry and native callers are also
+recorded independently.
+
+The [full PlainCAD run on `42ab9727`](evidence/plaincad-main-42ab9727-2026-11-14.json)
+passed build, typecheck, four WASM contracts, 345 development cases, 66
+production cases, 15 cross-browser cases and 1,691 units. The two test
+fixture patches, original configured origins, pristine-driver hash and
+matching production WASM hash are recorded. The 72 JavaScript bundles
+passed the 500 kB limit, with a largest bundle of 496.50 kB.
+
+The original cubic and quartic graph fixtures passed all 24 combinations
+of degree, chart axis, operand order and Boolean operation. The original
+dependent knot at `5/16` crosses the contact at an irrational parameter.
+Strict exact endpoint evaluation keeps the original representable wall
+vertex. The regression that perturbs its model and chart coordinates by
+one ULP is still rejected by continuous edge agreement. Both independent
+OCCT fixtures agree with the native and analytical volumes.
+
+The two-span seam repair tests cover cuts in both original intervals and
+at their common knot for both traversal directions. Native reload retains
+the full original curve and uses the existing single-span representation
+when a knot cut separates the owners. All 12 split and merged meshes
+are closed and contact-free. The focused race suite also passes.
+
+The original two-fillet STEP input uses two oppositely oriented circle
+frames on one cylinder. The grouped bounded repair independently
+revalidates the complete model and both coedges for each changed arc.
+Live OCCT original, corrected and generated models agree on one solid,
+seven faces, volume, area and centroid in original and rotated poses.
+
+The independent default OCCT single-fillet source retains 24 owner
+pcurves. The tests verify every owner lift, the source-bound native
+reload, and rejection after owner, direction or model changes. One
+cylindrical parameter needed a small rigorous trigonometric interval.
+The qualified tolerance accepts the proved lift and a tighter tolerance
+rejects it. The original, corrected and re-exported solids pass live
+OCCT transfer and the focused race suite.
+
+Periodic surface tests use independent rational tensor basis evaluation
+across both seams. Mixed-axis extraction retains an ordinary knot and
+the cyclic owner on cycle `2^100`. Native reload preserves the original
+pole and weight data, including period and parameter units. Exact grids
+reject out-of-domain, past-budget and altered input records. The focused
+geometry and parametric suites passed under race.
