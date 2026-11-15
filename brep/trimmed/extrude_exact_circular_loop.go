@@ -14,7 +14,8 @@ import (
 
 // ExactCircularLoopSegment is one authored straight edge or a directed circular
 // arc. Positive Radius requires exact endpoints on the represented circle and
-// a counterclockwise sweep strictly between zero and pi. A line has Radius zero.
+// a counterclockwise sweep for ExtrudeExactCircularLoop. The directed constructor
+// also accepts clockwise minor arcs. A line has Radius zero.
 type ExactCircularLoopSegment struct {
 	Start, End, Center geom.Vec2
 	Radius             float64
@@ -35,10 +36,22 @@ type ExactCircularLoopOptions struct {
 // every continuous coedge are certified. The finished closed boundary retains
 // original analytic arcs even when their middle controls cannot fit binary64.
 func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions) (Solid, error) {
+	return extrudeExactCircularLoop(ctx, input, [2]float64{min(height, 0), max(height, 0)}, false, o)
+}
+
+// ExtrudeExactDirectedCircularLoop validates and sweeps a CCW profile whose
+// individual circular segments may turn clockwise or counterclockwise.
+// Exact endpoint radii and cross products determine the minor-arc direction.
+// Both original model-space cap elevations are retained.
+func ExtrudeExactDirectedCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, zMin, zMax float64, o ExactCircularLoopOptions) (Solid, error) {
+	return extrudeExactCircularLoop(ctx, input, [2]float64{zMin, zMax}, true, o)
+}
+
+func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, z [2]float64, directed bool, o ExactCircularLoopOptions) (Solid, error) {
 	if o.DisplayTolerance == 0 {
 		o.DisplayTolerance = 1e-8
 	}
-	if ctx == nil || len(input) < 3 || len(input) > 64 || !finite(height) || height == 0 ||
+	if ctx == nil || len(input) < 3 || len(input) > 64 || !finite(z[0]) || !finite(z[1]) || z[0] >= z[1] || !finite(z[1]-z[0]) ||
 		!finite(o.DisplayTolerance) || o.DisplayTolerance <= 0 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -55,7 +68,7 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 			!uvFinite(segment.Start) || !uvFinite(segment.End) || !uvFinite(segment.Center) || !finite(segment.Radius) || segment.Radius < 0 {
 			return Solid{}, geom.ErrInvalid
 		}
-		controls, err := exactCircularLoopControls(segment)
+		controls, err := exactCircularLoopControls(segment, directed)
 		if err != nil {
 			return Solid{}, err
 		}
@@ -78,7 +91,6 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 			}
 		}
 	}
-	z := [2]float64{min(height, 0), max(height, 0)}
 	n := len(input)
 	faces := make([]Face, n+2)
 	vertices := make([]geom.Vec3, 2*n)
@@ -135,13 +147,30 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 			faces[j].Outer = append(faces[j].Outer, Use{Edge: j*n + i, UVStart: input[i].Start, UVEnd: input[i].End, Curve: curve})
 		}
 	}
-	for _, cap := range faces[:2] {
-		proof, err := ValidateFaceTrimLoops(ctx, cap, o.Trims)
+	for i, cap := range faces[:2] {
+		var certificate *trimvalidate.CertifiedLoops
+		var retain **trimvalidate.CertifiedLoops
+		if directed && i == 0 {
+			retain = &certificate
+		}
+		proof, err := proveFaceTrimLoops(ctx, cap, o.Trims, retain, nil, nil)
 		if err != nil {
 			return Solid{}, err
 		}
 		if proof.Status != trimvalidate.Certified {
 			return Solid{}, fmt.Errorf("trimmed: unresolved exact circular cap loops: %w", geom.ErrConvergence)
+		}
+		if retain != nil {
+			dx := new(big.Rat).Sub(ratInset(box[1].X), ratInset(box[0].X))
+			dy := new(big.Rat).Sub(ratInset(box[1].Y), ratInset(box[0].Y))
+			width := new(big.Rat).Mul(new(big.Rat).Mul(dx, dy), big.NewRat(1, 128))
+			area, err := certificate.BoundSignedArea(ctx, width)
+			if err != nil {
+				return Solid{}, err
+			}
+			if area.Lower.Sign() <= 0 {
+				return Solid{}, fmt.Errorf("trimmed: directed circular profile must have certified positive orientation: %w", geom.ErrInvalid)
+			}
 		}
 	}
 	out, err := NewSolidContext(ctx, vertices, edges, faces, o.DisplayTolerance)
@@ -158,7 +187,7 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 	return out, nil
 }
 
-func exactCircularLoopControls(segment ExactCircularLoopSegment) ([][3]*big.Rat, error) {
+func exactCircularLoopControls(segment ExactCircularLoopSegment, directed bool) ([][3]*big.Rat, error) {
 	start := [2]*big.Rat{ratInset(segment.Start.X), ratInset(segment.Start.Y)}
 	end := [2]*big.Rat{ratInset(segment.End.X), ratInset(segment.End.Y)}
 	one := big.NewRat(1, 1)
@@ -174,7 +203,7 @@ func exactCircularLoopControls(segment ExactCircularLoopSegment) ([][3]*big.Rat,
 	dot := func(a, b [2]*big.Rat) *big.Rat { return add(mul(a[0], b[0]), mul(a[1], b[1])) }
 	want := mul(ratInset(segment.Radius), ratInset(segment.Radius))
 	cross := sub(mul(x[0], y[1]), mul(x[1], y[0]))
-	if dot(x, x).Cmp(want) != 0 || dot(y, y).Cmp(want) != 0 || cross.Sign() <= 0 {
+	if dot(x, x).Cmp(want) != 0 || dot(y, y).Cmp(want) != 0 || cross.Sign() == 0 || (!directed && cross.Sign() < 0) {
 		return nil, geom.ErrUnrepresentable
 	}
 	// Tangent half-angle is rational for rational endpoints. Restrict
