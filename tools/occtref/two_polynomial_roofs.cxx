@@ -4,6 +4,7 @@
 // f=1/4+3u/8-3u^2/8+u^3/8; g=5/8+u^4/8.
 // The node modes use g=f+(1-2u)(1+u^3)/64 for Common, Fuse and Cut.
 // The two-node modes use g=f+(4u-1)(4u-3)(1+u^2)/32.
+// The node-triple mode uses g=f+(1-4u)(1-2u)(3-4u)(1+u)/256.
 // The tangent diagnostic uses g=f+(2u-1)^2(1+u^2)/64.
 // The common denominator multiplier makes every degree-eight model pole dyadic.
 #include <BRepAlgoAPI_Common.hxx>
@@ -79,16 +80,23 @@ int main(int argc, char** argv){
   const bool twoNodeCut = mode == "node-pair-cut";
   const bool cut = mode == "node-cut" || twoNodeCut;
   const bool twoNodes = mode == "node-pair" || twoNodeCut;
+  const bool threeNodes = mode == "node-triple";
   const bool oneNode = mode == "node-cut" || mode == "node";
   const bool tangent = mode == "tangent";
-  if (argc != 1 && !oneNode && !twoNodes && !tangent) return 2;
+  const bool bothAxes = twoNodes || threeNodes || tangent;
+  if (argc != 1 && !oneNode && !bothAxes) return 2;
   const double disjoint[] = {.625, 0, 0, 0, .125};
   const double crossing[] = {17.0/64, 11.0/32, -.375, 9.0/64, -1.0/32};
   const double twiceCrossing[] = {11.0/32, -1.0/8, 7.0/32, -3.0/8, .5};
+  const double thriceCrossing[] = {67.0/256, 77.0/256, -35.0/128, 3.0/16, -1.0/8};
   const double tangentBranch[] = {17.0/64, 5.0/16, -19.0/64, 1.0/16, 1.0/16};
-  const auto* g = tangent ? tangentBranch : (oneNode ? crossing : (twoNodes ? twiceCrossing : disjoint));
+  const double* g = disjoint;
+  if (oneNode) g = crossing;
+  else if (twoNodes) g = twiceCrossing;
+  else if (threeNodes) g = thriceCrossing;
+  else if (tangent) g = tangentBranch;
   const int firstOperation = cut ? 2 : 0;
-  const int operationEnd = mode == "node" || mode == "node-pair" ? 2 : 3;
+  const int operationEnd = mode == "node" || mode == "node-pair" || threeNodes ? 2 : 3;
   std::cout << std::setprecision(17) << "[";
   bool first = true;
   auto report = [&](const TopoDS_Shape& shape, int axis, int order, int op, int slab) {
@@ -110,7 +118,7 @@ int main(int argc, char** argv){
     std::cout << "{\"Order\":" << order << ",\"Operation\":" << op
       << ",\"Valid\":" << (BRepCheck_Analyzer(shape).IsValid() ? "true" : "false")
       << ",\"Solids\":" << solids << ",\"Volume\":" << mass.Mass();
-    if (twoNodes || tangent) std::cout << ",\"Axis\":" << axis;
+    if (bothAxes) std::cout << ",\"Axis\":" << axis;
     if (slab >= 0) std::cout << ",\"FreeSlab\":" << slab;
     if (measureParts) {
       std::cout << ",\"PartVolumes\":[";
@@ -122,7 +130,7 @@ int main(int argc, char** argv){
     }
     std::cout << "}";
   };
-  for (int axis = 0; axis < (twoNodes || tangent ? 2 : 1); ++axis) {
+  for (int axis = 0; axis < (bothAxes ? 2 : 1); ++axis) {
     auto a = stock(true, g, axis), b = stock(false, g, axis);
     for(int order=0;order<2;++order){auto x=order?b:a,y=order?a:b;
       for(int op=firstOperation;op<operationEnd;++op){TopoDS_Shape s;
