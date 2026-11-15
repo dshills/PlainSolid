@@ -91,10 +91,14 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 	return repairOCCTConvexArcExtrusion(ctx, r, l, o, false)
 }
 func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (RepairedOCCTConvexArcExtrusion, error) {
-	return repairOCCTConvexArcModel(ctx, r, l, o, grouped, false)
+	fillets := 1
+	if grouped {
+		fillets = 2
+	}
+	return repairOCCTConvexArcModel(ctx, r, l, o, fillets, false)
 }
 
-func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped, finiteAxial bool) (RepairedOCCTConvexArcExtrusion, error) {
+func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, wanted int, finiteAxial bool) (RepairedOCCTConvexArcExtrusion, error) {
 	var zero RepairedOCCTConvexArcExtrusion
 	if ctx == nil || r == nil || math.IsNaN(o.MaxDistance) || math.IsInf(o.MaxDistance, 0) || o.MaxDistance <= 0 {
 		return zero, geom.ErrInvalid
@@ -126,10 +130,6 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 	vertices := map[int64]int64{}
 	incident := map[int64]map[int64]bool{}
 	cylinders := map[int64]occtLoopFace{}
-	wanted := 1
-	if grouped {
-		wanted = 2
-	}
 	for _, id := range f.Order {
 		if _, err := simple(f, id, "ADVANCED_FACE", 4); err != nil {
 			continue
@@ -402,7 +402,7 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 		}
 		f.Entities[pid] = Entity{ID: pid, Records: []Record{rec}}
 	}
-	if grouped {
+	if wanted > 1 {
 		out.reversals, e = normalizeGroupedConvexArcReversals(f, refs)
 		if e != nil {
 			return zero, e
@@ -424,7 +424,8 @@ func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o Conv
 		if err != nil || !occtLoopPositiveAxis(z, 2) {
 			return zero, geom.ErrDomain
 		}
-		if x[2].Sign() != 0 || ((x[0].Sign() == 0) == (x[1].Sign() == 0)) {
+		cardinal := (x[0].Sign() == 0) != (x[1].Sign() == 0)
+		if x[2].Sign() != 0 || (!cardinal && (wanted != 3 || !convexUVUnit(x[:]))) {
 			return zero, geom.ErrDomain
 		}
 		frame, _ := simple(f, rec.Args[1].Ref, "AXIS2_PLACEMENT_3D", 4)
