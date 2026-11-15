@@ -7,8 +7,10 @@ accounts for all 1,081 trimmed top-level tests on `6c4ab7c4`, with 1,068
 passes and 13 explicit skips. Across all packages, 4,567 top-level tests
 passed and 421 optional tests skipped. The [race continuation record](evidence/native-main-18204a56-2026-11-14.json)
 retains the original watchdog logs and the exact selection of 804
-remaining cases. At 18:34 local time, 708 passed, 12 skipped and 84
-remained. The [full PlainCAD record](evidence/plaincad-main-0e57c2d8-2026-11-14.json)
+remaining cases. The continuation completed with 792 passes and 12
+optional skips. The combined trimmed inventory has 1,023 passes and
+13 skips, with every original top-level test accounted for exactly once.
+The [full PlainCAD record](evidence/plaincad-main-0e57c2d8-2026-11-14.json)
 includes the passing development, cross-browser, unit, WASM contract,
 type and size runs on `0e57c2d8`. All 66 production cases passed after
 the test driver's temporary Chromium response buffer increase. The
@@ -31,7 +33,12 @@ fragment tests. The separate STEP tests import and re-export original
 filled and bored NURBS, including different inner and outer station
 grids, and compare each result with independently authored OCCT source
 geometry. The original raw and converged OCCT area measures are recorded
-in the material oracle notes.
+in the material oracle notes. Live XCAF checks verified full original
+filled and bored flat assemblies, one shared product, and cyclic and
+proper negative-axis occurrences. The integrated group passed under
+race in 60.875 seconds. The coincident trim section test covers a
+reversed original cubic over knot range `[2,6]`, the opposing face's
+hole, two retained closed-face runs, and source-bound native reload.
 
 ## Native qualification and piecewise reconstruction (2026-11-14)
 

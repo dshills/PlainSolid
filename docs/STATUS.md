@@ -22,8 +22,9 @@ The [earlier native race qualification](evidence/native-main-18204a56-2026-11-14
 passed all 50 packages with tests outside `brep/trimmed`. Three original
 trimmed watchdogs elapsed. The resumed run selects exactly the 804
 remaining top-level cases using the same production source and the stale
-degree-ceiling assertion corrected in `313dfb62`. At the 18:34 checkpoint
-708 of those cases passed and 12 explicitly skipped, with 84 pending.
+degree-ceiling assertion corrected in `313dfb62`. The continuation finished
+all 804 cases. The combined trimmed inventory has 1,023 passes and 13
+optional skips, with no duplicate or unresolved cases.
 General curved Boolean assembly, advanced surface modeling and broader CAD
 exchange remain required under the specification.
 
@@ -83,11 +84,17 @@ two exact poses. Simultaneous affine source edges now authorize the full
 face-pair graph and fragment all original affine faces. A pinched original
 region can be subdivided along certified noncrossing auxiliary edges. The
 original two shells reassemble from 60 triangles and 35 paired auxiliary
-edges. Original weighted rational trim clipping and fragmentation now
+edges. Convex affine Common, Fuse and manifold Cut select fragments by
+exact opposite-material occupancy and preserve original face ownership.
+Original weighted rational trim clipping and fragmentation now
 cover degree eight, while exact distance witnesses include original trim
-splines crossing an irrational support-knot event. Mapped whole spline
-face equality retains the original outer and hole identities in all
-eight supported chart symmetries.
+splines crossing an irrational support-knot event. Coincident original
+coedge spans contribute closed-face section intervals with original
+algebraic endpoint identities. Mapped whole spline face equality retains
+the original outer and hole identities in all eight supported chart
+symmetries, including bounded one-to-many trim refinements and hole
+permutations. Independently authored anisotropic filled and bored NURBS
+round-trip in STEP as individual solids and flat shared-product assemblies.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

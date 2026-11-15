@@ -30,8 +30,8 @@
     "CGO_ENABLED": 1,
     "timeoutMinutes": 145,
     "GOMAXPROCS": 2,
-    "status": "all 50 tested packages outside brep/trimmed passed; three original trimmed shards hit the watchdog; continuation running",
-    "checkpointAt": "2026-11-14T18:34:54-06:00",
+    "status": "All 50 tested packages outside brep/trimmed passed. Every original trimmed top-level case passed or explicitly skipped across the original and completed continuation lanes.",
+    "checkpointAt": "2026-11-14T18:41:58-06:00",
     "remainingIfInterrupted": {
       "runner": "/tmp/plainsolid-18204a56-race-continuation.py",
       "planAndResults": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
@@ -50,18 +50,46 @@
     },
     "continuation": {
       "directory": "/tmp/plainsolid-18204a56-race-continued-2026-11-14",
-      "status": "running",
+      "status": "complete",
       "totalTopLevelTargets": 804,
       "targetDispositionAtCheckpoint": {
-        "pass": 708,
+        "pass": 792,
         "skip": 12
       },
       "batchCount": 12,
       "planSHA256": "cc872f191a2d3589ba3b0812e9050c0cb15a4a624c4e68afcc36737a71629068",
-      "concurrency": 4
+      "concurrency": 4,
+      "completedAt": "2026-11-14T18:40:35.519188-06:00",
+      "failedBatches": [],
+      "longestPassed": {
+        "test": "TestCertifiedSelectedNestedDiskAnnulus",
+        "seconds": 2441.8
+      },
+      "archive": {
+        "path": "/tmp/plainsolid-18204a56-race-continuation-evidence-2026-11-14.tar.gz",
+        "bytes": 94420,
+        "sha256": "0110d74ed53c6b9635424b9b28a81d396996e2923f37783a660d628a62890f47"
+      }
+    },
+    "trimmedCoverage": {
+      "expected": 1036,
+      "originalCompleted": {
+        "pass": 231,
+        "skip": 1
+      },
+      "continuation": {
+        "pass": 792,
+        "skip": 12
+      },
+      "combined": {
+        "pass": 1023,
+        "skip": 13
+      },
+      "duplicates": 0,
+      "unresolved": 0
     }
   },
-  "status": "race continuation running",
+  "status": "complete normal and race inventory on the pinned production snapshot with the recorded test assertion correction",
   "lanes": {
     "packages-normal": {
       "path": "/tmp/plainsolid-18204a56-go.klJwkM/packages-normal.jsonl",
