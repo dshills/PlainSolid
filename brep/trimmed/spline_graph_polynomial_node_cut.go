@@ -141,27 +141,41 @@ func CutSplineGraphPolynomialNodeComponents(ctx context.Context, base, a, b *geo
 }
 
 func validatePolynomialNodeCutComponent(ctx context.Context, part Solid, history OpenSectionHistory, center geom.Vec3, witness [2]*big.Rat, proof geom.GraphPointContactOptions) (int, error) {
+	if len(history.ContourEdges) != 2 {
+		return -1, geom.ErrConvergence
+	}
+	if e := validatePolynomialCutLayer(ctx, part, history, witness, proof); e != nil {
+		return -1, e
+	}
+	return polynomialCutContactVertex(part, history, center)
+}
+
+func validatePolynomialCutLayer(ctx context.Context, part Solid, history OpenSectionHistory, witness [2]*big.Rat, proof geom.GraphPointContactOptions) error {
 	topology := part.Topology()
 	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 ||
-		len(history.ContourEdges) != 2 || part.faces[history.SplineFace].Reversed || !part.faces[history.PlaneFace].Reversed {
-		return -1, geom.ErrConvergence
+		part.faces[history.SplineFace].Reversed || !part.faces[history.PlaneFace].Reversed {
+		return geom.ErrConvergence
 	}
 	if e := affineMaterialVertexLinks(ctx, part); e != nil {
-		return -1, e
+		return e
 	}
 	if e := validateExactGraphPartitionEdges(ctx, part, proof); e != nil {
-		return -1, e
+		return e
 	}
 	// Both roof trims use this same UV loop. Identity XY and strict graph
-	// ordering in the sector interior give an embedded positive layer; walls
-	// are its exact upright fibers over the original perimeter arcs.
+	// ordering in the sector interior give an embedded positive layer. The
+	// walls are its exact upright fibers over the original perimeter arcs.
 	location, loops, e := LocateRationalInFaceTrim(ctx, part.faces[history.SplineFace], witness, trimvalidate.Options{})
 	if e != nil {
-		return -1, e
+		return e
 	}
 	if loops.Status != trimvalidate.Certified || location != trimvalidate.Inside {
-		return -1, geom.ErrConvergence
+		return geom.ErrConvergence
 	}
+	return nil
+}
+
+func polynomialCutContactVertex(part Solid, history OpenSectionHistory, center geom.Vec3) (int, error) {
 	vertex := -1
 	for i, p := range part.vertices {
 		if p != center {
@@ -184,11 +198,15 @@ func validatePolynomialNodeCutComponent(ctx context.Context, part Solid, history
 	if degree != 2 {
 		return -1, geom.ErrConvergence
 	}
+	incident := 0
 	for _, id := range history.ContourEdges {
 		edge := part.edges[id]
-		if (edge.Start == vertex) == (edge.End == vertex) {
-			return -1, geom.ErrConvergence
+		if edge.Start == vertex || edge.End == vertex {
+			incident++
 		}
+	}
+	if incident != 2 {
+		return -1, geom.ErrConvergence
 	}
 	return vertex, nil
 }
