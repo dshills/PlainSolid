@@ -68,6 +68,8 @@ const (
 // counterclockwise horizontal Profile and a vertical Offset. Radius rounds
 // every vertical edge, or CornerRadii selects individual edges and radii.
 // An orthogonal prism fillet also accepts reentrant profile corners.
+// A directed circular extrusion uses its named DirectedCircularExtrusion
+// profile and cap elevations, with Tolerance used for display validation.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -109,6 +111,8 @@ type Feature struct {
 	LinkedHelicalNut            *LinkedHelicalNutRecipe      `json:",omitempty"`
 	SideOpenDualDisk            *SideOpenDualDiskRecipe      `json:",omitempty"`
 	PlanarEdgeSplit             *PlanarEdgeSplitRecipe       `json:",omitempty"`
+
+	DirectedCircularExtrusion *DirectedCircularExtrusionRecipe `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
@@ -137,6 +141,10 @@ func (f Feature) clone() Feature {
 		recipe := *f.PlanarEdgeSplit
 		recipe.Parameters = append([]string(nil), recipe.Parameters...)
 		f.PlanarEdgeSplit = &recipe
+	}
+	if f.DirectedCircularExtrusion != nil {
+		recipe := f.DirectedCircularExtrusion.clone()
+		f.DirectedCircularExtrusion = &recipe
 	}
 	if f.SideOpenDualDisk != nil {
 		recipe := *f.SideOpenDualDisk
@@ -274,6 +282,9 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 			case OrthogonalPrismFilletFeature:
 				uv = true
 				r, e = evaluateOrthogonalPrismFillet(ctx, f)
+			case DirectedCircularExtrusionFeature:
+				uv = true
+				r, e = evaluateDirectedCircularExtrusion(ctx, f)
 			case PrismFilletFeature:
 				uv = true
 				if len(f.Profile) < 3 || len(f.Profile) > 128 || len(f.Holes) != 0 || f.Offset.X != 0 || f.Offset.Y != 0 || f.Offset.Z <= 0 {
