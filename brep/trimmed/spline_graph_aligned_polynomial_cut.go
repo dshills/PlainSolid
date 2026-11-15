@@ -115,6 +115,12 @@ type polynomialCutVolumes struct {
 func buildNativePolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurface, axis int, tolerance float64, o PolynomialNodeCutOptions,
 	kind string, proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
 	charts [2]graphEnvelopeChart, measure polynomialCutVolumes) (*AlignedPolynomialCut, error) {
+	return buildNativePolynomialCutOnFootprint(ctx, sources, axis, tolerance, o, kind, proof, owners, charts, measure, nil)
+}
+
+func buildNativePolynomialCutOnFootprint(ctx context.Context, sources [3]*geom.BSplineSurface, axis int, tolerance float64, o PolynomialNodeCutOptions,
+	kind string, proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
+	charts [2]graphEnvelopeChart, measure polynomialCutVolumes, reference graphEnvelopeReference) (*AlignedPolynomialCut, error) {
 	if !isNativeAlignedPolynomialArrangement(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
@@ -134,7 +140,7 @@ func buildNativePolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurfa
 	if e != nil {
 		return nil, e
 	}
-	// Source ledger keys are physical directions. Each value is the
+	// Source ledger keys are directed edges in the footprint chart. Each value is the
 	// exact restriction independently constructed in the owner's chart.
 	expect := [2]map[[2]geom.Vec2]openSectionPiece{}
 	for layer := range expect {
@@ -153,7 +159,7 @@ func buildNativePolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurfa
 	roofs := [2]*geom.BSplineSurface{sources[1], sources[2]}
 	evaluate := exactGraphVertexEvaluator(ctx, o.Proof)
 	assemble := func(loop []openSectionPiece) (Solid, OpenSectionHistory, error) {
-		return assembleOpenSplineGraphPairOnCharts(ctx, roofs[0], roofs[1], 0, true, tolerance, loop, charts, evaluate)
+		return assembleOpenSplineGraphPairOnCharts(ctx, roofs[0], roofs[1], 0, true, tolerance, loop, charts, reference, evaluate)
 	}
 	bind := func(part Solid, h OpenSectionHistory, loop []openSectionPiece) error {
 		return bindAlignedPolynomialCutLayer(ctx, part, h, roofs, charts, loop, expect, o.Proof)

@@ -126,6 +126,14 @@ func checkNativePolynomialCutMaterial(t *testing.T, cut *AlignedPolynomialCut, p
 
 func checkNativePolynomialCutMaterialOnFootprint(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int, origin, length float64, areaScale int64) {
 	t.Helper()
+	checkNativePolynomialCutMaterialInChart(t, cut, profile, axis, order, areaScale, func(p geom.Vec3) float64 {
+		return (([2]float64{p.X, p.Y})[axis] - origin) / length
+	})
+}
+
+func checkNativePolynomialCutMaterialInChart(t *testing.T, cut *AlignedPolynomialCut, profile, axis, order int,
+	areaScale int64, freeStation func(geom.Vec3) float64) {
+	t.Helper()
 	parts, contacts := cut.Components(), cut.Contacts()
 	regions := [2][]int{{0, 4}, {1, 2, 3}}[order]
 	if !slices.Equal(cut.Regions(), regions) || len(parts) != len(regions) {
@@ -156,7 +164,7 @@ func checkNativePolynomialCutMaterialOnFootprint(t *testing.T, cut *AlignedPolyn
 			pair = [2]int{i, i + 1}
 		}
 		p, e := geom.RepresentedExactPoint(c.Point)
-		if e != nil || c.Order != orders[i] || c.Components != pair || ([2]float64{p.X, p.Y})[axis] != origin+length*float64(1+2*i)/4 {
+		if e != nil || c.Order != orders[i] || c.Components != pair || freeStation(p) != float64(1+2*i)/4 {
 			t.Fatal("exact shared contact identity and indexed incidences", i, c, e)
 		}
 		for j, part := range pair {

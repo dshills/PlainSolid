@@ -115,16 +115,12 @@ func checkParallelogramPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnve
 		s.faces[h.Base].Surface != r.sources[0] || s.faces[h.Base].Reversed {
 		t.Fatal("original oblique shell and reflected base", top)
 	}
-	modelToUnit := func(p geom.Vec3) geom.Vec3 {
-		x, y := p.X-2, p.Y+1
-		return geom.Vec3{X: (3*x - y) / 5, Y: (2*y - x) / 5, Z: p.Z}
-	}
 	baseUV := func(p geom.Vec3) geom.Vec2 {
-		q := modelToUnit(p)
+		q := obliqueFixtureUnitPoint(p)
 		return geom.Vec2{X: 10 - 2*q.Y, Y: 2 - 4*q.X}
 	}
 	roofUV := func(owner int, p geom.Vec3) geom.Vec2 {
-		return projectedFixtureUV(owner, axis, modelToUnit(p))
+		return projectedFixtureUV(owner, axis, obliqueFixtureUnitPoint(p))
 	}
 	edgeEnds := func(u Use) (geom.Vec3, geom.Vec3) {
 		e := s.edges[u.Edge]
@@ -136,7 +132,7 @@ func checkParallelogramPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnve
 	orders := [2][2]int{{3, 2}, {2, 3}}[profile]
 	for i, c := range r.Contacts() {
 		p, e := geom.RepresentedExactPoint(c.Point)
-		q := modelToUnit(p)
+		q := obliqueFixtureUnitPoint(p)
 		uv := [2]float64{q.X, q.Y}
 		if e != nil || c.Order != orders[i] || uv[axis] != float64(1+2*i)/4 || s.vertices[c.Vertex] != p {
 			t.Fatal("original physical contact point and exact chart station", i, c, e)
@@ -187,6 +183,11 @@ func checkParallelogramPolynomialEnvelope(t *testing.T, r *AlignedPolynomialEnve
 			t.Fatal("oblique wall uses its original roof chart", hi.Edge)
 		}
 	}
+}
+
+func obliqueFixtureUnitPoint(p geom.Vec3) geom.Vec3 {
+	x, y := p.X-2, p.Y+1
+	return geom.Vec3{X: (3*x - y) / 5, Y: (2*y - x) / 5, Z: p.Z}
 }
 
 func TestObliqueSplineWallExactAgreement(t *testing.T) {
