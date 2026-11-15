@@ -87,16 +87,20 @@ planar parameter scales and cylindrical span coefficients in the native
 receipt. Their world meshes use PlainCAD's ordinary 0.5 mm linear deflection.
 The converted inch fixture uses a `1e-11` inch repair budget and verifies
 that `1e-12` inch is insufficient.
+The grouped converted metre fixture uses a `1e-12` metre budget and rejects
+`1e-13`. Its receipt retains the finite axial map, both original cap trims,
+and their reversed cylindrical spans.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
-units, the original converted OCCT metre and inch exports, and tilted
-grouped inputs in metres and inches. The test compares the certificate text
-with the original bytes returned by Go WASM. A fresh worker receives that
-certificate, derives the identical native receipt from its original source, and strictly reopens
-and re-exports the canonical STEP. The metre and inch cases check explicit
+units, the original converted OCCT metre and inch exports, tilted grouped
+inputs in metres and inches, and the grouped converted metre export. The
+test compares the certificate text with the original bytes returned by Go
+WASM. A fresh worker receives that certificate, derives the identical
+native receipt from its source, and strictly reopens and re-exports
+the canonical STEP. The metre and inch cases check explicit
 matching file units, millimetre `proofUnits`, and rejection of missing,
 mismatched, and mixed file units. The report records the test sources, authored
 STEP input, WASM, and receipt hashes.
