@@ -59,7 +59,7 @@ func WriteVertexContactAssemblyJSON(ctx context.Context, w io.Writer, a VertexCo
 			return err
 		}
 		doc.Components[i] = brepDocument{1, "planar-brep", c.Vertices(), c.Edges(), c.Faces()}
-		if err := checkVertexContactComponent(doc.Components[i], o); err != nil {
+		if err := checkPlanarAssemblyComponent(doc.Components[i], o.Component, o.MaxBytes); err != nil {
 			return fmt.Errorf("assembly component %d: %w", i, err)
 		}
 	}
@@ -130,7 +130,7 @@ func ReadVertexContactAssemblyJSON(ctx context.Context, r io.Reader, o VertexCon
 		if doc.Version != 1 || doc.Kind != "planar-brep" {
 			return zero, noReport, fmt.Errorf("%w: assembly component %d schema", collision.ErrInvalid, i)
 		}
-		if err := checkVertexContactComponent(doc, o); err != nil {
+		if err := checkPlanarAssemblyComponent(doc, o.Component, o.MaxBytes); err != nil {
 			return zero, noReport, fmt.Errorf("assembly component %d: %w", i, err)
 		}
 		a.Components[i], err = brep.NewSolid(doc.Vertices, doc.Edges, doc.Faces)
@@ -146,16 +146,16 @@ func ReadVertexContactAssemblyJSON(ctx context.Context, r io.Reader, o VertexCon
 	return a, report, nil
 }
 
-func checkVertexContactComponent(doc brepDocument, o VertexContactAssemblyJSONOptions) error {
-	if err := checkBRepDocument(doc, o.Component); err != nil {
+func checkPlanarAssemblyComponent(doc brepDocument, component BRepLimits, maxBytes int64) error {
+	if err := checkBRepDocument(doc, component); err != nil {
 		return err
 	}
-	if o.Component.MaxBytes < o.MaxBytes {
+	if component.MaxBytes < maxBytes {
 		raw, err := json.Marshal(doc)
 		if err != nil {
 			return err
 		}
-		if int64(len(raw)) > o.Component.MaxBytes {
+		if int64(len(raw)) > component.MaxBytes {
 			return collision.ErrLimit
 		}
 	}
@@ -163,11 +163,8 @@ func checkVertexContactComponent(doc brepDocument, o VertexContactAssemblyJSONOp
 }
 
 func vertexContactJSONOptions(o VertexContactAssemblyJSONOptions) (VertexContactAssemblyJSONOptions, error) {
-	if o.MaxBytes < 0 || o.MaxBytes > 1<<30 || o.Proof.MaxSolids < 0 || o.Proof.MaxDeclaredContacts < 0 {
+	if o.Proof.MaxSolids < 0 || o.Proof.MaxDeclaredContacts < 0 {
 		return o, collision.ErrInvalid
-	}
-	if o.MaxBytes == 0 {
-		o.MaxBytes = 16 << 20
 	}
 	if o.Proof.MaxSolids == 0 {
 		o.Proof.MaxSolids = 256
@@ -176,6 +173,17 @@ func vertexContactJSONOptions(o VertexContactAssemblyJSONOptions) (VertexContact
 		o.Proof.MaxDeclaredContacts = 1024
 	}
 	var err error
-	o.Component, err = o.Component.normalized()
+	o.MaxBytes, o.Component, err = planarAssemblyJSONBounds(o.MaxBytes, o.Component)
 	return o, err
+}
+
+func planarAssemblyJSONBounds(maxBytes int64, component BRepLimits) (int64, BRepLimits, error) {
+	if maxBytes < 0 || maxBytes > 1<<30 {
+		return 0, BRepLimits{}, collision.ErrInvalid
+	}
+	if maxBytes == 0 {
+		maxBytes = 16 << 20
+	}
+	l, err := component.normalized()
+	return maxBytes, l, err
 }
