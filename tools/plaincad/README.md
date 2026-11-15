@@ -81,6 +81,15 @@ typechecks the adapter and records the fixture and original STEP input hashes.
 The cases cover signed and rationally tilted placements, source proof transport,
 world meshes, and strict canonical STEP reimport and re-export.
 
+Use `--suite development --step-repair-worker-fixture` to run the focused
+Chromium check with the pinned app's Playwright and Vite configuration. The
+disposable app stages a test page and a dedicated module worker that imports
+the concrete adapter. For the translated tilted OCCT input, the test compares
+the certificate text received from the worker with the original certificate
+bytes returned by Go WASM. It then sends the exported canonical STEP to a
+fresh worker for ordinary strict import and byte-stable re-export. The report
+records the test sources, authored STEP input, and WASM hashes.
+
 ## What changes in the isolated app
 
 - The `OpenCascadeKernel` import boundary is replaced by `PlainSolidKernel.ts`.
