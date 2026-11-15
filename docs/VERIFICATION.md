@@ -259,6 +259,9 @@ kept its pristine hash. Raw results remain in
   a full circular opening; both native sweeps match their material. The
   main race passed in 16.616 seconds and rejected an unrepresentable
   required extremum without rejecting a short span that avoids it.
+  The alternate authored-station proof accepts the same long support
+  through exact nonaxis stations and rejects reordered, insufficient or
+  off-circle stops. The main pinned race passed in 6.926 seconds.
 - Nonunit Cut and prior native Boolean cases passed the main trimmed race
   in 284.486 seconds. Both Cut orders retain the original sloping base and
   both independent roof owners. Independent physical integration agrees

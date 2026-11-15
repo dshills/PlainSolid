@@ -81,6 +81,17 @@ func TestSplitExactDirectedCircularSpanChecksOnlyTraversedStations(t *testing.T)
 	if cuts, err := SplitExactDirectedCircularSpan(s); !errors.Is(err, geom.ErrUnrepresentable) || cuts != nil {
 		t.Fatalf("published an inexact station on the long span: %+v %v", cuts, err)
 	}
+	// Exact nonaxis stations still cover this long directed span.
+	a, b := geom.Vec2{X: x + 4, Y: -3}, geom.Vec2{X: x - 4, Y: -3}
+	cuts, err = PartitionExactDirectedCircularSpan(s, []geom.Vec2{a, b})
+	if err != nil || len(cuts) != 3 || cuts[0].End != a || cuts[1].End != b || cuts[2].End != s.End {
+		t.Fatalf("lost the original span despite exact interior stations: %+v %v", cuts, err)
+	}
+	for _, bad := range [][]geom.Vec2{{b, a}, {a}, {a, {X: x - 4, Y: -2}}} {
+		if cuts, err := PartitionExactDirectedCircularSpan(s, bad); !errors.Is(err, geom.ErrDomain) || cuts != nil {
+			t.Fatalf("accepted an out-of-order, insufficient or off-circle station: %+v %v", cuts, err)
+		}
+	}
 	s.End = s.Start
 	if cuts, err := SplitExactDirectedCircularSpan(s); !errors.Is(err, geom.ErrInvalid) || cuts != nil {
 		t.Fatalf("equal endpoints automatically became a full circle: %+v %v", cuts, err)
