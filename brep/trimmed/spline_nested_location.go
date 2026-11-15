@@ -3,11 +3,63 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
+
+// LocateSplineMaterialPoint classifies a represented model point on an
+// oriented boundary made of clamped spline or exact Bézier and tensor faces.
+// The boundary must enclose valid material. Its topology may contain
+// multiple shells, including contacting original boundaries and inward
+// cavity shells. Exact face membership or complete oriented spline rays
+// establish the result. Inconclusive boundary queries and rays return an error.
+func (s Solid) LocateSplineMaterialPoint(ctx context.Context, point geom.Vec3, o SplineShellBooleanOptions) (parametric.Location, error) {
+	if ctx == nil || !point.IsFinite() || o.MaxRays < 0 || o.MaxRays > 12 || o.Ray.MaxFaces < 0 {
+		return parametric.Outside, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return parametric.Outside, e
+	}
+	if len(s.faces) == 0 {
+		return parametric.Outside, nil
+	}
+	if o.MaxRays == 0 {
+		o.MaxRays = 12
+	}
+	maxFaces := o.Ray.MaxFaces
+	if maxFaces == 0 {
+		maxFaces = 128
+	}
+	if len(s.faces) > maxFaces {
+		return parametric.Outside, parametric.ErrBudget
+	}
+	var bounds geom.Box
+	for i, f := range s.faces {
+		if e := ctx.Err(); e != nil {
+			return parametric.Outside, e
+		}
+		p, e := exactFaceSupportPatch(f, o.Embedding.Patches)
+		if e != nil {
+			return parametric.Outside, fmt.Errorf("trimmed: spline material face %d: %w", i, e)
+		}
+		box, e := p.Bounds()
+		if e != nil {
+			return parametric.Outside, e
+		}
+		if i == 0 {
+			bounds = box
+		} else {
+			bounds, e = bounds.Union(box)
+			if e != nil {
+				return parametric.Outside, e
+			}
+		}
+	}
+	return locateOriginalBooleanOperand(ctx, s, bounds, point, o)
+}
 
 // LocateNestedSplineMaterial classifies a represented point against a
 // certified nested shell arrangement. Wrapped frusta and circular toroids

@@ -75,6 +75,23 @@ func TestTangentEllipseCavityCut(t *testing.T) {
 	}
 	s, h, p, e := CutInternallyTangentSplineShellEllipseCavity(ctx, outer, inner, o)
 	expect(s, h, p, e)
+	for _, q := range []struct {
+		point geom.Vec3
+		want  parametric.Location
+	}{
+		{geom.Vec3{X: .5, Y: .5, Z: -.5}, parametric.Outside},
+		{geom.Vec3{X: .5, Y: .5, Z: -1.5}, parametric.Inside},
+		{geom.Vec3{X: .75, Y: .5}, parametric.Boundary},
+		{geom.Vec3{X: .5, Y: .5, Z: -9.0 / 4096}, parametric.Boundary},
+	} {
+		if result, e := s.LocateSplineMaterialPoint(ctx, q.point, SplineShellBooleanOptions{}); e != nil || result != q.want {
+			t.Fatal("exact explicit spline material classification", q, result, e)
+		}
+	}
+	bounded := SplineShellBooleanOptions{Ray: SplineRayOptions{MaxFaces: 11}}
+	if _, e := s.LocateSplineMaterialPoint(ctx, geom.Vec3{X: .5, Y: .5, Z: -1.5}, bounded); !errors.Is(e, parametric.ErrBudget) {
+		t.Fatal("material classification face quota", e)
+	}
 	if s.faces[5].Surface != outer.faces[5].Surface || s.faces[7].Surface != inner.faces[1].Surface {
 		t.Fatal("both original contact supports must be retained")
 	}
